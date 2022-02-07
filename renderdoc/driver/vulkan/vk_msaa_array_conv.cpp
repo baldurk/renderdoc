@@ -92,6 +92,7 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
 
   vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcView);
   CheckVkResult(vkr);
+  NameUnwrappedVulkanObject(srcView, "MS -> Array srcView");
 
   viewInfo.image = destArray;
   viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
@@ -128,6 +129,7 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
 
     vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView);
     CheckVkResult(vkr);
+    NameUnwrappedVulkanObject(destView, "MS -> Array destView");
 
     views.push_back(destView);
 
@@ -237,12 +239,14 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
 
   vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcDepthView);
   CheckVkResult(vkr);
+  NameUnwrappedVulkanObject(srcDepthView, "Depth MS -> Array srcDepthView");
 
   if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
   {
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
     vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcStencilView);
     CheckVkResult(vkr);
+    NameUnwrappedVulkanObject(srcStencilView, "Depth MS -> Array srcStencilView");
   }
 
   viewInfo.subresourceRange.aspectMask = aspectFlags;
@@ -260,6 +264,7 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
 
     vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView[i]);
     CheckVkResult(vkr);
+    NameUnwrappedVulkanObject(destView[i], "Depth MS -> Array destView[i]");
   }
 
   VkDescriptorImageInfo srcdesc[2];
@@ -488,12 +493,14 @@ void VulkanDebugManager::CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, Vk
 
   vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcView);
   CheckVkResult(vkr);
+  NameUnwrappedVulkanObject(srcView, "Array -> MS srcView");
 
   viewInfo.image = destMS;
   viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 
   vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView);
   CheckVkResult(vkr);
+  NameUnwrappedVulkanObject(destView, "Array -> MS destView");
 
   VkDescriptorImageInfo srcdesc = {0};
   srcdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -610,12 +617,14 @@ void VulkanDebugManager::CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArra
 
   vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcDepthView);
   CheckVkResult(vkr);
+  NameUnwrappedVulkanObject(srcDepthView, "Depth Array -> MS srcDepthView");
 
   if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
   {
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
     vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcStencilView);
     CheckVkResult(vkr);
+    NameUnwrappedVulkanObject(srcStencilView, "Depth Array -> MS srcStencilView");
   }
 
   viewInfo.subresourceRange.aspectMask = aspectFlags;
@@ -633,6 +642,7 @@ void VulkanDebugManager::CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArra
 
     vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView[i]);
     CheckVkResult(vkr);
+    NameUnwrappedVulkanObject(destView[i], "Depth Array -> MS destView[i]");
   }
 
   VkDescriptorImageInfo srcdesc[2];

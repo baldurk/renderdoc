@@ -476,6 +476,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
     vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &m_DummyStencilImage[0]);
     CheckVkResult(vkr);
 
+    NameVulkanObject(m_DummyStencilImage[0], "m_DummyStencilImage[0]");
+
     rm->SetInternalResource(GetResID(m_DummyStencilImage[0]));
 
     imInfo.samples = VK_SAMPLE_COUNT_2_BIT;
@@ -498,6 +500,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
     vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &m_DummyStencilImage[1]);
     CheckVkResult(vkr);
+
+    NameVulkanObject(m_DummyStencilImage[1], "m_DummyStencilImage[1]");
 
     rm->SetInternalResource(GetResID(m_DummyStencilImage[1]));
 
@@ -550,12 +554,16 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
     vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &m_DummyStencilView[0]);
     CheckVkResult(vkr);
 
+    NameVulkanObject(m_DummyStencilView[0], "m_DummyStencilView[0]");
+
     rm->SetInternalResource(GetResID(m_DummyStencilView[0]));
 
     viewInfo.image = m_DummyStencilImage[1];
 
     vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &m_DummyStencilView[1]);
     CheckVkResult(vkr);
+
+    NameVulkanObject(m_DummyStencilView[0], "m_DummyStencilView[1]");
 
     rm->SetInternalResource(GetResID(m_DummyStencilView[1]));
 
@@ -893,6 +901,8 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
   vkr = m_pDriver->vkCreateImage(m_Device, &imInfo, NULL, &m_Custom.TexImg);
   CheckVkResult(vkr);
 
+  NameVulkanObject(m_Custom.TexImg, "m_Custom.TexImg");
+
   VkMemoryRequirements mrq = {0};
   m_pDriver->vkGetImageMemoryRequirements(m_Device, m_Custom.TexImg, &mrq);
 
@@ -939,6 +949,8 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
     viewInfo.subresourceRange.baseMipLevel = i;
     vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &m_Custom.TexImgView[i]);
     CheckVkResult(vkr);
+
+    NameVulkanObject(m_Custom.TexImgView[i], "m_Custom.TexImgView[" + ToStr(i) + "]");
   }
 
   // need to update image layout into valid state
@@ -2001,6 +2013,8 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
           VkImageView view;
           VkResult vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &view);
           CheckVkResult(vkr);
+          NameVulkanObject(view, StringFormat::Fmt("FillWithDiscardPattern view %s",
+                                                   ToStr(GetResID(image)).c_str()));
 
           imgdata.views.push_back(view);
 
@@ -3310,6 +3324,9 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
         vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &DummyImages[fmt][type]);
         driver->CheckVkResult(vkr);
 
+        NameVulkanObject(DummyImages[fmt][type],
+                         "DummyImages[" + ToStr(fmt) + "][" + ToStr(type) + "]");
+
         MemoryAllocation alloc = driver->AllocateMemoryForResource(
             DummyImages[fmt][type], MemoryScope::ImmutableReplayDebug, MemoryType::GPULocal);
 
@@ -3420,6 +3437,9 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
         vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL,
                                         &DummyImageViews[fmt][type]);
         driver->CheckVkResult(vkr);
+
+        NameVulkanObject(DummyImageViews[fmt][type],
+                         "DummyImageViews[" + ToStr(fmt) + "][" + ToStr(type) + "]");
 
         // the cubemap view we don't create an info for it, and the image is already transitioned
         if(cube)
@@ -3836,6 +3856,8 @@ void VulkanReplay::PixelPicking::Init(WrappedVulkan *driver, VkDescriptorPool de
   vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &Image);
   driver->CheckVkResult(vkr);
 
+  NameVulkanObject(Image, "PixelPick.Image");
+
   VkMemoryRequirements mrq = {0};
   driver->vkGetImageMemoryRequirements(driver->GetDev(), Image, &mrq);
 
@@ -3867,6 +3889,8 @@ void VulkanReplay::PixelPicking::Init(WrappedVulkan *driver, VkDescriptorPool de
 
   vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &ImageView);
   driver->CheckVkResult(vkr);
+
+  NameVulkanObject(ImageView, "PixelPick.ImageView");
 
   // need to update image layout into valid state
 
@@ -4153,6 +4177,8 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
   vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &Image);
   driver->CheckVkResult(vkr);
 
+  NameVulkanObject(Image, "ShaderDebugData.Image");
+
   VkMemoryRequirements mrq = {0};
   driver->vkGetImageMemoryRequirements(driver->GetDev(), Image, &mrq);
 
@@ -4184,6 +4210,8 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
 
   vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &ImageView);
   driver->CheckVkResult(vkr);
+
+  NameVulkanObject(ImageView, "ShaderDebugData.ImageView");
 
   VkAttachmentDescription attDesc = {
       0,

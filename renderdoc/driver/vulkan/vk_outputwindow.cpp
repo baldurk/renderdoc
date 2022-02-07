@@ -414,6 +414,8 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
     GetResourceManager()->WrapResource(Unwrap(device), dsimg);
 
+    NameVulkanObject(dsimg, "outputwindow dsimg");
+
     VkMemoryRequirements mrq = {0};
 
     vt->GetImageMemoryRequirements(Unwrap(device), Unwrap(dsimg), &mrq);
@@ -451,6 +453,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
     vkr = vt->CreateImageView(Unwrap(device), &info, NULL, &dsview);
     driver->CheckVkResult(vkr);
+    NameUnwrappedVulkanObject(dsview, "output window dsview");
 
     GetResourceManager()->WrapResource(Unwrap(device), dsview);
 
@@ -464,6 +467,8 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     driver->CheckVkResult(vkr);
 
     GetResourceManager()->WrapResource(Unwrap(device), resolveimg);
+
+    NameVulkanObject(resolveimg, "outputwindow resolveimg");
 
     vt->GetImageMemoryRequirements(Unwrap(device), Unwrap(resolveimg), &mrq);
 
@@ -561,6 +566,8 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
     GetResourceManager()->WrapResource(Unwrap(device), bb);
 
+    NameVulkanObject(bb, "outputwindow bb");
+
     VkMemoryRequirements mrq = {0};
 
     vt->GetImageMemoryRequirements(Unwrap(device), Unwrap(bb), &mrq);
@@ -600,6 +607,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
     vkr = vt->CreateImageView(Unwrap(device), &info, NULL, &bbview);
     driver->CheckVkResult(vkr);
+    NameUnwrappedVulkanObject(bbview, "output window bbview");
 
     GetResourceManager()->WrapResource(Unwrap(device), bbview);
 

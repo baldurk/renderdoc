@@ -178,14 +178,13 @@ struct VkMarkerRegion
   static void Set(const rdcstr &marker, VkQueue q = VK_NULL_HANDLE);
   static void End(VkQueue q = VK_NULL_HANDLE);
 
+  static VkDevice GetDev();
+
   VkCommandBuffer cmdbuf = VK_NULL_HANDLE;
   VkQueue queue = VK_NULL_HANDLE;
 
   static WrappedVulkan *vk;
 };
-
-template <typename T>
-void NameVulkanObject(T obj, const rdcstr &name);
 
 struct GPUBuffer
 {

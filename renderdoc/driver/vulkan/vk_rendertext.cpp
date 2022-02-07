@@ -354,6 +354,8 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
       vkr = m_pDriver->vkCreateImage(dev, &imInfo, NULL, &m_TextAtlas);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+      NameVulkanObject(m_TextAtlas, "m_TextAtlas");
+
       rm->SetInternalResource(GetResID(m_TextAtlas));
 
       VkMemoryRequirements mrq = {0};

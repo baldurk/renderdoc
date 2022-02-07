@@ -102,6 +102,11 @@ void VkMarkerRegion::End(VkCommandBuffer cmd)
   ObjDisp(cmd)->CmdEndDebugUtilsLabelEXT(Unwrap(cmd));
 }
 
+VkDevice VkMarkerRegion::GetDev()
+{
+  return vk->GetDev();
+}
+
 void VkMarkerRegion::Begin(const rdcstr &marker, VkQueue q)
 {
   if(q == VK_NULL_HANDLE)
@@ -160,22 +165,14 @@ void VkMarkerRegion::End(VkQueue q)
 }
 
 template <>
-void NameVulkanObject(VkImage obj, const rdcstr &name)
+VkObjectType objType<VkImage>()
 {
-  if(!VkMarkerRegion::vk)
-    return;
-
-  VkDevice dev = VkMarkerRegion::vk->GetDev();
-
-  if(!ObjDisp(dev)->SetDebugUtilsObjectNameEXT)
-    return;
-
-  VkDebugUtilsObjectNameInfoEXT info = {};
-  info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-  info.objectType = VK_OBJECT_TYPE_IMAGE;
-  info.objectHandle = NON_DISP_TO_UINT64(Unwrap(obj));
-  info.pObjectName = name.c_str();
-  ObjDisp(dev)->SetDebugUtilsObjectNameEXT(Unwrap(dev), &info);
+  return VK_OBJECT_TYPE_IMAGE;
+}
+template <>
+VkObjectType objType<VkImageView>()
+{
+  return VK_OBJECT_TYPE_IMAGE_VIEW;
 }
 
 void GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize,

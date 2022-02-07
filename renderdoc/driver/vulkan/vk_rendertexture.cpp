@@ -104,6 +104,8 @@ void VulkanReplay::CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::
     // create first view
     vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &views.views[0]);
     CheckVkResult(vkr);
+    NameVulkanObject(views.views[0], StringFormat::Fmt("CreateTexImageView view 0 %s",
+                                                       ToStr(GetResID(liveIm)).c_str()));
 
     // for depth-stencil images, create a second view for stencil only
     if(IsDepthAndStencilFormat(fmt))
@@ -112,6 +114,8 @@ void VulkanReplay::CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::
 
       vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &views.views[1]);
       CheckVkResult(vkr);
+      NameVulkanObject(views.views[1], StringFormat::Fmt("CreateTexImageView view 1 %s",
+                                                         ToStr(GetResID(liveIm)).c_str()));
     }
   }
 }

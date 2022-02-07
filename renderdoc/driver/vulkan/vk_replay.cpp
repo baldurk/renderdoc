@@ -3368,6 +3368,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     GetResourceManager()->WrapResource(Unwrap(dev), wrappedTmpImage);
     tmpImageState = ImageState(wrappedTmpImage, ImageInfo(imCreateInfo), eFrameRef_None);
 
+    NameVulkanObject(wrappedTmpImage, "GetTextureData tmpImage");
+
     VkMemoryRequirements mrq = {0};
     vt->GetImageMemoryRequirements(Unwrap(dev), tmpImage, &mrq);
 
@@ -3500,6 +3502,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
       vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, NULL, &tmpView[i]);
       CheckVkResult(vkr);
 
+      NameUnwrappedVulkanObject(tmpView[i], "GetTextureData tmpView[i]");
+
       VkFramebufferCreateInfo fbinfo = {
           VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
           NULL,
@@ -3539,6 +3543,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
         vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, NULL, &tmpView[i + numFBs]);
         CheckVkResult(vkr);
+        NameUnwrappedVulkanObject(tmpView[i + numFBs], "GetTextureData tmpView[i]");
         fbinfo.pAttachments = &tmpView[i + numFBs];
         vkr = vt->CreateFramebuffer(Unwrap(dev), &fbinfo, NULL, &tmpFB[i + numFBs]);
         CheckVkResult(vkr);
@@ -3595,6 +3600,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     wrappedTmpImage = tmpImage;
     GetResourceManager()->WrapResource(Unwrap(dev), wrappedTmpImage);
     tmpImageState = ImageState(wrappedTmpImage, ImageInfo(imCreateInfo), eFrameRef_None);
+
+    NameVulkanObject(wrappedTmpImage, "GetTextureData tmpImage");
 
     VkMemoryRequirements mrq = {0};
     vt->GetImageMemoryRequirements(Unwrap(dev), tmpImage, &mrq);
@@ -3692,6 +3699,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     wrappedTmpImage = tmpImage;
     GetResourceManager()->WrapResource(Unwrap(dev), wrappedTmpImage);
     tmpImageState = ImageState(wrappedTmpImage, ImageInfo(imCreateInfo), eFrameRef_None);
+
+    NameVulkanObject(wrappedTmpImage, "GetTextureData tmpImage");
 
     VkMemoryRequirements mrq = {0};
     vt->GetImageMemoryRequirements(Unwrap(dev), tmpImage, &mrq);

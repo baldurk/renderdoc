@@ -602,6 +602,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     vkr = m_pDriver->vkCreateImage(m_Device, &imInfo, NULL, &m_Overlay.Image);
     CheckVkResult(vkr);
 
+    NameVulkanObject(m_Overlay.Image, "m_Overlay.Image");
+
     VkMemoryRequirements mrq = {0};
     m_pDriver->vkGetImageMemoryRequirements(m_Device, m_Overlay.Image, &mrq);
 
@@ -2149,6 +2151,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       vkr = m_pDriver->vkCreateImage(m_Device, &imInfo, NULL, &quadImg);
       CheckVkResult(vkr);
+
+      NameVulkanObject(quadImg, "m_Overlay.quadImg");
 
       VkMemoryRequirements mrq = {0};
 

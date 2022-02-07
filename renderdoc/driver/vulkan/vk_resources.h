@@ -2414,6 +2414,47 @@ uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat F
 uint32_t GetPlaneByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format,
                           uint32_t mip, uint32_t plane);
 
+template <typename T>
+VkObjectType objType();
+
+template <typename T>
+void NameVulkanObject(T obj, const rdcstr &name)
+{
+  if(!VkMarkerRegion::vk)
+    return;
+
+  VkDevice dev = VkMarkerRegion::GetDev();
+
+  if(!ObjDisp(dev)->SetDebugUtilsObjectNameEXT)
+    return;
+
+  VkDebugUtilsObjectNameInfoEXT info = {};
+  info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+  info.objectType = objType<T>();
+  info.objectHandle = NON_DISP_TO_UINT64(Unwrap(obj));
+  info.pObjectName = name.c_str();
+  ObjDisp(dev)->SetDebugUtilsObjectNameEXT(Unwrap(dev), &info);
+}
+
+template <typename T>
+void NameUnwrappedVulkanObject(T obj, const rdcstr &name)
+{
+  if(!VkMarkerRegion::vk)
+    return;
+
+  VkDevice dev = VkMarkerRegion::GetDev();
+
+  if(!ObjDisp(dev)->SetDebugUtilsObjectNameEXT)
+    return;
+
+  VkDebugUtilsObjectNameInfoEXT info = {};
+  info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+  info.objectType = objType<T>();
+  info.objectHandle = NON_DISP_TO_UINT64(obj);
+  info.pObjectName = name.c_str();
+  ObjDisp(dev)->SetDebugUtilsObjectNameEXT(Unwrap(dev), &info);
+}
+
 template <typename Compose>
 FrameRefType MarkImageReferenced(rdcflatmap<ResourceId, ImgRefs> &imgRefs, ResourceId img,
                                  const ImageInfo &imageInfo, const ImageRange &range,

@@ -157,6 +157,9 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
       GetResourceManager()->WrapResource(Unwrap(d), arrayIm);
 
+      NameUnwrappedVulkanObject(
+          arrayIm, StringFormat::Fmt("Initial State array image for %s", ToStr(id).c_str()));
+
       MemoryAllocation arrayMem =
           AllocateMemoryForResource(arrayIm, MemoryScope::InitialContents, MemoryType::GPULocal);
 
@@ -1615,6 +1618,9 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
 
           vkr = vkCreateImage(d, &arrayInfo, NULL, &arrayIm);
           CheckVkResult(vkr);
+
+          NameVulkanObject(
+              arrayIm, StringFormat::Fmt("Initial State array image for %s", ToStr(id).c_str()));
 
           MemoryAllocation arrayMem =
               AllocateMemoryForResource(arrayIm, MemoryScope::InitialContents, MemoryType::GPULocal);
