@@ -85,6 +85,9 @@ VulkanReplay::OutputWindow::OutputWindow()
 
 void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 {
+  driver->SubmitCmds();
+  driver->FlushQ();
+
   const VkDevDispatchTable *vt = ObjDisp(device);
 
   vt->DeviceWaitIdle(Unwrap(device));

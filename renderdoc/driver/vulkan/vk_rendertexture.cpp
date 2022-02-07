@@ -39,6 +39,11 @@ void VulkanReplay::CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::
   if(views.typeCast != typeCast)
   {
     // if the type hint has changed, recreate the image views
+
+    // flush any pending commands that might use the old views
+    m_pDriver->SubmitCmds();
+    m_pDriver->FlushQ();
+
     for(size_t i = 0; i < ARRAY_COUNT(views.views); i++)
     {
       m_pDriver->vkDestroyImageView(dev, views.views[i], NULL);

@@ -347,12 +347,12 @@ void WrappedVulkan::SubmitCmds(VkSemaphore *unwrappedWaitSemaphores,
     CheckVkResult(vkr);
   }
 
+  m_InternalCmds.submittedcmds.append(m_InternalCmds.pendingcmds);
+  m_InternalCmds.pendingcmds.clear();
+
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
   FlushQ();
 #endif
-
-  m_InternalCmds.submittedcmds.append(m_InternalCmds.pendingcmds);
-  m_InternalCmds.pendingcmds.clear();
 }
 
 VkSemaphore WrappedVulkan::GetNextSemaphore()
