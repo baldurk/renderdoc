@@ -1151,7 +1151,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
         if(idx == -1)
         {
-          RDCERR("Couldn't find offset for spec ID %u", s.specID);
+          RDCWARN("Couldn't find offset for spec ID %u", s.specID);
           continue;
         }
 
