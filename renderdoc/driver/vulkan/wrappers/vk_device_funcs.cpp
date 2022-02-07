@@ -418,6 +418,8 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   if(params.APIVersion >= VK_API_VERSION_1_0)
     renderdocAppInfo.apiVersion = params.APIVersion;
 
+  m_EnabledExtensions.vulkanVersion = renderdocAppInfo.apiVersion;
+
   if(!Vulkan_Debug_ReplaceAppInfo())
   {
     // if we're not replacing the app info, set renderdocAppInfo's parameters to the ones from the
