@@ -2179,8 +2179,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           quadImg,
           VK_IMAGE_VIEW_TYPE_2D_ARRAY,
           VK_FORMAT_R32_UINT,
-          {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO,
-           VK_COMPONENT_SWIZZLE_ONE},
+          {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+           VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
           {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 4},
       };
 
@@ -2667,7 +2667,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
               NULL,
               Unwrap(RP),
               Unwrap(FB),
-              {{0, 0}, m_Overlay.ImageDim},
+              {
+                  {0, 0},
+                  {
+                      RDCMAX(1U, m_Overlay.ImageDim.width >> sub.mip),
+                      RDCMAX(1U, m_Overlay.ImageDim.height >> sub.mip),
+                  },
+              },
               1,
               &clearval,
           };
