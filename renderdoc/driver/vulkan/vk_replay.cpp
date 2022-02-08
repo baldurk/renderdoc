@@ -507,6 +507,8 @@ void VulkanReplay::CachePipelineExecutables(ResourceId pipeline)
 
   rdcarray<VkPipelineExecutablePropertiesKHR> executables;
   executables.resize(execCount);
+  for(uint32_t i = 0; i < execCount; i++)
+    executables[i].sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR;
   data.resize(execCount);
   vt->GetPipelineExecutablePropertiesKHR(Unwrap(dev), &pipeInfo, &execCount, executables.data());
 
@@ -522,7 +524,7 @@ void VulkanReplay::CachePipelineExecutables(ResourceId pipeline)
     rdcarray<VkPipelineExecutableInternalRepresentationKHR> &irs = out.representations;
 
     VkPipelineExecutableInfoKHR pipeExecInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR, NULL, Unwrap(pipe), i,
+        VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR, NULL, Unwrap(pipe), i,
     };
 
     // enumerate statistics
