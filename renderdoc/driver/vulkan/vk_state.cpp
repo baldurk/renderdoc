@@ -532,7 +532,7 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
 
     // only set push constant ranges that the layout uses
     for(size_t i = 0; i < pushRanges.size(); i++)
-      ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), VK_SHADER_STAGE_COMPUTE_BIT,
+      ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags,
                                      pushRanges[i].offset, pushRanges[i].size,
                                      pushconsts + pushRanges[i].offset);
 
