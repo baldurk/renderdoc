@@ -677,6 +677,8 @@ public:
     const VulkanCreationInfo::ImageView &viewProps = m_Creation.m_ImageView[GetResID(view)];
     const VulkanCreationInfo::Image &imageProps = m_Creation.m_Image[viewProps.image];
 
+    const bool depthTex = IsDepthOrStencilFormat(viewProps.format);
+
     VkDevice dev = m_pDriver->GetDev();
 
     // how many co-ordinates should there be
@@ -1224,7 +1226,7 @@ public:
                             uniformParams.offset.x, uniformParams.offset.y, uniformParams.offset.z));
     }
 
-    VkPipeline pipe = MakePipe(constParams, 32, uintTex, sintTex);
+    VkPipeline pipe = MakePipe(constParams, 32, depthTex, uintTex, sintTex);
 
     if(pipe == VK_NULL_HANDLE)
     {
@@ -1266,13 +1268,36 @@ public:
     }
 
     // reset descriptor sets to dummy state
-    uint32_t resetIndex = 0;
-    if(uintTex)
-      resetIndex = 1;
-    else if(sintTex)
-      resetIndex = 2;
-    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(m_DebugData.DummyWrites[resetIndex]),
-                                       m_DebugData.DummyWrites[resetIndex], 0, NULL);
+    if(depthTex)
+    {
+      // for depth not all descriptors are valid, in particular we skip 3D and cube
+      uint32_t resetIndex = 3;
+
+      rdcarray<VkWriteDescriptorSet> writes;
+
+      for(size_t i = 0; i < ARRAY_COUNT(m_DebugData.DummyWrites[resetIndex]); i++)
+      {
+        if(m_DebugData.DummyWrites[resetIndex][i].dstBinding != (uint32_t)ShaderDebugBind::Tex3D &&
+           m_DebugData.DummyWrites[resetIndex][i].dstBinding != (uint32_t)ShaderDebugBind::TexCube &&
+           m_DebugData.DummyWrites[resetIndex][i].dstBinding != (uint32_t)ShaderDebugBind::Buffer)
+          writes.push_back(m_DebugData.DummyWrites[resetIndex][i]);
+      }
+
+      ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), (uint32_t)writes.count(), writes.data(), 0,
+                                         NULL);
+    }
+    else
+    {
+      uint32_t resetIndex = 0;
+      if(uintTex)
+        resetIndex = 1;
+      else if(sintTex)
+        resetIndex = 2;
+
+      ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev),
+                                         ARRAY_COUNT(m_DebugData.DummyWrites[resetIndex]),
+                                         m_DebugData.DummyWrites[resetIndex], 0, NULL);
+    }
 
     // overwrite with our data
     ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), sampler != VK_NULL_HANDLE ? 3 : 2, writeSets, 0,
@@ -1386,7 +1411,7 @@ public:
       ShaderConstParameters pipeParams = {};
       pipeParams.operation = (uint32_t)rdcspv::Op::ExtInst;
       m_DebugData.MathPipe[floatSizeIdx] =
-          MakePipe(pipeParams, VarTypeByteSize(params[0].type) * 8, false, false);
+          MakePipe(pipeParams, VarTypeByteSize(params[0].type) * 8, false, false, false);
 
       if(m_DebugData.MathPipe[floatSizeIdx] == VK_NULL_HANDLE)
       {
@@ -1725,8 +1750,8 @@ private:
     return data;
   }
 
-  VkPipeline MakePipe(const ShaderConstParameters &params, uint32_t floatBitSize, bool uintTex,
-                      bool sintTex)
+  VkPipeline MakePipe(const ShaderConstParameters &params, uint32_t floatBitSize, bool depthTex,
+                      bool uintTex, bool sintTex)
   {
     VkSpecializationMapEntry specMaps[sizeof(params) / sizeof(uint32_t)];
     for(size_t i = 0; i < ARRAY_COUNT(specMaps); i++)
@@ -1743,18 +1768,20 @@ private:
     specInfo.pMapEntries = specMaps;
 
     uint32_t shaderIndex = 0;
-    if(uintTex)
+    if(depthTex)
       shaderIndex = 1;
-    else if(sintTex)
+    if(uintTex)
       shaderIndex = 2;
+    else if(sintTex)
+      shaderIndex = 3;
 
     if(params.operation == (uint32_t)rdcspv::Op::ExtInst)
     {
-      shaderIndex = 3;
+      shaderIndex = 4;
       if(floatBitSize == 16)
-        shaderIndex = 4;
-      else if(floatBitSize == 64)
         shaderIndex = 5;
+      else if(floatBitSize == 64)
+        shaderIndex = 6;
     }
 
     if(m_DebugData.Module[shaderIndex] == VK_NULL_HANDLE)
@@ -1769,7 +1796,7 @@ private:
       {
         RDCASSERTMSG("Assume sampling happens with 32-bit float inputs", floatBitSize == 32,
                      floatBitSize);
-        GenerateSamplingShaderModule(spirv, uintTex, sintTex);
+        GenerateSamplingShaderModule(spirv, depthTex, uintTex, sintTex);
       }
 
       VkShaderModuleCreateInfo moduleCreateInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
@@ -1781,8 +1808,9 @@ private:
       m_pDriver->CheckVkResult(vkr);
 
       const char *filename[] = {
-          "/debug_psgather_float.spv", "/debug_psgather_uint.spv", "/debug_psgather_sint.spv",
-          "/debug_psmath32.spv",       "/debug_psmath16.spv",      "/debug_psmath64.spv",
+          "/debug_psgather_float.spv", "/debug_psgather_depth.spv", "/debug_psgather_uint.spv",
+          "/debug_psgather_sint.spv",  "/debug_psmath32.spv",       "/debug_psmath16.spv",
+          "/debug_psmath64.spv",
       };
 
       if(!Vulkan_Debug_PSDebugDumpDirPath().empty())
@@ -2173,7 +2201,8 @@ private:
     editor.AddFunction(func);
   }
 
-  void GenerateSamplingShaderModule(rdcarray<uint32_t> &spirv, bool uintTex, bool sintTex)
+  void GenerateSamplingShaderModule(rdcarray<uint32_t> &spirv, bool depthTex, bool uintTex,
+                                    bool sintTex)
   {
     // this could be done as a glsl shader, but glslang has some bugs compiling the specialisation
     // constants, so we generate it by hand - which isn't too hard
@@ -2359,6 +2388,9 @@ private:
     {
       rdcspv::StorageClass storageClass = rdcspv::StorageClass::UniformConstant;
 
+      if(depthTex && (i == (size_t)ShaderDebugBind::Tex3D || i == (size_t)ShaderDebugBind::TexCube))
+        continue;
+
       if(i == (size_t)ShaderDebugBind::Constants)
         storageClass = rdcspv::StorageClass::Uniform;
 
@@ -2374,9 +2406,11 @@ private:
 
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex1D], "Tex1D");
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex2D], "Tex2D");
-    editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex3D], "Tex3D");
+    if(!depthTex)
+      editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex3D], "Tex3D");
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex2DMS], "Tex2DMS");
-    editor.SetName(bindVars[(size_t)ShaderDebugBind::TexCube], "TexCube");
+    if(!depthTex)
+      editor.SetName(bindVars[(size_t)ShaderDebugBind::TexCube], "TexCube");
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Buffer], "Buffer");
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Sampler], "Sampler");
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Constants], "CBuffer");
@@ -2545,6 +2579,9 @@ private:
       if(i == sampIdx || i == (uint32_t)ShaderDebugBind::Constants)
         continue;
 
+      if(depthTex && (i == (size_t)ShaderDebugBind::Tex3D || i == (size_t)ShaderDebugBind::TexCube))
+        continue;
+
       // can't fetch from cubemaps
       if(i != (uint32_t)ShaderDebugBind::TexCube)
       {
@@ -2659,14 +2696,22 @@ private:
         cases.add(rdcspv::OpBranch(breakLabel));
       }
 
-      bool emitDRef = true;
-
       // on Qualcomm we only emit Dref instructions against 2D textures, otherwise the compiler may
       // crash.
       if(m_pDriver->GetDriverInfo().QualcommDrefNon2DCompileCrash())
-        emitDRef = (i == (uint32_t)ShaderDebugBind::Tex2D);
+        depthTex &= (i == (uint32_t)ShaderDebugBind::Tex2D);
 
-      if(emitDRef)
+      // VUID-StandaloneSpirv-OpImage-04777
+      // OpImage*Dref must not consume an image whose Dim is 3D
+      // also skip cube
+      if(i == (uint32_t)ShaderDebugBind::Tex3D || i == (uint32_t)ShaderDebugBind::TexCube)
+        depthTex = false;
+
+      // don't emit dref's for uint/sint textures
+      if(uintTex || sintTex)
+        depthTex = false;
+
+      if(depthTex)
       {
         for(rdcspv::Op op :
             {rdcspv::Op::ImageSampleDrefExplicitLod, rdcspv::Op::ImageSampleDrefImplicitLod})
@@ -2734,6 +2779,9 @@ private:
 
       for(rdcspv::Op op : {rdcspv::Op::ImageGather, rdcspv::Op::ImageDrefGather})
       {
+        if(op == rdcspv::Op::ImageDrefGather && !depthTex)
+          continue;
+
         rdcspv::Id label = editor.MakeId();
         targets.push_back({(uint32_t)op * 10 + i, label});
 

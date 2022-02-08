@@ -3278,7 +3278,8 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     int index = 0;
 
     // we pick RGBA8 formats to be guaranteed they will be supported
-    VkFormat formats[] = {VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UINT, VK_FORMAT_R8G8B8A8_SINT};
+    VkFormat formats[] = {VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UINT,
+                          VK_FORMAT_R8G8B8A8_SINT, VK_FORMAT_D16_UNORM};
     VkImageType types[] = {VK_IMAGE_TYPE_1D, VK_IMAGE_TYPE_2D, VK_IMAGE_TYPE_3D, VK_IMAGE_TYPE_2D};
     VkImageViewType viewtypes[] = {
         VK_IMAGE_VIEW_TYPE_1D_ARRAY, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_VIEW_TYPE_3D,
@@ -3311,6 +3312,10 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     {
       for(size_t type = 0; type < ARRAY_COUNT(types); type++)
       {
+        // don't create 3D depth
+        if(formats[fmt] == VK_FORMAT_D16_UNORM && types[type] == VK_IMAGE_TYPE_3D)
+          continue;
+
         // create 1x1 image of the right size
         VkImageCreateInfo imInfo = {
             VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -3330,8 +3335,8 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
             VK_IMAGE_LAYOUT_UNDEFINED,
         };
 
-        // make the 2D image cube-compatible
-        if(type == 1)
+        // make the 2D image cube-compatible for non-depth
+        if(type == 1 && formats[fmt] != VK_FORMAT_D16_UNORM)
         {
           imInfo.arrayLayers = 6;
           imInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
@@ -3352,6 +3357,10 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
         vkr = driver->vkBindImageMemory(driver->GetDev(), DummyImages[fmt][type], alloc.mem,
                                         alloc.offs);
         driver->CheckVkResult(vkr);
+
+        // don't add dummy writes/infos for depth, we just want the images and views
+        if(formats[fmt] == VK_FORMAT_D16_UNORM)
+          continue;
 
         // fill out the descriptor set write to the write binding - set will be filled out
         // on demand when we're actually using these writes.
@@ -3395,6 +3404,8 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     DummyInfos[index + 1].sampler = Unwrap(DummySampler);
     DummyInfos[index + 1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
+    RDCASSERT(index + 1 < (int)ARRAY_COUNT(DummyInfos));
+
     // align up for the dummy buffer
     {
       VkBufferCreateInfo bufInfo = {
@@ -3433,6 +3444,10 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
           cube = true;
         }
 
+        // don't create 3D depth or cubes
+        if(formats[fmt] == VK_FORMAT_D16_UNORM && (viewtypes[type] == VK_IMAGE_VIEW_TYPE_3D || cube))
+          continue;
+
         VkImageViewCreateInfo viewInfo = {
             VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             NULL,
@@ -3446,6 +3461,9 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
                 VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1,
             },
         };
+
+        if(formats[fmt] == VK_FORMAT_D16_UNORM)
+          viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
         if(cube)
           viewInfo.subresourceRange.layerCount = 6;
@@ -3461,10 +3479,6 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
         if(cube)
           continue;
 
-        RDCASSERT((size_t)index < ARRAY_COUNT(DummyInfos), index);
-
-        DummyInfos[index].imageView = Unwrap(DummyImageViews[fmt][type]);
-
         // need to update image layout into valid state
         VkImageMemoryBarrier barrier = {
             VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -3479,7 +3493,17 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
         };
 
+        if(formats[fmt] == VK_FORMAT_D16_UNORM)
+          barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
         DoPipelineBarrier(cmd, 1, &barrier);
+
+        if(formats[fmt] == VK_FORMAT_D16_UNORM)
+          continue;
+
+        RDCASSERT((size_t)index < ARRAY_COUNT(DummyInfos), index);
+
+        DummyInfos[index].imageView = Unwrap(DummyImageViews[fmt][type]);
 
         index++;
       }
@@ -3488,6 +3512,8 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     // duplicate 2D dummy image into YUV
     DummyInfos[index].imageView = DummyInfos[1].imageView;
     DummyInfos[index + 1].imageView = DummyInfos[1].imageView;
+
+    RDCASSERT(index + 1 < (int)ARRAY_COUNT(DummyInfos));
 
     if(DummyBuffer != VK_NULL_HANDLE)
     {
