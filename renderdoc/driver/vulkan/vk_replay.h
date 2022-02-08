@@ -226,6 +226,7 @@ enum TexDisplayFlags
   eTexDisplay_RemapFloat = 0x20,
   eTexDisplay_RemapUInt = 0x40,
   eTexDisplay_RemapSInt = 0x80,
+  eTexDisplay_RemapSRGB = 0x100,
 };
 
 struct ShaderDebugData

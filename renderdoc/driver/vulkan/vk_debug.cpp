@@ -3209,6 +3209,16 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
         CREATE_OBJECT(RemapPipeline[f][i][0], texRemapInfo);
 
         driver->vkDestroyRenderPass(driver->GetDev(), texRemapInfo.renderPass, NULL);
+
+        // reuse float 'green' as srgb
+        if(f == 0 && i == 0)
+        {
+          CREATE_OBJECT(texRemapInfo.renderPass, VK_FORMAT_R8G8B8A8_SRGB);
+
+          CREATE_OBJECT(RemapPipeline[f][i][1], texRemapInfo);
+
+          driver->vkDestroyRenderPass(driver->GetDev(), texRemapInfo.renderPass, NULL);
+        }
       }
     }
 
@@ -3217,17 +3227,17 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
 
     for(int f = 0; f < 3; f++)
     {
-      for(int i = 0; i < 3; i++)
-      {
-        texRemapInfo.fragment =
-            shaderCache->GetBuiltinModule(BuiltinShader::TexRemap, BuiltinShaderBaseType(i));
+      // only create this for uint, it's normally only needed there
+      int i = 1;
 
-        CREATE_OBJECT(texRemapInfo.renderPass, GetViewCastedFormat(formats[f], cast[i]));
+      texRemapInfo.fragment =
+          shaderCache->GetBuiltinModule(BuiltinShader::TexRemap, BuiltinShaderBaseType(i));
 
-        CREATE_OBJECT(RemapPipeline[f][i][1], texRemapInfo);
+      CREATE_OBJECT(texRemapInfo.renderPass, GetViewCastedFormat(formats[f], cast[i]));
 
-        driver->vkDestroyRenderPass(driver->GetDev(), texRemapInfo.renderPass, NULL);
-      }
+      CREATE_OBJECT(RemapPipeline[f][i][1], texRemapInfo);
+
+      driver->vkDestroyRenderPass(driver->GetDev(), texRemapInfo.renderPass, NULL);
     }
 
     texDisplayInfo.renderPass = SRGBA8RP;

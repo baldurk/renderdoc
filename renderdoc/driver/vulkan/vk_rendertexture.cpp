@@ -543,7 +543,9 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
       else
         f = 0;
 
-      pipe = m_TexRender.RemapPipeline[f][i][greenonly ? 1 : 0];
+      bool srgb = (flags & eTexDisplay_RemapSRGB) != 0;
+
+      pipe = m_TexRender.RemapPipeline[f][i][(greenonly || srgb) ? 1 : 0];
     }
     else if(f16render)
     {

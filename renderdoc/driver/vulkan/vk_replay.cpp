@@ -3314,8 +3314,15 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     // force readback texture to RGBA8 unorm
     if(params.remap == RemapTexture::RGBA8)
     {
-      imCreateInfo.format =
-          IsSRGBFormat(imCreateInfo.format) ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+      if(IsSRGBFormat(imCreateInfo.format))
+      {
+        imCreateInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+        renderFlags |= eTexDisplay_RemapSRGB;
+      }
+      else
+      {
+        imCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+      }
     }
     else if(params.remap == RemapTexture::RGBA16)
     {
@@ -3551,10 +3558,13 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
         CheckVkResult(vkr);
         rpbegin.framebuffer = tmpFB[i + numFBs];
 
+        int stencilFlags = renderFlags;
+        stencilFlags &= ~eTexDisplay_RemapFloat;
+        stencilFlags &= ~eTexDisplay_RemapSRGB;
+        stencilFlags |= eTexDisplay_RemapUInt | eTexDisplay_GreenOnly;
+
         texDisplay.red = texDisplay.blue = texDisplay.alpha = false;
-        RenderTextureInternal(texDisplay, *srcImageState, rpbegin,
-                              (renderFlags & ~eTexDisplay_RemapFloat) | eTexDisplay_RemapUInt |
-                                  eTexDisplay_GreenOnly);
+        RenderTextureInternal(texDisplay, *srcImageState, rpbegin, stencilFlags);
         renderCount++;
       }
     }
