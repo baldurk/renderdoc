@@ -1140,6 +1140,14 @@ struct ClearColorValue
   operator const VkClearColorValue *() const { return (VkClearColorValue *)this; }
 };
 
+struct ClearDepthStencilValue
+{
+  float depth;
+  uint32_t stencil;
+
+  operator const VkClearDepthStencilValue *() const { return (VkClearDepthStencilValue *)this; }
+};
+
 struct ClearValue
 {
   ClearValue() {}

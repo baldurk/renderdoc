@@ -167,6 +167,8 @@ layout(set = 0, r32ui, binding = 22) uniform uimage2D atomicimg;
 layout(set = 0, binding = 30) uniform sampler2DArray queryTest;
 layout(set = 0, binding = 31) uniform sampler2DMSArray queryTestMS;
 
+layout(set = 0, binding = 32) uniform texture2D depthImage;
+
 #if TEST_DESC_INDEXING
 
 layout(set = 1, binding = 1) uniform sampler pointSamplers[14];
@@ -1088,10 +1090,10 @@ void main()
     }
     case 112:
     {
-      float x = texture(sampler2DShadow(sampledImage, shadowSampler), vec3(inpos, 0.1f));
-      float y = texture(sampler2DShadow(sampledImage, shadowSampler), vec3(inpos, 0.3f));
-      float z = texture(sampler2DShadow(sampledImage, shadowSampler), vec3(inpos, 0.7f));
-      float w = texture(sampler2DShadow(sampledImage, shadowSampler), vec3(inpos, 0.9f));
+      float x = texture(sampler2DShadow(depthImage, shadowSampler), vec3(inpos, 0.1f));
+      float y = texture(sampler2DShadow(depthImage, shadowSampler), vec3(inpos, 0.3f));
+      float z = texture(sampler2DShadow(depthImage, shadowSampler), vec3(inpos, 0.7f));
+      float w = texture(sampler2DShadow(depthImage, shadowSampler), vec3(inpos, 0.9f));
       Color = vec4(x, y, z, w);
       break;
     }
@@ -1120,7 +1122,7 @@ void main()
     {
       vec2 coord = vec2(zerof + 0.6, zerof + 0.43);
 
-      Color = textureGather(sampler2DShadow(sampledImage, shadowSampler), coord, 0.8f);
+      Color = textureGather(sampler2DShadow(depthImage, shadowSampler), coord, 0.8f);
       break;
     }
     case 117:
@@ -3595,6 +3597,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
         {22, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {30, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {31, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {32, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
     }));
 
     std::vector<VkDescriptorSetLayout> setLayouts = {setlayout0};
@@ -3813,6 +3816,17 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     AllocatedBuffer uploadBuf(this, vkh::BufferCreateInfo(rgba8.data.size() * sizeof(uint32_t),
                                                           VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
                               VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    AllocatedImage shadowimg(this,
+                             vkh::ImageCreateInfo(16, 16, 0, VK_FORMAT_D32_SFLOAT,
+                                                  VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                                                      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+                                                      VK_IMAGE_USAGE_SAMPLED_BIT),
+                             VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    VkImageView shadowview = createImageView(
+        vkh::ImageViewCreateInfo(shadowimg.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT, {},
+                                 vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_DEPTH_BIT)));
 
     uploadBuf.upload(rgba8.data.data(), rgba8.data.size() * sizeof(uint32_t));
 
@@ -4114,6 +4128,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
             vkh::WriteDescriptorSet(
                 descset0, 31, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 {vkh::DescriptorImageInfo(queryTestMSView, VK_IMAGE_LAYOUT_GENERAL, mipsampler)}),
+            vkh::WriteDescriptorSet(
+                descset0, 32, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                {vkh::DescriptorImageInfo(shadowview, VK_IMAGE_LAYOUT_GENERAL, VK_NULL_HANDLE)}),
         });
 
     if(descIndexing)
@@ -4140,8 +4157,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
                                               linearsampler)}),
                 vkh::WriteDescriptorSet(
                     descset1, 3, i, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                    {vkh::DescriptorImageInfo(smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                              VK_NULL_HANDLE)}),
+                    {vkh::DescriptorImageInfo(shadowview, VK_IMAGE_LAYOUT_GENERAL, VK_NULL_HANDLE)}),
                 vkh::WriteDescriptorSet(
                     descset1, 4, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     {vkh::DescriptorImageInfo(smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -4195,6 +4211,10 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
               vkh::ImageMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
                                       VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
                                       VK_IMAGE_LAYOUT_GENERAL, storezoo_u2D.image),
+              vkh::ImageMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
+                                      VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, shadowimg.image,
+                                      vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_DEPTH_BIT)),
           },
           {
               vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
@@ -4204,6 +4224,10 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
               vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
                                        VK_ACCESS_TRANSFER_WRITE_BIT, store_texbuffer.buffer),
           });
+
+      vkCmdClearDepthStencilImage(cmd, shadowimg.image, VK_IMAGE_LAYOUT_GENERAL,
+                                  vkh::ClearDepthStencilValue({0.5f, 0}), 1,
+                                  vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_DEPTH_BIT));
 
       vkCmdClearColorImage(cmd, store_image.image, VK_IMAGE_LAYOUT_GENERAL,
                            vkh::ClearColorValue(6.66f, 6.66f, 6.66f, 6.66f), 1,
