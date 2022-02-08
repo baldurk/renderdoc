@@ -960,7 +960,7 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
   stage.pName = pipeInfo.shaders[i].entryPoint.c_str();
   stage.pNext = NULL;
   stage.pSpecializationInfo = NULL;
-  stage.flags = VK_SHADER_STAGE_COMPUTE_BIT;
+  stage.flags = 0;
 
   uint32_t dataOffset = 0;
 
