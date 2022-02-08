@@ -1717,6 +1717,12 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
   VkDevice dev = m_pDriver->GetDev();
   const VkDevDispatchTable *vt = ObjDisp(dev);
 
+  if(!m_pDriver->GetResourceManager()->HasCurrentResource(buff))
+  {
+    RDCERR("Getting buffer data for unknown buffer/memory %s!", ToStr(buff).c_str());
+    return;
+  }
+
   WrappedVkRes *res = m_pDriver->GetResourceManager()->GetCurrentResource(buff);
 
   if(res == VK_NULL_HANDLE)
