@@ -4274,6 +4274,24 @@ bool WrappedVulkan::ShouldUpdateRenderState(ResourceId cmdid, bool forcePrimary)
   return cmdid == m_Partial[Primary].partialParent;
 }
 
+bool WrappedVulkan::IsRenderpassOpen(ResourceId cmdid)
+{
+  if(m_OutsideCmdBuffer != VK_NULL_HANDLE)
+    return true;
+
+  // if not, check if we're one of the actual partial command buffers and check to see if we're in
+  // the range for their partial replay.
+  for(int p = 0; p < ePartialNum; p++)
+  {
+    if(cmdid == m_Partial[p].partialParent)
+    {
+      return m_BakedCmdBufferInfo[cmdid].renderPassOpen;
+    }
+  }
+
+  return false;
+}
+
 VkCommandBuffer WrappedVulkan::RerecordCmdBuf(ResourceId cmdid, PartialReplayIndex partialType)
 {
   if(m_OutsideCmdBuffer != VK_NULL_HANDLE)

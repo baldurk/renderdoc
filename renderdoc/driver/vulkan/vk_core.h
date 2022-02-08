@@ -620,6 +620,21 @@ private:
 
     rdcflatmap<ResourceId, ImageState> imageStates;
 
+    // whether the renderdoc commandbuffer execution has a renderpass currently open and replaying
+    // and expects nextSubpass/endRPass/endRendering commands to be executed even if partial
+    bool renderPassOpen = false;
+
+    // barriers executed by nextSubpass/endRP executions after the last active subpass, to revert
+    // after executing said commands and keep the target-EID layout
+    rdcarray<VkImageMemoryBarrier> endBarriers;
+
+    // subpass currently active in the commandbuffer's renderpass. The subpass counter in
+    // VulkanRenderState stops
+    // after the selected drawcall in the case of a partial replay, but this one increments with
+    // every call to
+    // vkCmdNextSubpass for valid barrier counting.
+    int activeSubpass = 0;
+
     ResourceId pushDescriptorID[2][64];
 
     VulkanActionTreeNode *action;    // the root action to copy from when submitting
@@ -729,6 +744,7 @@ private:
   bool InRerecordRange(ResourceId cmdid);
   bool HasRerecordCmdBuf(ResourceId cmdid);
   bool ShouldUpdateRenderState(ResourceId cmdid, bool forcePrimary = false);
+  bool IsRenderpassOpen(ResourceId cmdid);
   VkCommandBuffer RerecordCmdBuf(ResourceId cmdid, PartialReplayIndex partialType = ePartialNum);
 
   ResourceId GetPartialCommandBuffer();
