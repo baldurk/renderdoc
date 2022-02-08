@@ -46,9 +46,8 @@
  * careful the GPU never waits on an event that will never become set, or the GPU
  * will lock up.
  *
- * For now the implementation is simple, conservative and inefficient. We keep
- * events Set always, never replaying any Reset (CPU or GPU). This means any
- * wait will always succeed on the GPU.
+ * For now the implementation is simple, conservative and inefficient. We ignore
+ * the real events and don't set/reset them.
  *
  * On the CPU-side with GetEventStatus we do another hard sync with
  * DeviceWaitIdle.
@@ -347,7 +346,6 @@ bool WrappedVulkan::Serialise_vkCreateEvent(SerialiserType &ser, VkDevice device
     VkResult ret = ObjDisp(device)->CreateEvent(Unwrap(device), &CreateInfo, NULL, &ev);
 
     // see top of this file for current event/fence handling
-    ObjDisp(device)->SetEvent(Unwrap(device), ev);
 
     if(ret != VK_SUCCESS)
     {
@@ -1171,8 +1169,8 @@ bool WrappedVulkan::Serialise_vkCmdSetEvent2(SerialiserType &ser, VkCommandBuffe
         commandBuffer = VK_NULL_HANDLE;
     }
 
-    if(commandBuffer != VK_NULL_HANDLE)
-      ObjDisp(commandBuffer)->CmdSetEvent2(Unwrap(commandBuffer), Unwrap(event), &DependencyInfo);
+    // if(commandBuffer != VK_NULL_HANDLE)
+    //  ObjDisp(commandBuffer)->CmdSetEvent2(Unwrap(commandBuffer), Unwrap(event), &DependencyInfo);
   }
 
   return true;
