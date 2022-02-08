@@ -421,8 +421,8 @@ void main()
 
   TestCase FinaliseTest(VkCommandBuffer cmd, TestCase test)
   {
-    VkImageCreateFlags flags =
-        (test.fmt.texFmt != test.fmt.viewFmt) ? VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT : 0;
+    bool mutableFmt = (test.fmt.texFmt != test.fmt.viewFmt);
+    VkImageCreateFlags flags = mutableFmt ? VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT : 0;
 
     VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
@@ -474,7 +474,7 @@ void main()
         vkh::ImageCreateInfo(
             w, h, d, test.fmt.texFmt, usage, test.isMSAA ? 1 : texMips, test.isArray ? texSlices : 1,
             test.isMSAA ? VkSampleCountFlagBits(texSamples) : VK_SAMPLE_COUNT_1_BIT, flags)
-            .next(hasExt(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME) ? &formatList : NULL),
+            .next(hasExt(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME) && mutableFmt ? &formatList : NULL),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
     test.view = createImageView(vkh::ImageViewCreateInfo(
         test.res.image, test.viewType, test.fmt.viewFmt, {}, vkh::ImageSubresourceRange(viewAspect)));
