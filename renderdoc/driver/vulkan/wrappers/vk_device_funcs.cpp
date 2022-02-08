@@ -2178,6 +2178,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     VkPhysicalDeviceDescriptorIndexingFeatures descIndexingFeatures = {};
     VkPhysicalDeviceVulkan12Features vulkan12Features = {};
+    VkPhysicalDeviceVulkan13Features vulkan13Features = {};
+    VkPhysicalDeviceSynchronization2Features sync2 = {};
 
     if(ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2)
     {
@@ -2269,6 +2271,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceVulkan13Features,
                            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES);
       {
+        vulkan13Features = *ext;
+
         CHECK_PHYS_EXT_FEATURE(robustImageAccess);
         CHECK_PHYS_EXT_FEATURE(inlineUniformBlock);
         CHECK_PHYS_EXT_FEATURE(descriptorBindingInlineUniformBlockUpdateAfterBind);
@@ -2764,6 +2768,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceSynchronization2Features,
                            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES);
       {
+        sync2 = *ext;
+
         CHECK_PHYS_EXT_FEATURE(synchronization2);
       }
       END_PHYS_EXT_CHECK();
@@ -3434,6 +3440,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
             "Required feature 'separateDepthStencilLayouts' not supported by 1.2 physical device.");
         m_EnabledExtensions.ext_KHR_separate_depth_stencil_layouts = false;
       }
+    }
+
+    // we also need to check for feature enablement - if an extension is promoted that doesn't mean
+    // it's enabled
+
+    if(m_EnabledExtensions.ext_KHR_synchronization2)
+    {
+      if(!vulkan13Features.synchronization2 && !sync2.synchronization2)
+        m_EnabledExtensions.ext_KHR_synchronization2 = false;
     }
 
     InitInstanceExtensionTables(m_Instance, &m_EnabledExtensions);
