@@ -693,7 +693,7 @@ void VulkanReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
   vt->GetBufferMemoryRequirements(Unwrap(device), readbackBuf, &mrq);
 
   VkMemoryAllocateInfo allocInfo = {
-      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, bufInfo.size,
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
       m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
   };
 

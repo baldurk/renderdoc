@@ -506,13 +506,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     if(readbackmem.mem == VK_NULL_HANDLE)
       return false;
 
-    // dummy request to keep the validation layers happy - the buffers are identical so the
-    // requirements must be identical
-    {
-      VkMemoryRequirements mrq = {0};
-      ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), Unwrap(dstBuf), &mrq);
-    }
-
     CheckVkResult(vkr);
     vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(dstBuf), Unwrap(readbackmem.mem),
                                        readbackmem.offs);

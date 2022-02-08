@@ -3861,7 +3861,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
   vt->GetBufferMemoryRequirements(Unwrap(dev), readbackBuf, &mrq);
 
   VkMemoryAllocateInfo allocInfo = {
-      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, dataSize,
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
       m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
   };
 
