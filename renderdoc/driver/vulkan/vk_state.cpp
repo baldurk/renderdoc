@@ -141,10 +141,11 @@ void VulkanRenderState::BeginRenderPassAndApplyState(WrappedVulkan *vk, VkComman
       imagelessAttachments.pAttachments = imagelessViews.data();
     }
 
-    ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+    ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, subpassContents);
   }
 
-  BindPipeline(vk, cmd, binding, true);
+  if(subpassContents != VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS)
+    BindPipeline(vk, cmd, binding, true);
 
   if(IsConditionalRenderingEnabled())
   {

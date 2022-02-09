@@ -3717,6 +3717,13 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
       CheckVkResult(vkr);
 
+      // we're replaying a single item inline, even if it was previously in a secondary command
+      // buffer execution.
+      VkSubpassContents subpassContents = m_RenderState.subpassContents;
+      VkRenderingFlags dynamicFlags = m_RenderState.dynamicRendering.flags;
+      m_RenderState.subpassContents = VK_SUBPASS_CONTENTS_INLINE;
+      m_RenderState.dynamicRendering.flags &= VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT;
+
       rpWasActive = m_Partial[Primary].renderPassActive;
 
       if(m_Partial[Primary].renderPassActive)
@@ -3761,6 +3768,9 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
         // even outside of render passes, we need to restore the state
         m_RenderState.BindPipeline(this, cmd, VulkanRenderState::BindInitial, false);
       }
+
+      m_RenderState.subpassContents = subpassContents;
+      m_RenderState.dynamicRendering.flags = dynamicFlags;
     }
 
     ReplayStatus status = ReplayStatus::Succeeded;
