@@ -3233,7 +3233,7 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
   viewInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
   viewInfo.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, imgInfo.arrayLayers};
 
-  if(samples != VK_SAMPLE_COUNT_1_BIT)
+  if(imgInfo.arrayLayers != 0)
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 
   vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &colorImageView);
