@@ -3835,17 +3835,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
       // now sanitise layouts before passing to vulkan
       for(VkImageMemoryBarrier &barrier : imgBarriers)
       {
-        if(!IsLoading(m_State) && barrier.oldLayout == VK_IMAGE_LAYOUT_PREINITIALIZED)
-        {
-          // This is a transition from PRENITIALIZED, but we've already done this barrier once (when
-          // loading); Since we couldn't transition back to PREINITIALIZED, we instead left the
-          // image in GENERAL.
-          barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-        }
-        else
-        {
-          SanitiseReplayImageLayout(barrier.oldLayout);
-        }
+        SanitiseOldImageLayout(barrier.oldLayout);
         SanitiseReplayImageLayout(barrier.newLayout);
       }
 
@@ -4101,17 +4091,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier2(SerialiserType &ser,
           continue;
         }
 
-        if(!IsLoading(m_State) && barrier.oldLayout == VK_IMAGE_LAYOUT_PREINITIALIZED)
-        {
-          // This is a transition from PRENITIALIZED, but we've already done this barrier once (when
-          // loading); Since we couldn't transition back to PREINITIALIZED, we instead left the
-          // image in GENERAL.
-          barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-        }
-        else
-        {
-          SanitiseReplayImageLayout(barrier.oldLayout);
-        }
+        SanitiseOldImageLayout(barrier.oldLayout);
         SanitiseReplayImageLayout(barrier.newLayout);
       }
 
