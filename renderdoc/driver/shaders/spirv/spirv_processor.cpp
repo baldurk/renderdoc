@@ -370,6 +370,7 @@ void Processor::Parse(const rdcarray<uint32_t> &spirvWords)
   if(packedVersion > VersionPacked)
   {
     RDCERR("Unsupported SPIR-V version: %08x", packedVersion);
+    m_SPIRV.clear();
     return;
   }
 

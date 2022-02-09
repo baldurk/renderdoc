@@ -2092,6 +2092,7 @@ bool WrappedVulkan::Serialise_SetShaderDebugPath(SerialiserType &ser, VkShaderMo
   if(IsReplayingAndReading())
   {
     m_CreationInfo.m_ShaderModule[GetResID(ShaderObject)].unstrippedPath = DebugPath;
+    m_CreationInfo.m_ShaderModule[GetResID(ShaderObject)].Reinit();
 
     AddResourceCurChunk(GetResourceManager()->GetOriginalID(GetResID(ShaderObject)));
   }
