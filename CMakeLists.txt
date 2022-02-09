@@ -180,6 +180,7 @@ option(ENABLE_GL "Enable GL driver" ON)
 option(ENABLE_GLES "Enable GL ES driver" ON)
 option(ENABLE_EGL "Enable EGL" ON)
 option(ENABLE_VULKAN "Enable Vulkan driver" ON)
+option(ENABLE_METAL "Enable Metal driver" OFF)
 option(ENABLE_RENDERDOCCMD "Enable renderdoccmd" ON)
 option(ENABLE_QRENDERDOC "Enable qrenderdoc" ON)
 option(ENABLE_PYRENDERDOC "Enable renderdoc python modules" ON)
@@ -318,6 +319,10 @@ endif()
 
 if(ENABLE_VULKAN)
     add_definitions(-DRENDERDOC_SUPPORT_VULKAN)
+endif()
+
+if(ENABLE_METAL)
+    add_definitions(-DRENDERDOC_SUPPORT_METAL)
 endif()
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_lower)
@@ -470,6 +475,10 @@ endif()
 
 if(ENABLE_VULKAN)
     message(STATUS "  - Vulkan")
+endif()
+
+if(ENABLE_METAL)
+    message(STATUS "  - Metal")
 endif()
 
 if(UNIX AND NOT ANDROID AND NOT APPLE AND NOT ENABLE_GGP)
