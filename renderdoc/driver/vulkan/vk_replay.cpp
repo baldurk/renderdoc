@@ -3281,6 +3281,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
   VkImageView *tmpView = NULL;
   uint32_t numFBs = 0;
   VkRenderPass tmpRP = VK_NULL_HANDLE;
+  VkRenderPass tmpRPStencil = VK_NULL_HANDLE;
 
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
@@ -3549,6 +3550,12 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
       if(isStencil)
       {
         viewInfo.format = GetViewCastedFormat(viewInfo.format, CompType::UInt);
+
+        attDesc.format = viewInfo.format;
+        vkr = vt->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &tmpRPStencil);
+        CheckVkResult(vkr);
+        fbinfo.renderPass = tmpRPStencil;
+        rpbegin.renderPass = tmpRPStencil;
 
         vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, NULL, &tmpView[i + numFBs]);
         CheckVkResult(vkr);
@@ -4139,6 +4146,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     delete[] tmpFB;
     delete[] tmpView;
     vt->DestroyRenderPass(Unwrap(dev), tmpRP, NULL);
+    vt->DestroyRenderPass(Unwrap(dev), tmpRPStencil, NULL);
   }
 }
 
