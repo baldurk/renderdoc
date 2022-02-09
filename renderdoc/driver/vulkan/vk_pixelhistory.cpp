@@ -1315,6 +1315,7 @@ struct VulkanOcclusionCallback : public VulkanPixelHistoryCallback
   void PreEndCommandBuffer(VkCommandBuffer cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias) {}
   bool SplitSecondary() { return false; }
+  bool ForceLoadRPs() { return false; }
   void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
                      VkCommandBuffer cmd)
   {
@@ -1701,6 +1702,7 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
   }
 
   bool SplitSecondary() { return true; }
+  bool ForceLoadRPs() { return true; }
   void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
   void PreEndCommandBuffer(VkCommandBuffer cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias)
@@ -1947,6 +1949,7 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
   bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) { return false; }
   void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
   bool SplitSecondary() { return false; }
+  bool ForceLoadRPs() { return false; }
   void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
                      VkCommandBuffer cmd)
   {
@@ -2967,6 +2970,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
   void PreEndCommandBuffer(VkCommandBuffer cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias) {}
   bool SplitSecondary() { return false; }
+  bool ForceLoadRPs() { return false; }
   void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
                      VkCommandBuffer cmd)
   {
@@ -3110,6 +3114,7 @@ struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
   void PreEndCommandBuffer(VkCommandBuffer cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias) {}
   bool SplitSecondary() { return false; }
+  bool ForceLoadRPs() { return false; }
   void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
                      VkCommandBuffer cmd)
   {

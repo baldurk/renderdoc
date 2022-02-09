@@ -1018,8 +1018,22 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
     if(BeginInfo.pInheritanceInfo)
     {
       unwrappedInheritInfo = *BeginInfo.pInheritanceInfo;
-      unwrappedInheritInfo.framebuffer = Unwrap(unwrappedInheritInfo.framebuffer);
-      unwrappedInheritInfo.renderPass = Unwrap(unwrappedInheritInfo.renderPass);
+
+      if(m_ActionCallback && m_ActionCallback->ForceLoadRPs())
+      {
+        const VulkanCreationInfo::RenderPass &rpinfo =
+            m_CreationInfo.m_RenderPass[GetResID(unwrappedInheritInfo.renderPass)];
+        const VulkanCreationInfo::Framebuffer &fbinfo =
+            m_CreationInfo.m_Framebuffer[GetResID(unwrappedInheritInfo.framebuffer)];
+
+        unwrappedInheritInfo.framebuffer = Unwrap(fbinfo.loadFBs[unwrappedInheritInfo.subpass]);
+        unwrappedInheritInfo.renderPass = Unwrap(rpinfo.loadRPs[unwrappedInheritInfo.subpass]);
+      }
+      else
+      {
+        unwrappedInheritInfo.framebuffer = Unwrap(unwrappedInheritInfo.framebuffer);
+        unwrappedInheritInfo.renderPass = Unwrap(unwrappedInheritInfo.renderPass);
+      }
 
       unwrappedBeginInfo.pInheritanceInfo = &unwrappedInheritInfo;
 
@@ -1132,6 +1146,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
           if(BeginInfo.pInheritanceInfo->renderPass != VK_NULL_HANDLE)
             m_BakedCmdBufferInfo[BakedCommandBuffer].state.SetRenderPass(
                 GetResID(BeginInfo.pInheritanceInfo->renderPass));
+          m_BakedCmdBufferInfo[BakedCommandBuffer].state.subpass =
+              BeginInfo.pInheritanceInfo->subpass;
           if(BeginInfo.pInheritanceInfo->framebuffer != VK_NULL_HANDLE)
             m_BakedCmdBufferInfo[BakedCommandBuffer].state.SetFramebuffer(
                 this, GetResID(BeginInfo.pInheritanceInfo->framebuffer));

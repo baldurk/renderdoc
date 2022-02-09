@@ -408,6 +408,7 @@ struct VulkanAMDActionCallback : public VulkanActionCallback
     m_AliasEvents.push_back(make_rdcpair(primary, alias));
   }
   bool SplitSecondary() override { return false; }
+  bool ForceLoadRPs() override { return false; }
   void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
                      VkCommandBuffer cmd) override
   {
@@ -564,6 +565,7 @@ struct VulkanKHRCallback : public VulkanActionCallback
     m_AliasEvents.push_back(std::make_pair(primary, alias));
   }
   bool SplitSecondary() override { return false; }
+  bool ForceLoadRPs() override { return false; }
   void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
                      VkCommandBuffer cmd) override
   {
@@ -778,6 +780,7 @@ struct VulkanGPUTimerCallback : public VulkanActionCallback
     m_AliasEvents.push_back(make_rdcpair(primary, alias));
   }
   bool SplitSecondary() override { return false; }
+  bool ForceLoadRPs() override { return false; }
   void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
                      VkCommandBuffer cmd) override
   {

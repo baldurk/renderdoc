@@ -3458,6 +3458,7 @@ struct VulkanInitPostVSCallback : public VulkanActionCallback
       m_pDriver->GetReplay()->AliasPostVSBuffers(primary, alias);
   }
   bool SplitSecondary() { return false; }
+  bool ForceLoadRPs() { return false; }
   void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
                      VkCommandBuffer cmd)
   {

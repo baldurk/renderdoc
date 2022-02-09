@@ -267,6 +267,7 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
     // don't care
   }
   bool SplitSecondary() { return false; }
+  bool ForceLoadRPs() override { return false; }
   void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
                      VkCommandBuffer cmd)
   {

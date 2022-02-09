@@ -240,6 +240,12 @@ struct VulkanActionCallback
   // command buffer in pCommandBuffers.
   virtual bool SplitSecondary() = 0;
 
+  // Returns true if secondary command buffer inheritance info should be modified so
+  // it uses the load FB/RP instead of the original FB/RP. This is mostly used when a callback is
+  // starting/stopping RPs around every execute, so it resumes with the load RP which must
+  // match.
+  virtual bool ForceLoadRPs() = 0;
+
   // called before vkCmdExecuteCommands with a range for the draws inside the
   // secondary command buffer.
   virtual void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
