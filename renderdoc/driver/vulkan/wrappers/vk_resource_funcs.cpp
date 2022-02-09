@@ -2095,6 +2095,8 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), img);
       GetResourceManager()->AddLiveResource(Image, img);
 
+      NameVulkanObject(img, StringFormat::Fmt("Image %s", ToStr(Image).c_str()));
+
       m_CreationInfo.m_Image[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
 
       bool inserted = false;
