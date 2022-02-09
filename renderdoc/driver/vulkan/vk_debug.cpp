@@ -1319,6 +1319,17 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t width, int32_t heigh
 
     m_VertexPick.IBUpload.Unmap();
   }
+  else
+  {
+    // ensure IB is non-empty so we have a valid descriptor below
+    if(m_VertexPick.IBSize == 0)
+    {
+      m_VertexPick.IBSize = 1 * sizeof(uint32_t);
+
+      m_VertexPick.IB.Create(m_pDriver, dev, m_VertexPick.IBSize, 1,
+                             GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO);
+    }
+  }
 
   // unpack and linearise the data
   {
@@ -1457,10 +1468,7 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t width, int32_t heigh
        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &ibInfo, NULL},
   };
 
-  if(!idxs.empty())
-    vt->UpdateDescriptorSets(Unwrap(m_Device), 2, writes, 0, NULL);
-  else
-    vt->UpdateDescriptorSets(Unwrap(m_Device), 1, writes, 0, NULL);
+  vt->UpdateDescriptorSets(Unwrap(m_Device), 2, writes, 0, NULL);
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
