@@ -84,6 +84,10 @@ if(ENABLE_VULKAN)
     set(QMAKE_CXXFLAGS "${QMAKE_CXXFLAGS} -DRENDERDOC_SUPPORT_VULKAN")
 endif()
 
+if(ENABLE_METAL)
+    set(QMAKE_CXXFLAGS "${QMAKE_CXXFLAGS} -DRENDERDOC_SUPPORT_METAL")
+endif()
+
 if(APPLE)
     set(QMAKE_RPATHDIR "@executable_path/../lib")
     add_custom_command(OUTPUT RenderDoc.icns

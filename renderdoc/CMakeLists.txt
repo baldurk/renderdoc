@@ -37,6 +37,11 @@ elseif(APPLE)
         find_library(OPENGL_LIBRARY OpenGL)
         list(APPEND RDOC_LIBRARIES PRIVATE ${OPENGL_LIBRARY})
     endif()
+
+    if(ENABLE_METAL)
+        find_library(METAL_LIBRARY Metal)
+        list(APPEND RDOC_LIBRARIES PRIVATE ${METAL_LIBRARY})
+    endif()
 elseif(ENABLE_GGP)
     find_package(PkgConfig REQUIRED)
     find_package(Threads REQUIRED)
@@ -485,6 +490,11 @@ if(UNIX)
 endif()
 
 set(renderdoc_objects)
+
+if(ENABLE_METAL)
+    add_subdirectory(driver/metal)
+    list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_metal>)
+endif()
 
 if(ENABLE_GL OR ENABLE_GLES)
     add_subdirectory(driver/gl)
