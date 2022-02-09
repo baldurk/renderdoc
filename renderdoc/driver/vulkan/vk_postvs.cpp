@@ -188,6 +188,11 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
       {
         editor.Remove(it);
       }
+      // remove all index decorations
+      else if(decorate.decoration == rdcspv::Decoration::Index)
+      {
+        editor.Remove(it);
+      }
       // same with flat/noperspective
       else if(decorate.decoration == rdcspv::Decoration::Flat ||
               decorate.decoration == rdcspv::Decoration::NoPerspective)
