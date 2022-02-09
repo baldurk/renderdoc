@@ -37,8 +37,8 @@
 
 #include "driver/dx/official/d3dcompiler.h"
 
-RDOC_CONFIG(rdcarray<rdcstr>, DXBC_Debug_SearchDirPaths, {},
-            "Paths to search for separated shader debug PDBs.");
+// this is extern so that it can be shared with vulkan
+RDOC_EXTERN_CONFIG(rdcarray<rdcstr>, DXBC_Debug_SearchDirPaths);
 
 namespace DXBC
 {

@@ -2220,7 +2220,8 @@ bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(
           break;
       }
 
-      if(ObjDisp(m_Device)->DebugMarkerSetObjectNameEXT && type != VK_OBJECT_TYPE_UNKNOWN)
+      if(ObjDisp(m_Device)->DebugMarkerSetObjectNameEXT &&
+         type != VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT)
       {
         name.objectType = type;
         ObjDisp(m_Device)->DebugMarkerSetObjectNameEXT(Unwrap(m_Device), &name);

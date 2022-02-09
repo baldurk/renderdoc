@@ -49,6 +49,11 @@
 RDOC_DEBUG_CONFIG(bool, Capture_Debug_SnapshotDiagnosticLog, false,
                   "Snapshot the diagnostic log at capture time and embed in the capture.");
 
+// this is declared centrally so it can be shared with any backend - the name is a misnomer but kept
+// for backwards compatibility reasons.
+RDOC_CONFIG(rdcarray<rdcstr>, DXBC_Debug_SearchDirPaths, {},
+            "Paths to search for separated shader debug PDBs.");
+
 void LogReplayOptions(const ReplayOptions &opts)
 {
   RDCLOG("%s API validation during replay", (opts.apiValidation ? "Enabling" : "Not enabling"));
