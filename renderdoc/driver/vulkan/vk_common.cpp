@@ -174,6 +174,11 @@ VkObjectType objType<VkImageView>()
 {
   return VK_OBJECT_TYPE_IMAGE_VIEW;
 }
+template <>
+VkObjectType objType<VkFramebuffer>()
+{
+  return VK_OBJECT_TYPE_FRAMEBUFFER;
+}
 
 void GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize,
                        uint32_t flags)

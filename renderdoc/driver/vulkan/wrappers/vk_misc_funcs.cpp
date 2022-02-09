@@ -771,6 +771,8 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(SerialiserType &ser, VkDevice 
         live = GetResourceManager()->WrapResource(Unwrap(device), fb);
         GetResourceManager()->AddLiveResource(Framebuffer, fb);
 
+        NameVulkanObject(fb, StringFormat::Fmt("Framebuffer %s", ToStr(Framebuffer).c_str()));
+
         VulkanCreationInfo::Framebuffer fbinfo;
         fbinfo.Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
 
@@ -805,6 +807,9 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(SerialiserType &ser, VkDevice 
 
             // register as a live-only resource, so it is cleaned up properly
             GetResourceManager()->AddLiveResource(loadFBid, fbinfo.loadFBs[s]);
+
+            NameVulkanObject(fbinfo.loadFBs[s], StringFormat::Fmt("Framebuffer %s loadFB %d",
+                                                                  ToStr(Framebuffer).c_str(), s));
           }
         }
 

@@ -996,6 +996,12 @@ protected:
     m_pDriver->CheckVkResult(vkr);
     m_FbsToDestroy.push_back(framebuffer);
 
+    NameVulkanObject(
+        framebuffer,
+        StringFormat::Fmt("Pixel history patched framebuffer %s fmt %s",
+                          newColorAtt == VK_NULL_HANDLE ? "no new attachment" : "new attachment",
+                          ToStr(newColorFormat).c_str()));
+
     pipestate.SetFramebuffer(m_pDriver, GetResID(framebuffer));
 
     return framebuffer;
