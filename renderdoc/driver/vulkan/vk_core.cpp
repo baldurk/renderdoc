@@ -4097,6 +4097,12 @@ VkBool32 WrappedVulkan::DebugCallback(MessageSeverity severity, MessageCategory 
     // Not an error, this is defined as with all APIs to drop the output.
     if(strstr(pMessageId, "UNASSIGNED-CoreValidation-Shader-OutputNotConsumed"))
       return false;
+    // "Attachment X not written by fragment shader; undefined values will be written to attachment"
+    // Not strictly an error, though more of a problem than the above. However we occasionally do
+    // this on purpose in the pixel history when running history on depth targets, and it's safe to
+    // silence unless we see undefined values.
+    if(strstr(pMessageId, "UNASSIGNED-CoreValidation-Shader-InputNotProduced"))
+      return false;
 
     // "Non-linear image is aliased with linear buffer"
     // Not an error, the validation layers complain at our whole-mem bufs
