@@ -430,7 +430,12 @@ public:
   {
     if(m_Proxy)
     {
-      EnsureTexCached(display.resourceId, display.typeCast, display.subresource);
+      Subresource customShaderSubresource = display.subresource;
+      // fetch all subsamples in case the custom shader wants to fetch more than simply the active
+      // subsample
+      customShaderSubresource.sample = ~0U;
+
+      EnsureTexCached(display.resourceId, display.typeCast, customShaderSubresource);
 
       if(display.resourceId == ResourceId())
         return ResourceId();

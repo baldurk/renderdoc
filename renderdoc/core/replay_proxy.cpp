@@ -2447,11 +2447,14 @@ void ReplayProxy::EnsureTexCached(ResourceId &texid, CompType &typeCast, const S
     }
 
     const ProxyTextureProperties &proxy = proxyit->second;
+    const bool allSamples = sub.sample == ~0U;
 
-    for(uint32_t sample = 0; sample < proxy.msSamp; sample++)
+    uint32_t numSamplesToFetch = allSamples ? proxy.msSamp : 1;
+    for(uint32_t sample = 0; sample < numSamplesToFetch; sample++)
     {
       Subresource s = sub;
-      s.sample = sample;
+      if(allSamples)
+        s.sample = sample;
 
       TextureCacheEntry sampleArrayEntry = {texid, s};
 
