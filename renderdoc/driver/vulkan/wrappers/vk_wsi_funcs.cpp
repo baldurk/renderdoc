@@ -706,11 +706,23 @@ bool WrappedVulkan::Serialise_vkQueuePresentKHR(SerialiserType &ser, VkQueue que
 
   if(ser.IsWriting())
   {
-    VkResourceRecord *swaprecord = GetRecord(pPresentInfo->pSwapchains[0]);
+    // use the image from the active window, or the first valid image if we don't find an active
+    // window
+    for(uint32_t i = 0; i < pPresentInfo->swapchainCount; i++)
+    {
+      VkResourceRecord *swaprecord = GetRecord(pPresentInfo->pSwapchains[i]);
 
-    SwapchainInfo &swapInfo = *swaprecord->swapInfo;
+      SwapchainInfo &swapInfo = *swaprecord->swapInfo;
 
-    PresentedImage = GetResID(swapInfo.images[pPresentInfo->pImageIndices[0]].im);
+      const bool activeWindow =
+          RenderDoc::Inst().IsActiveWindow(LayerDisp(m_Instance), swapInfo.wndHandle);
+
+      if(activeWindow || PresentedImage == ResourceId())
+        PresentedImage = GetResID(swapInfo.images[pPresentInfo->pImageIndices[i]].im);
+
+      if(activeWindow)
+        break;
+    }
   }
 
   // we don't have all the information we need about swapchains on replay to get the presented image
@@ -742,23 +754,17 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 {
   AdvanceFrame();
 
-  if(pPresentInfo->swapchainCount > 1 && (m_FrameCounter % 100) == 0)
-  {
-    RDCWARN("Presenting multiple swapchains at once - only first will be processed");
-  }
-
   rdcarray<VkSwapchainKHR> unwrappedSwaps;
-  rdcarray<VkSemaphore> unwrappedSems;
+  rdcarray<VkSemaphore> unwrappedWaitSems;
 
   VkPresentInfoKHR unwrappedInfo = *pPresentInfo;
 
   for(uint32_t i = 0; i < unwrappedInfo.swapchainCount; i++)
     unwrappedSwaps.push_back(Unwrap(unwrappedInfo.pSwapchains[i]));
   for(uint32_t i = 0; i < unwrappedInfo.waitSemaphoreCount; i++)
-    unwrappedSems.push_back(Unwrap(unwrappedInfo.pWaitSemaphores[i]));
+    unwrappedWaitSems.push_back(Unwrap(unwrappedInfo.pWaitSemaphores[i]));
 
   unwrappedInfo.pSwapchains = unwrappedSwaps.data();
-  unwrappedInfo.pWaitSemaphores = unwrappedSems.data();
 
   // Don't support any extensions for present info
   const VkBaseInStructure *next = (const VkBaseInStructure *)pPresentInfo->pNext;
@@ -778,8 +784,108 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
     next = next->pNext;
   }
 
-  // TODO support multiple swapchains here
-  VkResourceRecord *swaprecord = GetRecord(pPresentInfo->pSwapchains[0]);
+  if(IsBackgroundCapturing(m_State))
+    GetResourceManager()->CleanBackgroundFrameReferences();
+
+  m_LastSwap = ResourceId();
+
+  if(pPresentInfo->swapchainCount == 1)
+  {
+    HandlePresent(queue, pPresentInfo, unwrappedWaitSems);
+  }
+  else
+  {
+    VkPresentInfoKHR mutableInfo = *pPresentInfo;
+
+    {
+      byte *tempMem = GetTempMemory(GetNextPatchSize(mutableInfo.pNext));
+      CopyNextChainForPatching("VkPresentInfoKHR", tempMem, (VkBaseInStructure *)&mutableInfo);
+    }
+
+    mutableInfo.swapchainCount = 1;
+
+    VkDeviceGroupPresentInfoKHR *groups = (VkDeviceGroupPresentInfoKHR *)FindNextStruct(
+        &mutableInfo, VK_STRUCTURE_TYPE_DEVICE_GROUP_PRESENT_INFO_KHR);
+    if(groups)
+      groups->swapchainCount = 1;
+
+    VkPresentRegionsKHR *regions =
+        (VkPresentRegionsKHR *)FindNextStruct(&mutableInfo, VK_STRUCTURE_TYPE_PRESENT_REGIONS_KHR);
+    if(regions)
+      regions->swapchainCount = 1;
+
+    VkPresentTimesInfoGOOGLE *times = (VkPresentTimesInfoGOOGLE *)FindNextStruct(
+        &mutableInfo, VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE);
+    if(times)
+      times->swapchainCount = 1;
+
+    VkPresentIdKHR *ids =
+        (VkPresentIdKHR *)FindNextStruct(&mutableInfo, VK_STRUCTURE_TYPE_PRESENT_ID_KHR);
+    if(ids)
+      ids->swapchainCount = 1;
+
+    for(uint32_t i = 0; i < pPresentInfo->swapchainCount; i++)
+    {
+      HandlePresent(queue, &mutableInfo, unwrappedWaitSems);
+
+      mutableInfo.pSwapchains++;
+      mutableInfo.pImageIndices++;
+      mutableInfo.pResults++;
+      if(groups)
+        groups->pDeviceMasks++;
+      if(regions)
+        regions->pRegions++;
+      if(ids)
+        ids->pPresentIds++;
+      if(times)
+        times->pTimes++;
+    }
+  }
+
+  unwrappedInfo.pWaitSemaphores = unwrappedWaitSems.data();
+  unwrappedInfo.waitSemaphoreCount = (uint32_t)unwrappedWaitSems.size();
+
+  VkResult vkr;
+  SERIALISE_TIME_CALL(vkr = ObjDisp(queue)->QueuePresentKHR(Unwrap(queue), &unwrappedInfo));
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueuePresentKHR);
+    Serialise_vkQueuePresentKHR(ser, queue, pPresentInfo);
+
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
+
+    m_FrameCaptureRecord->AddChunk(scope.Get());
+  }
+
+  // do Present handling all the way after serialisation, so the present call is included in the
+  // captured frame.
+
+  for(uint32_t i = 0; i < pPresentInfo->swapchainCount; i++)
+  {
+    VkSwapchainKHR swap = pPresentInfo->pSwapchains[i];
+
+    VkResourceRecord *swaprecord = GetRecord(swap);
+    RDCASSERT(swaprecord->swapInfo);
+
+    SwapchainInfo &swapInfo = *swaprecord->swapInfo;
+
+    Present(LayerDisp(m_Instance), swapInfo.wndHandle);
+  }
+
+  return vkr;
+}
+
+void WrappedVulkan::HandlePresent(VkQueue queue, const VkPresentInfoKHR *pPresentInfo,
+                                  rdcarray<VkSemaphore> &unwrappedWaitSems)
+{
+  // any array is exploded above in vkQueuePresentKHR, so just look at the first element
+  VkSwapchainKHR swap = pPresentInfo->pSwapchains[0];
+  uint32_t imgIndex = pPresentInfo->pImageIndices[0];
+
+  VkResourceRecord *swaprecord = GetRecord(swap);
   RDCASSERT(swaprecord->swapInfo);
 
   SwapchainInfo &swapInfo = *swaprecord->swapInfo;
@@ -788,13 +894,14 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
   // need to record which image was last flipped so we can get the correct backbuffer
   // for a thumbnail in EndFrameCapture
-  swapInfo.lastPresent.imageIndex = pPresentInfo->pImageIndices[0];
+  swapInfo.lastPresent.imageIndex = imgIndex;
   swapInfo.lastPresent.presentQueue = queue;
   swapInfo.lastPresent.waitSemaphores.resize(pPresentInfo->waitSemaphoreCount);
   for(size_t i = 0; i < swapInfo.lastPresent.waitSemaphores.size(); ++i)
     swapInfo.lastPresent.waitSemaphores[i] = pPresentInfo->pWaitSemaphores[i];
 
-  m_LastSwap = swaprecord->GetResourceID();
+  if(m_LastSwap == ResourceId())
+    m_LastSwap = swaprecord->GetResourceID();
 
   if(IsBackgroundCapturing(m_State))
   {
@@ -802,15 +909,12 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
     if(overlay & eRENDERDOC_Overlay_Enabled)
     {
-      // we'll do the wait ourselves before rendering the overlay
-      unwrappedInfo.waitSemaphoreCount = 0;
-
       VkRenderPass rp = swapInfo.rp;
-      VkImage im = swapInfo.images[pPresentInfo->pImageIndices[0]].im;
-      VkFramebuffer fb = swapInfo.images[pPresentInfo->pImageIndices[0]].fb;
-      VkCommandBuffer cmd = swapInfo.images[pPresentInfo->pImageIndices[0]].cmd;
-      VkFence imfence = swapInfo.images[pPresentInfo->pImageIndices[0]].fence;
-      VkSemaphore sem = swapInfo.images[pPresentInfo->pImageIndices[0]].overlaydone;
+      VkImage im = swapInfo.images[imgIndex].im;
+      VkFramebuffer fb = swapInfo.images[imgIndex].fb;
+      VkCommandBuffer cmd = swapInfo.images[imgIndex].cmd;
+      VkFence imfence = swapInfo.images[imgIndex].fence;
+      VkSemaphore sem = swapInfo.images[imgIndex].overlaydone;
 
       VkResourceRecord *queueRecord = GetRecord(queue);
       uint32_t swapQueueIndex = queueRecord->queueFamilyIndex;
@@ -867,7 +971,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
       DoPipelineBarrier(cmd, 1, &bbBarrier);
 
       rdcarray<VkPipelineStageFlags> waitStage;
-      waitStage.fill(unwrappedSems.size(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+      waitStage.fill(unwrappedWaitSems.size(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
       uint32_t ringIdx = 0;
 
@@ -875,8 +979,8 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
       // wait on the present's semaphores
       submitInfo.pWaitDstStageMask = waitStage.data();
-      submitInfo.pWaitSemaphores = unwrappedSems.data();
-      submitInfo.waitSemaphoreCount = (uint32_t)unwrappedSems.size();
+      submitInfo.pWaitSemaphores = unwrappedWaitSems.data();
+      submitInfo.waitSemaphoreCount = (uint32_t)unwrappedWaitSems.size();
 
       // and signal overlaydone
       submitInfo.pSignalSemaphores = UnwrapPtr(sem);
@@ -920,12 +1024,12 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
         CheckVkResult(vkr);
 
         // next submit needs to wait on fromext
-        unwrappedSems.assign(submitInfo.pSignalSemaphores, 1);
+        unwrappedWaitSems.assign(submitInfo.pSignalSemaphores, 1);
         waitStage.resize(1);
 
         submitInfo.pWaitDstStageMask = waitStage.data();
-        submitInfo.pWaitSemaphores = unwrappedSems.data();
-        submitInfo.waitSemaphoreCount = (uint32_t)unwrappedSems.size();
+        submitInfo.pWaitSemaphores = unwrappedWaitSems.data();
+        submitInfo.waitSemaphoreCount = (uint32_t)unwrappedWaitSems.size();
 
         // and signal toext
         submitInfo.pSignalSemaphores =
@@ -976,12 +1080,12 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
         VkQueue q = m_ExternalQueues[swapQueueIndex].queue;
 
         // wait on toext which was signalled above
-        unwrappedSems.assign(submitInfo.pSignalSemaphores, 1);
+        unwrappedWaitSems.assign(submitInfo.pSignalSemaphores, 1);
         waitStage.resize(1);
 
         submitInfo.pWaitDstStageMask = waitStage.data();
-        submitInfo.pWaitSemaphores = unwrappedSems.data();
-        submitInfo.waitSemaphoreCount = (uint32_t)unwrappedSems.size();
+        submitInfo.pWaitSemaphores = unwrappedWaitSems.data();
+        submitInfo.waitSemaphoreCount = (uint32_t)unwrappedWaitSems.size();
 
         // release to the external queue
         submitInfo.commandBufferCount = 1;
@@ -997,32 +1101,11 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
         CheckVkResult(vkr);
       }
 
-      // the present waits on our new semaphore
-      unwrappedInfo.waitSemaphoreCount = 1;
-      unwrappedInfo.pWaitSemaphores = submitInfo.pSignalSemaphores;
+      // the next thing waits on our new semaphore - whether a subsequent overlay render or the
+      // present
+      unwrappedWaitSems = {submitInfo.pSignalSemaphores[0]};
     }
-
-    GetResourceManager()->CleanBackgroundFrameReferences();
   }
-
-  VkResult vkr;
-  SERIALISE_TIME_CALL(vkr = ObjDisp(queue)->QueuePresentKHR(Unwrap(queue), &unwrappedInfo));
-
-  if(IsActiveCapturing(m_State))
-  {
-    CACHE_THREAD_SERIALISER();
-
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueuePresentKHR);
-    Serialise_vkQueuePresentKHR(ser, queue, pPresentInfo);
-
-    GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
-
-    m_FrameCaptureRecord->AddChunk(scope.Get());
-  }
-
-  Present(LayerDisp(m_Instance), swapInfo.wndHandle);
-
-  return vkr;
 }
 
 // creation functions are in vk_<platform>.cpp

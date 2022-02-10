@@ -142,8 +142,8 @@ struct VulkanWindow : public GraphicsWindow
   VkCommandBuffer GetCommandBuffer(VkCommandBufferLevel level);
   void Submit(int index, int totalSubmits, const std::vector<VkCommandBuffer> &cmds,
               const std::vector<VkCommandBuffer> &seccmds, VkQueue q, bool sync2);
+  static void MultiPresent(VkQueue queue, std::vector<VulkanWindow *> windows);
   void Present(VkQueue q);
-  void Acquire();
 
   // forward GraphicsWindow functions to internal window
   void Resize(int width, int height) { m_Win->Resize(width, height); }
@@ -151,6 +151,9 @@ struct VulkanWindow : public GraphicsWindow
 private:
   bool CreateSwapchain();
   void DestroySwapchain();
+
+  void Acquire();
+  void PostPresent(VkResult vkr);
 
   VkSurfaceKHR surface = VK_NULL_HANDLE;
   VkSwapchainKHR swap = VK_NULL_HANDLE;

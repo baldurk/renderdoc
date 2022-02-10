@@ -175,9 +175,12 @@ void LoadXPM(const char **XPM, Texture &tex);
 
 struct GraphicsWindow
 {
+  GraphicsWindow(const std::string &title) : title(title) {}
   virtual ~GraphicsWindow() {}
   virtual void Resize(int width, int height) = 0;
   virtual bool Update() = 0;
+
+  std::string title;
 };
 
 struct GraphicsTest

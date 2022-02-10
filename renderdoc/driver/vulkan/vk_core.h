@@ -1777,6 +1777,9 @@ public:
                                 VkSwapchainKHR swapchain, uint64_t timeout, VkSemaphore semaphore,
                                 VkFence fence, uint32_t *pImageIndex);
 
+  void HandlePresent(VkQueue queue, const VkPresentInfoKHR *pPresentInfo,
+                     rdcarray<VkSemaphore> &unwrappedWaitSems);
+
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueuePresentKHR, VkQueue queue,
                                 const VkPresentInfoKHR *pPresentInfo);
 

@@ -3852,7 +3852,12 @@ void DoSerialise(SerialiserType &ser, VkPresentInfoKHR &el)
   SERIALISE_MEMBER_ARRAY(pWaitSemaphores, waitSemaphoreCount);
 
   SERIALISE_MEMBER(swapchainCount);
-  SERIALISE_MEMBER_ARRAY_EMPTY(pSwapchains);
+
+  {
+    // swapchains aren't really serialised, just get their Ids here for info's sake
+    OPTIONAL_RESOURCES();
+    SERIALISE_MEMBER_ARRAY(pSwapchains, swapchainCount).Important();
+  }
   SERIALISE_MEMBER_ARRAY(pImageIndices, swapchainCount).Important();
   SERIALISE_MEMBER_ARRAY(pResults, swapchainCount);
 }

@@ -68,7 +68,7 @@ void regClass()
   }
 }
 
-Win32Window::Win32Window(int width, int height, const char *title)
+Win32Window::Win32Window(int width, int height, const char *title) : GraphicsWindow(title)
 {
   regClass();
 
