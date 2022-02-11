@@ -1456,6 +1456,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_NV_WIN32_KEYED_MUTEX_EXTENSION_NAME, VK_NV_WIN32_KEYED_MUTEX_SPEC_VERSION,
     },
 #endif
+    {
+        VK_QCOM_RENDER_PASS_SHADER_RESOLVE_EXTENSION_NAME,
+        VK_QCOM_RENDER_PASS_SHADER_RESOLVE_SPEC_VERSION,
+    },
 };
 
 // this is the list of extensions we provide - regardless of whether the ICD supports them
