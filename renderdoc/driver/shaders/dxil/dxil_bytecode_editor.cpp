@@ -497,7 +497,7 @@ ProgramEditor::~ProgramEditor()
   // replace the DXIL bytecode in the container with
   DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, DXBC::FOURCC_DXIL, EncodeProgram());
 
-#if ENABLED(RDOC_DEVEL)
+#if ENABLED(RDOC_DEVEL) && 0
   // on debug builds, run through dxil for "validation" if it's available.
   // we need BOTH of htese because dxil.dll's interface is incomplete, it lacks the library
   // functionality that we only need to create blobs
