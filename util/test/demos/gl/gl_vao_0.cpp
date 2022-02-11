@@ -87,7 +87,7 @@ void main()
 
     for(int i = 0; i < 100; i++)
     {
-      GraphicsWindow *win2 = MakeWindow(32, 32, NULL);
+      GraphicsWindow *win2 = MakeWindow(32, 32, "extra");
       void *ctx2 = MakeContext(win2, mainContext);
       ActivateContext(win2, ctx2);
       ActivateContext(mainWindow, mainContext);
