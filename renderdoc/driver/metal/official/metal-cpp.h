@@ -2787,7 +2787,7 @@ _NS_INLINE const char* NS::URL::fileSystemRepresentation() const
 
 #define _MTL_CONST(type, name) _NS_CONST(type, name)
 #define _MTL_ENUM(type, name) _NS_ENUM(type, name)
-#define _MTL_OPTIONS(type, name) _NS_OPTIONS(type, name)
+#define _MTL_OPTIONS(type, name) _NS_ENUM(type, name)
 
 #define _MTL_VALIDATE_SIZE(ns, name) _NS_VALIDATE_SIZE(ns, name)
 #define _MTL_VALIDATE_ENUM(ns, name) _NS_VALIDATE_ENUM(ns, name)
