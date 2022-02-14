@@ -910,6 +910,14 @@ static void EGLHooked(void *handle)
   EGL_NONHOOKED_SYMBOLS(EGL_FETCH)
 #undef EGL_FETCH
 
+// fetch any hooked extension functions into our dispatch table since they're not necessarily
+// exported
+#define EGL_FETCH(func, isext, replayrequired) \
+  if(!EGL.func)                                \
+    EGL.func = (CONCAT(PFN_egl, func))EGL.GetProcAddress("egl" STRINGIZE(func));
+  EGL_HOOKED_SYMBOLS(EGL_FETCH)
+#undef EGL_FETCH
+
 // on systems where EGL isn't the primary/only way to get GL function pointers, we need to ensure we
 // re-fetch all function pointers through eglGetProcAddress and don't try to use any through the
 // primary system library (opengl32.dll/libGL.so), since they may not work correctly.
