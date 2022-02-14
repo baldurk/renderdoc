@@ -61,6 +61,7 @@ const GCNISA::asic GCNISA::asicInfo[] = {
     {"RDNA2 (gfx1030)", "1030", FAMILY_NV, NV_NAVI21_P_A0, "gfx1030"},
     {"RDNA2 (gfx1031)", "1031", FAMILY_NV, NV_NAVI22_P_A0, "gfx1031"},
     {"RDNA2 (gfx1032)", "1032", FAMILY_NV, NV_NAVI23_P_A0, "gfx1032"},
+    {"RDNA2 (gfx1034)", "1034", FAMILY_NV, NV_NAVI24_P_A0, "gfx1034"},
 };
 
 RDCCOMPILE_ASSERT(ARRAY_COUNT(GCNISA::asicInfo) == GCNISA::asicCount, "Mismatched array count");

@@ -114,6 +114,7 @@ enum {
     NV_NAVI21_P_A0 = 40,
     NV_NAVI22_P_A0 = 50,
     NV_NAVI23_P_A0 = 60,
+    NV_NAVI24_P_A0 = 70
 };
 
 enum {
