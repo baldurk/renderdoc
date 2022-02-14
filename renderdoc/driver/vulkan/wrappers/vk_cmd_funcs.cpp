@@ -2095,6 +2095,9 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
         rdcarray<ResourceId> attachments;
         VkRect2D renderArea;
 
+        // save the renderpass that we were in here, so we can look up the rpinfo below
+        ResourceId currentRP = GetCmdRenderState().GetRenderPass();
+
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
 
@@ -2119,8 +2122,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
 
         if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
         {
-          const VulkanCreationInfo::RenderPass &rpinfo =
-              m_CreationInfo.m_RenderPass[GetCmdRenderState().GetRenderPass()];
+          const VulkanCreationInfo::RenderPass &rpinfo = m_CreationInfo.m_RenderPass[currentRP];
 
           for(size_t i = 0; i < attachments.size(); i++)
           {
