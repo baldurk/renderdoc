@@ -36,6 +36,7 @@
 #include <QRegularExpressionMatch>
 #include <QScrollBar>
 #include <QShortcut>
+#include <QSignalBlocker>
 #include <QSortFilterProxyModel>
 #include <QStringListModel>
 #include <QStylePainter>
@@ -46,7 +47,9 @@
 #include "Widgets/CollapseGroupBox.h"
 #include "Widgets/Extended/RDHeaderView.h"
 #include "Widgets/Extended/RDLabel.h"
+#include "Widgets/Extended/RDLineEdit.h"
 #include "Widgets/Extended/RDListWidget.h"
+#include "Widgets/Extended/RDToolButton.h"
 #include "Widgets/Extended/RDTreeWidget.h"
 #include "Widgets/MarkerBreadcrumbs.h"
 #include "flowlayout/FlowLayout.h"
@@ -3445,9 +3448,27 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
     box->setSpacing(0);
     m_Breadcrumbs = new MarkerBreadcrumbs(m_Ctx, this, this);
     box->addWidget(m_Breadcrumbs);
+
+    m_BreadcrumbLocationText = new RDLineEdit();
+
+    m_BreadcrumbLocationEditButton = new RDToolButton();
+    m_BreadcrumbLocationEditButton->setIcon(Icons::page_white_edit());
+    box->addWidget(m_BreadcrumbLocationText);
+    box->addWidget(m_BreadcrumbLocationEditButton);
     ui->breadcrumbStrip->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
 
-    m_Breadcrumbs->hide();
+    QObject::connect(m_BreadcrumbLocationEditButton, &RDToolButton::clicked, this,
+                     &EventBrowser::locationEdit_clicked);
+    QObject::connect(m_BreadcrumbLocationText, &RDLineEdit::leave, this,
+                     &EventBrowser::location_leave);
+    QObject::connect(m_BreadcrumbLocationText, &RDLineEdit::keyPress, this,
+                     &EventBrowser::location_keyPress);
+
+    m_Breadcrumbs->setVisible(true);
+    m_BreadcrumbLocationEditButton->setVisible(true);
+    m_BreadcrumbLocationText->setVisible(false);
+
+    ui->breadcrumbStrip->hide();
   }
 
   Qt::Key keys[] = {
@@ -3614,8 +3635,12 @@ void EventBrowser::OnCaptureLoaded()
   clearBookmarks();
   repopulateBookmarks();
 
-  m_Breadcrumbs->show();
   m_Breadcrumbs->ForceRefresh();
+
+  m_Breadcrumbs->setVisible(true);
+  m_BreadcrumbLocationEditButton->setVisible(true);
+  m_BreadcrumbLocationText->setVisible(false);
+  ui->breadcrumbStrip->show();
 
   ui->find->setEnabled(true);
   ui->timeActions->setEnabled(true);
@@ -3631,7 +3656,10 @@ void EventBrowser::OnCaptureClosed()
 
   on_HideFind();
 
-  m_Breadcrumbs->hide();
+  m_Breadcrumbs->setVisible(true);
+  m_BreadcrumbLocationEditButton->setVisible(true);
+  m_BreadcrumbLocationText->setVisible(false);
+  ui->breadcrumbStrip->hide();
 
   m_FilterModel->ResetCache();
   // older Qt versions lose all the sections when a model resets even if the sections don't change.
@@ -3650,7 +3678,7 @@ void EventBrowser::OnCaptureClosed()
 
 void EventBrowser::OnEventChanged(uint32_t eventId)
 {
-  if(!SelectEvent(eventId))
+  if(!SelectEvent(m_Ctx.CurSelectedEvent()))
     ui->events->setCurrentIndex(QModelIndex());
   repopulateBookmarks();
   highlightBookmarks();
@@ -5331,6 +5359,181 @@ void EventBrowser::SelectEvent(QModelIndex idx)
       idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
 
   ExpandNode(idx);
+}
+
+void EventBrowser::locationEdit_clicked()
+{
+  m_BreadcrumbLocationText->setMinimumHeight(m_Breadcrumbs->sizeHint().height());
+
+  m_Breadcrumbs->setVisible(false);
+  m_BreadcrumbLocationEditButton->setVisible(false);
+  m_BreadcrumbLocationText->setVisible(true);
+
+  if(m_BreadcrumbLocationText->isVisible())
+  {
+    QVector<const ActionDescription *> path = m_Breadcrumbs->getPath();
+
+    QString pathString;
+    for(const ActionDescription *p : path)
+    {
+      QString name = p->GetName(m_Ctx.GetStructuredFile());
+      if(name.isEmpty())
+        name = lit("unnamed%1").arg(p->eventId);
+
+      name.replace(QLatin1Char('\\'), lit("\\\\"));
+      name.replace(QLatin1Char('/'), lit("\\/"));
+
+      if(!pathString.isEmpty())
+        pathString += QLatin1Char('/');
+
+      pathString += name.trimmed();
+    }
+
+    m_BreadcrumbLocationText->setText(pathString);
+    m_BreadcrumbLocationText->setFocus(Qt::MouseFocusReason);
+    m_BreadcrumbLocationText->selectAll();
+
+    m_InitialBreadcrumbLocation = pathString;
+  }
+}
+
+void EventBrowser::location_leave()
+{
+  m_Breadcrumbs->setVisible(true);
+  m_BreadcrumbLocationEditButton->setVisible(true);
+  m_BreadcrumbLocationText->setVisible(false);
+}
+
+void EventBrowser::location_keyPress(QKeyEvent *e)
+{
+  if(e->key() == Qt::Key_Escape)
+  {
+    return location_leave();
+  }
+  if(e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter)
+  {
+    // if the text hasn't changed (ignoring any whitespace added) don't move
+    if(m_BreadcrumbLocationText->text().trimmed() == m_InitialBreadcrumbLocation)
+      return location_leave();
+
+    QString locationText = m_BreadcrumbLocationText->text();
+
+    // split naively by /
+    QStringList elements = locationText.split(QLatin1Char('/'));
+
+    // for each split string, combine any that end with a \ because that means it was an escaped
+    // slash like foo\/bar
+    for(int i = 0; i < elements.count(); i++)
+    {
+      if(elements[i][elements[i].count() - 1] == QLatin1Char('\\'))
+      {
+        elements[i] += elements[i + 1];
+        elements.removeAt(i + 1);
+        continue;
+      }
+    }
+
+    // unescape
+    for(QString &el : elements)
+    {
+      el.replace(lit("\\/"), lit("/"));
+      el.replace(lit("\\\\"), lit("\\"));
+    }
+
+    const ActionDescription *curAction = NULL;
+    const rdcarray<ActionDescription> *actions = &m_Ctx.CurRootActions();
+
+    while(!elements.isEmpty())
+    {
+      QString el = elements.front().trimmed();
+      elements.pop_front();
+
+      // ignore empty elements (so foo//bar is equivalent to foo/bar is equivalent to /foo/bar)
+      if(el.isEmpty())
+        continue;
+
+      // try finding an exact name match first
+      bool found = false;
+      for(size_t i = 0; i < actions->size(); i++)
+      {
+        QString name = actions->at(i).GetName(m_Ctx.GetStructuredFile());
+        if(name == el)
+        {
+          found = true;
+          curAction = &actions->at(i);
+          actions = &curAction->children;
+          break;
+        }
+      }
+
+      // if not, try via unnamed
+      if(!found)
+      {
+        for(size_t i = 0; i < actions->size(); i++)
+        {
+          QString name = lit("unnamed%1").arg(actions->at(i).eventId);
+          if(name == el)
+          {
+            found = true;
+            curAction = &actions->at(i);
+            actions = &curAction->children;
+            break;
+          }
+        }
+      }
+
+      if(!found)
+      {
+        QString curActionName;
+        if(curAction)
+        {
+          curActionName = curAction->GetName(m_Ctx.GetStructuredFile());
+          if(curActionName.trimmed().isEmpty())
+            curActionName = lit("un-named marker at EID %1").arg(curAction->eventId);
+
+          curActionName = QFormatStr("'%1'").arg(curActionName);
+        }
+        else
+        {
+          curActionName = tr("root of capture");
+        }
+
+        // ignore signals telling us focus is lost while displaying the dialog
+        {
+          QSignalBlocker block(m_BreadcrumbLocationText);
+          RDDialog::critical(this, tr("Error locating marker"),
+                             tr("Could not find marker '%1' under %2.\n\nPath: '%3'")
+                                 .arg(el)
+                                 .arg(curActionName)
+                                 .arg(locationText));
+        }
+
+        // focus back on the location and select it again
+        m_BreadcrumbLocationText->setFocus(Qt::MouseFocusReason);
+        m_BreadcrumbLocationText->selectAll();
+
+        return;
+      }
+    }
+
+    // hide the edit box
+    location_leave();
+
+    // go to the action found, and update ourselves because this is not a normal browse.
+    if(curAction)
+    {
+      QModelIndex idx = m_Model->GetIndexForEID(curAction->eventId);
+
+      uint32_t selectedEID = GetSelectedEID(idx);
+      uint32_t effectiveEID = GetEffectiveEID(idx);
+
+      m_Ctx.SetEventID({}, selectedEID, effectiveEID);
+    }
+    else
+    {
+      m_Ctx.SetEventID({}, 0, 0);
+    }
+  }
 }
 
 void EventBrowser::updateFindResultsAvailable(bool forceNoResults)

@@ -72,6 +72,7 @@ public:
   // forcibly refresh even if the event hasn't changed
   void ForceRefresh();
 
+  QVector<const ActionDescription *> getPath() { return m_Path; }
 private slots:
   // manual slots
   void elidedItemsClicked();
