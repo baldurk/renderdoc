@@ -4045,17 +4045,19 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
 
       QString name = m_Ctx.GetResourceName(a.imageResourceId);
 
-      rows.push_back({i, name, a.firstMip, a.numMips, a.firstSlice, a.numSlices});
+      rows.push_back({i, name, tex->width, tex->height, tex->depth, tex->arraysize, a.firstMip,
+                      a.numMips, a.firstSlice, a.numSlices});
 
       i++;
     }
 
-    m_Common.exportHTMLTable(xml,
-                             {
-                                 tr("Slot"), tr("Image"), tr("First mip"), tr("Number of mips"),
-                                 tr("First array layer"), tr("Number of layers"),
-                             },
-                             rows);
+    m_Common.exportHTMLTable(
+        xml,
+        {
+            tr("Slot"), tr("Image"), tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
+            tr("First mip"), tr("Number of mips"), tr("First array layer"), tr("Number of layers"),
+        },
+        rows);
   }
 
   {
@@ -4097,6 +4099,23 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       xml.writeEndElement();
     }
 
+    if(!pass.renderpass.resolveAttachments.isEmpty())
+    {
+      QList<QVariantList> resolves;
+
+      for(int i = 0; i < pass.renderpass.resolveAttachments.count(); i++)
+        resolves.push_back({pass.renderpass.resolveAttachments[i]});
+
+      m_Common.exportHTMLTable(xml,
+                               {
+                                   tr("Resolve Attachment"),
+                               },
+                               resolves);
+
+      xml.writeStartElement(lit("p"));
+      xml.writeEndElement();
+    }
+
     if(pass.renderpass.depthstencilAttachment >= 0)
     {
       xml.writeStartElement(lit("p"));
@@ -4118,6 +4137,19 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       xml.writeStartElement(lit("p"));
       xml.writeCharacters(
           tr("Fragment Density Attachment: %1").arg(pass.renderpass.fragmentDensityAttachment));
+      if(pass.renderpass.fragmentDensityOffsets.size() > 0)
+      {
+        xml.writeCharacters(
+            tr(". Rendering with %1 offsets : ").arg(pass.renderpass.fragmentDensityOffsets.size()));
+        for(uint32_t j = 0; j < pass.renderpass.fragmentDensityOffsets.size(); j++)
+        {
+          const Offset &o = pass.renderpass.fragmentDensityOffsets[j];
+          if(j > 0)
+            xml.writeCharacters(tr(", "));
+
+          xml.writeCharacters(tr(" %1x%2").arg(o.x).arg(o.y));
+        }
+      }
       xml.writeEndElement();
     }
 
