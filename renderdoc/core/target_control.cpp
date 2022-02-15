@@ -945,6 +945,18 @@ extern "C" RENDERDOC_API ITargetControl *RENDERDOC_CC RENDERDOC_CreateTargetCont
 
     port = protocol->RemapPort(deviceID, port);
   }
+  else
+  {
+    int32_t idx = deviceID.indexOf(':');
+    if(idx > 0)
+    {
+      host = deviceID.substr(0, idx);
+      port = atoi(deviceID.substr(idx + 1).c_str()) & 0xffff;
+    }
+  }
+
+  if(port == 0)
+    return NULL;
 
   Network::Socket *sock = Network::CreateClientSocket(host, port, 750);
 

@@ -456,6 +456,7 @@ private:
   std::string host;
   bool daemon = false;
   bool preview = false;
+  uint16_t port = 0;
 
 public:
   RemoteServerCommand() : Command() {}
@@ -465,6 +466,9 @@ public:
     parser.add<std::string>(
         "host", 'h', "The interface to listen on. By default listens on all interfaces", false, "");
     parser.add("preview", 'v', "Display a preview window when a replay is active.");
+    parser.add<uint32_t>(
+        "port", 'p',
+        "The port to listen on. Default is 0, which listens on RenderDoc's default port.", false, 0);
   }
   virtual const char *Description()
   {
@@ -478,12 +482,15 @@ public:
     host = parser.get<std::string>("host");
     daemon = parser.exist("daemon");
     preview = parser.exist("preview");
+    port = parser.get<uint32_t>("port") & 0xffff;
     return true;
   }
   virtual int Execute(const CaptureOptions &)
   {
-    std::cerr << "Spawning a replay host listening on " << (host.empty() ? "*" : host) << "..."
-              << std::endl;
+    std::cerr << "Spawning a replay host listening on " << (host.empty() ? "*" : host);
+    if(port != 0)
+      std::cerr << ":" << port;
+    std::cerr << "..." << std::endl;
 
     if(daemon)
     {
@@ -504,7 +511,7 @@ public:
     if(DisplayRemoteServerPreview(false, {}).system != WindowingSystem::Unknown)
       previewWindow = &DisplayRemoteServerPreview;
 
-    RENDERDOC_BecomeRemoteServer(conv(host), []() { return killSignal; }, previewWindow);
+    RENDERDOC_BecomeRemoteServer(conv(host), port, []() { return killSignal; }, previewWindow);
 
     std::cerr << std::endl << "Cleaning up from replay hosting." << std::endl;
 

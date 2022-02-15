@@ -1872,14 +1872,15 @@ This function will block until a remote connection tells the server to shut down
 ``killReplay`` callback returns ``True``.
 
 :param str listenhost: The name of the interface to listen on.
+:param int port: The port to listen on, or ``0`` to listen on the default port.
 :param KillCallback killReplay: A callback that returns a ``bool`` indicating if the server should
   be shut down or not.
 :param PreviewWindowCallback previewWindow: A callback that returns information for a preview window
   when the server wants to display some preview of the ongoing replay.
 )");
-extern "C" RENDERDOC_API void RENDERDOC_CC
-RENDERDOC_BecomeRemoteServer(const rdcstr &listenhost, RENDERDOC_KillCallback killReplay,
-                             RENDERDOC_PreviewWindowCallback previewWindow);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(
+    const rdcstr &listenhost, uint16_t port, RENDERDOC_KillCallback killReplay,
+    RENDERDOC_PreviewWindowCallback previewWindow);
 
 //////////////////////////////////////////////////////////////////////////
 // Injection/execution capture functions.

@@ -429,6 +429,13 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
     if(host.empty())
       return 0;
   }
+  else
+  {
+    // hosts specified with a port are supported only for replay, do not enumerate targets on those
+    // hosts
+    if(URL.contains(':'))
+      return 0;
+  }
 
   for(; nextIdent <= RenderDoc_LastTargetControlPort; nextIdent++)
   {
@@ -475,9 +482,9 @@ RENDERDOC_GetDeviceProtocolController(const rdcstr &protocol)
   return RenderDoc::Inst().GetDeviceProtocol(protocol);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC
-RENDERDOC_BecomeRemoteServer(const rdcstr &listenhost, RENDERDOC_KillCallback killReplay,
-                             RENDERDOC_PreviewWindowCallback previewWindow)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(
+    const rdcstr &listenhost, uint16_t port, RENDERDOC_KillCallback killReplay,
+    RENDERDOC_PreviewWindowCallback previewWindow)
 {
   // ensure a sensible default if no callback is provided, that just never kills
   if(!killReplay)
@@ -490,8 +497,11 @@ RENDERDOC_BecomeRemoteServer(const rdcstr &listenhost, RENDERDOC_KillCallback ki
       return ret;
     };
 
-  RenderDoc::Inst().BecomeRemoteServer(listenhost.empty() ? "0.0.0.0" : listenhost,
-                                       RenderDoc_RemoteServerPort, killReplay, previewWindow);
+  if(port == 0)
+    port = RenderDoc_RemoteServerPort;
+
+  RenderDoc::Inst().BecomeRemoteServer(listenhost.empty() ? "0.0.0.0" : listenhost, port,
+                                       killReplay, previewWindow);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartSelfHostCapture(const rdcstr &dllname)

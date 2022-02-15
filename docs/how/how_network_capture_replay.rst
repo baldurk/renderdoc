@@ -31,6 +31,10 @@ This manager allows you to configure both which remote hosts are available, as w
 
 To add a new host, simply type its hostname in the hostname box and click ``Add``. It will be added to the list of known remote hosts, and immediately a network lookup will happen to see if the remote server or any running RenderDoc-injected applications are alive.
 
+.. note::
+
+  You can run multiple remote servers on a single hostname by listening on different ports and specifying that in the hostname as with ``hostname:12345``.
+
 At minimum, this is all you must configure. However it is recommended that you configure a command which can be run on the **local** machine which will **remotely** start the remote server on that host. The reason for this is that it allows easy capture each time with zero manual extra steps.
 
 .. figure:: ../imgs/Screenshots/RemoteHostConfigure.png
