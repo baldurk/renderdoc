@@ -220,10 +220,12 @@ void LiveCapture::on_captures_mouseClicked(QMouseEvent *e)
     contextOpenMenu.addAction(&thisAction);
     contextOpenMenu.addAction(&newAction);
 
+    QAction contextRenameAction(tr("&Rename capture"), this);
     QAction contextSaveAction(tr("&Save"), this);
     QAction contextDeleteAction(tr("&Delete"), this);
 
     contextMenu.addAction(contextOpenMenu.menuAction());
+    contextMenu.addAction(&contextRenameAction);
     contextMenu.addAction(&contextSaveAction);
     contextMenu.addAction(&contextDeleteAction);
 
@@ -234,12 +236,15 @@ void LiveCapture::on_captures_mouseClicked(QMouseEvent *e)
     else
     {
       contextOpenMenu.setEnabled(false);
+      contextRenameAction.setEnabled(false);
       contextSaveAction.setText(tr("&Save All"));
       contextDeleteAction.setText(tr("&Delete All"));
     }
 
     QObject::connect(&thisAction, &QAction::triggered, this, &LiveCapture::openCapture_triggered);
     QObject::connect(&newAction, &QAction::triggered, this, &LiveCapture::openNewWindow_triggered);
+    QObject::connect(&contextRenameAction, &QAction::triggered,
+                     [this]() { ui->captures->editItem(ui->captures->selectedItems()[0]); });
     QObject::connect(&contextSaveAction, &QAction::triggered, this,
                      &LiveCapture::saveCapture_triggered);
     QObject::connect(&contextDeleteAction, &QAction::triggered, this,
