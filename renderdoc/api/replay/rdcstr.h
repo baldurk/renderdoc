@@ -42,12 +42,12 @@ class rdcliteral
   size_t len;
 
   // make the literal operator a friend so it can construct fixed strings. No-one else can.
-  friend rdcliteral operator"" _lit(const char *str, size_t len);
+  friend constexpr rdcliteral operator"" _lit(const char *str, size_t len);
 
   // similarly friend inflexible strings to allow them to decompose to a literal
   friend class rdcinflexiblestr;
 
-  rdcliteral(const char *s, size_t l) : str(s), len(l) {}
+  constexpr rdcliteral(const char *s, size_t l) : str(s), len(l) {}
   rdcliteral() = delete;
 
 public:
@@ -57,7 +57,7 @@ public:
   const char *end() const { return str + len; }
 };
 
-inline rdcliteral operator"" _lit(const char *str, size_t len)
+inline constexpr rdcliteral operator"" _lit(const char *str, size_t len)
 {
   return rdcliteral(str, len);
 }

@@ -52,7 +52,7 @@ rdcstr ToStr(const T &el)
 #define BEGIN_ENUM_STRINGISE(type)                               \
   using enumType = type;                                         \
   static const char unknown_prefix[] = #type "(";                \
-  static rdcliteral empty_ret = STRING_LITERAL(#type "(0)");     \
+  constexpr rdcliteral empty_ret = STRING_LITERAL(#type "(0)");  \
   static_assert(std::is_same<const type &, decltype(el)>::value, \
                 "Type in macro doesn't match el");               \
   (void)(enumType) el;                                           \
@@ -85,7 +85,7 @@ rdcstr ToStr(const T &el)
 #define BEGIN_BITFIELD_STRINGISE(type)                           \
   using enumType = type;                                         \
   static const char unknown_prefix[] = " | " #type "(";          \
-  static rdcliteral empty_ret = STRING_LITERAL(#type "(0)");     \
+  constexpr rdcliteral empty_ret = STRING_LITERAL(#type "(0)");  \
   static_assert(std::is_same<const type &, decltype(el)>::value, \
                 "Type in macro doesn't match el");               \
   uint64_t local = (uint64_t)el;                                 \
