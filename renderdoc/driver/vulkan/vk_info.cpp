@@ -937,6 +937,8 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
     if(dst.depthstencilAttachment >= 0)
       attachments[dst.depthstencilAttachment].used = true;
 
+    dst.depthstencilResolveAttachment = -1;
+
     dst.fragmentDensityAttachment =
         (fragmentDensity &&
                  fragmentDensity->fragmentDensityMapAttachment.attachment != VK_ATTACHMENT_UNUSED
