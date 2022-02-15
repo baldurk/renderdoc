@@ -103,7 +103,7 @@ struct Type
   const Type *inner = NULL;
 
   // struct or function
-  bool packedStruct = false, vararg = false;
+  bool packedStruct = false, vararg = false, opaque = false;
   uint16_t id = 0xFFFF;
   rdcstr name;
   rdcarray<const Type *> members;    // the members for a struct, the parameters for functions

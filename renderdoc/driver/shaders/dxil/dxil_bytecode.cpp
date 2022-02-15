@@ -754,6 +754,7 @@ Program::Program(const byte *bytes, size_t length)
           {
             // pretend opaque types are empty structs
             m_Types[typeIndex].type = Type::Struct;
+            m_Types[typeIndex].opaque = true;
 
             typeIndex++;
           }

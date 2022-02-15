@@ -1020,7 +1020,7 @@ bytebuf ProgramEditor::EncodeProgram() const
       }
       else if(m_Types[i].type == Type::Struct)
       {
-        if(m_Types[i].members.empty())
+        if(m_Types[i].opaque)
         {
           writer.Record(LLVMBC::TypeRecord::OPAQUE);
         }
