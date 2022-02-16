@@ -53,6 +53,7 @@ public:
 
   void RefreshWindowParameters(const GLWindowingData &data);
   void ProcessSwapBuffers(GLChunk src, HDC dc);
+  void ProcessContextActivate(HGLRC rc, HDC dc);
   void PopulateFromContext(HDC dc, HGLRC rc);
   GLInitParams GetInitParamsForDC(HDC dc);
 } wglhook;
@@ -82,6 +83,10 @@ void WGLHook::PopulateFromContext(HDC dc, HGLRC rc)
     if(!WGL.wglCreateContextAttribsARB)
       WGL.wglCreateContextAttribsARB =
           (PFN_wglCreateContextAttribsARB)WGL.wglGetProcAddress("wglCreateContextAttribsARB");
+
+    if(!WGL.wglMakeContextCurrentARB)
+      WGL.wglMakeContextCurrentARB =
+          (PFN_wglMakeContextCurrentARB)WGL.wglGetProcAddress("wglMakeContextCurrentARB");
 
     if(!WGL.wglGetPixelFormatAttribivARB)
       WGL.wglGetPixelFormatAttribivARB =
@@ -196,6 +201,35 @@ void WGLHook::ProcessSwapBuffers(GLChunk src, HDC dc)
 
     SetLastError(0);
   }
+}
+
+void WGLHook::ProcessContextActivate(HGLRC rc, HDC dc)
+{
+  SCOPED_LOCK(glLock);
+
+  SetDriverForHooks(&driver);
+
+  if(rc && contexts.find(rc) == contexts.end())
+  {
+    contexts.insert(rc);
+
+    FetchEnabledExtensions();
+
+    // see gl_emulated.cpp
+    GL.EmulateUnsupportedFunctions();
+    GL.EmulateRequiredExtensions();
+    GL.DriverForEmulation(&driver);
+  }
+
+  GLWindowingData data;
+  data.DC = dc;
+  data.wnd = WindowFromDC(dc);
+  data.ctx = rc;
+
+  RefreshWindowParameters(data);
+
+  if(haveContextCreation)
+    driver.ActivateContext(data);
 }
 
 static HGLRC WINAPI wglCreateContext_hooked(HDC dc)
@@ -422,31 +456,25 @@ static BOOL WINAPI wglMakeCurrent_hooked(HDC dc, HGLRC rc)
 
   if(ret && !wglhook.eglDisabled)
   {
-    SCOPED_LOCK(glLock);
+    wglhook.ProcessContextActivate(rc, dc);
+  }
 
-    SetDriverForHooks(&wglhook.driver);
+  SetLastError(err);
 
-    if(rc && wglhook.contexts.find(rc) == wglhook.contexts.end())
-    {
-      wglhook.contexts.insert(rc);
+  return ret;
+}
 
-      FetchEnabledExtensions();
+static BOOL WINAPI wglMakeContextCurrentARB_hooked(HDC drawDC, HDC readDC, HGLRC rc)
+{
+  SCOPED_LOCK(glLock);
 
-      // see gl_emulated.cpp
-      GL.EmulateUnsupportedFunctions();
-      GL.EmulateRequiredExtensions();
-      GL.DriverForEmulation(&wglhook.driver);
-    }
+  BOOL ret = WGL.wglMakeContextCurrentARB(drawDC, readDC, rc);
 
-    GLWindowingData data;
-    data.DC = dc;
-    data.wnd = WindowFromDC(dc);
-    data.ctx = rc;
+  DWORD err = GetLastError();
 
-    wglhook.RefreshWindowParameters(data);
-
-    if(wglhook.haveContextCreation)
-      wglhook.driver.ActivateContext(data);
+  if(ret && !wglhook.eglDisabled)
+  {
+    wglhook.ProcessContextActivate(rc, drawDC);
   }
 
   SetLastError(err);
@@ -583,6 +611,8 @@ static PROC WINAPI wglGetProcAddress_hooked(const char *func)
     return (PROC)&wglCreateLayerContext_hooked;
   if(!strcmp(func, "wglCreateContextAttribsARB"))
     return (PROC)&wglCreateContextAttribsARB_hooked;
+  if(!strcmp(func, "wglMakeContextCurrentARB"))
+    return (PROC)&wglMakeContextCurrentARB_hooked;
   if(!strcmp(func, "wglMakeCurrent"))
     return (PROC)&wglMakeCurrent_hooked;
   if(!strcmp(func, "wglSwapBuffers"))
