@@ -416,7 +416,7 @@ def launch_remote_server():
 
 
 def become_remote_server():
-    rd.BecomeRemoteServer('localhost', None, None)
+    rd.BecomeRemoteServer('localhost', 0, None, None)
 
 
 def internal_run_test(test_name):
