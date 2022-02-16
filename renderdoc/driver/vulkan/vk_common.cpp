@@ -1017,10 +1017,16 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps, bool act
       RDCLOG("Enabling Qualcomm driver workarounds");
 
     // not fixed yet that I know of, or unknown driver with fixes
-    qualcommLeakingUBOOffsets = true;
     qualcommDrefNon2DCompileCrash = true;
     qualcommLineWidthCrash = true;
-    bdaBrokenDriver = true;
+
+    // KHR_buffer_device_address has been tested on 622 (Quest2)
+    // UBO dynamic offset leak has been fixed in early 2020, 622 tested.
+    if(physProps.driverVersion < VK_MAKE_VERSION(512, 622, 0))
+    {
+      bdaBrokenDriver = true;
+      qualcommLeakingUBOOffsets = true;
+    }
   }
 }
 
