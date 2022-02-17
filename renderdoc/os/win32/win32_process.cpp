@@ -488,6 +488,8 @@ static PROCESS_INFORMATION RunProcess(const rdcstr &app, const rdcstr &workingDi
     wcscat_s(paramsAlloc, len, wcmd.c_str());
   }
 
+  bool inheritHandles = false;
+
   HANDLE hChildStdOutput_Wr = 0, hChildStdError_Wr = 0;
   if(phChildStdOutput_Rd)
   {
@@ -511,6 +513,9 @@ static PROCESS_INFORMATION RunProcess(const rdcstr &app, const rdcstr &workingDi
     si.dwFlags |= STARTF_USESTDHANDLES;
     si.hStdOutput = hChildStdOutput_Wr;
     si.hStdError = hChildStdError_Wr;
+
+    // Need to inherit handles in CreateProcess for ReadFile to read stdout
+    inheritHandles = true;
   }
 
   // if it's a utility launch, hide the command prompt window from showing
@@ -540,11 +545,9 @@ static PROCESS_INFORMATION RunProcess(const rdcstr &app, const rdcstr &workingDi
     }
   }
 
-  BOOL retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec,
-                                 true,    // Need to inherit handles for ReadFile to read stdout
-                                 CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT,
-                                 envString.empty() ? NULL : (void *)envString.data(),
-                                 workdir.c_str(), &si, &pi);
+  BOOL retValue = CreateProcessW(
+      NULL, paramsAlloc, &pSec, &tSec, inheritHandles, CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT,
+      envString.empty() ? NULL : (void *)envString.data(), workdir.c_str(), &si, &pi);
 
   DWORD err = GetLastError();
 
