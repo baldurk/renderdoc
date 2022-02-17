@@ -1906,20 +1906,24 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
   RDCLOG("Finished capture, Frame %u", m_CapturedFrames.back().frameNumber);
 
   VkImage backbuffer = VK_NULL_HANDLE;
-  const PresentInfo *presentInfo = NULL;
-  VkResourceRecord *swaprecord = NULL;
+  const ImageInfo *swapImageInfo = NULL;
+  uint32_t swapQueueIndex = 0;
+  VkImageLayout swapLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
   if(swap != VK_NULL_HANDLE)
   {
     GetResourceManager()->MarkResourceFrameReferenced(GetResID(swap), eFrameRef_Read);
 
-    swaprecord = GetRecord(swap);
+    VkResourceRecord *swaprecord = GetRecord(swap);
     RDCASSERT(swaprecord->swapInfo);
 
     const SwapchainInfo &swapInfo = *swaprecord->swapInfo;
 
-    presentInfo = &swapInfo.lastPresent;
-    backbuffer = swapInfo.images[presentInfo->imageIndex].im;
+    backbuffer = swapInfo.images[swapInfo.lastPresent.imageIndex].im;
+    swapImageInfo = &swapInfo.imageInfo;
+    swapQueueIndex = GetRecord(swapInfo.lastPresent.presentQueue)->queueFamilyIndex;
+    swapLayout =
+        swapInfo.shared ? VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
     // mark all images referenced as well
     for(size_t i = 0; i < swapInfo.images.size(); i++)
@@ -1929,7 +1933,9 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
   else
   {
     // if a swapchain wasn't specified or found, use the last one presented
-    swaprecord = GetResourceManager()->GetResourceRecord(m_LastSwap);
+    VkResourceRecord *swaprecord = GetResourceManager()->GetResourceRecord(m_LastSwap);
+    VkResourceRecord *VRBackbufferRecord =
+        GetResourceManager()->GetResourceRecord(m_CurrentVRBackbuffer);
 
     if(swaprecord)
     {
@@ -1938,13 +1944,26 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
       const SwapchainInfo &swapInfo = *swaprecord->swapInfo;
 
-      presentInfo = &swapInfo.lastPresent;
-      backbuffer = swapInfo.images[presentInfo->imageIndex].im;
+      backbuffer = swapInfo.images[swapInfo.lastPresent.imageIndex].im;
+      swapImageInfo = &swapInfo.imageInfo;
+      swapQueueIndex = GetRecord(swapInfo.lastPresent.presentQueue)->queueFamilyIndex;
+      swapLayout =
+          swapInfo.shared ? VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
       // mark all images referenced as well
       for(size_t i = 0; i < swapInfo.images.size(); i++)
         GetResourceManager()->MarkResourceFrameReferenced(GetResID(swapInfo.images[i].im),
                                                           eFrameRef_Read);
+    }
+    else if(VRBackbufferRecord)
+    {
+      RDCASSERT(VRBackbufferRecord->resInfo);
+      backbuffer = GetResourceManager()->GetCurrentHandle<VkImage>(m_CurrentVRBackbuffer);
+      swapImageInfo = &VRBackbufferRecord->resInfo->imageInfo;
+      swapQueueIndex = m_QueueFamilyIdx;
+      swapLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+      GetResourceManager()->MarkResourceFrameReferenced(m_CurrentVRBackbuffer, eFrameRef_Read);
     }
   }
 
@@ -1986,7 +2005,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
   const uint32_t maxSize = 2048;
   RenderDoc::FramePixels fp;
 
-  if(swaprecord != NULL)
+  if(backbuffer != VK_NULL_HANDLE)
   {
     VkDevice device = GetDev();
     VkCommandBuffer cmd = GetNextCmd();
@@ -1995,7 +2014,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
     vt->DeviceWaitIdle(Unwrap(device));
 
-    const SwapchainInfo &swapInfo = *swaprecord->swapInfo;
+    const ImageInfo &imageInfo = *swapImageInfo;
 
     // since this happens during capture, we don't want to start serialising extra buffer creates,
     // so we manually create & then just wrap.
@@ -2005,9 +2024,10 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
     // create readback buffer
     VkBufferCreateInfo bufInfo = {
-        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
-        GetByteSize(swapInfo.imageInfo.extent.width, swapInfo.imageInfo.extent.height, 1,
-                    swapInfo.imageInfo.format, 0),
+        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        NULL,
+        0,
+        GetByteSize(imageInfo.extent.width, imageInfo.extent.height, 1, imageInfo.format, 0),
         VK_BUFFER_USAGE_TRANSFER_DST_BIT,
     };
     vt->CreateBuffer(Unwrap(device), &bufInfo, NULL, &readbackBuf);
@@ -2029,8 +2049,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
     CheckVkResult(vkr);
 
-    uint32_t rowPitch =
-        GetByteSize(swapInfo.imageInfo.extent.width, 1, 1, swapInfo.imageInfo.format, 0);
+    uint32_t rowPitch = GetByteSize(imageInfo.extent.width, 1, 1, imageInfo.format, 0);
 
     VkBufferImageCopy cpy = {
         0,
@@ -2040,27 +2059,21 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
         {
             0, 0, 0,
         },
-        {swapInfo.imageInfo.extent.width, swapInfo.imageInfo.extent.height, 1},
+        {imageInfo.extent.width, imageInfo.extent.height, 1},
     };
-
-    VkResourceRecord *queueRecord = GetRecord(swapInfo.lastPresent.presentQueue);
-    uint32_t swapQueueIndex = queueRecord->queueFamilyIndex;
 
     VkImageMemoryBarrier bbBarrier = {
         VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
         NULL,
         0,
         VK_ACCESS_TRANSFER_READ_BIT,
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+        swapLayout,
         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
         swapQueueIndex,
         m_QueueFamilyIdx,
         Unwrap(backbuffer),
         {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
     };
-
-    if(swapInfo.shared)
-      bbBarrier.oldLayout = VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR;
 
     DoPipelineBarrier(cmd, 1, &bbBarrier);
 
@@ -2149,9 +2162,9 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     vt->DestroyBuffer(Unwrap(device), Unwrap(readbackBuf), NULL);
     GetResourceManager()->ReleaseWrappedResource(readbackBuf);
 
-    ResourceFormat fmt = MakeResourceFormat(swapInfo.imageInfo.format);
-    fp.width = swapInfo.imageInfo.extent.width;
-    fp.height = swapInfo.imageInfo.extent.height;
+    ResourceFormat fmt = MakeResourceFormat(imageInfo.format);
+    fp.width = imageInfo.extent.width;
+    fp.height = imageInfo.extent.height;
     fp.pitch = rowPitch;
     fp.stride = fmt.compByteWidth * fmt.compCount;
     fp.bpc = fmt.compByteWidth;

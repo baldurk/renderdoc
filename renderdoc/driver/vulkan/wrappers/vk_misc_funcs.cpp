@@ -2123,6 +2123,11 @@ VkResult WrappedVulkan::vkDebugMarkerSetObjectTagEXT(VkDevice device,
       Serialise_SetShaderDebugPath(ser, (VkShaderModule)(uint64_t)data.record->Resource, DebugPath);
       data.record->AddChunk(scope.Get());
     }
+    else if(data.record && pTagInfo->tagName == VR_ThumbnailTag_UUID &&
+            pTagInfo->objectType == VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT)
+    {
+      m_CurrentVRBackbuffer = data.record->GetResourceID();
+    }
     else if(ObjDisp(device)->DebugMarkerSetObjectTagEXT)
     {
       VkDebugMarkerObjectTagInfoEXT unwrapped = *pTagInfo;
@@ -2462,6 +2467,11 @@ VkResult WrappedVulkan::vkSetDebugUtilsObjectTagEXT(VkDevice device,
       SCOPED_SERIALISE_CHUNK(VulkanChunk::SetShaderDebugPath);
       Serialise_SetShaderDebugPath(ser, (VkShaderModule)(uint64_t)data.record->Resource, DebugPath);
       data.record->AddChunk(scope.Get());
+    }
+    else if(data.record && pTagInfo->tagName == VR_ThumbnailTag_UUID &&
+            pTagInfo->objectType == VK_OBJECT_TYPE_IMAGE)
+    {
+      m_CurrentVRBackbuffer = data.record->GetResourceID();
     }
     else if(ObjDisp(device)->SetDebugUtilsObjectTagEXT)
     {

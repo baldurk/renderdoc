@@ -86,6 +86,9 @@ typedef VkPhysicalDeviceBufferDeviceAddressFeatures VkPhysicalDeviceBufferDevice
 // happening
 #define VERBOSE_PARTIAL_REPLAY OPTION_OFF
 
+// UUID shared with VR runtimes to specify which vkImage is currently presented to the screen
+#define VR_ThumbnailTag_UUID 0x94F5B9E495BCC552ULL
+
 ResourceFormat MakeResourceFormat(VkFormat fmt);
 VkFormat MakeVkFormat(ResourceFormat fmt);
 Topology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patchControlPoints);
