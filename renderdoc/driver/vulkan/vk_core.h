@@ -772,6 +772,11 @@ private:
 
   ResourceId m_LastSwap;
 
+  // When capturing in VR mode (no conventional present), resource of the vkImage that the VR
+  // runtime
+  // specifies as last backbuffer through the VR backbuffer tag
+  ResourceId m_CurrentVRBackbuffer;
+
   // hold onto device address resources (buffers and memories) so that if one is destroyed
   // mid-capture we can hold onto it until the capture is complete.
   struct
