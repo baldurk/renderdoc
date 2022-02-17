@@ -189,7 +189,7 @@ static SDObject *XML2Config(pugi::xml_node &obj)
       valueObj = makeSDArray("value"_lit);
 
       uint32_t i = 0;
-      for(pugi::xml_node el = value.first_child(); el; el = el.next_sibling())
+      for(pugi::xml_node el = value; el; el = el.next_sibling())
       {
         SDObject *childObj = makeSDObject("$el"_lit, type, el);
 
