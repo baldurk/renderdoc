@@ -1,4 +1,16 @@
 set(sources
+    metal_dispatch_table_bridge.mm
+    metal_dispatch_table_bridge.h
+    metal_hook_bridge.mm
+    metal_hook.cpp
+    metal_hook.h
+    metal_device.cpp
+    metal_device.h
+    metal_device_bridge.mm
+    metal_resources.h
+    metal_types_bridge.mm
+    metal_types_bridge.h
+    metal_types.h
     official/metal-cpp.h
     official/metal-cpp.cpp)
 
