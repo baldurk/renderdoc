@@ -37,6 +37,8 @@ To build with Xcode, use the cmake Xcode generator to create the Xcode project:
 cmake -DCMAKE_BUILD_TYPE=Debug -Bbuild -H. -GXcode
 ```
 
+Building for Mac requires a C++17 compliant compiler i.e. the Xcode clang compiler.
+
 ## Android
 
 First check that you have all of the [required dependencies](Dependencies.md#android).
