@@ -330,7 +330,7 @@ add_custom_command(OUTPUT QRenderDoc
     DEPENDS RenderDoc.icns)
 add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc DEPENDS swig-bindings)
 
-if(APPLE)
+if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
     set_target_properties(build-qrenderdoc PROPERTIES XCODE_SCHEME_DEBUG_DOCUMENT_VERSIONING OFF)
     set_target_properties(build-qrenderdoc PROPERTIES XCODE_SCHEME_EXECUTABLE ${CMAKE_BINARY_DIR}/bin/qrenderdoc.app)
 
