@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8.12)
 
 if(APPLE)
+  # Building for Apple requires at least CMake 3.20.0
+  cmake_minimum_required(VERSION 3.20.0)
+
   SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
   SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum SDK for Mac OS X" FORCE)
   SET(CMAKE_XCODE_GENERATE_SCHEME ON)
@@ -193,6 +196,12 @@ option(ENABLE_GGP "Enable GGP support" OFF)
 option(ENABLE_ASAN "Enable address sanitizer" OFF)
 option(ENABLE_TSAN "Enable thread sanitizer" OFF)
 option(ENABLE_MSAN "Enable memory sanitizer" OFF)
+
+if(APPLE)
+  if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 12.0)
+    message(FATAL_ERROR "Xcode 12.2 or newer is required to build for Apple")
+  endif()
+endif()
 
 if(ENABLE_ASAN)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")

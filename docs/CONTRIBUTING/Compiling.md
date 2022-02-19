@@ -27,7 +27,15 @@ Configuration is available for cmake, [documented elsewhere](https://cmake.org/d
 
 First check that you have all of the [required dependencies](Dependencies.md#mac).
 
-Mac support is pretty early and while it will compile, it's not usable for debugging yet and is not officially supported. Builds happen with cmake the same way as Linux.
+Mac support is pretty early and while it will compile, it's not usable for debugging yet and is not officially supported. 
+
+To build with make, use cmake the same way as Linux.
+
+To build with Xcode, use the cmake Xcode generator to create the Xcode project:
+
+```
+cmake -DCMAKE_BUILD_TYPE=Debug -Bbuild -H. -GXcode
+```
 
 ## Android
 
