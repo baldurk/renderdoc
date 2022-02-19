@@ -556,6 +556,7 @@ void RDTreeWidgetItem::clear()
   for(RDTreeWidgetItem *c : children)
   {
     c->m_parent = NULL;
+    c->m_widget = NULL;
     delete c;
   }
 
