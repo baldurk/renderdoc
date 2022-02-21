@@ -182,7 +182,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         el.byteOffset = cur->offset;
         el.type.descriptor.pointerTypeID = structContext.pointerTypeId;
         el.type.descriptor.type = VarType::ULong;
-        el.type.descriptor.displayAsHex = true;
+        el.type.descriptor.flags |= ShaderVariableFlags::HexDisplay;
         el.type.descriptor.arrayByteStride = 8;
         el.type.descriptor.elements = arrayCount;
 
@@ -223,8 +223,10 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
     el.name = !match.captured(6).isEmpty() ? match.captured(6).trimmed() : lit("data");
 
     QString basetype = match.captured(3);
-    el.type.descriptor.rowMajorStorage = match.captured(1).trimmed() == lit("row_major");
-    el.type.descriptor.displayAsRGB = !match.captured(2).isEmpty();
+    if(match.captured(1).trimmed() == lit("row_major"))
+      el.type.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix;
+    if(!match.captured(2).isEmpty())
+      el.type.descriptor.flags |= ShaderVariableFlags::RGBDisplay;
     QString firstDim = !match.captured(4).isEmpty() ? match.captured(4) : lit("1");
     QString secondDim = !match.captured(5).isEmpty() ? match.captured(5).mid(1) : lit("1");
     QString arrayDim = !match.captured(7).isEmpty() ? match.captured(7).trimmed() : lit("[1]");
@@ -267,9 +269,9 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         break;
       }
 
-      // vectors are never marked as row major
+      // vectors are marked as row-major by convention
       if(el.type.descriptor.rows == 1)
-        el.type.descriptor.rowMajorStorage = false;
+        el.type.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix;
 
       if(basetype == lit("bool"))
       {
@@ -370,7 +372,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
     if(basetype == lit("xlong") || basetype == lit("xint") || basetype == lit("xshort") ||
        basetype == lit("xbyte"))
-      el.type.descriptor.displayAsHex = true;
+      el.type.descriptor.flags |= ShaderVariableFlags::HexDisplay;
 
     SetInterpretedResourceFormat(el, interpretType, interpretCompType);
 
@@ -392,7 +394,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       }
 
       uint8_t majorDim =
-          el.type.descriptor.rowMajorStorage ? el.type.descriptor.rows : el.type.descriptor.columns;
+          el.type.descriptor.RowMajor() ? el.type.descriptor.rows : el.type.descriptor.columns;
 
       // total matrix size is
       el.type.descriptor.arrayByteStride = el.type.descriptor.matrixByteStride * majorDim;
@@ -453,7 +455,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
     ShaderConstant el;
     el.byteOffset = 0;
-    el.type.descriptor.displayAsHex = true;
+    el.type.descriptor.flags |= ShaderVariableFlags::HexDisplay;
     el.name = "data";
     el.type.descriptor.type = VarType::UInt;
     el.type.descriptor.columns = 4;
@@ -666,7 +668,7 @@ QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
       }
       else
       {
-        if(desc.rowMajorStorage)
+        if(desc.RowMajor() && desc.rows > 1 && desc.columns > 1)
           format += lit("row_major ");
 
         format += ToQStr(desc.type);
@@ -758,7 +760,7 @@ uint32_t BufferFormatter::GetVarSize(const ShaderConstant &var)
 
   if(var.type.descriptor.rows > 1)
   {
-    if(var.type.descriptor.rowMajorStorage)
+    if(var.type.descriptor.RowMajor())
       size = var.type.descriptor.matrixByteStride * var.type.descriptor.rows;
     else
       size = var.type.descriptor.matrixByteStride * var.type.descriptor.columns;
@@ -887,7 +889,7 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
 
     if(members[i].type.descriptor.rows > 1)
     {
-      if(members[i].type.descriptor.rowMajorStorage)
+      if(members[i].type.descriptor.RowMajor())
       {
         varTypeName = lit("row_major ") + varTypeName;
 
@@ -984,7 +986,7 @@ ResourceFormat GetInterpretedResourceFormat(const ShaderConstant &elem)
 
   format.compByteWidth = VarTypeByteSize(elem.type.descriptor.type);
 
-  if(elem.type.descriptor.rowMajorStorage || elem.type.descriptor.rows == 1)
+  if(elem.type.descriptor.RowMajor() || elem.type.descriptor.rows == 1)
     format.compCount = elem.type.descriptor.columns;
   else
     format.compCount = elem.type.descriptor.rows;
@@ -1015,7 +1017,7 @@ static void FillShaderVarData(ShaderVariable &var, const ShaderConstant &elem, c
 
   bool colMajor = false;
 
-  if(!elem.type.descriptor.rowMajorStorage && outerCount > 1)
+  if(elem.type.descriptor.ColMajor() && outerCount > 1)
   {
     colMajor = true;
     std::swap(outerCount, innerCount);
@@ -1071,6 +1073,7 @@ static void FillShaderVarData(ShaderVariable &var, const ShaderConstant &elem, c
         case VarType::ReadWriteResource:
         case VarType::Sampler:
         case VarType::Unknown:
+        case VarType::Struct:
           qCritical() << "Unexpected variable type" << ToQStr(var.type) << "in variable"
                       << (QString)var.name;
           break;
@@ -1087,10 +1090,8 @@ ShaderVariable InterpretShaderVar(const ShaderConstant &elem, const byte *data, 
   ret.type = elem.type.descriptor.type;
   ret.columns = qMin(elem.type.descriptor.columns, uint8_t(4));
   ret.rows = qMin(elem.type.descriptor.rows, uint8_t(4));
-  ret.isStruct = !elem.type.members.isEmpty();
 
-  ret.displayAsHex = elem.type.descriptor.displayAsHex;
-  ret.rowMajor = elem.type.descriptor.rowMajorStorage;
+  ret.flags = elem.type.descriptor.flags;
 
   if(!elem.type.members.isEmpty())
   {
@@ -1118,7 +1119,6 @@ ShaderVariable InterpretShaderVar(const ShaderConstant &elem, const byte *data, 
         data += elem.type.descriptor.arrayByteStride;
       }
 
-      ret.isStruct = false;
       ret.members = arrayElements;
     }
     else
@@ -1472,7 +1472,7 @@ QVariantList GetVariants(ResourceFormat format, const ShaderConstantDescriptor &
     {
       for(uint32_t col = 0; col < qMax(colCount, 1U); col++)
       {
-        if(varDesc.rowMajorStorage || rowCount == 1)
+        if(varDesc.RowMajor() || rowCount == 1)
           data = base + row * varDesc.matrixByteStride + col * format.compByteWidth;
         else
           data = base + col * varDesc.matrixByteStride + row * format.compByteWidth;
@@ -1586,12 +1586,19 @@ QVariantList GetVariants(ResourceFormat format, const ShaderConstantDescriptor &
 
 QString TypeString(const ShaderVariable &v)
 {
-  if(!v.members.isEmpty() || v.isStruct)
+  if(!v.members.isEmpty() || v.type == VarType::Struct)
   {
-    if(v.isStruct)
-      return lit("struct");
+    if(v.type == VarType::Struct)
+    {
+      if(!v.members.empty() && v.members[0].name.contains('['))
+        return lit("struct[%2]").arg(v.members.count());
+      else
+        return lit("struct");
+    }
     else
+    {
       return QFormatStr("%1[%2]").arg(TypeString(v.members[0])).arg(v.members.count());
+    }
   }
 
   if(v.type == VarType::GPUPointer)
@@ -1608,7 +1615,7 @@ QString TypeString(const ShaderVariable &v)
   else if(v.type == VarType::ConstantBlock)
     typeStr = lit("Constant Block");
 
-  if(v.displayAsHex)
+  if(v.flags & ShaderVariableFlags::HexDisplay)
   {
     if(v.type == VarType::ULong)
       typeStr = lit("xlong");
@@ -1631,12 +1638,14 @@ QString TypeString(const ShaderVariable &v)
         .arg(typeStr)
         .arg(v.rows)
         .arg(v.columns)
-        .arg(v.rowMajor ? lit("row_major") : lit("column_major"));
+        .arg(v.RowMajor() ? lit("row_major") : lit("column_major"));
 }
 
 template <typename el>
-static QString RowValuesToString(int cols, bool hex, el x, el y, el z, el w)
+static QString RowValuesToString(int cols, ShaderVariableFlags flags, el x, el y, el z, el w)
 {
+  const bool hex = bool(flags & ShaderVariableFlags::HexDisplay);
+
   if(cols == 1)
     return Formatter::Format(x, hex);
   else if(cols == 2)
@@ -1662,56 +1671,59 @@ QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
   if(v.type == VarType::GPUPointer)
     return ToQStr(v.GetPointer());
 
+  if(v.type == VarType::Struct)
+    return lit("{ ... }");
+
   switch(type)
   {
     case VarType::Float:
-      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.f32v[row * v.columns + 0],
+      return RowValuesToString((int)v.columns, v.flags, v.value.f32v[row * v.columns + 0],
                                v.value.f32v[row * v.columns + 1], v.value.f32v[row * v.columns + 2],
                                v.value.f32v[row * v.columns + 3]);
     case VarType::Double:
-      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.f64v[row * v.columns + 0],
+      return RowValuesToString((int)v.columns, v.flags, v.value.f64v[row * v.columns + 0],
                                v.value.f64v[row * v.columns + 1], v.value.f64v[row * v.columns + 2],
                                v.value.f64v[row * v.columns + 3]);
     case VarType::Half:
-      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.f16v[row * v.columns + 0],
+      return RowValuesToString((int)v.columns, v.flags, v.value.f16v[row * v.columns + 0],
                                v.value.f16v[row * v.columns + 1], v.value.f16v[row * v.columns + 2],
                                v.value.f16v[row * v.columns + 3]);
     case VarType::Bool:
-      return RowValuesToString((int)v.columns, v.displayAsHex,
+      return RowValuesToString((int)v.columns, v.flags,
                                v.value.u32v[row * v.columns + 0] ? true : false,
                                v.value.u32v[row * v.columns + 1] ? true : false,
                                v.value.u32v[row * v.columns + 2] ? true : false,
                                v.value.u32v[row * v.columns + 3] ? true : false);
     case VarType::ULong:
-      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.u64v[row * v.columns + 0],
+      return RowValuesToString((int)v.columns, v.flags, v.value.u64v[row * v.columns + 0],
                                v.value.u64v[row * v.columns + 1], v.value.u64v[row * v.columns + 2],
                                v.value.u64v[row * v.columns + 3]);
     case VarType::UInt:
-      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.u32v[row * v.columns + 0],
+      return RowValuesToString((int)v.columns, v.flags, v.value.u32v[row * v.columns + 0],
                                v.value.u32v[row * v.columns + 1], v.value.u32v[row * v.columns + 2],
                                v.value.u32v[row * v.columns + 3]);
     case VarType::UShort:
-      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.u16v[row * v.columns + 0],
+      return RowValuesToString((int)v.columns, v.flags, v.value.u16v[row * v.columns + 0],
                                v.value.u16v[row * v.columns + 1], v.value.u16v[row * v.columns + 2],
                                v.value.u16v[row * v.columns + 3]);
     case VarType::UByte:
-      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.u8v[row * v.columns + 0],
+      return RowValuesToString((int)v.columns, v.flags, v.value.u8v[row * v.columns + 0],
                                v.value.u8v[row * v.columns + 1], v.value.u8v[row * v.columns + 2],
                                v.value.u8v[row * v.columns + 3]);
     case VarType::SLong:
-      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.s64v[row * v.columns + 0],
+      return RowValuesToString((int)v.columns, v.flags, v.value.s64v[row * v.columns + 0],
                                v.value.s64v[row * v.columns + 1], v.value.s64v[row * v.columns + 2],
                                v.value.s64v[row * v.columns + 3]);
     case VarType::SInt:
-      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.s32v[row * v.columns + 0],
+      return RowValuesToString((int)v.columns, v.flags, v.value.s32v[row * v.columns + 0],
                                v.value.s32v[row * v.columns + 1], v.value.s32v[row * v.columns + 2],
                                v.value.s32v[row * v.columns + 3]);
     case VarType::SShort:
-      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.s16v[row * v.columns + 0],
+      return RowValuesToString((int)v.columns, v.flags, v.value.s16v[row * v.columns + 0],
                                v.value.s16v[row * v.columns + 1], v.value.s16v[row * v.columns + 2],
                                v.value.s16v[row * v.columns + 3]);
     case VarType::SByte:
-      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.s8v[row * v.columns + 0],
+      return RowValuesToString((int)v.columns, v.flags, v.value.s8v[row * v.columns + 0],
                                v.value.s8v[row * v.columns + 1], v.value.s8v[row * v.columns + 2],
                                v.value.s8v[row * v.columns + 3]);
     case VarType::GPUPointer: return ToQStr(v.GetPointer());
@@ -1719,7 +1731,8 @@ QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
     case VarType::ReadOnlyResource:
     case VarType::ReadWriteResource:
     case VarType::Sampler:
-    case VarType::Unknown: break;
+    case VarType::Unknown:
+    case VarType::Struct: break;
   }
 
   return lit("???");
@@ -1746,9 +1759,9 @@ QString VarString(const ShaderVariable &v)
 
 QString RowTypeString(const ShaderVariable &v)
 {
-  if(!v.members.isEmpty() || v.isStruct)
+  if(!v.members.isEmpty() || v.type == VarType::Struct)
   {
-    if(v.isStruct)
+    if(v.type == VarType::Struct)
       return lit("struct");
     else
       return lit("flibbertygibbet");
@@ -1762,7 +1775,7 @@ QString RowTypeString(const ShaderVariable &v)
 
   QString typeStr = ToQStr(v.type);
 
-  if(v.displayAsHex)
+  if(v.flags & ShaderVariableFlags::HexDisplay)
   {
     if(v.type == VarType::ULong)
       typeStr = lit("xlong");

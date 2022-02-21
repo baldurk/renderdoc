@@ -336,7 +336,7 @@ void main() {
               CHECK(member.type.descriptor.rows == 2);
               CHECK(member.type.descriptor.columns == 3);
               CHECK(member.type.descriptor.elements == 3);
-              CHECK(member.type.descriptor.rowMajorStorage == false);
+              CHECK(member.type.descriptor.ColMajor());
             }
           }
         }
@@ -963,7 +963,7 @@ void main() {
             CHECK(member.type.descriptor.type == VarType::Float);
             CHECK(member.type.descriptor.rows == 3);
             CHECK(member.type.descriptor.columns == 4);
-            CHECK(member.type.descriptor.rowMajorStorage == false);
+            CHECK(member.type.descriptor.ColMajor());
           }
 
           CHECK(ubo_root[2].name == "ubo_c");
@@ -976,7 +976,7 @@ void main() {
             CHECK(member.type.descriptor.type == VarType::Float);
             CHECK(member.type.descriptor.rows == 3);
             CHECK(member.type.descriptor.columns == 4);
-            CHECK(member.type.descriptor.rowMajorStorage == true);
+            CHECK(member.type.descriptor.RowMajor());
           }
 
           CHECK(ubo_root[3].name == "ubo_d");
@@ -1052,7 +1052,7 @@ void main() {
                 CHECK(submember.type.descriptor.type == VarType::Float);
                 CHECK(submember.type.descriptor.rows == 2);
                 CHECK(submember.type.descriptor.columns == 2);
-                CHECK(submember.type.descriptor.rowMajorStorage == false);
+                CHECK(submember.type.descriptor.ColMajor());
               }
             }
           }
@@ -1299,7 +1299,7 @@ void main() {
                 CHECK(submember.type.descriptor.type == VarType::Float);
                 CHECK(submember.type.descriptor.rows == 2);
                 CHECK(submember.type.descriptor.columns == 2);
-                CHECK(submember.type.descriptor.rowMajorStorage == false);
+                CHECK(submember.type.descriptor.ColMajor());
               }
             }
           }
@@ -1385,7 +1385,7 @@ void main() {
                     CHECK(subsubmember.type.descriptor.type == VarType::Float);
                     CHECK(subsubmember.type.descriptor.rows == 2);
                     CHECK(subsubmember.type.descriptor.columns == 2);
-                    CHECK(subsubmember.type.descriptor.rowMajorStorage == false);
+                    CHECK(subsubmember.type.descriptor.ColMajor());
                   }
                 }
               }
@@ -1435,7 +1435,7 @@ void main() {
                     CHECK(subsubmember.type.descriptor.type == VarType::Float);
                     CHECK(subsubmember.type.descriptor.rows == 2);
                     CHECK(subsubmember.type.descriptor.columns == 2);
-                    CHECK(subsubmember.type.descriptor.rowMajorStorage == false);
+                    CHECK(subsubmember.type.descriptor.ColMajor());
                   }
                 }
               }

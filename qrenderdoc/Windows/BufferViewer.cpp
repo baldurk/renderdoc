@@ -749,10 +749,12 @@ static QString interpretVariant(const QVariant &v, const ShaderConstant &el,
       memcpy(&u, &f, sizeof(f));
     }
 
-    if(el.type.descriptor.displayAsHex && prop.format.type == ResourceFormatType::Regular)
+    const bool hexDisplay = bool(el.type.descriptor.flags & ShaderVariableFlags::HexDisplay);
+
+    if(hexDisplay && prop.format.type == ResourceFormatType::Regular)
       ret = Formatter::HexFormat(u, prop.format.compByteWidth);
     else
-      ret = Formatter::Format(u, el.type.descriptor.displayAsHex);
+      ret = Formatter::Format(u, hexDisplay);
   }
   else if(vt == QMetaType::Int || vt == QMetaType::Short || vt == QMetaType::SChar)
   {
@@ -771,7 +773,8 @@ static QString interpretVariant(const QVariant &v, const ShaderConstant &el,
   }
   else if(vt == QMetaType::ULongLong)
   {
-    ret = Formatter::Format((uint64_t)v.toULongLong(), el.type.descriptor.displayAsHex);
+    ret = Formatter::Format((uint64_t)v.toULongLong(),
+                            bool(el.type.descriptor.flags & ShaderVariableFlags::HexDisplay));
   }
   else if(vt == QMetaType::LongLong)
   {
@@ -980,7 +983,8 @@ public:
           const ShaderConstant &el = elementForColumn(col);
           const BufferElementProperties &prop = propForColumn(col);
 
-          if(el.type.descriptor.displayAsRGB && prop.buffer < config.buffers.size())
+          if((el.type.descriptor.flags & ShaderVariableFlags::RGBDisplay) &&
+             prop.buffer < config.buffers.size())
           {
             const byte *data = config.buffers[prop.buffer]->data();
             const byte *end = config.buffers[prop.buffer]->end();

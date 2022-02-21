@@ -446,13 +446,18 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
             case VarType::UShort: ret += ToStr(value.u16v[0]); break;
             case VarType::UByte: ret += ToStr(value.u8v[0]); break;
             case VarType::SLong: ret += ToStr(value.s64v[0]); break;
+            case VarType::ULong:
+              ret += ToStr(value.u64v[0]);
+              break;
+            // none of these types are expected, either because they're opaque or (for struct)
+            // because ConstantComposite should have been used
+            case VarType::Struct:
             case VarType::Unknown:
             case VarType::GPUPointer:
             case VarType::ConstantBlock:
             case VarType::ReadOnlyResource:
             case VarType::ReadWriteResource:
-            case VarType::Sampler:
-            case VarType::ULong: ret += ToStr(value.u64v[0]); break;
+            case VarType::Sampler: ret += "???"; break;
           }
 
           ret += getDecorationString(decorations[decoded.result]);
@@ -1675,6 +1680,7 @@ rdcstr Reflector::StringiseConstant(rdcspv::Id id) const
       case VarType::UByte: return ToStr(value.value.u8v[0]);
       case VarType::SLong: return ToStr(value.value.s64v[0]);
       case VarType::ULong: return ToStr(value.value.u64v[0]);
+      case VarType::Struct:
       case VarType::Unknown:
       case VarType::GPUPointer:
       case VarType::ConstantBlock:
@@ -1702,6 +1708,7 @@ rdcstr Reflector::StringiseConstant(rdcspv::Id id) const
         case VarType::UByte: ret += ToStr(value.value.u8v[i]); break;
         case VarType::SLong: ret += ToStr(value.value.s64v[i]); break;
         case VarType::ULong: ret += ToStr(value.value.u64v[i]); break;
+        case VarType::Struct:
         case VarType::Unknown:
         case VarType::GPUPointer:
         case VarType::ConstantBlock:

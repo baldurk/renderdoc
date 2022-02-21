@@ -415,7 +415,7 @@ ShaderVariable ModfStruct(ThreadState &state, uint32_t, const rdcarray<Id> &para
   ShaderVariable ret;
   ret.rows = 1;
   ret.columns = 1;
-  ret.isStruct = true;
+  ret.type = VarType::Struct;
   ret.members = {var, var};
   ret.members[0].name = "_child0";
   ret.members[1].name = "_child1";
@@ -788,7 +788,7 @@ ShaderVariable FrexpStruct(ThreadState &state, uint32_t, const rdcarray<Id> &par
   ShaderVariable ret;
   ret.rows = 1;
   ret.columns = 1;
-  ret.isStruct = true;
+  ret.type = VarType::Struct;
   ret.members = {var, var};
   ret.members[0].name = "_child0";
   ret.members[1].name = "_child1";

@@ -40,9 +40,9 @@ static ShaderConstantType MakeShaderConstantType(bool cbufferPacking, DXBC::CBuf
   ret.descriptor.columns = (uint8_t)type.descriptor.cols;
   ret.descriptor.elements = type.descriptor.elements;
   ret.descriptor.name = type.descriptor.name;
-  ret.descriptor.rowMajorStorage = (type.descriptor.varClass == DXBC::CLASS_MATRIX_ROWS ||
-                                    type.descriptor.varClass == DXBC::CLASS_VECTOR ||
-                                    type.descriptor.varClass == DXBC::CLASS_SCALAR);
+  if(type.descriptor.varClass == DXBC::CLASS_MATRIX_ROWS ||
+     type.descriptor.varClass == DXBC::CLASS_VECTOR || type.descriptor.varClass == DXBC::CLASS_SCALAR)
+    ret.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix;
 
   uint32_t baseElemSize = (ret.descriptor.type == VarType::Double) ? 8 : 4;
 
@@ -51,9 +51,8 @@ static ShaderConstantType MakeShaderConstantType(bool cbufferPacking, DXBC::CBuf
   if(cbufferPacking)
     ret.descriptor.matrixByteStride = uint8_t(baseElemSize * 4);
   else
-    ret.descriptor.matrixByteStride =
-        uint8_t(baseElemSize *
-                (ret.descriptor.rowMajorStorage ? ret.descriptor.rows : ret.descriptor.columns));
+    ret.descriptor.matrixByteStride = uint8_t(
+        baseElemSize * (ret.descriptor.RowMajor() ? ret.descriptor.columns : ret.descriptor.rows));
 
   if(type.descriptor.varClass == DXBC::CLASS_STRUCT)
   {
@@ -69,7 +68,7 @@ static ShaderConstantType MakeShaderConstantType(bool cbufferPacking, DXBC::CBuf
   }
   else
   {
-    if(ret.descriptor.rowMajorStorage)
+    if(ret.descriptor.RowMajor())
       ret.descriptor.arrayByteStride = ret.descriptor.matrixByteStride * ret.descriptor.rows;
     else
       ret.descriptor.arrayByteStride = ret.descriptor.matrixByteStride * ret.descriptor.columns;

@@ -224,7 +224,6 @@ struct ShaderVariable
   {
     name = "";
     rows = columns = 0;
-    displayAsHex = isStruct = rowMajor = false;
     type = VarType::Unknown;
     memset(&value, 0, sizeof(value));
   }
@@ -235,7 +234,6 @@ struct ShaderVariable
     name = n;
     rows = 1;
     columns = 4;
-    displayAsHex = isStruct = rowMajor = false;
     memset(&value, 0, sizeof(value));
     type = VarType::Float;
     value.f32v[0] = x;
@@ -248,7 +246,6 @@ struct ShaderVariable
     name = n;
     rows = 1;
     columns = 4;
-    displayAsHex = isStruct = rowMajor = false;
     memset(&value, 0, sizeof(value));
     type = VarType::SInt;
     value.s32v[0] = x;
@@ -261,7 +258,6 @@ struct ShaderVariable
     name = n;
     rows = 1;
     columns = 4;
-    displayAsHex = isStruct = rowMajor = false;
     memset(&value, 0, sizeof(value));
     type = VarType::UInt;
     value.u32v[0] = x;
@@ -272,8 +268,7 @@ struct ShaderVariable
   bool operator==(const ShaderVariable &o) const
   {
     return rows == o.rows && columns == o.columns && name == o.name && type == o.type &&
-           displayAsHex == o.displayAsHex && !memcmp(&value, &o.value, sizeof(value)) &&
-           isStruct == o.isStruct && rowMajor == o.rowMajor && members == o.members;
+           flags == o.flags && value.u64v == o.value.u64v && members == o.members;
   }
   bool operator<(const ShaderVariable &o) const
   {
@@ -285,14 +280,10 @@ struct ShaderVariable
       return name < o.name;
     if(!(type == o.type))
       return type < o.type;
-    if(!(displayAsHex == o.displayAsHex))
-      return displayAsHex < o.displayAsHex;
-    if(!(isStruct == o.isStruct))
-      return isStruct < o.isStruct;
-    if(!(rowMajor == o.rowMajor))
-      return rowMajor < o.rowMajor;
-    if(memcmp(&value, &o.value, sizeof(value)) < 0)
-      return true;
+    if(!(flags == o.flags))
+      return flags < o.flags;
+    if(value.u64v != o.value.u64v)
+      return value.u64v < o.value.u64v;
     if(!(members == o.members))
       return members < o.members;
     return false;
@@ -306,17 +297,14 @@ struct ShaderVariable
   DOCUMENT("The number of columns in this matrix.");
   uint8_t columns;
 
-  DOCUMENT("``True`` if the contents of this variable should be displayed as hex.");
-  bool displayAsHex;
-
-  DOCUMENT("``True`` if this variable is a structure and not an array or basic type.");
-  bool isStruct;
-
-  DOCUMENT("``True`` if this variable is stored in rows in memory. Only relevant for matrices.");
-  bool rowMajor;
-
   DOCUMENT("The :class:`basic type <VarType>` of this variable.");
   VarType type;
+
+  DOCUMENT(R"(The flags controlling how this constant is interpreted and displayed.
+
+:type: ShaderVariableFlags
+)");
+  ShaderVariableFlags flags = ShaderVariableFlags::NoFlags;
 
   DOCUMENT(R"(The contents of this variable if it has no members.
 
@@ -330,6 +318,28 @@ struct ShaderVariable
 )");
   rdcarray<ShaderVariable> members;
 
+  DOCUMENT(R"(Helper function for checking if :data:`flags` has
+:data:`ShaderVariableFlags.RowMajorMatrix` set. This is entirely equivalent to checking that flag
+manually, but since it is common this helper is provided.
+
+.. note::
+  Vectors and scalars will be marked as row-major by convention for convenience.
+
+:return: If the storage is row-major order in memory
+:rtype: Bool
+)");
+  inline bool RowMajor() const { return bool(flags & ShaderVariableFlags::RowMajorMatrix); }
+  DOCUMENT(R"(Helper function for checking if :data:`flags` *does not* have
+:data:`ShaderVariableFlags.RowMajorMatrix` set. This is entirely equivalent to checking that flag
+manually, but since it is common this helper is provided.
+
+.. note::
+  Vectors and scalars will be marked as row-major by convention for convenience.
+
+:return: If the storage is column-major order in memory
+:rtype: Bool
+)");
+  inline bool ColMajor() const { return !(flags & ShaderVariableFlags::RowMajorMatrix); }
   DOCUMENT(R"(Utility function for setting a pointer value with no type information.
 
 :param int pointer: The actual pointer value.
@@ -920,10 +930,10 @@ struct ShaderConstantDescriptor
 
   bool operator==(const ShaderConstantDescriptor &o) const
   {
-    return type == o.type && rows == o.rows && columns == o.columns &&
-           rowMajorStorage == o.rowMajorStorage && elements == o.elements &&
-           arrayByteStride == o.arrayByteStride && matrixByteStride == o.matrixByteStride &&
-           pointerTypeID == o.pointerTypeID && name == o.name;
+    return type == o.type && rows == o.rows && columns == o.columns && flags == o.flags &&
+           elements == o.elements && arrayByteStride == o.arrayByteStride &&
+           matrixByteStride == o.matrixByteStride && pointerTypeID == o.pointerTypeID &&
+           name == o.name;
   }
   bool operator<(const ShaderConstantDescriptor &o) const
   {
@@ -933,8 +943,8 @@ struct ShaderConstantDescriptor
       return rows < o.rows;
     if(!(columns == o.columns))
       return columns < o.columns;
-    if(!(rowMajorStorage == o.rowMajorStorage))
-      return rowMajorStorage < o.rowMajorStorage;
+    if(!(flags == o.flags))
+      return flags < o.flags;
     if(!(elements == o.elements))
       return elements < o.elements;
     if(!(arrayByteStride == o.arrayByteStride))
@@ -961,14 +971,34 @@ struct ShaderConstantDescriptor
   uint8_t columns = 1;
   DOCUMENT("The number of bytes between the start of one column/row in a matrix and the next.");
   uint8_t matrixByteStride = 0;
-  DOCUMENT("``True`` if the matrix is stored as row major instead of column major.");
-  bool rowMajorStorage = false;
-  DOCUMENT("``True`` if the contents of this variable should be displayed as hex.");
-  bool displayAsHex = false;
-  DOCUMENT(R"(``True`` if the contents of this variable should be displayed as RGB color (where
- possible).
- )");
-  bool displayAsRGB = false;
+  DOCUMENT(R"(The flags controlling how this constant is interpreted and displayed.
+
+:type: ShaderVariableFlags
+)");
+  ShaderVariableFlags flags = ShaderVariableFlags::NoFlags;
+
+  DOCUMENT(R"(Helper function for checking if :data:`flags` has
+:data:`ShaderVariableFlags.RowMajorMatrix` set. This is entirely equivalent to checking that flag
+manually, but since it is common this helper is provided.
+
+.. note::
+  Vectors and scalars will be marked as row-major by convention for convenience.
+
+:return: If the storage is row-major order in memory
+:rtype: Bool
+)");
+  inline bool RowMajor() const { return bool(flags & ShaderVariableFlags::RowMajorMatrix); }
+  DOCUMENT(R"(Helper function for checking if :data:`flags` *does not* have
+:data:`ShaderVariableFlags.RowMajorMatrix` set. This is entirely equivalent to checking that flag
+manually, but since it is common this helper is provided.
+
+.. note::
+  Vectors and scalars will be marked as row-major by convention for convenience.
+
+:return: If the storage is column-major order in memory
+:rtype: Bool
+)");
+  inline bool ColMajor() const { return !(flags & ShaderVariableFlags::RowMajorMatrix); }
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderConstantDescriptor);
@@ -1008,7 +1038,9 @@ struct ShaderConstantType
 
 DECLARE_REFLECTION_STRUCT(ShaderConstantType);
 
-DOCUMENT("Contains the detail of a constant within a :class:`ConstantBlock` in memory.");
+DOCUMENT(R"(Contains the detail of a constant within a struct, such as a :class:`ConstantBlock`,
+with its type and relative location in memory.
+)");
 struct ShaderConstant
 {
   DOCUMENT("");

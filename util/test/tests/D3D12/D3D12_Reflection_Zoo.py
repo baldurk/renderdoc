@@ -97,7 +97,7 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
             self.check(type.members[2].type.members[0].type.descriptor.type == rd.VarType.Float)
             self.check(type.members[2].type.members[0].type.descriptor.rows == 2)
             self.check(type.members[2].type.members[0].type.descriptor.columns == 3)
-            self.check(type.members[2].type.members[0].type.descriptor.rowMajorStorage)
+            self.check(type.members[2].type.members[0].type.descriptor.RowMajor())
 
             return
 

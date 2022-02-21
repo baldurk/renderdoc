@@ -619,7 +619,6 @@ void Processor::RegisterOp(Iter it)
 
     ShaderVariable v("composite", 0, 0, 0, 0);
     v.rows = v.columns = 0;
-    v.isStruct = (type.type == DataType::StructType);
 
     if(type.type == DataType::VectorType)
     {
@@ -633,7 +632,11 @@ void Processor::RegisterOp(Iter it)
       v.rows = type.vector().count & 0xf;
       v.columns = type.matrix().count & 0xf;
       // always store constants row major
-      v.rowMajor = true;
+      v.flags |= ShaderVariableFlags::RowMajorMatrix;
+    }
+    else if(type.type == DataType::StructType)
+    {
+      v.type = VarType::Struct;
     }
 
     rdcarray<ShaderVariable> members;
@@ -961,7 +964,6 @@ ShaderVariable Processor::MakeNULL(const DataType &type, uint64_t value)
 {
   ShaderVariable v("", 0, 0, 0, 0);
   v.rows = v.columns = 0;
-  v.isStruct = (type.type == DataType::StructType);
 
   for(uint8_t c = 0; c < 16; c++)
     v.value.u64v[c] = value;
@@ -977,7 +979,7 @@ ShaderVariable Processor::MakeNULL(const DataType &type, uint64_t value)
     v.type = type.scalar().Type();
     v.rows = type.vector().count & 0xf;
     v.columns = type.matrix().count & 0xf;
-    v.rowMajor = true;
+    v.flags |= ShaderVariableFlags::RowMajorMatrix;
   }
   else if(type.type == DataType::ScalarType)
   {
@@ -1003,6 +1005,11 @@ ShaderVariable Processor::MakeNULL(const DataType &type, uint64_t value)
   }
   else
   {
+    if(type.type == DataType::StructType)
+      v.type = VarType::Struct;
+    else
+      RDCWARN("Unexpected type %d making NULL", type.type);
+
     v.members.resize(type.children.size());
     for(size_t i = 0; i < v.members.size(); i++)
     {

@@ -863,6 +863,7 @@ rdcstr DoStringise(const VarType &el)
     STRINGISE_ENUM_CLASS_NAMED(SByte, "byte");
     STRINGISE_ENUM_CLASS_NAMED(UByte, "ubyte");
     STRINGISE_ENUM_CLASS_NAMED(Bool, "bool");
+    STRINGISE_ENUM_CLASS_NAMED(Struct, "struct");
     STRINGISE_ENUM_CLASS_NAMED(GPUPointer, "pointer");
     STRINGISE_ENUM_CLASS_NAMED(ConstantBlock, "cbuffer");
     STRINGISE_ENUM_CLASS_NAMED(ReadOnlyResource, "resource");
@@ -1105,6 +1106,20 @@ rdcstr DoStringise(const SectionFlags &el)
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(ASCIIStored, "Stored as ASCII");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(LZ4Compressed, "Compressed with LZ4");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(ZstdCompressed, "Compressed with Zstd");
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <>
+rdcstr DoStringise(const ShaderVariableFlags &el)
+{
+  BEGIN_BITFIELD_STRINGISE(ShaderVariableFlags);
+  {
+    STRINGISE_BITFIELD_CLASS_VALUE_NAMED(NoFlags, "None");
+
+    STRINGISE_BITFIELD_CLASS_BIT(RowMajorMatrix);
+    STRINGISE_BITFIELD_CLASS_BIT(HexDisplay);
+    STRINGISE_BITFIELD_CLASS_BIT(RGBDisplay);
   }
   END_BITFIELD_STRINGISE();
 }

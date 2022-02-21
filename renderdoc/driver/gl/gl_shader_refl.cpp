@@ -742,7 +742,8 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     var.byteOffset = ~0U;
   }
 
-  var.type.descriptor.rowMajorStorage = (values[6] > 0);
+  if(values[6] > 0)
+    var.type.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix;
   var.type.descriptor.matrixByteStride = (uint8_t)values[8];
 
   RDCASSERTMSG("Stride is too large for uint16_t", values[7] <= 0xffff);
@@ -756,7 +757,7 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     bareUniform = true;
 
     // plain matrices are always column major, so this is the size of a column
-    var.type.descriptor.rowMajorStorage = false;
+    var.type.descriptor.flags &= ~ShaderVariableFlags::RowMajorMatrix;
 
     const uint32_t elemByteStride = (var.type.descriptor.type == VarType::Double) ? 8 : 4;
     var.type.descriptor.matrixByteStride = uint8_t(var.type.descriptor.rows * elemByteStride);
@@ -765,7 +766,8 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     var.type.descriptor.arrayByteStride = 0;
   }
 
-  // set vectors as row major for convenience, since that's how they're stored in the fv array.
+  // set vectors/scalars as row major for convenience, since that's how they're stored in the fv
+  // array.
   switch(values[0])
   {
     case eGL_FLOAT_VEC4:
@@ -787,7 +789,7 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     case eGL_INT_VEC4:
     case eGL_INT_VEC3:
     case eGL_INT_VEC2:
-    case eGL_INT: var.type.descriptor.rowMajorStorage = true; break;
+    case eGL_INT: var.type.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix; break;
     default: break;
   }
 
@@ -881,7 +883,6 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     parentVar.type.descriptor.name = "struct";
     parentVar.type.descriptor.rows = 0;
     parentVar.type.descriptor.columns = 0;
-    parentVar.type.descriptor.rowMajorStorage = false;
     parentVar.type.descriptor.type = var.type.descriptor.type;
     parentVar.type.descriptor.elements =
         isarray && !multiDimArray ? RDCMAX(1U, uint32_t(arrayIdx + 1)) : 0;
@@ -1155,7 +1156,6 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     res.variableType.descriptor.rows = 1;
     res.variableType.descriptor.columns = 4;
     res.variableType.descriptor.elements = 0;
-    res.variableType.descriptor.rowMajorStorage = false;
     res.variableType.descriptor.arrayByteStride = 0;
     res.variableType.descriptor.matrixByteStride = 0;
 
@@ -1701,7 +1701,6 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       res.variableType.descriptor.rows = 0;
       res.variableType.descriptor.columns = 0;
       res.variableType.descriptor.elements = 0;
-      res.variableType.descriptor.rowMajorStorage = false;
       res.variableType.descriptor.arrayByteStride = 0;
       res.variableType.descriptor.matrixByteStride = 0;
       res.variableType.descriptor.name = "buffer";

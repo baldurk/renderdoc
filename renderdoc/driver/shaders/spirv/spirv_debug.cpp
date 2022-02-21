@@ -2234,7 +2234,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable result;
       result.rows = 1;
       result.columns = 1;
-      result.isStruct = true;
+      result.type = VarType::Struct;
       result.members = {lsb, msb};
       result.members[0].name = "lsb";
       result.members[1].name = "msb";
@@ -2482,7 +2482,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable result;
       result.rows = 1;
       result.columns = 1;
-      result.isStruct = true;
+      result.type = VarType::Struct;
       result.members = {GetSrc(sampled.image), GetSrc(sampled.sampler)};
       result.members[0].name = "image";
       result.members[1].name = "sampler";
@@ -3022,7 +3022,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable result;
       result.rows = 1;
       result.columns = 1;
-      result.isStruct = true;
+      result.type = VarType::Struct;
       result.members = {ReadPointerValue(ptr.image), GetSrc(ptr.coordinate), GetSrc(ptr.sample)};
       result.members[0].name = "image";
       result.members[1].name = "coord";

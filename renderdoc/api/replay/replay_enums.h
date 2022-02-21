@@ -132,8 +132,6 @@ enum class SectionType : uint32_t
 ITERABLE_OPERATORS(SectionType);
 DECLARE_REFLECTION_ENUM(SectionType);
 
-// replay_shader.h
-
 DOCUMENT(R"(Represents the category of debugging variable that a source variable maps to.
 
 .. data:: Undefined
@@ -227,6 +225,10 @@ DOCUMENT(R"(Represents the base type of a shader variable in debugging or consta
 
   A boolean value.
 
+.. data:: Struct
+
+  A structure with some number of members.
+
 .. data:: GPUPointer
 
   A 64-bit pointer into GPU-addressable memory. Variables with this type are stored with opaque
@@ -270,6 +272,7 @@ enum class VarType : uint8_t
   SByte,
   UByte,
   Bool,
+  Struct,
   GPUPointer,
   ConstantBlock,
   ReadOnlyResource,
@@ -1152,8 +1155,6 @@ enum class ShaderBuiltin : uint32_t
 
 ITERABLE_OPERATORS(ShaderBuiltin);
 DECLARE_REFLECTION_ENUM(ShaderBuiltin);
-
-// replay_render.h
 
 DOCUMENT(R"(The type of :class:`ReplayOutput` to create
 
@@ -4264,6 +4265,38 @@ enum class ShaderEvents : uint32_t
 
 BITMASK_OPERATORS(ShaderEvents);
 DECLARE_REFLECTION_ENUM(ShaderEvents);
+
+DOCUMENT(R"(A set of flags for events that control how a shader/buffer value is interpreted and
+displayed
+
+.. data:: NoFlags
+
+  No flags are specified.
+
+.. data:: RowMajorMatrix
+
+  This matrix is stored in row-major order in memory, instead of column-major. In RenderDoc values
+  are always provided row-major regardless, for consistency of access, but if this flag is not
+  present then the original values were in column order in memory, so the data has been transposed.
+
+.. data:: HexDisplay
+
+  This value should be displayed using hexadecimal where possible.
+
+.. data:: RGBDisplay
+
+  This value should be interpreted as an RGB colour for display where possible.
+)");
+enum class ShaderVariableFlags : uint32_t
+{
+  NoFlags = 0x0000,
+  RowMajorMatrix = 0x0001,
+  HexDisplay = 0x0002,
+  RGBDisplay = 0x0004,
+};
+
+BITMASK_OPERATORS(ShaderVariableFlags);
+DECLARE_REFLECTION_ENUM(ShaderVariableFlags);
 
 DOCUMENT(R"(A set of flags describing the properties of a particular action. An action is a call
 such as a draw, a compute dispatch, clears, copies, resolves, etc. Any GPU event which may have

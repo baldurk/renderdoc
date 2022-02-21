@@ -1746,7 +1746,7 @@ void FlattenSingleVariable(const rdcstr &cbufferName, uint32_t byteOffset, const
   size_t outIdx = byteOffset / 16;
   size_t outComp = (byteOffset % 16) / 4;
 
-  if(v.rowMajor)
+  if(v.RowMajor())
     outvars.resize(RDCMAX(outIdx + v.rows, outvars.size()));
   else
     outvars.resize(RDCMAX(outIdx + v.columns, outvars.size()));
@@ -1777,17 +1777,16 @@ void FlattenSingleVariable(const rdcstr &cbufferName, uint32_t byteOffset, const
   }
   else
   {
-    const uint32_t numRegisters = v.rowMajor ? v.rows : v.columns;
+    const uint32_t numRegisters = v.RowMajor() ? v.rows : v.columns;
     for(uint32_t reg = 0; reg < numRegisters; reg++)
     {
       outvars[outIdx + reg].rows = 1;
       outvars[outIdx + reg].type = VarType::Unknown;
-      outvars[outIdx + reg].isStruct = false;
       outvars[outIdx + reg].columns = v.columns;
-      outvars[outIdx + reg].rowMajor = v.rowMajor;
+      outvars[outIdx + reg].flags = v.flags;
     }
 
-    if(v.rowMajor)
+    if(v.RowMajor())
     {
       for(size_t ri = 0; ri < v.rows; ri++)
         memcpy(&outvars[outIdx + ri].value.u32v[0], &v.value.u32v[ri * v.columns],
@@ -1817,8 +1816,8 @@ void FlattenSingleVariable(const rdcstr &cbufferName, uint32_t byteOffset, const
     {
       for(uint8_t c = 0; c < v.columns; c++)
       {
-        size_t regIndex = outIdx + (v.rowMajor ? r : c);
-        size_t compIndex = outComp + (v.rowMajor ? c : r);
+        size_t regIndex = outIdx + (v.RowMajor() ? r : c);
+        size_t compIndex = outComp + (v.RowMajor() ? c : r);
 
         mapping.variables[i].type = DebugVariableType::Constant;
         mapping.variables[i].name = StringFormat::Fmt("%s[%zu]", cbufferName.c_str(), regIndex);
@@ -1847,43 +1846,37 @@ void FlattenVariables(const rdcstr &cbufferName, const rdcarray<ShaderConstant> 
 
     rdcstr basename = prefix + rdcstr(v.name);
 
-    if((v.rows == 0 && v.columns == 0) || !v.members.empty())
+    if(v.type == VarType::Struct)
     {
-      if(v.isStruct)
+      // check if this is an array of structs or not
+      if(c.type.descriptor.elements == 1)
       {
         FlattenVariables(cbufferName, c.type.members, v.members, outvars, basename + ".",
                          byteOffset, sourceVars);
       }
       else
       {
-        if(c.type.members.empty())
+        for(int m = 0; m < v.members.count(); m++)
         {
-          // if there are no members in this type, it means it's a basic array - unroll directly
-
-          for(int m = 0; m < v.members.count(); m++)
-          {
-            FlattenSingleVariable(cbufferName, byteOffset + m * c.type.descriptor.arrayByteStride,
-                                  StringFormat::Fmt("%s[%zu]", basename.c_str(), m), v.members[m],
-                                  outvars, sourceVars);
-          }
-        }
-        else
-        {
-          // otherwise we recurse into each member and flatten
-
-          for(int m = 0; m < v.members.count(); m++)
-          {
-            FlattenVariables(cbufferName, c.type.members, v.members[m].members, outvars,
-                             StringFormat::Fmt("%s[%zu].", basename.c_str(), m),
-                             byteOffset + m * c.type.descriptor.arrayByteStride, sourceVars);
-          }
+          FlattenVariables(cbufferName, c.type.members, v.members[m].members, outvars,
+                           StringFormat::Fmt("%s[%zu].", basename.c_str(), m),
+                           byteOffset + m * c.type.descriptor.arrayByteStride, sourceVars);
         }
       }
-
-      continue;
     }
-
-    FlattenSingleVariable(cbufferName, byteOffset, basename, v, outvars, sourceVars);
+    else if(c.type.descriptor.elements > 1 || (v.rows == 0 && v.columns == 0) || !v.members.empty())
+    {
+      for(int m = 0; m < v.members.count(); m++)
+      {
+        FlattenSingleVariable(cbufferName, byteOffset + m * c.type.descriptor.arrayByteStride,
+                              StringFormat::Fmt("%s[%zu]", basename.c_str(), m), v.members[m],
+                              outvars, sourceVars);
+      }
+    }
+    else
+    {
+      FlattenSingleVariable(cbufferName, byteOffset, basename, v, outvars, sourceVars);
+    }
   }
 }
 

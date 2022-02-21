@@ -94,15 +94,15 @@ class ShaderVariableCheck:
         return self
 
     def row_major(self):
-        if not self.var.rowMajor:
+        if not self.var.RowMajor():
             raise TestFailureException("Variable {} is not row-major, as expected"
                                        .format(self.var.name))
 
         return self
 
     def column_major(self):
-        if self.var.rowMajor:
-            raise TestFailureException("Variable {} is not row-major, as expected"
+        if not self.var.ColMajor():
+            raise TestFailureException("Variable {} is not column-major, as expected"
                                        .format(self.var.name))
 
         return self
@@ -115,7 +115,7 @@ class ShaderVariableCheck:
         return self
 
     def structSize(self, elements_: int):
-        if not self.var.isStruct:
+        if not self.var.type == rd.VarType.Struct:
             raise TestFailureException("Variable {} is not a struct as was expected"
                                        .format(self.var.name))
 
@@ -663,7 +663,7 @@ class TestCase:
         f32v = [0.0] * 16
         for i, debugVarPath in enumerate(sourceVar.variables):
             debugVar = self.get_debug_var(debugVars, debugVarPath.name)
-            debugged.rowMajor = debugVar.rowMajor
+            debugged.flags = debugVar.flags
             f32v[i] = debugVar.value.f32v[debugVarPath.component]
         debugged.value.f32v = f32v
         return debugged
@@ -719,9 +719,9 @@ class TestCase:
                     v.name = v.name[len(base):]
                     if v.name[0] == '.':
                         v.name = v.name[1:]
-                        combined.isStruct = True
+                        combined.type = rd.VarType.Struct
                     if check == base + '.':
-                        combined.isStruct = True
+                        combined.type = rd.VarType.Struct
                     members.append(vars[i])
 
             if not bare_array:

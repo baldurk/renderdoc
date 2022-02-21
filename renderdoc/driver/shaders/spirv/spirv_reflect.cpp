@@ -286,11 +286,11 @@ static uint32_t CalculateMinimumByteSize(const rdcarray<ShaderConstant> &variabl
       return byteOffset + rows * basicTypeSize;
 
     // for matrices we need to pad 3-column or 3-row up to 4
-    if(cols == 3 && last.type.descriptor.rowMajorStorage)
+    if(cols == 3 && last.type.descriptor.RowMajor())
     {
       return byteOffset + rows * 4 * basicTypeSize;
     }
-    else if(rows == 3 && !last.type.descriptor.rowMajorStorage)
+    else if(rows == 3 && last.type.descriptor.ColMajor())
     {
       return byteOffset + cols * 4 * basicTypeSize;
     }
@@ -995,7 +995,6 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
         res.variableType.descriptor.columns = 1;
         res.variableType.descriptor.rows = 1;
-        res.variableType.descriptor.rowMajorStorage = false;
         res.variableType.descriptor.type = VarType::UInt;
         res.variableType.descriptor.name = varType->name;
 
@@ -1109,8 +1108,6 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
             res.resType = TextureType::Buffer;
 
             res.variableType.descriptor.columns = 0;
-            res.variableType.descriptor.rows = 0;
-            res.variableType.descriptor.rowMajorStorage = false;
             res.variableType.descriptor.rows = 0;
             res.variableType.descriptor.type = VarType::Float;
             res.variableType.descriptor.name = varType->name;
@@ -1482,8 +1479,8 @@ void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst,
   {
     outConst.type.descriptor.type = curType->scalar().Type();
 
-    outConst.type.descriptor.rowMajorStorage =
-        (curType->type == DataType::VectorType || varDecorations.flags & Decorations::RowMajor);
+    if(curType->type == DataType::VectorType || (varDecorations.flags & Decorations::RowMajor))
+      outConst.type.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix;
 
     if(varDecorations.matrixStride != ~0U)
       outConst.type.descriptor.matrixByteStride = varDecorations.matrixStride & 0xff;
@@ -1503,7 +1500,7 @@ void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst,
   else if(curType->type == DataType::ScalarType)
   {
     outConst.type.descriptor.type = curType->scalar().Type();
-    outConst.type.descriptor.rowMajorStorage = true;
+    outConst.type.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix;
 
     outConst.type.descriptor.name = curType->name;
   }
@@ -1512,7 +1509,6 @@ void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst,
     if(curType->type == DataType::PointerType)
     {
       outConst.type.descriptor.type = VarType::ULong;
-      outConst.type.descriptor.rowMajorStorage = false;
       outConst.type.descriptor.rows = 1;
       outConst.type.descriptor.columns = 1;
       outConst.type.descriptor.name = curType->name;
@@ -1529,7 +1525,6 @@ void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst,
     RDCASSERT(curType->type == DataType::StructType || curType->type == DataType::ArrayType);
 
     outConst.type.descriptor.type = VarType::Float;
-    outConst.type.descriptor.rowMajorStorage = false;
     outConst.type.descriptor.rows = 0;
     outConst.type.descriptor.columns = 0;
 

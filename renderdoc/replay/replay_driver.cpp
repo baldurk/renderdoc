@@ -362,7 +362,7 @@ void StandardFillCBufferVariable(ResourceId shader, const ShaderConstantDescript
   // so a matrix is a secondaryDim number of primaryDim-sized vectors
   uint32_t primaryDim = cols;
   uint32_t secondaryDim = rows;
-  if(rows > 1 && !outvar.rowMajor)
+  if(rows > 1 && outvar.ColMajor())
   {
     primaryDim = rows;
     secondaryDim = cols;
@@ -390,7 +390,7 @@ void StandardFillCBufferVariable(ResourceId shader, const ShaderConstantDescript
     }
 
     // if it's a matrix and not row major, transpose
-    if(primaryDim > 1 && secondaryDim > 1 && !outvar.rowMajor)
+    if(primaryDim > 1 && secondaryDim > 1 && outvar.ColMajor())
     {
       ShaderVariable tmp = outvar;
 
@@ -436,7 +436,7 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
     uint8_t rows = invars[v].type.descriptor.rows;
     uint8_t cols = invars[v].type.descriptor.columns;
     uint32_t elems = RDCMAX(1U, invars[v].type.descriptor.elements);
-    const bool rowMajor = invars[v].type.descriptor.rowMajorStorage != 0;
+    const bool rowMajor = invars[v].type.descriptor.RowMajor();
     const bool isArray = elems > 1;
 
     const uint32_t matStride = invars[v].type.descriptor.matrixByteStride;
@@ -448,8 +448,9 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
       ShaderVariable var;
       var.name = basename;
       var.rows = var.columns = 0;
-      var.type = VarType::Float;
-      var.rowMajor = rowMajor;
+      var.type = VarType::Struct;
+      if(rowMajor)
+        var.flags |= ShaderVariableFlags::RowMajorMatrix;
 
       rdcarray<ShaderVariable> varmembers;
 
@@ -461,23 +462,18 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
           ShaderVariable &vr = var.members[i];
           vr.name = StringFormat::Fmt("%s[%u]", basename.c_str(), i);
           vr.rows = vr.columns = 0;
-          vr.type = VarType::Float;
-          vr.rowMajor = rowMajor;
+          vr.type = VarType::Struct;
+          if(rowMajor)
+            vr.flags |= ShaderVariableFlags::RowMajorMatrix;
 
           StandardFillCBufferVariables(shader, invars[v].type.members, vr.members, data, dataOffset);
 
-          var.type = vr.type;
-
           dataOffset += invars[v].type.descriptor.arrayByteStride;
-
-          vr.isStruct = true;
         }
-
-        var.isStruct = false;
       }
       else
       {
-        var.isStruct = true;
+        var.type = VarType::Struct;
 
         StandardFillCBufferVariables(shader, invars[v].type.members, var.members, data, dataOffset);
       }
@@ -496,9 +492,9 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
       outvars[outIdx].name = basename;
       outvars[outIdx].rows = 1;
       outvars[outIdx].type = type;
-      outvars[outIdx].isStruct = false;
       outvars[outIdx].columns = cols;
-      outvars[outIdx].rowMajor = rowMajor;
+      if(rowMajor)
+        outvars[outIdx].flags |= ShaderVariableFlags::RowMajorMatrix;
 
       ShaderVariable &var = outvars[outIdx];
 
@@ -525,9 +521,9 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
           varmembers[e].name = StringFormat::Fmt("%s[%u]", base.c_str(), e);
           varmembers[e].rows = rows;
           varmembers[e].type = type;
-          varmembers[e].isStruct = false;
           varmembers[e].columns = cols;
-          varmembers[e].rowMajor = rowMajor;
+          if(rowMajor)
+            varmembers[e].flags |= ShaderVariableFlags::RowMajorMatrix;
 
           uint32_t rowDataOffset = dataOffset;
 
@@ -537,10 +533,7 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
                                       varmembers[e], matStride);
         }
 
-        {
-          var.isStruct = false;
-          var.members = varmembers;
-        }
+        var.members = varmembers;
       }
     }
   }

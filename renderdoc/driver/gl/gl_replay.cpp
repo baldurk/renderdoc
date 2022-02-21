@@ -2095,7 +2095,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
     var.rows = desc.rows;
     var.columns = desc.columns;
     var.type = desc.type;
-    var.rowMajor = desc.rowMajorStorage;
+    var.flags = desc.flags;
 
     const uint32_t matStride = desc.matrixByteStride;
 
@@ -2105,7 +2105,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
       {
         OpenGLFillCBufferVariables(shader, prog, bufferBacked, prefix + var.name.c_str() + ".",
                                    variables[i].type.members, var.members, data);
-        var.isStruct = true;
+        var.type = VarType::Struct;
       }
       else
       {
@@ -2116,14 +2116,12 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
           arrEl.rows = var.rows;
           arrEl.columns = var.columns;
           arrEl.name = StringFormat::Fmt("%s[%u]", var.name.c_str(), a);
-          arrEl.type = var.type;
-          arrEl.isStruct = true;
-          arrEl.rowMajor = var.rowMajor;
+          arrEl.type = VarType::Struct;
+          arrEl.flags = var.flags;
 
           OpenGLFillCBufferVariables(shader, prog, bufferBacked, prefix + arrEl.name.c_str() + ".",
                                      variables[i].type.members, arrEl.members, data);
         }
-        var.isStruct = false;
         var.rows = var.columns = 0;
       }
     }
@@ -2166,13 +2164,10 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
             else
               el.name = StringFormat::Fmt("[%u]", a);
 
-            el.isStruct = false;
-
             elems.push_back(el);
           }
 
           var.members = elems;
-          var.isStruct = false;
           var.rows = var.columns = 0;
         }
       }
@@ -2209,6 +2204,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
               case VarType::SByte:
               case VarType::UByte:
               case VarType::Half:
+              case VarType::Struct:
                 RDCERR("Unexpected base variable type %s, treating as float",
                        ToStr(var.type).c_str());
                 DELIBERATE_FALLTHROUGH();
@@ -2260,6 +2256,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
                 case VarType::SByte:
                 case VarType::UByte:
                 case VarType::Half:
+                case VarType::Struct:
                   RDCERR("Unexpected base variable type %s, treating as float",
                          ToStr(var.type).c_str());
                   DELIBERATE_FALLTHROUGH();
@@ -2284,13 +2281,10 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
             if(bufferBacked)
               offset += desc.arrayByteStride;
 
-            el.isStruct = false;
-
             elems.push_back(el);
           }
 
           var.members = elems;
-          var.isStruct = false;
           var.rows = var.columns = 0;
         }
       }

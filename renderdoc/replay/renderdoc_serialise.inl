@@ -167,12 +167,10 @@ void DoSerialise(SerialiserType &ser, ShaderConstantDescriptor &el)
   SERIALISE_MEMBER(rows);
   SERIALISE_MEMBER(columns);
   SERIALISE_MEMBER(matrixByteStride);
-  SERIALISE_MEMBER(rowMajorStorage);
   SERIALISE_MEMBER(elements);
   SERIALISE_MEMBER(arrayByteStride);
   SERIALISE_MEMBER(name);
-  SERIALISE_MEMBER(displayAsHex);
-  SERIALISE_MEMBER(displayAsRGB);
+  SERIALISE_MEMBER(flags);
   SERIALISE_MEMBER(pointerTypeID);
 
   SIZE_CHECK(48);
@@ -320,9 +318,7 @@ void DoSerialise(SerialiserType &ser, ShaderVariable &el)
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(type);
 
-  SERIALISE_MEMBER(displayAsHex);
-  SERIALISE_MEMBER(isStruct);
-  SERIALISE_MEMBER(rowMajor);
+  SERIALISE_MEMBER(flags);
 
   SERIALISE_MEMBER(value.u64v);
 
