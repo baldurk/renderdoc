@@ -4178,6 +4178,7 @@ bool ShaderViewer::updateWatchVariable(RDTreeWidgetItem *watchItem, const RDTree
       case VarType::SShort:
       case VarType::SByte: regcast = QLatin1Char('i'); break;
       case VarType::Struct:
+      case VarType::Enum:
       case VarType::GPUPointer:
         regcast = QLatin1Char('#');
         dataSize = 8;
@@ -4640,6 +4641,7 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
             case VarType::ReadOnlyResource:
             case VarType::ReadWriteResource:
             case VarType::Sampler:
+            case VarType::Enum:
             case VarType::Struct: value += stringRep(*reg, 0); break;
             case VarType::Unknown:
               qCritical() << "Unexpected unknown variable" << (QString)l.name;

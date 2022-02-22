@@ -1034,6 +1034,10 @@ public:
 
                 rgb = QColor::fromRgb(r, g, b);
               }
+              else
+              {
+                return QVariant();
+              }
 
               if(role == Qt::BackgroundRole)
                 return QBrush(rgb);
@@ -1989,8 +1993,11 @@ static int MaxNumRows(const ShaderConstant &c)
 {
   int ret = c.type.descriptor.rows;
 
-  for(const ShaderConstant &child : c.type.members)
-    ret = qMax(ret, MaxNumRows(child));
+  if(c.type.descriptor.type != VarType::Enum)
+  {
+    for(const ShaderConstant &child : c.type.members)
+      ret = qMax(ret, MaxNumRows(child));
+  }
 
   return ret;
 }
@@ -2006,7 +2013,7 @@ static void UnrollConstant(rdcstr prefix, uint32_t baseOffset, const ShaderConst
   if(!prefix.isEmpty())
     baseName = prefix + "." + baseName;
 
-  if(constant.type.members.isEmpty())
+  if(constant.type.descriptor.type == VarType::Enum || constant.type.members.isEmpty())
   {
     BufferElementProperties prop;
     prop.format = GetInterpretedResourceFormat(constant);

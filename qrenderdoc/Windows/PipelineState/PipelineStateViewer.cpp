@@ -743,7 +743,7 @@ void PipelineStateViewer::MakeShaderVariablesHLSL(bool cbufferContents,
 {
   for(const ShaderConstant &v : vars)
   {
-    if(!v.type.members.isEmpty())
+    if(v.type.descriptor.type == VarType::Struct)
     {
       QString def = lit("struct %1 {\n").arg(v.type.descriptor.name);
 

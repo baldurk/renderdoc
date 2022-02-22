@@ -451,6 +451,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
               break;
             // none of these types are expected, either because they're opaque or (for struct)
             // because ConstantComposite should have been used
+            case VarType::Enum:
             case VarType::Struct:
             case VarType::Unknown:
             case VarType::GPUPointer:
@@ -1680,6 +1681,7 @@ rdcstr Reflector::StringiseConstant(rdcspv::Id id) const
       case VarType::UByte: return ToStr(value.value.u8v[0]);
       case VarType::SLong: return ToStr(value.value.s64v[0]);
       case VarType::ULong: return ToStr(value.value.u64v[0]);
+      case VarType::Enum:
       case VarType::Struct:
       case VarType::Unknown:
       case VarType::GPUPointer:
@@ -1708,6 +1710,7 @@ rdcstr Reflector::StringiseConstant(rdcspv::Id id) const
         case VarType::UByte: ret += ToStr(value.value.u8v[i]); break;
         case VarType::SLong: ret += ToStr(value.value.s64v[i]); break;
         case VarType::ULong: ret += ToStr(value.value.u64v[i]); break;
+        case VarType::Enum:
         case VarType::Struct:
         case VarType::Unknown:
         case VarType::GPUPointer:

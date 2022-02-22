@@ -832,7 +832,7 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
       // get the buffer type, whether it's just a basic type or a complex struct
       if(shaderInput && !shaderInput->isTexture)
       {
-        if(!shaderInput->variableType.members.empty())
+        if(shaderInput->variableType.descriptor.type == VarType::Struct)
           format = lit("struct ") + shaderInput->variableType.descriptor.name;
         else if(r.viewFormat.compType == CompType::Typeless)
           format = shaderInput->variableType.descriptor.name;
@@ -2583,7 +2583,7 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
     {
       if(view.viewFormat.compType == CompType::Typeless)
       {
-        if(!shaderInput->variableType.members.isEmpty())
+        if(shaderInput->variableType.descriptor.type == VarType::Struct)
           viewFormat = format = lit("struct ") + shaderInput->variableType.descriptor.name;
         else
           viewFormat = format = shaderInput->variableType.descriptor.name;

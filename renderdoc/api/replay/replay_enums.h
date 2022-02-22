@@ -225,6 +225,10 @@ DOCUMENT(R"(Represents the base type of a shader variable in debugging or consta
 
   A boolean value.
 
+.. data:: Enum
+
+  An enum - each member gives a named value, and the type itself is stored as an integer.
+
 .. data:: Struct
 
   A structure with some number of members.
@@ -272,6 +276,7 @@ enum class VarType : uint8_t
   SByte,
   UByte,
   Bool,
+  Enum,
   Struct,
   GPUPointer,
   ConstantBlock,
@@ -296,7 +301,7 @@ constexpr uint32_t VarTypeByteSize(VarType type)
   // clang-format off
   return (type == VarType::UByte  || type == VarType::SByte) ? 1
        : (type == VarType::Half   || type == VarType::UShort || type == VarType::SShort) ? 2
-       : (type == VarType::Float  || type == VarType::UInt   || type == VarType::SInt   || type == VarType::Bool) ? 4
+       : (type == VarType::Float  || type == VarType::UInt   || type == VarType::SInt   || type == VarType::Bool || type == VarType::Enum) ? 4
        : (type == VarType::Double || type == VarType::ULong  || type == VarType::SLong ) ? 8
        : 0;
   // clang-format on
@@ -388,8 +393,8 @@ constexpr CompType VarTypeCompType(VarType type)
   // clang-format off
   return (type == VarType::Double || type == VarType::Float  || type == VarType::Half) ? CompType::Float
 
-       : (type == VarType::ULong  || type == VarType::UInt   ||
-          type == VarType::UShort || type == VarType::UByte  || type == VarType::Bool) ? CompType::UInt
+       : (type == VarType::ULong  || type == VarType::UInt   || type == VarType::UShort ||
+          type == VarType::UByte  || type == VarType::Bool   || type == VarType::Enum) ? CompType::UInt
 
        : (type == VarType::SLong  || type == VarType::SInt   ||
           type == VarType::SShort || type == VarType::SByte) ? CompType::SInt

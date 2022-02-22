@@ -2205,6 +2205,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
               case VarType::UByte:
               case VarType::Half:
               case VarType::Struct:
+              case VarType::Enum:
                 RDCERR("Unexpected base variable type %s, treating as float",
                        ToStr(var.type).c_str());
                 DELIBERATE_FALLTHROUGH();
@@ -2257,6 +2258,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
                 case VarType::UByte:
                 case VarType::Half:
                 case VarType::Struct:
+                case VarType::Enum:
                   RDCERR("Unexpected base variable type %s, treating as float",
                          ToStr(var.type).c_str());
                   DELIBERATE_FALLTHROUGH();
