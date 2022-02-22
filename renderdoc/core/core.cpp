@@ -275,12 +275,9 @@ rdcstr DoStringise(const SystemChunk &el)
   END_ENUM_STRINGISE();
 }
 
-RenderDoc *RenderDoc::m_Inst = NULL;
-
 RenderDoc &RenderDoc::Inst()
 {
   static RenderDoc realInst;
-  RenderDoc::m_Inst = &realInst;
   return realInst;
 }
 
@@ -888,9 +885,6 @@ bool RenderDoc::ShowReplayUI()
 
 void RenderDoc::Tick()
 {
-  static bool prev_focus = false;
-  static bool prev_cap = false;
-
   bool cur_focus = false;
   for(size_t i = 0; i < m_FocusKeys.size(); i++)
     cur_focus |= Keyboard::GetKeyState(m_FocusKeys[i]);
@@ -901,17 +895,17 @@ void RenderDoc::Tick()
 
   m_FrameTimer.UpdateTimers();
 
-  if(!prev_focus && cur_focus)
+  if(!m_PrevFocus && cur_focus)
   {
     CycleActiveWindow();
   }
-  if(!prev_cap && cur_cap)
+  if(!m_PrevCap && cur_cap)
   {
     TriggerCapture(1);
   }
 
-  prev_focus = cur_focus;
-  prev_cap = cur_cap;
+  m_PrevFocus = cur_focus;
+  m_PrevCap = cur_cap;
 
   // check for any child threads that need to be waited on, remove them from the list
   rdcarray<Threading::ThreadHandle> waitThreads;

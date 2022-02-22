@@ -591,11 +591,12 @@ private:
 
   void SyncAvailableGPUThread();
 
-  static RenderDoc *m_Inst;
-
   bool m_Replay;
 
   uint32_t m_Cap;
+
+  bool m_PrevFocus = false;
+  bool m_PrevCap = false;
 
   rdcarray<RENDERDOC_InputButton> m_FocusKeys;
   rdcarray<RENDERDOC_InputButton> m_CaptureKeys;
