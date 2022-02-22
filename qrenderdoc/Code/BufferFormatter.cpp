@@ -48,27 +48,33 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
   // regex doesn't account for trailing or preceeding whitespace, or comments
 
   QRegularExpression regExpr(
-      lit("^"                                     // start of the line
-          "(row_major\\s+|column_major\\s+)?"     // row_major matrix
-          "(rgb\\s+)?"                            // rgb element colourising
-          "("                                     // group the options for the type
-          "uintten|unormten"                      // R10G10B10A2 types
-          "|floateleven"                          // R11G11B10 special type
-          "|unormh|unormb"                        // UNORM 16-bit and 8-bit types
-          "|snormh|snormb"                        // SNORM 16-bit and 8-bit types
-          "|bool"                                 // bool is stored as 4-byte int
-          "|byte|short|int|long"                  // signed ints
-          "|ubyte|ushort|uint|ulong"              // unsigned ints
-          "|xbyte|xshort|xint|xlong"              // hex ints
-          "|half|float|double"                    // float types
-          "|vec|uvec|ivec|dvec"                   // OpenGL vector types
-          "|mat|umat|imat|dmat"                   // OpenGL matrix types
-          ")"                                     // end of the type group
-          "([1-9])?"                              // might be a vector
-          "(x[1-9])?"                             // or a matrix
-          "(\\s+[A-Za-z@_][A-Za-z0-9@_]*)?"       // get identifier name
-          "(\\s*\\[[0-9]+\\])?"                   // optional array dimension
-          "(\\s*:\\s*[A-Za-z_][A-Za-z0-9_]*)?"    // optional semantic
+      lit("^"                                            // start of the line
+          "(?<major>row_major\\s+|column_major\\s+)?"    // matrix majorness
+          "(?<sign>unsigned\\s+|signed\\s+)?"            // allow 'signed int' or 'unsigned char'
+          "(?<rgb>rgb\\s+)?"                             // rgb element colourising
+          "(?<type>"                                     // group the options for the type
+          "uintten|unormten"                             // R10G10B10A2 types
+          "|floateleven"                                 // R11G11B10 special type
+          "|unormh|unormb"                               // UNORM 16-bit and 8-bit types
+          "|snormh|snormb"                               // SNORM 16-bit and 8-bit types
+          "|bool"                                        // bool is stored as 4-byte int
+          "|byte|short|int|long|char"                    // signed ints
+          "|ubyte|ushort|uint|ulong"                     // unsigned ints
+          "|xbyte|xshort|xint|xlong"                     // hex ints
+          "|half|float|double"                           // float types
+          "|vec|uvec|ivec|dvec"                          // OpenGL vector types
+          "|mat|umat|imat|dmat"                          // OpenGL matrix types
+          ")"                                            // end of the type group
+          "(?<vec>[1-9])?"                               // might be a vector
+          "(?<mat>x[1-9])?"                              // or a matrix
+          "(?<name>\\s+[A-Za-z@_][A-Za-z0-9@_]*)?"       // get identifier name
+          "(?<array>\\s*\\[[0-9]+\\])?"                  // optional array dimension
+          "(\\s*:\\s*"                                   // optional specifier after :
+          "("                                            // bitfield or semantic
+          "(?<bitfield>[1-9][0-9]*)|"                    // bitfield packing
+          "(?<semantic>[A-Za-z_][A-Za-z0-9_]*)"          // semantic to ignore
+          ")"                                            // end bitfield or semantic
+          ")?"
           "$"));
 
   bool success = true;
@@ -91,6 +97,21 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
           "\\s+([A-Za-z@_][A-Za-z0-9@_]*)"    // variable name
           "(\\s*\\[[0-9]+\\])?"               // optional array dimension
           "$"));
+
+  QRegularExpression bitfieldSkipRegex(
+      lit("^"                             // start of the line
+          "(unsigned\\s+|signed\\s+)?"    // allow 'signed int' or 'unsigned char'
+          "("                             // type group
+          "|bool"                         // bool is stored as 4-byte int
+          "|byte|short|int|long|char"     // signed ints
+          "|ubyte|ushort|uint|ulong"      // unsigned ints
+          "|xbyte|xshort|xint|xlong"      // hex ints
+          ")"                             // end of the type group
+                                          // no variable name
+          "\\s*:\\s*([1-9][0-9]*)"        // bitfield packing
+          "$"));
+
+  uint32_t bitfieldCurPos = ~0U;
 
   // get each line and parse it to determine the format the user wanted
   for(QString &l : text.split(QRegularExpression(lit("[;\n\r]"))))
@@ -115,6 +136,16 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
       if(line == lit("}"))
       {
+        if(bitfieldCurPos != ~0U)
+        {
+          // update final offset to account for any bits consumed by a trailing bitfield, including
+          // any bits in the last byte that weren't allocated
+          cur->offset += (bitfieldCurPos + 7) / 8;
+
+          // reset bitpacking state.
+          bitfieldCurPos = ~0U;
+        }
+
         cur->structDef.type.descriptor.arrayByteStride = cur->offset;
 
         // struct strides are aligned up to float4 boundary
@@ -145,6 +176,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
         cur = &structelems[lastStruct];
         cur->structDef.type.descriptor.name = lastStruct;
+        bitfieldCurPos = ~0U;
         continue;
       }
     }
@@ -211,6 +243,16 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       continue;
     }
 
+    QRegularExpressionMatch bitfieldSkipMatch = bitfieldSkipRegex.match(line);
+
+    if(bitfieldSkipMatch.hasMatch())
+    {
+      if(bitfieldCurPos == ~0U)
+        bitfieldCurPos = 0;
+      bitfieldCurPos += bitfieldSkipMatch.captured(3).toUInt();
+      continue;
+    }
+
     QRegularExpressionMatch match = regExpr.match(line);
 
     if(!match.hasMatch())
@@ -220,29 +262,62 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       break;
     }
 
-    el.name = !match.captured(6).isEmpty() ? match.captured(6).trimmed() : lit("data");
+    el.name = !match.captured(lit("name")).isEmpty() ? match.captured(lit("name")).trimmed()
+                                                     : lit("data");
 
-    QString basetype = match.captured(3);
-    if(match.captured(1).trimmed() == lit("row_major"))
+    QString basetype = match.captured(lit("type"));
+    if(match.captured(lit("major")).trimmed() == lit("row_major"))
       el.type.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix;
-    if(!match.captured(2).isEmpty())
+    if(!match.captured(lit("rgb")).isEmpty())
       el.type.descriptor.flags |= ShaderVariableFlags::RGBDisplay;
-    QString firstDim = !match.captured(4).isEmpty() ? match.captured(4) : lit("1");
-    QString secondDim = !match.captured(5).isEmpty() ? match.captured(5).mid(1) : lit("1");
-    QString arrayDim = !match.captured(7).isEmpty() ? match.captured(7).trimmed() : lit("[1]");
+    QString firstDim = !match.captured(lit("vec")).isEmpty() ? match.captured(lit("vec")) : lit("1");
+    QString secondDim =
+        !match.captured(lit("mat")).isEmpty() ? match.captured(lit("mat")).mid(1) : lit("1");
+    QString arrayDim = !match.captured(lit("array")).isEmpty()
+                           ? match.captured(lit("array")).trimmed()
+                           : lit("[1]");
     arrayDim = arrayDim.mid(1, arrayDim.count() - 2);
 
-    if(!match.captured(5).isEmpty() && basetype != lit("mat"))
-      firstDim.swap(secondDim);
+    const bool isUnsigned = match.captured(lit("sign")).trimmed() == lit("unsigned");
 
-    el.type.descriptor.name = match.captured(1) + match.captured(2) + match.captured(3) +
-                              match.captured(4) + match.captured(5);
+    QString bitfield = match.captured(lit("bitfield"));
+
+    if(!bitfield.isEmpty() && !arrayDim.isEmpty())
+    {
+      errors = tr("Bitfield packing is not allowed on arrays on line: %1\n").arg(line);
+      success = false;
+      break;
+    }
+
+    QString vecMatSizeSuffix;
+
+    // if we have a matrix and it's not GL style, then typeAxB means A rows and B columns
+    // for GL matAxB that means A columns and B rows. This is in contrast to typeA which means A
+    // columns for HLSL and A columns for GLSL, hence only the swap for matrices
+    if(!match.captured(lit("mat")).isEmpty() && basetype != lit("mat"))
+    {
+      vecMatSizeSuffix = match.captured(lit("vec")) + match.captured(lit("mat"));
+      firstDim.swap(secondDim);
+    }
+    else
+    {
+      if(!match.captured(lit("mat")).isEmpty())
+        vecMatSizeSuffix = match.captured(lit("mat")).mid(1) + lit("x");
+      vecMatSizeSuffix += match.captured(lit("vec"));
+    }
+
+    // check for square matrix declarations like 'mat4' and 'mat3'
+    if(basetype == lit("mat") && match.captured(lit("mat")).isEmpty())
+    {
+      secondDim = firstDim;
+      vecMatSizeSuffix = firstDim + lit("x") + firstDim;
+    }
 
     ResourceFormatType interpretType = ResourceFormatType::Regular;
     CompType interpretCompType = CompType::Typeless;
 
     // check for square matrix declarations like 'mat4' and 'mat3'
-    if(basetype == lit("mat") && match.captured(5).isEmpty())
+    if(basetype == lit("mat") && match.captured(lit("mat")).isEmpty())
       secondDim = firstDim;
 
     // calculate format
@@ -269,6 +344,10 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         break;
       }
 
+      el.bitFieldSize = qMax(1U, bitfield.toUInt(&ok));
+      if(!ok)
+        el.bitFieldSize = 0;
+
       // vectors are marked as row-major by convention
       if(el.type.descriptor.rows == 1)
         el.type.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix;
@@ -277,9 +356,12 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       {
         el.type.descriptor.type = VarType::Bool;
       }
-      else if(basetype == lit("byte"))
+      else if(basetype == lit("byte") || basetype == lit("char"))
       {
         el.type.descriptor.type = VarType::SByte;
+
+        if(isUnsigned)
+          el.type.descriptor.type = VarType::UByte;
       }
       else if(basetype == lit("ubyte") || basetype == lit("xbyte"))
       {
@@ -288,6 +370,9 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       else if(basetype == lit("short"))
       {
         el.type.descriptor.type = VarType::SShort;
+
+        if(isUnsigned)
+          el.type.descriptor.type = VarType::UShort;
       }
       else if(basetype == lit("ushort") || basetype == lit("xshort"))
       {
@@ -296,6 +381,9 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       else if(basetype == lit("long"))
       {
         el.type.descriptor.type = VarType::SLong;
+
+        if(isUnsigned)
+          el.type.descriptor.type = VarType::ULong;
       }
       else if(basetype == lit("ulong") || basetype == lit("xlong"))
       {
@@ -304,6 +392,9 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       else if(basetype == lit("int") || basetype == lit("ivec") || basetype == lit("imat"))
       {
         el.type.descriptor.type = VarType::SInt;
+
+        if(isUnsigned)
+          el.type.descriptor.type = VarType::UInt;
       }
       else if(basetype == lit("uint") || basetype == lit("xint") || basetype == lit("uvec") ||
               basetype == lit("umat"))
@@ -364,7 +455,39 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       }
       else
       {
-        errors = tr("Unrecognised basic type on line: %1\n").arg(line);
+        errors = tr("Unrecognised type on line: %1\n").arg(line);
+        success = false;
+        break;
+      }
+    }
+
+    el.type.descriptor.name = ToStr(el.type.descriptor.type) + vecMatSizeSuffix;
+
+    // validate that bitfields are only allowed for regular scalars
+    if(el.bitFieldSize > 0)
+    {
+      if(el.type.descriptor.rows > 1 || el.type.descriptor.columns > 1)
+      {
+        errors = tr("Bitfield packing only allowed on scalar values on line: %1\n").arg(line);
+        success = false;
+        break;
+      }
+      if(el.type.descriptor.elements > 1)
+      {
+        errors = tr("Bitfield packing not allowed on arrays on line: %1\n").arg(line);
+        success = false;
+        break;
+      }
+      if(interpretType != ResourceFormatType::Regular || interpretCompType != CompType::Typeless)
+      {
+        errors =
+            tr("Bitfield packing not allowed on interpreted/packed formats on line: %1\n").arg(line);
+        success = false;
+        break;
+      }
+      if(VarTypeCompType(el.type.descriptor.type) == CompType::Float)
+      {
+        errors = tr("Bitfield packing not allowed on floating point formats on line: %1\n").arg(line);
         success = false;
         break;
       }
@@ -379,7 +502,60 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
     ResourceFormat fmt = GetInterpretedResourceFormat(el);
 
     // normally the array stride is the size of an element
-    el.type.descriptor.arrayByteStride = el.type.descriptor.matrixByteStride = fmt.ElementSize();
+    const uint32_t elemScalarByteSize = fmt.ElementSize();
+    el.type.descriptor.arrayByteStride = el.type.descriptor.matrixByteStride = elemScalarByteSize;
+
+    if(el.bitFieldSize > 0)
+    {
+      const uint32_t elemScalarBitSize = elemScalarByteSize * 8;
+
+      // bitfields can't be larger than the base type
+      if(el.bitFieldSize > elemScalarBitSize)
+      {
+        errors =
+            tr("Bitfield cannot specify a larger size than the base type on line: %1\n").arg(line);
+        success = false;
+        break;
+      }
+
+      uint32_t start = bitfieldCurPos;
+      if(start == ~0U)
+        start = 0;
+
+      // if we would end past the current base type size, first roll over and start at the next byte
+      // this could be:
+      //  unsigned int a : 24;
+      //  unsigned byte b : 4;
+      //  unsigned byte c : 4;
+      // where we just 'rollover' the 3 bytes packed into the unsigned int and start the byte on
+      // the next byte, there's no extra padding added
+      // or it could be:
+      //  unsigned int a : 29;
+      //  unsigned byte b : 4;
+      //  unsigned byte c : 4;
+      // where b would pass through the end of the fourth byte so there ends up being 3 bits of
+      // padding between a and b when b is rolled onto the next byte
+      // similarly this can happen if the types are the same:
+      //  unsigned int a : 29;
+      //  unsigned int b : 4;
+      // since b would still pass through the end of the first dword.
+      // similarly this allows 'more' padding when the types are bigger:
+      //  unsigned int a : 17;
+      //  unsigned int b : 17;
+      // which would produce 15 bytes of padding
+      // Note that if the types are the same and big enough we won't roll over, as in:
+      //  unsigned int a : 24;
+      //  unsigned int b : 4;
+      //  unsigned int c : 4;
+      if(start + el.bitFieldSize > elemScalarBitSize)
+      {
+        // align the offset up to where this bitfield needs to start
+        cur->offset += ((bitfieldCurPos + (elemScalarBitSize - 1)) / elemScalarBitSize) *
+                       (elemScalarBitSize / 8);
+        // reset the current bitfield pos
+        bitfieldCurPos = 0;
+      }
+    }
 
     uint32_t padding = 0;
 
@@ -400,8 +576,46 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       el.type.descriptor.arrayByteStride = el.type.descriptor.matrixByteStride * majorDim;
     }
 
+    el.byteOffset = cur->offset;
+    bool updateCurOffset = true;
+
+    // handle bitfield packing
+    if(el.bitFieldSize > 0)
+    {
+      // if there's no previous bitpacking, nothing much to do
+      if(bitfieldCurPos == ~0U)
+      {
+        // start the next bitfield at our size
+        bitfieldCurPos = el.bitFieldSize;
+      }
+      else
+      {
+        // start the next bitfield at the end of the previous
+        el.bitFieldOffset = bitfieldCurPos;
+        // update by our size
+        bitfieldCurPos += el.bitFieldSize;
+      }
+
+      // don't update the current position
+      updateCurOffset = false;
+    }
+    else
+    {
+      // this element is not bitpacked
+
+      // update offset to account for any bits consumed by the previous bitfield, which won't have
+      // happened yet, including any bits in the last byte that weren't allocated
+      cur->offset += (bitfieldCurPos + 7) / 8;
+
+      // align to our base element size
+      cur->offset = (cur->offset + (elemScalarByteSize - 1)) & (~(elemScalarByteSize - 1));
+
+      // reset bitpacking state.
+      bitfieldCurPos = ~0U;
+    }
+
     // cbuffer packing rules
-    if(!tightPacking)
+    if(!tightPacking && bitfieldCurPos == ~0U)
     {
       if(el.type.descriptor.elements == 1)
       {
@@ -431,11 +645,20 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       }
     }
 
-    el.byteOffset = cur->offset;
-
     cur->structDef.type.members.push_back(el);
 
-    cur->offset += el.type.descriptor.arrayByteStride * el.type.descriptor.elements - padding;
+    if(updateCurOffset)
+      cur->offset += el.type.descriptor.arrayByteStride * el.type.descriptor.elements - padding;
+  }
+
+  if(bitfieldCurPos != ~0U)
+  {
+    // update final offset to account for any bits consumed by a trailing bitfield, including any
+    // bits in the last byte that weren't allocated
+    cur->offset += (bitfieldCurPos + 7) / 8;
+
+    // reset bitpacking state.
+    bitfieldCurPos = ~0U;
   }
 
   // if we succeeded parsing but didn't get any root elements, use the last defined struct as the
@@ -1023,8 +1246,7 @@ static void FillShaderVarData(ShaderVariable &var, const ShaderConstant &elem, c
     std::swap(outerCount, innerCount);
   }
 
-  QVariantList objs =
-      GetVariants(GetInterpretedResourceFormat(elem), elem.type.descriptor, data, end);
+  QVariantList objs = GetVariants(GetInterpretedResourceFormat(elem), elem, data, end);
 
   if(objs.isEmpty())
   {
@@ -1042,7 +1264,7 @@ static void FillShaderVarData(ShaderVariable &var, const ShaderConstant &elem, c
       if(colMajor)
         dst = inner * elem.type.descriptor.columns + outer;
 
-      const QVariant &o = objs[src];
+      QVariant o = objs[src];
 
       src++;
 
@@ -1258,9 +1480,11 @@ inline T readObj(const byte *&data, const byte *end, bool &ok)
   return ret;
 }
 
-QVariantList GetVariants(ResourceFormat format, const ShaderConstantDescriptor &varDesc,
-                         const byte *&data, const byte *end)
+QVariantList GetVariants(ResourceFormat format, const ShaderConstant &var, const byte *&data,
+                         const byte *end)
 {
+  const ShaderConstantDescriptor &varDesc = var.type.descriptor;
+
   QVariantList ret;
 
   bool ok = true;
@@ -1488,25 +1712,90 @@ QVariantList GetVariants(ResourceFormat format, const ShaderConstantDescriptor &
         }
         else if(format.compType == CompType::SInt)
         {
-          if(format.compByteWidth == 8)
-            ret.push_back((qlonglong)readObj<int64_t>(data, end, ok));
-          else if(format.compByteWidth == 4)
-            ret.push_back((int)readObj<int32_t>(data, end, ok));
-          else if(format.compByteWidth == 2)
-            ret.push_back((int)readObj<int16_t>(data, end, ok));
-          else if(format.compByteWidth == 1)
-            ret.push_back((int)readObj<int8_t>(data, end, ok));
+          if(var.bitFieldSize == 0)
+          {
+            if(format.compByteWidth == 8)
+              ret.push_back((qlonglong)readObj<int64_t>(data, end, ok));
+            else if(format.compByteWidth == 4)
+              ret.push_back((int)readObj<int32_t>(data, end, ok));
+            else if(format.compByteWidth == 2)
+              ret.push_back((int)readObj<int16_t>(data, end, ok));
+            else if(format.compByteWidth == 1)
+              ret.push_back((int)readObj<int8_t>(data, end, ok));
+          }
+          else
+          {
+            uint64_t uval = 0;
+            if(format.compByteWidth == 8)
+              uval = readObj<uint64_t>(data, end, ok);
+            else if(format.compByteWidth == 4)
+              uval = readObj<uint32_t>(data, end, ok);
+            else if(format.compByteWidth == 2)
+              uval = readObj<uint16_t>(data, end, ok);
+            else if(format.compByteWidth == 1)
+              uval = readObj<uint8_t>(data, end, ok);
+
+            int64_t val = 0;
+
+            if(ok)
+            {
+              // shift by the offset
+              uval >>= var.bitFieldOffset;
+
+              // mask by the size
+              const uint64_t mask = ((1ULL << var.bitFieldSize) - 1ULL);
+              uval &= mask;
+
+              // sign extend by hand
+              if(uval & (1ULL << (var.bitFieldSize - 1)))
+                uval |= ~0ULL ^ mask;
+
+              memcpy(&val, &uval, sizeof(uval));
+            }
+
+            ret.push_back(val);
+          }
         }
         else if(format.compType == CompType::UInt)
         {
-          if(format.compByteWidth == 8)
-            ret.push_back((qulonglong)readObj<uint64_t>(data, end, ok));
-          else if(format.compByteWidth == 4)
-            ret.push_back((uint32_t)readObj<uint32_t>(data, end, ok));
-          else if(format.compByteWidth == 2)
-            ret.push_back((uint32_t)readObj<uint16_t>(data, end, ok));
-          else if(format.compByteWidth == 1)
-            ret.push_back((uint32_t)readObj<uint8_t>(data, end, ok));
+          if(var.bitFieldSize == 0)
+          {
+            if(format.compByteWidth == 8)
+              ret.push_back((qulonglong)readObj<uint64_t>(data, end, ok));
+            else if(format.compByteWidth == 4)
+              ret.push_back((uint32_t)readObj<uint32_t>(data, end, ok));
+            else if(format.compByteWidth == 2)
+              ret.push_back((uint32_t)readObj<uint16_t>(data, end, ok));
+            else if(format.compByteWidth == 1)
+              ret.push_back((uint32_t)readObj<uint8_t>(data, end, ok));
+          }
+          else
+          {
+            uint64_t val = 0;
+            if(format.compByteWidth == 8)
+              val = readObj<uint64_t>(data, end, ok);
+            else if(format.compByteWidth == 4)
+              val = readObj<uint32_t>(data, end, ok);
+            else if(format.compByteWidth == 2)
+              val = readObj<uint16_t>(data, end, ok);
+            else if(format.compByteWidth == 1)
+              val = readObj<uint8_t>(data, end, ok);
+
+            if(ok)
+            {
+              // shift by the offset
+              val >>= var.bitFieldOffset;
+
+              // mask by the size
+              val &= ((1ULL << var.bitFieldSize) - 1ULL);
+            }
+            else
+            {
+              val = 0;
+            }
+
+            ret.push_back(val);
+          }
         }
         else if(format.compType == CompType::UScaled)
         {

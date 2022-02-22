@@ -994,7 +994,7 @@ public:
 
             // only slightly wasteful, we need to fetch all variants together
             // since some formats are packed and can't be read individually
-            QVariantList list = GetVariants(prop.format, el.type.descriptor, data, end);
+            QVariantList list = GetVariants(prop.format, el, data, end);
 
             if(!list.isEmpty())
             {
@@ -1147,7 +1147,7 @@ public:
 
             // only slightly wasteful, we need to fetch all variants together
             // since some formats are packed and can't be read individually
-            QVariantList list = GetVariants(prop.format, el.type.descriptor, data, end);
+            QVariantList list = GetVariants(prop.format, el, data, end);
 
             int comp = componentForIndex(col);
 
@@ -2720,11 +2720,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       buf = new BufferData;
 
       // calculate tight stride
-      buf->stride = 0;
-      for(int i = 0; i < bufdata->vsinConfig.columns.count(); i++)
-        buf->stride += bufdata->vsinConfig.columns[i].type.descriptor.arrayByteStride;
-
-      buf->stride = qMax((size_t)1, buf->stride);
+      buf->stride = qMax(1U, BufferFormatter::GetStructVarSize(bufdata->vsinConfig.columns));
 
       // the "permanent" range starts at ByteOffset and goes for m_ByteSize
       uint64_t rangeStart = m_ByteOffset;
@@ -3056,7 +3052,7 @@ void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
           if(!prop->perinstance)
             bytes += d.stride * idx;
 
-          QVariantList list = GetVariants(prop->format, el->type.descriptor, bytes, d.end);
+          QVariantList list = GetVariants(prop->format, *el, bytes, d.end);
 
           for(int comp = 0; comp < 4 && comp < list.count(); comp++)
           {
@@ -4421,7 +4417,7 @@ void BufferViewer::exportData(const BufferExport &params)
 
                   // only slightly wasteful, we need to fetch all variants together
                   // since some formats are packed and can't be read individually
-                  QVariantList list = GetVariants(prop->format, el->type.descriptor, data, end);
+                  QVariantList list = GetVariants(prop->format, *el, data, end);
 
                   for(int v = 0; v < list.count(); v++)
                   {

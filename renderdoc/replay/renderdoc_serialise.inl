@@ -190,6 +190,8 @@ void DoSerialise(SerialiserType &ser, ShaderConstant &el)
 {
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(byteOffset);
+  SERIALISE_MEMBER(bitFieldOffset);
+  SERIALISE_MEMBER(bitFieldSize);
   SERIALISE_MEMBER(defaultValue);
   SERIALISE_MEMBER(type);
 

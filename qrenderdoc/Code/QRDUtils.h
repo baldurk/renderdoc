@@ -76,6 +76,7 @@ inline QMetaType::Type GetVariantMetatype(const QVariant &v)
 
 struct BufferFormatter
 {
+private:
   Q_DECLARE_TR_FUNCTIONS(BufferFormatter);
 
   static GraphicsAPI m_API;
@@ -105,8 +106,8 @@ public:
   static QString DeclarePaddingBytes(uint32_t bytes);
 };
 
-QVariantList GetVariants(ResourceFormat format, const ShaderConstantDescriptor &varDesc,
-                         const byte *&data, const byte *end);
+QVariantList GetVariants(ResourceFormat format, const ShaderConstant &var, const byte *&data,
+                         const byte *end);
 ResourceFormat GetInterpretedResourceFormat(const ShaderConstant &elem);
 void SetInterpretedResourceFormat(ShaderConstant &elem, ResourceFormatType interpretType,
                                   CompType interpretCompType);

@@ -1069,6 +1069,29 @@ struct ShaderConstant
   rdcstr name;
   DOCUMENT("The byte offset of this constant relative to the parent structure");
   uint32_t byteOffset = 0;
+  DOCUMENT(R"(If the variable is bitfield packed, the bit offset from :data:`byteOffset` above where
+this variable starts.
+
+If the variable is not a bitfield, this value will be 0. Only integer scalars will have bitfield
+packing.
+
+.. note::
+   Although the offset specified in :data:`byteOffset` is in bytes, this bitfield offset may be
+   larger than 0 depending on the surrounding values and their types and packing. However it is
+   guaranteed that the offset and the size (from :data:`bitFieldSize`) will be contained within the
+   normal bit size for the variable type. For example if the variable type is a 32-bit integer, the
+   offsets may range from 0 to 31 and the sum of offset and size will be no more than 32. If the
+   variable is an 8-bit integer, similarly the offset will be 0 to 7 and the sum will be no more
+   than 8.
+)");
+  uint16_t bitFieldOffset = 0;
+  DOCUMENT(R"(If the variable is bitfield packed, the number of bits this variable spans starting
+from :data:`bitFieldOffset` into memory.
+
+If the variable is not a bitfield, this value will be 0. Only integer scalars will have bitfield
+packing.
+)");
+  uint16_t bitFieldSize = 0;
   DOCUMENT("If this constant is no larger than a 64-bit constant, gives a default value for it.");
   uint64_t defaultValue = 0;
   DOCUMENT(R"(The type information for this constant.
