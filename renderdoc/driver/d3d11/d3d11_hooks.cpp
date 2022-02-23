@@ -57,6 +57,9 @@ public:
     CreateDevice.Register("d3d11.dll", "D3D11CreateDevice", D3D11CreateDevice_hook);
     CreateDeviceAndSwapChain.Register("d3d11.dll", "D3D11CreateDeviceAndSwapChain",
                                       D3D11CreateDeviceAndSwapChain_hook);
+
+    m_RecurseSlot = Threading::AllocateTLSSlot();
+    Threading::SetTLSValue(m_RecurseSlot, NULL);
   }
 
 private:
@@ -66,7 +69,19 @@ private:
   HookedFunction<PFN_D3D11_CREATE_DEVICE> CreateDevice;
 
   // re-entrancy detection (can happen in rare cases with e.g. fraps)
-  bool m_InsideCreate = false;
+  uint64_t m_RecurseSlot = 0;
+
+  void EndRecurse() { Threading::SetTLSValue(m_RecurseSlot, NULL); }
+  bool CheckRecurse()
+  {
+    if(Threading::GetTLSValue(m_RecurseSlot) == NULL)
+    {
+      Threading::SetTLSValue(m_RecurseSlot, (void *)1);
+      return false;
+    }
+
+    return true;
+  }
 
   friend HRESULT CreateD3D11_Internal(RealD3D11CreateFunction real, __in_opt IDXGIAdapter *pAdapter,
                                       D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
@@ -89,13 +104,11 @@ private:
                           __out_opt ID3D11DeviceContext **ppImmediateContext)
   {
     // if we're already inside a wrapped create, then DON'T do anything special. Just call onwards
-    if(m_InsideCreate)
+    if(CheckRecurse())
     {
       return real(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
                   pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
     }
-
-    m_InsideCreate = true;
 
     RDCDEBUG("Call to Create_Internal Flags %x", Flags);
 
@@ -185,7 +198,7 @@ private:
       RDCDEBUG("failed. HRESULT: %s", ToStr(ret).c_str());
     }
 
-    m_InsideCreate = false;
+    EndRecurse();
 
     return ret;
   }

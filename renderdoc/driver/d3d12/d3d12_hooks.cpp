@@ -195,6 +195,9 @@ public:
                                         D3D12EnableExperimentalFeatures_hook);
     GetD3D11On12On7.Register("d3d11on12.dll", "GetD3D11On12On7Interface",
                              GetD3D11On12On7Interface_hook);
+
+    m_RecurseSlot = Threading::AllocateTLSSlot();
+    Threading::SetTLSValue(m_RecurseSlot, NULL);
   }
 
 private:
@@ -206,7 +209,19 @@ private:
   HookedFunction<PFNGetD3D11On12On7Interface> GetD3D11On12On7;
 
   // re-entrancy detection (can happen in rare cases with e.g. fraps)
-  bool m_InsideCreate = false;
+  uint64_t m_RecurseSlot = 0;
+
+  void EndRecurse() { Threading::SetTLSValue(m_RecurseSlot, NULL); }
+  bool CheckRecurse()
+  {
+    if(Threading::GetTLSValue(m_RecurseSlot) == NULL)
+    {
+      Threading::SetTLSValue(m_RecurseSlot, (void *)1);
+      return false;
+    }
+
+    return true;
+  }
 
   friend HRESULT CreateD3D12_Internal(RealD3D12CreateFunction real, IUnknown *pAdapter,
                                       D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
@@ -217,10 +232,8 @@ private:
   {
     // if we're already inside a wrapped create i.e. this function, then DON'T do anything
     // special. Just grab the trampolined function and call it.
-    if(m_InsideCreate)
+    if(CheckRecurse())
       return real(pAdapter, MinimumFeatureLevel, riid, ppDevice);
-
-    m_InsideCreate = true;
 
     if(riid != __uuidof(ID3D12Device) && riid != __uuidof(ID3D12Device1) &&
        riid != __uuidof(ID3D12Device2) && riid != __uuidof(ID3D12Device3) &&
@@ -340,7 +353,7 @@ private:
       RDCDEBUG("failed. HRESULT: %s", ToStr(ret).c_str());
     }
 
-    m_InsideCreate = false;
+    EndRecurse();
 
     return ret;
   }
