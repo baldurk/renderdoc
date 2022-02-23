@@ -419,6 +419,51 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
   rm->SetInternalResource(GetResID(m_Array2MSPipe));
 
   //////////////////////////////////////////////////////////////////
+  // Color MS to Buffer copy (via compute)
+
+  VkDescriptorPoolSize bufferPoolTypes[] = {
+      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2}, {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1},
+  };
+
+  VkDescriptorPoolCreateInfo bufferPoolInfo = {
+      VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+      NULL,
+      0,
+      1,
+      ARRAY_COUNT(bufferPoolTypes),
+      &bufferPoolTypes[0],
+  };
+
+  vkr = m_pDriver->vkCreateDescriptorPool(dev, &bufferPoolInfo, NULL, &m_MS2BufferDescriptorPool);
+  CheckVkResult(vkr);
+
+  rm->SetInternalResource(GetResID(m_MS2BufferDescriptorPool));
+
+  CREATE_OBJECT(m_MS2BufferDescSetLayout,
+                {
+                    {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
+                    {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
+                    {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL},
+                });
+
+  rm->SetInternalResource(GetResID(m_MS2BufferDescSetLayout));
+
+  CREATE_OBJECT(m_MS2BufferPipeLayout, m_MS2BufferDescSetLayout, sizeof(Vec4u));
+
+  rm->SetInternalResource(GetResID(m_MS2BufferPipeLayout));
+
+  CREATE_OBJECT(m_MS2BufferPipe, m_MS2BufferPipeLayout,
+                shaderCache->GetBuiltinModule(BuiltinShader::MS2BufferCS));
+  CREATE_OBJECT(m_DepthMS2BufferPipe, m_MS2BufferPipeLayout,
+                shaderCache->GetBuiltinModule(BuiltinShader::DepthMS2BufferCS));
+
+  rm->SetInternalResource(GetResID(m_MS2BufferPipe));
+  rm->SetInternalResource(GetResID(m_DepthMS2BufferPipe));
+
+  CREATE_OBJECT(m_MS2BufferDescSet, m_MS2BufferDescriptorPool, m_MS2BufferDescSetLayout);
+  rm->SetInternalResource(GetResID(m_MS2BufferDescSet));
+
+  //////////////////////////////////////////////////////////////////
   // Depth MS to Array copy (via graphics)
 
   // need a dummy UINT texture to fill the binding when we don't have a stencil aspect to copy.
@@ -801,6 +846,12 @@ VulkanDebugManager::~VulkanDebugManager()
   m_pDriver->vkDestroyPipelineLayout(dev, m_ArrayMSPipeLayout, NULL);
   m_pDriver->vkDestroyPipeline(dev, m_Array2MSPipe, NULL);
   m_pDriver->vkDestroyPipeline(dev, m_MS2ArrayPipe, NULL);
+
+  m_pDriver->vkDestroyDescriptorPool(dev, m_MS2BufferDescriptorPool, NULL);
+  m_pDriver->vkDestroyDescriptorSetLayout(dev, m_MS2BufferDescSetLayout, NULL);
+  m_pDriver->vkDestroyPipelineLayout(dev, m_MS2BufferPipeLayout, NULL);
+  m_pDriver->vkDestroyPipeline(dev, m_MS2BufferPipe, NULL);
+  m_pDriver->vkDestroyPipeline(dev, m_DepthMS2BufferPipe, NULL);
 
   m_pDriver->vkDestroyDescriptorPool(dev, m_DiscardPool, NULL);
   m_pDriver->vkDestroyPipelineLayout(dev, m_DiscardLayout, NULL);

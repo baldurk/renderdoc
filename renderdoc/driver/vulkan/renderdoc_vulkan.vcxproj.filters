@@ -151,6 +151,9 @@
     <ClCompile Include="vk_shader_feedback.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="vk_msaa_buffer_conv.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_replay.h">

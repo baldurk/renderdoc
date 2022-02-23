@@ -3233,6 +3233,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 {
   bool wasms = false;
   bool resolve = params.resolve;
+  bool copyToBuffer = true;
 
   if(m_pDriver->m_CreationInfo.m_Image.find(tex) == m_pDriver->m_CreationInfo.m_Image.end())
   {
@@ -3304,6 +3305,10 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
   VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
   CheckVkResult(vkr);
+
+  uint32_t dataSize = 0;
+  VkBuffer readbackBuf = VK_NULL_HANDLE;
+  VkDeviceMemory readbackMem = VK_NULL_HANDLE;
 
   if(imInfo.samples > 1)
   {
@@ -3709,46 +3714,41 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
   }
   else if(wasms)
   {
-    // copy/expand multisampled live texture to array readback texture
+    dataSize = GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
+                           imCreateInfo.format, s.mip);
 
-    // multiply array layers by sample count
-    uint32_t numSamples = (uint32_t)imInfo.samples;
-    imCreateInfo.mipLevels = 1;
-    imCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imCreateInfo.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+    // buffer size needs to be align to the int for shader writing
+    VkBufferCreateInfo bufInfo = {
+        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        NULL,
+        0,
+        AlignUp(dataSize, 4U),
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+    };
 
-    if(IsDepthOrStencilFormat(imCreateInfo.format))
-      imCreateInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    else
-      imCreateInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-
-    // create resolve texture
-    vt->CreateImage(Unwrap(dev), &imCreateInfo, NULL, &tmpImage);
-    wrappedTmpImage = tmpImage;
-    GetResourceManager()->WrapResource(Unwrap(dev), wrappedTmpImage);
-    tmpImageState = ImageState(wrappedTmpImage, ImageInfo(imCreateInfo), eFrameRef_None);
-
-    NameVulkanObject(wrappedTmpImage, "GetTextureData tmpImage");
+    vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, NULL, &readbackBuf);
+    CheckVkResult(vkr);
 
     VkMemoryRequirements mrq = {0};
-    vt->GetImageMemoryRequirements(Unwrap(dev), tmpImage, &mrq);
+
+    vt->GetBufferMemoryRequirements(Unwrap(dev), readbackBuf, &mrq);
 
     VkMemoryAllocateInfo allocInfo = {
         VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
-        m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
+        m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
     };
-
-    vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &tmpMemory);
+    vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &readbackMem);
     CheckVkResult(vkr);
 
     if(vkr != VK_SUCCESS)
       return;
 
-    vkr = vt->BindImageMemory(Unwrap(dev), tmpImage, tmpMemory, 0);
+    vkr = vt->BindBufferMemory(Unwrap(dev), readbackBuf, readbackMem, 0);
     CheckVkResult(vkr);
 
-    tmpImageState.InlineTransition(cmd, m_pDriver->m_QueueFamilyIdx, VK_IMAGE_LAYOUT_GENERAL, 0,
-                                   VK_ACCESS_SHADER_WRITE_BIT, m_pDriver->GetImageTransitionInfo());
+    vt->CmdFillBuffer(Unwrap(cmd), readbackBuf, 0, VK_WHOLE_SIZE, 0);
+
+    // copy/expand multisampled live texture to readback buffer
     ImageBarrierSequence setupBarriers, cleanupBarriers;
     srcImageState->TempTransition(m_pDriver->m_QueueFamilyIdx,
                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -3760,10 +3760,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     vkr = vt->EndCommandBuffer(Unwrap(cmd));
     CheckVkResult(vkr);
 
-    // expand multisamples out to array
-    GetDebugManager()->CopyTex2DMSToArray(tmpImage, srcImage, imCreateInfo.extent,
-                                          imCreateInfo.arrayLayers / numSamples, numSamples,
-                                          imCreateInfo.format);
+    GetDebugManager()->CopyTex2DMSToBuffer(readbackBuf, srcImage, imCreateInfo.extent, s.slice,
+                                           s.sample, imCreateInfo.format);
 
     // fetch a new command buffer for copy & readback
     cmd = m_pDriver->GetNextCmd();
@@ -3774,10 +3772,6 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
     CheckVkResult(vkr);
 
-    tmpImageState.InlineTransition(cmd, m_pDriver->m_QueueFamilyIdx,
-                                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT,
-                                   VK_ACCESS_TRANSFER_READ_BIT, m_pDriver->GetImageTransitionInfo());
-
     m_pDriver->InlineCleanupImageBarriers(cmd, cleanupBarriers);
 
     if(!cleanupBarriers.empty())
@@ -3801,188 +3795,202 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
       CheckVkResult(vkr);
     }
 
-    srcImage = tmpImage;
-    srcImageState = &tmpImageState;
-    s.slice = s.slice * numSamples + s.sample;
-    s.sample = 0;
+    VkBufferMemoryBarrier bufBarrier = {
+        VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+        NULL,
+        VK_ACCESS_SHADER_WRITE_BIT,
+        VK_ACCESS_HOST_READ_BIT,
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
+        readbackBuf,
+        0,
+        dataSize,
+    };
+
+    // wait for copy to finish before reading back to host
+    DoPipelineBarrier(cmd, 1, &bufBarrier);
+
+    vt->EndCommandBuffer(Unwrap(cmd));
+
+    m_pDriver->SubmitCmds();
+    m_pDriver->FlushQ();
+
+    // readback buffer has already been populated, no need to call CmdCopyImageToBuffer
+    copyToBuffer = false;
   }
 
-  ImageBarrierSequence cleanupBarriers;
-
+  VkDeviceSize stencilOffset = 0;
   // if we have no tmpImage, we're copying directly from the real image
-  if(tmpImage == VK_NULL_HANDLE)
+  if(copyToBuffer)
   {
-    ImageBarrierSequence setupBarriers;
-    srcImageState->TempTransition(m_pDriver->m_QueueFamilyIdx, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                  VK_ACCESS_TRANSFER_READ_BIT, setupBarriers, cleanupBarriers,
-                                  m_pDriver->GetImageTransitionInfo());
-    m_pDriver->InlineSetupImageBarriers(cmd, setupBarriers);
-    m_pDriver->SubmitAndFlushImageStateBarriers(setupBarriers);
-  }
-
-  VkImageAspectFlags copyAspects = VK_IMAGE_ASPECT_COLOR_BIT;
-
-  if(isDepth)
-    copyAspects = VK_IMAGE_ASPECT_DEPTH_BIT;
-  else if(isStencil)
-    copyAspects = VK_IMAGE_ASPECT_STENCIL_BIT;
-
-  VkBufferImageCopy copyregion[2] = {
-      {
-          0,
-          0,
-          0,
-          {copyAspects, s.mip, s.slice, 1},
-          {
-              0, 0, 0,
-          },
-          imCreateInfo.extent,
-      },
-      // second region is only used for combined depth-stencil images
-      {
-          0,
-          0,
-          0,
-          {VK_IMAGE_ASPECT_STENCIL_BIT, s.mip, s.slice, 1},
-          {
-              0, 0, 0,
-          },
-          imCreateInfo.extent,
-      },
-  };
-
-  for(int i = 0; i < 2; i++)
-  {
-    copyregion[i].imageExtent.width = RDCMAX(1U, copyregion[i].imageExtent.width >> s.mip);
-    copyregion[i].imageExtent.height = RDCMAX(1U, copyregion[i].imageExtent.height >> s.mip);
-    copyregion[i].imageExtent.depth = RDCMAX(1U, copyregion[i].imageExtent.depth >> s.mip);
-  }
-
-  uint32_t dataSize = 0;
-
-  // for most combined depth-stencil images this will be large enough for both to be copied
-  // separately, but for D24S8 we need to add extra space since they won't be copied packed
-  dataSize = GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
-                         imCreateInfo.format, s.mip);
-
-  if(imCreateInfo.format == VK_FORMAT_D24_UNORM_S8_UINT)
-  {
-    dataSize = AlignUp(dataSize, 4U);
-    dataSize += GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
-                            VK_FORMAT_S8_UINT, s.mip);
-  }
-
-  VkBufferCreateInfo bufInfo = {
-      VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      NULL,
-      0,
-      dataSize,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-  };
-
-  VkBuffer readbackBuf = VK_NULL_HANDLE;
-  vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, NULL, &readbackBuf);
-  CheckVkResult(vkr);
-
-  VkMemoryRequirements mrq = {0};
-
-  vt->GetBufferMemoryRequirements(Unwrap(dev), readbackBuf, &mrq);
-
-  VkMemoryAllocateInfo allocInfo = {
-      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
-      m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
-  };
-
-  VkDeviceMemory readbackMem = VK_NULL_HANDLE;
-  vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &readbackMem);
-  CheckVkResult(vkr);
-
-  if(vkr != VK_SUCCESS)
-    return;
-
-  vkr = vt->BindBufferMemory(Unwrap(dev), readbackBuf, readbackMem, 0);
-  CheckVkResult(vkr);
-
-  if(isDepth && isStencil)
-  {
-    copyregion[1].bufferOffset =
-        GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
-                    GetDepthOnlyFormat(imCreateInfo.format), s.mip);
-
-    copyregion[1].bufferOffset = AlignUp(copyregion[1].bufferOffset, (VkDeviceSize)4);
-
-    vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                             readbackBuf, 2, copyregion);
-  }
-  else if(imInfo.type == VK_IMAGE_TYPE_3D && params.remap != RemapTexture::NoRemap)
-  {
-    // copy in each slice from the 2D array we created to render out the 3D texture
-    for(uint32_t i = 0; i < imCreateInfo.arrayLayers; i++)
+    ImageBarrierSequence cleanupBarriers;
+    if(tmpImage == VK_NULL_HANDLE)
     {
-      copyregion[0].imageSubresource.baseArrayLayer = i;
-      copyregion[0].bufferOffset =
-          i * GetByteSize(imCreateInfo.extent.width, imCreateInfo.extent.height, 1,
-                          imCreateInfo.format, s.mip);
+      ImageBarrierSequence setupBarriers;
+      srcImageState->TempTransition(m_pDriver->m_QueueFamilyIdx, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                    VK_ACCESS_TRANSFER_READ_BIT, setupBarriers, cleanupBarriers,
+                                    m_pDriver->GetImageTransitionInfo());
+      m_pDriver->InlineSetupImageBarriers(cmd, setupBarriers);
+      m_pDriver->SubmitAndFlushImageStateBarriers(setupBarriers);
+    }
+
+    VkImageAspectFlags copyAspects = VK_IMAGE_ASPECT_COLOR_BIT;
+
+    if(isDepth)
+      copyAspects = VK_IMAGE_ASPECT_DEPTH_BIT;
+    else if(isStencil)
+      copyAspects = VK_IMAGE_ASPECT_STENCIL_BIT;
+
+    VkBufferImageCopy copyregion[2] = {
+        {
+            0,
+            0,
+            0,
+            {copyAspects, s.mip, s.slice, 1},
+            {
+                0, 0, 0,
+            },
+            imCreateInfo.extent,
+        },
+        // second region is only used for combined depth-stencil images
+        {
+            0,
+            0,
+            0,
+            {VK_IMAGE_ASPECT_STENCIL_BIT, s.mip, s.slice, 1},
+            {
+                0, 0, 0,
+            },
+            imCreateInfo.extent,
+        },
+    };
+
+    for(int i = 0; i < 2; i++)
+    {
+      copyregion[i].imageExtent.width = RDCMAX(1U, copyregion[i].imageExtent.width >> s.mip);
+      copyregion[i].imageExtent.height = RDCMAX(1U, copyregion[i].imageExtent.height >> s.mip);
+      copyregion[i].imageExtent.depth = RDCMAX(1U, copyregion[i].imageExtent.depth >> s.mip);
+    }
+
+    dataSize = GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
+                           imCreateInfo.format, s.mip);
+
+    if(imCreateInfo.format == VK_FORMAT_D24_UNORM_S8_UINT)
+    {
+      // for most combined depth-stencil images this will be large enough for both to be copied
+      // separately, but for D24S8 we need to add extra space since they won't be copied packed
+      dataSize = AlignUp(dataSize, 4U);
+      dataSize += GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
+                              VK_FORMAT_S8_UINT, s.mip);
+    }
+
+    VkBufferCreateInfo bufInfo = {
+        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        NULL,
+        0,
+        dataSize,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+    };
+
+    vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, NULL, &readbackBuf);
+    CheckVkResult(vkr);
+
+    VkMemoryRequirements mrq = {0};
+
+    vt->GetBufferMemoryRequirements(Unwrap(dev), readbackBuf, &mrq);
+
+    VkMemoryAllocateInfo allocInfo = {
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
+    };
+    vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &readbackMem);
+    CheckVkResult(vkr);
+
+    if(vkr != VK_SUCCESS)
+      return;
+
+    vkr = vt->BindBufferMemory(Unwrap(dev), readbackBuf, readbackMem, 0);
+    CheckVkResult(vkr);
+
+    if(isDepth && isStencil)
+    {
+      stencilOffset = GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
+                                  GetDepthOnlyFormat(imCreateInfo.format), s.mip);
+      stencilOffset = AlignUp(stencilOffset, (VkDeviceSize)4);
+      copyregion[1].bufferOffset = stencilOffset;
+      vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                               readbackBuf, 2, copyregion);
+    }
+    else if(imInfo.type == VK_IMAGE_TYPE_3D && params.remap != RemapTexture::NoRemap)
+    {
+      // copy in each slice from the 2D array we created to render out the 3D texture
+      for(uint32_t i = 0; i < imCreateInfo.arrayLayers; i++)
+      {
+        copyregion[0].imageSubresource.baseArrayLayer = i;
+        copyregion[0].bufferOffset =
+            i * GetByteSize(imCreateInfo.extent.width, imCreateInfo.extent.height, 1,
+                            imCreateInfo.format, s.mip);
+        vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                 readbackBuf, 1, copyregion);
+      }
+    }
+    else
+    {
+      if(imInfo.type == VK_IMAGE_TYPE_3D)
+        copyregion[0].imageSubresource.baseArrayLayer = 0;
+
+      // copy from desired subresource in srcImage to buffer
       vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                                readbackBuf, 1, copyregion);
     }
-  }
-  else
-  {
-    if(imInfo.type == VK_IMAGE_TYPE_3D)
-      copyregion[0].imageSubresource.baseArrayLayer = 0;
 
-    // copy from desired subresource in srcImage to buffer
-    vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                             readbackBuf, 1, copyregion);
-  }
-
-  // if we have no tmpImage, we're copying directly from the real image
-  if(tmpImage == VK_NULL_HANDLE)
-  {
-    m_pDriver->InlineCleanupImageBarriers(cmd, cleanupBarriers);
-
-    if(!cleanupBarriers.empty())
+    // if we have no tmpImage, we're copying directly from the real image
+    if(tmpImage == VK_NULL_HANDLE)
     {
-      // ensure this resolve happens before handing back the source image to the original queue
-      vkr = vt->EndCommandBuffer(Unwrap(cmd));
-      CheckVkResult(vkr);
+      m_pDriver->InlineCleanupImageBarriers(cmd, cleanupBarriers);
 
-      m_pDriver->SubmitCmds();
-      m_pDriver->FlushQ();
+      if(!cleanupBarriers.empty())
+      {
+        // ensure this resolve happens before handing back the source image to the original queue
+        vkr = vt->EndCommandBuffer(Unwrap(cmd));
+        CheckVkResult(vkr);
 
-      m_pDriver->SubmitAndFlushImageStateBarriers(cleanupBarriers);
+        m_pDriver->SubmitCmds();
+        m_pDriver->FlushQ();
 
-      // fetch a new command buffer for remaining work
-      cmd = m_pDriver->GetNextCmd();
+        m_pDriver->SubmitAndFlushImageStateBarriers(cleanupBarriers);
 
-      if(cmd == VK_NULL_HANDLE)
-        return;
+        // fetch a new command buffer for remaining work
+        cmd = m_pDriver->GetNextCmd();
 
-      vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CheckVkResult(vkr);
+        if(cmd == VK_NULL_HANDLE)
+          return;
+
+        vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+        CheckVkResult(vkr);
+      }
     }
+
+    VkBufferMemoryBarrier bufBarrier = {
+        VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+        NULL,
+        VK_ACCESS_TRANSFER_WRITE_BIT,
+        VK_ACCESS_HOST_READ_BIT,
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
+        readbackBuf,
+        0,
+        dataSize,
+    };
+
+    // wait for copy to finish before reading back to host
+    DoPipelineBarrier(cmd, 1, &bufBarrier);
+
+    vt->EndCommandBuffer(Unwrap(cmd));
+
+    m_pDriver->SubmitCmds();
+    m_pDriver->FlushQ();
   }
-
-  VkBufferMemoryBarrier bufBarrier = {
-      VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-      NULL,
-      VK_ACCESS_TRANSFER_WRITE_BIT,
-      VK_ACCESS_HOST_READ_BIT,
-      VK_QUEUE_FAMILY_IGNORED,
-      VK_QUEUE_FAMILY_IGNORED,
-      readbackBuf,
-      0,
-      dataSize,
-  };
-
-  // wait for copy to finish before reading back to host
-  DoPipelineBarrier(cmd, 1, &bufBarrier);
-
-  vt->EndCommandBuffer(Unwrap(cmd));
-
-  m_pDriver->SubmitCmds();
-  m_pDriver->FlushQ();
 
   // map the buffer and copy to return buffer
   byte *pData = NULL;
@@ -4017,8 +4025,10 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     for(size_t i = 0; i < dataSize / sizeof(Vec4u); i++)
       output[i].y = float(input[i].y) / 255.0f;
   }
-  else if(isDepth && isStencil)
+  else if(isDepth && isStencil && copyToBuffer)
   {
+    // We only need to manually interleave if we use CmdCopyImageToBuffer.
+    // CopyDepthTex2DMS2Buffer will produce interleaved results.
     size_t pixelCount = std::max(1U, imCreateInfo.extent.width >> s.mip) *
                         std::max(1U, imCreateInfo.extent.height >> s.mip) *
                         std::max(1U, imCreateInfo.extent.depth >> s.mip);
@@ -4026,13 +4036,13 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     // for some reason reading direct from mapped memory here is *super* slow on android (1.5s to
     // iterate over the image), so we memcpy to a temporary buffer.
     rdcarray<byte> tmp;
-    tmp.resize((size_t)copyregion[1].bufferOffset + pixelCount * sizeof(uint8_t));
+    tmp.resize((size_t)stencilOffset + pixelCount * sizeof(uint8_t));
     memcpy(tmp.data(), pData, tmp.size());
 
     if(imCreateInfo.format == VK_FORMAT_D16_UNORM_S8_UINT)
     {
       uint16_t *dSrc = (uint16_t *)tmp.data();
-      uint8_t *sSrc = (uint8_t *)(tmp.data() + copyregion[1].bufferOffset);
+      uint8_t *sSrc = (uint8_t *)(tmp.data() + stencilOffset);
 
       uint16_t *dDst = (uint16_t *)data.data();
       uint16_t *sDst = dDst + 1;    // interleaved, next pixel
@@ -4056,7 +4066,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
       // we can copy the depth from D24 as a 32-bit integer, since the remaining bits are garbage
       // and we overwrite them with stencil
       uint32_t *dSrc = (uint32_t *)tmp.data();
-      uint8_t *sSrc = (uint8_t *)(tmp.data() + copyregion[1].bufferOffset);
+      uint8_t *sSrc = (uint8_t *)(tmp.data() + stencilOffset);
 
       uint32_t *dst = (uint32_t *)data.data();
 
@@ -4073,7 +4083,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     else
     {
       uint32_t *dSrc = (uint32_t *)tmp.data();
-      uint8_t *sSrc = (uint8_t *)(tmp.data() + copyregion[1].bufferOffset);
+      uint8_t *sSrc = (uint8_t *)(tmp.data() + stencilOffset);
 
       uint32_t *dDst = (uint32_t *)data.data();
       uint32_t *sDst = dDst + 1;    // interleaved, next pixel

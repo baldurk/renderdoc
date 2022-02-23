@@ -60,6 +60,8 @@ enum class BuiltinShader
   HistogramCS,
   MinMaxTileCS,
   MinMaxResultCS,
+  MS2BufferCS,
+  DepthMS2BufferCS,
   Count,
 };
 

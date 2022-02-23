@@ -1,0 +1,134 @@
+/******************************************************************************
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2020-2022 Baldur Karlsson
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
+
+#if defined(OPENGL_CORE)
+#extension GL_ARB_compute_shader : require
+
+// safe to assume this extension in compute shaders as it pre-dates compute shaders
+#extension GL_ARB_shading_language_420pack : require
+#endif
+
+#include "glsl_globals.h"
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0) uniform PRECISION sampler2DMSArray srcDepthMS;
+layout(binding = 1) uniform PRECISION usampler2DMSArray srcStencilMS;
+
+layout(binding = 2, std430) writeonly buffer dstBuf
+{
+  uint result[];
+};
+
+#define D16_UNORM 0
+#define D16_UNORM_S8_UINT 1
+#define X8_D24_UNORM_PACK32 2
+#define D24_UNORM_S8_UINT 3
+#define D32_SFLOAT 4
+#define D32_SFLOAT_S8_UINT 5
+
+#define MAX_D16 ((1 << 16) - 1)
+#define MAX_D24 ((1 << 24) - 1)
+
+#define floatToD16(depth) uint(MAX_D16 *depth)
+#define floatToD24(depth) uint(MAX_D24 *depth)
+
+#ifdef VULKAN
+
+layout(push_constant) uniform multisamplePush
+{
+  int numMultiSamples;
+  int baseSlice;
+  int baseSample;
+  int format;
+}
+mscopy;
+
+#define numMultiSamples (mscopy.numMultiSamples)
+#define baseSlice (mscopy.baseSlice)
+#define baseSample (mscopy.baseSample)
+#define format (mscopy.format)
+
+#else
+
+uniform ivec4 mscopy;
+
+#define numMultiSamples (mscopy.x)
+#define baseSlice (mscopy.y)
+#define baseSample (mscopy.z)
+#define format (mscopy.w)
+
+#endif
+
+void main()
+{
+  ivec3 id = ivec3(gl_GlobalInvocationID);
+  int slice = baseSlice + int(id.z / numMultiSamples);
+  int sampleIdx = baseSample + int(id.z % numMultiSamples);
+  uint idx = id.x + gl_NumWorkGroups.x * (id.y + (gl_NumWorkGroups.y * id.z));
+
+  // For D16, we need to sample 2 pixels at a time
+  if(format == D16_UNORM)
+  {
+    int w = int(textureSize(srcDepthMS).x);
+    int pxIdx = int(idx * 2);
+    int x0 = (pxIdx + 0) % w;
+    int y0 = (pxIdx + 0) / w;
+    int x1 = (pxIdx + 1) % w;
+    int y1 = (pxIdx + 1) / w;
+
+    vec2 depth = vec2(texelFetch(srcDepthMS, ivec3(x0, y0, slice), sampleIdx).x,
+                      texelFetch(srcDepthMS, ivec3(x1, y1, slice), sampleIdx).x);
+    result[idx] = (floatToD16(depth.x) << 0) | (floatToD16(depth.y) << 16);
+  }
+  else if(format == D16_UNORM_S8_UINT)
+  {
+    float depth = texelFetch(srcDepthMS, ivec3(int(id.x), int(id.y), slice), sampleIdx).x;
+    uint stencil = texelFetch(srcStencilMS, ivec3(int(id.x), int(id.y), slice), sampleIdx).x;
+    result[idx] = (floatToD16(depth) << 0) | (stencil << 16);
+  }
+  else if(format == X8_D24_UNORM_PACK32)
+  {
+    float depth = texelFetch(srcDepthMS, ivec3(int(id.x), int(id.y), slice), sampleIdx).x;
+    result[idx] = (floatToD24(depth) << 8);
+  }
+  else if(format == D24_UNORM_S8_UINT)
+  {
+    float depth = texelFetch(srcDepthMS, ivec3(int(id.x), int(id.y), slice), sampleIdx).x;
+    uint stencil = texelFetch(srcStencilMS, ivec3(int(id.x), int(id.y), slice), sampleIdx).x;
+    result[idx] = (floatToD24(depth) << 0) | (stencil << 24);
+  }
+  else if(format == D32_SFLOAT)
+  {
+    float depth = texelFetch(srcDepthMS, ivec3(int(id.x), int(id.y), slice), sampleIdx).x;
+    result[idx] = floatBitsToUint(depth);
+  }
+  else if(format == D32_SFLOAT_S8_UINT)
+  {
+    float depth = texelFetch(srcDepthMS, ivec3(int(id.x), int(id.y), slice), sampleIdx).x;
+    uint stencil = texelFetch(srcStencilMS, ivec3(int(id.x), int(id.y), slice), sampleIdx).x;
+    result[idx * 2 + 0] = floatBitsToUint(depth);
+    result[idx * 2 + 1] = stencil;
+  }
+}

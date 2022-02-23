@@ -68,6 +68,9 @@ public:
   void CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent, uint32_t layers,
                           uint32_t samples, VkFormat fmt);
 
+  void CopyTex2DMSToBuffer(VkBuffer destBuffer, VkImage srcMS, VkExtent3D extent, uint32_t slice,
+                           uint32_t sample, VkFormat fmt);
+
   void FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType type, VkImage image,
                               VkImageLayout curLayout, VkImageSubresourceRange discardRange,
                               VkRect2D discardRect);
@@ -132,6 +135,15 @@ private:
   VkPipeline m_MS2ArrayPipe = VK_NULL_HANDLE;
   VkSampler m_ArrayMSSampler = VK_NULL_HANDLE;
 
+  // CopyTex2DMSToBuffer
+  VkDescriptorPool m_MS2BufferDescriptorPool;
+  VkDescriptorSetLayout m_MS2BufferDescSetLayout = VK_NULL_HANDLE;
+  VkPipelineLayout m_MS2BufferPipeLayout = VK_NULL_HANDLE;
+  // For now we only need a single descriptor set
+  VkDescriptorSet m_MS2BufferDescSet = VK_NULL_HANDLE;
+  VkPipeline m_MS2BufferPipe = VK_NULL_HANDLE;
+  VkPipeline m_DepthMS2BufferPipe = VK_NULL_HANDLE;
+
   // [0] = non-MSAA, [1] = MSAA
   VkDeviceMemory m_DummyStencilMemory = VK_NULL_HANDLE;
   VkImage m_DummyStencilImage[2] = {VK_NULL_HANDLE};
@@ -163,6 +175,9 @@ private:
                                uint32_t samples, VkFormat fmt);
   void CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent, uint32_t layers,
                                uint32_t samples, VkFormat fmt);
+
+  void CopyDepthTex2DMSToBuffer(VkBuffer destBuffer, VkImage srcMS, VkExtent3D extent,
+                                uint32_t slice, uint32_t sample, VkFormat fmt);
 
   WrappedVulkan *m_pDriver = NULL;
 

@@ -132,6 +132,10 @@ static const BuiltinShaderConfig builtinShaders[] = {
     BuiltinShaderConfig(BuiltinShader::MinMaxResultCS, EmbeddedResource(glsl_minmaxresult_comp),
                         rdcspv::ShaderStage::Compute, FeatureCheck::NoCheck,
                         BuiltinShaderFlags::BaseTypeParameterised),
+    BuiltinShaderConfig(BuiltinShader::MS2BufferCS, EmbeddedResource(glsl_ms2buffer_comp),
+                        rdcspv::ShaderStage::Compute),
+    BuiltinShaderConfig(BuiltinShader::DepthMS2BufferCS, EmbeddedResource(glsl_depthms2buffer_comp),
+                        rdcspv::ShaderStage::Compute),
 };
 
 RDCCOMPILE_ASSERT(ARRAY_COUNT(builtinShaders) == arraydim<BuiltinShader>(),
