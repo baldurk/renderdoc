@@ -1001,6 +1001,25 @@ GLResourceRecord *WrappedOpenGL::GetContextRecord()
   }
 }
 
+void WrappedOpenGL::UseUnusedSupportedFunction(const char *name)
+{
+  // if this is the first time an unused function is called, remove all frame capturers immediately
+  if(m_UnsupportedFunctions.empty())
+  {
+    for(auto it = m_ContextData.begin(); it != m_ContextData.end(); ++it)
+    {
+      if(it->second.Modern())
+      {
+        RenderDoc::Inst().RemoveDeviceFrameCapturer(it->second.ctx);
+        for(auto wnd : it->second.windows)
+          it->second.UnassociateWindow(this, wnd.first);
+      }
+    }
+  }
+
+  m_UnsupportedFunctions.insert(name);
+}
+
 void WrappedOpenGL::CheckImplicitThread()
 {
   void *ctx = GetCtx().ctx;
@@ -1169,7 +1188,9 @@ void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext,
     RDCLOG("Reusing old sharegroup %p", ctxdata.shareGroup);
   }
 
-  if(attribsCreate)
+  // if the context was created with modern attribs create (whether or not it's explicitly core),
+  // and no unsupported functions have been used, we can capture from this context
+  if(attribsCreate && !m_UnsupportedFunctions.empty())
     RenderDoc::Inst().AddDeviceFrameCapturer(ctxdata.ctx, this);
 
   // re-configure callstack capture, since WrappedOpenGL constructor may run too early
@@ -1974,7 +1995,9 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
       if(it->first != ctxdata.ctx)
         it->second.UnassociateWindow(this, windowHandle);
 
-    ctxdata.AssociateWindow(this, winSystem, windowHandle);
+    // only associate windows if no unsupported functions have been used
+    if(m_UnsupportedFunctions.empty())
+      ctxdata.AssociateWindow(this, winSystem, windowHandle);
   }
 
   // we used to do this here so it was as late as possible to avoid creating objects on contexts
@@ -2016,7 +2039,8 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
     if(overlay & eRENDERDOC_Overlay_Enabled)
     {
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
-      if(ctxdata.Legacy())
+      // capturing is disabled if unsupported functions have been used, or this context is legacy
+      if(ctxdata.Legacy() || !m_UnsupportedFunctions.empty())
         flags |= RenderDoc::eOverlay_CaptureDisabled;
       rdcstr overlayText = RenderDoc::Inst().GetOverlayText(GetDriverType(), m_FrameCounter, flags);
 
@@ -2031,6 +2055,22 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
         overlayText +=
             "WARNING: Core profile not explicitly requested. Compatibility profile is not "
             "supported.\n";
+      }
+
+      // print the unsupported functions (up to a handful) to show
+      if(!m_UnsupportedFunctions.empty())
+      {
+        overlayText += "Captures disabled.\nUnsupported function used:\n";
+        size_t i = 0;
+        for(const char *func : m_UnsupportedFunctions)
+        {
+          i++;
+          if(i > 4)
+            break;
+          overlayText += StringFormat::Fmt(" - %s\n", func);
+        }
+        if(m_UnsupportedFunctions.size() > i)
+          overlayText += " - ...\n";
       }
 
       if(activeWindow && m_FailedFrame > 0)

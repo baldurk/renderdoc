@@ -55,6 +55,7 @@ public:
 
   void RegisterHooks();
 
+  void UseUnusedSupportedFunction(const char *name);
   void *GetUnsupportedFunction(const char *name);
 
   void *handle = NULL;
@@ -213,6 +214,13 @@ void *HookedGetProcAddress(const char *func, void *realFunc)
   RDCDEBUG("Returning real pointer for entirely unknown function '%s': %p", func, realFunc);
 
   return realFunc;
+}
+
+void GLHook::UseUnusedSupportedFunction(const char *name)
+{
+  SCOPED_LOCK(glLock);
+  if(glhook.driver)
+    glhook.driver->UseUnusedSupportedFunction(name);
 }
 
 void *GLHook::GetUnsupportedFunction(const char *name)

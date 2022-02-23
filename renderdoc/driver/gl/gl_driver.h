@@ -194,6 +194,8 @@ private:
 
   std::set<void *> m_AcceptedCtx;
 
+  std::set<const char *> m_UnsupportedFunctions;
+
   rdcarray<rdcpair<GLResourceRecord *, Chunk *>> m_BufferResizes;
 
 public:
@@ -619,6 +621,7 @@ public:
   ContextPair &GetCtx();
   GLResourceRecord *GetContextRecord();
 
+  void UseUnusedSupportedFunction(const char *name);
   void CheckImplicitThread();
 
   void CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum initFormatHint,
