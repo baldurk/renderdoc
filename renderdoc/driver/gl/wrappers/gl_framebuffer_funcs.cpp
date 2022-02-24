@@ -2362,7 +2362,18 @@ void WrappedOpenGL::glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
     if(GetResourceManager()->HasCurrentResource(res) && framebuffers[i])
     {
       if(GetResourceManager()->HasResourceRecord(res))
-        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+      {
+        GLResourceRecord *record = GetResourceManager()->GetResourceRecord(res);
+        record->Delete(GetResourceManager());
+
+        for(auto cd = m_ContextData.begin(); cd != m_ContextData.end(); ++cd)
+        {
+          if(cd->second.m_DrawFramebufferRecord == record)
+            cd->second.m_DrawFramebufferRecord = NULL;
+          if(cd->second.m_ReadFramebufferRecord == record)
+            cd->second.m_ReadFramebufferRecord = NULL;
+        }
+      }
       GetResourceManager()->UnregisterResource(res);
     }
   }
@@ -2516,7 +2527,16 @@ void WrappedOpenGL::glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers
     if(GetResourceManager()->HasCurrentResource(res))
     {
       if(GetResourceManager()->HasResourceRecord(res))
-        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+      {
+        GLResourceRecord *record = GetResourceManager()->GetResourceRecord(res);
+        record->Delete(GetResourceManager());
+
+        for(auto cd = m_ContextData.begin(); cd != m_ContextData.end(); ++cd)
+        {
+          if(cd->second.m_Renderbuffer == record->GetResourceID())
+            cd->second.m_Renderbuffer = ResourceId();
+        }
+      }
       GetResourceManager()->UnregisterResource(res);
     }
   }

@@ -3222,7 +3222,16 @@ void WrappedOpenGL::glDeleteTransformFeedbacks(GLsizei n, const GLuint *ids)
     if(GetResourceManager()->HasCurrentResource(res))
     {
       if(GetResourceManager()->HasResourceRecord(res))
-        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+      {
+        GLResourceRecord *record = GetResourceManager()->GetResourceRecord(res);
+        record->Delete(GetResourceManager());
+
+        for(auto cd = m_ContextData.begin(); cd != m_ContextData.end(); ++cd)
+        {
+          if(cd->second.m_FeedbackRecord == record)
+            cd->second.m_FeedbackRecord = NULL;
+        }
+      }
       GetResourceManager()->UnregisterResource(res);
     }
   }
@@ -5149,6 +5158,15 @@ void WrappedOpenGL::glDeleteBuffers(GLsizei n, const GLuint *buffers)
 
         // free any shadow storage
         record->FreeShadowStorage();
+
+        for(auto cd = m_ContextData.begin(); cd != m_ContextData.end(); ++cd)
+        {
+          for(size_t r = 0; r < ARRAY_COUNT(cd->second.m_BufferRecord); r++)
+          {
+            if(cd->second.m_BufferRecord[r] == record)
+              cd->second.m_BufferRecord[r] = NULL;
+          }
+        }
       }
 
       if(GetResourceManager()->HasResourceRecord(res))
@@ -5168,7 +5186,16 @@ void WrappedOpenGL::glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
     if(GetResourceManager()->HasCurrentResource(res) && arrays[i])
     {
       if(GetResourceManager()->HasResourceRecord(res))
-        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+      {
+        GLResourceRecord *record = GetResourceManager()->GetResourceRecord(res);
+        record->Delete(GetResourceManager());
+
+        for(auto cd = m_ContextData.begin(); cd != m_ContextData.end(); ++cd)
+        {
+          if(cd->second.m_VertexArrayRecord == record)
+            cd->second.m_VertexArrayRecord = NULL;
+        }
+      }
       GetResourceManager()->UnregisterResource(res);
     }
   }

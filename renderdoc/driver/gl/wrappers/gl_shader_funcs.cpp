@@ -1322,6 +1322,12 @@ void WrappedOpenGL::glDeleteProgram(GLuint program)
   {
     m_Programs.erase(GetResourceManager()->GetResID(res));
 
+    for(auto cd = m_ContextData.begin(); cd != m_ContextData.end(); ++cd)
+    {
+      if(cd->second.m_Program == program)
+        cd->second.m_Program = 0;
+    }
+
     if(GetResourceManager()->HasResourceRecord(res))
       GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
     GetResourceManager()->UnregisterResource(res);
@@ -1816,6 +1822,13 @@ void WrappedOpenGL::glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines)
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = ProgramPipeRes(GetCtx(), pipelines[i]);
+
+    for(auto cd = m_ContextData.begin(); cd != m_ContextData.end(); ++cd)
+    {
+      if(cd->second.m_ProgramPipeline == pipelines[i])
+        cd->second.m_ProgramPipeline = 0;
+    }
+
     if(GetResourceManager()->HasCurrentResource(res))
     {
       m_Pipelines.erase(GetResourceManager()->GetResID(res));
