@@ -1900,6 +1900,11 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
   VkMarkerRegion marker(
       cmd, StringFormat::Fmt("FillWithDiscardPattern %s", ToStr(GetResID(image)).c_str()));
 
+  VkImageAspectFlags imAspects = FormatImageAspects(imInfo.format);
+
+  VkImageSubresourceRange barrierDiscardRange = discardRange;
+  barrierDiscardRange.aspectMask = imAspects;
+
   if(imInfo.samples > 1)
   {
     WrappedVulkan *driver = m_pDriver;
@@ -1907,8 +1912,6 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
     bool depth = false;
     if(IsDepthOrStencilFormat(imInfo.format))
       depth = true;
-
-    VkImageAspectFlags imAspects = FormatImageAspects(imInfo.format);
 
     rdcpair<VkFormat, VkSampleCountFlagBits> key = {imInfo.format, imInfo.samples};
 
@@ -2082,9 +2085,6 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
     };
 
     uint32_t pass = 0;
-
-    VkImageSubresourceRange barrierDiscardRange = discardRange;
-    barrierDiscardRange.aspectMask = imAspects;
 
     VkImageMemoryBarrier dstimBarrier = {
         VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
@@ -2343,7 +2343,7 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
       VK_QUEUE_FAMILY_IGNORED,
       VK_QUEUE_FAMILY_IGNORED,
       Unwrap(image),
-      discardRange,
+      barrierDiscardRange,
   };
 
   DoPipelineBarrier(cmd, 1, &dstimBarrier);
