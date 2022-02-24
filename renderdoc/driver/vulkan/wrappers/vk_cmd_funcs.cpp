@@ -216,6 +216,11 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
     VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
     VkImageMemoryBarrier barrierStencil = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
 
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrierStencil.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrierStencil.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
     ResourceId view = fbattachments[idx];
 
     barrierStencil.subresourceRange = barrier.subresourceRange =
