@@ -1699,6 +1699,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
+        ApplyRPLoadDiscards(commandBuffer, RenderPassBegin.renderArea);
+
         // if we're just replaying the vkCmdBeginRenderPass on its own, we use the first loadRP
         // instead of the real thing. This then doesn't require us to finish off any subpasses etc.
         // we need to manually do the subpass 0 barriers, since loadRP expects the image to already
@@ -1709,10 +1711,17 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
           unwrappedInfo.renderPass = Unwrap(rpinfo.loadRPs[0]);
           unwrappedInfo.framebuffer = Unwrap(fbinfo.loadFBs[0]);
 
+          if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
+          {
+            for(VkImageMemoryBarrier &barrier : imgBarriers)
+            {
+              if(barrier.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+                barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+            }
+          }
+
           DoPipelineBarrier(commandBuffer, imgBarriers.size(), imgBarriers.data());
         }
-
-        ApplyRPLoadDiscards(commandBuffer, RenderPassBegin.renderArea);
 
         ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::BeginPass;
         uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
