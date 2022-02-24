@@ -1487,7 +1487,13 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
             // do the barriers in reverse order
             std::reverse(endBarriers.begin(), endBarriers.end());
             for(VkImageMemoryBarrier &barrier : endBarriers)
+            {
               std::swap(barrier.oldLayout, barrier.newLayout);
+
+              // sanitise layouts before passing to vulkan
+              SanitiseOldImageLayout(barrier.oldLayout);
+              SanitiseReplayImageLayout(barrier.newLayout);
+            }
 
             // it's unnecessary to replay barriers towards an undefined layout, since every layout
             // can be considered as undefined
