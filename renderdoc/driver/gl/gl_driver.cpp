@@ -1190,7 +1190,7 @@ void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext,
 
   // if the context was created with modern attribs create (whether or not it's explicitly core),
   // and no unsupported functions have been used, we can capture from this context
-  if(attribsCreate && !m_UnsupportedFunctions.empty())
+  if(attribsCreate && m_UnsupportedFunctions.empty())
     RenderDoc::Inst().AddDeviceFrameCapturer(ctxdata.ctx, this);
 
   // re-configure callstack capture, since WrappedOpenGL constructor may run too early
