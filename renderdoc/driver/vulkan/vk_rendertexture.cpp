@@ -294,6 +294,9 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
 
   data->FlipY = cfg.flipY ? 1 : 0;
 
+  const bool linearSample = cfg.subresource.mip == 0 && cfg.scale < 1.0f &&
+                            (displayformat & (TEXDISPLAY_UINT_TEX | TEXDISPLAY_SINT_TEX)) == 0;
+
   data->MipLevel = (int)cfg.subresource.mip;
   data->Slice = 0;
   if(iminfo.type != VK_IMAGE_TYPE_3D)
@@ -309,8 +312,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
 
     // when sampling linearly, we need to add half a pixel to ensure we only sample the desired
     // slice
-    if(cfg.subresource.mip == 0 && cfg.scale < 1.0f &&
-       (displayformat & (TEXDISPLAY_UINT_TEX | TEXDISPLAY_SINT_TEX)) == 0)
+    if(linearSample)
       slice += 0.5f;
     else
       slice += 0.001f;
@@ -432,7 +434,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
   imdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   imdesc.imageView = Unwrap(liveImView);
   imdesc.sampler = Unwrap(m_General.PointSampler);
-  if(cfg.subresource.mip == 0 && cfg.scale < 1.0f)
+  if(linearSample)
     imdesc.sampler = Unwrap(m_TexRender.LinearSampler);
 
   VkDescriptorImageInfo altimdesc[2] = {};
@@ -442,7 +444,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
     altimdesc[i - 1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     altimdesc[i - 1].imageView = Unwrap(texviews.views[i]);
     altimdesc[i - 1].sampler = Unwrap(m_General.PointSampler);
-    if(cfg.subresource.mip == 0 && cfg.scale < 1.0f)
+    if(linearSample)
       altimdesc[i - 1].sampler = Unwrap(m_TexRender.LinearSampler);
   }
 
