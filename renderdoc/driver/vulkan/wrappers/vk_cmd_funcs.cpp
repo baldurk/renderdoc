@@ -4701,6 +4701,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
               parentCmdBufInfo.state.GetFramebufferAttachments());
           m_BakedCmdBufferInfo[cmd].state.renderArea = parentCmdBufInfo.state.renderArea;
           m_BakedCmdBufferInfo[cmd].state.subpassContents = parentCmdBufInfo.state.subpassContents;
+          m_BakedCmdBufferInfo[cmd].state.dynamicRendering = parentCmdBufInfo.state.dynamicRendering;
 
           // 2 extra for the virtual labels around the command buffer
           parentCmdBufInfo.curEventID += 2 + m_BakedCmdBufferInfo[cmd].eventCount;
