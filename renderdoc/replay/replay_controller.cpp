@@ -2149,6 +2149,8 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
 
   ReplayStatus status = m_pDevice->ReadLogInitialisation(rdc, false);
   FatalErrorCheck();
+  if(m_FatalError != ReplayStatus::Succeeded)
+    return m_FatalError;
 
   m_pDevice->SetPipelineStates(&m_D3D11PipelineState, &m_D3D12PipelineState, &m_GLPipelineState,
                                &m_VulkanPipelineState);
@@ -2168,7 +2170,10 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
   m_FrameRecord = m_pDevice->GetFrameRecord();
   FatalErrorCheck();
 
-  if(m_FrameRecord.actionList.empty() || m_FatalError != ReplayStatus::Succeeded)
+  if(m_FatalError != ReplayStatus::Succeeded)
+    return m_FatalError;
+
+  if(m_FrameRecord.actionList.empty())
     return ReplayStatus::APIReplayFailed;
 
   m_Actions.clear();
