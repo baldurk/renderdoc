@@ -2276,6 +2276,8 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
     initStateCurBatch = 0;
     initStateCurList = NULL;
 
+    GPUSyncAllQueues();
+
     GetResourceManager()->PrepareInitialContents();
 
     if(initStateCurList)

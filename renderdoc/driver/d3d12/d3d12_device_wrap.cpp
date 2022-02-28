@@ -3165,6 +3165,8 @@ HRESULT WrappedID3D12Device::OpenSharedHandleByName(LPCWSTR Name, DWORD Access, 
 
 HRESULT WrappedID3D12Device::MakeResident(UINT NumObjects, ID3D12Pageable *const *ppObjects)
 {
+  SCOPED_READLOCK(m_CapTransitionLock);
+
   ID3D12Pageable **unwrapped = GetTempArray<ID3D12Pageable *>(NumObjects);
 
   for(UINT i = 0; i < NumObjects; i++)
@@ -3181,6 +3183,12 @@ HRESULT WrappedID3D12Device::MakeResident(UINT NumObjects, ID3D12Pageable *const
       res->MakeResident();
       unwrapped[i] = res->GetReal();
     }
+    else if(WrappedID3D12Heap::IsAlloc(ppObjects[i]))
+    {
+      WrappedID3D12Heap *heap = (WrappedID3D12Heap *)ppObjects[i];
+      heap->MakeResident();
+      unwrapped[i] = heap->GetReal();
+    }
     else
     {
       unwrapped[i] = (ID3D12Pageable *)Unwrap((ID3D12DeviceChild *)ppObjects[i]);
@@ -3192,6 +3200,8 @@ HRESULT WrappedID3D12Device::MakeResident(UINT NumObjects, ID3D12Pageable *const
 
 HRESULT WrappedID3D12Device::Evict(UINT NumObjects, ID3D12Pageable *const *ppObjects)
 {
+  SCOPED_READLOCK(m_CapTransitionLock);
+
   ID3D12Pageable **unwrapped = GetTempArray<ID3D12Pageable *>(NumObjects);
 
   for(UINT i = 0; i < NumObjects; i++)
@@ -3207,6 +3217,12 @@ HRESULT WrappedID3D12Device::Evict(UINT NumObjects, ID3D12Pageable *const *ppObj
       WrappedID3D12Resource *res = (WrappedID3D12Resource *)ppObjects[i];
       res->Evict();
       unwrapped[i] = res->GetReal();
+    }
+    else if(WrappedID3D12Heap::IsAlloc(ppObjects[i]))
+    {
+      WrappedID3D12Heap *heap = (WrappedID3D12Heap *)ppObjects[i];
+      heap->Evict();
+      unwrapped[i] = heap->GetReal();
     }
     else
     {

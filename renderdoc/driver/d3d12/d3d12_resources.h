@@ -931,11 +931,11 @@ public:
     return WrappedDeviceChild12::IsResident();
   }
 
-  ID3D12Pageable *ResidencyPageable()
+  ID3D12Pageable *UnwrappedResidencyPageable()
   {
     if(m_Heap)
-      return m_Heap;
-    return this;
+      return m_Heap->GetReal();
+    return this->GetReal();
   }
 
   void SetHeap(ID3D12Heap *heap)

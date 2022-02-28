@@ -170,6 +170,8 @@ HRESULT WrappedID3D12Device::EnqueueMakeResident(D3D12_RESIDENCY_FLAGS Flags, UI
                                                  ID3D12Fence *pFenceToSignal,
                                                  UINT64 FenceValueToSignal)
 {
+  SCOPED_READLOCK(m_CapTransitionLock);
+
   ID3D12Pageable **unwrapped = GetTempArray<ID3D12Pageable *>(NumObjects);
 
   // assume objects are immediately resident for the purposes of our tracking
@@ -187,22 +189,16 @@ HRESULT WrappedID3D12Device::EnqueueMakeResident(D3D12_RESIDENCY_FLAGS Flags, UI
       res->MakeResident();
       unwrapped[i] = res->GetReal();
     }
+    else if(WrappedID3D12Heap::IsAlloc(ppObjects[i]))
+    {
+      WrappedID3D12Heap *heap = (WrappedID3D12Heap *)ppObjects[i];
+      heap->MakeResident();
+      unwrapped[i] = heap->GetReal();
+    }
     else
     {
       unwrapped[i] = (ID3D12Pageable *)Unwrap((ID3D12DeviceChild *)ppObjects[i]);
     }
-  }
-
-  bool capframe = false;
-
-  {
-    SCOPED_READLOCK(m_CapTransitionLock);
-    capframe = IsActiveCapturing(m_State);
-  }
-
-  if(capframe)
-  {
-    // serialise
   }
 
   return m_pDevice3->EnqueueMakeResident(Flags, NumObjects, unwrapped, Unwrap(pFenceToSignal),
