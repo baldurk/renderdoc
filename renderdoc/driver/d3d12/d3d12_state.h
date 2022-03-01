@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include <vector>
 #include "d3d12_common.h"
 #include "d3d12_manager.h"
 

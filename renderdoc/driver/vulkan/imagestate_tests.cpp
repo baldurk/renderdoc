@@ -31,12 +31,11 @@
 #include "vk_resources.h"
 
 #include <stdint.h>
-#include <vector>
 
 void CheckSubresourceRanges(const ImageState &state, bool expectAspectsSplit,
                             bool expectLevelsSplit, bool expectLayersSplit, bool expectDepthSplit)
 {
-  std::vector<VkImageAspectFlags> splitAspects;
+  rdcarray<VkImageAspectFlags> splitAspects;
   if(expectAspectsSplit)
   {
     for(auto it = ImageAspectFlagIter::begin(state.GetImageInfo().Aspects());

@@ -22,9 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include <algorithm>
-#include <fstream>
-
 #include "common/common.h"
 #include "driver/gl/gl_dispatch_table.h"
 #include "strings/string_utils.h"

@@ -25,7 +25,6 @@
 #include "dxil_bytecode.h"
 #include <ctype.h>
 #include <stdio.h>
-#include <string>
 #include "common/common.h"
 #include "common/formatting.h"
 #include "os/os_specific.h"

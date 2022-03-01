@@ -25,8 +25,6 @@
 #pragma once
 
 #include <map>
-#include <string>
-#include <vector>
 #include "driver/dx/official/d3d11_4.h"
 
 class WrappedID3D11Device;
