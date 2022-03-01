@@ -4291,6 +4291,22 @@ displayed
 .. data:: RGBDisplay
 
   This value should be interpreted as an RGB colour for display where possible.
+
+.. data:: R11G11B10
+
+  This value should be decoded from a 32-bit integer in R11G11B10 packing format.
+
+.. data:: R10G10B10A2
+
+  This value should be decoded from a 32-bit integer in R10G10B10A2 packing format.
+
+.. data:: UNorm
+
+  This value should be treated as unsigned normalised floating point values when interpreting.
+
+.. data:: SNorm
+
+  This value should be treated as signed normalised floating point values when interpreting.
 )");
 enum class ShaderVariableFlags : uint32_t
 {
@@ -4298,6 +4314,10 @@ enum class ShaderVariableFlags : uint32_t
   RowMajorMatrix = 0x0001,
   HexDisplay = 0x0002,
   RGBDisplay = 0x0004,
+  R11G11B10 = 0x0008,
+  R10G10B10A2 = 0x0010,
+  UNorm = 0x0020,
+  SNorm = 0x0040,
 };
 
 BITMASK_OPERATORS(ShaderVariableFlags);

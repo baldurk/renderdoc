@@ -36,8 +36,7 @@ struct StructFormatData
 
 GraphicsAPI BufferFormatter::m_API;
 
-static bool MatchBaseTypeDeclaration(QString basetype, ShaderConstant &el, const bool isUnsigned,
-                                     CompType &interpretCompType, ResourceFormatType &interpretType)
+static bool MatchBaseTypeDeclaration(QString basetype, const bool isUnsigned, ShaderConstant &el)
 {
   if(basetype == lit("bool"))
   {
@@ -103,41 +102,40 @@ static bool MatchBaseTypeDeclaration(QString basetype, ShaderConstant &el, const
   else if(basetype == lit("unormh"))
   {
     el.type.descriptor.type = VarType::UShort;
-    interpretCompType = CompType::UNorm;
+    el.type.descriptor.flags |= ShaderVariableFlags::UNorm;
   }
   else if(basetype == lit("unormb"))
   {
     el.type.descriptor.type = VarType::UByte;
-    interpretCompType = CompType::UNorm;
+    el.type.descriptor.flags |= ShaderVariableFlags::UNorm;
   }
   else if(basetype == lit("snormh"))
   {
     el.type.descriptor.type = VarType::SShort;
-    interpretCompType = CompType::SNorm;
+    el.type.descriptor.flags |= ShaderVariableFlags::SNorm;
   }
   else if(basetype == lit("snormb"))
   {
     el.type.descriptor.type = VarType::SByte;
-    interpretCompType = CompType::SNorm;
+    el.type.descriptor.flags |= ShaderVariableFlags::SNorm;
   }
   else if(basetype == lit("uintten"))
   {
     el.type.descriptor.type = VarType::UInt;
-    interpretType = ResourceFormatType::R10G10B10A2;
+    el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2;
     el.type.descriptor.columns = 4;
   }
   else if(basetype == lit("unormten"))
   {
     el.type.descriptor.type = VarType::UInt;
-    interpretCompType = CompType::UNorm;
-    interpretType = ResourceFormatType::R10G10B10A2;
+    el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2;
+    el.type.descriptor.flags |= ShaderVariableFlags::UNorm;
     el.type.descriptor.columns = 4;
   }
   else if(basetype == lit("floateleven"))
   {
     el.type.descriptor.type = VarType::Float;
-    interpretCompType = CompType::Float;
-    interpretType = ResourceFormatType::R11G11B10;
+    el.type.descriptor.flags |= ShaderVariableFlags::R11G11B10;
     el.type.descriptor.columns = 3;
   }
   else
@@ -322,10 +320,8 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
           }
 
           ShaderConstant tmp;
-          CompType dummyCompType;
-          ResourceFormatType dummyType;
 
-          bool matched = MatchBaseTypeDeclaration(baseType, tmp, true, dummyCompType, dummyType);
+          bool matched = MatchBaseTypeDeclaration(baseType, true, tmp);
 
           if(!matched)
           {
@@ -342,8 +338,6 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
     }
 
     ShaderConstant el;
-    ResourceFormatType interpretType = ResourceFormatType::Regular;
-    CompType interpretCompType = CompType::Typeless;
 
     if(cur->structDef.type.descriptor.type == VarType::Enum)
     {
@@ -582,8 +576,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         if(el.type.descriptor.rows == 1)
           el.type.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix;
 
-        bool matched =
-            MatchBaseTypeDeclaration(basetype, el, isUnsigned, interpretCompType, interpretType);
+        bool matched = MatchBaseTypeDeclaration(basetype, isUnsigned, el);
 
         if(!matched)
         {
@@ -610,7 +603,9 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
           success = false;
           break;
         }
-        if(interpretType != ResourceFormatType::Regular || interpretCompType != CompType::Typeless)
+        if(el.type.descriptor.flags &
+           (ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::R11G11B10 |
+            ShaderVariableFlags::UNorm | ShaderVariableFlags::SNorm))
         {
           errors =
               tr("Bitfield packing not allowed on interpreted/packed formats on line: %1\n").arg(line);
@@ -630,8 +625,6 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
          basetype == lit("xbyte"))
         el.type.descriptor.flags |= ShaderVariableFlags::HexDisplay;
     }
-
-    SetInterpretedResourceFormat(el, interpretType, interpretCompType);
 
     ResourceFormat fmt = GetInterpretedResourceFormat(el);
 
@@ -824,8 +817,6 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
     el.type.descriptor.arrayByteStride = el.type.descriptor.matrixByteStride =
         el.type.descriptor.columns * VarTypeByteSize(el.type.descriptor.type);
-
-    SetInterpretedResourceFormat(el, ResourceFormatType::Regular, CompType::Typeless);
 
     root.structDef.type.members.push_back(el);
   }
@@ -1320,29 +1311,22 @@ QString BufferFormatter::DeclareStruct(const QString &name, const rdcarray<Shade
   return DeclareStruct(declaredStructs, name, members, requiredByteStride, QString());
 }
 
-void SetInterpretedResourceFormat(ShaderConstant &elem, ResourceFormatType interpretType,
-                                  CompType interpretCompType)
-{
-  static_assert(sizeof(elem.defaultValue) > 2,
-                "ShaderConstant::defaultValue has changed, check packing");
-
-  // packing must match GetInterpretedResourceFormat below
-  elem.defaultValue = (uint64_t(interpretType) << 8) | (uint64_t(interpretCompType) << 0);
-}
-
 ResourceFormat GetInterpretedResourceFormat(const ShaderConstant &elem)
 {
-  // packing must match SetInterpretedResourceFormat above
-  ResourceFormatType interpretType = ResourceFormatType((elem.defaultValue >> 8) & 0xff);
-  CompType interpretCompType = CompType((elem.defaultValue >> 0) & 0xff);
-
   ResourceFormat format;
-  format.type = interpretType;
+  format.type = ResourceFormatType::Regular;
+
+  if(elem.type.descriptor.flags & ShaderVariableFlags::R10G10B10A2)
+    format.type = ResourceFormatType::R10G10B10A2;
+  else if(elem.type.descriptor.flags & ShaderVariableFlags::R11G11B10)
+    format.type = ResourceFormatType::R11G11B10;
 
   format.compType = VarTypeCompType(elem.type.descriptor.type);
 
-  if(interpretCompType != CompType::Typeless)
-    format.compType = interpretCompType;
+  if(elem.type.descriptor.flags & ShaderVariableFlags::UNorm)
+    format.compType = CompType::UNorm;
+  else if(elem.type.descriptor.flags & ShaderVariableFlags::SNorm)
+    format.compType = CompType::SNorm;
 
   format.compByteWidth = VarTypeByteSize(elem.type.descriptor.type);
 
