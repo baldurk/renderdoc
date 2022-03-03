@@ -1825,6 +1825,12 @@ void RenderDoc::AddChildThread(uint32_t pid, Threading::ThreadHandle thread)
   m_ChildThreads.push_back(make_rdcpair(pid, thread));
 }
 
+void RenderDoc::ValidateCaptures()
+{
+  SCOPED_LOCK(m_CaptureLock);
+  m_Captures.removeIf([](const CaptureData &cap) { return !FileIO::exists(cap.path); });
+}
+
 rdcarray<CaptureData> RenderDoc::GetCaptures()
 {
   SCOPED_LOCK(m_CaptureLock);

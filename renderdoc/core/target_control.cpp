@@ -152,6 +152,8 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
   const int progresstime = 100;    // update capture progress every 100ms
   int curtime = 0;
 
+  RenderDoc::Inst().ValidateCaptures();
+
   rdcarray<CaptureData> captures;
   rdcarray<rdcpair<uint32_t, uint32_t> > children;
   std::map<RDCDriver, bool> drivers;

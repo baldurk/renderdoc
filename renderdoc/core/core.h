@@ -453,6 +453,7 @@ public:
   void CompleteChildThread(uint32_t pid);
   void AddChildThread(uint32_t pid, Threading::ThreadHandle thread);
 
+  void ValidateCaptures();
   rdcarray<CaptureData> GetCaptures();
 
   void MarkCaptureRetrieved(uint32_t idx);
