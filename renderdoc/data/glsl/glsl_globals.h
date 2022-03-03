@@ -84,6 +84,17 @@ precision highp int;
 #define CUBEMAP_FACE_POS_Z 4
 #define CUBEMAP_FACE_NEG_Z 5
 
+// used in depthms2buffer.comp to define enum-format mapping
+#define SHADER_D16_UNORM 0
+#define SHADER_D16_UNORM_S8_UINT 1
+#define SHADER_X8_D24_UNORM_PACK32 2
+#define SHADER_D24_UNORM_S8_UINT 3
+#define SHADER_D32_SFLOAT 4
+#define SHADER_D32_SFLOAT_S8_UINT 5
+
+// divide MS<->buffer workgroups by 64
+#define MS_DISPATCH_LOCAL_SIZE 64
+
 #if !defined(__cplusplus)
 
 vec3 CalcCubeCoord(vec2 uv, int face)

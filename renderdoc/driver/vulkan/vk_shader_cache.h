@@ -47,10 +47,6 @@ enum class BuiltinShader
   QuadWriteFS,
   TrisizeGS,
   TrisizeFS,
-  MS2ArrayCS,
-  Array2MSCS,
-  DepthMS2ArrayFS,
-  DepthArray2MSFS,
   TexRemap,
   PixelHistoryMSCopyCS,
   PixelHistoryMSCopyDepthCS,
@@ -60,6 +56,10 @@ enum class BuiltinShader
   HistogramCS,
   MinMaxTileCS,
   MinMaxResultCS,
+  MS2BufferCS,
+  DepthMS2BufferCS,
+  Buffer2MSCS,
+  DepthBuf2MSFS,
   Count,
 };
 
@@ -112,8 +112,7 @@ public:
   void MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
   void MakeComputePipelineInfo(VkComputePipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
 
-  bool IsMS2ArraySupported() { return m_MS2ArraySupported; }
-  bool IsArray2MSSupported() { return m_Array2MSSupported; }
+  bool IsBuffer2MSSupported() { return m_Buffer2MSSupported; }
   void SetCaching(bool enabled) { m_CacheShaders = enabled; }
 private:
   static const uint32_t m_ShaderCacheMagic = 0xf00d00d5;
@@ -128,7 +127,7 @@ private:
   bytebuf m_PipeCacheBlob;
   VkPipelineCache m_PipelineCache = VK_NULL_HANDLE;
 
-  bool m_MS2ArraySupported = false, m_Array2MSSupported = false;
+  bool m_Buffer2MSSupported = false;
 
   bool m_ShaderCacheDirty = false, m_CacheShaders = false;
   std::map<uint32_t, SPIRVBlob> m_ShaderCache;

@@ -10,7 +10,7 @@ set(sources
     vk_postvs.cpp
     vk_shader_feedback.cpp
     vk_overlay.cpp
-    vk_msaa_array_conv.cpp
+    vk_msaa_buffer_conv.cpp
     vk_outputwindow.cpp
     vk_rendermesh.cpp
     vk_rendertexture.cpp

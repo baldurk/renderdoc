@@ -422,7 +422,7 @@ void WrappedVulkan::vkGetDeviceImageMemoryRequirements(VkDevice device,
     {
       if(!IsDepthOrStencilFormat(info->format))
       {
-        if(GetDebugManager() && GetShaderCache()->IsArray2MSSupported())
+        if(GetDebugManager() && GetShaderCache()->IsBuffer2MSSupported())
           info->usage |= VK_IMAGE_USAGE_STORAGE_BIT;
       }
       else

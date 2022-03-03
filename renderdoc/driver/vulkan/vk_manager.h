@@ -107,7 +107,6 @@ struct VkInitialContents
     FreeAlignedBuffer(inlineData);
 
     rm->ResourceTypeRelease(GetWrapped(buf));
-    rm->ResourceTypeRelease(GetWrapped(img));
 
     SAFE_DELETE(sparseTables);
     SAFE_DELETE(sparseBind);
@@ -127,7 +126,6 @@ struct VkInitialContents
   // for plain resources, we store the resource type and memory allocation details of the contents
   VkResourceType type;
   VkBuffer buf;
-  VkImage img;
   MemoryAllocation mem;
   Tag tag;
 
@@ -425,7 +423,6 @@ public:
   void FixupStorageBufferMemory(const std::unordered_set<VkResourceRecord *> &storageBuffers);
   void ClearReferencedMemory();
   MemRefs *FindMemRefs(ResourceId mem);
-  ImgRefs *FindImgRefs(ResourceId img);
 
   inline InitPolicy GetInitPolicy() { return m_InitPolicy; }
   void SetOptimisationLevel(ReplayOptimisationLevel level)
