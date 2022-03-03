@@ -1,0 +1,120 @@
+/******************************************************************************
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2020-2022 Baldur Karlsson
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
+
+#include "glsl_globals.h"
+
+layout(local_size_x = MS_DISPATCH_LOCAL_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 2, std430) readonly buffer srcBuf
+{
+  uint srcData[];
+};
+
+layout(binding = 3) writeonly uniform uimage2DMSArray dstMS;
+
+layout(push_constant) uniform multisamplePush
+{
+  int texWidth;
+  int sliceOffset;
+  int sampleOffset;
+  int byteSize;
+  int maxInvocationID;
+}
+mscopy;
+
+#define texWidth (mscopy.texWidth)
+#define sliceOffset (mscopy.sliceOffset)
+#define sampleOffset (mscopy.sampleOffset)
+#define byteSize (mscopy.byteSize)
+#define maxInvocationID (mscopy.maxInvocationID)
+
+void main()
+{
+  uint idx = gl_GlobalInvocationID.x;
+
+  int slice = sliceOffset;
+  int sampleIdx = sampleOffset;
+
+  if(int(idx) >= maxInvocationID)
+  {
+    return;
+  }
+
+  uvec4 data;
+  if(byteSize == 1)
+  {
+    data.x = srcData[idx];
+    int pxIdx = int(idx * 4);
+    int x0 = (pxIdx + 0) % texWidth;
+    int y0 = (pxIdx + 0) / texWidth;
+    int x1 = (pxIdx + 1) % texWidth;
+    int y1 = (pxIdx + 1) / texWidth;
+    int x2 = (pxIdx + 2) % texWidth;
+    int y2 = (pxIdx + 2) / texWidth;
+    int x3 = (pxIdx + 3) % texWidth;
+    int y3 = (pxIdx + 3) / texWidth;
+
+    imageStore(dstMS, ivec3(x0, y0, slice), sampleIdx, uvec4((data.x >> 0) & 0xFF, 0, 0, 0));
+    imageStore(dstMS, ivec3(x1, y1, slice), sampleIdx, uvec4((data.x >> 8) & 0xFF, 0, 0, 0));
+    imageStore(dstMS, ivec3(x2, y2, slice), sampleIdx, uvec4((data.x >> 16) & 0xFF, 0, 0, 0));
+    imageStore(dstMS, ivec3(x3, y3, slice), sampleIdx, uvec4((data.x >> 24) & 0xFF, 0, 0, 0));
+  }
+  else if(byteSize == 2)
+  {
+    data.x = srcData[idx];
+    int pxIdx = int(idx * 2);
+    int x0 = (pxIdx + 0) % texWidth;
+    int y0 = (pxIdx + 0) / texWidth;
+    int x1 = (pxIdx + 1) % texWidth;
+    int y1 = (pxIdx + 1) / texWidth;
+
+    imageStore(dstMS, ivec3(x0, y0, slice), sampleIdx, uvec4((data.x >> 0) & 0xFFFF, 0, 0, 0));
+    imageStore(dstMS, ivec3(x1, y1, slice), sampleIdx, uvec4((data.x >> 16) & 0xFFFF, 0, 0, 0));
+  }
+  else if(byteSize == 4)
+  {
+    int x0 = int(idx) % texWidth;
+    int y0 = int(idx) / texWidth;
+    data.x = srcData[idx];
+    imageStore(dstMS, ivec3(x0, y0, slice), sampleIdx, data);
+  }
+  else if(byteSize == 8)
+  {
+    int x0 = int(idx) % texWidth;
+    int y0 = int(idx) / texWidth;
+    data.x = srcData[idx * 2];
+    data.y = srcData[idx * 2 + 1];
+    imageStore(dstMS, ivec3(x0, y0, slice), sampleIdx, data);
+  }
+  else if(byteSize == 16)
+  {
+    int x0 = int(idx) % texWidth;
+    int y0 = int(idx) / texWidth;
+    data.x = srcData[idx * 4];
+    data.y = srcData[idx * 4 + 1];
+    data.z = srcData[idx * 4 + 2];
+    data.w = srcData[idx * 4 + 3];
+    imageStore(dstMS, ivec3(x0, y0, slice), sampleIdx, data);
+  }
+}

@@ -109,9 +109,9 @@
     <ClCompile Include="vk_apple.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="vk_msaa_buffer_conv.cpp" />
     <ClCompile Include="vk_shader_feedback.cpp" />
     <ClCompile Include="vk_image_states.cpp" />
-    <ClCompile Include="vk_msaa_array_conv.cpp" />
     <ClCompile Include="vk_next_chains.cpp" />
     <ClCompile Include="vk_outputwindow.cpp" />
     <ClCompile Include="vk_overlay.cpp" />

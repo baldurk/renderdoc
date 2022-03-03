@@ -446,6 +446,10 @@ set(data
     data/glsl/deptharr2ms.frag
     data/glsl/depthms2arr.frag
     data/glsl/discard.frag
+    data/glsl/vk_ms2buffer.comp
+    data/glsl/vk_depthms2buffer.comp
+    data/glsl/vk_buffer2ms.comp
+    data/glsl/vk_depthbuf2ms.frag
     data/sourcecodepro.ttf
     driver/vulkan/renderdoc.json)
 

@@ -63,10 +63,12 @@ public:
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &ret);
 
-  void CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent, uint32_t layers,
-                          uint32_t samples, VkFormat fmt);
-  void CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent, uint32_t layers,
-                          uint32_t samples, VkFormat fmt);
+  void CopyTex2DMSToBuffer(VkBuffer destBuffer, VkImage srcMS, VkExtent3D extent,
+                           uint32_t baseSlice, uint32_t numSlices, uint32_t baseSample,
+                           uint32_t numSamples, VkFormat fmt);
+
+  void CopyBufferToTex2DMS(VkImage destMS, VkBuffer srcBuffer, VkExtent3D extent,
+                           uint32_t numSlices, uint32_t numSamples, VkFormat fmt);
 
   void FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType type, VkImage image,
                               VkImageLayout curLayout, VkImageSubresourceRange discardRange,
@@ -122,23 +124,21 @@ private:
   // CacheMeshDisplayPipelines
   std::map<uint64_t, VKMeshDisplayPipelines> m_CachedMeshPipelines;
 
-  // CopyArrayToTex2DMS & CopyTex2DMSToArray
-  VkDescriptorPool m_ArrayMSDescriptorPool;
-  VkDescriptorSetLayout m_ArrayMSDescSetLayout = VK_NULL_HANDLE;
-  VkPipelineLayout m_ArrayMSPipeLayout = VK_NULL_HANDLE;
+  // CopyBufferToTex2DMS
+  VkDescriptorPool m_BufferMSDescriptorPool;
+  VkDescriptorSetLayout m_BufferMSDescSetLayout = VK_NULL_HANDLE;
+  VkPipelineLayout m_BufferMSPipeLayout = VK_NULL_HANDLE;
   // 8 descriptor sets allows for 4x MSAA with 2 array slices, common for VR targets
-  VkDescriptorSet m_ArrayMSDescSet[8] = {};
-  VkPipeline m_Array2MSPipe = VK_NULL_HANDLE;
-  VkPipeline m_MS2ArrayPipe = VK_NULL_HANDLE;
-  VkSampler m_ArrayMSSampler = VK_NULL_HANDLE;
+  VkDescriptorSet m_BufferMSDescSet[8] = {};
+  VkPipeline m_Buffer2MSPipe = VK_NULL_HANDLE;
+  VkPipeline m_MS2BufferPipe = VK_NULL_HANDLE;
+  VkPipeline m_DepthMS2BufferPipe = VK_NULL_HANDLE;
 
-  // [0] = non-MSAA, [1] = MSAA
+  // MSAA dummy images
   VkDeviceMemory m_DummyStencilMemory = VK_NULL_HANDLE;
-  VkImage m_DummyStencilImage[2] = {VK_NULL_HANDLE};
-  VkImageView m_DummyStencilView[2] = {VK_NULL_HANDLE};
+  VkImage m_DummyStencilImage = {VK_NULL_HANDLE};
+  VkImageView m_DummyStencilView = {VK_NULL_HANDLE};
 
-  // one per depth/stencil output format
-  VkPipeline m_DepthMS2ArrayPipe[6] = {VK_NULL_HANDLE};
   // one per depth/stencil output format, per sample count
   VkPipeline m_DepthArray2MSPipe[6][4] = {{VK_NULL_HANDLE}};
 
@@ -159,10 +159,12 @@ private:
     VkPipeline TexPipeline = VK_NULL_HANDLE;
   } m_Custom;
 
-  void CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent, uint32_t layers,
-                               uint32_t samples, VkFormat fmt);
-  void CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent, uint32_t layers,
-                               uint32_t samples, VkFormat fmt);
+  void CopyDepthTex2DMSToBuffer(VkBuffer destBuffer, VkImage srcMS, VkExtent3D extent,
+                                uint32_t baseSlice, uint32_t numSlices, uint32_t baseSample,
+                                uint32_t numSamples, VkFormat fmt);
+
+  void CopyDepthBufferToTex2DMS(VkImage destMS, VkBuffer srcBuffer, VkExtent3D extent,
+                                uint32_t numSlices, uint32_t numSamples, VkFormat fmt);
 
   WrappedVulkan *m_pDriver = NULL;
 

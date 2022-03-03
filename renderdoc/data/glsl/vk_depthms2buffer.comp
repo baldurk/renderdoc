@@ -1,0 +1,116 @@
+/******************************************************************************
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2020-2022 Baldur Karlsson
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
+
+#include "glsl_globals.h"
+#extension GL_EXT_samplerless_texture_functions : require
+
+layout(local_size_x = MS_DISPATCH_LOCAL_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0) uniform texture2DMSArray srcDepthMS;
+layout(binding = 1) uniform utexture2DMSArray srcStencilMS;
+
+layout(binding = 2, std430) writeonly buffer dstBuf
+{
+  uint result[];
+};
+
+#define MAX_D16 ((1 << 16) - 1)
+#define MAX_D24 ((1 << 24) - 1)
+
+#define floatToD16(depth) uint(MAX_D16 *depth)
+#define floatToD24(depth) uint(MAX_D24 *depth)
+
+layout(push_constant) uniform multisamplePush
+{
+  int textureWidth;
+  int baseSlice;
+  int baseSample;
+  int format;
+  int maxInvocationID;
+}
+mscopy;
+
+#define textureWidth (mscopy.textureWidth)
+#define baseSlice (mscopy.baseSlice)
+#define baseSample (mscopy.baseSample)
+#define format (mscopy.format)
+#define maxInvocationID (mscopy.maxInvocationID)
+
+void main()
+{
+  int slice = baseSlice;
+  int sampleIdx = baseSample;
+  uint idx = gl_GlobalInvocationID.x;
+  if(int(idx) >= maxInvocationID)
+  {
+    return;
+  }
+
+  int x0 = int(idx) % textureWidth;
+  int y0 = int(idx) / textureWidth;
+  ivec3 coord = ivec3(x0, y0, slice);
+
+  // For D16, we need to sample 2 pixels at a time
+  if(format == SHADER_D16_UNORM)
+  {
+    int pxIdx = int(idx * 2);
+    int x0 = (pxIdx + 0) % textureWidth;
+    int y0 = (pxIdx + 0) / textureWidth;
+    int x1 = (pxIdx + 1) % textureWidth;
+    int y1 = (pxIdx + 1) / textureWidth;
+
+    vec2 depth = vec2(texelFetch(srcDepthMS, ivec3(x0, y0, slice), sampleIdx).x,
+                      texelFetch(srcDepthMS, ivec3(x1, y1, slice), sampleIdx).x);
+    result[idx] = (floatToD16(depth.x) << 0) | (floatToD16(depth.y) << 16);
+  }
+  else if(format == SHADER_D16_UNORM_S8_UINT)
+  {
+    float depth = texelFetch(srcDepthMS, coord, sampleIdx).x;
+    uint stencil = texelFetch(srcStencilMS, coord, sampleIdx).x;
+    result[idx] = (floatToD16(depth) << 0) | (stencil << 16);
+  }
+  else if(format == SHADER_X8_D24_UNORM_PACK32)
+  {
+    float depth = texelFetch(srcDepthMS, coord, sampleIdx).x;
+    result[idx] = (floatToD24(depth) << 0);
+  }
+  else if(format == SHADER_D24_UNORM_S8_UINT)
+  {
+    float depth = texelFetch(srcDepthMS, coord, sampleIdx).x;
+    uint stencil = texelFetch(srcStencilMS, coord, sampleIdx).x;
+    result[idx] = (floatToD24(depth) << 0) | (stencil << 24);
+  }
+  else if(format == SHADER_D32_SFLOAT)
+  {
+    float depth = texelFetch(srcDepthMS, coord, sampleIdx).x;
+    result[idx] = floatBitsToUint(depth);
+  }
+  else if(format == SHADER_D32_SFLOAT_S8_UINT)
+  {
+    float depth = texelFetch(srcDepthMS, coord, sampleIdx).x;
+    uint stencil = texelFetch(srcStencilMS, coord, sampleIdx).x;
+    result[idx * 2 + 0] = floatBitsToUint(depth);
+    result[idx * 2 + 1] = stencil;
+  }
+}

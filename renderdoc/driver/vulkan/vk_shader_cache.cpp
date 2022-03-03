@@ -93,18 +93,6 @@ static const BuiltinShaderConfig builtinShaders[] = {
                         rdcspv::ShaderStage::Geometry),
     BuiltinShaderConfig(BuiltinShader::TrisizeFS, EmbeddedResource(glsl_trisize_frag),
                         rdcspv::ShaderStage::Fragment),
-    BuiltinShaderConfig(BuiltinShader::MS2ArrayCS, EmbeddedResource(glsl_ms2array_comp),
-                        rdcspv::ShaderStage::Compute,
-                        FeatureCheck::FormatlessWrite | FeatureCheck::NonMetalBackend),
-    BuiltinShaderConfig(BuiltinShader::Array2MSCS, EmbeddedResource(glsl_array2ms_comp),
-                        rdcspv::ShaderStage::Compute,
-                        FeatureCheck::ShaderMSAAStorage | FeatureCheck::FormatlessWrite |
-                            FeatureCheck::NonMetalBackend),
-    BuiltinShaderConfig(BuiltinShader::DepthMS2ArrayFS, EmbeddedResource(glsl_depthms2arr_frag),
-                        rdcspv::ShaderStage::Fragment, FeatureCheck::NonMetalBackend),
-    BuiltinShaderConfig(BuiltinShader::DepthArray2MSFS, EmbeddedResource(glsl_deptharr2ms_frag),
-                        rdcspv::ShaderStage::Fragment,
-                        FeatureCheck::SampleShading | FeatureCheck::NonMetalBackend),
     BuiltinShaderConfig(BuiltinShader::TexRemap, EmbeddedResource(glsl_texremap_frag),
                         rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck,
                         BuiltinShaderFlags::BaseTypeParameterised),
@@ -132,6 +120,17 @@ static const BuiltinShaderConfig builtinShaders[] = {
     BuiltinShaderConfig(BuiltinShader::MinMaxResultCS, EmbeddedResource(glsl_minmaxresult_comp),
                         rdcspv::ShaderStage::Compute, FeatureCheck::NoCheck,
                         BuiltinShaderFlags::BaseTypeParameterised),
+    BuiltinShaderConfig(BuiltinShader::MS2BufferCS, EmbeddedResource(glsl_vk_ms2buffer_comp),
+                        rdcspv::ShaderStage::Compute, FeatureCheck::NonMetalBackend),
+    BuiltinShaderConfig(BuiltinShader::DepthMS2BufferCS, EmbeddedResource(glsl_vk_depthms2buffer_comp),
+                        rdcspv::ShaderStage::Compute, FeatureCheck::NonMetalBackend),
+    BuiltinShaderConfig(BuiltinShader::Buffer2MSCS, EmbeddedResource(glsl_vk_buffer2ms_comp),
+                        rdcspv::ShaderStage::Compute,
+                        FeatureCheck::ShaderMSAAStorage | FeatureCheck::FormatlessWrite |
+                            FeatureCheck::NonMetalBackend),
+    BuiltinShaderConfig(BuiltinShader::DepthBuf2MSFS, EmbeddedResource(glsl_vk_depthbuf2ms_frag),
+                        rdcspv::ShaderStage::Fragment,
+                        FeatureCheck::SampleShading | FeatureCheck::NonMetalBackend),
 };
 
 RDCCOMPILE_ASSERT(ARRAY_COUNT(builtinShaders) == arraydim<BuiltinShader>(),
@@ -243,10 +242,8 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
   rdcspv::CompilationSettings compileSettings;
   compileSettings.lang = rdcspv::InputLanguage::VulkanGLSL;
 
-  m_MS2ArraySupported =
-      PassesChecks(builtinShaders[(size_t)BuiltinShader::MS2ArrayCS], driverVersion, availFeatures);
-  m_Array2MSSupported =
-      PassesChecks(builtinShaders[(size_t)BuiltinShader::Array2MSCS], driverVersion, availFeatures);
+  m_Buffer2MSSupported =
+      PassesChecks(builtinShaders[(size_t)BuiltinShader::Buffer2MSCS], driverVersion, availFeatures);
 
   for(auto i : indices<BuiltinShader>())
   {

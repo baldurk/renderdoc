@@ -371,55 +371,61 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
   VulkanShaderCache *shaderCache = driver->GetShaderCache();
 
-  VkDescriptorPoolSize poolTypes[] = {
-      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2 * ARRAY_COUNT(m_ArrayMSDescSet)},
-      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 * ARRAY_COUNT(m_ArrayMSDescSet)},
+  //////////////////////////////////////////////////////////////////
+  // Color MS <-> Buffer copy (via compute)
+  VkDescriptorPoolSize bufferPoolTypes[] = {
+      {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 2 * ARRAY_COUNT(m_BufferMSDescSet)},
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 * ARRAY_COUNT(m_BufferMSDescSet)},
+      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 * ARRAY_COUNT(m_BufferMSDescSet)},
   };
 
-  VkDescriptorPoolCreateInfo poolInfo = {
+  VkDescriptorPoolCreateInfo bufferPoolInfo = {
       VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
       NULL,
       0,
-      ARRAY_COUNT(m_ArrayMSDescSet),
-      ARRAY_COUNT(poolTypes),
-      &poolTypes[0],
+      ARRAY_COUNT(m_BufferMSDescSet),
+      ARRAY_COUNT(bufferPoolTypes),
+      &bufferPoolTypes[0],
   };
 
-  CREATE_OBJECT(m_ArrayMSSampler, VK_FILTER_NEAREST);
-
-  rm->SetInternalResource(GetResID(m_ArrayMSSampler));
-
-  vkr = m_pDriver->vkCreateDescriptorPool(dev, &poolInfo, NULL, &m_ArrayMSDescriptorPool);
+  vkr = m_pDriver->vkCreateDescriptorPool(dev, &bufferPoolInfo, NULL, &m_BufferMSDescriptorPool);
   CheckVkResult(vkr);
 
-  rm->SetInternalResource(GetResID(m_ArrayMSDescriptorPool));
+  rm->SetInternalResource(GetResID(m_BufferMSDescriptorPool));
 
-  CREATE_OBJECT(m_ArrayMSDescSetLayout,
+  CREATE_OBJECT(m_BufferMSDescSetLayout,
                 {
-                    {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
-                    {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
-                    {2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_ALL, NULL},
+                    {0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_ALL, NULL},
+                    {1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_ALL, NULL},
+                    {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL},
+                    {3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_ALL, NULL},
                 });
 
-  rm->SetInternalResource(GetResID(m_ArrayMSDescSetLayout));
+  rm->SetInternalResource(GetResID(m_BufferMSDescSetLayout));
 
-  CREATE_OBJECT(m_ArrayMSPipeLayout, m_ArrayMSDescSetLayout, sizeof(Vec4u));
+  CREATE_OBJECT(m_BufferMSPipeLayout, m_BufferMSDescSetLayout, sizeof(Vec4u) * 2);
 
-  rm->SetInternalResource(GetResID(m_ArrayMSPipeLayout));
+  rm->SetInternalResource(GetResID(m_BufferMSPipeLayout));
+
+  CREATE_OBJECT(m_MS2BufferPipe, m_BufferMSPipeLayout,
+                shaderCache->GetBuiltinModule(BuiltinShader::MS2BufferCS));
+  CREATE_OBJECT(m_DepthMS2BufferPipe, m_BufferMSPipeLayout,
+                shaderCache->GetBuiltinModule(BuiltinShader::DepthMS2BufferCS));
+  CREATE_OBJECT(m_Buffer2MSPipe, m_BufferMSPipeLayout,
+                shaderCache->GetBuiltinModule(BuiltinShader::Buffer2MSCS));
+
+  rm->SetInternalResource(GetResID(m_MS2BufferPipe));
+  rm->SetInternalResource(GetResID(m_DepthMS2BufferPipe));
+  rm->SetInternalResource(GetResID(m_Buffer2MSPipe));
+
+  for(size_t i = 0; i < ARRAY_COUNT(m_BufferMSDescSet); i++)
+  {
+    CREATE_OBJECT(m_BufferMSDescSet[i], m_BufferMSDescriptorPool, m_BufferMSDescSetLayout);
+    rm->SetInternalResource(GetResID(m_BufferMSDescSet[i]));
+  }
 
   //////////////////////////////////////////////////////////////////
-  // Color MS to Array copy (via compute)
-
-  CREATE_OBJECT(m_MS2ArrayPipe, m_ArrayMSPipeLayout,
-                shaderCache->GetBuiltinModule(BuiltinShader::MS2ArrayCS));
-  CREATE_OBJECT(m_Array2MSPipe, m_ArrayMSPipeLayout,
-                shaderCache->GetBuiltinModule(BuiltinShader::Array2MSCS));
-
-  rm->SetInternalResource(GetResID(m_MS2ArrayPipe));
-  rm->SetInternalResource(GetResID(m_Array2MSPipe));
-
-  //////////////////////////////////////////////////////////////////
-  // Depth MS to Array copy (via graphics)
+  // Depth MS to Buffer copy (via compute)
 
   // need a dummy UINT texture to fill the binding when we don't have a stencil aspect to copy.
   // unfortunately there's no single guaranteed UINT format that can be sampled as MSAA, so we try a
@@ -473,13 +479,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
     if(imgprops.sampleCounts == VK_SAMPLE_COUNT_1_BIT)
       continue;
 
-    vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &m_DummyStencilImage[0]);
-    CheckVkResult(vkr);
-
-    NameVulkanObject(m_DummyStencilImage[0], "m_DummyStencilImage[0]");
-
-    rm->SetInternalResource(GetResID(m_DummyStencilImage[0]));
-
     imInfo.samples = VK_SAMPLE_COUNT_2_BIT;
 
     // MoltenVK seems to only support 4/8 samples and not 2...
@@ -498,27 +497,20 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
     RDCASSERT(imgprops.sampleCounts & imInfo.samples, imgprops.sampleCounts, imInfo.samples);
 
-    vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &m_DummyStencilImage[1]);
+    vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &m_DummyStencilImage);
     CheckVkResult(vkr);
 
-    NameVulkanObject(m_DummyStencilImage[1], "m_DummyStencilImage[1]");
+    NameVulkanObject(m_DummyStencilImage, "m_DummyStencilImage");
 
-    rm->SetInternalResource(GetResID(m_DummyStencilImage[1]));
+    rm->SetInternalResource(GetResID(m_DummyStencilImage));
 
-    VkMemoryRequirements mrq[2] = {};
-    driver->vkGetImageMemoryRequirements(driver->GetDev(), m_DummyStencilImage[0], &mrq[0]);
-    driver->vkGetImageMemoryRequirements(driver->GetDev(), m_DummyStencilImage[1], &mrq[1]);
-
-    uint32_t memoryTypeBits = (mrq[0].memoryTypeBits & mrq[1].memoryTypeBits);
-
-    // assume we have some memory type available in common
-    RDCASSERT(memoryTypeBits, mrq[0].memoryTypeBits, mrq[1].memoryTypeBits);
+    VkMemoryRequirements mrq = {};
+    driver->vkGetImageMemoryRequirements(driver->GetDev(), m_DummyStencilImage, &mrq);
 
     // allocate memory
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
-        AlignUp(mrq[0].size, mrq[1].alignment) + mrq[1].size,
-        driver->GetGPULocalMemoryIndex(memoryTypeBits),
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
     };
 
     vkr = driver->vkAllocateMemory(driver->GetDev(), &allocInfo, NULL, &m_DummyStencilMemory);
@@ -529,19 +521,14 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
     rm->SetInternalResource(GetResID(m_DummyStencilMemory));
 
-    vkr =
-        driver->vkBindImageMemory(driver->GetDev(), m_DummyStencilImage[0], m_DummyStencilMemory, 0);
-    CheckVkResult(vkr);
-
-    vkr = driver->vkBindImageMemory(driver->GetDev(), m_DummyStencilImage[1], m_DummyStencilMemory,
-                                    AlignUp(mrq[0].size, mrq[1].alignment));
+    vkr = driver->vkBindImageMemory(driver->GetDev(), m_DummyStencilImage, m_DummyStencilMemory, 0);
     CheckVkResult(vkr);
 
     VkImageViewCreateInfo viewInfo = {
         VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         NULL,
         0,
-        m_DummyStencilImage[0],
+        m_DummyStencilImage,
         VK_IMAGE_VIEW_TYPE_2D_ARRAY,
         f,
         {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -551,21 +538,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
         },
     };
 
-    vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &m_DummyStencilView[0]);
+    vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &m_DummyStencilView);
     CheckVkResult(vkr);
 
-    NameVulkanObject(m_DummyStencilView[0], "m_DummyStencilView[0]");
+    NameVulkanObject(m_DummyStencilView, "m_DummyStencilView");
 
-    rm->SetInternalResource(GetResID(m_DummyStencilView[0]));
-
-    viewInfo.image = m_DummyStencilImage[1];
-
-    vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &m_DummyStencilView[1]);
-    CheckVkResult(vkr);
-
-    NameVulkanObject(m_DummyStencilView[0], "m_DummyStencilView[1]");
-
-    rm->SetInternalResource(GetResID(m_DummyStencilView[1]));
+    rm->SetInternalResource(GetResID(m_DummyStencilView));
 
     VkCommandBuffer cmd = driver->GetNextCmd();
 
@@ -588,13 +566,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         VK_QUEUE_FAMILY_IGNORED,
         VK_QUEUE_FAMILY_IGNORED,
-        Unwrap(m_DummyStencilImage[0]),
+        Unwrap(m_DummyStencilImage),
         {barrierAspectMask, 0, 1, 0, 1},
     };
-
-    DoPipelineBarrier(cmd, 1, &barrier);
-
-    barrier.image = Unwrap(m_DummyStencilImage[1]);
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
@@ -603,16 +577,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
     break;
   }
 
-  if(m_DummyStencilImage[0] == VK_NULL_HANDLE)
+  if(m_DummyStencilImage == VK_NULL_HANDLE)
   {
     RDCERR("Couldn't find any integer format we could generate a dummy multisampled image with");
-  }
-
-  for(size_t i = 0; i < ARRAY_COUNT(m_ArrayMSDescSet); i++)
-  {
-    CREATE_OBJECT(m_ArrayMSDescSet[i], m_ArrayMSDescriptorPool, m_ArrayMSDescSetLayout);
-
-    rm->SetInternalResource(GetResID(m_ArrayMSDescSet[i]));
   }
 
   VkFormat formats[] = {
@@ -624,8 +591,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
       VK_SAMPLE_COUNT_2_BIT, VK_SAMPLE_COUNT_4_BIT, VK_SAMPLE_COUNT_8_BIT, VK_SAMPLE_COUNT_16_BIT,
   };
 
-  RDCCOMPILE_ASSERT(ARRAY_COUNT(m_DepthMS2ArrayPipe) == ARRAY_COUNT(formats),
-                    "Array count mismatch");
   RDCCOMPILE_ASSERT(ARRAY_COUNT(m_DepthArray2MSPipe) == ARRAY_COUNT(formats),
                     "Array count mismatch");
   RDCCOMPILE_ASSERT(ARRAY_COUNT(m_DepthArray2MSPipe[0]) == ARRAY_COUNT(sampleCounts),
@@ -645,20 +610,22 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
       continue;
     }
 
-    VkRenderPass depthMS2ArrayRP = VK_NULL_HANDLE;
-
-    CREATE_OBJECT(depthMS2ArrayRP, formats[f], VK_SAMPLE_COUNT_1_BIT, rpLayout);
+    if(!m_pDriver->GetDeviceEnabledFeatures().sampleRateShading)
+    {
+      RDCDEBUG("No depth Array -> MSAA copies can be supported without sample rate shading");
+      continue;
+    }
 
     ConciseGraphicsPipeline depthPipeInfo = {
-        depthMS2ArrayRP,
-        m_ArrayMSPipeLayout,
+        VK_NULL_HANDLE,
+        m_BufferMSPipeLayout,
         shaderCache->GetBuiltinModule(BuiltinShader::BlitVS),
-        shaderCache->GetBuiltinModule(BuiltinShader::DepthMS2ArrayFS),
+        shaderCache->GetBuiltinModule(BuiltinShader::DepthBuf2MSFS),
         {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_STENCIL_REFERENCE},
         VK_SAMPLE_COUNT_1_BIT,
-        false,    // sampleRateShading
-        true,     // depthEnable
-        true,     // stencilEnable
+        true,    // sampleRateShading
+        true,    // depthEnable
+        true,    // stencilEnable
         VK_STENCIL_OP_REPLACE,
         false,    // colourOutput
         false,    // blendEnable
@@ -666,18 +633,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
         VK_BLEND_FACTOR_ZERO,
         0xf,    // writeMask
     };
-
-    CREATE_OBJECT(m_DepthMS2ArrayPipe[f], depthPipeInfo);
-
-    rm->SetInternalResource(GetResID(m_DepthMS2ArrayPipe[f]));
-
-    m_pDriver->vkDestroyRenderPass(dev, depthMS2ArrayRP, NULL);
-
-    if(!m_pDriver->GetDeviceEnabledFeatures().sampleRateShading)
-    {
-      RDCDEBUG("No depth Array -> MSAA copies can be supported without sample rate shading");
-      continue;
-    }
 
     for(size_t s = 0; s < ARRAY_COUNT(sampleCounts); s++)
     {
@@ -694,10 +649,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
       CREATE_OBJECT(depthArray2MSRP, formats[f], sampleCounts[s], rpLayout);
 
-      depthPipeInfo.fragment = shaderCache->GetBuiltinModule(BuiltinShader::DepthArray2MSFS);
       depthPipeInfo.renderPass = depthArray2MSRP;
       depthPipeInfo.sampleCount = sampleCounts[s];
-      depthPipeInfo.sampleRateShading = true;
 
       CREATE_OBJECT(m_DepthArray2MSPipe[f][s], depthPipeInfo);
 
@@ -788,19 +741,18 @@ VulkanDebugManager::~VulkanDebugManager()
     for(uint32_t i = 0; i < VKMeshDisplayPipelines::ePipe_Count; i++)
       m_pDriver->vkDestroyPipeline(dev, it->second.pipes[i], NULL);
 
-  m_pDriver->vkDestroyDescriptorPool(dev, m_ArrayMSDescriptorPool, NULL);
-  m_pDriver->vkDestroySampler(dev, m_ArrayMSSampler, NULL);
+  m_pDriver->vkDestroyDescriptorPool(dev, m_BufferMSDescriptorPool, NULL);
 
-  m_pDriver->vkDestroyImageView(dev, m_DummyStencilView[0], NULL);
-  m_pDriver->vkDestroyImageView(dev, m_DummyStencilView[1], NULL);
-  m_pDriver->vkDestroyImage(dev, m_DummyStencilImage[0], NULL);
-  m_pDriver->vkDestroyImage(dev, m_DummyStencilImage[1], NULL);
+  m_pDriver->vkDestroyImageView(dev, m_DummyStencilView, NULL);
+  m_pDriver->vkDestroyImage(dev, m_DummyStencilImage, NULL);
   m_pDriver->vkFreeMemory(dev, m_DummyStencilMemory, NULL);
 
-  m_pDriver->vkDestroyDescriptorSetLayout(dev, m_ArrayMSDescSetLayout, NULL);
-  m_pDriver->vkDestroyPipelineLayout(dev, m_ArrayMSPipeLayout, NULL);
-  m_pDriver->vkDestroyPipeline(dev, m_Array2MSPipe, NULL);
-  m_pDriver->vkDestroyPipeline(dev, m_MS2ArrayPipe, NULL);
+  m_pDriver->vkDestroyDescriptorSetLayout(dev, m_BufferMSDescSetLayout, NULL);
+  m_pDriver->vkDestroyPipelineLayout(dev, m_BufferMSPipeLayout, NULL);
+  m_pDriver->vkDestroyPipeline(dev, m_Buffer2MSPipe, NULL);
+
+  m_pDriver->vkDestroyPipeline(dev, m_MS2BufferPipe, NULL);
+  m_pDriver->vkDestroyPipeline(dev, m_DepthMS2BufferPipe, NULL);
 
   m_pDriver->vkDestroyDescriptorPool(dev, m_DiscardPool, NULL);
   m_pDriver->vkDestroyPipelineLayout(dev, m_DiscardLayout, NULL);
@@ -826,9 +778,6 @@ VulkanDebugManager::~VulkanDebugManager()
     m_pDriver->vkDestroyBuffer(dev, it->second, NULL);
   for(auto it = m_DiscardStage.begin(); it != m_DiscardStage.end(); it++)
     it->second.Destroy();
-
-  for(size_t i = 0; i < ARRAY_COUNT(m_DepthMS2ArrayPipe); i++)
-    m_pDriver->vkDestroyPipeline(dev, m_DepthMS2ArrayPipe[i], NULL);
 
   for(size_t f = 0; f < ARRAY_COUNT(m_DepthArray2MSPipe); f++)
     for(size_t s = 0; s < ARRAY_COUNT(m_DepthArray2MSPipe[0]); s++)

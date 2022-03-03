@@ -697,7 +697,7 @@ void WrappedVulkan::PatchAttachment(VkFramebufferAttachmentImageInfo *att, VkFor
 
     if(!IsDepthOrStencilFormat(imgFormat))
     {
-      if(GetDebugManager() && GetShaderCache()->IsArray2MSSupported())
+      if(GetDebugManager() && GetShaderCache()->IsBuffer2MSSupported())
         att->usage |= VK_IMAGE_USAGE_STORAGE_BIT;
     }
     else
