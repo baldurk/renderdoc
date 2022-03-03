@@ -231,10 +231,10 @@ private:
   ScintillaEdit *m_FindResults = NULL;
   QList<ScintillaEdit *> m_Scintillas;
 
-  // a map per file, from line number to instruction indices
-  QVector<QMap<int32_t, QVector<size_t>>> m_Line2Insts;
+  // a map, from a source location to the first instruction with that location.
+  QMap<LineColumnInfo, uint32_t> m_Location2FirstInst;
 
-  // a vector for the disassembly
+  // a vector for the disassembly with the instruction index for each disassembly line
   QVector<int32_t> m_AsmLine2Inst;
 
   ScintillaEdit *m_CurInstructionScintilla = NULL;
@@ -350,8 +350,7 @@ private:
   bool step(bool forward, StepMode mode);
 
   void runToCursor(bool forward);
-  void runTo(QVector<size_t> runToInstructions, bool forward,
-             ShaderEvents condition = ShaderEvents::NoEvent);
+  void runTo(size_t runToInstruction, bool forward, ShaderEvents condition = ShaderEvents::NoEvent);
 
   void runToResourceAccess(bool forward, VarType type, const BindpointIndex &resource);
 

@@ -619,13 +619,11 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
                                                          ui->docking->areaOf(ui->debugVars)));
     ui->docking->setToolWindowProperties(ui->sourceVars, windowProps);
 
-    m_Line2Insts.resize(m_ShaderDetails->debugInfo.files.count());
-
     bool hasLineInfo = false;
 
-    for(size_t inst = 0; inst < m_Trace->lineInfo.size(); inst++)
+    for(uint32_t inst = 0; inst < m_Trace->lineInfo.size(); inst++)
     {
-      const LineColumnInfo &line = m_Trace->lineInfo[inst];
+      LineColumnInfo line = m_Trace->lineInfo[inst];
 
       int disasmLine = (int)line.disassemblyLine;
       if(disasmLine > 0 && disasmLine >= m_AsmLine2Inst.size())
@@ -639,13 +637,16 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       if(disasmLine > 0)
         m_AsmLine2Inst[disasmLine] = (int)inst;
 
-      if(line.fileIndex < 0 || line.fileIndex >= m_Line2Insts.count())
+      if(line.fileIndex < 0)
         continue;
 
       hasLineInfo = true;
 
-      for(uint32_t lineNum = line.lineStart; lineNum <= line.lineEnd; lineNum++)
-        m_Line2Insts[line.fileIndex][lineNum].push_back(inst);
+      // store the source location *without* any disassembly line
+      line.disassemblyLine = 0;
+
+      if(!m_Location2FirstInst.contains(line))
+        m_Location2FirstInst[line] = inst;
     }
 
     // if we don't have line mapping info, assume we also don't have useful high-level variable
@@ -670,7 +671,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
                               tr("Run backwards to the start of the shader"),
                               QKeySequence(Qt::Key_F5 | Qt::ShiftModifier));
 
-      QObject::connect(act, &QAction::triggered, [this]() { runTo({}, false); });
+      QObject::connect(act, &QAction::triggered, [this]() { runTo(~0U, false); });
       backwardsMenu->addAction(act);
 
       act = MakeExecuteAction(
@@ -687,7 +688,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
                               QKeySequence());
 
       QObject::connect(act, &QAction::triggered,
-                       [this]() { runTo({}, false, ShaderEvents::SampleLoadGather); });
+                       [this]() { runTo(~0U, false, ShaderEvents::SampleLoadGather); });
       backwardsMenu->addAction(act);
 
       act = MakeExecuteAction(
@@ -697,7 +698,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
           QKeySequence());
 
       QObject::connect(act, &QAction::triggered,
-                       [this]() { runTo({}, false, ShaderEvents::GeneratedNanOrInf); });
+                       [this]() { runTo(~0U, false, ShaderEvents::GeneratedNanOrInf); });
       backwardsMenu->addAction(act);
 
       backwardsMenu->addSeparator();
@@ -735,7 +736,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
                               tr("Run forwards to the start of the shader"),
                               QKeySequence(Qt::Key_F5));
 
-      QObject::connect(act, &QAction::triggered, [this]() { runTo({}, true); });
+      QObject::connect(act, &QAction::triggered, [this]() { runTo(~0U, true); });
       forwardsMenu->addAction(act);
 
       act = MakeExecuteAction(
@@ -752,7 +753,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
                               QKeySequence());
 
       QObject::connect(act, &QAction::triggered,
-                       [this]() { runTo({}, true, ShaderEvents::SampleLoadGather); });
+                       [this]() { runTo(~0U, true, ShaderEvents::SampleLoadGather); });
       forwardsMenu->addAction(act);
 
       act = MakeExecuteAction(
@@ -762,7 +763,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
           QKeySequence());
 
       QObject::connect(act, &QAction::triggered,
-                       [this]() { runTo({}, true, ShaderEvents::GeneratedNanOrInf); });
+                       [this]() { runTo(~0U, true, ShaderEvents::GeneratedNanOrInf); });
       forwardsMenu->addAction(act);
 
       forwardsMenu->addSeparator();
@@ -917,7 +918,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
           if(IsLastState())
           {
             m_FirstSourceStateIdx = ~0U;
-            runTo({}, false);
+            runTo(~0U, false);
           }
           else
           {
@@ -1734,7 +1735,7 @@ void ShaderViewer::accessedResources_contextMenu(const QPoint &pos)
 
     QObject::connect(&gotoInstr, &QAction::triggered, [this, tag] {
       bool forward = (tag.step >= m_CurrentStateIdx);
-      runTo({m_States[tag.step].nextInstruction}, forward);
+      runTo(m_States[tag.step].nextInstruction, forward);
     });
 
     RDDialog::show(&contextMenu, w->viewport()->mapToGlobal(pos));
@@ -2063,17 +2064,36 @@ bool ShaderViewer::step(bool forward, StepMode mode)
 
     if(!forward)
     {
-      // now since a line can have multiple instructions, we may only be on the last one of several.
-      // Keep stepping until we reach the first instruction with an identical line info and stop
-      // there
-      while(!IsFirstState() &&
-            m_Trace->lineInfo[GetPreviousState().nextInstruction].SourceEqual(oldLine))
-      {
-        applyBackwardsChange();
+      // ignore disassembly line for comparison in map below
+      oldLine.disassemblyLine = 0;
 
-        // still need to check for instruction-level breakpoints
-        if(m_Breakpoints.contains((int)GetCurrentState().nextInstruction))
-          break;
+      // now since a line can have multiple instructions, we may only be on the last one of several
+      // instructions that map to this source location.
+      // Keep stepping until we reach the first instruction this line info
+      if(m_Location2FirstInst.contains(oldLine))
+      {
+        uint32_t targetInst = m_Location2FirstInst[oldLine];
+        // we know which instruction contains this location first, step back to there
+        while(!IsFirstState() && GetPreviousState().nextInstruction >= targetInst)
+        {
+          applyBackwardsChange();
+
+          // still need to check for instruction-level breakpoints
+          if(m_Breakpoints.contains((int)GetCurrentState().nextInstruction))
+            break;
+        }
+      }
+      else
+      {
+        while(!IsFirstState() &&
+              m_Trace->lineInfo[GetPreviousState().nextInstruction].SourceEqual(oldLine))
+        {
+          applyBackwardsChange();
+
+          // still need to check for instruction-level breakpoints
+          if(m_Breakpoints.contains((int)GetCurrentState().nextInstruction))
+            break;
+        }
       }
     }
 
@@ -2110,20 +2130,26 @@ void ShaderViewer::runToCursor(bool forward)
 
     sptr_t i = cur->lineFromPosition(cur->currentPos()) + 1;
 
-    QMap<int32_t, QVector<size_t>> &fileMap = m_Line2Insts[scintillaIndex];
+    LineColumnInfo sourceLine;
+    sourceLine.fileIndex = scintillaIndex;
+    sourceLine.lineStart = sourceLine.lineEnd = i;
 
-    // find the next line that maps to an instruction
-    for(; i < cur->lineCount(); i++)
+    auto it = m_Location2FirstInst.lowerBound(sourceLine);
+
+    // find the next source location that has an instruction mapped. If there was an exact match
+    // this won't loop, if the lower bound was earlier we'll step at most once to get to the next
+    // line past it.
+    if(it != m_Location2FirstInst.end() && it.key().lineEnd < i)
+      it++;
+
+    if(it != m_Location2FirstInst.end())
     {
-      if(fileMap.contains(i))
-      {
-        runTo(fileMap[i], forward);
-        return;
-      }
+      runTo(it.value(), forward);
+      return;
     }
 
     // if we didn't find one, just run
-    runTo({}, forward);
+    runTo(~0U, forward);
   }
   else
   {
@@ -2134,7 +2160,7 @@ void ShaderViewer::runToCursor(bool forward)
       int line = instructionForDisassemblyLine(i);
       if(line >= 0)
       {
-        runTo({(size_t)line}, forward);
+        runTo((uint32_t)line, forward);
         break;
       }
     }
@@ -2186,7 +2212,7 @@ const ShaderDebugState &ShaderViewer::GetNextState() const
   return m_States.back();
 }
 
-void ShaderViewer::runTo(QVector<size_t> runToInstruction, bool forward, ShaderEvents condition)
+void ShaderViewer::runTo(size_t runToInstruction, bool forward, ShaderEvents condition)
 {
   if(!m_Trace || m_States.empty())
     return;
@@ -2198,7 +2224,7 @@ void ShaderViewer::runTo(QVector<size_t> runToInstruction, bool forward, ShaderE
   while((forward && !IsLastState()) || (!forward && !IsFirstState()))
   {
     // break immediately even on the very first step if it's the one we want to go to
-    if(runToInstruction.contains(GetCurrentState().nextInstruction))
+    if(runToInstruction == GetCurrentState().nextInstruction)
       break;
 
     // after the first step, break on condition
@@ -4425,18 +4451,40 @@ void ShaderViewer::ToggleBreakpointOnInstruction(int32_t instruction)
       // add one to go from scintilla line numbers (0-based) to ours (1-based)
       sptr_t i = cur->lineFromPosition(cur->currentPos()) + 1;
 
-      QMap<int32_t, QVector<size_t>> &fileMap = m_Line2Insts[scintillaIndex];
+      LineColumnInfo sourceLine;
+      sourceLine.fileIndex = scintillaIndex;
+      sourceLine.lineStart = sourceLine.lineEnd = i;
 
-      // find the next line that maps to an instruction
-      for(; i < cur->lineCount(); i++)
+      // first see if any of the existing breakpoints map to this source location. They may come
+      // from a different 'non-canonical' instruction which is still on the same line. If the user
+      // is toggling on that source location, they expect to disable the breakpoint on that
+      // instruction even if it's not the instruction where a breakpoint will be *added* if they add
+      // one there.
+      for(int inst : m_Breakpoints)
       {
-        if(fileMap.contains(i))
+        LineColumnInfo instSourceLine = m_Trace->lineInfo[inst];
+        // ignore columns
+        instSourceLine.colStart = instSourceLine.colEnd = 0;
+        if(instSourceLine.SourceEqual(sourceLine))
         {
-          for(size_t inst : fileMap[i])
-            ToggleBreakpointOnInstruction((int)inst);
-
+          ToggleBreakpointOnInstruction(inst);
           return;
         }
+      }
+
+      auto it = m_Location2FirstInst.lowerBound(sourceLine);
+
+      // find the next source location that has an instruction mapped. If there was an exact match
+      // this won't loop, if the lower bound was earlier we'll step at most once to get to the next
+      // line past it.
+      if(it != m_Location2FirstInst.end() && it.key().lineEnd < i)
+        it++;
+
+      // only set a breakpoint on that instruction
+      if(it != m_Location2FirstInst.end())
+      {
+        ToggleBreakpointOnInstruction((int)it.value());
+        return;
       }
     }
     else
@@ -4526,7 +4574,7 @@ void ShaderViewer::RunForward()
     return;
   }
 
-  runTo({}, true);
+  runTo(~0U, true);
 }
 
 void ShaderViewer::ShowErrors(const rdcstr &errors)

@@ -568,7 +568,7 @@ struct LineColumnInfo
   }
 
   DOCUMENT("The line (starting from 1) in the disassembly where this instruction is located.");
-  uint32_t disassemblyLine;
+  uint32_t disassemblyLine = 0;
 
   DOCUMENT(R"(The current file, as an index into the list of files for this shader.
 
