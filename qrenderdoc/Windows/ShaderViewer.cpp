@@ -44,6 +44,13 @@
 
 namespace
 {
+enum class WatchVarState : int
+{
+  Invalid = 0,
+  Valid = 1,
+  Stale = 2,
+};
+
 struct VariableTag
 {
   VariableTag() : offset(0), globalSourceVar(-1), localSourceVar(-1) {}
@@ -1631,7 +1638,7 @@ void ShaderViewer::variables_contextMenu(const QPoint &pos)
       QTableWidgetItem *item = ui->watch->item(selRow, 0);
       QTableWidgetItem *regNames = ui->watch->item(selRow, 1);
 
-      if(regNames->data(Qt::UserRole) == 1)
+      if((WatchVarState)regNames->data(Qt::UserRole).toInt() == WatchVarState::Valid)
       {
         QString baseUninterpText = item->text();
         int comma = baseUninterpText.lastIndexOf(QLatin1Char(','));
@@ -1920,6 +1927,10 @@ void ShaderViewer::on_watch_itemChanged(QTableWidgetItem *item)
 
   recurse = true;
 
+  QTableWidgetItem *regNames = ui->watch->item(item->row(), 1);
+  if(regNames)
+    regNames->setData(Qt::UserRole, (int)WatchVarState::Invalid);
+
   // if the item is now empty, remove it
   if(item->text().isEmpty())
     ui->watch->removeRow(item->row());
@@ -1943,7 +1954,7 @@ void ShaderViewer::on_watch_itemChanged(QTableWidgetItem *item)
       if(i > 0)
         newItem->setFlags(newItem->flags() & ~Qt::ItemIsEditable);
       ui->watch->setItem(ui->watch->rowCount() - 1, i, newItem);
-      newItem->setData(Qt::UserRole, 0);
+      newItem->setData(Qt::UserRole, (int)WatchVarState::Invalid);
       if(i == 0 && newRow)
         ui->watch->setCurrentItem(newItem);
     }
@@ -3834,7 +3845,7 @@ void ShaderViewer::updateWatchVariables()
 
             item = new QTableWidgetItem(regNames);
             item->setFlags(item->flags() & ~Qt::ItemIsEditable);
-            item->setData(Qt::UserRole, 1);
+            item->setData(Qt::UserRole, (int)WatchVarState::Valid);
             ui->watch->setItem(i, 1, item);
 
             item = new QTableWidgetItem(TypeString(var));
@@ -3871,13 +3882,29 @@ void ShaderViewer::updateWatchVariables()
             error = tr("'%1' not a watchable variable").arg(expr);
           }
         }
+        else
+        {
+          if((WatchVarState)ui->watch->item(i, 1)->data(Qt::UserRole).toUInt() !=
+             WatchVarState::Invalid)
+          {
+            item = new QTableWidgetItem(tr("Unavailable"));
+            QFont f = item->font();
+            f.setItalic(true);
+            item->setFont(f);
+            item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+            item->setData(Qt::UserRole, (int)WatchVarState::Stale);
+            ui->watch->setItem(i, 1, item);
+
+            continue;
+          }
+        }
       }
     }
 
     // if we got here, something went wrong.
     item = new QTableWidgetItem();
     item->setFlags(item->flags() & ~Qt::ItemIsEditable);
-    item->setData(Qt::UserRole, 0);
+    item->setData(Qt::UserRole, (int)WatchVarState::Invalid);
     ui->watch->setItem(i, 1, item);
 
     item = new QTableWidgetItem();
