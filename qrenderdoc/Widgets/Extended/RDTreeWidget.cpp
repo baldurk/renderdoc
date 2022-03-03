@@ -155,7 +155,14 @@ public:
     if(!index.isValid())
       return 0;
 
-    return QAbstractItemModel::flags(index) | Qt::ItemIsUserCheckable;
+    RDTreeWidgetItem *item = itemForIndex(index);
+
+    Qt::ItemFlags ret = QAbstractItemModel::flags(index) | Qt::ItemIsUserCheckable;
+
+    if(item->editable(index.column()))
+      ret |= Qt::ItemIsEditable;
+
+    return ret;
   }
 
   QVariant headerData(int section, Qt::Orientation orientation, int role) const override
@@ -231,7 +238,7 @@ public:
 
     bool ret = false;
 
-    if(role == Qt::DisplayRole)
+    if(role == Qt::DisplayRole || role == Qt::EditRole)
     {
       if(index.column() < item->m_text.count())
       {
@@ -371,7 +378,7 @@ RDTreeWidgetItem::~RDTreeWidgetItem()
 
 QVariant RDTreeWidgetItem::data(int column, int role) const
 {
-  if(role == Qt::DisplayRole)
+  if(role == Qt::DisplayRole || role == Qt::EditRole)
   {
     return m_text[column];
   }

@@ -26,6 +26,7 @@
 
 #include <QFrame>
 #include <QSemaphore>
+#include <QStyledItemDelegate>
 #include "Code/Interface/QRDInterface.h"
 
 namespace Ui
@@ -67,6 +68,17 @@ struct AccessedResourceData
 {
   ShaderVariable resource;
   rdcarray<size_t> steps;
+};
+
+class FullEditorDelegate : public QStyledItemDelegate
+{
+private:
+  Q_OBJECT
+
+public:
+  FullEditorDelegate(QWidget *parent);
+  QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option,
+                        const QModelIndex &index) const;
 };
 
 class ShaderViewer : public QFrame, public IShaderViewer, public ICaptureViewer
@@ -149,7 +161,7 @@ private slots:
   void on_resources_sortByStep_clicked();
   void on_resources_sortByResource_clicked();
 
-  void on_watch_itemChanged(QTableWidgetItem *item);
+  void on_watch_itemChanged(RDTreeWidgetItem *item, int column);
 
   // manual slots
   void readonly_keyPressed(QKeyEvent *event);

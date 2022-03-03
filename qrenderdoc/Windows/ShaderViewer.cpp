@@ -30,6 +30,8 @@
 #include <QListWidget>
 #include <QMenu>
 #include <QMouseEvent>
+#include <QPainter>
+#include <QPen>
 #include <QShortcut>
 #include <QToolTip>
 #include "Code/Resources.h"
@@ -64,6 +66,8 @@ struct VariableTag
   int32_t globalSourceVar;
   int32_t localSourceVar;
 
+  WatchVarState state = WatchVarState::Invalid;
+
   DebugVariableReference debugVar;
 };
 
@@ -87,6 +91,16 @@ struct AccessedResourceTag
 
 Q_DECLARE_METATYPE(VariableTag);
 Q_DECLARE_METATYPE(AccessedResourceTag);
+
+FullEditorDelegate::FullEditorDelegate(QWidget *parent) : QStyledItemDelegate(parent)
+{
+}
+
+QWidget *FullEditorDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option,
+                                          const QModelIndex &index) const
+{
+  return new QLineEdit(parent);
+}
 
 ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::ShaderViewer), m_Ctx(ctx)
@@ -587,6 +601,16 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->constants->setTooltipElidedItems(false);
     ui->accessedResources->setTooltipElidedItems(false);
 
+    ui->watch->setColumns({tr("Name"), tr("Register(s)"), tr("Type"), tr("Value")});
+    ui->watch->header()->setSectionResizeMode(0, QHeaderView::Interactive);
+    ui->watch->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    ui->watch->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    ui->watch->header()->setSectionResizeMode(3, QHeaderView::Interactive);
+
+    ui->watch->header()->resizeSection(0, 80);
+
+    ui->watch->setItemDelegate(new FullEditorDelegate(ui->watch));
+
     ToolWindowManager::ToolWindowProperty windowProps =
         ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow;
     ui->watch->setWindowTitle(tr("Watch"));
@@ -956,10 +980,10 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
     m_CurrentStateIdx = 0;
 
-    QObject::connect(ui->watch, &RDTableWidget::keyPress, this, &ShaderViewer::watch_keyPress);
+    QObject::connect(ui->watch, &RDTreeWidget::keyPress, this, &ShaderViewer::watch_keyPress);
 
     ui->watch->setContextMenuPolicy(Qt::CustomContextMenu);
-    QObject::connect(ui->watch, &RDTableWidget::customContextMenuRequested, this,
+    QObject::connect(ui->watch, &RDTreeWidget::customContextMenuRequested, this,
                      &ShaderViewer::variables_contextMenu);
     ui->debugVars->setContextMenuPolicy(Qt::CustomContextMenu);
     QObject::connect(ui->debugVars, &RDTreeWidget::customContextMenuRequested, this,
@@ -971,17 +995,11 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     QObject::connect(ui->accessedResources, &RDTreeWidget::customContextMenuRequested, this,
                      &ShaderViewer::accessedResources_contextMenu);
 
-    ui->watch->insertRow(0);
-
-    for(int i = 0; i < ui->watch->columnCount(); i++)
-    {
-      QTableWidgetItem *item = new QTableWidgetItem();
-      if(i > 0)
-        item->setFlags(item->flags() & ~Qt::ItemIsEditable);
-      ui->watch->setItem(0, i, item);
-    }
-
-    ui->watch->resizeRowsToContents();
+    RDTreeWidgetItem *item = new RDTreeWidgetItem({
+        QVariant(), QVariant(), QVariant(), QVariant(),
+    });
+    item->setEditable(0, true);
+    ui->watch->addTopLevelItem(item);
 
     ToolWindowManager::raiseToolWindow(m_DisassemblyFrame);
   }
@@ -1610,37 +1628,27 @@ void ShaderViewer::variables_contextMenu(const QPoint &pos)
     contextMenu.addAction(&clearAll);
 
     // start with no row selected
-    int selRow = -1;
+    RDTreeWidgetItem *item = ui->watch->selectedItem();
 
-    QList<QTableWidgetItem *> items = ui->watch->selectedItems();
-    for(QTableWidgetItem *item : items)
+    int topLevelIdx = ui->watch->indexOfTopLevelItem(item);
+
+    // last top level item is the empty entry for adding new values, it's not valid
+    if(topLevelIdx == ui->watch->topLevelItemCount() - 1)
+      topLevelIdx = -1;
+
+    // if we have a top-level item selected, we can re-interpret or delete
+    interpretMenu.setEnabled(topLevelIdx >= 0);
+    deleteWatch.setEnabled(topLevelIdx >= 0);
+
+    // we can add any selected item as a watch
+    addWatch.setEnabled(item != NULL);
+
+    if(topLevelIdx >= 0)
     {
-      // if no row is selected, or the same as this item, set selected row to this item's
-      if(selRow == -1 || selRow == item->row())
+      VariableTag tag = item->tag().value<VariableTag>();
+      if(tag.state == WatchVarState::Valid)
       {
-        selRow = item->row();
-      }
-      else
-      {
-        // we only get here if we see an item on a different row selected - that means too many rows
-        // so bail out
-        selRow = -1;
-        break;
-      }
-    }
-
-    // if we have a selected row that isn't the last one, we can add/delete this item
-    interpretMenu.setEnabled(selRow >= 0 && selRow < ui->watch->rowCount() - 1);
-    deleteWatch.setEnabled(selRow >= 0 && selRow < ui->watch->rowCount() - 1);
-    addWatch.setEnabled(selRow >= 0 && selRow < ui->watch->rowCount() - 1);
-
-    {
-      QTableWidgetItem *item = ui->watch->item(selRow, 0);
-      QTableWidgetItem *regNames = ui->watch->item(selRow, 1);
-
-      if((WatchVarState)regNames->data(Qt::UserRole).toInt() == WatchVarState::Valid)
-      {
-        QString baseUninterpText = item->text();
+        QString baseUninterpText = item->text(0);
         int comma = baseUninterpText.lastIndexOf(QLatin1Char(','));
 
         if(comma < 0)
@@ -1668,20 +1676,27 @@ void ShaderViewer::variables_contextMenu(const QPoint &pos)
             interpBinary.setChecked(true);
         }
 
-        QObject::connect(&interpFloat, &QAction::triggered,
-                         [item, baseUninterpText] { item->setText(baseUninterpText + lit(",f")); });
-        QObject::connect(&interpColor, &QAction::triggered,
-                         [item, baseUninterpText] { item->setText(baseUninterpText + lit(",c")); });
-        QObject::connect(&interpSInt, &QAction::triggered,
-                         [item, baseUninterpText] { item->setText(baseUninterpText + lit(",i")); });
-        QObject::connect(&interpUInt, &QAction::triggered,
-                         [item, baseUninterpText] { item->setText(baseUninterpText + lit(",u")); });
-        QObject::connect(&interpHex, &QAction::triggered,
-                         [item, baseUninterpText] { item->setText(baseUninterpText + lit(",x")); });
-        QObject::connect(&interpOctal, &QAction::triggered,
-                         [item, baseUninterpText] { item->setText(baseUninterpText + lit(",o")); });
-        QObject::connect(&interpBinary, &QAction::triggered,
-                         [item, baseUninterpText] { item->setText(baseUninterpText + lit(",b")); });
+        QObject::connect(&interpFloat, &QAction::triggered, [item, baseUninterpText] {
+          item->setText(0, baseUninterpText + lit(",f"));
+        });
+        QObject::connect(&interpColor, &QAction::triggered, [item, baseUninterpText] {
+          item->setText(0, baseUninterpText + lit(",c"));
+        });
+        QObject::connect(&interpSInt, &QAction::triggered, [item, baseUninterpText] {
+          item->setText(0, baseUninterpText + lit(",i"));
+        });
+        QObject::connect(&interpUInt, &QAction::triggered, [item, baseUninterpText] {
+          item->setText(0, baseUninterpText + lit(",u"));
+        });
+        QObject::connect(&interpHex, &QAction::triggered, [item, baseUninterpText] {
+          item->setText(0, baseUninterpText + lit(",x"));
+        });
+        QObject::connect(&interpOctal, &QAction::triggered, [item, baseUninterpText] {
+          item->setText(0, baseUninterpText + lit(",o"));
+        });
+        QObject::connect(&interpBinary, &QAction::triggered, [item, baseUninterpText] {
+          item->setText(0, baseUninterpText + lit(",b"));
+        });
       }
       else
       {
@@ -1689,19 +1704,19 @@ void ShaderViewer::variables_contextMenu(const QPoint &pos)
       }
     }
 
-    QObject::connect(&addWatch, &QAction::triggered, [this, selRow] {
-      QTableWidgetItem *item = ui->watch->item(selRow, 0);
-
-      if(item)
-        AddWatch(item->text());
-    });
+    QObject::connect(&addWatch, &QAction::triggered,
+                     [this, item] { AddWatch(item->tag().value<VariableTag>().debugVar.name); });
 
     QObject::connect(&deleteWatch, &QAction::triggered,
-                     [this, selRow] { ui->watch->removeRow(selRow); });
+                     [this, topLevelIdx] { delete ui->watch->takeTopLevelItem(topLevelIdx); });
 
     QObject::connect(&clearAll, &QAction::triggered, [this] {
-      while(ui->watch->rowCount() > 1)
-        ui->watch->removeRow(0);
+      ui->watch->clear();
+      RDTreeWidgetItem *item = new RDTreeWidgetItem({
+          QVariant(), QVariant(), QVariant(), QVariant(),
+      });
+      item->setEditable(0, true);
+      ui->watch->addTopLevelItem(item);
     });
   }
   else
@@ -1908,61 +1923,40 @@ void ShaderViewer::watch_keyPress(QKeyEvent *event)
 {
   if(event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace)
   {
-    QList<QTableWidgetItem *> items = ui->watch->selectedItems();
-    if(!items.isEmpty() && items.back()->row() < ui->watch->rowCount() - 1)
-      ui->watch->removeRow(items.back()->row());
+    int idx = ui->watch->indexOfTopLevelItem(ui->watch->selectedItem());
+
+    if(idx >= 0 && idx < ui->watch->topLevelItemCount() - 1)
+      delete ui->watch->takeTopLevelItem(idx);
   }
 }
 
-void ShaderViewer::on_watch_itemChanged(QTableWidgetItem *item)
+void ShaderViewer::on_watch_itemChanged(RDTreeWidgetItem *item, int column)
 {
   // ignore changes to the type/value columns. Only look at name changes, which must be by the user
-  if(item->column() != 0)
+  if(column != 0)
     return;
 
-  static bool recurse = false;
+  QSignalBlocker block(ui->watch);
 
-  if(recurse)
-    return;
+  VariableTag tag = item->tag().value<VariableTag>();
+  tag.state = WatchVarState::Invalid;
+  item->setTag(QVariant::fromValue(tag));
 
-  recurse = true;
-
-  QTableWidgetItem *regNames = ui->watch->item(item->row(), 1);
-  if(regNames)
-    regNames->setData(Qt::UserRole, (int)WatchVarState::Invalid);
-
-  // if the item is now empty, remove it
-  if(item->text().isEmpty())
-    ui->watch->removeRow(item->row());
+  // if the item is now empty, remove it. Only top-level items are editable so this must be one
+  if(item->text(0).isEmpty())
+    delete ui->watch->takeTopLevelItem(ui->watch->indexOfTopLevelItem(item));
 
   // ensure we have a trailing row for adding new watch items.
 
-  if(ui->watch->rowCount() == 0 || ui->watch->item(ui->watch->rowCount() - 1, 0) == NULL ||
-     !ui->watch->item(ui->watch->rowCount() - 1, 0)->text().isEmpty())
+  if(ui->watch->topLevelItemCount() == 0 ||
+     !ui->watch->topLevelItem(ui->watch->topLevelItemCount() - 1)->text(0).isEmpty())
   {
-    // add a new row if needed
-    bool newRow = false;
-    if(ui->watch->rowCount() == 0 || ui->watch->item(ui->watch->rowCount() - 1, 0) != NULL)
-    {
-      newRow = true;
-      ui->watch->insertRow(ui->watch->rowCount());
-    }
-
-    for(int i = 0; i < ui->watch->columnCount(); i++)
-    {
-      QTableWidgetItem *newItem = new QTableWidgetItem();
-      if(i > 0)
-        newItem->setFlags(newItem->flags() & ~Qt::ItemIsEditable);
-      ui->watch->setItem(ui->watch->rowCount() - 1, i, newItem);
-      newItem->setData(Qt::UserRole, (int)WatchVarState::Invalid);
-      if(i == 0 && newRow)
-        ui->watch->setCurrentItem(newItem);
-    }
+    RDTreeWidgetItem *blankItem = new RDTreeWidgetItem({
+        QVariant(), QVariant(), QVariant(), QVariant(),
+    });
+    blankItem->setEditable(0, true);
+    ui->watch->addTopLevelItem(blankItem);
   }
-
-  ui->watch->resizeRowsToContents();
-
-  recurse = false;
 
   updateDebugState();
 }
@@ -2604,6 +2598,10 @@ void ShaderViewer::combineStructures(RDTreeWidgetItem *root, int skipPrefixLengt
     for(int i = 1; i < child->dataCount(); i++)
       values.push_back(QVariant());
     RDTreeWidgetItem *parent = new RDTreeWidgetItem(values);
+
+    VariableTag tag;
+    tag.debugVar.name = prefix;
+    parent->setTag(QVariant::fromValue(tag));
 
     // add all the children (stripping the prefix from their name)
     for(RDTreeWidgetItem *item : matches)
@@ -3591,13 +3589,15 @@ void ShaderViewer::updateDebugState()
 
 void ShaderViewer::updateWatchVariables()
 {
+  QSignalBlocker block(ui->watch);
+
   ui->watch->setUpdatesEnabled(false);
 
-  for(int i = 0; i < ui->watch->rowCount() - 1; i++)
+  for(int i = 0; i < ui->watch->topLevelItemCount() - 1; i++)
   {
-    QTableWidgetItem *item = ui->watch->item(i, 0);
+    RDTreeWidgetItem *item = ui->watch->topLevelItem(i);
 
-    QString expr = item->text().trimmed();
+    QString expr = item->text(0).trimmed();
 
     QRegularExpression exprRE(
         lit("^"                         // beginning of the line
@@ -3755,7 +3755,7 @@ void ShaderViewer::updateWatchVariables()
             }
 
             QString val;
-            QString swatchColor;
+            QColor swatchColor;
 
             for(int s = 0; s < swizzle.count(); s++)
             {
@@ -3813,7 +3813,21 @@ void ShaderViewer::updateWatchVariables()
                 }
 
                 if(regcast == QLatin1Char('c') && s < 3)
-                  swatchColor += Formatter::Format(uint8_t(qBound(0.0f, f, 1.0f) * 255.0f), true);
+                {
+                  if(s == 0)
+                  {
+                    swatchColor = QColor(0, 0, 0, 255);
+                    swatchColor.setRedF(f);
+                  }
+                  else if(s == 1)
+                  {
+                    swatchColor.setGreenF(f);
+                  }
+                  else
+                  {
+                    swatchColor.setBlueF(f);
+                  }
+                }
               }
               else if(regcast == QLatin1Char('u'))
               {
@@ -3843,36 +3857,42 @@ void ShaderViewer::updateWatchVariables()
                 val += lit(", ");
             }
 
-            item = new QTableWidgetItem(regNames);
-            item->setFlags(item->flags() & ~Qt::ItemIsEditable);
-            item->setData(Qt::UserRole, (int)WatchVarState::Valid);
-            ui->watch->setItem(i, 1, item);
+            item->setText(1, regNames);
+            item->setText(2, TypeString(var));
 
-            item = new QTableWidgetItem(TypeString(var));
-            item->setFlags(item->flags() & ~Qt::ItemIsEditable);
-            ui->watch->setItem(i, 2, item);
-
-            if(swatchColor.isEmpty())
+            if(!swatchColor.isValid())
             {
-              ui->watch->setCellWidget(i, 3, NULL);
+              item->setIcon(3, QIcon());
             }
             else
             {
-              if(swatchColor.size() < 6)
-                swatchColor.resize(6, QLatin1Char('0'));
-              RDLabel *lab = new RDLabel();
-              lab->setText(lit("<rdhtml>"
-                               "<div style='margin-left:1em;background-color:#%1'></div>"
-                               "</rdhtml>")
-                               .arg(swatchColor));
-              val = lit("     ") + val;
-              ui->watch->setCellWidget(i, 3, lab);
+              int h = ui->watch->fontMetrics().height();
+              QPixmap pm(1, 1);
+              pm.fill(swatchColor);
+              pm = pm.scaled(QSize(h, h));
+
+              {
+                QPainter painter(&pm);
+
+                QPen pen(ui->watch->palette().foreground(), 1.0);
+                painter.setPen(pen);
+                painter.drawLine(QPoint(0, 0), QPoint(h - 1, 0));
+                painter.drawLine(QPoint(h - 1, 0), QPoint(h - 1, h - 1));
+                painter.drawLine(QPoint(h - 1, h - 1), QPoint(0, h - 1));
+                painter.drawLine(QPoint(0, h - 1), QPoint(0, 0));
+              }
+
+              item->setIcon(3, QIcon(pm));
             }
 
-            item = new QTableWidgetItem(val);
-            item->setData(Qt::UserRole, node->tag());
-            item->setFlags(item->flags() & ~Qt::ItemIsEditable);
-            ui->watch->setItem(i, 3, item);
+            item->setText(3, val);
+            item->setItalic(false);
+
+            VariableTag tag = node->tag().value<VariableTag>();
+
+            tag.state = WatchVarState::Valid;
+
+            item->setTag(QVariant::fromValue(tag));
 
             // success! continue
             continue;
@@ -3884,16 +3904,13 @@ void ShaderViewer::updateWatchVariables()
         }
         else
         {
-          if((WatchVarState)ui->watch->item(i, 1)->data(Qt::UserRole).toUInt() !=
-             WatchVarState::Invalid)
+          VariableTag tag = item->tag().value<VariableTag>();
+          if(tag.state != WatchVarState::Invalid)
           {
-            item = new QTableWidgetItem(tr("Unavailable"));
-            QFont f = item->font();
-            f.setItalic(true);
-            item->setFont(f);
-            item->setFlags(item->flags() & ~Qt::ItemIsEditable);
-            item->setData(Qt::UserRole, (int)WatchVarState::Stale);
-            ui->watch->setItem(i, 1, item);
+            tag.state = WatchVarState::Stale;
+            item->setItalic(true);
+            item->setText(1, tr("Unavailable"));
+            item->setTag(QVariant::fromValue(tag));
 
             continue;
           }
@@ -3902,18 +3919,13 @@ void ShaderViewer::updateWatchVariables()
     }
 
     // if we got here, something went wrong.
-    item = new QTableWidgetItem();
-    item->setFlags(item->flags() & ~Qt::ItemIsEditable);
-    item->setData(Qt::UserRole, (int)WatchVarState::Invalid);
-    ui->watch->setItem(i, 1, item);
-
-    item = new QTableWidgetItem();
-    item->setFlags(item->flags() & ~Qt::ItemIsEditable);
-    ui->watch->setItem(i, 2, item);
-
-    item = new QTableWidgetItem(error);
-    item->setFlags(item->flags() & ~Qt::ItemIsEditable);
-    ui->watch->setItem(i, 3, item);
+    VariableTag tag = item->tag().value<VariableTag>();
+    tag.state = WatchVarState::Invalid;
+    item->setItalic(false);
+    item->setText(1, QString());
+    item->setText(2, QString());
+    item->setText(3, error);
+    item->setTag(QVariant::fromValue(tag));
   }
 
   ui->watch->setUpdatesEnabled(true);
@@ -4621,14 +4633,20 @@ void ShaderViewer::ShowErrors(const rdcstr &errors)
 
 void ShaderViewer::AddWatch(const rdcstr &variable)
 {
-  int newRow = ui->watch->rowCount() - 1;
-  ui->watch->insertRow(ui->watch->rowCount() - 1);
+  if(variable.isEmpty())
+    return;
 
-  ui->watch->setItem(newRow, 0, new QTableWidgetItem(variable));
+  RDTreeWidgetItem *item = new RDTreeWidgetItem({
+      QString(variable), QVariant(), QVariant(), QVariant(),
+  });
+  item->setEditable(0, true);
+  ui->watch->insertTopLevelItem(ui->watch->topLevelItemCount() - 1, item);
 
   ToolWindowManager::raiseToolWindow(ui->watch);
   ui->watch->activateWindow();
   ui->watch->QWidget::setFocus();
+
+  updateWatchVariables();
 }
 
 rdcstrpairs ShaderViewer::GetCurrentFileContents()
@@ -4941,18 +4959,6 @@ bool ShaderViewer::eventFilter(QObject *watched, QEvent *event)
       if(item)
       {
         VariableTag tag = item->tag().value<VariableTag>();
-        showVariableTooltip(tag.debugVar.name);
-      }
-    }
-
-    RDTableWidget *table = qobject_cast<RDTableWidget *>(watched);
-    if(table)
-    {
-      QTableWidgetItem *item = table->itemAt(table->viewport()->mapFromGlobal(QCursor::pos()));
-      if(item)
-      {
-        item = table->item(item->row(), 2);
-        VariableTag tag = item->data(Qt::UserRole).value<VariableTag>();
         showVariableTooltip(tag.debugVar.name);
       }
     }
