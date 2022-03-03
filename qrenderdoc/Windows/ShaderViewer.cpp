@@ -985,6 +985,9 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->watch->setContextMenuPolicy(Qt::CustomContextMenu);
     QObject::connect(ui->watch, &RDTreeWidget::customContextMenuRequested, this,
                      &ShaderViewer::variables_contextMenu);
+    ui->constants->setContextMenuPolicy(Qt::CustomContextMenu);
+    QObject::connect(ui->constants, &RDTreeWidget::customContextMenuRequested, this,
+                     &ShaderViewer::variables_contextMenu);
     ui->debugVars->setContextMenuPolicy(Qt::CustomContextMenu);
     QObject::connect(ui->debugVars, &RDTreeWidget::customContextMenuRequested, this,
                      &ShaderViewer::variables_contextMenu);
