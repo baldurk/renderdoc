@@ -1559,6 +1559,20 @@ void ShaderViewer::debug_contextMenu(const QPoint &pos)
   contextMenu.addAction(&runForwardCursor);
   contextMenu.addSeparator();
 
+  QAction watchExpr(tr("Add Watch Expression"), this);
+  watchExpr.setEnabled(!edit->selectionEmpty());
+
+  QObject::connect(&watchExpr, &QAction::triggered, [this, edit] {
+    QString expr =
+        QString::fromUtf8(edit->get_text_range(edit->selectionStart(), edit->selectionEnd()));
+
+    for(QString e : expr.split(QLatin1Char(' ')))
+      AddWatch(e);
+  });
+
+  contextMenu.addAction(&watchExpr);
+  contextMenu.addSeparator();
+
   QAction copyText(tr("Copy"), this);
   QAction selectAll(tr("Select All"), this);
 
