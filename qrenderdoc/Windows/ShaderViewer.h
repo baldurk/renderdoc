@@ -81,6 +81,34 @@ public:
                         const QModelIndex &index) const;
 };
 
+enum class WatchVarState : int
+{
+  Invalid = 0,
+  Valid = 1,
+  Stale = 2,
+};
+
+struct VariableTag
+{
+  VariableTag() = default;
+  VariableTag(DebugVariableType type, rdcstr name)
+  {
+    debugVarType = type;
+    absoluteRefPath = name;
+  }
+  uint32_t offset = 0;
+
+  WatchVarState state = WatchVarState::Invalid;
+
+  bool matrix = false;
+  bool expanded = false;
+  bool globalSourceVar = false;
+  int32_t sourceVarIdx = -1;
+
+  DebugVariableType debugVarType = DebugVariableType::Undefined;
+  rdcstr absoluteRefPath;
+};
+
 class ShaderViewer : public QFrame, public IShaderViewer, public ICaptureViewer
 {
   Q_OBJECT
@@ -218,7 +246,7 @@ private:
 
   ShaderEncoding currentEncoding();
 
-  QString m_TooltipName;
+  QString m_TooltipVarPath;
   int m_TooltipVarIndex = -1;
   int m_TooltipMember = -1;
   QPoint m_TooltipPos;
@@ -334,11 +362,16 @@ private:
   const ShaderDebugState &GetNextState() const;
 
   void updateDebugState();
+  void markWatchStale(RDTreeWidgetItem *item);
+  bool updateWatchVariable(RDTreeWidgetItem *watchItem, const RDTreeWidgetItem *varItem,
+                           const rdcstr &path, uint32_t swizzle, const ShaderVariable &var,
+                           QChar regcast);
   void updateWatchVariables();
+
   void updateAccessedResources();
 
-  RDTreeWidgetItem *makeSourceVariableNode(const ShaderVariable &var, const rdcstr &sourcePath,
-                                           const rdcstr &debugVarPath, bool modified);
+  RDTreeWidgetItem *makeSourceVariableNode(const ShaderVariable &var, const rdcstr &debugVarPath,
+                                           bool modified, VariableTag baseTag);
   RDTreeWidgetItem *makeSourceVariableNode(const SourceVariableMapping &l, int globalVarIdx,
                                            int localVarIdx, bool modified);
   RDTreeWidgetItem *makeDebugVariableNode(const ShaderVariable &v, rdcstr prefix, bool modified);
@@ -372,9 +405,14 @@ private:
   QString stringRep(const ShaderVariable &var, uint32_t row = 0);
   QString samplerRep(Bindpoint bind, uint32_t arrayIndex, ResourceId id);
   void combineStructures(RDTreeWidgetItem *root, int skipPrefixLength = 0);
-  RDTreeWidgetItem *findVarInTree(RDTreeWidgetItem *root, QString name, bool fullmatch, int maxDepth);
   void highlightMatchingVars(RDTreeWidgetItem *root, const QString varName,
                              const QColor highlightColor);
-  bool findVar(QString name, ShaderVariable *var = NULL);
-  bool getVar(RDTreeWidgetItem *item, ShaderVariable *var, QString *regNames);
+
+  QString getRegNames(const RDTreeWidgetItem *item, uint32_t swizzle, uint32_t child = ~0U);
+  const RDTreeWidgetItem *evaluateVar(const RDTreeWidgetItem *item, uint32_t swizzle,
+                                      ShaderVariable *var);
+  const RDTreeWidgetItem *getVarFromPath(const rdcstr &path, const RDTreeWidgetItem *root,
+                                         ShaderVariable *var, uint32_t *swizzle);
+  const RDTreeWidgetItem *getVarFromPath(const rdcstr &path, ShaderVariable *var = NULL,
+                                         uint32_t *swizzle = NULL);
 };

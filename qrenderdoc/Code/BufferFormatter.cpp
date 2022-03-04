@@ -1599,6 +1599,15 @@ QString TypeString(const ShaderVariable &v)
 
   QString typeStr = ToQStr(v.type);
 
+  if(v.type == VarType::ReadOnlyResource)
+    typeStr = lit("Resource");
+  else if(v.type == VarType::ReadWriteResource)
+    typeStr = lit("RW Resource");
+  else if(v.type == VarType::Sampler)
+    typeStr = lit("Sampler");
+  else if(v.type == VarType::ConstantBlock)
+    typeStr = lit("Constant Block");
+
   if(v.displayAsHex)
   {
     if(v.type == VarType::ULong)
