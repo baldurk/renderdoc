@@ -6,7 +6,7 @@ echo $PROJECT_DIR
 build_dir="$PROJECT_DIR/build-android-arm64"
 build_abi="arm64-v8a"
 
-if [[ $1 == "32" ]]; then
+if [[ $# -eq 1 && "$1" == "32" ]]; then
   build_dir="$PROJECT_DIR/build-android-arm32"
   build_abi="armeabi-v7a"
 fi
@@ -15,6 +15,7 @@ if [ ! -d "$build_dir" ]; then
   mkdir "$build_dir"
 fi
 
+echo "cd $build_dir"
 cd "$build_dir"
 cmake -DBUILD_ANDROID=On -DANDROID_ABI="$build_abi" ..
 make
