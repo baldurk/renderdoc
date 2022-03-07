@@ -7796,6 +7796,17 @@ void DoSerialise(SerialiserType &ser, VkCommandBufferInheritanceRenderingInfo &e
             el.sType == VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
+  // added in 0x14, it was missing in the initial version
+  if(ser.VersionAtLeast(0x14))
+  {
+    SERIALISE_MEMBER_VKFLAGS(VkRenderingFlags, flags);
+  }
+  else
+  {
+    if(ser.IsReading())
+      el.flags = 0;
+  }
+
   SERIALISE_MEMBER(viewMask);
   SERIALISE_MEMBER(colorAttachmentCount);
   SERIALISE_MEMBER_ARRAY(pColorAttachmentFormats, colorAttachmentCount);

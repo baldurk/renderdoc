@@ -355,6 +355,10 @@ bool VkInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
+  // 0x13 -> 0x14 - added missing VkCommandBufferInheritanceRenderingInfo::flags
+  if(ver == 0x13)
+    return true;
+
   // 0x12 -> 0x13 - added full sparse resource support
   if(ver == 0x12)
     return true;
