@@ -4581,6 +4581,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         parentCmdBufInfo.curEventID++;
 
         if(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetRenderPass() == ResourceId() &&
+           !m_BakedCmdBufferInfo[m_LastCmdBufferID].state.dynamicRendering.active &&
            (cmdBufInfo.beginFlags & VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT))
         {
           AddDebugMessage(
@@ -4696,6 +4697,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
           // propagate renderpass state
           m_BakedCmdBufferInfo[cmd].state.SetRenderPass(parentCmdBufInfo.state.GetRenderPass());
           m_BakedCmdBufferInfo[cmd].state.subpass = parentCmdBufInfo.state.subpass;
+          m_BakedCmdBufferInfo[cmd].state.dynamicRendering = parentCmdBufInfo.state.dynamicRendering;
           m_BakedCmdBufferInfo[cmd].state.SetFramebuffer(
               parentCmdBufInfo.state.GetFramebuffer(),
               parentCmdBufInfo.state.GetFramebufferAttachments());
