@@ -750,9 +750,12 @@ static QString interpretVariant(const QVariant &v, const ShaderConstant &el,
     }
 
     const bool hexDisplay = bool(el.type.descriptor.flags & ShaderVariableFlags::HexDisplay);
+    const bool binDisplay = bool(el.type.descriptor.flags & ShaderVariableFlags::BinaryDisplay);
 
     if(hexDisplay && prop.format.type == ResourceFormatType::Regular)
       ret = Formatter::HexFormat(u, prop.format.compByteWidth);
+    else if(binDisplay && prop.format.type == ResourceFormatType::Regular)
+      ret = Formatter::BinFormat(u, prop.format.compByteWidth);
     else
       ret = Formatter::Format(u, hexDisplay);
   }
@@ -773,8 +776,13 @@ static QString interpretVariant(const QVariant &v, const ShaderConstant &el,
   }
   else if(vt == QMetaType::ULongLong)
   {
-    ret = Formatter::Format((uint64_t)v.toULongLong(),
-                            bool(el.type.descriptor.flags & ShaderVariableFlags::HexDisplay));
+    const bool hexDisplay = bool(el.type.descriptor.flags & ShaderVariableFlags::HexDisplay);
+    const bool binDisplay = bool(el.type.descriptor.flags & ShaderVariableFlags::BinaryDisplay);
+
+    if(binDisplay)
+      ret = Formatter::BinFormat((uint64_t)v.toULongLong(), 8);
+    else
+      ret = Formatter::Format((uint64_t)v.toULongLong(), hexDisplay);
   }
   else if(vt == QMetaType::LongLong)
   {

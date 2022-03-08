@@ -737,6 +737,35 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
           else if(el.type.descriptor.type == VarType::SByte)
             el.type.descriptor.type = VarType::UByte;
         }
+        else if(annot == lit("[[bin]]") || annot == lit("[[binary]]"))
+        {
+          if(VarTypeCompType(el.type.descriptor.type) == CompType::Float)
+          {
+            errors =
+                tr("Binary display is not supported on floating point formats on line: %1\n").arg(line);
+            success = false;
+            break;
+          }
+
+          if(el.type.descriptor.flags &
+             (ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::R11G11B10))
+          {
+            errors = tr("Binary display is not supported on packed formats on line: %1\n").arg(line);
+            success = false;
+            break;
+          }
+
+          el.type.descriptor.flags |= ShaderVariableFlags::BinaryDisplay;
+
+          if(el.type.descriptor.type == VarType::SLong)
+            el.type.descriptor.type = VarType::ULong;
+          else if(el.type.descriptor.type == VarType::SInt)
+            el.type.descriptor.type = VarType::UInt;
+          else if(el.type.descriptor.type == VarType::SShort)
+            el.type.descriptor.type = VarType::UShort;
+          else if(el.type.descriptor.type == VarType::SByte)
+            el.type.descriptor.type = VarType::UByte;
+        }
         else if(annot == lit("[[unorm]]"))
         {
           if(!(el.type.descriptor.flags & ShaderVariableFlags::R10G10B10A2))
@@ -2289,6 +2318,17 @@ QString TypeString(const ShaderVariable &v)
     else if(v.type == VarType::UByte)
       typeStr = lit("[[hex]] byte");
   }
+  else if(v.flags & ShaderVariableFlags::BinaryDisplay)
+  {
+    if(v.type == VarType::ULong)
+      typeStr = lit("[[binary]] long");
+    else if(v.type == VarType::UInt)
+      typeStr = lit("[[binary]] int");
+    else if(v.type == VarType::UShort)
+      typeStr = lit("[[binary]] short");
+    else if(v.type == VarType::UByte)
+      typeStr = lit("[[binary]] byte");
+  }
 
   if(v.type == VarType::Unknown)
     return lit("Typeless");
@@ -2308,6 +2348,25 @@ template <typename el>
 static QString RowValuesToString(int cols, ShaderVariableFlags flags, el x, el y, el z, el w)
 {
   const bool hex = bool(flags & ShaderVariableFlags::HexDisplay);
+
+  if(bool(flags & ShaderVariableFlags::BinaryDisplay))
+  {
+    if(cols == 1)
+      return Formatter::BinFormat(x);
+    else if(cols == 2)
+      return QFormatStr("%1, %2").arg(Formatter::BinFormat(x)).arg(Formatter::BinFormat(y));
+    else if(cols == 3)
+      return QFormatStr("%1, %2, %3")
+          .arg(Formatter::BinFormat(x))
+          .arg(Formatter::BinFormat(y))
+          .arg(Formatter::BinFormat(z));
+    else
+      return QFormatStr("%1, %2, %3, %4")
+          .arg(Formatter::BinFormat(x))
+          .arg(Formatter::BinFormat(y))
+          .arg(Formatter::BinFormat(z))
+          .arg(Formatter::BinFormat(w));
+  }
 
   if(cols == 1)
     return Formatter::Format(x, hex);
@@ -2449,6 +2508,17 @@ QString RowTypeString(const ShaderVariable &v)
       typeStr = lit("[[hex]] short");
     else if(v.type == VarType::UByte)
       typeStr = lit("[[hex]] byte");
+  }
+  else if(v.flags & ShaderVariableFlags::BinaryDisplay)
+  {
+    if(v.type == VarType::ULong)
+      typeStr = lit("[[binary]] long");
+    else if(v.type == VarType::UInt)
+      typeStr = lit("[[binary]] int");
+    else if(v.type == VarType::UShort)
+      typeStr = lit("[[binary]] short");
+    else if(v.type == VarType::UByte)
+      typeStr = lit("[[binary]] byte");
   }
 
   if(v.columns == 1)

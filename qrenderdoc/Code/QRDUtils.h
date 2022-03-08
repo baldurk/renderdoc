@@ -257,6 +257,22 @@ struct Formatter
     else
       return Format(u, true);
   }
+  static QString BinFormat(uint64_t u, uint32_t byteSize)
+  {
+    return QFormatStr("%1").arg(u, byteSize * 8, 2, QLatin1Char('0')).toUpper();
+  }
+  static QString BinFormat(uint64_t u) { return BinFormat(u, 8); }
+  static QString BinFormat(uint32_t u) { return BinFormat(u, 4); }
+  static QString BinFormat(uint16_t u) { return BinFormat(u, 2); }
+  static QString BinFormat(uint8_t u) { return BinFormat(u, 1); }
+  static QString BinFormat(int64_t i) { return Format(i); }
+  static QString BinFormat(int32_t i) { return Format(i); }
+  static QString BinFormat(int16_t i) { return Format(i); }
+  static QString BinFormat(int8_t i) { return Format(i); }
+  static QString BinFormat(float f) { return Format(f); }
+  static QString BinFormat(rdhalf f) { return Format(f); }
+  static QString BinFormat(double d) { return Format(d); }
+  static QString BinFormat(bool b) { return b ? lit("true") : lit("false"); }
   static QString Format(int32_t i, bool hex = false) { return QString::number(i); }
   static QString Format(int64_t i, bool hex = false) { return QString::number(i); }
   static const QFont &PreferredFont() { return *m_Font; }

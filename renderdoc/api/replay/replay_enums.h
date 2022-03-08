@@ -4288,6 +4288,10 @@ displayed
 
   This value should be displayed using hexadecimal where possible.
 
+.. data:: BinaryDisplay
+
+  This value should be displayed using binary where possible.
+
 .. data:: RGBDisplay
 
   This value should be interpreted as an RGB colour for display where possible.
@@ -4313,11 +4317,12 @@ enum class ShaderVariableFlags : uint32_t
   NoFlags = 0x0000,
   RowMajorMatrix = 0x0001,
   HexDisplay = 0x0002,
-  RGBDisplay = 0x0004,
-  R11G11B10 = 0x0008,
-  R10G10B10A2 = 0x0010,
-  UNorm = 0x0020,
-  SNorm = 0x0040,
+  BinaryDisplay = 0x0004,
+  RGBDisplay = 0x0008,
+  R11G11B10 = 0x0010,
+  R10G10B10A2 = 0x0020,
+  UNorm = 0x0040,
+  SNorm = 0x0080,
 };
 
 BITMASK_OPERATORS(ShaderVariableFlags);
