@@ -201,6 +201,8 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
   // treat commas as semi-colons for simplicity of parsing enum declarations and struct declarations
   text = text.replace(QLatin1Char(','), QLatin1Char(';'));
 
+  QRegularExpression annotationRegex(lit("^(\\[\\[[^]]+\\]\\])\\s*"));
+
   QRegularExpression structDeclRegex(
       lit("^(struct|enum)\\s+([A-Za-z_][A-Za-z0-9_]*)(\\s*:\\s*([a-z]+))?$"));
   QRegularExpression structUseRegex(
@@ -233,10 +235,27 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
   uint32_t bitfieldCurPos = ~0U;
 
+  QStringList annotations;
+
   // get each line and parse it to determine the format the user wanted
   for(QString &l : text.split(QRegularExpression(lit("[;\n\r]"))))
   {
     QString line = l.trimmed();
+
+    if(line.isEmpty())
+      continue;
+
+    do
+    {
+      QRegularExpressionMatch match = annotationRegex.match(line);
+
+      if(!match.hasMatch())
+        break;
+
+      annotations.push_back(match.captured(1));
+
+      line.remove(match.capturedStart(0), match.capturedLength(0));
+    } while(true);
 
     if(line.isEmpty())
       continue;
@@ -284,6 +303,13 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
     if(line.startsWith(lit("struct")) || line.startsWith(lit("enum")))
     {
+      if(!annotations.empty())
+      {
+        errors = tr("Annotations are not supported on struct definitions: %1\n").arg(line);
+        success = false;
+        break;
+      }
+
       QRegularExpressionMatch match = structDeclRegex.match(line);
 
       if(match.hasMatch())
@@ -363,6 +389,13 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       el.name = enumMatch.captured(1);
       el.defaultValue = val;
 
+      if(!annotations.empty())
+      {
+        errors = tr("Annotations are not supported on enum values: %1\n").arg(el.name);
+        success = false;
+        break;
+      }
+
       cur->structDef.type.members.push_back(el);
 
       continue;
@@ -375,6 +408,14 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       if(bitfieldCurPos == ~0U)
         bitfieldCurPos = 0;
       bitfieldCurPos += bitfieldSkipMatch.captured(3).toUInt();
+
+      if(!annotations.empty())
+      {
+        errors = tr("Annotations are not supported on bitfield skips: %1\n").arg(line);
+        success = false;
+        break;
+      }
+
       continue;
     }
 
@@ -387,6 +428,15 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       bool isPointer = !structMatch.captured(2).trimmed().isEmpty();
 
       QString varName = structMatch.captured(3);
+
+      if(!annotations.empty())
+      {
+        errors = tr("Annotations are not supported on struct %2: %1\n")
+                     .arg(varName)
+                     .arg(annotations.join(QLatin1Char(' ')));
+        success = false;
+        break;
+      }
 
       QString arrayDim = structMatch.captured(4).trimmed();
       uint32_t arrayCount = 1;
@@ -588,6 +638,175 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
       el.type.descriptor.name = ToStr(el.type.descriptor.type) + vecMatSizeSuffix;
 
+      // process packing annotations first, so we have that information to validate e.g. [[unorm]]
+      for(QString annot : annotations)
+      {
+        if(annot == lit("[[packed(r11g11b10)]]") || annot == lit("[[packed(R11G11B10)]]"))
+        {
+          if(el.type.descriptor.columns != 3 || el.type.descriptor.type != VarType::Float)
+          {
+            errors = tr("R11G11B10 packing must be specified on a 'float3' variable: %1\n").arg(line);
+            success = false;
+            break;
+          }
+
+          el.type.descriptor.flags |= ShaderVariableFlags::R11G11B10;
+        }
+        else if(annot == lit("[[packed(r10g10b10a2)]]") ||
+                annot == lit("[[packed(R10G10B10A2)]]") ||
+                annot == lit("[[packed(r10g10b10a2_uint)]]") ||
+                annot == lit("[[packed(R10G10B10A2_UINT)]]"))
+        {
+          if(el.type.descriptor.columns != 4 || el.type.descriptor.type != VarType::UInt)
+          {
+            errors = tr("R10G10B10A2 packing must be specified on a 'uint4' variable "
+                        "(optionally with [[unorm]]): %1\n")
+                         .arg(line);
+            success = false;
+            break;
+          }
+
+          el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2;
+        }
+        else if(annot == lit("[[packed(r10g10b10a2_unorm)]]") ||
+                annot == lit("[[packed(R10G10B10A2_UNORM)]]"))
+        {
+          if(el.type.descriptor.columns != 4 || el.type.descriptor.type != VarType::UInt)
+          {
+            errors = tr("R10G10B10A2 packing must be specified on a 'uint4' variable "
+                        "(optionally with [[unorm]]): %1\n")
+                         .arg(line);
+            success = false;
+            break;
+          }
+
+          el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::UNorm;
+        }
+        else if(annot == lit("[[packed(r10g10b10a2_snorm)]]") ||
+                annot == lit("[[packed(R10G10B10A2_SNORM)]]"))
+        {
+          if(el.type.descriptor.columns != 4 ||
+             (el.type.descriptor.type != VarType::SInt && el.type.descriptor.type != VarType::UInt))
+          {
+            errors = tr("R10G10B10A2 packing must be specified on a '[u]int4' variable "
+                        "when using [[snorm]]): %1\n")
+                         .arg(line);
+            success = false;
+            break;
+          }
+
+          el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::SNorm;
+        }
+      }
+
+      if(!success)
+        break;
+
+      for(QString annot : annotations)
+      {
+        if(annot == lit("[[rgb]]"))
+        {
+          el.type.descriptor.flags |= ShaderVariableFlags::RGBDisplay;
+        }
+        else if(annot == lit("[[hex]]"))
+        {
+          if(VarTypeCompType(el.type.descriptor.type) == CompType::Float)
+          {
+            errors =
+                tr("Hex display is not supported on floating point formats on line: %1\n").arg(line);
+            success = false;
+            break;
+          }
+
+          if(el.type.descriptor.flags &
+             (ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::R11G11B10))
+          {
+            errors = tr("Hex display is not supported on packed formats on line: %1\n").arg(line);
+            success = false;
+            break;
+          }
+
+          el.type.descriptor.flags |= ShaderVariableFlags::HexDisplay;
+
+          if(el.type.descriptor.type == VarType::SLong)
+            el.type.descriptor.type = VarType::ULong;
+          else if(el.type.descriptor.type == VarType::SInt)
+            el.type.descriptor.type = VarType::UInt;
+          else if(el.type.descriptor.type == VarType::SShort)
+            el.type.descriptor.type = VarType::UShort;
+          else if(el.type.descriptor.type == VarType::SByte)
+            el.type.descriptor.type = VarType::UByte;
+        }
+        else if(annot == lit("[[unorm]]"))
+        {
+          if(!(el.type.descriptor.flags & ShaderVariableFlags::R10G10B10A2))
+          {
+            // verify that we're integer typed and 1 or 2 bytes
+            if(el.type.descriptor.type != VarType::UShort &&
+               el.type.descriptor.type != VarType::SShort &&
+               el.type.descriptor.type != VarType::UByte && el.type.descriptor.type != VarType::SByte)
+            {
+              errors =
+                  tr("UNORM packing is only supported on [u]byte and [u]short types: %1\n").arg(line);
+              success = false;
+              break;
+            }
+          }
+
+          el.type.descriptor.flags |= ShaderVariableFlags::UNorm;
+        }
+        else if(annot == lit("[[snorm]]"))
+        {
+          if(!(el.type.descriptor.flags & ShaderVariableFlags::R10G10B10A2))
+          {
+            // verify that we're integer typed and 1 or 2 bytes
+            if(el.type.descriptor.type != VarType::UShort &&
+               el.type.descriptor.type != VarType::SShort &&
+               el.type.descriptor.type != VarType::UByte && el.type.descriptor.type != VarType::SByte)
+            {
+              errors =
+                  tr("SNORM packing is only supported on [u]byte and [u]short types: %1\n").arg(line);
+              success = false;
+              break;
+            }
+          }
+
+          el.type.descriptor.flags |= ShaderVariableFlags::SNorm;
+        }
+        else if(annot == lit("[[row_major]]"))
+        {
+          if(el.type.descriptor.rows == 1)
+          {
+            errors = tr("Row major can only be specified on matrices: %1\n").arg(line);
+            success = false;
+            break;
+          }
+
+          el.type.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix;
+        }
+        else if(annot == lit("[[packed(r11g11b10)]]") || annot == lit("[[packed(R11G11B10)]]") ||
+                annot == lit("[[packed(r10g10b10a2)]]") ||
+                annot == lit("[[packed(R10G10B10A2)]]") ||
+                annot == lit("[[packed(r10g10b10a2_uint)]]") ||
+                annot == lit("[[packed(R10G10B10A2_UINT)]]") ||
+                annot == lit("[[packed(r10g10b10a2_unorm)]]") ||
+                annot == lit("[[packed(R10G10B10A2_UNORM)]]"))
+        {
+          // already processed
+        }
+        else
+        {
+          errors = tr("Unrecognised annotation: %1\n").arg(annot);
+          success = false;
+          break;
+        }
+      }
+
+      annotations.clear();
+
+      if(!success)
+        break;
+
       // validate that bitfields are only allowed for regular scalars
       if(el.bitFieldSize > 0)
       {
@@ -649,7 +868,8 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       if(start == ~0U)
         start = 0;
 
-      // if we would end past the current base type size, first roll over and start at the next byte
+      // if we would end past the current base type size, first roll over and start at the next
+      // byte
       // this could be:
       //  unsigned int a : 24;
       //  unsigned byte b : 4;
@@ -858,9 +1078,9 @@ QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
       if(tex.format.compByteWidth == 1)
       {
         if(tex.format.compType == CompType::UNorm || tex.format.compType == CompType::UNormSRGB)
-          baseType = lit("unormb");
+          baseType = lit("[[unorm]] ubyte");
         else if(tex.format.compType == CompType::SNorm)
-          baseType = lit("snormb");
+          baseType = lit("[[snorm]] byte");
         else if(tex.format.compType == CompType::SInt)
           baseType = lit("byte");
         else
@@ -869,9 +1089,9 @@ QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
       else if(tex.format.compByteWidth == 2)
       {
         if(tex.format.compType == CompType::UNorm || tex.format.compType == CompType::UNormSRGB)
-          baseType = lit("unormh");
+          baseType = lit("[[unorm]] ushort");
         else if(tex.format.compType == CompType::SNorm)
-          baseType = lit("snormh");
+          baseType = lit("[[snorm]] short");
         else if(tex.format.compType == CompType::Float)
           baseType = lit("half");
         else if(tex.format.compType == CompType::SInt)
@@ -898,7 +1118,7 @@ QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
           baseType = lit("ulong");
       }
 
-      baseType = QFormatStr("rgb %1%2").arg(baseType).arg(tex.format.compCount);
+      baseType = QFormatStr("[[rgb]] %1%2").arg(baseType).arg(tex.format.compCount);
 
       break;
     }
@@ -908,7 +1128,7 @@ QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
     case ResourceFormatType::ETC2:
     case ResourceFormatType::EAC:
     case ResourceFormatType::PVRTC:
-      baseType = lit("row_major xint2x1");
+      baseType = lit("[[row_major]] [[hex]] int2");
       break;
     // 4x4 byte block, for 128-bit block formats
     case ResourceFormatType::BC2:
@@ -916,24 +1136,31 @@ QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
     case ResourceFormatType::BC5:
     case ResourceFormatType::BC6:
     case ResourceFormatType::BC7:
-    case ResourceFormatType::ASTC: baseType = lit("row_major xint4x1"); break;
-    case ResourceFormatType::R10G10B10A2: baseType = lit("uintten"); break;
-    case ResourceFormatType::R11G11B10: baseType = lit("rgb floateleven"); break;
+    case ResourceFormatType::ASTC: baseType = lit("[[row_major]] [[hex]] int4"); break;
+    case ResourceFormatType::R10G10B10A2:
+      baseType = lit("[[packed(r10g10b10a2)]] ");
+      if(tex.format.compType == CompType::UNorm)
+        baseType += lit("[[unorm]] ");
+      baseType += lit("uint4");
+      break;
+    case ResourceFormatType::R11G11B10:
+      baseType = lit("[[rgb]] [[packed(r11g11b10)]] float3");
+      break;
     case ResourceFormatType::R5G6B5:
-    case ResourceFormatType::R5G5B5A1: baseType = lit("xshort"); break;
-    case ResourceFormatType::R9G9B9E5: baseType = lit("xint"); break;
-    case ResourceFormatType::R4G4B4A4: baseType = lit("xshort"); break;
-    case ResourceFormatType::R4G4: baseType = lit("xbyte"); break;
+    case ResourceFormatType::R5G5B5A1: baseType = lit("[[hex]] short"); break;
+    case ResourceFormatType::R9G9B9E5: baseType = lit("[[hex]] int"); break;
+    case ResourceFormatType::R4G4B4A4: baseType = lit("[[hex]] short"); break;
+    case ResourceFormatType::R4G4: baseType = lit("[[hex]] byte"); break;
     case ResourceFormatType::D16S8:
     case ResourceFormatType::D24S8:
     case ResourceFormatType::D32S8:
-    case ResourceFormatType::YUV8: baseType = lit("xbyte4"); break;
+    case ResourceFormatType::YUV8: baseType = lit("[[hex]] byte4"); break;
     case ResourceFormatType::YUV10:
     case ResourceFormatType::YUV12:
-    case ResourceFormatType::YUV16: baseType = lit("xshort4"); break;
+    case ResourceFormatType::YUV16: baseType = lit("[[hex]] short4"); break;
     case ResourceFormatType::A8:
     case ResourceFormatType::S8:
-    case ResourceFormatType::Undefined: baseType = lit("xbyte"); break;
+    case ResourceFormatType::Undefined: baseType = lit("[[hex]] byte"); break;
   }
 
   if(tex.type == TextureType::Buffer)
@@ -962,7 +1189,8 @@ QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
       }
       else
       {
-        // otherwise we need to build up the comment indicating which fixed-size members we skipped
+        // otherwise we need to build up the comment indicating which fixed-size members we
+        // skipped
         QString fixedPrefixString = tr("    // members skipped as they are fixed size:\n");
         baseByteOffset += members.back().byteOffset;
 
@@ -987,7 +1215,8 @@ QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
         fixedPrefixString +=
             lit("    // final array struct @ byte offset %1\n").arg(members.back().byteOffset);
 
-        // construct a fake list of members with only the last arrayed one, to pass to DeclareStruct
+        // construct a fake list of members with only the last arrayed one, to pass to
+        // DeclareStruct
         rdcarray<ShaderConstant> fakeLastMember;
         fakeLastMember.push_back(members.back());
         // rebase offset of this member to 0 so that DeclareStruct doesn't think any padding is
@@ -1017,7 +1246,7 @@ QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
       else
       {
         if(desc.RowMajor() && desc.rows > 1 && desc.columns > 1)
-          format += lit("row_major ");
+          format += lit("[[row_major]] ");
 
         format += ToQStr(desc.type);
         if(desc.rows > 1 && desc.columns > 1)
@@ -1037,13 +1266,13 @@ QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
       if(viewFormat.type == ResourceFormatType::R10G10B10A2)
       {
         if(viewFormat.compType == CompType::UInt)
-          format = lit("uintten");
+          format = lit("[[packed(r10g10b10a2)]] uint4");
         if(viewFormat.compType == CompType::UNorm)
-          format = lit("unormten");
+          format = lit("[[packed(r10g10b10a2)]] [[unorm]] uint4");
       }
       else if(viewFormat.type == ResourceFormatType::R11G11B10)
       {
-        format = lit("floateleven");
+        format = lit("[[packed(r11g11b10]] float3");
       }
       else
       {
@@ -1052,9 +1281,9 @@ QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
           case 1:
           {
             if(viewFormat.compType == CompType::UNorm || viewFormat.compType == CompType::UNormSRGB)
-              format = lit("unormb");
+              format = lit("[[unorm]] ubyte");
             if(viewFormat.compType == CompType::SNorm)
-              format = lit("snormb");
+              format = lit("[[snorm]] byte");
             if(viewFormat.compType == CompType::UInt)
               format = lit("ubyte");
             if(viewFormat.compType == CompType::SInt)
@@ -1064,9 +1293,9 @@ QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
           case 2:
           {
             if(viewFormat.compType == CompType::UNorm || viewFormat.compType == CompType::UNormSRGB)
-              format = lit("unormh");
+              format = lit("[[unorm]] ushort");
             if(viewFormat.compType == CompType::SNorm)
-              format = lit("snormh");
+              format = lit("[[snorm]] short");
             if(viewFormat.compType == CompType::UInt)
               format = lit("ushort");
             if(viewFormat.compType == CompType::SInt)
@@ -1154,19 +1383,19 @@ QString BufferFormatter::DeclarePaddingBytes(uint32_t bytes)
 
   if(bytes > 4)
   {
-    ret += lit("xint pad[%1];").arg(bytes / 4);
+    ret += lit("[[hex]] int pad[%1];").arg(bytes / 4);
 
     bytes = bytes % 4;
   }
 
   if(bytes == 4)
-    ret += lit("xint pad;");
+    ret += lit("[[hex]] int pad;");
   else if(bytes == 3)
-    ret += lit("xshort pad; xbyte pad;");
+    ret += lit("[[hex]] short pad; [[hex]] byte pad;");
   else if(bytes == 2)
-    ret += lit("xshort pad;");
+    ret += lit("[[hex]] short pad;");
   else if(bytes == 1)
-    ret += lit("xbyte pad;");
+    ret += lit("[[hex]] xbyte pad;");
 
   return ret + lit("\n");
 }
@@ -1242,7 +1471,7 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
     {
       if(members[i].type.descriptor.RowMajor())
       {
-        varTypeName = lit("row_major ") + varTypeName;
+        varTypeName = lit("[[row_major]] ") + varTypeName;
 
         uint32_t tightStride =
             VarTypeByteSize(members[i].type.descriptor.type) * members[i].type.descriptor.columns;
@@ -2052,13 +2281,13 @@ QString TypeString(const ShaderVariable &v)
   if(v.flags & ShaderVariableFlags::HexDisplay)
   {
     if(v.type == VarType::ULong)
-      typeStr = lit("xlong");
+      typeStr = lit("[[hex]] long");
     else if(v.type == VarType::UInt)
-      typeStr = lit("xint");
+      typeStr = lit("[[hex]] int");
     else if(v.type == VarType::UShort)
-      typeStr = lit("xshort");
+      typeStr = lit("[[hex]] short");
     else if(v.type == VarType::UByte)
-      typeStr = lit("xbyte");
+      typeStr = lit("[[hex]] byte");
   }
 
   if(v.type == VarType::Unknown)
@@ -2213,13 +2442,13 @@ QString RowTypeString(const ShaderVariable &v)
   if(v.flags & ShaderVariableFlags::HexDisplay)
   {
     if(v.type == VarType::ULong)
-      typeStr = lit("xlong");
+      typeStr = lit("[[hex]] long");
     else if(v.type == VarType::UInt)
-      typeStr = lit("xint");
+      typeStr = lit("[[hex]] int");
     else if(v.type == VarType::UShort)
-      typeStr = lit("xshort");
+      typeStr = lit("[[hex]] short");
     else if(v.type == VarType::UByte)
-      typeStr = lit("xbyte");
+      typeStr = lit("[[hex]] byte");
   }
 
   if(v.columns == 1)

@@ -1389,12 +1389,12 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
       switch(fmt.type)
       {
         case ResourceFormatType::R10G10B10A2:
-          if(fmt.compType == CompType::UInt)
-            format += lit("uintten");
           if(fmt.compType == CompType::UNorm)
-            format += lit("unormten");
+            format += lit("[[packed(r10g10b10a2)]] [[unorm]] uint4");
+          else
+            format += lit("[[packed(r10g10b10a2)]] uint4");
           break;
-        case ResourceFormatType::R11G11B10: format += lit("floateleven"); break;
+        case ResourceFormatType::R11G11B10: format += lit("[[packed(r11g11b10)]] float3"); break;
         default: format += tr("// unknown type "); break;
       }
     }
@@ -1406,39 +1406,41 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
 
       if(fmt.compType == CompType::UNorm || fmt.compType == CompType::UNormSRGB)
       {
-        format += lit("unorm%1").arg(widthchar[fmt.compByteWidth]);
+        format += lit("[[unorm]]");
       }
       else if(fmt.compType == CompType::SNorm)
       {
-        format += lit("snorm%1").arg(widthchar[fmt.compByteWidth]);
+        format += lit("[[snorm]]");
       }
-      else
-      {
-        if(fmt.compType == CompType::UInt)
-          format += lit("u");
 
-        if(fmt.compByteWidth == 1)
-        {
-          format += lit("byte");
-        }
-        else if(fmt.compByteWidth == 2)
-        {
-          if(fmt.compType == CompType::Float)
-            format += lit("half");
-          else
-            format += lit("short");
-        }
-        else if(fmt.compByteWidth == 4)
-        {
-          if(fmt.compType == CompType::Float)
-            format += lit("float");
-          else
-            format += lit("int");
-        }
-        else if(fmt.compByteWidth == 8)
-        {
+      if(fmt.compType == CompType::UInt || fmt.compType == CompType::UNorm ||
+         fmt.compType == CompType::UNormSRGB)
+        format += lit("u");
+
+      if(fmt.compByteWidth == 1)
+      {
+        format += lit("byte");
+      }
+      else if(fmt.compByteWidth == 2)
+      {
+        if(fmt.compType == CompType::Float)
+          format += lit("half");
+        else
+          format += lit("short");
+      }
+      else if(fmt.compByteWidth == 4)
+      {
+        if(fmt.compType == CompType::Float)
+          format += lit("float");
+        else
+          format += lit("int");
+      }
+      else if(fmt.compByteWidth == 8)
+      {
+        if(fmt.compType == CompType::Float)
           format += lit("double");
-        }
+        else
+          format += lit("long");
       }
 
       format += QString::number(fmt.compCount);
