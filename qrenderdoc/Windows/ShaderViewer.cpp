@@ -2170,7 +2170,7 @@ void ShaderViewer::runToCursor(bool forward)
     // find the next source location that has an instruction mapped. If there was an exact match
     // this won't loop, if the lower bound was earlier we'll step at most once to get to the next
     // line past it.
-    if(it != m_Location2FirstInst.end() && it.key().lineEnd < i)
+    if(it != m_Location2FirstInst.end() && (sptr_t)it.key().lineEnd < i)
       it++;
 
     if(it != m_Location2FirstInst.end())
@@ -2896,7 +2896,7 @@ const RDTreeWidgetItem *ShaderViewer::evaluateVar(const RDTreeWidgetItem *item, 
         size_t compSize = VarTypeByteSize(var->type);
         for(uint32_t i = 0; i < 4; i++)
         {
-          uint8_t sw = (swizzle >> (i * 8)) && 0xff;
+          uint8_t sw = (swizzle >> (i * 8)) & 0xff;
 
           if(sw == 0xff)
           {
@@ -3159,7 +3159,7 @@ const RDTreeWidgetItem *ShaderViewer::getVarFromPath(const rdcstr &path, const R
           case 'b': swizzleMask |= (0x02U << (s * 8)); break;
           case 'w':
           case 'a': swizzleMask |= (0x03U << (s * 8)); break;
-          default: return false;
+          default: return NULL;
         }
       }
       for(; s < 4; s++)
@@ -4952,7 +4952,7 @@ void ShaderViewer::ToggleBreakpointOnInstruction(int32_t instruction)
       // find the next source location that has an instruction mapped. If there was an exact match
       // this won't loop, if the lower bound was earlier we'll step at most once to get to the next
       // line past it.
-      if(it != m_Location2FirstInst.end() && it.key().lineEnd < i)
+      if(it != m_Location2FirstInst.end() && (sptr_t)it.key().lineEnd < i)
         it++;
 
       // only set a breakpoint on that instruction
