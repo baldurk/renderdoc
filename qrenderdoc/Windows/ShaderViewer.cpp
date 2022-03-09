@@ -3995,15 +3995,11 @@ bool ShaderViewer::updateWatchVariable(RDTreeWidgetItem *watchItem, const RDTree
     for(int i = 0; i < var.members.count(); i++)
       current.insert(var.members[i].name);
 
-    // if there are no new members in the variable, the union will be equal to the existing set
-    // in this case we mark missing members as stale and update existing members
-    QSet<QString> both = existing;
-    both.unite(current);
-
-    if(both != existing)
+    // if there are no new members in the variable, the existing set will contain the current set
+    if(!existing.contains(current))
     {
-      // the union is not the same as the existing set so the variable has some new members - this
-      // may be a different structure. Clear the existing watch before updating
+      // the current variable has some new members in its set - this may be a different structure.
+      // Clear the existing watch before updating
       watchItem->clear();
     }
 
