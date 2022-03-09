@@ -221,6 +221,23 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     // your drivers!
     RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
+    VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    // find a supported alpha compositing mode
+    if((capabilities.supportedCompositeAlpha & compositeAlpha) == 0)
+    {
+      VkCompositeAlphaFlagBitsKHR compositingBits[] = {
+          VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR, VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
+          VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR, VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR};
+      for(VkCompositeAlphaFlagBitsKHR &compositingBit : compositingBits)
+      {
+        if(capabilities.supportedCompositeAlpha & compositingBit)
+        {
+          compositeAlpha = compositingBit;
+          break;
+        }
+      }
+    }
+
     // check format and present mode from driver
     {
       uint32_t numFormats = 0;
@@ -326,7 +343,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
         0,
         NULL,
         VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
-        VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        compositeAlpha,
         presentmode,
         true,
         Unwrap(old),
@@ -908,12 +925,8 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
   m_DebugHeight = (int32_t)outw.height;
 
   VkDevice dev = m_pDriver->GetDev();
-  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   const VkDevDispatchTable *vt = ObjDisp(dev);
   VkResult vkr = VK_SUCCESS;
-
-  if(cmd == VK_NULL_HANDLE)
-    return;
 
   // if we have a swapchain, acquire the next image.
   if(outw.swap != VK_NULL_HANDLE)
@@ -967,6 +980,10 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 
     vt->DestroySemaphore(Unwrap(dev), sem, NULL);
   }
+
+  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+  if(cmd == VK_NULL_HANDLE)
+    return;
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
