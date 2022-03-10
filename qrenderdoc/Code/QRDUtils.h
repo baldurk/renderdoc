@@ -102,8 +102,6 @@ public:
                                uint32_t requiredByteStride);
 
   static uint32_t GetStructVarSize(const rdcarray<ShaderConstant> &members);
-
-  static QString DeclarePaddingBytes(uint32_t bytes);
 };
 
 QVariantList GetVariants(ResourceFormat format, const ShaderConstant &var, const byte *&data,

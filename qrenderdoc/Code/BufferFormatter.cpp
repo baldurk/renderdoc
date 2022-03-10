@@ -32,6 +32,7 @@ struct StructFormatData
   ShaderConstant structDef;
   uint32_t pointerTypeId = 0;
   uint32_t offset = 0;
+  uint32_t paddedStride = 0;
 };
 
 GraphicsAPI BufferFormatter::m_API;
@@ -306,6 +307,21 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
             cur->structDef.type.descriptor.arrayByteStride = (cur->offset + 0xFU) & (~0xFU);
 
           cur->pointerTypeId = PointerTypeRegistry::GetTypeID(cur->structDef.type);
+
+          // only pad up to the stride, not down
+          if(cur->paddedStride >= cur->structDef.type.descriptor.arrayByteStride)
+          {
+            cur->structDef.type.descriptor.arrayByteStride = cur->paddedStride;
+          }
+          else if(cur->paddedStride > 0)
+          {
+            errors = tr("Declared struct %1 stride %2 is less than structure size %3\n")
+                         .arg(cur->structDef.type.descriptor.name)
+                         .arg(cur->paddedStride)
+                         .arg(cur->structDef.type.descriptor.arrayByteStride);
+            success = false;
+            break;
+          }
         }
 
         cur = &root;
@@ -315,13 +331,6 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
     if(line.startsWith(lit("struct")) || line.startsWith(lit("enum")))
     {
-      if(!annotations.empty())
-      {
-        errors = tr("Annotations are not supported on struct definitions: %1\n").arg(line);
-        success = false;
-        break;
-      }
-
       QRegularExpressionMatch match = structDeclRegex.match(line);
 
       if(match.hasMatch())
@@ -343,10 +352,42 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         {
           lastStruct = name;
           cur->structDef.type.descriptor.type = VarType::Struct;
+
+          for(const Annotation &annot : annotations)
+          {
+            if(annot.name == lit("size") || annot.name == lit("byte_size"))
+            {
+              cur->paddedStride = annot.param.toUInt();
+            }
+            else
+            {
+              errors = tr("Unrecognised annotation on struct definition: %1\n").arg(annot.name);
+              success = false;
+              break;
+            }
+          }
+
+          annotations.clear();
         }
         else
         {
           cur->structDef.type.descriptor.type = VarType::Enum;
+
+          for(const Annotation &annot : annotations)
+          {
+            if(false)
+            {
+              // no annotations supported currently on enums
+            }
+            else
+            {
+              errors = tr("Unrecognised annotation on enum definition: %1\n").arg(annot.name);
+              success = false;
+              break;
+            }
+          }
+
+          annotations.clear();
 
           QString baseType = match.captured(4);
 
@@ -401,12 +442,21 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       el.name = enumMatch.captured(1);
       el.defaultValue = val;
 
-      if(!annotations.empty())
+      for(const Annotation &annot : annotations)
       {
-        errors = tr("Annotations are not supported on enum values: %1\n").arg(el.name);
-        success = false;
-        break;
+        if(false)
+        {
+          // no annotations supported currently on enums
+        }
+        else
+        {
+          errors = tr("Unrecognised annotation on enum value: %1\n").arg(annot.name);
+          success = false;
+          break;
+        }
       }
+
+      annotations.clear();
 
       cur->structDef.type.members.push_back(el);
 
@@ -421,12 +471,21 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         bitfieldCurPos = 0;
       bitfieldCurPos += bitfieldSkipMatch.captured(3).toUInt();
 
-      if(!annotations.empty())
+      for(const Annotation &annot : annotations)
       {
-        errors = tr("Annotations are not supported on bitfield skips: %1\n").arg(line);
-        success = false;
-        break;
+        if(false)
+        {
+          // no annotations supported currently on enums
+        }
+        else
+        {
+          errors = tr("Unrecognised annotation on bitfield skip: %1\n").arg(annot.name);
+          success = false;
+          break;
+        }
       }
+
+      annotations.clear();
 
       continue;
     }
@@ -441,12 +500,30 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
       QString varName = structMatch.captured(3);
 
-      if(!annotations.empty())
+      uint32_t specifiedOffset = ~0U;
+      for(const Annotation &annot : annotations)
       {
-        errors = tr("Annotations are not supported on struct %2\n").arg(varName);
-        success = false;
-        break;
+        if(annot.name == lit("offset") || annot.name == lit("byte_offset"))
+        {
+          specifiedOffset = annot.param.toUInt();
+
+          if(specifiedOffset < cur->offset)
+          {
+            errors =
+                tr("Offset %1 on variable %2 overlaps previous data\n").arg(specifiedOffset).arg(varName);
+            success = false;
+            break;
+          }
+        }
+        else
+        {
+          errors = tr("Unrecognised annotation on variable: %1\n").arg(annot.name);
+          success = false;
+          break;
+        }
       }
+
+      annotations.clear();
 
       QString arrayDim = structMatch.captured(4).trimmed();
       uint32_t arrayCount = 1;
@@ -474,6 +551,9 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         if(!tightPacking)
           cur->offset = (cur->offset + 0x7) & (~0x7);
 
+        if(specifiedOffset != ~0U)
+          cur->offset = specifiedOffset;
+
         el.name = varName;
         el.byteOffset = cur->offset;
         el.type.descriptor.pointerTypeID = structContext.pointerTypeId;
@@ -495,6 +575,9 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
           success = false;
           break;
         }
+
+        if(specifiedOffset != ~0U)
+          cur->offset = specifiedOffset;
 
         el = structContext.structDef;
         el.name = varName;
@@ -521,6 +604,9 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         // cbuffer packing rules, structs are always float4 base aligned
         if(!tightPacking)
           cur->offset = (cur->offset + 0xFU) & (~0xFU);
+
+        if(specifiedOffset != ~0U)
+          cur->offset = specifiedOffset;
 
         el = structContext.structDef;
         el.name = varName;
@@ -833,9 +919,27 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         {
           // already processed
         }
+        else if(annot.name == lit("offset") || annot.name == lit("byte_offset"))
+        {
+          uint32_t specifiedOffset = annot.param.toUInt();
+
+          if(specifiedOffset < cur->offset)
+          {
+            errors =
+                tr("Offset %1 on variable %2 overlaps previous data\n").arg(specifiedOffset).arg(el.name);
+            success = false;
+            break;
+          }
+
+          cur->offset = specifiedOffset;
+        }
+        else if(annot.name == lit("matrix_stride"))
+        {
+          el.type.descriptor.matrixByteStride = annot.param.toUInt();
+        }
         else
         {
-          errors = tr("Unrecognised annotation: %1\n").arg(annot.name);
+          errors = tr("Unrecognised annotation on variable: %1\n").arg(annot.name);
           success = false;
           break;
         }
@@ -888,7 +992,11 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
     // normally the array stride is the size of an element
     const uint32_t elemScalarByteSize = fmt.ElementSize();
-    el.type.descriptor.arrayByteStride = el.type.descriptor.matrixByteStride = elemScalarByteSize;
+    el.type.descriptor.arrayByteStride = elemScalarByteSize;
+
+    // if a manual byte stride wasn't specified
+    if(el.type.descriptor.matrixByteStride == 0)
+      el.type.descriptor.matrixByteStride = elemScalarByteSize;
 
     if(el.bitFieldSize > 0)
     {
@@ -1413,32 +1521,6 @@ uint32_t BufferFormatter::GetStructVarSize(const rdcarray<ShaderConstant> &membe
   return lastMemberStart + GetVarSize(*lastChild);
 }
 
-QString BufferFormatter::DeclarePaddingBytes(uint32_t bytes)
-{
-  if(bytes == 0)
-    return QString();
-
-  QString ret;
-
-  if(bytes > 4)
-  {
-    ret += lit("[[hex]] int pad[%1];").arg(bytes / 4);
-
-    bytes = bytes % 4;
-  }
-
-  if(bytes == 4)
-    ret += lit("[[hex]] int pad;");
-  else if(bytes == 3)
-    ret += lit("[[hex]] short pad; [[hex]] byte pad;");
-  else if(bytes == 2)
-    ret += lit("[[hex]] short pad;");
-  else if(bytes == 1)
-    ret += lit("[[hex]] xbyte pad;");
-
-  return ret + lit("\n");
-}
-
 QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QString &name,
                                        const rdcarray<ShaderConstant> &members,
                                        uint32_t requiredByteStride, QString innerSkippedPrefixString)
@@ -1454,7 +1536,7 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
   for(int i = 0; i < members.count(); i++)
   {
     if(offset < members[i].byteOffset)
-      ret += lit("    ") + DeclarePaddingBytes(members[i].byteOffset - offset);
+      ret += lit("    [[offset(%1)]]\n").arg(members[i].byteOffset);
     else if(offset > members[i].byteOffset)
       qCritical() << "Unexpected offset overlow at" << QString(members[i].name) << "in"
                   << QString(name);
@@ -1517,18 +1599,9 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
 
         if(tightStride < members[i].type.descriptor.matrixByteStride)
         {
-          uint32_t padSize = members[i].type.descriptor.matrixByteStride - tightStride;
-          for(uint32_t r = 0; r < members[i].type.descriptor.rows; r++)
-          {
-            ret += QFormatStr("    %1%2 %3_row%4; %5")
-                       .arg(ToQStr(members[i].type.descriptor.type))
-                       .arg(members[i].type.descriptor.columns)
-                       .arg(varName)
-                       .arg(r)
-                       .arg(DeclarePaddingBytes(padSize));
-          }
-
-          continue;
+          varTypeName = lit("[[matrix_stride(%1)]] %2")
+                            .arg(members[i].type.descriptor.matrixByteStride)
+                            .arg(varTypeName);
         }
       }
       else
@@ -1538,18 +1611,9 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
 
         if(tightStride < members[i].type.descriptor.matrixByteStride)
         {
-          uint32_t padSize = members[i].type.descriptor.matrixByteStride - tightStride;
-          for(uint32_t c = 0; c < members[i].type.descriptor.columns; c++)
-          {
-            ret += QFormatStr("    %1%2 %3_col%4; %5")
-                       .arg(ToQStr(members[i].type.descriptor.type))
-                       .arg(members[i].type.descriptor.rows)
-                       .arg(varName)
-                       .arg(c)
-                       .arg(DeclarePaddingBytes(padSize));
-          }
-
-          continue;
+          varTypeName = lit("[[matrix_stride(%1)]] %2")
+                            .arg(members[i].type.descriptor.matrixByteStride)
+                            .arg(varTypeName);
         }
       }
     }
@@ -1562,7 +1626,7 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
     const uint32_t structEnd = GetStructVarSize(members);
 
     if(requiredByteStride > structEnd)
-      ret += lit("    ") + DeclarePaddingBytes(requiredByteStride - structEnd);
+      ret = lit("[[size(%1)]] %2").arg(requiredByteStride).arg(ret);
     else if(requiredByteStride != structEnd)
       qCritical() << "Unexpected stride overlow at struct" << name;
   }

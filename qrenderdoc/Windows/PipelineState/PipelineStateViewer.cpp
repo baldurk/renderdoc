@@ -1370,6 +1370,8 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
 
   uint32_t offset = 0;
 
+  format = lit("struct vbuffer {\n");
+
   for(size_t i = 0; i < attrs.size(); i++)
   {
     // we disallowed overlaps above, but we do allow *duplicates*. So if our offset has already
@@ -1377,8 +1379,11 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
     if(attrs[i].byteOffset < offset)
       continue;
 
-    // declare any padding from previous element to this one
-    format += BufferFormatter::DeclarePaddingBytes(attrs[i].byteOffset - offset);
+    // declare an explicit offset if there's a gap from previous element to this one
+    if(attrs[i].byteOffset > offset)
+      format += lit("  [[offset(%1)]]\n").arg(attrs[i].byteOffset);
+
+    format += lit("  ");
 
     const ResourceFormat &fmt = attrs[i].format;
 
@@ -1460,8 +1465,10 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
       format += QFormatStr(" %1; // %2\n").arg(sanitised_name).arg(real_name);
   }
 
-  if(stride > 0)
-    format += BufferFormatter::DeclarePaddingBytes(stride - offset);
+  format += lit("}\n\nvbuffer vertex[];");
+
+  if(stride > offset)
+    format = lit("[[size(%1)]]\n").arg(stride) + format;
 
   return format;
 }
