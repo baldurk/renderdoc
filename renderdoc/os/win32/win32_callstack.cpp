@@ -83,18 +83,31 @@ rdcarray<Module> modules;
 
 rdcwstr GetSymSearchPath()
 {
-  PWSTR appDataPath;
-  SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_SIMPLE_IDLIST | KF_FLAG_DONT_UNEXPAND, NULL,
-                       &appDataPath);
-  rdcwstr appdata = appDataPath;
-  CoTaskMemFree(appDataPath);
+  std::wstring sympath;
 
-  std::wstring sympath = L".;";
-  sympath += appdata.c_str();
-  sympath += L"\\renderdoc\\symbols;SRV*";
-  sympath += appdata.c_str();
-  sympath += L"\\renderdoc\\symbols\\symsrv*http://msdl.microsoft.com/download/symbols";
+  DWORD len = GetEnvironmentVariableW(L"_NT_SYMBOL_PATH", NULL, 0);
 
+  if(len == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND)
+  {
+    // set up a default sympath to look up MS's symbol servers and cache them locally in RenderDoc's
+    // appdata folder.
+    PWSTR appDataPath;
+    SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_SIMPLE_IDLIST | KF_FLAG_DONT_UNEXPAND,
+                         NULL, &appDataPath);
+    rdcwstr appdata = appDataPath;
+    CoTaskMemFree(appDataPath);
+
+    sympath = L".;";
+    sympath += appdata.c_str();
+    sympath += L"\\renderdoc\\symbols;SRV*";
+    sympath += appdata.c_str();
+    sympath += L"\\renderdoc\\symbols\\symsrv*http://msdl.microsoft.com/download/symbols";
+
+    return sympath.c_str();
+  }
+
+  sympath.resize(len + 1);
+  GetEnvironmentVariableW(L"_NT_SYMBOL_PATH", &sympath[0], len);
   return sympath.c_str();
 }
 
