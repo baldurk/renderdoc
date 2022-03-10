@@ -74,6 +74,104 @@ inline QMetaType::Type GetVariantMetatype(const QVariant &v)
   return (QMetaType::Type)v.type();
 }
 
+namespace Packing
+{
+enum APIConfig
+{
+  //  property  | vector_align_component | vector_straddle_16b | tight_arrays | trailing_overlap
+  std140,    // |         false          |        false        |     false    |      false
+  std430,    // |         false          |        false        |      true    |      false
+  D3DCB,     // |          true          |        false        |     false    |       true
+  C,         // |          true          |         true        |      true    |      false
+  Scalar,    // |          true          |         true        |      true    |       true
+
+  // D3D UAVs are assumed to be the same as C packing. With only 4 and 8 byte types this can't be
+  // fully verified and it's not documented at all.
+  D3DUAV = C,
+};
+
+// individual rules for packing. In general, true is more lenient on packing than false for each
+// property
+struct Rules
+{
+  Rules() = default;
+  Rules(APIConfig config)
+  {
+    // default to the most conservative packing ruleset
+
+    switch(config)
+    {
+      case std140: { break;
+      }
+      case std430:
+      {
+        tight_arrays = true;
+        break;
+      }
+      case D3DCB:
+      {
+        vector_align_component = true;
+        trailing_overlap = true;
+        break;
+      }
+      case C:
+      {
+        vector_align_component = true;
+        vector_straddle_16b = true;
+        tight_arrays = true;
+        break;
+      }
+      case Scalar:
+      {
+        vector_align_component = true;
+        vector_straddle_16b = true;
+        tight_arrays = true;
+        trailing_overlap = true;
+        break;
+      }
+    }
+  }
+
+  bool operator==(Packing::Rules o) const
+  {
+    return vector_align_component == o.vector_align_component &&
+           vector_straddle_16b == o.vector_straddle_16b && tight_arrays == o.tight_arrays &&
+           trailing_overlap == o.trailing_overlap;
+  }
+
+  // is a vector's alignment equal to its component alignment? If not, vectors must have an
+  // a larger alignment e.g. for floats a float2 has 8 byte alignment, float3 and float4 have
+  // 16-byte alignment
+  bool vector_align_component = false;
+
+  // can vectors straddle a 16-byte boundary?
+  // if not, offsets of vectors are padded as necessary so they do not cross the boundary
+  //
+  // note that vectors can only straddle the 16-byte boundary if they are not component aligned, so
+  // this can only be true if vector_align_component is also true.
+  bool vector_straddle_16b = false;
+
+  // are arrays packed tightly with all elements contiguous? if not, each element starts on a
+  // 16-byte aligned offset
+  bool tight_arrays = false;
+
+  // do non-tightly packed arrays and structs have reserved padding up to a multiple of their
+  // alignment?
+  // if so, subsequent elements must be placed after that padding region, if not subsequent elements
+  // can be inside that padding region.
+  //
+  // For D3D this is allowed for cbuffers, but *not* for UAVs/structured types. This is only
+  // applicable for structs since structured types have tight arrays, but in that case trailing
+  // padding is not usable - matching C
+  //
+  // note this is compatible with C packing for structs (C structs have a size that includes their
+  // trailing padding and members after a struct are not packed in that padding). For arrays it does
+  // not apply since C arrays are packed.
+  bool trailing_overlap = false;
+};
+
+};    // namespace Packing
+
 struct BufferFormatter
 {
 private:
