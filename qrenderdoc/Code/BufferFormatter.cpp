@@ -201,7 +201,13 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
   // treat commas as semi-colons for simplicity of parsing enum declarations and struct declarations
   text = text.replace(QLatin1Char(','), QLatin1Char(';'));
 
-  QRegularExpression annotationRegex(lit("^(\\[\\[[^]]+\\]\\])\\s*"));
+  QRegularExpression annotationRegex(
+      lit("^"                           // start of the line
+          "\\[\\["                      // opening [[
+          "(?<name>[a-zA-Z0-9_-]+)"     // annotation name
+          "(\\((?<param>[^)]+)\\))?"    // optional parameter in ()s
+          "\\]\\]"                      // closing ]]
+          "\\s*"));
 
   QRegularExpression structDeclRegex(
       lit("^(struct|enum)\\s+([A-Za-z_][A-Za-z0-9_]*)(\\s*:\\s*([a-z]+))?$"));
@@ -235,7 +241,13 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
   uint32_t bitfieldCurPos = ~0U;
 
-  QStringList annotations;
+  struct Annotation
+  {
+    QString name;
+    QString param;
+  };
+
+  QList<Annotation> annotations;
 
   // get each line and parse it to determine the format the user wanted
   for(QString &l : text.split(QRegularExpression(lit("[;\n\r]"))))
@@ -252,7 +264,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       if(!match.hasMatch())
         break;
 
-      annotations.push_back(match.captured(1));
+      annotations.push_back({match.captured(lit("name")), match.captured(lit("param"))});
 
       line.remove(match.capturedStart(0), match.capturedLength(0));
     } while(true);
@@ -431,9 +443,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
       if(!annotations.empty())
       {
-        errors = tr("Annotations are not supported on struct %2: %1\n")
-                     .arg(varName)
-                     .arg(annotations.join(QLatin1Char(' ')));
+        errors = tr("Annotations are not supported on struct %2\n").arg(varName);
         success = false;
         break;
       }
@@ -639,76 +649,82 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       el.type.descriptor.name = ToStr(el.type.descriptor.type) + vecMatSizeSuffix;
 
       // process packing annotations first, so we have that information to validate e.g. [[unorm]]
-      for(QString annot : annotations)
+      for(const Annotation &annot : annotations)
       {
-        if(annot == lit("[[packed(r11g11b10)]]") || annot == lit("[[packed(R11G11B10)]]"))
+        if(annot.name == lit("packed"))
         {
-          if(el.type.descriptor.columns != 3 || el.type.descriptor.type != VarType::Float)
+          if(annot.param.toLower() == lit("r11g11b10"))
           {
-            errors = tr("R11G11B10 packing must be specified on a 'float3' variable: %1\n").arg(line);
+            if(el.type.descriptor.columns != 3 || el.type.descriptor.type != VarType::Float)
+            {
+              errors =
+                  tr("R11G11B10 packing must be specified on a 'float3' variable: %1\n").arg(line);
+              success = false;
+              break;
+            }
+
+            el.type.descriptor.flags |= ShaderVariableFlags::R11G11B10;
+          }
+          else if(annot.param.toLower() == lit("r10g10b10a2") ||
+                  annot.param.toLower() == lit("r10g10b10a2_uint"))
+          {
+            if(el.type.descriptor.columns != 4 || el.type.descriptor.type != VarType::UInt)
+            {
+              errors = tr("R10G10B10A2 packing must be specified on a 'uint4' variable "
+                          "(optionally with [[unorm]]): %1\n")
+                           .arg(line);
+              success = false;
+              break;
+            }
+
+            el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2;
+          }
+          else if(annot.param.toLower() == lit("r10g10b10a2_unorm"))
+          {
+            if(el.type.descriptor.columns != 4 || el.type.descriptor.type != VarType::UInt)
+            {
+              errors = tr("R10G10B10A2 packing must be specified on a 'uint4' variable "
+                          "(optionally with [[unorm]]): %1\n")
+                           .arg(line);
+              success = false;
+              break;
+            }
+
+            el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::UNorm;
+          }
+          else if(annot.param.toLower() == lit("r10g10b10a2_snorm"))
+          {
+            if(el.type.descriptor.columns != 4 || (el.type.descriptor.type != VarType::SInt &&
+                                                   el.type.descriptor.type != VarType::UInt))
+            {
+              errors = tr("R10G10B10A2 packing must be specified on a '[u]int4' variable "
+                          "when using [[snorm]]): %1\n")
+                           .arg(line);
+              success = false;
+              break;
+            }
+
+            el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::SNorm;
+          }
+          else
+          {
+            errors = tr("Unrecognised pack type: %1\n").arg(annot.param);
             success = false;
             break;
           }
-
-          el.type.descriptor.flags |= ShaderVariableFlags::R11G11B10;
-        }
-        else if(annot == lit("[[packed(r10g10b10a2)]]") ||
-                annot == lit("[[packed(R10G10B10A2)]]") ||
-                annot == lit("[[packed(r10g10b10a2_uint)]]") ||
-                annot == lit("[[packed(R10G10B10A2_UINT)]]"))
-        {
-          if(el.type.descriptor.columns != 4 || el.type.descriptor.type != VarType::UInt)
-          {
-            errors = tr("R10G10B10A2 packing must be specified on a 'uint4' variable "
-                        "(optionally with [[unorm]]): %1\n")
-                         .arg(line);
-            success = false;
-            break;
-          }
-
-          el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2;
-        }
-        else if(annot == lit("[[packed(r10g10b10a2_unorm)]]") ||
-                annot == lit("[[packed(R10G10B10A2_UNORM)]]"))
-        {
-          if(el.type.descriptor.columns != 4 || el.type.descriptor.type != VarType::UInt)
-          {
-            errors = tr("R10G10B10A2 packing must be specified on a 'uint4' variable "
-                        "(optionally with [[unorm]]): %1\n")
-                         .arg(line);
-            success = false;
-            break;
-          }
-
-          el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::UNorm;
-        }
-        else if(annot == lit("[[packed(r10g10b10a2_snorm)]]") ||
-                annot == lit("[[packed(R10G10B10A2_SNORM)]]"))
-        {
-          if(el.type.descriptor.columns != 4 ||
-             (el.type.descriptor.type != VarType::SInt && el.type.descriptor.type != VarType::UInt))
-          {
-            errors = tr("R10G10B10A2 packing must be specified on a '[u]int4' variable "
-                        "when using [[snorm]]): %1\n")
-                         .arg(line);
-            success = false;
-            break;
-          }
-
-          el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::SNorm;
         }
       }
 
       if(!success)
         break;
 
-      for(QString annot : annotations)
+      for(const Annotation &annot : annotations)
       {
-        if(annot == lit("[[rgb]]"))
+        if(annot.name == lit("rgb"))
         {
           el.type.descriptor.flags |= ShaderVariableFlags::RGBDisplay;
         }
-        else if(annot == lit("[[hex]]"))
+        else if(annot.name == lit("hex") || annot.name == lit("hexadecimal"))
         {
           if(VarTypeCompType(el.type.descriptor.type) == CompType::Float)
           {
@@ -737,7 +753,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
           else if(el.type.descriptor.type == VarType::SByte)
             el.type.descriptor.type = VarType::UByte;
         }
-        else if(annot == lit("[[bin]]") || annot == lit("[[binary]]"))
+        else if(annot.name == lit("bin") || annot.name == lit("binary"))
         {
           if(VarTypeCompType(el.type.descriptor.type) == CompType::Float)
           {
@@ -766,7 +782,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
           else if(el.type.descriptor.type == VarType::SByte)
             el.type.descriptor.type = VarType::UByte;
         }
-        else if(annot == lit("[[unorm]]"))
+        else if(annot.name == lit("unorm"))
         {
           if(!(el.type.descriptor.flags & ShaderVariableFlags::R10G10B10A2))
           {
@@ -784,7 +800,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
           el.type.descriptor.flags |= ShaderVariableFlags::UNorm;
         }
-        else if(annot == lit("[[snorm]]"))
+        else if(annot.name == lit("snorm"))
         {
           if(!(el.type.descriptor.flags & ShaderVariableFlags::R10G10B10A2))
           {
@@ -802,7 +818,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
           el.type.descriptor.flags |= ShaderVariableFlags::SNorm;
         }
-        else if(annot == lit("[[row_major]]"))
+        else if(annot.name == lit("row_major"))
         {
           if(el.type.descriptor.rows == 1)
           {
@@ -813,19 +829,13 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
           el.type.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix;
         }
-        else if(annot == lit("[[packed(r11g11b10)]]") || annot == lit("[[packed(R11G11B10)]]") ||
-                annot == lit("[[packed(r10g10b10a2)]]") ||
-                annot == lit("[[packed(R10G10B10A2)]]") ||
-                annot == lit("[[packed(r10g10b10a2_uint)]]") ||
-                annot == lit("[[packed(R10G10B10A2_UINT)]]") ||
-                annot == lit("[[packed(r10g10b10a2_unorm)]]") ||
-                annot == lit("[[packed(R10G10B10A2_UNORM)]]"))
+        else if(annot.name == lit("packed"))
         {
           // already processed
         }
         else
         {
-          errors = tr("Unrecognised annotation: %1\n").arg(annot);
+          errors = tr("Unrecognised annotation: %1\n").arg(annot.name);
           success = false;
           break;
         }
