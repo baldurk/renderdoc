@@ -804,13 +804,17 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
   if(var.name[c - 3] == '[' && var.name[c - 2] == '0' && var.name[c - 1] == ']')
     var.name.resize(c - 3);
   else
-    var.type.descriptor.elements = 0;
+    var.type.descriptor.elements = 1;
 
   GLint topLevelStride = 0;
   if(query == eGL_BUFFER_VARIABLE)
   {
     GLenum propName = eGL_TOP_LEVEL_ARRAY_STRIDE;
     GL.glGetProgramResourceiv(sepProg, query, varIdx, 1, &propName, 1, NULL, &topLevelStride);
+
+    // if ARRAY_SIZE is 0 this is an unbounded array
+    if(values[4] == 0)
+      var.type.descriptor.elements = ~0U;
   }
 
   rdcarray<ShaderConstant> *parentmembers = defaultBlock;
@@ -832,6 +836,7 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
   int arrayIdx = 0;
 
   bool blockLevel = true;
+  int level = 0;
 
   // reverse figure out structures and structure arrays
   while(strchr(nm, '.') || strchr(nm, '['))
@@ -883,20 +888,34 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     parentVar.type.descriptor.name = "struct";
     parentVar.type.descriptor.rows = 0;
     parentVar.type.descriptor.columns = 0;
-    parentVar.type.descriptor.type = var.type.descriptor.type;
+    parentVar.type.descriptor.type = VarType::Struct;
     parentVar.type.descriptor.elements =
-        isarray && !multiDimArray ? RDCMAX(1U, uint32_t(arrayIdx + 1)) : 0;
+        isarray && !multiDimArray ? RDCMAX(1U, uint32_t(arrayIdx + 1)) : 1;
     parentVar.type.descriptor.matrixByteStride = 0;
 
     RDCASSERTMSG("Stride is too large for uint16_t", topLevelStride <= 0xffff);
     parentVar.type.descriptor.arrayByteStride = RDCMIN((uint32_t)topLevelStride, 0xffffu) & 0xffff;
 
     // consider all block-level SSBO structs to have infinite elements if they are an array at all
+    // for structs that aren't the last struct in a block which can't be infinite, this will be
+    // fixup'd later by looking at the offset of subsequent elements
     if(blockLevel && topLevelStride && isarray)
       parentVar.type.descriptor.elements = ~0U;
 
     if(!blockLevel)
       topLevelStride = 0;
+
+    // this is no longer block level after the first array, or the first struct member.
+    //
+    // this logic is because whether or not a block has a name affects what comes back. E.g.
+    // buffer ssbo { float ssbo_foo } ; will just be "ssbo_foo", whereas
+    // buffer ssbo { float ssbo_foo } root; will be "root.ssbo_foo"
+    //
+    // we only use blocklevel for the check above, to see if we are on a block-level array to mark
+    // it as unknown size (to be fixed later), so this check can be a little fuzzy as long as it
+    // doesn't have false positives.
+    if(isarray || level >= 1)
+      blockLevel = false;
 
     bool found = false;
 
@@ -914,8 +933,6 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
 
         parentmembers = &((*parentmembers)[i].type.members);
         found = true;
-
-        blockLevel = false;
 
         break;
       }
@@ -996,6 +1013,8 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
       parentmembers = NULL;
       break;
     }
+
+    level++;
   }
 
   if(parentmembers)
@@ -1045,12 +1064,107 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
   }
 }
 
-void MakeChildByteOffsetsRelative(ShaderConstant &member)
+static uint32_t GetVarAlignment(bool std140, const ShaderConstant &c)
+{
+  if(!c.type.members.empty())
+  {
+    uint32_t ret = 4;
+    for(const ShaderConstant &m : c.type.members)
+      ret = RDCMAX(ret, GetVarAlignment(std140, m));
+
+    if(std140)
+      ret = AlignUp16(ret);
+    return ret;
+  }
+
+  uint8_t vecSize = c.type.descriptor.columns;
+
+  if(c.type.descriptor.rows > 1 && c.type.descriptor.ColMajor())
+    vecSize = c.type.descriptor.rows;
+
+  if(vecSize <= 1)
+    return 4;
+  if(vecSize == 2)
+    return 8;
+  return 16;
+}
+
+static uint32_t GetVarArrayStride(bool std140, const ShaderConstant &c)
+{
+  uint32_t stride;
+  if(!c.type.members.empty())
+  {
+    const ShaderConstant &lastChild = c.type.members.back();
+    stride = GetVarArrayStride(std140, lastChild);
+    if(lastChild.type.descriptor.elements > 1 && lastChild.type.descriptor.elements != ~0U)
+      stride *= lastChild.type.descriptor.elements;
+    stride = AlignUp(lastChild.byteOffset + stride, GetVarAlignment(std140, c));
+  }
+  else
+  {
+    if(c.type.descriptor.elements > 1)
+    {
+      stride = c.type.descriptor.arrayByteStride;
+    }
+    else
+    {
+      stride = VarTypeByteSize(c.type.descriptor.type);
+
+      if(c.type.descriptor.rows > 1)
+      {
+        if(std140)
+        {
+          stride *= 4;
+
+          if(c.type.descriptor.ColMajor())
+            stride *= RDCMAX((uint8_t)1, c.type.descriptor.columns);
+          else
+            stride *= RDCMAX((uint8_t)1, c.type.descriptor.rows);
+        }
+        else
+        {
+          if(c.type.descriptor.ColMajor())
+          {
+            stride *= RDCMAX((uint8_t)1, c.type.descriptor.columns);
+            if(c.type.descriptor.rows == 3)
+              stride *= 4;
+            else
+              stride *= RDCMAX((uint8_t)1, c.type.descriptor.rows);
+          }
+          else
+          {
+            stride *= RDCMAX((uint8_t)1, c.type.descriptor.rows);
+            if(c.type.descriptor.columns == 3)
+              stride *= 4;
+            else
+              stride *= RDCMAX((uint8_t)1, c.type.descriptor.columns);
+          }
+        }
+      }
+      else
+      {
+        if(c.type.descriptor.columns == 3 && std140)
+          stride *= 4;
+        else
+          stride *= RDCMAX((uint8_t)1, c.type.descriptor.columns);
+      }
+    }
+  }
+
+  return stride;
+}
+
+void FixupStructOffsetsAndSize(bool std140, ShaderConstant &member)
 {
   for(ShaderConstant &child : member.type.members)
   {
-    MakeChildByteOffsetsRelative(child);
+    FixupStructOffsetsAndSize(std140, child);
     child.byteOffset -= member.byteOffset;
+  }
+
+  if(!member.type.members.empty())
+  {
+    member.type.descriptor.arrayByteStride = GetVarArrayStride(std140, member);
   }
 }
 
@@ -1155,7 +1269,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     res.isTexture = true;
     res.variableType.descriptor.rows = 1;
     res.variableType.descriptor.columns = 4;
-    res.variableType.descriptor.elements = 0;
+    res.variableType.descriptor.elements = 1;
     res.variableType.descriptor.arrayByteStride = 0;
     res.variableType.descriptor.matrixByteStride = 0;
 
@@ -1700,7 +1814,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       res.resType = TextureType::Buffer;
       res.variableType.descriptor.rows = 0;
       res.variableType.descriptor.columns = 0;
-      res.variableType.descriptor.elements = 0;
+      res.variableType.descriptor.elements = 1;
       res.variableType.descriptor.arrayByteStride = 0;
       res.variableType.descriptor.matrixByteStride = 0;
       res.variableType.descriptor.name = "buffer";
@@ -1801,6 +1915,11 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     for(size_t ssbo = 0; ssbo < ssbos.size(); ssbo++)
     {
       rdcarray<ShaderConstant> &ssboVars = rwresources[ssbos[ssbo]].variableType.members;
+
+      // can't make perfect guesses of struct alignment but assume std430 for ssbos
+      for(ShaderConstant &member : ssboVars)
+        FixupStructOffsetsAndSize(false, member);
+
       for(size_t rootMember = 0; rootMember + 1 < ssboVars.size(); rootMember++)
       {
         ShaderConstant &member = ssboVars[rootMember];
@@ -1808,14 +1927,14 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
         const uint32_t memberSizeBound = ssboVars[rootMember + 1].byteOffset - member.byteOffset;
         const uint32_t stride = member.type.descriptor.arrayByteStride;
 
-        if(stride != 0 && member.type.descriptor.elements <= 1 && memberSizeBound > 2 * stride)
+        if(stride != 0 && member.type.descriptor.elements == ~0U)
         {
-          member.type.descriptor.elements = memberSizeBound / stride;
+          if(memberSizeBound >= 2 * stride)
+            member.type.descriptor.elements = memberSizeBound / stride;
+          else
+            member.type.descriptor.elements = 1;
         }
       }
-
-      for(ShaderConstant &member : ssboVars)
-        MakeChildByteOffsetsRelative(member);
     }
 
     delete[] members;
@@ -1870,8 +1989,9 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
 
         sort(ubos[i]);
 
+        // can't make perfect guesses of struct alignment but assume std140 for ubos
         for(ShaderConstant &member : ubos[i])
-          MakeChildByteOffsetsRelative(member);
+          FixupStructOffsetsAndSize(true, member);
 
         std::swap(cblock.variables, ubos[i]);
 

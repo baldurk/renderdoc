@@ -320,11 +320,6 @@ rdcstr TypeName(CBufferVariableType::Descriptor desc)
     if(desc.rows > 1)
     {
       ret = StringFormat::Fmt("%s%dx%d", type, desc.rows, desc.cols);
-
-      if(desc.varClass == CLASS_MATRIX_ROWS)
-      {
-        ret = "row_major " + ret;
-      }
     }
     else if(desc.cols > 1)
     {

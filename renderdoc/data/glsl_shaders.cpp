@@ -1011,8 +1011,8 @@ void main() {
             INFO("UBO member: " << member.name.c_str());
 
             CHECK(member.byteOffset == 192);
-            // this doesn't reflect in native introspection, so we skip it
-            // CHECK(member.type.descriptor.elements == 3);
+            CHECK(member.type.descriptor.type == VarType::Struct);
+            CHECK(member.type.descriptor.arrayByteStride == 48);
 
             REQUIRE_ARRAY_SIZE(member.type.members.size(), 3);
             {
@@ -1257,9 +1257,9 @@ void main() {
             INFO("SSBO member: " << member.name.c_str());
 
             CHECK(member.byteOffset == 40);
-            // this doesn't reflect in native introspection, so we skip it
-            // CHECK(member.type.descriptor.elements == 3);
+            CHECK(member.type.descriptor.type == VarType::Struct);
             CHECK(member.type.descriptor.arrayByteStride == 24);
+            CHECK(member.type.descriptor.elements == 3);
 
             REQUIRE_ARRAY_SIZE(member.type.members.size(), 3);
             {
@@ -1335,6 +1335,7 @@ void main() {
             INFO("SSBO member: " << member.name.c_str());
 
             CHECK(member.byteOffset == 0);
+            CHECK(member.type.descriptor.type == VarType::Struct);
             CHECK(member.type.descriptor.arrayByteStride == 48);
             CHECK(member.type.descriptor.elements == ~0U);
 
@@ -1346,6 +1347,8 @@ void main() {
                 INFO("SSBO submember: " << submember.name.c_str());
 
                 CHECK(submember.byteOffset == 0);
+                CHECK(submember.type.descriptor.type == VarType::Struct);
+                CHECK(submember.type.descriptor.arrayByteStride == 24);
 
                 REQUIRE_ARRAY_SIZE(submember.type.members.size(), 3);
                 {
@@ -1396,6 +1399,8 @@ void main() {
                 INFO("SSBO submember: " << submember.name.c_str());
 
                 CHECK(submember.byteOffset == 24);
+                CHECK(submember.type.descriptor.type == VarType::Struct);
+                CHECK(submember.type.descriptor.arrayByteStride == 24);
 
                 REQUIRE_ARRAY_SIZE(submember.type.members.size(), 3);
                 {

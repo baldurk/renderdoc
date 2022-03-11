@@ -2101,7 +2101,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
 
     if(!variables[i].type.members.empty())
     {
-      if(desc.elements == 0)
+      if(desc.elements <= 1)
       {
         OpenGLFillCBufferVariables(shader, prog, bufferBacked, prefix + var.name.c_str() + ".",
                                    variables[i].type.members, var.members, data);
@@ -2151,7 +2151,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
           RDCERR("Uniform is buffer backed - index expected");
 
         // if this is an array, generate empty members
-        if(desc.elements > 0)
+        if(desc.elements > 1)
         {
           rdcarray<ShaderVariable> elems;
           for(uint32_t a = 0; a < desc.elements; a++)
@@ -2185,7 +2185,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
         if(!bufferBacked)
           offset = 0;
 
-        if(desc.elements == 0)
+        if(desc.elements <= 1)
         {
           if(!bufferBacked)
           {

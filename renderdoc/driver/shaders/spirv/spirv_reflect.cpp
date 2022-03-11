@@ -314,6 +314,117 @@ static bool HasCommandLineInModuleProcessed(rdcspv::Generator gen)
           gen == rdcspv::Generator::ShadercoverGlslang);
 }
 
+struct StructSizes
+{
+  uint32_t scalarAlign = 1;
+  uint32_t baseAlign = 1;
+  uint32_t extendedAlign = 1;
+
+  uint32_t scalarSize = 0;
+  uint32_t baseSize = 0;
+  uint32_t extendedSize = 0;
+};
+
+StructSizes CalculateStructProps(uint32_t emptyStructSize, const ShaderConstant &c)
+{
+  StructSizes ret;
+
+  if(c.type.descriptor.type != VarType::Struct)
+  {
+    // A scalar of size N has a scalar alignment of N.
+    // A vector or matrix type has a scalar alignment equal to that of its component type.
+    // An array type has a scalar alignment equal to that of its element type.
+    ret.scalarAlign = VarTypeByteSize(c.type.descriptor.type);
+
+    // A scalar has a base alignment equal to its scalar alignment.
+    ret.baseAlign = ret.scalarAlign;
+
+    // A row-major matrix of C columns has a base alignment equal to the base alignment of a vector
+    // of C matrix components.
+    uint8_t vecSize = c.type.descriptor.columns;
+    uint8_t matSize = c.type.descriptor.rows;
+
+    // A column-major matrix has a base alignment equal to the base alignment of the matrix column
+    // type.
+    if(c.type.descriptor.rows > 1 && c.type.descriptor.ColMajor())
+    {
+      vecSize = c.type.descriptor.rows;
+      matSize = c.type.descriptor.columns;
+    }
+
+    // A two-component vector has a base alignment equal to twice its scalar alignment.
+    if(vecSize == 2)
+      ret.baseAlign *= 2;
+    // A three- or four-component vector has a base alignment equal to four times its scalar
+    // alignment.
+    else if(vecSize == 3 || vecSize == 4)
+      ret.baseAlign *= 4;
+
+    // An array has a base alignment equal to the base alignment of its element type.
+    // N/A
+
+    // A scalar, vector or matrix type has an extended alignment equal to its base alignment.
+    ret.extendedAlign = ret.baseAlign;
+
+    // An array or structure type has an extended alignment equal to the largest extended alignment
+    // of any of its members, rounded up to a multiple of 16.
+    if(c.type.descriptor.elements > 1)
+      ret.extendedAlign = AlignUp16(ret.extendedAlign);
+
+    if(matSize > 1)
+      ret.extendedAlign = ret.baseAlign = c.type.descriptor.matrixByteStride;
+
+    ret.scalarSize = ret.scalarAlign * RDCMAX(c.type.descriptor.rows, (uint8_t)1) *
+                     RDCMAX(c.type.descriptor.columns, (uint8_t)1) *
+                     RDCMAX(c.type.descriptor.elements, 1U);
+    ret.baseSize = ret.baseAlign * matSize * RDCMAX(c.type.descriptor.elements, 1U);
+    ret.extendedSize = ret.extendedAlign * matSize * RDCMAX(c.type.descriptor.elements, 1U);
+  }
+  else
+  {
+    for(size_t i = 0; i < c.type.members.size(); i++)
+    {
+      const ShaderConstant &m = c.type.members[i];
+
+      StructSizes member = CalculateStructProps(emptyStructSize, m);
+      // A structure has a scalar alignment equal to the largest scalar alignment of any of its
+      // members.
+      ret.scalarAlign = RDCMAX(ret.scalarAlign, member.scalarAlign);
+      // A structure has a base alignment equal to the largest base alignment of any of its members.
+      ret.baseAlign = RDCMAX(ret.baseAlign, member.baseAlign);
+      // An array or structure type has an extended alignment equal to the largest extended
+      // alignment of any of its members, rounded up to a multiple of 16.
+      ret.extendedAlign = RDCMAX(ret.baseAlign, member.extendedAlign);
+
+      if(i + 1 == c.type.members.size())
+      {
+        ret.scalarSize = AlignUp(m.byteOffset + member.scalarSize, ret.scalarAlign);
+        ret.baseSize = AlignUp(m.byteOffset + member.baseSize, ret.baseAlign);
+        ret.extendedSize = AlignUp16(m.byteOffset + member.extendedSize);
+      }
+    }
+
+    ret.extendedAlign = AlignUp16(ret.extendedAlign);
+
+    // A structure has a base alignment equal to the largest base alignment of any of its members.
+    // An empty structure has a base alignment equal to the size of the smallest scalar type
+    // permitted by the capabilities declared in the SPIR-V module. (e.g., for a 1 byte aligned
+    // empty struct in the StorageBuffer storage class, StorageBuffer8BitAccess or
+    // UniformAndStorageBuffer8BitAccess must be declared in the SPIR-V module.)
+    if(c.type.members.empty())
+    {
+      ret.scalarSize = 0;
+      ret.scalarAlign = emptyStructSize;
+      ret.baseSize = emptyStructSize;
+      ret.baseAlign = emptyStructSize;
+      ret.extendedSize = AlignUp16(emptyStructSize);
+      ret.extendedAlign = AlignUp16(emptyStructSize);
+    }
+  }
+
+  return ret;
+}
+
 namespace rdcspv
 {
 Reflector::Reflector()
@@ -951,6 +1062,10 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       const bool pushConst = (global.storage == StorageClass::PushConstant);
       const bool atomicCounter = (global.storage == StorageClass::AtomicCounter);
 
+      rdcspv::StorageClass effectiveStorage = global.storage;
+      if(ssbo)
+        effectiveStorage = StorageClass::StorageBuffer;
+
       Bindpoint bindmap;
       // set something crazy so this doesn't overlap with a real buffer binding
       if(pushConst)
@@ -1076,8 +1191,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
           ShaderConstant constant;
 
-          MakeConstantBlockVariable(constant, pointerTypes, *varType, strings[global.id],
-                                    decorations[global.id], specInfo);
+          MakeConstantBlockVariable(constant, pointerTypes, effectiveStorage, *varType,
+                                    strings[global.id], decorations[global.id], specInfo);
 
           if(isArray)
             constant.type.descriptor.elements = arraySize;
@@ -1112,8 +1227,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
             res.variableType.descriptor.type = VarType::Float;
             res.variableType.descriptor.name = varType->name;
 
-            MakeConstantBlockVariables(*varType, 0, 0, res.variableType.members, pointerTypes,
-                                       specInfo);
+            MakeConstantBlockVariables(effectiveStorage, *varType, 0, 0, res.variableType.members,
+                                       pointerTypes, specInfo);
 
             rwresources.push_back(shaderrespair(bindmap, res));
           }
@@ -1126,7 +1241,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
               cblock.name = StringFormat::Fmt("uniforms%u", global.id.value());
             cblock.bufferBacked = !pushConst;
 
-            MakeConstantBlockVariables(*varType, 0, 0, cblock.variables, pointerTypes, specInfo);
+            MakeConstantBlockVariables(effectiveStorage, *varType, 0, 0, cblock.variables,
+                                       pointerTypes, specInfo);
 
             if(!varType->children.empty())
               cblock.byteSize = CalculateMinimumByteSize(cblock.variables);
@@ -1160,8 +1276,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         name = StringFormat::Fmt("specID%u", decorations[c.id].specID);
 
       ShaderConstant spec;
-      MakeConstantBlockVariable(spec, pointerTypes, dataTypes[c.type], name, decorations[c.id],
-                                specInfo);
+      MakeConstantBlockVariable(spec, pointerTypes, rdcspv::StorageClass::PushConstant,
+                                dataTypes[c.type], name, decorations[c.id], specInfo);
       spec.byteOffset = uint32_t(specblock.variables.size() * sizeof(uint64_t));
       spec.defaultValue = c.value.value.u64v[0];
       specblock.variables.push_back(spec);
@@ -1388,8 +1504,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   {
     ShaderConstant dummy;
 
-    MakeConstantBlockVariable(dummy, pointerTypes, dataTypes[it->first], rdcstr(), Decorations(),
-                              specInfo);
+    MakeConstantBlockVariable(dummy, pointerTypes, dataTypes[it->first].pointerType.storage,
+                              dataTypes[it->first], rdcstr(), Decorations(), specInfo);
 
     if(it->second >= reflection.pointerTypes.size())
       reflection.pointerTypes.resize(it->second + 1);
@@ -1398,8 +1514,9 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   }
 }
 
-void Reflector::MakeConstantBlockVariables(const DataType &structType, uint32_t arraySize,
-                                           uint32_t arrayByteStride, rdcarray<ShaderConstant> &cblock,
+void Reflector::MakeConstantBlockVariables(rdcspv::StorageClass storage, const DataType &structType,
+                                           uint32_t arraySize, uint32_t arrayByteStride,
+                                           rdcarray<ShaderConstant> &cblock,
                                            SparseIdMap<uint16_t> &pointerTypes,
                                            const rdcarray<SpecConstant> &specInfo) const
 {
@@ -1414,8 +1531,8 @@ void Reflector::MakeConstantBlockVariables(const DataType &structType, uint32_t 
     cblock.resize(arraySize);
     for(uint32_t i = 0; i < arraySize; i++)
     {
-      MakeConstantBlockVariable(cblock[i], pointerTypes, structType, StringFormat::Fmt("[%u]", i),
-                                decorations[structType.id], specInfo);
+      MakeConstantBlockVariable(cblock[i], pointerTypes, storage, structType,
+                                StringFormat::Fmt("[%u]", i), decorations[structType.id], specInfo);
 
       cblock[i].byteOffset = relativeOffset;
 
@@ -1430,13 +1547,90 @@ void Reflector::MakeConstantBlockVariables(const DataType &structType, uint32_t 
 
   cblock.resize(structType.children.size());
   for(size_t i = 0; i < structType.children.size(); i++)
-    MakeConstantBlockVariable(cblock[i], pointerTypes, dataTypes[structType.children[i].type],
-                              structType.children[i].name, structType.children[i].decorations,
-                              specInfo);
+  {
+    MakeConstantBlockVariable(cblock[i], pointerTypes, storage,
+                              dataTypes[structType.children[i].type], structType.children[i].name,
+                              structType.children[i].decorations, specInfo);
+  }
+
+  uint32_t emptyStructSize = 4;
+
+  if(storage == rdcspv::StorageClass::StorageBuffer)
+  {
+    if(capabilities.find(rdcspv::Capability::StorageBuffer8BitAccess) != capabilities.end() ||
+       capabilities.find(rdcspv::Capability::UniformAndStorageBuffer8BitAccess) != capabilities.end())
+      emptyStructSize = 1;
+    else if(capabilities.find(rdcspv::Capability::StorageBuffer16BitAccess) != capabilities.end() ||
+            capabilities.find(rdcspv::Capability::UniformAndStorageBuffer16BitAccess) !=
+                capabilities.end())
+      emptyStructSize = 2;
+  }
+  else if(storage == rdcspv::StorageClass::Uniform)
+  {
+    if(capabilities.find(rdcspv::Capability::UniformAndStorageBuffer8BitAccess) != capabilities.end())
+      emptyStructSize = 1;
+    else if(capabilities.find(rdcspv::Capability::UniformAndStorageBuffer16BitAccess) !=
+            capabilities.end())
+      emptyStructSize = 2;
+  }
+  else if(storage == rdcspv::StorageClass::PushConstant)
+  {
+    if(capabilities.find(rdcspv::Capability::StoragePushConstant8) != capabilities.end())
+      emptyStructSize = 1;
+    else if(capabilities.find(rdcspv::Capability::StoragePushConstant16) != capabilities.end())
+      emptyStructSize = 2;
+  }
+
+  for(size_t i = 0; i < cblock.size(); i++)
+  {
+    // for structs that aren't in arrays, we need to define their byte size (stride). Without
+    // knowing the packing rules this shader is complying with, this is not fully possible.
+    //
+    // what we do is choose the most conservative size - so that this struct's size alone doesn't
+    // invalidate compliance with a particular ruleset (e.g. std140).
+    //
+    // we calculate the scalar, base, and extended sizes of the struct sizes of the struct. The
+    // largest one that fits between this struct and the next member is the one we use. If there is
+    // no next member, we always use the base size as it's impossible to tell how much trailing
+    // padding the shader expected.
+    //
+    // If we guess wrongly small, members after this struct will need an [[offset]] decoration,
+    // If we guess wrongly large the struct itself will need a [[size]] decoration
+    // Since we're choosing the largest valid size, it will always be just a [[size]] which might be
+    // unnecessary (if e.g. somewhere else the shader demonstrates scalar packing so the padded size
+    // is larger than the scalar calculated size) but that's only present in one place.
+
+    if(cblock[i].type.descriptor.type == VarType::Struct &&
+       cblock[i].type.descriptor.arrayByteStride == 0)
+    {
+      // this should not be an array - if it is SPIR-V requires an array byte stride, and this
+      // calculation below is also invalid.
+      RDCASSERTEQUAL(cblock[i].type.descriptor.elements, 1);
+
+      StructSizes sizes = CalculateStructProps(emptyStructSize, cblock[i]);
+
+      uint32_t availSize = ~0U;
+      if(i + 1 < cblock.size())
+        availSize = cblock[i + 1].byteOffset - cblock[i].byteOffset;
+      else if(arrayByteStride != 0)
+        availSize = arrayByteStride - cblock[i].byteOffset;
+
+      // expect at least the scalar size to be available otherwise this struct seems to overlap
+      RDCASSERT(sizes.scalarSize <= availSize, sizes.scalarSize, availSize);
+
+      if(sizes.extendedSize <= availSize)
+        cblock[i].type.descriptor.arrayByteStride = sizes.extendedSize;
+      else if(sizes.baseSize <= availSize)
+        cblock[i].type.descriptor.arrayByteStride = sizes.baseSize;
+      else
+        cblock[i].type.descriptor.arrayByteStride = sizes.scalarSize;
+    }
+  }
 }
 
 void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst,
-                                          SparseIdMap<uint16_t> &pointerTypes, const DataType &type,
+                                          SparseIdMap<uint16_t> &pointerTypes,
+                                          rdcspv::StorageClass storage, const DataType &type,
                                           const rdcstr &name, const Decorations &varDecorations,
                                           const rdcarray<SpecConstant> &specInfo) const
 {
@@ -1524,20 +1718,23 @@ void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst,
 
     RDCASSERT(curType->type == DataType::StructType || curType->type == DataType::ArrayType);
 
-    outConst.type.descriptor.type = VarType::Float;
+    outConst.type.descriptor.type = VarType::Struct;
     outConst.type.descriptor.rows = 0;
     outConst.type.descriptor.columns = 0;
 
     outConst.type.descriptor.name = curType->name;
 
-    MakeConstantBlockVariables(*curType, outConst.type.descriptor.elements,
+    MakeConstantBlockVariables(storage, *curType, outConst.type.descriptor.elements,
                                outConst.type.descriptor.arrayByteStride, outConst.type.members,
                                pointerTypes, specInfo);
 
     if(curType->type == DataType::ArrayType)
     {
+      outConst.type.descriptor.name = type.name;
+
       // if the inner type is an array, it will be expanded in our members list. So don't also
       // redundantly keep the element count
+      outConst.type.descriptor.arrayByteStride *= outConst.type.descriptor.elements;
       outConst.type.descriptor.elements = 1;
     }
   }

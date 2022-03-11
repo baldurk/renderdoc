@@ -31,6 +31,22 @@
 static ShaderConstant MakeConstantBufferVariable(bool cbufferPacking,
                                                  const DXBC::CBufferVariable &var);
 
+static void FixupEmptyStructs(rdcarray<ShaderConstant> &members)
+{
+  for(size_t i = 0; i < members.size(); i++)
+  {
+    if(members[i].byteOffset == ~0U)
+    {
+      // don't try to calculate offset for trailing empty structs, just delete them
+      if(i == members.size() - 1)
+        members.pop_back();
+      // other empty struct members take the offset of the next member
+      else
+        members[i].byteOffset = members[i + 1].byteOffset;
+    }
+  }
+}
+
 static ShaderConstantType MakeShaderConstantType(bool cbufferPacking, DXBC::CBufferVariableType type)
 {
   ShaderConstantType ret;
@@ -56,7 +72,26 @@ static ShaderConstantType MakeShaderConstantType(bool cbufferPacking, DXBC::CBuf
 
   if(type.descriptor.varClass == DXBC::CLASS_STRUCT)
   {
+    // fxc's reported byte size for UAV structs is not reliable (booo). It seems to assume some
+    // padding that doesn't exist, especially in arrays. So e.g.:
+    // struct nested_with_padding
+    // {
+    //   float a; float4 b; float c; float3 d[4];
+    // };
+    // is tightly packed and only contains 1+4+1+4*3 floats = 18*4 = 72 bytes
+    // however an array of nested_with_padding foo[2] will have size listed as 176 bytes.
+    //
+    // fortunately, since packing is tight we can look at the 'columns' field which is the number of
+    // floats in the struct, and multiply that
     uint32_t stride = type.descriptor.bytesize / RDCMAX(1U, type.descriptor.elements);
+    if(!cbufferPacking)
+    {
+      stride = type.descriptor.cols * sizeof(float);
+      // the exception is empty structs have 1 cols, probably because of a max(1,...) somewhere
+      if(type.descriptor.bytesize == 0)
+        stride = 0;
+    }
+
     RDCASSERTMSG("Stride is too large for uint16_t", stride <= 0xffff);
 
     ret.descriptor.arrayByteStride = RDCMIN(stride, 0xffffu) & 0xffff;
@@ -65,6 +100,8 @@ static ShaderConstantType MakeShaderConstantType(bool cbufferPacking, DXBC::CBuf
       ret.descriptor.arrayByteStride = AlignUp16(ret.descriptor.arrayByteStride);
 
     ret.descriptor.rows = ret.descriptor.columns = 0;
+
+    ret.descriptor.type = VarType::Struct;
   }
   else
   {
@@ -77,6 +114,8 @@ static ShaderConstantType MakeShaderConstantType(bool cbufferPacking, DXBC::CBuf
   ret.members.reserve(type.members.size());
   for(size_t i = 0; i < type.members.size(); i++)
     ret.members.push_back(MakeConstantBufferVariable(cbufferPacking, type.members[i]));
+
+  FixupEmptyStructs(ret.members);
 
   if(!ret.members.empty())
   {
@@ -95,6 +134,12 @@ static ShaderConstant MakeConstantBufferVariable(bool cbufferPacking, const DXBC
   ret.byteOffset = var.offset;
   ret.defaultValue = 0;
   ret.type = MakeShaderConstantType(cbufferPacking, var.type);
+
+  // fxc emits negative values for offsets of empty structs sometimes. Replace that with a single
+  // value so we can say 'use the previous value'
+  if(ret.type.descriptor.type == VarType::Struct && ret.type.members.empty() &&
+     ret.byteOffset > 0xF0000000)
+    ret.byteOffset = ~0U;
 
   return ret;
 }
@@ -337,6 +382,8 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
       cb.variables.push_back(
           MakeConstantBufferVariable(true, dxbc->GetReflection()->CBuffers[i].variables[v]));
     }
+
+    FixupEmptyStructs(cb.variables);
   }
 
   mapping->samplers.resize(dxbc->GetReflection()->Samplers.size());
