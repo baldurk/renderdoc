@@ -53,7 +53,7 @@ This ``.cap`` file can be executed when RenderDoc's file associations are set up
 You can also use the "Auto start" option - when this option is enabled then a .cap file will immediately launch the program when it is loaded. This can allow you to configure a .cap which will open RenderDoc and launch the target application with the pre-configured settings in one click. If you wish to disable this, just uncheck the option and re-save to the same ``.cap`` file.
 
 See Also
---------
+---------
 
 * :doc:`../window/capture_attach`
 * :doc:`how_network_capture_replay`
