@@ -281,7 +281,7 @@ void ConstantBufferPreviewer::processFormat(const QString &format)
   {
     QString errors;
 
-    m_formatOverride = BufferFormatter::ParseFormatString(format, ~0ULL, false, errors);
+    m_formatOverride = BufferFormatter::ParseFormatString(format, ~0ULL, errors);
     ui->formatSpecifier->setErrors(errors);
   }
 

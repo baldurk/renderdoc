@@ -188,6 +188,8 @@ private:
 
   static uint32_t GetVarSize(const ShaderConstant &var);
 
+  static uint32_t GetAlignment(Packing::Rules pack, const ShaderConstant &constant);
+
   static void EstimatePackingRules(Packing::Rules &pack, const ShaderConstant &constant);
 
 public:
@@ -195,7 +197,7 @@ public:
 
   static void Init(GraphicsAPI api) { m_API = api; }
   static ShaderConstant ParseFormatString(const QString &formatString, uint64_t maxLen,
-                                          bool tightPacking, QString &errors);
+                                          QString &errors);
 
   static Packing::Rules EstimatePackingRules(const rdcarray<ShaderConstant> &members);
 

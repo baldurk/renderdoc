@@ -2672,7 +2672,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
   else
   {
     QString errors;
-    ShaderConstant constant = BufferFormatter::ParseFormatString(m_Format, m_ByteSize, true, errors);
+    ShaderConstant constant = BufferFormatter::ParseFormatString(m_Format, m_ByteSize, errors);
 
     UnrollConstant(constant, bufdata->vsinConfig.columns, bufdata->vsinConfig.props);
 
@@ -4175,7 +4175,7 @@ void BufferViewer::processFormat(const QString &format)
 
   BufferConfiguration bufconfig;
 
-  ShaderConstant cols = BufferFormatter::ParseFormatString(format, m_ByteSize, true, errors);
+  ShaderConstant cols = BufferFormatter::ParseFormatString(format, m_ByteSize, errors);
 
   CalcColumnWidth(MaxNumRows(cols));
 

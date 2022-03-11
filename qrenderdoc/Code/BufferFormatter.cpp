@@ -32,6 +32,7 @@ struct StructFormatData
   ShaderConstant structDef;
   uint32_t pointerTypeId = 0;
   uint32_t offset = 0;
+  uint32_t alignment = 0;
   uint32_t paddedStride = 0;
 };
 
@@ -157,14 +158,12 @@ void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, const ShaderCon
 
   if(!pack.vector_align_component || !pack.vector_straddle_16b)
   {
-    uint8_t vecSize = 0;
-
     // column major matrices have vectors that are 'rows' long. Everything else is vectors of
     // 'columns' long
+    uint8_t vecSize = constant.type.descriptor.columns;
+
     if(constant.type.descriptor.rows > 1 && constant.type.descriptor.ColMajor())
       vecSize = constant.type.descriptor.rows;
-    else
-      vecSize = constant.type.descriptor.columns;
 
     if(vecSize > 1)
     {
@@ -327,7 +326,7 @@ Packing::Rules BufferFormatter::EstimatePackingRules(const rdcarray<ShaderConsta
 }
 
 ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, uint64_t maxLen,
-                                                  bool tightPacking, QString &errors)
+                                                  QString &errors)
 {
   StructFormatData root;
   StructFormatData *cur = &root;
@@ -419,6 +418,13 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
           "\\s*:\\s*([1-9][0-9]*)"        // bitfield packing
           "$"));
 
+  QRegularExpression packingRegex(
+      lit("^"                         // start of the line
+          "#\\s*pack\\s*\\("          // #pack(
+          "(?<rule>[a-zA-Z0-9_]+)"    // packing ruleset or individual rule
+          "\\)"                       // )
+          "$"));
+
   uint32_t bitfieldCurPos = ~0U;
 
   struct Annotation
@@ -426,6 +432,10 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
     QString name;
     QString param;
   };
+
+  // default to scalar (tight packing) if nothing else is specified at all. The expectation is
+  // anything that needs a better default will insert that into the format string for the user
+  Packing::Rules pack = Packing::Scalar;
 
   QList<Annotation> annotations;
 
@@ -451,6 +461,68 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
     if(line.isEmpty())
       continue;
+
+    {
+      QRegularExpressionMatch match = packingRegex.match(line);
+
+      if(match.hasMatch())
+      {
+        if(cur != &root)
+        {
+          errors = tr("Packing rules can only be changed at global scope: %1\n").arg(line);
+          success = false;
+          break;
+        }
+
+        QString packrule = match.captured(lit("rule")).toLower();
+
+        // try to pick up common aliases that people might use
+        if(packrule == lit("d3dcbuffer") || packrule == lit("cbuffer") || packrule == lit("cb"))
+          pack = Packing::D3DCB;
+        else if(packrule == lit("d3duav") || packrule == lit("uav") ||
+                packrule == lit("structured"))
+          pack = Packing::D3DUAV;
+        else if(packrule == lit("std140") || packrule == lit("ubo") || packrule == lit("gl") ||
+                packrule == lit("gles") || packrule == lit("opengl") || packrule == lit("glsl"))
+          pack = Packing::std140;
+        else if(packrule == lit("std430") || packrule == lit("ssbo"))
+          pack = Packing::std430;
+        else if(packrule == lit("scalar"))
+          pack = Packing::Scalar;
+        else if(packrule == lit("c"))
+          pack = Packing::C;
+
+        // we also allow toggling the individual rules
+        else if(packrule == lit("vector_align_component"))
+          pack.vector_align_component = true;
+        else if(packrule == lit("no_vector_align_component"))
+          pack.vector_align_component = false;
+        else if(packrule == lit("tight_arrays"))
+          pack.tight_arrays = true;
+        else if(packrule == lit("no_tight_arrays"))
+          pack.tight_arrays = false;
+        else if(packrule == lit("vector_straddle_16b"))
+          pack.vector_straddle_16b = true;
+        else if(packrule == lit("no_vector_straddle_16b"))
+          pack.vector_straddle_16b = false;
+        else if(packrule == lit("trailing_overlap"))
+          pack.trailing_overlap = true;
+        else if(packrule == lit("no_trailing_overlap"))
+          pack.trailing_overlap = false;
+
+        else
+          packrule = QString();
+
+        if(packrule.isEmpty())
+        {
+          errors = tr("Unrecognised packing rule specifier: %1\n").arg(line);
+          success = false;
+          break;
+        }
+
+        continue;
+      }
+    }
 
     if(cur == &root)
     {
@@ -481,26 +553,35 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         {
           cur->structDef.type.descriptor.arrayByteStride = cur->offset;
 
-          // struct strides are aligned up to float4 boundary
-          if(!tightPacking)
-            cur->structDef.type.descriptor.arrayByteStride = (cur->offset + 0xFU) & (~0xFU);
+          cur->alignment = GetAlignment(pack, cur->structDef);
+
+          // if we don't have tight arrays, struct byte strides are always 16-byte aligned
+          if(!pack.tight_arrays)
+          {
+            cur->alignment = 16;
+          }
+
+          cur->structDef.type.descriptor.arrayByteStride = AlignUp(cur->offset, cur->alignment);
+
+          if(cur->paddedStride > 0)
+          {
+            // only pad up to the stride, not down
+            if(cur->paddedStride >= cur->structDef.type.descriptor.arrayByteStride)
+            {
+              cur->structDef.type.descriptor.arrayByteStride = cur->paddedStride;
+            }
+            else
+            {
+              errors = tr("Declared struct %1 stride %2 is less than structure size %3\n")
+                           .arg(cur->structDef.type.descriptor.name)
+                           .arg(cur->paddedStride)
+                           .arg(cur->structDef.type.descriptor.arrayByteStride);
+              success = false;
+              break;
+            }
+          }
 
           cur->pointerTypeId = PointerTypeRegistry::GetTypeID(cur->structDef.type);
-
-          // only pad up to the stride, not down
-          if(cur->paddedStride >= cur->structDef.type.descriptor.arrayByteStride)
-          {
-            cur->structDef.type.descriptor.arrayByteStride = cur->paddedStride;
-          }
-          else if(cur->paddedStride > 0)
-          {
-            errors = tr("Declared struct %1 stride %2 is less than structure size %3\n")
-                         .arg(cur->structDef.type.descriptor.name)
-                         .arg(cur->paddedStride)
-                         .arg(cur->structDef.type.descriptor.arrayByteStride);
-            success = false;
-            break;
-          }
         }
 
         cur = &root;
@@ -685,14 +766,6 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         if(annot.name == lit("offset") || annot.name == lit("byte_offset"))
         {
           specifiedOffset = annot.param.toUInt();
-
-          if(specifiedOffset < cur->offset)
-          {
-            errors =
-                tr("Offset %1 on variable %2 overlaps previous data\n").arg(specifiedOffset).arg(varName);
-            success = false;
-            break;
-          }
         }
         else
         {
@@ -726,12 +799,21 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
           break;
         }
 
-        // if not tight packing, align up to pointer size
-        if(!tightPacking)
-          cur->offset = (cur->offset + 0x7) & (~0x7);
+        // align to scalar size
+        cur->offset = AlignUp(cur->offset, 8U);
 
         if(specifiedOffset != ~0U)
+        {
+          if(specifiedOffset < cur->offset)
+          {
+            errors =
+                tr("Offset %1 on variable %2 overlaps previous data\n").arg(specifiedOffset).arg(varName);
+            success = false;
+            break;
+          }
+
           cur->offset = specifiedOffset;
+        }
 
         el.name = varName;
         el.byteOffset = cur->offset;
@@ -755,8 +837,30 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
           break;
         }
 
+        // align to scalar size (if not bit packing)
+        if(bitfieldCurPos == ~0U)
+          cur->offset = AlignUp(cur->offset, structContext.structDef.type.descriptor.arrayByteStride);
+
         if(specifiedOffset != ~0U)
+        {
+          uint32_t offs = cur->offset;
+          if(bitfieldCurPos != ~0U)
+            offs += (bitfieldCurPos + 7) / 8;
+
+          if(specifiedOffset < offs)
+          {
+            errors =
+                tr("Offset %1 on variable %2 overlaps previous data\n").arg(specifiedOffset).arg(varName);
+            success = false;
+            break;
+          }
+
           cur->offset = specifiedOffset;
+
+          // reset any bitfield packing to start at 0 at the new location
+          if(bitfieldCurPos != ~0U)
+            bitfieldCurPos = 0;
+        }
 
         el = structContext.structDef;
         el.name = varName;
@@ -780,12 +884,22 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
           break;
         }
 
-        // cbuffer packing rules, structs are always float4 base aligned
-        if(!tightPacking)
-          cur->offset = (cur->offset + 0xFU) & (~0xFU);
+        // all packing rules align structs in the same way as arrays. We already calculated this
+        // when calculating the struct's alignment which will be padded to 16B for non-tight arrays
+        cur->offset = AlignUp(cur->offset, structContext.alignment);
 
         if(specifiedOffset != ~0U)
+        {
+          if(specifiedOffset < cur->offset)
+          {
+            errors =
+                tr("Offset %1 on variable %2 overlaps previous data\n").arg(specifiedOffset).arg(varName);
+            success = false;
+            break;
+          }
+
           cur->offset = specifiedOffset;
+        }
 
         el = structContext.structDef;
         el.name = varName;
@@ -794,10 +908,12 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
         cur->structDef.type.members.push_back(el);
 
-        // undo the padding after the last struct
-        uint32_t padding = el.type.descriptor.arrayByteStride - structContext.offset;
+        // advance by the struct including any trailing padding
+        cur->offset += el.type.descriptor.elements * el.type.descriptor.arrayByteStride;
 
-        cur->offset += el.type.descriptor.elements * el.type.descriptor.arrayByteStride - padding;
+        // if we allow trailing overlap, remove the padding
+        if(pack.trailing_overlap)
+          cur->offset -= el.type.descriptor.arrayByteStride - structContext.offset;
 
         continue;
       }
@@ -1112,10 +1228,6 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
           cur->offset = specifiedOffset;
         }
-        else if(annot.name == lit("matrix_stride"))
-        {
-          el.type.descriptor.matrixByteStride = annot.param.toUInt();
-        }
         else
         {
           errors = tr("Unrecognised annotation on variable: %1\n").arg(annot.name);
@@ -1167,19 +1279,46 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         el.type.descriptor.flags |= ShaderVariableFlags::HexDisplay;
     }
 
-    ResourceFormat fmt = GetInterpretedResourceFormat(el);
+    const bool packed32bit = bool(el.type.descriptor.flags & (ShaderVariableFlags::R10G10B10A2 |
+                                                              ShaderVariableFlags::R11G11B10));
 
     // normally the array stride is the size of an element
-    const uint32_t elemScalarByteSize = fmt.ElementSize();
-    el.type.descriptor.arrayByteStride = elemScalarByteSize;
+    const uint32_t elAlignment = packed32bit ? sizeof(uint32_t) : GetAlignment(pack, el);
 
-    // if a manual byte stride wasn't specified
-    if(el.type.descriptor.matrixByteStride == 0)
-      el.type.descriptor.matrixByteStride = elemScalarByteSize;
+    const uint8_t vecSize = (el.type.descriptor.rows > 1 && el.type.descriptor.ColMajor())
+                                ? el.type.descriptor.rows
+                                : el.type.descriptor.columns;
+
+    const uint32_t elSize =
+        packed32bit ? sizeof(uint32_t)
+                    : (pack.vector_align_component ? elAlignment * vecSize : elAlignment);
+
+    // if we aren't using tight arrays the stride is at least 16 bytes
+    el.type.descriptor.arrayByteStride = elAlignment;
+    if(el.type.descriptor.columns > 1)
+      el.type.descriptor.arrayByteStride = elSize;
+
+    if(!pack.tight_arrays)
+      el.type.descriptor.arrayByteStride = std::max(16U, el.type.descriptor.arrayByteStride);
+
+    // matrices are always aligned like arrays of vectors
+    if(el.type.descriptor.rows > 1)
+    {
+      // the alignment calculated above is the alignment of a vector, that's our matrix stride
+      el.type.descriptor.matrixByteStride = el.type.descriptor.arrayByteStride;
+
+      // the array stride is that alignment times the number of rows/columns
+      if(el.type.descriptor.RowMajor())
+        el.type.descriptor.arrayByteStride *= el.type.descriptor.rows;
+      else
+        el.type.descriptor.arrayByteStride *= el.type.descriptor.columns;
+    }
 
     if(el.bitFieldSize > 0)
     {
-      const uint32_t elemScalarBitSize = elemScalarByteSize * 8;
+      // we can use the arrayByteStride since this is a scalar so no vector/arrays, this is just the
+      // base size. It also works for enums as this is the byte size of the declared underlying type
+      const uint32_t elemScalarBitSize = cur->structDef.type.descriptor.arrayByteStride * 8;
 
       // bitfields can't be larger than the base type
       if(el.bitFieldSize > elemScalarBitSize)
@@ -1228,33 +1367,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         // reset the current bitfield pos
         bitfieldCurPos = 0;
       }
-    }
 
-    uint32_t padding = 0;
-
-    // for matrices, it's the size of an element times the number of rows
-    if(el.type.descriptor.rows > 1)
-    {
-      // if we're cbuffer packing, matrix row/columns are always 16-bytes apart
-      if(!tightPacking)
-      {
-        padding = 16 - el.type.descriptor.matrixByteStride;
-        el.type.descriptor.matrixByteStride = 16;
-      }
-
-      uint8_t majorDim =
-          el.type.descriptor.RowMajor() ? el.type.descriptor.rows : el.type.descriptor.columns;
-
-      // total matrix size is
-      el.type.descriptor.arrayByteStride = el.type.descriptor.matrixByteStride * majorDim;
-    }
-
-    el.byteOffset = cur->offset;
-    bool updateCurOffset = true;
-
-    // handle bitfield packing
-    if(el.bitFieldSize > 0)
-    {
       // if there's no previous bitpacking, nothing much to do
       if(bitfieldCurPos == ~0U)
       {
@@ -1268,60 +1381,59 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         // update by our size
         bitfieldCurPos += el.bitFieldSize;
       }
-
-      // don't update the current position
-      updateCurOffset = false;
     }
     else
     {
       // this element is not bitpacked
 
-      // update offset to account for any bits consumed by the previous bitfield, which won't have
-      // happened yet, including any bits in the last byte that weren't allocated
-      cur->offset += (bitfieldCurPos + 7) / 8;
-
-      // align to our base element size
-      cur->offset = (cur->offset + (elemScalarByteSize - 1)) & (~(elemScalarByteSize - 1));
-
-      // reset bitpacking state.
-      bitfieldCurPos = ~0U;
-    }
-
-    // cbuffer packing rules
-    if(!tightPacking && bitfieldCurPos == ~0U)
-    {
-      if(el.type.descriptor.elements == 1)
+      if(bitfieldCurPos != ~0U)
       {
-        // always float aligned
-        el.type.descriptor.arrayByteStride = (el.type.descriptor.arrayByteStride + 3U) & (~3U);
+        // update offset to account for any bits consumed by the previous bitfield, which won't have
+        // happened yet, including any bits in the last byte that weren't allocated
+        cur->offset += (bitfieldCurPos + 7) / 8;
 
-        // elements can't cross float4 boundaries, nudge up if this was the case
-        if(cur->offset / 16 != (cur->offset + el.type.descriptor.arrayByteStride - 1) / 16)
-        {
-          cur->offset = (cur->offset + 0xFU) & (~0xFU);
-        }
+        // reset bitpacking state.
+        bitfieldCurPos = ~0U;
       }
-      else
+
+      // align to our element's base alignment
+      cur->offset = AlignUp(cur->offset, elAlignment);
+
+      // if we have non-tight arrays, arrays (and matrices) always start on a 16-byte boundary
+      if(!pack.tight_arrays && (el.type.descriptor.elements > 1 || el.type.descriptor.rows > 1))
+        cur->offset = AlignUp(cur->offset, 16U);
+
+      // if vectors can't straddle 16-byte alignment, check to see if we're going to do that
+      if(!pack.vector_straddle_16b)
       {
-        // arrays always have elements float4 aligned
-        uint32_t paddedStride = (el.type.descriptor.arrayByteStride + 0xFU) & (~0xFU);
-
-        padding += paddedStride - el.type.descriptor.arrayByteStride;
-
-        el.type.descriptor.arrayByteStride = paddedStride;
-
-        // and always aligned at float4 boundary
-        if(cur->offset % 16 != 0)
+        if(cur->offset / 16 != (cur->offset + elSize - 1) / 16)
         {
-          cur->offset = (cur->offset + 0xFU) & (~0xFU);
+          cur->offset = AlignUp(cur->offset, 16U);
         }
       }
     }
+
+    el.byteOffset = cur->offset;
 
     cur->structDef.type.members.push_back(el);
 
-    if(updateCurOffset)
-      cur->offset += el.type.descriptor.arrayByteStride * el.type.descriptor.elements - padding;
+    // if we're bitfield packing don't advance offset, otherwise advance to the end of this element
+    if(bitfieldCurPos == ~0U)
+    {
+      // advance by the struct including any trailing padding
+      cur->offset += GetVarSize(el);
+
+      // if we allow trailing overlap in arrays/matrices, remove the padding. This is only possible
+      // with non-tight arrays
+      if(pack.trailing_overlap && !pack.tight_arrays &&
+         (el.type.descriptor.type == VarType::Struct || el.type.descriptor.elements > 1 ||
+          el.type.descriptor.rows > 1))
+      {
+        // the padding is the stride (which is rounded up to 16 for non-tight arrays) minus the size
+        // of the last vector (whether or not this is an array of scalars, vectors or matrices
+        cur->offset -= 16 - elSize;
+      }
+    }
   }
 
   if(bitfieldCurPos != ~0U)
@@ -1339,11 +1451,8 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
   if(success && root.structDef.type.members.isEmpty() && !lastStruct.isEmpty())
     root = structelems[lastStruct];
 
-  root.structDef.type.descriptor.arrayByteStride = root.offset;
-
-  // struct strides are aligned up to float4 boundary
-  if(!tightPacking)
-    root.structDef.type.descriptor.arrayByteStride = (root.offset + 0xFU) & (~0xFU);
+  root.structDef.type.descriptor.arrayByteStride =
+      AlignUp(root.offset, GetAlignment(pack, root.structDef));
 
   if(!success || root.structDef.type.members.isEmpty())
   {
@@ -1681,6 +1790,49 @@ uint32_t BufferFormatter::GetVarSize(const ShaderConstant &var)
   return size;
 }
 
+uint32_t BufferFormatter::GetAlignment(Packing::Rules pack, const ShaderConstant &c)
+{
+  uint32_t ret = 1;
+
+  if(c.type.descriptor.type == VarType::Struct)
+  {
+    for(const ShaderConstant &m : c.type.members)
+      ret = std::max(ret, GetAlignment(pack, m));
+  }
+  else if(c.type.descriptor.type == VarType::Enum)
+  {
+    ret = c.type.descriptor.arrayByteStride;
+  }
+  else if(c.type.members.empty())
+  {
+    uint32_t align = VarTypeByteSize(c.type.descriptor.type);
+
+    // if vectors aren't component aligned we need to calculate the alignment based on the size of
+    // the vectors
+    if(!pack.vector_align_component)
+    {
+      // column major matrices have vectors that are 'rows' long. Everything else is vectors of
+      // 'columns' long
+      uint8_t vecSize = c.type.descriptor.columns;
+
+      if(c.type.descriptor.rows > 1 && c.type.descriptor.ColMajor())
+        vecSize = c.type.descriptor.rows;
+
+      // 3- and 4- vectors are 4-component aligned
+      if(vecSize >= 3)
+        align *= 4;
+
+      // 2- vectors are 2-component aligned
+      else if(vecSize == 2)
+        align *= 2;
+    }
+
+    ret = std::max(ret, align);
+  }
+
+  return ret;
+}
+
 uint32_t BufferFormatter::GetStructVarSize(const rdcarray<ShaderConstant> &members)
 {
   uint32_t lastMemberStart = 0;
@@ -1848,19 +2000,6 @@ ResourceFormat GetInterpretedResourceFormat(const ShaderConstant &elem)
     format.compCount = elem.type.descriptor.columns;
   else
     format.compCount = elem.type.descriptor.rows;
-
-  // packed formats with fixed component counts multiply up the component count
-  switch(format.type)
-  {
-    case ResourceFormatType::R10G10B10A2:
-    case ResourceFormatType::R5G5B5A1:
-    case ResourceFormatType::R4G4B4A4: format.compCount *= 4; break;
-    case ResourceFormatType::R11G11B10:
-    case ResourceFormatType::R9G9B9E5:
-    case ResourceFormatType::R5G6B5: format.compCount *= 3; break;
-    case ResourceFormatType::R4G4: format.compCount *= 2; break;
-    default: break;
-  }
 
   return format;
 }
