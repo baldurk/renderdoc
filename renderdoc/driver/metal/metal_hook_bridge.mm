@@ -81,9 +81,15 @@ void MetalHook::RegisterGlobalNonHookedMetalFunctions()
 #undef METAL_FETCH
 }
 
+extern void AppleRegisterRealSymbol(const char *functionName, void *address);
+
 void MetalHook::RegisterGlobalHookedMetalFunctions()
 {
-#define METAL_FUNC(func) METAL.func = &::func;
+#define METAL_FUNC(func)                                                                          \
+  AppleRegisterRealSymbol(STRINGIZE(func), (void *)&::func);                                      \
+  LibraryHooks::RegisterFunctionHook("Metal", FunctionHook(STRINGIZE(func), (void **)&METAL.func, \
+                                                           (void *)&METAL_EXPORT_NAME(func)));
+
   ForEachMetalSupported();
 #undef METAL_FUNC
 }
