@@ -201,6 +201,46 @@ void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, const ShaderCon
   }
 }
 
+QString BufferFormatter::DeclarePacking(Packing::Rules pack)
+{
+  if(pack == Packing::D3DCB)
+    return lit("#pack(cbuffer)");
+  else if(pack == Packing::std140)
+    return lit("#pack(std140)");
+  else if(pack == Packing::std430)
+    return lit("#pack(std430)");
+  else if(pack == Packing::D3DUAV)    // this is also C but we call it 'structured' for D3D
+    return lit("#pack(structured)");
+  else if(pack == Packing::Scalar)
+    return lit("#pack(scalar)");
+
+  // packing doesn't match a premade ruleset. Emit individual specifiers
+  QString ret;
+  if(pack.vector_align_component)
+    ret += lit("#pack(vector_align_component)    // vectors are aligned to their component\n");
+  else
+    ret +=
+        lit("#pack(no_vector_align_component) // vectors are aligned evenly (float3 as float4)\n");
+  if(pack.tight_arrays)
+    ret += lit("#pack(tight_arrays)              // arrays are packed tightly\n");
+  else
+    ret += lit("#pack(no_tight_arrays)           // arrays are padded to 16-byte boundaries\n");
+  if(pack.vector_straddle_16b)
+    ret += lit("#pack(vector_straddle_16b)       // vectors can straddle 16-byte boundaries\n");
+  else
+    ret += lit("#pack(no_vector_straddle_16b)    // vectors cannot straddle 16-byte boundaries\n");
+  if(pack.trailing_overlap)
+    ret +=
+        lit("#pack(trailing_overlap)          // variables can overlap trailing padding after "
+            "arrays/structs\n");
+  else
+    ret +=
+        lit("#pack(no_trailing_overlap)       // variables cannot overlap trailing padding after "
+            "arrays/structs\n");
+
+  return ret.trimmed();
+}
+
 Packing::Rules BufferFormatter::EstimatePackingRules(const rdcarray<ShaderConstant> &members)
 {
   Packing::Rules pack;
@@ -1295,7 +1335,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
     // if we aren't using tight arrays the stride is at least 16 bytes
     el.type.descriptor.arrayByteStride = elAlignment;
-    if(el.type.descriptor.columns > 1)
+    if(el.type.descriptor.rows > 1 || el.type.descriptor.columns > 1)
       el.type.descriptor.arrayByteStride = elSize;
 
     if(!pack.tight_arrays)
@@ -1457,6 +1497,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
   if(!success || root.structDef.type.members.isEmpty())
   {
     root.structDef.type.members.clear();
+    root.structDef.type.descriptor.type = VarType::Struct;
 
     ShaderConstant el;
     el.byteOffset = 0;
@@ -1474,6 +1515,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         el.type.descriptor.columns * VarTypeByteSize(el.type.descriptor.type);
 
     root.structDef.type.members.push_back(el);
+    root.structDef.type.descriptor.arrayByteStride = el.type.descriptor.arrayByteStride;
   }
 
   return root.structDef;
@@ -1604,7 +1646,7 @@ QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
   return QFormatStr("%1 %2[%3];").arg(baseType).arg(varName).arg(w);
 }
 
-QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
+QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, const ShaderResource &res,
                                                const ResourceFormat &viewFormat,
                                                uint64_t &baseByteOffset)
 {
@@ -1620,7 +1662,7 @@ QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
       // if there is only one member in the root array, we can just call DeclareStruct directly
       if(members.count() <= 1)
       {
-        format = DeclareStruct(declaredStructs, res.name, members, 0, QString());
+        format = DeclareStruct(pack, declaredStructs, res.name, members, 0, QString());
       }
       else
       {
@@ -1658,15 +1700,21 @@ QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
         // needed
         fakeLastMember[0].byteOffset = 0;
 
-        format = DeclareStruct(declaredStructs, res.name, fakeLastMember,
+        if(fakeLastMember[0].type.descriptor.elements != ~0U)
+          fakeLastMember[0].type.descriptor.arrayByteStride *=
+              fakeLastMember[0].type.descriptor.elements;
+
+        format = DeclareStruct(pack, declaredStructs, res.name, fakeLastMember,
                                fakeLastMember[0].type.descriptor.arrayByteStride, fixedPrefixString);
       }
     }
     else
     {
-      format = DeclareStruct(declaredStructs, res.variableType.descriptor.name,
+      format = DeclareStruct(pack, declaredStructs, res.variableType.descriptor.name,
                              res.variableType.members, 0, QString());
     }
+
+    format = QFormatStr("%1\n\n%2").arg(DeclarePacking(pack)).arg(format);
   }
   else
   {
@@ -1763,31 +1811,49 @@ QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
   return format;
 }
 
+uint32_t BufferFormatter::GetVarStraddleSize(const ShaderConstant &var)
+{
+  if(var.type.descriptor.type == VarType::Enum)
+    return var.type.descriptor.arrayByteStride;
+
+  // structs don't themselves have a straddle size
+  // this is fine because the struct members itself don't straddle, and the alignment of the max of
+  // their members. A struct that contains a vector will have to satisfy that vector's alignment. on
+  // std140/430 this means the struct will be aligned such that as long as its members don't
+  // straddle then any aligned placement of the struct they also won't straddle.
+  // for D3D cbuffers where vectors have float alignment, structs are aligned to 16 always.
+  // all others are scalar so straddling is allowed - i.e there is no packing scheme that disallows
+  // straddling but allows vector AND struct placement so freely that a vector member could avoid
+  // straddling until the struct is placed at a particular offset.
+  if(!var.type.members.empty())
+    return 0;
+
+  if(var.type.descriptor.rows > 1)
+    return var.type.descriptor.matrixByteStride;
+
+  return VarTypeByteSize(var.type.descriptor.type) * var.type.descriptor.columns;
+}
+
 uint32_t BufferFormatter::GetVarSize(const ShaderConstant &var)
 {
-  uint32_t size = var.type.descriptor.rows * var.type.descriptor.columns;
-  uint32_t typeSize = VarTypeByteSize(var.type.descriptor.type);
-  if(typeSize > 1)
-    size *= typeSize;
+  if(var.type.descriptor.elements > 1 && var.type.descriptor.elements != ~0U)
+    return var.type.descriptor.arrayByteStride * var.type.descriptor.elements;
 
   if(var.type.descriptor.type == VarType::Enum)
-    size = var.type.descriptor.arrayByteStride;
+    return var.type.descriptor.arrayByteStride;
+
+  if(!var.type.members.empty())
+    return var.type.descriptor.arrayByteStride;
 
   if(var.type.descriptor.rows > 1)
   {
     if(var.type.descriptor.RowMajor())
-      size = var.type.descriptor.matrixByteStride * var.type.descriptor.rows;
+      return var.type.descriptor.matrixByteStride * var.type.descriptor.rows;
     else
-      size = var.type.descriptor.matrixByteStride * var.type.descriptor.columns;
+      return var.type.descriptor.matrixByteStride * var.type.descriptor.columns;
   }
 
-  if(var.type.descriptor.type != VarType::Enum && !var.type.members.empty())
-    size = GetStructVarSize(var.type.members);
-
-  if(var.type.descriptor.elements > 1 && var.type.descriptor.elements != ~0U)
-    size *= var.type.descriptor.elements;
-
-  return size;
+  return VarTypeByteSize(var.type.descriptor.type) * var.type.descriptor.columns;
 }
 
 uint32_t BufferFormatter::GetAlignment(Packing::Rules pack, const ShaderConstant &c)
@@ -1833,9 +1899,12 @@ uint32_t BufferFormatter::GetAlignment(Packing::Rules pack, const ShaderConstant
   return ret;
 }
 
-uint32_t BufferFormatter::GetStructVarSize(const rdcarray<ShaderConstant> &members)
+uint32_t BufferFormatter::GetUnpaddedStructSize(const rdcarray<ShaderConstant> &members)
 {
   uint32_t lastMemberStart = 0;
+
+  if(members.empty())
+    return 0;
 
   const ShaderConstant *lastChild = &members.back();
 
@@ -1852,8 +1921,8 @@ uint32_t BufferFormatter::GetStructVarSize(const rdcarray<ShaderConstant> &membe
   return lastMemberStart + GetVarSize(*lastChild);
 }
 
-QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QString &name,
-                                       const rdcarray<ShaderConstant> &members,
+QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &declaredStructs,
+                                       const QString &name, const rdcarray<ShaderConstant> &members,
                                        uint32_t requiredByteStride, QString innerSkippedPrefixString)
 {
   QString ret;
@@ -1864,15 +1933,68 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
 
   uint32_t offset = 0;
 
+  uint32_t structAlignment = 1;
+
   for(int i = 0; i < members.count(); i++)
   {
+    const uint32_t alignment = GetAlignment(pack, members[i]);
+    const uint32_t vecsize = GetVarStraddleSize(members[i]);
+    const uint32_t size = GetVarSize(members[i]);
+    structAlignment = std::max(structAlignment, alignment);
+
+    offset = AlignUp(offset, alignment);
+
+    // if things can't straddle 16-byte boundaries, check that and enforce
+    if(!pack.vector_straddle_16b)
+    {
+      if(offset / 16 != (offset + vecsize - 1) / 16)
+        offset = AlignUp(offset, 16U);
+    }
+
+    // if we don't have tight arrays, arrays and structs begin at 16-byte boundaries
+    if(!pack.tight_arrays &&
+       (members[i].type.descriptor.type == VarType::Struct ||
+        members[i].type.descriptor.elements > 1 || members[i].type.descriptor.rows > 1))
+    {
+      offset = AlignUp(offset, 16U);
+    }
+
+    // if this variable is placed later, add an offset annotation
     if(offset < members[i].byteOffset)
       ret += lit("    [[offset(%1)]]\n").arg(members[i].byteOffset);
     else if(offset > members[i].byteOffset)
-      qCritical() << "Unexpected offset overlow at" << QString(members[i].name) << "in"
+      qCritical() << "Unexpected offset overlap at" << QString(members[i].name) << "in"
                   << QString(name);
 
-    offset = members[i].byteOffset + GetVarSize(members[i]);
+    offset = members[i].byteOffset;
+
+    offset += size;
+
+    // if we allow trailing overlap, remove the padding at the end of the struct/array
+    if(pack.trailing_overlap)
+    {
+      if(members[i].type.descriptor.type == VarType::Struct)
+      {
+        offset -= (members[i].type.descriptor.arrayByteStride -
+                   GetUnpaddedStructSize(members[i].type.members));
+      }
+      else if((members[i].type.descriptor.elements > 1 || members[i].type.descriptor.rows > 1) &&
+              !pack.tight_arrays)
+      {
+        uint8_t vecSize = members[i].type.descriptor.columns;
+
+        if(members[i].type.descriptor.rows > 1 && members[i].type.descriptor.ColMajor())
+          vecSize = members[i].type.descriptor.rows;
+
+        uint32_t elSize = GetAlignment(pack, members[i]);
+        if(pack.vector_align_component)
+          elSize *= vecSize;
+
+        // the padding is the stride (which is rounded up to 16 for non-tight arrays) minus the size
+        // of the last vector (whether or not this is an array of scalars, vectors or matrices
+        offset -= 16 - elSize;
+      }
+    }
 
     QString arraySize;
     if(members[i].type.descriptor.elements > 1 && members[i].type.descriptor.elements != ~0U)
@@ -1887,17 +2009,20 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
 
       varTypeName = pointeeType.descriptor.name;
 
+      varTypeName =
+          varTypeName.replace(QLatin1Char('['), QLatin1Char('_')).replace(QLatin1Char(']'), QString());
+
       if(!declaredStructs.contains(varTypeName))
       {
         declaredStructs.push_back(varTypeName);
-        ret = DeclareStruct(declaredStructs, varTypeName, pointeeType.members,
+        ret = DeclareStruct(pack, declaredStructs, varTypeName, pointeeType.members,
                             pointeeType.descriptor.arrayByteStride, QString()) +
               lit("\n") + ret;
       }
 
       varTypeName += lit("*");
     }
-    else if(!members[i].type.members.isEmpty())
+    else if(members[i].type.descriptor.type == VarType::Struct)
     {
       // GL structs don't give us typenames (boo!) so give them unique names. This will mean some
       // structs get duplicated if they're used in multiple places, but not much we can do about
@@ -1905,10 +2030,13 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
       if(varTypeName.isEmpty() || varTypeName == lit("struct"))
         varTypeName = lit("anon%1").arg(declaredStructs.size());
 
+      varTypeName =
+          varTypeName.replace(QLatin1Char('['), QLatin1Char('_')).replace(QLatin1Char(']'), QString());
+
       if(!declaredStructs.contains(varTypeName))
       {
         declaredStructs.push_back(varTypeName);
-        ret = DeclareStruct(declaredStructs, varTypeName, members[i].type.members,
+        ret = DeclareStruct(pack, declaredStructs, varTypeName, members[i].type.members,
                             members[i].type.descriptor.arrayByteStride, QString()) +
               lit("\n") + ret;
       }
@@ -1919,47 +2047,49 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
     if(varName.isEmpty())
       varName = QFormatStr("_child%1").arg(i);
 
+    if(varName[0] == QLatin1Char('['))
+      varName =
+          varName.replace(QLatin1Char('['), QLatin1Char('_')).replace(QLatin1Char(']'), QString());
+
     if(members[i].type.descriptor.rows > 1)
     {
       if(members[i].type.descriptor.RowMajor())
-      {
         varTypeName = lit("[[row_major]] ") + varTypeName;
 
-        uint32_t tightStride =
-            VarTypeByteSize(members[i].type.descriptor.type) * members[i].type.descriptor.columns;
+      uint32_t stride = GetAlignment(pack, members[i]);
 
-        if(tightStride < members[i].type.descriptor.matrixByteStride)
-        {
-          varTypeName = lit("[[matrix_stride(%1)]] %2")
-                            .arg(members[i].type.descriptor.matrixByteStride)
-                            .arg(varTypeName);
-        }
-      }
-      else
+      if(pack.vector_align_component)
       {
-        uint32_t tightStride =
-            VarTypeByteSize(members[i].type.descriptor.type) * members[i].type.descriptor.rows;
-
-        if(tightStride < members[i].type.descriptor.matrixByteStride)
-        {
-          varTypeName = lit("[[matrix_stride(%1)]] %2")
-                            .arg(members[i].type.descriptor.matrixByteStride)
-                            .arg(varTypeName);
-        }
+        if(members[i].type.descriptor.RowMajor())
+          stride *= members[i].type.descriptor.columns;
+        else
+          stride *= members[i].type.descriptor.rows;
       }
+
+      if(!pack.tight_arrays)
+        stride = 16;
+
+      if(stride != members[i].type.descriptor.matrixByteStride)
+        ret += lit("// unexpected matrix stride %1").arg(members[i].type.descriptor.matrixByteStride);
     }
 
     ret += QFormatStr("    %1 %2%3;\n").arg(varTypeName).arg(varName).arg(arraySize);
   }
 
+  // if we don't have tight arrays, struct byte strides are always 16-byte aligned
+  if(!pack.tight_arrays)
+  {
+    structAlignment = 16;
+  }
+
+  offset = AlignUp(offset, structAlignment);
+
   if(requiredByteStride > 0)
   {
-    const uint32_t structEnd = GetStructVarSize(members);
-
-    if(requiredByteStride > structEnd)
-      ret = lit("[[size(%1)]] %2").arg(requiredByteStride).arg(ret);
-    else if(requiredByteStride != structEnd)
-      qCritical() << "Unexpected stride overlow at struct" << name;
+    if(requiredByteStride > offset)
+      ret = lit("[[size(%1)]]\n%2").arg(requiredByteStride).arg(ret);
+    else if(requiredByteStride != offset)
+      ret = lit("// Unexpected size of struct %1\n%2").arg(requiredByteStride).arg(ret);
   }
 
   ret += lit("}\n");
@@ -1967,11 +2097,15 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
   return ret;
 }
 
-QString BufferFormatter::DeclareStruct(const QString &name, const rdcarray<ShaderConstant> &members,
+QString BufferFormatter::DeclareStruct(Packing::Rules pack, const QString &name,
+                                       const rdcarray<ShaderConstant> &members,
                                        uint32_t requiredByteStride)
 {
   QList<QString> declaredStructs;
-  return DeclareStruct(declaredStructs, name, members, requiredByteStride, QString());
+  QString structDef =
+      DeclareStruct(pack, declaredStructs, name, members, requiredByteStride, QString());
+
+  return QFormatStr("%1\n\n%2").arg(DeclarePacking(pack)).arg(structDef);
 }
 
 ResourceFormat GetInterpretedResourceFormat(const ShaderConstant &elem)
@@ -2024,7 +2158,7 @@ static void FillShaderVarData(ShaderVariable &var, const ShaderConstant &elem, c
 
   if(objs.isEmpty())
   {
-    var.name = "-";
+    var.name = elem.name;
     var.value = ShaderValue();
     return;
   }
@@ -2033,10 +2167,7 @@ static void FillShaderVarData(ShaderVariable &var, const ShaderConstant &elem, c
   {
     for(uint32_t inner = 0; inner < innerCount; inner++)
     {
-      uint32_t dst = outer * elem.type.descriptor.columns + inner;
-
-      if(colMajor)
-        dst = inner * elem.type.descriptor.columns + outer;
+      uint32_t dst = outer * innerCount + inner;
 
       QVariant o = objs[src];
 
@@ -2699,29 +2830,6 @@ QString TypeString(const ShaderVariable &v)
   else if(v.type == VarType::ConstantBlock)
     typeStr = lit("Constant Block");
 
-  if(v.flags & ShaderVariableFlags::HexDisplay)
-  {
-    if(v.type == VarType::ULong)
-      typeStr = lit("[[hex]] long");
-    else if(v.type == VarType::UInt)
-      typeStr = lit("[[hex]] int");
-    else if(v.type == VarType::UShort)
-      typeStr = lit("[[hex]] short");
-    else if(v.type == VarType::UByte)
-      typeStr = lit("[[hex]] byte");
-  }
-  else if(v.flags & ShaderVariableFlags::BinaryDisplay)
-  {
-    if(v.type == VarType::ULong)
-      typeStr = lit("[[binary]] long");
-    else if(v.type == VarType::UInt)
-      typeStr = lit("[[binary]] int");
-    else if(v.type == VarType::UShort)
-      typeStr = lit("[[binary]] short");
-    else if(v.type == VarType::UByte)
-      typeStr = lit("[[binary]] byte");
-  }
-
   if(v.type == VarType::Unknown)
     return lit("Typeless");
   if(v.rows == 1 && v.columns == 1)
@@ -2889,29 +2997,6 @@ QString RowTypeString(const ShaderVariable &v)
     return PointerTypeRegistry::GetTypeDescriptor(v.GetPointer()).descriptor.name + "*";
 
   QString typeStr = ToQStr(v.type);
-
-  if(v.flags & ShaderVariableFlags::HexDisplay)
-  {
-    if(v.type == VarType::ULong)
-      typeStr = lit("[[hex]] long");
-    else if(v.type == VarType::UInt)
-      typeStr = lit("[[hex]] int");
-    else if(v.type == VarType::UShort)
-      typeStr = lit("[[hex]] short");
-    else if(v.type == VarType::UByte)
-      typeStr = lit("[[hex]] byte");
-  }
-  else if(v.flags & ShaderVariableFlags::BinaryDisplay)
-  {
-    if(v.type == VarType::ULong)
-      typeStr = lit("[[binary]] long");
-    else if(v.type == VarType::UInt)
-      typeStr = lit("[[binary]] int");
-    else if(v.type == VarType::UShort)
-      typeStr = lit("[[binary]] short");
-    else if(v.type == VarType::UByte)
-      typeStr = lit("[[binary]] byte");
-  }
 
   if(v.columns == 1)
     return typeStr;

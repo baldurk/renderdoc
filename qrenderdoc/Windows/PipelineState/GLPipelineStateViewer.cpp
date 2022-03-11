@@ -2315,7 +2315,9 @@ void GLPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int c
     if(!shaderRes)
       return;
 
-    QString format = BufferFormatter::GetBufferFormatString(*shaderRes, ResourceFormat(), buf.offset);
+    QString format = BufferFormatter::GetBufferFormatString(
+        BufferFormatter::EstimatePackingRules(shaderRes->variableType.members), *shaderRes,
+        ResourceFormat(), buf.offset);
 
     if(buf.ID != ResourceId())
     {

@@ -466,6 +466,8 @@ struct BufferConfiguration
   uint32_t numRows = 0, unclampedNumRows = 0;
   uint32_t pagingOffset = 0;
 
+  uint32_t formatStride = 0;
+
   QString noDraw;
 
   bool noVertices = false;
@@ -2676,6 +2678,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
     UnrollConstant(constant, bufdata->vsinConfig.columns, bufdata->vsinConfig.props);
 
+    bufdata->vsinConfig.formatStride = constant.type.descriptor.arrayByteStride;
+
     ClearModels();
   }
 
@@ -2735,7 +2739,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       buf = new BufferData;
 
       // calculate tight stride
-      buf->stride = qMax(1U, BufferFormatter::GetStructVarSize(bufdata->vsinConfig.columns));
+      buf->stride = std::max(1U, bufdata->vsinConfig.formatStride);
 
       // the "permanent" range starts at ByteOffset and goes for m_ByteSize
       uint64_t rangeStart = m_ByteOffset;

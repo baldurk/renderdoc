@@ -1068,8 +1068,9 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
           QString formatter;
 
           if(!ptrType.members.isEmpty())
-            formatter = BufferFormatter::DeclareStruct(ptrType.descriptor.name, ptrType.members,
-                                                       ptrType.descriptor.arrayByteStride);
+            formatter = BufferFormatter::DeclareStruct(
+                BufferFormatter::EstimatePackingRules(ptrType.members), ptrType.descriptor.name,
+                ptrType.members, ptrType.descriptor.arrayByteStride);
 
           IBufferViewer *view = ctx.ViewBuffer(ptr->offset, ~0ULL, ptr->base, formatter);
 

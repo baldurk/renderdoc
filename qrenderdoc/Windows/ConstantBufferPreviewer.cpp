@@ -135,7 +135,9 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
     return;
   }
 
-  if(!m_formatOverride.type.members.empty())
+  ui->setFormat->setEnabled(reflection->constantBlocks[m_slot].bufferBacked);
+
+  if(!m_formatOverride.type.members.empty() && reflection->constantBlocks[m_slot].bufferBacked)
   {
     if(!inlineData.empty() && m_cbuffer == ResourceId())
     {
@@ -209,6 +211,17 @@ void ConstantBufferPreviewer::on_setFormat_toggled(bool checked)
   ui->splitter->setCollapsible(1, false);
   ui->splitter->setSizes({1, 1});
   ui->splitter->handle(1)->setEnabled(true);
+
+  const ShaderReflection *reflection = m_Ctx.CurPipelineState().GetShaderReflection(m_stage);
+
+  if(IsD3D(m_Ctx.APIProps().pipelineType))
+    ui->formatSpecifier->setFormat(
+        BufferFormatter::DeclareStruct(Packing::D3DCB, reflection->constantBlocks[m_slot].name,
+                                       reflection->constantBlocks[m_slot].variables, 0));
+  else
+    ui->formatSpecifier->setFormat(BufferFormatter::DeclareStruct(
+        BufferFormatter::EstimatePackingRules(reflection->constantBlocks[m_slot].variables),
+        reflection->constantBlocks[m_slot].name, reflection->constantBlocks[m_slot].variables, 0));
 }
 
 void ConstantBufferPreviewer::on_resourceDetails_clicked()

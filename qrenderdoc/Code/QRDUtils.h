@@ -182,15 +182,17 @@ private:
 
   static GraphicsAPI m_API;
 
-  static QString DeclareStruct(QList<QString> &declaredStructs, const QString &name,
-                               const rdcarray<ShaderConstant> &members, uint32_t requiredByteStride,
-                               QString innerSkippedPrefixString);
-
-  static uint32_t GetVarSize(const ShaderConstant &var);
+  static QString DeclareStruct(Packing::Rules pack, QList<QString> &declaredStructs,
+                               const QString &name, const rdcarray<ShaderConstant> &members,
+                               uint32_t requiredByteStride, QString innerSkippedPrefixString);
 
   static uint32_t GetAlignment(Packing::Rules pack, const ShaderConstant &constant);
+  static uint32_t GetUnpaddedStructSize(const rdcarray<ShaderConstant> &members);
+  static uint32_t GetVarSize(const ShaderConstant &var);
+  static uint32_t GetVarStraddleSize(const ShaderConstant &var);
 
   static void EstimatePackingRules(Packing::Rules &pack, const ShaderConstant &constant);
+  static QString DeclarePacking(Packing::Rules pack);
 
 public:
   BufferFormatter() = default;
@@ -202,13 +204,11 @@ public:
   static Packing::Rules EstimatePackingRules(const rdcarray<ShaderConstant> &members);
 
   static QString GetTextureFormatString(const TextureDescription &tex);
-  static QString GetBufferFormatString(const ShaderResource &res, const ResourceFormat &viewFormat,
-                                       uint64_t &baseByteOffset);
+  static QString GetBufferFormatString(Packing::Rules pack, const ShaderResource &res,
+                                       const ResourceFormat &viewFormat, uint64_t &baseByteOffset);
 
-  static QString DeclareStruct(const QString &name, const rdcarray<ShaderConstant> &members,
-                               uint32_t requiredByteStride);
-
-  static uint32_t GetStructVarSize(const rdcarray<ShaderConstant> &members);
+  static QString DeclareStruct(Packing::Rules pack, const QString &name,
+                               const rdcarray<ShaderConstant> &members, uint32_t requiredByteStride);
 };
 
 QVariantList GetVariants(ResourceFormat format, const ShaderConstant &var, const byte *&data,
