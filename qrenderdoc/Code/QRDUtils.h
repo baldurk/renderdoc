@@ -76,6 +76,7 @@ inline QMetaType::Type GetVariantMetatype(const QVariant &v)
 
 namespace Packing
 {
+// see note in Rules below
 enum APIConfig
 {
   //  property  | vector_align_component | vector_straddle_16b | tight_arrays | trailing_overlap
@@ -91,7 +92,9 @@ enum APIConfig
 };
 
 // individual rules for packing. In general, true is more lenient on packing than false for each
-// property
+// property, though struct_aligned is an exception (in that case true is more 'sensible')
+// NOTE: If any of these rules or the above APIConfigs change, make sure to update
+// BufferFormatter::EstimatePackingRules
 struct Rules
 {
   Rules() = default;
@@ -185,12 +188,16 @@ private:
 
   static uint32_t GetVarSize(const ShaderConstant &var);
 
+  static void EstimatePackingRules(Packing::Rules &pack, const ShaderConstant &constant);
+
 public:
   BufferFormatter() = default;
 
   static void Init(GraphicsAPI api) { m_API = api; }
   static ShaderConstant ParseFormatString(const QString &formatString, uint64_t maxLen,
                                           bool tightPacking, QString &errors);
+
+  static Packing::Rules EstimatePackingRules(const rdcarray<ShaderConstant> &members);
 
   static QString GetTextureFormatString(const TextureDescription &tex);
   static QString GetBufferFormatString(const ShaderResource &res, const ResourceFormat &viewFormat,

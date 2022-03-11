@@ -147,6 +147,185 @@ static bool MatchBaseTypeDeclaration(QString basetype, const bool isUnsigned, Sh
   return true;
 }
 
+void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, const ShaderConstant &constant)
+{
+  // see if this constant violates any of the packing rules we are currently checking for.
+  // We can't *prove* a rule is followed just from one example, we can only see if it is never
+  // *disproved*. This does mean we won't necessarily determine the exact packing scheme, e.g if
+  // scalar packing was used but it was only three float4 vectors then it will look like the most
+  // conservative std140/scalar.
+
+  if(!pack.vector_align_component || !pack.vector_straddle_16b)
+  {
+    uint8_t vecSize = 0;
+
+    // column major matrices have vectors that are 'rows' long. Everything else is vectors of
+    // 'columns' long
+    if(constant.type.descriptor.rows > 1 && constant.type.descriptor.ColMajor())
+      vecSize = constant.type.descriptor.rows;
+    else
+      vecSize = constant.type.descriptor.columns;
+
+    if(vecSize > 1)
+    {
+      // is this a vector that's only component aligned and NOT vector aligned. If so,
+      // vector_align_component is true
+      const uint32_t vec4Size = VarTypeByteSize(constant.type.descriptor.type) * 4;
+      const uint32_t offsModVec = (constant.byteOffset % vec4Size);
+
+      // if it's a vec3 or vec4 and its offset is not purely aligned, it's only component aligned
+      if(vecSize >= 3 && offsModVec != 0)
+        pack.vector_align_component = true;
+
+      // if it's a vec2 and its offset is not either 0 or half the total size, it's also only
+      // component aligned. vec2s without this allowance must be aligned to the vec2 size
+      if(vecSize == 2 && offsModVec != 0 && offsModVec != vec4Size / 2)
+        pack.vector_align_component = true;
+
+      // while we're here, check if the vector straddles a 16-byte boundary
+
+      const uint32_t low16b = (constant.byteOffset / 16);
+      const uint32_t high16b =
+          ((constant.byteOffset + VarTypeByteSize(constant.type.descriptor.type) * vecSize - 1) / 16);
+
+      // if the vector crosses a 16-byte boundary, vectors can straddle them
+      if(low16b != high16b)
+        pack.vector_straddle_16b = true;
+    }
+  }
+
+  if(!pack.tight_arrays && constant.type.descriptor.elements > 1)
+  {
+    // if the array has a byte stride less than 16, it must be non-tight packed
+    if(constant.type.descriptor.arrayByteStride < 16)
+      pack.tight_arrays = true;
+  }
+}
+
+Packing::Rules BufferFormatter::EstimatePackingRules(const rdcarray<ShaderConstant> &members)
+{
+  Packing::Rules pack;
+
+  // start from the most conservative ruleset. We will iteratively turn off any rules which are
+  // violated to end up with the most conservative ruleset which is still valid for the described
+  // variable
+
+  // D3D shouldn't really need to be estimating, because it's implicit from how this is bound
+  // (cbuffer or structured resource)
+  if(IsD3D(m_API))
+    pack = Packing::D3DCB;
+  else
+    pack = Packing::std140;
+
+  for(size_t i = 0; i < members.size(); i++)
+  {
+    // check this constant
+    EstimatePackingRules(pack, members[i]);
+
+    // check for trailing array/struct use
+    if(i > 0)
+    {
+      const uint32_t prevOffset = members[i - 1].byteOffset;
+      const uint32_t prevArrayCount = members[i - 1].type.descriptor.elements;
+      const uint32_t prevArrayStride = members[i - 1].type.descriptor.arrayByteStride;
+
+      // if we overlap into the previous element, trailing padding is not reserved
+      // this works for structs too, as the array stride *includes* padding
+      if(prevArrayCount > 1 && members[i].byteOffset < (prevOffset + prevArrayCount * prevArrayStride))
+      {
+        pack.trailing_overlap = true;
+      }
+    }
+
+    // if we've degenerated to scalar we can't get any more lenient, stop checking rules
+    if(pack == Packing::Scalar)
+      break;
+  }
+
+  // only return a 'real' ruleset. Don't revert to individually setting rules if we can help it
+  // since that's a mess. The worst case is if someone is really using a custom packing format then
+  // we add some extra offset decorations
+
+  // only look for layouts typical of the API in use
+  if(IsD3D(m_API))
+  {
+    // scalar is technically more lenient than anything D3D allows, as D3DUAV requires padding after
+    // structs (it's closer to C packing)
+    if(pack == Packing::D3DCB || pack == Packing::D3DUAV || pack == Packing::Scalar)
+      return pack;
+
+    // shouldn't end up with these as we started at D3DCB, but just for safety
+    if(pack == Packing::std140)
+      return Packing::D3DCB;
+
+    if(pack == Packing::std430)
+      return Packing::D3DUAV;
+  }
+  else
+  {
+    if(pack == Packing::std140 || pack == Packing::std430 || pack == Packing::Scalar)
+      return pack;
+
+    if(m_API == GraphicsAPI::Vulkan)
+    {
+      if(pack == Packing::D3DCB || pack == Packing::D3DUAV)
+        return pack;
+
+      // on vulkan HLSL shaders may use relaxed block layout, which is not wholly represented here.
+      // it doesn't actually allow trailing overlap but this lets us check if we're 'almost' cbuffer
+      // rules, at which point any instances where trailing overlap would be used will look just
+      // like manual padding/offsetting
+      Packing::Rules mod = pack;
+      mod.trailing_overlap = true;
+
+      if(mod == Packing::D3DCB)
+        return Packing::D3DCB;
+    }
+  }
+
+  // don't explicitly use C layout, revert to scalar which is more typical in graphics
+  // the worst case is that some elements that would be in trailing padding in structs get explicit
+  // offset annotations to move them out, since in C that would be implicit.
+  //
+  // note, D3DUAV is treated the same as C but we checked for it above so we'd only get here on
+  // non-D3D
+  if(pack == Packing::C)
+    return Packing::Scalar;
+
+  // our ruleset doesn't match exactly to a premade one. Check the rules to see which properties we
+  // have.
+  // Currently this always means devolving to scalar, but we lay it out explicitly like this in case
+  // other rulesets are added in future.
+
+  // only scalar layouts allow straddling 16 byte alignment, it would be very strange to allow
+  // straddling 16 bytes but e.g. not have tight arrays or component-aligned vectors. Possibly no
+  // arrays were seen so tight arrays couldn't be explicitly determined. So regardless of what else
+  // we found return scalar
+  if(pack.vector_straddle_16b)
+    return Packing::Scalar;
+
+  // trailing overlap is allowed in any D3D layout, but for non-D3D only in scalar layout.
+  // Since we know from above that either we're not using D3D or we aren't an exact match for D3DCB,
+  // assume we're in scalar one way or another.
+  // This could be e.g. D3DUAV with tight arrays but vector straddling wasn't seen explicitly
+  if(pack.trailing_overlap)
+    return Packing::Scalar;
+
+  // the exact same logic as above applies to component-aligned vectors. Allowed in any D3D layout,
+  // but for non-D3D only in scalar layout.
+  if(pack.vector_align_component)
+    return Packing::Scalar;
+
+  // For non-D3D: if we have tight arrays, this is possible in std430 - however since we didn't
+  // match std430 above there must be some other allowance. That means we must devolve to scalar
+  // For D3D this is possible only in D3DUAV (which is equivalent to scalar)
+  if(pack.tight_arrays)
+    return Packing::Scalar;
+
+  // shouldn't get here, but just for safety return the ruleset we derived
+  return pack;
+}
+
 ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, uint64_t maxLen,
                                                   bool tightPacking, QString &errors)
 {
