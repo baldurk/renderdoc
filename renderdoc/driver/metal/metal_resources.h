@@ -25,7 +25,19 @@
 #pragma once
 
 #include "core/resource_manager.h"
-#include "metal_types.h"
+#include "metal_common.h"
+
+class WrappedMTLDevice;
+
+enum MetalResourceType
+{
+  eResUnknown = 0,
+  eResDevice,
+  eResLibrary,
+  eResFunction,
+};
+
+DECLARE_REFLECTION_ENUM(MetalResourceType);
 
 struct WrappedMTLObject
 {
