@@ -22,26 +22,26 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#include "metal_types.h"
 
-#include "metal_common.h"
+RDCCOMPILE_ASSERT(sizeof(NS::Integer) == sizeof(std::intptr_t), "NS::Integer size does not match");
+RDCCOMPILE_ASSERT(sizeof(NS::UInteger) == sizeof(std::uintptr_t),
+                  "NS::UInteger size does not match");
 
-#define METALCPP_WRAPPED_PROTOCOLS(FUNC) \
-  FUNC(Device);                          \
-  FUNC(Function);                        \
-  FUNC(Library);
-
-#define DECLARE_OBJC_HELPERS(CPPTYPE) \
-  class WrappedMTL##CPPTYPE;          \
-  extern MTL::CPPTYPE *AllocateObjCWrapper(WrappedMTL##CPPTYPE *wrapped);
-
-METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_HELPERS)
-#undef DECLARE_OBJC_HELPERS
-
-template <>
-inline rdcliteral TypeName<NS::String *>()
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, NS::String *&el)
 {
-  return "NSString"_lit;
+  rdcstr rdcStr;
+  if(el)
+  {
+    rdcStr = el->utf8String();
+  }
+  DoSerialise(ser, rdcStr);
+
+  if(ser.IsReading())
+  {
+    el = NS::String::string(rdcStr.data(), NS::UTF8StringEncoding);
+  }
 }
-template <class SerialiserType>
-void DoSerialise(SerialiserType &ser, NS::String *&el);
+
+INSTANTIATE_SERIALISE_TYPE(NS::String *);
