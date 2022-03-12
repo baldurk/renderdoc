@@ -37,7 +37,7 @@
 // ObjCWrappedMTLDevice specific
 - (id<MTLDevice>)real
 {
-  MTL::Device *real = Unwrap<MTL::Device *>(self.wrappedCPP);
+  MTL::Device *real = Unwrap(self.wrappedCPP);
   return id<MTLDevice>(real);
 }
 

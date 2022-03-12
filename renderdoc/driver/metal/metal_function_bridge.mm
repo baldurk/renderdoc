@@ -31,7 +31,7 @@
 // ObjCWrappedMTLFunction specific
 - (id<MTLFunction>)real
 {
-  MTL::Function *real = Unwrap<MTL::Function *>(self.wrappedCPP);
+  MTL::Function *real = Unwrap(self.wrappedCPP);
   return id<MTLFunction>(real);
 }
 

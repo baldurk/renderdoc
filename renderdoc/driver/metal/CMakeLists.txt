@@ -20,6 +20,11 @@ set(sources
     metal_function.h
     metal_function_bridge.mm
     metal_common.h
+    metal_core.cpp
+    metal_core.h
+    metal_manager.cpp
+    metal_manager.h
+    metal_init_state.cpp
     metal_helpers_bridge.h
     metal_helpers_bridge.mm
     official/metal-cpp.h

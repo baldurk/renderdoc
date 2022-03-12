@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2022 Baldur Karlsson
+ * Copyright (c) 2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,32 +22,39 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "metal_resources.h"
+#include "metal_manager.h"
 #include "metal_device.h"
 
-ResourceId GetResID(WrappedMTLObject *obj)
+bool MetalResourceManager::ResourceTypeRelease(WrappedResourceType res)
 {
-  if(obj == NULL)
-    return ResourceId();
-
-  return obj->id;
+  METAL_NOT_IMPLEMENTED();
+  return false;
 }
 
-void WrappedMTLObject::Dealloc()
+bool MetalResourceManager::Prepare_InitialState(WrappedMTLObject *res)
 {
-  // TODO: call the wrapped object destructor
+  return m_WrappedMTLDevice->Prepare_InitialState(res);
 }
 
-MetalResourceManager *WrappedMTLObject::GetResourceManager()
+uint64_t MetalResourceManager::GetSize_InitialState(ResourceId id, const MetalInitialContents &initial)
 {
-  return m_WrappedMTLDevice->GetResourceManager();
+  return m_WrappedMTLDevice->GetSize_InitialState(id, initial);
 }
 
-MTL::Device *WrappedMTLObject::GetObjCWrappedMTLDevice()
+bool MetalResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId id,
+                                                  MetalResourceRecord *record,
+                                                  const MetalInitialContents *initial)
 {
-  return GetObjC<MTL::Device *>(m_WrappedMTLDevice);
+  return m_WrappedMTLDevice->Serialise_InitialState(ser, id, record, initial);
 }
 
-MetalResourceRecord::~MetalResourceRecord()
+void MetalResourceManager::Create_InitialState(ResourceId id, WrappedMTLObject *live, bool hasData)
 {
+  return m_WrappedMTLDevice->Create_InitialState(id, live, hasData);
+}
+
+void MetalResourceManager::Apply_InitialState(WrappedMTLObject *live,
+                                              const MetalInitialContents &initial)
+{
+  return m_WrappedMTLDevice->Apply_InitialState(live, initial);
 }

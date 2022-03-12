@@ -24,9 +24,50 @@
 
 #include "metal_types_bridge.h"
 #include "metal_device.h"
+#include "metal_function.h"
 #include "metal_library.h"
 
 #define DEFINE_OBJC_HELPERS(CPPTYPE)                                               \
+  static ObjCWrappedMTL##CPPTYPE *GetObjC(MTL::CPPTYPE *cppType)                   \
+  {                                                                                \
+    if(cppType == NULL)                                                            \
+    {                                                                              \
+      return NULL;                                                                 \
+    }                                                                              \
+    ObjCWrappedMTL##CPPTYPE *objC = (ObjCWrappedMTL##CPPTYPE *)cppType;            \
+    RDCASSERT([objC isKindOfClass:[ObjCWrappedMTL##CPPTYPE class]]);               \
+    return objC;                                                                   \
+  }                                                                                \
+                                                                                   \
+  WrappedMTL##CPPTYPE *GetWrapped(MTL::CPPTYPE *cppType)                           \
+  {                                                                                \
+    ObjCWrappedMTL##CPPTYPE *objC = GetObjC(cppType);                              \
+    return objC.wrappedCPP;                                                        \
+  }                                                                                \
+                                                                                   \
+  MTL::CPPTYPE *GetReal(MTL::CPPTYPE *cppType)                                     \
+  {                                                                                \
+    ObjCWrappedMTL##CPPTYPE *objC = GetObjC(cppType);                              \
+    MTL::CPPTYPE *real = (MTL::CPPTYPE *)objC.real;                                \
+    return real;                                                                   \
+  }                                                                                \
+                                                                                   \
+  bool IsObjCWrapped(MTL::CPPTYPE *cppType)                                        \
+  {                                                                                \
+    ObjCWrappedMTL##CPPTYPE *objC = (ObjCWrappedMTL##CPPTYPE *)cppType;            \
+    return [objC isKindOfClass:[ObjCWrappedMTL##CPPTYPE class]];                   \
+  }                                                                                \
+                                                                                   \
+  ResourceId GetId(MTL::CPPTYPE *cppType)                                          \
+  {                                                                                \
+    WrappedMTL##CPPTYPE *wrappedCPP = GetWrapped(cppType);                         \
+    if(wrappedCPP == NULL)                                                         \
+    {                                                                              \
+      return ResourceId();                                                         \
+    }                                                                              \
+    return wrappedCPP->id;                                                         \
+  }                                                                                \
+                                                                                   \
   MTL::CPPTYPE *AllocateObjCWrapper(WrappedMTL##CPPTYPE *wrappedCPP)               \
   {                                                                                \
     ObjCWrappedMTL##CPPTYPE *objC = [ObjCWrappedMTL##CPPTYPE alloc];               \

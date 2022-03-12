@@ -23,12 +23,24 @@
  ******************************************************************************/
 
 #include "metal_device.h"
+#include "metal_manager.h"
 
 WrappedMTLDevice::WrappedMTLDevice(MTL::Device *realMTLDevice, ResourceId objId)
     : WrappedMTLObject(realMTLDevice, objId, this, GetStateRef())
 {
   wrappedObjC = AllocateObjCWrapper(this);
+  Construct();
+  GetResourceManager()->AddCurrentResource(objId, this);
+}
+
+void WrappedMTLDevice::Construct()
+{
+  objc = AllocateObjCWrapper(this);
   m_WrappedMTLDevice = this;
+  threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
+
+  m_ResourceManager = new MetalResourceManager(m_State, this);
+  RDCASSERT(m_WrappedMTLDevice == this);
 }
 
 MTL::Device *WrappedMTLDevice::MTLCreateSystemDefaultDevice(MTL::Device *realMTLDevice)
