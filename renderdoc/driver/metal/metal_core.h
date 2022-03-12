@@ -22,32 +22,14 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "metal_resources.h"
-#include "metal_device.h"
+#pragma once
 
-ResourceId GetResID(WrappedMTLObject *obj)
+#include "metal_common.h"
+
+struct MetalInitParams
 {
-  if(obj == NULL)
-    return ResourceId();
+  // check if a frame capture section version is supported
+  static const uint64_t CurrentVersion = 0x1;
+};
 
-  return obj->id;
-}
-
-void WrappedMTLObject::Dealloc()
-{
-  // TODO: call the wrapped object destructor
-}
-
-MetalResourceManager *WrappedMTLObject::GetResourceManager()
-{
-  return m_WrappedMTLDevice->GetResourceManager();
-}
-
-MTL::Device *WrappedMTLObject::GetObjCWrappedMTLDevice()
-{
-  return GetObjC<MTL::Device *>(m_WrappedMTLDevice);
-}
-
-MetalResourceRecord::~MetalResourceRecord()
-{
-}
+DECLARE_REFLECTION_STRUCT(MetalInitParams);

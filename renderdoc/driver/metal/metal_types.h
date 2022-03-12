@@ -24,7 +24,9 @@
 
 #pragma once
 
-#include "metal_common.h"
+#include "api/replay/rdcstr.h"
+#include "official/metal-cpp.h"
+#include "serialise/serialiser.h"
 
 #define METALCPP_WRAPPED_PROTOCOLS(FUNC) \
   FUNC(Device);                          \

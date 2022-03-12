@@ -26,9 +26,11 @@
 
 #include "core/resource_manager.h"
 #include "metal_common.h"
+#include "metal_types.h"
 
 struct MetalResourceRecord;
 class WrappedMTLDevice;
+class MetalResourceManager;
 
 enum MetalResourceType
 {
@@ -44,7 +46,7 @@ struct WrappedMTLObject
 {
   WrappedMTLObject() = delete;
   WrappedMTLObject(WrappedMTLDevice *wrappedMTLDevice, CaptureState &captureState)
-      : wrappedObjC(NULL),
+      : objc(NULL),
         real(NULL),
         record(NULL),
         m_WrappedMTLDevice(wrappedMTLDevice),
@@ -53,7 +55,7 @@ struct WrappedMTLObject
   }
   WrappedMTLObject(void *mtlObject, ResourceId objId, WrappedMTLDevice *wrappedMTLDevice,
                    CaptureState &captureState)
-      : wrappedObjC(NULL),
+      : objc(NULL),
         real(mtlObject),
         id(objId),
         record(NULL),
@@ -67,7 +69,9 @@ struct WrappedMTLObject
 
   MTL::Device *GetObjCWrappedMTLDevice();
 
-  void *wrappedObjC;
+  MetalResourceManager *GetResourceManager();
+
+  void *objc;
   void *real;
   ResourceId id;
   MetalResourceRecord *record;
@@ -76,6 +80,15 @@ struct WrappedMTLObject
 };
 
 ResourceId GetResID(WrappedMTLObject *obj);
+
+template <typename WrappedType>
+MetalResourceRecord *GetRecord(WrappedType *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return obj->record;
+}
 
 template <typename RealType>
 RealType Unwrap(WrappedMTLObject *obj)
@@ -87,13 +100,38 @@ RealType Unwrap(WrappedMTLObject *obj)
 }
 
 template <typename RealType>
-RealType UnwrapObjC(WrappedMTLObject *obj)
+RealType GetObjC(WrappedMTLObject *obj)
 {
   if(obj == NULL)
     return RealType();
 
-  return (RealType)obj->wrappedObjC;
+  return (RealType)obj->objc;
 }
+
+// template magic voodoo to unwrap types
+template <typename inner>
+struct UnwrapHelper
+{
+};
+
+#define UNWRAP_HELPER(CPPTYPE)                 \
+  template <>                                  \
+  struct UnwrapHelper<MTL::CPPTYPE *>          \
+  {                                            \
+    typedef CONCAT(WrappedMTL, CPPTYPE) Outer; \
+  };
+
+METALCPP_WRAPPED_PROTOCOLS(UNWRAP_HELPER)
+#undef UNWRAP_HELPER
+
+#define IMPLEMENT_WRAPPED_TYPE_UNWRAP(CPPTYPE)              \
+  inline MTL::CPPTYPE *Unwrap(WrappedMTL##CPPTYPE *obj)     \
+  {                                                         \
+    return Unwrap<MTL::CPPTYPE *>((WrappedMTLObject *)obj); \
+  }
+
+METALCPP_WRAPPED_PROTOCOLS(IMPLEMENT_WRAPPED_TYPE_UNWRAP)
+#undef IMPLEMENT_WRAPPED_TYPE_UNWRAP
 
 struct MetalResourceRecord : public ResourceRecord
 {

@@ -25,20 +25,43 @@
 #pragma once
 
 #include "metal_common.h"
+#include "metal_manager.h"
 
 class WrappedMTLDevice : public WrappedMTLObject
 {
+  friend class MetalResourceManager;
+
 public:
   WrappedMTLDevice(MTL::Device *realMTLDevice, ResourceId objId);
   ~WrappedMTLDevice() {}
   static MTL::Device *MTLCreateSystemDefaultDevice(MTL::Device *realMTLDevice);
 
   CaptureState &GetStateRef() { return m_State; }
+  CaptureState GetState() { return m_State; }
+  MetalResourceManager *GetResourceManager() { return m_ResourceManager; };
+  WriteSerialiser &GetThreadSerialiser();
+
   enum
   {
     TypeEnum = eResDevice
   };
 
 private:
+  void Construct();
+
+  bool Prepare_InitialState(WrappedMTLObject *res);
+  uint64_t GetSize_InitialState(ResourceId id, const MetalInitialContents &initial);
+  template <typename SerialiserType>
+  bool Serialise_InitialState(SerialiserType &ser, ResourceId id, MetalResourceRecord *record,
+                              const MetalInitialContents *initial);
+  void Create_InitialState(ResourceId id, WrappedMTLObject *live, bool hasData);
+  void Apply_InitialState(WrappedMTLObject *live, const MetalInitialContents &initial);
+
+  MetalResourceManager *m_ResourceManager;
+
   CaptureState m_State;
+
+  uint64_t threadSerialiserTLSSlot;
+  Threading::CriticalSection m_ThreadSerialisersLock;
+  rdcarray<WriteSerialiser *> m_ThreadSerialisers;
 };

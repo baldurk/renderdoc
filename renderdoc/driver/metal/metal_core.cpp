@@ -22,32 +22,34 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "metal_resources.h"
+#include "metal_core.h"
 #include "metal_device.h"
 
-ResourceId GetResID(WrappedMTLObject *obj)
+WriteSerialiser &WrappedMTLDevice::GetThreadSerialiser()
 {
-  if(obj == NULL)
-    return ResourceId();
+  WriteSerialiser *ser = (WriteSerialiser *)Threading::GetTLSValue(threadSerialiserTLSSlot);
+  if(ser)
+    return *ser;
 
-  return obj->id;
-}
+  // slow path, but rare
+  ser = new WriteSerialiser(new StreamWriter(1024), Ownership::Stream);
 
-void WrappedMTLObject::Dealloc()
-{
-  // TODO: call the wrapped object destructor
-}
+  uint32_t flags = WriteSerialiser::ChunkDuration | WriteSerialiser::ChunkTimestamp |
+                   WriteSerialiser::ChunkThreadID;
 
-MetalResourceManager *WrappedMTLObject::GetResourceManager()
-{
-  return m_WrappedMTLDevice->GetResourceManager();
-}
+  if(RenderDoc::Inst().GetCaptureOptions().captureCallstacks)
+    flags |= WriteSerialiser::ChunkCallstack;
 
-MTL::Device *WrappedMTLObject::GetObjCWrappedMTLDevice()
-{
-  return GetObjC<MTL::Device *>(m_WrappedMTLDevice);
-}
+  ser->SetChunkMetadataRecording(flags);
+  ser->SetUserData(GetResourceManager());
+  ser->SetVersion(MetalInitParams::CurrentVersion);
 
-MetalResourceRecord::~MetalResourceRecord()
-{
+  Threading::SetTLSValue(threadSerialiserTLSSlot, (void *)ser);
+
+  {
+    SCOPED_LOCK(m_ThreadSerialisersLock);
+    m_ThreadSerialisers.push_back(ser);
+  }
+
+  return *ser;
 }

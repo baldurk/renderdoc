@@ -31,7 +31,7 @@
 // ObjCWrappedMTLLibrary specific
 - (id<MTLLibrary>)real
 {
-  MTL::Library *real = Unwrap<MTL::Library *>(self.wrappedCPP);
+  MTL::Library *real = Unwrap(self.wrappedCPP);
   return id<MTLLibrary>(real);
 }
 
