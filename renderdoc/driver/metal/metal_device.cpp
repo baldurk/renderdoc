@@ -25,7 +25,7 @@
 #include "metal_device.h"
 
 WrappedMTLDevice::WrappedMTLDevice(MTL::Device *realMTLDevice, ResourceId objId)
-    : WrappedMTLObject(realMTLDevice, objId, this)
+    : WrappedMTLObject(realMTLDevice, objId, this, GetStateRef())
 {
   wrappedObjC = AllocateObjCWrapper(this);
   m_WrappedMTLDevice = this;

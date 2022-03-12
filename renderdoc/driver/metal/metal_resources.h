@@ -42,8 +42,17 @@ DECLARE_REFLECTION_ENUM(MetalResourceType);
 struct WrappedMTLObject
 {
   WrappedMTLObject() = delete;
-  WrappedMTLObject(void *mtlObject, ResourceId objId, WrappedMTLDevice *wrappedMTLDevice)
-      : wrappedObjC(NULL), real(mtlObject), id(objId), m_WrappedMTLDevice(wrappedMTLDevice)
+  WrappedMTLObject(WrappedMTLDevice *wrappedMTLDevice, CaptureState &captureState)
+      : wrappedObjC(NULL), real(NULL), m_WrappedMTLDevice(wrappedMTLDevice), m_State(captureState)
+  {
+  }
+  WrappedMTLObject(void *mtlObject, ResourceId objId, WrappedMTLDevice *wrappedMTLDevice,
+                   CaptureState &captureState)
+      : wrappedObjC(NULL),
+        real(mtlObject),
+        id(objId),
+        m_WrappedMTLDevice(wrappedMTLDevice),
+        m_State(captureState)
   {
   }
   ~WrappedMTLObject() = default;
@@ -52,6 +61,7 @@ struct WrappedMTLObject
   void *real;
   ResourceId id;
   WrappedMTLDevice *m_WrappedMTLDevice;
+  CaptureState &m_State;
 };
 
 template <typename RealType>

@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "metal_resources.h"
+#include "metal_common.h"
 
 class WrappedMTLDevice : public WrappedMTLObject
 {
@@ -33,5 +33,12 @@ public:
   ~WrappedMTLDevice() {}
   static MTL::Device *MTLCreateSystemDefaultDevice(MTL::Device *realMTLDevice);
 
+  CaptureState &GetStateRef() { return m_State; }
+  enum
+  {
+    TypeEnum = eResDevice
+  };
+
 private:
+  CaptureState m_State;
 };
