@@ -12,6 +12,12 @@ set(sources
     metal_types_bridge.mm
     metal_types_bridge.h
     metal_types.h
+    metal_library.cpp
+    metal_library.h
+    metal_library_bridge.mm
+    metal_function.cpp
+    metal_function.h
+    metal_function_bridge.mm
     metal_common.h
     official/metal-cpp.h
     official/metal-cpp.cpp)

@@ -22,18 +22,12 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#include "metal_function.h"
+#include "metal_device.h"
 
-#include "metal_common.h"
-
-#define METALCPP_WRAPPED_PROTOCOLS(FUNC) \
-  FUNC(Device);                          \
-  FUNC(Function);                        \
-  FUNC(Library);
-
-#define DECLARE_OBJC_HELPERS(CPPTYPE) \
-  class WrappedMTL##CPPTYPE;          \
-  extern MTL::CPPTYPE *AllocateObjCWrapper(WrappedMTL##CPPTYPE *wrapped);
-
-METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_HELPERS)
-#undef DECLARE_OBJC_HELPERS
+WrappedMTLFunction::WrappedMTLFunction(MTL::Function *realMTLFunction, ResourceId objId,
+                                       WrappedMTLDevice *wrappedMTLDevice)
+    : WrappedMTLObject(realMTLFunction, objId, wrappedMTLDevice, wrappedMTLDevice->GetStateRef())
+{
+  wrappedObjC = AllocateObjCWrapper(this);
+}
