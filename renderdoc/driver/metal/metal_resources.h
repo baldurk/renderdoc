@@ -75,6 +75,8 @@ struct WrappedMTLObject
   CaptureState &m_State;
 };
 
+ResourceId GetResID(WrappedMTLObject *obj);
+
 template <typename RealType>
 RealType Unwrap(WrappedMTLObject *obj)
 {
