@@ -41,12 +41,14 @@
   return id<MTLDevice>(real);
 }
 
+// Use the real MTLDevice to find methods from messages
 - (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector
 {
   id fwd = self.real;
   return [fwd methodSignatureForSelector:aSelector];
 }
 
+// Forward any unknown messages to the real MTLDevice
 - (void)forwardInvocation:(NSInvocation *)invocation
 {
   SEL aSelector = [invocation selector];
@@ -179,20 +181,20 @@
 
 - (nullable id<MTLCommandQueue>)newCommandQueue
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newCommandQueue];
 }
 
 - (nullable id<MTLCommandQueue>)newCommandQueueWithMaxCommandBufferCount:(NSUInteger)maxCommandBufferCount
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newCommandQueueWithMaxCommandBufferCount:maxCommandBufferCount];
 }
 
 - (MTLSizeAndAlign)heapTextureSizeAndAlignWithDescriptor:(MTLTextureDescriptor *)desc
     API_AVAILABLE(macos(10.13), ios(10.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real heapTextureSizeAndAlignWithDescriptor:desc];
 }
 
@@ -200,20 +202,20 @@
                                             options:(MTLResourceOptions)options
     API_AVAILABLE(macos(10.13), ios(10.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real heapBufferSizeAndAlignWithLength:length options:options];
 }
 
 - (nullable id<MTLHeap>)newHeapWithDescriptor:(MTLHeapDescriptor *)descriptor
     API_AVAILABLE(macos(10.13), ios(10.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newHeapWithDescriptor:descriptor];
 }
 
 - (nullable id<MTLBuffer>)newBufferWithLength:(NSUInteger)length options:(MTLResourceOptions)options
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newBufferWithLength:length options:options];
 }
 
@@ -221,7 +223,7 @@
                                       length:(NSUInteger)length
                                      options:(MTLResourceOptions)options
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newBufferWithBytes:pointer length:length options:options];
 }
 
@@ -231,7 +233,7 @@
                                        deallocator:(void (^__nullable)(void *pointer,
                                                                        NSUInteger length))deallocator
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newBufferWithBytesNoCopy:pointer
                                       length:length
                                      options:options
@@ -241,13 +243,13 @@
 - (nullable id<MTLDepthStencilState>)newDepthStencilStateWithDescriptor:
     (MTLDepthStencilDescriptor *)descriptor
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newDepthStencilStateWithDescriptor:descriptor];
 }
 
 - (nullable id<MTLTexture>)newTextureWithDescriptor:(MTLTextureDescriptor *)descriptor
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newTextureWithDescriptor:descriptor];
 }
 
@@ -256,33 +258,33 @@
                                               plane:(NSUInteger)plane
     API_AVAILABLE(macos(10.11), ios(11.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newTextureWithDescriptor:descriptor iosurface:iosurface plane:plane];
 }
 
 - (nullable id<MTLTexture>)newSharedTextureWithDescriptor:(MTLTextureDescriptor *)descriptor
     API_AVAILABLE(macos(10.14), ios(13.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newSharedTextureWithDescriptor:descriptor];
 }
 
 - (nullable id<MTLTexture>)newSharedTextureWithHandle:(MTLSharedTextureHandle *)sharedHandle
     API_AVAILABLE(macos(10.14), ios(13.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newSharedTextureWithHandle:sharedHandle];
 }
 
 - (nullable id<MTLSamplerState>)newSamplerStateWithDescriptor:(MTLSamplerDescriptor *)descriptor
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newSamplerStateWithDescriptor:descriptor];
 }
 
 - (nullable id<MTLLibrary>)newDefaultLibrary
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newDefaultLibrary];
 }
 
@@ -290,14 +292,14 @@
                                                  error:(__autoreleasing NSError **)error
     API_AVAILABLE(macos(10.12), ios(10.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newDefaultLibraryWithBundle:bundle error:error];
 }
 
 - (nullable id<MTLLibrary>)newLibraryWithFile:(NSString *)filepath
                                         error:(__autoreleasing NSError **)error
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newLibraryWithFile:filepath error:error];
 }
 
@@ -305,14 +307,14 @@
                                        error:(__autoreleasing NSError **)error
     API_AVAILABLE(macos(10.13), ios(11.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newLibraryWithURL:url error:error];
 }
 
 - (nullable id<MTLLibrary>)newLibraryWithData:(dispatch_data_t)data
                                         error:(__autoreleasing NSError **)error
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newLibraryWithData:data error:error];
 }
 
@@ -320,7 +322,7 @@
                                         options:(nullable MTLCompileOptions *)options
                                           error:(__autoreleasing NSError **)error
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newLibraryWithSource:source options:options error:error];
 }
 
@@ -328,7 +330,7 @@
                      options:(nullable MTLCompileOptions *)options
            completionHandler:(MTLNewLibraryCompletionHandler)completionHandler
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return
       [self.real newLibraryWithSource:source options:options completionHandler:completionHandler];
 }
@@ -338,7 +340,7 @@
                                                       error:(__autoreleasing NSError **)error
     API_AVAILABLE(macos(12.0), ios(15.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newLibraryWithStitchedDescriptor:descriptor error:error];
 }
 #endif
@@ -348,7 +350,7 @@
                        completionHandler:(MTLNewLibraryCompletionHandler)completionHandler
     API_AVAILABLE(macos(12.0), ios(15.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   [self.real newLibraryWithStitchedDescriptor:descriptor completionHandler:completionHandler];
 }
 #endif
@@ -357,7 +359,7 @@
 newRenderPipelineStateWithDescriptor:(MTLRenderPipelineDescriptor *)descriptor
                                error:(__autoreleasing NSError **)error
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newRenderPipelineStateWithDescriptor:descriptor error:error];
 }
 
@@ -367,7 +369,7 @@ newRenderPipelineStateWithDescriptor:(MTLRenderPipelineDescriptor *)descriptor
                           reflection:(MTLAutoreleasedRenderPipelineReflection *__nullable)reflection
                                error:(__autoreleasing NSError **)error
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newRenderPipelineStateWithDescriptor:descriptor
                                                  options:options
                                               reflection:reflection
@@ -377,7 +379,7 @@ newRenderPipelineStateWithDescriptor:(MTLRenderPipelineDescriptor *)descriptor
 - (void)newRenderPipelineStateWithDescriptor:(MTLRenderPipelineDescriptor *)descriptor
                            completionHandler:(MTLNewRenderPipelineStateCompletionHandler)completionHandler
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newRenderPipelineStateWithDescriptor:descriptor
                                        completionHandler:completionHandler];
 }
@@ -387,7 +389,7 @@ newRenderPipelineStateWithDescriptor:(MTLRenderPipelineDescriptor *)descriptor
                            completionHandler:
                                (MTLNewRenderPipelineStateWithReflectionCompletionHandler)completionHandler
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newRenderPipelineStateWithDescriptor:descriptor
                                                  options:options
                                        completionHandler:completionHandler];
@@ -397,7 +399,7 @@ newRenderPipelineStateWithDescriptor:(MTLRenderPipelineDescriptor *)descriptor
 newComputePipelineStateWithFunction:(id<MTLFunction>)computeFunction
                               error:(__autoreleasing NSError **)error
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newComputePipelineStateWithFunction:computeFunction error:error];
 }
 
@@ -407,7 +409,7 @@ newComputePipelineStateWithFunction:(id<MTLFunction>)computeFunction
                          reflection:(MTLAutoreleasedComputePipelineReflection *__nullable)reflection
                               error:(__autoreleasing NSError **)error
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newComputePipelineStateWithFunction:computeFunction
                                                 options:options
                                              reflection:reflection
@@ -417,7 +419,7 @@ newComputePipelineStateWithFunction:(id<MTLFunction>)computeFunction
 - (void)newComputePipelineStateWithFunction:(id<MTLFunction>)computeFunction
                           completionHandler:(MTLNewComputePipelineStateCompletionHandler)completionHandler
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newComputePipelineStateWithFunction:computeFunction
                                       completionHandler:completionHandler];
 }
@@ -427,7 +429,7 @@ newComputePipelineStateWithFunction:(id<MTLFunction>)computeFunction
                           completionHandler:
                               (MTLNewComputePipelineStateWithReflectionCompletionHandler)completionHandler
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newComputePipelineStateWithFunction:computeFunction
                                                 options:options
                                       completionHandler:completionHandler];
@@ -440,7 +442,7 @@ newComputePipelineStateWithDescriptor:(MTLComputePipelineDescriptor *)descriptor
                                 error:(__autoreleasing NSError **)error
     API_AVAILABLE(macos(10.11), ios(9.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newComputePipelineStateWithDescriptor:descriptor
                                                   options:options
                                                reflection:reflection
@@ -453,7 +455,7 @@ newComputePipelineStateWithDescriptor:(MTLComputePipelineDescriptor *)descriptor
                                 (MTLNewComputePipelineStateWithReflectionCompletionHandler)completionHandler
     API_AVAILABLE(macos(10.11), ios(9.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newComputePipelineStateWithDescriptor:descriptor
                                                   options:options
                                         completionHandler:completionHandler];
@@ -461,39 +463,39 @@ newComputePipelineStateWithDescriptor:(MTLComputePipelineDescriptor *)descriptor
 
 - (nullable id<MTLFence>)newFence API_AVAILABLE(macos(10.13), ios(10.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newFence];
 }
 
 - (BOOL)supportsFeatureSet:(MTLFeatureSet)featureSet
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real supportsFeatureSet:featureSet];
 }
 
 - (BOOL)supportsFamily:(MTLGPUFamily)gpuFamily API_AVAILABLE(macos(10.15), ios(13.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real supportsFamily:gpuFamily];
 }
 
 - (BOOL)supportsTextureSampleCount:(NSUInteger)sampleCount API_AVAILABLE(macos(10.11), ios(9.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real supportsTextureSampleCount:sampleCount];
 }
 
 - (NSUInteger)minimumLinearTextureAlignmentForPixelFormat:(MTLPixelFormat)format
     API_AVAILABLE(macos(10.13), ios(11.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real minimumLinearTextureAlignmentForPixelFormat:format];
 }
 
 - (NSUInteger)minimumTextureBufferAlignmentForPixelFormat:(MTLPixelFormat)format
     API_AVAILABLE(macos(10.14), ios(12.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real minimumTextureBufferAlignmentForPixelFormat:format];
 }
 
@@ -504,7 +506,7 @@ newRenderPipelineStateWithTileDescriptor:(MTLTileRenderPipelineDescriptor *)desc
                                    error:(__autoreleasing NSError **)error
     API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(11.0), tvos(14.5))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newRenderPipelineStateWithTileDescriptor:descriptor
                                                      options:options
                                                   reflection:reflection
@@ -517,7 +519,7 @@ newRenderPipelineStateWithTileDescriptor:(MTLTileRenderPipelineDescriptor *)desc
                                    (MTLNewRenderPipelineStateWithReflectionCompletionHandler)completionHandler
     API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(11.0), tvos(14.5))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newRenderPipelineStateWithTileDescriptor:descriptor
                                                      options:options
                                            completionHandler:completionHandler];
@@ -541,21 +543,21 @@ newRenderPipelineStateWithTileDescriptor:(MTLTileRenderPipelineDescriptor *)desc
 - (void)getDefaultSamplePositions:(MTLSamplePosition *)positions
                             count:(NSUInteger)count API_AVAILABLE(macos(10.13), ios(11.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real getDefaultSamplePositions:positions count:count];
 }
 
 - (nullable id<MTLArgumentEncoder>)newArgumentEncoderWithArguments:
     (NSArray<MTLArgumentDescriptor *> *)arguments API_AVAILABLE(macos(10.13), ios(11.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newArgumentEncoderWithArguments:arguments];
 }
 
 - (BOOL)supportsRasterizationRateMapWithLayerCount:(NSUInteger)layerCount
     API_AVAILABLE(macos(10.15.4), ios(13.0), macCatalyst(13.4))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real supportsRasterizationRateMapWithLayerCount:layerCount];
 }
 
@@ -563,7 +565,7 @@ newRenderPipelineStateWithTileDescriptor:(MTLTileRenderPipelineDescriptor *)desc
     (MTLRasterizationRateMapDescriptor *)descriptor
     API_AVAILABLE(macos(10.15.4), ios(13.0), macCatalyst(13.4))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newRasterizationRateMapWithDescriptor:descriptor];
 }
 
@@ -573,7 +575,7 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
                                options:(MTLResourceOptions)options
     API_AVAILABLE(macos(10.14), ios(12.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newIndirectCommandBufferWithDescriptor:descriptor
                                            maxCommandCount:maxCount
                                                    options:options];
@@ -581,20 +583,20 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
 
 - (nullable id<MTLEvent>)newEvent API_AVAILABLE(macos(10.14), ios(12.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newEvent];
 }
 
 - (nullable id<MTLSharedEvent>)newSharedEvent API_AVAILABLE(macos(10.14), ios(12.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newSharedEvent];
 }
 
 - (nullable id<MTLSharedEvent>)newSharedEventWithHandle:(MTLSharedEventHandle *)sharedEventHandle
     API_AVAILABLE(macos(10.14), ios(12.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newSharedEventWithHandle:sharedEventHandle];
 }
 
@@ -618,7 +620,7 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
                              sampleCount:(NSUInteger)sampleCount
     API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(13.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real sparseTileSizeWithTextureType:textureType
                                       pixelFormat:pixelFormat
                                       sampleCount:sampleCount];
@@ -636,7 +638,7 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
                        numRegions:(NSUInteger)numRegions
     API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(13.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real convertSparsePixelRegions:pixelRegions
                                 toTileRegions:tileRegions
                                  withTileSize:tileSize
@@ -650,7 +652,7 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
                       numRegions:(NSUInteger)numRegions
     API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(13.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real convertSparseTileRegions:tileRegions
                               toPixelRegions:pixelRegions
                                 withTileSize:tileSize
@@ -672,28 +674,28 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
                                                                       error:(NSError **)error
     API_AVAILABLE(macos(10.15), ios(14.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newCounterSampleBufferWithDescriptor:descriptor error:error];
 }
 
 - (void)sampleTimestamps:(MTLTimestamp *)cpuTimestamp
             gpuTimestamp:(MTLTimestamp *)gpuTimestamp API_AVAILABLE(macos(10.15), ios(14.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real sampleTimestamps:cpuTimestamp gpuTimestamp:gpuTimestamp];
 }
 
 - (BOOL)supportsCounterSampling:(MTLCounterSamplingPoint)samplingPoint
     API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real supportsCounterSampling:samplingPoint];
 }
 
 - (BOOL)supportsVertexAmplificationCount:(NSUInteger)count
     API_AVAILABLE(macos(10.15.4), ios(13.0), macCatalyst(13.4))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real supportsVertexAmplificationCount:count];
 }
 
@@ -713,7 +715,7 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
                                               error:(NSError **)error
     API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newDynamicLibrary:library error:error];
 }
 
@@ -721,7 +723,7 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
                                                      error:(NSError **)error
     API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newDynamicLibraryWithURL:url error:error];
 }
 
@@ -729,7 +731,7 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
                                                           error:(NSError **)error
     API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newBinaryArchiveWithDescriptor:descriptor error:error];
 }
 
@@ -741,21 +743,21 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
 - (MTLAccelerationStructureSizes)accelerationStructureSizesWithDescriptor:
     (MTLAccelerationStructureDescriptor *)descriptor API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real accelerationStructureSizesWithDescriptor:descriptor];
 }
 
 - (nullable id<MTLAccelerationStructure>)newAccelerationStructureWithSize:(NSUInteger)size
     API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newAccelerationStructureWithSize:size];
 }
 
 - (nullable id<MTLAccelerationStructure>)newAccelerationStructureWithDescriptor:
     (MTLAccelerationStructureDescriptor *)descriptor API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  NSLog(@"Not hooked %@", NSStringFromSelector(_cmd));
+  METAL_NOT_HOOKED();
   return [self.real newAccelerationStructureWithDescriptor:descriptor];
 }
 
