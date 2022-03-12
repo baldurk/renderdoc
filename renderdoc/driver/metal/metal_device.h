@@ -34,7 +34,17 @@ class WrappedMTLDevice : public WrappedMTLObject
 public:
   WrappedMTLDevice(MTL::Device *realMTLDevice, ResourceId objId);
   ~WrappedMTLDevice() {}
-  static MTL::Device *MTLCreateSystemDefaultDevice(MTL::Device *realMTLDevice);
+  static WrappedMTLDevice *MTLCreateSystemDefaultDevice(MTL::Device *realMTLDevice);
+
+  WrappedMTLLibrary *newDefaultLibrary();
+  template <typename SerialiserType>
+  bool Serialise_newDefaultLibrary(SerialiserType &ser, WrappedMTLLibrary *library);
+
+  WrappedMTLLibrary *newLibraryWithSource(NS::String *source, MTL::CompileOptions *options,
+                                          NS::Error **error);
+  template <typename SerialiserType>
+  bool Serialise_newLibraryWithSource(SerialiserType &ser, WrappedMTLLibrary *library,
+                                      NS::String *source, MTL::CompileOptions *options);
 
   CaptureState &GetStateRef() { return m_State; }
   CaptureState GetState() { return m_State; }
@@ -47,8 +57,6 @@ public:
   };
 
 private:
-  void Construct();
-
   bool Prepare_InitialState(WrappedMTLObject *res);
   uint64_t GetSize_InitialState(ResourceId id, const MetalInitialContents &initial);
   template <typename SerialiserType>

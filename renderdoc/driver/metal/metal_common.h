@@ -29,20 +29,47 @@
 #include "common/timing.h"
 #include "official/metal-cpp.h"
 #include "serialise/serialiser.h"
+#include "serialise/serialiser.h"
 #include "metal_resources.h"
 #include "metal_types.h"
 
 enum class MetalChunk : uint32_t
 {
   MTLCreateSystemDefaultDevice = (uint32_t)SystemChunk::FirstDriverChunk,
+  MTLDevice_newDefaultLibrary,
+  MTLDevice_newLibraryWithSource,
+  MTLLibrary_newFunctionWithName,
   Max
 };
 
 DECLARE_REFLECTION_ENUM(MetalChunk);
 
-#define INSTANTIATE_FUNCTION_SERIALISED(CLASS, func, ...)      \
-  template bool CLASS::func(ReadSerialiser &ser, __VA_ARGS__); \
-  template bool CLASS::func(WriteSerialiser &ser, __VA_ARGS__);
+// must be at the start of any function that serialises
+#define CACHE_THREAD_SERIALISER() WriteSerialiser &ser = m_WrappedMTLDevice->GetThreadSerialiser();
+
+#define SERIALISE_TIME_CALL(...)                                                                \
+  {                                                                                             \
+    WriteSerialiser &ser = m_WrappedMTLDevice->GetThreadSerialiser();                           \
+    ser.ChunkMetadata().timestampMicro = Timing::GetTick();                                     \
+    __VA_ARGS__;                                                                                \
+    ser.ChunkMetadata().durationMicro = Timing::GetTick() - ser.ChunkMetadata().timestampMicro; \
+  }
+
+#define DECLARE_FUNCTION_SERIALISED(ret, func, ...) \
+  ret func(__VA_ARGS__);                            \
+  template <typename SerialiserType>                \
+  bool CONCAT(Serialise_, func(SerialiserType &ser, ##__VA_ARGS__));
+
+#define INSTANTIATE_FUNCTION_SERIALISED(CLASS, ret, func, ...)                     \
+  template bool CLASS::CONCAT(Serialise_, func(ReadSerialiser &ser, __VA_ARGS__)); \
+  template bool CLASS::CONCAT(Serialise_, func(WriteSerialiser &ser, __VA_ARGS__));
+
+// A handy macro to say "is the serialiser reading and we're doing replay-mode stuff?"
+// The reason we check both is that checking the first allows the compiler to eliminate the other
+// path at compile-time, and the second because we might be just struct-serialising in which case we
+// should be doing no work to restore states.
+// Writing is unambiguously during capture mode, so we don't have to check both in that case.
+#define IsReplayingAndReading() (ser.IsReading() && IsReplayMode(m_WrappedMTLDevice->GetState()))
 
 #ifdef __OBJC__
 #define METAL_NOT_HOOKED()                                                             \

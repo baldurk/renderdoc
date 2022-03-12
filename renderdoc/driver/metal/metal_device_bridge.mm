@@ -24,6 +24,7 @@
 
 #include "metal_device.h"
 #include <Availability.h>
+#include "metal_library.h"
 #include "metal_types_bridge.h"
 
 // Define Mac SDK versions when compiling with earlier SDKs
@@ -284,8 +285,9 @@
 
 - (nullable id<MTLLibrary>)newDefaultLibrary
 {
-  METAL_NOT_HOOKED();
-  return [self.real newDefaultLibrary];
+  WrappedMTLLibrary *wrapped = self.wrappedCPP->newDefaultLibrary();
+  MTL::Library *objc = GetObjC<MTL::Library *>(wrapped);
+  return id<MTLLibrary>(objc);
 }
 
 - (nullable id<MTLLibrary>)newDefaultLibraryWithBundle:(NSBundle *)bundle
@@ -322,8 +324,10 @@
                                         options:(nullable MTLCompileOptions *)options
                                           error:(__autoreleasing NSError **)error
 {
-  METAL_NOT_HOOKED();
-  return [self.real newLibraryWithSource:source options:options error:error];
+  WrappedMTLLibrary *wrapped = self.wrappedCPP->newLibraryWithSource(
+      (NS::String *)source, (MTL::CompileOptions *)options, (NS::Error **)error);
+  MTL::Library *objc = GetObjC<MTL::Library *>(wrapped);
+  return (id<MTLLibrary>)(objc);
 }
 
 - (void)newLibraryWithSource:(NSString *)source

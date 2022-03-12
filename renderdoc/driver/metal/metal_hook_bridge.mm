@@ -54,7 +54,8 @@ id<MTLDevice> METAL_EXPORT_NAME(MTLCreateSystemDefaultDevice)(void)
   }
 
   id<MTLDevice> device = METAL.MTLCreateSystemDefaultDevice();
-  return id<MTLDevice>(WrappedMTLDevice::MTLCreateSystemDefaultDevice((MTL::Device *)device));
+  WrappedMTLDevice *wrapped = WrappedMTLDevice::MTLCreateSystemDefaultDevice((MTL::Device *)device);
+  return id<MTLDevice>(GetObjC<MTL::Device *>(wrapped));
 }
 
 /*
