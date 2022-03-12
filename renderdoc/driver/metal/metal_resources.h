@@ -27,6 +27,7 @@
 #include "core/resource_manager.h"
 #include "metal_common.h"
 
+struct MetalResourceRecord;
 class WrappedMTLDevice;
 
 enum MetalResourceType
@@ -43,7 +44,11 @@ struct WrappedMTLObject
 {
   WrappedMTLObject() = delete;
   WrappedMTLObject(WrappedMTLDevice *wrappedMTLDevice, CaptureState &captureState)
-      : wrappedObjC(NULL), real(NULL), m_WrappedMTLDevice(wrappedMTLDevice), m_State(captureState)
+      : wrappedObjC(NULL),
+        real(NULL),
+        record(NULL),
+        m_WrappedMTLDevice(wrappedMTLDevice),
+        m_State(captureState)
   {
   }
   WrappedMTLObject(void *mtlObject, ResourceId objId, WrappedMTLDevice *wrappedMTLDevice,
@@ -51,6 +56,7 @@ struct WrappedMTLObject
       : wrappedObjC(NULL),
         real(mtlObject),
         id(objId),
+        record(NULL),
         m_WrappedMTLDevice(wrappedMTLDevice),
         m_State(captureState)
   {
@@ -64,6 +70,7 @@ struct WrappedMTLObject
   void *wrappedObjC;
   void *real;
   ResourceId id;
+  MetalResourceRecord *record;
   WrappedMTLDevice *m_WrappedMTLDevice;
   CaptureState &m_State;
 };
@@ -85,3 +92,26 @@ RealType UnwrapObjC(WrappedMTLObject *obj)
 
   return (RealType)obj->wrappedObjC;
 }
+
+struct MetalResourceRecord : public ResourceRecord
+{
+public:
+  enum
+  {
+    NullResource = NULL
+  };
+
+  MetalResourceRecord(ResourceId id)
+      : ResourceRecord(id, true), Resource(NULL), resType(eResUnknown), ptrUnion(NULL)
+  {
+  }
+  ~MetalResourceRecord();
+  WrappedMTLObject *Resource;
+  MetalResourceType resType;
+
+  // Each entry is only used by specific record types
+  union
+  {
+    void *ptrUnion;    // for initialisation to NULL
+  };
+};

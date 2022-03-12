@@ -34,3 +34,7 @@ MTL::Device *WrappedMTLObject::GetObjCWrappedMTLDevice()
 {
   return UnwrapObjC<MTL::Device *>(m_WrappedMTLDevice);
 }
+
+MetalResourceRecord::~MetalResourceRecord()
+{
+}
