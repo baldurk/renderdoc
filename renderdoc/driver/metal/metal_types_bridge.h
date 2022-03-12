@@ -27,6 +27,7 @@
 #include "metal_types.h"
 
 #import <Metal/MTLDevice.h>
+#import <Metal/MTLLibrary.h>
 
 // clang-format off
 #define DECLARE_OBJC_WRAPPED_INTERFACES(CPPTYPE)              \

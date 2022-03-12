@@ -26,14 +26,16 @@
 
 #include "metal_common.h"
 
-#define METALCPP_WRAPPED_PROTOCOLS(FUNC) \
-  FUNC(Device);                          \
-  FUNC(Function);                        \
-  FUNC(Library);
+class WrappedMTLFunction : public WrappedMTLObject
+{
+public:
+  WrappedMTLFunction(MTL::Function *realMTLFunction, ResourceId objId,
+                     WrappedMTLDevice *wrappedMTLDevice);
 
-#define DECLARE_OBJC_HELPERS(CPPTYPE) \
-  class WrappedMTL##CPPTYPE;          \
-  extern MTL::CPPTYPE *AllocateObjCWrapper(WrappedMTL##CPPTYPE *wrapped);
+  enum
+  {
+    TypeEnum = eResFunction
+  };
 
-METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_HELPERS)
-#undef DECLARE_OBJC_HELPERS
+private:
+};

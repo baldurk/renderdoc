@@ -24,6 +24,7 @@
 
 #include "metal_types_bridge.h"
 #include "metal_device.h"
+#include "metal_library.h"
 
 #define DEFINE_OBJC_HELPERS(CPPTYPE)                                               \
   MTL::CPPTYPE *AllocateObjCWrapper(WrappedMTL##CPPTYPE *wrappedCPP)               \
