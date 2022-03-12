@@ -7,6 +7,7 @@ set(sources
     metal_device.cpp
     metal_device.h
     metal_device_bridge.mm
+    metal_resources.cpp
     metal_resources.h
     metal_types_bridge.mm
     metal_types_bridge.h
