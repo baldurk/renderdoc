@@ -25,6 +25,14 @@
 #include "metal_resources.h"
 #include "metal_device.h"
 
+ResourceId GetResID(WrappedMTLObject *obj)
+{
+  if(obj == NULL)
+    return ResourceId();
+
+  return obj->id;
+}
+
 void WrappedMTLObject::Dealloc()
 {
   // TODO: call the wrapped object destructor
