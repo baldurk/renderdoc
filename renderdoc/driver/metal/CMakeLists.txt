@@ -11,6 +11,7 @@ set(sources
     metal_resources.h
     metal_types_bridge.mm
     metal_types_bridge.h
+    metal_types.cpp
     metal_types.h
     metal_library.cpp
     metal_library.h
