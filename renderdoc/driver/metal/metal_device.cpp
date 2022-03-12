@@ -23,17 +23,12 @@
  ******************************************************************************/
 
 #include "metal_device.h"
+#include "metal_helpers_bridge.h"
+#include "metal_library.h"
 #include "metal_manager.h"
 
 WrappedMTLDevice::WrappedMTLDevice(MTL::Device *realMTLDevice, ResourceId objId)
     : WrappedMTLObject(realMTLDevice, objId, this, GetStateRef())
-{
-  wrappedObjC = AllocateObjCWrapper(this);
-  Construct();
-  GetResourceManager()->AddCurrentResource(objId, this);
-}
-
-void WrappedMTLDevice::Construct()
 {
   objc = AllocateObjCWrapper(this);
   m_WrappedMTLDevice = this;
@@ -41,12 +36,131 @@ void WrappedMTLDevice::Construct()
 
   m_ResourceManager = new MetalResourceManager(m_State, this);
   RDCASSERT(m_WrappedMTLDevice == this);
+  GetResourceManager()->AddCurrentResource(objId, this);
 }
 
-MTL::Device *WrappedMTLDevice::MTLCreateSystemDefaultDevice(MTL::Device *realMTLDevice)
+WrappedMTLDevice *WrappedMTLDevice::MTLCreateSystemDefaultDevice(MTL::Device *realMTLDevice)
 {
   ResourceId objId = ResourceIDGen::GetNewUniqueID();
   WrappedMTLDevice *wrappedMTLDevice = new WrappedMTLDevice(realMTLDevice, objId);
 
-  return UnwrapObjC<MTL::Device *>(wrappedMTLDevice);
+  // return GetObjC<MTL::Device *>(wrappedMTLDevice);
+  return wrappedMTLDevice;
 }
+
+template <typename SerialiserType>
+bool WrappedMTLDevice::Serialise_newDefaultLibrary(SerialiserType &ser, WrappedMTLLibrary *library)
+{
+  void *pData;
+  uint32_t bytesCount;
+  if(ser.IsWriting())
+  {
+    ObjC::Get_defaultLibraryData(pData, bytesCount);
+  }
+
+  SERIALISE_ELEMENT_LOCAL(Library, GetResID(library)).TypedAs("MTLLibrary"_lit);
+  SERIALISE_ELEMENT(bytesCount);
+  SERIALISE_ELEMENT_ARRAY(pData, bytesCount);
+
+  if(ser.IsWriting())
+  {
+    free(pData);
+  }
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    // TODO: implement RD MTL replay
+  }
+  return true;
+}
+
+WrappedMTLLibrary *WrappedMTLDevice::newDefaultLibrary()
+{
+  MTL::Library *realMTLLibrary;
+
+  SERIALISE_TIME_CALL(realMTLLibrary = Unwrap(this)->newDefaultLibrary());
+  WrappedMTLLibrary *wrappedMTLLibrary;
+  ResourceId id = GetResourceManager()->WrapResource(realMTLLibrary, wrappedMTLLibrary);
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLDevice_newDefaultLibrary);
+      Serialise_newDefaultLibrary(ser, wrappedMTLLibrary);
+      chunk = scope.Get();
+    }
+    MetalResourceRecord *record = GetResourceManager()->AddResourceRecord(wrappedMTLLibrary);
+    record->AddChunk(chunk);
+    GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_Read);
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+    //     GetResourceManager()->AddLiveResource(id, wrappedMTLLibrary);
+  }
+  return wrappedMTLLibrary;
+}
+
+template <typename SerialiserType>
+bool WrappedMTLDevice::Serialise_newLibraryWithSource(SerialiserType &ser,
+                                                      WrappedMTLLibrary *library, NS::String *source,
+                                                      MTL::CompileOptions *options)
+{
+  SERIALISE_ELEMENT_LOCAL(Library, GetResID(library)).TypedAs("MTLLibrary"_lit);
+  SERIALISE_ELEMENT(source);
+  // TODO:SERIALISE_ELEMENT(options);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    // TODO: implement RD MTL replay
+  }
+  return true;
+}
+
+WrappedMTLLibrary *WrappedMTLDevice::newLibraryWithSource(NS::String *source,
+                                                          MTL::CompileOptions *options,
+                                                          NS::Error **error)
+{
+  MTL::Library *realMTLLibrary;
+  SERIALISE_TIME_CALL(realMTLLibrary = Unwrap(this)->newLibrary(source, options, error));
+  WrappedMTLLibrary *wrappedMTLLibrary;
+  ResourceId id = GetResourceManager()->WrapResource(realMTLLibrary, wrappedMTLLibrary);
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLDevice_newLibraryWithSource);
+      Serialise_newLibraryWithSource(ser, wrappedMTLLibrary, source, options);
+      chunk = scope.Get();
+    }
+    MetalResourceRecord *record = GetResourceManager()->AddResourceRecord(wrappedMTLLibrary);
+    record->AddChunk(chunk);
+    GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_Read);
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+    //     GetResourceManager()->AddLiveResource(id, wrappedMTLLibrary);
+  }
+  return wrappedMTLLibrary;
+}
+
+template bool WrappedMTLDevice::Serialise_newDefaultLibrary(ReadSerialiser &ser,
+                                                            WrappedMTLLibrary *library);
+template bool WrappedMTLDevice::Serialise_newDefaultLibrary(WriteSerialiser &ser,
+                                                            WrappedMTLLibrary *library);
+
+template bool WrappedMTLDevice::Serialise_newLibraryWithSource(ReadSerialiser &ser,
+                                                               WrappedMTLLibrary *library,
+                                                               NS::String *source,
+                                                               MTL::CompileOptions *options);
+template bool WrappedMTLDevice::Serialise_newLibraryWithSource(WriteSerialiser &ser,
+                                                               WrappedMTLLibrary *library,
+                                                               NS::String *source,
+                                                               MTL::CompileOptions *options);
