@@ -22,66 +22,15 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#include "metal_resources.h"
+#include "metal_device.h"
 
-#include "core/resource_manager.h"
-#include "metal_common.h"
-
-class WrappedMTLDevice;
-
-enum MetalResourceType
+void WrappedMTLObject::Dealloc()
 {
-  eResUnknown = 0,
-  eResDevice,
-  eResLibrary,
-  eResFunction,
-};
-
-DECLARE_REFLECTION_ENUM(MetalResourceType);
-
-struct WrappedMTLObject
-{
-  WrappedMTLObject() = delete;
-  WrappedMTLObject(WrappedMTLDevice *wrappedMTLDevice, CaptureState &captureState)
-      : wrappedObjC(NULL), real(NULL), m_WrappedMTLDevice(wrappedMTLDevice), m_State(captureState)
-  {
-  }
-  WrappedMTLObject(void *mtlObject, ResourceId objId, WrappedMTLDevice *wrappedMTLDevice,
-                   CaptureState &captureState)
-      : wrappedObjC(NULL),
-        real(mtlObject),
-        id(objId),
-        m_WrappedMTLDevice(wrappedMTLDevice),
-        m_State(captureState)
-  {
-  }
-  ~WrappedMTLObject() = default;
-
-  void Dealloc();
-
-  MTL::Device *GetObjCWrappedMTLDevice();
-
-  void *wrappedObjC;
-  void *real;
-  ResourceId id;
-  WrappedMTLDevice *m_WrappedMTLDevice;
-  CaptureState &m_State;
-};
-
-template <typename RealType>
-RealType Unwrap(WrappedMTLObject *obj)
-{
-  if(obj == NULL)
-    return RealType();
-
-  return (RealType)obj->real;
+  // TODO: call the wrapped object destructor
 }
 
-template <typename RealType>
-RealType UnwrapObjC(WrappedMTLObject *obj)
+MTL::Device *WrappedMTLObject::GetObjCWrappedMTLDevice()
 {
-  if(obj == NULL)
-    return RealType();
-
-  return (RealType)obj->wrappedObjC;
+  return UnwrapObjC<MTL::Device *>(m_WrappedMTLDevice);
 }
