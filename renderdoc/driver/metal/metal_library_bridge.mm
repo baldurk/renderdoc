@@ -25,13 +25,13 @@
 #include "metal_library.h"
 #include "metal_types_bridge.h"
 
-// Wrapper for MTLLibrary
-@implementation ObjCWrappedMTLLibrary
+// Bridge for MTLLibrary
+@implementation ObjCBridgeMTLLibrary
 
-// ObjCWrappedMTLLibrary specific
+// ObjCBridgeMTLLibrary specific
 - (id<MTLLibrary>)real
 {
-  MTL::Library *real = Unwrap(self.wrappedCPP);
+  MTL::Library *real = self.wrappedCPP->GetReal();
   return id<MTLLibrary>(real);
 }
 
@@ -68,7 +68,7 @@
 
 - (id<MTLDevice>)device
 {
-  return id<MTLDevice>(self.wrappedCPP->GetObjCWrappedMTLDevice());
+  return id<MTLDevice>(self.wrappedCPP->GetObjCBridgeMTLDevice());
 }
 
 - (nullable id<MTLFunction>)newFunctionWithName:(NSString *)functionName

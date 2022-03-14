@@ -46,7 +46,7 @@ struct WrappedMTLObject
 {
   WrappedMTLObject() = delete;
   WrappedMTLObject(WrappedMTLDevice *wrappedMTLDevice, CaptureState &captureState)
-      : objc(NULL),
+      : objcBridge(NULL),
         real(NULL),
         record(NULL),
         m_WrappedMTLDevice(wrappedMTLDevice),
@@ -55,7 +55,7 @@ struct WrappedMTLObject
   }
   WrappedMTLObject(void *mtlObject, ResourceId objId, WrappedMTLDevice *wrappedMTLDevice,
                    CaptureState &captureState)
-      : objc(NULL),
+      : objcBridge(NULL),
         real(mtlObject),
         id(objId),
         record(NULL),
@@ -67,11 +67,11 @@ struct WrappedMTLObject
 
   void Dealloc();
 
-  MTL::Device *GetObjCWrappedMTLDevice();
+  MTL::Device *GetObjCBridgeMTLDevice();
 
   MetalResourceManager *GetResourceManager();
 
-  void *objc;
+  void *objcBridge;
   void *real;
   ResourceId id;
   MetalResourceRecord *record;
@@ -100,12 +100,12 @@ RealType Unwrap(WrappedMTLObject *obj)
 }
 
 template <typename RealType>
-RealType GetObjC(WrappedMTLObject *obj)
+RealType GetObjCBridge(WrappedMTLObject *obj)
 {
   if(obj == NULL)
     return RealType();
 
-  return (RealType)obj->objc;
+  return (RealType)obj->objcBridge;
 }
 
 // template magic voodoo to unwrap types

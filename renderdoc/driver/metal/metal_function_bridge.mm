@@ -25,13 +25,13 @@
 #include "metal_function.h"
 #include "metal_types_bridge.h"
 
-// Wrapper for MTLFunction
-@implementation ObjCWrappedMTLFunction
+// Bridge for MTLFunction
+@implementation ObjCBridgeMTLFunction
 
-// ObjCWrappedMTLFunction specific
+// ObjCBrdigeMTLFunction specific
 - (id<MTLFunction>)real
 {
-  MTL::Function *real = Unwrap(self.wrappedCPP);
+  MTL::Function *real = self.wrappedCPP->GetReal();
   return id<MTLFunction>(real);
 }
 
@@ -56,7 +56,7 @@
 
 - (id<MTLDevice>)device
 {
-  return id<MTLDevice>(self.wrappedCPP->GetObjCWrappedMTLDevice());
+  return id<MTLDevice>(self.wrappedCPP->GetObjCBridgeMTLDevice());
 }
 
 - (MTLFunctionType)functionType

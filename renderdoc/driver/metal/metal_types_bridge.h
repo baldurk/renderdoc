@@ -31,7 +31,7 @@
 
 // clang-format off
 #define DECLARE_OBJC_WRAPPED_INTERFACES(CPPTYPE)              \
-  @interface ObjCWrappedMTL##CPPTYPE : NSObject<MTL##CPPTYPE> \
+  @interface ObjCBridgeMTL##CPPTYPE : NSObject<MTL##CPPTYPE> \
     @property(assign) WrappedMTL##CPPTYPE *wrappedCPP;        \
     @property(readonly) id<MTL##CPPTYPE> real;                \
   @end

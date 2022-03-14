@@ -32,13 +32,13 @@
 #define __MAC_12_0 120000
 #endif
 
-// Wrapper for MTLDevice
-@implementation ObjCWrappedMTLDevice
+// Bridge for MTLDevice
+@implementation ObjCBridgeMTLDevice
 
-// ObjCWrappedMTLDevice specific
+// ObjCBridgeMTLDevice specific
 - (id<MTLDevice>)real
 {
-  MTL::Device *real = Unwrap(self.wrappedCPP);
+  MTL::Device *real = self.wrappedCPP->GetReal();
   return id<MTLDevice>(real);
 }
 
@@ -286,7 +286,7 @@
 - (nullable id<MTLLibrary>)newDefaultLibrary
 {
   WrappedMTLLibrary *wrapped = self.wrappedCPP->newDefaultLibrary();
-  MTL::Library *objc = GetObjC<MTL::Library *>(wrapped);
+  MTL::Library *objc = GetObjCBridge<MTL::Library *>(wrapped);
   return id<MTLLibrary>(objc);
 }
 
@@ -326,7 +326,7 @@
 {
   WrappedMTLLibrary *wrapped = self.wrappedCPP->newLibraryWithSource(
       (NS::String *)source, (MTL::CompileOptions *)options, (NS::Error **)error);
-  MTL::Library *objc = GetObjC<MTL::Library *>(wrapped);
+  MTL::Library *objc = GetObjCBridge<MTL::Library *>(wrapped);
   return (id<MTLLibrary>)(objc);
 }
 

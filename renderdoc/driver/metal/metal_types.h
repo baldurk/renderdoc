@@ -35,7 +35,7 @@
 
 #define DECLARE_OBJC_HELPERS(CPPTYPE) \
   class WrappedMTL##CPPTYPE;          \
-  extern MTL::CPPTYPE *AllocateObjCWrapper(WrappedMTL##CPPTYPE *wrapped);
+  extern MTL::CPPTYPE *AllocateObjCBridge(WrappedMTL##CPPTYPE *wrapped);
 
 METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_HELPERS)
 #undef DECLARE_OBJC_HELPERS
