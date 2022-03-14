@@ -30,5 +30,5 @@ WrappedMTLLibrary::WrappedMTLLibrary(MTL::Library *realMTLLibrary, ResourceId ob
                                      WrappedMTLDevice *wrappedMTLDevice)
     : WrappedMTLObject(realMTLLibrary, objId, wrappedMTLDevice, wrappedMTLDevice->GetStateRef())
 {
-  objc = AllocateObjCWrapper(this);
+  objcBridge = AllocateObjCBridge(this);
 }

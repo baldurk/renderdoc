@@ -43,9 +43,9 @@ MetalResourceManager *WrappedMTLObject::GetResourceManager()
   return m_WrappedMTLDevice->GetResourceManager();
 }
 
-MTL::Device *WrappedMTLObject::GetObjCWrappedMTLDevice()
+MTL::Device *WrappedMTLObject::GetObjCBridgeMTLDevice()
 {
-  return GetObjC<MTL::Device *>(m_WrappedMTLDevice);
+  return GetObjCBridge<MTL::Device *>(m_WrappedMTLDevice);
 }
 
 MetalResourceRecord::~MetalResourceRecord()

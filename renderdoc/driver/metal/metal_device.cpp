@@ -30,7 +30,7 @@
 WrappedMTLDevice::WrappedMTLDevice(MTL::Device *realMTLDevice, ResourceId objId)
     : WrappedMTLObject(realMTLDevice, objId, this, GetStateRef())
 {
-  objc = AllocateObjCWrapper(this);
+  objcBridge = AllocateObjCBridge(this);
   m_WrappedMTLDevice = this;
   threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
 
@@ -44,7 +44,6 @@ WrappedMTLDevice *WrappedMTLDevice::MTLCreateSystemDefaultDevice(MTL::Device *re
   ResourceId objId = ResourceIDGen::GetNewUniqueID();
   WrappedMTLDevice *wrappedMTLDevice = new WrappedMTLDevice(realMTLDevice, objId);
 
-  // return GetObjC<MTL::Device *>(wrappedMTLDevice);
   return wrappedMTLDevice;
 }
 
@@ -80,7 +79,7 @@ WrappedMTLLibrary *WrappedMTLDevice::newDefaultLibrary()
 {
   MTL::Library *realMTLLibrary;
 
-  SERIALISE_TIME_CALL(realMTLLibrary = Unwrap(this)->newDefaultLibrary());
+  SERIALISE_TIME_CALL(realMTLLibrary = GetReal()->newDefaultLibrary());
   WrappedMTLLibrary *wrappedMTLLibrary;
   ResourceId id = GetResourceManager()->WrapResource(realMTLLibrary, wrappedMTLLibrary);
   if(IsCaptureMode(m_State))
@@ -127,7 +126,7 @@ WrappedMTLLibrary *WrappedMTLDevice::newLibraryWithSource(NS::String *source,
                                                           NS::Error **error)
 {
   MTL::Library *realMTLLibrary;
-  SERIALISE_TIME_CALL(realMTLLibrary = Unwrap(this)->newLibrary(source, options, error));
+  SERIALISE_TIME_CALL(realMTLLibrary = GetReal()->newLibrary(source, options, error));
   WrappedMTLLibrary *wrappedMTLLibrary;
   ResourceId id = GetResourceManager()->WrapResource(realMTLLibrary, wrappedMTLLibrary);
   if(IsCaptureMode(m_State))
