@@ -130,15 +130,98 @@ float4 main(v2f IN) : SV_Target0
 
 )EOSHADER";
 
+  std::string pixel6_6Heap = R"EOSHADER(
+
+struct v2f
+{
+	float4 pos : SV_POSITION;
+	float4 col : COLOR0;
+	float2 uv : TEXCOORD0;
+};
+
+struct tex_ref
+{
+  uint tex;
+  uint binding;
+};
+
+struct CBuffer
+{
+  uint tex_idx;
+};
+
+float4 main(v2f IN) : SV_Target0
+{
+  StructuredBuffer<tex_ref> buf = ResourceDescriptorHeap[8];
+  if(IN.uv.y < 0.1f)
+  {
+    SamplerState s = SamplerDescriptorHeap[0];
+    Texture2D<float4> fixedtex = ResourceDescriptorHeap[12];
+    return fixedtex.Sample(s, IN.uv.xy*5.0f);
+  }
+  else
+  {
+    float2 uv = IN.uv.xy;
+
+    float4 ret = float4(1,1,1,1);
+    for(int i=0; i < 100; i++)
+    {
+      tex_ref t = buf[i];
+      if(t.tex == 100) break;
+
+      if(t.tex == 0)
+      {
+        SamplerState s1 = SamplerDescriptorHeap[0];
+        SamplerState s2 = SamplerDescriptorHeap[1];
+        SamplerState s3 = SamplerDescriptorHeap[2];
+        Texture2D<float4> tex1 = ResourceDescriptorHeap[t.binding];
+        Texture2D<float4> tex2 = ResourceDescriptorHeap[t.binding+1];
+        Texture2D<float4> tex3 = ResourceDescriptorHeap[t.binding+2];
+        ret *= tex1.SampleLevel(s1, uv.xy, 0);
+        ret *= tex2.SampleLevel(s2, uv.xy, 0);
+        ret *= tex3.SampleLevel(s3, uv.xy, 0);
+        RWStructuredBuffer<uint> uav = ResourceDescriptorHeap[10];
+        uav[0] = t.binding;
+      }
+      else if(t.tex == 1)
+      {
+        SamplerState s1 = SamplerDescriptorHeap[4];
+        SamplerState s2 = SamplerDescriptorHeap[5];
+        SamplerState s3 = SamplerDescriptorHeap[6];
+        Texture2D<float4> tex1 = ResourceDescriptorHeap[40+t.binding];
+        Texture2D<float4> tex2 = ResourceDescriptorHeap[40+t.binding+10];
+        ConstantBuffer<CBuffer> cbv = ResourceDescriptorHeap[9];
+        Texture2D<float4> tex3 = ResourceDescriptorHeap[cbv.tex_idx];
+        ret *= tex1.SampleLevel(s1, uv.xy, 0);
+        ret *= tex2.SampleLevel(s2, uv.xy, 0);
+        ret *= tex3.SampleLevel(s3, uv.xy, 0);
+      }
+      else if(t.tex == 2)
+      {
+        SamplerState s = SamplerDescriptorHeap[7];
+        Texture2D<float4> tex = ResourceDescriptorHeap[80+t.binding];
+        ret *= tex.SampleLevel(s, uv.xy, 0);
+      }
+
+      uv *= 1.8f;
+    }
+
+    return ret;
+  }
+}
+
+)EOSHADER";
+
   int main()
   {
     // initialise, create window, create device, etc
     if(!Init())
       return 3;
 
-    ID3DBlobPtr vsblob[2];
-    ID3DBlobPtr psblob[2];
-    ID3DBlobPtr csblob[2];
+    bool supportSM66 = m_HighestShaderModel >= D3D_SHADER_MODEL_6_6;
+    ID3DBlobPtr vsblob[3];
+    ID3DBlobPtr psblob[4];
+    ID3DBlobPtr csblob[3];
     vsblob[0] = Compile(D3DDefaultVertex, "main", "vs_4_0");
     psblob[0] = Compile(pixel, "main", "ps_5_1");
     csblob[0] = Compile(compute, "main", "cs_5_1");
@@ -147,6 +230,14 @@ float4 main(v2f IN) : SV_Target0
       vsblob[1] = Compile(D3DDefaultVertex, "main", "vs_6_0");
       psblob[1] = Compile(pixel, "main", "ps_6_0");
       csblob[1] = Compile(compute, "main", "cs_6_0");
+      if(supportSM66)
+      {
+        vsblob[2] = Compile(D3DDefaultVertex, "main", "vs_6_6");
+        psblob[2] = Compile(pixel, "main", "ps_6_6");
+        csblob[2] = Compile(compute, "main", "cs_6_6");
+
+        psblob[3] = Compile(pixel6_6Heap, "main", "ps_6_6");
+      }
     }
 
     ID3D12ResourcePtr vb = MakeBuffer().Data(DefaultTri);
@@ -161,21 +252,33 @@ float4 main(v2f IN) : SV_Target0
     staticSamp.AddressU = staticSamp.AddressV = staticSamp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
     staticSamp.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-    ID3D12RootSignaturePtr graphicssig = MakeSig(
+    ID3D12RootSignaturePtr graphicssigs[4];
+    graphicssigs[0] = graphicssigs[1] = graphicssigs[2] = MakeSig(
         {
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 20, 0),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 150, 0),
         },
         D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 1, &staticSamp);
-
-    ID3D12PipelineStatePtr graphicspso[2];
-    ID3D12PipelineStatePtr computepso[2];
+    ID3D12PipelineStatePtr graphicspso[4];
+    ID3D12PipelineStatePtr computepso[4];
     computepso[0] = MakePSO().RootSig(computesig).CS(csblob[0]);
-    graphicspso[0] = MakePSO().RootSig(graphicssig).InputLayout().VS(vsblob[0]).PS(psblob[0]);
+    graphicspso[0] = MakePSO().RootSig(graphicssigs[0]).InputLayout().VS(vsblob[0]).PS(psblob[0]);
     if(m_DXILSupport)
     {
       computepso[1] = MakePSO().RootSig(computesig).CS(csblob[1]);
-      graphicspso[1] = MakePSO().RootSig(graphicssig).InputLayout().VS(vsblob[1]).PS(psblob[1]);
+      graphicspso[1] = MakePSO().RootSig(graphicssigs[1]).InputLayout().VS(vsblob[1]).PS(psblob[1]);
+      if(supportSM66)
+      {
+        computepso[2] = MakePSO().RootSig(computesig).CS(csblob[2]);
+        graphicspso[2] = MakePSO().RootSig(graphicssigs[2]).InputLayout().VS(vsblob[2]).PS(psblob[2]);
+
+        computepso[3] = computepso[2];
+        graphicssigs[3] = MakeSig({}, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+                                          D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED |
+                                          D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED,
+                                  0, NULL);
+        graphicspso[3] = MakePSO().RootSig(graphicssigs[3]).InputLayout().VS(vsblob[2]).PS(psblob[3]);
+      }
     }
 
     ResourceBarrier(vb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
@@ -192,6 +295,15 @@ float4 main(v2f IN) : SV_Target0
                                    .InitialState(D3D12_RESOURCE_STATE_COPY_DEST);
 
     ID3D12ResourcePtr uploadBuf = MakeBuffer().Size(1024 * 1024).Upload();
+    ID3D12ResourcePtr constBuf = MakeBuffer().Size(256).Upload();
+    ID3D12ResourcePtr outUAV = MakeBuffer().Size(256).UAV();
+    {
+      byte *mapptr = NULL;
+      constBuf->Map(0, NULL, (void **)&mapptr);
+      uint32_t value = 6;
+      memcpy(mapptr, &value, sizeof(uint32_t));
+      constBuf->Unmap(0, NULL);
+    }
 
     {
       D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout = {};
@@ -252,7 +364,6 @@ float4 main(v2f IN) : SV_Target0
       MakeSRV(blacktex).CreateGPU(i);
       MakeSRV(blacktex).CreateCPU(i);
     }
-
     ID3D12ResourcePtr structBuf = MakeBuffer().UAV().Size(8192);
     D3D12_GPU_DESCRIPTOR_HANDLE structGPU =
         MakeUAV(structBuf).Format(DXGI_FORMAT_R32_UINT).CreateGPU(16);
@@ -269,6 +380,17 @@ float4 main(v2f IN) : SV_Target0
     MakeSRV(smiley).CreateGPU(59);
     MakeSRV(smiley).CreateGPU(99);
     MakeSRV(smiley).CreateGPU(103);
+    MakeCBV(constBuf).SizeBytes(256).CreateGPU(9);
+    MakeUAV(outUAV).Format(DXGI_FORMAT_R32_UINT).CreateGPU(10);
+
+    D3D12_SAMPLER_DESC samplerDesc = {};
+    samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+    samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW =
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    UINT increment = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    D3D12_CPU_DESCRIPTOR_HANDLE samplerStart = m_Sampler->GetCPUDescriptorHandleForHeapStart();
+    for(int i = 0; i < 8; ++i)
+      dev->CreateSampler(&samplerDesc, {samplerStart.ptr + increment * i});
 
     while(Running())
     {
@@ -283,20 +405,20 @@ float4 main(v2f IN) : SV_Target0
 
       ClearRenderTargetView(cmd, rtv, {0.2f, 0.2f, 0.2f, 1.0f});
 
-      const char *markers[] = {"Tests sm_5_1", "Tests sm_6_0"};
-
-      for(int i = 0; i < 2; i++)
+      const char *markers[] = {"Tests sm_5_1", "Tests sm_6_0", "Tests sm_6_6", "Tests sm_6_6_heap"};
+      int testsToRun = supportSM66 ? 4 : 2;
+      for(int i = 0; i < testsToRun; i++)
       {
         if(!computepso[i])
           continue;
 
         setMarker(cmd, markers[i]);
 
-        cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
+        ID3D12DescriptorHeap *heaps[] = {m_CBVUAVSRV.GetInterfacePtr(), m_Sampler.GetInterfacePtr()};
+        cmd->SetDescriptorHeaps(2, heaps);
 
         UINT zero[4] = {};
         cmd->ClearUnorderedAccessViewUint(structGPU, structCPU, structBuf, zero, 0, NULL);
-
         cmd->SetPipelineState(computepso[i]);
         cmd->SetComputeRootSignature(computesig);
         cmd->SetComputeRootDescriptorTable(0, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
@@ -308,9 +430,12 @@ float4 main(v2f IN) : SV_Target0
 
         IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
         cmd->SetPipelineState(graphicspso[i]);
-        cmd->SetGraphicsRootSignature(graphicssig);
-        cmd->SetGraphicsRootDescriptorTable(0, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
-        cmd->SetGraphicsRootDescriptorTable(1, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+        cmd->SetGraphicsRootSignature(graphicssigs[i]);
+        if(i < 3)
+        {
+          cmd->SetGraphicsRootDescriptorTable(0, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+          cmd->SetGraphicsRootDescriptorTable(1, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+        }
 
         RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
         RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});

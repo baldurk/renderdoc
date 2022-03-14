@@ -12,11 +12,8 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
 
         return super().check_support()
 
-    def check_capture(self):
-
-        for sm in ["sm_5_1", "sm_6_0"]:
-            base = self.find_action("Tests " + sm)
-            action = self.find_action("Dispatch", base.eventId)
+    def check_compute(self, eventId):
+            action = self.find_action("Dispatch", eventId)
             self.check(action is not None)
             self.controller.SetFrameEvent(action.eventId, False)
 
@@ -42,6 +39,15 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
 
                 if root.views[i].dynamicallyUsed:
                     raise rdtest.TestFailureException("Compute root range 0[{}] i dynamically used".format(i))
+
+    def check_capture(self):
+
+        for sm in ["sm_5_1", "sm_6_0", "sm_6_6"]:
+            base = self.find_action("Tests " + sm)
+            if base == None:
+                rdtest.log.print("Skipping test " + sm)
+                continue
+            self.check_compute(base.eventId)
 
             action = self.find_action("Draw", base.eventId)
             self.check(action is not None)
@@ -85,5 +91,82 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
                     if not expected_used and actually_used:
                         raise rdtest.TestFailureException(
                             "Range {} element {} expected to be unused, but is.".format(rangeIdx, idx))
+
+            rdtest.log.success("Dynamic usage is as expected for {}".format(sm))
+            
+        for sm in ["sm_6_6_heap"]:
+            base = self.find_action("Tests " + sm)
+            if base == None:
+                rdtest.log.print("Skipping test " + sm)
+                continue
+            self.check_compute(base.eventId)
+
+            action = self.find_action("Draw", base.eventId)
+            self.check(action is not None)
+            self.controller.SetFrameEvent(action.eventId, False)
+
+            pipe = self.controller.GetD3D12PipelineState()
+
+            # Check bindings:
+            #   - CBV 
+            #   - Samplers 
+            #   - SRV resources
+            #   - UAV resources 
+            bind_info = {
+                0: [9],
+                1: [0, 1, 2, 4, 5, 6, 7],
+                2: [8, 12, 19, 20, 21, 49, 59, 6, 99, 103],
+                3: [10],
+            }
+
+            if len(pipe.rootElements) != 4:
+                raise rdtest.TestFailureException("Wrong number of root signature ranges: {}, not 4"
+                                                  .format(len(pipe.rootElements)))
+            cbvRangeIdx = 0
+            samplerRangeIdx = 1
+            srvRangeIdx = 2
+            uavRangeIdx = 3
+            for rangeIdx, root in enumerate(pipe.rootElements):
+                if root.dynamicallyUsedCount != len(bind_info[rangeIdx]):
+                    raise rdtest.TestFailureException(
+                        "{} : Root range {} doesn't have the right used count. {} is not the expected count of {}"
+                        .format(sm, rangeIdx, root.dynamicallyUsedCount, len(bind_info[rangeIdx])))
+
+                for el in root.views:
+                    expected_used = ( el.tableIndex in bind_info[srvRangeIdx] ) or ( ( el.tableIndex in bind_info[uavRangeIdx] ) )
+                    if not expected_used:
+                        raise rdtest.TestFailureException(
+                            "Descriptor {} expected to be unused, but is.".format(el.tableIndex))
+                for el in root.constantBuffers:
+                    expected_used = el.tableIndex in bind_info[cbvRangeIdx]
+                    if not expected_used:
+                        raise rdtest.TestFailureException(
+                            "CBV {} expected to be unused, but is.".format(el.tableIndex))
+                for el in root.samplers:
+                    expected_used = el.tableIndex in bind_info[samplerRangeIdx]
+                    if not expected_used:
+                        raise rdtest.TestFailureException(
+                            "Sampler {} expected to be unused, but is.".format(el.tableIndex))
+
+            for elemId in bind_info[srvRangeIdx]:
+                actually_used = any( srv.tableIndex == elemId for srv in pipe.rootElements[srvRangeIdx].views)
+                if not actually_used:
+                    raise rdtest.TestFailureException(
+                        "SRV {} expected to be used, but isn't.".format(elemId))
+            for elemId in bind_info[uavRangeIdx]:
+                actually_used = any( uav.tableIndex == elemId for uav in pipe.rootElements[uavRangeIdx].views)
+                if not actually_used:
+                    raise rdtest.TestFailureException(
+                        "UAV {} expected to be used, but isn't.".format(elemId))
+            for elemId in bind_info[cbvRangeIdx]:
+                actually_used = any( cbv.tableIndex == elemId for cbv in pipe.rootElements[cbvRangeIdx].constantBuffers)
+                if not actually_used:
+                    raise rdtest.TestFailureException(
+                        "CBV {} expected to be used, but isn't.".format(elemId))
+            for elemId in bind_info[samplerRangeIdx]:
+                actually_used = any( samp.tableIndex == elemId for samp in pipe.rootElements[samplerRangeIdx].samplers)
+                if not actually_used:
+                    raise rdtest.TestFailureException(
+                        "Sampler {} expected to be used, but isn't.".format(elemId))
 
             rdtest.log.success("Dynamic usage is as expected for {}".format(sm))
