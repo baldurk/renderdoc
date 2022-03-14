@@ -51,7 +51,7 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
 
             # Check bindings:
             #   - buffer 8 in root range 0 should be statically used (single fixed declaration) for the parameters
-            #     image 15 in root range 0 should also be statically used
+            #     image 12 in root range 0 should also be statically used
             #   - images 19, 20, 21 in root range 1 should be used for the non-uniform index
             #     images 49 & 59 in root range 1 should be used for a second array in the same range
             #     image 60 in root range 1 should be used for a fixed index in an array

@@ -255,9 +255,10 @@ float4 main(v2f IN) : SV_Target0
 
     ID3D12ResourcePtr structBuf = MakeBuffer().UAV().Size(8192);
     D3D12_GPU_DESCRIPTOR_HANDLE structGPU =
-        MakeUAV(structBuf).Format(DXGI_FORMAT_R32_UINT).CreateGPU(15);
+        MakeUAV(structBuf).Format(DXGI_FORMAT_R32_UINT).CreateGPU(16);
     D3D12_CPU_DESCRIPTOR_HANDLE structCPU =
-        MakeUAV(structBuf).Format(DXGI_FORMAT_R32_UINT).CreateClearCPU(15);
+        MakeUAV(structBuf).Format(DXGI_FORMAT_R32_UINT).CreateClearCPU(16);
+    MakeUAV(structBuf).StructureStride(2 * sizeof(uint32_t)).CreateGPU(15);
     MakeSRV(structBuf).StructureStride(2 * sizeof(uint32_t)).CreateGPU(8);
 
     MakeSRV(smiley).CreateGPU(12);
@@ -291,10 +292,10 @@ float4 main(v2f IN) : SV_Target0
 
         setMarker(cmd, markers[i]);
 
+        cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
+
         UINT zero[4] = {};
         cmd->ClearUnorderedAccessViewUint(structGPU, structCPU, structBuf, zero, 0, NULL);
-
-        cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
 
         cmd->SetPipelineState(computepso[i]);
         cmd->SetComputeRootSignature(computesig);
