@@ -26,7 +26,7 @@
 #import <AppKit/AppKit.h>
 #import <Foundation/NSStream.h>
 
-void ObjC::Get_defaultLibraryData(void *&pData, uint32_t &bytesCount)
+void ObjC::Get_defaultLibraryData(bytebuf &buffer)
 {
   NSBundle *mainAppBundle = [NSBundle mainBundle];
   NSString *defaultLibaryPath = [mainAppBundle pathForResource:@"default" ofType:@"metallib"];
@@ -34,8 +34,7 @@ void ObjC::Get_defaultLibraryData(void *&pData, uint32_t &bytesCount)
   dispatch_data_t data = dispatch_data_create(
       myData.bytes, myData.length, dispatch_get_main_queue(), DISPATCH_DATA_DESTRUCTOR_DEFAULT);
   NSData *nsData = (NSData *)data;
-  pData = malloc(nsData.length);
-  memcpy(pData, nsData.bytes, nsData.length);
-  bytesCount = (uint32_t)nsData.length;
+  buffer.resize(nsData.length);
+  memcpy(buffer.data(), nsData.bytes, buffer.size());
   dispatch_release(data);
 }

@@ -28,5 +28,5 @@
 
 namespace ObjC
 {
-void Get_defaultLibraryData(void *&pData, uint32_t &bytesCount);
+void Get_defaultLibraryData(bytebuf &buffer);
 };
