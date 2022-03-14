@@ -184,6 +184,14 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
       tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &opts5, sizeof(opts5));
       tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &opts6, sizeof(opts6));
       tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &opts7, sizeof(opts7));
+      D3D12_FEATURE_DATA_SHADER_MODEL oShaderModel = {};
+      oShaderModel.HighestShaderModel = D3D_SHADER_MODEL_6_6;
+      HRESULT hr = tmpdev->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &oShaderModel,
+                                               sizeof(oShaderModel));
+      if(SUCCEEDED(hr))
+      {
+        m_HighestShaderModel = oShaderModel.HighestShaderModel;
+      }
     }
   }
 }
