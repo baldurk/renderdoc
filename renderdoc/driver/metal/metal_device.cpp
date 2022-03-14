@@ -50,21 +50,14 @@ WrappedMTLDevice *WrappedMTLDevice::MTLCreateSystemDefaultDevice(MTL::Device *re
 template <typename SerialiserType>
 bool WrappedMTLDevice::Serialise_newDefaultLibrary(SerialiserType &ser, WrappedMTLLibrary *library)
 {
-  void *pData;
-  uint32_t bytesCount;
+  bytebuf buffer;
   if(ser.IsWriting())
   {
-    ObjC::Get_defaultLibraryData(pData, bytesCount);
+    ObjC::Get_defaultLibraryData(buffer);
   }
 
   SERIALISE_ELEMENT_LOCAL(Library, GetResID(library)).TypedAs("MTLLibrary"_lit);
-  SERIALISE_ELEMENT(bytesCount);
-  SERIALISE_ELEMENT_ARRAY(pData, bytesCount);
-
-  if(ser.IsWriting())
-  {
-    free(pData);
-  }
+  SERIALISE_ELEMENT(buffer);
 
   SERIALISE_CHECK_READ_ERRORS();
 
