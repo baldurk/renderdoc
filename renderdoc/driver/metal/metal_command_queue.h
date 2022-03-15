@@ -24,17 +24,19 @@
 
 #pragma once
 
-#include "metal_types.h"
+#include "metal_common.h"
 
-#import <Metal/Metal.h>
+class WrappedMTLCommandQueue : public WrappedMTLObject
+{
+public:
+  WrappedMTLCommandQueue(MTL::CommandQueue *realMTLCommandQueue, ResourceId objId,
+                         WrappedMTLDevice *wrappedMTLDevice);
 
-// clang-format off
-#define DECLARE_OBJC_WRAPPED_INTERFACES(CPPTYPE)              \
-  @interface ObjCBridgeMTL##CPPTYPE : NSObject<MTL##CPPTYPE> \
-    @property(assign) WrappedMTL##CPPTYPE *wrappedCPP;        \
-    @property(readonly) id<MTL##CPPTYPE> real;                \
-  @end
-// clang-format on
+  MTL::CommandQueue *GetReal() { return (MTL::CommandQueue *)real; }
+  enum
+  {
+    TypeEnum = eResCommandQueue
+  };
 
-METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_WRAPPED_INTERFACES)
-#undef DECLARE_OBJC_WRAPPED_INTERFACES
+private:
+};

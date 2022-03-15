@@ -24,6 +24,7 @@
 
 #include "metal_device.h"
 #include <Availability.h>
+#include "metal_command_queue.h"
 #include "metal_library.h"
 #include "metal_types_bridge.h"
 
@@ -182,8 +183,9 @@
 
 - (nullable id<MTLCommandQueue>)newCommandQueue
 {
-  METAL_NOT_HOOKED();
-  return [self.real newCommandQueue];
+  WrappedMTLCommandQueue *wrapped = self.wrappedCPP->newCommandQueue();
+  MTL::CommandQueue *objc = GetObjCBridge<MTL::CommandQueue *>(wrapped);
+  return id<MTLCommandQueue>(objc);
 }
 
 - (nullable id<MTLCommandQueue>)newCommandQueueWithMaxCommandBufferCount:(NSUInteger)maxCommandBufferCount

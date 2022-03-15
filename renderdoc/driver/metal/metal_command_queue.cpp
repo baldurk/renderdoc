@@ -22,19 +22,12 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#include "metal_command_queue.h"
+#include "metal_device.h"
 
-#include "metal_types.h"
-
-#import <Metal/Metal.h>
-
-// clang-format off
-#define DECLARE_OBJC_WRAPPED_INTERFACES(CPPTYPE)              \
-  @interface ObjCBridgeMTL##CPPTYPE : NSObject<MTL##CPPTYPE> \
-    @property(assign) WrappedMTL##CPPTYPE *wrappedCPP;        \
-    @property(readonly) id<MTL##CPPTYPE> real;                \
-  @end
-// clang-format on
-
-METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_WRAPPED_INTERFACES)
-#undef DECLARE_OBJC_WRAPPED_INTERFACES
+WrappedMTLCommandQueue::WrappedMTLCommandQueue(MTL::CommandQueue *realMTLCommandQueue,
+                                               ResourceId objId, WrappedMTLDevice *wrappedMTLDevice)
+    : WrappedMTLObject(realMTLCommandQueue, objId, wrappedMTLDevice, wrappedMTLDevice->GetStateRef())
+{
+  objcBridge = AllocateObjCBridge(this);
+}

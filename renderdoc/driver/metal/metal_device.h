@@ -37,6 +37,8 @@ public:
   MTL::Device *GetReal() { return (MTL::Device *)real; }
   static WrappedMTLDevice *MTLCreateSystemDefaultDevice(MTL::Device *realMTLDevice);
 
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLCommandQueue *, newCommandQueue);
+
   WrappedMTLLibrary *newDefaultLibrary();
   template <typename SerialiserType>
   bool Serialise_newDefaultLibrary(SerialiserType &ser, WrappedMTLLibrary *library);
