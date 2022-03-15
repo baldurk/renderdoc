@@ -1045,6 +1045,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       state.subpass = 0;
       state.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
 
+      state.subpassContents = VK_SUBPASS_CONTENTS_INLINE;
+      state.dynamicRendering.flags &= VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT;
+
       state.graphics.pipeline = GetResID(pipe);
 
       // set dynamic scissors in case pipeline was using them

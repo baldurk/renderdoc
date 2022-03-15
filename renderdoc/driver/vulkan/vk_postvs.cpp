@@ -3026,6 +3026,9 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   state.xfbbuffers.clear();
   state.xfbcounters.clear();
 
+  state.subpassContents = VK_SUBPASS_CONTENTS_INLINE;
+  state.dynamicRendering.flags &= VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT;
+
   if(m_PostVS.XFBQueryPoolSize < action->numInstances)
   {
     if(m_PostVS.XFBQueryPoolSize != VK_NULL_HANDLE)
