@@ -846,6 +846,22 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
           samp.minLOD = desc.MinLOD;
           samp.mipLODBias = desc.MipLODBias;
         }
+        else
+        {
+          samp.addressU = samp.addressV = samp.addressW = AddressMode::ClampEdge;
+
+          samp.borderColor = {1.0f, 1.0f, 1.0f, 1.0f};
+
+          samp.compareFunction = CompareFunction::Never;
+          samp.filter.filter = FilterFunction::Normal;
+          samp.filter.magnify = FilterMode::Linear;
+          samp.filter.minify = FilterMode::Linear;
+          samp.filter.mip = FilterMode::Linear;
+          samp.maxAnisotropy = 1;
+          samp.maxLOD = FLT_MAX;
+          samp.minLOD = -FLT_MAX;
+          samp.mipLODBias = 0.0f;
+        }
       }
 
       dst.srvs.resize(D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
