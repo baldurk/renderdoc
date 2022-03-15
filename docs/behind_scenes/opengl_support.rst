@@ -3,8 +3,6 @@ OpenGL & OpenGL ES Support
 
 This page documents the support of OpenGL & OpenGL ES in RenderDoc. This gives an overview of what RenderDoc is capable of, and primarily lists information that is relevant. You might also be interested in the :doc:`full list of features <../getting_started/features>`.
 
-The latest information and up-to-date support is always available on the `GitHub wiki <https://github.com/baldurk/renderdoc/wiki/OpenGL>`_.
-
 Capture requirements
 --------------------
 

@@ -19,7 +19,7 @@ How do I do some particular task?
 
 Many specific tasks or functions are detailed in the :doc:`"How Do I... ?" <../how/index>` sections. These sections each take a feature or element of a workflow and explain how it fits into the program as a whole as well as any details of how it works.
 
-If the task you have in mind isn't listed there you might find something similar, or you might find a related feature which can be used to do what you want. If the feature you want doesn't seem to exist at all you might want to check the :doc:`../behind_scenes/planned_features` to see if it's coming soon - if it's not on that list please feel free to `contact me <mailto:baldurk@baldurk.org?subject=RenderDoc%20request>`__ and request it! It has often been that simple features are very quick to implement and the prioritisation and scheduling of features is fairly fluid depending on user needs.
+If the task you have in mind isn't listed there you might find something similar, or you might find a related feature which can be used to do what you want. If you have a workflow which isn't supported at all, feel free to open an issue on github to request a new feature. Make sure to describe clearly what you are trying to do and what workflow you want to support, not just the specific feature you want. That way the problem can be better understood.
 
 Why did you make RenderDoc?
 ---------------------------

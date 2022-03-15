@@ -1,7 +1,7 @@
 Features
 ========
 
-This page documents the current feature set of RenderDoc. This gives an overview of what RenderDoc is capable of, and where it is in its development. You might also be interested in the :doc:`../behind_scenes/planned_features`.
+This page documents the current feature set of RenderDoc. This gives an overview of what RenderDoc is capable of, and where it is in its development.
 
 Currently RenderDoc supports Vulkan, D3D11, D3D12, OpenGL, and OpenGL ES on Windows, Linux, Android, Stadia, and Nintendo Switch :sup:`TM`. The UI runs in Qt and will work on any desktop platform.
 
@@ -98,7 +98,3 @@ OpenGL & OpenGL ES
 * Support for OpenGL ES 2.0 - 3.2 on Linux, Windows, and Android.
 * Tree hierarchy of events defined by any of the standard or vendor-specific extensions, and ``KHR_debug`` object labels used for object naming.
 
-See Also
---------
-
-* :doc:`../behind_scenes/planned_features`

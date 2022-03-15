@@ -14,7 +14,7 @@ To install on windows run the appropriate installer for your OS ([64-bit](https:
 * **Documentation**: [HTML online](https://renderdoc.org/docs), [CHM in builds](https://renderdoc.org/docs/renderdoc.chm), [Videos](https://www.youtube.com/user/baldurkarlsson)
 * **Contact**: [baldurk@baldurk.org](mailto:baldurk@baldurk.org), [#renderdoc on OFTC IRC](https://kiwiirc.com/nextclient/irc.oftc.net/#renderdoc), [Discord server](https://discord.gg/ahq6yRB)
 * **Code of Conduct**: [Contributor Covenant](docs/CODE_OF_CONDUCT.md)
-* **Information for contributors**: [All contribution information](docs/CONTRIBUTING.md), [Compilation instructions](docs/CONTRIBUTING/Compiling.md), [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap)
+* **Information for contributors**: [All contribution information](docs/CONTRIBUTING.md), [Compilation instructions](docs/CONTRIBUTING/Compiling.md)
 * **Community extensions**: [Extensions repository](https://github.com/baldurk/renderdoc-contrib)
 
 Screenshots

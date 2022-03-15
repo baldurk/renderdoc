@@ -1,6 +1,6 @@
 # Code Explanation
 
-There are [several pages](https://github.com/baldurk/renderdoc/wiki/Code-Dives) on the wiki explaining different aspects of how the code fits together - like how the capture-side works vs replay-side, how shader debugging works, etc.
+This is a rough 'table of contents' overview of how the main code components are organised:
 
     renderdoc/ 
         CMakeLists.txt           ; The cmake file, will recurse into subdirectories to build them

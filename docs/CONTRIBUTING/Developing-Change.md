@@ -9,6 +9,9 @@ The coding style is primarily enforced by clang-format for things that can be ea
 For things that clang-format can't cover, there are a few guidelines below but the golden rule is to try and match the surrounding code as much as possible. The code isn't perfectly consistent so you might see varying naming conventions, avoid adding code that is significantly different to the context.
 
 * `auto` is only allowed for types that are prohibitive: STL iterators and lambdas. Everywhere else you should use the explicit type.
+* Use `NULL` rather than `nullptr`.
+* If an `if` or `else` requires braces, add braces to all cases, rather than leaving one 'bare' without braces and another with braces.
+* Strings are always UTF-8, everywhere, unless they are wide strings which are only used for windows compatibility. Plain `char*` byte strings should be used everywhere in non-OS specific code, and are always treated as UTF-8 (never assume a string will be plain ASCII).
 * Limit STL use to a minimum. Allowed uses are `std::map`, `std::function`, `std::set`, algorithms like `std::sort` and `std::lower_bound`, and type-traits type checks like `std::is_same`. Use `rdcarray` instead of `std::vector` and `rdcstr` instead of `std::string`.
 * Don't use hungarian notation aside from `m_` for members. Some existing names will use `p` prefixes for pointers but it should be phased out in new code. The exception is when working with hooked functions where the official parameter names have hungarian notation.
 
@@ -24,7 +27,7 @@ Aim to merge your work to the main line in reasonably sized chunks. How big is a
 
 # Where to Start
 
-There are always plenty of things to do, if you'd like to chip in! Check out the [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap) page in the wiki for future tasks to tackle, or have a look at the [issues](https://github.com/baldurk/renderdoc/issues) for outstanding bugs. I'll try and tag things that seem like small changes that would be a good way for someone to get started with.
+There are always plenty of things to do, if you'd like to chip in! Check out the [issues](https://github.com/baldurk/renderdoc/issues) for outstanding feature requests.
 
 If you have a change you'd like to see make it into mainline, create a fork of renderdoc, make your changes to a branch, and open a pull request on github. You can look around for instructions on that - it's pretty simple.
 

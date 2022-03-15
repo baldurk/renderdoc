@@ -252,10 +252,6 @@
     <param name="Local" value="how/how_inspect_pixel.html">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
-    <param name="Keyword" value="Planned Features">
-    <param name="Local" value="behind_scenes/planned_features.html">
-</OBJECT>
-<LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Preferences">
     <param name="Local" value="window/settings_window.html">
 </OBJECT>
