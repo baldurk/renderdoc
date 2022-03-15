@@ -29,7 +29,6 @@
 #include "common/timing.h"
 #include "official/metal-cpp.h"
 #include "serialise/serialiser.h"
-#include "serialise/serialiser.h"
 #include "metal_resources.h"
 #include "metal_types.h"
 
