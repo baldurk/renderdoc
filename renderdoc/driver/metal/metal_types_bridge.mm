@@ -58,7 +58,7 @@
     return [objC isKindOfClass:[ObjCBridgeMTL##CPPTYPE class]];                    \
   }                                                                                \
                                                                                    \
-  ResourceId GetResId(MTL::CPPTYPE *cppType)                                       \
+  ResourceId GetResID(MTL::CPPTYPE *cppType)                                       \
   {                                                                                \
     WrappedMTL##CPPTYPE *wrappedCPP = GetWrapped(cppType);                         \
     if(wrappedCPP == NULL)                                                         \
