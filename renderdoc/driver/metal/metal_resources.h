@@ -35,6 +35,7 @@ class MetalResourceManager;
 enum MetalResourceType
 {
   eResUnknown = 0,
+  eResCommandQueue,
   eResDevice,
   eResLibrary,
   eResFunction,

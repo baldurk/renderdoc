@@ -35,6 +35,7 @@
 enum class MetalChunk : uint32_t
 {
   MTLCreateSystemDefaultDevice = (uint32_t)SystemChunk::FirstDriverChunk,
+  MTLDevice_newCommandQueue,
   MTLDevice_newDefaultLibrary,
   MTLDevice_newLibraryWithSource,
   MTLLibrary_newFunctionWithName,
@@ -59,9 +60,18 @@ DECLARE_REFLECTION_ENUM(MetalChunk);
   template <typename SerialiserType>                \
   bool CONCAT(Serialise_, func(SerialiserType &ser, ##__VA_ARGS__));
 
-#define INSTANTIATE_FUNCTION_SERIALISED(CLASS, ret, func, ...)                     \
-  template bool CLASS::CONCAT(Serialise_, func(ReadSerialiser &ser, __VA_ARGS__)); \
-  template bool CLASS::CONCAT(Serialise_, func(WriteSerialiser &ser, __VA_ARGS__));
+#define INSTANTIATE_FUNCTION_SERIALISED(CLASS, ret, func, ...)                       \
+  template bool CLASS::CONCAT(Serialise_, func(ReadSerialiser &ser, ##__VA_ARGS__)); \
+  template bool CLASS::CONCAT(Serialise_, func(WriteSerialiser &ser, ##__VA_ARGS__));
+
+#define DECLARE_FUNCTION_WITH_RETURN_SERIALISED(ret, func, ...) \
+  ret func(__VA_ARGS__);                                        \
+  template <typename SerialiserType>                            \
+  bool CONCAT(Serialise_, func(SerialiserType &ser, ret, ##__VA_ARGS__));
+
+#define INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(CLASS, ret, func, ...)                \
+  template bool CLASS::CONCAT(Serialise_, func(ReadSerialiser &ser, ret, ##__VA_ARGS__)); \
+  template bool CLASS::CONCAT(Serialise_, func(WriteSerialiser &ser, ret, ##__VA_ARGS__));
 
 // A handy macro to say "is the serialiser reading and we're doing replay-mode stuff?"
 // The reason we check both is that checking the first allows the compiler to eliminate the other

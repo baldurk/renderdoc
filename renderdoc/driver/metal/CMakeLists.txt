@@ -20,6 +20,9 @@ set(sources
     metal_function.h
     metal_function_bridge.mm
     metal_common.h
+    metal_command_queue.cpp
+    metal_command_queue.h
+    metal_command_queue_bridge.mm
     metal_core.cpp
     metal_core.h
     metal_manager.cpp

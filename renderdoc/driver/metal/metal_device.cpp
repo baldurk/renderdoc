@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "metal_device.h"
+#include "metal_command_queue.h"
 #include "metal_helpers_bridge.h"
 #include "metal_library.h"
 #include "metal_manager.h"
@@ -45,6 +46,46 @@ WrappedMTLDevice *WrappedMTLDevice::MTLCreateSystemDefaultDevice(MTL::Device *re
   WrappedMTLDevice *wrappedMTLDevice = new WrappedMTLDevice(realMTLDevice, objId);
 
   return wrappedMTLDevice;
+}
+
+template <typename SerialiserType>
+bool WrappedMTLDevice::Serialise_newCommandQueue(SerialiserType &ser, WrappedMTLCommandQueue *queue)
+{
+  SERIALISE_ELEMENT_LOCAL(CommandQueue, GetResID(queue)).TypedAs("MTLCommandQueue"_lit);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    // TODO: implement RD MTL replay
+  }
+  return true;
+}
+
+WrappedMTLCommandQueue *WrappedMTLDevice::newCommandQueue()
+{
+  MTL::CommandQueue *realMTLCommandQueue;
+  SERIALISE_TIME_CALL(realMTLCommandQueue = GetReal()->newCommandQueue());
+  WrappedMTLCommandQueue *wrappedMTLCommandQueue;
+  ResourceId id = GetResourceManager()->WrapResource(realMTLCommandQueue, wrappedMTLCommandQueue);
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLDevice_newCommandQueue);
+      Serialise_newCommandQueue(ser, wrappedMTLCommandQueue);
+      chunk = scope.Get();
+    }
+    MetalResourceRecord *record = GetResourceManager()->AddResourceRecord(wrappedMTLCommandQueue);
+    record->AddChunk(chunk);
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+    //     GetResourceManager()->AddLiveResource(id, wrappedMTLCommandQueue);
+  }
+  return wrappedMTLCommandQueue;
 }
 
 template <typename SerialiserType>
@@ -142,6 +183,9 @@ WrappedMTLLibrary *WrappedMTLDevice::newLibraryWithSource(NS::String *source,
   }
   return wrappedMTLLibrary;
 }
+
+INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLDevice, WrappedMTLCommandQueue *,
+                                            newCommandQueue);
 
 template bool WrappedMTLDevice::Serialise_newDefaultLibrary(ReadSerialiser &ser,
                                                             WrappedMTLLibrary *library);
