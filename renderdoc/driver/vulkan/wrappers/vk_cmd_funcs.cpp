@@ -3633,72 +3633,6 @@ void WrappedVulkan::vkCmdBindIndexBuffer(VkCommandBuffer commandBuffer, VkBuffer
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdUpdateBuffer(SerialiserType &ser, VkCommandBuffer commandBuffer,
-                                                VkBuffer destBuffer, VkDeviceSize destOffset,
-                                                VkDeviceSize dataSize, const uint32_t *pData)
-{
-  SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(destBuffer).Important();
-  SERIALISE_ELEMENT(destOffset);
-  SERIALISE_ELEMENT(dataSize);
-
-  // serialise as void* so it goes through as a buffer, not an actual array of integers.
-  const void *Data = (const void *)pData;
-  SERIALISE_ELEMENT_ARRAY(Data, dataSize).Important();
-
-  Serialise_DebugMessages(ser);
-
-  SERIALISE_CHECK_READ_ERRORS();
-
-  if(IsReplayingAndReading())
-  {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
-
-    if(IsActiveReplaying(m_State))
-    {
-      if(InRerecordRange(m_LastCmdBufferID))
-        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-      else
-        commandBuffer = VK_NULL_HANDLE;
-    }
-
-    if(commandBuffer != VK_NULL_HANDLE)
-    {
-      ObjDisp(commandBuffer)
-          ->CmdUpdateBuffer(Unwrap(commandBuffer), Unwrap(destBuffer), destOffset, dataSize, Data);
-    }
-  }
-
-  return true;
-}
-
-void WrappedVulkan::vkCmdUpdateBuffer(VkCommandBuffer commandBuffer, VkBuffer destBuffer,
-                                      VkDeviceSize destOffset, VkDeviceSize dataSize,
-                                      const uint32_t *pData)
-{
-  SCOPED_DBG_SINK();
-
-  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
-                          ->CmdUpdateBuffer(Unwrap(commandBuffer), Unwrap(destBuffer), destOffset,
-                                            dataSize, pData));
-
-  if(IsCaptureMode(m_State))
-  {
-    VkResourceRecord *record = GetRecord(commandBuffer);
-
-    CACHE_THREAD_SERIALISER();
-
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdUpdateBuffer);
-    Serialise_vkCmdUpdateBuffer(ser, commandBuffer, destBuffer, destOffset, dataSize, pData);
-
-    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
-
-    record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, dataSize,
-                                      eFrameRef_CompleteWrite);
-  }
-}
-
-template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCmdPushConstants(SerialiserType &ser, VkCommandBuffer commandBuffer,
                                                  VkPipelineLayout layout,
                                                  VkShaderStageFlags stageFlags, uint32_t start,
@@ -7322,10 +7256,6 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBindIndexBuffer, VkCommandBuffer comm
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBindVertexBuffers, VkCommandBuffer commandBuffer,
                                 uint32_t firstBinding, uint32_t bindingCount,
                                 const VkBuffer *pBuffers, const VkDeviceSize *pOffsets);
-
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdUpdateBuffer, VkCommandBuffer commandBuffer,
-                                VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize dataSize,
-                                const uint32_t *pData);
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdPushConstants, VkCommandBuffer commandBuffer,
                                 VkPipelineLayout layout, VkShaderStageFlags stageFlags,
