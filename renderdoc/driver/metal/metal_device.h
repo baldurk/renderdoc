@@ -38,16 +38,10 @@ public:
   static WrappedMTLDevice *MTLCreateSystemDefaultDevice(MTL::Device *realMTLDevice);
 
   DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLCommandQueue *, newCommandQueue);
-
-  WrappedMTLLibrary *newDefaultLibrary();
-  template <typename SerialiserType>
-  bool Serialise_newDefaultLibrary(SerialiserType &ser, WrappedMTLLibrary *library);
-
-  WrappedMTLLibrary *newLibraryWithSource(NS::String *source, MTL::CompileOptions *options,
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLLibrary *, newDefaultLibrary);
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLLibrary *, newLibraryWithSource,
+                                          NS::String *source, MTL::CompileOptions *options,
                                           NS::Error **error);
-  template <typename SerialiserType>
-  bool Serialise_newLibraryWithSource(SerialiserType &ser, WrappedMTLLibrary *library,
-                                      NS::String *source, MTL::CompileOptions *options);
 
   CaptureState &GetStateRef() { return m_State; }
   CaptureState GetState() { return m_State; }
