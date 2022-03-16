@@ -376,12 +376,14 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         -Wno-unused-variable
         -Wno-unused-parameter
         -Wno-unused-result
+        -Wno-unused-but-set-variable
+        -Wno-deprecated-copy
         -Wno-type-limits
         -Wno-missing-field-initializers
         -Wno-unknown-pragmas
         -Wno-reorder)
     if(CMAKE_COMPILER_IS_GNUCXX)
-        list(APPEND warning_flags -Wno-unused-but-set-variable -Wno-maybe-uninitialized -Wno-class-memaccess)
+        list(APPEND warning_flags -Wno-maybe-uninitialized -Wno-class-memaccess)
 
         # We keep the implicit fallthrough warning for now, but allow more
         # comments to silence it.
