@@ -744,9 +744,8 @@ float4 main() : SV_Target0
       vkh::updateDescriptorSets(
           device, {
                       vkh::WriteDescriptorSet(
-                          descset, 1, VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT,
-                          {vkh::DescriptorBufferInfo(cb.buffer, bindOffset * sizeof(Vec4f))})
-                          .next(&inlineUpdate),
+                          descset, 1, inlineUpdate,
+                          vkh::DescriptorBufferInfo(cb.buffer, bindOffset * sizeof(Vec4f))),
                   });
     }
     else

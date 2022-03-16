@@ -912,6 +912,22 @@ struct WriteDescriptorSet : public VkWriteDescriptorSet
     this->pTexelBufferView = NULL;
   }
 
+  WriteDescriptorSet(VkDescriptorSet dstSet, uint32_t dstBinding,
+                     const VkWriteDescriptorSetInlineUniformBlockEXT &inlineWrite,
+                     const VkDescriptorBufferInfo &bufferInfo)
+  {
+    sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    pNext = &inlineWrite;
+    this->dstSet = dstSet;
+    this->dstBinding = dstBinding;
+    this->dstArrayElement = 0;
+    this->descriptorCount = inlineWrite.dataSize;
+    this->descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT;
+    this->pImageInfo = NULL;
+    this->pBufferInfo = &bufferInfo;
+    this->pTexelBufferView = NULL;
+  }
+
   WriteDescriptorSet(VkDescriptorSet dstSet, uint32_t dstBinding, VkDescriptorType descriptorType,
                      const std::vector<VkDescriptorBufferInfo> &bufferInfo)
       : WriteDescriptorSet(dstSet, dstBinding, 0, descriptorType, bufferInfo)
