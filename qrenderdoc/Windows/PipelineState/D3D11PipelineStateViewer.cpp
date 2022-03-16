@@ -2118,8 +2118,6 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
       const D3D11Pipe::Shader *nonCS[] = {&state.vertexShader, &state.domainShader, &state.hullShader,
                                           &state.geometryShader, &state.pixelShader};
 
-      bind += state.outputMerger.uavStartSlot;
-
       for(const D3D11Pipe::Shader *searchstage : nonCS)
       {
         if(searchstage->reflection)
