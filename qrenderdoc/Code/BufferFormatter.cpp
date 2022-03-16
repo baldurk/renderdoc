@@ -1925,6 +1925,8 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
                                        const QString &name, const rdcarray<ShaderConstant> &members,
                                        uint32_t requiredByteStride, QString innerSkippedPrefixString)
 {
+  QString declarations;
+
   QString ret;
 
   ret = lit("struct %1\n{\n").arg(name);
@@ -2015,9 +2017,9 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
       if(!declaredStructs.contains(varTypeName))
       {
         declaredStructs.push_back(varTypeName);
-        ret = DeclareStruct(pack, declaredStructs, varTypeName, pointeeType.members,
-                            pointeeType.descriptor.arrayByteStride, QString()) +
-              lit("\n") + ret;
+        declarations += DeclareStruct(pack, declaredStructs, varTypeName, pointeeType.members,
+                                      pointeeType.descriptor.arrayByteStride, QString()) +
+                        lit("\n");
       }
 
       varTypeName += lit("*");
@@ -2036,9 +2038,9 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
       if(!declaredStructs.contains(varTypeName))
       {
         declaredStructs.push_back(varTypeName);
-        ret = DeclareStruct(pack, declaredStructs, varTypeName, members[i].type.members,
-                            members[i].type.descriptor.arrayByteStride, QString()) +
-              lit("\n") + ret;
+        declarations += DeclareStruct(pack, declaredStructs, varTypeName, members[i].type.members,
+                                      members[i].type.descriptor.arrayByteStride, QString()) +
+                        lit("\n");
       }
     }
 
@@ -2094,7 +2096,7 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
 
   ret += lit("}\n");
 
-  return ret;
+  return declarations + ret;
 }
 
 QString BufferFormatter::DeclareStruct(Packing::Rules pack, const QString &name,
