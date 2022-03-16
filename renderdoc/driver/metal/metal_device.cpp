@@ -140,7 +140,7 @@ WrappedMTLLibrary *WrappedMTLDevice::newDefaultLibrary()
 template <typename SerialiserType>
 bool WrappedMTLDevice::Serialise_newLibraryWithSource(SerialiserType &ser,
                                                       WrappedMTLLibrary *library, NS::String *source,
-                                                      MTL::CompileOptions *options)
+                                                      MTL::CompileOptions *options, NS::Error **error)
 {
   SERIALISE_ELEMENT_LOCAL(Library, GetResID(library)).TypedAs("MTLLibrary"_lit);
   SERIALISE_ELEMENT(source);
@@ -169,7 +169,7 @@ WrappedMTLLibrary *WrappedMTLDevice::newLibraryWithSource(NS::String *source,
     {
       CACHE_THREAD_SERIALISER();
       SCOPED_SERIALISE_CHUNK(MetalChunk::MTLDevice_newLibraryWithSource);
-      Serialise_newLibraryWithSource(ser, wrappedMTLLibrary, source, options);
+      Serialise_newLibraryWithSource(ser, wrappedMTLLibrary, source, options, error);
       chunk = scope.Get();
     }
     MetalResourceRecord *record = GetResourceManager()->AddResourceRecord(wrappedMTLLibrary);
@@ -186,17 +186,7 @@ WrappedMTLLibrary *WrappedMTLDevice::newLibraryWithSource(NS::String *source,
 
 INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLDevice, WrappedMTLCommandQueue *,
                                             newCommandQueue);
-
-template bool WrappedMTLDevice::Serialise_newDefaultLibrary(ReadSerialiser &ser,
-                                                            WrappedMTLLibrary *library);
-template bool WrappedMTLDevice::Serialise_newDefaultLibrary(WriteSerialiser &ser,
-                                                            WrappedMTLLibrary *library);
-
-template bool WrappedMTLDevice::Serialise_newLibraryWithSource(ReadSerialiser &ser,
-                                                               WrappedMTLLibrary *library,
-                                                               NS::String *source,
-                                                               MTL::CompileOptions *options);
-template bool WrappedMTLDevice::Serialise_newLibraryWithSource(WriteSerialiser &ser,
-                                                               WrappedMTLLibrary *library,
-                                                               NS::String *source,
-                                                               MTL::CompileOptions *options);
+INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLDevice, WrappedMTLLibrary *, newDefaultLibrary);
+INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLDevice, WrappedMTLLibrary *,
+                                            newLibraryWithSource, NS::String *source,
+                                            MTL::CompileOptions *options, NS::Error **error);
