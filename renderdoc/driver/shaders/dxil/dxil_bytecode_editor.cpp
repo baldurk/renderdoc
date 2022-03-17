@@ -1135,7 +1135,7 @@ bytebuf ProgramEditor::EncodeProgram() const
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
     const Function &f = m_Functions[i];
-    uint64_t typeIndex = getTypeID(f.funcType->inner);
+    uint64_t typeIndex = getTypeID(f.funcType);
 
     RDCASSERT((size_t)typeIndex < m_Types.size());
 
@@ -1357,7 +1357,7 @@ bytebuf ProgramEditor::EncodeProgram() const
           vals.push_back(flags);
           if(inst.opFlags != InstructionFlags::NoFlags)
             vals.push_back((uint64_t)inst.opFlags);
-          vals.push_back(getTypeID(inst.funcCall->funcType->inner));
+          vals.push_back(getTypeID(inst.funcCall->funcType));
           encodeRelativeValueID(Value(inst.funcCall));
           for(size_t a = 0; a < inst.args.size(); a++)
           {

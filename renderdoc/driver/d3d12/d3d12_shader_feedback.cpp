@@ -217,13 +217,9 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
 
     const DXIL::Type *funcType = editor.AddType(atomicType);
 
-    DXIL::Type funcPtrType;
-    funcPtrType.type = DXIL::Type::Pointer;
-    funcPtrType.inner = funcType;
-
     DXIL::Function atomicFunc;
     atomicFunc.name = "dx.op.atomicBinOp.i32";
-    atomicFunc.funcType = editor.AddType(funcPtrType);
+    atomicFunc.funcType = funcType;
     atomicFunc.external = true;
 
     for(const DXIL::AttributeSet &attrs : editor.GetAttributeSets())

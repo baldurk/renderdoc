@@ -628,8 +628,8 @@ void Program::MakeDisassemblyString()
     }
 
     m_Disassembly += (func.external ? "declare " : "define ");
-    m_Disassembly += func.funcType->inner->declFunction("@" + escapeStringIfNeeded(func.name),
-                                                        func.args, func.attrs);
+    m_Disassembly +=
+        func.funcType->declFunction("@" + escapeStringIfNeeded(func.name), func.args, func.attrs);
 
     if(func.attrs && func.attrs->functionSlot)
       m_Disassembly += StringFormat::Fmt(" #%u", funcAttrGroups.indexOf(func.attrs->functionSlot));
