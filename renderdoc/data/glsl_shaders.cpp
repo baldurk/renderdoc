@@ -1170,6 +1170,533 @@ void main() {
     }
   };
 
+#define REQUIRE_ARRAY_SIZE(size, min) \
+  REQUIRE(size >= min);               \
+  CHECK(size == min);
+
+  SECTION("Infinite arrays")
+  {
+    rdcstr source = R"(
+#version 450 core
+
+layout(binding = 0, std430) buffer ssbo0
+{
+  float blah;
+  vec4 normal_array[3];
+  vec4 non_array;
+} ssbo_root0;
+
+layout(binding = 0, std430) buffer ssbo1
+{
+  float blah;
+  vec4 normal_array[3];
+  vec4 bounded_array[5];
+} ssbo_root1;
+
+layout(binding = 2, std430) buffer ssbo2
+{
+  float blah;
+  vec4 normal_array[3];
+  vec4 infinite_array[];
+} ssbo_root2;
+
+struct glstruct
+{
+  float a;
+  int b;
+};
+
+struct struct_with_arrays
+{
+  float a[2];
+  int b;
+};
+
+layout(binding = 3, std430) buffer ssbo3
+{
+  float blah;
+  struct_with_arrays test;
+  glstruct s[2];
+} ssbo_root3;
+
+layout(binding = 4, std430) buffer ssbo4
+{
+  float blah;
+  struct_with_arrays test;
+  glstruct s[];
+} ssbo_root4;
+
+layout(binding = 4, std430) buffer ssbo5
+{
+  float ssbo5_blah;
+  struct_with_arrays ssbo5_test;
+  glstruct ssbo5_s[2];
+};
+
+layout(binding = 5, std430) buffer ssbo6
+{
+  float ssbo6_blah;
+  struct_with_arrays ssbo6_test;
+  glstruct ssbo6_s[];
+};
+
+layout(binding = 0, std140) uniform ubo_block
+{
+  float blah;
+  vec4 normal_array[3];
+  vec4 infinite_array[];
+} ubo_root;
+
+void main() {
+  ssbo_root0.blah = 0.0f;
+  ssbo_root1.blah = 0.0f;
+  ssbo_root2.blah = 0.0f;
+  ssbo_root3.s[0].a = 0.0f;
+  ssbo_root4.s[0].a = 0.0f;
+  ssbo5_blah = 0.0f;
+  ssbo6_blah = 0.0f;
+  gl_FragDepth = ubo_root.blah + ubo_root.normal_array[0].x + ubo_root.infinite_array[4].x;
+}
+
+)";
+
+    ShaderReflection refl;
+    ShaderBindpointMapping mapping;
+    compile(ShaderStage::Fragment, source, "main", refl, mapping);
+
+    REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 1);
+    {
+      // blocks get different reflected names in SPIR-V
+      const rdcstr ubo_name = testType == ShaderType::GLSL ? "ubo_block" : "ubo_root";
+
+      CHECK(refl.constantBlocks[0].name == ubo_name);
+      {
+        const ConstantBlock &cblock = refl.constantBlocks[0];
+        INFO("UBO: " << cblock.name.c_str());
+
+        // GLSL reflects out a root structure
+        if(testType == ShaderType::GLSL)
+        {
+          REQUIRE_ARRAY_SIZE(cblock.variables.size(), 1);
+
+          CHECK(cblock.variables[0].name == ubo_name);
+        }
+
+        const rdcarray<ShaderConstant> &ubo_root =
+            testType == ShaderType::GLSL ? cblock.variables[0].type.members : cblock.variables;
+
+        REQUIRE_ARRAY_SIZE(ubo_root.size(), 3);
+        {
+          CHECK(ubo_root[0].name == "blah");
+          {
+            const ShaderConstant &member = ubo_root[0];
+            INFO("UBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.elements == 1);
+          }
+
+          CHECK(ubo_root[1].name == "normal_array");
+          {
+            const ShaderConstant &member = ubo_root[1];
+            INFO("UBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.columns == 4);
+            CHECK(member.type.descriptor.elements == 3);
+          }
+
+          CHECK(ubo_root[2].name == "infinite_array");
+          {
+            const ShaderConstant &member = ubo_root[2];
+            INFO("UBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.columns == 4);
+            // UBOs don't really support infinite arrays - it will just be declared big enough for
+            // the amount used statically
+            CHECK(member.type.descriptor.elements == 5);
+          }
+        }
+      }
+    }
+
+    REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 7);
+    {
+      // blocks get different reflected names in SPIR-V
+      const rdcstr ssbo_name = testType == ShaderType::GLSL ? "ssbo" : "ssbo_root";
+      const rdcstr ssbo_suffix = testType == ShaderType::GLSL ? "" : "_var";
+
+      CHECK(refl.readWriteResources[0].name == ssbo_name + "0");
+      {
+        const ShaderResource &res = refl.readWriteResources[0];
+        INFO("read-write resource: " << res.name.c_str());
+
+        REQUIRE_ARRAY_SIZE(res.variableType.members.size(), 3);
+        {
+          CHECK(res.variableType.members[0].name == "blah");
+          {
+            const ShaderConstant &member = res.variableType.members[0];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.elements == 1);
+          }
+
+          CHECK(res.variableType.members[1].name == "normal_array");
+          {
+            const ShaderConstant &member = res.variableType.members[1];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.columns == 4);
+            CHECK(member.type.descriptor.elements == 3);
+          }
+
+          CHECK(res.variableType.members[2].name == "non_array");
+          {
+            const ShaderConstant &member = res.variableType.members[2];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.columns == 4);
+            CHECK(member.type.descriptor.elements == 1);
+          }
+        }
+      }
+
+      CHECK(refl.readWriteResources[1].name == ssbo_name + "1");
+      {
+        const ShaderResource &res = refl.readWriteResources[1];
+        INFO("read-write resource: " << res.name.c_str());
+
+        REQUIRE_ARRAY_SIZE(res.variableType.members.size(), 3);
+        {
+          CHECK(res.variableType.members[0].name == "blah");
+          {
+            const ShaderConstant &member = res.variableType.members[0];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.elements == 1);
+          }
+
+          CHECK(res.variableType.members[1].name == "normal_array");
+          {
+            const ShaderConstant &member = res.variableType.members[1];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.columns == 4);
+            CHECK(member.type.descriptor.elements == 3);
+          }
+
+          CHECK(res.variableType.members[2].name == "bounded_array");
+          {
+            const ShaderConstant &member = res.variableType.members[2];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.columns == 4);
+            CHECK(member.type.descriptor.elements == 5);
+          }
+        }
+      }
+
+      CHECK(refl.readWriteResources[2].name == ssbo_name + "2");
+      {
+        const ShaderResource &res = refl.readWriteResources[2];
+        INFO("read-write resource: " << res.name.c_str());
+
+        REQUIRE_ARRAY_SIZE(res.variableType.members.size(), 3);
+        {
+          CHECK(res.variableType.members[0].name == "blah");
+          {
+            const ShaderConstant &member = res.variableType.members[0];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.elements == 1);
+          }
+
+          CHECK(res.variableType.members[1].name == "normal_array");
+          {
+            const ShaderConstant &member = res.variableType.members[1];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.columns == 4);
+            CHECK(member.type.descriptor.elements == 3);
+          }
+
+          CHECK(res.variableType.members[2].name == "infinite_array");
+          {
+            const ShaderConstant &member = res.variableType.members[2];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.columns == 4);
+            CHECK(member.type.descriptor.elements == ~0U);
+          }
+        }
+      }
+
+      CHECK(refl.readWriteResources[3].name == ssbo_name + "3");
+      {
+        const ShaderResource &res = refl.readWriteResources[3];
+        INFO("read-write resource: " << res.name.c_str());
+
+        REQUIRE_ARRAY_SIZE(res.variableType.members.size(), 3);
+        {
+          CHECK(res.variableType.members[0].name == "blah");
+          {
+            const ShaderConstant &member = res.variableType.members[0];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.elements == 1);
+          }
+
+          CHECK(res.variableType.members[1].name == "test");
+          {
+            const ShaderConstant &member = res.variableType.members[1];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Struct);
+            CHECK(member.type.descriptor.elements == 1);
+
+            REQUIRE_ARRAY_SIZE(member.type.members.size(), 2);
+            {
+              CHECK(member.type.members[0].name == "a");
+              {
+                const ShaderConstant &submember = member.type.members[0];
+                INFO("SSBO submember: " << submember.name.c_str());
+
+                CHECK(submember.type.descriptor.type == VarType::Float);
+                CHECK(submember.type.descriptor.columns == 1);
+                CHECK(submember.type.descriptor.elements == 2);
+              }
+
+              CHECK(member.type.members[1].name == "b");
+              {
+                const ShaderConstant &submember = member.type.members[1];
+                INFO("SSBO submember: " << submember.name.c_str());
+
+                CHECK(submember.type.descriptor.type == VarType::SInt);
+                CHECK(submember.type.descriptor.columns == 1);
+                CHECK(submember.type.descriptor.elements == 1);
+              }
+            }
+          }
+
+          CHECK(res.variableType.members[2].name == "s");
+          {
+            const ShaderConstant &member = res.variableType.members[2];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Struct);
+            if(testType == ShaderType::GLSL)
+            {
+              // GL has no way of telling us the fixed size of a trailing array of structs, so we
+              // report that it's infinite
+              CHECK(member.type.descriptor.elements == ~0U);
+            }
+            else
+            {
+              CHECK(member.type.descriptor.elements == 2);
+            }
+          }
+        }
+      }
+
+      CHECK(refl.readWriteResources[4].name == ssbo_name + "4");
+      {
+        const ShaderResource &res = refl.readWriteResources[4];
+        INFO("read-write resource: " << res.name.c_str());
+
+        REQUIRE_ARRAY_SIZE(res.variableType.members.size(), 3);
+        {
+          CHECK(res.variableType.members[0].name == "blah");
+          {
+            const ShaderConstant &member = res.variableType.members[0];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.elements == 1);
+          }
+
+          CHECK(res.variableType.members[1].name == "test");
+          {
+            const ShaderConstant &member = res.variableType.members[1];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Struct);
+            CHECK(member.type.descriptor.elements == 1);
+
+            REQUIRE_ARRAY_SIZE(member.type.members.size(), 2);
+            {
+              CHECK(member.type.members[0].name == "a");
+              {
+                const ShaderConstant &submember = member.type.members[0];
+                INFO("SSBO submember: " << submember.name.c_str());
+
+                CHECK(submember.type.descriptor.type == VarType::Float);
+                CHECK(submember.type.descriptor.columns == 1);
+                CHECK(submember.type.descriptor.elements == 2);
+              }
+
+              CHECK(member.type.members[1].name == "b");
+              {
+                const ShaderConstant &submember = member.type.members[1];
+                INFO("SSBO submember: " << submember.name.c_str());
+
+                CHECK(submember.type.descriptor.type == VarType::SInt);
+                CHECK(submember.type.descriptor.columns == 1);
+                CHECK(submember.type.descriptor.elements == 1);
+              }
+            }
+          }
+
+          CHECK(res.variableType.members[2].name == "s");
+          {
+            const ShaderConstant &member = res.variableType.members[2];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Struct);
+            CHECK(member.type.descriptor.elements == ~0U);
+          }
+        }
+      }
+
+      CHECK(refl.readWriteResources[5].name == "ssbo5" + ssbo_suffix);
+      {
+        const ShaderResource &res = refl.readWriteResources[5];
+        INFO("read-write resource: " << res.name.c_str());
+
+        REQUIRE_ARRAY_SIZE(res.variableType.members.size(), 3);
+        {
+          CHECK(res.variableType.members[0].name == "ssbo5_blah");
+          {
+            const ShaderConstant &member = res.variableType.members[0];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.elements == 1);
+          }
+
+          CHECK(res.variableType.members[1].name == "ssbo5_test");
+          {
+            const ShaderConstant &member = res.variableType.members[1];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Struct);
+            CHECK(member.type.descriptor.elements == 1);
+
+            REQUIRE_ARRAY_SIZE(member.type.members.size(), 2);
+            {
+              CHECK(member.type.members[0].name == "a");
+              {
+                const ShaderConstant &submember = member.type.members[0];
+                INFO("SSBO submember: " << submember.name.c_str());
+
+                CHECK(submember.type.descriptor.type == VarType::Float);
+                CHECK(submember.type.descriptor.columns == 1);
+                CHECK(submember.type.descriptor.elements == 2);
+              }
+
+              CHECK(member.type.members[1].name == "b");
+              {
+                const ShaderConstant &submember = member.type.members[1];
+                INFO("SSBO submember: " << submember.name.c_str());
+
+                CHECK(submember.type.descriptor.type == VarType::SInt);
+                CHECK(submember.type.descriptor.columns == 1);
+                CHECK(submember.type.descriptor.elements == 1);
+              }
+            }
+          }
+
+          CHECK(res.variableType.members[2].name == "ssbo5_s");
+          {
+            const ShaderConstant &member = res.variableType.members[2];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Struct);
+            if(testType == ShaderType::GLSL)
+            {
+              // GL has no way of telling us the fixed size of a trailing array of structs, so we
+              // report that it's infinite
+              CHECK(member.type.descriptor.elements == ~0U);
+            }
+            else
+            {
+              CHECK(member.type.descriptor.elements == 2);
+            }
+          }
+        }
+      }
+
+      CHECK(refl.readWriteResources[6].name == "ssbo6" + ssbo_suffix);
+      {
+        const ShaderResource &res = refl.readWriteResources[6];
+        INFO("read-write resource: " << res.name.c_str());
+
+        REQUIRE_ARRAY_SIZE(res.variableType.members.size(), 3);
+        {
+          CHECK(res.variableType.members[0].name == "ssbo6_blah");
+          {
+            const ShaderConstant &member = res.variableType.members[0];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.elements == 1);
+          }
+
+          CHECK(res.variableType.members[1].name == "ssbo6_test");
+          {
+            const ShaderConstant &member = res.variableType.members[1];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Struct);
+            CHECK(member.type.descriptor.elements == 1);
+
+            REQUIRE_ARRAY_SIZE(member.type.members.size(), 2);
+            {
+              CHECK(member.type.members[0].name == "a");
+              {
+                const ShaderConstant &submember = member.type.members[0];
+                INFO("SSBO submember: " << submember.name.c_str());
+
+                CHECK(submember.type.descriptor.type == VarType::Float);
+                CHECK(submember.type.descriptor.columns == 1);
+                CHECK(submember.type.descriptor.elements == 2);
+              }
+
+              CHECK(member.type.members[1].name == "b");
+              {
+                const ShaderConstant &submember = member.type.members[1];
+                INFO("SSBO submember: " << submember.name.c_str());
+
+                CHECK(submember.type.descriptor.type == VarType::SInt);
+                CHECK(submember.type.descriptor.columns == 1);
+                CHECK(submember.type.descriptor.elements == 1);
+              }
+            }
+          }
+
+          CHECK(res.variableType.members[2].name == "ssbo6_s");
+          {
+            const ShaderConstant &member = res.variableType.members[2];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.type.descriptor.type == VarType::Struct);
+            CHECK(member.type.descriptor.elements == ~0U);
+          }
+        }
+      }
+    }
+  }
+
   SECTION("SSBOs")
   {
     rdcstr source = R"(
@@ -1208,10 +1735,6 @@ void main() {
 }
 
 )";
-
-#define REQUIRE_ARRAY_SIZE(size, min) \
-  REQUIRE(size >= min);               \
-  CHECK(size == min);
 
     ShaderReflection refl;
     ShaderBindpointMapping mapping;
