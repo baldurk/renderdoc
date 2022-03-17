@@ -4156,7 +4156,7 @@ void MakeOnlineShaderReflection(ShaderStage stage, const rdcstr &source, const r
   bytebuf buf;
   buf.resize(source.size());
   memcpy(buf.data(), source.data(), source.size());
-  driver->BuildCustomShader(ShaderEncoding::GLSL, buf, "main", ShaderCompileFlags(), stage, id,
+  driver->BuildTargetShader(ShaderEncoding::GLSL, buf, "main", ShaderCompileFlags(), stage, id,
                             errors);
 
   if(id == ResourceId())
@@ -4166,6 +4166,11 @@ void MakeOnlineShaderReflection(ShaderStage stage, const rdcstr &source, const r
   }
 
   refl = *driver->GetShader(ResourceId(), id, ShaderEntryPoint("main", ShaderStage::Fragment));
+
+  // hack the mapping so that tests can skip checks of mapping when using online compilation (see
+  // MAPPING_VALID)
+  mapping.inputAttributes.resize(1);
+  mapping.inputAttributes[0] = 0x12345678;
 
   // Note that we can't fill out ShaderBindpointMapping easily on the actual driver through the
   // replay interface
