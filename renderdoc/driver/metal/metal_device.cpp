@@ -65,7 +65,7 @@ bool WrappedMTLDevice::Serialise_newCommandQueue(SerialiserType &ser, WrappedMTL
 WrappedMTLCommandQueue *WrappedMTLDevice::newCommandQueue()
 {
   MTL::CommandQueue *realMTLCommandQueue;
-  SERIALISE_TIME_CALL(realMTLCommandQueue = GetReal()->newCommandQueue());
+  SERIALISE_TIME_CALL(realMTLCommandQueue = Unwrap(this)->newCommandQueue());
   WrappedMTLCommandQueue *wrappedMTLCommandQueue;
   ResourceId id = GetResourceManager()->WrapResource(realMTLCommandQueue, wrappedMTLCommandQueue);
   if(IsCaptureMode(m_State))
@@ -113,7 +113,7 @@ WrappedMTLLibrary *WrappedMTLDevice::newDefaultLibrary()
 {
   MTL::Library *realMTLLibrary;
 
-  SERIALISE_TIME_CALL(realMTLLibrary = GetReal()->newDefaultLibrary());
+  SERIALISE_TIME_CALL(realMTLLibrary = Unwrap(this)->newDefaultLibrary());
   WrappedMTLLibrary *wrappedMTLLibrary;
   ResourceId id = GetResourceManager()->WrapResource(realMTLLibrary, wrappedMTLLibrary);
   if(IsCaptureMode(m_State))
@@ -160,7 +160,7 @@ WrappedMTLLibrary *WrappedMTLDevice::newLibraryWithSource(NS::String *source,
                                                           NS::Error **error)
 {
   MTL::Library *realMTLLibrary;
-  SERIALISE_TIME_CALL(realMTLLibrary = GetReal()->newLibrary(source, options, error));
+  SERIALISE_TIME_CALL(realMTLLibrary = Unwrap(this)->newLibrary(source, options, error));
   WrappedMTLLibrary *wrappedMTLLibrary;
   ResourceId id = GetResourceManager()->WrapResource(realMTLLibrary, wrappedMTLLibrary);
   if(IsCaptureMode(m_State))

@@ -32,7 +32,6 @@ public:
   WrappedMTLCommandQueue(MTL::CommandQueue *realMTLCommandQueue, ResourceId objId,
                          WrappedMTLDevice *wrappedMTLDevice);
 
-  MTL::CommandQueue *GetReal() { return (MTL::CommandQueue *)real; }
   enum
   {
     TypeEnum = eResCommandQueue

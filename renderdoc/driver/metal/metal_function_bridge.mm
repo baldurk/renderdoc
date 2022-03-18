@@ -31,8 +31,7 @@
 // ObjCBrdigeMTLFunction specific
 - (id<MTLFunction>)real
 {
-  MTL::Function *real = self.wrappedCPP->GetReal();
-  return id<MTLFunction>(real);
+  return id<MTLFunction>(Unwrap(self.wrappedCPP));
 }
 
 - (void)dealloc

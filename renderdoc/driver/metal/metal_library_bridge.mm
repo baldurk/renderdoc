@@ -31,8 +31,7 @@
 // ObjCBridgeMTLLibrary specific
 - (id<MTLLibrary>)real
 {
-  MTL::Library *real = self.wrappedCPP->GetReal();
-  return id<MTLLibrary>(real);
+  return id<MTLLibrary>(Unwrap(self.wrappedCPP));
 }
 
 // Use the real MTLLibrary to find methods from messages
