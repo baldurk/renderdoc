@@ -32,7 +32,6 @@ public:
   WrappedMTLFunction(MTL::Function *realMTLFunction, ResourceId objId,
                      WrappedMTLDevice *wrappedMTLDevice);
 
-  MTL::Function *GetReal() { return (MTL::Function *)real; }
   enum
   {
     TypeEnum = eResFunction

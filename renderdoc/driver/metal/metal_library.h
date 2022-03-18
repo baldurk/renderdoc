@@ -32,7 +32,6 @@ public:
   WrappedMTLLibrary(MTL::Library *realMTLLibrary, ResourceId objId,
                     WrappedMTLDevice *wrappedMTLDevice);
 
-  MTL::Library *GetReal() { return (MTL::Library *)real; }
   enum
   {
     TypeEnum = eResLibrary

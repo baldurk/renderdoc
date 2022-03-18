@@ -34,7 +34,6 @@ class WrappedMTLDevice : public WrappedMTLObject
 public:
   WrappedMTLDevice(MTL::Device *realMTLDevice, ResourceId objId);
   ~WrappedMTLDevice() {}
-  MTL::Device *GetReal() { return (MTL::Device *)real; }
   static WrappedMTLDevice *MTLCreateSystemDefaultDevice(MTL::Device *realMTLDevice);
 
   DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLCommandQueue *, newCommandQueue);

@@ -31,8 +31,7 @@
 // ObjCBridgeMTLCommandQueue specific
 - (id<MTLCommandQueue>)real
 {
-  MTL::CommandQueue *real = self.wrappedCPP->GetReal();
-  return id<MTLCommandQueue>(real);
+  return id<MTLCommandQueue>(Unwrap(self.wrappedCPP));
 }
 
 // Use the real MTLCommandQueue to find methods from messages

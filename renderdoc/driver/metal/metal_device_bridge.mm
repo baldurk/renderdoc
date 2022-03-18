@@ -39,8 +39,7 @@
 // ObjCBridgeMTLDevice specific
 - (id<MTLDevice>)real
 {
-  MTL::Device *real = self.wrappedCPP->GetReal();
-  return id<MTLDevice>(real);
+  return id<MTLDevice>(Unwrap(self.wrappedCPP));
 }
 
 // Use the real MTLDevice to find methods from messages
@@ -183,9 +182,7 @@
 
 - (nullable id<MTLCommandQueue>)newCommandQueue
 {
-  WrappedMTLCommandQueue *wrapped = self.wrappedCPP->newCommandQueue();
-  MTL::CommandQueue *objc = GetObjCBridge<MTL::CommandQueue *>(wrapped);
-  return id<MTLCommandQueue>(objc);
+  return id<MTLCommandQueue>(GetObjCBridge(self.wrappedCPP->newCommandQueue()));
 }
 
 - (nullable id<MTLCommandQueue>)newCommandQueueWithMaxCommandBufferCount:(NSUInteger)maxCommandBufferCount
@@ -287,9 +284,7 @@
 
 - (nullable id<MTLLibrary>)newDefaultLibrary
 {
-  WrappedMTLLibrary *wrapped = self.wrappedCPP->newDefaultLibrary();
-  MTL::Library *objc = GetObjCBridge<MTL::Library *>(wrapped);
-  return id<MTLLibrary>(objc);
+  return id<MTLLibrary>(GetObjCBridge(self.wrappedCPP->newDefaultLibrary()));
 }
 
 - (nullable id<MTLLibrary>)newDefaultLibraryWithBundle:(NSBundle *)bundle
@@ -326,10 +321,8 @@
                                         options:(nullable MTLCompileOptions *)options
                                           error:(__autoreleasing NSError **)error
 {
-  WrappedMTLLibrary *wrapped = self.wrappedCPP->newLibraryWithSource(
-      (NS::String *)source, (MTL::CompileOptions *)options, (NS::Error **)error);
-  MTL::Library *objc = GetObjCBridge<MTL::Library *>(wrapped);
-  return (id<MTLLibrary>)(objc);
+  return (id<MTLLibrary>)(GetObjCBridge(self.wrappedCPP->newLibraryWithSource(
+      (NS::String *)source, (MTL::CompileOptions *)options, (NS::Error **)error)));
 }
 
 - (void)newLibraryWithSource:(NSString *)source
