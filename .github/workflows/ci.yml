@@ -63,6 +63,33 @@ jobs:
           git diff;) | tr '\n' '\001' | sed -e 's#\x01#%0A#g';
           exit 1;
         )
+  cmake-minimum:
+    name: Baseline cmake check
+    needs: [commit-msg, clang-format]
+    runs-on: ubuntu-18.04
+    env:
+      QT_SELECT: qt5
+    strategy:
+      fail-fast: true
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 5
+    - name: Download minimum supported cmake version
+      run: |
+        pushd /tmp
+        wget https://cmake.org/files/v2.8/cmake-2.8.12.2-Linux-i386.tar.gz
+        tar -zxvf cmake-2.8.12.2-Linux-i386.tar.gz
+        popd
+    - name: Install compilation dependencies
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qtbase5-dev libxcb-keysyms1-dev
+    - name: Configure renderdoc with cmake
+      run: |
+        mkdir build
+        cd build
+        /tmp/cmake-2.8.12.2-Linux-i386/bin/cmake -DCMAKE_BUILD_TYPE=Debug ..
   windows:
     name: Windows
     needs: [commit-msg, clang-format]
