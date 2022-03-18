@@ -34,6 +34,15 @@
   FUNC(Function);                        \
   FUNC(Library);
 
+// These serialise overloads will fetch the ID during capture, serialise the ID
+// directly as-if it were the original type, then on replay load up the resource if available.
+#define DECLARE_WRAPPED_TYPE_SERIALISE(CPPTYPE) \
+  class WrappedMTL##CPPTYPE;                    \
+  DECLARE_REFLECTION_STRUCT(WrappedMTL##CPPTYPE *)
+
+METALCPP_WRAPPED_PROTOCOLS(DECLARE_WRAPPED_TYPE_SERIALISE);
+#undef DECLARE_WRAPPED_TYPE_SERIALISE
+
 #define DECLARE_OBJC_HELPERS(CPPTYPE)                                \
   class WrappedMTL##CPPTYPE;                                         \
   extern WrappedMTL##CPPTYPE *GetWrapped(MTL::CPPTYPE *objCWrapped); \
