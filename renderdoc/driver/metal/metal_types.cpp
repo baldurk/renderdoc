@@ -23,10 +23,57 @@
  ******************************************************************************/
 
 #include "metal_types.h"
+#include "metal_command_queue.h"
+#include "metal_device.h"
+#include "metal_function.h"
+#include "metal_library.h"
+#include "metal_manager.h"
+#include "metal_resources.h"
 
 RDCCOMPILE_ASSERT(sizeof(NS::Integer) == sizeof(std::intptr_t), "NS::Integer size does not match");
 RDCCOMPILE_ASSERT(sizeof(NS::UInteger) == sizeof(std::uintptr_t),
                   "NS::UInteger size does not match");
+
+// serialisation of object handles via IDs.
+template <class SerialiserType, class type>
+void DoSerialiseViaResourceId(SerialiserType &ser, type &el)
+{
+  MetalResourceManager *rm = (MetalResourceManager *)ser.GetUserData();
+
+  ResourceId id;
+
+  if(ser.IsWriting() && rm)
+    id = GetResID(el);
+  if(ser.IsStructurising() && rm)
+    id = rm->GetOriginalID(GetResID(el));
+
+  DoSerialise(ser, id);
+
+  if(ser.IsReading() && rm && !IsStructuredExporting(rm->GetState()))
+  {
+    el = NULL;
+
+    if(id != ResourceId() && rm)
+    {
+      if(rm->HasLiveResource(id))
+      {
+        // we leave this wrapped.
+        el = (type)rm->GetLiveResource(id);
+      }
+    }
+  }
+}
+
+#define IMPLEMENT_WRAPPED_TYPE_SERIALISE(CPPTYPE)                 \
+  template <class SerialiserType>                                 \
+  void DoSerialise(SerialiserType &ser, WrappedMTL##CPPTYPE *&el) \
+  {                                                               \
+    DoSerialiseViaResourceId(ser, el);                            \
+  }                                                               \
+  INSTANTIATE_SERIALISE_TYPE(WrappedMTL##CPPTYPE *);
+
+METALCPP_WRAPPED_PROTOCOLS(IMPLEMENT_WRAPPED_TYPE_SERIALISE);
+#undef IMPLEMENT_WRAPPED_TYPE_SERIALISE
 
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, NS::String *&el)
