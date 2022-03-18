@@ -93,35 +93,40 @@ jobs:
   windows:
     name: Windows
     needs: [commit-msg, clang-format]
-    runs-on: windows-2019
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        name: [ VS2015 x86 Development, VS2015 x64 Development, VS2015 x64 Release, VS2017 x64 Development, VS2019 x64 Development ]
+        name: [ VS2015 x86 Development, VS2015 x64 Development, VS2015 x64 Release, VS2019 x64 Development, VS2022 x64 Development ]
         include:
           - name: VS2015 x86 Development
+            os: windows-2019
             compiler: VS2015
             toolset: v140
             platform: x86
             configuration: Development
           - name: VS2015 x64 Development
+            os: windows-2019
             compiler: VS2015
             toolset: v140
             platform: x64
             configuration: Development
           - name: VS2015 x64 Release
+            os: windows-2019
             compiler: VS2015
             toolset: v140
             platform: x64
             configuration: Release
-          - name: VS2017 x64 Development
-            compiler: VS2017
-            toolset: v141
-            platform: x64
-            configuration: Development
           - name: VS2019 x64 Development
+            os: windows-2019
             compiler: VS2019
             toolset: v142
+            platform: x64
+            configuration: Development
+          - name: VS2022 x64 Development
+            os: windows-2022
+            compiler: VS2022
+            toolset: v143
             platform: x64
             configuration: Development
     steps:
