@@ -29,6 +29,7 @@
 #include "metal_function.h"
 #include "metal_library.h"
 #include "metal_manager.h"
+#include "metal_render_command_encoder.h"
 #include "metal_render_pipeline_state.h"
 #include "metal_resources.h"
 #include "metal_texture.h"
@@ -89,6 +90,21 @@ static bool ValidData(MTL::PipelineBufferDescriptor *descriptor)
 static bool ValidData(MTL::RenderPipelineColorAttachmentDescriptor *descriptor)
 {
   if(descriptor->pixelFormat() == MTL::PixelFormatInvalid)
+    return false;
+  return true;
+}
+
+static bool ValidData(MTL::RenderPassColorAttachmentDescriptor *descriptor)
+{
+  MTL::RenderPassAttachmentDescriptor *base = (MTL::RenderPassAttachmentDescriptor *)descriptor;
+  if(!base->texture() && !base->resolveTexture())
+    return false;
+  return true;
+}
+
+static bool ValidData(MTL::RenderPassSampleBufferAttachmentDescriptor *descriptor)
+{
+  if(!descriptor->sampleBuffer())
     return false;
   return true;
 }
@@ -403,6 +419,152 @@ RenderPipelineDescriptor::operator MTL::RenderPipelineDescriptor *()
   objc->setMaxVertexCallStackDepth(maxVertexCallStackDepth);
   objc->setMaxFragmentCallStackDepth(maxFragmentCallStackDepth);
 
+  return objc;
+}
+
+RenderPassAttachmentDescriptor::RenderPassAttachmentDescriptor(MTL::RenderPassAttachmentDescriptor *objc)
+    : texture(GetWrapped(objc->texture())),
+      level(objc->level()),
+      slice(objc->slice()),
+      depthPlane(objc->depthPlane()),
+      resolveTexture(GetWrapped(objc->resolveTexture())),
+      resolveLevel(objc->resolveLevel()),
+      resolveSlice(objc->resolveSlice()),
+      resolveDepthPlane(objc->resolveDepthPlane()),
+      loadAction(objc->loadAction()),
+      storeAction(objc->storeAction()),
+      storeActionOptions(objc->storeActionOptions())
+{
+}
+
+void RenderPassAttachmentDescriptor::CopyTo(MTL::RenderPassAttachmentDescriptor *objc)
+{
+  objc->setTexture(Unwrap(texture));
+  objc->setLevel(level);
+  objc->setSlice(slice);
+  objc->setDepthPlane(depthPlane);
+  objc->setResolveTexture(Unwrap(resolveTexture));
+  objc->setResolveLevel(resolveLevel);
+  objc->setResolveSlice(resolveSlice);
+  objc->setResolveDepthPlane(resolveDepthPlane);
+  objc->setLoadAction(loadAction);
+  objc->setStoreAction(storeAction);
+  objc->setStoreActionOptions(storeActionOptions);
+}
+
+RenderPassColorAttachmentDescriptor::RenderPassColorAttachmentDescriptor(
+    MTL::RenderPassColorAttachmentDescriptor *objc)
+    : RenderPassAttachmentDescriptor((MTL::RenderPassAttachmentDescriptor *)objc),
+      clearColor(objc->clearColor())
+{
+}
+
+void RenderPassColorAttachmentDescriptor::CopyTo(MTL::RenderPassColorAttachmentDescriptor *objc)
+{
+  ((RenderPassAttachmentDescriptor *)this)->CopyTo((MTL::RenderPassAttachmentDescriptor *)objc);
+  objc->setClearColor(clearColor);
+}
+
+RenderPassDepthAttachmentDescriptor::RenderPassDepthAttachmentDescriptor(
+    MTL::RenderPassDepthAttachmentDescriptor *objc)
+    : RenderPassAttachmentDescriptor((MTL::RenderPassAttachmentDescriptor *)objc),
+      clearDepth(objc->clearDepth()),
+      depthResolveFilter(objc->depthResolveFilter())
+{
+}
+
+void RenderPassDepthAttachmentDescriptor::CopyTo(MTL::RenderPassDepthAttachmentDescriptor *objc)
+{
+  ((RenderPassAttachmentDescriptor *)this)->CopyTo((MTL::RenderPassAttachmentDescriptor *)objc);
+  objc->setClearDepth(clearDepth);
+  objc->setDepthResolveFilter(depthResolveFilter);
+}
+
+RenderPassStencilAttachmentDescriptor::RenderPassStencilAttachmentDescriptor(
+    MTL::RenderPassStencilAttachmentDescriptor *objc)
+    : RenderPassAttachmentDescriptor((MTL::RenderPassAttachmentDescriptor *)objc),
+      clearStencil(objc->clearStencil()),
+      stencilResolveFilter(objc->stencilResolveFilter())
+{
+}
+
+void RenderPassStencilAttachmentDescriptor::CopyTo(MTL::RenderPassStencilAttachmentDescriptor *objc)
+{
+  ((RenderPassAttachmentDescriptor *)this)->CopyTo((MTL::RenderPassAttachmentDescriptor *)objc);
+  objc->setClearStencil(clearStencil);
+  objc->setStencilResolveFilter(stencilResolveFilter);
+}
+
+RenderPassSampleBufferAttachmentDescriptor::RenderPassSampleBufferAttachmentDescriptor(
+    MTL::RenderPassSampleBufferAttachmentDescriptor *objc)
+    :    // TODO: when WrappedMTLCounterSampleBuffer exists
+      // sampleBuffer(GetWrapped(objc->sampleBuffer())),
+      startOfVertexSampleIndex(objc->startOfVertexSampleIndex()),
+      endOfVertexSampleIndex(objc->endOfVertexSampleIndex()),
+      startOfFragmentSampleIndex(objc->startOfFragmentSampleIndex()),
+      endOfFragmentSampleIndex(objc->endOfFragmentSampleIndex())
+{
+}
+
+void RenderPassSampleBufferAttachmentDescriptor::CopyTo(
+    MTL::RenderPassSampleBufferAttachmentDescriptor *objc)
+{
+  // TODO: when WrappedMTLCounterSampleBuffer exists
+  // objc->setSampleBuffer(Unwrap(sampleBuffer));
+  objc->setStartOfVertexSampleIndex(startOfVertexSampleIndex);
+  objc->setEndOfVertexSampleIndex(endOfVertexSampleIndex);
+  objc->setStartOfFragmentSampleIndex(startOfFragmentSampleIndex);
+  objc->setEndOfFragmentSampleIndex(endOfFragmentSampleIndex);
+}
+
+RenderPassDescriptor::RenderPassDescriptor(MTL::RenderPassDescriptor *objc)
+    : depthAttachment(objc->depthAttachment()),
+      stencilAttachment(objc->stencilAttachment()),
+      // TODO: when WrappedMTLBuffer exists
+      // visibilityResultBuffer(GetWrapped(objc->visibilityResultBuffer())),
+      renderTargetArrayLength(objc->renderTargetArrayLength()),
+      imageblockSampleLength(objc->imageblockSampleLength()),
+      threadgroupMemoryLength(objc->threadgroupMemoryLength()),
+      tileWidth(objc->tileWidth()),
+      tileHeight(objc->tileHeight()),
+      defaultRasterSampleCount(objc->defaultRasterSampleCount()),
+      renderTargetWidth(objc->renderTargetWidth()),
+      renderTargetHeight(objc->renderTargetHeight())
+// TODO: when WrappedRasterizationRateMap exists
+// rasterizationRateMap(objc->rasterizationRateMap())
+{
+  GETOBJCARRAY(RenderPassColorAttachmentDescriptor, MAX_RENDER_PASS_COLOR_ATTACHMENTS,
+               colorAttachments, ValidData);
+  uint32_t count = objc->getSamplePositions(NULL, 0);
+  if(count)
+  {
+    samplePositions.resize(count);
+    objc->getSamplePositions(samplePositions.data(), count);
+  }
+  GETOBJCARRAY(RenderPassSampleBufferAttachmentDescriptor,
+               MAX_RENDER_PASS_SAMPLE_BUFFER_ATTACHMENTS, sampleBufferAttachments, ValidData);
+}
+
+RenderPassDescriptor::operator MTL::RenderPassDescriptor *()
+{
+  MTL::RenderPassDescriptor *objc = MTL::RenderPassDescriptor::alloc()->init();
+  COPYTOOBJCARRAY(RenderPassColorAttachmentDescriptor, colorAttachments);
+  depthAttachment.CopyTo(objc->depthAttachment());
+  stencilAttachment.CopyTo(objc->stencilAttachment());
+  // TODO: when WrappedMTLBuffer exists
+  // objc->setVisibilityResultBuffer(Unwrap(visibilityResultBuffer));
+  objc->setRenderTargetArrayLength(renderTargetArrayLength);
+  objc->setImageblockSampleLength(imageblockSampleLength);
+  objc->setThreadgroupMemoryLength(threadgroupMemoryLength);
+  objc->setTileWidth(tileWidth);
+  objc->setTileHeight(tileHeight);
+  objc->setDefaultRasterSampleCount(defaultRasterSampleCount);
+  objc->setRenderTargetWidth(renderTargetWidth);
+  objc->setRenderTargetHeight(renderTargetHeight);
+  objc->setSamplePositions(samplePositions.data(), samplePositions.count());
+  // TODO: when WrappedRasterizationRateMap exists
+  // objc->setRasterizationRateMap(Unwrap(rasterizationRateMap));
+  COPYTOOBJCARRAY(RenderPassSampleBufferAttachmentDescriptor, sampleBufferAttachments);
   return objc;
 }
 

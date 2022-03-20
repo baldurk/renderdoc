@@ -23,15 +23,79 @@
  ******************************************************************************/
 
 #include "metal_command_buffer.h"
-#include "core/settings.h"
 #include "metal_device.h"
+#include "metal_render_command_encoder.h"
 #include "metal_resources.h"
+#include "metal_texture.h"
 
 WrappedMTLCommandBuffer::WrappedMTLCommandBuffer(MTL::CommandBuffer *realMTLCommandBuffer,
                                                  ResourceId objId, WrappedMTLDevice *wrappedMTLDevice)
     : WrappedMTLObject(realMTLCommandBuffer, objId, wrappedMTLDevice, wrappedMTLDevice->GetStateRef())
 {
   AllocateObjCBridge(this);
+}
+
+template <typename SerialiserType>
+bool WrappedMTLCommandBuffer::Serialise_renderCommandEncoderWithDescriptor(
+    SerialiserType &ser, WrappedMTLRenderCommandEncoder *encoder,
+    RDMTL::RenderPassDescriptor &descriptor)
+{
+  SERIALISE_ELEMENT_LOCAL(CommandBuffer, this);
+  SERIALISE_ELEMENT_LOCAL(RenderCommandEncoder, GetResID(encoder))
+      .TypedAs("MTLRenderCommandEncoder"_lit);
+  SERIALISE_ELEMENT(descriptor).Important();
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    // TODO: implement RD MTL replay
+  }
+  return true;
+}
+
+WrappedMTLRenderCommandEncoder *WrappedMTLCommandBuffer::renderCommandEncoderWithDescriptor(
+    RDMTL::RenderPassDescriptor &descriptor)
+{
+  MTL::RenderCommandEncoder *realMTLRenderCommandEncoder;
+  MTL::RenderPassDescriptor *mtlDescriptor(descriptor);
+  SERIALISE_TIME_CALL(realMTLRenderCommandEncoder =
+                          Unwrap(this)->renderCommandEncoder(mtlDescriptor));
+  mtlDescriptor->release();
+  WrappedMTLRenderCommandEncoder *wrappedMTLRenderCommandEncoder;
+  ResourceId id = GetResourceManager()->WrapResource(realMTLRenderCommandEncoder,
+                                                     wrappedMTLRenderCommandEncoder);
+  wrappedMTLRenderCommandEncoder->SetCommandBuffer(this);
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLCommandBuffer_renderCommandEncoderWithDescriptor);
+      Serialise_renderCommandEncoderWithDescriptor(ser, wrappedMTLRenderCommandEncoder, descriptor);
+      chunk = scope.Get();
+    }
+    MetalResourceRecord *bufferRecord = GetRecord(this);
+    bufferRecord->AddChunk(chunk);
+
+    MetalResourceRecord *encoderRecord =
+        GetResourceManager()->AddResourceRecord(wrappedMTLRenderCommandEncoder);
+
+    for(int i = 0; i < descriptor.colorAttachments.count(); ++i)
+    {
+      WrappedMTLTexture *texture = descriptor.colorAttachments[i].texture;
+      if(texture != NULL)
+      {
+        bufferRecord->MarkResourceFrameReferenced(GetResID(texture), eFrameRef_Read);
+      }
+    }
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+    //     GetResourceManager()->AddLiveResource(id, *wrappedMTLLibrary);
+  }
+  return wrappedMTLRenderCommandEncoder;
 }
 
 template <typename SerialiserType>
@@ -116,6 +180,10 @@ void WrappedMTLCommandBuffer::commit()
   }
 }
 
+INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLCommandBuffer,
+                                            WrappedMTLRenderCommandEncoder *encoder,
+                                            renderCommandEncoderWithDescriptor,
+                                            RDMTL::RenderPassDescriptor &descriptor);
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLCommandBuffer, void, presentDrawable,
                                 MTL::Drawable *drawable);
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLCommandBuffer, void, commit);

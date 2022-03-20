@@ -28,6 +28,7 @@
 #include "metal_function.h"
 #include "metal_library.h"
 #include "metal_manager.h"
+#include "metal_render_command_encoder.h"
 #include "metal_render_pipeline_state.h"
 #include "metal_resources.h"
 #include "metal_texture.h"
@@ -100,6 +101,33 @@ void DoSerialise(SerialiserType &ser, MTL::TextureSwizzleChannels &el)
   SERIALISE_MEMBER(green);
   SERIALISE_MEMBER(blue);
   SERIALISE_MEMBER(alpha);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, MTL::ClearColor &el)
+{
+  SERIALISE_MEMBER(red);
+  SERIALISE_MEMBER(green);
+  SERIALISE_MEMBER(blue);
+  SERIALISE_MEMBER(alpha);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, MTL::Viewport &el)
+{
+  SERIALISE_MEMBER(originX);
+  SERIALISE_MEMBER(originY);
+  SERIALISE_MEMBER(width);
+  SERIALISE_MEMBER(height);
+  SERIALISE_MEMBER(znear);
+  SERIALISE_MEMBER(zfar);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, MTL::SamplePosition &el)
+{
+  SERIALISE_MEMBER(x);
+  SERIALISE_MEMBER(y);
 }
 
 template <typename SerialiserType>
@@ -221,8 +249,83 @@ void DoSerialise(SerialiserType &ser, RDMTL::RenderPipelineDescriptor &el)
   SERIALISE_MEMBER(maxFragmentCallStackDepth);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::RenderPassAttachmentDescriptor &el)
+{
+  SERIALISE_MEMBER(texture);
+  SERIALISE_MEMBER(level);
+  SERIALISE_MEMBER(slice);
+  SERIALISE_MEMBER(depthPlane);
+  SERIALISE_MEMBER(resolveTexture);
+  SERIALISE_MEMBER(resolveLevel);
+  SERIALISE_MEMBER(resolveSlice);
+  SERIALISE_MEMBER(resolveDepthPlane);
+  SERIALISE_MEMBER(loadAction);
+  SERIALISE_MEMBER(storeAction);
+  SERIALISE_MEMBER(storeActionOptions);
+};
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::RenderPassColorAttachmentDescriptor &el)
+{
+  DoSerialise(ser, (RDMTL::RenderPassAttachmentDescriptor &)el);
+  SERIALISE_MEMBER(clearColor);
+};
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::RenderPassDepthAttachmentDescriptor &el)
+{
+  DoSerialise(ser, (RDMTL::RenderPassAttachmentDescriptor &)el);
+  SERIALISE_MEMBER(clearDepth);
+  SERIALISE_MEMBER(depthResolveFilter);
+};
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::RenderPassStencilAttachmentDescriptor &el)
+{
+  DoSerialise(ser, (RDMTL::RenderPassAttachmentDescriptor &)el);
+  SERIALISE_MEMBER(clearStencil);
+  SERIALISE_MEMBER(stencilResolveFilter);
+};
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::RenderPassSampleBufferAttachmentDescriptor &el)
+{
+  // TODO: when WrappedMTLCounterSampleBuffer exists
+  // SERIALISE_MEMBER(sampleBuffer);
+  SERIALISE_MEMBER(startOfVertexSampleIndex);
+  SERIALISE_MEMBER(endOfVertexSampleIndex);
+  SERIALISE_MEMBER(startOfFragmentSampleIndex);
+  SERIALISE_MEMBER(endOfFragmentSampleIndex);
+};
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::RenderPassDescriptor &el)
+{
+  SERIALISE_MEMBER(colorAttachments);
+  SERIALISE_MEMBER(depthAttachment);
+  SERIALISE_MEMBER(stencilAttachment);
+  // TODO: when WrappedMTLBuffer exists
+  // WrappedMTLBuffer *visibilityResultBuffer;
+  SERIALISE_MEMBER(renderTargetArrayLength);
+  SERIALISE_MEMBER(imageblockSampleLength);
+  SERIALISE_MEMBER(threadgroupMemoryLength);
+  SERIALISE_MEMBER(tileWidth);
+  SERIALISE_MEMBER(tileHeight);
+  SERIALISE_MEMBER(defaultRasterSampleCount);
+  SERIALISE_MEMBER(renderTargetWidth);
+  SERIALISE_MEMBER(renderTargetHeight);
+  SERIALISE_MEMBER(samplePositions);
+  // TODO: when WrappedRasterizationRateMap exists
+  // SERIALISE_MEMBER(rasterizationRateMap);
+  SERIALISE_MEMBER(sampleBufferAttachments);
+};
+
 INSTANTIATE_SERIALISE_TYPE(NS::String *);
 INSTANTIATE_SERIALISE_TYPE(MTL::TextureSwizzleChannels);
+INSTANTIATE_SERIALISE_TYPE(MTL::ClearColor);
+INSTANTIATE_SERIALISE_TYPE(MTL::SamplePosition);
+INSTANTIATE_SERIALISE_TYPE(MTL::Viewport);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::TextureDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPipelineColorAttachmentDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::PipelineBufferDescriptor);
@@ -232,3 +335,8 @@ INSTANTIATE_SERIALISE_TYPE(RDMTL::VertexDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::FunctionGroup);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::LinkedFunctions);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPipelineDescriptor);
+INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassAttachmentDescriptor);
+INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassColorAttachmentDescriptor);
+INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassDepthAttachmentDescriptor);
+INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassStencilAttachmentDescriptor);
+INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassDescriptor);

@@ -32,6 +32,12 @@
 const uint32_t MAX_RENDER_PASS_COLOR_ATTACHMENTS = 8;
 const uint32_t MAX_RENDER_PASS_BUFFER_ATTACHMENTS = 31;
 const uint32_t MAX_VERTEX_SHADER_ATTRIBUTES = 31;
+const uint32_t MAX_RENDER_PASS_SAMPLE_BUFFER_ATTACHMENTS = 4;
+
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLCounters.h
+#ifndef MTLCounterDontSample
+#define MTLCounterDontSample ((NS::UInteger)-1)
+#endif    // #ifndef MTLCounterDontSample
 
 #define METALCPP_WRAPPED_PROTOCOLS(FUNC) \
   FUNC(CommandBuffer);                   \
@@ -40,7 +46,8 @@ const uint32_t MAX_VERTEX_SHADER_ATTRIBUTES = 31;
   FUNC(Function);                        \
   FUNC(Library);                         \
   FUNC(RenderPipelineState);             \
-  FUNC(Texture);
+  FUNC(Texture);                         \
+  FUNC(RenderCommandEncoder);
 
 // These serialise overloads will fetch the ID during capture, serialise the ID
 // directly as-if it were the original type, then on replay load up the resource if available.
@@ -98,6 +105,15 @@ MTL_DECLARE_REFLECTION_TYPE(TessellationFactorFormat);
 MTL_DECLARE_REFLECTION_TYPE(TessellationControlPointIndexType);
 MTL_DECLARE_REFLECTION_TYPE(TessellationFactorStepFunction);
 MTL_DECLARE_REFLECTION_TYPE(Winding);
+MTL_DECLARE_REFLECTION_TYPE(PrimitiveType);
+MTL_DECLARE_REFLECTION_TYPE(StoreActionOptions);
+MTL_DECLARE_REFLECTION_TYPE(LoadAction);
+MTL_DECLARE_REFLECTION_TYPE(StoreAction);
+MTL_DECLARE_REFLECTION_TYPE(ClearColor);
+MTL_DECLARE_REFLECTION_TYPE(Viewport);
+MTL_DECLARE_REFLECTION_TYPE(MultisampleDepthResolveFilter);
+MTL_DECLARE_REFLECTION_TYPE(MultisampleStencilResolveFilter);
+MTL_DECLARE_REFLECTION_TYPE(SamplePosition);
 
 namespace RDMTL
 {
@@ -254,6 +270,110 @@ struct RenderPipelineDescriptor
   NS::UInteger maxFragmentCallStackDepth = 1;
 };
 
+// MTLRenderPassAttachmentDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderPass.h
+struct RenderPassAttachmentDescriptor
+{
+  RenderPassAttachmentDescriptor(MTL::LoadAction load, MTL::StoreAction store)
+      : loadAction(load), storeAction(store)
+  {
+  }
+  RenderPassAttachmentDescriptor(MTL::RenderPassAttachmentDescriptor *objc);
+  void CopyTo(MTL::RenderPassAttachmentDescriptor *objc);
+  WrappedMTLTexture *texture = NULL;
+  NS::UInteger level = 0;
+  NS::UInteger slice = 0;
+  NS::UInteger depthPlane = 0;
+  WrappedMTLTexture *resolveTexture = NULL;
+  NS::UInteger resolveLevel = 0;
+  NS::UInteger resolveSlice = 0;
+  NS::UInteger resolveDepthPlane = 0;
+  MTL::LoadAction loadAction;
+  MTL::StoreAction storeAction;
+  MTL::StoreActionOptions storeActionOptions = MTL::StoreActionOptionNone;
+};
+
+// MTLRenderPassColorAttachmentDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderPass.h
+struct RenderPassColorAttachmentDescriptor : RenderPassAttachmentDescriptor
+{
+  RenderPassColorAttachmentDescriptor()
+      : RenderPassAttachmentDescriptor(MTL::LoadActionDontCare, MTL::StoreActionStore)
+  {
+  }
+  RenderPassColorAttachmentDescriptor(MTL::RenderPassColorAttachmentDescriptor *objc);
+  void CopyTo(MTL::RenderPassColorAttachmentDescriptor *objc);
+  MTL::ClearColor clearColor = MTL::ClearColor::Make(0.0, 0.0, 0.0, 1.0);
+};
+
+// MTLRenderPassDepthAttachmentDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderPass.h
+struct RenderPassDepthAttachmentDescriptor : RenderPassAttachmentDescriptor
+{
+  RenderPassDepthAttachmentDescriptor()
+      : RenderPassAttachmentDescriptor(MTL::LoadActionClear, MTL::StoreActionDontCare)
+  {
+  }
+  RenderPassDepthAttachmentDescriptor(MTL::RenderPassDepthAttachmentDescriptor *objc);
+  void CopyTo(MTL::RenderPassDepthAttachmentDescriptor *objc);
+  double clearDepth = 1.0;
+  MTL::MultisampleDepthResolveFilter depthResolveFilter = MTL::MultisampleDepthResolveFilterSample0;
+};
+
+// MTLRenderPassStencilAttachmentDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderPass.h
+struct RenderPassStencilAttachmentDescriptor : RenderPassAttachmentDescriptor
+{
+  RenderPassStencilAttachmentDescriptor()
+      : RenderPassAttachmentDescriptor(MTL::LoadActionClear, MTL::StoreActionDontCare)
+  {
+  }
+  RenderPassStencilAttachmentDescriptor(MTL::RenderPassStencilAttachmentDescriptor *objc);
+  void CopyTo(MTL::RenderPassStencilAttachmentDescriptor *objc);
+  uint32_t clearStencil = 0;
+  MTL::MultisampleStencilResolveFilter stencilResolveFilter =
+      MTL::MultisampleStencilResolveFilterSample0;
+};
+
+// MTLRenderPassSampleBufferAttachmentDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderPass.h
+struct RenderPassSampleBufferAttachmentDescriptor
+{
+  RenderPassSampleBufferAttachmentDescriptor() = default;
+  RenderPassSampleBufferAttachmentDescriptor(MTL::RenderPassSampleBufferAttachmentDescriptor *objc);
+  void CopyTo(MTL::RenderPassSampleBufferAttachmentDescriptor *objc);
+  // TODO: when WrappedMTLCounterSampleBuffer exists
+  // WrappedMTLCounterSampleBuffer *sampleBuffer = NULL;
+  NS::UInteger startOfVertexSampleIndex = MTLCounterDontSample;
+  NS::UInteger endOfVertexSampleIndex = MTLCounterDontSample;
+  NS::UInteger startOfFragmentSampleIndex = MTLCounterDontSample;
+  NS::UInteger endOfFragmentSampleIndex = MTLCounterDontSample;
+};
+
+struct RenderPassDescriptor
+{
+  RenderPassDescriptor() = default;
+  RenderPassDescriptor(MTL::RenderPassDescriptor *objc);
+  explicit operator MTL::RenderPassDescriptor *();
+  rdcarray<RenderPassColorAttachmentDescriptor> colorAttachments;
+  RenderPassDepthAttachmentDescriptor depthAttachment;
+  RenderPassStencilAttachmentDescriptor stencilAttachment;
+  // TODO: when WrappedMTLBuffer exists
+  // WrappedMTLBuffer *visibilityResultBuffer;
+  NS::UInteger renderTargetArrayLength = 0;
+  NS::UInteger imageblockSampleLength = 0;
+  NS::UInteger threadgroupMemoryLength = 0;
+  NS::UInteger tileWidth = 0;
+  NS::UInteger tileHeight = 0;
+  NS::UInteger defaultRasterSampleCount = 0;
+  NS::UInteger renderTargetWidth = 0;
+  NS::UInteger renderTargetHeight = 0;
+  rdcarray<MTL::SamplePosition> samplePositions;
+  // TODO: when WrappedRasterizationRateMap exists
+  // WrappedRasterizationRateMap *rasterizationRateMap = NULL;
+  rdcarray<RenderPassSampleBufferAttachmentDescriptor> sampleBufferAttachments;
+};
+
 }    // namespace RDMTL
 
 template <>
@@ -282,3 +402,9 @@ RDMTL_DECLARE_REFLECTION_STRUCT(VertexDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(FunctionGroup);
 RDMTL_DECLARE_REFLECTION_STRUCT(LinkedFunctions);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPipelineDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassAttachmentDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassColorAttachmentDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassDepthAttachmentDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassStencilAttachmentDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassSampleBufferAttachmentDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassDescriptor);

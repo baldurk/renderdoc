@@ -24,30 +24,36 @@
 
 #pragma once
 
-#include "metal_command_queue.h"
 #include "metal_common.h"
 #include "metal_device.h"
 #include "metal_resources.h"
 
-class WrappedMTLCommandBuffer : public WrappedMTLObject
+class WrappedMTLRenderCommandEncoder : public WrappedMTLObject
 {
 public:
-  WrappedMTLCommandBuffer(MTL::CommandBuffer *realMTLCommandBuffer, ResourceId objId,
-                          WrappedMTLDevice *wrappedMTLDevice);
+  WrappedMTLRenderCommandEncoder(MTL::RenderCommandEncoder *realMTLRenderCommandEncoder,
+                                 ResourceId objId, WrappedMTLDevice *wrappedMTLDevice);
 
-  void SetCommandQueue(WrappedMTLCommandQueue *commandQueue) { m_CommandQueue = commandQueue; }
-  MTL::CommandQueue *GetCommandQueue() { return (MTL::CommandQueue *)m_CommandQueue; }
-  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLRenderCommandEncoder *,
-                                          renderCommandEncoderWithDescriptor,
-                                          RDMTL::RenderPassDescriptor &descriptor);
-  DECLARE_FUNCTION_SERIALISED(void, presentDrawable, MTL::Drawable *drawable);
-  DECLARE_FUNCTION_SERIALISED(void, commit);
+  void SetCommandBuffer(WrappedMTLCommandBuffer *commandBuffer) { m_CommandBuffer = commandBuffer; }
+  DECLARE_FUNCTION_SERIALISED(void, setRenderPipelineState,
+                              WrappedMTLRenderPipelineState *pipelineState);
+  DECLARE_FUNCTION_SERIALISED(void, setFragmentTexture, WrappedMTLTexture *texture,
+                              NS::UInteger index);
+  DECLARE_FUNCTION_SERIALISED(void, setViewport, MTL::Viewport &viewport);
+  DECLARE_FUNCTION_SERIALISED(void, drawPrimitives, MTL::PrimitiveType primitiveType,
+                              NS::UInteger vertexStart, NS::UInteger vertexCount,
+                              NS::UInteger instanceCount, NS::UInteger baseInstance);
+  void drawPrimitives(MTL::PrimitiveType primitiveType, NS::UInteger vertexStart,
+                      NS::UInteger vertexCount);
+  void drawPrimitives(MTL::PrimitiveType primitiveType, NS::UInteger vertexStart,
+                      NS::UInteger vertexCount, NS::UInteger instanceCount);
+  DECLARE_FUNCTION_SERIALISED(void, endEncoding);
 
   enum
   {
-    TypeEnum = eResCommandBuffer
+    TypeEnum = eResRenderCommandEncoder
   };
 
 private:
-  WrappedMTLCommandQueue *m_CommandQueue;
+  WrappedMTLCommandBuffer *m_CommandBuffer;
 };

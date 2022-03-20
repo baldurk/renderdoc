@@ -70,7 +70,6 @@ WrappedMTLFunction *WrappedMTLLibrary::newFunctionWithName(NS::String *functionN
     }
     MetalResourceRecord *record = GetResourceManager()->AddResourceRecord(wrappedMTLFunction);
     record->AddChunk(chunk);
-    GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_Read);
     record->AddParent(GetRecord(this));
   }
   else

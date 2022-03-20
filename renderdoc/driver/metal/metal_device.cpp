@@ -128,6 +128,7 @@ WrappedMTLCommandQueue *WrappedMTLDevice::newCommandQueue()
       Serialise_newCommandQueue(ser, wrappedMTLCommandQueue);
       chunk = scope.Get();
     }
+
     MetalResourceRecord *record = GetResourceManager()->AddResourceRecord(wrappedMTLCommandQueue);
     record->AddChunk(chunk);
   }
@@ -177,9 +178,9 @@ WrappedMTLLibrary *WrappedMTLDevice::newDefaultLibrary()
       Serialise_newDefaultLibrary(ser, wrappedMTLLibrary);
       chunk = scope.Get();
     }
+
     MetalResourceRecord *record = GetResourceManager()->AddResourceRecord(wrappedMTLLibrary);
     record->AddChunk(chunk);
-    GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_Read);
   }
   else
   {
@@ -225,9 +226,9 @@ WrappedMTLLibrary *WrappedMTLDevice::newLibraryWithSource(NS::String *source,
       Serialise_newLibraryWithSource(ser, wrappedMTLLibrary, source, options, error);
       chunk = scope.Get();
     }
+
     MetalResourceRecord *record = GetResourceManager()->AddResourceRecord(wrappedMTLLibrary);
     record->AddChunk(chunk);
-    GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_Read);
   }
   else
   {
