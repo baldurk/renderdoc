@@ -24,46 +24,39 @@
 
 #pragma once
 
-#include "metal_command_queue.h"
 #include "metal_common.h"
 #include "metal_device.h"
 #include "metal_resources.h"
 
-class WrappedMTLCommandBuffer : public WrappedMTLObject
+class WrappedMTLRenderCommandEncoder : public WrappedMTLObject
 {
 public:
-  WrappedMTLCommandBuffer(MTL::CommandBuffer *realMTLCommandBuffer, ResourceId objId,
-                          WrappedMTLDevice *wrappedMTLDevice);
+  WrappedMTLRenderCommandEncoder(MTL::RenderCommandEncoder *realMTLRenderCommandEncoder,
+                                 ResourceId objId, WrappedMTLDevice *wrappedMTLDevice);
 
-  void SetWrappedMTLCommandQueue(WrappedMTLCommandQueue *wrappedMTLCommandQueue);
+  void SetWrappedMTLCommandBuffer(WrappedMTLCommandBuffer *wrappedMTLCommandBuffer);
 
-  MTL::CommandQueue *GetObjCBridgeMTLCommandQueue();
-
-  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLRenderCommandEncoder *,
-                                          renderCommandEncoderWithDescriptor,
-                                          MTL::RenderPassDescriptor *descriptor);
-  DECLARE_FUNCTION_SERIALISED(void, presentDrawable, MTL::Drawable *drawable);
-  DECLARE_FUNCTION_SERIALISED(void, commit);
+  DECLARE_FUNCTION_SERIALISED(void, setRenderPipelineState,
+                              WrappedMTLRenderPipelineState *pipelineState);
+  DECLARE_FUNCTION_SERIALISED(void, setFragmentTexture, WrappedMTLTexture *texture,
+                              NS::UInteger index);
+  DECLARE_FUNCTION_SERIALISED(void, setViewport, MTL::Viewport &viewport);
+  DECLARE_FUNCTION_SERIALISED(void, drawPrimitives, MTL::PrimitiveType primitiveType,
+                              NS::UInteger vertexStart, NS::UInteger vertexCount,
+                              NS::UInteger instanceCount);
+  DECLARE_FUNCTION_SERIALISED(void, endEncoding);
 
   enum
   {
-    TypeEnum = eResCommandBuffer
+    TypeEnum = eResRenderCommandEncoder
   };
 
 private:
-  MTL::RenderCommandEncoder *CreateRenderCommandEncoderWithDescriptor(
-      MTL::RenderPassDescriptor *descriptor);
-
-  WrappedMTLCommandQueue *m_WrappedMTLCommandQueue;
+  WrappedMTLCommandBuffer *m_WrappedMTLCommandBuffer;
 };
 
-inline MTL::CommandQueue *WrappedMTLCommandBuffer::GetObjCBridgeMTLCommandQueue()
+inline void WrappedMTLRenderCommandEncoder::SetWrappedMTLCommandBuffer(
+    WrappedMTLCommandBuffer *wrappedMTLCommandBuffer)
 {
-  return GetObjCBridge(m_WrappedMTLCommandQueue);
-}
-
-inline void WrappedMTLCommandBuffer::SetWrappedMTLCommandQueue(
-    WrappedMTLCommandQueue *wrappedMTLCommandQueue)
-{
-  m_WrappedMTLCommandQueue = wrappedMTLCommandQueue;
+  m_WrappedMTLCommandBuffer = wrappedMTLCommandBuffer;
 }

@@ -38,7 +38,8 @@ const uint32_t MAX_RENDER_PASS_COLOR_ATTACHMENTS = 8;
   FUNC(Function);                        \
   FUNC(Library);                         \
   FUNC(RenderPipelineState);             \
-  FUNC(Texture);
+  FUNC(Texture);                         \
+  FUNC(RenderCommandEncoder);
 
 // These serialise overloads will fetch the ID during capture, serialise the ID
 // directly as-if it were the original type, then on replay load up the resource if available.
@@ -81,7 +82,13 @@ METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_HELPERS)
 MTL_DECLARE_REFLECTION_OBJECT(TextureDescriptor)
 MTL_DECLARE_REFLECTION_OBJECT(RenderPipelineDescriptor);
 MTL_DECLARE_REFLECTION_OBJECT(RenderPipelineColorAttachmentDescriptor);
+MTL_DECLARE_REFLECTION_OBJECT(RenderPassDescriptor);
+MTL_DECLARE_REFLECTION_OBJECT(RenderPassAttachmentDescriptor);
+MTL_DECLARE_REFLECTION_OBJECT(RenderPassColorAttachmentDescriptor);
+MTL_DECLARE_REFLECTION_OBJECT(RenderPassDepthAttachmentDescriptor);
+MTL_DECLARE_REFLECTION_OBJECT(RenderPassStencilAttachmentDescriptor);
 
+MTL_DECLARE_REFLECTION_TYPE(PrimitiveType);
 MTL_DECLARE_REFLECTION_TYPE(PixelFormat);
 MTL_DECLARE_REFLECTION_TYPE(TextureType);
 MTL_DECLARE_REFLECTION_TYPE(PrimitiveTopologyClass);
@@ -100,6 +107,11 @@ MTL_DECLARE_REFLECTION_TYPE(TessellationFactorFormat);
 MTL_DECLARE_REFLECTION_TYPE(TessellationControlPointIndexType)
 MTL_DECLARE_REFLECTION_TYPE(TessellationFactorStepFunction);
 MTL_DECLARE_REFLECTION_TYPE(TessellationPartitionMode);
+MTL_DECLARE_REFLECTION_TYPE(StoreActionOptions);
+MTL_DECLARE_REFLECTION_TYPE(LoadAction);
+MTL_DECLARE_REFLECTION_TYPE(StoreAction);
+MTL_DECLARE_REFLECTION_TYPE(ClearColor);
+MTL_DECLARE_REFLECTION_TYPE(Viewport);
 
 template <>
 inline rdcliteral TypeName<NS::String *>()

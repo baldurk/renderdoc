@@ -23,6 +23,7 @@ set(sources
     metal_command_queue.cpp
     metal_command_queue.h
     metal_command_queue_bridge.mm
+    metal_render_pass_descriptor.cpp
     metal_command_buffer.cpp
     metal_command_buffer.h
     metal_command_buffer_bridge.mm
@@ -33,6 +34,9 @@ set(sources
     metal_texture.cpp
     metal_texture.h
     metal_texture_bridge.mm
+    metal_render_command_encoder.cpp
+    metal_render_command_encoder.h
+    metal_render_command_encoder_bridge.mm
     metal_core.cpp
     metal_core.h
     metal_manager.cpp

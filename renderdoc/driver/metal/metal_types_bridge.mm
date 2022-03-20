@@ -30,6 +30,7 @@
 #include "metal_library.h"
 #include "metal_render_pipeline_state.h"
 #include "metal_texture.h"
+#include "metal_render_command_encoder.h"
 
 #define DEFINE_OBJC_HELPERS(CPPTYPE)                                               \
   static ObjCBridgeMTL##CPPTYPE *GetObjCBridge(MTL::CPPTYPE *cppType)              \
