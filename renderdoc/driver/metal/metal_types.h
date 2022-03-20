@@ -29,6 +29,7 @@
 #include "serialise/serialiser.h"
 
 #define METALCPP_WRAPPED_PROTOCOLS(FUNC) \
+  FUNC(CommandBuffer);                   \
   FUNC(CommandQueue);                    \
   FUNC(Device);                          \
   FUNC(Function);                        \

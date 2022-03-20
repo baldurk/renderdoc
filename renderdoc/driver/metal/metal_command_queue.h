@@ -26,11 +26,15 @@
 
 #include "metal_common.h"
 
+class WrappedMTLCommandBuffer;
+
 class WrappedMTLCommandQueue : public WrappedMTLObject
 {
 public:
   WrappedMTLCommandQueue(MTL::CommandQueue *realMTLCommandQueue, ResourceId objId,
                          WrappedMTLDevice *wrappedMTLDevice);
+
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLCommandBuffer *, commandBuffer);
 
   enum
   {

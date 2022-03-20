@@ -23,6 +23,9 @@ set(sources
     metal_command_queue.cpp
     metal_command_queue.h
     metal_command_queue_bridge.mm
+    metal_command_buffer.cpp
+    metal_command_buffer.h
+    metal_command_buffer_bridge.mm
     metal_core.cpp
     metal_core.h
     metal_manager.cpp

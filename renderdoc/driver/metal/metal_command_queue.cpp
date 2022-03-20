@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "metal_command_queue.h"
+#include "metal_command_buffer.h"
 #include "metal_device.h"
 
 WrappedMTLCommandQueue::WrappedMTLCommandQueue(MTL::CommandQueue *realMTLCommandQueue,
@@ -31,3 +32,58 @@ WrappedMTLCommandQueue::WrappedMTLCommandQueue(MTL::CommandQueue *realMTLCommand
 {
   objcBridge = AllocateObjCBridge(this);
 }
+
+template <typename SerialiserType>
+bool WrappedMTLCommandQueue::Serialise_commandBuffer(SerialiserType &ser,
+                                                     WrappedMTLCommandBuffer *buffer)
+{
+  SERIALISE_ELEMENT_LOCAL(CommandQueue, this);
+  SERIALISE_ELEMENT_LOCAL(CommandBuffer, GetResID(buffer)).TypedAs("MTLCommandBuffer"_lit);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    // TODO: implement RD MTL replay
+  }
+  return true;
+}
+
+WrappedMTLCommandBuffer *WrappedMTLCommandQueue::commandBuffer()
+{
+  MTL::CommandBuffer *realMTLCommandBuffer;
+  SERIALISE_TIME_CALL(realMTLCommandBuffer = Unwrap(this)->commandBuffer());
+  WrappedMTLCommandBuffer *wrappedMTLCommandBuffer;
+  ResourceId id = GetResourceManager()->WrapResource(realMTLCommandBuffer, wrappedMTLCommandBuffer);
+  wrappedMTLCommandBuffer->SetWrappedMTLCommandQueue(this);
+
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLCommandQueue_commandBuffer);
+      Serialise_commandBuffer(ser, wrappedMTLCommandBuffer);
+      chunk = scope.Get();
+    }
+    MetalResourceRecord *bufferRecord =
+        GetResourceManager()->AddResourceRecord(wrappedMTLCommandBuffer);
+    bufferRecord->AddChunk(chunk);
+    bufferRecord->cmdInfo = new MetalResources::CmdBufferRecordingInfo();
+    bufferRecord->cmdInfo->queue = this;
+    bufferRecord->cmdInfo->device = m_WrappedMTLDevice;
+    bufferRecord->cmdInfo->present = false;
+    bufferRecord->cmdInfo->isEncoding = false;
+    bufferRecord->cmdInfo->drawable = NULL;
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+    GetResourceManager()->AddLiveResource(id, wrappedMTLCommandBuffer);
+  }
+
+  return wrappedMTLCommandBuffer;
+}
+
+INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLCommandQueue, WrappedMTLCommandBuffer *,
+                                            commandBuffer);

@@ -22,48 +22,42 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "metal_resources.h"
-#include "metal_command_buffer.h"
+#pragma once
+
 #include "metal_command_queue.h"
+#include "metal_common.h"
 #include "metal_device.h"
-#include "metal_function.h"
-#include "metal_library.h"
+#include "metal_resources.h"
 
-ResourceId GetResID(WrappedMTLObject *obj)
+class WrappedMTLCommandBuffer : public WrappedMTLObject
 {
-  if(obj == NULL)
-    return ResourceId();
+public:
+  WrappedMTLCommandBuffer(MTL::CommandBuffer *realMTLCommandBuffer, ResourceId objId,
+                          WrappedMTLDevice *wrappedMTLDevice);
 
-  return obj->id;
+  void SetWrappedMTLCommandQueue(WrappedMTLCommandQueue *wrappedMTLCommandQueue);
+
+  MTL::CommandQueue *GetObjCBridgeMTLCommandQueue();
+
+  DECLARE_FUNCTION_SERIALISED(void, presentDrawable, MTL::Drawable *drawable);
+  DECLARE_FUNCTION_SERIALISED(void, commit);
+
+  enum
+  {
+    TypeEnum = eResCommandBuffer
+  };
+
+private:
+  WrappedMTLCommandQueue *m_WrappedMTLCommandQueue;
+};
+
+inline MTL::CommandQueue *WrappedMTLCommandBuffer::GetObjCBridgeMTLCommandQueue()
+{
+  return GetObjCBridge(m_WrappedMTLCommandQueue);
 }
 
-#define IMPLEMENT_WRAPPED_TYPE_HELPERS(CPPTYPE)                                          \
-  MTL::CPPTYPE *Unwrap(WrappedMTL##CPPTYPE *obj) { return Unwrap<MTL::CPPTYPE *>(obj); } \
-  MTL::CPPTYPE *GetObjCBridge(WrappedMTL##CPPTYPE *obj)                                  \
-  {                                                                                      \
-    return GetObjCBridge<MTL::CPPTYPE *>(obj);                                           \
-  }
-
-METALCPP_WRAPPED_PROTOCOLS(IMPLEMENT_WRAPPED_TYPE_HELPERS)
-#undef IMPLEMENT_WRAPPED_TYPE_HELPERS
-
-void WrappedMTLObject::Dealloc()
+inline void WrappedMTLCommandBuffer::SetWrappedMTLCommandQueue(
+    WrappedMTLCommandQueue *wrappedMTLCommandQueue)
 {
-  // TODO: call the wrapped object destructor
-}
-
-MetalResourceManager *WrappedMTLObject::GetResourceManager()
-{
-  return m_WrappedMTLDevice->GetResourceManager();
-}
-
-MTL::Device *WrappedMTLObject::GetObjCBridgeMTLDevice()
-{
-  return GetObjCBridge(m_WrappedMTLDevice);
-}
-
-MetalResourceRecord::~MetalResourceRecord()
-{
-  if(resType == eResCommandBuffer)
-    SAFE_DELETE(cmdInfo);
+  m_WrappedMTLCommandQueue = wrappedMTLCommandQueue;
 }
