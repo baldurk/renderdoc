@@ -41,7 +41,8 @@ enum MetalResourceType
   eResLibrary,
   eResFunction,
   eResRenderPipelineState,
-  eResTexture
+  eResTexture,
+  eResRenderCommandEncoder,
 };
 
 DECLARE_REFLECTION_ENUM(MetalResourceType);
@@ -113,7 +114,7 @@ METALCPP_WRAPPED_PROTOCOLS(WRAPPED_TYPE_HELPERS)
 struct MetalCmdBufferRecordingInfo
 {
   MetalCmdBufferRecordingInfo(WrappedMTLCommandQueue *parentQueue)
-      : queue(parentQueue), present(false), isEncoding(false), drawable(NULL)
+      : queue(parentQueue), present(false), drawable(NULL)
   {
   }
   MetalCmdBufferRecordingInfo() = delete;
@@ -127,8 +128,6 @@ struct MetalCmdBufferRecordingInfo
   MTL::Drawable *drawable;
   // AdvanceFrame/Present should be called after this buffer is committed.
   bool present;
-  // an encoder is active : waiting for endEncoding to be called
-  bool isEncoding;
 };
 
 struct MetalResourceRecord : public ResourceRecord

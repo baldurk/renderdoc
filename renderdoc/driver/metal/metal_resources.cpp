@@ -28,6 +28,7 @@
 #include "metal_device.h"
 #include "metal_function.h"
 #include "metal_library.h"
+#include "metal_render_command_encoder.h"
 #include "metal_render_pipeline_state.h"
 #include "metal_texture.h"
 

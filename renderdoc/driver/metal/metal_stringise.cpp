@@ -487,6 +487,58 @@ rdcstr DoStringise(const MTL::TextureSwizzle &el)
 }
 
 template <>
+rdcstr DoStringise(const MTL::PrimitiveType &el)
+{
+  BEGIN_ENUM_STRINGISE(MTL::PrimitiveType)
+  {
+    MTL_STRINGISE_ENUM(PrimitiveTypePoint);
+    MTL_STRINGISE_ENUM(PrimitiveTypeLine);
+    MTL_STRINGISE_ENUM(PrimitiveTypeLineStrip);
+    MTL_STRINGISE_ENUM(PrimitiveTypeTriangle);
+    MTL_STRINGISE_ENUM(PrimitiveTypeTriangleStrip);
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
+rdcstr DoStringise(const MTL::LoadAction &el)
+{
+  BEGIN_ENUM_STRINGISE(MTL::LoadAction)
+  {
+    MTL_STRINGISE_ENUM(LoadActionDontCare);
+    MTL_STRINGISE_ENUM(LoadActionLoad);
+    MTL_STRINGISE_ENUM(LoadActionClear);
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
+rdcstr DoStringise(const MTL::StoreAction &el)
+{
+  BEGIN_ENUM_STRINGISE(MTL::StoreAction)
+  {
+    MTL_STRINGISE_ENUM(StoreActionDontCare);
+    MTL_STRINGISE_ENUM(StoreActionStore);
+    MTL_STRINGISE_ENUM(StoreActionMultisampleResolve);
+    MTL_STRINGISE_ENUM(StoreActionStoreAndMultisampleResolve);
+    MTL_STRINGISE_ENUM(StoreActionUnknown);
+    MTL_STRINGISE_ENUM(StoreActionCustomSampleDepthStore);
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
+rdcstr DoStringise(const MTL::StoreActionOptions &el)
+{
+  BEGIN_BITFIELD_STRINGISE(MTL::StoreActionOptions)
+  {
+    MTL_STRINGISE_BITFIELD_VALUE(StoreActionOptionNone);
+    MTL_STRINGISE_BITFIELD_BIT(StoreActionOptionCustomSamplePositions);
+  }
+  END_BITFIELD_STRINGISE()
+}
+
+template <>
 rdcstr DoStringise(const MTL::BlendFactor &el)
 {
   BEGIN_ENUM_STRINGISE(MTL::BlendFactor)
@@ -541,4 +593,27 @@ rdcstr DoStringise(const MTL::ColorWriteMask &el)
     MTL_STRINGISE_BITFIELD_BIT(ColorWriteMaskRed);
   }
   END_BITFIELD_STRINGISE()
+}
+
+template <>
+rdcstr DoStringise(const MTL::MultisampleDepthResolveFilter &el)
+{
+  BEGIN_ENUM_STRINGISE(MTL::MultisampleDepthResolveFilter)
+  {
+    MTL_STRINGISE_ENUM(MultisampleDepthResolveFilterSample0);
+    MTL_STRINGISE_ENUM(MultisampleDepthResolveFilterMin);
+    MTL_STRINGISE_ENUM(MultisampleDepthResolveFilterMax);
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
+rdcstr DoStringise(const MTL::MultisampleStencilResolveFilter &el)
+{
+  BEGIN_ENUM_STRINGISE(MTL::MultisampleStencilResolveFilter)
+  {
+    MTL_STRINGISE_ENUM(MultisampleStencilResolveFilterSample0);
+    MTL_STRINGISE_ENUM(MultisampleStencilResolveFilterDepthResolvedSample);
+  }
+  END_ENUM_STRINGISE()
 }
