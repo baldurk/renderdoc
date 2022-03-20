@@ -78,8 +78,7 @@
 
 - (nullable id<MTLCommandBuffer>)commandBuffer
 {
-  METAL_NOT_HOOKED();
-  return [self.real commandBuffer];
+  return id<MTLCommandBuffer>(GetObjCBridge(self.wrappedCPP->commandBuffer()));
 }
 
 - (nullable id<MTLCommandBuffer>)commandBufferWithDescriptor:(MTLCommandBufferDescriptor *)descriptor

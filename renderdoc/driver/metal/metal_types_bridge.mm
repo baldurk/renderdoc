@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "metal_types_bridge.h"
+#include "metal_command_buffer.h"
 #include "metal_command_queue.h"
 #include "metal_device.h"
 #include "metal_function.h"
