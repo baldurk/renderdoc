@@ -29,6 +29,7 @@
 #include "metal_function.h"
 #include "metal_library.h"
 #include "metal_manager.h"
+#include "metal_render_command_encoder.h"
 #include "metal_render_pipeline_state.h"
 #include "metal_resources.h"
 #include "metal_texture.h"
@@ -95,6 +96,15 @@ void DoSerialise(SerialiserType &ser, NS::String *&el)
   {
     el = NS::String::string(rdcStr.data(), NS::UTF8StringEncoding);
   }
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, MTL::ClearColor &el)
+{
+  SERIALISE_MEMBER(red);
+  SERIALISE_MEMBER(green);
+  SERIALISE_MEMBER(blue);
+  SERIALISE_MEMBER(alpha);
 }
 
 template <typename SerialiserType>
@@ -201,6 +211,19 @@ void DoSerialise(SerialiserType &ser, MTL::TextureDescriptor *&el)
   }
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, MTL::Viewport &el)
+{
+  SERIALISE_MEMBER(originX);
+  SERIALISE_MEMBER(originY);
+  SERIALISE_MEMBER(width);
+  SERIALISE_MEMBER(height);
+  SERIALISE_MEMBER(znear);
+  SERIALISE_MEMBER(zfar);
+}
+
 INSTANTIATE_SERIALISE_TYPE(MTL::TextureDescriptor *);
 INSTANTIATE_SERIALISE_TYPE(NS::String *);
+INSTANTIATE_SERIALISE_TYPE(MTL::ClearColor);
 INSTANTIATE_SERIALISE_TYPE(MTL::TextureSwizzleChannels);
+INSTANTIATE_SERIALISE_TYPE(MTL::Viewport);

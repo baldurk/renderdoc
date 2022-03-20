@@ -25,6 +25,7 @@
 #include "metal_command_buffer.h"
 #include "core/settings.h"
 #include "metal_device.h"
+#include "metal_render_command_encoder.h"
 #include "metal_resources.h"
 
 WrappedMTLCommandBuffer::WrappedMTLCommandBuffer(MTL::CommandBuffer *realMTLCommandBuffer,
@@ -32,6 +33,61 @@ WrappedMTLCommandBuffer::WrappedMTLCommandBuffer(MTL::CommandBuffer *realMTLComm
     : WrappedMTLObject(realMTLCommandBuffer, objId, wrappedMTLDevice, wrappedMTLDevice->GetStateRef())
 {
   objcBridge = AllocateObjCBridge(this);
+}
+
+template <typename SerialiserType>
+bool WrappedMTLCommandBuffer::Serialise_renderCommandEncoderWithDescriptor(
+    SerialiserType &ser, WrappedMTLRenderCommandEncoder *encoder,
+    MTL::RenderPassDescriptor *descriptor)
+{
+  RDCASSERT(m_WrappedMTLCommandQueue);
+  SERIALISE_ELEMENT_LOCAL(CommandBuffer, this);
+  SERIALISE_ELEMENT_LOCAL(RenderCommandEncoder, GetResID(encoder))
+      .TypedAs("MTLRenderCommandEncoder"_lit);
+  SERIALISE_ELEMENT(descriptor);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    // TODO: implement RD MTL replay
+  }
+  return true;
+}
+
+WrappedMTLRenderCommandEncoder *WrappedMTLCommandBuffer::renderCommandEncoderWithDescriptor(
+    MTL::RenderPassDescriptor *descriptor)
+{
+  MTL::RenderCommandEncoder *realMTLRenderCommandEncoder;
+  SERIALISE_TIME_CALL(realMTLRenderCommandEncoder =
+                          CreateRenderCommandEncoderWithDescriptor(descriptor));
+  WrappedMTLRenderCommandEncoder *wrappedMTLRenderCommandEncoder;
+  ResourceId id = GetResourceManager()->WrapResource(realMTLRenderCommandEncoder,
+                                                     wrappedMTLRenderCommandEncoder);
+  wrappedMTLRenderCommandEncoder->SetWrappedMTLCommandBuffer(this);
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLCommandBuffer_renderCommandEncoderWithDescriptor);
+      Serialise_renderCommandEncoderWithDescriptor(ser, wrappedMTLRenderCommandEncoder, descriptor);
+      chunk = scope.Get();
+    }
+    MetalResourceRecord *bufferRecord = GetRecord(this);
+    RDCASSERT(!bufferRecord->cmdInfo->isEncoding);
+    bufferRecord->AddChunk(chunk);
+
+    MetalResourceRecord *encoderRecord =
+        GetResourceManager()->AddResourceRecord(wrappedMTLRenderCommandEncoder);
+    // TODO: mark texture attachments as frame referenced
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+    //     GetResourceManager()->AddLiveResource(id, *wrappedMTLLibrary);
+  }
+  return wrappedMTLRenderCommandEncoder;
 }
 
 template <typename SerialiserType>
@@ -106,6 +162,7 @@ void WrappedMTLCommandBuffer::commit()
     record->AddChunk(chunk);
 
     bool capframe = IsActiveCapturing(m_State);
+
     if(capframe)
     {
       record->AddRef();
@@ -117,6 +174,36 @@ void WrappedMTLCommandBuffer::commit()
   }
 }
 
+MTL::RenderCommandEncoder *WrappedMTLCommandBuffer::CreateRenderCommandEncoderWithDescriptor(
+    MTL::RenderPassDescriptor *descriptor)
+{
+  MTL::RenderPassDescriptor *realDescriptor = descriptor->copy();
+
+  // The source descriptor contains wrapped MTLTexture resources
+  // Need to unwrap them to the real resource before calling real API
+  for(uint32_t i = 0; i < MAX_RENDER_PASS_COLOR_ATTACHMENTS; ++i)
+  {
+    MTL::Texture *wrappedTexture = descriptor->colorAttachments()->object(i)->texture();
+    if(wrappedTexture != NULL)
+    {
+      if(IsObjCBridge(wrappedTexture))
+      {
+        realDescriptor->colorAttachments()->object(i)->setTexture(GetReal(wrappedTexture));
+      }
+    }
+  }
+
+  MTL::RenderCommandEncoder *realMTLRenderCommandEncoder =
+      Unwrap(this)->renderCommandEncoder(realDescriptor);
+  realDescriptor->release();
+
+  return realMTLRenderCommandEncoder;
+}
+
+INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLCommandBuffer,
+                                            WrappedMTLRenderCommandEncoder *encoder,
+                                            renderCommandEncoderWithDescriptor,
+                                            MTL::RenderPassDescriptor *descriptor);
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLCommandBuffer, void, presentDrawable,
                                 MTL::Drawable *drawable);
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLCommandBuffer, void, commit);

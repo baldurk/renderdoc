@@ -189,8 +189,8 @@
 - (nullable id<MTLRenderCommandEncoder>)renderCommandEncoderWithDescriptor:
     (MTLRenderPassDescriptor *)renderPassDescriptor
 {
-  METAL_NOT_HOOKED();
-  return [self.real renderCommandEncoderWithDescriptor:renderPassDescriptor];
+  return id<MTLRenderCommandEncoder>(GetObjCBridge(self.wrappedCPP->renderCommandEncoderWithDescriptor(
+      (MTL::RenderPassDescriptor *)renderPassDescriptor)));
 }
 
 - (nullable id<MTLComputeCommandEncoder>)computeCommandEncoderWithDescriptor:
