@@ -923,6 +923,16 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
         // might actually have an impact on the behaviour of the shader.
         switch(execMode.mode)
         {
+          // these execution modes should be applied to our entry point
+          case rdcspv::ExecutionMode::DenormPreserve:
+          case rdcspv::ExecutionMode::DenormFlushToZero:
+          case rdcspv::ExecutionMode::SignedZeroInfNanPreserve:
+          case rdcspv::ExecutionMode::RoundingModeRTE:
+          case rdcspv::ExecutionMode::RoundingModeRTZ:
+          case rdcspv::ExecutionMode::SubgroupUniformControlFlowKHR:
+            editor.AddExecutionMode(rdcspv::OpExecutionMode(
+                wrapperEntry, rdcspv::ExecutionModeAndParamData(execMode.mode)));
+            break;
           case rdcspv::ExecutionMode::Xfb: break;
           default: RDCERR("Unexpected execution mode");
         }
@@ -2009,9 +2019,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     rdcarray<VkWriteDescriptorSet> descWrites(MeshOutputBufferArraySize);
     uint32_t numWrites = 0;
 
-    const VkPipelineVertexInputStateCreateInfo *vi = pipeCreateInfo.pVertexInputState;
-
-    RDCASSERT(vi->vertexAttributeDescriptionCount <= MeshOutputBufferArraySize);
+    RDCASSERT(state.vertexAttributes.size() <= MeshOutputBufferArraySize);
 
     // we fetch the vertex buffer data up front here since there's a very high chance of either
     // overlap due to interleaved attributes, or no overlap and no wastage due to separate compact
@@ -2019,9 +2027,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     rdcarray<bytebuf> origVBs;
     origVBs.reserve(16);
 
-    for(uint32_t vb = 0; vb < vi->vertexBindingDescriptionCount; vb++)
+    for(uint32_t vb = 0; vb < state.vertexBindings.size(); vb++)
     {
-      uint32_t binding = vi->pVertexBindingDescriptions[vb].binding;
+      uint32_t binding = state.vertexBindings[vb].binding;
       if(binding >= state.vbuffers.size())
       {
         origVBs.push_back(bytebuf());
@@ -2032,7 +2040,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       VkDeviceSize stride = state.vbuffers[binding].stride;
       uint64_t len = 0;
 
-      if(vi->pVertexBindingDescriptions[vb].inputRate == VK_VERTEX_INPUT_RATE_INSTANCE)
+      if(state.vertexBindings[vb].inputRate == VK_VERTEX_INPUT_RATE_INSTANCE)
       {
         len = (uint64_t(maxInstance) + 1) * stride;
 
@@ -2052,9 +2060,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
         GetBufferData(state.vbuffers[binding].buf, offs, len, origVBs.back());
     }
 
-    for(uint32_t i = 0; i < vi->vertexAttributeDescriptionCount; i++)
+    for(uint32_t i = 0; i < state.vertexAttributes.size(); i++)
     {
-      const VkVertexInputAttributeDescription &attrDesc = vi->pVertexAttributeDescriptions[i];
+      const VkVertexInputAttributeDescription2EXT &attrDesc = state.vertexAttributes[i];
       uint32_t attr = attrDesc.location;
 
       RDCASSERT(attr < 64);
@@ -2070,9 +2078,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       const byte *origVBBegin = NULL;
       const byte *origVBEnd = NULL;
 
-      for(uint32_t vb = 0; vb < vi->vertexBindingDescriptionCount; vb++)
+      for(uint32_t vb = 0; vb < state.vertexBindings.size(); vb++)
       {
-        const VkVertexInputBindingDescription &vbDesc = vi->pVertexBindingDescriptions[vb];
+        const VkVertexInputBindingDescription2EXT &vbDesc = state.vertexBindings[vb];
         if(vbDesc.binding == attrDesc.binding)
         {
           origVBBegin = origVBs[vb].data() + attrDesc.offset;
@@ -2083,7 +2091,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
           stride = vbDesc.stride;
           if(vbDesc.inputRate == VK_VERTEX_INPUT_RATE_INSTANCE)
-            instDivisor = pipeInfo.vertexBindings[vbDesc.binding].instanceDivisor;
+            instDivisor = vbDesc.divisor;
           else
             instDivisor = ~0U;
           break;

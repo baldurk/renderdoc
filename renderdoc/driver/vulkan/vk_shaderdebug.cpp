@@ -3880,7 +3880,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   builtins[ShaderBuiltin::ViewportIndex] = ShaderVariable(rdcstr(), view, 0U, 0U, 0U);
 
   rdcarray<ShaderVariable> &locations = apiWrapper->location_inputs;
-  for(const VulkanCreationInfo::Pipeline::Attribute &attr : pipe.vertexAttrs)
+  for(const VkVertexInputAttributeDescription2EXT &attr : state.vertexAttributes)
   {
     locations.resize_for_index(attr.location);
 
@@ -3895,14 +3895,14 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
 
     bool found = false;
 
-    for(const VulkanCreationInfo::Pipeline::VertBinding &bind : pipe.vertexBindings)
+    for(const VkVertexInputBindingDescription2EXT &bind : state.vertexBindings)
     {
-      if(bind.vbufferBinding != attr.binding)
+      if(bind.binding != attr.binding)
         continue;
 
-      if(bind.vbufferBinding < state.vbuffers.size())
+      if(bind.binding < state.vbuffers.size())
       {
-        const VulkanRenderState::VertBuffer &vb = state.vbuffers[bind.vbufferBinding];
+        const VulkanRenderState::VertBuffer &vb = state.vbuffers[bind.binding];
 
         if(vb.buf != ResourceId())
         {
@@ -3910,12 +3910,12 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
 
           found = true;
 
-          if(bind.perInstance)
+          if(bind.inputRate == VK_VERTEX_INPUT_RATE_INSTANCE)
           {
-            if(bind.instanceDivisor == 0)
+            if(bind.divisor == 0)
               vertexOffset = instOffset * vb.stride;
             else
-              vertexOffset = (instOffset + (instid / bind.instanceDivisor)) * vb.stride;
+              vertexOffset = (instOffset + (instid / bind.divisor)) * vb.stride;
           }
           else
           {
@@ -3925,17 +3925,17 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
           if(Vulkan_Debug_ShaderDebugLogging())
           {
             RDCLOG("Fetching from %s at %llu offset %zu bytes", ToStr(vb.buf).c_str(),
-                   vb.offs + attr.byteoffset + vertexOffset, size);
+                   vb.offs + attr.offset + vertexOffset, size);
           }
 
-          if(attr.byteoffset + vertexOffset < vb.size)
-            GetDebugManager()->GetBufferData(vb.buf, vb.offs + attr.byteoffset + vertexOffset, size,
+          if(attr.offset + vertexOffset < vb.size)
+            GetDebugManager()->GetBufferData(vb.buf, vb.offs + attr.offset + vertexOffset, size,
                                              data);
         }
       }
       else if(Vulkan_Debug_ShaderDebugLogging())
       {
-        RDCLOG("Vertex binding %u out of bounds from %zu vertex buffers", bind.vbufferBinding,
+        RDCLOG("Vertex binding %u out of bounds from %zu vertex buffers", bind.binding,
                state.vbuffers.size());
       }
     }

@@ -1190,21 +1190,22 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         MakePrimitiveTopology(state.primitiveTopology, state.patchControlPoints);
 
     // Vertex Input
-    ret.vertexInput.attributes.resize(p.vertexAttrs.size());
-    for(size_t i = 0; i < p.vertexAttrs.size(); i++)
+    ret.vertexInput.attributes.resize(state.vertexAttributes.size());
+    for(size_t i = 0; i < state.vertexAttributes.size(); i++)
     {
-      ret.vertexInput.attributes[i].location = p.vertexAttrs[i].location;
-      ret.vertexInput.attributes[i].binding = p.vertexAttrs[i].binding;
-      ret.vertexInput.attributes[i].byteOffset = p.vertexAttrs[i].byteoffset;
-      ret.vertexInput.attributes[i].format = MakeResourceFormat(p.vertexAttrs[i].format);
+      ret.vertexInput.attributes[i].location = state.vertexAttributes[i].location;
+      ret.vertexInput.attributes[i].binding = state.vertexAttributes[i].binding;
+      ret.vertexInput.attributes[i].byteOffset = state.vertexAttributes[i].offset;
+      ret.vertexInput.attributes[i].format = MakeResourceFormat(state.vertexAttributes[i].format);
     }
 
-    ret.vertexInput.bindings.resize(p.vertexBindings.size());
-    for(size_t i = 0; i < p.vertexBindings.size(); i++)
+    ret.vertexInput.bindings.resize(state.vertexBindings.size());
+    for(size_t i = 0; i < state.vertexBindings.size(); i++)
     {
-      ret.vertexInput.bindings[i].vertexBufferBinding = p.vertexBindings[i].vbufferBinding;
-      ret.vertexInput.bindings[i].perInstance = p.vertexBindings[i].perInstance;
-      ret.vertexInput.bindings[i].instanceDivisor = p.vertexBindings[i].instanceDivisor;
+      ret.vertexInput.bindings[i].vertexBufferBinding = state.vertexBindings[i].binding;
+      ret.vertexInput.bindings[i].perInstance =
+          state.vertexBindings[i].inputRate == VK_VERTEX_INPUT_RATE_INSTANCE;
+      ret.vertexInput.bindings[i].instanceDivisor = state.vertexBindings[i].divisor;
     }
 
     ret.vertexInput.vertexBuffers.resize(state.vbuffers.size());

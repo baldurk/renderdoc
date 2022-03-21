@@ -370,6 +370,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::ExpectAssumeKHR:
       case Capability::BitInstructions:
       case Capability::UniformDecoration:
+      case Capability::SignedZeroInfNanPreserve:
       {
         supported = true;
         break;
@@ -390,7 +391,6 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       // float controls
       case Capability::DenormPreserve:
       case Capability::DenormFlushToZero:
-      case Capability::SignedZeroInfNanPreserve:
       case Capability::RoundingModeRTE:
       case Capability::RoundingModeRTZ:
 
