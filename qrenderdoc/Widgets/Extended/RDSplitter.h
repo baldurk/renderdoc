@@ -50,6 +50,7 @@ protected:
   virtual void paintEvent(QPaintEvent *event);
   virtual void mouseDoubleClickEvent(QMouseEvent *event);
 
+  QSplitter *m_parent;
   QString m_title;
   int m_index;
   bool m_isCollapsed;

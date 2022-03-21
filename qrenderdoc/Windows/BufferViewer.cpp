@@ -32,10 +32,13 @@
 #include <QMutexLocker>
 #include <QPushButton>
 #include <QScrollBar>
+#include <QSplitter>
 #include <QTimer>
 #include <QtMath>
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
+#include "Widgets/CollapseGroupBox.h"
+#include "Widgets/Extended/RDSplitter.h"
 #include "Windows/Dialogs/AxisMappingDialog.h"
 #include "ui_BufferViewer.h"
 
@@ -466,7 +469,9 @@ struct BufferConfiguration
   uint32_t numRows = 0, unclampedNumRows = 0;
   uint32_t pagingOffset = 0;
 
-  uint32_t formatStride = 0;
+  ShaderConstant fixedVars;
+  uint32_t repeatStride = 1;
+  uint32_t repeatOffset = 0;
 
   QString noDraw;
 
@@ -500,6 +505,10 @@ struct BufferConfiguration
     numRows = o.numRows;
     unclampedNumRows = o.unclampedNumRows;
     pagingOffset = o.pagingOffset;
+
+    fixedVars = o.fixedVars;
+    repeatStride = o.repeatStride;
+    repeatOffset = o.repeatOffset;
 
     noDraw = o.noDraw;
 
@@ -2052,7 +2061,10 @@ static void UnrollConstant(rdcstr prefix, uint32_t baseOffset, const ShaderConst
   }
 
   // struct, expand by members
-  for(uint32_t a = 0; a < qMax(1U, constant.type.descriptor.elements); a++)
+  uint32_t arraySize = qMax(1U, constant.type.descriptor.elements);
+  if(arraySize == ~0U)
+    arraySize = 1U;
+  for(uint32_t a = 0; a < arraySize; a++)
   {
     for(const ShaderConstant &child : constant.type.members)
     {
@@ -2272,8 +2284,8 @@ void BufferViewer::SetupRawView()
   ui->viewIndex->setVisible(false);
   ui->dockarea->setVisible(false);
 
-  ui->vsinData->setWindowTitle(tr("Buffer Contents"));
   ui->vsinData->setFrameShape(QFrame::NoFrame);
+  ui->fixedVars->setFrameShape(QFrame::NoFrame);
 
   ui->vsinData->setPinnedColumns(1);
   ui->vsinData->setColumnGroupRole(columnGroupRole);
@@ -2293,14 +2305,63 @@ void BufferViewer::SetupRawView()
                      processFormat(format);
                    });
 
-  QVBoxLayout *vertical = new QVBoxLayout(this);
+  ui->fixedVars->setColumns({tr("Name"), tr("Value"), tr("Type")});
+  {
+    ui->fixedVars->header()->setSectionResizeMode(0, QHeaderView::Interactive);
+    ui->fixedVars->header()->setSectionResizeMode(1, QHeaderView::Interactive);
+    ui->fixedVars->header()->setSectionResizeMode(2, QHeaderView::Interactive);
+  }
 
-  vertical->setSpacing(3);
-  vertical->setContentsMargins(3, 3, 3, 3);
+  ui->fixedVars->setFont(Formatter::FixedFont());
 
-  vertical->addWidget(ui->meshToolbar);
-  vertical->addWidget(ui->vsinData);
-  vertical->addWidget(ui->formatSpecifier);
+  m_FixedGroup = new CollapseGroupBox(this);
+  m_RepeatedGroup = new CollapseGroupBox(this);
+
+  m_RepeatedControlBar = new QFrame(this);
+
+  m_RepeatedControlBar->setFrameShape(QFrame::Panel);
+  m_RepeatedControlBar->setFrameShadow(QFrame::Raised);
+
+  QHBoxLayout *controlLayout = new QHBoxLayout(m_RepeatedControlBar);
+  controlLayout->setSpacing(2);
+  controlLayout->setContentsMargins(6, 2, 6, 2);
+
+  controlLayout->addItem(new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum));
+
+  QVBoxLayout *fixedLayout = new QVBoxLayout(m_FixedGroup);
+  fixedLayout->setSpacing(0);
+  fixedLayout->setContentsMargins(0, 0, 0, 0);
+
+  QVBoxLayout *repeatedLayout = new QVBoxLayout(m_RepeatedGroup);
+  repeatedLayout->setSpacing(3);
+  repeatedLayout->setContentsMargins(0, 0, 0, 0);
+
+  repeatedLayout->addWidget(m_RepeatedControlBar);
+
+  m_FixedGroup->setTitle(tr("Fixed SoA data"));
+  m_RepeatedGroup->setTitle(tr("Repeated AoS values"));
+
+  m_VLayout = new QVBoxLayout(this);
+  m_VLayout->setSpacing(3);
+  m_VLayout->setContentsMargins(3, 3, 3, 3);
+
+  m_OuterSplitter = new RDSplitter(Qt::Vertical, this);
+  m_OuterSplitter->setHandleWidth(12);
+  m_OuterSplitter->setChildrenCollapsible(false);
+
+  m_InnerSplitter = new RDSplitter(Qt::Vertical, this);
+  m_InnerSplitter->setHandleWidth(12);
+  m_InnerSplitter->setChildrenCollapsible(false);
+
+  // inner splitter is only used when we have these groups, so we can add these unconditionally
+  m_InnerSplitter->addWidget(m_FixedGroup);
+  m_InnerSplitter->addWidget(m_RepeatedGroup);
+
+  m_VLayout->addWidget(ui->meshToolbar);
+  // 0 will be variable, but set it to something here so QSplitter doesn't barf
+  m_OuterSplitter->insertWidget(0, ui->vsinData);
+  m_OuterSplitter->insertWidget(1, ui->formatSpecifier);
+  m_VLayout->addWidget(m_OuterSplitter);
 }
 
 void BufferViewer::SetupMeshView()
@@ -2313,6 +2374,8 @@ void BufferViewer::SetupMeshView()
   byteRangeStart->setVisible(false);
   ui->byteRangeLengthLabel->setVisible(false);
   byteRangeLength->setVisible(false);
+
+  ui->fixedVars->setVisible(false);
 
   ui->resourceDetails->setVisible(false);
   ui->formatSpecifier->setVisible(false);
@@ -2670,11 +2733,17 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
   else
   {
     QString errors;
-    ShaderConstant constant = BufferFormatter::ParseFormatString(m_Format, m_ByteSize, errors);
+    ShaderConstant repeating;
+    rdctie(bufdata->vsinConfig.fixedVars, repeating) =
+        BufferFormatter::ParseFormatString(m_Format, m_ByteSize, errors);
 
-    UnrollConstant(constant, bufdata->vsinConfig.columns, bufdata->vsinConfig.props);
+    if(repeating.type.descriptor.type != VarType::Unknown)
+    {
+      bufdata->vsinConfig.repeatStride = repeating.type.descriptor.arrayByteStride;
+      bufdata->vsinConfig.repeatOffset = repeating.byteOffset;
 
-    bufdata->vsinConfig.formatStride = constant.type.descriptor.arrayByteStride;
+      UnrollConstant(repeating, bufdata->vsinConfig.columns, bufdata->vsinConfig.props);
+    }
 
     ClearModels();
   }
@@ -2735,16 +2804,21 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       buf = new BufferData;
 
       // calculate tight stride
-      buf->stride = std::max(1U, bufdata->vsinConfig.formatStride);
+      buf->stride = std::max(1U, bufdata->vsinConfig.repeatStride);
 
-      // the "permanent" range starts at ByteOffset and goes for m_ByteSize
-      uint64_t rangeStart = m_ByteOffset;
-      uint64_t rangeEnd = m_ByteOffset + m_ByteSize;
+      // we want to fetch the data for fixed and repeated sections (either of which might be 0)
+      // but calculate the number of rows etc for the repeated sections based on just the data
+      // available for it
+      const uint64_t fixedLength = bufdata->vsinConfig.repeatOffset;
+
+      // the "permanent" repeated range starts after the fixed data and goes for m_ByteSize
+      uint64_t repeatedRangeStart = m_ByteOffset + fixedLength;
+      uint64_t repeatedRangeEnd = m_ByteOffset + m_ByteSize;
 
       // if the byte size is unbounded, the end is unbounded - fix the potential overflow from
       // adding the offset
       if(m_ByteSize == UINT64_MAX)
-        rangeEnd = UINT64_MAX;
+        repeatedRangeEnd = UINT64_MAX;
 
       // get the underlying buffer length
       uint64_t bufferLength = 0;
@@ -2757,34 +2831,46 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       }
 
       // clamp the range to the buffer length, which may end up with it being empty
-      rangeEnd = qMin(rangeEnd, bufferLength);
-      rangeStart = qMin(rangeStart, bufferLength);
+      repeatedRangeEnd = qMin(repeatedRangeEnd, bufferLength);
+      repeatedRangeStart = qMin(repeatedRangeStart, bufferLength);
 
       // store the number of rows unclamped without the paging window
       bufdata->vsinConfig.unclampedNumRows =
-          uint32_t((rangeEnd - rangeStart + buf->stride - 1) / buf->stride);
+          uint32_t((repeatedRangeEnd - repeatedRangeStart + buf->stride - 1) / buf->stride);
 
       // advance the range by the paging offset
-      rangeStart = qMin(rangeEnd, rangeStart + m_PagingByteOffset);
+      repeatedRangeStart = qMin(repeatedRangeEnd, repeatedRangeStart + m_PagingByteOffset);
 
       // calculate the length clamped to the MaxVisibleRows
-      uint64_t clampedLength =
-          qMin(rangeEnd - rangeStart, uint64_t(buf->stride * (MaxVisibleRows + 2)));
+      const uint64_t clampedRepeatedLength =
+          qMin(repeatedRangeEnd - repeatedRangeStart, uint64_t(buf->stride * (MaxVisibleRows + 2)));
 
       if(m_IsBuffer)
       {
-        if(clampedLength > 0)
-          buf->storage = r->GetBufferData(m_BufferID, CurrentByteOffset(), clampedLength);
+        if(repeatedRangeStart > fixedLength)
+        {
+          // if the repeated range subsection we're fetching is paged further in, we still need to
+          // fetch the fixed data from the 'start'
+          buf->storage = r->GetBufferData(m_BufferID, m_ByteOffset, fixedLength);
+          // then append the data from where we're paged to
+          buf->storage.append(r->GetBufferData(m_BufferID, repeatedRangeStart, clampedRepeatedLength));
+        }
+        else
+        {
+          // otherwise we can fetch it all at once
+          buf->storage =
+              r->GetBufferData(m_BufferID, m_ByteOffset, fixedLength + clampedRepeatedLength);
+        }
       }
       else
       {
         buf->storage = r->GetTextureData(m_BufferID, m_TexSub);
       }
 
-      uint32_t bufCount = uint32_t(buf->size());
+      uint32_t repeatedDataAvailable = uint32_t(buf->size() - fixedLength);
 
       bufdata->vsinConfig.pagingOffset = uint32_t(m_PagingByteOffset / buf->stride);
-      bufdata->vsinConfig.numRows = uint32_t((bufCount + buf->stride - 1) / buf->stride);
+      bufdata->vsinConfig.numRows = uint32_t((repeatedDataAvailable + buf->stride - 1) / buf->stride);
 
       // ownership passes to model
       bufdata->vsinConfig.buffers.push_back(buf);
@@ -2874,6 +2960,37 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
       if(!m_MeshView)
       {
+        {
+          ShaderVariable var = InterpretShaderVar(bufdata->vsinConfig.fixedVars,
+                                                  bufdata->vsinConfig.buffers[0]->storage.begin(),
+                                                  bufdata->vsinConfig.buffers[0]->storage.end());
+
+          bool wasEmpty = ui->fixedVars->topLevelItemCount() == 0;
+
+          RDTreeViewExpansionState state;
+          ui->fixedVars->saveExpansion(state, 0);
+
+          ui->fixedVars->beginUpdate();
+
+          ui->fixedVars->clear();
+
+          if(!var.members.isEmpty())
+            UI_AddFixedVariables(ui->fixedVars->invisibleRootItem(), var.members);
+
+          ui->fixedVars->endUpdate();
+
+          if(wasEmpty)
+          {
+            // Expand before resizing so that collapsed data will already be visible when expanded
+            ui->fixedVars->expandAll();
+            for(int i = 0; i < ui->fixedVars->header()->count(); i++)
+              ui->fixedVars->resizeColumnToContents(i);
+            ui->fixedVars->collapseAll();
+          }
+
+          ui->fixedVars->applyExpansion(state, 0);
+        }
+
         on_rowOffset_valueChanged(ui->rowOffset->value());
 
         const bool prev = (bufdata->vsinConfig.pagingOffset > 0);
@@ -3002,6 +3119,26 @@ void BufferViewer::setPersistData(const QVariant &persistData)
     m_Config.axisMapping.zAxis.x = state[lit("zAxisMapping")].toList()[0].toInt();
     m_Config.axisMapping.zAxis.y = state[lit("zAxisMapping")].toList()[1].toInt();
     m_Config.axisMapping.zAxis.z = state[lit("zAxisMapping")].toList()[2].toInt();
+  }
+}
+
+void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, const rdcarray<ShaderVariable> &vars)
+{
+  for(const ShaderVariable &v : vars)
+  {
+    RDTreeWidgetItem *n = new RDTreeWidgetItem({v.name, VarString(v), TypeString(v)});
+
+    root->addChild(n);
+
+    if(v.rows > 1)
+    {
+      for(uint32_t i = 0; i < v.rows; i++)
+        n->addChild(new RDTreeWidgetItem(
+            {QFormatStr("%1.row%2").arg(v.name).arg(i), RowString(v, i), RowTypeString(v)}));
+    }
+
+    if(!v.members.isEmpty())
+      UI_AddFixedVariables(n, v.members);
   }
 }
 
@@ -3217,11 +3354,6 @@ void BufferViewer::UI_ResetArcball()
   }
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
-}
-
-uint64_t BufferViewer::CurrentByteOffset()
-{
-  return m_ByteOffset + m_PagingByteOffset;
 }
 
 void BufferViewer::UI_CalculateMeshFormats()
@@ -3658,6 +3790,8 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
     m_ObjectByteSize = buf->length;
 
   m_PagingByteOffset = 0;
+
+  ui->formatSpecifier->setFormat(format);
 
   processFormat(format);
 }
@@ -4178,17 +4312,91 @@ void BufferViewer::processFormat(const QString &format)
 
   BufferConfiguration bufconfig;
 
-  ShaderConstant cols = BufferFormatter::ParseFormatString(format, m_ByteSize, errors);
+  ShaderConstant fixed, repeating;
+  rdctie(fixed, repeating) = BufferFormatter::ParseFormatString(format, m_ByteSize, errors);
 
-  CalcColumnWidth(MaxNumRows(cols));
+  const bool repeatedVars = repeating.type.descriptor.type != VarType::Unknown;
+  const bool fixedVars = !fixed.type.members.empty();
+
+  if(fixedVars && repeatedVars)
+  {
+    if(m_OuterSplitter->widget(0) != m_InnerSplitter)
+      m_OuterSplitter->replaceWidget(0, m_InnerSplitter);
+
+    m_FixedGroup->layout()->addWidget(ui->fixedVars);
+    m_RepeatedGroup->layout()->addWidget(ui->vsinData);
+
+    // row offset should be shown in the repeated control bar, but no separator line is needed
+    ui->offsetLine->setVisible(false);
+    ui->rowOffsetLabel->setVisible(true);
+    ui->rowOffset->setVisible(true);
+    if(ui->rowOffset->parentWidget() != m_RepeatedControlBar)
+    {
+      QHBoxLayout *hbox = qobject_cast<QHBoxLayout *>(m_RepeatedControlBar->layout());
+      hbox->insertWidget(0, ui->rowOffsetLabel);
+      hbox->insertWidget(1, ui->rowOffset);
+    }
+    ui->fixedVars->setVisible(true);
+    ui->vsinData->setVisible(true);
+
+    m_InnerSplitter->setVisible(true);
+  }
+  else if(fixedVars)
+  {
+    if(m_OuterSplitter->widget(0) != ui->fixedVars)
+      m_OuterSplitter->replaceWidget(0, ui->fixedVars);
+
+    // row offset should not be shown
+    ui->offsetLine->setVisible(false);
+    ui->rowOffsetLabel->setVisible(false);
+    ui->rowOffset->setVisible(false);
+
+    ui->fixedVars->setVisible(true);
+    ui->vsinData->setVisible(false);
+
+    m_InnerSplitter->setVisible(false);
+  }
+  else if(repeatedVars)
+  {
+    if(m_OuterSplitter->widget(0) != ui->vsinData)
+      m_OuterSplitter->replaceWidget(0, ui->vsinData);
+
+    // row offset should be shown with the other controls
+    ui->offsetLine->setVisible(true);
+    ui->rowOffsetLabel->setVisible(true);
+    ui->rowOffset->setVisible(true);
+    // insert after the offsetLine
+    if(ui->rowOffset->parentWidget() != ui->meshToolbar)
+    {
+      QHBoxLayout *hbox = qobject_cast<QHBoxLayout *>(ui->meshToolbar->layout());
+
+      int i = 0;
+      for(; i < hbox->count(); i++)
+      {
+        if(hbox->itemAt(i)->widget() == ui->offsetLine)
+          break;
+      }
+      i++;
+      if(i < hbox->count())
+      {
+        hbox->insertWidget(i, ui->rowOffset);
+        hbox->insertWidget(i, ui->rowOffsetLabel);
+      }
+    }
+
+    ui->fixedVars->setVisible(false);
+    ui->vsinData->setVisible(true);
+
+    m_InnerSplitter->setVisible(false);
+  }
+
+  CalcColumnWidth(MaxNumRows(repeating));
 
   ClearModels();
 
   m_Format = format;
 
-  ui->formatSpecifier->setFormat(format);
-
-  qulonglong stride = qMax(1U, cols.type.descriptor.arrayByteStride);
+  qulonglong stride = qMax(1U, repeating.type.descriptor.arrayByteStride);
 
   byteRangeStart->setSingleStep(stride);
   byteRangeLength->setSingleStep(stride);

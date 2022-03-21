@@ -28,7 +28,7 @@
 #include <QPainter>
 
 RDSplitterHandle::RDSplitterHandle(Qt::Orientation orientation, QSplitter *parent)
-    : QSplitterHandle(orientation, parent), m_index(-1), m_isCollapsed(false)
+    : QSplitterHandle(orientation, parent), m_parent(parent), m_index(-1), m_isCollapsed(false)
 {
 }
 
@@ -72,71 +72,100 @@ void RDSplitterHandle::paintEvent(QPaintEvent *event)
   int w = width();
   int h = height();
 
-  if(orientation() == Qt::Vertical)
+  if(!m_title.isEmpty())
   {
-    painter.drawText(QRect(0, 0, w, 25), Qt::AlignHCenter, m_title);
-  }
-  else
-  {
-    painter.drawText(QRect(0, h / 2 - 12, w, 25), Qt::AlignHCenter, m_title);
+    if(orientation() == Qt::Vertical)
+    {
+      painter.drawText(QRect(0, 0, w, 25), Qt::AlignHCenter, m_title);
+    }
+    else
+    {
+      painter.drawText(QRect(0, h / 2 - 12, w, 25), Qt::AlignHCenter, m_title);
+    }
   }
 
   painter.setRenderHint(QPainter::Antialiasing, true);
 
   // draw the arrow
-  if(orientation() == Qt::Vertical)
+  if(m_parent->childrenCollapsible())
   {
-    if(m_isCollapsed)
-    {
-      m_arrowPoints[0] = QPoint(w / 2, h - 9);
-      m_arrowPoints[1] = QPoint(w / 2 - 10, h - 1);
-      m_arrowPoints[2] = QPoint(w / 2 + 10, h - 1);
-    }
-    else
-    {
-      m_arrowPoints[0] = QPoint(w / 2, h - 1);
-      m_arrowPoints[1] = QPoint(w / 2 - 10, h - 9);
-      m_arrowPoints[2] = QPoint(w / 2 + 10, h - 9);
-    }
-  }
-  else
-  {
-    if(m_isCollapsed)
-    {
-      m_arrowPoints[0] = QPoint(w - 9, h / 2 + 15);
-      m_arrowPoints[1] = QPoint(w - 1, h / 2 + 5);
-      m_arrowPoints[2] = QPoint(w - 1, h / 2 + 20);
-    }
-    else
-    {
-      m_arrowPoints[0] = QPoint(w - 1, h / 2 + 15);
-      m_arrowPoints[1] = QPoint(w - 9, h / 2 + 5);
-      m_arrowPoints[2] = QPoint(w - 9, h / 2 + 25);
-    }
-  }
+    bool arrowUpLeft = (m_index == 0);
 
-  painter.drawPolygon(m_arrowPoints, 3);
+    if(m_isCollapsed)
+      arrowUpLeft = !arrowUpLeft;
+
+    if(orientation() == Qt::Vertical)
+    {
+      if(arrowUpLeft)
+      {
+        m_arrowPoints[0] = QPoint(w / 2, h - 9);
+        m_arrowPoints[1] = QPoint(w / 2 - 10, h - 1);
+        m_arrowPoints[2] = QPoint(w / 2 + 10, h - 1);
+      }
+      else
+      {
+        m_arrowPoints[0] = QPoint(w / 2, h - 1);
+        m_arrowPoints[1] = QPoint(w / 2 - 10, h - 9);
+        m_arrowPoints[2] = QPoint(w / 2 + 10, h - 9);
+      }
+    }
+    else
+    {
+      if(arrowUpLeft)
+      {
+        m_arrowPoints[0] = QPoint(w - 9, h / 2 + 15);
+        m_arrowPoints[1] = QPoint(w - 1, h / 2 + 5);
+        m_arrowPoints[2] = QPoint(w - 1, h / 2 + 20);
+      }
+      else
+      {
+        m_arrowPoints[0] = QPoint(w - 1, h / 2 + 15);
+        m_arrowPoints[1] = QPoint(w - 9, h / 2 + 5);
+        m_arrowPoints[2] = QPoint(w - 9, h / 2 + 25);
+      }
+    }
+
+    painter.drawPolygon(m_arrowPoints, 3);
+  }
 
   // draw the bullets
   if(orientation() == Qt::Vertical)
   {
-    painter.drawEllipse(QPoint(w / 4 - 10, h - 10), 3, 3);
-    painter.drawEllipse(QPoint(w / 4, h - 10), 3, 3);
-    painter.drawEllipse(QPoint(w / 4 + 10, h - 10), 3, 3);
+    // in the middle if we're not collapsible in one direction
+    int y = h / 2;
 
-    painter.drawEllipse(QPoint(3 * w / 4 - 10, h - 10), 3, 3);
-    painter.drawEllipse(QPoint(3 * w / 4, h - 10), 3, 3);
-    painter.drawEllipse(QPoint(3 * w / 4 + 10, h - 10), 3, 3);
+    // or away from the arrow
+    if(m_index == 0)
+      y = 10;
+    else if(m_index == 1)
+      y = h - 10;
+
+    painter.drawEllipse(QPoint(w / 4 - 10, y), 3, 3);
+    painter.drawEllipse(QPoint(w / 4, y), 3, 3);
+    painter.drawEllipse(QPoint(w / 4 + 10, y), 3, 3);
+
+    painter.drawEllipse(QPoint(3 * w / 4 - 10, y), 3, 3);
+    painter.drawEllipse(QPoint(3 * w / 4, y), 3, 3);
+    painter.drawEllipse(QPoint(3 * w / 4 + 10, y), 3, 3);
   }
   else
   {
-    painter.drawEllipse(QPoint(w - 10, h / 4 - 10), 3, 3);
-    painter.drawEllipse(QPoint(w - 10, h / 4), 3, 3);
-    painter.drawEllipse(QPoint(w - 10, h / 4 + 10), 3, 3);
+    // in the middle if we're not collapsible in one direction
+    int x = w / 2;
 
-    painter.drawEllipse(QPoint(w - 10, 3 * h / 4 - 10), 3, 3);
-    painter.drawEllipse(QPoint(w - 10, 3 * h / 4), 3, 3);
-    painter.drawEllipse(QPoint(w - 10, 3 * h / 4 + 10), 3, 3);
+    // or away from the arrow
+    if(m_index == 0)
+      x = 10;
+    else if(m_index == 1)
+      x = w - 10;
+
+    painter.drawEllipse(QPoint(x, h / 4 - 10), 3, 3);
+    painter.drawEllipse(QPoint(x, h / 4), 3, 3);
+    painter.drawEllipse(QPoint(x, h / 4 + 10), 3, 3);
+
+    painter.drawEllipse(QPoint(x, 3 * h / 4 - 10), 3, 3);
+    painter.drawEllipse(QPoint(x, 3 * h / 4), 3, 3);
+    painter.drawEllipse(QPoint(x, 3 * h / 4 + 10), 3, 3);
   }
 }
 
@@ -159,7 +188,7 @@ RDSplitter::RDSplitter(QWidget *parent) : QSplitter(parent)
 
 void RDSplitter::handleDoubleClicked(int index)
 {
-  if(index < 0 || index >= count())
+  if(index < 0 || index >= count() || !childrenCollapsible())
     return;
 
   RDSplitterHandle *rdHandle = (RDSplitterHandle *)handle(index);
@@ -184,6 +213,9 @@ void RDSplitter::handleDoubleClicked(int index)
 
 void RDSplitter::setHandleCollapsed(int pos, int index)
 {
+  if(!childrenCollapsible())
+    return;
+
   QList<int> totalSizes = sizes();
   RDSplitterHandle *rdHandle = (RDSplitterHandle *)handle(index);
   if(totalSizes[index] == 0)

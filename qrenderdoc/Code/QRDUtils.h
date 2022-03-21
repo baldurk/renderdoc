@@ -141,7 +141,7 @@ struct Rules
            vector_straddle_16b == o.vector_straddle_16b && tight_arrays == o.tight_arrays &&
            trailing_overlap == o.trailing_overlap;
   }
-
+  bool operator!=(Packing::Rules o) const { return !(*this == o); }
   // is a vector's alignment equal to its component alignment? If not, vectors must have an
   // a larger alignment e.g. for floats a float2 has 8 byte alignment, float3 and float4 have
   // 16-byte alignment
@@ -198,14 +198,16 @@ public:
   BufferFormatter() = default;
 
   static void Init(GraphicsAPI api) { m_API = api; }
-  static ShaderConstant ParseFormatString(const QString &formatString, uint64_t maxLen,
-                                          QString &errors);
+  static rdcpair<ShaderConstant, ShaderConstant> ParseFormatString(const QString &formatString,
+                                                                   uint64_t maxLen, QString &errors);
+  static bool CheckInvalidUnbounded(const ShaderConstant &structDef, QString &errors);
+  static bool ContainsUnbounded(const rdcarray<ShaderConstant> &members);
 
   static Packing::Rules EstimatePackingRules(const rdcarray<ShaderConstant> &members);
 
   static QString GetTextureFormatString(const TextureDescription &tex);
   static QString GetBufferFormatString(Packing::Rules pack, const ShaderResource &res,
-                                       const ResourceFormat &viewFormat, uint64_t &baseByteOffset);
+                                       const ResourceFormat &viewFormat);
 
   static QString DeclareStruct(Packing::Rules pack, const QString &name,
                                const rdcarray<ShaderConstant> &members, uint32_t requiredByteStride);

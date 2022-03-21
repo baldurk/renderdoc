@@ -38,8 +38,11 @@ class RDSpinBox64;
 class QItemSelection;
 class QMenu;
 class QPushButton;
+class QVBoxLayout;
 class RDTableView;
+class RDSplitter;
 class BufferItemModel;
+class CollapseGroupBox;
 class CameraWrapper;
 class ArcballWrapper;
 class FlycamWrapper;
@@ -175,11 +178,11 @@ private:
   void UI_UpdateBoundingBox(const CalcBoundingBoxData &bbox);
   void UI_UpdateBoundingBoxLabels(int compCount = 0);
 
+  void UI_AddFixedVariables(RDTreeWidgetItem *root, const rdcarray<ShaderVariable> &vars);
+
   void FillScrolls(PopulateBufferData *bufdata);
 
   void UI_ResetArcball();
-
-  uint64_t CurrentByteOffset();
 
   // data from raw buffer view
   bool m_IsBuffer = true;
@@ -218,6 +221,15 @@ private:
   int previousAxisMappingIndex = 0;
 
   RichTextViewDelegate *m_delegate = NULL;
+
+  QVBoxLayout *m_VLayout = NULL;
+  RDSplitter *m_OuterSplitter = NULL;
+  RDSplitter *m_InnerSplitter = NULL;
+
+  CollapseGroupBox *m_FixedGroup = NULL;
+  CollapseGroupBox *m_RepeatedGroup = NULL;
+
+  QFrame *m_RepeatedControlBar = NULL;
 
   QMenu *m_HeaderMenu = NULL;
 

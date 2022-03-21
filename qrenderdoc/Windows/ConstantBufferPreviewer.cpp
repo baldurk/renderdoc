@@ -294,7 +294,12 @@ void ConstantBufferPreviewer::processFormat(const QString &format)
   {
     QString errors;
 
-    m_formatOverride = BufferFormatter::ParseFormatString(format, ~0ULL, errors);
+    ShaderConstant fixed, repeating;
+    rdctie(fixed, repeating) = BufferFormatter::ParseFormatString(format, ~0ULL, errors);
+    m_formatOverride = fixed;
+    // we don't handle true unbounded repeating data here, add it as another single element
+    if(repeating.type.descriptor.type != VarType::Unknown)
+      m_formatOverride.type.members.push_back(repeating);
     ui->formatSpecifier->setErrors(errors);
   }
 

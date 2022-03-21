@@ -2157,8 +2157,8 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
     if(shaderRes)
     {
-      format = BufferFormatter::GetBufferFormatString(Packing::D3DUAV, *shaderRes,
-                                                      view.res.viewFormat, offs);
+      format =
+          BufferFormatter::GetBufferFormatString(Packing::D3DUAV, *shaderRes, view.res.viewFormat);
 
       if(view.res.bufferFlags & D3DBufferViewFlags::Raw)
         format = lit("xint");

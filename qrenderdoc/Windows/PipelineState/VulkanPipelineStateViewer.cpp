@@ -3036,8 +3036,7 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
                                             : stage->reflection->readOnlyResources[buf.bindPoint];
 
       format = BufferFormatter::GetBufferFormatString(
-          BufferFormatter::EstimatePackingRules(shaderRes.variableType.members), shaderRes, buf.fmt,
-          buf.offset);
+          BufferFormatter::EstimatePackingRules(shaderRes.variableType.members), shaderRes, buf.fmt);
     }
 
     if(buf.ID != ResourceId())

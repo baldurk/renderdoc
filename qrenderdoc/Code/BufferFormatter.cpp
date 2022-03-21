@@ -365,8 +365,56 @@ Packing::Rules BufferFormatter::EstimatePackingRules(const rdcarray<ShaderConsta
   return pack;
 }
 
-ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, uint64_t maxLen,
-                                                  QString &errors)
+bool BufferFormatter::ContainsUnbounded(const rdcarray<ShaderConstant> &members)
+{
+  for(size_t i = 0; i < members.size(); i++)
+  {
+    if(members[i].type.descriptor.elements == ~0U)
+      return true;
+
+    if(ContainsUnbounded(members[i].type.members))
+      return true;
+  }
+
+  return false;
+}
+
+bool BufferFormatter::CheckInvalidUnbounded(const ShaderConstant &structDef, QString &errors)
+{
+  for(size_t i = 0; i < structDef.type.members.size(); i++)
+  {
+    const bool isLast = i == structDef.type.members.size() - 1;
+
+    // if it's not the last member and it's unbounded, that's a problem!
+    if(!isLast && structDef.type.members[i].type.descriptor.elements == ~0U)
+    {
+      errors = tr("%1 in %2 can't be unbounded when not the last member.\n")
+                   .arg(structDef.type.members[i].name)
+                   .arg(structDef.type.descriptor.name.empty() ? "implicit_root"
+                                                               : structDef.type.descriptor.name);
+      return false;
+    }
+
+    // if it's not the last member, no child can have an unbounded array
+    if(!isLast && ContainsUnbounded(structDef.type.members[i].type.members))
+    {
+      errors = tr("%1 in %2 can't have unbounded array in a child.\n")
+                   .arg(structDef.type.members[i].name)
+                   .arg(structDef.type.descriptor.name.empty() ? "implicit_root"
+                                                               : structDef.type.descriptor.name);
+      return false;
+    }
+
+    if(!CheckInvalidUnbounded(structDef.type.members[i], errors))
+      return false;
+  }
+
+  return true;
+}
+
+rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const QString &formatString,
+                                                                           uint64_t maxLen,
+                                                                           QString &errors)
 {
   StructFormatData root;
   StructFormatData *cur = &root;
@@ -397,7 +445,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
           "(?<vec>[1-9])?"                               // might be a vector
           "(?<mat>x[1-9])?"                              // or a matrix
           "(?<name>\\s+[A-Za-z@_][A-Za-z0-9@_]*)?"       // get identifier name
-          "(?<array>\\s*\\[[0-9]+\\])?"                  // optional array dimension
+          "(?<array>\\s*\\[[0-9]*\\])?"                  // optional array dimension
           "(\\s*:\\s*"                                   // optional specifier after :
           "("                                            // bitfield or semantic
           "(?<bitfield>[1-9][0-9]*)|"                    // bitfield packing
@@ -431,12 +479,12 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
   QRegularExpression structDeclRegex(
       lit("^(struct|enum)\\s+([A-Za-z_][A-Za-z0-9_]*)(\\s*:\\s*([a-z]+))?$"));
   QRegularExpression structUseRegex(
-      lit("^"                                 // start of the line
-          "([A-Za-z_][A-Za-z0-9_]*)"          // struct type name
-          "\\s*(\\*)?"                        // maybe a pointer
-          "\\s+([A-Za-z@_][A-Za-z0-9@_]*)"    // variable name
-          "(\\s*\\[[0-9]+\\])?"               // optional array dimension
-          "(\\s*:\\s*([1-9][0-9]*))?"         // optional bitfield packing
+      lit("^"                                  // start of the line
+          "([A-Za-z_][A-Za-z0-9_]*)"           // struct type name
+          "\\s*(\\*)?"                         // maybe a pointer
+          "\\s+([A-Za-z@_][A-Za-z0-9@_]*)?"    // variable name
+          "(\\s*\\[[0-9]*\\])?"                // optional array dimension
+          "(\\s*:\\s*([1-9][0-9]*))?"          // optional bitfield packing
           "$"));
   QRegularExpression enumValueRegex(
       lit("^"                           // start of the line
@@ -800,7 +848,10 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
       bool isPointer = !structMatch.captured(2).trimmed().isEmpty();
 
-      QString varName = structMatch.captured(3);
+      QString varName = structMatch.captured(3).trimmed();
+
+      if(varName.isEmpty())
+        varName = lit("data");
 
       uint32_t specifiedOffset = ~0U;
       for(const Annotation &annot : annotations)
@@ -828,6 +879,8 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       if(!arrayDim.isEmpty())
       {
         arrayDim = arrayDim.mid(1, arrayDim.count() - 2);
+        if(arrayDim.isEmpty())
+          arrayDim = lit("%1").arg(~0U);
         bool ok = false;
         arrayCount = arrayDim.toUInt(&ok);
         if(!ok)
@@ -993,7 +1046,13 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       QString arrayDim = !match.captured(lit("array")).isEmpty()
                              ? match.captured(lit("array")).trimmed()
                              : lit("[1]");
-      arrayDim = arrayDim.mid(1, arrayDim.count() - 2);
+
+      {
+        bool isArray = !arrayDim.isEmpty();
+        arrayDim = arrayDim.mid(1, arrayDim.count() - 2).trimmed();
+        if(isArray && arrayDim.isEmpty())
+          arrayDim = lit("%1").arg(~0U);
+      }
 
       const bool isUnsigned = match.captured(lit("sign")).trimmed() == lit("unsigned");
 
@@ -1505,8 +1564,121 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
   if(success && root.structDef.type.members.isEmpty() && !lastStruct.isEmpty())
     root = structelems[lastStruct];
 
+  // on D3D it's not possible to have anything but AoS, no preamble, so always consider the root
+  // member to be the struct definition of an array, as long as we're declaring a UAV
+  if(IsD3D(m_API) && pack != Packing::D3DCB)
+  {
+    // if there's already only one root member just make it infinite
+    if(root.structDef.type.members.size() == 1)
+    {
+      root.structDef.type.members[0].type.descriptor.elements = ~0U;
+    }
+    else if(root.structDef.type.members.empty())
+    {
+      // do nothing, we'll hit the invalid failure case below
+    }
+    else
+    {
+      // otherwise wrap a struct around the members, to be the infinite AoS
+      rdcarray<ShaderConstant> inners;
+      inners.swap(root.structDef.type.members);
+
+      ShaderConstant el;
+      el.byteOffset = 0;
+      el.type.descriptor.type = VarType::Struct;
+      el.type.descriptor.elements = ~0U;
+      el.type.descriptor.arrayByteStride = root.structDef.type.descriptor.arrayByteStride;
+
+      root.structDef.type.members.push_back(el);
+      inners.swap(root.structDef.type.members[0].type.members);
+    }
+  }
+
   root.structDef.type.descriptor.arrayByteStride =
       AlignUp(root.offset, GetAlignment(pack, root.structDef));
+
+  if(!root.structDef.type.members.isEmpty() &&
+     root.structDef.type.members.back().type.descriptor.elements == ~0U)
+  {
+    root.structDef.type.descriptor.arrayByteStride =
+        AlignUp(root.structDef.type.members.back().type.descriptor.arrayByteStride,
+                GetAlignment(pack, root.structDef));
+  }
+
+  if(success)
+  {
+    // check that unbounded arrays are only the last member of each struct. Doing this separately
+    // makes the below check easier since we only have to consider last members
+    if(!CheckInvalidUnbounded(root.structDef, errors))
+    {
+      if(IsD3D(m_API) && pack != Packing::D3DCB)
+        errors += tr("D3D structured buffers always define an unbounded array.\n");
+      success = false;
+    }
+  }
+
+  // we only allow one 'infinite' array. You can't have an infinite member inside an already
+  // infinite struct. E.g. this is invalid:
+  //
+  // struct foo {
+  //    uint a;
+  //    float b[];
+  // };
+  //
+  // foo data[];
+  //
+  // but it's valid to have either this:
+  //
+  // struct foo {
+  //    uint a;
+  //    float b[3];
+  // };
+  //
+  // foo data[];
+  //
+  // or this:
+  //
+  // struct foo {
+  //    uint a;
+  //    float b[];
+  // };
+  //
+  // foo data;
+  if(success)
+  {
+    ShaderConstant *iter = &root.structDef;
+    bool foundInfinite = false;
+    QString infiniteArrayName;
+
+    while(iter)
+    {
+      if(iter->type.descriptor.elements == ~0U)
+      {
+        if(foundInfinite)
+        {
+          success = false;
+          errors = tr("Can't have unbounded %1[] as child of an unbounded %2[].\n")
+                       .arg(iter->name)
+                       .arg(infiniteArrayName);
+          if(IsD3D(m_API) && pack != Packing::D3DCB)
+            errors += tr("D3D structured buffers always define an unbounded array.\n");
+          break;
+        }
+
+        infiniteArrayName = iter->type.descriptor.name;
+        if(infiniteArrayName.isEmpty())
+          infiniteArrayName = tr("implicit_root");
+
+        foundInfinite = true;
+      }
+
+      // if there are no more members, stop looking
+      if(iter->type.members.empty())
+        break;
+
+      iter = &iter->type.members.back();
+    }
+  }
 
   if(!success || root.structDef.type.members.isEmpty())
   {
@@ -1519,6 +1691,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
     el.name = "data";
     el.type.descriptor.type = VarType::UInt;
     el.type.descriptor.columns = 4;
+    el.type.descriptor.elements = ~0U;
 
     if(maxLen > 0 && maxLen < 16)
       el.type.descriptor.columns = 1;
@@ -1532,7 +1705,41 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
     root.structDef.type.descriptor.arrayByteStride = el.type.descriptor.arrayByteStride;
   }
 
-  return root.structDef;
+  // split the struct definition we have now into fixed and repeating. We've enforced above that
+  // there's only one struct which is unbounded (no other children at any level are unbounded) and
+  // it's the last member, so we find it, remove it from the hierarchy, and present it separately.
+  ShaderConstant repeat;
+
+  {
+    ShaderConstant *iter = &root.structDef;
+    rdcstr addedprefix;
+
+    while(iter)
+    {
+      // if there are no more members, stop looking, there's no repeated member
+      if(iter->type.members.empty())
+        break;
+
+      // add the prefix, so that the repeated element that's a child like buffer { foo { blah[] } }
+      // shows up as buffer.foo.blah
+      if(!iter->name.empty())
+        addedprefix += iter->name + ".";
+
+      // we want to search the members so we can remove from the current iter
+      if(iter->type.members.back().type.descriptor.elements == ~0U)
+      {
+        repeat = iter->type.members.back();
+        repeat.name = addedprefix + repeat.name;
+        repeat.type.descriptor.elements = 1;
+        iter->type.members.pop_back();
+        break;
+      }
+
+      iter = &iter->type.members.back();
+    }
+  }
+
+  return {root.structDef, repeat};
 }
 
 QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
@@ -1661,73 +1868,19 @@ QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
 }
 
 QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, const ShaderResource &res,
-                                               const ResourceFormat &viewFormat,
-                                               uint64_t &baseByteOffset)
+                                               const ResourceFormat &viewFormat)
 {
   QString format;
 
   if(!res.variableType.members.empty())
   {
+    QString structName = res.variableType.descriptor.name;
+
+    if(structName.isEmpty())
+      structName = lit("el");
+
     QList<QString> declaredStructs;
-    if(m_API == GraphicsAPI::Vulkan || m_API == GraphicsAPI::OpenGL)
-    {
-      const rdcarray<ShaderConstant> &members = res.variableType.members;
-
-      // if there is only one member in the root array, we can just call DeclareStruct directly
-      if(members.count() <= 1)
-      {
-        format = DeclareStruct(pack, declaredStructs, res.name, members, 0, QString());
-      }
-      else
-      {
-        // otherwise we need to build up the comment indicating which fixed-size members we
-        // skipped
-        QString fixedPrefixString = tr("    // members skipped as they are fixed size:\n");
-        baseByteOffset += members.back().byteOffset;
-
-        // list each member before the last, commented out.
-        for(int i = 0; i < members.count() - 1; i++)
-        {
-          QString arraySize;
-          if(members[i].type.descriptor.elements > 1 && members[i].type.descriptor.elements != ~0U)
-            arraySize = QFormatStr("[%1]").arg(members[i].type.descriptor.elements);
-
-          QString varName = members[i].name;
-
-          if(varName.isEmpty())
-            varName = QFormatStr("_child%1").arg(i);
-
-          fixedPrefixString += QFormatStr("    // %1 %2%3;\n")
-                                   .arg(members[i].type.descriptor.name)
-                                   .arg(varName)
-                                   .arg(arraySize);
-        }
-
-        fixedPrefixString +=
-            lit("    // final array struct @ byte offset %1\n").arg(members.back().byteOffset);
-
-        // construct a fake list of members with only the last arrayed one, to pass to
-        // DeclareStruct
-        rdcarray<ShaderConstant> fakeLastMember;
-        fakeLastMember.push_back(members.back());
-        // rebase offset of this member to 0 so that DeclareStruct doesn't think any padding is
-        // needed
-        fakeLastMember[0].byteOffset = 0;
-
-        if(fakeLastMember[0].type.descriptor.elements != ~0U)
-          fakeLastMember[0].type.descriptor.arrayByteStride *=
-              fakeLastMember[0].type.descriptor.elements;
-
-        format = DeclareStruct(pack, declaredStructs, res.name, fakeLastMember,
-                               fakeLastMember[0].type.descriptor.arrayByteStride, fixedPrefixString);
-      }
-    }
-    else
-    {
-      format = DeclareStruct(pack, declaredStructs, res.variableType.descriptor.name,
-                             res.variableType.members, 0, QString());
-    }
-
+    format = DeclareStruct(pack, declaredStructs, structName, res.variableType.members, 0, QString());
     format = QFormatStr("%1\n\n%2").arg(DeclarePacking(pack)).arg(format);
   }
   else
@@ -2013,8 +2166,13 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
     }
 
     QString arraySize;
-    if(members[i].type.descriptor.elements > 1 && members[i].type.descriptor.elements != ~0U)
-      arraySize = QFormatStr("[%1]").arg(members[i].type.descriptor.elements);
+    if(members[i].type.descriptor.elements > 1)
+    {
+      if(members[i].type.descriptor.elements != ~0U)
+        arraySize = QFormatStr("[%1]").arg(members[i].type.descriptor.elements);
+      else
+        arraySize = lit("[]");
+    }
 
     QString varTypeName = members[i].type.descriptor.name;
 
@@ -2278,6 +2436,9 @@ ShaderVariable InterpretShaderVar(const ShaderConstant &elem, const byte *data, 
 
       ret.members = members;
     }
+  }
+  else if(elem.type.descriptor.type == VarType::Struct && elem.type.members.isEmpty())
+  {
   }
   else if(elem.type.descriptor.elements > 1 && elem.type.descriptor.elements != ~0U)
   {
