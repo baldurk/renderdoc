@@ -260,13 +260,10 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       funcTypeTmp.members = {i32, resBindType, i32, i1};
       funcType = editor.AddType(funcTypeTmp);
     }
-    DXIL::Type funcPtrType;
-    funcPtrType.type = DXIL::Type::Pointer;
-    funcPtrType.inner = funcType;
 
     DXIL::Function createHandleBaseFunction;
     createHandleBaseFunction.name = "dx.op.createHandleFromBinding";
-    createHandleBaseFunction.funcType = editor.AddType(funcPtrType);
+    createHandleBaseFunction.funcType = funcType;
     createHandleBaseFunction.external = true;
 
     for(const DXIL::AttributeSet &attrs : editor.GetAttributeSets())
