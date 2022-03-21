@@ -2270,11 +2270,10 @@ void BufferViewer::SetupRawView()
   ui->instance->setVisible(false);
   ui->viewLabel->setVisible(false);
   ui->viewIndex->setVisible(false);
+  ui->dockarea->setVisible(false);
 
   ui->vsinData->setWindowTitle(tr("Buffer Contents"));
   ui->vsinData->setFrameShape(QFrame::NoFrame);
-  ui->dockarea->addToolWindow(ui->vsinData, ToolWindowManager::EmptySpace);
-  ui->dockarea->setToolWindowProperties(ui->vsinData, ToolWindowManager::HideCloseButton);
 
   ui->vsinData->setPinnedColumns(1);
   ui->vsinData->setColumnGroupRole(columnGroupRole);
@@ -2287,10 +2286,6 @@ void BufferViewer::SetupRawView()
   ui->vsinData->setMouseTracking(true);
 
   ui->formatSpecifier->setWindowTitle(tr("Buffer Format"));
-  ui->dockarea->addToolWindow(ui->formatSpecifier, ToolWindowManager::AreaReference(
-                                                       ToolWindowManager::BottomOf,
-                                                       ui->dockarea->areaOf(ui->vsinData), 0.5f));
-  ui->dockarea->setToolWindowProperties(ui->formatSpecifier, ToolWindowManager::HideCloseButton);
 
   QObject::connect(ui->formatSpecifier, &BufferFormatSpecifier::processFormat,
                    [this](const QString &format) {
@@ -2304,7 +2299,8 @@ void BufferViewer::SetupRawView()
   vertical->setContentsMargins(3, 3, 3, 3);
 
   vertical->addWidget(ui->meshToolbar);
-  vertical->addWidget(ui->dockarea);
+  vertical->addWidget(ui->vsinData);
+  vertical->addWidget(ui->formatSpecifier);
 }
 
 void BufferViewer::SetupMeshView()
@@ -3653,6 +3649,7 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
   m_ByteOffset = byteOffset;
   m_ByteSize = byteSize;
   m_BufferID = id;
+  m_TexSub = {0, 0, 0};
 
   updateWindowTitle();
 
@@ -3671,6 +3668,8 @@ void BufferViewer::ViewTexture(ResourceId id, const Subresource &sub, const rdcs
     return;
 
   m_IsBuffer = false;
+  m_ByteOffset = 0;
+  m_ByteSize = UINT64_MAX;
   m_BufferID = id;
   m_TexSub = sub;
 
