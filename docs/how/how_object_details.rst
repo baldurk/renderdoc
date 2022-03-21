@@ -41,15 +41,15 @@ In addition to opening a new view of the texture, the timeline bar will also sho
 Viewing Buffers
 ---------------
 
-More details on this section are available on the :doc:`../window/buffer_viewer` page.
+When opened either from the vertex input section the pipeline state view, or from the :guilabel:`Window` menu under :guilabel:`Mesh Viewer`, the mesh viewer opens. This will show a 3D display of the mesh represented, as well as viewing the mesh buffers at different points in the pipeline. See :doc:`../window/mesh_viewer`.
 
-When opened either from the vertex input section the pipeline state view, or from the :guilabel:`Window` menu under :guilabel:`Mesh Viewer`, the buffer viewer opens up in the mesh viewer mode. This is a specialisation of the buffer viewer which will show a 3D display of the mesh represented, as well as viewing the mesh buffers at different points in the pipeline.
-
-In the general case, buffers bound to the pipeline can be opened as a raw buffer viewer. This will open up a view of the buffer similar to the mesh viewer, but with a completely customisable buffer layout.
+Buffers bound to the pipeline can be opened as a raw buffer viewer. This will open up a view of the buffer similar to the mesh viewer, but with a customisable buffer format.
 
 By default if the buffer is bound to the pipeline with a pre-existing structure that can be reflected from the shader then this will be the default, otherwise the default layout will be 4 32bit unsigned integers per element.
 
 This layout can be customised by entering a format in a simple style that mimics defining a structure that outlines a single element in the buffer.
+
+More details on this section are available on the :doc:`../window/buffer_viewer` page.
 
 .. figure:: ../imgs/Screenshots/RawBuffer.png
 

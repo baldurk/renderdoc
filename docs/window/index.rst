@@ -4,6 +4,7 @@ Window reference
 .. toctree::
 	texture_viewer
 	api_inspector
+	mesh_viewer
 	buffer_viewer
 	capture_attach
 	event_browser

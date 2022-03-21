@@ -269,7 +269,7 @@
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Raw Buffer View">
-    <param name="Local" value="window/buffer_viewer.html#raw-buffer-viewer">
+    <param name="Local" value="window/buffer_viewer.html">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="RenderDoc API">
@@ -335,7 +335,7 @@
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="SSBO Contents">
-    <param name="Local" value="window/buffer_viewer.html#raw-buffer-viewer">
+    <param name="Local" value="window/buffer_viewer.html">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Texture List">
@@ -355,7 +355,7 @@
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="UAV Contents">
-    <param name="Local" value="window/buffer_viewer.html#raw-buffer-viewer">
+    <param name="Local" value="window/buffer_viewer.html">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Vulkan">
@@ -400,11 +400,11 @@
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Mesh Output">
-				<param name="Local" value="window/buffer_viewer.html#mesh-viewer">
+				<param name="Local" value="window/mesh_viewer.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Mesh Viewer">
-				<param name="Local" value="window/buffer_viewer.html#mesh-viewer">
+				<param name="Local" value="window/mesh_viewer.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Performance Counter Viewer">
@@ -420,7 +420,7 @@
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Raw Buffer Viewer">
-				<param name="Local" value="window/buffer_viewer.html#raw-buffer-viewer">
+				<param name="Local" value="window/buffer_viewer.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Resource Inspector">

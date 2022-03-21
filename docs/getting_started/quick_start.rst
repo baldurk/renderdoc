@@ -177,7 +177,7 @@ Mesh Viewer
 
     Mesh Viewer
 
-More details can be found on the :doc:`../window/buffer_viewer` page.
+More details can be found on the :doc:`../window/mesh_viewer` page.
 
 .. |arrow_undo| image:: ../imgs/icons/arrow_undo.png
 .. |cog| image:: ../imgs/icons/cog.png
