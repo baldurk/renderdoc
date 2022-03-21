@@ -792,6 +792,8 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
     QRegularExpressionMatch structMatch = structUseRegex.match(line);
 
+    bool isPadding = false;
+
     if(structMatch.hasMatch() && structelems.contains(structMatch.captured(1)))
     {
       StructFormatData &structContext = structelems[structMatch.captured(1)];
@@ -806,6 +808,10 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         if(annot.name == lit("offset") || annot.name == lit("byte_offset"))
         {
           specifiedOffset = annot.param.toUInt();
+        }
+        else if(annot.name == lit("pad") || annot.name == lit("padding"))
+        {
+          isPadding = true;
         }
         else
         {
@@ -864,7 +870,9 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         el.type.descriptor.elements = arrayCount;
 
         cur->offset += 8;
-        cur->structDef.type.members.push_back(el);
+
+        if(!isPadding)
+          cur->structDef.type.members.push_back(el);
 
         continue;
       }
@@ -946,7 +954,8 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         el.byteOffset = cur->offset;
         el.type.descriptor.elements = arrayCount;
 
-        cur->structDef.type.members.push_back(el);
+        if(!isPadding)
+          cur->structDef.type.members.push_back(el);
 
         // advance by the struct including any trailing padding
         cur->offset += el.type.descriptor.elements * el.type.descriptor.arrayByteStride;
@@ -1268,6 +1277,10 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
           cur->offset = specifiedOffset;
         }
+        else if(annot.name == lit("pad") || annot.name == lit("padding"))
+        {
+          isPadding = true;
+        }
         else
         {
           errors = tr("Unrecognised annotation on variable: %1\n").arg(annot.name);
@@ -1455,7 +1468,8 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
     el.byteOffset = cur->offset;
 
-    cur->structDef.type.members.push_back(el);
+    if(!isPadding)
+      cur->structDef.type.members.push_back(el);
 
     // if we're bitfield packing don't advance offset, otherwise advance to the end of this element
     if(bitfieldCurPos == ~0U)
