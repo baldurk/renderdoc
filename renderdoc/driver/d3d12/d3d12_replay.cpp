@@ -1395,41 +1395,62 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
       }
       if(curUsage->bindType == BindType::Sampler)
       {
-        D3D12Descriptor *desc =
-            (D3D12Descriptor *)samplerHeap->GetCPUDescriptorHandleForHeapStart().ptr;
-        desc += curUsage->descIndex;
-        element->samplers.push_back(D3D12Pipe::Sampler());
-        D3D12Pipe::Sampler &samp = element->samplers.back();
-        const D3D12_SAMPLER_DESC &sampDesc = desc->GetSampler();
-        FillSampler(samp, sampDesc);
-        samp.tableIndex = curUsage->descIndex;
-        element->dynamicallyUsedCount++;
+        if(samplerHeap)
+        {
+          D3D12Descriptor *desc =
+              (D3D12Descriptor *)samplerHeap->GetCPUDescriptorHandleForHeapStart().ptr;
+          desc += curUsage->descIndex;
+          element->samplers.push_back(D3D12Pipe::Sampler());
+          D3D12Pipe::Sampler &samp = element->samplers.back();
+          const D3D12_SAMPLER_DESC &sampDesc = desc->GetSampler();
+          FillSampler(samp, sampDesc);
+          samp.tableIndex = curUsage->descIndex;
+          element->dynamicallyUsedCount++;
+        }
+        else
+        {
+          RDCERR("Access to sampler heap detected with no sampler heap bound");
+        }
       }
       else if(curUsage->bindType == BindType::ConstantBuffer)
       {
-        D3D12Descriptor *desc =
-            (D3D12Descriptor *)resourceHeap->GetCPUDescriptorHandleForHeapStart().ptr;
-        desc += curUsage->descIndex;
-        element->constantBuffers.push_back(D3D12Pipe::ConstantBuffer());
-        D3D12Pipe::ConstantBuffer &cb = element->constantBuffers.back();
+        if(resourceHeap)
+        {
+          D3D12Descriptor *desc =
+              (D3D12Descriptor *)resourceHeap->GetCPUDescriptorHandleForHeapStart().ptr;
+          desc += curUsage->descIndex;
+          element->constantBuffers.push_back(D3D12Pipe::ConstantBuffer());
+          D3D12Pipe::ConstantBuffer &cb = element->constantBuffers.back();
 
-        const D3D12_CONSTANT_BUFFER_VIEW_DESC &cbv = desc->GetCBV();
-        WrappedID3D12Resource::GetResIDFromAddr(cbv.BufferLocation, cb.resourceId, cb.byteOffset);
-        cb.resourceId = rm->GetOriginalID(cb.resourceId);
-        cb.byteSize = cbv.SizeInBytes;
-        cb.tableIndex = curUsage->descIndex;
-        element->dynamicallyUsedCount++;
+          const D3D12_CONSTANT_BUFFER_VIEW_DESC &cbv = desc->GetCBV();
+          WrappedID3D12Resource::GetResIDFromAddr(cbv.BufferLocation, cb.resourceId, cb.byteOffset);
+          cb.resourceId = rm->GetOriginalID(cb.resourceId);
+          cb.byteSize = cbv.SizeInBytes;
+          cb.tableIndex = curUsage->descIndex;
+          element->dynamicallyUsedCount++;
+        }
+        else
+        {
+          RDCERR("Access to resource heap detected with no resource heap bound");
+        }
       }
       else
       {
-        D3D12Descriptor *desc =
-            (D3D12Descriptor *)resourceHeap->GetCPUDescriptorHandleForHeapStart().ptr;
-        desc += curUsage->descIndex;
-        D3D12Pipe::View view;
-        FillResourceView(view, desc);
-        view.tableIndex = curUsage->descIndex;
-        element->views.push_back(view);
-        element->dynamicallyUsedCount++;
+        if(resourceHeap)
+        {
+          D3D12Descriptor *desc =
+              (D3D12Descriptor *)resourceHeap->GetCPUDescriptorHandleForHeapStart().ptr;
+          desc += curUsage->descIndex;
+          D3D12Pipe::View view;
+          FillResourceView(view, desc);
+          view.tableIndex = curUsage->descIndex;
+          element->views.push_back(view);
+          element->dynamicallyUsedCount++;
+        }
+        else
+        {
+          RDCERR("Access to resource heap detected with no resource heap bound");
+        }
       }
       curUsage++;
     }
