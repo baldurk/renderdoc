@@ -39,6 +39,10 @@ enum class MetalChunk : uint32_t
   MTLDevice_newDefaultLibrary,
   MTLDevice_newLibraryWithSource,
   MTLLibrary_newFunctionWithName,
+  MTLLibrary_newFunctionWithName_constantValues,
+  MTLLibrary_newFunctionWithDescriptor,
+  MTLLibrary_newIntersectionFunctionWithDescriptor,
+  MTLFunction_newArgumentEncoderWithBufferIndex,
   Max
 };
 
