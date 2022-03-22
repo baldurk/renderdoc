@@ -51,6 +51,7 @@ WrappedMTLDevice *WrappedMTLDevice::MTLCreateSystemDefaultDevice(MTL::Device *re
 template <typename SerialiserType>
 bool WrappedMTLDevice::Serialise_newCommandQueue(SerialiserType &ser, WrappedMTLCommandQueue *queue)
 {
+  SERIALISE_ELEMENT_LOCAL(Device, this);
   SERIALISE_ELEMENT_LOCAL(CommandQueue, GetResID(queue)).TypedAs("MTLCommandQueue"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -97,6 +98,7 @@ bool WrappedMTLDevice::Serialise_newDefaultLibrary(SerialiserType &ser, WrappedM
     ObjC::Get_defaultLibraryData(buffer);
   }
 
+  SERIALISE_ELEMENT_LOCAL(Device, this);
   SERIALISE_ELEMENT_LOCAL(Library, GetResID(library)).TypedAs("MTLLibrary"_lit);
   SERIALISE_ELEMENT(buffer);
 
@@ -142,6 +144,7 @@ bool WrappedMTLDevice::Serialise_newLibraryWithSource(SerialiserType &ser,
                                                       WrappedMTLLibrary *library, NS::String *source,
                                                       MTL::CompileOptions *options, NS::Error **error)
 {
+  SERIALISE_ELEMENT_LOCAL(Device, this);
   SERIALISE_ELEMENT_LOCAL(Library, GetResID(library)).TypedAs("MTLLibrary"_lit);
   SERIALISE_ELEMENT(source);
   // TODO:SERIALISE_ELEMENT(options);
