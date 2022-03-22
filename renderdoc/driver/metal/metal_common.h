@@ -77,6 +77,9 @@ enum class MetalChunk : uint32_t
   MTLLibrary_newFunctionWithDescriptor,
   MTLLibrary_newIntersectionFunctionWithDescriptor,
   MTLFunction_newArgumentEncoderWithBufferIndex,
+  MTLCommandQueue_commandBuffer,
+  MTLCommandQueue_commandBufferWithDescriptor,
+  MTLCommandQueue_commandBufferWithUnretainedReferences,
   Max
 };
 
