@@ -40,6 +40,24 @@
   [super dealloc];
 }
 
+// Use the real MTLFunction to find methods from messages
+- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector
+{
+  id fwd = self.real;
+  return [fwd methodSignatureForSelector:aSelector];
+}
+
+// Forward any unknown messages to the real MTLFunction
+- (void)forwardInvocation:(NSInvocation *)invocation
+{
+  SEL aSelector = [invocation selector];
+
+  if([self.real respondsToSelector:aSelector])
+    [invocation invokeWithTarget:self.real];
+  else
+    [super forwardInvocation:invocation];
+}
+
 // MTLFunction : based on the protocol defined in
 // Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLLibrrary.h
 
