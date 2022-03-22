@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "metal_buffer.h"
 #include "metal_command_buffer.h"
 #include "metal_command_queue.h"
 #include "metal_device.h"
@@ -92,6 +93,13 @@ void DoSerialise(SerialiserType &ser, NS::String *&el)
   {
     el = NS::String::string(rdcStr.data(), NS::UTF8StringEncoding);
   }
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, NS::Range &el)
+{
+  SERIALISE_MEMBER(location);
+  SERIALISE_MEMBER(length);
 }
 
 template <typename SerialiserType>
@@ -305,8 +313,7 @@ void DoSerialise(SerialiserType &ser, RDMTL::RenderPassDescriptor &el)
   SERIALISE_MEMBER(colorAttachments);
   SERIALISE_MEMBER(depthAttachment);
   SERIALISE_MEMBER(stencilAttachment);
-  // TODO: when WrappedMTLBuffer exists
-  // WrappedMTLBuffer *visibilityResultBuffer;
+  SERIALISE_MEMBER(visibilityResultBuffer);
   SERIALISE_MEMBER(renderTargetArrayLength);
   SERIALISE_MEMBER(imageblockSampleLength);
   SERIALISE_MEMBER(threadgroupMemoryLength);
@@ -322,6 +329,7 @@ void DoSerialise(SerialiserType &ser, RDMTL::RenderPassDescriptor &el)
 };
 
 INSTANTIATE_SERIALISE_TYPE(NS::String *);
+INSTANTIATE_SERIALISE_TYPE(NS::Range)
 INSTANTIATE_SERIALISE_TYPE(MTL::TextureSwizzleChannels);
 INSTANTIATE_SERIALISE_TYPE(MTL::ClearColor);
 INSTANTIATE_SERIALISE_TYPE(MTL::SamplePosition);

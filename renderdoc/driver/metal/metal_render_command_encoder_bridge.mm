@@ -123,8 +123,7 @@
                  offset:(NSUInteger)offset
                 atIndex:(NSUInteger)index
 {
-  METAL_NOT_HOOKED();
-  return [self.real setVertexBuffer:buffer offset:offset atIndex:index];
+  GetWrapped(self)->setVertexBuffer(GetWrapped(buffer), offset, index);
 }
 
 - (void)setVertexBufferOffset:(NSUInteger)offset
@@ -318,8 +317,7 @@
                    offset:(NSUInteger)offset
                   atIndex:(NSUInteger)index
 {
-  METAL_NOT_HOOKED();
-  [self.real setFragmentBuffer:buffer offset:offset atIndex:index];
+  GetWrapped(self)->setFragmentBuffer(GetWrapped(buffer), offset, index);
 }
 
 - (void)setFragmentBufferOffset:(NSUInteger)offset

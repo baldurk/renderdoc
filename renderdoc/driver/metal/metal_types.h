@@ -40,6 +40,7 @@ const uint32_t MAX_RENDER_PASS_SAMPLE_BUFFER_ATTACHMENTS = 4;
 #endif    // #ifndef MTLCounterDontSample
 
 #define METALCPP_WRAPPED_PROTOCOLS(FUNC) \
+  FUNC(Buffer);                          \
   FUNC(CommandBuffer);                   \
   FUNC(CommandQueue);                    \
   FUNC(Device);                          \
@@ -114,6 +115,14 @@ MTL_DECLARE_REFLECTION_TYPE(Viewport);
 MTL_DECLARE_REFLECTION_TYPE(MultisampleDepthResolveFilter);
 MTL_DECLARE_REFLECTION_TYPE(MultisampleStencilResolveFilter);
 MTL_DECLARE_REFLECTION_TYPE(SamplePosition);
+
+template <>
+inline rdcliteral TypeName<NS::Range>()
+{
+  return "NSRange"_lit;
+}
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, NS::Range &el);
 
 namespace RDMTL
 {
@@ -358,8 +367,7 @@ struct RenderPassDescriptor
   rdcarray<RenderPassColorAttachmentDescriptor> colorAttachments;
   RenderPassDepthAttachmentDescriptor depthAttachment;
   RenderPassStencilAttachmentDescriptor stencilAttachment;
-  // TODO: when WrappedMTLBuffer exists
-  // WrappedMTLBuffer *visibilityResultBuffer;
+  WrappedMTLBuffer *visibilityResultBuffer = NULL;
   NS::UInteger renderTargetArrayLength = 0;
   NS::UInteger imageblockSampleLength = 0;
   NS::UInteger threadgroupMemoryLength = 0;
