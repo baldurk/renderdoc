@@ -253,8 +253,8 @@
 
 - (nullable id<MTLTexture>)newTextureWithDescriptor:(MTLTextureDescriptor *)descriptor
 {
-  METAL_NOT_HOOKED();
-  return [self.real newTextureWithDescriptor:descriptor];
+  return id<MTLTexture>(GetObjCBridge(
+      self.wrappedCPP->newTextureWithDescriptor((MTL::TextureDescriptor *)descriptor)));
 }
 
 - (nullable id<MTLTexture>)newTextureWithDescriptor:(MTLTextureDescriptor *)descriptor
@@ -262,8 +262,8 @@
                                               plane:(NSUInteger)plane
     API_AVAILABLE(macos(10.11), ios(11.0))
 {
-  METAL_NOT_HOOKED();
-  return [self.real newTextureWithDescriptor:descriptor iosurface:iosurface plane:plane];
+  return id<MTLTexture>(GetObjCBridge(self.wrappedCPP->newTextureWithDescriptor(
+      (MTL::TextureDescriptor *)descriptor, iosurface, plane)));
 }
 
 - (nullable id<MTLTexture>)newSharedTextureWithDescriptor:(MTLTextureDescriptor *)descriptor
@@ -362,8 +362,8 @@
 newRenderPipelineStateWithDescriptor:(MTLRenderPipelineDescriptor *)descriptor
                                error:(__autoreleasing NSError **)error
 {
-  METAL_NOT_HOOKED();
-  return [self.real newRenderPipelineStateWithDescriptor:descriptor error:error];
+  return id<MTLRenderPipelineState>(GetObjCBridge(self.wrappedCPP->newRenderPipelineStateWithDescriptor(
+      (MTL::RenderPipelineDescriptor *)descriptor, (NS::Error **)error)));
 }
 
 - (nullable id<MTLRenderPipelineState>)

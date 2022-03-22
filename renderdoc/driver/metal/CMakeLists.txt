@@ -26,6 +26,13 @@ set(sources
     metal_command_buffer.cpp
     metal_command_buffer.h
     metal_command_buffer_bridge.mm
+    metal_render_pipeline_descriptor.cpp
+    metal_render_pipeline_state_bridge.mm
+    metal_render_pipeline_state.cpp
+    metal_render_pipeline_state.h
+    metal_texture.cpp
+    metal_texture.h
+    metal_texture_bridge.mm
     metal_core.cpp
     metal_core.h
     metal_manager.cpp
@@ -33,6 +40,7 @@ set(sources
     metal_init_state.cpp
     metal_helpers_bridge.h
     metal_helpers_bridge.mm
+    metal_stringise.cpp
     official/metal-cpp.h
     official/metal-cpp.cpp)
 

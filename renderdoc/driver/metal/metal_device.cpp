@@ -24,9 +24,12 @@
 
 #include "metal_device.h"
 #include "metal_command_queue.h"
+#include "metal_function.h"
 #include "metal_helpers_bridge.h"
 #include "metal_library.h"
 #include "metal_manager.h"
+#include "metal_render_pipeline_state.h"
+#include "metal_texture.h"
 
 WrappedMTLDevice::WrappedMTLDevice(MTL::Device *realMTLDevice, ResourceId objId)
     : WrappedMTLObject(realMTLDevice, objId, this, GetStateRef())
@@ -42,6 +45,7 @@ WrappedMTLDevice::WrappedMTLDevice(MTL::Device *realMTLDevice, ResourceId objId)
 
 WrappedMTLDevice *WrappedMTLDevice::MTLCreateSystemDefaultDevice(MTL::Device *realMTLDevice)
 {
+  MTLFixupForMetalDriverAssert();
   ResourceId objId = ResourceIDGen::GetNewUniqueID();
   WrappedMTLDevice *wrappedMTLDevice = new WrappedMTLDevice(realMTLDevice, objId);
 
@@ -189,6 +193,120 @@ WrappedMTLLibrary *WrappedMTLDevice::newLibraryWithSource(NS::String *source,
   return wrappedMTLLibrary;
 }
 
+template <typename SerialiserType>
+bool WrappedMTLDevice::Serialise_newRenderPipelineStateWithDescriptor(
+    SerialiserType &ser, WrappedMTLRenderPipelineState *pipelineState,
+    MTL::RenderPipelineDescriptor *descriptor, NS::Error **error)
+{
+  SERIALISE_ELEMENT_LOCAL(RenderPipelineState, GetResID(pipelineState))
+      .TypedAs("MTLRenderPipelineState"_lit);
+  SERIALISE_ELEMENT(descriptor);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  // TODO: implement RD MTL replay
+  if(IsReplayingAndReading())
+  {
+  }
+  return true;
+}
+
+WrappedMTLRenderPipelineState *WrappedMTLDevice::newRenderPipelineStateWithDescriptor(
+    MTL::RenderPipelineDescriptor *descriptor, NS::Error **error)
+{
+  MTL::RenderPipelineDescriptor *realDescriptor = descriptor->copy();
+
+  // The source descriptor contains objc bridge MTLFunction resources
+  // The clone needs the real resources
+  MTL::Function *objcBridgeVertexFunction = descriptor->vertexFunction();
+  if(objcBridgeVertexFunction != NULL)
+  {
+    realDescriptor->setVertexFunction(GetReal(objcBridgeVertexFunction));
+  }
+
+  MTL::Function *objcBridgeFragmentFunction = descriptor->fragmentFunction();
+  if(objcBridgeFragmentFunction != NULL)
+  {
+    realDescriptor->setFragmentFunction(GetReal(objcBridgeFragmentFunction));
+  }
+
+  MTL::RenderPipelineState *realMTLRenderPipelineState;
+  SERIALISE_TIME_CALL(realMTLRenderPipelineState =
+                          Unwrap(this)->newRenderPipelineState(realDescriptor, error));
+  realDescriptor->release();
+
+  WrappedMTLRenderPipelineState *wrappedMTLRenderPipelineState;
+  ResourceId id =
+      GetResourceManager()->WrapResource(realMTLRenderPipelineState, wrappedMTLRenderPipelineState);
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLDevice_newRenderPipelineStateWithDescriptor);
+      Serialise_newRenderPipelineStateWithDescriptor(ser, wrappedMTLRenderPipelineState, descriptor,
+                                                     error);
+      chunk = scope.Get();
+    }
+
+    MetalResourceRecord *record =
+        GetResourceManager()->AddResourceRecord(wrappedMTLRenderPipelineState);
+    record->AddChunk(chunk);
+    record->AddParent(GetRecord(GetWrapped(objcBridgeVertexFunction)));
+    record->AddParent(GetRecord(GetWrapped(objcBridgeFragmentFunction)));
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+    //     GetResourceManager()->AddLiveResource(id, *wrappedMTLRenderPipelineState);
+  }
+  return wrappedMTLRenderPipelineState;
+}
+
+template <typename SerialiserType>
+bool WrappedMTLDevice::Serialise_newTextureWithDescriptor(SerialiserType &ser,
+                                                          WrappedMTLTexture *texture,
+                                                          MTL::TextureDescriptor *descriptor,
+                                                          bool frameBufferOnly, bool hasIoSurface)
+{
+  SERIALISE_ELEMENT_LOCAL(Texture, GetResID(texture)).TypedAs("MTLTexture"_lit);
+  SERIALISE_ELEMENT(descriptor);
+  SERIALISE_ELEMENT(frameBufferOnly).Hidden();
+  SERIALISE_ELEMENT(hasIoSurface).Hidden();
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+  }
+  return true;
+}
+
+WrappedMTLTexture *WrappedMTLDevice::newTextureWithDescriptor(MTL::TextureDescriptor *descriptor)
+{
+  MTL::Texture *realMTLTexture;
+  SERIALISE_TIME_CALL(realMTLTexture = Unwrap(this)->newTexture(descriptor));
+  WrappedMTLTexture *wrappedMTLTexture = NewTexture(realMTLTexture, descriptor, false);
+  return wrappedMTLTexture;
+}
+
+WrappedMTLTexture *WrappedMTLDevice::newTextureWithDescriptor(MTL::TextureDescriptor *descriptor,
+                                                              IOSurfaceRef iosurface,
+                                                              NS::UInteger plane)
+{
+  MTL::Texture *realMTLTexture;
+  SERIALISE_TIME_CALL(realMTLTexture = Unwrap(this)->newTexture(descriptor, iosurface, plane));
+  WrappedMTLTexture *wrappedMTLTexture = NewTexture(realMTLTexture, descriptor, true);
+  if(IsCaptureMode(m_State))
+  {
+    {
+      SCOPED_LOCK(m_PotentialBackBuffersLock);
+      m_PotentialBackBuffers.insert(wrappedMTLTexture);
+    }
+  }
+  return wrappedMTLTexture;
+}
+
 // Non-Serialised MTLDevice APIs
 
 bool WrappedMTLDevice::isDepth24Stencil8PixelFormatSupported()
@@ -320,9 +438,41 @@ bool WrappedMTLDevice::supportsPrimitiveMotionBlur()
 
 // End of MTLDevice APIs
 
+WrappedMTLTexture *WrappedMTLDevice::NewTexture(MTL::Texture *realMTLTexture,
+                                                MTL::TextureDescriptor *descriptor, bool hasIoSurface)
+{
+  WrappedMTLTexture *wrappedMTLTexture;
+  ResourceId id = GetResourceManager()->WrapResource(realMTLTexture, wrappedMTLTexture);
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(hasIoSurface ? MetalChunk::MTLDevice_newTextureWithDescriptor_iosurface
+                                          : MetalChunk::MTLDevice_newTextureWithDescriptor);
+      bool frameBufferOnly = realMTLTexture->framebufferOnly();
+      Serialise_newTextureWithDescriptor(ser, wrappedMTLTexture, descriptor, frameBufferOnly,
+                                         hasIoSurface);
+      chunk = scope.Get();
+    }
+    MetalResourceRecord *textureRecord = GetResourceManager()->AddResourceRecord(wrappedMTLTexture);
+    textureRecord->AddChunk(chunk);
+  }
+  return wrappedMTLTexture;
+}
+
 INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLDevice, WrappedMTLCommandQueue *,
                                             newCommandQueue);
 INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLDevice, WrappedMTLLibrary *, newDefaultLibrary);
 INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLDevice, WrappedMTLLibrary *,
                                             newLibraryWithSource, NS::String *source,
                                             MTL::CompileOptions *options, NS::Error **error);
+INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLDevice,
+                                            WrappedMTLRenderPipelineState *renderPipelineState,
+                                            newRenderPipelineStateWithDescriptor,
+                                            MTL::RenderPipelineDescriptor *descriptor,
+                                            NS::Error **error);
+INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLDevice, WrappedMTLTexture *,
+                                            newTextureWithDescriptor,
+                                            MTL::TextureDescriptor *descriptor,
+                                            bool frameBufferOnly, bool ioSurface);

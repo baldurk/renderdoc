@@ -42,6 +42,18 @@ public:
   DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLLibrary *, newLibraryWithSource,
                                           NS::String *source, MTL::CompileOptions *options,
                                           NS::Error **error);
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLRenderPipelineState *,
+                                          newRenderPipelineStateWithDescriptor,
+                                          MTL::RenderPipelineDescriptor *descriptor,
+                                          NS::Error **error);
+  WrappedMTLTexture *newTextureWithDescriptor(MTL::TextureDescriptor *descriptor,
+                                              IOSurfaceRef iosurface, NS::UInteger plane);
+  WrappedMTLTexture *newTextureWithDescriptor(MTL::TextureDescriptor *descriptor);
+  template <typename SerialiserType>
+  bool Serialise_newTextureWithDescriptor(SerialiserType &ser, WrappedMTLTexture *,
+                                          MTL::TextureDescriptor *descriptor, bool frameBufferOnly,
+                                          bool hasIoSurface);
+
   // Non-Serialised MTLDevice APIs
   bool isDepth24Stencil8PixelFormatSupported();
   MTL::ReadWriteTextureTier readWriteTextureSupport();
@@ -89,7 +101,14 @@ private:
   void Create_InitialState(ResourceId id, WrappedMTLObject *live, bool hasData);
   void Apply_InitialState(WrappedMTLObject *live, const MetalInitialContents &initial);
 
+  WrappedMTLTexture *NewTexture(MTL::Texture *realMTLTexture, MTL::TextureDescriptor *descriptor,
+                                bool hasIoSurface);
+
   MetalResourceManager *m_ResourceManager;
+
+  // Back buffer and swap chain emulation
+  Threading::CriticalSection m_PotentialBackBuffersLock;
+  std::unordered_set<WrappedMTLTexture *> m_PotentialBackBuffers;
 
   CaptureState m_State;
 

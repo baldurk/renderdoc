@@ -22,50 +22,14 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "metal_resources.h"
-#include "metal_command_buffer.h"
-#include "metal_command_queue.h"
-#include "metal_device.h"
-#include "metal_function.h"
-#include "metal_library.h"
 #include "metal_render_pipeline_state.h"
-#include "metal_texture.h"
+#include "core/core.h"
 
-ResourceId GetResID(WrappedMTLObject *obj)
+WrappedMTLRenderPipelineState::WrappedMTLRenderPipelineState(
+    MTL::RenderPipelineState *realMTLRenderPipelineState, ResourceId objId,
+    WrappedMTLDevice *wrappedMTLDevice)
+    : WrappedMTLObject(realMTLRenderPipelineState, objId, wrappedMTLDevice,
+                       wrappedMTLDevice->GetStateRef())
 {
-  if(obj == NULL)
-    return ResourceId();
-
-  return obj->m_ID;
-}
-
-#define IMPLEMENT_WRAPPED_TYPE_HELPERS(CPPTYPE)                                          \
-  MTL::CPPTYPE *Unwrap(WrappedMTL##CPPTYPE *obj) { return Unwrap<MTL::CPPTYPE *>(obj); } \
-  MTL::CPPTYPE *GetObjCBridge(WrappedMTL##CPPTYPE *obj)                                  \
-  {                                                                                      \
-    return GetObjCBridge<MTL::CPPTYPE *>(obj);                                           \
-  }
-
-METALCPP_WRAPPED_PROTOCOLS(IMPLEMENT_WRAPPED_TYPE_HELPERS)
-#undef IMPLEMENT_WRAPPED_TYPE_HELPERS
-
-void WrappedMTLObject::Dealloc()
-{
-  // TODO: call the wrapped object destructor
-}
-
-MetalResourceManager *WrappedMTLObject::GetResourceManager()
-{
-  return m_WrappedMTLDevice->GetResourceManager();
-}
-
-MTL::Device *WrappedMTLObject::GetObjCBridgeMTLDevice()
-{
-  return GetObjCBridge(m_WrappedMTLDevice);
-}
-
-MetalResourceRecord::~MetalResourceRecord()
-{
-  if(m_Type == eResCommandBuffer)
-    SAFE_DELETE(cmdInfo);
+  m_ObjcBridge = AllocateObjCBridge(this);
 }
