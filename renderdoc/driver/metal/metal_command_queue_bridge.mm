@@ -34,6 +34,12 @@
   return id<MTLCommandQueue>(Unwrap(self.wrappedCPP));
 }
 
+- (void)dealloc
+{
+  self.wrappedCPP->Dealloc();
+  [super dealloc];
+}
+
 // Use the real MTLCommandQueue to find methods from messages
 - (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector
 {

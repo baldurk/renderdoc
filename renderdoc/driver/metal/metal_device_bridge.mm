@@ -42,6 +42,12 @@
   return id<MTLDevice>(Unwrap(self.wrappedCPP));
 }
 
+- (void)dealloc
+{
+  self.wrappedCPP->Dealloc();
+  [super dealloc];
+}
+
 // Use the real MTLDevice to find methods from messages
 - (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector
 {
