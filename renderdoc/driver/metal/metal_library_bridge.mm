@@ -34,6 +34,12 @@
   return id<MTLLibrary>(Unwrap(self.wrappedCPP));
 }
 
+- (void)dealloc
+{
+  self.wrappedCPP->Dealloc();
+  [super dealloc];
+}
+
 // Use the real MTLLibrary to find methods from messages
 - (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector
 {
