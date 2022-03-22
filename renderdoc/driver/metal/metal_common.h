@@ -103,6 +103,22 @@ enum class MetalChunk : uint32_t
   MTLCommandBuffer_accelerationStructureCommandEncoder,
   MTLCommandBuffer_pushDebugGroup,
   MTLCommandBuffer_popDebugGroup,
+  MTLTexture_setPurgeableState,
+  MTLTexture_makeAliasable,
+  MTLTexture_getBytes,
+  MTLTexture_getBytes_slice,
+  MTLTexture_replaceRegion,
+  MTLTexture_replaceRegion_slice,
+  MTLTexture_newTextureViewWithPixelFormat,
+  MTLTexture_newTextureViewWithPixelFormat_subset,
+  MTLTexture_newTextureViewWithPixelFormat_subset_swizzle,
+  MTLTexture_newSharedTextureHandle,
+  MTLTexture_remoteStorageTexture,
+  MTLTexture_newRemoteTextureViewForDevice,
+  MTLRenderPipelineState_functionHandleWithFunction,
+  MTLRenderPipelineState_newVisibleFunctionTableWithDescriptor,
+  MTLRenderPipelineState_newIntersectionFunctionTableWithDescriptor,
+  MTLRenderPipelineState_newRenderPipelineStateWithAdditionalBinaryFunctions,
   Max
 };
 
