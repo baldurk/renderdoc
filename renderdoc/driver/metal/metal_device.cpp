@@ -92,15 +92,15 @@ WrappedMTLCommandQueue *WrappedMTLDevice::newCommandQueue()
 template <typename SerialiserType>
 bool WrappedMTLDevice::Serialise_newDefaultLibrary(SerialiserType &ser, WrappedMTLLibrary *library)
 {
-  bytebuf buffer;
+  bytebuf data;
   if(ser.IsWriting())
   {
-    ObjC::Get_defaultLibraryData(buffer);
+    ObjC::Get_defaultLibraryData(data);
   }
 
   SERIALISE_ELEMENT_LOCAL(Device, this);
   SERIALISE_ELEMENT_LOCAL(Library, GetResID(library)).TypedAs("MTLLibrary"_lit);
-  SERIALISE_ELEMENT(buffer);
+  SERIALISE_ELEMENT(data);
 
   SERIALISE_CHECK_READ_ERRORS();
 
