@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "metal_types.h"
+#include "metal_buffer.h"
 #include "metal_command_buffer.h"
 #include "metal_command_queue.h"
 #include "metal_device.h"
@@ -520,8 +521,7 @@ void RenderPassSampleBufferAttachmentDescriptor::CopyTo(
 RenderPassDescriptor::RenderPassDescriptor(MTL::RenderPassDescriptor *objc)
     : depthAttachment(objc->depthAttachment()),
       stencilAttachment(objc->stencilAttachment()),
-      // TODO: when WrappedMTLBuffer exists
-      // visibilityResultBuffer(GetWrapped(objc->visibilityResultBuffer())),
+      visibilityResultBuffer(GetWrapped(objc->visibilityResultBuffer())),
       renderTargetArrayLength(objc->renderTargetArrayLength()),
       imageblockSampleLength(objc->imageblockSampleLength()),
       threadgroupMemoryLength(objc->threadgroupMemoryLength()),
@@ -551,8 +551,7 @@ RenderPassDescriptor::operator MTL::RenderPassDescriptor *()
   COPYTOOBJCARRAY(RenderPassColorAttachmentDescriptor, colorAttachments);
   depthAttachment.CopyTo(objc->depthAttachment());
   stencilAttachment.CopyTo(objc->stencilAttachment());
-  // TODO: when WrappedMTLBuffer exists
-  // objc->setVisibilityResultBuffer(Unwrap(visibilityResultBuffer));
+  objc->setVisibilityResultBuffer(Unwrap(visibilityResultBuffer));
   objc->setRenderTargetArrayLength(renderTargetArrayLength);
   objc->setImageblockSampleLength(imageblockSampleLength);
   objc->setThreadgroupMemoryLength(threadgroupMemoryLength);

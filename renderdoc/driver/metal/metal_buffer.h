@@ -22,42 +22,25 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "metal_resources.h"
-#include "metal_buffer.h"
-#include "metal_command_buffer.h"
-#include "metal_command_queue.h"
+#pragma once
+
+#include "metal_common.h"
 #include "metal_device.h"
-#include "metal_function.h"
-#include "metal_library.h"
-#include "metal_render_command_encoder.h"
-#include "metal_render_pipeline_state.h"
-#include "metal_texture.h"
+#include "metal_resources.h"
 
-ResourceId GetResID(WrappedMTLObject *obj)
+class WrappedMTLBuffer : public WrappedMTLObject
 {
-  if(obj == NULL)
-    return ResourceId();
+public:
+  WrappedMTLBuffer(MTL::Buffer *realMTLBuffer, ResourceId objId, WrappedMTLDevice *wrappedMTLDevice);
 
-  return obj->m_ID;
-}
+  void *contents();
 
-#define IMPLEMENT_WRAPPED_TYPE_HELPERS(CPPTYPE) \
-  MTL::CPPTYPE *Unwrap(WrappedMTL##CPPTYPE *obj) { return Unwrap<MTL::CPPTYPE *>(obj); }
-METALCPP_WRAPPED_PROTOCOLS(IMPLEMENT_WRAPPED_TYPE_HELPERS)
-#undef IMPLEMENT_WRAPPED_TYPE_HELPERS
+  DECLARE_FUNCTION_SERIALISED(void, didModifyRange, NS::Range &range);
 
-void WrappedMTLObject::Dealloc()
-{
-  // TODO: call the wrapped object destructor
-}
+  enum
+  {
+    TypeEnum = eResBuffer
+  };
 
-MetalResourceManager *WrappedMTLObject::GetResourceManager()
-{
-  return m_Device->GetResourceManager();
-}
-
-MetalResourceRecord::~MetalResourceRecord()
-{
-  if(m_Type == eResCommandBuffer)
-    SAFE_DELETE(cmdInfo);
-}
+private:
+};

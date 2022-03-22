@@ -50,6 +50,9 @@ public:
                                               IOSurfaceRef iosurface, NS::UInteger plane);
   DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLTexture *, newTextureWithDescriptor,
                                           RDMTL::TextureDescriptor &descriptor);
+  WrappedMTLBuffer *newBufferWithLength(NS::UInteger length, MTL::ResourceOptions options);
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLBuffer *, newBufferWithBytes, const void *pointer,
+                                          NS::UInteger length, MTL::ResourceOptions options);
 
   // Non-Serialised MTLDevice APIs
   bool isDepth24Stencil8PixelFormatSupported();
@@ -106,6 +109,8 @@ private:
   WrappedMTLTexture *Common_NewTexture(RDMTL::TextureDescriptor &descriptor, MetalChunk chunkType,
                                        bool ioSurfaceTexture, IOSurfaceRef iosurface,
                                        NS::UInteger plane);
+  WrappedMTLBuffer *Common_NewBuffer(bool withBytes, const void *pointer, NS::UInteger length,
+                                     MTL::ResourceOptions options);
 
   MetalResourceManager *m_ResourceManager;
 

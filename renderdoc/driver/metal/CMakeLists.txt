@@ -31,6 +31,9 @@ set(sources
     metal_texture.cpp
     metal_texture.h
     metal_texture_bridge.mm
+    metal_buffer.cpp
+    metal_buffer.h
+    metal_buffer_bridge.mm
     metal_render_command_encoder.cpp
     metal_render_command_encoder.h
     metal_render_command_encoder_bridge.mm

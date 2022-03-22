@@ -223,6 +223,15 @@ enum class MetalChunk : uint32_t
   MTLRenderCommandEncoder_memoryBarrierWithScope,
   MTLRenderCommandEncoder_memoryBarrierWithResources,
   MTLRenderCommandEncoder_sampleCountersInBuffer,
+  MTLBuffer_setPurgeableState,
+  MTLBuffer_makeAliasable,
+  MTLBuffer_contents,
+  MTLBuffer_didModifyRange,
+  MTLBuffer_newTextureWithDescriptor,
+  MTLBuffer_addDebugMarker,
+  MTLBuffer_removeAllDebugMarkers,
+  MTLBuffer_remoteStorageBuffer,
+  MTLBuffer_newRemoteBufferViewForDevice,
   Max
 };
 
