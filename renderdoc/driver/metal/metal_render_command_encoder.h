@@ -38,6 +38,10 @@ public:
 
   DECLARE_FUNCTION_SERIALISED(void, setRenderPipelineState,
                               WrappedMTLRenderPipelineState *pipelineState);
+  DECLARE_FUNCTION_SERIALISED(void, setVertexBuffer, WrappedMTLBuffer *buffer, NS::UInteger offset,
+                              NS::UInteger index);
+  DECLARE_FUNCTION_SERIALISED(void, setFragmentBuffer, WrappedMTLBuffer *buffer,
+                              NS::UInteger offset, NS::UInteger index);
   DECLARE_FUNCTION_SERIALISED(void, setFragmentTexture, WrappedMTLTexture *texture,
                               NS::UInteger index);
   DECLARE_FUNCTION_SERIALISED(void, setViewport, MTL::Viewport &viewport);

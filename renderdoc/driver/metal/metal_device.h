@@ -41,6 +41,12 @@ public:
   DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLLibrary *, newLibraryWithSource,
                                           NS::String *source, MTL::CompileOptions *options,
                                           NS::Error **error);
+  template <typename SerialiserType>
+  bool Serialise_newBuffer(SerialiserType &ser, WrappedMTLBuffer *, const void *pointer,
+                           NS::UInteger length, MTL::ResourceOptions options);
+  WrappedMTLBuffer *newBufferWithBytes(const void *pointer, NS::UInteger length,
+                                       MTL::ResourceOptions options);
+  WrappedMTLBuffer *newBufferWithLength(NS::UInteger length, MTL::ResourceOptions options);
   DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLRenderPipelineState *,
                                           newRenderPipelineStateWithDescriptor,
                                           MTL::RenderPipelineDescriptor *descriptor,

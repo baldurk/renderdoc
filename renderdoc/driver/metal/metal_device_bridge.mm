@@ -220,16 +220,16 @@
 
 - (nullable id<MTLBuffer>)newBufferWithLength:(NSUInteger)length options:(MTLResourceOptions)options
 {
-  METAL_NOT_HOOKED();
-  return [self.real newBufferWithLength:length options:options];
+  return id<MTLBuffer>(
+      GetObjCBridge(self.wrappedCPP->newBufferWithLength(length, (MTL::ResourceOptions)options)));
 }
 
 - (nullable id<MTLBuffer>)newBufferWithBytes:(const void *)pointer
                                       length:(NSUInteger)length
                                      options:(MTLResourceOptions)options
 {
-  METAL_NOT_HOOKED();
-  return [self.real newBufferWithBytes:pointer length:length options:options];
+  return id<MTLBuffer>(GetObjCBridge(
+      self.wrappedCPP->newBufferWithBytes(pointer, length, (MTL::ResourceOptions)options)));
 }
 
 - (nullable id<MTLBuffer>)newBufferWithBytesNoCopy:(void *)pointer

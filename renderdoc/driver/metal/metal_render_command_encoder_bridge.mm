@@ -122,8 +122,9 @@
                  offset:(NSUInteger)offset
                 atIndex:(NSUInteger)index
 {
-  METAL_NOT_HOOKED();
-  return [self.real setVertexBuffer:buffer offset:offset atIndex:index];
+  RDCASSERT(IsObjCBridge((MTL::Buffer *)buffer));
+  ObjCBridgeMTLBuffer *objcBuffer = (ObjCBridgeMTLBuffer *)buffer;
+  self.wrappedCPP->setVertexBuffer(objcBuffer.wrappedCPP, offset, index);
 }
 
 - (void)setVertexBufferOffset:(NSUInteger)offset
@@ -138,6 +139,8 @@
                withRange:(NSRange)range
 {
   METAL_NOT_HOOKED();
+  // TODO: check every buffer id
+  RDCASSERT(IsObjCBridge((MTL::Buffer *)buffers[0]));
   return [self.real setVertexBuffers:buffers offsets:offsets withRange:range];
 }
 
@@ -307,8 +310,9 @@
                    offset:(NSUInteger)offset
                   atIndex:(NSUInteger)index
 {
-  METAL_NOT_HOOKED();
-  [self.real setFragmentBuffer:buffer offset:offset atIndex:index];
+  RDCASSERT(IsObjCBridge((MTL::Buffer *)buffer));
+  ObjCBridgeMTLBuffer *objcBuffer = (ObjCBridgeMTLBuffer *)buffer;
+  self.wrappedCPP->setFragmentBuffer(objcBuffer.wrappedCPP, offset, index);
 }
 
 - (void)setFragmentBufferOffset:(NSUInteger)offset

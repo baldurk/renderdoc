@@ -24,6 +24,7 @@
 
 #include "metal_render_command_encoder.h"
 #include "core/settings.h"
+#include "metal_buffer.h"
 #include "metal_command_buffer.h"
 #include "metal_manager.h"
 #include "metal_render_pipeline_state.h"
@@ -71,6 +72,106 @@ void WrappedMTLRenderCommandEncoder::setRenderPipelineState(WrappedMTLRenderPipe
     MetalResourceRecord *bufferRecord = GetRecord(m_WrappedMTLCommandBuffer);
     bufferRecord->AddChunk(chunk);
     GetResourceManager()->MarkResourceFrameReferenced(GetResID(pipelineState), eFrameRef_Read);
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedMTLRenderCommandEncoder::Serialise_setVertexBuffer(SerialiserType &ser,
+                                                               WrappedMTLBuffer *buffer,
+                                                               NS::UInteger offset,
+                                                               NS::UInteger index)
+{
+  RDCASSERT(m_WrappedMTLCommandBuffer);
+  SERIALISE_ELEMENT_LOCAL(RenderCommandEncoder, this);
+  SERIALISE_ELEMENT_LOCAL(Buffer, buffer);
+  SERIALISE_ELEMENT(offset);
+  SERIALISE_ELEMENT(index);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  // TODO: implement RD MTL replay
+  if(IsReplayingAndReading())
+  {
+    Unwrap(RenderCommandEncoder)
+        ->setVertexBuffer(Unwrap(Buffer), (NS::UInteger)offset, (NS::UInteger)index);
+  }
+  return true;
+}
+
+void WrappedMTLRenderCommandEncoder::setVertexBuffer(WrappedMTLBuffer *buffer, NS::UInteger offset,
+                                                     NS::UInteger index)
+{
+  SERIALISE_TIME_CALL(Unwrap(this)->setVertexBuffer(Unwrap(buffer), offset, index));
+
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLRenderCommandEncoder_setVertexBuffer);
+      Serialise_setVertexBuffer(ser, buffer, offset, index);
+      chunk = scope.Get();
+    }
+    MetalResourceRecord *bufferRecord = GetRecord(m_WrappedMTLCommandBuffer);
+    bufferRecord->AddChunk(chunk);
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Read);
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedMTLRenderCommandEncoder::Serialise_setFragmentBuffer(SerialiserType &ser,
+                                                                 WrappedMTLBuffer *buffer,
+                                                                 NS::UInteger offset,
+                                                                 NS::UInteger index)
+{
+  RDCASSERT(m_WrappedMTLCommandBuffer);
+  SERIALISE_ELEMENT_LOCAL(encoder, this);
+  SERIALISE_ELEMENT(buffer);
+  byte *pointer = buffer ? (byte *)Unwrap(buffer)->contents() : NULL;
+  size_t length = buffer ? Unwrap(buffer)->length() : 0;
+  bytebuf data(pointer, length);
+  SERIALISE_ELEMENT(data);
+  SERIALISE_ELEMENT(offset);
+  SERIALISE_ELEMENT(index);
+
+  SERIALISE_CHECK_READ_ERRORS();
+  // RDCASSERT(buffer->length() == length);
+
+  // TODO: implement RD MTL replay
+  if(IsReplayingAndReading())
+  {
+    // TODO: should this be "buffer->contents()"
+    memcpy(Unwrap(buffer)->contents(), data.data(), data.size());
+    Unwrap(encoder)->setFragmentBuffer(Unwrap(buffer), (NS::UInteger)offset, (NS::UInteger)index);
+  }
+  return true;
+}
+
+void WrappedMTLRenderCommandEncoder::setFragmentBuffer(WrappedMTLBuffer *buffer,
+                                                       NS::UInteger offset, NS::UInteger index)
+{
+  SERIALISE_TIME_CALL(Unwrap(this)->setFragmentBuffer(Unwrap(buffer), offset, index));
+
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLRenderCommandEncoder_setFragmentBuffer);
+      Serialise_setFragmentBuffer(ser, buffer, offset, index);
+      chunk = scope.Get();
+    }
+    MetalResourceRecord *bufferRecord = GetRecord(m_WrappedMTLCommandBuffer);
+    bufferRecord->AddChunk(chunk);
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Read);
   }
   else
   {
@@ -246,6 +347,10 @@ void WrappedMTLRenderCommandEncoder::endEncoding()
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLRenderCommandEncoder, void, endEncoding);
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLRenderCommandEncoder, void, setRenderPipelineState,
                                 WrappedMTLRenderPipelineState *pipelineState);
+INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLRenderCommandEncoder, void, setVertexBuffer,
+                                WrappedMTLBuffer *buffer, NS::UInteger offset, NS::UInteger index);
+INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLRenderCommandEncoder, void, setFragmentBuffer,
+                                WrappedMTLBuffer *buffer, NS::UInteger offset, NS::UInteger index);
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLRenderCommandEncoder, void, setFragmentTexture,
                                 WrappedMTLTexture *texture, NS::UInteger index);
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLRenderCommandEncoder, void, setViewport,

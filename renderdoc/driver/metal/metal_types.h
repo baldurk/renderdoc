@@ -32,6 +32,7 @@
 const uint32_t MAX_RENDER_PASS_COLOR_ATTACHMENTS = 8;
 
 #define METALCPP_WRAPPED_PROTOCOLS(FUNC) \
+  FUNC(Buffer);                          \
   FUNC(CommandBuffer);                   \
   FUNC(CommandQueue);                    \
   FUNC(Device);                          \
