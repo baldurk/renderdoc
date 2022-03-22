@@ -32,3 +32,53 @@ WrappedMTLLibrary::WrappedMTLLibrary(MTL::Library *realMTLLibrary, ResourceId ob
 {
   objcBridge = AllocateObjCBridge(this);
 }
+
+template <typename SerialiserType>
+bool WrappedMTLLibrary::Serialise_newFunctionWithName(SerialiserType &ser,
+                                                      WrappedMTLFunction *function,
+                                                      NS::String *FunctionName)
+{
+  SERIALISE_ELEMENT_LOCAL(Library, this);
+  SERIALISE_ELEMENT_LOCAL(Function, GetResID(function)).TypedAs("MTLFunction"_lit);
+  SERIALISE_ELEMENT(FunctionName).Important();
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  // TODO: implement RD MTL replay
+  if(IsReplayingAndReading())
+  {
+  }
+  return true;
+}
+
+WrappedMTLFunction *WrappedMTLLibrary::newFunctionWithName(NS::String *functionName)
+{
+  MTL::Function *realMTLFunction;
+  SERIALISE_TIME_CALL(realMTLFunction = Unwrap(this)->newFunction(functionName));
+
+  WrappedMTLFunction *wrappedMTLFunction;
+  ResourceId id = GetResourceManager()->WrapResource(realMTLFunction, wrappedMTLFunction);
+
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLLibrary_newFunctionWithName);
+      Serialise_newFunctionWithName(ser, wrappedMTLFunction, functionName);
+      chunk = scope.Get();
+    }
+    MetalResourceRecord *record = GetResourceManager()->AddResourceRecord(wrappedMTLFunction);
+    record->AddChunk(chunk);
+    GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_Read);
+    record->AddParent(GetRecord(this));
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+  }
+  return wrappedMTLFunction;
+}
+
+INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLLibrary, WrappedMTLFunction *function,
+                                            newFunctionWithName, NS::String *functionName);
