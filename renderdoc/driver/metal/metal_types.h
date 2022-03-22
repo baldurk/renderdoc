@@ -28,12 +28,17 @@
 #include "official/metal-cpp.h"
 #include "serialise/serialiser.h"
 
+// TODO: use Metal Feature sets to determine this value at capture time
+const uint32_t MAX_RENDER_PASS_COLOR_ATTACHMENTS = 8;
+
 #define METALCPP_WRAPPED_PROTOCOLS(FUNC) \
   FUNC(CommandBuffer);                   \
   FUNC(CommandQueue);                    \
   FUNC(Device);                          \
   FUNC(Function);                        \
-  FUNC(Library);
+  FUNC(Library);                         \
+  FUNC(RenderPipelineState);             \
+  FUNC(Texture);
 
 // These serialise overloads will fetch the ID during capture, serialise the ID
 // directly as-if it were the original type, then on replay load up the resource if available.
@@ -55,6 +60,47 @@ METALCPP_WRAPPED_PROTOCOLS(DECLARE_WRAPPED_TYPE_SERIALISE);
 METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_HELPERS)
 #undef DECLARE_OBJC_HELPERS
 
+#define MTL_DECLARE_REFLECTION_OBJECT(TYPE)      \
+  template <>                                    \
+  inline rdcliteral TypeName<MTL::TYPE *>()      \
+  {                                              \
+    return STRING_LITERAL(STRINGIZE(MTL##TYPE)); \
+  }                                              \
+  template <class SerialiserType>                \
+  void DoSerialise(SerialiserType &ser, MTL::TYPE *&el);
+
+#define MTL_DECLARE_REFLECTION_TYPE(TYPE)        \
+  template <>                                    \
+  inline rdcliteral TypeName<MTL::TYPE>()        \
+  {                                              \
+    return STRING_LITERAL(STRINGIZE(MTL##TYPE)); \
+  }                                              \
+  template <class SerialiserType>                \
+  void DoSerialise(SerialiserType &ser, MTL::TYPE &el);
+
+MTL_DECLARE_REFLECTION_OBJECT(TextureDescriptor)
+MTL_DECLARE_REFLECTION_OBJECT(RenderPipelineDescriptor);
+MTL_DECLARE_REFLECTION_OBJECT(RenderPipelineColorAttachmentDescriptor);
+
+MTL_DECLARE_REFLECTION_TYPE(PixelFormat);
+MTL_DECLARE_REFLECTION_TYPE(TextureType);
+MTL_DECLARE_REFLECTION_TYPE(PrimitiveTopologyClass);
+MTL_DECLARE_REFLECTION_TYPE(ResourceOptions);
+MTL_DECLARE_REFLECTION_TYPE(CPUCacheMode);
+MTL_DECLARE_REFLECTION_TYPE(StorageMode);
+MTL_DECLARE_REFLECTION_TYPE(HazardTrackingMode);
+MTL_DECLARE_REFLECTION_TYPE(TextureUsage);
+MTL_DECLARE_REFLECTION_TYPE(TextureSwizzleChannels);
+MTL_DECLARE_REFLECTION_TYPE(TextureSwizzle);
+MTL_DECLARE_REFLECTION_TYPE(ColorWriteMask);
+MTL_DECLARE_REFLECTION_TYPE(BlendOperation);
+MTL_DECLARE_REFLECTION_TYPE(BlendFactor);
+MTL_DECLARE_REFLECTION_TYPE(Winding);
+MTL_DECLARE_REFLECTION_TYPE(TessellationFactorFormat);
+MTL_DECLARE_REFLECTION_TYPE(TessellationControlPointIndexType)
+MTL_DECLARE_REFLECTION_TYPE(TessellationFactorStepFunction);
+MTL_DECLARE_REFLECTION_TYPE(TessellationPartitionMode);
+
 template <>
 inline rdcliteral TypeName<NS::String *>()
 {
@@ -62,3 +108,5 @@ inline rdcliteral TypeName<NS::String *>()
 }
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, NS::String *&el);
+
+void MTLFixupForMetalDriverAssert();

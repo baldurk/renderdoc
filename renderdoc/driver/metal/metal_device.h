@@ -41,6 +41,15 @@ public:
   DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLLibrary *, newLibraryWithSource,
                                           NS::String *source, MTL::CompileOptions *options,
                                           NS::Error **error);
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLRenderPipelineState *,
+                                          newRenderPipelineStateWithDescriptor,
+                                          MTL::RenderPipelineDescriptor *descriptor,
+                                          NS::Error **error);
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLTexture *, newTextureWithDescriptor,
+                                          MTL::TextureDescriptor *descriptor,
+                                          IOSurfaceRef iosurface, NS::UInteger plane);
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLTexture *, newTextureWithDescriptor,
+                                          MTL::TextureDescriptor *descriptor);
 
   CaptureState &GetStateRef() { return m_State; }
   CaptureState GetState() { return m_State; }

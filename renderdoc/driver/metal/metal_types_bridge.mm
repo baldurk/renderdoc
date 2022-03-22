@@ -28,6 +28,8 @@
 #include "metal_device.h"
 #include "metal_function.h"
 #include "metal_library.h"
+#include "metal_render_pipeline_state.h"
+#include "metal_texture.h"
 
 #define DEFINE_OBJC_HELPERS(CPPTYPE)                                               \
   static ObjCBridgeMTL##CPPTYPE *GetObjCBridge(MTL::CPPTYPE *cppType)              \
@@ -85,3 +87,18 @@
 
 METALCPP_WRAPPED_PROTOCOLS(DEFINE_OBJC_HELPERS)
 #undef DEFINE_OBJC_HELPERS
+
+static bool s_fixupMetalDriverAssert = false;
+
+void MTLFixupForMetalDriverAssert()
+{
+  if(s_fixupMetalDriverAssert)
+    return;
+
+#if ENABLED(RDOC_DEVEL)
+  NSLog(@"Fixup for Metal Driver debug assert. Adding protocol `MTLTextureImplementation` to "
+        @"`ObjCBridgeMTLTexture`");
+  class_addProtocol([ObjCBridgeMTLTexture class], objc_getProtocol("MTLTextureImplementation"));
+#endif
+  s_fixupMetalDriverAssert = true;
+}
