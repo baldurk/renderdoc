@@ -78,8 +78,8 @@
 
 - (nullable id<MTLFunction>)newFunctionWithName:(NSString *)functionName
 {
-  METAL_NOT_HOOKED();
-  return [self.real newFunctionWithName:functionName];
+  return id<MTLFunction>(
+      GetObjCBridge(self.wrappedCPP->newFunctionWithName((NS::String *)functionName)));
 }
 
 - (nullable id<MTLFunction>)newFunctionWithName:(NSString *)name

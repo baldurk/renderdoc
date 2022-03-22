@@ -32,6 +32,9 @@ public:
   WrappedMTLLibrary(MTL::Library *realMTLLibrary, ResourceId objId,
                     WrappedMTLDevice *wrappedMTLDevice);
 
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLFunction *, newFunctionWithName,
+                                          NS::String *functionName);
+
   enum
   {
     TypeEnum = eResLibrary
