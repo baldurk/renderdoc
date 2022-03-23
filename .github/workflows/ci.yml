@@ -299,7 +299,7 @@ jobs:
       run: |
         mkdir build
         pushd build
-        cmake -DCMAKE_BUILD_TYPE=${{ matrix.type }} ..
+        cmake -DENABLE_METAL=On -DCMAKE_BUILD_TYPE=${{ matrix.type }} ..
         make -j2
         popd
     - if: matrix.type == 'Debug'
