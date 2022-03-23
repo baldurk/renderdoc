@@ -161,7 +161,11 @@
   return self.real.supportsQueryTextureLOD;
 }
 
-- (BOOL)supportsBCTextureCompression API_AVAILABLE(macos(11.0))API_UNAVAILABLE(ios)
+- (BOOL)supportsBCTextureCompression API_AVAILABLE(macos(11.0))
+// It is available for ios in SDK 11.1 and it is marked as unavailable in SDK 12
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
+    API_UNAVAILABLE(ios)
+#endif    // #if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
 {
   return self.real.supportsBCTextureCompression;
 }
