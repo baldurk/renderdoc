@@ -113,6 +113,8 @@ MTL_DECLARE_REFLECTION_TYPE(LoadAction);
 MTL_DECLARE_REFLECTION_TYPE(StoreAction);
 MTL_DECLARE_REFLECTION_TYPE(ClearColor);
 MTL_DECLARE_REFLECTION_TYPE(Viewport);
+MTL_DECLARE_REFLECTION_TYPE(DeviceLocation);
+MTL_DECLARE_REFLECTION_TYPE(ArgumentBuffersTier);
 
 template <>
 inline rdcliteral TypeName<NS::String *>()

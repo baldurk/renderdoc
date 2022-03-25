@@ -518,3 +518,27 @@ rdcstr DoStringise(const MTL::ColorWriteMask &el)
   }
   END_BITFIELD_STRINGISE()
 }
+
+template <>
+rdcstr DoStringise(const MTL::ArgumentBuffersTier &el)
+{
+  BEGIN_BITFIELD_STRINGISE(MTL::ArgumentBuffersTier)
+  {
+    MTL_STRINGISE_BITFIELD_BIT(ArgumentBuffersTier1);
+    MTL_STRINGISE_BITFIELD_BIT(ArgumentBuffersTier2);
+  }
+  END_BITFIELD_STRINGISE()
+}
+
+template <>
+rdcstr DoStringise(const MTL::DeviceLocation &el)
+{
+  BEGIN_BITFIELD_STRINGISE(MTL::DeviceLocation)
+  {
+    MTL_STRINGISE_BITFIELD_BIT(DeviceLocationBuiltIn);
+    MTL_STRINGISE_BITFIELD_BIT(DeviceLocationSlot);
+    MTL_STRINGISE_BITFIELD_BIT(DeviceLocationExternal);
+    MTL_STRINGISE_BITFIELD_BIT(DeviceLocationUnspecified);
+  }
+  END_BITFIELD_STRINGISE()
+}

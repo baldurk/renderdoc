@@ -80,7 +80,17 @@ WrappedMTLRenderCommandEncoder *WrappedMTLCommandBuffer::renderCommandEncoderWit
 
     MetalResourceRecord *encoderRecord =
         GetResourceManager()->AddResourceRecord(wrappedMTLRenderCommandEncoder);
-    // TODO: mark texture attachments as frame referenced
+
+    for(uint32_t i = 0; i < MAX_RENDER_PASS_COLOR_ATTACHMENTS; ++i)
+    {
+      MTL::RenderPassColorAttachmentDescriptor *colorAttachment =
+          descriptor->colorAttachments()->object(i);
+      MTL::Texture *texture = colorAttachment->texture();
+      if(texture != NULL)
+      {
+        GetResourceManager()->MarkResourceFrameReferenced(GetResID(texture), eFrameRef_Read);
+      }
+    }
   }
   else
   {
@@ -162,10 +172,16 @@ void WrappedMTLCommandBuffer::commit()
     record->AddChunk(chunk);
 
     bool capframe = IsActiveCapturing(m_State);
-
     if(capframe)
     {
       record->AddRef();
+      m_WrappedMTLDevice->AddCommandBufferRecord(record);
+    }
+    bool present = record->cmdInfo->present;
+    if(present)
+    {
+      m_WrappedMTLDevice->AdvanceFrame();
+      m_WrappedMTLDevice->Present(m_WrappedMTLDevice);
     }
   }
   else
