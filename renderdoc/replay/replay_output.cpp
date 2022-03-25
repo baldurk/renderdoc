@@ -120,6 +120,7 @@ ReplayOutput::ReplayOutput(ReplayController *parent, WindowingData window, Repla
   m_MainOutput.texture = ResourceId();
 
   m_pController->FatalErrorCheck();
+  m_pDevice = parent->GetDevice();
 
   m_pDevice->GetOutputWindowDimensions(m_MainOutput.outputID, m_Width, m_Height);
 
