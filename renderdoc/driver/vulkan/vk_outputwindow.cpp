@@ -216,6 +216,20 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     if(capabilities.minImageCount < 8)
       numImages = RDCMAX(numImages, capabilities.minImageCount);
 
+    if(capabilities.supportedUsageFlags == 0)
+    {
+      if(old != VK_NULL_HANDLE)
+      {
+        vt->DestroySwapchainKHR(Unwrap(device), Unwrap(old), NULL);
+        GetResourceManager()->ReleaseWrappedResource(old);
+      }
+
+      RDCERR("Surface reported unsuccessful. %d consecutive failures!", failures);
+      failures++;
+
+      return;
+    }
+
     RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
     // AMD didn't report this capability for a while. If the assert fires for you, update
     // your drivers!
