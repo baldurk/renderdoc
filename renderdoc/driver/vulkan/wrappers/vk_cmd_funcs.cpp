@@ -6677,7 +6677,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
 
-    byte *tempMem = GetTempMemory(GetNextPatchSize(pRenderingInfo));
+    byte *tempMem = GetTempMemory(GetNextPatchSize(&RenderingInfo));
     VkRenderingInfo *unwrappedInfo = UnwrapStructAndChain(m_State, tempMem, &RenderingInfo);
 
     if(IsActiveReplaying(m_State))
