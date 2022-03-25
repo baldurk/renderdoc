@@ -79,6 +79,7 @@ private:
 
   ReplayController *m_pController;
 
+  bool m_CustomDirty;
   bool m_OverlayDirty;
   bool m_ForceOverlayRefresh;
 
