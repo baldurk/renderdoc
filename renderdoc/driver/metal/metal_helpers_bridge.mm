@@ -104,3 +104,19 @@ CA::MetalDrawable *ObjC::CAMetalLayer_nextDrawable(void *layerHandle)
   CA::MetalDrawable *drawable = (__bridge CA::MetalDrawable *)[metalLayer nextDrawable];
   return drawable;
 }
+
+@interface ObjCTrackedCAMetalLayer : NSObject
+@end
+
+@implementation ObjCTrackedCAMetalLayer
+
+// Silence compiler warning
+// error: method possibly missing a [super dealloc] call [-Werror,-Wobjc-missing-super-calls]
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wobjc-missing-super-calls"
+- (void)dealloc
+{
+  ((TrackedCAMetalLayer *)self)->StopTracking();
+}
+#pragma clang diagnostic pop
+@end

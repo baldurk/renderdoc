@@ -1149,13 +1149,12 @@ rdcstr DoStringise(const MetalResourceType &el)
 template <>
 rdcstr DoStringise(const MetalCmdBufferStatus &el)
 {
-  BEGIN_BITFIELD_STRINGISE(MetalCmdBufferStatus)
+  BEGIN_ENUM_STRINGISE(MetalCmdBufferStatus)
   {
-    STRINGISE_BITFIELD_CLASS_VALUE(NoFlags);
-    STRINGISE_BITFIELD_CLASS_BIT(Enqueued);
-    STRINGISE_BITFIELD_CLASS_BIT(Committed);
-    STRINGISE_BITFIELD_CLASS_BIT(Submitted);
-    STRINGISE_BITFIELD_CLASS_BIT(Presented);
+    STRINGISE_ENUM_CLASS(Unknown);
+    STRINGISE_ENUM_CLASS(Enqueued);
+    STRINGISE_ENUM_CLASS(Committed);
+    STRINGISE_ENUM_CLASS(Submitted);
   }
-  END_BITFIELD_STRINGISE()
+  END_ENUM_STRINGISE()
 }

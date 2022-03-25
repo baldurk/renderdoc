@@ -122,16 +122,13 @@ inline MTL::Resource *Unwrap(WrappedMTLResource *obj)
   return Unwrap<MTL::Resource *>((WrappedMTLObject *)obj);
 }
 
-enum class MetalCmdBufferStatus : uint32_t
+enum class MetalCmdBufferStatus : uint8_t
 {
-  NoFlags = 0,
-  Enqueued = 1 << 0,
-  Committed = 1 << 1,
-  Submitted = 1 << 2,
-  Presented = 1 << 3,
+  Unknown,
+  Enqueued,
+  Committed,
+  Submitted,
 };
-
-BITMASK_OPERATORS(MetalCmdBufferStatus);
 
 struct MetalCmdBufferRecordingInfo
 {
@@ -147,7 +144,8 @@ struct MetalCmdBufferRecordingInfo
   CA::MetalLayer *outputLayer = NULL;
   // The texture to present
   WrappedMTLTexture *backBuffer = NULL;
-  MetalCmdBufferStatus flags = MetalCmdBufferStatus::NoFlags;
+  MetalCmdBufferStatus status = MetalCmdBufferStatus::Unknown;
+  bool presented = false;
 };
 
 struct MetalResourceRecord : public ResourceRecord

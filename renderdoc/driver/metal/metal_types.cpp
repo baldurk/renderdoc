@@ -75,6 +75,36 @@ RDCCOMPILE_ASSERT(sizeof(NS::UInteger) == sizeof(std::uintptr_t),
 METALCPP_WRAPPED_PROTOCOLS(DEFINE_OBJC_HELPERS)
 #undef DEFINE_OBJC_HELPERS
 
+TrackedCAMetalLayer::TrackedCAMetalLayer(CA::MetalLayer *mtlLayer, WrappedMTLDevice *device)
+{
+  m_mtlLayer = mtlLayer;
+  m_Device = device;
+
+  RDCCOMPILE_ASSERT((offsetof(TrackedCAMetalLayer, m_ObjcBridge) == 0),
+                    "m_ObjcBridge must be at offsetof 0");
+  const char *const className = "ObjCTrackedCAMetalLayer";
+  static Class klass = objc_lookUpClass(className);
+  static size_t classSize = class_getInstanceSize(klass);
+  if(classSize != sizeof(m_ObjcBridge))
+  {
+    RDCFATAL("'%s' classSize != sizeof(m_ObjcBridge) %lu != %lu", className, classSize,
+             sizeof(m_ObjcBridge));
+  }
+  id objc = objc_constructInstance(klass, &m_ObjcBridge);
+  if(objc != (id)&m_ObjcBridge)
+  {
+    RDCFATAL("'%s' objc != m_ObjcBridge %p != %p", className, objc, &m_ObjcBridge);
+  }
+  objc_setAssociatedObject((id)m_mtlLayer, objc, objc, OBJC_ASSOCIATION_RETAIN);
+  ((NS::Object *)objc)->release();
+}
+
+void TrackedCAMetalLayer::StopTracking()
+{
+  m_Device->UnregisterMetalLayer(m_mtlLayer);
+  delete this;
+}
+
 namespace RDMTL
 {
 static bool ValidData(MTL::VertexAttributeDescriptor *attribute)

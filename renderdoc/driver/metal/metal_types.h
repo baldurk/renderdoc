@@ -91,6 +91,26 @@ METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_HELPERS)
 METALCPP_UNIMPLEMENTED_WRAPPED_PROTOCOLS(DECLARE_UNIMPLEMENTED_WRAPPED_CPP_HELPERS)
 #undef DECLARE_UNIMPLEMENTED_WRAPPED_CPP_HELPERS
 
+class TrackedCAMetalLayer
+{
+public:
+  TrackedCAMetalLayer() = delete;
+  ~TrackedCAMetalLayer() = default;
+
+  static void Track(CA::MetalLayer *mtlLayer, WrappedMTLDevice *device)
+  {
+    new TrackedCAMetalLayer(mtlLayer, device);
+  }
+  void StopTracking();
+
+private:
+  TrackedCAMetalLayer(CA::MetalLayer *real, WrappedMTLDevice *device);
+
+  void *m_ObjcBridge = NULL;
+  WrappedMTLDevice *m_Device = NULL;
+  CA::MetalLayer *m_mtlLayer = NULL;
+};
+
 #define MTL_DECLARE_REFLECTION_TYPE(TYPE)        \
   template <>                                    \
   inline rdcliteral TypeName<MTL::TYPE>()        \

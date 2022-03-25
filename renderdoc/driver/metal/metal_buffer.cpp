@@ -100,8 +100,7 @@ void WrappedMTLBuffer::didModifyRange(NS::Range &range)
         Serialise_didModifyRange(ser, range);
         chunk = scope.Get();
       }
-      // TODO: add to the frame capture record chunk
-      // m_Device->AddFrameCaptureRecordChunk(chunk);
+      m_Device->AddFrameCaptureRecordChunk(chunk);
     }
   }
   else

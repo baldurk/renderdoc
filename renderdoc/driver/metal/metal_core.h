@@ -28,8 +28,16 @@
 
 struct MetalInitParams
 {
+  MetalInitParams();
+  void Set(MTL::Device *pDevice, ResourceId device);
+
+  // update this when adding/removing members
+  uint64_t GetSerialiseSize();
+
   // check if a frame capture section version is supported
   static const uint64_t CurrentVersion = 0x1;
+
+  ResourceId DeviceID;
 };
 
 DECLARE_REFLECTION_STRUCT(MetalInitParams);
