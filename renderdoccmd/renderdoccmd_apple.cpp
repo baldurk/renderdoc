@@ -113,6 +113,11 @@ int main(int argc, char *argv[])
     count++;
 #endif
 
+#if defined(RENDERDOC_SUPPORT_METAL)
+    support += "Metal, ";
+    count++;
+#endif
+
     if(count == 0)
     {
       support += "None.";

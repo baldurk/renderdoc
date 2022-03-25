@@ -62,9 +62,5 @@ void WrappedMTLDevice::Apply_InitialState(WrappedMTLObject *live, const MetalIni
   METAL_NOT_IMPLEMENTED();
 }
 
-template bool WrappedMTLDevice::Serialise_InitialState(ReadSerialiser &ser, ResourceId id,
-                                                       MetalResourceRecord *record,
-                                                       const MetalInitialContents *initial);
-template bool WrappedMTLDevice::Serialise_InitialState(WriteSerialiser &ser, ResourceId id,
-                                                       MetalResourceRecord *record,
-                                                       const MetalInitialContents *initial);
+INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLDevice, void, InitialState, ResourceId id,
+                                MetalResourceRecord *record, const MetalInitialContents *initial);
