@@ -406,6 +406,11 @@ void WrappedMTLDevice::Present(void *wnd)
   }
 }
 
+MetalInitParams::MetalInitParams()
+{
+  memset(this, 0, sizeof(MetalInitParams));
+}
+
 uint64_t MetalInitParams::GetSerialiseSize()
 {
   size_t ret = 0;

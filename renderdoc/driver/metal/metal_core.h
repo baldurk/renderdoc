@@ -28,6 +28,7 @@
 
 struct MetalInitParams
 {
+  MetalInitParams();
   void Set(MTL::Device *pDevice, ResourceId inst);
 
   // update this when adding/removing members
