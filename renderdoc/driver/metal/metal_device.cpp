@@ -48,6 +48,8 @@ WrappedMTLDevice *WrappedMTLDevice::MTLCreateSystemDefaultDevice(MTL::Device *re
   return wrappedMTLDevice;
 }
 
+// Serialised MTLDevice APIs
+
 template <typename SerialiserType>
 bool WrappedMTLDevice::Serialise_newCommandQueue(SerialiserType &ser, WrappedMTLCommandQueue *queue)
 {
@@ -186,6 +188,137 @@ WrappedMTLLibrary *WrappedMTLDevice::newLibraryWithSource(NS::String *source,
   }
   return wrappedMTLLibrary;
 }
+
+// Non-Serialised MTLDevice APIs
+
+bool WrappedMTLDevice::isDepth24Stencil8PixelFormatSupported()
+{
+  return Unwrap(this)->depth24Stencil8PixelFormatSupported();
+}
+
+MTL::ReadWriteTextureTier WrappedMTLDevice::readWriteTextureSupport()
+{
+  return Unwrap(this)->readWriteTextureSupport();
+}
+
+MTL::ArgumentBuffersTier WrappedMTLDevice::argumentBuffersSupport()
+{
+  return Unwrap(this)->argumentBuffersSupport();
+}
+
+bool WrappedMTLDevice::areRasterOrderGroupsSupported()
+{
+  return Unwrap(this)->rasterOrderGroupsSupported();
+}
+
+bool WrappedMTLDevice::supports32BitFloatFiltering()
+{
+  return Unwrap(this)->supports32BitFloatFiltering();
+}
+
+bool WrappedMTLDevice::supports32BitMSAA()
+{
+  return Unwrap(this)->supports32BitMSAA();
+}
+
+bool WrappedMTLDevice::supportsQueryTextureLOD()
+{
+  return Unwrap(this)->supportsQueryTextureLOD();
+}
+
+bool WrappedMTLDevice::supportsBCTextureCompression()
+{
+  return Unwrap(this)->supportsBCTextureCompression();
+}
+
+bool WrappedMTLDevice::supportsPullModelInterpolation()
+{
+  return Unwrap(this)->supportsPullModelInterpolation();
+}
+
+bool WrappedMTLDevice::areBarycentricCoordsSupported()
+{
+  return Unwrap(this)->barycentricCoordsSupported();
+}
+
+bool WrappedMTLDevice::supportsShaderBarycentricCoordinates()
+{
+  return Unwrap(this)->supportsShaderBarycentricCoordinates();
+}
+
+bool WrappedMTLDevice::supportsFeatureSet(MTL::FeatureSet featureSet)
+{
+  return Unwrap(this)->supportsFeatureSet(featureSet);
+}
+
+bool WrappedMTLDevice::supportsFamily(MTL::GPUFamily gpuFamily)
+{
+  return Unwrap(this)->supportsFamily(gpuFamily);
+}
+
+bool WrappedMTLDevice::supportsTextureSampleCount(NS::UInteger sampleCount)
+{
+  return Unwrap(this)->supportsTextureSampleCount(sampleCount);
+}
+
+bool WrappedMTLDevice::areProgrammableSamplePositionsSupported()
+{
+  return Unwrap(this)->programmableSamplePositionsSupported();
+}
+
+bool WrappedMTLDevice::supportsRasterizationRateMapWithLayerCount(NS::UInteger layerCount)
+{
+  return Unwrap(this)->supportsRasterizationRateMap(layerCount);
+}
+
+bool WrappedMTLDevice::supportsCounterSampling(MTL::CounterSamplingPoint samplingPoint)
+{
+  return Unwrap(this)->supportsCounterSampling(samplingPoint);
+}
+
+bool WrappedMTLDevice::supportsVertexAmplificationCount(NS::UInteger count)
+{
+  return Unwrap(this)->supportsVertexAmplificationCount(count);
+}
+
+bool WrappedMTLDevice::supportsDynamicLibraries()
+{
+  return Unwrap(this)->supportsDynamicLibraries();
+}
+
+bool WrappedMTLDevice::supportsRenderDynamicLibraries()
+{
+  return Unwrap(this)->supportsRenderDynamicLibraries();
+}
+
+bool WrappedMTLDevice::supportsRaytracing()
+{
+  // RD device does not support ray tracing
+  return false;
+}
+
+bool WrappedMTLDevice::supportsFunctionPointers()
+{
+  return Unwrap(this)->supportsFunctionPointers();
+}
+
+bool WrappedMTLDevice::supportsFunctionPointersFromRender()
+{
+  return Unwrap(this)->supportsFunctionPointersFromRender();
+}
+
+bool WrappedMTLDevice::supportsRaytracingFromRender()
+{
+  // RD device does not support ray tracing
+  return false;
+}
+
+bool WrappedMTLDevice::supportsPrimitiveMotionBlur()
+{
+  return Unwrap(this)->supportsPrimitiveMotionBlur();
+}
+
+// End of MTLDevice APIs
 
 INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLDevice, WrappedMTLCommandQueue *,
                                             newCommandQueue);
