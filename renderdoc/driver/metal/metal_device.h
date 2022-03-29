@@ -36,11 +36,39 @@ public:
   ~WrappedMTLDevice() {}
   static WrappedMTLDevice *MTLCreateSystemDefaultDevice(MTL::Device *realMTLDevice);
 
+  // Serialised MTLDevice APIs
   DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLCommandQueue *, newCommandQueue);
   DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLLibrary *, newDefaultLibrary);
   DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLLibrary *, newLibraryWithSource,
                                           NS::String *source, MTL::CompileOptions *options,
                                           NS::Error **error);
+  // Non-Serialised MTLDevice APIs
+  bool isDepth24Stencil8PixelFormatSupported();
+  MTL::ReadWriteTextureTier readWriteTextureSupport();
+  MTL::ArgumentBuffersTier argumentBuffersSupport();
+  bool areRasterOrderGroupsSupported();
+  bool supports32BitFloatFiltering();
+  bool supports32BitMSAA();
+  bool supportsQueryTextureLOD();
+  bool supportsBCTextureCompression();
+  bool supportsPullModelInterpolation();
+  bool areBarycentricCoordsSupported();
+  bool supportsShaderBarycentricCoordinates();
+  bool supportsFeatureSet(MTL::FeatureSet featureSet);
+  bool supportsFamily(MTL::GPUFamily gpuFamily);
+  bool supportsTextureSampleCount(NS::UInteger sampleCount);
+  bool areProgrammableSamplePositionsSupported();
+  bool supportsRasterizationRateMapWithLayerCount(NS::UInteger layerCount);
+  bool supportsCounterSampling(MTL::CounterSamplingPoint samplingPoint);
+  bool supportsVertexAmplificationCount(NS::UInteger count);
+  bool supportsDynamicLibraries();
+  bool supportsRenderDynamicLibraries();
+  bool supportsRaytracing();
+  bool supportsFunctionPointers();
+  bool supportsFunctionPointersFromRender();
+  bool supportsRaytracingFromRender();
+  bool supportsPrimitiveMotionBlur();
+  // End of MTLDevice APIs
 
   CaptureState &GetStateRef() { return m_State; }
   CaptureState GetState() { return m_State; }
