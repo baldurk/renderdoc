@@ -50,16 +50,19 @@ void DoSerialiseViaResourceId(SerialiserType &ser, type &el)
 
   DoSerialise(ser, id);
 
-  if(ser.IsReading() && rm && !IsStructuredExporting(rm->GetState()))
+  if(ser.IsReading())
   {
     el = NULL;
 
-    if(id != ResourceId() && rm)
+    if(rm && !IsStructuredExporting(rm->GetState()))
     {
-      if(rm->HasLiveResource(id))
+      if(id != ResourceId() && rm)
       {
-        // we leave this wrapped.
-        el = (type)rm->GetLiveResource(id);
+        if(rm->HasLiveResource(id))
+        {
+          // we leave this wrapped.
+          el = (type)rm->GetLiveResource(id);
+        }
       }
     }
   }
