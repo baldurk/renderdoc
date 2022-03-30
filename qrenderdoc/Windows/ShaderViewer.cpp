@@ -5138,6 +5138,10 @@ void ShaderViewer::snippet_constants()
   if(encoding == ShaderEncoding::GLSL)
   {
     text = lit(R"(
+/////////////////////////////////////
+//            Constants            //
+/////////////////////////////////////
+
 // possible values (these are only return values from this function, NOT texture binding points):
 // RD_TextureType_1D
 // RD_TextureType_2D
@@ -5180,6 +5184,8 @@ uvec4 RD_YUVAChannels();
 // a pair with minimum and maximum selected range values
 vec2 RD_SelectedRange();
 
+/////////////////////////////////////
+
 )");
   }
   else if(encoding == ShaderEncoding::HLSL)
@@ -5197,6 +5203,7 @@ vec2 RD_SelectedRange();
 // RD_TextureType_DepthStencil
 // RD_TextureType_DepthMS
 // RD_TextureType_DepthStencilMS
+// RD_TextureType_2DMS
 uint RD_TextureType();
 
 // selected sample, or -numSamples for resolve
@@ -5374,6 +5381,8 @@ layout (binding = RD_UINT_RECT_BINDING) uniform usampler2DRect texSInt2DRect;
 layout (binding = RD_UINT_BUFFER_BINDING) uniform usamplerBuffer texSIntBuffer;
 layout (binding = RD_UINT_2DMS_BINDING) uniform usampler2DMS texSInt2DMS;
 #endif
+
+/////////////////////////////////////
 )"));
   }
 }
