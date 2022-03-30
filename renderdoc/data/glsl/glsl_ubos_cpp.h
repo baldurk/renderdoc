@@ -140,11 +140,11 @@ cbuffer RD_CBuffer_Type : register(RD_CONSTANT_BUFFER_BINDING)
 #define RD_TextureType_1D 1
 #define RD_TextureType_2D 2
 #define RD_TextureType_3D 3
+#define RD_TextureType_2DMS 4
 #define RD_TextureType_Depth 999
 #define RD_TextureType_DepthStencil 999
 #define RD_TextureType_DepthMS 999
 #define RD_TextureType_DepthStencilMS 999
-#define RD_TextureType_2DMS 9
 
 // for compatibility
 #define RD_TextureType_1D_Array 1
@@ -239,6 +239,7 @@ const char GLSL_CUSTOM_PREFIX[] =
 #define RD_FLOAT_2DMS_ARRAY_BINDING 9
 #define RD_FLOAT_2DMS_BINDING 9
 
+#define RD_FLOAT_YUV_ARRAY_BINDING 10
 #define RD_FLOAT_YUV_BINDING 10
 #define RD_FLOAT_YUV_ARRAY_SIZE 2
 
