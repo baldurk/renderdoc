@@ -171,7 +171,7 @@ Core options
 
 Here you can choose which locations to search in, and in which order, when looking up a relative path for unstripped debug info.
 
-For more information you can consult :ref:`the FAQ entry about providing unstripped shader debug information <unstripped-shader-info>`.
+For more information you can consult :doc:`../how/how_shader_debug_info`.
 
   | :guilabel:`Enable Radeon GPU Profiler integration` Default: ``Off``
 

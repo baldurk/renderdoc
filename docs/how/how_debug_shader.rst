@@ -14,7 +14,7 @@ For the most part at least some debug information is included with shaders unles
 
 For shader debugging it's recommended that you build with ``/Od`` or ``D3DCOMPILE_SKIP_OPTIMIZATION``, as this will enable HLSL debugging by default.
 
-For more information on how to get this unstripped debug information to renderdoc, see :ref:`unstripped-shader-info`.
+For more information on how to get this unstripped debug information to renderdoc, see :doc:`how_shader_debug_info`.
 
 Debugging a vertex
 ------------------

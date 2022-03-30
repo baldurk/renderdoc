@@ -44,34 +44,7 @@ This page is a random hodge-podge of different tips and tricks that might not be
        // For Vulkan
        // VK_EXT_tooling_info will be available, see the Vulkan specification
 
-#. RenderDoc can be informed about separated debug shader blobs through API specific ways - see :ref:`unstripped-shader-info` for more details:
-
-   .. highlight:: c++
-   .. code:: c++
-
-       // For D3D11:
-       GUID RENDERDOC_ShaderDebugMagicValue = RENDERDOC_ShaderDebugMagicValue_value; // GUID value in renderdoc_app.h
-
-       ID3D11VertexShader *shader = ...;
-       std::string pathName = "/path/to/saved/blob"; // path name is in UTF-8
-       // path name can also be prefixed with lz4# to indicate the blob is compressed
-       pathName = "lz4#/path/to/saved/blob";
-
-       // string parameter must be NULL-terminated, and in UTF-8
-       shader->SetPrivateData(RENDERDOC_ShaderDebugMagicValue, (UINT)pathName.length(), pathName.c_str());
-
-       // Alternatively at build time:
-       struct { GUID guid; char name[MAX_PATH]; } path;
-
-       path.guid = RENDERDOC_ShaderDebugMagicValue;
-       // must include NULL-terminator, and be in UTF-8
-       memcpy(path.name, debugPath.c_str(), debugPath.length() + 1);
-
-       size_t pathSize = sizeof(GUID) + debugPath.length() + 1;
-
-       D3DSetBlobPart(strippedBlob->GetBufferPointer(), strippedBlob->GetBufferSize(), D3D_BLOB_PRIVATE_DATA, 0, &path,        pathSize, &annotatedBlob);
-       // use annotatedBlob instead of strippedBlob from here on
-
+#. RenderDoc can be informed about separated debug shader blobs through API specific ways - see :doc:`../how/how_shader_debug_info` for more details.
 #. More coming soon hopefully :).
 
 Keyboard Shortcuts
