@@ -5369,17 +5369,17 @@ layout (binding = RD_INT_2DMS_BINDING) uniform isampler2DMS texSInt2DMS;
 #endif
 
 // Unsigned int Textures
-layout (binding = RD_UINT_1D_ARRAY_BINDING) uniform usampler1DArray texSInt1DArray;
-layout (binding = RD_UINT_2D_ARRAY_BINDING) uniform usampler2DArray texSInt2DArray;
-layout (binding = RD_UINT_3D_BINDING) uniform usampler3D texSInt3D;
-layout (binding = RD_UINT_2DMS_ARRAY_BINDING) uniform usampler2DMSArray texSInt2DMSArray;
+layout (binding = RD_UINT_1D_ARRAY_BINDING) uniform usampler1DArray texUInt1DArray;
+layout (binding = RD_UINT_2D_ARRAY_BINDING) uniform usampler2DArray texUInt2DArray;
+layout (binding = RD_UINT_3D_BINDING) uniform usampler3D texUInt3D;
+layout (binding = RD_UINT_2DMS_ARRAY_BINDING) uniform usampler2DMSArray texUInt2DMSArray;
 
 #ifndef VULKAN
-layout (binding = RD_UINT_1D_BINDING) uniform usampler1D texSInt1D;
-layout (binding = RD_UINT_2D_BINDING) uniform usampler2D texSInt2D;
-layout (binding = RD_UINT_RECT_BINDING) uniform usampler2DRect texSInt2DRect;
-layout (binding = RD_UINT_BUFFER_BINDING) uniform usamplerBuffer texSIntBuffer;
-layout (binding = RD_UINT_2DMS_BINDING) uniform usampler2DMS texSInt2DMS;
+layout (binding = RD_UINT_1D_BINDING) uniform usampler1D texUInt1D;
+layout (binding = RD_UINT_2D_BINDING) uniform usampler2D texUInt2D;
+layout (binding = RD_UINT_RECT_BINDING) uniform usampler2DRect texUInt2DRect;
+layout (binding = RD_UINT_BUFFER_BINDING) uniform usamplerBuffer texUIntBuffer;
+layout (binding = RD_UINT_2DMS_BINDING) uniform usampler2DMS texUInt2DMS;
 #endif
 
 /////////////////////////////////////
