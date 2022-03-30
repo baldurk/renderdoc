@@ -290,7 +290,12 @@ void GLHook::RegisterHooks()
       libraryName,                    \
       FunctionHook(STRINGIZE(name), (void **)&GL.func, (void *)&CONCAT(func, _renderdoc_hooked)));
 
+#define RegisterUnsupportedFunc(name) \
+  LibraryHooks::RegisterFunctionHook( \
+      libraryName, FunctionHook(STRINGIZE(name), NULL, (void *)&CONCAT(name, _renderdoc_hooked)));
+
   ForEachSupported(RegisterFunc);
+  ForEachUnsupported(RegisterUnsupportedFunc);
 
 #if ENABLED(RDOC_WIN32)
   if(ShouldHookEGL())
