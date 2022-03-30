@@ -1464,6 +1464,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_QCOM_RENDER_PASS_SHADER_RESOLVE_EXTENSION_NAME,
         VK_QCOM_RENDER_PASS_SHADER_RESOLVE_SPEC_VERSION,
     },
+    {
+        VK_QCOM_RENDER_PASS_STORE_OPS_EXTENSION_NAME, VK_QCOM_RENDER_PASS_STORE_OPS_SPEC_VERSION,
+    },
 };
 
 // this is the list of extensions we provide - regardless of whether the ICD supports them
