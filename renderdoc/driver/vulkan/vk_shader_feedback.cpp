@@ -1632,9 +1632,11 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     bool usePrimitiveID =
         !hasGeom && m_pDriver->GetDeviceEnabledFeatures().geometryShader != VK_FALSE;
 
-    bool usesMultiview =
-        creationInfo.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].multiviews.size() >
-        1;
+    bool usesMultiview = state.GetRenderPass() != ResourceId()
+                             ? creationInfo.m_RenderPass[state.GetRenderPass()]
+                                       .subpasses[state.subpass]
+                                       .multiviews.size() > 1
+                             : pipeInfo.viewMask != 0;
 
     for(uint32_t i = 0; i < graphicsInfo.stageCount; i++)
     {
