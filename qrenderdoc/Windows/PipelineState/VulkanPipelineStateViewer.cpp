@@ -4316,6 +4316,9 @@ void VulkanPipelineStateViewer::AddFossilizeNexts(QVariantMap &info, const SDObj
                     {"pDepthStencilResolveAttachment", "depthStencilResolveAttachment"},
                     // VkFragmentShadingRateAttachmentInfoKHR
                     {"pFragmentShadingRateAttachment", "fragmentShadingRateAttachment"},
+                    // VkPipelineRenderingCreateInfo
+                    {"colorAttachmentCount", ""},
+                    {"pColorAttachmentFormats", "colorAttachmentFormats"},
                 });
 
       QVariantMap &vm = (QVariantMap &)v.data_ptr();
