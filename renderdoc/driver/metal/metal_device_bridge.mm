@@ -28,11 +28,6 @@
 #include "metal_library.h"
 #include "metal_types_bridge.h"
 
-// Define Mac SDK versions when compiling with earlier SDKs
-#ifndef __MAC_12_0
-#define __MAC_12_0 120000
-#endif
-
 // Bridge for MTLDevice
 @implementation ObjCBridgeMTLDevice
 

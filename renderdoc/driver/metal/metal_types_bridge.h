@@ -38,3 +38,8 @@
 
 METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_WRAPPED_INTERFACES)
 #undef DECLARE_OBJC_WRAPPED_INTERFACES
+
+// Define Mac SDK versions when compiling with earlier SDKs
+#ifndef __MAC_12_0
+#define __MAC_12_0 120000
+#endif
