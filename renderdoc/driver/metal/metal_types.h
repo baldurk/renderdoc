@@ -37,9 +37,15 @@
 
 // These serialise overloads will fetch the ID during capture, serialise the ID
 // directly as-if it were the original type, then on replay load up the resource if available.
-#define DECLARE_WRAPPED_TYPE_SERIALISE(CPPTYPE) \
-  class WrappedMTL##CPPTYPE;                    \
-  DECLARE_REFLECTION_STRUCT(WrappedMTL##CPPTYPE *)
+#define DECLARE_WRAPPED_TYPE_SERIALISE(CPPTYPE)       \
+  class WrappedMTL##CPPTYPE;                          \
+  template <>                                         \
+  inline rdcliteral TypeName<WrappedMTL##CPPTYPE *>() \
+  {                                                   \
+    return STRING_LITERAL(STRINGIZE(MTL##CPPTYPE));   \
+  }                                                   \
+  template <class SerialiserType>                     \
+  void DoSerialise(SerialiserType &ser, WrappedMTL##CPPTYPE *&el);
 
 METALCPP_WRAPPED_PROTOCOLS(DECLARE_WRAPPED_TYPE_SERIALISE);
 #undef DECLARE_WRAPPED_TYPE_SERIALISE
