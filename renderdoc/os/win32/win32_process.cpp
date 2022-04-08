@@ -270,8 +270,8 @@ void InjectDLL(HANDLE hProcess, rdcwstr libName)
     if(success)
     {
       HANDLE hThread = CreateRemoteThread(
-          hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)GetProcAddress(kernel32, "LoadLibraryW"),
-          remoteMem, 0, NULL);
+          hProcess, NULL, 1024 * 1024U,
+          (LPTHREAD_START_ROUTINE)GetProcAddress(kernel32, "LoadLibraryW"), remoteMem, 0, NULL);
       if(hThread)
       {
         WaitForSingleObject(hThread, INFINITE);
