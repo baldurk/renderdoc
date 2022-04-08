@@ -231,6 +231,10 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0xB)
     return true;
 
+  // 0xC -> 0xD - Serialised encoded PIX marker color
+  if(ver == 0xC)
+    return true;
+
   return false;
 }
 
@@ -277,6 +281,31 @@ void DoSerialise(SerialiserType &ser, D3D12InitParams &el)
 }
 
 INSTANTIATE_SERIALISE_TYPE(D3D12InitParams);
+
+FloatVector DecodePIXColor(UINT64 Color)
+{
+  if((Color & 0xff000000) != 0xff000000)
+  {
+    // indexed thing, look up our fixed array
+    static const uint32_t fixedColors[] = {
+        0xffff0000, 0xff0000ff, 0xff00ff00, 0xff00ffff, 0xffff00ff, 0xff008000, 0xff800080,
+        0xff00008b, 0xfff08080, 0xff3cb371, 0xffb8860b, 0xffbdb76b, 0xff32cd32, 0xffb03060,
+        0xffff8c00, 0xff9400d3, 0xff00fa9a, 0xffdc143c, 0xff00bfff, 0xffadff2f, 0xffda70d6,
+        0xffd8bfd8, 0xff1e90ff, 0xffffff54, 0xffff1493, 0xff7b68ee, 0xfffafad2, 0xff2f4f4f,
+        0xff556b2f, 0xff8b4513, 0xff483d8b, 0xff5f9ea0,
+    };
+
+    Color = fixedColors[Color % ARRAY_COUNT(fixedColors)];
+  }
+
+  FloatVector ret;
+  ret.x = float(((Color >> 16) & 0xff)) / 255.0f;
+  ret.y = float(((Color >> 8) & 0xff)) / 255.0f;
+  ret.z = float(((Color >> 0) & 0xff)) / 255.0f;
+  ret.w = 1.0f;
+
+  return ret;
+}
 
 TextureType MakeTextureDim(D3D12_SRV_DIMENSION dim)
 {
@@ -797,7 +826,7 @@ rdcstr PIX3SprintfParams(const rdcstr &Format, const UINT64 *pData)
   return finalString;
 }
 
-rdcstr PIX3DecodeEventString(const UINT64 *pData)
+rdcstr PIX3DecodeEventString(const UINT64 *pData, UINT64 &color)
 {
   // event header
   UINT64 timestamp;
@@ -820,7 +849,7 @@ rdcstr PIX3DecodeEventString(const UINT64 *pData)
   }
 
   // color
-  // UINT64 color = *pData;
+  color = *pData;
   ++pData;
 
   // format string

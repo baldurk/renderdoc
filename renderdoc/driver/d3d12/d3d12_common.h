@@ -73,9 +73,9 @@ inline void SetObjName(ID3D12Object *obj, const rdcstr &utf8name)
 #define PIX_EVENT_ANSI_VERSION 1
 #define PIX_EVENT_PIX3BLOB_VERSION 2
 
-rdcstr PIX3DecodeEventString(const UINT64 *pData);
+rdcstr PIX3DecodeEventString(const UINT64 *pData, UINT64 &color);
 
-inline rdcstr DecodeMarkerString(UINT Metadata, const void *pData, UINT Size)
+inline rdcstr DecodeMarkerString(UINT Metadata, const void *pData, UINT Size, UINT64 &color)
 {
   rdcstr MarkerText = "";
 
@@ -87,6 +87,7 @@ inline rdcstr DecodeMarkerString(UINT Metadata, const void *pData, UINT Size)
     MarkerText = StringFormat::Wide2UTF8(rdcwstr(w, Size / sizeof(wchar_t)));
     if(!MarkerText.empty() && (MarkerText.back() == ' ' || MarkerText.back() == 0))
       MarkerText.pop_back();
+    color = 0;
   }
   else if(Metadata == PIX_EVENT_ANSI_VERSION)
   {
@@ -94,10 +95,11 @@ inline rdcstr DecodeMarkerString(UINT Metadata, const void *pData, UINT Size)
     MarkerText = rdcstr(c, Size);
     if(!MarkerText.empty() && (MarkerText.back() == ' ' || MarkerText.back() == 0))
       MarkerText.pop_back();
+    color = 0;
   }
   else if(Metadata == PIX_EVENT_PIX3BLOB_VERSION)
   {
-    MarkerText = PIX3DecodeEventString((UINT64 *)pData);
+    MarkerText = PIX3DecodeEventString((UINT64 *)pData, color);
   }
   else
   {
@@ -106,6 +108,8 @@ inline rdcstr DecodeMarkerString(UINT Metadata, const void *pData, UINT Size)
 
   return MarkerText;
 }
+
+FloatVector DecodePIXColor(UINT64 Color);
 
 TextureType MakeTextureDim(D3D12_SRV_DIMENSION dim);
 TextureType MakeTextureDim(D3D12_RTV_DIMENSION dim);

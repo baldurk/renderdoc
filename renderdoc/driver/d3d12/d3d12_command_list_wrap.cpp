@@ -2949,13 +2949,18 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(SerialiserType &ser, 
                                                            const void *pData, UINT Size)
 {
   rdcstr MarkerText = "";
+  uint64_t Color = 0;
 
   if(ser.IsWriting() && pData && Size)
-    MarkerText = DecodeMarkerString(Metadata, pData, Size);
+    MarkerText = DecodeMarkerString(Metadata, pData, Size, Color);
 
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(MarkerText).Important();
+  if(ser.VersionAtLeast(0xD))
+  {
+    SERIALISE_ELEMENT(Color);
+  }
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2979,6 +2984,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(SerialiserType &ser, 
 
       ActionDescription action;
       action.customName = MarkerText;
+      if(Color != 0)
+      {
+        action.markerColor = DecodePIXColor(Color);
+      }
       action.flags |= ActionFlags::SetMarker;
 
       m_Cmd->AddEvent();
@@ -3012,13 +3021,18 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(SerialiserType &ser,
                                                             const void *pData, UINT Size)
 {
   rdcstr MarkerText = "";
+  uint64_t Color = 0;
 
   if(ser.IsWriting() && pData && Size)
-    MarkerText = DecodeMarkerString(Metadata, pData, Size);
+    MarkerText = DecodeMarkerString(Metadata, pData, Size, Color);
 
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(MarkerText).Important();
+  if(ser.VersionAtLeast(0xD))
+  {
+    SERIALISE_ELEMENT(Color);
+  }
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -3044,6 +3058,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(SerialiserType &ser,
 
       ActionDescription action;
       action.customName = MarkerText;
+      if(Color != 0)
+      {
+        action.markerColor = DecodePIXColor(Color);
+      }
       action.flags |= ActionFlags::PushMarker;
 
       m_Cmd->AddEvent();
