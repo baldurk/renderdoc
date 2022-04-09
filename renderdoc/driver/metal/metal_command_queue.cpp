@@ -69,12 +69,7 @@ WrappedMTLCommandBuffer *WrappedMTLCommandQueue::commandBuffer()
     MetalResourceRecord *bufferRecord =
         GetResourceManager()->AddResourceRecord(wrappedMTLCommandBuffer);
     bufferRecord->AddChunk(chunk);
-    bufferRecord->cmdInfo = new MetalResources::CmdBufferRecordingInfo();
-    bufferRecord->cmdInfo->queue = this;
-    bufferRecord->cmdInfo->device = m_WrappedMTLDevice;
-    bufferRecord->cmdInfo->present = false;
-    bufferRecord->cmdInfo->isEncoding = false;
-    bufferRecord->cmdInfo->drawable = NULL;
+    bufferRecord->cmdInfo = new MetalCmdBufferRecordingInfo(this);
   }
   else
   {

@@ -128,17 +128,18 @@ struct UnwrapHelper
 METALCPP_WRAPPED_PROTOCOLS(WRAPPED_TYPE_HELPERS)
 #undef WRAPPED_TYPE_HELPERS
 
-namespace MetalResources
+struct MetalCmdBufferRecordingInfo
 {
-struct CmdBufferRecordingInfo
-{
-  CmdBufferRecordingInfo() = default;
-  CmdBufferRecordingInfo(const CmdBufferRecordingInfo &) = delete;
-  CmdBufferRecordingInfo(CmdBufferRecordingInfo &&) = delete;
-  CmdBufferRecordingInfo &operator=(const CmdBufferRecordingInfo &) = delete;
-  ~CmdBufferRecordingInfo() {}
+  MetalCmdBufferRecordingInfo(WrappedMTLCommandQueue *parentQueue)
+      : queue(parentQueue), present(false), isEncoding(false), drawable(NULL)
+  {
+  }
+  MetalCmdBufferRecordingInfo() = delete;
+  MetalCmdBufferRecordingInfo(const MetalCmdBufferRecordingInfo &) = delete;
+  MetalCmdBufferRecordingInfo(MetalCmdBufferRecordingInfo &&) = delete;
+  MetalCmdBufferRecordingInfo &operator=(const MetalCmdBufferRecordingInfo &) = delete;
+  ~MetalCmdBufferRecordingInfo() {}
   WrappedMTLCommandQueue *queue;
-  WrappedMTLDevice *device;
 
   // The drawable that present was called on
   MTL::Drawable *drawable;
@@ -147,8 +148,6 @@ struct CmdBufferRecordingInfo
   // an encoder is active : waiting for endEncoding to be called
   bool isEncoding;
 };
-
-};    // namespace MetalResources
 
 struct MetalResourceRecord : public ResourceRecord
 {
@@ -169,7 +168,7 @@ public:
   // Each entry is only used by specific record types
   union
   {
-    void *ptrUnion;                                     // for initialisation to NULL
-    MetalResources::CmdBufferRecordingInfo *cmdInfo;    // only for command buffers
+    void *ptrUnion;                          // for initialisation to NULL
+    MetalCmdBufferRecordingInfo *cmdInfo;    // only for command buffers
   };
 };
