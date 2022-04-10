@@ -439,6 +439,28 @@ void plthook_lib(void *handle)
   plthook_close(plthook);
 }
 
+// multiple libraries names pointing at the same file are declared as hooks
+// in this case, if the second version gets loaded or when CheckLoadedLibraries is run,
+// hooks are run another time. Avoid this by clearing callbacks of hooks pointing at the same
+// library
+static void PreventDoubleHook(const void *loadedHandle)
+{
+  for(auto it = libraryHooks.begin(); it != libraryHooks.end(); ++it)
+  {
+    rdcstr libName = *it;
+    // if callbacks are empty, there is no risk of executing anything
+    if(libraryCallbacks[libName].empty())
+      continue;
+
+    void *handle = realdlopen(libName.c_str(), RTLD_NOW | RTLD_NOLOAD | RTLD_GLOBAL);
+    if(handle == loadedHandle)
+    {
+      // we have been loaded by a different name, don't run hooks again
+      libraryCallbacks[libName].clear();
+    }
+  }
+}
+
 static void CheckLoadedLibraries()
 {
   // don't process anything if the busy flag was set, otherwise set it ourselves
@@ -464,6 +486,7 @@ static void CheckLoadedLibraries()
 
       // don't call callbacks again if the library is dlopen'd again
       libraryCallbacks[libName].swap(callbacks);
+      PreventDoubleHook(handle);
 
       for(FunctionLoadCallback cb : callbacks)
         if(cb)
@@ -505,6 +528,7 @@ void *intercept_dlopen(const char *filename, int flag, void *ret)
 
       // don't call callbacks again if the library is dlopen'd again
       libraryCallbacks[libName].swap(callbacks);
+      PreventDoubleHook(ret);
 
       for(FunctionLoadCallback cb : callbacks)
         if(cb)
