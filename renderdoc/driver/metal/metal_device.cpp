@@ -104,6 +104,7 @@ MTL::Drawable *hooked_CAMetalLayer_nextDrawable(id self, SEL _cmd)
   MTL::Device *mtlDevice = mtlLayer->device();
   RDCASSERT(object_getClass(mtlDevice) == objc_getClass("ObjCBridgeMTLDevice"));
   GetWrapped(mtlDevice)->RegisterMetalLayer(mtlLayer);
+  mtlLayer->setFramebufferOnly(false);
 
   RDCASSERTEQUAL(Threading::GetTLSValue(WrappedMTLDevice::g_nextDrawableTLSSlot), 0);
   Threading::SetTLSValue(WrappedMTLDevice::g_nextDrawableTLSSlot, (void *)(uintptr_t) true);
