@@ -147,7 +147,7 @@ private:
 
   void CaptureClearSubmittedCmdBuffers();
   void CaptureCmdBufSubmit(MetalResourceRecord *record);
-  void EndCaptureFrame();
+  void EndCaptureFrame(ResourceId backbuffer);
 
   template <typename SerialiserType>
   bool Serialise_CaptureScope(SerialiserType &ser);
@@ -167,6 +167,7 @@ private:
   std::unordered_set<WrappedMTLTexture *> m_CapturePotentialBackBuffers;
   Threading::CriticalSection m_CaptureOutputLayersLock;
   std::unordered_set<CA::MetalLayer *> m_CaptureOutputLayers;
+  WrappedMTLTexture *m_CapturedBackbuffer = NULL;
 
   CaptureState m_State;
   bool m_AppControlledCapture = false;

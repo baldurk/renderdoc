@@ -26,6 +26,7 @@
 #include "serialise/rdcfile.h"
 #include "metal_command_buffer.h"
 #include "metal_device.h"
+#include "metal_texture.h"
 
 WriteSerialiser &WrappedMTLDevice::GetThreadSerialiser()
 {
@@ -116,13 +117,13 @@ void WrappedMTLDevice::StartFrameCapture(DeviceOwnedWindow devWnd)
   // TODO: are there other resources that need to be marked as frame referenced
 }
 
-void WrappedMTLDevice::EndCaptureFrame()
+void WrappedMTLDevice::EndCaptureFrame(ResourceId backbuffer)
 {
   CACHE_THREAD_SERIALISER();
   ser.SetActionChunk();
   SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureEnd);
 
-  // TODO: serialise the presented image
+  SERIALISE_ELEMENT_LOCAL(PresentedImage, backbuffer).TypedAs("MTLTexture"_lit);
 
   m_FrameCaptureRecord->AddChunk(scope.Get());
 }
@@ -132,16 +133,26 @@ bool WrappedMTLDevice::EndFrameCapture(DeviceOwnedWindow devWnd)
   if(!IsActiveCapturing(m_State))
     return true;
 
-  // TODO: find the window and drawable being captured
-
   RDCLOG("Finished capture, Frame %u", m_CapturedFrames.back().frameNumber);
 
-  // TODO: mark the drawable and its images as frame referenced
+  ResourceId bbId;
+  WrappedMTLTexture *backBuffer = m_CapturedBackbuffer;
+  m_CapturedBackbuffer = NULL;
+  if(backBuffer)
+  {
+    bbId = GetResID(backBuffer);
+  }
+  if(bbId == ResourceId())
+  {
+    RDCERR("Invalid Capture backbuffer");
+    return false;
+  }
+  GetResourceManager()->MarkResourceFrameReferenced(bbId, eFrameRef_Read);
 
   // atomically transition to IDLE
   {
     SCOPED_WRITELOCK(m_CapTransitionLock);
-    EndCaptureFrame();
+    EndCaptureFrame(bbId);
     m_State = CaptureState::BackgroundCapturing;
   }
 
@@ -160,8 +171,56 @@ bool WrappedMTLDevice::EndFrameCapture(DeviceOwnedWindow devWnd)
       WaitForGPU();
   }
 
-  // TODO: get the backbuffer to generate the thumbnail image
   RenderDoc::FramePixels fp;
+
+  MTL::Texture *mtlBackBuffer = Unwrap(backBuffer);
+
+  // The backbuffer has to be a non-framebufferOnly texture
+  // to be able to copy the pixels for the thumbnail
+  if(!mtlBackBuffer->framebufferOnly())
+  {
+    const uint32_t maxSize = 2048;
+
+    MTL::CommandBuffer *mtlCommandBuffer = m_mtlCommandQueue->commandBuffer();
+    MTL::BlitCommandEncoder *mtlBlitEncoder = mtlCommandBuffer->blitCommandEncoder();
+
+    NS::UInteger sourceWidth = mtlBackBuffer->width();
+    NS::UInteger sourceHeight = mtlBackBuffer->height();
+    MTL::Origin sourceOrigin(0, 0, 0);
+    MTL::Size sourceSize(sourceWidth, sourceHeight, 1);
+
+    MTL::PixelFormat format = mtlBackBuffer->pixelFormat();
+    uint32_t bytesPerRow = GetByteSize(sourceWidth, 1, 1, format, 0);
+    NS::UInteger bytesPerImage = sourceHeight * bytesPerRow;
+
+    MTL::Buffer *mtlCpuPixelBuffer =
+        Unwrap(this)->newBuffer(bytesPerImage, MTL::ResourceStorageModeShared);
+
+    mtlBlitEncoder->copyFromTexture(mtlBackBuffer, 0, 0, sourceOrigin, sourceSize,
+                                    mtlCpuPixelBuffer, 0, bytesPerRow, bytesPerImage);
+    mtlBlitEncoder->endEncoding();
+
+    mtlCommandBuffer->commit();
+    mtlCommandBuffer->waitUntilCompleted();
+
+    fp.len = (uint32_t)mtlCpuPixelBuffer->length();
+    fp.data = new uint8_t[fp.len];
+    memcpy(fp.data, mtlCpuPixelBuffer->contents(), fp.len);
+
+    mtlCpuPixelBuffer->release();
+
+    ResourceFormat fmt = MakeResourceFormat(format);
+    fp.width = sourceWidth;
+    fp.height = sourceHeight;
+    fp.pitch = bytesPerRow;
+    fp.stride = fmt.compByteWidth * fmt.compCount;
+    fp.bpc = fmt.compByteWidth;
+    fp.bgra = fmt.BGRAOrder();
+    fp.max_width = maxSize;
+    fp.pitch_requirement = 8;
+
+    // TODO: handle different resource formats
+  }
 
   RDCFile *rdc =
       RenderDoc::Inst().CreateRDC(RDCDriver::Metal, m_CapturedFrames.back().frameNumber, fp);
@@ -448,7 +507,11 @@ void WrappedMTLDevice::Present(MetalResourceRecord *record)
     return;
 
   if(IsActiveCapturing(m_State) && !m_AppControlledCapture)
+  {
+    RDCASSERT(m_CapturedBackbuffer == NULL);
+    m_CapturedBackbuffer = backBuffer;
     RenderDoc::Inst().EndFrameCapture(devWnd);
+  }
 
   if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && IsBackgroundCapturing(m_State))
   {
