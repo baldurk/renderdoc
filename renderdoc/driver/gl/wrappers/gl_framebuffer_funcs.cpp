@@ -2529,13 +2529,12 @@ void WrappedOpenGL::glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers
       if(GetResourceManager()->HasResourceRecord(res))
       {
         GLResourceRecord *record = GetResourceManager()->GetResourceRecord(res);
-        record->Delete(GetResourceManager());
-
         for(auto cd = m_ContextData.begin(); cd != m_ContextData.end(); ++cd)
         {
           if(cd->second.m_Renderbuffer == record->GetResourceID())
             cd->second.m_Renderbuffer = ResourceId();
         }
+        record->Delete(GetResourceManager());
       }
       GetResourceManager()->UnregisterResource(res);
     }
