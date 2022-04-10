@@ -46,10 +46,10 @@ static void *GetEGLHandle()
 
   return Process::LoadModule(libEGL);
 #else
-  void *handle = Process::LoadModule("libEGL.so");
+  void *handle = Process::LoadModule("libEGL.so.1");
 
   if(!handle)
-    handle = Process::LoadModule("libEGL.so.1");
+    handle = Process::LoadModule("libEGL.so");
 
   return handle;
 #endif

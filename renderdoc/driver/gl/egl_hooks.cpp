@@ -138,10 +138,10 @@ static void EnsureRealLibraryLoaded()
     if(!RenderDoc::Inst().IsReplayApp())
       RDCLOG("Loading libEGL at the last second");
 
-    void *handle = Process::LoadModule("libEGL.so");
+    void *handle = Process::LoadModule("libEGL.so.1");
 
     if(!handle)
-      handle = Process::LoadModule("libEGL.so.1");
+      handle = Process::LoadModule("libEGL.so");
 
     if(RenderDoc::Inst().IsReplayApp())
       eglhook.handle = handle;
