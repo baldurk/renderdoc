@@ -484,6 +484,12 @@ private:
         return;
       m_TextureRecord[TextureIdx(target)][m_TextureUnit] = record;
     }
+    void ClearMatchingActiveTexRecord(GLResourceRecord *record)
+    {
+      for(size_t i = 0; i < ARRAY_COUNT(m_TextureRecord); i++)
+        if(m_TextureRecord[i][m_TextureUnit] == record)
+          m_TextureRecord[i][m_TextureUnit] = NULL;
+    }
     GLResourceRecord *GetTexUnitRecord(GLenum target, GLenum texunit)
     {
       return m_TextureRecord[TextureIdx(target)][texunit - eGL_TEXTURE0];
