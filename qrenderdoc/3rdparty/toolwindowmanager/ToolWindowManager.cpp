@@ -648,8 +648,12 @@ void ToolWindowManager::restoreState(const QVariantMap &dataMap)
   QVariantList floatWins = dataMap[QStringLiteral("floatingWindows")].toList();
   foreach(QVariant windowData, floatWins)
   {
+    QVariantMap floatData = windowData.toMap();
+    if(floatData.empty())
+      continue;
+
     ToolWindowManagerWrapper *wrapper = new ToolWindowManagerWrapper(this, true);
-    wrapper->restoreState(windowData.toMap());
+    wrapper->restoreState(floatData);
     wrapper->updateTitle();
     wrapper->show();
     if(wrapper->windowState() & Qt::WindowMaximized)
