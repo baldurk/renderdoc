@@ -2787,7 +2787,7 @@ QString ShaderViewer::getRegNames(const RDTreeWidgetItem *item, uint32_t swizzle
   uint32_t start = 0;
   uint32_t count = (uint32_t)mapping.variables.size();
 
-  if(mapping.rows > 1)
+  if(mapping.rows > 1 && mapping.variables.size() > mapping.columns)
   {
     count = mapping.columns;
     if(child < mapping.rows)
@@ -4087,7 +4087,7 @@ bool ShaderViewer::updateWatchVariable(RDTreeWidgetItem *watchItem, const RDTree
 
   size_t dataSize = VarTypeByteSize(var.type);
 
-  if(var.rows > 1)
+  if(var.rows > 1 && !var.members.empty())
   {
     watchItem->clear();
 
@@ -4440,12 +4440,12 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
   uint32_t childCount = 0;
 
   {
-    if(l.rows > 1)
+    if(l.rows > 1 && l.variables.size() > l.columns)
       typeName += QFormatStr("%1x%2").arg(l.rows).arg(l.columns);
     else if(l.columns > 1)
       typeName += QString::number(l.columns);
 
-    if(l.rows > 1)
+    if(l.rows > 1 && l.variables.size() > l.columns)
       childCount = l.rows;
 
     for(size_t i = 0; i < l.variables.size(); i++)
