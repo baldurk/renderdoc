@@ -98,15 +98,16 @@ void WrappedMTLCommandBuffer::commit()
       Serialise_commit(ser);
       chunk = scope.Get();
     }
-    MetalResourceRecord *record = GetRecord(this);
-    record->AddChunk(chunk);
+    MetalResourceRecord *bufferRecord = GetRecord(this);
+    bufferRecord->AddChunk(chunk);
 
     bool capframe = IsActiveCapturing(m_State);
     if(capframe)
     {
       record->AddRef();
-      GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_WrappedMTLCommandQueue),
-                                                        eFrameRef_Read);
+      bufferRecord->MarkResourceFrameReferenced(GetResID(m_WrappedMTLCommandQueue), eFrameRef_Read);
+      // pull in frame refs from this command buffer
+      bufferRecord->AddResourceReferences(GetResourceManager());
     }
   }
   else
