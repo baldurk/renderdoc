@@ -498,6 +498,16 @@ inline MemoryAccessAndParamDatas DecodeParam(const ConstIter &it, uint32_t &word
     ret.makePointerVisible = Id::fromWord(it.word(word));
     word += 1;
   }
+  if(ret.flags & MemoryAccess::AliasScopeINTELMask)
+  {
+    ret.aliasScopeINTELMask = Id::fromWord(it.word(word));
+    word += 1;
+  }
+  if(ret.flags & MemoryAccess::NoAliasINTELMask)
+  {
+    ret.noAliasINTELMask = Id::fromWord(it.word(word));
+    word += 1;
+  }
   return ret;
 }
 
@@ -516,6 +526,14 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const MemoryAccessAndParamDat
   {
     words.push_back(param.makePointerVisible.value());
   }
+  if(param.flags & MemoryAccess::AliasScopeINTELMask)
+  {
+    words.push_back(param.aliasScopeINTELMask.value());
+  }
+  if(param.flags & MemoryAccess::NoAliasINTELMask)
+  {
+    words.push_back(param.noAliasINTELMask.value());
+  }
 }
 
 inline uint16_t ExtraWordCount(const MemoryAccess memoryAccess)
@@ -525,6 +543,8 @@ inline uint16_t ExtraWordCount(const MemoryAccess memoryAccess)
     case MemoryAccess::Aligned: return 1;
     case MemoryAccess::MakePointerAvailable: return 1;
     case MemoryAccess::MakePointerVisible: return 1;
+    case MemoryAccess::AliasScopeINTELMask: return 1;
+    case MemoryAccess::NoAliasINTELMask: return 1;
     default: break;
   }
   return 0;
@@ -875,6 +895,19 @@ struct ExecutionModeParam<ExecutionMode::SchedulerTargetFmaxMhzINTEL>
   }
 };
 
+template<>
+struct ExecutionModeParam<ExecutionMode::NamedBarrierCountINTEL>
+{
+  uint32_t namedBarrierCountINTEL;
+  ExecutionModeParam(uint32_t namedBarrierCountINTELParam) {  namedBarrierCountINTEL = namedBarrierCountINTELParam; }
+  operator ExecutionModeAndParamData()
+  {
+    ExecutionModeAndParamData ret(ExecutionMode::NamedBarrierCountINTEL);
+    ret.namedBarrierCountINTEL = namedBarrierCountINTEL;
+    return ret;
+  }
+};
+
 
 
 template<>
@@ -996,6 +1029,10 @@ inline ExecutionModeAndParamData DecodeParam(const ConstIter &it, uint32_t &word
       ret.schedulerTargetFmaxMhzINTEL = (uint32_t)it.word(word);
       word += 1;
       break;
+    case ExecutionMode::NamedBarrierCountINTEL:
+      ret.namedBarrierCountINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
     default: break;
   }
   return ret;
@@ -1091,6 +1128,9 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const ExecutionModeAndParamDa
     case ExecutionMode::SchedulerTargetFmaxMhzINTEL:
       words.push_back((uint32_t)param.schedulerTargetFmaxMhzINTEL);
       break;
+    case ExecutionMode::NamedBarrierCountINTEL:
+      words.push_back((uint32_t)param.namedBarrierCountINTEL);
+      break;
     default: break;
   }
 }
@@ -1124,6 +1164,7 @@ inline uint16_t ExtraWordCount(const ExecutionMode executionMode)
     case ExecutionMode::MaxWorkDimINTEL: return 1;
     case ExecutionMode::NumSIMDWorkitemsINTEL: return 1;
     case ExecutionMode::SchedulerTargetFmaxMhzINTEL: return 1;
+    case ExecutionMode::NamedBarrierCountINTEL: return 1;
     default: break;
   }
   return 0;
@@ -1645,6 +1686,32 @@ struct DecorationParam<Decoration::PrefetchINTEL>
 };
 
 template<>
+struct DecorationParam<Decoration::AliasScopeINTEL>
+{
+  Id aliasScopeINTEL;
+  DecorationParam(Id aliasScopeINTELParam) {  aliasScopeINTEL = aliasScopeINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::AliasScopeINTEL);
+    ret.aliasScopeINTEL = aliasScopeINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::NoAliasINTEL>
+{
+  Id noAliasINTEL;
+  DecorationParam(Id noAliasINTELParam) {  noAliasINTEL = noAliasINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::NoAliasINTEL);
+    ret.noAliasINTEL = noAliasINTEL;
+    return ret;
+  }
+};
+
+template<>
 struct DecorationParam<Decoration::BufferLocationINTEL>
 {
   uint32_t bufferLocationINTEL;
@@ -1845,6 +1912,14 @@ inline DecorationAndParamData DecodeParam(const ConstIter &it, uint32_t &word)
       ret.prefetchINTEL = (uint32_t)it.word(word);
       word += 1;
       break;
+    case Decoration::AliasScopeINTEL:
+      ret.aliasScopeINTEL = Id::fromWord(it.word(word));
+      word += 1;
+      break;
+    case Decoration::NoAliasINTEL:
+      ret.noAliasINTEL = Id::fromWord(it.word(word));
+      word += 1;
+      break;
     case Decoration::BufferLocationINTEL:
       ret.bufferLocationINTEL = (uint32_t)it.word(word);
       word += 1;
@@ -1981,6 +2056,12 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const DecorationAndParamData 
     case Decoration::PrefetchINTEL:
       words.push_back((uint32_t)param.prefetchINTEL);
       break;
+    case Decoration::AliasScopeINTEL:
+      words.push_back(param.aliasScopeINTEL.value());
+      break;
+    case Decoration::NoAliasINTEL:
+      words.push_back(param.noAliasINTEL.value());
+      break;
     case Decoration::BufferLocationINTEL:
       words.push_back((uint32_t)param.bufferLocationINTEL);
       break;
@@ -2036,6 +2117,8 @@ inline uint16_t ExtraWordCount(const Decoration decoration)
     case Decoration::ForcePow2DepthINTEL: return 1;
     case Decoration::CacheSizeINTEL: return 1;
     case Decoration::PrefetchINTEL: return 1;
+    case Decoration::AliasScopeINTEL: return 1;
+    case Decoration::NoAliasINTEL: return 1;
     case Decoration::BufferLocationINTEL: return 1;
     case Decoration::IOPipeStorageINTEL: return 1;
     case Decoration::FunctionFloatingPointModeINTEL: return 2;
@@ -15680,6 +15763,278 @@ struct OpSpecConstantCompositeContinuedINTEL
   Op op;
   uint16_t wordCount;
   rdcarray<Id> constituents;
+};
+
+struct OpControlBarrierArriveINTEL
+{
+  OpControlBarrierArriveINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpControlBarrierArriveINTEL(IdScope execution, IdScope memory, IdMemorySemantics semantics)
+      : op(Op::ControlBarrierArriveINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->execution = execution;
+    this->memory = memory;
+    this->semantics = semantics;
+  }
+
+  static constexpr Op OpCode = Op::ControlBarrierArriveINTEL;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdScope execution;
+  IdScope memory;
+  IdMemorySemantics semantics;
+};
+
+struct OpControlBarrierWaitINTEL
+{
+  OpControlBarrierWaitINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpControlBarrierWaitINTEL(IdScope execution, IdScope memory, IdMemorySemantics semantics)
+      : op(Op::ControlBarrierWaitINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->execution = execution;
+    this->memory = memory;
+    this->semantics = semantics;
+  }
+
+  static constexpr Op OpCode = Op::ControlBarrierWaitINTEL;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdScope execution;
+  IdScope memory;
+  IdMemorySemantics semantics;
+};
+
+struct OpGroupIMulKHR
+{
+  OpGroupIMulKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpGroupIMulKHR(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
+      : op(Op::GroupIMulKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+
+  static constexpr Op OpCode = Op::GroupIMulKHR;
+  static constexpr uint16_t FixedWordSize = 6U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  IdScope execution;
+  GroupOperation operation;
+  Id x;
+};
+
+struct OpGroupFMulKHR
+{
+  OpGroupFMulKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpGroupFMulKHR(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
+      : op(Op::GroupFMulKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+
+  static constexpr Op OpCode = Op::GroupFMulKHR;
+  static constexpr uint16_t FixedWordSize = 6U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  IdScope execution;
+  GroupOperation operation;
+  Id x;
+};
+
+struct OpGroupBitwiseAndKHR
+{
+  OpGroupBitwiseAndKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpGroupBitwiseAndKHR(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
+      : op(Op::GroupBitwiseAndKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+
+  static constexpr Op OpCode = Op::GroupBitwiseAndKHR;
+  static constexpr uint16_t FixedWordSize = 6U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  IdScope execution;
+  GroupOperation operation;
+  Id x;
+};
+
+struct OpGroupBitwiseOrKHR
+{
+  OpGroupBitwiseOrKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpGroupBitwiseOrKHR(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
+      : op(Op::GroupBitwiseOrKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+
+  static constexpr Op OpCode = Op::GroupBitwiseOrKHR;
+  static constexpr uint16_t FixedWordSize = 6U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  IdScope execution;
+  GroupOperation operation;
+  Id x;
+};
+
+struct OpGroupBitwiseXorKHR
+{
+  OpGroupBitwiseXorKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpGroupBitwiseXorKHR(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
+      : op(Op::GroupBitwiseXorKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+
+  static constexpr Op OpCode = Op::GroupBitwiseXorKHR;
+  static constexpr uint16_t FixedWordSize = 6U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  IdScope execution;
+  GroupOperation operation;
+  Id x;
+};
+
+struct OpGroupLogicalAndKHR
+{
+  OpGroupLogicalAndKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpGroupLogicalAndKHR(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
+      : op(Op::GroupLogicalAndKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+
+  static constexpr Op OpCode = Op::GroupLogicalAndKHR;
+  static constexpr uint16_t FixedWordSize = 6U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  IdScope execution;
+  GroupOperation operation;
+  Id x;
+};
+
+struct OpGroupLogicalOrKHR
+{
+  OpGroupLogicalOrKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpGroupLogicalOrKHR(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
+      : op(Op::GroupLogicalOrKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+
+  static constexpr Op OpCode = Op::GroupLogicalOrKHR;
+  static constexpr uint16_t FixedWordSize = 6U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  IdScope execution;
+  GroupOperation operation;
+  Id x;
+};
+
+struct OpGroupLogicalXorKHR
+{
+  OpGroupLogicalXorKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpGroupLogicalXorKHR(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
+      : op(Op::GroupLogicalXorKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+
+  static constexpr Op OpCode = Op::GroupLogicalXorKHR;
+  static constexpr uint16_t FixedWordSize = 6U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  IdScope execution;
+  GroupOperation operation;
+  Id x;
 };
 
 template<typename T>

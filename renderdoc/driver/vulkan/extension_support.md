@@ -212,6 +212,7 @@ KHR extensions will definitely be implemented at some point, though KHR extensio
 The portability subset is only relevant on mac, which is not a supported platform.
 
 * `VK_KHR_portability_subset`
+* `VK_KHR_portability_enumeration`
 
 ## KHR Ray tracing extensions
 
@@ -231,12 +232,15 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_depth_clip_control`
 * `VK_EXT_device_memory_report`
 * `VK_EXT_external_memory_host`
+* `VK_EXT_image_2d_view_of_3d`
 * `VK_EXT_image_drm_format_modifier`
 * `VK_EXT_image_view_min_lod`
 * `VK_EXT_multi_draw`
+* `VK_EXT_graphics_pipeline_library`
 * `VK_EXT_pageable_device_local_memory`
 * `VK_EXT_physical_device_drm`
 * `VK_EXT_primitive_topology_list_restart`
+* `VK_EXT_primitives_generated_query`
 * `VK_EXT_provoking_vertex`
 
 ## Platform/IHV Extensions
@@ -309,6 +313,7 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 ### Valve
 
 * `VK_VALVE_mutable_descriptor_type`
+* `VK_VALVE_descriptor_set_host_mapping`
 
 ## WSI for other platforms
 

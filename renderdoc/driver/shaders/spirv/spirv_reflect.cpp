@@ -715,6 +715,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       case SourceLanguage::CPP_for_OpenCL:
       case SourceLanguage::Unknown:
       case SourceLanguage::Invalid:
+      case SourceLanguage::SYCL:
       case SourceLanguage::Max: break;
     }
 

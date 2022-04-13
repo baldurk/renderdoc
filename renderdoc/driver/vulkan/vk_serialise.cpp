@@ -84,7 +84,7 @@ DECL_VKFLAG(VkImageAspect);
 DECL_VKFLAG(VkImageUsage);
 DECL_VKFLAG(VkImageCreate);
 DECL_VKFLAG(VkImageViewCreate);
-DECL_VKFLAG_EMPTY(VkInstanceCreate);
+DECL_VKFLAG(VkInstanceCreate);
 DECL_VKFLAG(VkFenceCreate);
 DECL_VKFLAG(VkFenceImport);
 DECL_VKFLAG(VkFramebufferCreate);
@@ -99,7 +99,7 @@ DECL_VKFLAG(VkPipelineCreate);
 DECL_VKFLAG(VkPipelineDepthStencilStateCreate);
 DECL_VKFLAG_EMPTY(VkPipelineDynamicStateCreate);
 DECL_VKFLAG_EMPTY(VkPipelineInputAssemblyStateCreate);
-DECL_VKFLAG_EMPTY(VkPipelineLayoutCreate);
+DECL_VKFLAG(VkPipelineLayoutCreate);
 DECL_VKFLAG_EMPTY(VkPipelineMultisampleStateCreate);
 DECL_VKFLAG_EMPTY(VkPipelineRasterizationStateCreate);
 DECL_VKFLAG(VkPipelineShaderStageCreate);
@@ -152,7 +152,7 @@ DECL_VKFLAG_EMPTY_EXT(VkPipelineDiscardRectangleStateCreate, EXT);
 DECL_VKFLAG_EMPTY_EXT(VkPipelineRasterizationConservativeStateCreate, EXT);
 DECL_VKFLAG_EMPTY_EXT(VkPipelineRasterizationStateStreamCreate, EXT);
 DECL_VKFLAG_EMPTY_EXT(VkPipelineViewportSwizzleStateCreate, NV);
-DECL_VKFLAG(VkPrivateDataSlotCreate);
+DECL_VKFLAG_EMPTY(VkPrivateDataSlotCreate);
 DECL_VKFLAG_EXT(VkSurfaceCounter, EXT);
 DECL_VKFLAG_EXT(VkSurfaceTransform, KHR);
 DECL_VKFLAG_EXT(VkSwapchainCreate, KHR);
@@ -1336,6 +1336,9 @@ SERIALISE_VK_HANDLES();
   /* VK_EXT_headless_surface */                                                                        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT)                                \
                                                                                                        \
+  /* VK_EXT_image_2d_view_of_3d */                                                                     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_2D_VIEW_OF_3D_FEATURES_EXT)                \
+                                                                                                       \
   /* VK_EXT_image_drm_format_modifier */                                                               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT)                         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT)              \
@@ -1347,6 +1350,11 @@ SERIALISE_VK_HANDLES();
   /* VK_EXT_image_view_min_lod */                                                                      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_MIN_LOD_FEATURES_EXT)                 \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT)                              \
+                                                                                                       \
+  /* VK_EXT_graphics_pipeline_library */                                                               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT)          \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_PROPERTIES_EXT)        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT)                       \
                                                                                                        \
   /* VK_EXT_multi_draw */                                                                              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTI_DRAW_FEATURES_EXT)                         \
@@ -1360,6 +1368,9 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_EXT_primitive_topology_list_restart */                                                         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVE_TOPOLOGY_LIST_RESTART_FEATURES_EXT)    \
+                                                                                                       \
+  /* VK_EXT_primitives_generated_query */                                                              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVES_GENERATED_QUERY_FEATURES_EXT)         \
                                                                                                        \
   /* VK_EXT_provoking_vertex */                                                                        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROVOKING_VERTEX_FEATURES_EXT)                   \
@@ -1542,6 +1553,11 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_QCOM_rotated_copy_commands */                                                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COPY_COMMAND_TRANSFORM_INFO_QCOM)                                \
+                                                                                                       \
+  /* VK_VALVE_descriptor_set_host_mapping */                                                           \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_SET_HOST_MAPPING_FEATURES_VALVE)      \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_BINDING_REFERENCE_VALVE)                          \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_HOST_MAPPING_INFO_VALVE)                   \
                                                                                                        \
   /* VK_VALVE_mutable_descriptor_type */                                                               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_VALVE)          \

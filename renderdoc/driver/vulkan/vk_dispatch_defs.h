@@ -917,6 +917,10 @@ struct VkDevDispatchTable
   // VK_EXT_pageable_device_local_memory
   PFN_vkSetDeviceMemoryPriorityEXT SetDeviceMemoryPriorityEXT;
 
+  // VK_VALVE_descriptor_set_host_mapping
+  PFN_vkGetDescriptorSetLayoutHostMappingInfoVALVE GetDescriptorSetLayoutHostMappingInfoVALVE;
+  PFN_vkGetDescriptorSetHostMappingVALVE GetDescriptorSetHostMappingVALVE;
+
   // for consistency with macros, we declare the CreateDevice pointer here
   // even though it won't actually ever get used and is on the instance dispatch chain
   PFN_vkCreateDevice CreateDevice;

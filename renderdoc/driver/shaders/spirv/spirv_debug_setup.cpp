@@ -522,6 +522,9 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::LongConstantCompositeINTEL:
       case Capability::DebugInfoModuleINTEL:
       case Capability::BindlessTextureNV:
+      case Capability::MemoryAccessAliasingINTEL:
+      case Capability::SplitBarrierINTEL:
+      case Capability::GroupUniformArithmeticKHR:
       case Capability::Max:
       case Capability::Invalid:
       {

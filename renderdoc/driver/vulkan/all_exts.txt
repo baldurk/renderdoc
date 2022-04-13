@@ -228,6 +228,7 @@
 301    VK_NV_device_diagnostics_config
 302    VK_QCOM_render_pass_store_ops
 315    VK_KHR_synchronization2
+321    VK_EXT_graphics_pipeline_library
 324    VK_KHR_shader_subgroup_uniform_control_flow
 326    VK_KHR_zero_initialize_workgroup_memory
 327    VK_NV_fragment_shading_rate_enums
@@ -260,13 +261,17 @@
 378    VK_EXT_extended_dynamic_state2
 379    VK_QNX_screen_surface
 382    VK_EXT_color_write_enable
+383    VK_EXT_primitives_generated_query
 389    VK_EXT_global_priority_query
 392    VK_EXT_image_view_min_lod
 393    VK_EXT_multi_draw
+394    VK_EXT_image_2d_view_of_3d
+395    VK_KHR_portability_enumeration
 401    VK_EXT_load_store_op_none
 412    VK_EXT_border_color_swizzle
 413    VK_EXT_pageable_device_local_memory
 414    VK_KHR_maintenance4
+421    VK_VALVE_descriptor_set_host_mapping
 426    VK_QCOM_fragment_density_map_offset
 431    VK_NV_linear_color_attachment
 434    VK_GOOGLE_surfaceless_query

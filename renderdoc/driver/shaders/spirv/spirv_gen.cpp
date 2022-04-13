@@ -201,6 +201,8 @@ rdcstr DoStringise(const rdcspv::MemoryAccess &el)
     STRINGISE_BITFIELD_CLASS_BIT(MakePointerAvailable);
     STRINGISE_BITFIELD_CLASS_BIT(MakePointerVisible);
     STRINGISE_BITFIELD_CLASS_BIT(NonPrivatePointer);
+    STRINGISE_BITFIELD_CLASS_BIT(AliasScopeINTELMask);
+    STRINGISE_BITFIELD_CLASS_BIT(NoAliasINTELMask);
   }
   END_BITFIELD_STRINGISE();
 }
@@ -262,6 +264,7 @@ rdcstr DoStringise(const rdcspv::SourceLanguage &el)
     STRINGISE_ENUM_CLASS(OpenCL_CPP);
     STRINGISE_ENUM_CLASS(HLSL);
     STRINGISE_ENUM_CLASS(CPP_for_OpenCL);
+    STRINGISE_ENUM_CLASS(SYCL);
   }
   END_ENUM_STRINGISE();
 }
@@ -388,6 +391,7 @@ rdcstr DoStringise(const rdcspv::ExecutionMode &el)
     STRINGISE_ENUM_CLASS(NoGlobalOffsetINTEL);
     STRINGISE_ENUM_CLASS(NumSIMDWorkitemsINTEL);
     STRINGISE_ENUM_CLASS(SchedulerTargetFmaxMhzINTEL);
+    STRINGISE_ENUM_CLASS(NamedBarrierCountINTEL);
   }
   END_ENUM_STRINGISE();
 }
@@ -779,6 +783,8 @@ rdcstr DoStringise(const rdcspv::Decoration &el)
     STRINGISE_ENUM_CLASS(PrefetchINTEL);
     STRINGISE_ENUM_CLASS(StallEnableINTEL);
     STRINGISE_ENUM_CLASS(FuseLoopsInFunctionINTEL);
+    STRINGISE_ENUM_CLASS(AliasScopeINTEL);
+    STRINGISE_ENUM_CLASS(NoAliasINTEL);
     STRINGISE_ENUM_CLASS(BufferLocationINTEL);
     STRINGISE_ENUM_CLASS(IOPipeStorageINTEL);
     STRINGISE_ENUM_CLASS(FunctionFloatingPointModeINTEL);
@@ -1123,6 +1129,7 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(FPGAMemoryAccessesINTEL);
     STRINGISE_ENUM_CLASS(FPGAClusterAttributesINTEL);
     STRINGISE_ENUM_CLASS(LoopFuseINTEL);
+    STRINGISE_ENUM_CLASS(MemoryAccessAliasingINTEL);
     STRINGISE_ENUM_CLASS(FPGABufferLocationINTEL);
     STRINGISE_ENUM_CLASS(ArbitraryPrecisionFixedPointINTEL);
     STRINGISE_ENUM_CLASS(USMStorageClassesINTEL);
@@ -1140,6 +1147,8 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(OptNoneINTEL);
     STRINGISE_ENUM_CLASS(AtomicFloat16AddEXT);
     STRINGISE_ENUM_CLASS(DebugInfoModuleINTEL);
+    STRINGISE_ENUM_CLASS(SplitBarrierINTEL);
+    STRINGISE_ENUM_CLASS(GroupUniformArithmeticKHR);
   }
   END_ENUM_STRINGISE();
 }
@@ -1656,6 +1665,16 @@ rdcstr DoStringise(const rdcspv::Op &el)
     STRINGISE_ENUM_CLASS(TypeStructContinuedINTEL);
     STRINGISE_ENUM_CLASS(ConstantCompositeContinuedINTEL);
     STRINGISE_ENUM_CLASS(SpecConstantCompositeContinuedINTEL);
+    STRINGISE_ENUM_CLASS(ControlBarrierArriveINTEL);
+    STRINGISE_ENUM_CLASS(ControlBarrierWaitINTEL);
+    STRINGISE_ENUM_CLASS(GroupIMulKHR);
+    STRINGISE_ENUM_CLASS(GroupFMulKHR);
+    STRINGISE_ENUM_CLASS(GroupBitwiseAndKHR);
+    STRINGISE_ENUM_CLASS(GroupBitwiseOrKHR);
+    STRINGISE_ENUM_CLASS(GroupBitwiseXorKHR);
+    STRINGISE_ENUM_CLASS(GroupLogicalAndKHR);
+    STRINGISE_ENUM_CLASS(GroupLogicalOrKHR);
+    STRINGISE_ENUM_CLASS(GroupLogicalXorKHR);
   }
   END_ENUM_STRINGISE();
 }
@@ -1808,6 +1827,10 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv:
     ret += "MakePointerVisible" "(" + idName(el.makePointerVisible) + ")" ", ";
   if(el.flags & MemoryAccess::NonPrivatePointer)
     ret += "NonPrivatePointer" ", ";
+  if(el.flags & MemoryAccess::AliasScopeINTELMask)
+    ret += "AliasScopeINTELMask" "(" + idName(el.aliasScopeINTELMask) + ")" ", ";
+  if(el.flags & MemoryAccess::NoAliasINTELMask)
+    ret += "NoAliasINTELMask" "(" + idName(el.noAliasINTELMask) + ")" ", ";
 
   // remove trailing ", "
   if(ret.size() > 2)
@@ -1873,6 +1896,8 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv:
       ret +=  "(" + ToStr(el.numSIMDWorkitemsINTEL) + ")"; break;
     case ExecutionMode::SchedulerTargetFmaxMhzINTEL:
       ret +=  "(" + ToStr(el.schedulerTargetFmaxMhzINTEL) + ")"; break;
+    case ExecutionMode::NamedBarrierCountINTEL:
+      ret +=  "(" + ToStr(el.namedBarrierCountINTEL) + ")"; break;
     default:
       break;
   }
@@ -1961,6 +1986,10 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv:
       ret +=  "(" + ToStr(el.cacheSizeINTEL) + ")"; break;
     case Decoration::PrefetchINTEL:
       ret +=  "(" + ToStr(el.prefetchINTEL) + ")"; break;
+    case Decoration::AliasScopeINTEL:
+      ret +=  "(" + idName(el.aliasScopeINTEL) + ")"; break;
+    case Decoration::NoAliasINTEL:
+      ret +=  "(" + idName(el.noAliasINTEL) + ")"; break;
     case Decoration::BufferLocationINTEL:
       ret +=  "(" + ToStr(el.bufferLocationINTEL) + ")"; break;
     case Decoration::IOPipeStorageINTEL:
@@ -4525,6 +4554,64 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       break;
     case rdcspv::Op::SpecConstantCompositeContinuedINTEL:
       for(size_t i=0; i < size-1; i++) callback(Id::fromWord(it.word(1+i)), false);
+      break;
+    case rdcspv::Op::ControlBarrierArriveINTEL:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
+      break;
+    case rdcspv::Op::ControlBarrierWaitINTEL:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
+      break;
+    case rdcspv::Op::GroupIMulKHR:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      break;
+    case rdcspv::Op::GroupFMulKHR:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      break;
+    case rdcspv::Op::GroupBitwiseAndKHR:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      break;
+    case rdcspv::Op::GroupBitwiseOrKHR:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      break;
+    case rdcspv::Op::GroupBitwiseXorKHR:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      break;
+    case rdcspv::Op::GroupLogicalAndKHR:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      break;
+    case rdcspv::Op::GroupLogicalOrKHR:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      break;
+    case rdcspv::Op::GroupLogicalXorKHR:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case Op::Max: break;
   }
@@ -7690,6 +7777,74 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
       ret += "SpecConstantCompositeContinuedINTEL(" + ParamsToStr(idName, decoded.constituents) + ")";
       break;
     }
+    case rdcspv::Op::ControlBarrierArriveINTEL:
+    {
+      OpControlBarrierArriveINTEL decoded(it);
+      ret += "ControlBarrierArriveINTEL(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ")";
+      break;
+    }
+    case rdcspv::Op::ControlBarrierWaitINTEL:
+    {
+      OpControlBarrierWaitINTEL decoded(it);
+      ret += "ControlBarrierWaitINTEL(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ")";
+      break;
+    }
+    case rdcspv::Op::GroupIMulKHR:
+    {
+      OpGroupIMulKHR decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "GroupIMulKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      break;
+    }
+    case rdcspv::Op::GroupFMulKHR:
+    {
+      OpGroupFMulKHR decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "GroupFMulKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      break;
+    }
+    case rdcspv::Op::GroupBitwiseAndKHR:
+    {
+      OpGroupBitwiseAndKHR decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "GroupBitwiseAndKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      break;
+    }
+    case rdcspv::Op::GroupBitwiseOrKHR:
+    {
+      OpGroupBitwiseOrKHR decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "GroupBitwiseOrKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      break;
+    }
+    case rdcspv::Op::GroupBitwiseXorKHR:
+    {
+      OpGroupBitwiseXorKHR decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "GroupBitwiseXorKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      break;
+    }
+    case rdcspv::Op::GroupLogicalAndKHR:
+    {
+      OpGroupLogicalAndKHR decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "GroupLogicalAndKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      break;
+    }
+    case rdcspv::Op::GroupLogicalOrKHR:
+    {
+      OpGroupLogicalOrKHR decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "GroupLogicalOrKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      break;
+    }
+    case rdcspv::Op::GroupLogicalXorKHR:
+    {
+      OpGroupLogicalXorKHR decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "GroupLogicalXorKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      break;
+    }
     case Op::Max: break;
   }
   return ret;
@@ -8164,6 +8319,16 @@ OpDecoder::OpDecoder(const ConstIter &it)
     case rdcspv::Op::TypeStructContinuedINTEL: result = Id(); resultType = Id(); break;
     case rdcspv::Op::ConstantCompositeContinuedINTEL: result = Id(); resultType = Id(); break;
     case rdcspv::Op::SpecConstantCompositeContinuedINTEL: result = Id(); resultType = Id(); break;
+    case rdcspv::Op::ControlBarrierArriveINTEL: result = Id(); resultType = Id(); break;
+    case rdcspv::Op::ControlBarrierWaitINTEL: result = Id(); resultType = Id(); break;
+    case rdcspv::Op::GroupIMulKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::GroupFMulKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::GroupBitwiseAndKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::GroupBitwiseOrKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::GroupBitwiseXorKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::GroupLogicalAndKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::GroupLogicalOrKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::GroupLogicalXorKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case Op::Max: break;
   }
 }

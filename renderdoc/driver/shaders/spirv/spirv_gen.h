@@ -259,6 +259,8 @@ enum class MemoryAccess : uint32_t
   MakePointerVisibleKHR = 0x0010,
   NonPrivatePointer = 0x0020,
   NonPrivatePointerKHR = 0x0020,
+  AliasScopeINTELMask = 0x10000,
+  NoAliasINTELMask = 0x20000,
   Max,
   Invalid = ~0U,
 };
@@ -315,6 +317,7 @@ enum class SourceLanguage : uint32_t
   OpenCL_CPP = 4,
   HLSL = 5,
   CPP_for_OpenCL = 6,
+  SYCL = 7,
   Max,
   Invalid = ~0U,
 };
@@ -437,6 +440,7 @@ enum class ExecutionMode : uint32_t
   NoGlobalOffsetINTEL = 5895,
   NumSIMDWorkitemsINTEL = 5896,
   SchedulerTargetFmaxMhzINTEL = 5903,
+  NamedBarrierCountINTEL = 6417,
   Max,
   Invalid = ~0U,
 };
@@ -793,6 +797,8 @@ enum class Decoration : uint32_t
   PrefetchINTEL = 5902,
   StallEnableINTEL = 5905,
   FuseLoopsInFunctionINTEL = 5907,
+  AliasScopeINTEL = 5914,
+  NoAliasINTEL = 5915,
   BufferLocationINTEL = 5921,
   IOPipeStorageINTEL = 5944,
   FunctionFloatingPointModeINTEL = 6080,
@@ -1166,6 +1172,7 @@ enum class Capability : uint32_t
   FPGAMemoryAccessesINTEL = 5898,
   FPGAClusterAttributesINTEL = 5904,
   LoopFuseINTEL = 5906,
+  MemoryAccessAliasingINTEL = 5910,
   FPGABufferLocationINTEL = 5920,
   ArbitraryPrecisionFixedPointINTEL = 5922,
   USMStorageClassesINTEL = 5935,
@@ -1187,6 +1194,8 @@ enum class Capability : uint32_t
   OptNoneINTEL = 6094,
   AtomicFloat16AddEXT = 6095,
   DebugInfoModuleINTEL = 6114,
+  SplitBarrierINTEL = 6141,
+  GroupUniformArithmeticKHR = 6400,
   Max,
   Invalid = ~0U,
 };
@@ -1370,6 +1379,8 @@ struct MemoryAccessAndParamDatas
   IdScope makePointerAvailableKHR;
   IdScope makePointerVisible;
   IdScope makePointerVisibleKHR;
+  Id aliasScopeINTELMask;
+  Id noAliasINTELMask;
   
   operator MemoryAccess() const { return flags; }
   bool operator &(const MemoryAccess v) const { return bool(flags & v); }
@@ -1393,6 +1404,10 @@ struct MemoryAccessAndParamDatas
   void unsetNonPrivatePointer() { flags &= ~MemoryAccess::NonPrivatePointer; }
   void setNonPrivatePointerKHR() { flags |= MemoryAccess::NonPrivatePointerKHR; }
   void unsetNonPrivatePointerKHR() { flags &= ~MemoryAccess::NonPrivatePointerKHR; }
+  void setAliasScopeINTELMask(Id aliasScopeINTELMaskParam) { flags |= MemoryAccess::AliasScopeINTELMask; aliasScopeINTELMask = aliasScopeINTELMaskParam; }
+  void unsetAliasScopeINTELMask() { flags &= ~MemoryAccess::AliasScopeINTELMask; }
+  void setNoAliasINTELMask(Id noAliasINTELMaskParam) { flags |= MemoryAccess::NoAliasINTELMask; noAliasINTELMask = noAliasINTELMaskParam; }
+  void unsetNoAliasINTELMask() { flags &= ~MemoryAccess::NoAliasINTELMask; }
 };
 
 struct LocalSizeParams
@@ -1461,6 +1476,7 @@ struct ExecutionModeAndParamData
     uint32_t maxWorkDimINTEL;
     uint32_t numSIMDWorkitemsINTEL;
     uint32_t schedulerTargetFmaxMhzINTEL;
+    uint32_t namedBarrierCountINTEL;
   };
   
   operator ExecutionMode() const { return value; }
@@ -1529,6 +1545,8 @@ struct DecorationAndParamData
     uint32_t forcePow2DepthINTEL;
     uint32_t cacheSizeINTEL;
     uint32_t prefetchINTEL;
+    Id aliasScopeINTEL;
+    Id noAliasINTEL;
     uint32_t bufferLocationINTEL;
     uint32_t iOPipeStorageINTEL;
     FunctionFloatingPointModeINTELParams functionFloatingPointModeINTEL;
@@ -2014,6 +2032,16 @@ enum class Op : uint16_t
   TypeStructContinuedINTEL = 6090,
   ConstantCompositeContinuedINTEL = 6091,
   SpecConstantCompositeContinuedINTEL = 6092,
+  ControlBarrierArriveINTEL = 6142,
+  ControlBarrierWaitINTEL = 6143,
+  GroupIMulKHR = 6401,
+  GroupFMulKHR = 6402,
+  GroupBitwiseAndKHR = 6403,
+  GroupBitwiseOrKHR = 6404,
+  GroupBitwiseXorKHR = 6405,
+  GroupLogicalAndKHR = 6406,
+  GroupLogicalOrKHR = 6407,
+  GroupLogicalXorKHR = 6408,
 
   Max,
 };

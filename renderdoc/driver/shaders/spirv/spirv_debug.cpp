@@ -3489,6 +3489,15 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::SDotAccSatKHR:
     case Op::UDotAccSatKHR:
     case Op::SUDotAccSatKHR:
+
+    case Op::GroupIMulKHR:
+    case Op::GroupFMulKHR:
+    case Op::GroupBitwiseAndKHR:
+    case Op::GroupBitwiseOrKHR:
+    case Op::GroupBitwiseXorKHR:
+    case Op::GroupLogicalAndKHR:
+    case Op::GroupLogicalOrKHR:
+    case Op::GroupLogicalXorKHR:
     {
       RDCERR("Group opcodes not supported. SPIR-V should have been rejected by capability!");
 
@@ -3762,6 +3771,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::FPGARegINTEL:
     case Op::ReadPipeBlockingINTEL:
     case Op::WritePipeBlockingINTEL:
+    case Op::ControlBarrierArriveINTEL:
+    case Op::ControlBarrierWaitINTEL:
     {
       // these are kernel only
       RDCERR("Encountered unexpected kernel SPIR-V operation %s", ToStr(opdata.op).c_str());
