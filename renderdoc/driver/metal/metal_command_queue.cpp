@@ -30,7 +30,7 @@ WrappedMTLCommandQueue::WrappedMTLCommandQueue(MTL::CommandQueue *realMTLCommand
                                                ResourceId objId, WrappedMTLDevice *wrappedMTLDevice)
     : WrappedMTLObject(realMTLCommandQueue, objId, wrappedMTLDevice, wrappedMTLDevice->GetStateRef())
 {
-  objcBridge = AllocateObjCBridge(this);
+  m_ObjcBridge = AllocateObjCBridge(this);
 }
 
 template <typename SerialiserType>

@@ -31,7 +31,7 @@ WrappedMTLCommandBuffer::WrappedMTLCommandBuffer(MTL::CommandBuffer *realMTLComm
                                                  ResourceId objId, WrappedMTLDevice *wrappedMTLDevice)
     : WrappedMTLObject(realMTLCommandBuffer, objId, wrappedMTLDevice, wrappedMTLDevice->GetStateRef())
 {
-  objcBridge = AllocateObjCBridge(this);
+  m_ObjcBridge = AllocateObjCBridge(this);
 }
 
 template <typename SerialiserType>
@@ -104,7 +104,7 @@ void WrappedMTLCommandBuffer::commit()
     bool capframe = IsActiveCapturing(m_State);
     if(capframe)
     {
-      record->AddRef();
+      bufferRecord->AddRef();
       bufferRecord->MarkResourceFrameReferenced(GetResID(m_WrappedMTLCommandQueue), eFrameRef_Read);
       // pull in frame refs from this command buffer
       bufferRecord->AddResourceReferences(GetResourceManager());

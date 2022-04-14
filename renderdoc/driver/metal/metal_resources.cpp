@@ -34,7 +34,7 @@ ResourceId GetResID(WrappedMTLObject *obj)
   if(obj == NULL)
     return ResourceId();
 
-  return obj->id;
+  return obj->m_ID;
 }
 
 #define IMPLEMENT_WRAPPED_TYPE_HELPERS(CPPTYPE)                                          \
@@ -64,6 +64,6 @@ MTL::Device *WrappedMTLObject::GetObjCBridgeMTLDevice()
 
 MetalResourceRecord::~MetalResourceRecord()
 {
-  if(resType == eResCommandBuffer)
+  if(m_Type == eResCommandBuffer)
     SAFE_DELETE(cmdInfo);
 }

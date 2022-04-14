@@ -29,5 +29,5 @@ WrappedMTLFunction::WrappedMTLFunction(MTL::Function *realMTLFunction, ResourceI
                                        WrappedMTLDevice *wrappedMTLDevice)
     : WrappedMTLObject(realMTLFunction, objId, wrappedMTLDevice, wrappedMTLDevice->GetStateRef())
 {
-  objcBridge = AllocateObjCBridge(this);
+  m_ObjcBridge = AllocateObjCBridge(this);
 }

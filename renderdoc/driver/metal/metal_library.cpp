@@ -30,7 +30,7 @@ WrappedMTLLibrary::WrappedMTLLibrary(MTL::Library *realMTLLibrary, ResourceId ob
                                      WrappedMTLDevice *wrappedMTLDevice)
     : WrappedMTLObject(realMTLLibrary, objId, wrappedMTLDevice, wrappedMTLDevice->GetStateRef())
 {
-  objcBridge = AllocateObjCBridge(this);
+  m_ObjcBridge = AllocateObjCBridge(this);
 }
 
 template <typename SerialiserType>

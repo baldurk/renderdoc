@@ -31,7 +31,7 @@
 WrappedMTLDevice::WrappedMTLDevice(MTL::Device *realMTLDevice, ResourceId objId)
     : WrappedMTLObject(realMTLDevice, objId, this, GetStateRef())
 {
-  objcBridge = AllocateObjCBridge(this);
+  m_ObjcBridge = AllocateObjCBridge(this);
   m_WrappedMTLDevice = this;
   threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
 

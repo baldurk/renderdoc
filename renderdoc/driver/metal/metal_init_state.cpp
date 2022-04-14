@@ -29,7 +29,7 @@ bool WrappedMTLDevice::Prepare_InitialState(WrappedMTLObject *res)
 {
   ResourceId id = GetResourceManager()->GetID(res);
 
-  MetalResourceType type = res->record->resType;
+  MetalResourceType type = res->m_Record->m_Type;
   {
     RDCERR("Unhandled resource type %d", type);
   }
