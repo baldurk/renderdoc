@@ -3266,6 +3266,11 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
           if(descsets.size() < firstSet + setCount)
             descsets.resize(firstSet + setCount);
 
+          if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
+            renderstate.graphics.lastBoundSet = firstSet;
+          else
+            renderstate.compute.lastBoundSet = firstSet;
+
           const rdcarray<ResourceId> &descSetLayouts =
               m_CreationInfo.m_PipelineLayout[GetResID(layout)].descSetLayouts;
 
@@ -3679,6 +3684,7 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(SerialiserType &ser, VkCommandB
           memcpy(renderstate.pushconsts + start, values, length);
 
           renderstate.pushConstSize = RDCMAX(renderstate.pushConstSize, start + length);
+          renderstate.pushLayout = GetResID(layout);
         }
       }
     }
@@ -5170,6 +5176,11 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetKHR(SerialiserType &ser,
           if(descsets.size() < set + 1)
             descsets.resize(set + 1);
 
+          if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
+            renderstate.graphics.lastBoundSet = set;
+          else
+            renderstate.compute.lastBoundSet = set;
+
           descsets[set].pipeLayout = GetResID(layout);
           descsets[set].descSet = setId;
         }
@@ -5453,6 +5464,11 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
           // expand as necessary
           if(descsets.size() < set + 1)
             descsets.resize(set + 1);
+
+          if(bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
+            renderstate.graphics.lastBoundSet = set;
+          else
+            renderstate.compute.lastBoundSet = set;
 
           descsets[set].pipeLayout = GetResID(layout);
           descsets[set].descSet = setId;

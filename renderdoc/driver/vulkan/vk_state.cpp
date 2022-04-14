@@ -313,6 +313,22 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
 
       if(vk->GetDriverInfo().QualcommLineWidthDynamicStateCrash())
         dynamicStates[VkDynamicLineWidth] = false;
+
+      if(pushLayout != ResourceId())
+      {
+        // set push constants with the last layout used
+        VkPipelineLayout layout =
+            vk->GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pushLayout);
+
+        const rdcarray<VkPushConstantRange> &pushRanges =
+            vk->GetDebugManager()->GetPipelineLayoutInfo(pushLayout).pushRanges;
+
+        // only set push constant ranges that the layout uses
+        for(size_t i = 0; i < pushRanges.size(); i++)
+          ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags,
+                                         pushRanges[i].offset, pushRanges[i].size,
+                                         pushconsts + pushRanges[i].offset);
+      }
     }
 
     if(!views.empty() && dynamicStates[VkDynamicViewport])
@@ -433,7 +449,9 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
     }
 
     if(graphics.pipeline != ResourceId())
-      BindDescriptorSets(vk, cmd, graphics, VK_PIPELINE_BIND_POINT_GRAPHICS);
+      BindDescriptorSetsForPipeline(vk, cmd, graphics, VK_PIPELINE_BIND_POINT_GRAPHICS);
+    else
+      BindDescriptorSetsWithoutPipeline(vk, cmd, graphics, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
     if(ibuffer.buf != ResourceId())
     {
@@ -519,31 +537,55 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
     }
   }
 
-  if(compute.pipeline != ResourceId() && (binding == BindCompute || binding == BindInitial))
+  if(binding == BindCompute || binding == BindInitial)
   {
-    ObjDisp(cmd)->CmdBindPipeline(
-        Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-        Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkPipeline>(compute.pipeline)));
+    if(compute.pipeline != ResourceId())
+    {
+      ObjDisp(cmd)->CmdBindPipeline(
+          Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
+          Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkPipeline>(compute.pipeline)));
 
-    ResourceId pipeLayoutId = vk->GetDebugManager()->GetPipelineInfo(compute.pipeline).compLayout;
-    VkPipelineLayout layout =
-        vk->GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
+      ResourceId pipeLayoutId = vk->GetDebugManager()->GetPipelineInfo(compute.pipeline).compLayout;
+      VkPipelineLayout layout =
+          vk->GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
 
-    const rdcarray<VkPushConstantRange> &pushRanges =
-        vk->GetDebugManager()->GetPipelineLayoutInfo(pipeLayoutId).pushRanges;
+      const rdcarray<VkPushConstantRange> &pushRanges =
+          vk->GetDebugManager()->GetPipelineLayoutInfo(pipeLayoutId).pushRanges;
 
-    // only set push constant ranges that the layout uses
-    for(size_t i = 0; i < pushRanges.size(); i++)
-      ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags,
-                                     pushRanges[i].offset, pushRanges[i].size,
-                                     pushconsts + pushRanges[i].offset);
+      // only set push constant ranges that the layout uses
+      for(size_t i = 0; i < pushRanges.size(); i++)
+        ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags,
+                                       pushRanges[i].offset, pushRanges[i].size,
+                                       pushconsts + pushRanges[i].offset);
 
-    BindDescriptorSets(vk, cmd, compute, VK_PIPELINE_BIND_POINT_COMPUTE);
+      BindDescriptorSetsForPipeline(vk, cmd, compute, VK_PIPELINE_BIND_POINT_COMPUTE);
+    }
+    else if(binding == BindInitial)
+    {
+      if(pushLayout != ResourceId())
+      {
+        // set push constants with the last layout used
+        VkPipelineLayout layout =
+            vk->GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pushLayout);
+
+        const rdcarray<VkPushConstantRange> &pushRanges =
+            vk->GetDebugManager()->GetPipelineLayoutInfo(pushLayout).pushRanges;
+
+        // only set push constant ranges that the layout uses
+        for(size_t i = 0; i < pushRanges.size(); i++)
+          ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags,
+                                         pushRanges[i].offset, pushRanges[i].size,
+                                         pushconsts + pushRanges[i].offset);
+      }
+
+      BindDescriptorSetsWithoutPipeline(vk, cmd, compute, VK_PIPELINE_BIND_POINT_COMPUTE);
+    }
   }
 }
 
-void VulkanRenderState::BindDescriptorSets(WrappedVulkan *vk, VkCommandBuffer cmd,
-                                           VulkanStatePipeline &pipe, VkPipelineBindPoint bindPoint)
+void VulkanRenderState::BindDescriptorSetsForPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
+                                                      VulkanStatePipeline &pipe,
+                                                      VkPipelineBindPoint bindPoint)
 {
   const rdcarray<ResourceId> &descSetLayouts =
       vk->GetDebugManager()->GetPipelineInfo(pipe.pipeline).descSetLayouts;
@@ -576,6 +618,133 @@ void VulkanRenderState::BindDescriptorSets(WrappedVulkan *vk, VkCommandBuffer cm
           continue;
         }
       }
+
+      // if there are dynamic buffers, pass along the offsets
+
+      uint32_t *dynamicOffsets = NULL;
+
+      if(descLayout.dynamicCount > 0)
+      {
+        dynamicOffsets = &pipe.descSets[i].offsets[0];
+
+        if(pipe.descSets[i].offsets.size() < descLayout.dynamicCount)
+        {
+          dynamicOffsets = new uint32_t[descLayout.dynamicCount];
+          for(uint32_t o = 0; o < descLayout.dynamicCount; o++)
+          {
+            if(o < pipe.descSets[i].offsets.size())
+            {
+              dynamicOffsets[o] = pipe.descSets[i].offsets[o];
+            }
+            else
+            {
+              dynamicOffsets[o] = 0;
+              RDCWARN("Missing dynamic offset for set %u!", (uint32_t)i);
+            }
+          }
+        }
+      }
+
+      BindDescriptorSet(vk, descLayout, cmd, bindPoint, (uint32_t)i, dynamicOffsets);
+
+      if(pipe.descSets[i].offsets.size() < descLayout.dynamicCount)
+        SAFE_DELETE_ARRAY(dynamicOffsets);
+    }
+  }
+}
+
+void VulkanRenderState::BindDescriptorSetsWithoutPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
+                                                          VulkanStatePipeline &pipe,
+                                                          VkPipelineBindPoint bindPoint)
+{
+  if(pipe.descSets.empty())
+    return;
+
+  // we try to bind descriptor sets before a pipeline when we don't have the knowledge that all sets
+  // are up to date. This is used when perturbing state at an arbitrary point mid-record rather than
+  // just before an action
+  //
+  // to do this we take the last known bound set as a 'reference' and bind everything that can be
+  // compatible with it. Anything not compatible by definition has been invalidated so we don't need
+  // to rebind it to be valid.
+
+  const VulkanCreationInfo::PipelineLayout &refPipeLayout =
+      vk->GetDebugManager()->GetPipelineLayoutInfo(pipe.descSets[pipe.lastBoundSet].pipeLayout);
+
+  for(size_t i = 0; i < pipe.descSets.size(); i++)
+  {
+    if(pipe.descSets[i].pipeLayout == ResourceId() || pipe.descSets[i].descSet == ResourceId())
+      continue;
+
+    const VulkanCreationInfo::PipelineLayout &iPipeLayout =
+        vk->GetDebugManager()->GetPipelineLayoutInfo(pipe.descSets[i].pipeLayout);
+
+    if(i != pipe.lastBoundSet)
+    {
+      // if we come to a descriptor set that isn't compatible with the pipeline layout used in the
+      // last bound set, don't bind this descriptor set
+      // We can get into this situation if for example we have many sets bound at some point, then a
+      // new descriptor set is bound to a different number which is incompatible and only that set
+      // (and not the other stale ones) are needed by the next action. The remaining sets are
+      // invalid, but also unused and this is explicitly allowed by the spec. We just have to make
+      // sure we don't try to actively bind an incompatible descriptor set.
+
+      // quick check, if the pipeline layout is the same as the one used to bind the reference set
+      // then its certainly compatible
+      if(pipe.descSets[i].pipeLayout != pipe.descSets[pipe.lastBoundSet].pipeLayout)
+      {
+        // are we below or above the last bound set
+        if(i < pipe.lastBoundSet)
+        {
+          // we only check if this set is compatible with the pipeline layout on this set.
+          // Technically the set might have been perturbed still, or we might invalidate this
+          // binding subsequently if there was some other difference between here and the last bound
+          // set, but it's fine to bind a compatible set which would be invalid - it is undefined
+          // behaviour to use it anyway. If this binding *should* be valid, it will still be
+          // valid at the end.
+
+          if(iPipeLayout.descSetLayouts[i] != refPipeLayout.descSetLayouts[i] &&
+             vk->GetDebugManager()->GetDescSetLayout(iPipeLayout.descSetLayouts[i]) !=
+                 vk->GetDebugManager()->GetDescSetLayout(refPipeLayout.descSetLayouts[i]))
+          {
+            // set is incompatible, don't rebind it
+            continue;
+          }
+        }
+        else
+        {
+          // when binding sets above the last bound set, we need to be careful not to accidentally
+          // invalidate it or any previous sets it might have been compatible with.
+          // so instead of only checking this set, we check all sets up to this one are compatible
+          bool compatible = true;
+
+          for(size_t j = 0; j <= i; j++)
+          {
+            // if this binding only exists in the current set's pipeline layout (e.g. the reference
+            // pipeline layout only had 0..4 and this is 5) then it's automatically considered
+            // compatible as everything in the reference layout was compatible up to this point
+            if(j >= refPipeLayout.descSetLayouts.size())
+              break;
+
+            if(iPipeLayout.descSetLayouts[j] != refPipeLayout.descSetLayouts[j] &&
+               vk->GetDebugManager()->GetDescSetLayout(iPipeLayout.descSetLayouts[j]) !=
+                   vk->GetDebugManager()->GetDescSetLayout(refPipeLayout.descSetLayouts[j]))
+            {
+              compatible = false;
+              break;
+            }
+          }
+
+          if(!compatible)
+            continue;
+        }
+      }
+    }
+
+    if(pipe.descSets[i].descSet != ResourceId())
+    {
+      const DescSetLayout &descLayout =
+          vk->GetDebugManager()->GetDescSetLayout(iPipeLayout.descSetLayouts[i]);
 
       // if there are dynamic buffers, pass along the offsets
 

@@ -2098,7 +2098,7 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
 
     DoPipelineBarrier(cmd, 1, &dstimBarrier);
 
-    m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
+    m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindInitial,
                                                 false);
 
     return;
