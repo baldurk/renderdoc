@@ -95,7 +95,7 @@ public:
     if(res == NULL)
       return ResourceId();
 
-    return res->id;
+    return res->m_ID;
   }
   // ResourceManager interface
 
@@ -108,7 +108,7 @@ public:
     ResourceId id = ResourceIDGen::GetNewUniqueID();
     using WrappedType = typename UnwrapHelper<realtype>::Outer;
     wrapped = new WrappedType(obj, id, m_WrappedMTLDevice);
-    wrapped->real = obj;
+    wrapped->m_Real = obj;
     AddCurrentResource(id, wrapped);
 
     // TODO: implement RD MTL replay
@@ -122,10 +122,10 @@ public:
   template <typename wrappedtype>
   MetalResourceRecord *AddResourceRecord(wrappedtype *wrapped)
   {
-    MetalResourceRecord *ret = wrapped->record = ResourceManager::AddResourceRecord(wrapped->id);
+    MetalResourceRecord *ret = wrapped->m_Record = ResourceManager::AddResourceRecord(wrapped->m_ID);
 
-    ret->Resource = (WrappedMTLObject *)wrapped;
-    ret->resType = (MetalResourceType)wrappedtype::TypeEnum;
+    ret->m_Resource = (WrappedMTLObject *)wrapped;
+    ret->m_Type = (MetalResourceType)wrappedtype::TypeEnum;
     return ret;
   }
 

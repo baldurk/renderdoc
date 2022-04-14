@@ -48,19 +48,19 @@ struct WrappedMTLObject
 {
   WrappedMTLObject() = delete;
   WrappedMTLObject(WrappedMTLDevice *wrappedMTLDevice, CaptureState &captureState)
-      : objcBridge(NULL),
-        real(NULL),
-        record(NULL),
+      : m_ObjcBridge(NULL),
+        m_Real(NULL),
+        m_Record(NULL),
         m_WrappedMTLDevice(wrappedMTLDevice),
         m_State(captureState)
   {
   }
   WrappedMTLObject(void *mtlObject, ResourceId objId, WrappedMTLDevice *wrappedMTLDevice,
                    CaptureState &captureState)
-      : objcBridge(NULL),
-        real(mtlObject),
-        id(objId),
-        record(NULL),
+      : m_ObjcBridge(NULL),
+        m_Real(mtlObject),
+        m_ID(objId),
+        m_Record(NULL),
         m_WrappedMTLDevice(wrappedMTLDevice),
         m_State(captureState)
   {
@@ -73,10 +73,10 @@ struct WrappedMTLObject
 
   MetalResourceManager *GetResourceManager();
 
-  void *objcBridge;
-  void *real;
-  ResourceId id;
-  MetalResourceRecord *record;
+  void *m_ObjcBridge;
+  void *m_Real;
+  ResourceId m_ID;
+  MetalResourceRecord *m_Record;
   WrappedMTLDevice *m_WrappedMTLDevice;
   CaptureState &m_State;
 };
@@ -89,7 +89,7 @@ MetalResourceRecord *GetRecord(WrappedType *obj)
   if(obj == NULL)
     return NULL;
 
-  return obj->record;
+  return obj->m_Record;
 }
 
 template <typename RealType>
@@ -98,7 +98,7 @@ RealType Unwrap(WrappedMTLObject *obj)
   if(obj == NULL)
     return RealType();
 
-  return (RealType)obj->real;
+  return (RealType)obj->m_Real;
 }
 
 template <typename RealType>
@@ -107,7 +107,7 @@ RealType GetObjCBridge(WrappedMTLObject *obj)
   if(obj == NULL)
     return RealType();
 
-  return (RealType)obj->objcBridge;
+  return (RealType)obj->m_ObjcBridge;
 }
 
 // template magic voodoo to unwrap types
@@ -158,12 +158,12 @@ public:
   };
 
   MetalResourceRecord(ResourceId id)
-      : ResourceRecord(id, true), Resource(NULL), resType(eResUnknown), ptrUnion(NULL)
+      : ResourceRecord(id, true), m_Resource(NULL), m_Type(eResUnknown), ptrUnion(NULL)
   {
   }
   ~MetalResourceRecord();
-  WrappedMTLObject *Resource;
-  MetalResourceType resType;
+  WrappedMTLObject *m_Resource;
+  MetalResourceType m_Type;
 
   // Each entry is only used by specific record types
   union

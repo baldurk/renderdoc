@@ -67,7 +67,7 @@
     {                                                                              \
       return ResourceId();                                                         \
     }                                                                              \
-    return wrappedCPP->id;                                                         \
+    return wrappedCPP->m_ID;                                                       \
   }                                                                                \
                                                                                    \
   MTL::CPPTYPE *AllocateObjCBridge(WrappedMTL##CPPTYPE *wrappedCPP)                \
