@@ -2085,6 +2085,8 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
       }
       else
       {
+        ObjDisp(cmd)->CmdSetStencilReference(
+            Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT | VK_STENCIL_FACE_BACK_BIT, 0x00);
         ObjDisp(cmd)->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
       }
 
