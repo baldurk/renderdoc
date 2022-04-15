@@ -2353,7 +2353,7 @@ bool WrappedVulkan::Serialise_vkSetDebugUtilsObjectNameEXT(
 
     VkDebugUtilsObjectNameInfoEXT name = {VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT};
     name.pObjectName = ObjectName;
-    WrappedVkRes *res = GetResourceManager()->GetLiveResource(Object);
+    WrappedVkRes *res = GetResourceManager()->GetLiveResource(Object, true);
 
     if(res)
     {
@@ -2404,7 +2404,8 @@ bool WrappedVulkan::Serialise_vkSetDebugUtilsObjectNameEXT(
         case eResSamplerConversion: type = VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION; break;
       }
 
-      if(ObjDisp(m_Device)->SetDebugUtilsObjectNameEXT && type != VK_OBJECT_TYPE_UNKNOWN)
+      if(ObjDisp(m_Device)->SetDebugUtilsObjectNameEXT && type != VK_OBJECT_TYPE_UNKNOWN &&
+         type != VK_OBJECT_TYPE_PHYSICAL_DEVICE)
       {
         name.objectType = type;
         ObjDisp(m_Device)->SetDebugUtilsObjectNameEXT(Unwrap(m_Device), &name);
