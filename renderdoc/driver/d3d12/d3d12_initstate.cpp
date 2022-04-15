@@ -437,8 +437,8 @@ SparseBinds::SparseBinds(const Sparse::PageTable &table)
       bind.heap = mapping.singleMapping.memory;
       bind.rangeOffset = uint32_t(mapping.singleMapping.offset / pageSize);
       bind.rangeCount = uint32_t(table.isSubresourceInMipTail(sub)
-                                     ? table.getMipTailSliceSize() / pageSize
-                                     : table.getSubresourceByteSize(sub) / pageSize);
+                                     ? (table.getMipTailSliceSize() + pageSize - 1) / pageSize
+                                     : (table.getSubresourceByteSize(sub) + pageSize - 1) / pageSize);
       bind.regionStart = {0, 0, 0, sub};
       bind.regionSize = {bind.rangeCount, FALSE, bind.rangeCount, 1, 1};
       bind.rangeFlag = D3D12_TILE_RANGE_FLAG_NONE;
