@@ -1011,8 +1011,12 @@ void WrappedOpenGL::UseUnusedSupportedFunction(const char *name)
       if(it->second.Modern())
       {
         RenderDoc::Inst().RemoveDeviceFrameCapturer(it->second.ctx);
-        for(auto wnd : it->second.windows)
-          it->second.UnassociateWindow(this, wnd.first);
+        for(auto wnd = it->second.windows.begin(); wnd != it->second.windows.end();)
+        {
+          void *wndHandle = wnd->first;
+          wnd++;
+          it->second.UnassociateWindow(this, wndHandle);
+        }
       }
     }
   }
