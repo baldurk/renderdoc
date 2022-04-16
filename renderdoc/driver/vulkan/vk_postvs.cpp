@@ -2879,7 +2879,8 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   }
 
   if(state.dynamicRendering.viewMask > 1 ||
-     !creationInfo.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].multiviews.empty())
+     (state.GetRenderPass() != ResourceId() &&
+      !creationInfo.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].multiviews.empty()))
   {
     RDCWARN("Multipass is active for this draw, no GS/Tess mesh output is available");
     return;
