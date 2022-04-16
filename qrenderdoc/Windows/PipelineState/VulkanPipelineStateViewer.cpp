@@ -4397,6 +4397,12 @@ QVariant VulkanPipelineStateViewer::ConvertSDObjectToFossilizeJSON(const SDObjec
 
       AddFossilizeNexts(map, obj);
 
+      if(map.contains(lit("sampleMask")))
+      {
+        QVariantList sampleMaskArray = QVariantList({map[lit("sampleMask")]});
+        map[lit("sampleMask")] = sampleMaskArray;
+      }
+
       return map;
     }
     case SDBasic::Null: break;
