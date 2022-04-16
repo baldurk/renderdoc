@@ -596,6 +596,14 @@ value.
 :type: bytes
 )");
   bytebuf specializationData;
+
+  DOCUMENT(R"(The specialization constant ID for each entry in the specialization constant block of
+reflection info. This corresponds to the constantID in VkSpecializationMapEntry, while the offset
+and size into specializationData can be obtained from the reflection info.
+
+:type: List[int]
+)")
+  rdcarray<uint32_t> specializationIds;
 };
 
 DOCUMENT("Describes the state of the fixed-function tessellator.");

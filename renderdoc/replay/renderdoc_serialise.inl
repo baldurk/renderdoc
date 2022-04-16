@@ -2078,8 +2078,9 @@ void DoSerialise(SerialiserType &ser, VKPipe::Shader &el)
   SERIALISE_MEMBER(pushConstantRangeByteOffset);
   SERIALISE_MEMBER(pushConstantRangeByteSize);
   SERIALISE_MEMBER(specializationData);
+  SERIALISE_MEMBER(specializationIds);
 
-  SIZE_CHECK(200);
+  SIZE_CHECK(224);
 }
 
 template <typename SerialiserType>
@@ -2348,7 +2349,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
   SERIALISE_MEMBER(conditionalRendering);
 
-  SIZE_CHECK(2096);
+  SIZE_CHECK(2240);
 }
 
 #pragma endregion Vulkan pipeline state

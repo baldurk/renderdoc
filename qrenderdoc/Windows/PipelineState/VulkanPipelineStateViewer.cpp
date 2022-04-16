@@ -4218,20 +4218,44 @@ QByteArray VulkanPipelineStateViewer::ReconstructSpecializationData(const VKPipe
 {
   bytebuf specData;
 
-  // reconstruct the original spec data as best as we can
+  if(mapEntries->NumChildren() == 0)
+    return specData;
+
+  if(sh.reflection == NULL)
+  {
+    qCritical("Tried to reconstruct specialization constants but reflection data is missing");
+    return specData;
+  }
+  auto specBlockIt =
+      std::find_if(sh.reflection->constantBlocks.begin(), sh.reflection->constantBlocks.end(),
+                   [](const ConstantBlock &block) { return block.compileConstants; });
+  if(specBlockIt == sh.reflection->constantBlocks.end())
+  {
+    qCritical("Cannot find the constant block for specialization constants");
+    return specData;
+  }
+  const rdcarray<ShaderConstant> &specVars = specBlockIt->variables;
+
+  // We don't have access to the buffers in the original creation info, so we try to reconstruct
+  // from our preprocessed pipeline state instead. Note that this data might have a different order
+  // from the original call or have unused entries eliminated based on shader reflection.
   const bytebuf &src = sh.specializationData;
 
   for(size_t i = 0; i < mapEntries->NumChildren(); i++)
   {
     const SDObject *map = mapEntries->GetChild(i);
 
-    size_t srcByteOffset = map->FindChild("constantID")->AsUInt32() * sizeof(uint64_t);
     size_t dstByteOffset = map->FindChild("offset")->AsUInt32();
     size_t size = map->FindChild("size")->AsUInt32();
+    specData.resize_for_index(dstByteOffset + size - 1);
 
+    uint32_t constantId = map->FindChild("constantID")->AsUInt32();
+    int32_t idx = sh.specializationIds.indexOf(constantId);
+    if(idx == -1)
+      continue;    // Entry was eliminated as it was probably unused --- skip it
+    size_t srcByteOffset = specVars[idx].byteOffset;
     Q_ASSERT(srcByteOffset + size <= src.size());
 
-    specData.resize_for_index(dstByteOffset + size - 1);
     memcpy(specData.data() + dstByteOffset, src.data() + srcByteOffset, size);
   }
 
