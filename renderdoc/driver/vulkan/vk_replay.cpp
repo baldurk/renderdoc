@@ -1160,6 +1160,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         stage.specializationData.resize_for_index(offs + sizeof(uint64_t));
         memcpy(stage.specializationData.data() + offs, &s.value, s.dataSize);
       }
+      if(p.shaders[i].patchData)
+        stage.specializationIds = p.shaders[i].patchData->specIDs;
     }
   }
   else
@@ -1279,6 +1281,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         stages[i]->specializationData.resize_for_index(offs + sizeof(uint64_t));
         memcpy(stages[i]->specializationData.data() + offs, &s.value, s.dataSize);
       }
+      if(p.shaders[i].patchData)
+        stages[i]->specializationIds = p.shaders[i].patchData->specIDs;
     }
 
     // Tessellation
