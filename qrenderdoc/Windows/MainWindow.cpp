@@ -1954,6 +1954,9 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
 
 void MainWindow::setRemoteHost(int hostIdx)
 {
+  if(!PromptCloseCapture())
+    return;
+
   rdcarray<RemoteHost> hosts = m_Ctx.Config().GetRemoteHosts();
 
   RemoteHost host;
@@ -1962,7 +1965,13 @@ void MainWindow::setRemoteHost(int hostIdx)
 
   bool noToAll = false;
 
-  for(LiveCapture *live : m_LiveCaptures)
+  QList<LiveCapture *> liveCaptures = m_LiveCaptures;
+
+  int unsavedCaps = 0;
+  for(LiveCapture *live : liveCaptures)
+    unsavedCaps += live->unsavedCaptureCount();
+
+  for(LiveCapture *live : liveCaptures)
   {
     // allow live captures to this host to stay open, that way
     // we can connect to a live capture, then switch into that
@@ -1971,24 +1980,12 @@ void MainWindow::setRemoteHost(int hostIdx)
       continue;
 
     // if the user previously selected 'no to all' in the save prompts below, apply that to all
-    // subsequent live captures
-    if(noToAll)
-      continue;
-
-    if(!live->checkAllowClose(m_LiveCaptures.count() > 1, noToAll))
-      return;
-  }
-
-  if(!PromptCloseCapture())
-    return;
-
-  for(LiveCapture *live : m_LiveCaptures)
-  {
-    // allow live captures to this host to stay open, that way
-    // we can connect to a live capture, then switch into that
-    // context
-    if(host.IsValid() && live->hostname() == host.Hostname())
-      continue;
+    // subsequent live captures by skipping the check and unconditionally cleaning all captures
+    if(!noToAll)
+    {
+      if(!live->checkAllowClose(unsavedCaps, noToAll))
+        return;
+    }
 
     live->cleanItems();
     live->close();
@@ -2953,22 +2950,6 @@ void MainWindow::loadLayout_triggered()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-  bool noToAll = false;
-
-  for(LiveCapture *live : m_LiveCaptures)
-  {
-    // if the user previously selected 'no to all' in the save prompts below, apply that to all
-    // subsequent live captures
-    if(noToAll)
-      continue;
-
-    if(!live->checkAllowClose(m_LiveCaptures.count() > 1, noToAll))
-    {
-      event->ignore();
-      return;
-    }
-  }
-
   if(RENDERDOC_IsGlobalHookActive())
   {
     RDDialog::critical(this, tr("Global hook active"),
@@ -2983,8 +2964,27 @@ void MainWindow::closeEvent(QCloseEvent *event)
     return;
   }
 
-  for(LiveCapture *live : m_LiveCaptures)
+  bool noToAll = false;
+
+  QList<LiveCapture *> liveCaptures = m_LiveCaptures;
+
+  int unsavedCaps = 0;
+  for(LiveCapture *live : liveCaptures)
+    unsavedCaps += live->unsavedCaptureCount();
+
+  for(LiveCapture *live : liveCaptures)
   {
+    // if the user previously selected 'no to all' in the save prompts below, apply that to all
+    // subsequent live captures by skipping the check and unconditionally cleaning all captures
+    if(!noToAll)
+    {
+      if(!live->checkAllowClose(unsavedCaps, noToAll))
+      {
+        event->ignore();
+        return;
+      }
+    }
+
     live->cleanItems();
     delete live;
   }
