@@ -2751,7 +2751,7 @@ QString ShaderViewer::getRegNames(const RDTreeWidgetItem *item, uint32_t swizzle
       if(bind.arraySize == ~0U)
         return ret + lit("[unbounded]");
 
-      if(bind.arraySize > 1)
+      if(bind.arraySize > 1 && child != ~0U)
         return QFormatStr("%1[%2]").arg(ret).arg(child);
 
       return ret;
@@ -2775,7 +2775,7 @@ QString ShaderViewer::getRegNames(const RDTreeWidgetItem *item, uint32_t swizzle
       if(bind.arraySize == ~0U)
         return ret + lit("[unbounded]");
 
-      if(bind.arraySize > 1)
+      if(bind.arraySize > 1 && child != ~0U)
         return QFormatStr("%1[%2]").arg(ret).arg(child);
 
       return ret;
@@ -4553,14 +4553,12 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
         {
           uint32_t count = qMin(bind.arraySize, (uint32_t)res.resources.size());
           for(uint32_t a = 0; a < count; a++)
-          {
             children.push_back(new RDTreeWidgetItem({
                 QFormatStr("%1[%2]").arg(localName).arg(a), QString(), typeName,
                 ToQStr(res.resources[a].resourceId),
             }));
 
-            childCount += bind.arraySize;
-          }
+          childCount += bind.arraySize;
 
           typeName = QFormatStr("[%1]").arg(bind.arraySize);
           value = QString();
@@ -4646,7 +4644,7 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
 
   if(childCount > 0)
   {
-    for(uint32_t i = 0; i < childCount; i++)
+    for(uint32_t i = 0; i < childCount && i < (uint32_t)node->childCount(); i++)
       node->child(i)->setText(1, getRegNames(node, ~0U, i));
   }
   else
