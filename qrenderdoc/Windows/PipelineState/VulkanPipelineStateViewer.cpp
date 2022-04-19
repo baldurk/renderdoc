@@ -2492,6 +2492,8 @@ void VulkanPipelineStateViewer::setState()
      state.rasterizer.extraPrimitiveOverestimationSize > 0.0f)
     conservRaster += QFormatStr(" (+%1)").arg(state.rasterizer.extraPrimitiveOverestimationSize);
 
+  ui->conservativeRaster->setText(conservRaster);
+
   if(state.rasterizer.lineStippleFactor == 0)
   {
     ui->stippleFactor->setText(QString());
