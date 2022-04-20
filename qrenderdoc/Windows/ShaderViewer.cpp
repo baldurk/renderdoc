@@ -5489,9 +5489,10 @@ void ShaderViewer::updateVariableTooltip()
   {
     QString tooltip;
 
-    if(var.type == VarType::ReadOnlyResource || var.type == VarType::ReadWriteResource)
+    if(var.type == VarType::Sampler || var.type == VarType::ReadOnlyResource ||
+       var.type == VarType::ReadWriteResource)
     {
-      tooltip = RichResourceTextFormat(m_Ctx, stringRep(var, 0));
+      tooltip = QFormatStr("%1: ").arg(var.name) + RichResourceTextFormat(m_Ctx, stringRep(var, 0));
     }
     else
     {
@@ -5503,6 +5504,17 @@ void ShaderViewer::updateVariableTooltip()
     }
 
     QToolTip::showText(m_TooltipPos, tooltip);
+    return;
+  }
+  else if(var.members.size() == 2 && var.members[0].type == VarType::ReadOnlyResource &&
+          var.members[1].type == VarType::Sampler)
+  {
+    // combined image/sampler structs
+    QToolTip::showText(m_TooltipPos,
+                       QFormatStr("%1: %2 & %3")
+                           .arg(var.name)
+                           .arg(RichResourceTextFormat(m_Ctx, stringRep(var.members[0], 0)))
+                           .arg(RichResourceTextFormat(m_Ctx, stringRep(var.members[1], 0))));
     return;
   }
 
