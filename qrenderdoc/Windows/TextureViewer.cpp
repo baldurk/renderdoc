@@ -4244,16 +4244,30 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
         QTextStream stream(&fileHandle);
         QString source = stream.readAll();
 
-        bytebuf shaderBytes(source.toUtf8());
+        bytebuf shaderBytes;
 
         rdcarray<ShaderEncoding> supported = m_Ctx.CustomShaderEncodings();
         rdcarray<ShaderSourcePrefix> prefixes = m_Ctx.CustomShaderSourcePrefixes();
 
         rdcstr errors;
 
-        // we don't accept this encoding directly, need to compile
-        if(!supported.contains(encoding))
+        if(supported.contains(encoding))
         {
+          // apply any prefix needed
+          for(const ShaderSourcePrefix &prefix : prefixes)
+          {
+            if(prefix.encoding == encoding)
+            {
+              source = QString(prefix.prefix) + source;
+              break;
+            }
+          }
+
+          shaderBytes = bytebuf(source.toUtf8());
+        }
+        else
+        {
+          // we don't accept this encoding directly, need to compile
           for(const ShaderProcessingTool &tool : m_Ctx.Config().ShaderProcessors)
           {
             // pick the first tool that can convert to an accepted format
