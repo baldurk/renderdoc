@@ -24,6 +24,10 @@ To set up your shader, it's recommended that you use the UI defined in the docum
 
   Previously the custom shaders allowed more direct binding without helper functions or binding macros. These shaders will continue to work as backwards compatibility is maintained, however be aware that these bindings are API specific and so e.g. a shader written for OpenGL in glsl will not work on Vulkan unless care has been taken, or an HLSL shader between Vulkan and D3D. If portability is desired please update and use the new helpers and binding macros, or else be careful only to use custom shaders with the API they were written for.
 
+.. note::
+
+  See the custom shader templates available in the  `contrib repository <https://github.com/baldurk/renderdoc-contrib/tree/main/baldurk/custom-shader-templates>`__ for complete examples.
+
 Predefined inputs
 -----------------
 
