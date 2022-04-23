@@ -1178,12 +1178,6 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     bindmap.arraySize = 1;
     bindmap.used = true;
 
-    // sort by spec IDs
-    std::sort(specblock.variables.begin(), specblock.variables.end(),
-              [](const ShaderConstant &a, const ShaderConstant &b) {
-                return a.byteOffset < b.byteOffset;
-              });
-
     cblocks.push_back(cblockpair(bindmap, specblock));
   }
 
