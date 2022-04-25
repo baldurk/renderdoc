@@ -4,8 +4,11 @@ set(PROJECT demos)
 
 set(VULKAN_SRC
         3rdparty/volk/volk.c
+        vk/vk_headers.h
         vk/vk_helpers.cpp
+        vk/vk_helpers.h
         vk/vk_test.cpp
+        vk/vk_test.h
         vk/vk_adv_cbuffer_zoo.cpp
         vk/vk_buffer_truncation.cpp
         vk/vk_cbuffer_zoo.cpp
@@ -63,6 +66,7 @@ set(VULKAN_SRC
 set(OPENGL_SRC
         3rdparty/glad/glad.c
         gl/gl_test.cpp
+        gl/gl_test.h
         gl/gl_buffer_resizing.cpp
         gl/gl_buffer_spam.cpp
         gl/gl_buffer_truncation.cpp
@@ -105,7 +109,9 @@ set(OPENGL_SRC
 
 set(SRC main.cpp
         3rdparty/fmt/format.cc
+        renderdoc_app.h
         test_common.cpp
+        test_common.h
         texture_zoo.cpp)
 
 project(demos)
@@ -123,7 +129,9 @@ if(NOT APPLE AND UNIX)
         gl/gl_test_linux.cpp)
     list(APPEND SRC 
         linux/linux_platform.cpp
-        linux/linux_window.cpp)
+        linux/linux_platform.h
+        linux/linux_window.cpp
+        linux/linux_window.h)
     add_executable(demos ${SRC} ${VULKAN_SRC} ${OPENGL_SRC})
 endif()
 
