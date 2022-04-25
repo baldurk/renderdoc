@@ -141,12 +141,12 @@ if [ -f "${REPO_ROOT}"/dist/Installer32.msi ]; then
 	cp "${REPO_ROOT}"/dist/Installer32.msi ${FILENAME}_32.msi
 	cp "${REPO_ROOT}"/dist/Installer64.msi ${FILENAME}_64.msi
 
-	gpg -o ${FILENAME}_32.msi.sig --detach-sign --armor ${FILENAME}_32.msi
-	gpg -o ${FILENAME}_64.msi.sig --detach-sign --armor ${FILENAME}_64.msi
-
 	# On windows, also sign the installers
 	"${BUILD_ROOT}"/scripts/sign.sh ${FILENAME}_32.msi
 	"${BUILD_ROOT}"/scripts/sign.sh ${FILENAME}_64.msi
+
+	gpg -o ${FILENAME}_32.msi.sig --detach-sign --armor ${FILENAME}_32.msi
+	gpg -o ${FILENAME}_64.msi.sig --detach-sign --armor ${FILENAME}_64.msi
 
 fi;
 
