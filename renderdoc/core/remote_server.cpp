@@ -492,27 +492,13 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
       reader.EndChunk();
 
       RDCASSERT(remoteDriver == NULL && proxy == NULL && rdc == NULL);
-      ReplayStatus status = ReplayStatus::InternalError;
 
       rdc = new RDCFile();
       rdc->Open(path);
 
-      if(rdc->ErrorCode() != ContainerError::NoError)
-      {
-        RDCERR("Failed to open '%s': %d", path.c_str(), rdc->ErrorCode());
+      RDResult result = rdc->Error();
 
-        switch(rdc->ErrorCode())
-        {
-          case ContainerError::FileNotFound: status = ReplayStatus::FileNotFound; break;
-          case ContainerError::FileIO: status = ReplayStatus::FileIOFailed; break;
-          case ContainerError::Corrupt: status = ReplayStatus::FileCorrupted; break;
-          case ContainerError::UnsupportedVersion:
-            status = ReplayStatus::FileIncompatibleVersion;
-            break;
-          default: break;
-        }
-      }
-      else
+      if(result == ResultCode::Succeeded)
       {
         if(RenderDoc::Inst().HasRemoteDriver(rdc->GetDriver()))
         {
@@ -536,24 +522,24 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
           // if we have a replay driver, try to create it so we can display a local preview e.g.
           if(RenderDoc::Inst().HasReplayDriver(rdc->GetDriver()))
           {
-            status = RenderDoc::Inst().CreateReplayDriver(rdc, opts, &replayDriver);
+            result = RenderDoc::Inst().CreateReplayDriver(rdc, opts, &replayDriver);
             if(replayDriver)
               remoteDriver = replayDriver;
           }
           else
           {
-            status = RenderDoc::Inst().CreateRemoteDriver(rdc, opts, &remoteDriver);
+            result = RenderDoc::Inst().CreateRemoteDriver(rdc, opts, &remoteDriver);
           }
 
-          if(status != ReplayStatus::Succeeded || remoteDriver == NULL)
+          if(result != ResultCode::Succeeded || remoteDriver == NULL)
           {
             RDCERR("Failed to create remote driver for driver '%s'", rdc->GetDriverName().c_str());
           }
           else
           {
-            status = remoteDriver->ReadLogInitialisation(rdc, false);
+            result = remoteDriver->ReadLogInitialisation(rdc, false);
 
-            if(status != ReplayStatus::Succeeded)
+            if(result != ResultCode::Succeeded)
             {
               RDCERR("Failed to initialise remote driver.");
 
@@ -568,23 +554,23 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
           Threading::JoinThread(ticker);
           Threading::CloseThread(ticker);
 
-          if(status == ReplayStatus::Succeeded && remoteDriver)
+          if(result == ResultCode::Succeeded && remoteDriver)
           {
             proxy = new ReplayProxy(reader, writer, remoteDriver, replayDriver, previewWindow);
           }
         }
         else
         {
-          RDCERR("File needs driver for '%s' which isn't supported!", rdc->GetDriverName().c_str());
-
-          status = ReplayStatus::APIUnsupported;
+          SET_ERROR_RESULT(result, ResultCode::APIUnsupported,
+                           "File needs driver for '%s' which isn't supported!",
+                           rdc->GetDriverName().c_str());
         }
       }
 
       {
         WRITE_DATA_SCOPE();
         SCOPED_SERIALISE_CHUNK(eRemoteServer_LogOpened);
-        SERIALISE_ELEMENT(status);
+        SERIALISE_ELEMENT(result);
       }
     }
     else if(type == eRemoteServer_HasCallstacks)
@@ -603,7 +589,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     {
       reader.EndChunk();
 
-      bool success = false;
+      RDResult res;
 
       int sectionIndex = rdc ? rdc->SectionIndex(SectionType::ResolveDatabase) : -1;
 
@@ -614,11 +600,13 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 
         bytebuf buf;
         buf.resize((size_t)sectionReader->GetSize());
-        success = sectionReader->Read(buf.data(), sectionReader->GetSize());
+        bool success = sectionReader->Read(buf.data(), sectionReader->GetSize());
+
+        res = sectionReader->GetError();
 
         delete sectionReader;
 
-        if(success)
+        if(success && res == ResultCode::Succeeded)
         {
           float progress = 0.0f;
 
@@ -642,14 +630,14 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
         }
         else
         {
-          RDCERR("Failed to read resolve database.");
+          res.message = "Failed to read resolve database. " + res.message;
         }
       }
 
       {
         WRITE_DATA_SCOPE();
         SCOPED_SERIALISE_CHUNK(eRemoteServer_InitResolver);
-        SERIALISE_ELEMENT(success);
+        SERIALISE_ELEMENT(res);
       }
     }
     else if(type == eRemoteServer_GetResolve)
@@ -812,7 +800,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 
       reader.EndChunk();
 
-      bool success = false;
+      RDResult result;
 
       if(rdc)
       {
@@ -822,15 +810,22 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
         {
           sectionWriter->Write(contents.data(), contents.size());
           delete sectionWriter;
-
-          success = true;
         }
+        else
+        {
+          SET_ERROR_RESULT(result, ResultCode::FileIOFailed, "Failed to write section");
+        }
+      }
+      else
+      {
+        SET_ERROR_RESULT(result, ResultCode::InternalError,
+                         "Attempt to write section with no capture open");
       }
 
       {
         WRITE_DATA_SCOPE();
         SCOPED_SERIALISE_CHUNK(eRemoteServer_WriteSection);
-        SERIALISE_ELEMENT(success);
+        SERIALISE_ELEMENT(result);
       }
     }
     else if(type == eRemoteServer_CloseLog)
@@ -864,15 +859,13 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 
       reader.EndChunk();
 
-      ExecuteResult ret = {};
+      RDResult res;
+      uint32_t ident = 0;
 
       if(threadData->allowExecution)
       {
-        rdcpair<ReplayStatus, uint32_t> status =
+        rdctie(res, ident) =
             Process::LaunchAndInjectIntoProcess(app, workingDir, cmdLine, env, "", opts, false);
-
-        ret.status = status.first;
-        ret.ident = status.second;
       }
       else
       {
@@ -882,7 +875,8 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
       {
         WRITE_DATA_SCOPE();
         SCOPED_SERIALISE_CHUNK(eRemoteServer_ExecuteAndInject);
-        SERIALISE_ELEMENT(ret);
+        SERIALISE_ELEMENT(res);
+        SERIALISE_ELEMENT(ident);
       }
     }
     else if((int)type >= eReplayProxy_First && proxy)
@@ -1134,7 +1128,7 @@ void RenderDoc::BecomeRemoteServer(const rdcstr &listenhost, uint16_t port,
   SAFE_DELETE(sock);
 }
 
-extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
+extern "C" RENDERDOC_API ResultDetails RENDERDOC_CC
 RENDERDOC_CreateRemoteServerConnection(const rdcstr &URL, IRemoteServer **rend)
 {
   rdcstr host = "localhost";
@@ -1152,7 +1146,7 @@ RENDERDOC_CreateRemoteServerConnection(const rdcstr &URL, IRemoteServer **rend)
     deviceID = protocol->GetDeviceID(deviceID);
     host = protocol->RemapHostname(deviceID);
     if(host.empty())
-      return ReplayStatus::NetworkIOFailed;
+      return RDResult(ResultCode::NetworkIOFailed);
 
     port = protocol->RemapPort(deviceID, port);
   }
@@ -1167,12 +1161,12 @@ RENDERDOC_CreateRemoteServerConnection(const rdcstr &URL, IRemoteServer **rend)
   }
 
   if(port == 0)
-    return ReplayStatus::NetworkIOFailed;
+    return RDResult(ResultCode::NetworkIOFailed);
 
   Network::Socket *sock = Network::CreateClientSocket(host, port, 750);
 
   if(sock == NULL)
-    return ReplayStatus::NetworkIOFailed;
+    return RDResult(ResultCode::NetworkIOFailed);
 
   uint32_t version = RemoteServerProtocolVersion;
 
@@ -1191,7 +1185,7 @@ RENDERDOC_CreateRemoteServerConnection(const rdcstr &URL, IRemoteServer **rend)
   }
 
   if(!sock->Connected())
-    return ReplayStatus::NetworkIOFailed;
+    return RDResult(ResultCode::NetworkIOFailed);
 
   {
     ReadSerialiser ser(new StreamReader(sock, Ownership::Nothing), Ownership::Stream);
@@ -1203,35 +1197,35 @@ RENDERDOC_CreateRemoteServerConnection(const rdcstr &URL, IRemoteServer **rend)
     if(type == eRemoteServer_Busy)
     {
       SAFE_DELETE(sock);
-      return ReplayStatus::NetworkRemoteBusy;
+      return RDResult(ResultCode::NetworkRemoteBusy);
     }
 
     if(type == eRemoteServer_VersionMismatch)
     {
       SAFE_DELETE(sock);
-      return ReplayStatus::NetworkVersionMismatch;
+      return RDResult(ResultCode::NetworkVersionMismatch);
     }
 
     if(ser.IsErrored() || type != eRemoteServer_Handshake)
     {
       RDCWARN("Didn't get proper handshake");
       SAFE_DELETE(sock);
-      return ReplayStatus::NetworkIOFailed;
+      return RDResult(ResultCode::NetworkIOFailed);
     }
   }
 
   if(rend == NULL)
-    return ReplayStatus::Succeeded;
+    return RDResult(ResultCode::Succeeded);
 
   if(protocol)
     *rend = protocol->CreateRemoteServer(sock, deviceID);
   else
     *rend = new RemoteServer(sock, deviceID);
 
-  return ReplayStatus::Succeeded;
+  return RDResult(ResultCode::Succeeded);
 }
 
-extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
+extern "C" RENDERDOC_API ResultDetails RENDERDOC_CC
 RENDERDOC_CheckRemoteServerConnection(const rdcstr &URL)
 {
   return RENDERDOC_CreateRemoteServerConnection(URL, NULL);
@@ -1316,10 +1310,15 @@ bool RemoteServer::Connected()
   return m_Socket != NULL && m_Socket->Connected();
 }
 
-bool RemoteServer::Ping()
+ResultDetails RemoteServer::Ping()
 {
+  RDResult ret;
+
   if(!Connected())
-    return false;
+  {
+    ret = ResultCode::RemoteServerConnectionLost;
+    return ret;
+  }
 
   {
     WRITE_DATA_SCOPE();
@@ -1334,7 +1333,12 @@ bool RemoteServer::Ping()
     ser.EndChunk();
   }
 
-  return type == eRemoteServer_Ping;
+  if(type == eRemoteServer_Ping)
+    ret = ResultCode::Succeeded;
+  else
+    ret = ResultCode::RemoteServerConnectionLost;
+
+  return ret;
 }
 
 rdcarray<rdcstr> RemoteServer::LocalProxies()
@@ -1478,7 +1482,11 @@ ExecuteResult RemoteServer::ExecuteAndInject(const rdcstr &app, const rdcstr &wo
 
     if(type == eRemoteServer_ExecuteAndInject)
     {
-      SERIALISE_ELEMENT(ret);
+      SERIALISE_ELEMENT_LOCAL(result, RDResult());
+      SERIALISE_ELEMENT_LOCAL(ident, uint32_t());
+
+      ret.result = result;
+      ret.ident = ident;
     }
     else
     {
@@ -1574,12 +1582,12 @@ void RemoteServer::TakeOwnershipCapture(const rdcstr &filename)
   }
 }
 
-rdcpair<ReplayStatus, IReplayController *> RemoteServer::OpenCapture(
+rdcpair<ResultDetails, IReplayController *> RemoteServer::OpenCapture(
     uint32_t proxyid, const rdcstr &filename, const ReplayOptions &opts,
     RENDERDOC_ProgressCallback progress)
 {
-  rdcpair<ReplayStatus, IReplayController *> ret;
-  ret.first = ReplayStatus::InternalError;
+  rdcpair<ResultDetails, IReplayController *> ret;
+  ret.first = ResultCode::InternalError;
   ret.second = NULL;
 
   if(proxyid != ~0U && proxyid >= m_Proxies.size())
@@ -1627,50 +1635,50 @@ rdcpair<ReplayStatus, IReplayController *> RemoteServer::OpenCapture(
   if(reader->IsErrored() || type != eRemoteServer_LogOpened)
   {
     RDCERR("Error opening capture");
-    ret.first = ReplayStatus::NetworkIOFailed;
+    ret.first = ResultCode::NetworkIOFailed;
     return ret;
   }
 
-  ReplayStatus status = ReplayStatus::Succeeded;
+  RDResult result = ResultCode::Succeeded;
   {
     READ_DATA_SCOPE();
-    SERIALISE_ELEMENT(status);
+    SERIALISE_ELEMENT(result);
     ser.EndChunk();
   }
 
   if(progress)
     progress(1.0f);
 
-  if(status != ReplayStatus::Succeeded)
+  if(result != ResultCode::Succeeded)
   {
-    RDCERR("Capture open failed: %s", ToStr(status).c_str());
-    ret.first = status;
+    RDCERR("Capture open failed: %s", ResultDetails(result).Message().c_str());
+    ret.first = result;
     return ret;
   }
 
   RDCLOG("Capture ready on replay host");
 
   IReplayDriver *proxyDriver = NULL;
-  status = RenderDoc::Inst().CreateProxyReplayDriver(proxydrivertype, &proxyDriver);
+  result = RenderDoc::Inst().CreateProxyReplayDriver(proxydrivertype, &proxyDriver);
 
-  if(status != ReplayStatus::Succeeded || !proxyDriver)
+  if(result != ResultCode::Succeeded || !proxyDriver)
   {
-    RDCERR("Creating proxy driver failed: %s", ToStr(status).c_str());
+    RDCERR("Creating proxy driver failed: %s", ResultDetails(result).Message().c_str());
     if(proxyDriver)
       proxyDriver->Shutdown();
-    ret.first = status;
+    ret.first = result;
     return ret;
   }
 
   ReplayController *rend = new ReplayController();
 
   ReplayProxy *proxy = new ReplayProxy(*reader, *writer, proxyDriver);
-  status = rend->SetDevice(proxy);
+  result = rend->SetDevice(proxy);
 
-  if(status != ReplayStatus::Succeeded)
+  if(result != ResultCode::Succeeded)
   {
     rend->Shutdown();
-    ret.first = status;
+    ret.first = result;
     return ret;
   }
 
@@ -1679,7 +1687,7 @@ rdcpair<ReplayStatus, IReplayController *> RemoteServer::OpenCapture(
 
   RDCLOG("Remote capture open complete & proxy ready");
 
-  ret.first = ReplayStatus::Succeeded;
+  ret.first = ResultCode::Succeeded;
   ret.second = rend;
   return ret;
 }
@@ -1915,10 +1923,15 @@ bytebuf RemoteServer::GetSectionContents(int index)
   return contents;
 }
 
-bool RemoteServer::WriteSection(const SectionProperties &props, const bytebuf &contents)
+ResultDetails RemoteServer::WriteSection(const SectionProperties &props, const bytebuf &contents)
 {
+  RDResult ret;
+
   if(!Connected())
-    return false;
+  {
+    ret.code = ResultCode::RemoteServerConnectionLost;
+    return ret;
+  }
 
   {
     WRITE_DATA_SCOPE();
@@ -1927,7 +1940,7 @@ bool RemoteServer::WriteSection(const SectionProperties &props, const bytebuf &c
     SERIALISE_ELEMENT(contents);
   }
 
-  bool success = false;
+  RDResult success;
 
   {
     READ_DATA_SCOPE();
@@ -1979,7 +1992,7 @@ bool RemoteServer::HasCallstacks()
   return hasCallstacks;
 }
 
-bool RemoteServer::InitResolver(bool interactive, RENDERDOC_ProgressCallback progress)
+ResultDetails RemoteServer::InitResolver(bool interactive, RENDERDOC_ProgressCallback progress)
 {
   {
     WRITE_DATA_SCOPE();
@@ -2007,22 +2020,24 @@ bool RemoteServer::InitResolver(bool interactive, RENDERDOC_ProgressCallback pro
     RDCLOG("% 3.0f%%...", progressValue * 100.0f);
   }
 
+  RDResult res;
+
   if(reader->IsErrored() || type != eRemoteServer_InitResolver)
   {
-    return false;
+    res = ResultCode::NetworkIOFailed;
+    return res;
   }
 
-  bool success = false;
   {
     READ_DATA_SCOPE();
-    SERIALISE_ELEMENT(success);
+    SERIALISE_ELEMENT(res);
     ser.EndChunk();
   }
 
   if(progress)
     progress(1.0f);
 
-  return success;
+  return res;
 }
 
 rdcarray<rdcstr> RemoteServer::GetResolve(const rdcarray<uint64_t> &callstack)

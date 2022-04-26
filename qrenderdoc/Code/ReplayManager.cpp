@@ -48,7 +48,8 @@ void ReplayManager::OpenCapture(const QString &capturefile, const ReplayOptions 
   if(m_Running)
     return;
 
-  m_FatalError = ReplayStatus::Succeeded;
+  m_FatalError = {};
+  m_FatalError.code = ResultCode::Succeeded;
 
   // TODO maybe we could expose this choice to the user?
   int proxyRenderer = -1;
@@ -298,7 +299,8 @@ void ReplayManager::CancelReplayLoop()
 void ReplayManager::CloseThread()
 {
   m_Running = false;
-  m_FatalError = ReplayStatus::Succeeded;
+  m_FatalError = {};
+  m_FatalError.code = ResultCode::Succeeded;
 
   m_RenderCondition.wakeAll();
 
@@ -314,9 +316,9 @@ void ReplayManager::CloseThread()
   m_Thread = NULL;
 }
 
-ReplayStatus ReplayManager::ConnectToRemoteServer(RemoteHost host)
+ResultDetails ReplayManager::ConnectToRemoteServer(RemoteHost host)
 {
-  ReplayStatus status = host.Connect(&m_Remote);
+  ResultDetails result = host.Connect(&m_Remote);
 
   if(host.Protocol() && host.Protocol()->GetProtocolName() == "adb")
   {
@@ -329,13 +331,10 @@ ReplayStatus ReplayManager::ConnectToRemoteServer(RemoteHost host)
 
   m_RemoteHost = host;
 
-  if(status == ReplayStatus::Succeeded)
-  {
+  if(result.OK())
     m_RemoteHost.SetConnected(true);
-    return status;
-  }
 
-  return status;
+  return result;
 }
 
 void ReplayManager::DisconnectFromRemoteServer()
@@ -383,7 +382,7 @@ void ReplayManager::PingRemote()
   {
     if(!IsRunning() || m_Thread->isCurrentThread())
     {
-      if(!m_Remote->Ping())
+      if(!m_Remote->Ping().OK())
         m_RemoteHost.SetShutdown();
     }
     m_RemoteLock.unlock();
@@ -440,17 +439,17 @@ void ReplayManager::run(int proxyRenderer, const QString &capturefile, const Rep
 
   if(m_Remote)
   {
-    rdctie(m_CreateStatus, m_Renderer) =
+    rdctie(m_CreateResult, m_Renderer) =
         m_Remote->OpenCapture(proxyRenderer, capturefile, opts, progress);
   }
   else
   {
     m_CaptureFile = RENDERDOC_OpenCaptureFile();
 
-    m_CreateStatus = m_CaptureFile->OpenFile(capturefile, "rdc", NULL);
+    m_CreateResult = m_CaptureFile->OpenFile(capturefile, "rdc", NULL);
 
-    if(m_CreateStatus == ReplayStatus::Succeeded)
-      rdctie(m_CreateStatus, m_Renderer) = m_CaptureFile->OpenCapture(opts, progress);
+    if(m_CreateResult.OK())
+      rdctie(m_CreateResult, m_Renderer) = m_CaptureFile->OpenCapture(opts, progress);
   }
 
   if(m_Renderer == NULL)
@@ -495,8 +494,8 @@ void ReplayManager::run(int proxyRenderer, const QString &capturefile, const Rep
 
       cmd->method(m_Renderer);
 
-      ReplayStatus err = m_Renderer->GetFatalErrorStatus();
-      if(m_FatalError == ReplayStatus::Succeeded && err != ReplayStatus::Succeeded)
+      ResultDetails err = m_Renderer->GetFatalErrorStatus();
+      if(m_FatalError.OK() && !err.OK())
       {
         m_FatalError = err;
         m_FatalErrorCallback();

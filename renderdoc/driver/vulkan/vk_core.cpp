@@ -284,7 +284,8 @@ VkCommandBuffer WrappedVulkan::GetNextCmd()
     else
     {
       ret = VK_NULL_HANDLE;
-      m_FailedReplayStatus = ReplayStatus::APIInitFailed;
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIInitFailed,
+                       "Failed to create command buffer: %s", ToStr(vkr).c_str());
     }
   }
 
@@ -2506,14 +2507,14 @@ void WrappedVulkan::AddResourceCurChunk(ResourceId id)
   AddResourceCurChunk(GetReplay()->GetResourceDesc(id));
 }
 
-ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
+RDResult WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
   GetResourceManager()->SetState(m_State);
 
   if(sectionIdx < 0)
-    return ReplayStatus::FileCorrupted;
+    RETURN_ERROR_RESULT(ResultCode::FileCorrupted, "File does not contain captured API data");
 
   StreamReader *reader = rdc->ReadSection(sectionIdx);
 
@@ -2531,8 +2532,9 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
   if(reader->IsErrored())
   {
+    RDResult result = reader->GetError();
     delete reader;
-    return ReplayStatus::FileIOFailed;
+    return result;
   }
 
   ReadSerialiser ser(reader, Ownership::Stream);
@@ -2581,8 +2583,12 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
     if(reader->IsErrored())
     {
       SAFE_DELETE(sink);
-      return ReplayStatus::APIDataCorrupted;
+      return RDResult(ResultCode::APIDataCorrupted, ser.GetError().message);
     }
+
+    size_t firstMessage = 0;
+    if(sink)
+      firstMessage = sink->msgs.size();
 
     bool success = ProcessChunk(ser, context);
 
@@ -2591,15 +2597,34 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
     if(reader->IsErrored())
     {
       SAFE_DELETE(sink);
-      return ReplayStatus::APIDataCorrupted;
+      return RDResult(ResultCode::APIDataCorrupted, ser.GetError().message);
     }
 
     // if there wasn't a serialisation error, but the chunk didn't succeed, then it's an API replay
     // failure.
     if(!success)
     {
+      rdcstr extra;
+
+      if(sink)
+      {
+        extra += "\n";
+
+        for(size_t i = firstMessage; i < sink->msgs.size(); i++)
+        {
+          extra += "\n";
+          extra += sink->msgs[i].description;
+        }
+      }
+      else
+      {
+        extra +=
+            "\n\nMore debugging information may be available by enabling API validation on replay";
+      }
+
       SAFE_DELETE(sink);
-      return m_FailedReplayStatus;
+      m_FailedReplayResult.message = rdcstr(m_FailedReplayResult.message) + extra;
+      return m_FailedReplayResult;
     }
 
     uint64_t offsetEnd = reader->GetOffset();
@@ -2641,9 +2666,9 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
       for(auto it = m_CreationInfo.m_Memory.begin(); it != m_CreationInfo.m_Memory.end(); ++it)
         it->second.SimplifyBindings();
 
-      ReplayStatus status = ContextReplayLog(m_State, 0, 0, false);
+      RDResult status = ContextReplayLog(m_State, 0, 0, false);
 
-      if(status != ReplayStatus::Succeeded)
+      if(status != ResultCode::Succeeded)
       {
         SAFE_DELETE(sink);
         return status;
@@ -2711,11 +2736,11 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
   FreeAllMemory(MemoryScope::IndirectReadback);
 
-  return ReplayStatus::Succeeded;
+  return ResultCode::Succeeded;
 }
 
-ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEventID,
-                                             uint32_t endEventID, bool partial)
+RDResult WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEventID,
+                                         uint32_t endEventID, bool partial)
 {
   m_FrameReader->SetOffset(0);
 
@@ -2828,7 +2853,7 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
     VulkanChunk chunktype = ser.ReadChunk<VulkanChunk>();
 
     if(ser.GetReader()->IsErrored())
-      return ReplayStatus::APIDataCorrupted;
+      return RDResult(ResultCode::APIDataCorrupted, ser.GetError().message);
 
     m_ChunkMetadata = ser.ChunkMetadata();
 
@@ -2839,12 +2864,35 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
     ser.EndChunk();
 
     if(ser.GetReader()->IsErrored())
-      return ReplayStatus::APIDataCorrupted;
+      return RDResult(ResultCode::APIDataCorrupted, ser.GetError().message);
 
     // if there wasn't a serialisation error, but the chunk didn't succeed, then it's an API replay
     // failure.
     if(!success)
-      return m_FailedReplayStatus;
+    {
+      rdcstr extra;
+
+      ScopedDebugMessageSink *sink = GetDebugMessageSink();
+
+      if(sink)
+      {
+        extra += "\n";
+
+        for(size_t i = 0; i < sink->msgs.size(); i++)
+        {
+          extra += "\n";
+          extra += sink->msgs[i].description;
+        }
+      }
+      else
+      {
+        extra +=
+            "\n\nMore debugging information may be available by enabling API validation on replay";
+      }
+
+      m_FailedReplayResult.message = rdcstr(m_FailedReplayResult.message) + extra;
+      return m_FailedReplayResult;
+    }
 
     RenderDoc::Inst().SetProgress(
         LoadProgress::FrameEventsRead,
@@ -2939,7 +2987,7 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
   m_RerecordCmds.clear();
   m_RerecordCmdList.clear();
 
-  return ReplayStatus::Succeeded;
+  return ResultCode::Succeeded;
 }
 
 void WrappedVulkan::ApplyInitialContents()
@@ -3803,7 +3851,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       m_RenderState.dynamicRendering.flags = dynamicFlags;
     }
 
-    ReplayStatus status = ReplayStatus::Succeeded;
+    RDResult status = ResultCode::Succeeded;
 
     if(replayType == eReplay_Full)
       status = ContextReplayLog(m_State, startEventID, endEventID, partial);
@@ -3814,7 +3862,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     else
       RDCFATAL("Unexpected replay type");
 
-    RDCASSERTEQUAL(status, ReplayStatus::Succeeded);
+    RDCASSERTEQUAL(status.code, ResultCode::Succeeded);
 
     if(m_OutsideCmdBuffer != VK_NULL_HANDLE)
     {
@@ -4054,8 +4102,9 @@ void WrappedVulkan::CheckErrorVkResult(VkResult vkr)
 
   if(vkr == VK_ERROR_INITIALIZATION_FAILED || vkr == VK_ERROR_DEVICE_LOST || vkr == VK_ERROR_UNKNOWN)
   {
-    RDCLOG("Logging device lost fatal error for %s", ToStr(vkr).c_str());
-    m_FailedReplayStatus = m_FatalError = ReplayStatus::ReplayDeviceLost;
+    SET_ERROR_RESULT(m_FatalError, ResultCode::ReplayDeviceLost,
+                     "Logging device lost fatal error for %s", ToStr(vkr).c_str());
+    m_FailedReplayResult = m_FatalError;
   }
   else if(vkr == VK_ERROR_OUT_OF_HOST_MEMORY || vkr == VK_ERROR_OUT_OF_DEVICE_MEMORY)
   {
@@ -4065,8 +4114,9 @@ void WrappedVulkan::CheckErrorVkResult(VkResult vkr)
     }
     else
     {
-      RDCLOG("Logging out of memory fatal error for %s", ToStr(vkr).c_str());
-      m_FailedReplayStatus = m_FatalError = ReplayStatus::ReplayOutOfMemory;
+      SET_ERROR_RESULT(m_FatalError, ResultCode::ReplayOutOfMemory,
+                       "Logging out of memory fatal error for %s", ToStr(vkr).c_str());
+      m_FailedReplayResult = m_FatalError;
     }
   }
   else

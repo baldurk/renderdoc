@@ -84,7 +84,7 @@ void VulkanReplay::Shutdown()
   delete m_pDriver;
 }
 
-ReplayStatus VulkanReplay::FatalErrorCheck()
+RDResult VulkanReplay::FatalErrorCheck()
 {
   return m_pDriver->FatalErrorCheck();
 }
@@ -219,7 +219,7 @@ APIProperties VulkanReplay::GetAPIProperties()
   return ret;
 }
 
-ReplayStatus VulkanReplay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
+RDResult VulkanReplay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   return m_pDriver->ReadLogInitialisation(rdc, storeStructuredBuffers);
 }
@@ -4528,7 +4528,7 @@ void VulkanReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataS
   VULKANNOTIMP("SetProxyTextureData");
 }
 
-ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver)
+RDResult Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver)
 {
   RDCDEBUG("Creating a VulkanReplay replay device");
 
@@ -4570,8 +4570,7 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, 
 
   if(module == NULL)
   {
-    RDCERR("Failed to load vulkan library");
-    return ReplayStatus::APIInitFailed;
+    RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Failed to load vulkan library");
   }
 
   VkInitParams initParams;
@@ -4585,14 +4584,16 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, 
     int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
     if(sectionIdx < 0)
-      return ReplayStatus::InternalError;
+      RETURN_ERROR_RESULT(ResultCode::FileCorrupted, "File does not contain captured API data");
 
     ver = rdc->GetSectionProperties(sectionIdx).version;
 
     if(!VkInitParams::IsSupportedVersion(ver))
     {
-      RDCERR("Incompatible Vulkan serialise version %llu", ver);
-      return ReplayStatus::APIIncompatibleVersion;
+      RETURN_ERROR_RESULT(ResultCode::APIIncompatibleVersion,
+                          "Vulkan capture is incompatible version %llu, newest supported by this "
+                          "build of RenderDoc is %llu",
+                          ver, VkInitParams::CurrentVersion);
     }
 
     StreamReader *reader = rdc->ReadSection(sectionIdx);
@@ -4605,16 +4606,15 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, 
 
     if(chunk != SystemChunk::DriverInit)
     {
-      RDCERR("Expected to get a DriverInit chunk, instead got %u", chunk);
-      return ReplayStatus::FileCorrupted;
+      RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                          "Expected to get a DriverInit chunk, instead got %u", chunk);
     }
 
     SERIALISE_ELEMENT(initParams);
 
     if(ser.IsErrored())
     {
-      RDCERR("Failed reading driver init params.");
-      return ReplayStatus::FileIOFailed;
+      return ser.GetError();
     }
   }
 
@@ -4637,9 +4637,9 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, 
   VulkanReplay *replay = vk->GetReplay();
   replay->SetProxy(isProxy);
 
-  ReplayStatus status = vk->Initialise(initParams, ver, opts);
+  RDResult status = vk->Initialise(initParams, ver, opts);
 
-  if(status != ReplayStatus::Succeeded)
+  if(status != ResultCode::Succeeded)
   {
     SAFE_DELETE(rgp);
 
@@ -4654,7 +4654,7 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, 
 
   replay->GetInitialDriverVersion();
 
-  return ReplayStatus::Succeeded;
+  return ResultCode::Succeeded;
 }
 
 struct VulkanDriverRegistration
@@ -4669,20 +4669,22 @@ struct VulkanDriverRegistration
 
 static VulkanDriverRegistration VkDriverRegistration;
 
-void Vulkan_ProcessStructured(RDCFile *rdc, SDFile &output)
+RDResult Vulkan_ProcessStructured(RDCFile *rdc, SDFile &output)
 {
   WrappedVulkan vulkan;
 
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
   if(sectionIdx < 0)
-    return;
+    RETURN_ERROR_RESULT(ResultCode::FileCorrupted, "File does not contain captured API data");
 
   vulkan.SetStructuredExport(rdc->GetSectionProperties(sectionIdx).version);
-  ReplayStatus status = vulkan.ReadLogInitialisation(rdc, true);
+  RDResult status = vulkan.ReadLogInitialisation(rdc, true);
 
-  if(status == ReplayStatus::Succeeded)
+  if(status == ResultCode::Succeeded)
     vulkan.GetStructuredFile()->Swap(output);
+
+  return status;
 }
 
 static StructuredProcessRegistration VulkanProcessRegistration(RDCDriver::Vulkan,

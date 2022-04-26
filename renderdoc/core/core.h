@@ -325,18 +325,17 @@ inline constexpr float FakeProgress(uint32_t x, uint32_t maxX)
   return 1.0f - (1.0f / (x * (4.0f / float(maxX)) + 1));
 }
 
-typedef ReplayStatus (*RemoteDriverProvider)(RDCFile *rdc, const ReplayOptions &opts,
-                                             IRemoteDriver **driver);
-typedef ReplayStatus (*ReplayDriverProvider)(RDCFile *rdc, const ReplayOptions &opts,
-                                             IReplayDriver **driver);
+typedef RDResult (*RemoteDriverProvider)(RDCFile *rdc, const ReplayOptions &opts,
+                                         IRemoteDriver **driver);
+typedef RDResult (*ReplayDriverProvider)(RDCFile *rdc, const ReplayOptions &opts,
+                                         IReplayDriver **driver);
 
-typedef void (*StructuredProcessor)(RDCFile *rdc, SDFile &structData);
+typedef RDResult (*StructuredProcessor)(RDCFile *rdc, SDFile &structData);
 
-typedef ReplayStatus (*CaptureImporter)(const rdcstr &filename, StreamReader &reader, RDCFile *rdc,
-                                        SDFile &structData, RENDERDOC_ProgressCallback progress);
-typedef ReplayStatus (*CaptureExporter)(const rdcstr &filename, const RDCFile &rdc,
-                                        const SDFile &structData,
-                                        RENDERDOC_ProgressCallback progress);
+typedef RDResult (*CaptureImporter)(const rdcstr &filename, StreamReader &reader, RDCFile *rdc,
+                                    SDFile &structData, RENDERDOC_ProgressCallback progress);
+typedef RDResult (*CaptureExporter)(const rdcstr &filename, const RDCFile &rdc,
+                                    const SDFile &structData, RENDERDOC_ProgressCallback progress);
 typedef IDeviceProtocolHandler *(*ProtocolHandler)();
 
 typedef bool (*VulkanLayerCheck)(VulkanLayerFlags &flags, rdcarray<rdcstr> &myJSONs,
@@ -504,9 +503,9 @@ public:
   void SetDarkCheckerboardColor(const FloatVector &col) { m_DarkChecker = col; }
   bool IsDarkTheme() { return m_DarkTheme; }
   void SetDarkTheme(bool dark) { m_DarkTheme = dark; }
-  ReplayStatus CreateProxyReplayDriver(RDCDriver proxyDriver, IReplayDriver **driver);
-  ReplayStatus CreateReplayDriver(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver);
-  ReplayStatus CreateRemoteDriver(RDCFile *rdc, const ReplayOptions &opts, IRemoteDriver **driver);
+  RDResult CreateProxyReplayDriver(RDCDriver proxyDriver, IReplayDriver **driver);
+  RDResult CreateReplayDriver(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver);
+  RDResult CreateRemoteDriver(RDCFile *rdc, const ReplayOptions &opts, IRemoteDriver **driver);
 
   bool HasReplaySupport(RDCDriver driverType);
 

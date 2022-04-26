@@ -670,29 +670,27 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
 
     GUIInvoke::call(this, [this, exe, ret, callback]() {
 
-      if(ret.status == ReplayStatus::JDWPFailure)
+      if(ret.result.code == ResultCode::JDWPFailure)
       {
         RDDialog::critical(
             this, tr("Error connecting to debugger"),
             tr("<html>Error launching %1 for capture.\n\n"
                "Something went wrong connecting to the debugger on the Android device.\n\n"
-               "This can happen if the package is not "
-               "marked as debuggable, if the intent arguments are badly specified, "
-               "or if another android tool such as Android Studio "
-               "is interfering with the debug connection.\n\n"
+               "This can happen if the package is not marked as debuggable, the device is not "
+               "configured to allow app debugging, if the intent arguments are badly specified, or "
+               "if another android tool such as Android Studio is interfering with the debug "
+               "connection.\n\n"
                "Close <b>all</b> instances of Android Studio or other Android programs "
                "and try again.</html>")
                 .arg(exe));
         return;
       }
 
-      if(ret.status != ReplayStatus::Succeeded)
+      if(ret.result.code != ResultCode::Succeeded)
       {
-        RDDialog::critical(this, tr("Error kicking capture"),
-                           tr("Error launching %1 for capture.\n\n%2. Check the diagnostic log in "
-                              "the help menu for more details")
-                               .arg(exe)
-                               .arg(ToQStr(ret.status)));
+        RDDialog::critical(
+            this, tr("Error launching capture"),
+            tr("Error launching %1 for capture.\n\n%2.").arg(exe).arg(ret.result.Message()));
         return;
       }
 
@@ -732,29 +730,11 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const rdcarray<EnvironmentModific
 
     GUIInvoke::call(this, [this, PID, ret, callback]() {
 
-      if(ret.status == ReplayStatus::JDWPFailure)
+      if(ret.result.code != ResultCode::Succeeded)
       {
         RDDialog::critical(
-            this, tr("Error connecting to debugger"),
-            tr("<html>Error injecting into process %1 for capture.\n\n"
-               "Something went wrong connecting to the debugger on the Android device.\n\n"
-               "This can happen if the package is not "
-               "marked as debuggable, or if another android tool such as Android Studio "
-               "is interfering with the debug connection.\n\n"
-               "Close <b>all</b> instances of Android Studio or other Android programs "
-               "and try again.</html>")
-                .arg(PID));
-        return;
-      }
-
-      if(ret.status != ReplayStatus::Succeeded)
-      {
-        RDDialog::critical(
-            this, tr("Error kicking capture"),
-            tr("Error injecting into process %1 for capture.\n\n%2. Check the diagnostic log in "
-               "the help menu for more details")
-                .arg(PID)
-                .arg(ToQStr(ret.status)));
+            this, tr("Error injecting into process"),
+            tr("Error injecting into process %1 for capture.\n\n%2").arg(PID).arg(ret.result.Message()));
         return;
       }
 
@@ -792,18 +772,12 @@ void MainWindow::LoadCapture(const QString &filename, const ReplayOptions &opts,
     {
       ICaptureFile *file = RENDERDOC_OpenCaptureFile();
 
-      ReplayStatus status = file->OpenFile(filename, "rdc", NULL);
+      ResultDetails result = file->OpenFile(filename, "rdc", NULL);
 
-      if(status != ReplayStatus::Succeeded)
+      if(!result.OK())
       {
-        QString text = tr("Couldn't open file '%1'\n").arg(filename);
-        QString message = file->ErrorString();
-        if(message.isEmpty())
-          text += tr("%1").arg(ToQStr(status));
-        else
-          text += tr("%1: %2").arg(ToQStr(status)).arg(message);
-
-        RDDialog::critical(this, tr("Error opening capture"), text);
+        RDDialog::critical(this, tr("Error opening capture"),
+                           tr("Couldn't open file '%1'\n%2").arg(filename).arg(result.Message()));
 
         file->Shutdown();
         return;
@@ -2096,10 +2070,10 @@ void MainWindow::setRemoteHost(int hostIdx)
           statusProgress->setMaximum(0);
         });
 
-        ReplayStatus launchStatus = host.Launch();
-        if(launchStatus != ReplayStatus::Succeeded)
+        ResultDetails launchResult = host.Launch();
+        if(!launchResult.OK())
         {
-          showLaunchError(launchStatus);
+          showLaunchError(launchResult);
         }
 
         // check if it's running now
@@ -2108,22 +2082,22 @@ void MainWindow::setRemoteHost(int hostIdx)
         GUIInvoke::call(this, [this]() { statusProgress->setVisible(false); });
       }
 
-      ReplayStatus status = ReplayStatus::Succeeded;
+      ResultDetails result = {ResultCode::Succeeded};
 
       if(host.IsServerRunning() && !host.IsBusy())
       {
-        status = m_Ctx.Replay().ConnectToRemoteServer(host);
+        result = m_Ctx.Replay().ConnectToRemoteServer(host);
       }
 
-      GUIInvoke::call(this, [this, host, status]() {
+      GUIInvoke::call(this, [this, host, result]() {
         contextChooser->setIcon(host.IsServerRunning() && !host.IsBusy() ? Icons::connect()
                                                                          : Icons::disconnect());
 
-        if(status != ReplayStatus::Succeeded)
+        if(!result.OK())
         {
           contextChooser->setIcon(Icons::cross());
           contextChooser->setText(tr("Replay Context: %1").arg(tr("Local")));
-          statusText->setText(tr("Connection failed: %1").arg(ToQStr(status)));
+          statusText->setText(tr("Connection failed: %1").arg(result.Message()));
         }
         else if(host.IsVersionMismatch())
         {
@@ -2573,15 +2547,14 @@ void MainWindow::on_action_Resolve_Symbols_triggered()
   bool finished = false;
 
   m_Ctx.Replay().AsyncInvoke([this, &progress, &finished](IReplayController *) {
-    bool success = m_Ctx.Replay().GetCaptureAccess()->InitResolver(
+    ResultDetails success = m_Ctx.Replay().GetCaptureAccess()->InitResolver(
         true, [&progress](float p) { progress = p; });
 
-    if(!success)
+    if(!success.OK())
     {
       RDDialog::critical(
           this, tr("Error loading symbols"),
-          tr("Couldn't load symbols for callstack resolution.\n\nCheck diagnostic log in "
-             "Help menu for more details."));
+          tr("Couldn't load symbols for callstack resolution.\n\n%1").arg(success.Message()));
     }
 
     finished = true;
@@ -2831,16 +2804,6 @@ void MainWindow::on_action_Show_Tips_triggered()
   RDDialog::show(&tipsDialog);
 }
 
-void MainWindow::on_action_View_Diagnostic_Log_File_triggered()
-{
-  QWidget *logView = m_Ctx.GetDiagnosticLogView()->Widget();
-
-  if(ui->toolWindowManager->toolWindows().contains(logView))
-    ToolWindowManager::raiseToolWindow(logView);
-  else
-    ui->toolWindowManager->addToolWindow(logView, mainToolArea());
-}
-
 void MainWindow::on_action_Counter_Viewer_triggered()
 {
   QWidget *performanceCounterViewer = m_Ctx.GetPerformanceCounterViewer()->Widget();
@@ -2926,6 +2889,16 @@ void MainWindow::on_action_Check_for_Updates_triggered()
       }
     }
   });
+}
+
+void MainWindow::showDiagnosticLogView()
+{
+  QWidget *logView = m_Ctx.GetDiagnosticLogView()->Widget();
+
+  if(ui->toolWindowManager->toolWindows().contains(logView))
+    ToolWindowManager::raiseToolWindow(logView);
+  else
+    ui->toolWindowManager->addToolWindow(logView, mainToolArea());
 }
 
 void MainWindow::updateAvailable_triggered()
@@ -3128,40 +3101,43 @@ bool MainWindow::LoadLayout(int layout)
   return false;
 }
 
-void MainWindow::showLaunchError(ReplayStatus status)
+void MainWindow::showLaunchError(ResultDetails result)
 {
   QString message;
-  switch(status)
+  switch(result.code)
   {
-    case ReplayStatus::AndroidGrantPermissionsFailed:
+    case ResultCode::AndroidGrantPermissionsFailed:
       message =
-          tr("Failed to automatically grant Android permissions to installed server.\n\n"
+          tr("%1.\n\n"
              "Please manually allow the RenderDocCmd program storage permissions on your device "
-             "to ensure correct functionality.");
+             "to ensure correct functionality.")
+              .arg(result.Message());
       break;
-    case ReplayStatus::AndroidABINotFound:
-      message =
-          tr("Couldn't determine supported ABIs for your device, please check device connection "
-             "and status.");
+    case ResultCode::AndroidABINotFound:
+      message = tr("%1.\n\nPlease check device connection and result.").arg(result.Message());
       break;
-    case ReplayStatus::AndroidAPKFolderNotFound:
-      message = tr("Couldn't find APK folder, please check that your installation is complete.");
+    case ResultCode::AndroidAPKFolderNotFound: message = result.Message(); break;
+    case ResultCode::AndroidAPKInstallFailed:
+      message = tr("%1.\n\nlease check that your device is connected and accessible to "
+                   "adb, and that installing APKs over USB is allowed.")
+                    .arg(result.Message());
       break;
-    case ReplayStatus::AndroidAPKInstallFailed:
-      message =
-          tr("Couldn't install APK, please check that your device is connected and accessible to "
-             "adb, and that installing APKs over USB is allowed.");
-      break;
-    case ReplayStatus::AndroidAPKVerifyFailed:
+    case ResultCode::AndroidAPKVerifyFailed:
       message =
           tr("Couldn't correctly verify installed APK version.\n\n"
-             "Please check your installation is not corrupted, or if this is a custom build check "
-             "that all ABIs are built at the same version as this program.");
+             "Please check your installation is not corrupted."
+#if !RENDERDOC_OFFICIAL_BUILD
+             " Or if this is a custom build check that all ABIs are built at the same version as "
+             "this program."
+#endif
+             );
       break;
-    default: message = tr("Unexpected error: %1.").arg(ToQStr(status)); break;
+    default:
+      message = tr("Error encountered launching RenderDoc remote server: %1.").arg(result.Message());
+      break;
   }
   GUIInvoke::call(this, [this, message]() {
-    RDDialog::warning(this, tr("Problems installing RenderDoc server"), message);
+    RDDialog::warning(this, tr("Problems launching RenderDoc remote server"), message);
   });
 }
 

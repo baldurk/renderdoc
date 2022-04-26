@@ -333,7 +333,7 @@ class GLXPlatform : public GLPlatform
   }
 
   bool PopulateForReplay() { return GLX.PopulateForReplay(); }
-  ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
+  RDResult InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
 // force debug in development builds
 #if ENABLED(RDOC_DEVEL)
@@ -361,8 +361,7 @@ class GLXPlatform : public GLPlatform
 
     if(dpy == NULL)
     {
-      RDCERR("Couldn't open default X display");
-      return ReplayStatus::APIInitFailed;
+      RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Couldn't open default X display");
     }
 
     // don't need to care about the fb config as we won't be using the default framebuffer
@@ -373,8 +372,7 @@ class GLXPlatform : public GLPlatform
 
     if(fbcfg == NULL)
     {
-      RDCERR("Couldn't choose default framebuffer config");
-      return ReplayStatus::APIInitFailed;
+      RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Couldn't choose default framebuffer config");
     }
 
     GLXContext ctx = NULL;
@@ -402,8 +400,9 @@ class GLXPlatform : public GLPlatform
     if(ctx == NULL || X11ErrorSeen)
     {
       XFree(fbcfg);
-      RDCERR("Couldn't create 3.2 context - RenderDoc requires OpenGL 3.2 availability");
-      return ReplayStatus::APIHardwareUnsupported;
+      RETURN_ERROR_RESULT(
+          ResultCode::APIHardwareUnsupported,
+          "Couldn't create 3.2 context - RenderDoc requires OpenGL 3.2 availability");
     }
 
     GLCoreVersion = major * 10 + minor;
@@ -421,8 +420,8 @@ class GLXPlatform : public GLPlatform
     {
       GLX.glXDestroyPbuffer(dpy, pbuffer);
       GLX.glXDestroyContext(dpy, ctx);
-      RDCERR("Couldn't make pbuffer & context current");
-      return ReplayStatus::APIInitFailed;
+      return ResultCode::APIInitFailed;
+      RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Couldn't make pbuffer & context current");
     }
 
     PFNGLGETSTRINGPROC GetString = (PFNGLGETSTRINGPROC)GetReplayFunction("glGetString");
@@ -448,7 +447,7 @@ class GLXPlatform : public GLPlatform
 
     pbuffers.insert(pbuffer);
 
-    return ReplayStatus::Succeeded;
+    return ResultCode::Succeeded;
   }
 
   void DrawQuads(float width, float height, const rdcarray<Vec4f> &vertices)

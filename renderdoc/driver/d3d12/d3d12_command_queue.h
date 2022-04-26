@@ -149,8 +149,6 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
 
   bool m_MarkedActive = false;
 
-  ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
-
   WrappedID3D12DebugCommandQueue m_WrappedDebug;
   WrappedID3D12CompatibilityQueue m_WrappedCompat;
 
@@ -204,8 +202,7 @@ public:
     return m_SparseBindResources.find(id) != m_SparseBindResources.end();
   }
 
-  ReplayStatus ReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
-                         bool partial);
+  RDResult ReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
   void SetFrameReader(StreamReader *reader) { m_FrameReader = reader; }
   D3D12CommandData *GetCommandData() { return &m_Cmd; }
   const rdcarray<EventUsage> &GetUsage(ResourceId id) { return m_Cmd.m_ResourceUses[id]; }

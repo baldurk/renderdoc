@@ -3552,7 +3552,7 @@ enum class ReplaySupport : uint32_t
 
 DECLARE_REFLECTION_ENUM(ReplaySupport);
 
-DOCUMENT(R"(The status of a high-level replay operation such as opening a capture or connecting to
+DOCUMENT(R"(The result from a replay operation such as opening a capture or connecting to
 a remote server.
 
 .. data:: Succeeded
@@ -3605,7 +3605,7 @@ a remote server.
 
 .. data:: ImageUnsupported
 
-  The image file is recognised but the format is unsupported.
+  The image file or format is unrecognised or not supported in this form.
 
 .. data:: APIUnsupported
 
@@ -3621,7 +3621,7 @@ a remote server.
 
 .. data:: APIHardwareUnsupported
 
-  The API is not supported on the currently available hardware.
+  Current replaying hardware unsupported or incompatible with captured hardware.
 
 .. data:: APIDataCorrupted
 
@@ -3663,13 +3663,25 @@ a remote server.
 
 .. data:: ReplayOutOfMemory
 
-  While replaying, a GPU out of memory error was encountered.
+  While replaying, an out of memory error was encountered.
 
 .. data:: ReplayDeviceLost
 
   While replaying a device lost fatal error was encountered.
+
+.. data:: DataNotAvailable
+
+  Data was requested through RenderDoc's API which is not available.
+
+.. data:: InvalidParameter
+
+  An invalid parameter was passed to RenderDoc's API.
+
+.. data:: CompressionFailed
+
+  Compression or decompression failed.
 )");
-enum class ReplayStatus : uint32_t
+enum class ResultCode : uint32_t
 {
   Succeeded = 0,
   UnknownError,
@@ -3699,9 +3711,16 @@ enum class ReplayStatus : uint32_t
   RemoteServerConnectionLost,
   ReplayOutOfMemory,
   ReplayDeviceLost,
+  DataNotAvailable,
+  InvalidParameter,
+  CompressionFailed,
 };
 
-DECLARE_REFLECTION_ENUM(ReplayStatus);
+DECLARE_REFLECTION_ENUM(ResultCode);
+// need to forward declare this explicitly since ResultCode can be instantiated early in places
+// where we're going to later explicitly instantiate it to define it
+template <>
+rdcstr DoStringise(const ResultCode &el);
 
 DOCUMENT(R"(The type of message received from or sent to an application target control connection.
 

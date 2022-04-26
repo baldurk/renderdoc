@@ -28,6 +28,7 @@
 #include "api/replay/version.h"
 #include "common/common.h"
 #include "common/formatting.h"
+#include "common/threading.h"
 #include "core/core.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
@@ -35,6 +36,27 @@
 #include "replay/replay_driver.h"
 #include "strings/string_utils.h"
 #include "superluminal/superluminal.h"
+
+Threading::CriticalSection detailStringLock;
+rdcarray<const rdcstr *> detailStrings;
+
+RDResult::operator ResultDetails() const
+{
+  RDCCOMPILE_ASSERT(ResultCode(0) == ResultCode::Succeeded,
+                    "ResultCode 0 value should be succeeded");
+
+  ResultDetails ret;
+  ret.code = code;
+  ret.internal_msg = NULL;
+  if(!message.empty())
+  {
+    SCOPED_LOCK(detailStringLock);
+    ret.internal_msg = new rdcstr(ToStr(code) + ": " + message);
+    detailStrings.push_back(ret.internal_msg);
+  }
+
+  return ret;
+}
 
 // these entry points are for the replay/analysis side - not for the application.
 
@@ -287,6 +309,13 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitialiseReplay(GlobalEnvi
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_ShutdownReplay()
 {
+  {
+    SCOPED_LOCK(detailStringLock);
+    for(const rdcstr *msg : detailStrings)
+      delete msg;
+    detailStrings.clear();
+  }
+
   RenderDoc::Inst().ShutdownReplay();
 }
 
@@ -335,11 +364,11 @@ RENDERDOC_ExecuteAndInject(const rdcstr &app, const rdcstr &workingDir, const rd
                            const rdcarray<EnvironmentModification> &env, const rdcstr &capturefile,
                            const CaptureOptions &opts, bool waitForExit)
 {
-  rdcpair<ReplayStatus, uint32_t> status = Process::LaunchAndInjectIntoProcess(
+  rdcpair<RDResult, uint32_t> status = Process::LaunchAndInjectIntoProcess(
       app, workingDir, cmdLine, env, capturefile, opts, waitForExit != 0);
 
   ExecuteResult ret;
-  ret.status = status.first;
+  ret.result = status.first;
   ret.ident = status.second;
   return ret;
 }
@@ -349,9 +378,8 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetDefaultCaptureOptions(Ca
   *opts = CaptureOptions();
 }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_StartGlobalHook(const rdcstr &pathmatch,
-                                                                     const rdcstr &capturefile,
-                                                                     const CaptureOptions &opts)
+extern "C" RENDERDOC_API ResultDetails RENDERDOC_CC RENDERDOC_StartGlobalHook(
+    const rdcstr &pathmatch, const rdcstr &capturefile, const CaptureOptions &opts)
 {
   return Process::StartGlobalHook(pathmatch, capturefile, opts);
 }
@@ -375,11 +403,11 @@ extern "C" RENDERDOC_API ExecuteResult RENDERDOC_CC
 RENDERDOC_InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
                             const rdcstr &capturefile, const CaptureOptions &opts, bool waitForExit)
 {
-  rdcpair<ReplayStatus, uint32_t> status =
+  rdcpair<RDResult, uint32_t> status =
       Process::InjectIntoProcess(pid, env, capturefile, opts, waitForExit != 0);
 
   ExecuteResult ret;
-  ret.status = status.first;
+  ret.result = status.first;
   ret.ident = status.second;
   return ret;
 }

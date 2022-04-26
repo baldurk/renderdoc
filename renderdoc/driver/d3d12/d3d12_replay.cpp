@@ -115,7 +115,7 @@ void D3D12Replay::Initialise(IDXGIFactory1 *factory)
   }
 }
 
-ReplayStatus D3D12Replay::FatalErrorCheck()
+RDResult D3D12Replay::FatalErrorCheck()
 {
   return m_pDevice->FatalErrorCheck();
 }
@@ -210,7 +210,7 @@ void D3D12Replay::DestroyResources()
   SAFE_DELETE(m_pAMDCounters);
 }
 
-ReplayStatus D3D12Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
+RDResult D3D12Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   return m_pDevice->ReadLogInitialisation(rdc, storeStructuredBuffers);
 }
@@ -4210,7 +4210,7 @@ void D3D12Replay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSi
 
 #pragma endregion
 
-ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver)
+RDResult D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver)
 {
   RDCDEBUG("Creating a D3D12 replay device");
 
@@ -4236,8 +4236,8 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
 
       if(!dxilconv)
       {
-        RDCERR("Found d3d12.dll in plugin path, but couldn't load dxilconv7.dll");
-        return ReplayStatus::APIInitFailed;
+        RETURN_ERROR_RESULT(ResultCode::APIInitFailed,
+                            "Found d3d12.dll in plugin path, but couldn't load dxilconv7.dll");
       }
     }
     else
@@ -4254,10 +4254,9 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
       else
       {
         if(rdc)
-          RDCERR("Failed to load d3d12.dll");
+          RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Failed to load d3d12.dll");
         else
-          RDCWARN("Failed to load d3d12.dll");
-        return ReplayStatus::APIInitFailed;
+          RETURN_WARNING_RESULT(ResultCode::APIInitFailed, "Failed to load d3d12.dll");
       }
     }
   }
@@ -4270,14 +4269,12 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   HMODULE dxgilib = LoadLibraryA("dxgi.dll");
   if(dxgilib == NULL)
   {
-    RDCERR("Failed to load dxgi.dll");
-    return ReplayStatus::APIInitFailed;
+    RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Failed to load dxgi.dll");
   }
 
   if(GetD3DCompiler() == NULL)
   {
-    RDCERR("Failed to load d3dcompiler_??.dll");
-    return ReplayStatus::APIInitFailed;
+    RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Failed to load d3dcompiler_??.dll");
   }
 
   D3D12InitParams initParams;
@@ -4292,14 +4289,16 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
     int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
     if(sectionIdx < 0)
-      return ReplayStatus::InternalError;
+      RETURN_ERROR_RESULT(ResultCode::FileCorrupted, "File does not contain captured API data");
 
     ver = rdc->GetSectionProperties(sectionIdx).version;
 
     if(!D3D12InitParams::IsSupportedVersion(ver))
     {
-      RDCERR("Incompatible D3D12 serialise version %llu", ver);
-      return ReplayStatus::APIIncompatibleVersion;
+      RETURN_ERROR_RESULT(ResultCode::APIIncompatibleVersion,
+                          "D3D12 capture is incompatible version %llu, newest supported by this "
+                          "build of RenderDoc is %llu",
+                          ver, D3D12InitParams::CurrentVersion);
     }
 
     StreamReader *reader = rdc->ReadSection(sectionIdx);
@@ -4312,16 +4311,15 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
 
     if(chunk != SystemChunk::DriverInit)
     {
-      RDCERR("Expected to get a DriverInit chunk, instead got %u", chunk);
-      return ReplayStatus::FileCorrupted;
+      RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                          "Expected to get a DriverInit chunk, instead got %u", chunk);
     }
 
     SERIALISE_ELEMENT(initParams);
 
     if(ser.IsErrored())
     {
-      RDCERR("Failed reading driver init params.");
-      return ReplayStatus::FileIOFailed;
+      return ser.GetError();
     }
 
     if(initParams.AdapterDesc.DeviceId != 0)
@@ -4390,7 +4388,8 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   HRESULT hr = createFunc(__uuidof(IDXGIFactory1), (void **)&factory);
 
   if(FAILED(hr))
-    RDCERR("Couldn't create DXGI factory! HRESULT: %s", ToStr(hr).c_str());
+    RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Couldn't create DXGI factory! HRESULT: %s",
+                        ToStr(hr).c_str());
 
   IDXGIAdapter *adapter = NULL;
 
@@ -4407,8 +4406,9 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
 
     if(!nvapiDev)
     {
-      RDCERR("Capture requires nvapi to replay, but it's not available or can't be initialised");
-      return ReplayStatus::APIHardwareUnsupported;
+      RETURN_ERROR_RESULT(
+          ResultCode::APIHardwareUnsupported,
+          "Capture requires nvapi to replay, but it's not available or can't be initialised");
     }
   }
   else if(initParams.VendorExtensions == GPUVendor::AMD)
@@ -4417,8 +4417,9 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
 
     if(!agsDev)
     {
-      RDCERR("Capture requires ags to replay, but it's not available or can't be initialised");
-      return ReplayStatus::APIHardwareUnsupported;
+      RETURN_ERROR_RESULT(
+          ResultCode::APIHardwareUnsupported,
+          "Capture requires ags to replay, but it's not available or can't be initialised");
     }
 
     createDevice = [agsDev](IUnknown *pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
@@ -4428,11 +4429,11 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   }
   else if(initParams.VendorExtensions != GPUVendor::Unknown)
   {
-    RDCERR(
+    RETURN_ERROR_RESULT(
+        ResultCode::APIInitFailed,
         "Capture requires vendor extensions by %s to replay, but no support for that is "
         "available.",
         ToStr(initParams.VendorExtensions).c_str());
-    return ReplayStatus::APIInitFailed;
   }
 
   bool debugLayerEnabled = false;
@@ -4480,11 +4481,10 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create a d3d12 device.");
-
     SAFE_DELETE(rgp);
 
-    return ReplayStatus::APIHardwareUnsupported;
+    RETURN_ERROR_RESULT(ResultCode::APIHardwareUnsupported, "Couldn't create a d3d12 device: %s",
+                        ToStr(hr).c_str());
   }
 
   if(nvapiDev)
@@ -4492,14 +4492,14 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
     BOOL ok = nvapiDev->SetReal(dev);
     if(!ok)
     {
-      RDCERR(
-          "This capture needs nvapi extensions to replay, but device selected for replay can't "
-          "support nvapi extensions");
       SAFE_RELEASE(dev);
       SAFE_RELEASE(nvapiDev);
       SAFE_RELEASE(factory);
       SAFE_DELETE(rgp);
-      return ReplayStatus::APIHardwareUnsupported;
+      RETURN_ERROR_RESULT(
+          ResultCode::APIHardwareUnsupported,
+          "This capture needs nvapi extensions to replay, but device selected for replay can't "
+          "support nvapi extensions");
     }
   }
 
@@ -4507,14 +4507,14 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   {
     if(!agsDev->ExtensionsSupported())
     {
-      RDCERR(
-          "This capture needs AGS extensions to replay, but device selected for replay can't "
-          "support AGS extensions");
       SAFE_RELEASE(dev);
       SAFE_RELEASE(nvapiDev);
       SAFE_RELEASE(factory);
       SAFE_DELETE(rgp);
-      return ReplayStatus::APIHardwareUnsupported;
+      RETURN_ERROR_RESULT(
+          ResultCode::APIHardwareUnsupported,
+          "This capture needs AGS extensions to replay, but device selected for replay can't "
+          "support nvapi extensions");
     }
   }
 
@@ -4532,25 +4532,27 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   replay->Initialise(factory);
 
   *driver = (IReplayDriver *)replay;
-  return ReplayStatus::Succeeded;
+  return ResultCode::Succeeded;
 }
 
 static DriverRegistration D3D12DriverRegistration(RDCDriver::D3D12, &D3D12_CreateReplayDevice);
 
-void D3D12_ProcessStructured(RDCFile *rdc, SDFile &output)
+RDResult D3D12_ProcessStructured(RDCFile *rdc, SDFile &output)
 {
   WrappedID3D12Device device(NULL, D3D12InitParams(), false);
 
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
   if(sectionIdx < 0)
-    return;
+    RETURN_ERROR_RESULT(ResultCode::FileCorrupted, "File does not contain captured API data");
 
   device.SetStructuredExport(rdc->GetSectionProperties(sectionIdx).version);
-  ReplayStatus status = device.ReadLogInitialisation(rdc, true);
+  RDResult result = device.ReadLogInitialisation(rdc, true);
 
-  if(status == ReplayStatus::Succeeded)
+  if(result == ResultCode::Succeeded)
     device.GetStructuredFile()->Swap(output);
+
+  return result;
 }
 
 static StructuredProcessRegistration D3D12ProcessRegistration(RDCDriver::D3D12,

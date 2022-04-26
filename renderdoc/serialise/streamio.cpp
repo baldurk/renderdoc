@@ -62,7 +62,7 @@ StreamReader::StreamReader(const bytebuf &buffer)
   m_Ownership = Ownership::Nothing;
 }
 
-StreamReader::StreamReader(StreamInvalidType)
+StreamReader::StreamReader(StreamInvalidType, RDResult res)
 {
   m_InputSize = 0;
 
@@ -71,7 +71,10 @@ StreamReader::StreamReader(StreamInvalidType)
 
   m_Ownership = Ownership::Nothing;
 
-  m_HasError = true;
+  m_Error = res;
+  if(m_Error == ResultCode::Succeeded)
+    SET_ERROR_RESULT(m_Error, ResultCode::InvalidParameter,
+                     "Invalid stream created with no error code");
 }
 
 StreamReader::StreamReader(StreamDummyType)
@@ -367,17 +370,28 @@ bool StreamReader::ReadFromExternal(void *buffer, uint64_t length)
   if(m_Decompressor)
   {
     success = m_Decompressor->Read(buffer, length);
+
+    if(!success)
+      m_Error = m_Decompressor->GetError();
   }
   else if(m_File)
   {
     uint64_t numRead = FileIO::fread(buffer, 1, (size_t)length, m_File);
     success = (numRead == length);
+
+    if(!success)
+      SET_ERROR_RESULT(m_Error, ResultCode::FileIOFailed, "Error reading from file: %s",
+                       FileIO::ErrorString().c_str());
   }
   else if(m_Sock)
   {
     if(!m_Sock->Connected())
     {
       success = false;
+      m_Error = m_Sock->GetError();
+      if(m_Error == ResultCode::Succeeded)
+        SET_ERROR_RESULT(m_Error, ResultCode::NetworkIOFailed,
+                         "Socket unexpectedly disconnected during reading");
     }
     else
     {
@@ -399,6 +413,14 @@ bool StreamReader::ReadFromExternal(void *buffer, uint64_t length)
         if(success)
           m_InputSize += bufSize;
       }
+
+      if(!success)
+      {
+        m_Error = m_Sock->GetError();
+        if(m_Error == ResultCode::Succeeded)
+          SET_WARNING_RESULT(m_Error, ResultCode::NetworkIOFailed,
+                             "Socket unexpectedly disconnected during reading");
+      }
     }
   }
   else
@@ -409,13 +431,6 @@ bool StreamReader::ReadFromExternal(void *buffer, uint64_t length)
 
   if(!success)
   {
-    if(m_File)
-      RDCERR("Error reading from file, errno %d", errno);
-    else if(m_Sock)
-      RDCWARN("Error reading from socket");
-
-    m_HasError = true;
-
     // move to error state
     FreeAlignedBuffer(m_BufferBase);
 
@@ -454,14 +469,17 @@ StreamWriter::StreamWriter(uint64_t initialBufSize)
   m_Ownership = Ownership::Nothing;
 }
 
-StreamWriter::StreamWriter(StreamInvalidType)
+StreamWriter::StreamWriter(StreamInvalidType, RDResult res)
 {
   m_BufferBase = m_BufferHead = m_BufferEnd = NULL;
 
   m_Ownership = Ownership::Nothing;
   m_InMemory = false;
 
-  m_HasError = true;
+  m_Error = res;
+  if(m_Error == ResultCode::Succeeded)
+    SET_ERROR_RESULT(m_Error, ResultCode::InvalidParameter,
+                     "Invalid stream created with no error code");
 }
 
 StreamWriter::StreamWriter(Network::Socket *sock, Ownership own)
@@ -520,10 +538,7 @@ bool StreamWriter::SendSocketData(const void *data, uint64_t numBytes)
   {
     bool success = FlushSocketData();
     if(!success)
-    {
-      HandleError();
       return false;
-    }
   }
 
   // if it's larger than our buffer (even after flushing) just write directly
@@ -532,7 +547,11 @@ bool StreamWriter::SendSocketData(const void *data, uint64_t numBytes)
     bool success = m_Sock->SendDataBlocking(data, (uint32_t)numBytes);
     if(!success)
     {
-      HandleError();
+      RDResult res = m_Sock->GetError();
+      if(res == ResultCode::Succeeded)
+        SET_ERROR_RESULT(res, ResultCode::NetworkIOFailed,
+                         "Socket unexpectedly disconnected during sending");
+      HandleError(res);
       return false;
     }
   }
@@ -552,7 +571,11 @@ bool StreamWriter::FlushSocketData()
   bool success = m_Sock->SendDataBlocking(m_BufferBase, uint32_t(m_BufferHead - m_BufferBase));
   if(!success)
   {
-    HandleError();
+    RDResult res = m_Sock->GetError();
+    if(res == ResultCode::Succeeded)
+      SET_ERROR_RESULT(res, ResultCode::NetworkIOFailed,
+                       "Socket unexpectedly disconnected during sending");
+    HandleError(res);
     return false;
   }
 
@@ -562,14 +585,10 @@ bool StreamWriter::FlushSocketData()
   return true;
 }
 
-void StreamWriter::HandleError()
+void StreamWriter::HandleError(RDResult result)
 {
-  if(m_File)
-    RDCERR("Error writing to file, errno %d", errno);
-  else if(m_Sock)
-    RDCWARN("Error writing to socket");
-
-  m_HasError = true;
+  if(m_Error == ResultCode::Succeeded)
+    m_Error = result;
 
   FreeAlignedBuffer(m_BufferBase);
 

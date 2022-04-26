@@ -597,10 +597,10 @@ void RemoteManager::on_connect_clicked()
       }
       else
       {
-        ReplayStatus status = ReplayStatus::Succeeded;
-        LambdaThread *th = new LambdaThread([&host, &status]() {
+        ResultDetails result = {ResultCode::Succeeded};
+        LambdaThread *th = new LambdaThread([&host, &result]() {
           IRemoteServer *server = NULL;
-          status = host.Connect(&server);
+          result = host.Connect(&server);
           if(server)
             server->ShutdownServerAndConnection();
         });
@@ -615,9 +615,9 @@ void RemoteManager::on_connect_clicked()
 
         setRemoteServerLive(node, false, false);
 
-        if(status != ReplayStatus::Succeeded)
+        if(!result.OK())
           RDDialog::critical(this, tr("Shutdown error"),
-                             tr("Error shutting down remote server: %1").arg(ToQStr(status)));
+                             tr("Error shutting down remote server: %1").arg(result.Message()));
       }
 
       // kick off a thread to check the status

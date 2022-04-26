@@ -126,7 +126,8 @@ Socket *Socket::AcceptClient(uint32_t timeoutMilliseconds)
 
     if(err != EWOULDBLOCK && err != EAGAIN && err != EINTR)
     {
-      RDCWARN("accept: %s", errno_string(err).c_str());
+      SET_WARNING_RESULT(m_Error, ResultCode::NetworkIOFailed, "accept failed: %s",
+                         errno_string(err).c_str());
       Shutdown();
     }
 
@@ -180,13 +181,15 @@ bool Socket::SendDataBlocking(const void *buf, uint32_t length)
       }
       else if(err == EWOULDBLOCK || err == EAGAIN)
       {
-        RDCWARN("Timeout of %f seconds exceeded in send", float(timeoutMS) / 1000.0f);
+        SET_WARNING_RESULT(m_Error, ResultCode::NetworkIOFailed,
+                           "Timeout of %f seconds exceeded in send", float(timeoutMS) / 1000.0f);
         Shutdown();
         return false;
       }
       else
       {
-        RDCWARN("send: %s", errno_string(err).c_str());
+        SET_WARNING_RESULT(m_Error, ResultCode::NetworkIOFailed, "send failed: %s",
+                           errno_string(err).c_str());
         Shutdown();
         return false;
       }
@@ -229,7 +232,8 @@ bool Socket::IsRecvDataWaiting()
     }
     else
     {
-      RDCWARN("recv: %s", errno_string(err).c_str());
+      SET_WARNING_RESULT(m_Error, ResultCode::NetworkIOFailed, "recv peek failed: %s",
+                         errno_string(err).c_str());
       Shutdown();
       return false;
     }
@@ -261,7 +265,8 @@ bool Socket::RecvDataNonBlocking(void *buf, uint32_t &length)
     }
     else
     {
-      RDCWARN("recv: %s", errno_string(err).c_str());
+      SET_WARNING_RESULT(m_Error, ResultCode::NetworkIOFailed, "recv non blocking failed: %s",
+                         errno_string(err).c_str());
       Shutdown();
       return false;
     }
@@ -312,13 +317,15 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
       }
       else if(err == EWOULDBLOCK || err == EAGAIN)
       {
-        RDCWARN("Timeout of %f seconds exceeded in recv", float(timeoutMS) / 1000.0f);
+        SET_WARNING_RESULT(m_Error, ResultCode::NetworkIOFailed,
+                           "Timeout of %f seconds exceeded in recv", float(timeoutMS) / 1000.0f);
         Shutdown();
         return false;
       }
       else
       {
-        RDCWARN("recv: %s", errno_string(err).c_str());
+        SET_WARNING_RESULT(m_Error, ResultCode::NetworkIOFailed, "recv blocking failed: %s",
+                           errno_string(err).c_str());
         Shutdown();
         return false;
       }

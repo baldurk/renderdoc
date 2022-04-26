@@ -224,7 +224,7 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
       bytebuf buf;
 
       ICaptureFile *file = RENDERDOC_OpenCaptureFile();
-      if(file->OpenFile(captures.back().path, "rdc", NULL) == ReplayStatus::Succeeded)
+      if(file->OpenFile(captures.back().path, "rdc", NULL).OK())
       {
         buf = file->GetThumbnail(FileType::JPG, 0).data;
       }

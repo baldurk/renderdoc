@@ -127,9 +127,9 @@ static void SetCaptureFileComments(const char *filePath, const char *comments)
 
   RDCFile rdc;
   rdc.Open(path);
-  if(rdc.ErrorCode() != ContainerError::NoError)
+  if(rdc.Error() != ResultCode::Succeeded)
   {
-    RDCERR("Error opening '%s' to add capture comments", path.c_str());
+    RDCERR("Error adding capture file comments: %s", ResultDetails(rdc.Error()).Message().c_str());
     return;
   }
 

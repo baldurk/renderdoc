@@ -30,12 +30,12 @@ def open_capture(filename="", cap: rd.CaptureFile=None, opts: rd.ReplayOptions=N
         cap = rd.OpenCaptureFile()
 
         # Open a particular file
-        status = cap.OpenFile(filename, '', None)
+        result = cap.OpenFile(filename, '', None)
 
         # Make sure the file opened successfully
-        if status != rd.ReplayStatus.Succeeded:
+        if result != rd.ResultCode.Succeeded:
             cap.Shutdown()
-            raise RuntimeError("Couldn't open '{}': {}".format(filename, str(status)))
+            raise RuntimeError("Couldn't open '{}': {}".format(filename, str(result)))
 
         api = cap.DriverName()
 
@@ -44,13 +44,13 @@ def open_capture(filename="", cap: rd.CaptureFile=None, opts: rd.ReplayOptions=N
             cap.Shutdown()
             raise RuntimeError("{} capture cannot be replayed".format(api))
 
-    status, controller = cap.OpenCapture(opts, None)
+    result, controller = cap.OpenCapture(opts, None)
 
     if own_cap:
         cap.Shutdown()
 
-    if status != rd.ReplayStatus.Succeeded:
-        raise RuntimeError("Couldn't initialise replay for {}: {}".format(api, str(rd.ReplayStatus(status))))
+    if result != rd.ResultCode.Succeeded:
+        raise RuntimeError("Couldn't initialise replay for {}: {}".format(api, str(result)))
 
     return controller
 

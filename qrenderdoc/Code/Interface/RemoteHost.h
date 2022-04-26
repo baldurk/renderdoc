@@ -61,12 +61,12 @@ public:
   void CheckStatus();
 
   DOCUMENT(R"(Runs the command specified in :data:`runCommand`. Returns
-:class:`~renderdoc.ReplayStatus` which indicates success or the type of failure.
+:class:`~renderdoc.ResultDetails` which indicates success or the type of failure.
 
 :return: The result from launching the remote server.
-:rtype: renderdoc.ReplayStatus
+:rtype: renderdoc.ResultDetails
 )");
-  ReplayStatus Launch();
+  ResultDetails Launch();
 
   DOCUMENT(R"(
 :return: ``True`` if a remote server is currently running on this host.
@@ -131,9 +131,9 @@ public:
 
 :return: The status of opening the capture, whether success or failure, and a :class:`RemoteServer`
   instance if it were successful
-:rtype: Tuple[renderdoc.ReplayStatus, renderdoc.RemoteServer]
+:rtype: Tuple[renderdoc.ResultDetails, renderdoc.RemoteServer]
 )");
-  ReplayStatus Connect(IRemoteServer **server);
+  ResultDetails Connect(IRemoteServer **server);
 
   DOCUMENT(R"(
 :return: The :class:`~renderdoc.DeviceProtocolController` for this host, or ``None`` if no protocol
@@ -181,7 +181,7 @@ private:
   void SetConnected(bool connected);
   void SetShutdown();
 
-  void UpdateStatus(ReplayStatus status);
+  void UpdateStatus(ResultDetails result);
 };
 
 DECLARE_REFLECTION_STRUCT(RemoteHost);

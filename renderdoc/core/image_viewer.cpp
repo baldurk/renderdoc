@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "common/dds_readwrite.h"
+#include "common/formatting.h"
 #include "core/core.h"
 #include "maths/formatpacking.h"
 #include "replay/dummy_driver.h"
@@ -82,8 +83,11 @@ public:
   }
 
   bool IsRemoteProxy() { return true; }
-  ReplayStatus FatalErrorCheck()
+  RDResult FatalErrorCheck()
   {
+    if(m_Error != ResultCode::Succeeded)
+      return m_Error;
+
     // check for errors on the underlying proxy driver
     return m_Proxy->FatalErrorCheck();
   }
@@ -238,9 +242,9 @@ public:
   }
 
   // other operations are dropped/ignored, to avoid confusion
-  ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
+  RDResult ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
   {
-    return ReplayStatus::Succeeded;
+    return ResultCode::Succeeded;
   }
   SDFile *GetStructuredFile() { return m_File; }
   void RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondaryDraws, const MeshDisplay &cfg)
@@ -374,31 +378,34 @@ private:
   SDFile *m_File;
   TextureDescription m_TexDetails;
 
+  RDResult m_Error;
+
   // if we remapped the texture for display, this contains the real data to return from
   // GetTextureData()
   rdcarray<bytebuf> m_RealTexData;
 };
 
-ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
+RDResult IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   if(!rdc)
-    return ReplayStatus::InternalError;
+    return ResultCode::InvalidParameter;
 
   rdcstr filename;
   FILE *f = rdc->StealImageFileHandle(filename);
+
+  if(!f)
+  {
+    RETURN_ERROR_RESULT(ResultCode::InvalidParameter,
+                        "Trying to load invalid handle as image-capture");
+  }
 
   byte headerBuffer[4];
   const size_t headerSize = FileIO::fread(headerBuffer, 1, 4, f);
   FileIO::fseek64(f, 0, SEEK_SET);
 
-  if(!f)
-    return ReplayStatus::FileIOFailed;
-
   // make sure the file is a type we recognise before going further
   if(is_exr_file(f))
   {
-    const char *err = NULL;
-
     FileIO::fseek64(f, 0, SEEK_END);
     uint64_t size = FileIO::ftell64(f);
     FileIO::fseek64(f, 0, SEEK_SET);
@@ -413,28 +420,57 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
     if(ret != 0)
     {
-      RDCERR("EXR file detected, but couldn't load with ParseEXRVersionFromMemory: %d", ret);
       FileIO::fclose(f);
-      return ReplayStatus::ImageUnsupported;
+      RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                          "EXR file detected, but couldn't load with ParseEXRVersionFromMemory: %d",
+                          ret);
     }
 
-    if(exrVersion.multipart || exrVersion.non_image || exrVersion.tiled)
+    if(exrVersion.multipart)
     {
-      RDCERR("Unsupported EXR file detected - multipart or similar.");
       FileIO::fclose(f);
-      return ReplayStatus::ImageUnsupported;
+      RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                          "Unsupported EXR file detected - multipart EXR.");
+    }
+
+    if(exrVersion.non_image)
+    {
+      FileIO::fclose(f);
+      RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                          "Unsupported EXR file detected - deep image EXR.");
+    }
+
+    if(exrVersion.tiled)
+    {
+      FileIO::fclose(f);
+      RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                          "Unsupported EXR file detected - tiled EXR.");
     }
 
     EXRHeader exrHeader;
     InitEXRHeader(&exrHeader);
 
-    ret = ParseEXRHeaderFromMemory(&exrHeader, &exrVersion, buffer.data(), buffer.size(), &err);
+    rdcstr errString;
+
+    {
+      const char *err = NULL;
+
+      ret = ParseEXRHeaderFromMemory(&exrHeader, &exrVersion, buffer.data(), buffer.size(), &err);
+
+      if(err)
+      {
+        errString = err;
+        free((void *)err);
+      }
+    }
 
     if(ret != 0)
     {
-      RDCERR("EXR file detected, but couldn't load with ParseEXRHeaderFromMemory %d: '%s'", ret, err);
       FileIO::fclose(f);
-      return ReplayStatus::ImageUnsupported;
+      RETURN_ERROR_RESULT(
+          ResultCode::ImageUnsupported,
+          "EXR file detected, but couldn't load with ParseEXRHeaderFromMemory %d: '%s'", ret,
+          errString.c_str());
     }
   }
   else if(stbi_is_hdr_from_file(f))
@@ -447,8 +483,8 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     if(!data)
     {
       FileIO::fclose(f);
-      RDCERR("HDR file recognised, but couldn't load with stbi_loadf_from_file");
-      return ReplayStatus::ImageUnsupported;
+      RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                          "HDR file recognised, but couldn't load with stbi_loadf_from_file");
     }
 
     free(data);
@@ -457,14 +493,12 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   {
     FileIO::fseek64(f, 0, SEEK_SET);
     StreamReader reader(f);
-    read_dds_data read_data = load_dds_from_file(&reader);
+    read_dds_data read_data;
+    RDResult res = load_dds_from_file(&reader, read_data);
     f = NULL;
 
-    if(read_data.subresources.empty())
-    {
-      RDCERR("DDS file recognised, but couldn't load");
-      return ReplayStatus::ImageUnsupported;
-    }
+    if(res != ResultCode::Succeeded)
+      return res;
   }
   else
   {
@@ -476,10 +510,17 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
     // just in case (we shouldn't have come in here if this weren't true), make sure
     // the format is supported
-    if(ret == 0 || width <= 0 || width >= 65536 || height <= 0 || height >= 65536)
+    if(ret == 0)
     {
       FileIO::fclose(f);
-      return ReplayStatus::ImageUnsupported;
+      RETURN_ERROR_RESULT(ResultCode::ImageUnsupported, "Image can't be identified by stb");
+    }
+
+    if(width <= 0 || width >= 65536 || height <= 0 || height >= 65536)
+    {
+      FileIO::fclose(f);
+      RETURN_ERROR_RESULT(ResultCode::ImageUnsupported, "Image dimensions %ux%u are not supported",
+                          width, height);
     }
 
     byte *data = stbi_load_from_file(f, &ignore, &ignore, &ignore, 4);
@@ -487,8 +528,7 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     if(!data)
     {
       FileIO::fclose(f);
-      RDCERR("File recognised, but couldn't load with stbi_load_from_file");
-      return ReplayStatus::ImageUnsupported;
+      RETURN_ERROR_RESULT(ResultCode::ImageUnsupported, "File recognised, but couldn't load image");
     }
 
     free(data);
@@ -498,26 +538,28 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     FileIO::fclose(f);
 
   IReplayDriver *proxy = NULL;
-  ReplayStatus status = RenderDoc::Inst().CreateProxyReplayDriver(RDCDriver::Unknown, &proxy);
+  RDResult result = RenderDoc::Inst().CreateProxyReplayDriver(RDCDriver::Unknown, &proxy);
 
-  if(status != ReplayStatus::Succeeded || !proxy)
+  if(result != ResultCode::Succeeded || !proxy)
   {
     RDCERR("Couldn't create replay driver to proxy-render images");
 
     if(proxy)
       proxy->Shutdown();
-    return status;
+    return result;
   }
 
   *driver = new ImageViewer(proxy, filename.c_str());
 
-  if((*driver)->GetResources()[0].resourceId == ResourceId())
+  result = (*driver)->FatalErrorCheck();
+
+  if(result != ResultCode::Succeeded)
   {
     (*driver)->Shutdown();
-    return ReplayStatus::ImageUnsupported;
+    return result;
   }
 
-  return ReplayStatus::Succeeded;
+  return ResultCode::Succeeded;
 }
 
 void ImageViewer::RefreshFile()
@@ -534,7 +576,9 @@ void ImageViewer::RefreshFile()
 
   if(!f)
   {
-    RDCERR("Couldn't open %s! Exclusive lock elsewhere?", m_Filename.c_str());
+    SET_ERROR_RESULT(m_Error, ResultCode::FileIOFailed,
+                     "Couldn't open %s! Is the file opened exclusively/locked elsewhere?",
+                     m_Filename.c_str());
     return;
   }
 
@@ -594,14 +638,33 @@ void ImageViewer::RefreshFile()
 
     if(ret != 0)
     {
-      RDCERR("EXR file detected, but couldn't load with ParseEXRVersionFromMemory: %d", ret);
+      SET_ERROR_RESULT(m_Error, ResultCode::ImageUnsupported,
+                       "EXR file detected, but couldn't load with ParseEXRVersionFromMemory: %d",
+                       ret);
       FileIO::fclose(f);
       return;
     }
 
-    if(exrVersion.multipart || exrVersion.non_image || exrVersion.tiled)
+    if(exrVersion.multipart)
     {
-      RDCERR("Unsupported EXR file detected - multipart or similar.");
+      SET_ERROR_RESULT(m_Error, ResultCode::ImageUnsupported,
+                       "Unsupported EXR file detected - multipart EXR.");
+      FileIO::fclose(f);
+      return;
+    }
+
+    if(exrVersion.non_image)
+    {
+      SET_ERROR_RESULT(m_Error, ResultCode::ImageUnsupported,
+                       "Unsupported EXR file detected - deep image EXR.");
+      FileIO::fclose(f);
+      return;
+    }
+
+    if(exrVersion.tiled)
+    {
+      SET_ERROR_RESULT(m_Error, ResultCode::ImageUnsupported,
+                       "Unsupported EXR file detected - tiled EXR.");
       FileIO::fclose(f);
       return;
     }
@@ -609,12 +672,26 @@ void ImageViewer::RefreshFile()
     EXRHeader exrHeader;
     InitEXRHeader(&exrHeader);
 
-    const char *err = NULL;
+    rdcstr errString;
 
-    ret = ParseEXRHeaderFromMemory(&exrHeader, &exrVersion, buffer.data(), buffer.size(), &err);
+    {
+      const char *err = NULL;
+
+      ret = ParseEXRHeaderFromMemory(&exrHeader, &exrVersion, buffer.data(), buffer.size(), &err);
+
+      if(err)
+      {
+        errString = err;
+        free((void *)err);
+      }
+    }
+
     if(ret != 0)
     {
-      RDCERR("EXR file detected, but couldn't load with ParseEXRHeaderFromMemory %d: '%s'", ret, err);
+      SET_ERROR_RESULT(
+          m_Error, ResultCode::ImageUnsupported,
+          "EXR file detected, but couldn't load with ParseEXRHeaderFromMemory %d: '%s'", ret,
+          errString.c_str());
       FileIO::fclose(f);
       return;
     }
@@ -625,10 +702,23 @@ void ImageViewer::RefreshFile()
     EXRImage exrImage;
     InitEXRImage(&exrImage);
 
-    ret = LoadEXRImageFromMemory(&exrImage, &exrHeader, buffer.data(), buffer.size(), &err);
+    {
+      const char *err = NULL;
+
+      ret = LoadEXRImageFromMemory(&exrImage, &exrHeader, buffer.data(), buffer.size(), &err);
+
+      if(err)
+      {
+        errString = err;
+        free((void *)err);
+      }
+    }
+
     if(ret != 0)
     {
-      RDCERR("EXR file detected, but couldn't load with LoadEXRImageFromMemory %d: '%s'", ret, err);
+      SET_ERROR_RESULT(m_Error, ResultCode::ImageUnsupported,
+                       "EXR file detected, but couldn't load with LoadEXRImageFromMemory %d: '%s'",
+                       ret, errString.c_str());
       FileIO::fclose(f);
       return;
     }
@@ -641,7 +731,8 @@ void ImageViewer::RefreshFile()
 
     if(!data)
     {
-      RDCERR("Allocation for %zu bytes failed for EXR data", datasize);
+      SET_ERROR_RESULT(m_Error, ResultCode::ReplayOutOfMemory,
+                       "Allocation for %zu bytes failed for EXR data", datasize);
       return;
     }
 
@@ -679,7 +770,8 @@ void ImageViewer::RefreshFile()
     if(ret != 0)
     {
       free(data);
-      RDCERR("EXR file detected, but couldn't load with LoadEXRFromMemory %d: '%s'", ret, err);
+      SET_ERROR_RESULT(m_Error, ResultCode::ImageUnsupported,
+                       "EXR file detected, but failed during parsing");
       FileIO::fclose(f);
       return;
     }
@@ -708,9 +800,19 @@ void ImageViewer::RefreshFile()
 
     // just in case (we shouldn't have come in here if this weren't true), make sure
     // the format is supported
-    if(ret == 0 || texDetails.width == 0 || texDetails.width == ~0U || texDetails.height == 0 ||
-       texDetails.height == ~0U)
+    if(ret == 0)
     {
+      SET_ERROR_RESULT(m_Error, ResultCode::ImageUnsupported, "Image could not be identified");
+      FileIO::fclose(f);
+      return;
+    }
+
+    if(texDetails.width == 0 || texDetails.width >= 65536 || texDetails.height == 0 ||
+       texDetails.height >= 65536)
+    {
+      SET_ERROR_RESULT(m_Error, ResultCode::ImageUnsupported,
+                       "Image dimensions of %ux%u are not supported", texDetails.width,
+                       texDetails.height);
       FileIO::fclose(f);
       return;
     }
@@ -725,6 +827,7 @@ void ImageViewer::RefreshFile()
   // file was corrupted and we failed to load it
   if(!dds && data == NULL)
   {
+    SET_ERROR_RESULT(m_Error, ResultCode::ImageUnsupported, "Image failed to load");
     FileIO::fclose(f);
     return;
   }
@@ -739,11 +842,14 @@ void ImageViewer::RefreshFile()
   {
     FileIO::fseek64(f, 0, SEEK_SET);
     StreamReader reader(f);
-    read_data = load_dds_from_file(&reader);
+    RDResult res = load_dds_from_file(&reader, read_data);
     f = NULL;
 
-    if(read_data.subresources.empty())
+    if(res != ResultCode::Succeeded)
+    {
+      m_Error = res;
       return;
+    }
 
     texDetails.cubemap = read_data.cubemap;
     texDetails.arraysize = read_data.slices;
@@ -803,7 +909,10 @@ void ImageViewer::RefreshFile()
     CreateProxyTexture(texDetails, read_data);
 
   if(m_TextureID == ResourceId())
-    RDCERR("Couldn't create proxy texture for image file");
+  {
+    SET_ERROR_RESULT(m_Error, ResultCode::APIInitFailed,
+                     "Couldn't create proxy texture for image file");
+  }
 
   m_TexDetails.resourceId = m_TextureID;
   m_TexDetails.byteSize = fileSize;

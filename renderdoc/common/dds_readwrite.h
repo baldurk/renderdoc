@@ -56,5 +56,5 @@ struct write_dds_data : public dds_data
 };
 
 extern bool is_dds_file(byte *headerBuffer, size_t size);
-extern read_dds_data load_dds_from_file(StreamReader *reader);
-extern bool write_dds_to_file(FILE *f, const write_dds_data &data);
+extern RDResult load_dds_from_file(StreamReader *reader, read_dds_data &data);
+extern RDResult write_dds_to_file(FILE *f, const write_dds_data &data);

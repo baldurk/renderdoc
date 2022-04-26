@@ -155,6 +155,11 @@ VA_IGNORE_REST_OF_FILE
 %ignore StructuredChunkList::StructuredChunkList;
 %ignore StructuredChunkList::~StructuredChunkList;
 
+// don't allow user code to create ResultDetails objects (they can't allocate the string)
+// or access the internal message, which we can't hide as ResultDetails must be POD.
+%ignore ResultDetails::ResultDetails;
+%ignore ResultDetails::internal_msg;
+
 // these objects return a new copy which the python caller should own.
 %newobject SDObject::Duplicate;
 %newobject SDChunk::Duplicate;

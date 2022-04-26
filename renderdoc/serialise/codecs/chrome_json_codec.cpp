@@ -28,13 +28,14 @@
 #include "common/formatting.h"
 #include "serialise/rdcfile.h"
 
-ReplayStatus exportChrome(const rdcstr &filename, const RDCFile &rdc, const SDFile &structData,
-                          RENDERDOC_ProgressCallback progress)
+RDResult exportChrome(const rdcstr &filename, const RDCFile &rdc, const SDFile &structData,
+                      RENDERDOC_ProgressCallback progress)
 {
   FILE *f = FileIO::fopen(filename, FileIO::WriteText);
 
   if(!f)
-    return ReplayStatus::FileIOFailed;
+    RETURN_ERROR_RESULT(ResultCode::FileIOFailed, "Failed to open '%s' for write: %s",
+                        filename.c_str(), FileIO::ErrorString().c_str());
 
   rdcstr str;
 
@@ -91,7 +92,7 @@ ReplayStatus exportChrome(const rdcstr &filename, const RDCFile &rdc, const SDFi
 
   FileIO::fclose(f);
 
-  return ReplayStatus::Succeeded;
+  return ResultCode::Succeeded;
 }
 
 static ConversionRegistration XMLConversionRegistration(

@@ -953,6 +953,67 @@ here.
 
 DECLARE_REFLECTION_STRUCT(GlobalEnvironment);
 
+DOCUMENT(R"(A general result from an operation with optional string information for failures.
+
+This struct can be compared directly to a :class:`ResultCode` for simple checks of status, and when
+converted to a string it includes the formatted result code and message as appropriate.
+
+.. note::
+
+  The string information is only valid until :func:`ShutdownReplay` is called. After that point,
+  accessing the string information is invalid and may crash. Care should be taken if
+  :func:`ShutdownReplay` is called in response to an error, that the error code is read and saved.
+
+  Copying the `ResultDetails` instance is *not* sufficient to preserve the string information. It
+  should be copied to e.g. a `Tuple[ResultCode, str]` instead.
+)")
+struct ResultDetails
+{
+  DOCUMENT("");
+  ResultDetails() = default;
+  ResultDetails(const ResultDetails &) = default;
+  ResultDetails &operator=(const ResultDetails &) = default;
+
+  ResultDetails &operator=(ResultCode c)
+  {
+    code = c;
+    internal_msg = NULL;
+    return *this;
+  }
+
+  DOCUMENT(R"(A simple helper function to check if this result is successful.
+
+:return Whether or not this result is successful
+:rtype bool
+)");
+  bool OK() const { return code == ResultCode::Succeeded; }
+  DOCUMENT("");
+  explicit operator bool() const { return OK(); }
+#if defined(SWIG) || defined(SWIG_GENERATED)
+  bool operator==(ResultCode resultCode) const { return code == resultCode; }
+  bool operator!=(ResultCode resultCode) const { return code != resultCode; }
+#endif
+  DOCUMENT(
+      "The :class:`ResultDetails` resulting from the operation, indicating success or failure.");
+  ResultCode code;
+
+  DOCUMENT(R"(For error codes, this will contain the stringified error code as well as any optional
+extra information that is available about the error.
+
+.. note::
+
+  It's not necessary to also display the stringified version of :data:`code` as that is automatically
+  included in the message.
+
+:return A formatted message for failure codes, including the code itself.
+:rtype str
+)");
+  rdcstr Message() const { return internal_msg ? *internal_msg : ToStr(code); }
+  const rdcstr *internal_msg;
+};
+
+DECLARE_REFLECTION_STRUCT(ResultDetails);
+
 DOCUMENT("The result of executing or injecting into a program.")
 struct ExecuteResult
 {
@@ -962,8 +1023,8 @@ struct ExecuteResult
   ExecuteResult &operator=(const ExecuteResult &) = default;
 
   DOCUMENT(
-      "The :class:`ReplayStatus` resulting from the operation, indicating success or failure.");
-  ReplayStatus status;
+      "The :class:`ResultDetails` resulting from the operation, indicating success or failure.");
+  ResultDetails result;
   DOCUMENT(R"(The ident where the new application is listening for target control, or 0 if something
 went wrong.
 )");

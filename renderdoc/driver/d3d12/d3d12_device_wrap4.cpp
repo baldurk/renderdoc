@@ -55,14 +55,21 @@ bool WrappedID3D12Device::Serialise_CreateCommandList1(SerialiserType &ser, UINT
     ID3D12GraphicsCommandList *list = NULL;
     HRESULT hr = E_NOINTERFACE;
     if(m_pDevice4)
+    {
       hr = CreateCommandList1(nodeMask, type, flags, __uuidof(ID3D12GraphicsCommandList),
                               (void **)&list);
+    }
     else
-      RDCERR("Replaying a without D3D12.4 available");
+    {
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12Device4 which isn't available");
+      return false;
+    }
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating command list, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else if(list)
@@ -265,14 +272,21 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource1(
     ID3D12Resource *ret = NULL;
     HRESULT hr = E_NOINTERFACE;
     if(m_pDevice4)
+    {
       hr = m_pDevice4->CreateCommittedResource1(&props, HeapFlags, &desc, InitialResourceState,
                                                 pOptimizedClearValue, NULL, guid, (void **)&ret);
+    }
     else
-      RDCERR("Replaying a without D3D12.4 available");
+    {
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12Device2 which isn't available");
+      return false;
+    }
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating committed resource, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -459,7 +473,8 @@ bool WrappedID3D12Device::Serialise_CreateHeap1(SerialiserType &ser, const D3D12
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating heap, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else

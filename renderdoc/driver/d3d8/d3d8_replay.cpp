@@ -29,10 +29,10 @@
 // button.
 #if 0
 
-ReplayStatus D3D8_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
+ResultDetails D3D8_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   RDCERR("D3D8 captures are not currently supported");
-  return ReplayStatus::APIUnsupported;
+  return ResultCode::APIUnsupported;
 }
 
 static DriverRegistration D3D8DriverRegistration(RDCDriver::D3D8, &D3D8_CreateReplayDevice);

@@ -76,7 +76,7 @@ public:
 
   rdcarray<ExtensionMetadata> GetInstalledExtensions() override;
   bool IsExtensionLoaded(rdcstr name) override;
-  bool LoadExtension(rdcstr name) override;
+  rdcstr LoadExtension(rdcstr name) override;
 
   void RegisterWindowMenu(WindowMenu base, const rdcarray<rdcstr> &submenus,
                           ExtensionCallback callback) override;
@@ -149,7 +149,7 @@ public:
   bool IsCaptureLocal() override { return m_CaptureLocal; }
   bool IsCaptureTemporary() override { return m_CaptureTemporary; }
   bool IsCaptureLoading() override { return m_LoadInProgress; }
-  ReplayStatus GetFatalError() override { return m_Replay.GetFatalError(); }
+  ResultDetails GetFatalError() override { return m_Replay.GetFatalError(); }
   rdcstr GetCaptureFilename() override { return m_CaptureFile; }
   CaptureModifications GetCaptureModifications() override { return m_CaptureMods; }
   const FrameDescription &FrameInfo() override { return m_FrameInfo; }

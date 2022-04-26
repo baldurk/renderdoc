@@ -128,6 +128,7 @@ set(sources
     common/dds_readwrite.h
     common/formatting.h
     common/globalconfig.h
+    common/result.h
     common/shader_cache.h
     common/threading.h
     common/timing.h

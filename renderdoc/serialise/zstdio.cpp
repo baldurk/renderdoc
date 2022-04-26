@@ -149,10 +149,11 @@ bool ZSTDCompressor::CompressZSTDFrame(ZSTD_inBuffer &in, ZSTD_outBuffer &out)
 
   if(ZSTD_isError(err))
   {
-    RDCERR("Error compressing: %s", ZSTD_getErrorName(err));
     FreeAlignedBuffer(m_Page);
     FreeAlignedBuffer(m_CompressBuffer);
     m_Page = m_CompressBuffer = NULL;
+    SET_ERROR_RESULT(m_Error, ResultCode::CompressionFailed, "ZSTD compression failed: %s",
+                     ZSTD_getErrorName(err));
     return false;
   }
 
@@ -167,9 +168,11 @@ bool ZSTDCompressor::CompressZSTDFrame(ZSTD_inBuffer &in, ZSTD_outBuffer &out)
     if(ZSTD_isError(err) || (inpos == in.pos && outpos == out.pos))
     {
       if(ZSTD_isError(err))
-        RDCERR("Error compressing: %s", ZSTD_getErrorName(err));
+        SET_ERROR_RESULT(m_Error, ResultCode::CompressionFailed, "ZSTD compression failed: %s",
+                         ZSTD_getErrorName(err));
       else
-        RDCERR("Error compressing, no progress made");
+        SET_ERROR_RESULT(m_Error, ResultCode::CompressionFailed,
+                         "ZSTD compression failed, no progress made");
       FreeAlignedBuffer(m_Page);
       FreeAlignedBuffer(m_CompressBuffer);
       m_Page = m_CompressBuffer = NULL;
@@ -182,9 +185,11 @@ bool ZSTDCompressor::CompressZSTDFrame(ZSTD_inBuffer &in, ZSTD_outBuffer &out)
   if(ZSTD_isError(err) || err != 0)
   {
     if(ZSTD_isError(err))
-      RDCERR("Error compressing: %s", ZSTD_getErrorName(err));
+      SET_ERROR_RESULT(m_Error, ResultCode::CompressionFailed, "ZSTD compression failed: %s",
+                       ZSTD_getErrorName(err));
     else
-      RDCERR("Error compressing, couldn't end stream");
+      SET_ERROR_RESULT(m_Error, ResultCode::CompressionFailed,
+                       "Error compressing, couldn't end stream");
     FreeAlignedBuffer(m_Page);
     FreeAlignedBuffer(m_CompressBuffer);
     m_Page = m_CompressBuffer = NULL;
@@ -220,7 +225,12 @@ bool ZSTDDecompressor::Recompress(Compressor *comp)
   {
     success &= FillPage();
     if(success)
+    {
       success &= comp->Write(m_Page, m_PageLength);
+
+      if(!success)
+        m_Error = comp->GetError();
+    }
   }
   success &= comp->Finish();
 
@@ -297,6 +307,7 @@ bool ZSTDDecompressor::FillPage()
 
   if(!success)
   {
+    m_Error = m_Read->GetError();
     FreeAlignedBuffer(m_Page);
     FreeAlignedBuffer(m_CompressBuffer);
     m_Page = m_CompressBuffer = NULL;
@@ -307,7 +318,8 @@ bool ZSTDDecompressor::FillPage()
 
   if(ZSTD_isError(err))
   {
-    RDCERR("Error decompressing: %s", ZSTD_getErrorName(err));
+    SET_ERROR_RESULT(m_Error, ResultCode::CompressionFailed, "ZSTD decompression failed: %s",
+                     ZSTD_getErrorName(err));
     FreeAlignedBuffer(m_Page);
     FreeAlignedBuffer(m_CompressBuffer);
     m_Page = m_CompressBuffer = NULL;
@@ -328,9 +340,11 @@ bool ZSTDDecompressor::FillPage()
     if(ZSTD_isError(err) || (inpos == in.pos && outpos == out.pos))
     {
       if(ZSTD_isError(err))
-        RDCERR("Error decompressing: %s", ZSTD_getErrorName(err));
+        SET_ERROR_RESULT(m_Error, ResultCode::CompressionFailed, "ZSTD decompression failed: %s",
+                         ZSTD_getErrorName(err));
       else
-        RDCERR("Error decompressing, no progress made");
+        SET_ERROR_RESULT(m_Error, ResultCode::CompressionFailed,
+                         "ZSTD decompression failed, no progress made");
       FreeAlignedBuffer(m_Page);
       FreeAlignedBuffer(m_CompressBuffer);
       m_Page = m_CompressBuffer = NULL;

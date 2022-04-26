@@ -43,5 +43,6 @@ struct Args
 };
 
 rdcstr Fmt(const char *format, ...);
+rdcstr Fmt(rdcliteral format, ...);
 rdcstr FmtArgs(const char *format, Args &args);
 };

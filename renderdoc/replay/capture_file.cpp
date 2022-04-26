@@ -103,27 +103,26 @@ public:
   CaptureFile();
   virtual ~CaptureFile();
 
-  ReplayStatus OpenFile(const rdcstr &filename, const rdcstr &filetype,
-                        RENDERDOC_ProgressCallback progress);
-  ReplayStatus OpenBuffer(const bytebuf &buffer, const rdcstr &filetype,
-                          RENDERDOC_ProgressCallback progress);
-  bool CopyFileTo(const rdcstr &filename);
-  rdcstr ErrorString() { return m_ErrorString; }
+  ResultDetails OpenFile(const rdcstr &filename, const rdcstr &filetype,
+                         RENDERDOC_ProgressCallback progress);
+  ResultDetails OpenBuffer(const bytebuf &buffer, const rdcstr &filetype,
+                           RENDERDOC_ProgressCallback progress);
+  ResultDetails CopyFileTo(const rdcstr &filename);
   void Shutdown() { delete this; }
   ReplaySupport LocalReplaySupport() { return m_Support; }
   rdcstr DriverName() { return m_DriverName; }
   rdcstr RecordedMachineIdent() { return m_Ident; }
   uint64_t TimestampBase() { return m_RDC ? m_RDC->GetTimestampBase() : 0; }
   double TimestampFrequency() { return m_RDC ? m_RDC->GetTimestampFrequency() : 1.0; }
-  rdcpair<ReplayStatus, IReplayController *> OpenCapture(const ReplayOptions &opts,
-                                                         RENDERDOC_ProgressCallback progress);
+  rdcpair<ResultDetails, IReplayController *> OpenCapture(const ReplayOptions &opts,
+                                                          RENDERDOC_ProgressCallback progress);
 
   void SetMetadata(const rdcstr &driverName, uint64_t machineIdent, FileType thumbType,
                    uint32_t thumbWidth, uint32_t thumbHeight, const bytebuf &thumbData,
                    uint64_t timeBase, double timeFreq);
 
-  ReplayStatus Convert(const rdcstr &filename, const rdcstr &filetype, const SDFile *file,
-                       RENDERDOC_ProgressCallback progress);
+  ResultDetails Convert(const rdcstr &filename, const rdcstr &filetype, const SDFile *file,
+                        RENDERDOC_ProgressCallback progress);
 
   rdcarray<CaptureFileFormat> GetCaptureFileFormats()
   {
@@ -163,23 +162,23 @@ public:
   int32_t FindSectionByType(SectionType type);
   SectionProperties GetSectionProperties(int32_t index);
   bytebuf GetSectionContents(int32_t index);
-  bool WriteSection(const SectionProperties &props, const bytebuf &contents);
+  ResultDetails WriteSection(const SectionProperties &props, const bytebuf &contents);
 
   bool HasCallstacks();
-  bool InitResolver(bool interactive, RENDERDOC_ProgressCallback progress);
+  ResultDetails InitResolver(bool interactive, RENDERDOC_ProgressCallback progress);
   rdcarray<rdcstr> GetResolve(const rdcarray<uint64_t> &callstack);
 
 private:
-  ReplayStatus Init();
+  ResultDetails Init();
 
-  void InitStructuredData(RENDERDOC_ProgressCallback progress = RENDERDOC_ProgressCallback());
+  RDResult InitStructuredData(RENDERDOC_ProgressCallback progress = RENDERDOC_ProgressCallback());
 
   RDCFile *m_RDC = NULL;
   Callstack::StackResolver *m_Resolver = NULL;
 
   SDFile m_StructuredData;
 
-  rdcstr m_DriverName, m_Ident, m_ErrorString;
+  rdcstr m_DriverName, m_Ident;
   ReplaySupport m_Support = ReplaySupport::Unsupported;
 };
 
@@ -193,14 +192,14 @@ CaptureFile::~CaptureFile()
   SAFE_DELETE(m_Resolver);
 }
 
-ReplayStatus CaptureFile::OpenFile(const rdcstr &filename, const rdcstr &filetype,
-                                   RENDERDOC_ProgressCallback progress)
+ResultDetails CaptureFile::OpenFile(const rdcstr &filename, const rdcstr &filetype,
+                                    RENDERDOC_ProgressCallback progress)
 {
   CaptureImporter importer = RenderDoc::Inst().GetCaptureImporter(filetype);
 
   if(importer)
   {
-    ReplayStatus ret;
+    ResultDetails ret;
 
     {
       StreamReader reader(FileIO::fopen(filename, FileIO::ReadBinary));
@@ -209,9 +208,8 @@ ReplayStatus CaptureFile::OpenFile(const rdcstr &filename, const rdcstr &filetyp
       ret = importer(filename, reader, m_RDC, m_StructuredData, progress);
     }
 
-    if(ret != ReplayStatus::Succeeded)
+    if(ret.code != ResultCode::Succeeded)
     {
-      m_ErrorString = StringFormat::Fmt("Importer '%s' failed to import file.", filetype.c_str());
       SAFE_DELETE(m_RDC);
       return ret;
     }
@@ -235,14 +233,14 @@ ReplayStatus CaptureFile::OpenFile(const rdcstr &filename, const rdcstr &filetyp
   return Init();
 }
 
-ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const rdcstr &filetype,
-                                     RENDERDOC_ProgressCallback progress)
+ResultDetails CaptureFile::OpenBuffer(const bytebuf &buffer, const rdcstr &filetype,
+                                      RENDERDOC_ProgressCallback progress)
 {
   CaptureImporter importer = RenderDoc::Inst().GetCaptureImporter(filetype);
 
   if(importer)
   {
-    ReplayStatus ret;
+    RDResult ret;
 
     {
       StreamReader reader(buffer);
@@ -251,9 +249,8 @@ ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const rdcstr &filety
       ret = importer(rdcstr(), reader, m_RDC, m_StructuredData, progress);
     }
 
-    if(ret != ReplayStatus::Succeeded)
+    if(ret != ResultCode::Succeeded)
     {
-      m_ErrorString = StringFormat::Fmt("Importer '%s' failed to import file.", filetype.c_str());
       SAFE_DELETE(m_RDC);
       return ret;
     }
@@ -277,85 +274,95 @@ ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const rdcstr &filety
   return Init();
 }
 
-bool CaptureFile::CopyFileTo(const rdcstr &filename)
+ResultDetails CaptureFile::CopyFileTo(const rdcstr &filename)
 {
   if(m_RDC)
     return m_RDC->CopyFileTo(filename);
 
-  return false;
+  return RDResult(ResultCode::InternalError, "RDC file unexpectedly NULL");
 }
 
-ReplayStatus CaptureFile::Init()
+ResultDetails CaptureFile::Init()
 {
   if(!m_RDC)
-    return ReplayStatus::InternalError;
+    return RDResult(ResultCode::InternalError, "RDC file unexpectedly NULL");
 
-  m_ErrorString = m_RDC->ErrorString();
+  RDResult rdcRes = m_RDC->Error();
 
-  switch(m_RDC->ErrorCode())
+  if(rdcRes != ResultCode::Succeeded)
+    return rdcRes;
+
+  RDCDriver driverType = m_RDC->GetDriver();
+  m_DriverName = m_RDC->GetDriverName();
+
+  uint64_t fileMachineIdent = m_RDC->GetMachineIdent();
+
+  m_Support = RenderDoc::Inst().HasReplayDriver(driverType) ? ReplaySupport::Supported
+                                                            : ReplaySupport::Unsupported;
+
+  if(fileMachineIdent != 0)
   {
-    case ContainerError::FileNotFound: return ReplayStatus::FileNotFound;
-    case ContainerError::FileIO: return ReplayStatus::FileIOFailed;
-    case ContainerError::Corrupt: return ReplayStatus::FileCorrupted;
-    case ContainerError::UnsupportedVersion: return ReplayStatus::FileIncompatibleVersion;
-    case ContainerError::NoError:
+    uint64_t machineIdent = OSUtility::GetMachineIdent();
+
+    m_Ident = OSUtility::MakeMachineIdentString(fileMachineIdent);
+
+    if((machineIdent & OSUtility::MachineIdent_OS_Mask) !=
+       (fileMachineIdent & OSUtility::MachineIdent_OS_Mask))
+      m_Support = ReplaySupport::SuggestRemote;
+  }
+
+  // can't open files without a capture in them (except images, which are special)
+  if(driverType != RDCDriver::Image && m_RDC->SectionIndex(SectionType::FrameCapture) == -1)
+    m_Support = ReplaySupport::Unsupported;
+
+  return RDResult();
+}
+
+RDResult CaptureFile::InitStructuredData(RENDERDOC_ProgressCallback progress)
+{
+  if(m_StructuredData.chunks.empty())
+  {
+    if(m_RDC && m_RDC->SectionIndex(SectionType::FrameCapture) >= 0)
     {
-      RDCDriver driverType = m_RDC->GetDriver();
-      m_DriverName = m_RDC->GetDriverName();
+      StructuredProcessor proc = RenderDoc::Inst().GetStructuredProcessor(m_RDC->GetDriver());
 
-      uint64_t fileMachineIdent = m_RDC->GetMachineIdent();
+      RenderDoc::Inst().SetProgressCallback<LoadProgress>(progress);
 
-      m_Support = RenderDoc::Inst().HasReplayDriver(driverType) ? ReplaySupport::Supported
-                                                                : ReplaySupport::Unsupported;
+      RDResult result;
 
-      if(fileMachineIdent != 0)
-      {
-        uint64_t machineIdent = OSUtility::GetMachineIdent();
+      if(proc)
+        result = proc(m_RDC, m_StructuredData);
+      else
+        SET_ERROR_RESULT(result, ResultCode::APIUnsupported,
+                         "Can't get structured data for driver %s", m_RDC->GetDriverName().c_str());
 
-        m_Ident = OSUtility::MakeMachineIdentString(fileMachineIdent);
+      RenderDoc::Inst().SetProgressCallback<LoadProgress>(RENDERDOC_ProgressCallback());
 
-        if((machineIdent & OSUtility::MachineIdent_OS_Mask) !=
-           (fileMachineIdent & OSUtility::MachineIdent_OS_Mask))
-          m_Support = ReplaySupport::SuggestRemote;
-      }
-
-      // can't open files without a capture in them (except images, which are special)
-      if(driverType != RDCDriver::Image && m_RDC->SectionIndex(SectionType::FrameCapture) == -1)
-        m_Support = ReplaySupport::Unsupported;
-
-      return ReplayStatus::Succeeded;
+      return result;
     }
+
+    RETURN_ERROR_RESULT(ResultCode::InvalidParameter,
+                        "Can't initialise structured data for capture with no API data");
   }
 
-  // all container errors should be handled and returned above
-  return ReplayStatus::InternalError;
+  return RDResult();
 }
 
-void CaptureFile::InitStructuredData(RENDERDOC_ProgressCallback progress /*= RENDERDOC_ProgressCallback()*/)
+rdcpair<ResultDetails, IReplayController *> CaptureFile::OpenCapture(const ReplayOptions &opts,
+                                                                     RENDERDOC_ProgressCallback progress)
 {
-  if(m_StructuredData.chunks.empty() && m_RDC && m_RDC->SectionIndex(SectionType::FrameCapture) >= 0)
-  {
-    StructuredProcessor proc = RenderDoc::Inst().GetStructuredProcessor(m_RDC->GetDriver());
+  ResultDetails ret;
+  ReplayController *render = NULL;
 
-    RenderDoc::Inst().SetProgressCallback<LoadProgress>(progress);
+  if(!m_RDC)
+    ret = RDResult(ResultCode::InternalError, "RDC file unexpectedly NULL");
 
-    if(proc)
-      proc(m_RDC, m_StructuredData);
-    else
-      RDCERR("Can't get structured data for driver %s", m_RDC->GetDriverName().c_str());
+  ret = m_RDC->Error();
 
-    RenderDoc::Inst().SetProgressCallback<LoadProgress>(RENDERDOC_ProgressCallback());
-  }
-}
+  if(!ret.OK())
+    return {ret, render};
 
-rdcpair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(const ReplayOptions &opts,
-                                                                    RENDERDOC_ProgressCallback progress)
-{
-  if(!m_RDC || m_RDC->ErrorCode() != ContainerError::NoError)
-    return rdcpair<ReplayStatus, IReplayController *>(ReplayStatus::InternalError, NULL);
-
-  ReplayController *render = new ReplayController();
-  ReplayStatus ret;
+  render = new ReplayController();
 
   LogReplayOptions(opts);
 
@@ -365,13 +372,13 @@ rdcpair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(const Replay
 
   RenderDoc::Inst().SetProgressCallback<LoadProgress>(RENDERDOC_ProgressCallback());
 
-  if(ret != ReplayStatus::Succeeded)
+  if(!ret.OK())
   {
     render->Shutdown();
     render = NULL;
   }
 
-  return rdcpair<ReplayStatus, IReplayController *>(ret, render);
+  return {ret, render};
 }
 
 void CaptureFile::SetMetadata(const rdcstr &driverName, uint64_t machineIdent, FileType thumbType,
@@ -405,13 +412,13 @@ void CaptureFile::SetMetadata(const rdcstr &driverName, uint64_t machineIdent, F
   m_RDC->SetData(driver, driverName, machineIdent, thumb, timeBase, timeFreq);
 }
 
-ReplayStatus CaptureFile::Convert(const rdcstr &filename, const rdcstr &filetype,
-                                  const SDFile *file, RENDERDOC_ProgressCallback progress)
+ResultDetails CaptureFile::Convert(const rdcstr &filename, const rdcstr &filetype,
+                                   const SDFile *file, RENDERDOC_ProgressCallback progress)
 {
   if(!m_RDC)
   {
-    RDCERR("Data missing for creation of file, set metadata first.");
-    return ReplayStatus::FileCorrupted;
+    RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                        "Data missing for creation of file, set metadata first.");
   }
 
   // make sure progress is valid so we don't have to check it everywhere
@@ -433,7 +440,10 @@ ReplayStatus CaptureFile::Convert(const rdcstr &filename, const rdcstr &filetype
     }
     else
     {
-      InitStructuredData(fetchProgress);
+      RDResult result = InitStructuredData(fetchProgress);
+
+      if(result != ResultCode::Succeeded)
+        return result;
 
       return exporter(filename, *m_RDC, GetStructuredData(), exportProgress);
     }
@@ -449,29 +459,23 @@ ReplayStatus CaptureFile::Convert(const rdcstr &filename, const rdcstr &filetype
 
   output.Create(filename);
 
-  if(output.ErrorCode() != ContainerError::NoError)
-  {
-    switch(output.ErrorCode())
-    {
-      case ContainerError::FileNotFound: return ReplayStatus::FileNotFound;
-      case ContainerError::FileIO: return ReplayStatus::FileIOFailed;
-      default: break;
-    }
-    return ReplayStatus::InternalError;
-  }
-
-  bool success = true;
+  if(output.Error() != ResultCode::Succeeded)
+    return output.Error();
 
   // when we don't have a frame capture section, write it from the structured data.
   int frameCaptureIndex = m_RDC->SectionIndex(SectionType::FrameCapture);
 
   if(frameCaptureIndex == -1)
   {
+    RDResult result;
     if(file == NULL)
     {
-      InitStructuredData(fetchProgress);
+      result = InitStructuredData(fetchProgress);
       file = &m_StructuredData;
     }
+
+    if(result != ResultCode::Succeeded)
+      return result;
 
     SectionProperties frameCapture;
     frameCapture.flags = SectionFlags::ZstdCompressed;
@@ -487,9 +491,12 @@ ReplayStatus CaptureFile::Convert(const rdcstr &filename, const rdcstr &filetype
 
     writer->Finish();
 
-    success = success && !writer->IsErrored();
+    RDResult ret = writer->GetError();
 
     delete writer;
+
+    if(ret != ResultCode::Succeeded)
+      return ret;
   }
   else
   {
@@ -504,14 +511,16 @@ ReplayStatus CaptureFile::Convert(const rdcstr &filename, const rdcstr &filetype
 
     writer->Finish();
 
-    success = success && !writer->IsErrored() && !reader->IsErrored();
+    RDResult ret = writer->GetError();
+    if(ret == ResultCode::Succeeded)
+      ret = reader->GetError();
 
     delete reader;
     delete writer;
-  }
 
-  if(!success)
-    return ReplayStatus::FileIOFailed;
+    if(ret != ResultCode::Succeeded)
+      return ret;
+  }
 
   // write all other sections
   for(int i = 0; i < m_RDC->NumSections(); i++)
@@ -528,16 +537,17 @@ ReplayStatus CaptureFile::Convert(const rdcstr &filename, const rdcstr &filetype
 
     writer->Finish();
 
-    success = success && !writer->IsErrored() && !reader->IsErrored();
+    RDResult ret = writer->GetError();
+    if(ret == ResultCode::Succeeded)
+      ret = reader->GetError();
 
     delete reader;
     delete writer;
 
-    if(!success)
-      return ReplayStatus::FileIOFailed;
+    return ret;
   }
 
-  return ReplayStatus::Succeeded;
+  return RDResult();
 }
 
 Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
@@ -732,11 +742,23 @@ bytebuf CaptureFile::GetSectionContents(int32_t index)
   return ret;
 }
 
-bool CaptureFile::WriteSection(const SectionProperties &props, const bytebuf &contents)
+ResultDetails CaptureFile::WriteSection(const SectionProperties &props, const bytebuf &contents)
 {
+  if(!m_RDC)
+  {
+    RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                        "Data missing for creation of file, set metadata first.");
+  }
+
+  RDResult rdcRes = m_RDC->Error();
+
+  if(rdcRes != ResultCode::Succeeded)
+    return rdcRes;
+
   StreamWriter *writer = m_RDC->WriteSection(props);
-  if(!writer)
-    return false;
+  rdcRes = m_RDC->Error();
+  if(!writer || rdcRes != ResultCode::Succeeded)
+    return rdcRes;
 
   writer->Write(contents.data(), contents.size());
 
@@ -744,7 +766,7 @@ bool CaptureFile::WriteSection(const SectionProperties &props, const bytebuf &co
 
   delete writer;
 
-  return true;
+  return RDResult();
 }
 
 bool CaptureFile::HasCallstacks()
@@ -752,12 +774,18 @@ bool CaptureFile::HasCallstacks()
   return m_RDC && m_RDC->SectionIndex(SectionType::ResolveDatabase) >= 0;
 }
 
-bool CaptureFile::InitResolver(bool interactive, RENDERDOC_ProgressCallback progress)
+ResultDetails CaptureFile::InitResolver(bool interactive, RENDERDOC_ProgressCallback progress)
 {
+  if(!m_RDC)
+  {
+    RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                        "Data missing for creation of file, set metadata first.");
+  }
+
   if(!HasCallstacks())
   {
-    RDCERR("Capture has no callstacks - can't initialise resolver.");
-    return false;
+    RETURN_ERROR_RESULT(ResultCode::DataNotAvailable,
+                        "Capture has no callstacks - can't initialise resolver.");
   }
 
   if(progress)
@@ -766,7 +794,10 @@ bool CaptureFile::InitResolver(bool interactive, RENDERDOC_ProgressCallback prog
   int idx = m_RDC->SectionIndex(SectionType::ResolveDatabase);
 
   if(idx < 0)
-    return false;
+  {
+    RETURN_ERROR_RESULT(ResultCode::DataNotAvailable,
+                        "Capture has no callstacks - can't initialise resolver.");
+  }
 
   StreamReader *reader = m_RDC->ReadSection(idx);
 
@@ -778,8 +809,7 @@ bool CaptureFile::InitResolver(bool interactive, RENDERDOC_ProgressCallback prog
 
   if(!success)
   {
-    RDCERR("Failed to read resolve database.");
-    return false;
+    RETURN_ERROR_RESULT(ResultCode::FileIOFailed, "Failed to read resolve database.");
   }
 
   if(progress)
@@ -789,11 +819,12 @@ bool CaptureFile::InitResolver(bool interactive, RENDERDOC_ProgressCallback prog
 
   if(!m_Resolver)
   {
-    RDCERR("Couldn't create callstack resolver - capture possibly from another platform.");
-    return false;
+    RETURN_ERROR_RESULT(
+        ResultCode::APIUnsupported,
+        "Couldn't create callstack resolver - capture possibly from another platform.");
   }
 
-  return true;
+  return RDResult();
 }
 
 rdcarray<rdcstr> CaptureFile::GetResolve(const rdcarray<uint64_t> &callstack)

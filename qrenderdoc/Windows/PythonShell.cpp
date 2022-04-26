@@ -319,7 +319,7 @@ struct ExtensionInvoker : ObjectForwarder<IExtensionManager>
   //
   rdcarray<ExtensionMetadata> GetInstalledExtensions() { return m_Obj.GetInstalledExtensions(); }
   bool IsExtensionLoaded(rdcstr name) { return m_Obj.IsExtensionLoaded(name); }
-  bool LoadExtension(rdcstr name) { return m_Obj.LoadExtension(name); }
+  rdcstr LoadExtension(rdcstr name) { return m_Obj.LoadExtension(name); }
   IMiniQtHelper &GetMiniQtHelper() { return *m_MiniQt; }
   //
   ///////////////////////////////////////////////////////////////////////
@@ -414,7 +414,7 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   virtual bool IsCaptureLocal() override { return m_Obj.IsCaptureLocal(); }
   virtual bool IsCaptureTemporary() override { return m_Obj.IsCaptureTemporary(); }
   virtual bool IsCaptureLoading() override { return m_Obj.IsCaptureLoading(); }
-  virtual ReplayStatus GetFatalError() override { return m_Obj.GetFatalError(); }
+  virtual ResultDetails GetFatalError() override { return m_Obj.GetFatalError(); }
   virtual rdcstr GetCaptureFilename() override { return m_Obj.GetCaptureFilename(); }
   virtual CaptureModifications GetCaptureModifications() override
   {

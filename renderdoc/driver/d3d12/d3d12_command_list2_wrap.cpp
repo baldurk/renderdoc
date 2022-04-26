@@ -41,7 +41,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_WriteBufferImmediate(
   {
     if(GetWrapped(pCommandList)->GetReal2() == NULL)
     {
-      RDCERR("Can't replay ID3D12GraphicsCommandList2 command");
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12GraphicsCommandList2 which isn't available");
       return false;
     }
 

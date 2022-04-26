@@ -148,9 +148,9 @@ FrameRecord DummyDriver::GetFrameRecord()
   return m_FrameRecord;
 }
 
-ReplayStatus DummyDriver::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
+RDResult DummyDriver::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
-  return ReplayStatus::APIReplayFailed;
+  return ResultCode::APIReplayFailed;
 }
 
 void DummyDriver::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
@@ -314,9 +314,9 @@ bool DummyDriver::IsRemoteProxy()
   return m_Proxy;
 }
 
-ReplayStatus DummyDriver::FatalErrorCheck()
+RDResult DummyDriver::FatalErrorCheck()
 {
-  return ReplayStatus::Succeeded;
+  return ResultCode::Succeeded;
 }
 
 IReplayDriver *DummyDriver::MakeDummyDriver()

@@ -44,9 +44,9 @@ rdcstr DoStringise(const SDBasic &el)
 }
 
 template <>
-rdcstr DoStringise(const ReplayStatus &el)
+rdcstr DoStringise(const ResultCode &el)
 {
-  BEGIN_ENUM_STRINGISE(ReplayStatus)
+  BEGIN_ENUM_STRINGISE(ResultCode)
   {
     STRINGISE_ENUM_CLASS_NAMED(Succeeded, "Success");
     STRINGISE_ENUM_CLASS_NAMED(UnknownError, "Unknown error");
@@ -63,8 +63,8 @@ rdcstr DoStringise(const ReplayStatus &el)
         FileIncompatibleVersion,
         "Capture file incompatible due to being made on an different major version of RenderDoc");
     STRINGISE_ENUM_CLASS_NAMED(FileCorrupted, "File is corrupted");
-    STRINGISE_ENUM_CLASS_NAMED(ImageUnsupported,
-                               "The image file is recognised but the format is unsupported");
+    STRINGISE_ENUM_CLASS_NAMED(
+        ImageUnsupported, "The image file or format is unrecognised or not supported in this form");
     STRINGISE_ENUM_CLASS_NAMED(APIUnsupported, "API used in this capture is unsupported");
     STRINGISE_ENUM_CLASS_NAMED(APIInitFailed,
                                "API initialisation failed while loading the capture");
@@ -92,8 +92,13 @@ rdcstr DoStringise(const ReplayStatus &el)
     STRINGISE_ENUM_CLASS_NAMED(AndroidAPKVerifyFailed,
                                "Failed to verify installed Android remote server");
     STRINGISE_ENUM_CLASS_NAMED(RemoteServerConnectionLost, "Connection lost to remote server");
-    STRINGISE_ENUM_CLASS_NAMED(ReplayOutOfMemory, "Encountered GPU out of memory error");
+    STRINGISE_ENUM_CLASS_NAMED(ReplayOutOfMemory, "Encountered an out of memory error");
     STRINGISE_ENUM_CLASS_NAMED(ReplayDeviceLost, "Encountered a GPU device lost error");
+    STRINGISE_ENUM_CLASS_NAMED(DataNotAvailable,
+                               "Data was requested through RenderDoc's API which is not available");
+    STRINGISE_ENUM_CLASS_NAMED(InvalidParameter,
+                               "An invalid parameter was passed to RenderDoc's API");
+    STRINGISE_ENUM_CLASS_NAMED(CompressionFailed, "Compression or decompression failed");
   }
   END_ENUM_STRINGISE();
 }

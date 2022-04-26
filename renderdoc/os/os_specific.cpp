@@ -85,6 +85,31 @@ rdcstr Fmt(const char *format, ...)
   return ret;
 }
 
+rdcstr Fmt(rdcliteral format, ...)
+{
+  // optimisation - if there are no format specifiers hence no arguments, preserve and return the
+  // literal
+  if(strchr(format.c_str(), '%') == NULL)
+    return format;
+
+  va_list args;
+  va_start(args, format);
+
+  va_list args2;
+  va_copy(args2, args);
+
+  int size = ::utf8printv(NULL, 0, format.c_str(), args2);
+
+  rdcstr ret;
+  ret.resize(size);
+  ::utf8printv(ret.data(), size + 1, format.c_str(), args);
+
+  va_end(args);
+  va_end(args2);
+
+  return ret;
+}
+
 rdcstr FmtArgs(const char *format, Args &args)
 {
   int size = ::utf8printf_custom(NULL, 0, format, args);

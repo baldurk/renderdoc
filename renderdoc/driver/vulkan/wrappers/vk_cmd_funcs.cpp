@@ -710,7 +710,8 @@ bool WrappedVulkan::Serialise_vkCreateCommandPool(SerialiserType &ser, VkDevice 
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating command pool, VkResult: %s", ToStr(ret).c_str());
       return false;
     }
     else
@@ -819,7 +820,8 @@ bool WrappedVulkan::Serialise_vkAllocateCommandBuffers(SerialiserType &ser, VkDe
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed allocating command buffer, VkResult: %s", ToStr(ret).c_str());
       return false;
     }
     else
@@ -1120,7 +1122,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
 
         if(ret != VK_SUCCESS)
         {
-          RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+          SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                           "Failed beginning command buffer, VkResult: %s", ToStr(ret).c_str());
           return false;
         }
         else
@@ -1194,7 +1197,9 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
 
         if(ret != VK_SUCCESS)
         {
-          RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+          SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                           "Failed allocating re-recording command buffer, VkResult: %s",
+                           ToStr(ret).c_str());
           return false;
         }
         else

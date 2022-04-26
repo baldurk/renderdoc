@@ -40,12 +40,12 @@
 #include "api/replay/rdcpair.h"
 #include "api/replay/rdcstr.h"
 #include "common/globalconfig.h"
+#include "common/result.h"
 
 struct CaptureOptions;
 struct EnvironmentModification;
 struct PathEntry;
 enum class WindowingSystem : uint32_t;
-enum class ReplayStatus : uint32_t;
 typedef std::function<void(float)> RENDERDOC_ProgressCallback;
 
 namespace Process
@@ -59,14 +59,15 @@ rdcstr GetEnvVariable(const rdcstr &name);
 uint64_t GetMemoryUsage();
 
 bool CanGlobalHook();
-bool StartGlobalHook(const rdcstr &pathmatch, const rdcstr &capturefile, const CaptureOptions &opts);
+RDResult StartGlobalHook(const rdcstr &pathmatch, const rdcstr &capturefile,
+                         const CaptureOptions &opts);
 bool IsGlobalHookActive();
 void StopGlobalHook();
 
-rdcpair<ReplayStatus, uint32_t> InjectIntoProcess(uint32_t pid,
-                                                  const rdcarray<EnvironmentModification> &env,
-                                                  const rdcstr &capturefile,
-                                                  const CaptureOptions &opts, bool waitForExit);
+rdcpair<RDResult, uint32_t> InjectIntoProcess(uint32_t pid,
+                                              const rdcarray<EnvironmentModification> &env,
+                                              const rdcstr &capturefile, const CaptureOptions &opts,
+                                              bool waitForExit);
 struct ProcessResult
 {
   rdcstr strStdout, strStderror;
@@ -76,10 +77,11 @@ uint32_t LaunchProcess(const rdcstr &app, const rdcstr &workingDir, const rdcstr
                        bool internal, ProcessResult *result = NULL);
 uint32_t LaunchScript(const rdcstr &script, const rdcstr &workingDir, const rdcstr &args,
                       bool internal, ProcessResult *result = NULL);
-rdcpair<ReplayStatus, uint32_t> LaunchAndInjectIntoProcess(
-    const rdcstr &app, const rdcstr &workingDir, const rdcstr &cmdLine,
-    const rdcarray<EnvironmentModification> &env, const rdcstr &capturefile,
-    const CaptureOptions &opts, bool waitForExit);
+rdcpair<RDResult, uint32_t> LaunchAndInjectIntoProcess(const rdcstr &app, const rdcstr &workingDir,
+                                                       const rdcstr &cmdLine,
+                                                       const rdcarray<EnvironmentModification> &env,
+                                                       const rdcstr &capturefile,
+                                                       const CaptureOptions &opts, bool waitForExit);
 bool IsModuleLoaded(const rdcstr &module);
 void *LoadModule(const rdcstr &module);
 void *GetFunctionAddress(void *module, const rdcstr &function);
@@ -173,6 +175,7 @@ public:
 
   bool Connected() const;
 
+  RDResult GetError() const { return m_Error; }
   uint32_t GetTimeout() const { return timeoutMS; }
   void SetTimeout(uint32_t milliseconds) { timeoutMS = milliseconds; }
   Socket *AcceptClient(uint32_t timeoutMilliseconds);
@@ -188,6 +191,7 @@ public:
 private:
   ptrdiff_t socket;
   uint32_t timeoutMS;
+  RDResult m_Error;
 };
 
 Socket *CreateServerSocket(const rdcstr &addr, uint16_t port, int queuesize);

@@ -25,6 +25,8 @@
 #include "dds_readwrite.h"
 #include <stdint.h>
 #include "common/common.h"
+#include "common/formatting.h"
+#include "common/result.h"
 #include "os/os_specific.h"
 #include "serialise/streamio.h"
 
@@ -530,9 +532,7 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
       case ResourceFormatType::YUV8:
       case ResourceFormatType::YUV10:
       case ResourceFormatType::YUV12:
-      case ResourceFormatType::YUV16:
-        RDCERR("Unsupported writing format %u", format.type);
-        return DXGI_FORMAT_UNKNOWN;
+      case ResourceFormatType::YUV16: return DXGI_FORMAT_UNKNOWN;
     }
   }
 
@@ -584,7 +584,6 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
           }
       }
     }
-    RDCERR("Unexpected component byte width %u for 4-component type", format.compByteWidth);
     return DXGI_FORMAT_UNKNOWN;
   }
   else if(format.compCount == 3)
@@ -598,7 +597,6 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
         default: return DXGI_FORMAT_R32G32B32_FLOAT;
       }
     }
-    RDCERR("Unexpected component byte width %u for 3-component type", format.compByteWidth);
     return DXGI_FORMAT_UNKNOWN;
   }
   else if(format.compCount == 2)
@@ -633,7 +631,6 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
         default: return DXGI_FORMAT_R8G8_UNORM;
       }
     }
-    RDCERR("Unexpected component byte width %u for 2-component type", format.compByteWidth);
     return DXGI_FORMAT_UNKNOWN;
   }
   else if(format.compCount == 1)
@@ -669,18 +666,16 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
         default: return DXGI_FORMAT_R8_UNORM;
       }
     }
-    RDCERR("Unexpected component byte width %u for 1-component type", format.compByteWidth);
     return DXGI_FORMAT_UNKNOWN;
   }
 
-  RDCERR("Unexpected component count %u", format.compCount);
   return DXGI_FORMAT_UNKNOWN;
 }
 
-bool write_dds_to_file(FILE *f, const write_dds_data &data)
+RDResult write_dds_to_file(FILE *f, const write_dds_data &data)
 {
   if(!f)
-    return false;
+    return RDResult(ResultCode::InvalidParameter, "Missing file handle writing DDS file");
 
   uint32_t magic = dds_fourcc;
   DDS_HEADER header;
@@ -723,8 +718,11 @@ bool write_dds_to_file(FILE *f, const write_dds_data &data)
       case ResourceFormatType::YUV10:
       case ResourceFormatType::YUV12:
       case ResourceFormatType::YUV16:
-        RDCERR("Unsupported file format, %u", data.format.type);
-        return false;
+      {
+        RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                            "Unsupported file format %s to write to DDS",
+                            ToStr(data.format.type).c_str());
+      }
       default: break;
     }
   }
@@ -752,8 +750,9 @@ bool write_dds_to_file(FILE *f, const write_dds_data &data)
 
   if(headerDXT10.dxgiFormat == DXGI_FORMAT_UNKNOWN)
   {
-    RDCERR("Couldn't convert resource format to DXGI format");
-    return false;
+    RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                        "Couldn't convert resource format %s to DDS-compatible DXGI format",
+                        data.format.Name().c_str());
   }
 
   if(data.cubemap)
@@ -797,8 +796,11 @@ bool write_dds_to_file(FILE *f, const write_dds_data &data)
       case ResourceFormatType::YUV12:
       case ResourceFormatType::YUV16:
       case ResourceFormatType::R4G4:
-        RDCERR("Unsupported file format %u", data.format.type);
-        return false;
+      {
+        RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                            "Unsupported file format %s to write to DDS",
+                            ToStr(data.format.type).c_str());
+      }
       default: bytesPerPixel = data.format.compCount * data.format.compByteWidth;
     }
 
@@ -947,7 +949,7 @@ bool write_dds_to_file(FILE *f, const write_dds_data &data)
     }
   }
 
-  return true;
+  return RDResult();
 }
 
 bool is_dds_file(byte *headerBuffer, size_t size)
@@ -959,11 +961,8 @@ bool is_dds_file(byte *headerBuffer, size_t size)
   return memcmp(headerBuffer, &dds_fourcc, 4) == 0;
 }
 
-read_dds_data load_dds_from_file(StreamReader *reader)
+RDResult load_dds_from_file(StreamReader *reader, read_dds_data &ret)
 {
-  read_dds_data ret = {};
-  read_dds_data error = {};
-
   uint64_t fileSize = reader->GetSize();
 
   uint32_t magic = 0;
@@ -1018,8 +1017,9 @@ read_dds_data load_dds_from_file(StreamReader *reader)
     ret.format = DXGIFormat2ResourceFormat(headerDXT10.dxgiFormat);
     if(ret.format.type == ResourceFormatType::Undefined)
     {
-      RDCWARN("Unsupported DXGI_FORMAT: %u", (uint32_t)headerDXT10.dxgiFormat);
-      return error;
+      RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                          "Unsupported DXGI_FORMAT %u loaded from DDS",
+                          uint32_t(headerDXT10.dxgiFormat));
     }
   }
   else if(header.ddspf.dwFlags & DDPF_FOURCC)
@@ -1071,8 +1071,18 @@ read_dds_data load_dds_from_file(StreamReader *reader)
       case 114: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R32_FLOAT); break;
       case 115: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R32G32_FLOAT); break;
       case 116: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R32G32B32A32_FLOAT); break;
-      case 117: RDCERR("Legacy CxV8U8 format is unsupported"); return error;
-      default: RDCWARN("Unsupported FourCC: %08x", header.ddspf.dwFourCC); return error;
+      case 117:
+      {
+        RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                            "Legacy CxV8U8 DDS format is unsupported");
+      }
+      default:
+      {
+        RETURN_ERROR_RESULT(
+            ResultCode::ImageUnsupported, "Unsupported DDS FourCC: %c%c%c%c",
+            char((header.ddspf.dwFourCC >> 0) & 0xff), char((header.ddspf.dwFourCC >> 8) & 0xff),
+            char((header.ddspf.dwFourCC >> 16) & 0xff), char((header.ddspf.dwFourCC >> 24) & 0xff));
+      }
     }
   }
   else
@@ -1080,8 +1090,8 @@ read_dds_data load_dds_from_file(StreamReader *reader)
     if(header.ddspf.dwRGBBitCount != 32 && header.ddspf.dwRGBBitCount != 24 &&
        header.ddspf.dwRGBBitCount != 16 && header.ddspf.dwRGBBitCount != 8)
     {
-      RDCWARN("Unsupported RGB bit count: %u", header.ddspf.dwRGBBitCount);
-      return error;
+      RETURN_ERROR_RESULT(ResultCode::ImageUnsupported, "Unsupported RGB bit count %u in DDS file",
+                          header.ddspf.dwRGBBitCount);
     }
 
     if(header.ddspf.dwABitMask == 0x0000 && header.ddspf.dwRBitMask == 0xf800 &&
@@ -1113,9 +1123,10 @@ read_dds_data load_dds_from_file(StreamReader *reader)
       if((bits[1] != 0 && bits[1] != bits[0]) || (bits[2] != 0 && bits[2] != bits[0]) ||
          (bits[3] != 0 && bits[3] != bits[0]))
       {
-        RDCWARN("Unsupported RGBA mask: %08x %08x %08x %08x", header.ddspf.dwRBitMask,
-                header.ddspf.dwGBitMask, header.ddspf.dwBBitMask, header.ddspf.dwABitMask);
-        return error;
+        RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                            "Unsupported RGBA mask: %08x %08x %08x %08x", header.ddspf.dwRBitMask,
+                            header.ddspf.dwGBitMask, header.ddspf.dwBBitMask,
+                            header.ddspf.dwABitMask);
       }
 
       uint32_t bitWidth = bits[0];
@@ -1163,8 +1174,11 @@ read_dds_data load_dds_from_file(StreamReader *reader)
     case ResourceFormatType::YUV16:
     case ResourceFormatType::D16S8:
     case ResourceFormatType::R4G4:
-      RDCERR("Unsupported file format %u", ret.format.type);
-      return error;
+    {
+      RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                          "Unsupported file format %s to load from DDS",
+                          ToStr(ret.format.type).c_str());
+    }
     default: bytesPerPixel = ret.format.compCount * ret.format.compByteWidth;
   }
 
@@ -1184,8 +1198,11 @@ read_dds_data load_dds_from_file(StreamReader *reader)
       case ResourceFormatType::ETC2:
       case ResourceFormatType::EAC:
       case ResourceFormatType::ASTC:
-        RDCERR("Unsupported file format, %u", ret.format.type);
-        return error;
+      {
+        RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                            "Unsupported file format %s to load from DDS",
+                            ToStr(ret.format.type).c_str());
+      }
       default: break;
     }
   }
@@ -1193,8 +1210,9 @@ read_dds_data load_dds_from_file(StreamReader *reader)
   if(uint64_t(ret.slices) > fileSize || uint64_t(ret.mips) > fileSize ||
      uint64_t(ret.slices) * ret.mips > fileSize)
   {
-    RDCERR("Invalid slice count %u or mip count %u", ret.slices, ret.mips);
-    return ret;
+    RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                        "Invalid slice count %u or mip count %u loaded from DDS of size %llu",
+                        ret.slices, ret.mips, fileSize);
   }
 
   // we reserve space for a full mip-chain (twice the size of the top mip) just to be conservative
@@ -1289,5 +1307,5 @@ read_dds_data load_dds_from_file(StreamReader *reader)
     }
   }
 
-  return ret;
+  return RDResult();
 }

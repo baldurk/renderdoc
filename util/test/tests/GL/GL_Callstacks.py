@@ -24,12 +24,12 @@ class GL_Callstacks(rdtest.TestCase):
         cap = rd.OpenCaptureFile()
 
         # Open a particular file
-        status = cap.OpenFile(self.capture_filename, '', None)
+        result = cap.OpenFile(self.capture_filename, '', None)
 
         # Make sure the file opened successfully
-        if status != rd.ReplayStatus.Succeeded:
+        if result != rd.ResultCode.Succeeded:
             cap.Shutdown()
-            raise rdtest.TestFailureException("Couldn't open capture for access: {}".format(self.capture_filename, str(status)))
+            raise rdtest.TestFailureException("Couldn't open capture for access: {}".format(self.capture_filename, str(result)))
 
         if not cap.HasCallstacks():
             raise rdtest.TestFailureException("Capture does not report having callstacks")

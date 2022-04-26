@@ -265,7 +265,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
 
         if(FAILED(hr))
         {
-          RDCERR("Failed on resource serialise-creation, hr: %s", ToStr(hr).c_str());
+          SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIReplayFailed,
+                           "Failed creating command list, HRESULT: %s", ToStr(hr).c_str());
           return false;
         }
 

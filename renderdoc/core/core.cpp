@@ -147,12 +147,23 @@ void DoSerialise(SerialiserType &ser, ResourceId &el)
 
 INSTANTIATE_SERIALISE_TYPE(ResourceId);
 
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, RDResult &el)
+{
+  SERIALISE_MEMBER(code);
+  SERIALISE_MEMBER(message);
+
+  SIZE_CHECK(16);
+}
+
+INSTANTIATE_SERIALISE_TYPE(RDResult);
+
 #if ENABLED(RDOC_LINUX) && ENABLED(RDOC_XLIB)
 #include <X11/Xlib.h>
 #endif
 
 // from image_viewer.cpp
-ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver);
+RDResult IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver);
 
 template <>
 rdcstr DoStringise(const CaptureState &el)
@@ -634,9 +645,9 @@ void RenderDoc::InitialiseReplay(GlobalEnvironment env, const rdcarray<rdcstr> &
           continue;
 
         IReplayDriver *driver = NULL;
-        ReplayStatus status = m_ReplayDriverProviders[driverType](NULL, ReplayOptions(), &driver);
+        RDResult result = m_ReplayDriverProviders[driverType](NULL, ReplayOptions(), &driver);
 
-        if(status == ReplayStatus::Succeeded)
+        if(result == ResultCode::Succeeded)
         {
           rdcarray<GPUDevice> gpus = driver->GetAvailableGPUs();
 
@@ -661,7 +672,7 @@ void RenderDoc::InitialiseReplay(GlobalEnvironment env, const rdcarray<rdcstr> &
         else
         {
           RDCWARN("Couldn't create proxy replay driver for %s: %s", ToStr(driverType).c_str(),
-                  ToStr(status).c_str());
+                  ResultDetails(result).Message().c_str());
         }
 
         if(driver)
@@ -1278,11 +1289,8 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePi
 
   ret->Create(m_CurrentLogFile.c_str());
 
-  if(ret->ErrorCode() != ContainerError::NoError)
-  {
-    RDCERR("Error creating RDC at '%s'", m_CurrentLogFile.c_str());
+  if(ret->Error() != ResultCode::Succeeded)
     SAFE_DELETE(ret);
-  }
 
   return ret;
 }
@@ -1490,7 +1498,7 @@ bool RenderDoc::HasReplaySupport(RDCDriver driverType)
   return m_ReplayDriverProviders.find(driverType) != m_ReplayDriverProviders.end();
 }
 
-ReplayStatus RenderDoc::CreateProxyReplayDriver(RDCDriver proxyDriver, IReplayDriver **driver)
+RDResult RenderDoc::CreateProxyReplayDriver(RDCDriver proxyDriver, IReplayDriver **driver)
 {
   SyncAvailableGPUThread();
 
@@ -1504,15 +1512,14 @@ ReplayStatus RenderDoc::CreateProxyReplayDriver(RDCDriver proxyDriver, IReplayDr
   if(m_ReplayDriverProviders.find(proxyDriver) != m_ReplayDriverProviders.end())
     return m_ReplayDriverProviders[proxyDriver](NULL, ReplayOptions(), driver);
 
-  RDCERR("Unsupported replay driver requested: %s", ToStr(proxyDriver).c_str());
-  return ReplayStatus::APIUnsupported;
+  RETURN_ERROR_RESULT(ResultCode::APIUnsupported, "Unsupported replay driver requested: %s",
+                      ToStr(proxyDriver).c_str());
 }
 
-ReplayStatus RenderDoc::CreateReplayDriver(RDCFile *rdc, const ReplayOptions &opts,
-                                           IReplayDriver **driver)
+RDResult RenderDoc::CreateReplayDriver(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver)
 {
   if(driver == NULL)
-    return ReplayStatus::InternalError;
+    return ResultCode::InvalidParameter;
 
   SyncAvailableGPUThread();
 
@@ -1522,8 +1529,8 @@ ReplayStatus RenderDoc::CreateReplayDriver(RDCFile *rdc, const ReplayOptions &op
     if(!m_ReplayDriverProviders.empty())
       return m_ReplayDriverProviders.begin()->second(NULL, opts, driver);
 
-    RDCERR("Request for proxy replay device, but no replay providers are available.");
-    return ReplayStatus::InternalError;
+    RETURN_ERROR_RESULT(ResultCode::APIUnsupported,
+                        "Request for proxy replay device, but no replay providers are available.");
   }
 
   RDCDriver driverType = rdc->GetDriver();
@@ -1536,14 +1543,13 @@ ReplayStatus RenderDoc::CreateReplayDriver(RDCFile *rdc, const ReplayOptions &op
     return m_ReplayDriverProviders[driverType](rdc, opts, driver);
 
   RDCERR("Unsupported replay driver requested: %s", ToStr(driverType).c_str());
-  return ReplayStatus::APIUnsupported;
+  return ResultCode::APIUnsupported;
 }
 
-ReplayStatus RenderDoc::CreateRemoteDriver(RDCFile *rdc, const ReplayOptions &opts,
-                                           IRemoteDriver **driver)
+RDResult RenderDoc::CreateRemoteDriver(RDCFile *rdc, const ReplayOptions &opts, IRemoteDriver **driver)
 {
   if(rdc == NULL || driver == NULL)
-    return ReplayStatus::InternalError;
+    return ResultCode::InvalidParameter;
 
   SyncAvailableGPUThread();
 
@@ -1556,18 +1562,18 @@ ReplayStatus RenderDoc::CreateRemoteDriver(RDCFile *rdc, const ReplayOptions &op
   if(m_ReplayDriverProviders.find(driverType) != m_ReplayDriverProviders.end())
   {
     IReplayDriver *dr = NULL;
-    ReplayStatus status = m_ReplayDriverProviders[driverType](rdc, opts, &dr);
+    RDResult result = m_ReplayDriverProviders[driverType](rdc, opts, &dr);
 
-    if(status == ReplayStatus::Succeeded)
+    if(result == ResultCode::Succeeded)
       *driver = (IRemoteDriver *)dr;
     else
       RDCASSERT(dr == NULL);
 
-    return status;
+    return result;
   }
 
-  RDCERR("Unsupported replay driver requested: %s", ToStr(driverType).c_str());
-  return ReplayStatus::APIUnsupported;
+  RETURN_ERROR_RESULT(ResultCode::APIUnsupported, "Unsupported replay driver requested: %s",
+                      ToStr(driverType).c_str());
 }
 
 void RenderDoc::AddActiveDriver(RDCDriver driver, bool present)
@@ -1652,16 +1658,16 @@ DriverInformation RenderDoc::GetDriverInformation(GraphicsAPI api)
     return ret;
 
   IReplayDriver *driver = NULL;
-  ReplayStatus status = CreateProxyReplayDriver(driverType, &driver);
+  RDResult result = CreateProxyReplayDriver(driverType, &driver);
 
-  if(status == ReplayStatus::Succeeded)
+  if(result == ResultCode::Succeeded)
   {
     ret = driver->GetDriverInfo();
   }
   else
   {
     RDCERR("Couldn't create proxy replay driver for %s: %s", ToStr(driverType).c_str(),
-           ToStr(status).c_str());
+           ResultDetails(result).Message().c_str());
   }
 
   if(driver)

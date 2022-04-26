@@ -371,7 +371,7 @@ class EGLPlatform : public GLPlatform
   }
 
   bool PopulateForReplay() { return EGL.PopulateForReplay(); }
-  ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
+  RDResult InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
     Display *xlibDisplay = RenderDoc::Inst().GetGlobalEnvironment().xlibDisplay;
     wl_display *waylandDisplay = RenderDoc::Inst().GetGlobalEnvironment().waylandDisplay;
@@ -395,8 +395,7 @@ class EGLPlatform : public GLPlatform
     EGLDisplay eglDisplay = EGL.GetDisplay(display);
     if(!eglDisplay)
     {
-      RDCERR("Couldn't open default EGL display");
-      return ReplayStatus::APIInitFailed;
+      RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Couldn't open default EGL display");
     }
 
     int major, minor;
@@ -406,13 +405,13 @@ class EGLPlatform : public GLPlatform
 
     if(!replayContext.ctx)
     {
-      RDCERR("Couldn't create OpenGL ES 3.x replay context - required for replay");
       DeleteReplayContext(replayContext);
       RDCEraseEl(replayContext);
-      return ReplayStatus::APIHardwareUnsupported;
+      RETURN_ERROR_RESULT(ResultCode::APIHardwareUnsupported,
+                          "Couldn't create OpenGL ES 3.x replay context - required for replay");
     }
 
-    return ReplayStatus::Succeeded;
+    return ResultCode::Succeeded;
   }
 
   void *GetReplayFunction(const char *funcname)

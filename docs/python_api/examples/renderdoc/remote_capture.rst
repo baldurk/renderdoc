@@ -43,18 +43,18 @@ If the connection fails, normally we must fail but if we have a device protocol 
 .. highlight:: python
 .. code:: python
 
-  if status == rd.ReplayStatus.NetworkIOFailed and protocol is not None:
+  if result == rd.ResultCode.NetworkIOFailed and protocol is not None:
     # If there's just no I/O, most likely the server is not running. If we have
     # a protocol, we can try to start the remote server
     print("Couldn't connect to remote server, trying to start it")
 
-    status = protocol.StartRemoteServer(URL)
+    result = protocol.StartRemoteServer(URL)
 
-    if status != rd.ReplayStatus.Succeeded:
-      raise RuntimeError(f"Couldn't launch remote server, got error {str(status)}")
+    if result != rd.ResultCode.Succeeded:
+      raise RuntimeError(f"Couldn't launch remote server, got error {str(result)}")
 
     # Try to connect again!
-    status,remote = rd.CreateRemoteServerConnection(URL)
+    result,remote = rd.CreateRemoteServerConnection(URL)
 
 .. note::
 

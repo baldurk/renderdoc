@@ -57,7 +57,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue(SerialiserType &ser,
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating command queue, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -188,7 +189,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandAllocator(SerialiserType &ser,
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating command allocator, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -288,7 +290,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandList(SerialiserType &ser, UINT 
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating command list, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else if(list)
@@ -456,7 +459,8 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating graphics pipeline, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -743,7 +747,8 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating compute pipeline, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -914,7 +919,8 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating descriptor heap, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -1006,7 +1012,8 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(SerialiserType &ser, UIN
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating root signature, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -1484,7 +1491,8 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating committed resource, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -1676,7 +1684,8 @@ bool WrappedID3D12Device::Serialise_CreateHeap(SerialiserType &ser, const D3D12_
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating heap, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -1800,7 +1809,8 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating placed resource, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -2001,7 +2011,8 @@ bool WrappedID3D12Device::Serialise_CreateReservedResource(
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating reserved resource, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -2217,7 +2228,8 @@ bool WrappedID3D12Device::Serialise_CreateFence(SerialiserType &ser, UINT64 Init
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating fence, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -2308,7 +2320,8 @@ bool WrappedID3D12Device::Serialise_CreateQueryHeap(SerialiserType &ser,
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating query heap, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -2393,7 +2406,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(SerialiserType &ser,
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating command signature, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -2761,7 +2775,8 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
       hr = m_pDevice->CreateFence(initialValue, flags, __uuidof(ID3D12Fence), (void **)&ret);
       if(FAILED(hr))
       {
-        RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+        SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                         "Failed creating shared fence, HRESULT: %s", ToStr(hr).c_str());
         return false;
       }
       else
@@ -2819,7 +2834,8 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
                                               __uuidof(ID3D12Resource), (void **)&ret);
       if(FAILED(hr))
       {
-        RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+        SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                         "Failed creating shared committed resource, HRESULT: %s", ToStr(hr).c_str());
         return false;
       }
       else
@@ -2897,7 +2913,8 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
       hr = m_pDevice->CreateHeap(&desc, __uuidof(ID3D12Heap), (void **)&ret);
       if(FAILED(hr))
       {
-        RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+        SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                         "Failed creating shared heap, HRESULT: %s", ToStr(hr).c_str());
         return false;
       }
       else

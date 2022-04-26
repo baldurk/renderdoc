@@ -84,13 +84,20 @@ bool WrappedID3D11Device::Serialise_CreateBlendState1(SerialiserType &ser,
     HRESULT hr = E_NOINTERFACE;
 
     if(m_pDevice1)
+    {
       hr = m_pDevice1->CreateBlendState1(&Descriptor, &ret);
+    }
     else
-      RDCERR("Replaying a D3D11.1 device without D3D11.1 available");
+    {
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Replaying a D3D11.1 capture without D3D11.1 available");
+      return false;
+    }
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating D3D11.1 blend state, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -195,13 +202,20 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState1(
     HRESULT hr = E_NOINTERFACE;
 
     if(m_pDevice1)
+    {
       hr = m_pDevice1->CreateRasterizerState1(&Descriptor, &ret);
+    }
     else
-      RDCERR("Replaying a D3D11.1 device without D3D11.1 available");
+    {
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Replaying a D3D11.1 capture without D3D11.1 available");
+      return false;
+    }
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating D3D11.1 rasterizer state, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else

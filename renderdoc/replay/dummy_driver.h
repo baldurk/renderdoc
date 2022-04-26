@@ -63,7 +63,7 @@ public:
 
   FrameRecord GetFrameRecord();
 
-  ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
+  RDResult ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
   SDFile *GetStructuredFile();
 
@@ -124,7 +124,7 @@ public:
   // IReplayDriver
   bool IsRemoteProxy();
 
-  ReplayStatus FatalErrorCheck();
+  RDResult FatalErrorCheck();
   IReplayDriver *MakeDummyDriver();
 
   rdcarray<WindowingSystem> GetSupportedWindowSystems();

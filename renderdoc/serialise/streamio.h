@@ -26,7 +26,9 @@
 
 #include <stdio.h>
 #include <functional>
+#include "api/replay/replay_enums.h"
 #include "common/common.h"
+#include "common/formatting.h"
 #include "os/os_specific.h"
 
 enum class Ownership
@@ -45,12 +47,14 @@ class Compressor
 public:
   Compressor(StreamWriter *write, Ownership own) : m_Write(write), m_Ownership(own) {}
   virtual ~Compressor();
+  RDResult GetError() { return m_Error; }
   virtual bool Write(const void *data, uint64_t numBytes) = 0;
   virtual bool Finish() = 0;
 
 protected:
   StreamWriter *m_Write;
   Ownership m_Ownership;
+  RDResult m_Error;
 };
 
 class Decompressor
@@ -58,12 +62,14 @@ class Decompressor
 public:
   Decompressor(StreamReader *read, Ownership own) : m_Read(read), m_Ownership(own) {}
   virtual ~Decompressor();
+  RDResult GetError() { return m_Error; }
   virtual bool Recompress(Compressor *comp) = 0;
   virtual bool Read(void *data, uint64_t numBytes) = 0;
 
 protected:
   StreamReader *m_Read;
   Ownership m_Ownership;
+  RDResult m_Error;
 };
 
 class StreamReader
@@ -78,7 +84,7 @@ public:
     DummyStream
   };
 
-  StreamReader(StreamInvalidType);
+  StreamReader(StreamInvalidType, RDResult res);
   StreamReader(StreamDummyType);
   StreamReader(const byte *buffer, uint64_t bufferSize);
   StreamReader(const bytebuf &buffer);
@@ -91,8 +97,13 @@ public:
 
   ~StreamReader();
 
-  bool IsErrored() { return m_HasError; }
-  void SetErrored() { m_HasError = true; }
+  bool IsErrored() { return m_Error != ResultCode::Succeeded; }
+  RDResult GetError() { return m_Error; }
+  void SetError(RDResult res)
+  {
+    if(m_Error == ResultCode::Succeeded && res != ResultCode::Succeeded)
+      m_Error = res;
+  }
   void SetOffset(uint64_t offs);
 
   inline uint64_t GetOffset() { return m_BufferHead - m_BufferBase + m_ReadOffset; }
@@ -130,7 +141,7 @@ public:
     if(numBytes == 0 || m_Dummy)
       return true;
 
-    if(!m_BufferBase || m_HasError)
+    if(!m_BufferBase || IsErrored())
     {
       // read 0s if we're in an error state
       if(data)
@@ -142,11 +153,10 @@ public:
     // if we're reading past the end, error, read nothing (no partial reads) and return
     if(m_Sock == NULL && GetOffset() + numBytes > GetSize())
     {
-      RDCERR("Reading off the end of the stream");
       m_BufferHead = m_BufferBase + m_BufferSize;
       if(data)
         memset(data, 0, (size_t)numBytes);
-      m_HasError = true;
+      SET_ERROR_RESULT(m_Error, ResultCode::FileIOFailed, "Reading off the end of data stream");
       return false;
     }
 
@@ -267,8 +277,9 @@ private:
   // the offset in the file/decompressor that corresponds to the start of m_BufferBase
   uint64_t m_ReadOffset = 0;
 
-  // flag indicating if an error has been encountered and the stream is now invalid
-  bool m_HasError = false;
+  // result indicating if an error has been encountered and the stream is now invalid, with details
+  // of what happened
+  RDResult m_Error;
 
   // flag indicating this reader is a dummy and doesn't read anything or clear inputs. Used with a
   // structured serialiser to 'read' pre-existing data.
@@ -290,14 +301,19 @@ public:
     InvalidStream
   };
 
-  StreamWriter(StreamInvalidType);
+  StreamWriter(StreamInvalidType, RDResult res);
   StreamWriter(uint64_t initialBufSize);
   StreamWriter(FILE *file, Ownership own);
   StreamWriter(Network::Socket *file, Ownership own);
   StreamWriter(Compressor *compressor, Ownership own);
 
-  bool IsErrored() { return m_HasError; }
-  void SetErrored() { m_HasError = true; }
+  bool IsErrored() { return m_Error != ResultCode::Succeeded; }
+  RDResult GetError() { return m_Error; }
+  void SetError(RDResult res)
+  {
+    if(m_Error == ResultCode::Succeeded && res != ResultCode::Succeeded)
+      m_Error = res;
+  }
   static const int DefaultScratchSize = 32 * 1024;
 
   ~StreamWriter();
@@ -370,7 +386,10 @@ public:
       uint64_t written = (uint64_t)FileIO::fwrite(data, 1, (size_t)numBytes, m_File);
       if(written != numBytes)
       {
-        HandleError();
+        RDResult result;
+        SET_ERROR_RESULT(result, ResultCode::FileIOFailed, "Writing to file failed: %s",
+                         FileIO::ErrorString().c_str());
+        HandleError(result);
         return false;
       }
 
@@ -435,7 +454,10 @@ public:
       return ret;
     }
 
-    RDCERR("Can't seek a file/socket/compressor stream writer");
+    RDResult result;
+    SET_ERROR_RESULT(result, ResultCode::InternalError,
+                     "Can't seek a file/socket/compressor stream writer");
+    HandleError(result);
 
     return false;
   }
@@ -443,11 +465,27 @@ public:
   bool Flush()
   {
     if(m_Compressor)
+    {
       return true;
+    }
     else if(m_File)
-      return FileIO::fflush(m_File);
+    {
+      bool success = FileIO::fflush(m_File);
+
+      if(success)
+        return true;
+
+      RDResult result;
+      SET_ERROR_RESULT(result, ResultCode::FileIOFailed, "File flushing failed: %s",
+                       FileIO::ErrorString().c_str());
+      HandleError(result);
+
+      return false;
+    }
     else if(m_Sock)
+    {
       return FlushSocketData();
+    }
 
     return true;
   }
@@ -455,11 +493,27 @@ public:
   bool Finish()
   {
     if(m_Compressor)
+    {
       return m_Compressor->Finish();
+    }
     else if(m_File)
-      return FileIO::fflush(m_File);
+    {
+      bool success = FileIO::fflush(m_File);
+
+      if(success)
+        return true;
+
+      RDResult result;
+      SET_ERROR_RESULT(result, ResultCode::FileIOFailed, "File flushing failed: %s",
+                       FileIO::ErrorString().c_str());
+      HandleError(result);
+
+      return false;
+    }
     else if(m_Sock)
+    {
       return true;
+    }
 
     return true;
   }
@@ -491,7 +545,7 @@ private:
     }
   }
 
-  void HandleError();
+  void HandleError(RDResult result);
 
   bool SendSocketData(const void *data, uint64_t numBytes);
   bool FlushSocketData();
@@ -523,8 +577,9 @@ private:
   // true if we're not writing to file/compressor, used to optimise checks in Write
   bool m_InMemory = true;
 
-  // flag indicating if an error has been encountered and the stream is now invalid
-  bool m_HasError = false;
+  // result indicating if an error has been encountered and the stream is now invalid, with details
+  // of what happened
+  RDResult m_Error;
 
   // do we own the file/compressor? are we responsible for
   // cleaning it up?

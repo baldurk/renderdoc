@@ -3929,17 +3929,16 @@ void TextureViewer::on_saveTex_clicked()
   {
     ANALYTIC_SET(Export.Texture, true);
 
-    bool ret = false;
+    ResultDetails result = {ResultCode::Succeeded};
     QString fn = saveDialog.filename();
 
     m_Ctx.Replay().BlockInvoke(
-        [this, &ret, fn](IReplayController *r) { ret = r->SaveTexture(m_SaveConfig, fn); });
+        [this, &result, fn](IReplayController *r) { result = r->SaveTexture(m_SaveConfig, fn); });
 
-    if(!ret)
+    if(!result.OK())
     {
-      RDDialog::critical(
-          NULL, tr("Error saving texture"),
-          tr("Error saving texture %1.\n\nCheck diagnostic log in Help menu for more details.").arg(fn));
+      RDDialog::critical(NULL, tr("Error saving texture"),
+                         tr("Error saving texture %1:\n\n%2").arg(fn).arg(result.Message()));
     }
   }
 }

@@ -47,7 +47,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT(
   {
     if(GetWrapped(pCommandList)->GetReal1() == NULL)
     {
-      RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12GraphicsCommandList1 which isn't available");
       return false;
     }
 
@@ -162,7 +163,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT64(
   {
     if(GetWrapped(pCommandList)->GetReal1() == NULL)
     {
-      RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12GraphicsCommandList1 which isn't available");
       return false;
     }
 
@@ -270,13 +272,24 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetDepthBounds(SerialiserType
   {
     if(GetWrapped(pCommandList)->GetReal1() == NULL)
     {
-      RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12GraphicsCommandList1 which isn't available");
       return false;
     }
 
     if(m_pDevice->GetOpts2().DepthBoundsTestSupported == 0)
     {
-      RDCERR("Can't replay OMSetDepthBounds without device support");
+      if(Min <= 0.0f && Max >= 1.0f)
+      {
+        RDCWARN(
+            "Depth bounds is not supported, but skipping no-op "
+            "OMSetDepthBounds(Min=%F, Max=%f)",
+            Min, Max);
+        return true;
+      }
+
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires depth bounds support which isn't available");
       return false;
     }
 
@@ -346,7 +359,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetSamplePositions(
   {
     if(GetWrapped(pCommandList)->GetReal1() == NULL)
     {
-      RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12GraphicsCommandList1 which isn't available");
       return false;
     }
 
@@ -362,9 +376,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetSamplePositions(
         return true;
       }
 
-      RDCERR(
-          "Can't replay SetSamplePositions with "
-          "D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_NOT_SUPPORTED");
+      SET_ERROR_RESULT(
+          m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+          "Capture requires programmable sample position support which isn't available");
       return false;
     }
 
@@ -446,7 +460,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresourceRegion(
   {
     if(GetWrapped(pCommandList)->GetReal1() == NULL)
     {
-      RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12GraphicsCommandList1 which isn't available");
       return false;
     }
 
@@ -542,7 +557,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetViewInstanceMask(SerialiserT
   {
     if(GetWrapped(pCommandList)->GetReal1() == NULL)
     {
-      RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12GraphicsCommandList1 which isn't available");
       return false;
     }
 
@@ -554,7 +570,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetViewInstanceMask(SerialiserT
         return true;
       }
 
-      RDCERR("Can't replay SetViewInstanceMask with D3D12_VIEW_INSTANCING_TIER_NOT_SUPPORTED");
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires view instancing support which isn't available");
       return false;
     }
 

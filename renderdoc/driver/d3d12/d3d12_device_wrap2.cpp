@@ -67,13 +67,20 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
     }
 
     if(m_pDevice2)
+    {
       hr = m_pDevice2->CreatePipelineState(unwrappedDesc.AsDescStream(), guid, (void **)&ret);
+    }
     else
-      RDCERR("Replaying a without D3D12.2 available");
+    {
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12Device2 which isn't available");
+      return false;
+    }
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating pipeline state, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else

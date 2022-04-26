@@ -93,14 +93,21 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource2(
     ID3D12Resource *ret = NULL;
     HRESULT hr = E_NOINTERFACE;
     if(m_pDevice8)
+    {
       hr = m_pDevice8->CreateCommittedResource2(&props, HeapFlags, &desc, InitialResourceState,
                                                 pOptimizedClearValue, NULL, guid, (void **)&ret);
+    }
     else
-      RDCERR("Replaying a without D3D12.8 available");
+    {
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12Device8 which isn't available");
+      return false;
+    }
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating committed resource, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -310,14 +317,22 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource1(
     ID3D12Resource *ret = NULL;
     HRESULT hr = E_NOINTERFACE;
     if(m_pDevice8)
+    {
       hr = m_pDevice8->CreatePlacedResource1(Unwrap(pHeap), HeapOffset, &Descriptor, InitialState,
                                              pOptimizedClearValue, guid, (void **)&ret);
+    }
     else
-      RDCERR("Replaying a without D3D12.8 available");
+    {
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12Device8 which isn't available");
+      return false;
+    }
 
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating placed resource, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else

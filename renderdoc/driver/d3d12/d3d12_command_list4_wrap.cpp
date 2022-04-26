@@ -201,7 +201,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
   {
     if(GetWrapped(pCommandList)->GetReal4() == NULL)
     {
-      RDCERR("Can't replay ID3D12GraphicsCommandList4 command");
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12GraphicsCommandList4 which isn't available");
       return false;
     }
 
@@ -476,7 +477,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndRenderPass(SerialiserType &s
   {
     if(GetWrapped(pCommandList)->GetReal4() == NULL)
     {
-      RDCERR("Can't replay ID3D12GraphicsCommandList4 command");
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12GraphicsCommandList4 which isn't available");
       return false;
     }
 

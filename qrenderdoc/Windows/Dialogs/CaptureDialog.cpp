@@ -893,15 +893,15 @@ void CaptureDialog::on_toggleGlobal_clicked()
 
     QString capturefile = m_Ctx.TempCaptureFilename(QFileInfo(exe).baseName());
 
-    bool success = RENDERDOC_StartGlobalHook(exe, capturefile, Settings().options);
+    ResultDetails success = RENDERDOC_StartGlobalHook(exe, capturefile, Settings().options);
 
-    if(!success)
+    if(!success.OK())
     {
       // tidy up and exit
-      RDDialog::critical(
-          this, tr("Couldn't start global hook"),
-          tr("Aborting. Couldn't start global hook. Check diagnostic log in help menu for more "
-             "information"));
+      RDDialog::critical(this, tr("Couldn't start global hook"),
+                         tr("Aborting. Couldn't start global hook.\n"
+                            "%1")
+                             .arg(success.Message()));
 
       setEnabledMultiple(enableDisableWidgets, true);
 

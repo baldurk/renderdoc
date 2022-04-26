@@ -324,7 +324,7 @@ struct GLPlatform
   virtual bool CanCreateGLContext() = 0;
   virtual bool CanCreateGLESContext() = 0;
   virtual bool PopulateForReplay() = 0;
-  virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug) = 0;
+  virtual RDResult InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug) = 0;
   virtual void *GetReplayFunction(const char *funcname) = 0;
 };
 
@@ -349,9 +349,9 @@ class GLDummyPlatform : public GLPlatform
   virtual bool CanCreateGLContext() { return true; }
   virtual bool CanCreateGLESContext() { return true; }
   virtual bool PopulateForReplay() { return true; }
-  virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
+  virtual RDResult InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
-    return ReplayStatus::Succeeded;
+    return ResultCode::Succeeded;
   }
 };
 
@@ -464,12 +464,12 @@ T CheckConstParam(T t);
 // on GL we don't have an easy way of checking which functions/extensions were used or which
 // functions/extensions on replay could suffice. So we check at the last minute on replay and bail
 // out if it's not present
-#define CheckReplayFunctionPresent(func)                         \
-  if(GL.func == NULL)                                            \
-  {                                                              \
-    RDCERR("Function " #func " not available on replay.");       \
-    m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported; \
-    return false;                                                \
+#define CheckReplayFunctionPresent(func)                       \
+  if(GL.func == NULL)                                          \
+  {                                                            \
+    RDCERR("Function " #func " not available on replay.");     \
+    m_FailedReplayResult = ResultCode::APIHardwareUnsupported; \
+    return false;                                              \
   }
 
 // no longer in glcorearb.h or glext.h
@@ -888,8 +888,8 @@ GLuint CreateShaderProgram(GLuint vs, GLuint fs, GLuint gs = 0);
 GLuint CreateCShaderProgram(const rdcstr &cs);
 
 // verify that we got a replay context that we can work with
-bool CheckReplayContext();
-bool ValidateFunctionPointers();
+RDResult CheckReplayContext();
+RDResult ValidateFunctionPointers();
 
 #include "core/core.h"
 #include "serialise/serialiser.h"

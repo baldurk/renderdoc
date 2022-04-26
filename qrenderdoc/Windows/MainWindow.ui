@@ -164,7 +164,6 @@
     <addaction name="action_Counter_Viewer"/>
     <addaction name="action_Resource_Inspector"/>
     <addaction name="action_Comments"/>
-    <addaction name="action_Diagnostic_Log"/>
     <addaction name="separator"/>
     <addaction name="extension_dummy_Window"/>
    </widget>
@@ -180,7 +179,6 @@
      <addaction name="action_Clear_Reported_Bugs"/>
     </widget>
     <addaction name="action_View_Documentation"/>
-    <addaction name="action_View_Diagnostic_Log_File"/>
     <addaction name="action_Show_Tips"/>
     <addaction name="separator"/>
     <addaction name="action_Send_Error_Report"/>
@@ -377,11 +375,6 @@
     <string>View &amp;Documentation</string>
    </property>
   </action>
-  <action name="action_View_Diagnostic_Log_File">
-   <property name="text">
-    <string>View Diagnostic &amp;Log File</string>
-   </property>
-  </action>
   <action name="action_Send_Error_Report">
    <property name="text">
     <string>Send &amp;Error Report</string>
@@ -500,11 +493,6 @@
   <action name="action_Manage_Extensions">
    <property name="text">
     <string>Manage Extensions</string>
-   </property>
-  </action>
-  <action name="action_Diagnostic_Log">
-   <property name="text">
-    <string>Dia&amp;gnostic Log</string>
    </property>
   </action>
   <action name="action_Open_Capture_with_Options">

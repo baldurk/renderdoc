@@ -298,11 +298,11 @@ private:
       RDCDEBUG("Intercepting %s", entryPoint);
 
       // inherit logfile and capture options
-      rdcpair<ReplayStatus, uint32_t> res = Process::InjectIntoProcess(
+      rdcpair<RDResult, uint32_t> res = Process::InjectIntoProcess(
           lpProcessInformation->dwProcessId, {}, RenderDoc::Inst().GetCaptureFileTemplate(),
           RenderDoc::Inst().GetCaptureOptions(), false);
 
-      if(res.first == ReplayStatus::Succeeded)
+      if(res.first == ResultCode::Succeeded)
         RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, res.second);
     }
 

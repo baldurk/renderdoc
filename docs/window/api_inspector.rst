@@ -17,7 +17,7 @@ API Calls
 
 This section lists the series of API calls made between the preceding action and the currently selected action. The current action is always the last element in this list and is highlighted in bold. By default it is also the selected element.
 
-Each API call can be expanded to see the parameters that were passed to it, in the form that they were serialised out to the log file.
+Each API call can be expanded to see the parameters that were passed to it, in the form that they were serialised out to the capture.
 
 .. figure:: ../imgs/Screenshots/APIList.png
 

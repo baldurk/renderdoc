@@ -142,12 +142,12 @@ public:
   void RemoteExecutionThreadEntry();
 
   bool IsRemoteProxy() { return !m_RemoteServer; }
-  ReplayStatus FatalErrorCheck();
+  RDResult FatalErrorCheck();
   IReplayDriver *MakeDummyDriver();
   void Shutdown() { delete this; }
-  ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
+  RDResult ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
   {
-    return ReplayStatus::Succeeded;
+    return ResultCode::Succeeded;
   }
   AMDRGPControl *GetRGPControl() { return NULL; }
   rdcarray<WindowingSystem> GetSupportedWindowSystems()
@@ -710,7 +710,7 @@ private:
   Threading::ThreadHandle m_RemoteExecutionThread = 0;
 
   bool m_IsErrored = false;
-  ReplayStatus m_FatalError = ReplayStatus::Succeeded;
+  RDResult m_FatalError = ResultCode::Succeeded;
 
   FrameRecord m_FrameRecord;
   APIProperties m_APIProps;

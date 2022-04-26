@@ -668,7 +668,7 @@ private:
 
   rdcarray<DebugMessage> m_DebugMessages;
   int m_OOMHandler = 0;
-  ReplayStatus m_FatalError = ReplayStatus::Succeeded;
+  RDResult m_FatalError = ResultCode::Succeeded;
 
   uint64_t m_TimeBase = 0;
   double m_TimeFrequency = 1.0f;
@@ -679,7 +679,7 @@ private:
   rdcarray<FrameDescription> m_CapturedFrames;
   rdcarray<ActionDescription *> m_Actions;
 
-  ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
+  RDResult m_FailedReplayResult = ResultCode::APIReplayFailed;
 
   bool m_AppControlledCapture = false;
 
@@ -810,9 +810,9 @@ public:
       m_OOMHandler--;
   }
   void CheckHRESULT(HRESULT hr);
-  void ReportFatalError(ReplayStatus error) { m_FatalError = error; }
-  ReplayStatus FatalErrorCheck() { return m_FatalError; }
-  bool HasFatalError() { return m_FatalError != ReplayStatus::Succeeded; }
+  void ReportFatalError(RDResult error) { m_FatalError = error; }
+  RDResult FatalErrorCheck() { return m_FatalError; }
+  bool HasFatalError() { return m_FatalError != ResultCode::Succeeded; }
   ResourceDescription &GetResourceDesc(ResourceId id);
   void AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix);
   void DerivedResource(ResourceId parent, ResourceId child);
@@ -846,6 +846,7 @@ public:
   D3D12Replay *GetReplay() { return m_Replay; }
   WrappedID3D12CommandQueue *GetQueue() { return m_Queue; }
   ID3D12CommandAllocator *GetAlloc() { return m_Alloc; }
+  ID3D12InfoQueue *GetInfoQueue() { return m_pInfoQueue; }
   void ApplyBarriers(rdcarray<D3D12_RESOURCE_BARRIER> &barriers);
 
   void GetDynamicDescriptorReferences(rdcarray<D3D12Descriptor> &refs)
@@ -930,7 +931,7 @@ public:
   bool Serialise_DynamicDescriptorCopies(SerialiserType &ser,
                                          const rdcarray<DynamicDescriptorCopy> &DescriptorCopies);
 
-  ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
+  RDResult ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 
   void SetStructuredExport(uint64_t sectionVersion)

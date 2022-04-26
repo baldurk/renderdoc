@@ -160,7 +160,7 @@ public:
 
   virtual FrameRecord GetFrameRecord() = 0;
 
-  virtual ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers) = 0;
+  virtual RDResult ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers) = 0;
   virtual void ReplayLog(uint32_t endEventID, ReplayLogType replayType) = 0;
   virtual SDFile *GetStructuredFile() = 0;
 
@@ -212,7 +212,7 @@ public:
   virtual bool IsRenderOutput(ResourceId id) = 0;
 
   virtual void FileChanged() = 0;
-  virtual ReplayStatus FatalErrorCheck() = 0;
+  virtual RDResult FatalErrorCheck() = 0;
 
   virtual bool NeedRemapForFetch(const ResourceFormat &format) = 0;
 

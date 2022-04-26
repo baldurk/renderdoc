@@ -742,9 +742,9 @@ class TestCase:
         conv_path = util.get_tmp_path('conv.rdc')
 
         origrdc = rd.OpenCaptureFile()
-        status = origrdc.OpenFile(capture_filename, '', None)
+        result = origrdc.OpenFile(capture_filename, '', None)
 
-        self.check(status == rd.ReplayStatus.Succeeded, "Couldn't open '{}': {}".format(capture_filename, str(status)))
+        self.check(result == rd.ResultCode.Succeeded, "Couldn't open '{}': {}".format(capture_filename, str(result)))
 
         # Export to rdc, to recompress
         origrdc.Convert(recomp_path, '', None, None)
@@ -754,9 +754,9 @@ class TestCase:
 
         # Load up the zip.xml file
         zipxml = rd.OpenCaptureFile()
-        status = zipxml.OpenFile(conv_zipxml_path, 'zip.xml', None)
+        result = zipxml.OpenFile(conv_zipxml_path, 'zip.xml', None)
 
-        self.check(status == rd.ReplayStatus.Succeeded, "Couldn't open '{}': {}".format(conv_zipxml_path, str(status)))
+        self.check(result == rd.ResultCode.Succeeded, "Couldn't open '{}': {}".format(conv_zipxml_path, str(result)))
 
         # Convert out to rdc
         zipxml.Convert(conv_path, '', None, None)

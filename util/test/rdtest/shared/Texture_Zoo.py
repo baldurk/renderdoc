@@ -619,17 +619,17 @@ class Texture_Zoo():
         # Wait for it to start
         time.sleep(0.5)
 
-        ret: Tuple[rd.ReplayStatus, rd.RemoteServer] = rd.CreateRemoteServerConnection('localhost')
-        status, remote = ret
+        ret: Tuple[rd.ResultCode, rd.RemoteServer] = rd.CreateRemoteServerConnection('localhost')
+        result, remote = ret
 
-        if status != rd.ReplayStatus.Succeeded:
+        if result != rd.ResultCode.Succeeded:
             time.sleep(2)
 
-            ret: Tuple[rd.ReplayStatus, rd.RemoteServer] = rd.CreateRemoteServerConnection('localhost')
-            status, remote = ret
+            ret: Tuple[rd.ResultCode, rd.RemoteServer] = rd.CreateRemoteServerConnection('localhost')
+            result, remote = ret
 
-        if status != rd.ReplayStatus.Succeeded:
-            raise rdtest.TestFailureException("Couldn't connect to remote server: {}".format(str(status)))
+        if result != rd.ResultCode.Succeeded:
+            raise rdtest.TestFailureException("Couldn't connect to remote server: {}".format(str(result)))
 
         proxies = remote.LocalProxies()
 
@@ -641,10 +641,10 @@ class Texture_Zoo():
                     continue
 
                 try:
-                    ret: Tuple[rd.ReplayStatus, rd.ReplayController] = remote.OpenCapture(proxies.index(api),
-                                                                                          capture_filename,
-                                                                                          rd.ReplayOptions(), None)
-                    status, self.controller = ret
+                    ret: Tuple[rd.ResultCode, rd.ReplayController] = remote.OpenCapture(proxies.index(api),
+                                                                                        capture_filename,
+                                                                                        rd.ReplayOptions(), None)
+                    result, self.controller = ret
 
                     # Now check with the proxy
                     self.check_capture_with_controller(api)
@@ -670,17 +670,17 @@ class Texture_Zoo():
                 continue
 
             cap = rd.OpenCaptureFile()
-            status = cap.OpenFile(file.path, 'rdc', None)
+            result = cap.OpenFile(file.path, 'rdc', None)
 
-            if status != rd.ReplayStatus.Succeeded:
+            if result != rd.ResultCode.Succeeded:
                 rdtest.log.error("Couldn't open {}".format(file.name))
                 failed = True
                 continue
 
-            ret: Tuple[rd.ReplayStatus, rd.ReplayController] = cap.OpenCapture(rd.ReplayOptions(), None)
-            status, self.controller = ret
+            ret: Tuple[rd.ResultCode, rd.ReplayController] = cap.OpenCapture(rd.ReplayOptions(), None)
+            result, self.controller = ret
 
-            if status != rd.ReplayStatus.Succeeded:
+            if result != rd.ResultCode.Succeeded:
                 rdtest.log.error("Couldn't open {}".format(file.name))
                 failed = True
                 continue

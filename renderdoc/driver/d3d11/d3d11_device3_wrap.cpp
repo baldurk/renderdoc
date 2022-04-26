@@ -83,12 +83,15 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D1(SerialiserType &ser,
     }
     else
     {
-      RDCERR("Replaying a D3D11.3 device without D3D11.3 available");
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Replaying a D3D11.3 capture without D3D11.3 available");
+      return false;
     }
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating D3D11.3 2D texture, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -221,12 +224,15 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D1(SerialiserType &ser,
     }
     else
     {
-      RDCERR("Replaying a D3D11.3 device without D3D11.3 available");
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Replaying a D3D11.3 capture without D3D11.3 available");
+      return false;
     }
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating D3D11.3 3D texture, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -366,12 +372,15 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView1(
     }
     else
     {
-      RDCERR("Replaying a D3D11.3 device without D3D11.3 available");
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Replaying a D3D11.3 capture without D3D11.3 available");
+      return false;
     }
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating D3D11.3 SRV, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -502,12 +511,15 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView1(SerialiserType &ser,
     }
     else
     {
-      RDCERR("Replaying a D3D11.3 device without D3D11.3 available");
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Replaying a D3D11.3 capture without D3D11.3 available");
+      return false;
     }
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating D3D11.3 RTV, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -608,12 +620,15 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView1(
     }
     else
     {
-      RDCERR("Replaying a D3D11.3 device without D3D11.3 available");
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Replaying a D3D11.3 capture without D3D11.3 available");
+      return false;
     }
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating D3D11.3 UAV, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -719,13 +734,20 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState2(
     HRESULT hr = E_NOINTERFACE;
 
     if(m_pDevice3)
+    {
       hr = m_pDevice3->CreateRasterizerState2(&Descriptor, &ret);
+    }
     else
-      RDCERR("Replaying a D3D11.3 device without D3D11.3 available");
+    {
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Replaying a D3D11.3 capture without D3D11.3 available");
+      return false;
+    }
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating D3D11.3 rasterizer state. HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -832,13 +854,20 @@ bool WrappedID3D11Device::Serialise_CreateQuery1(SerialiserType &ser,
     HRESULT hr = E_NOINTERFACE;
 
     if(m_pDevice3)
+    {
       hr = m_pDevice3->CreateQuery1(&Descriptor, &ret);
+    }
     else
-      RDCERR("Replaying a D3D11.3 device without D3D11.3 available");
+    {
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Replaying a D3D11.3 capture without D3D11.3 available");
+      return false;
+    }
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating D3D11.3 query. HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else

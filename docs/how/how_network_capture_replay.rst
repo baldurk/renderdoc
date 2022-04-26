@@ -99,17 +99,17 @@ Capture files will all be kept on the target system by default. They will only b
 
 .. note::
 
-  There is a case where temporary captures can be 'leaked' and not cleaned up. If you do not have a remote server run command configured and have captures left over when the program closes, there will be no way to either save or delete the temporary log files. This *doesn't* apply to deleting or saving captures while the program is still running.
+  There is a case where temporary captures can be 'leaked' and not cleaned up. If you do not have a remote server run command configured and have captures left over when the program closes, there will be no way to either save or delete the temporary capture files. This *doesn't* apply to deleting or saving captures while the program is still running.
 
   The capture connection will warn you about this case and let you know when you are leaking temporary captures - you can delete them by hand if necessary, or you can switch to a replay context on that host and then you will be able to save and delete them as normal.
 
   Note that this is the same as if a program is run locally without any connection to the UI made at all - the captures will leak with nothing left to take ownership of them. The difference is that if a connection is made, because the files are on the local machine they can be deleted or saved directly by the UI even after the program has closed.
 
-Capture files made with a recent version of RenderDoc will store a coarse type of machine that was used at capture time, such as 'Linux 64-bit' or 'Windows 32-bit'. If you have the local replay context active and the machine you are running on differs significantly from the machine that the capture was made on, the UI will prompt you to ask if you really want to replay it locally (which may or may not work depending on the API and contents of the log), or switch to a remote context.
+Capture files made with a recent version of RenderDoc will store a coarse type of machine that was used at capture time, such as 'Linux 64-bit' or 'Windows 32-bit'. If you have the local replay context active and the machine you are running on differs significantly from the machine that the capture was made on, the UI will prompt you to ask if you really want to replay it locally (which may or may not work depending on the API and contents of the capture), or switch to a remote context.
 
 .. figure:: ../imgs/Screenshots/RemoteHostCapturePrompt.png
 
-	Remote Hosts: Prompting for remote replay of a notably different log
+	Remote Hosts: Prompting for remote replay of a notably different capture
 
 Configuring the Remote Server
 -----------------------------

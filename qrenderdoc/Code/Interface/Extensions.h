@@ -953,10 +953,11 @@ struct IExtensionManager
   DOCUMENT(R"(Enable an extension by name. If the extension is already enabled, this will reload it.
 
 :param str name: The qualified name of the extension, e.g. ``foo.bar``
-:return: If the extension loaded successfully or not.
-:rtype: bool
+:return: If the extension loaded successfully, an empty string, otherwise the errors encountered
+  while loading it.
+:rtype: str
 )");
-  virtual bool LoadExtension(rdcstr name) = 0;
+  virtual rdcstr LoadExtension(rdcstr name) = 0;
 
   //////////////////////////////////////////////////////////////////////////
   // UI hook/callback registration

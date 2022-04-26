@@ -216,7 +216,8 @@ bool WrappedVulkan::CheckMemoryRequirements(const char *resourceName, ResourceId
 
     if(external)
     {
-      RDCERR(
+      SET_ERROR_RESULT(
+          m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
           "Trying to bind %s to memory %s which is type %u, "
           "but only these types are allowed: %s\n"
           "This resource was created with external memory bindings, which is not represented in "
@@ -224,44 +225,43 @@ bool WrappedVulkan::CheckMemoryRequirements(const char *resourceName, ResourceId
           "Some drivers do not allow externally-imported resources to be bound to non-external "
           "memory, meaning this cannot be replayed.",
           resourceName, ToStr(memOrigId).c_str(), memInfo.memoryTypeIndex, bitsString.c_str());
-      m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
       return false;
     }
 
-    RDCERR(
+    SET_ERROR_RESULT(
+        m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
         "Trying to bind %s to memory %s which is type %u, "
         "but only these types are allowed: %s\n"
         "This is most likely caused by incompatible hardware or drivers between capture and "
         "replay, causing a change in memory requirements.",
         resourceName, ToStr(memOrigId).c_str(), memInfo.memoryTypeIndex, bitsString.c_str());
-    m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
     return false;
   }
 
   // verify offset alignment
   if((memoryOffset % mrq.alignment) != 0)
   {
-    RDCERR(
+    SET_ERROR_RESULT(
+        m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
         "Trying to bind %s to memory %s which is type %u, "
         "but offset 0x%llx doesn't satisfy alignment 0x%llx.\n"
         "This is most likely caused by incompatible hardware or drivers between capture and "
         "replay, causing a change in memory requirements.",
         resourceName, ToStr(memOrigId).c_str(), memInfo.memoryTypeIndex, memoryOffset, mrq.alignment);
-    m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
     return false;
   }
 
   // verify size
   if(mrq.size > memInfo.allocSize - memoryOffset)
   {
-    RDCERR(
+    SET_ERROR_RESULT(
+        m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
         "Trying to bind %s to memory %s which is type %u, "
         "but at offset 0x%llx the reported size of 0x%llx won't fit the 0x%llx bytes of memory.\n"
         "This is most likely caused by incompatible hardware or drivers between capture and "
         "replay, causing a change in memory requirements.",
         resourceName, ToStr(memOrigId).c_str(), memInfo.memoryTypeIndex, memoryOffset, mrq.size,
         memInfo.allocSize);
-    m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
     return false;
   }
 
@@ -293,7 +293,8 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
 
     if(patched.memoryTypeIndex >= m_PhysicalDeviceData.memProps.memoryTypeCount)
     {
-      RDCERR(
+      SET_ERROR_RESULT(
+          m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
           "Tried to allocate memory from index %u, but on replay we only have %u memory types.\n"
           "This is most likely caused by incompatible hardware or drivers between capture and "
           "replay, causing a change in memory requirements.",
@@ -305,7 +306,8 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed allocating memory, VkResult: %s", ToStr(ret).c_str());
       return false;
     }
     else
@@ -857,12 +859,14 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
                                               (void **)&MapData);
     if(vkr != VK_SUCCESS)
     {
-      RDCERR("Error mapping memory on replay: %s", ToStr(vkr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Error mapping memory on replay, VkResult: %s", ToStr(vkr).c_str());
       return false;
     }
     if(!MapData)
     {
-      RDCERR("Manually reporting failed memory map");
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Error mapping memory on replay");
       CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
       return false;
     }
@@ -1072,7 +1076,8 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
       RDCERR("Error mapping memory on replay: %s", ToStr(ret).c_str());
     if(!MappedData)
     {
-      RDCERR("Manually reporting failed memory map");
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Error mapping memory on replay");
       CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
       return false;
     }
@@ -1594,7 +1599,8 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Error creating buffer, VkResult: %s", ToStr(ret).c_str());
       return false;
     }
     else
@@ -1844,7 +1850,8 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(SerialiserType &ser, VkDevice d
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Error creating buffer view, VkResult: %s", ToStr(ret).c_str());
       return false;
     }
     else
@@ -2089,7 +2096,8 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Error creating image, VkResult: %s", ToStr(ret).c_str());
       return false;
     }
     else
@@ -2572,7 +2580,8 @@ bool WrappedVulkan::Serialise_vkCreateImageView(SerialiserType &ser, VkDevice de
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Error creating image view, VkResult: %s", ToStr(ret).c_str());
       return false;
     }
     else

@@ -213,14 +213,17 @@ class CGLPlatform : public GLPlatform
     return ret;
   }
 
-  ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
+  RDResult InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
     RDCASSERT(api == RDCDriver::OpenGL);
 
     NSGL_init();
     replayContext.nsgl_ctx = NSGL_createContext(NULL, NULL);
 
-    return ReplayStatus::Succeeded;
+    if(replayContext.nsgl_ctx != NULL)
+      return ResultCode::Succeeded;
+
+    RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Failed to create replay OpenGL context");
   }
 
   void DrawQuads(float width, float height, const rdcarray<Vec4f> &vertices)

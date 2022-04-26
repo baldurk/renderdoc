@@ -78,13 +78,20 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue1(SerialiserType &ser,
     ID3D12CommandQueue *ret = NULL;
     HRESULT hr = E_NOINTERFACE;
     if(m_pDevice9)
+    {
       hr = m_pDevice9->CreateCommandQueue1(&Descriptor, creator, guid, (void **)&ret);
+    }
     else
-      RDCERR("Replaying a without D3D12.9 available");
+    {
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12Device9 which isn't available");
+      return false;
+    }
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating command queue, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else

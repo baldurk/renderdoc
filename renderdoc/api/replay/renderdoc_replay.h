@@ -286,11 +286,11 @@ Should only be called for texture outputs.
   type. If set to :data:`CompType.Typeless` then no cast is applied, otherwise where allowed the
   texture data will be reinterpreted - e.g. from unsigned integers to floats, or to unsigned
   normalised values.
-:return: A boolean indicating if the thumbnail was successfully created.
-:rtype: bool
+:return: A result indicating if the thumbnail was successfully created.
+:rtype: ResultDetails
 )");
-  virtual bool AddThumbnail(WindowingData window, ResourceId textureId, const Subresource &sub,
-                            CompType typeCast) = 0;
+  virtual ResultDetails AddThumbnail(WindowingData window, ResourceId textureId,
+                                     const Subresource &sub, CompType typeCast) = 0;
 
   DOCUMENT(R"(Render to the window handle specified when the output was created.
 
@@ -306,10 +306,10 @@ fixed high zoom value and a fixed position, see :meth:`SetPixelContextLocation`.
 Should only be called for texture outputs.
 
 :param WindowingData window: A :class:`WindowingData` describing the native window.
-:return: A boolean indicating if the pixel context was successfully configured.
-:rtype: bool
+:return: A result indicating if the pixel context was successfully configured.
+:rtype: ResultDetails
 )");
-  virtual bool SetPixelContext(WindowingData window) = 0;
+  virtual ResultDetails SetPixelContext(WindowingData window) = 0;
 
   DOCUMENT(R"(Sets the pixel that the pixel context should be centred on.
 
@@ -791,14 +791,14 @@ appropriately, such as by displaying a message to the user. The replay controlle
 remain stable and return null/empty data for the most part, but it's recommended for maximum
 stability to stop using the controller when a fatal error is encountered.
 
-If there has been no error, this will return :data:`ReplayStatus.Succeeded`. If there has been an
+If there has been no error, this will return :data:`ResultCode.Succeeded`. If there has been an
 error this will return the error code every time, it will not be 'consumed' so it's safe to have
 multiple things checking it.
 
 :return: The current fatal error status.
-:rtype: ReplayStatus
+:rtype: ResultDetails
 )");
-  virtual ReplayStatus GetFatalErrorStatus() = 0;
+  virtual ResultDetails GetFatalErrorStatus() = 0;
 
   DOCUMENT(R"(Retrieve a list of entry points for a shader.
 
@@ -1006,10 +1006,10 @@ texture to something compatible with the target file format.
 
 :param TextureSave saveData: The configuration settings of which texture to save, and how
 :param str path: The path to save to on disk.
-:return: ``True`` if the texture was saved successfully, ``False`` otherwise.
-:rtype: bool
+:return: The result of the operation.
+:rtype: ResultDetails
 )");
-  virtual bool SaveTexture(const TextureSave &saveData, const rdcstr &path) = 0;
+  virtual ResultDetails SaveTexture(const TextureSave &saveData, const rdcstr &path) = 0;
 
   DOCUMENT(R"(Retrieve the generated data from one of the geometry processing shader stages.
 
@@ -1217,10 +1217,10 @@ or name).
 
 :param SectionProperties props: The properties of the section to be written.
 :param bytes contents: The raw contents of the section.
-:return: ``True`` if the section was written successfully, ``False`` otherwise.
-:rtype: bool
+:return: The result of the operation.
+:rtype: ResultDetails
 )");
-  virtual bool WriteSection(const SectionProperties &props, const bytebuf &contents) = 0;
+  virtual ResultDetails WriteSection(const SectionProperties &props, const bytebuf &contents) = 0;
 
   DOCUMENT(R"(Query if callstacks are available.
 
@@ -1241,10 +1241,10 @@ separate thread.
   fail.
 :param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
   value for the resolver process. Can be ``None`` if no progress is desired.
-:return: ``True`` if the resolver successfully initialised, ``False`` if something went wrong.
-:rtype: bool
+:return: The result of the operation.
+:rtype: ResultDetails
 )");
-  virtual bool InitResolver(bool interactive, RENDERDOC_ProgressCallback progress) = 0;
+  virtual ResultDetails InitResolver(bool interactive, RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Retrieve the details of each stackframe in the provided callstack.
 
@@ -1287,11 +1287,10 @@ struct IRemoteServer : public ICaptureAccess
 
   DOCUMENT(R"(Pings the remote server to ensure the connection is still alive.
 
-:return: ``True`` if the ping was sent and received successfully, ``False`` if something went wrong
-  and the connection is no longer alive.
-:rtype: bool
+:return: The result of the operation - if a failure occurred the connection is no longer alive.
+:rtype: ResultDetails
 )");
-  virtual bool Ping() = 0;
+  virtual ResultDetails Ping() = 0;
 
   DOCUMENT(R"(Retrieve a list of renderers available for local proxying.
 
@@ -1410,9 +1409,9 @@ or an error has occurred.
   value for the opening. Can be ``None`` if no progress is desired.
 :return: A tuple containing the status of opening the capture, whether success or failure, and the
   resulting :class:`ReplayController` handle if successful.
-:rtype: Tuple[ReplayStatus,ReplayController]
+:rtype: Tuple[ResultDetails,ReplayController]
 )");
-  virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(
+  virtual rdcpair<ResultDetails, IReplayController *> OpenCapture(
       uint32_t proxyid, const rdcstr &logfile, const ReplayOptions &opts,
       RENDERDOC_ProgressCallback progress) = 0;
 
@@ -1450,11 +1449,11 @@ empty or unrecognised.
 :param str filetype: The format of the given file.
 :param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
   value if an import step occurs. Can be ``None`` if no progress is desired.
-:return: The status of the open operation, whether it succeeded or failed (and how it failed).
-:rtype: ReplayStatus
+:return: The result of the operation.
+:rtype: ResultDetails
 )");
-  virtual ReplayStatus OpenFile(const rdcstr &filename, const rdcstr &filetype,
-                                RENDERDOC_ProgressCallback progress) = 0;
+  virtual ResultDetails OpenFile(const rdcstr &filename, const rdcstr &filetype,
+                                 RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Initialises the file handle from a raw memory buffer.
 
@@ -1466,11 +1465,11 @@ For the :paramref:`OpenBuffer.filetype` parameter, see :meth:`OpenFile`.
 :param str filetype: The format of the given file.
 :param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
   value if an import step occurs. Can be ``None`` if no progress is desired.
-:return: The status of the open operation, whether it succeeded or failed (and how it failed).
-:rtype: ReplayStatus
+:return: The result of the operation.
+:rtype: ResultDetails
 )");
-  virtual ReplayStatus OpenBuffer(const bytebuf &buffer, const rdcstr &filetype,
-                                  RENDERDOC_ProgressCallback progress) = 0;
+  virtual ResultDetails OpenBuffer(const bytebuf &buffer, const rdcstr &filetype,
+                                   RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(When a capture file is opened, an exclusive lock is held on the file on disk. This
 makes it impossible to copy the file to another location at the user's request. Calling this
@@ -1481,10 +1480,10 @@ It is invalid to call this function if :meth:`OpenFile` has not previously been 
 file.
 
 :param str filename: The filename to copy to.
-:return: ``True`` if the operation succeeded.
-:rtype: bool
+:return: The result of the file copy operation.
+:rtype: ResultDetails
 )");
-  virtual bool CopyFileTo(const rdcstr &filename) = 0;
+  virtual ResultDetails CopyFileTo(const rdcstr &filename) = 0;
 
   DOCUMENT(R"(Converts the currently loaded file to a given format and saves it to disk.
 
@@ -1499,21 +1498,11 @@ representation back to native RDC.
   again. If ``None`` then structured data will be fetched if not already present and used.
 :param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
   value for the conversion. Can be ``None`` if no progress is desired.
-:return: The status of the conversion operation, whether it succeeded or failed (and how it failed).
-:rtype: ReplayStatus
+:return: The result of the operation.
+:rtype: ResultDetails
 )");
-  virtual ReplayStatus Convert(const rdcstr &filename, const rdcstr &filetype, const SDFile *file,
-                               RENDERDOC_ProgressCallback progress) = 0;
-
-  DOCUMENT(R"(Returns the human-readable error string for the last error received.
-
-The error string is not reset by calling this function so it's safe to call multiple times. However
-any other function call may reset the error string to empty.
-
-:return: The error string, if one exists, or an empty string.
-:rtype: str
-)");
-  virtual rdcstr ErrorString() = 0;
+  virtual ResultDetails Convert(const rdcstr &filename, const rdcstr &filetype, const SDFile *file,
+                                RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Returns the list of capture file formats.
 
@@ -1598,9 +1587,9 @@ by the :class:`ReplayController`.
   value for the opening. Can be ``None`` if no progress is desired.
 :return: A tuple containing the status of opening the capture, whether success or failure, and the
   resulting :class:`ReplayController` handle if successful.
-:rtype: Tuple[ReplayStatus,ReplayController]
+:rtype: Tuple[ResultDetails,ReplayController]
 )");
-  virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(
+  virtual rdcpair<ResultDetails, IReplayController *> OpenCapture(
       const ReplayOptions &opts, RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Returns the structured data for this capture.
@@ -1847,9 +1836,9 @@ DOCUMENT(R"(Create a connection to a remote server running on given hostname.
   specified then default TCP enumeration happens.
 :return: The status of opening the connection, whether success or failure, and a :class:`RemoteServer`
   instance if it were successful
-:rtype: Tuple[ReplayStatus,RemoteServer]
+:rtype: Tuple[ResultDetails,RemoteServer]
 )");
-extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
+extern "C" RENDERDOC_API ResultDetails RENDERDOC_CC
 RENDERDOC_CreateRemoteServerConnection(const rdcstr &URL, IRemoteServer **rend);
 
 DOCUMENT(R"(Check the connection to a remote server running on given hostname.
@@ -1860,9 +1849,9 @@ the status can be checked without interfering with making connections.
 :param str URL: The hostname to connect to, if blank then localhost is used. If no protocol is
   specified then default TCP enumeration happens.
 :return: The status of the server.
-:rtype: ReplayStatus
+:rtype: ResultDetails
 )");
-extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
+extern "C" RENDERDOC_API ResultDetails RENDERDOC_CC
 RENDERDOC_CheckRemoteServerConnection(const rdcstr &URL);
 
 DOCUMENT(R"(This launches a remote server which will continually run in a loop to server requests
@@ -1901,19 +1890,19 @@ started on the system.
 This function can only be called if global hooking is supported (see :func:`CanGlobalHook`) and if
 global hooking is not active (see :func:`IsGlobalHookActive`).
 
+The hook must be closed with :func:`StopGlobalHook` before the application is closed.
+
 This function must be called when the process is running with administrator/superuser permissions.
 
 :param str pathmatch: A string to match against each new process's executable path to determine
   which corresponds to the program we actually want to capture.
 :param str logfile: Where to store any captures.
 :param CaptureOptions opts: The capture options to use when injecting into the program.
-:return: ``True`` if the hook is active, ``False`` if something went wrong. The hook must be closed
-  with :func:`StopGlobalHook` before the application is closed.
-:rtype: bool
+:return: The result of the operation, if the result succeeded the hook is now active.
+:rtype: ResultDetails
 )");
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_StartGlobalHook(const rdcstr &pathmatch,
-                                                                     const rdcstr &logfile,
-                                                                     const CaptureOptions &opts);
+extern "C" RENDERDOC_API ResultDetails RENDERDOC_CC RENDERDOC_StartGlobalHook(
+    const rdcstr &pathmatch, const rdcstr &logfile, const CaptureOptions &opts);
 
 DOCUMENT(R"(Stop the global hook that was activated by :func:`StartGlobalHook`.
 
@@ -2239,9 +2228,9 @@ user can be prompted to close an existing program before a new one is launched.
 :param str URL: The URL of the device in the form ``protocol://host``, with protocol as returned by
   :func:`GetProtocolName` and host as returned by :func:`GetDevices`.
 :return: The status of starting the server, whether success or failure.
-:rtype: ReplayStatus
+:rtype: ResultDetails
 )");
-  virtual ReplayStatus StartRemoteServer(const rdcstr &URL) = 0;
+  virtual ResultDetails StartRemoteServer(const rdcstr &URL) = 0;
 
 protected:
   IDeviceProtocolController() = default;

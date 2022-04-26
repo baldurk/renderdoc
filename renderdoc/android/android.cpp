@@ -323,16 +323,16 @@ bool CheckAndroidServerVersion(const rdcstr &deviceID, ABI abi)
   return false;
 }
 
-ReplayStatus InstallRenderDocServer(const rdcstr &deviceID)
+RDResult InstallRenderDocServer(const rdcstr &deviceID)
 {
-  ReplayStatus status = ReplayStatus::Succeeded;
+  ResultCode result = ResultCode::Succeeded;
 
   rdcarray<ABI> abis = GetSupportedABIs(deviceID);
 
   if(abis.empty())
   {
-    RDCERR("Couldn't determine supported ABIs for %s", deviceID.c_str());
-    return ReplayStatus::AndroidABINotFound;
+    RETURN_ERROR_RESULT(ResultCode::AndroidABINotFound,
+                        "Couldn't determine supported ABIs for device %s", deviceID.c_str());
   }
 
   // Check known paths for RenderDoc server
@@ -391,11 +391,18 @@ ReplayStatus InstallRenderDocServer(const rdcstr &deviceID)
 
   if(apksFolder.empty())
   {
-    RDCERR(
-        "APK folder missing! RenderDoc for Android will not work without it. "
-        "Build your Android ABI in build-android in the root to have it "
-        "automatically found and installed.");
-    return ReplayStatus::AndroidAPKFolderNotFound;
+#if RENDERDOC_OFFICIAL_BUILD
+    RETURN_ERROR_RESULT(ResultCode::AndroidAPKFolderNotFound,
+                        "RenderDoc APK not found. Your build of RenderDoc may be incomplete.\n"
+                        "Check that your device is ARM based, other ABIs are not supported.");
+#else
+    RETURN_ERROR_RESULT(ResultCode::AndroidAPKFolderNotFound,
+                        "RenderDoc APK not found. Your build of RenderDoc is incomplete.\n"
+                        "If this is a development build, consult the documentation for building "
+                        "the Android package.\n"
+                        "If this is a release build check that your device is ARM based, other "
+                        "ABIs are not supported.");
+#endif
   }
 
   for(ABI abi : abis)
@@ -444,14 +451,14 @@ ReplayStatus InstallRenderDocServer(const rdcstr &deviceID)
       if(success)
       {
         // if it succeeded this time, then it was the permission grant that failed
-        status = ReplayStatus::AndroidGrantPermissionsFailed;
+        result = ResultCode::AndroidGrantPermissionsFailed;
       }
       else
       {
         // otherwise something went wrong with verifying. If the install failed completely we'll
         // return AndroidAPKInstallFailed below, otherwise return a code indicating we couldn't
         // verify the install properly.
-        status = ReplayStatus::AndroidAPKVerifyFailed;
+        result = ResultCode::AndroidAPKVerifyFailed;
       }
     }
   }
@@ -462,8 +469,8 @@ ReplayStatus InstallRenderDocServer(const rdcstr &deviceID)
 
   if(adbCheck.strStdout.empty())
   {
-    RDCERR("Couldn't find any installed APKs. stderr: %s", adbCheck.strStderror.c_str());
-    return ReplayStatus::AndroidAPKInstallFailed;
+    RETURN_ERROR_RESULT(ResultCode::AndroidAPKInstallFailed, "Couldn't install APK(s). stderr: %s",
+                        adbCheck.strStderror.c_str());
   }
 
   size_t lines = adbCheck.strStdout.find('\n') == -1 ? 1 : 2;
@@ -471,7 +478,7 @@ ReplayStatus InstallRenderDocServer(const rdcstr &deviceID)
   if(lines != abis.size())
     RDCWARN("Installation of some apks failed!");
 
-  return status;
+  return result;
 }
 
 bool RemoveRenderDocAndroidServer(const rdcstr &deviceID)
@@ -555,17 +562,17 @@ struct AndroidRemoteServer : public RemoteServer
     RemoteServer::ShutdownServerAndConnection();
   }
 
-  virtual bool Ping() override
+  virtual ResultDetails Ping() override
   {
     if(!Connected())
-      return false;
+      return RDResult(ResultCode::RemoteServerConnectionLost);
 
     LazilyStartLogcatThread();
 
     return RemoteServer::Ping();
   }
 
-  virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(
+  virtual rdcpair<ResultDetails, IReplayController *> OpenCapture(
       uint32_t proxyid, const rdcstr &filename, const ReplayOptions &opts,
       RENDERDOC_ProgressCallback progress) override
   {
@@ -978,18 +985,20 @@ struct AndroidController : public IDeviceProtocolHandler
     return ret;
   }
 
-  ReplayStatus StartRemoteServer(const rdcstr &URL) override
+  ResultDetails StartRemoteServer(const rdcstr &URL) override
   {
-    ReplayStatus status = ReplayStatus::Succeeded;
+    RDResult result = ResultCode::Succeeded;
 
-    Invoke([this, &status, URL]() {
+    Invoke([this, &result, URL]() {
       rdcstr deviceID = GetDeviceID(URL);
 
       Device &dev = devices[deviceID];
 
       if(!dev.active)
       {
-        status = ReplayStatus::InternalError;
+        SET_ERROR_RESULT(result, ResultCode::InternalError,
+                         "Android device %s is not active, can't launch server",
+                         Android::GetFriendlyName(deviceID).c_str());
         return;
       }
 
@@ -1009,7 +1018,9 @@ struct AndroidController : public IDeviceProtocolHandler
 
       if(abis.empty())
       {
-        status = ReplayStatus::AndroidABINotFound;
+        SET_ERROR_RESULT(result, ResultCode::AndroidABINotFound,
+                         "Can't determine supported ABIs for device %s",
+                         Android::GetFriendlyName(deviceID).c_str());
         return;
       }
 
@@ -1026,10 +1037,9 @@ struct AndroidController : public IDeviceProtocolHandler
         }
 
         // If server is not detected or has been removed due to incompatibility, install it
-        status = Android::InstallRenderDocServer(deviceID);
-        if(status != ReplayStatus::Succeeded &&
-           status != ReplayStatus::AndroidGrantPermissionsFailed &&
-           status != ReplayStatus::AndroidAPKVerifyFailed)
+        result = Android::InstallRenderDocServer(deviceID);
+        if(result != ResultCode::Succeeded && result != ResultCode::AndroidGrantPermissionsFailed &&
+           result != ResultCode::AndroidAPKVerifyFailed)
         {
           RDCERR("Failed to install RenderDoc server app");
           return;
@@ -1070,7 +1080,7 @@ struct AndroidController : public IDeviceProtocolHandler
     // allow the package to start and begin listening before we return
     Threading::Sleep(1500);
 
-    return status;
+    return result;
   }
 
   rdcstr RemapHostname(const rdcstr &deviceID) override
@@ -1150,17 +1160,16 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
   Threading::ThreadHandle pingThread = Threading::CreateThread([&done, this]() {
     Threading::SetCurrentThreadName("Android Ping");
 
-    bool ok = true;
-    while(ok && Atomic::CmpExch32(&done, 0, 0) == 0)
+    ResultDetails ok;
+    ok.code = ResultCode::Succeeded;
+    while(ok.OK() && Atomic::CmpExch32(&done, 0, 0) == 0)
       ok = Ping();
   });
 
-  ExecuteResult ret;
+  RDResult result;
+  uint32_t ident = RenderDoc_FirstTargetControlPort;
 
-  AndroidController::m_Inst.Invoke([this, &ret, packageAndActivity, intentArgs, opts]() {
-    ret.status = ReplayStatus::UnknownError;
-    ret.ident = RenderDoc_FirstTargetControlPort;
-
+  AndroidController::m_Inst.Invoke([this, &result, &ident, packageAndActivity, intentArgs, opts]() {
     rdcstr packageName =
         Android::GetPackageName(packageAndActivity);    // Remove leading '/' if any
 
@@ -1188,6 +1197,8 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
     Android::adbExecCommand(m_deviceID, "shell setprop debug.vulkan.layers :", ".", true);
 
     bool hookWithJDWP = true;
+
+    rdcstr info;
 
     if(Android::SupportsNativeLayers(m_deviceID))
     {
@@ -1258,11 +1269,13 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
          !checkString.contains("gpu_debug_layers=" RENDERDOC_VULKAN_LAYER_NAME) ||
          !checkString.contains("gpu_debug_layers_gles=" RENDERDOC_ANDROID_LIBRARY))
       {
-        RDCERR(
-            "Couldn't verify that debug settings are set:\n%s"
+        info =
             "Do you have a strange device that requires extra setup?\n"
-            "E.g. Xiaomi requires a developer account and \"USB debugging (Security Settings)\"\n",
-            inString.c_str());
+            "E.g. Xiaomi requires a developer account and \"USB debugging (Security Settings)\"\n";
+
+        RDCERR("Couldn't verify that debug settings are set:\n%s\n%s", inString.c_str(),
+               info.c_str());
+
         hookWithJDWP = true;
 
         // need to tell the hooks to ignore the fact that layers are present because they're not
@@ -1340,7 +1353,8 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
 
     int pid = 0;
 
-    RDCLOG("Launching package '%s' with activity '%s'", packageName.c_str(), activityName.c_str());
+    RDCLOG("Launching package '%s' with activity '%s' and intent args '%s'", packageName.c_str(),
+           activityName.c_str(), intentArgs.c_str());
 
     if(hookWithJDWP)
     {
@@ -1369,10 +1383,20 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
 
     if(pid == 0)
     {
-      RDCERR("Couldn't get PID when launching %s with activity %s and intent args %s",
-             packageName.c_str(), activityName.c_str(), intentArgs.c_str());
-      ret.status = ReplayStatus::InjectionFailed;
-      ret.ident = 0;
+      result = RDResult(ResultCode::InjectionFailed);
+      ident = 0;
+
+      RDCERR("Couldn't get PID");
+
+      if(!info.empty())
+        result.message =
+            "Couldn't locate the launched activity, either it failed to launch or crashed."
+            "\n\nAdditional information:\n" +
+            info;
+      else
+        result.message =
+            "Couldn't locate the launched activity, either it failed to launch or crashed.";
+
       return;
     }
 
@@ -1388,25 +1412,29 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
       if(!injected)
       {
         RDCERR("Failed to inject using JDWP");
-        ret.status = ReplayStatus::JDWPFailure;
-        ret.ident = 0;
+        ident = 0;
+        result = RDResult(ResultCode::JDWPFailure);
+        result.message = StringFormat::Fmt(
+            "Failed to inject using JDWP when launching '%s' with activity '%s' and intent args "
+            "'%s'",
+            packageName.c_str(), activityName.c_str(), intentArgs.c_str());
         return;
       }
     }
 
-    ret.status = ReplayStatus::InjectionFailed;
+    result = RDResult(ResultCode::InjectionFailed, "Timeout was reached waiting for app to start");
 
     uint32_t elapsed = 0, timeout = 1000 * RDCMAX(5U, Android_MaxConnectTimeout());
     while(elapsed < timeout)
     {
       // Check if the target app has started yet and we can connect to it.
       ITargetControl *control = RENDERDOC_CreateTargetControl(
-          AndroidController::m_Inst.GetProtocolName() + "://" + m_deviceID, ret.ident,
-          "testConnection", false);
+          AndroidController::m_Inst.GetProtocolName() + "://" + m_deviceID, ident, "testConnection",
+          false);
       if(control)
       {
         control->Shutdown();
-        ret.status = ReplayStatus::Succeeded;
+        result = ResultCode::Succeeded;
         break;
       }
 
@@ -1417,7 +1445,9 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
 
       if(curpid == 0)
       {
-        RDCERR("APK has crashed or never opened target control connection before closing.");
+        SET_ERROR_RESULT(
+            result, ResultCode::InjectionFailed,
+            "APK has crashed or never opened target control connection before closing.");
         break;
       }
 
@@ -1436,6 +1466,11 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
 
   Threading::JoinThread(pingThread);
   Threading::CloseThread(pingThread);
+
+  ExecuteResult ret = {};
+
+  ret.result = result;
+  ret.ident = ident;
 
   return ret;
 }

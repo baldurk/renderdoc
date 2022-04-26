@@ -396,6 +396,14 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
       VkResult vkr = ObjDisp(device)->CreateImage(Unwrap(device), &imInfo, NULL, &im);
       CheckVkResult(vkr);
 
+      if(vkr != VK_SUCCESS)
+      {
+        SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                         "Failed creating fake backbuffer textures, VkResult: %s",
+                         ToStr(vkr).c_str());
+        return false;
+      }
+
       ResourceId liveId = GetResourceManager()->WrapResource(Unwrap(device), im);
 
       VkMemoryRequirements mrq = {0};
@@ -411,7 +419,12 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
       CheckVkResult(vkr);
 
       if(vkr != VK_SUCCESS)
+      {
+        SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                         "Failed allocating fake backbuffer texture memory, VkResult: %s",
+                         ToStr(vkr).c_str());
         return false;
+      }
 
       ResourceId memid = GetResourceManager()->WrapResource(Unwrap(device), mem);
       // register as a live-only resource, so it is cleaned up properly

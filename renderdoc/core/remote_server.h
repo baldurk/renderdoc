@@ -49,7 +49,7 @@ public:
   virtual void ShutdownServerAndConnection();
 
   virtual bool Connected();
-  virtual bool Ping();
+  virtual ResultDetails Ping();
 
   virtual rdcarray<rdcstr> LocalProxies();
 
@@ -71,10 +71,10 @@ public:
 
   virtual void TakeOwnershipCapture(const rdcstr &filename);
 
-  virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(uint32_t proxyid,
-                                                                 const rdcstr &filename,
-                                                                 const ReplayOptions &opts,
-                                                                 RENDERDOC_ProgressCallback progress);
+  virtual rdcpair<ResultDetails, IReplayController *> OpenCapture(uint32_t proxyid,
+                                                                  const rdcstr &filename,
+                                                                  const ReplayOptions &opts,
+                                                                  RENDERDOC_ProgressCallback progress);
 
   virtual void CloseCapture(IReplayController *rend);
 
@@ -92,11 +92,11 @@ public:
 
   virtual bytebuf GetSectionContents(int32_t index);
 
-  virtual bool WriteSection(const SectionProperties &props, const bytebuf &contents);
+  virtual ResultDetails WriteSection(const SectionProperties &props, const bytebuf &contents);
 
   virtual bool HasCallstacks();
 
-  virtual bool InitResolver(bool interactive, RENDERDOC_ProgressCallback progress);
+  virtual ResultDetails InitResolver(bool interactive, RENDERDOC_ProgressCallback progress);
 
   virtual rdcarray<rdcstr> GetResolve(const rdcarray<uint64_t> &callstack);
 

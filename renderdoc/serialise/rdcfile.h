@@ -27,15 +27,6 @@
 #include "core/core.h"
 #include "streamio.h"
 
-enum class ContainerError
-{
-  NoError = 0,
-  FileNotFound,
-  FileIO,
-  Corrupt,
-  UnsupportedVersion,
-};
-
 extern const char *SectionTypeNames[];
 
 struct RDCThumb
@@ -74,7 +65,7 @@ public:
   void Open(const rdcstr &filename);
   void Open(const bytebuf &buffer);
 
-  bool CopyFileTo(const rdcstr &filename);
+  RDResult CopyFileTo(const rdcstr &filename);
 
   // Sets the parameters of an RDCFile in memory.
   void SetData(RDCDriver driver, const rdcstr &driverName, uint64_t machineIdent,
@@ -83,8 +74,7 @@ public:
   // creates a new file with current properties, file will be overwritten if it already exists
   void Create(const rdcstr &filename);
 
-  ContainerError ErrorCode() const { return m_Error; }
-  rdcstr ErrorString() const { return m_ErrorString; }
+  const RDResult &Error() const { return m_Error; }
   RDCDriver GetDriver() const { return m_Driver; }
   const rdcstr &GetDriverName() const { return m_DriverName; }
   uint64_t GetMachineIdent() const { return m_MachineIdent; }
@@ -120,8 +110,7 @@ private:
   double m_TimeFrequency = 1.0;
   RDCThumb m_Thumb;
 
-  ContainerError m_Error = ContainerError::NoError;
-  rdcstr m_ErrorString;
+  RDResult m_Error;
 
   struct SectionLocation
   {

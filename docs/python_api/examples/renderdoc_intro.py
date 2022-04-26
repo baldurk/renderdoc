@@ -6,21 +6,21 @@ rd.InitialiseReplay(rd.GlobalEnvironment(), [])
 cap = rd.OpenCaptureFile()
 
 # Open a particular file - see also OpenBuffer to load from memory
-status = cap.OpenFile('test.rdc', '', None)
+result = cap.OpenFile('test.rdc', '', None)
 
 # Make sure the file opened successfully
-if status != rd.ReplayStatus.Succeeded:
-    raise RuntimeError("Couldn't open file: " + str(status))
+if result != rd.ResultCode.Succeeded:
+    raise RuntimeError("Couldn't open file: " + str(result))
 
 # Make sure we can replay
 if not cap.LocalReplaySupport():
     raise RuntimeError("Capture cannot be replayed")
 
 # Initialise the replay
-status,controller = cap.OpenCapture(rd.ReplayOptions(), None)
+result,controller = cap.OpenCapture(rd.ReplayOptions(), None)
 
-if status != rd.ReplayStatus.Succeeded:
-    raise RuntimeError("Couldn't initialise replay: " + str(status))
+if result != rd.ResultCode.Succeeded:
+    raise RuntimeError("Couldn't initialise replay: " + str(result))
 
 # Now we can use the controller!
 print("%d top-level actions" % len(controller.GetRootActions()))

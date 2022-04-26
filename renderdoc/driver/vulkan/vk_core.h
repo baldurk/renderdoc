@@ -296,7 +296,7 @@ private:
   void AddDebugMessage(DebugMessage msg);
 
   int m_OOMHandler = 0;
-  ReplayStatus m_FatalError = ReplayStatus::Succeeded;
+  RDResult m_FatalError = ResultCode::Succeeded;
   CaptureState m_State;
   bool m_AppControlledCapture = false;
 
@@ -947,7 +947,7 @@ private:
 
   std::set<ResourceId> m_SparseBindResources;
 
-  ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
+  RDResult m_FailedReplayResult = ResultCode::APIReplayFailed;
 
   VulkanActionTreeNode m_ParentAction;
 
@@ -979,8 +979,8 @@ private:
   }
 
   bool ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk);
-  ReplayStatus ContextReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
-                                bool partial);
+  RDResult ContextReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
+                            bool partial);
   bool ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk);
   void AddAction(const ActionDescription &a);
   void AddEvent();
@@ -1059,7 +1059,7 @@ public:
 
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
 
-  ReplayStatus Initialise(VkInitParams &params, uint64_t sectionVersion, const ReplayOptions &opts);
+  RDResult Initialise(VkInitParams &params, uint64_t sectionVersion, const ReplayOptions &opts);
   uint64_t GetLogVersion() { return m_SectionVersion; }
   void SetStructuredExport(uint64_t sectionVersion)
   {
@@ -1069,7 +1069,7 @@ public:
   void Shutdown();
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
   void ReplayDraw(VkCommandBuffer cmd, const ActionDescription &action);
-  ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
+  RDResult ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
 
   SDFile *GetStructuredFile() { return m_StructuredFile; }
   SDFile *DetachStructuredFile()
@@ -1146,8 +1146,8 @@ public:
     else
       m_OOMHandler--;
   }
-  ReplayStatus FatalErrorCheck() { return m_FatalError; }
-  bool HasFatalError() { return m_FatalError != ReplayStatus::Succeeded; }
+  RDResult FatalErrorCheck() { return m_FatalError; }
+  bool HasFatalError() { return m_FatalError != ResultCode::Succeeded; }
   inline void CheckVkResult(VkResult vkr)
   {
     if(vkr == VK_SUCCESS)

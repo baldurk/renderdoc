@@ -187,14 +187,14 @@ void RemoteHost::CheckStatus()
 {
 }
 
-ReplayStatus RemoteHost::Connect(IRemoteServer **server)
+ResultDetails RemoteHost::Connect(IRemoteServer **server)
 {
-  return ReplayStatus::Succeeded;
+  return {ResultCode::Succeeded};
 }
 
-ReplayStatus RemoteHost::Launch()
+ResultDetails RemoteHost::Launch()
 {
-  return ReplayStatus::Succeeded;
+  return {ResultCode::Succeeded};
 }
 
 bool RemoteHost::IsServerRunning() const

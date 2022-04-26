@@ -166,7 +166,8 @@ Socket *Socket::AcceptClient(uint32_t timeoutMilliseconds)
 
     if(err != WSAEWOULDBLOCK)
     {
-      RDCWARN("accept: %s", wsaerr_string(err).c_str());
+      SET_WARNING_RESULT(m_Error, ResultCode::NetworkIOFailed, "accept failed: %s",
+                         wsaerr_string(err).c_str());
       Shutdown();
     }
 
@@ -212,13 +213,14 @@ bool Socket::SendDataBlocking(const void *buf, uint32_t length)
 
       if(err == WSAEWOULDBLOCK || err == WSAETIMEDOUT)
       {
-        RDCWARN("Timeout in send");
+        SET_WARNING_RESULT(m_Error, ResultCode::NetworkIOFailed, "Timeout in send");
         Shutdown();
         return false;
       }
       else
       {
-        RDCWARN("send: %s", wsaerr_string(err).c_str());
+        SET_WARNING_RESULT(m_Error, ResultCode::NetworkIOFailed, "send failed: %s",
+                           wsaerr_string(err).c_str());
         Shutdown();
         return false;
       }
@@ -258,7 +260,8 @@ bool Socket::IsRecvDataWaiting()
     }
     else
     {
-      RDCWARN("recv: %s", wsaerr_string(err).c_str());
+      SET_WARNING_RESULT(m_Error, ResultCode::NetworkIOFailed, "recv peek failed: %s",
+                         wsaerr_string(err).c_str());
       Shutdown();
       return false;
     }
@@ -290,7 +293,8 @@ bool Socket::RecvDataNonBlocking(void *buf, uint32_t &length)
     }
     else
     {
-      RDCWARN("recv: %s", wsaerr_string(err).c_str());
+      SET_WARNING_RESULT(m_Error, ResultCode::NetworkIOFailed, "recv non blocking failed: %s",
+                         wsaerr_string(err).c_str());
       Shutdown();
       return false;
     }
@@ -333,13 +337,14 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
 
       if(err == WSAEWOULDBLOCK || err == WSAETIMEDOUT)
       {
-        RDCWARN("Timeout in recv");
+        SET_WARNING_RESULT(m_Error, ResultCode::NetworkIOFailed, "Timeout in recv");
         Shutdown();
         return false;
       }
       else
       {
-        RDCWARN("recv: %s", wsaerr_string(err).c_str());
+        SET_WARNING_RESULT(m_Error, ResultCode::NetworkIOFailed, "recv blocking failed: %s",
+                           wsaerr_string(err).c_str());
         Shutdown();
         return false;
       }

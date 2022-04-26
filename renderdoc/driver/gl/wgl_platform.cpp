@@ -365,7 +365,7 @@ class WGLPlatform : public GLPlatform
   }
 
   bool PopulateForReplay() { return WGL.PopulateForReplay(); }
-  ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
+  RDResult InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
 // force debug in development builds
 #if ENABLED(RDOC_DEVEL)
@@ -377,7 +377,7 @@ class WGLPlatform : public GLPlatform
     bool success = RegisterClass();
 
     if(!success)
-      return ReplayStatus::APIInitFailed;
+      RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Couldn't register window class");
 
     HWND w = NULL;
     HDC dc = NULL;
@@ -386,7 +386,8 @@ class WGLPlatform : public GLPlatform
     success = CreateTrampolineContext(w, dc, rc);
 
     if(!success)
-      return ReplayStatus::APIInitFailed;
+      RETURN_ERROR_RESULT(ResultCode::APIInitFailed,
+                          "Couldn't create unextended trampoline context");
 
     if(!WGL.wglCreateContextAttribsARB || !WGL.wglGetPixelFormatAttribivARB)
     {
@@ -394,8 +395,8 @@ class WGLPlatform : public GLPlatform
       WGL.wglDeleteContext(rc);
       ReleaseDC(w, dc);
       DestroyWindow(w);
-      RDCERR("RenderDoc requires WGL_ARB_create_context and WGL_ARB_pixel_format");
-      return ReplayStatus::APIHardwareUnsupported;
+      RETURN_ERROR_RESULT(ResultCode::APIHardwareUnsupported,
+                          "RenderDoc requires WGL_ARB_create_context and WGL_ARB_pixel_format");
     }
 
     WGL.wglMakeCurrent(NULL, NULL);
@@ -424,19 +425,17 @@ class WGLPlatform : public GLPlatform
     int pf = ChoosePixelFormat(dc, &pfd);
     if(pf == 0)
     {
-      RDCERR("Couldn't choose pixel format");
       ReleaseDC(w, dc);
       DestroyWindow(w);
-      return ReplayStatus::APIInitFailed;
+      RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Couldn't choose pixel format");
     }
 
     BOOL res = SetPixelFormat(dc, pf, &pfd);
     if(res == FALSE)
     {
-      RDCERR("Couldn't set pixel format");
       ReleaseDC(w, dc);
       DestroyWindow(w);
-      return ReplayStatus::APIInitFailed;
+      RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Couldn't set pixel format");
     }
 
     int attribs[64] = {0};
@@ -470,10 +469,11 @@ class WGLPlatform : public GLPlatform
 
     if(rc == NULL)
     {
-      RDCERR("Couldn't create at least 3.2 context - RenderDoc requires OpenGL 3.2 availability");
       ReleaseDC(w, dc);
       DestroyWindow(w);
-      return ReplayStatus::APIHardwareUnsupported;
+      RETURN_ERROR_RESULT(
+          ResultCode::APIHardwareUnsupported,
+          "Couldn't create at least 3.2 context - RenderDoc requires OpenGL 3.2 availability");
     }
 
     GLCoreVersion = major * 10 + minor;
@@ -481,19 +481,18 @@ class WGLPlatform : public GLPlatform
     res = WGL.wglMakeCurrent(dc, rc);
     if(res == FALSE)
     {
-      RDCERR("Couldn't make 3.2 RC current");
       WGL.wglMakeCurrent(NULL, NULL);
       WGL.wglDeleteContext(rc);
       ReleaseDC(w, dc);
       DestroyWindow(w);
-      return ReplayStatus::APIInitFailed;
+      RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Couldn't make modern OpenGL context current");
     }
 
     replayContext.DC = dc;
     replayContext.ctx = rc;
     replayContext.wnd = w;
 
-    return ReplayStatus::Succeeded;
+    return ResultCode::Succeeded;
   }
 
   bool CreateTrampolineContext(HWND &w, HDC &dc, HGLRC &rc)

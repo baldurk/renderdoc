@@ -1198,15 +1198,15 @@ void WrappedID3D11DeviceContext::ReplayFakeContext(ResourceId id)
   m_FakeContext = id;
 }
 
-ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32_t startEventID,
-                                                   uint32_t endEventID, bool partial)
+RDResult WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32_t startEventID,
+                                               uint32_t endEventID, bool partial)
 {
   m_State = readType;
 
   if(!m_FrameReader)
   {
-    RDCERR("Can't replay context capture without frame reader");
-    return ReplayStatus::InternalError;
+    RETURN_ERROR_RESULT(ResultCode::InvalidParameter,
+                        "Can't replay context capture without frame reader");
   }
 
   m_FrameReader->SetOffset(0);
@@ -1282,8 +1282,8 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
 
     D3D11Chunk chunktype = ser.ReadChunk<D3D11Chunk>();
 
-    if(ser.GetReader()->IsErrored())
-      return ReplayStatus::APIDataCorrupted;
+    if(ser.IsErrored())
+      return RDResult(ResultCode::APIDataCorrupted, ser.GetError().message);
 
     m_ChunkMetadata = ser.ChunkMetadata();
 
@@ -1291,16 +1291,53 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
 
     ser.EndChunk();
 
-    if(ser.GetReader()->IsErrored())
-      return ReplayStatus::APIDataCorrupted;
-
-    if(m_pDevice->HasFatalError())
-      return m_pDevice->FatalErrorCheck();
+    if(ser.IsErrored())
+      return RDResult(ResultCode::APIDataCorrupted, ser.GetError().message);
 
     // if there wasn't a serialisation error, but the chunk didn't succeed, then it's an API replay
     // failure.
     if(!success)
-      return m_FailedReplayStatus;
+    {
+      rdcstr extra;
+
+      if(m_pDevice->GetInfoQueue())
+      {
+        extra += "\n";
+
+        for(UINT64 i = 0;
+            i < m_pDevice->GetInfoQueue()->GetNumStoredMessagesAllowedByRetrievalFilter(); i++)
+        {
+          SIZE_T len = 0;
+          m_pDevice->GetInfoQueue()->GetMessage(i, NULL, &len);
+
+          char *msgbuf = new char[len];
+          D3D11_MESSAGE *message = (D3D11_MESSAGE *)msgbuf;
+
+          m_pDevice->GetInfoQueue()->GetMessage(i, message, &len);
+
+          extra += "\n";
+          extra += message->pDescription;
+
+          delete[] msgbuf;
+        }
+      }
+      else
+      {
+        extra +=
+            "\n\nMore debugging information may be available by enabling API validation on "
+            "replay";
+      }
+
+      if(m_pDevice->HasFatalError())
+      {
+        RDResult result = m_pDevice->FatalErrorCheck();
+        result.message = rdcstr(result.message) + extra;
+        return result;
+      }
+
+      m_FailedReplayResult.message = rdcstr(m_FailedReplayResult.message) + extra;
+      return m_FailedReplayResult;
+    }
 
     RenderDoc::Inst().SetProgress(
         LoadProgress::FrameEventsRead,
@@ -1352,7 +1389,7 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
 
   m_DoStateVerify = false;
 
-  return ReplayStatus::Succeeded;
+  return ResultCode::Succeeded;
 }
 
 void WrappedID3D11DeviceContext::ClearMaps()

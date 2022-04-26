@@ -54,15 +54,6 @@ class undersized
 #endif
 
 template <class SerialiserType>
-void DoSerialise(SerialiserType &ser, ExecuteResult &el)
-{
-  SERIALISE_MEMBER(status);
-  SERIALISE_MEMBER(ident);
-
-  SIZE_CHECK(8);
-}
-
-template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, PathEntry &el)
 {
   SERIALISE_MEMBER(filename);
@@ -2354,7 +2345,6 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
 #pragma endregion Vulkan pipeline state
 
-INSTANTIATE_SERIALISE_TYPE(ExecuteResult)
 INSTANTIATE_SERIALISE_TYPE(PathEntry)
 INSTANTIATE_SERIALISE_TYPE(SectionProperties)
 INSTANTIATE_SERIALISE_TYPE(EnvironmentModification)

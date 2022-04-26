@@ -111,12 +111,12 @@ private:
 
   GLPlatform &m_Platform;
 
-  ReplayStatus m_FatalError = ReplayStatus::Succeeded;
+  RDResult m_FatalError = ResultCode::Succeeded;
   rdcarray<DebugMessage> m_DebugMessages;
   template <typename SerialiserType>
   void Serialise_DebugMessages(SerialiserType &ser);
   rdcarray<DebugMessage> GetDebugMessages();
-  ReplayStatus FatalErrorCheck() { return m_FatalError; }
+  RDResult FatalErrorCheck() { return m_FatalError; }
   rdcstr m_DebugMsgContext;
 
   bool m_SuppressDebugMessages;
@@ -296,7 +296,7 @@ private:
   uint32_t m_LastEventID;
   GLChunk m_LastChunk;
 
-  ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
+  RDResult m_FailedReplayResult = ResultCode::APIReplayFailed;
 
   ActionDescription m_ParentAction;
 
@@ -338,8 +338,8 @@ private:
   uint32_t m_InitChunkIndex = 0;
 
   bool ProcessChunk(ReadSerialiser &ser, GLChunk chunk);
-  ReplayStatus ContextReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
-                                bool partial);
+  RDResult ContextReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
+                            bool partial);
   bool ContextProcessChunk(ReadSerialiser &ser, GLChunk chunk);
   void AddUsage(const ActionDescription &a);
   void AddAction(const ActionDescription &a);
@@ -665,7 +665,7 @@ public:
   // replay interface
   void Initialise(GLInitParams &params, uint64_t sectionVersion, const ReplayOptions &opts);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
-  ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
+  RDResult ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
 
   GLuint GetFakeVAO0() { return m_Global_VAO0; }
   GLuint GetCurrentDefaultFBO() { return m_CurrentDefaultFBO; }

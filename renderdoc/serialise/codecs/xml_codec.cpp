@@ -284,9 +284,8 @@ static void Obj2XML(pugi::xml_node &parent, SDObject &child)
   }
 }
 
-static ReplayStatus Structured2XML(const rdcstr &filename, const RDCFile &file, uint64_t version,
-                                   const StructuredChunkList &chunks,
-                                   RENDERDOC_ProgressCallback progress)
+static RDResult Structured2XML(const rdcstr &filename, const RDCFile &file, uint64_t version,
+                               const StructuredChunkList &chunks, RENDERDOC_ProgressCallback progress)
 {
   pugi::xml_document doc;
 
@@ -472,7 +471,7 @@ static ReplayStatus Structured2XML(const rdcstr &filename, const RDCFile &file, 
   xml_file_writer writer(filename);
   doc.save(writer);
 
-  return writer.stream.IsErrored() ? ReplayStatus::FileIOFailed : ReplayStatus::Succeeded;
+  return writer.stream.GetError();
 }
 
 static SDObject *XML2Obj(pugi::xml_node &obj)
@@ -577,11 +576,10 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
   return ret;
 }
 
-static ReplayStatus XML2Structured(const rdcstr &xml, const ThumbTypeAndData &thumb,
-                                   const ThumbTypeAndData &extThumb, const bytebuf &logfile,
-                                   const StructuredBufferList &buffers, RDCFile *rdc,
-                                   uint64_t &version, StructuredChunkList &chunks,
-                                   RENDERDOC_ProgressCallback progress)
+static RDResult XML2Structured(const rdcstr &xml, const ThumbTypeAndData &thumb,
+                               const ThumbTypeAndData &extThumb, const bytebuf &logfile,
+                               const StructuredBufferList &buffers, RDCFile *rdc, uint64_t &version,
+                               StructuredChunkList &chunks, RENDERDOC_ProgressCallback progress)
 {
   pugi::xml_document doc;
   doc.load_string(xml.c_str());
@@ -589,28 +587,22 @@ static ReplayStatus XML2Structured(const rdcstr &xml, const ThumbTypeAndData &th
   pugi::xml_node root = doc.child("rdc");
 
   if(!root)
-  {
-    RDCERR("Malformed document, expected rdc node");
-    return ReplayStatus::FileCorrupted;
-  }
+    RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                        "Malformed xml document, couldn't get root <rdc> node");
 
   pugi::xml_node xHeader = root.first_child();
 
   if(strcmp(xHeader.name(), "header") != 0)
-  {
-    RDCERR("Malformed document, expected header node");
-    return ReplayStatus::FileCorrupted;
-  }
+    RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                        "Malformed xml document, expected <header> node got <%s>", xHeader.name());
 
   // process the header and push meta-data into RDC
   {
     pugi::xml_node xDriver = xHeader.first_child();
 
     if(strcmp(xDriver.name(), "driver") != 0)
-    {
-      RDCERR("Malformed document, expected driver node");
-      return ReplayStatus::FileCorrupted;
-    }
+      RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                          "Malformed xml document, expected <driver> node got <%s>", xDriver.name());
 
     RDCDriver driver = (RDCDriver)xDriver.attribute("id").as_uint();
     rdcstr driverName = xDriver.text().as_string();
@@ -622,10 +614,9 @@ static ReplayStatus XML2Structured(const rdcstr &xml, const ThumbTypeAndData &th
     pugi::xml_node xThumbnail = xIdent.next_sibling();
 
     if(strcmp(xThumbnail.name(), "thumbnail") != 0)
-    {
-      RDCERR("Malformed document, expected driver node");
-      return ReplayStatus::FileCorrupted;
-    }
+      RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                          "Malformed xml document, expected <thumbnail> node got <%s>",
+                          xThumbnail.name());
 
     pugi::xml_node xTimebase = xThumbnail.next_sibling();
 
@@ -636,10 +627,9 @@ static ReplayStatus XML2Structured(const rdcstr &xml, const ThumbTypeAndData &th
     if(xTimebase)
     {
       if(strcmp(xTimebase.name(), "timebase") != 0)
-      {
-        RDCERR("Malformed document, expected driver node");
-        return ReplayStatus::FileCorrupted;
-      }
+        RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                            "Malformed xml document, expected <timebase> node got <%s>",
+                            xTimebase.name());
 
       timeBase = xTimebase.attribute("base").as_ullong();
       timeFreq = xTimebase.attribute("frequency").as_double();
@@ -781,16 +771,12 @@ static ReplayStatus XML2Structured(const rdcstr &xml, const ThumbTypeAndData &th
   pugi::xml_node xChunks = xSection;
 
   if(strcmp(xSection.name(), "chunks") != 0)
-  {
-    RDCERR("Malformed document, expected chunks node");
-    return ReplayStatus::FileCorrupted;
-  }
+    RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                        "Malformed xml document, expected <chunks> node, got <%s>", xSection.name());
 
   if(!xChunks.attribute("version"))
-  {
-    RDCERR("Malformed document, expected version attribute");
-    return ReplayStatus::FileCorrupted;
-  }
+    RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                        "Malformed xml document, expected version attribute");
 
   version = xChunks.attribute("version").as_ullong();
 
@@ -800,7 +786,9 @@ static ReplayStatus XML2Structured(const rdcstr &xml, const ThumbTypeAndData &th
   for(pugi::xml_node xChunk = xChunks.first_child(); xChunk; xChunk = xChunk.next_sibling())
   {
     if(strcmp(xChunk.name(), "chunk") != 0)
-      return ReplayStatus::FileCorrupted;
+      RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                          "Malformed xml document, expected <chunk> child under <chunks>, got <%s>",
+                          xChunk.name());
 
     SDChunk *chunk = new SDChunk(rdcstr(xChunk.attribute("name").as_string()));
 
@@ -851,12 +839,11 @@ static ReplayStatus XML2Structured(const rdcstr &xml, const ThumbTypeAndData &th
     chunkIdx++;
   }
 
-  return ReplayStatus::Succeeded;
+  return ResultCode::Succeeded;
 }
 
-static ReplayStatus Buffers2ZIP(const rdcstr &filename, const RDCFile &file,
-                                const StructuredBufferList &buffers,
-                                RENDERDOC_ProgressCallback progress)
+static RDResult Buffers2ZIP(const rdcstr &filename, const RDCFile &file,
+                            const StructuredBufferList &buffers, RENDERDOC_ProgressCallback progress)
 {
   rdcstr zipFile = strip_extension(filename);
 
@@ -867,8 +854,8 @@ static ReplayStatus Buffers2ZIP(const rdcstr &filename, const RDCFile &file,
 
   if(!b)
   {
-    RDCERR("Failed to open .zip file '%s'", zipFile.c_str());
-    return ReplayStatus::FileIOFailed;
+    RETURN_ERROR_RESULT(ResultCode::FileIOFailed, "Failed to open .zip file '%s': %s",
+                        zipFile.c_str(), mz_zip_get_error_string(zip.m_last_error));
   }
 
   for(size_t i = 0; i < buffers.size(); i++)
@@ -948,19 +935,19 @@ static ReplayStatus Buffers2ZIP(const rdcstr &filename, const RDCFile &file,
   mz_zip_writer_finalize_archive(&zip);
   mz_zip_writer_end(&zip);
 
-  return ReplayStatus::Succeeded;
+  return ResultCode::Succeeded;
 }
 
-static bool ZIP2Buffers(const rdcstr &filename, ThumbTypeAndData &thumb, ThumbTypeAndData &extThumb,
-                        bytebuf &logfile, StructuredBufferList &buffers,
-                        RENDERDOC_ProgressCallback progress)
+static RDResult ZIP2Buffers(const rdcstr &filename, ThumbTypeAndData &thumb,
+                            ThumbTypeAndData &extThumb, bytebuf &logfile,
+                            StructuredBufferList &buffers, RENDERDOC_ProgressCallback progress)
 {
   rdcstr zipFile = strip_extension(filename);
 
   if(!FileIO::exists(zipFile))
   {
-    RDCERR("Expected to file zip for %s at %s", filename.c_str(), zipFile.c_str());
-    return false;
+    RETURN_ERROR_RESULT(ResultCode::FileIOFailed, "Expected to find zip for %s at %s",
+                        filename.c_str(), zipFile.c_str());
   }
 
   mz_zip_archive zip;
@@ -1028,22 +1015,19 @@ static bool ZIP2Buffers(const rdcstr &filename, ThumbTypeAndData &thumb, ThumbTy
 
   mz_zip_reader_end(&zip);
 
-  return true;
+  return ResultCode::Succeeded;
 }
 
-ReplayStatus importXMLZ(const rdcstr &filename, StreamReader &reader, RDCFile *rdc,
-                        SDFile &structData, RENDERDOC_ProgressCallback progress)
+RDResult importXMLZ(const rdcstr &filename, StreamReader &reader, RDCFile *rdc, SDFile &structData,
+                    RENDERDOC_ProgressCallback progress)
 {
   ThumbTypeAndData thumb, extThumb;
   bytebuf logfile;
   if(!filename.empty())
   {
-    bool success = ZIP2Buffers(filename, thumb, extThumb, logfile, structData.buffers, progress);
-    if(!success)
-    {
-      RDCERR("Couldn't load zip to go with %s", filename.c_str());
-      return ReplayStatus::FileCorrupted;
-    }
+    RDResult res = ZIP2Buffers(filename, thumb, extThumb, logfile, structData.buffers, progress);
+    if(res != ResultCode::Succeeded)
+      return res;
   }
 
   rdcstr buf;
@@ -1054,19 +1038,19 @@ ReplayStatus importXMLZ(const rdcstr &filename, StreamReader &reader, RDCFile *r
                         structData.version, structData.chunks, progress);
 }
 
-ReplayStatus exportXMLZ(const rdcstr &filename, const RDCFile &rdc, const SDFile &structData,
-                        RENDERDOC_ProgressCallback progress)
+RDResult exportXMLZ(const rdcstr &filename, const RDCFile &rdc, const SDFile &structData,
+                    RENDERDOC_ProgressCallback progress)
 {
-  ReplayStatus ret = Buffers2ZIP(filename, rdc, structData.buffers, progress);
+  RDResult ret = Buffers2ZIP(filename, rdc, structData.buffers, progress);
 
-  if(ret != ReplayStatus::Succeeded)
+  if(ret != ResultCode::Succeeded)
     return ret;
 
   return Structured2XML(filename, rdc, structData.version, structData.chunks, progress);
 }
 
-ReplayStatus exportXMLOnly(const rdcstr &filename, const RDCFile &rdc, const SDFile &structData,
-                           RENDERDOC_ProgressCallback progress)
+RDResult exportXMLOnly(const rdcstr &filename, const RDCFile &rdc, const SDFile &structData,
+                       RENDERDOC_ProgressCallback progress)
 {
   return Structured2XML(filename, rdc, structData.version, structData.chunks, progress);
 }

@@ -87,7 +87,7 @@ void GLReplay::Shutdown()
   delete m_pDriver;
 }
 
-ReplayStatus GLReplay::FatalErrorCheck()
+RDResult GLReplay::FatalErrorCheck()
 {
   return m_pDriver->FatalErrorCheck();
 }
@@ -107,7 +107,7 @@ IReplayDriver *GLReplay::MakeDummyDriver()
   return dummy;
 }
 
-ReplayStatus GLReplay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
+RDResult GLReplay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   MakeCurrentReplayContext(&m_ReplayCtx);
   return m_pDriver->ReadLogInitialisation(rdc, storeStructuredBuffers);
@@ -3795,8 +3795,8 @@ void GLReplay::CloseReplayContext()
   m_pDriver->UnregisterReplayContext(m_ReplayCtx);
 }
 
-ReplayStatus CreateReplayDevice(RDCDriver rdcdriver, RDCFile *rdc, const ReplayOptions &opts,
-                                GLPlatform &platform, IReplayDriver **&driver)
+RDResult CreateReplayDevice(RDCDriver rdcdriver, RDCFile *rdc, const ReplayOptions &opts,
+                            GLPlatform &platform, IReplayDriver **&driver)
 {
   GLInitParams initParams;
   uint64_t ver = GLInitParams::CurrentVersion;
@@ -3808,14 +3808,16 @@ ReplayStatus CreateReplayDevice(RDCDriver rdcdriver, RDCFile *rdc, const ReplayO
     int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
     if(sectionIdx < 0)
-      return ReplayStatus::InternalError;
+      RETURN_ERROR_RESULT(ResultCode::FileCorrupted, "File does not contain captured API data");
 
     ver = rdc->GetSectionProperties(sectionIdx).version;
 
     if(!GLInitParams::IsSupportedVersion(ver))
     {
-      RDCERR("Incompatible OpenGL serialise version %llu", ver);
-      return ReplayStatus::APIIncompatibleVersion;
+      RETURN_ERROR_RESULT(
+          ResultCode::APIIncompatibleVersion,
+          "Incompatible OpenGL serialise version %llu, newest version supported is %llu", ver,
+          GLInitParams::CurrentVersion);
     }
 
     StreamReader *reader = rdc->ReadSection(sectionIdx);
@@ -3828,17 +3830,14 @@ ReplayStatus CreateReplayDevice(RDCDriver rdcdriver, RDCFile *rdc, const ReplayO
 
     if(chunk != SystemChunk::DriverInit)
     {
-      RDCERR("Expected to get a DriverInit chunk, instead got %u", chunk);
-      return ReplayStatus::FileCorrupted;
+      RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                          "Expected to get a DriverInit chunk, instead got %u", chunk);
     }
 
     SERIALISE_ELEMENT(initParams);
 
     if(ser.IsErrored())
-    {
-      RDCERR("Failed reading driver init params.");
-      return ReplayStatus::FileIOFailed;
-    }
+      return ser.GetError();
 
     if(!initParams.renderer.empty())
       RDCLOG("Capture was created on %s / %s", initParams.renderer.c_str(),
@@ -3847,18 +3846,17 @@ ReplayStatus CreateReplayDevice(RDCDriver rdcdriver, RDCFile *rdc, const ReplayO
 
   GLWindowingData data = {};
 
-  ReplayStatus status = platform.InitialiseAPI(data, rdcdriver, opts.apiValidation);
+  RDResult status = platform.InitialiseAPI(data, rdcdriver, opts.apiValidation);
 
   // any errors will be already printed, just pass the error up
-  if(status != ReplayStatus::Succeeded)
+  if(status != ResultCode::Succeeded)
     return status;
 
   bool current = platform.MakeContextCurrent(data);
   if(!current)
   {
-    RDCERR("Couldn't active the created GL ES context");
     platform.DeleteReplayContext(data);
-    return ReplayStatus::APIInitFailed;
+    RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Couldn't activate the created replay context");
   }
 
   // we use the platform's function which tries GL's GetProcAddress first, then falls back to
@@ -3871,19 +3869,18 @@ ReplayStatus CreateReplayDevice(RDCDriver rdcdriver, RDCFile *rdc, const ReplayO
   GL.EmulateUnsupportedFunctions();
   GL.EmulateRequiredExtensions();
 
-  bool extensionsValidated = CheckReplayContext();
-
-  if(!extensionsValidated)
+  RDResult extensionsValidated = CheckReplayContext();
+  if(extensionsValidated != ResultCode::Succeeded)
   {
     platform.DeleteReplayContext(data);
-    return ReplayStatus::APIInitFailed;
+    return extensionsValidated;
   }
 
-  bool functionsValidated = ValidateFunctionPointers();
-  if(!functionsValidated)
+  RDResult functionsValidated = ValidateFunctionPointers();
+  if(functionsValidated != ResultCode::Succeeded)
   {
     platform.DeleteReplayContext(data);
-    return ReplayStatus::APIHardwareUnsupported;
+    return functionsValidated;
   }
 
   WrappedOpenGL *gldriver = new WrappedOpenGL(platform);
@@ -3901,16 +3898,16 @@ ReplayStatus CreateReplayDevice(RDCDriver rdcdriver, RDCFile *rdc, const ReplayO
   {
     delete gldriver;
     platform.DeleteReplayContext(data);
-    return ReplayStatus::APIHardwareUnsupported;
+    RETURN_ERROR_RESULT(ResultCode::APIHardwareUnsupported, "Failed to create analysis context");
   }
 
   gldriver->Initialise(initParams, ver, opts);
 
   *driver = (IReplayDriver *)replay;
-  return ReplayStatus::Succeeded;
+  return ResultCode::Succeeded;
 }
 
-void GL_ProcessStructured(RDCFile *rdc, SDFile &output)
+RDResult GL_ProcessStructured(RDCFile *rdc, SDFile &output)
 {
   GLDummyPlatform dummy;
   WrappedOpenGL device(dummy);
@@ -3918,13 +3915,15 @@ void GL_ProcessStructured(RDCFile *rdc, SDFile &output)
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
   if(sectionIdx < 0)
-    return;
+    RETURN_ERROR_RESULT(ResultCode::FileCorrupted, "File does not contain captured API data");
 
   device.SetStructuredExport(rdc->GetSectionProperties(sectionIdx).version);
-  ReplayStatus status = device.ReadLogInitialisation(rdc, true);
+  RDResult status = device.ReadLogInitialisation(rdc, true);
 
-  if(status == ReplayStatus::Succeeded)
+  if(status == ResultCode::Succeeded)
     device.GetStructuredFile()->Swap(output);
+
+  return status;
 }
 
 static StructuredProcessRegistration GLProcessRegistration(RDCDriver::OpenGL, &GL_ProcessStructured);
@@ -3951,7 +3950,7 @@ rdcarray<GLVersion> GetReplayVersions(RDCDriver api)
 
 #if defined(RENDERDOC_SUPPORT_GLES)
 
-ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver)
+RDResult GLES_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver)
 {
   RDCLOG("Creating an OpenGL ES replay device");
 
@@ -3963,8 +3962,8 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IR
 
     if(!load_ok)
     {
-      RDCERR("Couldn't find required EGL function addresses");
-      return ReplayStatus::APIInitFailed;
+      RETURN_ERROR_RESULT(ResultCode::APIInitFailed,
+                          "Couldn't find required EGL function addresses");
     }
 
     RDCLOG("Initialising GLES replay via libEGL");
@@ -3981,23 +3980,21 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IR
 
     if(!load_ok)
     {
-      RDCERR("Couldn't find required GLX function addresses");
-      return ReplayStatus::APIInitFailed;
+      RETURN_ERROR_RESULT(ResultCode::APIInitFailed,
+                          "Couldn't find required GL function addresses");
     }
 
     return CreateReplayDevice(rdc ? rdc->GetDriver() : RDCDriver::OpenGLES, rdc, opts,
                               GetGLPlatform(), driver);
   }
 
-  RDCERR(
-      "libEGL not available, and GL cannot initialise or doesn't support "
-      "EXT_create_context_es2_profile");
-  return ReplayStatus::APIInitFailed;
+  RETURN_ERROR_RESULT(ResultCode::APIInitFailed,
+                      "libEGL not available, and GL cannot initialise or doesn't support "
+                      "EXT_create_context_es2_profile");
 #else
   // no GL support, no fallback apart from EGL
 
-  RDCERR("libEGL is not available");
-  return ReplayStatus::APIInitFailed;
+  RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "libEGL is not available");
 #endif
 }
 
@@ -4007,7 +4004,7 @@ static DriverRegistration GLESDriverRegistration(RDCDriver::OpenGLES, &GLES_Crea
 
 #if defined(RENDERDOC_SUPPORT_GL)
 
-ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver)
+RDResult GL_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver)
 {
   GLPlatform *gl_platform = &GetGLPlatform();
 
@@ -4017,8 +4014,8 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRep
     RDCLOG("Forcing EGL device creation for wayland");
     gl_platform = &GetEGLPlatform();
 #else
-    RDCERR("EGL support must be enabled at build time when using Wayland");
-    return ReplayStatus::InternalError;
+    RETURN_ERROR_RESULT(ResultCode::InternalError,
+                        "EGL support must be enabled at build time when using Wayland");
 #endif
   }
 
@@ -4035,8 +4032,8 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRep
 
   if(!can_create_gl_context)
   {
-    RDCERR("Platform doesn't support GL contexts");
-    return ReplayStatus::APIInitFailed;
+    RETURN_ERROR_RESULT(ResultCode::APIInitFailed,
+                        "Current platform doesn't support OpenGL contexts");
   }
 
   RDCDEBUG("Creating an OpenGL replay device");
@@ -4045,9 +4042,9 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRep
 
   if(!load_ok)
   {
-    RDCERR("Couldn't find required platform %s function addresses",
-           gl_platform == &GetGLPlatform() ? "GL" : "EGL");
-    return ReplayStatus::APIInitFailed;
+    RETURN_ERROR_RESULT(ResultCode::APIInitFailed,
+                        "Couldn't find required platform %s function addresses",
+                        gl_platform == &GetGLPlatform() ? "GL" : "EGL");
   }
 
   return CreateReplayDevice(rdc ? rdc->GetDriver() : RDCDriver::OpenGL, rdc, opts, *gl_platform,

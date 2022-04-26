@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "common/common.h"
+#include "common/formatting.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "strings/string_utils.h"
@@ -343,7 +344,7 @@ void ReplayOutput::ClearThumbnails()
   m_Thumbnails.clear();
 }
 
-bool ReplayOutput::SetPixelContext(WindowingData window)
+ResultDetails ReplayOutput::SetPixelContext(WindowingData window)
 {
   CHECK_REPLAY_THREAD();
 
@@ -353,13 +354,16 @@ bool ReplayOutput::SetPixelContext(WindowingData window)
 
   m_pController->FatalErrorCheck();
 
-  RDCASSERT(m_PixelContext.outputID > 0);
+  if(m_PixelContext.outputID == 0)
+  {
+    RETURN_ERROR_RESULT(ResultCode::InternalError, "Window creation failed");
+  }
 
-  return m_PixelContext.outputID != 0;
+  return RDResult();
 }
 
-bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, const Subresource &sub,
-                                CompType typeCast)
+ResultDetails ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID,
+                                         const Subresource &sub, CompType typeCast)
 {
   CHECK_REPLAY_THREAD();
 
@@ -389,7 +393,7 @@ bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, const Su
       m_Thumbnails[i].typeCast = typeCast;
       m_Thumbnails[i].dirty = true;
 
-      return true;
+      return RDResult();
     }
   }
 
@@ -403,11 +407,14 @@ bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, const Su
 
   m_pController->FatalErrorCheck();
 
-  RDCASSERT(p.outputID > 0);
-
   m_Thumbnails.push_back(p);
 
-  return true;
+  if(p.outputID == 0)
+  {
+    RETURN_ERROR_RESULT(ResultCode::InternalError, "Window creation failed");
+  }
+
+  return RDResult();
 }
 
 rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t x, uint32_t y)

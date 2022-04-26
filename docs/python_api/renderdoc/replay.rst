@@ -14,6 +14,12 @@ Initialisation and Shutdown
 .. autoclass:: renderdoc.GlobalEnvironment
   :members:
 
+.. autoclass:: renderdoc.ResultCode
+  :members:
+
+.. autoclass:: renderdoc.ResultDetails
+  :members:
+
 Capture File Access
 -------------------
 
@@ -23,9 +29,6 @@ Capture File Access
   :members:
 
 .. autoclass:: renderdoc.CaptureFile
-  :members:
-
-.. autoclass:: renderdoc.ReplayStatus
   :members:
 
 .. autoclass:: renderdoc.ReplaySupport

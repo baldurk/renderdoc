@@ -36,6 +36,7 @@
 //#include "api/app/renderdoc_app.h"
 #include "api/replay/capture_options.h"
 #include "api/replay/control_types.h"
+#include "common/formatting.h"
 #include "common/threading.h"
 #include "core/core.h"
 #include "os/os_specific.h"
@@ -643,12 +644,16 @@ static pid_t RunProcess(rdcstr appName, rdcstr workDir, const rdcstr &cmdLine, c
   return childPid;
 }
 
-rdcpair<ReplayStatus, uint32_t> Process::InjectIntoProcess(
-    uint32_t pid, const rdcarray<EnvironmentModification> &env, const rdcstr &logfile,
-    const CaptureOptions &opts, bool waitForExit)
+rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
+                                                       const rdcarray<EnvironmentModification> &env,
+                                                       const rdcstr &logfile,
+                                                       const CaptureOptions &opts, bool waitForExit)
 {
   RDCUNIMPLEMENTED("Injecting into already running processes on linux");
-  return {ReplayStatus::InjectionFailed, 0};
+  return {
+      RDResult(ResultCode::InjectionFailed,
+               "Injecting into already running processes is not supported on non-Windows systems"),
+      0};
 }
 
 uint32_t Process::LaunchProcess(const rdcstr &app, const rdcstr &workingDir, const rdcstr &cmdLine,
@@ -876,15 +881,16 @@ void ResetHookingEnvVars()
   unsetenv("RENDERDOC_ORIGPRELOAD");
 }
 
-rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
+rdcpair<RDResult, uint32_t> Process::LaunchAndInjectIntoProcess(
     const rdcstr &app, const rdcstr &workingDir, const rdcstr &cmdLine,
     const rdcarray<EnvironmentModification> &envList, const rdcstr &capturefile,
     const CaptureOptions &opts, bool waitForExit)
 {
   if(app.empty())
   {
-    RDCERR("Invalid empty 'app'");
-    return {ReplayStatus::InternalError, 0};
+    RDResult result;
+    SET_ERROR_RESULT(result, ResultCode::InvalidParameter, "Invalid empty path to launch.");
+    return {result, 0};
   }
 
   // turn environment string to a UTF-8 map
@@ -970,14 +976,23 @@ rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
   }
 
   CleanupStringArray(envp);
-  return {ret == 0 ? ReplayStatus::InjectionFailed : ReplayStatus::Succeeded, (uint32_t)ret};
+  RDResult result;
+  if(ret == 0)
+  {
+    SET_ERROR_RESULT(result, ResultCode::InvalidParameter,
+                     "Couldn't connect to target program. Check that it didn't crash or exit "
+                     "during early initialisation, e.g. due to an incorrectly configured working "
+                     "directory.");
+  }
+  return {result, (uint32_t)ret};
 }
 
-bool Process::StartGlobalHook(const rdcstr &pathmatch, const rdcstr &logfile,
-                              const CaptureOptions &opts)
+RDResult Process::StartGlobalHook(const rdcstr &pathmatch, const rdcstr &logfile,
+                                  const CaptureOptions &opts)
 {
   RDCUNIMPLEMENTED("Global hooking of all processes on linux");
-  return false;
+  return RDResult(ResultCode::InvalidParameter,
+                  "Global hooking is not supported on non-Windows systems");
 }
 
 bool Process::CanGlobalHook()

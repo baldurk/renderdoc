@@ -577,8 +577,10 @@ void PythonContext::ProcessExtensionWork(std::function<void()> callback)
   PyGILState_Release(gil);
 }
 
-bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
+QString PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
 {
+  QString ret;
+
   PyObject *sysobj = PyDict_GetItemString(main_dict, "sys");
 
   PyObject *syspath = PyObject_GetAttrString(sysobj, "path");
@@ -649,6 +651,7 @@ bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
           if(mod == NULL)
           {
             qCritical() << "Failed to reload " << keystr;
+            ret += tr("Failed to reload submodule '%1'\n").arg(keystr);
             reloadSuccess = false;
             break;
           }
@@ -704,19 +707,28 @@ bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
       else
       {
         qCritical() << "Internal error passing pyrenderdoc to extension register()";
+        ret += tr("Internal error passing pyrenderdoc to extension register()\n");
       }
 
       if(retval == NULL)
+      {
+        qCritical() << "register() function failed";
+        ret += tr("register() function failed\n");
         ext = NULL;
+      }
 
       Py_XDECREF(retval);
 
       if(ext)
       {
-        int ret = PyModule_AddObject(ext, "pyrenderdoc", pyctx);
+        int pyret = PyModule_AddObject(ext, "pyrenderdoc", pyctx);
 
-        if(ret != 0)
+        if(pyret != 0)
+        {
+          qCritical() << "Couldn't set pyrenderdoc global in loaded module";
+          ret += tr("Couldn't set pyrenderdoc global in loaded module\n");
           ext = NULL;
+        }
       }
 
       Py_XDECREF(pyctx);
@@ -735,17 +747,26 @@ bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
   {
     FetchException(typeStr, valueStr, finalLine, frames);
 
+    ret += lit("\n");
+
+    ret = ret.trimmed();
+
     qCritical("Error importing extension module. %s: %s", typeStr.toUtf8().data(),
               valueStr.toUtf8().data());
+    ret += tr("Error importing extension module. %1: %2\n\n").arg(typeStr).arg(valueStr);
 
     if(!frames.isEmpty())
     {
       qCritical() << "Traceback (most recent call last):";
+      ret += tr("Traceback (most recent call last):\n");
       for(const QString &f : frames)
       {
         QStringList lines = f.split(QLatin1Char('\n'));
         for(const QString &line : lines)
-          qCritical("%s", line.toUtf8().data());
+        {
+          qCritical("  %s", line.toUtf8().data());
+          ret += line + lit("\n");
+        }
       }
     }
   }
@@ -757,7 +778,7 @@ bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
 
   current_global_handle = NULL;
 
-  return ext != NULL;
+  return ret;
 }
 
 void PythonContext::ConvertPyArgs(const ExtensionCallbackData &data,
@@ -833,10 +854,7 @@ void PythonContext::executeString(const QString &filename, const QString &source
 {
   if(!initialised())
   {
-    emit exception(
-        lit("SystemError"),
-        tr("Python integration failed to initialise, see diagnostic log for more information."), -1,
-        {});
+    emit exception(lit("SystemError"), tr("Python integration failed to initialise."), -1, {});
     return;
   }
 
@@ -934,10 +952,7 @@ void PythonContext::setGlobal(const char *varName, const char *typeName, void *o
 {
   if(!initialised())
   {
-    emit exception(
-        lit("SystemError"),
-        tr("Python integration failed to initialise, see diagnostic log for more information."), -1,
-        {});
+    emit exception(lit("SystemError"), tr("Python integration failed to initialise."), -1, {});
     return;
   }
 
@@ -1142,10 +1157,7 @@ void PythonContext::setPyGlobal(const char *varName, PyObject *obj)
 {
   if(!initialised())
   {
-    emit exception(
-        lit("SystemError"),
-        tr("Python integration failed to initialise, see diagnostic log for more information."), -1,
-        {});
+    emit exception(lit("SystemError"), tr("Python integration failed to initialise."), -1, {});
     return;
   }
 

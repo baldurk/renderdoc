@@ -561,7 +561,7 @@ private:
 
   PerformanceTimer m_CaptureTimer;
 
-  ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
+  RDResult m_FailedReplayResult = ResultCode::APIReplayFailed;
 
   std::set<ID3D11DeviceChild *> m_CachedStateObjects;
 
@@ -602,7 +602,7 @@ private:
 
   int m_OOMHandler = 0;
   rdcarray<DebugMessage> m_DebugMessages;
-  ReplayStatus m_FatalError = ReplayStatus::Succeeded;
+  RDResult m_FatalError = ResultCode::Succeeded;
 
   rdcarray<FrameDescription> m_CapturedFrames;
   rdcarray<ActionDescription *> m_Actions;
@@ -682,9 +682,9 @@ public:
       m_OOMHandler--;
   }
   void CheckHRESULT(HRESULT hr);
-  void ReportFatalError(ReplayStatus error) { m_FatalError = error; }
-  ReplayStatus FatalErrorCheck() { return m_FatalError; }
-  bool HasFatalError() { return m_FatalError != ReplayStatus::Succeeded; }
+  void ReportFatalError(RDResult error) { m_FatalError = error; }
+  RDResult FatalErrorCheck() { return m_FatalError; }
+  bool HasFatalError() { return m_FatalError != ResultCode::Succeeded; }
   rdcarray<DebugMessage> GetDebugMessages();
   void AddDebugMessage(DebugMessage msg);
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
@@ -702,6 +702,7 @@ public:
   bool DiscardFrameCapture(void *dev, void *wnd);
 
   ID3DUserDefinedAnnotation *GetAnnotations() { return m_RealAnnotations; }
+  ID3D11InfoQueue *GetInfoQueue() { return m_pInfoQueue; }
   // interface for DXGI
   virtual IUnknown *GetRealIUnknown() { return GetReal(); }
   void *GetFrameCapturerDevice() { return (ID3D11Device *)this; }
@@ -752,7 +753,7 @@ public:
     m_SectionVersion = sectionVersion;
     m_State = CaptureState::StructuredExport;
   }
-  ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
+  RDResult ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   bool ProcessChunk(ReadSerialiser &ser, D3D11Chunk context);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 

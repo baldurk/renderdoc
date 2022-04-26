@@ -576,6 +576,9 @@
     <ClInclude Include="data\hlsl\hlsl_custom_prefix.h">
       <Filter>Resources\hlsl</Filter>
     </ClInclude>
+    <ClInclude Include="common\result.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">

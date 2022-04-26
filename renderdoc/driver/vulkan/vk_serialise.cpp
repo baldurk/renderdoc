@@ -1601,13 +1601,15 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
 
 // if we encounter an unsupported struct on read we *cannot* continue since we don't know the
 // members that got serialised after it
-#define PNEXT_UNSUPPORTED(StructType)                                    \
-  case StructType:                                                       \
-  {                                                                      \
-    RDCERR("No support for " #StructType " is available in this build"); \
-    pNext = NULL;                                                        \
-    ser.SetErrored();                                                    \
-    return;                                                              \
+#define PNEXT_UNSUPPORTED(StructType)                                              \
+  case StructType:                                                                 \
+  {                                                                                \
+    RDResult res;                                                                  \
+    SET_ERROR_RESULT(res, ResultCode::APIUnsupported,                              \
+                     "No support for " #StructType " is available in this build"); \
+    pNext = NULL;                                                                  \
+    ser.SetError(res);                                                             \
+    return;                                                                        \
   }
 
 // if we come across a struct we should process, then serialise a pointer to it.

@@ -107,7 +107,8 @@ void ExtensionManager::on_reload_clicked()
     if(!e.name.isEmpty())
     {
       // if the load succeeds, set us as checked. Otherwise, unchecked
-      if(m_Ctx.Extensions().LoadExtension(e.package))
+      QString errors = m_Ctx.Extensions().LoadExtension(e.package);
+      if(errors.isEmpty())
       {
         item->setCheckState(2, Qt::Checked);
       }
@@ -115,9 +116,10 @@ void ExtensionManager::on_reload_clicked()
       {
         item->setCheckState(2, Qt::Unchecked);
         RDDialog::critical(this, tr("Failed to load extension"),
-                           tr("Failed to load extension '%1'.\n"
-                              "Check the diagnostic log for python errors")
-                               .arg(e.name));
+                           tr("Failed to load extension '%1':\n"
+                              "%2")
+                               .arg(e.name)
+                               .arg(errors));
       }
 
       update_currentItem(item);

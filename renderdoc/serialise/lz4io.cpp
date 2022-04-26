@@ -131,18 +131,22 @@ bool LZ4Compressor::FlushPage0()
 
   if(compSize < 0)
   {
-    RDCERR("Error compressing: %i", compSize);
     FreeAlignedBuffer(m_Page[0]);
     FreeAlignedBuffer(m_Page[1]);
     FreeAlignedBuffer(m_CompressBuffer);
     m_Page[0] = m_Page[1] = m_CompressBuffer = NULL;
+    SET_ERROR_RESULT(m_Error, ResultCode::CompressionFailed, "LZ4 compression failed: %i", compSize);
     return false;
   }
 
   bool success = true;
 
   success &= m_Write->Write(compSize);
+  if(!success)
+    m_Error = m_Write->GetError();
   success &= m_Write->Write(m_CompressBuffer, compSize);
+  if(!success)
+    m_Error = m_Write->GetError();
 
   // swap pages
   std::swap(m_Page[0], m_Page[1]);
@@ -184,7 +188,12 @@ bool LZ4Decompressor::Recompress(Compressor *comp)
   {
     success &= FillPage0();
     if(success)
+    {
       success &= comp->Write(m_Page[0], m_PageLength);
+
+      if(!success)
+        m_Error = comp->GetError();
+    }
   }
   success &= comp->Finish();
 
@@ -263,22 +272,31 @@ bool LZ4Decompressor::FillPage0()
   success &= m_Read->Read(compSize);
   if(!success || compSize < 0 || compSize > (int)LZ4_COMPRESSBOUND(lz4BlockSize))
   {
-    RDCERR("Error reading size: %i", compSize);
     FreeAlignedBuffer(m_Page[0]);
     FreeAlignedBuffer(m_Page[1]);
     FreeAlignedBuffer(m_CompressBuffer);
     m_Page[0] = m_Page[1] = m_CompressBuffer = NULL;
-    return false;
+
+    if(success)
+    {
+      m_Error = m_Read->GetError();
+    }
+    else
+    {
+      SET_ERROR_RESULT(m_Error, ResultCode::CompressionFailed,
+                       "LZ4 decompression encountered invalid compressed block size: %i", compSize);
+    }
   }
+
   success &= m_Read->Read(m_CompressBuffer, compSize);
 
   if(!success)
   {
-    RDCERR("Error reading block: %i", compSize);
     FreeAlignedBuffer(m_Page[0]);
     FreeAlignedBuffer(m_Page[1]);
     FreeAlignedBuffer(m_CompressBuffer);
     m_Page[0] = m_Page[1] = m_CompressBuffer = NULL;
+    m_Error = m_Read->GetError();
     return false;
   }
 
@@ -287,11 +305,14 @@ bool LZ4Decompressor::FillPage0()
 
   if(decompSize < 0)
   {
-    RDCERR("Error decompressing: %i", decompSize);
     FreeAlignedBuffer(m_Page[0]);
     FreeAlignedBuffer(m_Page[1]);
     FreeAlignedBuffer(m_CompressBuffer);
     m_Page[0] = m_Page[1] = m_CompressBuffer = NULL;
+
+    SET_ERROR_RESULT(m_Error, ResultCode::CompressionFailed,
+                     "LZ4 decompression failed on block: %i", decompSize);
+
     return false;
   }
 

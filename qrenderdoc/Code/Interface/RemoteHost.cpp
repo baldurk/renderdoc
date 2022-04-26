@@ -128,7 +128,7 @@ void RemoteHost::CheckStatus()
   UpdateStatus(RENDERDOC_CheckRemoteServerConnection(m_hostname));
 }
 
-ReplayStatus RemoteHost::Connect(IRemoteServer **server)
+ResultDetails RemoteHost::Connect(IRemoteServer **server)
 {
   QMutexLocker autolock(&m_data->mutex);
   return RENDERDOC_CreateRemoteServerConnection(m_hostname, server);
@@ -148,23 +148,23 @@ void RemoteHost::SetShutdown()
   m_data->m_busy = false;
 }
 
-void RemoteHost::UpdateStatus(ReplayStatus status)
+void RemoteHost::UpdateStatus(ResultDetails result)
 {
   {
     QMutexLocker autolock(&m_data->mutex);
 
-    if(status == ReplayStatus::Succeeded)
+    if(result.code == ResultCode::Succeeded)
     {
       m_data->m_serverRunning = true;
       m_data->m_versionMismatch = m_data->m_busy = false;
     }
-    else if(status == ReplayStatus::NetworkRemoteBusy)
+    else if(result.code == ResultCode::NetworkRemoteBusy)
     {
       m_data->m_serverRunning = true;
       m_data->m_busy = true;
       m_data->m_versionMismatch = false;
     }
-    else if(status == ReplayStatus::NetworkVersionMismatch)
+    else if(result.code == ResultCode::NetworkVersionMismatch)
     {
       m_data->m_serverRunning = true;
       m_data->m_busy = true;
@@ -186,16 +186,11 @@ void RemoteHost::UpdateStatus(ReplayStatus status)
   QThread::msleep(15);
 }
 
-ReplayStatus RemoteHost::Launch()
+ResultDetails RemoteHost::Launch()
 {
-  ReplayStatus status = ReplayStatus::Succeeded;
-
   if(m_protocol)
-  {
     // this is blocking
-    status = m_protocol->StartRemoteServer(m_hostname);
-    return status;
-  }
+    return m_protocol->StartRemoteServer(m_hostname);
 
   rdcstr run = RunCommand();
 
@@ -204,7 +199,7 @@ ReplayStatus RemoteHost::Launch()
   process.waitForFinished(2000);
   process.detach();
 
-  return status;
+  return {ResultCode::Succeeded};
 }
 
 bool RemoteHost::IsServerRunning() const

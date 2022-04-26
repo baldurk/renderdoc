@@ -1,4 +1,7 @@
 
+%feature("python:tp_str") ResultDetails "result_str";
+%feature("python:tp_repr") ResultDetails "result_str";
+
 // add some useful builtin functions for ResourceId
 %feature("python:tp_str") ResourceId "resid_str";
 %feature("python:tp_repr") ResourceId "resid_str";
@@ -35,6 +38,22 @@ fail:
 } // %extend ResourceId
 
 %wrapper %{
+static PyObject *result_str(PyObject *resid)
+{
+  void *resptr = NULL;
+  ResultDetails *result = NULL;
+  int res = SWIG_ConvertPtr(resid, &resptr, SWIGTYPE_p_ResultDetails, 0);
+  if (!SWIG_IsOK(res)) {
+    SWIG_exception_fail(SWIG_ArgError(res), "in method 'ResultDetails.str', ResultDetails is not correct type");
+  }
+
+  result = (ResultDetails *)resptr;
+
+  return PyUnicode_FromFormat("<Result: '%s'>", result->Message().c_str());
+fail:
+  return NULL;
+}
+
 static PyObject *resid_str(PyObject *resid)
 {
   void *resptr = NULL;

@@ -553,7 +553,7 @@ bytebuf ReplayController::GetTextureData(ResourceId tex, const Subresource &sub)
   return ret;
 }
 
-bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &path)
+ResultDetails ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &path)
 {
   CHECK_REPLAY_THREAD();
   RENDERDOC_PROFILEFUNCTION();
@@ -563,13 +563,12 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
 
   if(liveid == ResourceId())
   {
-    RDCERR("Couldn't get Live ID for %s getting texture data", ToStr(sd.resourceId).c_str());
-    return false;
+    RETURN_ERROR_RESULT(ResultCode::InvalidParameter,
+                        "Couldn't get Live ID for %s getting texture data",
+                        ToStr(sd.resourceId).c_str());
   }
 
   TextureDescription td = m_pDevice->GetTexture(liveid);
-
-  bool success = false;
 
   // clamp sample/mip/slice indices
   if(td.msSamp == 1)
@@ -833,8 +832,10 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
       case ResourceFormatType::YUV12:
       case ResourceFormatType::YUV16:
       case ResourceFormatType::R4G4:
-        RDCERR("Unsupported file format %u", td.format.type);
-        return false;
+      {
+        RETURN_ERROR_RESULT(ResultCode::ImageUnsupported, "Unsupported file format %s",
+                            ToStr(td.format.type).c_str());
+      }
       default: bytesPerPixel = td.format.compCount * td.format.compByteWidth;
     }
 
@@ -868,12 +869,12 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
 
       if(data.empty())
       {
-        RDCERR("Couldn't get bytes for mip %u, slice %u", mip, slice);
-
         for(size_t i = 0; i < subdata.size(); i++)
           delete[] subdata[i];
 
-        return false;
+        RETURN_ERROR_RESULT(ResultCode::DataNotAvailable,
+                            "Couldn't readback bytes for mip %u, slice %u, sample %u", sub.mip,
+                            sub.slice, sub.sample);
       }
 
       if(td.depth == 1)
@@ -1170,10 +1171,12 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
 
   FILE *f = FileIO::fopen(path, FileIO::WriteBinary);
 
+  RDResult res;
+
   if(!f)
   {
-    success = false;
-    RDCERR("Couldn't write to path %s, error: %s", path.c_str(), FileIO::ErrorString().c_str());
+    RETURN_ERROR_RESULT(ResultCode::FileIOFailed, "Couldn't write to path %s, error: %s",
+                        path.c_str(), FileIO::ErrorString().c_str());
   }
   else
   {
@@ -1198,34 +1201,31 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
       if(singleSlice)
         ddsData.depth = ddsData.slices = 1;
 
-      success = write_dds_to_file(f, ddsData);
+      res = write_dds_to_file(f, ddsData);
     }
     else if(sd.destType == FileType::BMP)
     {
       int ret = stbi_write_bmp_to_func(fileWriteFunc, (void *)f, td.width, td.height, numComps,
                                        subdata[0]);
-      success = (ret != 0);
 
-      if(!success)
-        RDCERR("stbi_write_bmp_to_func failed: %d", ret);
+      if(ret == 0)
+        SET_ERROR_RESULT(res, ResultCode::InternalError, "Failed to write BMP image");
     }
     else if(sd.destType == FileType::PNG)
     {
       int ret = stbi_write_png_to_func(fileWriteFunc, (void *)f, td.width, td.height, numComps,
                                        subdata[0], rowPitch);
-      success = (ret != 0);
 
-      if(!success)
-        RDCERR("stbi_write_png_to_func failed: %d", ret);
+      if(ret == 0)
+        SET_ERROR_RESULT(res, ResultCode::InternalError, "Failed to write PNG image");
     }
     else if(sd.destType == FileType::TGA)
     {
       int ret = stbi_write_tga_to_func(fileWriteFunc, (void *)f, td.width, td.height, numComps,
                                        subdata[0]);
-      success = (ret != 0);
 
-      if(!success)
-        RDCERR("stbi_write_tga_to_func failed: %d", ret);
+      if(ret == 0)
+        SET_ERROR_RESULT(res, ResultCode::InternalError, "Failed to write TGA image");
     }
     else if(sd.destType == FileType::JPG)
     {
@@ -1239,14 +1239,13 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
 
       char *jpgdst = new char[len];
 
-      success = jpge::compress_image_to_jpeg_file_in_memory(jpgdst, len, td.width, td.height,
-                                                            numComps, subdata[0], p);
-
-      if(!success)
-        RDCERR("jpge::compress_image_to_jpeg_file_in_memory failed");
+      bool success = jpge::compress_image_to_jpeg_file_in_memory(jpgdst, len, td.width, td.height,
+                                                                 numComps, subdata[0], p);
 
       if(success)
         fwrite(jpgdst, 1, len, f);
+      else
+        SET_ERROR_RESULT(res, ResultCode::InternalError, "Failed to write JPG image");
 
       delete[] jpgdst;
     }
@@ -1338,10 +1337,9 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
       if(sd.destType == FileType::HDR)
       {
         int ret = stbi_write_hdr_to_func(fileWriteFunc, (void *)f, td.width, td.height, 4, fldata);
-        success = (ret != 0);
 
-        if(!success)
-          RDCERR("stbi_write_hdr_to_func failed: %d", ret);
+        if(ret == 0)
+          SET_ERROR_RESULT(res, ResultCode::InternalError, "Failed to write HDR image");
       }
       else if(sd.destType == FileType::EXR)
       {
@@ -1384,11 +1382,10 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
 
         size_t ret = SaveEXRImageToMemory(&exrImage, &exrHeader, &mem, &err);
 
-        success = (ret > 0);
-        if(success)
+        if(ret > 0)
           FileIO::fwrite(mem, 1, ret, f);
         else
-          RDCERR("Error saving EXR file %d: '%s'", ret, err);
+          SET_ERROR_RESULT(res, ResultCode::InternalError, "Failed to write EXR image: %s", err);
 
         free(mem);
       }
@@ -1412,7 +1409,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
   for(size_t i = 0; i < subdata.size(); i++)
     delete[] subdata[i];
 
-  return success;
+  return res;
 }
 
 rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, uint32_t x, uint32_t y,
@@ -1909,14 +1906,15 @@ void ReplayController::Shutdown()
 bool ReplayController::FatalErrorCheck()
 {
   // we've already processed the fatal error if we have a status
-  if(m_FatalError != ReplayStatus::Succeeded)
+  if(m_FatalError != ResultCode::Succeeded)
     return false;
 
   m_FatalError = m_pDevice->FatalErrorCheck();
 
-  if(m_FatalError != ReplayStatus::Succeeded)
+  if(m_FatalError != ResultCode::Succeeded)
   {
-    RDCLOG("Fatal error detected: %s", ToStr(m_FatalError).c_str());
+    RDCLOG("Fatal error detected: %s (%s)", ToStr(m_FatalError.code).c_str(),
+           m_FatalError.message.c_str());
 
     IReplayDriver *old = m_pDevice;
 
@@ -2102,26 +2100,26 @@ void ReplayController::RemoveReplacement(ResourceId id)
       m_Outputs[i]->Display();
 }
 
-ReplayStatus ReplayController::CreateDevice(RDCFile *rdc, const ReplayOptions &opts)
+RDResult ReplayController::CreateDevice(RDCFile *rdc, const ReplayOptions &opts)
 {
   CHECK_REPLAY_THREAD();
 
   RENDERDOC_PROFILEFUNCTION();
 
   IReplayDriver *driver = NULL;
-  ReplayStatus status = RenderDoc::Inst().CreateReplayDriver(rdc, opts, &driver);
+  RDResult result = RenderDoc::Inst().CreateReplayDriver(rdc, opts, &driver);
 
-  if(driver && status == ReplayStatus::Succeeded)
+  if(driver && result == ResultCode::Succeeded)
   {
     RDCLOG("Created replay driver.");
     return PostCreateInit(driver, rdc);
   }
 
   RDCERR("Couldn't create a replay device.");
-  return status;
+  return result;
 }
 
-ReplayStatus ReplayController::SetDevice(IReplayDriver *device)
+RDResult ReplayController::SetDevice(IReplayDriver *device)
 {
   CHECK_REPLAY_THREAD();
 
@@ -2132,10 +2130,10 @@ ReplayStatus ReplayController::SetDevice(IReplayDriver *device)
   }
 
   RDCERR("Given invalid replay driver.");
-  return ReplayStatus::InternalError;
+  return ResultCode::InternalError;
 }
 
-ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rdc)
+RDResult ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rdc)
 {
   CHECK_REPLAY_THREAD();
 
@@ -2147,9 +2145,9 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
 
   GCNISA::CacheSupport(m_APIProps.pipelineType);
 
-  ReplayStatus status = m_pDevice->ReadLogInitialisation(rdc, false);
+  RDResult result = m_pDevice->ReadLogInitialisation(rdc, false);
   FatalErrorCheck();
-  if(m_FatalError != ReplayStatus::Succeeded)
+  if(m_FatalError != ResultCode::Succeeded)
     return m_FatalError;
 
   m_pDevice->SetPipelineStates(&m_D3D11PipelineState, &m_D3D12PipelineState, &m_GLPipelineState,
@@ -2157,8 +2155,8 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
 
   GCNISA::GetTargets(m_APIProps.pipelineType, m_GCNTargets);
 
-  if(status != ReplayStatus::Succeeded)
-    return status;
+  if(result != ResultCode::Succeeded)
+    return result;
 
   m_Buffers = m_pDevice->GetBuffers();
   FatalErrorCheck();
@@ -2170,11 +2168,11 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
   m_FrameRecord = m_pDevice->GetFrameRecord();
   FatalErrorCheck();
 
-  if(m_FatalError != ReplayStatus::Succeeded)
+  if(m_FatalError != ResultCode::Succeeded)
     return m_FatalError;
 
   if(m_FrameRecord.actionList.empty())
-    return ReplayStatus::APIReplayFailed;
+    return ResultCode::APIReplayFailed;
 
   m_Actions.clear();
   SetupActionPointers(m_Actions, m_FrameRecord.actionList);

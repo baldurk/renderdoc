@@ -49,13 +49,12 @@ bool CheckConstParam(bool t)
   return t;
 }
 
-bool CheckReplayContext()
+RDResult CheckReplayContext()
 {
-#define REQUIRE_FUNC(func)                            \
-  if(!GL.func)                                        \
-  {                                                   \
-    RDCERR("Missing core function " STRINGIZE(func)); \
-    return false;                                     \
+#define REQUIRE_FUNC(func)                                                                    \
+  if(!GL.func)                                                                                \
+  {                                                                                           \
+    RETURN_ERROR_RESULT(ResultCode::APIInitFailed, "Missing core function " STRINGIZE(func)); \
   }
 
   REQUIRE_FUNC(glGetString);
@@ -88,10 +87,10 @@ bool CheckReplayContext()
   if(!extensionString.empty())
     RDCLOG("%s", extensionString.c_str());
 
-  return true;
+  return ResultCode::Succeeded;
 }
 
-bool ValidateFunctionPointers()
+RDResult ValidateFunctionPointers()
 {
   PFNGLGETSTRINGPROC *ptrs = (PFNGLGETSTRINGPROC *)&GL;
   size_t num = sizeof(GL) / sizeof(PFNGLGETSTRINGPROC);
@@ -114,16 +113,16 @@ bool ValidateFunctionPointers()
   // process.
   // Other functions that are only called to deserialise are checked for presence separately
 
-  bool ret = true;
+  RDResult result;
 
 #define CHECK_PRESENT(func)                                                            \
   if(!GL.func)                                                                         \
   {                                                                                    \
-    RDCERR(                                                                            \
+    SET_ERROR_RESULT(                                                                  \
+        result, ResultCode::APIHardwareUnsupported,                                    \
         "Missing function %s, required for replay. RenderDoc requires a 3.2 context, " \
         "and a handful of extensions, see the Documentation.",                         \
         STRINGIZE(func));                                                              \
-    ret = false;                                                                       \
   }
 
   // these functions should all be present as part of a 3.2 context plus the extensions we require,
@@ -332,7 +331,7 @@ bool ValidateFunctionPointers()
   // only called when such a call is serialised from the logfile, and
   // so they are checked for validity separately.
 
-  return ret;
+  return result;
 }
 
 static void CheckExtFromString(const char *ext)

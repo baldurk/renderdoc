@@ -25,8 +25,10 @@
 #pragma once
 
 #include <set>
+#include "api/replay/replay_enums.h"
 #include "api/replay/structured_data.h"
 #include "common/formatting.h"
+#include "common/result.h"
 #include "streamio.h"
 
 // function to deallocate anything from a serialise. Default impl
@@ -116,7 +118,11 @@ public:
   Serialiser(const Serialiser &other) = delete;
 
   bool IsErrored() { return IsReading() ? m_Read->IsErrored() : m_Write->IsErrored(); }
-  void SetErrored() { IsReading() ? m_Read->SetErrored() : m_Write->SetErrored(); }
+  RDResult GetError() { return IsReading() ? m_Read->GetError() : m_Write->GetError(); }
+  void SetError(RDResult result)
+  {
+    IsReading() ? m_Read->SetError(result) : m_Write->SetError(result);
+  }
   StreamWriter *GetWriter() { return m_Write; }
   StreamReader *GetReader() { return m_Read; }
   uint32_t GetChunkMetadataRecording() { return m_ChunkFlags; }
@@ -1430,15 +1436,18 @@ private:
 
     if(count > size)
     {
-      RDCERR("Reading invalid array or byte buffer - %llu larger than total stream size %llu.",
-             count, size);
+      RDResult result;
+      SET_ERROR_RESULT(
+          result, ResultCode::FileCorrupted,
+          "Reading invalid array or byte buffer - %llu larger than total stream size %llu.", count,
+          size);
 
       // if we owned the previous stream, delete it
       if(m_Ownership == Ownership::Stream)
         delete m_Read;
 
       // replace our stream with an invalid one so all subsequent reads fail
-      m_Read = new StreamReader(StreamReader::InvalidStream);
+      m_Read = new StreamReader(StreamReader::InvalidStream, result);
       m_Ownership = Ownership::Stream;
 
       // set the count to 0

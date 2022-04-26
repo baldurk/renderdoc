@@ -1369,9 +1369,9 @@ struct IReplayManager
 
 :param RemoteHost host: The host to connect to.
 :return: Whether or not the connection was successful.
-:rtype: renderdoc.ReplayStatus
+:rtype: renderdoc.ResultDetails
 )");
-  virtual ReplayStatus ConnectToRemoteServer(RemoteHost host) = 0;
+  virtual ResultDetails ConnectToRemoteServer(RemoteHost host) = 0;
 
   DOCUMENT("Disconnect from the server the manager is currently connected to.");
   virtual void DisconnectFromRemoteServer() = 0;
@@ -1894,9 +1894,9 @@ temporary and treated like any other capture.
   DOCUMENT(R"(If a capture is loaded, return the current fatal error status.
 
 :return: If a capture is currently loaded, return the fatal error status.
-:rtype: renderdoc.ReplayStatus
+:rtype: renderdoc.ResultDetails
 )");
-  virtual ReplayStatus GetFatalError() = 0;
+  virtual ResultDetails GetFatalError() = 0;
 
   DOCUMENT(R"(Retrieve the filename for the currently loaded capture.
 

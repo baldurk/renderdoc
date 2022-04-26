@@ -58,23 +58,23 @@ else:
     URL = hostname
 
 # Let's try to connect
-status,remote = rd.CreateRemoteServerConnection(URL)
+result,remote = rd.CreateRemoteServerConnection(URL)
 
-if status == rd.ReplayStatus.NetworkIOFailed and protocol is not None:
+if result == rd.ResultCode.NetworkIOFailed and protocol is not None:
     # If there's just no I/O, most likely the server is not running. If we have
     # a protocol, we can try to start the remote server
     print("Couldn't connect to remote server, trying to start it")
 
-    status = protocol.StartRemoteServer(URL)
+    result = protocol.StartRemoteServer(URL)
 
-    if status != rd.ReplayStatus.Succeeded:
-        raise RuntimeError(f"Couldn't launch remote server, got error {str(status)}")
+    if result != rd.ResultCode.Succeeded:
+        raise RuntimeError(f"Couldn't launch remote server, got error {str(result)}")
 
     # Try to connect again!
-    status,remote = rd.CreateRemoteServerConnection(URL)
+    result,remote = rd.CreateRemoteServerConnection(URL)
 
-if status != rd.ReplayStatus.Succeeded:
-    raise RuntimeError(f"Couldn't connect to remote server, got error {str(status)}")
+if result != rd.ResultCode.Succeeded:
+    raise RuntimeError(f"Couldn't connect to remote server, got error {str(result)}")
 
 # We now have a remote connection. This works regardless of whether it's a device
 # with a protocol or not. In fact we are done with the protocol at this point
@@ -101,9 +101,9 @@ print(f"Running {exe}")
 
 result = remote.ExecuteAndInject(exe, workingDir, cmdLine, env, opts)
 
-if result.status != rd.ReplayStatus.Succeeded:
+if result.result != rd.ResultCode.Succeeded:
     remote.ShutdownServerAndConnection()
-    raise RuntimeError(f"Couldn't launch {exe}, got error {str(result.status)}")
+    raise RuntimeError(f"Couldn't launch {exe}, got error {str(result.result)}")
 
 # Spin up a thread to keep the remote server connection alive while we make a capture,
 # as it will time out after 5 seconds of inactivity
@@ -171,11 +171,11 @@ print(f"Got new capture at {cap_path} which is frame {msg.newCapture.frameNumber
 #
 # The path must be remote - if the capture isn't freshly created then you need
 # to copy it with remote.CopyCaptureToRemote()
-status,controller = remote.OpenCapture(rd.RemoteServer.NoPreference, cap_path, rd.ReplayOptions(), None)
+result,controller = remote.OpenCapture(rd.RemoteServer.NoPreference, cap_path, rd.ReplayOptions(), None)
 
-if status != rd.ReplayStatus.Succeeded:
+if result != rd.ResultCode.Succeeded:
     remote.ShutdownServerAndConnection()
-    raise RuntimeError(f"Couldn't open {cap_path}, got error {str(result.status)}")
+    raise RuntimeError(f"Couldn't open {cap_path}, got error {str(result)}")
 
 # We can now use replay as normal.
 #

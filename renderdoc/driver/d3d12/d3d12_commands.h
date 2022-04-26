@@ -235,6 +235,8 @@ struct D3D12CommandData
 
   ResourceId m_LastCmdListID;
 
+  RDResult m_FailedReplayResult = ResultCode::APIReplayFailed;
+
   std::map<ResourceId, ID3D12CommandAllocator *> m_CrackedAllocators;
 
   rdcarray<ID3D12Resource *> m_IndirectBuffers;

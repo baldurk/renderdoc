@@ -4135,7 +4135,7 @@ void MakeOfflineShaderReflection(ShaderStage stage, const rdcstr &source, const 
 void MakeOnlineShaderReflection(ShaderStage stage, const rdcstr &source, const rdcstr &entryPoint,
                                 ShaderReflection &refl, ShaderBindpointMapping &mapping)
 {
-  ReplayStatus status = ReplayStatus::UnknownError;
+  RDResult status = ResultCode::APIUnsupported;
   IReplayDriver *driver = NULL;
 
   RDCASSERT(entryPoint == "main");
@@ -4145,7 +4145,7 @@ void MakeOnlineShaderReflection(ShaderStage stage, const rdcstr &source, const r
   if(replays.find(RDCDriver::OpenGL) != replays.end())
     status = RenderDoc::Inst().CreateProxyReplayDriver(RDCDriver::OpenGL, &driver);
 
-  if(status != ReplayStatus::Succeeded)
+  if(status != ResultCode::Succeeded)
   {
     RDCERR("No GL support locally, couldn't create proxy GL driver for reflection");
     return;
