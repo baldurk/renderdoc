@@ -28,19 +28,19 @@ namespace hwcpipe
 {
 class Value
 {
-  public:
+public:
 	Value() :
-	    is_int_(true),
-	    int_(0),
-	    double_(0.0f)
+		is_int_(true),
+		int_(0),
+		double_(0.0f)
 	{}
 	Value(long long value) :
-	    is_int_(true),
-	    int_(value)
+		is_int_(true),
+		int_(value)
 	{}
 	Value(double value) :
-	    is_int_(false),
-	    double_(value)
+		is_int_(false),
+		double_(value)
 	{}
 
 	template <typename T>
@@ -61,9 +61,9 @@ class Value
 		is_int_ = false;
 	}
 
-  private:
+private:
 	bool      is_int_;
-	long long int_{0};
-	double    double_{0.0};
+	long long int_ {0};
+	double    double_ {0.0};
 };
 }        // namespace hwcpipe

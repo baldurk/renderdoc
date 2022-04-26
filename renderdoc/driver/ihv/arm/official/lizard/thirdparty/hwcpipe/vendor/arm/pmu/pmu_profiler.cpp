@@ -28,17 +28,29 @@
 
 namespace hwcpipe
 {
-const std::unordered_map<CpuCounter, uint64_t, CpuCounterHash> pmu_mappings{
-    {CpuCounter::Cycles, PERF_COUNT_HW_CPU_CYCLES},
-    {CpuCounter::Instructions, PERF_COUNT_HW_INSTRUCTIONS},
-    {CpuCounter::CacheReferences, PERF_COUNT_HW_CACHE_REFERENCES},
-    {CpuCounter::CacheMisses, PERF_COUNT_HW_CACHE_MISSES},
-    {CpuCounter::BranchInstructions, PERF_COUNT_HW_BRANCH_INSTRUCTIONS},
-    {CpuCounter::BranchMisses, PERF_COUNT_HW_BRANCH_MISSES},
+const std::unordered_map<CpuCounter, PmuEventInfo, CpuCounterHash> pmu_mappings {
+	{CpuCounter::Cycles, {PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES}},
+	{CpuCounter::Instructions, {PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS}},
+	{CpuCounter::CacheReferences, {PERF_TYPE_HARDWARE, PERF_COUNT_HW_CACHE_REFERENCES}},
+	{CpuCounter::CacheMisses, {PERF_TYPE_HARDWARE, PERF_COUNT_HW_CACHE_MISSES}},
+	{CpuCounter::BranchInstructions, {PERF_TYPE_HARDWARE, PERF_COUNT_HW_BRANCH_INSTRUCTIONS}},
+	{CpuCounter::BranchMisses, {PERF_TYPE_HARDWARE, PERF_COUNT_HW_BRANCH_MISSES}},
+
+	{CpuCounter::L1Accesses, {PERF_TYPE_RAW, PmuImplDefined::L1_ACCESSES}},
+	{CpuCounter::InstrRetired, {PERF_TYPE_RAW, PmuImplDefined::INSTR_RETIRED}},
+	{CpuCounter::L2Accesses, {PERF_TYPE_RAW, PmuImplDefined::L2_ACCESSES}},
+	{CpuCounter::L3Accesses, {PERF_TYPE_RAW, PmuImplDefined::L3_ACCESSES}},
+	{CpuCounter::BusReads, {PERF_TYPE_RAW, PmuImplDefined::BUS_READS}},
+	{CpuCounter::BusWrites, {PERF_TYPE_RAW, PmuImplDefined::BUS_WRITES}},
+	{CpuCounter::MemReads, {PERF_TYPE_RAW, PmuImplDefined::MEM_READS}},
+	{CpuCounter::MemWrites, {PERF_TYPE_RAW, PmuImplDefined::MEM_WRITES}},
+	{CpuCounter::ASESpec, {PERF_TYPE_RAW, PmuImplDefined::ASE_SPEC}},
+	{CpuCounter::VFPSpec, {PERF_TYPE_RAW, PmuImplDefined::VFP_SPEC}},
+	{CpuCounter::CryptoSpec, {PERF_TYPE_RAW, PmuImplDefined::CRYPTO_SPEC}},
 };
 
 PmuProfiler::PmuProfiler(const CpuCounterSet &enabled_counters) :
-    enabled_counters_(enabled_counters)
+	enabled_counters_(enabled_counters)
 {
 	// Set up PMU counters
 	for (const auto &counter : enabled_counters)
@@ -77,7 +89,7 @@ void PmuProfiler::run()
 	for (auto &pmu_counter : pmu_counters_)
 	{
 		pmu_counter.second.reset();
-		prev_measurements_[pmu_counter.first] = Value{};
+		prev_measurements_[pmu_counter.first] = Value {};
 	}
 }
 

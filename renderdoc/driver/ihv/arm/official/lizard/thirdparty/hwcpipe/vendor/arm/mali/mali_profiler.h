@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 ARM Limited.
+ * Copyright (c) 2019-2022 ARM Limited.
  *
  * SPDX-License-Identifier: MIT
  *
@@ -36,7 +36,7 @@ namespace hwcpipe
 /** A Gpu profiler that uses Mali counter data. */
 class MaliProfiler : public GpuProfiler
 {
-  public:
+public:
 	explicit MaliProfiler(const GpuCounterSet &enabled_counters);
 	virtual ~MaliProfiler() = default;
 
@@ -59,59 +59,74 @@ class MaliProfiler : public GpuProfiler
 	virtual const GpuMeasurements &sample() override;
 	virtual void                   stop() override;
 
-  private:
-	GpuCounterSet enabled_counters_{};
+private:
+	GpuCounterSet enabled_counters_ {};
 
-	const GpuCounterSet supported_counters_{
-	    GpuCounter::GpuCycles,
-	    GpuCounter::VertexComputeCycles,
-	    GpuCounter::FragmentCycles,
-	    GpuCounter::TilerCycles,
-	    GpuCounter::VertexComputeJobs,
-	    GpuCounter::Tiles,
-	    GpuCounter::TransactionEliminations,
-	    GpuCounter::FragmentJobs,
-	    GpuCounter::Pixels,
-	    GpuCounter::EarlyZTests,
-	    GpuCounter::EarlyZKilled,
-	    GpuCounter::LateZTests,
-	    GpuCounter::LateZKilled,
-	    GpuCounter::Instructions,
-	    GpuCounter::DivergedInstructions,
-	    GpuCounter::ShaderCycles,
-	    GpuCounter::ShaderArithmeticCycles,
-	    GpuCounter::ShaderLoadStoreCycles,
-	    GpuCounter::ShaderTextureCycles,
-	    GpuCounter::CacheReadLookups,
-	    GpuCounter::CacheWriteLookups,
-	    GpuCounter::ExternalMemoryReadAccesses,
-	    GpuCounter::ExternalMemoryWriteAccesses,
-	    GpuCounter::ExternalMemoryReadStalls,
-	    GpuCounter::ExternalMemoryWriteStalls,
-	    GpuCounter::ExternalMemoryReadBytes,
-	    GpuCounter::ExternalMemoryWriteBytes,
+	const GpuCounterSet supported_counters_ {
+		GpuCounter::GpuCycles,
+		GpuCounter::VertexCycles,
+		GpuCounter::ComputeCycles,
+		GpuCounter::VertexComputeCycles,
+		GpuCounter::FragmentCycles,
+		GpuCounter::TilerCycles,
+		GpuCounter::VertexJobs,
+		GpuCounter::ComputeJobs,
+		GpuCounter::VertexComputeJobs,
+		GpuCounter::FragmentJobs,
+		GpuCounter::Pixels,
+
+		GpuCounter::CulledPrimitives,
+		GpuCounter::VisiblePrimitives,
+		GpuCounter::InputPrimitives,
+
+		GpuCounter::Tiles,
+		GpuCounter::TransactionEliminations,
+
+		GpuCounter::EarlyZTests,
+		GpuCounter::EarlyZKilled,
+		GpuCounter::LateZTests,
+		GpuCounter::LateZKilled,
+
+		GpuCounter::Instructions,
+		GpuCounter::DivergedInstructions,
+
+		GpuCounter::ShaderFragmentCycles,
+		GpuCounter::ShaderComputeCycles,
+		GpuCounter::ShaderCycles,
+		GpuCounter::ShaderArithmeticCycles,
+		GpuCounter::ShaderInterpolatorCycles,
+		GpuCounter::ShaderLoadStoreCycles,
+		GpuCounter::ShaderTextureCycles,
+
+		GpuCounter::CacheReadLookups,
+		GpuCounter::CacheWriteLookups,
+		GpuCounter::ExternalMemoryReadAccesses,
+		GpuCounter::ExternalMemoryWriteAccesses,
+		GpuCounter::ExternalMemoryReadStalls,
+		GpuCounter::ExternalMemoryWriteStalls,
+		GpuCounter::ExternalMemoryReadBytes,
+		GpuCounter::ExternalMemoryWriteBytes,
 	};
 
 	typedef std::function<double(void)>                             MaliValueGetter;
-	std::unordered_map<GpuCounter, MaliValueGetter, GpuCounterHash> mappings_{};
+	std::unordered_map<GpuCounter, MaliValueGetter, GpuCounterHash> mappings_ {};
 
-	const char *const  device_{"/dev/mali0"};
-	int                num_cores_{0};
-	int                num_l2_slices_{0};
-	int                gpu_id_{0};
-	uint32_t           hw_ver_{0};
-	int                buffer_count_{16};
-	size_t             buffer_size_{0};
-	uint8_t *          sample_data_{nullptr};
-	uint64_t           timestamp_{0};
-	const char *const *names_lut_{
-	    nullptr};
-	std::vector<uint32_t>     raw_counter_buffer_{};
-	std::vector<unsigned int> core_index_remap_{};
-	int                       fd_{-1};
-	int                       hwc_fd_{-1};
+	const char *const         device_ {"/dev/mali0"};
+	int                       num_cores_ {0};
+	int                       num_l2_slices_ {0};
+	int                       gpu_id_ {0};
+	uint32_t                  hw_ver_ {0};
+	int                       buffer_count_ {16};
+	size_t                    buffer_size_ {0};
+	uint8_t *                 sample_data_ {nullptr};
+	uint64_t                  timestamp_ {0};
+	const char *const *       names_lut_ {nullptr};
+	std::vector<uint32_t>     raw_counter_buffer_ {};
+	std::vector<unsigned int> core_index_remap_ {};
+	int                       fd_ {-1};
+	int                       hwc_fd_ {-1};
 
-	GpuMeasurements measurements_{};
+	GpuMeasurements measurements_ {};
 
 	void            init();
 	void            sample_counters();

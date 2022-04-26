@@ -35,41 +35,71 @@
 
 #include "hwcpipe_log.h"
 
+enum class PmuImplDefined : uint64_t
+{
+	L1_ACCESSES   = 0x4,
+	INSTR_RETIRED = 0x8,
+	L2_ACCESSES   = 0x16,
+	L3_ACCESSES   = 0x2b,
+	BUS_READS     = 0x60,
+	BUS_WRITES    = 0x61,
+	MEM_READS     = 0x66,
+	MEM_WRITES    = 0x67,
+	ASE_SPEC      = 0x74,
+	VFP_SPEC      = 0x75,
+	CRYPTO_SPEC   = 0x77,
+};
+
+struct PmuEventInfo
+{
+	uint64_t type;
+	uint64_t event;
+
+	PmuEventInfo(uint64_t type, uint64_t event) :
+		type(type),
+		event(event)
+	{}
+
+	PmuEventInfo(uint64_t type, PmuImplDefined event) :
+		PmuEventInfo(type, static_cast<uint64_t>(event))
+	{}
+};
+
 /** Class provides access to CPU hardware counters. */
 class PmuCounter
 {
-  public:
+public:
 	/** Default constructor. */
 	PmuCounter();
 
 	/** Create PMU counter with specified config.
-     *
-     * This constructor automatically calls @ref open with the default
-     * configuration.
-     *
-     * @param[in] config Counter identifier.
-     */
-	PmuCounter(uint64_t config);
+	 *
+	 * This constructor automatically calls @ref open with the default
+	 * configuration.
+	 *
+	 * @param[in] config Counter info.
+	 */
+	PmuCounter(PmuEventInfo config);
 
 	/** Default destructor. */
 	~PmuCounter();
 
 	/** Get the counter value.
-     *
-     * @return Counter value casted to the specified type. */
+	 *
+	 * @return Counter value casted to the specified type. */
 	template <typename T>
 	T get_value() const;
 
-	/** Open the specified counter based on the default configuration.
-     *
-     * @param[in] config The default configuration.
-     */
-	void open(uint64_t config);
+	/** Open the specified counter based on the given configuration.
+	 *
+	 * @param[in] config The configuration.
+	 */
+	void open(PmuEventInfo config);
 
 	/** Open the specified configuration.
-     *
-     * @param[in] perf_config The specified configuration.
-     */
+	 *
+	 * @param[in] perf_config The specified configuration.
+	 */
 	void open(const perf_event_attr &perf_config);
 
 	/** Close the currently open counter. */
@@ -83,15 +113,15 @@ class PmuCounter
 	/** Print counter config ID. */
 	std::string config_to_str(const perf_event_attr &perf_config);
 
-  private:
+private:
 	perf_event_attr _perf_config;
-	long            _fd{-1};
+	long            _fd {-1};
 };
 
 template <typename T>
 T PmuCounter::get_value() const
 {
-	long long     value{};
+	long long     value {};
 	const ssize_t result = read(_fd, &value, sizeof(long long));
 
 	if (result == -1)

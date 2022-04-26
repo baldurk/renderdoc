@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 ARM Limited.
+ * Copyright (c) 2019-2022 ARM Limited.
  *
  * SPDX-License-Identifier: MIT
  *
@@ -36,16 +36,25 @@ namespace hwcpipe
 enum class GpuCounter
 {
 	GpuCycles,
+	ComputeCycles,
+	VertexCycles,
 	VertexComputeCycles,
 	FragmentCycles,
 	TilerCycles,
 
+	ComputeJobs,
+	VertexJobs,
 	VertexComputeJobs,
 	FragmentJobs,
 	Pixels,
 
+	CulledPrimitives,
+	VisiblePrimitives,
+	InputPrimitives,
+
 	Tiles,
 	TransactionEliminations,
+
 	EarlyZTests,
 	EarlyZKilled,
 	LateZTests,
@@ -54,13 +63,17 @@ enum class GpuCounter
 	Instructions,
 	DivergedInstructions,
 
+	ShaderComputeCycles,
+	ShaderFragmentCycles,
 	ShaderCycles,
 	ShaderArithmeticCycles,
+	ShaderInterpolatorCycles,
 	ShaderLoadStoreCycles,
 	ShaderTextureCycles,
 
 	CacheReadLookups,
 	CacheWriteLookups,
+
 	ExternalMemoryReadAccesses,
 	ExternalMemoryWriteAccesses,
 	ExternalMemoryReadStalls,
@@ -72,39 +85,52 @@ enum class GpuCounter
 };
 
 // Mapping from GPU counter names to enum values. Used for JSON initialization.
-const std::unordered_map<std::string, GpuCounter> gpu_counter_names{
-    {"GpuCycles", GpuCounter::GpuCycles},
-    {"VertexComputeCycles", GpuCounter::VertexComputeCycles},
-    {"FragmentCycles", GpuCounter::FragmentCycles},
-    {"TilerCycles", GpuCounter::TilerCycles},
+const std::unordered_map<std::string, GpuCounter> gpu_counter_names {
+	{"GpuCycles", GpuCounter::GpuCycles},
+	{"ComputeCycles", GpuCounter::ComputeCycles},
+	{"VertexCycles", GpuCounter::VertexCycles},
+	{"VertexComputeCycles", GpuCounter::VertexComputeCycles},
+	{"FragmentCycles", GpuCounter::FragmentCycles},
+	{"TilerCycles", GpuCounter::TilerCycles},
 
-    {"VertexComputeJobs", GpuCounter::VertexComputeJobs},
-    {"Tiles", GpuCounter::Tiles},
-    {"TransactionEliminations", GpuCounter::TransactionEliminations},
-    {"FragmentJobs", GpuCounter::FragmentJobs},
-    {"Pixels", GpuCounter::Pixels},
+	{"ComputeJobs", GpuCounter::VertexComputeJobs},
+	{"VertexJobs", GpuCounter::VertexJobs},
+	{"VertexComputeJobs", GpuCounter::VertexComputeJobs},
+	{"FragmentJobs", GpuCounter::FragmentJobs},
+	{"Pixels", GpuCounter::Pixels},
 
-    {"EarlyZTests", GpuCounter::EarlyZTests},
-    {"EarlyZKilled", GpuCounter::EarlyZKilled},
-    {"LateZTests", GpuCounter::LateZTests},
-    {"LateZKilled", GpuCounter::LateZKilled},
+	{"CulledPrimitives", GpuCounter::CulledPrimitives},
+	{"VisiblePrimitives", GpuCounter::VisiblePrimitives},
+	{"InputPrimitives", GpuCounter::InputPrimitives},
 
-    {"Instructions", GpuCounter::Instructions},
-    {"DivergedInstructions", GpuCounter::DivergedInstructions},
+	{"Tiles", GpuCounter::Tiles},
+	{"TransactionEliminations", GpuCounter::TransactionEliminations},
 
-    {"ShaderCycles", GpuCounter::ShaderCycles},
-    {"ShaderArithmeticCycles", GpuCounter::ShaderArithmeticCycles},
-    {"ShaderLoadStoreCycles", GpuCounter::ShaderLoadStoreCycles},
-    {"ShaderTextureCycles", GpuCounter::ShaderTextureCycles},
+	{"EarlyZTests", GpuCounter::EarlyZTests},
+	{"EarlyZKilled", GpuCounter::EarlyZKilled},
+	{"LateZTests", GpuCounter::LateZTests},
+	{"LateZKilled", GpuCounter::LateZKilled},
 
-    {"CacheReadLookups", GpuCounter::CacheReadLookups},
-    {"CacheWriteLookups", GpuCounter::CacheWriteLookups},
-    {"ExternalMemoryReadAccesses", GpuCounter::ExternalMemoryReadAccesses},
-    {"ExternalMemoryWriteAccesses", GpuCounter::ExternalMemoryWriteAccesses},
-    {"ExternalMemoryReadStalls", GpuCounter::ExternalMemoryReadStalls},
-    {"ExternalMemoryWriteStalls", GpuCounter::ExternalMemoryWriteStalls},
-    {"ExternalMemoryReadBytes", GpuCounter::ExternalMemoryReadBytes},
-    {"ExternalMemoryWriteBytes", GpuCounter::ExternalMemoryWriteBytes},
+	{"Instructions", GpuCounter::Instructions},
+	{"DivergedInstructions", GpuCounter::DivergedInstructions},
+
+	{"ShaderComputeCycles", GpuCounter::ShaderComputeCycles},
+	{"ShaderFragmentCycles", GpuCounter::ShaderFragmentCycles},
+	{"ShaderCycles", GpuCounter::ShaderCycles},
+	{"ShaderArithmeticCycles", GpuCounter::ShaderArithmeticCycles},
+	{"ShaderInterpolatorCycles", GpuCounter::ShaderInterpolatorCycles},
+	{"ShaderLoadStoreCycles", GpuCounter::ShaderLoadStoreCycles},
+	{"ShaderTextureCycles", GpuCounter::ShaderTextureCycles},
+
+	{"CacheReadLookups", GpuCounter::CacheReadLookups},
+	{"CacheWriteLookups", GpuCounter::CacheWriteLookups},
+
+	{"ExternalMemoryReadAccesses", GpuCounter::ExternalMemoryReadAccesses},
+	{"ExternalMemoryWriteAccesses", GpuCounter::ExternalMemoryWriteAccesses},
+	{"ExternalMemoryReadStalls", GpuCounter::ExternalMemoryReadStalls},
+	{"ExternalMemoryWriteStalls", GpuCounter::ExternalMemoryWriteStalls},
+	{"ExternalMemoryReadBytes", GpuCounter::ExternalMemoryReadBytes},
+	{"ExternalMemoryWriteBytes", GpuCounter::ExternalMemoryWriteBytes},
 };
 
 // A hash function for GpuCounter values
@@ -124,39 +150,52 @@ struct GpuCounterInfo
 };
 
 // Mapping from each counter to its corresponding information (description and unit)
-const std::unordered_map<GpuCounter, GpuCounterInfo, GpuCounterHash> gpu_counter_info{
-    {GpuCounter::GpuCycles, {"Number of GPU cycles", "cycles"}},
-    {GpuCounter::VertexComputeCycles, {"Number of vertex/compute cycles", "cycles"}},
-    {GpuCounter::FragmentCycles, {"Number of fragment cycles", "cycles"}},
-    {GpuCounter::TilerCycles, {"Number of tiler cycles", "cycles"}},
+const std::unordered_map<GpuCounter, GpuCounterInfo, GpuCounterHash> gpu_counter_info {
+	{GpuCounter::GpuCycles, {"Number of GPU cycles", "cycles"}},
+	{GpuCounter::ComputeCycles, {"Number of compute cycles", "cycles"}},
+	{GpuCounter::VertexCycles, {"Number of vertex cycles", "cycles"}},
+	{GpuCounter::VertexComputeCycles, {"Number of vertex/compute cycles", "cycles"}},
+	{GpuCounter::FragmentCycles, {"Number of fragment cycles", "cycles"}},
+	{GpuCounter::TilerCycles, {"Number of tiler cycles", "cycles"}},
 
-    {GpuCounter::VertexComputeJobs, {"Number of vertex/compute jobs", "jobs"}},
-    {GpuCounter::Tiles, {"Number of physical tiles written", "tiles"}},
-    {GpuCounter::TransactionEliminations, {"Number of transaction eliminations", "tiles"}},
-    {GpuCounter::FragmentJobs, {"Number of fragment jobs", "jobs"}},
-    {GpuCounter::Pixels, {"Number of pixels shaded", "cycles"}},
+	{GpuCounter::ComputeJobs, {"Number of compute jobs", "jobs"}},
+	{GpuCounter::VertexJobs, {"Number of vertex jobs", "jobs"}},
+	{GpuCounter::VertexComputeJobs, {"Number of vertex/compute jobs", "jobs"}},
+	{GpuCounter::FragmentJobs, {"Number of fragment jobs", "jobs"}},
+	{GpuCounter::Pixels, {"Number of pixels shaded", "cycles"}},
 
-    {GpuCounter::EarlyZTests, {"Early-Z tests performed", "tests"}},
-    {GpuCounter::EarlyZKilled, {"Early-Z tests resulting in a kill", "tests"}},
-    {GpuCounter::LateZTests, {"Late-Z tests performed", "tests"}},
-    {GpuCounter::LateZKilled, {"Late-Z tests resulting in a kill", "tests"}},
+	{GpuCounter::CulledPrimitives, {"Number of culled primitives", "triangles"}},
+	{GpuCounter::VisiblePrimitives, {"Number of visible primitives", "triangles"}},
+	{GpuCounter::InputPrimitives, {"Number of input primitives", "triangles"}},
 
-    {GpuCounter::Instructions, {"Number of shader instructions", "instructions"}},
-    {GpuCounter::DivergedInstructions, {"Number of diverged shader instructions", "instructions"}},
+	{GpuCounter::Tiles, {"Number of physical tiles written", "tiles"}},
+	{GpuCounter::TransactionEliminations, {"Number of transaction eliminations", "tiles"}},
 
-    {GpuCounter::ShaderCycles, {"Shader total cycles", "cycles"}},
-    {GpuCounter::ShaderArithmeticCycles, {"Shader arithmetic cycles", "cycles"}},
-    {GpuCounter::ShaderLoadStoreCycles, {"Shader load/store cycles", "cycles"}},
-    {GpuCounter::ShaderTextureCycles, {"Shader texture cycles", "cycles"}},
+	{GpuCounter::EarlyZTests, {"Number of early-Z tests performed", "tests"}},
+	{GpuCounter::EarlyZKilled, {"Number of early-Z tests resulting in a kill", "tests"}},
+	{GpuCounter::LateZTests, {"Number of late-Z tests performed", "tests"}},
+	{GpuCounter::LateZKilled, {"Number of late-Z tests resulting in a kill", "tests"}},
 
-    {GpuCounter::CacheReadLookups, {"Cache read lookups", "lookups"}},
-    {GpuCounter::CacheWriteLookups, {"Cache write lookups", "lookups"}},
-    {GpuCounter::ExternalMemoryReadAccesses, {"Reads from external memory", "accesses"}},
-    {GpuCounter::ExternalMemoryWriteAccesses, {"Writes to external memory", "accesses"}},
-    {GpuCounter::ExternalMemoryReadStalls, {"Stalls when reading from external memory", "stalls"}},
-    {GpuCounter::ExternalMemoryWriteStalls, {"Stalls when writing to external memory", "stalls"}},
-    {GpuCounter::ExternalMemoryReadBytes, {"Bytes read to external memory", "B"}},
-    {GpuCounter::ExternalMemoryWriteBytes, {"Bytes written to external memory", "B"}},
+	{GpuCounter::Instructions, {"Number of shader instructions", "instructions"}},
+	{GpuCounter::DivergedInstructions, {"Number of diverged shader instructions", "instructions"}},
+
+	{GpuCounter::ShaderComputeCycles, {"Number of shader vertex/compute cycles", "cycles"}},
+	{GpuCounter::ShaderFragmentCycles, {"Number of shader fragment cycles", "cycles"}},
+	{GpuCounter::ShaderCycles, {"Number of shader core cycles", "cycles"}},
+	{GpuCounter::ShaderArithmeticCycles, {"Number of shader arithmetic cycles", "cycles"}},
+	{GpuCounter::ShaderInterpolatorCycles, {"Number of shader interpolator cycles", "cycles"}},
+	{GpuCounter::ShaderLoadStoreCycles, {"Number of shader load/store cycles", "cycles"}},
+	{GpuCounter::ShaderTextureCycles, {"Number of shader texture cycles", "cycles"}},
+
+	{GpuCounter::CacheReadLookups, {"Number of cache read lookups", "lookups"}},
+	{GpuCounter::CacheWriteLookups, {"Number of cache write lookups", "lookups"}},
+
+	{GpuCounter::ExternalMemoryReadAccesses, {"Number of reads from external memory", "accesses"}},
+	{GpuCounter::ExternalMemoryWriteAccesses, {"Number of writes to external memory", "accesses"}},
+	{GpuCounter::ExternalMemoryReadStalls, {"Number of stall cycles when reading from external memory", "cycles"}},
+	{GpuCounter::ExternalMemoryWriteStalls, {"Number of stall cycles when writing to external memory", "cycles"}},
+	{GpuCounter::ExternalMemoryReadBytes, {"Number of bytes read to external memory", "bytes"}},
+	{GpuCounter::ExternalMemoryWriteBytes, {"Number of bytes written to external memory", "bytes"}},
 };
 
 typedef std::unordered_set<GpuCounter, GpuCounterHash>        GpuCounterSet;
@@ -165,7 +204,7 @@ typedef std::unordered_map<GpuCounter, Value, GpuCounterHash> GpuMeasurements;
 /** An interface for classes that collect GPU performance data. */
 class GpuProfiler
 {
-  public:
+public:
 	virtual ~GpuProfiler() = default;
 
 	// Returns the enabled counters

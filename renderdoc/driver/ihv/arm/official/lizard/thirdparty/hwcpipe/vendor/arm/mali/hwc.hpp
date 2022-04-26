@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019 ARM Limited.
+ * Copyright (c) 2017-2022 ARM Limited.
  *
  * SPDX-License-Identifier: MIT
  *
@@ -37,16 +37,14 @@
 
 #include "hwc_names.hpp"
 
-#ifndef DOXYGEN_SKIP_THIS
-
-#	if defined(ANDROID) || defined(__ANDROID__)
-/* We use _IOR_BAD/_IOW_BAD rather than _IOR/_IOW otherwise fails to compile with NDK-BUILD because of _IOC_TYPECHECK is defined, not because the paramter is invalid */
-#		define MALI_IOR(a, b, c) _IOR_BAD(a, b, c)
-#		define MALI_IOW(a, b, c) _IOW_BAD(a, b, c)
-#	else
-#		define MALI_IOR(a, b, c) _IOR(a, b, c)
-#		define MALI_IOW(a, b, c) _IOW(a, b, c)
-#	endif
+#if defined(ANDROID) || defined(__ANDROID__)
+	/* We use _IOR_BAD/_IOW_BAD rather than _IOR/_IOW otherwise fails to compile with NDK-BUILD because of _IOC_TYPECHECK is defined, not because the paramter is invalid */
+	#define MALI_IOR(a, b, c) _IOR_BAD(a, b, c)
+	#define MALI_IOW(a, b, c) _IOW_BAD(a, b, c)
+#else
+	#define MALI_IOR(a, b, c) _IOR(a, b, c)
+	#define MALI_IOW(a, b, c) _IOW(a, b, c)
+#endif
 
 namespace mali_userspace
 {
@@ -57,8 +55,8 @@ union uk_header
 	uint64_t sizer;
 };
 
-#	define BASE_GPU_NUM_TEXTURE_FEATURES_REGISTERS 3
-#	define BASE_MAX_COHERENT_GROUPS 16
+#define BASE_GPU_NUM_TEXTURE_FEATURES_REGISTERS 3
+#define BASE_MAX_COHERENT_GROUPS 16
 
 struct mali_base_gpu_core_props
 {
@@ -117,7 +115,7 @@ struct mali_base_gpu_coherent_group_info
 	mali_base_gpu_coherent_group group[BASE_MAX_COHERENT_GROUPS];
 };
 
-#	define GPU_MAX_JOB_SLOTS 16
+#define GPU_MAX_JOB_SLOTS 16
 struct gpu_raw_gpu_props
 {
 	uint64_t shader_present;
@@ -164,35 +162,35 @@ struct kbase_uk_gpuprops
 	mali_base_gpu_props props;
 };
 
-#	define KBASE_GPUPROP_VALUE_SIZE_U8 (0x0)
-#	define KBASE_GPUPROP_VALUE_SIZE_U16 (0x1)
-#	define KBASE_GPUPROP_VALUE_SIZE_U32 (0x2)
-#	define KBASE_GPUPROP_VALUE_SIZE_U64 (0x3)
+#define KBASE_GPUPROP_VALUE_SIZE_U8 (0x0)
+#define KBASE_GPUPROP_VALUE_SIZE_U16 (0x1)
+#define KBASE_GPUPROP_VALUE_SIZE_U32 (0x2)
+#define KBASE_GPUPROP_VALUE_SIZE_U64 (0x3)
 
-#	define KBASE_GPUPROP_PRODUCT_ID 1
-#	define KBASE_GPUPROP_MINOR_REVISION 3
-#	define KBASE_GPUPROP_MAJOR_REVISION 4
+#define KBASE_GPUPROP_PRODUCT_ID 1
+#define KBASE_GPUPROP_MINOR_REVISION 3
+#define KBASE_GPUPROP_MAJOR_REVISION 4
 
-#	define KBASE_GPUPROP_COHERENCY_NUM_GROUPS 61
-#	define KBASE_GPUPROP_COHERENCY_NUM_CORE_GROUPS 62
-#	define KBASE_GPUPROP_COHERENCY_GROUP_0 64
-#	define KBASE_GPUPROP_COHERENCY_GROUP_1 65
-#	define KBASE_GPUPROP_COHERENCY_GROUP_2 66
-#	define KBASE_GPUPROP_COHERENCY_GROUP_3 67
-#	define KBASE_GPUPROP_COHERENCY_GROUP_4 68
-#	define KBASE_GPUPROP_COHERENCY_GROUP_5 69
-#	define KBASE_GPUPROP_COHERENCY_GROUP_6 70
-#	define KBASE_GPUPROP_COHERENCY_GROUP_7 71
-#	define KBASE_GPUPROP_COHERENCY_GROUP_8 72
-#	define KBASE_GPUPROP_COHERENCY_GROUP_9 73
-#	define KBASE_GPUPROP_COHERENCY_GROUP_10 74
-#	define KBASE_GPUPROP_COHERENCY_GROUP_11 75
-#	define KBASE_GPUPROP_COHERENCY_GROUP_12 76
-#	define KBASE_GPUPROP_COHERENCY_GROUP_13 77
-#	define KBASE_GPUPROP_COHERENCY_GROUP_14 78
-#	define KBASE_GPUPROP_COHERENCY_GROUP_15 79
+#define KBASE_GPUPROP_COHERENCY_NUM_GROUPS 61
+#define KBASE_GPUPROP_COHERENCY_NUM_CORE_GROUPS 62
+#define KBASE_GPUPROP_COHERENCY_GROUP_0 64
+#define KBASE_GPUPROP_COHERENCY_GROUP_1 65
+#define KBASE_GPUPROP_COHERENCY_GROUP_2 66
+#define KBASE_GPUPROP_COHERENCY_GROUP_3 67
+#define KBASE_GPUPROP_COHERENCY_GROUP_4 68
+#define KBASE_GPUPROP_COHERENCY_GROUP_5 69
+#define KBASE_GPUPROP_COHERENCY_GROUP_6 70
+#define KBASE_GPUPROP_COHERENCY_GROUP_7 71
+#define KBASE_GPUPROP_COHERENCY_GROUP_8 72
+#define KBASE_GPUPROP_COHERENCY_GROUP_9 73
+#define KBASE_GPUPROP_COHERENCY_GROUP_10 74
+#define KBASE_GPUPROP_COHERENCY_GROUP_11 75
+#define KBASE_GPUPROP_COHERENCY_GROUP_12 76
+#define KBASE_GPUPROP_COHERENCY_GROUP_13 77
+#define KBASE_GPUPROP_COHERENCY_GROUP_14 78
+#define KBASE_GPUPROP_COHERENCY_GROUP_15 79
 
-#	define KBASE_GPUPROP_L2_NUM_L2_SLICES 15
+#define KBASE_GPUPROP_L2_NUM_L2_SLICES 15
 
 struct gpu_props
 {
@@ -212,36 +210,36 @@ static const struct
 	size_t   offset;
 	int      size;
 } gpu_property_mapping[] = {
-#	define PROP(name, member)                                        \
-		{                                                             \
-			KBASE_GPUPROP_##name, offsetof(struct gpu_props, member), \
-			    sizeof(((struct gpu_props *) 0)->member)              \
-		}
-    PROP(PRODUCT_ID, product_id),
-    PROP(MINOR_REVISION, minor_revision),
-    PROP(MAJOR_REVISION, major_revision),
-    PROP(COHERENCY_NUM_GROUPS, num_groups),
-    PROP(COHERENCY_NUM_CORE_GROUPS, num_core_groups),
-    PROP(COHERENCY_GROUP_0, core_mask[0]),
-    PROP(COHERENCY_GROUP_1, core_mask[1]),
-    PROP(COHERENCY_GROUP_2, core_mask[2]),
-    PROP(COHERENCY_GROUP_3, core_mask[3]),
-    PROP(COHERENCY_GROUP_4, core_mask[4]),
-    PROP(COHERENCY_GROUP_5, core_mask[5]),
-    PROP(COHERENCY_GROUP_6, core_mask[6]),
-    PROP(COHERENCY_GROUP_7, core_mask[7]),
-    PROP(COHERENCY_GROUP_8, core_mask[8]),
-    PROP(COHERENCY_GROUP_9, core_mask[9]),
-    PROP(COHERENCY_GROUP_10, core_mask[10]),
-    PROP(COHERENCY_GROUP_11, core_mask[11]),
-    PROP(COHERENCY_GROUP_12, core_mask[12]),
-    PROP(COHERENCY_GROUP_13, core_mask[13]),
-    PROP(COHERENCY_GROUP_14, core_mask[14]),
-    PROP(COHERENCY_GROUP_15, core_mask[15]),
+#define PROP(name, member)                                        \
+	{                                                             \
+		KBASE_GPUPROP_##name, offsetof(struct gpu_props, member), \
+			sizeof(((struct gpu_props *) 0)->member)              \
+	}
+	PROP(PRODUCT_ID, product_id),
+	PROP(MINOR_REVISION, minor_revision),
+	PROP(MAJOR_REVISION, major_revision),
+	PROP(COHERENCY_NUM_GROUPS, num_groups),
+	PROP(COHERENCY_NUM_CORE_GROUPS, num_core_groups),
+	PROP(COHERENCY_GROUP_0, core_mask[0]),
+	PROP(COHERENCY_GROUP_1, core_mask[1]),
+	PROP(COHERENCY_GROUP_2, core_mask[2]),
+	PROP(COHERENCY_GROUP_3, core_mask[3]),
+	PROP(COHERENCY_GROUP_4, core_mask[4]),
+	PROP(COHERENCY_GROUP_5, core_mask[5]),
+	PROP(COHERENCY_GROUP_6, core_mask[6]),
+	PROP(COHERENCY_GROUP_7, core_mask[7]),
+	PROP(COHERENCY_GROUP_8, core_mask[8]),
+	PROP(COHERENCY_GROUP_9, core_mask[9]),
+	PROP(COHERENCY_GROUP_10, core_mask[10]),
+	PROP(COHERENCY_GROUP_11, core_mask[11]),
+	PROP(COHERENCY_GROUP_12, core_mask[12]),
+	PROP(COHERENCY_GROUP_13, core_mask[13]),
+	PROP(COHERENCY_GROUP_14, core_mask[14]),
+	PROP(COHERENCY_GROUP_15, core_mask[15]),
 
-    PROP(L2_NUM_L2_SLICES, l2_slices),
-#	undef PROP
-    {0, 0, 0}};
+	PROP(L2_NUM_L2_SLICES, l2_slices),
+#undef PROP
+	{0, 0, 0}};
 
 struct kbase_hwcnt_reader_metadata
 {
@@ -307,11 +305,12 @@ struct kbase_ioctl_hwcnt_reader_setup
 	uint32_t mmu_l2_bm;
 };
 
-#	define KBASE_IOCTL_TYPE 0x80
-#	define KBASE_IOCTL_GET_GPUPROPS MALI_IOW(KBASE_IOCTL_TYPE, 3, struct mali_userspace::kbase_ioctl_get_gpuprops)
-#	define KBASE_IOCTL_VERSION_CHECK _IOWR(KBASE_IOCTL_TYPE, 0, struct mali_userspace::kbase_ioctl_version_check)
-#	define KBASE_IOCTL_SET_FLAGS _IOW(KBASE_IOCTL_TYPE, 1, struct mali_userspace::kbase_ioctl_set_flags)
-#	define KBASE_IOCTL_HWCNT_READER_SETUP _IOW(KBASE_IOCTL_TYPE, 8, struct mali_userspace::kbase_ioctl_hwcnt_reader_setup)
+#define KBASE_IOCTL_TYPE 0x80
+#define KBASE_IOCTL_GET_GPUPROPS MALI_IOW(KBASE_IOCTL_TYPE, 3, struct mali_userspace::kbase_ioctl_get_gpuprops)
+#define KBASE_IOCTL_VERSION_CHECK_JM _IOWR(KBASE_IOCTL_TYPE, 0, struct mali_userspace::kbase_ioctl_version_check)
+#define KBASE_IOCTL_VERSION_CHECK_CSF _IOWR(KBASE_IOCTL_TYPE, 52, struct mali_userspace::kbase_ioctl_version_check)
+#define KBASE_IOCTL_SET_FLAGS _IOW(KBASE_IOCTL_TYPE, 1, struct mali_userspace::kbase_ioctl_set_flags)
+#define KBASE_IOCTL_HWCNT_READER_SETUP _IOW(KBASE_IOCTL_TYPE, 8, struct mali_userspace::kbase_ioctl_hwcnt_reader_setup)
 
 /** IOCTL parameters to set flags */
 struct kbase_uk_hwcnt_reader_set_flags
@@ -350,7 +349,9 @@ struct uku_version_check_args
 
 enum
 {
-	UKP_FUNC_ID_CHECK_VERSION = 0,
+	UKP_FUNC_ID_CHECK_VERSION_JM = 0,
+	UKP_FUNC_ID_CHECK_VERSION_CSF = 52,
+
 	/* Related to mali0 ioctl interface */
 	LINUX_UK_BASE_MAGIC              = 0x80,
 	BASE_CONTEXT_CREATE_KERNEL_FLAGS = 0x2,
@@ -408,6 +409,5 @@ static inline int mali_ioctl(int fd, T &arg)
 
 	return 0;
 }
-}        // namespace mali_userspace
 
-#endif /* DOXYGEN_SKIP_THIS */
+}        // namespace mali_userspace

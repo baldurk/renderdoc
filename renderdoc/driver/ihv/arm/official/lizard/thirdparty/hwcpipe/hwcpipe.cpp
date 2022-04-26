@@ -26,12 +26,12 @@
 #include "hwcpipe_log.h"
 
 #ifdef __linux__
-#	include "vendor/arm/pmu/pmu_profiler.h"
-#	include "vendor/arm/mali/mali_profiler.h"
+	#include "vendor/arm/pmu/pmu_profiler.h"
+	#include "vendor/arm/mali/mali_profiler.h"
 #endif
 
 #ifndef HWCPIPE_NO_JSON
-#include <json.hpp>
+	#include <json.hpp>
 using json = nlohmann::json;
 #endif
 
@@ -44,7 +44,7 @@ HWCPipe::HWCPipe(const char *json_string)
 {
 	auto json = json::parse(json_string);
 
-	CpuCounterSet enabled_cpu_counters{};
+	CpuCounterSet enabled_cpu_counters {};
 	auto          cpu = json.find("cpu");
 	if (cpu != json.end())
 	{
@@ -62,7 +62,7 @@ HWCPipe::HWCPipe(const char *json_string)
 		}
 	}
 
-	GpuCounterSet enabled_gpu_counters{};
+	GpuCounterSet enabled_gpu_counters {};
 	auto          gpu = json.find("gpu");
 	if (gpu != json.end())
 	{
@@ -91,25 +91,29 @@ HWCPipe::HWCPipe(CpuCounterSet enabled_cpu_counters, GpuCounterSet enabled_gpu_c
 
 HWCPipe::HWCPipe()
 {
-	CpuCounterSet enabled_cpu_counters{CpuCounter::Cycles,
-	                                   CpuCounter::Instructions,
-	                                   CpuCounter::CacheReferences,
-	                                   CpuCounter::CacheMisses,
-	                                   CpuCounter::BranchInstructions,
-	                                   CpuCounter::BranchMisses};
+	CpuCounterSet enabled_cpu_counters {
+		CpuCounter::Cycles,
+		CpuCounter::Instructions,
+		CpuCounter::CacheReferences,
+		CpuCounter::CacheMisses,
+		CpuCounter::BranchInstructions,
+		CpuCounter::BranchMisses,
+	};
 
-	GpuCounterSet enabled_gpu_counters{GpuCounter::GpuCycles,
-	                                   GpuCounter::VertexComputeCycles,
-	                                   GpuCounter::FragmentCycles,
-	                                   GpuCounter::TilerCycles,
-	                                   GpuCounter::CacheReadLookups,
-	                                   GpuCounter::CacheWriteLookups,
-	                                   GpuCounter::ExternalMemoryReadAccesses,
-	                                   GpuCounter::ExternalMemoryWriteAccesses,
-	                                   GpuCounter::ExternalMemoryReadStalls,
-	                                   GpuCounter::ExternalMemoryWriteStalls,
-	                                   GpuCounter::ExternalMemoryReadBytes,
-	                                   GpuCounter::ExternalMemoryWriteBytes};
+	GpuCounterSet enabled_gpu_counters {
+		GpuCounter::GpuCycles,
+		GpuCounter::VertexComputeCycles,
+		GpuCounter::FragmentCycles,
+		GpuCounter::TilerCycles,
+		GpuCounter::CacheReadLookups,
+		GpuCounter::CacheWriteLookups,
+		GpuCounter::ExternalMemoryReadAccesses,
+		GpuCounter::ExternalMemoryWriteAccesses,
+		GpuCounter::ExternalMemoryReadStalls,
+		GpuCounter::ExternalMemoryWriteStalls,
+		GpuCounter::ExternalMemoryReadBytes,
+		GpuCounter::ExternalMemoryWriteBytes,
+	};
 
 	create_profilers(std::move(enabled_cpu_counters), std::move(enabled_gpu_counters));
 }
@@ -174,7 +178,10 @@ void HWCPipe::create_profilers(CpuCounterSet enabled_cpu_counters, GpuCounterSet
 #ifdef __linux__
 	try
 	{
-		cpu_profiler_ = std::unique_ptr<PmuProfiler>(new PmuProfiler(enabled_cpu_counters));
+		if (enabled_cpu_counters.size() != 0)
+		{
+			cpu_profiler_ = std::unique_ptr<PmuProfiler>(new PmuProfiler(enabled_cpu_counters));
+		}
 	}
 	catch (const std::runtime_error &e)
 	{
@@ -183,7 +190,10 @@ void HWCPipe::create_profilers(CpuCounterSet enabled_cpu_counters, GpuCounterSet
 
 	try
 	{
-		gpu_profiler_ = std::unique_ptr<MaliProfiler>(new MaliProfiler(enabled_gpu_counters));
+		if (enabled_gpu_counters.size() != 0)
+		{
+			gpu_profiler_ = std::unique_ptr<MaliProfiler>(new MaliProfiler(enabled_gpu_counters));
+		}
 	}
 	catch (const std::runtime_error &e)
 	{

@@ -33,7 +33,7 @@ namespace hwcpipe
 /** A CPU profiler that uses PMU counter data. */
 class PmuProfiler : public CpuProfiler
 {
-  public:
+public:
 	explicit PmuProfiler(const CpuCounterSet &enabled_counters);
 	virtual ~PmuProfiler() = default;
 
@@ -56,22 +56,35 @@ class PmuProfiler : public CpuProfiler
 	virtual const CpuMeasurements &sample() override;
 	virtual void                   stop() override;
 
-  private:
-	CpuCounterSet enabled_counters_{};
-	CpuCounterSet available_counters_{};
+private:
+	CpuCounterSet enabled_counters_ {};
+	CpuCounterSet available_counters_ {};
 
-	const CpuCounterSet supported_counters_{
-	    CpuCounter::Cycles,
-	    CpuCounter::Instructions,
-	    CpuCounter::CacheReferences,
-	    CpuCounter::CacheMisses,
-	    CpuCounter::BranchInstructions,
-	    CpuCounter::BranchMisses};
+	const CpuCounterSet supported_counters_ {
+		CpuCounter::Cycles,
+		CpuCounter::Instructions,
+		CpuCounter::CacheReferences,
+		CpuCounter::CacheMisses,
+		CpuCounter::BranchInstructions,
+		CpuCounter::BranchMisses,
 
-	CpuMeasurements measurements_{};
-	CpuMeasurements prev_measurements_{};
+		CpuCounter::L1Accesses,
+		CpuCounter::InstrRetired,
+		CpuCounter::L2Accesses,
+		CpuCounter::L3Accesses,
+		CpuCounter::BusReads,
+		CpuCounter::BusWrites,
+		CpuCounter::MemReads,
+		CpuCounter::MemWrites,
+		CpuCounter::ASESpec,
+		CpuCounter::VFPSpec,
+		CpuCounter::CryptoSpec,
+	};
 
-	std::unordered_map<CpuCounter, PmuCounter, CpuCounterHash> pmu_counters_{};
+	CpuMeasurements measurements_ {};
+	CpuMeasurements prev_measurements_ {};
+
+	std::unordered_map<CpuCounter, PmuCounter, CpuCounterHash> pmu_counters_ {};
 };
 
 }        // namespace hwcpipe
