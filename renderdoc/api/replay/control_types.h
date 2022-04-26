@@ -983,8 +983,8 @@ struct ResultDetails
 
   DOCUMENT(R"(A simple helper function to check if this result is successful.
 
-:return Whether or not this result is successful
-:rtype bool
+:return: Whether or not this result is successful
+:rtype: bool
 )");
   bool OK() const { return code == ResultCode::Succeeded; }
   DOCUMENT("");
@@ -1005,8 +1005,8 @@ extra information that is available about the error.
   It's not necessary to also display the stringified version of :data:`code` as that is automatically
   included in the message.
 
-:return A formatted message for failure codes, including the code itself.
-:rtype str
+:return: A formatted message for failure codes, including the code itself.
+:rtype: str
 )");
   rdcstr Message() const { return internal_msg ? *internal_msg : ToStr(code); }
   const rdcstr *internal_msg;
@@ -1022,8 +1022,10 @@ struct ExecuteResult
   ExecuteResult(const ExecuteResult &) = default;
   ExecuteResult &operator=(const ExecuteResult &) = default;
 
-  DOCUMENT(
-      "The :class:`ResultDetails` resulting from the operation, indicating success or failure.");
+  DOCUMENT(R"(The :class:`ResultDetails` resulting from the operation, indicating success or failure.
+
+:type: ResultDetails
+)");
   ResultDetails result;
   DOCUMENT(R"(The ident where the new application is listening for target control, or 0 if something
 went wrong.
