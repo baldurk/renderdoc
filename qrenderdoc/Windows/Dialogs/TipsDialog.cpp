@@ -64,12 +64,11 @@ void TipsDialog::initialize()
   ///////////////////////////////////////////////////////////
 
   // Tip 1
-  m_tips.push_back(
-      Tip(tr("Talk to me!"),
-          tr("RenderDoc is a labour of love and has been developed from scratch entirely in my "
-             "spare time. If you run into a bug, have a feature request or just have a question, "
-             "please feel free to get in touch and I'm always happy to talk and help out in any "
-             "way I can - baldurk@baldurk.org.")));
+  m_tips.push_back(Tip(tr("Talk to me!"),
+                       tr("RenderDoc is a labour of love and is actively developed. If you run "
+                          "into a bug, please file it on github and I will investigate it as best "
+                          "as I can. If you have a feature request for functionality or "
+                          "improvements please file it as well so that it can be considered.")));
 
   // Tip 2
   m_tips.push_back(Tip(tr("Quick channel toggling"),
@@ -109,28 +108,30 @@ void TipsDialog::initialize()
   // Tip 7
   m_tips.push_back(
       Tip(tr("Shader register value display"),
-          tr("If you want to see to see a register reinterpreted as different types, you can hover "
-             "over it either in the disassembly or in the watch windows. A tooltip will show it "
-             "interpreted as float, uint decimal, int decimal or hexadecimal.")));
+          tr("If you want to see to see a D3D shader register reinterpreted as different types, "
+             "you can hover over it either in the disassembly or in the watch windows. A tooltip "
+             "will show it interpreted as float, uint decimal, int decimal or hexadecimal.")));
 
   // Tip 8
   m_tips.push_back(
       Tip(tr("Custom shader watch expressions"),
           tr("In addition to the pre-filled watch windows while shader debugging, you can also "
              "enter custom watch expressions. This takes the form of e.g. r0.xyz. You can append "
-             ",x or ,b to specify the type - full list in the docs.\n")));
+             ",x or ,b to specify the type - full list in the docs.")));
 
   // Tip 9
   m_tips.push_back(Tip(tr("Shader debugger float/int toggle"),
-                       tr("By default register values are shown as floats, but you can toggle this "
-                          "to default to ints either in the shader debugger toolbar, or by right "
-                          "clicking and toggling int/float display.\n")));
+                       tr("By default D3D untyped register values are shown as floats, but you can "
+                          "toggle this to default to ints either in the shader debugger toolbar, "
+                          "or by right clicking and toggling int/float display.")));
 
   // Tip 10
-  m_tips.push_back(Tip(tr("D3D11 shader debug information"),
-                       tr("You'll get the best results in RenderDoc by stripping as little as "
-                          "possible from D3D11 shaders. Reflection data is used all over the place "
-                          "to produce a nicer debugging experience.\n")));
+  m_tips.push_back(
+      Tip(tr("Shader debug information"),
+          tr("You'll get the best results in RenderDoc by stripping as little debug information as "
+             "possible from shaders. Reflection data is used all over the place to produce a nicer "
+             "debugging experience.\n\nIf you do strip debug or reflection information, you can "
+             "store it separately to be loaded later. More information is in the documentation.")));
 
   // Tip 11
   m_tips.push_back(
@@ -177,8 +178,8 @@ void TipsDialog::initialize()
   m_tips.push_back(Tip(tr("Python scripting"),
                        tr("RenderDoc supports some amount of Python scripting. Open up the Python "
                           "shell in the UI to either use it interactively or load and execute "
-                          "python scripts.\n\nThe 'renderdoc' object is an instance of the Core "
-                          "class - see the RenderDoc source for more information.")));
+                          "python scripts.\n\nThe 'renderdoc' object is an instance of the "
+                          "'CaptureContext' class - see the documentation for more information.")));
 
   // Tip 17
   m_tips.push_back(Tip(
@@ -188,7 +189,7 @@ void TipsDialog::initialize()
          "to view the history of in the texture viewer, and click the 'history' button underneath "
          "the zoomed-in pixel context.\n\nEach event will show up red or green depending on "
          "whether it affected or didn't affect the pixel. By expanding the event, you can see the "
-         "possibly several primitives within the action that overdrew the pixel.\n")));
+         "possibly several primitives within the draw that overdrew the pixel.\n")));
 
   // Tip 18
   m_tips.push_back(
@@ -209,7 +210,7 @@ void TipsDialog::initialize()
   // Tip 20
   m_tips.push_back(
       Tip(tr("Gathering of per-event callstacks"),
-          tr("RenderDoc is able to gather callstacks either per-action or per-API event. You can "
+          tr("RenderDoc is able to gather callstacks either per-drawcall or per-API event. You can "
              "do this by enabling the option before launching an application capture.\n\nWhen "
              "loading the log, initially the callstacks will not be available until symbols are "
              "resolved. Go to tools -> resolve symbols to load up the pdbs matching the modules "
@@ -219,7 +220,7 @@ void TipsDialog::initialize()
   m_tips.push_back(Tip(
       tr("Texture debugging overlays"),
       tr("In the texture viewer, you can select from several helpful debugging overlays over the "
-         "current view. This can show wireframe or solid coloour overlays of the current action, "
+         "current view. This can show wireframe or solid coloour overlays of the current drawcall, "
          "as well as showing depth pass/fail or even representing quad overdraw as a heatmap.\n")));
 
   // Tip 22
@@ -265,11 +266,9 @@ void TipsDialog::initialize()
              "over the panel and scrolling, no need to click to change focus.\n")));
 
   // Tip 27
-  m_tips.push_back(
-      Tip(tr("Event browser keyboard shortcuts"),
-          tr("In the event browser Ctrl-F opens up the find bar, to locate an event by its name. "
-             "Ctrl-G opens the jump-to-event to jump to the closest action to a numbered event. "
-             "Ctrl-B will toggle a bookmark at the current event.\n")));
+  m_tips.push_back(Tip(tr("Event browser keyboard shortcuts"),
+                       tr("In the event browser Ctrl-F opens up the find bar, to locate an event "
+                          "by its name. Ctrl-B will toggle a bookmark at the current event.\n")));
 
   // Tip 28
   m_tips.push_back(
@@ -280,16 +279,6 @@ void TipsDialog::initialize()
              "target.\n\nIf these parameters are incorrect - e.g. you are using an orthographic "
              "projection or the near/far guesses are wrong, you can override them by opening the "
              "view settings with the cog icon.\n")));
-
-  // Tip 29
-  m_tips.push_back(
-      Tip(tr("Global process hook"),
-          tr("Sometimes a particular program is difficult to launch directly through RenderDoc. In "
-             "these cases, RenderDoc can install a global system hook that will insert a tiny shim "
-             "DLL into every newly-created process on the system. This shim will identify if it is "
-             "in the target application and either inject RenderDoc, or unload itself.\n\nNote: "
-             "Since it is a global hook this is not without risks, only use if it's the only "
-             "alternative, and read the documentation carefully.\n")));
 
   ///////////////////////////////////////////////////////////
   // This section of code is auto-generated. Modifications //
