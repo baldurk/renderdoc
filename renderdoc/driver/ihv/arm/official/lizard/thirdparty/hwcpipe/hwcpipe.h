@@ -37,14 +37,14 @@ namespace hwcpipe
 {
 struct Measurements
 {
-	const CpuMeasurements *cpu{nullptr};
-	const GpuMeasurements *gpu{nullptr};
+	const CpuMeasurements *cpu {nullptr};
+	const GpuMeasurements *gpu {nullptr};
 };
 
 /** A class that collects CPU/GPU performance data. */
 class HWCPipe
 {
-  public:
+public:
 #ifndef HWCPIPE_NO_JSON
 	// Initializes HWCPipe via a JSON configuration string
 	explicit HWCPipe(const char *json_string);
@@ -83,9 +83,9 @@ class HWCPipe
 		return gpu_profiler_.get();
 	}
 
-  private:
-	std::unique_ptr<CpuProfiler> cpu_profiler_{};
-	std::unique_ptr<GpuProfiler> gpu_profiler_{};
+private:
+	std::unique_ptr<CpuProfiler> cpu_profiler_ {};
+	std::unique_ptr<GpuProfiler> gpu_profiler_ {};
 
 	void create_profilers(CpuCounterSet enabled_cpu_counters, GpuCounterSet enabled_gpu_counters);
 };

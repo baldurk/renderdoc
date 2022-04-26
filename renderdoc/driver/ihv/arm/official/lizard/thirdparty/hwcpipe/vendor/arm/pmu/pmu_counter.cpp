@@ -26,26 +26,13 @@
 
 #include <asm/unistd.h>
 #include <cstring>
+#include <linux/version.h>
 #include <stdexcept>
 #include <sys/ioctl.h>
 
-/* Add std_to_string implementation as it is possible that Android does not provide it */
-#include <string>
-#include <sstream>
-
-template <typename T>
-std::string std_to_string(T value)
-{
-    std::ostringstream os ;
-    os << value ;
-    return os.str() ;
-}
-
-
 PmuCounter::PmuCounter() :
-    _perf_config()
+	_perf_config()
 {
-	_perf_config.type = PERF_TYPE_HARDWARE;
 	_perf_config.size = sizeof(perf_event_attr);
 
 	// Start disabled
@@ -57,8 +44,8 @@ PmuCounter::PmuCounter() :
 	_perf_config.inherit_stat = 1;
 }
 
-PmuCounter::PmuCounter(uint64_t config) :
-    PmuCounter()
+PmuCounter::PmuCounter(PmuEventInfo config) :
+	PmuCounter()
 {
 	open(config);
 }
@@ -68,9 +55,10 @@ PmuCounter::~PmuCounter()
 	close();
 }
 
-void PmuCounter::open(uint64_t config)
+void PmuCounter::open(PmuEventInfo config)
 {
-	_perf_config.config = config;
+	_perf_config.config = config.event;
+	_perf_config.type   = config.type;
 	open(_perf_config);
 }
 
@@ -133,12 +121,16 @@ std::string PmuCounter::config_to_str(const perf_event_attr &perf_config)
 					return "PERF_COUNT_HW_BRANCH_MISSES";
 				case PERF_COUNT_HW_BUS_CYCLES:
 					return "PERF_COUNT_HW_BUS_CYCLES";
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
 				case PERF_COUNT_HW_STALLED_CYCLES_FRONTEND:
 					return "PERF_COUNT_HW_STALLED_CYCLES_FRONTEND";
 				case PERF_COUNT_HW_STALLED_CYCLES_BACKEND:
 					return "PERF_COUNT_HW_STALLED_CYCLES_BACKEND";
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 3, 0)
 				case PERF_COUNT_HW_REF_CPU_CYCLES:
 					return "PERF_COUNT_HW_REF_CPU_CYCLES";
+#endif
 				default:
 					return "UNKNOWN HARDWARE COUNTER";
 			}
@@ -160,16 +152,50 @@ std::string PmuCounter::config_to_str(const perf_event_attr &perf_config)
 					return "PERF_COUNT_SW_PAGE_FAULTS_MIN";
 				case PERF_COUNT_SW_PAGE_FAULTS_MAJ:
 					return "PERF_COUNT_SW_PAGE_FAULTS_MAJ";
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 				case PERF_COUNT_SW_ALIGNMENT_FAULTS:
 					return "PERF_COUNT_SW_ALIGNMENT_FAULTS";
 				case PERF_COUNT_SW_EMULATION_FAULTS:
 					return "PERF_COUNT_SW_EMULATION_FAULTS";
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
 				case PERF_COUNT_SW_DUMMY:
 					return "PERF_COUNT_SW_DUMMY";
+#endif
 				default:
 					return "UNKNOWN SOFTWARE COUNTER";
 			}
+
+		case PERF_TYPE_RAW:
+			switch (static_cast<PmuImplDefined>(perf_config.config))
+			{
+				case PmuImplDefined::L1_ACCESSES:
+					return "L1_ACCESSES";
+				case PmuImplDefined::INSTR_RETIRED:
+					return "INSTR_RETIRED";
+				case PmuImplDefined::L2_ACCESSES:
+					return "L2_ACCESSES";
+				case PmuImplDefined::L3_ACCESSES:
+					return "L3_ACCESSES";
+				case PmuImplDefined::BUS_READS:
+					return "BUS_READS";
+				case PmuImplDefined::BUS_WRITES:
+					return "BUS_WRITES";
+				case PmuImplDefined::MEM_READS:
+					return "MEM_READS";
+				case PmuImplDefined::MEM_WRITES:
+					return "MEM_WRITES";
+				case PmuImplDefined::ASE_SPEC:
+					return "ASE_SPEC";
+				case PmuImplDefined::VFP_SPEC:
+					return "VFP_SPEC";
+				case PmuImplDefined::CRYPTO_SPEC:
+					return "CRYPTO_SPEC";
+				default:
+					return "UNKNOWN RAW COUNTER";
+			}
+
 		default:
-			return std_to_string(perf_config.config);
+			return std::to_string(perf_config.config);
 	}
 }

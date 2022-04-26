@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 ARM Limited.
+ * Copyright (c) 2019-2022 ARM Limited.
  *
  * SPDX-License-Identifier: MIT
  *
@@ -27,11 +27,11 @@
 #define HWCPIPE_TAG "HWCPipe"
 
 #if defined(__ANDROID__)
-#	include <android/log.h>
+	#include <android/log.h>
 
-#	define HWCPIPE_LOG(...) //__android_log_print(ANDROID_LOG_VERBOSE, HWCPIPE_TAG, __VA_ARGS__)
+	#define HWCPIPE_LOG(...) __android_log_print(ANDROID_LOG_VERBOSE, HWCPIPE_TAG, __VA_ARGS__)
 #else
-#	define HWCPIPE_LOG(...)                              \
+	#define HWCPIPE_LOG(...)                              \
 		{                                                 \
 			fprintf(stdout, "%s [INFO] : ", HWCPIPE_TAG); \
 			fprintf(stdout, __VA_ARGS__);                 \
