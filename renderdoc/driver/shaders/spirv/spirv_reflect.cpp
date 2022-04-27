@@ -462,6 +462,10 @@ void Reflector::RegisterOp(Iter it)
             dbg.params.size() > 1 ? strings[dbg.arg<Id>(1)] : rdcstr(),
         });
       }
+      else if(dbg.inst == ShaderDbg::SourceContinued)
+      {
+        sources.back().contents += strings[dbg.arg<Id>(0)];
+      }
       else if(dbg.inst == ShaderDbg::CompilationUnit)
       {
         sources[debugSources[dbg.arg<Id>(2)]].lang =
