@@ -1427,7 +1427,7 @@ SPDBChunk::SPDBChunk(byte *data, uint32_t spdblength)
 
             for(size_t i = 0; i < Files.size(); i++)
             {
-              if(!_stricmp(Files[i].first.c_str(), name.c_str()))
+              if(!_stricmp(Files[i].filename.c_str(), name.c_str()))
               {
                 fileIdx = (int32_t)i;
                 break;
@@ -1443,7 +1443,7 @@ SPDBChunk::SPDBChunk(byte *data, uint32_t spdblength)
 
               for(size_t i = 0; i < Files.size(); i++)
               {
-                rdcstr normalised = Files[i].first;
+                rdcstr normalised = Files[i].filename;
                 for(char &c : normalised)
                   if(c == '\\')
                     c = '/';
@@ -1649,12 +1649,12 @@ SPDBChunk::SPDBChunk(byte *data, uint32_t spdblength)
   rdcarray<rdcstr> filenames;
   filenames.reserve(Files.size());
   for(size_t i = 0; i < Files.size(); i++)
-    filenames.push_back(Files[i].first);
+    filenames.push_back(Files[i].filename);
 
   // Sort files according to the order they come in the Names array, this seems to be more reliable
   // about placing the main file first.
   std::sort(Files.begin(), Files.end(),
-            [&Names](const rdcpair<rdcstr, rdcstr> &a, const rdcpair<rdcstr, rdcstr> &b) {
+            [&Names](const ShaderSourceFile &a, const ShaderSourceFile &b) {
               // any entries that aren't found in Names at all (like @cmdline that we add) will be
               // sorted to
               // the end.
@@ -1663,9 +1663,9 @@ SPDBChunk::SPDBChunk(byte *data, uint32_t spdblength)
               size_t i = 0;
               for(auto it = Names.begin(); it != Names.end(); ++it)
               {
-                if(it->second == a.first)
+                if(it->second == a.filename)
                   aIdx = i;
-                if(it->second == b.first)
+                if(it->second == b.filename)
                   bIdx = i;
 
                 i++;
@@ -1673,7 +1673,7 @@ SPDBChunk::SPDBChunk(byte *data, uint32_t spdblength)
 
               // if neither were found, sort by filename
               if(aIdx == bIdx)
-                return a.first < b.first;
+                return a.filename < b.filename;
 
               return aIdx < bIdx;
             });
@@ -1681,7 +1681,7 @@ SPDBChunk::SPDBChunk(byte *data, uint32_t spdblength)
   // create a map from filename -> index
   std::map<rdcstr, int32_t> remapping;
   for(size_t i = 0; i < Files.size(); i++)
-    remapping[Files[i].first] = (int32_t)i;
+    remapping[Files[i].filename] = (int32_t)i;
 
   // remap the line info by looking up the original intended filename, then looking up the new index
   for(auto it = m_InstructionInfo.begin(); it != m_InstructionInfo.end(); ++it)

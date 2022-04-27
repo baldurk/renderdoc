@@ -833,7 +833,7 @@ DXBC::Reflection *Program::GetReflection()
       {
         for(size_t i = 1; i < Files.size(); i++)
         {
-          if(Files[i].first == mainFile)
+          if(Files[i].filename == mainFile)
           {
             std::swap(Files[0], Files[i]);
             break;

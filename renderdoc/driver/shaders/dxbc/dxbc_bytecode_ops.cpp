@@ -894,7 +894,7 @@ void Program::MakeDisassemblyString()
     fileLines.resize(m_DebugInfo->Files.size());
 
     for(size_t i = 0; i < m_DebugInfo->Files.size(); i++)
-      split(m_DebugInfo->Files[i].second, fileLines[i], '\n');
+      split(m_DebugInfo->Files[i].contents, fileLines[i], '\n');
   }
 
   for(size_t d = 0; d < m_Declarations.size(); d++)
@@ -977,15 +977,16 @@ void Program::MakeDisassemblyString()
 
           if(!func.empty())
           {
-            m_Disassembly += StringFormat::Fmt("%s:%d - %s()\n",
-                                               m_DebugInfo->Files[lineInfo.fileIndex].first.c_str(),
-                                               lineInfo.lineStart, func.c_str());
+            m_Disassembly += StringFormat::Fmt(
+                "%s:%d - %s()\n", m_DebugInfo->Files[lineInfo.fileIndex].filename.c_str(),
+                lineInfo.lineStart, func.c_str());
             linenum++;
           }
           else
           {
-            m_Disassembly += StringFormat::Fmt(
-                "%s:%d\n", m_DebugInfo->Files[lineInfo.fileIndex].first.c_str(), lineInfo.lineStart);
+            m_Disassembly +=
+                StringFormat::Fmt("%s:%d\n", m_DebugInfo->Files[lineInfo.fileIndex].filename.c_str(),
+                                  lineInfo.lineStart);
             linenum++;
           }
         }

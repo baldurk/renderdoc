@@ -384,7 +384,7 @@ public:
 
   virtual ShaderCompileFlags GetShaderCompileFlags() const = 0;
 
-  rdcarray<rdcpair<rdcstr, rdcstr>> Files;    // <filename, source>
+  rdcarray<ShaderSourceFile> Files;
 
   virtual void GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const = 0;
   virtual void GetCallstack(size_t instruction, uintptr_t offset,

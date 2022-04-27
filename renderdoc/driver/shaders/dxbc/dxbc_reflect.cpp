@@ -255,12 +255,7 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
 
     refl->debugInfo.compileFlags = dxbc->GetDebugInfo()->GetShaderCompileFlags();
 
-    refl->debugInfo.files.resize(dxbc->GetDebugInfo()->Files.size());
-    for(size_t i = 0; i < dxbc->GetDebugInfo()->Files.size(); i++)
-    {
-      refl->debugInfo.files[i].filename = dxbc->GetDebugInfo()->Files[i].first;
-      refl->debugInfo.files[i].contents = dxbc->GetDebugInfo()->Files[i].second;
-    }
+    refl->debugInfo.files = dxbc->GetDebugInfo()->Files;
 
     rdcstr entry = dxbc->GetDebugInfo()->GetEntryFunction();
     if(entry.empty())

@@ -719,9 +719,16 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       case SourceLanguage::Max: break;
     }
 
-    if(!sources[i].contents.empty())
-      reflection.debugInfo.files.push_back({sources[i].name, sources[i].contents});
+    reflection.debugInfo.files.push_back({sources[i].name, sources[i].contents});
   }
+
+  PreprocessLineDirectives(reflection.debugInfo.files);
+
+  // we do a mini-preprocess of the files from the debug info to handle #line directives.
+  // This means that any lines that our source file declares to be in another filename via a #line
+  // get put in the right place for what the debug information hopefully matches.
+  // We also concatenate duplicate lines and display them all, to handle edge cases where #lines
+  // declare duplicates.
 
   if(knownExtSet[ExtSet_ShaderDbg] != Id() && !reflection.debugInfo.files.empty())
   {

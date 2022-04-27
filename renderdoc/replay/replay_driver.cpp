@@ -27,6 +27,7 @@
 #include "maths/formatpacking.h"
 #include "maths/half_convert.h"
 #include "serialise/serialiser.h"
+#include "strings/string_utils.h"
 
 template <>
 rdcstr DoStringise(const RemapTexture &el)
@@ -541,6 +542,228 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
           var.members = varmembers;
         }
       }
+    }
+  }
+}
+
+void PreprocessLineDirectives(rdcarray<ShaderSourceFile> &sourceFiles)
+{
+  struct SplitFile
+  {
+    rdcstr filename;
+    rdcarray<rdcstr> lines;
+    bool modified = false;
+  };
+
+  rdcarray<SplitFile> splitFiles;
+
+  splitFiles.resize(sourceFiles.size());
+
+  for(size_t i = 0; i < sourceFiles.size(); i++)
+    splitFiles[i].filename = sourceFiles[i].filename;
+
+  for(size_t i = 0; i < sourceFiles.size(); i++)
+  {
+    rdcarray<rdcstr> srclines;
+
+    // start off writing to the corresponding output file.
+    SplitFile *dstFile = &splitFiles[i];
+    bool changedFile = false;
+
+    size_t dstLine = 0;
+
+    // skip this file if it doesn't contain #line
+    if(!sourceFiles[i].contents.contains("#line"))
+      continue;
+
+    split(sourceFiles[i].contents, srclines, '\n');
+    srclines.push_back("");
+
+    // handle #line directives by inserting empty lines or erasing as necessary
+    bool seenLine = false;
+
+    for(size_t srcLine = 0; srcLine < srclines.size(); srcLine++)
+    {
+      if(srclines[srcLine].empty())
+      {
+        dstLine++;
+        continue;
+      }
+
+      char *c = &srclines[srcLine][0];
+      char *end = c + srclines[srcLine].size();
+
+      while(*c == '\t' || *c == ' ' || *c == '\r')
+        c++;
+
+      if(c == end)
+      {
+        // blank line, just advance line counter
+        dstLine++;
+        continue;
+      }
+
+      if(c + 5 > end || strncmp(c, "#line", 5) != 0)
+      {
+        // only actually insert the line if we've seen a #line statement. Otherwise we're just
+        // doing an identity copy. This can lead to problems e.g. if there are a few statements in
+        // a file before the #line we then create a truncated list of lines with only those and
+        // then start spitting the #line directives into other files. We still want to have the
+        // original file as-is.
+        if(seenLine)
+        {
+          // resize up to account for the current line, if necessary
+          dstFile->lines.resize(RDCMAX(dstLine + 1, dstFile->lines.size()));
+
+          // if non-empty, append this line (to allow multiple lines on the same line
+          // number to be concatenated). To avoid screwing up line numbers we have to append with
+          // a comment and not a newline.
+          if(dstFile->lines[dstLine].empty())
+            dstFile->lines[dstLine] = srclines[srcLine];
+          else
+            dstFile->lines[dstLine] += " /* multiple #lines overlapping */ " + srclines[srcLine];
+
+          dstFile->modified = true;
+        }
+
+        // advance line counter
+        dstLine++;
+
+        continue;
+      }
+
+      seenLine = true;
+
+      // we have a #line directive
+      c += 5;
+
+      if(c >= end)
+      {
+        // invalid #line, just advance line counter
+        dstLine++;
+        continue;
+      }
+
+      while(*c == '\t' || *c == ' ')
+        c++;
+
+      if(c >= end)
+      {
+        // invalid #line, just advance line counter
+        dstLine++;
+        continue;
+      }
+
+      // invalid #line, no line number. Skip/ignore and just advance line counter
+      if(*c < '0' || *c > '9')
+      {
+        dstLine++;
+        continue;
+      }
+
+      size_t newLineNum = 0;
+      while(*c >= '0' && *c <= '9')
+      {
+        newLineNum *= 10;
+        newLineNum += int((*c) - '0');
+        c++;
+      }
+
+      // convert to 0-indexed line number
+      if(newLineNum > 0)
+        newLineNum--;
+
+      while(*c == '\t' || *c == ' ')
+        c++;
+
+      if(*c == '"')
+      {
+        // filename
+        c++;
+
+        char *filename = c;
+
+        // parse out filename
+        while(*c != '"' && *c != 0)
+        {
+          if(*c == '\\')
+          {
+            // skip escaped characters
+            c += 2;
+          }
+          else
+          {
+            c++;
+          }
+        }
+
+        // parsed filename successfully
+        if(*c == '"')
+        {
+          *c = 0;
+
+          rdcstr fname = filename;
+          if(fname.empty())
+            fname = "shader";
+
+          // find the new destination file
+          bool found = false;
+          size_t dstFileIdx = 0;
+
+          for(size_t f = 0; f < splitFiles.size(); f++)
+          {
+            if(splitFiles[f].filename == fname)
+            {
+              found = true;
+              dstFileIdx = f;
+              break;
+            }
+          }
+
+          if(found)
+          {
+            changedFile = (dstFile != &splitFiles[dstFileIdx]);
+            dstFile = &splitFiles[dstFileIdx];
+          }
+          else
+          {
+            RDCWARN("Couldn't find filename '%s' in #line directive in debug info", fname.c_str());
+
+            // make a dummy file to write into that won't be used.
+            splitFiles.push_back(SplitFile());
+            splitFiles.back().filename = fname;
+            splitFiles.back().modified = true;
+
+            changedFile = true;
+            dstFile = &splitFiles.back();
+          }
+
+          // set the next line number, and continue processing
+          dstLine = newLineNum;
+
+          continue;
+        }
+        else
+        {
+          // invalid #line, ignore
+          RDCERR("Couldn't parse #line directive: '%s'", srclines[srcLine].c_str());
+          continue;
+        }
+      }
+      else
+      {
+        // No filename. Set the next line number, and continue processing
+        dstLine = newLineNum;
+        continue;
+      }
+    }
+  }
+
+  for(size_t i = 0; i < sourceFiles.size(); i++)
+  {
+    if(sourceFiles[i].contents.empty() || splitFiles[i].modified)
+    {
+      merge(splitFiles[i].lines, sourceFiles[i].contents, '\n');
     }
   }
 }

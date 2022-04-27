@@ -317,6 +317,7 @@ void StandardFillCBufferVariable(ResourceId shader, const ShaderConstantDescript
                                  uint32_t matStride);
 void StandardFillCBufferVariables(ResourceId shader, const rdcarray<ShaderConstant> &invars,
                                   rdcarray<ShaderVariable> &outvars, const bytebuf &data);
+void PreprocessLineDirectives(rdcarray<ShaderSourceFile> &sourceFiles);
 
 // simple cache for when we need buffer data for highlighting
 // vertices, typical use will be lots of vertices in the same

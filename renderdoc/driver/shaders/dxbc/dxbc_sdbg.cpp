@@ -87,7 +87,7 @@ SDBGChunk::SDBGChunk(void *data)
         rdcstr(asciiDatabase + m_FileHeaders[i].filenameOffset, m_FileHeaders[i].filenameLen);
     rdcstr source = rdcstr(asciiDatabase + m_FileHeaders[i].sourceOffset, m_FileHeaders[i].sourceLen);
 
-    this->Files.push_back(make_rdcpair(filename, source));
+    this->Files.push_back({filename, source});
   }
 
   // successful grab of info
