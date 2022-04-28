@@ -271,8 +271,10 @@ private:
   ScintillaEdit *m_FindResults = NULL;
   QList<ScintillaEdit *> m_Scintillas;
 
-  // a map, from a source location to the first instruction with that location.
-  QMap<LineColumnInfo, uint32_t> m_Location2FirstInst;
+  // a map, from a source location to a list of instruction blocks with that location.
+  // not every instruction with the instruction will be mapped to, only the first in each contiguous
+  // run
+  QMap<LineColumnInfo, rdcarray<uint32_t>> m_Location2Inst;
 
   // a vector for the disassembly with the instruction index for each disassembly line
   QVector<int32_t> m_AsmLine2Inst;
@@ -395,7 +397,8 @@ private:
   bool step(bool forward, StepMode mode);
 
   void runToCursor(bool forward);
-  void runTo(size_t runToInstruction, bool forward, ShaderEvents condition = ShaderEvents::NoEvent);
+  void runTo(const rdcarray<uint32_t> &runToInstructions, bool forward, ShaderEvents condition);
+  void runTo(uint32_t runToInstruction, bool forward, ShaderEvents condition = ShaderEvents::NoEvent);
 
   void runToResourceAccess(bool forward, VarType type, const BindpointIndex &resource);
 

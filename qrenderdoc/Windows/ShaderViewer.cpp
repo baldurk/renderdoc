@@ -624,6 +624,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->docking->setToolWindowProperties(ui->sourceVars, windowProps);
 
     bool hasLineInfo = false;
+    LineColumnInfo prevLine;
 
     for(uint32_t inst = 0; inst < m_Trace->lineInfo.size(); inst++)
     {
@@ -649,8 +650,13 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       // store the source location *without* any disassembly line
       line.disassemblyLine = 0;
 
-      if(!m_Location2FirstInst.contains(line))
-        m_Location2FirstInst[line] = inst;
+      // skip any instructions with the same mapping as the last one, this is a contiguous block
+      if(line.SourceEqual(prevLine))
+        continue;
+
+      prevLine = line;
+
+      m_Location2Inst[line].push_back(inst);
     }
 
     // if we don't have line mapping info, assume we also don't have useful high-level variable
@@ -2092,6 +2098,7 @@ bool ShaderViewer::step(bool forward, StepMode mode)
     } while(true);
 
     oldLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
+    oldStack = GetCurrentState().callstack;
 
     if(!forward)
     {
@@ -2101,12 +2108,27 @@ bool ShaderViewer::step(bool forward, StepMode mode)
       // now since a line can have multiple instructions, we may only be on the last one of several
       // instructions that map to this source location.
       // Keep stepping until we reach the first instruction this line info
-      if(m_Location2FirstInst.contains(oldLine))
+      // We only do this when stepping over, otherwise we could miss a backwards step-into when the
+      // same source line is mapped before and after a function call. For step-into we go strictly
+      // by contiguous sets of instructions with the same source mapping
+      if(m_Location2Inst.contains(oldLine) && mode == StepOver)
       {
-        uint32_t targetInst = m_Location2FirstInst[oldLine];
-        // we know which instruction contains this location first, step back to there
-        while(!IsFirstState() && GetPreviousState().nextInstruction >= targetInst)
+        const rdcarray<uint32_t> &targetInsts = m_Location2Inst[oldLine];
+
+        // keep going until we hit the closest instruction of any block that maps to this function
+        while(!IsFirstState() && !targetInsts.contains(GetCurrentState().nextInstruction))
         {
+          if((oldStack == GetPreviousState().callstack ||
+              oldStack.size() > GetPreviousState().callstack.size()) &&
+             !oldLine.SourceEqual(m_Trace->lineInfo[GetPreviousState().nextInstruction]))
+          {
+            // if we hit this case, it means we jumped to an instruction in the same call which maps
+            // to a different line (perhaps through a loop or branch), or we lost a function in the
+            // callstack. In either event, the contiguous group of instructions we were trying to
+            // step over is not so contiguous so don't move back any further.
+            break;
+          }
+
           applyBackwardsChange();
 
           // still need to check for instruction-level breakpoints
@@ -2165,17 +2187,17 @@ void ShaderViewer::runToCursor(bool forward)
     sourceLine.fileIndex = scintillaIndex;
     sourceLine.lineStart = sourceLine.lineEnd = i;
 
-    auto it = m_Location2FirstInst.lowerBound(sourceLine);
+    auto it = m_Location2Inst.lowerBound(sourceLine);
 
     // find the next source location that has an instruction mapped. If there was an exact match
     // this won't loop, if the lower bound was earlier we'll step at most once to get to the next
     // line past it.
-    if(it != m_Location2FirstInst.end() && (sptr_t)it.key().lineEnd < i)
+    if(it != m_Location2Inst.end() && (sptr_t)it.key().lineEnd < i)
       it++;
 
-    if(it != m_Location2FirstInst.end())
+    if(it != m_Location2Inst.end())
     {
-      runTo(it.value(), forward);
+      runTo(it.value(), forward, ShaderEvents::NoEvent);
       return;
     }
 
@@ -2243,7 +2265,14 @@ const ShaderDebugState &ShaderViewer::GetNextState() const
   return m_States.back();
 }
 
-void ShaderViewer::runTo(size_t runToInstruction, bool forward, ShaderEvents condition)
+void ShaderViewer::runTo(uint32_t runToInstruction, bool forward, ShaderEvents condition)
+{
+  rdcarray<uint32_t> insts = {runToInstruction};
+  runTo(insts, forward, condition);
+}
+
+void ShaderViewer::runTo(const rdcarray<uint32_t> &runToInstructions, bool forward,
+                         ShaderEvents condition)
 {
   if(!m_Trace || m_States.empty())
     return;
@@ -2255,7 +2284,7 @@ void ShaderViewer::runTo(size_t runToInstruction, bool forward, ShaderEvents con
   while((forward && !IsLastState()) || (!forward && !IsFirstState()))
   {
     // break immediately even on the very first step if it's the one we want to go to
-    if(runToInstruction == GetCurrentState().nextInstruction)
+    if(runToInstructions.contains(GetCurrentState().nextInstruction))
       break;
 
     // after the first step, break on condition
@@ -4929,7 +4958,9 @@ void ShaderViewer::ToggleBreakpointOnInstruction(int32_t instruction)
       // is toggling on that source location, they expect to disable the breakpoint on that
       // instruction even if it's not the instruction where a breakpoint will be *added* if they add
       // one there.
-      for(int inst : m_Breakpoints)
+      bool exactMatch = false;
+      QList<int> bps = m_Breakpoints;
+      for(int inst : bps)
       {
         LineColumnInfo instSourceLine = m_Trace->lineInfo[inst];
         // ignore columns
@@ -4937,22 +4968,25 @@ void ShaderViewer::ToggleBreakpointOnInstruction(int32_t instruction)
         if(instSourceLine.SourceEqual(sourceLine))
         {
           ToggleBreakpointOnInstruction(inst);
-          return;
+          exactMatch = true;
         }
       }
+      if(exactMatch)
+        return;
 
-      auto it = m_Location2FirstInst.lowerBound(sourceLine);
+      auto it = m_Location2Inst.lowerBound(sourceLine);
 
       // find the next source location that has an instruction mapped. If there was an exact match
       // this won't loop, if the lower bound was earlier we'll step at most once to get to the next
       // line past it.
-      if(it != m_Location2FirstInst.end() && (sptr_t)it.key().lineEnd < i)
+      if(it != m_Location2Inst.end() && (sptr_t)it.key().lineEnd < i)
         it++;
 
-      // only set a breakpoint on that instruction
-      if(it != m_Location2FirstInst.end())
+      // set a breakpoint on all instructions that match this line
+      if(it != m_Location2Inst.end())
       {
-        ToggleBreakpointOnInstruction((int)it.value());
+        for(uint32_t inst : it.value())
+          ToggleBreakpointOnInstruction((int)inst);
         return;
       }
     }
