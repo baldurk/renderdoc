@@ -158,7 +158,34 @@ float4 main() : SV_Target0
       CHECK_HR(dev->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&descHeap));
     }
 
+    ID3D12DescriptorHeapPtr sampHeap;
+
+    {
+      D3D12_DESCRIPTOR_HEAP_DESC desc;
+      desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+      desc.NodeMask = 1;
+      desc.NumDescriptors = 2000;
+      desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+      CHECK_HR(dev->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&sampHeap));
+    }
+
+    sampHeap->SetName(L"Sampler Heap");
+
+    D3D12_SAMPLER_DESC samplerDesc = {};
+    samplerDesc.Filter = D3D12_FILTER_ANISOTROPIC;
+    samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW =
+        D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+    samplerDesc.MaxAnisotropy = 4;
+    samplerDesc.MinLOD = 1.5f;
+    UINT increment = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    D3D12_CPU_DESCRIPTOR_HANDLE samplerStart = sampHeap->GetCPUDescriptorHandleForHeapStart();
+    dev->CreateSampler(&samplerDesc, {samplerStart.ptr + increment * 1234});
+
     D3D12_GPU_DESCRIPTOR_HANDLE descGPUHandle = descHeap->GetGPUDescriptorHandleForHeapStart();
+
+    ID3D12DescriptorHeap *heaps[] = {
+        descHeap.GetInterfacePtr(), sampHeap.GetInterfacePtr(),
+    };
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -318,7 +345,7 @@ float4 main() : SV_Target0
 
       cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-      cmd->SetDescriptorHeaps(1, &descHeap.GetInterfacePtr());
+      cmd->SetDescriptorHeaps(2, heaps);
 
       IASetVertexBuffer(cmd, vb2, sizeof(DefaultA2V), 0);
       IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
