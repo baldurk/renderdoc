@@ -224,18 +224,24 @@ void OpenGLGraphicsTest::DestroyContext(void *ctx)
   glXDestroyContext(x11win->xlib.display, (GLXContext)ctx);
 }
 
-void OpenGLGraphicsTest::ActivateContext(GraphicsWindow *win, void *ctx)
+void OpenGLGraphicsTest::ActivateContext(GraphicsWindow *win, void *ctx, bool alt)
 {
   X11Window *x11win = (X11Window *)win;
 
   if(ctx == NULL)
   {
-    glXMakeContextCurrent(x11win->xlib.display, (GLXDrawable)NULL, (GLXDrawable)NULL, NULL);
+    if(glXMakeCurrent && alt)
+      glXMakeCurrent(x11win->xlib.display, (GLXDrawable)NULL, NULL);
+    else
+      glXMakeContextCurrent(x11win->xlib.display, (GLXDrawable)NULL, (GLXDrawable)NULL, NULL);
     return;
   }
 
-  glXMakeContextCurrent(x11win->xlib.display, x11win->xlib.window, x11win->xlib.window,
-                        (GLXContext)ctx);
+  if(glXMakeCurrent && alt)
+    glXMakeCurrent(x11win->xlib.display, x11win->xlib.window, (GLXContext)ctx);
+  else
+    glXMakeContextCurrent(x11win->xlib.display, x11win->xlib.window, x11win->xlib.window,
+                          (GLXContext)ctx);
 }
 
 void OpenGLGraphicsTest::Present(GraphicsWindow *window)

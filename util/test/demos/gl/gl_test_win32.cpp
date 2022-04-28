@@ -258,11 +258,14 @@ void OpenGLGraphicsTest::DestroyContext(void *ctx)
   deleteContext((HGLRC)ctx);
 }
 
-void OpenGLGraphicsTest::ActivateContext(GraphicsWindow *win, void *ctx)
+void OpenGLGraphicsTest::ActivateContext(GraphicsWindow *win, void *ctx, bool alt)
 {
   if(ctx == NULL)
   {
-    makeCurrent(NULL, NULL);
+    if(alt && wglMakeContextCurrentARB)
+      wglMakeContextCurrentARB(NULL, NULL, NULL);
+    else
+      makeCurrent(NULL, NULL);
     return;
   }
 
@@ -270,7 +273,10 @@ void OpenGLGraphicsTest::ActivateContext(GraphicsWindow *win, void *ctx)
 
   HDC dc = GetDC(win32win->wnd);
 
-  makeCurrent(dc, (HGLRC)ctx);
+  if(alt && wglMakeContextCurrentARB)
+    wglMakeContextCurrentARB(dc, dc, (HGLRC)ctx);
+  else
+    makeCurrent(dc, (HGLRC)ctx);
 
   ReleaseDC(win32win->wnd, dc);
 }

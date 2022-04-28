@@ -40,7 +40,7 @@ struct OpenGLGraphicsTest : public GraphicsTest
   GraphicsWindow *MakeWindow(int width, int height, const char *title);
   void *MakeContext(GraphicsWindow *win, void *share);
   void DestroyContext(void *ctx);
-  void ActivateContext(GraphicsWindow *win, void *ctx);
+  void ActivateContext(GraphicsWindow *win, void *ctx, bool alt = false);
 
   void PostInit();
 

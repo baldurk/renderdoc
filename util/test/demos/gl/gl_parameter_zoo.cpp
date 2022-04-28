@@ -181,6 +181,9 @@ void main()
     }
 #endif
 
+    ActivateContext(NULL, NULL);
+    ActivateContext(mainWindow, mainContext, true);
+
     while(Running())
     {
       // trash the texture pack/unpack state
