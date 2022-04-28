@@ -980,6 +980,15 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
       dev->CreateUnorderedAccessView(NULL, NULL, &uavdesc, cpu);
     }
 
+    vsblob = Compile(D3DDefaultVertex, "main", "vs_5_0");
+    psblob = Compile(D3DDefaultPixel, "main", "ps_5_0");
+    ID3D12RootSignaturePtr bannedSig =
+        MakeSig({}, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+                        D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
+                        D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS);
+    ID3D12PipelineStatePtr bannedPSO =
+        MakePSO().InputLayout().RootSig(bannedSig).VS(vsblob).PS(psblob);
+
     while(Running())
     {
       ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
@@ -1074,6 +1083,13 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
       cmd->SetGraphicsRootDescriptorTable(0, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
       setMarker(cmd, "VertexSample");
       cmd->DrawInstanced(4, 1, 0, 0);
+
+      setMarker(cmd, "BannedSig");
+      RSSetViewport(cmd, {60.0f, 60.0f, 10.0f, 10.0f, 0.0f, 1.0f});
+      RSSetScissorRect(cmd, {60, 60, 70, 70});
+      cmd->SetGraphicsRootSignature(bannedSig);
+      cmd->SetPipelineState(bannedPSO);
+      cmd->DrawInstanced(3, 1, 0, 0);
 
       ResourceBarrier(cmd, fltTex, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
                       D3D12_RESOURCE_STATE_RENDER_TARGET);
