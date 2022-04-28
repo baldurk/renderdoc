@@ -836,7 +836,7 @@ void ImageViewer::RefreshFile()
   m_FrameRecord.frameInfo.persistentSize = 0;
   m_FrameRecord.frameInfo.uncompressedFileSize = datasize;
 
-  read_dds_data read_data;
+  read_dds_data read_data = {};
 
   if(dds)
   {
