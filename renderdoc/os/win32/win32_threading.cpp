@@ -87,65 +87,78 @@ int32_t CmpExch32(int32_t *dest, int32_t oldVal, int32_t newVal)
 
 namespace Threading
 {
+template <>
 CriticalSection::CriticalSectionTemplate()
 {
   InitializeCriticalSection(&m_Data);
 }
 
+template <>
 CriticalSection::~CriticalSectionTemplate()
 {
   DeleteCriticalSection(&m_Data);
 }
 
+template <>
 void CriticalSection::Lock()
 {
   EnterCriticalSection(&m_Data);
 }
 
+template <>
 bool CriticalSection::Trylock()
 {
   return TryEnterCriticalSection(&m_Data) != FALSE;
 }
 
+template <>
 void CriticalSection::Unlock()
 {
   LeaveCriticalSection(&m_Data);
 }
 
+template <>
 RWLock::RWLockTemplate()
 {
   InitializeSRWLock(&m_Data);
 }
 
+template <>
 RWLock::~RWLockTemplate()
 {
 }
 
+template <>
 void RWLock::WriteLock()
 {
   AcquireSRWLockExclusive(&m_Data);
 }
 
+template <>
 bool RWLock::TryWritelock()
 {
   return TryAcquireSRWLockExclusive(&m_Data) != FALSE;
 }
 
+template <>
 void RWLock::WriteUnlock()
 {
   ReleaseSRWLockExclusive(&m_Data);
 }
 
+template <>
 void RWLock::ReadLock()
 {
   AcquireSRWLockShared(&m_Data);
 }
 
+template <>
 bool RWLock::TryReadlock()
 {
   return TryAcquireSRWLockShared(&m_Data) != FALSE;
 }
 
+template <>
 void RWLock::ReadUnlock()
 {
   ReleaseSRWLockShared(&m_Data);
