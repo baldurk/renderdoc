@@ -40,6 +40,7 @@ layout(push_constant) uniform multisamplePush
   int sampleOffset;
   int byteSize;
   int maxInvocationID;
+  int dispatchOffset;
 }
 mscopy;
 
@@ -48,6 +49,7 @@ mscopy;
 #define sampleOffset (mscopy.sampleOffset)
 #define byteSize (mscopy.byteSize)
 #define maxInvocationID (mscopy.maxInvocationID)
+#define dispatchOffset (mscopy.dispatchOffset)
 
 void main()
 {
@@ -64,7 +66,7 @@ void main()
   uvec4 data;
   if(byteSize == 1)
   {
-    data.x = srcData[idx];
+    data.x = srcData[dispatchOffset + idx];
     int pxIdx = int(idx * 4);
     int x0 = (pxIdx + 0) % texWidth;
     int y0 = (pxIdx + 0) / texWidth;
@@ -82,7 +84,7 @@ void main()
   }
   else if(byteSize == 2)
   {
-    data.x = srcData[idx];
+    data.x = srcData[dispatchOffset + idx];
     int pxIdx = int(idx * 2);
     int x0 = (pxIdx + 0) % texWidth;
     int y0 = (pxIdx + 0) / texWidth;
@@ -96,25 +98,25 @@ void main()
   {
     int x0 = int(idx) % texWidth;
     int y0 = int(idx) / texWidth;
-    data.x = srcData[idx];
+    data.x = srcData[dispatchOffset + idx];
     imageStore(dstMS, ivec3(x0, y0, slice), sampleIdx, data);
   }
   else if(byteSize == 8)
   {
     int x0 = int(idx) % texWidth;
     int y0 = int(idx) / texWidth;
-    data.x = srcData[idx * 2];
-    data.y = srcData[idx * 2 + 1];
+    data.x = srcData[dispatchOffset + (idx * 2)];
+    data.y = srcData[dispatchOffset + (idx * 2 + 1)];
     imageStore(dstMS, ivec3(x0, y0, slice), sampleIdx, data);
   }
   else if(byteSize == 16)
   {
     int x0 = int(idx) % texWidth;
     int y0 = int(idx) / texWidth;
-    data.x = srcData[idx * 4];
-    data.y = srcData[idx * 4 + 1];
-    data.z = srcData[idx * 4 + 2];
-    data.w = srcData[idx * 4 + 3];
+    data.x = srcData[dispatchOffset + (idx * 4)];
+    data.y = srcData[dispatchOffset + (idx * 4 + 1)];
+    data.z = srcData[dispatchOffset + (idx * 4 + 2)];
+    data.w = srcData[dispatchOffset + (idx * 4 + 3)];
     imageStore(dstMS, ivec3(x0, y0, slice), sampleIdx, data);
   }
 }

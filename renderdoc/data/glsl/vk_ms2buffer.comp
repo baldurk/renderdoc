@@ -42,6 +42,7 @@ layout(push_constant) uniform multisamplePush
   int baseSample;
   int byteSize;
   int maxInvocationID;
+  int dispatchOffset;
 }
 mscopy;
 
@@ -50,6 +51,7 @@ mscopy;
 #define baseSample (mscopy.baseSample)
 #define byteSize (mscopy.byteSize)
 #define maxInvocationID (mscopy.maxInvocationID)
+#define dispatchOffset (mscopy.dispatchOffset)
 
 void main()
 {
@@ -78,7 +80,7 @@ void main()
                        texelFetch(srcMS, ivec3(x1, y1, slice), sampleIdx).x,
                        texelFetch(srcMS, ivec3(x2, y2, slice), sampleIdx).x,
                        texelFetch(srcMS, ivec3(x3, y3, slice), sampleIdx).x);
-    result[idx] = (data.x << 0 | data.y << 8 | data.z << 16 | data.w << 24);
+    result[dispatchOffset + idx] = (data.x << 0 | data.y << 8 | data.z << 16 | data.w << 24);
   }
   else if(byteSize == 2)
   {
@@ -90,31 +92,31 @@ void main()
 
     uvec2 data = uvec2(texelFetch(srcMS, ivec3(x0, y0, slice), sampleIdx).x,
                        texelFetch(srcMS, ivec3(x1, y1, slice), sampleIdx).x);
-    result[idx] = (data.x << 0 | data.y << 16);
+    result[dispatchOffset + idx] = (data.x << 0 | data.y << 16);
   }
   else if(byteSize == 4)
   {
     int x0 = int(idx) % textureWidth;
     int y0 = int(idx) / textureWidth;
     uint data = texelFetch(srcMS, ivec3(x0, y0, slice), sampleIdx).x;
-    result[idx] = data;
+    result[dispatchOffset + idx] = data;
   }
   else if(byteSize == 8)
   {
     int x0 = int(idx) % textureWidth;
     int y0 = int(idx) / textureWidth;
     uvec2 data = texelFetch(srcMS, ivec3(x0, y0, slice), sampleIdx).xy;
-    result[idx * 2] = data.x;
-    result[idx * 2 + 1] = data.y;
+    result[dispatchOffset + (idx * 2)] = data.x;
+    result[dispatchOffset + (idx * 2 + 1)] = data.y;
   }
   else if(byteSize == 16)
   {
     int x0 = int(idx) % textureWidth;
     int y0 = int(idx) / textureWidth;
     uvec4 data = texelFetch(srcMS, ivec3(x0, y0, slice), sampleIdx);
-    result[idx * 4] = data.x;
-    result[idx * 4 + 1] = data.y;
-    result[idx * 4 + 2] = data.z;
-    result[idx * 4 + 3] = data.w;
+    result[dispatchOffset + (idx * 4)] = data.x;
+    result[dispatchOffset + (idx * 4 + 1)] = data.y;
+    result[dispatchOffset + (idx * 4 + 2)] = data.z;
+    result[dispatchOffset + (idx * 4 + 3)] = data.w;
   }
 }
