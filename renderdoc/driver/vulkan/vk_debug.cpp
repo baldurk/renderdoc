@@ -374,16 +374,16 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
   //////////////////////////////////////////////////////////////////
   // Color MS <-> Buffer copy (via compute)
   VkDescriptorPoolSize bufferPoolTypes[] = {
-      {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 2 * ARRAY_COUNT(m_BufferMSDescSet)},
-      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 * ARRAY_COUNT(m_BufferMSDescSet)},
-      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 * ARRAY_COUNT(m_BufferMSDescSet)},
+      {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 2},
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1},
+      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
   };
 
   VkDescriptorPoolCreateInfo bufferPoolInfo = {
       VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
       NULL,
       0,
-      ARRAY_COUNT(m_BufferMSDescSet),
+      1,
       ARRAY_COUNT(bufferPoolTypes),
       &bufferPoolTypes[0],
   };
@@ -418,11 +418,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
   rm->SetInternalResource(GetResID(m_DepthMS2BufferPipe));
   rm->SetInternalResource(GetResID(m_Buffer2MSPipe));
 
-  for(size_t i = 0; i < ARRAY_COUNT(m_BufferMSDescSet); i++)
-  {
-    CREATE_OBJECT(m_BufferMSDescSet[i], m_BufferMSDescriptorPool, m_BufferMSDescSetLayout);
-    rm->SetInternalResource(GetResID(m_BufferMSDescSet[i]));
-  }
+  CREATE_OBJECT(m_BufferMSDescSet, m_BufferMSDescriptorPool, m_BufferMSDescSetLayout);
+  rm->SetInternalResource(GetResID(m_BufferMSDescSet));
 
   //////////////////////////////////////////////////////////////////
   // Depth MS to Buffer copy (via compute)

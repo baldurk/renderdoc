@@ -92,9 +92,17 @@ void VulkanDebugManager::CopyTex2DMSToBuffer(VkBuffer destBuffer, VkImage srcMS,
   VkCommandBuffer cmd = VK_NULL_HANDLE;
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+  cmd = m_pDriver->GetNextCmd();
+
+  if(cmd == VK_NULL_HANDLE)
+    return;
+
+  ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
+  ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(m_MS2BufferPipe));
 
   const uint32_t dispatchBufferSize = GetByteSize(extent.width, extent.height, extent.depth, fmt, 0);
-  const uint32_t descriptorBatchSize = ARRAY_COUNT(m_BufferMSDescSet);
+  uint32_t dispatchOffset = 0;
 
   VkDescriptorImageInfo srcdesc = {0};
   srcdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -104,36 +112,25 @@ void VulkanDebugManager::CopyTex2DMSToBuffer(VkBuffer destBuffer, VkImage srcMS,
   VkDescriptorBufferInfo destdesc = {0};
   destdesc.buffer = destBuffer;
   destdesc.offset = 0;
-  destdesc.range = dispatchBufferSize;
+  destdesc.range = VK_WHOLE_SIZE;
 
-  uint32_t currentBatch = 0;
+  VkWriteDescriptorSet writeSet[] = {
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet), 0, 0, 1,
+       VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &srcdesc, NULL, NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet), 2, 0, 1,
+       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &destdesc, NULL},
+  };
+
+  ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
+
+  ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
+                                      Unwrap(m_BufferMSPipeLayout), 0, 1,
+                                      UnwrapPtr(m_BufferMSDescSet), 0, NULL);
 
   for(uint32_t currentSlice = baseSlice; currentSlice < numSlices + baseSlice; currentSlice++)
   {
     for(uint32_t currentSample = baseSample; currentSample < numSamples + baseSample; currentSample++)
     {
-      // if we don't have a current cmd buffer, start a new one
-      if(cmd == VK_NULL_HANDLE)
-      {
-        cmd = m_pDriver->GetNextCmd();
-
-        if(cmd == VK_NULL_HANDLE)
-          return;
-
-        ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-
-        ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-                                      Unwrap(m_MS2BufferPipe));
-      }
-
-      const uint32_t batchIndex = currentBatch % descriptorBatchSize;
-      VkWriteDescriptorSet writeSet[] = {
-          {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet[batchIndex]), 0,
-           0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &srcdesc, NULL, NULL},
-          {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet[batchIndex]), 2,
-           0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &destdesc, NULL},
-      };
-
       // if the byte size is less than 4, we need to multisample.
       const uint32_t msDivider = bs < 4 ? (4 / bs) : 1;
       const uint32_t workGroupDivider = MS_DISPATCH_LOCAL_SIZE * msDivider;
@@ -142,14 +139,9 @@ void VulkanDebugManager::CopyTex2DMSToBuffer(VkBuffer destBuffer, VkImage srcMS,
       const uint32_t maxInvoc = AlignUp(extent.width * extent.height, msDivider) / msDivider;
 
       Vec4u params[2] = {
-          {extent.width, currentSlice, currentSample, bs}, {maxInvoc, 0, 0, 0},
+          {extent.width, currentSlice, currentSample, bs}, {maxInvoc, dispatchOffset, 0, 0},
       };
 
-      ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
-
-      ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-                                          Unwrap(m_BufferMSPipeLayout), 0, 1,
-                                          UnwrapPtr(m_BufferMSDescSet[batchIndex]), 0, NULL);
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_BufferMSPipeLayout), VK_SHADER_STAGE_ALL,
                                      0, sizeof(Vec4u) * 2, &params);
 
@@ -157,22 +149,17 @@ void VulkanDebugManager::CopyTex2DMSToBuffer(VkBuffer destBuffer, VkImage srcMS,
       // being a multiple of our multisample size
       ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), numWorkGroup, 1, 1);
 
-      destdesc.offset += dispatchBufferSize;
-      currentBatch++;
-
-      // if we're about to end a batch, or we're done entirely, submit and flush
-      if(batchIndex == descriptorBatchSize - 1 || currentBatch == numSamples * numSlices)
-      {
-        ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-
-        cmd = VK_NULL_HANDLE;
-
-        // submit cmds and wait for idle so we can readback
-        m_pDriver->SubmitCmds();
-        m_pDriver->FlushQ();
-      }
+      dispatchOffset += dispatchBufferSize / 4;
     }
   }
+
+  ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+
+  cmd = VK_NULL_HANDLE;
+
+  // submit cmds and wait for idle so we can readback
+  m_pDriver->SubmitCmds();
+  m_pDriver->FlushQ();
 
   RDCASSERT(cmd == VK_NULL_HANDLE);
 
@@ -245,6 +232,16 @@ void VulkanDebugManager::CopyDepthTex2DMSToBuffer(VkBuffer destBuffer, VkImage s
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
+  cmd = m_pDriver->GetNextCmd();
+
+  if(cmd == VK_NULL_HANDLE)
+    return;
+
+  ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
+  ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
+                                Unwrap(m_DepthMS2BufferPipe));
+
   VkDescriptorImageInfo srcdesc[2];
   srcdesc[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   srcdesc[0].imageView = srcDepthView;
@@ -269,43 +266,32 @@ void VulkanDebugManager::CopyDepthTex2DMSToBuffer(VkBuffer destBuffer, VkImage s
   }
 
   const uint32_t dispatchBufferSize = GetByteSize(extent.width, extent.height, extent.depth, fmt, 0);
-  const uint32_t descriptorBatchSize = ARRAY_COUNT(m_BufferMSDescSet);
+  uint32_t dispatchOffset = 0;
 
   VkDescriptorBufferInfo destdesc = {0};
   destdesc.buffer = destBuffer;
   destdesc.offset = 0;
-  destdesc.range = dispatchBufferSize;
+  destdesc.range = VK_WHOLE_SIZE;
 
-  uint32_t currentBatch = 0;
+  VkWriteDescriptorSet writeSet[] = {
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet), 0, 0, 1,
+       VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &srcdesc[0], NULL, NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet), 1, 0, 1,
+       VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &srcdesc[1], NULL, NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet), 2, 0, 1,
+       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &destdesc, NULL},
+  };
+
+  ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
+
+  ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
+                                      Unwrap(m_BufferMSPipeLayout), 0, 1,
+                                      UnwrapPtr(m_BufferMSDescSet), 0, NULL);
 
   for(uint32_t currentSlice = baseSlice; currentSlice < numSlices + baseSlice; currentSlice++)
   {
     for(uint32_t currentSample = baseSample; currentSample < numSamples + baseSample; currentSample++)
     {
-      // if we don't have a current cmd buffer, start a new one
-      if(cmd == VK_NULL_HANDLE)
-      {
-        cmd = m_pDriver->GetNextCmd();
-
-        if(cmd == VK_NULL_HANDLE)
-          return;
-
-        ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-
-        ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-                                      Unwrap(m_DepthMS2BufferPipe));
-      }
-      const uint32_t batchIndex = currentBatch % descriptorBatchSize;
-
-      VkWriteDescriptorSet writeSet[] = {
-          {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet[batchIndex]), 0,
-           0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &srcdesc[0], NULL, NULL},
-          {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet[batchIndex]), 1,
-           0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &srcdesc[1], NULL, NULL},
-          {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet[batchIndex]), 2,
-           0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &destdesc, NULL},
-      };
-
       // for D16 textures, we need to multisample.
       const uint32_t msDivider = fmt == VK_FORMAT_D16_UNORM ? 2 : 1;
       const uint32_t workGroupDivider = MS_DISPATCH_LOCAL_SIZE * msDivider;
@@ -314,35 +300,25 @@ void VulkanDebugManager::CopyDepthTex2DMSToBuffer(VkBuffer destBuffer, VkImage s
       const uint32_t maxInvoc = AlignUp(extent.width * extent.height, msDivider) / msDivider;
 
       Vec4u params[2] = {
-          {extent.width, currentSlice, currentSample, fmtIndex}, {maxInvoc, 0, 0, 0},
+          {extent.width, currentSlice, currentSample, fmtIndex}, {maxInvoc, dispatchOffset, 0, 0},
       };
-      ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
-
-      ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-                                          Unwrap(m_BufferMSPipeLayout), 0, 1,
-                                          UnwrapPtr(m_BufferMSDescSet[batchIndex]), 0, NULL);
 
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_BufferMSPipeLayout), VK_SHADER_STAGE_ALL,
                                      0, sizeof(Vec4u) * 2, &params);
 
       ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), numWorkGroup, 1, 1);
 
-      destdesc.offset += dispatchBufferSize;
-      currentBatch++;
-
-      // if we're about to end a batch, or we're done entirely, submit and flush
-      if(batchIndex == descriptorBatchSize - 1 || currentBatch == numSamples * numSlices)
-      {
-        ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-
-        cmd = VK_NULL_HANDLE;
-
-        // submit cmds and wait for idle so we can readback
-        m_pDriver->SubmitCmds();
-        m_pDriver->FlushQ();
-      }
+      dispatchOffset += dispatchBufferSize / 4;
     }
   }
+
+  ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+
+  cmd = VK_NULL_HANDLE;
+
+  // submit cmds and wait for idle so we can readback
+  m_pDriver->SubmitCmds();
+  m_pDriver->FlushQ();
 
   RDCASSERT(cmd == VK_NULL_HANDLE);
 
@@ -416,45 +392,45 @@ void VulkanDebugManager::CopyBufferToTex2DMS(VkImage destMS, VkBuffer srcBuffer,
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
+  cmd = m_pDriver->GetNextCmd();
+
+  if(cmd == VK_NULL_HANDLE)
+    return;
+
+  ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
+  ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(m_Buffer2MSPipe));
+
   const uint32_t dispatchBufferSize = GetByteSize(extent.width, extent.height, extent.depth, fmt, 0);
-  const uint32_t descriptorBatchSize = ARRAY_COUNT(m_BufferMSDescSet);
+  uint32_t dispatchOffset = 0;
 
   VkDescriptorBufferInfo srcdesc = {0};
   srcdesc.buffer = srcBuffer;
   srcdesc.offset = 0;
-  srcdesc.range = dispatchBufferSize;
+  srcdesc.range = VK_WHOLE_SIZE;
 
   VkDescriptorImageInfo destdesc = {0};
   destdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
   destdesc.imageView = destView;
   destdesc.sampler = VK_NULL_HANDLE;
 
+  VkWriteDescriptorSet writeSet[] = {
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet), 2, 0, 1,
+       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &srcdesc, NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet), 3, 0, 1,
+       VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &destdesc, NULL, NULL},
+  };
+
+  ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
+
+  ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
+                                      Unwrap(m_BufferMSPipeLayout), 0, 1,
+                                      UnwrapPtr(m_BufferMSDescSet), 0, NULL);
+
   for(uint32_t currentSlice = 0; currentSlice < numSlices; currentSlice++)
   {
     for(uint32_t currentSample = 0; currentSample < numSamples; currentSample++)
     {
-      // if we don't have a current cmd buffer, start a new one
-      if(cmd == VK_NULL_HANDLE)
-      {
-        cmd = m_pDriver->GetNextCmd();
-
-        if(cmd == VK_NULL_HANDLE)
-          return;
-
-        ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-
-        ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-                                      Unwrap(m_Buffer2MSPipe));
-      }
-
-      const uint32_t batchIndex = (currentSlice * numSamples + currentSample) % descriptorBatchSize;
-      VkWriteDescriptorSet writeSet[] = {
-          {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet[batchIndex]), 2,
-           0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &srcdesc, NULL},
-          {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet[batchIndex]), 3,
-           0, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &destdesc, NULL, NULL},
-      };
-
       // if the byte size is less than 4, we need to multisample.
       const uint32_t msDivider = bs < 4 ? (4 / bs) : 1;
       const uint32_t workGroupDivider = MS_DISPATCH_LOCAL_SIZE * msDivider;
@@ -462,14 +438,8 @@ void VulkanDebugManager::CopyBufferToTex2DMS(VkImage destMS, VkBuffer srcBuffer,
           AlignUp(extent.width * extent.height, workGroupDivider) / workGroupDivider;
       const uint32_t maxInvoc = AlignUp(extent.width * extent.height, msDivider) / msDivider;
 
-      ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
-
-      ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-                                          Unwrap(m_BufferMSPipeLayout), 0, 1,
-                                          UnwrapPtr(m_BufferMSDescSet[batchIndex]), 0, NULL);
-
       Vec4u params[2] = {
-          {extent.width, currentSlice, currentSample, bs}, {maxInvoc, 0, 0, 0},
+          {extent.width, currentSlice, currentSample, bs}, {maxInvoc, dispatchOffset, 0, 0},
       };
 
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_BufferMSPipeLayout), VK_SHADER_STAGE_ALL,
@@ -477,22 +447,17 @@ void VulkanDebugManager::CopyBufferToTex2DMS(VkImage destMS, VkBuffer srcBuffer,
 
       ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), numWorkGroup, 1, 1);
 
-      srcdesc.offset += dispatchBufferSize;
-
-      // if we're about to end a batch, or we're done entirely, submit and flush
-      if(batchIndex == descriptorBatchSize - 1 ||
-         (currentSlice == numSlices - 1 && currentSample == numSamples - 1))
-      {
-        ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-
-        cmd = VK_NULL_HANDLE;
-
-        // submit cmds and wait for idle so we can readback
-        m_pDriver->SubmitCmds();
-        m_pDriver->FlushQ();
-      }
+      dispatchOffset += dispatchBufferSize / 4;
     }
   }
+
+  ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+
+  cmd = VK_NULL_HANDLE;
+
+  // submit cmds and wait for idle so we can readback
+  m_pDriver->SubmitCmds();
+  m_pDriver->FlushQ();
 
   RDCASSERT(cmd == VK_NULL_HANDLE);
 
@@ -591,7 +556,7 @@ void VulkanDebugManager::CopyDepthBufferToTex2DMS(VkImage destMS, VkBuffer srcBu
   }
 
   VkWriteDescriptorSet writeSet[] = {
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet[0]), 2, 0, 1,
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_BufferMSDescSet), 2, 0, 1,
        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &srcdesc, NULL},
   };
 
@@ -691,7 +656,7 @@ void VulkanDebugManager::CopyDepthBufferToTex2DMS(VkImage destMS, VkBuffer srcBu
 
     ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         Unwrap(m_BufferMSPipeLayout), 0, 1,
-                                        UnwrapPtr(m_BufferMSDescSet[0]), 0, NULL);
+                                        UnwrapPtr(m_BufferMSDescSet), 0, NULL);
 
     VkViewport viewport = {0.0f, 0.0f, (float)extent.width, (float)extent.height, 0.0f, 1.0f};
     ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
