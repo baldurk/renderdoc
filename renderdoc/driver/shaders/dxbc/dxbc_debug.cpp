@@ -2777,17 +2777,17 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
 
     case OPCODE_EQ:
       SetDst(state, op.operands[0], op,
-             ShaderVariable("", (srcOpers[0].value.f32v[0] == srcOpers[1].value.f32v[0] ? ~0l : 0l),
-                            (srcOpers[0].value.f32v[1] == srcOpers[1].value.f32v[1] ? ~0l : 0l),
-                            (srcOpers[0].value.f32v[2] == srcOpers[1].value.f32v[2] ? ~0l : 0l),
-                            (srcOpers[0].value.f32v[3] == srcOpers[1].value.f32v[3] ? ~0l : 0l)));
+             ShaderVariable("", (srcOpers[0].value.f32v[0] == srcOpers[1].value.f32v[0] ? ~0u : 0u),
+                            (srcOpers[0].value.f32v[1] == srcOpers[1].value.f32v[1] ? ~0u : 0u),
+                            (srcOpers[0].value.f32v[2] == srcOpers[1].value.f32v[2] ? ~0u : 0u),
+                            (srcOpers[0].value.f32v[3] == srcOpers[1].value.f32v[3] ? ~0u : 0u)));
       break;
     case OPCODE_NE:
       SetDst(state, op.operands[0], op,
-             ShaderVariable("", (srcOpers[0].value.f32v[0] != srcOpers[1].value.f32v[0] ? ~0l : 0l),
-                            (srcOpers[0].value.f32v[1] != srcOpers[1].value.f32v[1] ? ~0l : 0l),
-                            (srcOpers[0].value.f32v[2] != srcOpers[1].value.f32v[2] ? ~0l : 0l),
-                            (srcOpers[0].value.f32v[3] != srcOpers[1].value.f32v[3] ? ~0l : 0l)));
+             ShaderVariable("", (srcOpers[0].value.f32v[0] != srcOpers[1].value.f32v[0] ? ~0u : 0u),
+                            (srcOpers[0].value.f32v[1] != srcOpers[1].value.f32v[1] ? ~0u : 0u),
+                            (srcOpers[0].value.f32v[2] != srcOpers[1].value.f32v[2] ? ~0u : 0u),
+                            (srcOpers[0].value.f32v[3] != srcOpers[1].value.f32v[3] ? ~0u : 0u)));
       break;
     case OPCODE_LT:
       SetDst(state, op.operands[0], op,
@@ -2798,10 +2798,10 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       break;
     case OPCODE_GE:
       SetDst(state, op.operands[0], op,
-             ShaderVariable("", (srcOpers[0].value.f32v[0] >= srcOpers[1].value.f32v[0] ? ~0l : 0l),
-                            (srcOpers[0].value.f32v[1] >= srcOpers[1].value.f32v[1] ? ~0l : 0l),
-                            (srcOpers[0].value.f32v[2] >= srcOpers[1].value.f32v[2] ? ~0l : 0l),
-                            (srcOpers[0].value.f32v[3] >= srcOpers[1].value.f32v[3] ? ~0l : 0l)));
+             ShaderVariable("", (srcOpers[0].value.f32v[0] >= srcOpers[1].value.f32v[0] ? ~0u : 0u),
+                            (srcOpers[0].value.f32v[1] >= srcOpers[1].value.f32v[1] ? ~0u : 0u),
+                            (srcOpers[0].value.f32v[2] >= srcOpers[1].value.f32v[2] ? ~0u : 0u),
+                            (srcOpers[0].value.f32v[3] >= srcOpers[1].value.f32v[3] ? ~0u : 0u)));
       break;
     case OPCODE_DEQ:
     case OPCODE_DNE:
@@ -2858,45 +2858,45 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     }
     case OPCODE_IEQ:
       SetDst(state, op.operands[0], op,
-             ShaderVariable("", (srcOpers[0].value.s32v[0] == srcOpers[1].value.s32v[0] ? ~0l : 0l),
-                            (srcOpers[0].value.s32v[1] == srcOpers[1].value.s32v[1] ? ~0l : 0l),
-                            (srcOpers[0].value.s32v[2] == srcOpers[1].value.s32v[2] ? ~0l : 0l),
-                            (srcOpers[0].value.s32v[3] == srcOpers[1].value.s32v[3] ? ~0l : 0l)));
+             ShaderVariable("", (srcOpers[0].value.s32v[0] == srcOpers[1].value.s32v[0] ? ~0u : 0u),
+                            (srcOpers[0].value.s32v[1] == srcOpers[1].value.s32v[1] ? ~0u : 0u),
+                            (srcOpers[0].value.s32v[2] == srcOpers[1].value.s32v[2] ? ~0u : 0u),
+                            (srcOpers[0].value.s32v[3] == srcOpers[1].value.s32v[3] ? ~0u : 0u)));
       break;
     case OPCODE_INE:
       SetDst(state, op.operands[0], op,
-             ShaderVariable("", (srcOpers[0].value.s32v[0] != srcOpers[1].value.s32v[0] ? ~0l : 0l),
-                            (srcOpers[0].value.s32v[1] != srcOpers[1].value.s32v[1] ? ~0l : 0l),
-                            (srcOpers[0].value.s32v[2] != srcOpers[1].value.s32v[2] ? ~0l : 0l),
-                            (srcOpers[0].value.s32v[3] != srcOpers[1].value.s32v[3] ? ~0l : 0l)));
+             ShaderVariable("", (srcOpers[0].value.s32v[0] != srcOpers[1].value.s32v[0] ? ~0u : 0u),
+                            (srcOpers[0].value.s32v[1] != srcOpers[1].value.s32v[1] ? ~0u : 0u),
+                            (srcOpers[0].value.s32v[2] != srcOpers[1].value.s32v[2] ? ~0u : 0u),
+                            (srcOpers[0].value.s32v[3] != srcOpers[1].value.s32v[3] ? ~0u : 0u)));
       break;
     case OPCODE_IGE:
       SetDst(state, op.operands[0], op,
-             ShaderVariable("", (srcOpers[0].value.s32v[0] >= srcOpers[1].value.s32v[0] ? ~0l : 0l),
-                            (srcOpers[0].value.s32v[1] >= srcOpers[1].value.s32v[1] ? ~0l : 0l),
-                            (srcOpers[0].value.s32v[2] >= srcOpers[1].value.s32v[2] ? ~0l : 0l),
-                            (srcOpers[0].value.s32v[3] >= srcOpers[1].value.s32v[3] ? ~0l : 0l)));
+             ShaderVariable("", (srcOpers[0].value.s32v[0] >= srcOpers[1].value.s32v[0] ? ~0u : 0u),
+                            (srcOpers[0].value.s32v[1] >= srcOpers[1].value.s32v[1] ? ~0u : 0u),
+                            (srcOpers[0].value.s32v[2] >= srcOpers[1].value.s32v[2] ? ~0u : 0u),
+                            (srcOpers[0].value.s32v[3] >= srcOpers[1].value.s32v[3] ? ~0u : 0u)));
       break;
     case OPCODE_ILT:
       SetDst(state, op.operands[0], op,
-             ShaderVariable("", (srcOpers[0].value.s32v[0] < srcOpers[1].value.s32v[0] ? ~0l : 0l),
-                            (srcOpers[0].value.s32v[1] < srcOpers[1].value.s32v[1] ? ~0l : 0l),
-                            (srcOpers[0].value.s32v[2] < srcOpers[1].value.s32v[2] ? ~0l : 0l),
-                            (srcOpers[0].value.s32v[3] < srcOpers[1].value.s32v[3] ? ~0l : 0l)));
+             ShaderVariable("", (srcOpers[0].value.s32v[0] < srcOpers[1].value.s32v[0] ? ~0u : 0u),
+                            (srcOpers[0].value.s32v[1] < srcOpers[1].value.s32v[1] ? ~0u : 0u),
+                            (srcOpers[0].value.s32v[2] < srcOpers[1].value.s32v[2] ? ~0u : 0u),
+                            (srcOpers[0].value.s32v[3] < srcOpers[1].value.s32v[3] ? ~0u : 0u)));
       break;
     case OPCODE_ULT:
       SetDst(state, op.operands[0], op,
-             ShaderVariable("", (srcOpers[0].value.u32v[0] < srcOpers[1].value.u32v[0] ? ~0l : 0l),
-                            (srcOpers[0].value.u32v[1] < srcOpers[1].value.u32v[1] ? ~0l : 0l),
-                            (srcOpers[0].value.u32v[2] < srcOpers[1].value.u32v[2] ? ~0l : 0l),
-                            (srcOpers[0].value.u32v[3] < srcOpers[1].value.u32v[3] ? ~0l : 0l)));
+             ShaderVariable("", (srcOpers[0].value.u32v[0] < srcOpers[1].value.u32v[0] ? ~0u : 0u),
+                            (srcOpers[0].value.u32v[1] < srcOpers[1].value.u32v[1] ? ~0u : 0u),
+                            (srcOpers[0].value.u32v[2] < srcOpers[1].value.u32v[2] ? ~0u : 0u),
+                            (srcOpers[0].value.u32v[3] < srcOpers[1].value.u32v[3] ? ~0u : 0u)));
       break;
     case OPCODE_UGE:
       SetDst(state, op.operands[0], op,
-             ShaderVariable("", (srcOpers[0].value.u32v[0] >= srcOpers[1].value.u32v[0] ? ~0l : 0l),
-                            (srcOpers[0].value.u32v[1] >= srcOpers[1].value.u32v[1] ? ~0l : 0l),
-                            (srcOpers[0].value.u32v[2] >= srcOpers[1].value.u32v[2] ? ~0l : 0l),
-                            (srcOpers[0].value.u32v[3] >= srcOpers[1].value.u32v[3] ? ~0l : 0l)));
+             ShaderVariable("", (srcOpers[0].value.u32v[0] >= srcOpers[1].value.u32v[0] ? ~0u : 0u),
+                            (srcOpers[0].value.u32v[1] >= srcOpers[1].value.u32v[1] ? ~0u : 0u),
+                            (srcOpers[0].value.u32v[2] >= srcOpers[1].value.u32v[2] ? ~0u : 0u),
+                            (srcOpers[0].value.u32v[3] >= srcOpers[1].value.u32v[3] ? ~0u : 0u)));
       break;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////
