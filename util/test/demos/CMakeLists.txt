@@ -20,6 +20,7 @@ set(VULKAN_SRC
         vk/vk_discard_rects.cpp
         vk/vk_discard_zoo.cpp
         vk/vk_draw_zoo.cpp
+        vk/vk_dynamic_rendering.cpp
         vk/vk_empty_capture.cpp
         vk/vk_ext_buffer_address.cpp
         vk/vk_extended_dyn_state.cpp
