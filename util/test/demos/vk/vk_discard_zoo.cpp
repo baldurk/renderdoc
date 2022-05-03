@@ -29,6 +29,26 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
   static constexpr const char *Description =
       "Tests the different discard patterns possible on replay.";
 
+  const std::string pixel = R"EOSHADER(
+#version 460 core
+
+layout(location = 0, index = 0) out vec4 Color;
+
+layout(set = 0, binding = 0, std140) uniform constsbuf
+{
+  vec4 value;
+};
+
+void main()
+{
+	Color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+
+  if(value.y == 234.0f)
+    Color = vec4(0.0f, 1.0f, 0.0f, 1.0f);
+}
+
+)EOSHADER";
+
   AllocatedBuffer emptyBuf;
 
   void Clear(VkCommandBuffer cmd, const AllocatedImage &img)
@@ -179,6 +199,12 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
     if(!Init())
       return 3;
 
+    VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+    }));
+
+    VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo({setlayout}));
+
     bool d32s8 = true;
     VkFormat depthStencilFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
 
@@ -296,6 +322,58 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
     renderPassCreateInfo.attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
     VkRenderPass undefLoadRP = createRenderPass(renderPassCreateInfo);
 
+    renderPassCreateInfo.attachments.resize(1);
+    renderPassCreateInfo.attachments[0].format = mainWindow->format;
+    renderPassCreateInfo.attachments[0].samples = VK_SAMPLE_COUNT_4_BIT;
+
+    renderPassCreateInfo.subpasses[0].pDepthStencilAttachment = NULL;
+
+    VkRenderPass msaaRP = createRenderPass(renderPassCreateInfo);
+
+    vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
+
+    pipeCreateInfo.inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+
+    pipeCreateInfo.layout = layout;
+
+    pipeCreateInfo.stages = {
+        CompileShaderModule(VKFullscreenQuadVertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
+    };
+    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+
+    pipeCreateInfo.renderPass = msaaRP;
+    VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
+
+    AllocatedImage msaaimg(
+        this, vkh::ImageCreateInfo(mainWindow->scissor.extent.width,
+                                   mainWindow->scissor.extent.height, 0, mainWindow->format,
+                                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, 1, VK_SAMPLE_COUNT_4_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    VkImageView msaaRTV = createImageView(
+        vkh::ImageViewCreateInfo(msaaimg.image, VK_IMAGE_VIEW_TYPE_2D, mainWindow->format));
+
+    VkFramebuffer msaaFB = createFramebuffer(vkh::FramebufferCreateInfo(
+        msaaRP, {msaaRTV}, {mainWindow->scissor.extent.width, mainWindow->scissor.extent.height}));
+
+    Vec4f cbufferdata[64] = {};
+    cbufferdata[0] = Vec4f(0.0f, 234.0f, 0.0f, 0.0f);
+
+    AllocatedBuffer cb(
+        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    cb.upload(cbufferdata);
+
+    VkDescriptorSet descset = allocateDescriptorSet(setlayout);
+
+    vkh::updateDescriptorSets(
+        device, {
+                    vkh::WriteDescriptorSet(descset, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                            {vkh::DescriptorBufferInfo(cb.buffer)}),
+                });
+
     VkFramebuffer fb = createFramebuffer(vkh::FramebufferCreateInfo(
         renderPass, {colview, depthview, ignoreview}, mainWindow->scissor.extent));
 
@@ -358,6 +436,11 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
       VkCommandBuffer cmd = GetCommandBuffer();
 
       vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+
+      // bind descriptor sets here, these should not be disturbed by any discard patterns
+      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});
+      vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
+      vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
 
       Clear(cmd, ignoreimg);
       Clear(cmd, colimg);
@@ -563,6 +646,12 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
       vkCmdEndRenderPass(cmd);
 
       setMarker(cmd, "UndefinedLoad_After");
+
+      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(msaaRP, msaaFB, mainWindow->scissor),
+                           VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
+      vkCmdDraw(cmd, 4, 1, 0, 0);
+      vkCmdEndRenderPass(cmd);
 
       FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 

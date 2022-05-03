@@ -24,6 +24,24 @@
 
 #include "../test_common.h"
 
+std::string VKFullscreenQuadVertex = R"EOSHADER(
+
+#version 460 core
+
+void main()
+{
+	vec2 positions[] = {
+		vec2(-1.0f,  1.0f),
+		vec2( 1.0f,  1.0f),
+		vec2(-1.0f, -1.0f),
+		vec2( 1.0f, -1.0f),
+	};
+
+	gl_Position = vec4(positions[gl_VertexIndex], 0, 1);
+}
+
+)EOSHADER";
+
 static std::string common = R"EOSHADER(
 
 #version 460 core

@@ -136,3 +136,17 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
                         'undefined depth has unexpected value at {},{}: {}'.format(x, y, d.floatValue))
 
         rdtest.log.success("Values are correct after the UNDEFINED initial layout renderpass")
+
+        action = self.find_action("CmdDraw")
+        self.check(action is not None)
+        self.controller.SetFrameEvent(action.eventId, True)
+
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+
+        tex_id = pipe.GetOutputTargets()[0].resourceId
+
+        self.check_pixel_value(tex_id, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
+        self.controller.SetFrameEvent(action.next.eventId, True)
+        self.check_pixel_value(tex_id, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
+
+        rdtest.log.success("Output value from draw is correct at draw and after it")
