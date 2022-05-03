@@ -682,6 +682,113 @@ float4 main(v2f IN) : SV_Target0
 
 )EOSHADER";
 
+  std::string flowPixel = R"EOSHADER(
+
+float4 main(v2f IN) : SV_Target0 
+{
+  uint zero = IN.tri;
+
+  float4 ret = float4(0,0,0,0);
+
+  // test multiple ifs
+  if(zero < 5)
+  {
+    ret.w += 2.0f;
+  }
+  else
+  {
+    ret.w += 4.0f;
+  }
+
+  if(zero > 1)
+  {
+    ret.w += 8.0f;
+  }
+  else
+  {
+    ret.w += 16.0f;
+  }
+
+  // test nested ifs
+  if(zero < 5)
+  {
+    if(zero > 1)
+    {
+      ret.z += 2.0f;
+    }
+    else
+    {
+      ret.z += 4.0f;
+    }
+  }
+  else
+  {
+    if(zero < 10)
+    {
+      ret.z += 8.0f;
+    }
+    else
+    {
+      ret.z += 16.0f;
+    }
+  }
+
+  // test loops
+  ret.y = 1.0f;
+  for(uint i=0; i < zero + 5; i++)
+  {
+    ret.y += 1.0f;
+  }
+
+  for(uint j=0; j < zero; j++)
+  {
+    ret.y += 100.0f;
+  }
+
+  for(uint k=0; k < zero + 2; k++)
+  {
+    for(uint l=0; l < zero + 3; l++)
+    {
+      ret.y += 10.0f;
+    }
+  }
+
+  // test switches
+  switch(zero)
+  {
+    // fallthrough
+    case 1:
+    case 0:
+      ret.x += 1.0f;
+      break;
+    case 3:
+    case 4:
+      ret.x += 2.0f;
+      break;
+    default:
+      break;
+  }
+
+  switch(zero+4)
+  {
+    // fallthrough
+    case 1:
+    case 0:
+      ret.x += 4.0f;
+      break;
+    case 3:
+    case 4:
+      ret.x += 8.0f;
+      break;
+    default:
+      break;
+  }
+
+  return ret;
+}
+
+)EOSHADER";
+
   std::string msaaPixel = R"EOSHADER(
 
 struct v2f
@@ -769,10 +876,11 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
 
     ID3D11VertexShaderPtr vs = CreateVS(vsblob);
     ID3D11PixelShaderPtr ps = CreatePS(psblob);
+    ID3D11PixelShaderPtr flowps = CreatePS(Compile(common + flowPixel, "main", "ps_5_0"));
 
     static const uint32_t texDim = AlignUp(numTests, 64U) * 4;
 
-    ID3D11Texture2DPtr fltTex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, texDim, 4).RTV();
+    ID3D11Texture2DPtr fltTex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, texDim, 8).RTV();
     ID3D11RenderTargetViewPtr fltRT = MakeRTV(fltTex);
 
     float triWidth = 8.0f / float(texDim);
@@ -888,7 +996,13 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
       ctx->OMSetRenderTargetsAndUnorderedAccessViews(1, &fltRT.GetInterfacePtr(), NULL, 1, 2, uavs,
                                                      NULL);
 
+      setMarker("Main Test");
       ctx->DrawInstanced(3, numTests, 0, 0);
+
+      RSSetViewport({0.0f, 4.0f, (float)texDim, 4.0f, 0.0f, 1.0f});
+      ctx->PSSetShader(flowps, NULL, 0);
+      setMarker("Flow Test");
+      ctx->DrawInstanced(3, 1, 0, 0);
 
       ctx->OMSetRenderTargets(1, &msaaRT.GetInterfacePtr(), NULL);
 
@@ -897,6 +1011,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
       ctx->IASetInputLayout(defaultLayout);
       ctx->VSSetShader(vsmsaa, NULL, 0);
       ctx->PSSetShader(psmsaa, NULL, 0);
+      setMarker("MSAA Test");
       ctx->Draw(3, 0);
 
       Present();

@@ -8,7 +8,7 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
 
     def check_capture(self):
         # Jump to the action
-        action = self.find_action("Draw")
+        action = self.find_action("Main Test").next
 
         self.controller.SetFrameEvent(action.eventId, False)
 
@@ -41,8 +41,35 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
             rdtest.log.success("Test {} matched as expected".format(test))
         rdtest.log.end_section("General tests")
 
+        rdtest.log.begin_section("Flow tests")
+        action = self.find_action("Flow Test").next
+        self.controller.SetFrameEvent(action.eventId, False)
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+
+        # Debug the shader
+        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(0, 4, rd.ReplayController.NoPreference,
+                                                                rd.ReplayController.NoPreference)
+
+        cycles, variables = self.process_trace(trace)
+
+        output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+
+        debugged = self.evaluate_source_var(output, variables)
+
+        try:
+            self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0, 4, debugged.value.f32v[0:4])
+            self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0, 4, [9.0, 66.0, 4.0, 18.0])
+        except rdtest.TestFailureException as ex:
+            raise rdtest.TestFailureException("Flow test did not match. {}".format(str(ex)))
+        finally:
+            self.controller.FreeTrace(trace)
+
+        rdtest.log.success("Flow test matched as expected")
+
+        rdtest.log.end_section("Flow tests")
+
         rdtest.log.begin_section("MSAA tests")
-        action = action.next
+        action = self.find_action("MSAA Test").next
         self.controller.SetFrameEvent(action.eventId, False)
         pipe: rd.PipeState = self.controller.GetPipelineState()
         for test in range(4):
