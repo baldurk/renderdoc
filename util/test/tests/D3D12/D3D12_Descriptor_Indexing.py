@@ -5,13 +5,6 @@ import renderdoc as rd
 class D3D12_Descriptor_Indexing(rdtest.TestCase):
     demos_test_name = 'D3D12_Descriptor_Indexing'
 
-    def check_support(self):
-        cfg = rd.GetConfigSetting("D3D12_Experimental_BindlessFeedback")
-        if cfg is not None and cfg.AsBool() is False:
-            return False, 'Bindless feedback is not enabled'
-
-        return super().check_support()
-
     def check_compute(self, eventId):
             action = self.find_action("Dispatch", eventId)
             self.check(action is not None)
