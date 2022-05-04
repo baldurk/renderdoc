@@ -331,6 +331,14 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, r
           i++;
         }
 
+        for(auto it = cmdBufInfo.resourceUsage.begin(); it != cmdBufInfo.resourceUsage.end(); ++it)
+        {
+          EventUsage u = it->second;
+          u.eventId += m_RootEventID - cmdBufInfo.curEvents.count();
+          m_ResourceUses[it->first].push_back(u);
+          m_EventFlags[u.eventId] |= PipeRWUsageEventFlags(u.usage);
+        }
+
         name = StringFormat::Fmt("=> %s[%u]: vkEndCommandBuffer(%s)", basename.c_str(), c,
                                  ToStr(cmd).c_str());
         action.customName = name;
