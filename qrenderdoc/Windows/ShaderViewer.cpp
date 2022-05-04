@@ -2857,27 +2857,34 @@ QString ShaderViewer::getRegNames(const RDTreeWidgetItem *item, uint32_t swizzle
     {
       const ShaderVariable *reg = GetDebugVariable(r);
 
-      if(!reg->members.empty())
-        return QString();
-
-      if(i > start && r.name == prevRef.name &&
-         (r.component / reg->columns) == (prevRef.component / reg->columns))
+      if(reg)
       {
-        // if the previous register was the same, just append our component
-        // remove the auto-appended ", " - there must be one because this isn't the first
-        // register
-        ret.chop(2);
-        ret += xyzw[r.component % 4];
+        if(!reg->members.empty())
+          return QString();
+
+        if(i > start && r.name == prevRef.name &&
+           (r.component / reg->columns) == (prevRef.component / reg->columns))
+        {
+          // if the previous register was the same, just append our component
+          // remove the auto-appended ", " - there must be one because this isn't the first
+          // register
+          ret.chop(2);
+          ret += xyzw[r.component % 4];
+        }
+        else
+        {
+          if(reg->rows > 1)
+            ret += QFormatStr("%1.row%2.%3")
+                       .arg(reg->name)
+                       .arg(r.component / reg->columns)
+                       .arg(xyzw[r.component % 4]);
+          else
+            ret += QFormatStr("%1.%2").arg(r.name).arg(xyzw[r.component % 4]);
+        }
       }
       else
       {
-        if(reg->rows > 1)
-          ret += QFormatStr("%1.row%2.%3")
-                     .arg(reg->name)
-                     .arg(r.component / reg->columns)
-                     .arg(xyzw[r.component % 4]);
-        else
-          ret += QFormatStr("%1.%2").arg(r.name).arg(xyzw[r.component % 4]);
+        ret += lit("-");
       }
     }
 
