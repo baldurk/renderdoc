@@ -3305,6 +3305,19 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
           imInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
         }
 
+        // fall back to VK_SAMPLE_COUNT_1_BIT if multi-sample
+        // is not supported for this combination of parameters
+        if(sampleCounts[type] != VK_SAMPLE_COUNT_1_BIT)
+        {
+          VkImageFormatProperties imProp;
+          vkr = driver->vkGetPhysicalDeviceImageFormatProperties(
+              driver->GetPhysDev(), imInfo.format, imInfo.imageType, imInfo.tiling, imInfo.usage,
+              imInfo.flags, &imProp);
+          driver->CheckVkResult(vkr);
+          if((imProp.sampleCounts & sampleCounts[type]) == 0)
+            imInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        }
+
         vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &DummyImages[fmt][type]);
         driver->CheckVkResult(vkr);
 
