@@ -139,8 +139,10 @@ private slots:
 
   void processFormat(const QString &format);
 
+  void updateExportActionNames();
   void exportData(const BufferExport &params);
   void debugVertex();
+  void fixedVars_contextMenu(const QPoint &pos);
 
 private:
   bool eventFilter(QObject *watched, QEvent *event) override;
@@ -179,6 +181,7 @@ private:
   void UI_UpdateBoundingBoxLabels(int compCount = 0);
 
   void UI_AddFixedVariables(RDTreeWidgetItem *root, const rdcarray<ShaderVariable> &vars);
+  void exportCSV(QTextStream &ts, const QString &prefix, RDTreeWidgetItem *item);
 
   void FillScrolls(PopulateBufferData *bufdata);
 
@@ -211,6 +214,7 @@ private:
   int m_Sequence = 0;
 
   RDTableView *m_CurView = NULL;
+  bool m_CurFixed = false;
   int m_ContextColumn = -1;
 
   int m_ColumnWidthRowCount = -1;

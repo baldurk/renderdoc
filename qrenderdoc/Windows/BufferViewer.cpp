@@ -2140,10 +2140,9 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
     SetupRawView();
 
   m_ExportMenu = new QMenu(this);
-
-  m_ExportCSV = new QAction(tr("Export to &CSV"), this);
+  m_ExportCSV = new QAction(this);
   m_ExportCSV->setIcon(Icons::save());
-  m_ExportBytes = new QAction(tr("Export to &Bytes"), this);
+  m_ExportBytes = new QAction(this);
   m_ExportBytes->setIcon(Icons::save());
 
   m_ExportMenu->addAction(m_ExportCSV);
@@ -2153,6 +2152,8 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   m_DebugVert->setIcon(Icons::wrench());
 
   ui->exportDrop->setMenu(m_ExportMenu);
+
+  QObject::connect(m_ExportMenu, &QMenu::aboutToShow, this, &BufferViewer::updateExportActionNames);
 
   QObject::connect(m_ExportCSV, &QAction::triggered,
                    [this] { exportData(BufferExport(BufferExport::CSV)); });
@@ -2167,11 +2168,16 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   ui->vsoutData->setContextMenuPolicy(Qt::CustomContextMenu);
   ui->gsoutData->setContextMenuPolicy(Qt::CustomContextMenu);
 
+  ui->fixedVars->setContextMenuPolicy(Qt::CustomContextMenu);
+
   QMenu *menu = new QMenu(this);
 
   ui->vsinData->setCustomHeaderSizing(true);
   ui->vsoutData->setCustomHeaderSizing(true);
   ui->gsoutData->setCustomHeaderSizing(true);
+
+  QObject::connect(ui->fixedVars, &RDTreeWidget::customContextMenuRequested, this,
+                   &BufferViewer::fixedVars_contextMenu);
 
   QObject::connect(ui->vsinData, &RDTableView::customContextMenuRequested,
                    [this, menu](const QPoint &pos) { stageRowMenu(MeshDataStage::VSIn, menu, pos); });
@@ -2221,10 +2227,19 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
                    &BufferViewer::data_selected);
 
   m_CurView = ui->vsinData;
+  m_CurFixed = false;
 
-  QObject::connect(ui->vsinData, &RDTableView::clicked, [this]() { m_CurView = ui->vsinData; });
+  QObject::connect(ui->vsinData, &RDTableView::clicked, [this]() {
+    m_CurView = ui->vsinData;
+    m_CurFixed = false;
+  });
   QObject::connect(ui->vsoutData, &RDTableView::clicked, [this]() { m_CurView = ui->vsoutData; });
   QObject::connect(ui->gsoutData, &RDTableView::clicked, [this]() { m_CurView = ui->gsoutData; });
+
+  QObject::connect(ui->fixedVars, &RDTreeWidget::clicked, [this]() {
+    m_CurView = NULL;
+    m_CurFixed = true;
+  });
 
   QObject::connect(ui->vsinData->verticalScrollBar(), &QScrollBar::valueChanged, this,
                    &BufferViewer::data_scrolled);
@@ -2507,6 +2522,7 @@ void BufferViewer::meshHeaderMenu(MeshDataStage stage, const QPoint &pos)
     return;
 
   m_CurView = tableForStage(stage);
+  m_CurFixed = false;
   m_ContextColumn = modelForStage(stage)->elementIndexForColumn(col);
 
   m_SelectSecondAlphaColumn->setEnabled(
@@ -2515,9 +2531,54 @@ void BufferViewer::meshHeaderMenu(MeshDataStage stage, const QPoint &pos)
   m_HeaderMenu->popup(tableForStage(stage)->horizontalHeader()->mapToGlobal(pos));
 }
 
+void BufferViewer::fixedVars_contextMenu(const QPoint &pos)
+{
+  RDTreeWidgetItem *item = ui->fixedVars->itemAt(pos);
+
+  m_CurView = NULL;
+  m_CurFixed = true;
+
+  updateExportActionNames();
+
+  QMenu contextMenu(this);
+
+  QAction expandAll(tr("&Expand All"), this);
+  QAction collapseAll(tr("&Collapse All"), this);
+  QAction copy(tr("&Copy"), this);
+
+  expandAll.setIcon(Icons::arrow_out());
+  collapseAll.setIcon(Icons::arrow_in());
+  copy.setIcon(Icons::copy());
+
+  expandAll.setEnabled(item && item->childCount() > 0);
+  collapseAll.setEnabled(expandAll.isEnabled());
+
+  contextMenu.addAction(m_ExportCSV);
+  contextMenu.addAction(m_ExportBytes);
+
+  contextMenu.addSeparator();
+
+  contextMenu.addAction(&expandAll);
+  contextMenu.addAction(&collapseAll);
+  contextMenu.addAction(&copy);
+
+  QObject::connect(&expandAll, &QAction::triggered,
+                   [this, item]() { ui->fixedVars->expandAllItems(item); });
+
+  QObject::connect(&collapseAll, &QAction::triggered,
+                   [this, item]() { ui->fixedVars->collapseAllItems(item); });
+  QObject::connect(&copy, &QAction::triggered,
+                   [this, item, pos]() { ui->fixedVars->copyItem(pos, item); });
+
+  RDDialog::show(&contextMenu, ui->fixedVars->viewport()->mapToGlobal(pos));
+}
+
 void BufferViewer::stageRowMenu(MeshDataStage stage, QMenu *menu, const QPoint &pos)
 {
   m_CurView = tableForStage(stage);
+  m_CurFixed = false;
+
+  updateExportActionNames();
 
   menu->clear();
 
@@ -4151,6 +4212,7 @@ void BufferViewer::data_selected(const QItemSelection &selected, const QItemSele
     return;
 
   m_CurView = view;
+  m_CurFixed = false;
 
   if(selected.count() > 0)
   {
@@ -4340,6 +4402,9 @@ void BufferViewer::processFormat(const QString &format)
     ui->vsinData->setVisible(true);
 
     m_InnerSplitter->setVisible(true);
+
+    if(m_CurView == NULL && !m_CurFixed)
+      m_CurView = ui->vsinData;
   }
   else if(fixedVars)
   {
@@ -4355,6 +4420,9 @@ void BufferViewer::processFormat(const QString &format)
     ui->vsinData->setVisible(false);
 
     m_InnerSplitter->setVisible(false);
+
+    m_CurView = NULL;
+    m_CurFixed = true;
   }
   else if(repeatedVars)
   {
@@ -4388,6 +4456,9 @@ void BufferViewer::processFormat(const QString &format)
     ui->vsinData->setVisible(true);
 
     m_InnerSplitter->setVisible(false);
+
+    m_CurView = ui->vsinData;
+    m_CurFixed = false;
   }
 
   CalcColumnWidth(MaxNumRows(repeating));
@@ -4430,6 +4501,75 @@ void BufferViewer::on_byteRangeLength_valueChanged(double value)
   processFormat(m_Format);
 }
 
+void BufferViewer::updateExportActionNames()
+{
+  QString csv = tr("Export%1 to &CSV");
+  QString bytes = tr("Export%1 to &Bytes");
+
+  bool valid = m_Ctx.IsCaptureLoaded() && m_Ctx.CurAction();
+
+  if(m_MeshView)
+  {
+    valid = valid && m_CurView != NULL;
+  }
+  else
+  {
+    valid = valid && (m_CurView != NULL || m_CurFixed);
+  }
+
+  if(!valid)
+  {
+    m_ExportCSV->setText(csv.arg(QString()));
+    m_ExportBytes->setText(bytes.arg(QString()));
+    m_ExportCSV->setEnabled(false);
+    m_ExportBytes->setEnabled(false);
+    return;
+  }
+
+  m_ExportCSV->setEnabled(true);
+  m_ExportBytes->setEnabled(true);
+
+  if(m_MeshView)
+  {
+    m_ExportCSV->setText(csv.arg(lit(" ") + m_CurView->windowTitle()));
+    m_ExportBytes->setText(bytes.arg(lit(" ") + m_CurView->windowTitle()));
+  }
+  else
+  {
+    // if only one type of data is visible, the export is unambiguous
+    if(!ui->vsinData->isVisible() || !ui->fixedVars->isVisible())
+    {
+      m_ExportCSV->setText(csv.arg(QString()));
+      m_ExportBytes->setText(bytes.arg(QString()));
+    }
+    // otherwise go by which is selected
+    else if(m_CurFixed)
+    {
+      m_ExportCSV->setText(csv.arg(lit(" ") + m_FixedGroup->title()));
+      m_ExportBytes->setText(bytes.arg(lit(" ") + m_FixedGroup->title()));
+    }
+    else
+    {
+      m_ExportCSV->setText(csv.arg(lit(" ") + m_RepeatedGroup->title()));
+      m_ExportBytes->setText(bytes.arg(lit(" ") + m_RepeatedGroup->title()));
+    }
+  }
+}
+
+void BufferViewer::exportCSV(QTextStream &ts, const QString &prefix, RDTreeWidgetItem *item)
+{
+  if(item->childCount() == 0)
+  {
+    ts << QFormatStr("%1,\"%2\",%3\n").arg(item->text(0)).arg(item->text(1)).arg(item->text(2));
+  }
+  else
+  {
+    ts << QFormatStr("%1,,%2\n").arg(item->text(0)).arg(item->text(2));
+    for(int i = 0; i < item->childCount(); i++)
+      exportCSV(ts, item->text(0) + lit("."), item->child(i));
+  }
+}
+
 void BufferViewer::exportData(const BufferExport &params)
 {
   if(!m_Ctx.IsCaptureLoaded())
@@ -4438,7 +4578,7 @@ void BufferViewer::exportData(const BufferExport &params)
   if(!m_Ctx.CurAction())
     return;
 
-  if(!m_CurView)
+  if(!m_CurView && !m_CurFixed)
     return;
 
   QString filter;
@@ -4484,208 +4624,256 @@ void BufferViewer::exportData(const BufferExport &params)
     ANALYTIC_SET(Export.RawBuffer, true);
   }
 
-  BufferItemModel *model = (BufferItemModel *)m_CurView->model();
+  if(m_CurView)
+  {
+    BufferItemModel *model = (BufferItemModel *)m_CurView->model();
 
-  LambdaThread *exportThread = new LambdaThread([this, params, model, f]() {
-    if(params.format == BufferExport::RawBytes)
-    {
-      const BufferConfiguration &config = model->getConfig();
-
-      if(!m_MeshView)
+    LambdaThread *exportThread = new LambdaThread([this, params, model, f]() {
+      if(params.format == BufferExport::RawBytes)
       {
-        // this is the simplest possible case, we just dump the contents of the first buffer.
-        if(!m_IsBuffer || config.buffers[0]->size() >= m_ObjectByteSize)
+        const BufferConfiguration &config = model->getConfig();
+
+        if(!m_MeshView)
         {
-          f->write((const char *)config.buffers[0]->data(), int(config.buffers[0]->size()));
+          // this is the simplest possible case, we just dump the contents of the first buffer.
+          if(!m_IsBuffer || config.buffers[0]->size() >= m_ObjectByteSize)
+          {
+            f->write((const char *)config.buffers[0]->data(), int(config.buffers[0]->size()));
+          }
+          else
+          {
+            // For buffers we have to handle reading in pages though as we might not have everything
+            // in memory.
+            ResourceId buff = m_BufferID;
+
+            static const uint64_t chunkSize = 4 * 1024 * 1024;
+            for(uint64_t byteOffset = m_ByteOffset; byteOffset < m_ObjectByteSize;
+                byteOffset += chunkSize)
+            {
+              // it's fine to block invoke, because this is on the export thread
+              m_Ctx.Replay().BlockInvoke([buff, f, byteOffset](IReplayController *r) {
+                bytebuf chunk = r->GetBufferData(buff, byteOffset, chunkSize);
+                f->write((const char *)chunk.data(), (qint64)chunk.size());
+              });
+            }
+          }
         }
         else
         {
-          // For buffers we have to handle reading in pages though as we might not have everything
-          // in memory.
-          ResourceId buff = m_BufferID;
+          // cache column data for the inner loop
+          QVector<CachedElData> cache;
 
-          static const uint64_t chunkSize = 4 * 1024 * 1024;
+          CacheDataForIteration(cache, config.columns, config.props, config.buffers,
+                                config.curInstance);
+
+          // go row by row, finding the start of the row and dumping out the elements using their
+          // offset and sizes
+          for(int i = 0; i < model->rowCount(); i++)
+          {
+            // manually calculate the index so that we get the real offset (not the displayed
+            // offset)
+            // in the case of vertex output.
+            uint32_t idx = i;
+
+            if(config.indices && config.indices->hasData())
+            {
+              idx = CalcIndex(config.indices, i, config.baseVertex, config.primRestart);
+
+              // completely omit primitive restart indices
+              if(config.primRestart && idx == config.primRestart)
+                continue;
+            }
+
+            for(int col = 0; col < cache.count(); col++)
+            {
+              const CachedElData &d = cache[col];
+              const ShaderConstant *el = d.el;
+              const BufferElementProperties *prop = d.prop;
+
+              if(d.data)
+              {
+                const char *bytes = (const char *)d.data;
+
+                if(!prop->perinstance)
+                  bytes += d.stride * idx;
+
+                if(bytes + d.byteSize <= (const char *)d.end)
+                {
+                  f->write(bytes, d.byteSize);
+                  continue;
+                }
+              }
+
+              // if we didn't continue above, something was wrong, so write nulls
+              f->write(d.nulls);
+            }
+          }
+        }
+      }
+      else if(params.format == BufferExport::CSV)
+      {
+        // otherwise we need to iterate over all the data ourselves
+        const BufferConfiguration &config = model->getConfig();
+
+        QTextStream s(f);
+
+        for(int i = 0; i < model->columnCount(); i++)
+        {
+          s << model->headerData(i, Qt::Horizontal, Qt::DisplayRole).toString();
+
+          if(i + 1 < model->columnCount())
+            s << ", ";
+        }
+
+        s << "\n";
+
+        if(m_MeshView || !m_IsBuffer || config.buffers[0]->size() >= m_ObjectByteSize)
+        {
+          // if there's no pagination to worry about, dump using the model's data()
+          for(int row = 0; row < model->rowCount(); row++)
+          {
+            for(int col = 0; col < model->columnCount(); col++)
+            {
+              s << model->data(model->index(row, col), Qt::DisplayRole).toString();
+
+              if(col + 1 < model->columnCount())
+                s << ", ";
+            }
+
+            s << "\n";
+          }
+        }
+        else
+        {
+          // write 64k rows at a time
+          ResourceId buff = m_BufferID;
+          const uint64_t chunkSize = 64 * 1024 * config.buffers[0]->stride;
           for(uint64_t byteOffset = m_ByteOffset; byteOffset < m_ObjectByteSize;
               byteOffset += chunkSize)
           {
             // it's fine to block invoke, because this is on the export thread
-            m_Ctx.Replay().BlockInvoke([buff, f, byteOffset](IReplayController *r) {
-              bytebuf chunk = r->GetBufferData(buff, byteOffset, chunkSize);
-              f->write((const char *)chunk.data(), (qint64)chunk.size());
-            });
+            m_Ctx.Replay().BlockInvoke(
+                [buff, &s, &config, byteOffset, chunkSize](IReplayController *r) {
+                  // cache column data for the inner loop
+                  QVector<CachedElData> cache;
+
+                  BufferData bufferData;
+
+                  bufferData.storage = r->GetBufferData(buff, byteOffset, chunkSize);
+                  bufferData.stride = config.buffers[0]->stride;
+
+                  size_t numRows =
+                      (bufferData.storage.size() + bufferData.stride - 1) / bufferData.stride;
+                  size_t rowOffset = byteOffset / bufferData.stride;
+
+                  CacheDataForIteration(cache, config.columns, config.props, {&bufferData}, 0);
+
+                  // go row by row, finding the start of the row and dumping out the elements using
+                  // their
+                  // offset and sizes
+                  for(size_t idx = 0; idx < numRows; idx++)
+                  {
+                    s << (rowOffset + idx) << ", ";
+
+                    for(int col = 0; col < cache.count(); col++)
+                    {
+                      const CachedElData &d = cache[col];
+                      const ShaderConstant *el = d.el;
+                      const BufferElementProperties *prop = d.prop;
+
+                      if(d.data)
+                      {
+                        const byte *data = d.data;
+                        const byte *end = d.end;
+
+                        data += d.stride * idx;
+
+                        // only slightly wasteful, we need to fetch all variants together
+                        // since some formats are packed and can't be read individually
+                        QVariantList list = GetVariants(prop->format, *el, data, end);
+
+                        for(int v = 0; v < list.count(); v++)
+                        {
+                          s << interpretVariant(list[v], *el, *prop);
+
+                          if(v + 1 < list.count())
+                            s << ", ";
+                        }
+
+                        if(list.empty())
+                        {
+                          for(int v = 0; v < d.numColumns; v++)
+                          {
+                            s << "---";
+
+                            if(v + 1 < d.numColumns)
+                              s << ", ";
+                          }
+                        }
+
+                        if(col + 1 < cache.count())
+                          s << ", ";
+                      }
+                    }
+
+                    s << "\n";
+                  }
+                });
           }
         }
       }
-      else
+
+      f->close();
+
+      delete f;
+    });
+    exportThread->start();
+
+    ShowProgressDialog(this, tr("Exporting data"),
+                       [exportThread]() { return !exportThread->isRunning(); });
+
+    exportThread->deleteLater();
+  }
+  else if(m_CurFixed)
+  {
+    if(params.format == BufferExport::RawBytes)
+    {
+      BufferItemModel *model = (BufferItemModel *)ui->vsinData->model();
+      const BufferConfiguration &config = model->getConfig();
+
+      const ShaderConstant &fixedVars = config.fixedVars;
+
+      size_t byteSize = 0;
+
+      if(!fixedVars.type.members.empty())
+        byteSize = BufferFormatter::GetVarSize(fixedVars.type.members.back());
+
+      const bytebuf &bufdata = config.buffers[0]->storage;
+
+      f->write((const char *)bufdata.data(), qMin(bufdata.size(), byteSize));
+
+      // if the buffer wasn't large enough for the variables, fill with 0s
+      if(byteSize > bufdata.size())
       {
-        // cache column data for the inner loop
-        QVector<CachedElData> cache;
-
-        CacheDataForIteration(cache, config.columns, config.props, config.buffers,
-                              config.curInstance);
-
-        // go row by row, finding the start of the row and dumping out the elements using their
-        // offset and sizes
-        for(int i = 0; i < model->rowCount(); i++)
-        {
-          // manually calculate the index so that we get the real offset (not the displayed offset)
-          // in the case of vertex output.
-          uint32_t idx = i;
-
-          if(config.indices && config.indices->hasData())
-          {
-            idx = CalcIndex(config.indices, i, config.baseVertex, config.primRestart);
-
-            // completely omit primitive restart indices
-            if(config.primRestart && idx == config.primRestart)
-              continue;
-          }
-
-          for(int col = 0; col < cache.count(); col++)
-          {
-            const CachedElData &d = cache[col];
-            const ShaderConstant *el = d.el;
-            const BufferElementProperties *prop = d.prop;
-
-            if(d.data)
-            {
-              const char *bytes = (const char *)d.data;
-
-              if(!prop->perinstance)
-                bytes += d.stride * idx;
-
-              if(bytes + d.byteSize <= (const char *)d.end)
-              {
-                f->write(bytes, d.byteSize);
-                continue;
-              }
-            }
-
-            // if we didn't continue above, something was wrong, so write nulls
-            f->write(d.nulls);
-          }
-        }
+        QByteArray nulls;
+        nulls.resize(int(byteSize - config.buffers[0]->storage.size()));
+        f->write(nulls);
       }
     }
     else if(params.format == BufferExport::CSV)
     {
-      // otherwise we need to iterate over all the data ourselves
-      const BufferConfiguration &config = model->getConfig();
+      QTextStream ts(f);
 
-      QTextStream s(f);
+      ts << tr("Name,Value,Type\n");
 
-      for(int i = 0; i < model->columnCount(); i++)
-      {
-        s << model->headerData(i, Qt::Horizontal, Qt::DisplayRole).toString();
-
-        if(i + 1 < model->columnCount())
-          s << ", ";
-      }
-
-      s << "\n";
-
-      if(m_MeshView || !m_IsBuffer || config.buffers[0]->size() >= m_ObjectByteSize)
-      {
-        // if there's no pagination to worry about, dump using the model's data()
-        for(int row = 0; row < model->rowCount(); row++)
-        {
-          for(int col = 0; col < model->columnCount(); col++)
-          {
-            s << model->data(model->index(row, col), Qt::DisplayRole).toString();
-
-            if(col + 1 < model->columnCount())
-              s << ", ";
-          }
-
-          s << "\n";
-        }
-      }
-      else
-      {
-        // write 64k rows at a time
-        ResourceId buff = m_BufferID;
-        const uint64_t chunkSize = 64 * 1024 * config.buffers[0]->stride;
-        for(uint64_t byteOffset = m_ByteOffset; byteOffset < m_ObjectByteSize; byteOffset += chunkSize)
-        {
-          // it's fine to block invoke, because this is on the export thread
-          m_Ctx.Replay().BlockInvoke([buff, &s, &config, byteOffset, chunkSize](IReplayController *r) {
-            // cache column data for the inner loop
-            QVector<CachedElData> cache;
-
-            BufferData bufferData;
-
-            bufferData.storage = r->GetBufferData(buff, byteOffset, chunkSize);
-            bufferData.stride = config.buffers[0]->stride;
-
-            size_t numRows = (bufferData.storage.size() + bufferData.stride - 1) / bufferData.stride;
-            size_t rowOffset = byteOffset / bufferData.stride;
-
-            CacheDataForIteration(cache, config.columns, config.props, {&bufferData}, 0);
-
-            // go row by row, finding the start of the row and dumping out the elements using their
-            // offset and sizes
-            for(size_t idx = 0; idx < numRows; idx++)
-            {
-              s << (rowOffset + idx) << ", ";
-
-              for(int col = 0; col < cache.count(); col++)
-              {
-                const CachedElData &d = cache[col];
-                const ShaderConstant *el = d.el;
-                const BufferElementProperties *prop = d.prop;
-
-                if(d.data)
-                {
-                  const byte *data = d.data;
-                  const byte *end = d.end;
-
-                  data += d.stride * idx;
-
-                  // only slightly wasteful, we need to fetch all variants together
-                  // since some formats are packed and can't be read individually
-                  QVariantList list = GetVariants(prop->format, *el, data, end);
-
-                  for(int v = 0; v < list.count(); v++)
-                  {
-                    s << interpretVariant(list[v], *el, *prop);
-
-                    if(v + 1 < list.count())
-                      s << ", ";
-                  }
-
-                  if(list.empty())
-                  {
-                    for(int v = 0; v < d.numColumns; v++)
-                    {
-                      s << "---";
-
-                      if(v + 1 < d.numColumns)
-                        s << ", ";
-                    }
-                  }
-
-                  if(col + 1 < cache.count())
-                    s << ", ";
-                }
-              }
-
-              s << "\n";
-            }
-          });
-        }
-      }
+      for(int i = 0; i < ui->fixedVars->topLevelItemCount(); i++)
+        exportCSV(ts, QString(), ui->fixedVars->topLevelItem(i));
     }
 
     f->close();
 
     delete f;
-  });
-  exportThread->start();
-
-  ShowProgressDialog(this, tr("Exporting data"),
-                     [exportThread]() { return !exportThread->isRunning(); });
-
-  exportThread->deleteLater();
+  }
 }
 
 void BufferViewer::debugVertex()

@@ -182,13 +182,15 @@ private:
 
   static GraphicsAPI m_API;
 
+  static bool CheckInvalidUnbounded(const ShaderConstant &structDef, QString &errors);
+  static bool ContainsUnbounded(const rdcarray<ShaderConstant> &members);
+
   static QString DeclareStruct(Packing::Rules pack, QList<QString> &declaredStructs,
                                const QString &name, const rdcarray<ShaderConstant> &members,
                                uint32_t requiredByteStride, QString innerSkippedPrefixString);
 
   static uint32_t GetAlignment(Packing::Rules pack, const ShaderConstant &constant);
   static uint32_t GetUnpaddedStructSize(const rdcarray<ShaderConstant> &members);
-  static uint32_t GetVarSize(const ShaderConstant &var);
   static uint32_t GetVarStraddleSize(const ShaderConstant &var);
 
   static void EstimatePackingRules(Packing::Rules &pack, const ShaderConstant &constant);
@@ -200,8 +202,7 @@ public:
   static void Init(GraphicsAPI api) { m_API = api; }
   static rdcpair<ShaderConstant, ShaderConstant> ParseFormatString(const QString &formatString,
                                                                    uint64_t maxLen, QString &errors);
-  static bool CheckInvalidUnbounded(const ShaderConstant &structDef, QString &errors);
-  static bool ContainsUnbounded(const rdcarray<ShaderConstant> &members);
+  static uint32_t GetVarSize(const ShaderConstant &var);
 
   static Packing::Rules EstimatePackingRules(const rdcarray<ShaderConstant> &members);
 
