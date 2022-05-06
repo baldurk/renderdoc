@@ -319,12 +319,13 @@ void MarkerBreadcrumbs::AddPathButton(const ActionDescription *action)
 {
   RDToolButton *b = new RDToolButton();
   b->setText(action ? QString(action->customName) : QString());
+  b->setToolTip(b->text());
   if(!action)
   {
     b->setIcon(Icons::house());
     b->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    b->setToolTip(tr("Capture Root"));
   }
-  b->setToolTip(b->text());
 
   bool hasChildMarkers = false;
 

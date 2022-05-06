@@ -3453,6 +3453,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
     m_BreadcrumbLocationEditButton = new RDToolButton();
     m_BreadcrumbLocationEditButton->setIcon(Icons::page_white_edit());
+    m_BreadcrumbLocationEditButton->setToolTip(tr("Edit marker location as text"));
     box->addWidget(m_BreadcrumbLocationText);
     box->addWidget(m_BreadcrumbLocationEditButton);
     ui->breadcrumbStrip->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
