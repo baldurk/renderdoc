@@ -28,12 +28,19 @@
 #include "official/metal-cpp.h"
 #include "serialise/serialiser.h"
 
+// TODO: use Metal Feature sets to determine these values at capture time
+const uint32_t MAX_RENDER_PASS_COLOR_ATTACHMENTS = 8;
+const uint32_t MAX_RENDER_PASS_BUFFER_ATTACHMENTS = 31;
+const uint32_t MAX_VERTEX_SHADER_ATTRIBUTES = 31;
+
 #define METALCPP_WRAPPED_PROTOCOLS(FUNC) \
   FUNC(CommandBuffer);                   \
   FUNC(CommandQueue);                    \
   FUNC(Device);                          \
   FUNC(Function);                        \
-  FUNC(Library);
+  FUNC(Library);                         \
+  FUNC(RenderPipelineState);             \
+  FUNC(Texture);
 
 // These serialise overloads will fetch the ID during capture, serialise the ID
 // directly as-if it were the original type, then on replay load up the resource if available.
@@ -61,6 +68,191 @@ METALCPP_WRAPPED_PROTOCOLS(DECLARE_WRAPPED_TYPE_SERIALISE);
 METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_HELPERS)
 #undef DECLARE_OBJC_HELPERS
 
+#define MTL_DECLARE_REFLECTION_TYPE(TYPE)        \
+  template <>                                    \
+  inline rdcliteral TypeName<MTL::TYPE>()        \
+  {                                              \
+    return STRING_LITERAL(STRINGIZE(MTL##TYPE)); \
+  }                                              \
+  template <class SerialiserType>                \
+  void DoSerialise(SerialiserType &ser, MTL::TYPE &el);
+
+MTL_DECLARE_REFLECTION_TYPE(TextureType);
+MTL_DECLARE_REFLECTION_TYPE(PixelFormat);
+MTL_DECLARE_REFLECTION_TYPE(ResourceOptions);
+MTL_DECLARE_REFLECTION_TYPE(CPUCacheMode);
+MTL_DECLARE_REFLECTION_TYPE(StorageMode);
+MTL_DECLARE_REFLECTION_TYPE(HazardTrackingMode);
+MTL_DECLARE_REFLECTION_TYPE(TextureUsage);
+MTL_DECLARE_REFLECTION_TYPE(TextureSwizzleChannels);
+MTL_DECLARE_REFLECTION_TYPE(TextureSwizzle);
+MTL_DECLARE_REFLECTION_TYPE(BlendFactor);
+MTL_DECLARE_REFLECTION_TYPE(BlendOperation);
+MTL_DECLARE_REFLECTION_TYPE(ColorWriteMask);
+MTL_DECLARE_REFLECTION_TYPE(Mutability);
+MTL_DECLARE_REFLECTION_TYPE(VertexFormat);
+MTL_DECLARE_REFLECTION_TYPE(VertexStepFunction);
+MTL_DECLARE_REFLECTION_TYPE(PrimitiveTopologyClass);
+MTL_DECLARE_REFLECTION_TYPE(TessellationPartitionMode);
+MTL_DECLARE_REFLECTION_TYPE(TessellationFactorFormat);
+MTL_DECLARE_REFLECTION_TYPE(TessellationControlPointIndexType);
+MTL_DECLARE_REFLECTION_TYPE(TessellationFactorStepFunction);
+MTL_DECLARE_REFLECTION_TYPE(Winding);
+
+namespace RDMTL
+{
+// MTLTextureDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLTexture.h
+struct TextureDescriptor
+{
+  TextureDescriptor() = default;
+  TextureDescriptor(MTL::TextureDescriptor *objc);
+  explicit operator MTL::TextureDescriptor *();
+  MTL::TextureType textureType;
+  MTL::PixelFormat pixelFormat;
+  NS::UInteger width;
+  NS::UInteger height;
+  NS::UInteger depth;
+  NS::UInteger mipmapLevelCount;
+  NS::UInteger sampleCount;
+  NS::UInteger arrayLength;
+  MTL::ResourceOptions resourceOptions;
+  MTL::CPUCacheMode cpuCacheMode;
+  MTL::StorageMode storageMode;
+  MTL::HazardTrackingMode hazardTrackingMode;
+  MTL::TextureUsage usage;
+  bool allowGPUOptimizedContents;
+  MTL::TextureSwizzleChannels swizzle;
+};
+
+// MTLRenderPipelineColorAttachmentDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderPipeline.h
+struct RenderPipelineColorAttachmentDescriptor
+{
+  RenderPipelineColorAttachmentDescriptor() = default;
+  RenderPipelineColorAttachmentDescriptor(MTL::RenderPipelineColorAttachmentDescriptor *objc);
+  void CopyTo(MTL::RenderPipelineColorAttachmentDescriptor *objc);
+  MTL::PixelFormat pixelFormat;
+  bool blendingEnabled;
+  MTL::BlendFactor sourceRGBBlendFactor;
+  MTL::BlendFactor destinationRGBBlendFactor;
+  MTL::BlendOperation rgbBlendOperation;
+  MTL::BlendFactor sourceAlphaBlendFactor;
+  MTL::BlendFactor destinationAlphaBlendFactor;
+  MTL::BlendOperation alphaBlendOperation;
+  MTL::ColorWriteMask writeMask;
+};
+
+// MTLPipelineBufferDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLPipeline.h
+struct PipelineBufferDescriptor
+{
+  PipelineBufferDescriptor() = default;
+  PipelineBufferDescriptor(MTL::PipelineBufferDescriptor *objc);
+  void CopyTo(MTL::PipelineBufferDescriptor *objc);
+  MTL::Mutability mutability;
+};
+
+// MTLVertexAttributeDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLVertexDescriptor.h
+struct VertexAttributeDescriptor
+{
+  VertexAttributeDescriptor() = default;
+  VertexAttributeDescriptor(MTL::VertexAttributeDescriptor *objc);
+  void CopyTo(MTL::VertexAttributeDescriptor *objc);
+  MTL::VertexFormat format;
+  NS::UInteger offset;
+  NS::UInteger bufferIndex;
+};
+
+// MTLVertexBufferLayoutDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLVertexDescriptor.h
+struct VertexBufferLayoutDescriptor
+{
+  VertexBufferLayoutDescriptor() = default;
+  VertexBufferLayoutDescriptor(MTL::VertexBufferLayoutDescriptor *objc);
+  void CopyTo(MTL::VertexBufferLayoutDescriptor *objc);
+  NS::UInteger stride;
+  MTL::VertexStepFunction stepFunction;
+  NS::UInteger stepRate;
+};
+
+// MTLVertexBufferLayoutDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLVertexDescriptor.h
+struct VertexDescriptor
+{
+  VertexDescriptor() = default;
+  VertexDescriptor(MTL::VertexDescriptor *objc);
+  void CopyTo(MTL::VertexDescriptor *objc);
+  rdcarray<VertexBufferLayoutDescriptor> layouts;
+  rdcarray<VertexAttributeDescriptor> attributes;
+};
+
+struct FunctionGroups
+{
+  rdcstr callsite;
+  rdcarray<WrappedMTLFunction *> functions;
+};
+
+// MTLLinkedFunctions : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLLinkedFunctions.h
+struct LinkedFunctions
+{
+  LinkedFunctions() = default;
+  LinkedFunctions(MTL::LinkedFunctions *objc);
+  void CopyTo(MTL::LinkedFunctions *objc);
+  rdcarray<WrappedMTLFunction *> functions;
+  rdcarray<WrappedMTLFunction *> binaryFunctions;
+  rdcarray<FunctionGroups> groups;
+  rdcarray<WrappedMTLFunction *> privateFunctions;
+};
+
+// MTLRenderPipelineDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderPipeline.h
+struct RenderPipelineDescriptor
+{
+  RenderPipelineDescriptor() = default;
+  RenderPipelineDescriptor(MTL::RenderPipelineDescriptor *objc);
+  explicit operator MTL::RenderPipelineDescriptor *();
+  rdcstr label;
+  WrappedMTLFunction *vertexFunction;
+  WrappedMTLFunction *fragmentFunction;
+  VertexDescriptor vertexDescriptor;
+  NS::UInteger sampleCount;
+  NS::UInteger rasterSampleCount;
+  bool alphaToCoverageEnabled;
+  bool alphaToOneEnabled;
+  bool rasterizationEnabled;
+  NS::UInteger maxVertexAmplificationCount;
+  rdcarray<RenderPipelineColorAttachmentDescriptor> colorAttachments;
+  MTL::PixelFormat depthAttachmentPixelFormat;
+  MTL::PixelFormat stencilAttachmentPixelFormat;
+  MTL::PrimitiveTopologyClass inputPrimitiveTopology;
+  MTL::TessellationPartitionMode tessellationPartitionMode;
+  NS::UInteger maxTessellationFactor;
+  bool tessellationFactorScaleEnabled;
+  MTL::TessellationFactorFormat tessellationFactorFormat;
+  MTL::TessellationControlPointIndexType tessellationControlPointIndexType;
+  MTL::TessellationFactorStepFunction tessellationFactorStepFunction;
+  MTL::Winding tessellationOutputWindingOrder;
+  rdcarray<PipelineBufferDescriptor> vertexBuffers;
+  rdcarray<PipelineBufferDescriptor> fragmentBuffers;
+  bool supportIndirectCommandBuffers;
+  // TODO: will MTL::BinaryArchive need to be a wrapped resource
+  // rdcarray<MTL::BinaryArchive*> binaryArchives;
+  // TODO: will MTL::DynamicLibrary need to be a wrapped resource
+  // rdcarray<MTL::DynamicLibrary*> vertexPreloadedLibraries;
+  // rdcarray<MTL::DynamicLibrary*> fragmentPreloadedLibraries;
+  LinkedFunctions vertexLinkedFunctions;
+  LinkedFunctions fragmentLinkedFunctions;
+  bool supportAddingVertexBinaryFunctions;
+  bool supportAddingFragmentBinaryFunctions;
+  NS::UInteger maxVertexCallStackDepth;
+  NS::UInteger maxFragmentCallStackDepth;
+};
+
+}    // namespace RDMTL
+
 template <>
 inline rdcliteral TypeName<NS::String *>()
 {
@@ -68,3 +260,13 @@ inline rdcliteral TypeName<NS::String *>()
 }
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, NS::String *&el);
+
+DECLARE_REFLECTION_STRUCT(RDMTL::TextureDescriptor);
+DECLARE_REFLECTION_STRUCT(RDMTL::RenderPipelineColorAttachmentDescriptor);
+DECLARE_REFLECTION_STRUCT(RDMTL::PipelineBufferDescriptor);
+DECLARE_REFLECTION_STRUCT(RDMTL::VertexAttributeDescriptor);
+DECLARE_REFLECTION_STRUCT(RDMTL::VertexBufferLayoutDescriptor);
+DECLARE_REFLECTION_STRUCT(RDMTL::VertexDescriptor);
+DECLARE_REFLECTION_STRUCT(RDMTL::FunctionGroups);
+DECLARE_REFLECTION_STRUCT(RDMTL::LinkedFunctions);
+DECLARE_REFLECTION_STRUCT(RDMTL::RenderPipelineDescriptor);

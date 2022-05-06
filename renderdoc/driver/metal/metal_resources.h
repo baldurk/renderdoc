@@ -40,6 +40,8 @@ enum MetalResourceType
   eResDevice,
   eResLibrary,
   eResFunction,
+  eResRenderPipelineState,
+  eResTexture
 };
 
 DECLARE_REFLECTION_ENUM(MetalResourceType);
