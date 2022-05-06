@@ -42,6 +42,22 @@ public:
   DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLLibrary *, newLibraryWithSource,
                                           NS::String *source, MTL::CompileOptions *options,
                                           NS::Error **error);
+  WrappedMTLRenderPipelineState *newRenderPipelineStateWithDescriptor(
+      MTL::RenderPipelineDescriptor *descriptor, NS::Error **error);
+  template <typename SerialiserType>
+  bool Serialise_newRenderPipelineStateWithDescriptor(SerialiserType &ser,
+                                                      WrappedMTLRenderPipelineState *,
+                                                      RDMTL::RenderPipelineDescriptor &descriptor,
+                                                      NS::Error **error);
+  WrappedMTLTexture *newTextureWithDescriptor(MTL::TextureDescriptor *descriptor,
+                                              IOSurfaceRef iosurface, NS::UInteger plane);
+  WrappedMTLTexture *nextDrawableTexture(MTL::TextureDescriptor *descriptor, IOSurfaceRef iosurface,
+                                         NS::UInteger plane);
+  WrappedMTLTexture *newTextureWithDescriptor(MTL::TextureDescriptor *descriptor);
+  template <typename SerialiserType>
+  bool Serialise_newTextureWithDescriptor(SerialiserType &ser, WrappedMTLTexture *,
+                                          RDMTL::TextureDescriptor &descriptor);
+
   // Non-Serialised MTLDevice APIs
   bool isDepth24Stencil8PixelFormatSupported();
   MTL::ReadWriteTextureTier readWriteTextureSupport();
@@ -81,6 +97,7 @@ public:
   };
 
 private:
+  static void MTLFixupForMetalDriverAssert();
   bool Prepare_InitialState(WrappedMTLObject *res);
   uint64_t GetSize_InitialState(ResourceId id, const MetalInitialContents &initial);
   template <typename SerialiserType>
@@ -89,7 +106,17 @@ private:
   void Create_InitialState(ResourceId id, WrappedMTLObject *live, bool hasData);
   void Apply_InitialState(WrappedMTLObject *live, const MetalInitialContents &initial);
 
+  WrappedMTLTexture *NewTexture(MTL::Texture *realMTLTexture, MTL::TextureDescriptor *descriptor,
+                                MetalChunk chunkType);
+  WrappedMTLTexture *NewIOSurfaceTextureWithDescriptor(MTL::TextureDescriptor *descriptor,
+                                                       IOSurfaceRef iosurface, NS::UInteger plane,
+                                                       bool nextDrawable);
+
   MetalResourceManager *m_ResourceManager;
+
+  // Back buffer and swap chain emulation
+  Threading::CriticalSection m_PotentialBackBuffersLock;
+  std::unordered_set<WrappedMTLTexture *> m_PotentialBackBuffers;
 
   CaptureState m_State;
 
