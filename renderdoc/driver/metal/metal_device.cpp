@@ -31,12 +31,12 @@
 WrappedMTLDevice::WrappedMTLDevice(MTL::Device *realMTLDevice, ResourceId objId)
     : WrappedMTLObject(realMTLDevice, objId, this, GetStateRef())
 {
-  m_ObjcBridge = AllocateObjCBridge(this);
-  m_WrappedMTLDevice = this;
+  AllocateObjCBridge(this);
+  m_Device = this;
   threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
 
   m_ResourceManager = new MetalResourceManager(m_State, this);
-  RDCASSERT(m_WrappedMTLDevice == this);
+  RDCASSERT(m_Device == this);
   GetResourceManager()->AddCurrentResource(objId, this);
 }
 

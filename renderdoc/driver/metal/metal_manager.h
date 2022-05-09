@@ -65,7 +65,7 @@ class MetalResourceManager : public ResourceManager<MetalResourceManagerConfigur
 {
 public:
   MetalResourceManager(CaptureState &state, WrappedMTLDevice *device)
-      : ResourceManager(state), m_WrappedMTLDevice(device)
+      : ResourceManager(state), m_Device(device)
   {
   }
   void SetState(CaptureState state) { m_State = state; }
@@ -103,11 +103,11 @@ public:
   ResourceId WrapResource(realtype obj, typename UnwrapHelper<realtype>::Outer *&wrapped)
   {
     RDCASSERT(obj != NULL);
-    RDCASSERT(m_WrappedMTLDevice != NULL);
+    RDCASSERT(m_Device != NULL);
 
     ResourceId id = ResourceIDGen::GetNewUniqueID();
     using WrappedType = typename UnwrapHelper<realtype>::Outer;
-    wrapped = new WrappedType(obj, id, m_WrappedMTLDevice);
+    wrapped = new WrappedType(obj, id, m_Device);
     wrapped->m_Real = obj;
     AddCurrentResource(id, wrapped);
 
@@ -147,5 +147,5 @@ private:
   void Apply_InitialState(WrappedMTLObject *live, const MetalInitialContents &initial);
   // ResourceManager interface
 
-  WrappedMTLDevice *m_WrappedMTLDevice;
+  WrappedMTLDevice *m_Device;
 };

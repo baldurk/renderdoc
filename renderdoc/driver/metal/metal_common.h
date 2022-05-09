@@ -109,11 +109,11 @@ enum class MetalChunk : uint32_t
 DECLARE_REFLECTION_ENUM(MetalChunk);
 
 // must be at the start of any function that serialises
-#define CACHE_THREAD_SERIALISER() WriteSerialiser &ser = m_WrappedMTLDevice->GetThreadSerialiser();
+#define CACHE_THREAD_SERIALISER() WriteSerialiser &ser = m_Device->GetThreadSerialiser();
 
 #define SERIALISE_TIME_CALL(...)                                                                \
   {                                                                                             \
-    WriteSerialiser &ser = m_WrappedMTLDevice->GetThreadSerialiser();                           \
+    WriteSerialiser &ser = m_Device->GetThreadSerialiser();                                     \
     ser.ChunkMetadata().timestampMicro = Timing::GetTick();                                     \
     __VA_ARGS__;                                                                                \
     ser.ChunkMetadata().durationMicro = Timing::GetTick() - ser.ChunkMetadata().timestampMicro; \
@@ -142,7 +142,7 @@ DECLARE_REFLECTION_ENUM(MetalChunk);
 // path at compile-time, and the second because we might be just struct-serialising in which case we
 // should be doing no work to restore states.
 // Writing is unambiguously during capture mode, so we don't have to check both in that case.
-#define IsReplayingAndReading() (ser.IsReading() && IsReplayMode(m_WrappedMTLDevice->GetState()))
+#define IsReplayingAndReading() (ser.IsReading() && IsReplayMode(m_Device->GetState()))
 
 #ifdef __OBJC__
 #define METAL_NOT_HOOKED()                                                             \

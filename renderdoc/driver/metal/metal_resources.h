@@ -48,36 +48,26 @@ struct WrappedMTLObject
 {
   WrappedMTLObject() = delete;
   WrappedMTLObject(WrappedMTLDevice *wrappedMTLDevice, CaptureState &captureState)
-      : m_ObjcBridge(NULL),
-        m_Real(NULL),
-        m_Record(NULL),
-        m_WrappedMTLDevice(wrappedMTLDevice),
-        m_State(captureState)
+      : m_Real(NULL), m_Device(wrappedMTLDevice), m_State(captureState)
   {
   }
   WrappedMTLObject(void *mtlObject, ResourceId objId, WrappedMTLDevice *wrappedMTLDevice,
                    CaptureState &captureState)
-      : m_ObjcBridge(NULL),
-        m_Real(mtlObject),
-        m_ID(objId),
-        m_Record(NULL),
-        m_WrappedMTLDevice(wrappedMTLDevice),
-        m_State(captureState)
+      : m_Real(mtlObject), m_ID(objId), m_Device(wrappedMTLDevice), m_State(captureState)
   {
   }
   ~WrappedMTLObject() = default;
 
   void Dealloc();
 
-  MTL::Device *GetObjCBridgeMTLDevice();
-
+  MTL::Device *GetDevice() { return (MTL::Device *)m_Device; }
   MetalResourceManager *GetResourceManager();
 
-  void *m_ObjcBridge;
+  void *m_ObjcBridge = NULL;
   void *m_Real;
   ResourceId m_ID;
-  MetalResourceRecord *m_Record;
-  WrappedMTLDevice *m_WrappedMTLDevice;
+  MetalResourceRecord *m_Record = NULL;
+  WrappedMTLDevice *m_Device;
   CaptureState &m_State;
 };
 
@@ -101,29 +91,19 @@ RealType Unwrap(WrappedMTLObject *obj)
   return (RealType)obj->m_Real;
 }
 
-template <typename RealType>
-RealType GetObjCBridge(WrappedMTLObject *obj)
-{
-  if(obj == NULL)
-    return RealType();
-
-  return (RealType)obj->m_ObjcBridge;
-}
-
 // template magic voodoo to unwrap types
 template <typename inner>
 struct UnwrapHelper
 {
 };
 
-#define WRAPPED_TYPE_HELPERS(CPPTYPE)                    \
-  template <>                                            \
-  struct UnwrapHelper<MTL::CPPTYPE *>                    \
-  {                                                      \
-    typedef CONCAT(WrappedMTL, CPPTYPE) Outer;           \
-  };                                                     \
-  extern MTL::CPPTYPE *Unwrap(WrappedMTL##CPPTYPE *obj); \
-  extern MTL::CPPTYPE *GetObjCBridge(WrappedMTL##CPPTYPE *obj);
+#define WRAPPED_TYPE_HELPERS(CPPTYPE)          \
+  template <>                                  \
+  struct UnwrapHelper<MTL::CPPTYPE *>          \
+  {                                            \
+    typedef CONCAT(WrappedMTL, CPPTYPE) Outer; \
+  };                                           \
+  extern MTL::CPPTYPE *Unwrap(WrappedMTL##CPPTYPE *obj);
 
 METALCPP_WRAPPED_PROTOCOLS(WRAPPED_TYPE_HELPERS)
 #undef WRAPPED_TYPE_HELPERS

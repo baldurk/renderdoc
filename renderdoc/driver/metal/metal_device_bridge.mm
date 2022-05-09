@@ -34,14 +34,18 @@
 // ObjCBridgeMTLDevice specific
 - (id<MTLDevice>)real
 {
-  return id<MTLDevice>(Unwrap(self.wrappedCPP));
+  return id<MTLDevice>(Unwrap(GetWrapped(self)));
 }
 
+// Silence compiler warning
+// error: method possibly missing a [super dealloc] call [-Werror,-Wobjc-missing-super-calls]
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wobjc-missing-super-calls"
 - (void)dealloc
 {
-  self.wrappedCPP->Dealloc();
-  [super dealloc];
+  GetWrapped(self)->Dealloc();
 }
+#pragma clang diagnostic pop
 
 // Use the real MTLDevice to find methods from messages
 - (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector
@@ -123,37 +127,37 @@
 - (BOOL)isDepth24Stencil8PixelFormatSupported API_AVAILABLE(macos(10.11), macCatalyst(13.0))
     API_UNAVAILABLE(ios)
 {
-  return self.wrappedCPP->isDepth24Stencil8PixelFormatSupported();
+  return GetWrapped(self)->isDepth24Stencil8PixelFormatSupported();
 }
 
 - (MTLReadWriteTextureTier)readWriteTextureSupport API_AVAILABLE(macos(10.13), ios(11.0))
 {
-  return (MTLReadWriteTextureTier)self.wrappedCPP->readWriteTextureSupport();
+  return (MTLReadWriteTextureTier)GetWrapped(self)->readWriteTextureSupport();
 }
 
 - (MTLArgumentBuffersTier)argumentBuffersSupport API_AVAILABLE(macos(10.13), ios(11.0))
 {
-  return (MTLArgumentBuffersTier)self.wrappedCPP->argumentBuffersSupport();
+  return (MTLArgumentBuffersTier)GetWrapped(self)->argumentBuffersSupport();
 }
 
 - (BOOL)areRasterOrderGroupsSupported API_AVAILABLE(macos(10.13), ios(11.0))
 {
-  return self.wrappedCPP->areRasterOrderGroupsSupported();
+  return GetWrapped(self)->areRasterOrderGroupsSupported();
 }
 
 - (BOOL)supports32BitFloatFiltering API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  return self.wrappedCPP->supports32BitFloatFiltering();
+  return GetWrapped(self)->supports32BitFloatFiltering();
 }
 
 - (BOOL)supports32BitMSAA API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  return self.wrappedCPP->supports32BitMSAA();
+  return GetWrapped(self)->supports32BitMSAA();
 }
 
 - (BOOL)supportsQueryTextureLOD API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  return self.wrappedCPP->supportsQueryTextureLOD();
+  return GetWrapped(self)->supportsQueryTextureLOD();
 }
 
 - (BOOL)supportsBCTextureCompression API_AVAILABLE(macos(11.0))
@@ -162,21 +166,21 @@
     API_UNAVAILABLE(ios)
 #endif    // #if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
 {
-  return self.wrappedCPP->supportsBCTextureCompression();
+  return GetWrapped(self)->supportsBCTextureCompression();
 }
 
 - (BOOL)supportsPullModelInterpolation API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  return self.wrappedCPP->supportsPullModelInterpolation();
+  return GetWrapped(self)->supportsPullModelInterpolation();
 }
 - (BOOL)areBarycentricCoordsSupported API_AVAILABLE(macos(10.15))API_UNAVAILABLE(ios)
 {
-  return self.wrappedCPP->areBarycentricCoordsSupported();
+  return GetWrapped(self)->areBarycentricCoordsSupported();
 }
 
 - (BOOL)supportsShaderBarycentricCoordinates API_AVAILABLE(macos(10.15))API_UNAVAILABLE(ios)
 {
-  return self.wrappedCPP->supportsShaderBarycentricCoordinates();
+  return GetWrapped(self)->supportsShaderBarycentricCoordinates();
 }
 
 - (NSUInteger)currentAllocatedSize API_AVAILABLE(macos(10.13), ios(11.0))
@@ -186,7 +190,7 @@
 
 - (nullable id<MTLCommandQueue>)newCommandQueue
 {
-  return id<MTLCommandQueue>(GetObjCBridge(self.wrappedCPP->newCommandQueue()));
+  return id<MTLCommandQueue>(GetWrapped(self)->newCommandQueue());
 }
 
 - (nullable id<MTLCommandQueue>)newCommandQueueWithMaxCommandBufferCount:(NSUInteger)maxCommandBufferCount
@@ -288,7 +292,7 @@
 
 - (nullable id<MTLLibrary>)newDefaultLibrary
 {
-  return id<MTLLibrary>(GetObjCBridge(self.wrappedCPP->newDefaultLibrary()));
+  return id<MTLLibrary>(GetWrapped(self)->newDefaultLibrary());
 }
 
 - (nullable id<MTLLibrary>)newDefaultLibraryWithBundle:(NSBundle *)bundle
@@ -325,8 +329,8 @@
                                         options:(nullable MTLCompileOptions *)options
                                           error:(__autoreleasing NSError **)error
 {
-  return (id<MTLLibrary>)(GetObjCBridge(self.wrappedCPP->newLibraryWithSource(
-      (NS::String *)source, (MTL::CompileOptions *)options, (NS::Error **)error)));
+  return (id<MTLLibrary>)(GetWrapped(self)->newLibraryWithSource(
+      (NS::String *)source, (MTL::CompileOptions *)options, (NS::Error **)error));
 }
 
 - (void)newLibraryWithSource:(NSString *)source
@@ -472,17 +476,17 @@ newComputePipelineStateWithDescriptor:(MTLComputePipelineDescriptor *)descriptor
 
 - (BOOL)supportsFeatureSet:(MTLFeatureSet)featureSet
 {
-  return self.wrappedCPP->supportsFeatureSet((MTL::FeatureSet)featureSet);
+  return GetWrapped(self)->supportsFeatureSet((MTL::FeatureSet)featureSet);
 }
 
 - (BOOL)supportsFamily:(MTLGPUFamily)gpuFamily API_AVAILABLE(macos(10.15), ios(13.0))
 {
-  return self.wrappedCPP->supportsFamily((MTL::GPUFamily)gpuFamily);
+  return GetWrapped(self)->supportsFamily((MTL::GPUFamily)gpuFamily);
 }
 
 - (BOOL)supportsTextureSampleCount:(NSUInteger)sampleCount API_AVAILABLE(macos(10.11), ios(9.0))
 {
-  return self.wrappedCPP->supportsTextureSampleCount(sampleCount);
+  return GetWrapped(self)->supportsTextureSampleCount(sampleCount);
 }
 
 - (NSUInteger)minimumLinearTextureAlignmentForPixelFormat:(MTLPixelFormat)format
@@ -537,7 +541,7 @@ newRenderPipelineStateWithTileDescriptor:(MTLTileRenderPipelineDescriptor *)desc
 
 - (BOOL)areProgrammableSamplePositionsSupported API_AVAILABLE(macos(10.13), ios(11.0))
 {
-  return self.wrappedCPP->areProgrammableSamplePositionsSupported();
+  return GetWrapped(self)->areProgrammableSamplePositionsSupported();
 }
 
 - (void)getDefaultSamplePositions:(MTLSamplePosition *)positions
@@ -557,7 +561,7 @@ newRenderPipelineStateWithTileDescriptor:(MTLTileRenderPipelineDescriptor *)desc
 - (BOOL)supportsRasterizationRateMapWithLayerCount:(NSUInteger)layerCount
     API_AVAILABLE(macos(10.15.4), ios(13.0), macCatalyst(13.4))
 {
-  return self.wrappedCPP->supportsRasterizationRateMapWithLayerCount(layerCount);
+  return GetWrapped(self)->supportsRasterizationRateMapWithLayerCount(layerCount);
 }
 
 - (nullable id<MTLRasterizationRateMap>)newRasterizationRateMapWithDescriptor:
@@ -687,24 +691,24 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
 - (BOOL)supportsCounterSampling:(MTLCounterSamplingPoint)samplingPoint
     API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  return self.wrappedCPP->supportsCounterSampling((MTL::CounterSamplingPoint)samplingPoint);
+  return GetWrapped(self)->supportsCounterSampling((MTL::CounterSamplingPoint)samplingPoint);
 }
 
 - (BOOL)supportsVertexAmplificationCount:(NSUInteger)count
     API_AVAILABLE(macos(10.15.4), ios(13.0), macCatalyst(13.4))
 {
-  return self.wrappedCPP->supportsVertexAmplificationCount(count);
+  return GetWrapped(self)->supportsVertexAmplificationCount(count);
 }
 
 - (BOOL)supportsDynamicLibraries API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  return self.wrappedCPP->supportsDynamicLibraries();
+  return GetWrapped(self)->supportsDynamicLibraries();
 }
 
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
 - (BOOL)supportsRenderDynamicLibraries API_AVAILABLE(macos(12.0), ios(15.0))
 {
-  return self.wrappedCPP->supportsRenderDynamicLibraries();
+  return GetWrapped(self)->supportsRenderDynamicLibraries();
 }
 #endif
 
@@ -734,7 +738,7 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
 
 - (BOOL)supportsRaytracing API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  return self.wrappedCPP->supportsRaytracing();
+  return GetWrapped(self)->supportsRaytracing();
 }
 
 - (MTLAccelerationStructureSizes)accelerationStructureSizesWithDescriptor:
@@ -760,20 +764,20 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
 
 - (BOOL)supportsFunctionPointers API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  return self.wrappedCPP->supportsFunctionPointers();
+  return GetWrapped(self)->supportsFunctionPointers();
 }
 
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
 - (BOOL)supportsFunctionPointersFromRender API_AVAILABLE(macos(12.0), ios(15.0))
 {
-  return self.wrappedCPP->supportsFunctionPointersFromRender();
+  return GetWrapped(self)->supportsFunctionPointersFromRender();
 }
 #endif
 
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
 - (BOOL)supportsRaytracingFromRender API_AVAILABLE(macos(12.0), ios(15.0))
 {
-  return self.wrappedCPP->supportsRaytracingFromRender();
+  return GetWrapped(self)->supportsRaytracingFromRender();
 }
 #endif
 
@@ -782,7 +786,7 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
 - (BOOL)supportsPrimitiveMotionBlur API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  return self.wrappedCPP->supportsPrimitiveMotionBlur();
+  return GetWrapped(self)->supportsPrimitiveMotionBlur();
 }
 #endif
 

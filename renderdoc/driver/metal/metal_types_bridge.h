@@ -29,11 +29,13 @@
 #import <Metal/Metal.h>
 
 // clang-format off
-#define DECLARE_OBJC_WRAPPED_INTERFACES(CPPTYPE)              \
-  @interface ObjCBridgeMTL##CPPTYPE : NSObject<MTL##CPPTYPE> \
-    @property(assign) WrappedMTL##CPPTYPE *wrappedCPP;        \
-    @property(readonly) id<MTL##CPPTYPE> real;                \
-  @end
+#define DECLARE_OBJC_WRAPPED_INTERFACES(CPPTYPE)                              \
+  @interface ObjCBridgeMTL##CPPTYPE : NSObject<MTL##CPPTYPE>                  \
+  @end                                                                        \
+  inline WrappedMTL##CPPTYPE *GetWrapped(ObjCBridgeMTL##CPPTYPE *objCWrapped) \
+  {                                                                           \
+    return (WrappedMTL##CPPTYPE *)objCWrapped;                                \
+  }
 // clang-format on
 
 METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_WRAPPED_INTERFACES)

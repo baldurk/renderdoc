@@ -33,28 +33,28 @@ bool MetalResourceManager::ResourceTypeRelease(WrappedResourceType res)
 
 bool MetalResourceManager::Prepare_InitialState(WrappedMTLObject *res)
 {
-  return m_WrappedMTLDevice->Prepare_InitialState(res);
+  return m_Device->Prepare_InitialState(res);
 }
 
 uint64_t MetalResourceManager::GetSize_InitialState(ResourceId id, const MetalInitialContents &initial)
 {
-  return m_WrappedMTLDevice->GetSize_InitialState(id, initial);
+  return m_Device->GetSize_InitialState(id, initial);
 }
 
 bool MetalResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId id,
                                                   MetalResourceRecord *record,
                                                   const MetalInitialContents *initial)
 {
-  return m_WrappedMTLDevice->Serialise_InitialState(ser, id, record, initial);
+  return m_Device->Serialise_InitialState(ser, id, record, initial);
 }
 
 void MetalResourceManager::Create_InitialState(ResourceId id, WrappedMTLObject *live, bool hasData)
 {
-  return m_WrappedMTLDevice->Create_InitialState(id, live, hasData);
+  return m_Device->Create_InitialState(id, live, hasData);
 }
 
 void MetalResourceManager::Apply_InitialState(WrappedMTLObject *live,
                                               const MetalInitialContents &initial)
 {
-  return m_WrappedMTLDevice->Apply_InitialState(live, initial);
+  return m_Device->Apply_InitialState(live, initial);
 }
