@@ -4311,6 +4311,10 @@ displayed
 .. data:: SNorm
 
   This value should be treated as signed normalised floating point values when interpreting.
+
+.. data:: Truncated
+
+  This value was truncated when reading - the available range was exhausted.
 )");
 enum class ShaderVariableFlags : uint32_t
 {
@@ -4323,6 +4327,7 @@ enum class ShaderVariableFlags : uint32_t
   R10G10B10A2 = 0x0020,
   UNorm = 0x0040,
   SNorm = 0x0080,
+  Truncated = 0x0100,
 };
 
 BITMASK_OPERATORS(ShaderVariableFlags);

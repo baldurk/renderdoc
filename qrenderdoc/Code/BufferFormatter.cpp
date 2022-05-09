@@ -2430,6 +2430,7 @@ static void FillShaderVarData(ShaderVariable &var, const ShaderConstant &elem, c
   {
     var.name = elem.name;
     var.value = ShaderValue();
+    var.flags |= ShaderVariableFlags::Truncated;
     return;
   }
 
@@ -3120,6 +3121,14 @@ QString TypeString(const ShaderVariable &v)
 template <typename el>
 static QString RowValuesToString(int cols, ShaderVariableFlags flags, el x, el y, el z, el w)
 {
+  if(flags & ShaderVariableFlags::Truncated)
+  {
+    QString ret = lit("---");
+    for(int i = 1; i < cols; i++)
+      ret += lit(", ---");
+    return ret;
+  }
+
   const bool hex = bool(flags & ShaderVariableFlags::HexDisplay);
 
   if(bool(flags & ShaderVariableFlags::BinaryDisplay))
