@@ -122,6 +122,9 @@ void RDHeaderView::cacheSections()
 
   QAbstractItemModel *m = this->model();
 
+  if(!m)
+    return;
+
   int oldCount = m_sections.count();
   m_sections.resize(m->columnCount());
 

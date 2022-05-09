@@ -876,6 +876,22 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
      </widget>
     </item>
     <item>
+     <widget class="QToolButton" name="setFormat">
+      <property name="text">
+       <string>{}</string>
+      </property>
+      <property name="checkable">
+       <bool>true</bool>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextOnly</enum>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QToolButton" name="resourceDetails">
       <property name="toolTip">
        <string>Open the currently visible buffer's resource details in the resource inspector</string>

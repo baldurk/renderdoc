@@ -1013,7 +1013,16 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
         const Bindpoint &bind =
             s.bindpointMapping.constantBlocks[s.reflection->constantBlocks[BufIdx].bindPoint];
 
-        if(s.reflection->constantBlocks[BufIdx].bufferBacked == false)
+        const VKPipe::BindingElement *descriptorBind = NULL;
+        if(bind.bindset < pipe.descriptorSets.count() &&
+           bind.bind < pipe.descriptorSets[bind.bindset].bindings.count() &&
+           ArrayIdx < pipe.descriptorSets[bind.bindset].bindings[bind.bind].binds.size())
+        {
+          descriptorBind = &pipe.descriptorSets[bind.bindset].bindings[bind.bind].binds[ArrayIdx];
+        }
+
+        if(s.reflection->constantBlocks[BufIdx].bufferBacked == false ||
+           (descriptorBind && descriptorBind->inlineBlock))
         {
           if(s.reflection->constantBlocks[BufIdx].compileConstants)
           {
@@ -1035,11 +1044,8 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
 
               src = &pipe.descriptorSets[bind.bindset].inlineData;
 
-              const VKPipe::BindingElement &descriptorBind =
-                  pipe.descriptorSets[bind.bindset].bindings[bind.bind].binds[ArrayIdx];
-
-              ret.byteOffset = descriptorBind.byteOffset;
-              ret.byteSize = descriptorBind.byteSize;
+              ret.byteOffset = descriptorBind->byteOffset;
+              ret.byteSize = descriptorBind->byteSize;
             }
             else
             {
@@ -1089,17 +1095,12 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
           return ret;
         }
 
-        if(bind.bindset >= pipe.descriptorSets.count() ||
-           bind.bind >= pipe.descriptorSets[bind.bindset].bindings.count() ||
-           ArrayIdx >= pipe.descriptorSets[bind.bindset].bindings[bind.bind].binds.size())
+        if(descriptorBind == NULL)
           return BoundCBuffer();
 
-        const VKPipe::BindingElement &descriptorBind =
-            pipe.descriptorSets[bind.bindset].bindings[bind.bind].binds[ArrayIdx];
-
-        ret.resourceId = descriptorBind.resourceResourceId;
-        ret.byteOffset = descriptorBind.byteOffset;
-        ret.byteSize = descriptorBind.byteSize;
+        ret.resourceId = descriptorBind->resourceResourceId;
+        ret.byteOffset = descriptorBind->byteOffset;
+        ret.byteSize = descriptorBind->byteSize;
       }
     }
   }

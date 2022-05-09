@@ -42,6 +42,7 @@ public:
   ~BufferFormatSpecifier();
 
   void setContext(ICaptureContext *ctx);
+  void setTitle(QString title);
 
 signals:
   void processFormat(const QString &format);

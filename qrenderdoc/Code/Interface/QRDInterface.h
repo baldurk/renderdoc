@@ -1251,25 +1251,6 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(IShaderMessageViewer);
 
-DOCUMENT("A constant buffer preview window.");
-struct IConstantBufferPreviewer
-{
-  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`ConstantBufferPreviewer` if PySide2 is available, or otherwise
-returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
-QWidget.
-
-:return: Return the widget handle, either a PySide2 handle or an opaque handle.
-:rtype: QWidget
-)");
-  virtual QWidget *Widget() = 0;
-
-protected:
-  IConstantBufferPreviewer() = default;
-  ~IConstantBufferPreviewer() = default;
-};
-
-DECLARE_REFLECTION_STRUCT(IConstantBufferPreviewer);
-
 DOCUMENT("A pixel history window.");
 struct IPixelHistoryView
 {
@@ -2593,18 +2574,17 @@ bytes.
   virtual IBufferViewer *ViewTextureAsBuffer(ResourceId id, const Subresource &sub,
                                              const rdcstr &format = "") = 0;
 
-  DOCUMENT(R"(Show a new :class:`ConstantBufferPreviewer` window, showing a read-only view of a the
+  DOCUMENT(R"(Show a new :class:`BufferViewer` window, showing a read-only view of a the
 variables in a constant buffer with their values.
 
 :param renderdoc.ShaderStage stage: The stage that the constant buffer is bound to.
 :param int slot: The index in the shader's constant buffer list to look up.
 :param int idx: For APIs that support arrayed resource binds, the index in the constant buffer
   array.
-:return: The new :class:`ConstantBufferPreviewer` window opened, but not shown.
-:rtype: ConstantBufferPreviewer
+:return: The new :class:`BufferViewer` window opened, but not shown.
+:rtype: BufferViewer
 )");
-  virtual IConstantBufferPreviewer *ViewConstantBuffer(ShaderStage stage, uint32_t slot,
-                                                       uint32_t idx) = 0;
+  virtual IBufferViewer *ViewConstantBuffer(ShaderStage stage, uint32_t slot, uint32_t idx) = 0;
 
   DOCUMENT(R"(Show a new :class:`PixelHistoryView` window, showing the results from a pixel history
 operation.

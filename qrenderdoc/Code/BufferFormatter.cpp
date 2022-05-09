@@ -34,6 +34,8 @@ struct StructFormatData
   uint32_t offset = 0;
   uint32_t alignment = 0;
   uint32_t paddedStride = 0;
+  bool singleDef = false;
+  bool singleMember = false;
 };
 
 GraphicsAPI BufferFormatter::m_API;
@@ -390,8 +392,7 @@ bool BufferFormatter::CheckInvalidUnbounded(const ShaderConstant &structDef, QSt
     {
       errors = tr("%1 in %2 can't be unbounded when not the last member.\n")
                    .arg(structDef.type.members[i].name)
-                   .arg(structDef.type.descriptor.name.empty() ? "implicit_root"
-                                                               : structDef.type.descriptor.name);
+                   .arg(structDef.type.descriptor.name);
       return false;
     }
 
@@ -400,8 +401,7 @@ bool BufferFormatter::CheckInvalidUnbounded(const ShaderConstant &structDef, QSt
     {
       errors = tr("%1 in %2 can't have unbounded array in a child.\n")
                    .arg(structDef.type.members[i].name)
-                   .arg(structDef.type.descriptor.name.empty() ? "implicit_root"
-                                                               : structDef.type.descriptor.name);
+                   .arg(structDef.type.descriptor.name);
       return false;
     }
 
@@ -412,9 +412,8 @@ bool BufferFormatter::CheckInvalidUnbounded(const ShaderConstant &structDef, QSt
   return true;
 }
 
-rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const QString &formatString,
-                                                                           uint64_t maxLen,
-                                                                           QString &errors)
+rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(
+    const QString &formatString, uint64_t maxLen, bool cbuffer, QString &errors)
 {
   StructFormatData root;
   StructFormatData *cur = &root;
@@ -707,6 +706,10 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const
             {
               cur->paddedStride = annot.param.toUInt();
             }
+            else if(annot.name == lit("single") || annot.name == lit("fixed"))
+            {
+              cur->singleDef = true;
+            }
             else
             {
               errors = tr("Unrecognised annotation on struct definition: %1\n").arg(annot.name);
@@ -716,6 +719,9 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const
           }
 
           annotations.clear();
+
+          if(!success)
+            break;
         }
         else
         {
@@ -736,6 +742,9 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const
           }
 
           annotations.clear();
+
+          if(!success)
+            break;
 
           QString baseType = match.captured(4);
 
@@ -806,6 +815,9 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const
 
       annotations.clear();
 
+      if(!success)
+        break;
+
       cur->structDef.type.members.push_back(el);
 
       continue;
@@ -835,7 +847,19 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const
 
       annotations.clear();
 
+      if(!success)
+        break;
+
       continue;
+    }
+
+    if(cur->singleMember)
+    {
+      errors =
+          tr("[[single]] can only be used if there is only one variable in the root.\n"
+             "Consider wrapping the variables in a struct and marking it as [[single]].\n");
+      success = false;
+      break;
     }
 
     QRegularExpressionMatch structMatch = structUseRegex.match(line);
@@ -847,6 +871,13 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const
       StructFormatData &structContext = structelems[structMatch.captured(1)];
 
       bool isPointer = !structMatch.captured(2).trimmed().isEmpty();
+
+      if(structContext.singleDef)
+      {
+        errors = tr("[[single]] annotated structs cannot be used, only defined.\n");
+        success = false;
+        break;
+      }
 
       QString varName = structMatch.captured(3).trimmed();
 
@@ -864,6 +895,27 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const
         {
           isPadding = true;
         }
+        else if(annot.name == lit("single") || annot.name == lit("fixed"))
+        {
+          if(cur != &root)
+          {
+            errors = tr("[[single]] can only be used on variables in the root\n");
+            success = false;
+            break;
+          }
+          else if(!cur->structDef.type.members.empty())
+          {
+            errors =
+                tr("[[single]] can only be used if there is only one variable in the root.\n"
+                   "Consider wrapping the variables in a struct and marking it as [[single]].\n");
+            success = false;
+            break;
+          }
+          else
+          {
+            cur->singleMember = true;
+          }
+        }
         else
         {
           errors = tr("Unrecognised annotation on variable: %1\n").arg(annot.name);
@@ -871,6 +923,9 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const
           break;
         }
       }
+
+      if(!success)
+        break;
 
       annotations.clear();
 
@@ -885,6 +940,13 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const
         arrayCount = arrayDim.toUInt(&ok);
         if(!ok)
           arrayCount = 1;
+      }
+
+      if(cur->singleMember && arrayCount == ~0U)
+      {
+        errors = tr("[[single]] can't be used on unbounded arrays.\n");
+        success = false;
+        break;
       }
 
       QString bitfield = structMatch.captured(6).trimmed();
@@ -1340,6 +1402,27 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const
         {
           isPadding = true;
         }
+        else if(annot.name == lit("single") || annot.name == lit("fixed"))
+        {
+          if(cur != &root)
+          {
+            errors = tr("[[single]] can only be used on variables in the root\n");
+            success = false;
+            break;
+          }
+          else if(!cur->structDef.type.members.empty())
+          {
+            errors =
+                tr("[[single]] can only be used if there is only one variable in the root.\n"
+                   "Consider wrapping the variables in a struct and marking it as [[single]].\n");
+            success = false;
+            break;
+          }
+          else
+          {
+            cur->singleMember = true;
+          }
+        }
         else
         {
           errors = tr("Unrecognised annotation on variable: %1\n").arg(annot.name);
@@ -1564,36 +1647,6 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const
   if(success && root.structDef.type.members.isEmpty() && !lastStruct.isEmpty())
     root = structelems[lastStruct];
 
-  // on D3D it's not possible to have anything but AoS, no preamble, so always consider the root
-  // member to be the struct definition of an array, as long as we're declaring a UAV
-  if(IsD3D(m_API) && pack != Packing::D3DCB)
-  {
-    // if there's already only one root member just make it infinite
-    if(root.structDef.type.members.size() == 1)
-    {
-      root.structDef.type.members[0].type.descriptor.elements = ~0U;
-    }
-    else if(root.structDef.type.members.empty())
-    {
-      // do nothing, we'll hit the invalid failure case below
-    }
-    else
-    {
-      // otherwise wrap a struct around the members, to be the infinite AoS
-      rdcarray<ShaderConstant> inners;
-      inners.swap(root.structDef.type.members);
-
-      ShaderConstant el;
-      el.byteOffset = 0;
-      el.type.descriptor.type = VarType::Struct;
-      el.type.descriptor.elements = ~0U;
-      el.type.descriptor.arrayByteStride = root.structDef.type.descriptor.arrayByteStride;
-
-      root.structDef.type.members.push_back(el);
-      inners.swap(root.structDef.type.members[0].type.members);
-    }
-  }
-
   root.structDef.type.descriptor.arrayByteStride =
       AlignUp(root.offset, GetAlignment(pack, root.structDef));
 
@@ -1610,11 +1663,7 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const
     // check that unbounded arrays are only the last member of each struct. Doing this separately
     // makes the below check easier since we only have to consider last members
     if(!CheckInvalidUnbounded(root.structDef, errors))
-    {
-      if(IsD3D(m_API) && pack != Packing::D3DCB)
-        errors += tr("D3D structured buffers always define an unbounded array.\n");
       success = false;
-    }
   }
 
   // we only allow one 'infinite' array. You can't have an infinite member inside an already
@@ -1660,8 +1709,6 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const
           errors = tr("Can't have unbounded %1[] as child of an unbounded %2[].\n")
                        .arg(iter->name)
                        .arg(infiniteArrayName);
-          if(IsD3D(m_API) && pack != Packing::D3DCB)
-            errors += tr("D3D structured buffers always define an unbounded array.\n");
           break;
         }
 
@@ -1677,6 +1724,54 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(const
         break;
 
       iter = &iter->type.members.back();
+    }
+  }
+
+  // on D3D if we have an unbounded array it *must* be the root element, as D3D does not support
+  // some fixed elements before it, structured buffers are strictly just an AoS.
+  // we do allow specifying cbuffers which are all fixed and not unbounded, so we just check to see
+  // that if there is an unbounded array that it's the root
+  if(
+      // on D3D
+      IsD3D(m_API) &&
+      // if the parsing worked
+      success && !root.structDef.type.members.empty() &&
+      // if we have an unbounded array somewhere (we know there's only one, from above)
+      ContainsUnbounded(root.structDef.type.members) &&
+      // it must be in the root and it must be alone with no siblings
+      !(root.structDef.type.members.size() == 1 &&
+        root.structDef.type.members[0].type.descriptor.elements == ~0U))
+  {
+    errors += tr("On D3D an unbounded array must be only be used alone as the root element.\n");
+    success = false;
+  }
+
+  // when not viewing a cbuffer, if the root hasn't been explicitly marked as a single struct and we
+  // don't have an unbounded array then consider it an AoS definition in all other cases as that is
+  // very likely what the user expects
+  if(success && !root.structDef.type.members.empty() &&
+     !ContainsUnbounded(root.structDef.type.members) && !root.singleMember && !root.singleDef &&
+     !cbuffer)
+  {
+    // if there's already only one root member just make it infinite
+    if(root.structDef.type.members.size() == 1)
+    {
+      root.structDef.type.members[0].type.descriptor.elements = ~0U;
+    }
+    else
+    {
+      // otherwise wrap a struct around the members, to be the infinite AoS
+      rdcarray<ShaderConstant> inners;
+      inners.swap(root.structDef.type.members);
+
+      ShaderConstant el;
+      el.byteOffset = 0;
+      el.type.descriptor.type = VarType::Struct;
+      el.type.descriptor.elements = ~0U;
+      el.type.descriptor.arrayByteStride = root.structDef.type.descriptor.arrayByteStride;
+
+      root.structDef.type.members.push_back(el);
+      inners.swap(root.structDef.type.members[0].type.members);
     }
   }
 
@@ -1881,7 +1976,8 @@ QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, const Shader
 
     QList<QString> declaredStructs;
     format = DeclareStruct(pack, declaredStructs, structName, res.variableType.members, 0, QString());
-    format = QFormatStr("%1\n\n%2").arg(DeclarePacking(pack)).arg(format);
+    format =
+        QFormatStr("%1\n\n%2\n\n%3 buffer[];").arg(DeclarePacking(pack)).arg(format).arg(structName);
   }
   else
   {

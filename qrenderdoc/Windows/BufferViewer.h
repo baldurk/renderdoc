@@ -39,6 +39,7 @@ class QItemSelection;
 class QMenu;
 class QPushButton;
 class QVBoxLayout;
+class RDLabel;
 class RDTableView;
 class RDSplitter;
 class BufferItemModel;
@@ -72,6 +73,16 @@ struct BBoxData
   } bounds[3];
 };
 
+struct CBufferData
+{
+  bool valid = false;
+  bool bufferBacked = false;
+  ResourceId pipe;
+  ResourceId shader;
+  rdcstr entryPoint;
+  bytebuf inlinedata;
+};
+
 class BufferViewer : public QFrame, public IBufferViewer, public ICaptureViewer
 {
   Q_OBJECT
@@ -82,7 +93,11 @@ public:
   explicit BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent = 0);
   ~BufferViewer();
 
+  static BufferViewer *HasCBufferView(ShaderStage stage, uint32_t slot, uint32_t idx);
+  static BufferViewer *GetFirstCBufferView(BufferViewer *exclude);
+  bool IsCBufferView() const { return m_CBufferSlot.stage != ShaderStage::Count; }
   void ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id, const rdcstr &format = "");
+  void ViewCBuffer(const ShaderStage stage, uint32_t slot, uint32_t idx);
   void ViewTexture(ResourceId id, const Subresource &sub, const rdcstr &format = "");
 
   // IBufferViewer
@@ -123,6 +138,7 @@ private slots:
   void on_byteRangeLength_valueChanged(double value);
   void on_axisMappingCombo_currentIndexChanged(int index);
   void on_axisMappingButton_clicked();
+  void on_setFormat_toggled(bool checked);
 
   // manual slots
   void render_mouseMove(QMouseEvent *e);
@@ -197,6 +213,22 @@ private:
   uint64_t m_ByteSize = UINT64_MAX;
   ResourceId m_BufferID;
 
+  struct CBufferSlot
+  {
+    ShaderStage stage;
+    uint32_t slot;
+    uint32_t arrayIdx;
+
+    bool operator==(const CBufferSlot &c) const
+    {
+      return stage == c.stage && slot == c.slot && arrayIdx == c.arrayIdx;
+    }
+  } m_CBufferSlot = {ShaderStage::Count, 0, 0};
+
+  CBufferData m_CurCBuffer;
+
+  static QList<BufferViewer *> m_CBufferViews;
+
   CameraWrapper *m_CurrentCamera = NULL;
   ArcballWrapper *m_Arcball = NULL;
   FlycamWrapper *m_Flycam = NULL;
@@ -234,6 +266,8 @@ private:
   CollapseGroupBox *m_RepeatedGroup = NULL;
 
   QFrame *m_RepeatedControlBar = NULL;
+
+  RDLabel *m_RepeatedOffset = NULL;
 
   QMenu *m_HeaderMenu = NULL;
 

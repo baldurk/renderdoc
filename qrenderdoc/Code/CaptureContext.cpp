@@ -41,7 +41,6 @@
 #include "Windows/APIInspector.h"
 #include "Windows/BufferViewer.h"
 #include "Windows/CommentView.h"
-#include "Windows/ConstantBufferPreviewer.h"
 #include "Windows/DebugMessageView.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/CrashDialog.h"
@@ -2597,14 +2596,17 @@ IBufferViewer *CaptureContext::ViewTextureAsBuffer(ResourceId id, const Subresou
   return viewer;
 }
 
-IConstantBufferPreviewer *CaptureContext::ViewConstantBuffer(ShaderStage stage, uint32_t slot,
-                                                             uint32_t idx)
+IBufferViewer *CaptureContext::ViewConstantBuffer(ShaderStage stage, uint32_t slot, uint32_t idx)
 {
-  ConstantBufferPreviewer *existing = ConstantBufferPreviewer::has(stage, slot, idx);
+  BufferViewer *existing = BufferViewer::HasCBufferView(stage, slot, idx);
   if(existing != NULL)
     return existing;
 
-  return new ConstantBufferPreviewer(*this, stage, slot, idx, m_MainWindow);
+  BufferViewer *viewer = new BufferViewer(*this, false, m_MainWindow);
+
+  viewer->ViewCBuffer(stage, slot, idx);
+
+  return viewer;
 }
 
 IPixelHistoryView *CaptureContext::ViewPixelHistory(ResourceId texID, uint32_t x, uint32_t y,
@@ -2756,11 +2758,13 @@ void CaptureContext::AddDockWindow(QWidget *newWindow, DockReference ref, QWidge
 
   if(ref == DockReference::TransientPopupArea)
   {
-    if(qobject_cast<ConstantBufferPreviewer *>(newWindow))
+    BufferViewer *buf = qobject_cast<BufferViewer *>(newWindow);
+
+    if(buf && buf->IsCBufferView())
     {
       ToolWindowManager *manager = ToolWindowManager::managerOf(refWindow);
 
-      ConstantBufferPreviewer *cb = manager->findChild<ConstantBufferPreviewer *>();
+      BufferViewer *cb = BufferViewer::GetFirstCBufferView(buf);
       if(cb)
       {
         manager->addToolWindow(newWindow, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,

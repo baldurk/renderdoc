@@ -2210,7 +2210,7 @@ void D3D11PipelineStateViewer::cbuffer_itemActivated(RDTreeWidgetItem *item, int
     return;
   }
 
-  IConstantBufferPreviewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cbufIdx, 0);
+  IBufferViewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cbufIdx, 0);
 
   m_Ctx.AddDockWindow(prev->Widget(), DockReference::TransientPopupArea, this, 0.3f);
 }

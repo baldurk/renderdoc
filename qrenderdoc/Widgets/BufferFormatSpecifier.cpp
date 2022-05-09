@@ -52,6 +52,11 @@ void BufferFormatSpecifier::setContext(ICaptureContext *ctx)
   showHelp(m_Ctx->Config().BufferFormatter_ShowHelp);
 }
 
+void BufferFormatSpecifier::setTitle(QString title)
+{
+  ui->formatGroup->setTitle(title);
+}
+
 void BufferFormatSpecifier::toggleHelp()
 {
   ui->helpText->setVisible(!ui->helpText->isVisible());

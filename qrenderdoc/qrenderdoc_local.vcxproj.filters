@@ -186,9 +186,6 @@
     <ClCompile Include="Widgets\Extended\RDTreeWidget.cpp">
       <Filter>Widgets\Extended</Filter>
     </ClCompile>
-    <ClCompile Include="Windows\ConstantBufferPreviewer.cpp">
-      <Filter>Windows</Filter>
-    </ClCompile>
     <ClCompile Include="Widgets\BufferFormatSpecifier.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
@@ -417,9 +414,6 @@
    <ClCompile Include="$(IntDir)generated\moc_ComputeDebugSelector.cpp">
     <Filter>Generated Files</Filter>
    </ClCompile>
-    <ClCompile Include="$(IntDir)generated\moc_ConstantBufferPreviewer.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="$(IntDir)generated\moc_CustomPaintWidget.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
@@ -983,9 +977,6 @@
    <ClInclude Include="$(IntDir)generated\ui_ComputeDebugSelector.h">
     <Filter>Generated Files</Filter>
    </ClInclude>
-    <ClInclude Include="$(IntDir)generated\ui_ConstantBufferPreviewer.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_D3D11PipelineStateViewer.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
@@ -1184,9 +1175,6 @@
     <CustomBuild Include="Windows\BufferViewer.ui">
       <Filter>Windows</Filter>
     </CustomBuild>
-    <CustomBuild Include="Windows\ConstantBufferPreviewer.ui">
-      <Filter>Windows</Filter>
-    </CustomBuild>
     <CustomBuild Include="Windows\DebugMessageView.ui">
       <Filter>Windows</Filter>
     </CustomBuild>
@@ -1272,9 +1260,6 @@
       <Filter>Windows</Filter>
     </CustomBuild>
     <CustomBuild Include="Windows\BufferViewer.h">
-      <Filter>Windows</Filter>
-    </CustomBuild>
-    <CustomBuild Include="Windows\ConstantBufferPreviewer.h">
       <Filter>Windows</Filter>
     </CustomBuild>
     <CustomBuild Include="Windows\DebugMessageView.h">

@@ -38,6 +38,7 @@
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Widgets/CollapseGroupBox.h"
+#include "Widgets/Extended/RDLabel.h"
 #include "Widgets/Extended/RDSplitter.h"
 #include "Windows/Dialogs/AxisMappingDialog.h"
 #include "ui_BufferViewer.h"
@@ -470,6 +471,7 @@ struct BufferConfiguration
   uint32_t pagingOffset = 0;
 
   ShaderConstant fixedVars;
+  rdcarray<ShaderVariable> evalVars;
   uint32_t repeatStride = 1;
   uint32_t repeatOffset = 0;
 
@@ -507,6 +509,7 @@ struct BufferConfiguration
     pagingOffset = o.pagingOffset;
 
     fixedVars = o.fixedVars;
+    evalVars = o.evalVars;
     repeatStride = o.repeatStride;
     repeatOffset = o.repeatOffset;
 
@@ -1431,6 +1434,8 @@ struct PopulateBufferData
   int vsoutVert;
   int gsoutVert;
 
+  CBufferData cb;
+
   QString highlightNames[6];
 
   BufferConfiguration vsinConfig, vsoutConfig, gsoutConfig;
@@ -2081,6 +2086,8 @@ static void UnrollConstant(const ShaderConstant &constant, rdcarray<ShaderConsta
   UnrollConstant("", 0, constant, columns, props);
 }
 
+QList<BufferViewer *> BufferViewer::m_CBufferViews;
+
 BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
     : QFrame(parent), ui(new Ui::BufferViewer), m_Ctx(ctx)
 {
@@ -2215,6 +2222,8 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   // wireframe only available on solid shaded options
   ui->wireframeRender->setEnabled(false);
 
+  ui->setFormat->setVisible(false);
+
   ui->fovGuess->setValue(90.0);
 
   on_controlType_currentIndexChanged(0);
@@ -2341,6 +2350,16 @@ void BufferViewer::SetupRawView()
   controlLayout->setSpacing(2);
   controlLayout->setContentsMargins(6, 2, 6, 2);
 
+  m_RepeatedOffset = new RDLabel(this);
+
+  QFrame *line = new QFrame(this);
+  line->setFrameShape(QFrame::VLine);
+  line->setFrameShadow(QFrame::Sunken);
+
+  controlLayout->addWidget(line);
+
+  controlLayout->addWidget(m_RepeatedOffset);
+
   controlLayout->addItem(new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum));
 
   QVBoxLayout *fixedLayout = new QVBoxLayout(m_FixedGroup);
@@ -2349,7 +2368,7 @@ void BufferViewer::SetupRawView()
 
   QVBoxLayout *repeatedLayout = new QVBoxLayout(m_RepeatedGroup);
   repeatedLayout->setSpacing(3);
-  repeatedLayout->setContentsMargins(0, 0, 0, 0);
+  repeatedLayout->setContentsMargins(2, 0, 0, 0);
 
   repeatedLayout->addWidget(m_RepeatedControlBar);
 
@@ -2367,6 +2386,8 @@ void BufferViewer::SetupRawView()
   m_InnerSplitter = new RDSplitter(Qt::Vertical, this);
   m_InnerSplitter->setHandleWidth(12);
   m_InnerSplitter->setChildrenCollapsible(false);
+
+  m_InnerSplitter->setVisible(false);
 
   // inner splitter is only used when we have these groups, so we can add these unconditionally
   m_InnerSplitter->addWidget(m_FixedGroup);
@@ -2663,6 +2684,8 @@ BufferViewer::~BufferViewer()
 
   m_Ctx.RemoveCaptureViewer(this);
   delete ui;
+
+  m_CBufferViews.removeOne(this);
 }
 
 void BufferViewer::OnCaptureLoaded()
@@ -2741,8 +2764,6 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
   bufdata->highlightNames[4] = m_ModelGSOut->posName();
   bufdata->highlightNames[5] = m_ModelGSOut->secondaryName();
 
-  updateWindowTitle();
-
   const ActionDescription *action = m_Ctx.CurAction();
 
   configureDrawRange();
@@ -2793,10 +2814,50 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
   }
   else
   {
+    // update with the current cbuffer for the current slot
+    if(IsCBufferView())
+    {
+      BoundCBuffer cb = m_Ctx.CurPipelineState().GetConstantBuffer(
+          m_CBufferSlot.stage, m_CBufferSlot.slot, m_CBufferSlot.arrayIdx);
+      m_BufferID = cb.resourceId;
+      m_ByteOffset = cb.byteOffset;
+      m_ByteSize = cb.byteSize;
+
+      const ShaderReflection *reflection =
+          m_Ctx.CurPipelineState().GetShaderReflection(m_CBufferSlot.stage);
+      bufdata->cb.valid =
+          (reflection != NULL && m_CBufferSlot.slot < reflection->constantBlocks.size());
+      if(bufdata->cb.valid)
+        bufdata->cb.bufferBacked = reflection->constantBlocks[m_CBufferSlot.slot].bufferBacked;
+
+      ui->setFormat->setEnabled(bufdata->cb.bufferBacked);
+      if(ui->setFormat->isEnabled())
+        ui->setFormat->setToolTip(tr("Specify a custom format for this constant buffer"));
+      else
+        ui->setFormat->setToolTip(tr("Cannot specify custom format without backing memory"));
+
+      bufdata->cb.pipe = m_CBufferSlot.stage == ShaderStage::Compute
+                             ? m_Ctx.CurPipelineState().GetComputePipelineObject()
+                             : m_Ctx.CurPipelineState().GetGraphicsPipelineObject();
+      bufdata->cb.shader = m_Ctx.CurPipelineState().GetShader(m_CBufferSlot.stage);
+      bufdata->cb.entryPoint = m_Ctx.CurPipelineState().GetShaderEntryPoint(m_CBufferSlot.stage);
+      bufdata->cb.inlinedata = cb.inlineData;
+
+      if(m_Format.isEmpty())
+      {
+        // stage, slot, and array index are all invariant when viewing a constant buffer
+        // ee only need to use the actual bound shader as a key.
+        RDTreeViewExpansionState &prevShaderExpansionState =
+            ui->fixedVars->getInternalExpansion(qHash(ToQStr(m_CurCBuffer.shader)));
+
+        ui->fixedVars->saveExpansion(prevShaderExpansionState, 0);
+      }
+    }
+
     QString errors;
     ShaderConstant repeating;
     rdctie(bufdata->vsinConfig.fixedVars, repeating) =
-        BufferFormatter::ParseFormatString(m_Format, m_ByteSize, errors);
+        BufferFormatter::ParseFormatString(m_Format, m_ByteSize, IsCBufferView(), errors);
 
     if(repeating.type.descriptor.type != VarType::Unknown)
     {
@@ -2809,6 +2870,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
     ClearModels();
   }
 
+  updateWindowTitle();
+
   bufdata->vsinConfig.curInstance = bufdata->vsoutConfig.curInstance =
       bufdata->gsoutConfig.curInstance = m_Config.curInstance;
   bufdata->vsinConfig.curView = bufdata->vsoutConfig.curView = bufdata->gsoutConfig.curView =
@@ -2819,6 +2882,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
   m_ModelGSOut->beginReset();
 
   bufdata->vsinConfig.baseVertex = action ? action->baseVertex : 0;
+
+  ui->formatSpecifier->setEnabled(!IsCBufferView() || bufdata->cb.bufferBacked);
 
   ui->instance->setEnabled(action && (action->flags & ActionFlags::Instanced));
   if(!ui->instance->isEnabled())
@@ -2908,7 +2973,11 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
       if(m_IsBuffer)
       {
-        if(repeatedRangeStart > fixedLength)
+        if(m_BufferID == ResourceId())
+        {
+          buf->storage = bufdata->cb.inlinedata;
+        }
+        else if(repeatedRangeStart > fixedLength)
         {
           // if the repeated range subsection we're fetching is paged further in, we still need to
           // fetch the fixed data from the 'start'
@@ -2943,6 +3012,17 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       }
     }
 
+    // for cbuffers, if the format is empty or if we're not buffer-backed, we evaluate variables
+    // here and don't use the format override with a fetched buffer
+    if((m_Format.isEmpty() || !bufdata->cb.bufferBacked) && IsCBufferView())
+    {
+      // only fetch the cbuffer constants if this binding is currently valid
+      if(bufdata->cb.valid)
+        bufdata->vsinConfig.evalVars = r->GetCBufferVariableContents(
+            bufdata->cb.pipe, bufdata->cb.shader, m_CBufferSlot.stage, bufdata->cb.entryPoint,
+            m_CBufferSlot.slot, m_BufferID, m_ByteOffset, m_ByteSize);
+    }
+
     GUIInvoke::call(this, [this, bufdata]() {
       if(bufdata->sequence != m_Sequence)
         return;
@@ -2953,6 +3033,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
       m_PostVS = bufdata->postVS;
       m_PostGS = bufdata->postGS;
+
+      m_CurCBuffer = bufdata->cb;
 
       // if we didn't have a position column selected before, or the name has changed, re-guess
       if(m_ModelVSIn->posColumn() == -1 ||
@@ -3021,10 +3103,24 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
       if(!m_MeshView)
       {
+        m_RepeatedOffset->setText(
+            tr("Starting at: %1 bytes").arg(m_ByteOffset + bufdata->vsinConfig.repeatOffset));
+
         {
-          ShaderVariable var = InterpretShaderVar(bufdata->vsinConfig.fixedVars,
-                                                  bufdata->vsinConfig.buffers[0]->storage.begin(),
-                                                  bufdata->vsinConfig.buffers[0]->storage.end());
+          rdcarray<ShaderVariable> vars;
+
+          if((m_BufferID == ResourceId() && m_CurCBuffer.inlinedata.empty()) || m_Format.isEmpty())
+          {
+            vars = bufdata->vsinConfig.evalVars;
+          }
+          else
+          {
+            ShaderVariable var = InterpretShaderVar(bufdata->vsinConfig.fixedVars,
+                                                    bufdata->vsinConfig.buffers[0]->storage.begin(),
+                                                    bufdata->vsinConfig.buffers[0]->storage.end());
+
+            vars.swap(var.members);
+          }
 
           bool wasEmpty = ui->fixedVars->topLevelItemCount() == 0;
 
@@ -3035,8 +3131,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
           ui->fixedVars->clear();
 
-          if(!var.members.isEmpty())
-            UI_AddFixedVariables(ui->fixedVars->invisibleRootItem(), var.members);
+          if(!vars.isEmpty())
+            UI_AddFixedVariables(ui->fixedVars->invisibleRootItem(), vars);
 
           ui->fixedVars->endUpdate();
 
@@ -3049,7 +3145,14 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
             ui->fixedVars->collapseAll();
           }
 
-          ui->fixedVars->applyExpansion(state, 0);
+          // if we have saved expansion state for the new shader, apply it, otherwise apply the
+          // previous one to get any overlap (e.g. two different shaders with very similar or
+          // identical constants)
+          if(ui->fixedVars->hasInternalExpansion(qHash(ToQStr(m_CurCBuffer.shader))))
+            ui->fixedVars->applyExpansion(
+                ui->fixedVars->getInternalExpansion(qHash(ToQStr(m_CurCBuffer.shader))), 0);
+          else
+            ui->fixedVars->applyExpansion(state, 0);
         }
 
         on_rowOffset_valueChanged(ui->rowOffset->value());
@@ -3857,6 +3960,59 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
   processFormat(format);
 }
 
+BufferViewer *BufferViewer::HasCBufferView(ShaderStage stage, uint32_t slot, uint32_t idx)
+{
+  CBufferSlot cbuffer = {stage, slot, idx};
+
+  for(BufferViewer *c : m_CBufferViews)
+  {
+    if(c->m_CBufferSlot == cbuffer)
+      return c;
+  }
+
+  return NULL;
+}
+
+BufferViewer *BufferViewer::GetFirstCBufferView(BufferViewer *exclude)
+{
+  for(BufferViewer *b : m_CBufferViews)
+  {
+    if(b != exclude)
+      return b;
+  }
+
+  return NULL;
+}
+
+void BufferViewer::ViewCBuffer(const ShaderStage stage, uint32_t slot, uint32_t idx)
+{
+  if(!m_Ctx.IsCaptureLoaded())
+    return;
+
+  m_IsBuffer = true;
+  m_ByteOffset = 0;
+  m_ByteSize = UINT64_MAX;
+  m_BufferID = ResourceId();
+  m_CBufferSlot = {stage, slot, idx};
+  m_TexSub = {0, 0, 0};
+
+  updateWindowTitle();
+
+  m_ObjectByteSize = 0;
+  m_PagingByteOffset = 0;
+
+  // enable the button to toggle on formatting, so we can pre-fill with a sensible format when it's
+  // enabled
+  ui->setFormat->setVisible(true);
+
+  ui->formatSpecifier->setFormat(QString());
+  ui->formatSpecifier->setVisible(false);
+
+  processFormat(QString());
+
+  m_CBufferViews.push_back(this);
+}
+
 void BufferViewer::ViewTexture(ResourceId id, const Subresource &sub, const rdcstr &format)
 {
   if(!m_Ctx.IsCaptureLoaded())
@@ -3920,11 +4076,66 @@ bool BufferViewer::eventFilter(QObject *watched, QEvent *event)
 void BufferViewer::updateWindowTitle()
 {
   if(!m_MeshView)
-    setWindowTitle(m_Ctx.GetResourceName(m_BufferID) + lit(" - Contents"));
+  {
+    if(IsCBufferView())
+    {
+      QString bufName;
+
+      const ShaderReflection *reflection =
+          m_Ctx.CurPipelineState().GetShaderReflection(m_CBufferSlot.stage);
+
+      int32_t bindPoint = -1;
+      if(reflection != NULL)
+      {
+        if(m_CBufferSlot.slot < reflection->constantBlocks.size() &&
+           !reflection->constantBlocks[m_CBufferSlot.slot].name.isEmpty())
+        {
+          bufName = QFormatStr("<%1>").arg(reflection->constantBlocks[m_CBufferSlot.slot].name);
+          bindPoint = reflection->constantBlocks[m_CBufferSlot.slot].bindPoint;
+        }
+      }
+
+      if(bufName.isEmpty())
+      {
+        if(m_BufferID != ResourceId())
+          bufName = m_Ctx.GetResourceName(m_BufferID);
+        else
+          bufName = tr("Unbound");
+      }
+
+      const ShaderBindpointMapping &mapping =
+          m_Ctx.CurPipelineState().GetBindpointMapping(m_CBufferSlot.stage);
+
+      uint32_t arraySize = ~0U;
+      if(bindPoint >= 0 && bindPoint < mapping.constantBlocks.count())
+        arraySize = mapping.constantBlocks[bindPoint].arraySize;
+
+      GraphicsAPI pipeType = m_Ctx.APIProps().pipelineType;
+
+      QString title = QFormatStr("%1 %2 %3")
+                          .arg(ToQStr(m_CBufferSlot.stage, pipeType))
+                          .arg(IsD3D(pipeType) ? lit("CB") : lit("UBO"))
+                          .arg(m_CBufferSlot.slot);
+
+      if(m_Ctx.CurPipelineState().SupportsResourceArrays() && arraySize > 1)
+        title += QFormatStr("[%1]").arg(m_CBufferSlot.arrayIdx);
+
+      title += QFormatStr(" - %1").arg(bufName);
+
+      setWindowTitle(title);
+    }
+    else
+    {
+      setWindowTitle(m_Ctx.GetResourceName(m_BufferID) + lit(" - Contents"));
+    }
+  }
 }
 
 void BufferViewer::on_resourceDetails_clicked()
 {
+  if(m_BufferID == ResourceId())
+    return;
+
   if(!m_Ctx.HasResourceInspector())
     m_Ctx.ShowResourceInspector();
 
@@ -4362,6 +4573,40 @@ void BufferViewer::on_axisMappingButton_clicked()
   showAxisMappingDialog();
 }
 
+void BufferViewer::on_setFormat_toggled(bool checked)
+{
+  if(!checked)
+  {
+    ui->formatSpecifier->setVisible(false);
+
+    processFormat(QString());
+    return;
+  }
+
+  ui->formatSpecifier->setVisible(true);
+
+  const ShaderReflection *reflection =
+      m_Ctx.CurPipelineState().GetShaderReflection(m_CBufferSlot.stage);
+
+  if(m_CBufferSlot.slot >= reflection->constantBlocks.size())
+  {
+    ui->formatSpecifier->setVisible(false);
+
+    processFormat(QString());
+    return;
+  }
+
+  if(IsD3D(m_Ctx.APIProps().pipelineType))
+    ui->formatSpecifier->setFormat(BufferFormatter::DeclareStruct(
+        Packing::D3DCB, reflection->constantBlocks[m_CBufferSlot.slot].name,
+        reflection->constantBlocks[m_CBufferSlot.slot].variables, 0));
+  else
+    ui->formatSpecifier->setFormat(BufferFormatter::DeclareStruct(
+        BufferFormatter::EstimatePackingRules(reflection->constantBlocks[m_CBufferSlot.slot].variables),
+        reflection->constantBlocks[m_CBufferSlot.slot].name,
+        reflection->constantBlocks[m_CBufferSlot.slot].variables, 0));
+}
+
 void BufferViewer::processFormat(const QString &format)
 {
   QString errors;
@@ -4375,7 +4620,18 @@ void BufferViewer::processFormat(const QString &format)
   BufferConfiguration bufconfig;
 
   ShaderConstant fixed, repeating;
-  rdctie(fixed, repeating) = BufferFormatter::ParseFormatString(format, m_ByteSize, errors);
+
+  if(IsCBufferView() && format.isEmpty())
+  {
+    // insert a dummy member so we get identified as plain fixed vars - we will automatically
+    // evaluate ignoring the format
+    fixed.type.members.push_back(ShaderConstant());
+  }
+  else
+  {
+    rdctie(fixed, repeating) =
+        BufferFormatter::ParseFormatString(format, m_ByteSize, IsCBufferView(), errors);
+  }
 
   const bool repeatedVars = repeating.type.descriptor.type != VarType::Unknown;
   const bool fixedVars = !fixed.type.members.empty();
@@ -4467,16 +4723,33 @@ void BufferViewer::processFormat(const QString &format)
 
   m_Format = format;
 
-  qulonglong stride = qMax(1U, repeating.type.descriptor.arrayByteStride);
+  if(IsCBufferView())
+  {
+    ui->byteRangeLine->setVisible(false);
+    ui->byteRangeStartLabel->setVisible(false);
+    byteRangeStart->setVisible(false);
+    ui->byteRangeLengthLabel->setVisible(false);
+    byteRangeLength->setVisible(false);
+    GraphicsAPI pipeType = m_Ctx.APIProps().pipelineType;
 
-  byteRangeStart->setSingleStep(stride);
-  byteRangeLength->setSingleStep(stride);
+    if(IsD3D(pipeType))
+      ui->formatSpecifier->setTitle(tr("Constant Buffer Custom Format"));
+    else
+      ui->formatSpecifier->setTitle(tr("Uniform Buffer Custom Format"));
+  }
+  else
+  {
+    qulonglong stride = qMax(1U, repeating.type.descriptor.arrayByteStride);
 
-  byteRangeStart->setMaximum((qulonglong)m_ObjectByteSize);
-  byteRangeLength->setMaximum((qulonglong)m_ObjectByteSize);
+    byteRangeStart->setSingleStep(stride);
+    byteRangeLength->setSingleStep(stride);
 
-  byteRangeStart->setValue(m_ByteOffset);
-  byteRangeLength->setValue(m_ByteSize);
+    byteRangeStart->setMaximum((qulonglong)m_ObjectByteSize);
+    byteRangeLength->setMaximum((qulonglong)m_ObjectByteSize);
+
+    byteRangeStart->setValue(m_ByteOffset);
+    byteRangeLength->setValue(m_ByteSize);
+  }
 
   ui->formatSpecifier->setErrors(errors);
 
@@ -4527,7 +4800,7 @@ void BufferViewer::updateExportActionNames()
   }
 
   m_ExportCSV->setEnabled(true);
-  m_ExportBytes->setEnabled(true);
+  m_ExportBytes->setEnabled(m_BufferID != ResourceId());
 
   if(m_MeshView)
   {

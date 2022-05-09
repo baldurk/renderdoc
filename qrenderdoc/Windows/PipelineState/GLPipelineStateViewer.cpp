@@ -2342,7 +2342,7 @@ void GLPipelineStateViewer::ubo_itemActivated(RDTreeWidgetItem *item, int column
 
   int cb = tag.value<int>();
 
-  IConstantBufferPreviewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cb, 0);
+  IBufferViewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cb, 0);
 
   m_Ctx.AddDockWindow(prev->Widget(), DockReference::TransientPopupArea, this, 0.3f);
 }

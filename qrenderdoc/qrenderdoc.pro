@@ -218,7 +218,6 @@ SOURCES += Code/qrenderdoc.cpp \
     Windows/PipelineState/GLPipelineStateViewer.cpp \
     Widgets/Extended/RDTreeView.cpp \
     Widgets/Extended/RDTreeWidget.cpp \
-    Windows/ConstantBufferPreviewer.cpp \
     Widgets/BufferFormatSpecifier.cpp \
     Windows/BufferViewer.cpp \
     Widgets/Extended/RDTableView.cpp \
@@ -304,7 +303,6 @@ HEADERS += Code/CaptureContext.h \
     Windows/PipelineState/GLPipelineStateViewer.h \
     Widgets/Extended/RDTreeView.h \
     Widgets/Extended/RDTreeWidget.h \
-    Windows/ConstantBufferPreviewer.h \
     Widgets/BufferFormatSpecifier.h \
     Windows/BufferViewer.h \
     Widgets/Extended/RDTableView.h \
@@ -353,7 +351,6 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/PipelineState/D3D11PipelineStateViewer.ui \
     Windows/PipelineState/D3D12PipelineStateViewer.ui \
     Windows/PipelineState/GLPipelineStateViewer.ui \
-    Windows/ConstantBufferPreviewer.ui \
     Widgets/BufferFormatSpecifier.ui \
     Widgets/ComputeDebugSelector.ui \
     Windows/BufferViewer.ui \

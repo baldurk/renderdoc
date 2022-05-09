@@ -201,7 +201,8 @@ public:
 
   static void Init(GraphicsAPI api) { m_API = api; }
   static rdcpair<ShaderConstant, ShaderConstant> ParseFormatString(const QString &formatString,
-                                                                   uint64_t maxLen, QString &errors);
+                                                                   uint64_t maxLen, bool cbuffer,
+                                                                   QString &errors);
   static uint32_t GetVarSize(const ShaderConstant &var);
 
   static Packing::Rules EstimatePackingRules(const rdcarray<ShaderConstant> &members);
