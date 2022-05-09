@@ -2829,7 +2829,7 @@ QString ShaderViewer::getRegNames(const RDTreeWidgetItem *item, uint32_t swizzle
 
   const QString xyzw = lit("xyzw");
 
-  for(uint32_t i = start; i < count; i++)
+  for(uint32_t i = start; i < start + count; i++)
   {
     uint32_t swiz_i = i;
 
