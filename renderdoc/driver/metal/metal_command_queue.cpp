@@ -30,7 +30,7 @@ WrappedMTLCommandQueue::WrappedMTLCommandQueue(MTL::CommandQueue *realMTLCommand
                                                ResourceId objId, WrappedMTLDevice *wrappedMTLDevice)
     : WrappedMTLObject(realMTLCommandQueue, objId, wrappedMTLDevice, wrappedMTLDevice->GetStateRef())
 {
-  m_ObjcBridge = AllocateObjCBridge(this);
+  AllocateObjCBridge(this);
 }
 
 template <typename SerialiserType>
@@ -55,7 +55,7 @@ WrappedMTLCommandBuffer *WrappedMTLCommandQueue::commandBuffer()
   SERIALISE_TIME_CALL(realMTLCommandBuffer = Unwrap(this)->commandBuffer());
   WrappedMTLCommandBuffer *wrappedMTLCommandBuffer;
   ResourceId id = GetResourceManager()->WrapResource(realMTLCommandBuffer, wrappedMTLCommandBuffer);
-  wrappedMTLCommandBuffer->SetWrappedMTLCommandQueue(this);
+  wrappedMTLCommandBuffer->SetCommandQueue(this);
 
   if(IsCaptureMode(m_State))
   {

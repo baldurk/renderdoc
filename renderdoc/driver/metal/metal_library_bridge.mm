@@ -31,14 +31,18 @@
 // ObjCBridgeMTLLibrary specific
 - (id<MTLLibrary>)real
 {
-  return id<MTLLibrary>(Unwrap(self.wrappedCPP));
+  return id<MTLLibrary>(Unwrap(GetWrapped(self)));
 }
 
+// Silence compiler warning
+// error: method possibly missing a [super dealloc] call [-Werror,-Wobjc-missing-super-calls]
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wobjc-missing-super-calls"
 - (void)dealloc
 {
-  self.wrappedCPP->Dealloc();
-  [super dealloc];
+  GetWrapped(self)->Dealloc();
 }
+#pragma clang diagnostic pop
 
 // Use the real MTLLibrary to find methods from messages
 - (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector
@@ -73,13 +77,12 @@
 
 - (id<MTLDevice>)device
 {
-  return id<MTLDevice>(self.wrappedCPP->GetObjCBridgeMTLDevice());
+  return id<MTLDevice>(GetWrapped(self)->GetDevice());
 }
 
 - (nullable id<MTLFunction>)newFunctionWithName:(NSString *)functionName
 {
-  return id<MTLFunction>(
-      GetObjCBridge(self.wrappedCPP->newFunctionWithName((NS::String *)functionName)));
+  return id<MTLFunction>(GetWrapped(self)->newFunctionWithName((NS::String *)functionName));
 }
 
 - (nullable id<MTLFunction>)newFunctionWithName:(NSString *)name

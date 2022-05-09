@@ -37,13 +37,8 @@ ResourceId GetResID(WrappedMTLObject *obj)
   return obj->m_ID;
 }
 
-#define IMPLEMENT_WRAPPED_TYPE_HELPERS(CPPTYPE)                                          \
-  MTL::CPPTYPE *Unwrap(WrappedMTL##CPPTYPE *obj) { return Unwrap<MTL::CPPTYPE *>(obj); } \
-  MTL::CPPTYPE *GetObjCBridge(WrappedMTL##CPPTYPE *obj)                                  \
-  {                                                                                      \
-    return GetObjCBridge<MTL::CPPTYPE *>(obj);                                           \
-  }
-
+#define IMPLEMENT_WRAPPED_TYPE_HELPERS(CPPTYPE) \
+  MTL::CPPTYPE *Unwrap(WrappedMTL##CPPTYPE *obj) { return Unwrap<MTL::CPPTYPE *>(obj); }
 METALCPP_WRAPPED_PROTOCOLS(IMPLEMENT_WRAPPED_TYPE_HELPERS)
 #undef IMPLEMENT_WRAPPED_TYPE_HELPERS
 
@@ -54,12 +49,7 @@ void WrappedMTLObject::Dealloc()
 
 MetalResourceManager *WrappedMTLObject::GetResourceManager()
 {
-  return m_WrappedMTLDevice->GetResourceManager();
-}
-
-MTL::Device *WrappedMTLObject::GetObjCBridgeMTLDevice()
-{
-  return GetObjCBridge(m_WrappedMTLDevice);
+  return m_Device->GetResourceManager();
 }
 
 MetalResourceRecord::~MetalResourceRecord()

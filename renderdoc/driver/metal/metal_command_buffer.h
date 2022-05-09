@@ -35,16 +35,8 @@ public:
   WrappedMTLCommandBuffer(MTL::CommandBuffer *realMTLCommandBuffer, ResourceId objId,
                           WrappedMTLDevice *wrappedMTLDevice);
 
-  void SetWrappedMTLCommandQueue(WrappedMTLCommandQueue *wrappedMTLCommandQueue)
-  {
-    m_WrappedMTLCommandQueue = wrappedMTLCommandQueue;
-  }
-
-  MTL::CommandQueue *GetObjCBridgeMTLCommandQueue()
-  {
-    return GetObjCBridge(m_WrappedMTLCommandQueue);
-  }
-
+  void SetCommandQueue(WrappedMTLCommandQueue *commandQueue) { m_CommandQueue = commandQueue; }
+  MTL::CommandQueue *GetCommandQueue() { return (MTL::CommandQueue *)m_CommandQueue; }
   DECLARE_FUNCTION_SERIALISED(void, presentDrawable, MTL::Drawable *drawable);
   DECLARE_FUNCTION_SERIALISED(void, commit);
 
@@ -54,5 +46,5 @@ public:
   };
 
 private:
-  WrappedMTLCommandQueue *m_WrappedMTLCommandQueue;
+  WrappedMTLCommandQueue *m_CommandQueue;
 };

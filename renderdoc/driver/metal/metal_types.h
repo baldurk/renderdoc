@@ -50,13 +50,13 @@
 METALCPP_WRAPPED_PROTOCOLS(DECLARE_WRAPPED_TYPE_SERIALISE);
 #undef DECLARE_WRAPPED_TYPE_SERIALISE
 
-#define DECLARE_OBJC_HELPERS(CPPTYPE)                                \
-  class WrappedMTL##CPPTYPE;                                         \
-  extern WrappedMTL##CPPTYPE *GetWrapped(MTL::CPPTYPE *objCWrapped); \
-  extern MTL::CPPTYPE *GetReal(MTL::CPPTYPE *objCWrapped);           \
-  extern bool IsObjCBridge(MTL::CPPTYPE *objCWrapped);               \
-  extern ResourceId GetResID(MTL::CPPTYPE *objCWrapped);             \
-  extern MTL::CPPTYPE *AllocateObjCBridge(WrappedMTL##CPPTYPE *wrapped);
+#define DECLARE_OBJC_HELPERS(CPPTYPE)                           \
+  class WrappedMTL##CPPTYPE;                                    \
+  inline WrappedMTL##CPPTYPE *GetWrapped(MTL::CPPTYPE *cppType) \
+  {                                                             \
+    return (WrappedMTL##CPPTYPE *)cppType;                      \
+  }                                                             \
+  extern void AllocateObjCBridge(WrappedMTL##CPPTYPE *wrapped);
 
 METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_HELPERS)
 #undef DECLARE_OBJC_HELPERS
