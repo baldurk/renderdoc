@@ -149,7 +149,7 @@
   FUNC(glGenerateMipmap, glGenerateMipmap); \
   FUNC(glGenerateMipmap, glGenerateMipmapEXT); \
   FUNC(glCopyImageSubData, glCopyImageSubData); \
-  FUNC(glCopyImageSubData, glCopyImageSubDataEXT); \
+  FUNC(glCopyImageSubDataEXT, glCopyImageSubDataEXT); \
   FUNC(glCopyImageSubData, glCopyImageSubDataOES); \
   FUNC(glCopyTexSubImage3D, glCopyTexSubImage3D); \
   FUNC(glCopyTexSubImage3D, glCopyTexSubImage3DOES); \
@@ -1412,7 +1412,7 @@
   FuncWrapper1(void, glGenerateMipmap, GLenum, target); \
   AliasWrapper1(void, glGenerateMipmapEXT, glGenerateMipmap, GLenum, target); \
   FuncWrapper15(void, glCopyImageSubData, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, srcWidth, GLsizei, srcHeight, GLsizei, srcDepth); \
-  AliasWrapper15(void, glCopyImageSubDataEXT, glCopyImageSubData, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, srcWidth, GLsizei, srcHeight, GLsizei, srcDepth); \
+  FuncWrapper15(void, glCopyImageSubDataEXT, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, srcWidth, GLsizei, srcHeight, GLsizei, srcDepth); \
   AliasWrapper15(void, glCopyImageSubDataOES, glCopyImageSubData, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, srcWidth, GLsizei, srcHeight, GLsizei, srcDepth); \
   FuncWrapper9(void, glCopyTexSubImage3D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
   AliasWrapper9(void, glCopyTexSubImage3DOES, glCopyTexSubImage3D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \

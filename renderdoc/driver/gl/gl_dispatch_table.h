@@ -136,7 +136,8 @@ struct GLDispatchTable
   PFNGLTEXPARAMETERIIVPROC glTexParameterIiv;      // aliases glTexParameterIivEXT, glTexParameterIivOES
   PFNGLTEXPARAMETERIUIVPROC glTexParameterIuiv;    // aliases glTexParameterIuivEXT, glTexParameterIuivOES
   PFNGLGENERATEMIPMAPPROC glGenerateMipmap;        // aliases glGenerateMipmapEXT
-  PFNGLCOPYIMAGESUBDATAPROC glCopyImageSubData;    // aliases glCopyImageSubDataEXT, glCopyImageSubDataOES
+  PFNGLCOPYIMAGESUBDATAPROC glCopyImageSubData;    // aliases glCopyImageSubDataOES
+  PFNGLCOPYIMAGESUBDATAEXTPROC glCopyImageSubDataEXT;
   PFNGLCOPYTEXSUBIMAGE3DPROC glCopyTexSubImage3D;    // aliases glCopyTexSubImage3DOES
   PFNGLGETINTERNALFORMATIVPROC glGetInternalformativ;
   PFNGLGETINTERNALFORMATI64VPROC glGetInternalformati64v;

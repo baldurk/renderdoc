@@ -1133,6 +1133,10 @@ public:
                                 GLint srcLevel, GLint srcX, GLint srcY, GLint srcZ, GLuint dstName,
                                 GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY,
                                 GLint dstZ, GLsizei srcWidth, GLsizei srcHeight, GLsizei srcDepth);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glCopyImageSubDataEXT, GLuint srcName, GLenum srcTarget,
+                                GLint srcLevel, GLint srcX, GLint srcY, GLint srcZ, GLuint dstName,
+                                GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY,
+                                GLint dstZ, GLsizei srcWidth, GLsizei srcHeight, GLsizei srcDepth);
   IMPLEMENT_FUNCTION_SERIALISED(void, glCopyTexImage1D, GLenum target, GLint level,
                                 GLenum internalformat, GLint x, GLint y, GLsizei width, GLint border);
   IMPLEMENT_FUNCTION_SERIALISED(void, glCopyTexImage2D, GLenum target, GLint level,
@@ -1922,6 +1926,11 @@ public:
   // on the EXT_dsa interface, which takes the function parameters and a
   // GLResourceRecord* which does all the common tasks between all of these
   // functions.
+
+  void Common_glCopyImageSubDataEXT(GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX,
+                                    GLint srcY, GLint srcZ, GLuint dstName, GLenum dstTarget,
+                                    GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ,
+                                    GLsizei srcWidth, GLsizei srcHeight, GLsizei srcDepth);
 
   void Common_glGenerateTextureMipmapEXT(GLResourceRecord *record, GLenum target);
 

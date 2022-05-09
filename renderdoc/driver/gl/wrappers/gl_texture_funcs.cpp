@@ -1312,11 +1312,8 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
 {
   CoherentMapImplicitBarrier();
 
-  GLResource srcRes = srcTarget == eGL_RENDERBUFFER ? RenderbufferRes(GetCtx(), srcName)
-                                                    : TextureRes(GetCtx(), srcName);
   GLResource dstRes = dstTarget == eGL_RENDERBUFFER ? RenderbufferRes(GetCtx(), dstName)
                                                     : TextureRes(GetCtx(), dstName);
-
   if(IsBackgroundCapturing(m_State))
   {
     GLResourceRecord *dstrecord = GetResourceManager()->GetResourceRecord(dstRes);
@@ -1329,6 +1326,47 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
   SERIALISE_TIME_CALL(GL.glCopyImageSubData(srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName,
                                             dstTarget, dstLevel, dstX, dstY, dstZ, srcWidth,
                                             srcHeight, srcDepth));
+
+  Common_glCopyImageSubDataEXT(srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName, dstTarget,
+                               dstLevel, dstX, dstY, dstZ, srcWidth, srcHeight, srcDepth);
+}
+
+void WrappedOpenGL::glCopyImageSubDataEXT(GLuint srcName, GLenum srcTarget, GLint srcLevel,
+                                          GLint srcX, GLint srcY, GLint srcZ, GLuint dstName,
+                                          GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY,
+                                          GLint dstZ, GLsizei srcWidth, GLsizei srcHeight,
+                                          GLsizei srcDepth)
+{
+  CoherentMapImplicitBarrier();
+
+  GLResource dstRes = dstTarget == eGL_RENDERBUFFER ? RenderbufferRes(GetCtx(), dstName)
+                                                    : TextureRes(GetCtx(), dstName);
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLResourceRecord *dstrecord = GetResourceManager()->GetResourceRecord(dstRes);
+
+    if(dstrecord)
+      GetResourceManager()->MarkResourceFrameReferenced(dstrecord->GetResourceID(),
+                                                        eFrameRef_PartialWrite);
+  }
+
+  SERIALISE_TIME_CALL(GL.glCopyImageSubDataEXT(srcName, srcTarget, srcLevel, srcX, srcY, srcZ,
+                                               dstName, dstTarget, dstLevel, dstX, dstY, dstZ,
+                                               srcWidth, srcHeight, srcDepth));
+
+  Common_glCopyImageSubDataEXT(srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName, dstTarget,
+                               dstLevel, dstX, dstY, dstZ, srcWidth, srcHeight, srcDepth);
+}
+void WrappedOpenGL::Common_glCopyImageSubDataEXT(GLuint srcName, GLenum srcTarget, GLint srcLevel,
+                                                 GLint srcX, GLint srcY, GLint srcZ, GLuint dstName,
+                                                 GLenum dstTarget, GLint dstLevel, GLint dstX,
+                                                 GLint dstY, GLint dstZ, GLsizei srcWidth,
+                                                 GLsizei srcHeight, GLsizei srcDepth)
+{
+  GLResource srcRes = srcTarget == eGL_RENDERBUFFER ? RenderbufferRes(GetCtx(), srcName)
+                                                    : TextureRes(GetCtx(), srcName);
+  GLResource dstRes = dstTarget == eGL_RENDERBUFFER ? RenderbufferRes(GetCtx(), dstName)
+                                                    : TextureRes(GetCtx(), dstName);
 
   if(IsActiveCapturing(m_State))
   {
