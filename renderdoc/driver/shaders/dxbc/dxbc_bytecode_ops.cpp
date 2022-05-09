@@ -368,7 +368,16 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString toStrFlags
           }
         }
 
-        if(cbuffer)
+        if(cbuffer && decl)
+        {
+          // for declarations don't look up the variable name. This actually lists the size in
+          // float4s of the constant buffer, and in the case of dead code elimination there could be
+          // variables past that point which have been removed which we'd find
+
+          if(!cbuffer->name.empty())
+            str += " (" + cbuffer->name + ")";
+        }
+        else if(cbuffer)
         {
           // if the second index is constant then this is easy enough, we just find the matching
           // cbuffer variable and use its name, possibly rebasing the swizzle.
