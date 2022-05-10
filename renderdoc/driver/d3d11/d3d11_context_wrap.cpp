@@ -7740,7 +7740,7 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(SerialiserType &ser, ID3D11Reso
         }
       }
 
-      if(IsBackgroundCapturing(m_State))
+      if(IsBackgroundCapturing(m_State) && record->DataInSerialiser)
       {
         // if there was already backing store then normally the user wrote directly into it so we
         // don't even have to update anything, except in the case where we were verifying map
