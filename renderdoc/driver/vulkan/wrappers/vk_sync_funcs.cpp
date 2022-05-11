@@ -1184,18 +1184,11 @@ void WrappedVulkan::vkCmdSetEvent2(VkCommandBuffer commandBuffer, VkEvent event,
 {
   SCOPED_DBG_SINK();
 
-  VkDependencyInfo unwrappedInfo = *pDependencyInfo;
-
-  byte *tempMem = GetTempMemory(GetNextPatchSize(&unwrappedInfo));
-
-  {
-    VkBaseInStructure dummy = {};
-    dummy.pNext = (const VkBaseInStructure *)&unwrappedInfo;
-    UnwrapNextChain(m_State, "VkDependencyInfo", tempMem, &dummy);
-  }
+  byte *tempMem = GetTempMemory(GetNextPatchSize(pDependencyInfo));
+  VkDependencyInfo *unwrappedInfo = UnwrapStructAndChain(m_State, tempMem, pDependencyInfo);
 
   SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)->CmdSetEvent2(Unwrap(commandBuffer), Unwrap(event), &unwrappedInfo));
+      ObjDisp(commandBuffer)->CmdSetEvent2(Unwrap(commandBuffer), Unwrap(event), unwrappedInfo));
 
   if(IsCaptureMode(m_State))
   {
