@@ -30,6 +30,7 @@
 
 #define RESOURCE_LIST()                                                        \
   RESOURCE_DEF(add, "add.png")                                                 \
+  RESOURCE_DEF(align, "align.png")                                             \
   RESOURCE_DEF(arrow_in, "arrow_in.png")                                       \
   RESOURCE_DEF(arrow_join, "arrow_join.png")                                   \
   RESOURCE_DEF(arrow_left, "arrow_left.png")                                   \

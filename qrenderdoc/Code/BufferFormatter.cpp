@@ -412,8 +412,8 @@ bool BufferFormatter::CheckInvalidUnbounded(const ShaderConstant &structDef, QSt
   return true;
 }
 
-rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(
-    const QString &formatString, uint64_t maxLen, bool cbuffer, QString &errors)
+ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uint64_t maxLen,
+                                                bool cbuffer, QString &errors)
 {
   StructFormatData root;
   StructFormatData *cur = &root;
@@ -1615,21 +1615,7 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(
 
     // if we're bitfield packing don't advance offset, otherwise advance to the end of this element
     if(bitfieldCurPos == ~0U)
-    {
-      // advance by the struct including any trailing padding
-      cur->offset += GetVarSize(el);
-
-      // if we allow trailing overlap in arrays/matrices, remove the padding. This is only possible
-      // with non-tight arrays
-      if(pack.trailing_overlap && !pack.tight_arrays &&
-         (el.type.descriptor.type == VarType::Struct || el.type.descriptor.elements > 1 ||
-          el.type.descriptor.rows > 1))
-      {
-        // the padding is the stride (which is rounded up to 16 for non-tight arrays) minus the size
-        // of the last vector (whether or not this is an array of scalars, vectors or matrices
-        cur->offset -= 16 - elSize;
-      }
-    }
+      cur->offset += GetVarAdvance(pack, el);
   }
 
   if(bitfieldCurPos != ~0U)
@@ -1834,7 +1820,7 @@ rdcpair<ShaderConstant, ShaderConstant> BufferFormatter::ParseFormatString(
     }
   }
 
-  return {root.structDef, repeat};
+  return {root.structDef, repeat, pack};
 }
 
 QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
@@ -2097,7 +2083,7 @@ uint32_t BufferFormatter::GetVarStraddleSize(const ShaderConstant &var)
   return VarTypeByteSize(var.type.descriptor.type) * var.type.descriptor.columns;
 }
 
-uint32_t BufferFormatter::GetVarSize(const ShaderConstant &var)
+uint32_t BufferFormatter::GetVarSizeAndTrail(const ShaderConstant &var)
 {
   if(var.type.descriptor.elements > 1 && var.type.descriptor.elements != ~0U)
     return var.type.descriptor.arrayByteStride * var.type.descriptor.elements;
@@ -2117,6 +2103,37 @@ uint32_t BufferFormatter::GetVarSize(const ShaderConstant &var)
   }
 
   return VarTypeByteSize(var.type.descriptor.type) * var.type.descriptor.columns;
+}
+
+uint32_t BufferFormatter::GetVarAdvance(Packing::Rules pack, const ShaderConstant &var)
+{
+  uint32_t ret = GetVarSizeAndTrail(var);
+
+  // if we allow trailing overlap, remove the padding at the end of the struct/array
+  if(pack.trailing_overlap)
+  {
+    if(var.type.descriptor.type == VarType::Struct)
+    {
+      ret -= (var.type.descriptor.arrayByteStride - GetUnpaddedStructAdvance(pack, var.type.members));
+    }
+    else if((var.type.descriptor.elements > 1 || var.type.descriptor.rows > 1) && !pack.tight_arrays)
+    {
+      uint8_t vecSize = var.type.descriptor.columns;
+
+      if(var.type.descriptor.rows > 1 && var.type.descriptor.ColMajor())
+        vecSize = var.type.descriptor.rows;
+
+      uint32_t elSize = GetAlignment(pack, var);
+      if(pack.vector_align_component)
+        elSize *= vecSize;
+
+      // the padding is the stride (which is rounded up to 16 for non-tight arrays) minus the size
+      // of the last vector (whether or not this is an array of scalars, vectors or matrices
+      ret -= 16 - elSize;
+    }
+  }
+
+  return ret;
 }
 
 uint32_t BufferFormatter::GetAlignment(Packing::Rules pack, const ShaderConstant &c)
@@ -2162,7 +2179,8 @@ uint32_t BufferFormatter::GetAlignment(Packing::Rules pack, const ShaderConstant
   return ret;
 }
 
-uint32_t BufferFormatter::GetUnpaddedStructSize(const rdcarray<ShaderConstant> &members)
+uint32_t BufferFormatter::GetUnpaddedStructAdvance(Packing::Rules pack,
+                                                   const rdcarray<ShaderConstant> &members)
 {
   uint32_t lastMemberStart = 0;
 
@@ -2181,7 +2199,7 @@ uint32_t BufferFormatter::GetUnpaddedStructSize(const rdcarray<ShaderConstant> &
     lastMemberStart += lastChild->byteOffset;
   }
 
-  return lastMemberStart + GetVarSize(*lastChild);
+  return lastMemberStart + GetVarAdvance(pack, *lastChild);
 }
 
 QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &declaredStructs,
@@ -2204,7 +2222,6 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
   {
     const uint32_t alignment = GetAlignment(pack, members[i]);
     const uint32_t vecsize = GetVarStraddleSize(members[i]);
-    const uint32_t size = GetVarSize(members[i]);
     structAlignment = std::max(structAlignment, alignment);
 
     offset = AlignUp(offset, alignment);
@@ -2233,33 +2250,7 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
 
     offset = members[i].byteOffset;
 
-    offset += size;
-
-    // if we allow trailing overlap, remove the padding at the end of the struct/array
-    if(pack.trailing_overlap)
-    {
-      if(members[i].type.descriptor.type == VarType::Struct)
-      {
-        offset -= (members[i].type.descriptor.arrayByteStride -
-                   GetUnpaddedStructSize(members[i].type.members));
-      }
-      else if((members[i].type.descriptor.elements > 1 || members[i].type.descriptor.rows > 1) &&
-              !pack.tight_arrays)
-      {
-        uint8_t vecSize = members[i].type.descriptor.columns;
-
-        if(members[i].type.descriptor.rows > 1 && members[i].type.descriptor.ColMajor())
-          vecSize = members[i].type.descriptor.rows;
-
-        uint32_t elSize = GetAlignment(pack, members[i]);
-        if(pack.vector_align_component)
-          elSize *= vecSize;
-
-        // the padding is the stride (which is rounded up to 16 for non-tight arrays) minus the size
-        // of the last vector (whether or not this is an array of scalars, vectors or matrices
-        offset -= 16 - elSize;
-      }
-    }
+    offset += GetVarAdvance(pack, members[i]);
 
     QString arraySize;
     if(members[i].type.descriptor.elements > 1)

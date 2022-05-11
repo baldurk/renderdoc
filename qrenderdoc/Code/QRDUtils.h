@@ -175,6 +175,12 @@ struct Rules
 
 };    // namespace Packing
 
+struct ParsedFormat
+{
+  ShaderConstant fixed, repeating;
+  Packing::Rules packing;
+};
+
 struct BufferFormatter
 {
 private:
@@ -190,8 +196,10 @@ private:
                                uint32_t requiredByteStride, QString innerSkippedPrefixString);
 
   static uint32_t GetAlignment(Packing::Rules pack, const ShaderConstant &constant);
-  static uint32_t GetUnpaddedStructSize(const rdcarray<ShaderConstant> &members);
+  static uint32_t GetUnpaddedStructAdvance(Packing::Rules pack,
+                                           const rdcarray<ShaderConstant> &members);
   static uint32_t GetVarStraddleSize(const ShaderConstant &var);
+  static uint32_t GetVarSizeAndTrail(const ShaderConstant &var);
 
   static void EstimatePackingRules(Packing::Rules &pack, const ShaderConstant &constant);
   static QString DeclarePacking(Packing::Rules pack);
@@ -200,10 +208,9 @@ public:
   BufferFormatter() = default;
 
   static void Init(GraphicsAPI api) { m_API = api; }
-  static rdcpair<ShaderConstant, ShaderConstant> ParseFormatString(const QString &formatString,
-                                                                   uint64_t maxLen, bool cbuffer,
-                                                                   QString &errors);
-  static uint32_t GetVarSize(const ShaderConstant &var);
+  static ParsedFormat ParseFormatString(const QString &formatString, uint64_t maxLen, bool cbuffer,
+                                        QString &errors);
+  static uint32_t GetVarAdvance(Packing::Rules pack, const ShaderConstant &var);
 
   static Packing::Rules EstimatePackingRules(const rdcarray<ShaderConstant> &members);
 

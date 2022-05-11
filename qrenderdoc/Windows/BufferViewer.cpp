@@ -34,6 +34,7 @@
 #include <QScrollBar>
 #include <QSplitter>
 #include <QTimer>
+#include <QToolTip>
 #include <QtMath>
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
@@ -42,6 +43,28 @@
 #include "Widgets/Extended/RDSplitter.h"
 #include "Windows/Dialogs/AxisMappingDialog.h"
 #include "ui_BufferViewer.h"
+
+struct FixedVarTag
+{
+  FixedVarTag() = default;
+  FixedVarTag(uint32_t size) : valid(true), padding(true), byteSize(size) {}
+  FixedVarTag(rdcstr varName, uint32_t offset)
+      : valid(true), padding(false), name(varName), byteOffset(offset)
+  {
+  }
+  bool valid = false;
+  bool padding = false;
+  bool matrix = false;
+  bool rowmajor = false;
+  rdcstr name;
+  union
+  {
+    uint32_t byteOffset;
+    uint32_t byteSize;
+  };
+};
+
+Q_DECLARE_METATYPE(FixedVarTag);
 
 static const uint32_t MaxVisibleRows = 10000;
 
@@ -470,6 +493,7 @@ struct BufferConfiguration
   uint32_t numRows = 0, unclampedNumRows = 0;
   uint32_t pagingOffset = 0;
 
+  Packing::Rules packing;
   ShaderConstant fixedVars;
   rdcarray<ShaderVariable> evalVars;
   uint32_t repeatStride = 1;
@@ -508,6 +532,7 @@ struct BufferConfiguration
     unclampedNumRows = o.unclampedNumRows;
     pagingOffset = o.pagingOffset;
 
+    packing = o.packing;
     fixedVars = o.fixedVars;
     evalVars = o.evalVars;
     repeatStride = o.repeatStride;
@@ -2288,6 +2313,10 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   QObject::connect(ui->render, &CustomPaintWidget::mouseWheel, this,
                    &BufferViewer::render_mouseWheel);
 
+  // event filter to pick up tooltip events
+  ui->fixedVars->setTooltipElidedItems(false);
+  ui->fixedVars->installEventFilter(this);
+
   Reset();
 
   m_Ctx.AddCaptureViewer(this);
@@ -2329,7 +2358,7 @@ void BufferViewer::SetupRawView()
                      processFormat(format);
                    });
 
-  ui->fixedVars->setColumns({tr("Name"), tr("Value"), tr("Type")});
+  ui->fixedVars->setColumns({tr("Name"), tr("Value"), tr("Byte Offset"), tr("Type")});
   {
     ui->fixedVars->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->fixedVars->header()->setSectionResizeMode(1, QHeaderView::Interactive);
@@ -2412,6 +2441,7 @@ void BufferViewer::SetupMeshView()
   byteRangeLength->setVisible(false);
 
   ui->fixedVars->setVisible(false);
+  ui->showPadding->setVisible(false);
 
   ui->resourceDetails->setVisible(false);
   ui->formatSpecifier->setVisible(false);
@@ -2564,24 +2594,32 @@ void BufferViewer::fixedVars_contextMenu(const QPoint &pos)
   QMenu contextMenu(this);
 
   QAction expandAll(tr("&Expand All"), this);
-  QAction collapseAll(tr("&Collapse All"), this);
+  QAction collapseAll(tr("C&ollapse All"), this);
   QAction copy(tr("&Copy"), this);
+  QAction showPadding(tr("&Show Padding"), this);
 
   expandAll.setIcon(Icons::arrow_out());
   collapseAll.setIcon(Icons::arrow_in());
   copy.setIcon(Icons::copy());
+  showPadding.setIcon(Icons::align());
+  showPadding.setCheckable(true);
+  showPadding.setChecked(ui->showPadding->isChecked());
 
   expandAll.setEnabled(item && item->childCount() > 0);
   collapseAll.setEnabled(expandAll.isEnabled());
 
-  contextMenu.addAction(m_ExportCSV);
-  contextMenu.addAction(m_ExportBytes);
-
-  contextMenu.addSeparator();
-
   contextMenu.addAction(&expandAll);
   contextMenu.addAction(&collapseAll);
   contextMenu.addAction(&copy);
+
+  contextMenu.addSeparator();
+
+  contextMenu.addAction(&showPadding);
+
+  contextMenu.addSeparator();
+
+  contextMenu.addAction(m_ExportCSV);
+  contextMenu.addAction(m_ExportBytes);
 
   QObject::connect(&expandAll, &QAction::triggered,
                    [this, item]() { ui->fixedVars->expandAllItems(item); });
@@ -2590,6 +2628,8 @@ void BufferViewer::fixedVars_contextMenu(const QPoint &pos)
                    [this, item]() { ui->fixedVars->collapseAllItems(item); });
   QObject::connect(&copy, &QAction::triggered,
                    [this, item, pos]() { ui->fixedVars->copyItem(pos, item); });
+  QObject::connect(&showPadding, &QAction::triggered,
+                   [this]() { ui->showPadding->setChecked(!ui->showPadding->isChecked()); });
 
   RDDialog::show(&contextMenu, ui->fixedVars->viewport()->mapToGlobal(pos));
 }
@@ -2855,16 +2895,36 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
     }
 
     QString errors;
-    ShaderConstant repeating;
-    rdctie(bufdata->vsinConfig.fixedVars, repeating) =
+    ParsedFormat parsed =
         BufferFormatter::ParseFormatString(m_Format, m_ByteSize, IsCBufferView(), errors);
 
-    if(repeating.type.descriptor.type != VarType::Unknown)
-    {
-      bufdata->vsinConfig.repeatStride = repeating.type.descriptor.arrayByteStride;
-      bufdata->vsinConfig.repeatOffset = repeating.byteOffset;
+    bufdata->vsinConfig.fixedVars = parsed.fixed;
+    bufdata->vsinConfig.packing = parsed.packing;
 
-      UnrollConstant(repeating, bufdata->vsinConfig.columns, bufdata->vsinConfig.props);
+    if(parsed.repeating.type.descriptor.type != VarType::Unknown)
+    {
+      bufdata->vsinConfig.repeatStride = parsed.repeating.type.descriptor.arrayByteStride;
+      bufdata->vsinConfig.repeatOffset = parsed.repeating.byteOffset;
+
+      UnrollConstant(parsed.repeating, bufdata->vsinConfig.columns, bufdata->vsinConfig.props);
+    }
+
+    if((m_Format.isEmpty() || !bufdata->cb.bufferBacked) && IsCBufferView())
+    {
+      if(bufdata->cb.valid)
+      {
+        const ShaderReflection *reflection =
+            m_Ctx.CurPipelineState().GetShaderReflection(m_CBufferSlot.stage);
+
+        bufdata->vsinConfig.fixedVars.type.members =
+            reflection->constantBlocks[m_CBufferSlot.slot].variables;
+
+        if(IsD3D(m_Ctx.APIProps().pipelineType))
+          bufdata->vsinConfig.packing = Packing::D3DCB;
+        else
+          bufdata->vsinConfig.packing =
+              BufferFormatter::EstimatePackingRules(bufdata->vsinConfig.fixedVars.type.members);
+      }
     }
 
     ClearModels();
@@ -3132,7 +3192,13 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
           ui->fixedVars->clear();
 
           if(!vars.isEmpty())
-            UI_AddFixedVariables(ui->fixedVars->invisibleRootItem(), vars);
+          {
+            UI_AddFixedVariables(ui->fixedVars->invisibleRootItem(), 0,
+                                 bufdata->vsinConfig.fixedVars.type.members, vars);
+
+            if(!bufdata->cb.bufferBacked)
+              UI_RemoveOffsets(ui->fixedVars->invisibleRootItem());
+          }
 
           ui->fixedVars->endUpdate();
 
@@ -3286,23 +3352,168 @@ void BufferViewer::setPersistData(const QVariant &persistData)
   }
 }
 
-void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, const rdcarray<ShaderVariable> &vars)
+void BufferViewer::UI_FixedAddMatrixRows(RDTreeWidgetItem *n, const ShaderConstant &c,
+                                         const ShaderVariable &v)
 {
-  for(const ShaderVariable &v : vars)
+  const bool showPadding = ui->showPadding->isChecked() && m_CurCBuffer.bufferBacked;
+
+  if(v.rows > 1)
   {
-    RDTreeWidgetItem *n = new RDTreeWidgetItem({v.name, VarString(v), TypeString(v)});
+    uint32_t vecSize = VarTypeByteSize(v.type) * v.columns;
+
+    FixedVarTag tag = n->tag().value<FixedVarTag>();
+    tag.matrix = true;
+    tag.rowmajor = v.RowMajor();
+    n->setTag(QVariant::fromValue(tag));
+
+    if(v.ColMajor())
+      vecSize = VarTypeByteSize(v.type) * v.rows;
+
+    for(uint32_t r = 0; r < v.rows; r++)
+    {
+      n->addChild(new RDTreeWidgetItem({QFormatStr("%1.row%2").arg(v.name).arg(r), RowString(v, r),
+                                        QString(), RowTypeString(v)}));
+
+      if(showPadding && v.RowMajor() && c.type.descriptor.matrixByteStride > vecSize)
+      {
+        uint32_t size = c.type.descriptor.matrixByteStride - vecSize;
+
+        RDTreeWidgetItem *pad = new RDTreeWidgetItem(
+            {tr(""), QFormatStr("%1 bytes").arg(size), QString(), tr("Padding")});
+
+        pad->setItalic(true);
+        pad->setTag(QVariant::fromValue(FixedVarTag(size)));
+
+        n->addChild(pad);
+      }
+    }
+
+    if(showPadding && v.ColMajor() && c.type.descriptor.matrixByteStride > vecSize)
+    {
+      uint32_t size = c.type.descriptor.matrixByteStride - vecSize;
+
+      RDTreeWidgetItem *pad = new RDTreeWidgetItem(
+          {tr(""), QFormatStr("%1 bytes each column").arg(size), QString(), tr("Padding")});
+
+      pad->setItalic(true);
+      pad->setTag(QVariant::fromValue(FixedVarTag(size)));
+
+      n->addChild(pad);
+    }
+  }
+}
+
+void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOffset,
+                                        const rdcarray<ShaderConstant> &consts,
+                                        const rdcarray<ShaderVariable> &vars)
+{
+  const bool showPadding = ui->showPadding->isChecked() && m_CurCBuffer.bufferBacked;
+
+  if(consts.size() != vars.size())
+    qCritical() << "Shader variable mismatch";
+
+  uint32_t offset = 0;
+
+  for(size_t idx = 0; idx < consts.size() && idx < vars.size(); idx++)
+  {
+    const ShaderConstant &c = consts[idx];
+    const ShaderVariable &v = vars[idx];
+
+    if(showPadding && c.byteOffset > offset)
+    {
+      uint32_t size = c.byteOffset - offset;
+
+      RDTreeWidgetItem *pad = new RDTreeWidgetItem(
+          {QString(), QFormatStr("%1 bytes").arg(size), QString(), tr("Padding")});
+
+      pad->setItalic(true);
+      pad->setTag(QVariant::fromValue(FixedVarTag(size)));
+
+      root->addChild(pad);
+
+      offset = c.byteOffset;
+    }
+
+    RDTreeWidgetItem *n =
+        new RDTreeWidgetItem({v.name, VarString(v), baseOffset + c.byteOffset, TypeString(v)});
+
+    n->setTag(QVariant::fromValue(FixedVarTag(v.name, baseOffset + c.byteOffset)));
 
     root->addChild(n);
 
-    if(v.rows > 1)
+    UI_FixedAddMatrixRows(n, c, v);
+
+    // if it's an array the value (v) will be expanded with one element in each of v.members, but
+    // the constant (c) will just have the type with a number of elements
+    if(c.type.descriptor.elements > 1)
     {
-      for(uint32_t i = 0; i < v.rows; i++)
-        n->addChild(new RDTreeWidgetItem(
-            {QFormatStr("%1.row%2").arg(v.name).arg(i), RowString(v, i), RowTypeString(v)}));
+      ShaderConstant noarray = c;
+      noarray.type.descriptor.elements = 1;
+
+      // calculate the tight scalar-packed advance, so we can detect padding
+      uint32_t elSize = BufferFormatter::GetVarAdvance(Packing::Scalar, noarray);
+
+      for(uint32_t e = 0; e < v.members.size(); e++)
+      {
+        const uint32_t elOffset = baseOffset + c.byteOffset + c.type.descriptor.arrayByteStride * e;
+
+        RDTreeWidgetItem *el = new RDTreeWidgetItem(
+            {v.members[e].name, VarString(v.members[e]), elOffset, TypeString(v.members[e])});
+
+        el->setTag(QVariant::fromValue(FixedVarTag(v.members[e].name, elOffset)));
+
+        // if it's an array of structs we can recurse, just need to do the outer iteration here
+        // because v.members[...].members will be the actual struct members because of the expansion
+        if(c.type.descriptor.type == VarType::Struct)
+        {
+          UI_AddFixedVariables(el, elOffset, c.type.members, v.members[e].members);
+        }
+        else
+        {
+          // otherwise just expand by hand since there will be no more members in c.type.members for
+          // us to recurse with
+          UI_FixedAddMatrixRows(el, c, v.members[e]);
+        }
+
+        n->addChild(el);
+
+        // don't count the padding in the last struct in an array of structs, it will be handled as
+        // padding after the array
+        if(c.type.descriptor.type == VarType::Struct && e + 1 == v.members.size())
+          break;
+
+        if(showPadding && c.type.descriptor.arrayByteStride > elSize)
+        {
+          uint32_t size = c.type.descriptor.arrayByteStride - elSize;
+
+          RDTreeWidgetItem *pad = new RDTreeWidgetItem(
+              {QString(), QFormatStr("%1 bytes").arg(size), QString(), tr("Padding")});
+
+          pad->setItalic(true);
+          pad->setTag(QVariant::fromValue(FixedVarTag(size)));
+
+          n->addChild(pad);
+        }
+      }
+    }
+    // for single structs, recurse
+    else if(v.type == VarType::Struct)
+    {
+      UI_AddFixedVariables(n, c.byteOffset, c.type.members, v.members);
     }
 
-    if(!v.members.isEmpty())
-      UI_AddFixedVariables(n, v.members);
+    // advance by the tight scalar-packed advance, so we can detect padding
+    offset += BufferFormatter::GetVarAdvance(Packing::Scalar, c);
+  }
+}
+
+void BufferViewer::UI_RemoveOffsets(RDTreeWidgetItem *root)
+{
+  for(int i = 0; i < root->childCount(); i++)
+  {
+    RDTreeWidgetItem *item = root->child(i);
+    item->setText(2, QVariant());
+    UI_RemoveOffsets(item);
   }
 }
 
@@ -4055,19 +4266,143 @@ void BufferViewer::ScrollToColumn(int32_t column, MeshDataStage stage)
 
 bool BufferViewer::eventFilter(QObject *watched, QEvent *event)
 {
-  if(!m_MeshView && watched == ui->vsinData->viewport() && event->type() == QEvent::MouseMove)
+  if(event->type() == QEvent::ToolTip)
   {
-    bool ret = QObject::eventFilter(watched, event);
+    RDTreeWidget *tree = qobject_cast<RDTreeWidget *>(watched);
+    if(tree)
+    {
+      RDTreeWidgetItem *item = tree->itemAt(tree->viewport()->mapFromGlobal(QCursor::pos()));
+      if(item)
+      {
+        FixedVarTag tag = item->tag().value<FixedVarTag>();
 
-    QMouseEvent *mouseEvent = (QMouseEvent *)event;
+        QString tooltip;
 
-    if(m_delegate->linkHover(mouseEvent, font(),
-                             ui->vsinData->indexAt(mouseEvent->localPos().toPoint())))
-      ui->vsinData->setCursor(QCursor(Qt::PointingHandCursor));
-    else
-      ui->vsinData->unsetCursor();
+        Packing::Rules pack = m_ModelVSIn->getConfig().packing;
 
-    return ret;
+        if(tag.valid && tag.padding)
+        {
+          tooltip = tr("%1 bytes of padding. Packing rules in effect:\n\n").arg(tag.byteSize);
+
+          if(pack == Packing::D3DCB)
+            tooltip += tr("Standard D3D constant buffer packing.\n\n");
+          else if(pack == Packing::std140)
+            tooltip += tr("Standard std140 buffer packing.\n\n");
+          else if(pack == Packing::std430)
+            tooltip += tr("Standard std430 buffer packing.\n\n");
+          else if(pack == Packing::C)
+            tooltip += tr("Standard C / D3D UAV packing.\n\n");
+          else if(pack == Packing::Scalar)
+            tooltip += tr("Scalar packing.\n\n");
+
+          if(pack.vector_align_component)
+            tooltip +=
+                tr("- Vectors are only aligned to their component (float4 to 4-byte boundary)\n");
+          else
+            tooltip +=
+                tr("- 3- and 4-wide vectors must be aligned to a 4-wide boundary\n"
+                   "  (vec3 and vec4 to 16-byte boundary)\n");
+
+          if(pack.tight_arrays)
+            tooltip += tr("- Arrays are tightly packed to each element\n");
+          else
+            tooltip += tr("- Arrays have a stride of a 16 bytes\n");
+
+          if(pack.trailing_overlap)
+            tooltip += tr("- Variables can overlap the trailing padding in arrays or structs.\n");
+          else
+            tooltip +=
+                tr("- Variables must not overlap the trailing padding in arrays or structs.\n");
+
+          if(pack.vector_straddle_16b)
+            tooltip += tr("- Vectors can straddle 16-byte boundaries.\n");
+          else
+            tooltip += tr("- Vectors must not straddle 16-byte boundaries.\n");
+        }
+        else if(tag.valid && !tag.padding)
+        {
+          tooltip = tr("Variable %1 is at byte offset %2").arg(tag.name).arg(tag.byteOffset);
+
+          if(!IsCBufferView())
+            tooltip += tr(", not including overall base byte offset %1 in buffer").arg(m_ByteOffset);
+
+          tooltip += lit(".");
+
+          if(tag.matrix)
+          {
+            tooltip += tr("\n\nMatrix stored ");
+            if(tag.rowmajor)
+              tooltip += tr("row-major.");
+            else
+              tooltip += tr("column-major.");
+          }
+        }
+
+        if(!tooltip.isEmpty())
+        {
+          QPoint pos = QCursor::pos();
+          pos.setX(pos.x() + 10);
+          pos.setY(pos.y() + 10);
+          QToolTip::showText(pos, tooltip.trimmed());
+
+          return true;
+        }
+      }
+    }
+    else if(!m_MeshView && watched == ui->vsinData->viewport())
+    {
+      QModelIndex index =
+          ui->vsinData->indexAt(ui->vsinData->viewport()->mapFromGlobal(QCursor::pos()));
+
+      if(index.isValid())
+      {
+        const ShaderConstant &c = m_ModelVSIn->elementForColumn(index.column());
+
+        QModelIndex rowidx = m_ModelVSIn->index(index.row(), 0, index.parent());
+        int row = m_ModelVSIn->data(rowidx).toInt();
+
+        size_t stride = m_ModelVSIn->getConfig().buffers[0]->stride;
+
+        QString tooltip;
+
+        tooltip = tr("%1 at overall byte offset %2").arg(c.name).arg(stride * row + c.byteOffset);
+        tooltip += tr(", not including overall base byte offset %1 in buffer").arg(m_ByteOffset);
+
+        tooltip += lit(".\n\n");
+
+        tooltip +=
+            tr("Row %1 begins at offset %2 (stride of %3 bytes)\n%4 is at offset %5 in each row.")
+                .arg(row)
+                .arg(stride * row)
+                .arg(stride)
+                .arg(c.name)
+                .arg(c.byteOffset);
+
+        QPoint pos = QCursor::pos();
+        pos.setX(pos.x() + 10);
+        pos.setY(pos.y() + 10);
+        QToolTip::showText(pos, tooltip.trimmed());
+
+        return true;
+      }
+    }
+  }
+  else if(!m_MeshView && watched == ui->vsinData->viewport())
+  {
+    if(event->type() == QEvent::MouseMove)
+    {
+      bool ret = QObject::eventFilter(watched, event);
+
+      QMouseEvent *mouseEvent = (QMouseEvent *)event;
+
+      if(m_delegate->linkHover(mouseEvent, font(),
+                               ui->vsinData->indexAt(mouseEvent->localPos().toPoint())))
+        ui->vsinData->setCursor(QCursor(Qt::PointingHandCursor));
+      else
+        ui->vsinData->unsetCursor();
+
+      return ret;
+    }
   }
 
   return QObject::eventFilter(watched, event);
@@ -4619,22 +4954,21 @@ void BufferViewer::processFormat(const QString &format)
 
   BufferConfiguration bufconfig;
 
-  ShaderConstant fixed, repeating;
+  ParsedFormat parsed;
 
   if(IsCBufferView() && format.isEmpty())
   {
     // insert a dummy member so we get identified as plain fixed vars - we will automatically
     // evaluate ignoring the format
-    fixed.type.members.push_back(ShaderConstant());
+    parsed.fixed.type.members.push_back(ShaderConstant());
   }
   else
   {
-    rdctie(fixed, repeating) =
-        BufferFormatter::ParseFormatString(format, m_ByteSize, IsCBufferView(), errors);
+    parsed = BufferFormatter::ParseFormatString(format, m_ByteSize, IsCBufferView(), errors);
   }
 
-  const bool repeatedVars = repeating.type.descriptor.type != VarType::Unknown;
-  const bool fixedVars = !fixed.type.members.empty();
+  const bool repeatedVars = parsed.repeating.type.descriptor.type != VarType::Unknown;
+  const bool fixedVars = !parsed.fixed.type.members.empty();
 
   if(fixedVars && repeatedVars)
   {
@@ -4657,6 +4991,8 @@ void BufferViewer::processFormat(const QString &format)
     ui->fixedVars->setVisible(true);
     ui->vsinData->setVisible(true);
 
+    ui->showPadding->setVisible(true);
+
     m_InnerSplitter->setVisible(true);
 
     if(m_CurView == NULL && !m_CurFixed)
@@ -4674,6 +5010,8 @@ void BufferViewer::processFormat(const QString &format)
 
     ui->fixedVars->setVisible(true);
     ui->vsinData->setVisible(false);
+
+    ui->showPadding->setVisible(true);
 
     m_InnerSplitter->setVisible(false);
 
@@ -4711,13 +5049,15 @@ void BufferViewer::processFormat(const QString &format)
     ui->fixedVars->setVisible(false);
     ui->vsinData->setVisible(true);
 
+    ui->showPadding->setVisible(false);
+
     m_InnerSplitter->setVisible(false);
 
     m_CurView = ui->vsinData;
     m_CurFixed = false;
   }
 
-  CalcColumnWidth(MaxNumRows(repeating));
+  CalcColumnWidth(MaxNumRows(parsed.repeating));
 
   ClearModels();
 
@@ -4739,7 +5079,7 @@ void BufferViewer::processFormat(const QString &format)
   }
   else
   {
-    qulonglong stride = qMax(1U, repeating.type.descriptor.arrayByteStride);
+    qulonglong stride = qMax(1U, parsed.repeating.type.descriptor.arrayByteStride);
 
     byteRangeStart->setSingleStep(stride);
     byteRangeLength->setSingleStep(stride);
@@ -4833,11 +5173,15 @@ void BufferViewer::exportCSV(QTextStream &ts, const QString &prefix, RDTreeWidge
 {
   if(item->childCount() == 0)
   {
-    ts << QFormatStr("%1,\"%2\",%3\n").arg(item->text(0)).arg(item->text(1)).arg(item->text(2));
+    ts << QFormatStr("%1,\"%2\",%3,%4\n")
+              .arg(item->text(0))
+              .arg(item->text(1))
+              .arg(item->text(2))
+              .arg(item->text(3));
   }
   else
   {
-    ts << QFormatStr("%1,,%2\n").arg(item->text(0)).arg(item->text(2));
+    ts << QFormatStr("%1,,%2,%3\n").arg(item->text(0)).arg(item->text(2)).arg(item->text(3));
     for(int i = 0; i < item->childCount(); i++)
       exportCSV(ts, item->text(0) + lit("."), item->child(i));
   }
@@ -5114,12 +5458,10 @@ void BufferViewer::exportData(const BufferExport &params)
       BufferItemModel *model = (BufferItemModel *)ui->vsinData->model();
       const BufferConfiguration &config = model->getConfig();
 
-      const ShaderConstant &fixedVars = config.fixedVars;
-
       size_t byteSize = 0;
 
-      if(!fixedVars.type.members.empty())
-        byteSize = BufferFormatter::GetVarSize(fixedVars.type.members.back());
+      if(!config.fixedVars.type.members.empty())
+        byteSize = BufferFormatter::GetVarAdvance(config.packing, config.fixedVars);
 
       const bytebuf &bufdata = config.buffers[0]->storage;
 
@@ -5137,7 +5479,7 @@ void BufferViewer::exportData(const BufferExport &params)
     {
       QTextStream ts(f);
 
-      ts << tr("Name,Value,Type\n");
+      ts << tr("Name,Value,Byte Offset,Type\n");
 
       for(int i = 0; i < ui->fixedVars->topLevelItemCount(); i++)
         exportCSV(ts, QString(), ui->fixedVars->topLevelItem(i));
@@ -5359,6 +5701,11 @@ void BufferViewer::on_toggleControls_toggled(bool checked)
 void BufferViewer::on_syncViews_toggled(bool checked)
 {
   SyncViews(NULL, true, true);
+}
+
+void BufferViewer::on_showPadding_toggled(bool checked)
+{
+  OnEventChanged(m_Ctx.CurEvent());
 }
 
 void BufferViewer::on_highlightVerts_toggled(bool checked)

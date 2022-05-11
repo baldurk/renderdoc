@@ -1914,6 +1914,8 @@
     <Image Include="Resources\action_hover.png" />
     <Image Include="Resources\add%402x.png" />
     <Image Include="Resources\add.png" />
+    <Image Include="Resources\align%402x.png" />
+    <Image Include="Resources\align.png" />
     <Image Include="Resources\arrow_in%402x.png" />
     <Image Include="Resources\arrow_in.png" />
     <Image Include="Resources\arrow_join%402x.png" />

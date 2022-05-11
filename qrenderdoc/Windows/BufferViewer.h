@@ -124,6 +124,7 @@ private slots:
   void on_autofitCamera_clicked();
   void on_toggleControls_toggled(bool checked);
   void on_syncViews_toggled(bool checked);
+  void on_showPadding_toggled(bool checked);
   void on_resourceDetails_clicked();
   void on_highlightVerts_toggled(bool checked);
   void on_wireframeRender_toggled(bool checked);
@@ -196,7 +197,12 @@ private:
   void UI_UpdateBoundingBox(const CalcBoundingBoxData &bbox);
   void UI_UpdateBoundingBoxLabels(int compCount = 0);
 
-  void UI_AddFixedVariables(RDTreeWidgetItem *root, const rdcarray<ShaderVariable> &vars);
+  void UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOffset,
+                            const rdcarray<ShaderConstant> &consts,
+                            const rdcarray<ShaderVariable> &vars);
+  void UI_RemoveOffsets(RDTreeWidgetItem *root);
+  void UI_FixedAddMatrixRows(RDTreeWidgetItem *n, const ShaderConstant &c, const ShaderVariable &v);
+
   void exportCSV(QTextStream &ts, const QString &prefix, RDTreeWidgetItem *item);
 
   void FillScrolls(PopulateBufferData *bufdata);

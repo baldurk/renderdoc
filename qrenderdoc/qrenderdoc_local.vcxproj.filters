@@ -411,9 +411,9 @@
     <ClCompile Include="$(IntDir)generated\moc_CaptureDialog.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
-   <ClCompile Include="$(IntDir)generated\moc_ComputeDebugSelector.cpp">
-    <Filter>Generated Files</Filter>
-   </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ComputeDebugSelector.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
     <ClCompile Include="$(IntDir)generated\moc_CustomPaintWidget.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
@@ -974,9 +974,9 @@
     <ClInclude Include="$(IntDir)generated\ui_CaptureDialog.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
-   <ClInclude Include="$(IntDir)generated\ui_ComputeDebugSelector.h">
-    <Filter>Generated Files</Filter>
-   </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_ComputeDebugSelector.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_D3D11PipelineStateViewer.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
@@ -1955,6 +1955,12 @@
       <Filter>Resources\Files</Filter>
     </Image>
     <Image Include="Resources\filter%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\align.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\align%402x.png">
       <Filter>Resources\Files</Filter>
     </Image>
   </ItemGroup>
