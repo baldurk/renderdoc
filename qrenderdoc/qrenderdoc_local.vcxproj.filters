@@ -1963,6 +1963,12 @@
     <Image Include="Resources\align%402x.png">
       <Filter>Resources\Files</Filter>
     </Image>
+    <Image Include="Resources\help.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\help%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="python36.natvis" />

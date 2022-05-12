@@ -24,14 +24,37 @@
 
 #pragma once
 
+#include <QMap>
 #include <QWidget>
 
 struct ICaptureContext;
+
+class RDTreeWidgetItem;
 
 namespace Ui
 {
 class BufferFormatSpecifier;
 }
+
+class BufferFormatList : public QObject
+{
+  Q_OBJECT
+
+  ICaptureContext &m_Ctx;
+  QMap<QString, QString> formats;
+
+public:
+  explicit BufferFormatList(ICaptureContext &ctx, QObject *parent = 0);
+  QStringList getFormats() { return formats.keys(); }
+  QString getFormat(QString name) { return formats[name]; }
+  bool hasFormat(QString name) { return formats.contains(name); }
+  void setFormat(QString name, QString format);
+
+signals:
+  void formatListUpdated();
+};
+
+extern BufferFormatList *globalFormatList;
 
 class BufferFormatSpecifier : public QWidget
 {
@@ -41,6 +64,8 @@ public:
   explicit BufferFormatSpecifier(QWidget *parent = 0);
   ~BufferFormatSpecifier();
 
+  void setAutoFormat(QString autoFormat);
+
   void setContext(ICaptureContext *ctx);
   void setTitle(QString title);
 
@@ -48,10 +73,21 @@ signals:
   void processFormat(const QString &format);
 
 public slots:
-  void toggleHelp();
+  // automatic slots
+  void on_showHelp_toggled(bool help);
+  void on_loadDef_clicked();
+  void on_saveDef_clicked();
+  void on_delDef_clicked();
+  void on_formatText_textChanged();
+  void on_savedList_keyPress(QKeyEvent *event);
+  void on_savedList_itemChanged(RDTreeWidgetItem *item, int column);
+  void on_savedList_itemDoubleClicked(RDTreeWidgetItem *item, int column);
+  void on_savedList_itemSelectionChanged();
+
+  // manual slots
   void setFormat(const QString &format);
   void setErrors(const QString &errors);
-  void showHelp(bool help);
+  void updateFormatList();
 
 private slots:
   void on_apply_clicked();
@@ -59,4 +95,6 @@ private slots:
 private:
   Ui::BufferFormatSpecifier *ui;
   ICaptureContext *m_Ctx;
+
+  QString m_AutoFormat;
 };

@@ -698,6 +698,17 @@ private:
   QAbstractItemDelegate *m_delegate = NULL;
 };
 
+class FullEditorDelegate : public QStyledItemDelegate
+{
+private:
+  Q_OBJECT
+
+public:
+  FullEditorDelegate(QWidget *parent);
+  QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option,
+                        const QModelIndex &index) const;
+};
+
 // delegate that will handle painting, hovering and clicking on rich text items.
 // owning view needs to call linkHover, and adjust its cursor and repaint as necessary.
 class RichTextViewDelegate : public ForwardingDelegate

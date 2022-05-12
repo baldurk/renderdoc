@@ -269,7 +269,8 @@ public:
   void expandAllItems(RDTreeWidgetItem *item);
   void collapseItem(RDTreeWidgetItem *item);
   void collapseAllItems(RDTreeWidgetItem *item);
-  void scrollToItem(RDTreeWidgetItem *node);
+  void scrollToItem(RDTreeWidgetItem *item);
+  void editItem(RDTreeWidgetItem *item);
 
   void clear();
 

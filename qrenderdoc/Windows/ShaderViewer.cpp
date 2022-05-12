@@ -65,16 +65,6 @@ struct AccessedResourceTag
 Q_DECLARE_METATYPE(VariableTag);
 Q_DECLARE_METATYPE(AccessedResourceTag);
 
-FullEditorDelegate::FullEditorDelegate(QWidget *parent) : QStyledItemDelegate(parent)
-{
-}
-
-QWidget *FullEditorDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option,
-                                          const QModelIndex &index) const
-{
-  return new QLineEdit(parent);
-}
-
 ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::ShaderViewer), m_Ctx(ctx)
 {

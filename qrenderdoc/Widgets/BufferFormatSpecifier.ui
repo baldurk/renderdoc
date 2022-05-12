@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>713</width>
-    <height>633</height>
+    <width>800</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,30 +30,6 @@
     <number>0</number>
    </property>
    <item row="0" column="0" colspan="2">
-    <widget class="QLabel" name="helpText">
-     <property name="text">
-      <string>Type in a buffer format declaration. C and C++ comments are skipped, semantics are ignored.
-
-Structs can be defined and nested, and if no variables are 'loose' the last struct specified will be used.
-
-Declare each element as an hlsl/glsl variable, e.g: &quot;float4 first; float2 second; uint2 third;&quot; or vec4/vec2.
-
-Basic types accepted: bool, byte, short, int, half, float, double.
-Unsigned integer types: ubyte, ushort, uint
-Hex-formatted integer types: xbyte, xshort, xint
-
-Additionally special formats: unorm[hb] (half, byte) and snorm[hb], uintten/unormten (10:10:10:2 packing), floateleven (11:11:10F packing)
-
-You can prepend 'rgb' onto an element to colour backgrounds with the RGB values, e.g. 'rgb xbyte4 pixels[256]'.
-
-Vectors (e.g. float4), matrices ([row_major] half3x4) and single-dimension arrays (float[16]) are supported.</string>
-     </property>
-     <property name="wordWrap">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0" colspan="2">
     <widget class="QGroupBox" name="formatGroup">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -64,7 +40,10 @@ Vectors (e.g. float4), matrices ([row_major] half3x4) and single-dimension array
      <property name="title">
       <string>Format</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <property name="spacing">
+       <number>2</number>
+      </property>
       <property name="leftMargin">
        <number>2</number>
       </property>
@@ -80,10 +59,188 @@ Vectors (e.g. float4), matrices ([row_major] half3x4) and single-dimension array
       <item>
        <widget class="QTextEdit" name="formatText"/>
       </item>
+      <item>
+       <widget class="QTextEdit" name="helpText">
+        <property name="html">
+         <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;Exhaustive documentation can be found in the &lt;/span&gt;&lt;a href=&quot;https://renderdoc.org/docs/how/how_buffer_format.html&quot;&gt;&lt;span style=&quot; font-size:8pt; text-decoration: underline; color:#0000ff;&quot;&gt;online docs&lt;/span&gt;&lt;/a&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:8pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;Buffer format declarations are similar to HLSL or GLSL struct definitions with normal vector, matrix and base types (e.g. &lt;code&gt;float&lt;/code&gt;, &lt;code&gt;float4&lt;/code&gt; or &lt;code&gt;vec4&lt;/code&gt;, etc). In many cases these can be copied and pasted from shader source.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:8pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;You can define and use structs. The buffer format is defined by all global variables. If there are no globals defined, the last struct defined will be used.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:8pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;Most types that can be declared in shaders can be used, including half, short, as well as the usual int, float. All of these can be matrices or arrays.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:8pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;Packing/padding rules can be specified with &lt;code&gt;#pack(rules)&lt;/code&gt;. Supported D3D rules: &lt;code&gt;cbuffer&lt;/code&gt;, &lt;code&gt;uav&lt;/code&gt;. Supported GL/VK rules: &lt;code&gt;std140&lt;/code&gt;, &lt;code&gt;std430&lt;/code&gt;, &lt;code&gt;scalar&lt;/code&gt;.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:8pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;Bitfields are supported using C syntax, enums can be defined but all enum values must have explicit decimal or hexadecimal numerical values.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:8pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;Annotations are supported for explicit layout, bitpacked types like R10G10B10A2, or alternate displays of values including RGB/hexadecimal/octal display. For a complete list see &lt;/span&gt;&lt;a href=&quot;https://renderdoc.org/docs/how/how_buffer_format.html&quot;&gt;&lt;span style=&quot; font-size:8pt; text-decoration: underline; color:#0000ff;&quot;&gt;the documentation linked above&lt;/span&gt;&lt;/a&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="textInteractionFlags">
+         <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QWidget" name="savedContainer" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <property name="spacing">
+          <number>2</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="RDTreeWidget" name="savedList">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="horizontalScrollBarPolicy">
+            <enum>Qt::ScrollBarAlwaysOff</enum>
+           </property>
+           <property name="sizeAdjustPolicy">
+            <enum>QAbstractScrollArea::AdjustIgnored</enum>
+           </property>
+           <property name="indentation">
+            <number>0</number>
+           </property>
+           <property name="rootIsDecorated">
+            <bool>false</bool>
+           </property>
+           <property name="itemsExpandable">
+            <bool>false</bool>
+           </property>
+           <property name="showDropIndicator" stdset="0">
+            <bool>false</bool>
+           </property>
+           <property name="editTriggers">
+            <set>QAbstractItemView::AnyKeyPressed|QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
+           </property>
+           <property name="selectionMode">
+            <enum>QAbstractItemView::SingleSelection</enum>
+           </property>
+           <property name="selectionBehavior">
+            <enum>QAbstractItemView::SelectRows</enum>
+           </property>
+           <attribute name="verticalHeaderVisible">
+            <bool>false</bool>
+           </attribute>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_3">
+           <property name="spacing">
+            <number>2</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QToolButton" name="showHelp">
+             <property name="toolTip">
+              <string>Show buffer definition help</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../Resources/resources.qrc">
+               <normaloff>:/help.png</normaloff>:/help.png</iconset>
+             </property>
+             <property name="checkable">
+              <bool>true</bool>
+             </property>
+             <property name="autoRaise">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::Preferred</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>100</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QToolButton" name="delDef">
+             <property name="toolTip">
+              <string>Delete selected structure definition</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../Resources/resources.qrc">
+               <normaloff>:/del.png</normaloff>:/del.png</iconset>
+             </property>
+             <property name="autoRaise">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="saveDef">
+             <property name="toolTip">
+              <string>Update selected with current structure definition</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../Resources/resources.qrc">
+               <normaloff>:/save.png</normaloff>:/save.png</iconset>
+             </property>
+             <property name="autoRaise">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="loadDef">
+             <property name="toolTip">
+              <string>Load selected structure definition</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../Resources/resources.qrc">
+               <normaloff>:/action_hover.png</normaloff>:/action_hover.png</iconset>
+             </property>
+             <property name="autoRaise">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
-   <item row="2" column="0" colspan="2">
+   <item row="1" column="0" colspan="2">
     <widget class="QLabel" name="errors">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -133,9 +290,12 @@ Vectors (e.g. float4), matrices ([row_major] half3x4) and single-dimension array
        <pointsize>14</pointsize>
       </font>
      </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
     </widget>
    </item>
-   <item row="3" column="0">
+   <item row="2" column="0">
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
       <spacer name="horizontalSpacer">
@@ -149,19 +309,6 @@ Vectors (e.g. float4), matrices ([row_major] half3x4) and single-dimension array
         </size>
        </property>
       </spacer>
-     </item>
-     <item>
-      <widget class="QPushButton" name="toggleHelp">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>Toggle Help</string>
-       </property>
-      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="apply">
@@ -180,6 +327,15 @@ Vectors (e.g. float4), matrices ([row_major] half3x4) and single-dimension array
    </item>
   </layout>
  </widget>
- <resources/>
+ <customwidgets>
+  <customwidget>
+   <class>RDTreeWidget</class>
+   <extends>QTreeView</extends>
+   <header>Widgets/Extended/RDTreeWidget.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="../Resources/resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

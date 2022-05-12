@@ -70,17 +70,6 @@ struct AccessedResourceData
   rdcarray<size_t> steps;
 };
 
-class FullEditorDelegate : public QStyledItemDelegate
-{
-private:
-  Q_OBJECT
-
-public:
-  FullEditorDelegate(QWidget *parent);
-  QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option,
-                        const QModelIndex &index) const;
-};
-
 enum class WatchVarState : int
 {
   Invalid = 0,

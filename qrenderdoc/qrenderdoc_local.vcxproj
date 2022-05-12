@@ -1992,6 +1992,8 @@
     <Image Include="Resources\folder.png" />
     <Image Include="Resources\folder_page_white%402x.png" />
     <Image Include="Resources\folder_page_white.png" />
+    <Image Include="Resources\help%402x.png" />
+    <Image Include="Resources\help.png" />
     <Image Include="Resources\hourglass%402x.png" />
     <Image Include="Resources\hourglass.png" />
     <Image Include="Resources\house%402x.png" />

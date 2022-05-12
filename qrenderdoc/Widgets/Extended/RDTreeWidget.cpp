@@ -774,9 +774,14 @@ void RDTreeWidget::collapseAllItems(RDTreeWidgetItem *item)
   collapseAll(m_model->indexForItem(item, 0));
 }
 
-void RDTreeWidget::scrollToItem(RDTreeWidgetItem *node)
+void RDTreeWidget::scrollToItem(RDTreeWidgetItem *item)
 {
-  scrollTo(m_model->indexForItem(node, 0));
+  scrollTo(m_model->indexForItem(item, 0));
+}
+
+void RDTreeWidget::editItem(RDTreeWidgetItem *item)
+{
+  edit(m_model->indexForItem(item, 0));
 }
 
 void RDTreeWidget::clear()

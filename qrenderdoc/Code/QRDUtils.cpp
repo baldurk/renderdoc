@@ -38,6 +38,7 @@
 #include <QJsonDocument>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMenu>
 #include <QMetaMethod>
 #include <QMouseEvent>
@@ -1187,6 +1188,16 @@ QString RichResourceTextFormat(ICaptureContext &ctx, QVariant var)
   // representation, or it's a fully formatted rich resource document, where the cached text will do
   // the trick with ResIdTextToString.
   return var.toString();
+}
+
+FullEditorDelegate::FullEditorDelegate(QWidget *parent) : QStyledItemDelegate(parent)
+{
+}
+
+QWidget *FullEditorDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option,
+                                          const QModelIndex &index) const
+{
+  return new QLineEdit(parent);
 }
 
 RichTextViewDelegate::RichTextViewDelegate(QAbstractItemView *parent)

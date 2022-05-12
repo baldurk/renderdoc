@@ -404,10 +404,11 @@ DECLARE_REFLECTION_STRUCT(BugReport);
   CONFIG_SETTING_VAL(public, int, int, LocalProxyAPI, -1)                                          \
                                                                                                    \
   DOCUMENT(                                                                                        \
-      "``True`` if the buffer formatter's help section should be shown.\n"                         \
-      "\n:"                                                                                        \
-      "Defaults to ``True``.");                                                                    \
-  CONFIG_SETTING_VAL(public, bool, bool, BufferFormatter_ShowHelp, true)                           \
+      "A list of strings with saved formats for the buffer formatter. The first line is the "      \
+      "name and the rest of the contents are the formats.\n"                                       \
+      "\n"                                                                                         \
+      ":type: List[str]");                                                                         \
+  CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, BufferFormatter_SavedFormats)             \
                                                                                                    \
   DOCUMENT(                                                                                        \
       "The :class:`TimeUnit` to use to display the duration column in the "                        \

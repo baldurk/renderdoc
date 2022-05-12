@@ -69,6 +69,7 @@
   RESOURCE_DEF(flip_y, "flip_y.png")                                           \
   RESOURCE_DEF(folder, "folder.png")                                           \
   RESOURCE_DEF(folder_page_white, "folder_page_white.png")                     \
+  RESOURCE_DEF(help, "help.png")                                               \
   RESOURCE_DEF(hourglass, "hourglass.png")                                     \
   RESOURCE_DEF(house, "house.png")                                             \
   RESOURCE_DEF(information, "information.png")                                 \

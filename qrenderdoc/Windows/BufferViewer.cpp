@@ -4166,7 +4166,7 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
 
   m_PagingByteOffset = 0;
 
-  ui->formatSpecifier->setFormat(format);
+  ui->formatSpecifier->setAutoFormat(format);
 
   processFormat(format);
 }
