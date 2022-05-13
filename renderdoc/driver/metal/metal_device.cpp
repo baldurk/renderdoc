@@ -303,24 +303,23 @@ bool WrappedMTLDevice::Serialise_newTextureWithDescriptor(SerialiserType &ser,
 
 WrappedMTLTexture *WrappedMTLDevice::newTextureWithDescriptor(MTL::TextureDescriptor *descriptor)
 {
-  MTL::Texture *realMTLTexture;
-  SERIALISE_TIME_CALL(realMTLTexture = Unwrap(this)->newTexture(descriptor));
-  WrappedMTLTexture *wrappedMTLTexture =
-      NewTexture(realMTLTexture, descriptor, MetalChunk::MTLDevice_newTextureWithDescriptor);
-  return wrappedMTLTexture;
+  return Common_NewTexture(descriptor, MetalChunk::MTLDevice_newTextureWithDescriptor, false, NULL,
+                           0);
 }
 
 WrappedMTLTexture *WrappedMTLDevice::newTextureWithDescriptor(MTL::TextureDescriptor *descriptor,
                                                               IOSurfaceRef iosurface,
                                                               NS::UInteger plane)
 {
-  return NewIOSurfaceTextureWithDescriptor(descriptor, iosurface, plane, false);
+  return Common_NewTexture(descriptor, MetalChunk::MTLDevice_newTextureWithDescriptor_iosurface,
+                           true, iosurface, plane);
 }
 
 WrappedMTLTexture *WrappedMTLDevice::nextDrawableTexture(MTL::TextureDescriptor *descriptor,
                                                          IOSurfaceRef iosurface, NS::UInteger plane)
 {
-  return NewIOSurfaceTextureWithDescriptor(descriptor, iosurface, plane, true);
+  return Common_NewTexture(descriptor, MetalChunk::MTLDevice_newTextureWithDescriptor_nextDrawable,
+                           true, iosurface, plane);
 }
 
 // Non-Serialised MTLDevice APIs
@@ -454,10 +453,14 @@ bool WrappedMTLDevice::supportsPrimitiveMotionBlur()
 
 // End of MTLDevice APIs
 
-WrappedMTLTexture *WrappedMTLDevice::NewTexture(MTL::Texture *realMTLTexture,
-                                                MTL::TextureDescriptor *descriptor,
-                                                MetalChunk chunkType)
+WrappedMTLTexture *WrappedMTLDevice::Common_NewTexture(MTL::TextureDescriptor *descriptor,
+                                                       MetalChunk chunkType, bool ioSurfaceTexture,
+                                                       IOSurfaceRef iosurface, NS::UInteger plane)
 {
+  MTL::Texture *realMTLTexture;
+  SERIALISE_TIME_CALL(realMTLTexture = !ioSurfaceTexture
+                                           ? Unwrap(this)->newTexture(descriptor)
+                                           : Unwrap(this)->newTexture(descriptor, iosurface, plane));
   WrappedMTLTexture *wrappedMTLTexture;
   ResourceId id = GetResourceManager()->WrapResource(realMTLTexture, wrappedMTLTexture);
   if(IsCaptureMode(m_State))
@@ -474,23 +477,14 @@ WrappedMTLTexture *WrappedMTLDevice::NewTexture(MTL::Texture *realMTLTexture,
     MetalResourceRecord *textureRecord = GetResourceManager()->AddResourceRecord(wrappedMTLTexture);
     textureRecord->AddChunk(chunk);
   }
-  return wrappedMTLTexture;
-}
-
-WrappedMTLTexture *WrappedMTLDevice::NewIOSurfaceTextureWithDescriptor(
-    MTL::TextureDescriptor *descriptor, IOSurfaceRef iosurface, NS::UInteger plane, bool nextDrawable)
-{
-  MTL::Texture *realMTLTexture;
-  SERIALISE_TIME_CALL(realMTLTexture = Unwrap(this)->newTexture(descriptor, iosurface, plane));
-  WrappedMTLTexture *wrappedMTLTexture =
-      NewTexture(realMTLTexture, descriptor,
-                 nextDrawable ? MetalChunk::MTLDevice_newTextureWithDescriptor_nextDrawable
-                              : MetalChunk::MTLDevice_newTextureWithDescriptor_iosurface);
-  if(IsCaptureMode(m_State))
+  if(ioSurfaceTexture)
   {
+    if(IsCaptureMode(m_State))
     {
-      SCOPED_LOCK(m_PotentialBackBuffersLock);
-      m_PotentialBackBuffers.insert(wrappedMTLTexture);
+      {
+        SCOPED_LOCK(m_PotentialBackBuffersLock);
+        m_PotentialBackBuffers.insert(wrappedMTLTexture);
+      }
     }
   }
   return wrappedMTLTexture;
