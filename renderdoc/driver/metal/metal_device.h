@@ -106,11 +106,9 @@ private:
   void Create_InitialState(ResourceId id, WrappedMTLObject *live, bool hasData);
   void Apply_InitialState(WrappedMTLObject *live, const MetalInitialContents &initial);
 
-  WrappedMTLTexture *NewTexture(MTL::Texture *realMTLTexture, MTL::TextureDescriptor *descriptor,
-                                MetalChunk chunkType);
-  WrappedMTLTexture *NewIOSurfaceTextureWithDescriptor(MTL::TextureDescriptor *descriptor,
-                                                       IOSurfaceRef iosurface, NS::UInteger plane,
-                                                       bool nextDrawable);
+  WrappedMTLTexture *Common_NewTexture(MTL::TextureDescriptor *descriptor, MetalChunk chunkType,
+                                       bool ioSurfaceTexture, IOSurfaceRef iosurface,
+                                       NS::UInteger plane);
 
   MetalResourceManager *m_ResourceManager;
 
