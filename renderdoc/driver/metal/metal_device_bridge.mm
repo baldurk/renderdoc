@@ -266,21 +266,6 @@
                                               plane:(NSUInteger)plane
     API_AVAILABLE(macos(10.11), ios(11.0))
 {
-  NS::String *nsString = (NS::String *)[[NSThread callStackSymbols] objectAtIndex:1];
-  // Example parentCallsite string
-  //"1 QuartzCore 0x00000001b956ece8 _ZL19get_unused_drawableP20_CAMetalLayerPrivatebb + 676"
-  bool nextDrawable = false;
-  if(nsString)
-  {
-    rdcstr parentCallsite(nsString->utf8String());
-    nextDrawable = (parentCallsite.contains("CAMetalLayer") && parentCallsite.contains("drawable"));
-  }
-
-  if(nextDrawable)
-  {
-    return id<MTLTexture>(GetWrapped(self)->nextDrawableTexture(
-        (MTL::TextureDescriptor *)descriptor, iosurface, plane));
-  }
   return id<MTLTexture>(GetWrapped(self)->newTextureWithDescriptor(
       (MTL::TextureDescriptor *)descriptor, iosurface, plane));
 }
