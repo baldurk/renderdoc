@@ -492,7 +492,6 @@ WrappedMTLTexture *WrappedMTLDevice::Common_NewTexture(MTL::TextureDescriptor *d
     {
       CACHE_THREAD_SERIALISER();
       SCOPED_SERIALISE_CHUNK(chunkType);
-      RDMTL::TextureDescriptor rdDescriptor(descriptor);
       Serialise_newTextureWithDescriptor(ser, wrappedMTLTexture, rdDescriptor);
       chunk = scope.Get();
     }
