@@ -125,25 +125,13 @@ static NS::Array *CreateUnwrappedNSArray(rdcarray<typename UnwrapHelper<MTL_TYPE
 template <typename RDMTL_TYPE, typename MTLARRAY_TYPE, typename MTL_TYPE, int MAX_COUNT>
 static void GetObjcArray(rdcarray<RDMTL_TYPE> &to, MTLARRAY_TYPE *from, bool (*validData)(MTL_TYPE *))
 {
-  MTL_TYPE *objcData[MAX_COUNT];
-  int count = 0;
   for(int i = 0; i < MAX_COUNT; ++i)
   {
-    objcData[i] = from->object(i);
-    if(objcData[i] && validData(objcData[i]))
+    MTL_TYPE *el = from->object(i);
+    if(el && validData(el))
     {
-      count = i + 1;
-    }
-  }
-  if(count)
-  {
-    to.resize(count);
-    for(int i = 0; i < count; ++i)
-    {
-      if(objcData[i] && validData(objcData[i]))
-      {
-        to[i] = RDMTL_TYPE(objcData[i]);
-      }
+      to.resize_for_index(i);
+      to[i] = RDMTL_TYPE(el);
     }
   }
 }
