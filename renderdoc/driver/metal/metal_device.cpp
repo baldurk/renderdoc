@@ -72,10 +72,12 @@ void WrappedMTLDevice::MTLHookObjcMethods()
   if(s_hookObjcMethods)
     return;
 
+  nextDrawableTLSSlot = Threading::AllocateTLSSlot();
+  Threading::SetTLSValue(WrappedMTLDevice::nextDrawableTLSSlot, (void *)(uintptr_t) false);
+
   Method m =
       class_getInstanceMethod(objc_lookUpClass("CAMetalLayer"), sel_registerName("nextDrawable"));
   real_CAMetalLayer_nextDrawable = method_setImplementation(m, (IMP)hooked_CAMetalLayer_nextDrawable);
-  nextDrawableTLSSlot = Threading::AllocateTLSSlot();
 }
 
 void WrappedMTLDevice::MTLFixupForMetalDriverAssert()
