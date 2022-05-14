@@ -51,8 +51,6 @@ public:
                                                       NS::Error **error);
   WrappedMTLTexture *newTextureWithDescriptor(MTL::TextureDescriptor *descriptor,
                                               IOSurfaceRef iosurface, NS::UInteger plane);
-  WrappedMTLTexture *nextDrawableTexture(MTL::TextureDescriptor *descriptor, IOSurfaceRef iosurface,
-                                         NS::UInteger plane);
   WrappedMTLTexture *newTextureWithDescriptor(MTL::TextureDescriptor *descriptor);
   template <typename SerialiserType>
   bool Serialise_newTextureWithDescriptor(SerialiserType &ser, WrappedMTLTexture *,
@@ -96,8 +94,12 @@ public:
     TypeEnum = eResDevice
   };
 
+  static uint64_t nextDrawableTLSSlot;
+  static IMP real_CAMetalLayer_nextDrawable;
+
 private:
   static void MTLFixupForMetalDriverAssert();
+  static void MTLHookObjcMethods();
   bool Prepare_InitialState(WrappedMTLObject *res);
   uint64_t GetSize_InitialState(ResourceId id, const MetalInitialContents &initial);
   template <typename SerialiserType>

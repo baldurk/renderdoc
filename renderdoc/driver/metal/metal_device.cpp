@@ -46,10 +46,36 @@ WrappedMTLDevice::WrappedMTLDevice(MTL::Device *realMTLDevice, ResourceId objId)
 WrappedMTLDevice *WrappedMTLDevice::MTLCreateSystemDefaultDevice(MTL::Device *realMTLDevice)
 {
   MTLFixupForMetalDriverAssert();
+  MTLHookObjcMethods();
   ResourceId objId = ResourceIDGen::GetNewUniqueID();
   WrappedMTLDevice *wrappedMTLDevice = new WrappedMTLDevice(realMTLDevice, objId);
 
   return wrappedMTLDevice;
+}
+
+IMP WrappedMTLDevice::real_CAMetalLayer_nextDrawable;
+uint64_t WrappedMTLDevice::nextDrawableTLSSlot;
+
+MTL::Drawable *hooked_CAMetalLayer_nextDrawable(id self, SEL _cmd)
+{
+  RDCASSERTEQUAL(Threading::GetTLSValue(WrappedMTLDevice::nextDrawableTLSSlot), 0);
+  Threading::SetTLSValue(WrappedMTLDevice::nextDrawableTLSSlot, (void *)(uintptr_t) true);
+  MTL::Drawable *drawable =
+      ((MTL::Drawable * (*)(id, SEL))WrappedMTLDevice::real_CAMetalLayer_nextDrawable)(self, _cmd);
+  Threading::SetTLSValue(WrappedMTLDevice::nextDrawableTLSSlot, (void *)(uintptr_t) false);
+  return drawable;
+}
+
+void WrappedMTLDevice::MTLHookObjcMethods()
+{
+  static bool s_hookObjcMethods = false;
+  if(s_hookObjcMethods)
+    return;
+
+  Method m =
+      class_getInstanceMethod(objc_lookUpClass("CAMetalLayer"), sel_registerName("nextDrawable"));
+  real_CAMetalLayer_nextDrawable = method_setImplementation(m, (IMP)hooked_CAMetalLayer_nextDrawable);
+  nextDrawableTLSSlot = Threading::AllocateTLSSlot();
 }
 
 void WrappedMTLDevice::MTLFixupForMetalDriverAssert()
@@ -311,14 +337,10 @@ WrappedMTLTexture *WrappedMTLDevice::newTextureWithDescriptor(MTL::TextureDescri
                                                               IOSurfaceRef iosurface,
                                                               NS::UInteger plane)
 {
-  return Common_NewTexture(descriptor, MetalChunk::MTLDevice_newTextureWithDescriptor_iosurface,
-                           true, iosurface, plane);
-}
-
-WrappedMTLTexture *WrappedMTLDevice::nextDrawableTexture(MTL::TextureDescriptor *descriptor,
-                                                         IOSurfaceRef iosurface, NS::UInteger plane)
-{
-  return Common_NewTexture(descriptor, MetalChunk::MTLDevice_newTextureWithDescriptor_nextDrawable,
+  bool nextDrawable = (bool)(uintptr_t)Threading::GetTLSValue(nextDrawableTLSSlot);
+  return Common_NewTexture(descriptor,
+                           nextDrawable ? MetalChunk::MTLDevice_newTextureWithDescriptor_nextDrawable
+                                        : MetalChunk::MTLDevice_newTextureWithDescriptor_iosurface,
                            true, iosurface, plane);
 }
 
