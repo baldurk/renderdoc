@@ -253,7 +253,7 @@ struct LocalMapping
   uint32_t numComps;
   rdcarray<LocalRange> gaps;
 
-  ShaderConstantDescriptor var;
+  ShaderConstantType var;
 
   // stored here so that we don't need to have the register mapping at the time we parse the SPDB
   // chunk

@@ -1260,7 +1260,7 @@ SPDBChunk::SPDBChunk(byte *data, uint32_t spdblength)
           }
         }
 
-        mapping.var.type = vartype->baseType;
+        mapping.var.baseType = vartype->baseType;
         mapping.var.rows = 1;
         mapping.var.columns = uint8_t(vartype->vecSize);
         mapping.var.elements = 1;
@@ -1778,7 +1778,7 @@ void SPDBChunk::GetLocals(const DXBC::DXBCContainer *dxbc, size_t, uintptr_t off
     // check if we already have a mapping for this variable
     for(SourceVariableMapping &a : locals)
     {
-      const ShaderConstantDescriptor &b = it->var;
+      const ShaderConstantType &b = it->var;
 
       if(a.name == b.name)
       {
@@ -1802,7 +1802,7 @@ void SPDBChunk::GetLocals(const DXBC::DXBCContainer *dxbc, size_t, uintptr_t off
       SourceVariableMapping a;
 
       a.name = it->var.name;
-      a.type = it->var.type;
+      a.type = it->var.baseType;
       a.rows = it->var.rows;
       a.columns = it->var.columns;
       a.offset = it->varOffset;

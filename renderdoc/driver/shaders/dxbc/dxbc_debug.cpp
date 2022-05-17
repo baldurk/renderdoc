@@ -1849,7 +1849,7 @@ void FlattenVariables(const rdcstr &cbufferName, const rdcarray<ShaderConstant> 
     if(v.type == VarType::Struct)
     {
       // check if this is an array of structs or not
-      if(c.type.descriptor.elements == 1)
+      if(c.type.elements == 1)
       {
         FlattenVariables(cbufferName, c.type.members, v.members, outvars, basename + ".",
                          byteOffset, sourceVars);
@@ -1860,15 +1860,15 @@ void FlattenVariables(const rdcstr &cbufferName, const rdcarray<ShaderConstant> 
         {
           FlattenVariables(cbufferName, c.type.members, v.members[m].members, outvars,
                            StringFormat::Fmt("%s[%zu].", basename.c_str(), m),
-                           byteOffset + m * c.type.descriptor.arrayByteStride, sourceVars);
+                           byteOffset + m * c.type.arrayByteStride, sourceVars);
         }
       }
     }
-    else if(c.type.descriptor.elements > 1 || (v.rows == 0 && v.columns == 0) || !v.members.empty())
+    else if(c.type.elements > 1 || (v.rows == 0 && v.columns == 0) || !v.members.empty())
     {
       for(int m = 0; m < v.members.count(); m++)
       {
-        FlattenSingleVariable(cbufferName, byteOffset + m * c.type.descriptor.arrayByteStride,
+        FlattenSingleVariable(cbufferName, byteOffset + m * c.type.arrayByteStride,
                               StringFormat::Fmt("%s[%zu]", basename.c_str(), m), v.members[m],
                               outvars, sourceVars);
       }

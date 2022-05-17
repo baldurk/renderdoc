@@ -54,103 +54,103 @@ static bool MatchBaseTypeDeclaration(QString basetype, const bool isUnsigned, Sh
 {
   if(basetype == lit("bool"))
   {
-    el.type.descriptor.type = VarType::Bool;
+    el.type.baseType = VarType::Bool;
   }
   else if(basetype == lit("byte") || basetype == lit("char"))
   {
-    el.type.descriptor.type = VarType::SByte;
+    el.type.baseType = VarType::SByte;
 
     if(isUnsigned)
-      el.type.descriptor.type = VarType::UByte;
+      el.type.baseType = VarType::UByte;
   }
   else if(basetype == lit("ubyte") || basetype == lit("xbyte"))
   {
-    el.type.descriptor.type = VarType::UByte;
+    el.type.baseType = VarType::UByte;
   }
   else if(basetype == lit("short"))
   {
-    el.type.descriptor.type = VarType::SShort;
+    el.type.baseType = VarType::SShort;
 
     if(isUnsigned)
-      el.type.descriptor.type = VarType::UShort;
+      el.type.baseType = VarType::UShort;
   }
   else if(basetype == lit("ushort") || basetype == lit("xshort"))
   {
-    el.type.descriptor.type = VarType::UShort;
+    el.type.baseType = VarType::UShort;
   }
   else if(basetype == lit("long"))
   {
-    el.type.descriptor.type = VarType::SLong;
+    el.type.baseType = VarType::SLong;
 
     if(isUnsigned)
-      el.type.descriptor.type = VarType::ULong;
+      el.type.baseType = VarType::ULong;
   }
   else if(basetype == lit("ulong") || basetype == lit("xlong"))
   {
-    el.type.descriptor.type = VarType::ULong;
+    el.type.baseType = VarType::ULong;
   }
   else if(basetype == lit("int") || basetype == lit("ivec") || basetype == lit("imat"))
   {
-    el.type.descriptor.type = VarType::SInt;
+    el.type.baseType = VarType::SInt;
 
     if(isUnsigned)
-      el.type.descriptor.type = VarType::UInt;
+      el.type.baseType = VarType::UInt;
   }
   else if(basetype == lit("uint") || basetype == lit("xint") || basetype == lit("uvec") ||
           basetype == lit("umat"))
   {
-    el.type.descriptor.type = VarType::UInt;
+    el.type.baseType = VarType::UInt;
   }
   else if(basetype == lit("half"))
   {
-    el.type.descriptor.type = VarType::Half;
+    el.type.baseType = VarType::Half;
   }
   else if(basetype == lit("float") || basetype == lit("vec") || basetype == lit("mat"))
   {
-    el.type.descriptor.type = VarType::Float;
+    el.type.baseType = VarType::Float;
   }
   else if(basetype == lit("double") || basetype == lit("dvec") || basetype == lit("dmat"))
   {
-    el.type.descriptor.type = VarType::Double;
+    el.type.baseType = VarType::Double;
   }
   else if(basetype == lit("unormh"))
   {
-    el.type.descriptor.type = VarType::UShort;
-    el.type.descriptor.flags |= ShaderVariableFlags::UNorm;
+    el.type.baseType = VarType::UShort;
+    el.type.flags |= ShaderVariableFlags::UNorm;
   }
   else if(basetype == lit("unormb"))
   {
-    el.type.descriptor.type = VarType::UByte;
-    el.type.descriptor.flags |= ShaderVariableFlags::UNorm;
+    el.type.baseType = VarType::UByte;
+    el.type.flags |= ShaderVariableFlags::UNorm;
   }
   else if(basetype == lit("snormh"))
   {
-    el.type.descriptor.type = VarType::SShort;
-    el.type.descriptor.flags |= ShaderVariableFlags::SNorm;
+    el.type.baseType = VarType::SShort;
+    el.type.flags |= ShaderVariableFlags::SNorm;
   }
   else if(basetype == lit("snormb"))
   {
-    el.type.descriptor.type = VarType::SByte;
-    el.type.descriptor.flags |= ShaderVariableFlags::SNorm;
+    el.type.baseType = VarType::SByte;
+    el.type.flags |= ShaderVariableFlags::SNorm;
   }
   else if(basetype == lit("uintten"))
   {
-    el.type.descriptor.type = VarType::UInt;
-    el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2;
-    el.type.descriptor.columns = 4;
+    el.type.baseType = VarType::UInt;
+    el.type.flags |= ShaderVariableFlags::R10G10B10A2;
+    el.type.columns = 4;
   }
   else if(basetype == lit("unormten"))
   {
-    el.type.descriptor.type = VarType::UInt;
-    el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2;
-    el.type.descriptor.flags |= ShaderVariableFlags::UNorm;
-    el.type.descriptor.columns = 4;
+    el.type.baseType = VarType::UInt;
+    el.type.flags |= ShaderVariableFlags::R10G10B10A2;
+    el.type.flags |= ShaderVariableFlags::UNorm;
+    el.type.columns = 4;
   }
   else if(basetype == lit("floateleven"))
   {
-    el.type.descriptor.type = VarType::Float;
-    el.type.descriptor.flags |= ShaderVariableFlags::R11G11B10;
-    el.type.descriptor.columns = 3;
+    el.type.baseType = VarType::Float;
+    el.type.flags |= ShaderVariableFlags::R11G11B10;
+    el.type.columns = 3;
   }
   else
   {
@@ -172,16 +172,16 @@ void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, const ShaderCon
   {
     // column major matrices have vectors that are 'rows' long. Everything else is vectors of
     // 'columns' long
-    uint8_t vecSize = constant.type.descriptor.columns;
+    uint8_t vecSize = constant.type.columns;
 
-    if(constant.type.descriptor.rows > 1 && constant.type.descriptor.ColMajor())
-      vecSize = constant.type.descriptor.rows;
+    if(constant.type.rows > 1 && constant.type.ColMajor())
+      vecSize = constant.type.rows;
 
     if(vecSize > 1)
     {
       // is this a vector that's only component aligned and NOT vector aligned. If so,
       // vector_align_component is true
-      const uint32_t vec4Size = VarTypeByteSize(constant.type.descriptor.type) * 4;
+      const uint32_t vec4Size = VarTypeByteSize(constant.type.baseType) * 4;
       const uint32_t offsModVec = (constant.byteOffset % vec4Size);
 
       // if it's a vec3 or vec4 and its offset is not purely aligned, it's only component aligned
@@ -197,7 +197,7 @@ void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, const ShaderCon
 
       const uint32_t low16b = (constant.byteOffset / 16);
       const uint32_t high16b =
-          ((constant.byteOffset + VarTypeByteSize(constant.type.descriptor.type) * vecSize - 1) / 16);
+          ((constant.byteOffset + VarTypeByteSize(constant.type.baseType) * vecSize - 1) / 16);
 
       // if the vector crosses a 16-byte boundary, vectors can straddle them
       if(low16b != high16b)
@@ -205,10 +205,10 @@ void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, const ShaderCon
     }
   }
 
-  if(!pack.tight_arrays && constant.type.descriptor.elements > 1)
+  if(!pack.tight_arrays && constant.type.elements > 1)
   {
     // if the array has a byte stride less than 16, it must be non-tight packed
-    if(constant.type.descriptor.arrayByteStride < 16)
+    if(constant.type.arrayByteStride < 16)
       pack.tight_arrays = true;
   }
 }
@@ -277,8 +277,8 @@ Packing::Rules BufferFormatter::EstimatePackingRules(const rdcarray<ShaderConsta
     if(i > 0)
     {
       const uint32_t prevOffset = members[i - 1].byteOffset;
-      const uint32_t prevArrayCount = members[i - 1].type.descriptor.elements;
-      const uint32_t prevArrayStride = members[i - 1].type.descriptor.arrayByteStride;
+      const uint32_t prevArrayCount = members[i - 1].type.elements;
+      const uint32_t prevArrayStride = members[i - 1].type.arrayByteStride;
 
       // if we overlap into the previous element, trailing padding is not reserved
       // this works for structs too, as the array stride *includes* padding
@@ -383,7 +383,7 @@ bool BufferFormatter::ContainsUnbounded(const ShaderConstant &structType,
   const rdcarray<ShaderConstant> &members = structType.type.members;
   for(size_t i = 0; i < members.size(); i++)
   {
-    if(members[i].type.descriptor.elements == ~0U)
+    if(members[i].type.elements == ~0U)
     {
       if(found)
         *found = {structType.name, members[i].name};
@@ -408,7 +408,7 @@ bool BufferFormatter::CheckInvalidUnbounded(const StructFormatData &structData,
     const bool isLast = i == def.type.members.size() - 1;
 
     // if it's not the last member and it's unbounded, that's a problem!
-    if(!isLast && def.type.members[i].type.descriptor.elements == ~0U)
+    if(!isLast && def.type.members[i].type.elements == ~0U)
     {
       int line = structData.lineMemberDefs[(int)i];
       errors[line] = tr("Only the last member of a struct can be an unbounded array.");
@@ -428,8 +428,7 @@ bool BufferFormatter::CheckInvalidUnbounded(const StructFormatData &structData,
       return false;
     }
 
-    if(!CheckInvalidUnbounded(structelems[def.type.members[i].type.descriptor.name], structelems,
-                              errors))
+    if(!CheckInvalidUnbounded(structelems[def.type.members[i].type.name], structelems, errors))
       return false;
   }
 
@@ -767,9 +766,9 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
           bitfieldCurPos = ~0U;
         }
 
-        if(cur->structDef.type.descriptor.type == VarType::Struct)
+        if(cur->structDef.type.baseType == VarType::Struct)
         {
-          cur->structDef.type.descriptor.arrayByteStride = cur->offset;
+          cur->structDef.type.arrayByteStride = cur->offset;
 
           cur->alignment = GetAlignment(pack, cur->structDef);
 
@@ -779,22 +778,22 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
             cur->alignment = 16;
           }
 
-          cur->structDef.type.descriptor.arrayByteStride = AlignUp(cur->offset, cur->alignment);
+          cur->structDef.type.arrayByteStride = AlignUp(cur->offset, cur->alignment);
 
           if(cur->paddedStride > 0)
           {
             // only pad up to the stride, not down
-            if(cur->paddedStride >= cur->structDef.type.descriptor.arrayByteStride)
+            if(cur->paddedStride >= cur->structDef.type.arrayByteStride)
             {
-              cur->structDef.type.descriptor.arrayByteStride = cur->paddedStride;
+              cur->structDef.type.arrayByteStride = cur->paddedStride;
             }
             else
             {
               reportError(tr("Struct %1 declared size %2 bytes is less than derived structure "
                              "size %3 bytes.")
-                              .arg(cur->structDef.type.descriptor.name)
+                              .arg(cur->structDef.type.name)
                               .arg(cur->paddedStride)
-                              .arg(cur->structDef.type.descriptor.arrayByteStride));
+                              .arg(cur->structDef.type.arrayByteStride));
               success = false;
               break;
             }
@@ -825,13 +824,13 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         }
 
         cur = &structelems[name];
-        cur->structDef.type.descriptor.name = name;
+        cur->structDef.type.name = name;
         bitfieldCurPos = ~0U;
 
         if(typeName == lit("struct"))
         {
           lastStruct = name;
-          cur->structDef.type.descriptor.type = VarType::Struct;
+          cur->structDef.type.baseType = VarType::Struct;
 
           for(const Annotation &annot : annotations)
           {
@@ -871,7 +870,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         }
         else
         {
-          cur->structDef.type.descriptor.type = VarType::Enum;
+          cur->structDef.type.baseType = VarType::Enum;
 
           for(const Annotation &annot : annotations)
           {
@@ -906,8 +905,8 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
           bool matched = MatchBaseTypeDeclaration(baseType, true, tmp);
 
-          if(!matched || VarTypeCompType(tmp.type.descriptor.type) != CompType::UInt ||
-             tmp.type.descriptor.flags != ShaderVariableFlags::NoFlags)
+          if(!matched || VarTypeCompType(tmp.type.baseType) != CompType::UInt ||
+             tmp.type.flags != ShaderVariableFlags::NoFlags)
           {
             reportError(
                 tr("Invalid enum base type '%1', must be an unsigned integer type.").arg(baseType));
@@ -915,7 +914,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
             break;
           }
 
-          cur->structDef.type.descriptor.arrayByteStride = VarTypeByteSize(tmp.type.descriptor.type);
+          cur->structDef.type.arrayByteStride = VarTypeByteSize(tmp.type.baseType);
         }
 
         continue;
@@ -924,7 +923,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
     ShaderConstant el;
 
-    if(cur->structDef.type.descriptor.type == VarType::Enum)
+    if(cur->structDef.type.baseType == VarType::Enum)
     {
       QRegularExpressionMatch enumMatch = enumValueRegex.match(decl);
 
@@ -1140,11 +1139,11 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
         el.name = varName;
         el.byteOffset = cur->offset;
-        el.type.descriptor.pointerTypeID = structContext.pointerTypeId;
-        el.type.descriptor.type = VarType::ULong;
-        el.type.descriptor.flags |= ShaderVariableFlags::HexDisplay;
-        el.type.descriptor.arrayByteStride = 8;
-        el.type.descriptor.elements = arrayCount;
+        el.type.pointerTypeID = structContext.pointerTypeId;
+        el.type.baseType = VarType::ULong;
+        el.type.flags |= ShaderVariableFlags::HexDisplay;
+        el.type.arrayByteStride = 8;
+        el.type.elements = arrayCount;
 
         cur->offset += 8;
 
@@ -1156,7 +1155,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
         continue;
       }
-      else if(structContext.structDef.type.descriptor.type == VarType::Enum)
+      else if(structContext.structDef.type.baseType == VarType::Enum)
       {
         if(!bitfield.isEmpty() && !arrayDim.isEmpty())
         {
@@ -1167,7 +1166,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
         // align to scalar size (if not bit packing)
         if(bitfieldCurPos == ~0U)
-          cur->offset = AlignUp(cur->offset, structContext.structDef.type.descriptor.arrayByteStride);
+          cur->offset = AlignUp(cur->offset, structContext.structDef.type.arrayByteStride);
 
         if(specifiedOffset != ~0U)
         {
@@ -1195,7 +1194,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         el = structContext.structDef;
         el.name = varName;
         el.byteOffset = cur->offset;
-        el.type.descriptor.elements = arrayCount;
+        el.type.elements = arrayCount;
 
         bool ok = false;
         el.bitFieldSize = qMax(1U, bitfield.toUInt(&ok));
@@ -1236,7 +1235,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         el = structContext.structDef;
         el.name = varName;
         el.byteOffset = cur->offset;
-        el.type.descriptor.elements = arrayCount;
+        el.type.elements = arrayCount;
 
         if(!isPadding)
         {
@@ -1245,11 +1244,11 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         }
 
         // advance by the struct including any trailing padding
-        cur->offset += el.type.descriptor.elements * el.type.descriptor.arrayByteStride;
+        cur->offset += el.type.elements * el.type.arrayByteStride;
 
         // if we allow trailing overlap, remove the padding
         if(pack.trailing_overlap)
-          cur->offset -= el.type.descriptor.arrayByteStride - structContext.offset;
+          cur->offset -= el.type.arrayByteStride - structContext.offset;
 
         continue;
       }
@@ -1299,9 +1298,9 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
       QString basetype = match.captured(lit("type"));
       if(match.captured(lit("major")).trimmed() == lit("row_major"))
-        el.type.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix;
+        el.type.flags |= ShaderVariableFlags::RowMajorMatrix;
       if(!match.captured(lit("rgb")).isEmpty())
-        el.type.descriptor.flags |= ShaderVariableFlags::RGBDisplay;
+        el.type.flags |= ShaderVariableFlags::RGBDisplay;
       QString firstDim =
           !match.captured(lit("vec")).isEmpty() ? match.captured(lit("vec")) : lit("1");
       QString secondDim =
@@ -1353,7 +1352,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       {
         bool ok = false;
 
-        el.type.descriptor.columns = firstDim.toUInt(&ok);
+        el.type.columns = firstDim.toUInt(&ok);
         if(!ok)
         {
           reportError(tr("Invalid vector dimension '%1'.").arg(firstDim));
@@ -1361,18 +1360,18 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
           break;
         }
 
-        el.type.descriptor.elements = qMax(1U, arrayDim.toUInt(&ok));
+        el.type.elements = qMax(1U, arrayDim.toUInt(&ok));
         if(!ok)
-          el.type.descriptor.elements = 1;
+          el.type.elements = 1;
 
-        if(!bitfield.isEmpty() && el.type.descriptor.elements > 1)
+        if(!bitfield.isEmpty() && el.type.elements > 1)
         {
           reportError(tr("Arrays can't be packed into a bitfield."));
           success = false;
           break;
         }
 
-        el.type.descriptor.rows = qMax(1U, secondDim.toUInt(&ok));
+        el.type.rows = qMax(1U, secondDim.toUInt(&ok));
         if(!ok)
         {
           reportError(tr("Invalid matrix dimension '%1'.").arg(secondDim));
@@ -1385,8 +1384,8 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
           el.bitFieldSize = 0;
 
         // vectors are marked as row-major by convention
-        if(el.type.descriptor.rows == 1)
-          el.type.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix;
+        if(el.type.rows == 1)
+          el.type.flags |= ShaderVariableFlags::RowMajorMatrix;
 
         bool matched = MatchBaseTypeDeclaration(basetype, isUnsigned, el);
 
@@ -1398,7 +1397,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         }
       }
 
-      el.type.descriptor.name = ToStr(el.type.descriptor.type) + vecMatSizeSuffix;
+      el.type.name = ToStr(el.type.baseType) + vecMatSizeSuffix;
 
       // process packing annotations first, so we have that information to validate e.g. [[unorm]]
       for(const Annotation &annot : annotations)
@@ -1407,19 +1406,19 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         {
           if(annot.param.toLower() == lit("r11g11b10"))
           {
-            if(el.type.descriptor.columns != 3 || el.type.descriptor.type != VarType::Float)
+            if(el.type.columns != 3 || el.type.baseType != VarType::Float)
             {
               reportError(tr("R11G11B10 packing must be specified on a 'float3' variable."));
               success = false;
               break;
             }
 
-            el.type.descriptor.flags |= ShaderVariableFlags::R11G11B10;
+            el.type.flags |= ShaderVariableFlags::R11G11B10;
           }
           else if(annot.param.toLower() == lit("r10g10b10a2") ||
                   annot.param.toLower() == lit("r10g10b10a2_uint"))
           {
-            if(el.type.descriptor.columns != 4 || el.type.descriptor.type != VarType::UInt)
+            if(el.type.columns != 4 || el.type.baseType != VarType::UInt)
             {
               reportError(
                   tr("R10G10B10A2 packing must be specified on a 'uint4' variable "
@@ -1428,29 +1427,29 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
               break;
             }
 
-            el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2;
+            el.type.flags |= ShaderVariableFlags::R10G10B10A2;
           }
           else if(annot.param.toLower() == lit("r10g10b10a2_unorm"))
           {
-            if(el.type.descriptor.columns != 4 || el.type.descriptor.type != VarType::UInt)
+            if(el.type.columns != 4 || el.type.baseType != VarType::UInt)
             {
               reportError(tr("R10G10B10A2_UNORM packing must be specified on a 'uint4' variable."));
               success = false;
               break;
             }
 
-            el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::UNorm;
+            el.type.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::UNorm;
           }
           else if(annot.param.toLower() == lit("r10g10b10a2_snorm"))
           {
-            if(el.type.descriptor.columns != 4 || el.type.descriptor.type != VarType::SInt)
+            if(el.type.columns != 4 || el.type.baseType != VarType::SInt)
             {
               reportError(tr("R10G10B10A2_SNORM packing must be specified on a 'int4' variable."));
               success = false;
               break;
             }
 
-            el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::SNorm;
+            el.type.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::SNorm;
           }
           else if(annot.param.isEmpty())
           {
@@ -1476,72 +1475,69 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       {
         if(annot.name == lit("rgb"))
         {
-          el.type.descriptor.flags |= ShaderVariableFlags::RGBDisplay;
+          el.type.flags |= ShaderVariableFlags::RGBDisplay;
         }
         else if(annot.name == lit("hex") || annot.name == lit("hexadecimal"))
         {
-          if(VarTypeCompType(el.type.descriptor.type) == CompType::Float)
+          if(VarTypeCompType(el.type.baseType) == CompType::Float)
           {
             reportError(tr("Hex display is not supported on floating point variables."));
             success = false;
             break;
           }
 
-          if(el.type.descriptor.flags &
-             (ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::R11G11B10))
+          if(el.type.flags & (ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::R11G11B10))
           {
             reportError(tr("Hex display is not supported on packed formats."));
             success = false;
             break;
           }
 
-          el.type.descriptor.flags |= ShaderVariableFlags::HexDisplay;
+          el.type.flags |= ShaderVariableFlags::HexDisplay;
 
-          if(el.type.descriptor.type == VarType::SLong)
-            el.type.descriptor.type = VarType::ULong;
-          else if(el.type.descriptor.type == VarType::SInt)
-            el.type.descriptor.type = VarType::UInt;
-          else if(el.type.descriptor.type == VarType::SShort)
-            el.type.descriptor.type = VarType::UShort;
-          else if(el.type.descriptor.type == VarType::SByte)
-            el.type.descriptor.type = VarType::UByte;
+          if(el.type.baseType == VarType::SLong)
+            el.type.baseType = VarType::ULong;
+          else if(el.type.baseType == VarType::SInt)
+            el.type.baseType = VarType::UInt;
+          else if(el.type.baseType == VarType::SShort)
+            el.type.baseType = VarType::UShort;
+          else if(el.type.baseType == VarType::SByte)
+            el.type.baseType = VarType::UByte;
         }
         else if(annot.name == lit("bin") || annot.name == lit("binary"))
         {
-          if(VarTypeCompType(el.type.descriptor.type) == CompType::Float)
+          if(VarTypeCompType(el.type.baseType) == CompType::Float)
           {
             reportError(tr("Binary display is not supported on floating point variables."));
             success = false;
             break;
           }
 
-          if(el.type.descriptor.flags &
-             (ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::R11G11B10))
+          if(el.type.flags & (ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::R11G11B10))
           {
             reportError(tr("Binary display is not supported on packed formats."));
             success = false;
             break;
           }
 
-          el.type.descriptor.flags |= ShaderVariableFlags::BinaryDisplay;
+          el.type.flags |= ShaderVariableFlags::BinaryDisplay;
 
-          if(el.type.descriptor.type == VarType::SLong)
-            el.type.descriptor.type = VarType::ULong;
-          else if(el.type.descriptor.type == VarType::SInt)
-            el.type.descriptor.type = VarType::UInt;
-          else if(el.type.descriptor.type == VarType::SShort)
-            el.type.descriptor.type = VarType::UShort;
-          else if(el.type.descriptor.type == VarType::SByte)
-            el.type.descriptor.type = VarType::UByte;
+          if(el.type.baseType == VarType::SLong)
+            el.type.baseType = VarType::ULong;
+          else if(el.type.baseType == VarType::SInt)
+            el.type.baseType = VarType::UInt;
+          else if(el.type.baseType == VarType::SShort)
+            el.type.baseType = VarType::UShort;
+          else if(el.type.baseType == VarType::SByte)
+            el.type.baseType = VarType::UByte;
         }
         else if(annot.name == lit("unorm"))
         {
-          if(!(el.type.descriptor.flags & ShaderVariableFlags::R10G10B10A2))
+          if(!(el.type.flags & ShaderVariableFlags::R10G10B10A2))
           {
             // verify that we're integer typed and 1 or 2 bytes
-            if(el.type.descriptor.type != VarType::UShort &&
-               el.type.descriptor.type != VarType::SShort &&
-               el.type.descriptor.type != VarType::UByte && el.type.descriptor.type != VarType::SByte)
+            if(el.type.baseType != VarType::UShort && el.type.baseType != VarType::SShort &&
+               el.type.baseType != VarType::UByte && el.type.baseType != VarType::SByte)
             {
               reportError(tr("UNORM packing is only supported on [u]byte and [u]short types."));
               success = false;
@@ -1549,16 +1545,15 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
             }
           }
 
-          el.type.descriptor.flags |= ShaderVariableFlags::UNorm;
+          el.type.flags |= ShaderVariableFlags::UNorm;
         }
         else if(annot.name == lit("snorm"))
         {
-          if(!(el.type.descriptor.flags & ShaderVariableFlags::R10G10B10A2))
+          if(!(el.type.flags & ShaderVariableFlags::R10G10B10A2))
           {
             // verify that we're integer typed and 1 or 2 bytes
-            if(el.type.descriptor.type != VarType::UShort &&
-               el.type.descriptor.type != VarType::SShort &&
-               el.type.descriptor.type != VarType::UByte && el.type.descriptor.type != VarType::SByte)
+            if(el.type.baseType != VarType::UShort && el.type.baseType != VarType::SShort &&
+               el.type.baseType != VarType::UByte && el.type.baseType != VarType::SByte)
             {
               reportError(tr("SNORM packing is only supported on [u]byte and [u]short types."));
               success = false;
@@ -1566,29 +1561,29 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
             }
           }
 
-          el.type.descriptor.flags |= ShaderVariableFlags::SNorm;
+          el.type.flags |= ShaderVariableFlags::SNorm;
         }
         else if(annot.name == lit("row_major"))
         {
-          if(el.type.descriptor.rows == 1)
+          if(el.type.rows == 1)
           {
             reportError(tr("Row major can only be specified on matrices."));
             success = false;
             break;
           }
 
-          el.type.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix;
+          el.type.flags |= ShaderVariableFlags::RowMajorMatrix;
         }
         else if(annot.name == lit("col_major"))
         {
-          if(el.type.descriptor.rows == 1)
+          if(el.type.rows == 1)
           {
             reportError(tr("Column major can only be specified on matrices."));
             success = false;
             break;
           }
 
-          el.type.descriptor.flags &= ~ShaderVariableFlags::RowMajorMatrix;
+          el.type.flags &= ~ShaderVariableFlags::RowMajorMatrix;
         }
         else if(annot.name == lit("packed"))
         {
@@ -1660,27 +1655,26 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       // validate that bitfields are only allowed for regular scalars
       if(el.bitFieldSize > 0)
       {
-        if(el.type.descriptor.rows > 1 || el.type.descriptor.columns > 1)
+        if(el.type.rows > 1 || el.type.columns > 1)
         {
           reportError(tr("Vectors and matrices can't be packed into a bitfield."));
           success = false;
           break;
         }
-        if(el.type.descriptor.elements > 1)
+        if(el.type.elements > 1)
         {
           reportError(tr("Arrays can't be packed into a bitfield."));
           success = false;
           break;
         }
-        if(el.type.descriptor.flags &
-           (ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::R11G11B10 |
-            ShaderVariableFlags::UNorm | ShaderVariableFlags::SNorm))
+        if(el.type.flags & (ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::R11G11B10 |
+                            ShaderVariableFlags::UNorm | ShaderVariableFlags::SNorm))
         {
           reportError(tr("Format-packed variables can't be packed into a bitfield."));
           success = false;
           break;
         }
-        if(VarTypeCompType(el.type.descriptor.type) == CompType::Float)
+        if(VarTypeCompType(el.type.baseType) == CompType::Float)
         {
           reportError(tr("Floating point variables can't be packed into a bitfield."));
           success = false;
@@ -1690,62 +1684,60 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
       if(basetype == lit("xlong") || basetype == lit("xint") || basetype == lit("xshort") ||
          basetype == lit("xbyte"))
-        el.type.descriptor.flags |= ShaderVariableFlags::HexDisplay;
+        el.type.flags |= ShaderVariableFlags::HexDisplay;
     }
 
-    if(cur->singleMember && el.type.descriptor.elements == ~0U)
+    if(cur->singleMember && el.type.elements == ~0U)
     {
       reportError(tr("[[single]] can't be used on unbounded arrays."));
       success = false;
       break;
     }
 
-    const bool packed32bit = bool(el.type.descriptor.flags & (ShaderVariableFlags::R10G10B10A2 |
-                                                              ShaderVariableFlags::R11G11B10));
+    const bool packed32bit =
+        bool(el.type.flags & (ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::R11G11B10));
 
     // normally the array stride is the size of an element
     const uint32_t elAlignment = packed32bit ? sizeof(uint32_t) : GetAlignment(pack, el);
 
-    const uint8_t vecSize = (el.type.descriptor.rows > 1 && el.type.descriptor.ColMajor())
-                                ? el.type.descriptor.rows
-                                : el.type.descriptor.columns;
+    const uint8_t vecSize = (el.type.rows > 1 && el.type.ColMajor()) ? el.type.rows : el.type.columns;
 
     const uint32_t elSize =
         packed32bit ? sizeof(uint32_t)
                     : (pack.vector_align_component ? elAlignment * vecSize : elAlignment);
 
     // if we aren't using tight arrays the stride is at least 16 bytes
-    el.type.descriptor.arrayByteStride = elAlignment;
-    if(el.type.descriptor.rows > 1 || el.type.descriptor.columns > 1)
-      el.type.descriptor.arrayByteStride = elSize;
+    el.type.arrayByteStride = elAlignment;
+    if(el.type.rows > 1 || el.type.columns > 1)
+      el.type.arrayByteStride = elSize;
 
     if(!pack.tight_arrays)
-      el.type.descriptor.arrayByteStride = std::max(16U, el.type.descriptor.arrayByteStride);
+      el.type.arrayByteStride = std::max(16U, el.type.arrayByteStride);
 
     // matrices are always aligned like arrays of vectors
-    if(el.type.descriptor.rows > 1)
+    if(el.type.rows > 1)
     {
       // the alignment calculated above is the alignment of a vector, that's our matrix stride
-      el.type.descriptor.matrixByteStride = el.type.descriptor.arrayByteStride;
+      el.type.matrixByteStride = el.type.arrayByteStride;
 
       // the array stride is that alignment times the number of rows/columns
-      if(el.type.descriptor.RowMajor())
-        el.type.descriptor.arrayByteStride *= el.type.descriptor.rows;
+      if(el.type.RowMajor())
+        el.type.arrayByteStride *= el.type.rows;
       else
-        el.type.descriptor.arrayByteStride *= el.type.descriptor.columns;
+        el.type.arrayByteStride *= el.type.columns;
     }
 
     if(el.bitFieldSize > 0)
     {
       // we can use the arrayByteStride since this is a scalar so no vector/arrays, this is just the
       // base size. It also works for enums as this is the byte size of the declared underlying type
-      const uint32_t elemScalarBitSize = el.type.descriptor.arrayByteStride * 8;
+      const uint32_t elemScalarBitSize = el.type.arrayByteStride * 8;
 
       // bitfields can't be larger than the base type
       if(el.bitFieldSize > elemScalarBitSize)
       {
         reportError(tr("Variable type %1 only has %2 bits, can't pack into %3 bits in a bitfield.")
-                        .arg(el.type.descriptor.name)
+                        .arg(el.type.name)
                         .arg(elemScalarBitSize)
                         .arg(el.bitFieldSize));
         success = false;
@@ -1823,7 +1815,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       cur->offset = AlignUp(cur->offset, elAlignment);
 
       // if we have non-tight arrays, arrays (and matrices) always start on a 16-byte boundary
-      if(!pack.tight_arrays && (el.type.descriptor.elements > 1 || el.type.descriptor.rows > 1))
+      if(!pack.tight_arrays && (el.type.elements > 1 || el.type.rows > 1))
         cur->offset = AlignUp(cur->offset, 16U);
 
       // if vectors can't straddle 16-byte alignment, check to see if we're going to do that
@@ -1867,12 +1859,12 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
     root = structelems[lastStruct];
 
   fixed = root.structDef;
-  fixed.type.descriptor.arrayByteStride = AlignUp(root.offset, GetAlignment(pack, fixed));
+  fixed.type.arrayByteStride = AlignUp(root.offset, GetAlignment(pack, fixed));
 
-  if(!fixed.type.members.isEmpty() && fixed.type.members.back().type.descriptor.elements == ~0U)
+  if(!fixed.type.members.isEmpty() && fixed.type.members.back().type.elements == ~0U)
   {
-    fixed.type.descriptor.arrayByteStride = AlignUp(
-        fixed.type.members.back().type.descriptor.arrayByteStride, GetAlignment(pack, fixed));
+    fixed.type.arrayByteStride =
+        AlignUp(fixed.type.members.back().type.arrayByteStride, GetAlignment(pack, fixed));
   }
 
   if(success)
@@ -1919,14 +1911,14 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
     while(iter)
     {
-      if(iter->type.descriptor.elements == ~0U)
+      if(iter->type.elements == ~0U)
       {
         if(foundInfinite)
         {
           QString parentName;
 
           if(parent)
-            parentName = parent->type.descriptor.name;
+            parentName = parent->type.name;
 
           success = false;
           errors[infiniteArrayLine] = tr("Can't declare an unbounded array when child member %1 of "
@@ -1939,7 +1931,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         foundInfinite = true;
 
         if(parent && parent != &fixed)
-          infiniteArrayLine = structelems[parent->type.descriptor.name].lineMemberDefs.back();
+          infiniteArrayLine = structelems[parent->type.name].lineMemberDefs.back();
         else
           infiniteArrayLine = root.lineMemberDefs.back();
       }
@@ -1965,7 +1957,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       // if we have an unbounded array somewhere (we know there's only one, from above)
       ContainsUnbounded(fixed) &&
       // it must be in the root and it must be alone with no siblings
-      !(fixed.type.members.size() == 1 && fixed.type.members[0].type.descriptor.elements == ~0U))
+      !(fixed.type.members.size() == 1 && fixed.type.members[0].type.elements == ~0U))
   {
     errors[root.lineMemberDefs.back()] =
         tr("On D3D an unbounded array must be only be used alone as the root element.\n"
@@ -1983,7 +1975,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
     // if there's already only one root member just make it infinite
     if(fixed.type.members.size() == 1)
     {
-      fixed.type.members[0].type.descriptor.elements = ~0U;
+      fixed.type.members[0].type.elements = ~0U;
     }
     else
     {
@@ -1993,9 +1985,9 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
       ShaderConstant el;
       el.byteOffset = 0;
-      el.type.descriptor.type = VarType::Struct;
-      el.type.descriptor.elements = ~0U;
-      el.type.descriptor.arrayByteStride = fixed.type.descriptor.arrayByteStride;
+      el.type.baseType = VarType::Struct;
+      el.type.elements = ~0U;
+      el.type.arrayByteStride = fixed.type.arrayByteStride;
 
       fixed.type.members.push_back(el);
       inners.swap(fixed.type.members[0].type.members);
@@ -2005,26 +1997,26 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
   if(!success || fixed.type.members.isEmpty())
   {
     fixed.type.members.clear();
-    fixed.type.descriptor.type = VarType::Struct;
+    fixed.type.baseType = VarType::Struct;
 
     ShaderConstant el;
     el.byteOffset = 0;
-    el.type.descriptor.flags |= ShaderVariableFlags::HexDisplay;
+    el.type.flags |= ShaderVariableFlags::HexDisplay;
     el.name = "data";
-    el.type.descriptor.type = VarType::UInt;
-    el.type.descriptor.columns = 4;
-    el.type.descriptor.elements = ~0U;
+    el.type.baseType = VarType::UInt;
+    el.type.columns = 4;
+    el.type.elements = ~0U;
 
     if(maxLen > 0 && maxLen < 16)
-      el.type.descriptor.columns = 1;
+      el.type.columns = 1;
     if(maxLen > 0 && maxLen < 4)
-      el.type.descriptor.type = VarType::UByte;
+      el.type.baseType = VarType::UByte;
 
-    el.type.descriptor.arrayByteStride = el.type.descriptor.matrixByteStride =
-        el.type.descriptor.columns * VarTypeByteSize(el.type.descriptor.type);
+    el.type.arrayByteStride = el.type.matrixByteStride =
+        el.type.columns * VarTypeByteSize(el.type.baseType);
 
     fixed.type.members.push_back(el);
-    fixed.type.descriptor.arrayByteStride = el.type.descriptor.arrayByteStride;
+    fixed.type.arrayByteStride = el.type.arrayByteStride;
   }
 
   // split the struct definition we have now into fixed and repeating. We've enforced above that
@@ -2047,11 +2039,11 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         addedprefix += iter->name + ".";
 
       // we want to search the members so we can remove from the current iter
-      if(iter->type.members.back().type.descriptor.elements == ~0U)
+      if(iter->type.members.back().type.elements == ~0U)
       {
         ret.repeating = iter->type.members.back();
         ret.repeating.name = addedprefix + ret.repeating.name;
-        ret.repeating.type.descriptor.elements = 1;
+        ret.repeating.type.elements = 1;
         iter->type.members.pop_back();
         break;
       }
@@ -2195,7 +2187,7 @@ QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, const Shader
 
   if(!res.variableType.members.empty())
   {
-    QString structName = res.variableType.descriptor.name;
+    QString structName = res.variableType.name;
 
     if(structName.isEmpty())
       structName = lit("el");
@@ -2207,11 +2199,11 @@ QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, const Shader
   }
   else
   {
-    const auto &desc = res.variableType.descriptor;
+    const auto &desc = res.variableType;
 
     if(viewFormat.type == ResourceFormatType::Undefined)
     {
-      if(desc.type == VarType::Unknown)
+      if(desc.baseType == VarType::Unknown)
       {
         format = desc.name;
       }
@@ -2220,7 +2212,7 @@ QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, const Shader
         if(desc.RowMajor() && desc.rows > 1 && desc.columns > 1)
           format += lit("[[row_major]] ");
 
-        format += ToQStr(desc.type);
+        format += ToQStr(desc.baseType);
         if(desc.rows > 1 && desc.columns > 1)
           format += QFormatStr("%1x%2").arg(desc.rows).arg(desc.columns);
         else if(desc.columns > 1)
@@ -2302,8 +2294,8 @@ QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, const Shader
 
 uint32_t BufferFormatter::GetVarStraddleSize(const ShaderConstant &var)
 {
-  if(var.type.descriptor.type == VarType::Enum)
-    return var.type.descriptor.arrayByteStride;
+  if(var.type.baseType == VarType::Enum)
+    return var.type.arrayByteStride;
 
   // structs don't themselves have a straddle size
   // this is fine because the struct members itself don't straddle, and the alignment of the max of
@@ -2317,32 +2309,32 @@ uint32_t BufferFormatter::GetVarStraddleSize(const ShaderConstant &var)
   if(!var.type.members.empty())
     return 0;
 
-  if(var.type.descriptor.rows > 1)
-    return var.type.descriptor.matrixByteStride;
+  if(var.type.rows > 1)
+    return var.type.matrixByteStride;
 
-  return VarTypeByteSize(var.type.descriptor.type) * var.type.descriptor.columns;
+  return VarTypeByteSize(var.type.baseType) * var.type.columns;
 }
 
 uint32_t BufferFormatter::GetVarSizeAndTrail(const ShaderConstant &var)
 {
-  if(var.type.descriptor.elements > 1 && var.type.descriptor.elements != ~0U)
-    return var.type.descriptor.arrayByteStride * var.type.descriptor.elements;
+  if(var.type.elements > 1 && var.type.elements != ~0U)
+    return var.type.arrayByteStride * var.type.elements;
 
-  if(var.type.descriptor.type == VarType::Enum)
-    return var.type.descriptor.arrayByteStride;
+  if(var.type.baseType == VarType::Enum)
+    return var.type.arrayByteStride;
 
   if(!var.type.members.empty())
-    return var.type.descriptor.arrayByteStride;
+    return var.type.arrayByteStride;
 
-  if(var.type.descriptor.rows > 1)
+  if(var.type.rows > 1)
   {
-    if(var.type.descriptor.RowMajor())
-      return var.type.descriptor.matrixByteStride * var.type.descriptor.rows;
+    if(var.type.RowMajor())
+      return var.type.matrixByteStride * var.type.rows;
     else
-      return var.type.descriptor.matrixByteStride * var.type.descriptor.columns;
+      return var.type.matrixByteStride * var.type.columns;
   }
 
-  return VarTypeByteSize(var.type.descriptor.type) * var.type.descriptor.columns;
+  return VarTypeByteSize(var.type.baseType) * var.type.columns;
 }
 
 uint32_t BufferFormatter::GetVarAdvance(Packing::Rules pack, const ShaderConstant &var)
@@ -2352,16 +2344,16 @@ uint32_t BufferFormatter::GetVarAdvance(Packing::Rules pack, const ShaderConstan
   // if we allow trailing overlap, remove the padding at the end of the struct/array
   if(pack.trailing_overlap)
   {
-    if(var.type.descriptor.type == VarType::Struct)
+    if(var.type.baseType == VarType::Struct)
     {
-      ret -= (var.type.descriptor.arrayByteStride - GetUnpaddedStructAdvance(pack, var.type.members));
+      ret -= (var.type.arrayByteStride - GetUnpaddedStructAdvance(pack, var.type.members));
     }
-    else if((var.type.descriptor.elements > 1 || var.type.descriptor.rows > 1) && !pack.tight_arrays)
+    else if((var.type.elements > 1 || var.type.rows > 1) && !pack.tight_arrays)
     {
-      uint8_t vecSize = var.type.descriptor.columns;
+      uint8_t vecSize = var.type.columns;
 
-      if(var.type.descriptor.rows > 1 && var.type.descriptor.ColMajor())
-        vecSize = var.type.descriptor.rows;
+      if(var.type.rows > 1 && var.type.ColMajor())
+        vecSize = var.type.rows;
 
       uint32_t elSize = GetAlignment(pack, var);
       if(pack.vector_align_component)
@@ -2380,18 +2372,18 @@ uint32_t BufferFormatter::GetAlignment(Packing::Rules pack, const ShaderConstant
 {
   uint32_t ret = 1;
 
-  if(c.type.descriptor.type == VarType::Struct)
+  if(c.type.baseType == VarType::Struct)
   {
     for(const ShaderConstant &m : c.type.members)
       ret = std::max(ret, GetAlignment(pack, m));
   }
-  else if(c.type.descriptor.type == VarType::Enum)
+  else if(c.type.baseType == VarType::Enum)
   {
-    ret = c.type.descriptor.arrayByteStride;
+    ret = c.type.arrayByteStride;
   }
   else if(c.type.members.empty())
   {
-    uint32_t align = VarTypeByteSize(c.type.descriptor.type);
+    uint32_t align = VarTypeByteSize(c.type.baseType);
 
     // if vectors aren't component aligned we need to calculate the alignment based on the size of
     // the vectors
@@ -2399,10 +2391,10 @@ uint32_t BufferFormatter::GetAlignment(Packing::Rules pack, const ShaderConstant
     {
       // column major matrices have vectors that are 'rows' long. Everything else is vectors of
       // 'columns' long
-      uint8_t vecSize = c.type.descriptor.columns;
+      uint8_t vecSize = c.type.columns;
 
-      if(c.type.descriptor.rows > 1 && c.type.descriptor.ColMajor())
-        vecSize = c.type.descriptor.rows;
+      if(c.type.rows > 1 && c.type.ColMajor())
+        vecSize = c.type.rows;
 
       // 3- and 4- vectors are 4-component aligned
       if(vecSize >= 3)
@@ -2430,11 +2422,10 @@ uint32_t BufferFormatter::GetUnpaddedStructAdvance(Packing::Rules pack,
   const ShaderConstant *lastChild = &members.back();
 
   lastMemberStart += lastChild->byteOffset;
-  while(lastChild->type.descriptor.type != VarType::Enum && !lastChild->type.members.isEmpty())
+  while(lastChild->type.baseType != VarType::Enum && !lastChild->type.members.isEmpty())
   {
-    if(lastChild->type.descriptor.elements != ~0U)
-      lastMemberStart += (qMax(lastChild->type.descriptor.elements, 1U) - 1) *
-                         lastChild->type.descriptor.arrayByteStride;
+    if(lastChild->type.elements != ~0U)
+      lastMemberStart += (qMax(lastChild->type.elements, 1U) - 1) * lastChild->type.arrayByteStride;
     lastChild = &lastChild->type.members.back();
     lastMemberStart += lastChild->byteOffset;
   }
@@ -2474,9 +2465,8 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
     }
 
     // if we don't have tight arrays, arrays and structs begin at 16-byte boundaries
-    if(!pack.tight_arrays &&
-       (members[i].type.descriptor.type == VarType::Struct ||
-        members[i].type.descriptor.elements > 1 || members[i].type.descriptor.rows > 1))
+    if(!pack.tight_arrays && (members[i].type.baseType == VarType::Struct ||
+                              members[i].type.elements > 1 || members[i].type.rows > 1))
     {
       offset = AlignUp(offset, 16U);
     }
@@ -2493,22 +2483,22 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
     offset += GetVarAdvance(pack, members[i]);
 
     QString arraySize;
-    if(members[i].type.descriptor.elements > 1)
+    if(members[i].type.elements > 1)
     {
-      if(members[i].type.descriptor.elements != ~0U)
-        arraySize = QFormatStr("[%1]").arg(members[i].type.descriptor.elements);
+      if(members[i].type.elements != ~0U)
+        arraySize = QFormatStr("[%1]").arg(members[i].type.elements);
       else
         arraySize = lit("[]");
     }
 
-    QString varTypeName = members[i].type.descriptor.name;
+    QString varTypeName = members[i].type.name;
 
-    if(members[i].type.descriptor.pointerTypeID != ~0U)
+    if(members[i].type.pointerTypeID != ~0U)
     {
       const ShaderConstantType &pointeeType =
-          PointerTypeRegistry::GetTypeDescriptor(members[i].type.descriptor.pointerTypeID);
+          PointerTypeRegistry::GetTypeDescriptor(members[i].type.pointerTypeID);
 
-      varTypeName = pointeeType.descriptor.name;
+      varTypeName = pointeeType.name;
 
       varTypeName =
           varTypeName.replace(QLatin1Char('['), QLatin1Char('_')).replace(QLatin1Char(']'), QString());
@@ -2517,13 +2507,13 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
       {
         declaredStructs.push_back(varTypeName);
         declarations += DeclareStruct(pack, declaredStructs, varTypeName, pointeeType.members,
-                                      pointeeType.descriptor.arrayByteStride, QString()) +
+                                      pointeeType.arrayByteStride, QString()) +
                         lit("\n");
       }
 
       varTypeName += lit("*");
     }
-    else if(members[i].type.descriptor.type == VarType::Struct)
+    else if(members[i].type.baseType == VarType::Struct)
     {
       // GL structs don't give us typenames (boo!) so give them unique names. This will mean some
       // structs get duplicated if they're used in multiple places, but not much we can do about
@@ -2538,7 +2528,7 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
       {
         declaredStructs.push_back(varTypeName);
         declarations += DeclareStruct(pack, declaredStructs, varTypeName, members[i].type.members,
-                                      members[i].type.descriptor.arrayByteStride, QString()) +
+                                      members[i].type.arrayByteStride, QString()) +
                         lit("\n");
       }
     }
@@ -2552,26 +2542,26 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
       varName =
           varName.replace(QLatin1Char('['), QLatin1Char('_')).replace(QLatin1Char(']'), QString());
 
-    if(members[i].type.descriptor.rows > 1)
+    if(members[i].type.rows > 1)
     {
-      if(members[i].type.descriptor.RowMajor())
+      if(members[i].type.RowMajor())
         varTypeName = lit("[[row_major]] ") + varTypeName;
 
       uint32_t stride = GetAlignment(pack, members[i]);
 
       if(pack.vector_align_component)
       {
-        if(members[i].type.descriptor.RowMajor())
-          stride *= members[i].type.descriptor.columns;
+        if(members[i].type.RowMajor())
+          stride *= members[i].type.columns;
         else
-          stride *= members[i].type.descriptor.rows;
+          stride *= members[i].type.rows;
       }
 
       if(!pack.tight_arrays)
         stride = 16;
 
-      if(stride != members[i].type.descriptor.matrixByteStride)
-        ret += lit("// unexpected matrix stride %1").arg(members[i].type.descriptor.matrixByteStride);
+      if(stride != members[i].type.matrixByteStride)
+        ret += lit("// unexpected matrix stride %1").arg(members[i].type.matrixByteStride);
     }
 
     ret += QFormatStr("    %1 %2%3;\n").arg(varTypeName).arg(varName).arg(arraySize);
@@ -2614,27 +2604,27 @@ ResourceFormat GetInterpretedResourceFormat(const ShaderConstant &elem)
   ResourceFormat format;
   format.type = ResourceFormatType::Regular;
 
-  if(elem.type.descriptor.flags & ShaderVariableFlags::R10G10B10A2)
+  if(elem.type.flags & ShaderVariableFlags::R10G10B10A2)
     format.type = ResourceFormatType::R10G10B10A2;
-  else if(elem.type.descriptor.flags & ShaderVariableFlags::R11G11B10)
+  else if(elem.type.flags & ShaderVariableFlags::R11G11B10)
     format.type = ResourceFormatType::R11G11B10;
 
-  format.compType = VarTypeCompType(elem.type.descriptor.type);
+  format.compType = VarTypeCompType(elem.type.baseType);
 
-  if(elem.type.descriptor.flags & ShaderVariableFlags::UNorm)
+  if(elem.type.flags & ShaderVariableFlags::UNorm)
     format.compType = CompType::UNorm;
-  else if(elem.type.descriptor.flags & ShaderVariableFlags::SNorm)
+  else if(elem.type.flags & ShaderVariableFlags::SNorm)
     format.compType = CompType::SNorm;
 
-  format.compByteWidth = VarTypeByteSize(elem.type.descriptor.type);
+  format.compByteWidth = VarTypeByteSize(elem.type.baseType);
 
-  if(elem.type.descriptor.type == VarType::Enum)
-    format.compByteWidth = elem.type.descriptor.arrayByteStride;
+  if(elem.type.baseType == VarType::Enum)
+    format.compByteWidth = elem.type.arrayByteStride;
 
-  if(elem.type.descriptor.RowMajor() || elem.type.descriptor.rows == 1)
-    format.compCount = elem.type.descriptor.columns;
+  if(elem.type.RowMajor() || elem.type.rows == 1)
+    format.compCount = elem.type.columns;
   else
-    format.compCount = elem.type.descriptor.rows;
+    format.compCount = elem.type.rows;
 
   return format;
 }
@@ -2644,12 +2634,12 @@ static void FillShaderVarData(ShaderVariable &var, const ShaderConstant &elem, c
 {
   int src = 0;
 
-  uint32_t outerCount = elem.type.descriptor.rows;
-  uint32_t innerCount = elem.type.descriptor.columns;
+  uint32_t outerCount = elem.type.rows;
+  uint32_t innerCount = elem.type.columns;
 
   bool colMajor = false;
 
-  if(elem.type.descriptor.ColMajor() && outerCount > 1)
+  if(elem.type.ColMajor() && outerCount > 1)
   {
     colMajor = true;
     std::swap(outerCount, innerCount);
@@ -2717,21 +2707,21 @@ ShaderVariable InterpretShaderVar(const ShaderConstant &elem, const byte *data, 
   ShaderVariable ret;
 
   ret.name = elem.name;
-  ret.type = elem.type.descriptor.type;
-  ret.columns = qMin(elem.type.descriptor.columns, uint8_t(4));
-  ret.rows = qMin(elem.type.descriptor.rows, uint8_t(4));
+  ret.type = elem.type.baseType;
+  ret.columns = qMin(elem.type.columns, uint8_t(4));
+  ret.rows = qMin(elem.type.rows, uint8_t(4));
 
-  ret.flags = elem.type.descriptor.flags;
+  ret.flags = elem.type.flags;
 
-  if(elem.type.descriptor.type != VarType::Enum && !elem.type.members.isEmpty())
+  if(elem.type.baseType != VarType::Enum && !elem.type.members.isEmpty())
   {
     ret.rows = ret.columns = 0;
 
-    if(elem.type.descriptor.elements > 1 && elem.type.descriptor.elements != ~0U)
+    if(elem.type.elements > 1 && elem.type.elements != ~0U)
     {
       rdcarray<ShaderVariable> arrayElements;
 
-      for(uint32_t a = 0; a < elem.type.descriptor.elements; a++)
+      for(uint32_t a = 0; a < elem.type.elements; a++)
       {
         rdcarray<ShaderVariable> members;
 
@@ -2746,7 +2736,7 @@ ShaderVariable InterpretShaderVar(const ShaderConstant &elem, const byte *data, 
         arrayElements.back().name = QFormatStr("%1[%2]").arg(ret.name).arg(a);
         arrayElements.back().members = members;
 
-        data += elem.type.descriptor.arrayByteStride;
+        data += elem.type.arrayByteStride;
       }
 
       ret.members = arrayElements;
@@ -2765,19 +2755,19 @@ ShaderVariable InterpretShaderVar(const ShaderConstant &elem, const byte *data, 
       ret.members = members;
     }
   }
-  else if(elem.type.descriptor.type == VarType::Struct && elem.type.members.isEmpty())
+  else if(elem.type.baseType == VarType::Struct && elem.type.members.isEmpty())
   {
   }
-  else if(elem.type.descriptor.elements > 1 && elem.type.descriptor.elements != ~0U)
+  else if(elem.type.elements > 1 && elem.type.elements != ~0U)
   {
     rdcarray<ShaderVariable> arrayElements;
 
-    for(uint32_t a = 0; a < elem.type.descriptor.elements; a++)
+    for(uint32_t a = 0; a < elem.type.elements; a++)
     {
       arrayElements.push_back(ret);
       arrayElements.back().name = QFormatStr("%1[%2]").arg(ret.name).arg(a);
       FillShaderVarData(arrayElements.back(), elem, data, end);
-      data += elem.type.descriptor.arrayByteStride;
+      data += elem.type.arrayByteStride;
     }
 
     ret.rows = ret.columns = 0;
@@ -2894,7 +2884,7 @@ inline T readObj(const byte *&data, const byte *end, bool &ok)
 QVariantList GetVariants(ResourceFormat format, const ShaderConstant &var, const byte *&data,
                          const byte *end)
 {
-  const ShaderConstantDescriptor &varDesc = var.type.descriptor;
+  const ShaderConstantType &varType = var.type;
 
   QVariantList ret;
 
@@ -3100,17 +3090,17 @@ QVariantList GetVariants(ResourceFormat format, const ShaderConstant &var, const
   {
     const byte *base = data;
 
-    uint32_t rowCount = varDesc.rows;
-    uint32_t colCount = varDesc.columns;
+    uint32_t rowCount = varType.rows;
+    uint32_t colCount = varType.columns;
 
     for(uint32_t row = 0; row < qMax(rowCount, 1U); row++)
     {
       for(uint32_t col = 0; col < qMax(colCount, 1U); col++)
       {
-        if(varDesc.RowMajor() || rowCount == 1)
-          data = base + row * varDesc.matrixByteStride + col * format.compByteWidth;
+        if(varType.RowMajor() || rowCount == 1)
+          data = base + row * varType.matrixByteStride + col * format.compByteWidth;
         else
-          data = base + col * varDesc.matrixByteStride + row * format.compByteWidth;
+          data = base + col * varType.matrixByteStride + row * format.compByteWidth;
 
         if(format.compType == CompType::Float)
         {
@@ -3222,12 +3212,12 @@ QVariantList GetVariants(ResourceFormat format, const ShaderConstant &var, const
               ret.push_back(uint8_t(val));
           }
 
-          if(var.type.descriptor.type == VarType::Enum)
+          if(var.type.baseType == VarType::Enum)
           {
             uint64_t val = ret.back().toULongLong();
 
             QString str = QApplication::translate("BufferFormatter", "Unknown %1 (%2)")
-                              .arg(QString(var.type.descriptor.name))
+                              .arg(QString(var.type.name))
                               .arg(val);
 
             for(size_t i = 0; i < var.type.members.size(); i++)
@@ -3336,7 +3326,7 @@ QString TypeString(const ShaderVariable &v)
   }
 
   if(v.type == VarType::GPUPointer)
-    return PointerTypeRegistry::GetTypeDescriptor(v.GetPointer()).descriptor.name + "*";
+    return PointerTypeRegistry::GetTypeDescriptor(v.GetPointer()).name + "*";
 
   QString typeStr = ToQStr(v.type);
 
@@ -3521,7 +3511,7 @@ QString RowTypeString(const ShaderVariable &v)
     return lit("-");
 
   if(v.type == VarType::GPUPointer)
-    return PointerTypeRegistry::GetTypeDescriptor(v.GetPointer()).descriptor.name + "*";
+    return PointerTypeRegistry::GetTypeDescriptor(v.GetPointer()).name + "*";
 
   QString typeStr = ToQStr(v.type);
 

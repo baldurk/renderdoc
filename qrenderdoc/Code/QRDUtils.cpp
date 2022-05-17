@@ -86,7 +86,7 @@ void PointerTypeRegistry::Init()
 
   // type ID 0 is reserved as a NULL/empty descriptor
   typeDescriptions.resize(1);
-  typeDescriptions[0].descriptor.name = "<Unknown>";
+  typeDescriptions[0].name = "<Unknown>";
 }
 
 uint32_t PointerTypeRegistry::GetTypeID(ResourceId shader, uint32_t pointerTypeId)
@@ -120,9 +120,9 @@ const ShaderConstantType &PointerTypeRegistry::GetTypeDescriptor(uint32_t typeId
 void PointerTypeRegistry::CacheSubTypes(const ShaderReflection *reflection,
                                         ShaderConstantType &structDef)
 {
-  if((structDef.descriptor.pointerTypeID & TypeIDBit) == 0)
-    structDef.descriptor.pointerTypeID =
-        PointerTypeRegistry::GetTypeID(reflection->pointerTypes[structDef.descriptor.pointerTypeID]);
+  if((structDef.pointerTypeID & TypeIDBit) == 0)
+    structDef.pointerTypeID =
+        PointerTypeRegistry::GetTypeID(reflection->pointerTypes[structDef.pointerTypeID]);
 
   for(ShaderConstant &member : structDef.members)
     CacheSubTypes(reflection, member.type);
@@ -1070,8 +1070,8 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
 
           if(!ptrType.members.isEmpty())
             formatter = BufferFormatter::DeclareStruct(
-                BufferFormatter::EstimatePackingRules(ptrType.members), ptrType.descriptor.name,
-                ptrType.members, ptrType.descriptor.arrayByteStride);
+                BufferFormatter::EstimatePackingRules(ptrType.members), ptrType.name,
+                ptrType.members, ptrType.arrayByteStride);
 
           IBufferViewer *view = ctx.ViewBuffer(ptr->offset, ~0ULL, ptr->base, formatter);
 

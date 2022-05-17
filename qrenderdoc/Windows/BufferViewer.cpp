@@ -788,8 +788,8 @@ static QString interpretVariant(const QVariant &v, const ShaderConstant &el,
       memcpy(&u, &f, sizeof(f));
     }
 
-    const bool hexDisplay = bool(el.type.descriptor.flags & ShaderVariableFlags::HexDisplay);
-    const bool binDisplay = bool(el.type.descriptor.flags & ShaderVariableFlags::BinaryDisplay);
+    const bool hexDisplay = bool(el.type.flags & ShaderVariableFlags::HexDisplay);
+    const bool binDisplay = bool(el.type.flags & ShaderVariableFlags::BinaryDisplay);
 
     if(hexDisplay && prop.format.type == ResourceFormatType::Regular)
       ret = Formatter::HexFormat(u, prop.format.compByteWidth);
@@ -815,8 +815,8 @@ static QString interpretVariant(const QVariant &v, const ShaderConstant &el,
   }
   else if(vt == QMetaType::ULongLong)
   {
-    const bool hexDisplay = bool(el.type.descriptor.flags & ShaderVariableFlags::HexDisplay);
-    const bool binDisplay = bool(el.type.descriptor.flags & ShaderVariableFlags::BinaryDisplay);
+    const bool hexDisplay = bool(el.type.flags & ShaderVariableFlags::HexDisplay);
+    const bool binDisplay = bool(el.type.flags & ShaderVariableFlags::BinaryDisplay);
 
     if(binDisplay)
       ret = Formatter::BinFormat((uint64_t)v.toULongLong(), 8);
@@ -919,7 +919,7 @@ public:
         {
           const ShaderConstant &el = elementForColumn(section);
 
-          if(el.type.descriptor.columns == 1 || role == columnGroupRole)
+          if(el.type.columns == 1 || role == columnGroupRole)
             return el.name;
 
           QChar comps[] = {QLatin1Char('x'), QLatin1Char('y'), QLatin1Char('z'), QLatin1Char('w')};
@@ -1030,8 +1030,7 @@ public:
           const ShaderConstant &el = elementForColumn(col);
           const BufferElementProperties &prop = propForColumn(col);
 
-          if((el.type.descriptor.flags & ShaderVariableFlags::RGBDisplay) &&
-             prop.buffer < config.buffers.size())
+          if((el.type.flags & ShaderVariableFlags::RGBDisplay) && prop.buffer < config.buffers.size())
           {
             const byte *data = config.buffers[prop.buffer]->data();
             const byte *end = config.buffers[prop.buffer]->end();
@@ -1204,18 +1203,18 @@ public:
 
             if(comp < list.count())
             {
-              uint32_t rowdim = el.type.descriptor.rows;
-              uint32_t coldim = el.type.descriptor.columns;
+              uint32_t rowdim = el.type.rows;
+              uint32_t coldim = el.type.columns;
 
               if(rowdim == 1)
               {
                 QVariant v = list[comp];
 
-                if(el.type.descriptor.pointerTypeID != ~0U)
+                if(el.type.pointerTypeID != ~0U)
                 {
                   PointerVal ptr;
                   ptr.pointer = v.toULongLong();
-                  ptr.pointerTypeID = el.type.descriptor.pointerTypeID;
+                  ptr.pointerTypeID = el.type.pointerTypeID;
                   v = ToQStr(ptr);
                 }
 
@@ -1393,7 +1392,7 @@ private:
 
     for(int i = 0; i < config.columns.count(); i++)
     {
-      uint32_t columnCount = config.columns[i].type.descriptor.columns;
+      uint32_t columnCount = config.columns[i].type.columns;
 
       for(uint32_t c = 0; c < columnCount; c++)
       {
@@ -1493,9 +1492,9 @@ void CacheDataForIteration(QVector<CachedElData> &cache, const rdcarray<ShaderCo
     d.el = &el;
     d.prop = &prop;
 
-    d.byteSize = el.type.descriptor.arrayByteStride;
+    d.byteSize = el.type.arrayByteStride;
     d.nulls = QByteArray(d.byteSize, '\0');
-    d.numColumns = el.type.descriptor.columns;
+    d.numColumns = el.type.columns;
 
     if(prop.instancerate > 0)
       d.instIdx = inst / prop.instancerate;
@@ -1534,8 +1533,8 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
     BufferElementProperties p;
 
     f.name = !sig.varName.isEmpty() ? sig.varName : sig.semanticIdxName;
-    f.type.descriptor.rows = 1;
-    f.type.descriptor.columns = sig.compCount;
+    f.type.rows = 1;
+    f.type.columns = sig.compCount;
 
     p.buffer = 0;
     p.perinstance = false;
@@ -1546,7 +1545,7 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
     p.format.compCount = sig.compCount;
     p.format.compType = VarTypeCompType(sig.varType);
 
-    f.type.descriptor.arrayByteStride = p.format.compByteWidth * p.format.compCount;
+    f.type.arrayByteStride = p.format.compByteWidth * p.format.compCount;
 
     if(sig.systemValue == ShaderBuiltin::Position)
       posidx = i;
@@ -1572,7 +1571,7 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
     BufferElementProperties &prop = props[i];
     ShaderConstant &el = columns[i];
 
-    uint numComps = el.type.descriptor.columns;
+    uint numComps = el.type.columns;
     uint elemSize = prop.format.compByteWidth > 4 ? 8U : 4U;
 
     if(ctx.CurPipelineState().HasAlignedPostVSData(
@@ -1613,8 +1612,8 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
 
     ShaderConstant f;
     f.name = "ERROR";
-    f.type.descriptor.columns = 1;
-    f.type.descriptor.rows = 1;
+    f.type.columns = 1;
+    f.type.rows = 1;
 
     BufferElementProperties p;
     p.format.type = ResourceFormatType::Regular;
@@ -1652,9 +1651,9 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
     ShaderConstant f;
     f.name = a.name;
     f.byteOffset = a.byteOffset;
-    f.type.descriptor.columns = a.format.compCount;
-    f.type.descriptor.rows = 1;
-    f.type.descriptor.arrayByteStride = f.type.descriptor.matrixByteStride = a.format.ElementSize();
+    f.type.columns = a.format.compCount;
+    f.type.rows = 1;
+    f.type.arrayByteStride = f.type.matrixByteStride = a.format.ElementSize();
 
     BufferElementProperties p;
     p.buffer = a.vertexBuffer;
@@ -2040,9 +2039,9 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
 
 static int MaxNumRows(const ShaderConstant &c)
 {
-  int ret = c.type.descriptor.rows;
+  int ret = c.type.rows;
 
-  if(c.type.descriptor.type != VarType::Enum)
+  if(c.type.baseType != VarType::Enum)
   {
     for(const ShaderConstant &child : c.type.members)
       ret = qMax(ret, MaxNumRows(child));
@@ -2055,14 +2054,14 @@ static void UnrollConstant(rdcstr prefix, uint32_t baseOffset, const ShaderConst
                            rdcarray<ShaderConstant> &columns,
                            rdcarray<BufferElementProperties> &props)
 {
-  bool isArray = constant.type.descriptor.elements > 1;
+  bool isArray = constant.type.elements > 1;
 
   rdcstr baseName = constant.name;
 
   if(!prefix.isEmpty())
     baseName = prefix + "." + baseName;
 
-  if(constant.type.descriptor.type == VarType::Enum || constant.type.members.isEmpty())
+  if(constant.type.baseType == VarType::Enum || constant.type.members.isEmpty())
   {
     BufferElementProperties prop;
     prop.format = GetInterpretedResourceFormat(constant);
@@ -2072,12 +2071,12 @@ static void UnrollConstant(rdcstr prefix, uint32_t baseOffset, const ShaderConst
 
     if(isArray)
     {
-      for(uint32_t a = 0; a < constant.type.descriptor.elements; a++)
+      for(uint32_t a = 0; a < constant.type.elements; a++)
       {
         c.name = QFormatStr("%1[%2]").arg(baseName).arg(a);
         columns.push_back(c);
         props.push_back(prop);
-        c.byteOffset += constant.type.descriptor.arrayByteStride;
+        c.byteOffset += constant.type.arrayByteStride;
       }
     }
     else
@@ -2091,7 +2090,7 @@ static void UnrollConstant(rdcstr prefix, uint32_t baseOffset, const ShaderConst
   }
 
   // struct, expand by members
-  uint32_t arraySize = qMax(1U, constant.type.descriptor.elements);
+  uint32_t arraySize = qMax(1U, constant.type.elements);
   if(arraySize == ~0U)
     arraySize = 1U;
   for(uint32_t a = 0; a < arraySize; a++)
@@ -2099,8 +2098,8 @@ static void UnrollConstant(rdcstr prefix, uint32_t baseOffset, const ShaderConst
     for(const ShaderConstant &child : constant.type.members)
     {
       UnrollConstant(isArray ? QFormatStr("%1[%2]").arg(baseName).arg(a) : QString(baseName),
-                     baseOffset + constant.byteOffset + a * constant.type.descriptor.arrayByteStride,
-                     child, columns, props);
+                     baseOffset + constant.byteOffset + a * constant.type.arrayByteStride, child,
+                     columns, props);
     }
   }
 }
@@ -2576,8 +2575,7 @@ void BufferViewer::meshHeaderMenu(MeshDataStage stage, const QPoint &pos)
   m_CurFixed = false;
   m_ContextColumn = modelForStage(stage)->elementIndexForColumn(col);
 
-  m_SelectSecondAlphaColumn->setEnabled(
-      modelForStage(stage)->elementForColumn(col).type.descriptor.columns == 4);
+  m_SelectSecondAlphaColumn->setEnabled(modelForStage(stage)->elementForColumn(col).type.columns == 4);
 
   m_HeaderMenu->popup(tableForStage(stage)->horizontalHeader()->mapToGlobal(pos));
 }
@@ -2899,9 +2897,9 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
     bufdata->vsinConfig.fixedVars = parsed.fixed;
     bufdata->vsinConfig.packing = parsed.packing;
 
-    if(parsed.repeating.type.descriptor.type != VarType::Unknown)
+    if(parsed.repeating.type.baseType != VarType::Unknown)
     {
-      bufdata->vsinConfig.repeatStride = parsed.repeating.type.descriptor.arrayByteStride;
+      bufdata->vsinConfig.repeatStride = parsed.repeating.type.arrayByteStride;
       bufdata->vsinConfig.repeatOffset = parsed.repeating.byteOffset;
 
       UnrollConstant(parsed.repeating, bufdata->vsinConfig.columns, bufdata->vsinConfig.props);
@@ -3372,9 +3370,9 @@ void BufferViewer::UI_FixedAddMatrixRows(RDTreeWidgetItem *n, const ShaderConsta
       n->addChild(new RDTreeWidgetItem({QFormatStr("%1.row%2").arg(v.name).arg(r), RowString(v, r),
                                         QString(), RowTypeString(v)}));
 
-      if(showPadding && v.RowMajor() && c.type.descriptor.matrixByteStride > vecSize)
+      if(showPadding && v.RowMajor() && c.type.matrixByteStride > vecSize)
       {
-        uint32_t size = c.type.descriptor.matrixByteStride - vecSize;
+        uint32_t size = c.type.matrixByteStride - vecSize;
 
         RDTreeWidgetItem *pad = new RDTreeWidgetItem(
             {tr(""), QFormatStr("%1 bytes").arg(size), QString(), tr("Padding")});
@@ -3386,9 +3384,9 @@ void BufferViewer::UI_FixedAddMatrixRows(RDTreeWidgetItem *n, const ShaderConsta
       }
     }
 
-    if(showPadding && v.ColMajor() && c.type.descriptor.matrixByteStride > vecSize)
+    if(showPadding && v.ColMajor() && c.type.matrixByteStride > vecSize)
     {
-      uint32_t size = c.type.descriptor.matrixByteStride - vecSize;
+      uint32_t size = c.type.matrixByteStride - vecSize;
 
       RDTreeWidgetItem *pad = new RDTreeWidgetItem(
           {tr(""), QFormatStr("%1 bytes each column").arg(size), QString(), tr("Padding")});
@@ -3443,17 +3441,17 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
 
     // if it's an array the value (v) will be expanded with one element in each of v.members, but
     // the constant (c) will just have the type with a number of elements
-    if(c.type.descriptor.elements > 1)
+    if(c.type.elements > 1)
     {
       ShaderConstant noarray = c;
-      noarray.type.descriptor.elements = 1;
+      noarray.type.elements = 1;
 
       // calculate the tight scalar-packed advance, so we can detect padding
       uint32_t elSize = BufferFormatter::GetVarAdvance(Packing::Scalar, noarray);
 
       for(uint32_t e = 0; e < v.members.size(); e++)
       {
-        const uint32_t elOffset = baseOffset + c.byteOffset + c.type.descriptor.arrayByteStride * e;
+        const uint32_t elOffset = baseOffset + c.byteOffset + c.type.arrayByteStride * e;
 
         RDTreeWidgetItem *el = new RDTreeWidgetItem(
             {v.members[e].name, VarString(v.members[e]), elOffset, TypeString(v.members[e])});
@@ -3462,7 +3460,7 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
 
         // if it's an array of structs we can recurse, just need to do the outer iteration here
         // because v.members[...].members will be the actual struct members because of the expansion
-        if(c.type.descriptor.type == VarType::Struct)
+        if(c.type.baseType == VarType::Struct)
         {
           UI_AddFixedVariables(el, elOffset, c.type.members, v.members[e].members);
         }
@@ -3477,12 +3475,12 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
 
         // don't count the padding in the last struct in an array of structs, it will be handled as
         // padding after the array
-        if(c.type.descriptor.type == VarType::Struct && e + 1 == v.members.size())
+        if(c.type.baseType == VarType::Struct && e + 1 == v.members.size())
           break;
 
-        if(showPadding && c.type.descriptor.arrayByteStride > elSize)
+        if(showPadding && c.type.arrayByteStride > elSize)
         {
-          uint32_t size = c.type.descriptor.arrayByteStride - elSize;
+          uint32_t size = c.type.arrayByteStride - elSize;
 
           RDTreeWidgetItem *pad = new RDTreeWidgetItem(
               {QString(), QFormatStr("%1 bytes").arg(size), QString(), tr("Padding")});
@@ -3531,11 +3529,11 @@ void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
     {
       FloatVector maxvec(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX);
 
-      if(s.columns[i].type.descriptor.columns == 1)
+      if(s.columns[i].type.columns == 1)
         maxvec.y = maxvec.z = maxvec.w = 0.0;
-      else if(s.columns[i].type.descriptor.columns == 2)
+      else if(s.columns[i].type.columns == 2)
         maxvec.z = maxvec.w = 0.0;
-      else if(s.columns[i].type.descriptor.columns == 3)
+      else if(s.columns[i].type.columns == 3)
         maxvec.w = 0.0;
 
       minOutputList.push_back(maxvec);
@@ -3635,7 +3633,7 @@ void BufferViewer::UI_UpdateBoundingBoxLabels(int compCount)
       int posEl = model->posColumn();
       if(posEl >= 0 && posEl < model->getConfig().columns.count())
       {
-        compCount = model->getConfig().columns[posEl].type.descriptor.columns;
+        compCount = model->getConfig().columns[posEl].type.columns;
       }
     }
   }
@@ -3848,7 +3846,7 @@ void BufferViewer::UI_CalculateMeshFormats()
       m_PostVSPosition = m_PostVS;
       m_PostVSPosition.vertexByteOffset += el.byteOffset;
       m_PostVSPosition.unproject = prop.systemValue == ShaderBuiltin::Position;
-      m_PostVSPosition.format.compCount = el.type.descriptor.columns;
+      m_PostVSPosition.format.compCount = el.type.columns;
 
       // if geometry/tessellation is enabled, don't unproject VS output data
       if(m_Ctx.CurPipelineState().GetShader(ShaderStage::Tess_Eval) != ResourceId() ||
@@ -4021,7 +4019,7 @@ void BufferViewer::UpdateCurrentMeshConfig()
       m_Config.maxBounds = bbox.bounds[stage].Max[posEl];
       m_Config.showBBox = !isCurrentRasterOut();
 
-      int compCount = model->getConfig().columns[posEl].type.descriptor.columns;
+      int compCount = model->getConfig().columns[posEl].type.columns;
 
       UI_UpdateBoundingBoxLabels(compCount);
     }
@@ -4652,15 +4650,15 @@ void BufferViewer::CalcColumnWidth(int maxNumRows)
   ShaderConstant elem;
   elem.name = headerText;
   elem.byteOffset = 0;
-  elem.type.descriptor.rows = maxNumRows;
-  elem.type.descriptor.columns = 1;
+  elem.type.rows = maxNumRows;
+  elem.type.columns = 1;
 
   bufconfig.columns.clear();
 
   bufconfig.columns.push_back(elem);
   bufconfig.props.push_back(floatProp);
 
-  elem.type.descriptor.rows = 1;
+  elem.type.rows = 1;
   elem.byteOffset = 4;
 
   bufconfig.columns.push_back(elem);
@@ -4963,7 +4961,7 @@ void BufferViewer::processFormat(const QString &format)
     parsed = BufferFormatter::ParseFormatString(format, m_ByteSize, IsCBufferView());
   }
 
-  const bool repeatedVars = parsed.repeating.type.descriptor.type != VarType::Unknown;
+  const bool repeatedVars = parsed.repeating.type.baseType != VarType::Unknown;
   const bool fixedVars = !parsed.fixed.type.members.empty();
 
   if(fixedVars && repeatedVars)
@@ -5075,7 +5073,7 @@ void BufferViewer::processFormat(const QString &format)
   }
   else
   {
-    qulonglong stride = qMax(1U, parsed.repeating.type.descriptor.arrayByteStride);
+    qulonglong stride = qMax(1U, parsed.repeating.type.arrayByteStride);
 
     byteRangeStart->setSingleStep(stride);
     byteRangeLength->setSingleStep(stride);

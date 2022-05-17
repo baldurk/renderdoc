@@ -920,25 +920,25 @@ DECLARE_REFLECTION_STRUCT(SigParameter);
 
 struct ShaderConstant;
 
-DOCUMENT("Describes the storage characteristics for a basic :class:`ShaderConstant` in memory.");
-struct ShaderConstantDescriptor
+DOCUMENT("Describes the type and members of a :class:`ShaderConstant`.");
+struct ShaderConstantType
 {
   DOCUMENT("");
-  ShaderConstantDescriptor() = default;
-  ShaderConstantDescriptor(const ShaderConstantDescriptor &) = default;
-  ShaderConstantDescriptor &operator=(const ShaderConstantDescriptor &) = default;
+  ShaderConstantType() = default;
+  ShaderConstantType(const ShaderConstantType &) = default;
+  ShaderConstantType &operator=(const ShaderConstantType &) = default;
 
-  bool operator==(const ShaderConstantDescriptor &o) const
+  bool operator==(const ShaderConstantType &o) const
   {
-    return type == o.type && rows == o.rows && columns == o.columns && flags == o.flags &&
+    return baseType == o.baseType && rows == o.rows && columns == o.columns && flags == o.flags &&
            elements == o.elements && arrayByteStride == o.arrayByteStride &&
            matrixByteStride == o.matrixByteStride && pointerTypeID == o.pointerTypeID &&
-           name == o.name;
+           name == o.name && members == o.members;
   }
-  bool operator<(const ShaderConstantDescriptor &o) const
+  bool operator<(const ShaderConstantType &o) const
   {
-    if(!(type == o.type))
-      return type < o.type;
+    if(!(baseType == o.baseType))
+      return baseType < o.baseType;
     if(!(rows == o.rows))
       return rows < o.rows;
     if(!(columns == o.columns))
@@ -953,29 +953,36 @@ struct ShaderConstantDescriptor
       return matrixByteStride < o.matrixByteStride;
     if(!(name == o.name))
       return name < o.name;
+    if(!(members == o.members))
+      return members < o.members;
     return false;
   }
   DOCUMENT("The name of the type of this constant, e.g. a ``struct`` name.");
   rdcstr name;
+  DOCUMENT(R"(Any members that this constant may contain.
+
+:type: List[ShaderConstant]
+)");
+  rdcarray<ShaderConstant> members;
+  DOCUMENT(R"(The flags controlling how this constant is interpreted and displayed.
+
+:type: ShaderVariableFlags
+)");
+  ShaderVariableFlags flags = ShaderVariableFlags::NoFlags;
   DOCUMENT("The index in :data:`ShaderReflection.pointerTypes` of the pointee type.");
   uint32_t pointerTypeID = ~0U;
   DOCUMENT("The number of elements in the array, or 1 if it's not an array.");
   uint32_t elements = 1;
   DOCUMENT("The number of bytes between the start of one element in the array and the next.");
   uint32_t arrayByteStride = 0;
-  DOCUMENT("The :class:`VarType` that this basic constant stores.");
-  VarType type = VarType::Unknown;
+  DOCUMENT("The base :class:`VarType` of this constant.");
+  VarType baseType = VarType::Unknown;
   DOCUMENT("The number of rows in this matrix.");
   uint8_t rows = 1;
   DOCUMENT("The number of columns in this matrix.");
   uint8_t columns = 1;
   DOCUMENT("The number of bytes between the start of one column/row in a matrix and the next.");
   uint8_t matrixByteStride = 0;
-  DOCUMENT(R"(The flags controlling how this constant is interpreted and displayed.
-
-:type: ShaderVariableFlags
-)");
-  ShaderVariableFlags flags = ShaderVariableFlags::NoFlags;
 
   DOCUMENT(R"(Helper function for checking if :data:`flags` has
 :data:`ShaderVariableFlags.RowMajorMatrix` set. This is entirely equivalent to checking that flag
@@ -999,41 +1006,6 @@ manually, but since it is common this helper is provided.
 :rtype: Bool
 )");
   inline bool ColMajor() const { return !(flags & ShaderVariableFlags::RowMajorMatrix); }
-};
-
-DECLARE_REFLECTION_STRUCT(ShaderConstantDescriptor);
-
-DOCUMENT("Describes the type and members of a :class:`ShaderConstant`.");
-struct ShaderConstantType
-{
-  DOCUMENT("");
-  ShaderConstantType() = default;
-  ShaderConstantType(const ShaderConstantType &) = default;
-  ShaderConstantType &operator=(const ShaderConstantType &) = default;
-
-  bool operator==(const ShaderConstantType &o) const
-  {
-    return descriptor == o.descriptor && members == o.members;
-  }
-  bool operator<(const ShaderConstantType &o) const
-  {
-    if(!(descriptor == o.descriptor))
-      return descriptor < o.descriptor;
-    if(!(members == o.members))
-      return members < o.members;
-    return false;
-  }
-  DOCUMENT(R"(The description of this constant.
-
-:type: ShaderConstantDescriptor
-)");
-  ShaderConstantDescriptor descriptor;
-
-  DOCUMENT(R"(Any members that this constant may contain.
-
-:type: List[ShaderConstant]
-)");
-  rdcarray<ShaderConstant> members;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderConstantType);

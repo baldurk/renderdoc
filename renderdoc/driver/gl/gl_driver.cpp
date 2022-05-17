@@ -5464,8 +5464,8 @@ void WrappedOpenGL::AddUsage(const ActionDescription &a)
           }
           else
           {
-            if(res.variableType.descriptor.columns == 1 && res.variableType.descriptor.rows == 1 &&
-               res.variableType.descriptor.type == VarType::UInt)
+            if(res.variableType.columns == 1 && res.variableType.rows == 1 &&
+               res.variableType.baseType == VarType::UInt)
             {
               if(rs.AtomicCounter[bind].res.name)
                 m_ResourceUses[rm->GetResID(rs.AtomicCounter[bind].res)].push_back(rw);

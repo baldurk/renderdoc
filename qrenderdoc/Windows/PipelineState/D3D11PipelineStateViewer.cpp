@@ -796,10 +796,10 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
       {
         if(r.viewFormat.compType == CompType::Typeless)
         {
-          if(shaderInput->variableType.descriptor.type == VarType::Struct)
-            format = lit("struct ") + shaderInput->variableType.descriptor.name;
+          if(shaderInput->variableType.baseType == VarType::Struct)
+            format = lit("struct ") + shaderInput->variableType.name;
           else
-            format = shaderInput->variableType.descriptor.name;
+            format = shaderInput->variableType.name;
         }
         else
         {
@@ -2498,10 +2498,10 @@ QVariantList D3D11PipelineStateViewer::exportViewHTML(const D3D11Pipe::View &vie
     {
       if(view.viewFormat.compType == CompType::Typeless)
       {
-        if(shaderInput->variableType.descriptor.type == VarType::Struct)
-          viewFormat = format = lit("struct ") + shaderInput->variableType.descriptor.name;
+        if(shaderInput->variableType.baseType == VarType::Struct)
+          viewFormat = format = lit("struct ") + shaderInput->variableType.name;
         else
-          viewFormat = format = shaderInput->variableType.descriptor.name;
+          viewFormat = format = shaderInput->variableType.name;
       }
       else
       {

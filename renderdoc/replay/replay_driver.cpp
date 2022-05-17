@@ -341,7 +341,7 @@ void PatchTriangleFanRestartIndexBufer(rdcarray<uint32_t> &patchedIndices, uint3
   newIndices.swap(patchedIndices);
 }
 
-void StandardFillCBufferVariable(ResourceId shader, const ShaderConstantDescriptor &desc,
+void StandardFillCBufferVariable(ResourceId shader, const ShaderConstantType &desc,
                                  uint32_t dataOffset, const bytebuf &data, ShaderVariable &outvar,
                                  uint32_t matStride)
 {
@@ -433,13 +433,13 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
   {
     rdcstr basename = invars[v].name;
 
-    uint8_t rows = invars[v].type.descriptor.rows;
-    uint8_t cols = invars[v].type.descriptor.columns;
-    uint32_t elems = RDCMAX(1U, invars[v].type.descriptor.elements);
-    const bool rowMajor = invars[v].type.descriptor.RowMajor();
+    uint8_t rows = invars[v].type.rows;
+    uint8_t cols = invars[v].type.columns;
+    uint32_t elems = RDCMAX(1U, invars[v].type.elements);
+    const bool rowMajor = invars[v].type.RowMajor();
     const bool isArray = elems > 1;
 
-    const uint32_t matStride = invars[v].type.descriptor.matrixByteStride;
+    const uint32_t matStride = invars[v].type.matrixByteStride;
 
     uint32_t dataOffset = baseOffset + invars[v].byteOffset;
 
@@ -468,7 +468,7 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
 
           StandardFillCBufferVariables(shader, invars[v].type.members, vr.members, data, dataOffset);
 
-          dataOffset += invars[v].type.descriptor.arrayByteStride;
+          dataOffset += invars[v].type.arrayByteStride;
         }
       }
       else
@@ -487,7 +487,7 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
     outvars.push_back({});
 
     {
-      const VarType type = invars[v].type.descriptor.type;
+      const VarType type = invars[v].type.baseType;
 
       outvars[outIdx].name = basename;
       outvars[outIdx].rows = 1;
@@ -502,8 +502,8 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
       {
         outvars[outIdx].rows = rows;
 
-        StandardFillCBufferVariable(shader, invars[v].type.descriptor, dataOffset, data,
-                                    outvars[outIdx], matStride);
+        StandardFillCBufferVariable(shader, invars[v].type, dataOffset, data, outvars[outIdx],
+                                    matStride);
       }
       else
       {
@@ -527,10 +527,10 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
 
           uint32_t rowDataOffset = dataOffset;
 
-          dataOffset += invars[v].type.descriptor.arrayByteStride;
+          dataOffset += invars[v].type.arrayByteStride;
 
-          StandardFillCBufferVariable(shader, invars[v].type.descriptor, rowDataOffset, data,
-                                      varmembers[e], matStride);
+          StandardFillCBufferVariable(shader, invars[v].type, rowDataOffset, data, varmembers[e],
+                                      matStride);
         }
 
         var.members = varmembers;

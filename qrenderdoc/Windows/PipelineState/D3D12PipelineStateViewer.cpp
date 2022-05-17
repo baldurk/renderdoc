@@ -832,10 +832,10 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
       // get the buffer type, whether it's just a basic type or a complex struct
       if(shaderInput && !shaderInput->isTexture)
       {
-        if(shaderInput->variableType.descriptor.type == VarType::Struct)
-          format = lit("struct ") + shaderInput->variableType.descriptor.name;
+        if(shaderInput->variableType.baseType == VarType::Struct)
+          format = lit("struct ") + shaderInput->variableType.name;
         else if(r.viewFormat.compType == CompType::Typeless)
-          format = shaderInput->variableType.descriptor.name;
+          format = shaderInput->variableType.name;
         else
           format = r.viewFormat.Name();
       }
@@ -2584,10 +2584,10 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
     {
       if(view.viewFormat.compType == CompType::Typeless)
       {
-        if(shaderInput->variableType.descriptor.type == VarType::Struct)
-          viewFormat = format = lit("struct ") + shaderInput->variableType.descriptor.name;
+        if(shaderInput->variableType.baseType == VarType::Struct)
+          viewFormat = format = lit("struct ") + shaderInput->variableType.name;
         else
-          viewFormat = format = shaderInput->variableType.descriptor.name;
+          viewFormat = format = shaderInput->variableType.name;
       }
       else
       {
@@ -3376,9 +3376,8 @@ bool D3D12PipelineStateViewer::isByteAddress(const D3D12Pipe::View &r,
     return true;
 
   if(r.viewFormat.type == ResourceFormatType::Undefined && r.elementByteSize == 4 && shaderInput &&
-     shaderInput->variableType.descriptor.type == VarType::UByte &&
-     shaderInput->variableType.descriptor.rows == 1 &&
-     shaderInput->variableType.descriptor.columns == 1)
+     shaderInput->variableType.baseType == VarType::UByte && shaderInput->variableType.rows == 1 &&
+     shaderInput->variableType.columns == 1)
     return true;
 
   return false;

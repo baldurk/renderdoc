@@ -743,9 +743,9 @@ void PipelineStateViewer::MakeShaderVariablesHLSL(bool cbufferContents,
 {
   for(const ShaderConstant &v : vars)
   {
-    if(v.type.descriptor.type == VarType::Struct)
+    if(v.type.baseType == VarType::Struct)
     {
-      QString def = lit("struct %1 {\n").arg(v.type.descriptor.name);
+      QString def = lit("struct %1 {\n").arg(v.type.name);
 
       if(!struct_defs.contains(def))
       {
@@ -756,14 +756,13 @@ void PipelineStateViewer::MakeShaderVariablesHLSL(bool cbufferContents,
       }
     }
 
-    if(v.type.descriptor.elements > 1)
+    if(v.type.elements > 1)
     {
-      struct_contents +=
-          lit("\t%1 %2[%3]").arg(v.type.descriptor.name).arg(v.name).arg(v.type.descriptor.elements);
+      struct_contents += lit("\t%1 %2[%3]").arg(v.type.name).arg(v.name).arg(v.type.elements);
     }
     else
     {
-      struct_contents += lit("\t%1 %2").arg(v.type.descriptor.name).arg(v.name);
+      struct_contents += lit("\t%1 %2").arg(v.type.name).arg(v.name);
     }
 
     if((v.byteOffset % 4) != 0)
@@ -875,18 +874,18 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderBindpointMapping &bind
       {
         hlsl += lit("%1<%2> %3 : register(%4%5);\n")
                     .arg(textureDim[(size_t)res.resType])
-                    .arg(res.variableType.descriptor.name)
+                    .arg(res.variableType.name)
                     .arg(res.name)
                     .arg(QLatin1Char(regChar))
                     .arg(reg);
       }
       else
       {
-        if(res.variableType.descriptor.rows > 1)
+        if(res.variableType.rows > 1)
           hlsl += lit("Structured");
 
         hlsl += lit("Buffer<%1> %2 : register(%3%4);\n")
-                    .arg(res.variableType.descriptor.name)
+                    .arg(res.variableType.name)
                     .arg(res.name)
                     .arg(QLatin1Char(regChar))
                     .arg(reg);

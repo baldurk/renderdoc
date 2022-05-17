@@ -349,52 +349,52 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
 
   CBufferVariableType ret = {};
 
-  ret.descriptor.elements = 1;
+  ret.elements = 1;
 
   if(t->type == Type::Scalar || t->type == Type::Vector)
   {
-    ret.descriptor.rows = ret.descriptor.cols = 1;
+    ret.rows = ret.cols = 1;
     if(t->type == Type::Vector)
-      ret.descriptor.cols = t->elemCount;
-    ret.descriptor.bytesize = (t->bitWidth / 8) * ret.descriptor.cols;
-    ret.descriptor.varClass = CLASS_SCALAR;
+      ret.cols = t->elemCount;
+    ret.bytesize = (t->bitWidth / 8) * ret.cols;
+    ret.varClass = CLASS_SCALAR;
 
     if(t->scalarType == Type::Float)
     {
       if(t->bitWidth > 32)
-        ret.descriptor.varType = VarType::Double;
+        ret.varType = VarType::Double;
       else if(t->bitWidth == 16)
-        ret.descriptor.varType = VarType::Half;
+        ret.varType = VarType::Half;
       else
-        ret.descriptor.varType = VarType::Float;
+        ret.varType = VarType::Float;
     }
     else
     {
       // can't distinguish int/uint here, default to signed
       if(t->bitWidth > 32)
-        ret.descriptor.varType = VarType::SLong;
+        ret.varType = VarType::SLong;
       else if(t->bitWidth == 32)
-        ret.descriptor.varType = VarType::SInt;
+        ret.varType = VarType::SInt;
       else if(t->bitWidth == 16)
-        ret.descriptor.varType = VarType::SShort;
+        ret.varType = VarType::SShort;
       else if(t->bitWidth == 8)
-        ret.descriptor.varType = VarType::SByte;
+        ret.varType = VarType::SByte;
       else if(t->bitWidth == 1)
-        ret.descriptor.varType = VarType::Bool;
+        ret.varType = VarType::Bool;
     }
 
-    ret.descriptor.name = ToStr(ret.descriptor.varType);
+    ret.name = ToStr(ret.varType);
     if(t->type == Type::Vector)
-      ret.descriptor.name += ToStr(ret.descriptor.cols);
+      ret.name += ToStr(ret.cols);
 
     return ret;
   }
   else if(t->type == Type::Array)
   {
     ret = MakeCBufferVariableType(typeInfo, t->inner);
-    ret.descriptor.elements *= RDCMAX(1U, t->elemCount);
+    ret.elements *= RDCMAX(1U, t->elemCount);
     // assume normal D3D array packing with each element on float4 boundary
-    ret.descriptor.bytesize += (ret.descriptor.elements - 1) * AlignUp16(ret.descriptor.bytesize);
+    ret.bytesize += (ret.elements - 1) * AlignUp16(ret.bytesize);
     return ret;
   }
   else if(t->type == Type::Struct)
@@ -407,21 +407,21 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
     return ret;
   }
 
-  ret.descriptor.name = t->name;
-  ret.descriptor.varType = VarType::Unknown;
-  ret.descriptor.varClass = CLASS_STRUCT;
+  ret.name = t->name;
+  ret.varType = VarType::Unknown;
+  ret.varClass = CLASS_STRUCT;
 
   char alignmentPrefix[] = "dx.alignment.legacy.";
-  if(ret.descriptor.name.beginsWith(alignmentPrefix))
-    ret.descriptor.name.erase(0, sizeof(alignmentPrefix) - 1);
+  if(ret.name.beginsWith(alignmentPrefix))
+    ret.name.erase(0, sizeof(alignmentPrefix) - 1);
 
   char structPrefix[] = "struct.";
-  if(ret.descriptor.name.beginsWith(structPrefix))
-    ret.descriptor.name.erase(0, sizeof(structPrefix) - 1);
+  if(ret.name.beginsWith(structPrefix))
+    ret.name.erase(0, sizeof(structPrefix) - 1);
 
   char classPrefix[] = "class.";
-  if(ret.descriptor.name.beginsWith(classPrefix))
-    ret.descriptor.name.erase(0, sizeof(classPrefix) - 1);
+  if(ret.name.beginsWith(classPrefix))
+    ret.name.erase(0, sizeof(classPrefix) - 1);
 
   // if there are no members, return straight away
   if(t->members.empty())
@@ -431,7 +431,7 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
 
   if(it != typeInfo.structData.end())
   {
-    ret.descriptor.bytesize = it->second.byteSize;
+    ret.bytesize = it->second.byteSize;
   }
   else
   {
@@ -440,7 +440,7 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
     return ret;
   }
 
-  if(ret.descriptor.name.contains("StructuredBuffer<"))
+  if(ret.name.contains("StructuredBuffer<"))
   {
     // silently go into the inner member that's declared in this type as we only care about
     // reflecting that actual structure
@@ -451,16 +451,16 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
 
     // otherwise use it as-is and trim off the name in an attempt to make it look normal
 
-    ret.descriptor.name.trim();
+    ret.name.trim();
 
     // remove any outer definition of the type
-    if(ret.descriptor.name.back() == '>')
-      ret.descriptor.name.pop_back();
+    if(ret.name.back() == '>')
+      ret.name.pop_back();
     else
       RDCERR("Expected closing > in StructuredBuffer type name");
 
-    int idx = ret.descriptor.name.indexOf('<');
-    ret.descriptor.name.erase(0, idx + 1);
+    int idx = ret.name.indexOf('<');
+    ret.name.erase(0, idx + 1);
   }
 
   for(size_t i = 0; i < t->members.size(); i++)
@@ -474,17 +474,17 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
 
       if(it->second.members[i].flags & TypeInfo::MemberData::Matrix)
       {
-        var.type.descriptor.rows = it->second.members[i].rows;
-        var.type.descriptor.cols = it->second.members[i].cols;
-        var.type.descriptor.varClass = (it->second.members[i].flags & TypeInfo::MemberData::RowMajor)
-                                           ? CLASS_MATRIX_ROWS
-                                           : CLASS_MATRIX_COLUMNS;
+        var.type.rows = it->second.members[i].rows;
+        var.type.cols = it->second.members[i].cols;
+        var.type.varClass = (it->second.members[i].flags & TypeInfo::MemberData::RowMajor)
+                                ? CLASS_MATRIX_ROWS
+                                : CLASS_MATRIX_COLUMNS;
 
         // the array was expanded out like float[4][3] would be, so divide by the matrix dimension
         // to get the real array size
-        var.type.descriptor.elements /= (it->second.members[i].flags & TypeInfo::MemberData::RowMajor)
-                                            ? var.type.descriptor.rows
-                                            : var.type.descriptor.cols;
+        var.type.elements /= (it->second.members[i].flags & TypeInfo::MemberData::RowMajor)
+                                 ? var.type.rows
+                                 : var.type.cols;
       }
 
       if(var.type.members.empty() && t->members[i]->type != Type::Struct)
@@ -492,41 +492,41 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
         switch(it->second.members[i].type)
         {
           case ComponentType::Invalid:
-            var.type.descriptor.varType = VarType::Unknown;
+            var.type.varType = VarType::Unknown;
             RDCERR("Unexpected type in cbuffer annotations");
             break;
-          case ComponentType::I1: var.type.descriptor.varType = VarType::Bool; break;
-          case ComponentType::I16: var.type.descriptor.varType = VarType::SShort; break;
-          case ComponentType::U16: var.type.descriptor.varType = VarType::UShort; break;
-          case ComponentType::I32: var.type.descriptor.varType = VarType::SInt; break;
-          case ComponentType::U32: var.type.descriptor.varType = VarType::UInt; break;
-          case ComponentType::I64: var.type.descriptor.varType = VarType::SLong; break;
-          case ComponentType::U64: var.type.descriptor.varType = VarType::ULong; break;
-          case ComponentType::F16: var.type.descriptor.varType = VarType::Half; break;
-          case ComponentType::F32: var.type.descriptor.varType = VarType::Float; break;
-          case ComponentType::F64: var.type.descriptor.varType = VarType::Double; break;
+          case ComponentType::I1: var.type.varType = VarType::Bool; break;
+          case ComponentType::I16: var.type.varType = VarType::SShort; break;
+          case ComponentType::U16: var.type.varType = VarType::UShort; break;
+          case ComponentType::I32: var.type.varType = VarType::SInt; break;
+          case ComponentType::U32: var.type.varType = VarType::UInt; break;
+          case ComponentType::I64: var.type.varType = VarType::SLong; break;
+          case ComponentType::U64: var.type.varType = VarType::ULong; break;
+          case ComponentType::F16: var.type.varType = VarType::Half; break;
+          case ComponentType::F32: var.type.varType = VarType::Float; break;
+          case ComponentType::F64: var.type.varType = VarType::Double; break;
           case ComponentType::SNormF16:
-            var.type.descriptor.varType = VarType::Half;
+            var.type.varType = VarType::Half;
             RDCERR("Unexpected type in cbuffer annotations");
             break;
           case ComponentType::UNormF16:
-            var.type.descriptor.varType = VarType::Half;
+            var.type.varType = VarType::Half;
             RDCERR("Unexpected type in cbuffer annotations");
             break;
           case ComponentType::SNormF32:
-            var.type.descriptor.varType = VarType::Float;
+            var.type.varType = VarType::Float;
             RDCERR("Unexpected type in cbuffer annotations");
             break;
           case ComponentType::UNormF32:
-            var.type.descriptor.varType = VarType::Float;
+            var.type.varType = VarType::Float;
             RDCERR("Unexpected type in cbuffer annotations");
             break;
           case ComponentType::SNormF64:
-            var.type.descriptor.varType = VarType::Double;
+            var.type.varType = VarType::Double;
             RDCERR("Unexpected type in cbuffer annotations");
             break;
           case ComponentType::UNormF64:
-            var.type.descriptor.varType = VarType::Double;
+            var.type.varType = VarType::Double;
             RDCERR("Unexpected type in cbuffer annotations");
             break;
         }
@@ -738,12 +738,12 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
       else
       {
         // if we don't have type annotations, create a dummy byte-array struct member
-        refl->ResourceBinds[bind.name].descriptor.bytesize = structStride;
-        refl->ResourceBinds[bind.name].descriptor.cols = 1;
-        refl->ResourceBinds[bind.name].descriptor.rows = 1;
-        refl->ResourceBinds[bind.name].descriptor.elements = structStride;
-        refl->ResourceBinds[bind.name].descriptor.varClass = DXBC::CLASS_SCALAR;
-        refl->ResourceBinds[bind.name].descriptor.varType = VarType::UByte;
+        refl->ResourceBinds[bind.name].bytesize = structStride;
+        refl->ResourceBinds[bind.name].cols = 1;
+        refl->ResourceBinds[bind.name].rows = 1;
+        refl->ResourceBinds[bind.name].elements = structStride;
+        refl->ResourceBinds[bind.name].varClass = DXBC::CLASS_SCALAR;
+        refl->ResourceBinds[bind.name].varType = VarType::UByte;
       }
     }
     default: break;
@@ -937,21 +937,21 @@ DXBC::Reflection *Program::GetReflection()
           var.offset = 0;
 
           // if we don't have type annotations, create a dummy struct member
-          var.type.descriptor.bytesize = bind.descriptor.byteSize / 16;
-          var.type.descriptor.cols = 4;
-          var.type.descriptor.rows = 1;
-          var.type.descriptor.elements = bind.descriptor.byteSize / 16;
-          var.type.descriptor.varClass = DXBC::CLASS_SCALAR;
-          var.type.descriptor.varType = VarType::UInt;
+          var.type.bytesize = bind.descriptor.byteSize / 16;
+          var.type.cols = 4;
+          var.type.rows = 1;
+          var.type.elements = bind.descriptor.byteSize / 16;
+          var.type.varClass = DXBC::CLASS_SCALAR;
+          var.type.varType = VarType::UInt;
 
-          uint32_t remainingBytes = var.type.descriptor.bytesize * 16;
+          uint32_t remainingBytes = var.type.bytesize * 16;
 
           bind.variables.push_back(var);
 
           // add any remaining bytes if the struct isn't a multiple of float4 size
-          var.type.descriptor.cols = 1;
-          var.type.descriptor.bytesize = var.type.descriptor.elements = 1;
-          var.type.descriptor.varType = VarType::UByte;
+          var.type.cols = 1;
+          var.type.bytesize = var.type.elements = 1;
+          var.type.varType = VarType::UByte;
 
           for(; remainingBytes < bind.descriptor.byteSize; remainingBytes++)
           {

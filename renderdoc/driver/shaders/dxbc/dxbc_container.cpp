@@ -290,7 +290,7 @@ ShaderBuiltin GetSystemValue(SVSemantic systemValue)
   return ShaderBuiltin::Undefined;
 }
 
-rdcstr TypeName(CBufferVariableType::Descriptor desc)
+rdcstr TypeName(CBufferVariableType desc)
 {
   rdcstr ret;
 
@@ -344,52 +344,52 @@ CBufferVariableType DXBCContainer::ParseRDEFType(const RDEFHeader *h, const byte
 
   CBufferVariableType ret;
 
-  ret.descriptor.varClass = (VariableClass)type->varClass;
-  ret.descriptor.cols = RDCMAX(1U, (uint32_t)type->cols);
-  ret.descriptor.elements = RDCMAX(1U, (uint32_t)type->numElems);
-  ret.descriptor.rows = RDCMAX(1U, (uint32_t)type->rows);
+  ret.varClass = (VariableClass)type->varClass;
+  ret.cols = RDCMAX(1U, (uint32_t)type->cols);
+  ret.elements = RDCMAX(1U, (uint32_t)type->numElems);
+  ret.rows = RDCMAX(1U, (uint32_t)type->rows);
 
   switch((VariableType)type->varType)
   {
     // DXBC treats all cbuffer variables as 32-bit regardless of declaration
     case DXBC::VARTYPE_MIN12INT:
     case DXBC::VARTYPE_MIN16INT:
-    case DXBC::VARTYPE_INT: ret.descriptor.varType = VarType::SInt; break;
-    case DXBC::VARTYPE_BOOL: ret.descriptor.varType = VarType::Bool; break;
+    case DXBC::VARTYPE_INT: ret.varType = VarType::SInt; break;
+    case DXBC::VARTYPE_BOOL: ret.varType = VarType::Bool; break;
     case DXBC::VARTYPE_MIN16UINT:
-    case DXBC::VARTYPE_UINT: ret.descriptor.varType = VarType::UInt; break;
-    case DXBC::VARTYPE_DOUBLE: ret.descriptor.varType = VarType::Double; break;
+    case DXBC::VARTYPE_UINT: ret.varType = VarType::UInt; break;
+    case DXBC::VARTYPE_DOUBLE: ret.varType = VarType::Double; break;
     case DXBC::VARTYPE_FLOAT:
     case DXBC::VARTYPE_MIN8FLOAT:
     case DXBC::VARTYPE_MIN10FLOAT:
     case DXBC::VARTYPE_MIN16FLOAT:
-    default: ret.descriptor.varType = VarType::Float; break;
+    default: ret.varType = VarType::Float; break;
   }
 
-  ret.descriptor.name = TypeName(ret.descriptor);
+  ret.name = TypeName(ret);
 
-  if(ret.descriptor.name == "interface")
+  if(ret.name == "interface")
   {
     if(h->targetVersion >= 0x500 && type->nameOffset > 0)
     {
-      ret.descriptor.name += " " + rdcstr((const char *)chunkContents + type->nameOffset);
+      ret.name += " " + rdcstr((const char *)chunkContents + type->nameOffset);
     }
     else
     {
-      ret.descriptor.name += StringFormat::Fmt(" unnamed_iface_0x%08x", typeOffset);
+      ret.name += StringFormat::Fmt(" unnamed_iface_0x%08x", typeOffset);
     }
   }
 
   // rename unnamed structs to have valid identifiers as type name
-  if(ret.descriptor.name.contains("<unnamed>"))
+  if(ret.name.contains("<unnamed>"))
   {
     if(h->targetVersion >= 0x500 && type->nameOffset > 0)
     {
-      ret.descriptor.name = (const char *)chunkContents + type->nameOffset;
+      ret.name = (const char *)chunkContents + type->nameOffset;
     }
     else
     {
-      ret.descriptor.name = StringFormat::Fmt("unnamed_struct_0x%08x", typeOffset);
+      ret.name = StringFormat::Fmt("unnamed_struct_0x%08x", typeOffset);
     }
   }
 
@@ -400,7 +400,7 @@ CBufferVariableType DXBCContainer::ParseRDEFType(const RDEFHeader *h, const byte
 
     ret.members.reserve(type->numMembers);
 
-    ret.descriptor.bytesize = 0;
+    ret.bytesize = 0;
 
     for(int32_t j = 0; j < type->numMembers; j++)
     {
@@ -410,36 +410,32 @@ CBufferVariableType DXBCContainer::ParseRDEFType(const RDEFHeader *h, const byte
       v.type = ParseRDEFType(h, chunkContents, members[j].typeOffset);
       v.offset = members[j].memberOffset;
 
-      ret.descriptor.bytesize = v.offset + v.type.descriptor.bytesize;
+      ret.bytesize = v.offset + v.type.bytesize;
 
       ret.members.push_back(v);
     }
 
-    ret.descriptor.bytesize *= RDCMAX(1U, ret.descriptor.elements);
+    ret.bytesize *= RDCMAX(1U, ret.elements);
   }
   else
   {
     // matrices take up a full vector for each column or row depending which is major, regardless of
     // the other dimension
-    if(ret.descriptor.varClass == CLASS_MATRIX_COLUMNS)
+    if(ret.varClass == CLASS_MATRIX_COLUMNS)
     {
-      ret.descriptor.bytesize = VarTypeByteSize(ret.descriptor.varType) * ret.descriptor.cols * 4 *
-                                RDCMAX(1U, ret.descriptor.elements);
+      ret.bytesize = VarTypeByteSize(ret.varType) * ret.cols * 4 * RDCMAX(1U, ret.elements);
     }
-    else if(ret.descriptor.varClass == CLASS_MATRIX_ROWS)
+    else if(ret.varClass == CLASS_MATRIX_ROWS)
     {
-      ret.descriptor.bytesize = VarTypeByteSize(ret.descriptor.varType) * ret.descriptor.rows * 4 *
-                                RDCMAX(1U, ret.descriptor.elements);
+      ret.bytesize = VarTypeByteSize(ret.varType) * ret.rows * 4 * RDCMAX(1U, ret.elements);
     }
     else
     {
       // arrays also take up a full vector for each element
-      if(ret.descriptor.elements > 1)
-        ret.descriptor.bytesize =
-            VarTypeByteSize(ret.descriptor.varType) * 4 * RDCMAX(1U, ret.descriptor.elements);
+      if(ret.elements > 1)
+        ret.bytesize = VarTypeByteSize(ret.varType) * 4 * RDCMAX(1U, ret.elements);
       else
-        ret.descriptor.bytesize =
-            VarTypeByteSize(ret.descriptor.varType) * ret.descriptor.rows * ret.descriptor.cols;
+        ret.bytesize = VarTypeByteSize(ret.varType) * ret.rows * ret.cols;
     }
   }
 

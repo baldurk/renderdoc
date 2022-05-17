@@ -320,10 +320,10 @@ void main() {
               INFO("UBO member: " << member.name.c_str());
 
               CHECK(member.type.members.empty());
-              CHECK(member.type.descriptor.type == VarType::Float);
-              CHECK(member.type.descriptor.rows == 1);
-              CHECK(member.type.descriptor.columns == 3);
-              CHECK(member.type.descriptor.elements == 5);
+              CHECK(member.type.baseType == VarType::Float);
+              CHECK(member.type.rows == 1);
+              CHECK(member.type.columns == 3);
+              CHECK(member.type.elements == 5);
             }
 
             CHECK(cblock.variables[1].name == "global_var2");
@@ -332,11 +332,11 @@ void main() {
               INFO("UBO member: " << member.name.c_str());
 
               CHECK(member.type.members.empty());
-              CHECK(member.type.descriptor.type == VarType::Float);
-              CHECK(member.type.descriptor.rows == 2);
-              CHECK(member.type.descriptor.columns == 3);
-              CHECK(member.type.descriptor.elements == 3);
-              CHECK(member.type.descriptor.ColMajor());
+              CHECK(member.type.baseType == VarType::Float);
+              CHECK(member.type.rows == 2);
+              CHECK(member.type.columns == 3);
+              CHECK(member.type.elements == 3);
+              CHECK(member.type.ColMajor());
             }
           }
         }
@@ -383,9 +383,9 @@ void main() {
           CHECK(res.bindPoint == 0);
           CHECK(res.resType == TextureType::Buffer);
           CHECK(res.variableType.members.empty());
-          CHECK(res.variableType.descriptor.type == VarType::UInt);
-          CHECK(res.variableType.descriptor.rows == 1);
-          CHECK(res.variableType.descriptor.columns == 1);
+          CHECK(res.variableType.baseType == VarType::UInt);
+          CHECK(res.variableType.rows == 1);
+          CHECK(res.variableType.columns == 1);
         }
       }
 
@@ -462,7 +462,7 @@ void main() {
           CHECK(res.bindPoint == 0);
           CHECK(res.resType == TextureType::Texture2D);
           CHECK(res.variableType.members.empty());
-          CHECK(res.variableType.descriptor.type == VarType::Float);
+          CHECK(res.variableType.baseType == VarType::Float);
         }
 
         CHECK(refl.readOnlyResources[1].name == "ST");
@@ -473,7 +473,7 @@ void main() {
           CHECK(res.bindPoint == 1);
           CHECK(res.resType == TextureType::Texture2D);
           CHECK(res.variableType.members.empty());
-          CHECK(res.variableType.descriptor.type == VarType::Float);
+          CHECK(res.variableType.baseType == VarType::Float);
         }
       }
 
@@ -536,10 +536,10 @@ void main() {
               INFO("UBO member: " << member.name.c_str());
 
               CHECK(member.type.members.empty());
-              CHECK(member.type.descriptor.type == VarType::SInt);
-              CHECK(member.type.descriptor.rows == 1);
-              CHECK(member.type.descriptor.columns == 1);
-              CHECK(member.type.descriptor.name == "int");
+              CHECK(member.type.baseType == VarType::SInt);
+              CHECK(member.type.rows == 1);
+              CHECK(member.type.columns == 1);
+              CHECK(member.type.name == "int");
               CHECK(member.byteOffset == 0);
 
               CHECK(member.defaultValue == 12);
@@ -551,10 +551,10 @@ void main() {
               INFO("UBO member: " << member.name.c_str());
 
               CHECK(member.type.members.empty());
-              CHECK(member.type.descriptor.type == VarType::Float);
-              CHECK(member.type.descriptor.rows == 1);
-              CHECK(member.type.descriptor.columns == 1);
-              CHECK(member.type.descriptor.name == "float");
+              CHECK(member.type.baseType == VarType::Float);
+              CHECK(member.type.rows == 1);
+              CHECK(member.type.columns == 1);
+              CHECK(member.type.name == "float");
               CHECK(member.byteOffset == 8);
 
               float defaultValueFloat;
@@ -623,10 +623,10 @@ void main() {
 
               CHECK(member.byteOffset == 0);
               CHECK(member.type.members.empty());
-              CHECK(member.type.descriptor.type == VarType::SInt);
-              CHECK(member.type.descriptor.rows == 1);
-              CHECK(member.type.descriptor.columns == 1);
-              CHECK(member.type.descriptor.name == "int");
+              CHECK(member.type.baseType == VarType::SInt);
+              CHECK(member.type.rows == 1);
+              CHECK(member.type.columns == 1);
+              CHECK(member.type.name == "int");
             }
 
             CHECK(cblock.variables[1].name == "b");
@@ -636,9 +636,9 @@ void main() {
 
               CHECK(member.byteOffset == 4);
               CHECK(member.type.members.empty());
-              CHECK(member.type.descriptor.type == VarType::Float);
-              CHECK(member.type.descriptor.rows == 1);
-              CHECK(member.type.descriptor.columns == 1);
+              CHECK(member.type.baseType == VarType::Float);
+              CHECK(member.type.rows == 1);
+              CHECK(member.type.columns == 1);
             }
 
             CHECK(cblock.variables[2].name == "c");
@@ -648,9 +648,9 @@ void main() {
 
               CHECK(member.byteOffset == 8);
               CHECK(member.type.members.empty());
-              CHECK(member.type.descriptor.type == VarType::UInt);
-              CHECK(member.type.descriptor.rows == 1);
-              CHECK(member.type.descriptor.columns == 2);
+              CHECK(member.type.baseType == VarType::UInt);
+              CHECK(member.type.rows == 1);
+              CHECK(member.type.columns == 2);
             }
           }
         }
@@ -947,10 +947,10 @@ void main() {
 
             CHECK(member.byteOffset == 0);
             CHECK(member.type.members.empty());
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.rows == 1);
-            CHECK(member.type.descriptor.columns == 1);
-            CHECK(member.type.descriptor.name == "float");
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.rows == 1);
+            CHECK(member.type.columns == 1);
+            CHECK(member.type.name == "float");
           }
 
           CHECK(ubo_root[1].name == "ubo_b");
@@ -960,10 +960,10 @@ void main() {
 
             CHECK(member.byteOffset == 16);
             CHECK(member.type.members.empty());
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.rows == 3);
-            CHECK(member.type.descriptor.columns == 4);
-            CHECK(member.type.descriptor.ColMajor());
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.rows == 3);
+            CHECK(member.type.columns == 4);
+            CHECK(member.type.ColMajor());
           }
 
           CHECK(ubo_root[2].name == "ubo_c");
@@ -973,10 +973,10 @@ void main() {
 
             CHECK(member.byteOffset == 80);
             CHECK(member.type.members.empty());
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.rows == 3);
-            CHECK(member.type.descriptor.columns == 4);
-            CHECK(member.type.descriptor.RowMajor());
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.rows == 3);
+            CHECK(member.type.columns == 4);
+            CHECK(member.type.RowMajor());
           }
 
           CHECK(ubo_root[3].name == "ubo_d");
@@ -986,9 +986,9 @@ void main() {
 
             CHECK(member.byteOffset == 128);
             CHECK(member.type.members.empty());
-            CHECK(member.type.descriptor.type == VarType::SInt);
-            CHECK(member.type.descriptor.rows == 1);
-            CHECK(member.type.descriptor.columns == 2);
+            CHECK(member.type.baseType == VarType::SInt);
+            CHECK(member.type.rows == 1);
+            CHECK(member.type.columns == 2);
           }
 
           CHECK(ubo_root[4].name == "ubo_e");
@@ -998,11 +998,11 @@ void main() {
 
             CHECK(member.byteOffset == 144);
             CHECK(member.type.members.empty());
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.rows == 1);
-            CHECK(member.type.descriptor.columns == 2);
-            CHECK(member.type.descriptor.elements == 3);
-            CHECK(member.type.descriptor.arrayByteStride == 16);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.rows == 1);
+            CHECK(member.type.columns == 2);
+            CHECK(member.type.elements == 3);
+            CHECK(member.type.arrayByteStride == 16);
           }
 
           CHECK(ubo_root[5].name == "ubo_f");
@@ -1011,8 +1011,8 @@ void main() {
             INFO("UBO member: " << member.name.c_str());
 
             CHECK(member.byteOffset == 192);
-            CHECK(member.type.descriptor.type == VarType::Struct);
-            CHECK(member.type.descriptor.arrayByteStride == 48);
+            CHECK(member.type.baseType == VarType::Struct);
+            CHECK(member.type.arrayByteStride == 48);
 
             REQUIRE_ARRAY_SIZE(member.type.members.size(), 3);
             {
@@ -1023,10 +1023,10 @@ void main() {
 
                 CHECK(submember.byteOffset == 0);
                 CHECK(submember.type.members.empty());
-                CHECK(submember.type.descriptor.type == VarType::Float);
-                CHECK(submember.type.descriptor.rows == 1);
-                CHECK(submember.type.descriptor.columns == 1);
-                CHECK(submember.type.descriptor.name == "float");
+                CHECK(submember.type.baseType == VarType::Float);
+                CHECK(submember.type.rows == 1);
+                CHECK(submember.type.columns == 1);
+                CHECK(submember.type.name == "float");
               }
 
               CHECK(member.type.members[1].name == "b");
@@ -1036,10 +1036,10 @@ void main() {
 
                 CHECK(submember.byteOffset == 4);
                 CHECK(submember.type.members.empty());
-                CHECK(submember.type.descriptor.type == VarType::SInt);
-                CHECK(submember.type.descriptor.rows == 1);
-                CHECK(submember.type.descriptor.columns == 1);
-                CHECK(submember.type.descriptor.name == "int");
+                CHECK(submember.type.baseType == VarType::SInt);
+                CHECK(submember.type.rows == 1);
+                CHECK(submember.type.columns == 1);
+                CHECK(submember.type.name == "int");
               }
 
               CHECK(member.type.members[2].name == "c");
@@ -1049,10 +1049,10 @@ void main() {
 
                 CHECK(submember.byteOffset == 16);
                 CHECK(submember.type.members.empty());
-                CHECK(submember.type.descriptor.type == VarType::Float);
-                CHECK(submember.type.descriptor.rows == 2);
-                CHECK(submember.type.descriptor.columns == 2);
-                CHECK(submember.type.descriptor.ColMajor());
+                CHECK(submember.type.baseType == VarType::Float);
+                CHECK(submember.type.rows == 2);
+                CHECK(submember.type.columns == 2);
+                CHECK(submember.type.ColMajor());
               }
             }
           }
@@ -1064,9 +1064,9 @@ void main() {
 
             CHECK(member.byteOffset == 256);
             CHECK(member.type.members.empty());
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.rows == 1);
-            CHECK(member.type.descriptor.columns == 4);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.rows == 1);
+            CHECK(member.type.columns == 4);
           }
         }
       }
@@ -1119,7 +1119,7 @@ void main() {
         CHECK(res.bindPoint == 0);
         CHECK(res.resType == TextureType::Texture2D);
         CHECK(res.variableType.members.empty());
-        CHECK(res.variableType.descriptor.type == VarType::Float);
+        CHECK(res.variableType.baseType == VarType::Float);
       }
 
       CHECK(refl.readOnlyResources[1].name == "tex3D");
@@ -1130,7 +1130,7 @@ void main() {
         CHECK(res.bindPoint == 1);
         CHECK(res.resType == TextureType::Texture3D);
         CHECK(res.variableType.members.empty());
-        CHECK(res.variableType.descriptor.type == VarType::SInt);
+        CHECK(res.variableType.baseType == VarType::SInt);
       }
 
       CHECK(refl.readOnlyResources[2].name == "texBuf");
@@ -1141,7 +1141,7 @@ void main() {
         CHECK(res.bindPoint == 2);
         CHECK(res.resType == TextureType::Buffer);
         CHECK(res.variableType.members.empty());
-        CHECK(res.variableType.descriptor.type == VarType::Float);
+        CHECK(res.variableType.baseType == VarType::Float);
       }
     }
 
@@ -1292,8 +1292,8 @@ void main() {
             const ShaderConstant &member = ubo_root[0];
             INFO("UBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.elements == 1);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.elements == 1);
           }
 
           CHECK(ubo_root[1].name == "normal_array");
@@ -1301,9 +1301,9 @@ void main() {
             const ShaderConstant &member = ubo_root[1];
             INFO("UBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.columns == 4);
-            CHECK(member.type.descriptor.elements == 3);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.columns == 4);
+            CHECK(member.type.elements == 3);
           }
 
           CHECK(ubo_root[2].name == "infinite_array");
@@ -1311,11 +1311,11 @@ void main() {
             const ShaderConstant &member = ubo_root[2];
             INFO("UBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.columns == 4);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.columns == 4);
             // UBOs don't really support infinite arrays - it will just be declared big enough for
             // the amount used statically
-            CHECK(member.type.descriptor.elements == 5);
+            CHECK(member.type.elements == 5);
           }
         }
       }
@@ -1339,8 +1339,8 @@ void main() {
             const ShaderConstant &member = res.variableType.members[0];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.elements == 1);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.elements == 1);
           }
 
           CHECK(res.variableType.members[1].name == "normal_array");
@@ -1348,9 +1348,9 @@ void main() {
             const ShaderConstant &member = res.variableType.members[1];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.columns == 4);
-            CHECK(member.type.descriptor.elements == 3);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.columns == 4);
+            CHECK(member.type.elements == 3);
           }
 
           CHECK(res.variableType.members[2].name == "non_array");
@@ -1358,9 +1358,9 @@ void main() {
             const ShaderConstant &member = res.variableType.members[2];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.columns == 4);
-            CHECK(member.type.descriptor.elements == 1);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.columns == 4);
+            CHECK(member.type.elements == 1);
           }
         }
       }
@@ -1377,8 +1377,8 @@ void main() {
             const ShaderConstant &member = res.variableType.members[0];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.elements == 1);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.elements == 1);
           }
 
           CHECK(res.variableType.members[1].name == "normal_array");
@@ -1386,9 +1386,9 @@ void main() {
             const ShaderConstant &member = res.variableType.members[1];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.columns == 4);
-            CHECK(member.type.descriptor.elements == 3);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.columns == 4);
+            CHECK(member.type.elements == 3);
           }
 
           CHECK(res.variableType.members[2].name == "bounded_array");
@@ -1396,9 +1396,9 @@ void main() {
             const ShaderConstant &member = res.variableType.members[2];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.columns == 4);
-            CHECK(member.type.descriptor.elements == 5);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.columns == 4);
+            CHECK(member.type.elements == 5);
           }
         }
       }
@@ -1415,8 +1415,8 @@ void main() {
             const ShaderConstant &member = res.variableType.members[0];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.elements == 1);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.elements == 1);
           }
 
           CHECK(res.variableType.members[1].name == "normal_array");
@@ -1424,9 +1424,9 @@ void main() {
             const ShaderConstant &member = res.variableType.members[1];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.columns == 4);
-            CHECK(member.type.descriptor.elements == 3);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.columns == 4);
+            CHECK(member.type.elements == 3);
           }
 
           CHECK(res.variableType.members[2].name == "infinite_array");
@@ -1434,9 +1434,9 @@ void main() {
             const ShaderConstant &member = res.variableType.members[2];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.columns == 4);
-            CHECK(member.type.descriptor.elements == ~0U);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.columns == 4);
+            CHECK(member.type.elements == ~0U);
           }
         }
       }
@@ -1453,8 +1453,8 @@ void main() {
             const ShaderConstant &member = res.variableType.members[0];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.elements == 1);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.elements == 1);
           }
 
           CHECK(res.variableType.members[1].name == "test");
@@ -1462,8 +1462,8 @@ void main() {
             const ShaderConstant &member = res.variableType.members[1];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Struct);
-            CHECK(member.type.descriptor.elements == 1);
+            CHECK(member.type.baseType == VarType::Struct);
+            CHECK(member.type.elements == 1);
 
             REQUIRE_ARRAY_SIZE(member.type.members.size(), 2);
             {
@@ -1472,9 +1472,9 @@ void main() {
                 const ShaderConstant &submember = member.type.members[0];
                 INFO("SSBO submember: " << submember.name.c_str());
 
-                CHECK(submember.type.descriptor.type == VarType::Float);
-                CHECK(submember.type.descriptor.columns == 1);
-                CHECK(submember.type.descriptor.elements == 2);
+                CHECK(submember.type.baseType == VarType::Float);
+                CHECK(submember.type.columns == 1);
+                CHECK(submember.type.elements == 2);
               }
 
               CHECK(member.type.members[1].name == "b");
@@ -1482,9 +1482,9 @@ void main() {
                 const ShaderConstant &submember = member.type.members[1];
                 INFO("SSBO submember: " << submember.name.c_str());
 
-                CHECK(submember.type.descriptor.type == VarType::SInt);
-                CHECK(submember.type.descriptor.columns == 1);
-                CHECK(submember.type.descriptor.elements == 1);
+                CHECK(submember.type.baseType == VarType::SInt);
+                CHECK(submember.type.columns == 1);
+                CHECK(submember.type.elements == 1);
               }
             }
           }
@@ -1494,16 +1494,16 @@ void main() {
             const ShaderConstant &member = res.variableType.members[2];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Struct);
+            CHECK(member.type.baseType == VarType::Struct);
             if(testType == ShaderType::GLSL)
             {
               // GL has no way of telling us the fixed size of a trailing array of structs, so we
               // report that it's infinite
-              CHECK(member.type.descriptor.elements == ~0U);
+              CHECK(member.type.elements == ~0U);
             }
             else
             {
-              CHECK(member.type.descriptor.elements == 2);
+              CHECK(member.type.elements == 2);
             }
           }
         }
@@ -1521,8 +1521,8 @@ void main() {
             const ShaderConstant &member = res.variableType.members[0];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.elements == 1);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.elements == 1);
           }
 
           CHECK(res.variableType.members[1].name == "test");
@@ -1530,8 +1530,8 @@ void main() {
             const ShaderConstant &member = res.variableType.members[1];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Struct);
-            CHECK(member.type.descriptor.elements == 1);
+            CHECK(member.type.baseType == VarType::Struct);
+            CHECK(member.type.elements == 1);
 
             REQUIRE_ARRAY_SIZE(member.type.members.size(), 2);
             {
@@ -1540,9 +1540,9 @@ void main() {
                 const ShaderConstant &submember = member.type.members[0];
                 INFO("SSBO submember: " << submember.name.c_str());
 
-                CHECK(submember.type.descriptor.type == VarType::Float);
-                CHECK(submember.type.descriptor.columns == 1);
-                CHECK(submember.type.descriptor.elements == 2);
+                CHECK(submember.type.baseType == VarType::Float);
+                CHECK(submember.type.columns == 1);
+                CHECK(submember.type.elements == 2);
               }
 
               CHECK(member.type.members[1].name == "b");
@@ -1550,9 +1550,9 @@ void main() {
                 const ShaderConstant &submember = member.type.members[1];
                 INFO("SSBO submember: " << submember.name.c_str());
 
-                CHECK(submember.type.descriptor.type == VarType::SInt);
-                CHECK(submember.type.descriptor.columns == 1);
-                CHECK(submember.type.descriptor.elements == 1);
+                CHECK(submember.type.baseType == VarType::SInt);
+                CHECK(submember.type.columns == 1);
+                CHECK(submember.type.elements == 1);
               }
             }
           }
@@ -1562,8 +1562,8 @@ void main() {
             const ShaderConstant &member = res.variableType.members[2];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Struct);
-            CHECK(member.type.descriptor.elements == ~0U);
+            CHECK(member.type.baseType == VarType::Struct);
+            CHECK(member.type.elements == ~0U);
           }
         }
       }
@@ -1580,8 +1580,8 @@ void main() {
             const ShaderConstant &member = res.variableType.members[0];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.elements == 1);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.elements == 1);
           }
 
           CHECK(res.variableType.members[1].name == "ssbo5_test");
@@ -1589,8 +1589,8 @@ void main() {
             const ShaderConstant &member = res.variableType.members[1];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Struct);
-            CHECK(member.type.descriptor.elements == 1);
+            CHECK(member.type.baseType == VarType::Struct);
+            CHECK(member.type.elements == 1);
 
             REQUIRE_ARRAY_SIZE(member.type.members.size(), 2);
             {
@@ -1599,9 +1599,9 @@ void main() {
                 const ShaderConstant &submember = member.type.members[0];
                 INFO("SSBO submember: " << submember.name.c_str());
 
-                CHECK(submember.type.descriptor.type == VarType::Float);
-                CHECK(submember.type.descriptor.columns == 1);
-                CHECK(submember.type.descriptor.elements == 2);
+                CHECK(submember.type.baseType == VarType::Float);
+                CHECK(submember.type.columns == 1);
+                CHECK(submember.type.elements == 2);
               }
 
               CHECK(member.type.members[1].name == "b");
@@ -1609,9 +1609,9 @@ void main() {
                 const ShaderConstant &submember = member.type.members[1];
                 INFO("SSBO submember: " << submember.name.c_str());
 
-                CHECK(submember.type.descriptor.type == VarType::SInt);
-                CHECK(submember.type.descriptor.columns == 1);
-                CHECK(submember.type.descriptor.elements == 1);
+                CHECK(submember.type.baseType == VarType::SInt);
+                CHECK(submember.type.columns == 1);
+                CHECK(submember.type.elements == 1);
               }
             }
           }
@@ -1621,16 +1621,16 @@ void main() {
             const ShaderConstant &member = res.variableType.members[2];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Struct);
+            CHECK(member.type.baseType == VarType::Struct);
             if(testType == ShaderType::GLSL)
             {
               // GL has no way of telling us the fixed size of a trailing array of structs, so we
               // report that it's infinite
-              CHECK(member.type.descriptor.elements == ~0U);
+              CHECK(member.type.elements == ~0U);
             }
             else
             {
-              CHECK(member.type.descriptor.elements == 2);
+              CHECK(member.type.elements == 2);
             }
           }
         }
@@ -1648,8 +1648,8 @@ void main() {
             const ShaderConstant &member = res.variableType.members[0];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.elements == 1);
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.elements == 1);
           }
 
           CHECK(res.variableType.members[1].name == "ssbo6_test");
@@ -1657,8 +1657,8 @@ void main() {
             const ShaderConstant &member = res.variableType.members[1];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Struct);
-            CHECK(member.type.descriptor.elements == 1);
+            CHECK(member.type.baseType == VarType::Struct);
+            CHECK(member.type.elements == 1);
 
             REQUIRE_ARRAY_SIZE(member.type.members.size(), 2);
             {
@@ -1667,9 +1667,9 @@ void main() {
                 const ShaderConstant &submember = member.type.members[0];
                 INFO("SSBO submember: " << submember.name.c_str());
 
-                CHECK(submember.type.descriptor.type == VarType::Float);
-                CHECK(submember.type.descriptor.columns == 1);
-                CHECK(submember.type.descriptor.elements == 2);
+                CHECK(submember.type.baseType == VarType::Float);
+                CHECK(submember.type.columns == 1);
+                CHECK(submember.type.elements == 2);
               }
 
               CHECK(member.type.members[1].name == "b");
@@ -1677,9 +1677,9 @@ void main() {
                 const ShaderConstant &submember = member.type.members[1];
                 INFO("SSBO submember: " << submember.name.c_str());
 
-                CHECK(submember.type.descriptor.type == VarType::SInt);
-                CHECK(submember.type.descriptor.columns == 1);
-                CHECK(submember.type.descriptor.elements == 1);
+                CHECK(submember.type.baseType == VarType::SInt);
+                CHECK(submember.type.columns == 1);
+                CHECK(submember.type.elements == 1);
               }
             }
           }
@@ -1689,8 +1689,8 @@ void main() {
             const ShaderConstant &member = res.variableType.members[2];
             INFO("SSBO member: " << member.name.c_str());
 
-            CHECK(member.type.descriptor.type == VarType::Struct);
-            CHECK(member.type.descriptor.elements == ~0U);
+            CHECK(member.type.baseType == VarType::Struct);
+            CHECK(member.type.elements == ~0U);
           }
         }
       }
@@ -1766,12 +1766,12 @@ void main() {
 
             CHECK(member.byteOffset == 0);
             CHECK(member.type.members.empty());
-            CHECK(member.type.descriptor.type == VarType::UInt);
-            CHECK(member.type.descriptor.rows == 1);
-            CHECK(member.type.descriptor.columns == 1);
-            CHECK(member.type.descriptor.elements == 10);
-            CHECK(member.type.descriptor.arrayByteStride == 4);
-            CHECK(member.type.descriptor.name == "uint");
+            CHECK(member.type.baseType == VarType::UInt);
+            CHECK(member.type.rows == 1);
+            CHECK(member.type.columns == 1);
+            CHECK(member.type.elements == 10);
+            CHECK(member.type.arrayByteStride == 4);
+            CHECK(member.type.name == "uint");
           }
 
           CHECK(res.variableType.members[1].name == "ssbo_b");
@@ -1780,9 +1780,9 @@ void main() {
             INFO("SSBO member: " << member.name.c_str());
 
             CHECK(member.byteOffset == 40);
-            CHECK(member.type.descriptor.type == VarType::Struct);
-            CHECK(member.type.descriptor.arrayByteStride == 24);
-            CHECK(member.type.descriptor.elements == 3);
+            CHECK(member.type.baseType == VarType::Struct);
+            CHECK(member.type.arrayByteStride == 24);
+            CHECK(member.type.elements == 3);
 
             REQUIRE_ARRAY_SIZE(member.type.members.size(), 3);
             {
@@ -1793,10 +1793,10 @@ void main() {
 
                 CHECK(submember.byteOffset == 0);
                 CHECK(submember.type.members.empty());
-                CHECK(submember.type.descriptor.type == VarType::Float);
-                CHECK(submember.type.descriptor.rows == 1);
-                CHECK(submember.type.descriptor.columns == 1);
-                CHECK(submember.type.descriptor.name == "float");
+                CHECK(submember.type.baseType == VarType::Float);
+                CHECK(submember.type.rows == 1);
+                CHECK(submember.type.columns == 1);
+                CHECK(submember.type.name == "float");
               }
 
               CHECK(member.type.members[1].name == "b");
@@ -1806,10 +1806,10 @@ void main() {
 
                 CHECK(submember.byteOffset == 4);
                 CHECK(submember.type.members.empty());
-                CHECK(submember.type.descriptor.type == VarType::SInt);
-                CHECK(submember.type.descriptor.rows == 1);
-                CHECK(submember.type.descriptor.columns == 1);
-                CHECK(submember.type.descriptor.name == "int");
+                CHECK(submember.type.baseType == VarType::SInt);
+                CHECK(submember.type.rows == 1);
+                CHECK(submember.type.columns == 1);
+                CHECK(submember.type.name == "int");
               }
 
               CHECK(member.type.members[2].name == "c");
@@ -1819,10 +1819,10 @@ void main() {
 
                 CHECK(submember.byteOffset == 8);
                 CHECK(submember.type.members.empty());
-                CHECK(submember.type.descriptor.type == VarType::Float);
-                CHECK(submember.type.descriptor.rows == 2);
-                CHECK(submember.type.descriptor.columns == 2);
-                CHECK(submember.type.descriptor.ColMajor());
+                CHECK(submember.type.baseType == VarType::Float);
+                CHECK(submember.type.rows == 2);
+                CHECK(submember.type.columns == 2);
+                CHECK(submember.type.ColMajor());
               }
             }
           }
@@ -1834,10 +1834,10 @@ void main() {
 
             CHECK(member.byteOffset == 112);
             CHECK(member.type.members.empty());
-            CHECK(member.type.descriptor.type == VarType::Float);
-            CHECK(member.type.descriptor.rows == 1);
-            CHECK(member.type.descriptor.columns == 1);
-            CHECK(member.type.descriptor.name == "float");
+            CHECK(member.type.baseType == VarType::Float);
+            CHECK(member.type.rows == 1);
+            CHECK(member.type.columns == 1);
+            CHECK(member.type.name == "float");
           }
         }
       }
@@ -1858,9 +1858,9 @@ void main() {
             INFO("SSBO member: " << member.name.c_str());
 
             CHECK(member.byteOffset == 0);
-            CHECK(member.type.descriptor.type == VarType::Struct);
-            CHECK(member.type.descriptor.arrayByteStride == 48);
-            CHECK(member.type.descriptor.elements == ~0U);
+            CHECK(member.type.baseType == VarType::Struct);
+            CHECK(member.type.arrayByteStride == 48);
+            CHECK(member.type.elements == ~0U);
 
             REQUIRE_ARRAY_SIZE(member.type.members.size(), 2);
             {
@@ -1870,8 +1870,8 @@ void main() {
                 INFO("SSBO submember: " << submember.name.c_str());
 
                 CHECK(submember.byteOffset == 0);
-                CHECK(submember.type.descriptor.type == VarType::Struct);
-                CHECK(submember.type.descriptor.arrayByteStride == 24);
+                CHECK(submember.type.baseType == VarType::Struct);
+                CHECK(submember.type.arrayByteStride == 24);
 
                 REQUIRE_ARRAY_SIZE(submember.type.members.size(), 3);
                 {
@@ -1882,10 +1882,10 @@ void main() {
 
                     CHECK(subsubmember.byteOffset == 0);
                     CHECK(subsubmember.type.members.empty());
-                    CHECK(subsubmember.type.descriptor.type == VarType::Float);
-                    CHECK(subsubmember.type.descriptor.rows == 1);
-                    CHECK(subsubmember.type.descriptor.columns == 1);
-                    CHECK(subsubmember.type.descriptor.name == "float");
+                    CHECK(subsubmember.type.baseType == VarType::Float);
+                    CHECK(subsubmember.type.rows == 1);
+                    CHECK(subsubmember.type.columns == 1);
+                    CHECK(subsubmember.type.name == "float");
                   }
 
                   CHECK(submember.type.members[1].name == "b");
@@ -1895,10 +1895,10 @@ void main() {
 
                     CHECK(subsubmember.byteOffset == 4);
                     CHECK(subsubmember.type.members.empty());
-                    CHECK(subsubmember.type.descriptor.type == VarType::SInt);
-                    CHECK(subsubmember.type.descriptor.rows == 1);
-                    CHECK(subsubmember.type.descriptor.columns == 1);
-                    CHECK(subsubmember.type.descriptor.name == "int");
+                    CHECK(subsubmember.type.baseType == VarType::SInt);
+                    CHECK(subsubmember.type.rows == 1);
+                    CHECK(subsubmember.type.columns == 1);
+                    CHECK(subsubmember.type.name == "int");
                   }
 
                   CHECK(submember.type.members[2].name == "c");
@@ -1908,10 +1908,10 @@ void main() {
 
                     CHECK(subsubmember.byteOffset == 8);
                     CHECK(subsubmember.type.members.empty());
-                    CHECK(subsubmember.type.descriptor.type == VarType::Float);
-                    CHECK(subsubmember.type.descriptor.rows == 2);
-                    CHECK(subsubmember.type.descriptor.columns == 2);
-                    CHECK(subsubmember.type.descriptor.ColMajor());
+                    CHECK(subsubmember.type.baseType == VarType::Float);
+                    CHECK(subsubmember.type.rows == 2);
+                    CHECK(subsubmember.type.columns == 2);
+                    CHECK(subsubmember.type.ColMajor());
                   }
                 }
               }
@@ -1922,8 +1922,8 @@ void main() {
                 INFO("SSBO submember: " << submember.name.c_str());
 
                 CHECK(submember.byteOffset == 24);
-                CHECK(submember.type.descriptor.type == VarType::Struct);
-                CHECK(submember.type.descriptor.arrayByteStride == 24);
+                CHECK(submember.type.baseType == VarType::Struct);
+                CHECK(submember.type.arrayByteStride == 24);
 
                 REQUIRE_ARRAY_SIZE(submember.type.members.size(), 3);
                 {
@@ -1934,10 +1934,10 @@ void main() {
 
                     CHECK(subsubmember.byteOffset == 0);
                     CHECK(subsubmember.type.members.empty());
-                    CHECK(subsubmember.type.descriptor.type == VarType::Float);
-                    CHECK(subsubmember.type.descriptor.rows == 1);
-                    CHECK(subsubmember.type.descriptor.columns == 1);
-                    CHECK(subsubmember.type.descriptor.name == "float");
+                    CHECK(subsubmember.type.baseType == VarType::Float);
+                    CHECK(subsubmember.type.rows == 1);
+                    CHECK(subsubmember.type.columns == 1);
+                    CHECK(subsubmember.type.name == "float");
                   }
 
                   CHECK(submember.type.members[1].name == "b");
@@ -1947,10 +1947,10 @@ void main() {
 
                     CHECK(subsubmember.byteOffset == 4);
                     CHECK(subsubmember.type.members.empty());
-                    CHECK(subsubmember.type.descriptor.type == VarType::SInt);
-                    CHECK(subsubmember.type.descriptor.rows == 1);
-                    CHECK(subsubmember.type.descriptor.columns == 1);
-                    CHECK(subsubmember.type.descriptor.name == "int");
+                    CHECK(subsubmember.type.baseType == VarType::SInt);
+                    CHECK(subsubmember.type.rows == 1);
+                    CHECK(subsubmember.type.columns == 1);
+                    CHECK(subsubmember.type.name == "int");
                   }
 
                   CHECK(submember.type.members[2].name == "c");
@@ -1960,10 +1960,10 @@ void main() {
 
                     CHECK(subsubmember.byteOffset == 8);
                     CHECK(subsubmember.type.members.empty());
-                    CHECK(subsubmember.type.descriptor.type == VarType::Float);
-                    CHECK(subsubmember.type.descriptor.rows == 2);
-                    CHECK(subsubmember.type.descriptor.columns == 2);
-                    CHECK(subsubmember.type.descriptor.ColMajor());
+                    CHECK(subsubmember.type.baseType == VarType::Float);
+                    CHECK(subsubmember.type.rows == 2);
+                    CHECK(subsubmember.type.columns == 2);
+                    CHECK(subsubmember.type.ColMajor());
                   }
                 }
               }
@@ -2698,7 +2698,7 @@ void main() {
           CHECK(res.bindPoint == (int32_t)i);
           CHECK(res.resType == TextureType::Texture2D);
           CHECK(res.variableType.members.empty());
-          CHECK(res.variableType.descriptor.type == VarType::Float);
+          CHECK(res.variableType.baseType == VarType::Float);
         }
       }
     }
@@ -2750,10 +2750,10 @@ void main() {
 
               CHECK(member.byteOffset == 0);
               CHECK(member.type.members.empty());
-              CHECK(member.type.descriptor.type == VarType::Float);
-              CHECK(member.type.descriptor.rows == 1);
-              CHECK(member.type.descriptor.columns == 1);
-              CHECK(member.type.descriptor.name == "float");
+              CHECK(member.type.baseType == VarType::Float);
+              CHECK(member.type.rows == 1);
+              CHECK(member.type.columns == 1);
+              CHECK(member.type.name == "float");
             }
 
             CHECK(varType->members[1].name == "b");
@@ -2763,10 +2763,10 @@ void main() {
 
               CHECK(member.byteOffset == 4);
               CHECK(member.type.members.empty());
-              CHECK(member.type.descriptor.type == VarType::SInt);
-              CHECK(member.type.descriptor.rows == 1);
-              CHECK(member.type.descriptor.columns == 1);
-              CHECK(member.type.descriptor.name == "int");
+              CHECK(member.type.baseType == VarType::SInt);
+              CHECK(member.type.rows == 1);
+              CHECK(member.type.columns == 1);
+              CHECK(member.type.name == "int");
             }
           }
         }

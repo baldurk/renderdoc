@@ -299,16 +299,13 @@ enum VariableClass
 
 struct CBufferVariableType
 {
-  struct Descriptor
-  {
-    VariableClass varClass;
-    VarType varType;
-    uint32_t rows;
-    uint32_t cols;
-    uint32_t elements;
-    uint32_t bytesize;
-    rdcstr name;
-  } descriptor;
+  VariableClass varClass;
+  VarType varType;
+  uint32_t rows;
+  uint32_t cols;
+  uint32_t elements;
+  uint32_t bytesize;
+  rdcstr name;
 
   // if a struct, these are variables for each member (this can obviously nest). Not all
   // elements of the nested member descriptor are valid, as this might not be in a cbuffer,
@@ -316,7 +313,7 @@ struct CBufferVariableType
   rdcarray<CBufferVariable> members;
 };
 
-rdcstr TypeName(CBufferVariableType::Descriptor desc);
+rdcstr TypeName(CBufferVariableType desc);
 
 struct CBufferVariable
 {

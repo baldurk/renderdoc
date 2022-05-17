@@ -88,140 +88,140 @@ struct UnrolledSPIRVConstant
 
 static GLenum MakeGLType(const ShaderConstantType &type)
 {
-  if(type.descriptor.type == VarType::Double)
+  if(type.baseType == VarType::Double)
   {
-    if(type.descriptor.columns == 4 && type.descriptor.rows == 4)
+    if(type.columns == 4 && type.rows == 4)
       return eGL_DOUBLE_MAT4;
-    if(type.descriptor.columns == 4 && type.descriptor.rows == 3)
+    if(type.columns == 4 && type.rows == 3)
       return eGL_DOUBLE_MAT4x3;
-    if(type.descriptor.columns == 4 && type.descriptor.rows == 2)
+    if(type.columns == 4 && type.rows == 2)
       return eGL_DOUBLE_MAT4x2;
-    if(type.descriptor.columns == 4 && type.descriptor.rows == 1)
+    if(type.columns == 4 && type.rows == 1)
       return eGL_DOUBLE_VEC4;
 
-    if(type.descriptor.columns == 3 && type.descriptor.rows == 4)
+    if(type.columns == 3 && type.rows == 4)
       return eGL_DOUBLE_MAT3x4;
-    if(type.descriptor.columns == 3 && type.descriptor.rows == 3)
+    if(type.columns == 3 && type.rows == 3)
       return eGL_DOUBLE_MAT3;
-    if(type.descriptor.columns == 3 && type.descriptor.rows == 2)
+    if(type.columns == 3 && type.rows == 2)
       return eGL_DOUBLE_MAT3x2;
-    if(type.descriptor.columns == 3 && type.descriptor.rows == 1)
+    if(type.columns == 3 && type.rows == 1)
       return eGL_DOUBLE_VEC3;
 
-    if(type.descriptor.columns == 2 && type.descriptor.rows == 4)
+    if(type.columns == 2 && type.rows == 4)
       return eGL_DOUBLE_MAT2x4;
-    if(type.descriptor.columns == 2 && type.descriptor.rows == 3)
+    if(type.columns == 2 && type.rows == 3)
       return eGL_DOUBLE_MAT2x4;
-    if(type.descriptor.columns == 2 && type.descriptor.rows == 2)
+    if(type.columns == 2 && type.rows == 2)
       return eGL_DOUBLE_MAT2;
-    if(type.descriptor.columns == 2 && type.descriptor.rows == 1)
+    if(type.columns == 2 && type.rows == 1)
       return eGL_DOUBLE_VEC2;
 
-    if(type.descriptor.columns == 1 && type.descriptor.rows == 4)
+    if(type.columns == 1 && type.rows == 4)
       return eGL_DOUBLE_VEC4;
-    if(type.descriptor.columns == 1 && type.descriptor.rows == 3)
+    if(type.columns == 1 && type.rows == 3)
       return eGL_DOUBLE_VEC3;
-    if(type.descriptor.columns == 1 && type.descriptor.rows == 2)
+    if(type.columns == 1 && type.rows == 2)
       return eGL_DOUBLE_VEC2;
 
-    if(type.descriptor.rows == 1 && type.descriptor.columns == 4)
+    if(type.rows == 1 && type.columns == 4)
       return eGL_DOUBLE_VEC4;
-    if(type.descriptor.rows == 1 && type.descriptor.columns == 3)
+    if(type.rows == 1 && type.columns == 3)
       return eGL_DOUBLE_VEC3;
-    if(type.descriptor.rows == 1 && type.descriptor.columns == 2)
+    if(type.rows == 1 && type.columns == 2)
       return eGL_DOUBLE_VEC2;
 
     return eGL_DOUBLE;
   }
-  else if(type.descriptor.type == VarType::Float)
+  else if(type.baseType == VarType::Float)
   {
-    if(type.descriptor.columns == 4 && type.descriptor.rows == 4)
+    if(type.columns == 4 && type.rows == 4)
       return eGL_FLOAT_MAT4;
-    if(type.descriptor.columns == 4 && type.descriptor.rows == 3)
+    if(type.columns == 4 && type.rows == 3)
       return eGL_FLOAT_MAT4x3;
-    if(type.descriptor.columns == 4 && type.descriptor.rows == 2)
+    if(type.columns == 4 && type.rows == 2)
       return eGL_FLOAT_MAT4x2;
-    if(type.descriptor.columns == 4 && type.descriptor.rows == 1)
+    if(type.columns == 4 && type.rows == 1)
       return eGL_FLOAT_VEC4;
 
-    if(type.descriptor.columns == 3 && type.descriptor.rows == 4)
+    if(type.columns == 3 && type.rows == 4)
       return eGL_FLOAT_MAT3x4;
-    if(type.descriptor.columns == 3 && type.descriptor.rows == 3)
+    if(type.columns == 3 && type.rows == 3)
       return eGL_FLOAT_MAT3;
-    if(type.descriptor.columns == 3 && type.descriptor.rows == 2)
+    if(type.columns == 3 && type.rows == 2)
       return eGL_FLOAT_MAT3x2;
-    if(type.descriptor.columns == 3 && type.descriptor.rows == 1)
+    if(type.columns == 3 && type.rows == 1)
       return eGL_FLOAT_VEC3;
 
-    if(type.descriptor.columns == 2 && type.descriptor.rows == 4)
+    if(type.columns == 2 && type.rows == 4)
       return eGL_FLOAT_MAT2x4;
-    if(type.descriptor.columns == 2 && type.descriptor.rows == 3)
+    if(type.columns == 2 && type.rows == 3)
       return eGL_FLOAT_MAT2x4;
-    if(type.descriptor.columns == 2 && type.descriptor.rows == 2)
+    if(type.columns == 2 && type.rows == 2)
       return eGL_FLOAT_MAT2;
-    if(type.descriptor.columns == 2 && type.descriptor.rows == 1)
+    if(type.columns == 2 && type.rows == 1)
       return eGL_FLOAT_VEC2;
 
-    if(type.descriptor.columns == 1 && type.descriptor.rows == 4)
+    if(type.columns == 1 && type.rows == 4)
       return eGL_FLOAT_VEC4;
-    if(type.descriptor.columns == 1 && type.descriptor.rows == 3)
+    if(type.columns == 1 && type.rows == 3)
       return eGL_FLOAT_VEC3;
-    if(type.descriptor.columns == 1 && type.descriptor.rows == 2)
+    if(type.columns == 1 && type.rows == 2)
       return eGL_FLOAT_VEC2;
-    if(type.descriptor.columns == 1 && type.descriptor.rows == 1)
+    if(type.columns == 1 && type.rows == 1)
       return eGL_FLOAT;
 
-    if(type.descriptor.rows == 1 && type.descriptor.columns == 4)
+    if(type.rows == 1 && type.columns == 4)
       return eGL_FLOAT_VEC4;
-    if(type.descriptor.rows == 1 && type.descriptor.columns == 3)
+    if(type.rows == 1 && type.columns == 3)
       return eGL_FLOAT_VEC3;
-    if(type.descriptor.rows == 1 && type.descriptor.columns == 2)
+    if(type.rows == 1 && type.columns == 2)
       return eGL_FLOAT_VEC2;
-    if(type.descriptor.rows == 1 && type.descriptor.columns == 1)
+    if(type.rows == 1 && type.columns == 1)
       return eGL_FLOAT;
 
     return eGL_FLOAT;
   }
-  else if(type.descriptor.type == VarType::SInt)
+  else if(type.baseType == VarType::SInt)
   {
-    if(type.descriptor.columns == 1 && type.descriptor.rows == 4)
+    if(type.columns == 1 && type.rows == 4)
       return eGL_INT_VEC4;
-    if(type.descriptor.columns == 1 && type.descriptor.rows == 3)
+    if(type.columns == 1 && type.rows == 3)
       return eGL_INT_VEC3;
-    if(type.descriptor.columns == 1 && type.descriptor.rows == 2)
+    if(type.columns == 1 && type.rows == 2)
       return eGL_INT_VEC2;
-    if(type.descriptor.columns == 1 && type.descriptor.rows == 1)
+    if(type.columns == 1 && type.rows == 1)
       return eGL_INT;
 
-    if(type.descriptor.rows == 1 && type.descriptor.columns == 4)
+    if(type.rows == 1 && type.columns == 4)
       return eGL_INT_VEC4;
-    if(type.descriptor.rows == 1 && type.descriptor.columns == 3)
+    if(type.rows == 1 && type.columns == 3)
       return eGL_INT_VEC3;
-    if(type.descriptor.rows == 1 && type.descriptor.columns == 2)
+    if(type.rows == 1 && type.columns == 2)
       return eGL_INT_VEC2;
-    if(type.descriptor.rows == 1 && type.descriptor.columns == 1)
+    if(type.rows == 1 && type.columns == 1)
       return eGL_INT;
 
     return eGL_INT;
   }
-  else if(type.descriptor.type == VarType::UInt)
+  else if(type.baseType == VarType::UInt)
   {
-    if(type.descriptor.columns == 1 && type.descriptor.rows == 4)
+    if(type.columns == 1 && type.rows == 4)
       return eGL_UNSIGNED_INT_VEC4;
-    if(type.descriptor.columns == 1 && type.descriptor.rows == 3)
+    if(type.columns == 1 && type.rows == 3)
       return eGL_UNSIGNED_INT_VEC3;
-    if(type.descriptor.columns == 1 && type.descriptor.rows == 2)
+    if(type.columns == 1 && type.rows == 2)
       return eGL_UNSIGNED_INT_VEC2;
-    if(type.descriptor.columns == 1 && type.descriptor.rows == 1)
+    if(type.columns == 1 && type.rows == 1)
       return eGL_UNSIGNED_INT;
 
-    if(type.descriptor.rows == 1 && type.descriptor.columns == 4)
+    if(type.rows == 1 && type.columns == 4)
       return eGL_UNSIGNED_INT_VEC4;
-    if(type.descriptor.rows == 1 && type.descriptor.columns == 3)
+    if(type.rows == 1 && type.columns == 3)
       return eGL_UNSIGNED_INT_VEC3;
-    if(type.descriptor.rows == 1 && type.descriptor.columns == 2)
+    if(type.rows == 1 && type.columns == 2)
       return eGL_UNSIGNED_INT_VEC2;
-    if(type.descriptor.rows == 1 && type.descriptor.columns == 1)
+    if(type.rows == 1 && type.columns == 1)
       return eGL_UNSIGNED_INT;
 
     return eGL_UNSIGNED_INT;
@@ -249,7 +249,7 @@ static void UnrollConstant(rdcarray<UnrolledSPIRVConstant> &unrolled, const Shad
     name = var.name;
   }
 
-  const uint32_t arraySize = RDCMAX(1U, var.type.descriptor.elements);
+  const uint32_t arraySize = RDCMAX(1U, var.type.elements);
 
   if(var.type.members.empty())
   {

@@ -161,9 +161,9 @@ void DoSerialise(SerialiserType &ser, SigParameter &el)
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, ShaderConstantDescriptor &el)
+void DoSerialise(SerialiserType &ser, ShaderConstantType &el)
 {
-  SERIALISE_MEMBER(type);
+  SERIALISE_MEMBER(baseType);
   SERIALISE_MEMBER(rows);
   SERIALISE_MEMBER(columns);
   SERIALISE_MEMBER(matrixByteStride);
@@ -172,14 +172,6 @@ void DoSerialise(SerialiserType &ser, ShaderConstantDescriptor &el)
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(flags);
   SERIALISE_MEMBER(pointerTypeID);
-
-  SIZE_CHECK(48);
-}
-
-template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, ShaderConstantType &el)
-{
-  SERIALISE_MEMBER(descriptor);
   SERIALISE_MEMBER(members);
 
   SIZE_CHECK(72);

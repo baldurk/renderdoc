@@ -57,7 +57,7 @@ const DXBC::CBufferVariable *FindCBufferVar(const uint32_t minOffset, const uint
 
     // does minOffset-maxOffset reside in this variable? We don't handle the case where the range
     // crosses a variable (and I don't think FXC emits that anyway).
-    if(voffs <= minOffset && voffs + v.type.descriptor.bytesize > maxOffset)
+    if(voffs <= minOffset && voffs + v.type.bytesize > maxOffset)
     {
       byteOffset = voffs;
 
@@ -416,14 +416,14 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString toStrFlags
               uint32_t varOffset = minOffset - baseOffset;
 
               // if it's an array, add the index based on the relative index to the base offset
-              if(var->type.descriptor.elements > 1)
+              if(var->type.elements > 1)
               {
-                uint32_t byteSize = var->type.descriptor.bytesize;
+                uint32_t byteSize = var->type.bytesize;
 
                 // round up the byte size to a the nearest vec4 in case it's not quite a multiple
                 byteSize = AlignUp16(byteSize);
 
-                const uint32_t elementSize = byteSize / var->type.descriptor.elements;
+                const uint32_t elementSize = byteSize / var->type.elements;
 
                 const uint32_t elementIndex = varOffset / elementSize;
 
@@ -434,10 +434,8 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString toStrFlags
               }
 
               // or if it's a matrix
-              if((var->type.descriptor.varClass == DXBC::CLASS_MATRIX_ROWS &&
-                  var->type.descriptor.cols > 1) ||
-                 (var->type.descriptor.varClass == DXBC::CLASS_MATRIX_COLUMNS &&
-                  var->type.descriptor.rows > 1))
+              if((var->type.varClass == DXBC::CLASS_MATRIX_ROWS && var->type.cols > 1) ||
+                 (var->type.varClass == DXBC::CLASS_MATRIX_COLUMNS && var->type.rows > 1))
               {
                 str += StringFormat::Fmt("[%u]", varOffset / 16);
               }

@@ -1298,8 +1298,8 @@ GLPipelineStateViewer::GLReadWriteType GLPipelineStateViewer::GetGLReadWriteType
   }
   else
   {
-    if(res.variableType.descriptor.rows == 1 && res.variableType.descriptor.columns == 1 &&
-       res.variableType.descriptor.type == VarType::UInt)
+    if(res.variableType.rows == 1 && res.variableType.columns == 1 &&
+       res.variableType.baseType == VarType::UInt)
     {
       ret = GLReadWriteType::Atomic;
     }
