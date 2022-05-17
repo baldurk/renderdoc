@@ -521,8 +521,8 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                      rdcdatetime(2015, 01, 01))                                                    \
                                                                                                    \
   DOCUMENT(                                                                                        \
-      "``True`` if when coloring marker regions in the :class:`EventBrowser`, the whole row "      \
-      "should be colored instead of just a side-bar.\n"                                            \
+      "``True`` if the UI should be allowed to make update checks remotely to see if a new "       \
+      "version is available.\n"                                                                    \
       "\n"                                                                                         \
       "Defaults to ``True``.");                                                                    \
   CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_AllowChecks, true)                            \

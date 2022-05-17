@@ -125,7 +125,7 @@ inline bool check_interface(rdcstr &log, swig_type_info **swig_types, size_t num
   // the end of the world.
   bool errors_found = false;
 
-  std::set<rdcstr> docstrings;
+  std::set<rdcstr> struct_docstrings;
   for(size_t i = 0; i < numTypes; i++)
   {
     SwigPyClientData *typeinfo = (SwigPyClientData *)swig_types[i]->clientdata;
@@ -138,7 +138,7 @@ inline bool check_interface(rdcstr &log, swig_type_info **swig_types, size_t num
 
     rdcstr typedoc = typeobj->tp_doc;
 
-    auto result = docstrings.insert(typedoc);
+    auto result = struct_docstrings.insert(typedoc);
 
     if(!result.second)
     {
@@ -278,6 +278,7 @@ inline bool check_interface(rdcstr &log, swig_type_info **swig_types, size_t num
 
     PyMethodDef *method = typeobj->tp_methods;
 
+    std::set<rdcstr> method_docstrings;
     while(method->ml_doc)
     {
       rdcstr method_doc = method->ml_doc;
@@ -297,7 +298,7 @@ inline bool check_interface(rdcstr &log, swig_type_info **swig_types, size_t num
 
         method_doc.erase(0, i);
 
-        result = docstrings.insert(method_doc);
+        result = method_docstrings.insert(method_doc);
 
         if(!result.second)
         {
@@ -311,6 +312,26 @@ inline bool check_interface(rdcstr &log, swig_type_info **swig_types, size_t num
       }
 
       method++;
+    }
+
+    PyGetSetDef *getset = typeobj->tp_getset;
+    while(getset && getset->doc)
+    {
+      rdcstr getset_doc = getset->doc;
+
+      result = method_docstrings.insert(getset_doc);
+
+      if(!result.second)
+      {
+        snprintf(
+            convert_error, sizeof(convert_error) - 1,
+            "Duplicate docstring '%s' found on getset '%s.%s' - are you missing a DOCUMENT()?\n",
+            getset_doc.c_str(), typeobj->tp_name, getset->name);
+        log += convert_error;
+        errors_found = true;
+      }
+
+      getset++;
     }
   }
 
