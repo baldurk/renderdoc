@@ -2894,9 +2894,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       }
     }
 
-    QString errors;
-    ParsedFormat parsed =
-        BufferFormatter::ParseFormatString(m_Format, m_ByteSize, IsCBufferView(), errors);
+    ParsedFormat parsed = BufferFormatter::ParseFormatString(m_Format, m_ByteSize, IsCBufferView());
 
     bufdata->vsinConfig.fixedVars = parsed.fixed;
     bufdata->vsinConfig.packing = parsed.packing;
@@ -4944,8 +4942,6 @@ void BufferViewer::on_setFormat_toggled(bool checked)
 
 void BufferViewer::processFormat(const QString &format)
 {
-  QString errors;
-
   // save scroll values now before we reset all the models
   m_Scrolls = new PopulateBufferData;
   FillScrolls(m_Scrolls);
@@ -4964,7 +4960,7 @@ void BufferViewer::processFormat(const QString &format)
   }
   else
   {
-    parsed = BufferFormatter::ParseFormatString(format, m_ByteSize, IsCBufferView(), errors);
+    parsed = BufferFormatter::ParseFormatString(format, m_ByteSize, IsCBufferView());
   }
 
   const bool repeatedVars = parsed.repeating.type.descriptor.type != VarType::Unknown;
@@ -5091,7 +5087,7 @@ void BufferViewer::processFormat(const QString &format)
     byteRangeLength->setValue(m_ByteSize);
   }
 
-  ui->formatSpecifier->setErrors(errors);
+  ui->formatSpecifier->setErrors(parsed.errors);
 
   OnEventChanged(m_Ctx.CurEvent());
 }

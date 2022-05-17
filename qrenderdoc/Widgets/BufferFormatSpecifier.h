@@ -28,6 +28,7 @@
 #include <QWidget>
 
 struct ICaptureContext;
+class ScintillaEdit;
 
 class RDTreeWidgetItem;
 
@@ -68,6 +69,7 @@ public:
 
   void setContext(ICaptureContext *ctx);
   void setTitle(QString title);
+  void setErrors(const QMap<int, QString> &errors);
 
 signals:
   void processFormat(const QString &format);
@@ -78,7 +80,6 @@ public slots:
   void on_loadDef_clicked();
   void on_saveDef_clicked();
   void on_delDef_clicked();
-  void on_formatText_textChanged();
   void on_savedList_keyPress(QKeyEvent *event);
   void on_savedList_itemChanged(RDTreeWidgetItem *item, int column);
   void on_savedList_itemDoubleClicked(RDTreeWidgetItem *item, int column);
@@ -86,7 +87,6 @@ public slots:
 
   // manual slots
   void setFormat(const QString &format);
-  void setErrors(const QString &errors);
   void updateFormatList();
 
 private slots:
@@ -95,6 +95,8 @@ private slots:
 private:
   Ui::BufferFormatSpecifier *ui;
   ICaptureContext *m_Ctx;
+
+  ScintillaEdit *formatText;
 
   QString m_AutoFormat;
 };

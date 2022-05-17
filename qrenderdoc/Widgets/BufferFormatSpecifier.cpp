@@ -30,7 +30,12 @@
 #include <QTextCursor>
 #include <QTextDocument>
 #include "Code/QRDUtils.h"
+#include "Code/ScintillaSyntax.h"
+#include "scintilla/include/SciLexer.h"
+#include "scintilla/include/qt/ScintillaEdit.h"
 #include "ui_BufferFormatSpecifier.h"
+
+static const int ERROR_STYLE = STYLE_LASTPREDEFINED + 1;
 
 BufferFormatList *globalFormatList = NULL;
 
@@ -70,16 +75,65 @@ BufferFormatSpecifier::BufferFormatSpecifier(QWidget *parent)
 {
   ui->setupUi(this);
 
-  setErrors(QString());
+  formatText = new ScintillaEdit(this);
 
-  on_showHelp_toggled(false);
+  formatText->styleSetFont(STYLE_DEFAULT, Formatter::FixedFont().family().toUtf8().data());
+  formatText->styleSetSize(STYLE_DEFAULT, Formatter::FixedFont().pointSize());
+
+  formatText->styleSetFont(ERROR_STYLE, Formatter::FixedFont().family().toUtf8().data());
+  formatText->styleSetSize(ERROR_STYLE, Formatter::FixedFont().pointSize());
+
+  QColor base = formatText->palette().color(QPalette::Base);
+
+  QColor col = QColor::fromHslF(0.0f, 1.0f, qBound(0.1, base.lightnessF(), 0.9));
+
+  formatText->styleSetBack(ERROR_STYLE, SCINTILLA_COLOUR(col.red(), col.green(), col.blue()));
+
+  ConfigureSyntax(formatText, SCLEX_BUFFER);
+
+  formatText->setTabWidth(4);
+
+  formatText->setScrollWidth(1);
+  formatText->setScrollWidthTracking(true);
+
+  formatText->annotationSetVisible(ANNOTATION_BOXED);
+
+  formatText->colourise(0, -1);
+
+  formatText->setMarginWidthN(0, 0);
+  formatText->setMarginWidthN(1, 0);
+  formatText->setMarginWidthN(2, 0);
+
+  QFrame *formatContainer = new QFrame(this);
+  QVBoxLayout *layout = new QVBoxLayout;
+  layout->setContentsMargins(2, 2, 2, 2);
+  layout->addWidget(formatText);
+  formatContainer->setLayout(layout);
+
+  QPalette pal = formatContainer->palette();
+  pal.setColor(QPalette::Window, pal.color(QPalette::Base));
+  formatContainer->setPalette(pal);
+  formatContainer->setAutoFillBackground(true);
+
+  formatContainer->setFrameShape(QFrame::Panel);
+  formatContainer->setFrameShadow(QFrame::Plain);
+
+  QObject::connect(formatText, &ScintillaEdit::modified,
+                   [this](int type, int, int, int, const QByteArray &, int, int, int) {
+                     ui->savedList->clearSelection();
+                     if(!(type & SC_MOD_CHANGEANNOTATION))
+                       formatText->annotationClearAll();
+                   });
+
+  ui->mainLayout->insertWidget(0, formatContainer);
 
   ui->savedList->setItemDelegate(new FullEditorDelegate(ui->savedList));
-
-  ui->formatText->setFont(Formatter::FixedFont());
   ui->savedList->setFont(Formatter::PreferredFont());
-
   ui->savedList->setColumns({tr("Saved formats")});
+
+  setErrors({});
+
+  on_showHelp_toggled(false);
 }
 
 BufferFormatSpecifier::~BufferFormatSpecifier()
@@ -94,6 +148,8 @@ void BufferFormatSpecifier::setAutoFormat(QString autoFormat)
   updateFormatList();
 
   setFormat(autoFormat);
+
+  formatText->emptyUndoBuffer();
 }
 
 void BufferFormatSpecifier::setContext(ICaptureContext *ctx)
@@ -116,16 +172,33 @@ void BufferFormatSpecifier::setTitle(QString title)
 
 void BufferFormatSpecifier::setFormat(const QString &format)
 {
-  ui->formatText->setText(format);
+  formatText->setText(format.toUtf8().data());
 }
 
-void BufferFormatSpecifier::setErrors(const QString &errors)
+void BufferFormatSpecifier::setErrors(const QMap<int, QString> &errors)
 {
-  ui->errors->setText(errors);
-  if(errors.isEmpty())
-    ui->errors->setVisible(false);
-  else
-    ui->errors->setVisible(true);
+  formatText->annotationClearAll();
+
+  bool first = true;
+
+  for(auto err = errors.begin(); err != errors.end(); ++err)
+  {
+    int line = err.key();
+
+    formatText->annotationSetStyle(line, ERROR_STYLE);
+    formatText->annotationSetText(line, (tr("Error: %1").arg(err.value())).toUtf8().data());
+
+    if(first)
+    {
+      int firstLine = formatText->firstVisibleLine();
+      int linesVisible = formatText->linesOnScreen();
+
+      if(line < firstLine || line > (firstLine + linesVisible - 1))
+        formatText->setFirstVisibleLine(qMax(0, line - linesVisible / 2));
+
+      first = false;
+    }
+  }
 }
 
 void BufferFormatSpecifier::updateFormatList()
@@ -219,7 +292,8 @@ void BufferFormatSpecifier::on_savedList_itemChanged(RDTreeWidgetItem *item, int
     }
   }
 
-  globalFormatList->setFormat(name, ui->formatText->toPlainText());
+  globalFormatList->setFormat(name,
+                              QString::fromUtf8(formatText->getText(formatText->textLength() + 1)));
 }
 
 void BufferFormatSpecifier::on_savedList_itemDoubleClicked(RDTreeWidgetItem *item, int column)
@@ -262,7 +336,7 @@ void BufferFormatSpecifier::on_savedList_itemSelectionChanged()
 void BufferFormatSpecifier::on_showHelp_toggled(bool help)
 {
   ui->helpText->setVisible(help);
-  ui->formatText->setVisible(!help);
+  formatText->parentWidget()->setVisible(!help);
 }
 
 void BufferFormatSpecifier::on_loadDef_clicked()
@@ -281,12 +355,8 @@ void BufferFormatSpecifier::on_loadDef_clicked()
     format = globalFormatList->getFormat(name);
 
   {
-    QSignalBlocker block(ui->formatText);
-
-    QTextDocument *doc = ui->formatText->document();
-    QTextCursor cur(doc);
-    cur.select(QTextCursor::Document);
-    cur.insertText(format);
+    QSignalBlocker block(formatText);
+    formatText->setText(format.toUtf8().data());
   }
 
   emit processFormat(format);
@@ -317,7 +387,8 @@ void BufferFormatSpecifier::on_saveDef_clicked()
   if(res != QMessageBox::Yes)
     return;
 
-  globalFormatList->setFormat(name, ui->formatText->toPlainText());
+  globalFormatList->setFormat(name,
+                              QString::fromUtf8(formatText->getText(formatText->textLength() + 1)));
 }
 
 void BufferFormatSpecifier::on_delDef_clicked()
@@ -341,13 +412,8 @@ void BufferFormatSpecifier::on_delDef_clicked()
   globalFormatList->setFormat(name, QString());
 }
 
-void BufferFormatSpecifier::on_formatText_textChanged()
-{
-  ui->savedList->clearSelection();
-}
-
 void BufferFormatSpecifier::on_apply_clicked()
 {
-  setErrors(QString());
-  emit processFormat(ui->formatText->toPlainText());
+  setErrors({});
+  emit processFormat(QString::fromUtf8(formatText->getText(formatText->textLength() + 1)));
 }

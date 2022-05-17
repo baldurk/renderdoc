@@ -179,7 +179,10 @@ struct ParsedFormat
 {
   ShaderConstant fixed, repeating;
   Packing::Rules packing;
+  QMap<int, QString> errors;
 };
+
+struct StructFormatData;
 
 struct BufferFormatter
 {
@@ -188,8 +191,11 @@ private:
 
   static GraphicsAPI m_API;
 
-  static bool CheckInvalidUnbounded(const ShaderConstant &structDef, QString &errors);
-  static bool ContainsUnbounded(const rdcarray<ShaderConstant> &members);
+  static bool CheckInvalidUnbounded(const StructFormatData &structDef,
+                                    const QMap<QString, StructFormatData> &structelems,
+                                    QMap<int, QString> &errors);
+  static bool ContainsUnbounded(const ShaderConstant &structType,
+                                rdcpair<rdcstr, rdcstr> *found = NULL);
 
   static QString DeclareStruct(Packing::Rules pack, QList<QString> &declaredStructs,
                                const QString &name, const rdcarray<ShaderConstant> &members,
@@ -208,8 +214,7 @@ public:
   BufferFormatter() = default;
 
   static void Init(GraphicsAPI api) { m_API = api; }
-  static ParsedFormat ParseFormatString(const QString &formatString, uint64_t maxLen, bool cbuffer,
-                                        QString &errors);
+  static ParsedFormat ParseFormatString(const QString &formatString, uint64_t maxLen, bool cbuffer);
   static uint32_t GetVarAdvance(Packing::Rules pack, const ShaderConstant &var);
 
   static Packing::Rules EstimatePackingRules(const rdcarray<ShaderConstant> &members);

@@ -229,24 +229,120 @@ iimageCubeArray uimageCubeArray image2DMS iimage2DMS uimage2DMS image2DMSArray i
 uimage2DMSArray
 )EOKEYWORDS"};
 
+static const char *buffer_keywords[2] = {"struct enum",
+
+                                         // keyword set 1:
+                                         // Secondary keywords and identifiers
+                                         R"EOKEYWORDS(
+bool
+bool bool1 bool2 bool3 bool4 bool1x1 bool1x2 bool1x3 bool1x4 bool2x1 bool2x2 bool2x3 bool2x4 bool3x1
+bool3x2 bool3x3 bool3x4 bool4x1 bool4x2 bool4x3 bool4x4
+
+char
+char char1 char2 char3 char4 char1x1 char1x2 char1x3 char1x4 char2x1 char2x2 char2x3 char2x4 char3x1
+char3x2 char3x3 char3x4 char4x1 char4x2 char4x3 char4x4
+
+byte
+byte byte1 byte2 byte3 byte4 byte1x1 byte1x2 byte1x3 byte1x4 byte2x1 byte2x2 byte2x3 byte2x4 byte3x1
+byte3x2 byte3x3 byte3x4 byte4x1 byte4x2 byte4x3 byte4x4
+
+ubyte
+ubyte ubyte1 ubyte2 ubyte3 ubyte4 ubyte1x1 ubyte1x2 ubyte1x3 ubyte1x4 ubyte2x1 ubyte2x2 ubyte2x3 ubyte2x4 ubyte3x1
+ubyte3x2 ubyte3x3 ubyte3x4 ubyte4x1 ubyte4x2 ubyte4x3 ubyte4x4
+
+xbyte
+xbyte xbyte1 xbyte2 xbyte3 xbyte4 xbyte1x1 xbyte1x2 xbyte1x3 xbyte1x4 xbyte2x1 xbyte2x2 xbyte2x3 xbyte2x4 xbyte3x1
+xbyte3x2 xbyte3x3 xbyte3x4 xbyte4x1 xbyte4x2 xbyte4x3 xbyte4x4
+
+short
+short short1 short2 short3 short4 short1x1 short1x2 short1x3 short1x4 short2x1 short2x2 short2x3 short2x4 short3x1
+short3x2 short3x3 short3x4 short4x1 short4x2 short4x3 short4x4
+
+ushort
+ushort ushort1 ushort2 ushort3 ushort4 ushort1x1 ushort1x2 ushort1x3 ushort1x4 ushort2x1 ushort2x2 ushort2x3 ushort2x4 ushort3x1
+ushort3x2 ushort3x3 ushort3x4 ushort4x1 ushort4x2 ushort4x3 ushort4x4
+
+xshort
+xshort xshort1 xshort2 xshort3 xshort4 xshort1x1 xshort1x2 xshort1x3 xshort1x4 xshort2x1 xshort2x2 xshort2x3 xshort2x4 xshort3x1
+xshort3x2 xshort3x3 xshort3x4 xshort4x1 xshort4x2 xshort4x3 xshort4x4
+
+long
+long long1 long2 long3 long4 long1x1 long1x2 long1x3 long1x4 long2x1 long2x2 long2x3 long2x4 long3x1
+long3x2 long3x3 long3x4 long4x1 long4x2 long4x3 long4x4
+
+ulong
+ulong ulong1 ulong2 ulong3 ulong4 ulong1x1 ulong1x2 ulong1x3 ulong1x4 ulong2x1 ulong2x2 ulong2x3 ulong2x4 ulong3x1
+ulong3x2 ulong3x3 ulong3x4 ulong4x1 ulong4x2 ulong4x3 ulong4x4
+
+xlong
+xlong xlong1 xlong2 xlong3 xlong4 xlong1x1 xlong1x2 xlong1x3 xlong1x4 xlong2x1 xlong2x2 xlong2x3 xlong2x4 xlong3x1
+xlong3x2 xlong3x3 xlong3x4 xlong4x1 xlong4x2 xlong4x3 xlong4x4
+
+int
+int int1 int2 int3 int4 int1x1 int1x2 int1x3 int1x4 int2x1 int2x2 int2x3 int2x4 int3x1
+int3x2 int3x3 int3x4 int4x1 int4x2 int4x3 int4x4
+
+uint
+uint uint1 uint2 uint3 uint4 uint1x1 uint1x2 uint1x3 uint1x4 uint2x1 uint2x2 uint2x3 uint2x4 uint3x1
+uint3x2 uint3x3 uint3x4 uint4x1 uint4x2 uint4x3 uint4x4
+
+xint
+xint xint1 xint2 xint3 xint4 xint1x1 xint1x2 xint1x3 xint1x4 xint2x1 xint2x2 xint2x3 xint2x4 xint3x1
+xint3x2 xint3x3 xint3x4 xint4x1 xint4x2 xint4x3 xint4x4
+
+float
+float float1 float2 float3 float4 float1x1 float1x2 float1x3 float1x4 float2x1 float2x2 float2x3 float2x4 float3x1
+float3x2 float3x3 float3x4 float4x1 float4x2 float4x3 float4x4
+
+half
+half half1 half2 half3 half4 half1x1 half1x2 half1x3 half1x4 half2x1 half2x2 half2x3 half2x4 half3x1
+half3x2 half3x3 half3x4 half4x1 half4x2 half4x3 half4x4
+
+double double1 double2 double3 double4 double1x1 double1x2 double1x3 double1x4 double2x1 double2x2
+double2x3 double2x4 double3x1 double3x2 double3x3 double3x4 double4x1 double4x2 double4x3 double4x4
+
+mat2 mat3 mat4
+mat2x2 mat2x3 mat2x4
+mat3x2 mat3x3 mat3x4
+mat4x2 mat4x3 mat4x4
+dmat2 dmat3 dmat4
+dmat2x2 dmat2x3 dmat2x4
+dmat3x2 dmat3x3 dmat3x4
+dmat4x2 dmat4x3 dmat4x4
+imat2 imat3 imat4
+imat2x2 imat2x3 imat2x4
+imat3x2 imat3x3 imat3x4
+imat4x2 imat4x3 imat4x4
+umat2 umat3 umat4
+umat2x2 umat2x3 umat2x4
+umat3x2 umat3x3 umat3x4
+umat4x2 umat4x3 umat4x4
+vec2 vec3 vec4
+dvec2 dvec3 dvec4
+ivec2 ivec3 ivec4
+uvec2 uvec3 uvec4
+
+unormh unormh1 unormh2 unormh3 unormh4
+unormb unormb1 unormb2 unormb3 unormb4
+snormh snormh1 snormh2 snormh3 snormh4
+snormb snormb1 snormb2 snormb3 snormb4
+uintten uintten1 uintten2 uintten3 uintten4
+unormten unormten1 unormten2 unormten3 unormten4
+floateleven floateleven1 floateleven2 floateleven3 floateleven4
+
+row_major column_major unsigned signed rgb
+)EOKEYWORDS"};
+
 void ConfigureSyntax(ScintillaEdit *scintilla, int language)
 {
   bool hlsl = false;
   bool glsl = false;
+  int lexLang = language;
 
-  if(language == SCLEX_HLSL)
-  {
-    hlsl = true;
-    language = SCLEX_CPP;
-  }
+  if(lexLang == SCLEX_HLSL || lexLang == SCLEX_GLSL || lexLang == SCLEX_BUFFER)
+    lexLang = SCLEX_CPP;
 
-  if(language == SCLEX_GLSL)
-  {
-    glsl = true;
-    language = SCLEX_CPP;
-  }
-
-  scintilla->setLexer(language);
+  scintilla->setLexer(lexLang);
 
 #define SC_COL(qcol) SCINTILLA_COLOUR(qcol.red(), qcol.green(), qcol.blue())
 
@@ -288,7 +384,7 @@ void ConfigureSyntax(ScintillaEdit *scintilla, int language)
   sptr_t teal = SCINTILLA_COLOUR(0, 150, 150);
   sptr_t olive = SCINTILLA_COLOUR(150, 150, 0);
 
-  if(language == SCLEX_CPP)
+  if(lexLang == SCLEX_CPP)
   {
     scintilla->setProperty("lexer.cpp.track.preprocessor", "0");
     scintilla->setProperty("styling.within.preprocessor", "1");
@@ -301,15 +397,20 @@ void ConfigureSyntax(ScintillaEdit *scintilla, int language)
     scintilla->styleSetFore(SCE_C_PREPROCESSOR, blue);
     scintilla->styleSetBold(SCE_C_PREPROCESSOR, true);
 
-    if(hlsl)
+    if(language == SCLEX_HLSL)
     {
       scintilla->setKeyWords(0, hlsl_keywords[0]);
       scintilla->setKeyWords(1, hlsl_keywords[1]);
     }
-    else if(glsl)
+    else if(language == SCLEX_GLSL)
     {
       scintilla->setKeyWords(0, glsl_keywords[0]);
       scintilla->setKeyWords(1, glsl_keywords[1]);
+    }
+    else if(language == SCLEX_BUFFER)
+    {
+      scintilla->setKeyWords(0, buffer_keywords[0]);
+      scintilla->setKeyWords(1, buffer_keywords[1]);
     }
   }
   else if(language == SCLEX_PYTHON)

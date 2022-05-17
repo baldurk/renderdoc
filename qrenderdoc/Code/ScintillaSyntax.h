@@ -26,6 +26,7 @@
 
 #define SCLEX_GLSL 1000
 #define SCLEX_HLSL 1001
+#define SCLEX_BUFFER 1002
 
 #define SCINTILLA_COLOUR(r, g, b) (long(r) | (long(g) << 8) | (long(b) << 16))
 

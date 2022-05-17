@@ -24,17 +24,27 @@
 
 #include <QApplication>
 #include <QRegularExpression>
+#include <QStringView>
 #include <QtMath>
 #include "QRDUtils.h"
 
 struct StructFormatData
 {
+  // the actual definition (including structs pulled in recursively)
   ShaderConstant structDef;
+  // the line in the format where each member was defined, in case we find a problem later and want
+  // to attach the error to it
+  QList<int> lineMemberDefs;
+
   uint32_t pointerTypeId = 0;
   uint32_t offset = 0;
   uint32_t alignment = 0;
   uint32_t paddedStride = 0;
+
+  // is this a struct definition with [[single]] ?
   bool singleDef = false;
+
+  // does this contain a member annotated with [[single]] ?
   bool singleMember = false;
 };
 
@@ -367,45 +377,59 @@ Packing::Rules BufferFormatter::EstimatePackingRules(const rdcarray<ShaderConsta
   return pack;
 }
 
-bool BufferFormatter::ContainsUnbounded(const rdcarray<ShaderConstant> &members)
+bool BufferFormatter::ContainsUnbounded(const ShaderConstant &structType,
+                                        rdcpair<rdcstr, rdcstr> *found)
 {
+  const rdcarray<ShaderConstant> &members = structType.type.members;
   for(size_t i = 0; i < members.size(); i++)
   {
     if(members[i].type.descriptor.elements == ~0U)
+    {
+      if(found)
+        *found = {structType.name, members[i].name};
       return true;
+    }
 
-    if(ContainsUnbounded(members[i].type.members))
+    if(ContainsUnbounded(members[i], found))
       return true;
   }
 
   return false;
 }
 
-bool BufferFormatter::CheckInvalidUnbounded(const ShaderConstant &structDef, QString &errors)
+bool BufferFormatter::CheckInvalidUnbounded(const StructFormatData &structData,
+                                            const QMap<QString, StructFormatData> &structelems,
+                                            QMap<int, QString> &errors)
 {
-  for(size_t i = 0; i < structDef.type.members.size(); i++)
+  const ShaderConstant &def = structData.structDef;
+
+  for(size_t i = 0; i < def.type.members.size(); i++)
   {
-    const bool isLast = i == structDef.type.members.size() - 1;
+    const bool isLast = i == def.type.members.size() - 1;
 
     // if it's not the last member and it's unbounded, that's a problem!
-    if(!isLast && structDef.type.members[i].type.descriptor.elements == ~0U)
+    if(!isLast && def.type.members[i].type.descriptor.elements == ~0U)
     {
-      errors = tr("%1 in %2 can't be unbounded when not the last member.\n")
-                   .arg(structDef.type.members[i].name)
-                   .arg(structDef.type.descriptor.name);
+      int line = structData.lineMemberDefs[(int)i];
+      errors[line] = tr("Only the last member of a struct can be an unbounded array.");
       return false;
     }
 
     // if it's not the last member, no child can have an unbounded array
-    if(!isLast && ContainsUnbounded(structDef.type.members[i].type.members))
+    rdcpair<rdcstr, rdcstr> unbounded;
+    if(!isLast && ContainsUnbounded(def.type.members[i], &unbounded))
     {
-      errors = tr("%1 in %2 can't have unbounded array in a child.\n")
-                   .arg(structDef.type.members[i].name)
-                   .arg(structDef.type.descriptor.name);
+      int line = structData.lineMemberDefs[(int)i];
+      errors[line] =
+          tr("Only the last member of a struct can contain an unbounded array. %1 in %2 is "
+             "unbounded.")
+              .arg(unbounded.second)
+              .arg(unbounded.first);
       return false;
     }
 
-    if(!CheckInvalidUnbounded(structDef.type.members[i], errors))
+    if(!CheckInvalidUnbounded(structelems[def.type.members[i].type.descriptor.name], structelems,
+                              errors))
       return false;
   }
 
@@ -413,8 +437,10 @@ bool BufferFormatter::CheckInvalidUnbounded(const ShaderConstant &structDef, QSt
 }
 
 ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uint64_t maxLen,
-                                                bool cbuffer, QString &errors)
+                                                bool cbuffer)
 {
+  ParsedFormat ret;
+
   StructFormatData root;
   StructFormatData *cur = &root;
 
@@ -454,18 +480,10 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
           "$"));
 
   bool success = true;
-  errors = QString();
 
+  // remove any dos newlines
   QString text = formatString;
-
-  QRegularExpression c_comments(lit("/\\*[^*]*\\*+(?:[^*/][^*]*\\*+)*/"));
-  QRegularExpression cpp_comments(lit("//.*"));
-  // remove all comments
-  text = text.replace(c_comments, QString()).replace(cpp_comments, QString());
-  // ensure braces are forced onto separate lines so we can parse them
-  text = text.replace(QLatin1Char('{'), lit("\n{\n")).replace(QLatin1Char('}'), lit("\n}\n"));
-  // treat commas as semi-colons for simplicity of parsing enum declarations and struct declarations
-  text = text.replace(QLatin1Char(','), QLatin1Char(';'));
+  text.replace(lit("\r\n"), lit("\n"));
 
   QRegularExpression annotationRegex(
       lit("^"                           // start of the line
@@ -522,41 +540,139 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
   // default to scalar (tight packing) if nothing else is specified at all. The expectation is
   // anything that needs a better default will insert that into the format string for the user
-  Packing::Rules pack = Packing::Scalar;
+  Packing::Rules &pack = ret.packing;
+  pack = Packing::Scalar;
+
+  int line = 0;
+
+  QMap<int, QString> &errors = ret.errors;
+  auto reportError = [&line, &errors](QString err) { errors[line] = err.trimmed(); };
 
   QList<Annotation> annotations;
 
-  // get each line and parse it to determine the format the user wanted
-  for(QString &l : text.split(QRegularExpression(lit("[;\n\r]"))))
-  {
-    QString line = l.trimmed();
+  QStringView parseText(text);
+  int parseLine = 0;
 
-    if(line.isEmpty())
+  // get each line and parse it to determine the format the user wanted
+  while(!parseText.isEmpty())
+  {
+    // consume up to the next terminator (comma, semicolon, brace, or newline) while ignore C and
+    // C++ style comments, as well as counting newlines for line numbers
+
+    enum parsestate
+    {
+      NORMAL,
+      C_COMMENT,
+      CPP_COMMENT
+    } state = NORMAL;
+
+    QString decl;
+
+    {
+      int end = 0;
+      for(; end < parseText.length();)
+      {
+        // peek ahead character
+        QChar c = parseText[end];
+
+        // if we have a non-empty declaration and we're about to hit a brace, stop now before
+        // actually processing it.
+        const bool brace = (c == QLatin1Char('{') || c == QLatin1Char('}'));
+        if(brace && !decl.trimmed().isEmpty())
+          break;
+
+        // consume c now, whatever it is, we've read it and will process it below
+        end++;
+
+        // if this is a ; or , we don't bother to include it in the declaration but stop now
+        if(state == NORMAL && (c == QLatin1Char(';') || c == QLatin1Char(',')))
+          break;
+
+        if(c == QLatin1Char('\n'))
+        {
+          parseLine++;
+
+          // if we're in a CPP comment, go back to normal
+          if(state == CPP_COMMENT)
+            state = NORMAL;
+
+          // if we have a preprocessor definition (first non-whitespace character is #) end at the
+          // end of the line without a ;
+          if(state == NORMAL && decl.trimmed().startsWith(lit("#")))
+            break;
+        }
+
+        QChar c2;
+        if(end + 1 < parseText.length())
+          c2 = parseText[end];
+
+        if(state == NORMAL && c == QLatin1Char('/') && c2 == QLatin1Char('/'))
+        {
+          // consume the next character too
+          end++;
+          state = CPP_COMMENT;
+          continue;
+        }
+
+        if(state == NORMAL && c == QLatin1Char('/') && c2 == QLatin1Char('*'))
+        {
+          // consume the next character too
+          end++;
+          state = C_COMMENT;
+          continue;
+        }
+
+        if(state == C_COMMENT && c == QLatin1Char('*') && c2 == QLatin1Char('/'))
+        {
+          // consume the next character too
+          end++;
+          state = NORMAL;
+          continue;
+        }
+
+        if(state == NORMAL)
+        {
+          decl.append(c);
+          line = parseLine;
+
+          // braces should be considered their own declarations
+          if(brace)
+            break;
+        }
+      }
+
+      parseText = parseText.mid(end);
+      decl = decl.trimmed();
+    }
+
+    if(decl.isEmpty())
       continue;
 
     do
     {
-      QRegularExpressionMatch match = annotationRegex.match(line);
+      QRegularExpressionMatch match = annotationRegex.match(decl);
 
       if(!match.hasMatch())
         break;
 
       annotations.push_back({match.captured(lit("name")), match.captured(lit("param"))});
 
-      line.remove(match.capturedStart(0), match.capturedLength(0));
+      decl.remove(match.capturedStart(0), match.capturedLength(0));
+      decl = decl.trimmed();
     } while(true);
 
-    if(line.isEmpty())
+    if(decl.isEmpty())
       continue;
 
+    if(decl[0] == QLatin1Char('#'))
     {
-      QRegularExpressionMatch match = packingRegex.match(line);
+      QRegularExpressionMatch match = packingRegex.match(decl);
 
       if(match.hasMatch())
       {
         if(cur != &root)
         {
-          errors = tr("Packing rules can only be changed at global scope: %1\n").arg(line);
+          reportError(tr("Packing rules can only be changed at global scope."));
           success = false;
           break;
         }
@@ -602,29 +718,44 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
         if(packrule.isEmpty())
         {
-          errors = tr("Unrecognised packing rule specifier: %1\n").arg(line);
+          reportError(tr("Unrecognised packing rule specifier '%1'.\n\n"
+                         "Supported rulesets:\n"
+                         " - cbuffer (D3D constant buffer packing)\n"
+                         " - uav (D3D UAV packing)\n"
+                         " - std140 (GL/Vulkan std140 packing)\n"
+                         " - std430 (GL/Vulkan std430 packing)\n"
+                         " - scalar (Tight scalar packing)")
+                          .arg(packrule));
           success = false;
           break;
         }
 
         continue;
       }
+      else
+      {
+        reportError(tr("Unrecognised pre-processor command '%1'.\n\n"
+                       "Pre-processor commands must be all on one line.\n")
+                        .arg(decl));
+        success = false;
+        break;
+      }
     }
 
     if(cur == &root)
     {
       // if we're not in a struct, ignore the braces
-      if(line == lit("{") || line == lit("}"))
+      if(decl == lit("{") || decl == lit("}"))
         continue;
     }
     else
     {
       // if we're in a struct, ignore the opening brace and revert back to root elements when we hit
       // the closing brace. No brace nesting is supported
-      if(line == lit("{"))
+      if(decl == lit("{"))
         continue;
 
-      if(line == lit("}"))
+      if(decl == lit("}"))
       {
         if(bitfieldCurPos != ~0U)
         {
@@ -659,10 +790,11 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
             }
             else
             {
-              errors = tr("Declared struct %1 stride %2 is less than structure size %3\n")
-                           .arg(cur->structDef.type.descriptor.name)
-                           .arg(cur->paddedStride)
-                           .arg(cur->structDef.type.descriptor.arrayByteStride);
+              reportError(tr("Struct %1 declared size %2 bytes is less than derived structure "
+                             "size %3 bytes.")
+                              .arg(cur->structDef.type.descriptor.name)
+                              .arg(cur->paddedStride)
+                              .arg(cur->structDef.type.descriptor.arrayByteStride));
               success = false;
               break;
             }
@@ -676,17 +808,18 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       }
     }
 
-    if(line.startsWith(lit("struct")) || line.startsWith(lit("enum")))
+    if(decl.startsWith(lit("struct")) || decl.startsWith(lit("enum")))
     {
-      QRegularExpressionMatch match = structDeclRegex.match(line);
+      QRegularExpressionMatch match = structDeclRegex.match(decl);
 
       if(match.hasMatch())
       {
+        QString typeName = match.captured(1);
         QString name = match.captured(2);
 
         if(structelems.contains(name))
         {
-          errors = tr("Duplicate struct/enum definition: %1\n").arg(name);
+          reportError(tr("type %1 has already been defined.").arg(name));
           success = false;
           break;
         }
@@ -695,7 +828,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         cur->structDef.type.descriptor.name = name;
         bitfieldCurPos = ~0U;
 
-        if(match.captured(1) == lit("struct"))
+        if(typeName == lit("struct"))
         {
           lastStruct = name;
           cur->structDef.type.descriptor.type = VarType::Struct;
@@ -704,6 +837,14 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
           {
             if(annot.name == lit("size") || annot.name == lit("byte_size"))
             {
+              if(annot.param.isEmpty())
+              {
+                reportError(tr("Annotation '%1' requires a parameter with the size in bytes.\n\n"
+                               "e.g. [[%1(128)]]")
+                                .arg(annot.name));
+                success = false;
+                break;
+              }
               cur->paddedStride = annot.param.toUInt();
             }
             else if(annot.name == lit("single") || annot.name == lit("fixed"))
@@ -712,7 +853,12 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
             }
             else
             {
-              errors = tr("Unrecognised annotation on struct definition: %1\n").arg(annot.name);
+              reportError(
+                  tr("Unrecognised annotation '%1' on struct definition.\n\n"
+                     "Supported struct annotations:\n"
+                     " - [[size(x)]] specify the size to pad the struct to.\n"
+                     " - [[single]] specify that this struct is fixed, not array-of-structs.")
+                      .arg(annot.name));
               success = false;
               break;
             }
@@ -735,7 +881,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
             }
             else
             {
-              errors = tr("Unrecognised annotation on enum definition: %1\n").arg(annot.name);
+              reportError(tr("Unrecognised annotation '%1' on enum definition.").arg(annot.name));
               success = false;
               break;
             }
@@ -750,7 +896,8 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
           if(baseType.isEmpty())
           {
-            errors = tr("Enum declarations require sized base type, see line: %1\n").arg(name);
+            reportError(
+                tr("Enum declarations require a sized base type. E.g. enum %1 : uint").arg(name));
             success = false;
             break;
           }
@@ -759,9 +906,11 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
           bool matched = MatchBaseTypeDeclaration(baseType, true, tmp);
 
-          if(!matched)
+          if(!matched || VarTypeCompType(tmp.type.descriptor.type) != CompType::UInt ||
+             tmp.type.descriptor.flags != ShaderVariableFlags::NoFlags)
           {
-            errors = tr("Unknown enum base type on line: %1\n").arg(line);
+            reportError(
+                tr("Invalid enum base type '%1', must be an unsigned integer type.").arg(baseType));
             success = false;
             break;
           }
@@ -777,21 +926,23 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
     if(cur->structDef.type.descriptor.type == VarType::Enum)
     {
-      QRegularExpressionMatch enumMatch = enumValueRegex.match(line);
+      QRegularExpressionMatch enumMatch = enumValueRegex.match(decl);
 
       if(!enumMatch.hasMatch())
       {
-        errors = tr("Couldn't parse enum value declaration on line: %1\n").arg(line);
+        reportError(tr("Couldn't parse value declaration in enum."));
         success = false;
         break;
       }
 
+      QString valueNum = enumMatch.captured(2);
+
       bool ok = false;
-      uint64_t val = enumMatch.captured(2).toULongLong(&ok, 0);
+      uint64_t val = valueNum.toULongLong(&ok, 0);
 
       if(!ok)
       {
-        errors = tr("Couldn't parse enum numerical value on line: %1\n").arg(line);
+        reportError(tr("Couldn't parse enum numerical value from '%1'.").arg(valueNum));
         success = false;
         break;
       }
@@ -807,7 +958,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         }
         else
         {
-          errors = tr("Unrecognised annotation on enum value: %1\n").arg(annot.name);
+          reportError(tr("Unrecognised annotation '%1' on enum value.").arg(annot.name));
           success = false;
           break;
         }
@@ -819,11 +970,12 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         break;
 
       cur->structDef.type.members.push_back(el);
+      cur->lineMemberDefs.push_back(line);
 
       continue;
     }
 
-    QRegularExpressionMatch bitfieldSkipMatch = bitfieldSkipRegex.match(line);
+    QRegularExpressionMatch bitfieldSkipMatch = bitfieldSkipRegex.match(decl);
 
     if(bitfieldSkipMatch.hasMatch())
     {
@@ -839,7 +991,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         }
         else
         {
-          errors = tr("Unrecognised annotation on bitfield skip: %1\n").arg(annot.name);
+          reportError(tr("Unrecognised annotation '%1' on bitfield skip element.").arg(annot.name));
           success = false;
           break;
         }
@@ -855,14 +1007,14 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
     if(cur->singleMember)
     {
-      errors =
+      reportError(
           tr("[[single]] can only be used if there is only one variable in the root.\n"
-             "Consider wrapping the variables in a struct and marking it as [[single]].\n");
+             "Consider wrapping the variables in a struct and annotating it as [[single]]."));
       success = false;
       break;
     }
 
-    QRegularExpressionMatch structMatch = structUseRegex.match(line);
+    QRegularExpressionMatch structMatch = structUseRegex.match(decl);
 
     bool isPadding = false;
 
@@ -874,7 +1026,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
       if(structContext.singleDef)
       {
-        errors = tr("[[single]] annotated structs cannot be used, only defined.\n");
+        reportError(tr("[[single]] annotated structs can't be used, only defined."));
         success = false;
         break;
       }
@@ -889,6 +1041,14 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       {
         if(annot.name == lit("offset") || annot.name == lit("byte_offset"))
         {
+          if(annot.param.isEmpty())
+          {
+            reportError(tr("Annotation '%1' requires a parameter with the offset in bytes.\n\n"
+                           "e.g. [[%1(128)]]")
+                            .arg(annot.name));
+            success = false;
+            break;
+          }
           specifiedOffset = annot.param.toUInt();
         }
         else if(annot.name == lit("pad") || annot.name == lit("padding"))
@@ -899,15 +1059,15 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         {
           if(cur != &root)
           {
-            errors = tr("[[single]] can only be used on variables in the root\n");
+            reportError(tr("[[single]] can only be used on global variables."));
             success = false;
             break;
           }
           else if(!cur->structDef.type.members.empty())
           {
-            errors =
+            reportError(
                 tr("[[single]] can only be used if there is only one variable in the root.\n"
-                   "Consider wrapping the variables in a struct and marking it as [[single]].\n");
+                   "Consider wrapping the variables in a struct and marking it as [[single]]."));
             success = false;
             break;
           }
@@ -918,7 +1078,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         }
         else
         {
-          errors = tr("Unrecognised annotation on variable: %1\n").arg(annot.name);
+          reportError(tr("Unrecognised annotation '%1' on variable.").arg(annot.name));
           success = false;
           break;
         }
@@ -944,7 +1104,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
       if(cur->singleMember && arrayCount == ~0U)
       {
-        errors = tr("[[single]] can't be used on unbounded arrays.\n");
+        reportError(tr("[[single]] can't be used on unbounded arrays."));
         success = false;
         break;
       }
@@ -955,7 +1115,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       {
         if(!bitfield.isEmpty())
         {
-          errors = tr("Bitfield packing is not allowed on pointers on line: %1\n").arg(line);
+          reportError(tr("Pointers can't be packed into a bitfield."));
           success = false;
           break;
         }
@@ -967,8 +1127,10 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         {
           if(specifiedOffset < cur->offset)
           {
-            errors =
-                tr("Offset %1 on variable %2 overlaps previous data\n").arg(specifiedOffset).arg(varName);
+            reportError(tr("Specified byte offset %1 overlaps with previous data.\n"
+                           "This value must be at byte offset %2 at minimum.")
+                            .arg(specifiedOffset)
+                            .arg(cur->offset));
             success = false;
             break;
           }
@@ -987,7 +1149,10 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         cur->offset += 8;
 
         if(!isPadding)
+        {
           cur->structDef.type.members.push_back(el);
+          cur->lineMemberDefs.push_back(line);
+        }
 
         continue;
       }
@@ -995,7 +1160,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       {
         if(!bitfield.isEmpty() && !arrayDim.isEmpty())
         {
-          errors = tr("Bitfield packing is not allowed on arrays on line: %1\n").arg(line);
+          reportError(tr("Arrays can't be packed into a bitfield."));
           success = false;
           break;
         }
@@ -1012,8 +1177,10 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
           if(specifiedOffset < offs)
           {
-            errors =
-                tr("Offset %1 on variable %2 overlaps previous data\n").arg(specifiedOffset).arg(varName);
+            reportError(tr("Specified byte offset %1 overlaps with previous data.\n"
+                           "This value must be at byte offset %2 at minimum.")
+                            .arg(specifiedOffset)
+                            .arg(offs));
             success = false;
             break;
           }
@@ -1042,7 +1209,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       {
         if(!bitfield.isEmpty())
         {
-          errors = tr("Bitfield packing is not allowed on structs on line: %1\n").arg(line);
+          reportError(tr("Struct variables can't be packed into a bitfield."));
           success = false;
           break;
         }
@@ -1055,8 +1222,10 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         {
           if(specifiedOffset < cur->offset)
           {
-            errors =
-                tr("Offset %1 on variable %2 overlaps previous data\n").arg(specifiedOffset).arg(varName);
+            reportError(tr("Specified byte offset %1 overlaps with previous data.\n"
+                           "This value must be at byte offset %2 at minimum.")
+                            .arg(specifiedOffset)
+                            .arg(cur->offset));
             success = false;
             break;
           }
@@ -1070,7 +1239,10 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         el.type.descriptor.elements = arrayCount;
 
         if(!isPadding)
+        {
           cur->structDef.type.members.push_back(el);
+          cur->lineMemberDefs.push_back(line);
+        }
 
         // advance by the struct including any trailing padding
         cur->offset += el.type.descriptor.elements * el.type.descriptor.arrayByteStride;
@@ -1084,11 +1256,40 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
     }
     else
     {
-      QRegularExpressionMatch match = regExpr.match(line);
+      QRegularExpressionMatch match = regExpr.match(decl);
 
       if(!match.hasMatch())
       {
-        errors = tr("Couldn't parse line: %1\n").arg(line);
+        QString problemGuess;
+
+        // try to guess the problem since we don't have a proper parser and are just using regex's,
+        // so we don't have a parse state to mention
+        ShaderConstant dummy;
+        int numRecognisedTypes = 0;
+        QStringList identifiers = decl.split(QRegularExpression(lit("\\s+")));
+        for(const QString &identifier : identifiers)
+        {
+          bool known = MatchBaseTypeDeclaration(identifier, false, dummy);
+          if(known)
+            numRecognisedTypes++;
+        }
+
+        // if we recognised more than one type maybe this is multiple lines that got combined
+        if(numRecognisedTypes > 1)
+        {
+          problemGuess = tr("Did you need a ; between multiple declarations?");
+        }
+        else if(identifiers.size() >= 1 && structelems.contains(identifiers[0]))
+        {
+          problemGuess = tr("Invalid declaration of struct '%1'.").arg(identifiers[0]);
+        }
+        else if(identifiers.size() > 1)
+        {
+          problemGuess = tr("Unrecognised type '%1'.").arg(identifiers[0]);
+        }
+
+        reportError(
+            tr("Failed to parse declaration:\n\n%1\n\n%2").arg(decl).arg(problemGuess).trimmed());
         success = false;
         break;
       }
@@ -1119,13 +1320,6 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       const bool isUnsigned = match.captured(lit("sign")).trimmed() == lit("unsigned");
 
       QString bitfield = match.captured(lit("bitfield"));
-
-      if(!bitfield.isEmpty() && !arrayDim.isEmpty())
-      {
-        errors = tr("Bitfield packing is not allowed on arrays on line: %1\n").arg(line);
-        success = false;
-        break;
-      }
 
       QString vecMatSizeSuffix;
 
@@ -1162,7 +1356,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         el.type.descriptor.columns = firstDim.toUInt(&ok);
         if(!ok)
         {
-          errors = tr("Invalid vector dimension on line: %1\n").arg(line);
+          reportError(tr("Invalid vector dimension '%1'.").arg(firstDim));
           success = false;
           break;
         }
@@ -1171,10 +1365,17 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         if(!ok)
           el.type.descriptor.elements = 1;
 
+        if(!bitfield.isEmpty() && el.type.descriptor.elements > 1)
+        {
+          reportError(tr("Arrays can't be packed into a bitfield."));
+          success = false;
+          break;
+        }
+
         el.type.descriptor.rows = qMax(1U, secondDim.toUInt(&ok));
         if(!ok)
         {
-          errors = tr("Invalid matrix second dimension on line: %1\n").arg(line);
+          reportError(tr("Invalid matrix dimension '%1'.").arg(secondDim));
           success = false;
           break;
         }
@@ -1191,7 +1392,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
         if(!matched)
         {
-          errors = tr("Unrecognised type on line: %1\n").arg(line);
+          reportError(tr("Unrecognised type '%1'.").arg(basetype));
           success = false;
           break;
         }
@@ -1208,8 +1409,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
           {
             if(el.type.descriptor.columns != 3 || el.type.descriptor.type != VarType::Float)
             {
-              errors =
-                  tr("R11G11B10 packing must be specified on a 'float3' variable: %1\n").arg(line);
+              reportError(tr("R11G11B10 packing must be specified on a 'float3' variable."));
               success = false;
               break;
             }
@@ -1221,9 +1421,9 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
           {
             if(el.type.descriptor.columns != 4 || el.type.descriptor.type != VarType::UInt)
             {
-              errors = tr("R10G10B10A2 packing must be specified on a 'uint4' variable "
-                          "(optionally with [[unorm]]): %1\n")
-                           .arg(line);
+              reportError(
+                  tr("R10G10B10A2 packing must be specified on a 'uint4' variable "
+                     "(optionally with [[unorm]] or [[snorm]])."));
               success = false;
               break;
             }
@@ -1234,9 +1434,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
           {
             if(el.type.descriptor.columns != 4 || el.type.descriptor.type != VarType::UInt)
             {
-              errors = tr("R10G10B10A2 packing must be specified on a 'uint4' variable "
-                          "(optionally with [[unorm]]): %1\n")
-                           .arg(line);
+              reportError(tr("R10G10B10A2_UNORM packing must be specified on a 'uint4' variable."));
               success = false;
               break;
             }
@@ -1245,21 +1443,26 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
           }
           else if(annot.param.toLower() == lit("r10g10b10a2_snorm"))
           {
-            if(el.type.descriptor.columns != 4 || (el.type.descriptor.type != VarType::SInt &&
-                                                   el.type.descriptor.type != VarType::UInt))
+            if(el.type.descriptor.columns != 4 || el.type.descriptor.type != VarType::SInt)
             {
-              errors = tr("R10G10B10A2 packing must be specified on a '[u]int4' variable "
-                          "when using [[snorm]]): %1\n")
-                           .arg(line);
+              reportError(tr("R10G10B10A2_SNORM packing must be specified on a 'int4' variable."));
               success = false;
               break;
             }
 
             el.type.descriptor.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::SNorm;
           }
+          else if(annot.param.isEmpty())
+          {
+            reportError(tr("Annotation '%1' requires a parameter with the format packing.\n\n"
+                           "e.g. [[%1(r10g10b10a2)]]")
+                            .arg(annot.name));
+            success = false;
+            break;
+          }
           else
           {
-            errors = tr("Unrecognised pack type: %1\n").arg(annot.param);
+            reportError(tr("Unrecognised format packing '%1'.\n").arg(annot.param));
             success = false;
             break;
           }
@@ -1279,8 +1482,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         {
           if(VarTypeCompType(el.type.descriptor.type) == CompType::Float)
           {
-            errors =
-                tr("Hex display is not supported on floating point formats on line: %1\n").arg(line);
+            reportError(tr("Hex display is not supported on floating point variables."));
             success = false;
             break;
           }
@@ -1288,7 +1490,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
           if(el.type.descriptor.flags &
              (ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::R11G11B10))
           {
-            errors = tr("Hex display is not supported on packed formats on line: %1\n").arg(line);
+            reportError(tr("Hex display is not supported on packed formats."));
             success = false;
             break;
           }
@@ -1308,8 +1510,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         {
           if(VarTypeCompType(el.type.descriptor.type) == CompType::Float)
           {
-            errors =
-                tr("Binary display is not supported on floating point formats on line: %1\n").arg(line);
+            reportError(tr("Binary display is not supported on floating point variables."));
             success = false;
             break;
           }
@@ -1317,7 +1518,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
           if(el.type.descriptor.flags &
              (ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::R11G11B10))
           {
-            errors = tr("Binary display is not supported on packed formats on line: %1\n").arg(line);
+            reportError(tr("Binary display is not supported on packed formats."));
             success = false;
             break;
           }
@@ -1342,8 +1543,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
                el.type.descriptor.type != VarType::SShort &&
                el.type.descriptor.type != VarType::UByte && el.type.descriptor.type != VarType::SByte)
             {
-              errors =
-                  tr("UNORM packing is only supported on [u]byte and [u]short types: %1\n").arg(line);
+              reportError(tr("UNORM packing is only supported on [u]byte and [u]short types."));
               success = false;
               break;
             }
@@ -1360,8 +1560,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
                el.type.descriptor.type != VarType::SShort &&
                el.type.descriptor.type != VarType::UByte && el.type.descriptor.type != VarType::SByte)
             {
-              errors =
-                  tr("SNORM packing is only supported on [u]byte and [u]short types: %1\n").arg(line);
+              reportError(tr("SNORM packing is only supported on [u]byte and [u]short types."));
               success = false;
               break;
             }
@@ -1373,12 +1572,23 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         {
           if(el.type.descriptor.rows == 1)
           {
-            errors = tr("Row major can only be specified on matrices: %1\n").arg(line);
+            reportError(tr("Row major can only be specified on matrices."));
             success = false;
             break;
           }
 
           el.type.descriptor.flags |= ShaderVariableFlags::RowMajorMatrix;
+        }
+        else if(annot.name == lit("col_major"))
+        {
+          if(el.type.descriptor.rows == 1)
+          {
+            reportError(tr("Column major can only be specified on matrices."));
+            success = false;
+            break;
+          }
+
+          el.type.descriptor.flags &= ~ShaderVariableFlags::RowMajorMatrix;
         }
         else if(annot.name == lit("packed"))
         {
@@ -1386,12 +1596,23 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         }
         else if(annot.name == lit("offset") || annot.name == lit("byte_offset"))
         {
+          if(annot.param.isEmpty())
+          {
+            reportError(tr("Annotation '%1' requires a parameter with the offset in bytes.\n\n"
+                           "e.g. [[%1(128)]]")
+                            .arg(annot.name));
+            success = false;
+            break;
+          }
+
           uint32_t specifiedOffset = annot.param.toUInt();
 
           if(specifiedOffset < cur->offset)
           {
-            errors =
-                tr("Offset %1 on variable %2 overlaps previous data\n").arg(specifiedOffset).arg(el.name);
+            reportError(tr("Specified byte offset %1 overlaps with previous data.\n"
+                           "This value must be at byte offset %2 at minimum.")
+                            .arg(specifiedOffset)
+                            .arg(cur->offset));
             success = false;
             break;
           }
@@ -1406,15 +1627,15 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         {
           if(cur != &root)
           {
-            errors = tr("[[single]] can only be used on variables in the root\n");
+            reportError(tr("[[single]] can only be used on global variables."));
             success = false;
             break;
           }
           else if(!cur->structDef.type.members.empty())
           {
-            errors =
+            reportError(
                 tr("[[single]] can only be used if there is only one variable in the root.\n"
-                   "Consider wrapping the variables in a struct and marking it as [[single]].\n");
+                   "Consider wrapping the variables in a struct and marking it as [[single]]."));
             success = false;
             break;
           }
@@ -1425,7 +1646,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         }
         else
         {
-          errors = tr("Unrecognised annotation on variable: %1\n").arg(annot.name);
+          reportError(tr("Unrecognised annotation '%1' on variable.").arg(annot.name));
           success = false;
           break;
         }
@@ -1441,13 +1662,13 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       {
         if(el.type.descriptor.rows > 1 || el.type.descriptor.columns > 1)
         {
-          errors = tr("Bitfield packing only allowed on scalar values on line: %1\n").arg(line);
+          reportError(tr("Vectors and matrices can't be packed into a bitfield."));
           success = false;
           break;
         }
         if(el.type.descriptor.elements > 1)
         {
-          errors = tr("Bitfield packing not allowed on arrays on line: %1\n").arg(line);
+          reportError(tr("Arrays can't be packed into a bitfield."));
           success = false;
           break;
         }
@@ -1455,15 +1676,13 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
            (ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::R11G11B10 |
             ShaderVariableFlags::UNorm | ShaderVariableFlags::SNorm))
         {
-          errors =
-              tr("Bitfield packing not allowed on interpreted/packed formats on line: %1\n").arg(line);
+          reportError(tr("Format-packed variables can't be packed into a bitfield."));
           success = false;
           break;
         }
         if(VarTypeCompType(el.type.descriptor.type) == CompType::Float)
         {
-          errors =
-              tr("Bitfield packing not allowed on floating point formats on line: %1\n").arg(line);
+          reportError(tr("Floating point variables can't be packed into a bitfield."));
           success = false;
           break;
         }
@@ -1472,6 +1691,13 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       if(basetype == lit("xlong") || basetype == lit("xint") || basetype == lit("xshort") ||
          basetype == lit("xbyte"))
         el.type.descriptor.flags |= ShaderVariableFlags::HexDisplay;
+    }
+
+    if(cur->singleMember && el.type.descriptor.elements == ~0U)
+    {
+      reportError(tr("[[single]] can't be used on unbounded arrays."));
+      success = false;
+      break;
     }
 
     const bool packed32bit = bool(el.type.descriptor.flags & (ShaderVariableFlags::R10G10B10A2 |
@@ -1513,13 +1739,15 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
     {
       // we can use the arrayByteStride since this is a scalar so no vector/arrays, this is just the
       // base size. It also works for enums as this is the byte size of the declared underlying type
-      const uint32_t elemScalarBitSize = cur->structDef.type.descriptor.arrayByteStride * 8;
+      const uint32_t elemScalarBitSize = el.type.descriptor.arrayByteStride * 8;
 
       // bitfields can't be larger than the base type
       if(el.bitFieldSize > elemScalarBitSize)
       {
-        errors =
-            tr("Bitfield cannot specify a larger size than the base type on line: %1\n").arg(line);
+        reportError(tr("Variable type %1 only has %2 bits, can't pack into %3 bits in a bitfield.")
+                        .arg(el.type.descriptor.name)
+                        .arg(elemScalarBitSize)
+                        .arg(el.bitFieldSize));
         success = false;
         break;
       }
@@ -1611,7 +1839,10 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
     el.byteOffset = cur->offset;
 
     if(!isPadding)
+    {
       cur->structDef.type.members.push_back(el);
+      cur->lineMemberDefs.push_back(line);
+    }
 
     // if we're bitfield packing don't advance offset, otherwise advance to the end of this element
     if(bitfieldCurPos == ~0U)
@@ -1628,27 +1859,27 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
     bitfieldCurPos = ~0U;
   }
 
+  ShaderConstant &fixed = ret.fixed;
+
   // if we succeeded parsing but didn't get any root elements, use the last defined struct as the
   // definition
   if(success && root.structDef.type.members.isEmpty() && !lastStruct.isEmpty())
     root = structelems[lastStruct];
 
-  root.structDef.type.descriptor.arrayByteStride =
-      AlignUp(root.offset, GetAlignment(pack, root.structDef));
+  fixed = root.structDef;
+  fixed.type.descriptor.arrayByteStride = AlignUp(root.offset, GetAlignment(pack, fixed));
 
-  if(!root.structDef.type.members.isEmpty() &&
-     root.structDef.type.members.back().type.descriptor.elements == ~0U)
+  if(!fixed.type.members.isEmpty() && fixed.type.members.back().type.descriptor.elements == ~0U)
   {
-    root.structDef.type.descriptor.arrayByteStride =
-        AlignUp(root.structDef.type.members.back().type.descriptor.arrayByteStride,
-                GetAlignment(pack, root.structDef));
+    fixed.type.descriptor.arrayByteStride = AlignUp(
+        fixed.type.members.back().type.descriptor.arrayByteStride, GetAlignment(pack, fixed));
   }
 
   if(success)
   {
     // check that unbounded arrays are only the last member of each struct. Doing this separately
     // makes the below check easier since we only have to consider last members
-    if(!CheckInvalidUnbounded(root.structDef, errors))
+    if(!CheckInvalidUnbounded(root, structelems, errors))
       success = false;
   }
 
@@ -1681,9 +1912,10 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
   // foo data;
   if(success)
   {
-    ShaderConstant *iter = &root.structDef;
+    ShaderConstant *iter = &fixed;
+    ShaderConstant *parent = NULL;
     bool foundInfinite = false;
-    QString infiniteArrayName;
+    int infiniteArrayLine = -1;
 
     while(iter)
     {
@@ -1691,24 +1923,32 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       {
         if(foundInfinite)
         {
+          QString parentName;
+
+          if(parent)
+            parentName = parent->type.descriptor.name;
+
           success = false;
-          errors = tr("Can't have unbounded %1[] as child of an unbounded %2[].\n")
-                       .arg(iter->name)
-                       .arg(infiniteArrayName);
+          errors[infiniteArrayLine] = tr("Can't declare an unbounded array when child member %1 of "
+                                         "struct %2 is also declared as unbounded.")
+                                          .arg(iter->name)
+                                          .arg(parentName);
           break;
         }
 
-        infiniteArrayName = iter->type.descriptor.name;
-        if(infiniteArrayName.isEmpty())
-          infiniteArrayName = tr("implicit_root");
-
         foundInfinite = true;
+
+        if(parent && parent != &fixed)
+          infiniteArrayLine = structelems[parent->type.descriptor.name].lineMemberDefs.back();
+        else
+          infiniteArrayLine = root.lineMemberDefs.back();
       }
 
       // if there are no more members, stop looking
       if(iter->type.members.empty())
         break;
 
+      parent = iter;
       iter = &iter->type.members.back();
     }
   }
@@ -1721,50 +1961,51 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       // on D3D
       IsD3D(m_API) &&
       // if the parsing worked
-      success && !root.structDef.type.members.empty() &&
+      success && !fixed.type.members.empty() &&
       // if we have an unbounded array somewhere (we know there's only one, from above)
-      ContainsUnbounded(root.structDef.type.members) &&
+      ContainsUnbounded(fixed) &&
       // it must be in the root and it must be alone with no siblings
-      !(root.structDef.type.members.size() == 1 &&
-        root.structDef.type.members[0].type.descriptor.elements == ~0U))
+      !(fixed.type.members.size() == 1 && fixed.type.members[0].type.descriptor.elements == ~0U))
   {
-    errors += tr("On D3D an unbounded array must be only be used alone as the root element.\n");
+    errors[root.lineMemberDefs.back()] =
+        tr("On D3D an unbounded array must be only be used alone as the root element.\n"
+           "Consider wrapping all the globals in a single struct, or removing the unbounded array "
+           "declaration.");
     success = false;
   }
 
   // when not viewing a cbuffer, if the root hasn't been explicitly marked as a single struct and we
   // don't have an unbounded array then consider it an AoS definition in all other cases as that is
   // very likely what the user expects
-  if(success && !root.structDef.type.members.empty() &&
-     !ContainsUnbounded(root.structDef.type.members) && !root.singleMember && !root.singleDef &&
-     !cbuffer)
+  if(success && !fixed.type.members.empty() && !ContainsUnbounded(fixed) && !root.singleMember &&
+     !root.singleDef && !cbuffer)
   {
     // if there's already only one root member just make it infinite
-    if(root.structDef.type.members.size() == 1)
+    if(fixed.type.members.size() == 1)
     {
-      root.structDef.type.members[0].type.descriptor.elements = ~0U;
+      fixed.type.members[0].type.descriptor.elements = ~0U;
     }
     else
     {
       // otherwise wrap a struct around the members, to be the infinite AoS
       rdcarray<ShaderConstant> inners;
-      inners.swap(root.structDef.type.members);
+      inners.swap(fixed.type.members);
 
       ShaderConstant el;
       el.byteOffset = 0;
       el.type.descriptor.type = VarType::Struct;
       el.type.descriptor.elements = ~0U;
-      el.type.descriptor.arrayByteStride = root.structDef.type.descriptor.arrayByteStride;
+      el.type.descriptor.arrayByteStride = fixed.type.descriptor.arrayByteStride;
 
-      root.structDef.type.members.push_back(el);
-      inners.swap(root.structDef.type.members[0].type.members);
+      fixed.type.members.push_back(el);
+      inners.swap(fixed.type.members[0].type.members);
     }
   }
 
-  if(!success || root.structDef.type.members.isEmpty())
+  if(!success || fixed.type.members.isEmpty())
   {
-    root.structDef.type.members.clear();
-    root.structDef.type.descriptor.type = VarType::Struct;
+    fixed.type.members.clear();
+    fixed.type.descriptor.type = VarType::Struct;
 
     ShaderConstant el;
     el.byteOffset = 0;
@@ -1782,17 +2023,16 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
     el.type.descriptor.arrayByteStride = el.type.descriptor.matrixByteStride =
         el.type.descriptor.columns * VarTypeByteSize(el.type.descriptor.type);
 
-    root.structDef.type.members.push_back(el);
-    root.structDef.type.descriptor.arrayByteStride = el.type.descriptor.arrayByteStride;
+    fixed.type.members.push_back(el);
+    fixed.type.descriptor.arrayByteStride = el.type.descriptor.arrayByteStride;
   }
 
   // split the struct definition we have now into fixed and repeating. We've enforced above that
   // there's only one struct which is unbounded (no other children at any level are unbounded) and
   // it's the last member, so we find it, remove it from the hierarchy, and present it separately.
-  ShaderConstant repeat;
 
   {
-    ShaderConstant *iter = &root.structDef;
+    ShaderConstant *iter = &fixed;
     rdcstr addedprefix;
 
     while(iter)
@@ -1809,9 +2049,9 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       // we want to search the members so we can remove from the current iter
       if(iter->type.members.back().type.descriptor.elements == ~0U)
       {
-        repeat = iter->type.members.back();
-        repeat.name = addedprefix + repeat.name;
-        repeat.type.descriptor.elements = 1;
+        ret.repeating = iter->type.members.back();
+        ret.repeating.name = addedprefix + ret.repeating.name;
+        ret.repeating.type.descriptor.elements = 1;
         iter->type.members.pop_back();
         break;
       }
@@ -1820,7 +2060,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
     }
   }
 
-  return {root.structDef, repeat, pack};
+  return ret;
 }
 
 QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
@@ -2924,7 +3164,14 @@ QVariantList GetVariants(ResourceFormat format, const ShaderConstant &var, const
               memcpy(&val, &uval, sizeof(uval));
             }
 
-            ret.push_back(val);
+            if(format.compByteWidth == 8)
+              ret.push_back(qlonglong(val));
+            else if(format.compByteWidth == 4)
+              ret.push_back(int32_t(val));
+            else if(format.compByteWidth == 2)
+              ret.push_back(int16_t(val));
+            else if(format.compByteWidth == 1)
+              ret.push_back(int8_t(val));
           }
         }
         else if(format.compType == CompType::UInt)
@@ -2965,7 +3212,14 @@ QVariantList GetVariants(ResourceFormat format, const ShaderConstant &var, const
               val = 0;
             }
 
-            ret.push_back(val);
+            if(format.compByteWidth == 8)
+              ret.push_back(qulonglong(val));
+            else if(format.compByteWidth == 4)
+              ret.push_back(uint32_t(val));
+            else if(format.compByteWidth == 2)
+              ret.push_back(uint16_t(val));
+            else if(format.compByteWidth == 1)
+              ret.push_back(uint8_t(val));
           }
 
           if(var.type.descriptor.type == VarType::Enum)
