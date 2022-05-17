@@ -817,6 +817,8 @@
     <ClCompile Include="Code\qrenderdoc.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="3rdparty\catch\catch.hpp" />
+    <ClInclude Include="3rdparty\catch\official\catch.hpp" />
     <ClInclude Include="3rdparty\scintilla\include\ILexer.h" />
     <ClInclude Include="3rdparty\scintilla\include\Platform.h" />
     <ClInclude Include="3rdparty\scintilla\include\qt\ScintillaDocument.h" />

@@ -37,6 +37,12 @@
 #include <QStyledItemDelegate>
 #include "Code/Interface/QRDInterface.h"
 
+#if !defined(RELEASE)
+#define ENABLE_UNIT_TESTS 1
+#else
+#define ENABLE_UNIT_TESTS 0
+#endif
+
 class QHeaderView;
 
 template <typename T>

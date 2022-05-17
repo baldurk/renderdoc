@@ -82,6 +82,9 @@
     <Filter Include="Resources\Files">
       <UniqueIdentifier>{c6877252-7f18-4c63-a2f7-66b1913d8ada}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\catch">
+      <UniqueIdentifier>{3e544acc-65a0-4558-8a31-8865c030e996}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManager.cpp">
@@ -1132,6 +1135,12 @@
     </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_ShaderMessageViewer.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\catch\catch.hpp">
+      <Filter>3rdparty\catch</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\catch\official\catch.hpp">
+      <Filter>3rdparty\catch</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

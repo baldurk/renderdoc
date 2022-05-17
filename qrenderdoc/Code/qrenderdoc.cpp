@@ -39,6 +39,78 @@
 #include "Windows/MainWindow.h"
 #include "version.h"
 
+#if ENABLE_UNIT_TESTS
+
+#define CATCH_CONFIG_RUNNER
+#define CATCH_CONFIG_NOSTDOUT
+
+#include "3rdparty/catch/catch.hpp"
+
+// since we force use of ToStr for everything and don't allow using catch's stringstream (so that
+// enums get forwarded to ToStr) we need to implement ToStr for one of Catch's structs.
+template <>
+rdcstr DoStringise(const Catch::SourceLineInfo &el)
+{
+  return QFormatStr("%1:%2").arg(QString::fromUtf8(el.file)).arg(el.line);
+}
+
+class LogOutputter : public std::stringbuf
+{
+  FILE *file;
+
+public:
+  LogOutputter(FILE *f) : file(f) {}
+  void finish()
+  {
+    std::string msg = this->str();
+    RENDERDOC_LogMessage(LogType::Comment, "EXTN", __FILE__, __LINE__, msg.c_str());
+    fputs(msg.c_str(), file);
+  }
+  virtual int sync() override
+  {
+    rdcstr str = this->str().c_str();
+    int idx = str.indexOf('\n');
+    if(idx >= 0)
+    {
+      rdcstr msg = str.substr(0, idx + 1);
+      RENDERDOC_LogMessage(LogType::Comment, "EXTN", __FILE__, __LINE__, msg);
+      fputs(msg.c_str(), file);
+      str = str.substr(idx + 1);
+      this->str("");
+      this->sputn(str.c_str(), str.size());
+    }
+    return 0;
+  }
+
+  // force a sync on every output
+  virtual std::streamsize xsputn(const char *s, std::streamsize n) override
+  {
+    std::streamsize ret = std::stringbuf::xsputn(s, n);
+    sync();
+    return ret;
+  }
+};
+
+std::ostream *catch_stream = NULL;
+
+namespace Catch
+{
+std::ostream &cout()
+{
+  return *catch_stream;
+}
+std::ostream &cerr()
+{
+  return *catch_stream;
+}
+std::ostream &clog()
+{
+  return *catch_stream;
+}
+}
+
+#endif
+
 #if defined(Q_OS_WIN32)
 extern "C" {
 _declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
@@ -107,43 +179,95 @@ int main(int argc, char *argv[])
   QApplication::setApplicationVersion(lit(FULL_VERSION_STRING));
 
 // shortcut here so we can run this with a non-GUI application
-#if !defined(RELEASE)
+#if ENABLE_UNIT_TESTS
   if(QString::fromUtf8(argv[1]) == lit("--unittest"))
   {
-    QCoreApplication application(argc, argv);
-    PythonContext::GlobalInit();
+    char **mod_argv = new char *[argc + 1];
+    char **alloc_argv = mod_argv;
+    for(int i = 0; i < argc; i++)
+      mod_argv[i] = argv[i];
+    mod_argv[argc] = 0;
 
-    bool errors = false;
+    // pop --unittest
+    argc--;
+    mod_argv++;
 
-    FILE *logOut = NULL;
+    FILE *test_logOut = NULL;
 
-    if(argc >= 3)
-      logOut = fopen(argv[2], "w");
-
-    if(logOut == NULL)
-      logOut = stdout;
-
-    fputs("Checking python binding consistency.\n", logOut);
-
-    rdcstr errorLog;
-
+    if(argc >= 2 && QString::fromUtf8(mod_argv[1]).left(4) == lit("log="))
     {
-      PythonContextHandle py;
-      errors = py.ctx().CheckInterfaces(errorLog);
+      test_logOut = fopen(mod_argv[1] + 4, "w");
+
+      // pop
+      argc--;
+      mod_argv++;
     }
 
-    if(errors)
+    mod_argv[0] = argv[0];
+
+    if(test_logOut == NULL)
+      test_logOut = stdout;
+
+    LogOutputter logbuf(test_logOut);
+    std::ostream logstream(&logbuf);
+
+    int ret = 0;
+
+    // catch tests first
     {
-      RENDERDOC_LogMessage(LogType::Error, "EXTN", __FILE__, __LINE__, errorLog);
-      fputs("Found errors in python bindings. Please fix!\n", logOut);
-      fputs(errorLog.c_str(), logOut);
-      return 1;
+      catch_stream = &logstream;
+
+      Catch::Session session;
+
+      session.configData().name = "QRenderDoc";
+      session.configData().shouldDebugBreak = Catch::isDebuggerActive();
+
+      ret = session.applyCommandLine(argc, mod_argv);
+
+      if(ret == 0)
+      {
+        int numFailed = session.run();
+
+        // Note that on unices only the lower 8 bits are usually used, clamping
+        // the return value to 255 prevents false negative when some multiple
+        // of 256 tests has failed
+        if(numFailed != 0)
+          ret = (numFailed < 0xff ? numFailed : 0xff);
+      }
     }
-    else
+
     {
-      fputs("Python bindings are consistent.\n", logOut);
-      return 0;
+      QCoreApplication application(argc, mod_argv);
+      PythonContext::GlobalInit();
+
+      logstream << "Checking python binding consistency.\n";
+
+      rdcstr errorLog;
+      bool errors = false;
+      {
+        PythonContextHandle py;
+        errors = py.ctx().CheckInterfaces(errorLog);
+      }
+
+      if(errors)
+      {
+        logstream << errorLog;
+        qCritical() << "Found errors in python bindings. Please fix!\n";
+        ret = 1;
+      }
+      else
+      {
+        logstream << "Python bindings are consistent.\n";
+        ret = 0;
+      }
     }
+
+    logbuf.finish();
+
+    delete[] alloc_argv;
+
+    fclose(test_logOut);
+    return ret;
   }
 #endif
 

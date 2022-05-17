@@ -152,7 +152,7 @@ jobs:
     - if: matrix.configuration == 'Development'
       name: Running UI unit tests
       run: |
-        if ! ./*/Development/qrenderdoc.exe --unittest test.log; then
+        if ! ./*/Development/qrenderdoc.exe --unittest log=test.log; then
           echo "::error::$(cat test.log)" | tr -d '\r' |  tr '\n' '\001' | sed -e 's#\x01#%0D%0A#g';
           exit 1;
         fi
@@ -240,7 +240,7 @@ jobs:
     - if: matrix.type == 'Debug'
       name: Run UI unit tests
       run: |
-        if ! ./build/bin/qrenderdoc --unittest test.log; then
+        if ! ./build/bin/qrenderdoc --unittest log=test.log; then
           echo "::error::$(cat test.log)" | tr '\n' '\001' | sed -e 's#\x01#%0A#g';
           exit 1;
         fi
@@ -312,7 +312,7 @@ jobs:
     - if: matrix.type == 'Debug'
       name: Run UI unit tests
       run: |
-        if ! ./build/bin/qrenderdoc.app/Contents/MacOS/qrenderdoc --unittest test.log; then
+        if ! ./build/bin/qrenderdoc.app/Contents/MacOS/qrenderdoc --unittest log=test.log; then
           echo "::error::$(cat test.log)" | tr '\n' '\001' | sed -e $'s#\x01#%0A#g';
           exit 1;
         fi
