@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include "common/common.h"
 #include "common/formatting.h"
+#include "core/core.h"
 #include "os/os_specific.h"
 
 char **GetCurrentEnvironment()
@@ -199,4 +200,11 @@ uint64_t Process::GetMemoryUsage()
     return 0;
 
   return taskInfo.resident_size;
+}
+
+// Helper method to avoid #include file conflicts between
+// <Carbon/Carbon.h> and "core/core.h"
+bool ShouldOutputDebugMon()
+{
+  return OSUtility::DebuggerPresent() && RenderDoc::Inst().IsReplayApp();
 }
