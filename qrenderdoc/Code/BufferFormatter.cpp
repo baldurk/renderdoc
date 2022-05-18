@@ -538,9 +538,28 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
   };
 
   // default to scalar (tight packing) if nothing else is specified at all. The expectation is
-  // anything that needs a better default will insert that into the format string for the user
+  // anything that needs a better default will insert that into the format string for the user,
+  // or be picked up below
   Packing::Rules &pack = ret.packing;
   pack = Packing::Scalar;
+
+  // for D3D and GL we default to the only valid packing for cbuffers and UAVs. The user can still
+  // override this if they really wish with a #pack, but this makes sense as a sensible default
+  if(cbuffer)
+  {
+    if(IsD3D(m_API))
+      pack = Packing::D3DCB;
+    else if(m_API == GraphicsAPI::OpenGL)
+      pack = Packing::std140;
+  }
+  else
+  {
+    if(IsD3D(m_API))
+      pack = Packing::D3DUAV;
+    else if(m_API == GraphicsAPI::OpenGL)
+      pack = Packing::std430;
+  }
+  // vulkan allows scalar packing in any buffer, so don't wrest control away from the user
 
   int line = 0;
 
