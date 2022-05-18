@@ -280,7 +280,7 @@ LinkedFunctions::LinkedFunctions(MTL::LinkedFunctions *objc)
       NS::Array *funcs = (NS::Array *)objcGroups->object(key);
       int countFuncs = funcs->count();
 
-      FunctionGroups &funcGroup = groups[i];
+      FunctionGroup &funcGroup = groups[i];
       funcGroup.callsite.assign(key->utf8String());
       funcGroup.functions.resize(countFuncs);
       for(int j = 0; j < countFuncs; ++j)
@@ -305,7 +305,7 @@ void LinkedFunctions::CopyTo(MTL::LinkedFunctions *objc)
       rdcarray<NS::String *> keys(countKeys);
       for(int i = 0; i < countKeys; ++i)
       {
-        FunctionGroups &funcGroup = groups[i];
+        FunctionGroup &funcGroup = groups[i];
         keys[i] = NS::String::string(funcGroup.callsite.data(), NS::UTF8StringEncoding);
         values[i] = CreateUnwrappedNSArray<MTL::Function *>(funcGroup.functions);
       }

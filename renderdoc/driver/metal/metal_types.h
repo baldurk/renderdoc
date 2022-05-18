@@ -189,7 +189,7 @@ struct VertexDescriptor
   rdcarray<VertexAttributeDescriptor> attributes;
 };
 
-struct FunctionGroups
+struct FunctionGroup
 {
   rdcstr callsite;
   rdcarray<WrappedMTLFunction *> functions;
@@ -204,7 +204,7 @@ struct LinkedFunctions
   void CopyTo(MTL::LinkedFunctions *objc);
   rdcarray<WrappedMTLFunction *> functions;
   rdcarray<WrappedMTLFunction *> binaryFunctions;
-  rdcarray<FunctionGroups> groups;
+  rdcarray<FunctionGroup> groups;
   rdcarray<WrappedMTLFunction *> privateFunctions;
 };
 
@@ -264,12 +264,21 @@ inline rdcliteral TypeName<NS::String *>()
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, NS::String *&el);
 
-DECLARE_REFLECTION_STRUCT(RDMTL::TextureDescriptor);
-DECLARE_REFLECTION_STRUCT(RDMTL::RenderPipelineColorAttachmentDescriptor);
-DECLARE_REFLECTION_STRUCT(RDMTL::PipelineBufferDescriptor);
-DECLARE_REFLECTION_STRUCT(RDMTL::VertexAttributeDescriptor);
-DECLARE_REFLECTION_STRUCT(RDMTL::VertexBufferLayoutDescriptor);
-DECLARE_REFLECTION_STRUCT(RDMTL::VertexDescriptor);
-DECLARE_REFLECTION_STRUCT(RDMTL::FunctionGroups);
-DECLARE_REFLECTION_STRUCT(RDMTL::LinkedFunctions);
-DECLARE_REFLECTION_STRUCT(RDMTL::RenderPipelineDescriptor);
+#define RDMTL_DECLARE_REFLECTION_STRUCT(TYPE)    \
+  template <>                                    \
+  inline rdcliteral TypeName<RDMTL::TYPE>()      \
+  {                                              \
+    return STRING_LITERAL(STRINGIZE(MTL##TYPE)); \
+  }                                              \
+  template <class SerialiserType>                \
+  void DoSerialise(SerialiserType &ser, RDMTL::TYPE &el);
+
+RDMTL_DECLARE_REFLECTION_STRUCT(TextureDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(RenderPipelineColorAttachmentDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(PipelineBufferDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(VertexAttributeDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(VertexBufferLayoutDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(VertexDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(FunctionGroup);
+RDMTL_DECLARE_REFLECTION_STRUCT(LinkedFunctions);
+RDMTL_DECLARE_REFLECTION_STRUCT(RenderPipelineDescriptor);
