@@ -94,8 +94,8 @@ public:
     TypeEnum = eResDevice
   };
 
-  static uint64_t nextDrawableTLSSlot;
-  static IMP real_CAMetalLayer_nextDrawable;
+  static uint64_t g_nextDrawableTLSSlot;
+  static IMP g_real_CAMetalLayer_nextDrawable;
 
 private:
   static void MTLFixupForMetalDriverAssert();

@@ -53,16 +53,16 @@ WrappedMTLDevice *WrappedMTLDevice::MTLCreateSystemDefaultDevice(MTL::Device *re
   return wrappedMTLDevice;
 }
 
-IMP WrappedMTLDevice::real_CAMetalLayer_nextDrawable;
-uint64_t WrappedMTLDevice::nextDrawableTLSSlot;
+IMP WrappedMTLDevice::g_real_CAMetalLayer_nextDrawable;
+uint64_t WrappedMTLDevice::g_nextDrawableTLSSlot;
 
 MTL::Drawable *hooked_CAMetalLayer_nextDrawable(id self, SEL _cmd)
 {
-  RDCASSERTEQUAL(Threading::GetTLSValue(WrappedMTLDevice::nextDrawableTLSSlot), 0);
-  Threading::SetTLSValue(WrappedMTLDevice::nextDrawableTLSSlot, (void *)(uintptr_t) true);
+  RDCASSERTEQUAL(Threading::GetTLSValue(WrappedMTLDevice::g_nextDrawableTLSSlot), 0);
+  Threading::SetTLSValue(WrappedMTLDevice::g_nextDrawableTLSSlot, (void *)(uintptr_t) true);
   MTL::Drawable *drawable =
-      ((MTL::Drawable * (*)(id, SEL))WrappedMTLDevice::real_CAMetalLayer_nextDrawable)(self, _cmd);
-  Threading::SetTLSValue(WrappedMTLDevice::nextDrawableTLSSlot, (void *)(uintptr_t) false);
+      ((MTL::Drawable * (*)(id, SEL))WrappedMTLDevice::g_real_CAMetalLayer_nextDrawable)(self, _cmd);
+  Threading::SetTLSValue(WrappedMTLDevice::g_nextDrawableTLSSlot, (void *)(uintptr_t) false);
   return drawable;
 }
 
@@ -72,12 +72,13 @@ void WrappedMTLDevice::MTLHookObjcMethods()
   if(s_hookObjcMethods)
     return;
 
-  nextDrawableTLSSlot = Threading::AllocateTLSSlot();
-  Threading::SetTLSValue(WrappedMTLDevice::nextDrawableTLSSlot, (void *)(uintptr_t) false);
+  g_nextDrawableTLSSlot = Threading::AllocateTLSSlot();
+  Threading::SetTLSValue(WrappedMTLDevice::g_nextDrawableTLSSlot, (void *)(uintptr_t) false);
 
   Method m =
       class_getInstanceMethod(objc_lookUpClass("CAMetalLayer"), sel_registerName("nextDrawable"));
-  real_CAMetalLayer_nextDrawable = method_setImplementation(m, (IMP)hooked_CAMetalLayer_nextDrawable);
+  g_real_CAMetalLayer_nextDrawable =
+      method_setImplementation(m, (IMP)hooked_CAMetalLayer_nextDrawable);
 }
 
 void WrappedMTLDevice::MTLFixupForMetalDriverAssert()
@@ -339,7 +340,7 @@ WrappedMTLTexture *WrappedMTLDevice::newTextureWithDescriptor(MTL::TextureDescri
                                                               IOSurfaceRef iosurface,
                                                               NS::UInteger plane)
 {
-  bool nextDrawable = (bool)(uintptr_t)Threading::GetTLSValue(nextDrawableTLSSlot);
+  bool nextDrawable = (bool)(uintptr_t)Threading::GetTLSValue(g_nextDrawableTLSSlot);
   return Common_NewTexture(descriptor,
                            nextDrawable ? MetalChunk::MTLDevice_newTextureWithDescriptor_nextDrawable
                                         : MetalChunk::MTLDevice_newTextureWithDescriptor_iosurface,
