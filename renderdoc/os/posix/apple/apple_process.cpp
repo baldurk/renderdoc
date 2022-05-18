@@ -163,25 +163,43 @@ void ResumeProcess(pid_t childPid, uint32_t delay)
 {
 }
 
-void CacheDebuggerPresent()
-{
-}
+// Apple requires that this only be called in debug builds
+#define DEBUGGER_DETECTION (DISABLED(RDOC_RELEASE))
+
+// OSUtility::DebuggerPresent is called a lot
+// cache the value at startup as an optimisation
+#if DEBUGGER_DETECTION
+static bool s_debuggerPresent = false;
+static bool s_debuggerCached = false;
+#endif
 
 // from https://developer.apple.com/library/mac/qa/qa1361/_index.html on how to detect the debugger
-bool OSUtility::DebuggerPresent()
+void CacheDebuggerPresent()
 {
-// apple requires that this only be called in debug builds
-#if ENABLED(RDOC_RELEASE)
-  return false;
-#else
+#if DEBUGGER_DETECTION
   int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()};
   kinfo_proc info = {};
   size_t size = sizeof(info);
-  sysctl(mib, ARRAY_COUNT(mib), &info, &size, NULL, 0);
-
-  return info.kp_proc.p_flag & P_TRACED;
+  if(!sysctl(mib, ARRAY_COUNT(mib), &info, &size, NULL, 0))
+  {
+    s_debuggerPresent = (info.kp_proc.p_flag & P_TRACED);
+    s_debuggerCached = true;
+  }
 #endif
 }
+
+bool OSUtility::DebuggerPresent()
+{
+#if DEBUGGER_DETECTION
+  if(!s_debuggerCached)
+    CacheDebuggerPresent();
+  return s_debuggerPresent;
+#else
+  return false;
+#endif
+}
+
+#undef DEBUGGER_DETECTION
 
 rdcstr Process::GetEnvVariable(const rdcstr &name)
 {
