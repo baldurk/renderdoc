@@ -79,6 +79,7 @@ void WrappedMTLDevice::MTLHookObjcMethods()
       class_getInstanceMethod(objc_lookUpClass("CAMetalLayer"), sel_registerName("nextDrawable"));
   g_real_CAMetalLayer_nextDrawable =
       method_setImplementation(m, (IMP)hooked_CAMetalLayer_nextDrawable);
+  s_hookObjcMethods = true;
 }
 
 void WrappedMTLDevice::MTLFixupForMetalDriverAssert()
