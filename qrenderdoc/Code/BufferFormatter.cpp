@@ -495,12 +495,12 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
   QRegularExpression structDeclRegex(
       lit("^(struct|enum)\\s+([A-Za-z_][A-Za-z0-9_]*)(\\s*:\\s*([a-z]+))?$"));
   QRegularExpression structUseRegex(
-      lit("^"                                  // start of the line
-          "([A-Za-z_][A-Za-z0-9_]*)"           // struct type name
-          "\\s*(\\*)?"                         // maybe a pointer
-          "\\s+([A-Za-z@_][A-Za-z0-9@_]*)?"    // variable name
-          "(\\s*\\[[0-9]*\\])?"                // optional array dimension
-          "(\\s*:\\s*([1-9][0-9]*))?"          // optional bitfield packing
+      lit("^"                              // start of the line
+          "([A-Za-z_][A-Za-z0-9_]*)"       // struct type name
+          "([ \\t\\r\\n*]+)"               // maybe a pointer, but at least some whitespace
+          "([A-Za-z@_][A-Za-z0-9@_]*)?"    // variable name
+          "(\\s*\\[[0-9]*\\])?"            // optional array dimension
+          "(\\s*:\\s*([1-9][0-9]*))?"      // optional bitfield packing
           "$"));
   QRegularExpression enumValueRegex(
       lit("^"                           // start of the line
@@ -1040,7 +1040,15 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
     {
       StructFormatData &structContext = structelems[structMatch.captured(1)];
 
-      bool isPointer = !structMatch.captured(2).trimmed().isEmpty();
+      QString pointerStars = structMatch.captured(2).trimmed();
+      bool isPointer = !pointerStars.isEmpty();
+
+      if(pointerStars.count() > 1)
+      {
+        reportError(tr("Only single pointers are supported."));
+        success = false;
+        break;
+      }
 
       if(structContext.singleDef)
       {
@@ -1159,7 +1167,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         el.name = varName;
         el.byteOffset = cur->offset;
         el.type.pointerTypeID = structContext.pointerTypeId;
-        el.type.baseType = VarType::ULong;
+        el.type.baseType = VarType::GPUPointer;
         el.type.flags |= ShaderVariableFlags::HexDisplay;
         el.type.arrayByteStride = 8;
         el.type.elements = arrayCount;
