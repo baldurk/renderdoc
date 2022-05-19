@@ -3558,3 +3558,2174 @@ QString RowTypeString(const ShaderVariable &v)
 
   return QFormatStr("%1%2").arg(typeStr).arg(v.columns);
 }
+
+#if ENABLE_UNIT_TESTS
+
+#include "3rdparty/catch/catch.hpp"
+
+TEST_CASE("Buffer format parsing", "[formatter]")
+{
+  ShaderConstantType float_type;
+  float_type.name = "float";
+  float_type.flags = ShaderVariableFlags::RowMajorMatrix;
+  float_type.baseType = VarType::Float;
+  float_type.arrayByteStride = 4;
+
+  ShaderConstantType int_type;
+  int_type.name = "int";
+  int_type.flags = ShaderVariableFlags::RowMajorMatrix;
+  int_type.baseType = VarType::SInt;
+  int_type.arrayByteStride = 4;
+
+  ShaderConstantType uint_type;
+  uint_type.name = "uint";
+  uint_type.flags = ShaderVariableFlags::RowMajorMatrix;
+  uint_type.baseType = VarType::UInt;
+  uint_type.arrayByteStride = 4;
+
+  ParsedFormat parsed;
+
+  BufferFormatter::Init(GraphicsAPI::Vulkan);
+
+  SECTION("comment, newline, semi-colon and whitespace handling")
+  {
+    rdcarray<ShaderConstant> members;
+    members.push_back({});
+    members.back().name = "a";
+    members.back().byteOffset = 0;
+    members.back().type = float_type;
+    members.push_back({});
+    members.back().name = "b";
+    members.back().byteOffset = 4;
+    members.back().type = int_type;
+    members.push_back({});
+    members.back().name = "c";
+    members.back().byteOffset = 8;
+    members.back().type = uint_type;
+
+    rdcarray<rdcstr> tests = {
+        "float a;\n"
+        "int b;\n"
+        "uint c;\n",
+
+        "float        a;\n"
+        "int   \t \t  b   ;\n"
+        "uint   \n  c;\n",
+
+        "float a;int b;uint c;",
+
+        "float a;int b  ;   uint c;",
+
+        "// comment\n"
+        "float a;\n"
+        "int b;\n"
+        "uint c;\n",
+
+        "// commented declaration int x;\n"
+        "float a;\n"
+        "int b;\n"
+        "uint c;\n",
+
+        "/* comment */\n"
+        "float a;\n"
+        "int b;\n"
+        "uint c;\n",
+
+        "/* comment \n"
+        " over multiple \n"
+        " lines \n"
+        "*/\n"
+        "float a;\n"
+        "int b;\n"
+        "uint c;\n",
+
+        "/* commented declaration int x; */\n"
+        "float a;\n"
+        "int b;\n"
+        "uint c;\n",
+
+        "/* comment \n"
+        " // nested */ float a;"
+        "int b;\n"
+        "uint c;\n",
+
+        "/* comment \n"
+        " /* with /* extra /* opens */ float a;"
+        "int b;\n"
+        "uint c;\n",
+
+        "float /* comment in decl */ a /* comment 2 */;\n"
+        "int // comment in decl \n"
+        "b // comment\n"
+        ";\n"
+        "uint c;\n",
+    };
+
+    for(const rdcstr &test : tests)
+    {
+      parsed = BufferFormatter::ParseFormatString(test, 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      CHECK((parsed.fixed.type.members == members));
+    }
+  }
+
+  SECTION("blank format")
+  {
+    ShaderConstantType expected_type = uint_type;
+    expected_type.name = "uint4";
+    expected_type.flags = ShaderVariableFlags::RowMajorMatrix | ShaderVariableFlags::HexDisplay;
+    expected_type.columns = 4;
+    expected_type.arrayByteStride = 16;
+
+    parsed = BufferFormatter::ParseFormatString(QString(), 0, false);
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK((parsed.repeating.type == expected_type));
+  };
+
+  SECTION("Basic formats")
+  {
+    parsed = BufferFormatter::ParseFormatString(lit("float a;"), 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK(parsed.repeating.type.members.empty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "a");
+    CHECK((parsed.fixed.type.members[0].type == float_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("int a;"), 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK(parsed.repeating.type.members.empty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "a");
+    CHECK((parsed.fixed.type.members[0].type == int_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("uint a;"), 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK(parsed.repeating.type.members.empty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "a");
+    CHECK((parsed.fixed.type.members[0].type == uint_type));
+
+    rdcarray<rdcpair<rdcstr, VarType>> tests = {
+        {"half", VarType::Half},   {"double", VarType::Double}, {"ubyte", VarType::UByte},
+        {"byte", VarType::SByte},  {"ushort", VarType::UShort}, {"short", VarType::SShort},
+        {"ulong", VarType::ULong}, {"long", VarType::SLong},    {"bool", VarType::Bool},
+    };
+
+    for(const rdcpair<rdcstr, VarType> &test : tests)
+    {
+      ShaderConstantType expect_type;
+      expect_type.name = test.first;
+      expect_type.flags = ShaderVariableFlags::RowMajorMatrix;
+      expect_type.baseType = test.second;
+      expect_type.arrayByteStride = VarTypeByteSize(test.second);
+
+      parsed = BufferFormatter::ParseFormatString(lit("%1 a;").arg(test.first), 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expect_type));
+    }
+
+    {
+      ShaderConstantType expect_type;
+      expect_type.name = "byte";
+      expect_type.flags = ShaderVariableFlags::RowMajorMatrix;
+      expect_type.baseType = VarType::SByte;
+      expect_type.arrayByteStride = 1;
+
+      parsed = BufferFormatter::ParseFormatString(lit("char a;"), 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expect_type));
+
+      expect_type.name = "ubyte";
+      expect_type.baseType = VarType::UByte;
+
+      parsed = BufferFormatter::ParseFormatString(lit("unsigned char a;"), 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expect_type));
+    }
+  };
+
+  SECTION("Identifier names")
+  {
+    parsed = BufferFormatter::ParseFormatString(lit("int abcdef;"), 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "abcdef");
+
+    parsed = BufferFormatter::ParseFormatString(lit("int abc_def;"), 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "abc_def");
+
+    parsed = BufferFormatter::ParseFormatString(lit("int __abcdef;"), 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "__abcdef");
+
+    rdcstr longname =
+        R"(abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz)";
+
+    parsed = BufferFormatter::ParseFormatString(lit("int %1;").arg(longname), 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == longname);
+  };
+
+  SECTION("Vector and matrix types")
+  {
+    ShaderConstantType expected_type;
+
+    parsed = BufferFormatter::ParseFormatString(lit("float2 a;"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float2";
+    expected_type.flags |= ShaderVariableFlags::RowMajorMatrix;
+    expected_type.columns = 2;
+    expected_type.arrayByteStride = 8;
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("float3 a;"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float3";
+    expected_type.flags |= ShaderVariableFlags::RowMajorMatrix;
+    expected_type.columns = 3;
+    expected_type.arrayByteStride = 12;
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("float4 a;"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float4";
+    expected_type.flags |= ShaderVariableFlags::RowMajorMatrix;
+    expected_type.columns = 4;
+    expected_type.arrayByteStride = 16;
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("float3x2 a;"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float3x2";
+    expected_type.flags = ShaderVariableFlags::NoFlags;
+    expected_type.rows = 3;
+    expected_type.columns = 2;
+    // these are calculated with scalar packing for now, packing rules are tested separately
+    expected_type.arrayByteStride = 24;
+    expected_type.matrixByteStride = 12;
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("float2x3 a;"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float2x3";
+    expected_type.flags = ShaderVariableFlags::NoFlags;
+    expected_type.rows = 2;
+    expected_type.columns = 3;
+    expected_type.arrayByteStride = 24;
+    expected_type.matrixByteStride = 8;
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+  };
+
+  SECTION("GL style vector and matrix types")
+  {
+    ShaderConstantType expected_type;
+
+    parsed = BufferFormatter::ParseFormatString(lit("vec2 a;"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float2";
+    expected_type.flags |= ShaderVariableFlags::RowMajorMatrix;
+    expected_type.columns = 2;
+    expected_type.arrayByteStride = 8;
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("vec3 a;"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float3";
+    expected_type.flags |= ShaderVariableFlags::RowMajorMatrix;
+    expected_type.columns = 3;
+    expected_type.arrayByteStride = 12;
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("vec4 a;"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float4";
+    expected_type.flags |= ShaderVariableFlags::RowMajorMatrix;
+    expected_type.columns = 4;
+    expected_type.arrayByteStride = 16;
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("mat3x2 a;"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float2x3";
+    expected_type.flags = ShaderVariableFlags::NoFlags;
+    expected_type.rows = 2;
+    expected_type.columns = 3;
+    // these are calculated with scalar packing for now, packing rules are tested separately
+    expected_type.arrayByteStride = 24;
+    expected_type.matrixByteStride = 8;
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("mat2x3 a;"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float3x2";
+    expected_type.flags = ShaderVariableFlags::NoFlags;
+    expected_type.rows = 3;
+    expected_type.columns = 2;
+    expected_type.arrayByteStride = 24;
+    expected_type.matrixByteStride = 12;
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("mat3 a;"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float3x3";
+    expected_type.flags = ShaderVariableFlags::NoFlags;
+    expected_type.rows = 3;
+    expected_type.columns = 3;
+    // these are calculated with scalar packing for now, packing rules are tested separately
+    expected_type.arrayByteStride = 36;
+    expected_type.matrixByteStride = 12;
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+  };
+
+  SECTION("Arrays (bounded and unbounded)")
+  {
+    ShaderConstantType expected_type;
+
+    parsed = BufferFormatter::ParseFormatString(lit("float a[4];"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float";
+    expected_type.flags = ShaderVariableFlags::RowMajorMatrix;
+    expected_type.rows = 1;
+    expected_type.columns = 1;
+    expected_type.elements = 4;
+    expected_type.arrayByteStride = 4;
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("float a[];"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float";
+    expected_type.flags = ShaderVariableFlags::RowMajorMatrix;
+    expected_type.rows = 1;
+    expected_type.columns = 1;
+    expected_type.elements = 1;
+    expected_type.arrayByteStride = 4;
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK(parsed.fixed.type.members.empty());
+    CHECK((parsed.repeating.type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("float2 a[4];"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float2";
+    expected_type.flags = ShaderVariableFlags::RowMajorMatrix;
+    expected_type.rows = 1;
+    expected_type.columns = 2;
+    expected_type.elements = 4;
+    expected_type.arrayByteStride = 8;
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("float2 a[];"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float2";
+    expected_type.flags = ShaderVariableFlags::RowMajorMatrix;
+    expected_type.rows = 1;
+    expected_type.columns = 2;
+    expected_type.elements = 1;
+    expected_type.arrayByteStride = 8;
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK(parsed.fixed.type.members.empty());
+    CHECK((parsed.repeating.type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("float2x3 a[4];"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float2x3";
+    expected_type.flags = ShaderVariableFlags::NoFlags;
+    expected_type.rows = 2;
+    expected_type.columns = 3;
+    expected_type.elements = 4;
+    expected_type.arrayByteStride = 24;
+    expected_type.matrixByteStride = 8;
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("float2x3 a[];"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float2x3";
+    expected_type.flags = ShaderVariableFlags::NoFlags;
+    expected_type.rows = 2;
+    expected_type.columns = 3;
+    expected_type.elements = 1;
+    expected_type.arrayByteStride = 24;
+    expected_type.matrixByteStride = 8;
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK(parsed.fixed.type.members.empty());
+    CHECK((parsed.repeating.type == expected_type));
+  };
+
+  SECTION("Legacy prefix keywords")
+  {
+    ShaderConstantType expected_type;
+
+    parsed = BufferFormatter::ParseFormatString(lit("rgb float4 a;"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float4";
+    expected_type.flags |= ShaderVariableFlags::RGBDisplay;
+    expected_type.columns = 4;
+    expected_type.arrayByteStride = 16;
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK(parsed.repeating.type.members.empty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "a");
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("row_major float4x4 a;"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float4x4";
+    expected_type.flags |= ShaderVariableFlags::RowMajorMatrix;
+    expected_type.rows = 4;
+    expected_type.columns = 4;
+    expected_type.arrayByteStride = 64;
+    expected_type.matrixByteStride = 16;
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK(parsed.repeating.type.members.empty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "a");
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("column_major float4x4 a;"), 0, true);
+
+    expected_type = float_type;
+    expected_type.name = "float4x4";
+    expected_type.flags &= ~ShaderVariableFlags::RowMajorMatrix;
+    expected_type.rows = 4;
+    expected_type.columns = 4;
+    expected_type.arrayByteStride = 64;
+    expected_type.matrixByteStride = 16;
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK(parsed.repeating.type.members.empty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "a");
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+  };
+
+  SECTION("unsigned separate specifier")
+  {
+    parsed = BufferFormatter::ParseFormatString(lit("unsigned int a;"), 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK(parsed.repeating.type.members.empty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "a");
+    CHECK((parsed.fixed.type.members[0].type == uint_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("unsigned short a;"), 0, true);
+
+    ShaderConstantType expected_type;
+    expected_type.name = "ushort";
+    expected_type.flags = ShaderVariableFlags::RowMajorMatrix;
+    expected_type.baseType = VarType::UShort;
+    expected_type.arrayByteStride = 2;
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK(parsed.repeating.type.members.empty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "a");
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("unsigned byte a;"), 0, true);
+
+    expected_type.name = "ubyte";
+    expected_type.baseType = VarType::UByte;
+    expected_type.arrayByteStride = 1;
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK(parsed.repeating.type.members.empty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "a");
+    CHECK((parsed.fixed.type.members[0].type == expected_type));
+  };
+
+  SECTION("Legacy base types")
+  {
+    SECTION("hex")
+    {
+      parsed = BufferFormatter::ParseFormatString(lit("xint a;"), 0, true);
+
+      ShaderConstantType expected_type = uint_type;
+      expected_type.flags |= ShaderVariableFlags::HexDisplay;
+
+      CHECK(parsed.errors.isEmpty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+      parsed = BufferFormatter::ParseFormatString(lit("xshort a;"), 0, true);
+
+      expected_type.name = "ushort";
+      expected_type.baseType = VarType::UShort;
+      expected_type.arrayByteStride = 2;
+
+      CHECK(parsed.errors.isEmpty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+      parsed = BufferFormatter::ParseFormatString(lit("xbyte a;"), 0, true);
+
+      expected_type.name = "ubyte";
+      expected_type.baseType = VarType::UByte;
+      expected_type.arrayByteStride = 1;
+
+      CHECK(parsed.errors.isEmpty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+      parsed = BufferFormatter::ParseFormatString(lit("xlong a;"), 0, true);
+
+      expected_type.name = "ulong";
+      expected_type.baseType = VarType::ULong;
+      expected_type.arrayByteStride = 8;
+
+      CHECK(parsed.errors.isEmpty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+    };
+
+    SECTION("unorm")
+    {
+      parsed = BufferFormatter::ParseFormatString(lit("unormh a;"), 0, true);
+
+      ShaderConstantType expected_type;
+      expected_type.flags = ShaderVariableFlags::RowMajorMatrix | ShaderVariableFlags::UNorm;
+      expected_type.name = "ushort";
+      expected_type.baseType = VarType::UShort;
+      expected_type.arrayByteStride = 2;
+
+      CHECK(parsed.errors.isEmpty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+      parsed = BufferFormatter::ParseFormatString(lit("unormb a;"), 0, true);
+
+      expected_type.name = "ubyte";
+      expected_type.baseType = VarType::UByte;
+      expected_type.arrayByteStride = 1;
+
+      CHECK(parsed.errors.isEmpty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+    };
+
+    SECTION("snorm")
+    {
+      parsed = BufferFormatter::ParseFormatString(lit("snormh a;"), 0, true);
+
+      ShaderConstantType expected_type;
+      expected_type.flags = ShaderVariableFlags::RowMajorMatrix | ShaderVariableFlags::SNorm;
+      expected_type.name = "short";
+      expected_type.baseType = VarType::SShort;
+      expected_type.arrayByteStride = 2;
+
+      CHECK(parsed.errors.isEmpty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+      parsed = BufferFormatter::ParseFormatString(lit("snormb a;"), 0, true);
+
+      expected_type.name = "byte";
+      expected_type.baseType = VarType::SByte;
+      expected_type.arrayByteStride = 1;
+
+      CHECK(parsed.errors.isEmpty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+    };
+
+    SECTION("10:10:10:2")
+    {
+      parsed = BufferFormatter::ParseFormatString(lit("uintten a;"), 0, true);
+
+      ShaderConstantType expected_type;
+      expected_type.flags = ShaderVariableFlags::RowMajorMatrix | ShaderVariableFlags::R10G10B10A2;
+      expected_type.name = "uint";
+      expected_type.baseType = VarType::UInt;
+      expected_type.arrayByteStride = 4;
+
+      expected_type.columns = 4;
+
+      CHECK(parsed.errors.isEmpty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+      parsed = BufferFormatter::ParseFormatString(lit("unormten a;"), 0, true);
+
+      expected_type.flags = ShaderVariableFlags::RowMajorMatrix | ShaderVariableFlags::R10G10B10A2 |
+                            ShaderVariableFlags::UNorm;
+      expected_type.name = "uint";
+      expected_type.baseType = VarType::UInt;
+      expected_type.arrayByteStride = 4;
+
+      expected_type.columns = 4;
+
+      CHECK(parsed.errors.isEmpty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+    };
+
+    SECTION("11:11:10")
+    {
+      parsed = BufferFormatter::ParseFormatString(lit("floateleven a;"), 0, true);
+
+      ShaderConstantType expected_type;
+      expected_type.flags = ShaderVariableFlags::RowMajorMatrix | ShaderVariableFlags::R11G11B10;
+      expected_type.name = "float";
+      expected_type.baseType = VarType::Float;
+      expected_type.arrayByteStride = 4;
+
+      expected_type.columns = 3;
+
+      CHECK(parsed.errors.isEmpty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+    };
+  };
+
+  SECTION("enums")
+  {
+    rdcstr def = R"(
+enum MyEnum : uint
+{
+  Val1 = 1,
+  Val2 = 2,
+  ValHex = 0xf,
+};
+
+MyEnum e;
+)";
+    parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "e");
+    CHECK(parsed.fixed.type.members[0].type.name == "MyEnum");
+    CHECK(parsed.fixed.type.members[0].type.baseType == VarType::Enum);
+    CHECK(parsed.fixed.type.members[0].type.arrayByteStride == 4);
+    CHECK(parsed.fixed.type.members[0].type.members[0].name == "Val1");
+    CHECK(parsed.fixed.type.members[0].type.members[0].defaultValue == 1);
+    CHECK(parsed.fixed.type.members[0].type.members[1].name == "Val2");
+    CHECK(parsed.fixed.type.members[0].type.members[1].defaultValue == 2);
+    CHECK(parsed.fixed.type.members[0].type.members[2].name == "ValHex");
+    CHECK(parsed.fixed.type.members[0].type.members[2].defaultValue == 0xf);
+
+    def = R"(
+enum MyEnum : ushort
+{
+  Val = 0,
+};
+
+MyEnum e;
+)";
+    parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "e");
+    CHECK(parsed.fixed.type.members[0].type.name == "MyEnum");
+    CHECK(parsed.fixed.type.members[0].type.baseType == VarType::Enum);
+    CHECK(parsed.fixed.type.members[0].type.arrayByteStride == 2);
+    CHECK(parsed.fixed.type.members[0].type.members[0].name == "Val");
+    CHECK(parsed.fixed.type.members[0].type.members[0].defaultValue == 0);
+  };
+
+  SECTION("bitfields")
+  {
+    rdcstr def = R"(
+uint firstbyte : 8;
+uint halfsecondbyte : 4;
+uint halfsecondbyte2 : 4;
+uint lasttwo : 16;
+)";
+    parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 4);
+    CHECK(parsed.fixed.type.arrayByteStride == 4);
+    CHECK(parsed.fixed.type.members[0].name == "firstbyte");
+    CHECK(parsed.fixed.type.members[0].bitFieldOffset == 0);
+    CHECK(parsed.fixed.type.members[0].bitFieldSize == 8);
+    CHECK((parsed.fixed.type.members[0].type == uint_type));
+    CHECK(parsed.fixed.type.members[1].name == "halfsecondbyte");
+    CHECK(parsed.fixed.type.members[1].bitFieldOffset == 8);
+    CHECK(parsed.fixed.type.members[1].bitFieldSize == 4);
+    CHECK((parsed.fixed.type.members[1].type == uint_type));
+    CHECK(parsed.fixed.type.members[2].name == "halfsecondbyte2");
+    CHECK(parsed.fixed.type.members[2].bitFieldOffset == 12);
+    CHECK(parsed.fixed.type.members[2].bitFieldSize == 4);
+    CHECK((parsed.fixed.type.members[2].type == uint_type));
+    CHECK(parsed.fixed.type.members[3].name == "lasttwo");
+    CHECK(parsed.fixed.type.members[3].bitFieldOffset == 16);
+    CHECK(parsed.fixed.type.members[3].bitFieldSize == 16);
+    CHECK((parsed.fixed.type.members[3].type == uint_type));
+
+    def = R"(
+enum e : ushort { val = 5 };
+
+uint firstbyte : 8;
+uint halfsecondbyte : 4;
+uint halfsecondbyte2 : 4;
+e lastenum : 16;
+)";
+    parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 4);
+    CHECK(parsed.fixed.type.arrayByteStride == 4);
+    CHECK(parsed.fixed.type.members[0].name == "firstbyte");
+    CHECK(parsed.fixed.type.members[0].bitFieldOffset == 0);
+    CHECK(parsed.fixed.type.members[0].bitFieldSize == 8);
+    CHECK((parsed.fixed.type.members[0].type == uint_type));
+    CHECK(parsed.fixed.type.members[1].name == "halfsecondbyte");
+    CHECK(parsed.fixed.type.members[1].bitFieldOffset == 8);
+    CHECK(parsed.fixed.type.members[1].bitFieldSize == 4);
+    CHECK((parsed.fixed.type.members[1].type == uint_type));
+    CHECK(parsed.fixed.type.members[2].name == "halfsecondbyte2");
+    CHECK(parsed.fixed.type.members[2].bitFieldOffset == 12);
+    CHECK(parsed.fixed.type.members[2].bitFieldSize == 4);
+    CHECK((parsed.fixed.type.members[2].type == uint_type));
+    CHECK(parsed.fixed.type.members[3].name == "lastenum");
+    CHECK(parsed.fixed.type.members[3].byteOffset == 2);
+    CHECK(parsed.fixed.type.members[3].bitFieldOffset == 0);
+    CHECK(parsed.fixed.type.members[3].bitFieldSize == 16);
+    CHECK(parsed.fixed.type.members[3].type.baseType == VarType::Enum);
+
+    def = R"(
+uint firstbyte : 8;
+uint : 4;
+uint halfsecondbyte2 : 4;
+uint lasttwo : 16;
+)";
+    parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 3);
+    CHECK(parsed.fixed.type.arrayByteStride == 4);
+    CHECK(parsed.fixed.type.members[0].name == "firstbyte");
+    CHECK(parsed.fixed.type.members[0].bitFieldOffset == 0);
+    CHECK(parsed.fixed.type.members[0].bitFieldSize == 8);
+    CHECK((parsed.fixed.type.members[0].type == uint_type));
+    // bits skipped
+    CHECK(parsed.fixed.type.members[1].name == "halfsecondbyte2");
+    CHECK(parsed.fixed.type.members[1].bitFieldOffset == 12);
+    CHECK(parsed.fixed.type.members[1].bitFieldSize == 4);
+    CHECK((parsed.fixed.type.members[1].type == uint_type));
+    CHECK(parsed.fixed.type.members[2].name == "lasttwo");
+    CHECK(parsed.fixed.type.members[2].bitFieldOffset == 16);
+    CHECK(parsed.fixed.type.members[2].bitFieldSize == 16);
+    CHECK((parsed.fixed.type.members[2].type == uint_type));
+
+    def = R"(
+unsigned char bit0 : 1;
+unsigned char bit1 : 1;
+unsigned char bit2 : 1;
+unsigned char bit3 : 1;
+unsigned char : 3;
+unsigned char highbit : 1;
+)";
+    parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 5);
+    CHECK(parsed.fixed.type.arrayByteStride == 1);
+    CHECK(parsed.fixed.type.members[0].name == "bit0");
+    CHECK(parsed.fixed.type.members[0].bitFieldOffset == 0);
+    CHECK(parsed.fixed.type.members[0].bitFieldSize == 1);
+    CHECK(parsed.fixed.type.members[1].name == "bit1");
+    CHECK(parsed.fixed.type.members[1].bitFieldOffset == 1);
+    CHECK(parsed.fixed.type.members[1].bitFieldSize == 1);
+    CHECK(parsed.fixed.type.members[2].name == "bit2");
+    CHECK(parsed.fixed.type.members[2].bitFieldOffset == 2);
+    CHECK(parsed.fixed.type.members[2].bitFieldSize == 1);
+    CHECK(parsed.fixed.type.members[3].name == "bit3");
+    CHECK(parsed.fixed.type.members[3].bitFieldOffset == 3);
+    CHECK(parsed.fixed.type.members[3].bitFieldSize == 1);
+    CHECK(parsed.fixed.type.members[4].name == "highbit");
+    CHECK(parsed.fixed.type.members[4].bitFieldOffset == 7);
+    CHECK(parsed.fixed.type.members[4].bitFieldSize == 1);
+  };
+
+  SECTION("pointers")
+  {
+    rdcstr def = R"(
+struct inner
+{
+  int a;
+  float b;
+};
+
+inner *ptr;
+int count;
+)";
+
+    parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 2);
+    CHECK(parsed.fixed.type.members[0].name == "ptr");
+    CHECK(parsed.fixed.type.members[0].type.baseType == VarType::GPUPointer);
+    CHECK(parsed.fixed.type.members[1].name == "count");
+    CHECK((parsed.fixed.type.members[1].type == int_type));
+
+    REQUIRE(parsed.fixed.type.members[0].type.pointerTypeID != ~0U);
+
+    const ShaderConstantType &ptrType =
+        PointerTypeRegistry::GetTypeDescriptor(parsed.fixed.type.members[0].type.pointerTypeID);
+
+    REQUIRE(ptrType.members.size() == 2);
+    CHECK(ptrType.members[0].name == "a");
+    CHECK((ptrType.members[0].type == int_type));
+    CHECK(ptrType.members[1].name == "b");
+    CHECK((ptrType.members[1].type == float_type));
+  };
+
+  SECTION("structs")
+  {
+    rdcstr def = R"(
+struct inner
+{
+  int a;
+  float b;
+};
+
+struct outer
+{
+  inner first;
+  float c;
+  inner array[3];
+  float d;
+};
+)";
+    parsed = BufferFormatter::ParseFormatString(def + "\nouter o;", 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    const ShaderConstant &o = parsed.fixed.type.members[0];
+
+    CHECK(o.name == "o");
+    CHECK(o.type.name == "outer");
+    CHECK(o.type.baseType == VarType::Struct);
+    CHECK(o.type.arrayByteStride == 40);
+    REQUIRE(o.type.members.size() == 4);
+
+    CHECK(o.type.members[0].name == "first");
+    CHECK(o.type.members[0].byteOffset == 0);
+    CHECK(o.type.members[1].name == "c");
+    CHECK(o.type.members[1].byteOffset == 8);
+    CHECK((o.type.members[1].type == float_type));
+    CHECK(o.type.members[2].name == "array");
+    CHECK(o.type.members[2].byteOffset == 12);
+    CHECK(o.type.members[3].name == "d");
+    CHECK(o.type.members[3].byteOffset == 36);
+    CHECK((o.type.members[3].type == float_type));
+
+    const ShaderConstant &first = o.type.members[0];
+    const ShaderConstant &array = o.type.members[2];
+
+    CHECK((first.type.members == array.type.members));
+    REQUIRE(first.type.members.size() == 2);
+    CHECK(first.type.members[0].name == "a");
+    CHECK(first.type.members[0].byteOffset == 0);
+    CHECK((first.type.members[0].type == int_type));
+    CHECK(first.type.members[1].name == "b");
+    CHECK(first.type.members[1].byteOffset == 4);
+    CHECK((first.type.members[1].type == float_type));
+
+    ParsedFormat parsed2 = BufferFormatter::ParseFormatString(def, 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK((o.type.members == parsed2.fixed.type.members));
+  };
+
+  SECTION("annotations")
+  {
+    ShaderConstantType expected_type;
+    rdcstr def;
+
+    SECTION("general annotation parsing")
+    {
+      parsed = BufferFormatter::ParseFormatString(lit("[[rgb]]\nfloat4 a;"), 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].type.flags & ShaderVariableFlags::RGBDisplay);
+
+      parsed = BufferFormatter::ParseFormatString(lit("[[rgb]] float4 a;"), 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].type.flags & ShaderVariableFlags::RGBDisplay);
+
+      parsed = BufferFormatter::ParseFormatString(lit("[[rgb]]    \n \n    \n  float4 a;"), 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].type.flags & ShaderVariableFlags::RGBDisplay);
+
+      parsed = BufferFormatter::ParseFormatString(
+          lit("[[rgb]]    \n // comment \n /* comment */    \n  float4 a;"), 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].type.flags & ShaderVariableFlags::RGBDisplay);
+    }
+
+    SECTION("[[rgb]]")
+    {
+      parsed = BufferFormatter::ParseFormatString(lit("[[rgb]] float4 a;"), 0, true);
+
+      expected_type = float_type;
+      expected_type.name = "float4";
+      expected_type.flags |= ShaderVariableFlags::RGBDisplay;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 16;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+    };
+
+    SECTION("[[hex]]")
+    {
+      parsed = BufferFormatter::ParseFormatString(lit("[[hex]] uint4 a;"), 0, true);
+
+      expected_type = uint_type;
+      expected_type.name = "uint4";
+      expected_type.flags |= ShaderVariableFlags::HexDisplay;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 16;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+      parsed = BufferFormatter::ParseFormatString(lit("[[hexadecimal]] uint4 a;"), 0, true);
+
+      expected_type = uint_type;
+      expected_type.name = "uint4";
+      expected_type.flags |= ShaderVariableFlags::HexDisplay;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 16;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+    };
+
+    SECTION("[[bin]]")
+    {
+      parsed = BufferFormatter::ParseFormatString(lit("[[bin]] uint4 a;"), 0, true);
+
+      expected_type = uint_type;
+      expected_type.name = "uint4";
+      expected_type.flags |= ShaderVariableFlags::BinaryDisplay;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 16;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+      parsed = BufferFormatter::ParseFormatString(lit("[[binary]] uint4 a;"), 0, true);
+
+      expected_type = uint_type;
+      expected_type.name = "uint4";
+      expected_type.flags |= ShaderVariableFlags::BinaryDisplay;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 16;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+    };
+
+    SECTION("[[row_major]] and [[col_major]]")
+    {
+      parsed = BufferFormatter::ParseFormatString(lit("[[row_major]] float4x4 a;"), 0, true);
+
+      expected_type = float_type;
+      expected_type.name = "float4x4";
+      expected_type.flags |= ShaderVariableFlags::RowMajorMatrix;
+      expected_type.rows = 4;
+      expected_type.columns = 4;
+      expected_type.matrixByteStride = 16;
+      expected_type.arrayByteStride = 64;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+      parsed = BufferFormatter::ParseFormatString(lit("[[col_major]] float4x4 a;"), 0, true);
+
+      expected_type = float_type;
+      expected_type.name = "float4x4";
+      expected_type.flags &= ~ShaderVariableFlags::RowMajorMatrix;
+      expected_type.rows = 4;
+      expected_type.columns = 4;
+      expected_type.matrixByteStride = 16;
+      expected_type.arrayByteStride = 64;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+    };
+
+    SECTION("[[unorm]] and [[snorm]]")
+    {
+      parsed = BufferFormatter::ParseFormatString(lit("[[unorm]] ushort4 a;"), 0, true);
+
+      expected_type = uint_type;
+      expected_type.name = "ushort4";
+      expected_type.flags |= ShaderVariableFlags::UNorm;
+      expected_type.baseType = VarType::UShort;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 8;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+      parsed = BufferFormatter::ParseFormatString(lit("[[unorm]] ubyte4 a;"), 0, true);
+
+      expected_type = uint_type;
+      expected_type.name = "ubyte4";
+      expected_type.flags |= ShaderVariableFlags::UNorm;
+      expected_type.baseType = VarType::UByte;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 4;
+
+      parsed = BufferFormatter::ParseFormatString(lit("[[snorm]] short4 a;"), 0, true);
+
+      expected_type = int_type;
+      expected_type.name = "short4";
+      expected_type.flags |= ShaderVariableFlags::SNorm;
+      expected_type.baseType = VarType::SShort;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 8;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+      parsed = BufferFormatter::ParseFormatString(lit("[[snorm]] byte4 a;"), 0, true);
+
+      expected_type = int_type;
+      expected_type.name = "byte4";
+      expected_type.flags |= ShaderVariableFlags::SNorm;
+      expected_type.baseType = VarType::SByte;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 4;
+    };
+
+    SECTION("[[packed]]")
+    {
+      parsed = BufferFormatter::ParseFormatString(lit("[[packed(r11g11b10)]] float3 a;"), 0, true);
+
+      expected_type = float_type;
+      expected_type.name = "float3";
+      expected_type.flags |= ShaderVariableFlags::R11G11B10;
+      expected_type.columns = 3;
+      expected_type.arrayByteStride = 4;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+      parsed = BufferFormatter::ParseFormatString(lit("[[packed(r10g10b10a2)]] uint4 a;"), 0, true);
+
+      expected_type = uint_type;
+      expected_type.name = "uint4";
+      expected_type.flags |= ShaderVariableFlags::R10G10B10A2;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 4;
+
+      parsed =
+          BufferFormatter::ParseFormatString(lit("[[packed(r10g10b10a2_uint)]] uint4 a;"), 0, true);
+
+      expected_type = uint_type;
+      expected_type.name = "uint4";
+      expected_type.flags |= ShaderVariableFlags::R10G10B10A2;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 4;
+
+      parsed = BufferFormatter::ParseFormatString(lit("[[unorm]] [[packed(r10g10b10a2)]] uint4 a;"),
+                                                  0, true);
+
+      expected_type = uint_type;
+      expected_type.name = "uint4";
+      expected_type.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::UNorm;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 4;
+
+      parsed = BufferFormatter::ParseFormatString(lit("[[snorm]] [[packed(r10g10b10a2)]] uint4 a;"),
+                                                  0, true);
+
+      expected_type = uint_type;
+      expected_type.name = "uint4";
+      expected_type.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::SNorm;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 4;
+
+      parsed =
+          BufferFormatter::ParseFormatString(lit("[[packed(r10g10b10a2_unorm)]] uint4 a;"), 0, true);
+
+      expected_type = uint_type;
+      expected_type.name = "uint4";
+      expected_type.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::UNorm;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 4;
+
+      parsed =
+          BufferFormatter::ParseFormatString(lit("[[packed(r10g10b10a2_snorm)]] uint4 a;"), 0, true);
+
+      expected_type = uint_type;
+      expected_type.name = "uint4";
+      expected_type.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::SNorm;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 4;
+
+      parsed = BufferFormatter::ParseFormatString(lit("[[snorm]] [[packed(r10g10b10a2)]] int4 a;"),
+                                                  0, true);
+
+      expected_type = int_type;
+      expected_type.name = "int4";
+      expected_type.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::SNorm;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 4;
+
+      parsed =
+          BufferFormatter::ParseFormatString(lit("[[packed(r10g10b10a2_snorm)]] int4 a;"), 0, true);
+
+      expected_type = int_type;
+      expected_type.name = "int4";
+      expected_type.flags |= ShaderVariableFlags::R10G10B10A2 | ShaderVariableFlags::SNorm;
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 4;
+    };
+
+    SECTION("[[single]]")
+    {
+      parsed = BufferFormatter::ParseFormatString(lit("float4 a;"), 0, false);
+
+      expected_type = float_type;
+      expected_type.name = "float4";
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 16;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.fixed.type.members.empty());
+      CHECK(parsed.repeating.name == "a");
+      CHECK((parsed.repeating.type == expected_type));
+
+      parsed = BufferFormatter::ParseFormatString(lit("[[single]] float4 a;"), 0, false);
+
+      expected_type = float_type;
+      expected_type.name = "float4";
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 16;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+      def = R"(
+struct Single
+{
+  float4 a;
+};
+
+Single s;
+)";
+
+      parsed = BufferFormatter::ParseFormatString(def, 0, false);
+
+      expected_type = float_type;
+      expected_type.name = "float4";
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 16;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.fixed.type.members.empty());
+      CHECK(parsed.repeating.name == "s");
+      REQUIRE(parsed.repeating.type.members.size() == 1);
+      CHECK(parsed.repeating.type.members[0].name == "a");
+      CHECK((parsed.repeating.type.members[0].type == expected_type));
+
+      def = R"(
+[[single]]
+struct Single
+{
+  float4 a;
+};
+)";
+
+      parsed = BufferFormatter::ParseFormatString(def, 0, false);
+
+      expected_type = float_type;
+      expected_type.name = "float4";
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 16;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+      def = R"(
+[[fixed]]
+struct Single
+{
+  float4 a;
+};
+)";
+
+      parsed = BufferFormatter::ParseFormatString(def, 0, false);
+
+      expected_type = float_type;
+      expected_type.name = "float4";
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 16;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expected_type));
+
+      def = R"(
+struct Single
+{
+  float4 a;
+};
+
+[[single]]
+Single s;
+)";
+
+      parsed = BufferFormatter::ParseFormatString(def, 0, false);
+
+      expected_type = float_type;
+      expected_type.name = "float4";
+      expected_type.columns = 4;
+      expected_type.arrayByteStride = 16;
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "s");
+      REQUIRE(parsed.fixed.type.members[0].type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type.members[0].type == expected_type));
+    };
+
+    SECTION("[[size]]")
+    {
+      def = R"(
+[[size(128)]]
+struct s
+{
+  float4 a;
+};
+)";
+
+      parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.arrayByteStride == 128);
+
+      def = R"(
+[[size(128)]]
+struct s
+{
+  float4 a;
+};
+
+s value;
+)";
+
+      parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.arrayByteStride == 128);
+
+      def = R"(
+[[byte_size(128)]]
+struct s
+{
+  float4 a;
+};
+)";
+
+      parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.arrayByteStride == 128);
+    };
+
+    SECTION("[[offset]]")
+    {
+      def = R"(
+struct s
+{
+  [[offset(16)]]
+  float4 a;
+  [[offset(128)]]
+  float4 b;
+};
+)";
+
+      parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 2);
+      CHECK(parsed.fixed.type.members[0].byteOffset == 16);
+      CHECK(parsed.fixed.type.members[1].byteOffset == 128);
+    };
+
+    SECTION("[[pad]]")
+    {
+      def = R"(
+struct s
+{
+  [[pad]]
+  int4 pad;
+  float4 a;
+  [[padding]]
+  int pad[24];
+  float4 b;
+};
+)";
+
+      parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 2);
+      CHECK(parsed.fixed.type.members[0].byteOffset == 16);
+      CHECK(parsed.fixed.type.members[1].byteOffset == 128);
+    };
+  };
+
+  SECTION("packing rules")
+  {
+    SECTION("Check API defaults")
+    {
+      BufferFormatter::Init(GraphicsAPI::D3D11);
+      parsed = BufferFormatter::ParseFormatString(lit("float a;"), 0, true);
+      CHECK((parsed.packing == Packing::D3DCB));
+
+      BufferFormatter::Init(GraphicsAPI::D3D11);
+      parsed = BufferFormatter::ParseFormatString(lit("float a;"), 0, false);
+      CHECK((parsed.packing == Packing::D3DUAV));
+
+      BufferFormatter::Init(GraphicsAPI::D3D12);
+      parsed = BufferFormatter::ParseFormatString(lit("float a;"), 0, true);
+      CHECK((parsed.packing == Packing::D3DCB));
+
+      BufferFormatter::Init(GraphicsAPI::D3D12);
+      parsed = BufferFormatter::ParseFormatString(lit("float a;"), 0, false);
+      CHECK((parsed.packing == Packing::D3DUAV));
+
+      BufferFormatter::Init(GraphicsAPI::OpenGL);
+      parsed = BufferFormatter::ParseFormatString(lit("float a;"), 0, true);
+      CHECK((parsed.packing == Packing::std140));
+
+      BufferFormatter::Init(GraphicsAPI::OpenGL);
+      parsed = BufferFormatter::ParseFormatString(lit("float a;"), 0, false);
+      CHECK((parsed.packing == Packing::std430));
+    };
+
+    SECTION("Overriding API defaults")
+    {
+      BufferFormatter::Init(GraphicsAPI::D3D11);
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(c)\nfloat a;"), 0, true);
+      CHECK((parsed.packing == Packing::C));
+
+      BufferFormatter::Init(GraphicsAPI::D3D11);
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(c)\nfloat a;"), 0, false);
+      CHECK((parsed.packing == Packing::C));
+
+      BufferFormatter::Init(GraphicsAPI::D3D12);
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(c)\nfloat a;"), 0, true);
+      CHECK((parsed.packing == Packing::C));
+
+      BufferFormatter::Init(GraphicsAPI::D3D12);
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(c)\nfloat a;"), 0, false);
+      CHECK((parsed.packing == Packing::C));
+
+      BufferFormatter::Init(GraphicsAPI::OpenGL);
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(c)\nfloat a;"), 0, true);
+      CHECK((parsed.packing == Packing::C));
+
+      BufferFormatter::Init(GraphicsAPI::OpenGL);
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(c)\nfloat a;"), 0, false);
+      CHECK((parsed.packing == Packing::C));
+    };
+
+    SECTION("Parsing")
+    {
+      BufferFormatter::Init(GraphicsAPI::OpenGL);
+      parsed = BufferFormatter::ParseFormatString(lit("#pack  (c)\nfloat a;"), 0, false);
+      CHECK((parsed.packing == Packing::C));
+
+      BufferFormatter::Init(GraphicsAPI::OpenGL);
+      parsed = BufferFormatter::ParseFormatString(lit("#  pack  (c)\nfloat a;"), 0, false);
+      CHECK((parsed.packing == Packing::C));
+
+      BufferFormatter::Init(GraphicsAPI::OpenGL);
+      parsed = BufferFormatter::ParseFormatString(
+          lit("# /*comm*/ pack  /* comments */ (c)\nfloat a;"), 0, false);
+      CHECK((parsed.packing == Packing::C));
+    };
+
+    SECTION("Selecting packing rules")
+    {
+      // this will produce different offsets on every packing rule
+      rdcstr def = R"(
+struct inner
+{
+   float first;
+   byte second;
+};
+
+struct s
+{
+  int a;
+  float3 b; // if vectors are aligned to components this is tightly packed, otherwise padded
+
+
+  [[offset(32)]]
+  float c;
+  float4 d; // if vectors can straddle this is tightly packed, otherwise padded
+
+  [[offset(64)]]
+  float e[5];
+  float f; // this will be placed differently depending on whether there are tight arrays, and if
+           // there aren't tight arrays whether trailing padding can be overlapped
+
+  [[offset(160)]]
+  inner g;
+  byte h;  // if trailing padding can be overlapped this will be 'inside' g
+};
+)";
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(cbuffer)\n") + def, 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 8);
+      CHECK(parsed.fixed.type.members[0].byteOffset == 0);    // a
+      CHECK(parsed.fixed.type.members[1].byteOffset == 4);    // b
+
+      CHECK(parsed.fixed.type.members[2].byteOffset == 32);    // c
+      CHECK(parsed.fixed.type.members[3].byteOffset == 48);    // d
+
+      CHECK(parsed.fixed.type.members[4].byteOffset == 64);     // e
+      CHECK(parsed.fixed.type.members[5].byteOffset == 132);    // f
+
+      CHECK(parsed.fixed.type.members[6].byteOffset == 160);    // g
+      CHECK(parsed.fixed.type.members[7].byteOffset == 165);    // h
+
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(d3duav)\n") + def, 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 8);
+      CHECK(parsed.fixed.type.members[0].byteOffset == 0);    // a
+      CHECK(parsed.fixed.type.members[1].byteOffset == 4);    // b
+
+      CHECK(parsed.fixed.type.members[2].byteOffset == 32);    // c
+      CHECK(parsed.fixed.type.members[3].byteOffset == 36);    // d
+
+      CHECK(parsed.fixed.type.members[4].byteOffset == 64);    // e
+      CHECK(parsed.fixed.type.members[5].byteOffset == 84);    // f
+
+      CHECK(parsed.fixed.type.members[6].byteOffset == 160);    // g
+      CHECK(parsed.fixed.type.members[7].byteOffset == 168);    // h
+
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(std140)\n") + def, 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 8);
+      CHECK(parsed.fixed.type.members[0].byteOffset == 0);     // a
+      CHECK(parsed.fixed.type.members[1].byteOffset == 16);    // b
+
+      CHECK(parsed.fixed.type.members[2].byteOffset == 32);    // c
+      CHECK(parsed.fixed.type.members[3].byteOffset == 48);    // d
+
+      CHECK(parsed.fixed.type.members[4].byteOffset == 64);     // e
+      CHECK(parsed.fixed.type.members[5].byteOffset == 144);    // f
+
+      CHECK(parsed.fixed.type.members[6].byteOffset == 160);    // g
+      CHECK(parsed.fixed.type.members[7].byteOffset == 176);    // h
+
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(std430)\n") + def, 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 8);
+      CHECK(parsed.fixed.type.members[0].byteOffset == 0);     // a
+      CHECK(parsed.fixed.type.members[1].byteOffset == 16);    // b
+
+      CHECK(parsed.fixed.type.members[2].byteOffset == 32);    // c
+      CHECK(parsed.fixed.type.members[3].byteOffset == 48);    // d
+
+      CHECK(parsed.fixed.type.members[4].byteOffset == 64);    // e
+      CHECK(parsed.fixed.type.members[5].byteOffset == 84);    // f
+
+      CHECK(parsed.fixed.type.members[6].byteOffset == 160);    // g
+      CHECK(parsed.fixed.type.members[7].byteOffset == 168);    // h
+
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(scalar)\n") + def, 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 8);
+      CHECK(parsed.fixed.type.members[0].byteOffset == 0);    // a
+      CHECK(parsed.fixed.type.members[1].byteOffset == 4);    // b
+
+      CHECK(parsed.fixed.type.members[2].byteOffset == 32);    // c
+      CHECK(parsed.fixed.type.members[3].byteOffset == 36);    // d
+
+      CHECK(parsed.fixed.type.members[4].byteOffset == 64);    // e
+      CHECK(parsed.fixed.type.members[5].byteOffset == 84);    // f
+
+      CHECK(parsed.fixed.type.members[6].byteOffset == 160);    // g
+      CHECK(parsed.fixed.type.members[7].byteOffset == 165);    // h
+    };
+  };
+
+  SECTION("errors")
+  {
+    rdcstr def;
+
+    // we don't check exact error text, we check that an error is found and on the right line, and
+    // contains a keyword indicating that the error is the right place. This avoids needing to
+    // update the test every time the error text changes.
+    // note line numbers are 0-based
+
+    struct error_expect
+    {
+      rdcstr text;
+      int line;
+      rdcstr error;
+    };
+
+    rdcarray<error_expect> errors;
+
+    SECTION("line numbers are accurate around whitespace and comments")
+    {
+      errors = {
+          {"flibble boo;", 0, "parse declaration"},
+          {R"(
+flibble boo;
+)",
+           1, "parse declaration"},
+
+          {R"(
+
+
+
+flibble boo;
+)",
+           4, "parse declaration"},
+          {R"(
+/*
+comments
+*/
+flibble boo;
+)",
+           4, "parse declaration"},
+          {R"(
+//
+// comments
+//
+flibble boo;
+)",
+           4, "parse declaration"},
+          {R"(
+//
+// comments
+//
+flibble /*
+*/boo;
+)",
+           5, "parse declaration"},
+
+          {R"(
+//
+// comments
+//
+flibble /*
+*/
+
+boo;
+)",
+           7, "parse declaration"},
+      };
+    };
+
+    SECTION("pre-processor specifiers")
+    {
+      errors = {
+          {R"(
+#pack(unknown)
+
+struct s { float a; };
+
+s data;
+)",
+           1, "packing rule"},
+          {R"(
+#foo
+
+struct s { float a; };
+
+s data;
+)",
+           1, "pre-processor"},
+          {R"(
+#pack
+(cbuffer)
+
+struct s { float a; };
+
+s data;
+)",
+           1, "pre-processor"},
+          {R"(
+#pack(std140)
+
+struct s {
+  float a;
+  #pack(scalar)
+  float3 b;
+};
+
+s data;
+)",
+           5, "global scope"},
+      };
+    };
+
+    SECTION("annotation errors")
+    {
+      errors = {
+          {R"(
+[[foo]]
+struct s { float a; };
+
+s data;
+)",
+           2, "unrecognised annotation"},
+          {R"(
+[[pad]]
+struct s { float a; };
+
+s data;
+)",
+           2, "unrecognised annotation"},
+          {R"(
+[[foo]]
+enum e1 : uint { val = 1; };
+
+e1 data;
+)",
+           2, "unrecognised annotation"},
+          {R"(
+[[pad]]
+enum e1 : uint { val = 1; };
+
+e1 data;
+)",
+           2, "unrecognised annotation"},
+          {R"(
+struct s {
+  [[size]]float a;
+};
+
+s data;
+)",
+           2, "unrecognised annotation"},
+          {R"(
+enum e1 : uint {
+  [[pad]]val = 1;
+};
+
+e1 data;
+)",
+           2, "unrecognised annotation"},
+          {R"(
+[[size]]float a;
+)",
+           1, "unrecognised annotation"},
+          {R"(
+byte a : 4;
+[[size]]byte : 4;
+)",
+           2, "unrecognised annotation"},
+
+          {R"(
+[[size]]
+struct s {
+  float a;
+};
+
+s data;
+)",
+           2, "requires a parameter"},
+          {R"(
+[[byte_size]]
+struct s {
+  float a;
+};
+
+s data;
+)",
+           2, "requires a parameter"},
+          {R"(
+struct s {
+  [[offset]]float a;
+};
+
+s data;
+)",
+           2, "requires a parameter"},
+          {R"(
+struct s {
+  [[byte_offset]]float a;
+};
+
+s data;
+)",
+           2, "requires a parameter"},
+          {R"(
+[[size(16)]]
+struct s {
+  float a[100];
+};
+
+s data;
+)",
+           4, "less than derived"},
+          {R"(
+struct s {
+  float a[100];
+  [[offset(16)]]
+  float b;
+};
+
+s data;
+)",
+           4, "overlaps with"},
+          {R"(
+struct inner { int a; }
+
+struct s {
+  float a[100];
+  [[offset(16)]]
+  inner b;
+};
+
+s data;
+)",
+           6, "overlaps with"},
+          {R"(
+struct inner { int a; }
+
+struct s {
+  float a[100];
+  [[offset(16)]]
+  inner *b;
+};
+
+s data;
+)",
+           6, "overlaps with"},
+          {R"(
+enum e : uint { val = 1; }
+
+struct s {
+  float a[100];
+  [[offset(16)]]
+  e b;
+};
+
+s data;
+)",
+           6, "overlaps with"},
+          {R"(
+struct s {
+  [[packed]]uint4 a;
+};
+
+s data;
+)",
+           2, "requires a parameter"},
+          {R"(
+struct s {
+  [[packed(r1g2b13a16)]]uint4 a;
+};
+
+s data;
+)",
+           2, "unrecognised format"},
+          {R"(
+[[single]] float a;
+[[single]] float b;
+)",
+           2, "only one"},
+          {R"(
+[[single]] float a[];
+)",
+           1, "unbounded"},
+          {R"(
+struct s {
+  [[single]]uint4 a;
+};
+
+s data;
+)",
+           2, "global variables"},
+          {R"(
+[[single]]
+struct s {
+  uint4 a;
+};
+
+s data;
+)",
+           6, "only defined"},
+          {R"(
+[[hex]] float a;
+)",
+           1, "floating point"},
+          {R"(
+[[hex]] [[packed(r10g10b10a2)]] uint4 a;
+)",
+           1, "packed"},
+          {R"(
+[[bin]] float a;
+)",
+           1, "floating point"},
+          {R"(
+[[bin]] [[packed(r10g10b10a2)]] uint4 a;
+)",
+           1, "packed"},
+          {R"(
+[[row_major]] float a;
+)",
+           1, "matrices"},
+          {R"(
+[[col_major]] float a;
+)",
+           1, "matrices"},
+          {R"(
+[[packed(r11g11b10)]] float a;
+)",
+           1, "float3"},
+          {R"(
+[[packed(r11g11b10)]] uint3 a;
+)",
+           1, "float3"},
+          {R"(
+[[packed(r10g10b10a2)]] float a;
+)",
+           1, "uint4"},
+          {R"(
+[[packed(r10g10b10a2)]] float4 a;
+)",
+           1, "uint4"},
+          {R"(
+[[packed(r10g10b10a2_unorm)]] float4 a;
+)",
+           1, "uint4"},
+          {R"(
+[[packed(r10g10b10a2_snorm)]] uint4 a;
+)",
+           1, "int4"},
+      };
+    };
+
+    SECTION("bitfield errors")
+    {
+      errors = {
+          {R"(
+struct inner { int val; }
+
+int a : 8;
+inner *b : 24;
+)",
+           4, "packed into a bitfield"},
+          {R"(
+struct inner { int val; }
+
+int a : 8;
+inner b : 24;
+)",
+           4, "packed into a bitfield"},
+          {R"(
+int a : 8;
+byte b[3] : 24;
+)",
+           2, "packed into a bitfield"},
+          {R"(
+int a : 8;
+float b : 24;
+)",
+           2, "packed into a bitfield"},
+          {R"(
+int a : 8;
+byte3 b : 24;
+)",
+           2, "packed into a bitfield"},
+          {R"(
+int a : 8;
+byte2x2 b : 24;
+)",
+           2, "packed into a bitfield"},
+          {R"(
+int a : 8;
+[[packed(r10g10b10a2)]] uint4 b : 24;
+)",
+           2, "packed into a bitfield"},
+          {R"(
+byte a : 8;
+byte b : 16;
+)",
+           2, "only has 8 bits"},
+      };
+    };
+
+    SECTION("variable declaration errors")
+    {
+      errors = {
+          {R"(
+struct s {
+  float a;
+};
+struct s {
+  int a;
+};
+
+s data;
+)",
+           4, "already been"},
+          {R"(
+enum e {
+  val = 1,
+};
+
+e data;
+)",
+           1, "base type"},
+          {R"(
+enum e : foo {
+  val = 1,
+};
+
+e data;
+)",
+           1, "unsigned integer"},
+          {R"(
+enum e : uint {
+  val = blah,
+};
+
+e data;
+)",
+           2, "value declaration"},
+          {R"(
+enum e : uint {
+  val = ,
+};
+
+e data;
+)",
+           2, "value declaration"},
+          {R"(
+enum e : uint {
+  val,
+};
+
+e data;
+)",
+           2, "value declaration"},
+          {R"(
+enum e : uint {
+  val = 1,
+  val2 = val+1,
+};
+
+e data;
+)",
+           3, "value declaration"},
+          {R"(
+struct s {
+  float a;
+};
+
+s **data;
+)",
+           5, "single pointer"},
+          {R"(
+struct s {
+  float a;
+};
+
+t data;
+)",
+           5, "unrecognised type"},
+          {R"(
+blah data;
+)",
+           1, "unrecognised type"},
+          {R"(
+struct s {
+  float a;
+};
+
+s data[2][2];
+)",
+           5, "invalid declaration"},
+          {R"(
+float a
+int b;
+)",
+           2, "multiple declarations"},
+      };
+    };
+
+    for(const error_expect &err : errors)
+    {
+      parsed = BufferFormatter::ParseFormatString(err.text, 0, true);
+      REQUIRE(parsed.errors.contains(err.line));
+      // Failed to parse declaration
+      CHECK(parsed.errors[err.line].contains(err.error, Qt::CaseInsensitive));
+    }
+  };
+};
+
+#endif

@@ -66,6 +66,13 @@ rdcstr DoStringise(const uint32_t &el)
   return QString::number(el);
 }
 
+// this could be needed for CHECKs in tests
+template <>
+rdcstr DoStringise(const uint16_t &el)
+{
+  return QString::number(el);
+}
+
 // these ones we do by hand as it requires formatting
 template <>
 rdcstr DoStringise(const ResourceId &el)
