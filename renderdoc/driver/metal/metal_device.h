@@ -42,18 +42,13 @@ public:
   DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLLibrary *, newLibraryWithSource,
                                           NS::String *source, MTL::CompileOptions *options,
                                           NS::Error **error);
-  WrappedMTLRenderPipelineState *newRenderPipelineStateWithDescriptor(
-      MTL::RenderPipelineDescriptor *descriptor, NS::Error **error);
-  template <typename SerialiserType>
-  bool Serialise_newRenderPipelineStateWithDescriptor(SerialiserType &ser,
-                                                      WrappedMTLRenderPipelineState *,
-                                                      RDMTL::RenderPipelineDescriptor &descriptor,
-                                                      NS::Error **error);
-  WrappedMTLTexture *newTextureWithDescriptor(MTL::TextureDescriptor *descriptor,
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLRenderPipelineState *,
+                                          newRenderPipelineStateWithDescriptor,
+                                          RDMTL::RenderPipelineDescriptor &descriptor,
+                                          NS::Error **error);
+  WrappedMTLTexture *newTextureWithDescriptor(RDMTL::TextureDescriptor &descriptor,
                                               IOSurfaceRef iosurface, NS::UInteger plane);
-  WrappedMTLTexture *newTextureWithDescriptor(MTL::TextureDescriptor *descriptor);
-  template <typename SerialiserType>
-  bool Serialise_newTextureWithDescriptor(SerialiserType &ser, WrappedMTLTexture *,
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLTexture *, newTextureWithDescriptor,
                                           RDMTL::TextureDescriptor &descriptor);
 
   // Non-Serialised MTLDevice APIs
@@ -108,7 +103,7 @@ private:
   void Create_InitialState(ResourceId id, WrappedMTLObject *live, bool hasData);
   void Apply_InitialState(WrappedMTLObject *live, const MetalInitialContents &initial);
 
-  WrappedMTLTexture *Common_NewTexture(MTL::TextureDescriptor *descriptor, MetalChunk chunkType,
+  WrappedMTLTexture *Common_NewTexture(RDMTL::TextureDescriptor &descriptor, MetalChunk chunkType,
                                        bool ioSurfaceTexture, IOSurfaceRef iosurface,
                                        NS::UInteger plane);
 
