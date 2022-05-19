@@ -108,21 +108,22 @@ struct TextureDescriptor
   TextureDescriptor() = default;
   TextureDescriptor(MTL::TextureDescriptor *objc);
   explicit operator MTL::TextureDescriptor *();
-  MTL::TextureType textureType;
-  MTL::PixelFormat pixelFormat;
-  NS::UInteger width;
-  NS::UInteger height;
-  NS::UInteger depth;
-  NS::UInteger mipmapLevelCount;
-  NS::UInteger sampleCount;
-  NS::UInteger arrayLength;
-  MTL::ResourceOptions resourceOptions;
-  MTL::CPUCacheMode cpuCacheMode;
-  MTL::StorageMode storageMode;
-  MTL::HazardTrackingMode hazardTrackingMode;
-  MTL::TextureUsage usage;
-  bool allowGPUOptimizedContents;
-  MTL::TextureSwizzleChannels swizzle;
+  MTL::TextureType textureType = MTL::TextureType2D;
+  MTL::PixelFormat pixelFormat = MTL::PixelFormatRGBA8Unorm;
+  NS::UInteger width = 1;
+  NS::UInteger height = 1;
+  NS::UInteger depth = 1;
+  NS::UInteger mipmapLevelCount = 1;
+  NS::UInteger sampleCount = 1;
+  NS::UInteger arrayLength = 1;
+  MTL::ResourceOptions resourceOptions = MTL::ResourceStorageModeManaged;
+  MTL::CPUCacheMode cpuCacheMode = MTL::CPUCacheModeDefaultCache;
+  MTL::StorageMode storageMode = MTL::StorageModeManaged;
+  MTL::HazardTrackingMode hazardTrackingMode = MTL::HazardTrackingModeDefault;
+  MTL::TextureUsage usage = MTL::TextureUsageShaderRead;
+  bool allowGPUOptimizedContents = true;
+  MTL::TextureSwizzleChannels swizzle = {MTL::TextureSwizzleRed, MTL::TextureSwizzleGreen,
+                                         MTL::TextureSwizzleBlue, MTL::TextureSwizzleAlpha};
 };
 
 // MTLRenderPipelineColorAttachmentDescriptor : based on the interface defined in
@@ -132,15 +133,15 @@ struct RenderPipelineColorAttachmentDescriptor
   RenderPipelineColorAttachmentDescriptor() = default;
   RenderPipelineColorAttachmentDescriptor(MTL::RenderPipelineColorAttachmentDescriptor *objc);
   void CopyTo(MTL::RenderPipelineColorAttachmentDescriptor *objc);
-  MTL::PixelFormat pixelFormat;
-  bool blendingEnabled;
-  MTL::BlendFactor sourceRGBBlendFactor;
-  MTL::BlendFactor destinationRGBBlendFactor;
-  MTL::BlendOperation rgbBlendOperation;
-  MTL::BlendFactor sourceAlphaBlendFactor;
-  MTL::BlendFactor destinationAlphaBlendFactor;
-  MTL::BlendOperation alphaBlendOperation;
-  MTL::ColorWriteMask writeMask;
+  MTL::PixelFormat pixelFormat = MTL::PixelFormatInvalid;
+  bool blendingEnabled = false;
+  MTL::BlendFactor sourceRGBBlendFactor = MTL::BlendFactorOne;
+  MTL::BlendFactor destinationRGBBlendFactor = MTL::BlendFactorZero;
+  MTL::BlendOperation rgbBlendOperation = MTL::BlendOperationAdd;
+  MTL::BlendFactor sourceAlphaBlendFactor = MTL::BlendFactorOne;
+  MTL::BlendFactor destinationAlphaBlendFactor = MTL::BlendFactorZero;
+  MTL::BlendOperation alphaBlendOperation = MTL::BlendOperationAdd;
+  MTL::ColorWriteMask writeMask = MTL::ColorWriteMaskAll;
 };
 
 // MTLPipelineBufferDescriptor : based on the interface defined in
@@ -150,7 +151,7 @@ struct PipelineBufferDescriptor
   PipelineBufferDescriptor() = default;
   PipelineBufferDescriptor(MTL::PipelineBufferDescriptor *objc);
   void CopyTo(MTL::PipelineBufferDescriptor *objc);
-  MTL::Mutability mutability;
+  MTL::Mutability mutability = MTL::MutabilityDefault;
 };
 
 // MTLVertexAttributeDescriptor : based on the interface defined in
@@ -160,9 +161,9 @@ struct VertexAttributeDescriptor
   VertexAttributeDescriptor() = default;
   VertexAttributeDescriptor(MTL::VertexAttributeDescriptor *objc);
   void CopyTo(MTL::VertexAttributeDescriptor *objc);
-  MTL::VertexFormat format;
-  NS::UInteger offset;
-  NS::UInteger bufferIndex;
+  MTL::VertexFormat format = MTL::VertexFormatInvalid;
+  NS::UInteger offset = 0;
+  NS::UInteger bufferIndex = 0;
 };
 
 // MTLVertexBufferLayoutDescriptor : based on the interface defined in
@@ -172,9 +173,9 @@ struct VertexBufferLayoutDescriptor
   VertexBufferLayoutDescriptor() = default;
   VertexBufferLayoutDescriptor(MTL::VertexBufferLayoutDescriptor *objc);
   void CopyTo(MTL::VertexBufferLayoutDescriptor *objc);
-  NS::UInteger stride;
-  MTL::VertexStepFunction stepFunction;
-  NS::UInteger stepRate;
+  NS::UInteger stride = 0;
+  MTL::VertexStepFunction stepFunction = MTL::VertexStepFunctionPerVertex;
+  NS::UInteger stepRate = 1;
 };
 
 // MTLVertexBufferLayoutDescriptor : based on the interface defined in
@@ -215,29 +216,31 @@ struct RenderPipelineDescriptor
   RenderPipelineDescriptor(MTL::RenderPipelineDescriptor *objc);
   explicit operator MTL::RenderPipelineDescriptor *();
   rdcstr label;
-  WrappedMTLFunction *vertexFunction;
-  WrappedMTLFunction *fragmentFunction;
+  WrappedMTLFunction *vertexFunction = NULL;
+  WrappedMTLFunction *fragmentFunction = NULL;
   VertexDescriptor vertexDescriptor;
-  NS::UInteger sampleCount;
-  NS::UInteger rasterSampleCount;
-  bool alphaToCoverageEnabled;
-  bool alphaToOneEnabled;
-  bool rasterizationEnabled;
-  NS::UInteger maxVertexAmplificationCount;
+  NS::UInteger sampleCount = 1;
+  NS::UInteger rasterSampleCount = 1;
+  bool alphaToCoverageEnabled = false;
+  bool alphaToOneEnabled = false;
+  bool rasterizationEnabled = true;
+  NS::UInteger maxVertexAmplificationCount = 1;
   rdcarray<RenderPipelineColorAttachmentDescriptor> colorAttachments;
-  MTL::PixelFormat depthAttachmentPixelFormat;
-  MTL::PixelFormat stencilAttachmentPixelFormat;
-  MTL::PrimitiveTopologyClass inputPrimitiveTopology;
-  MTL::TessellationPartitionMode tessellationPartitionMode;
-  NS::UInteger maxTessellationFactor;
-  bool tessellationFactorScaleEnabled;
-  MTL::TessellationFactorFormat tessellationFactorFormat;
-  MTL::TessellationControlPointIndexType tessellationControlPointIndexType;
-  MTL::TessellationFactorStepFunction tessellationFactorStepFunction;
-  MTL::Winding tessellationOutputWindingOrder;
+  MTL::PixelFormat depthAttachmentPixelFormat = MTL::PixelFormatInvalid;
+  MTL::PixelFormat stencilAttachmentPixelFormat = MTL::PixelFormatInvalid;
+  MTL::PrimitiveTopologyClass inputPrimitiveTopology = MTL::PrimitiveTopologyClassUnspecified;
+  MTL::TessellationPartitionMode tessellationPartitionMode = MTL::TessellationPartitionModePow2;
+  NS::UInteger maxTessellationFactor = 16;
+  bool tessellationFactorScaleEnabled = false;
+  MTL::TessellationFactorFormat tessellationFactorFormat = MTL::TessellationFactorFormatHalf;
+  MTL::TessellationControlPointIndexType tessellationControlPointIndexType =
+      MTL::TessellationControlPointIndexTypeNone;
+  MTL::TessellationFactorStepFunction tessellationFactorStepFunction =
+      MTL::TessellationFactorStepFunctionConstant;
+  MTL::Winding tessellationOutputWindingOrder = MTL::WindingClockwise;
   rdcarray<PipelineBufferDescriptor> vertexBuffers;
   rdcarray<PipelineBufferDescriptor> fragmentBuffers;
-  bool supportIndirectCommandBuffers;
+  bool supportIndirectCommandBuffers = false;
   // TODO: will MTL::BinaryArchive need to be a wrapped resource
   // rdcarray<MTL::BinaryArchive*> binaryArchives;
   // TODO: will MTL::DynamicLibrary need to be a wrapped resource
@@ -245,10 +248,10 @@ struct RenderPipelineDescriptor
   // rdcarray<MTL::DynamicLibrary*> fragmentPreloadedLibraries;
   LinkedFunctions vertexLinkedFunctions;
   LinkedFunctions fragmentLinkedFunctions;
-  bool supportAddingVertexBinaryFunctions;
-  bool supportAddingFragmentBinaryFunctions;
-  NS::UInteger maxVertexCallStackDepth;
-  NS::UInteger maxFragmentCallStackDepth;
+  bool supportAddingVertexBinaryFunctions = false;
+  bool supportAddingFragmentBinaryFunctions = false;
+  NS::UInteger maxVertexCallStackDepth = 1;
+  NS::UInteger maxFragmentCallStackDepth = 1;
 };
 
 }    // namespace RDMTL
