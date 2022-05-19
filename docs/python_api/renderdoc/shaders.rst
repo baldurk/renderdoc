@@ -80,8 +80,8 @@ Shader Constants
 
 .. autoclass:: renderdoc.ShaderConstantType
   :members:
-  
-.. autoclass:: renderdoc.ShaderConstantDescriptor
+
+.. autoclass:: renderdoc.ShaderVariableFlags
   :members:
 
 .. autoclass:: renderdoc.VarType

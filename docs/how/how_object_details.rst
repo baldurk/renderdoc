@@ -47,11 +47,11 @@ Buffers bound to the pipeline can be opened as a raw buffer viewer. This will op
 
 By default if the buffer is bound to the pipeline with a pre-existing structure that can be reflected from the shader then this will be the default, otherwise the default layout will be 4 32bit unsigned integers per element.
 
-This layout can be customised by entering a format in a simple style that mimics defining a structure that outlines a single element in the buffer.
+This layout can be customised by entering a format in a simple style that mimics defining a structure that outlines a single element in the buffer, for more information see :doc:`../how/how_buffer_format`.
 
 More details on this section are available on the :doc:`../window/buffer_viewer` page.
 
-.. figure:: ../imgs/Screenshots/RawBuffer.png
+.. figure:: ../imgs/Screenshots/AOSBuffer.png
 
 	Custom Buffer Layout: Customising the layout of the buffer by defining a structure.
 
@@ -66,7 +66,7 @@ Constant buffers can be viewed by clicking on their Go Arrow |goarrow|. This wil
 
 Whenever this shader slot has a constant buffer in it, both the constant names and types as well as values will be displayed.
 
-.. figure:: ../imgs/Screenshots/CBuffer.png
+.. figure:: ../imgs/Screenshots/SOABuffer.png
 
 	Constant Buffer: An updating preview of the contents of this constant buffer.
 

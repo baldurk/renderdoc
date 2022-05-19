@@ -109,12 +109,6 @@ Shader Viewer
 .. autoclass:: qrenderdoc.ShaderViewer
   :members:
 
-Constant Buffer Previewer
--------------------------
-
-.. autoclass:: qrenderdoc.ConstantBufferPreviewer
-  :members:
-
 Pixel History
 -------------
 
