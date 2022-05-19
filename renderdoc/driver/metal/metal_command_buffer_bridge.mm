@@ -123,7 +123,7 @@
 - (void)enqueue
 {
   METAL_NOT_HOOKED();
-  [self enqueue];
+  [self.real enqueue];
 }
 
 - (void)commit
