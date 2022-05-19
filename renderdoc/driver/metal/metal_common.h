@@ -162,10 +162,10 @@ DECLARE_REFLECTION_ENUM(MetalChunk);
 #define IsReplayingAndReading() (ser.IsReading() && IsReplayMode(m_Device->GetState()))
 
 #ifdef __OBJC__
-#define METAL_NOT_HOOKED()                                                             \
-  do                                                                                   \
-  {                                                                                    \
-    RDCWARN("Metal %s %s not hooked", class_getName([self class]), sel_getName(_cmd)); \
+#define METAL_NOT_HOOKED()                                                          \
+  do                                                                                \
+  {                                                                                 \
+    RDCERR("Metal %s %s not hooked", object_getClassName(self), sel_getName(_cmd)); \
   } while((void)0, 0)
 #endif
 
@@ -178,11 +178,11 @@ DECLARE_REFLECTION_ENUM(MetalChunk);
 
 // similar to RDCUNIMPLEMENTED but for things that are hit often so we don't want to fire the
 // debugbreak.
-#define METAL_NOT_IMPLEMENTED_ONCE(...)                                           \
-  do                                                                              \
-  {                                                                               \
-    static bool msgprinted = false;                                               \
-    if(!msgprinted)                                                               \
-      RDCDEBUG("Metal '%s' not implemented - " __VA_ARGS__, __PRETTY_FUNCTION__); \
-    msgprinted = true;                                                            \
+#define METAL_NOT_IMPLEMENTED_ONCE(...)                                          \
+  do                                                                             \
+  {                                                                              \
+    static bool msgprinted = false;                                              \
+    if(!msgprinted)                                                              \
+      RDCWARN("Metal '%s' not implemented - " __VA_ARGS__, __PRETTY_FUNCTION__); \
+    msgprinted = true;                                                           \
   } while((void)0, 0)
