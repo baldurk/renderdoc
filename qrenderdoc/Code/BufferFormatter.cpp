@@ -2020,8 +2020,9 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
     ShaderConstant el;
     el.byteOffset = 0;
-    el.type.flags |= ShaderVariableFlags::HexDisplay;
+    el.type.flags = ShaderVariableFlags::RowMajorMatrix | ShaderVariableFlags::HexDisplay;
     el.name = "data";
+    el.type.name = "uint4";
     el.type.baseType = VarType::UInt;
     el.type.columns = 4;
     el.type.elements = ~0U;
@@ -2031,8 +2032,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
     if(maxLen > 0 && maxLen < 4)
       el.type.baseType = VarType::UByte;
 
-    el.type.arrayByteStride = el.type.matrixByteStride =
-        el.type.columns * VarTypeByteSize(el.type.baseType);
+    el.type.arrayByteStride = el.type.columns * VarTypeByteSize(el.type.baseType);
 
     fixed.type.members.push_back(el);
     fixed.type.arrayByteStride = el.type.arrayByteStride;
