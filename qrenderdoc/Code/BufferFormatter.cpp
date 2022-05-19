@@ -1883,10 +1883,21 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
   // if we succeeded parsing but didn't get any root elements, use the last defined struct as the
   // definition
   if(success && root.structDef.type.members.isEmpty() && !lastStruct.isEmpty())
+  {
     root = structelems[lastStruct];
 
+    // only pad up to the stride, not down
+    if(root.paddedStride >= root.offset)
+      root.offset = cur->paddedStride;
+  }
+
   fixed = root.structDef;
-  fixed.type.arrayByteStride = AlignUp(root.offset, GetAlignment(pack, fixed));
+  uint32_t end = root.offset;
+  if(!fixed.type.members.isEmpty())
+    end = qMax(
+        end, fixed.type.members.back().byteOffset + fixed.type.members.back().type.arrayByteStride);
+
+  fixed.type.arrayByteStride = AlignUp(end, GetAlignment(pack, fixed));
 
   if(!fixed.type.members.isEmpty() && fixed.type.members.back().type.elements == ~0U)
   {
