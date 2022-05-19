@@ -257,8 +257,8 @@
 
 - (nullable id<MTLTexture>)newTextureWithDescriptor:(MTLTextureDescriptor *)descriptor
 {
-  return id<MTLTexture>(
-      GetWrapped(self)->newTextureWithDescriptor((MTL::TextureDescriptor *)descriptor));
+  RDMTL::TextureDescriptor rdDescriptor((MTL::TextureDescriptor *)descriptor);
+  return id<MTLTexture>(GetWrapped(self)->newTextureWithDescriptor(rdDescriptor));
 }
 
 - (nullable id<MTLTexture>)newTextureWithDescriptor:(MTLTextureDescriptor *)descriptor
@@ -266,8 +266,8 @@
                                               plane:(NSUInteger)plane
     API_AVAILABLE(macos(10.11), ios(11.0))
 {
-  return id<MTLTexture>(GetWrapped(self)->newTextureWithDescriptor(
-      (MTL::TextureDescriptor *)descriptor, iosurface, plane));
+  RDMTL::TextureDescriptor rdDescriptor((MTL::TextureDescriptor *)descriptor);
+  return id<MTLTexture>(GetWrapped(self)->newTextureWithDescriptor(rdDescriptor, iosurface, plane));
 }
 
 - (nullable id<MTLTexture>)newSharedTextureWithDescriptor:(MTLTextureDescriptor *)descriptor
@@ -366,8 +366,9 @@
 newRenderPipelineStateWithDescriptor:(MTLRenderPipelineDescriptor *)descriptor
                                error:(__autoreleasing NSError **)error
 {
-  return id<MTLRenderPipelineState>(GetWrapped(self)->newRenderPipelineStateWithDescriptor(
-      (MTL::RenderPipelineDescriptor *)descriptor, (NS::Error **)error));
+  RDMTL::RenderPipelineDescriptor rdDescriptor((MTL::RenderPipelineDescriptor *)descriptor);
+  return id<MTLRenderPipelineState>(
+      GetWrapped(self)->newRenderPipelineStateWithDescriptor(rdDescriptor, (NS::Error **)error));
 }
 
 - (nullable id<MTLRenderPipelineState>)
