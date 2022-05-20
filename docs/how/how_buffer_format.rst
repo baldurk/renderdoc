@@ -222,6 +222,7 @@ However if the desire is to display this as a single fixed element where the fix
   };
 
 .. code:: c++
+
   struct data
   {
     float a;
