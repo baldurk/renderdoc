@@ -331,7 +331,7 @@ jobs:
       env:
         UPLOADLOCATION: ${{ secrets.MacUploadLocation }}
       run: |
-        echo 'renderdoc.org,209.133.211.153 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBObosfTSrCa11pDrmPxJ6zzNltDJls3Vc0AMVrqX0hAGFoFWbGvdDm3wpDBYHpkL9LmG6bJNHqWmO59oUJZYl9E=' >> $HOME/.ssh/known_hosts
+        echo '|1|if7jyhkGD/xNbs/bfYSZ4zcgIoo=|gjhyr71exVKt7rNtMly68VccvLk= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPhCdt25vFMUQ63wTBxKLCZY1Ax+F9Y+SSusjuG6b4xtdVQ1lo3FqHnyLtsvYja0R0RiwTEob6TDrr/j7rjR96M=' >> $HOME/.ssh/known_hosts
         ls -lR $HOME/.ssh
         cat $HOME/.ssh/known_hosts
         lftp sftp://"${UPLOADLOCATION}" -e "cd upload; put ${FNAME}; bye"
