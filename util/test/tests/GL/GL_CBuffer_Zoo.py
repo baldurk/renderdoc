@@ -85,7 +85,8 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
         # row_major vec4x4 r;
         var_check.check('r').cols(4).rows(4).row_major().value([92.0, 93.0, 94.0, 95.0,
                                                                 96.0, 97.0, 98.0, 99.0,
-                                                                100.0, 101.0, 102.0, 103.0])
+                                                                100.0, 101.0, 102.0, 103.0,
+                                                                104.0, 105.0, 106.0, 107.0])
 
         # column_major vec4x3 s;
         var_check.check('s').cols(4).rows(3).column_major().value([108.0, 112.0, 116.0, 120.0,
