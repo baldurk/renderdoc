@@ -582,6 +582,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         // only primary command lists can be submitted
         m_Cmd.m_Partial[D3D12CommandData::Primary].cmdListExecs[cmd].push_back(m_Cmd.m_RootEventID);
 
+        // pull in any remaining events on the command buffer that weren't added to an action
         for(size_t e = 0; e < cmdListInfo.curEvents.size(); e++)
         {
           APIEvent apievent = cmdListInfo.curEvents[e];
@@ -594,6 +595,13 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
         m_Cmd.m_RootEventID += cmdListInfo.eventCount;
         m_Cmd.m_RootActionID += cmdListInfo.actionCount;
+
+        for(auto it = cmdListInfo.resourceUsage.begin(); it != cmdListInfo.resourceUsage.end(); ++it)
+        {
+          EventUsage u = it->second;
+          u.eventId += m_Cmd.m_RootEventID - cmdListInfo.curEvents.count();
+          m_Cmd.m_ResourceUses[it->first].push_back(u);
+        }
 
         {
           action.customName =
