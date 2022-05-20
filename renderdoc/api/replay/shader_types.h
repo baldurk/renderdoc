@@ -326,7 +326,7 @@ manually, but since it is common this helper is provided.
   Vectors and scalars will be marked as row-major by convention for convenience.
 
 :return: If the storage is row-major order in memory
-:rtype: Bool
+:rtype: bool
 )");
   inline bool RowMajor() const { return bool(flags & ShaderVariableFlags::RowMajorMatrix); }
   DOCUMENT(R"(Helper function for checking if :data:`flags` *does not* have
@@ -337,7 +337,7 @@ manually, but since it is common this helper is provided.
   Vectors and scalars will be marked as row-major by convention for convenience.
 
 :return: If the storage is column-major order in memory
-:rtype: Bool
+:rtype: bool
 )");
   inline bool ColMajor() const { return !(flags & ShaderVariableFlags::RowMajorMatrix); }
   DOCUMENT(R"(Utility function for setting a pointer value with no type information.
@@ -992,7 +992,7 @@ manually, but since it is common this helper is provided.
   Vectors and scalars will be marked as row-major by convention for convenience.
 
 :return: If the storage is row-major order in memory
-:rtype: Bool
+:rtype: bool
 )");
   inline bool RowMajor() const { return bool(flags & ShaderVariableFlags::RowMajorMatrix); }
   DOCUMENT(R"(Helper function for checking if :data:`flags` *does not* have
@@ -1003,7 +1003,7 @@ manually, but since it is common this helper is provided.
   Vectors and scalars will be marked as row-major by convention for convenience.
 
 :return: If the storage is column-major order in memory
-:rtype: Bool
+:rtype: bool
 )");
   inline bool ColMajor() const { return !(flags & ShaderVariableFlags::RowMajorMatrix); }
 };
