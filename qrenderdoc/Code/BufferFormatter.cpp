@@ -24,7 +24,6 @@
 
 #include <QApplication>
 #include <QRegularExpression>
-#include <QStringView>
 #include <QtMath>
 #include "QRDUtils.h"
 
@@ -568,7 +567,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
   QList<Annotation> annotations;
 
-  QStringView parseText(text);
+  QString parseText = text;
   int parseLine = 0;
 
   // get each line and parse it to determine the format the user wanted
