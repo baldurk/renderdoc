@@ -914,6 +914,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
             {
               uint32_t drawidx = 0;
 
+              ActionDescription *action = m_Actions[curEID];
+
               if(m_FirstEventID <= 1)
               {
                 // if we're replaying part-way into a multidraw, we can replay the first part
@@ -921,6 +923,12 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
                 // by just reducing the Count parameter to however many we want to replay. This only
                 // works if we're replaying from the first multidraw to the nth (n less than Count)
                 count = RDCMIN(count, m_LastEventID - baseEventID);
+              }
+              else if(action->flags & ActionFlags::PopMarker)
+              {
+                // if the popmarker is selected (most likely implicitly by a parent marker)
+                // don't replay anything and don't try to set up the indirect buffer.
+                count = 0;
               }
               else
               {
@@ -996,7 +1004,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
                 stride = sizeof(VkDrawIndexedIndirectCommand);
               }
 
-              if(IsDrawInRenderPass())
+              if(IsDrawInRenderPass() && count > 0)
               {
                 uint32_t eventId =
                     HandlePreCallback(commandBuffer, ActionFlags::Drawcall, drawidx + 1);
