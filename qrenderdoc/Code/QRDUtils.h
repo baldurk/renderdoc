@@ -204,8 +204,9 @@ private:
                                 rdcpair<rdcstr, rdcstr> *found = NULL);
 
   static QString DeclareStruct(Packing::Rules pack, QList<QString> &declaredStructs,
-                               const QString &name, const rdcarray<ShaderConstant> &members,
-                               uint32_t requiredByteStride, QString innerSkippedPrefixString);
+                               QMap<ShaderConstant, QString> &anonStructs, const QString &name,
+                               const rdcarray<ShaderConstant> &members, uint32_t requiredByteStride,
+                               QString innerSkippedPrefixString);
 
   static uint32_t GetAlignment(Packing::Rules pack, const ShaderConstant &constant);
   static uint32_t GetUnpaddedStructAdvance(Packing::Rules pack,

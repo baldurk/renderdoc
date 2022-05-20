@@ -2231,7 +2231,9 @@ QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, const Shader
       structName = lit("el");
 
     QList<QString> declaredStructs;
-    format = DeclareStruct(pack, declaredStructs, structName, res.variableType.members, 0, QString());
+    QMap<ShaderConstant, QString> anonStructs;
+    format = DeclareStruct(pack, declaredStructs, anonStructs, structName, res.variableType.members,
+                           0, QString());
     format =
         QFormatStr("%1\n\n%2\n\n%3 buffer[];").arg(DeclarePacking(pack)).arg(format).arg(structName);
   }
@@ -2472,6 +2474,7 @@ uint32_t BufferFormatter::GetUnpaddedStructAdvance(Packing::Rules pack,
 }
 
 QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &declaredStructs,
+                                       QMap<ShaderConstant, QString> &anonStructs,
                                        const QString &name, const rdcarray<ShaderConstant> &members,
                                        uint32_t requiredByteStride, QString innerSkippedPrefixString)
 {
@@ -2544,8 +2547,8 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
       if(!declaredStructs.contains(varTypeName))
       {
         declaredStructs.push_back(varTypeName);
-        declarations += DeclareStruct(pack, declaredStructs, varTypeName, pointeeType.members,
-                                      pointeeType.arrayByteStride, QString()) +
+        declarations += DeclareStruct(pack, declaredStructs, anonStructs, varTypeName,
+                                      pointeeType.members, pointeeType.arrayByteStride, QString()) +
                         lit("\n");
       }
 
@@ -2557,7 +2560,19 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
       // structs get duplicated if they're used in multiple places, but not much we can do about
       // that.
       if(varTypeName.isEmpty() || varTypeName == lit("struct"))
-        varTypeName = lit("anon%1").arg(declaredStructs.size());
+      {
+        ShaderConstant key;
+        key.type.members = members[i].type.members;
+
+        if(anonStructs.contains(key))
+        {
+          varTypeName = anonStructs[key];
+        }
+        else
+        {
+          varTypeName = anonStructs[key] = lit("struct%1").arg(anonStructs.size() + 1);
+        }
+      }
 
       varTypeName =
           varTypeName.replace(QLatin1Char('['), QLatin1Char('_')).replace(QLatin1Char(']'), QString());
@@ -2565,9 +2580,10 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
       if(!declaredStructs.contains(varTypeName))
       {
         declaredStructs.push_back(varTypeName);
-        declarations += DeclareStruct(pack, declaredStructs, varTypeName, members[i].type.members,
-                                      members[i].type.arrayByteStride, QString()) +
-                        lit("\n");
+        declarations +=
+            DeclareStruct(pack, declaredStructs, anonStructs, varTypeName, members[i].type.members,
+                          members[i].type.arrayByteStride, QString()) +
+            lit("\n");
       }
     }
 
@@ -2631,8 +2647,9 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, const QString &name,
                                        uint32_t requiredByteStride)
 {
   QList<QString> declaredStructs;
-  QString structDef =
-      DeclareStruct(pack, declaredStructs, name, members, requiredByteStride, QString());
+  QMap<ShaderConstant, QString> anonStructs;
+  QString structDef = DeclareStruct(pack, declaredStructs, anonStructs, name, members,
+                                    requiredByteStride, QString());
 
   return QFormatStr("%1\n\n%2").arg(DeclarePacking(pack)).arg(structDef);
 }
