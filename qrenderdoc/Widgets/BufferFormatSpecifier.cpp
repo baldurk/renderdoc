@@ -164,6 +164,9 @@ void BufferFormatSpecifier::setContext(ICaptureContext *ctx)
   QObject::connect(globalFormatList, &BufferFormatList::formatListUpdated, this,
                    &BufferFormatSpecifier::updateFormatList);
 
+  m_Ctx->GetMainWindow()->RegisterShortcut(QKeySequence(QKeySequence::Refresh).toString(), this,
+                                           [this](QWidget *) { on_apply_clicked(); });
+
   updateFormatList();
 }
 
