@@ -1469,6 +1469,10 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
   if(stride > offset)
     format = lit("[[size(%1)]]\n").arg(stride) + format;
 
+  format = lit("#pack(scalar) // vertex buffers can be tightly packed\n"
+               "\n") +
+           format;
+
   return format;
 }
 
