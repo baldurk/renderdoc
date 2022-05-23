@@ -3192,7 +3192,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
             UI_AddFixedVariables(ui->fixedVars->invisibleRootItem(), 0,
                                  bufdata->vsinConfig.fixedVars.type.members, vars);
 
-            if(!bufdata->cb.bufferBacked)
+            if(IsCBufferView() && !bufdata->cb.bufferBacked)
               UI_RemoveOffsets(ui->fixedVars->invisibleRootItem());
           }
 
@@ -5137,6 +5137,7 @@ void BufferViewer::updateExportActionNames()
   {
     m_ExportCSV->setText(csv.arg(lit(" ") + m_CurView->windowTitle()));
     m_ExportBytes->setText(bytes.arg(lit(" ") + m_CurView->windowTitle()));
+    m_ExportBytes->setEnabled(true);
   }
   else
   {
