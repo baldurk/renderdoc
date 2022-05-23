@@ -312,6 +312,12 @@ public:
     return wrapped->id;
   }
 
+  void PreFreeMemory(ResourceId id)
+  {
+    if(IsActiveCapturing(m_State))
+      ResourceManager::Prepare_InitialStateIfPostponed(id, true);
+  }
+
   template <typename realtype>
   void ReleaseWrappedResource(realtype obj, bool clearID = false)
   {
@@ -456,5 +462,6 @@ private:
   WrappedVulkan *m_Core;
   std::unordered_map<ResourceId, MemRefs> m_MemFrameRefs;
   std::set<ResourceId> m_DeviceMemories;
+  rdcarray<ResourceId> m_DeadDeviceMemories;
   InitPolicy m_InitPolicy = eInitPolicy_CopyAll;
 };

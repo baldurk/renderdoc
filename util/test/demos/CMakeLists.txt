@@ -42,6 +42,7 @@ set(VULKAN_SRC
         vk/vk_overlay_test.cpp
         vk/vk_parameter_zoo.cpp
         vk/vk_pixel_history.cpp
+        vk/vk_postponed.cpp
         vk/vk_query_pool.cpp
         vk/vk_resource_lifetimes.cpp
         vk/vk_robustness2.cpp

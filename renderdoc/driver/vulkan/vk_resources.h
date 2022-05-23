@@ -979,6 +979,8 @@ struct ResourceInfo
   rdcarray<AspectSparseTable> altSparseAspects;
   VkImageAspectFlags sparseAspect;
 
+  ResourceId dedicatedMemory;
+
   Sparse::PageTable &getSparseTableForAspect(VkImageAspectFlags aspects)
   {
     // if we only have one table, return it

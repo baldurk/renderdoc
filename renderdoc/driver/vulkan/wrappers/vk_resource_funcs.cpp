@@ -575,8 +575,24 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 
     if((dedicated != NULL || dedicatedNV != NULL) && wholeMemBuf != VK_NULL_HANDLE)
     {
+      VkResourceRecord *bufRecord = GetRecord(wholeMemBuf);
+
+      // make sure we have a resInfo if we don't already
+      if(!bufRecord->resInfo)
+      {
+        bufRecord->resInfo = new ResourceInfo();
+
+        // pre-populate memory requirements
+        ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(wholeMemBuf),
+                                                     &bufRecord->resInfo->memreqs);
+      }
+
+      RDCASSERTEQUAL(bufRecord->resInfo->dedicatedMemory, ResourceId());
+
+      bufRecord->resInfo->dedicatedMemory = id;
+
       VkDeviceSize bufSize = IsCaptureMode(m_State)
-                                 ? GetRecord(wholeMemBuf)->memSize
+                                 ? bufRecord->memSize
                                  : m_CreationInfo.m_Buffer[GetResID(wholeMemBuf)].size;
       if(memSize > bufSize)
       {
@@ -709,6 +725,8 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
 
   VkDeviceMemory unwrappedMem = wrapped->real.As<VkDeviceMemory>();
 
+  VkBuffer wholeMemDestroy = VK_NULL_HANDLE;
+
   if(IsCaptureMode(m_State))
   {
     // artificially extend the lifespan of buffer device address memory or buffers, to ensure their
@@ -738,10 +756,7 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
 
       // destroy the wholeMemBuf if it's one we allocated ourselves
       if(!memMapState->dedicated)
-      {
-        ObjDisp(device)->DestroyBuffer(Unwrap(device), Unwrap(memMapState->wholeMemBuf), NULL);
-        GetResourceManager()->ReleaseWrappedResource(memMapState->wholeMemBuf);
-      }
+        wholeMemDestroy = memMapState->wholeMemBuf;
     }
 
     {
@@ -755,6 +770,14 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
   m_CreationInfo.erase(GetResID(memory));
 
   GetResourceManager()->ReleaseWrappedResource(memory);
+
+  // destroy this last, so that any postponed resource being serialised above still has this
+  // available
+  if(wholeMemDestroy != VK_NULL_HANDLE)
+  {
+    ObjDisp(device)->DestroyBuffer(Unwrap(device), Unwrap(wholeMemDestroy), NULL);
+    GetResourceManager()->ReleaseWrappedResource(wholeMemDestroy);
+  }
 
   ObjDisp(device)->FreeMemory(Unwrap(device), unwrappedMem, pAllocator);
 }
@@ -1745,6 +1768,8 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
         // our purposes. We just need to make sure sparse buffers are dirty.
         GetResourceManager()->MarkDirtyResource(id);
       }
+
+      record->resInfo = NULL;
 
       if(isSparse || isExternal)
       {

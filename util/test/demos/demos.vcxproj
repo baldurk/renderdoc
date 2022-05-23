@@ -302,6 +302,7 @@
     <ClCompile Include="vk\vk_line_raster.cpp" />
     <ClCompile Include="vk\vk_misaligned_dirty.cpp" />
     <ClCompile Include="vk\vk_multi_thread_windows.cpp" />
+    <ClCompile Include="vk\vk_postponed.cpp" />
     <ClCompile Include="vk\vk_query_pool.cpp" />
     <ClCompile Include="vk\vk_robustness2.cpp" />
     <ClCompile Include="vk\vk_separate_depth_stencil_layouts.cpp" />

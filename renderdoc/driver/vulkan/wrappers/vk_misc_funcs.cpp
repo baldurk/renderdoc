@@ -248,6 +248,14 @@ void WrappedVulkan::vkDestroyBuffer(VkDevice device, VkBuffer buffer,
 
   VkBuffer unwrappedObj = Unwrap(buffer);
 
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(buffer);
+
+    if(record->resInfo && record->resInfo->dedicatedMemory != ResourceId())
+      GetResourceManager()->PreFreeMemory(record->resInfo->dedicatedMemory);
+  }
+
   m_ForcedReferences.removeOne(GetRecord(buffer));
 
   if(IsReplayMode(m_State))

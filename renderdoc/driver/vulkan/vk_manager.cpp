@@ -583,6 +583,10 @@ void VulkanResourceManager::InsertDeviceMemoryRefs(WriteSerialiser &ser)
       data.push_back({*memIt, jt->start(), jt->value()});
   }
 
+  for(ResourceId dead : m_DeadDeviceMemories)
+    m_DeviceMemories.erase(dead);
+  m_DeadDeviceMemories.clear();
+
   uint64_t sizeEstimate = data.size() * sizeof(MemRefInterval) + 32;
 
   {
@@ -936,7 +940,10 @@ void VulkanResourceManager::RemoveDeviceMemory(ResourceId mem)
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
-  m_DeviceMemories.erase(mem);
+  if(IsActiveCapturing(m_State))
+    m_DeadDeviceMemories.push_back(mem);
+  else
+    m_DeviceMemories.erase(mem);
 }
 
 void VulkanResourceManager::MergeReferencedMemory(std::unordered_map<ResourceId, MemRefs> &memRefs)
