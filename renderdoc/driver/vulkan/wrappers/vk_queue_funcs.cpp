@@ -1073,7 +1073,14 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
           // immediately issue a command buffer to copy back the data. We do that on this queue to
           // avoid complexity with synchronising with another queue, but the transfer queue if
           // available would be better for this purpose.
-          VkCommandBuffer copycmd = GetNextCmd();
+          VkCommandBuffer copycmd;
+
+          const uint32_t queueFamilyIndex = GetRecord(queue)->queueFamilyIndex;
+
+          if(m_QueueFamilyIdx == queueFamilyIndex)
+            copycmd = GetNextCmd();
+          else
+            copycmd = GetExtQueueCmd(queueFamilyIndex);
 
           VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                                 VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
@@ -1102,13 +1109,23 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
 
           ObjDisp(copycmd)->EndCommandBuffer(Unwrap(copycmd));
 
-          VkSubmitInfo submit = {
-              VK_STRUCTURE_TYPE_SUBMIT_INFO, NULL, 0, NULL, NULL, 1, UnwrapPtr(copycmd),
-          };
-          VkResult copyret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submit, VK_NULL_HANDLE);
-          RDCASSERTEQUAL(copyret, VK_SUCCESS);
+          if(m_QueueFamilyIdx == queueFamilyIndex)
+          {
+            VkSubmitInfo submit = {
+                VK_STRUCTURE_TYPE_SUBMIT_INFO, NULL, 0, NULL, NULL, 1, UnwrapPtr(copycmd),
+            };
+            VkResult copyret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submit, VK_NULL_HANDLE);
+            RDCASSERTEQUAL(copyret, VK_SUCCESS);
 
-          ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
+            ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
+
+            RemovePendingCommandBuffer(copycmd);
+            AddFreeCommandBuffer(copycmd);
+          }
+          else
+          {
+            SubmitAndFlushExtQueue(queueFamilyIndex);
+          }
 
           VkMappedMemoryRange range = {
               VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
@@ -1118,11 +1135,9 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
               VK_WHOLE_SIZE,
           };
 
-          copyret = ObjDisp(queue)->InvalidateMappedMemoryRanges(Unwrap(m_Device), 1, &range);
+          VkResult copyret =
+              ObjDisp(queue)->InvalidateMappedMemoryRanges(Unwrap(m_Device), 1, &range);
           RDCASSERTEQUAL(copyret, VK_SUCCESS);
-
-          RemovePendingCommandBuffer(copycmd);
-          AddFreeCommandBuffer(copycmd);
 
           state.cpuReadPtr = GetDebugManager()->GetReadbackPtr();
         }
