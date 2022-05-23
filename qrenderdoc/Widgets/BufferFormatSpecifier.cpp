@@ -150,6 +150,8 @@ void BufferFormatSpecifier::setAutoFormat(QString autoFormat)
   setFormat(autoFormat);
 
   formatText->emptyUndoBuffer();
+
+  on_apply_clicked();
 }
 
 void BufferFormatSpecifier::setContext(ICaptureContext *ctx)

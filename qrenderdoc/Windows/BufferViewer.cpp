@@ -4163,8 +4163,6 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
   m_PagingByteOffset = 0;
 
   ui->formatSpecifier->setAutoFormat(format);
-
-  processFormat(format);
 }
 
 BufferViewer *BufferViewer::HasCBufferView(ShaderStage stage, uint32_t slot, uint32_t idx)
@@ -4214,8 +4212,7 @@ void BufferViewer::ViewCBuffer(const ShaderStage stage, uint32_t slot, uint32_t 
 
   ui->formatSpecifier->setFormat(QString());
   ui->formatSpecifier->setVisible(false);
-
-  processFormat(QString());
+  ui->formatSpecifier->setAutoFormat(QString());
 
   m_CBufferViews.push_back(this);
 }
@@ -4239,7 +4236,7 @@ void BufferViewer::ViewTexture(ResourceId id, const Subresource &sub, const rdcs
 
   m_PagingByteOffset = 0;
 
-  processFormat(format);
+  ui->formatSpecifier->setAutoFormat(format);
 }
 
 void BufferViewer::ScrollToRow(int32_t row, MeshDataStage stage)

@@ -2214,7 +2214,7 @@ QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
   if(tex.type == TextureType::Buffer)
     return QFormatStr("%1 %2;").arg(baseType).arg(varName);
 
-  return QFormatStr("%1 %2[%3];").arg(baseType).arg(varName).arg(w);
+  return QFormatStr("struct row\n{\n  %1 %2[%3];\n};\n\nrow r[];").arg(baseType).arg(varName).arg(w);
 }
 
 QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, const ShaderResource &res,
