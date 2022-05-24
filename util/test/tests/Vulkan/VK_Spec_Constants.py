@@ -28,7 +28,7 @@ class VK_Spec_Constants(rdtest.TestCase):
             self.check(len(shader.constantBlocks[1].variables) == 3)
 
             # should be an array of num_colors+1 elements
-            array_len = shader.constantBlocks[0].variables[0].type.descriptor.elements
+            array_len = shader.constantBlocks[0].variables[0].type.elements
             if not rdtest.value_compare(array_len, num_colors+1):
                 raise rdtest.TestFailureException("CBuffer variable is array of {}, not {}".format(array_len, num_colors+1))
 

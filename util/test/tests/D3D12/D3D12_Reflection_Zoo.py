@@ -75,29 +75,29 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
             }
 
         def buf_struct_check(type: rd.ShaderConstantType):
-            self.check(type.descriptor.name == 'buf_struct')
+            self.check(type.name == 'buf_struct')
             self.check(len(type.members) == 3)
 
             self.check(type.members[0].name == 'a')
-            self.check(type.members[0].type.descriptor.type == rd.VarType.Float)
-            self.check(type.members[0].type.descriptor.rows == 1)
-            self.check(type.members[0].type.descriptor.columns == 1)
-            self.check(type.members[0].type.descriptor.elements == 1)
+            self.check(type.members[0].type.baseType == rd.VarType.Float)
+            self.check(type.members[0].type.rows == 1)
+            self.check(type.members[0].type.columns == 1)
+            self.check(type.members[0].type.elements == 1)
 
             self.check(type.members[1].name == 'b')
-            self.check(type.members[1].type.descriptor.type == rd.VarType.Float)
-            self.check(type.members[1].type.descriptor.rows == 1)
-            self.check(type.members[1].type.descriptor.columns == 1)
-            self.check(type.members[1].type.descriptor.elements == 2)
+            self.check(type.members[1].type.baseType == rd.VarType.Float)
+            self.check(type.members[1].type.rows == 1)
+            self.check(type.members[1].type.columns == 1)
+            self.check(type.members[1].type.elements == 2)
 
             self.check(type.members[2].name == 'c')
-            self.check(type.members[2].type.descriptor.name == 'nested')
+            self.check(type.members[2].type.name == 'nested')
             self.check(len(type.members[2].type.members) == 1)
             self.check(type.members[2].type.members[0].name == 'x')
-            self.check(type.members[2].type.members[0].type.descriptor.type == rd.VarType.Float)
-            self.check(type.members[2].type.members[0].type.descriptor.rows == 2)
-            self.check(type.members[2].type.members[0].type.descriptor.columns == 3)
-            self.check(type.members[2].type.members[0].type.descriptor.RowMajor())
+            self.check(type.members[2].type.members[0].type.baseType == rd.VarType.Float)
+            self.check(type.members[2].type.members[0].type.rows == 2)
+            self.check(type.members[2].type.members[0].type.columns == 3)
+            self.check(type.members[2].type.members[0].type.RowMajor())
 
             return
 
@@ -216,9 +216,9 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
                     if check['structVarCheck']:
                         check['structVarCheck'](res.variableType)
                     else:
-                        self.check(res.variableType.descriptor.type == check['varType'])
-                        self.check(res.variableType.descriptor.name == check['typeName'])
-                        self.check(res.variableType.descriptor.columns == check['columns'])
+                        self.check(res.variableType.baseType == check['varType'])
+                        self.check(res.variableType.name == check['typeName'])
+                        self.check(res.variableType.columns == check['columns'])
 
                     self.check(bind.bind == check['register'])
                     self.check(bind.arraySize == check['regCount'])
