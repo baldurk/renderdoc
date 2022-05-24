@@ -210,63 +210,20 @@ void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, const ShaderCon
     if(constant.type.arrayByteStride < 16)
       pack.tight_arrays = true;
   }
+
+  if(!pack.tight_arrays && constant.type.baseType == VarType::Struct)
+  {
+    // if a struct isn't padded to 16-byte alignment, assume non-tight arrays
+    if((constant.type.arrayByteStride % 16) != 0)
+      pack.tight_arrays = true;
+  }
+
+  EstimatePackingRules(pack, constant.type.members);
 }
 
-QString BufferFormatter::DeclarePacking(Packing::Rules pack)
+void BufferFormatter::EstimatePackingRules(Packing::Rules &pack,
+                                           const rdcarray<ShaderConstant> &members)
 {
-  if(pack == Packing::D3DCB)
-    return lit("#pack(cbuffer)");
-  else if(pack == Packing::std140)
-    return lit("#pack(std140)");
-  else if(pack == Packing::std430)
-    return lit("#pack(std430)");
-  else if(pack == Packing::D3DUAV)    // this is also C but we call it 'structured' for D3D
-    return lit("#pack(structured)");
-  else if(pack == Packing::Scalar)
-    return lit("#pack(scalar)");
-
-  // packing doesn't match a premade ruleset. Emit individual specifiers
-  QString ret;
-  if(pack.vector_align_component)
-    ret += lit("#pack(vector_align_component)    // vectors are aligned to their component\n");
-  else
-    ret +=
-        lit("#pack(no_vector_align_component) // vectors are aligned evenly (float3 as float4)\n");
-  if(pack.tight_arrays)
-    ret += lit("#pack(tight_arrays)              // arrays are packed tightly\n");
-  else
-    ret += lit("#pack(no_tight_arrays)           // arrays are padded to 16-byte boundaries\n");
-  if(pack.vector_straddle_16b)
-    ret += lit("#pack(vector_straddle_16b)       // vectors can straddle 16-byte boundaries\n");
-  else
-    ret += lit("#pack(no_vector_straddle_16b)    // vectors cannot straddle 16-byte boundaries\n");
-  if(pack.trailing_overlap)
-    ret +=
-        lit("#pack(trailing_overlap)          // variables can overlap trailing padding after "
-            "arrays/structs\n");
-  else
-    ret +=
-        lit("#pack(no_trailing_overlap)       // variables cannot overlap trailing padding after "
-            "arrays/structs\n");
-
-  return ret.trimmed();
-}
-
-Packing::Rules BufferFormatter::EstimatePackingRules(const rdcarray<ShaderConstant> &members)
-{
-  Packing::Rules pack;
-
-  // start from the most conservative ruleset. We will iteratively turn off any rules which are
-  // violated to end up with the most conservative ruleset which is still valid for the described
-  // variable
-
-  // D3D shouldn't really need to be estimating, because it's implicit from how this is bound
-  // (cbuffer or structured resource)
-  if(IsD3D(m_API))
-    pack = Packing::D3DCB;
-  else
-    pack = Packing::std140;
-
   for(size_t i = 0; i < members.size(); i++)
   {
     // check this constant
@@ -291,6 +248,24 @@ Packing::Rules BufferFormatter::EstimatePackingRules(const rdcarray<ShaderConsta
     if(pack == Packing::Scalar)
       break;
   }
+}
+
+Packing::Rules BufferFormatter::EstimatePackingRules(const rdcarray<ShaderConstant> &members)
+{
+  Packing::Rules pack;
+
+  // start from the most conservative ruleset. We will iteratively turn off any rules which are
+  // violated to end up with the most conservative ruleset which is still valid for the described
+  // variable
+
+  // D3D shouldn't really need to be estimating, because it's implicit from how this is bound
+  // (cbuffer or structured resource)
+  if(IsD3D(m_API))
+    pack = Packing::D3DCB;
+  else
+    pack = Packing::std140;
+
+  EstimatePackingRules(pack, members);
 
   // only return a 'real' ruleset. Don't revert to individually setting rules if we can help it
   // since that's a mess. The worst case is if someone is really using a custom packing format then
@@ -374,6 +349,46 @@ Packing::Rules BufferFormatter::EstimatePackingRules(const rdcarray<ShaderConsta
 
   // shouldn't get here, but just for safety return the ruleset we derived
   return pack;
+}
+
+QString BufferFormatter::DeclarePacking(Packing::Rules pack)
+{
+  if(pack == Packing::D3DCB)
+    return lit("#pack(cbuffer)");
+  else if(pack == Packing::std140)
+    return lit("#pack(std140)");
+  else if(pack == Packing::std430)
+    return lit("#pack(std430)");
+  else if(pack == Packing::D3DUAV)    // this is also C but we call it 'structured' for D3D
+    return lit("#pack(structured)");
+  else if(pack == Packing::Scalar)
+    return lit("#pack(scalar)");
+
+  // packing doesn't match a premade ruleset. Emit individual specifiers
+  QString ret;
+  if(pack.vector_align_component)
+    ret += lit("#pack(vector_align_component)    // vectors are aligned to their component\n");
+  else
+    ret +=
+        lit("#pack(no_vector_align_component) // vectors are aligned evenly (float3 as float4)\n");
+  if(pack.tight_arrays)
+    ret += lit("#pack(tight_arrays)              // arrays are packed tightly\n");
+  else
+    ret += lit("#pack(no_tight_arrays)           // arrays are padded to 16-byte boundaries\n");
+  if(pack.vector_straddle_16b)
+    ret += lit("#pack(vector_straddle_16b)       // vectors can straddle 16-byte boundaries\n");
+  else
+    ret += lit("#pack(no_vector_straddle_16b)    // vectors cannot straddle 16-byte boundaries\n");
+  if(pack.trailing_overlap)
+    ret +=
+        lit("#pack(trailing_overlap)          // variables can overlap trailing padding after "
+            "arrays/structs\n");
+  else
+    ret +=
+        lit("#pack(no_trailing_overlap)       // variables cannot overlap trailing padding after "
+            "arrays/structs\n");
+
+  return ret.trimmed();
 }
 
 bool BufferFormatter::ContainsUnbounded(const ShaderConstant &structType,
