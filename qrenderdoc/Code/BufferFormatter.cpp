@@ -2248,8 +2248,7 @@ QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, const Shader
     QMap<ShaderConstant, QString> anonStructs;
     format = DeclareStruct(pack, declaredStructs, anonStructs, structName, res.variableType.members,
                            0, QString());
-    format =
-        QFormatStr("%1\n\n%2\n\n%3 buffer[];").arg(DeclarePacking(pack)).arg(format).arg(structName);
+    format = QFormatStr("%1\n\n%2").arg(DeclarePacking(pack)).arg(format);
   }
   else
   {
