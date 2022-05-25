@@ -122,7 +122,7 @@ BufferFormatSpecifier::BufferFormatSpecifier(QWidget *parent)
   QObject::connect(formatText, &ScintillaEdit::modified,
                    [this](int type, int, int, int, const QByteArray &, int, int, int) {
                      ui->savedList->clearSelection();
-                     if(!(type & SC_MOD_CHANGEANNOTATION))
+                     if(!(type & (SC_MOD_CHANGEANNOTATION | SC_MOD_CHANGESTYLE)))
                        formatText->annotationClearAll();
                    });
 
