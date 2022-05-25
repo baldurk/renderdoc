@@ -3430,8 +3430,17 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
       offset = c.byteOffset;
     }
 
-    RDTreeWidgetItem *n =
-        new RDTreeWidgetItem({v.name, VarString(v, c), baseOffset + c.byteOffset, TypeString(v)});
+    QVariant offsetStr;
+    offsetStr = baseOffset + c.byteOffset;
+
+    if(c.bitFieldSize != 0)
+    {
+      offsetStr =
+          offsetStr.toString() +
+          QFormatStr(" (bits %1:%2)").arg(c.bitFieldOffset).arg(c.bitFieldOffset + c.bitFieldSize);
+    }
+
+    RDTreeWidgetItem *n = new RDTreeWidgetItem({v.name, VarString(v, c), offsetStr, TypeString(v)});
 
     n->setTag(QVariant::fromValue(FixedVarTag(v.name, baseOffset + c.byteOffset)));
 
