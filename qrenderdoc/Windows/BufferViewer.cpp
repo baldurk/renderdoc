@@ -3431,7 +3431,7 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
     }
 
     RDTreeWidgetItem *n =
-        new RDTreeWidgetItem({v.name, VarString(v), baseOffset + c.byteOffset, TypeString(v)});
+        new RDTreeWidgetItem({v.name, VarString(v, c), baseOffset + c.byteOffset, TypeString(v)});
 
     n->setTag(QVariant::fromValue(FixedVarTag(v.name, baseOffset + c.byteOffset)));
 
@@ -3454,7 +3454,7 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
         const uint32_t elOffset = baseOffset + c.byteOffset + c.type.arrayByteStride * e;
 
         RDTreeWidgetItem *el = new RDTreeWidgetItem(
-            {v.members[e].name, VarString(v.members[e]), elOffset, TypeString(v.members[e])});
+            {v.members[e].name, VarString(v.members[e], c), elOffset, TypeString(v.members[e])});
 
         el->setTag(QVariant::fromValue(FixedVarTag(v.members[e].name, elOffset)));
 

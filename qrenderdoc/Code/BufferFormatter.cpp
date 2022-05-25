@@ -45,6 +45,8 @@ struct StructFormatData
 
   // does this contain a member annotated with [[single]] ?
   bool singleMember = false;
+
+  bool signedEnum = false;
 };
 
 GraphicsAPI BufferFormatter::m_API;
@@ -517,10 +519,10 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
           "(\\s*:\\s*([1-9][0-9]*))?"      // optional bitfield packing
           "$"));
   QRegularExpression enumValueRegex(
-      lit("^"                           // start of the line
-          "([A-Za-z_][A-Za-z0-9_]*)"    // value name
-          "\\s*=\\s*"                   // maybe a pointer
-          "(0x[0-9a-fA-F]+|[0-9]+)"     // numerical value
+      lit("^"                              // start of the line
+          "([A-Za-z_][A-Za-z0-9_]*)"       // value name
+          "\\s*=\\s*"                      // maybe a pointer
+          "(-?0x[0-9a-fA-F]+|-?[0-9]+)"    // numerical value
           "$"));
 
   QRegularExpression bitfieldSkipRegex(
@@ -936,18 +938,19 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
           ShaderConstant tmp;
 
-          bool matched = MatchBaseTypeDeclaration(baseType, true, tmp);
+          bool matched = MatchBaseTypeDeclaration(baseType, false, tmp);
 
-          if(!matched || VarTypeCompType(tmp.type.baseType) != CompType::UInt ||
+          if(!matched || (VarTypeCompType(tmp.type.baseType) != CompType::UInt &&
+                          VarTypeCompType(tmp.type.baseType) != CompType::SInt) ||
              tmp.type.flags != ShaderVariableFlags::NoFlags)
           {
-            reportError(
-                tr("Invalid enum base type '%1', must be an unsigned integer type.").arg(baseType));
+            reportError(tr("Invalid enum base type '%1', must be an integer type.").arg(baseType));
             success = false;
             break;
           }
 
-          cur->structDef.type.arrayByteStride = VarTypeByteSize(tmp.type.baseType);
+          cur->structDef.type.matrixByteStride = VarTypeByteSize(tmp.type.baseType);
+          cur->signedEnum = (VarTypeCompType(tmp.type.baseType) == CompType::SInt);
         }
 
         continue;
@@ -970,17 +973,95 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       QString valueNum = enumMatch.captured(2);
 
       bool ok = false;
-      uint64_t val = valueNum.toULongLong(&ok, 0);
-
-      if(!ok)
+      if(cur->signedEnum)
       {
-        reportError(tr("Couldn't parse enum numerical value from '%1'.").arg(valueNum));
-        success = false;
-        break;
+        int64_t val = valueNum.toLongLong(&ok, 0);
+
+        if(ok)
+        {
+          // convert signed 'literally' to unsigned and truncate
+          if(cur->structDef.type.matrixByteStride == 1)
+          {
+            if(val > INT8_MAX || val < INT8_MIN)
+            {
+              reportError(
+                  tr("Enum with 8-bit signed integer type cannot hold value '%1'.").arg(valueNum));
+              success = false;
+              break;
+            }
+
+            int8_t truncVal = (int8_t)val;
+            memcpy(&el.defaultValue, &truncVal, sizeof(truncVal));
+          }
+          else if(cur->structDef.type.matrixByteStride == 2)
+          {
+            if(val > INT16_MAX || val < INT16_MIN)
+            {
+              reportError(
+                  tr("Enum with 16-bit signed integer type cannot hold value '%1'.").arg(valueNum));
+              success = false;
+              break;
+            }
+
+            int16_t truncVal = (int16_t)val;
+            memcpy(&el.defaultValue, &truncVal, sizeof(truncVal));
+          }
+          else if(cur->structDef.type.matrixByteStride == 4)
+          {
+            if(val > INT32_MAX || val < INT32_MIN)
+            {
+              reportError(
+                  tr("Enum with 32-bit signed integer type cannot hold value '%1'.").arg(valueNum));
+              success = false;
+              break;
+            }
+
+            int32_t truncVal = (int32_t)val;
+            memcpy(&el.defaultValue, &truncVal, sizeof(truncVal));
+          }
+          else if(cur->structDef.type.matrixByteStride == 8)
+          {
+            el.defaultValue = valueNum.toULongLong();
+          }
+        }
+
+        if(!ok)
+        {
+          reportError(tr("Couldn't parse enum numerical value from '%1'.").arg(valueNum));
+          success = false;
+          break;
+        }
+      }
+      else
+      {
+        if(valueNum[0] == QLatin1Char('-'))
+        {
+          reportError(tr("Enum with unsigned base type cannot have signed value."));
+          success = false;
+          break;
+        }
+
+        el.defaultValue = valueNum.toULongLong(&ok, 0);
+
+        if(el.defaultValue > (UINT64_MAX >> (64 - 8 * cur->structDef.type.matrixByteStride)))
+        {
+          reportError(tr("Enum with %1-bit signed integer type cannot hold value '%1'.")
+                          .arg(8 * cur->structDef.type.matrixByteStride)
+                          .arg(valueNum));
+          success = false;
+          break;
+        }
+
+        if(!ok)
+        {
+          valueNum.toULongLong(&ok, 0);
+          reportError(tr("Couldn't get enum numerical value from '%1'.").arg(valueNum));
+          success = false;
+          break;
+        }
       }
 
       el.name = enumMatch.captured(1);
-      el.defaultValue = val;
 
       for(const Annotation &annot : annotations)
       {
@@ -1207,7 +1288,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
         // align to scalar size (if not bit packing)
         if(bitfieldCurPos == ~0U)
-          cur->offset = AlignUp(cur->offset, structContext.structDef.type.arrayByteStride);
+          cur->offset = AlignUp(cur->offset, (uint32_t)structContext.structDef.type.matrixByteStride);
 
         if(specifiedOffset != ~0U)
         {
@@ -2348,7 +2429,7 @@ QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, const Shader
 uint32_t BufferFormatter::GetVarStraddleSize(const ShaderConstant &var)
 {
   if(var.type.baseType == VarType::Enum)
-    return var.type.arrayByteStride;
+    return var.type.matrixByteStride;
 
   // structs don't themselves have a straddle size
   // this is fine because the struct members itself don't straddle, and the alignment of the max of
@@ -2374,7 +2455,7 @@ uint32_t BufferFormatter::GetVarSizeAndTrail(const ShaderConstant &var)
     return var.type.arrayByteStride * var.type.elements;
 
   if(var.type.baseType == VarType::Enum)
-    return var.type.arrayByteStride;
+    return var.type.matrixByteStride;
 
   if(!var.type.members.empty())
     return var.type.arrayByteStride;
@@ -2432,7 +2513,7 @@ uint32_t BufferFormatter::GetAlignment(Packing::Rules pack, const ShaderConstant
   }
   else if(c.type.baseType == VarType::Enum)
   {
-    ret = c.type.arrayByteStride;
+    ret = c.type.matrixByteStride;
   }
   else if(c.type.members.empty())
   {
@@ -2687,7 +2768,7 @@ ResourceFormat GetInterpretedResourceFormat(const ShaderConstant &elem)
   format.compByteWidth = VarTypeByteSize(elem.type.baseType);
 
   if(elem.type.baseType == VarType::Enum)
-    format.compByteWidth = elem.type.arrayByteStride;
+    format.compByteWidth = elem.type.matrixByteStride;
 
   if(elem.type.RowMajor() || elem.type.rows == 1)
     format.compCount = elem.type.columns;
@@ -2754,7 +2835,7 @@ static void FillShaderVarData(ShaderVariable &var, const ShaderConstant &elem, c
         case VarType::Enum:
         case VarType::GPUPointer:
           // treat this as a 64-bit unsigned integer
-          var.value.u64v[dst] = o.toULongLong();
+          var.value.u64v[dst] = o.value<EnumInterpValue>().val;
           break;
         case VarType::ConstantBlock:
         case VarType::ReadOnlyResource:
@@ -3280,24 +3361,26 @@ QVariantList GetVariants(ResourceFormat format, const ShaderConstant &var, const
               ret.push_back(uint8_t(val));
           }
 
-          if(var.type.baseType == VarType::Enum)
+          if(var.type.baseType == VarType::Enum && !ret.empty())
           {
-            uint64_t val = ret.back().toULongLong();
-
-            QString str = QApplication::translate("BufferFormatter", "Unknown %1 (%2)")
-                              .arg(QString(var.type.name))
-                              .arg(val);
+            EnumInterpValue newval;
+            newval.val = ret.back().toULongLong();
 
             for(size_t i = 0; i < var.type.members.size(); i++)
             {
-              if(val == var.type.members[i].defaultValue)
+              if(newval.val == var.type.members[i].defaultValue)
               {
-                str = var.type.members[i].name;
+                newval.str = var.type.members[i].name;
                 break;
               }
             }
 
-            ret.back() = str;
+            if(newval.str.isEmpty())
+              newval.str = QApplication::translate("BufferFormatter", "Unknown %1 (%2)")
+                               .arg(QString(var.type.name))
+                               .arg(newval.val);
+
+            ret.back() = QVariant::fromValue(newval);
           }
         }
         else if(format.compType == CompType::UScaled)
@@ -3546,10 +3629,23 @@ QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
   return lit("???");
 }
 
-QString VarString(const ShaderVariable &v)
+QString VarString(const ShaderVariable &v, const ShaderConstant &c)
 {
   if(!v.members.isEmpty())
     return QString();
+
+  if(v.type == VarType::Enum)
+  {
+    uint64_t val = v.value.u64v[0];
+
+    for(size_t i = 0; i < c.type.members.size(); i++)
+      if(val == c.type.members[i].defaultValue)
+        return c.type.members[i].name;
+
+    return QApplication::translate("BufferFormatter", "Unknown %1 (%2)")
+        .arg(QString(c.type.name))
+        .arg(val);
+  }
 
   if(v.rows == 1)
     return RowString(v, 0);
@@ -4318,7 +4414,7 @@ MyEnum e;
     CHECK(parsed.fixed.type.members[0].name == "e");
     CHECK(parsed.fixed.type.members[0].type.name == "MyEnum");
     CHECK(parsed.fixed.type.members[0].type.baseType == VarType::Enum);
-    CHECK(parsed.fixed.type.members[0].type.arrayByteStride == 4);
+    CHECK(parsed.fixed.type.members[0].type.matrixByteStride == 4);
     CHECK(parsed.fixed.type.members[0].type.members[0].name == "Val1");
     CHECK(parsed.fixed.type.members[0].type.members[0].defaultValue == 1);
     CHECK(parsed.fixed.type.members[0].type.members[1].name == "Val2");
@@ -4341,7 +4437,7 @@ MyEnum e;
     CHECK(parsed.fixed.type.members[0].name == "e");
     CHECK(parsed.fixed.type.members[0].type.name == "MyEnum");
     CHECK(parsed.fixed.type.members[0].type.baseType == VarType::Enum);
-    CHECK(parsed.fixed.type.members[0].type.arrayByteStride == 2);
+    CHECK(parsed.fixed.type.members[0].type.matrixByteStride == 2);
     CHECK(parsed.fixed.type.members[0].type.members[0].name == "Val");
     CHECK(parsed.fixed.type.members[0].type.members[0].defaultValue == 0);
   };

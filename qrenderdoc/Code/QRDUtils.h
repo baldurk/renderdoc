@@ -244,7 +244,7 @@ ShaderVariable InterpretShaderVar(const ShaderConstant &elem, const byte *data, 
 
 QString TypeString(const ShaderVariable &v);
 QString RowString(const ShaderVariable &v, uint32_t row, VarType type = VarType::Unknown);
-QString VarString(const ShaderVariable &v);
+QString VarString(const ShaderVariable &v, const ShaderConstant &c);
 QString RowTypeString(const ShaderVariable &v);
 
 QString TypeString(const SigParameter &sig);
@@ -303,6 +303,14 @@ struct GPUAddress
 
   void cacheAddress(const QWidget *widget);
 };
+
+struct EnumInterpValue
+{
+  QString str;
+  uint64_t val;
+};
+
+Q_DECLARE_METATYPE(EnumInterpValue);
 
 ICaptureContext *getCaptureContext(const QWidget *widget);
 

@@ -863,6 +863,7 @@ rdcstr DoStringise(const VarType &el)
     STRINGISE_ENUM_CLASS_NAMED(SByte, "byte");
     STRINGISE_ENUM_CLASS_NAMED(UByte, "ubyte");
     STRINGISE_ENUM_CLASS_NAMED(Bool, "bool");
+    STRINGISE_ENUM_CLASS_NAMED(Enum, "enum");
     STRINGISE_ENUM_CLASS_NAMED(Struct, "struct");
     STRINGISE_ENUM_CLASS_NAMED(GPUPointer, "pointer");
     STRINGISE_ENUM_CLASS_NAMED(ConstantBlock, "cbuffer");

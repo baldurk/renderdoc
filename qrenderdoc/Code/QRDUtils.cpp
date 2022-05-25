@@ -491,11 +491,17 @@ QString GPUAddressToString(GPUAddressPtr addr)
     return QFormatStr("0x%1").arg(addr->val.pointer, 0, 16);
 }
 
+QString EnumInterpValueToString(EnumInterpValue val)
+{
+  return val.str;
+}
+
 void RegisterMetatypeConversions()
 {
   QMetaType::registerConverter<RichResourceTextPtr, QString>(&ResIdTextToString);
   QMetaType::registerConverter<ResourceId, QString>(&ResIdToString);
   QMetaType::registerConverter<GPUAddressPtr, QString>(&GPUAddressToString);
+  QMetaType::registerConverter<EnumInterpValue, QString>(&EnumInterpValueToString);
 }
 
 bool HandleURLFragment(RichResourceTextPtr linkedText, QString text, bool parseURLs)
