@@ -139,6 +139,10 @@ BufferFormatSpecifier::BufferFormatSpecifier(QWidget *parent)
 BufferFormatSpecifier::~BufferFormatSpecifier()
 {
   delete ui;
+
+  // unregister any shortcuts on this window
+  if(m_Ctx)
+    m_Ctx->GetMainWindow()->UnregisterShortcut(QString(), this);
 }
 
 void BufferFormatSpecifier::setAutoFormat(QString autoFormat)
