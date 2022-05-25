@@ -31,6 +31,7 @@
 #include <QTextDocument>
 #include "Code/QRDUtils.h"
 #include "Code/ScintillaSyntax.h"
+#include "Widgets/Extended/RDSplitter.h"
 #include "scintilla/include/SciLexer.h"
 #include "scintilla/include/qt/ScintillaEdit.h"
 #include "ui_BufferFormatSpecifier.h"
@@ -125,7 +126,24 @@ BufferFormatSpecifier::BufferFormatSpecifier(QWidget *parent)
                        formatText->annotationClearAll();
                    });
 
-  ui->mainLayout->insertWidget(0, formatContainer);
+  QHBoxLayout *hbox = new QHBoxLayout(this);
+  hbox->setSpacing(0);
+  hbox->setContentsMargins(2, 2, 2, 2);
+
+  QWidget *helpOrFormat = new QWidget(this);
+  helpOrFormat->setLayout(hbox);
+
+  hbox->insertWidget(0, formatContainer);
+  hbox->insertWidget(1, ui->helpText);
+
+  m_Splitter = new RDSplitter(Qt::Horizontal, this);
+  m_Splitter->setHandleWidth(12);
+  m_Splitter->setChildrenCollapsible(false);
+
+  m_Splitter->addWidget(helpOrFormat);
+  m_Splitter->addWidget(ui->savedContainer);
+
+  ui->formatGroup->layout()->addWidget(m_Splitter);
 
   ui->savedList->setItemDelegate(new FullEditorDelegate(ui->savedList));
   ui->savedList->setFont(Formatter::PreferredFont());
@@ -346,6 +364,9 @@ void BufferFormatSpecifier::on_showHelp_toggled(bool help)
 {
   ui->helpText->setVisible(help);
   formatText->parentWidget()->setVisible(!help);
+
+  if(help)
+    ui->verticalLayout->invalidate();
 }
 
 void BufferFormatSpecifier::on_loadDef_clicked()

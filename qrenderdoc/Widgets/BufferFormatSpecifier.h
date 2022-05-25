@@ -31,6 +31,7 @@ struct ICaptureContext;
 class ScintillaEdit;
 
 class RDTreeWidgetItem;
+class RDSplitter;
 
 namespace Ui
 {
@@ -97,6 +98,8 @@ private:
   ICaptureContext *m_Ctx;
 
   ScintillaEdit *formatText;
+
+  RDSplitter *m_Splitter = NULL;
 
   QString m_AutoFormat;
 };
