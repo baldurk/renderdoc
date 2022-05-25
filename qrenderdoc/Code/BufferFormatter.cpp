@@ -3459,20 +3459,27 @@ QVariantList GetVariants(ResourceFormat format, const ShaderConstant &var, const
   return ret;
 }
 
-QString TypeString(const ShaderVariable &v)
+QString TypeString(const ShaderVariable &v, const ShaderConstant &c)
 {
-  if(!v.members.isEmpty() || v.type == VarType::Struct)
+  if(!v.members.isEmpty() || v.type == VarType::Struct || v.type == VarType::Enum)
   {
-    if(v.type == VarType::Struct)
+    if(v.type == VarType::Struct || v.type == VarType::Enum)
     {
+      QString structName = v.type == VarType::Struct ? lit("struct") : lit("enum");
+
+      if(c.type.baseType == v.type && !c.type.name.empty())
+        structName = c.type.name;
+
       if(!v.members.empty() && v.members[0].name.contains('['))
-        return lit("struct[%2]").arg(v.members.count());
+        return lit("%1[%2]").arg(structName).arg(v.members.count());
       else
-        return lit("struct");
+        return lit("%1").arg(structName);
     }
     else
     {
-      return QFormatStr("%1[%2]").arg(TypeString(v.members[0])).arg(v.members.count());
+      return QFormatStr("%1[%2]")
+          .arg(TypeString(v.members[0], c.type.members.empty() ? c : c.type.members[0]))
+          .arg(v.members.count());
     }
   }
 

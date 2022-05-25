@@ -242,7 +242,7 @@ void SetInterpretedResourceFormat(ShaderConstant &elem, ResourceFormatType inter
                                   CompType interpretCompType);
 ShaderVariable InterpretShaderVar(const ShaderConstant &elem, const byte *data, const byte *end);
 
-QString TypeString(const ShaderVariable &v);
+QString TypeString(const ShaderVariable &v, const ShaderConstant &c = ShaderConstant());
 QString RowString(const ShaderVariable &v, uint32_t row, VarType type = VarType::Unknown);
 QString VarString(const ShaderVariable &v, const ShaderConstant &c);
 QString RowTypeString(const ShaderVariable &v);
