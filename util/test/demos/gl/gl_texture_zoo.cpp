@@ -61,6 +61,26 @@ vec4 cubeFetch(samplerCubeArray t, int i)
   return textureLod(t, vec4(1,0,0,0), 0.0);
 }
 
+vec4 cubeFetch(usamplerCube t, int i)
+{
+  return textureLod(t, vec3(1,0,0), 0.0);
+}
+
+vec4 cubeFetch(usamplerCubeArray t, int i)
+{
+  return textureLod(t, vec4(1,0,0,0), 0.0);
+}
+
+vec4 cubeFetch(isamplerCube t, int i)
+{
+  return textureLod(t, vec3(1,0,0), 0.0);
+}
+
+vec4 cubeFetch(isamplerCubeArray t, int i)
+{
+  return textureLod(t, vec4(1,0,0,0), 0.0);
+}
+
 void main()
 {
 	Color = vec4(texelFetch(intex, &params));

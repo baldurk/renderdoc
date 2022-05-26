@@ -34,6 +34,31 @@ RD_TEST(VK_Parameter_Zoo, VulkanGraphicsTest)
       "General tests of parameters known to cause problems - e.g. optional values that should be "
       "ignored, edge cases, special values, etc.";
 
+  std::string xfbvertex = R"EOSHADER(
+
+#version 460 core
+
+layout(location = 0) in vec3 Position;
+layout(location = 1) in vec4 Color;
+layout(location = 2) in vec2 UV;
+
+layout(location = 0) out v2f_block
+{
+	layout(xfb_buffer = 0, xfb_offset = 0) vec4 pos;
+	vec4 col;
+	vec4 uv;
+} vertOut;
+
+void main()
+{
+	vertOut.pos = vec4(Position.xyz*vec3(1,-1,1), 1);
+	gl_Position = vertOut.pos;
+	vertOut.col = Color;
+	vertOut.uv = vec4(UV.xy, 0, 1);
+}
+
+)EOSHADER";
+
   const std::string pixel2 = R"EOSHADER(
 #version 450 core
 
@@ -498,6 +523,12 @@ void main()
     pipeCreateInfo.layout = layout2;
 
     VkPipeline pipe2 = createGraphicsPipeline(pipeCreateInfo);
+
+    pipeCreateInfo.stages = {
+        CompileShaderModule(xfbvertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(pixel2, ShaderLang::glsl, ShaderStage::frag, "main"),
+    };
+    VkPipeline xfbpipe = createGraphicsPipeline(pipeCreateInfo);
 
     pipeCreateInfo.stages = {
         CompileShaderModule(asm_vertex, ShaderLang::spvasm, ShaderStage::vert, "main"),
@@ -1484,6 +1515,8 @@ void main()
 
         if(EXT_transform_feedback)
         {
+          vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, xfbpipe);
+
           VkDeviceSize offs = 0;
           // pSizes is optional and can be NULL to use the whole buffer size
           vkCmdBindTransformFeedbackBuffersEXT(cmd, 0, 1, &xfbBuf.buffer, &offs, NULL);

@@ -181,7 +181,7 @@ void main()
     }
 #endif
 
-    ActivateContext(NULL, NULL);
+    ActivateContext(mainWindow, NULL);
     ActivateContext(mainWindow, mainContext, true);
 
     while(Running())
