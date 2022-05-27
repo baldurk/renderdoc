@@ -4935,11 +4935,11 @@ void BufferViewer::on_setFormat_toggled(bool checked)
   }
 
   if(IsD3D(m_Ctx.APIProps().pipelineType))
-    ui->formatSpecifier->setFormat(BufferFormatter::DeclareStruct(
+    ui->formatSpecifier->setAutoFormat(BufferFormatter::DeclareStruct(
         Packing::D3DCB, reflection->constantBlocks[m_CBufferSlot.slot].name,
         reflection->constantBlocks[m_CBufferSlot.slot].variables, 0));
   else
-    ui->formatSpecifier->setFormat(BufferFormatter::DeclareStruct(
+    ui->formatSpecifier->setAutoFormat(BufferFormatter::DeclareStruct(
         BufferFormatter::EstimatePackingRules(reflection->constantBlocks[m_CBufferSlot.slot].variables),
         reflection->constantBlocks[m_CBufferSlot.slot].name,
         reflection->constantBlocks[m_CBufferSlot.slot].variables, 0));
