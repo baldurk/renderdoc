@@ -126,7 +126,7 @@ BufferFormatSpecifier::BufferFormatSpecifier(QWidget *parent)
                        formatText->annotationClearAll();
                    });
 
-  QHBoxLayout *hbox = new QHBoxLayout(this);
+  QHBoxLayout *hbox = new QHBoxLayout();
   hbox->setSpacing(0);
   hbox->setContentsMargins(2, 2, 2, 2);
 
