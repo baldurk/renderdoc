@@ -24,6 +24,9 @@
 
 #include "../vk_core.h"
 #include "../vk_rendertext.h"
+#include "core/settings.h"
+
+RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_VerboseCommandRecording);
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // WSI extension
@@ -766,6 +769,11 @@ bool WrappedVulkan::Serialise_vkQueuePresentKHR(SerialiserType &ser, VkQueue que
 VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR *pPresentInfo)
 {
   AdvanceFrame();
+
+  if(Vulkan_Debug_VerboseCommandRecording())
+  {
+    RDCLOG("vkQueuePresentKHR() to queue %s", ToStr(GetResID(queue)).c_str());
+  }
 
   rdcarray<VkSwapchainKHR> unwrappedSwaps;
   rdcarray<VkSemaphore> unwrappedWaitSems;
