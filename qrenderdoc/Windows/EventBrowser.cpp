@@ -5067,7 +5067,7 @@ void EventBrowser::ExportAction(QTextStream &writer, int maxNameLength, int inde
   QModelIndex actionIdx = idx.model()->sibling(idx.row(), COL_ACTION, idx);
 
   QString line = QFormatStr("%1 | %2 | %3")
-                     .arg(eidIdx.data(Qt::DisplayRole).toString(), -5)
+                     .arg(eidIdx.data(ROLE_SELECTED_EID).toString(), -5)
                      .arg(nameString, -maxNameLength)
                      .arg(actionIdx.data(Qt::DisplayRole).toString(), -6);
 
