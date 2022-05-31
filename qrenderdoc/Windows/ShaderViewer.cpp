@@ -3248,7 +3248,10 @@ const RDTreeWidgetItem *ShaderViewer::getVarFromPath(const rdcstr &path, ShaderV
 
             if(child->text(0) == root)
             {
-              const RDTreeWidgetItem *ret = getVarFromPath(path, child, var, swizzle);
+              VariableTag tag = item->tag().value<VariableTag>();
+
+              const RDTreeWidgetItem *ret =
+                  getVarFromPath(tag.absoluteRefPath + "." + path, child, var, swizzle);
               if(ret)
                 return ret;
             }
