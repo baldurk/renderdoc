@@ -667,6 +667,15 @@ bounds parameters will be clamped to the available subresources.
 )");
   virtual void GotoLocation(uint32_t x, uint32_t y) = 0;
 
+  DOCUMENT(R"(Returns the currently selected texel location in the current texture.
+
+If no location is currently selected or there is no current texture, this will return ``(-1, -1)``.
+
+:return: The currently picked pixel location.
+:rtype: Tuple[int,int]
+)");
+  virtual rdcpair<int32_t, int32_t> GetPickedLocation() = 0;
+
   DOCUMENT(R"(Return the currently selected texture overlay.
 
 :return: The currently selected texture overlay.
