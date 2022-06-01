@@ -371,11 +371,11 @@ RenderPipelineDescriptor::RenderPipelineDescriptor(MTL::RenderPipelineDescriptor
                ValidData);
   GETOBJCARRAY(PipelineBufferDescriptor, MAX_RENDER_PASS_BUFFER_ATTACHMENTS, fragmentBuffers,
                ValidData);
-  // TODO: will MTL::BinaryArchive need to be a wrapped resource
-  // rdcarray<MTL::BinaryArchive*> binaryArchives;
-  // TODO: will MTL::DynamicLibrary need to be a wrapped resource
-  // rdcarray<MTL::DynamicLibrary*> vertexPreloadedLibraries;
-  // rdcarray<MTL::DynamicLibrary*> fragmentPreloadedLibraries;
+  // TODO: when WrappedMTLBinaryArchive exists
+  // GETWRAPPEDNSARRAY(BinaryArchive, binaryArchives);
+  // TODO: when WrappedMTLDynamicLibrary exists
+  // GETWRAPPEDNSARRAY(DynamicLibrary, vertexPreloadedLibraries);
+  // GETWRAPPEDNSARRAY(DynamicLibrary, fragmentPreloadedLibraries);
 }
 
 RenderPipelineDescriptor::operator MTL::RenderPipelineDescriptor *()
@@ -408,11 +408,13 @@ RenderPipelineDescriptor::operator MTL::RenderPipelineDescriptor *()
   COPYTOOBJCARRAY(PipelineBufferDescriptor, vertexBuffers);
   COPYTOOBJCARRAY(PipelineBufferDescriptor, fragmentBuffers);
   objc->setSupportIndirectCommandBuffers(supportIndirectCommandBuffers);
-  // TODO: will MTL::BinaryArchive need to be a wrapped resource
-  // rdcarray<MTL::BinaryArchive*> binaryArchives;
-  // TODO: will MTL::DynamicLibrary need to be a wrapped resource
-  // rdcarray<MTL::DynamicLibrary*> vertexPreloadedLibraries;
-  // rdcarray<MTL::DynamicLibrary*> fragmentPreloadedLibraries;
+  // TODO: when WrappedMTLBinaryArchive exists
+  // objc->setBinaryArchives(CreateUnwrappedNSArray<MTL::BinaryArchive *>(binaryArchives));
+  // TODO: when WrappedMTLDynamicLibrary exists
+  // objc->setVertexPreloadedLibraries(CreateUnwrappedNSArray<MTL::DynamicLibrary
+  // *>(vertexPreloadedLibraries));
+  // objc->setFragmentPreloadedLibraries(CreateUnwrappedNSArray<MTL::DynamicLibrary
+  // *>(fragmentPreloadedLibraries));
   vertexLinkedFunctions.CopyTo(objc->vertexLinkedFunctions());
   fragmentLinkedFunctions.CopyTo(objc->fragmentLinkedFunctions());
   objc->setSupportAddingVertexBinaryFunctions(supportAddingVertexBinaryFunctions);

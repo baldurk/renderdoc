@@ -244,9 +244,9 @@ void DoSerialise(SerialiserType &ser, RDMTL::RenderPipelineDescriptor &el)
   SERIALISE_MEMBER(vertexBuffers);
   SERIALISE_MEMBER(fragmentBuffers);
   SERIALISE_MEMBER(supportIndirectCommandBuffers);
-  // TODO: will MTL::BinaryArchive need to be a wrapped resource
+  // TODO: when WrappedMTLBinaryArchive exists
   // SERIALISE_MEMBER(binaryArchives);
-  // TODO: will MTL::DynamicLibrary need to be a wrapped resource
+  // TODO: when WrappedMTLDynamicLibrary exists
   // SERIALISE_MEMBER(vertexPreloadedLibraries);
   // SERIALISE_MEMBER(fragmentPreloadedLibraries);
   SERIALISE_MEMBER(vertexLinkedFunctions);

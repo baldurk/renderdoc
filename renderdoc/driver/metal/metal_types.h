@@ -266,11 +266,11 @@ struct RenderPipelineDescriptor
   rdcarray<PipelineBufferDescriptor> vertexBuffers;
   rdcarray<PipelineBufferDescriptor> fragmentBuffers;
   bool supportIndirectCommandBuffers = false;
-  // TODO: will MTL::BinaryArchive need to be a wrapped resource
-  // rdcarray<MTL::BinaryArchive*> binaryArchives;
-  // TODO: will MTL::DynamicLibrary need to be a wrapped resource
-  // rdcarray<MTL::DynamicLibrary*> vertexPreloadedLibraries;
-  // rdcarray<MTL::DynamicLibrary*> fragmentPreloadedLibraries;
+  // TODO: when WrappedMTLBinaryArchive exists
+  // rdcarray<WrappedMTLBinaryArchive*> binaryArchives;
+  // TODO: when WrappedMTLDynamicLibrary exists
+  // rdcarray<WrappedMTLDynamicLibrary*> vertexPreloadedLibraries;
+  // rdcarray<WrappedMTLDynamicLibrary*> fragmentPreloadedLibraries;
   LinkedFunctions vertexLinkedFunctions;
   LinkedFunctions fragmentLinkedFunctions;
   bool supportAddingVertexBinaryFunctions = false;
