@@ -2725,6 +2725,11 @@ bool Debugger::IsDebugExtInstSet(Id id) const
   return knownExtSet[ExtSet_ShaderDbg] == id;
 }
 
+bool Debugger::InDebugScope(uint32_t inst) const
+{
+  return m_DebugInfo.lineScope.find(instructionOffsets[inst]) != m_DebugInfo.lineScope.end();
+}
+
 const ScopeData *Debugger::GetScope(size_t offset) const
 {
   auto it = m_DebugInfo.lineScope.find(offset);

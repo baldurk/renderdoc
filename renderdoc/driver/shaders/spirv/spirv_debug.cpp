@@ -26,10 +26,14 @@
 #include <math.h>
 #include <time.h>
 #include "common/formatting.h"
+#include "core/settings.h"
 #include "maths/half_convert.h"
 #include "os/os_specific.h"
 #include "spirv_op_helpers.h"
 #include "var_dispatch_helpers.h"
+
+RDOC_CONFIG(bool, Vulkan_Debug_StepToDebugValue, false,
+            "Treat DebugValue as a steppable executable instruction.");
 
 static bool ContainsNaNInf(const ShaderVariable &var)
 {
@@ -581,8 +585,19 @@ void ThreadState::SkipIgnoredInstructions()
     {
       if(debugger.IsDebugExtInstSet(Id::fromWord(it.word(3))))
       {
-        nextInstruction++;
-        continue;
+        if(Vulkan_Debug_StepToDebugValue())
+        {
+          if(ShaderDbg(it.word(4)) != ShaderDbg::Value || !debugger.InDebugScope(nextInstruction))
+          {
+            nextInstruction++;
+            continue;
+          }
+        }
+        else
+        {
+          nextInstruction++;
+          continue;
+        }
       }
     }
 
