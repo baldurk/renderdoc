@@ -105,7 +105,11 @@ struct ShaderConstParameters
   VkBool32 useGradOrGatherOffsets;
   ShaderDebugBind dim;
   rdcspv::GatherChannel gatherChannel;
-  GatherOffsets gatherOffsets;
+  union
+  {
+    GatherOffsets gatherOffsets;
+    Vec3i constOffsets;
+  };
 
   uint32_t hashKey(uint32_t shaderIndex) const
   {
@@ -982,6 +986,8 @@ public:
       default: break;
     }
 
+    bool gatherOp = false;
+
     switch(opcode)
     {
       case rdcspv::Op::ImageFetch:
@@ -1007,6 +1013,8 @@ public:
       case rdcspv::Op::ImageGather:
       case rdcspv::Op::ImageDrefGather:
       {
+        gatherOp = true;
+
         // silently cast parameters to 32-bit floats
         for(int i = 0; i < coords; i++)
           uniformParams.uvwa[i] = floatComp(uv, i);
@@ -1048,45 +1056,6 @@ public:
           constParams.gatherOffsets.v2 = constOffsets.members[2].value.s32v[1];
           constParams.gatherOffsets.u3 = constOffsets.members[3].value.s32v[0];
           constParams.gatherOffsets.v3 = constOffsets.members[3].value.s32v[1];
-        }
-
-        if(operands.flags & rdcspv::ImageOperands::ConstOffset)
-        {
-          ShaderVariable constOffset = lane.GetSrc(operands.constOffset);
-
-          // sign extend variables lower than 32-bits
-          for(uint8_t c = 0; c < constOffset.columns; c++)
-          {
-            if(constOffset.type == VarType::SByte)
-              constOffset.value.s32v[c] = constOffset.value.s8v[c];
-            else if(constOffset.type == VarType::SShort)
-              constOffset.value.s32v[c] = constOffset.value.s16v[c];
-          }
-
-          uniformParams.offset.x = constOffset.value.s32v[0];
-          if(gradCoords >= 2)
-            uniformParams.offset.y = constOffset.value.s32v[1];
-          if(gradCoords >= 3)
-            uniformParams.offset.z = constOffset.value.s32v[2];
-        }
-        else if(operands.flags & rdcspv::ImageOperands::Offset)
-        {
-          ShaderVariable offset = lane.GetSrc(operands.offset);
-
-          // sign extend variables lower than 32-bits
-          for(uint8_t c = 0; c < offset.columns; c++)
-          {
-            if(offset.type == VarType::SByte)
-              offset.value.s32v[c] = offset.value.s8v[c];
-            else if(offset.type == VarType::SShort)
-              offset.value.s32v[c] = offset.value.s16v[c];
-          }
-
-          uniformParams.offset.x = offset.value.s32v[0];
-          if(gradCoords >= 2)
-            uniformParams.offset.y = offset.value.s32v[1];
-          if(gradCoords >= 3)
-            uniformParams.offset.z = offset.value.s32v[2];
         }
 
         break;
@@ -1173,45 +1142,6 @@ public:
           }
         }
 
-        if(operands.flags & rdcspv::ImageOperands::ConstOffset)
-        {
-          ShaderVariable constOffset = lane.GetSrc(operands.constOffset);
-
-          // sign extend variables lower than 32-bits
-          for(uint8_t c = 0; c < constOffset.columns; c++)
-          {
-            if(constOffset.type == VarType::SByte)
-              constOffset.value.s32v[c] = constOffset.value.s8v[c];
-            else if(constOffset.type == VarType::SShort)
-              constOffset.value.s32v[c] = constOffset.value.s16v[c];
-          }
-
-          uniformParams.offset.x = constOffset.value.s32v[0];
-          if(gradCoords >= 2)
-            uniformParams.offset.y = constOffset.value.s32v[1];
-          if(gradCoords >= 3)
-            uniformParams.offset.z = constOffset.value.s32v[2];
-        }
-        else if(operands.flags & rdcspv::ImageOperands::Offset)
-        {
-          ShaderVariable offset = lane.GetSrc(operands.offset);
-
-          // sign extend variables lower than 32-bits
-          for(uint8_t c = 0; c < offset.columns; c++)
-          {
-            if(offset.type == VarType::SByte)
-              offset.value.s32v[c] = offset.value.s8v[c];
-            else if(offset.type == VarType::SShort)
-              offset.value.s32v[c] = offset.value.s16v[c];
-          }
-
-          uniformParams.offset.x = offset.value.s32v[0];
-          if(gradCoords >= 2)
-            uniformParams.offset.y = offset.value.s32v[1];
-          if(gradCoords >= 3)
-            uniformParams.offset.z = offset.value.s32v[2];
-        }
-
         break;
       }
       default:
@@ -1221,10 +1151,60 @@ public:
       }
     }
 
-    // we don't support constant offsets, they're always promoted to dynamic offsets to avoid
-    // needing to potentially compile lots of pipelines with different offsets. If we're actually
-    // using them and the device doesn't support the extended gather feature, the result will be
-    // wrong.
+    if(operands.flags & rdcspv::ImageOperands::ConstOffset)
+    {
+      ShaderVariable constOffset = lane.GetSrc(operands.constOffset);
+
+      // sign extend variables lower than 32-bits
+      for(uint8_t c = 0; c < constOffset.columns; c++)
+      {
+        if(constOffset.type == VarType::SByte)
+          constOffset.value.s32v[c] = constOffset.value.s8v[c];
+        else if(constOffset.type == VarType::SShort)
+          constOffset.value.s32v[c] = constOffset.value.s16v[c];
+      }
+
+      // pass offsets as uniform where possible - when the feature (widely available) on gather
+      // operations. On non-gather operations we are forced to use const offsets and must specialise
+      // the pipeline.
+      if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended && gatherOp)
+      {
+        uniformParams.offset.x = constOffset.value.s32v[0];
+        if(gradCoords >= 2)
+          uniformParams.offset.y = constOffset.value.s32v[1];
+        if(gradCoords >= 3)
+          uniformParams.offset.z = constOffset.value.s32v[2];
+      }
+      else
+      {
+        constParams.constOffsets.x = constOffset.value.s32v[0];
+        if(gradCoords >= 2)
+          constParams.constOffsets.y = constOffset.value.s32v[1];
+        if(gradCoords >= 3)
+          constParams.constOffsets.z = constOffset.value.s32v[2];
+      }
+    }
+    else if(operands.flags & rdcspv::ImageOperands::Offset)
+    {
+      ShaderVariable offset = lane.GetSrc(operands.offset);
+
+      // sign extend variables lower than 32-bits
+      for(uint8_t c = 0; c < offset.columns; c++)
+      {
+        if(offset.type == VarType::SByte)
+          offset.value.s32v[c] = offset.value.s8v[c];
+        else if(offset.type == VarType::SShort)
+          offset.value.s32v[c] = offset.value.s16v[c];
+      }
+
+      // if the app's shader used a dynamic offset, we can too!
+      uniformParams.offset.x = offset.value.s32v[0];
+      if(gradCoords >= 2)
+        uniformParams.offset.y = offset.value.s32v[1];
+      if(gradCoords >= 3)
+        uniformParams.offset.z = offset.value.s32v[2];
+    }
+
     if(!m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
        (uniformParams.offset.x != 0 || uniformParams.offset.y != 0 || uniformParams.offset.z != 0))
     {
@@ -2323,9 +2303,9 @@ private:
     DECL_UNIFORM(float, dudy, ddy[0]);
     DECL_UNIFORM(float, dvdy, ddy[1]);
     DECL_UNIFORM(float, dwdy, ddy[2]);
-    DECL_UNIFORM(int32_t, offset_x, offset.x);
-    DECL_UNIFORM(int32_t, offset_y, offset.y);
-    DECL_UNIFORM(int32_t, offset_z, offset.z);
+    DECL_UNIFORM(int32_t, dynoffset_u, offset.x);
+    DECL_UNIFORM(int32_t, dynoffset_v, offset.y);
+    DECL_UNIFORM(int32_t, dynoffset_w, offset.z);
     DECL_UNIFORM(int32_t, sampleIdx, sampleIdx);
     DECL_UNIFORM(float, compare, compare);
     DECL_UNIFORM(float, lod, lod);
@@ -2340,6 +2320,15 @@ private:
           rdcspv::DecorationParam<rdcspv::Decoration::Offset>(m.memberIndex * sizeof(uint32_t))));
       editor.SetMemberName(cbufferStructID, m.memberIndex, m.name);
     }
+
+    rdcspv::Id constoffset_u = gather_u0;
+    rdcspv::Id constoffset_uv = editor.AddConstant(
+        rdcspv::OpSpecConstantComposite(v2i32, editor.MakeId(), {gather_u0, gather_v0}));
+    rdcspv::Id constoffset_uvw = editor.AddConstant(
+        rdcspv::OpSpecConstantComposite(v3i32, editor.MakeId(), {gather_u0, gather_v0, gather_u1}));
+    editor.SetName(constoffset_u, "constoffset_u");
+    editor.SetName(constoffset_uv, "constoffset_uv");
+    editor.SetName(constoffset_uvw, "constoffset_uvw");
 
     rdcspv::Id gather_0 = editor.AddConstant(
         rdcspv::OpSpecConstantComposite(v2i32, editor.MakeId(), {gather_u0, gather_v0}));
@@ -2486,13 +2475,13 @@ private:
     editor.SetName(ddy_uv, "ddy_uv");
     editor.SetName(ddy_uvw, "ddy_uvw");
 
-    rdcspv::Id offset_xy =
-        func.add(rdcspv::OpCompositeConstruct(v2i32, editor.MakeId(), {offset_x, offset_y}));
-    rdcspv::Id offset_xyz = func.add(
-        rdcspv::OpCompositeConstruct(v3i32, editor.MakeId(), {offset_x, offset_y, offset_z}));
+    rdcspv::Id dynoffset_uv =
+        func.add(rdcspv::OpCompositeConstruct(v2i32, editor.MakeId(), {dynoffset_u, dynoffset_v}));
+    rdcspv::Id dynoffset_uvw = func.add(rdcspv::OpCompositeConstruct(
+        v3i32, editor.MakeId(), {dynoffset_u, dynoffset_v, dynoffset_w}));
 
-    editor.SetName(offset_xy, "offset_xy");
-    editor.SetName(offset_xyz, "offset_xyz");
+    editor.SetName(dynoffset_uv, "dynoffset_uv");
+    editor.SetName(dynoffset_uvw, "dynoffset_uvw");
 
     rdcspv::Id input_uvwa = func.add(rdcspv::OpLoad(v4f32, editor.MakeId(), input_uvwa_var));
     rdcspv::Id input_uvw =
@@ -2549,14 +2538,24 @@ private:
         u,                         // Buffer - u
     };
 
-    rdcspv::Id offsets[(uint32_t)ShaderDebugBind::Count] = {
+    rdcspv::Id constoffset[(uint32_t)ShaderDebugBind::Count] = {
         rdcspv::Id(),
-        offset_x,        // 1D - u
-        offset_xy,       // 2D - u,v
-        offset_xyz,      // 3D - u,v,w
-        offset_xy,       // 2DMS - u,v
-        rdcspv::Id(),    // Cube - not valid
-        offset_x,        // Buffer - u
+        constoffset_u,      // 1D - u
+        constoffset_uv,     // 2D - u,v
+        constoffset_uvw,    // 3D - u,v,w
+        constoffset_uv,     // 2DMS - u,v
+        rdcspv::Id(),       // Cube - not valid
+        constoffset_u,      // Buffer - u
+    };
+
+    rdcspv::Id dynoffset[(uint32_t)ShaderDebugBind::Count] = {
+        rdcspv::Id(),
+        dynoffset_u,      // 1D - u
+        dynoffset_uv,     // 2D - u,v
+        dynoffset_uvw,    // 3D - u,v,w
+        dynoffset_uv,     // 2DMS - u,v
+        rdcspv::Id(),     // Cube - not valid
+        dynoffset_u,      // Buffer - u
     };
 
     rdcspv::Id ddxs[(uint32_t)ShaderDebugBind::Count] = {
@@ -2591,6 +2590,15 @@ private:
       if(depthTex && (i == (size_t)ShaderDebugBind::Tex3D || i == (size_t)ShaderDebugBind::TexCube))
         continue;
 
+      rdcspv::ImageOperandsAndParamDatas imageOperandsWithOffsets;
+
+      // most operations support offsets, set the operands commonly here.
+      // with the shaderImageGatherExtended feature, gather opcodes will always get their operands
+      // via uniforms to cut down on pipeline specialisations a little, but all other cases the
+      // offsets must be constant.
+      if(constoffset[i] != rdcspv::Id())
+        imageOperandsWithOffsets.setConstOffset(constoffset[i]);
+
       // can't fetch from cubemaps
       if(i != (uint32_t)ShaderDebugBind::TexCube)
       {
@@ -2599,18 +2607,18 @@ private:
         rdcspv::Id label = editor.MakeId();
         targets.push_back({(uint32_t)op * 10 + i, label});
 
-        rdcspv::ImageOperandsAndParamDatas imageOperands;
+        rdcspv::ImageOperandsAndParamDatas operands = imageOperandsWithOffsets;
 
         if(i != (uint32_t)ShaderDebugBind::Buffer && i != (uint32_t)ShaderDebugBind::Tex2DMS)
-          imageOperands.setLod(texel_lod);
+          operands.setLod(texel_lod);
 
         if(i == (uint32_t)ShaderDebugBind::Tex2DMS)
-          imageOperands.setSample(sampleIdx);
+          operands.setSample(sampleIdx);
 
         cases.add(rdcspv::OpLabel(label));
         rdcspv::Id loaded = cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), bindVars[i]));
-        rdcspv::Id sampleResult = cases.add(rdcspv::OpImageFetch(
-            resultType, editor.MakeId(), loaded, texel_coord[i], imageOperands));
+        rdcspv::Id sampleResult = cases.add(
+            rdcspv::OpImageFetch(resultType, editor.MakeId(), loaded, texel_coord[i], operands));
         cases.add(rdcspv::OpStore(outVar, sampleResult));
         cases.add(rdcspv::OpBranch(breakLabel));
       }
@@ -2654,8 +2662,6 @@ private:
         rdcspv::Id label = editor.MakeId();
         targets.push_back({(uint32_t)op * 10 + i, label});
 
-        rdcspv::ImageOperandsAndParamDatas imageOperands;
-
         cases.add(rdcspv::OpLabel(label));
         rdcspv::Id loadedImage =
             cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), bindVars[i]));
@@ -2671,7 +2677,7 @@ private:
         rdcspv::Id lodResult;
         {
           cases.add(rdcspv::OpLabel(lodCase));
-          rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
+          rdcspv::ImageOperandsAndParamDatas operands = imageOperandsWithOffsets;
           operands.setLod(lod);
           rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
               texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
@@ -2685,7 +2691,7 @@ private:
         rdcspv::Id gradResult;
         {
           cases.add(rdcspv::OpLabel(gradCase));
-          rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
+          rdcspv::ImageOperandsAndParamDatas operands = imageOperandsWithOffsets;
           operands.setGrad(ddxs[i], ddys[i]);
           if(m_pDriver->GetDeviceEnabledFeatures().shaderResourceMinLod)
             operands.setMinLod(minlod);
@@ -2728,8 +2734,6 @@ private:
           rdcspv::Id label = editor.MakeId();
           targets.push_back({(uint32_t)op * 10 + i, label});
 
-          rdcspv::ImageOperandsAndParamDatas imageOperands;
-
           cases.add(rdcspv::OpLabel(label));
           rdcspv::Id loadedImage =
               cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), bindVars[i]));
@@ -2745,7 +2749,7 @@ private:
           rdcspv::Id lodResult;
           {
             cases.add(rdcspv::OpLabel(lodCase));
-            rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
+            rdcspv::ImageOperandsAndParamDatas operands = imageOperandsWithOffsets;
             operands.setLod(lod);
             rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
                 texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
@@ -2759,7 +2763,7 @@ private:
           rdcspv::Id gradResult;
           {
             cases.add(rdcspv::OpLabel(gradCase));
-            rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
+            rdcspv::ImageOperandsAndParamDatas operands = imageOperandsWithOffsets;
             operands.setGrad(ddxs[i], ddys[i]);
             if(m_pDriver->GetDeviceEnabledFeatures().shaderResourceMinLod)
               operands.setMinLod(minlod);
@@ -2794,8 +2798,6 @@ private:
         rdcspv::Id label = editor.MakeId();
         targets.push_back({(uint32_t)op * 10 + i, label});
 
-        rdcspv::ImageOperandsAndParamDatas imageOperands;
-
         cases.add(rdcspv::OpLabel(label));
         rdcspv::Id loadedImage =
             cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), bindVars[i]));
@@ -2814,21 +2816,21 @@ private:
           rdcspv::Id baseResult;
           {
             cases.add(rdcspv::OpLabel(baseCase));
-            rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
 
-            if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
-               offsets[i] != rdcspv::Id())
-              imageOperands.setOffset(offsets[i]);
+            rdcspv::ImageOperandsAndParamDatas operands;
+
+            if(dynoffset[i] != rdcspv::Id())
+              operands.setOffset(dynoffset[i]);
 
             rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
                 texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
 
             if(op == rdcspv::Op::ImageGather)
               baseResult = cases.add(rdcspv::OpImageGather(resultType, editor.MakeId(), combined,
-                                                           coord[i], gatherChannel, imageOperands));
+                                                           coord[i], gatherChannel, operands));
             else
               baseResult = cases.add(rdcspv::OpImageDrefGather(
-                  resultType, editor.MakeId(), combined, coord[i], compare, imageOperands));
+                  resultType, editor.MakeId(), combined, coord[i], compare, operands));
 
             cases.add(rdcspv::OpBranch(mergeLabel));
           }
@@ -2836,23 +2838,24 @@ private:
           rdcspv::Id constsResult;
           {
             cases.add(rdcspv::OpLabel(constsCase));
-            rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
+            rdcspv::ImageOperandsAndParamDatas operands;    // don't use the offsets above
 
             // if this feature isn't available, this path will never be exercised (since we only
             // come in here when the actual shader used const offsets) so it's fine to drop it in
             // that case to ensure the module is still legal.
-            if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended)
+            if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
+               i != (uint32_t)ShaderDebugBind::TexCube)
               operands.setConstOffsets(gatherOffsets);
 
             rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
                 texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
 
             if(op == rdcspv::Op::ImageGather)
-              constsResult = cases.add(rdcspv::OpImageGather(
-                  resultType, editor.MakeId(), combined, coord[i], gatherChannel, imageOperands));
+              constsResult = cases.add(rdcspv::OpImageGather(resultType, editor.MakeId(), combined,
+                                                             coord[i], gatherChannel, operands));
             else
               constsResult = cases.add(rdcspv::OpImageDrefGather(
-                  resultType, editor.MakeId(), combined, coord[i], compare, imageOperands));
+                  resultType, editor.MakeId(), combined, coord[i], compare, operands));
 
             cases.add(rdcspv::OpBranch(mergeLabel));
           }
@@ -2863,19 +2866,17 @@ private:
         }
         else
         {
-          if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
-             offsets[i] != rdcspv::Id())
-            imageOperands.setOffset(offsets[i]);
+          rdcspv::ImageOperandsAndParamDatas operands = imageOperandsWithOffsets;
 
           rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
               texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
 
           if(op == rdcspv::Op::ImageGather)
             sampleResult = cases.add(rdcspv::OpImageGather(resultType, editor.MakeId(), combined,
-                                                           coord[i], gatherChannel, imageOperands));
+                                                           coord[i], gatherChannel, operands));
           else
             sampleResult = cases.add(rdcspv::OpImageDrefGather(
-                resultType, editor.MakeId(), combined, coord[i], compare, imageOperands));
+                resultType, editor.MakeId(), combined, coord[i], compare, operands));
         }
 
         cases.add(rdcspv::OpStore(outVar, sampleResult));
