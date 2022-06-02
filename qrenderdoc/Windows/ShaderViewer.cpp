@@ -5507,7 +5507,7 @@ void ShaderViewer::disasm_tooltipHide(int x, int y)
 
 void ShaderViewer::showVariableTooltip(QString name)
 {
-  m_TooltipVarPath = name;
+  m_TooltipVarPath = name.replace(QRegularExpression(lit("\\s+")), QString());
   m_TooltipPos = QCursor::pos();
 
   updateVariableTooltip();
