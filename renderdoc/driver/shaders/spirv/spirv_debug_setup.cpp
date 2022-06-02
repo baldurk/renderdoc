@@ -1347,66 +1347,238 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
 
               const LocalMapping &mapping = it->second;
 
-              if(mapping.second == Id())
+              if(mapping.debugVar == Id())
               {
                 // if the Ids are empty, this is a scope exiting. Potentially multiple scopes at
                 // once. The only scopes that could have exited are the ones that we were previously
                 // in, so start from the scope of the previous instruction and walk up its parents.
                 // Set curId to empty on all the locals of any scope that's exited
-                ScopeData *scope = m_DebugInfo.lineScope[startOffs];
+                const ScopeData *scope = GetScope(startOffs);
                 while(scope)
                 {
                   if(scope->end <= endOffs)
                   {
-                    for(Id id : scope->locals)
-                      m_DebugInfo.locals[id].curId = Id();
+                    m_DebugInfo.activeLocalMappings.removeIf([scope](const LocalMapping &l) {
+                      return scope->locals.contains(l.sourceVar);
+                    });
                   }
 
                   scope = scope->parent;
                 }
               }
+              else if(thread.ids[mapping.debugVar].type == VarType::Unknown)
+              {
+                continue;
+              }
               else
               {
-                // otherwise this is indicating the new current Id of a local
-                m_DebugInfo.locals[mapping.first].curId = mapping.second;
+                LocalMapping search;
+                search.sourceVar = mapping.sourceVar;
+
+                // find start of this sourceVar
+                LocalMapping *pos = std::lower_bound(m_DebugInfo.activeLocalMappings.begin(),
+                                                     m_DebugInfo.activeLocalMappings.end(), search);
+
+                // look over all existing local mappings, and if any have been made redundant remove
+                // them
+                for(size_t i = (pos - m_DebugInfo.activeLocalMappings.begin());
+                    i < m_DebugInfo.activeLocalMappings.size();)
+                {
+                  if(m_DebugInfo.activeLocalMappings[i].sourceVar != mapping.sourceVar)
+                    break;
+
+                  if(mapping.isSourceSupersetOf(m_DebugInfo.activeLocalMappings[i]))
+                  {
+                    m_DebugInfo.activeLocalMappings.erase(i);
+                    continue;
+                  }
+
+                  i++;
+                }
+
+                // now add the new mapping in sorted order
+                pos = std::lower_bound(m_DebugInfo.activeLocalMappings.begin(),
+                                       m_DebugInfo.activeLocalMappings.end(), mapping);
+                m_DebugInfo.activeLocalMappings.insert(
+                    pos - m_DebugInfo.activeLocalMappings.begin(), mapping);
               }
             }
 
             // start with the global source vars
             state.sourceVars = globalSourceVars;
 
-            // now go from the innermost scope to the outermost. At each scope add its locals
-            ScopeData *scope = m_DebugInfo.lineScope[endOffs];
-            while(scope)
+            const ScopeData *scope = GetScope(endOffs);
+            // only add locals when in a scope
+            if(scope)
             {
-              for(Id id : scope->locals)
+              // get the function, only add locals that are in this function or a block child
+              const ScopeData *func = scope;
+              while(func && func->parent && func->type != DebugScope::Function)
+                func = func->parent;
+
+              rdcarray<LocalMapping> sorted = m_DebugInfo.activeLocalMappings;
+              std::sort(
+                  sorted.begin(), sorted.end(),
+                  [](const LocalMapping &a, const LocalMapping &b) { return a.offset < b.offset; });
+
+              for(const LocalMapping &mapping : sorted)
               {
-                const LocalData &l = m_DebugInfo.locals[id];
+                const LocalData &l = m_DebugInfo.locals[mapping.sourceVar];
 
-                if(l.curId != Id())
+                const ScopeData *lfunc = l.scope;
+                while(lfunc && lfunc->parent && lfunc->type != DebugScope::Function)
+                  lfunc = lfunc->parent;
+
+                if(lfunc != func)
+                  continue;
+
+                // if it doesn't have indexes this is simple, set up a 1:1 map
+                if(mapping.indexes.isEmpty())
                 {
-                  ShaderVariable var = ReadFromPointer(thread.ids[l.curId]);
+                  SourceVariableMapping sourceVar;
 
-                  // don't map locals to IDs that don't exist yet
-                  if(!var.name.empty())
+                  const TypeData *typeWalk = l.type;
+
+                  sourceVar.name = l.name;
+                  sourceVar.offset = 0;
+                  sourceVar.rows = 1U;
+                  sourceVar.columns = 1U;
+
+                  if(typeWalk->matSize != 0)
                   {
-                    SourceVariableMapping sourceVar;
+                    const TypeData &vec = m_DebugInfo.types[typeWalk->baseType];
+                    const TypeData &scalar = m_DebugInfo.types[vec.baseType];
 
-                    sourceVar.name = l.name;
-                    sourceVar.offset = 0;
-                    sourceVar.type = var.type;
-                    sourceVar.rows = RDCMAX(1U, (uint32_t)var.rows);
-                    sourceVar.columns = RDCMAX(1U, (uint32_t)var.columns);
-                    for(uint32_t x = 0; x < sourceVar.rows * sourceVar.columns; x++)
-                      sourceVar.variables.push_back(
-                          DebugVariableReference(DebugVariableType::Variable, var.name, x));
+                    sourceVar.type = scalar.type;
 
-                    state.sourceVars.push_back(sourceVar);
+                    if(typeWalk->colMajorMat)
+                    {
+                      sourceVar.rows = RDCMAX(1U, vec.vecSize);
+                      sourceVar.columns = RDCMAX(1U, typeWalk->matSize);
+                    }
+                    else
+                    {
+                      sourceVar.rows = RDCMAX(1U, typeWalk->matSize);
+                      sourceVar.columns = RDCMAX(1U, vec.vecSize);
+                    }
                   }
+                  else if(typeWalk->vecSize != 0)
+                  {
+                    const TypeData &scalar = m_DebugInfo.types[typeWalk->baseType];
+
+                    sourceVar.type = scalar.type;
+                    sourceVar.columns = RDCMAX(1U, typeWalk->vecSize);
+                  }
+                  else
+                  {
+                    while(typeWalk && typeWalk->baseType != Id() && typeWalk->type == VarType::Unknown)
+                      typeWalk = &m_DebugInfo.types[typeWalk->baseType];
+
+                    sourceVar.type = typeWalk->type;
+                    if(sourceVar.type == VarType::Unknown)
+                      sourceVar.type = VarType::Struct;
+
+                    ShaderVariable var = ReadFromPointer(thread.ids[mapping.debugVar]);
+
+                    if(var.type != VarType::Struct)
+                    {
+                      sourceVar.rows = var.rows;
+                      sourceVar.columns = var.columns;
+                    }
+                  }
+
+                  for(uint32_t x = 0; x < sourceVar.rows * sourceVar.columns; x++)
+                    sourceVar.variables.push_back(DebugVariableReference(
+                        DebugVariableType::Variable, GetRawName(mapping.debugVar), x));
+
+                  state.sourceVars.push_back(sourceVar);
+                }
+                else
+                {
+                  SourceVariableMapping sourceVar;
+
+                  rdcarray<uint32_t> indexes = mapping.indexes;
+
+                  const TypeData *typeWalk = l.type;
+
+                  sourceVar.name = l.name;
+                  sourceVar.offset = 0;
+                  sourceVar.rows = 1U;
+                  sourceVar.columns = 1U;
+
+                  while(!indexes.empty())
+                  {
+                    if(typeWalk->arrayDimension > 0)
+                    {
+                      uint32_t numIdxs = (uint32_t)indexes.size();
+                      for(size_t i = 0; i < RDCMIN(typeWalk->arrayDimension, numIdxs); i++)
+                      {
+                        sourceVar.name += StringFormat::Fmt("[%u]", indexes.back());
+                        indexes.pop_back();
+                      }
+
+                      typeWalk = &m_DebugInfo.types[typeWalk->baseType];
+                    }
+                    else if(!typeWalk->structMembers.empty())
+                    {
+                      uint32_t idx = indexes.back();
+                      indexes.pop_back();
+
+                      sourceVar.name +=
+                          StringFormat::Fmt(".%s", typeWalk->structMembers[idx].first.c_str());
+
+                      typeWalk = &m_DebugInfo.types[typeWalk->structMembers[idx].second];
+                    }
+                    else
+                    {
+                      break;
+                    }
+                  }
+
+                  RDCASSERT(indexes.empty());
+
+                  if(typeWalk->matSize != 0)
+                  {
+                    const TypeData &vec = m_DebugInfo.types[typeWalk->baseType];
+                    const TypeData &scalar = m_DebugInfo.types[vec.baseType];
+
+                    sourceVar.type = scalar.type;
+
+                    if(typeWalk->colMajorMat)
+                    {
+                      sourceVar.rows = RDCMAX(1U, vec.vecSize);
+                      sourceVar.columns = RDCMAX(1U, typeWalk->matSize);
+                    }
+                    else
+                    {
+                      sourceVar.rows = RDCMAX(1U, typeWalk->matSize);
+                      sourceVar.columns = RDCMAX(1U, vec.vecSize);
+                    }
+                  }
+                  else if(typeWalk->vecSize != 0)
+                  {
+                    const TypeData &scalar = m_DebugInfo.types[typeWalk->baseType];
+
+                    sourceVar.type = scalar.type;
+                    sourceVar.columns = RDCMAX(1U, typeWalk->vecSize);
+                  }
+                  else
+                  {
+                    while(typeWalk && typeWalk->baseType != Id() && typeWalk->type == VarType::Unknown)
+                      typeWalk = &m_DebugInfo.types[typeWalk->baseType];
+
+                    sourceVar.type = typeWalk->type;
+                    if(sourceVar.type == VarType::Unknown)
+                      sourceVar.type = VarType::Struct;
+                  }
+
+                  for(uint32_t x = 0; x < sourceVar.rows * sourceVar.columns; x++)
+                    sourceVar.variables.push_back(DebugVariableReference(
+                        DebugVariableType::Variable, GetRawName(mapping.debugVar), x));
+
+                  state.sourceVars.push_back(sourceVar);
                 }
               }
-
-              scope = scope->parent;
             }
 
             // append any inlined functions to the top of the stack
@@ -1417,7 +1589,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
             // start with the current scope, it refers to the *inlined* function
             if(inlined)
             {
-              scope = m_DebugInfo.lineScope[endOffs];
+              scope = GetScope(endOffs);
               // find the function parent of the current scope
               while(scope && scope->parent && scope->type == DebugScope::Block)
                 scope = scope->parent;
@@ -1443,16 +1615,16 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
           else
           {
             state.sourceVars = thread.sourceVars;
+
+            // sort sourceVars by last write to the underlying variable
+            std::sort(state.sourceVars.begin(), state.sourceVars.end(),
+                      [&thread](const SourceVariableMapping &a, const SourceVariableMapping &b) {
+                        Id aId = ParseRawName(a.variables[0].name);
+                        Id bId = ParseRawName(b.variables[0].name);
+
+                        return thread.lastWrite[aId] < thread.lastWrite[bId];
+                      });
           }
-
-          // sort sourceVars by last write to the underlying variable
-          std::sort(state.sourceVars.begin(), state.sourceVars.end(),
-                    [&thread](const SourceVariableMapping &a, const SourceVariableMapping &b) {
-                      Id aId = ParseRawName(a.variables[0].name);
-                      Id bId = ParseRawName(b.variables[0].name);
-
-                      return thread.lastWrite[aId] < thread.lastWrite[bId];
-                    });
 
           ret.push_back(state);
 
@@ -2553,6 +2725,14 @@ bool Debugger::IsDebugExtInstSet(Id id) const
   return knownExtSet[ExtSet_ShaderDbg] == id;
 }
 
+const ScopeData *Debugger::GetScope(size_t offset) const
+{
+  auto it = m_DebugInfo.lineScope.find(offset);
+  if(it == m_DebugInfo.lineScope.end())
+    return NULL;
+  return it->second;
+}
+
 void Debugger::PreParse(uint32_t maxId)
 {
   Processor::PreParse(maxId);
@@ -2587,26 +2767,22 @@ void Debugger::PostParse()
 
     // add a dummy localMappings entry for each scope end
     for(auto it = m_DebugInfo.scopes.begin(); it != m_DebugInfo.scopes.end(); ++it)
-      m_DebugInfo.localMappings[it->second.end] = {Id(), Id()};
+      m_DebugInfo.localMappings[it->second.end] = {0, Id(), Id()};
 
     for(auto it = m_DebugInfo.localMappings.begin(); it != m_DebugInfo.localMappings.end(); ++it)
     {
-      if(it->second.second == Id())
+      if(it->second.debugVar == Id())
         continue;
 
-      const LocalData &l = m_DebugInfo.locals[it->second.first];
+      const LocalData &l = m_DebugInfo.locals[it->second.sourceVar];
       if(l.scope == NULL)
         continue;
 
       // keep last raw ID alive until the scope ends
-      Id id = it->second.second;
+      Id id = it->second.debugVar;
 
       idDeathOffset[id] = RDCMAX(l.scope->end + 1, RDCMAX(it->first + 1, idDeathOffset[id]));
     }
-
-    // reset current Ids
-    for(auto it = m_DebugInfo.locals.begin(); it != m_DebugInfo.locals.end(); ++it)
-      it->second.curId = Id();
   }
 
   memberNames.clear();
@@ -2654,184 +2830,286 @@ void Debugger::RegisterOp(Iter it)
       // the types are identical just with different accessors
       OpShaderDbg &dbg = (OpShaderDbg &)extinst;
 
-      if(dbg.inst == ShaderDbg::Source)
+      switch(dbg.inst)
       {
-        int32_t fileIndex = (int32_t)m_DebugInfo.sources.size();
-
-        m_DebugInfo.sources[dbg.result] = fileIndex;
-        m_DebugInfo.filenames[dbg.result] = strings[dbg.arg<Id>(0)];
-      }
-      else if(dbg.inst == ShaderDbg::CompilationUnit)
-      {
-        m_DebugInfo.scopes[dbg.result] = {
-            DebugScope::CompilationUnit,
-            NULL,
-            1,
-            1,
-            m_DebugInfo.sources[dbg.arg<Id>(2)],
-            0,
-            m_DebugInfo.filenames[dbg.arg<Id>(2)],
-        };
-      }
-      else if(dbg.inst == ShaderDbg::Function)
-      {
-        rdcstr name = strings[dbg.arg<Id>(0)];
-        // ignore arg 1 type
-        // don't use arg 2 source - assume the parent is in the same file so it's redundant
-        uint32_t line = EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0];
-        uint32_t column = EvaluateConstant(dbg.arg<Id>(4), {}).value.u32v[0];
-        ScopeData *parent = &m_DebugInfo.scopes[dbg.arg<Id>(5)];
-        // ignore arg 6 linkage name
-        // ignore arg 7 flags
-        // ignore arg 8 scope line
-        // ignore arg 9 (optional) declaration
-
-        m_DebugInfo.scopes[dbg.result] = {
-            DebugScope::Function, parent, line, column, parent->fileIndex, 0, name,
-        };
-      }
-      else if(dbg.inst == ShaderDbg::TypeComposite)
-      {
-        rdcstr name = strings[dbg.arg<Id>(0)];
-        uint32_t tag = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
-        const rdcstr tagString[3] = {
-            "class ", "struct ", "union ",
-        };
-
-        // don't use arg 2 source - assume the parent is in the same file so it's redundant
-        uint32_t line = EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0];
-        uint32_t column = EvaluateConstant(dbg.arg<Id>(4), {}).value.u32v[0];
-        ScopeData *parent = &m_DebugInfo.scopes[dbg.arg<Id>(5)];
-        // ignore arg 6 linkage name
-        // ignore arg 7 size
-        // ignore arg 8 flags
-        // ignore arg 9... members
-
-        name = tagString[tag % 3] + name;
-
-        m_DebugInfo.scopes[dbg.result] = {
-            DebugScope::Composite, parent, line, column, parent->fileIndex, 0, name,
-        };
-      }
-      else if(dbg.inst == ShaderDbg::LexicalBlock)
-      {
-        // don't use arg 0 source - assume the parent is in the same file so it's redundant
-        uint32_t line = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
-        uint32_t column = EvaluateConstant(dbg.arg<Id>(2), {}).value.u32v[0];
-        ScopeData *parent = &m_DebugInfo.scopes[dbg.arg<Id>(3)];
-
-        rdcstr name;
-        if(dbg.params.count() >= 5)
+        case ShaderDbg::Source:
         {
-          name = strings[dbg.arg<Id>(4)];
-          if(name.isEmpty())
-            name = "anonymous_scope";
+          int32_t fileIndex = (int32_t)m_DebugInfo.sources.size();
+
+          m_DebugInfo.sources[dbg.result] = fileIndex;
+          m_DebugInfo.filenames[dbg.result] = strings[dbg.arg<Id>(0)];
+          break;
         }
-        else
+        case ShaderDbg::CompilationUnit:
         {
-          name = parent->name + ":" + ToStr(line);
+          m_DebugInfo.scopes[dbg.result] = {
+              DebugScope::CompilationUnit,
+              NULL,
+              1,
+              1,
+              m_DebugInfo.sources[dbg.arg<Id>(2)],
+              0,
+              m_DebugInfo.filenames[dbg.arg<Id>(2)],
+          };
+          break;
         }
-
-        m_DebugInfo.scopes[dbg.result] = {
-            DebugScope::Block, parent, line, column, parent->fileIndex, 0, name,
-        };
-      }
-      else if(dbg.inst == ShaderDbg::Scope)
-      {
-        if(m_DebugInfo.curScope)
-          m_DebugInfo.curScope->end = it.offs();
-
-        m_DebugInfo.curScope = &m_DebugInfo.scopes[dbg.arg<Id>(0)];
-
-        if(dbg.params.size() >= 2)
-          m_DebugInfo.curInline = &m_DebugInfo.inlined[dbg.arg<Id>(1)];
-        else
-          m_DebugInfo.curInline = NULL;
-      }
-      else if(dbg.inst == ShaderDbg::NoScope)
-      {
-        // don't want to set curScope to NULL until after this instruction. That way flood-fill of
-        // scopes in PostParse() can find this instruction in a scope.
-        leaveScope = true;
-      }
-      else if(dbg.inst == ShaderDbg::GlobalVariable)
-      {
-        // copy the name string to the variable string only if it's empty. If it has a name already,
-        // we prefer that. If the variable is DebugInfoNone then we don't care about it's name.
-        if(strings[dbg.arg<Id>(7)].empty())
-          strings[dbg.arg<Id>(7)] = strings[dbg.arg<Id>(0)];
-
-        OpVariable var(GetID(dbg.arg<Id>(7)));
-
-        if(var.storageClass == StorageClass::Private ||
-           var.storageClass == StorageClass::Workgroup || var.storageClass == StorageClass::Output)
+        case ShaderDbg::Function:
         {
-          m_DebugInfo.globals.push_back(var.result);
+          rdcstr name = strings[dbg.arg<Id>(0)];
+          // ignore arg 1 type
+          // don't use arg 2 source - assume the parent is in the same file so it's redundant
+          uint32_t line = EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0];
+          uint32_t column = EvaluateConstant(dbg.arg<Id>(4), {}).value.u32v[0];
+          ScopeData *parent = &m_DebugInfo.scopes[dbg.arg<Id>(5)];
+          // ignore arg 6 linkage name
+          // ignore arg 7 flags
+          // ignore arg 8 scope line
+          // ignore arg 9 (optional) declaration
+
+          m_DebugInfo.scopes[dbg.result] = {
+              DebugScope::Function, parent, line, column, parent->fileIndex, 0, name,
+          };
+          break;
         }
-      }
-      else if(dbg.inst == ShaderDbg::LocalVariable)
-      {
-        m_DebugInfo.locals[dbg.result] = {
-            strings[dbg.arg<Id>(0)], &m_DebugInfo.scopes[dbg.arg<Id>(5)],
-        };
-
-        m_DebugInfo.scopes[dbg.arg<Id>(5)].locals.push_back(dbg.result);
-      }
-      else if(dbg.inst == ShaderDbg::Declare || dbg.inst == ShaderDbg::Value)
-      {
-        Id id = dbg.arg<Id>(1);
-
-        m_DebugInfo.localMappings[it.offs()] = {dbg.arg<Id>(0), dbg.arg<Id>(1)};
-
-        LocalData &local = m_DebugInfo.locals[dbg.arg<Id>(0)];
-
-        // keep the previous raw ID alive at least until this location starts
-        if(local.curId != Id())
-          idDeathOffset[local.curId] = RDCMAX(it.offs() + 1, idDeathOffset[local.curId]);
-
-        local.curId = id;
-
-        if(constants.find(id) != constants.end() && !m_DebugInfo.constants.contains(id))
-          m_DebugInfo.constants.push_back(id);
-
-        OpShaderDbg expr(GetID(dbg.arg<Id>(2)));
-
-        // don't support expressions yet
-        RDCASSERT(expr.params.empty());
-
-        // don't support indexes yet for values
-        RDCASSERT(dbg.params.size() == 3);
-      }
-      else if(dbg.inst == ShaderDbg::InlinedAt)
-      {
-        // ignore arg 0 the line number
-        ScopeData *scope = &m_DebugInfo.scopes[dbg.arg<Id>(1)];
-
-        if(dbg.params.count() >= 3)
-          m_DebugInfo.inlined[dbg.result] = {scope, &m_DebugInfo.inlined[dbg.arg<Id>(2)]};
-        else
-          m_DebugInfo.inlined[dbg.result] = {scope, NULL};
-      }
-      else if(dbg.inst == ShaderDbg::InlinedVariable)
-      {
-        // TODO handle inlined variables
-      }
-      else if(dbg.inst == ShaderDbg::Line)
-      {
-        m_CurLineCol.lineStart = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
-        m_CurLineCol.lineEnd = EvaluateConstant(dbg.arg<Id>(2), {}).value.u32v[0];
-        if(Vulkan_Debug_UseDebugColumnInformation())
+        case ShaderDbg::TypeBasic:
         {
-          m_CurLineCol.colStart = EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0];
-          m_CurLineCol.colEnd = EvaluateConstant(dbg.arg<Id>(4), {}).value.u32v[0];
+          uint32_t byteSize = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
+          uint32_t encoding = EvaluateConstant(dbg.arg<Id>(2), {}).value.u32v[0];
+          switch(encoding)
+          {
+            case 2: m_DebugInfo.types[dbg.result].type = VarType::Bool; break;
+            case 3:
+              if(byteSize == 64)
+                m_DebugInfo.types[dbg.result].type = VarType::Double;
+              else if(byteSize == 32)
+                m_DebugInfo.types[dbg.result].type = VarType::Float;
+              else if(byteSize == 16)
+                m_DebugInfo.types[dbg.result].type = VarType::Half;
+              break;
+            case 4:
+              if(byteSize == 64)
+                m_DebugInfo.types[dbg.result].type = VarType::SLong;
+              else if(byteSize == 32)
+                m_DebugInfo.types[dbg.result].type = VarType::SInt;
+              else if(byteSize == 16)
+                m_DebugInfo.types[dbg.result].type = VarType::SShort;
+              else if(byteSize == 8)
+                m_DebugInfo.types[dbg.result].type = VarType::SByte;
+              break;
+            case 5: m_DebugInfo.types[dbg.result].type = VarType::SByte; break;
+            case 6:
+              if(byteSize == 64)
+                m_DebugInfo.types[dbg.result].type = VarType::ULong;
+              else if(byteSize == 32)
+                m_DebugInfo.types[dbg.result].type = VarType::UInt;
+              else if(byteSize == 16)
+                m_DebugInfo.types[dbg.result].type = VarType::UShort;
+              else if(byteSize == 8)
+                m_DebugInfo.types[dbg.result].type = VarType::UByte;
+              break;
+            case 7: m_DebugInfo.types[dbg.result].type = VarType::UByte; break;
+          }
+          break;
         }
+        case ShaderDbg::TypePointer:
+        {
+          m_DebugInfo.types[dbg.result].baseType = dbg.arg<Id>(0);
+          break;
+        }
+        case ShaderDbg::TypeVector:
+        {
+          m_DebugInfo.types[dbg.result].baseType = dbg.arg<Id>(0);
+          m_DebugInfo.types[dbg.result].vecSize = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
+          break;
+        }
+        case ShaderDbg::TypeMatrix:
+        {
+          m_DebugInfo.types[dbg.result].baseType = dbg.arg<Id>(0);
+          m_DebugInfo.types[dbg.result].matSize = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
+          m_DebugInfo.types[dbg.result].colMajorMat =
+              EvaluateConstant(dbg.arg<Id>(2), {}).value.u32v[0] != 0;
+          break;
+        }
+        case ShaderDbg::TypeArray:
+        {
+          m_DebugInfo.types[dbg.result].baseType = dbg.arg<Id>(0);
+          m_DebugInfo.types[dbg.result].arrayDimension = (uint32_t)dbg.params.size() - 1;
+          break;
+        }
+        case ShaderDbg::TypeComposite:
+        {
+          rdcstr name = strings[dbg.arg<Id>(0)];
+          uint32_t tag = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
+          const rdcstr tagString[3] = {
+              "class ", "struct ", "union ",
+          };
 
-        // find file index by filename matching, this would be nice to improve as it's brittle
-        m_CurLineCol.fileIndex = m_DebugInfo.sources[dbg.arg<Id>(0)];
-      }
-      else if(dbg.inst == ShaderDbg::NoLine)
-      {
-        m_CurLineCol = LineColumnInfo();
+          // don't use arg 2 source - assume the parent is in the same file so it's redundant
+          uint32_t line = EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0];
+          uint32_t column = EvaluateConstant(dbg.arg<Id>(4), {}).value.u32v[0];
+          ScopeData *parent = &m_DebugInfo.scopes[dbg.arg<Id>(5)];
+          // ignore arg 6 linkage name
+          // ignore arg 7 size
+          // ignore arg 8 flags
+
+          for(uint32_t i = 9; i < dbg.params.size(); i++)
+          {
+            OpShaderDbg member(GetID(dbg.arg<Id>(i)));
+
+            m_DebugInfo.types[dbg.result].structMembers.push_back(
+                {strings[member.arg<Id>(0)], member.arg<Id>(1)});
+          }
+
+          name = tagString[tag % 3] + name;
+
+          m_DebugInfo.scopes[dbg.result] = {
+              DebugScope::Composite, parent, line, column, parent->fileIndex, 0, name,
+          };
+          break;
+        }
+        case ShaderDbg::LexicalBlock:
+        {
+          // don't use arg 0 source - assume the parent is in the same file so it's redundant
+          uint32_t line = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
+          uint32_t column = EvaluateConstant(dbg.arg<Id>(2), {}).value.u32v[0];
+          ScopeData *parent = &m_DebugInfo.scopes[dbg.arg<Id>(3)];
+
+          rdcstr name;
+          if(dbg.params.count() >= 5)
+          {
+            name = strings[dbg.arg<Id>(4)];
+            if(name.isEmpty())
+              name = "anonymous_scope";
+          }
+          else
+          {
+            name = parent->name + ":" + ToStr(line);
+          }
+
+          m_DebugInfo.scopes[dbg.result] = {
+              DebugScope::Block, parent, line, column, parent->fileIndex, 0, name,
+          };
+          break;
+        }
+        case ShaderDbg::Scope:
+        {
+          if(m_DebugInfo.curScope)
+            m_DebugInfo.curScope->end = it.offs();
+
+          m_DebugInfo.curScope = &m_DebugInfo.scopes[dbg.arg<Id>(0)];
+
+          if(dbg.params.size() >= 2)
+            m_DebugInfo.curInline = &m_DebugInfo.inlined[dbg.arg<Id>(1)];
+          else
+            m_DebugInfo.curInline = NULL;
+          break;
+        }
+        case ShaderDbg::NoScope:
+        {
+          // don't want to set curScope to NULL until after this instruction. That way flood-fill of
+          // scopes in PostParse() can find this instruction in a scope.
+          leaveScope = true;
+          break;
+        }
+        case ShaderDbg::GlobalVariable:
+        {
+          // copy the name string to the variable string only if it's empty. If it has a name
+          // already,
+          // we prefer that. If the variable is DebugInfoNone then we don't care about it's name.
+          if(strings[dbg.arg<Id>(7)].empty())
+            strings[dbg.arg<Id>(7)] = strings[dbg.arg<Id>(0)];
+
+          OpVariable var(GetID(dbg.arg<Id>(7)));
+
+          if(var.storageClass == StorageClass::Private ||
+             var.storageClass == StorageClass::Workgroup || var.storageClass == StorageClass::Output)
+          {
+            m_DebugInfo.globals.push_back(var.result);
+          }
+          break;
+        }
+        case ShaderDbg::LocalVariable:
+        {
+          m_DebugInfo.locals[dbg.result] = {
+              strings[dbg.arg<Id>(0)], &m_DebugInfo.scopes[dbg.arg<Id>(5)],
+              &m_DebugInfo.types[dbg.arg<Id>(1)],
+          };
+
+          m_DebugInfo.scopes[dbg.arg<Id>(5)].locals.push_back(dbg.result);
+          break;
+        }
+        case ShaderDbg::Declare:
+        case ShaderDbg::Value:
+        {
+          Id id = dbg.arg<Id>(1);
+
+          LocalMapping &mapping = m_DebugInfo.localMappings[it.offs()];
+
+          mapping = {it.offs(), dbg.arg<Id>(0), id};
+
+          if(constants.find(id) != constants.end() && !m_DebugInfo.constants.contains(id))
+            m_DebugInfo.constants.push_back(id);
+
+          mapping.indexes.resize(dbg.params.size() - 3);
+          for(uint32_t i = 0; i < mapping.indexes.size(); i++)
+          {
+            size_t idx = mapping.indexes.size() - 1 - i;
+            mapping.indexes[idx] = EvaluateConstant(dbg.arg<Id>(i + 3), {}).value.u32v[0];
+          }
+
+          {
+            // don't support expressions, only allow for a single 'deref' which is used for
+            // variables to 'deref' into the pointed value
+            OpShaderDbg expr(GetID(dbg.arg<Id>(2)));
+
+            for(uint32_t i = 0; i < expr.params.size(); i++)
+            {
+              OpShaderDbg op(GetID(expr.arg<Id>(i)));
+
+              if(op.params.size() > 1 || EvaluateConstant(op.arg<Id>(0), {}).value.u32v[0] != 0)
+              {
+                RDCERR("Only deref expressions supported");
+              }
+            }
+          }
+          break;
+        }
+        case ShaderDbg::InlinedAt:
+        {
+          // ignore arg 0 the line number
+          ScopeData *scope = &m_DebugInfo.scopes[dbg.arg<Id>(1)];
+
+          if(dbg.params.count() >= 3)
+            m_DebugInfo.inlined[dbg.result] = {scope, &m_DebugInfo.inlined[dbg.arg<Id>(2)]};
+          else
+            m_DebugInfo.inlined[dbg.result] = {scope, NULL};
+          break;
+        }
+        case ShaderDbg::InlinedVariable:
+        {
+          // TODO handle inlined variables
+          break;
+        }
+        case ShaderDbg::Line:
+        {
+          m_CurLineCol.lineStart = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
+          m_CurLineCol.lineEnd = EvaluateConstant(dbg.arg<Id>(2), {}).value.u32v[0];
+          if(Vulkan_Debug_UseDebugColumnInformation())
+          {
+            m_CurLineCol.colStart = EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0];
+            m_CurLineCol.colEnd = EvaluateConstant(dbg.arg<Id>(4), {}).value.u32v[0];
+          }
+
+          // find file index by filename matching, this would be nice to improve as it's brittle
+          m_CurLineCol.fileIndex = m_DebugInfo.sources[dbg.arg<Id>(0)];
+          break;
+        }
+        case ShaderDbg::NoLine:
+        {
+          m_CurLineCol = LineColumnInfo();
+          break;
+        }
+        default: break;
       }
     }
   }
