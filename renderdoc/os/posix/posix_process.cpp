@@ -979,7 +979,7 @@ rdcpair<RDResult, uint32_t> Process::LaunchAndInjectIntoProcess(
   RDResult result;
   if(ret == 0)
   {
-    SET_ERROR_RESULT(result, ResultCode::InvalidParameter,
+    SET_ERROR_RESULT(result, ResultCode::InjectionFailed,
                      "Couldn't connect to target program. Check that it didn't crash or exit "
                      "during early initialisation, e.g. due to an incorrectly configured working "
                      "directory.");
