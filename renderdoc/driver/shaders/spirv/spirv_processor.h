@@ -539,6 +539,7 @@ protected:
   virtual void PostParse();
 
   Iter GetID(Id id);
+  ConstIter GetID(Id id) const;
 
   ShaderVariable MakeNULL(const DataType &type, uint64_t value);
 

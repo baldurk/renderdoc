@@ -960,6 +960,16 @@ Iter Processor::GetID(Id id)
   return Iter();
 }
 
+ConstIter Processor::GetID(Id id) const
+{
+  size_t offs = idOffsets[id];
+
+  if(offs)
+    return ConstIter(m_SPIRV, offs);
+
+  return ConstIter();
+}
+
 ShaderVariable Processor::MakeNULL(const DataType &type, uint64_t value)
 {
   ShaderVariable v("", 0, 0, 0, 0);

@@ -23,9 +23,13 @@
  ******************************************************************************/
 
 #include "common/formatting.h"
+#include "core/settings.h"
 #include "maths/half_convert.h"
 #include "spirv_op_helpers.h"
 #include "spirv_reflect.h"
+
+RDOC_CONFIG(bool, Vulkan_Debug_ShowDebugValues, false,
+            "Show DebugValue instructions in shader disassembly.");
 
 struct StructuredCFG
 {
@@ -1572,6 +1576,23 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
               ret += idName(dbg.arg<Id>(2));
               ret += ", ";
               ret += ToStr(rdcspv::SourceLanguage(lang));
+              ret += ")";
+            }
+            else if(dbg.inst == ShaderDbg::Value && Vulkan_Debug_ShowDebugValues())
+            {
+              OpShaderDbg localVar(GetID(dbg.arg<Id>(0)));
+              ret += indent;
+              ret += "// DebugValue(";
+              ret += idName(dbg.arg<Id>(1));
+              ret += " = ";
+              ret += idName(localVar.arg<Id>(0));
+              ret += " ";
+              ret += idName(localVar.arg<Id>(2));
+              ret += ":";
+              ret += idName(localVar.arg<Id>(3));
+
+              if(dbg.params.size() > 3)
+                ret += " (subset)";
               ret += ")";
             }
             else
