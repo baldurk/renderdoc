@@ -499,7 +499,7 @@ struct BufferConfiguration
   uint32_t repeatStride = 1;
   uint32_t repeatOffset = 0;
 
-  QString noDraw;
+  QString statusString;
 
   bool noVertices = false;
   bool noInstances = false;
@@ -538,7 +538,7 @@ struct BufferConfiguration
     repeatStride = o.repeatStride;
     repeatOffset = o.repeatOffset;
 
-    noDraw = o.noDraw;
+    statusString = o.statusString;
 
     noVertices = o.noVertices;
     noInstances = o.noInstances;
@@ -588,7 +588,7 @@ struct BufferConfiguration
     numRows = 0;
     unclampedNumRows = 0;
 
-    noDraw.clear();
+    statusString.clear();
 
     noVertices = false;
     noInstances = false;
@@ -879,8 +879,8 @@ public:
 
     if(ret == 0)
     {
-      if(!config.noDraw.isEmpty())
-        ret += config.noDraw.count(QLatin1Char('\n')) + 1;
+      if(!config.statusString.isEmpty())
+        ret += config.statusString.count(QLatin1Char('\n')) + 1;
       if(config.noVertices)
         ret++;
       if(config.noInstances)
@@ -1097,7 +1097,7 @@ public:
       if(role == Qt::DisplayRole)
       {
         if(config.numRows == 0 &&
-           (config.noInstances || config.noVertices || !config.noDraw.isEmpty()))
+           (config.noInstances || config.noVertices || !config.statusString.isEmpty()))
         {
           if(col < 2)
             return lit("---");
@@ -1105,9 +1105,9 @@ public:
           if(col != 2)
             return QVariant();
 
-          if(!config.noDraw.isEmpty())
+          if(!config.statusString.isEmpty())
           {
-            return config.noDraw.split(QLatin1Char('\n'))[row];
+            return config.statusString.split(QLatin1Char('\n'))[row];
           }
           else if(config.noVertices && config.noInstances)
           {
@@ -1516,6 +1516,24 @@ void CacheDataForIteration(QVector<CachedElData> &cache, const rdcarray<ShaderCo
   }
 }
 
+static void ConfigureStatusColumn(rdcarray<ShaderConstant> &columns,
+                                  rdcarray<BufferElementProperties> &props)
+{
+  ShaderConstant f;
+  f.name = "STATUS";
+  f.type.columns = 1;
+  f.type.rows = 1;
+
+  BufferElementProperties p;
+  p.format.type = ResourceFormatType::Regular;
+  p.format.compType = CompType::UInt;
+  p.format.compCount = 1;
+  p.format.compByteWidth = 4;
+
+  columns.push_back(f);
+  props.push_back(p);
+}
+
 static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflection *shader,
                                       rdcarray<ShaderConstant> &columns,
                                       rdcarray<BufferElementProperties> &props)
@@ -1603,33 +1621,20 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
   {
     IEventBrowser *eb = ctx.GetEventBrowser();
 
-    bufdata->vsinConfig.noDraw =
-        lit("No current draw action\nSelected EID @%1 - %2\nEffective EID: @%3 - %4")
-            .arg(ctx.CurSelectedEvent())
-            .arg(QString(eb->GetEventName(ctx.CurSelectedEvent())))
-            .arg(ctx.CurEvent())
-            .arg(QString(eb->GetEventName(ctx.CurEvent())));
+    bufdata->vsinConfig.statusString = bufdata->vsoutConfig.statusString =
+        bufdata->gsoutConfig.statusString =
+            lit("No current draw action\nSelected EID @%1 - %2\nEffective EID: @%3 - %4")
+                .arg(ctx.CurSelectedEvent())
+                .arg(QString(eb->GetEventName(ctx.CurSelectedEvent())))
+                .arg(ctx.CurEvent())
+                .arg(QString(eb->GetEventName(ctx.CurEvent())));
 
-    ShaderConstant f;
-    f.name = "ERROR";
-    f.type.columns = 1;
-    f.type.rows = 1;
+    ConfigureStatusColumn(bufdata->vsinConfig.columns, bufdata->vsinConfig.props);
+    ConfigureStatusColumn(bufdata->vsoutConfig.columns, bufdata->vsoutConfig.props);
+    ConfigureStatusColumn(bufdata->gsoutConfig.columns, bufdata->gsoutConfig.props);
 
-    BufferElementProperties p;
-    p.format.type = ResourceFormatType::Regular;
-    p.format.compType = CompType::UInt;
-    p.format.compCount = 1;
-    p.format.compByteWidth = 4;
-
-    bufdata->vsinConfig.columns.push_back(f);
-    bufdata->vsinConfig.props.push_back(p);
     bufdata->vsinConfig.genericsEnabled.push_back(false);
     bufdata->vsinConfig.generics.push_back(PixelValue());
-
-    bufdata->vsoutConfig.columns.clear();
-    bufdata->vsoutConfig.props.clear();
-    bufdata->gsoutConfig.columns.clear();
-    bufdata->gsoutConfig.props.clear();
 
     return;
   }
@@ -1962,6 +1967,8 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
     data->vsoutConfig.unclampedNumRows = data->vsinConfig.unclampedNumRows;
   }
 
+  data->vsoutConfig.statusString = data->postVS.status;
+
   data->vsoutConfig.baseVertex = data->postVS.baseVertex;
   data->vsoutConfig.displayBaseVertex = data->vsinConfig.baseVertex;
 
@@ -2015,6 +2022,8 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
     // ref passes to model
     data->vsoutConfig.buffers.push_back(postvs);
   }
+
+  data->gsoutConfig.statusString = data->postGS.status;
 
   data->gsoutConfig.numRows = data->postGS.numIndices;
   data->gsoutConfig.unclampedNumRows = 0;
@@ -2832,12 +2841,6 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
     ConfigureMeshColumns(m_Ctx, bufdata);
 
-    if(!bufdata->vsinConfig.noDraw.isEmpty())
-    {
-      m_ColumnWidthRowCount = 0;
-      m_DataColWidth = 500;
-    }
-
     Viewport vp = m_Ctx.CurPipelineState().GetViewport(0);
 
     float vpWidth = qAbs(vp.width);
@@ -3083,6 +3086,20 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       if(bufdata->sequence != m_Sequence)
         return;
 
+      if(!bufdata->vsoutConfig.statusString.isEmpty())
+      {
+        bufdata->vsoutConfig.columns.clear();
+        bufdata->vsoutConfig.props.clear();
+        ConfigureStatusColumn(bufdata->vsoutConfig.columns, bufdata->vsoutConfig.props);
+      }
+
+      if(!bufdata->gsoutConfig.statusString.isEmpty())
+      {
+        bufdata->gsoutConfig.columns.clear();
+        bufdata->gsoutConfig.props.clear();
+        ConfigureStatusColumn(bufdata->gsoutConfig.columns, bufdata->gsoutConfig.props);
+      }
+
       m_ModelVSIn->endReset(bufdata->vsinConfig);
       m_ModelVSOut->endReset(bufdata->vsoutConfig);
       m_ModelGSOut->endReset(bufdata->gsoutConfig);
@@ -3125,9 +3142,15 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       UI_CalculateMeshFormats();
       UpdateCurrentMeshConfig();
 
-      ApplyRowAndColumnDims(m_ModelVSIn->columnCount(), ui->vsinData);
-      ApplyRowAndColumnDims(m_ModelVSOut->columnCount(), ui->vsoutData);
-      ApplyRowAndColumnDims(m_ModelGSOut->columnCount(), ui->gsoutData);
+      ApplyRowAndColumnDims(
+          m_ModelVSIn->columnCount(), ui->vsinData,
+          bufdata->vsinConfig.statusString.isEmpty() ? m_DataColWidth : m_ErrorColWidth);
+      ApplyRowAndColumnDims(
+          m_ModelVSOut->columnCount(), ui->vsoutData,
+          bufdata->vsoutConfig.statusString.isEmpty() ? m_DataColWidth : m_ErrorColWidth);
+      ApplyRowAndColumnDims(
+          m_ModelGSOut->columnCount(), ui->gsoutData,
+          bufdata->gsoutConfig.statusString.isEmpty() ? m_DataColWidth : m_ErrorColWidth);
 
       uint32_t numRows = qMax(qMax(bufdata->vsinConfig.numRows, bufdata->vsoutConfig.numRows),
                               bufdata->gsoutConfig.numRows);
@@ -3961,7 +3984,7 @@ void BufferViewer::configureDrawRange()
   m_Config.showWholePass = (curIndex >= 3);
 }
 
-void BufferViewer::ApplyRowAndColumnDims(int numColumns, RDTableView *view)
+void BufferViewer::ApplyRowAndColumnDims(int numColumns, RDTableView *view, int dataColWidth)
 {
   int start = 0;
 
@@ -3975,7 +3998,7 @@ void BufferViewer::ApplyRowAndColumnDims(int numColumns, RDTableView *view)
     widths << m_IdxColWidth;
 
   for(int i = start; i < numColumns; i++)
-    widths << m_DataColWidth;
+    widths << dataColWidth;
 
   view->verticalHeader()->setDefaultSectionSize(m_DataRowHeight);
 

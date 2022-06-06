@@ -215,8 +215,13 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   if(m_PostVSData.find(eventId) != m_PostVSData.end())
     return;
 
+  GLPostVSData &ret = m_PostVSData[eventId];
+
   if(m_pDriver->IsUnsafeDraw(eventId))
+  {
+    ret.gsout.status = ret.vsout.status = "Errors detected with drawcall";
     return;
+  }
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
@@ -268,11 +273,15 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   const ActionDescription *action = m_pDriver->GetAction(eventId);
   const GLDrawParams &drawParams = m_pDriver->GetDrawParameters(eventId);
 
-  if(action->numIndices == 0 || !(action->flags & ActionFlags::Drawcall) ||
-     ((action->flags & ActionFlags::Instanced) && action->numInstances == 0))
+  if(action->numIndices == 0)
   {
-    // draw is 0 length, nothing to do
-    m_PostVSData[eventId] = GLPostVSData();
+    ret.gsout.status = ret.vsout.status = "Empty drawcall (0 indices/vertices)";
+    return;
+  }
+
+  if((action->flags & ActionFlags::Instanced) && action->numInstances == 0)
+  {
+    ret.gsout.status = ret.vsout.status = "Empty drawcall (0 instances)";
     return;
   }
 
@@ -283,7 +292,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   {
     if(rs.Pipeline.name == 0)
     {
-      RDCERR("No program or pipeline bound at draw");
+      ret.gsout.status = ret.vsout.status = "No program or pipeline bound at draw";
+      RDCERR("%s", ret.vsout.status.c_str());
       return;
     }
     else
@@ -405,9 +415,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
   if(vsRefl == NULL || stageShaders[0] == 0)
   {
-    // no vertex shader bound (no vertex processing - compute only program
-    // or no program bound, for a clear etc)
-    m_PostVSData[eventId] = GLPostVSData();
+    ret.gsout.status = ret.vsout.status = "No vertex shader bound";
 
     // delete any temporaries
     for(size_t i = 0; i < 4; i++)
@@ -415,6 +423,17 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         drv.glDeleteShader(tmpShaders[i]);
 
     return;
+  }
+
+  if(tesRefl || gsRefl)
+  {
+    // put a general error in here in case anything goes wrong fetching VS outputs
+    ret.gsout.status =
+        "No geometry/tessellation output fetched due to error processing vertex stage.";
+  }
+  else
+  {
+    ret.gsout.status = "No geometry and no tessellation shader bound.";
   }
 
   // GLES requires a fragment shader even with rasterizer discard, so we'll attach this
@@ -498,6 +517,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     {
       GL.glGetShaderInfoLog(stageShaders[0], 1024, NULL, buffer);
       RDCERR("SPIR-V post-vs patched shader compile error: %s", buffer);
+      ret.vsout.status = "Failed to patch SPIR-V vertex shader to use transform feedback.";
       return;
     }
     // attach the vertex shader
@@ -515,6 +535,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     {
       drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
       RDCERR("SPIR-V post-vs patched program link error: %s", buffer);
+      ret.vsout.status = "Failed to patch SPIR-V vertex shader to use transform feedback.";
       return;
     }
   }
@@ -700,7 +721,6 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       char buffer[1025] = {0};
       drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
       RDCERR("Failed to fix-up. Link error making xfb vs program: %s", buffer);
-      m_PostVSData[eventId] = GLPostVSData();
 
       // delete any temporaries
       for(size_t i = 0; i < 4; i++)
@@ -711,6 +731,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
       drv.glDeleteProgram(feedbackProg);
 
+      ret.vsout.status = "Failed to relink program to use transform feedback.";
       return;
     }
   }
@@ -755,7 +776,6 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   if(vsRefl->outputSignature.empty())
   {
     // nothing to do, store an empty cache
-    m_PostVSData[eventId] = GLPostVSData();
   }
   else
   {
@@ -1014,6 +1034,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       // we bailed out much earlier if this was a draw of 0 verts
       RDCERR("No primitives written - but we must have had some number of vertices in the draw");
       error = true;
+      ret.vsout.status = "Error obtaining vertex data via transform feedback";
     }
 
     // get buffer data from buffer attached to feedback object
@@ -1024,6 +1045,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       drv.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
       RDCERR("Couldn't map feedback buffer!");
       error = true;
+      ret.vsout.status = "Error reading back vertex data from GPU";
     }
 
     if(error)
@@ -1042,8 +1064,6 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         drv.glDisable(eGL_RASTERIZER_DISCARD);
       else
         drv.glEnable(eGL_RASTERIZER_DISCARD);
-
-      m_PostVSData[eventId] = GLPostVSData();
 
       // delete any temporaries
       for(size_t i = 0; i < 4; i++)
@@ -1130,34 +1150,35 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     drv.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
 
     // store everything out to the PostVS data cache
-    m_PostVSData[eventId].vsin.topo = drawParams.topo;
-    m_PostVSData[eventId].vsout.buf = vsoutBuffer;
-    m_PostVSData[eventId].vsout.vertStride = stride;
-    m_PostVSData[eventId].vsout.nearPlane = nearp;
-    m_PostVSData[eventId].vsout.farPlane = farp;
+    ret.vsin.topo = drawParams.topo;
+    ret.vsout.buf = vsoutBuffer;
+    ret.vsout.vertStride = stride;
+    ret.vsout.nearPlane = nearp;
+    ret.vsout.farPlane = farp;
 
-    m_PostVSData[eventId].vsout.useIndices = bool(action->flags & ActionFlags::Indexed);
-    m_PostVSData[eventId].vsout.numVerts = action->numIndices;
+    ret.vsout.useIndices = bool(action->flags & ActionFlags::Indexed);
+    ret.vsout.numVerts = action->numIndices;
 
-    m_PostVSData[eventId].vsout.instStride = 0;
+    ret.vsout.instStride = 0;
     if(action->flags & ActionFlags::Instanced)
-      m_PostVSData[eventId].vsout.instStride =
-          (stride * primsWritten) / RDCMAX(1U, action->numInstances);
+      ret.vsout.instStride = (stride * primsWritten) / RDCMAX(1U, action->numInstances);
 
-    m_PostVSData[eventId].vsout.idxBuf = 0;
-    m_PostVSData[eventId].vsout.idxByteWidth = drawParams.indexWidth;
-    if(m_PostVSData[eventId].vsout.useIndices && idxBuf)
+    ret.vsout.idxBuf = 0;
+    ret.vsout.idxByteWidth = drawParams.indexWidth;
+    if(ret.vsout.useIndices && idxBuf)
     {
-      m_PostVSData[eventId].vsout.idxBuf = idxBuf;
+      ret.vsout.idxBuf = idxBuf;
     }
 
-    m_PostVSData[eventId].vsout.hasPosOut = hasPosition;
+    ret.vsout.hasPosOut = hasPosition;
 
-    m_PostVSData[eventId].vsout.topo = drawParams.topo;
+    ret.vsout.topo = drawParams.topo;
   }
 
   if(tesRefl || gsRefl)
   {
+    ret.gsout.status.clear();
+
     ShaderReflection *lastRefl = gsRefl;
     SPIRVPatchData lastPatch = gsPatch;
     int lastIndex = 3;
@@ -1230,6 +1251,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       {
         GL.glGetShaderInfoLog(stageShaders[lastIndex], 1024, NULL, buffer);
         RDCERR("SPIR-V post-gs patched shader compile error: %s", buffer);
+        ret.gsout.status =
+            "Failed to patch SPIR-V geometry/tessellation shader to use transform feedback.";
         return;
       }
 
@@ -1244,6 +1267,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       {
         drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
         RDCERR("SPIR-V post-gs patched program link error: %s", buffer);
+        ret.gsout.status =
+            "Failed to patch SPIR-V geometry/tessellation shader to use transform feedback.";
         return;
       }
     }
@@ -1730,6 +1755,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       {
         RDCWARN("No primitives written by last vertex processing stage");
         error = true;
+        ret.gsout.status = "No detectable output generated by geometry/tessellation shaders";
       }
 
       // get buffer data from buffer attached to feedback object
@@ -1739,6 +1765,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       {
         drv.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
         RDCERR("Couldn't map feedback buffer!");
+        ret.gsout.status = "Couldn't read back geometry/tessellation output data from GPU";
         error = true;
       }
 
@@ -1777,19 +1804,19 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         // primitive counter is the number of primitives, not vertices
         if(shaderOutMode == eGL_TRIANGLES ||
            shaderOutMode == eGL_QUADS)    // query for quads returns # triangles
-          m_PostVSData[eventId].gsout.numVerts = primsWritten * 3;
+          ret.gsout.numVerts = primsWritten * 3;
         else if(shaderOutMode == eGL_ISOLINES)
-          m_PostVSData[eventId].gsout.numVerts = primsWritten * 2;
+          ret.gsout.numVerts = primsWritten * 2;
       }
       else if(lastRefl == gsRefl)
       {
         // primitive counter is the number of primitives, not vertices
         if(shaderOutMode == eGL_POINTS)
-          m_PostVSData[eventId].gsout.numVerts = primsWritten;
+          ret.gsout.numVerts = primsWritten;
         else if(shaderOutMode == eGL_LINE_STRIP)
-          m_PostVSData[eventId].gsout.numVerts = primsWritten * 2;
+          ret.gsout.numVerts = primsWritten * 2;
         else if(shaderOutMode == eGL_TRIANGLE_STRIP)
-          m_PostVSData[eventId].gsout.numVerts = primsWritten * 3;
+          ret.gsout.numVerts = primsWritten * 3;
       }
 
       // create a buffer with this data, for future use (typed to ARRAY_BUFFER so we
@@ -1797,8 +1824,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       GLuint lastoutBuffer = 0;
       drv.glGenBuffers(1, &lastoutBuffer);
       drv.glBindBuffer(eGL_ARRAY_BUFFER, lastoutBuffer);
-      drv.glNamedBufferDataEXT(lastoutBuffer, stride * m_PostVSData[eventId].gsout.numVerts, data,
-                               eGL_STATIC_DRAW);
+      drv.glNamedBufferDataEXT(lastoutBuffer, stride * ret.gsout.numVerts, data, eGL_STATIC_DRAW);
 
       byte *byteData = (byte *)data;
 
@@ -1809,7 +1835,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
       bool found = false;
 
-      for(uint32_t i = 1; hasPosition && i < m_PostVSData[eventId].gsout.numVerts; i++)
+      for(uint32_t i = 1; hasPosition && i < ret.gsout.numVerts; i++)
       {
         //////////////////////////////////////////////////////////////////////////////////
         // derive near/far, assuming a standard perspective matrix
@@ -1866,34 +1892,34 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       drv.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
 
       // store everything out to the PostVS data cache
-      m_PostVSData[eventId].gsout.buf = lastoutBuffer;
-      m_PostVSData[eventId].gsout.instStride = 0;
+      ret.gsout.buf = lastoutBuffer;
+      ret.gsout.instStride = 0;
       if(action->flags & ActionFlags::Instanced)
       {
-        m_PostVSData[eventId].gsout.numVerts /= RDCMAX(1U, action->numInstances);
-        m_PostVSData[eventId].gsout.instStride = stride * m_PostVSData[eventId].gsout.numVerts;
+        ret.gsout.numVerts /= RDCMAX(1U, action->numInstances);
+        ret.gsout.instStride = stride * ret.gsout.numVerts;
       }
-      m_PostVSData[eventId].gsout.vertStride = stride;
-      m_PostVSData[eventId].gsout.nearPlane = nearp;
-      m_PostVSData[eventId].gsout.farPlane = farp;
+      ret.gsout.vertStride = stride;
+      ret.gsout.nearPlane = nearp;
+      ret.gsout.farPlane = farp;
 
-      m_PostVSData[eventId].gsout.useIndices = false;
+      ret.gsout.useIndices = false;
 
-      m_PostVSData[eventId].gsout.flipY = flipY;
+      ret.gsout.flipY = flipY;
 
-      m_PostVSData[eventId].gsout.hasPosOut = hasPosition;
+      ret.gsout.hasPosOut = hasPosition;
 
-      m_PostVSData[eventId].gsout.idxBuf = 0;
-      m_PostVSData[eventId].gsout.idxByteWidth = 0;
+      ret.gsout.idxBuf = 0;
+      ret.gsout.idxByteWidth = 0;
 
-      m_PostVSData[eventId].gsout.topo = MakePrimitiveTopology(lastOutTopo);
+      ret.gsout.topo = MakePrimitiveTopology(lastOutTopo);
 
-      m_PostVSData[eventId].gsout.instData = instData;
+      ret.gsout.instData = instData;
     }
   }
   else
   {
-    m_PostVSData[eventId].vsout.flipY = flipY;
+    ret.vsout.flipY = flipY;
   }
 
   // delete temporary program we made
@@ -2016,6 +2042,8 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_
     ret.vertexByteOffset = inst.bufOffset;
     ret.numIndices = inst.numVerts;
   }
+
+  ret.status = s.status;
 
   return ret;
 }

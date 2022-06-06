@@ -187,6 +187,8 @@ struct VulkanPostVSData
 
     float nearPlane;
     float farPlane;
+
+    rdcstr status;
   } vsin, vsout, gsout;
 
   VulkanPostVSData()

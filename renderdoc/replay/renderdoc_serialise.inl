@@ -790,8 +790,9 @@ void DoSerialise(SerialiserType &ser, MeshFormat &el)
   SERIALISE_MEMBER(unproject);
   SERIALISE_MEMBER(instanced);
   SERIALISE_MEMBER(showAlpha);
+  SERIALISE_MEMBER(status);
 
-  SIZE_CHECK(128);
+  SIZE_CHECK(152);
 }
 
 template <typename SerialiserType>

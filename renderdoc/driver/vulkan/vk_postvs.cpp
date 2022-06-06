@@ -1473,24 +1473,26 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
   ShaderReflection *refl = pipeInfo.shaders[0].refl;
 
+  VulkanPostVSData &ret = m_PostVS.Data[eventId];
+
   // set defaults so that we don't try to fetch this output again if something goes wrong and the
   // same event is selected again
   {
-    m_PostVS.Data[eventId].vsin.topo = state.primitiveTopology;
-    m_PostVS.Data[eventId].vsout.buf = VK_NULL_HANDLE;
-    m_PostVS.Data[eventId].vsout.bufmem = VK_NULL_HANDLE;
-    m_PostVS.Data[eventId].vsout.instStride = 0;
-    m_PostVS.Data[eventId].vsout.vertStride = 0;
-    m_PostVS.Data[eventId].vsout.numViews = 1;
-    m_PostVS.Data[eventId].vsout.nearPlane = 0.0f;
-    m_PostVS.Data[eventId].vsout.farPlane = 0.0f;
-    m_PostVS.Data[eventId].vsout.useIndices = false;
-    m_PostVS.Data[eventId].vsout.hasPosOut = false;
-    m_PostVS.Data[eventId].vsout.flipY = false;
-    m_PostVS.Data[eventId].vsout.idxbuf = VK_NULL_HANDLE;
-    m_PostVS.Data[eventId].vsout.idxbufmem = VK_NULL_HANDLE;
+    ret.vsin.topo = state.primitiveTopology;
+    ret.vsout.buf = VK_NULL_HANDLE;
+    ret.vsout.bufmem = VK_NULL_HANDLE;
+    ret.vsout.instStride = 0;
+    ret.vsout.vertStride = 0;
+    ret.vsout.numViews = 1;
+    ret.vsout.nearPlane = 0.0f;
+    ret.vsout.farPlane = 0.0f;
+    ret.vsout.useIndices = false;
+    ret.vsout.hasPosOut = false;
+    ret.vsout.flipY = false;
+    ret.vsout.idxbuf = VK_NULL_HANDLE;
+    ret.vsout.idxbufmem = VK_NULL_HANDLE;
 
-    m_PostVS.Data[eventId].vsout.topo = state.primitiveTopology;
+    ret.vsout.topo = state.primitiveTopology;
   }
 
   // no outputs from this shader? unexpected but theoretically possible (dummy VS before
@@ -1551,9 +1553,10 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   {
     if(refl->inputSignature[i].regIndex >= MeshOutputBufferArraySize)
     {
-      RDCERR("Input %s refers to attribute %u which is out of our array size %u",
-             refl->inputSignature[i].varName.c_str(), refl->inputSignature[i].regIndex,
-             MeshOutputBufferArraySize);
+      ret.vsout.status = StringFormat::Fmt(
+          "Input %s refers to attribute %u which is too large to be handled",
+          refl->inputSignature[i].varName.c_str(), refl->inputSignature[i].regIndex);
+      RDCERR("%s", ret.vsout.status.c_str());
       return;
     }
   }
@@ -1609,7 +1612,11 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
     // if the pool failed due to limits, it will be NULL so bail now
     if(descpool == VK_NULL_HANDLE)
+    {
+      ret.vsout.status =
+          "Couldn't allocate and patch compatible descriptors for vertex output fetch";
       return;
+    }
 
     VkPipelineLayoutCreateInfo pipeLayoutInfo = {
         VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -1868,7 +1875,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
     if(vkr == VK_ERROR_OUT_OF_DEVICE_MEMORY || vkr == VK_ERROR_OUT_OF_HOST_MEMORY)
     {
-      RDCWARN("Failed to allocate %llu bytes for unique index buffer", mrq.size);
+      ret.vsout.status = StringFormat::Fmt("Failed to allocate %llu bytes", mrq.size);
+      RDCERR("%s", ret.vsout.status.c_str());
       return;
     }
 
@@ -1880,12 +1888,14 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     byte *idxData = NULL;
     vkr = m_pDriver->vkMapMemory(m_Device, uniqIdxBufMem, 0, VK_WHOLE_SIZE, 0, (void **)&idxData);
     CheckVkResult(vkr);
-    if(vkr != VK_SUCCESS)
-      return;
-    if(!idxData)
+    if(vkr != VK_SUCCESS || !idxData)
     {
-      RDCERR("Manually reporting failed memory map");
-      CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+      if(!idxData)
+      {
+        RDCERR("Manually reporting failed memory map");
+        CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+      }
+      ret.vsout.status = "Couldn't read back vertex output data from GPU";
       return;
     }
 
@@ -1948,6 +1958,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     if(vkr == VK_ERROR_OUT_OF_DEVICE_MEMORY || vkr == VK_ERROR_OUT_OF_HOST_MEMORY)
     {
       RDCWARN("Failed to allocate %llu bytes for rebased index buffer", mrq.size);
+      ret.vsout.status = StringFormat::Fmt("Failed to allocate %llu bytes", mrq.size);
       return;
     }
 
@@ -1958,12 +1969,14 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
     vkr = m_pDriver->vkMapMemory(m_Device, rebasedIdxBufMem, 0, VK_WHOLE_SIZE, 0, (void **)&idxData);
     CheckVkResult(vkr);
-    if(vkr != VK_SUCCESS)
-      return;
-    if(!idxData)
+    if(vkr != VK_SUCCESS || !idxData)
     {
-      RDCERR("Manually reporting failed memory map");
-      CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+      if(!idxData)
+      {
+        RDCERR("Manually reporting failed memory map");
+        CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+      }
+      ret.vsout.status = "Couldn't read back vertex output data from GPU";
       return;
     }
 
@@ -2172,6 +2185,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
         if(vkr == VK_ERROR_OUT_OF_DEVICE_MEMORY || vkr == VK_ERROR_OUT_OF_HOST_MEMORY)
         {
           RDCWARN("Failed to allocate %llu bytes for patched vertex buffer", mrq.size);
+          ret.vsout.status = StringFormat::Fmt("Failed to allocate %llu bytes", mrq.size);
           return;
         }
 
@@ -2184,12 +2198,14 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
         vkr =
             m_pDriver->vkMapMemory(m_Device, vbuffers[attr].mem, 0, VK_WHOLE_SIZE, 0, (void **)&dst);
         CheckVkResult(vkr);
-        if(vkr != VK_SUCCESS)
-          return;
-        if(!dst)
+        if(vkr != VK_SUCCESS || !dst)
         {
-          RDCERR("Manually reporting failed memory map");
-          CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+          if(!dst)
+          {
+            RDCERR("Manually reporting failed memory map");
+            CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+          }
+          ret.vsout.status = "Couldn't read back vertex output data from GPU";
           return;
         }
 
@@ -2444,6 +2460,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     if(vkr == VK_ERROR_OUT_OF_DEVICE_MEMORY || vkr == VK_ERROR_OUT_OF_HOST_MEMORY)
     {
       RDCWARN("Failed to allocate %llu bytes for output vertex SSBO", mrq.size);
+      ret.vsout.status = StringFormat::Fmt("Failed to allocate %llu bytes", mrq.size);
       return;
     }
 
@@ -2462,6 +2479,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     if(vkr == VK_ERROR_OUT_OF_DEVICE_MEMORY || vkr == VK_ERROR_OUT_OF_HOST_MEMORY)
     {
       RDCWARN("Failed to allocate %llu bytes for readback memory", mrq.size);
+      ret.vsout.status = StringFormat::Fmt("Failed to allocate %llu bytes", mrq.size);
       return;
     }
 
@@ -2565,7 +2583,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
   if(vkr != VK_SUCCESS)
   {
-    RDCERR("Failed to create patched compute pipeline: %s", ToStr(vkr).c_str());
+    ret.vsout.status =
+        StringFormat::Fmt("Failed to create patched compute pipeline: %s", ToStr(vkr).c_str());
+    RDCERR("%s", ret.vsout.status.c_str());
     return;
   }
 
@@ -2696,12 +2716,14 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   byte *byteData = NULL;
   vkr = m_pDriver->vkMapMemory(m_Device, readbackMem, 0, VK_WHOLE_SIZE, 0, (void **)&byteData);
   CheckVkResult(vkr);
-  if(vkr != VK_SUCCESS)
-    return;
-  if(!byteData)
+  if(vkr != VK_SUCCESS || !byteData)
   {
-    RDCERR("Manually reporting failed memory map");
-    CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+    if(!byteData)
+    {
+      RDCERR("Manually reporting failed memory map");
+      CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+    }
+    ret.vsout.status = "Couldn't read back vertex output data from GPU";
     return;
   }
 
@@ -2793,28 +2815,28 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   }
 
   // fill out m_PostVS.Data
-  m_PostVS.Data[eventId].vsin.topo = state.primitiveTopology;
-  m_PostVS.Data[eventId].vsout.topo = state.primitiveTopology;
-  m_PostVS.Data[eventId].vsout.buf = meshBuffer;
-  m_PostVS.Data[eventId].vsout.bufmem = meshMem;
+  ret.vsin.topo = state.primitiveTopology;
+  ret.vsout.topo = state.primitiveTopology;
+  ret.vsout.buf = meshBuffer;
+  ret.vsout.bufmem = meshMem;
 
-  m_PostVS.Data[eventId].vsout.baseVertex = 0;
+  ret.vsout.baseVertex = 0;
 
-  m_PostVS.Data[eventId].vsout.numViews = numViews;
+  ret.vsout.numViews = numViews;
 
-  m_PostVS.Data[eventId].vsout.vertStride = bufStride;
-  m_PostVS.Data[eventId].vsout.nearPlane = nearp;
-  m_PostVS.Data[eventId].vsout.farPlane = farp;
+  ret.vsout.vertStride = bufStride;
+  ret.vsout.nearPlane = nearp;
+  ret.vsout.farPlane = farp;
 
-  m_PostVS.Data[eventId].vsout.useIndices = bool(action->flags & ActionFlags::Indexed);
-  m_PostVS.Data[eventId].vsout.numVerts = action->numIndices;
+  ret.vsout.useIndices = bool(action->flags & ActionFlags::Indexed);
+  ret.vsout.numVerts = action->numIndices;
 
-  m_PostVS.Data[eventId].vsout.instStride = 0;
+  ret.vsout.instStride = 0;
   if(action->flags & ActionFlags::Instanced)
-    m_PostVS.Data[eventId].vsout.instStride = uint32_t(bufSize / (action->numInstances * numViews));
+    ret.vsout.instStride = uint32_t(bufSize / (action->numInstances * numViews));
 
-  m_PostVS.Data[eventId].vsout.idxbuf = VK_NULL_HANDLE;
-  if(m_PostVS.Data[eventId].vsout.useIndices && state.ibuffer.buf != ResourceId())
+  ret.vsout.idxbuf = VK_NULL_HANDLE;
+  if(ret.vsout.useIndices && state.ibuffer.buf != ResourceId())
   {
     VkIndexType type = VK_INDEX_TYPE_UINT16;
     if(idxsize == 4)
@@ -2822,14 +2844,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     else if(idxsize == 1)
       type = VK_INDEX_TYPE_UINT8_EXT;
 
-    m_PostVS.Data[eventId].vsout.idxbuf = rebasedIdxBuf;
-    m_PostVS.Data[eventId].vsout.idxbufmem = rebasedIdxBufMem;
-    m_PostVS.Data[eventId].vsout.idxFmt = type;
+    ret.vsout.idxbuf = rebasedIdxBuf;
+    ret.vsout.idxbufmem = rebasedIdxBufMem;
+    ret.vsout.idxFmt = type;
   }
 
-  m_PostVS.Data[eventId].vsout.hasPosOut =
-      refl->outputSignature[0].systemValue == ShaderBuiltin::Position;
-  m_PostVS.Data[eventId].vsout.flipY = state.views.empty() ? false : state.views[0].height < 0.0f;
+  ret.vsout.hasPosOut = refl->outputSignature[0].systemValue == ShaderBuiltin::Position;
+  ret.vsout.flipY = state.views.empty() ? false : state.views[0].height < 0.0f;
 
   if(descpool != VK_NULL_HANDLE)
   {
@@ -2861,28 +2882,30 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
 
   const ActionDescription *action = m_pDriver->GetAction(eventId);
 
+  VulkanPostVSData &ret = m_PostVS.Data[eventId];
+
   // set defaults so that we don't try to fetch this output again if something goes wrong and the
   // same event is selected again
   {
-    m_PostVS.Data[eventId].gsout.buf = VK_NULL_HANDLE;
-    m_PostVS.Data[eventId].gsout.bufmem = VK_NULL_HANDLE;
-    m_PostVS.Data[eventId].gsout.instStride = 0;
-    m_PostVS.Data[eventId].gsout.vertStride = 0;
-    m_PostVS.Data[eventId].gsout.numViews = 1;
-    m_PostVS.Data[eventId].gsout.nearPlane = 0.0f;
-    m_PostVS.Data[eventId].gsout.farPlane = 0.0f;
-    m_PostVS.Data[eventId].gsout.useIndices = false;
-    m_PostVS.Data[eventId].gsout.hasPosOut = false;
-    m_PostVS.Data[eventId].gsout.flipY = false;
-    m_PostVS.Data[eventId].gsout.idxbuf = VK_NULL_HANDLE;
-    m_PostVS.Data[eventId].gsout.idxbufmem = VK_NULL_HANDLE;
+    ret.gsout.buf = VK_NULL_HANDLE;
+    ret.gsout.bufmem = VK_NULL_HANDLE;
+    ret.gsout.instStride = 0;
+    ret.gsout.vertStride = 0;
+    ret.gsout.numViews = 1;
+    ret.gsout.nearPlane = 0.0f;
+    ret.gsout.farPlane = 0.0f;
+    ret.gsout.useIndices = false;
+    ret.gsout.hasPosOut = false;
+    ret.gsout.flipY = false;
+    ret.gsout.idxbuf = VK_NULL_HANDLE;
+    ret.gsout.idxbufmem = VK_NULL_HANDLE;
   }
 
   if(state.dynamicRendering.viewMask > 1 ||
      (state.GetRenderPass() != ResourceId() &&
       !creationInfo.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].multiviews.empty()))
   {
-    RDCWARN("Multipass is active for this draw, no GS/Tess mesh output is available");
+    ret.gsout.status = "Multiview is active for this draw, no GS/Tess mesh output is available";
     return;
   }
 
@@ -2906,12 +2929,10 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   // transform feedback expands strips to lists
   switch(pipeInfo.shaders[stageIndex].patchData->outTopo)
   {
-    case Topology::PointList:
-      m_PostVS.Data[eventId].gsout.topo = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-      break;
+    case Topology::PointList: ret.gsout.topo = VK_PRIMITIVE_TOPOLOGY_POINT_LIST; break;
     case Topology::LineList:
     case Topology::LineStrip:
-      m_PostVS.Data[eventId].gsout.topo = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+      ret.gsout.topo = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
       primitiveMultiplier = 2;
       break;
     default:
@@ -2920,34 +2941,34 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
       DELIBERATE_FALLTHROUGH();
     case Topology::TriangleList:
     case Topology::TriangleStrip:
-      m_PostVS.Data[eventId].gsout.topo = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+      ret.gsout.topo = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
       primitiveMultiplier = 3;
       break;
   }
 
   if(lastRefl->outputSignature.empty())
   {
-    // empty vertex output signature
-    m_PostVS.Data[eventId].gsout.buf = VK_NULL_HANDLE;
-    m_PostVS.Data[eventId].gsout.bufmem = VK_NULL_HANDLE;
-    m_PostVS.Data[eventId].gsout.instStride = 0;
-    m_PostVS.Data[eventId].gsout.vertStride = 0;
-    m_PostVS.Data[eventId].gsout.numViews = 1;
-    m_PostVS.Data[eventId].gsout.nearPlane = 0.0f;
-    m_PostVS.Data[eventId].gsout.farPlane = 0.0f;
-    m_PostVS.Data[eventId].gsout.useIndices = false;
-    m_PostVS.Data[eventId].gsout.hasPosOut = false;
-    m_PostVS.Data[eventId].gsout.flipY = false;
-    m_PostVS.Data[eventId].gsout.idxbuf = VK_NULL_HANDLE;
-    m_PostVS.Data[eventId].gsout.idxbufmem = VK_NULL_HANDLE;
+    // empty output signature
+    ret.gsout.buf = VK_NULL_HANDLE;
+    ret.gsout.bufmem = VK_NULL_HANDLE;
+    ret.gsout.instStride = 0;
+    ret.gsout.vertStride = 0;
+    ret.gsout.numViews = 1;
+    ret.gsout.nearPlane = 0.0f;
+    ret.gsout.farPlane = 0.0f;
+    ret.gsout.useIndices = false;
+    ret.gsout.hasPosOut = false;
+    ret.gsout.flipY = false;
+    ret.gsout.idxbuf = VK_NULL_HANDLE;
+    ret.gsout.idxbufmem = VK_NULL_HANDLE;
     return;
   }
 
   if(!ObjDisp(m_Device)->CmdBeginTransformFeedbackEXT)
   {
-    RDCLOG(
+    ret.gsout.status =
         "VK_EXT_transform_feedback extension not available, can't fetch tessellation/geometry "
-        "output");
+        "output";
     return;
   }
 
@@ -3109,6 +3130,8 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     {
       RDCWARN("Output allocation for %llu bytes failed fetching tessellation/geometry output.",
               mrq.size);
+
+      ret.gsout.status = StringFormat::Fmt("Failed to allocate %llu bytes", mrq.size);
 
       m_pDriver->vkDestroyBuffer(dev, meshBuffer, NULL);
 
@@ -3359,31 +3382,30 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   }
 
   // fill out m_PostVS.Data
-  m_PostVS.Data[eventId].gsout.buf = meshBuffer;
-  m_PostVS.Data[eventId].gsout.bufmem = meshMem;
+  ret.gsout.buf = meshBuffer;
+  ret.gsout.bufmem = meshMem;
 
-  m_PostVS.Data[eventId].gsout.baseVertex = 0;
+  ret.gsout.baseVertex = 0;
 
-  m_PostVS.Data[eventId].gsout.numViews = 1;
+  ret.gsout.numViews = 1;
 
-  m_PostVS.Data[eventId].gsout.vertStride = xfbStride;
-  m_PostVS.Data[eventId].gsout.nearPlane = nearp;
-  m_PostVS.Data[eventId].gsout.farPlane = farp;
+  ret.gsout.vertStride = xfbStride;
+  ret.gsout.nearPlane = nearp;
+  ret.gsout.farPlane = farp;
 
-  m_PostVS.Data[eventId].gsout.useIndices = false;
+  ret.gsout.useIndices = false;
 
-  m_PostVS.Data[eventId].gsout.numVerts =
-      uint32_t(queryResult.numPrimitivesWritten) * primitiveMultiplier;
+  ret.gsout.numVerts = uint32_t(queryResult.numPrimitivesWritten) * primitiveMultiplier;
 
   // set instance stride to 0. If there's any stride needed, it will be calculated using instData
-  m_PostVS.Data[eventId].gsout.instStride = 0;
-  m_PostVS.Data[eventId].gsout.instData = instData;
+  ret.gsout.instStride = 0;
+  ret.gsout.instData = instData;
 
-  m_PostVS.Data[eventId].gsout.idxbuf = VK_NULL_HANDLE;
-  m_PostVS.Data[eventId].gsout.idxbufmem = VK_NULL_HANDLE;
+  ret.gsout.idxbuf = VK_NULL_HANDLE;
+  ret.gsout.idxbufmem = VK_NULL_HANDLE;
 
-  m_PostVS.Data[eventId].gsout.hasPosOut = true;
-  m_PostVS.Data[eventId].gsout.flipY = state.views.empty() ? false : state.views[0].height < 0.0f;
+  ret.gsout.hasPosOut = true;
+  ret.gsout.flipY = state.views.empty() ? false : state.views[0].height < 0.0f;
 
   // delete framebuffer and renderpass
   m_pDriver->vkDestroyFramebuffer(dev, fb, NULL);
@@ -3410,19 +3432,42 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId, VulkanRenderState state)
 
   VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
 
+  VulkanPostVSData &ret = m_PostVS.Data[eventId];
+
   if(state.graphics.pipeline == ResourceId() ||
      (state.GetRenderPass() == ResourceId() && !state.dynamicRendering.active))
+  {
+    ret.gsout.status = ret.vsout.status = "Draw outside of renderpass";
     return;
+  }
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[state.graphics.pipeline];
 
   if(pipeInfo.shaders[0].module == ResourceId())
+  {
+    ret.gsout.status = ret.vsout.status = "No vertex shader in pipeline";
     return;
+  }
 
   const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  if(action == NULL || action->numIndices == 0 || action->numInstances == 0)
+  if(action == NULL)
+  {
+    ret.gsout.status = ret.vsout.status = "Invalid draw";
     return;
+  }
+
+  if(action->numIndices == 0)
+  {
+    ret.gsout.status = ret.vsout.status = "Empty drawcall (0 indices/vertices)";
+    return;
+  }
+
+  if(action->numInstances == 0)
+  {
+    ret.gsout.status = ret.vsout.status = "Empty drawcall (0 instances)";
+    return;
+  }
 
   VkMarkerRegion::Begin(StringFormat::Fmt("FetchVSOut for %u", eventId));
 
@@ -3432,7 +3477,10 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId, VulkanRenderState state)
 
   // if there's no tessellation or geometry shader active, bail out now
   if(pipeInfo.shaders[2].module == ResourceId() && pipeInfo.shaders[3].module == ResourceId())
+  {
+    ret.gsout.status = "No geometry and no tessellation shader bound.";
     return;
+  }
 
   VkMarkerRegion::Begin(StringFormat::Fmt("FetchTessGSOut for %u", eventId));
 
@@ -3599,6 +3647,8 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uin
     ret.vertexByteOffset = inst.bufOffset;
     ret.numIndices = inst.numVerts;
   }
+
+  ret.status = s.status;
 
   return ret;
 }

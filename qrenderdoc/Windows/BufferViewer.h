@@ -259,6 +259,7 @@ private:
   int m_IdxColWidth;
   int m_DataColWidth;
   int m_DataRowHeight;
+  const int m_ErrorColWidth = 500;
 
   int previousAxisMappingIndex = 0;
 
@@ -315,7 +316,7 @@ private:
   void EnableCameraGuessControls();
 
   void CalcColumnWidth(int maxNumRows = 1);
-  void ApplyRowAndColumnDims(int numColumns, RDTableView *view);
+  void ApplyRowAndColumnDims(int numColumns, RDTableView *view, int dataColWidth);
 
   void SyncViews(RDTableView *primary, bool selection, bool scroll);
   void UpdateHighlightVerts();

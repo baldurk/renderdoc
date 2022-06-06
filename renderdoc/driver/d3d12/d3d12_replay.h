@@ -327,6 +327,8 @@ private:
 
       float nearPlane = 0.0f;
       float farPlane = 0.0f;
+
+      rdcstr status;
     } vsin, vsout, gsout;
 
     const StageData &GetStage(MeshDataStage type)

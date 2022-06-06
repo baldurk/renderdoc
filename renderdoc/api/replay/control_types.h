@@ -99,6 +99,15 @@ struct MeshFormat
 
   DOCUMENT("``True`` if the primitive restart index feature should be used.");
   bool allowRestart = true;
+
+  DOCUMENT(R"(A string with the status of this mesh format - only used when a mesh format is
+returned to the application detailing e.g. vertex output data.
+
+An empty string indicates no errors/problems.
+
+:type: str
+)");
+  rdcstr status;
 };
 
 DECLARE_REFLECTION_STRUCT(MeshFormat);
