@@ -447,6 +447,11 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   {
     return m_Obj.CurRootActions();
   }
+  virtual void SetActionCustomName(uint32_t id, const rdcstr &name) override
+  {
+    InvokeVoidFunction(&ICaptureContext::SetActionCustomName, id, name);
+  }
+
   virtual ResourceDescription *GetResource(ResourceId id) override { return m_Obj.GetResource(id); }
   virtual const rdcarray<ResourceDescription> &GetResources() override
   {

@@ -1999,6 +1999,8 @@ more information for how this differs.
 )");
   virtual const rdcarray<ActionDescription> &CurRootActions() = 0;
 
+  virtual void SetActionCustomName(uint32_t id, const rdcstr &name) = 0;
+
   DOCUMENT(R"(Retrieve the information about a particular resource.
 
 :param renderdoc.ResourceId id: The ID of the resource to query about.

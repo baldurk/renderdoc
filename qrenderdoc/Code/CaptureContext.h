@@ -166,6 +166,7 @@ public:
   bool OpenRGPProfile(const rdcstr &filename) override;
   IRGPInterop *GetRGPInterop() override { return m_RGP; }
   const rdcarray<ActionDescription> &CurRootActions() override { return *m_Actions; }
+  void SetActionCustomName(uint32_t id, const rdcstr &name) override;
   ResourceDescription *GetResource(ResourceId id) override { return m_Resources[id]; }
   const rdcarray<ResourceDescription> &GetResources() override { return m_ResourceList; }
   rdcstr GetResourceName(ResourceId id) override;
@@ -381,6 +382,7 @@ private:
 
   QMap<QString, QString> m_Notes;
 
+  QMap<uint32_t, QString> m_CustomActionNames;
   QMap<ResourceId, QString> m_CustomNames;
   int m_CustomNameCachedID = 1;
 

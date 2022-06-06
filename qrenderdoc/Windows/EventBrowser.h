@@ -153,6 +153,7 @@ private slots:
   // automatic slots
   void on_find_toggled(bool checked);
   void on_timeActions_clicked();
+  void on_rename_clicked();
   void on_bookmark_clicked();
   void on_HideFind();
   void on_findEvent_returnPressed();

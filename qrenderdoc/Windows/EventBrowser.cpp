@@ -42,6 +42,7 @@
 #include <QStylePainter>
 #include <QTextEdit>
 #include <QTimer>
+#include <QInputDialog>
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Widgets/CollapseGroupBox.h"
@@ -3695,6 +3696,26 @@ void EventBrowser::on_find_toggled(bool checked)
     ui->findEvent->setFocus();
 }
 
+void EventBrowser::on_rename_clicked()
+{
+  QModelIndex idx = ui->events->currentIndex();
+
+  if(idx.isValid())
+  {
+    uint32_t eid = GetSelectedEID(idx);
+    rdcstr eventName = GetEventName(eid);
+    bool isOK;
+    QString text = QInputDialog::getText(NULL, QString::fromUtf8("Rename"),
+                                         QString::fromUtf8("Please input customized name"),
+                                         QLineEdit::Normal, eventName, &isOK);
+    if(isOK)
+    {
+      m_Ctx.SetActionCustomName(eid, text);
+      m_Model->RefreshCache();
+    }
+  }
+}
+
 void EventBrowser::on_bookmark_clicked()
 {
   QModelIndex idx = ui->events->currentIndex();
@@ -5196,6 +5217,7 @@ void EventBrowser::events_contextMenu(const QPoint &pos)
 
   QAction expandAll(tr("&Expand All"), this);
   QAction collapseAll(tr("&Collapse All"), this);
+  QAction renameEvent(tr("&Rename Event"), this);
   QAction toggleBookmark(tr("Toggle &Bookmark"), this);
   QAction selectCols(tr("&Select Columns..."), this);
   QAction rgpSelect(tr("Select &RGP Event"), this);
@@ -5203,16 +5225,19 @@ void EventBrowser::events_contextMenu(const QPoint &pos)
 
   contextMenu.addAction(&expandAll);
   contextMenu.addAction(&collapseAll);
+  contextMenu.addAction(&renameEvent);
   contextMenu.addAction(&toggleBookmark);
   contextMenu.addAction(&selectCols);
 
   expandAll.setIcon(Icons::arrow_out());
   collapseAll.setIcon(Icons::arrow_in());
+  renameEvent.setIcon(Icons::page_white_edit());
   toggleBookmark.setIcon(Icons::asterisk_orange());
   selectCols.setIcon(Icons::timeline_marker());
 
   expandAll.setEnabled(index.isValid() && ui->events->model()->rowCount(index) > 0);
   collapseAll.setEnabled(expandAll.isEnabled());
+  renameEvent.setEnabled(m_Ctx.IsCaptureLoaded());
   toggleBookmark.setEnabled(m_Ctx.IsCaptureLoaded());
 
   QObject::connect(&expandAll, &QAction::triggered,
@@ -5220,6 +5245,8 @@ void EventBrowser::events_contextMenu(const QPoint &pos)
 
   QObject::connect(&collapseAll, &QAction::triggered,
                    [this, index]() { ui->events->collapseAll(index); });
+
+  QObject::connect(&renameEvent, &QAction::triggered, this, &EventBrowser::on_rename_clicked);
 
   QObject::connect(&toggleBookmark, &QAction::triggered, this, &EventBrowser::on_bookmark_clicked);
 

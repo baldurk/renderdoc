@@ -1430,6 +1430,7 @@ void CaptureContext::CloseCapture()
   m_OrigToReplacedResources.clear();
   m_ReplacedToOrigResources.clear();
 
+  m_CustomActionNames.clear();
   m_CustomNames.clear();
   m_Bookmarks.clear();
   m_Notes.clear();
@@ -1812,6 +1813,12 @@ void CaptureContext::SaveChanges()
 
 bool CaptureContext::SaveRenames()
 {
+  QVariantMap actions;
+  for(uint32_t id : m_CustomActionNames.keys())
+  {
+    actions[ToQStr(id)] = m_CustomActionNames[id];
+  }
+
   QVariantMap resources;
   for(ResourceId id : m_CustomNames.keys())
   {
@@ -1819,6 +1826,7 @@ bool CaptureContext::SaveRenames()
   }
 
   QVariantMap root;
+  root[lit("CustomActionNames")] = actions;
   root[lit("CustomResourceNames")] = resources;
 
   QString json = VariantToJSON(root);
@@ -1833,6 +1841,20 @@ bool CaptureContext::SaveRenames()
 void CaptureContext::LoadRenames(const QString &data)
 {
   QVariantMap root = JSONToVariant(data);
+
+  if(root.contains(lit("CustomActionNames")))
+  {
+    QVariantMap actions = root[lit("CustomActionNames")].toMap();
+
+    for(const QString &str : actions.keys())
+    {
+      uint32_t id = str.toUInt();
+      QString name = actions[str].toString();
+      m_CustomActionNames[id] = name;
+      const ActionDescription *action = GetAction(id);
+      const_cast<ActionDescription *>(action)->customName = name;
+    }
+  }
 
   if(root.contains(lit("CustomResourceNames")))
   {
@@ -2062,6 +2084,24 @@ bool CaptureContext::OpenRGPProfile(const rdcstr &filename)
   m_RGP = new RGPInterop(*this);
 
   return true;
+}
+
+void CaptureContext::SetActionCustomName(uint32_t id, const rdcstr &name)
+{
+  if(name.isEmpty())
+  {
+    if(m_CustomActionNames.contains(id))
+      m_CustomActionNames.remove(id);
+  }
+  else
+  {
+    m_CustomActionNames[id] = name;
+  }
+
+  const ActionDescription* action = GetAction(id);
+  const_cast<ActionDescription*>(action)->customName = name;
+
+  SetModification(CaptureModifications::Renames);
 }
 
 rdcstr CaptureContext::GetResourceNameUnsuffixed(ResourceId id)
