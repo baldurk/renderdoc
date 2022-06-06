@@ -671,6 +671,9 @@ struct VkDevDispatchTable
   PFN_vkGetRayTracingShaderGroupStackSizeKHR GetRayTracingShaderGroupStackSizeKHR;
   PFN_vkCmdSetRayTracingPipelineStackSizeKHR CmdSetRayTracingPipelineStackSizeKHR;
 
+  // VK_KHR_ray_tracing_maintenance1
+  PFN_vkCmdTraceRaysIndirect2KHR CmdTraceRaysIndirect2KHR;
+
   // VK_KHR_maintenance4
   PFN_vkGetDeviceBufferMemoryRequirementsKHR GetDeviceBufferMemoryRequirementsKHR;
   PFN_vkGetDeviceImageMemoryRequirementsKHR GetDeviceImageMemoryRequirementsKHR;
@@ -866,6 +869,9 @@ struct VkDevDispatchTable
   // VK_NV_fragment_shading_rate_enums
   PFN_vkCmdSetFragmentShadingRateEnumNV CmdSetFragmentShadingRateEnumNV;
 
+  // VK_EXT_image_compression_control
+  PFN_vkGetImageSubresourceLayout2EXT GetImageSubresourceLayout2EXT;
+
   // VK_EXT_vertex_input_dynamic_state
   PFN_vkCmdSetVertexInputEXT CmdSetVertexInputEXT;
 
@@ -899,6 +905,9 @@ struct VkDevDispatchTable
 
   // VK_NV_external_memory_rdma
   PFN_vkGetMemoryRemoteAddressNV GetMemoryRemoteAddressNV;
+
+  // VK_EXT_pipeline_properties
+  PFN_vkGetPipelinePropertiesEXT GetPipelinePropertiesEXT;
 
   // VK_EXT_extended_dynamic_state2
   PFN_vkCmdSetPatchControlPointsEXT CmdSetPatchControlPointsEXT;

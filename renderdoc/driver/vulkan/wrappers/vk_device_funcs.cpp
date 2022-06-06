@@ -2345,8 +2345,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_NV);
+      BEGIN_PHYS_EXT_CHECK(
+          VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR,
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR);
       {
         CHECK_PHYS_EXT_FEATURE(fragmentShaderBarycentric);
       }

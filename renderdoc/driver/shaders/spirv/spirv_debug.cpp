@@ -3513,6 +3513,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::GroupLogicalAndKHR:
     case Op::GroupLogicalOrKHR:
     case Op::GroupLogicalXorKHR:
+
+    case Op::GroupNonUniformRotateKHR:
     {
       RDCERR("Group opcodes not supported. SPIR-V should have been rejected by capability!");
 

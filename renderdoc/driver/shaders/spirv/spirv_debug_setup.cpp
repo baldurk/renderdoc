@@ -406,6 +406,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::GroupNonUniformQuad:
       case Capability::SubgroupBallotKHR:
       case Capability::SubgroupVoteKHR:
+      case Capability::GroupNonUniformRotateKHR:
 
       // workgroup layout:
       case Capability::WorkgroupMemoryExplicitLayout16BitAccessKHR:
@@ -445,6 +446,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::RayQueryKHR:
       case Capability::RayTraversalPrimitiveCullingKHR:
       case Capability::RayTracingKHR:
+      case Capability::RayCullMaskKHR:
       {
         supported = false;
         break;

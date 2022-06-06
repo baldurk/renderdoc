@@ -12603,6 +12603,57 @@ struct OpSubgroupAllEqualKHR
   Id predicate;
 };
 
+struct OpGroupNonUniformRotateKHR
+{
+  OpGroupNonUniformRotateKHR(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    this->execution = Id::fromWord(it.word(3));
+    this->value = Id::fromWord(it.word(4));
+    this->delta = Id::fromWord(it.word(5));
+    this->clusterSize = (it.size() > 6) ? Id::fromWord(it.word(6)) : Id();
+  }
+  OpGroupNonUniformRotateKHR(IdResultType resultType, IdResult result, IdScope execution, Id value, Id delta, Id clusterSize = Id())
+      : op(Op::GroupNonUniformRotateKHR)
+      , wordCount(MinWordSize + OptionalWordCount(clusterSize))
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->execution = execution;
+    this->value = value;
+    this->delta = delta;
+    this->clusterSize = clusterSize;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    words.push_back(execution.value());
+    words.push_back(value.value());
+    words.push_back(delta.value());
+    if(clusterSize != Id()) words.push_back(clusterSize.value());
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::GroupNonUniformRotateKHR;
+  static constexpr uint16_t MinWordSize = 6U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  IdScope execution;
+  Id value;
+  Id delta;
+  Id clusterSize;
+
+  bool HasClusterSize() const { return wordCount > 6; }
+};
+
 struct OpSubgroupReadInvocationKHR
 {
   OpSubgroupReadInvocationKHR(const ConstIter &it)

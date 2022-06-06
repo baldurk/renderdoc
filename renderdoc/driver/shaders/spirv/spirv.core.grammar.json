@@ -4184,6 +4184,21 @@
       "version" : "None"
     },
     {
+      "opname" : "OpGroupNonUniformRotateKHR",
+      "class"  : "Group",
+      "opcode" : 4431,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdScope", "name" : "'Execution'" },
+        { "kind" : "IdRef", "name" : "'Value'" },
+        { "kind" : "IdRef", "name" : "'Delta'" },
+        { "kind" : "IdRef", "name" : "'ClusterSize'", "quantifier" : "?" }
+      ],
+      "capabilities" : [ "GroupNonUniformRotateKHR" ],
+      "version" : "None"
+    },
+    {
       "opname" : "OpSubgroupReadInvocationKHR",
       "class"  : "Group",
       "opcode" : 4432,
@@ -9936,11 +9951,60 @@
           "version" : "1.4"
         },
         {
+          "enumerant": "EarlyAndLateFragmentTestsAMD",
+          "value": 5017,
+          "capabilities": [ "Shader" ],
+          "extensions": [ "SPV_AMD_shader_early_and_late_fragment_tests" ],
+          "version": "None"
+        },
+        {
           "enumerant" : "StencilRefReplacingEXT",
           "value" : 5027,
           "capabilities" : [ "StencilExportEXT" ],
           "extensions" : [ "SPV_EXT_shader_stencil_export" ],
           "version" : "None"
+        },
+        {
+          "enumerant": "StencilRefUnchangedFrontAMD",
+          "value": 5079,
+          "capabilities": [ "StencilExportEXT" ],
+          "extensions": [ "SPV_AMD_shader_early_and_late_fragment_tests", "SPV_EXT_shader_stencil_export" ],
+          "version": "None"
+        },
+        {
+          "enumerant": "StencilRefGreaterFrontAMD",
+          "value": 5080,
+          "capabilities": [ "StencilExportEXT" ],
+          "extensions": [ "SPV_AMD_shader_early_and_late_fragment_tests", "SPV_EXT_shader_stencil_export" ],
+          "version": "None"
+        },
+        {
+          "enumerant": "StencilRefLessFrontAMD",
+          "value": 5081,
+          "capabilities": [ "StencilExportEXT" ],
+          "extensions": [ "SPV_AMD_shader_early_and_late_fragment_tests", "SPV_EXT_shader_stencil_export" ],
+          "version": "None"
+        },
+        {
+          "enumerant": "StencilRefUnchangedBackAMD",
+          "value": 5082,
+          "capabilities": [ "StencilExportEXT" ],
+          "extensions": [ "SPV_AMD_shader_early_and_late_fragment_tests", "SPV_EXT_shader_stencil_export" ],
+          "version": "None"
+        },
+        {
+          "enumerant": "StencilRefGreaterBackAMD",
+          "value": 5083,
+          "capabilities": [ "StencilExportEXT" ],
+          "extensions": [ "SPV_AMD_shader_early_and_late_fragment_tests", "SPV_EXT_shader_stencil_export" ],
+          "version": "None"
+        },
+        {
+          "enumerant": "StencilRefLessBackAMD",
+          "value": 5084,
+          "capabilities": [ "StencilExportEXT" ],
+          "extensions": [ "SPV_AMD_shader_early_and_late_fragment_tests", "SPV_EXT_shader_stencil_export" ],
+          "version": "None"
         },
         {
           "enumerant" : "OutputLinesNV",
@@ -12601,6 +12665,13 @@
           "capabilities" : [ "ShaderSMBuiltinsNV" ],
           "extensions" : [ "SPV_NV_shader_sm_builtins" ],
           "version" : "None"
+        },
+        {
+          "enumerant" : "CullMaskKHR",
+          "value"  : 6021,
+          "capabilities" : [ "RayCullMaskKHR" ],
+          "extensions" : [ "SPV_KHR_ray_cull_mask" ],
+          "version" : "None"
         }
       ]
     },
@@ -13990,9 +14061,22 @@
           "version" : "1.6"
         },
         {
+          "enumerant" : "RayCullMaskKHR",
+          "value" : 6020,
+          "extensions" : [ "SPV_KHR_ray_cull_mask" ],
+          "version" : "None"
+        },
+        {
           "enumerant" : "BitInstructions",
           "value" : 6025,
           "extensions" : [ "SPV_KHR_bit_instructions" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "GroupNonUniformRotateKHR",
+          "value" : 6026,
+          "capabilities" : [ "GroupNonUniform" ],
+          "extensions" : [ "SPV_KHR_subgroup_rotate" ],
           "version" : "None"
         },
         {

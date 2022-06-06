@@ -49,8 +49,8 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_fragment_density_map2`
 * `VK_EXT_fragment_shader_interlock`
 * `VK_EXT_full_screen_exclusive`
-* `VK_EXT_global_priority`
 * `VK_EXT_global_priority_query`
+* `VK_EXT_global_priority`
 * `VK_EXT_graphics_pipeline_library`
 * `VK_EXT_hdr_metadata`
 * `VK_EXT_headless_surface`
@@ -134,6 +134,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_KHR_external_semaphore_win32`
 * `VK_KHR_external_semaphore`
 * `VK_KHR_format_feature_flags2`
+* `VK_KHR_fragment_shader_barycentric`
 * `VK_KHR_fragment_shading_rate`
 * `VK_KHR_get_display_properties2`
 * `VK_KHR_get_memory_requirements2`
@@ -222,6 +223,7 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 
 * `VK_KHR_acceleration_structure`
 * `VK_KHR_ray_tracing_pipeline`
+* `VK_KHR_ray_tracing_maintenance1`
 * `VK_KHR_ray_query`
 * `VK_KHR_deferred_host_operations`
 
@@ -234,14 +236,18 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_device_memory_report`
 * `VK_EXT_external_memory_host`
 * `VK_EXT_image_2d_view_of_3d`
+* `VK_EXT_image_compression_control`
+* `VK_EXT_image_compression_control_swapchain`
 * `VK_EXT_image_drm_format_modifier`
 * `VK_EXT_image_view_min_lod`
 * `VK_EXT_multi_draw`
 * `VK_EXT_pageable_device_local_memory`
 * `VK_EXT_physical_device_drm`
+* `VK_EXT_pipeline_properties`
 * `VK_EXT_primitive_topology_list_restart`
 * `VK_EXT_primitives_generated_query`
 * `VK_EXT_provoking_vertex`
+* `VK_EXT_subpass_merge_feedback`
 
 ## Platform/IHV Extensions
 
@@ -256,6 +262,7 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_AMD_rasterization_order`
 * `VK_AMD_shader_info`
 * `VK_AMD_shader_core_properties2`
+* `VK_AMD_shader_early_and_late_fragment_tests`
 
 ### Fuschia
 

@@ -122,6 +122,7 @@ enum class Generator : uint32_t
   SkiaSkSL = 31,
   SPIRVBeehiveToolkit = 32,
   ShaderWriter = 33,
+  SPIRVSmith = 34,
 };
 
 enum class ImageOperands : uint32_t
@@ -418,7 +419,14 @@ enum class ExecutionMode : uint32_t
   SignedZeroInfNanPreserve = 4461,
   RoundingModeRTE = 4462,
   RoundingModeRTZ = 4463,
+  EarlyAndLateFragmentTestsAMD = 5017,
   StencilRefReplacingEXT = 5027,
+  StencilRefUnchangedFrontAMD = 5079,
+  StencilRefGreaterFrontAMD = 5080,
+  StencilRefLessFrontAMD = 5081,
+  StencilRefUnchangedBackAMD = 5082,
+  StencilRefGreaterBackAMD = 5083,
+  StencilRefLessBackAMD = 5084,
   OutputLinesNV = 5269,
   OutputPrimitivesNV = 5270,
   DerivativeGroupQuadsNV = 5289,
@@ -932,6 +940,7 @@ enum class BuiltIn : uint32_t
   SMCountNV = 5375,
   WarpIDNV = 5376,
   SMIDNV = 5377,
+  CullMaskKHR = 6021,
   Max,
   Invalid = ~0U,
 };
@@ -1187,7 +1196,9 @@ enum class Capability : uint32_t
   DotProductInput4x8BitPackedKHR = 6018,
   DotProduct = 6019,
   DotProductKHR = 6019,
+  RayCullMaskKHR = 6020,
   BitInstructions = 6025,
+  GroupNonUniformRotateKHR = 6026,
   AtomicFloat32AddEXT = 6033,
   AtomicFloat64AddEXT = 6034,
   LongConstantCompositeINTEL = 6089,
@@ -1908,6 +1919,7 @@ enum class Op : uint16_t
   SubgroupAllKHR = 4428,
   SubgroupAnyKHR = 4429,
   SubgroupAllEqualKHR = 4430,
+  GroupNonUniformRotateKHR = 4431,
   SubgroupReadInvocationKHR = 4432,
   TraceRayKHR = 4445,
   ExecuteCallableKHR = 4446,

@@ -229,6 +229,8 @@
 302    VK_QCOM_render_pass_store_ops
 315    VK_KHR_synchronization2
 321    VK_EXT_graphics_pipeline_library
+322    VK_AMD_shader_early_and_late_fragment_tests
+323    VK_KHR_fragment_shader_barycentric
 324    VK_KHR_shader_subgroup_uniform_control_flow
 326    VK_KHR_zero_initialize_workgroup_memory
 327    VK_NV_fragment_shading_rate_enums
@@ -239,6 +241,7 @@
 336    VK_EXT_image_robustness
 337    VK_KHR_workgroup_memory_explicit_layout
 338    VK_KHR_copy_commands2
+339    VK_EXT_image_compression_control
 341    VK_EXT_4444_formats
 343    VK_ARM_rasterization_order_attachment_access
 345    VK_EXT_rgba10x6_formats
@@ -258,10 +261,12 @@
 370    VK_HUAWEI_subpass_shading
 371    VK_HUAWEI_invocation_mask
 372    VK_NV_external_memory_rdma
+373    VK_EXT_pipeline_properties
 378    VK_EXT_extended_dynamic_state2
 379    VK_QNX_screen_surface
 382    VK_EXT_color_write_enable
 383    VK_EXT_primitives_generated_query
+387    VK_KHR_ray_tracing_maintenance1
 389    VK_EXT_global_priority_query
 392    VK_EXT_image_view_min_lod
 393    VK_EXT_multi_draw
@@ -275,3 +280,5 @@
 426    VK_QCOM_fragment_density_map_offset
 431    VK_NV_linear_color_attachment
 434    VK_GOOGLE_surfaceless_query
+438    VK_EXT_image_compression_control_swapchain
+459    VK_EXT_subpass_merge_feedback

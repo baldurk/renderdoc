@@ -369,7 +369,14 @@ rdcstr DoStringise(const rdcspv::ExecutionMode &el)
     STRINGISE_ENUM_CLASS(SignedZeroInfNanPreserve);
     STRINGISE_ENUM_CLASS(RoundingModeRTE);
     STRINGISE_ENUM_CLASS(RoundingModeRTZ);
+    STRINGISE_ENUM_CLASS(EarlyAndLateFragmentTestsAMD);
     STRINGISE_ENUM_CLASS(StencilRefReplacingEXT);
+    STRINGISE_ENUM_CLASS(StencilRefUnchangedFrontAMD);
+    STRINGISE_ENUM_CLASS(StencilRefGreaterFrontAMD);
+    STRINGISE_ENUM_CLASS(StencilRefLessFrontAMD);
+    STRINGISE_ENUM_CLASS(StencilRefUnchangedBackAMD);
+    STRINGISE_ENUM_CLASS(StencilRefGreaterBackAMD);
+    STRINGISE_ENUM_CLASS(StencilRefLessBackAMD);
     STRINGISE_ENUM_CLASS(OutputLinesNV);
     STRINGISE_ENUM_CLASS(OutputPrimitivesNV);
     STRINGISE_ENUM_CLASS(DerivativeGroupQuadsNV);
@@ -899,6 +906,7 @@ rdcstr DoStringise(const rdcspv::BuiltIn &el)
     STRINGISE_ENUM_CLASS(SMCountNV);
     STRINGISE_ENUM_CLASS(WarpIDNV);
     STRINGISE_ENUM_CLASS(SMIDNV);
+    STRINGISE_ENUM_CLASS(CullMaskKHR);
   }
   END_ENUM_STRINGISE();
 }
@@ -1140,7 +1148,9 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(DotProductInput4x8Bit);
     STRINGISE_ENUM_CLASS(DotProductInput4x8BitPacked);
     STRINGISE_ENUM_CLASS(DotProduct);
+    STRINGISE_ENUM_CLASS(RayCullMaskKHR);
     STRINGISE_ENUM_CLASS(BitInstructions);
+    STRINGISE_ENUM_CLASS(GroupNonUniformRotateKHR);
     STRINGISE_ENUM_CLASS(AtomicFloat32AddEXT);
     STRINGISE_ENUM_CLASS(AtomicFloat64AddEXT);
     STRINGISE_ENUM_CLASS(LongConstantCompositeINTEL);
@@ -1552,6 +1562,7 @@ rdcstr DoStringise(const rdcspv::Op &el)
     STRINGISE_ENUM_CLASS(SubgroupAllKHR);
     STRINGISE_ENUM_CLASS(SubgroupAnyKHR);
     STRINGISE_ENUM_CLASS(SubgroupAllEqualKHR);
+    STRINGISE_ENUM_CLASS(GroupNonUniformRotateKHR);
     STRINGISE_ENUM_CLASS(SubgroupReadInvocationKHR);
     STRINGISE_ENUM_CLASS(TraceRayKHR);
     STRINGISE_ENUM_CLASS(ExecuteCallableKHR);
@@ -3923,6 +3934,14 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
+      break;
+    case rdcspv::Op::GroupNonUniformRotateKHR:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::SubgroupReadInvocationKHR:
       callback(Id::fromWord(it.word(1)), false);
@@ -7016,6 +7035,13 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
       ret += "SubgroupAllEqualKHR(" + ParamToStr(idName, decoded.predicate) + ")";
       break;
     }
+    case rdcspv::Op::GroupNonUniformRotateKHR:
+    {
+      OpGroupNonUniformRotateKHR decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "GroupNonUniformRotateKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.delta) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      break;
+    }
     case rdcspv::Op::SubgroupReadInvocationKHR:
     {
       OpSubgroupReadInvocationKHR decoded(it);
@@ -8206,6 +8232,7 @@ OpDecoder::OpDecoder(const ConstIter &it)
     case rdcspv::Op::SubgroupAllKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::SubgroupAnyKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::SubgroupAllEqualKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::GroupNonUniformRotateKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::SubgroupReadInvocationKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::TraceRayKHR: result = Id(); resultType = Id(); break;
     case rdcspv::Op::ExecuteCallableKHR: result = Id(); resultType = Id(); break;
@@ -8507,6 +8534,7 @@ rdcstr DoStringise(const rdcspv::Generator &el)
     STRINGISE_ENUM_CLASS_NAMED(SkiaSkSL, "Skia SkSL from Google - Contact Ethan Nicholas, ethannicholas@google.com");
     STRINGISE_ENUM_CLASS_NAMED(SPIRVBeehiveToolkit, "SPIRV Beehive Toolkit from TornadoVM - https://github.com/beehive-lab/spirv-beehive-toolkit");
     STRINGISE_ENUM_CLASS_NAMED(ShaderWriter, "ShaderWriter from DragonJoker - Contact Sylvain Doremus, https://github.com/DragonJoker/ShaderWriter");
+    STRINGISE_ENUM_CLASS_NAMED(SPIRVSmith, "SPIRVSmith from Rayan Hatout - Contact Rayan Hatout rayan.hatout@gmail.com, Repo https://github.com/rayanht/SPIRVSmith");
   }
   END_ENUM_STRINGISE();
 }
