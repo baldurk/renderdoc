@@ -4098,6 +4098,69 @@ void WrappedVulkan::AddDebugMessage(DebugMessage msg)
   }
 }
 
+rdcstr WrappedVulkan::GetPhysDeviceCompatString(bool externalResource, bool origInvalid)
+{
+  const VkDriverInfo &capture = m_OrigPhysicalDeviceData.driverInfo;
+  const VkDriverInfo &replay = m_PhysicalDeviceData.driverInfo;
+
+  if(origInvalid)
+  {
+    return StringFormat::Fmt(
+        "This was invalid at capture time.\n"
+        "You must use API validation, as RenderDoc does not handle invalid API use like this.\n\n"
+        "Captured on device: %s %s, %u.%u.%u",
+        ToStr(capture.Vendor()).c_str(), m_OrigPhysicalDeviceData.props.deviceName, capture.Major(),
+        capture.Minor(), capture.Patch());
+  }
+
+  rdcstr ret;
+
+  if(externalResource)
+  {
+    ret =
+        "This resource was externally imported, which cannot happen at replay time.\n"
+        "Some drivers do not allow externally-imported resources to be bound to non-external "
+        "memory, meaning that captures using resources like this can't be replayed.\n\n";
+  }
+
+  if(capture == replay)
+  {
+    ret += StringFormat::Fmt("Captured and replayed on the same device: %s %s, %u.%u.%u",
+                             ToStr(capture.Vendor()).c_str(),
+                             m_OrigPhysicalDeviceData.props.deviceName, capture.Major(),
+                             capture.Minor(), capture.Patch());
+  }
+  else
+  {
+    ret += StringFormat::Fmt(
+        "Capture was made on: %s %s, %u.%u.%u\n"
+        "Replayed on: %s %s, %u.%u.%u\n",
+
+        // capture device
+        ToStr(capture.Vendor()).c_str(), m_OrigPhysicalDeviceData.props.deviceName, capture.Major(),
+        capture.Minor(), capture.Patch(),
+
+        // replay device
+        ToStr(replay.Vendor()).c_str(), m_PhysicalDeviceData.props.deviceName, replay.Major(),
+        replay.Minor(), replay.Patch());
+
+    if(capture.Vendor() != replay.Vendor())
+    {
+      ret += "Captures are not commonly portable between GPUs from different vendors.";
+    }
+    else if(strcmp(m_OrigPhysicalDeviceData.props.deviceName, m_PhysicalDeviceData.props.deviceName))
+    {
+      ret += "Captures are sometimes not portable between different GPUs from a vendor.";
+    }
+    else
+    {
+      ret += "Driver changes can sometimes cause captures to no longer work.";
+    }
+  }
+
+  return ret;
+}
+
 void WrappedVulkan::CheckErrorVkResult(VkResult vkr)
 {
   if(vkr == VK_SUCCESS || HasFatalError() || IsCaptureMode(m_State))

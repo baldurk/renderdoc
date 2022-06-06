@@ -332,7 +332,7 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
     if(supportedExtensions.find(params.Extensions[i]) == supportedExtensions.end())
     {
       RETURN_ERROR_RESULT(ResultCode::APIHardwareUnsupported,
-                          "Capture requires extension '%s' which is not supported",
+                          "Capture requires instance extension '%s' which is not supported\n",
                           params.Extensions[i].c_str());
     }
   }
@@ -1609,6 +1609,17 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     RDCLOG("Creating replay device from physical device %u", physicalDeviceIndex);
 
+    ObjDisp(physicalDevice)
+        ->GetPhysicalDeviceProperties(Unwrap(physicalDevice), &m_PhysicalDeviceData.props);
+
+    ObjDisp(physicalDevice)
+        ->GetPhysicalDeviceMemoryProperties(Unwrap(physicalDevice), &m_PhysicalDeviceData.memProps);
+
+    ObjDisp(physicalDevice)
+        ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.availFeatures);
+
+    m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props, true);
+
     rdcarray<VkDeviceQueueGlobalPriorityCreateInfoKHR *> queuePriorities;
 
     for(uint32_t i = 0; i < CreateInfo.queueCreateInfoCount; i++)
@@ -1621,6 +1632,11 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       if(queuePrio)
         queuePriorities.push_back(queuePrio);
     }
+
+    const PhysicalDeviceData &origData = m_OriginalPhysicalDevices[physicalDeviceIndex];
+
+    m_OrigPhysicalDeviceData = origData;
+    m_OrigPhysicalDeviceData.driverInfo = VkDriverInfo(origData.props, false);
 
     // we must make any modifications locally, so the free of pointers
     // in the serialised VkDeviceCreateInfo don't double-free
@@ -1671,8 +1687,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       if(supportedExtensions.find(Extensions[i]) == supportedExtensions.end())
       {
         SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
-                         "Capture requires extension '%s' which is not supported",
-                         Extensions[i].c_str());
+                         "Capture requires extension '%s' which is not supported\n"
+                         "\n%s",
+                         Extensions[i].c_str(), GetPhysDeviceCompatString(false, false).c_str());
         return false;
       }
     }
@@ -1816,10 +1833,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         q.queueFlags |= VK_QUEUE_TRANSFER_BIT;
     }
 
-    PhysicalDeviceData &origData = m_OriginalPhysicalDevices[physicalDeviceIndex];
-
     uint32_t origQCount = origData.queueCount;
-    VkQueueFamilyProperties *origprops = origData.queueProps;
+    const VkQueueFamilyProperties *origprops = origData.queueProps;
 
     // create queue remapping
     for(uint32_t origQIndex = 0; origQIndex < origQCount; origQIndex++)
@@ -2105,7 +2120,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
   {                                                                            \
     SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported, \
                      "Capture requires physical device feature '" #feature     \
-                     "' which is not supported");                              \
+                     "' which is not supported\n\n%s",                         \
+                     GetPhysDeviceCompatString(false, false).c_str());         \
     return false;                                                              \
   }
 
@@ -2176,14 +2192,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
 #define END_PHYS_EXT_CHECK() }
 
-#define CHECK_PHYS_EXT_FEATURE(feature)                                        \
-  if(ext->feature && !avail.feature)                                           \
-  {                                                                            \
-    SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported, \
-                     "Capture requires physical device feature '" #feature     \
-                     "' in struct '%s' which is not supported",                \
-                     structName);                                              \
-    return false;                                                              \
+#define CHECK_PHYS_EXT_FEATURE(feature)                                            \
+  if(ext->feature && !avail.feature)                                               \
+  {                                                                                \
+    SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,     \
+                     "Capture requires physical device feature '" #feature         \
+                     "' in struct '%s' which is not supported\n\n%s",              \
+                     structName, GetPhysDeviceCompatString(false, false).c_str()); \
+    return false;                                                                  \
   }
 
     VkPhysicalDeviceDescriptorIndexingFeatures descIndexingFeatures = {};
@@ -2272,7 +2288,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
               m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
               "Capture requires bufferDeviceAddress support, which is available, but "
               "bufferDeviceAddressCaptureReplay support is not available which is required to "
-              "replay");
+              "replay\n"
+              "\n%s",
+              GetPhysDeviceCompatString(false, false).c_str());
           return false;
         }
       }
@@ -2478,7 +2496,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
               m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
               "Capture requires bufferDeviceAddress support, which is available, but "
               "bufferDeviceAddressCaptureReplay support is not available which is required to "
-              "replay");
+              "replay\n"
+              "\n%s",
+              GetPhysDeviceCompatString(false, false).c_str());
           return false;
         }
       }
@@ -2497,7 +2517,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
               m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
               "Capture requires bufferDeviceAddress support, which is available, but "
               "bufferDeviceAddressCaptureReplay support is not available which is required to "
-              "replay");
+              "replay\n"
+              "\n%s",
+              GetPhysDeviceCompatString(false, false).c_str());
           return false;
         }
       }
@@ -3573,19 +3595,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
     }
 
-    ObjDisp(physicalDevice)
-        ->GetPhysicalDeviceProperties(Unwrap(physicalDevice), &m_PhysicalDeviceData.props);
-
-    ObjDisp(physicalDevice)
-        ->GetPhysicalDeviceMemoryProperties(Unwrap(physicalDevice), &m_PhysicalDeviceData.memProps);
-
-    ObjDisp(physicalDevice)
-        ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.availFeatures);
-    m_PhysicalDeviceData.enabledFeatures = enabledFeatures;
-
-    m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props, true);
-
     m_Replay->SetDriverInformation(m_PhysicalDeviceData.props);
+
+    m_PhysicalDeviceData.enabledFeatures = enabledFeatures;
 
     // MoltenVK reports 0x3fffffff for this limit so just ignore that value if it comes up
     RDCASSERT(m_PhysicalDeviceData.props.limits.maxBoundDescriptorSets <

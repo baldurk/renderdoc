@@ -434,6 +434,8 @@ private:
   VkDevice m_Device;
   // the data about the physical device used for the above device
   PhysicalDeviceData m_PhysicalDeviceData;
+  // the driver info for the original device
+  PhysicalDeviceData m_OrigPhysicalDeviceData;
   // the family index that we've selected in CreateDevice for our queue. During replay, this is an
   // index in the replay-time queues, not the capture-time queues (i.e. after remapping)
   uint32_t m_QueueFamilyIdx;
@@ -903,8 +905,10 @@ private:
 
   void FirstFrame();
 
+  rdcstr GetPhysDeviceCompatString(bool external, bool origInvalid);
   bool CheckMemoryRequirements(const char *resourceName, ResourceId memId,
-                               VkDeviceSize memoryOffset, VkMemoryRequirements mrq, bool external);
+                               VkDeviceSize memoryOffset, const VkMemoryRequirements &mrq,
+                               bool external, const VkMemoryRequirements &origMrq);
 
   void AddImplicitResolveResourceUsage(uint32_t subpass = 0);
   rdcarray<VkImageMemoryBarrier> GetImplicitRenderPassBarriers(uint32_t subpass = 0);

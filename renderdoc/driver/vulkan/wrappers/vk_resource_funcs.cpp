@@ -191,8 +191,9 @@ VkBindImageMemoryInfo *WrappedVulkan::UnwrapInfos(CaptureState state,
 }
 
 bool WrappedVulkan::CheckMemoryRequirements(const char *resourceName, ResourceId memId,
-                                            VkDeviceSize memoryOffset, VkMemoryRequirements mrq,
-                                            bool external)
+                                            VkDeviceSize memoryOffset,
+                                            const VkMemoryRequirements &mrq, bool external,
+                                            const VkMemoryRequirements &origMrq)
 {
   // verify that the memory meets basic requirements. If not, something changed and we should
   // bail loading this capture. This is a bit of an under-estimate since we just make sure
@@ -203,65 +204,80 @@ bool WrappedVulkan::CheckMemoryRequirements(const char *resourceName, ResourceId
   VulkanCreationInfo::Memory &memInfo = m_CreationInfo.m_Memory[memId];
   uint32_t bit = 1U << memInfo.memoryTypeIndex;
 
+  bool origInvalid = false;
+
   // verify type
   if((mrq.memoryTypeBits & bit) == 0)
   {
     rdcstr bitsString;
 
-    for(uint32_t i = 0; i < 32; i++)
+    if((origMrq.memoryTypeBits & bit) == 0)
     {
-      if(mrq.memoryTypeBits & (1U << i))
-        bitsString += StringFormat::Fmt("%s%u", bitsString.empty() ? "" : ", ", i);
-    }
+      for(uint32_t i = 0; i < 32; i++)
+      {
+        if(origMrq.memoryTypeBits & (1U << i))
+          bitsString += StringFormat::Fmt("%s%u", bitsString.empty() ? "" : ", ", i);
+      }
 
-    if(external)
+      origInvalid = true;
+    }
+    else
     {
-      SET_ERROR_RESULT(
-          m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
-          "Trying to bind %s to memory %s which is type %u, "
-          "but only these types are allowed: %s\n"
-          "This resource was created with external memory bindings, which is not represented in "
-          "the capture.\n"
-          "Some drivers do not allow externally-imported resources to be bound to non-external "
-          "memory, meaning this cannot be replayed.",
-          resourceName, ToStr(memOrigId).c_str(), memInfo.memoryTypeIndex, bitsString.c_str());
-      return false;
+      for(uint32_t i = 0; i < 32; i++)
+      {
+        if(mrq.memoryTypeBits & (1U << i))
+          bitsString += StringFormat::Fmt("%s%u", bitsString.empty() ? "" : ", ", i);
+      }
     }
 
     SET_ERROR_RESULT(
         m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
-        "Trying to bind %s to memory %s which is type %u, "
-        "but only these types are allowed: %s\n"
-        "This is most likely caused by incompatible hardware or drivers between capture and "
-        "replay, causing a change in memory requirements.",
-        resourceName, ToStr(memOrigId).c_str(), memInfo.memoryTypeIndex, bitsString.c_str());
+        "Trying to bind %s to %s, but memory type is %u and only types %s are allowed.\n"
+        "\n%s",
+        resourceName, GetResourceDesc(memOrigId).name.c_str(), memInfo.memoryTypeIndex,
+        bitsString.c_str(), GetPhysDeviceCompatString(external, origInvalid).c_str());
     return false;
   }
 
   // verify offset alignment
   if((memoryOffset % mrq.alignment) != 0)
   {
+    VkDeviceSize align = mrq.alignment;
+
+    if((memoryOffset % origMrq.alignment) != 0)
+    {
+      origInvalid = true;
+
+      align = origMrq.alignment;
+    }
+
     SET_ERROR_RESULT(
         m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
-        "Trying to bind %s to memory %s which is type %u, "
-        "but offset 0x%llx doesn't satisfy alignment 0x%llx.\n"
-        "This is most likely caused by incompatible hardware or drivers between capture and "
-        "replay, causing a change in memory requirements.",
-        resourceName, ToStr(memOrigId).c_str(), memInfo.memoryTypeIndex, memoryOffset, mrq.alignment);
+        "Trying to bind %s to %s, but memory offset 0x%llx doesn't satisfy alignment 0x%llx.\n"
+        "\n%s",
+        resourceName, GetResourceDesc(memOrigId).name.c_str(), memoryOffset, mrq.alignment,
+        GetPhysDeviceCompatString(external, origInvalid).c_str());
     return false;
   }
 
   // verify size
   if(mrq.size > memInfo.allocSize - memoryOffset)
   {
-    SET_ERROR_RESULT(
-        m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
-        "Trying to bind %s to memory %s which is type %u, "
-        "but at offset 0x%llx the reported size of 0x%llx won't fit the 0x%llx bytes of memory.\n"
-        "This is most likely caused by incompatible hardware or drivers between capture and "
-        "replay, causing a change in memory requirements.",
-        resourceName, ToStr(memOrigId).c_str(), memInfo.memoryTypeIndex, memoryOffset, mrq.size,
-        memInfo.allocSize);
+    VkDeviceSize size = mrq.size;
+
+    if(origMrq.size > memInfo.allocSize - memoryOffset)
+    {
+      origInvalid = true;
+
+      size = origMrq.size;
+    }
+
+    SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                     "Trying to bind %s to %s, but at memory offset 0x%llx the reported size of "
+                     "0x%llx won't fit the 0x%llx bytes of memory.\n"
+                     "\n%s",
+                     resourceName, GetResourceDesc(memOrigId).name.c_str(), memoryOffset, size,
+                     memInfo.allocSize, GetPhysDeviceCompatString(external, origInvalid).c_str());
     return false;
   }
 
@@ -296,9 +312,11 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
       SET_ERROR_RESULT(
           m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
           "Tried to allocate memory from index %u, but on replay we only have %u memory types.\n"
-          "This is most likely caused by incompatible hardware or drivers between capture and "
-          "replay, causing a change in memory requirements.",
-          patched.memoryTypeIndex, m_PhysicalDeviceData.memProps.memoryTypeCount);
+          "\n%s",
+          patched.memoryTypeIndex, m_PhysicalDeviceData.memProps.memoryTypeCount,
+          GetPhysDeviceCompatString(
+              false, patched.memoryTypeIndex >= m_OrigPhysicalDeviceData.memProps.memoryTypeCount)
+              .c_str());
       return false;
     }
 
@@ -1338,8 +1356,8 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
     VkMemoryRequirements mrq = {};
     ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(buffer), &mrq);
 
-    bool ok = CheckMemoryRequirements(("Buffer " + ToStr(resOrigId)).c_str(), GetResID(memory),
-                                      memoryOffset, mrq, bufInfo.external);
+    bool ok = CheckMemoryRequirements(GetResourceDesc(resOrigId).name.c_str(), GetResID(memory),
+                                      memoryOffset, mrq, bufInfo.external, bufInfo.mrq);
 
     if(!ok)
       return false;
@@ -1461,8 +1479,8 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
 
     VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(image)];
 
-    bool ok = CheckMemoryRequirements(("Image " + ToStr(resOrigId)).c_str(), GetResID(memory),
-                                      memoryOffset, mrq, imgInfo.external);
+    bool ok = CheckMemoryRequirements(GetResourceDesc(resOrigId).name.c_str(), GetResID(memory),
+                                      memoryOffset, mrq, imgInfo.external, imgInfo.mrq);
 
     if(!ok)
       return false;
@@ -1631,7 +1649,8 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), buf);
       GetResourceManager()->AddLiveResource(Buffer, buf);
 
-      m_CreationInfo.m_Buffer[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
+      m_CreationInfo.m_Buffer[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo,
+                                         memoryRequirements);
     }
 
     AddResource(Buffer, ResourceType::Buffer, "Buffer");
@@ -1841,7 +1860,7 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
     {
       GetResourceManager()->AddLiveResource(id, *pBuffer);
 
-      m_CreationInfo.m_Buffer[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
+      m_CreationInfo.m_Buffer[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo, {});
     }
   }
   else
@@ -2132,7 +2151,8 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
 
       NameVulkanObject(img, StringFormat::Fmt("Image %s", ToStr(Image).c_str()));
 
-      m_CreationInfo.m_Image[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
+      m_CreationInfo.m_Image[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo,
+                                        memoryRequirements);
 
       bool inserted = false;
       auto state = InsertImageState(img, live, CreateInfo, eFrameRef_Unknown, &inserted);
@@ -2525,7 +2545,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
     {
       GetResourceManager()->AddLiveResource(id, *pImage);
 
-      m_CreationInfo.m_Image[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
+      m_CreationInfo.m_Image[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo, {});
     }
 
     LockedImageStateRef state =
@@ -2732,9 +2752,9 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
 
       ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(bindInfo.buffer), &mrqs[i]);
 
-      bool ok =
-          CheckMemoryRequirements(("Buffer " + ToStr(resOrigId)).c_str(), GetResID(bindInfo.memory),
-                                  bindInfo.memoryOffset, mrqs[i], bufInfo.external);
+      bool ok = CheckMemoryRequirements(GetResourceDesc(resOrigId).name.c_str(),
+                                        GetResID(bindInfo.memory), bindInfo.memoryOffset, mrqs[i],
+                                        bufInfo.external, bufInfo.mrq);
 
       if(!ok)
         return false;
@@ -2877,9 +2897,9 @@ bool WrappedVulkan::Serialise_vkBindImageMemory2(SerialiserType &ser, VkDevice d
       VkMemoryRequirements mrq = {};
       ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(bindInfo.image), &mrq);
 
-      bool ok =
-          CheckMemoryRequirements(("Image " + ToStr(resOrigId)).c_str(), GetResID(bindInfo.memory),
-                                  bindInfo.memoryOffset, mrq, imgInfo.external);
+      bool ok = CheckMemoryRequirements(GetResourceDesc(resOrigId).name.c_str(),
+                                        GetResID(bindInfo.memory), bindInfo.memoryOffset, mrq,
+                                        imgInfo.external, imgInfo.mrq);
 
       if(!ok)
         return false;

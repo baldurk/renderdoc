@@ -558,12 +558,14 @@ struct VulkanCreationInfo
   struct Buffer
   {
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
-              const VkBufferCreateInfo *pCreateInfo);
+              const VkBufferCreateInfo *pCreateInfo, VkMemoryRequirements origMrq);
 
     VkBufferUsageFlags usage;
     uint64_t size;
     uint64_t gpuAddress;
     bool external;
+
+    VkMemoryRequirements mrq;
   };
   std::unordered_map<ResourceId, Buffer> m_Buffer;
 
@@ -582,7 +584,7 @@ struct VulkanCreationInfo
   struct Image
   {
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
-              const VkImageCreateInfo *pCreateInfo);
+              const VkImageCreateInfo *pCreateInfo, VkMemoryRequirements origMrq);
 
     VkImageType type;
     VkFormat format;
@@ -594,6 +596,8 @@ struct VulkanCreationInfo
     bool external;
     bool cube;
     TextureCategory creationFlags;
+
+    VkMemoryRequirements mrq;
   };
   std::unordered_map<ResourceId, Image> m_Image;
 

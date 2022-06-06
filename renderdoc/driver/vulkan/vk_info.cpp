@@ -1497,11 +1497,14 @@ void VulkanCreationInfo::Memory::SimplifyBindings()
 }
 
 void VulkanCreationInfo::Buffer::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
-                                      const VkBufferCreateInfo *pCreateInfo)
+                                      const VkBufferCreateInfo *pCreateInfo,
+                                      VkMemoryRequirements origMrq)
 {
   usage = pCreateInfo->usage;
   size = pCreateInfo->size;
   gpuAddress = 0;
+
+  mrq = origMrq;
 
   external = false;
 
@@ -1522,7 +1525,8 @@ void VulkanCreationInfo::BufferView::Init(VulkanResourceManager *resourceMan,
 }
 
 void VulkanCreationInfo::Image::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
-                                     const VkImageCreateInfo *pCreateInfo)
+                                     const VkImageCreateInfo *pCreateInfo,
+                                     VkMemoryRequirements origMrq)
 {
   type = pCreateInfo->imageType;
   format = pCreateInfo->format;
@@ -1530,6 +1534,8 @@ void VulkanCreationInfo::Image::Init(VulkanResourceManager *resourceMan, VulkanC
   arrayLayers = pCreateInfo->arrayLayers;
   mipLevels = pCreateInfo->mipLevels;
   samples = RDCMAX(VK_SAMPLE_COUNT_1_BIT, pCreateInfo->samples);
+
+  mrq = origMrq;
 
   linear = pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR;
 

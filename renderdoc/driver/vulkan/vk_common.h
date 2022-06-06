@@ -238,11 +238,17 @@ extern void *LoadVulkanLibrary();
 class VkDriverInfo
 {
 public:
-  GPUVendor Vendor() { return m_Vendor; }
-  uint32_t Major() { return m_Major; }
-  uint32_t Minor() { return m_Minor; }
-  uint32_t Patch() { return m_Patch; }
+  GPUVendor Vendor() const { return m_Vendor; }
+  uint32_t Major() const { return m_Major; }
+  uint32_t Minor() const { return m_Minor; }
+  uint32_t Patch() const { return m_Patch; }
   VkDriverInfo(const VkPhysicalDeviceProperties &physProps, bool active = false);
+
+  bool operator==(const VkDriverInfo &o) const
+  {
+    return m_Vendor == o.m_Vendor && m_Major == o.m_Major && m_Minor == o.m_Minor &&
+           m_Patch == o.m_Patch;
+  }
 
   // checks for when we're running on metal and some non-queryable things aren't supported
   bool RunningOnMetal() const { return metalBackend; }
