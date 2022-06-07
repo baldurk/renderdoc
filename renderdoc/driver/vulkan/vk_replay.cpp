@@ -4473,6 +4473,32 @@ void VulkanReplay::RefreshDerivedReplacements()
         ResourceId shadOrigId = rm->GetOriginalID(pipeInfo.shaders[5].module);
         sh.module = rm->GetLiveHandle<VkShaderModule>(shadOrigId);
 
+        rdcarray<ShaderEntryPoint> entries;
+
+        if(rm->HasReplacement(shadOrigId))
+        {
+          entries = m_pDriver->m_CreationInfo.m_ShaderModule[GetResID(sh.module)].spirv.EntryPoints();
+          if(entries.size() > 1)
+          {
+            if(entries.contains({sh.pName, ShaderStage(StageIndex(sh.stage))}))
+            {
+              // nothing to do!
+            }
+            else
+            {
+              RDCWARN(
+                  "Multiple entry points in edited shader, none matching original, using first "
+                  "one '%s'",
+                  entries[0].name.c_str());
+              sh.pName = entries[0].name.c_str();
+            }
+          }
+          else
+          {
+            sh.pName = entries[0].name.c_str();
+          }
+        }
+
         // if we have pipeline executable properties, capture the data
         if(m_pDriver->GetExtensions(NULL).ext_KHR_pipeline_executable_properties)
         {
