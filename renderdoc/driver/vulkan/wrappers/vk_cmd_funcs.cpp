@@ -782,6 +782,16 @@ VkResult WrappedVulkan::vkResetCommandPool(VkDevice device, VkCommandPool cmdPoo
   if(Atomic::CmpExch32(&m_ReuseEnabled, 1, 1) == 1)
     GetRecord(cmdPool)->cmdPoolInfo->pool.Reset();
 
+  {
+    VkResourceRecord *poolRecord = GetRecord(cmdPool);
+    poolRecord->LockChunks();
+    for(auto it = poolRecord->pooledChildren.begin(); it != poolRecord->pooledChildren.end(); ++it)
+    {
+      (*it)->cmdInfo->alloc.Reset();
+    }
+    poolRecord->UnlockChunks();
+  }
+
   return ObjDisp(device)->ResetCommandPool(Unwrap(device), Unwrap(cmdPool), flags);
 }
 
