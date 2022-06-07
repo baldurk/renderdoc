@@ -898,7 +898,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
         renderpass = pipeInfo.renderpass;
         subpass = pipeInfo.subpass;
 
-        for(uint32_t i = 0; i < 5; i++)
+        for(uint32_t i = 0; i < 4; i++)
           shaders[i] = pipeInfo.shaders[i];
 
         vertLayout = pipeInfo.vertLayout;
@@ -933,6 +933,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
 
         discardRectangles = pipeInfo.discardRectangles;
         discardMode = pipeInfo.discardMode;
+
+        flags |= pipeInfo.flags;
       }
 
       if(pipeInfo.libraryFlags & VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT)
@@ -943,13 +945,6 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
         shaders[4] = pipeInfo.shaders[4];
 
         fragLayout = pipeInfo.fragLayout;
-
-        rasterizationSamples = pipeInfo.rasterizationSamples;
-        sampleShadingEnable = pipeInfo.sampleShadingEnable;
-        minSampleShading = pipeInfo.minSampleShading;
-        sampleMask = pipeInfo.sampleMask;
-        alphaToCoverageEnable = pipeInfo.alphaToCoverageEnable;
-        alphaToOneEnable = pipeInfo.alphaToOneEnable;
 
         sampleLocations = pipeInfo.sampleLocations;
 
@@ -962,6 +957,12 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
         back = pipeInfo.back;
         minDepthBounds = pipeInfo.minDepthBounds;
         maxDepthBounds = pipeInfo.maxDepthBounds;
+
+        shadingRate = pipeInfo.shadingRate;
+        shadingRateCombiners[0] = pipeInfo.shadingRateCombiners[0];
+        shadingRateCombiners[1] = pipeInfo.shadingRateCombiners[1];
+
+        flags |= pipeInfo.flags;
       }
 
       if(pipeInfo.libraryFlags & VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT)
@@ -969,6 +970,9 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
         renderpass = pipeInfo.renderpass;
         subpass = pipeInfo.subpass;
 
+        // this is duplicated in the fragment shader interface "if sample shading is enabled or
+        // renderpass is not VK_NULL_HANDLE", but since it must be identical in both places we just
+        // treat this as canonical so we don't have to figure out if that condition is satisfied.
         rasterizationSamples = pipeInfo.rasterizationSamples;
         sampleShadingEnable = pipeInfo.sampleShadingEnable;
         minSampleShading = pipeInfo.minSampleShading;
@@ -986,6 +990,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
         colorFormats = pipeInfo.colorFormats;
         depthFormat = pipeInfo.depthFormat;
         stencilFormat = pipeInfo.stencilFormat;
+
+        flags |= pipeInfo.flags;
       }
     }
   }

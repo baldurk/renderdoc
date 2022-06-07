@@ -963,6 +963,8 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   // never create derivatives
   ret.flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
 
+  ret.flags &= ~VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
+
   pipeCreateInfo = ret;
 }
 
