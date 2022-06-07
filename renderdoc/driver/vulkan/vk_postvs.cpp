@@ -3039,6 +3039,9 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   pipeCreateInfo.renderPass = rp;
   pipeCreateInfo.subpass = 0;
 
+  // don't use dynamic rendering
+  RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
+
   VkPipeline pipe = VK_NULL_HANDLE;
   vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
                                              &pipe);

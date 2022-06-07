@@ -1005,6 +1005,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
       pipeCreateInfo.subpass = 0;
 
+      // don't use dynamic rendering
+      RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
+
       bool found = false;
       for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
       {
@@ -1217,6 +1220,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       // set our renderpass and shader
       pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
       pipeCreateInfo.subpass = 0;
+
+      // don't use dynamic rendering
+      RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
 
       VkPipelineShaderStageCreateInfo *fragShader = NULL;
 
@@ -1508,6 +1514,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       // set our renderpass and shader
       pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
       pipeCreateInfo.subpass = 0;
+
+      // don't use dynamic rendering
+      RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
 
       VkPipelineShaderStageCreateInfo *fragShader = NULL;
 
@@ -1831,6 +1840,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       {
         pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
       }
+
+      // don't use dynamic rendering
+      RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
 
       vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
                                                  &passpipe);
@@ -2621,6 +2633,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         pipeCreateInfo.pInputAssemblyState = &ia;
         pipeCreateInfo.pVertexInputState = &vi;
         pipeCreateInfo.pColorBlendState = &cb;
+
+        // don't use dynamic rendering
+        RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
 
         uint32_t &dynamicStateCount = (uint32_t &)pipeCreateInfo.pDynamicState->dynamicStateCount;
         VkDynamicState *dynamicStateList =
