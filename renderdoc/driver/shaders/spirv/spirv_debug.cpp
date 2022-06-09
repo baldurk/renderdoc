@@ -1920,6 +1920,36 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       SetDst(bitwise.result, var);
       break;
     }
+    case Op::GroupNonUniformBitwiseOr:
+    {
+      OpGroupNonUniformBitwiseOr group(it);
+
+      ShaderVariable var;
+
+      for(size_t i = 0; i < workgroup.size(); i++)
+      {
+        if(i == 0)
+        {
+          var = workgroup[i].GetSrc(group.value);
+        }
+        else
+        {
+          ShaderVariable b = workgroup[i].GetSrc(group.value);
+
+          for(uint8_t c = 0; c < var.columns; c++)
+          {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<U>(var, c) | comp<U>(b, c)
+
+            IMPL_FOR_INT_TYPES(_IMPL);
+          }
+        }
+      }
+
+      SetDst(group.result, var);
+
+      break;
+    }
     case Op::Not:
     {
       OpNot bitwise(it);
@@ -3484,7 +3514,6 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::GroupNonUniformUMax:
     case Op::GroupNonUniformFMax:
     case Op::GroupNonUniformBitwiseAnd:
-    case Op::GroupNonUniformBitwiseOr:
     case Op::GroupNonUniformBitwiseXor:
     case Op::GroupNonUniformLogicalAnd:
     case Op::GroupNonUniformLogicalOr:

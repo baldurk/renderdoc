@@ -32,6 +32,10 @@
 RDOC_CONFIG(bool, Vulkan_Debug_UseDebugColumnInformation, false,
             "Control whether column information should be read from vulkan debug info.");
 
+RDOC_CONFIG(bool, Vulkan_Hack_AllowNonUniformSubgroups, false,
+            "Allow shaders to be debugged with subgroup ops. Most subgroup ops will break, this "
+            "will only work for a limited set and not with the 'real' subgroup.");
+
 // this could be cleaner if ShaderVariable wasn't a very public struct, but it's not worth it so
 // we just reserve value slots that we know won't be used in opaque variables
 static const uint32_t PointerVariableSlot = 0;
@@ -376,6 +380,19 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
         break;
       }
 
+      case Capability::GroupNonUniformArithmetic:
+      {
+        if(Vulkan_Hack_AllowNonUniformSubgroups())
+        {
+          supported = true;
+        }
+        else
+        {
+          supported = false;
+        }
+        break;
+      }
+
       // we plan to support these but needs additional testing/proving
 
       // physical pointers
@@ -398,7 +415,6 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::Groups:
       case Capability::GroupNonUniform:
       case Capability::GroupNonUniformVote:
-      case Capability::GroupNonUniformArithmetic:
       case Capability::GroupNonUniformBallot:
       case Capability::GroupNonUniformShuffle:
       case Capability::GroupNonUniformShuffleRelative:
