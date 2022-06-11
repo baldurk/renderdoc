@@ -6,6 +6,7 @@ set(sources
     gl_postvs.cpp
     gl_overlay.cpp
     gl_outputwindow.cpp
+    gl_pixelhistory.cpp
     gl_rendermesh.cpp
     gl_rendertexture.cpp
     gl_rendertext.cpp
