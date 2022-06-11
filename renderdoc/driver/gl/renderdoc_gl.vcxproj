@@ -153,6 +153,7 @@
     <ClCompile Include="gl_debug.cpp" />
     <ClCompile Include="gl_driver.cpp" />
     <ClCompile Include="gl_hooks.cpp" />
+    <ClCompile Include="gl_pixelhistory.cpp" />
     <ClCompile Include="wgl_hooks.cpp" />
     <ClCompile Include="gl_initstate.cpp" />
     <ClCompile Include="gl_manager.cpp" />

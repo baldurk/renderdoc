@@ -41,6 +41,7 @@
 
 RDOC_CONFIG(bool, OpenGL_HardwareCounters, true,
             "Enable support for IHV-specific hardware counters on OpenGL.");
+RDOC_CONFIG(bool, OpenGL_PixelHistory, false, "Enable Pixel History on OpenGL (WIP).");
 
 static const char *SPIRVDisassemblyTarget = "SPIR-V (RenderDoc)";
 
@@ -218,6 +219,7 @@ APIProperties GLReplay::GetAPIProperties()
   ret.degraded = m_Degraded;
   ret.vendor = m_DriverInfo.vendor;
   ret.shadersMutable = true;
+  ret.pixelHistory = OpenGL_PixelHistory();
 
   return ret;
 }
@@ -3723,14 +3725,6 @@ void GLReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize)
 rdcarray<EventUsage> GLReplay::GetUsage(ResourceId id)
 {
   return m_pDriver->GetUsage(id);
-}
-
-rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, ResourceId target,
-                                                   uint32_t x, uint32_t y, const Subresource &sub,
-                                                   CompType typeCast)
-{
-  GLNOTIMP("GLReplay::PixelHistory");
-  return {};
 }
 
 ShaderDebugTrace *GLReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
