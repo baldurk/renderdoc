@@ -210,18 +210,20 @@ static uint32_t LaunchReplayUI(uint32_t connectTargetControl, const char *cmdlin
 
 static void SetActiveWindow(void *device, void *wndHandle)
 {
-  RenderDoc::Inst().SetActiveWindow(device, wndHandle);
+  RenderDoc::Inst().SetActiveWindow(DeviceOwnedWindow(device, wndHandle));
 }
 
 static void StartFrameCapture(void *device, void *wndHandle)
 {
-  RenderDoc::Inst().StartFrameCapture(device, wndHandle);
+  DeviceOwnedWindow devWnd(device, wndHandle);
 
-  if(device == NULL || wndHandle == NULL)
-    RenderDoc::Inst().MatchClosestWindow(device, wndHandle);
+  RenderDoc::Inst().StartFrameCapture(devWnd);
 
-  if(device != NULL && wndHandle != NULL)
-    RenderDoc::Inst().SetActiveWindow(device, wndHandle);
+  if(devWnd.device == NULL || devWnd.windowHandle == NULL)
+    RenderDoc::Inst().MatchClosestWindow(devWnd);
+
+  if(devWnd.device != NULL && devWnd.windowHandle != NULL)
+    RenderDoc::Inst().SetActiveWindow(devWnd);
 }
 
 static uint32_t IsFrameCapturing()
@@ -231,12 +233,12 @@ static uint32_t IsFrameCapturing()
 
 static uint32_t EndFrameCapture(void *device, void *wndHandle)
 {
-  return RenderDoc::Inst().EndFrameCapture(device, wndHandle) ? 1 : 0;
+  return RenderDoc::Inst().EndFrameCapture(DeviceOwnedWindow(device, wndHandle)) ? 1 : 0;
 }
 
 static uint32_t DiscardFrameCapture(void *device, void *wndHandle)
 {
-  return RenderDoc::Inst().DiscardFrameCapture(device, wndHandle) ? 1 : 0;
+  return RenderDoc::Inst().DiscardFrameCapture(DeviceOwnedWindow(device, wndHandle)) ? 1 : 0;
 }
 
 static uint32_t ShowReplayUI()

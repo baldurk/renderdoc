@@ -54,18 +54,18 @@ struct RenderDocAnalysis : IDXGraphicsAnalysis
   // IDXGraphicsAnalysis
   void STDMETHODCALLTYPE BeginCapture()
   {
-    void *dev = NULL, *wnd = NULL;
-    RenderDoc::Inst().GetActiveWindow(dev, wnd);
+    DeviceOwnedWindow devWnd;
+    RenderDoc::Inst().GetActiveWindow(devWnd);
 
-    RenderDoc::Inst().StartFrameCapture(dev, wnd);
+    RenderDoc::Inst().StartFrameCapture(devWnd);
   }
 
   void STDMETHODCALLTYPE EndCapture()
   {
-    void *dev = NULL, *wnd = NULL;
-    RenderDoc::Inst().GetActiveWindow(dev, wnd);
+    DeviceOwnedWindow devWnd;
+    RenderDoc::Inst().GetActiveWindow(devWnd);
 
-    RenderDoc::Inst().EndFrameCapture(dev, wnd);
+    RenderDoc::Inst().EndFrameCapture(devWnd);
   }
 };
 

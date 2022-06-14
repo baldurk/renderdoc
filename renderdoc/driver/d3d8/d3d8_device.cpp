@@ -52,7 +52,7 @@ WrappedD3DDevice8::WrappedD3DDevice8(IDirect3DDevice8 *device, HWND wnd,
     m_Wnd = wnd;
 
     if(wnd != NULL)
-      RenderDoc::Inst().AddFrameCapturer((IDirect3DDevice8 *)this, wnd, this);
+      RenderDoc::Inst().AddFrameCapturer(DeviceOwnedWindow((IDirect3DDevice8 *)this, wnd), this);
   }
   else
   {
@@ -86,7 +86,7 @@ WrappedD3DDevice8::~WrappedD3DDevice8()
   RenderDoc::Inst().RemoveDeviceFrameCapturer((IDirect3DDevice8 *)this);
 
   if(m_Wnd != NULL)
-    RenderDoc::Inst().RemoveFrameCapturer((IDirect3DDevice8 *)this, m_Wnd);
+    RenderDoc::Inst().RemoveFrameCapturer(DeviceOwnedWindow((IDirect3DDevice8 *)this, m_Wnd));
 
   SAFE_DELETE(m_DebugManager);
 
@@ -149,18 +149,18 @@ void WrappedD3DDevice8::LazyInit()
   m_DebugManager = new D3D8DebugManager(this);
 }
 
-void WrappedD3DDevice8::StartFrameCapture(void *dev, void *wnd)
+void WrappedD3DDevice8::StartFrameCapture(DeviceOwnedWindow devWnd)
 {
   RDCERR("Capture not supported on D3D8");
 }
 
-bool WrappedD3DDevice8::EndFrameCapture(void *dev, void *wnd)
+bool WrappedD3DDevice8::EndFrameCapture(DeviceOwnedWindow devWnd)
 {
   RDCERR("Capture not supported on D3D8");
   return false;
 }
 
-bool WrappedD3DDevice8::DiscardFrameCapture(void *dev, void *wnd)
+bool WrappedD3DDevice8::DiscardFrameCapture(DeviceOwnedWindow devWnd)
 {
   RDCERR("Capture not supported on D3D8");
   return false;
@@ -239,7 +239,7 @@ HRESULT __stdcall WrappedD3DDevice8::Present(CONST RECT *pSourceRect, CONST RECT
   if(hDestWindowOverride != NULL)
     wnd = hDestWindowOverride;
 
-  bool activeWindow = RenderDoc::Inst().IsActiveWindow((IDirect3DDevice8 *)this, wnd);
+  DeviceOwnedWindow devWnd((IDirect3DDevice8 *)this, wnd);
 
   m_FrameCounter++;
 
@@ -270,10 +270,8 @@ HRESULT __stdcall WrappedD3DDevice8::Present(CONST RECT *pSourceRect, CONST RECT
       GetDebugManager()->SetOutputDimensions(bbDesc.Width, bbDesc.Height);
       GetDebugManager()->SetOutputWindow(m_PresentParameters.hDeviceWindow);
 
-      int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
-      flags |= RenderDoc::eOverlay_CaptureDisabled;
-
-      rdcstr overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::D3D8, m_FrameCounter, flags);
+      rdcstr overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::D3D8, devWnd, m_FrameCounter,
+                                                            RenderDoc::eOverlay_CaptureDisabled);
 
       overlayText += "Captures not supported with D3D8\n";
 

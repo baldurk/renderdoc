@@ -696,9 +696,9 @@ public:
 
   void ReplayMarkers(bool replay) { m_ReplayMarkers = replay; }
   RDCDriver GetFrameCaptureDriver() { return GetDriverType(); }
-  void StartFrameCapture(void *dev, void *wnd);
-  bool EndFrameCapture(void *dev, void *wnd);
-  bool DiscardFrameCapture(void *dev, void *wnd);
+  void StartFrameCapture(DeviceOwnedWindow devWnd);
+  bool EndFrameCapture(DeviceOwnedWindow devWnd);
+  bool DiscardFrameCapture(DeviceOwnedWindow devWnd);
 
   // map with key being mip level, value being stored data
   typedef std::map<int, bytebuf> CompressedDataStore;

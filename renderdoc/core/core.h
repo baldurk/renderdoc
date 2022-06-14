@@ -67,12 +67,42 @@ struct ICrashHandler
   virtual void UnregisterMemoryRegion(void *mem) = 0;
 };
 
+struct DeviceOwnedWindow
+{
+  DeviceOwnedWindow() : device(NULL), windowHandle(NULL) {}
+  DeviceOwnedWindow(void *dev, void *wnd) : device(dev), windowHandle(wnd) {}
+  void *device;
+  void *windowHandle;
+
+  bool operator==(const DeviceOwnedWindow &o) const
+  {
+    return device == o.device && windowHandle == o.windowHandle;
+  }
+  bool operator<(const DeviceOwnedWindow &o) const
+  {
+    if(device != o.device)
+      return device < o.device;
+    return windowHandle < o.windowHandle;
+  }
+
+  bool wildcardMatch(const DeviceOwnedWindow &o) const
+  {
+    if(device == NULL || o.device == NULL)
+      return windowHandle == NULL || o.windowHandle == NULL || windowHandle == o.windowHandle;
+
+    if(windowHandle == NULL || o.windowHandle == NULL)
+      return device == o.device;
+
+    return *this == o;
+  }
+};
+
 struct IFrameCapturer
 {
   virtual RDCDriver GetFrameCaptureDriver() = 0;
-  virtual void StartFrameCapture(void *dev, void *wnd) = 0;
-  virtual bool EndFrameCapture(void *dev, void *wnd) = 0;
-  virtual bool DiscardFrameCapture(void *dev, void *wnd) = 0;
+  virtual void StartFrameCapture(DeviceOwnedWindow devWnd) = 0;
+  virtual bool EndFrameCapture(DeviceOwnedWindow devWnd) = 0;
+  virtual bool DiscardFrameCapture(DeviceOwnedWindow devWnd) = 0;
 };
 
 struct IDeviceProtocolHandler;
@@ -526,8 +556,8 @@ public:
 
   void Tick();
 
-  void AddFrameCapturer(void *dev, void *wnd, IFrameCapturer *cap);
-  void RemoveFrameCapturer(void *dev, void *wnd);
+  void AddFrameCapturer(DeviceOwnedWindow devWnd, IFrameCapturer *cap);
+  void RemoveFrameCapturer(DeviceOwnedWindow devWnd);
   bool HasActiveFrameCapturer(RDCDriver driver) const;
 
   // add window-less frame capturers for use via users capturing
@@ -535,25 +565,16 @@ public:
   void AddDeviceFrameCapturer(void *dev, IFrameCapturer *cap);
   void RemoveDeviceFrameCapturer(void *dev);
 
-  void StartFrameCapture(void *dev, void *wnd);
+  void StartFrameCapture(DeviceOwnedWindow devWnd);
   bool IsFrameCapturing() { return m_CapturesActive > 0; }
-  void SetActiveWindow(void *dev, void *wnd);
-  bool EndFrameCapture(void *dev, void *wnd);
-  bool DiscardFrameCapture(void *dev, void *wnd);
+  void SetActiveWindow(DeviceOwnedWindow devWnd);
+  bool EndFrameCapture(DeviceOwnedWindow devWnd);
+  bool DiscardFrameCapture(DeviceOwnedWindow devWnd);
 
-  bool MatchClosestWindow(void *&dev, void *&wnd);
+  bool MatchClosestWindow(DeviceOwnedWindow &devWnd);
 
-  bool IsActiveWindow(void *dev, void *wnd)
-  {
-    return dev == m_ActiveWindow.dev && wnd == m_ActiveWindow.wnd;
-  }
-
-  void GetActiveWindow(void *&dev, void *&wnd)
-  {
-    dev = m_ActiveWindow.dev;
-    wnd = m_ActiveWindow.wnd;
-  }
-
+  bool IsActiveWindow(DeviceOwnedWindow devWnd) { return devWnd == m_ActiveWindow; }
+  void GetActiveWindow(DeviceOwnedWindow &devWnd) { devWnd = m_ActiveWindow; }
   void TriggerCapture(uint32_t numFrames) { m_Cap = numFrames; }
   uint32_t GetOverlayBits() { return m_Overlay; }
   void MaskOverlayBits(uint32_t And, uint32_t Or) { m_Overlay = (m_Overlay & And) | Or; }
@@ -577,11 +598,10 @@ public:
 
   enum
   {
-    eOverlay_ActiveWindow = 0x1,
-    eOverlay_CaptureDisabled = 0x2,
+    eOverlay_CaptureDisabled = 0x1,
   };
 
-  rdcstr GetOverlayText(RDCDriver driver, uint32_t frameNumber, int flags);
+  rdcstr GetOverlayText(RDCDriver driver, DeviceOwnedWindow devWnd, uint32_t frameNumber, int flags);
 
   void CycleActiveWindow();
   uint32_t GetCapturableWindowCount() { return (uint32_t)m_WindowFrameCapturers.size(); }
@@ -659,44 +679,17 @@ private:
     int RefCount;
   };
 
-  struct DeviceWnd
-  {
-    DeviceWnd() : dev(NULL), wnd(NULL) {}
-    DeviceWnd(void *d, void *w) : dev(d), wnd(w) {}
-    void *dev;
-    void *wnd;
-
-    bool operator==(const DeviceWnd &o) const { return dev == o.dev && wnd == o.wnd; }
-    bool operator<(const DeviceWnd &o) const
-    {
-      if(dev != o.dev)
-        return dev < o.dev;
-      return wnd < o.wnd;
-    }
-
-    bool wildcardMatch(const DeviceWnd &o) const
-    {
-      if(dev == NULL || o.dev == NULL)
-        return wnd == NULL || o.wnd == NULL || wnd == o.wnd;
-
-      if(wnd == NULL || o.wnd == NULL)
-        return dev == o.dev;
-
-      return *this == o;
-    }
-  };
-
   FloatVector m_LightChecker = FloatVector(0.81f, 0.81f, 0.81f, 1.0f);
   FloatVector m_DarkChecker = FloatVector(0.57f, 0.57f, 0.57f, 1.0f);
   bool m_DarkTheme = false;
 
   int m_CapturesActive;
 
-  std::map<DeviceWnd, FrameCap> m_WindowFrameCapturers;
-  DeviceWnd m_ActiveWindow;
+  std::map<DeviceOwnedWindow, FrameCap> m_WindowFrameCapturers;
+  DeviceOwnedWindow m_ActiveWindow;
   std::map<void *, IFrameCapturer *> m_DeviceFrameCapturers;
 
-  IFrameCapturer *MatchFrameCapturer(void *dev, void *wnd);
+  IFrameCapturer *MatchFrameCapturer(DeviceOwnedWindow devWnd);
 
   bool m_VendorExts[arraydim<VendorExtensions>()] = {};
 

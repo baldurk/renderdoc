@@ -754,51 +754,46 @@ void RenderDoc::RegisterShutdownFunction(ShutdownFunction func)
     m_ShutdownFunctions.insert(it - m_ShutdownFunctions.begin(), func);
 }
 
-bool RenderDoc::MatchClosestWindow(void *&dev, void *&wnd)
+bool RenderDoc::MatchClosestWindow(DeviceOwnedWindow &devWnd)
 {
-  DeviceWnd dw(dev, wnd);
-
   // lower_bound and the DeviceWnd ordering (pointer compares, dev over wnd) means that if either
-  // element in dw is NULL we can go forward from this iterator and find the first wildcardMatch
+  // element in devWnd is NULL we can go forward from this iterator and find the first wildcardMatch
   // note that if dev is specified and wnd is NULL, this will actually point at the first
   // wildcardMatch already and we can use it immediately (since which window of multiple we
   // choose is undefined, so up to us). If dev is NULL there is no window ordering (since dev is
   // the primary sorting value) so we just iterate through the whole map. It should be small in
   // the majority of cases
-  auto it = m_WindowFrameCapturers.lower_bound(dw);
+  auto it = m_WindowFrameCapturers.lower_bound(devWnd);
 
   while(it != m_WindowFrameCapturers.end())
   {
-    if(it->first.wildcardMatch(dw))
+    if(it->first.wildcardMatch(devWnd))
       break;
     ++it;
   }
 
   if(it != m_WindowFrameCapturers.end())
   {
-    dev = it->first.dev;
-    wnd = it->first.wnd;
+    devWnd = it->first;
     return true;
   }
 
   return false;
 }
 
-IFrameCapturer *RenderDoc::MatchFrameCapturer(void *dev, void *wnd)
+IFrameCapturer *RenderDoc::MatchFrameCapturer(DeviceOwnedWindow devWnd)
 {
-  DeviceWnd dw(dev, wnd);
-
   // try and find the closest frame capture registered, and update
-  // the values in dw to point to it precisely
-  bool exactMatch = MatchClosestWindow(dw.dev, dw.wnd);
+  // the values in devWnd to point to it precisely
+  bool exactMatch = MatchClosestWindow(devWnd);
 
   if(!exactMatch)
   {
     // handle off-screen rendering where there are no device/window pairs in
     // m_WindowFrameCapturers, instead we use the first matching device frame capturer
-    if(wnd == NULL)
+    if(devWnd.windowHandle == NULL)
     {
-      auto defaultit = m_DeviceFrameCapturers.find(dev);
+      auto defaultit = m_DeviceFrameCapturers.find(devWnd.device);
       if(defaultit == m_DeviceFrameCapturers.end() && !m_DeviceFrameCapturers.empty())
         defaultit = m_DeviceFrameCapturers.begin();
 
@@ -809,11 +804,12 @@ IFrameCapturer *RenderDoc::MatchFrameCapturer(void *dev, void *wnd)
     RDCERR(
         "Couldn't find matching frame capturer for device %p window %p "
         "from %zu device frame capturers and %zu frame capturers",
-        dev, wnd, m_DeviceFrameCapturers.size(), m_WindowFrameCapturers.size());
+        devWnd.device, devWnd.windowHandle, m_DeviceFrameCapturers.size(),
+        m_WindowFrameCapturers.size());
     return NULL;
   }
 
-  auto it = m_WindowFrameCapturers.find(dw);
+  auto it = m_WindowFrameCapturers.find(devWnd);
 
   if(it == m_WindowFrameCapturers.end())
   {
@@ -824,48 +820,47 @@ IFrameCapturer *RenderDoc::MatchFrameCapturer(void *dev, void *wnd)
   return it->second.FrameCapturer;
 }
 
-void RenderDoc::StartFrameCapture(void *dev, void *wnd)
+void RenderDoc::StartFrameCapture(DeviceOwnedWindow devWnd)
 {
-  IFrameCapturer *frameCap = MatchFrameCapturer(dev, wnd);
+  IFrameCapturer *frameCap = MatchFrameCapturer(devWnd);
   if(frameCap)
   {
-    frameCap->StartFrameCapture(dev, wnd);
+    frameCap->StartFrameCapture(devWnd);
     m_CapturesActive++;
   }
 }
 
-void RenderDoc::SetActiveWindow(void *dev, void *wnd)
+void RenderDoc::SetActiveWindow(DeviceOwnedWindow devWnd)
 {
-  DeviceWnd dw(dev, wnd);
-
-  auto it = m_WindowFrameCapturers.find(dw);
+  auto it = m_WindowFrameCapturers.find(devWnd);
   if(it == m_WindowFrameCapturers.end())
   {
-    RDCERR("Couldn't find frame capturer for device %p window %p", dev, wnd);
+    RDCERR("Couldn't find frame capturer for device %p window %p", devWnd.device,
+           devWnd.windowHandle);
     return;
   }
 
-  m_ActiveWindow = dw;
+  m_ActiveWindow = devWnd;
 }
 
-bool RenderDoc::EndFrameCapture(void *dev, void *wnd)
+bool RenderDoc::EndFrameCapture(DeviceOwnedWindow devWnd)
 {
-  IFrameCapturer *frameCap = MatchFrameCapturer(dev, wnd);
+  IFrameCapturer *frameCap = MatchFrameCapturer(devWnd);
   if(frameCap)
   {
-    bool ret = frameCap->EndFrameCapture(dev, wnd);
+    bool ret = frameCap->EndFrameCapture(devWnd);
     m_CapturesActive--;
     return ret;
   }
   return false;
 }
 
-bool RenderDoc::DiscardFrameCapture(void *dev, void *wnd)
+bool RenderDoc::DiscardFrameCapture(DeviceOwnedWindow devWnd)
 {
-  IFrameCapturer *frameCap = MatchFrameCapturer(dev, wnd);
+  IFrameCapturer *frameCap = MatchFrameCapturer(devWnd);
   if(frameCap)
   {
-    bool ret = frameCap->DiscardFrameCapture(dev, wnd);
+    bool ret = frameCap->DiscardFrameCapture(devWnd);
     m_CapturesActive--;
     return ret;
   }
@@ -965,21 +960,127 @@ void RenderDoc::CycleActiveWindow()
   }
 }
 
-rdcstr RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, int flags)
+rdcstr RenderDoc::GetOverlayText(RDCDriver driver, DeviceOwnedWindow devWnd, uint32_t frameNumber,
+                                 int flags)
 {
-  const bool activeWindow = (flags & eOverlay_ActiveWindow);
+  const bool activeWindow = (devWnd == m_ActiveWindow);
   const bool capturesEnabled = (flags & eOverlay_CaptureDisabled) == 0;
 
   uint32_t overlay = GetOverlayBits();
 
-  rdcstr overlayText = ToStr(driver) + ". ";
+  RDCDriver activeDriver = RDCDriver::Unknown;
+  RDCDriver curDriver = RDCDriver::Unknown;
+
+  int activeIdx = -1, curIdx = -1, idx = 0;
+  for(auto it = m_WindowFrameCapturers.begin(); it != m_WindowFrameCapturers.end(); ++it, ++idx)
+  {
+    if(it->first == m_ActiveWindow)
+    {
+      activeIdx = idx;
+      activeDriver = it->second.FrameCapturer->GetFrameCaptureDriver();
+    }
+    if(it->first == devWnd)
+    {
+      curIdx = idx;
+      curDriver = it->second.FrameCapturer->GetFrameCaptureDriver();
+    }
+  }
+
+  if(activeDriver == RDCDriver::Unknown)
+    activeDriver = curDriver;
+
+  if(activeDriver == RDCDriver::Unknown)
+    activeDriver = driver;
+
+  // example layout:
+  //
+  // Capturing D3D11.  Frame: 1234. 33ms (30 FPS)
+  // F12, PrtScrn to capture. 3 Captures saved.
+  // Captured frame 1200.
+  //
+  // Frame number, FPS, capture list are optional. If capture list is disabled
+  // the second line still displays the keys as long as capturing is allowed.
+  // if capturing is disabled, only the first line displays.
+  //
+  // On platforms without keyboards, the keys are replaced by a remote access connection status
+  // message.
+  //
+  // with multiple windows the active window will look like:
+  //
+  // Capturing D3D11.  Window 1 active. Frame: 1234. 33ms (30 FPS)
+  // F12, PrtScrn to capture. 3 Captures saved.
+  // Captured frame 1200.
+  //
+  // Inactive windows will look like:
+  //
+  // Capturing D3D11.  Window 1 active.
+  // F11 to cycle. OpenGL window 2.
+
+  rdcstr overlayText = ToStr(activeDriver) + ".";
+
+  // pad this so it's the same length regardless of API length
+  while(overlayText.length() < 8)
+    overlayText.push_back(' ');
+
+  overlayText = "Capturing " + overlayText;
+
+  size_t numWindows = m_WindowFrameCapturers.size();
+
+  if(numWindows > 1)
+  {
+    if(activeIdx >= 0)
+      overlayText += StringFormat::Fmt(" Window %d active.", activeIdx);
+    else
+      overlayText += " No window active.";
+  }
 
   if(activeWindow)
   {
-    rdcarray<RENDERDOC_InputButton> keys = GetCaptureKeys();
+    if(overlay & eRENDERDOC_Overlay_FrameNumber)
+      overlayText += StringFormat::Fmt(" Frame: %d.", frameNumber);
 
-    if(capturesEnabled)
+    if(overlay & eRENDERDOC_Overlay_FrameRate)
     {
+      const double frameTime = m_FrameTimer.GetAvgFrameTime();
+      // max with 0.01ms so that we don't divide by zero
+      const double fps = 1000.0f / RDCMAX(0.01, frameTime);
+
+      if(frameTime < 0.0001)
+      {
+        overlayText += " --- ms (--- FPS)";
+      }
+      else
+      {
+        // only display frametime fractions if it's relevant (sub-integer frame time or FPS)
+
+        if(frameTime < 1.0)
+          overlayText += StringFormat::Fmt(" %.2lf ms", m_FrameTimer.GetAvgFrameTime());
+        else
+          overlayText += StringFormat::Fmt(" %d ms", int(m_FrameTimer.GetAvgFrameTime()));
+
+        if(fps < 1.0)
+          overlayText += StringFormat::Fmt(" (%.2lf FPS)", fps);
+        else
+          overlayText += StringFormat::Fmt(" (%d FPS)", int(fps));
+      }
+    }
+  }
+
+  overlayText += "\n";
+
+#if ENABLED(RDOC_DEVEL)
+  {
+    overlayText += StringFormat::Fmt("%llu chunks - %.2f MB\n", Chunk::NumLiveChunks(),
+                                     float(Chunk::TotalMem()) / 1024.0f / 1024.0f);
+  }
+#endif
+
+  if(capturesEnabled)
+  {
+    if(activeWindow)
+    {
+      rdcarray<RENDERDOC_InputButton> keys = GetCaptureKeys();
+
       if(Keyboard::PlatformHasKeyInput())
       {
         for(size_t i = 0; i < keys.size(); i++)
@@ -1000,80 +1101,56 @@ rdcstr RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, int fla
         else
           overlayText += "No remote access connection.";
       }
-    }
 
-    if(overlay & eRENDERDOC_Overlay_FrameNumber)
-    {
-      overlayText += StringFormat::Fmt(" Frame: %d.", frameNumber);
-    }
-    if(overlay & eRENDERDOC_Overlay_FrameRate)
-    {
-      overlayText +=
-          StringFormat::Fmt(" %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)", m_FrameTimer.GetAvgFrameTime(),
-                            m_FrameTimer.GetMinFrameTime(), m_FrameTimer.GetMaxFrameTime(),
-                            // max with 0.01ms so that we don't divide by zero
-                            1000.0f / RDCMAX(0.01, m_FrameTimer.GetAvgFrameTime()));
-    }
-
-    overlayText += "\n";
-
-    if((overlay & eRENDERDOC_Overlay_CaptureList) && capturesEnabled)
-    {
-      overlayText += StringFormat::Fmt("%d Captures saved.\n", (uint32_t)m_Captures.size());
-
-      uint64_t now = Timing::GetUnixTimestamp();
-      for(size_t i = 0; i < m_Captures.size(); i++)
+      if(overlay & eRENDERDOC_Overlay_CaptureList)
       {
-        if(now - m_Captures[i].timestamp < 20)
+        overlayText += StringFormat::Fmt(" %d Captures saved.\n", (uint32_t)m_Captures.size());
+
+        uint64_t now = Timing::GetUnixTimestamp();
+        for(size_t i = 0; i < m_Captures.size(); i++)
         {
-          if(m_Captures[i].frameNumber == ~0U)
-            overlayText += "Captured user-defined capture.\n";
-          else
-            overlayText += StringFormat::Fmt("Captured frame %d.\n", m_Captures[i].frameNumber);
+          if(now - m_Captures[i].timestamp < 20)
+          {
+            if(m_Captures[i].frameNumber == ~0U)
+              overlayText += "Captured user-defined capture.\n";
+            else
+              overlayText += StringFormat::Fmt("Captured frame %d.\n", m_Captures[i].frameNumber);
+          }
         }
       }
     }
-
-#if ENABLED(RDOC_DEVEL)
-    overlayText += StringFormat::Fmt("%llu chunks - %.2f MB\n", Chunk::NumLiveChunks(),
-                                     float(Chunk::TotalMem()) / 1024.0f / 1024.0f);
-#endif
-  }
-  else if(capturesEnabled)
-  {
-    rdcarray<RENDERDOC_InputButton> keys = GetFocusKeys();
-
-    overlayText += "Inactive window.";
-
-    size_t activeIdx = 0;
-    for(auto it = m_WindowFrameCapturers.begin(); it != m_WindowFrameCapturers.end();
-        ++it, ++activeIdx)
-      if(it->first == m_ActiveWindow)
-        break;
-
-    if(activeIdx < m_WindowFrameCapturers.size())
+    else
     {
-      overlayText += StringFormat::Fmt(" Active Window: %zu of %zu.", activeIdx + 1,
-                                       m_WindowFrameCapturers.size());
-    }
+      rdcarray<RENDERDOC_InputButton> keys = GetFocusKeys();
 
-    if(Keyboard::PlatformHasKeyInput())
-    {
-      for(size_t i = 0; i < keys.size(); i++)
+      if(Keyboard::PlatformHasKeyInput())
       {
-        if(i == 0)
-          overlayText += " ";
-        else
-          overlayText += ", ";
+        for(size_t i = 0; i < keys.size(); i++)
+        {
+          if(i > 0)
+            overlayText += ", ";
 
-        overlayText += ToStr(keys[i]);
+          overlayText += ToStr(keys[i]);
+        }
+
+        if(!keys.empty())
+          overlayText += " to cycle.";
+      }
+      else
+      {
+        if(IsTargetControlConnected())
+          overlayText += "Connected by " + GetTargetControlUsername() + ".";
+        else
+          overlayText += "No remote access connection.";
       }
 
-      if(!keys.empty())
-        overlayText += " to cycle between windows";
+      if(curIdx >= 0)
+        overlayText += StringFormat::Fmt(" %s window %d.", ToStr(curDriver).c_str(), curIdx);
+      else if(curDriver != RDCDriver::Unknown)
+        overlayText += StringFormat::Fmt(" Unknown %s window.", ToStr(curDriver).c_str());
+      else
+        overlayText += " Unknown window.";
     }
-
-    overlayText += "\n";
   }
 
   return overlayText;
@@ -1884,23 +1961,22 @@ void RenderDoc::RemoveDeviceFrameCapturer(void *dev)
   m_DeviceFrameCapturers.erase(dev);
 }
 
-void RenderDoc::AddFrameCapturer(void *dev, void *wnd, IFrameCapturer *cap)
+void RenderDoc::AddFrameCapturer(DeviceOwnedWindow devWnd, IFrameCapturer *cap)
 {
   if(IsReplayApp())
     return;
 
-  if(dev == NULL || wnd == NULL || cap == NULL)
+  if(devWnd.device == NULL || devWnd.windowHandle == NULL || cap == NULL)
   {
-    RDCERR("Invalid FrameCapturer %#p for combination: %#p / %#p", cap, dev, wnd);
+    RDCERR("Invalid FrameCapturer %#p for combination: %#p / %#p", cap, devWnd.device,
+           devWnd.windowHandle);
     return;
   }
 
-  RDCLOG("Adding %s frame capturer for %#p / %#p", ToStr(cap->GetFrameCaptureDriver()).c_str(), dev,
-         wnd);
+  RDCLOG("Adding %s frame capturer for %#p / %#p", ToStr(cap->GetFrameCaptureDriver()).c_str(),
+         devWnd.device, devWnd.windowHandle);
 
-  DeviceWnd dw(dev, wnd);
-
-  auto it = m_WindowFrameCapturers.find(dw);
+  auto it = m_WindowFrameCapturers.find(devWnd);
   if(it != m_WindowFrameCapturers.end())
   {
     if(it->second.FrameCapturer != cap)
@@ -1910,24 +1986,22 @@ void RenderDoc::AddFrameCapturer(void *dev, void *wnd, IFrameCapturer *cap)
   }
   else
   {
-    m_WindowFrameCapturers[dw].FrameCapturer = cap;
+    m_WindowFrameCapturers[devWnd].FrameCapturer = cap;
   }
 
   // the first one we see becomes the default
-  if(m_ActiveWindow == DeviceWnd())
-    m_ActiveWindow = dw;
+  if(m_ActiveWindow == DeviceOwnedWindow())
+    m_ActiveWindow = devWnd;
 }
 
-void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
+void RenderDoc::RemoveFrameCapturer(DeviceOwnedWindow devWnd)
 {
   if(IsReplayApp())
     return;
 
-  DeviceWnd dw(dev, wnd);
+  RDCLOG("Removing frame capturer for %#p / %#p", devWnd.device, devWnd.windowHandle);
 
-  RDCLOG("Removing frame capturer for %#p / %#p", dev, wnd);
-
-  auto it = m_WindowFrameCapturers.find(dw);
+  auto it = m_WindowFrameCapturers.find(devWnd);
   if(it != m_WindowFrameCapturers.end())
   {
     it->second.RefCount--;
@@ -1936,13 +2010,13 @@ void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
     {
       RDCLOG("Removed last refcount");
 
-      if(m_ActiveWindow == dw)
+      if(m_ActiveWindow == devWnd)
       {
         RDCLOG("Removed active window");
 
         if(m_WindowFrameCapturers.size() == 1)
         {
-          m_ActiveWindow = DeviceWnd();
+          m_ActiveWindow = DeviceOwnedWindow();
         }
         else
         {

@@ -1133,7 +1133,7 @@ void WrappedOpenGL::ContextData::UnassociateWindow(WrappedOpenGL *driver, void *
       Keyboard::RemoveInputWindow(it->second.first, wndHandle);
 
     windows.erase(wndHandle);
-    RenderDoc::Inst().RemoveFrameCapturer(ctx, wndHandle);
+    RenderDoc::Inst().RemoveFrameCapturer(DeviceOwnedWindow(ctx, wndHandle));
   }
 }
 
@@ -1143,7 +1143,7 @@ void WrappedOpenGL::ContextData::AssociateWindow(WrappedOpenGL *driver, Windowin
   auto it = windows.find(wndHandle);
   if(it == windows.end())
   {
-    RenderDoc::Inst().AddFrameCapturer(ctx, wndHandle, driver);
+    RenderDoc::Inst().AddFrameCapturer(DeviceOwnedWindow(ctx, wndHandle), driver);
 
     if(winSystem != WindowingSystem::Headless && IsCaptureMode(driver->GetState()))
       Keyboard::AddInputWindow(winSystem, wndHandle);
@@ -2013,7 +2013,9 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
   if(!ctxdata.ready)
     ctxdata.CreateDebugData();
 
-  bool activeWindow = RenderDoc::Inst().IsActiveWindow(ctxdata.ctx, windowHandle);
+  DeviceOwnedWindow devWnd(ctxdata.ctx, windowHandle);
+
+  bool activeWindow = RenderDoc::Inst().IsActiveWindow(devWnd);
 
   // look at previous associations and decay any that are too old
   uint64_t ref = Timing::GetUnixTimestamp() - 5;    // 5 seconds
@@ -2042,11 +2044,12 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
 
     if(overlay & eRENDERDOC_Overlay_Enabled)
     {
-      int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
+      int flags = 0;
       // capturing is disabled if unsupported functions have been used, or this context is legacy
       if(ctxdata.Legacy() || !m_UnsupportedFunctions.empty())
         flags |= RenderDoc::eOverlay_CaptureDisabled;
-      rdcstr overlayText = RenderDoc::Inst().GetOverlayText(GetDriverType(), m_FrameCounter, flags);
+      rdcstr overlayText =
+          RenderDoc::Inst().GetOverlayText(GetDriverType(), devWnd, m_FrameCounter, flags);
 
       if(ctxdata.Legacy())
       {
@@ -2132,11 +2135,11 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
 
   // kill any current capture that isn't application defined
   if(IsActiveCapturing(m_State) && !m_AppControlledCapture)
-    RenderDoc::Inst().EndFrameCapture(ctxdata.ctx, windowHandle);
+    RenderDoc::Inst().EndFrameCapture(devWnd);
 
   if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && IsBackgroundCapturing(m_State))
   {
-    RenderDoc::Inst().StartFrameCapture(ctxdata.ctx, windowHandle);
+    RenderDoc::Inst().StartFrameCapture(devWnd);
 
     m_AppControlledCapture = false;
     m_CapturedFrames.back().frameNumber = m_FrameCounter;
@@ -2169,7 +2172,7 @@ GLWindowingData *WrappedOpenGL::MakeValidContextCurrent(GLWindowingData existing
   return NULL;
 }
 
-void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
+void WrappedOpenGL::StartFrameCapture(DeviceOwnedWindow devWnd)
 {
   if(!IsBackgroundCapturing(m_State))
     return;
@@ -2230,7 +2233,7 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
   }
 }
 
-bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
+bool WrappedOpenGL::EndFrameCapture(DeviceOwnedWindow devWnd)
 {
   if(!IsActiveCapturing(m_State))
     return true;
@@ -2258,9 +2261,10 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
     // if the specified context isn't current, try and see if we've saved
     // an appropriate backbuffer image during capture.
-    if((dev != NULL && existing.ctx != dev) || (wnd != 0 && (void *)existing.wnd != wnd))
+    if((devWnd.device != NULL && existing.ctx != devWnd.device) ||
+       (devWnd.windowHandle != 0 && (void *)existing.wnd != devWnd.windowHandle))
     {
-      auto it = m_BackbufferImages.find(wnd);
+      auto it = m_BackbufferImages.find(devWnd.windowHandle);
       if(it != m_BackbufferImages.end())
       {
         // pop this backbuffer image out of the map
@@ -2532,7 +2536,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
   }
 }
 
-bool WrappedOpenGL::DiscardFrameCapture(void *dev, void *wnd)
+bool WrappedOpenGL::DiscardFrameCapture(DeviceOwnedWindow devWnd)
 {
   if(!IsActiveCapturing(m_State))
     return true;
@@ -2588,7 +2592,7 @@ void WrappedOpenGL::FirstFrame(void *ctx, void *wndHandle)
   {
     // since we haven't associated the window we can't capture by window, so we have to capture just
     // on the device - the very next present to any window on this context will end the capture.
-    RenderDoc::Inst().StartFrameCapture(ctx, NULL);
+    RenderDoc::Inst().StartFrameCapture(DeviceOwnedWindow(ctx, NULL));
 
     m_AppControlledCapture = false;
     m_CapturedFrames.back().frameNumber = 0;

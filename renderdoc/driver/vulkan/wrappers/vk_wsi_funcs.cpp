@@ -730,8 +730,9 @@ bool WrappedVulkan::Serialise_vkQueuePresentKHR(SerialiserType &ser, VkQueue que
 
       SwapchainInfo &swapInfo = *swaprecord->swapInfo;
 
-      const bool activeWindow =
-          RenderDoc::Inst().IsActiveWindow(LayerDisp(m_Instance), swapInfo.wndHandle);
+      DeviceOwnedWindow devWnd(LayerDisp(m_Instance), swapInfo.wndHandle);
+
+      const bool activeWindow = RenderDoc::Inst().IsActiveWindow(devWnd);
 
       if(activeWindow || PresentedImage == ResourceId())
         PresentedImage = GetResID(swapInfo.images[pPresentInfo->pImageIndices[i]].im);
@@ -893,7 +894,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
     SwapchainInfo &swapInfo = *swaprecord->swapInfo;
 
-    Present(LayerDisp(m_Instance), swapInfo.wndHandle);
+    Present(DeviceOwnedWindow(LayerDisp(m_Instance), swapInfo.wndHandle));
   }
 
   return vkr;
@@ -911,7 +912,9 @@ void WrappedVulkan::HandlePresent(VkQueue queue, const VkPresentInfoKHR *pPresen
 
   SwapchainInfo &swapInfo = *swaprecord->swapInfo;
 
-  bool activeWindow = RenderDoc::Inst().IsActiveWindow(LayerDisp(m_Instance), swapInfo.wndHandle);
+  DeviceOwnedWindow devWnd(LayerDisp(m_Instance), swapInfo.wndHandle);
+
+  const bool activeWindow = RenderDoc::Inst().IsActiveWindow(devWnd);
 
   // need to record which image was last flipped so we can get the correct backbuffer
   // for a thumbnail in EndFrameCapture
@@ -1057,8 +1060,8 @@ void WrappedVulkan::HandlePresent(VkQueue queue, const VkPresentInfoKHR *pPresen
             UnwrapPtr(m_ExternalQueues[swapQueueIndex].ring[ringIdx].toext);
       }
 
-      int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
-      rdcstr overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::Vulkan, m_FrameCounter, flags);
+      rdcstr overlayText =
+          RenderDoc::Inst().GetOverlayText(RDCDriver::Vulkan, devWnd, m_FrameCounter, 0);
 
       if(!overlayText.empty())
       {
@@ -1145,7 +1148,7 @@ void WrappedVulkan::vkDestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surfac
     PackedWindowHandle *wnd = (PackedWindowHandle *)wrapper->record;
     Keyboard::RemoveInputWindow(wnd->system, wnd->handle);
 
-    RenderDoc::Inst().RemoveFrameCapturer(LayerDisp(m_Instance), wnd->handle);
+    RenderDoc::Inst().RemoveFrameCapturer(DeviceOwnedWindow(LayerDisp(m_Instance), wnd->handle));
 
     delete wnd;
   }

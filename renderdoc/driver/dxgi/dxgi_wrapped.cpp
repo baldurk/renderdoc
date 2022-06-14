@@ -237,7 +237,7 @@ WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain *real, HWND w, ID3
   {
     Keyboard::AddInputWindow(WindowingSystem::Win32, wnd);
 
-    RenderDoc::Inst().AddFrameCapturer(m_pDevice->GetFrameCapturerDevice(), wnd,
+    RenderDoc::Inst().AddFrameCapturer(DeviceOwnedWindow(m_pDevice->GetFrameCapturerDevice(), wnd),
                                        m_pDevice->GetFrameCapturer());
   }
 
@@ -254,7 +254,7 @@ WrappedIDXGISwapChain4::~WrappedIDXGISwapChain4()
   {
     Keyboard::RemoveInputWindow(WindowingSystem::Win32, wnd);
 
-    RenderDoc::Inst().RemoveFrameCapturer(m_pDevice->GetFrameCapturerDevice(), wnd);
+    RenderDoc::Inst().RemoveFrameCapturer(DeviceOwnedWindow(m_pDevice->GetFrameCapturerDevice(), wnd));
   }
 
   m_pDevice->ReleaseSwapchainResources(this, 0, NULL, NULL);

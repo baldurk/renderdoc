@@ -1337,7 +1337,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 
   if(beginCapture)
   {
-    RenderDoc::Inst().StartFrameCapture(LayerDisp(m_Instance), NULL);
+    RenderDoc::Inst().StartFrameCapture(DeviceOwnedWindow(LayerDisp(m_Instance), NULL));
   }
 
   {
@@ -1391,13 +1391,13 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 
   if(endCapture)
   {
-    RenderDoc::Inst().EndFrameCapture(LayerDisp(m_Instance), NULL);
+    RenderDoc::Inst().EndFrameCapture(DeviceOwnedWindow(LayerDisp(m_Instance), NULL));
   }
 
   if(present)
   {
     AdvanceFrame();
-    Present(LayerDisp(m_Instance), NULL);
+    Present(DeviceOwnedWindow(LayerDisp(m_Instance), NULL));
   }
 
   return ret;
@@ -1505,7 +1505,7 @@ VkResult WrappedVulkan::vkQueueSubmit2(VkQueue queue, uint32_t submitCount,
 
   if(beginCapture)
   {
-    RenderDoc::Inst().StartFrameCapture(LayerDisp(m_Instance), NULL);
+    RenderDoc::Inst().StartFrameCapture(DeviceOwnedWindow(LayerDisp(m_Instance), NULL));
   }
 
   {
@@ -1559,13 +1559,13 @@ VkResult WrappedVulkan::vkQueueSubmit2(VkQueue queue, uint32_t submitCount,
 
   if(endCapture)
   {
-    RenderDoc::Inst().EndFrameCapture(LayerDisp(m_Instance), NULL);
+    RenderDoc::Inst().EndFrameCapture(DeviceOwnedWindow(LayerDisp(m_Instance), NULL));
   }
 
   if(present)
   {
     AdvanceFrame();
-    Present(LayerDisp(m_Instance), NULL);
+    Present(DeviceOwnedWindow(LayerDisp(m_Instance), NULL));
   }
 
   return ret;

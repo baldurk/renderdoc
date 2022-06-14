@@ -47,7 +47,7 @@ WrappedD3DDevice9::WrappedD3DDevice9(IDirect3DDevice9 *device, HWND wnd)
     m_Wnd = wnd;
 
     if(wnd != NULL)
-      RenderDoc::Inst().AddFrameCapturer((IDirect3DDevice9 *)this, wnd, this);
+      RenderDoc::Inst().AddFrameCapturer(DeviceOwnedWindow((IDirect3DDevice9 *)this, wnd), this);
   }
   else
   {
@@ -77,7 +77,7 @@ WrappedD3DDevice9::~WrappedD3DDevice9()
   RenderDoc::Inst().RemoveDeviceFrameCapturer((IDirect3DDevice9 *)this);
 
   if(m_Wnd != NULL)
-    RenderDoc::Inst().RemoveFrameCapturer((IDirect3DDevice9 *)this, m_Wnd);
+    RenderDoc::Inst().RemoveFrameCapturer(DeviceOwnedWindow((IDirect3DDevice9 *)this, m_Wnd));
 
   SAFE_DELETE(m_DebugManager);
 
@@ -109,18 +109,18 @@ void WrappedD3DDevice9::LazyInit()
   m_DebugManager = new D3D9DebugManager(this);
 }
 
-void WrappedD3DDevice9::StartFrameCapture(void *dev, void *wnd)
+void WrappedD3DDevice9::StartFrameCapture(DeviceOwnedWindow wnd)
 {
   RDCERR("Capture not supported on D3D9");
 }
 
-bool WrappedD3DDevice9::EndFrameCapture(void *dev, void *wnd)
+bool WrappedD3DDevice9::EndFrameCapture(DeviceOwnedWindow wnd)
 {
   RDCERR("Capture not supported on D3D9");
   return false;
 }
 
-bool WrappedD3DDevice9::DiscardFrameCapture(void *dev, void *wnd)
+bool WrappedD3DDevice9::DiscardFrameCapture(DeviceOwnedWindow wnd)
 {
   RDCERR("Capture not supported on D3D9");
   return false;
@@ -214,7 +214,7 @@ HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT
   if(hDestWindowOverride != NULL)
     wnd = hDestWindowOverride;
 
-  bool activeWindow = RenderDoc::Inst().IsActiveWindow((IDirect3DDevice9 *)this, wnd);
+  DeviceOwnedWindow devWnd((IDirect3DDevice9 *)this, wnd);
 
   m_FrameCounter++;
 
@@ -244,10 +244,8 @@ HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT
       GetDebugManager()->SetOutputDimensions(bbDesc.Width, bbDesc.Height);
       GetDebugManager()->SetOutputWindow(presentParams.hDeviceWindow);
 
-      int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
-      flags |= RenderDoc::eOverlay_CaptureDisabled;
-
-      rdcstr overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::D3D9, m_FrameCounter, flags);
+      rdcstr overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::D3D9, devWnd, m_FrameCounter,
+                                                            RenderDoc::eOverlay_CaptureDisabled);
 
       overlayText += "Captures not supported with D3D9\n";
 

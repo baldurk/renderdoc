@@ -918,12 +918,12 @@ private:
   bool IsDrawInRenderPass();
 
   RDCDriver GetFrameCaptureDriver() { return RDCDriver::Vulkan; }
-  void StartFrameCapture(void *dev, void *wnd);
-  bool EndFrameCapture(void *dev, void *wnd);
-  bool DiscardFrameCapture(void *dev, void *wnd);
+  void StartFrameCapture(DeviceOwnedWindow devWnd);
+  bool EndFrameCapture(DeviceOwnedWindow devWnd);
+  bool DiscardFrameCapture(DeviceOwnedWindow devWnd);
 
   void AdvanceFrame();
-  void Present(void *dev, void *wnd);
+  void Present(DeviceOwnedWindow devWnd);
 
   void HandleFrameMarkers(const char *marker, VkCommandBuffer commandBuffer);
   void HandleFrameMarkers(const char *marker, VkQueue queue);

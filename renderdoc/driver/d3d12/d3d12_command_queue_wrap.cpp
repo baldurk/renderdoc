@@ -1341,13 +1341,15 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Present(
     if(m_pPresentHWND != NULL)
     {
       Keyboard::RemoveInputWindow(WindowingSystem::Win32, m_pPresentHWND);
-      RenderDoc::Inst().RemoveFrameCapturer(m_pDevice->GetFrameCapturerDevice(), m_pPresentHWND);
+      RenderDoc::Inst().RemoveFrameCapturer(
+          DeviceOwnedWindow(m_pDevice->GetFrameCapturerDevice(), m_pPresentHWND));
     }
 
     Keyboard::AddInputWindow(WindowingSystem::Win32, hWindow);
 
-    RenderDoc::Inst().AddFrameCapturer(m_pDevice->GetFrameCapturerDevice(), hWindow,
-                                       m_pDevice->GetFrameCapturer());
+    RenderDoc::Inst().AddFrameCapturer(
+        DeviceOwnedWindow(m_pDevice->GetFrameCapturerDevice(), hWindow),
+        m_pDevice->GetFrameCapturer());
   }
 
   m_pPresentSource = pSourceTex2D;

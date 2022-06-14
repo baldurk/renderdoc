@@ -1765,7 +1765,7 @@ void WrappedVulkan::FirstFrame()
   // if we have to capture the first frame, begin capturing immediately
   if(IsBackgroundCapturing(m_State) && RenderDoc::Inst().ShouldTriggerCapture(0))
   {
-    RenderDoc::Inst().StartFrameCapture(LayerDisp(m_Instance), NULL);
+    RenderDoc::Inst().StartFrameCapture(DeviceOwnedWindow(LayerDisp(m_Instance), NULL));
 
     m_AppControlledCapture = false;
     m_CapturedFrames.back().frameNumber = 0;
@@ -1789,7 +1789,7 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(SerialiserType &ser)
   return true;
 }
 
-void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
+void WrappedVulkan::StartFrameCapture(DeviceOwnedWindow devWnd)
 {
   if(!IsBackgroundCapturing(m_State))
     return;
@@ -1897,25 +1897,26 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
   }
 }
 
-bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
+bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
 {
   if(!IsActiveCapturing(m_State))
     return true;
 
   VkSwapchainKHR swap = VK_NULL_HANDLE;
 
-  if(wnd)
+  if(devWnd.windowHandle)
   {
     {
       SCOPED_LOCK(m_SwapLookupLock);
-      auto it = m_SwapLookup.find(wnd);
+      auto it = m_SwapLookup.find(devWnd.windowHandle);
       if(it != m_SwapLookup.end())
         swap = it->second;
     }
 
     if(swap == VK_NULL_HANDLE)
     {
-      RDCERR("Output window %p provided for frame capture corresponds with no known swap chain", wnd);
+      RDCERR("Output window %p provided for frame capture corresponds with no known swap chain",
+             devWnd.windowHandle);
       return false;
     }
   }
@@ -2356,7 +2357,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
   return true;
 }
 
-bool WrappedVulkan::DiscardFrameCapture(void *dev, void *wnd)
+bool WrappedVulkan::DiscardFrameCapture(DeviceOwnedWindow devWnd)
 {
   if(!IsActiveCapturing(m_State))
     return true;
@@ -2418,9 +2419,9 @@ void WrappedVulkan::AdvanceFrame()
   m_FrameCounter++;    // first present becomes frame #1, this function is at the end of the frame
 }
 
-void WrappedVulkan::Present(void *dev, void *wnd)
+void WrappedVulkan::Present(DeviceOwnedWindow devWnd)
 {
-  bool activeWindow = wnd == NULL || RenderDoc::Inst().IsActiveWindow(dev, wnd);
+  bool activeWindow = devWnd.windowHandle == NULL || RenderDoc::Inst().IsActiveWindow(devWnd);
 
   RenderDoc::Inst().AddActiveDriver(RDCDriver::Vulkan, true);
 
@@ -2428,11 +2429,11 @@ void WrappedVulkan::Present(void *dev, void *wnd)
     return;
 
   if(IsActiveCapturing(m_State) && !m_AppControlledCapture)
-    RenderDoc::Inst().EndFrameCapture(dev, wnd);
+    RenderDoc::Inst().EndFrameCapture(devWnd);
 
   if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && IsBackgroundCapturing(m_State))
   {
-    RenderDoc::Inst().StartFrameCapture(dev, wnd);
+    RenderDoc::Inst().StartFrameCapture(devWnd);
 
     m_AppControlledCapture = false;
     m_CapturedFrames.back().frameNumber = m_FrameCounter;
@@ -2468,11 +2469,11 @@ void WrappedVulkan::HandleFrameMarkers(const char *marker, VkQueue queue)
 
   if(strstr(marker, "capture-marker,begin_capture") != NULL)
   {
-    RenderDoc::Inst().StartFrameCapture(LayerDisp(m_Instance), NULL);
+    RenderDoc::Inst().StartFrameCapture(DeviceOwnedWindow(LayerDisp(m_Instance), NULL));
   }
   if(strstr(marker, "capture-marker,end_capture") != NULL)
   {
-    RenderDoc::Inst().EndFrameCapture(LayerDisp(m_Instance), NULL);
+    RenderDoc::Inst().EndFrameCapture(DeviceOwnedWindow(LayerDisp(m_Instance), NULL));
   }
 }
 
@@ -3736,7 +3737,7 @@ VkResourceRecord *WrappedVulkan::RegisterSurface(WindowingSystem system, void *h
 {
   Keyboard::AddInputWindow(system, handle);
 
-  RenderDoc::Inst().AddFrameCapturer(LayerDisp(m_Instance), handle, this);
+  RenderDoc::Inst().AddFrameCapturer(DeviceOwnedWindow(LayerDisp(m_Instance), handle), this);
 
   return (VkResourceRecord *)new PackedWindowHandle(system, handle);
 }

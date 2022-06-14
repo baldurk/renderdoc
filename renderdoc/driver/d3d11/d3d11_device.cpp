@@ -1918,7 +1918,7 @@ int WrappedID3D11Device::EndEvent()
   return m_pCurrentWrappedDevice->m_pImmediateContext->ThreadSafe_EndEvent();
 }
 
-void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
+void WrappedID3D11Device::StartFrameCapture(DeviceOwnedWindow devWnd)
 {
   SCOPED_LOCK(m_D3DLock);
 
@@ -1975,7 +1975,7 @@ void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
     m_pInfoQueue->ClearStoredMessages();
 }
 
-bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
+bool WrappedID3D11Device::EndFrameCapture(DeviceOwnedWindow devWnd)
 {
   SCOPED_LOCK(m_D3DLock);
 
@@ -1986,11 +1986,11 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
   IDXGISwapper *swapper = NULL;
 
-  if(wnd)
+  if(devWnd.windowHandle)
   {
     for(auto it = m_SwapChains.begin(); it != m_SwapChains.end(); ++it)
     {
-      if(it->first->GetHWND() == wnd)
+      if(it->first->GetHWND() == devWnd.windowHandle)
       {
         swapper = it->first;
         break;
@@ -1999,7 +1999,8 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
     if(swapper == NULL)
     {
-      RDCERR("Output window %p provided for frame capture corresponds with no known swap chain", wnd);
+      RDCERR("Output window %p provided for frame capture corresponds with no known swap chain",
+             devWnd.windowHandle);
       return false;
     }
   }
@@ -2404,7 +2405,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
   }
 }
 
-bool WrappedID3D11Device::DiscardFrameCapture(void *dev, void *wnd)
+bool WrappedID3D11Device::DiscardFrameCapture(DeviceOwnedWindow devWnd)
 {
   SCOPED_LOCK(m_D3DLock);
 
@@ -2563,7 +2564,7 @@ void WrappedID3D11Device::FirstFrame(IDXGISwapper *swapper)
   // if we have to capture the first frame, begin capturing immediately
   if(IsBackgroundCapturing(m_State) && RenderDoc::Inst().ShouldTriggerCapture(0))
   {
-    RenderDoc::Inst().StartFrameCapture((ID3D11Device *)this, swapper->GetHWND());
+    RenderDoc::Inst().StartFrameCapture(DeviceOwnedWindow((ID3D11Device *)this, swapper->GetHWND()));
 
     m_AppControlledCapture = false;
     m_CapturedFrames.back().frameNumber = 0;
@@ -2617,7 +2618,9 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapper *swapper, UINT SyncInterval, U
 
   m_pImmediateContext->BeginFrame();
 
-  bool activeWindow = RenderDoc::Inst().IsActiveWindow((ID3D11Device *)this, swapper->GetHWND());
+  DeviceOwnedWindow devWnd((ID3D11Device *)this, swapper->GetHWND());
+
+  bool activeWindow = RenderDoc::Inst().IsActiveWindow(devWnd);
 
   m_LastSwap = swapper;
 
@@ -2636,8 +2639,8 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapper *swapper, UINT SyncInterval, U
       m_TextRenderer->SetOutputDimensions(swapper->GetWidth(), swapper->GetHeight());
       m_TextRenderer->SetOutputWindow(swapper->GetHWND());
 
-      int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
-      rdcstr overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::D3D11, m_FrameCounter, flags);
+      rdcstr overlayText =
+          RenderDoc::Inst().GetOverlayText(RDCDriver::D3D11, devWnd, m_FrameCounter, 0);
 
       if(activeWindow && m_FailedFrame > 0)
       {
@@ -2671,12 +2674,12 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapper *swapper, UINT SyncInterval, U
   // kill any current capture that isn't application defined
   if(IsActiveCapturing(m_State) && !m_AppControlledCapture)
   {
-    RenderDoc::Inst().EndFrameCapture((ID3D11Device *)this, swapper->GetHWND());
+    RenderDoc::Inst().EndFrameCapture(devWnd);
   }
 
   if(IsBackgroundCapturing(m_State) && RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter))
   {
-    RenderDoc::Inst().StartFrameCapture((ID3D11Device *)this, swapper->GetHWND());
+    RenderDoc::Inst().StartFrameCapture(devWnd);
 
     m_AppControlledCapture = false;
     m_CapturedFrames.back().frameNumber = m_FrameCounter;

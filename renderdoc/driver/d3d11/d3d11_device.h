@@ -697,9 +697,9 @@ public:
   bool Serialise_CaptureScope(SerialiserType &ser);
 
   RDCDriver GetFrameCaptureDriver() { return RDCDriver::D3D11; }
-  void StartFrameCapture(void *dev, void *wnd);
-  bool EndFrameCapture(void *dev, void *wnd);
-  bool DiscardFrameCapture(void *dev, void *wnd);
+  void StartFrameCapture(DeviceOwnedWindow devWnd);
+  bool EndFrameCapture(DeviceOwnedWindow devWnd);
+  bool DiscardFrameCapture(DeviceOwnedWindow devWnd);
 
   ID3DUserDefinedAnnotation *GetAnnotations() { return m_RealAnnotations; }
   ID3D11InfoQueue *GetInfoQueue() { return m_pInfoQueue; }
