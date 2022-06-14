@@ -914,8 +914,6 @@ void WrappedVulkan::HandlePresent(VkQueue queue, const VkPresentInfoKHR *pPresen
 
   DeviceOwnedWindow devWnd(LayerDisp(m_Instance), swapInfo.wndHandle);
 
-  const bool activeWindow = RenderDoc::Inst().IsActiveWindow(devWnd);
-
   // need to record which image was last flipped so we can get the correct backbuffer
   // for a thumbnail in EndFrameCapture
   swapInfo.lastPresent.imageIndex = imgIndex;
