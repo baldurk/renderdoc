@@ -829,9 +829,14 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
         sourceName = GetHumanName(innertype->id);
 
       bool isArray = false;
+      uint32_t arraySize = 1;
       if(innertype->type == DataType::ArrayType)
       {
         isArray = true;
+        if(innertype->length == Id())
+          arraySize = ~0U;
+        else
+          arraySize = EvaluateConstant(innertype->length, specInfo).value.u32v[0];
         innertype = &dataTypes[innertype->InnerType()];
       }
 
@@ -897,11 +902,10 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
         {
           BindpointIndex bindpoint;
 
-          // TODO handle arrays
           bindpoint.bindset = (int32_t)bindset;
           bindpoint.bind = (int32_t)bind;
 
-          auto cbufferCallback = [this, bindpoint](
+          auto cbufferCallback = [this, &bindpoint](
               ShaderVariable &var, const Decorations &curDecorations, const DataType &type,
               uint64_t offset, const rdcstr &) {
 
@@ -958,11 +962,30 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
             }
           };
 
-          WalkVariable<ShaderVariable, true>(decorations[v.id], *innertype, 0U, var, rdcstr(),
-                                             cbufferCallback);
-
           if(isArray)
-            RDCERR("Uniform buffer arrays not supported yet");
+          {
+            if(arraySize == ~0U)
+            {
+              RDCERR("Unsupported runtime array of UBOs");
+              arraySize = 1;
+            }
+
+            var.members.reserve(arraySize);
+
+            for(uint32_t a = 0; a < arraySize; a++)
+            {
+              bindpoint.arrayIndex = a;
+              var.members.push_back(ShaderVariable());
+              var.members.back().name = StringFormat::Fmt("[%u]", a);
+              WalkVariable<ShaderVariable, true>(decorations[v.id], *innertype, 0U,
+                                                 var.members.back(), rdcstr(), cbufferCallback);
+            }
+          }
+          else
+          {
+            WalkVariable<ShaderVariable, true>(decorations[v.id], *innertype, 0U, var, rdcstr(),
+                                               cbufferCallback);
+          }
 
           sourceVar.type = VarType::ConstantBlock;
           sourceVar.rows = 1;
