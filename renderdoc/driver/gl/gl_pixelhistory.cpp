@@ -41,7 +41,6 @@ struct GLPixelHistoryResources
   GLuint colorImage;
   GLuint dsImage;
   GLuint frameBuffer;
-  GLuint occlusionQuery;
 };
 
 bool PixelHistorySetupResources(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
@@ -67,8 +66,6 @@ bool PixelHistorySetupResources(WrappedOpenGL *driver, GLPixelHistoryResources &
                              desc.msSamp, 1);
   driver->glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, resources.dsImage, 0);
 
-  driver->glGenQueries(1, &resources.occlusionQuery);
-
   return true;
 }
 
@@ -78,19 +75,41 @@ bool PixelHistoryDestroyResources(WrappedOpenGL *driver, const GLPixelHistoryRes
   driver->glDeleteTextures(1, &resources.dsImage);
   driver->glDeleteFramebuffers(1, &resources.frameBuffer);
 
-  driver->glDeleteQueries(1, &resources.occlusionQuery);
-
   return true;
 }
 
 rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
                                           const rdcarray<EventUsage> &events, int x, int y)
 {
-  driver->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-  driver->ReplayLog(0, events[0].eventId, eReplay_WithoutDraw);
-
   rdcarray<EventUsage> modEvents;
+  rdcarray<GLuint> occlusionQueries(events.size());
+  driver->glGenQueries((GLsizei)occlusionQueries.size(), occlusionQueries.data());
 
+  driver->ReplayLog(0, events[0].eventId, eReplay_WithoutDraw);
+  // execute the occlusion queries
+  for(size_t i = 0; i < events.size(); i++)
+  {
+    if(!(events[i].usage == ResourceUsage::Clear || isDirectWrite(events[i].usage)))
+    {
+      driver->glDisable(eGL_DEPTH_TEST);
+      driver->glDisable(eGL_STENCIL_TEST);
+      driver->glDisable(eGL_CULL_FACE);
+      driver->glDisable(eGL_SAMPLE_MASK);
+      driver->glDisable(eGL_DEPTH_CLAMP);
+      driver->glEnable(eGL_SCISSOR_TEST);
+      driver->glScissor(x, y, 1, 1);
+
+      driver->glBeginQuery(eGL_ANY_SAMPLES_PASSED, occlusionQueries[i]);
+      driver->ReplayLog(events[i].eventId, events[i].eventId, eReplay_OnlyDraw);
+      driver->glEndQuery(eGL_ANY_SAMPLES_PASSED);
+    }
+
+    if(i < events.size() - 1)
+    {
+      driver->ReplayLog(events[i].eventId + 1, events[i + 1].eventId, eReplay_WithoutDraw);
+    }
+  }
+  // read back the occlusion queries and generate the list of potentially modifying events
   for(size_t i = 0; i < events.size(); i++)
   {
     if(events[i].usage == ResourceUsage::Clear || isDirectWrite(events[i].usage))
@@ -99,29 +118,16 @@ rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryR
     }
     else
     {
-      driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.frameBuffer);
-
-      driver->glDisable(eGL_DEPTH_TEST);
-      driver->glDisable(eGL_STENCIL_TEST);
-      driver->glEnable(eGL_SCISSOR_TEST);
-      driver->glScissor(x, y, 1, 1);
-
-      driver->glBeginQuery(eGL_ANY_SAMPLES_PASSED, resources.occlusionQuery);
-      driver->ReplayLog(events[i].eventId, events[i].eventId, eReplay_OnlyDraw);
-
       int result;
-      driver->glGetQueryObjectiv(resources.occlusionQuery, eGL_QUERY_RESULT, &result);
+      driver->glGetQueryObjectiv(occlusionQueries[i], eGL_QUERY_RESULT, &result);
       if(result)
       {
         modEvents.push_back(events[i]);
       }
     }
-
-    if(i < events.size() - 1)
-    {
-      driver->ReplayLog(events[i].eventId + 1, events[i + 1].eventId, eReplay_WithoutDraw);
-    }
   }
+
+  driver->glDeleteQueries((GLsizei)occlusionQueries.size(), occlusionQueries.data());
   return modEvents;
 }
 
@@ -129,11 +135,16 @@ void QueryPostModPixelValues(WrappedOpenGL *driver, GLPixelHistoryResources &res
                              const rdcarray<EventUsage> &modEvents, int x, int y,
                              rdcarray<PixelModification> &history)
 {
+  driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.frameBuffer);
   driver->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
   driver->ReplayLog(0, modEvents[0].eventId, eReplay_WithoutDraw);
 
   for(size_t i = 0; i < modEvents.size(); i++)
   {
+    GLint savedReadFramebuffer, savedDrawFramebuffer;
+    driver->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &savedDrawFramebuffer);
+    driver->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &savedReadFramebuffer);
+    // bind our own framebuffer to save the pixel values
     driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.frameBuffer);
     driver->ReplayLog(modEvents[i].eventId, modEvents[i].eventId, eReplay_Full);
 
@@ -150,6 +161,10 @@ void QueryPostModPixelValues(WrappedOpenGL *driver, GLPixelHistoryResources &res
     mod.eventId = modEvents[i].eventId;
     mod.postMod = modValue;
     history.push_back(mod);
+
+    // restore the capture's framebuffer
+    driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, savedDrawFramebuffer);
+    driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedReadFramebuffer);
 
     if(i < modEvents.size() - 1)
     {
@@ -209,6 +224,7 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
 
   if(modEvents.empty())
   {
+    PixelHistoryDestroyResources(m_pDriver, resources);
     return history;
   }
 
