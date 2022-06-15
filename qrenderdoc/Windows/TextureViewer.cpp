@@ -1213,6 +1213,7 @@ void TextureViewer::UI_UpdateTextureDetails()
     status += QFormatStr(" MS{%1x %2Q}").arg(current.msSamp).arg(current.msQual);
 
   status += QFormatStr(" %1 mips").arg(current.mips);
+  status += QFormatStr(" %L1 bytes").arg(current.byteSize);
 
   status += lit(" - ");
 
