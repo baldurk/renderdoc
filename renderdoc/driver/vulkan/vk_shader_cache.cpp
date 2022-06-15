@@ -789,9 +789,11 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
       VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT,
   };
 
-  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_sample_locations)
+  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_sample_locations &&
+     pipeInfo.sampleLocations.enabled)
   {
     sampleLoc.sampleLocationsEnable = pipeInfo.sampleLocations.enabled;
+    sampleLoc.sampleLocationsInfo.sType = VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT;
     sampleLoc.sampleLocationsInfo.sampleLocationGridSize = pipeInfo.sampleLocations.gridSize;
     sampleLoc.sampleLocationsInfo.sampleLocationsPerPixel = pipeInfo.rasterizationSamples;
     sampleLoc.sampleLocationsInfo.sampleLocationsCount =
