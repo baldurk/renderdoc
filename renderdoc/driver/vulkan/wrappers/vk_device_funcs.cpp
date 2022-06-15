@@ -2893,6 +2893,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(extendedDynamicState2PatchControlPoints);
 
         m_ExtendedDynState2 = (ext->extendedDynamicState2 != VK_FALSE);
+        m_ExtendedDynState2Logic = (ext->extendedDynamicState2LogicOp != VK_FALSE);
+        m_ExtendedDynState2CPs = (ext->extendedDynamicState2PatchControlPoints != VK_FALSE);
       }
       END_PHYS_EXT_CHECK();
 
