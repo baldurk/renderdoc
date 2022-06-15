@@ -49,10 +49,6 @@ inline void ForceCrash()
 {
   *((int *)NULL) = 0;
 }
-inline void DebugBreak()
-{
-  __debugbreak();
-}
 inline bool DebuggerPresent()
 {
   return ::IsDebuggerPresent() == TRUE;

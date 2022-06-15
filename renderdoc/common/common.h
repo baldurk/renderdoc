@@ -42,11 +42,24 @@
 #include <signal.h>
 
 #define __PRETTY_FUNCTION_SIGNATURE__ __PRETTY_FUNCTION__
+
 #if ENABLED(RDOC_SWITCH)
+
 #include <stdlib.h>
 #define OS_DEBUG_BREAK() abort()
+
+#elif ENABLED(RDOC_LINUX)
+
+#define OS_DEBUG_BREAK()           \
+  do                               \
+  {                                \
+    __asm__ volatile("int $0x03"); \
+  } while((void)0, 0)
+
 #else
+
 #define OS_DEBUG_BREAK() raise(SIGTRAP)
+
 #endif
 
 #if defined(__clang__)

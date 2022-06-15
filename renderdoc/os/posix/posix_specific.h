@@ -82,10 +82,6 @@ inline void ForceCrash()
 {
   __builtin_trap();
 }
-inline void DebugBreak()
-{
-  raise(SIGTRAP);
-}
 bool DebuggerPresent();
 };
 

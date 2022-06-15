@@ -464,7 +464,6 @@ void Shutdown();
 namespace OSUtility
 {
 inline void ForceCrash();
-inline void DebugBreak();
 bool DebuggerPresent();
 enum
 {
