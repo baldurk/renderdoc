@@ -507,13 +507,6 @@ private:
     if(m_IsDepth)
       r = g = b = qBound(0.0f, (val.depth - m_Display.rangeMin) / rangesize, 1.0f);
 
-    // Convert from linear color to sRGB
-    {
-      r = (r <= 0.0031308f) ? r * 12.92f : 1.055f * (float)powf(r, 1.0f / 2.4f) - 0.055f;
-      g = (g <= 0.0031308f) ? g * 12.92f : 1.055f * (float)powf(g, 1.0f / 2.4f) - 0.055f;
-      b = (b <= 0.0031308f) ? b * 12.92f : 1.055f * (float)powf(b, 1.0f / 2.4f) - 0.055f;
-    }
-
     // Round to nearest value in [0,255]
     return QBrush(QColor::fromRgb((int)(255.0f * r + 0.5f), (int)(255.0f * g + 0.5f),
                                   (int)(255.0f * b + 0.5f)));

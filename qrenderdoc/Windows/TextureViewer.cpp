@@ -953,13 +953,6 @@ void TextureViewer::UI_UpdateStatusText()
     float g = qBound(0.0f, m_CurHoverValue.floatValue[1], 1.0f);
     float b = qBound(0.0f, m_CurHoverValue.floatValue[2], 1.0f);
 
-    if(tex.format.SRGBCorrected() || (tex.creationFlags & TextureCategory::SwapBuffer))
-    {
-      r = powf(r, 1.0f / 2.2f);
-      g = powf(g, 1.0f / 2.2f);
-      b = powf(b, 1.0f / 2.2f);
-    }
-
     swatchColor = QColor(int(255.0f * r), int(255.0f * g), int(255.0f * b));
   }
 
