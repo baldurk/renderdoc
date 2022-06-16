@@ -23,7 +23,7 @@
  ******************************************************************************/
 
 #if defined(OPENGL_ES) && defined(NUM_VIEWS)
-#extension GL_OVR_multiview2 : require
+#extension GL_OVR_multiview : require
 #endif
 
 #include "glsl_globals.h"
