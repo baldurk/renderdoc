@@ -2044,6 +2044,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
         // pipeline)
         if(GetShaderCache()->IsBuffer2MSSupported())
           CreateInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+        CreateInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
       }
       else
       {
@@ -2254,6 +2255,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
         // its constructor
         if(GetDebugManager() && GetShaderCache()->IsBuffer2MSSupported())
           createInfo_adjusted.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+        createInfo_adjusted.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
       }
       else
       {
