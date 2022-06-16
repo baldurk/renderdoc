@@ -293,55 +293,6 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
   VulkanRenderState m_PrevState;
 };
 
-void VulkanDebugManager::PatchOutputLocation(VkShaderModule &mod, BuiltinShader shaderType,
-                                             uint32_t framebufferIndex)
-{
-  union
-  {
-    uint32_t *spirv;
-    float *data;
-  } alias;
-
-  rdcarray<uint32_t> spv = *m_pDriver->GetShaderCache()->GetBuiltinBlob(shaderType);
-
-  alias.spirv = &spv[0];
-  size_t spirvLength = spv.size();
-
-  bool patched = false;
-
-  size_t it = 5;
-  while(it < spirvLength)
-  {
-    uint16_t WordCount = alias.spirv[it] >> rdcspv::WordCountShift;
-    rdcspv::Op opcode = rdcspv::Op(alias.spirv[it] & rdcspv::OpCodeMask);
-
-    if(opcode == rdcspv::Op::Decorate &&
-       (rdcspv::Decoration(alias.spirv[it + 2]) == rdcspv::Decoration::Location))
-    {
-      alias.spirv[it + 3] = framebufferIndex;
-
-      patched = true;
-      break;
-    }
-
-    it += WordCount;
-  }
-
-  if(!patched)
-    RDCERR("Didn't patch the output location");
-
-  VkShaderModuleCreateInfo modinfo = {
-      VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-      NULL,
-      0,
-      spv.size() * sizeof(uint32_t),
-      alias.spirv,
-  };
-
-  VkResult vkr = m_pDriver->vkCreateShaderModule(m_Device, &modinfo, NULL, &mod);
-  CheckVkResult(vkr);
-}
-
 void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
 {
   union

@@ -239,9 +239,31 @@ struct PipelineReplacements
 // PixelHistoryShaderCache manages temporary shaders created for pixel history.
 struct PixelHistoryShaderCache
 {
-  PixelHistoryShaderCache(WrappedVulkan *vk) : m_pDriver(vk) {}
+  PixelHistoryShaderCache(WrappedVulkan *vk) : m_pDriver(vk)
+  {
+    if(m_pDriver->GetDriverInfo().IntelBrokenOcclusionQueries())
+    {
+      if(m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address)
+      {
+        dummybuf.Create(vk, vk->GetDev(), 1024, 1, GPUBuffer::eGPUBufferGPULocal |
+                                                       GPUBuffer::eGPUBufferSSBO |
+                                                       GPUBuffer::eGPUBufferAddressable);
+      }
+      else
+      {
+        m_pDriver->AddDebugMessage(
+            MessageCategory::Miscellaneous, MessageSeverity::High, MessageSource::RuntimeWarning,
+            "Intel drivers currently require a workaround to return proper pixel history results, "
+            "but KHR_buffer_device_address is not supported so the workaround cannot be "
+            "implemented. Results will be inaccurate.");
+      }
+    }
+  }
+
   ~PixelHistoryShaderCache()
   {
+    if(dummybuf.device != VK_NULL_HANDLE)
+      dummybuf.Destroy();
     for(auto it = m_ShaderReplacements.begin(); it != m_ShaderReplacements.end(); ++it)
     {
       if(it->second != VK_NULL_HANDLE)
@@ -261,8 +283,7 @@ struct PixelHistoryShaderCache
     if(it != m_FixedColFS.end())
       return it->second;
     VkShaderModule sh;
-    m_pDriver->GetDebugManager()->PatchOutputLocation(sh, BuiltinShader::FixedColFS,
-                                                      framebufferIndex);
+    PatchOutputLocation(sh, BuiltinShader::FixedColFS, framebufferIndex);
     m_FixedColFS.insert(std::make_pair(framebufferIndex, sh));
     return sh;
   }
@@ -275,8 +296,7 @@ struct PixelHistoryShaderCache
     if(it != m_PrimIDFS.end())
       return it->second;
     VkShaderModule sh;
-    m_pDriver->GetDebugManager()->PatchOutputLocation(sh, BuiltinShader::PixelHistoryPrimIDFS,
-                                                      framebufferIndex);
+    PatchOutputLocation(sh, BuiltinShader::PixelHistoryPrimIDFS, framebufferIndex);
     m_PrimIDFS.insert(std::make_pair(framebufferIndex, sh));
     return sh;
   }
@@ -305,33 +325,164 @@ private:
     const VulkanCreationInfo::ShaderModule &moduleInfo =
         m_pDriver->GetDebugManager()->GetShaderInfo(shaderId);
     rdcarray<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
-    rdcspv::Editor editor(modSpirv);
-    editor.Prepare();
 
-    for(const rdcspv::EntryPoint &entry : editor.GetEntries())
+    bool modified = false;
+    bool found = false;
+
     {
-      if(entry.name == entryName && MakeShaderStage(entry.executionModel) == stage)
+      rdcspv::Editor editor(modSpirv);
+      editor.Prepare();
+
+      for(const rdcspv::EntryPoint &entry : editor.GetEntries())
       {
-        // In some cases a shader might just be binding a RW resource but not writing to it.
-        // If there are no writes (shader was not modified), no need to replace the shader,
-        // just insert VK_NULL_HANDLE to indicate that this shader has been processed.
-        VkShaderModule module = VK_NULL_HANDLE;
-        bool modified = StripShaderSideEffects(editor, entry.id);
-        if(modified)
+        if(entry.name == entryName && MakeShaderStage(entry.executionModel) == stage)
         {
-          VkShaderModuleCreateInfo moduleCreateInfo = {};
-          moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-          moduleCreateInfo.pCode = modSpirv.data();
-          moduleCreateInfo.codeSize = modSpirv.byteSize();
-          VkResult vkr =
-              m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &moduleCreateInfo, NULL, &module);
-          m_pDriver->CheckVkResult(vkr);
+          // In some cases a shader might just be binding a RW resource but not writing to it.
+          // If there are no writes (shader was not modified), no need to replace the shader,
+          // just insert VK_NULL_HANDLE to indicate that this shader has been processed.
+          found = true;
+          modified = StripShaderSideEffects(editor, entry.id);
+          break;
         }
-        return module;
       }
     }
+
+    if(found)
+    {
+      VkShaderModule module = VK_NULL_HANDLE;
+      if(modified)
+      {
+        VkShaderModuleCreateInfo moduleCreateInfo = {};
+        moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        moduleCreateInfo.pCode = modSpirv.data();
+        moduleCreateInfo.codeSize = modSpirv.byteSize();
+        VkResult vkr =
+            m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &moduleCreateInfo, NULL, &module);
+        m_pDriver->CheckVkResult(vkr);
+      }
+
+      return module;
+    }
+
     RDCERR("Entry point %s not found", entryName.c_str());
     return VK_NULL_HANDLE;
+  }
+
+  void PatchOutputLocation(VkShaderModule &mod, BuiltinShader shaderType, uint32_t framebufferIndex)
+  {
+    rdcarray<uint32_t> spv = *m_pDriver->GetShaderCache()->GetBuiltinBlob(shaderType);
+
+    bool patched = false;
+
+    {
+      rdcspv::Editor editor(spv);
+      editor.Prepare();
+
+      for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Annotations),
+                       end = editor.End(rdcspv::Section::Annotations);
+          it < end; ++it)
+      {
+        if(it.opcode() == rdcspv::Op::Decorate)
+        {
+          rdcspv::OpDecorate dec(it);
+          if(dec.decoration == rdcspv::Decoration::Location)
+          {
+            dec.decoration.location = framebufferIndex;
+            it = dec;
+
+            patched = true;
+            break;
+          }
+        }
+      }
+
+      // implement workaround for Intel drivers to force shader to have unimportant side-effects
+      if(dummybuf.device != VK_NULL_HANDLE)
+      {
+        VkBufferDeviceAddressInfo getAddressInfo = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
+        getAddressInfo.buffer = dummybuf.buf;
+
+        VkDeviceAddress bufferAddress =
+            m_pDriver->vkGetBufferDeviceAddress(m_pDriver->GetDev(), &getAddressInfo);
+
+        rdcspv::Id uint32Type = editor.DeclareType(rdcspv::scalar<uint32_t>());
+        rdcspv::Id bufptrtype = editor.DeclareType(
+            rdcspv::Pointer(uint32Type, rdcspv::StorageClass::PhysicalStorageBuffer));
+
+        rdcspv::Id uint1 = editor.AddConstantImmediate<uint32_t>(uint32_t(1));
+
+        editor.AddExtension("SPV_KHR_physical_storage_buffer");
+
+        {
+          // change the memory model to physical storage buffer 64
+          rdcspv::Iter it = editor.Begin(rdcspv::Section::MemoryModel);
+          rdcspv::OpMemoryModel model(it);
+          model.addressingModel = rdcspv::AddressingModel::PhysicalStorageBuffer64;
+          it = model;
+        }
+
+        editor.AddCapability(rdcspv::Capability::PhysicalStorageBufferAddresses);
+
+        rdcspv::Id addressConstantLSB =
+            editor.AddConstantImmediate<uint32_t>(bufferAddress & 0xFFFFFFFF);
+        rdcspv::Id addressConstantMSB =
+            editor.AddConstantImmediate<uint32_t>((bufferAddress >> 32) & 0xFFFFFFFF);
+
+        rdcspv::Id uintPair = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 2));
+
+        rdcspv::Id addressConstant = editor.AddConstant(rdcspv::OpSpecConstantComposite(
+            uintPair, editor.MakeId(), {addressConstantLSB, addressConstantMSB}));
+
+        rdcspv::Id scope = editor.AddConstantImmediate<uint32_t>((uint32_t)rdcspv::Scope::Device);
+        rdcspv::Id semantics =
+            editor.AddConstantImmediate<uint32_t>((uint32_t)rdcspv::MemorySemantics::AcquireRelease);
+
+        // patch every function to include a BDA write just to be safe
+        for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Functions),
+                         end = editor.End(rdcspv::Section::Functions);
+            it < end; ++it)
+        {
+          if(it.opcode() == rdcspv::Op::Function)
+          {
+            // continue to the first label so we can insert a write at the start of the function
+            for(; it; ++it)
+            {
+              if(it.opcode() == rdcspv::Op::Label)
+              {
+                ++it;
+                break;
+              }
+            }
+
+            // skip past any local variables
+            while(it.opcode() == rdcspv::Op::Variable)
+              ++it;
+
+            rdcspv::Id structPtr = editor.AddOperation(
+                it, rdcspv::OpBitcast(bufptrtype, editor.MakeId(), addressConstant));
+            it++;
+
+            editor.AddOperation(it, rdcspv::OpAtomicUMax(uint32Type, editor.MakeId(), structPtr,
+                                                         scope, semantics, uint1));
+            it++;
+          }
+        }
+      }
+    }
+
+    if(!patched)
+      RDCERR("Didn't patch the output location");
+
+    VkShaderModuleCreateInfo modinfo = {
+        VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        NULL,
+        0,
+        spv.size() * sizeof(uint32_t),
+        spv.data(),
+    };
+
+    VkResult vkr = m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &modinfo, NULL, &mod);
+    m_pDriver->CheckVkResult(vkr);
   }
 
   // Removes instructions from the shader that would produce side effects (writing
@@ -444,6 +595,8 @@ private:
   // ShaderKey consists of original shader module ID and entry point name.
   typedef rdcpair<ResourceId, rdcstr> ShaderKey;
   std::map<ShaderKey, VkShaderModule> m_ShaderReplacements;
+
+  GPUBuffer dummybuf;
 };
 
 // VulkanPixelHistoryCallback is a generic VulkanActionCallback that can be used for

@@ -1012,6 +1012,12 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps, bool act
         RDCLOG("Disabling buffer_device_address on Intel - update to a newer driver for fix");
       bdaBrokenDriver = true;
     }
+
+    // Currently unfixed at the time of writing, Intel's drivers require manually inserted
+    // side-effects for occlusion queries to function properly if there are no other effects from a
+    // pixel shader.
+    // Only affects windows drivers, linux drivers are unaffected.
+    intelBrokenOcclusionQueries = true;
   }
 #endif
 
