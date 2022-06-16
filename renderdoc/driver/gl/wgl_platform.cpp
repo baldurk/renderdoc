@@ -29,6 +29,8 @@
 
 class WGLPlatform : public GLPlatform
 {
+  RDCDriver m_API = RDCDriver::OpenGLES;
+
   bool MakeContextCurrent(GLWindowingData data)
   {
     if(WGL.wglMakeCurrent)
@@ -108,6 +110,9 @@ class WGLPlatform : public GLPlatform
 
     SetPixelFormat(dc, pf, &pfd);
 
+    int profile = m_API == RDCDriver::OpenGLES ? WGL_CONTEXT_ES2_PROFILE_BIT_EXT
+                                               : WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+
     const int attribs[] = {
         WGL_CONTEXT_MAJOR_VERSION_ARB,
         3,
@@ -116,7 +121,7 @@ class WGLPlatform : public GLPlatform
         WGL_CONTEXT_FLAGS_ARB,
         0,
         WGL_CONTEXT_PROFILE_MASK_ARB,
-        WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+        profile,
         0,
         0,
     };
@@ -289,7 +294,8 @@ class WGLPlatform : public GLPlatform
     attribs[i++] = 0;
 #endif
     attribs[i++] = WGL_CONTEXT_PROFILE_MASK_ARB;
-    attribs[i++] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+    attribs[i++] = m_API == RDCDriver::OpenGLES ? WGL_CONTEXT_ES2_PROFILE_BIT_EXT
+                                                : WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
 
     HGLRC rc = WGL.wglCreateContextAttribsARB(DC, share_context.ctx, attribs);
     if(rc == NULL)
@@ -373,6 +379,8 @@ class WGLPlatform : public GLPlatform
 #endif
 
     RDCASSERT(api == RDCDriver::OpenGL || api == RDCDriver::OpenGLES);
+
+    m_API = api;
 
     bool success = RegisterClass();
 

@@ -50,6 +50,8 @@ void *GetGLHandle()
 
 class GLXPlatform : public GLPlatform
 {
+  RDCDriver m_API = RDCDriver::OpenGLES;
+
   bool MakeContextCurrent(GLWindowingData data)
   {
     if(GLX.glXMakeCurrent)
@@ -241,7 +243,8 @@ class GLXPlatform : public GLPlatform
     attribs[i++] = 0;
 #endif
     attribs[i++] = GLX_CONTEXT_PROFILE_MASK_ARB;
-    attribs[i++] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+    attribs[i++] = m_API == RDCDriver::OpenGLES ? GLX_CONTEXT_ES2_PROFILE_BIT_EXT
+                                                : GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
 
     GLXContext ctx = GLX.glXCreateContextAttribsARB(dpy, fbcfg[0], share_context.ctx, true, attribs);
 
@@ -341,6 +344,8 @@ class GLXPlatform : public GLPlatform
 #endif
 
     RDCASSERT(api == RDCDriver::OpenGL || api == RDCDriver::OpenGLES);
+
+    m_API = api;
 
     int attribs[64] = {0};
     int i = 0;
