@@ -3235,10 +3235,26 @@ void DoSerialise(SerialiserType &ser, VkGraphicsPipelineCreateInfo &el)
   // indicating that it's not present. Then on read we can just read it as if it's either NULL or
   // present.
 
+  bool dynamicViewport = false, dynamicScissor = false, dynamicDiscard = false;
+
+  if(ser.IsWriting())
+  {
+    for(uint32_t i = 0; el.pDynamicState && i < el.pDynamicState->dynamicStateCount; i++)
+    {
+      if(el.pDynamicState->pDynamicStates[i] == VK_DYNAMIC_STATE_VIEWPORT)
+        dynamicViewport = true;
+      else if(el.pDynamicState->pDynamicStates[i] == VK_DYNAMIC_STATE_SCISSOR)
+        dynamicScissor = true;
+      else if(el.pDynamicState->pDynamicStates[i] == VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE)
+        dynamicDiscard = true;
+    }
+  }
+
   // this bool just means "we can use SERIALISE_MEMBER_OPT" - i.e. the struct is present, or NULL.
   bool hasValidRasterization =
-      ser.IsReading() || (ser.IsWriting() && el.pRasterizationState &&
-                          el.pRasterizationState->rasterizerDiscardEnable == VK_FALSE);
+      ser.IsReading() ||
+      (ser.IsWriting() && el.pRasterizationState &&
+       (el.pRasterizationState->rasterizerDiscardEnable == VK_FALSE || dynamicDiscard));
 
   if(hasValidRasterization)
   {
@@ -3251,16 +3267,6 @@ void DoSerialise(SerialiserType &ser, VkGraphicsPipelineCreateInfo &el)
     }
     else
     {
-      bool dynamicViewport = false, dynamicScissor = false;
-
-      for(uint32_t i = 0; el.pDynamicState && i < el.pDynamicState->dynamicStateCount; i++)
-      {
-        if(el.pDynamicState->pDynamicStates[i] == VK_DYNAMIC_STATE_VIEWPORT)
-          dynamicViewport = true;
-        else if(el.pDynamicState->pDynamicStates[i] == VK_DYNAMIC_STATE_SCISSOR)
-          dynamicScissor = true;
-      }
-
       VkPipelineViewportStateCreateInfo viewportState = *el.pViewportState;
       VkPipelineViewportStateCreateInfo *pViewportState = &viewportState;
 

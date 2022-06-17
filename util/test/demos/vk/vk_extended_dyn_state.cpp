@@ -32,6 +32,7 @@ RD_TEST(VK_Extended_Dynamic_State, VulkanGraphicsTest)
   void Prepare(int argc, char **argv)
   {
     devExts.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
+    optDevExts.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
 
     features.depthBounds = VK_TRUE;
 
@@ -49,7 +50,21 @@ RD_TEST(VK_Extended_Dynamic_State, VulkanGraphicsTest)
     if(!extFeatures.extendedDynamicState)
       Avail = "feature 'extendedDynamicState' not available";
 
+    static VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extFeatures2 = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT,
+    };
+
     devInfoNext = &extFeatures;
+
+    if(hasExt(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME))
+    {
+      getPhysFeatures2(&extFeatures2);
+
+      if(!extFeatures2.extendedDynamicState2)
+        Avail = "feature 'extendedDynamicState2' not available";
+
+      extFeatures.pNext = &extFeatures2;
+    }
   }
 
   int main()
@@ -70,6 +85,14 @@ RD_TEST(VK_Extended_Dynamic_State, VulkanGraphicsTest)
         VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT,    VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT,
         VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT, VK_DYNAMIC_STATE_STENCIL_OP_EXT,
     };
+
+    if(hasExt(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME))
+    {
+      pipeCreateInfo.dynamicState.dynamicStates.push_back(
+          VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE_EXT);
+
+      pipeCreateInfo.rasterizationState.rasterizerDiscardEnable = VK_TRUE;
+    }
 
     pipeCreateInfo.layout = layout;
 
@@ -191,6 +214,9 @@ RD_TEST(VK_Extended_Dynamic_State, VulkanGraphicsTest)
       vkCmdSetDepthWriteEnableEXT(cmd, VK_TRUE);
 
       vkCmdSetDepthBoundsTestEnableEXT(cmd, VK_FALSE);
+
+      if(hasExt(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME))
+        vkCmdSetRasterizerDiscardEnableEXT(cmd, VK_FALSE);
 
       vkCmdSetStencilTestEnableEXT(cmd, VK_TRUE);
       vkCmdSetStencilOpEXT(cmd, VK_STENCIL_FACE_FRONT_BIT, VK_STENCIL_OP_INCREMENT_AND_CLAMP,

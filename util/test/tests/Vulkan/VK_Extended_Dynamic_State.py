@@ -104,6 +104,7 @@ class VK_Extended_Dynamic_State(rdtest.TestCase):
 
         self.check(vkpipe.rasterizer.frontCCW == False)
         self.check(vkpipe.rasterizer.cullMode == rd.CullMode.Back)
+        self.check(vkpipe.rasterizer.rasterizerDiscardEnable == False)
 
         self.check(vkpipe.depthStencil.stencilTestEnable == True)
         self.check(vkpipe.depthStencil.frontFace.passOperation == rd.StencilOperation.IncSat)
