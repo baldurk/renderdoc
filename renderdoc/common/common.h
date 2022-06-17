@@ -48,7 +48,7 @@
 #include <stdlib.h>
 #define OS_DEBUG_BREAK() abort()
 
-#elif ENABLED(RDOC_LINUX)
+#elif ENABLED(RDOC_LINUX) && (defined(__i386__) || defined(__x86_64__))
 
 #define OS_DEBUG_BREAK()           \
   do                               \
