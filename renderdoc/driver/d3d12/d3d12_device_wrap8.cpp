@@ -183,6 +183,17 @@ HRESULT WrappedID3D12Device::CreateCommittedResource2(
      riidResource != __uuidof(ID3D12Resource2))
     return E_NOINTERFACE;
 
+  const D3D12_RESOURCE_DESC1 *pCreateDesc = pDesc;
+  D3D12_RESOURCE_DESC1 localDesc;
+
+  if(pDesc && pDesc->Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D && pDesc->SampleDesc.Count > 1)
+  {
+    localDesc = *pDesc;
+    // need to be able to create SRVs of MSAA textures to copy out their contents
+    localDesc.Flags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+    pCreateDesc = &localDesc;
+  }
+
   void *realptr = NULL;
   HRESULT ret;
   SERIALISE_TIME_CALL(ret = m_pDevice8->CreateCommittedResource2(
