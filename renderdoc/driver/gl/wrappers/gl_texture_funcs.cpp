@@ -1359,6 +1359,12 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
     GLResourceRecord *srcrecord = GetResourceManager()->GetResourceRecord(srcRes);
     GLResourceRecord *dstrecord = GetResourceManager()->GetResourceRecord(dstRes);
 
+    RDCASSERTMSG("Couldn't identify src texture. Unbound or bad GLuint?", srcrecord, srcName);
+    RDCASSERTMSG("Couldn't identify dst texture. Unbound or bad GLuint?", dstrecord, dstName);
+
+    if(srcrecord == NULL || dstrecord == NULL)
+      return;
+
     GetResourceManager()->MarkDirtyResource(dstrecord->GetResourceID());
 
     // copy over compressed data, if it exists
