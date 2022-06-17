@@ -572,6 +572,12 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
             }),
         })
 
+        var_check.check('H').cols(1).rows(1).value([14000])
+        var_check.check('I').cols(2).rows(1).value([15000, 16000])
+        var_check.check('J').cols(3).rows(1).value([17000, 18000, 19000])
+        var_check.check('K').cols(4).rows(1).value([20000, 21000, 22000, 23000])
+        var_check.check('L').cols(4).rows(1).value([-24000, -25000, -26000, -27000])
+
         var_check.done()
 
         rdtest.log.success("Bare uniform variables are as expected")

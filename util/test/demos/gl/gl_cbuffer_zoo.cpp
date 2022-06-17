@@ -337,6 +337,11 @@ uniform mat2x3 D;
 uniform float E[3];
 uniform vec4 F[3][2][2];
 uniform nested G[2];
+uniform uint H;
+uniform uvec2 I;
+uniform uvec3 J;
+uniform uvec4 K;
+uniform ivec4 L;
 
 void main()
 {
@@ -348,6 +353,8 @@ void main()
   blah += A.z + B.x + C.y + D[0][1] + E[2] + F[1][0][0].y + F[1][0][1].y;
   blah += G[0].a.b + G[1].a.b + G[1].b[3].w + G[1].c[3].a.y;
   blah *= vertIn.uv.z;
+  if(H < 1 || I.x < 1 || J.x < 1 || K.x < 1) blah *= 0.1f;
+  if(L.x > 1) blah *= 0.1f;
   Color = blah + test + vec4(0.1f, 0.0f, 0.0f, 0.0f);
 }
 
@@ -594,6 +601,26 @@ void main()
       location = glGetUniformLocation(program, "G[1].c[3].b");
       if(location != -1)
         glUniform1f(location, 1390.0f);
+
+      location = glGetUniformLocation(program, "H");
+      if(location != -1)
+        glUniform1ui(location, 14000);
+
+      location = glGetUniformLocation(program, "I");
+      if(location != -1)
+        glUniform2ui(location, 15000, 16000);
+
+      location = glGetUniformLocation(program, "J");
+      if(location != -1)
+        glUniform3ui(location, 17000, 18000, 19000);
+
+      location = glGetUniformLocation(program, "K");
+      if(location != -1)
+        glUniform4ui(location, 20000, 21000, 22000, 23000);
+
+      location = glGetUniformLocation(program, "L");
+      if(location != -1)
+        glUniform4i(location, -24000, -25000, -26000, -27000);
 
       glViewport(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
 
