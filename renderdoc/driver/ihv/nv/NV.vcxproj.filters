@@ -16,6 +16,111 @@
     <ClInclude Include="nvapi_wrapper.h">
       <Filter>nvapi</Filter>
     </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\linux-desktop-x64\nvperf_host_impl.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\nvperf_common.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\nvperf_d3d11_host.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\nvperf_d3d11_target.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\nvperf_d3d12_host.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\nvperf_d3d12_target.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\nvperf_device_host.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\nvperf_device_target.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\nvperf_host.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\nvperf_opengl_host.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\nvperf_opengl_target.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\nvperf_target.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\nvperf_versions_target.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\nvperf_vulkan_host.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\nvperf_vulkan_target.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\include\windows-desktop-x64\nvperf_host_impl.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfCounterConfiguration.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfCounterData.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfD3D.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfD3D11.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfD3D12.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfDeviceProperties.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfInit.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfMetricsConfigBuilder.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfMetricsEvaluator.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfOpenGL.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfPeriodicSamplerCommon.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfPeriodicSamplerGpu.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfRangeProfiler.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfRangeProfilerD3D11.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfRangeProfilerD3D12.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfRangeProfilerOpenGL.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfRangeProfilerVulkan.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfScopeExitGuard.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="official\PerfSDK\redist\NvPerfUtility\include\NvPerfVulkan.h">
+      <Filter>official\PerfSDK</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="official">
@@ -35,6 +140,9 @@
     </Filter>
     <Filter Include="nvapi">
       <UniqueIdentifier>{f9b6bd25-7b71-4814-b8de-ca40545419a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official\PerfSDK">
+      <UniqueIdentifier>{e7cfd680-bda6-46c6-b252-008fb4c3aaca}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
