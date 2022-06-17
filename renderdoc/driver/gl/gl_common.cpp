@@ -880,6 +880,9 @@ void GLPushPopState::Push(bool modern)
 
     if(HasExt[EXT_transform_feedback])
       enableBits[6] = GL.glIsEnabled(eGL_RASTERIZER_DISCARD) != 0;
+
+    if(HasExt[EXT_depth_bounds_test])
+      enableBits[8] = GL.glIsEnabled(eGL_DEPTH_BOUNDS_TEST_EXT) != 0;
   }
   else
   {
@@ -931,6 +934,16 @@ void GLPushPopState::Push(bool modern)
   else
   {
     GL.glGetBooleanv(eGL_COLOR_WRITEMASK, ColorMask);
+  }
+
+  if(modern && HasExt[EXT_depth_bounds_test])
+  {
+    GL.glGetDoublev(eGL_DEPTH_BOUNDS_EXT, bounds);
+  }
+  else
+  {
+    bounds[0] = 0.0;
+    bounds[1] = 1.0;
   }
 
   if(!VendorCheck[VendorCheck_AMD_polygon_mode_query] && !IsGLES)
@@ -1051,6 +1064,14 @@ void GLPushPopState::Pop(bool modern)
       else
         GL.glDisable(eGL_RASTERIZER_DISCARD);
     }
+
+    if(HasExt[EXT_depth_bounds_test])
+    {
+      if(enableBits[8])
+        GL.glEnable(eGL_DEPTH_BOUNDS_TEST_EXT);
+      else
+        GL.glDisable(eGL_DEPTH_BOUNDS_TEST_EXT);
+    }
   }
   else
   {
@@ -1097,6 +1118,11 @@ void GLPushPopState::Pop(bool modern)
   else
   {
     GL.glColorMask(ColorMask[0], ColorMask[1], ColorMask[2], ColorMask[3]);
+  }
+
+  if(modern && HasExt[EXT_depth_bounds_test])
+  {
+    GL.glDepthBoundsEXT(bounds[0], bounds[1]);
   }
 
   if(!IsGLES)

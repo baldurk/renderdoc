@@ -409,6 +409,8 @@ void WrappedOpenGL::RenderTextInternal(float x, float y, const rdcstr &text)
     GL.glDisable(eGL_STENCIL_TEST);
     GL.glDisable(eGL_CULL_FACE);
     GL.glDisable(eGL_RASTERIZER_DISCARD);
+    if(HasExt[EXT_depth_bounds_test])
+      GL.glDisable(eGL_DEPTH_BOUNDS_TEST_EXT);
 
     GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
 

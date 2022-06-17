@@ -501,12 +501,13 @@ struct GLMarkerRegion
 // - i.e. change state through here, and track dirty bits.
 struct GLPushPopState
 {
-  bool enableBits[8];
+  bool enableBits[9];
   GLenum ClipOrigin, ClipDepth;
   GLenum EquationRGB, EquationAlpha;
   GLenum SourceRGB, SourceAlpha;
   GLenum DestinationRGB, DestinationAlpha;
   GLenum PolygonMode;
+  GLdouble bounds[2];
   GLfloat Viewportf[4];
   GLint Viewport[4];
   GLenum ActiveTexture;
