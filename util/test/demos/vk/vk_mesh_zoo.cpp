@@ -215,6 +215,10 @@ void main()
 
     VkPipeline pointspipe = createGraphicsPipeline(pipeCreateInfo);
 
+    pipeCreateInfo.inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+
+    VkPipeline linespipe = createGraphicsPipeline(pipeCreateInfo);
+
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {{0, 0, VK_VERTEX_INPUT_RATE_VERTEX}};
 
     pipeCreateInfo.layout = layout2;
@@ -291,6 +295,12 @@ void main()
       setMarker(cmd, "Points");
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pointspipe);
+
+      vkCmdDraw(cmd, 4, 1, 6, 0);
+
+      setMarker(cmd, "Lines");
+
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, linespipe);
 
       vkCmdDraw(cmd, 4, 1, 6, 0);
 

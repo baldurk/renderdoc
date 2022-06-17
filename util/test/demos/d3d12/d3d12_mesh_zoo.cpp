@@ -191,6 +191,12 @@ float4 main(v2f IN) : SV_Target0
 
       cmd->DrawInstanced(4, 1, 6, 0);
 
+      setMarker(cmd, "Lines");
+
+      cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+
+      cmd->DrawInstanced(4, 1, 6, 0);
+
       setMarker(cmd, "Stride 0");
 
       IASetVertexBuffer(cmd, vb, 0, 0);

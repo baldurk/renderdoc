@@ -369,6 +369,23 @@ class Mesh_Zoo():
 
         rdtest.log.success("Point picking is as expected")
 
+        self.cfg.highlightVert = rd.MeshDisplay.NoHighlight
+        self.cfg.solidShadeMode = rd.SolidShade.Solid
+
+        self.cache_output()
+        self.cfg.solidShadeMode = rd.SolidShade.Lit
+        self.cache_output()
+
+        rdtest.log.success("Point solid and lit rendering works as expected")
+
+        self.controller.SetFrameEvent(self.find_action("Lines").next.eventId, False)
+
+        self.cache_output()
+        self.cfg.solidShadeMode = rd.SolidShade.Lit
+        self.cache_output()
+
+        rdtest.log.success("Lines solid and lit rendering works as expected")
+
         self.controller.SetFrameEvent(self.find_action("Stride 0").next.eventId, False)
 
         self.cfg.position = self.controller.GetPostVSData(0, 0, self.cfg.type)

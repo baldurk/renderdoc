@@ -291,6 +291,10 @@ void main()
 
       glDrawArrays(GL_POINTS, 6, 4);
 
+      setMarker("Lines");
+
+      glDrawArrays(GL_LINES, 6, 4);
+
       setMarker("Stride 0");
 
       glBindVertexArray(stride0vao);

@@ -178,6 +178,12 @@ float4 main(v2f IN) : SV_Target0
 
       ctx->Draw(4, 6);
 
+      setMarker("Lines");
+
+      ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+
+      ctx->Draw(4, 6);
+
       setMarker("Stride 0");
       IASetVertexBuffer(vb, 0, 0);
 
