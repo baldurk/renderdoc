@@ -110,6 +110,7 @@ Texture2D<float4> smiley : register(t5);
 
 RWByteAddressBuffer byterwtest : register(u1);
 RWStructuredBuffer<MyStruct> structrwtest : register(u2);
+RWBuffer<float4> typedrwtest : register(u3);
 
 Buffer<float> unboundsrv1 : register(t100);
 Texture2D<float> unboundsrv2 : register(t101);
@@ -676,6 +677,50 @@ float4 main(v2f IN) : SV_Target0
   {
     return rgb_srv[0];
   }
+  if(IN.tri == 80)
+  {
+    uint z2 = uint(zero);
+    MyStruct read = structrwtest[z2+7];
+
+    return read.b.xyzw;
+  }
+  if(IN.tri == 81)
+  {
+    uint z2 = uint(zero);
+    MyStruct read = structrwtest[z2+7];
+
+    return read.b.zzyx;
+  }
+  if(IN.tri == 82)
+  {
+    uint z2 = uint(zero);
+    MyStruct read = structrwtest[z2+7];
+
+    return read.b.zwxy;
+  }
+  if(IN.tri == 83)
+  {
+    uint z2 = uint(zero);
+    MyStruct read = structrwtest[z2+7];
+
+    return read.b.wzwy;
+  }
+  if(IN.tri == 84)
+  {
+    return typedrwtest[uint(zero)].xyzw;
+  }
+  if(IN.tri == 85)
+  {
+    return typedrwtest[uint(zero)].zzyx;
+  }
+  if(IN.tri == 86)
+  {
+    return typedrwtest[uint(zero)].zwxy;
+  }
+  if(IN.tri == 87)
+  {
+    return typedrwtest[uint(zero)].wzwy;
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
@@ -938,6 +983,9 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     ID3D11UnorderedAccessViewPtr structuav =
         MakeUAV(structBuf2).Format(DXGI_FORMAT_UNKNOWN).FirstElement(3).NumElements(5);
 
+    ID3D11BufferPtr rgbuavBuf = MakeBuffer().UAV().Data(structdata);
+    ID3D11UnorderedAccessViewPtr typeuav = MakeUAV(rgbuavBuf).Format(DXGI_FORMAT_R32G32B32A32_FLOAT);
+
     Texture rgba8;
     LoadXPM(SmileyTexture, rgba8);
 
@@ -992,8 +1040,8 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
       UINT zero[4] = {};
       ctx->ClearUnorderedAccessViewUint(rawuav, zero);
       ctx->ClearUnorderedAccessViewUint(structuav, zero);
-      ID3D11UnorderedAccessView *uavs[] = {rawuav, structuav};
-      ctx->OMSetRenderTargetsAndUnorderedAccessViews(1, &fltRT.GetInterfacePtr(), NULL, 1, 2, uavs,
+      ID3D11UnorderedAccessView *uavs[] = {rawuav, structuav, typeuav};
+      ctx->OMSetRenderTargetsAndUnorderedAccessViews(1, &fltRT.GetInterfacePtr(), NULL, 1, 3, uavs,
                                                      NULL);
 
       setMarker("Main Test");
