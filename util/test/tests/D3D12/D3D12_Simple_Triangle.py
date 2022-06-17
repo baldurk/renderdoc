@@ -46,6 +46,15 @@ class D3D12_Simple_Triangle(rdtest.TestCase):
 
         self.check_mesh_data(postvs_ref, postvs_data)
 
+        tex = self.get_resource_by_name("rtvtex").resourceId
+        self.check_pixel_value(tex, 1, 1, [0.2, 0.2, 0.2, 1.0])
+
+        tex = self.get_resource_by_name("rtvMStex").resourceId
+        self.check_pixel_value(tex, 1, 1, [0.2, 0.2, 0.2, 1.0])
+
+        tex = self.get_resource_by_name("dsvMStex").resourceId
+        self.check_pixel_value(tex, 1, 1, [0.2, (0x55)/255.0, 0.0, 1.0])
+
         # Check that nothing breaks if we call typical enumeration functions on resources
         for res in self.controller.GetResources():
             res: rd.ResourceDescription

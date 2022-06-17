@@ -51,10 +51,36 @@ RD_TEST(D3D12_Simple_Triangle, D3D12GraphicsTest)
                                    .RTV()
                                    .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET);
 
+    rtvtex->SetName(L"rtvtex");
+
     ID3D12ResourcePtr rtvMStex = MakeTexture(DXGI_FORMAT_R16G16B16A16_FLOAT, 4, 4)
                                      .RTV()
                                      .Multisampled(4)
                                      .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+    rtvMStex->SetName(L"rtvMStex");
+
+    ID3D12ResourcePtr dsvMStex = MakeTexture(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, 4, 4)
+                                     .DSV()
+                                     .NoSRV()
+                                     .Multisampled(4)
+                                     .InitialState(D3D12_RESOURCE_STATE_COMMON);
+
+    dsvMStex->SetName(L"dsvMStex");
+
+    {
+      ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
+      Reset(cmd);
+      ClearRenderTargetView(cmd, MakeRTV(rtvtex).CreateCPU(1), {0.2f, 0.2f, 0.2f, 1.0f});
+      ClearRenderTargetView(cmd, MakeRTV(rtvMStex).CreateCPU(2), {0.2f, 0.2f, 0.2f, 1.0f});
+
+      ClearDepthStencilView(cmd, dsvMStex, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 0.2f,
+                            0x55);
+
+      cmd->Close();
+
+      Submit({cmd});
+    }
 
     while(Running())
     {
@@ -62,15 +88,16 @@ RD_TEST(D3D12_Simple_Triangle, D3D12GraphicsTest)
 
       Reset(cmd);
 
+      MakeRTV(rtvtex).CreateCPU(1);
+      MakeRTV(rtvMStex).CreateCPU(2);
+      MakeDSV(dsvMStex).CreateCPU(0);
+
       ID3D12ResourcePtr bb = StartUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
       D3D12_CPU_DESCRIPTOR_HANDLE rtv =
           MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
 
       ClearRenderTargetView(cmd, rtv, {0.2f, 0.2f, 0.2f, 1.0f});
-
-      ClearRenderTargetView(cmd, MakeRTV(rtvtex).CreateCPU(1), {0.2f, 0.2f, 0.2f, 1.0f});
-      ClearRenderTargetView(cmd, MakeRTV(rtvMStex).CreateCPU(2), {0.2f, 0.2f, 0.2f, 1.0f});
 
       cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -81,6 +108,7 @@ RD_TEST(D3D12_Simple_Triangle, D3D12GraphicsTest)
       RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
       RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
 
+      OMSetRenderTargets(cmd, {rtv}, MakeDSV(dsvMStex).CreateCPU(0));
       OMSetRenderTargets(cmd, {rtv}, {});
 
       cmd->DrawInstanced(3, 1, 0, 0);

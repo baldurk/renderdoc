@@ -160,6 +160,7 @@ public:
   D3D12TextureCreator &UAV();
   D3D12TextureCreator &RTV();
   D3D12TextureCreator &DSV();
+  D3D12TextureCreator &NoSRV();
 
   D3D12TextureCreator &Upload();
   D3D12TextureCreator &Readback();

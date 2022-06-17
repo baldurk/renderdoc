@@ -337,6 +337,12 @@ D3D12TextureCreator &D3D12TextureCreator::DSV()
   return *this;
 }
 
+D3D12TextureCreator &D3D12TextureCreator::NoSRV()
+{
+  m_TexDesc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+  return *this;
+}
+
 D3D12TextureCreator &D3D12TextureCreator::Upload()
 {
   m_HeapDesc.Type = D3D12_HEAP_TYPE_UPLOAD;
