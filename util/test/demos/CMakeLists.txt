@@ -76,6 +76,7 @@ set(OPENGL_SRC
         gl/gl_callstacks.cpp
         gl/gl_cbuffer_zoo.cpp
         gl/gl_depthstencil_fbo.cpp
+        gl/gl_depth_bounds.cpp
         gl/gl_discard_zoo.cpp
         gl/gl_draw_zoo.cpp
         gl/gl_empty_capture.cpp

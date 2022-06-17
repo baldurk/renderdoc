@@ -625,6 +625,9 @@
     <ClCompile Include="vk\vk_postponed.cpp">
       <Filter>Vulkan\demos</Filter>
     </ClCompile>
+    <ClCompile Include="gl\gl_depth_bounds.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

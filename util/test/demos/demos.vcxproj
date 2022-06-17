@@ -230,6 +230,7 @@
     <ClCompile Include="gl\gl_callstacks.cpp" />
     <ClCompile Include="gl\gl_cbuffer_zoo.cpp" />
     <ClCompile Include="gl\gl_depthstencil_fbo.cpp" />
+    <ClCompile Include="gl\gl_depth_bounds.cpp" />
     <ClCompile Include="gl\gl_discard_zoo.cpp" />
     <ClCompile Include="gl\gl_draw_zoo.cpp" />
     <ClCompile Include="gl\gl_dx_interop.cpp" />
