@@ -52,6 +52,10 @@ RD_TEST(GL_Leak_Check, OpenGLGraphicsTest)
     glBindTexture(GL_TEXTURE_2D, tex);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, 4, 4);
 
+    GLuint rb = 0;
+    glGenRenderbuffers(1, &rb);
+    glBindRenderbuffer(GL_RENDERBUFFER, rb);
+
     while(Running())
     {
       // allow a generous 500MB, we're really only after catching big leaks here
@@ -60,6 +64,9 @@ RD_TEST(GL_Leak_Check, OpenGLGraphicsTest)
         TEST_ERROR("Memory usage of %llu is too high!", GetMemoryUsage());
         break;
       }
+
+      glBindRenderbuffer(GL_RENDERBUFFER, rb);
+      glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA16F, 300, 300);
 
       float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
       glClearBufferfv(GL_COLOR, 0, col);
@@ -76,6 +83,8 @@ RD_TEST(GL_Leak_Check, OpenGLGraphicsTest)
 
       Present();
     }
+
+    glDeleteRenderbuffers(1, &rb);
 
     return 0;
   }
