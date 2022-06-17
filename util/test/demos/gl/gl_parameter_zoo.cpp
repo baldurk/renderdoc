@@ -198,6 +198,16 @@ void main()
       glPixelStorei(GL_PACK_SKIP_ROWS, 33);
       glPixelStorei(GL_PACK_ALIGNMENT, 8);
 
+      for(int i = 0; i < 100; i++)
+        glGetError();
+
+      glBindProgramPipeline(0);
+
+      if(glGetError() != GL_NONE)
+      {
+        TEST_ERROR("Got an error from glBindProgramPipeline");
+      }
+
       glViewport(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
 
       glBindBuffersBase(GL_SHADER_STORAGE_BUFFER, 0, 4, NULL);
