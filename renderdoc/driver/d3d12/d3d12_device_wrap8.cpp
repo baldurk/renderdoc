@@ -197,7 +197,7 @@ HRESULT WrappedID3D12Device::CreateCommittedResource2(
   void *realptr = NULL;
   HRESULT ret;
   SERIALISE_TIME_CALL(ret = m_pDevice8->CreateCommittedResource2(
-                          pHeapProperties, HeapFlags, pDesc, InitialResourceState,
+                          pHeapProperties, HeapFlags, pCreateDesc, InitialResourceState,
                           pOptimizedClearValue, Unwrap(pProtectedSession), riidResource, &realptr));
 
   ID3D12Resource *real = NULL;
