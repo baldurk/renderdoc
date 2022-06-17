@@ -220,7 +220,7 @@ void TipsDialog::initialize()
   m_tips.push_back(Tip(
       tr("Texture debugging overlays"),
       tr("In the texture viewer, you can select from several helpful debugging overlays over the "
-         "current view. This can show wireframe or solid coloour overlays of the current drawcall, "
+         "current view. This can show wireframe or solid colour overlays of the current drawcall, "
          "as well as showing depth pass/fail or even representing quad overdraw as a heatmap.\n")));
 
   // Tip 22
