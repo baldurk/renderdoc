@@ -232,6 +232,7 @@ enum class MetalChunk : uint32_t
   MTLBuffer_removeAllDebugMarkers,
   MTLBuffer_remoteStorageBuffer,
   MTLBuffer_newRemoteBufferViewForDevice,
+  MTLBuffer_InternalModifyCPUContents,
   Max
 };
 
