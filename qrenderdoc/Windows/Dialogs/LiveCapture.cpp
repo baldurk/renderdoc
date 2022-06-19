@@ -1076,6 +1076,8 @@ void LiveCapture::on_captures_itemSelectionChanged()
   int numSelected = ui->captures->selectedItems().size();
 
   openButton->setEnabled(numSelected == 1);
+  saveAction->setEnabled(numSelected != 0);
+  deleteAction->setEnabled(numSelected != 0);
 
   if(ui->captures->selectedItems().size() == 1)
   {
