@@ -344,7 +344,7 @@ bool IsSRGBFormat(VkFormat f)
   return false;
 }
 
-bool IsDoubleFormat(VkFormat f)
+bool Is64BitFormat(VkFormat f)
 {
   switch(f)
   {

@@ -35,11 +35,13 @@ RD_TEST(VK_Vertex_Attr_Zoo, VulkanGraphicsTest)
   {
     int16_t i16[4];
     uint16_t u16[4];
-    double df[2];
+    double df[3];
     float arr0[2];
     float arr1[2];
     float mat0[2];
     float mat1[2];
+    uint64_t lf[3];
+    int64_t slf[3];
   };
 
   std::string vertex = R"EOSHADER(
@@ -50,10 +52,14 @@ layout(location = 3) in uvec2 InUInt;
 layout(location = 3, component = 2) in uint InUInt1;
 layout(location = 3, component = 3) in uint InUInt2;
 #if DOUBLES
-layout(location = 4) in dvec2 InDouble;
+layout(location = 4) in dvec3 InDouble;
 #endif
-layout(location = 5) in vec2 InArray[2];
-layout(location = 7) in mat2x2 InMatrix;
+layout(location = 6) in vec2 InArray[2];
+layout(location = 8) in mat2x2 InMatrix;
+#if LONGS
+layout(location = 10) in u64vec3 InULong;
+layout(location = 12) in i64vec3 InSLong;
+#endif
 
 layout(location = 0) out vec4 OutSNorm;
 layout(location = 1) out vec4 OutUNorm;
@@ -62,10 +68,14 @@ layout(location = 3) flat out uvec2 OutUInt;
 layout(location = 3, component = 2) flat out uint OutUInt1;
 layout(location = 3, component = 3) flat out uint OutUInt2;
 #if DOUBLES
-layout(location = 4) out dvec2 OutDouble;
+layout(location = 4) out dvec3 OutDouble;
 #endif
-layout(location = 5) out vec2 OutArray[2];
-layout(location = 7) out mat2x2 OutMatrix;
+layout(location = 6) out vec2 OutArray[2];
+layout(location = 8) out mat2x2 OutMatrix;
+#if LONGS
+layout(location = 10) out u64vec3 OutULong;
+layout(location = 12) out i64vec3 OutSLong;
+#endif
 
 void main()
 {
@@ -85,6 +95,10 @@ void main()
   OutUNorm = InUNorm;
   OutArray = InArray;
   OutMatrix = InMatrix;
+#if LONGS
+  OutULong = InULong;
+  OutSLong = InSLong;
+#endif
 }
 
 )EOSHADER";
@@ -97,10 +111,14 @@ layout(location = 3) flat in uvec2 InUInt;
 layout(location = 3, component = 2) flat in uint InUInt1;
 layout(location = 3, component = 3) flat in uint InUInt2;
 #if DOUBLES
-layout(location = 4) flat in dvec2 InDouble;
+layout(location = 4) flat in dvec3 InDouble;
 #endif
-layout(location = 5) in vec2 InArray[2];
-layout(location = 7) in mat2x2 InMatrix;
+layout(location = 6) in vec2 InArray[2];
+layout(location = 8) in mat2x2 InMatrix;
+#if LONGS
+layout(location = 10) flat in u64vec3 InULong;
+layout(location = 12) flat in i64vec3 InSLong;
+#endif
 
 layout(location = 0, index = 0) out vec4 Color;
 
@@ -131,6 +149,13 @@ void main()
   if(clamp(InDouble, -10.0, 10.0) != InDouble)
     Color = vec4(0.5f, 0, 0, 1);
 #endif
+
+#if LONGS
+  if(InULong.x < 10000000000UL || InULong.y < 10000000000UL || InULong.z < 10000000000UL)
+    Color = vec4(0.6f, 0, 0, 1);
+  if(InSLong.x > -10000000000UL || InSLong.y > -10000000000UL || InSLong.z > -10000000000UL)
+    Color = vec4(0.7f, 0, 0, 1);
+#endif
 }
 
 )EOSHADER";
@@ -146,10 +171,14 @@ layout(location = 3) flat in uvec2 InUInt[3];
 layout(location = 3, component = 2) flat in uint InUInt1[3];
 layout(location = 3, component = 3) flat in uint InUInt2[3];
 #if DOUBLES
-layout(location = 4) in dvec2 InDouble[3];
+layout(location = 4) in dvec3 InDouble[3];
 #endif
-layout(location = 5) in vec2 InArray[3][2];
-layout(location = 7) in mat2x2 InMatrix[3];
+layout(location = 6) in vec2 InArray[3][2];
+layout(location = 8) in mat2x2 InMatrix[3];
+#if LONGS
+layout(location = 10) in u64vec3 InULong[3];
+layout(location = 12) in i64vec3 InSLong[3];
+#endif
 
 layout(location = 0) out vec4 OutSNorm;
 layout(location = 1) out vec4 OutUNorm;
@@ -158,10 +187,14 @@ layout(location = 3) flat out uvec2 OutUInt;
 layout(location = 3, component = 2) flat out uint OutUInt1;
 layout(location = 3, component = 3) flat out uint OutUInt2;
 #if DOUBLES
-layout(location = 4) out dvec2 OutDouble;
+layout(location = 4) out dvec3 OutDouble;
 #endif
-layout(location = 5) out vec2 OutArray[2];
-layout(location = 7) out mat2x2 OutMatrix;
+layout(location = 6) out vec2 OutArray[2];
+layout(location = 8) out mat2x2 OutMatrix;
+#if LONGS
+layout(location = 10) out u64vec3 OutULong;
+layout(location = 12) out i64vec3 OutSLong;
+#endif
 
 void main()
 {
@@ -180,6 +213,10 @@ void main()
     OutUNorm = InUNorm[i];
     OutArray = InArray[i];
     OutMatrix = InMatrix[i];
+#if LONGS
+    OutULong = InULong[i];
+    OutSLong = InSLong[i];
+#endif
 
     EmitVertex();
   }
@@ -297,6 +334,8 @@ void main()
     // radv doesn't support doubles :(
     optFeatures.shaderFloat64 = VK_TRUE;
 
+    optFeatures.shaderInt64 = VK_TRUE;
+
     VulkanGraphicsTest::Prepare(argc, argv);
 
     if(!Avail.empty())
@@ -322,9 +361,19 @@ void main()
       return 3;
 
     VkFormatProperties props = {};
-    vkGetPhysicalDeviceFormatProperties(phys, VK_FORMAT_R64G64_SFLOAT, &props);
+    vkGetPhysicalDeviceFormatProperties(phys, VK_FORMAT_R64G64B64_SFLOAT, &props);
 
     const bool doubles = (props.bufferFeatures & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT) != 0;
+
+    props = {};
+    vkGetPhysicalDeviceFormatProperties(phys, VK_FORMAT_R64G64B64_SINT, &props);
+    const bool slongs = (props.bufferFeatures & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT) != 0;
+
+    props = {};
+    vkGetPhysicalDeviceFormatProperties(phys, VK_FORMAT_R64G64B64_UINT, &props);
+    const bool ulongs = (props.bufferFeatures & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT) != 0;
+
+    const bool longs = slongs && ulongs;
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());
 
@@ -340,18 +389,32 @@ void main()
         vkh::vertexAttrFormatted(1, 0, vertin, u16, VK_FORMAT_R16G16B16A16_UNORM),
         vkh::vertexAttrFormatted(2, 0, vertin, u16, VK_FORMAT_R16G16B16A16_USCALED),
         vkh::vertexAttrFormatted(3, 0, vertin, u16, VK_FORMAT_R16G16B16A16_UINT),
-        vkh::vertexAttrFormatted(5, 0, vertin, arr0, VK_FORMAT_R32G32_SFLOAT),
-        vkh::vertexAttrFormatted(6, 0, vertin, arr1, VK_FORMAT_R32G32_SFLOAT),
-        vkh::vertexAttrFormatted(7, 0, vertin, mat0, VK_FORMAT_R32G32_SFLOAT),
-        vkh::vertexAttrFormatted(8, 0, vertin, mat1, VK_FORMAT_R32G32_SFLOAT),
+        vkh::vertexAttrFormatted(6, 0, vertin, arr0, VK_FORMAT_R32G32_SFLOAT),
+        vkh::vertexAttrFormatted(7, 0, vertin, arr1, VK_FORMAT_R32G32_SFLOAT),
+        vkh::vertexAttrFormatted(8, 0, vertin, mat0, VK_FORMAT_R32G32_SFLOAT),
+        vkh::vertexAttrFormatted(9, 0, vertin, mat1, VK_FORMAT_R32G32_SFLOAT),
     };
 
     std::string common = "#version 450 core\n\n";
 
+    if(longs)
+    {
+      pipeCreateInfo.vertexInputState.vertexAttributeDescriptions.push_back(
+          vkh::vertexAttrFormatted(10, 0, vertin, lf, VK_FORMAT_R64G64B64_UINT));
+      pipeCreateInfo.vertexInputState.vertexAttributeDescriptions.push_back(
+          vkh::vertexAttrFormatted(12, 0, vertin, slf, VK_FORMAT_R64G64B64_SINT));
+
+      common += "#extension GL_ARB_gpu_shader_int64 : require\n\n#define LONGS 1\n\n";
+    }
+    else
+    {
+      common += "#define LONGS 0\n\n";
+    }
+
     if(doubles)
     {
       pipeCreateInfo.vertexInputState.vertexAttributeDescriptions.push_back(
-          vkh::vertexAttrFormatted(4, 0, vertin, df, VK_FORMAT_R64G64_SFLOAT));
+          vkh::vertexAttrFormatted(4, 0, vertin, df, VK_FORMAT_R64G64B64_SFLOAT));
 
       common += "#define DOUBLES 1\n\n";
     }
@@ -381,29 +444,35 @@ void main()
         {
             {32767, -32768, 32767, -32767},
             {12345, 6789, 1234, 567},
-            {9.8765432109, -5.6789012345},
+            {9.8765432109, -5.6789012345, 1.2345},
             {1.0f, 2.0f},
             {3.0f, 4.0f},
             {7.0f, 8.0f},
             {9.0f, 10.0f},
+            {10000012345, 10000006789, 10000001234},
+            {-10000012345, -10000006789, -10000001234},
         },
         {
             {32766, -32766, 16000, -16000},
             {56, 7890, 123, 4567},
-            {-7.89012345678, 6.54321098765},
+            {-7.89012345678, 6.54321098765, 1.2345},
             {11.0f, 12.0f},
             {13.0f, 14.0f},
             {17.0f, 18.0f},
             {19.0f, 20.0f},
+            {10000000056, 10000007890, 10000000123},
+            {-10000000056, -10000007890, -10000000123},
         },
         {
             {5, -5, 0, 0},
             {8765, 43210, 987, 65432},
-            {0.1234567890123, 4.5678901234},
+            {0.1234567890123, 4.5678901234, 1.2345},
             {21.0f, 22.0f},
             {23.0f, 24.0f},
             {27.0f, 28.0f},
             {29.0f, 30.0f},
+            {10000008765, 10000043210, 10000000987},
+            {-10000008765, -10000043210, -10000000987},
         },
     };
 
@@ -429,6 +498,9 @@ void main()
 
       if(doubles)
         setMarker(cmd, "DoublesEnabled");
+
+      if(longs)
+        setMarker(cmd, "LongsEnabled");
 
       vkCmdBeginRenderPass(
           cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),

@@ -21,11 +21,13 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
                 'UInt': [12345, 6789],
                 'UInt1': [1234],
                 'UInt2': [567],
-                'Double': [9.8765432109, -5.6789012345],
+                'Double': [9.8765432109, -5.6789012345, 1.2345],
                 'Array[0]': [1.0, 2.0],
                 'Array[1]': [3.0, 4.0],
                 'Matrix:col0': [7.0, 8.0],
                 'Matrix:col1': [9.0, 10.0],
+                'ULong': [10000012345, 10000006789, 10000001234],
+                'SLong': [-10000012345, -10000006789, -10000001234],
             },
             1: {
                 'SNorm': [32766.0/32767.0, -32766.0/32767.0, 16000.0/32767.0, -16000.0/32767.0],
@@ -34,11 +36,13 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
                 'UInt': [56, 7890],
                 'UInt1': [123],
                 'UInt2': [4567],
-                'Double': [-7.89012345678, 6.54321098765],
+                'Double': [-7.89012345678, 6.54321098765, 1.2345],
                 'Array[0]': [11.0, 12.0],
                 'Array[1]': [13.0, 14.0],
                 'Matrix:col0': [17.0, 18.0],
                 'Matrix:col1': [19.0, 20.0],
+                'ULong': [10000000056, 10000007890, 10000000123],
+                'SLong': [-10000000056, -10000007890, -10000000123],
             },
             2: {
                 'SNorm': [5.0/32767.0, -5.0/32767.0, 0.0, 0.0],
@@ -47,15 +51,18 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
                 'UInt': [8765, 43210],
                 'UInt1': [987],
                 'UInt2': [65432],
-                'Double': [0.1234567890123, 4.5678901234],
+                'Double': [0.1234567890123, 4.5678901234, 1.2345],
                 'Array[0]': [21.0, 22.0],
                 'Array[1]': [23.0, 24.0],
                 'Matrix:col0': [27.0, 28.0],
                 'Matrix:col1': [29.0, 30.0],
+                'ULong': [10000008765, 10000043210, 10000000987],
+                'SLong': [-10000008765, -10000043210, -10000000987],
             },
         }
 
         doubles = self.find_action('DoublesEnabled') is not None
+        longs = self.find_action('LongsEnabled') is not None
 
         # Copy the ref values and prepend 'In'
         in_ref = {}
@@ -65,6 +72,8 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
                 if 'UInt' in key:
                     continue
                 if not doubles and 'Double' in key:
+                    continue
+                if not longs and 'Long' in key:
                     continue
                 in_ref[idx]['In' + key] = ref[idx][key]
 
@@ -76,6 +85,8 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
             out_ref[idx] = {}
             for key in ref[idx]:
                 if not doubles and 'Double' in key:
+                    continue
+                if not longs and 'Long' in key:
                     continue
                 out_ref[idx]['Out' + key] = ref[idx][key]
 

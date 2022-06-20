@@ -589,10 +589,13 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
 
     io.variable = patchData.inputs[i].ID;
 
-    rdcspv::Scalar scalarType = rdcspv::scalar(refl.inputSignature[i].varType);
+    VarType vType = refl.inputSignature[i].varType;
 
-    // doubles are loaded as uvec4 and then packed in pairs, so we need to declare vec4ID as uvec4
-    if(refl.inputSignature[i].varType == VarType::Double)
+    rdcspv::Scalar scalarType = rdcspv::scalar(vType);
+
+    // 64-bit values are loaded as uvec4 and then packed in pairs, so we need to declare vec4ID as
+    // uvec4
+    if(vType == VarType::Double || vType == VarType::ULong || vType == VarType::SLong)
     {
       io.fetchVec4Type = io.vec4Type =
           editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 4));
@@ -602,7 +605,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
       io.vec4Type = editor.DeclareType(rdcspv::Vector(scalarType, 4));
 
       // if the underlying scalar is actually
-      switch(refl.inputSignature[i].varType)
+      switch(vType)
       {
         case VarType::Half:
           io.fetchVec4Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4));
@@ -1100,6 +1103,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
 
       for(size_t i = 0; i < refl.inputSignature.size(); i++)
       {
+        VarType vType = refl.inputSignature[i].varType;
+
         ShaderBuiltin builtin = refl.inputSignature[i].systemValue;
         if(builtin != ShaderBuiltin::Undefined)
         {
@@ -1159,7 +1164,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
 
           if(valueID)
           {
-            if(VarTypeCompType(refl.inputSignature[i].varType) == compType)
+            if(VarTypeCompType(vType) == compType)
             {
               ops.add(rdcspv::OpStore(ins[i].variable, valueID));
             }
@@ -1218,9 +1223,9 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
             }
           }
 
-          if(refl.inputSignature[i].varType == VarType::Double)
+          if(vType == VarType::Double || vType == VarType::ULong || vType == VarType::SLong)
           {
-            // since doubles are packed into two uints, we need to multiply the index by two
+            // since 64-bit vlaues are packed into two uints, we need to multiply the index by two
             idx = ops.add(rdcspv::OpIMul(u32Type, editor.MakeId(), idx,
                                          editor.AddConstantImmediate<uint32_t>(2)));
           }
@@ -1255,9 +1260,9 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
           // size (typically ushort or half) then convert here
           if(ins[i].fetchVec4Type != ins[i].vec4Type)
           {
-            if(VarTypeCompType(refl.inputSignature[i].varType) == CompType::Float)
+            if(VarTypeCompType(vType) == CompType::Float)
               result = ops.add(rdcspv::OpFConvert(ins[i].vec4Type, editor.MakeId(), result));
-            else if(VarTypeCompType(refl.inputSignature[i].varType) == CompType::UInt)
+            else if(VarTypeCompType(vType) == CompType::UInt)
               result = ops.add(rdcspv::OpUConvert(ins[i].vec4Type, editor.MakeId(), result));
             else
               result = ops.add(rdcspv::OpSConvert(ins[i].vec4Type, editor.MakeId(), result));
@@ -1265,9 +1270,9 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
 
           uint32_t comp = Bits::CountTrailingZeroes(uint32_t(refl.inputSignature[i].regChannelMask));
 
-          if(refl.inputSignature[i].varType == VarType::Double)
+          if(vType == VarType::Double || vType == VarType::ULong || vType == VarType::SLong)
           {
-            // since doubles are packed into two uints, we now need to fetch more data and do
+            // since 64-bit values are packed into two uints, we now need to fetch more data and do
             // packing. We can fetch the data unconditionally since it's harmless to read out of the
             // bounds of the buffer
 
@@ -1304,10 +1309,21 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
 
               editor.SetName(packed, StringFormat::Fmt("packed_%c", swizzle[c]));
 
-              // double comp = PackDouble2x32(packed);
-              comps[c] = ops.add(rdcspv::OpGLSL450(editor.DeclareType(rdcspv::scalar<double>()),
-                                                   editor.MakeId(), glsl450,
-                                                   rdcspv::GLSLstd450::PackDouble2x32, {packed}));
+              if(vType == VarType::Double)
+              {
+                // double comp = PackDouble2x32(packed);
+                comps[c] = ops.add(rdcspv::OpGLSL450(editor.DeclareType(rdcspv::scalar<double>()),
+                                                     editor.MakeId(), glsl450,
+                                                     rdcspv::GLSLstd450::PackDouble2x32, {packed}));
+              }
+              else
+              {
+                rdcspv::Scalar s = (vType == VarType::ULong) ? rdcspv::scalar<uint64_t>()
+                                                             : rdcspv::scalar<int64_t>();
+
+                // [u]int64 comp = Bitcast(packed);
+                comps[c] = ops.add(rdcspv::OpBitcast(editor.DeclareType(s), editor.MakeId(), packed));
+              }
             }
 
             // if there's only one component it's ready, otherwise construct a vector
@@ -2133,7 +2149,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       VkFormat origFormat = attrDesc.format;
       VkFormat expandedFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
 
-      if(IsDoubleFormat(origFormat))
+      if(Is64BitFormat(origFormat))
         expandedFormat = VK_FORMAT_R32G32B32A32_UINT;
       else if(IsUIntFormat(origFormat))
         expandedFormat = VK_FORMAT_R32G32B32A32_UINT;
@@ -2143,8 +2159,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       uint32_t origElemSize = GetByteSize(1, 1, 1, origFormat, 0);
       uint32_t elemSize = GetByteSize(1, 1, 1, expandedFormat, 0);
 
-      // doubles are packed as uvec2
-      if(IsDoubleFormat(origFormat))
+      // 64-bit values are packed as uvec2
+      if(Is64BitFormat(origFormat))
         elemSize *= 2;
 
       // used for interpreting the original data, if we're upcasting
@@ -2253,14 +2269,14 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
             uint32_t zero = 0;
 
             // upcasting path
-            if(IsDoubleFormat(origFormat))
+            if(Is64BitFormat(origFormat))
             {
               while(src < origVBEnd && dst < dstEnd)
               {
-                // the double is already in "packed uvec2" order, with least significant 32-bits
-                // first, so we can copy directly
-                memcpy(dst, src, sizeof(double) * fmt.compCount);
-                dst += sizeof(double) * fmt.compCount;
+                // the 64-bit value (especially for doubles) is already in "packed uvec2" order,
+                // with least significant 32-bits first, so we can copy directly
+                memcpy(dst, src, sizeof(uint64_t) * fmt.compCount);
+                dst += sizeof(uint64_t) * fmt.compCount;
 
                 // fill up to *8* zeros not 4, since we're filling two for every component
                 for(uint8_t c = fmt.compCount * 2; c < 8; c++)
