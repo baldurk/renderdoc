@@ -139,6 +139,29 @@ void DoSerialise(SerialiserType &ser, MTL::SamplePosition &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, MTL::Origin &el)
+{
+  SERIALISE_MEMBER(x);
+  SERIALISE_MEMBER(y);
+  SERIALISE_MEMBER(z);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, MTL::Region &el)
+{
+  SERIALISE_MEMBER(origin);
+  SERIALISE_MEMBER(size);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, MTL::Size &el)
+{
+  SERIALISE_MEMBER(width);
+  SERIALISE_MEMBER(height);
+  SERIALISE_MEMBER(depth);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, RDMTL::TextureDescriptor &el)
 {
   SERIALISE_MEMBER(textureType);
@@ -334,6 +357,9 @@ INSTANTIATE_SERIALISE_TYPE(MTL::TextureSwizzleChannels);
 INSTANTIATE_SERIALISE_TYPE(MTL::ClearColor);
 INSTANTIATE_SERIALISE_TYPE(MTL::SamplePosition);
 INSTANTIATE_SERIALISE_TYPE(MTL::Viewport);
+INSTANTIATE_SERIALISE_TYPE(MTL::Origin);
+INSTANTIATE_SERIALISE_TYPE(MTL::Region);
+INSTANTIATE_SERIALISE_TYPE(MTL::Size);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::TextureDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPipelineColorAttachmentDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::PipelineBufferDescriptor);
