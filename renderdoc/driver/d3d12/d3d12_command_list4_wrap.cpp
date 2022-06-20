@@ -377,14 +377,64 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
       state.dsv = DSV;
       state.renderpass = true;
 
+      state.rpResolves.clear();
+      for(UINT r = 0; r < NumRenderTargets; r++)
+      {
+        if(pRenderTargets[r].EndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+        {
+          state.rpResolves.append(pRenderTargets[r].EndingAccess.Resolve.pSubresourceParameters,
+                                  pRenderTargets[r].EndingAccess.Resolve.SubresourceCount);
+        }
+      }
+
+      if(pDepthStencil)
+      {
+        if(pDepthStencil->DepthEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+        {
+          state.rpResolves.append(pDepthStencil->DepthEndingAccess.Resolve.pSubresourceParameters,
+                                  pDepthStencil->DepthEndingAccess.Resolve.SubresourceCount);
+        }
+
+        if(pDepthStencil->StencilEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+        {
+          state.rpResolves.append(pDepthStencil->StencilEndingAccess.Resolve.pSubresourceParameters,
+                                  pDepthStencil->StencilEndingAccess.Resolve.SubresourceCount);
+        }
+      }
+
+      D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS *resolves =
+          state.rpResolves.data();
+
       state.rpRTs.resize(NumRenderTargets);
       for(UINT r = 0; r < NumRenderTargets; r++)
+      {
         state.rpRTs[r] = pRenderTargets[r];
+
+        if(pRenderTargets[r].EndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+        {
+          state.rpRTs[r].EndingAccess.Resolve.pSubresourceParameters = resolves;
+          resolves += pRenderTargets[r].EndingAccess.Resolve.SubresourceCount;
+        }
+      }
 
       state.rpDSV = {};
 
       if(pDepthStencil)
+      {
         state.rpDSV = *pDepthStencil;
+
+        if(pDepthStencil->DepthEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+        {
+          state.rpDSV.DepthEndingAccess.Resolve.pSubresourceParameters = resolves;
+          resolves += pDepthStencil->DepthEndingAccess.Resolve.SubresourceCount;
+        }
+
+        if(pDepthStencil->StencilEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+        {
+          state.rpDSV.StencilEndingAccess.Resolve.pSubresourceParameters = resolves;
+          resolves += pDepthStencil->StencilEndingAccess.Resolve.SubresourceCount;
+        }
+      }
 
       state.rpFlags = Flags;
     }
@@ -404,6 +454,13 @@ void WrappedID3D12GraphicsCommandList::BeginRenderPass(
   {
     unwrappedRTs[i] = pRenderTargets[i];
     unwrappedRTs[i].cpuDescriptor = Unwrap(unwrappedRTs[i].cpuDescriptor);
+    if(unwrappedRTs[i].EndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+    {
+      unwrappedRTs[i].EndingAccess.Resolve.pSrcResource =
+          Unwrap(unwrappedRTs[i].EndingAccess.Resolve.pSrcResource);
+      unwrappedRTs[i].EndingAccess.Resolve.pDstResource =
+          Unwrap(unwrappedRTs[i].EndingAccess.Resolve.pDstResource);
+    }
   }
 
   D3D12_RENDER_PASS_DEPTH_STENCIL_DESC unwrappedDSV;
@@ -490,6 +547,91 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndRenderPass(SerialiserType &s
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
+        const D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
+
+        // perform any resolves requested. We assume the presence of List1 to do the subregion
+        // resolve
+        for(size_t i = 0; i < state.rpRTs.size(); i++)
+        {
+          if(state.rpRTs[i].EndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+          {
+            const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS &r =
+                state.rpRTs[i].EndingAccess.Resolve;
+
+            D3D12_RESOURCE_BARRIER barrier = {};
+            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            barrier.Transition.pResource = Unwrap(r.pSrcResource);
+            barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+            barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+
+            Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->ResourceBarrier(1, &barrier);
+
+            for(UINT s = 0; s < r.SubresourceCount; s++)
+            {
+              const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS &sub =
+                  r.pSubresourceParameters[s];
+              Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+                  ->ResolveSubresourceRegion(Unwrap(r.pDstResource), sub.DstSubresource, sub.DstX,
+                                             sub.DstY, Unwrap(r.pSrcResource), sub.SrcSubresource,
+                                             (D3D12_RECT *)&sub.SrcRect, r.Format, r.ResolveMode);
+            }
+
+            std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+
+            Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->ResourceBarrier(1, &barrier);
+          }
+        }
+
+        if(state.rpDSV.cpuDescriptor.ptr != 0 &&
+           (state.rpDSV.DepthEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE ||
+            state.rpDSV.StencilEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE))
+        {
+          D3D12_RESOURCE_BARRIER barrier = {};
+          barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+          barrier.Transition.pResource = Unwrap(state.rpDSV.DepthEndingAccess.Resolve.pSrcResource);
+          barrier.Transition.StateBefore =
+              D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_DEPTH_WRITE;
+          barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+
+          Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->ResourceBarrier(1, &barrier);
+
+          if(state.rpDSV.DepthEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+          {
+            const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS &r =
+                state.rpDSV.DepthEndingAccess.Resolve;
+
+            for(UINT s = 0; s < r.SubresourceCount; s++)
+            {
+              const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS &sub =
+                  r.pSubresourceParameters[s];
+              Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+                  ->ResolveSubresourceRegion(Unwrap(r.pDstResource), sub.DstSubresource, sub.DstX,
+                                             sub.DstY, Unwrap(r.pSrcResource), sub.SrcSubresource,
+                                             (D3D12_RECT *)&sub.SrcRect, r.Format, r.ResolveMode);
+            }
+          }
+
+          if(state.rpDSV.StencilEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+          {
+            const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS &r =
+                state.rpDSV.StencilEndingAccess.Resolve;
+
+            for(UINT s = 0; s < r.SubresourceCount; s++)
+            {
+              const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS &sub =
+                  r.pSubresourceParameters[s];
+              Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+                  ->ResolveSubresourceRegion(Unwrap(r.pDstResource), sub.DstSubresource, sub.DstX,
+                                             sub.DstY, Unwrap(r.pSrcResource), sub.SrcSubresource,
+                                             (D3D12_RECT *)&sub.SrcRect, r.Format, r.ResolveMode);
+            }
+          }
+
+          std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+
+          Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->ResourceBarrier(1, &barrier);
+        }
+
         // Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->EndRenderPass();
 
         if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
