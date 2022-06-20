@@ -26,6 +26,13 @@ change_framework_dep() {
   install_name_tool -change "${1}" "@executable_path/../Frameworks/"`relative_dylib_path "${1}"` "${2}"
 }
 
+change_dylib_dep() {
+  libname=`basename $1`
+  to="Contents/qtlibs/$libname"
+  cp -f "${1}" $to
+  install_name_tool -change "${1}" "@executable_path/../../$to" "${2}"
+}
+
 bundle_dir=`dirname $1`/../..
 binary_name=`basename $1`
 
@@ -36,7 +43,16 @@ if [ ! -f Contents/MacOS/$binary_name ]; then
   exit 1;
 fi
 
-bin_deps=`otool -L Contents/MacOS/$binary_name | grep /usr/local | awk '{print $1}'`
+brewPath=/opt/homebrew/opt
+if [ ! -d $brewPath ]; then
+  brewPath=/usr/local
+fi
+if [ ! -d $brewPath ]; then
+  echo "Error can't find homebrew path"
+  exit 1;
+fi
+
+bin_deps=`otool -L Contents/MacOS/$binary_name | grep $brewPath | awk '{print $1}'`
 
 # Find the Qt install and copy our plugins over that we need, then add their dependencies
 # since for some reason qcocoa depends on QtPrintSupport :(
@@ -52,6 +68,8 @@ if [ -L Contents/qtplugins ]; then
 	rm Contents/qtplugins;
 fi
 
+mkdir -p "Contents/qtlibs"
+
 for plugin in $plugins; do
   mkdir -p "Contents/qtplugins/"`dirname "${plugin}"`
 
@@ -60,7 +78,7 @@ for plugin in $plugins; do
   install_name_tool -id "@executable_path/../qtplugins/${plugin}" "contents/qtplugins/${plugin}"
 done
 
-for I in `otool -L Contents/qtplugins/*/* | grep /usr/local | awk '{print $1}'`; do
+for I in `otool -L Contents/qtplugins/*/* | grep $brewPath | awk '{print $1}'`; do
   name=`framework_name $I`
 
   if echo $bin_deps | grep -q "${name}"; then
@@ -97,22 +115,27 @@ for I in $bin_deps; do
 
   local_path="Contents/Frameworks/${name}.framework/Versions/${version}"
 
-  for dep in `otool -L "${local_path}/${name}" | grep /usr/local | awk '{print $1}'`; do
+  for dep in `otool -L "${local_path}/${name}" | grep $brewPath | awk '{print $1}'`; do
     echo "Library ${local_path}/${name} depends on $dep"
 
-    dep_name=`framework_name $dep`
-    dep_version=`framework_version $dep`
+    if [ "${dep##*\.}" == "dylib" ]; then
+      echo "Patching dylib..."
 
-    dep_local_path="Contents/Frameworks/${dep_name}.framework/Versions/${dep_version}"
+      change_dylib_dep $dep "${local_path}/${name}"
+    else
+      dep_name=`framework_name $dep`
+      dep_version=`framework_version $dep`
 
-    if [ ! -f "${dep_local_path}/${dep_name}" ]; then
-      echo "Which is missing (expected ${dep_local_path}/${dep_name})";
-      exit 1;
+      dep_local_path="Contents/Frameworks/${dep_name}.framework/Versions/${dep_version}"
+
+      if [ ! -f "${dep_local_path}/${dep_name}" ]; then
+        echo "Which is missing (expected ${dep_local_path}/${dep_name})";
+        exit 1;
+      fi
+      echo "Patching..."
+
+      change_framework_dep $dep "${local_path}/${name}"
     fi
-
-    echo "Patching..."
-
-    change_framework_dep $dep "${local_path}/${name}"
   done
 
   # Finally change this dependency in the binary
@@ -121,22 +144,28 @@ done
 
 # And the same for plugins
 for plugin in $plugins; do
-  for dep in `otool -L "Contents/qtplugins/${plugin}" | grep /usr/local | awk '{print $1}'`; do
+  for dep in `otool -L "Contents/qtplugins/${plugin}" | grep $brewPath | awk '{print $1}'`; do
     echo "Plugin ${plugin} depends on $dep"
 
-    dep_name=`framework_name $dep`
-    dep_version=`framework_version $dep`
+    if [ "${dep##*\.}" == "dylib" ]; then
+      echo "Patching dylib..."
 
-    dep_local_path="Contents/Frameworks/${dep_name}.framework/Versions/${dep_version}"
+      change_dylib_dep $dep "contents/qtplugins/${plugin}"
+    else
+      dep_name=`framework_name $dep`
+      dep_version=`framework_version $dep`
 
-    if [ ! -f "${dep_local_path}/${dep_name}" ]; then
-      echo "Which is missing (expected ${dep_local_path}/${dep_name})";
-      exit 1;
+      dep_local_path="Contents/Frameworks/${dep_name}.framework/Versions/${dep_version}"
+
+      if [ ! -f "${dep_local_path}/${dep_name}" ]; then
+        echo "Which is missing (expected ${dep_local_path}/${dep_name})";
+        exit 1;
+      fi
+
+      echo "Patching..."
+
+      change_framework_dep $dep "contents/qtplugins/${plugin}"
     fi
-
-    echo "Patching..."
-
-    change_framework_dep $dep "contents/qtplugins/${plugin}"
   done
 done
 
