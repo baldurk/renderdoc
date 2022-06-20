@@ -44,6 +44,7 @@ enum MetalResourceType
   eResRenderPipelineState,
   eResTexture,
   eResRenderCommandEncoder,
+  eResMax
 };
 
 DECLARE_REFLECTION_ENUM(MetalResourceType);

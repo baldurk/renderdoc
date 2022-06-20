@@ -1066,3 +1066,22 @@ rdcstr DoStringise(const MTL::CullMode &el)
   END_ENUM_STRINGISE();
 };
 
+template <>
+rdcstr DoStringise(const MetalResourceType &el)
+{
+  RDCCOMPILE_ASSERT((uint32_t)MetalResourceType::eResMax == 10, "MetalResourceType changed");
+  BEGIN_ENUM_STRINGISE(MetalResourceType);
+  {
+    STRINGISE_ENUM(eResUnknown);
+    STRINGISE_ENUM(eResBuffer);
+    STRINGISE_ENUM(eResCommandBuffer);
+    STRINGISE_ENUM(eResCommandQueue);
+    STRINGISE_ENUM(eResDevice);
+    STRINGISE_ENUM(eResLibrary);
+    STRINGISE_ENUM(eResFunction);
+    STRINGISE_ENUM(eResRenderPipelineState);
+    STRINGISE_ENUM(eResTexture);
+    STRINGISE_ENUM(eResRenderCommandEncoder);
+  }
+  END_ENUM_STRINGISE();
+}
