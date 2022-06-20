@@ -994,3 +994,75 @@ rdcstr DoStringise(const MTL::MultisampleStencilResolveFilter &el)
   }
   END_ENUM_STRINGISE()
 }
+
+template <>
+rdcstr DoStringise(const MTL::BlitOption &el)
+{
+  BEGIN_ENUM_STRINGISE(MTL::BlitOption)
+  {
+    MTL_STRINGISE_ENUM(BlitOptionNone);
+    MTL_STRINGISE_ENUM(BlitOptionDepthFromDepthStencil);
+    MTL_STRINGISE_ENUM(BlitOptionRowLinearPVRTC);
+    MTL_STRINGISE_ENUM(BlitOptionStencilFromDepthStencil);
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
+rdcstr DoStringise(const MTL::DeviceLocation &el)
+{
+  BEGIN_BITFIELD_STRINGISE(MTL::DeviceLocation)
+  {
+    MTL_STRINGISE_BITFIELD_BIT(DeviceLocationBuiltIn);
+    MTL_STRINGISE_BITFIELD_BIT(DeviceLocationSlot);
+    MTL_STRINGISE_BITFIELD_BIT(DeviceLocationExternal);
+    MTL_STRINGISE_BITFIELD_BIT(DeviceLocationUnspecified);
+  }
+  END_BITFIELD_STRINGISE()
+}
+
+template <>
+rdcstr DoStringise(const MTL::ArgumentBuffersTier &el)
+{
+  BEGIN_BITFIELD_STRINGISE(MTL::ArgumentBuffersTier)
+  {
+    MTL_STRINGISE_BITFIELD_BIT(ArgumentBuffersTier1);
+    MTL_STRINGISE_BITFIELD_BIT(ArgumentBuffersTier2);
+  }
+  END_BITFIELD_STRINGISE()
+}
+
+template <>
+rdcstr DoStringise(const MTL::DepthClipMode &el)
+{
+  BEGIN_ENUM_STRINGISE(MTL::DepthClipMode);
+  {
+    MTL_STRINGISE_ENUM(DepthClipModeClip);
+    MTL_STRINGISE_ENUM(DepthClipModeClamp);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+rdcstr DoStringise(const MTL::TriangleFillMode &el)
+{
+  BEGIN_ENUM_STRINGISE(MTL::TriangleFillMode);
+  {
+    MTL_STRINGISE_ENUM(TriangleFillModeFill);
+    MTL_STRINGISE_ENUM(TriangleFillModeLines);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+rdcstr DoStringise(const MTL::CullMode &el)
+{
+  BEGIN_ENUM_STRINGISE(MTL::CullMode);
+  {
+    MTL_STRINGISE_ENUM(CullModeNone);
+    MTL_STRINGISE_ENUM(CullModeFront);
+    MTL_STRINGISE_ENUM(CullModeBack);
+  }
+  END_ENUM_STRINGISE();
+};
+
