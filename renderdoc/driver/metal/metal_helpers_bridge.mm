@@ -35,8 +35,7 @@ void ObjC::Get_defaultLibraryData(bytebuf &buffer)
   dispatch_data_t data = dispatch_data_create(
       myData.bytes, myData.length, dispatch_get_main_queue(), DISPATCH_DATA_DESTRUCTOR_DEFAULT);
   NSData *nsData = (NSData *)data;
-  buffer.resize(nsData.length);
-  memcpy(buffer.data(), nsData.bytes, buffer.size());
+  buffer.assign((byte *)nsData.bytes, nsData.length);
   dispatch_release(data);
 }
 
