@@ -1310,7 +1310,6 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
         var.type = type.scalar().Type();
         var.columns = type.vector().count & 0xff;
-        var.value = ShaderValue();
       }
 
       SetDst(cast.result, var);
