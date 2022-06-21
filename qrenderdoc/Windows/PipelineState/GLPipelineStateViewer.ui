@@ -2552,9 +2552,9 @@
            </widget>
           </item>
           <item row="0" column="4">
-           <widget class="QLabel" name="frontCCWLabel">
+           <widget class="QLabel" name="rasterizerDiscardLabel">
             <property name="text">
-             <string>Front CCW:</string>
+             <string>Rasterizer Discard:</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -2565,7 +2565,7 @@
            </widget>
           </item>
           <item row="0" column="5">
-           <widget class="QLabel" name="frontCCW">
+           <widget class="QLabel" name="rasterizerDiscard">
             <property name="text">
              <string/>
             </property>
@@ -2581,9 +2581,9 @@
            </widget>
           </item>
           <item row="0" column="6">
-           <widget class="QLabel" name="rasterizerDiscardLabel">
+           <widget class="QLabel" name="frontFaceLabel">
             <property name="text">
-             <string>Rasterizer Discard:</string>
+             <string>Front:</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -2594,12 +2594,14 @@
            </widget>
           </item>
           <item row="0" column="7">
-           <widget class="QLabel" name="rasterizerDiscard">
-            <property name="text">
-             <string/>
+           <widget class="QLabel" name="frontFace">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
             </property>
-            <property name="pixmap">
-             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+            <property name="text">
+             <string>CCW</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>

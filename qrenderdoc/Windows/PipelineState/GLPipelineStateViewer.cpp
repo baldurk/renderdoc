@@ -686,7 +686,8 @@ void GLPipelineStateViewer::clearState()
 
   ui->fillMode->setText(tr("Solid", "Fill Mode"));
   ui->cullMode->setText(tr("Front", "Cull Mode"));
-  ui->frontCCW->setPixmap(tick);
+  ui->frontFace->setText(tr("CCW"));
+  ui->frontFace->setToolTip(QString());
 
   ui->scissorEnabled->setPixmap(tick);
   ui->provoking->setText(tr("Last"));
@@ -1788,7 +1789,37 @@ void GLPipelineStateViewer::setState()
 
   ui->fillMode->setText(ToQStr(state.rasterizer.state.fillMode));
   ui->cullMode->setText(ToQStr(state.rasterizer.state.cullMode));
-  ui->frontCCW->setPixmap(state.rasterizer.state.frontCCW ? tick : cross);
+
+  if(state.rasterizer.state.frontCCW)
+  {
+    if(state.vertexProcessing.clipOriginLowerLeft)
+    {
+      ui->frontFace->setText(tr("CCW"));
+      ui->frontFace->setToolTip(QString());
+    }
+    else
+    {
+      ui->frontFace->setText(tr("CW (clip origin flipped)"));
+      ui->frontFace->setToolTip(
+          tr("The GL state specifies that front faces have CCW winding,\n"
+             "but this is inverted by the upper-left clip origin."));
+    }
+  }
+  else
+  {
+    if(state.vertexProcessing.clipOriginLowerLeft)
+    {
+      ui->frontFace->setText(tr("CW"));
+      ui->frontFace->setToolTip(QString());
+    }
+    else
+    {
+      ui->frontFace->setText(tr("CCW (clip origin flipped)"));
+      ui->frontFace->setToolTip(
+          tr("The GL state specifies that front faces have CW winding,\n"
+             "but this is inverted by the upper-left clip origin."));
+    }
+  }
 
   ui->scissorEnabled->setPixmap(anyScissorEnable ? tick : cross);
   ui->provoking->setText(state.vertexInput.provokingVertexLast ? tr("Last") : tr("First"));

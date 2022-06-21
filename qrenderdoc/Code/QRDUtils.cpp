@@ -2386,7 +2386,8 @@ bool QCollatorSortFilterProxyModel::lessThan(const QModelIndex &source_left,
 void addGridLines(QGridLayout *grid, QColor gridColor)
 {
   QString style =
-      QFormatStr("border: solid #%1%2%3; border-bottom-width: 1px; border-right-width: 1px;")
+      QFormatStr(
+          "QLabel { border: solid #%1%2%3; border-bottom-width: 1px; border-right-width: 1px;")
           .arg(gridColor.red(), 2, 16, QLatin1Char('0'))
           .arg(gridColor.green(), 2, 16, QLatin1Char('0'))
           .arg(gridColor.blue(), 2, 16, QLatin1Char('0'));
@@ -2411,6 +2412,8 @@ void addGridLines(QGridLayout *grid, QColor gridColor)
         cellStyle += lit("border-left-width: 1px;");
       if(y == 0)
         cellStyle += lit("border-top-width: 1px;");
+
+      cellStyle += lit(" };");
 
       w->setStyleSheet(cellStyle);
     }
