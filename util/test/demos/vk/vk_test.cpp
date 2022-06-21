@@ -586,15 +586,15 @@ bool VulkanGraphicsTest::Init()
   std::vector<VkQueueFamilyProperties> queueProps;
   vkh::getQueueFamilyProperties(queueProps, phys);
 
-  VkQueueFlags required = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
-
   // if no queue has been selected, find it now
   if(queueFamilyIndex == ~0U)
   {
+    // try to find an exact match first
     for(uint32_t q = 0; q < queueProps.size(); q++)
     {
       VkQueueFlags flags = queueProps[q].queueFlags;
-      if((flags & required) == required)
+
+      if(flags == queueFlagsRequired)
       {
         queueFamilyIndex = q;
         queueCount = 1;
@@ -605,7 +605,23 @@ bool VulkanGraphicsTest::Init()
 
   if(queueFamilyIndex == ~0U)
   {
-    TEST_ERROR("No graphics/compute queues available");
+    // if we didn't find an exact match, look for any that does satisfy what we want
+    for(uint32_t q = 0; q < queueProps.size(); q++)
+    {
+      VkQueueFlags flags = queueProps[q].queueFlags;
+
+      if(((flags & queueFlagsRequired) == queueFlagsRequired) && ((flags & queueFlagsBanned) == 0))
+      {
+        queueFamilyIndex = q;
+        queueCount = 1;
+        break;
+      }
+    }
+  }
+
+  if(queueFamilyIndex == ~0U)
+  {
+    TEST_ERROR("No satisfactory queue family available");
     return false;
   }
 
@@ -638,13 +654,17 @@ bool VulkanGraphicsTest::Init()
   volkLoadDevice(device);
 
   vkGetDeviceQueue(device, queueFamilyIndex, 0, &queue);
-  mainWindow = MakeWindow(screenWidth, screenHeight, "Autotesting");
 
-  if(!mainWindow->Initialised())
+  if(!headless)
   {
-    TEST_ERROR("Error creating surface");
-    return false;
-  };
+    mainWindow = MakeWindow(screenWidth, screenHeight, "Autotesting");
+
+    if(!mainWindow->Initialised())
+    {
+      TEST_ERROR("Error creating surface");
+      return false;
+    }
+  }
 
   VmaVulkanFunctions funcs = {
       vkGetPhysicalDeviceProperties,
@@ -679,6 +699,8 @@ bool VulkanGraphicsTest::Init()
 
   TEST_LOG("Running Vulkan test on %s (version %d.%d)", physProperties.deviceName,
            VK_VERSION_MAJOR(physProperties.apiVersion), VK_VERSION_MINOR(physProperties.apiVersion));
+
+  headlessCmds = new VulkanCommands(this);
 
   return true;
 }
@@ -738,6 +760,9 @@ void VulkanGraphicsTest::Shutdown()
 
     vmaDestroyAllocator(allocator);
 
+    if(headlessCmds)
+      delete headlessCmds;
+
     delete mainWindow;
 
     vkDestroyDevice(device, NULL);
@@ -789,27 +814,17 @@ void VulkanGraphicsTest::FinishUsingBackbuffer(VkCommandBuffer cmd, VkAccessFlag
 }
 
 void VulkanGraphicsTest::Submit(int index, int totalSubmits, const std::vector<VkCommandBuffer> &cmds,
-                                const std::vector<VkCommandBuffer> &seccmds, VulkanWindow *window,
-                                VkQueue q, bool sync2)
+                                const std::vector<VkCommandBuffer> &seccmds)
 {
-  if(window == NULL)
-    window = mainWindow;
-
-  if(q == VK_NULL_HANDLE)
-    q = queue;
-
-  window->Submit(index, totalSubmits, cmds, seccmds, q, sync2);
+  if(mainWindow)
+    mainWindow->Submit(index, totalSubmits, cmds, seccmds, queue);
+  else
+    headlessCmds->Submit(cmds, seccmds, queue, VK_NULL_HANDLE, VK_NULL_HANDLE);
 }
 
-void VulkanGraphicsTest::Present(VulkanWindow *window, VkQueue q)
+void VulkanGraphicsTest::Present()
 {
-  if(!window)
-    window = mainWindow;
-
-  if(q == VK_NULL_HANDLE)
-    q = queue;
-
-  window->Present(q);
+  mainWindow->Present(queue);
 }
 
 VkPipelineShaderStageCreateInfo VulkanGraphicsTest::CompileShaderModule(
@@ -845,25 +860,10 @@ VkCommandBuffer VulkanGraphicsTest::GetCommandBuffer(VkCommandBufferLevel level,
   if(window == NULL)
     window = mainWindow;
 
-  return window->GetCommandBuffer(level);
-}
+  if(window)
+    return window->GetCommandBuffer(level);
 
-VkCommandBuffer VulkanWindow::GetCommandBuffer(VkCommandBufferLevel level)
-{
-  std::vector<VkCommandBuffer> &buflist = freeCommandBuffers[level];
-
-  if(buflist.empty())
-  {
-    buflist.resize(4);
-
-    CHECK_VKR(vkAllocateCommandBuffers(
-        m_Test->device, vkh::CommandBufferAllocateInfo(cmdPool, 4, level), &buflist[0]));
-  }
-
-  VkCommandBuffer ret = buflist.back();
-  buflist.pop_back();
-
-  return ret;
+  return headlessCmds->GetCommandBuffer(level);
 }
 
 template <>
@@ -1136,18 +1136,123 @@ VkSampler VulkanGraphicsTest::createSampler(const VkSamplerCreateInfo *info)
   return ret;
 }
 
+VulkanCommands::VulkanCommands(VulkanGraphicsTest *test)
+{
+  m_Test = test;
+
+  CHECK_VKR(vkCreateCommandPool(
+      m_Test->device, vkh::CommandPoolCreateInfo(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+                                                 m_Test->queueFamilyIndex),
+      NULL, &cmdPool));
+}
+
+VulkanCommands::~VulkanCommands()
+{
+  vkDestroyCommandPool(m_Test->device, cmdPool, NULL);
+
+  for(VkFence fence : fences)
+    vkDestroyFence(m_Test->device, fence, NULL);
+}
+
+VkCommandBuffer VulkanCommands::GetCommandBuffer(VkCommandBufferLevel level)
+{
+  std::vector<VkCommandBuffer> &buflist = freeCommandBuffers[level];
+
+  if(buflist.empty())
+  {
+    buflist.resize(4);
+
+    CHECK_VKR(vkAllocateCommandBuffers(
+        m_Test->device, vkh::CommandBufferAllocateInfo(cmdPool, 4, level), &buflist[0]));
+  }
+
+  VkCommandBuffer ret = buflist.back();
+  buflist.pop_back();
+
+  return ret;
+}
+
+void VulkanCommands::Submit(const std::vector<VkCommandBuffer> &cmds,
+                            const std::vector<VkCommandBuffer> &seccmds, VkQueue q,
+                            VkSemaphore wait, VkSemaphore signal)
+{
+  VkFence fence;
+  CHECK_VKR(vkCreateFence(m_Test->device, vkh::FenceCreateInfo(), NULL, &fence));
+
+  fences.insert(fence);
+
+  if(m_Test->hasExt(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME))
+  {
+    VkSubmitInfo2KHR submit = {VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR};
+
+    std::vector<VkCommandBufferSubmitInfoKHR> cmdSubmits;
+    for(VkCommandBuffer cmd : cmds)
+      cmdSubmits.push_back({VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR, NULL, cmd, 0});
+
+    submit.commandBufferInfoCount = (uint32_t)cmdSubmits.size();
+    submit.pCommandBufferInfos = cmdSubmits.data();
+
+    VkSemaphoreSubmitInfoKHR waitInfo = {}, signalInfo = {};
+
+    if(wait != VK_NULL_HANDLE)
+    {
+      waitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR;
+      waitInfo.semaphore = wait;
+      waitInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT_KHR;
+
+      submit.waitSemaphoreInfoCount = 1;
+      submit.pWaitSemaphoreInfos = &waitInfo;
+    }
+
+    if(signal != VK_NULL_HANDLE)
+    {
+      signalInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR;
+      signalInfo.semaphore = signal;
+      signalInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT_KHR;
+
+      submit.signalSemaphoreInfoCount = 1;
+      submit.pSignalSemaphoreInfos = &signalInfo;
+    }
+
+    CHECK_VKR(vkQueueSubmit2KHR(q, 1, &submit, fence));
+  }
+  else
+  {
+    VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+
+    VkSubmitInfo submit = vkh::SubmitInfo(cmds);
+
+    if(wait != VK_NULL_HANDLE)
+    {
+      submit.waitSemaphoreCount = 1;
+      submit.pWaitDstStageMask = &waitStage;
+      submit.pWaitSemaphores = &wait;
+    }
+
+    if(signal != VK_NULL_HANDLE)
+    {
+      submit.signalSemaphoreCount = 1;
+      submit.pSignalSemaphores = &signal;
+    }
+
+    CHECK_VKR(vkQueueSubmit(q, 1, &submit, fence));
+  }
+
+  for(const VkCommandBuffer &cmd : cmds)
+    pendingCommandBuffers[0].push_back(std::make_pair(cmd, fence));
+
+  for(const VkCommandBuffer &cmd : seccmds)
+    pendingCommandBuffers[1].push_back(std::make_pair(cmd, fence));
+}
+
 VulkanWindow::VulkanWindow(VulkanGraphicsTest *test, GraphicsWindow *win)
-    : GraphicsWindow(win->title)
+    : GraphicsWindow(win->title), VulkanCommands(test)
 {
   m_Test = test;
   m_Win = win;
 
   {
     std::lock_guard<std::mutex> lock(m_Test->mutex);
-
-    CHECK_VKR(vkCreateCommandPool(
-        m_Test->device, vkh::CommandPoolCreateInfo(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT),
-        NULL, &cmdPool));
 
     CHECK_VKR(
         vkCreateSemaphore(m_Test->device, vkh::SemaphoreCreateInfo(), NULL, &renderStartSemaphore));
@@ -1192,11 +1297,6 @@ VulkanWindow::~VulkanWindow()
   {
     vkDestroySemaphore(m_Test->device, renderStartSemaphore, NULL);
     vkDestroySemaphore(m_Test->device, renderEndSemaphore, NULL);
-
-    vkDestroyCommandPool(m_Test->device, cmdPool, NULL);
-
-    for(VkFence fence : fences)
-      vkDestroyFence(m_Test->device, fence, NULL);
 
     if(surface)
       vkDestroySurfaceKHR(m_Test->instance, surface, NULL);
@@ -1328,75 +1428,16 @@ void VulkanWindow::Acquire()
 }
 
 void VulkanWindow::Submit(int index, int totalSubmits, const std::vector<VkCommandBuffer> &cmds,
-                          const std::vector<VkCommandBuffer> &seccmds, VkQueue q, bool sync2)
+                          const std::vector<VkCommandBuffer> &seccmds, VkQueue q)
 {
-  VkFence fence;
-  CHECK_VKR(vkCreateFence(m_Test->device, vkh::FenceCreateInfo(), NULL, &fence));
+  VkSemaphore signal = VK_NULL_HANDLE, wait = VK_NULL_HANDLE;
 
-  fences.insert(fence);
+  if(index == 0)
+    wait = renderStartSemaphore;
+  if(index == totalSubmits - 1)
+    signal = renderEndSemaphore;
 
-  if(sync2)
-  {
-    VkSubmitInfo2KHR submit = {VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR};
-
-    std::vector<VkCommandBufferSubmitInfoKHR> cmdSubmits;
-    for(VkCommandBuffer cmd : cmds)
-      cmdSubmits.push_back({VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR, NULL, cmd, 0});
-
-    submit.commandBufferInfoCount = (uint32_t)cmdSubmits.size();
-    submit.pCommandBufferInfos = cmdSubmits.data();
-
-    VkSemaphoreSubmitInfoKHR renderStart = {}, renderEnd = {};
-
-    if(index == 0)
-    {
-      renderStart.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR;
-      renderStart.semaphore = renderStartSemaphore;
-      renderStart.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT_KHR;
-
-      submit.waitSemaphoreInfoCount = 1;
-      submit.pWaitSemaphoreInfos = &renderStart;
-    }
-
-    if(index == totalSubmits - 1)
-    {
-      renderEnd.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR;
-      renderEnd.semaphore = renderEndSemaphore;
-      renderEnd.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT_KHR;
-
-      submit.signalSemaphoreInfoCount = 1;
-      submit.pSignalSemaphoreInfos = &renderEnd;
-    }
-
-    CHECK_VKR(vkQueueSubmit2KHR(q, 1, &submit, fence));
-  }
-  else
-  {
-    VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-
-    VkSubmitInfo submit = vkh::SubmitInfo(cmds);
-
-    if(index == 0)
-    {
-      submit.waitSemaphoreCount = 1;
-      submit.pWaitDstStageMask = &waitStage;
-      submit.pWaitSemaphores = &renderStartSemaphore;
-    }
-
-    if(index == totalSubmits - 1)
-    {
-      submit.signalSemaphoreCount = 1;
-      submit.pSignalSemaphores = &renderEndSemaphore;
-    }
-
-    CHECK_VKR(vkQueueSubmit(q, 1, &submit, fence));
-  }
-
-  for(const VkCommandBuffer &cmd : cmds)
-    pendingCommandBuffers[0].push_back(std::make_pair(cmd, fence));
-
-  for(const VkCommandBuffer &cmd : seccmds)
-    pendingCommandBuffers[1].push_back(std::make_pair(cmd, fence));
+  VulkanCommands::Submit(cmds, seccmds, q, wait, signal);
 }
 
 void VulkanWindow::MultiPresent(VkQueue queue, std::vector<VulkanWindow *> windows)
@@ -1463,6 +1504,13 @@ void VulkanWindow::PostPresent(VkResult vkr)
     CHECK_VKR(queuePresentError);
   }
 
+  VulkanCommands::ProcessCompletions();
+
+  Acquire();
+}
+
+void VulkanCommands::ProcessCompletions()
+{
   std::set<VkFence> doneFences;
   std::map<VkFence, VkResult> fenceStatus;
 
@@ -1494,8 +1542,6 @@ void VulkanWindow::PostPresent(VkResult vkr)
     vkDestroyFence(m_Test->device, *it, NULL);
     fences.erase(*it);
   }
-
-  Acquire();
 }
 
 void VulkanWindow::DestroySwapchain()

@@ -129,9 +129,9 @@ RD_TEST(VK_Multi_Thread_Windows, VulkanGraphicsTest)
 
         vkEndCommandBuffer(cmd);
 
-        Submit(0, 1, {cmd}, {}, win, q);
+        win->Submit(0, 1, {cmd}, {}, q);
 
-        Present(win, q);
+        win->Present(q);
       } while(win);
     };
 

@@ -179,6 +179,7 @@
     <ClCompile Include="d3d12\d3d12_amd_shader_extensions.cpp" />
     <ClCompile Include="d3d12\d3d12_buffer_truncation.cpp" />
     <ClCompile Include="d3d12\d3d12_cbuffer_zoo.cpp" />
+    <ClCompile Include="d3d12\d3d12_compute_only.cpp" />
     <ClCompile Include="d3d12\d3d12_descriptor_indexing.cpp" />
     <ClCompile Include="d3d12\d3d12_discard_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_draw_zoo.cpp" />
@@ -280,6 +281,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="test_common.cpp" />
     <ClCompile Include="texture_zoo.cpp" />
+    <ClCompile Include="vk\vk_compute_only.cpp" />
     <ClCompile Include="vk\vk_custom_border_color.cpp" />
     <ClCompile Include="vk\vk_dedicated_allocation.cpp" />
     <ClCompile Include="vk\vk_descriptor_reuse.cpp" />

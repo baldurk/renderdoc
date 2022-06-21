@@ -278,7 +278,7 @@ RD_TEST(VK_Synchronization_2, VulkanGraphicsTest)
 
       vkEndCommandBuffer(cmd);
 
-      Submit(0, 1, {cmd}, {}, NULL, VK_NULL_HANDLE, true);
+      Submit(0, 1, {cmd});
 
       Present();
 

@@ -143,7 +143,7 @@ RD_TEST(VK_Multi_Present, VulkanGraphicsTest)
 
         vkEndCommandBuffer(cmd);
 
-        Submit(0, 1, {cmd}, {}, win);
+        win->Submit(0, 1, {cmd}, {}, queue);
       }
 
       VulkanWindow::MultiPresent(queue, presentWindows);

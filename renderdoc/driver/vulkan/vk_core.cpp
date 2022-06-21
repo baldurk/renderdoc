@@ -1796,6 +1796,14 @@ void WrappedVulkan::StartFrameCapture(DeviceOwnedWindow devWnd)
 
   RDCLOG("Starting capture");
 
+  if(m_Queue == VK_NULL_HANDLE && m_QueueFamilyIdx != ~0U)
+  {
+    RDCLOG("Creating desired queue as none was obtained by the application");
+
+    VkQueue q = VK_NULL_HANDLE;
+    vkGetDeviceQueue(m_Device, m_QueueFamilyIdx, 0, &q);
+  }
+
   Atomic::Dec32(&m_ReuseEnabled);
 
   m_CaptureTimer.Restart();

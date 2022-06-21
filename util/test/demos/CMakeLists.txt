@@ -12,6 +12,7 @@ set(VULKAN_SRC
         vk/vk_adv_cbuffer_zoo.cpp
         vk/vk_buffer_truncation.cpp
         vk/vk_cbuffer_zoo.cpp
+        vk/vk_compute_only.cpp
         vk/vk_custom_border_color.cpp
         vk/vk_dedicated_allocation.cpp
         vk/vk_descriptor_index.cpp

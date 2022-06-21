@@ -628,6 +628,12 @@
     <ClCompile Include="gl\gl_depth_bounds.cpp">
       <Filter>OpenGL\demos</Filter>
     </ClCompile>
+    <ClCompile Include="vk\vk_compute_only.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12\d3d12_compute_only.cpp">
+      <Filter>D3D12\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

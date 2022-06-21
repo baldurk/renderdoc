@@ -107,7 +107,27 @@ struct AllocatedImage
 
 struct VulkanGraphicsTest;
 
-struct VulkanWindow : public GraphicsWindow
+struct VulkanCommands
+{
+public:
+  VulkanCommands(VulkanGraphicsTest *test);
+  ~VulkanCommands();
+  VkCommandBuffer GetCommandBuffer(VkCommandBufferLevel level);
+  void Submit(const std::vector<VkCommandBuffer> &cmds, const std::vector<VkCommandBuffer> &seccmds,
+              VkQueue q, VkSemaphore wait, VkSemaphore signal);
+  void ProcessCompletions();
+
+private:
+  VulkanGraphicsTest *m_Test;
+
+  VkCommandPool cmdPool;
+  std::set<VkFence> fences;
+
+  std::vector<VkCommandBuffer> freeCommandBuffers[2];
+  std::vector<std::pair<VkCommandBuffer, VkFence>> pendingCommandBuffers[2];
+};
+
+struct VulkanWindow : public GraphicsWindow, public VulkanCommands
 {
   VkFormat format;
   uint32_t imgIndex = 0;
@@ -139,9 +159,8 @@ struct VulkanWindow : public GraphicsWindow
     return fbs[idx];
   }
   bool Initialised() { return swap != VK_NULL_HANDLE; }
-  VkCommandBuffer GetCommandBuffer(VkCommandBufferLevel level);
   void Submit(int index, int totalSubmits, const std::vector<VkCommandBuffer> &cmds,
-              const std::vector<VkCommandBuffer> &seccmds, VkQueue q, bool sync2);
+              const std::vector<VkCommandBuffer> &seccmds, VkQueue q);
   static void MultiPresent(VkQueue queue, std::vector<VulkanWindow *> windows);
   void Present(VkQueue q);
 
@@ -161,12 +180,6 @@ private:
   std::vector<VkImageView> imgviews;
   VkSemaphore renderStartSemaphore = VK_NULL_HANDLE, renderEndSemaphore = VK_NULL_HANDLE;
   std::vector<VkFramebuffer> fbs;
-
-  VkCommandPool cmdPool;
-  std::set<VkFence> fences;
-
-  std::vector<VkCommandBuffer> freeCommandBuffers[2];
-  std::vector<std::pair<VkCommandBuffer, VkFence>> pendingCommandBuffers[2];
 
   GraphicsWindow *m_Win;
   VulkanGraphicsTest *m_Test;
@@ -189,9 +202,8 @@ struct VulkanGraphicsTest : public GraphicsTest
   void FinishUsingBackbuffer(VkCommandBuffer cmd, VkAccessFlags prevUse, VkImageLayout layout,
                              VulkanWindow *window = NULL);
   void Submit(int index, int totalSubmits, const std::vector<VkCommandBuffer> &cmds,
-              const std::vector<VkCommandBuffer> &seccmds = {}, VulkanWindow *window = NULL,
-              VkQueue q = VK_NULL_HANDLE, bool sync2 = false);
-  void Present(VulkanWindow *window = NULL, VkQueue q = VK_NULL_HANDLE);
+              const std::vector<VkCommandBuffer> &seccmds = {});
+  void Present();
 
   VkPipelineShaderStageCreateInfo CompileShaderModule(
       const std::string &source_text, ShaderLang lang, ShaderStage stage,
@@ -256,6 +268,9 @@ struct VulkanGraphicsTest : public GraphicsTest
   // optional extensions, will be added to devExts if supported (allows fallback paths)
   std::vector<const char *> optDevExts;
 
+  VkQueueFlags queueFlagsRequired = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
+  VkQueueFlags queueFlagsBanned = 0;
+
   bool hasExt(const char *ext);
 
   // a custom struct to pass to vkDeviceCreateInfo::pNext
@@ -289,6 +304,8 @@ struct VulkanGraphicsTest : public GraphicsTest
   std::map<VkBuffer, VmaAllocation> bufferAllocs;
 
   VulkanWindow *mainWindow = NULL;
+
+  VulkanCommands *headlessCmds = NULL;
 
   // VMA
   bool vmaDedicated = false;

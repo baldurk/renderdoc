@@ -226,6 +226,7 @@ struct D3D12GraphicsTest : public GraphicsTest
   ID3D12CommandAllocatorPtr m_Alloc;
   ID3D12GraphicsCommandListPtr m_DebugList;
 
+  D3D12_COMMAND_LIST_TYPE queueType = D3D12_COMMAND_LIST_TYPE_DIRECT;
   ID3D12CommandQueuePtr queue;
 
   D3D12_FEATURE_DATA_D3D12_OPTIONS opts = {};

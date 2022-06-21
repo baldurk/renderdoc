@@ -316,7 +316,7 @@ void D3D12GraphicsTest::PostDeviceCreate()
 {
   {
     D3D12_COMMAND_QUEUE_DESC desc = {};
-    desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+    desc.Type = queueType;
     dev->CreateCommandQueue(&desc, __uuidof(ID3D12CommandQueue), (void **)&queue);
   }
 
@@ -325,13 +325,13 @@ void D3D12GraphicsTest::PostDeviceCreate()
 
   m_GPUSyncFence->SetName(L"GPUSync fence");
 
-  CHECK_HR(dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                       __uuidof(ID3D12CommandAllocator), (void **)&m_Alloc));
+  CHECK_HR(
+      dev->CreateCommandAllocator(queueType, __uuidof(ID3D12CommandAllocator), (void **)&m_Alloc));
 
   m_Alloc->SetName(L"Command allocator");
 
-  CHECK_HR(dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_Alloc, NULL,
-                                  __uuidof(ID3D12GraphicsCommandList), (void **)&m_DebugList));
+  CHECK_HR(dev->CreateCommandList(0, queueType, m_Alloc, NULL, __uuidof(ID3D12GraphicsCommandList),
+                                  (void **)&m_DebugList));
 
   // command buffers are allocated opened, close it immediately.
   m_DebugList->Close();
@@ -1349,7 +1349,7 @@ ID3D12GraphicsCommandListPtr D3D12GraphicsTest::GetCommandBuffer()
   if(freeCommandBuffers.empty())
   {
     ID3D12GraphicsCommandListPtr list = NULL;
-    CHECK_HR(dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_Alloc, NULL,
+    CHECK_HR(dev->CreateCommandList(0, queueType, m_Alloc, NULL,
                                     __uuidof(ID3D12GraphicsCommandList), (void **)&list));
     // list starts opened, close it
     list->Close();

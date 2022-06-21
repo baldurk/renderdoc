@@ -2252,6 +2252,19 @@ void WrappedID3D12Device::StartFrameCapture(DeviceOwnedWindow devWnd)
 
   RDCLOG("Starting capture");
 
+  if(m_Queue == NULL)
+  {
+    RDCLOG("Creating direct queue as none was found in the application");
+
+    // pretend this is the application's call and just release - everything else will be handled the
+    // same (the queue will be kept alive internally)
+    ID3D12CommandQueue *q = NULL;
+    D3D12_COMMAND_QUEUE_DESC desc = {};
+    desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+    CreateCommandQueue(&desc, __uuidof(ID3D12CommandQueue), (void **)&q);
+    q->Release();
+  }
+
   WrappedID3D12CommandAllocator::PauseResets();
 
   m_CaptureTimer.Restart();
