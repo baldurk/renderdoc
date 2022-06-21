@@ -26,10 +26,14 @@ change_framework_dep() {
   install_name_tool -change "${1}" "@executable_path/../Frameworks/"`relative_dylib_path "${1}"` "${2}"
 }
 
+change_dylib_id() {
+  install_name_tool -id "@executable_path/../../Contents/qtlibs/"`basename "${1}"` "${1}"
+}
+
 change_dylib_dep() {
-  libname=`basename $1`
-  to="Contents/qtlibs/$libname"
+  to="Contents/qtlibs/"`basename "${1}"`
   cp -f "${1}" $to
+  change_dylib_id $to
   install_name_tool -change "${1}" "@executable_path/../../$to" "${2}"
 }
 
@@ -43,7 +47,7 @@ if [ ! -f Contents/MacOS/$binary_name ]; then
   exit 1;
 fi
 
-brewPath=/opt/homebrew/opt
+brewPath=/opt/homebrew
 if [ ! -d $brewPath ]; then
   brewPath=/usr/local
 fi
@@ -150,7 +154,7 @@ for plugin in $plugins; do
     if [ "${dep##*\.}" == "dylib" ]; then
       echo "Patching dylib..."
 
-      change_dylib_dep $dep "contents/qtplugins/${plugin}"
+      change_dylib_dep $dep "Contents/qtplugins/${plugin}"
     else
       dep_name=`framework_name $dep`
       dep_version=`framework_version $dep`
@@ -164,8 +168,26 @@ for plugin in $plugins; do
 
       echo "Patching..."
 
-      change_framework_dep $dep "contents/qtplugins/${plugin}"
+      change_framework_dep $dep "Contents/qtplugins/${plugin}"
     fi
+  done
+done
+
+# And the same for the external libraries and their external dylib dependencies
+doMore=1
+while [ $doMore != 0 ]
+do
+  doMore=0
+  dylibs=`ls "Contents/qtlibs" | grep "\.dylib"`
+
+  for dylib in $dylibs; do
+    for dep in `otool -L "Contents/qtlibs/${dylib}" | grep $brewPath | awk '{print $1}'`; do
+      echo "dylib ${dylib} depends on $dep"
+      echo "Patching dylib..."
+
+      change_dylib_dep $dep "Contents/qtlibs/${dylib}"
+      doMore=1
+    done
   done
 done
 
