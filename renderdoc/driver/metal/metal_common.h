@@ -299,3 +299,7 @@ DECLARE_REFLECTION_ENUM(MetalChunk);
       RDCWARN("Metal '%s' not implemented - " __VA_ARGS__, __PRETTY_FUNCTION__); \
     msgprinted = true;                                                           \
   } while((void)0, 0)
+
+BlendMultiplier MakeBlendMultiplier(MTL::BlendFactor blend);
+BlendOperation MakeBlendOp(MTL::BlendOperation op);
+byte MakeWriteMask(MTL::ColorWriteMask mask);
