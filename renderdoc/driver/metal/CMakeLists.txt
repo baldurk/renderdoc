@@ -18,6 +18,7 @@ set(sources
     metal_function.cpp
     metal_function.h
     metal_function_bridge.mm
+    metal_common.cpp
     metal_common.h
     metal_command_queue.cpp
     metal_command_queue.h
