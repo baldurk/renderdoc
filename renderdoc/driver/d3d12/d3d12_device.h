@@ -682,6 +682,8 @@ private:
   RDResult m_FailedReplayResult = ResultCode::APIReplayFailed;
 
   bool m_AppControlledCapture = false;
+  bool m_FirstFrameCapture = false;
+  void *m_FirstFrameCaptureWindow = NULL;
 
   Threading::RWLock m_CapTransitionLock;
   CaptureState m_State;

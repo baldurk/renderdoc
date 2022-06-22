@@ -299,6 +299,7 @@ private:
   RDResult m_FatalError = ResultCode::Succeeded;
   CaptureState m_State;
   bool m_AppControlledCapture = false;
+  bool m_FirstFrameCapture = false;
 
   int32_t m_ReuseEnabled = 1;
 

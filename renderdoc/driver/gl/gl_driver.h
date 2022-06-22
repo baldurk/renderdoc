@@ -145,6 +145,8 @@ private:
   // internals
   CaptureState m_State;
   bool m_AppControlledCapture = false;
+  bool m_FirstFrameCapture = false;
+  void *m_FirstFrameCaptureContext = NULL;
 
   PerformanceTimer m_CaptureTimer;
 

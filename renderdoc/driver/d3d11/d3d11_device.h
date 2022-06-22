@@ -557,6 +557,7 @@ private:
   D3D11ResourceRecord *m_DeviceRecord;
 
   CaptureState m_State;
+  void *m_FirstFrameCaptureWindow = NULL;
   bool m_AppControlledCapture = false;
 
   PerformanceTimer m_CaptureTimer;

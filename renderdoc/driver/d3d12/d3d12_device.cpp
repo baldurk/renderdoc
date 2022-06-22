@@ -1387,6 +1387,8 @@ void WrappedID3D12Device::FirstFrame(IDXGISwapper *swapper)
     RenderDoc::Inst().StartFrameCapture(
         DeviceOwnedWindow((ID3D12Device *)this, swapper ? swapper->GetHWND() : NULL));
 
+    m_FirstFrameCapture = true;
+    m_FirstFrameCaptureWindow = swapper ? swapper->GetHWND() : NULL;
     m_AppControlledCapture = false;
     m_CapturedFrames.back().frameNumber = 0;
   }
@@ -2118,7 +2120,18 @@ HRESULT WrappedID3D12Device::Present(ID3D12GraphicsCommandList *pOverlayCommandL
   }
 
   if(!activeWindow)
+  {
+    // first present to *any* window, even inactive, terminates frame 0
+    if(m_FirstFrameCapture && IsActiveCapturing(m_State))
+    {
+      RenderDoc::Inst().EndFrameCapture(
+          DeviceOwnedWindow((ID3D12Device *)this, m_FirstFrameCaptureWindow));
+      m_FirstFrameCaptureWindow = NULL;
+      m_FirstFrameCapture = false;
+    }
+
     return S_OK;
+  }
 
   // kill any current capture that isn't application defined
   if(IsActiveCapturing(m_State) && !m_AppControlledCapture)

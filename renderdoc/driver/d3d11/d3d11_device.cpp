@@ -2566,6 +2566,8 @@ void WrappedID3D11Device::FirstFrame(IDXGISwapper *swapper)
   {
     RenderDoc::Inst().StartFrameCapture(DeviceOwnedWindow((ID3D11Device *)this, swapper->GetHWND()));
 
+    m_FirstFrameCaptureWindow = swapper->GetHWND();
+
     m_AppControlledCapture = false;
     m_CapturedFrames.back().frameNumber = 0;
   }
@@ -2669,7 +2671,17 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapper *swapper, UINT SyncInterval, U
     m_pImmediateContext->Present(SyncInterval, Flags);
 
   if(!activeWindow)
+  {
+    // first present to *any* window, even inactive, terminates frame 0
+    if(m_FirstFrameCaptureWindow != NULL && IsActiveCapturing(m_State))
+    {
+      RenderDoc::Inst().EndFrameCapture(
+          DeviceOwnedWindow((ID3D11Device *)this, m_FirstFrameCaptureWindow));
+      m_FirstFrameCaptureWindow = NULL;
+    }
+
     return S_OK;
+  }
 
   // kill any current capture that isn't application defined
   if(IsActiveCapturing(m_State) && !m_AppControlledCapture)

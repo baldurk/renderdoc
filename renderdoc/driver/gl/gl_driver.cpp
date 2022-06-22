@@ -2127,7 +2127,17 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
   GetResourceManager()->CleanBackgroundFrameReferences();
 
   if(!activeWindow)
+  {
+    // first present to *any* window, even inactive, terminates frame 0
+    if(m_FirstFrameCapture && IsActiveCapturing(m_State))
+    {
+      RenderDoc::Inst().EndFrameCapture(DeviceOwnedWindow(m_FirstFrameCaptureContext, NULL));
+      m_FirstFrameCapture = false;
+      m_FirstFrameCaptureContext = NULL;
+    }
+
     return;
+  }
 
   // only allow capturing on 'modern' created contexts
   if(ctxdata.Legacy())
@@ -2594,6 +2604,8 @@ void WrappedOpenGL::FirstFrame(void *ctx, void *wndHandle)
     // on the device - the very next present to any window on this context will end the capture.
     RenderDoc::Inst().StartFrameCapture(DeviceOwnedWindow(ctx, NULL));
 
+    m_FirstFrameCapture = true;
+    m_FirstFrameCaptureContext = ctx;
     m_AppControlledCapture = false;
     m_CapturedFrames.back().frameNumber = 0;
   }

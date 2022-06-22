@@ -1767,6 +1767,10 @@ void WrappedVulkan::FirstFrame()
   {
     RenderDoc::Inst().StartFrameCapture(DeviceOwnedWindow(LayerDisp(m_Instance), NULL));
 
+    RDCLOG("frame 0 cap");
+
+    m_FirstFrameCapture = true;
+
     m_AppControlledCapture = false;
     m_CapturedFrames.back().frameNumber = 0;
   }
@@ -2433,8 +2437,21 @@ void WrappedVulkan::Present(DeviceOwnedWindow devWnd)
 
   RenderDoc::Inst().AddActiveDriver(RDCDriver::Vulkan, true);
 
+  RDCLOG("Present() window %p", devWnd.windowHandle);
+
   if(!activeWindow)
+  {
+    RDCLOG("inactive");
+
+    // first present to *any* window, even inactive, terminates frame 0
+    if(m_FirstFrameCapture && IsActiveCapturing(m_State))
+    {
+      RenderDoc::Inst().EndFrameCapture(DeviceOwnedWindow(LayerDisp(m_Instance), NULL));
+      m_FirstFrameCapture = false;
+    }
+
     return;
+  }
 
   if(IsActiveCapturing(m_State) && !m_AppControlledCapture)
     RenderDoc::Inst().EndFrameCapture(devWnd);
@@ -3744,6 +3761,8 @@ void WrappedVulkan::AddFrameTerminator(uint64_t queueMarkerTag)
 VkResourceRecord *WrappedVulkan::RegisterSurface(WindowingSystem system, void *handle)
 {
   Keyboard::AddInputWindow(system, handle);
+
+  RDCLOG("RegisterSurface() window %p", handle);
 
   RenderDoc::Inst().AddFrameCapturer(DeviceOwnedWindow(LayerDisp(m_Instance), handle), this);
 
