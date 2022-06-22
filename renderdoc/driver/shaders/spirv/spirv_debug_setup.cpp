@@ -1268,7 +1268,7 @@ void Debugger::ApplyDebugSourceVars(size_t startOffs, ThreadState &thread, Shade
     if(it->first > endOffs)
       break;
 
-    const LocalMapping &mapping = it->second;
+    LocalMapping mapping = it->second;
 
     if(mapping.debugVar == Id())
     {
@@ -1318,6 +1318,8 @@ void Debugger::ApplyDebugSourceVars(size_t startOffs, ThreadState &thread, Shade
         i++;
       }
 
+      mapping.stepIndex = state.stepIndex;
+
       // now add the new mapping in sorted order
       pos = std::lower_bound(m_DebugInfo.activeLocalMappings.begin(),
                              m_DebugInfo.activeLocalMappings.end(), mapping);
@@ -1339,7 +1341,19 @@ void Debugger::ApplyDebugSourceVars(size_t startOffs, ThreadState &thread, Shade
 
     rdcarray<LocalMapping> sorted = m_DebugInfo.activeLocalMappings;
     std::sort(sorted.begin(), sorted.end(),
-              [](const LocalMapping &a, const LocalMapping &b) { return a.offset < b.offset; });
+              [this, &thread](const LocalMapping &a, const LocalMapping &b) {
+                size_t aStep = a.stepIndex;
+                size_t bStep = b.stepIndex;
+
+                // declarations use the step index of the last write rather than the step index they
+                // were added
+                if(a.isDeclare && thread.lastWrite[a.debugVar] > 0)
+                  aStep = thread.lastWrite[a.debugVar];
+                if(b.isDeclare && thread.lastWrite[b.debugVar] > 0)
+                  bStep = thread.lastWrite[b.debugVar];
+
+                return aStep < bStep;
+              });
 
     for(const LocalMapping &mapping : sorted)
     {
@@ -1621,8 +1635,8 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
           if(!thread.callstack.empty())
             funcRet = thread.callstack.back()->funcCallInstruction;
 
-          thread.StepNext(&state, workgroup);
           state.stepIndex = steps;
+          thread.StepNext(&state, workgroup);
 
           if(thread.callstack.size() > prevStackSize)
             instOffs =
@@ -3108,7 +3122,7 @@ void Debugger::RegisterOp(Iter it)
 
           LocalMapping &mapping = m_DebugInfo.localMappings[it.offs()];
 
-          mapping = {it.offs(), dbg.arg<Id>(0), id};
+          mapping = {0, dbg.arg<Id>(0), id, dbg.inst == ShaderDbg::Declare};
 
           if(constants.find(id) != constants.end() && !m_DebugInfo.constants.contains(id))
             m_DebugInfo.constants.push_back(id);

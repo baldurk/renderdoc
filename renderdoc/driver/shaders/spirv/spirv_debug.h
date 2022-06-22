@@ -322,9 +322,10 @@ struct LocalMapping
     return true;
   }
 
-  size_t offset;
+  uint32_t stepIndex;
   Id sourceVar;
   Id debugVar;
+  bool isDeclare;
   rdcarray<uint32_t> indexes;
 };
 

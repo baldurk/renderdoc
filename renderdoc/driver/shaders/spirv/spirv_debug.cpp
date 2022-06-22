@@ -327,7 +327,7 @@ void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
       pointers.push_back(ptrid);
 
     for(size_t i = 0; i < pointers.size(); i++)
-      lastWrite[pointers[i]] = nextInstruction;
+      lastWrite[pointers[i]] = m_State ? m_State->stepIndex : nextInstruction;
   }
 }
 
@@ -344,7 +344,7 @@ void ThreadState::SetDst(Id id, const ShaderVariable &val)
   ids[id] = val;
   ids[id].name = debugger.GetRawName(id);
 
-  lastWrite[id] = nextInstruction;
+  lastWrite[id] = m_State ? m_State->stepIndex : nextInstruction;
 
   auto it = std::lower_bound(live.begin(), live.end(), id);
   live.insert(it - live.begin(), id);
