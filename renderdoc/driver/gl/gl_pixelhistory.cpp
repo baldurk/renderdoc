@@ -99,9 +99,11 @@ rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryR
       driver->glEnable(eGL_SCISSOR_TEST);
       driver->glScissor(x, y, 1, 1);
 
+      driver->SetFetchCounters(true);
       driver->glBeginQuery(eGL_ANY_SAMPLES_PASSED, occlusionQueries[i]);
       driver->ReplayLog(events[i].eventId, events[i].eventId, eReplay_OnlyDraw);
       driver->glEndQuery(eGL_ANY_SAMPLES_PASSED);
+      driver->SetFetchCounters(false);
     }
 
     if(i < events.size() - 1)
