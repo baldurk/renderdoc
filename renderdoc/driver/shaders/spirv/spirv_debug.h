@@ -341,6 +341,8 @@ public:
 
   rdcarray<ShaderDebugState> ContinueDebug();
 
+  void ApplyDebugSourceVars(size_t startOffs, ThreadState &thread, ShaderDebugState &state);
+
   Iter GetIterForInstruction(uint32_t inst);
   uint32_t GetInstructionForIter(Iter it);
   uint32_t GetInstructionForFunction(Id id);

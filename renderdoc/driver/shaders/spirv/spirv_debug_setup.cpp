@@ -1256,6 +1256,251 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
   return ret;
 }
 
+void Debugger::ApplyDebugSourceVars(size_t startOffs, ThreadState &thread, ShaderDebugState &state)
+{
+  size_t endOffs = instructionOffsets[thread.nextInstruction - 1];
+
+  // apply any local mapping changes
+  for(auto it = m_DebugInfo.localMappings.lower_bound(startOffs);
+      it != m_DebugInfo.localMappings.end(); ++it)
+  {
+    // if we've gone too far, end
+    if(it->first > endOffs)
+      break;
+
+    const LocalMapping &mapping = it->second;
+
+    if(mapping.debugVar == Id())
+    {
+      // if the Ids are empty, this is a scope exiting. Potentially multiple scopes at
+      // once. The only scopes that could have exited are the ones that we were previously
+      // in, so start from the scope of the previous instruction and walk up its parents.
+      // Set curId to empty on all the locals of any scope that's exited
+      const ScopeData *scope = GetScope(startOffs);
+      while(scope)
+      {
+        if(scope->end <= endOffs)
+        {
+          m_DebugInfo.activeLocalMappings.removeIf(
+              [scope](const LocalMapping &l) { return scope->locals.contains(l.sourceVar); });
+        }
+
+        scope = scope->parent;
+      }
+    }
+    else if(thread.ids[mapping.debugVar].type == VarType::Unknown)
+    {
+      continue;
+    }
+    else
+    {
+      LocalMapping search;
+      search.sourceVar = mapping.sourceVar;
+
+      // find start of this sourceVar
+      LocalMapping *pos = std::lower_bound(m_DebugInfo.activeLocalMappings.begin(),
+                                           m_DebugInfo.activeLocalMappings.end(), search);
+
+      // look over all existing local mappings, and if any have been made redundant remove
+      // them
+      for(size_t i = (pos - m_DebugInfo.activeLocalMappings.begin());
+          i < m_DebugInfo.activeLocalMappings.size();)
+      {
+        if(m_DebugInfo.activeLocalMappings[i].sourceVar != mapping.sourceVar)
+          break;
+
+        if(mapping.isSourceSupersetOf(m_DebugInfo.activeLocalMappings[i]))
+        {
+          m_DebugInfo.activeLocalMappings.erase(i);
+          continue;
+        }
+
+        i++;
+      }
+
+      // now add the new mapping in sorted order
+      pos = std::lower_bound(m_DebugInfo.activeLocalMappings.begin(),
+                             m_DebugInfo.activeLocalMappings.end(), mapping);
+      m_DebugInfo.activeLocalMappings.insert(pos - m_DebugInfo.activeLocalMappings.begin(), mapping);
+    }
+  }
+
+  // start with the global source vars
+  state.sourceVars = globalSourceVars;
+
+  const ScopeData *scope = GetScope(endOffs);
+  // only add locals when in a scope
+  if(scope)
+  {
+    // get the function, only add locals that are in this function or a block child
+    const ScopeData *func = scope;
+    while(func && func->parent && func->type != DebugScope::Function)
+      func = func->parent;
+
+    rdcarray<LocalMapping> sorted = m_DebugInfo.activeLocalMappings;
+    std::sort(sorted.begin(), sorted.end(),
+              [](const LocalMapping &a, const LocalMapping &b) { return a.offset < b.offset; });
+
+    for(const LocalMapping &mapping : sorted)
+    {
+      const LocalData &l = m_DebugInfo.locals[mapping.sourceVar];
+
+      const ScopeData *lfunc = l.scope;
+      while(lfunc && lfunc->parent && lfunc->type != DebugScope::Function)
+        lfunc = lfunc->parent;
+
+      if(lfunc != func)
+        continue;
+
+      // if it doesn't have indexes this is simple, set up a 1:1 map
+      if(mapping.indexes.isEmpty())
+      {
+        SourceVariableMapping sourceVar;
+
+        const TypeData *typeWalk = l.type;
+
+        sourceVar.name = l.name;
+        sourceVar.offset = 0;
+        sourceVar.rows = 1U;
+        sourceVar.columns = 1U;
+
+        if(typeWalk->matSize != 0)
+        {
+          const TypeData &vec = m_DebugInfo.types[typeWalk->baseType];
+          const TypeData &scalar = m_DebugInfo.types[vec.baseType];
+
+          sourceVar.type = scalar.type;
+
+          if(typeWalk->colMajorMat)
+          {
+            sourceVar.rows = RDCMAX(1U, vec.vecSize);
+            sourceVar.columns = RDCMAX(1U, typeWalk->matSize);
+          }
+          else
+          {
+            sourceVar.rows = RDCMAX(1U, typeWalk->matSize);
+            sourceVar.columns = RDCMAX(1U, vec.vecSize);
+          }
+        }
+        else if(typeWalk->vecSize != 0)
+        {
+          const TypeData &scalar = m_DebugInfo.types[typeWalk->baseType];
+
+          sourceVar.type = scalar.type;
+          sourceVar.columns = RDCMAX(1U, typeWalk->vecSize);
+        }
+        else
+        {
+          while(typeWalk && typeWalk->baseType != Id() && typeWalk->type == VarType::Unknown)
+            typeWalk = &m_DebugInfo.types[typeWalk->baseType];
+
+          sourceVar.type = typeWalk->type;
+          if(sourceVar.type == VarType::Unknown)
+            sourceVar.type = VarType::Struct;
+
+          ShaderVariable var = ReadFromPointer(thread.ids[mapping.debugVar]);
+
+          if(var.type != VarType::Struct)
+          {
+            sourceVar.rows = var.rows;
+            sourceVar.columns = var.columns;
+          }
+        }
+
+        for(uint32_t x = 0; x < sourceVar.rows * sourceVar.columns; x++)
+          sourceVar.variables.push_back(
+              DebugVariableReference(DebugVariableType::Variable, GetRawName(mapping.debugVar), x));
+
+        state.sourceVars.push_back(sourceVar);
+      }
+      else
+      {
+        SourceVariableMapping sourceVar;
+
+        rdcarray<uint32_t> indexes = mapping.indexes;
+
+        const TypeData *typeWalk = l.type;
+
+        sourceVar.name = l.name;
+        sourceVar.offset = 0;
+        sourceVar.rows = 1U;
+        sourceVar.columns = 1U;
+
+        while(!indexes.empty())
+        {
+          if(typeWalk->arrayDimension > 0)
+          {
+            uint32_t numIdxs = (uint32_t)indexes.size();
+            for(size_t i = 0; i < RDCMIN(typeWalk->arrayDimension, numIdxs); i++)
+            {
+              sourceVar.name += StringFormat::Fmt("[%u]", indexes.back());
+              indexes.pop_back();
+            }
+
+            typeWalk = &m_DebugInfo.types[typeWalk->baseType];
+          }
+          else if(!typeWalk->structMembers.empty())
+          {
+            uint32_t idx = indexes.back();
+            indexes.pop_back();
+
+            sourceVar.name += StringFormat::Fmt(".%s", typeWalk->structMembers[idx].first.c_str());
+
+            typeWalk = &m_DebugInfo.types[typeWalk->structMembers[idx].second];
+          }
+          else
+          {
+            break;
+          }
+        }
+
+        RDCASSERT(indexes.empty());
+
+        if(typeWalk->matSize != 0)
+        {
+          const TypeData &vec = m_DebugInfo.types[typeWalk->baseType];
+          const TypeData &scalar = m_DebugInfo.types[vec.baseType];
+
+          sourceVar.type = scalar.type;
+
+          if(typeWalk->colMajorMat)
+          {
+            sourceVar.rows = RDCMAX(1U, vec.vecSize);
+            sourceVar.columns = RDCMAX(1U, typeWalk->matSize);
+          }
+          else
+          {
+            sourceVar.rows = RDCMAX(1U, typeWalk->matSize);
+            sourceVar.columns = RDCMAX(1U, vec.vecSize);
+          }
+        }
+        else if(typeWalk->vecSize != 0)
+        {
+          const TypeData &scalar = m_DebugInfo.types[typeWalk->baseType];
+
+          sourceVar.type = scalar.type;
+          sourceVar.columns = RDCMAX(1U, typeWalk->vecSize);
+        }
+        else
+        {
+          while(typeWalk && typeWalk->baseType != Id() && typeWalk->type == VarType::Unknown)
+            typeWalk = &m_DebugInfo.types[typeWalk->baseType];
+
+          sourceVar.type = typeWalk->type;
+          if(sourceVar.type == VarType::Unknown)
+            sourceVar.type = VarType::Struct;
+        }
+
+        for(uint32_t x = 0; x < sourceVar.rows * sourceVar.columns; x++)
+          sourceVar.variables.push_back(
+              DebugVariableReference(DebugVariableType::Variable, GetRawName(mapping.debugVar), x));
+
+        state.sourceVars.push_back(sourceVar);
+      }
+    }
+  }
+}
+
 rdcarray<ShaderDebugState> Debugger::ContinueDebug()
 {
   ThreadState &active = GetActiveLane();
@@ -1275,13 +1520,15 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
 
       if(lane == activeLaneIndex)
       {
+        size_t beginOffs = instructionOffsets[thread.nextInstruction];
+
         thread.EnterEntryPoint(&initial);
         thread.FillCallstack(initial);
         initial.nextInstruction = thread.nextInstruction;
         initial.sourceVars = thread.sourceVars;
 
         if(m_DebugInfo.valid)
-          initial.sourceVars = globalSourceVars;
+          ApplyDebugSourceVars(beginOffs, thread, initial);
       }
       else
       {
@@ -1368,259 +1615,29 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
             l++;
           }
 
+          uint32_t funcRet = ~0U;
+          size_t prevStackSize = thread.callstack.size();
+
+          if(!thread.callstack.empty())
+            funcRet = thread.callstack.back()->funcCallInstruction;
+
           thread.StepNext(&state, workgroup);
           state.stepIndex = steps;
+
+          if(thread.callstack.size() > prevStackSize)
+            instOffs =
+                instructionOffsets[GetInstructionForFunction(thread.callstack.back()->function)];
+
+          else if(thread.callstack.size() < prevStackSize && funcRet != ~0U)
+            instOffs = instructionOffsets[funcRet];
 
           thread.FillCallstack(state);
 
           if(m_DebugInfo.valid)
           {
-            size_t startOffs = instOffs;
+            ApplyDebugSourceVars(instOffs, thread, state);
+
             size_t endOffs = instructionOffsets[thread.nextInstruction - 1];
-
-            // apply any local mapping changes
-            for(auto it = m_DebugInfo.localMappings.lower_bound(startOffs);
-                it != m_DebugInfo.localMappings.end(); ++it)
-            {
-              // if we've gone too far, end
-              if(it->first > endOffs)
-                break;
-
-              const LocalMapping &mapping = it->second;
-
-              if(mapping.debugVar == Id())
-              {
-                // if the Ids are empty, this is a scope exiting. Potentially multiple scopes at
-                // once. The only scopes that could have exited are the ones that we were previously
-                // in, so start from the scope of the previous instruction and walk up its parents.
-                // Set curId to empty on all the locals of any scope that's exited
-                const ScopeData *scope = GetScope(startOffs);
-                while(scope)
-                {
-                  if(scope->end <= endOffs)
-                  {
-                    m_DebugInfo.activeLocalMappings.removeIf([scope](const LocalMapping &l) {
-                      return scope->locals.contains(l.sourceVar);
-                    });
-                  }
-
-                  scope = scope->parent;
-                }
-              }
-              else if(thread.ids[mapping.debugVar].type == VarType::Unknown)
-              {
-                continue;
-              }
-              else
-              {
-                LocalMapping search;
-                search.sourceVar = mapping.sourceVar;
-
-                // find start of this sourceVar
-                LocalMapping *pos = std::lower_bound(m_DebugInfo.activeLocalMappings.begin(),
-                                                     m_DebugInfo.activeLocalMappings.end(), search);
-
-                // look over all existing local mappings, and if any have been made redundant remove
-                // them
-                for(size_t i = (pos - m_DebugInfo.activeLocalMappings.begin());
-                    i < m_DebugInfo.activeLocalMappings.size();)
-                {
-                  if(m_DebugInfo.activeLocalMappings[i].sourceVar != mapping.sourceVar)
-                    break;
-
-                  if(mapping.isSourceSupersetOf(m_DebugInfo.activeLocalMappings[i]))
-                  {
-                    m_DebugInfo.activeLocalMappings.erase(i);
-                    continue;
-                  }
-
-                  i++;
-                }
-
-                // now add the new mapping in sorted order
-                pos = std::lower_bound(m_DebugInfo.activeLocalMappings.begin(),
-                                       m_DebugInfo.activeLocalMappings.end(), mapping);
-                m_DebugInfo.activeLocalMappings.insert(
-                    pos - m_DebugInfo.activeLocalMappings.begin(), mapping);
-              }
-            }
-
-            // start with the global source vars
-            state.sourceVars = globalSourceVars;
-
-            const ScopeData *scope = GetScope(endOffs);
-            // only add locals when in a scope
-            if(scope)
-            {
-              // get the function, only add locals that are in this function or a block child
-              const ScopeData *func = scope;
-              while(func && func->parent && func->type != DebugScope::Function)
-                func = func->parent;
-
-              rdcarray<LocalMapping> sorted = m_DebugInfo.activeLocalMappings;
-              std::sort(
-                  sorted.begin(), sorted.end(),
-                  [](const LocalMapping &a, const LocalMapping &b) { return a.offset < b.offset; });
-
-              for(const LocalMapping &mapping : sorted)
-              {
-                const LocalData &l = m_DebugInfo.locals[mapping.sourceVar];
-
-                const ScopeData *lfunc = l.scope;
-                while(lfunc && lfunc->parent && lfunc->type != DebugScope::Function)
-                  lfunc = lfunc->parent;
-
-                if(lfunc != func)
-                  continue;
-
-                // if it doesn't have indexes this is simple, set up a 1:1 map
-                if(mapping.indexes.isEmpty())
-                {
-                  SourceVariableMapping sourceVar;
-
-                  const TypeData *typeWalk = l.type;
-
-                  sourceVar.name = l.name;
-                  sourceVar.offset = 0;
-                  sourceVar.rows = 1U;
-                  sourceVar.columns = 1U;
-
-                  if(typeWalk->matSize != 0)
-                  {
-                    const TypeData &vec = m_DebugInfo.types[typeWalk->baseType];
-                    const TypeData &scalar = m_DebugInfo.types[vec.baseType];
-
-                    sourceVar.type = scalar.type;
-
-                    if(typeWalk->colMajorMat)
-                    {
-                      sourceVar.rows = RDCMAX(1U, vec.vecSize);
-                      sourceVar.columns = RDCMAX(1U, typeWalk->matSize);
-                    }
-                    else
-                    {
-                      sourceVar.rows = RDCMAX(1U, typeWalk->matSize);
-                      sourceVar.columns = RDCMAX(1U, vec.vecSize);
-                    }
-                  }
-                  else if(typeWalk->vecSize != 0)
-                  {
-                    const TypeData &scalar = m_DebugInfo.types[typeWalk->baseType];
-
-                    sourceVar.type = scalar.type;
-                    sourceVar.columns = RDCMAX(1U, typeWalk->vecSize);
-                  }
-                  else
-                  {
-                    while(typeWalk && typeWalk->baseType != Id() && typeWalk->type == VarType::Unknown)
-                      typeWalk = &m_DebugInfo.types[typeWalk->baseType];
-
-                    sourceVar.type = typeWalk->type;
-                    if(sourceVar.type == VarType::Unknown)
-                      sourceVar.type = VarType::Struct;
-
-                    ShaderVariable var = ReadFromPointer(thread.ids[mapping.debugVar]);
-
-                    if(var.type != VarType::Struct)
-                    {
-                      sourceVar.rows = var.rows;
-                      sourceVar.columns = var.columns;
-                    }
-                  }
-
-                  for(uint32_t x = 0; x < sourceVar.rows * sourceVar.columns; x++)
-                    sourceVar.variables.push_back(DebugVariableReference(
-                        DebugVariableType::Variable, GetRawName(mapping.debugVar), x));
-
-                  state.sourceVars.push_back(sourceVar);
-                }
-                else
-                {
-                  SourceVariableMapping sourceVar;
-
-                  rdcarray<uint32_t> indexes = mapping.indexes;
-
-                  const TypeData *typeWalk = l.type;
-
-                  sourceVar.name = l.name;
-                  sourceVar.offset = 0;
-                  sourceVar.rows = 1U;
-                  sourceVar.columns = 1U;
-
-                  while(!indexes.empty())
-                  {
-                    if(typeWalk->arrayDimension > 0)
-                    {
-                      uint32_t numIdxs = (uint32_t)indexes.size();
-                      for(size_t i = 0; i < RDCMIN(typeWalk->arrayDimension, numIdxs); i++)
-                      {
-                        sourceVar.name += StringFormat::Fmt("[%u]", indexes.back());
-                        indexes.pop_back();
-                      }
-
-                      typeWalk = &m_DebugInfo.types[typeWalk->baseType];
-                    }
-                    else if(!typeWalk->structMembers.empty())
-                    {
-                      uint32_t idx = indexes.back();
-                      indexes.pop_back();
-
-                      sourceVar.name +=
-                          StringFormat::Fmt(".%s", typeWalk->structMembers[idx].first.c_str());
-
-                      typeWalk = &m_DebugInfo.types[typeWalk->structMembers[idx].second];
-                    }
-                    else
-                    {
-                      break;
-                    }
-                  }
-
-                  RDCASSERT(indexes.empty());
-
-                  if(typeWalk->matSize != 0)
-                  {
-                    const TypeData &vec = m_DebugInfo.types[typeWalk->baseType];
-                    const TypeData &scalar = m_DebugInfo.types[vec.baseType];
-
-                    sourceVar.type = scalar.type;
-
-                    if(typeWalk->colMajorMat)
-                    {
-                      sourceVar.rows = RDCMAX(1U, vec.vecSize);
-                      sourceVar.columns = RDCMAX(1U, typeWalk->matSize);
-                    }
-                    else
-                    {
-                      sourceVar.rows = RDCMAX(1U, typeWalk->matSize);
-                      sourceVar.columns = RDCMAX(1U, vec.vecSize);
-                    }
-                  }
-                  else if(typeWalk->vecSize != 0)
-                  {
-                    const TypeData &scalar = m_DebugInfo.types[typeWalk->baseType];
-
-                    sourceVar.type = scalar.type;
-                    sourceVar.columns = RDCMAX(1U, typeWalk->vecSize);
-                  }
-                  else
-                  {
-                    while(typeWalk && typeWalk->baseType != Id() && typeWalk->type == VarType::Unknown)
-                      typeWalk = &m_DebugInfo.types[typeWalk->baseType];
-
-                    sourceVar.type = typeWalk->type;
-                    if(sourceVar.type == VarType::Unknown)
-                      sourceVar.type = VarType::Struct;
-                  }
-
-                  for(uint32_t x = 0; x < sourceVar.rows * sourceVar.columns; x++)
-                    sourceVar.variables.push_back(DebugVariableReference(
-                        DebugVariableType::Variable, GetRawName(mapping.debugVar), x));
-
-                  state.sourceVars.push_back(sourceVar);
-                }
-              }
-            }
 
             // append any inlined functions to the top of the stack
             InlineData *inlined = m_DebugInfo.lineInline[endOffs];
@@ -1630,7 +1647,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
             // start with the current scope, it refers to the *inlined* function
             if(inlined)
             {
-              scope = GetScope(endOffs);
+              const ScopeData *scope = GetScope(endOffs);
               // find the function parent of the current scope
               while(scope && scope->parent && scope->type == DebugScope::Block)
                 scope = scope->parent;
@@ -1643,7 +1660,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
             // refer to the real function which is already on our stack
             while(inlined && inlined->parent)
             {
-              scope = inlined->scope;
+              const ScopeData *scope = inlined->scope;
               // find the function parent of the current scope
               while(scope && scope->parent && scope->type == DebugScope::Block)
                 scope = scope->parent;
