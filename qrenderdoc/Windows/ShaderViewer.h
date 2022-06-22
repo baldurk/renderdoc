@@ -26,6 +26,7 @@
 
 #include <QFrame>
 #include <QSemaphore>
+#include <QSet>
 #include <QStyledItemDelegate>
 #include "Code/Interface/QRDInterface.h"
 
@@ -314,7 +315,8 @@ private:
 
   rdcarray<BoundResourceArray> m_ReadOnlyResources;
   rdcarray<BoundResourceArray> m_ReadWriteResources;
-  QList<int> m_Breakpoints;
+  QSet<QPair<int, uint32_t>> m_Breakpoints;
+  bool m_TempBreakpoint = false;
 
   QList<QPair<ScintillaEdit *, int>> m_FindAllResults;
 
