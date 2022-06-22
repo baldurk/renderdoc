@@ -314,8 +314,9 @@ void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
     // This one is not included in any of the pointers lists above
     basechange.after = debugger.GetPointerValue(ids[ptrid]);
 
-    // if this is the first local write, mark this variable as becoming alive here
-    if(firstLocalWrite)
+    // if this is the first local write when we have no debug info, mark this variable as becoming
+    // alive here, instead of at its declaration
+    if(firstLocalWrite && !debugger.HasDebugInfo())
       basechange.before.name = "";
 
     m_State->changes.push_back(basechange);
