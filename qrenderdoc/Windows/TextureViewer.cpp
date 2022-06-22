@@ -2285,6 +2285,9 @@ void TextureViewer::AddResourceUsageEntry(QMenu &menu, uint32_t start, uint32_t 
   QObject::connect(item, &QAction::triggered, this, &TextureViewer::texContextItem_triggered);
   item->setProperty("eid", QVariant(end));
 
+  if(start <= m_Ctx.CurEvent() && m_Ctx.CurEvent() <= end)
+    item->setIcon(Icons::flag_green());
+
   menu.addAction(item);
 }
 
