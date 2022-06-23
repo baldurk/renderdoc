@@ -1340,20 +1340,19 @@ void Debugger::ApplyDebugSourceVars(size_t startOffs, ThreadState &thread, Shade
       func = func->parent;
 
     rdcarray<LocalMapping> sorted = m_DebugInfo.activeLocalMappings;
-    std::sort(sorted.begin(), sorted.end(),
-              [this, &thread](const LocalMapping &a, const LocalMapping &b) {
-                size_t aStep = a.stepIndex;
-                size_t bStep = b.stepIndex;
+    std::sort(sorted.begin(), sorted.end(), [&thread](const LocalMapping &a, const LocalMapping &b) {
+      size_t aStep = a.stepIndex;
+      size_t bStep = b.stepIndex;
 
-                // declarations use the step index of the last write rather than the step index they
-                // were added
-                if(a.isDeclare && thread.lastWrite[a.debugVar] > 0)
-                  aStep = thread.lastWrite[a.debugVar];
-                if(b.isDeclare && thread.lastWrite[b.debugVar] > 0)
-                  bStep = thread.lastWrite[b.debugVar];
+      // declarations use the step index of the last write rather than the step index they
+      // were added
+      if(a.isDeclare && thread.lastWrite[a.debugVar] > 0)
+        aStep = thread.lastWrite[a.debugVar];
+      if(b.isDeclare && thread.lastWrite[b.debugVar] > 0)
+        bStep = thread.lastWrite[b.debugVar];
 
-                return aStep < bStep;
-              });
+      return aStep < bStep;
+    });
 
     for(const LocalMapping &mapping : sorted)
     {
