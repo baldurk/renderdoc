@@ -1320,6 +1320,8 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
              ToStr(record->bakedCommands->GetResourceID()).c_str());
     }
 
+    record->DeleteChunks();
+
     {
       CACHE_THREAD_SERIALISER();
 
