@@ -64,7 +64,7 @@ void VulkanRenderState::BeginRenderPassAndApplyState(WrappedVulkan *vk, VkComman
     info.pDepthAttachment = &depth;
     if(depth.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
       info.pDepthAttachment = NULL;
-    VkRenderingAttachmentInfo stencil = dynamicRendering.depth;
+    VkRenderingAttachmentInfo stencil = dynamicRendering.stencil;
     info.pStencilAttachment = &stencil;
     if(stencil.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
       info.pStencilAttachment = NULL;
