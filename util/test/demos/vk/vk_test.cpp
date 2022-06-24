@@ -566,22 +566,6 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
       }
     }
   }
-}
-
-bool VulkanGraphicsTest::Init()
-{
-  // parse parameters here to override parameters
-  if(!GraphicsTest::Init())
-    return false;
-
-  if(debugDevice)
-  {
-    CHECK_VKR(vkCreateDebugUtilsMessengerEXT(
-        instance, vkh::DebugUtilsMessengerCreateInfoEXT(
-                      &vulkanCallback, NULL, VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT),
-        NULL, &debugUtilsMessenger));
-  }
 
   std::vector<VkQueueFamilyProperties> queueProps;
   vkh::getQueueFamilyProperties(queueProps, phys);
@@ -620,9 +604,22 @@ bool VulkanGraphicsTest::Init()
   }
 
   if(queueFamilyIndex == ~0U)
-  {
-    TEST_ERROR("No satisfactory queue family available");
+    Avail = "No satisfactory queue family available";
+}
+
+bool VulkanGraphicsTest::Init()
+{
+  // parse parameters here to override parameters
+  if(!GraphicsTest::Init())
     return false;
+
+  if(debugDevice)
+  {
+    CHECK_VKR(vkCreateDebugUtilsMessengerEXT(
+        instance, vkh::DebugUtilsMessengerCreateInfoEXT(
+                      &vulkanCallback, NULL, VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT),
+        NULL, &debugUtilsMessenger));
   }
 
   std::vector<VkExtensionProperties> supportedExts;

@@ -58,12 +58,17 @@ void main()
 
 )EOSHADER";
 
-  int main()
+  void Prepare(int argc, char **argv)
   {
     headless = true;
     queueFlagsRequired = VK_QUEUE_COMPUTE_BIT;
     queueFlagsBanned = VK_QUEUE_GRAPHICS_BIT;
 
+    VulkanGraphicsTest::Prepare(argc, argv);
+  }
+
+  int main()
+  {
     // initialise, create window, create context, etc
     if(!Init())
       return 3;
