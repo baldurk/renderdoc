@@ -1168,3 +1168,426 @@ uint32_t GetByteSize(uint32_t width, uint32_t height, uint32_t depth, MTL::Pixel
     size += GetPlaneByteSize(width, height, depth, mtlFormat, mip, p);
   return size;
 }
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#undef None
+#undef Always
+
+#include "catch/catch.hpp"
+
+TEST_CASE("Metal formats", "[format][metal]")
+{
+  // must be updated by hand
+  std::initializer_list<MTL::PixelFormat> mtlFormats = {
+      MTL::PixelFormatInvalid,
+      MTL::PixelFormatA8Unorm,
+      MTL::PixelFormatR8Unorm,
+      MTL::PixelFormatR8Unorm_sRGB,
+      MTL::PixelFormatR8Snorm,
+      MTL::PixelFormatR8Uint,
+      MTL::PixelFormatR8Sint,
+      MTL::PixelFormatR16Unorm,
+      MTL::PixelFormatR16Snorm,
+      MTL::PixelFormatR16Uint,
+      MTL::PixelFormatR16Sint,
+      MTL::PixelFormatR16Float,
+      MTL::PixelFormatRG8Unorm,
+      MTL::PixelFormatRG8Unorm,
+      MTL::PixelFormatRG8Snorm,
+      MTL::PixelFormatRG8Uint,
+      MTL::PixelFormatRG8Sint,
+      MTL::PixelFormatB5G6R5Unorm,
+      MTL::PixelFormatA1BGR5Unorm,
+      MTL::PixelFormatABGR4Unorm,
+      MTL::PixelFormatBGR5A1Unorm,
+      MTL::PixelFormatR32Uint,
+      MTL::PixelFormatR32Sint,
+      MTL::PixelFormatR32Float,
+      MTL::PixelFormatRG16Unorm,
+      MTL::PixelFormatRG16Snorm,
+      MTL::PixelFormatRG16Uint,
+      MTL::PixelFormatRG16Sint,
+      MTL::PixelFormatRG16Float,
+      MTL::PixelFormatRGBA8Unorm,
+      MTL::PixelFormatRGBA8Unorm_sRGB,
+      MTL::PixelFormatRGBA8Snorm,
+      MTL::PixelFormatRGBA8Uint,
+      MTL::PixelFormatRGBA8Sint,
+      MTL::PixelFormatBGRA8Unorm,
+      MTL::PixelFormatBGRA8Unorm_sRGB,
+      MTL::PixelFormatRGB10A2Unorm,
+      MTL::PixelFormatRGB10A2Uint,
+      MTL::PixelFormatRG11B10Float,
+      MTL::PixelFormatRGB9E5Float,
+      MTL::PixelFormatBGR10A2Unorm,
+      MTL::PixelFormatRG32Uint,
+      MTL::PixelFormatRG32Sint,
+      MTL::PixelFormatRG32Float,
+      MTL::PixelFormatRGBA16Unorm,
+      MTL::PixelFormatRGBA16Snorm,
+      MTL::PixelFormatRGBA16Uint,
+      MTL::PixelFormatRGBA16Sint,
+      MTL::PixelFormatRGBA16Float,
+      MTL::PixelFormatRGBA32Uint,
+      MTL::PixelFormatRGBA32Sint,
+      MTL::PixelFormatRGBA32Float,
+      MTL::PixelFormatBC1_RGBA,
+      MTL::PixelFormatBC1_RGBA_sRGB,
+      MTL::PixelFormatBC2_RGBA,
+      MTL::PixelFormatBC2_RGBA_sRGB,
+      MTL::PixelFormatBC3_RGBA,
+      MTL::PixelFormatBC3_RGBA_sRGB,
+      MTL::PixelFormatBC4_RUnorm,
+      MTL::PixelFormatBC4_RSnorm,
+      MTL::PixelFormatBC5_RGUnorm,
+      MTL::PixelFormatBC5_RGSnorm,
+      MTL::PixelFormatBC6H_RGBFloat,
+      MTL::PixelFormatBC6H_RGBUfloat,
+      MTL::PixelFormatBC7_RGBAUnorm,
+      MTL::PixelFormatBC7_RGBAUnorm_sRGB,
+      MTL::PixelFormatPVRTC_RGB_2BPP,
+      MTL::PixelFormatPVRTC_RGB_2BPP_sRGB,
+      MTL::PixelFormatPVRTC_RGB_4BPP,
+      MTL::PixelFormatPVRTC_RGB_4BPP_sRGB,
+      MTL::PixelFormatPVRTC_RGBA_2BPP,
+      MTL::PixelFormatPVRTC_RGBA_2BPP_sRGB,
+      MTL::PixelFormatPVRTC_RGBA_4BPP,
+      MTL::PixelFormatPVRTC_RGBA_4BPP_sRGB,
+      MTL::PixelFormatEAC_R11Unorm,
+      MTL::PixelFormatEAC_R11Snorm,
+      MTL::PixelFormatEAC_RG11Unorm,
+      MTL::PixelFormatEAC_RG11Snorm,
+      MTL::PixelFormatEAC_RGBA8,
+      MTL::PixelFormatEAC_RGBA8_sRGB,
+      MTL::PixelFormatETC2_RGB8,
+      MTL::PixelFormatETC2_RGB8_sRGB,
+      MTL::PixelFormatETC2_RGB8A1,
+      MTL::PixelFormatETC2_RGB8A1_sRGB,
+      MTL::PixelFormatASTC_4x4_sRGB,
+      MTL::PixelFormatASTC_5x4_sRGB,
+      MTL::PixelFormatASTC_5x5_sRGB,
+      MTL::PixelFormatASTC_6x5_sRGB,
+      MTL::PixelFormatASTC_6x6_sRGB,
+      MTL::PixelFormatASTC_8x5_sRGB,
+      MTL::PixelFormatASTC_8x6_sRGB,
+      MTL::PixelFormatASTC_8x8_sRGB,
+      MTL::PixelFormatASTC_10x5_sRGB,
+      MTL::PixelFormatASTC_10x6_sRGB,
+      MTL::PixelFormatASTC_10x8_sRGB,
+      MTL::PixelFormatASTC_10x10_sRGB,
+      MTL::PixelFormatASTC_12x10_sRGB,
+      MTL::PixelFormatASTC_12x12_sRGB,
+      MTL::PixelFormatASTC_4x4_LDR,
+      MTL::PixelFormatASTC_5x4_LDR,
+      MTL::PixelFormatASTC_5x5_LDR,
+      MTL::PixelFormatASTC_6x5_LDR,
+      MTL::PixelFormatASTC_6x6_LDR,
+      MTL::PixelFormatASTC_8x5_LDR,
+      MTL::PixelFormatASTC_8x6_LDR,
+      MTL::PixelFormatASTC_8x8_LDR,
+      MTL::PixelFormatASTC_10x5_LDR,
+      MTL::PixelFormatASTC_10x6_LDR,
+      MTL::PixelFormatASTC_10x8_LDR,
+      MTL::PixelFormatASTC_10x10_LDR,
+      MTL::PixelFormatASTC_12x10_LDR,
+      MTL::PixelFormatASTC_12x12_LDR,
+      MTL::PixelFormatASTC_4x4_HDR,
+      MTL::PixelFormatASTC_5x4_HDR,
+      MTL::PixelFormatASTC_5x5_HDR,
+      MTL::PixelFormatASTC_6x5_HDR,
+      MTL::PixelFormatASTC_6x6_HDR,
+      MTL::PixelFormatASTC_8x5_HDR,
+      MTL::PixelFormatASTC_8x6_HDR,
+      MTL::PixelFormatASTC_8x8_HDR,
+      MTL::PixelFormatASTC_10x5_HDR,
+      MTL::PixelFormatASTC_10x6_HDR,
+      MTL::PixelFormatASTC_10x8_HDR,
+      MTL::PixelFormatASTC_10x10_HDR,
+      MTL::PixelFormatASTC_12x10_HDR,
+      MTL::PixelFormatASTC_12x12_HDR,
+      MTL::PixelFormatGBGR422,
+      MTL::PixelFormatBGRG422,
+      MTL::PixelFormatDepth16Unorm,
+      MTL::PixelFormatDepth32Float,
+      MTL::PixelFormatStencil8,
+      MTL::PixelFormatDepth24Unorm_Stencil8,
+      MTL::PixelFormatDepth32Float_Stencil8,
+      MTL::PixelFormatX32_Stencil8,
+      MTL::PixelFormatX24_Stencil8,
+      MTL::PixelFormatBGRA10_XR,
+      MTL::PixelFormatBGRA10_XR_sRGB,
+      MTL::PixelFormatBGR10_XR,
+      MTL::PixelFormatBGR10_XR_sRGB,
+  };
+
+  SECTION("Only MTL::PixelFormatInvalid is ResourceFormatType::Undefined")
+  {
+    for(MTL::PixelFormat mtlFormat : mtlFormats)
+    {
+      ResourceFormat fmt = MakeResourceFormat(mtlFormat);
+
+      INFO("Format: " << ToStr(mtlFormat));
+      if(mtlFormat == MTL::PixelFormatInvalid)
+        CHECK(fmt.type == ResourceFormatType::Undefined);
+      else
+        CHECK(fmt.type != ResourceFormatType::Undefined);
+    }
+  };
+
+  SECTION("Only BGRA Textures have BGRAOrder true")
+  {
+    for(MTL::PixelFormat mtlFormat : mtlFormats)
+    {
+      ResourceFormat fmt = MakeResourceFormat(mtlFormat);
+      bool expectBGRA;
+      switch(mtlFormat)
+      {
+        case MTL::PixelFormatB5G6R5Unorm:
+        case MTL::PixelFormatA1BGR5Unorm:
+        case MTL::PixelFormatABGR4Unorm:
+        case MTL::PixelFormatBGR5A1Unorm:
+        case MTL::PixelFormatBGRA8Unorm:
+        case MTL::PixelFormatBGRA8Unorm_sRGB:
+        case MTL::PixelFormatBGRG422:
+        case MTL::PixelFormatBGR10A2Unorm:
+        case MTL::PixelFormatBGRA10_XR:
+        case MTL::PixelFormatBGRA10_XR_sRGB:
+        case MTL::PixelFormatBGR10_XR:
+        case MTL::PixelFormatBGR10_XR_sRGB: expectBGRA = true; break;
+        default: expectBGRA = false; break;
+      };
+
+      INFO("Format: " << ToStr(mtlFormat));
+      CHECK(expectBGRA == fmt.BGRAOrder());
+    }
+  };
+
+  SECTION("Non YUV Textures have YUVPlaneCount set to 1")
+  {
+    for(MTL::PixelFormat mtlFormat : mtlFormats)
+    {
+      ResourceFormat fmt = MakeResourceFormat(mtlFormat);
+      INFO("Format: " << ToStr(mtlFormat));
+      if(!IsYUVFormat(mtlFormat))
+      {
+        CHECK(1 == fmt.YUVPlaneCount());
+      }
+    }
+  };
+
+  SECTION("Non-block, Non-YUV Textures have BlockShape of {1,1,?}")
+  {
+    for(MTL::PixelFormat mtlFormat : mtlFormats)
+    {
+      ResourceFormat fmt = MakeResourceFormat(mtlFormat);
+      INFO("Format: " << ToStr(mtlFormat));
+      if(!IsBlockFormat(mtlFormat) && !IsYUVFormat(mtlFormat))
+      {
+        BlockShape blockShape(GetBlockShape(mtlFormat, 0));
+        CHECK(1 == blockShape.width);
+        CHECK(1 == blockShape.height);
+      }
+    }
+  };
+
+  SECTION("MakeResourceFormat matches with helpers")
+  {
+    for(MTL::PixelFormat mtlFormat : mtlFormats)
+    {
+      ResourceFormat fmt = MakeResourceFormat(mtlFormat);
+
+      INFO("Format is " << ToStr(mtlFormat));
+
+      if(IsBlockFormat(mtlFormat))
+      {
+        INFO("Format type is " << ToStr(fmt.type));
+
+        bool bcn = fmt.type >= ResourceFormatType::BC1 && fmt.type <= ResourceFormatType::BC7;
+
+        CHECK((bcn || fmt.type == ResourceFormatType::ASTC || fmt.type == ResourceFormatType::EAC ||
+               fmt.type == ResourceFormatType::ETC2 || fmt.type == ResourceFormatType::PVRTC));
+      }
+
+      if(IsYUVFormat(mtlFormat))
+      {
+        CHECK(fmt.type >= ResourceFormatType::YUV8);
+        CHECK(fmt.type <= ResourceFormatType::YUV16);
+      }
+      else
+      {
+        CHECK((fmt.type < ResourceFormatType::YUV8 || fmt.type > ResourceFormatType::YUV16));
+      }
+
+      bool expectDepthStencilType = false;
+      bool expectUintType = false;
+      bool expectSintType = false;
+      bool expectUnormType = false;
+      bool expectSnormType = false;
+      bool expectFloatType = false;
+      if(IsDepthOrStencilFormat(mtlFormat))
+      {
+        CHECK(CompType::Depth == fmt.compType);
+        expectDepthStencilType = true;
+      }
+      else if(IsUIntFormat(mtlFormat))
+      {
+        CHECK(CompType::UInt == fmt.compType);
+        expectUintType = true;
+      }
+      else if(IsSIntFormat(mtlFormat))
+      {
+        CHECK(CompType::SInt == fmt.compType);
+        expectSintType = true;
+      }
+      else if(IsUNormFormat(mtlFormat))
+      {
+        CHECK((CompType::UNorm == fmt.compType || CompType::UNormSRGB == fmt.compType));
+        expectUnormType = true;
+      }
+      else if(IsSNormFormat(mtlFormat))
+      {
+        CHECK(CompType::SNorm == fmt.compType);
+        expectSnormType = true;
+      }
+      else if(IsFloatFormat(mtlFormat))
+      {
+        CHECK(CompType::Float == fmt.compType);
+        expectFloatType = true;
+      }
+      else
+      {
+        CHECK(CompType::Depth != fmt.compType);
+        CHECK(CompType::UInt != fmt.compType);
+        CHECK(CompType::SInt != fmt.compType);
+        CHECK((CompType::UNorm != fmt.compType && CompType::UNormSRGB != fmt.compType));
+        CHECK(CompType::SNorm != fmt.compType);
+        CHECK(CompType::Float != fmt.compType);
+        CHECK(CompType::UScaled != fmt.compType);
+        CHECK(CompType::SScaled != fmt.compType);
+        CHECK((CompType::Typeless != fmt.compType || MTL::PixelFormatInvalid == mtlFormat));
+      }
+
+      CHECK(expectDepthStencilType == IsDepthOrStencilFormat(mtlFormat));
+      CHECK(expectUintType == IsUIntFormat(mtlFormat));
+      CHECK(expectSintType == IsSIntFormat(mtlFormat));
+      CHECK(expectUnormType == IsUNormFormat(mtlFormat));
+      CHECK(expectSnormType == IsSNormFormat(mtlFormat));
+      CHECK(expectFloatType == IsFloatFormat(mtlFormat));
+
+      CHECK(IsSRGBFormat(mtlFormat) == fmt.SRGBCorrected());
+
+      CHECK((IsOneComponent(mtlFormat) == (fmt.compCount == 1)));
+      CHECK((IsTwoComponent(mtlFormat) == (fmt.compCount == 2)));
+      CHECK((IsThreeComponent(mtlFormat) == (fmt.compCount == 3)));
+      CHECK((IsFourComponent(mtlFormat) == (fmt.compCount == 4)));
+    }
+  };
+
+  SECTION("GetByteSize return expected values for regular formats")
+  {
+    for(MTL::PixelFormat mtlFormat : mtlFormats)
+    {
+      ResourceFormat fmt = MakeResourceFormat(mtlFormat);
+
+      if(fmt.type != ResourceFormatType::Regular)
+        continue;
+
+      INFO("Format is " << ToStr(mtlFormat));
+
+      uint32_t size = fmt.compCount * fmt.compByteWidth * 123 * 456;
+
+      CHECK(size == GetByteSize(123, 456, 1, mtlFormat, 0));
+    }
+  };
+
+  SECTION("GetByteSize for BCn formats")
+  {
+    const uint32_t width = 24, height = 24;
+    const uint32_t bcnsizes[] = {
+        width * height / 2,    // MTL::PixelFormatBC1_RGBA
+        width * height / 2,    // MTL::PixelFormatBC1_RGBA_sRGB = 0.5 byte/px
+        width * height,        // MTL::PixelFormatBC2_RGBA
+        width * height,        // MTL::PixelFormatBC2_RGBA_sRGB = 1 byte/px
+        width * height,        // MTL::PixelFormatBC3_RGBA
+        width * height,        // MTL::PixelFormatBC3_RGBA = 1 byte/px
+        width * height / 2,    // MTL::PixelFormatBC4_RUnorm
+        width * height / 2,    // MTL::PixelFormatBC4_RSnorm = 0.5 byte/px
+        width * height,        // MTL::PixelFormatBC5_RGUnorm
+        width * height,        // MTL::PixelFormatBC5_RGSnorm = 1 byte/px
+        width * height,        // MTL::PixelFormatBC6H_RGBFloat
+        width * height,        // MTL::PixelFormatBC6H_RGBUfloat = 1 byte/px
+        width * height,        // MTL::PixelFormatBC7_RGBAUnorm
+        width * height,        // MTL::PixelFormatBC7_RGBAUnorm_sRGB = 1 byte/px
+    };
+
+    int i = 0;
+    for(MTL::PixelFormat mtlFormat :
+        {MTL::PixelFormatBC1_RGBA, MTL::PixelFormatBC1_RGBA_sRGB, MTL::PixelFormatBC2_RGBA,
+         MTL::PixelFormatBC2_RGBA_sRGB, MTL::PixelFormatBC3_RGBA, MTL::PixelFormatBC3_RGBA_sRGB,
+         MTL::PixelFormatBC4_RUnorm, MTL::PixelFormatBC4_RSnorm, MTL::PixelFormatBC5_RGUnorm,
+         MTL::PixelFormatBC5_RGSnorm, MTL::PixelFormatBC6H_RGBFloat, MTL::PixelFormatBC6H_RGBUfloat,
+         MTL::PixelFormatBC7_RGBAUnorm, MTL::PixelFormatBC7_RGBAUnorm_sRGB})
+    {
+      INFO("Format is " << ToStr(mtlFormat));
+
+      CHECK(bcnsizes[i++] == GetByteSize(width, height, 1, mtlFormat, 0));
+    }
+  };
+
+  SECTION("GetByteSize for YUV formats")
+  {
+    const uint32_t width = 24, height = 24;
+
+    const uint32_t yuvsizes[] = {
+        24 * 24 * 2,    // MTL::PixelFormatGBGR422 (4:2:2 8-bit packed)
+        24 * 24 * 2,    // MTL::PixelFormatBGRG422 (4:2:2 8-bit packed)
+    };
+
+    int i = 0;
+    for(MTL::PixelFormat mtlFormat : {MTL::PixelFormatGBGR422, MTL::PixelFormatBGRG422})
+    {
+      INFO("Format is " << ToStr(mtlFormat));
+
+      CHECK(yuvsizes[i++] == GetByteSize(width, height, 1, mtlFormat, 0));
+    }
+  };
+
+  SECTION("GetPlaneByteSize for YUV formats")
+  {
+    const uint32_t width = 24, height = 24;
+
+    rdcarray<rdcpair<MTL::PixelFormat, rdcarray<uint32_t> > > yuvTests = {
+        {MTL::PixelFormatGBGR422, {24 * 24 * 2}}, {MTL::PixelFormatBGRG422, {24 * 24 * 2}},
+    };
+
+    for(rdcpair<MTL::PixelFormat, rdcarray<uint32_t> > yuvTest : yuvTests)
+    {
+      INFO("Format is " << ToStr(yuvTest.first));
+      for(uint32_t p = 0; p < yuvTest.second.size(); p++)
+        CHECK(yuvTest.second[p] == GetPlaneByteSize(width, height, 1, yuvTest.first, 0, p));
+    }
+  };
+
+  SECTION("GetPlaneByteSize is consistent with GetByteSize")
+  {
+    const uint32_t width = 24, height = 24;
+
+    for(MTL::PixelFormat mtlFormat : mtlFormats)
+    {
+      if(mtlFormat == MTL::PixelFormatInvalid)
+        continue;
+
+      INFO("Format is " << ToStr(mtlFormat));
+
+      uint32_t planeCount = 1;
+      uint32_t planeSum = 0;
+      for(uint32_t p = 0; p < planeCount; p++)
+        planeSum += GetPlaneByteSize(width, height, 1, mtlFormat, 0, p);
+
+      CHECK(planeSum == GetByteSize(width, height, 1, mtlFormat, 0));
+    }
+  };
+};
+
+#endif    // ENABLED(ENABLE_UNIT_TESTS)
