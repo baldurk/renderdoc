@@ -125,6 +125,11 @@ enum {
     AI_UNKNOWN     = 0xFF
 };
 
+enum
+{
+    REMBRANDT_A0 = 1
+};
+
 #ifndef _ATIID_H
 #define _ATIID_H
 
@@ -150,7 +155,8 @@ enum {
 
 #define FAMILY_NV                      143
 
-#define ATI_VENDOR_ID                   0x1002
+#define FAMILY_RMB                     146
 
+#define ATI_VENDOR_ID                   0x1002
 
 #endif  // _ATIID_H
