@@ -114,7 +114,7 @@ void main()
           MakeUAV(bufin).Format(DXGI_FORMAT_R32G32B32A32_UINT).CreateClearCPU(0), bufin, a, 1, &rect);
       cmd->ClearUnorderedAccessViewUint(
           MakeUAV(bufout).Format(DXGI_FORMAT_R32G32B32A32_UINT).CreateGPU(1),
-          MakeUAV(bufout).Format(DXGI_FORMAT_R32G32B32A32_UINT).CreateClearCPU(1), bufin, b, 1,
+          MakeUAV(bufout).Format(DXGI_FORMAT_R32G32B32A32_UINT).CreateClearCPU(1), bufout, b, 1,
           &rect);
 
       setMarker(cmd, "Pre-Dispatch");
