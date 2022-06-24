@@ -47,7 +47,6 @@ BlendMultiplier MakeBlendMultiplier(MTL::BlendFactor blend)
     case MTL::BlendFactorOneMinusSource1Color: return BlendMultiplier::InvSrc1Col;
     case MTL::BlendFactorSource1Alpha: return BlendMultiplier::Src1Alpha;
     case MTL::BlendFactorOneMinusSource1Alpha: return BlendMultiplier::InvSrc1Alpha;
-    default: break;
   }
 
   return BlendMultiplier::One;
@@ -62,7 +61,6 @@ BlendOperation MakeBlendOp(MTL::BlendOperation op)
     case MTL::BlendOperationReverseSubtract: return BlendOperation::ReversedSubtract;
     case MTL::BlendOperationMin: return BlendOperation::Minimum;
     case MTL::BlendOperationMax: return BlendOperation::Maximum;
-    default: break;
   }
 
   return BlendOperation::Add;
