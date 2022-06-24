@@ -303,3 +303,6 @@ DECLARE_REFLECTION_ENUM(MetalChunk);
 BlendMultiplier MakeBlendMultiplier(MTL::BlendFactor blend);
 BlendOperation MakeBlendOp(MTL::BlendOperation op);
 byte MakeWriteMask(MTL::ColorWriteMask mask);
+ResourceFormat MakeResourceFormat(MTL::PixelFormat mtlFormat);
+uint32_t GetByteSize(uint32_t width, uint32_t height, uint32_t depth, MTL::PixelFormat mtlFormat,
+                     uint32_t mip);
