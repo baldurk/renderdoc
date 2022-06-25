@@ -258,7 +258,6 @@ int main(int argc, char *argv[])
       else
       {
         logstream << "Python bindings are consistent.\n";
-        ret = 0;
       }
     }
 
