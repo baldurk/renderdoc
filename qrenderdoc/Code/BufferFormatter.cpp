@@ -5781,7 +5781,7 @@ enum e : foo {
 
 e data;
 )",
-           1, "unsigned integer"},
+           1, "integer type"},
           {R"(
 enum e : uint {
   val = blah,
