@@ -320,22 +320,62 @@ add_custom_target(swig-bindings ALL DEPENDS ${swig_output})
 
 if(ENABLE_QRENDERDOC)
 
+set(QRD_DEPENDENCIES RenderDoc.icns)
+
+if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
+    file(GLOB_RECURSE CODE_FILES Code/*.h Code/*.cpp Code/*.mm Code/*.i)
+    list(SORT CODE_FILES COMPARE FILE_BASENAME)
+    list(APPEND QRD_XCODE_SOURCES ${CODE_FILES})
+
+    file(GLOB_RECURSE STYLES_FILES Styles/*.h Styles/*.cpp)
+    list(SORT STYLES_FILES COMPARE FILE_BASENAME)
+    list(APPEND QRD_XCODE_SOURCES ${STYLES_FILES})
+
+    file(GLOB_RECURSE WIDGETS_FILES Widgets/*.h Widgets/*.cpp)
+    list(SORT WIDGETS_FILES COMPARE FILE_BASENAME)
+    list(APPEND QRD_XCODE_SOURCES ${WIDGETS_FILES})
+
+    file(GLOB_RECURSE WINDOWS_FILES Windows/*.h Windows/*.cpp Windows/*.ui)
+    list(SORT WINDOWS_FILES COMPARE FILE_BASENAME)
+    list(APPEND QRD_XCODE_SOURCES ${WINDOWS_FILES})
+
+    file(GLOB_RECURSE THIRDPARTY_FILES 
+        3rdParty/toolwindowmanager/*.h
+        3rdParty/toolwindowmanager/*.cpp
+        3rdParty/flowlayout/*.h
+        3rdParty/flowlayout/*.cpp
+        3rdParty/scintilla/*.h
+        3rdParty/scintilla/*.cxx
+        3rdParty/scintilla/*.cpp)
+    list(SORT THIRDPARTY_FILES COMPARE FILE_BASENAME)
+    list(APPEND QRD_XCODE_SOURCES ${THIRDPARTY_FILES})
+
+    list(APPEND QRD_DEPENDENCIES ${CMAKE_BINARY_DIR}/qrenderdoc/renderdoc_python.cxx)
+    list(APPEND QRD_DEPENDENCIES ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_python.cxx)
+    list(APPEND QRD_DEPENDENCIES ${QRD_XCODE_SOURCES})
+endif()
+
 # The case here is deliberately not matching the executable name
 # This means the custom command doesn't create this output file,
 # which causes CMake to rerun this target every time so that Qt
 # can do dependency checking and rebuild anything necessary.
+# Xcode does not match this behaviour. Add broad brush file dependencies.
+# Xcode has an option to match this behaviour (not exposed by cmake).
 add_custom_command(OUTPUT QRenderDoc
     COMMAND ${SET_SYSTEM_PATH_COMMAND} ${QMAKE_QT5_COMMAND} "CMAKE_DIR=${CMAKE_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND ${GENERATOR_MAKE} ${GENERATOR_MAKE_PARAMS}
-    DEPENDS RenderDoc.icns)
+    DEPENDS ${QRD_DEPENDENCIES})
 add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc DEPENDS swig-bindings)
 
 if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
     set_target_properties(build-qrenderdoc PROPERTIES XCODE_SCHEME_DEBUG_DOCUMENT_VERSIONING OFF)
     set_target_properties(build-qrenderdoc PROPERTIES XCODE_SCHEME_EXECUTABLE ${CMAKE_BINARY_DIR}/bin/qrenderdoc.app)
-
-    file(GLOB_RECURSE QRD_CODE_FILES Code/*.[h|c|m]* Styles/*.[h|c|m]* Widgets/*.[h|c|m]* Windows/*.[h|c|m]*)
-    target_sources(build-qrenderdoc PRIVATE ${QRD_CODE_FILES})
+    target_sources(build-qrenderdoc PRIVATE ${QRD_XCODE_SOURCES})
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${CODE_FILES})
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${STYLES_FILES})
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${WIDGETS_FILES})
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${WINDOWS_FILES})
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${THIRDPARTY_FILES})
 endif()
 
 install (PROGRAMS ${CMAKE_BINARY_DIR}/bin/qrenderdoc DESTINATION bin)
