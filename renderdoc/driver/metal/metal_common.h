@@ -233,6 +233,36 @@ enum class MetalChunk : uint32_t
   MTLBuffer_remoteStorageBuffer,
   MTLBuffer_newRemoteBufferViewForDevice,
   MTLBuffer_InternalModifyCPUContents,
+  MTLBlitCommandEncoder_setLabel,
+  MTLBlitCommandEncoder_endEncoding,
+  MTLBlitCommandEncoder_insertDebugSignpost,
+  MTLBlitCommandEncoder_pushDebugGroup,
+  MTLBlitCommandEncoder_popDebugGroup,
+  MTLBlitCommandEncoder_synchronizeResource,
+  MTLBlitCommandEncoder_synchronizeTexture,
+  MTLBlitCommandEncoder_copyFromBuffer_toBuffer,
+  MTLBlitCommandEncoder_copyFromBuffer_toTexture,
+  MTLBlitCommandEncoder_copyFromBuffer_toTexture_options,
+  MTLBlitCommandEncoder_copyFromTexture_toBuffer,
+  MTLBlitCommandEncoder_copyFromTexture_toBuffer_options,
+  MTLBlitCommandEncoder_copyFromTexture_toTexture,
+  MTLBlitCommandEncoder_copyFromTexture_toTexture_slice_level_origin,
+  MTLBlitCommandEncoder_copyFromTexture_toTexture_slice_level_count,
+  MTLBlitCommandEncoder_generateMipmapsForTexture,
+  MTLBlitCommandEncoder_fillBuffer,
+  MTLBlitCommandEncoder_updateFence,
+  MTLBlitCommandEncoder_waitForFence,
+  MTLBlitCommandEncoder_getTextureAccessCounters,
+  MTLBlitCommandEncoder_resetTextureAccessCounters,
+  MTLBlitCommandEncoder_optimizeContentsForGPUAccess,
+  MTLBlitCommandEncoder_optimizeContentsForGPUAccess_slice_level,
+  MTLBlitCommandEncoder_optimizeContentsForCPUAccess,
+  MTLBlitCommandEncoder_optimizeContentsForCPUAccess_slice_level,
+  MTLBlitCommandEncoder_resetCommandsInBuffer,
+  MTLBlitCommandEncoder_copyIndirectCommandBuffer,
+  MTLBlitCommandEncoder_optimizeIndirectCommandBuffer,
+  MTLBlitCommandEncoder_sampleCountersInBuffer,
+  MTLBlitCommandEncoder_resolveCounters,
   Max
 };
 
@@ -281,6 +311,12 @@ DECLARE_REFLECTION_ENUM(MetalChunk);
     RDCERR("Metal %s %s not hooked", object_getClassName(self), sel_getName(_cmd)); \
   } while((void)0, 0)
 #endif
+
+#define METAL_CAPTURE_NOT_IMPLEMENTED()                                \
+  do                                                                   \
+  {                                                                    \
+    RDCERR("Metal '%s' capture not implemented", __PRETTY_FUNCTION__); \
+  } while((void)0, 0)
 
 // similar to RDCUNIMPLEMENTED but without the debugbreak
 #define METAL_NOT_IMPLEMENTED(...)                                            \

@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "metal_blit_command_encoder.h"
 #include "metal_buffer.h"
 #include "metal_command_buffer.h"
 #include "metal_command_queue.h"
@@ -77,6 +78,7 @@ void DoSerialiseViaResourceId(SerialiserType &ser, type &el)
   INSTANTIATE_SERIALISE_TYPE(WrappedMTL##CPPTYPE *);
 
 METALCPP_WRAPPED_PROTOCOLS(IMPLEMENT_WRAPPED_TYPE_SERIALISE);
+IMPLEMENT_WRAPPED_TYPE_SERIALISE(Resource);
 #undef IMPLEMENT_WRAPPED_TYPE_SERIALISE
 
 template <typename SerialiserType>

@@ -48,7 +48,8 @@ const uint32_t MAX_RENDER_PASS_SAMPLE_BUFFER_ATTACHMENTS = 4;
   FUNC(Library);                         \
   FUNC(RenderPipelineState);             \
   FUNC(Texture);                         \
-  FUNC(RenderCommandEncoder);
+  FUNC(RenderCommandEncoder);            \
+  FUNC(BlitCommandEncoder);
 
 // These serialise overloads will fetch the ID during capture, serialise the ID
 // directly as-if it were the original type, then on replay load up the resource if available.
@@ -63,6 +64,7 @@ const uint32_t MAX_RENDER_PASS_SAMPLE_BUFFER_ATTACHMENTS = 4;
   void DoSerialise(SerialiserType &ser, WrappedMTL##CPPTYPE *&el);
 
 METALCPP_WRAPPED_PROTOCOLS(DECLARE_WRAPPED_TYPE_SERIALISE);
+DECLARE_WRAPPED_TYPE_SERIALISE(Resource)
 #undef DECLARE_WRAPPED_TYPE_SERIALISE
 
 #define DECLARE_OBJC_HELPERS(CPPTYPE)                           \
@@ -75,6 +77,18 @@ METALCPP_WRAPPED_PROTOCOLS(DECLARE_WRAPPED_TYPE_SERIALISE);
 
 METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_HELPERS)
 #undef DECLARE_OBJC_HELPERS
+
+// TODO: Wrapped types that need implementing
+#define METALCPP_UNIMPLEMENTED_WRAPPED_PROTOCOLS(FUNC) \
+  FUNC(Fence);                                         \
+  FUNC(IndirectCommandBuffer);                         \
+  FUNC(CounterSampleBuffer);
+
+#define DECLARE_UNIMPLEMENTED_WRAPPED_CPP_HELPERS(CPPTYPE) \
+  class WrappedMTL##CPPTYPE;                               \
+  inline MTL::CPPTYPE *Unwrap(WrappedMTL##CPPTYPE *obj) { return (MTL::CPPTYPE *)obj; }
+METALCPP_UNIMPLEMENTED_WRAPPED_PROTOCOLS(DECLARE_UNIMPLEMENTED_WRAPPED_CPP_HELPERS)
+#undef DECLARE_UNIMPLEMENTED_WRAPPED_CPP_HELPERS
 
 #define MTL_DECLARE_REFLECTION_TYPE(TYPE)        \
   template <>                                    \

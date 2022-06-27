@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "metal_types.h"
+#include "metal_blit_command_encoder.h"
 #include "metal_buffer.h"
 #include "metal_command_buffer.h"
 #include "metal_command_queue.h"
