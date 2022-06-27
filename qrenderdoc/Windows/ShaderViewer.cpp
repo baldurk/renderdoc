@@ -2341,114 +2341,108 @@ void ShaderViewer::runToResourceAccess(bool forward, VarType type, const Bindpoi
 
 void ShaderViewer::applyBackwardsChange()
 {
-  if(!IsFirstState())
+  if(IsFirstState())
+    return;
+
+  for(const ShaderVariableChange &c : GetCurrentState().changes)
   {
-    rdcarray<ShaderVariable> newVariables;
-
-    for(const ShaderVariableChange &c : GetCurrentState().changes)
+    // if the before name is empty, this is a variable that came into scope/was created
+    if(c.before.name.empty())
     {
-      // if the before name is empty, this is a variable that came into scope/was created
-      if(c.before.name.empty())
+      // delete the matching variable (should only be one)
+      for(int i = 0; i < m_Variables.count(); i++)
       {
-        // delete the matching variable (should only be one)
-        for(size_t i = 0; i < m_Variables.size(); i++)
+        if(c.after.name == m_Variables[i].name)
         {
-          if(c.after.name == m_Variables[i].name)
-          {
-            m_Variables.erase(i);
-            break;
-          }
+          m_Variables.removeAt(i);
+          break;
         }
-      }
-      else
-      {
-        ShaderVariable *v = NULL;
-        for(size_t i = 0; i < m_Variables.size(); i++)
-        {
-          if(c.before.name == m_Variables[i].name)
-          {
-            v = &m_Variables[i];
-            break;
-          }
-        }
-
-        if(v)
-          *v = c.before;
-        else
-          newVariables.push_back(c.before);
       }
     }
+    else
+    {
+      ShaderVariable *v = NULL;
+      for(int i = 0; i < m_Variables.count(); i++)
+      {
+        if(c.before.name == m_Variables[i].name)
+        {
+          v = &m_Variables[i];
+          break;
+        }
+      }
 
-    m_Variables.insert(0, newVariables);
-
-    m_CurrentStateIdx--;
+      if(v)
+        *v = c.before;
+      else
+        m_Variables.insert(0, c.before);
+    }
   }
+
+  m_CurrentStateIdx--;
 }
 
 void ShaderViewer::applyForwardsChange()
 {
-  if(!IsLastState())
+  if(IsLastState())
+    return;
+
+  m_CurrentStateIdx++;
+
+  rdcarray<AccessedResourceData> newAccessedResources;
+
+  for(const ShaderVariableChange &c : GetCurrentState().changes)
   {
-    m_CurrentStateIdx++;
-
-    rdcarray<ShaderVariable> newVariables;
-    rdcarray<AccessedResourceData> newAccessedResources;
-
-    for(const ShaderVariableChange &c : GetCurrentState().changes)
+    // if the after name is empty, this is a variable going out of scope/being deleted
+    if(c.after.name.empty())
     {
-      // if the after name is empty, this is a variable going out of scope/being deleted
-      if(c.after.name.empty())
+      // delete the matching variable (should only be one)
+      for(int i = 0; i < m_Variables.count(); i++)
       {
-        // delete the matching variable (should only be one)
-        for(size_t i = 0; i < m_Variables.size(); i++)
+        if(c.before.name == m_Variables[i].name)
         {
-          if(c.before.name == m_Variables[i].name)
-          {
-            m_Variables.erase(i);
-            break;
-          }
-        }
-      }
-      else
-      {
-        ShaderVariable *v = NULL;
-        for(size_t i = 0; i < m_Variables.size(); i++)
-        {
-          if(c.after.name == m_Variables[i].name)
-          {
-            v = &m_Variables[i];
-            break;
-          }
-        }
-
-        if(v)
-          *v = c.after;
-        else
-          newVariables.push_back(c.after);
-
-        if(c.after.type == VarType::ReadOnlyResource || c.after.type == VarType::ReadWriteResource)
-        {
-          bool found = false;
-          for(size_t i = 0; i < m_AccessedResources.size(); i++)
-          {
-            if(c.after.GetBinding() == m_AccessedResources[i].resource.GetBinding())
-            {
-              found = true;
-              if(m_AccessedResources[i].steps.indexOf(m_CurrentStateIdx) < 0)
-                m_AccessedResources[i].steps.push_back(m_CurrentStateIdx);
-              break;
-            }
-          }
-
-          if(!found)
-            newAccessedResources.push_back({c.after, {m_CurrentStateIdx}});
+          m_Variables.removeAt(i);
+          break;
         }
       }
     }
+    else
+    {
+      ShaderVariable *v = NULL;
+      for(int i = 0; i < m_Variables.count(); i++)
+      {
+        if(c.after.name == m_Variables[i].name)
+        {
+          v = &m_Variables[i];
+          break;
+        }
+      }
 
-    m_Variables.insert(0, newVariables);
-    m_AccessedResources.insert(0, newAccessedResources);
+      if(v)
+        *v = c.after;
+      else
+        m_Variables.insert(0, c.after);
+
+      if(c.after.type == VarType::ReadOnlyResource || c.after.type == VarType::ReadWriteResource)
+      {
+        bool found = false;
+        for(size_t i = 0; i < m_AccessedResources.size(); i++)
+        {
+          if(c.after.GetBinding() == m_AccessedResources[i].resource.GetBinding())
+          {
+            found = true;
+            if(m_AccessedResources[i].steps.indexOf(m_CurrentStateIdx) < 0)
+              m_AccessedResources[i].steps.push_back(m_CurrentStateIdx);
+            break;
+          }
+        }
+
+        if(!found)
+          newAccessedResources.push_back({c.after, {m_CurrentStateIdx}});
+      }
+    }
   }
+
+  m_AccessedResources.insert(0, newAccessedResources);
 }
 
 QString ShaderViewer::stringRep(const ShaderVariable &var, uint32_t row)
@@ -4765,6 +4759,66 @@ RDTreeWidgetItem *ShaderViewer::makeAccessedResourceNode(const ShaderVariable &v
   return node;
 }
 
+// this function is a bit messy, we want a base recursion container of either QList or rdcarray
+// but further recursion is always rdcarray because of ShaderVariable::members
+template <typename Container>
+const ShaderVariable *GetShaderDebugVariable(rdcstr path, const Container &vars)
+{
+  rdcstr elem;
+
+  // pick out the next element in the path
+  // if this is an array index, grab that
+  if(path[0] == '[')
+  {
+    int idx = path.indexOf(']');
+    if(idx < 0)
+      return NULL;
+    elem = path.substr(0, idx + 1);
+
+    // skip past any .s
+    if(path[idx + 1] == '.')
+      idx++;
+
+    path = path.substr(idx + 1);
+  }
+  else
+  {
+    // otherwise look for the next identifier
+    int idx = path.find_first_of("[.");
+    if(idx < 0)
+    {
+      // no results means that all that's left of the path is an identifier
+      elem.swap(path);
+    }
+    else
+    {
+      elem = path.substr(0, idx);
+
+      // skip past any .s
+      if(path[idx] == '.')
+        idx++;
+
+      path = path.substr(idx);
+    }
+  }
+
+  // look in our current set of vars for a matching variable
+  for(int i = 0; i < vars.count(); i++)
+  {
+    if(vars[i].name == elem)
+    {
+      // If there's no more path, we've found the exact match, otherwise continue
+      if(path.empty())
+        return &vars[i];
+
+      // otherwise recurse
+      return GetShaderDebugVariable(path, vars[i].members);
+    }
+  }
+
+  return NULL;
+}
+
 const ShaderVariable *ShaderViewer::GetDebugVariable(const DebugVariableReference &r)
 {
   if(r.type == DebugVariableType::ReadOnlyResource)
@@ -4791,80 +4845,17 @@ const ShaderVariable *ShaderViewer::GetDebugVariable(const DebugVariableReferenc
 
     return NULL;
   }
-  else if(r.type == DebugVariableType::Input || r.type == DebugVariableType::Constant ||
-          r.type == DebugVariableType::Variable)
+  else if(r.type == DebugVariableType::Input)
   {
-    rdcarray<ShaderVariable> *vars =
-        r.type == DebugVariableType::Input
-            ? &m_Trace->inputs
-            : (r.type == DebugVariableType::Constant ? &m_Trace->constantBlocks : &m_Variables);
-
-    rdcstr path = r.name;
-
-    while(!path.empty())
-    {
-      rdcstr elem;
-
-      // pick out the next element in the path
-      // if this is an array index, grab that
-      if(path[0] == '[')
-      {
-        int idx = path.indexOf(']');
-        if(idx < 0)
-          break;
-        elem = path.substr(0, idx + 1);
-
-        // skip past any .s
-        if(path[idx + 1] == '.')
-          idx++;
-
-        path = path.substr(idx + 1);
-      }
-      else
-      {
-        // otherwise look for the next identifier
-        int idx = path.find_first_of("[.");
-        if(idx < 0)
-        {
-          // no results means that all that's left of the path is an identifier
-          elem.swap(path);
-        }
-        else
-        {
-          elem = path.substr(0, idx);
-
-          // skip past any .s
-          if(path[idx] == '.')
-            idx++;
-
-          path = path.substr(idx);
-        }
-      }
-
-      // look in our current set of vars for a matching variable
-      bool found = false;
-      for(size_t i = 0; i < vars->size(); i++)
-      {
-        if(vars->at(i).name == elem)
-        {
-          // found the match.
-          found = true;
-
-          // If there's no more path, we've found the exact match, otherwise continue
-          if(path.empty())
-            return &vars->at(i);
-
-          vars = &vars->at(i).members;
-
-          break;
-        }
-      }
-
-      if(!found)
-        break;
-    }
-
-    return NULL;
+    return GetShaderDebugVariable(r.name, m_Trace->inputs);
+  }
+  else if(r.type == DebugVariableType::Constant)
+  {
+    return GetShaderDebugVariable(r.name, m_Trace->constantBlocks);
+  }
+  else if(r.type == DebugVariableType::Variable)
+  {
+    return GetShaderDebugVariable(r.name, m_Variables);
   }
 
   return NULL;

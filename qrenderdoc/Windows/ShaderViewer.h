@@ -301,7 +301,7 @@ private:
   size_t m_FirstSourceStateIdx = ~0U;
   rdcarray<ShaderDebugState> m_States;
   size_t m_CurrentStateIdx = 0;
-  rdcarray<ShaderVariable> m_Variables;
+  QList<ShaderVariable> m_Variables;
 
   // true when debugging while we're populating the initial trace. Lets us queue up commands and
   // process them once we've initialised properly
