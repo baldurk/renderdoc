@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "metal_command_buffer.h"
+#include "metal_blit_command_encoder.h"
 #include "metal_device.h"
 #include "metal_render_command_encoder.h"
 #include "metal_resources.h"
@@ -33,6 +34,54 @@ WrappedMTLCommandBuffer::WrappedMTLCommandBuffer(MTL::CommandBuffer *realMTLComm
     : WrappedMTLObject(realMTLCommandBuffer, objId, wrappedMTLDevice, wrappedMTLDevice->GetStateRef())
 {
   AllocateObjCBridge(this);
+}
+
+template <typename SerialiserType>
+bool WrappedMTLCommandBuffer::Serialise_blitCommandEncoder(SerialiserType &ser,
+                                                           WrappedMTLBlitCommandEncoder *encoder)
+{
+  SERIALISE_ELEMENT_LOCAL(CommandBuffer, this);
+  SERIALISE_ELEMENT_LOCAL(BlitCommandEncoder, GetResID(encoder))
+      .TypedAs("MTLBlitCommandEncoder"_lit);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    // TODO: implement RD MTL replay
+  }
+  return true;
+}
+
+WrappedMTLBlitCommandEncoder *WrappedMTLCommandBuffer::blitCommandEncoder()
+{
+  MTL::BlitCommandEncoder *realMTLBlitCommandEncoder;
+  SERIALISE_TIME_CALL(realMTLBlitCommandEncoder = Unwrap(this)->blitCommandEncoder());
+  WrappedMTLBlitCommandEncoder *wrappedMTLBlitCommandEncoder;
+  ResourceId id =
+      GetResourceManager()->WrapResource(realMTLBlitCommandEncoder, wrappedMTLBlitCommandEncoder);
+  wrappedMTLBlitCommandEncoder->SetCommandBuffer(this);
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLCommandBuffer_blitCommandEncoder);
+      Serialise_blitCommandEncoder(ser, wrappedMTLBlitCommandEncoder);
+      chunk = scope.Get();
+    }
+    MetalResourceRecord *bufferRecord = GetRecord(this);
+    bufferRecord->AddChunk(chunk);
+
+    MetalResourceRecord *encoderRecord =
+        GetResourceManager()->AddResourceRecord(wrappedMTLBlitCommandEncoder);
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+    //     GetResourceManager()->AddLiveResource(id, *wrappedMTLLibrary);
+  }
+  return wrappedMTLBlitCommandEncoder;
 }
 
 template <typename SerialiserType>
@@ -180,6 +229,9 @@ void WrappedMTLCommandBuffer::commit()
   }
 }
 
+INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLCommandBuffer,
+                                            WrappedMTLBlitCommandEncoder *encoder,
+                                            blitCommandEncoder);
 INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLCommandBuffer,
                                             WrappedMTLRenderCommandEncoder *encoder,
                                             renderCommandEncoderWithDescriptor,

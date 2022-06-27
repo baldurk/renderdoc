@@ -31,7 +31,7 @@
 template <>
 rdcstr DoStringise(const MetalChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)MetalChunk::Max == 1199, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)MetalChunk::Max == 1229, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(MetalChunk)
   {
@@ -400,6 +400,65 @@ rdcstr DoStringise(const MetalChunk &el)
                                "MTLBuffer::newRemoteBufferViewForDevice");
     STRINGISE_ENUM_CLASS_NAMED(MTLBuffer_InternalModifyCPUContents,
                                "Internal_MTLBufferModifyCPUContents");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_setLabel, "MTLBlitCommandEncoder::setLabel");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_endEncoding,
+                               "MTLBlitCommandEncoder::endEncoding");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_insertDebugSignpost,
+                               "MTLBlitCommandEncoder::insertDebugSignpost");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_pushDebugGroup,
+                               "MTLBlitCommandEncoder::pushDebugGroup");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_popDebugGroup,
+                               "MTLBlitCommandEncoder::popDebugGroup");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_synchronizeResource,
+                               "MTLBlitCommandEncoder::synchronizeResource");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_synchronizeTexture,
+                               "MTLBlitCommandEncoder::synchronizeTexture");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_copyFromBuffer_toBuffer,
+                               "MTLBlitCommandEncoder::copyFromBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_copyFromBuffer_toTexture,
+                               "MTLBlitCommandEncoder::copyFromBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_copyFromBuffer_toTexture_options,
+                               "MTLBlitCommandEncoder::copyFromBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_copyFromTexture_toBuffer,
+                               "MTLBlitCommandEncoder::copyFromTexture_toBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_copyFromTexture_toBuffer_options,
+                               "MTLBlitCommandEncoder::copyFromTexture");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_copyFromTexture_toTexture,
+                               "MTLBlitCommandEncoder::copyFromTexture_toTexture");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_copyFromTexture_toTexture_slice_level_origin,
+                               "MTLBlitCommandEncoder::copyFromTexture");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_copyFromTexture_toTexture_slice_level_count,
+                               "MTLBlitCommandEncoder::copyFromTexture");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_generateMipmapsForTexture,
+                               "MTLBlitCommandEncoder::generateMipmapsForTexture");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_fillBuffer,
+                               "MTLBlitCommandEncoder::fillBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_updateFence,
+                               "MTLBlitCommandEncoder::updateFence");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_waitForFence,
+                               "MTLBlitCommandEncoder::waitForFence");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_getTextureAccessCounters,
+                               "MTLBlitCommandEncoder::getTextureAccessCounters");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_resetTextureAccessCounters,
+                               "MTLBlitCommandEncoder::resetTextureAccessCounters");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_optimizeContentsForGPUAccess,
+                               "MTLBlitCommandEncoder::optimizeContentsForGPUAccess");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_optimizeContentsForGPUAccess_slice_level,
+                               "MTLBlitCommandEncoder::optimizeContentsForGPUAccess");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_optimizeContentsForCPUAccess,
+                               "MTLBlitCommandEncoder::optimizeContentsForCPUAccess");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_optimizeContentsForCPUAccess_slice_level,
+                               "MTLBlitCommandEncoder::optimizeContentsForCPUAccess");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_resetCommandsInBuffer,
+                               "MTLBlitCommandEncoder::resetCommandsInBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_copyIndirectCommandBuffer,
+                               "MTLBlitCommandEncoder::copyIndirectCommandBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_optimizeIndirectCommandBuffer,
+                               "MTLBlitCommandEncoder::optimizeIndirectCommandBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_sampleCountersInBuffer,
+                               "MTLBlitCommandEncoder::sampleCountersInBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(MTLBlitCommandEncoder_resolveCounters,
+                               "MTLBlitCommandEncoder::resolveCounters");
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
@@ -1069,7 +1128,7 @@ rdcstr DoStringise(const MTL::CullMode &el)
 template <>
 rdcstr DoStringise(const MetalResourceType &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)MetalResourceType::eResMax == 10, "MetalResourceType changed");
+  RDCCOMPILE_ASSERT((uint32_t)MetalResourceType::eResMax == 11, "MetalResourceType changed");
   BEGIN_ENUM_STRINGISE(MetalResourceType);
   {
     STRINGISE_ENUM(eResUnknown);
@@ -1082,6 +1141,7 @@ rdcstr DoStringise(const MetalResourceType &el)
     STRINGISE_ENUM(eResRenderPipelineState);
     STRINGISE_ENUM(eResTexture);
     STRINGISE_ENUM(eResRenderCommandEncoder);
+    STRINGISE_ENUM(eResBlitCommandEncoder);
   }
   END_ENUM_STRINGISE();
 }

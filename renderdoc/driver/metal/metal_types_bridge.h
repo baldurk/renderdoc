@@ -41,6 +41,20 @@
 METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_WRAPPED_INTERFACES)
 #undef DECLARE_OBJC_WRAPPED_INTERFACES
 
+#define DECLARE_UNIMPLEMENTED_WRAPPED_OBJC_HELPERS(CPPTYPE)     \
+  inline WrappedMTL##CPPTYPE *GetWrapped(id<MTL##CPPTYPE> objC) \
+  {                                                             \
+    return (WrappedMTL##CPPTYPE *)objC;                         \
+  }
+
+METALCPP_UNIMPLEMENTED_WRAPPED_PROTOCOLS(DECLARE_UNIMPLEMENTED_WRAPPED_OBJC_HELPERS)
+#undef DECLARE_UNIMPLEMENTED_WRAPPED_OBJC_HELPERS
+
+inline WrappedMTLResource *GetWrapped(id<MTLResource> objC)
+{
+  return (WrappedMTLResource *)objC;
+}
+
 // Define Mac SDK versions when compiling with earlier SDKs
 #ifndef __MAC_12_0
 #define __MAC_12_0 120000

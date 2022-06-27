@@ -44,6 +44,7 @@ enum MetalResourceType
   eResRenderPipelineState,
   eResTexture,
   eResRenderCommandEncoder,
+  eResBlitCommandEncoder,
   eResMax
 };
 
@@ -77,6 +78,11 @@ struct WrappedMTLObject
 };
 
 ResourceId GetResID(WrappedMTLObject *obj);
+
+inline ResourceId GetResID(WrappedMTLResource *obj)
+{
+  return GetResID((WrappedMTLObject *)obj);
+}
 
 template <typename WrappedType>
 MetalResourceRecord *GetRecord(WrappedType *obj)
@@ -112,6 +118,11 @@ struct UnwrapHelper
 
 METALCPP_WRAPPED_PROTOCOLS(WRAPPED_TYPE_HELPERS)
 #undef WRAPPED_TYPE_HELPERS
+
+inline MTL::Resource *Unwrap(WrappedMTLResource *obj)
+{
+  return Unwrap<MTL::Resource *>((WrappedMTLObject *)obj);
+}
 
 struct MetalCmdBufferRecordingInfo
 {

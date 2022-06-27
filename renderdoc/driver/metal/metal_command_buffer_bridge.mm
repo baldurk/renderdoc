@@ -186,8 +186,7 @@
 
 - (nullable id<MTLBlitCommandEncoder>)blitCommandEncoder
 {
-  METAL_NOT_HOOKED();
-  return [self.real blitCommandEncoder];
+  return id<MTLBlitCommandEncoder>(GetWrapped(self)->blitCommandEncoder());
 }
 
 - (nullable id<MTLRenderCommandEncoder>)renderCommandEncoderWithDescriptor:
