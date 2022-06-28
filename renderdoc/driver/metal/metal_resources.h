@@ -124,6 +124,17 @@ inline MTL::Resource *Unwrap(WrappedMTLResource *obj)
   return Unwrap<MTL::Resource *>((WrappedMTLObject *)obj);
 }
 
+enum class MetalCmdBufferStatus : uint32_t
+{
+  NoFlags = 0,
+  Enqueued = 1 << 0,
+  Committed = 1 << 1,
+  Submitted = 1 << 2,
+  Presented = 1 << 3,
+};
+
+BITMASK_OPERATORS(MetalCmdBufferStatus);
+
 struct MetalCmdBufferRecordingInfo
 {
   MetalCmdBufferRecordingInfo(WrappedMTLCommandQueue *parentQueue)
