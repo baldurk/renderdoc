@@ -43,6 +43,8 @@ public:
                                           RDMTL::RenderPassDescriptor &descriptor);
   DECLARE_FUNCTION_SERIALISED(void, presentDrawable, MTL::Drawable *drawable);
   DECLARE_FUNCTION_SERIALISED(void, commit);
+  DECLARE_FUNCTION_SERIALISED(void, enqueue);
+  DECLARE_FUNCTION_SERIALISED(void, waitUntilCompleted);
 
   enum
   {
