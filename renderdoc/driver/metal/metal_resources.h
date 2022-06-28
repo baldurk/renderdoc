@@ -137,10 +137,7 @@ BITMASK_OPERATORS(MetalCmdBufferStatus);
 
 struct MetalCmdBufferRecordingInfo
 {
-  MetalCmdBufferRecordingInfo(WrappedMTLCommandQueue *parentQueue)
-      : queue(parentQueue), present(false), drawable(NULL)
-  {
-  }
+  MetalCmdBufferRecordingInfo(WrappedMTLCommandQueue *parentQueue) : queue(parentQueue) {}
   MetalCmdBufferRecordingInfo() = delete;
   MetalCmdBufferRecordingInfo(const MetalCmdBufferRecordingInfo &) = delete;
   MetalCmdBufferRecordingInfo(MetalCmdBufferRecordingInfo &&) = delete;
@@ -148,10 +145,11 @@ struct MetalCmdBufferRecordingInfo
   ~MetalCmdBufferRecordingInfo() {}
   WrappedMTLCommandQueue *queue;
 
-  // The drawable that present was called on
-  MTL::Drawable *drawable;
-  // AdvanceFrame/Present should be called after this buffer is committed.
-  bool present;
+  // The MetalLayer to present
+  CA::MetalLayer *outputLayer = NULL;
+  // The texture to present
+  WrappedMTLTexture *backBuffer = NULL;
+  MetalCmdBufferStatus flags = MetalCmdBufferStatus::NoFlags;
 };
 
 struct MetalResourceRecord : public ResourceRecord
