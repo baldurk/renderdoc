@@ -3293,6 +3293,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
   VkImageAspectFlags imageAspects = FormatImageAspects(imInfo.format);
   bool isDepth = (imageAspects & VK_IMAGE_ASPECT_DEPTH_BIT) != 0;
   bool isStencil = (imageAspects & VK_IMAGE_ASPECT_STENCIL_BIT) != 0;
+  bool isPlanar = (imageAspects & VK_IMAGE_ASPECT_PLANE_0_BIT) != 0;
+  uint32_t planeCount = GetYUVPlaneCount(imInfo.format);
 
   VkImage liveWrappedImage = GetResourceManager()->GetCurrentHandle<VkImage>(tex);
 
@@ -3823,42 +3825,64 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
       m_pDriver->SubmitAndFlushImageStateBarriers(setupBarriers);
     }
 
-    VkImageAspectFlags copyAspects = VK_IMAGE_ASPECT_COLOR_BIT;
+    rdcarray<VkBufferImageCopy> copyregions;
 
-    if(isDepth)
-      copyAspects = VK_IMAGE_ASPECT_DEPTH_BIT;
-    else if(isStencil)
-      copyAspects = VK_IMAGE_ASPECT_STENCIL_BIT;
-
-    VkBufferImageCopy copyregion[2] = {
+    VkBufferImageCopy copyRegionTemplate = {
+        0,
+        0,
+        0,
+        {VK_IMAGE_ASPECT_NONE, s.mip, s.slice, 1},
         {
-            0,
-            0,
-            0,
-            {copyAspects, s.mip, s.slice, 1},
-            {
-                0, 0, 0,
-            },
-            imCreateInfo.extent,
+            0, 0, 0,
         },
-        // second region is only used for combined depth-stencil images
-        {
-            0,
-            0,
-            0,
-            {VK_IMAGE_ASPECT_STENCIL_BIT, s.mip, s.slice, 1},
-            {
-                0, 0, 0,
-            },
-            imCreateInfo.extent,
-        },
+        {RDCMAX(1U, imCreateInfo.extent.width >> s.mip),
+         RDCMAX(1U, imCreateInfo.extent.height >> s.mip),
+         RDCMAX(1U, imCreateInfo.extent.depth >> s.mip)},
     };
 
-    for(int i = 0; i < 2; i++)
+    if(isDepth || isStencil)
     {
-      copyregion[i].imageExtent.width = RDCMAX(1U, copyregion[i].imageExtent.width >> s.mip);
-      copyregion[i].imageExtent.height = RDCMAX(1U, copyregion[i].imageExtent.height >> s.mip);
-      copyregion[i].imageExtent.depth = RDCMAX(1U, copyregion[i].imageExtent.depth >> s.mip);
+      if(isDepth)
+      {
+        copyRegionTemplate.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        copyregions.push_back(copyRegionTemplate);
+
+        // Stencil offset (if present)
+        copyRegionTemplate.bufferOffset =
+            GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
+                        GetDepthOnlyFormat(imCreateInfo.format), s.mip);
+        copyRegionTemplate.bufferOffset = AlignUp(copyRegionTemplate.bufferOffset, (VkDeviceSize)4);
+      }
+
+      if(isStencil)
+      {
+        copyRegionTemplate.imageSubresource.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+        copyregions.push_back(copyRegionTemplate);
+      }
+    }
+    else if(isPlanar)
+    {
+      for(uint32_t i = 0; i < planeCount; i++)
+      {
+        copyRegionTemplate.imageSubresource.aspectMask = VK_IMAGE_ASPECT_PLANE_0_BIT << i;
+
+        VkExtent2D planeExtent =
+            GetPlaneShape(RDCMAX(1U, imCreateInfo.extent.width >> s.mip),
+                          RDCMAX(1U, imCreateInfo.extent.height >> s.mip), imCreateInfo.format, i);
+        copyRegionTemplate.imageExtent.width = planeExtent.width;
+        copyRegionTemplate.imageExtent.height = planeExtent.height;
+
+        copyregions.push_back(copyRegionTemplate);
+
+        copyRegionTemplate.bufferOffset +=
+            GetPlaneByteSize(imCreateInfo.extent.width, imCreateInfo.extent.height,
+                             imCreateInfo.extent.depth, imCreateInfo.format, s.mip, i);
+      }
+    }
+    else
+    {
+      copyRegionTemplate.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      copyregions.push_back(copyRegionTemplate);
     }
 
     dataSize = GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
@@ -3901,36 +3925,27 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     vkr = vt->BindBufferMemory(Unwrap(dev), readbackBuf, readbackMem, 0);
     CheckVkResult(vkr);
 
-    if(isDepth && isStencil)
-    {
-      stencilOffset = GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
-                                  GetDepthOnlyFormat(imCreateInfo.format), s.mip);
-      stencilOffset = AlignUp(stencilOffset, (VkDeviceSize)4);
-      copyregion[1].bufferOffset = stencilOffset;
-      vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                               readbackBuf, 2, copyregion);
-    }
-    else if(imInfo.type == VK_IMAGE_TYPE_3D && params.remap != RemapTexture::NoRemap)
+    if(imInfo.type == VK_IMAGE_TYPE_3D && params.remap != RemapTexture::NoRemap)
     {
       // copy in each slice from the 2D array we created to render out the 3D texture
       for(uint32_t i = 0; i < imCreateInfo.arrayLayers; i++)
       {
-        copyregion[0].imageSubresource.baseArrayLayer = i;
-        copyregion[0].bufferOffset =
+        copyregions[0].imageSubresource.baseArrayLayer = i;
+        copyregions[0].bufferOffset =
             i * GetByteSize(imCreateInfo.extent.width, imCreateInfo.extent.height, 1,
                             imCreateInfo.format, s.mip);
         vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                 readbackBuf, 1, copyregion);
+                                 readbackBuf, (uint32_t)copyregions.size(), copyregions.data());
       }
     }
     else
     {
       if(imInfo.type == VK_IMAGE_TYPE_3D)
-        copyregion[0].imageSubresource.baseArrayLayer = 0;
+        copyregions[0].imageSubresource.baseArrayLayer = 0;
 
       // copy from desired subresource in srcImage to buffer
       vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                               readbackBuf, 1, copyregion);
+                               readbackBuf, (uint32_t)copyregions.size(), copyregions.data());
     }
 
     // if we have no tmpImage, we're copying directly from the real image
