@@ -1561,7 +1561,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
         initial.changes.push_back({ShaderVariable(), GetPointerValue(active.ids[v])});
     }
 
-    ret.push_back(initial);
+    ret.push_back(std::move(initial));
 
     steps++;
   }
@@ -1594,7 +1594,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
         if(thread.nextInstruction >= instructionOffsets.size())
         {
           if(lane == activeLaneIndex)
-            ret.push_back(ShaderDebugState());
+            ret.emplace_back();
 
           continue;
         }
@@ -1697,7 +1697,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
                       });
           }
 
-          ret.push_back(state);
+          ret.push_back(std::move(state));
 
           steps++;
         }

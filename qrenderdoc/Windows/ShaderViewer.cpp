@@ -838,35 +838,52 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       if(!me)
         return;
 
-      rdcarray<ShaderDebugState> states = r->ContinueDebug(m_Trace->debugger);
+      rdcarray<ShaderDebugState> *states = new rdcarray<ShaderDebugState>();
+
+      states->append(std::move(r->ContinueDebug(m_Trace->debugger)));
+
+      rdcarray<ShaderDebugState> nextStates;
 
       bool finished = false;
       do
       {
         if(!me)
+        {
+          delete states;
           return;
+        }
 
-        rdcarray<ShaderDebugState> nextStates = r->ContinueDebug(m_Trace->debugger);
+        nextStates = r->ContinueDebug(m_Trace->debugger);
 
         if(!me)
+        {
+          delete states;
           return;
+        }
 
-        states.append(nextStates);
         finished = nextStates.empty();
+        states->append(std::move(nextStates));
       } while(!finished && m_BackgroundRunning.available() == 1);
 
       if(!me)
+      {
+        delete states;
         return;
+      }
 
       m_BackgroundRunning.tryAcquire(1);
 
       r->SetFrameEvent(m_Ctx.CurEvent(), true);
 
       if(!me)
+      {
+        delete states;
         return;
+      }
 
       GUIInvoke::call(this, [this, states]() {
-        m_States = states;
+        m_States.swap(*states);
+        delete states;
 
         if(!m_States.empty())
         {

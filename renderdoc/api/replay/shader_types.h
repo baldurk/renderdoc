@@ -229,6 +229,10 @@ struct ShaderVariable
   }
   ShaderVariable(const ShaderVariable &) = default;
   ShaderVariable &operator=(const ShaderVariable &) = default;
+#if !defined(SWIG)
+  ShaderVariable(ShaderVariable &&) = default;
+  ShaderVariable &operator=(ShaderVariable &&) = default;
+#endif
   ShaderVariable(const rdcstr &n, float x, float y, float z, float w)
   {
     name = n;
@@ -428,6 +432,10 @@ struct DebugVariableReference
       : name(name), type(type), component(component)
   {
   }
+#if !defined(SWIG)
+  DebugVariableReference(DebugVariableReference &&) = default;
+  DebugVariableReference &operator=(DebugVariableReference &&) = default;
+#endif
   bool operator==(const DebugVariableReference &o) const
   {
     return name == o.name && type == o.type && component == o.component;
@@ -474,6 +482,10 @@ struct SourceVariableMapping
   SourceVariableMapping() = default;
   SourceVariableMapping(const SourceVariableMapping &) = default;
   SourceVariableMapping &operator=(const SourceVariableMapping &) = default;
+#if !defined(SWIG)
+  SourceVariableMapping(SourceVariableMapping &&) = default;
+  SourceVariableMapping &operator=(SourceVariableMapping &&) = default;
+#endif
 
   bool operator==(const SourceVariableMapping &o) const
   {
@@ -613,6 +625,10 @@ struct ShaderVariableChange
   ShaderVariableChange() = default;
   ShaderVariableChange(const ShaderVariableChange &) = default;
   ShaderVariableChange &operator=(const ShaderVariableChange &) = default;
+#if !defined(SWIG)
+  ShaderVariableChange(ShaderVariableChange &&) = default;
+  ShaderVariableChange &operator=(ShaderVariableChange &&) = default;
+#endif
 
   bool operator==(const ShaderVariableChange &o) const
   {
@@ -652,6 +668,10 @@ struct ShaderDebugState
   ShaderDebugState() = default;
   ShaderDebugState(const ShaderDebugState &) = default;
   ShaderDebugState &operator=(const ShaderDebugState &) = default;
+#if !defined(SWIG)
+  ShaderDebugState(ShaderDebugState &&) = default;
+  ShaderDebugState &operator=(ShaderDebugState &&) = default;
+#endif
 
   bool operator==(const ShaderDebugState &o) const
   {

@@ -333,7 +333,7 @@ public:
   {
     const size_t lastIdx = size();
     reserve(size() + 1);
-    new(elems + lastIdx) T(std::forward<ConstructArgs...>(args...));
+    new(elems + lastIdx) T(std::forward<ConstructArgs...>(args)...);
     setUsedCount(usedCount + 1);
   }
 
@@ -569,6 +569,18 @@ public:
   // helpful shortcut for 'append at end', basically a multi-element push_back
   inline void append(const T *el, size_t count) { insert(size(), el, count); }
   inline void append(const rdcarray<T> &in) { insert(size(), in.data(), in.size()); }
+  // overload for 'append from move' to move all the elements individually even though we can't move
+  // the allocation obviously.
+  inline void append(rdcarray<T> &&in)
+  {
+    reserve(size() + in.size());
+    for(size_t i = 0; i < in.size(); i++)
+      push_back(std::move(in[i]));
+    // don't have to clear here, since moved object can be left in any indeterminate but valid state
+    // (an all the members are in that state, while the array is fully valid), but this gives fewer
+    // surprises.
+    in.clear();
+  }
   void erase(size_t offs, size_t count = 1)
   {
     if(count == 0)

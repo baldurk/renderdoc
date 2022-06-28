@@ -5629,7 +5629,7 @@ rdcarray<ShaderDebugState> InterpretDebugger::ContinueDebug(DXBCDebug::DebugAPIW
       initial.changes.push_back({ShaderVariable(), v});
     dxbc->FillStateInstructionInfo(initial);
 
-    ret.push_back(initial);
+    ret.push_back(std::move(initial));
 
     steps++;
   }
@@ -5666,7 +5666,7 @@ rdcarray<ShaderDebugState> InterpretDebugger::ContinueDebug(DXBCDebug::DebugAPIW
           state.stepIndex = steps;
           state.nextInstruction = workgroup[i].nextInstruction;
           dxbc->FillStateInstructionInfo(state);
-          ret.push_back(state);
+          ret.push_back(std::move(state));
 
           steps++;
         }
