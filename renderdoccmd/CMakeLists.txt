@@ -92,8 +92,12 @@ if(ANDROID)
     set(SAVE_JAVA_HOME $ENV{JAVA_HOME})
 
     set(ENV{JAVA_HOME} "")
-    find_package(Java REQUIRED)
+    find_package(Java)
     set(ENV{JAVA_HOME} ${SAVE_JAVA_HOME})
+
+    if(NOT ${Java_FOUND})
+        message(FATAL_ERROR "Building Android requires the 'java' program in your PATH. It must be at least Java 8 (1.8)")
+    endif()
 
     if(${Java_VERSION} VERSION_LESS 1.8)
         message(FATAL_ERROR "Building Android requires the 'java' program in your PATH to be at least Java 8 (1.8)")

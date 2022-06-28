@@ -118,6 +118,8 @@ export ANDROID_NDK=<path_to_ndk_root>
 export JAVA_HOME=<path_to_jdk_root>
 ```
 
+You must also make sure that you have the `java` from `JAVA_HOME` in your `PATH`, as some Android build commands run java directly without respecting `JAVA_HOME`.
+
 Otherwise, below are steps to acquire the tools for each platform. These steps download specifically the versions listed above, other versions may work but are not guaranteed.
 
 ### Android Dependencies on Windows
