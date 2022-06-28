@@ -122,8 +122,7 @@
 
 - (void)enqueue
 {
-  METAL_NOT_HOOKED();
-  [self.real enqueue];
+  GetWrapped(self)->enqueue();
 }
 
 - (void)commit
@@ -170,8 +169,7 @@
 
 - (void)waitUntilCompleted
 {
-  METAL_NOT_HOOKED();
-  return [self.real waitUntilCompleted];
+  GetWrapped(self)->waitUntilCompleted();
 }
 
 - (MTLCommandBufferStatus)status

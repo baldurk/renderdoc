@@ -229,6 +229,79 @@ void WrappedMTLCommandBuffer::commit()
   }
 }
 
+template <typename SerialiserType>
+bool WrappedMTLCommandBuffer::Serialise_enqueue(SerialiserType &ser)
+{
+  SERIALISE_ELEMENT_LOCAL(CommandBuffer, this);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  // TODO: implement RD MTL replay
+  if(IsReplayingAndReading())
+  {
+  }
+  return true;
+}
+
+void WrappedMTLCommandBuffer::enqueue()
+{
+  SERIALISE_TIME_CALL(Unwrap(this)->enqueue());
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLCommandBuffer_enqueue);
+      Serialise_enqueue(ser);
+      chunk = scope.Get();
+    }
+    MetalResourceRecord *bufferRecord = GetRecord(this);
+    bufferRecord->AddChunk(chunk);
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedMTLCommandBuffer::Serialise_waitUntilCompleted(SerialiserType &ser)
+{
+  SERIALISE_ELEMENT_LOCAL(CommandBuffer, this);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  // TODO: implement RD MTL replay
+  if(IsReplayingAndReading())
+  {
+  }
+  return true;
+}
+
+void WrappedMTLCommandBuffer::waitUntilCompleted()
+{
+  SERIALISE_TIME_CALL(Unwrap(this)->waitUntilCompleted());
+  if(IsCaptureMode(m_State))
+  {
+    if(IsActiveCapturing(m_State))
+    {
+      Chunk *chunk = NULL;
+      {
+        CACHE_THREAD_SERIALISER();
+        SCOPED_SERIALISE_CHUNK(MetalChunk::MTLCommandBuffer_waitUntilCompleted);
+        Serialise_waitUntilCompleted(ser);
+        chunk = scope.Get();
+      }
+      MetalResourceRecord *bufferRecord = GetRecord(this);
+      bufferRecord->AddChunk(chunk);
+    }
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+  }
+}
+
 INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLCommandBuffer,
                                             WrappedMTLBlitCommandEncoder *encoder,
                                             blitCommandEncoder);
@@ -239,3 +312,5 @@ INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLCommandBuffer,
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLCommandBuffer, void, presentDrawable,
                                 MTL::Drawable *drawable);
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLCommandBuffer, void, commit);
+INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLCommandBuffer, void, enqueue);
+INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLCommandBuffer, void, waitUntilCompleted);
