@@ -126,10 +126,10 @@ void DisplayGenericSplash()
 
   EGLDisplay eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
-  ANativeWindow *previewWindow = android_state->window;
-
-  if(eglDisplay && previewWindow)
+  if(eglDisplay && android_state && android_state->window)
   {
+    ANativeWindow *previewWindow = android_state->window;
+
     int major = 0, minor = 0;
     EGLBoolean initialised = eglInitialize(eglDisplay, &major, &minor);
 
@@ -333,7 +333,7 @@ WindowingData DisplayRemoteServerPreview(bool active, const rdcarray<WindowingSy
 
   WindowingData ret = {WindowingSystem::Unknown};
 
-  if(android_state->window)
+  if(android_state && android_state->window)
     ret = CreateAndroidWindowingData(android_state->window);
 
   return ret;
@@ -491,4 +491,5 @@ void android_main(struct android_app *state)
   } while(android_state->destroyRequested == 0);
 
   ANDROID_LOG("android_main exiting");
+  android_state = NULL;
 }
