@@ -156,6 +156,7 @@ ByteAddressBuffer byterotest : register(t1);
 StructuredBuffer<MyStruct> structrotest : register(t2);
 Texture2D<float> dimtex : register(t3);
 Texture2DMS<float> dimtexms : register(t4);
+Texture2D<float4> smiley : register(t5);
 RWByteAddressBuffer byterwtest : register(u1);
 RWStructuredBuffer<MyStruct> structrwtest : register(u2);
 
@@ -700,6 +701,11 @@ float4 main(v2f IN) : SV_Target0
   {
     return rgb_srv[0];
   }
+  if(IN.tri == 77)
+  {
+    float2 uv = posone * float2(0.55f, 0.48f);
+    return smiley.Sample(linearclamp, uv, int2(4, 3));
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
@@ -776,8 +782,8 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
 
     ID3D12RootSignaturePtr sig = MakeSig(
         {
-            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 5, 0),
-            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 2, 5),
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 6, 0),
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 2, 10),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 100, 5, 20),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 4, 3, 30),
         },
@@ -791,7 +797,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
                                          .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
 
     // Recompile the same PS with SM 5.1 to test shader debugging with the different bytecode
-    psblob = Compile(common + pixel, "main", "ps_5_1");
+    psblob = Compile(common + "\n#define SM_5_1 1\n" + pixel, "main", "ps_5_1");
     ID3D12PipelineStatePtr pso_5_1 = MakePSO()
                                          .RootSig(sig)
                                          .InputLayout(inputLayout)
@@ -851,11 +857,85 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     ID3D12ResourcePtr msTex = MakeTexture(DXGI_FORMAT_R32_FLOAT, 16, 16).Multisampled(4).RTV();
     MakeSRV(msTex).CreateGPU(4);
 
+    Texture rgba8;
+    LoadXPM(SmileyTexture, rgba8);
+
+    ID3D12ResourcePtr smiley = MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 48, 48)
+                                   .Mips(1)
+                                   .InitialState(D3D12_RESOURCE_STATE_COPY_DEST);
+
+    ID3D12ResourcePtr uploadBuf = MakeBuffer().Size(1024 * 1024).Upload();
+    ID3D12ResourcePtr constBuf = MakeBuffer().Size(256).Upload();
+    ID3D12ResourcePtr outUAV = MakeBuffer().Size(256).UAV();
+    {
+      byte *mapptr = NULL;
+      constBuf->Map(0, NULL, (void **)&mapptr);
+      uint32_t value = 6;
+      memcpy(mapptr, &value, sizeof(uint32_t));
+      constBuf->Unmap(0, NULL);
+    }
+
+    {
+      D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout = {};
+
+      D3D12_RESOURCE_DESC desc = smiley->GetDesc();
+
+      dev->GetCopyableFootprints(&desc, 0, 1, 0, &layout, NULL, NULL, NULL);
+
+      byte *srcptr = (byte *)rgba8.data.data();
+      byte *mapptr = NULL;
+      uploadBuf->Map(0, NULL, (void **)&mapptr);
+
+      ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
+
+      Reset(cmd);
+
+      {
+        D3D12_TEXTURE_COPY_LOCATION dst, src;
+
+        dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        dst.pResource = smiley;
+        dst.SubresourceIndex = 0;
+
+        byte *dstptr = mapptr + layout.Offset;
+
+        for(UINT row = 0; row < rgba8.height; row++)
+        {
+          memcpy(dstptr, srcptr, rgba8.width * sizeof(uint32_t));
+          srcptr += rgba8.width * sizeof(uint32_t);
+          dstptr += layout.Footprint.RowPitch;
+        }
+
+        src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+        src.pResource = uploadBuf;
+        src.PlacedFootprint = layout;
+
+        cmd->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+
+        D3D12_RESOURCE_BARRIER b = {};
+        b.Transition.pResource = smiley;
+        b.Transition.Subresource = 0;
+        b.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+        b.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+                                  D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+        cmd->ResourceBarrier(1, &b);
+      }
+
+      cmd->Close();
+
+      uploadBuf->Unmap(0, NULL);
+
+      Submit({cmd});
+      GPUSync();
+    }
+
+    MakeSRV(smiley).CreateGPU(5);
+
     ID3D12ResourcePtr rawBuf2 = MakeBuffer().Size(1024).UAV();
     D3D12ViewCreator uavView1 =
         MakeUAV(rawBuf2).Format(DXGI_FORMAT_R32_TYPELESS).ByteAddressed().FirstElement(4).NumElements(12);
-    D3D12_CPU_DESCRIPTOR_HANDLE uav1cpu = uavView1.CreateClearCPU(5);
-    D3D12_GPU_DESCRIPTOR_HANDLE uav1gpu = uavView1.CreateGPU(5);
+    D3D12_CPU_DESCRIPTOR_HANDLE uav1cpu = uavView1.CreateClearCPU(10);
+    D3D12_GPU_DESCRIPTOR_HANDLE uav1gpu = uavView1.CreateGPU(10);
 
     uint16_t narrowdata[32];
     for(size_t i = 0; i < ARRAY_COUNT(narrowdata); i++)
@@ -886,8 +966,8 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
                                     .FirstElement(3)
                                     .NumElements(5)
                                     .StructureStride(11 * sizeof(float));
-    D3D12_CPU_DESCRIPTOR_HANDLE uav2cpu = uavView2.CreateClearCPU(6);
-    D3D12_GPU_DESCRIPTOR_HANDLE uav2gpu = uavView2.CreateGPU(6);
+    D3D12_CPU_DESCRIPTOR_HANDLE uav2cpu = uavView2.CreateClearCPU(11);
+    D3D12_GPU_DESCRIPTOR_HANDLE uav2gpu = uavView2.CreateGPU(11);
 
     // need to create non-structured version for clearing
     uavView2 = MakeUAV(structBuf2).Format(DXGI_FORMAT_R32_UINT);

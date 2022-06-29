@@ -156,6 +156,19 @@ D3D12_ROOT_PARAMETER1 cbvParam(D3D12_SHADER_VISIBILITY vis, UINT space, UINT reg
   return ret;
 }
 
+D3D12_ROOT_PARAMETER1 srvParam(D3D12_SHADER_VISIBILITY vis, UINT space, UINT reg)
+{
+  D3D12_ROOT_PARAMETER1 ret;
+
+  ret.ShaderVisibility = vis;
+  ret.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+  ret.Descriptor.RegisterSpace = space;
+  ret.Descriptor.ShaderRegister = reg;
+  ret.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+
+  return ret;
+}
+
 D3D12_ROOT_PARAMETER1 uavParam(D3D12_SHADER_VISIBILITY vis, UINT space, UINT reg)
 {
   D3D12_ROOT_PARAMETER1 ret;

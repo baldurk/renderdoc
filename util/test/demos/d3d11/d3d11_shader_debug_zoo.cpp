@@ -723,6 +723,11 @@ float4 main(v2f IN) : SV_Target0
     return typedrwtest[uint(zero)].wzwy;
   }
 #endif
+  if(IN.tri == 88)
+  {
+    float2 uv = posone * float2(0.55f, 0.48f);
+    return smiley.Sample(linearwrap, uv, int2(4, 3));
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }

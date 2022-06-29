@@ -103,7 +103,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
             failed = True
             rdtest.log.error(
                 "Vertex shader color output did not match expectation ({}). {}".format(str(debugged.value.f32v[0:4]),
-                                                                                       str(ex)))
+                                                                                       str([0.3, 0.5, 0.8, 1.0])))
 
         rdtest.log.success("VertexSample VS was debugged correctly")
 
@@ -147,7 +147,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
             rdtest.log.error(
                 "Banned signature vertex shader position did not match expectation ({}). {}".format(
                     str(debugged.value.f32v[0:4]),
-                    str(ex)))
+                    str([-0.5, -0.5, 0.0, 1.0])))
 
         rdtest.log.success("Banned signature VS was debugged correctly")
 
