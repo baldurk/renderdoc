@@ -38,6 +38,7 @@ class WrappedID3D11DeviceContext;
 
 class AMDCounters;
 class NVCounters;
+class NVD3D11Counters;
 class IntelCounters;
 struct D3D11CounterContext;
 
@@ -359,6 +360,7 @@ private:
 
   AMDCounters *m_pAMDCounters = NULL;
   NVCounters *m_pNVCounters = NULL;
+  NVD3D11Counters *m_pNVPerfCounters = NULL;
   IntelCounters *m_pIntelCounters = NULL;
 
   WrappedID3D11Device *m_pDevice = NULL;
