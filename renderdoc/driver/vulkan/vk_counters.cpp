@@ -34,6 +34,8 @@
 #include "driver/ihv/amd/official/GPUPerfAPI/Include/gpu_perf_api_vk.h"
 #include "strings/string_utils.h"
 
+#include "driver/ihv/nv/nv_vk_counters.h"
+
 static uint32_t FromKHRCounter(GPUCounter counterID)
 {
   return (uint32_t)counterID - (uint32_t)GPUCounter::FirstVulkanExtended;
@@ -169,6 +171,13 @@ rdcarray<GPUCounter> VulkanReplay::EnumerateCounters()
     ret.append(m_pAMDCounters->GetPublicCounterIds());
   }
 
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+  if(m_pNVCounters)
+  {
+    ret.append(m_pNVCounters->EnumerateCounters());
+  }
+#endif
+
   return ret;
 }
 
@@ -187,6 +196,15 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
       return desc;
     }
   }
+
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+  /////NVIDIA//////
+  if(m_pNVCounters && m_pNVCounters->HasCounter(counterID))
+  {
+    desc = m_pNVCounters->DescribeCounter(counterID);
+    return desc;
+  }
+#endif
 
   if(IsVulkanExtendedCounter(counterID))
   {
@@ -851,6 +869,21 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
       ret = FetchCountersAMD(amdCounters);
     }
   }
+
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+  if(m_pNVCounters)
+  {
+    // Filter out the NVIDIA counters
+    rdcarray<GPUCounter> nvCounters;
+    std::copy_if(counters.begin(), counters.end(), std::back_inserter(nvCounters),
+                 [=](const GPUCounter &c) { return m_pNVCounters->HasCounter(c); });
+    if(!nvCounters.empty())
+    {
+      rdcarray<CounterResult> results = m_pNVCounters->FetchCounters(nvCounters, m_pDriver);
+      ret.append(results);
+    }
+  }
+#endif
 
   rdcarray<GPUCounter> vkKHRCounters;
   std::copy_if(counters.begin(), counters.end(), std::back_inserter(vkKHRCounters),

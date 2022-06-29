@@ -30,6 +30,7 @@
 #include "data/glsl_shaders.h"
 #include "driver/ihv/amd/amd_counters.h"
 #include "driver/ihv/amd/official/GPUPerfAPI/Include/gpu_perf_api_vk.h"
+#include "driver/ihv/nv/nv_vk_counters.h"
 #include "driver/shaders/spirv/spirv_compile.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
@@ -3026,28 +3027,43 @@ void VulkanReplay::CreateResources()
 
   if(!m_pDriver->GetReplay()->IsRemoteProxy() && Vulkan_HardwareCounters())
   {
-    AMDCounters *counters = NULL;
-
     GPUVendor vendor = m_pDriver->GetDriverInfo().Vendor();
 
     if(vendor == GPUVendor::AMD || vendor == GPUVendor::Samsung)
     {
       RDCLOG("AMD GPU detected - trying to initialise AMD counters");
-      counters = new AMDCounters();
+      AMDCounters *counters = new AMDCounters();
+      if(counters && counters->Init(AMDCounters::ApiType::Vk, (void *)&context))
+      {
+        m_pAMDCounters = counters;
+      }
+      else
+      {
+        delete counters;
+        m_pAMDCounters = NULL;
+      }
     }
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+    else if(vendor == GPUVendor::nVidia)
+    {
+      RDCLOG("NVIDIA GPU detected - trying to initialise NVIDIA counters");
+      NVVulkanCounters *countersNV = new NVVulkanCounters();
+      bool initSuccess = false;
+      if(countersNV && countersNV->Init(m_pDriver))
+      {
+        m_pNVCounters = countersNV;
+        initSuccess = true;
+      }
+      else
+      {
+        delete countersNV;
+      }
+      RDCLOG("NVIDIA Vulkan counter initialisation: %s", initSuccess ? "SUCCEEDED" : "FAILED");
+    }
+#endif
     else
     {
       RDCLOG("%s GPU detected - no counters available", ToStr(vendor).c_str());
-    }
-
-    if(counters && counters->Init(AMDCounters::ApiType::Vk, (void *)&context))
-    {
-      m_pAMDCounters = counters;
-    }
-    else
-    {
-      delete counters;
-      m_pAMDCounters = NULL;
     }
   }
 }
@@ -3067,6 +3083,10 @@ void VulkanReplay::DestroyResources()
   m_PostVS.Destroy(m_pDriver);
 
   SAFE_DELETE(m_pAMDCounters);
+
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+  SAFE_DELETE(m_pNVCounters);
+#endif
 }
 
 void VulkanReplay::GeneralMisc::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool)

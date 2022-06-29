@@ -564,6 +564,12 @@ if(ENABLE_GL OR ENABLE_GLES)
     list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_arm>)
 endif()
 
+# pull in the NVIDIA folder
+if(NOT ANDROID AND NOT APPLE AND (ENABLE_GL OR ENABLE_GLES))
+    add_subdirectory(driver/ihv/nv)
+    list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_nv>)
+endif()
+
 add_library(rdoc OBJECT ${sources})
 target_compile_definitions(rdoc ${RDOC_DEFINITIONS})
 target_include_directories(rdoc ${RDOC_INCLUDES})

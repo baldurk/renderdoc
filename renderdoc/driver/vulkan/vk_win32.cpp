@@ -127,6 +127,21 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, rdcarray<rdcstr> &exten
       if(!extensionList.contains(VK_KHR_SWAPCHAIN_EXTENSION_NAME))
         extensionList.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     }
+    if((supportedExtensions.find(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME) ==
+        supportedExtensions.end()) ||
+       (supportedExtensions.find(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME) ==
+        supportedExtensions.end()))
+    {
+      RDCWARN("Unsupported required instance extension for NVIDIA performance counters '%s'",
+              VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
+    }
+    else
+    {
+      if(!extensionList.contains(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME))
+        extensionList.push_back(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
+      if(!extensionList.contains(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME))
+        extensionList.push_back(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME);
+    }
   }
 }
 
