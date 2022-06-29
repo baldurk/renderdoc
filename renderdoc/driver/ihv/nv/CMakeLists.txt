@@ -1,6 +1,8 @@
 set(sources
     nv_counter_enumerator.cpp
     nv_counter_enumerator.h
+    nv_gl_counters.cpp
+    nv_gl_counters.h
     nv_vk_counters.cpp
     nv_vk_counters.h)
 

@@ -24,11 +24,13 @@
  ******************************************************************************/
 
 #include "gl_replay.h"
+
 #include "core/settings.h"
 #include "data/glsl_shaders.h"
 #include "driver/ihv/amd/amd_counters.h"
 #include "driver/ihv/arm/arm_counters.h"
 #include "driver/ihv/intel/intel_gl_counters.h"
+#include "driver/ihv/nv/nv_gl_counters.h"
 #include "maths/matrix.h"
 #include "replay/dummy_driver.h"
 #include "serialise/rdcfile.h"
@@ -71,6 +73,9 @@ void GLReplay::Shutdown()
   SAFE_DELETE(m_pAMDCounters);
   SAFE_DELETE(m_pIntelCounters);
   SAFE_DELETE(m_pARMCounters);
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+  SAFE_DELETE(m_pNVCounters);
+#endif
 
   DeleteDebugData();
 
@@ -260,6 +265,9 @@ void GLReplay::SetReplayData(GLWindowingData data)
     AMDCounters *countersAMD = NULL;
     IntelGlCounters *countersIntel = NULL;
     ARMCounters *countersARM = NULL;
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+    NVGLCounters *countersNV = NULL;
+#endif
 
     bool isMesa = false;
 
@@ -318,6 +326,13 @@ void GLReplay::SetReplayData(GLWindowingData data)
         RDCLOG("ARM Mali GPU detected - trying to initialise ARM counters");
         countersARM = new ARMCounters();
       }
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+      else if(m_DriverInfo.vendor == GPUVendor::nVidia)
+      {
+        RDCLOG("NVIDIA GPU detected - trying to initialise NVIDIA counters");
+        countersNV = new NVGLCounters();
+      }
+#endif
       else
       {
         RDCLOG("%s GPU detected - no counters available", ToStr(m_DriverInfo.vendor).c_str());
@@ -353,6 +368,18 @@ void GLReplay::SetReplayData(GLWindowingData data)
       delete countersARM;
       m_pARMCounters = NULL;
     }
+
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+    if(countersNV && countersNV->Init())
+    {
+      m_pNVCounters = countersNV;
+    }
+    else
+    {
+      delete countersNV;
+      m_pNVCounters = NULL;
+    }
+#endif
   }
 }
 

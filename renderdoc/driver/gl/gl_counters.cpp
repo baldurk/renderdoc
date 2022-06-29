@@ -27,6 +27,7 @@
 #include "driver/ihv/amd/amd_counters.h"
 #include "driver/ihv/arm/arm_counters.h"
 #include "driver/ihv/intel/intel_gl_counters.h"
+#include "driver/ihv/nv/nv_gl_counters.h"
 #include "gl_driver.h"
 #include "gl_replay.h"
 #include "gl_resources.h"
@@ -71,6 +72,13 @@ rdcarray<GPUCounter> GLReplay::EnumerateCounters()
     ret.append(m_pARMCounters->GetPublicCounterIds());
   }
 
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+  if(m_pNVCounters)
+  {
+    ret.append(m_pNVCounters->EnumerateCounters());
+  }
+#endif
+
   return ret;
 }
 
@@ -106,6 +114,14 @@ CounterDescription GLReplay::DescribeCounter(GPUCounter counterID)
   {
     return m_pARMCounters->GetCounterDescription(counterID);
   }
+
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+  /////NVIDIA/////
+  if(m_pNVCounters && m_pNVCounters->HasCounter(counterID))
+  {
+    return m_pNVCounters->DescribeCounter(counterID);
+  }
+#endif
 
   // FFBA5548-FBF8-405D-BA18-F0329DA370A0
   desc.uuid.words[0] = 0xFFBA5548;
@@ -605,6 +621,21 @@ rdcarray<CounterResult> GLReplay::FetchCounters(const rdcarray<GPUCounter> &allC
     if(!armCounters.empty())
       ret = FetchCountersARM(armCounters);
   }
+
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+  if(m_pNVCounters)
+  {
+    // Filter out the NVIDIA counters
+    rdcarray<GPUCounter> nvCounters;
+    std::copy_if(allCounters.begin(), allCounters.end(), std::back_inserter(nvCounters),
+                 [=](const GPUCounter &c) { return m_pNVCounters->HasCounter(c); });
+    if(!nvCounters.empty())
+    {
+      rdcarray<CounterResult> results = m_pNVCounters->FetchCounters(nvCounters, m_pDriver);
+      ret.append(results);
+    }
+  }
+#endif
 
   m_pDriver->SetFetchCounters(false);
 

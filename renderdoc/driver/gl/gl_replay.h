@@ -35,6 +35,7 @@ class ARMCounters;
 class IntelGlCounters;
 class WrappedOpenGL;
 struct GLCounterContext;
+class NVGLCounters;
 
 struct GLPostVSData
 {
@@ -507,4 +508,9 @@ private:
                      const ActionDescription &actionnode);
 
   rdcarray<CounterResult> FetchCountersARM(const rdcarray<GPUCounter> &counters);
+
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+  // NVIDIA counter instance
+  NVGLCounters *m_pNVCounters = NULL;
+#endif
 };
