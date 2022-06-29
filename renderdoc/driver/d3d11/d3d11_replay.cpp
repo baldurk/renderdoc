@@ -29,6 +29,7 @@
 #include "driver/ihv/amd/amd_counters.h"
 #include "driver/ihv/intel/intel_counters.h"
 #include "driver/ihv/nv/nv_counters.h"
+#include "driver/ihv/nv/nv_d3d11_counters.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
@@ -201,8 +202,9 @@ void D3D11Replay::CreateResources(IDXGIFactory *factory)
   if(!m_Proxy && D3D11_HardwareCounters())
   {
     AMDCounters *countersAMD = NULL;
-    NVCounters *countersNV = NULL;
     IntelCounters *countersIntel = NULL;
+
+    ID3D11Device *d3dDevice = m_pDevice->GetReal();
 
     if(m_DriverInfo.vendor == GPUVendor::AMD)
     {
@@ -212,7 +214,29 @@ void D3D11Replay::CreateResources(IDXGIFactory *factory)
     else if(m_DriverInfo.vendor == GPUVendor::nVidia)
     {
       RDCLOG("nVidia GPU detected - trying to initialise nVidia counters");
-      countersNV = new NVCounters();
+      m_pNVCounters = NULL;
+      m_pNVPerfCounters = NULL;
+      // Legacy NVPMAPI counters
+      NVCounters *countersNVPMAPI = new NVCounters();
+      if(countersNVPMAPI && countersNVPMAPI->Init(d3dDevice))
+      {
+        m_pNVCounters = countersNVPMAPI;
+      }
+      else
+      {
+        delete countersNVPMAPI;
+
+        // Nsight Perf SDK counters
+        NVD3D11Counters *countersNvPerf = new NVD3D11Counters();
+        if(countersNvPerf && countersNvPerf->Init(m_pDevice))
+        {
+          m_pNVPerfCounters = countersNvPerf;
+        }
+        else
+        {
+          delete countersNvPerf;
+        }
+      }
     }
     else if(m_DriverInfo.vendor == GPUVendor::Intel)
     {
@@ -224,8 +248,6 @@ void D3D11Replay::CreateResources(IDXGIFactory *factory)
       RDCLOG("%s GPU detected - no counters available", ToStr(m_DriverInfo.vendor).c_str());
     }
 
-    ID3D11Device *d3dDevice = m_pDevice->GetReal();
-
     if(countersAMD && countersAMD->Init(AMDCounters::ApiType::Dx11, (void *)d3dDevice))
     {
       m_pAMDCounters = countersAMD;
@@ -234,16 +256,6 @@ void D3D11Replay::CreateResources(IDXGIFactory *factory)
     {
       delete countersAMD;
       m_pAMDCounters = NULL;
-    }
-
-    if(countersNV && countersNV->Init(d3dDevice))
-    {
-      m_pNVCounters = countersNV;
-    }
-    else
-    {
-      delete countersNV;
-      m_pNVCounters = NULL;
     }
 
     if(countersIntel && countersIntel->Init(d3dDevice))
@@ -276,6 +288,7 @@ void D3D11Replay::DestroyResources()
 
   SAFE_DELETE(m_pAMDCounters);
   SAFE_DELETE(m_pNVCounters);
+  SAFE_DELETE(m_pNVPerfCounters);
   SAFE_DELETE(m_pIntelCounters);
 
   ShutdownStreamOut();
