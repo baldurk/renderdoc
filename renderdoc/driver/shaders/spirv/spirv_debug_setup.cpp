@@ -2814,6 +2814,7 @@ void Debugger::PreParse(uint32_t maxId)
   Processor::PreParse(maxId);
 
   strings.resize(idTypes.size());
+  idDeathOffset.resize(idTypes.size());
 }
 
 void Debugger::PostParse()

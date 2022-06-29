@@ -426,7 +426,7 @@ private:
   rdcarray<MemberName> memberNames;
   std::map<ShaderEntryPoint, Id> entryLookup;
 
-  SparseIdMap<size_t> idDeathOffset;
+  DenseIdMap<size_t> idDeathOffset;
 
   SparseIdMap<size_t> m_Files;
   LineColumnInfo m_CurLineCol;
