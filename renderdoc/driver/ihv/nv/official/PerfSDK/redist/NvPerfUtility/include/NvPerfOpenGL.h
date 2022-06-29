@@ -20,7 +20,7 @@
 #include "NvPerfDeviceProperties.h"
 #include "nvperf_opengl_host.h"
 #include "nvperf_opengl_target.h"
-#include "GL/gl.h"
+// #include "GL/gl.h"
 #include <string.h>
 namespace nv { namespace perf {
 
@@ -28,7 +28,7 @@ namespace nv { namespace perf {
     //
     inline std::string OpenGLGetDeviceName()
     {
-        const GLubyte* pRenderer = glGetString(GL_RENDERER);
+        const GLubyte* pRenderer = glGetString(eGL_RENDERER);
         if (!pRenderer)
         {
             return "";
@@ -39,7 +39,7 @@ namespace nv { namespace perf {
 
     inline bool OpenGLIsNvidiaDevice()
     {
-        const GLubyte* pVendor = glGetString(GL_VENDOR);
+        const GLubyte* pVendor = glGetString(eGL_VENDOR);
         if (!pVendor)
         {
             return false;

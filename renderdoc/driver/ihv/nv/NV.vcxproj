@@ -102,6 +102,7 @@
     <ClCompile Include="nv_counter_enumerator.cpp" />
     <ClCompile Include="nv_d3d11_counters.cpp" />
     <ClCompile Include="nv_d3d12_counters.cpp" />
+    <ClCompile Include="nv_gl_counters.cpp" />
     <ClCompile Include="nv_vk_counters.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -110,6 +111,7 @@
     <ClInclude Include="nv_counter_enumerator.h" />
     <ClInclude Include="nv_d3d11_counters.h" />
     <ClInclude Include="nv_d3d12_counters.h" />
+    <ClInclude Include="nv_gl_counters.h" />
     <ClInclude Include="nv_vk_counters.h" />
     <ClInclude Include="official\nvapi\nvapi.h" />
     <ClInclude Include="official\nvapi\nvapi_interface.h" />
