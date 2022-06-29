@@ -121,6 +121,7 @@ void D3D11GraphicsTest::Prepare(int argc, char **argv)
     {
       dev->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &opts, sizeof(opts));
       dev->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS1, &opts1, sizeof(opts1));
+      dev->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS2, &opts2, sizeof(opts2));
     }
 
     // This device was only used  to get feature support. Set it back to NULL

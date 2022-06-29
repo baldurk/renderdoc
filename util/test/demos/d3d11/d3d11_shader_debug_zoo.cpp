@@ -705,6 +705,7 @@ float4 main(v2f IN) : SV_Target0
 
     return read.b.wzwy;
   }
+#ifdef TYPED_UAV_EXT
   if(IN.tri == 84)
   {
     return typedrwtest[uint(zero)].xyzw;
@@ -721,6 +722,7 @@ float4 main(v2f IN) : SV_Target0
   {
     return typedrwtest[uint(zero)].wzwy;
   }
+#endif
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
@@ -893,6 +895,9 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     lastTest += sizeof("IN.tri == ") - 1;
 
     const uint32_t numTests = atoi(pixel.c_str() + lastTest) + 1;
+
+    if(opts2.TypedUAVLoadAdditionalFormats)
+      common += "\n#define TYPED_UAV_EXT 1\n";
 
     ID3DBlobPtr vsblob = Compile(common + vertex, "main", "vs_5_0");
     ID3DBlobPtr psblob = Compile(common + pixel, "main", "ps_5_0");
