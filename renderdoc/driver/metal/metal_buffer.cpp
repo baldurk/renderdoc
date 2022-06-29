@@ -86,15 +86,12 @@ void WrappedMTLBuffer::didModifyRange(NS::Range &range)
   SERIALISE_TIME_CALL(Unwrap(this)->didModifyRange(range));
   if(IsCaptureMode(m_State))
   {
-    bool backframe = IsBackgroundCapturing(m_State);
-    if(backframe)
+    if(IsBackgroundCapturing(m_State))
     {
       // Snapshot potentially CPU modified buffer
       GetResourceManager()->MarkDirtyResource(m_ID);
     }
-
-    bool capframe = IsActiveCapturing(m_State);
-    if(capframe)
+    else
     {
       Chunk *chunk = NULL;
       {
