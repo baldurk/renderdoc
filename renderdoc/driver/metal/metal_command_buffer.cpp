@@ -219,8 +219,7 @@ void WrappedMTLCommandBuffer::commit()
     MetalResourceRecord *bufferRecord = GetRecord(this);
     bufferRecord->AddChunk(chunk);
 
-    bool capframe = IsActiveCapturing(m_State);
-    if(capframe)
+    if(IsActiveCapturing(m_State))
     {
       bufferRecord->AddRef();
       bufferRecord->MarkResourceFrameReferenced(GetResID(m_CommandQueue), eFrameRef_Read);
