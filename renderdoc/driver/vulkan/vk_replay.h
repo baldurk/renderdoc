@@ -152,6 +152,8 @@ class VulkanResourceManager;
 struct VulkanStatePipeline;
 struct VulkanAMDActionCallback;
 
+class NVVulkanCounters;
+
 struct VulkanPostVSData
 {
   struct InstData
@@ -791,6 +793,10 @@ private:
   AMDRGPControl *m_RGP = NULL;
 
   VulkanAMDActionCallback *m_pAMDActionCallback = NULL;
+
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+  NVVulkanCounters *m_pNVCounters = NULL;
+#endif
 
   rdcarray<CounterResult> FetchCountersKHR(const rdcarray<GPUCounter> &counters);
 
