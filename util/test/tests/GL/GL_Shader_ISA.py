@@ -27,7 +27,7 @@ class GL_Shader_ISA(rdtest.TestCase):
         # Generic testing can't do much, we just ensure that we can successfully get a non-empty disassembly string
         for isa in isas:
             # The AMD disassembler does an audible ping when it fails, so skip ones we know won't work
-            if not is_amd and ('GCN (' in isa or 'RDNA (' in isa or isa == 'AMDIL'):
+            if not is_amd and ('GCN (' in isa or 'RDNA (' in isa or 'RDNA2 (' in isa or isa == 'AMDIL'):
                 rdtest.log.print("Skipping {} as we know it will fail".format(isa))
                 continue
 

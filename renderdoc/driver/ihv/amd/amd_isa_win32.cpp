@@ -115,8 +115,8 @@ rdcstr DisassembleDXBC(const bytebuf &shaderBytes, const rdcstr &target)
   bool amdil = false;
   if(target == "AMDIL")
   {
-    in.chipFamily = asicInfo[0].chipFamily;
-    in.chipRevision = asicInfo[0].chipRevision;
+    in.chipFamily = asicInfo[legacyAsicCount].chipFamily;
+    in.chipRevision = asicInfo[legacyAsicCount].chipRevision;
     amdil = true;
   }
 

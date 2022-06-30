@@ -380,7 +380,7 @@ rdcstr DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const rdcs
   // dummy values
   if(!found)
   {
-    const asic &a = asicInfo[0];
+    const asic &a = asicInfo[legacyAsicCount];
     cmdLine += StringFormat::Fmt("%d;%d;", a.chipFamily, a.chipRevision);
   }
 
