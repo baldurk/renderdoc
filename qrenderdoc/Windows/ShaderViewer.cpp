@@ -840,7 +840,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
       rdcarray<ShaderDebugState> *states = new rdcarray<ShaderDebugState>();
 
-      states->append(std::move(r->ContinueDebug(m_Trace->debugger)));
+      states->append(r->ContinueDebug(m_Trace->debugger));
 
       rdcarray<ShaderDebugState> nextStates;
 
