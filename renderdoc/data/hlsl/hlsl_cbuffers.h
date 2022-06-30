@@ -27,10 +27,14 @@
 // classes that represent a whole cbuffer
 #if defined(__cplusplus)
 
+#include "maths/matrix.h"
+#include "maths/vec.h"
+
 #define cbuffer struct
 #define float2 Vec2f
 #define float3 Vec3f
 #define uint4 Vec4u
+#define int4 Vec4i
 #define float4 Vec4f
 #define float4x4 Matrix4f
 #define uint uint32_t
@@ -169,6 +173,58 @@ cbuffer HistogramCBufferData REG(b0)
   uint4 HistogramYUVDownsampleRate;
   uint4 HistogramYUVAChannels;
 };
+
+cbuffer DebugMathOperation REG(b0)
+{
+  float4 mathInVal;
+  int mathOp;
+};
+
+cbuffer DebugSampleOperation REG(b0)
+{
+  float4 debugSampleUV;
+  float4 debugSampleDDX;
+  float4 debugSampleDDY;
+  int4 debugSampleUVInt;
+  int debugSampleTexDim;
+  int debugSampleRetType;
+  int debugSampleGatherChannel;
+  int debugSampleSampleIndex;
+  int debugSampleOperation;
+  float debugSampleLodCompare;
+};
+
+#define DEBUG_SAMPLE_MATH_RCP 129
+#define DEBUG_SAMPLE_MATH_RSQ 68
+#define DEBUG_SAMPLE_MATH_EXP 25
+#define DEBUG_SAMPLE_MATH_LOG 47
+#define DEBUG_SAMPLE_MATH_SINCOS 77
+
+#define DEBUG_SAMPLE_TEX_SAMPLE 69
+#define DEBUG_SAMPLE_TEX_SAMPLE_L 72
+#define DEBUG_SAMPLE_TEX_SAMPLE_B 74
+#define DEBUG_SAMPLE_TEX_SAMPLE_D 73
+#define DEBUG_SAMPLE_TEX_SAMPLE_C 70
+#define DEBUG_SAMPLE_TEX_SAMPLE_C_LZ 71
+#define DEBUG_SAMPLE_TEX_GATHER4 109
+#define DEBUG_SAMPLE_TEX_GATHER4_C 126
+#define DEBUG_SAMPLE_TEX_GATHER4_PO 127
+#define DEBUG_SAMPLE_TEX_GATHER4_PO_C 128
+#define DEBUG_SAMPLE_TEX_LOD 108
+#define DEBUG_SAMPLE_TEX_LD 45
+#define DEBUG_SAMPLE_TEX_LD_MS 46
+
+#define DEBUG_SAMPLE_TEX1D 1
+#define DEBUG_SAMPLE_TEX2D 2
+#define DEBUG_SAMPLE_TEX3D 3
+#define DEBUG_SAMPLE_TEXMS 4
+#define DEBUG_SAMPLE_TEXCUBE 5
+
+#define DEBUG_SAMPLE_UNORM 1
+#define DEBUG_SAMPLE_SNORM 2
+#define DEBUG_SAMPLE_INT 3
+#define DEBUG_SAMPLE_UINT 4
+#define DEBUG_SAMPLE_FLOAT 5
 
 // some constants available to both C++ and HLSL for configuring display
 #define CUBEMAP_FACE_RIGHT 0

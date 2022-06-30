@@ -222,7 +222,6 @@ struct ShaderVariable
   DOCUMENT("");
   ShaderVariable()
   {
-    name = "";
     rows = columns = 0;
     type = VarType::Unknown;
     memset(&value, 0, sizeof(value));

@@ -1466,6 +1466,137 @@ void D3D11Replay::PixelPicking::Release()
   SAFE_RELEASE(StageTexture);
 }
 
+void ShaderDebugging::Init(WrappedID3D11Device *device)
+{
+  D3D11ShaderCache *shaderCache = device->GetShaderCache();
+
+  HRESULT hr = S_OK;
+
+  rdcstr hlsl = GetEmbeddedResource(shaderdebug_hlsl);
+
+  MathCS = shaderCache->MakeCShader(hlsl.c_str(), "RENDERDOC_DebugMathOp", "cs_5_0");
+  SampleVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_DebugSampleVS", "vs_5_0");
+  SamplePS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DebugSamplePS", "ps_5_0");
+
+  D3D11_BUFFER_DESC bDesc;
+
+  bDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+  bDesc.ByteWidth = 6 * sizeof(Vec4f);
+  bDesc.CPUAccessFlags = 0;
+  bDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+  bDesc.StructureByteStride = 6 * sizeof(Vec4f);
+  bDesc.Usage = D3D11_USAGE_DEFAULT;
+
+  hr = device->CreateBuffer(&bDesc, NULL, &OutBuf);
+
+  if(FAILED(hr))
+    RDCERR("Failed to create shader debugging output buffer HRESULT: %s", ToStr(hr).c_str());
+
+  bDesc.BindFlags = 0;
+  bDesc.MiscFlags = 0;
+  bDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+  bDesc.Usage = D3D11_USAGE_STAGING;
+
+  hr = device->CreateBuffer(&bDesc, NULL, &OutStageBuf);
+
+  if(FAILED(hr))
+    RDCERR("Failed to create shader debugging staging buffer HRESULT: %s", ToStr(hr).c_str());
+
+  bDesc.ByteWidth = 16 * sizeof(Vec4f);
+  bDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+  bDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+  bDesc.Usage = D3D11_USAGE_DYNAMIC;
+
+  hr = device->CreateBuffer(&bDesc, NULL, &ParamBuf);
+
+  if(FAILED(hr))
+    RDCERR("Failed to create shader debugging parameter buffer HRESULT: %s", ToStr(hr).c_str());
+
+  D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+
+  uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+  uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+  uavDesc.Buffer.FirstElement = 0;
+  uavDesc.Buffer.NumElements = 1;
+  uavDesc.Buffer.Flags = 0;
+
+  if(OutBuf)
+    hr = device->CreateUnorderedAccessView(OutBuf, &uavDesc, &OutUAV);
+
+  if(FAILED(hr))
+    RDCERR("Failed to create shader debugging UAV HRESULT: %s", ToStr(hr).c_str());
+
+  D3D11_TEXTURE2D_DESC tdesc = {};
+
+  tdesc.ArraySize = 1;
+  tdesc.BindFlags = D3D11_BIND_RENDER_TARGET;
+  tdesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+  tdesc.Width = 1;
+  tdesc.Height = 1;
+  tdesc.SampleDesc.Count = 1;
+
+  hr = device->CreateTexture2D(&tdesc, NULL, &DummyTex);
+
+  if(FAILED(hr))
+    RDCERR("Failed to create shader debugging dummy texture HRESULT: %s", ToStr(hr).c_str());
+
+  D3D11_RENDER_TARGET_VIEW_DESC rtDesc;
+
+  rtDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+  rtDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+  rtDesc.Texture2D.MipSlice = 0;
+
+  if(DummyTex)
+    hr = device->CreateRenderTargetView(DummyTex, &rtDesc, &DummyRTV);
+
+  if(FAILED(hr))
+    RDCERR("Failed to create shader debugging dummy RTV HRESULT: %s", ToStr(hr).c_str());
+
+  m_pDevice = device;
+}
+
+void ShaderDebugging::Release()
+{
+  SAFE_RELEASE(MathCS);
+  SAFE_RELEASE(ParamBuf);
+  SAFE_RELEASE(OutBuf);
+  SAFE_RELEASE(OutStageBuf);
+  SAFE_RELEASE(OutUAV);
+
+  SAFE_RELEASE(DummyTex);
+  SAFE_RELEASE(DummyRTV);
+
+  for(auto it = m_OffsetSamplePS.begin(); it != m_OffsetSamplePS.end(); ++it)
+    it->second->Release();
+}
+
+ID3D11PixelShader *ShaderDebugging::GetSamplePS(const int8_t offsets[3])
+{
+  uint32_t offsKey = offsets[0] | (offsets[1] << 8) | (offsets[2] << 16);
+  if(offsKey == 0)
+    return SamplePS;
+
+  ID3D11PixelShader *ps = m_OffsetSamplePS[offsKey];
+  if(ps)
+    return ps;
+
+  D3D11ShaderCache *shaderCache = m_pDevice->GetShaderCache();
+
+  shaderCache->SetCaching(true);
+
+  rdcstr hlsl = GetEmbeddedResource(shaderdebug_hlsl);
+
+  hlsl = StringFormat::Fmt("#define debugSampleOffsets int4(%d,%d,%d,0)\n\n%s", offsets[0],
+                           offsets[1], offsets[2], hlsl.c_str());
+
+  ps = m_OffsetSamplePS[offsKey] =
+      shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DebugSamplePS", "ps_5_0");
+
+  shaderCache->SetCaching(false);
+
+  return ps;
+}
+
 void D3D11Replay::HistogramMinMax::Init(WrappedID3D11Device *device)
 {
   D3D11ShaderCache *shaderCache = device->GetShaderCache();

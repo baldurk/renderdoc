@@ -97,6 +97,30 @@ enum TexDisplayFlags
   eTexDisplay_RemapSInt = 0x8,
 };
 
+struct ShaderDebugging
+{
+  void Init(WrappedID3D11Device *device);
+  void Release();
+
+  ID3D11PixelShader *GetSamplePS(const int8_t offsets[3]);
+
+  ID3D11ComputeShader *MathCS = NULL;
+  ID3D11Buffer *ParamBuf = NULL;
+  ID3D11Buffer *OutBuf = NULL;
+  ID3D11Buffer *OutStageBuf = NULL;
+  ID3D11UnorderedAccessView *OutUAV = NULL;
+
+  ID3D11VertexShader *SampleVS = NULL;
+  ID3D11PixelShader *SamplePS = NULL;
+  ID3D11Texture2D *DummyTex = NULL;
+  ID3D11RenderTargetView *DummyRTV = NULL;
+
+private:
+  WrappedID3D11Device *m_pDevice;
+
+  std::map<uint32_t, ID3D11PixelShader *> m_OffsetSamplePS;
+};
+
 class D3D11Replay : public IReplayDriver
 {
 public:
@@ -147,6 +171,7 @@ public:
   {
     m_D3D11PipelineState = d3d11;
   }
+  ShaderDebugging &GetShaderDebuggingData() { return m_ShaderDebug; }
   void SavePipelineState(uint32_t eventId);
   void FreeTargetResource(ResourceId id);
   void FreeCustomShader(ResourceId id);
@@ -459,6 +484,8 @@ private:
     ID3D11Texture2D *Texture = NULL;
     ID3D11Texture2D *StageTexture = NULL;
   } m_PixelPick;
+
+  ShaderDebugging m_ShaderDebug;
 
   struct HistogramMinMax
   {

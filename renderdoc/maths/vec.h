@@ -186,6 +186,25 @@ struct Vec4u
   };
 };
 
+struct Vec4i
+{
+  Vec4i(int32_t X = 0, int32_t Y = 0, int32_t Z = 0, int32_t W = 0)
+  {
+    x = X;
+    y = Y;
+    z = Z;
+    w = W;
+  }
+  union
+  {
+    struct
+    {
+      int32_t x, y, z, w;
+    };
+    int32_t uv[4];
+  };
+};
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif

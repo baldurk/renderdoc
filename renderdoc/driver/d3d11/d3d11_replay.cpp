@@ -182,6 +182,10 @@ void D3D11Replay::CreateResources(IDXGIFactory *factory)
 
   m_PixelPick.Init(m_pDevice);
 
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.65f);
+
+  m_ShaderDebug.Init(m_pDevice);
+
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.7f);
 
   m_Histogram.Init(m_pDevice);
@@ -266,6 +270,7 @@ void D3D11Replay::DestroyResources()
   m_MeshRender.Release();
   m_VertexPick.Release();
   m_PixelPick.Release();
+  m_ShaderDebug.Release();
   m_Histogram.Release();
   m_PixelHistory.Release();
 

@@ -28,6 +28,22 @@
 #include "d3d12_manager.h"
 #include "d3d12_resources.h"
 
+D3D12RenderState::SignatureElement::SignatureElement(SignatureElementType t,
+                                                     D3D12_GPU_VIRTUAL_ADDRESS addr)
+{
+  type = t;
+  WrappedID3D12Resource::GetResIDFromAddr(addr, id, offset);
+}
+
+D3D12RenderState::SignatureElement::SignatureElement(SignatureElementType t,
+                                                     D3D12_CPU_DESCRIPTOR_HANDLE handle)
+{
+  type = t;
+  D3D12Descriptor *desc = (D3D12Descriptor *)handle.ptr;
+  id = desc->GetHeap()->GetResourceID();
+  offset = desc->GetHeapIndex();
+}
+
 rdcarray<ResourceId> D3D12RenderState::GetRTVIDs() const
 {
   rdcarray<ResourceId> ret;

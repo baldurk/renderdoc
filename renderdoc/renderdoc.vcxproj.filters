@@ -1133,6 +1133,9 @@
     <None Include="data\glsl\discard.frag">
       <Filter>Resources\glsl</Filter>
     </None>
+    <None Include="data\hlsl\shaderdebug.hlsl">
+      <Filter>Resources\hlsl</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

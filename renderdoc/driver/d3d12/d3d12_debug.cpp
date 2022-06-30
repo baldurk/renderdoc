@@ -259,12 +259,12 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     rm->SetInternalResource(m_MeshRootSig);
   }
 
-  if(!CreateMathIntrinsicsResources())
+  if(!CreateShaderDebugResources())
   {
     RDCERR("Failed to create resources for shader debugging math intrinsics");
-    SAFE_RELEASE(m_MathIntrinsicsRootSig);
+    SAFE_RELEASE(m_ShaderDebugRootSig);
     SAFE_RELEASE(m_MathIntrinsicsPso);
-    SAFE_RELEASE(m_MathIntrinsicsResultBuffer);
+    SAFE_RELEASE(m_ShaderDebugResultBuffer);
   }
 
   {
@@ -433,9 +433,12 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_MeshPS);
   SAFE_RELEASE(m_MeshRootSig);
 
-  SAFE_RELEASE(m_MathIntrinsicsRootSig);
+  SAFE_RELEASE(m_ShaderDebugRootSig);
   SAFE_RELEASE(m_MathIntrinsicsPso);
-  SAFE_RELEASE(m_MathIntrinsicsResultBuffer);
+  SAFE_RELEASE(m_ShaderDebugResultBuffer);
+  SAFE_RELEASE(m_TexSamplePso);
+  for(auto it = m_OffsetTexSamplePso.begin(); it != m_OffsetTexSamplePso.end(); ++it)
+    it->second->Release();
 
   SAFE_RELEASE(m_ArrayMSAARootSig);
   SAFE_RELEASE(m_FullscreenVS);
@@ -477,66 +480,58 @@ D3D12DebugManager::~D3D12DebugManager()
   RenderDoc::Inst().UnregisterMemoryRegion(this);
 }
 
-bool D3D12DebugManager::CreateMathIntrinsicsResources()
+bool D3D12DebugManager::CreateShaderDebugResources()
 {
-  rdcstr csProgram =
-      "RWStructuredBuffer<float4> outval : register(u0);\n"
-      "cbuffer srcOper : register(b0) { float4 inval; };\n"
-      "cbuffer srcInstr : register(b1) { uint operation; };\n";
+  rdcstr hlsl = GetEmbeddedResource(shaderdebug_hlsl);
 
-  // Assign constants to each supported instruction
-  csProgram += StringFormat::Fmt("static const uint OPCODE_RCP = %u;\n", DXBCBytecode::OPCODE_RCP);
-  csProgram += StringFormat::Fmt("static const uint OPCODE_RSQ = %u;\n", DXBCBytecode::OPCODE_RSQ);
-  csProgram += StringFormat::Fmt("static const uint OPCODE_EXP = %u;\n", DXBCBytecode::OPCODE_EXP);
-  csProgram += StringFormat::Fmt("static const uint OPCODE_LOG = %u;\n", DXBCBytecode::OPCODE_LOG);
-  csProgram +=
-      StringFormat::Fmt("static const uint OPCODE_SINCOS = %u;\n", DXBCBytecode::OPCODE_SINCOS);
-
-  csProgram +=
-      "[numthreads(1, 1, 1)]\n"
-      "void main(){\n"
-      "  switch(operation){\n"
-      "    case OPCODE_RCP: outval[0] = rcp(inval); break;\n"
-      "    case OPCODE_RSQ: outval[0] = rsqrt(inval); break;\n"
-      "    case OPCODE_EXP: outval[0] = exp2(inval); break;\n"
-      "    case OPCODE_LOG: outval[0] = log2(inval); break;\n"
-      "    case OPCODE_SINCOS: sincos(inval, outval[0], outval[1]); break;\n"
-      "  }\n}\n";
+  D3D12RootSignature rootSig;
 
   ID3DBlob *csBlob = NULL;
-  UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS;
-  if(m_pDevice->GetShaderCache()->GetShaderBlob(csProgram.c_str(), "main", flags, {}, "cs_5_0",
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugMathOp",
+                                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0",
                                                 &csBlob) != "")
   {
     RDCERR("Failed to create shader to calculate math intrinsic");
     return false;
   }
 
-  D3D12RootSignature rootSig;
-
-  // Constants param for the operation inputs
   D3D12RootSignatureParameter constantParam;
-  constantParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+  constantParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
   constantParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-  constantParam.Constants.Num32BitValues = 4;    // Input is 4 floats
-  constantParam.Constants.ShaderRegister = 0;
-  constantParam.Constants.RegisterSpace = 0;
+  constantParam.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+  constantParam.Descriptor.ShaderRegister = 0;
+  constantParam.Descriptor.RegisterSpace = 0;
   rootSig.Parameters.push_back(constantParam);
 
-  // Constants param for the opcode
-  constantParam.Constants.Num32BitValues = 1;
-  constantParam.Constants.ShaderRegister = 1;
-  constantParam.Constants.RegisterSpace = 0;
-  rootSig.Parameters.push_back(constantParam);
-
-  // UAV param for the output
   D3D12RootSignatureParameter uavParam;
   uavParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
   uavParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-  uavParam.Descriptor.ShaderRegister = 0;
+  uavParam.Descriptor.ShaderRegister = 1;
   uavParam.Descriptor.RegisterSpace = 0;
   uavParam.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
   rootSig.Parameters.push_back(uavParam);
+
+  D3D12_DESCRIPTOR_RANGE1 range = {};
+  range.BaseShaderRegister = 0;
+  range.RegisterSpace = 0;
+  range.NumDescriptors = 25;
+  range.OffsetInDescriptorsFromTableStart = 0;
+  range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+
+  D3D12RootSignatureParameter srvParam;
+  srvParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+  srvParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+  srvParam.ranges.push_back(range);
+  rootSig.Parameters.push_back(srvParam);
+
+  range.NumDescriptors = 2;
+  range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+
+  D3D12RootSignatureParameter sampParam;
+  sampParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+  sampParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+  sampParam.ranges.push_back(range);
+  rootSig.Parameters.push_back(sampParam);
 
   ID3DBlob *root = m_pDevice->GetShaderCache()->MakeRootSig(rootSig);
   if(root == NULL)
@@ -545,9 +540,10 @@ bool D3D12DebugManager::CreateMathIntrinsicsResources()
     SAFE_RELEASE(csBlob);
     return false;
   }
-  HRESULT hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                              __uuidof(ID3D12RootSignature),
-                                              (void **)&m_MathIntrinsicsRootSig);
+
+  HRESULT hr =
+      m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
+                                     __uuidof(ID3D12RootSignature), (void **)&m_ShaderDebugRootSig);
   m_pDevice->InternalRef();
   SAFE_RELEASE(root);
   if(FAILED(hr))
@@ -556,10 +552,10 @@ bool D3D12DebugManager::CreateMathIntrinsicsResources()
     SAFE_RELEASE(csBlob);
     return false;
   }
-  m_pDevice->GetResourceManager()->SetInternalResource(m_MathIntrinsicsRootSig);
+  m_pDevice->GetResourceManager()->SetInternalResource(m_ShaderDebugRootSig);
 
   D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc;
-  psoDesc.pRootSignature = m_MathIntrinsicsRootSig;
+  psoDesc.pRootSignature = m_ShaderDebugRootSig;
   psoDesc.CS.BytecodeLength = csBlob->GetBufferSize();
   psoDesc.CS.pShaderBytecode = csBlob->GetBufferPointer();
   psoDesc.NodeMask = 0;
@@ -574,7 +570,6 @@ bool D3D12DebugManager::CreateMathIntrinsicsResources()
   if(FAILED(hr))
   {
     RDCERR("Failed to create PSO for shader debugging HRESULT: %s", ToStr(hr).c_str());
-    SAFE_RELEASE(m_MathIntrinsicsRootSig);
     return false;
   }
   m_pDevice->GetResourceManager()->SetInternalResource(m_MathIntrinsicsPso);
@@ -583,7 +578,7 @@ bool D3D12DebugManager::CreateMathIntrinsicsResources()
   D3D12_RESOURCE_DESC rdesc;
   ZeroMemory(&rdesc, sizeof(D3D12_RESOURCE_DESC));
   rdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-  rdesc.Width = sizeof(Vec4f) * 2;    // Output buffer is 2x float4
+  rdesc.Width = sizeof(Vec4f) * 6;
   rdesc.Height = 1;
   rdesc.DepthOrArraySize = 1;
   rdesc.MipLevels = 1;
@@ -602,18 +597,170 @@ bool D3D12DebugManager::CreateMathIntrinsicsResources()
 
   hr = m_pDevice->CreateCommittedResource(
       &heapProps, D3D12_HEAP_FLAG_NONE, &rdesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, NULL,
-      __uuidof(ID3D12Resource), (void **)&m_MathIntrinsicsResultBuffer);
+      __uuidof(ID3D12Resource), (void **)&m_ShaderDebugResultBuffer);
   m_pDevice->InternalRef();
   if(FAILED(hr))
   {
     RDCERR("Failed to create buffer for pixel shader debugging HRESULT: %s", ToStr(hr).c_str());
-    SAFE_RELEASE(m_MathIntrinsicsRootSig);
-    SAFE_RELEASE(m_MathIntrinsicsPso);
     return false;
   }
-  m_pDevice->GetResourceManager()->SetInternalResource(m_MathIntrinsicsResultBuffer);
+  m_pDevice->GetResourceManager()->SetInternalResource(m_ShaderDebugResultBuffer);
+
+  // Create UAV to store the computed results
+  D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc;
+  ZeroMemory(&uavDesc, sizeof(D3D12_UNORDERED_ACCESS_VIEW_DESC));
+  uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+  uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+  uavDesc.Buffer.NumElements = 1;
+  uavDesc.Buffer.StructureByteStride = sizeof(Vec4f) * 6;
+
+  D3D12_CPU_DESCRIPTOR_HANDLE uav = GetCPUHandle(SHADER_DEBUG_UAV);
+  m_pDevice->CreateUnorderedAccessView(m_ShaderDebugResultBuffer, NULL, &uavDesc, uav);
+
+  ID3DBlob *vsBlob = NULL;
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSampleVS",
+                                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0",
+                                                &vsBlob) != "")
+  {
+    RDCERR("Failed to create shader to do texture sample");
+    SAFE_RELEASE(vsBlob);
+    return false;
+  }
+
+  ID3DBlob *psBlob = NULL;
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSamplePS",
+                                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0",
+                                                &psBlob) != "")
+  {
+    RDCERR("Failed to create shader to do texture sample");
+    SAFE_RELEASE(vsBlob);
+    SAFE_RELEASE(psBlob);
+    return false;
+  }
+
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = {};
+
+  pipeDesc.pRootSignature = m_ShaderDebugRootSig;
+  pipeDesc.VS.BytecodeLength = vsBlob->GetBufferSize();
+  pipeDesc.VS.pShaderBytecode = vsBlob->GetBufferPointer();
+  pipeDesc.PS.BytecodeLength = psBlob->GetBufferSize();
+  pipeDesc.PS.pShaderBytecode = psBlob->GetBufferPointer();
+  pipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+  pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+  pipeDesc.SampleMask = 0xFFFFFFFF;
+  pipeDesc.SampleDesc.Count = 1;
+  pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+  pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+  pipeDesc.NumRenderTargets = 1;
+  pipeDesc.RTVFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+  pipeDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+  pipeDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
+  pipeDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+  pipeDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+  pipeDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0;
+
+  hr = m_pDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                              (void **)&m_TexSamplePso);
+  m_pDevice->InternalRef();
+  SAFE_RELEASE(vsBlob);
+  SAFE_RELEASE(psBlob);
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create PSO for shader debugging HRESULT: %s", ToStr(hr).c_str());
+    return false;
+  }
+  m_pDevice->GetResourceManager()->SetInternalResource(m_TexSamplePso);
 
   return true;
+}
+
+ID3D12PipelineState *D3D12DebugManager::GetTexSamplePso(const int8_t offsets[3])
+{
+  uint32_t offsKey = offsets[0] | (offsets[1] << 8) | (offsets[2] << 16);
+  if(offsKey == 0)
+    return m_TexSamplePso;
+
+  ID3D12PipelineState *ps = m_OffsetTexSamplePso[offsKey];
+  if(ps)
+    return ps;
+
+  D3D12ShaderCache *shaderCache = m_pDevice->GetShaderCache();
+
+  shaderCache->SetCaching(true);
+
+  rdcstr hlsl = GetEmbeddedResource(shaderdebug_hlsl);
+
+  hlsl = StringFormat::Fmt("#define debugSampleOffsets int4(%d,%d,%d,0)\n\n%s", offsets[0],
+                           offsets[1], offsets[2], hlsl.c_str());
+
+  ID3DBlob *vsBlob = NULL;
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSampleVS",
+                                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0",
+                                                &vsBlob) != "")
+  {
+    RDCERR("Failed to create shader to do texture sample");
+    SAFE_RELEASE(vsBlob);
+    return false;
+  }
+
+  ID3DBlob *psBlob = NULL;
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSamplePS",
+                                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0",
+                                                &psBlob) != "")
+  {
+    RDCERR("Failed to create shader to do texture sample");
+    SAFE_RELEASE(vsBlob);
+    SAFE_RELEASE(psBlob);
+    return false;
+  }
+
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = {};
+
+  pipeDesc.pRootSignature = m_ShaderDebugRootSig;
+  pipeDesc.VS.BytecodeLength = vsBlob->GetBufferSize();
+  pipeDesc.VS.pShaderBytecode = vsBlob->GetBufferPointer();
+  pipeDesc.PS.BytecodeLength = psBlob->GetBufferSize();
+  pipeDesc.PS.pShaderBytecode = psBlob->GetBufferPointer();
+  pipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+  pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+  pipeDesc.SampleMask = 0xFFFFFFFF;
+  pipeDesc.SampleDesc.Count = 1;
+  pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+  pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+  pipeDesc.NumRenderTargets = 1;
+  pipeDesc.RTVFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+  pipeDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+  pipeDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
+  pipeDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+  pipeDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+  pipeDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0;
+
+  ID3D12PipelineState *pso = NULL;
+  HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                      (void **)&pso);
+  m_pDevice->InternalRef();
+  SAFE_RELEASE(vsBlob);
+  SAFE_RELEASE(psBlob);
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create PSO for shader debugging HRESULT: %s", ToStr(hr).c_str());
+    return false;
+  }
+  m_pDevice->GetResourceManager()->SetInternalResource(pso);
+
+  m_OffsetTexSamplePso[offsKey] = pso;
+
+  shaderCache->SetCaching(false);
+
+  return pso;
 }
 
 ID3D12Resource *D3D12DebugManager::MakeCBuffer(UINT64 size)
@@ -1085,6 +1232,13 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetCPUHandle(DSVSlot slot)
   return ret;
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetCPUHandle(SamplerSlot slot)
+{
+  D3D12_CPU_DESCRIPTOR_HANDLE ret = samplerHeap->GetCPUDescriptorHandleForHeapStart();
+  ret.ptr += slot * sizeof(D3D12Descriptor);
+  return ret;
+}
+
 D3D12_GPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetGPUHandle(CBVUAVSRVSlot slot)
 {
   D3D12_GPU_DESCRIPTOR_HANDLE ret = cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart();
@@ -1217,6 +1371,15 @@ void D3D12DebugManager::SetDescriptorHeaps(ID3D12GraphicsCommandList *list, bool
   {
     list->SetDescriptorHeaps(1, &heaps[1]);
   }
+}
+
+void D3D12DebugManager::SetDescriptorHeaps(rdcarray<ResourceId> &heaps, bool cbvsrvuav, bool samplers)
+{
+  heaps.clear();
+  if(cbvsrvuav)
+    heaps.push_back(GetResID(cbvsrvuavHeap));
+  if(samplers)
+    heaps.push_back(GetResID(samplerHeap));
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetUAVClearHandle(CBVUAVSRVSlot slot)

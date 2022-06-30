@@ -727,6 +727,7 @@
     <None Include="replay\renderdoc_serialise.inl" />
     <None Include="data\hlsl\texremap.hlsl" />
     <None Include="data\hlsl\fixedcol.hlsl" />
+    <None Include="data\hlsl\shaderdebug.hlsl" />
   </ItemGroup>
   <!-- try to bake shaders needed in DXIL now, in case we won't be able to find a dxc at runtime -->
   <UsingTask TaskName="GetDXCExecutable" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">

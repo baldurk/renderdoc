@@ -114,6 +114,7 @@ RESOURCE_pixelhistory_hlsl TYPE_EMBED   "hlsl/pixelhistory.hlsl"
 RESOURCE_quadoverdraw_hlsl TYPE_EMBED   "hlsl/quadoverdraw.hlsl"
 RESOURCE_texremap_hlsl     TYPE_EMBED   "hlsl/texremap.hlsl"
 RESOURCE_fixedcol_hlsl     TYPE_EMBED   "hlsl/fixedcol.hlsl"
+RESOURCE_shaderdebug_hlsl  TYPE_EMBED   "hlsl/shaderdebug.hlsl"
 
 #ifdef RENDERDOC_BAKED_DXC_SHADERS
 
