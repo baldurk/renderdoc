@@ -37,6 +37,15 @@ WrappedMTLDevice::WrappedMTLDevice(MTL::Device *realMTLDevice, ResourceId objId)
 {
   AllocateObjCBridge(this);
   m_Device = this;
+
+  if(RenderDoc::Inst().IsReplayApp())
+  {
+  }
+  else
+  {
+    m_State = CaptureState::BackgroundCapturing;
+  }
+
   threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
 
   m_ResourceManager = new MetalResourceManager(m_State, this);
