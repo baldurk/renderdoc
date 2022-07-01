@@ -40,27 +40,31 @@ RDCCOMPILE_ASSERT(sizeof(NS::Integer) == sizeof(std::intptr_t), "NS::Integer siz
 RDCCOMPILE_ASSERT(sizeof(NS::UInteger) == sizeof(std::uintptr_t),
                   "NS::UInteger size does not match");
 
-#define DEFINE_OBJC_HELPERS(CPPTYPE)                                                      \
-  void AllocateObjCBridge(WrappedMTL##CPPTYPE *wrappedCPP)                                \
-  {                                                                                       \
-    RDCCOMPILE_ASSERT((offsetof(WrappedMTL##CPPTYPE, m_ObjcBridge) == 0),                 \
-                      "m_ObjcBridge must be at offsetof 0");                              \
-    const char *const className = "ObjCBridgeMTL" #CPPTYPE;                               \
-    static Class klass = objc_lookUpClass(className);                                     \
-    static size_t classSize = class_getInstanceSize(klass);                               \
-    if(classSize != sizeof(wrappedCPP->m_ObjcBridge))                                     \
-    {                                                                                     \
-      RDCFATAL("'%s' classSize != sizeof(m_ObjcBridge) %lu != %lu", className, classSize, \
-               sizeof(wrappedCPP->m_ObjcBridge));                                         \
-    }                                                                                     \
-    wrappedCPP->m_ObjcBridge = klass;                                                     \
-    MTL::CPPTYPE *real = (MTL::CPPTYPE *)wrappedCPP->m_Real;                              \
-    if(real)                                                                              \
-    {                                                                                     \
-      id objc = (id)&wrappedCPP->m_ObjcBridge;                                            \
-      objc_setAssociatedObject((id)real, objc, objc, OBJC_ASSOCIATION_RETAIN);            \
-      ((MTL::CPPTYPE *)objc)->release();                                                  \
-    }                                                                                     \
+#define DEFINE_OBJC_HELPERS(CPPTYPE)                                                              \
+  void AllocateObjCBridge(WrappedMTL##CPPTYPE *wrappedCPP)                                        \
+  {                                                                                               \
+    RDCCOMPILE_ASSERT((offsetof(WrappedMTL##CPPTYPE, m_ObjcBridge) == 0),                         \
+                      "m_ObjcBridge must be at offsetof 0");                                      \
+    const char *const className = "ObjCBridgeMTL" #CPPTYPE;                                       \
+    static Class klass = objc_lookUpClass(className);                                             \
+    static size_t classSize = class_getInstanceSize(klass);                                       \
+    if(classSize != sizeof(wrappedCPP->m_ObjcBridge))                                             \
+    {                                                                                             \
+      RDCFATAL("'%s' classSize != sizeof(m_ObjcBridge) %lu != %lu", className, classSize,         \
+               sizeof(wrappedCPP->m_ObjcBridge));                                                 \
+    }                                                                                             \
+    id objc = objc_constructInstance(klass, &wrappedCPP->m_ObjcBridge);                           \
+    if(objc != (id)&wrappedCPP->m_ObjcBridge)                                                     \
+    {                                                                                             \
+      RDCFATAL("'%s' objc != m_ObjcBridge %p != %p", className, objc, &wrappedCPP->m_ObjcBridge); \
+    }                                                                                             \
+    MTL::CPPTYPE *real = (MTL::CPPTYPE *)wrappedCPP->m_Real;                                      \
+    if(real)                                                                                      \
+    {                                                                                             \
+      objc_setAssociatedObject((id)real, objc, objc, OBJC_ASSOCIATION_RETAIN);                    \
+      ((MTL::CPPTYPE *)objc)->release();                                                          \
+    }                                                                                             \
+  }                                                                                               \
   }
 
 METALCPP_WRAPPED_PROTOCOLS(DEFINE_OBJC_HELPERS)
