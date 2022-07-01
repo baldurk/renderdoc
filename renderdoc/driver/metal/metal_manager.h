@@ -117,6 +117,22 @@ public:
     return id;
   }
 
+  template <typename wrappedtype>
+  void ReleaseWrappedResource(wrappedtype *wrapped)
+  {
+    ResourceId id = GetResID(wrapped);
+
+    // TODO: implement RD MTL replay
+
+    ResourceManager::ReleaseCurrentResource(id);
+    MetalResourceRecord *record = GetRecord(wrapped);
+    if(record)
+    {
+      record->Delete(this);
+    }
+    delete wrapped;
+  }
+
   using ResourceManager::AddResourceRecord;
 
   template <typename wrappedtype>
