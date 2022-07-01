@@ -47,11 +47,6 @@ ResourceId GetResID(WrappedMTLObject *obj)
 METALCPP_WRAPPED_PROTOCOLS(IMPLEMENT_WRAPPED_TYPE_HELPERS)
 #undef IMPLEMENT_WRAPPED_TYPE_HELPERS
 
-void WrappedMTLObject::Dealloc()
-{
-  // TODO: call the wrapped object destructor
-}
-
 MetalResourceManager *WrappedMTLObject::GetResourceManager()
 {
   return m_Device->GetResourceManager();

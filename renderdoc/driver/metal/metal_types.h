@@ -73,7 +73,8 @@ DECLARE_WRAPPED_TYPE_SERIALISE(Resource)
   {                                                             \
     return (WrappedMTL##CPPTYPE *)cppType;                      \
   }                                                             \
-  extern void AllocateObjCBridge(WrappedMTL##CPPTYPE *wrapped);
+  extern void AllocateObjCBridge(WrappedMTL##CPPTYPE *wrapped); \
+  extern void DeallocateObjCBridge(WrappedMTL##CPPTYPE *wrapped);
 
 METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_HELPERS)
 #undef DECLARE_OBJC_HELPERS

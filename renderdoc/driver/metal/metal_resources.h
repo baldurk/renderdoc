@@ -64,8 +64,6 @@ struct WrappedMTLObject
   }
   ~WrappedMTLObject() = default;
 
-  void Dealloc();
-
   MTL::Device *GetDevice() { return (MTL::Device *)m_Device; }
   MetalResourceManager *GetResourceManager();
 
