@@ -40,7 +40,7 @@
 #pragma clang diagnostic ignored "-Wobjc-missing-super-calls"
 - (void)dealloc
 {
-  GetWrapped(self)->Dealloc();
+  DeallocateObjCBridge(GetWrapped(self));
 }
 #pragma clang diagnostic pop
 

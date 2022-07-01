@@ -65,6 +65,11 @@ RDCCOMPILE_ASSERT(sizeof(NS::UInteger) == sizeof(std::uintptr_t),
       ((MTL::CPPTYPE *)objc)->release();                                                          \
     }                                                                                             \
   }                                                                                               \
+  void DeallocateObjCBridge(WrappedMTL##CPPTYPE *wrappedCPP)                                      \
+  {                                                                                               \
+    wrappedCPP->m_ObjcBridge = NULL;                                                              \
+    wrappedCPP->m_Real = NULL;                                                                    \
+    wrappedCPP->GetResourceManager()->ReleaseWrappedResource(wrappedCPP);                         \
   }
 
 METALCPP_WRAPPED_PROTOCOLS(DEFINE_OBJC_HELPERS)
