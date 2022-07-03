@@ -305,10 +305,10 @@ DECLARE_REFLECTION_ENUM(MetalChunk);
 #define IsReplayingAndReading() (ser.IsReading() && IsReplayMode(m_Device->GetState()))
 
 #ifdef __OBJC__
-#define METAL_NOT_HOOKED()                                                          \
-  do                                                                                \
-  {                                                                                 \
-    RDCERR("Metal %s %s not hooked", object_getClassName(self), sel_getName(_cmd)); \
+#define METAL_NOT_HOOKED()                                                            \
+  do                                                                                  \
+  {                                                                                   \
+    RDCFATAL("Metal %s %s not hooked", object_getClassName(self), sel_getName(_cmd)); \
   } while((void)0, 0)
 #endif
 
