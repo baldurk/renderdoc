@@ -4,8 +4,7 @@ if(APPLE)
   # Building for Apple requires at least CMake 3.20.0
   cmake_minimum_required(VERSION 3.20.0)
 
-  SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
-  SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum SDK for Mac OS X" FORCE)
+  SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum SDK for Mac OS X")
   SET(CMAKE_XCODE_GENERATE_SCHEME ON)
 endif()
 
@@ -308,10 +307,6 @@ if(APPLE)
 
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/lib")
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin")
-
-    # By default disable the python modules (brew python does not provide universal libraries)
-    message(STATUS "Disabling renderdoc python modules for Apple build")
-    set(ENABLE_PYRENDERDOC OFF CACHE BOOL "" FORCE)
 endif()
 
 if(ENABLE_GL)
