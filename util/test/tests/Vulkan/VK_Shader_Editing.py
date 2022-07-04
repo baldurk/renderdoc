@@ -1,5 +1,6 @@
 import copy
 import rdtest
+import struct
 import renderdoc as rd
 from typing import Tuple
 
@@ -162,3 +163,47 @@ class VK_Shader_Editing(rdtest.TestCase):
         self.controller.FreeTargetResource(offsetVS)
         self.controller.FreeTargetResource(FS1)
         self.controller.FreeTargetResource(FS2)
+
+        bufout = self.get_resource_by_name("bufout").resourceId
+
+        self.controller.SetFrameEvent(self.find_action("Pre-Dispatch").eventId, False)
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+        csrefl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Compute)
+
+        uints = struct.unpack_from('=4L', self.controller.GetBufferData(bufout, 0, 0), 0)
+        if not rdtest.value_compare(uints, [222, 222, 222, 222]):
+            raise rdtest.TestFailureException(
+                'bufout data is incorrect before dispatch: {}'.format(uints))
+
+        eid = self.find_action("Post-Dispatch").eventId
+        self.controller.SetFrameEvent(eid, False)
+
+        uints = struct.unpack_from('=4L', self.controller.GetBufferData(bufout, 0, 0), 0)
+        if not rdtest.value_compare(uints, [777, 888, 999, 1110]):
+            raise rdtest.TestFailureException(
+                'bufout data is incorrect after dispatch: {}'.format(uints))
+
+        self.check(csrefl.debugInfo.encoding == rd.ShaderEncoding.HLSL)
+        self.check(csrefl.entryPoint == "hlsl_main")
+        rdtest.log.success("Values are as expected before compute shader edits")
+
+        raw_source: bytes = csrefl.rawBytes
+        # search-replace in the SPIR-V for 'hlsl_main' replace with a string of the same length
+        patched_entry_source = raw_source.replace(b'hlsl_main', b'main_hlsl')
+        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader('main_hlsl',
+                                                                                 csrefl.encoding, patched_entry_source,
+                                                                                 rd.ShaderCompileFlags(),
+                                                                                 rd.ShaderStage.Compute)
+        if len(newShader[1]) != 0:
+            raise rdtest.TestFailureException("Failed to compile edited compute shader: {}".format(newShader[1]))
+        nochangeCS = newShader[0]
+        self.controller.ReplaceResource(csrefl.resourceId, nochangeCS)
+        self.controller.SetFrameEvent(eid, False)
+        uints = struct.unpack_from('=4L', self.controller.GetBufferData(bufout, 0, 0), 0)
+        if not rdtest.value_compare(uints, [777, 888, 999, 1110]):
+            raise rdtest.TestFailureException(
+                'bufout data is incorrect after dispatch: {}'.format(uints))
+
+        rdtest.log.success("Values are as expected after compute shader entry point change")
+
+        self.controller.FreeTargetResource(nochangeCS)
