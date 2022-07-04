@@ -374,12 +374,13 @@ HOOK_EXPORT Bool glXMakeCurrent_renderdoc_hooked(Display *dpy, GLXDrawable drawa
     {
       glxhook.contexts.insert(ctx);
 
-      FetchEnabledExtensions();
-
-      // see gl_emulated.cpp
-      GL.EmulateUnsupportedFunctions();
-      GL.EmulateRequiredExtensions();
-      GL.DriverForEmulation(&glxhook.driver);
+      if(FetchEnabledExtensions())
+      {
+        // see gl_emulated.cpp
+        GL.EmulateUnsupportedFunctions();
+        GL.EmulateRequiredExtensions();
+        GL.DriverForEmulation(&glxhook.driver);
+      }
     }
 
     GLWindowingData data;
@@ -445,12 +446,13 @@ HOOK_EXPORT Bool glXMakeContextCurrent_renderdoc_hooked(Display *dpy, GLXDrawabl
     {
       glxhook.contexts.insert(ctx);
 
-      FetchEnabledExtensions();
-
-      // see gl_emulated.cpp
-      GL.EmulateUnsupportedFunctions();
-      GL.EmulateRequiredExtensions();
-      GL.DriverForEmulation(&glxhook.driver);
+      if(FetchEnabledExtensions())
+      {
+        // see gl_emulated.cpp
+        GL.EmulateUnsupportedFunctions();
+        GL.EmulateRequiredExtensions();
+        GL.DriverForEmulation(&glxhook.driver);
+      }
     }
 
     GLWindowingData data;

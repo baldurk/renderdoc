@@ -879,7 +879,7 @@ enum class ShaderType;
 // fills out the extension supported array and the version-specific checks above
 void DoVendorChecks(GLPlatform &platform, GLWindowingData context);
 void GetContextVersion(bool &ctxGLES, int &ctxVersion);
-void FetchEnabledExtensions();
+bool FetchEnabledExtensions();
 void GetGLSLVersions(ShaderType &shaderType, int &glslVersion, int &glslBaseVer, int &glslCSVer);
 
 GLuint CreateShader(GLenum shaderType, const rdcstr &src);

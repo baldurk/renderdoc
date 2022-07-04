@@ -406,19 +406,26 @@ void GetContextVersion(bool &ctxGLES, int &ctxVersion)
   }
 }
 
-void FetchEnabledExtensions()
+bool FetchEnabledExtensions()
 {
-  RDCEraseEl(HasExt);
-
   int ctxVersion = 0;
   bool ctxGLES = false;
   GetContextVersion(ctxGLES, ctxVersion);
 
+  if((ctxGLES && ctxVersion < 20) || (!ctxGLES && ctxVersion < 30))
+  {
+    RDCLOG("Not acting on unsupported GL context %s %d.%d", IsGLES ? "OpenGL ES" : "OpenGL",
+           (ctxVersion / 10), (ctxVersion % 10));
+    return false;
+  }
+
+  RDCLOG("Refreshing extension status based on %s %d.%d", IsGLES ? "OpenGL ES" : "OpenGL",
+         (ctxVersion / 10), (ctxVersion % 10));
+
   GLCoreVersion = RDCMAX(GLCoreVersion, ctxVersion);
   IsGLES = ctxGLES;
 
-  RDCLOG("Checking enabled extensions, running as %s %d.%d", IsGLES ? "OpenGL ES" : "OpenGL",
-         (ctxVersion / 10), (ctxVersion % 10));
+  RDCEraseEl(HasExt);
 
   // only use glGetStringi on 3.0 contexts and above (ES and GL), even if we have the function
   // pointer
@@ -461,6 +468,8 @@ void FetchEnabledExtensions()
     RDCERR("GL implementation has ARB_compute_shader but is not at least 4.2. Disabling compute.");
     HasExt[ARB_compute_shader] = false;
   }
+
+  return true;
 }
 
 void DoVendorChecks(GLPlatform &platform, GLWindowingData context)

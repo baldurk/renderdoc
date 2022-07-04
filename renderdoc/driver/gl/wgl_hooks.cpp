@@ -213,12 +213,13 @@ void WGLHook::ProcessContextActivate(HGLRC rc, HDC dc)
   {
     contexts.insert(rc);
 
-    FetchEnabledExtensions();
-
-    // see gl_emulated.cpp
-    GL.EmulateUnsupportedFunctions();
-    GL.EmulateRequiredExtensions();
-    GL.DriverForEmulation(&driver);
+    if(FetchEnabledExtensions())
+    {
+      // see gl_emulated.cpp
+      GL.EmulateUnsupportedFunctions();
+      GL.EmulateRequiredExtensions();
+      GL.DriverForEmulation(&driver);
+    }
   }
 
   GLWindowingData data;

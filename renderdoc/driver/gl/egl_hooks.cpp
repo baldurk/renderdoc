@@ -458,12 +458,13 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent_renderdoc_hooked(EGLDisplay di
     {
       eglhook.contexts.insert(ctx);
 
-      FetchEnabledExtensions();
-
-      // see gl_emulated.cpp
-      GL.EmulateUnsupportedFunctions();
-      GL.EmulateRequiredExtensions();
-      GL.DriverForEmulation(&eglhook.driver);
+      if(FetchEnabledExtensions())
+      {
+        // see gl_emulated.cpp
+        GL.EmulateUnsupportedFunctions();
+        GL.EmulateRequiredExtensions();
+        GL.DriverForEmulation(&eglhook.driver);
+      }
     }
 
     SurfaceConfig cfg = eglhook.windows[draw];

@@ -118,12 +118,13 @@ CGLError GL_EXPORT_NAME(CGLSetCurrentContext)(CGLContextObj ctx)
     {
       cglhook.contexts.insert(ctx);
 
-      FetchEnabledExtensions();
-
-      // see gl_emulated.cpp
-      GL.EmulateUnsupportedFunctions();
-      GL.EmulateRequiredExtensions();
-      GL.DriverForEmulation(&cglhook.driver);
+      if(FetchEnabledExtensions())
+      {
+        // see gl_emulated.cpp
+        GL.EmulateUnsupportedFunctions();
+        GL.EmulateRequiredExtensions();
+        GL.DriverForEmulation(&cglhook.driver);
+      }
     }
 
     CGRect rect = {};
