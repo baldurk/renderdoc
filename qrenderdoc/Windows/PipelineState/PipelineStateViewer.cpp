@@ -1026,8 +1026,8 @@ IShaderViewer *PipelineStateViewer::EditDecompiledSource(const ShaderProcessingT
   rdcstrpairs files;
   files.push_back(rdcpair<rdcstr, rdcstr>("decompiled", source));
 
-  IShaderViewer *sv = EditShader(id, shaderDetails->stage, shaderDetails->entryPoint,
-                                 shaderDetails->debugInfo.compileFlags, tool.output, files);
+  IShaderViewer *sv =
+      EditShader(id, shaderDetails->stage, shaderDetails->entryPoint, {}, tool.output, files);
 
   sv->ShowErrors(out.log);
 
