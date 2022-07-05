@@ -986,6 +986,8 @@ for inst in spirv['instructions']:
                 if kind['is_id']:
                     if quantifier == '*':
                         used_ids += '      for(size_t i=0; i < size-{0}; i++) callback(Id::fromWord(it.word({0}+i)), {1});\n'.format(all_size, 'true' if i+1==result else 'false')
+                    elif quantifier == '?':
+                        used_ids += '      if({0} < size) callback(Id::fromWord(it.word({0})), {1});\n'.format(all_size, 'true' if i+1==result else 'false')
                     else:
                         used_ids += '      callback(Id::fromWord(it.word({})), {});\n'.format(all_size, 'true' if i+1==result else 'false')
 

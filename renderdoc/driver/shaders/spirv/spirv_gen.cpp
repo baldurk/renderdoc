@@ -2028,7 +2028,7 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
     case rdcspv::Op::SourceContinued:
       break;
     case rdcspv::Op::Source:
-      callback(Id::fromWord(it.word(3)), false);
+      if(3 < size) callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SourceExtension:
       break;
@@ -2196,7 +2196,7 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
     case rdcspv::Op::Variable:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
-      callback(Id::fromWord(it.word(4)), false);
+      if(4 < size) callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageTexelPointer:
       callback(Id::fromWord(it.word(1)), false);
@@ -3764,112 +3764,112 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformFAdd:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformIMul:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformFMul:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformSMin:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformUMin:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformFMin:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformSMax:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformUMax:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformFMax:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformBitwiseAnd:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformBitwiseOr:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformBitwiseXor:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformLogicalAnd:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformLogicalOr:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformLogicalXor:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformQuadBroadcast:
       callback(Id::fromWord(it.word(1)), false);
@@ -3941,7 +3941,7 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(4)), false);
       callback(Id::fromWord(it.word(5)), false);
-      callback(Id::fromWord(it.word(6)), false);
+      if(6 < size) callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::SubgroupReadInvocationKHR:
       callback(Id::fromWord(it.word(1)), false);
