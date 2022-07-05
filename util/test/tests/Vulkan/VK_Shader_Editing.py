@@ -206,4 +206,47 @@ class VK_Shader_Editing(rdtest.TestCase):
 
         rdtest.log.success("Values are as expected after compute shader entry point change")
 
+        glsl_source = b"""
+#version 450 core
+layout(push_constant) uniform PushData
+{
+  uvec4 data;
+} push;
+
+layout(binding = 0, std430) buffer inbuftype {
+  uvec4 data[];
+} inbuf;
+
+layout(binding = 1, std430) buffer outbuftype {
+  uvec4 data[];
+} outbuf;
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+  outbuf.data[0].x += inbuf.data[0].x * push.data.w;
+  outbuf.data[0].y += inbuf.data[0].y * push.data.z;
+  outbuf.data[0].z += inbuf.data[0].z * push.data.y;
+  outbuf.data[0].w += inbuf.data[0].w * push.data.x;
+}
+"""
+        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader('main',
+                                                                                 rd.ShaderEncoding.GLSL, 
+                                                                                 glsl_source,
+                                                                                 rd.ShaderCompileFlags(),
+                                                                                 rd.ShaderStage.Compute)
+        if len(newShader[1]) != 0:
+            raise rdtest.TestFailureException("Failed to compile edited compute shader: {}".format(newShader[1]))
+        CS1 = newShader[0]
+        self.controller.ReplaceResource(csrefl.resourceId, CS1)
+        self.controller.SetFrameEvent(eid, False)
+        uints = struct.unpack_from('=4L', self.controller.GetBufferData(bufout, 0, 0), 0)
+        if not rdtest.value_compare(uints, [1110, 999, 888, 777]):
+            raise rdtest.TestFailureException(
+                'bufout data is incorrect after dispatch: {}'.format(uints))
+
+        rdtest.log.success("Values are as expected after compute shader edit")
+
+        self.controller.FreeTargetResource(CS1)
         self.controller.FreeTargetResource(nochangeCS)
