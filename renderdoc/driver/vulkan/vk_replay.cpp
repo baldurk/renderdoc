@@ -3848,7 +3848,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
         copyregions.push_back(copyRegionTemplate);
 
         // Stencil offset (if present)
-        copyRegionTemplate.bufferOffset =
+        copyRegionTemplate.bufferOffset = stencilOffset =
             GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
                         GetDepthOnlyFormat(imCreateInfo.format), s.mip);
         copyRegionTemplate.bufferOffset = AlignUp(copyRegionTemplate.bufferOffset, (VkDeviceSize)4);
