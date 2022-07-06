@@ -28,6 +28,8 @@
 #include "win32/win32_platform.h"
 #elif defined(__linux__)
 #include "linux/linux_platform.h"
+#elif defined(__APPLE__)
+#include "apple/apple_platform.h"
 #else
 #error UNKNOWN PLATFORM
 #endif

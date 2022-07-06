@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 2.8.12)
 
+if(APPLE)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/../bin")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+endif()
+
 set(PROJECT demos)
 
 set(VULKAN_SRC
@@ -127,7 +133,17 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${warning_flags}")
 endif()
 
-if(NOT APPLE AND UNIX)
+if(APPLE)
+    list(APPEND SRC
+        apple/official/metal-cpp.cpp
+        apple/official/metal-cpp.h
+        apple/apple_platform.cpp
+        apple/apple_platform.h
+        apple/apple_window.cpp
+        apple/apple_window.h)
+    add_executable(demos ${SRC} ${VULKAN_SRC})
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+elseif(UNIX)
     list(APPEND OPENGL_SRC
         3rdparty/glad/glad_glx.c
         gl/gl_test_linux.cpp)
@@ -161,7 +177,21 @@ find_package(Threads REQUIRED)
 target_include_directories(demos
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/vk/official
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_compile_definitions(demos PRIVATE -DVK_USE_PLATFORM_XCB_KHR=1)
-target_link_libraries(demos PRIVATE -lX11 -lxcb -lX11-xcb ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
+
+if(APPLE)
+    target_include_directories(demos
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/apple/official)
+    find_library(COCOA_LIBRARY Cocoa)
+    find_library(QUARTZCORE_LIBRARY QuartzCore)
+    find_library(METAL_LIBRARY Metal)
+    target_compile_definitions(demos PRIVATE
+        -DVK_USE_PLATFORM_MACOS_MVK=1)
+    set(LIBS ${COCOA_LIBRARY} ${QUARTZCORE_LIBRARY} ${METAL_LIBRARY})
+elseif(UNIX)
+    target_compile_definitions(demos PRIVATE -DVK_USE_PLATFORM_XCB_KHR=1)
+    set(LIBS -lX11 -lxcb -lX11-xcb)
+endif()
+
+target_link_libraries(demos PRIVATE ${LIBS} ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
 set_target_properties(demos PROPERTIES OUTPUT_NAME demos_${BIN_SUFFIX})
 

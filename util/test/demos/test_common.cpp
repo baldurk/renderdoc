@@ -569,10 +569,16 @@ bool GraphicsTest::Init()
   HMODULE mod = GetModuleHandleA("renderdoc.dll");
   if(mod)
     RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
-#else
+#elif defined(__linux__)
   void *mod = dlopen("librenderdoc.so", RTLD_NOW | RTLD_NOLOAD);
   if(mod)
     RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
+#elif defined(__APPLE__)
+  void *mod = dlopen("librenderdoc.dylib", RTLD_NOW | RTLD_NOLOAD);
+  if(mod)
+    RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
+#else
+#error UNKNOWN PLATFORM
 #endif
 
   if(RENDERDOC_GetAPI)

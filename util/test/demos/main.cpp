@@ -214,6 +214,30 @@ void NuklearShutdown()
   XCloseDisplay(dpy);
 }
 
+#elif defined(__APPLE__)
+
+nk_context *NuklearInit(int width, int height, const char *title)
+{
+  TEST_ERROR("NuklearInit: Not Implemented");
+  return NULL;
+}
+
+bool NuklearTick(nk_context *ctx)
+{
+  TEST_ERROR("NuklearTick: Not Implemented");
+  return false;
+}
+
+void NuklearRender()
+{
+  TEST_ERROR("NuklearRender: Not Implemented");
+}
+
+void NuklearShutdown()
+{
+  TEST_ERROR("NuklearShutdown: Not Implemented");
+}
+
 #else
 
 #error UNKNOWN PLATFORM
