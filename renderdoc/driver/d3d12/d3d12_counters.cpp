@@ -593,11 +593,15 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
   // Only supported with developer mode drivers!!!
   hr = m_pDevice->SetStablePowerState(TRUE);
   if(FAILED(hr))
-    MessageBoxA(NULL,
-                "D3D12 counters require Win10 developer mode enabled: Settings > Update & Security "
-                "> For Developers > Developer Mode",
-                "D3D12 Counters Error", MB_ICONWARNING | MB_OK);
-  m_pDevice->CheckHRESULT(hr);
+  {
+    RDResult err;
+    SET_ERROR_RESULT(
+        err, ResultCode::ReplayDeviceLost,
+        "D3D12 counters require Win10 developer mode enabled: Settings > Update & Security "
+        "> For Developers > Developer Mode");
+    m_pDevice->ReportFatalError(err);
+    return ret;
+  }
 
   D3D12GPUTimerCallback cb(m_pDevice, this, timerQueryHeap, pipestatsQueryHeap, occlusionQueryHeap);
 
