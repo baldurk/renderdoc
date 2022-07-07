@@ -43,6 +43,15 @@ struct GLPixelHistoryResources
   GLuint frameBuffer;
 };
 
+enum class OpenGLTest
+{
+  FACE_CULLING,
+  SCISSOR_TEST,
+  STENCIL_TEST,
+  DEPTH_TEST,
+  NUM_TESTS
+};
+
 bool PixelHistorySetupResources(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
                                 const TextureDescription &desc, const Subresource &sub,
                                 uint32_t numEvents)
@@ -79,7 +88,8 @@ bool PixelHistoryDestroyResources(WrappedOpenGL *driver, const GLPixelHistoryRes
 }
 
 rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
-                                          const rdcarray<EventUsage> &events, int x, int y)
+                                          const rdcarray<EventUsage> &events, int x, int y,
+                                          rdcarray<PixelModification> &history)
 {
   rdcarray<EventUsage> modEvents;
   rdcarray<GLuint> occlusionQueries(events.size());
@@ -100,9 +110,9 @@ rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryR
       driver->glScissor(x, y, 1, 1);
 
       driver->SetFetchCounters(true);
-      driver->glBeginQuery(eGL_ANY_SAMPLES_PASSED, occlusionQueries[i]);
+      driver->glBeginQuery(eGL_SAMPLES_PASSED, occlusionQueries[i]);
       driver->ReplayLog(events[i].eventId, events[i].eventId, eReplay_OnlyDraw);
-      driver->glEndQuery(eGL_ANY_SAMPLES_PASSED);
+      driver->glEndQuery(eGL_SAMPLES_PASSED);
       driver->SetFetchCounters(false);
     }
 
@@ -116,14 +126,27 @@ rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryR
   {
     if(events[i].usage == ResourceUsage::Clear || isDirectWrite(events[i].usage))
     {
+      PixelModification mod;
+      RDCEraseEl(mod);
+      mod.eventId = events[i].eventId;
+      history.push_back(mod);
+
       modEvents.push_back(events[i]);
     }
     else
     {
-      int result;
-      driver->glGetQueryObjectiv(occlusionQueries[i], eGL_QUERY_RESULT, &result);
-      if(result)
+      int numFragments;
+      driver->glGetQueryObjectiv(occlusionQueries[i], eGL_QUERY_RESULT, &numFragments);
+      if(numFragments > 0)
       {
+        for(int j = 0; j < numFragments; ++j)
+        {
+          PixelModification mod;
+          RDCEraseEl(mod);
+          mod.eventId = events[i].eventId;
+          mod.fragIndex = j;
+          history.push_back(mod);
+        }
         modEvents.push_back(events[i]);
       }
     }
@@ -138,8 +161,9 @@ void QueryPostModPixelValues(WrappedOpenGL *driver, GLPixelHistoryResources &res
                              rdcarray<PixelModification> &history)
 {
   driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.frameBuffer);
-  driver->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+  driver->glClear(eGL_COLOR_BUFFER_BIT | eGL_DEPTH_BUFFER_BIT | eGL_STENCIL_BUFFER_BIT);
   driver->ReplayLog(0, modEvents[0].eventId, eReplay_WithoutDraw);
+  size_t historyIndex = 0;
 
   for(size_t i = 0; i < modEvents.size(); i++)
   {
@@ -151,7 +175,6 @@ void QueryPostModPixelValues(WrappedOpenGL *driver, GLPixelHistoryResources &res
     driver->ReplayLog(modEvents[i].eventId, modEvents[i].eventId, eReplay_Full);
 
     // read the post mod pixel value into the history event
-    PixelModification mod;
     ModificationValue modValue;
     PixelValue pixelValue;
     driver->glReadPixels(x, y, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)pixelValue.floatValue.data());
@@ -159,10 +182,11 @@ void QueryPostModPixelValues(WrappedOpenGL *driver, GLPixelHistoryResources &res
     driver->glReadPixels(x, y, 1, 1, eGL_STENCIL_INDEX, eGL_INT, (void *)&modValue.stencil);
     modValue.col = pixelValue;
 
-    RDCEraseEl(mod);
-    mod.eventId = modEvents[i].eventId;
-    mod.postMod = modValue;
-    history.push_back(mod);
+    for(; historyIndex < history.size() && modEvents[i].eventId == history[historyIndex].eventId;
+        ++historyIndex)
+    {
+      history[historyIndex].postMod = modValue;
+    }
 
     // restore the capture's framebuffer
     driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, savedDrawFramebuffer);
@@ -171,6 +195,104 @@ void QueryPostModPixelValues(WrappedOpenGL *driver, GLPixelHistoryResources &res
     if(i < modEvents.size() - 1)
     {
       driver->ReplayLog(modEvents[i].eventId + 1, modEvents[i + 1].eventId, eReplay_WithoutDraw);
+    }
+  }
+}
+
+bool QueryScissorTest(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
+                      const EventUsage event, int x, int y)
+{
+  driver->ReplayLog(0, event.eventId, eReplay_WithoutDraw);
+  bool scissorTestFailed = false;
+  if(driver->glIsEnabled(eGL_SCISSOR_TEST))
+  {
+    int scissorBox[4];    // [x, y, width, height]
+    driver->glGetIntegerv(eGL_SCISSOR_BOX, scissorBox);
+    scissorTestFailed = x < scissorBox[0] || x - scissorBox[0] >= scissorBox[2] ||
+                        y < scissorBox[1] || y - scissorBox[1] >= scissorBox[3];
+  }
+  return scissorTestFailed;
+}
+
+bool QueryTest(WrappedOpenGL *driver, GLPixelHistoryResources &resources, const EventUsage event,
+               int x, int y, OpenGLTest test)
+{
+  driver->ReplayLog(0, event.eventId - 1, eReplay_Full);
+  GLuint samplesPassedQuery;
+  driver->glGenQueries(1, &samplesPassedQuery);
+  driver->glEnable(eGL_SCISSOR_TEST);
+  driver->glScissor(x, y, 1, 1);
+  if(test < OpenGLTest::DEPTH_TEST)
+  {
+    driver->glDisable(eGL_DEPTH_TEST);
+  }
+  if(test < OpenGLTest::STENCIL_TEST)
+  {
+    driver->glDisable(eGL_STENCIL_TEST);
+  }
+  if(test < OpenGLTest::FACE_CULLING)
+  {
+    driver->glDisable(eGL_CULL_FACE);
+  }
+
+  driver->SetFetchCounters(true);
+  driver->glBeginQuery(eGL_SAMPLES_PASSED, samplesPassedQuery);
+  driver->ReplayLog(event.eventId, event.eventId, eReplay_Full);
+  driver->glEndQuery(eGL_SAMPLES_PASSED);
+  driver->SetFetchCounters(false);
+  int numSamplesPassed;
+  driver->glGetQueryObjectiv(samplesPassedQuery, eGL_QUERY_RESULT, &numSamplesPassed);
+  driver->glDeleteQueries(1, &samplesPassedQuery);
+  return numSamplesPassed == 0;
+}
+
+void QueryFailedTests(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
+                      const rdcarray<EventUsage> &modEvents, int x, int y,
+                      rdcarray<PixelModification> &history)
+{
+  size_t historyIndex = 0;
+  for(size_t i = 0; i < modEvents.size(); ++i)
+  {
+    OpenGLTest failedTest = OpenGLTest::NUM_TESTS;
+    if(!isDirectWrite(modEvents[i].usage))
+    {
+      if(modEvents[i].usage == ResourceUsage::Clear)
+      {
+        bool failed = QueryScissorTest(driver, resources, modEvents[i], x, y);
+        if(failed)
+        {
+          failedTest = OpenGLTest::SCISSOR_TEST;
+        }
+      }
+      else
+      {
+        for(int test = 0; test < int(OpenGLTest::NUM_TESTS); ++test)
+        {
+          bool failed;
+          if(test == int(OpenGLTest::SCISSOR_TEST))
+          {
+            failed = QueryScissorTest(driver, resources, modEvents[i], x, y);
+          }
+          else
+          {
+            failed = QueryTest(driver, resources, modEvents[i], x, y, OpenGLTest(test));
+          }
+          if(failed)
+          {
+            failedTest = OpenGLTest(test);
+            break;
+          }
+        }
+      }
+    }
+
+    for(; historyIndex < history.size() && modEvents[i].eventId == history[historyIndex].eventId;
+        ++historyIndex)
+    {
+      history[historyIndex].scissorClipped = failedTest == OpenGLTest::SCISSOR_TEST;
+      history[historyIndex].stencilTestFailed = failedTest == OpenGLTest::STENCIL_TEST;
+      history[historyIndex].depthTestFailed = failedTest == OpenGLTest::DEPTH_TEST;
+      history[historyIndex].backfaceCulled = failedTest == OpenGLTest::FACE_CULLING;
     }
   }
 }
@@ -222,7 +344,8 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
 
   PixelHistorySetupResources(m_pDriver, resources, textureDesc, sub, (uint32_t)events.size());
 
-  rdcarray<EventUsage> modEvents = QueryModifyingEvents(m_pDriver, resources, events, x, flippedY);
+  rdcarray<EventUsage> modEvents =
+      QueryModifyingEvents(m_pDriver, resources, events, x, flippedY, history);
 
   if(modEvents.empty())
   {
@@ -230,6 +353,7 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
     return history;
   }
 
+  QueryFailedTests(m_pDriver, resources, modEvents, x, flippedY, history);
   QueryPostModPixelValues(m_pDriver, resources, modEvents, x, flippedY, history);
 
   // copy the postMod to next history's preMod
