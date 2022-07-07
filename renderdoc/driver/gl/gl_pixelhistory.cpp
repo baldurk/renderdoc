@@ -45,11 +45,11 @@ struct GLPixelHistoryResources
 
 enum class OpenGLTest
 {
-  FACE_CULLING,
-  SCISSOR_TEST,
-  STENCIL_TEST,
-  DEPTH_TEST,
-  NUM_TESTS
+  FaceCulling,
+  ScissorTest,
+  StencilTest,
+  DepthTest,
+  NumTests
 };
 
 bool PixelHistorySetupResources(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
@@ -139,14 +139,10 @@ rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryR
       driver->glGetQueryObjectiv(occlusionQueries[i], eGL_QUERY_RESULT, &numFragments);
       if(numFragments > 0)
       {
-        for(int j = 0; j < numFragments; ++j)
-        {
-          PixelModification mod;
-          RDCEraseEl(mod);
-          mod.eventId = events[i].eventId;
-          mod.fragIndex = j;
-          history.push_back(mod);
-        }
+        PixelModification mod;
+        RDCEraseEl(mod);
+        mod.eventId = events[i].eventId;
+        history.push_back(mod);
         modEvents.push_back(events[i]);
       }
     }
@@ -163,7 +159,6 @@ void QueryPostModPixelValues(WrappedOpenGL *driver, GLPixelHistoryResources &res
   driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.frameBuffer);
   driver->glClear(eGL_COLOR_BUFFER_BIT | eGL_DEPTH_BUFFER_BIT | eGL_STENCIL_BUFFER_BIT);
   driver->ReplayLog(0, modEvents[0].eventId, eReplay_WithoutDraw);
-  size_t historyIndex = 0;
 
   for(size_t i = 0; i < modEvents.size(); i++)
   {
@@ -182,11 +177,7 @@ void QueryPostModPixelValues(WrappedOpenGL *driver, GLPixelHistoryResources &res
     driver->glReadPixels(x, y, 1, 1, eGL_STENCIL_INDEX, eGL_INT, (void *)&modValue.stencil);
     modValue.col = pixelValue;
 
-    for(; historyIndex < history.size() && modEvents[i].eventId == history[historyIndex].eventId;
-        ++historyIndex)
-    {
-      history[historyIndex].postMod = modValue;
-    }
+    history[i].postMod = modValue;
 
     // restore the capture's framebuffer
     driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, savedDrawFramebuffer);
@@ -222,15 +213,15 @@ bool QueryTest(WrappedOpenGL *driver, GLPixelHistoryResources &resources, const 
   driver->glGenQueries(1, &samplesPassedQuery);
   driver->glEnable(eGL_SCISSOR_TEST);
   driver->glScissor(x, y, 1, 1);
-  if(test < OpenGLTest::DEPTH_TEST)
+  if(test < OpenGLTest::DepthTest)
   {
     driver->glDisable(eGL_DEPTH_TEST);
   }
-  if(test < OpenGLTest::STENCIL_TEST)
+  if(test < OpenGLTest::StencilTest)
   {
     driver->glDisable(eGL_STENCIL_TEST);
   }
-  if(test < OpenGLTest::FACE_CULLING)
+  if(test < OpenGLTest::FaceCulling)
   {
     driver->glDisable(eGL_CULL_FACE);
   }
@@ -250,10 +241,9 @@ void QueryFailedTests(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
                       const rdcarray<EventUsage> &modEvents, int x, int y,
                       rdcarray<PixelModification> &history)
 {
-  size_t historyIndex = 0;
   for(size_t i = 0; i < modEvents.size(); ++i)
   {
-    OpenGLTest failedTest = OpenGLTest::NUM_TESTS;
+    OpenGLTest failedTest = OpenGLTest::NumTests;
     if(!isDirectWrite(modEvents[i].usage))
     {
       if(modEvents[i].usage == ResourceUsage::Clear)
@@ -261,15 +251,15 @@ void QueryFailedTests(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
         bool failed = QueryScissorTest(driver, resources, modEvents[i], x, y);
         if(failed)
         {
-          failedTest = OpenGLTest::SCISSOR_TEST;
+          failedTest = OpenGLTest::ScissorTest;
         }
       }
       else
       {
-        for(int test = 0; test < int(OpenGLTest::NUM_TESTS); ++test)
+        for(int test = 0; test < int(OpenGLTest::NumTests); ++test)
         {
           bool failed;
-          if(test == int(OpenGLTest::SCISSOR_TEST))
+          if(test == int(OpenGLTest::ScissorTest))
           {
             failed = QueryScissorTest(driver, resources, modEvents[i], x, y);
           }
@@ -286,14 +276,10 @@ void QueryFailedTests(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
       }
     }
 
-    for(; historyIndex < history.size() && modEvents[i].eventId == history[historyIndex].eventId;
-        ++historyIndex)
-    {
-      history[historyIndex].scissorClipped = failedTest == OpenGLTest::SCISSOR_TEST;
-      history[historyIndex].stencilTestFailed = failedTest == OpenGLTest::STENCIL_TEST;
-      history[historyIndex].depthTestFailed = failedTest == OpenGLTest::DEPTH_TEST;
-      history[historyIndex].backfaceCulled = failedTest == OpenGLTest::FACE_CULLING;
-    }
+    history[i].scissorClipped = failedTest == OpenGLTest::ScissorTest;
+    history[i].stencilTestFailed = failedTest == OpenGLTest::StencilTest;
+    history[i].depthTestFailed = failedTest == OpenGLTest::DepthTest;
+    history[i].backfaceCulled = failedTest == OpenGLTest::FaceCulling;
   }
 }
 };
