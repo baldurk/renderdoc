@@ -75,7 +75,10 @@ void D3D11Replay::CreateSOBuffers()
   SAFE_RELEASE(m_SOBuffer);
   SAFE_RELEASE(m_SOStagingBuffer);
 
-  if(m_SOBufferSize > 0xFFFF0000ULL)
+  if(m_SOBufferSize > 0xFFFF0000ULL ||
+     // workaround nv driver bug, it crashes copying with an offset over 2GB (which we need for
+     // readback). Treat this as an OOM scenario
+     (m_DriverInfo.vendor == GPUVendor::nVidia && m_SOBufferSize > 0x80000000ULL))
   {
     RDCERR("Can't resize stream-out buffer to larger than 4GB, needed %llu bytes.", m_SOBufferSize);
     SAFE_RELEASE(m_SOBuffer);
@@ -835,8 +838,9 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
 
         if(!m_SOStagingBuffer)
         {
-          ret.vsout.status = StringFormat::Fmt(
-              "Vertex output generated %llu bytes of data which ran out of memory", newSize);
+          ret.gsout.status = StringFormat::Fmt(
+              "Geometry/tessellation output generated %llu bytes of data which ran out of memory",
+              newSize);
           return;
         }
 
