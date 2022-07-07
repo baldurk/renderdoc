@@ -1913,8 +1913,8 @@ bool ReplayController::FatalErrorCheck()
 
   if(m_FatalError != ResultCode::Succeeded)
   {
-    RDCLOG("Fatal error detected: %s (%s)", ToStr(m_FatalError.code).c_str(),
-           m_FatalError.message.c_str());
+    RDCLOG("Fatal error detected: %s (%s) at event %u", ToStr(m_FatalError.code).c_str(),
+           m_FatalError.message.c_str(), m_EventID);
 
     IReplayDriver *old = m_pDevice;
 
