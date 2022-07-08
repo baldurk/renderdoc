@@ -135,6 +135,8 @@ endif()
 
 if(APPLE)
     list(APPEND SRC
+        apple/nuklear_appkit.mm
+        apple/nuklear_appkit.h
         apple/official/metal-cpp.cpp
         apple/official/metal-cpp.h
         apple/apple_platform.cpp

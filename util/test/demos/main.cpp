@@ -216,26 +216,64 @@ void NuklearShutdown()
 
 #elif defined(__APPLE__)
 
+#include "apple/official/metal-cpp.h"
+extern "C" void *const NSDefaultRunLoopMode;
+
+#define NK_APPKIT_IMPLEMENTATION
+#include "apple/nuklear_appkit.h"
+
+static nk_appkit_window *window;
+static AppkitFont *font;
+static NS::Application *pSharedApplication = NULL;
+
 nk_context *NuklearInit(int width, int height, const char *title)
 {
-  TEST_ERROR("NuklearInit: Not Implemented");
-  return NULL;
+  if(!nk_appkit_core_initialize())
+    exit(EXIT_FAILURE);
+
+  pSharedApplication = NS::Application::sharedApplication();
+
+  window = nk_appkit_window_create(width, height, title);
+  if(!window)
+    exit(EXIT_FAILURE);
+
+  nk_context *ctx = nk_appkit_create(window);
+  font = nk_appkit_create_font("Menlo Regular", 9);
+  nk_appkit_init(font);
+  return ctx;
 }
 
 bool NuklearTick(nk_context *ctx)
 {
-  TEST_ERROR("NuklearTick: Not Implemented");
-  return false;
+  NS::AutoreleasePool *pAutoreleasePool = NS::AutoreleasePool::alloc()->init();
+  while(true)
+  {
+    NS::Event *event = pSharedApplication->nextEventMatchingMask(
+        (int)NS::EventMaskAny, NS::Date::distantPast(), (NS::String *)NSDefaultRunLoopMode, true);
+    if(event == NULL)
+      break;
+    pSharedApplication->sendEvent(event);
+  }
+  pAutoreleasePool->release();
+  nk_appkit_new_frame();
+
+  if(nk_appkit_window_is_closed(window))
+    return false;
+
+  return true;
 }
 
 void NuklearRender()
 {
-  TEST_ERROR("NuklearRender: Not Implemented");
+  nk_appkit_render(nk_rgb(30, 30, 30));
 }
 
 void NuklearShutdown()
 {
-  TEST_ERROR("NuklearShutdown: Not Implemented");
+  nk_appkit_delete_font(font);
+  nk_appkit_shutdown();
+  nk_appkit_window_delete(window);
+  nk_appkit_core_shutdown();
 }
 
 #else
