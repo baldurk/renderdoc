@@ -1192,7 +1192,7 @@ struct GlobalHookData
 };
 
 // utility function to close the registry keys, print an error, and quit
-static bool HandleRegError(HKEY keyNative, HKEY keyWow32, LSTATUS ret, const char *msg)
+static RDResult HandleRegError(HKEY keyNative, HKEY keyWow32, LSTATUS ret, const char *msg)
 {
   if(keyNative)
     RegCloseKey(keyNative);
@@ -1200,8 +1200,11 @@ static bool HandleRegError(HKEY keyNative, HKEY keyWow32, LSTATUS ret, const cha
   if(keyWow32)
     RegCloseKey(keyWow32);
 
-  RDCERR("Error with AppInit registry keys - %s (%d)", msg, ret);
-  return false;
+  RDCLOG("Error with AppInit registry keys - %s (%d)", msg, ret);
+
+  RETURN_ERROR_RESULT(ResultCode::InjectionFailed,
+                      "Error updating registry to enable global hook.\n"
+                      "Check that RenderDoc is correctly running as administrator.");
 }
 
 #define REG_CHECK(msg)                                    \
@@ -1211,11 +1214,39 @@ static bool HandleRegError(HKEY keyNative, HKEY keyWow32, LSTATUS ret, const cha
   }
 
 // function to backup the previous settings for AppInit, then enable it and write our own paths.
-bool BackupAndChangeRegistry(GlobalHookData &hookdata, const rdcstr &shimpathWow32,
-                             const rdcstr &shimpathNative)
+RDResult BackupAndChangeRegistry(GlobalHookData &hookdata, const rdcstr &shimpathWow32,
+                                 const rdcstr &shimpathNative)
 {
   HKEY keyNative = NULL;
   HKEY keyWow32 = NULL;
+
+  // AppInit_DLLs requires short paths, but short paths can be disabled globally or on a per-volume
+  // level. If short paths are disabled we'll get the long path back, we *always* expect the path to
+  // get shorter because the shim filename is bigger than 8.3.
+
+  DWORD nativeShortSize = GetShortPathNameW(StringFormat::UTF82Wide(shimpathNative).c_str(), NULL,
+                                            (DWORD)shimpathNative.length());
+  if(nativeShortSize == (DWORD)shimpathNative.length() + 1)
+  {
+    RETURN_ERROR_RESULT(
+        ResultCode::FileIOFailed,
+        "RenderDoc is installed on a volume or system that has short paths disabled.\n"
+        "For the global hook, short paths must be enabled where RenderDoc is installed.");
+  }
+
+  if(!shimpathWow32.empty())
+  {
+    DWORD wow32ShortSize = GetShortPathNameW(StringFormat::UTF82Wide(shimpathWow32).c_str(), NULL,
+                                             (DWORD)shimpathWow32.length());
+
+    if(wow32ShortSize == (DWORD)shimpathWow32.length() + 1)
+    {
+      RETURN_ERROR_RESULT(
+          ResultCode::FileIOFailed,
+          "RenderDoc is installed on a volume or system that has short paths disabled.\n"
+          "For the global hook, short paths must be enabled where RenderDoc is installed.");
+    }
+  }
 
   // open the native key
   LSTATUS ret = RegCreateKeyExA(HKEY_LOCAL_MACHINE,
@@ -1346,7 +1377,7 @@ bool BackupAndChangeRegistry(GlobalHookData &hookdata, const rdcstr &shimpathWow
     RDCERR("Backup registry data is:\n\n%ls\n\n", backup.c_str());
   }
 
-  return true;
+  return RDResult();
 }
 
 // switch error-handling to print-and-continue, as we can't really do anything about it at this
@@ -1502,9 +1533,9 @@ RDResult Process::StartGlobalHook(const rdcstr &pathmatch, const rdcstr &capture
 
   // try to backup and change the registry settings to start loading our shim dlls. If that fails,
   // we bail out immediately
-  bool success = BackupAndChangeRegistry(hookdata, shimpathWow32, shimpathNative);
-  if(!success)
-    return RDResult(ResultCode::InternalError, "Registry change failed");
+  RDResult regStatus = BackupAndChangeRegistry(hookdata, shimpathWow32, shimpathNative);
+  if(regStatus != ResultCode::Succeeded)
+    return regStatus;
 
   PROCESS_INFORMATION pi = {0};
   STARTUPINFO si = {0};
