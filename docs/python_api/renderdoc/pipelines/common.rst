@@ -154,6 +154,9 @@ Shader Messages
 .. autoclass:: renderdoc.ShaderPixelMessageLocation
   :members:
 
+.. autoclass:: renderdoc.ShaderGeometryMessageLocation
+  :members:
+
 .. autoclass:: renderdoc.ShaderComputeMessageLocation
   :members:
 
