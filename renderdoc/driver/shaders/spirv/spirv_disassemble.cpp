@@ -1614,13 +1614,13 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
 
             for(uint32_t i = 0; i < decoded.params.size(); i++)
             {
-              if(i == 5 && IsDebugPrintf)
+              if(i == 0 && IsDebugPrintf)
                 ret += "\"";
 
               // TODO could generate this from the instruction set grammar.
               ret += idParams ? idName(decoded.arg<Id>(i)) : ToStr(decoded.arg<uint32_t>(i));
 
-              if(i == 5 && IsDebugPrintf)
+              if(i == 0 && IsDebugPrintf)
                 ret += "\"";
 
               if(i + 1 < decoded.params.size())
