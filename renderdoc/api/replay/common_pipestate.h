@@ -632,6 +632,29 @@ struct ShaderPixelMessageLocation
 
 DECLARE_REFLECTION_STRUCT(ShaderPixelMessageLocation);
 
+DOCUMENT(R"(A geometry shader message's location.
+
+.. data:: NoLocation
+
+  No frame number is available.
+)");
+struct ShaderGeometryMessageLocation
+{
+  DOCUMENT(R"(The primitive index
+
+:type: int
+)");
+  uint32_t primitive;
+
+  DOCUMENT(R"(The multiview view for this primitive, or ``0`` if multiview is disabled.
+
+:type: int
+)");
+  uint32_t view;
+};
+
+DECLARE_REFLECTION_STRUCT(ShaderGeometryMessageLocation);
+
 DOCUMENT("A shader message's location.");
 union ShaderMessageLocation
 {
@@ -652,6 +675,12 @@ union ShaderMessageLocation
 :type: ShaderPixelMessageLocation
 )");
   ShaderPixelMessageLocation pixel;
+
+  DOCUMENT(R"(The location if the shader is a geometry shader.
+
+:type: ShaderGeometryMessageLocation
+)");
+  ShaderGeometryMessageLocation geometry;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderMessageLocation);

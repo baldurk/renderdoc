@@ -104,6 +104,7 @@ public:
   QWidget *Widget() override { return this; }
   void ScrollToRow(int32_t row, MeshDataStage stage = MeshDataStage::VSIn) override;
   void ScrollToColumn(int32_t column, MeshDataStage stage = MeshDataStage::VSIn) override;
+  void ShowMeshData(MeshDataStage stage) override;
   void SetCurrentInstance(int32_t instance) override;
   void SetCurrentView(int32_t view) override;
   void SetPreviewStage(MeshDataStage stage) override;

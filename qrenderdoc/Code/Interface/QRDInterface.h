@@ -778,6 +778,12 @@ QWidget.
 )");
   virtual void ScrollToColumn(int32_t column, MeshDataStage stage = MeshDataStage::VSIn) = 0;
 
+  DOCUMENT(R"(Ensure the given stage's data is visible and raised, if it wasn't before.
+
+:param renderdoc.MeshDataStage stage: The stage of the geometry pipeline to show data for.
+)");
+  virtual void ShowMeshData(MeshDataStage stage) = 0;
+
   DOCUMENT(R"(For a mesh view, set the current instance. This is ignored when called on a raw buffer
 view.
 

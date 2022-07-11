@@ -40,9 +40,10 @@ private:
 
   QModelIndex m_ClickedIndex;
   QIcon m_Icon;
+  int m_EnableRole;
 
 public:
-  ButtonDelegate(const QIcon &icon, QWidget *parent);
+  ButtonDelegate(const QIcon &icon, int enableRole, QWidget *parent);
   void paint(QPainter *painter, const QStyleOptionViewItem &option,
              const QModelIndex &index) const override;
   QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;

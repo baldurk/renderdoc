@@ -357,7 +357,8 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
 
   rdcspv::Id bufferAddressConst, ssboVar, uint32ptrtype;
 
-  if(usesMultiview && (stage == ShaderStage::Pixel || stage == ShaderStage::Vertex))
+  if(usesMultiview &&
+     (stage == ShaderStage::Pixel || stage == ShaderStage::Vertex || stage == ShaderStage::Geometry))
   {
     editor.AddCapability(rdcspv::Capability::MultiView);
     editor.AddExtension("SPV_KHR_multiview");
@@ -682,6 +683,28 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
         location = locationGather.add(
             rdcspv::OpCompositeConstruct(uvec3Type, editor.MakeId(), {coord, view, prim}));
       }
+    }
+    else if(stage == ShaderStage::Geometry)
+    {
+      rdcspv::Id prim = fetchOrAddGlobalInput("rdoc_primitiveIndex", ShaderBuiltin::PrimitiveIndex,
+                                              rdcspv::BuiltIn::PrimitiveId, uint32Type);
+
+      rdcspv::Id view;
+
+      // only search for the view index is the multiview capability is declared, otherwise it's
+      // invalid and we just set 0. Valid for both Vertex and Pixel shaders
+      if(editor.HasCapability(rdcspv::Capability::MultiView))
+      {
+        view = fetchOrAddGlobalInput("rdoc_viewIndex", ShaderBuiltin::ViewportIndex,
+                                     rdcspv::BuiltIn::ViewIndex, uint32Type);
+      }
+      else
+      {
+        view = editor.AddConstantImmediate<uint32_t>(0U);
+      }
+
+      location = locationGather.add(
+          rdcspv::OpCompositeConstruct(uvec3Type, editor.MakeId(), {prim, view, zero}));
     }
     else
     {
@@ -1899,6 +1922,11 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
           // go back to a 0-based instance index
           msg.location.vertex.instance = location[1] - action->instanceOffset;
           msg.location.vertex.view = location[2];
+        }
+        else if(stage == ShaderStage::Geometry)
+        {
+          msg.location.geometry.primitive = location[0];
+          msg.location.geometry.view = location[1];
         }
         else
         {

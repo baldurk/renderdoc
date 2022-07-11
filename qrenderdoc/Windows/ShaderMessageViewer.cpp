@@ -34,8 +34,11 @@
 #include "toolwindowmanager/ToolWindowManager.h"
 #include "ui_ShaderMessageViewer.h"
 
-ButtonDelegate::ButtonDelegate(const QIcon &icon, QWidget *parent)
-    : m_Icon(icon), QStyledItemDelegate(parent)
+static const int debuggableRole = Qt::UserRole + 1;
+static const int gotoableRole = Qt::UserRole + 2;
+
+ButtonDelegate::ButtonDelegate(const QIcon &icon, int enableRole, QWidget *parent)
+    : m_Icon(icon), m_EnableRole(enableRole), QStyledItemDelegate(parent)
 {
 }
 
@@ -54,7 +57,9 @@ void ButtonDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option
   button.rect.setSize(sz);
   button.icon = m_Icon;
   button.iconSize = sz;
-  button.state = QStyle::State_Enabled;
+
+  if(m_EnableRole == 0 || index.data(m_EnableRole).toBool())
+    button.state = QStyle::State_Enabled;
 
   if(m_ClickedIndex == index)
     button.state |= QStyle::State_Sunken;
@@ -77,7 +82,8 @@ bool ButtonDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
 {
   if(event->type() == QEvent::MouseButtonPress)
   {
-    m_ClickedIndex = index;
+    if(m_EnableRole == 0 || index.data(m_EnableRole).toBool())
+      m_ClickedIndex = index;
   }
   else if(event->type() == QEvent::MouseMove)
   {
@@ -105,7 +111,7 @@ bool ButtonDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
   }
   else if(event->type() == QEvent::MouseButtonRelease)
   {
-    if(m_ClickedIndex == index)
+    if(m_ClickedIndex == index && index != QModelIndex())
     {
       m_ClickedIndex = QModelIndex();
 
@@ -200,7 +206,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
 
   int sortColumn = 0;
 
-  m_debugDelegate = new ButtonDelegate(Icons::wrench(), this);
+  m_debugDelegate = new ButtonDelegate(Icons::wrench(), debuggableRole, this);
 
   if(m_Action && (m_Action->flags & ActionFlags::Dispatch))
   {
@@ -218,7 +224,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
     ui->messages->setColumns({lit("Debug"), lit("Go to"), tr("Location"), lit("Message")});
     sortColumn = 2;
 
-    m_gotoDelegate = new ButtonDelegate(Icons::find(), this);
+    m_gotoDelegate = new ButtonDelegate(Icons::find(), gotoableRole, this);
 
     ui->messages->setItemDelegateForColumn(0, m_debugDelegate);
     ui->messages->setItemDelegateForColumn(1, m_gotoDelegate);
@@ -389,6 +395,9 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
         m_Ctx.ShowMeshPreview();
         m_Ctx.GetMeshPreview()->SetCurrentInstance(msg.location.vertex.instance);
         m_Ctx.GetMeshPreview()->SetCurrentView(msg.location.vertex.view);
+        m_Ctx.GetMeshPreview()->ShowMeshData(MeshDataStage::VSOut);
+        m_Ctx.GetMeshPreview()->ScrollToRow(msg.location.vertex.vertexIndex, MeshDataStage::VSOut);
+        m_Ctx.GetMeshPreview()->ShowMeshData(MeshDataStage::VSIn);
         // TODO, not accurate for indices
         m_Ctx.GetMeshPreview()->ScrollToRow(msg.location.vertex.vertexIndex, MeshDataStage::VSIn);
       }
@@ -414,6 +423,17 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
           m_Ctx.GetTextureViewer()->ViewFollowedResource(FollowType::OutputDepth,
                                                          ShaderStage::Pixel, 0, 0);
         m_Ctx.GetTextureViewer()->GotoLocation(msg.location.pixel.x, msg.location.pixel.y);
+      }
+      else if(msg.stage == ShaderStage::Geometry)
+      {
+        m_Ctx.ShowMeshPreview();
+        m_Ctx.GetMeshPreview()->SetCurrentView(msg.location.geometry.view);
+        m_Ctx.GetMeshPreview()->ShowMeshData(MeshDataStage::GSOut);
+        // TODO, instances not supported
+        m_Ctx.GetMeshPreview()->ScrollToRow(
+            RENDERDOC_VertexOffset(m_Ctx.CurPipelineState().GetPrimitiveTopology(),
+                                   msg.location.geometry.primitive),
+            MeshDataStage::GSOut);
       }
       else
       {
@@ -495,6 +515,15 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
           {
             // column 2 is the thread column for compute
             return am.location.compute.thread < bm.location.compute.thread;
+          }
+          else if(am.stage == ShaderStage::Geometry)
+          {
+            const ShaderGeometryMessageLocation &aloc = am.location.geometry;
+            const ShaderGeometryMessageLocation &bloc = bm.location.geometry;
+
+            if(aloc.view != bloc.view)
+              return aloc.view < bloc.view;
+            return am.location.geometry.primitive < bm.location.geometry.primitive;
           }
           else
           {
@@ -735,6 +764,10 @@ void ShaderMessageViewer::refreshMessages()
 
   QString filter = ui->filter->text().trimmed();
 
+  const ShaderReflection *vsrefl = m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Vertex);
+  const ShaderReflection *psrefl = m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
+  const ShaderReflection *csrefl = m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);
+
   for(int i = 0; i < m_Messages.count(); i++)
   {
     const ShaderMessage &msg = m_Messages[i];
@@ -745,9 +778,13 @@ void ShaderMessageViewer::refreshMessages()
 
     QString text(msg.message);
 
+    const ShaderReflection *refl = NULL;
+
     QString location;
     if(msg.stage == ShaderStage::Vertex)
     {
+      refl = vsrefl;
+
       // only show the view if the draw has multiview enabled
       if(m_Multiview)
       {
@@ -771,6 +808,8 @@ void ShaderMessageViewer::refreshMessages()
     }
     else if(msg.stage == ShaderStage::Pixel)
     {
+      refl = psrefl;
+
       location = QFormatStr("%1 %2,%3")
                      .arg(IsD3D(m_API) ? lit("Pixel") : lit("Frag"))
                      .arg(msg.location.pixel.x)
@@ -794,11 +833,22 @@ void ShaderMessageViewer::refreshMessages()
     }
     else if(msg.stage == ShaderStage::Compute)
     {
+      refl = csrefl;
+    }
+    else if(msg.stage == ShaderStage::Geometry)
+    {
+      location = lit("Geometry Prim %1").arg(msg.location.geometry.primitive);
+
+      // only show the view if the draw has multiview enabled
+      if(m_Multiview)
+      {
+        location += lit(", View %1").arg(msg.location.geometry.view);
+      }
     }
     else
     {
       // no location info for other stages
-      location = tr("Unknown shader");
+      location = tr("Unknown %1").arg(ToQStr(msg.stage, m_Ctx.APIProps().pipelineType));
     }
 
     // filter by text on location and messag
@@ -821,10 +871,17 @@ void ShaderMessageViewer::refreshMessages()
               .arg(msg.location.compute.thread[2]),
           text,
       });
+
+      node->setData(0, debuggableRole, refl && refl->debugInfo.debuggable);
     }
     else
     {
       node = new RDTreeWidgetItem({QString(), QString(), location, text});
+
+      node->setData(0, debuggableRole, refl && refl->debugInfo.debuggable);
+      node->setData(1, gotoableRole, msg.stage == ShaderStage::Vertex ||
+                                         msg.stage == ShaderStage::Pixel ||
+                                         msg.stage == ShaderStage::Geometry);
     }
 
     if(node)

@@ -4150,6 +4150,16 @@ void BufferViewer::ScrollToColumn(RDTableView *view, int column)
   view->verticalScrollBar()->setValue(vs);
 }
 
+void BufferViewer::ShowMeshData(MeshDataStage stage)
+{
+  if(stage == MeshDataStage::VSIn)
+    ToolWindowManager::raiseToolWindow(ui->vsinData);
+  else if(stage == MeshDataStage::VSOut)
+    ToolWindowManager::raiseToolWindow(ui->vsoutData);
+  else if(stage == MeshDataStage::GSOut)
+    ToolWindowManager::raiseToolWindow(ui->gsoutData);
+}
+
 void BufferViewer::SetCurrentInstance(int32_t instance)
 {
   if(ui->instance->isVisible() && ui->instance->isEnabled())
