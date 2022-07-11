@@ -215,6 +215,7 @@ private:
   static uint32_t GetVarSizeAndTrail(const ShaderConstant &var);
 
   static void EstimatePackingRules(Packing::Rules &pack, const ShaderConstant &constant);
+  static void EstimatePackingRules(Packing::Rules &pack, const rdcarray<ShaderConstant> &members);
   static QString DeclarePacking(Packing::Rules pack);
 
 public:
@@ -225,7 +226,6 @@ public:
   static uint32_t GetVarAdvance(Packing::Rules pack, const ShaderConstant &var);
 
   static Packing::Rules EstimatePackingRules(const rdcarray<ShaderConstant> &members);
-  static void EstimatePackingRules(Packing::Rules &pack, const rdcarray<ShaderConstant> &members);
 
   static QString GetTextureFormatString(const TextureDescription &tex);
   static QString GetBufferFormatString(Packing::Rules pack, const ShaderResource &res,

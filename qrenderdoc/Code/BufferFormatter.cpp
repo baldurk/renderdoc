@@ -194,6 +194,16 @@ void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, const ShaderCon
       if(vecSize == 2 && offsModVec != 0 && offsModVec != vec4Size / 2)
         pack.vector_align_component = true;
 
+      if(constant.type.elements > 1)
+      {
+        // with arrays we can check the stride as well. If the stride isn't vector-aligned then
+        // that's the same as vectors being aligned to components (even if we don't see it)
+        if(vecSize >= 3 && constant.type.arrayByteStride != vec4Size)
+          pack.vector_align_component = true;
+        if(vecSize == 3 && constant.type.arrayByteStride != vec4Size / 2)
+          pack.vector_align_component = true;
+      }
+
       // while we're here, check if the vector straddles a 16-byte boundary
 
       const uint32_t low16b = (constant.byteOffset / 16);
@@ -3695,6 +3705,52 @@ QString RowTypeString(const ShaderVariable &v)
 #if ENABLE_UNIT_TESTS
 
 #include "3rdparty/catch/catch.hpp"
+
+TEST_CASE("round-trip via format", "[formatter]")
+{
+  BufferFormatter::Init(GraphicsAPI::Vulkan);
+
+  ShaderResource res;
+  ResourceFormat fmt;
+  rdcarray<ShaderConstant> &members = res.variableType.members;
+  ParsedFormat parsed;
+
+  members.push_back({});
+  members.back().name = "a";
+  members.back().byteOffset = 0;
+  members.back().type.name = "float";
+  members.back().type.flags = ShaderVariableFlags::RowMajorMatrix;
+  members.back().type.baseType = VarType::Float;
+  members.back().type.arrayByteStride = 16;
+  members.back().type.elements = 7;
+
+  // std140 packing
+  parsed = BufferFormatter::ParseFormatString(
+      BufferFormatter::GetBufferFormatString(BufferFormatter::EstimatePackingRules(members), res, fmt),
+      0, true);
+
+  CHECK((parsed.fixed.type.members == members));
+
+  // std430 packing
+  members.back().type.arrayByteStride = 4;
+
+  parsed = BufferFormatter::ParseFormatString(
+      BufferFormatter::GetBufferFormatString(BufferFormatter::EstimatePackingRules(members), res, fmt),
+      0, true);
+
+  CHECK((parsed.fixed.type.members == members));
+
+  // scalar packing
+  members.back().type.name = "float3";
+  members.back().type.columns = 3;
+  members.back().type.arrayByteStride = 12;
+
+  parsed = BufferFormatter::ParseFormatString(
+      BufferFormatter::GetBufferFormatString(BufferFormatter::EstimatePackingRules(members), res, fmt),
+      0, true);
+
+  CHECK((parsed.fixed.type.members == members));
+}
 
 TEST_CASE("Buffer format parsing", "[formatter]")
 {
