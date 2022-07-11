@@ -1627,6 +1627,21 @@ void Reflector::MakeConstantBlockVariables(rdcspv::StorageClass storage, const D
   }
 }
 
+void Reflector::ApplyMatrixByteStride(const DataType &type, uint8_t matrixByteStride,
+                                      rdcarray<ShaderConstant> &members) const
+{
+  const DataType &inner = dataTypes[type.InnerType()];
+
+  for(ShaderConstant &m : members)
+  {
+    if(m.type.matrixByteStride == 0)
+      m.type.matrixByteStride = matrixByteStride;
+
+    if(inner.type == DataType::ArrayType)
+      ApplyMatrixByteStride(inner, matrixByteStride, m.type.members);
+  }
+}
+
 void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst,
                                           SparseIdMap<uint16_t> &pointerTypes,
                                           rdcspv::StorageClass storage, const DataType &type,
@@ -1728,6 +1743,11 @@ void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst,
 
     if(curType->type == DataType::ArrayType)
     {
+      // matrix byte stride is only applied on the root variable, so as we recurse down the type
+      // tree for multi-dimensional arrays of matrices we need to propagate down the stride
+      if(outConst.type.matrixByteStride != 0)
+        ApplyMatrixByteStride(*curType, outConst.type.matrixByteStride, outConst.type.members);
+
       outConst.type.name = type.name;
 
       // if the inner type is an array, it will be expanded in our members list. So don't also

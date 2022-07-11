@@ -107,6 +107,8 @@ private:
   rdcstr StringiseConstant(rdcspv::Id id) const;
   void CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const;
 
+  void ApplyMatrixByteStride(const DataType &type, uint8_t matrixByteStride,
+                             rdcarray<ShaderConstant> &members) const;
   void MakeConstantBlockVariables(rdcspv::StorageClass storage, const DataType &structType,
                                   uint32_t arraySize, uint32_t arrayByteStride,
                                   rdcarray<ShaderConstant> &cblock,
