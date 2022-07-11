@@ -1224,9 +1224,18 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
           for(size_t s = 0; s < shadDetails.sources.size(); s++)
             srcs[s] = (char *)shadDetails.sources[s].c_str();
           drv.glShaderSource(shad, (GLsizei)shadDetails.sources.size(), srcs, NULL);
-
           SAFE_DELETE_ARRAY(srcs);
-          drv.glCompileShader(shad);
+
+          char **includes = new char *[shadDetails.includepaths.size()];
+          for(size_t s = 0; s < shadDetails.includepaths.size(); s++)
+            includes[s] = (char *)shadDetails.includepaths[s].c_str();
+
+          if(shadDetails.includepaths.empty())
+            drv.glCompileShader(shad);
+          else
+            drv.glCompileShaderIncludeARB(shad, (GLsizei)shadDetails.includepaths.size(), includes,
+                                          NULL);
+          SAFE_DELETE_ARRAY(includes);
           drv.glAttachShader(initProg, shad);
           drv.glDeleteShader(shad);
         }

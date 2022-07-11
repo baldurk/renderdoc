@@ -180,8 +180,8 @@ static bool iswhitespace(char c)
   return isspacetab(c) || isnewline(c);
 }
 
-GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcstr> sources,
-                                  rdcarray<rdcstr> *includepaths)
+GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, const rdcarray<rdcstr> &sources,
+                                  const rdcarray<rdcstr> &includepaths)
 {
   // in and out blocks are added separately, in case one is there already
   const char *blockIdentifiers[2] = {"in gl_PerVertex", "out gl_PerVertex"};
@@ -216,13 +216,13 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcs
 
   const char **paths = NULL;
   GLsizei numPaths = 0;
-  if(includepaths)
+  if(!includepaths.empty())
   {
-    numPaths = (GLsizei)includepaths->size();
+    numPaths = (GLsizei)includepaths.size();
 
-    paths = new const char *[includepaths->size()];
-    for(size_t i = 0; i < includepaths->size(); i++)
-      paths[i] = (*includepaths)[i].c_str();
+    paths = new const char *[includepaths.size()];
+    for(size_t i = 0; i < includepaths.size(); i++)
+      paths[i] = includepaths[i].c_str();
   }
 
   GLuint sepProg = CreateSepProgram(drv, type, (GLsizei)sources.size(), strings, numPaths, paths);

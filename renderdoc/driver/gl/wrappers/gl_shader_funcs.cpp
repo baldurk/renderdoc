@@ -225,7 +225,7 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
       // - this may or may not be emulated depending on if ARB_program_interface_query is supported.
       if(HasExt[ARB_separate_shader_objects])
       {
-        GLuint sepProg = MakeSeparableShaderProgram(drv, type, sources, NULL);
+        GLuint sepProg = MakeSeparableShaderProgram(drv, type, sources, includepaths);
 
         if(sepProg == 0)
         {
