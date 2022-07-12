@@ -17785,6 +17785,7 @@ namespace Private
     {
 
         _CA_PRIVATE_DEF_PRO(CAMetalDrawable);
+        _CA_PRIVATE_DEF_PRO(CAMetalLayer);
 
     } // Protocol
 } // Private
@@ -17801,6 +17802,8 @@ namespace Private
             "layer");
         _CA_PRIVATE_DEF_SEL(texture,
             "texture");
+        _CA_PRIVATE_DEF_SEL(device,
+            "device");
 
     } // Class
 } // Private
@@ -17849,6 +17852,7 @@ namespace CA
   {
     public:
       static MetalLayer*    layer();
+      MTL::Device*          device() const;
   };
 }
 
@@ -17857,3 +17861,7 @@ _NS_INLINE CA::MetalLayer* CA::MetalLayer::layer()
     return Object::sendMessage< CA::MetalLayer* >( _CA_PRIVATE_CLS( CAMetalLayer ), _CA_PRIVATE_SEL( layer ) );
 }
 
+_CA_INLINE MTL::Device* CA::MetalLayer::device() const
+{
+    return Object::sendMessage<MTL::Device*>(this, _CA_PRIVATE_SEL(device));
+}
