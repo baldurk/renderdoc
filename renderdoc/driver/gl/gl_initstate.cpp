@@ -2186,34 +2186,37 @@ void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialConte
 
       GLenum fmt = details.internalFormat;
 
-      // update width from here as it's authoratitive - the texture might have been resized in
-      // multiple rebinds that we will not have serialised before.
-      details.width =
-          state.texBufSize / uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt)));
+      if(buffer && fmt != eGL_NONE)
+      {
+        // update width from here as it's authoratitive - the texture might have been resized in
+        // multiple rebinds that we will not have serialised before.
+        details.width =
+            state.texBufSize / uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt)));
 
-      if(GL.glTextureBufferRangeEXT && (state.texBufOffs > 0 || state.texBufSize > 0))
-      {
-        // restore texbuffer only state
-        GL.glTextureBufferRangeEXT(live.name, eGL_TEXTURE_BUFFER, details.internalFormat, buffer,
-                                   state.texBufOffs, state.texBufSize);
-      }
-      else
-      {
-        uint32_t bufSize = 0;
-        GL.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&bufSize);
-        if(state.texBufOffs > 0 || state.texBufSize > bufSize)
+        if(GL.glTextureBufferRangeEXT && (state.texBufOffs > 0 || state.texBufSize > 0))
         {
-          const char *msg =
-              "glTextureBufferRangeEXT is not supported on your GL implementation, but is needed "
-              "for correct replay.\n"
-              "The original capture created a texture buffer with a range - replay will use the "
-              "whole buffer, which is likely incorrect.";
-          RDCERR("%s", msg);
-          m_Driver->AddDebugMessage(MessageCategory::Resource_Manipulation, MessageSeverity::High,
-                                    MessageSource::IncorrectAPIUse, msg);
+          // restore texbuffer only state
+          GL.glTextureBufferRangeEXT(live.name, eGL_TEXTURE_BUFFER, details.internalFormat, buffer,
+                                     state.texBufOffs, state.texBufSize);
         }
+        else
+        {
+          uint32_t bufSize = 0;
+          GL.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&bufSize);
+          if(state.texBufOffs > 0 || state.texBufSize > bufSize)
+          {
+            const char *msg =
+                "glTextureBufferRangeEXT is not supported on your GL implementation, but is needed "
+                "for correct replay.\n"
+                "The original capture created a texture buffer with a range - replay will use the "
+                "whole buffer, which is likely incorrect.";
+            RDCERR("%s", msg);
+            m_Driver->AddDebugMessage(MessageCategory::Resource_Manipulation, MessageSeverity::High,
+                                      MessageSource::IncorrectAPIUse, msg);
+          }
 
-        GL.glTextureBufferEXT(live.name, eGL_TEXTURE_BUFFER, details.internalFormat, buffer);
+          GL.glTextureBufferEXT(live.name, eGL_TEXTURE_BUFFER, details.internalFormat, buffer);
+        }
       }
     }
   }
