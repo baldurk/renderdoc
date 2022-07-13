@@ -4660,15 +4660,20 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         {
           ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(pCommandBuffers[c]));
 
-          // propagate renderpass state
-          m_BakedCmdBufferInfo[cmd].state.SetRenderPass(parentCmdBufInfo.state.GetRenderPass());
-          m_BakedCmdBufferInfo[cmd].state.subpass = parentCmdBufInfo.state.subpass;
-          m_BakedCmdBufferInfo[cmd].state.dynamicRendering = parentCmdBufInfo.state.dynamicRendering;
-          m_BakedCmdBufferInfo[cmd].state.SetFramebuffer(
-              parentCmdBufInfo.state.GetFramebuffer(),
-              parentCmdBufInfo.state.GetFramebufferAttachments());
-          m_BakedCmdBufferInfo[cmd].state.renderArea = parentCmdBufInfo.state.renderArea;
-          m_BakedCmdBufferInfo[cmd].state.subpassContents = parentCmdBufInfo.state.subpassContents;
+          // propagate renderpass state if active. If it's inactive the renderpass might be
+          // activated inside the secondary which we should not overwrite.
+          if(parentCmdBufInfo.state.ActiveRenderPass())
+          {
+            m_BakedCmdBufferInfo[cmd].state.SetRenderPass(parentCmdBufInfo.state.GetRenderPass());
+            m_BakedCmdBufferInfo[cmd].state.subpass = parentCmdBufInfo.state.subpass;
+            m_BakedCmdBufferInfo[cmd].state.dynamicRendering =
+                parentCmdBufInfo.state.dynamicRendering;
+            m_BakedCmdBufferInfo[cmd].state.SetFramebuffer(
+                parentCmdBufInfo.state.GetFramebuffer(),
+                parentCmdBufInfo.state.GetFramebufferAttachments());
+            m_BakedCmdBufferInfo[cmd].state.renderArea = parentCmdBufInfo.state.renderArea;
+            m_BakedCmdBufferInfo[cmd].state.subpassContents = parentCmdBufInfo.state.subpassContents;
+          }
 
           // 2 extra for the virtual labels around the command buffer
           parentCmdBufInfo.curEventID += 2 + m_BakedCmdBufferInfo[cmd].eventCount;
