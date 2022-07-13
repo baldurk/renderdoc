@@ -1090,7 +1090,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
 
         for(auto it = submissions.begin(); it != submissions.end(); ++it)
         {
-          if(it->baseEvent <= m_LastEventID && m_LastEventID < (it->baseEvent + length))
+          if(RDCMAX(1U, it->baseEvent) - 1 <= m_LastEventID &&
+             m_LastEventID < (it->baseEvent + length))
           {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
             RDCDEBUG("vkBegin - partial detected %u < %u < %u, %s -> %s", it->baseEvent,
