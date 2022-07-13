@@ -923,6 +923,28 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
 
     case D3D12Chunk::List_ClearState: ret = m_ReplayList->Serialise_ClearState(ser, NULL); break;
 
+    /*-----AMD TODO------*/
+    case D3D12Chunk::List_BuildRaytracingAccelerationStructure:
+      ret = m_ReplayList->Serialise_BuildRaytracingAccelerationStructure(ser, NULL, 0, NULL);
+      break;
+    case D3D12Chunk::List_CopyRaytracingAccelerationStructure:
+      ret = m_ReplayList->Serialise_CopyRaytracingAccelerationStructure(
+          ser, D3D12_GPU_VIRTUAL_ADDRESS(), D3D12_GPU_VIRTUAL_ADDRESS(),
+          D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_CLONE);
+      break;
+    case D3D12Chunk::List_EmitRaytracingAccelerationStructurePostbuildInfo:
+      ret = m_ReplayList->Serialise_EmitRaytracingAccelerationStructurePostbuildInfo(ser, NULL, 0,
+                                                                                     NULL);
+      break;
+    case D3D12Chunk::List_DispatchRays:
+      ret = m_ReplayList->Serialise_DispatchRays(ser, NULL);
+      break;
+    case D3D12Chunk::List_SetPipelineState1:
+      ret = m_ReplayList->Serialise_SetPipelineState1(ser, NULL);
+      break;
+
+    /*-----AMD TODO-------*/
+
     // in order to get a warning if we miss a case, we explicitly handle the device creation chunks
     // here. If we actually encounter one it's an error (we shouldn't see these inside the captured
     // frame itself)
@@ -961,6 +983,8 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     case D3D12Chunk::Device_CreatePlacedResource2:
     case D3D12Chunk::Device_CreateReservedResource1:
     case D3D12Chunk::Device_CreateReservedResource2:
+    case D3D12Chunk::Device_CreateStateObject:
+    case D3D12Chunk::Device_AddToStateObject:
       RDCERR("Unexpected chunk while processing frame: %s", ToStr(chunk).c_str());
       return false;
 

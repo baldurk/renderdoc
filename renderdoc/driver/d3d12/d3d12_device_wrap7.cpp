@@ -25,10 +25,29 @@
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
 
+template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_AddToStateObject(SerialiserType &ser,
+                                                     const D3D12_STATE_OBJECT_DESC *pAddition,
+                                                     ID3D12StateObject *pStateObjectToGrowFrom,
+                                                     REFIID riid,
+                                                     _COM_Outptr_ void **ppNewStateObject)
+{
+  // AMD TODO - //Serialize Members
+
+  if(IsReplayingAndReading())
+  {
+    // AMD TODO
+    // Handle reading, and replaying
+  }
+
+  return false;
+}
+
 HRESULT STDMETHODCALLTYPE WrappedID3D12Device::AddToStateObject(
     const D3D12_STATE_OBJECT_DESC *pAddition, ID3D12StateObject *pStateObjectToGrowFrom,
     REFIID riid, _COM_Outptr_ void **ppNewStateObject)
 {
+  // TODO AMD
   RDCERR("AddToStateObject called but raytracing is not supported!");
   return E_INVALIDARG;
 }
@@ -64,3 +83,8 @@ HRESULT WrappedID3D12Device::CreateProtectedResourceSession1(
 
   return ret;
 }
+
+INSTANTIATE_FUNCTION_SERIALISED(HRESULT, WrappedID3D12Device, AddToStateObject,
+                                const D3D12_STATE_OBJECT_DESC *pAddition,
+                                ID3D12StateObject *pStateObjectToGrowFrom, REFIID riid,
+                                _COM_Outptr_ void **ppNewStateObject)

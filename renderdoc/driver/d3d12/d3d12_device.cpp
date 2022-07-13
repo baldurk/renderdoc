@@ -4230,6 +4230,10 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::Device_CreateReservedResource2:
       return Serialise_CreateReservedResource2(ser, NULL, D3D12_BARRIER_LAYOUT_COMMON, NULL, NULL,
                                                0, NULL, IID(), NULL);
+    case D3D12Chunk::Device_CreateStateObject:
+      return Serialise_CreateStateObject(ser, NULL, IID(), NULL);
+    case D3D12Chunk::Device_AddToStateObject:
+      return Serialise_AddToStateObject(ser, NULL, NULL, IID(), NULL);
 
     // in order to get a warning if we miss a case, we explicitly handle the list/queue chunks here.
     // If we actually encounter one it's an error (we should hit CaptureBegin first and switch to
@@ -4323,6 +4327,11 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::List_IASetIndexBufferStripCutValue:
     case D3D12Chunk::List_Barrier:
     case D3D12Chunk::List_DispatchMesh:
+    case D3D12Chunk::List_BuildRaytracingAccelerationStructure:
+    case D3D12Chunk::List_CopyRaytracingAccelerationStructure:
+    case D3D12Chunk::List_EmitRaytracingAccelerationStructurePostbuildInfo:
+    case D3D12Chunk::List_DispatchRays:
+    case D3D12Chunk::List_SetPipelineState1:
       RDCERR("Unexpected chunk while processing initialisation: %s", ToStr(context).c_str());
       return false;
 

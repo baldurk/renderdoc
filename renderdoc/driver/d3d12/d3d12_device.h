@@ -1625,10 +1625,10 @@ public:
 
   //////////////////////////////
   // implement ID3D12Device7
-  virtual HRESULT STDMETHODCALLTYPE AddToStateObject(const D3D12_STATE_OBJECT_DESC *pAddition,
-                                                     ID3D12StateObject *pStateObjectToGrowFrom,
-                                                     REFIID riid,
-                                                     _COM_Outptr_ void **ppNewStateObject);
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, AddToStateObject,
+                                       const D3D12_STATE_OBJECT_DESC *pAddition,
+                                       ID3D12StateObject *pStateObjectToGrowFrom, REFIID riid,
+                                       _COM_Outptr_ void **ppNewStateObject);
 
   virtual HRESULT STDMETHODCALLTYPE
   CreateProtectedResourceSession1(_In_ const D3D12_PROTECTED_RESOURCE_SESSION_DESC1 *pDesc,

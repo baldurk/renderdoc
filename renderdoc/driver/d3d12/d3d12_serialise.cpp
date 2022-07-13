@@ -1082,6 +1082,9 @@ void DoSerialise(SerialiserType &ser, D3D12_SHADER_RESOURCE_VIEW_DESC &el)
     case D3D12_SRV_DIMENSION_TEXTURE3D: SERIALISE_MEMBER(Texture3D); break;
     case D3D12_SRV_DIMENSION_TEXTURECUBE: SERIALISE_MEMBER(TextureCube); break;
     case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY: SERIALISE_MEMBER(TextureCubeArray); break;
+    case D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE:
+      SERIALISE_MEMBER(RaytracingAccelerationStructure);
+      break;
     default: RDCERR("Unrecognised SRV Dimension %d", el.ViewDimension); break;
   }
 }
@@ -1840,6 +1843,136 @@ void Deserialise(const D3D12_BARRIER_GROUP &el)
   }
 }
 
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_GPU_VIRTUAL_ADDRESS_AND_STRIDE &el)
+{
+  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, StartAddress).Important();
+  SERIALISE_MEMBER(StrideInBytes);
+}
+
+template <>
+void Deserialise(const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC &el)
+{
+  // We will be allocating only dynamic memory for el.Inputs
+  if(el.Inputs.Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL)
+    delete[] el.Inputs.pGeometryDescs;
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC &el)
+{
+  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, DestAccelerationStructureData).Important();
+  SERIALISE_MEMBER(Inputs);
+
+  if(el.SourceAccelerationStructureData)
+  {
+    SERIALISE_MEMBER_TYPED(D3D12BufferLocation, SourceAccelerationStructureData).Important();
+  }
+  else
+  {
+    SERIALISE_MEMBER_TYPED(D3D12BufferLocation, SourceAccelerationStructureData);
+  }
+
+  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, ScratchAccelerationStructureData).Important();
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS &el)
+{
+  SERIALISE_MEMBER(Type);
+  SERIALISE_MEMBER(Flags);
+  SERIALISE_MEMBER(NumDescs);
+  SERIALISE_MEMBER(DescsLayout);
+
+  if(el.Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL)
+  {
+    SERIALISE_MEMBER_TYPED(D3D12BufferLocation, InstanceDescs).Important();
+  }
+  else
+  {
+    if(el.DescsLayout == D3D12_ELEMENTS_LAYOUT_ARRAY)
+    {
+      SERIALISE_MEMBER_ARRAY(pGeometryDescs, NumDescs);
+    }
+    else
+    {
+      D3D12_RAYTRACING_GEOMETRY_DESC *tempDescs = new D3D12_RAYTRACING_GEOMETRY_DESC[el.NumDescs];
+
+      if(ser.IsWriting())
+      {
+        for(size_t i = 0; i < el.NumDescs; i++)
+        {
+          tempDescs[i] = *el.ppGeometryDescs[i];
+        }
+      }
+
+      SERIALISE_ELEMENT_ARRAY(tempDescs, el.NumDescs).Named("ppGeometryDescs");
+
+      if(ser.IsReading())
+      {
+        el.pGeometryDescs = tempDescs;
+        el.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+      }
+    }
+  }
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RAYTRACING_GEOMETRY_DESC &el)
+{
+  SERIALISE_MEMBER(Type);
+  SERIALISE_MEMBER(Flags);
+
+  if(el.Type == D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES)
+  {
+    SERIALISE_MEMBER(Triangles);
+  }
+  else
+  {
+    SERIALISE_MEMBER(AABBs);
+  }
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RAYTRACING_GEOMETRY_TRIANGLES_DESC &el)
+{
+  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, Transform3x4);
+  SERIALISE_MEMBER(IndexFormat);
+  SERIALISE_MEMBER(VertexFormat);
+  SERIALISE_MEMBER(IndexCount);
+  SERIALISE_MEMBER(VertexCount);
+  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, IndexBuffer);
+  SERIALISE_MEMBER(VertexBuffer);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RAYTRACING_GEOMETRY_AABBS_DESC &el)
+{
+  SERIALISE_MEMBER(AABBCount);
+  SERIALISE_MEMBER(AABBs);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC &el)
+{
+  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, DestBuffer);
+  SERIALISE_MEMBER(InfoType);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser,
+                 D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_SERIALIZATION_DESC &el)
+{
+  SERIALISE_MEMBER(SerializedSizeInBytes);
+  SERIALISE_MEMBER(NumBottomLevelAccelerationStructurePointers);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_SRV &el)
+{
+  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, Location);
+}
+
 INSTANTIATE_SERIALISE_TYPE(D3D12RootSignature);
 INSTANTIATE_SERIALISE_TYPE(PortableHandle);
 INSTANTIATE_SERIALISE_TYPE(D3D12_CPU_DESCRIPTOR_HANDLE);
@@ -1900,3 +2033,12 @@ INSTANTIATE_SERIALISE_TYPE(D3D12_DRAW_ARGUMENTS);
 INSTANTIATE_SERIALISE_TYPE(D3D12_DRAW_INDEXED_ARGUMENTS);
 INSTANTIATE_SERIALISE_TYPE(D3D12_DISPATCH_ARGUMENTS);
 INSTANTIATE_SERIALISE_TYPE(D3D12_DISPATCH_MESH_ARGUMENTS);
+INSTANTIATE_SERIALISE_TYPE(D3D12_GPU_VIRTUAL_ADDRESS_AND_STRIDE);
+INSTANTIATE_SERIALISE_TYPE(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RAYTRACING_GEOMETRY_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RAYTRACING_GEOMETRY_TRIANGLES_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RAYTRACING_GEOMETRY_AABBS_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_SERIALIZATION_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_SRV);

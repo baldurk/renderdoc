@@ -74,9 +74,26 @@ HRESULT WrappedID3D12Device::CreateMetaCommand(_In_ REFGUID CommandId, _In_ UINT
   return E_INVALIDARG;
 }
 
+template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_CreateStateObject(SerialiserType &ser,
+                                                      const D3D12_STATE_OBJECT_DESC *pDesc,
+                                                      REFIID riid, _COM_Outptr_ void **ppStateObject)
+{
+  // AMD TODO - //Serialize Members
+
+  if(IsReplayingAndReading())
+  {
+    // AMD TODO
+    // Handle reading, and replaying
+  }
+
+  return false;
+}
+
 HRESULT WrappedID3D12Device::CreateStateObject(const D3D12_STATE_OBJECT_DESC *pDesc, REFIID riid,
                                                _COM_Outptr_ void **ppStateObject)
 {
+  // AMD TODO
   RDCERR("CreateStateObject called but raytracing is not supported!");
   return E_INVALIDARG;
 }
@@ -85,16 +102,17 @@ void WrappedID3D12Device::GetRaytracingAccelerationStructurePrebuildInfo(
     _In_ const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS *pDesc,
     _Out_ D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO *pInfo)
 {
-  RDCERR("GetRaytracingAccelerationStructurePrebuildInfo called raytracing is not supported!");
-  if(pInfo)
-    *pInfo = {0, 0, 0};
-  return;
+  return m_pDevice5->GetRaytracingAccelerationStructurePrebuildInfo(pDesc, pInfo);
 }
 
 D3D12_DRIVER_MATCHING_IDENTIFIER_STATUS WrappedID3D12Device::CheckDriverMatchingIdentifier(
     _In_ D3D12_SERIALIZED_DATA_TYPE SerializedDataType,
     _In_ const D3D12_SERIALIZED_DATA_DRIVER_MATCHING_IDENTIFIER *pIdentifierToCheck)
 {
-  // always say the data is unrecognised
-  return D3D12_DRIVER_MATCHING_IDENTIFIER_UNRECOGNIZED;
+  // AMD TODO: Investigate if this needs additional handling
+  return m_pDevice5->CheckDriverMatchingIdentifier(SerializedDataType, pIdentifierToCheck);
 }
+
+INSTANTIATE_FUNCTION_SERIALISED(HRESULT, WrappedID3D12Device, CreateStateObject,
+                                const D3D12_STATE_OBJECT_DESC *pDesc, REFIID riid,
+                                _COM_Outptr_ void **ppStateObject)

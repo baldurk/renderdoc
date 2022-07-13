@@ -725,13 +725,39 @@ void WrappedID3D12GraphicsCommandList::ExecuteMetaCommand(
   RDCERR("ExecuteMetaCommand called but no meta commands reported!");
 }
 
+template <typename SerialiserType>
+bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStructure(
+    SerialiserType &ser, _In_ const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC *pDesc,
+    _In_ UINT NumPostbuildInfoDescs,
+    _In_reads_opt_(NumPostbuildInfoDescs)
+        const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC *pPostbuildInfoDescs)
+{
+  // TODO AMD
+  return false;
+}
+
 void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
     _In_ const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC *pDesc,
     _In_ UINT NumPostbuildInfoDescs,
     _In_reads_opt_(NumPostbuildInfoDescs)
         const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC *pPostbuildInfoDescs)
 {
+  // TODO AMD
   RDCERR("BuildRaytracingAccelerationStructure called but raytracing is not supported!");
+}
+
+template <typename SerialiserType>
+bool WrappedID3D12GraphicsCommandList::Serialise_EmitRaytracingAccelerationStructurePostbuildInfo(
+    SerialiserType &ser,
+    _In_ const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC *pDesc,
+    _In_ UINT NumSourceAccelerationStructures,
+    _In_reads_(NumSourceAccelerationStructures)
+        const D3D12_GPU_VIRTUAL_ADDRESS *pSourceAccelerationStructureData)
+{
+  // TODO AMD
+  RDCERR(
+      "EmitRaytracingAccelerationStructurePostbuildInfo called but raytracing is not supported!");
+  return false;
 }
 
 void WrappedID3D12GraphicsCommandList::EmitRaytracingAccelerationStructurePostbuildInfo(
@@ -740,8 +766,19 @@ void WrappedID3D12GraphicsCommandList::EmitRaytracingAccelerationStructurePostbu
     _In_reads_(NumSourceAccelerationStructures)
         const D3D12_GPU_VIRTUAL_ADDRESS *pSourceAccelerationStructureData)
 {
+  // TODO AMD
   RDCERR(
       "EmitRaytracingAccelerationStructurePostbuildInfo called but raytracing is not supported!");
+}
+
+template <typename SerialiserType>
+bool WrappedID3D12GraphicsCommandList::Serialise_CopyRaytracingAccelerationStructure(
+    SerialiserType &ser, _In_ D3D12_GPU_VIRTUAL_ADDRESS DestAccelerationStructureData,
+    _In_ D3D12_GPU_VIRTUAL_ADDRESS SourceAccelerationStructureData,
+    _In_ D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE Mode)
+{
+  // TODO AMD
+  return false;
 }
 
 void WrappedID3D12GraphicsCommandList::CopyRaytracingAccelerationStructure(
@@ -749,16 +786,35 @@ void WrappedID3D12GraphicsCommandList::CopyRaytracingAccelerationStructure(
     _In_ D3D12_GPU_VIRTUAL_ADDRESS SourceAccelerationStructureData,
     _In_ D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE Mode)
 {
+  // TODO AMD
   RDCERR("CopyRaytracingAccelerationStructure called but raytracing is not supported!");
+}
+
+template <typename SerialiserType>
+bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState1(SerialiserType &ser,
+                                                                   _In_ ID3D12StateObject *pStateObject)
+{
+  // TODO AMD
+  return false;
 }
 
 void WrappedID3D12GraphicsCommandList::SetPipelineState1(_In_ ID3D12StateObject *pStateObject)
 {
+  // TODO AMD
   RDCERR("SetPipelineState1 called but raytracing is not supported!");
+}
+
+template <typename SerialiserType>
+bool WrappedID3D12GraphicsCommandList::Serialise_DispatchRays(SerialiserType &ser,
+                                                              _In_ const D3D12_DISPATCH_RAYS_DESC *pDesc)
+{
+  // TODO AMD
+  return false;
 }
 
 void WrappedID3D12GraphicsCommandList::DispatchRays(_In_ const D3D12_DISPATCH_RAYS_DESC *pDesc)
 {
+  // TODO AMD
   RDCERR("DispatchRays called but raytracing is not supported!");
 }
 
@@ -768,3 +824,28 @@ INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, BeginRen
                                 const D3D12_RENDER_PASS_DEPTH_STENCIL_DESC *pDepthStencil,
                                 D3D12_RENDER_PASS_FLAGS Flags);
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, EndRenderPass);
+
+INSTANTIATE_FUNCTION_SERIALISED(
+    void, WrappedID3D12GraphicsCommandList, BuildRaytracingAccelerationStructure,
+    const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC *pDesc, _In_ UINT NumPostbuildInfoDescs,
+    _In_reads_opt_(NumPostbuildInfoDescs)
+        const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC *pPostbuildInfoDescs);
+
+INSTANTIATE_FUNCTION_SERIALISED(
+    void, WrappedID3D12GraphicsCommandList, EmitRaytracingAccelerationStructurePostbuildInfo,
+    _In_ const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC *pDesc,
+    _In_ UINT NumSourceAccelerationStructures,
+    _In_reads_(NumSourceAccelerationStructures)
+        const D3D12_GPU_VIRTUAL_ADDRESS *pSourceAccelerationStructureData);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList,
+                                CopyRaytracingAccelerationStructure,
+                                _In_ D3D12_GPU_VIRTUAL_ADDRESS DestAccelerationStructureData,
+                                _In_ D3D12_GPU_VIRTUAL_ADDRESS SourceAccelerationStructureData,
+                                _In_ D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE Mode);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetPipelineState1,
+                                _In_ ID3D12StateObject *pStateObject);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, DispatchRays,
+                                _In_ const D3D12_DISPATCH_RAYS_DESC *pDesc);
