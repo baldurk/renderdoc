@@ -918,8 +918,6 @@ private:
   rdcstr MakeRenderPassOpString(bool store);
   void ApplyRPLoadDiscards(VkCommandBuffer commandBuffer, VkRect2D renderArea);
 
-  bool IsDrawInRenderPass();
-
   RDCDriver GetFrameCaptureDriver() { return RDCDriver::Vulkan; }
   void StartFrameCapture(DeviceOwnedWindow devWnd);
   bool EndFrameCapture(DeviceOwnedWindow devWnd);

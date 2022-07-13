@@ -157,32 +157,6 @@ void WrappedVulkan::ExecuteIndirectReadback(VkCommandBuffer commandBuffer,
   }
 }
 
-bool WrappedVulkan::IsDrawInRenderPass()
-{
-  BakedCmdBufferInfo &cmd = m_BakedCmdBufferInfo[m_LastCmdBufferID];
-
-  if(cmd.level == VK_COMMAND_BUFFER_LEVEL_PRIMARY && cmd.state.GetRenderPass() == ResourceId() &&
-     (!cmd.state.dynamicRendering.active || cmd.state.dynamicRendering.suspended))
-  {
-    // for primary command buffers, we just check the per-command buffer tracked state
-    return false;
-  }
-  else if(cmd.level == VK_COMMAND_BUFFER_LEVEL_SECONDARY &&
-          (cmd.beginFlags & VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT) == 0)
-  {
-    // secondary command buffers the VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT bit is
-    // one-to-one with being a render pass. i.e. you must specify the bit if the execute comes from
-    // inside a render pass, and you can't start a render pass in a secondary command buffer so
-    // that's the only way to be inside.
-    return false;
-  }
-
-  // assume a secondary buffer with RENDER_PASS_CONTINUE_BIT is in a render pass without checking
-  // where it was actually executed since we won't know that yet.
-
-  return true;
-}
-
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCmdDraw(SerialiserType &ser, VkCommandBuffer commandBuffer,
                                         uint32_t vertexCount, uint32_t instanceCount,
@@ -204,7 +178,7 @@ bool WrappedVulkan::Serialise_vkCmdDraw(SerialiserType &ser, VkCommandBuffer com
 
     if(IsActiveReplaying(m_State))
     {
-      if(InRerecordRange(m_LastCmdBufferID) && IsDrawInRenderPass())
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -226,14 +200,6 @@ bool WrappedVulkan::Serialise_vkCmdDraw(SerialiserType &ser, VkCommandBuffer com
     {
       ObjDisp(commandBuffer)
           ->CmdDraw(Unwrap(commandBuffer), vertexCount, instanceCount, firstVertex, firstInstance);
-
-      if(!IsDrawInRenderPass())
-      {
-        AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
-                        MessageSource::IncorrectAPIUse,
-                        "Drawcall in happening outside of render pass, or in secondary command "
-                        "buffer without RENDER_PASS_CONTINUE_BIT");
-      }
 
       {
         AddEvent();
@@ -301,7 +267,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(SerialiserType &ser, VkCommandBuf
 
     if(IsActiveReplaying(m_State))
     {
-      if(InRerecordRange(m_LastCmdBufferID) && IsDrawInRenderPass())
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -325,15 +291,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(SerialiserType &ser, VkCommandBuf
       ObjDisp(commandBuffer)
           ->CmdDrawIndexed(Unwrap(commandBuffer), indexCount, instanceCount, firstIndex,
                            vertexOffset, firstInstance);
-
-      if(!IsDrawInRenderPass())
-      {
-        AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
-                        MessageSource::IncorrectAPIUse,
-                        "Drawcall in happening outside of render pass, or in secondary command "
-                        "buffer without RENDER_PASS_CONTINUE_BIT");
-      }
-
       {
         AddEvent();
 
@@ -411,7 +368,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
         if(count > 0)
           m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
-        if(InRerecordRange(m_LastCmdBufferID) && IsDrawInRenderPass())
+        if(InRerecordRange(m_LastCmdBufferID))
         {
           commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -458,7 +415,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
             uint32_t baseEventID = it->eventId;
 
             // when we have a callback, submit every action individually to the callback
-            if(m_ActionCallback && IsDrawInRenderPass())
+            if(m_ActionCallback)
             {
               VkMarkerRegion::Begin(
                   StringFormat::Fmt("Drawcall callback replay (drawCount=%u)", count), commandBuffer);
@@ -613,7 +570,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
                 stride = sizeof(VkDrawIndirectCommand);
               }
 
-              if(IsDrawInRenderPass())
               {
                 uint32_t eventId =
                     HandlePreCallback(commandBuffer, ActionFlags::Drawcall, drawidx + 1);
@@ -651,14 +607,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
           RDCMAX(m_IndirectBufferSize, sizeof(VkDrawIndirectCommand) + count * stride);
 
       rdcstr name = "vkCmdDrawIndirect";
-
-      if(!IsDrawInRenderPass())
-      {
-        AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
-                        MessageSource::IncorrectAPIUse,
-                        "Drawcall in happening outside of render pass, or in secondary command "
-                        "buffer without RENDER_PASS_CONTINUE_BIT");
-      }
 
       SDChunk *baseChunk = m_StructuredFile->chunks.back();
 
@@ -837,7 +785,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         if(count > 0)
           m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
-        if(InRerecordRange(m_LastCmdBufferID) && IsDrawInRenderPass())
+        if(InRerecordRange(m_LastCmdBufferID))
         {
           commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -885,7 +833,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
             uint32_t baseEventID = it->eventId;
 
             // when we have a callback, submit every action individually to the callback
-            if(m_ActionCallback && IsDrawInRenderPass())
+            if(m_ActionCallback)
             {
               for(uint32_t i = 0; i < count; i++)
               {
@@ -1004,7 +952,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
                 stride = sizeof(VkDrawIndexedIndirectCommand);
               }
 
-              if(IsDrawInRenderPass() && count > 0)
+              if(count > 0)
               {
                 uint32_t eventId =
                     HandlePreCallback(commandBuffer, ActionFlags::Drawcall, drawidx + 1);
@@ -1044,14 +992,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
           RDCMAX(m_IndirectBufferSize, sizeof(VkDrawIndexedIndirectCommand) + count * stride);
 
       rdcstr name = "vkCmdDrawIndexedIndirect";
-
-      if(!IsDrawInRenderPass())
-      {
-        AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
-                        MessageSource::IncorrectAPIUse,
-                        "Drawcall in happening outside of render pass, or in secondary command "
-                        "buffer without RENDER_PASS_CONTINUE_BIT");
-      }
 
       SDChunk *baseChunk = m_StructuredFile->chunks.back();
 
@@ -2875,7 +2815,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
             count--;
 
           // when we have a callback, submit every action individually to the callback
-          if(m_ActionCallback && IsDrawInRenderPass())
+          if(m_ActionCallback)
           {
             for(uint32_t i = 0; i < count; i++)
             {
@@ -2983,7 +2923,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
               stride = sizeof(VkDrawIndirectCommand);
             }
 
-            if(IsDrawInRenderPass())
             {
               uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Drawcall, drawidx + 1);
 
@@ -3022,14 +2961,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
                  sizeof(VkDrawIndirectCommand) + (maxDrawCount > 0 ? maxDrawCount - 1 : 0) * stride);
 
       rdcstr name = "vkCmdDrawIndirectCount";
-
-      if(!IsDrawInRenderPass())
-      {
-        AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
-                        MessageSource::IncorrectAPIUse,
-                        "Drawcall in happening outside of render pass, or in secondary command "
-                        "buffer without RENDER_PASS_CONTINUE_BIT");
-      }
 
       SDChunk *baseChunk = m_StructuredFile->chunks.back();
 
@@ -3195,7 +3126,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
             count--;
 
           // when we have a callback, submit every action individually to the callback
-          if(m_ActionCallback && IsDrawInRenderPass())
+          if(m_ActionCallback)
           {
             VkMarkerRegion::Begin(
                 StringFormat::Fmt("Drawcall callback replay (drawCount=%u)", count), commandBuffer);
@@ -3349,7 +3280,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
               stride = sizeof(VkDrawIndexedIndirectCommand);
             }
 
-            if(IsDrawInRenderPass())
             {
               uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Drawcall, drawidx + 1);
 
@@ -3390,14 +3320,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
                                            (maxDrawCount > 0 ? maxDrawCount - 1 : 0) * stride);
 
       rdcstr name = "vkCmdDrawIndexedIndirectCount";
-
-      if(!IsDrawInRenderPass())
-      {
-        AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
-                        MessageSource::IncorrectAPIUse,
-                        "Drawcall in happening outside of render pass, or in secondary command "
-                        "buffer without RENDER_PASS_CONTINUE_BIT");
-      }
 
       SDChunk *baseChunk = m_StructuredFile->chunks.back();
 
@@ -3522,7 +3444,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectByteCountEXT(
     // do execution (possibly partial)
     if(IsActiveReplaying(m_State))
     {
-      if(InRerecordRange(m_LastCmdBufferID) && IsDrawInRenderPass())
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -3554,14 +3476,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectByteCountEXT(
           ->CmdDrawIndirectByteCountEXT(Unwrap(commandBuffer), instanceCount, firstInstance,
                                         Unwrap(counterBuffer), counterBufferOffset, counterOffset,
                                         vertexStride);
-
-      if(!IsDrawInRenderPass())
-      {
-        AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
-                        MessageSource::IncorrectAPIUse,
-                        "Drawcall in happening outside of render pass, or in secondary command "
-                        "buffer without RENDER_PASS_CONTINUE_BIT");
-      }
 
       ActionDescription action;
 
