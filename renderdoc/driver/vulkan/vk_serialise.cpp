@@ -1601,6 +1601,16 @@ static const rdcliteral pNextName = "pNext"_lit;
 static const rdcliteral pNextTypeName = "pNextType"_lit;
 
 template <typename SerialiserType>
+static void SerialiseNextError(SerialiserType &ser, const char *sType, const void *&pNext)
+{
+  RDResult res;
+  SET_ERROR_RESULT(res, ResultCode::APIUnsupported, "No support for %s is available in this build",
+                   sType);
+  pNext = NULL;
+  ser.SetError(res);
+}
+
+template <typename SerialiserType>
 static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const void *&pNext)
 {
   // this is the parent sType, serialised here for convenience
@@ -1631,16 +1641,8 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
 
 // if we encounter an unsupported struct on read we *cannot* continue since we don't know the
 // members that got serialised after it
-#define PNEXT_UNSUPPORTED(StructType)                                              \
-  case StructType:                                                                 \
-  {                                                                                \
-    RDResult res;                                                                  \
-    SET_ERROR_RESULT(res, ResultCode::APIUnsupported,                              \
-                     "No support for " #StructType " is available in this build"); \
-    pNext = NULL;                                                                  \
-    ser.SetError(res);                                                             \
-    return;                                                                        \
-  }
+#define PNEXT_UNSUPPORTED(StructType) \
+  case StructType: return SerialiseNextError(ser, #StructType, pNext);
 
 // if we come across a struct we should process, then serialise a pointer to it.
 #define PNEXT_STRUCT(StructType, StructName)                     \
