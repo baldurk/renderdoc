@@ -26,6 +26,7 @@
 
 #include "common/wrapped_pool.h"
 #include "core/core.h"
+#include "core/intervals.h"
 #include "core/resource_manager.h"
 #include "core/sparse_page_table.h"
 #include "driver/d3d12/d3d12_common.h"
@@ -502,6 +503,7 @@ struct CmdListRecordingInfo
 };
 
 class WrappedID3D12Resource;
+using D3D12BufferOffset = UINT64;
 
 struct GPUAddressRange
 {
@@ -540,6 +542,110 @@ struct MapState
   UINT64 totalSize;
 
   bool operator==(const MapState &o) { return res == o.res && subres == o.subres; }
+};
+
+// Enum for the supported heap type for D3D12GpuBuffer allocation
+enum class D3D12GpuBufferHeapType
+{
+  UnInitialized = 0,             // Not initialized
+  AccStructDefaultHeap,          // Buffer pool of resource with
+                                 // D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE
+                                 // init state
+  ReadBackHeap,                  // Buffer pool with resource on read back heap
+  UploadHeap,                    // Buffer Pool with resource on upload heap
+  DefaultHeap,                   // Buffer Pool with resource on default heap
+  DefaultHeapWithUav,            // Buffer with resource on default heap with UAV enabled
+  CustomHeapWithUavCpuAccess,    // Buffer Pool with resource on Custom heap with UAV and CPU access
+  Count
+};
+
+// Flag for the heap allocation to decide whether to sub-alloc or alloc a dedicated
+// heap (currently only implicit heap from CommittedResource is supported)
+enum class D3D12GpuBufferHeapMemoryFlag
+{
+  UnInitialized = 0,
+  Default,      // Buffer will be sub-allocated, and heap will be shared with other
+  Dedicated,    // Buffer will have a dedicated heap
+};
+
+class D3D12GpuBufferAllocator;
+
+struct D3D12GpuBuffer
+{
+  D3D12GpuBuffer()
+      : m_alignedAddress(0),
+        m_offset(0),
+        m_alignment(0),
+        m_addressContentSize(0),
+        m_heapType(D3D12GpuBufferHeapType::UnInitialized),
+        m_heapMemory(D3D12GpuBufferHeapMemoryFlag::UnInitialized),
+        m_resource(NULL)
+  {
+  }
+
+  D3D12GpuBuffer(D3D12GpuBufferHeapType heapType, D3D12GpuBufferHeapMemoryFlag heapMemory,
+                 uint64_t size, uint64_t alignment, D3D12_GPU_VIRTUAL_ADDRESS alignedAddress,
+                 ID3D12Resource *resource)
+      : m_alignedAddress(alignedAddress),
+        m_offset(0),
+        m_alignment(alignment),
+        m_addressContentSize(size),
+        m_heapType(heapType),
+        m_heapMemory(heapMemory),
+        m_resource(resource)
+  {
+    if(m_resource)
+    {
+      m_offset = alignedAddress - m_resource->GetGPUVirtualAddress();
+    }
+  }
+
+  D3D12GpuBufferHeapType HeapType() const { return m_heapType; }
+  D3D12_HEAP_TYPE GetD3D12HeapType() const
+  {
+    switch(m_heapType)
+    {
+      case D3D12GpuBufferHeapType::AccStructDefaultHeap:
+      case D3D12GpuBufferHeapType::DefaultHeap:
+      case D3D12GpuBufferHeapType::DefaultHeapWithUav: return D3D12_HEAP_TYPE_DEFAULT;
+      case D3D12GpuBufferHeapType::ReadBackHeap: return D3D12_HEAP_TYPE_READBACK;
+      case D3D12GpuBufferHeapType::UploadHeap: return D3D12_HEAP_TYPE_UPLOAD;
+      case D3D12GpuBufferHeapType::CustomHeapWithUavCpuAccess: return D3D12_HEAP_TYPE_CUSTOM;
+      default: RDCERR("Unhandled/Invalid type");
+    }
+
+    return D3D12_HEAP_TYPE_DEFAULT;
+  }
+  bool operator!=(const D3D12GpuBuffer &other) const { return !(*this == other); }
+  bool operator==(const D3D12GpuBuffer &other) const
+  {
+    bool equal = true;
+    equal &= m_alignedAddress == other.m_alignedAddress;
+    equal &= m_alignment == other.m_alignment;
+    equal &= m_addressContentSize == other.m_addressContentSize;
+    equal &= m_heapType == other.m_heapType;
+    equal &= m_heapMemory == other.m_heapMemory;
+    equal &= m_resource == other.m_resource;
+    equal &= m_offset == other.m_offset;
+
+    return equal;
+  }
+
+  ID3D12Resource *Resource() const { return m_resource; };
+  uint64_t Offset() const { return m_offset; }
+  uint64_t Size() const { return m_addressContentSize; }
+  D3D12_GPU_VIRTUAL_ADDRESS Address() const { return m_alignedAddress; }
+  uint64_t Alignment() const { return m_alignment; }
+  bool Release();
+  D3D12GpuBufferHeapMemoryFlag HeapMemory() const { return m_heapMemory; }
+private:
+  D3D12_GPU_VIRTUAL_ADDRESS m_alignedAddress;
+  uint64_t m_offset;
+  uint64_t m_alignment;
+  uint64_t m_addressContentSize;
+  D3D12GpuBufferHeapType m_heapType;
+  D3D12GpuBufferHeapMemoryFlag m_heapMemory;
+  ID3D12Resource *m_resource;
 };
 
 struct D3D12ResourceRecord : public ResourceRecord
@@ -733,6 +839,232 @@ struct D3D12InitialContents
   SparseBinds *sparseBinds;
 };
 
+class WrappedID3D12GraphicsCommandList;
+
+// class for allocating GPU Buffer
+class D3D12GpuBufferAllocator
+{
+public:
+  static bool Initialize(WrappedID3D12Device *wrappedDevice)
+  {
+    if(m_bufferAllocator == NULL && wrappedDevice)
+    {
+      m_bufferAllocator = new D3D12GpuBufferAllocator(wrappedDevice);
+    }
+
+    return m_bufferAllocator != NULL;
+  }
+
+  static D3D12GpuBufferAllocator *Inst() { return m_bufferAllocator; }
+  static bool Destroy()
+  {
+    SAFE_DELETE(m_bufferAllocator);
+    return true;
+  }
+
+  static bool CopyBufferRegion(WrappedID3D12GraphicsCommandList *wrappedCmd,
+                               const D3D12GpuBuffer &destBuffer,
+                               D3D12_GPU_VIRTUAL_ADDRESS srcAddress, uint64_t dataSize);
+
+  static bool CopyBufferRegion(WrappedID3D12GraphicsCommandList *wrappedCmd,
+                               const D3D12GpuBuffer &destBuffer, const D3D12GpuBuffer &sourceBuffer,
+                               uint64_t dataSize);
+
+  bool Alloc(D3D12GpuBufferHeapType heapType, D3D12GpuBufferHeapMemoryFlag heapMem, uint64_t size,
+             D3D12GpuBuffer &gpuBuffer)
+  {
+    return Alloc(heapType, heapMem, size, 0, gpuBuffer);
+  }
+
+  bool Alloc(D3D12GpuBufferHeapType heapType, D3D12GpuBufferHeapMemoryFlag heapMem, uint64_t size,
+             uint64_t alignment, D3D12GpuBuffer &gpuBuffer);
+
+  bool Release(const D3D12GpuBuffer &gpuBuffer);
+
+  uint64_t GetAllocatedMemorySize() const { return m_totalAllocatedMemoryInUse; }
+  ~D3D12GpuBufferAllocator()
+  {
+    for(D3D12GpuBufferPool *bufferPool : m_bufferPoolList)
+    {
+      SAFE_DELETE(bufferPool);
+    }
+  }
+
+private:
+  D3D12GpuBufferAllocator(WrappedID3D12Device *wrappedDevice) : m_wrappedDevice(wrappedDevice)
+  {
+    m_totalAllocatedMemoryInUse = 0;
+  }
+
+  // Class for handling buffer resources
+  class D3D12GpuBufferResource
+  {
+  public:
+    static bool CreateCommittedResourceBuffer(ID3D12Device *device,
+                                              const D3D12_HEAP_PROPERTIES &heapProperty,
+                                              D3D12_RESOURCE_STATES initState, uint64_t size,
+                                              bool allowUav, D3D12GpuBufferResource **bufferResource);
+    static bool ReleaseGpuBufferResource(D3D12GpuBufferResource *bufferResource);
+
+    D3D12GpuBufferResource() = delete;
+
+    ID3D12Resource *Resource() const { return m_resource; }
+    ~D3D12GpuBufferResource() { SAFE_RELEASE(m_resource); }
+    D3D12GpuBufferResource(ID3D12Resource *resource, D3D12_HEAP_TYPE heapType);
+
+    bool SubAllocationInRange(D3D12_GPU_VIRTUAL_ADDRESS gpuAddress) const
+    {
+      if(m_resourceGpuAddressRange.start <= gpuAddress &&
+         gpuAddress < m_resourceGpuAddressRange.realEnd)
+
+      {
+        return true;
+      }
+
+      return false;
+    }
+
+    bool Free(D3D12_GPU_VIRTUAL_ADDRESS gpuAddress)
+    {
+      uint64_t offset = gpuAddress - m_resourceGpuAddressRange.start;
+      auto iter = m_subRanges.find(offset);
+      if(iter != m_subRanges.end() && iter->value() == D3D12SubRangeFlag::Used)
+      {
+        iter->setValue(D3D12SubRangeFlag::Free);
+        // Merging will only occur if the adjacent sub-ranges are also free
+        iter->mergeLeft();
+        ++iter;
+        if(iter != m_subRanges.end())
+          iter->mergeLeft();
+        return true;
+      }
+      return false;
+    }
+
+    bool SubAlloc(uint64_t size, uint64_t alignment, D3D12_GPU_VIRTUAL_ADDRESS &address)
+    {
+      uint64_t resourceWidth = m_resourceGpuAddressRange.realEnd - m_resourceGpuAddressRange.start;
+
+      for(auto iter = m_subRanges.begin(); iter != m_subRanges.end(); ++iter)
+      {
+        if(iter->value() == D3D12SubRangeFlag::Free)
+        {
+          uint64_t addr = iter->start() + m_resourceGpuAddressRange.start;
+          uint64_t end = RDCMIN(iter->finish(), resourceWidth) + m_resourceGpuAddressRange.start;
+          uint64_t alignedAddr = alignment != 0 ? AlignUp(addr, alignment) : addr;
+
+          if(alignedAddr < end && size <= (end - alignedAddr))
+          {
+            uint64_t offset = alignedAddr - m_resourceGpuAddressRange.start;
+            // Free the extra space from aligning
+            if(alignedAddr > addr)
+            {
+              iter->split(offset);
+            }
+
+            iter->setValue(D3D12SubRangeFlag::Used);
+            address = alignedAddr;
+            // Split the sub-range if there's extra space beyond this allocation
+            if(size < (end - alignedAddr))
+            {
+              iter->split(offset + size);
+              iter->setValue(D3D12SubRangeFlag::Free);
+            }
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    enum class D3D12SubRangeFlag
+    {
+      Free = 0,
+      Used
+    };
+
+    Intervals<D3D12SubRangeFlag> m_subRanges;
+    GPUAddressRange m_resourceGpuAddressRange;
+    ID3D12Resource *m_resource;
+    D3D12_RESOURCE_DESC m_resDesc;
+    D3D12_HEAP_TYPE m_heapType;
+  };
+
+  class D3D12GpuBufferPool
+  {
+  public:
+    D3D12GpuBufferPool(D3D12GpuBufferHeapType bufferPoolType, uint64_t bufferInitialSize)
+        : m_bufferPoolHeapType(bufferPoolType), m_bufferInitSize(bufferInitialSize)
+    {
+    }
+
+    ~D3D12GpuBufferPool()
+    {
+      for(D3D12GpuBufferResource *bufferRes : m_bufferResourceList)
+      {
+        SAFE_DELETE(bufferRes);
+      }
+    }
+
+    bool Alloc(WrappedID3D12Device *wrappedDevice, D3D12GpuBufferHeapMemoryFlag heapMem,
+               uint64_t size, uint64_t alignment, D3D12GpuBuffer &gpuBuffer);
+
+    bool Free(const D3D12GpuBuffer &gpuBuffer);
+
+    static constexpr uint64_t kDefaultWithUavSizeBufferInitSize = 1000ull * 8u;
+    static constexpr uint64_t kAccStructBufferPoolInitSize = 1000ull * 256u;
+
+  private:
+    rdcarray<D3D12GpuBufferResource *> m_bufferResourceList;
+    D3D12GpuBufferHeapType m_bufferPoolHeapType;
+    uint64_t m_bufferInitSize;
+  };
+
+  static D3D12GpuBufferAllocator *m_bufferAllocator;
+
+  static bool CreateBufferResource(WrappedID3D12Device *wrappedDevice,
+                                   D3D12GpuBufferHeapType heapType, uint64_t size,
+                                   D3D12GpuBufferResource **bufferResource);
+
+  Threading::CriticalSection m_bufferAllocLock;
+  D3D12GpuBufferPool *m_bufferPoolList[(size_t)D3D12GpuBufferHeapType::Count] = {};
+
+  WrappedID3D12Device *m_wrappedDevice;
+  // keeps track of the allocated memory in use,
+  // and not the actual amount of memory allocated
+  uint64_t m_totalAllocatedMemoryInUse;
+};
+
+class D3D12RaytracingResourceAndUtilHandler
+{
+public:
+  D3D12RaytracingResourceAndUtilHandler(WrappedID3D12Device *device);
+
+  ID3D12GraphicsCommandListX *GetCmd() const { return m_cmdList; }
+  ID3D12CommandAllocator *GetCmdAlloc() const { return m_cmdAlloc; }
+  ID3D12CommandQueue *GetCmdQueue() const { return m_cmdQueue; }
+  ID3D12Fence *GetFence() const { return m_gpuFence; }
+  void SyncGpuForRtWork();
+
+  ~D3D12RaytracingResourceAndUtilHandler()
+  {
+    SAFE_RELEASE(m_cmdList);
+    SAFE_RELEASE(m_cmdAlloc);
+    SAFE_RELEASE(m_cmdQueue);
+    SAFE_RELEASE(m_gpuFence);
+  }
+
+private:
+  WrappedID3D12Device *m_wrappedDevice;
+
+  ID3D12GraphicsCommandListX *m_cmdList;
+  ID3D12CommandAllocator *m_cmdAlloc;
+  ID3D12CommandQueue *m_cmdQueue;
+  ID3D12Fence *m_gpuFence;
+  HANDLE m_gpuSyncHandle;
+  UINT64 m_gpuSyncCounter;
+};
+
 struct D3D12ResourceManagerConfiguration
 {
   typedef ID3D12DeviceChild *WrappedResourceType;
@@ -747,7 +1079,16 @@ public:
   D3D12ResourceManager(CaptureState &state, WrappedID3D12Device *dev)
       : ResourceManager(state), m_Device(dev)
   {
+    m_raytracingResourceManager = new D3D12RaytracingResourceAndUtilHandler(m_Device);
+    D3D12GpuBufferAllocator::Initialize(dev);
   }
+
+  ~D3D12ResourceManager()
+  {
+    D3D12GpuBufferAllocator::Destroy();
+    SAFE_DELETE(m_raytracingResourceManager);
+  }
+
   template <class T>
   T *GetLiveAs(ResourceId id, bool optional = false)
   {
@@ -761,6 +1102,11 @@ public:
   }
 
   void ApplyBarriers(BarrierSet &barriers, std::map<ResourceId, SubresourceStateVector> &states);
+
+  D3D12RaytracingResourceAndUtilHandler *GetRaytracingResourceAndUtilHandler() const
+  {
+    return m_raytracingResourceManager;
+  }
 
   template <typename SerialiserType>
   void SerialiseResourceStates(SerialiserType &ser, BarrierSet &barriers,
@@ -789,4 +1135,5 @@ private:
   void Apply_InitialState(ID3D12DeviceChild *live, const D3D12InitialContents &data);
 
   WrappedID3D12Device *m_Device;
+  D3D12RaytracingResourceAndUtilHandler *m_raytracingResourceManager;
 };
