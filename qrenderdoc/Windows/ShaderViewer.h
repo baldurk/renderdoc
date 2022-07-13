@@ -354,6 +354,12 @@ private:
   const ShaderDebugState &GetCurrentState() const;
   const ShaderDebugState &GetNextState() const;
 
+  const InstructionSourceInfo &GetPreviousInstInfo() const;
+  const InstructionSourceInfo &GetCurrentInstInfo() const;
+  const InstructionSourceInfo &GetNextInstInfo() const;
+  const InstructionSourceInfo &GetInstInfo(uint32_t instruction) const;
+  const LineColumnInfo &GetCurrentLineInfo() const;
+
   void updateDebugState();
   void markWatchStale(RDTreeWidgetItem *item);
   bool updateWatchVariable(RDTreeWidgetItem *watchItem, const RDTreeWidgetItem *varItem,

@@ -187,7 +187,6 @@ public:
 
   const rdcstr &GetDisassembly();
   void FillTraceLineInfo(ShaderDebugTrace &trace) const;
-  void FillStateInstructionInfo(ShaderDebugState &state) const;
 
   static void StripChunk(bytebuf &ByteCode, uint32_t fourcc);
   static void ReplaceChunk(bytebuf &ByteCode, uint32_t fourcc, const byte *replacement, size_t size);

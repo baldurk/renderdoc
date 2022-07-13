@@ -148,7 +148,6 @@ struct StackFrame
 
   // the thread's live list before the function was entered
   rdcarray<Id> live;
-  rdcarray<SourceVariableMapping> sourceVars;
 
   // the last block we were in and the current block, for OpPhis
   Id lastBlock, curBlock;
@@ -219,8 +218,6 @@ struct ThreadState
 
   std::map<Id, uint32_t> lastWrite;
 
-  rdcarray<SourceVariableMapping> sourceVars;
-
   // index in the pixel quad
   uint32_t workgroupIndex;
   bool helperInvocation;
@@ -261,33 +258,6 @@ struct TypeData
   rdcarray<rdcpair<rdcstr, Id>> structMembers;
 };
 
-struct ScopeData
-{
-  DebugScope type;
-  ScopeData *parent;
-  uint32_t line;
-  uint32_t column;
-  int32_t fileIndex;
-  size_t end;
-
-  rdcstr name;
-
-  rdcarray<Id> locals;
-};
-
-struct InlineData
-{
-  ScopeData *scope;
-  InlineData *parent;
-};
-
-struct LocalData
-{
-  rdcstr name;
-  ScopeData *scope;
-  TypeData *type;
-};
-
 struct LocalMapping
 {
   bool operator<(const LocalMapping &o) const
@@ -322,11 +292,40 @@ struct LocalMapping
     return true;
   }
 
-  uint32_t stepIndex;
+  uint32_t instIndex;
   Id sourceVar;
   Id debugVar;
   bool isDeclare;
   rdcarray<uint32_t> indexes;
+};
+
+struct ScopeData
+{
+  DebugScope type;
+  ScopeData *parent;
+  uint32_t line;
+  uint32_t column;
+  int32_t fileIndex;
+  size_t end;
+
+  rdcstr name;
+
+  rdcarray<Id> locals;
+
+  rdcarray<LocalMapping> localMappings;
+};
+
+struct InlineData
+{
+  ScopeData *scope;
+  InlineData *parent;
+};
+
+struct LocalData
+{
+  rdcstr name;
+  ScopeData *scope;
+  TypeData *type;
 };
 
 Id ParseRawName(const rdcstr &name);
@@ -345,8 +344,6 @@ public:
 
   rdcarray<ShaderDebugState> ContinueDebug();
 
-  void ApplyDebugSourceVars(size_t startOffs, ThreadState &thread, ShaderDebugState &state);
-
   Iter GetIterForInstruction(uint32_t inst);
   uint32_t GetInstructionForIter(Iter it);
   uint32_t GetInstructionForFunction(Id id);
@@ -358,7 +355,6 @@ public:
   bool HasDebugInfo() const { return m_DebugInfo.valid; }
   bool InDebugScope(uint32_t inst) const;
   rdcstr GetHumanName(Id id);
-  void AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const ShaderVariable &var, Id id);
   void AllocateVariable(Id id, Id typeId, ShaderVariable &outVar);
 
   ShaderVariable ReadFromPointer(const ShaderVariable &v) const;
@@ -377,7 +373,6 @@ public:
   uint32_t GetNumInstructions() { return (uint32_t)instructionOffsets.size(); }
   GlobalState GetGlobal() { return global; }
   const rdcarray<Id> &GetLiveGlobals() { return liveGlobals; }
-  const rdcarray<SourceVariableMapping> &GetGlobalSourceVars();
   ThreadState &GetActiveLane() { return workgroup[activeLaneIndex]; }
   const ThreadState &GetActiveLane() const { return workgroup[activeLaneIndex]; }
 private:
@@ -396,6 +391,9 @@ private:
                             callback) const;
 
   void MakeSignatureNames(const rdcarray<SPIRVInterfaceAccess> &sigList, rdcarray<rdcstr> &sigNames);
+
+  void FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo);
+  void FillDefaultSourceVars(rdcarray<InstructionSourceInfo> &instInfo);
 
   /////////////////////////////////////////////////////////
   // debug data
@@ -426,17 +424,16 @@ private:
   rdcarray<MemberName> memberNames;
   std::map<ShaderEntryPoint, Id> entryLookup;
 
-  DenseIdMap<size_t> idDeathOffset;
+  DenseIdMap<rdcpair<size_t, size_t>> idLiveRange;
 
   SparseIdMap<size_t> m_Files;
   LineColumnInfo m_CurLineCol;
-  std::map<size_t, LineColumnInfo> m_LineColInfo;
+  rdcarray<InstructionSourceInfo> m_InstInfo;
 
   SparseIdMap<uint32_t> labelInstruction;
 
   // the live mutable global variables, to initialise a stack frame's live list
   rdcarray<Id> liveGlobals;
-  rdcarray<SourceVariableMapping> globalSourceVars;
 
   struct Function
   {
@@ -464,6 +461,8 @@ private:
     ScopeData *curScope = NULL;
     InlineData *curInline = NULL;
 
+    rdcarray<LocalMapping> scopelessMappings;
+
     rdcarray<Id> globals;
     rdcarray<Id> constants;
 
@@ -474,7 +473,6 @@ private:
 
     std::map<size_t, ScopeData *> lineScope;
     std::map<size_t, InlineData *> lineInline;
-    std::map<size_t, LocalMapping> localMappings;
 
     rdcarray<LocalMapping> activeLocalMappings;
   } m_DebugInfo;

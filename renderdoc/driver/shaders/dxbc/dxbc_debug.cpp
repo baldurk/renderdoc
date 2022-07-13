@@ -1151,6 +1151,7 @@ ThreadState::ThreadState(int workgroupIdx, GlobalState &globalState, const DXBC:
   nextInstruction = 0;
   reflection = dxbc->GetReflection();
   program = dxbc->GetDXBCByteCode();
+  debug = dxbc->GetDebugInfo();
   RDCEraseEl(semantics);
 
   program->SetupRegisterFile(variables);
@@ -1951,6 +1952,9 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     return;
 
   const Operation &op = program->GetInstruction((size_t)nextInstruction);
+
+  if(state && debug)
+    debug->GetCallstack(nextInstruction, op.offset, state->callstack);
 
   apiWrapper->SetCurrentInstruction(nextInstruction);
   nextInstruction++;
@@ -5647,7 +5651,6 @@ rdcarray<ShaderDebugState> InterpretDebugger::ContinueDebug(DXBCDebug::DebugAPIW
 
     for(const ShaderVariable &v : active.variables)
       initial.changes.push_back({ShaderVariable(), v});
-    dxbc->FillStateInstructionInfo(initial);
 
     ret.push_back(std::move(initial));
 
@@ -5685,7 +5688,6 @@ rdcarray<ShaderDebugState> InterpretDebugger::ContinueDebug(DXBCDebug::DebugAPIW
           workgroup[i].StepNext(&state, apiWrapper, oldworkgroup);
           state.stepIndex = steps;
           state.nextInstruction = workgroup[i].nextInstruction;
-          dxbc->FillStateInstructionInfo(state);
           ret.push_back(std::move(state));
 
           steps++;

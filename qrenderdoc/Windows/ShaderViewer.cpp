@@ -631,9 +631,11 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     bool hasLineInfo = false;
     LineColumnInfo prevLine;
 
-    for(uint32_t inst = 0; inst < m_Trace->lineInfo.size(); inst++)
+    for(uint32_t inst = 0; inst < m_Trace->instInfo.size(); inst++)
     {
-      LineColumnInfo line = m_Trace->lineInfo[inst];
+      const InstructionSourceInfo &instInfo = m_Trace->instInfo[inst];
+
+      LineColumnInfo line = instInfo.lineInfo;
 
       int disasmLine = (int)line.disassemblyLine;
       if(disasmLine > 0 && disasmLine >= m_AsmLine2Inst.size())
@@ -930,7 +932,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
             {
               applyForwardsChange();
 
-              if(m_Trace->lineInfo[GetCurrentState().nextInstruction].fileIndex >= 0)
+              if(GetCurrentInstInfo().lineInfo.fileIndex >= 0)
                 break;
 
               if(IsLastState())
@@ -2029,7 +2031,7 @@ bool ShaderViewer::step(bool forward, StepMode mode)
 
   if(isSourceDebugging())
   {
-    LineColumnInfo oldLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
+    LineColumnInfo oldLine = GetCurrentInstInfo().lineInfo;
     rdcarray<rdcstr> oldStack = GetCurrentState().callstack;
 
     do
@@ -2040,7 +2042,7 @@ bool ShaderViewer::step(bool forward, StepMode mode)
       else
         applyBackwardsChange();
 
-      LineColumnInfo curLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
+      LineColumnInfo curLine = GetCurrentLineInfo();
 
       // break out if we hit a breakpoint, no matter what
       if(m_Breakpoints.contains({-1, curLine.disassemblyLine}) ||
@@ -2121,7 +2123,7 @@ bool ShaderViewer::step(bool forward, StepMode mode)
 
     } while(true);
 
-    oldLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
+    oldLine = GetCurrentLineInfo();
     oldStack = GetCurrentState().callstack;
 
     if(!forward)
@@ -2144,7 +2146,7 @@ bool ShaderViewer::step(bool forward, StepMode mode)
         {
           if((oldStack == GetPreviousState().callstack ||
               oldStack.size() > GetPreviousState().callstack.size()) &&
-             !oldLine.SourceEqual(m_Trace->lineInfo[GetPreviousState().nextInstruction]))
+             !oldLine.SourceEqual(GetPreviousInstInfo().lineInfo))
           {
             // if we hit this case, it means we jumped to an instruction in the same call which maps
             // to a different line (perhaps through a loop or branch), or we lost a function in the
@@ -2155,7 +2157,7 @@ bool ShaderViewer::step(bool forward, StepMode mode)
 
           applyBackwardsChange();
 
-          LineColumnInfo curLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
+          LineColumnInfo curLine = GetCurrentLineInfo();
 
           // still need to check for instruction-level breakpoints
           if(m_Breakpoints.contains({-1, curLine.disassemblyLine}))
@@ -2164,12 +2166,11 @@ bool ShaderViewer::step(bool forward, StepMode mode)
       }
       else
       {
-        while(!IsFirstState() &&
-              m_Trace->lineInfo[GetPreviousState().nextInstruction].SourceEqual(oldLine))
+        while(!IsFirstState() && GetPreviousInstInfo().lineInfo.SourceEqual(oldLine))
         {
           applyBackwardsChange();
 
-          LineColumnInfo curLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
+          LineColumnInfo curLine = GetCurrentLineInfo();
 
           // still need to check for instruction-level breakpoints
           if(m_Breakpoints.contains({-1, curLine.disassemblyLine}))
@@ -2262,6 +2263,33 @@ const ShaderDebugState &ShaderViewer::GetNextState() const
   return m_States.back();
 }
 
+const InstructionSourceInfo &ShaderViewer::GetPreviousInstInfo() const
+{
+  return GetInstInfo(GetPreviousState().nextInstruction);
+}
+
+const InstructionSourceInfo &ShaderViewer::GetCurrentInstInfo() const
+{
+  return GetInstInfo(GetCurrentState().nextInstruction);
+}
+
+const InstructionSourceInfo &ShaderViewer::GetNextInstInfo() const
+{
+  return GetInstInfo(GetNextState().nextInstruction);
+}
+
+const InstructionSourceInfo &ShaderViewer::GetInstInfo(uint32_t instruction) const
+{
+  InstructionSourceInfo search;
+  search.instruction = instruction;
+  return *std::lower_bound(m_Trace->instInfo.begin(), m_Trace->instInfo.end(), search);
+}
+
+const LineColumnInfo &ShaderViewer::GetCurrentLineInfo() const
+{
+  return GetCurrentInstInfo().lineInfo;
+}
+
 void ShaderViewer::runTo(uint32_t runToInstruction, bool forward, ShaderEvents condition)
 {
   rdcarray<uint32_t> insts = {runToInstruction};
@@ -2275,7 +2303,7 @@ void ShaderViewer::runTo(const rdcarray<uint32_t> &runToInstructions, bool forwa
     return;
 
   bool firstStep = true;
-  LineColumnInfo oldLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
+  LineColumnInfo oldLine = GetCurrentLineInfo();
 
   // this is effectively infinite as we break out before moving to next/previous state if that would
   // be first/last
@@ -2290,7 +2318,7 @@ void ShaderViewer::runTo(const rdcarray<uint32_t> &runToInstructions, bool forwa
       break;
 
     // or breakpoint
-    LineColumnInfo curLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
+    LineColumnInfo curLine = GetCurrentLineInfo();
     if(!firstStep && (m_Breakpoints.contains({-1, curLine.disassemblyLine}) ||
                       m_Breakpoints.contains({curLine.fileIndex, curLine.lineStart})))
       break;
@@ -2362,7 +2390,7 @@ void ShaderViewer::runToResourceAccess(bool forward, VarType type, const Bindpoi
       break;
 
     // or breakpoint
-    LineColumnInfo curLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
+    LineColumnInfo curLine = GetCurrentLineInfo();
     if(m_Breakpoints.contains({-1, curLine.disassemblyLine}) ||
        m_Breakpoints.contains({curLine.fileIndex, curLine.lineStart}))
       break;
@@ -2731,9 +2759,9 @@ QString ShaderViewer::getRegNames(const RDTreeWidgetItem *item, uint32_t swizzle
     mapping = m_Trace->sourceVars[tag.sourceVarIdx];
   }
   else if(!tag.globalSourceVar && tag.sourceVarIdx >= 0 &&
-          tag.sourceVarIdx < GetCurrentState().sourceVars.count())
+          tag.sourceVarIdx < GetCurrentInstInfo().sourceVars.count())
   {
-    mapping = GetCurrentState().sourceVars[tag.sourceVarIdx];
+    mapping = GetCurrentInstInfo().sourceVars[tag.sourceVarIdx];
   }
   else
   {
@@ -2991,9 +3019,9 @@ const RDTreeWidgetItem *ShaderViewer::evaluateVar(const RDTreeWidgetItem *item, 
       mapping = m_Trace->sourceVars[tag.sourceVarIdx];
     }
     else if(!tag.globalSourceVar && tag.sourceVarIdx >= 0 &&
-            tag.sourceVarIdx < GetCurrentState().sourceVars.count())
+            tag.sourceVarIdx < GetCurrentInstInfo().sourceVars.count())
     {
-      mapping = GetCurrentState().sourceVars[tag.sourceVarIdx];
+      mapping = GetCurrentInstInfo().sourceVars[tag.sourceVarIdx];
     }
     else
     {
@@ -3515,9 +3543,8 @@ void ShaderViewer::updateDebugState()
   for(const rdcstr &s : state.callstack)
     ui->callstack->insertItem(0, s);
 
-  if(state.nextInstruction < m_Trace->lineInfo.size())
   {
-    LineColumnInfo lineInfo = m_Trace->lineInfo[state.nextInstruction];
+    LineColumnInfo lineInfo = GetInstInfo(state.nextInstruction).lineInfo;
 
     // highlight the current line
     {
@@ -3538,7 +3565,7 @@ void ShaderViewer::updateDebugState()
       // last state which did.
       for(int stateLookbackIdx = (int)m_CurrentStateIdx; stateLookbackIdx > 0; stateLookbackIdx--)
       {
-        lineInfo = m_Trace->lineInfo[m_States[stateLookbackIdx].nextInstruction];
+        lineInfo = GetInstInfo(m_States[stateLookbackIdx].nextInstruction).lineInfo;
 
         if(lineInfo.fileIndex >= 0 && lineInfo.fileIndex < m_FileScintillas.count())
           break;
@@ -3916,21 +3943,22 @@ void ShaderViewer::updateDebugState()
 
     RDTreeWidgetItem fakeroot;
 
-    const rdcarray<SourceVariableMapping> &sourceVars = state.sourceVars;
-
-    for(size_t lidx = 0; lidx < sourceVars.size(); lidx++)
+    for(int globalVarIdx = 0; globalVarIdx < m_Trace->sourceVars.count(); globalVarIdx++)
     {
-      int32_t localVarIdx = int32_t(sourceVars.size() - 1 - lidx);
+      const SourceVariableMapping &sourceVar = m_Trace->sourceVars[globalVarIdx];
 
-      // iterate in reverse order, so newest locals tend to end up on top
-      const SourceVariableMapping &l = sourceVars[localVarIdx];
+      if(!sourceVar.variables.empty() && sourceVar.variables[0].type != DebugVariableType::Variable)
+        continue;
+
+      if(sourceVar.rows == 0 || sourceVar.columns == 0)
+        continue;
 
       bool modified = false;
 
       // don't list any modified variables on the first step when they all come into existance
-      if(l.variables[0].type == DebugVariableType::Variable && !IsFirstState())
+      if(sourceVar.variables[0].type == DebugVariableType::Variable && !IsFirstState())
       {
-        for(const DebugVariableReference &v : l.variables)
+        for(const DebugVariableReference &v : sourceVar.variables)
         {
           rdcstr base = v.name;
           int offs = base.find_first_of("[.");
@@ -3951,6 +3979,59 @@ void ShaderViewer::updateDebugState()
             break;
         }
       }
+
+      fakeroot.addChild(makeSourceVariableNode(sourceVar, globalVarIdx, -1, modified));
+    }
+
+    const rdcarray<SourceVariableMapping> &sourceVars = GetCurrentInstInfo().sourceVars;
+
+    for(size_t lidx = 0; lidx < sourceVars.size(); lidx++)
+    {
+      int32_t localVarIdx = int32_t(sourceVars.size() - 1 - lidx);
+
+      // iterate in reverse order, so newest locals tend to end up on top
+      const SourceVariableMapping &l = sourceVars[localVarIdx];
+
+      bool modified = false;
+      bool hasNonError = false;
+
+      for(const DebugVariableReference &v : l.variables)
+      {
+        hasNonError |= (GetDebugVariable(v) != NULL);
+
+        // don't list any modified variables on the first step when they all come into existance
+        if(IsFirstState())
+        {
+          if(hasNonError)
+            break;
+        }
+        else
+        {
+          rdcstr base = v.name;
+          int offs = base.find_first_of("[.");
+          if(offs > 0)
+            base = v.name.substr(0, offs);
+
+          for(const ShaderVariableChange &c : GetCurrentState().changes)
+          {
+            if(c.before.name == v.name || c.after.name == v.name || c.before.name == base ||
+               c.after.name == base)
+            {
+              modified = true;
+              break;
+            }
+          }
+
+          if(modified && hasNonError)
+            break;
+        }
+      }
+
+      // don't display source variables that map to non-existant debug variables. This can happen
+      // when flow control means those debug variables were never created, but they would be mapped
+      // at this point.
+      if(!hasNonError)
+        continue;
 
       RDTreeWidgetItem *node = makeSourceVariableNode(l, -1, localVarIdx, modified);
 
@@ -4952,7 +5033,7 @@ void ShaderViewer::ToggleBreakpointOnInstruction(int32_t instruction)
 
   if(instruction >= 0)
   {
-    LineColumnInfo &instLine = m_Trace->lineInfo[instruction];
+    const LineColumnInfo &instLine = GetInstInfo(instruction).lineInfo;
     sourceBreakpoint = {instLine.fileIndex, instLine.lineStart};
     disasmBreakpoints.push_back({-1, instLine.disassemblyLine});
   }
@@ -4988,7 +5069,7 @@ void ShaderViewer::ToggleBreakpointOnInstruction(int32_t instruction)
       {
         sourceBreakpoint = {scintillaIndex, (uint32_t)i};
         for(uint32_t inst : it.value())
-          disasmBreakpoints.push_back({-1, m_Trace->lineInfo[inst].disassemblyLine});
+          disasmBreakpoints.push_back({-1, GetInstInfo(inst).lineInfo.disassemblyLine});
       }
       else
       {

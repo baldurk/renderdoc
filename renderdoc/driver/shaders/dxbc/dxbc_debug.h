@@ -323,6 +323,7 @@ private:
 
   const DXBC::Reflection *reflection;
   const DXBCBytecode::Program *program;
+  const DXBC::IDebugInfo *debug;
 
   rdcarray<BindpointIndex> m_accessedSRVs;
   rdcarray<BindpointIndex> m_accessedUAVs;

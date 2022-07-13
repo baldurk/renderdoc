@@ -593,13 +593,13 @@ void DXBCContainer::FillTraceLineInfo(ShaderDebugTrace &trace) const
 {
   if(m_DXBCByteCode)
   {
-    trace.lineInfo.resize(m_DXBCByteCode->GetNumInstructions());
+    trace.instInfo.resize(m_DXBCByteCode->GetNumInstructions());
     for(size_t i = 0; i < m_DXBCByteCode->GetNumInstructions(); i++)
     {
       const DXBCBytecode::Operation &op = m_DXBCByteCode->GetInstruction(i);
 
       if(m_DebugInfo)
-        m_DebugInfo->GetLineInfo(i, op.offset, trace.lineInfo[i]);
+        m_DebugInfo->GetLineInfo(i, op.offset, trace.instInfo[i].lineInfo);
 
       // we add some number of lines for the header we added with shader hash, debug name, etc on
       // top of what the bytecode disassembler did
@@ -615,35 +615,11 @@ void DXBCContainer::FillTraceLineInfo(ShaderDebugTrace &trace) const
         extraLines += (uint32_t)Bits::CountOnes((uint32_t)m_GlobalFlags) + 2;
 
       if(op.line > 0)
-        trace.lineInfo[i].disassemblyLine = extraLines + op.line;
+        trace.instInfo[i].lineInfo.disassemblyLine = extraLines + op.line;
+
+      if(m_DebugInfo)
+        m_DebugInfo->GetLocals(this, i, op.offset, trace.instInfo[i].sourceVars);
     }
-  }
-}
-
-void DXBCContainer::FillStateInstructionInfo(ShaderDebugState &state) const
-{
-  uint32_t instruction = state.nextInstruction;
-
-  uintptr_t offset = 0;
-
-  state.sourceVars.clear();
-
-  if(m_DXBCByteCode)
-  {
-    if(instruction < m_DXBCByteCode->GetNumInstructions())
-      offset = m_DXBCByteCode->GetInstruction(instruction).offset;
-
-    if(m_DebugInfo)
-      m_DebugInfo->GetLocals(this, instruction, offset, state.sourceVars);
-  }
-
-  if(m_DebugInfo)
-  {
-    m_DebugInfo->GetCallstack(instruction, offset, state.callstack);
-  }
-  else
-  {
-    state.callstack.clear();
   }
 }
 

@@ -617,6 +617,37 @@ treated as covering the code.
 };
 DECLARE_REFLECTION_STRUCT(LineColumnInfo);
 
+struct InstructionSourceInfo
+{
+  DOCUMENT("");
+  InstructionSourceInfo() = default;
+  InstructionSourceInfo(const InstructionSourceInfo &) = default;
+  InstructionSourceInfo &operator=(const InstructionSourceInfo &) = default;
+
+  bool operator==(const InstructionSourceInfo &o) const { return instruction == o.instruction; }
+  bool operator<(const InstructionSourceInfo &o) const { return instruction < o.instruction; }
+  DOCUMENT("The instruction that this information is for.");
+  uint32_t instruction;
+
+  DOCUMENT(R"(The source location that this instruction corresponds to
+
+:type: LineColumnInfo
+)");
+  LineColumnInfo lineInfo;
+
+  DOCUMENT(R"(An optional mapping of which high-level source variables map to which debug variables
+and including extra type information.
+
+This list contains source variable mapping that is only valid at this instruction, and is fully
+complete & redundant including all previous source variables that are still valid at this
+instruction.
+
+:type: List[SourceVariableMapping]
+)");
+  rdcarray<SourceVariableMapping> sourceVars;
+};
+DECLARE_REFLECTION_STRUCT(InstructionSourceInfo);
+
 DOCUMENT("This stores the before and after state of a :class:`ShaderVariable`.");
 struct ShaderVariableChange
 {
@@ -675,7 +706,7 @@ struct ShaderDebugState
   bool operator==(const ShaderDebugState &o) const
   {
     return nextInstruction == o.nextInstruction && flags == o.flags && changes == o.changes &&
-           sourceVars == o.sourceVars && stepIndex == o.stepIndex;
+           stepIndex == o.stepIndex;
   }
   bool operator<(const ShaderDebugState &o) const
   {
@@ -687,8 +718,6 @@ struct ShaderDebugState
       return stepIndex < o.stepIndex;
     if(!(changes == o.changes))
       return changes < o.changes;
-    if(!(sourceVars == o.sourceVars))
-      return sourceVars < o.sourceVars;
     return false;
   }
 
@@ -713,18 +742,7 @@ backwards using the information.
 )");
   rdcarray<ShaderVariableChange> changes;
 
-  DOCUMENT(R"(An optional mapping of which high-level source variables map to which debug variables
-and including extra type information.
-
-This list contains source variable mapping that is only valid at this state - it is not valid at any
-other state where the lifetime of the source variable may have run out, or it may now be stored in
-a different debug variable.
-
-:type: List[SourceVariableMapping]
-)");
-  rdcarray<SourceVariableMapping> sourceVars;
-
-  DOCUMENT(R"(The function names in the current callstack at this line.
+  DOCUMENT(R"(The function names in the current callstack at this instruction.
 
 The oldest/outer function is first in the list, the newest/inner function is last.
 
@@ -831,12 +849,21 @@ If this is ``None`` then the trace is invalid.
 )");
   ShaderDebugger *debugger = NULL;
 
-  DOCUMENT(R"(An array of the same size as the number of instructions in the shader, with a mapping
-to source lines.
+  DOCUMENT(R"(An array of the same size as the number of instructions in the shader, with
+per-instruction information such as source line mapping, and source variables.
 
-:type: List[LineColumnInfo]
+.. warning::
+
+  This array is *not* indexed by instruction. Since it is common for adjacent instructions to have
+  effectively identical source information, this array only stores unique information ordered by
+  instruction. On some internal representations this may be one entry per instruction, and on others
+  it may be sparse and require a binary lookup to locate the corresponding information for an
+  instruction. If no direct match is found, the lower bound match is valid (i.e. the data for
+  instruction A before the data for instruction B is valid for all instructions in range ``[A, B)``.
+
+:type: List[InstructionSourceInfo]
 )");
-  rdcarray<LineColumnInfo> lineInfo;
+  rdcarray<InstructionSourceInfo> instInfo;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderDebugTrace);

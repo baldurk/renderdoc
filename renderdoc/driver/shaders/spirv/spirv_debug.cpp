@@ -125,12 +125,10 @@ void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
     // process the outgoing scope
     ProcessScopeChange(live, {});
     callstack.back()->live = live;
-    callstack.back()->sourceVars = sourceVars;
   }
 
   // start with just globals
   live = debugger.GetLiveGlobals();
-  sourceVars = debugger.GetGlobalSourceVars();
 
   callstack.push_back(frame);
 
@@ -371,8 +369,6 @@ void ThreadState::SetDst(Id id, const ShaderVariable &val)
     change.before = prev;
     change.after = debugger.GetPointerValue(ids[id]);
     m_State->changes.push_back(change);
-
-    debugger.AddSourceVars(sourceVars, change.after, id);
   }
 }
 
@@ -561,7 +557,6 @@ bool ThreadState::ReferencePointer(Id id)
       {
         if(!frame->localsUsed.contains(id))
         {
-          debugger.AddSourceVars(sourceVars, frame->locals[i], id);
           frame->localsUsed.push_back(id);
           firstLocalWrite = true;
         }
@@ -3051,7 +3046,6 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
         // restore the live list from the calling frame
         live = callstack.back()->live;
-        sourceVars = callstack.back()->sourceVars;
       }
 
       delete exitingFrame;
