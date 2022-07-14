@@ -3040,7 +3040,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
         {
           // if the repeated range subsection we're fetching is paged further in, we still need to
           // fetch the fixed data from the 'start'
-          buf->storage = r->GetBufferData(m_BufferID, m_ByteOffset, fixedLength);
+          if(fixedLength > 0)
+            buf->storage = r->GetBufferData(m_BufferID, m_ByteOffset, fixedLength);
           // then append the data from where we're paged to
           buf->storage.append(r->GetBufferData(m_BufferID, repeatedRangeStart, clampedRepeatedLength));
         }
