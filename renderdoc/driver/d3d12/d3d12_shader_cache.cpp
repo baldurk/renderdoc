@@ -30,6 +30,7 @@
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/shaders/dxbc/dxbc_container.h"
 #include "strings/string_utils.h"
+#include "d3d12_device.h"
 
 static HMODULE GetDXC()
 {
@@ -292,13 +293,28 @@ struct D3D12BlobShaderCallbacks
   const byte *GetData(ID3DBlob *blob) const { return (const byte *)blob->GetBufferPointer(); }
 } D3D12ShaderCacheCallbacks;
 
-D3D12ShaderCache::D3D12ShaderCache()
+D3D12ShaderCache::D3D12ShaderCache(WrappedID3D12Device *device)
 {
   bool success = LoadShaderCache("d3dshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion,
                                  m_ShaderCache, D3D12ShaderCacheCallbacks);
 
   // if we failed to load from the cache
   m_ShaderCacheDirty = !success;
+
+  static const GUID IRenderDoc_uuid = {
+      0xa7aa6116, 0x9c8d, 0x4bba, {0x90, 0x83, 0xb4, 0xd8, 0x16, 0xb7, 0x1b, 0x78}};
+
+  // if we're being self-captured, the 'real' device will respond to renderdoc's UUID. Enable debug
+  // shaders
+  IUnknown *dummy = NULL;
+  device->GetReal()->QueryInterface(IRenderDoc_uuid, (void **)&dummy);
+
+  if(dummy)
+  {
+    m_CompileFlags |=
+        D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_OPTIMIZATION_LEVEL0;
+    SAFE_RELEASE(dummy);
+  }
 }
 
 D3D12ShaderCache::~D3D12ShaderCache()
@@ -517,8 +533,8 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry, ui
                                        const rdcarray<rdcstr> &includeDirs, const char *profile,
                                        ID3DBlob **srcblob)
 {
-  return GetShaderBlob(source, entry, DXBC::EncodeFlags(compileFlags, profile), includeDirs,
-                       profile, srcblob);
+  return GetShaderBlob(source, entry, DXBC::EncodeFlags(compileFlags | m_CompileFlags, profile),
+                       includeDirs, profile, srcblob);
 }
 
 D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSize)

@@ -28,12 +28,12 @@
 #include "driver/dx/official/d3d11_4.h"
 #include "d3d12_common.h"
 
-class WrappedID3D11Device;
+class WrappedID3D12Device;
 
 class D3D12ShaderCache
 {
 public:
-  D3D12ShaderCache();
+  D3D12ShaderCache(WrappedID3D12Device *device);
   ~D3D12ShaderCache();
 
   rdcstr GetShaderBlob(const char *source, const char *entry, uint32_t compileFlags,
@@ -65,6 +65,8 @@ public:
 private:
   static const uint32_t m_ShaderCacheMagic = 0xf000baba;
   static const uint32_t m_ShaderCacheVersion = 3;
+
+  uint32_t m_CompileFlags = 0;
 
   bool m_ShaderCacheDirty = false, m_CacheShaders = false;
   std::map<uint32_t, ID3DBlob *> m_ShaderCache;

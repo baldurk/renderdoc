@@ -2131,7 +2131,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
 
   // Create pixel shader to get initial values from previous stage output
   ID3DBlob *psBlob = NULL;
-  UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS;
+  UINT flags = D3DCOMPILE_WARNINGS_ARE_ERRORS;
   if(m_pDevice->GetShaderCache()->GetShaderBlob(extractHlsl.c_str(), "ExtractInputsPS", flags, {},
                                                 "ps_5_0", &psBlob) != "")
   {

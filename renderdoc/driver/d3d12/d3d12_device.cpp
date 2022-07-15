@@ -3498,7 +3498,7 @@ void WrappedID3D12Device::CreateInternalResources()
   m_GPUSyncCounter = 0;
 
   if(m_ShaderCache == NULL)
-    m_ShaderCache = new D3D12ShaderCache();
+    m_ShaderCache = new D3D12ShaderCache(this);
 
   if(m_TextRenderer == NULL)
     m_TextRenderer = new D3D12TextRenderer(this);

@@ -51,6 +51,8 @@ private:
 
   ID3D11Device *m_pDevice = NULL;
 
+  uint32_t m_CompileFlags = 0;
+
   bool m_ShaderCacheDirty = false, m_CacheShaders = false;
   std::map<uint32_t, ID3DBlob *> m_ShaderCache;
 };

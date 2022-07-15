@@ -90,6 +90,23 @@ D3D11ShaderCache::D3D11ShaderCache(WrappedID3D11Device *wrapper)
 
   // if we failed to load from the cache
   m_ShaderCacheDirty = !success;
+
+  m_CompileFlags = D3DCOMPILE_WARNINGS_ARE_ERRORS;
+
+  static const GUID IRenderDoc_uuid = {
+      0xa7aa6116, 0x9c8d, 0x4bba, {0x90, 0x83, 0xb4, 0xd8, 0x16, 0xb7, 0x1b, 0x78}};
+
+  // if we're being self-captured, the 'real' device will respond to renderdoc's UUID. Enable debug
+  // shaders
+  IUnknown *dummy = NULL;
+  wrapper->GetReal()->QueryInterface(IRenderDoc_uuid, (void **)&dummy);
+
+  if(dummy)
+  {
+    m_CompileFlags |=
+        D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_OPTIMIZATION_LEVEL0;
+    SAFE_RELEASE(dummy);
+  }
 }
 
 D3D11ShaderCache::~D3D11ShaderCache()
@@ -198,7 +215,7 @@ ID3D11VertexShader *D3D11ShaderCache::MakeVShader(const char *source, const char
 {
   ID3DBlob *byteBlob = NULL;
 
-  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, profile, &byteBlob) != "")
+  if(GetShaderBlob(source, entry, m_CompileFlags, {}, profile, &byteBlob) != "")
   {
     RDCERR("Couldn't get shader blob for %s", entry);
     return NULL;
@@ -246,7 +263,7 @@ ID3D11GeometryShader *D3D11ShaderCache::MakeGShader(const char *source, const ch
 {
   ID3DBlob *byteBlob = NULL;
 
-  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, profile, &byteBlob) != "")
+  if(GetShaderBlob(source, entry, m_CompileFlags, {}, profile, &byteBlob) != "")
   {
     return NULL;
   }
@@ -274,7 +291,7 @@ ID3D11PixelShader *D3D11ShaderCache::MakePShader(const char *source, const char 
 {
   ID3DBlob *byteBlob = NULL;
 
-  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, profile, &byteBlob) != "")
+  if(GetShaderBlob(source, entry, m_CompileFlags, {}, profile, &byteBlob) != "")
   {
     return NULL;
   }
@@ -302,7 +319,7 @@ ID3D11ComputeShader *D3D11ShaderCache::MakeCShader(const char *source, const cha
 {
   ID3DBlob *byteBlob = NULL;
 
-  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, profile, &byteBlob) != "")
+  if(GetShaderBlob(source, entry, m_CompileFlags, {}, profile, &byteBlob) != "")
   {
     return NULL;
   }
