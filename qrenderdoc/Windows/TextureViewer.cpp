@@ -736,8 +736,8 @@ void TextureViewer::RT_FetchCurrentPixel(IReplayController *r, uint32_t x, uint3
   if(m_TexDisplay.flipY)
     y = (texptr->height - 1) - y;
 
-  x = qMax(0U, x >> m_TexDisplay.subresource.mip);
-  y = qMax(0U, y >> m_TexDisplay.subresource.mip);
+  x = qMax(0U, MipCoordFromBase(x, texptr->width));
+  y = qMax(0U, MipCoordFromBase(y, texptr->height));
 
   ResourceId id = m_TexDisplay.resourceId;
   Subresource sub = m_TexDisplay.subresource;
@@ -965,10 +965,11 @@ void TextureViewer::UI_UpdateStatusText()
     ui->pickSwatch->setPalette(Pal);
   }
 
-  int y = m_CurHoverPixel.y() >> (int)m_TexDisplay.subresource.mip;
-
   uint32_t mipWidth = qMax(1U, tex.width >> (int)m_TexDisplay.subresource.mip);
   uint32_t mipHeight = qMax(1U, tex.height >> (int)m_TexDisplay.subresource.mip);
+
+  int x = MipCoordFromBase(m_CurHoverPixel.x(), tex.width);
+  int y = MipCoordFromBase(m_CurHoverPixel.y(), tex.height);
 
   if(ShouldFlipForGL())
     y = (int)(mipHeight - 1) - y;
@@ -977,7 +978,6 @@ void TextureViewer::UI_UpdateStatusText()
 
   y = qMax(0, y);
 
-  int x = m_CurHoverPixel.x() >> (int)m_TexDisplay.subresource.mip;
   float invWidth = 1.0f / mipWidth;
   float invHeight = 1.0f / mipHeight;
 
@@ -1004,8 +1004,8 @@ void TextureViewer::UI_UpdateStatusText()
 
   if(m_PickedPoint.x() >= 0)
   {
-    x = m_PickedPoint.x() >> (int)m_TexDisplay.subresource.mip;
-    y = m_PickedPoint.y() >> (int)m_TexDisplay.subresource.mip;
+    x = MipCoordFromBase(m_PickedPoint.x(), tex.width);
+    y = MipCoordFromBase(m_PickedPoint.y(), tex.height);
     if(ShouldFlipForGL())
       y = (int)(mipHeight - 1) - y;
     if(m_TexDisplay.flipY)
@@ -2151,8 +2151,8 @@ void TextureViewer::GotoLocation(uint32_t x, uint32_t y)
   if(tex == NULL)
     return;
 
-  x = qMin(x << m_TexDisplay.subresource.mip, uint32_t(tex->width - 1));
-  y = qMin(y << m_TexDisplay.subresource.mip, uint32_t(tex->height - 1));
+  x = qMin(BaseCoordFromMip(x, tex->width), uint32_t(tex->width - 1));
+  y = qMin(BaseCoordFromMip(y, tex->height), uint32_t(tex->height - 1));
 
   m_PickedPoint = QPoint(x, y);
 
@@ -3796,8 +3796,8 @@ rdcpair<int32_t, int32_t> TextureViewer::GetPickedLocation()
   {
     QPoint p = m_PickedPoint;
 
-    p.setX(p.x() >> (int)m_TexDisplay.subresource.mip);
-    p.setY(p.y() >> (int)m_TexDisplay.subresource.mip);
+    p.setX(MipCoordFromBase(p.x(), texptr->width));
+    p.setY(MipCoordFromBase(p.y(), texptr->height));
 
     uint32_t mipHeight = qMax(1U, texptr->height >> (int)m_TexDisplay.subresource.mip);
 
@@ -3820,8 +3820,8 @@ void TextureViewer::ShowGotoPopup()
   {
     QPoint p = m_PickedPoint;
 
-    p.setX(p.x() >> (int)m_TexDisplay.subresource.mip);
-    p.setY(p.y() >> (int)m_TexDisplay.subresource.mip);
+    p.setX(MipCoordFromBase(p.x(), texptr->width));
+    p.setY(MipCoordFromBase(p.y(), texptr->height));
 
     uint32_t mipHeight = qMax(1U, texptr->height >> (int)m_TexDisplay.subresource.mip);
 
@@ -3969,10 +3969,10 @@ void TextureViewer::on_debugPixelContext_clicked()
   if(m_PickedPoint.x() < 0 || m_PickedPoint.y() < 0)
     return;
 
-  int x = m_PickedPoint.x() >> (int)m_TexDisplay.subresource.mip;
-  int y = m_PickedPoint.y() >> (int)m_TexDisplay.subresource.mip;
-
   TextureDescription *texptr = GetCurrentTexture();
+
+  int x = MipCoordFromBase(m_PickedPoint.x(), texptr->width);
+  int y = MipCoordFromBase(m_PickedPoint.y(), texptr->height);
 
   uint32_t mipHeight = qMax(1U, texptr->height >> (int)m_TexDisplay.subresource.mip);
 
@@ -4035,8 +4035,8 @@ void TextureViewer::on_pixelHistory_clicked()
 
   ANALYTIC_SET(UIFeatures.PixelHistory, true);
 
-  int x = m_PickedPoint.x() >> (int)m_TexDisplay.subresource.mip;
-  int y = m_PickedPoint.y() >> (int)m_TexDisplay.subresource.mip;
+  int x = MipCoordFromBase(m_PickedPoint.x(), texptr->width);
+  int y = MipCoordFromBase(m_PickedPoint.y(), texptr->height);
 
   uint32_t mipHeight = qMax(1U, texptr->height >> (int)m_TexDisplay.subresource.mip);
 
@@ -4415,6 +4415,34 @@ QString TextureViewer::getShaderPath(const QString &filename) const
   }
 
   return path;
+}
+
+uint32_t TextureViewer::MipCoordFromBase(int coord, uint32_t dim)
+{
+  const uint32_t mip = m_TexDisplay.subresource.mip;
+  const uint32_t mipDim = qMax(1U, dim >> mip);
+
+  // for mip levels where we more than half (e.g. 15x15 to 7x7) the coord can't be shifted by the
+  // mip.
+  // e.g. if the top level is 960x540 an x coordinate of 950 would be shifted by 7 down to 7, but
+  // mip 7 is 7x4 so the max x co-ordinate is 6. Instead we need to get the float value on the top
+  // mip, multiply by the mip dimension, and floor it
+
+  float coordf = float(coord) / float(dim);
+
+  return uint32_t(mipDim * coordf);
+}
+
+uint32_t TextureViewer::BaseCoordFromMip(int coord, uint32_t dim)
+{
+  const uint32_t mip = m_TexDisplay.subresource.mip;
+  uint32_t mipDim = qMax(1U, dim >> mip);
+
+  // reverse of the above conversion
+
+  float coordf = float(coord) / float(mipDim);
+
+  return uint32_t(dim * coordf);
 }
 
 void TextureViewer::on_customCreate_clicked()

@@ -1704,8 +1704,47 @@ void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Su
     texDisplay.resourceId = texture;
     texDisplay.typeCast = typeCast;
     texDisplay.rawOutput = true;
-    texDisplay.xOffset = -float(x << sub.mip);
-    texDisplay.yOffset = -float(y << sub.mip);
+
+    uint32_t texWidth = 1, texHeight = 1;
+
+    auto it1 = WrappedID3D11Texture1D::m_TextureList.find(texture);
+    auto it2 = WrappedID3D11Texture2D1::m_TextureList.find(texture);
+    auto it3 = WrappedID3D11Texture3D1::m_TextureList.find(texture);
+    if(it1 != WrappedID3D11Texture1D::m_TextureList.end())
+    {
+      WrappedID3D11Texture1D *wrapTex1D = (WrappedID3D11Texture1D *)it1->second.m_Texture;
+
+      D3D11_TEXTURE1D_DESC desc1d = {0};
+      wrapTex1D->GetDesc(&desc1d);
+
+      texWidth = desc1d.Width;
+    }
+    else if(it2 != WrappedID3D11Texture2D1::m_TextureList.end())
+    {
+      WrappedID3D11Texture2D1 *wrapTex2D = (WrappedID3D11Texture2D1 *)it2->second.m_Texture;
+
+      D3D11_TEXTURE2D_DESC desc2d = {0};
+      wrapTex2D->GetDesc(&desc2d);
+
+      texWidth = desc2d.Width;
+      texHeight = desc2d.Height;
+    }
+    else if(it3 != WrappedID3D11Texture3D1::m_TextureList.end())
+    {
+      WrappedID3D11Texture3D1 *wrapTex3D = (WrappedID3D11Texture3D1 *)it3->second.m_Texture;
+
+      D3D11_TEXTURE3D_DESC desc3d = {0};
+      wrapTex3D->GetDesc(&desc3d);
+
+      texWidth = desc3d.Width;
+      texHeight = desc3d.Height;
+    }
+
+    uint32_t mipWidth = RDCMAX(1U, texWidth >> sub.mip);
+    uint32_t mipHeight = RDCMAX(1U, texHeight >> sub.mip);
+
+    texDisplay.xOffset = -(float(x) / float(mipWidth)) * texWidth;
+    texDisplay.yOffset = -(float(y) / float(mipHeight)) * texHeight;
 
     RenderTextureInternal(texDisplay, eTexDisplay_None);
   }

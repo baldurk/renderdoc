@@ -97,6 +97,8 @@ private:
     bool dirty;
   } m_MainOutput;
 
+  rdcpair<uint32_t, uint32_t> m_TextureDim = {0, 0};
+
   ResourceId m_OverlayResourceId;
   ResourceId m_CustomShaderResourceId;
 

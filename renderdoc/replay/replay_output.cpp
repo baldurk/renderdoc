@@ -202,6 +202,15 @@ void ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
   m_CustomDirty = true;
   m_RenderData.texDisplay = o;
   m_MainOutput.dirty = true;
+
+  m_TextureDim = {0, 0};
+  for(size_t t = 0; t < m_pController->m_Textures.size(); t++)
+  {
+    if(m_pController->m_Textures[t].resourceId == m_RenderData.texDisplay.resourceId)
+    {
+      m_TextureDim = {m_pController->m_Textures[t].width, m_pController->m_Textures[t].height};
+    }
+  }
 }
 
 void ReplayOutput::SetMeshDisplay(const MeshDisplay &o)
@@ -593,11 +602,25 @@ void ReplayOutput::DisplayContext()
   int x = (int)m_ContextX;
   int y = (int)m_ContextY;
 
-  x >>= disp.subresource.mip;
-  x <<= disp.subresource.mip;
+  if(m_TextureDim.first > 0 && m_TextureDim.second > 0)
+  {
+    rdcpair<uint32_t, uint32_t> mipDim = {RDCMAX(1U, m_TextureDim.first >> disp.subresource.mip),
+                                          RDCMAX(1U, m_TextureDim.second >> disp.subresource.mip)};
 
-  y >>= disp.subresource.mip;
-  y <<= disp.subresource.mip;
+    x = int((float(x) / float(m_TextureDim.first)) * mipDim.first);
+    x = int((float(x) / float(mipDim.first)) * m_TextureDim.first);
+
+    y = int((float(y) / float(m_TextureDim.second)) * mipDim.second);
+    y = int((float(y) / float(mipDim.second)) * m_TextureDim.second);
+  }
+  else
+  {
+    x >>= disp.subresource.mip;
+    x <<= disp.subresource.mip;
+
+    y >>= disp.subresource.mip;
+    y <<= disp.subresource.mip;
+  }
 
   disp.xOffset = -(float)x * disp.scale;
   disp.yOffset = -(float)y * disp.scale;

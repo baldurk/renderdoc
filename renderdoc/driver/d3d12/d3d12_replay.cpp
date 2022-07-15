@@ -2580,8 +2580,19 @@ void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Su
     texDisplay.resourceId = texture;
     texDisplay.typeCast = typeCast;
     texDisplay.rawOutput = true;
-    texDisplay.xOffset = -float(x << sub.mip);
-    texDisplay.yOffset = -float(y << sub.mip);
+
+    ID3D12Resource *resource = m_pDevice->GetResourceList()[texture];
+
+    if(resource)
+    {
+      D3D12_RESOURCE_DESC desc = resource->GetDesc();
+
+      uint32_t mipWidth = RDCMAX(1U, UINT(desc.Width >> sub.mip));
+      uint32_t mipHeight = RDCMAX(1U, desc.Height >> sub.mip);
+
+      texDisplay.xOffset = -(float(x) / float(mipWidth)) * desc.Width;
+      texDisplay.yOffset = -(float(y) / float(mipHeight)) * desc.Height;
+    }
 
     m_OutputViewport = {0, 0, 1, 1, 0.0f, 1.0f};
     RenderTextureInternal(GetDebugManager()->GetCPUHandle(PICK_PIXEL_RTV), texDisplay,

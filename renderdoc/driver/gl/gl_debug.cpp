@@ -1620,14 +1620,20 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subre
   texDisplay.xOffset = -float(x << sub.mip);
   texDisplay.yOffset = -float(y << sub.mip);
 
+  auto &texDetails = m_pDriver->m_Textures[texDisplay.resourceId];
+
+  uint32_t mipWidth = RDCMAX(1U, (uint32_t)texDetails.width >> sub.mip);
+  uint32_t mipHeight = RDCMAX(1U, (uint32_t)texDetails.height >> sub.mip);
+
+  texDisplay.xOffset = -(float(x) / float(mipWidth)) * texDetails.width;
+  texDisplay.yOffset = -(float(y) / float(mipHeight)) * texDetails.height;
+
   RenderTextureInternal(texDisplay, eTexDisplay_MipShift);
 
   drv.glReadPixels(0, 0, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)pixel);
 
   if(!HasExt[ARB_gpu_shader5])
   {
-    auto &texDetails = m_pDriver->m_Textures[texDisplay.resourceId];
-
     if(IsSIntFormat(texDetails.internalFormat))
     {
       int32_t casted[4] = {
@@ -1647,8 +1653,6 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subre
   }
 
   {
-    auto &texDetails = m_pDriver->m_Textures[texture];
-
     // need to read stencil separately as GL can't read both depth and stencil
     // at the same time.
     if(texDetails.internalFormat == eGL_DEPTH24_STENCIL8 ||

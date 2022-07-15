@@ -61,8 +61,8 @@ RWBuffer<int4> MinMaxDestInt : register(u2);
     {
       for(uint x = topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
       {
-        uint4 data = SampleTextureUInt4(texType, float2(x, y) / float2(texDim.xy), HistogramSlice,
-                                        HistogramMip, HistogramSample, texDim);
+        uint4 data = SampleTextureUInt4(texType, float2(x + 0.1f, y + 0.1f) / float2(texDim.xy),
+                                        HistogramSlice, HistogramMip, HistogramSample, texDim);
 
         if(i == 0)
         {
@@ -91,8 +91,8 @@ RWBuffer<int4> MinMaxDestInt : register(u2);
     {
       for(uint x = topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
       {
-        int4 data = SampleTextureInt4(texType, float2(x, y) / float2(texDim.xy), HistogramSlice,
-                                      HistogramMip, HistogramSample, texDim);
+        int4 data = SampleTextureInt4(texType, float2(x + 0.1f, y + 0.1f) / float2(texDim.xy),
+                                      HistogramSlice, HistogramMip, HistogramSample, texDim);
 
         if(i == 0)
         {
@@ -121,9 +121,10 @@ RWBuffer<int4> MinMaxDestInt : register(u2);
     {
       for(uint x = topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
       {
-        float4 data = SampleTextureFloat4(texType, false, float2(x, y) / float2(texDim.xy),
-                                          HistogramSlice, HistogramMip, HistogramSample, texDim,
-                                          HistogramYUVDownsampleRate, HistogramYUVAChannels);
+        float4 data =
+            SampleTextureFloat4(texType, false, float2(x + 0.1f, y + 0.1f) / float2(texDim.xy),
+                                HistogramSlice, HistogramMip, HistogramSample, texDim,
+                                HistogramYUVDownsampleRate, HistogramYUVAChannels);
 
         if(i == 0)
         {
@@ -238,8 +239,8 @@ RWBuffer<uint> HistogramDest : register(u0);
 
 #if UINT_TEX
       {
-        uint4 data = SampleTextureUInt4(texType, float2(x, y) / float2(texDim.xy), HistogramSlice,
-                                        HistogramMip, HistogramSample, texDim);
+        uint4 data = SampleTextureUInt4(texType, float2(x + 0.1f, y + 0.1f) / float2(texDim.xy),
+                                        HistogramSlice, HistogramMip, HistogramSample, texDim);
 
         if((HistogramChannels & 0x1) == 0)
           data.x = uint(HistogramMax + 1);
@@ -268,8 +269,8 @@ RWBuffer<uint> HistogramDest : register(u0);
       }
 #elif SINT_TEX
       {
-        int4 data = SampleTextureInt4(texType, float2(x, y) / float2(texDim.xy), HistogramSlice,
-                                      HistogramMip, HistogramSample, texDim);
+        int4 data = SampleTextureInt4(texType, float2(x + 0.1f, y + 0.1f) / float2(texDim.xy),
+                                      HistogramSlice, HistogramMip, HistogramSample, texDim);
 
         if((HistogramChannels & 0x1) == 0)
           data.x = int(HistogramMax + 1);
@@ -298,9 +299,10 @@ RWBuffer<uint> HistogramDest : register(u0);
       }
 #else
       {
-        float4 data = SampleTextureFloat4(texType, false, float2(x, y) / float2(texDim.xy),
-                                          HistogramSlice, HistogramMip, HistogramSample, texDim,
-                                          HistogramYUVDownsampleRate, HistogramYUVAChannels);
+        float4 data =
+            SampleTextureFloat4(texType, false, float2(x + 0.1f, y + 0.1f) / float2(texDim.xy),
+                                HistogramSlice, HistogramMip, HistogramSample, texDim,
+                                HistogramYUVDownsampleRate, HistogramYUVAChannels);
 
         if((HistogramChannels & 0x1) == 0)
           data.x = float(HistogramMax + 1);

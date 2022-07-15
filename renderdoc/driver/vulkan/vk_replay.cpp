@@ -2406,8 +2406,12 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const S
       texDisplay.resourceId = texture;
       texDisplay.typeCast = typeCast;
       texDisplay.rawOutput = true;
-      texDisplay.xOffset = -float(x << sub.mip);
-      texDisplay.yOffset = -float(y << sub.mip);
+
+      uint32_t mipWidth = RDCMAX(1U, iminfo.extent.width >> sub.mip);
+      uint32_t mipHeight = RDCMAX(1U, iminfo.extent.height >> sub.mip);
+
+      texDisplay.xOffset = -(float(x) / float(mipWidth)) * iminfo.extent.width;
+      texDisplay.yOffset = -(float(y) / float(mipHeight)) * iminfo.extent.height;
 
       // only render green (stencil) in second pass
       if(pass == 1)
