@@ -96,6 +96,7 @@ set(RENDERDOC_APK_PATH "" CACHE STRING "Path to RenderDoc .apk files after insta
 
 set(LIB_SUFFIX "" CACHE STRING "Suffix for 'lib' folder in target directory structure. E.g. set to '64' to use /usr/local/lib64 instead of /usr/local/lib.")
 set(LIB_SUBFOLDER "" CACHE STRING "Subfolder under the 'lib' folder in target directory structure. E.g. set to 'renderdoc' to use /usr/local/lib/renderdoc instead of /usr/local/lib.")
+set(VULKAN_JSON_SUFFIX "" CACHE STRING "Suffix for the vulkan implicit_layer json file. E.g. set to '.x86_64' to use renderdoc_capture.x86_64.json instead of renderdoc_capture.json")
 
 if(NOT LIB_SUFFIX STREQUAL "")
     add_definitions(-DRENDERDOC_LIB_SUFFIX=${LIB_SUFFIX})
@@ -107,6 +108,8 @@ if(NOT LIB_SUBFOLDER STREQUAL "")
     add_definitions(-DRENDERDOC_LIB_SUBFOLDER=${LIB_SUBFOLDER})
     set(LIB_SUBFOLDER_TRAIL_SLASH "${LIB_SUBFOLDER}/")
 endif()
+
+add_definitions(-DRENDERDOC_VULKAN_JSON_SUFFIX=${VULKAN_JSON_SUFFIX})
 
 if(BUILD_VERSION_STABLE)
     add_definitions(-DRENDERDOC_STABLE_BUILD=1)

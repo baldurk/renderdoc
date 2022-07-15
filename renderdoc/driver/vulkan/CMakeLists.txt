@@ -125,7 +125,7 @@ elseif(UNIX)
     set(VULKAN_ENABLE_VAR "ENABLE_VULKAN_RENDERDOC_CAPTURE")
 
     set(json_in ${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.json)
-    set(json_out ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/renderdoc_capture.json)
+    set(json_out ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/renderdoc_capture${VULKAN_JSON_SUFFIX}.json)
     
     configure_file(${json_in} ${json_out})
 
