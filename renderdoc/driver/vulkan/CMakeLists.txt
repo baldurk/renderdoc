@@ -84,6 +84,12 @@ endif()
 # they can set this variable to make sure it stays local
 set(VULKAN_LAYER_FOLDER ${VULKAN_LAYER_FOLDER_DEFAULT} CACHE PATH "Path to install the vulkan layer file")
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set_property(SOURCE 
+        vk_shaderdebug.cpp
+        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-shadow")
+endif()
+
 if(ANDROID)
     list(APPEND sources vk_posix.cpp vk_android.cpp vk_layer_android.cpp)
     list(APPEND definitions PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR)

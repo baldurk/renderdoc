@@ -17,7 +17,7 @@ set(MODULE_DEFINES
     PRIVATE -DRENDERDOC_PLATFORM_LINUX)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-warning-option -Wno-unused-private-field")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-warning-option -Wno-unused-private-field -Wno-shadow")
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX)

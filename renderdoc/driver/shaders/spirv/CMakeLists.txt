@@ -128,7 +128,14 @@ endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set_property(SOURCE ${glslang_sources}
-        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unknown-warning-option")
+        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unknown-warning-option -Wno-shadow")
+
+    set_property(SOURCE 
+        spirv_debug.cpp
+        spirv_debug_glsl450.cpp
+        spirv_debug_setup.cpp
+        spirv_processor.cpp
+        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-shadow")
 
     if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.9)
         set_property(SOURCE ${glslang_dir}/glslang/MachineIndependent/iomapper.cpp

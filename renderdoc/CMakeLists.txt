@@ -400,7 +400,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR APPLE)
     # -Wno-unused-lambda-capture available
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         set_property(SOURCE 3rdparty/jpeg-compressor/jpgd.cpp
-            APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unreachable-code-break -Wno-implicit-fallthrough")
+            APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unreachable-code-break -Wno-implicit-fallthrough -Wno-shadow")
 
         # Only clang has this warning. Fixing it in this file causes a compile error on windows
         set_source_files_properties(os/os_specific.cpp

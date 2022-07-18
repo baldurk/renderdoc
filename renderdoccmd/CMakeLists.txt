@@ -15,6 +15,8 @@ endif()
 if(APPLE)
     list(APPEND sources renderdoccmd_apple.cpp apple/cocoa_window.mm)
 
+    set_property(SOURCE renderdoccmd_apple.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-shadow")
+
     find_library(COCOA_LIBRARY Cocoa)
     list(APPEND libraries PRIVATE ${COCOA_LIBRARY})
 
@@ -41,6 +43,10 @@ elseif(ENABLE_GGP)
     set(LINKER_FLAGS "-Wl,--no-as-needed -Wl,--hash-style=gnu -Wl,--build-id=sha1")
 elseif(UNIX)
     list(APPEND sources renderdoccmd_linux.cpp)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set_property(SOURCE renderdoccmd_linux.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-shadow")
+endif()
 
     if(ENABLE_XLIB)
         list(APPEND libraries PRIVATE -lX11)
@@ -74,6 +80,10 @@ else()
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINKER_FLAGS}")
 
     add_executable(renderdoccmd ${sources})
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set_property(SOURCE renderdoccmd.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-shadow")
 endif()
 
 target_include_directories(renderdoccmd ${includes})
