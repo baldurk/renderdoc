@@ -1213,7 +1213,7 @@ public:
       bytebuf blob;
 
       fseek(f, 0, SEEK_END);
-      int len = ftell(f);
+      long len = ftell(f);
       fseek(f, 0, SEEK_SET);
 
       if(len < 0)
