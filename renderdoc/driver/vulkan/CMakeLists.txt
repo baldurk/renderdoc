@@ -86,7 +86,7 @@ set(VULKAN_LAYER_FOLDER ${VULKAN_LAYER_FOLDER_DEFAULT} CACHE PATH "Path to insta
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set_property(SOURCE vk_shaderdebug.cpp
-        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-shadow")
+        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-shadow -Wno-shorten-64-to-32")
 endif()
 
 if(ANDROID)

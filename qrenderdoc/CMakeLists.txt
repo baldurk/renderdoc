@@ -214,7 +214,7 @@ endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     file(APPEND
         ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
-        "QMAKE_CXXFLAGS+=-Wno-shadow\n")
+        "QMAKE_CXXFLAGS+=-Wno-shadow -Wno-shorten-64-to-32\n")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 3.9)
