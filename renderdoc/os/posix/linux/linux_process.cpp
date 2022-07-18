@@ -432,7 +432,7 @@ bool StopChildAtMain(pid_t childPid)
     for(Elf64_Half s = 0; s < elf_header.e_shnum; s++)
     {
       Elf64_Shdr section_header;
-      size_t read = FileIO::fread(&section_header, sizeof(section_header), 1, elf);
+      read = FileIO::fread(&section_header, sizeof(section_header), 1, elf);
 
       if(read != 1)
       {
