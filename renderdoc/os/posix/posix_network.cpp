@@ -106,7 +106,7 @@ Socket *Socket::AcceptClient(uint32_t timeoutMilliseconds)
 {
   do
   {
-    int s = accept(socket, NULL, NULL);
+    int s = accept((int)socket, NULL, NULL);
 
     if(s != -1)
     {
@@ -153,21 +153,21 @@ bool Socket::SendDataBlocking(const void *buf, uint32_t length)
 
   char *src = (char *)buf;
 
-  int flags = fcntl(socket, F_GETFL, 0);
-  fcntl(socket, F_SETFL, flags & ~O_NONBLOCK);
+  int flags = fcntl((int)socket, F_GETFL, 0);
+  fcntl((int)socket, F_SETFL, flags & ~O_NONBLOCK);
 
   timeval oldtimeout = {0};
   socklen_t len = sizeof(oldtimeout);
-  getsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&oldtimeout, &len);
+  getsockopt((int)socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&oldtimeout, &len);
 
   timeval timeout = {0};
   timeout.tv_sec = (timeoutMS / 1000);
   timeout.tv_usec = (timeoutMS % 1000) * 1000;
-  setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, (const char *)&timeout, sizeof(timeout));
+  setsockopt((int)socket, SOL_SOCKET, SO_SNDTIMEO, (const char *)&timeout, sizeof(timeout));
 
   while(sent < length)
   {
-    int ret = send(socket, src, length - sent, 0);
+    ssize_t ret = send((int)socket, src, length - sent, 0);
 
     if(ret <= 0)
     {
@@ -199,10 +199,10 @@ bool Socket::SendDataBlocking(const void *buf, uint32_t length)
     src += ret;
   }
 
-  flags = fcntl(socket, F_GETFL, 0);
-  fcntl(socket, F_SETFL, flags | O_NONBLOCK);
+  flags = fcntl((int)socket, F_GETFL, 0);
+  fcntl((int)socket, F_SETFL, flags | O_NONBLOCK);
 
-  setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, (const char *)&oldtimeout, sizeof(oldtimeout));
+  setsockopt((int)socket, SOL_SOCKET, SO_SNDTIMEO, (const char *)&oldtimeout, sizeof(oldtimeout));
 
   RDCASSERT(sent == length);
 
@@ -215,7 +215,7 @@ bool Socket::SendDataBlocking(const void *buf, uint32_t length)
 bool Socket::IsRecvDataWaiting()
 {
   char dummy;
-  int ret = recv(socket, &dummy, 1, MSG_PEEK);
+  ssize_t ret = recv((int)socket, &dummy, 1, MSG_PEEK);
 
   if(ret == 0)
   {
@@ -248,7 +248,7 @@ bool Socket::RecvDataNonBlocking(void *buf, uint32_t &length)
     return true;
 
   // socket is already blocking, don't have to change anything
-  int ret = recv(socket, (char *)buf, length, 0);
+  ssize_t ret = recv((int)socket, (char *)buf, length, 0);
 
   if(ret > 0)
   {
@@ -284,21 +284,21 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
 
   char *dst = (char *)buf;
 
-  int flags = fcntl(socket, F_GETFL, 0);
-  fcntl(socket, F_SETFL, flags & ~O_NONBLOCK);
+  int flags = fcntl((int)socket, F_GETFL, 0);
+  fcntl((int)socket, F_SETFL, flags & ~O_NONBLOCK);
 
   timeval oldtimeout = {0};
   socklen_t len = sizeof(oldtimeout);
-  getsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&oldtimeout, &len);
+  getsockopt((int)socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&oldtimeout, &len);
 
   timeval timeout = {0};
   timeout.tv_sec = (timeoutMS / 1000);
   timeout.tv_usec = (timeoutMS % 1000) * 1000;
-  setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout, sizeof(timeout));
+  setsockopt((int)socket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout, sizeof(timeout));
 
   while(received < length)
   {
-    int ret = recv(socket, dst, length - received, 0);
+    ssize_t ret = recv((int)socket, dst, length - received, 0);
 
     if(ret == 0)
     {
@@ -335,10 +335,10 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
     dst += ret;
   }
 
-  flags = fcntl(socket, F_GETFL, 0);
-  fcntl(socket, F_SETFL, flags | O_NONBLOCK);
+  flags = fcntl((int)socket, F_GETFL, 0);
+  fcntl((int)socket, F_SETFL, flags | O_NONBLOCK);
 
-  setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&oldtimeout, sizeof(oldtimeout));
+  setsockopt((int)socket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&oldtimeout, sizeof(oldtimeout));
 
   RDCASSERT(received == length);
 
@@ -350,7 +350,7 @@ uint32_t GetIPFromTCPSocket(int socket)
   sockaddr_in addr = {};
   socklen_t len = sizeof(addr);
 
-  getpeername(socket, (sockaddr *)&addr, &len);
+  getpeername((int)socket, (sockaddr *)&addr, &len);
 
   return ntohl(addr.sin_addr.s_addr);
 }
@@ -419,7 +419,8 @@ Socket *CreateAbstractServerSocket(uint16_t port, int queuesize)
   addr.sun_path[0] = '\0';
   strncpy(addr.sun_path + 1, socketName.c_str(), socketName.size() + 1);
 
-  int result = bind(s, (sockaddr *)&addr, offsetof(sockaddr_un, sun_path) + 1 + socketName.size());
+  int result = bind(s, (sockaddr *)&addr,
+                    (socklen_t)(offsetof(sockaddr_un, sun_path) + 1 + socketName.size()));
   if(result == -1)
   {
     RDCWARN("Failed to create abstract socket: %s", socketName.c_str());
