@@ -402,6 +402,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR APPLE)
         set_property(SOURCE 3rdparty/jpeg-compressor/jpgd.cpp
             APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unreachable-code-break -Wno-implicit-fallthrough -Wno-shadow")
 
+        set_property(SOURCE 3rdparty/compressonator/BC6_Encode_kernel.cpp
+            APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-tautological-constant-out-of-range-compare")
+
         # Only clang has this warning. Fixing it in this file causes a compile error on windows
         set_source_files_properties(os/os_specific.cpp
             PROPERTIES COMPILE_FLAGS "-Wno-unknown-warning-option -Wno-unused-lambda-capture")
