@@ -400,7 +400,10 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR APPLE)
     # -Wno-unused-lambda-capture available
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         set_property(SOURCE 3rdparty/jpeg-compressor/jpgd.cpp
-            APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unreachable-code-break -Wno-implicit-fallthrough -Wno-shadow")
+            APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unreachable-code-break -Wno-implicit-fallthrough -Wno-shadow -Wno-shorten-64-to-32")
+
+        set_property(SOURCE 3rdparty/jpeg-compressor/jpge.cpp
+            APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-shorten-64-to-32")
 
         set_property(SOURCE 3rdparty/compressonator/BC6_Encode_kernel.cpp
             APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-tautological-constant-out-of-range-compare")

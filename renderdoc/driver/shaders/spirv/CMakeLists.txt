@@ -135,7 +135,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         spirv_debug_glsl450.cpp
         spirv_debug_setup.cpp
         spirv_processor.cpp
-        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-shadow")
+        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-shadow -Wno-shorten-64-to-32")
 
     if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.9)
         set_property(SOURCE ${glslang_dir}/glslang/MachineIndependent/iomapper.cpp
