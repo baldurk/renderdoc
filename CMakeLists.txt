@@ -387,6 +387,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         list(APPEND warning_flags -Wnewline-eof -Wunreachable-code-break -Wclass-varargs -Wstring-conversion -Wtautological-compare -Wtautological-constant-out-of-range-compare)
+        list(APPEND warning_flags -Wshadow)
     endif()
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 3.9)
