@@ -113,8 +113,8 @@ public:
   bool DiscardFrameCapture(DeviceOwnedWindow devWnd);
   // IFrameCapturer interface
 
-  void CaptureCmdBufCommit(MetalResourceRecord *record);
-  void CaptureCmdBufEnqueue(MetalResourceRecord *record);
+  void CaptureCmdBufCommit(MetalResourceRecord *cbRecord);
+  void CaptureCmdBufEnqueue(MetalResourceRecord *cbRecord);
 
   void AddFrameCaptureRecordChunk(Chunk *chunk) { m_FrameCaptureRecord->AddChunk(chunk); }
   // From ResourceManager interface

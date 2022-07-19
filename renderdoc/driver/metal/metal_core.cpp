@@ -428,14 +428,14 @@ void WrappedMTLDevice::CaptureCmdBufSubmit(MetalResourceRecord *record)
   record->Delete(GetResourceManager());
 }
 
-void WrappedMTLDevice::CaptureCmdBufCommit(MetalResourceRecord *record)
+void WrappedMTLDevice::CaptureCmdBufCommit(MetalResourceRecord *cbRecord)
 {
   SCOPED_LOCK(m_CaptureCommandBuffersLock);
-  if(record->cmdInfo->status != MetalCmdBufferStatus::Enqueued)
-    CaptureCmdBufEnqueue(record);
+  if(cbRecord->cmdInfo->status != MetalCmdBufferStatus::Enqueued)
+    CaptureCmdBufEnqueue(cbRecord);
 
-  RDCASSERTEQUAL(record->cmdInfo->status, MetalCmdBufferStatus::Enqueued);
-  record->cmdInfo->status = MetalCmdBufferStatus::Committed;
+  RDCASSERTEQUAL(cbRecord->cmdInfo->status, MetalCmdBufferStatus::Enqueued);
+  cbRecord->cmdInfo->status = MetalCmdBufferStatus::Committed;
 
   size_t countSubmitted = 0;
   for(MetalResourceRecord *record : m_CaptureCommandBuffersEnqueued)
@@ -452,15 +452,15 @@ void WrappedMTLDevice::CaptureCmdBufCommit(MetalResourceRecord *record)
   m_CaptureCommandBuffersEnqueued.erase(0, countSubmitted);
 }
 
-void WrappedMTLDevice::CaptureCmdBufEnqueue(MetalResourceRecord *record)
+void WrappedMTLDevice::CaptureCmdBufEnqueue(MetalResourceRecord *cbRecord)
 {
   SCOPED_LOCK(m_CaptureCommandBuffersLock);
-  RDCASSERTEQUAL(record->cmdInfo->status, MetalCmdBufferStatus::Unknown);
-  record->cmdInfo->status = MetalCmdBufferStatus::Enqueued;
-  record->AddRef();
-  m_CaptureCommandBuffersEnqueued.push_back(record);
+  RDCASSERTEQUAL(cbRecord->cmdInfo->status, MetalCmdBufferStatus::Unknown);
+  cbRecord->cmdInfo->status = MetalCmdBufferStatus::Enqueued;
+  cbRecord->AddRef();
+  m_CaptureCommandBuffersEnqueued.push_back(cbRecord);
 
-  RDCDEBUG("Enqueing CommandBufferRecord %s %d", ToStr(record->GetResourceID()).c_str(),
+  RDCDEBUG("Enqueing CommandBufferRecord %s %d", ToStr(cbRecord->GetResourceID()).c_str(),
            m_CaptureCommandBuffersEnqueued.count());
 }
 
