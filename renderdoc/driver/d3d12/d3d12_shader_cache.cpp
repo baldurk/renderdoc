@@ -307,7 +307,8 @@ D3D12ShaderCache::D3D12ShaderCache(WrappedID3D12Device *device)
   // if we're being self-captured, the 'real' device will respond to renderdoc's UUID. Enable debug
   // shaders
   IUnknown *dummy = NULL;
-  device->GetReal()->QueryInterface(IRenderDoc_uuid, (void **)&dummy);
+  if(device->GetReal())
+    device->GetReal()->QueryInterface(IRenderDoc_uuid, (void **)&dummy);
 
   if(dummy)
   {
