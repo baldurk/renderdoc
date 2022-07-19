@@ -710,8 +710,8 @@ static uint32_t GetPlaneByteSize(uint32_t width, uint32_t height, uint32_t depth
   MTL::Size planeShape(mipWidth, mipHeight, 0);
   BlockShape blockShape(GetBlockShape(mtlFormat, plane));
 
-  uint32_t widthInBlocks = (planeShape.width + blockShape.width - 1) / blockShape.width;
-  uint32_t heightInBlocks = (planeShape.height + blockShape.height - 1) / blockShape.height;
+  uint32_t widthInBlocks = (uint32_t)(planeShape.width + blockShape.width - 1) / blockShape.width;
+  uint32_t heightInBlocks = (uint32_t)(planeShape.height + blockShape.height - 1) / blockShape.height;
 
   return blockShape.bytes * widthInBlocks * heightInBlocks * mipDepth;
 }
