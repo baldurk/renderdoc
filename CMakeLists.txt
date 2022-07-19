@@ -396,6 +396,10 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         list(APPEND warning_flags -Wcomma)
     endif()
 
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
+        list(APPEND warning_flags -Wshadow)
+    endif()
+
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0 AND NOT APPLE)
         list(APPEND warning_flags -Wno-unused-lambda-capture)
     endif()
