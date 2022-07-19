@@ -153,9 +153,9 @@ static bool ValidData(MTL::RenderPassSampleBufferAttachmentDescriptor *descripto
 template <typename MTL_TYPE>
 static void GetWrappedNSArray(rdcarray<typename UnwrapHelper<MTL_TYPE>::Outer *> &to, NS::Array *from)
 {
-  int count = from->count();
+  size_t count = from->count();
   to.resize(count);
-  for(int i = 0; i < count; ++i)
+  for(size_t i = 0; i < count; ++i)
   {
     to[i] = GetWrapped((MTL_TYPE)from->object(i));
   }
@@ -328,19 +328,19 @@ LinkedFunctions::LinkedFunctions(MTL::LinkedFunctions *objc)
   {
     NS::Dictionary *objcGroups = objc->groups();
     NS::Array *keys = objcGroups->keyEnumerator()->allObjects();
-    int countKeys = keys->count();
+    size_t countKeys = keys->count();
 
     groups.resize(countKeys);
-    for(int i = 0; i < countKeys; ++i)
+    for(size_t i = 0; i < countKeys; ++i)
     {
       NS::String *key = (NS::String *)keys->object(i);
       NS::Array *funcs = (NS::Array *)objcGroups->object(key);
-      int countFuncs = funcs->count();
+      size_t countFuncs = funcs->count();
 
       FunctionGroup &funcGroup = groups[i];
       funcGroup.callsite.assign(key->utf8String());
       funcGroup.functions.resize(countFuncs);
-      for(int j = 0; j < countFuncs; ++j)
+      for(size_t j = 0; j < countFuncs; ++j)
       {
         funcGroup.functions[j] = GetWrapped((MTL::Function *)funcs->object(j));
       }
@@ -577,7 +577,7 @@ RenderPassDescriptor::RenderPassDescriptor(MTL::RenderPassDescriptor *objc)
 {
   GETOBJCARRAY(RenderPassColorAttachmentDescriptor, MAX_RENDER_PASS_COLOR_ATTACHMENTS,
                colorAttachments, ValidData);
-  uint32_t count = objc->getSamplePositions(NULL, 0);
+  size_t count = objc->getSamplePositions(NULL, 0);
   if(count)
   {
     samplePositions.resize(count);

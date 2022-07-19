@@ -90,11 +90,11 @@ int GetIdentPort(pid_t childPid)
   // n*:<PORT>
 
   rdcstr parseResult(result);
-  const size_t len = parseResult.length();
+  const int len = parseResult.count();
   if(parseResult[0] == 'p')
   {
-    size_t tokenStart = 1;
-    size_t i = tokenStart;
+    int tokenStart = 1;
+    int i = tokenStart;
     for(; i < len; i++)
     {
       if(parseResult[i] < '0' || parseResult[i] > '9')
@@ -114,7 +114,7 @@ int GetIdentPort(pid_t childPid)
         const int netStart = parseResult.find(netString, i);
         if(netStart >= 0)
         {
-          tokenStart = netStart + strlen(netString);
+          tokenStart = netStart + (int)strlen(netString);
           i = tokenStart;
           for(; i < len; i++)
           {
