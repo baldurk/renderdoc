@@ -25,30 +25,30 @@
 #include "common/common.h"
 #include "os/os_specific.h"
 
-class AndroidCallstack : public Callstack::Stackwalk
+class AppleCallstack : public Callstack::Stackwalk
 {
 public:
-  AndroidCallstack()
+  AppleCallstack()
   {
     RDCEraseEl(addrs);
     numLevels = 0;
   }
-  AndroidCallstack(uint64_t *calls, size_t num) { Set(calls, num); }
-  ~AndroidCallstack() {}
+  AppleCallstack(uint64_t *calls, size_t num) { Set(calls, num); }
+  ~AppleCallstack() {}
   void Set(uint64_t *calls, size_t num)
   {
     numLevels = num;
-    for(int i = 0; i < numLevels; i++)
+    for(size_t i = 0; i < numLevels; i++)
       addrs[i] = calls[i];
   }
 
   size_t NumLevels() const { return 0; }
   const uint64_t *GetAddrs() const { return addrs; }
 private:
-  AndroidCallstack(const Callstack::Stackwalk &other);
+  AppleCallstack(const Callstack::Stackwalk &other);
 
   uint64_t addrs[128];
-  int numLevels;
+  size_t numLevels;
 };
 
 namespace Callstack
@@ -59,12 +59,12 @@ void Init()
 
 Stackwalk *Collect()
 {
-  return new AndroidCallstack();
+  return new AppleCallstack();
 }
 
 Stackwalk *Create()
 {
-  return new AndroidCallstack(NULL, 0);
+  return new AppleCallstack(NULL, 0);
 }
 
 bool GetLoadedModules(byte *buf, size_t &size)
