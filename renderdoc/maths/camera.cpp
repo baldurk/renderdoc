@@ -102,6 +102,7 @@ void Camera::Update()
     Matrix4f d = Matrix4f::Translation(Vec3f(0.0f, 0.0f, dist));
 
     mat = d.Mul(r.Mul(p));
+    basis = mat.Transpose();
   }
 }
 
