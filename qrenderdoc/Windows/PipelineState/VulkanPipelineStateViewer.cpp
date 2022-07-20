@@ -1819,8 +1819,11 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
     if(entryFunc != lit("main"))
       shText += lit(": ") + entryFunc + lit("()");
 
-    if(!shaderDetails->debugInfo.files.isEmpty())
-      shText += lit(" - ") + QFileInfo(shaderDetails->debugInfo.files[0].filename).fileName();
+    const ShaderDebugInfo &dbg = shaderDetails->debugInfo;
+    int entryFile = qMax(0, dbg.entryLocation.fileIndex);
+
+    if(!dbg.files.isEmpty())
+      shText += lit(" - ") + QFileInfo(dbg.files[entryFile].filename).fileName();
   }
 
   shader->setText(shText);
@@ -3442,12 +3445,14 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     if(shaderDetails)
     {
       QString entryFunc = shaderDetails->entryPoint;
+      const ShaderDebugInfo &dbg = shaderDetails->debugInfo;
+      int entryFile = qMax(0, dbg.entryLocation.fileIndex);
       if(entryFunc != lit("main"))
         shadername = QFormatStr("%1()").arg(entryFunc);
-      else if(!shaderDetails->debugInfo.files.isEmpty())
+      else if(!dbg.files.isEmpty())
         shadername = QFormatStr("%1() - %2")
                          .arg(entryFunc)
-                         .arg(QFileInfo(shaderDetails->debugInfo.files[0].filename).fileName());
+                         .arg(QFileInfo(dbg.files[entryFile].filename).fileName());
     }
 
     xml.writeStartElement(lit("p"));

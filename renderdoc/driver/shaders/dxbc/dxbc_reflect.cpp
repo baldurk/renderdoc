@@ -299,6 +299,8 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
 
     refl->debugInfo.files = dxbc->GetDebugInfo()->Files;
 
+    dxbc->GetDebugInfo()->GetLineInfo(~0U, ~0U, refl->debugInfo.entryLocation);
+
     rdcstr entry = dxbc->GetDebugInfo()->GetEntryFunction();
     if(entry.empty())
       entry = "main";

@@ -129,6 +129,10 @@ private:
   DenseIdMap<rdcstr> strings;
   rdcarray<SourceFile> sources;
   SparseIdMap<size_t> debugSources;
+  SparseIdMap<size_t> compUnitToFileIndex;
+  SparseIdMap<size_t> funcToBaseFile;
+  SparseIdMap<LineColumnInfo> debugFuncToLocation;
+  SparseIdMap<LineColumnInfo> funcToLocation;
 
   Id curBlock;
   std::set<Id> loopBlocks;

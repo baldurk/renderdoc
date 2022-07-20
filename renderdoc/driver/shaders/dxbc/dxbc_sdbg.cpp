@@ -94,8 +94,11 @@ SDBGChunk::SDBGChunk(void *data)
   m_HasDebugInfo = true;
 }
 
-void SDBGChunk::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const
+void SDBGChunk::GetLineInfo(size_t instruction, uintptr_t, LineColumnInfo &lineInfo) const
 {
+  if(instruction == ~0U)
+    instruction = 0;
+
   if(instruction < m_Instructions.size())
   {
     int32_t symID = m_Instructions[instruction].symbol;

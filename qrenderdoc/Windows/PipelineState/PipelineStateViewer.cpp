@@ -994,8 +994,22 @@ IShaderViewer *PipelineStateViewer::EditOriginalShaderSource(ResourceId id,
   QSet<uint> uniqueFiles;
   rdcstrpairs files;
 
-  for(const ShaderSourceFile &s : shaderDetails->debugInfo.files)
+  // add the entry point file first, if we have one
+  const int entryFile = shaderDetails->debugInfo.entryLocation.fileIndex;
+
+  for(int i = -1; i < shaderDetails->debugInfo.files.count(); i++)
   {
+    int idx = i;
+    if(idx < 0)
+      idx = entryFile;
+    else if(idx == entryFile)
+      continue;
+
+    if(idx < 0)
+      continue;
+
+    const ShaderSourceFile &s = shaderDetails->debugInfo.files[idx];
+
     QString filename = s.filename;
 
     uint filenameHash = qHash(filename.toLower());
@@ -1048,13 +1062,16 @@ void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId 
 
   rdcarray<ShaderEncoding> accepted = m_Ctx.TargetShaderEncodings();
 
+  const ShaderDebugInfo &dbg = shaderDetails->debugInfo;
+
   // if we have original source and it's in a known format, display it as the first most preferred
   // option
-  if(!shaderDetails->debugInfo.files.empty() &&
-     shaderDetails->debugInfo.encoding != ShaderEncoding::Unknown)
+  if(!dbg.files.empty() && dbg.encoding != ShaderEncoding::Unknown)
   {
-    QAction *action =
-        new QAction(tr("Edit Source - %1").arg(shaderDetails->debugInfo.files[0].filename), menu);
+    int entryFile = qMax(0, dbg.entryLocation.fileIndex);
+    if(dbg.editBaseFile >= 0 && dbg.editBaseFile < dbg.files.size())
+      entryFile = dbg.editBaseFile;
+    QAction *action = new QAction(tr("Edit Source - %1").arg(dbg.files[entryFile].filename), menu);
     action->setIcon(Icons::page_white_edit());
 
     QObject::connect(action, &QAction::triggered, [this, shaderId, shaderDetails]() {

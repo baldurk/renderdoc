@@ -1401,6 +1401,22 @@ The first entry in the list is always the file where the entry point is.
 )");
   rdcarray<ShaderSourceFile> files;
 
+  DOCUMENT(R"(The source location of the first executable line or the entry point.
+
+.. note::
+
+  The information is not guaranteed to be available depending on the underlying shader format, so
+  all of the elements are optional.
+)");
+  LineColumnInfo entryLocation;
+
+  DOCUMENT(R"(The index of the file which should be used for re-editing this shader's entry point.
+
+This is an optional value, and if set to ``-1`` you should fall back to using the file specified
+in :data:`entryLocation`, and if no file is specified there then use the first file listed.
+)");
+  int32_t editBaseFile = -1;
+
   DOCUMENT("The :class:`ShaderEncoding` of the source. See :data:`files`.");
   ShaderEncoding encoding = ShaderEncoding::Unknown;
 

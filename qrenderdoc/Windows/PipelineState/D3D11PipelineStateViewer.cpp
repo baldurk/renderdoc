@@ -996,9 +996,12 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, RD
 
   if(shaderDetails && !shaderDetails->debugInfo.files.empty())
   {
+    const ShaderDebugInfo &dbg = shaderDetails->debugInfo;
+    int entryFile = qMax(0, dbg.entryLocation.fileIndex);
+
     shText += QFormatStr(": %1() - %2")
                   .arg(shaderDetails->entryPoint)
-                  .arg(QFileInfo(shaderDetails->debugInfo.files[0].filename).fileName());
+                  .arg(QFileInfo(dbg.files[entryFile].filename).fileName());
   }
 
   shader->setText(shText);
@@ -1258,10 +1261,12 @@ void D3D11PipelineStateViewer::setState()
 
     if(state.inputAssembly.bytecode && !state.inputAssembly.bytecode->debugInfo.files.empty())
     {
-      layout +=
-          QFormatStr(": %1() - %2")
-              .arg(state.inputAssembly.bytecode->entryPoint)
-              .arg(QFileInfo(state.inputAssembly.bytecode->debugInfo.files[0].filename).fileName());
+      const ShaderDebugInfo &dbg = state.inputAssembly.bytecode->debugInfo;
+      int entryFile = qMax(0, dbg.entryLocation.fileIndex);
+
+      layout += QFormatStr(": %1() - %2")
+                    .arg(state.inputAssembly.bytecode->entryPoint)
+                    .arg(QFileInfo(dbg.files[entryFile].filename).fileName());
     }
 
     ui->iaBytecode->setText(layout);
@@ -2636,9 +2641,12 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     if(shaderDetails && !shaderDetails->debugInfo.files.isEmpty())
     {
+      const ShaderDebugInfo &dbg = shaderDetails->debugInfo;
+      int entryFile = qMax(0, dbg.entryLocation.fileIndex);
+
       shadername = QFormatStr("%1() - %2")
                        .arg(shaderDetails->entryPoint)
-                       .arg(QFileInfo(shaderDetails->debugInfo.files[0].filename).fileName());
+                       .arg(QFileInfo(dbg.files[entryFile].filename).fileName());
     }
 
     xml.writeStartElement(lit("p"));

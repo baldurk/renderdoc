@@ -576,10 +576,27 @@ void Reflector::RegisterOp(Iter it)
       {
         sources.back().contents += strings[dbg.arg<Id>(0)];
       }
+      else if(dbg.inst == ShaderDbg::Function)
+      {
+        LineColumnInfo &info = debugFuncToLocation[dbg.result];
+
+        info.fileIndex = (int32_t)debugSources[dbg.arg<Id>(2)];
+        info.lineStart = info.lineEnd = EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0];
+      }
+      else if(dbg.inst == ShaderDbg::FunctionDefinition)
+      {
+        funcToLocation[dbg.arg<Id>(1)] = debugFuncToLocation[dbg.arg<Id>(0)];
+      }
       else if(dbg.inst == ShaderDbg::CompilationUnit)
       {
         sources[debugSources[dbg.arg<Id>(2)]].lang =
             (SourceLanguage)EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0];
+
+        compUnitToFileIndex[dbg.result] = debugSources[dbg.arg<Id>(2)];
+      }
+      else if(dbg.inst == ShaderDbg::EntryPoint)
+      {
+        funcToBaseFile[dbg.arg<Id>(0)] = compUnitToFileIndex[dbg.arg<Id>(1)];
       }
       else if(dbg.inst == ShaderDbg::GlobalVariable)
       {
@@ -835,6 +852,18 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
     if(!sources[i].name.empty())
       reflection.debugInfo.files.push_back({sources[i].name, sources[i].contents});
+  }
+
+  {
+    auto it = funcToLocation.find(entry->id);
+    if(it != funcToLocation.end())
+      reflection.debugInfo.entryLocation = it->second;
+  }
+
+  {
+    auto it = funcToBaseFile.find(entry->id);
+    if(it != funcToBaseFile.end())
+      reflection.debugInfo.editBaseFile = (int32_t)it->second;
   }
 
   PreprocessLineDirectives(reflection.debugInfo.files);

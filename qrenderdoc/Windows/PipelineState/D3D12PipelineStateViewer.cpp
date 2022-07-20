@@ -1057,9 +1057,12 @@ void D3D12PipelineStateViewer::setShaderState(
 
   if(shaderDetails && !shaderDetails->debugInfo.files.empty())
   {
+    const ShaderDebugInfo &dbg = shaderDetails->debugInfo;
+    int entryFile = qMax(0, dbg.entryLocation.fileIndex);
+
     shText += QFormatStr(": %1() - %2")
                   .arg(shaderDetails->entryPoint)
-                  .arg(QFileInfo(shaderDetails->debugInfo.files[0].filename).fileName());
+                  .arg(QFileInfo(dbg.files[entryFile].filename).fileName());
   }
   shader->setText(shText);
 
@@ -2739,9 +2742,12 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
     if(shaderDetails && !shaderDetails->debugInfo.files.empty())
     {
+      const ShaderDebugInfo &dbg = shaderDetails->debugInfo;
+      int entryFile = qMax(0, dbg.entryLocation.fileIndex);
+
       shadername = QFormatStr("%1() - %2")
                        .arg(shaderDetails->entryPoint)
-                       .arg(QFileInfo(shaderDetails->debugInfo.files[0].filename).fileName());
+                       .arg(QFileInfo(dbg.files[entryFile].filename).fileName());
     }
 
     xml.writeStartElement(lit("p"));

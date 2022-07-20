@@ -480,8 +480,11 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     m_FileScintillas.reserve(m_ShaderDetails->debugInfo.files.count());
 
     QWidget *sel = NULL;
+    int32_t entryFile = m_ShaderDetails->debugInfo.entryLocation.fileIndex;
+    int32_t i = -1;
     for(const ShaderSourceFile &f : m_ShaderDetails->debugInfo.files)
     {
+      i++;
       if(f.contents.isEmpty())
       {
         m_FileScintillas.push_back(NULL);
@@ -495,6 +498,18 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
       if(sel == NULL)
         sel = scintilla;
+
+      if(i == entryFile)
+      {
+        sel = scintilla;
+
+        if(m_ShaderDetails->debugInfo.entryLocation.lineStart > 0)
+        {
+          GUIInvoke::defer(scintilla, [scintilla, this]() {
+            ensureLineScrolled(scintilla, m_ShaderDetails->debugInfo.entryLocation.lineStart);
+          });
+        }
+      }
 
       m_FileScintillas.push_back(scintilla);
     }

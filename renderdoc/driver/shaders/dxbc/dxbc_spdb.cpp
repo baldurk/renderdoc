@@ -1698,6 +1698,12 @@ SPDBChunk::SPDBChunk(byte *data, uint32_t spdblength)
 
 void SPDBChunk::GetLineInfo(size_t, uintptr_t offset, LineColumnInfo &lineInfo) const
 {
+  if(offset == ~0U && !m_InstructionInfo.empty())
+  {
+    lineInfo = m_InstructionInfo.begin()->second.lineInfo;
+    return;
+  }
+
   auto it = m_InstructionInfo.lower_bound((uint32_t)offset);
 
   if(it != m_InstructionInfo.end() && (uintptr_t)it->first <= offset)
