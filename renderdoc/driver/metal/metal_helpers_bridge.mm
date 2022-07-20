@@ -80,14 +80,6 @@ void ObjC::CAMetalLayer_Set_device(void *layerHandle, MTL::Device *device)
   metalLayer.device = id<MTLDevice>(device);
 }
 
-void ObjC::CAMetalLayer_Set_framebufferOnly(void *layerHandle, bool enable)
-{
-  CAMetalLayer *metalLayer = (CAMetalLayer *)layerHandle;
-  RDCASSERT([metalLayer isKindOfClass:[CAMetalLayer class]]);
-
-  metalLayer.framebufferOnly = enable ? YES : NO;
-}
-
 void ObjC::CAMetalLayer_Set_pixelFormat(void *layerHandle, MTL::PixelFormat format)
 {
   CAMetalLayer *metalLayer = (CAMetalLayer *)layerHandle;
