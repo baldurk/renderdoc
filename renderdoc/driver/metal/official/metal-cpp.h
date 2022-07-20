@@ -2900,7 +2900,7 @@ _NS_INLINE NS::View* NS::View::init( CGRect frame )
 
 _NS_INLINE void  NS::View::setWantsLayer( bool wantsLayer )
 {
-	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setWantsLayer_ ), wantsLayer ? YES : NO );
+	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setWantsLayer_ ), wantsLayer );
 }
 
 _NS_INLINE void  NS::View::setLayer( void* layer )
@@ -17804,6 +17804,8 @@ namespace Private
             "texture");
         _CA_PRIVATE_DEF_SEL(device,
             "device");
+        _CA_PRIVATE_DEF_SEL(setFramebufferOnly_,
+            "setFramebufferOnly:");
 
     } // Class
 } // Private
@@ -17853,6 +17855,7 @@ namespace CA
     public:
       static MetalLayer*    layer();
       MTL::Device*          device() const;
+      void                  setFramebufferOnly(bool enabled);
   };
 }
 
@@ -17863,5 +17866,10 @@ _NS_INLINE CA::MetalLayer* CA::MetalLayer::layer()
 
 _CA_INLINE MTL::Device* CA::MetalLayer::device() const
 {
-    return Object::sendMessage<MTL::Device*>(this, _CA_PRIVATE_SEL(device));
+    return Object::sendMessage< MTL::Device* >(this, _CA_PRIVATE_SEL( device ));
+}
+
+_CA_INLINE void CA::MetalLayer::setFramebufferOnly(bool framebufferOnly)
+{
+    Object::sendMessage< void >( this, _CA_PRIVATE_SEL( setFramebufferOnly_ ), framebufferOnly );
 }
