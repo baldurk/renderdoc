@@ -97,7 +97,7 @@ static void GetEncodings(GraphicsAPI api, ShaderEncoding &primary, ShaderEncodin
   if(IsD3D(api))
   {
     primary = ShaderEncoding::DXBC;
-    secondary = ShaderEncoding::DXBC;
+    secondary = ShaderEncoding::DXIL;
   }
   else if(api == GraphicsAPI::OpenGL)
   {

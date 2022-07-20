@@ -1806,6 +1806,12 @@ DOCUMENT(R"(Identifies a shader encoding used to pass shader code to an API.
 .. data:: HLSL
 
   HLSL in string format, used by D3D11, D3D12, and Vulkan/GL via compilation to SPIR-V.
+
+.. data:: DXIL
+
+  DXIL binary shader, used by D3D12. Note that although the container is still DXBC format this is
+  used to distinguish from :data:`DXBC` for compiler I/O matching.
+
 )");
 enum class ShaderEncoding : uint32_t
 {
@@ -1816,6 +1822,7 @@ enum class ShaderEncoding : uint32_t
   SPIRV,
   SPIRVAsm,
   HLSL,
+  DXIL,
   Count,
 };
 

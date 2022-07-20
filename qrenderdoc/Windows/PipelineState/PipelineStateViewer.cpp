@@ -1120,7 +1120,8 @@ void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId 
           });
         });
       }
-      else if(shaderDetails->encoding == ShaderEncoding::DXBC)
+      else if(shaderDetails->encoding == ShaderEncoding::DXBC ||
+              shaderDetails->encoding == ShaderEncoding::DXIL)
       {
         entry = lit("EditedShader%1S").arg(ToQStr(shaderDetails->stage, GraphicsAPI::D3D11)[0]);
 
@@ -1490,6 +1491,7 @@ bool PipelineStateViewer::SaveShaderFile(const ShaderReflection *shader)
     case ShaderEncoding::GLSL: filter = tr("GLSL files (*.glsl)"); break;
     case ShaderEncoding::SPIRV: filter = tr("SPIR-V files (*.spv)"); break;
     case ShaderEncoding::SPIRVAsm: filter = tr("SPIR-V assembly files (*.spvasm)"); break;
+    case ShaderEncoding::DXIL: filter = tr("DXIL Shader files (*.dxbc)"); break;
     case ShaderEncoding::Unknown:
     case ShaderEncoding::Count: filter = tr("All files (*.*)"); break;
   }

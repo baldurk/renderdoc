@@ -189,12 +189,12 @@ public:
 
   rdcarray<ShaderEncoding> GetCustomShaderEncodings()
   {
-    return {ShaderEncoding::DXBC, ShaderEncoding::HLSL};
+    return {ShaderEncoding::DXBC, ShaderEncoding::DXIL, ShaderEncoding::HLSL};
   }
   rdcarray<ShaderSourcePrefix> GetCustomShaderSourcePrefixes();
   rdcarray<ShaderEncoding> GetTargetShaderEncodings()
   {
-    return {ShaderEncoding::DXBC, ShaderEncoding::HLSL};
+    return {ShaderEncoding::DXBC, ShaderEncoding::DXIL, ShaderEncoding::HLSL};
   }
   void BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
