@@ -34,7 +34,6 @@ CA::MetalLayer *Get_Layer(MTL::Drawable *drawable);
 void CALayer_GetSize(void *layerHandle, int &width, int &height);
 void CAMetalLayer_Set_drawableSize(void *layerHandle, int w, int h);
 void CAMetalLayer_Set_device(void *layerHandle, MTL::Device *device);
-void CAMetalLayer_Set_framebufferOnly(void *layerHandle, bool enable);
 void CAMetalLayer_Set_pixelFormat(void *layerHandle, MTL::PixelFormat format);
 CA::MetalDrawable *CAMetalLayer_nextDrawable(void *layerHandle);
 };
