@@ -114,6 +114,42 @@ static const void *VarElemPointer(const ShaderVariable &var, uint32_t comp)
 
 namespace rdcspv
 {
+rdcstr GetRawName(Id id)
+{
+  // 32-bit value means at most 10 decimal digits, plus a preceeding _, plus trailing NULL.
+  char name[12] = {};
+  char *ptr = name + 10;
+  uint32_t val = id.value();
+  do
+  {
+    *ptr = char('0' + (val % 10));
+    ptr--;
+    val /= 10;
+  } while(val);
+
+  *ptr = '_';
+
+  return ptr;
+}
+
+Id ParseRawName(const rdcstr &name)
+{
+  if(name[0] != '_')
+    return Id();
+
+  uint32_t val = 0;
+  for(int i = 1; i < name.count(); i++)
+  {
+    if(name[i] < '0' || name[i] > '9')
+      return Id();
+
+    val *= 10;
+    val += uint32_t(name[i] - '0');
+  }
+
+  return Id::fromWord(val);
+}
+
 void AssignValue(ShaderVariable &dst, const ShaderVariable &src)
 {
   dst.value = src.value;
@@ -2270,29 +2306,6 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
   }
 }
 
-rdcstr Debugger::GetRawName(Id id) const
-{
-  return StringFormat::Fmt("_%u", id.value());
-}
-
-Id Debugger::ParseRawName(const rdcstr &name)
-{
-  if(name[0] != '_')
-    return Id();
-
-  uint32_t val = 0;
-  for(int i = 1; i < name.count(); i++)
-  {
-    if(name[i] < '0' || name[i] > '9')
-      return Id();
-
-    val *= 10;
-    val += uint32_t(name[i] - '0');
-  }
-
-  return Id::fromWord(val);
-}
-
 rdcstr Debugger::GetHumanName(Id id)
 {
   // see if we have a dynamic name assigned (to disambiguate), if so use that
@@ -3353,3 +3366,35 @@ void Debugger::RegisterOp(Iter it)
 }
 
 };    // namespace rdcspv
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#include "catch/catch.hpp"
+
+TEST_CASE("Check SPIRV Id naming", "[tostr]")
+{
+  SECTION("Test GetRawName")
+  {
+    CHECK(rdcspv::GetRawName(rdcspv::Id::fromWord(1234)) == "_1234");
+    CHECK(rdcspv::GetRawName(rdcspv::Id::fromWord(12345)) == "_12345");
+    CHECK(rdcspv::GetRawName(rdcspv::Id::fromWord(999)) == "_999");
+    CHECK(rdcspv::GetRawName(rdcspv::Id::fromWord(0xffffffff)) == "_4294967295");
+    CHECK(rdcspv::GetRawName(rdcspv::Id()) == "_0");
+  };
+
+  SECTION("Test ParseRawName")
+  {
+    CHECK(rdcspv::ParseRawName("_1234") == rdcspv::Id::fromWord(1234));
+    CHECK(rdcspv::ParseRawName("_12345") == rdcspv::Id::fromWord(12345));
+    CHECK(rdcspv::ParseRawName("_999") == rdcspv::Id::fromWord(999));
+    CHECK(rdcspv::ParseRawName("_4294967295") == rdcspv::Id::fromWord(0xffffffff));
+    CHECK(rdcspv::ParseRawName("_0") == rdcspv::Id());
+    CHECK(rdcspv::ParseRawName("1234") == rdcspv::Id());
+    CHECK(rdcspv::ParseRawName("999") == rdcspv::Id());
+    CHECK(rdcspv::ParseRawName("1") == rdcspv::Id());
+    CHECK(rdcspv::ParseRawName("-1234") == rdcspv::Id());
+    CHECK(rdcspv::ParseRawName("asdf") == rdcspv::Id());
+  };
+}
+
+#endif

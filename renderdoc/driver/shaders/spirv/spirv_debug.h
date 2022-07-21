@@ -329,6 +329,9 @@ struct LocalMapping
   rdcarray<uint32_t> indexes;
 };
 
+Id ParseRawName(const rdcstr &name);
+rdcstr GetRawName(Id id);
+
 class Debugger : public Processor, public ShaderDebugger
 {
 public:
@@ -354,7 +357,6 @@ public:
   bool IsDebugExtInstSet(Id id) const;
   bool HasDebugInfo() const { return m_DebugInfo.valid; }
   bool InDebugScope(uint32_t inst) const;
-  rdcstr GetRawName(Id id) const;
   rdcstr GetHumanName(Id id);
   void AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const ShaderVariable &var, Id id);
   void AllocateVariable(Id id, Id typeId, ShaderVariable &outVar);
@@ -392,8 +394,6 @@ private:
                         std::function<void(ShaderVarType &, const Decorations &, const DataType &,
                                            uint64_t, const rdcstr &)>
                             callback) const;
-
-  static Id ParseRawName(const rdcstr &name);
 
   void MakeSignatureNames(const rdcarray<SPIRVInterfaceAccess> &sigList, rdcarray<rdcstr> &sigNames);
 

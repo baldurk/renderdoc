@@ -211,7 +211,7 @@ void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
     OpVariable decl(it);
 
     ShaderVariable &stackvar = frame->locals[i];
-    stackvar.name = debugger.GetRawName(decl.result);
+    stackvar.name = GetRawName(decl.result);
 
     rdcstr sourceName = debugger.GetHumanName(decl.result);
 
@@ -342,7 +342,7 @@ void ThreadState::SetDst(Id id, const ShaderVariable &val)
     m_State->flags |= ShaderEvents::GeneratedNanOrInf;
 
   ids[id] = val;
-  ids[id].name = debugger.GetRawName(id);
+  ids[id].name = GetRawName(id);
 
   lastWrite[id] = m_State ? m_State->stepIndex : nextInstruction;
 
@@ -545,7 +545,7 @@ bool ThreadState::ReferencePointer(Id id)
   {
     StackFrame *frame = callstack.back();
 
-    rdcstr name = debugger.GetRawName(id);
+    rdcstr name = GetRawName(id);
 
     // see if this is a local variable which is newly referenced, if so add source vars for it
     for(size_t i = 0; i < frame->locals.size(); i++)
