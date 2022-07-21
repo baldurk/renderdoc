@@ -2029,6 +2029,8 @@ bool ShaderViewer::step(bool forward, StepMode mode)
   if(!forward && isSourceDebugging() && m_CurrentStateIdx == m_FirstSourceStateIdx)
     return false;
 
+  m_VariablesChanged.clear();
+
   if(isSourceDebugging())
   {
     LineColumnInfo oldLine = GetCurrentInstInfo().lineInfo;
@@ -2302,6 +2304,8 @@ void ShaderViewer::runTo(const rdcarray<uint32_t> &runToInstructions, bool forwa
   if(!m_Trace || m_States.empty())
     return;
 
+  m_VariablesChanged.clear();
+
   bool firstStep = true;
   LineColumnInfo oldLine = GetCurrentLineInfo();
 
@@ -2358,6 +2362,8 @@ void ShaderViewer::runToResourceAccess(bool forward, VarType type, const Bindpoi
   if(!m_Trace || m_States.empty())
     return;
 
+  m_VariablesChanged.clear();
+
   // this is effectively infinite as we break out before moving to next/previous state if that would
   // be first/last
   while((forward && !IsLastState()) || (!forward && !IsFirstState()))
@@ -2409,6 +2415,9 @@ void ShaderViewer::applyBackwardsChange()
     // if the before name is empty, this is a variable that came into scope/was created
     if(c.before.name.empty())
     {
+      m_VariablesChanged.push_back(c.after.name);
+      m_VariableLastUpdate[c.after.name] = m_UpdateID;
+
       // delete the matching variable (should only be one)
       for(int i = 0; i < m_Variables.count(); i++)
       {
@@ -2421,6 +2430,9 @@ void ShaderViewer::applyBackwardsChange()
     }
     else
     {
+      m_VariablesChanged.push_back(c.before.name);
+      m_VariableLastUpdate[c.before.name] = m_UpdateID;
+
       ShaderVariable *v = NULL;
       for(int i = 0; i < m_Variables.count(); i++)
       {
@@ -2439,6 +2451,8 @@ void ShaderViewer::applyBackwardsChange()
   }
 
   m_CurrentStateIdx--;
+
+  m_UpdateID++;
 }
 
 void ShaderViewer::applyForwardsChange()
@@ -2455,6 +2469,9 @@ void ShaderViewer::applyForwardsChange()
     // if the after name is empty, this is a variable going out of scope/being deleted
     if(c.after.name.empty())
     {
+      m_VariablesChanged.push_back(c.before.name);
+      m_VariableLastUpdate[c.before.name] = m_UpdateID;
+
       // delete the matching variable (should only be one)
       for(int i = 0; i < m_Variables.count(); i++)
       {
@@ -2467,6 +2484,9 @@ void ShaderViewer::applyForwardsChange()
     }
     else
     {
+      m_VariablesChanged.push_back(c.after.name);
+      m_VariableLastUpdate[c.after.name] = m_UpdateID;
+
       ShaderVariable *v = NULL;
       for(int i = 0; i < m_Variables.count(); i++)
       {
@@ -2503,6 +2523,8 @@ void ShaderViewer::applyForwardsChange()
   }
 
   m_AccessedResources.insert(0, newAccessedResources);
+
+  m_UpdateID++;
 }
 
 QString ShaderViewer::stringRep(const ShaderVariable &var, uint32_t row)
@@ -3396,19 +3418,7 @@ void ShaderViewer::updateAccessedResources()
         if(!accessed)
           continue;
 
-        bool modified = false;
-        for(const ShaderVariableChange &c : GetCurrentState().changes)
-        {
-          if(c.before.name == m_AccessedResources[i].resource.name ||
-             c.after.name == m_AccessedResources[i].resource.name)
-          {
-            modified = true;
-            break;
-          }
-        }
-
-        RDTreeWidgetItem *resourceNode =
-            makeAccessedResourceNode(m_AccessedResources[i].resource, modified);
+        RDTreeWidgetItem *resourceNode = makeAccessedResourceNode(m_AccessedResources[i].resource);
         if(resourceNode)
         {
           // Add a child for each step that it was accessed
@@ -3438,17 +3448,6 @@ void ShaderViewer::updateAccessedResources()
       rdcarray<rdcpair<size_t, RDTreeWidgetItem *>> stepNodes;
       for(size_t i = 0; i < m_AccessedResources.size(); ++i)
       {
-        bool modified = false;
-        for(const ShaderVariableChange &c : GetCurrentState().changes)
-        {
-          if(c.before.name == m_AccessedResources[i].resource.name ||
-             c.after.name == m_AccessedResources[i].resource.name)
-          {
-            modified = true;
-            break;
-          }
-        }
-
         // Add a root node for each instruction, and place the resource node as a child
         for(size_t j = 0; j < m_AccessedResources[i].steps.size(); ++j)
         {
@@ -3466,7 +3465,7 @@ void ShaderViewer::updateAccessedResources()
             }
 
             RDTreeWidgetItem *resourceNode =
-                makeAccessedResourceNode(m_AccessedResources[i].resource, modified);
+                makeAccessedResourceNode(m_AccessedResources[i].resource);
 
             if(nodeIdx == -1)
             {
@@ -3647,7 +3646,7 @@ void ShaderViewer::updateDebugState()
       if(sourceVar.rows == 0 || sourceVar.columns == 0)
         continue;
 
-      fakeroot.addChild(makeSourceVariableNode(sourceVar, globalVarIdx, -1, false));
+      fakeroot.addChild(makeSourceVariableNode(sourceVar, globalVarIdx, -1));
     }
 
     // recursively combine nodes with the same prefix together
@@ -3953,34 +3952,7 @@ void ShaderViewer::updateDebugState()
       if(sourceVar.rows == 0 || sourceVar.columns == 0)
         continue;
 
-      bool modified = false;
-
-      // don't list any modified variables on the first step when they all come into existance
-      if(sourceVar.variables[0].type == DebugVariableType::Variable && !IsFirstState())
-      {
-        for(const DebugVariableReference &v : sourceVar.variables)
-        {
-          rdcstr base = v.name;
-          int offs = base.find_first_of("[.");
-          if(offs > 0)
-            base = v.name.substr(0, offs);
-
-          for(const ShaderVariableChange &c : GetCurrentState().changes)
-          {
-            if(c.before.name == v.name || c.after.name == v.name || c.before.name == base ||
-               c.after.name == base)
-            {
-              modified = true;
-              break;
-            }
-          }
-
-          if(modified)
-            break;
-        }
-      }
-
-      fakeroot.addChild(makeSourceVariableNode(sourceVar, globalVarIdx, -1, modified));
+      fakeroot.addChild(makeSourceVariableNode(sourceVar, globalVarIdx, -1));
     }
 
     const rdcarray<SourceVariableMapping> &sourceVars = GetCurrentInstInfo().sourceVars;
@@ -3992,40 +3964,10 @@ void ShaderViewer::updateDebugState()
       // iterate in reverse order, so newest locals tend to end up on top
       const SourceVariableMapping &l = sourceVars[localVarIdx];
 
-      bool modified = false;
       bool hasNonError = false;
 
       for(const DebugVariableReference &v : l.variables)
-      {
         hasNonError |= (GetDebugVariable(v) != NULL);
-
-        // don't list any modified variables on the first step when they all come into existance
-        if(IsFirstState())
-        {
-          if(hasNonError)
-            break;
-        }
-        else
-        {
-          rdcstr base = v.name;
-          int offs = base.find_first_of("[.");
-          if(offs > 0)
-            base = v.name.substr(0, offs);
-
-          for(const ShaderVariableChange &c : GetCurrentState().changes)
-          {
-            if(c.before.name == v.name || c.after.name == v.name || c.before.name == base ||
-               c.after.name == base)
-            {
-              modified = true;
-              break;
-            }
-          }
-
-          if(modified && hasNonError)
-            break;
-        }
-      }
 
       // don't display source variables that map to non-existant debug variables. This can happen
       // when flow control means those debug variables were never created, but they would be mapped
@@ -4033,7 +3975,7 @@ void ShaderViewer::updateDebugState()
       if(!hasNonError)
         continue;
 
-      RDTreeWidgetItem *node = makeSourceVariableNode(l, -1, localVarIdx, modified);
+      RDTreeWidgetItem *node = makeSourceVariableNode(l, -1, localVarIdx);
 
       fakeroot.addChild(node);
     }
@@ -4041,8 +3983,19 @@ void ShaderViewer::updateDebugState()
     // recursively combine nodes with the same prefix together
     combineStructures(&fakeroot);
 
+    QList<RDTreeWidgetItem *> nodes;
     while(fakeroot.childCount() > 0)
-      ui->sourceVars->addTopLevelItem(fakeroot.takeChild(0));
+      nodes.push_back(fakeroot.takeChild(0));
+
+    // sort more recently updated variables to the top
+    std::sort(nodes.begin(), nodes.end(), [](const RDTreeWidgetItem *a, const RDTreeWidgetItem *b) {
+      VariableTag at = a->tag().value<VariableTag>();
+      VariableTag bt = b->tag().value<VariableTag>();
+      return at.updateID > bt.updateID;
+    });
+
+    for(RDTreeWidgetItem *n : nodes)
+      ui->sourceVars->addTopLevelItem(n);
 
     ui->sourceVars->endUpdate();
 
@@ -4059,18 +4012,7 @@ void ShaderViewer::updateDebugState()
 
     for(int i = 0; i < m_Variables.count(); i++)
     {
-      bool modified = false;
-
-      for(const ShaderVariableChange &c : GetCurrentState().changes)
-      {
-        if(c.before.name == m_Variables[i].name || c.after.name == m_Variables[i].name)
-        {
-          modified = true;
-          break;
-        }
-      }
-
-      ui->debugVars->addTopLevelItem(makeDebugVariableNode(m_Variables[i], "", modified));
+      ui->debugVars->addTopLevelItem(makeDebugVariableNode(m_Variables[i], ""));
     }
 
     ui->debugVars->endUpdate();
@@ -4482,7 +4424,7 @@ void ShaderViewer::updateWatchVariables()
 }
 
 RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const ShaderVariable &var,
-                                                       const rdcstr &debugVarPath, bool modified,
+                                                       const rdcstr &debugVarPath,
                                                        VariableTag baseTag)
 {
   QString typeName;
@@ -4516,9 +4458,15 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const ShaderVariable &var
   VariableTag tag;
   tag.absoluteRefPath = baseTag.absoluteRefPath + sep + var.name;
   tag.expanded = true;
+  tag.modified = HasChanged(baseTag.absoluteRefPath + sep + var.name);
+  tag.updateID = CalcUpdateID(tag.updateID, baseTag.absoluteRefPath + sep + var.name);
 
   for(const ShaderVariable &child : var.members)
-    node->addChild(makeSourceVariableNode(child, debugName, modified, tag));
+  {
+    RDTreeWidgetItem *item = makeSourceVariableNode(child, debugName, tag);
+    tag.modified |= item->tag().value<VariableTag>().modified;
+    node->addChild(item);
+  }
 
   // if this is a matrix, even if it has no explicit row members add the rows as children
   if(var.members.empty() && var.rows > 1)
@@ -4532,15 +4480,14 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const ShaderVariable &var
   }
   node->setTag(QVariant::fromValue(tag));
 
-  if(modified)
+  if(tag.modified)
     node->setForegroundColor(QColor(Qt::red));
 
   return node;
 }
 
 RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMapping &l,
-                                                       int globalVarIdx, int localVarIdx,
-                                                       bool modified)
+                                                       int globalVarIdx, int localVarIdx)
 {
   QString localName = l.name;
   QString typeName;
@@ -4577,6 +4524,9 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
     for(size_t i = 0; i < l.variables.size(); i++)
     {
       const DebugVariableReference &r = l.variables[i];
+
+      baseTag.modified |= HasChanged(r.name);
+      baseTag.updateID = CalcUpdateID(baseTag.updateID, r.name);
 
       if(!value.isEmpty())
         value += lit(", ");
@@ -4704,7 +4654,7 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
             value = QString();
 
             for(const ShaderVariable &child : reg->members)
-              children.push_back(makeSourceVariableNode(child, reg->name, modified, baseTag));
+              children.push_back(makeSourceVariableNode(child, reg->name, baseTag));
             break;
           }
 
@@ -4763,9 +4713,12 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
   RDTreeWidgetItem *node = new RDTreeWidgetItem({localName, QString(), typeName, value});
 
   for(RDTreeWidgetItem *c : children)
+  {
+    baseTag.modified |= c->tag().value<VariableTag>().modified;
     node->addChild(c);
+  }
 
-  if(modified)
+  if(baseTag.modified)
     node->setForegroundColor(QColor(Qt::red));
 
   node->setTag(QVariant::fromValue(baseTag));
@@ -4783,19 +4736,22 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
   return node;
 }
 
-RDTreeWidgetItem *ShaderViewer::makeDebugVariableNode(const ShaderVariable &v, rdcstr prefix,
-                                                      bool modified)
+RDTreeWidgetItem *ShaderViewer::makeDebugVariableNode(const ShaderVariable &v, rdcstr prefix)
 {
   rdcstr basename = prefix + v.name;
   RDTreeWidgetItem *node =
       new RDTreeWidgetItem({v.name, v.rows == 1 && v.members.empty() ? stringRep(v) : QString()});
   VariableTag tag(DebugVariableType::Variable, basename);
+  tag.modified = HasChanged(basename);
+  tag.updateID = CalcUpdateID(tag.updateID, basename);
   for(const ShaderVariable &m : v.members)
   {
     rdcstr childprefix = basename + ".";
     if(m.name.beginsWith(basename + "["))
       childprefix = basename;
-    node->addChild(makeDebugVariableNode(m, childprefix, modified));
+    RDTreeWidgetItem *child = makeDebugVariableNode(m, childprefix);
+    tag.modified |= child->tag().value<VariableTag>().modified;
+    node->addChild(child);
   }
 
   // if this is a matrix, even if it has no explicit row members add the rows as children
@@ -4813,13 +4769,13 @@ RDTreeWidgetItem *ShaderViewer::makeDebugVariableNode(const ShaderVariable &v, r
 
   node->setTag(QVariant::fromValue(tag));
 
-  if(modified)
+  if(tag.modified)
     node->setForegroundColor(QColor(Qt::red));
 
   return node;
 }
 
-RDTreeWidgetItem *ShaderViewer::makeAccessedResourceNode(const ShaderVariable &v, bool modified)
+RDTreeWidgetItem *ShaderViewer::makeAccessedResourceNode(const ShaderVariable &v)
 {
   BindpointIndex bp = v.GetBinding();
   ResourceId resId;
@@ -4866,10 +4822,20 @@ RDTreeWidgetItem *ShaderViewer::makeAccessedResourceNode(const ShaderVariable &v
   RDTreeWidgetItem *node = new RDTreeWidgetItem({v.name, typeName, ToQStr(resId)});
   if(resId != ResourceId())
     node->setTag(QVariant::fromValue(AccessedResourceTag(bp, v.type)));
-  if(modified)
+  if(HasChanged(v.name))
     node->setForegroundColor(QColor(Qt::red));
 
   return node;
+}
+
+bool ShaderViewer::HasChanged(rdcstr debugVarName) const
+{
+  return m_VariablesChanged.contains(debugVarName);
+}
+
+uint32_t ShaderViewer::CalcUpdateID(uint32_t prevID, rdcstr debugVarName) const
+{
+  return qMax(prevID, m_VariableLastUpdate[debugVarName]);
 }
 
 // this function is a bit messy, we want a base recursion container of either QList or rdcarray
@@ -4992,6 +4958,8 @@ void ShaderViewer::SetCurrentStep(uint32_t step)
 {
   if(!m_Trace || m_States.empty())
     return;
+
+  m_VariablesChanged.clear();
 
   while(GetCurrentState().stepIndex != step)
   {

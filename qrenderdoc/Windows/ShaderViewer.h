@@ -92,6 +92,8 @@ struct VariableTag
 
   bool matrix = false;
   bool expanded = false;
+  bool modified = false;
+  int updateID = 0;
   bool globalSourceVar = false;
   int32_t sourceVarIdx = -1;
 
@@ -302,6 +304,9 @@ private:
   rdcarray<ShaderDebugState> m_States;
   size_t m_CurrentStateIdx = 0;
   QList<ShaderVariable> m_Variables;
+  uint32_t m_UpdateID = 1;
+  QMap<QString, uint32_t> m_VariableLastUpdate;
+  QList<rdcstr> m_VariablesChanged;
 
   // true when debugging while we're populating the initial trace. Lets us queue up commands and
   // process them once we've initialised properly
@@ -370,11 +375,14 @@ private:
   void updateAccessedResources();
 
   RDTreeWidgetItem *makeSourceVariableNode(const ShaderVariable &var, const rdcstr &debugVarPath,
-                                           bool modified, VariableTag baseTag);
+                                           VariableTag baseTag);
   RDTreeWidgetItem *makeSourceVariableNode(const SourceVariableMapping &l, int globalVarIdx,
-                                           int localVarIdx, bool modified);
-  RDTreeWidgetItem *makeDebugVariableNode(const ShaderVariable &v, rdcstr prefix, bool modified);
-  RDTreeWidgetItem *makeAccessedResourceNode(const ShaderVariable &v, bool modified);
+                                           int localVarIdx);
+  RDTreeWidgetItem *makeDebugVariableNode(const ShaderVariable &v, rdcstr prefix);
+  RDTreeWidgetItem *makeAccessedResourceNode(const ShaderVariable &v);
+
+  bool HasChanged(rdcstr debugVarName) const;
+  uint32_t CalcUpdateID(uint32_t prevID, rdcstr debugVarName) const;
 
   const ShaderVariable *GetDebugVariable(const DebugVariableReference &r);
 
