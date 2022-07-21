@@ -184,8 +184,8 @@ bool WrappedMTLDevice::EndFrameCapture(DeviceOwnedWindow devWnd)
     MTL::CommandBuffer *mtlCommandBuffer = m_mtlCommandQueue->commandBuffer();
     MTL::BlitCommandEncoder *mtlBlitEncoder = mtlCommandBuffer->blitCommandEncoder();
 
-    NS::UInteger sourceWidth = mtlBackBuffer->width();
-    NS::UInteger sourceHeight = mtlBackBuffer->height();
+    uint32_t sourceWidth = (uint32_t)mtlBackBuffer->width();
+    uint32_t sourceHeight = (uint32_t)mtlBackBuffer->height();
     MTL::Origin sourceOrigin(0, 0, 0);
     MTL::Size sourceSize(sourceWidth, sourceHeight, 1);
 
