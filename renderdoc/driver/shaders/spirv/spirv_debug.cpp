@@ -345,6 +345,8 @@ void ThreadState::SetDst(Id id, const ShaderVariable &val)
   if(m_State && ContainsNaNInf(val))
     m_State->flags |= ShaderEvents::GeneratedNanOrInf;
 
+  ShaderVariable prev = ids[id];
+
   ids[id] = val;
   ids[id].name = GetRawName(id);
 
@@ -366,6 +368,7 @@ void ThreadState::SetDst(Id id, const ShaderVariable &val)
   if(m_State)
   {
     ShaderVariableChange change;
+    change.before = prev;
     change.after = debugger.GetPointerValue(ids[id]);
     m_State->changes.push_back(change);
 
