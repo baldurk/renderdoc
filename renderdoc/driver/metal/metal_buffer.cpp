@@ -109,4 +109,43 @@ void WrappedMTLBuffer::didModifyRange(NS::Range &range)
   }
 }
 
+template <typename SerialiserType>
+bool WrappedMTLBuffer::Serialise_InternalModifyCPUContents(SerialiserType &ser, uint64_t start,
+                                                           uint64_t end, MetalBufferInfo *bufInfo)
+{
+  SERIALISE_ELEMENT_LOCAL(Buffer, this).Important();
+  SERIALISE_ELEMENT(start).Important();
+  uint64_t size = end - start;
+  SERIALISE_ELEMENT(size).Important();
+  byte *pData = NULL;
+  if(ser.IsWriting())
+  {
+    pData = (byte *)Unwrap(this)->contents() + start;
+  }
+  if(IsReplayingAndReading())
+  {
+    pData = (byte *)Unwrap(Buffer)->contents() + start;
+  }
+
+  // serialise directly using buffer memory
+  ser.Serialise("data"_lit, pData, size, SerialiserFlags::NoFlags);
+
+  if(IsCaptureMode(m_State))
+  {
+    // update the base snapshot from the serialised data
+    size_t offs = size_t(ser.GetWriter()->GetOffset() - size);
+    const byte *serialisedData = ser.GetWriter()->GetData() + offs;
+    if(bufInfo->baseSnapshot.isEmpty())
+      bufInfo->baseSnapshot.resize(bufInfo->length);
+    RDCASSERTEQUAL(bufInfo->baseSnapshot.size(), bufInfo->length);
+    memcpy(bufInfo->baseSnapshot.data() + start, serialisedData, size);
+  }
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  return true;
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLBuffer, void, didModifyRange, NS::Range &);
+INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLBuffer, void, InternalModifyCPUContents, uint64_t,
+                                uint64_t, MetalBufferInfo *);

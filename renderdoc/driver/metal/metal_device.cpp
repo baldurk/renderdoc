@@ -632,6 +632,21 @@ WrappedMTLBuffer *WrappedMTLDevice::Common_NewBuffer(bool withBytes, const void 
 
     MetalResourceRecord *record = GetResourceManager()->AddResourceRecord(wrappedMTLBuffer);
     record->AddChunk(chunk);
+
+    MTL::StorageMode mode = realMTLBuffer->storageMode();
+    record->bufInfo = new MetalBufferInfo(mode);
+
+    // Create CPU side tracking info for CPU shared buffers
+    if(mode == MTL::StorageModeShared)
+    {
+      record->bufInfo->data = (byte *)realMTLBuffer->contents();
+      record->bufInfo->length = realMTLBuffer->length();
+    }
+    // Snapshot GPU only buffers
+    else if(mode == MTL::StorageModePrivate)
+    {
+      GetResourceManager()->MarkDirtyResource(id);
+    }
   }
   else
   {

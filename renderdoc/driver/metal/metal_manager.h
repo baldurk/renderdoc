@@ -42,6 +42,13 @@ struct MetalInitialContents
     type = t;
   }
 
+  MetalInitialContents(MetalResourceType t, bytebuf data)
+  {
+    memset(this, 0, sizeof(*this));
+    type = t;
+    resourceContents = data;
+  }
+
   template <typename Configuration>
   void Free(ResourceManager<Configuration> *rm)
   {

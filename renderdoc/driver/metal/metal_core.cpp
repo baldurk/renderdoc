@@ -24,6 +24,7 @@
 
 #include "metal_core.h"
 #include "serialise/rdcfile.h"
+#include "metal_buffer.h"
 #include "metal_command_buffer.h"
 #include "metal_device.h"
 #include "metal_texture.h"
@@ -385,7 +386,6 @@ void WrappedMTLDevice::CaptureCmdBufSubmit(MetalResourceRecord *record)
   WrappedMTLCommandBuffer *commandBuffer = (WrappedMTLCommandBuffer *)(record->m_Resource);
   if(IsActiveCapturing(m_State))
   {
-    Chunk *chunk = NULL;
     std::unordered_set<ResourceId> refIDs;
     // The record will get deleted at the end of active frame capture
     record->AddRef();
@@ -398,12 +398,44 @@ void WrappedMTLDevice::CaptureCmdBufSubmit(MetalResourceRecord *record)
       MetalResourceRecord *refRecord = GetResourceManager()->GetResourceRecord(id);
       if(refRecord->m_Type == eResBuffer)
       {
-        // TODO: capture CPU modified buffers
+        MetalBufferInfo *bufInfo = refRecord->bufInfo;
+        if(bufInfo->storageMode == MTL::StorageModeShared)
+        {
+          size_t diffStart = 0;
+          size_t diffEnd = bufInfo->length;
+          bool foundDifference = true;
+          if(!bufInfo->baseSnapshot.isEmpty())
+          {
+            foundDifference = FindDiffRange(bufInfo->data, bufInfo->baseSnapshot.data(),
+                                            bufInfo->length, diffStart, diffEnd);
+            if(diffEnd <= diffStart)
+              foundDifference = false;
+          }
+
+          if(foundDifference)
+          {
+            if(bufInfo->data == NULL)
+            {
+              RDCERR("Writing buffer memory %s that is NULL", ToStr(id).c_str());
+              continue;
+            }
+            Chunk *chunk = NULL;
+            {
+              CACHE_THREAD_SERIALISER();
+              SCOPED_SERIALISE_CHUNK(MetalChunk::MTLBuffer_InternalModifyCPUContents);
+              ((WrappedMTLBuffer *)refRecord->m_Resource)
+                  ->Serialise_InternalModifyCPUContents(ser, diffStart, diffEnd, bufInfo);
+              chunk = scope.Get();
+            }
+            record->AddChunk(chunk);
+          }
+        }
       }
     }
     record->MarkResourceFrameReferenced(GetResID(commandBuffer->GetCommandQueue()), eFrameRef_Read);
     // pull in frame refs from this command buffer
     record->AddResourceReferences(GetResourceManager());
+    Chunk *chunk = NULL;
     {
       CACHE_THREAD_SERIALISER();
       SCOPED_SERIALISE_CHUNK(MetalChunk::MTLCommandBuffer_commit);

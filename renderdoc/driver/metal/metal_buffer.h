@@ -36,6 +36,9 @@ public:
   void *contents();
 
   DECLARE_FUNCTION_SERIALISED(void, didModifyRange, NS::Range &range);
+  template <typename SerialiserType>
+  bool Serialise_InternalModifyCPUContents(SerialiserType &ser, uint64_t start, uint64_t end,
+                                           MetalBufferInfo *bufInfo);
 
   enum
   {

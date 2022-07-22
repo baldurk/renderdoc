@@ -56,4 +56,6 @@ MetalResourceRecord::~MetalResourceRecord()
 {
   if(m_Type == eResCommandBuffer)
     SAFE_DELETE(cmdInfo);
+  else if(m_Type == eResBuffer)
+    SAFE_DELETE(bufInfo);
 }
