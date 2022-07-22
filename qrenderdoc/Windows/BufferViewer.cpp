@@ -2869,9 +2869,12 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       bufdata->cb.valid =
           (reflection != NULL && m_CBufferSlot.slot < reflection->constantBlocks.size());
       if(bufdata->cb.valid)
-        bufdata->cb.bufferBacked = reflection->constantBlocks[m_CBufferSlot.slot].bufferBacked;
+      {
+        bufdata->cb.bytesBacked = reflection->constantBlocks[m_CBufferSlot.slot].bufferBacked ||
+                                  reflection->constantBlocks[m_CBufferSlot.slot].inlineDataBytes;
+      }
 
-      ui->setFormat->setEnabled(bufdata->cb.bufferBacked);
+      ui->setFormat->setEnabled(bufdata->cb.bytesBacked);
       if(ui->setFormat->isEnabled())
         ui->setFormat->setToolTip(tr("Specify a custom format for this constant buffer"));
       else
@@ -2908,7 +2911,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       UnrollConstant(parsed.repeating, bufdata->vsinConfig.columns, bufdata->vsinConfig.props);
     }
 
-    if((m_Format.isEmpty() || !bufdata->cb.bufferBacked) && IsCBufferView())
+    if((m_Format.isEmpty() || !bufdata->cb.bytesBacked) && IsCBufferView())
     {
       if(bufdata->cb.valid)
       {
@@ -2942,7 +2945,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
   bufdata->vsinConfig.baseVertex = action ? action->baseVertex : 0;
 
-  ui->formatSpecifier->setEnabled(!IsCBufferView() || bufdata->cb.bufferBacked);
+  ui->formatSpecifier->setEnabled(!IsCBufferView() || bufdata->cb.bytesBacked);
 
   ui->instance->setEnabled(action && (action->flags & ActionFlags::Instanced));
   if(!ui->instance->isEnabled())
@@ -3072,9 +3075,9 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       }
     }
 
-    // for cbuffers, if the format is empty or if we're not buffer-backed, we evaluate variables
-    // here and don't use the format override with a fetched buffer
-    if((m_Format.isEmpty() || !bufdata->cb.bufferBacked) && IsCBufferView())
+    // for cbuffers, if the format is empty or if we're not buffer-backed and don't have inline
+    // data, we evaluate variables here and don't use the format override with a fetched buffer
+    if((m_Format.isEmpty() || !bufdata->cb.bytesBacked) && IsCBufferView())
     {
       // only fetch the cbuffer constants if this binding is currently valid
       if(bufdata->cb.valid)
@@ -3216,7 +3219,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
             UI_AddFixedVariables(ui->fixedVars->invisibleRootItem(), 0,
                                  bufdata->vsinConfig.fixedVars.type.members, vars);
 
-            if(IsCBufferView() && !bufdata->cb.bufferBacked)
+            if(IsCBufferView() && !bufdata->cb.bytesBacked)
               UI_RemoveOffsets(ui->fixedVars->invisibleRootItem());
           }
 
@@ -3375,7 +3378,7 @@ void BufferViewer::setPersistData(const QVariant &persistData)
 void BufferViewer::UI_FixedAddMatrixRows(RDTreeWidgetItem *n, const ShaderConstant &c,
                                          const ShaderVariable &v)
 {
-  const bool showPadding = ui->showPadding->isChecked() && m_CurCBuffer.bufferBacked;
+  const bool showPadding = ui->showPadding->isChecked() && m_CurCBuffer.bytesBacked;
 
   if(v.rows > 1)
   {
@@ -3427,7 +3430,7 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
                                         const rdcarray<ShaderConstant> &consts,
                                         const rdcarray<ShaderVariable> &vars)
 {
-  const bool showPadding = ui->showPadding->isChecked() && m_CurCBuffer.bufferBacked;
+  const bool showPadding = ui->showPadding->isChecked() && m_CurCBuffer.bytesBacked;
 
   if(consts.size() != vars.size())
     qCritical() << "Shader variable mismatch";

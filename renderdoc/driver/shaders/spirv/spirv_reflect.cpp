@@ -1269,6 +1269,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
             if(cblock.name.empty())
               cblock.name = StringFormat::Fmt("uniforms%u", global.id.value());
             cblock.bufferBacked = !pushConst;
+            cblock.inlineDataBytes = pushConst;
 
             MakeConstantBlockVariables(effectiveStorage, *varType, 0, 0, cblock.variables,
                                        pointerTypes, specInfo);
@@ -1319,6 +1320,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   {
     specblock.name = "Specialization Constants";
     specblock.bufferBacked = false;
+    specblock.inlineDataBytes = true;
     specblock.compileConstants = true;
     specblock.byteSize = 0;
 
@@ -1338,6 +1340,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   {
     globalsblock.name = "$Globals";
     globalsblock.bufferBacked = false;
+    globalsblock.inlineDataBytes = false;
     globalsblock.byteSize = (uint32_t)globalsblock.variables.size();
     globalsblock.bindPoint = (int)cblocks.size();
 

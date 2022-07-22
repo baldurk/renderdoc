@@ -76,7 +76,7 @@ struct BBoxData
 struct CBufferData
 {
   bool valid = false;
-  bool bufferBacked = false;
+  bool bytesBacked = false;
   ResourceId pipe;
   ResourceId shader;
   rdcstr entryPoint;

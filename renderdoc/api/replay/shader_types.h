@@ -1109,7 +1109,7 @@ struct ConstantBlock
   {
     return name == o.name && variables == o.variables && bindPoint == o.bindPoint &&
            byteSize == o.byteSize && bufferBacked == o.bufferBacked &&
-           compileConstants == o.compileConstants;
+           inlineDataBytes == o.inlineDataBytes && compileConstants == o.compileConstants;
   }
   bool operator<(const ConstantBlock &o) const
   {
@@ -1123,6 +1123,8 @@ struct ConstantBlock
       return byteSize < o.byteSize;
     if(!(bufferBacked == o.bufferBacked))
       return bufferBacked < o.bufferBacked;
+    if(!(inlineDataBytes == o.inlineDataBytes))
+      return inlineDataBytes < o.inlineDataBytes;
     if(!(compileConstants == o.compileConstants))
       return compileConstants < o.compileConstants;
     return false;
@@ -1145,6 +1147,8 @@ some other API-specific method, such as direct function calls or they may be com
 specialisation constants.
 )");
   bool bufferBacked = true;
+  DOCUMENT("``True`` if this is backed by in-line data bytes rather than a specific buffer.");
+  bool inlineDataBytes = false;
   DOCUMENT("``True`` if this is a virtual buffer listing compile-time specialisation constants.");
   bool compileConstants = false;
 };
