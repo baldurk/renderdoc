@@ -1235,6 +1235,7 @@ public:
   rdcstr GetRegisterName(OperandType oper, uint32_t index) const;
 
   static bool UsesExtensionUAV(uint32_t slot, uint32_t space, const byte *bytes, size_t length);
+  static D3D_PRIMITIVE_TOPOLOGY GetOutputTopology(const byte *bytes, size_t length);
 
 protected:
   friend class Program;

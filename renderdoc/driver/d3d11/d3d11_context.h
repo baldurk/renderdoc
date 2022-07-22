@@ -125,17 +125,7 @@ private:
   std::set<ResourceId> m_HighTrafficResources;
   std::map<MappedResource, MapIntercept> m_OpenMaps;
 
-  struct StreamOutData
-  {
-    StreamOutData() : query(NULL), running(false), numPrims(0) {}
-    ID3D11Query *query;
-    bool running;
-    uint64_t numPrims;
-  };
-
-  std::map<ResourceId, StreamOutData> m_StreamOutCounters;
-
-  std::map<ResourceId, rdcarray<EventUsage> > m_ResourceUses;
+  std::map<ResourceId, rdcarray<EventUsage>> m_ResourceUses;
 
   WrappedID3D11Device *m_pDevice;
   ID3D11DeviceContext *m_pRealContext;
@@ -228,6 +218,7 @@ private:
   void Serialise_DebugMessages(SerialiserType &ser);
 
   void DrainAnnotationQueue();
+  void LatchSOProperties();
 
   void AddUsage(const ActionDescription &a);
 

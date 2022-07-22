@@ -73,8 +73,9 @@ RD_TEST(D3D11_Stream_Out, D3D11GraphicsTest)
 
     ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(DefaultTri);
 
-    ID3D11BufferPtr so[2] = {
+    ID3D11BufferPtr so[3] = {
         MakeBuffer().StreamOut().Vertex().Size(2048), MakeBuffer().StreamOut().Vertex().Size(2048),
+        MakeBuffer().StreamOut().Vertex().Size(2048),
     };
 
     D3D11_INPUT_ELEMENT_DESC layoutdesc[] = {
@@ -92,6 +93,29 @@ RD_TEST(D3D11_Stream_Out, D3D11GraphicsTest)
     ID3D11InputLayoutPtr streamoutLayout;
     CHECK_HR(dev->CreateInputLayout(layoutdesc, ARRAY_COUNT(layoutdesc), vsblob->GetBufferPointer(),
                                     vsblob->GetBufferSize(), &streamoutLayout));
+
+    // pre fill buffer 2 with pre-frame data
+    {
+      ctx->ClearState();
+
+      IASetVertexBuffer(vb, sizeof(DefaultA2V), 0);
+      ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+      ctx->IASetInputLayout(defaultLayout);
+
+      ctx->VSSetShader(vs, NULL, 0);
+      ctx->GSSetShader(gs, NULL, 0);
+      ctx->PSSetShader(ps, NULL, 0);
+
+      RSSetViewport({0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
+
+      ctx->OMSetRenderTargets(1, &bbRTV.GetInterfacePtr(), NULL);
+
+      ID3D11Buffer *bufs[] = {so[2], so[1]};
+      UINT offs[2] = {0};
+      ctx->SOSetTargets(2, bufs, offs);
+
+      ctx->Draw(3, 0);
+    }
 
     while(Running())
     {
@@ -156,7 +180,9 @@ RD_TEST(D3D11_Stream_Out, D3D11GraphicsTest)
 
       ctx->IASetVertexBuffers(0, 2, bufs, &strides[0], offs);
       ctx->IASetInputLayout(streamoutLayout);
+      ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
       ctx->DrawAuto();
+      ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
       RSSetViewport({0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
 
@@ -203,8 +229,20 @@ RD_TEST(D3D11_Stream_Out, D3D11GraphicsTest)
       ctx->IASetInputLayout(streamoutLayout);
       ctx->DrawAuto();
 
+      ctx->SOSetTargets(0, NULL, NULL);
+
+      RSSetViewport({(screenWidth * 3.0f) / 4.0f, 0.0f, (float)screenWidth / 4.0f,
+                     (float)screenHeight / 4.0f, 0.0f, 1.0f});
+
+      bufs[0] = so[2];
+      ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+      ctx->IASetVertexBuffers(0, 2, bufs, &strides[0], offs);
+      ctx->DrawAuto();
+
       // leave stream-out buffers bound at the end of the frame
       ctx->ClearState();
+      bufs[0] = so[1];
+      bufs[1] = so[0];
       ctx->SOSetTargets(2, bufs, offs);
 
       Present();

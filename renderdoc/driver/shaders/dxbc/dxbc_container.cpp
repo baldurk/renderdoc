@@ -458,6 +458,34 @@ D3D_PRIMITIVE_TOPOLOGY DXBCContainer::GetOutputTopology()
   return m_OutputTopology;
 }
 
+D3D_PRIMITIVE_TOPOLOGY DXBCContainer::GetOutputTopology(const void *ByteCode, size_t ByteCodeLength)
+{
+  const FileHeader *header = (const FileHeader *)ByteCode;
+
+  const byte *data = (const byte *)ByteCode;    // just for convenience
+
+  if(header->fourcc != FOURCC_DXBC)
+    return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+  if(header->fileLength != (uint32_t)ByteCodeLength)
+    return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+  const uint32_t *chunkOffsets = (const uint32_t *)(header + 1);    // right after the header
+
+  for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
+  {
+    const uint32_t *fourcc = (const uint32_t *)(data + chunkOffsets[chunkIdx]);
+    const uint32_t *chunkSize = (const uint32_t *)(fourcc + 1);
+
+    const byte *chunkContents = (const byte *)(chunkSize + 1);
+
+    if(*fourcc == FOURCC_SHEX || *fourcc == FOURCC_SHDR)
+      return DXBCBytecode::Program::GetOutputTopology(chunkContents, *chunkSize);
+  }
+
+  return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+}
+
 const rdcstr &DXBCContainer::GetDisassembly()
 {
   if(m_Disassembly.empty())

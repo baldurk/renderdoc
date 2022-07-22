@@ -524,6 +524,10 @@ bool D3D11InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x11)
     return true;
 
+  // 0x12 -> 0x13 - added stride from stream-out to hidden counter data
+  if(ver == 0x12)
+    return true;
+
   return false;
 }
 

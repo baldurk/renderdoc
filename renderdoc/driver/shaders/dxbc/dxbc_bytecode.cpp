@@ -589,6 +589,47 @@ D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology()
   return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
+D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology(const byte *bytes, size_t length)
+{
+  uint32_t *begin = (uint32_t *)bytes;
+  uint32_t *cur = begin;
+  uint32_t *end = begin + (length / sizeof(uint32_t));
+
+  // skip version and length
+  cur += 2;
+
+  while(cur < end)
+  {
+    uint32_t OpcodeToken0 = cur[0];
+
+    OpcodeType op = Opcode::Type.Get(OpcodeToken0);
+
+    // nvidia is a structured buffer with counter
+    // AMD is a RW byte address buffer
+    if(op == OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY)
+    {
+      uint32_t *tokenStream = cur;
+
+      // skip opcode and length
+      tokenStream++;
+
+      return Decl::OutputPrimitiveTopology.Get(tokenStream[0]);
+    }
+
+    if(op == OPCODE_CUSTOMDATA)
+    {
+      // length in opcode token is 0, full length is in second dword
+      cur += cur[1];
+    }
+    else
+    {
+      cur += Opcode::Length.Get(OpcodeToken0);
+    }
+  }
+
+  return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+}
+
 void Program::SetupRegisterFile(rdcarray<ShaderVariable> &registers) const
 {
   size_t numRegisters = m_NumTemps + m_IndexTempSizes.size() + m_NumOutputs;

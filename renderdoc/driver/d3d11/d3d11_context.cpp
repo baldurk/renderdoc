@@ -213,11 +213,6 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
   if(m_pRealContext && GetType() != D3D11_DEVICE_CONTEXT_IMMEDIATE)
     m_pDevice->RemoveDeferredContext(this);
 
-  for(auto it = m_StreamOutCounters.begin(); it != m_StreamOutCounters.end(); ++it)
-  {
-    SAFE_RELEASE(it->second.query);
-  }
-
   SAFE_DELETE(m_FrameReader);
 
   SAFE_RELEASE(m_WrappedVideo.m_pReal);
@@ -266,6 +261,7 @@ struct HiddenCounter
 {
   ResourceId id;
   uint64_t counterValue;
+  uint32_t stride;
 };
 
 DECLARE_REFLECTION_STRUCT(HiddenCounter);
@@ -275,6 +271,14 @@ void DoSerialise(SerialiserType &ser, HiddenCounter &el)
 {
   SERIALISE_MEMBER(id);
   SERIALISE_MEMBER(counterValue);
+  if(ser.VersionAtLeast(0x13))
+  {
+    SERIALISE_MEMBER(stride);
+  }
+  else
+  {
+    el.stride = 0;
+  }
 }
 
 template <typename SerialiserType>
@@ -316,12 +320,12 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
 
       if(buf)
       {
-        ResourceId id = GetIDForDeviceChild(buf);
+        StreamOutData &so = m_pDevice->GetSOHiddenCounterForBuffer(GetIDForDeviceChild(buf));
 
-        if(m_StreamOutCounters[id].running)
+        if(so.running)
         {
-          m_pRealContext->End(m_StreamOutCounters[id].query);
-          m_StreamOutCounters[id].running = false;
+          m_pRealContext->End(so.query);
+          so.running = false;
         }
 
         restart[b] = true;
@@ -331,7 +335,8 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
     D3D11_QUERY_DATA_SO_STATISTICS numPrims;
 
     // readback all known counters
-    for(auto it = m_StreamOutCounters.begin(); it != m_StreamOutCounters.end(); ++it)
+    for(auto it = m_pDevice->GetSOHiddenCounters().begin();
+        it != m_pDevice->GetSOHiddenCounters().end(); ++it)
     {
       RDCEraseEl(numPrims);
 
@@ -350,7 +355,12 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
                ToStr(it->first).c_str());
       }
 
-      HiddenStreamOutCounters.push_back({it->first, (uint64_t)numPrims.NumPrimitivesWritten});
+      HiddenCounter h;
+      h.id = it->first;
+      h.counterValue = (uint64_t)numPrims.NumPrimitivesWritten;
+      h.stride = it->second.stride;
+
+      HiddenStreamOutCounters.push_back(h);
     }
 
     // restart any counters we were forced to stop
@@ -360,10 +370,10 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
 
       if(buf && restart[b])
       {
-        ResourceId id = GetIDForDeviceChild(buf);
+        StreamOutData &so = m_pDevice->GetSOHiddenCounterForBuffer(GetIDForDeviceChild(buf));
 
         // release any previous query as the hidden counter is overwritten
-        SAFE_RELEASE(m_StreamOutCounters[id].query);
+        SAFE_RELEASE(so.query);
 
         D3D11_QUERY queryTypes[] = {
             D3D11_QUERY_SO_STATISTICS_STREAM0, D3D11_QUERY_SO_STATISTICS_STREAM1,
@@ -374,10 +384,12 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
         qdesc.MiscFlags = 0;
         qdesc.Query = queryTypes[b];
 
-        m_pDevice->GetReal()->CreateQuery(&qdesc, &m_StreamOutCounters[id].query);
+        m_pDevice->GetReal()->CreateQuery(&qdesc, &so.query);
 
-        m_pRealContext->Begin(m_StreamOutCounters[id].query);
-        m_StreamOutCounters[id].running = true;
+        m_pRealContext->Begin(so.query);
+        so.running = true;
+
+        // stride doesn't change as the shader hasn't changed
       }
     }
   }
@@ -406,8 +418,12 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
     for(const HiddenCounter &c : HiddenStreamOutCounters)
     {
       if(m_pDevice->GetResourceManager()->HasLiveResource(c.id))
-        m_StreamOutCounters[m_pDevice->GetResourceManager()->GetLiveID(c.id)].numPrims =
-            c.counterValue;
+      {
+        StreamOutData &so =
+            m_pDevice->GetSOHiddenCounterForBuffer(m_pDevice->GetResourceManager()->GetLiveID(c.id));
+        so.numPrims = c.counterValue;
+        so.stride = c.stride;
+      }
     }
   }
 

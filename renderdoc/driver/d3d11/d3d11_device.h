@@ -46,6 +46,19 @@ class D3D11Replay;
 #define D3D11_1_UAV_SLOT_COUNT 64
 #endif
 
+struct StreamOutData
+{
+  ID3D11Query *query = NULL;
+  bool running = false;
+  uint64_t numPrims = 0;
+  uint32_t stride = 0;
+};
+
+struct SOShaderData
+{
+  uint32_t strides[4] = {};
+};
+
 enum TextureDisplayType
 {
   TEXDISPLAY_UNKNOWN = 0,
@@ -68,7 +81,7 @@ struct D3D11InitParams
   uint32_t VendorUAV = ~0U;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x12;
+  static const uint64_t CurrentVersion = 0x13;
   static bool IsSupportedVersion(uint64_t ver);
 };
 
@@ -585,6 +598,9 @@ private:
   std::map<ID3D11InputLayout *, rdcarray<D3D11_INPUT_ELEMENT_DESC> > m_LayoutDescs;
   std::map<ID3D11InputLayout *, WrappedShader *> m_LayoutShaders;
 
+  std::map<ResourceId, StreamOutData> m_StreamOutCounters;
+  std::map<ResourceId, SOShaderData> m_SOShaders;
+
   static WrappedID3D11Device *m_pCurrentWrappedDevice;
 
   std::map<IDXGISwapper *, ID3D11RenderTargetView *> m_SwapChains;
@@ -652,6 +668,9 @@ public:
   void RemoveDeferredContext(WrappedID3D11DeviceContext *defctx);
   WrappedID3D11DeviceContext *GetDeferredContext(size_t idx);
 
+  const std::map<ResourceId, StreamOutData> &GetSOHiddenCounters() { return m_StreamOutCounters; }
+  StreamOutData &GetSOHiddenCounterForBuffer(ResourceId id) { return m_StreamOutCounters[id]; }
+  const SOShaderData &GetSOShaderData(ResourceId id) { return m_SOShaders[id]; }
   ResourceId GetResourceID() { return m_ResourceID; }
   const ActionDescription *GetAction(uint32_t eventId);
   ResourceDescription &GetResourceDesc(ResourceId id);

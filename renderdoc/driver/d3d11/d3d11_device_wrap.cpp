@@ -1724,6 +1724,40 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
 
+    D3D_PRIMITIVE_TOPOLOGY topo =
+        DXBC::DXBCContainer::GetOutputTopology(pShaderBytecode, BytecodeLength);
+
+    uint32_t vertsPerPrim = 1;
+    if(topo == D3D_PRIMITIVE_TOPOLOGY_LINELIST)
+      vertsPerPrim = 1;
+    else if(topo == D3D_PRIMITIVE_TOPOLOGY_LINELIST)
+      vertsPerPrim = 2;
+    else
+      vertsPerPrim = 3;
+
+    SOShaderData &soshader = m_SOShaders[GetIDForDeviceChild(ret)];
+
+    for(UINT i = 0; i < NumStrides; i++)
+      soshader.strides[i] = pBufferStrides[i] * vertsPerPrim;
+
+    // Undocumented, but D3D11 auto-calculates tight strides if they are not specified, based on the
+    // declarations (which are tightly packed)
+    for(UINT i = NumStrides; i < D3D11_SO_STREAM_COUNT; i++)
+    {
+      // count the entries writing to this slot
+      for(size_t decl = 0; decl < NumEntries; decl++)
+      {
+        if(pSODeclaration[decl].OutputSlot == i)
+        {
+          // all components are written as 32-bit values
+          soshader.strides[i] += pSODeclaration[decl].ComponentCount * sizeof(uint32_t);
+        }
+      }
+
+      // still want the stride per-primitive not per-vertex
+      soshader.strides[i] *= vertsPerPrim;
+    }
+
     AddResource(pShader, ResourceType::Shader, "Geometry Shader");
     // if this shader was initialised with a shader ext UAV, pull in that chunk as one of ours
     // and unset it (there will be one for each create that actually used vendor extensions)
@@ -1767,6 +1801,40 @@ HRESULT WrappedID3D11Device::CreateGeometryShaderWithStreamOutput(
     FlushPendingDead();
     wrapped = new WrappedID3D11Shader<ID3D11GeometryShader>(
         real, ResourceId(), (const byte *)pShaderBytecode, BytecodeLength, this);
+
+    D3D_PRIMITIVE_TOPOLOGY topo =
+        DXBC::DXBCContainer::GetOutputTopology(pShaderBytecode, BytecodeLength);
+
+    uint32_t vertsPerPrim = 1;
+    if(topo == D3D_PRIMITIVE_TOPOLOGY_LINELIST)
+      vertsPerPrim = 1;
+    else if(topo == D3D_PRIMITIVE_TOPOLOGY_LINELIST)
+      vertsPerPrim = 2;
+    else
+      vertsPerPrim = 3;
+
+    SOShaderData &soshader = m_SOShaders[GetIDForDeviceChild(wrapped)];
+
+    for(UINT i = 0; i < NumStrides; i++)
+      soshader.strides[i] = pBufferStrides[i] * vertsPerPrim;
+
+    // Undocumented, but D3D11 auto-calculates tight strides if they are not specified, based on the
+    // declarations (which are tightly packed)
+    for(UINT i = NumStrides; i < D3D11_SO_STREAM_COUNT; i++)
+    {
+      // count the entries writing to this slot
+      for(size_t decl = 0; decl < NumEntries; decl++)
+      {
+        if(pSODeclaration[decl].OutputSlot == i)
+        {
+          // all components are written as 32-bit values
+          soshader.strides[i] += pSODeclaration[decl].ComponentCount * sizeof(uint32_t);
+        }
+      }
+
+      // still want the stride per-primitive not per-vertex
+      soshader.strides[i] *= vertsPerPrim;
+    }
 
     if(IsCaptureMode(m_State))
     {

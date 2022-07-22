@@ -2209,12 +2209,14 @@ bool WrappedID3D11DeviceContext::Serialise_SOSetTargets(SerialiserType &ser, UIN
 
       if(buf)
       {
+        StreamOutData &so = m_pDevice->GetSOHiddenCounterForBuffer(GetIDForDeviceChild(buf));
+
         ResourceId id = GetIDForDeviceChild(buf);
 
-        if(m_StreamOutCounters[id].running)
+        if(so.running)
         {
-          m_pRealContext->End(m_StreamOutCounters[id].query);
-          m_StreamOutCounters[id].running = false;
+          m_pRealContext->End(so.query);
+          so.running = false;
         }
       }
     }
@@ -2226,10 +2228,10 @@ bool WrappedID3D11DeviceContext::Serialise_SOSetTargets(SerialiserType &ser, UIN
 
       if(buf)
       {
-        ResourceId id = GetIDForDeviceChild(buf);
+        StreamOutData &so = m_pDevice->GetSOHiddenCounterForBuffer(GetIDForDeviceChild(buf));
 
         // release any previous query as the hidden counter is overwritten
-        SAFE_RELEASE(m_StreamOutCounters[id].query);
+        SAFE_RELEASE(so.query);
 
         D3D11_QUERY queryTypes[] = {
             D3D11_QUERY_SO_STATISTICS_STREAM0, D3D11_QUERY_SO_STATISTICS_STREAM1,
@@ -2240,13 +2242,18 @@ bool WrappedID3D11DeviceContext::Serialise_SOSetTargets(SerialiserType &ser, UIN
         qdesc.MiscFlags = 0;
         qdesc.Query = queryTypes[b];
 
-        HRESULT hr = m_pDevice->GetReal()->CreateQuery(&qdesc, &m_StreamOutCounters[id].query);
+        HRESULT hr = m_pDevice->GetReal()->CreateQuery(&qdesc, &so.query);
 
         if(FAILED(hr))
           RDCERR("Couldn't create streamout query: %s", ToStr(hr).c_str());
 
-        m_pRealContext->Begin(m_StreamOutCounters[id].query);
-        m_StreamOutCounters[id].running = true;
+        m_pRealContext->Begin(so.query);
+        so.running = true;
+
+        // since we don't know the binding order (SO targets before GS, or GS before SO targets)
+        // we'll set this to 0 now and latch it at draw time. We assume these don't change over the
+        // course of the stream out.
+        so.stride = 0;
       }
     }
 
@@ -2321,12 +2328,12 @@ void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *con
 
     if(buf)
     {
-      ResourceId id = GetIDForDeviceChild(buf);
+      StreamOutData &so = m_pDevice->GetSOHiddenCounterForBuffer(GetIDForDeviceChild(buf));
 
-      if(m_StreamOutCounters[id].running)
+      if(so.running)
       {
-        m_pRealContext->End(m_StreamOutCounters[id].query);
-        m_StreamOutCounters[id].running = false;
+        m_pRealContext->End(so.query);
+        so.running = false;
       }
     }
   }
@@ -2338,10 +2345,10 @@ void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *con
 
     if(buf)
     {
-      ResourceId id = GetIDForDeviceChild(buf);
+      StreamOutData &so = m_pDevice->GetSOHiddenCounterForBuffer(GetIDForDeviceChild(buf));
 
       // release any previous query as the hidden counter is overwritten
-      SAFE_RELEASE(m_StreamOutCounters[id].query);
+      SAFE_RELEASE(so.query);
 
       D3D11_QUERY queryTypes[] = {
           D3D11_QUERY_SO_STATISTICS_STREAM0, D3D11_QUERY_SO_STATISTICS_STREAM1,
@@ -2352,10 +2359,15 @@ void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *con
       qdesc.MiscFlags = 0;
       qdesc.Query = queryTypes[b];
 
-      m_pDevice->GetReal()->CreateQuery(&qdesc, &m_StreamOutCounters[id].query);
+      m_pDevice->GetReal()->CreateQuery(&qdesc, &so.query);
 
-      m_pRealContext->Begin(m_StreamOutCounters[id].query);
-      m_StreamOutCounters[id].running = true;
+      m_pRealContext->Begin(so.query);
+      so.running = true;
+
+      // since we don't know the binding order (SO targets before GS, or GS before SO targets)
+      // we'll set this to 0 now and latch it at draw time. We assume these don't change over the
+      // course of the stream out.
+      so.stride = 0;
     }
   }
 
@@ -3795,6 +3807,27 @@ void WrappedID3D11DeviceContext::Serialise_DebugMessages(SerialiserType &ser)
   }
 }
 
+void WrappedID3D11DeviceContext::LatchSOProperties()
+{
+  for(UINT b = 0; b < D3D11_SO_STREAM_COUNT; b++)
+  {
+    ID3D11Buffer *buf = m_CurrentPipelineState->SO.Buffers[b];
+
+    if(buf)
+    {
+      StreamOutData &so = m_pDevice->GetSOHiddenCounterForBuffer(GetIDForDeviceChild(buf));
+
+      if(so.running && so.stride == 0)
+      {
+        const SOShaderData &shad =
+            m_pDevice->GetSOShaderData(GetIDForDeviceChild(m_CurrentPipelineState->GS.Object));
+
+        so.stride = shad.strides[b];
+      }
+    }
+  }
+}
+
 template <typename SerialiserType>
 bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstanced(
     SerialiserType &ser, UINT IndexCountPerInstance, UINT InstanceCount, UINT StartIndexLocation,
@@ -3814,6 +3847,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstanced(
   {
     m_pRealContext->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation,
                                          BaseVertexLocation, StartInstanceLocation);
+
+    LatchSOProperties();
 
     if(IsLoading(m_State))
     {
@@ -3853,6 +3888,8 @@ void WrappedID3D11DeviceContext::DrawIndexedInstanced(UINT IndexCountPerInstance
                                                            StartIndexLocation, BaseVertexLocation,
                                                            StartInstanceLocation));
 
+  LatchSOProperties();
+
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
@@ -3887,6 +3924,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstanced(SerialiserType &ser,
   {
     m_pRealContext->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation,
                                   StartInstanceLocation);
+
+    LatchSOProperties();
 
     if(IsLoading(m_State))
     {
@@ -3923,6 +3962,8 @@ void WrappedID3D11DeviceContext::DrawInstanced(UINT VertexCountPerInstance, UINT
   SERIALISE_TIME_CALL(m_pRealContext->DrawInstanced(VertexCountPerInstance, InstanceCount,
                                                     StartVertexLocation, StartInstanceLocation));
 
+  LatchSOProperties();
+
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
@@ -3954,6 +3995,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexed(SerialiserType &ser, UINT
   if(IsReplayingAndReading())
   {
     m_pRealContext->DrawIndexed(IndexCount, StartIndexLocation, BaseVertexLocation);
+
+    LatchSOProperties();
 
     if(IsLoading(m_State))
     {
@@ -3988,6 +4031,8 @@ void WrappedID3D11DeviceContext::DrawIndexed(UINT IndexCount, UINT StartIndexLoc
 
   SERIALISE_TIME_CALL(m_pRealContext->DrawIndexed(IndexCount, StartIndexLocation, BaseVertexLocation));
 
+  LatchSOProperties();
+
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
@@ -4016,6 +4061,8 @@ bool WrappedID3D11DeviceContext::Serialise_Draw(SerialiserType &ser, UINT Vertex
   if(IsReplayingAndReading())
   {
     m_pRealContext->Draw(VertexCount, StartVertexLocation);
+
+    LatchSOProperties();
 
     if(IsLoading(m_State))
     {
@@ -4048,6 +4095,8 @@ void WrappedID3D11DeviceContext::Draw(UINT VertexCount, UINT StartVertexLocation
 
   SERIALISE_TIME_CALL(m_pRealContext->Draw(VertexCount, StartVertexLocation));
 
+  LatchSOProperties();
+
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
@@ -4069,7 +4118,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawAuto(SerialiserType &ser)
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  uint64_t numVerts = 0;
+  uint64_t numVertsToDraw = 0;
 
   if(IsReplayingAndReading())
   {
@@ -4084,7 +4133,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawAuto(SerialiserType &ser)
     {
       ResourceId id = GetIDForDeviceChild(m_CurrentPipelineState->IA.VBs[0]);
 
-      StreamOutData &data = m_StreamOutCounters[id];
+      StreamOutData &data = m_pDevice->GetSOHiddenCounterForBuffer(id);
 
       // if we have a query, the stream-out data for this DrawAuto was generated
       // in the captured frame, so we can do a legitimate DrawAuto()
@@ -4103,27 +4152,61 @@ bool WrappedID3D11DeviceContext::Serialise_DrawAuto(SerialiserType &ser)
                                        sizeof(D3D11_QUERY_DATA_SO_STATISTICS), 0);
         } while(hr == S_FALSE);
 
-        if(m_CurrentPipelineState->IA.Topo == D3D11_PRIMITIVE_TOPOLOGY_POINTLIST)
-          numVerts = numPrims.NumPrimitivesWritten;
-        else if(m_CurrentPipelineState->IA.Topo == D3D11_PRIMITIVE_TOPOLOGY_LINELIST)
-          numVerts = numPrims.NumPrimitivesWritten * 2;
+        if(data.stride != 0)
+        {
+          uint64_t bytesWritten = numPrims.NumPrimitivesWritten * data.stride;
+
+          numVertsToDraw = uint32_t((bytesWritten - m_CurrentPipelineState->IA.Offsets[0]) /
+                                    m_CurrentPipelineState->IA.Strides[0]);
+        }
         else
-          numVerts = numPrims.NumPrimitivesWritten * 3;
+        {
+          RDCERR("Unexpected 0 stride on DrawAuto, no SO shader bound properly?");
+
+          // fallback to the mostly-accurate estimate
+
+          if(m_CurrentPipelineState->IA.Topo == D3D11_PRIMITIVE_TOPOLOGY_POINTLIST)
+            numVertsToDraw = numPrims.NumPrimitivesWritten;
+          else if(m_CurrentPipelineState->IA.Topo == D3D11_PRIMITIVE_TOPOLOGY_LINELIST)
+            numVertsToDraw = numPrims.NumPrimitivesWritten * 2;
+          else
+            numVertsToDraw = numPrims.NumPrimitivesWritten * 3;
+        }
 
         m_pRealContext->DrawAuto();
       }
       else
       {
         // otherwise use the cached value from the previous frame.
+        // in older captures we only stored the number of primitives, so use the old behaviour of
+        // taking the current topology and assuming it's the same, so behaviour doesn't change.
+        // newer captures store enough information that we can do a proper byte-wise calculation
 
-        if(m_CurrentPipelineState->IA.Topo == D3D11_PRIMITIVE_TOPOLOGY_POINTLIST)
-          numVerts = data.numPrims;
-        else if(m_CurrentPipelineState->IA.Topo == D3D11_PRIMITIVE_TOPOLOGY_LINELIST)
-          numVerts = data.numPrims * 2;
+        if(data.stride != 0)
+        {
+          uint64_t bytesWritten = data.numPrims * data.stride;
+
+          numVertsToDraw = uint32_t((bytesWritten - m_CurrentPipelineState->IA.Offsets[0]) /
+                                    m_CurrentPipelineState->IA.Strides[0]);
+        }
         else
-          numVerts = data.numPrims * 3;
+        {
+          m_pDevice->AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
+                                     MessageSource::IncorrectAPIUse,
+                                     "Call to DrawAuto may be inaccurate if topology or vertex "
+                                     "stride has changed between stream-out and draw.\n"
+                                     "Recapture with this version of RenderDoc to fix this "
+                                     "problem, this capture was created with an older version.");
 
-        m_pRealContext->Draw((UINT)numVerts, 0);
+          if(m_CurrentPipelineState->IA.Topo == D3D11_PRIMITIVE_TOPOLOGY_POINTLIST)
+            numVertsToDraw = data.numPrims;
+          else if(m_CurrentPipelineState->IA.Topo == D3D11_PRIMITIVE_TOPOLOGY_LINELIST)
+            numVertsToDraw = data.numPrims * 2;
+          else
+            numVertsToDraw = data.numPrims * 3;
+        }
+
+        m_pRealContext->Draw((UINT)numVertsToDraw, 0);
       }
     }
 
@@ -4134,9 +4217,9 @@ bool WrappedID3D11DeviceContext::Serialise_DrawAuto(SerialiserType &ser)
       AddEvent();
 
       ActionDescription action;
-      action.customName = StringFormat::Fmt("DrawAuto(<%u>)", numVerts);
+      action.customName = StringFormat::Fmt("DrawAuto(<%u>)", numVertsToDraw);
       action.flags |= ActionFlags::Drawcall | ActionFlags::Auto;
-      action.numIndices = (uint32_t)numVerts;
+      action.numIndices = (uint32_t)numVertsToDraw;
       action.vertexOffset = 0;
       action.indexOffset = 0;
       action.instanceOffset = 0;
@@ -4194,6 +4277,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(Serialis
       m_pRealContext->DrawIndexedInstancedIndirect(UNWRAP(WrappedID3D11Buffer, pBufferForArgs),
                                                    AlignedByteOffsetForArgs);
     }
+
+    LatchSOProperties();
 
     if(IsLoading(m_State))
     {
@@ -4289,6 +4374,8 @@ void WrappedID3D11DeviceContext::DrawIndexedInstancedIndirect(ID3D11Buffer *pBuf
   SERIALISE_TIME_CALL(m_pRealContext->DrawIndexedInstancedIndirect(
       UNWRAP(WrappedID3D11Buffer, pBufferForArgs), AlignedByteOffsetForArgs));
 
+  LatchSOProperties();
+
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
@@ -4325,6 +4412,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(SerialiserType 
       m_pRealContext->DrawInstancedIndirect(UNWRAP(WrappedID3D11Buffer, pBufferForArgs),
                                             AlignedByteOffsetForArgs);
     }
+
+    LatchSOProperties();
 
     if(IsLoading(m_State))
     {
@@ -4416,6 +4505,8 @@ void WrappedID3D11DeviceContext::DrawInstancedIndirect(ID3D11Buffer *pBufferForA
 
   SERIALISE_TIME_CALL(m_pRealContext->DrawInstancedIndirect(
       UNWRAP(WrappedID3D11Buffer, pBufferForArgs), AlignedByteOffsetForArgs));
+
+  LatchSOProperties();
 
   if(IsActiveCapturing(m_State))
   {
@@ -6455,12 +6546,12 @@ bool WrappedID3D11DeviceContext::Serialise_ClearState(SerialiserType &ser)
 
       if(buf)
       {
-        ResourceId id = GetIDForDeviceChild(buf);
+        StreamOutData &so = m_pDevice->GetSOHiddenCounterForBuffer(GetIDForDeviceChild(buf));
 
-        if(m_StreamOutCounters[id].running)
+        if(so.running)
         {
-          m_pRealContext->End(m_StreamOutCounters[id].query);
-          m_StreamOutCounters[id].running = false;
+          m_pRealContext->End(so.query);
+          so.running = false;
         }
       }
     }
@@ -6499,12 +6590,14 @@ void WrappedID3D11DeviceContext::ClearState()
 
     if(buf)
     {
+      StreamOutData &so = m_pDevice->GetSOHiddenCounterForBuffer(GetIDForDeviceChild(buf));
+
       ResourceId id = GetIDForDeviceChild(buf);
 
-      if(m_StreamOutCounters[id].running)
+      if(so.running)
       {
-        m_pRealContext->End(m_StreamOutCounters[id].query);
-        m_StreamOutCounters[id].running = false;
+        m_pRealContext->End(so.query);
+        so.running = false;
       }
     }
   }

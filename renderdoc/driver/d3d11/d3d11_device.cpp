@@ -265,6 +265,9 @@ WrappedID3D11Device::~WrappedID3D11Device()
 
   RenderDoc::Inst().RemoveDeviceFrameCapturer((ID3D11Device *)this);
 
+  for(auto it = m_StreamOutCounters.begin(); it != m_StreamOutCounters.end(); ++it)
+    SAFE_RELEASE(it->second.query);
+
   for(auto it = m_CachedStateObjects.begin(); it != m_CachedStateObjects.end(); ++it)
     if(*it)
       IntRelease(*it);
