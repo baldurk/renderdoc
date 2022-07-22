@@ -2921,8 +2921,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
         if(IsD3D(m_Ctx.APIProps().pipelineType))
           bufdata->vsinConfig.packing = Packing::D3DCB;
         else
-          bufdata->vsinConfig.packing =
-              BufferFormatter::EstimatePackingRules(bufdata->vsinConfig.fixedVars.type.members);
+          bufdata->vsinConfig.packing = BufferFormatter::EstimatePackingRules(
+              reflection->resourceId, bufdata->vsinConfig.fixedVars.type.members);
       }
     }
 
@@ -4970,12 +4970,13 @@ void BufferViewer::on_setFormat_toggled(bool checked)
 
   if(IsD3D(m_Ctx.APIProps().pipelineType))
     ui->formatSpecifier->setAutoFormat(BufferFormatter::DeclareStruct(
-        Packing::D3DCB, reflection->constantBlocks[m_CBufferSlot.slot].name,
+        Packing::D3DCB, reflection->resourceId, reflection->constantBlocks[m_CBufferSlot.slot].name,
         reflection->constantBlocks[m_CBufferSlot.slot].variables, 0));
   else
     ui->formatSpecifier->setAutoFormat(BufferFormatter::DeclareStruct(
-        BufferFormatter::EstimatePackingRules(reflection->constantBlocks[m_CBufferSlot.slot].variables),
-        reflection->constantBlocks[m_CBufferSlot.slot].name,
+        BufferFormatter::EstimatePackingRules(
+            reflection->resourceId, reflection->constantBlocks[m_CBufferSlot.slot].variables),
+        reflection->resourceId, reflection->constantBlocks[m_CBufferSlot.slot].name,
         reflection->constantBlocks[m_CBufferSlot.slot].variables, 0));
 }
 

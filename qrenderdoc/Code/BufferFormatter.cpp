@@ -161,7 +161,8 @@ static bool MatchBaseTypeDeclaration(QString basetype, const bool isUnsigned, Sh
   return true;
 }
 
-void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, const ShaderConstant &constant)
+void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, ResourceId shader,
+                                           const ShaderConstant &constant)
 {
   // see if this constant violates any of the packing rules we are currently checking for.
   // We can't *prove* a rule is followed just from one example, we can only see if it is never
@@ -230,16 +231,24 @@ void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, const ShaderCon
       pack.tight_arrays = true;
   }
 
-  EstimatePackingRules(pack, constant.type.members);
+  EstimatePackingRules(pack, shader, constant.type.members);
 }
 
-void BufferFormatter::EstimatePackingRules(Packing::Rules &pack,
+void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, ResourceId shader,
                                            const rdcarray<ShaderConstant> &members)
 {
   for(size_t i = 0; i < members.size(); i++)
   {
     // check this constant
-    EstimatePackingRules(pack, members[i]);
+    EstimatePackingRules(pack, shader, members[i]);
+
+    // when pointers are in use, follow the type and estimate with those too
+    if(members[i].type.pointerTypeID != ~0U)
+    {
+      const ShaderConstantType &ptrType =
+          PointerTypeRegistry::GetTypeDescriptor(shader, members[i].type.pointerTypeID);
+      EstimatePackingRules(pack, shader, ptrType.members);
+    }
 
     // check for trailing array/struct use
     if(i > 0)
@@ -262,7 +271,8 @@ void BufferFormatter::EstimatePackingRules(Packing::Rules &pack,
   }
 }
 
-Packing::Rules BufferFormatter::EstimatePackingRules(const rdcarray<ShaderConstant> &members)
+Packing::Rules BufferFormatter::EstimatePackingRules(ResourceId shader,
+                                                     const rdcarray<ShaderConstant> &members)
 {
   Packing::Rules pack;
 
@@ -277,7 +287,7 @@ Packing::Rules BufferFormatter::EstimatePackingRules(const rdcarray<ShaderConsta
   else
     pack = Packing::std140;
 
-  EstimatePackingRules(pack, members);
+  EstimatePackingRules(pack, shader, members);
 
   // only return a 'real' ruleset. Don't revert to individually setting rules if we can help it
   // since that's a mess. The worst case is if someone is really using a custom packing format then
@@ -2323,7 +2333,8 @@ QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
   return QFormatStr("struct row\n{\n  %1 %2[%3];\n};\n\nrow r[];").arg(baseType).arg(varName).arg(w);
 }
 
-QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, const ShaderResource &res,
+QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, ResourceId shader,
+                                               const ShaderResource &res,
                                                const ResourceFormat &viewFormat)
 {
   QString format;
@@ -2337,8 +2348,8 @@ QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, const Shader
 
     QList<QString> declaredStructs;
     QMap<ShaderConstant, QString> anonStructs;
-    format = DeclareStruct(pack, declaredStructs, anonStructs, structName, res.variableType.members,
-                           0, QString());
+    format = DeclareStruct(pack, shader, declaredStructs, anonStructs, structName,
+                           res.variableType.members, 0, QString());
     format = QFormatStr("%1\n\n%2").arg(DeclarePacking(pack)).arg(format);
   }
   else
@@ -2577,7 +2588,8 @@ uint32_t BufferFormatter::GetUnpaddedStructAdvance(Packing::Rules pack,
   return lastMemberStart + GetVarAdvance(pack, *lastChild);
 }
 
-QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &declaredStructs,
+QString BufferFormatter::DeclareStruct(Packing::Rules pack, ResourceId shader,
+                                       QList<QString> &declaredStructs,
                                        QMap<ShaderConstant, QString> &anonStructs,
                                        const QString &name, const rdcarray<ShaderConstant> &members,
                                        uint32_t requiredByteStride, QString innerSkippedPrefixString)
@@ -2641,7 +2653,7 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
     if(members[i].type.pointerTypeID != ~0U)
     {
       const ShaderConstantType &pointeeType =
-          PointerTypeRegistry::GetTypeDescriptor(members[i].type.pointerTypeID);
+          PointerTypeRegistry::GetTypeDescriptor(shader, members[i].type.pointerTypeID);
 
       varTypeName = pointeeType.name;
 
@@ -2651,7 +2663,7 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
       if(!declaredStructs.contains(varTypeName))
       {
         declaredStructs.push_back(varTypeName);
-        declarations += DeclareStruct(pack, declaredStructs, anonStructs, varTypeName,
+        declarations += DeclareStruct(pack, shader, declaredStructs, anonStructs, varTypeName,
                                       pointeeType.members, pointeeType.arrayByteStride, QString()) +
                         lit("\n");
       }
@@ -2685,8 +2697,8 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
       {
         declaredStructs.push_back(varTypeName);
         declarations +=
-            DeclareStruct(pack, declaredStructs, anonStructs, varTypeName, members[i].type.members,
-                          members[i].type.arrayByteStride, QString()) +
+            DeclareStruct(pack, shader, declaredStructs, anonStructs, varTypeName,
+                          members[i].type.members, members[i].type.arrayByteStride, QString()) +
             lit("\n");
       }
     }
@@ -2746,13 +2758,13 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, QList<QString> &decl
   return declarations + ret;
 }
 
-QString BufferFormatter::DeclareStruct(Packing::Rules pack, const QString &name,
+QString BufferFormatter::DeclareStruct(Packing::Rules pack, ResourceId shader, const QString &name,
                                        const rdcarray<ShaderConstant> &members,
                                        uint32_t requiredByteStride)
 {
   QList<QString> declaredStructs;
   QMap<ShaderConstant, QString> anonStructs;
-  QString structDef = DeclareStruct(pack, declaredStructs, anonStructs, name, members,
+  QString structDef = DeclareStruct(pack, shader, declaredStructs, anonStructs, name, members,
                                     requiredByteStride, QString());
 
   return QFormatStr("%1\n\n%2").arg(DeclarePacking(pack)).arg(structDef);
@@ -2784,6 +2796,13 @@ ResourceFormat GetInterpretedResourceFormat(const ShaderConstant &elem)
     format.compCount = elem.type.columns;
   else
     format.compCount = elem.type.rows;
+
+  if(elem.type.baseType == VarType::GPUPointer)
+  {
+    format.compCount = 1;
+    format.compType = CompType::UInt;
+    format.compByteWidth = 8;
+  }
 
   return format;
 }
@@ -2842,10 +2861,9 @@ static void FillShaderVarData(ShaderVariable &var, const ShaderConstant &elem, c
         case VarType::SByte:
           var.value.u8v[dst] = (int8_t)qBound((int)INT8_MIN, o.toInt(), (int)INT8_MAX);
           break;
-        case VarType::Enum:
+        case VarType::Enum: var.value.u64v[dst] = o.value<EnumInterpValue>().val; break;
         case VarType::GPUPointer:
-          // treat this as a 64-bit unsigned integer
-          var.value.u64v[dst] = o.value<EnumInterpValue>().val;
+          var.SetTypedPointer(o.toULongLong(), ResourceId(), elem.type.pointerTypeID);
           break;
         case VarType::ConstantBlock:
         case VarType::ReadOnlyResource:
@@ -3726,7 +3744,8 @@ TEST_CASE("round-trip via format", "[formatter]")
 
   // std140 packing
   parsed = BufferFormatter::ParseFormatString(
-      BufferFormatter::GetBufferFormatString(BufferFormatter::EstimatePackingRules(members), res, fmt),
+      BufferFormatter::GetBufferFormatString(
+          BufferFormatter::EstimatePackingRules(ResourceId(), members), ResourceId(), res, fmt),
       0, true);
 
   CHECK((parsed.fixed.type.members == members));
@@ -3735,7 +3754,8 @@ TEST_CASE("round-trip via format", "[formatter]")
   members.back().type.arrayByteStride = 4;
 
   parsed = BufferFormatter::ParseFormatString(
-      BufferFormatter::GetBufferFormatString(BufferFormatter::EstimatePackingRules(members), res, fmt),
+      BufferFormatter::GetBufferFormatString(
+          BufferFormatter::EstimatePackingRules(ResourceId(), members), ResourceId(), res, fmt),
       0, true);
 
   CHECK((parsed.fixed.type.members == members));
@@ -3746,7 +3766,8 @@ TEST_CASE("round-trip via format", "[formatter]")
   members.back().type.arrayByteStride = 12;
 
   parsed = BufferFormatter::ParseFormatString(
-      BufferFormatter::GetBufferFormatString(BufferFormatter::EstimatePackingRules(members), res, fmt),
+      BufferFormatter::GetBufferFormatString(
+          BufferFormatter::EstimatePackingRules(ResourceId(), members), ResourceId(), res, fmt),
       0, true);
 
   CHECK((parsed.fixed.type.members == members));

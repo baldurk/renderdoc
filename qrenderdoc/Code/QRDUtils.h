@@ -203,7 +203,8 @@ private:
   static bool ContainsUnbounded(const ShaderConstant &structType,
                                 rdcpair<rdcstr, rdcstr> *found = NULL);
 
-  static QString DeclareStruct(Packing::Rules pack, QList<QString> &declaredStructs,
+  static QString DeclareStruct(Packing::Rules pack, ResourceId shader,
+                               QList<QString> &declaredStructs,
                                QMap<ShaderConstant, QString> &anonStructs, const QString &name,
                                const rdcarray<ShaderConstant> &members, uint32_t requiredByteStride,
                                QString innerSkippedPrefixString);
@@ -214,8 +215,10 @@ private:
   static uint32_t GetVarStraddleSize(const ShaderConstant &var);
   static uint32_t GetVarSizeAndTrail(const ShaderConstant &var);
 
-  static void EstimatePackingRules(Packing::Rules &pack, const ShaderConstant &constant);
-  static void EstimatePackingRules(Packing::Rules &pack, const rdcarray<ShaderConstant> &members);
+  static void EstimatePackingRules(Packing::Rules &pack, ResourceId shader,
+                                   const ShaderConstant &constant);
+  static void EstimatePackingRules(Packing::Rules &pack, ResourceId shader,
+                                   const rdcarray<ShaderConstant> &members);
   static QString DeclarePacking(Packing::Rules pack);
 
 public:
@@ -225,13 +228,14 @@ public:
   static ParsedFormat ParseFormatString(const QString &formatString, uint64_t maxLen, bool cbuffer);
   static uint32_t GetVarAdvance(Packing::Rules pack, const ShaderConstant &var);
 
-  static Packing::Rules EstimatePackingRules(const rdcarray<ShaderConstant> &members);
+  static Packing::Rules EstimatePackingRules(ResourceId shader,
+                                             const rdcarray<ShaderConstant> &members);
 
   static QString GetTextureFormatString(const TextureDescription &tex);
-  static QString GetBufferFormatString(Packing::Rules pack, const ShaderResource &res,
-                                       const ResourceFormat &viewFormat);
+  static QString GetBufferFormatString(Packing::Rules pack, ResourceId shader,
+                                       const ShaderResource &res, const ResourceFormat &viewFormat);
 
-  static QString DeclareStruct(Packing::Rules pack, const QString &name,
+  static QString DeclareStruct(Packing::Rules pack, ResourceId shader, const QString &name,
                                const rdcarray<ShaderConstant> &members, uint32_t requiredByteStride);
 };
 

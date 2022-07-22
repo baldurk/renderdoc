@@ -98,6 +98,8 @@ void PointerTypeRegistry::Init()
 
 uint32_t PointerTypeRegistry::GetTypeID(ResourceId shader, uint32_t pointerTypeId)
 {
+  if(pointerTypeId & TypeIDBit)
+    shader = ResourceId();
   return typeMapping[qMakePair(shader, pointerTypeId)];
 }
 
@@ -1083,8 +1085,8 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
 
           if(!ptrType.members.isEmpty())
             formatter = BufferFormatter::DeclareStruct(
-                BufferFormatter::EstimatePackingRules(ptrType.members), ptrType.name,
-                ptrType.members, ptrType.arrayByteStride);
+                BufferFormatter::EstimatePackingRules(ResourceId(), ptrType.members), ResourceId(),
+                ptrType.name, ptrType.members, ptrType.arrayByteStride);
 
           IBufferViewer *view = ctx.ViewBuffer(ptr->offset, ~0ULL, ptr->base, formatter);
 
