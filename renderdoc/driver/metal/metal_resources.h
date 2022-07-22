@@ -150,6 +150,16 @@ struct MetalCmdBufferRecordingInfo
   bool presented = false;
 };
 
+struct MetalBufferInfo
+{
+  MetalBufferInfo() = delete;
+  MetalBufferInfo(MTL::StorageMode mode) : storageMode(mode), data(NULL), length(0) {}
+  MTL::StorageMode storageMode;
+  bytebuf baseSnapshot;
+  byte *data;
+  size_t length;
+};
+
 struct MetalResourceRecord : public ResourceRecord
 {
 public:
@@ -171,5 +181,6 @@ public:
   {
     void *ptrUnion;                          // for initialisation to NULL
     MetalCmdBufferRecordingInfo *cmdInfo;    // only for command buffers
+    MetalBufferInfo *bufInfo;                // only for buffers
   };
 };
