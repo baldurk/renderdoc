@@ -1069,7 +1069,7 @@ void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId 
   if(!dbg.files.empty() && dbg.encoding != ShaderEncoding::Unknown)
   {
     int entryFile = qMax(0, dbg.entryLocation.fileIndex);
-    if(dbg.editBaseFile >= 0 && dbg.editBaseFile < dbg.files.size())
+    if(dbg.editBaseFile >= 0 && dbg.editBaseFile < dbg.files.count())
       entryFile = dbg.editBaseFile;
     QAction *action = new QAction(tr("Edit Source - %1").arg(dbg.files[entryFile].filename), menu);
     action->setIcon(Icons::page_white_edit());

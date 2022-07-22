@@ -1725,7 +1725,7 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
     }
 
     D3D_PRIMITIVE_TOPOLOGY topo =
-        DXBC::DXBCContainer::GetOutputTopology(pShaderBytecode, BytecodeLength);
+        DXBC::DXBCContainer::GetOutputTopology(pShaderBytecode, size_t(BytecodeLength));
 
     uint32_t vertsPerPrim = 1;
     if(topo == D3D_PRIMITIVE_TOPOLOGY_LINELIST)
