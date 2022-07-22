@@ -1407,6 +1407,8 @@ The first entry in the list is always the file where the entry point is.
 
   The information is not guaranteed to be available depending on the underlying shader format, so
   all of the elements are optional.
+
+:type: LineColumnInfo
 )");
   LineColumnInfo entryLocation;
 
