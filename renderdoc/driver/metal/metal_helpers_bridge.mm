@@ -22,22 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "metal_helpers_bridge.h"
-#import <AppKit/AppKit.h>
-#import <Foundation/NSStream.h>
-#import <QuartzCore/CAMetalLayer.h>
-
-void ObjC::Get_defaultLibraryData(bytebuf &buffer)
-{
-  NSBundle *mainAppBundle = [NSBundle mainBundle];
-  NSString *defaultLibaryPath = [mainAppBundle pathForResource:@"default" ofType:@"metallib"];
-  NSData *myData = [NSData dataWithContentsOfFile:defaultLibaryPath];
-  dispatch_data_t data = dispatch_data_create(
-      myData.bytes, myData.length, dispatch_get_main_queue(), DISPATCH_DATA_DESTRUCTOR_DEFAULT);
-  NSData *nsData = (NSData *)data;
-  buffer.assign((byte *)nsData.bytes, nsData.length);
-  dispatch_release(data);
-}
+#include "metal_types.h"
 
 @interface ObjCTrackedCAMetalLayer : NSObject
 @end

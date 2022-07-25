@@ -46,7 +46,6 @@ set(sources
     metal_manager.cpp
     metal_manager.h
     metal_init_state.cpp
-    metal_helpers_bridge.h
     metal_helpers_bridge.mm
     metal_serialise.cpp
     metal_stringise.cpp
