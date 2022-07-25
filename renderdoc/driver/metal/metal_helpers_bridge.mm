@@ -39,64 +39,6 @@ void ObjC::Get_defaultLibraryData(bytebuf &buffer)
   dispatch_release(data);
 }
 
-MTL::Texture *ObjC::Get_Texture(MTL::Drawable *drawableHandle)
-{
-  id<CAMetalDrawable> drawable = id<CAMetalDrawable>(drawableHandle);
-  return (MTL::Texture *)drawable.texture;
-}
-
-CA::MetalLayer *ObjC::Get_Layer(MTL::Drawable *drawableHandle)
-{
-  id<CAMetalDrawable> drawable = id<CAMetalDrawable>(drawableHandle);
-  return (CA::MetalLayer *)drawable.layer;
-}
-
-void ObjC::CALayer_GetSize(void *layerHandle, int &width, int &height)
-{
-  CALayer *layer = (CALayer *)layerHandle;
-  RDCASSERT([layer isKindOfClass:[CALayer class]]);
-
-  const CGFloat scaleFactor = layer.contentsScale;
-  width = layer.bounds.size.width * scaleFactor;
-  height = layer.bounds.size.height * scaleFactor;
-}
-
-void ObjC::CAMetalLayer_Set_drawableSize(void *layerHandle, int w, int h)
-{
-  CAMetalLayer *metalLayer = (CAMetalLayer *)layerHandle;
-  RDCASSERT([metalLayer isKindOfClass:[CAMetalLayer class]]);
-
-  CGSize cgSize;
-  cgSize.width = w;
-  cgSize.height = h;
-  metalLayer.drawableSize = cgSize;
-}
-
-void ObjC::CAMetalLayer_Set_device(void *layerHandle, MTL::Device *device)
-{
-  CAMetalLayer *metalLayer = (CAMetalLayer *)layerHandle;
-  RDCASSERT([metalLayer isKindOfClass:[CAMetalLayer class]]);
-
-  metalLayer.device = id<MTLDevice>(device);
-}
-
-void ObjC::CAMetalLayer_Set_pixelFormat(void *layerHandle, MTL::PixelFormat format)
-{
-  CAMetalLayer *metalLayer = (CAMetalLayer *)layerHandle;
-  RDCASSERT([metalLayer isKindOfClass:[CAMetalLayer class]]);
-
-  metalLayer.pixelFormat = (MTLPixelFormat)format;
-}
-
-CA::MetalDrawable *ObjC::CAMetalLayer_nextDrawable(void *layerHandle)
-{
-  CAMetalLayer *metalLayer = (CAMetalLayer *)layerHandle;
-  RDCASSERT([metalLayer isKindOfClass:[CAMetalLayer class]]);
-
-  CA::MetalDrawable *drawable = (__bridge CA::MetalDrawable *)[metalLayer nextDrawable];
-  return drawable;
-}
-
 @interface ObjCTrackedCAMetalLayer : NSObject
 @end
 
