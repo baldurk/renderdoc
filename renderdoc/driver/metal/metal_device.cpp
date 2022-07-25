@@ -26,7 +26,6 @@
 #include "metal_buffer.h"
 #include "metal_command_queue.h"
 #include "metal_function.h"
-#include "metal_helpers_bridge.h"
 #include "metal_library.h"
 #include "metal_manager.h"
 #include "metal_render_pipeline_state.h"
