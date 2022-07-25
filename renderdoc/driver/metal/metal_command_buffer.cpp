@@ -164,8 +164,11 @@ bool WrappedMTLCommandBuffer::Serialise_presentDrawable(SerialiserType &ser, MTL
 
 void WrappedMTLCommandBuffer::presentDrawable(MTL::Drawable *drawable)
 {
+  // TODO: remove the (CA::MetalDrawable*) cast. Associate created texture
+  // in hooked nextDrawable with MTL::Drawable* and CA::MetalLayer*
+  CA::MetalDrawable *mtlDrawable = (CA::MetalDrawable *)(drawable);
   // To avoid metal assert about accessing drawable texture after calling present
-  MTL::Texture *mtlBackBuffer = ObjC::Get_Texture(drawable);
+  MTL::Texture *mtlBackBuffer = mtlDrawable->texture();
 
   SERIALISE_TIME_CALL(Unwrap(this)->presentDrawable(drawable));
   if(IsCaptureMode(m_State))
@@ -180,7 +183,7 @@ void WrappedMTLCommandBuffer::presentDrawable(MTL::Drawable *drawable)
     MetalResourceRecord *bufferRecord = GetRecord(this);
     bufferRecord->AddChunk(chunk);
     bufferRecord->cmdInfo->presented = true;
-    bufferRecord->cmdInfo->outputLayer = ObjC::Get_Layer(drawable);
+    bufferRecord->cmdInfo->outputLayer = mtlDrawable->layer();
     bufferRecord->cmdInfo->backBuffer = GetWrapped(mtlBackBuffer);
   }
   else
