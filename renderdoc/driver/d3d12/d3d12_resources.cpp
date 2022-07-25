@@ -28,6 +28,7 @@
 #include "d3d12_command_queue.h"
 
 GPUAddressRangeTracker WrappedID3D12Resource::m_Addresses;
+rdcarray<ResourceId> WrappedID3D12Resource::m_bufferResources;
 std::map<WrappedID3D12PipelineState::DXBCKey, WrappedID3D12Shader *> WrappedID3D12Shader::m_Shaders;
 bool WrappedID3D12Shader::m_InternalResources = false;
 int32_t WrappedID3D12CommandAllocator::m_ResetEnabled = 1;
@@ -170,6 +171,8 @@ WrappedID3D12Resource::~WrappedID3D12Resource()
     range.id = GetResourceID();
 
     m_Addresses.RemoveFrom(range);
+
+    m_bufferResources.removeOne(GetResourceID());
   }
 
   Shutdown();
