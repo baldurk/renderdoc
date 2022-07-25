@@ -218,7 +218,19 @@ bool WrappedMTLDevice::Serialise_newDefaultLibrary(SerialiserType &ser, WrappedM
   bytebuf data;
   if(ser.IsWriting())
   {
-    ObjC::Get_defaultLibraryData(data);
+    NS::String *defaultType = NS::String::string("default", NS::UTF8StringEncoding);
+    NS::String *metallibExt = NS::String::string("metallib", NS::UTF8StringEncoding);
+    NS::Bundle *mainAppBundle = NS::Bundle::mainBundle();
+    NS::String *defaultLibaryPath = mainAppBundle->pathForResource(defaultType, metallibExt);
+    NS::Data *fileData = NS::Data::dataWithContentsOfFile(defaultLibaryPath);
+    dispatch_data_t dispatchData =
+        dispatch_data_create(fileData->bytes(), fileData->length(), dispatch_get_main_queue(),
+                             DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+    NS::Data *nsData = (NS::Data *)dispatchData;
+    data.assign((byte *)nsData->bytes(), nsData->length());
+    dispatch_release(dispatchData);
+    defaultType->release();
+    metallibExt->release();
   }
 
   SERIALISE_ELEMENT_LOCAL(Device, this);
