@@ -2889,7 +2889,7 @@ namespace NS
 		public:
 			View*		init( CGRect frame );
 			void		setWantsLayer( bool wantsLayer );
-			void		setLayer( void* layer );
+			void		setLayer( const void* layer );
 	};
 }
 
@@ -2903,7 +2903,7 @@ _NS_INLINE void  NS::View::setWantsLayer( bool wantsLayer )
 	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setWantsLayer_ ), wantsLayer );
 }
 
-_NS_INLINE void  NS::View::setLayer( void* layer )
+_NS_INLINE void  NS::View::setLayer( const void* layer )
 {
 	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setLayer_ ), layer );
 }
@@ -3809,6 +3809,8 @@ _MTL_PRIVATE_DEF_SEL(layerAtIndex_,
     "layerAtIndex:");
 _MTL_PRIVATE_DEF_SEL(layerCount,
     "layerCount");
+_MTL_PRIVATE_DEF_SEL(layer,
+    "layer");
 _MTL_PRIVATE_DEF_SEL(layers,
     "layers");
 _MTL_PRIVATE_DEF_SEL(layouts,
@@ -17806,6 +17808,18 @@ namespace Private
             "device");
         _CA_PRIVATE_DEF_SEL(setFramebufferOnly_,
             "setFramebufferOnly:");
+        _CA_PRIVATE_DEF_SEL(setDevice_,
+            "setDevice:");
+        _CA_PRIVATE_DEF_SEL(setPixelFormat_,
+            "setPixelFormat:");
+        _CA_PRIVATE_DEF_SEL(setDrawableSize_,
+            "setDrawableSize:");
+        _CA_PRIVATE_DEF_SEL(nextDrawable,
+            "nextDrawable");
+        _CA_PRIVATE_DEF_SEL(contentsScale,
+            "contentsScale");
+        _CA_PRIVATE_DEF_SEL(bounds,
+            "bounds");
 
     } // Class
 } // Private
@@ -17856,6 +17870,12 @@ namespace CA
       static MetalLayer*    layer();
       MTL::Device*          device() const;
       void                  setFramebufferOnly(bool enabled);
+      void                  setDevice(const MTL::Device *pDevice);
+      void                  setPixelFormat(const MTL::PixelFormat format);
+      void                  setDrawableSize(const CGSize size);
+      CA::MetalDrawable*    nextDrawable();
+      CGFloat               contentsScale() const;
+      CGRect                bounds() const;
   };
 }
 
@@ -17872,4 +17892,34 @@ _CA_INLINE MTL::Device* CA::MetalLayer::device() const
 _CA_INLINE void CA::MetalLayer::setFramebufferOnly(bool framebufferOnly)
 {
     Object::sendMessage< void >( this, _CA_PRIVATE_SEL( setFramebufferOnly_ ), framebufferOnly );
+}
+
+_CA_INLINE void CA::MetalLayer::setDevice(const MTL::Device *pDevice)
+{
+    Object::sendMessage< void >( this, _CA_PRIVATE_SEL( setDevice_ ), pDevice );
+}
+
+_CA_INLINE void CA::MetalLayer::setPixelFormat(const MTL::PixelFormat format)
+{
+    Object::sendMessage< void >( this, _CA_PRIVATE_SEL( setPixelFormat_ ), format );
+}
+
+_CA_INLINE void CA::MetalLayer::setDrawableSize(const CGSize size)
+{
+    Object::sendMessage< void >( this, _CA_PRIVATE_SEL( setDrawableSize_ ), size );
+}
+
+_CA_INLINE CA::MetalDrawable* CA::MetalLayer::nextDrawable()
+{
+    return Object::sendMessage< CA::MetalDrawable* >( this, _CA_PRIVATE_SEL( nextDrawable ) );
+}
+
+_CA_INLINE CGFloat CA::MetalLayer::contentsScale() const
+{
+    return Object::sendMessage< CGFloat >( this, _CA_PRIVATE_SEL( contentsScale ) );
+}
+
+_CA_INLINE CGRect CA::MetalLayer::bounds() const
+{
+    return Object::sendMessage< CGRect >( this, _CA_PRIVATE_SEL( bounds ) );
 }
