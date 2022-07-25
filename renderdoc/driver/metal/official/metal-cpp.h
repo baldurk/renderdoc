@@ -97,6 +97,7 @@ namespace Private
         _NS_PRIVATE_DEF_CLS(NSAutoreleasePool);
         _NS_PRIVATE_DEF_CLS(NSBundle);
         _NS_PRIVATE_DEF_CLS(NSCondition);
+        _NS_PRIVATE_DEF_CLS(NSData);
         _NS_PRIVATE_DEF_CLS(NSDate);
         _NS_PRIVATE_DEF_CLS(NSDictionary);
         _NS_PRIVATE_DEF_CLS(NSError);
@@ -192,6 +193,8 @@ namespace Private
             "bundleWithPath:");
         _NS_PRIVATE_DEF_SEL(bundleWithURL_,
             "bundleWithURL:");
+        _NS_PRIVATE_DEF_SEL(bytes,
+            "bytes");
         _NS_PRIVATE_DEF_SEL(characterAtIndex_,
             "characterAtIndex:");
         _NS_PRIVATE_DEF_SEL(charValue,
@@ -216,6 +219,8 @@ namespace Private
             "currentApplication");
         _NS_PRIVATE_DEF_SEL(dateWithTimeIntervalSinceNow_,
             "dateWithTimeIntervalSinceNow:");
+        _NS_PRIVATE_DEF_SEL(dataWithContentsOfFile_,
+            "dataWithContentsOfFile:");
         _NS_PRIVATE_DEF_SEL(distantPast,
             "distantPast");
         _NS_PRIVATE_DEF_SEL(descriptionWithLocale_,
@@ -446,6 +451,8 @@ namespace Private
             "operatingSystemVersionString");
         _NS_PRIVATE_DEF_SEL(pathForAuxiliaryExecutable_,
             "pathForAuxiliaryExecutable:");
+        _NS_PRIVATE_DEF_SEL(pathForResource_ofType_,
+            "pathForResource:ofType:");
         _NS_PRIVATE_DEF_SEL(performActivityWithOptions_reason_usingBlock_,
             "performActivityWithOptions:reason:usingBlock:");
         _NS_PRIVATE_DEF_SEL(performExpiringActivityWithReason_usingBlock_,
@@ -1350,6 +1357,7 @@ public:
     class String*     resourcePath() const;
     class String*     executablePath() const;
     class String*     pathForAuxiliaryExecutable(const class String* pExecutableName) const;
+    class String*     pathForResource(const class String* pName, const class String* pExt) const;
 
     class String*     privateFrameworksPath() const;
     class String*     sharedFrameworksPath() const;
@@ -1518,6 +1526,11 @@ _NS_INLINE NS::String* NS::Bundle::pathForAuxiliaryExecutable(const String* pExe
     return Object::sendMessage<String*>(this, _NS_PRIVATE_SEL(pathForAuxiliaryExecutable_), pExecutableName);
 }
 
+_NS_INLINE NS::String* NS::Bundle::pathForResource(const class String* pName, const class String* pExt) const
+{
+    return Object::sendMessage<String*>(this, _NS_PRIVATE_SEL(pathForResource_ofType_), pName, pExt);
+}
+
 _NS_INLINE NS::String* NS::Bundle::privateFrameworksPath() const
 {
     return Object::sendMessage<String*>(this, _NS_PRIVATE_SEL(privateFrameworksPath));
@@ -1568,9 +1581,16 @@ namespace NS
 class Data : public Copying<Data>
 {
 public:
-    void*    mutableBytes() const;
-    UInteger length() const;
+    static NS::Data* dataWithContentsOfFile(const String* path);
+    void*            mutableBytes() const;
+    const void*      bytes() const;
+    UInteger         length() const;
 };
+}
+
+_NS_INLINE NS::Data* NS::Data::dataWithContentsOfFile(const String* path)
+{
+    return Object::sendMessage<NS::Data*>(_NS_PRIVATE_CLS(NSData), _NS_PRIVATE_SEL(dataWithContentsOfFile_), path);
 }
 
 _NS_INLINE void* NS::Data::mutableBytes() const
@@ -1581,6 +1601,11 @@ _NS_INLINE void* NS::Data::mutableBytes() const
 _NS_INLINE NS::UInteger NS::Data::length() const
 {
     return Object::sendMessage<UInteger>(this, _NS_PRIVATE_SEL(length));
+}
+
+_NS_INLINE const void* NS::Data::bytes() const
+{
+    return Object::sendMessage<const void*>(this, _NS_PRIVATE_SEL(bytes));
 }
 
 namespace NS
