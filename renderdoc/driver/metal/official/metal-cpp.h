@@ -2907,6 +2907,11 @@ _NS_INLINE void NS::Application::terminate( const Object* pSender )
 
 #include <CoreGraphics/CGGeometry.h>
 
+namespace CA
+{
+class Layer;
+};
+
 namespace NS
 {
 	class View : public NS::Referencing< View >
@@ -2914,7 +2919,7 @@ namespace NS
 		public:
 			View*		init( CGRect frame );
 			void		setWantsLayer( bool wantsLayer );
-			void		setLayer( const void* layer );
+			void		setLayer( const CA::Layer* layer );
 	};
 }
 
@@ -2928,7 +2933,7 @@ _NS_INLINE void  NS::View::setWantsLayer( bool wantsLayer )
 	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setWantsLayer_ ), wantsLayer );
 }
 
-_NS_INLINE void  NS::View::setLayer( const void* layer )
+_NS_INLINE void  NS::View::setLayer( const CA::Layer* layer )
 {
 	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setLayer_ ), layer );
 }
