@@ -4715,6 +4715,14 @@ actions.
   The action marks the beginning or end of a render pass. See :data:`BeginPass` and
   :data:`EndPass`.
 
+.. data:: DispatchRay
+
+  This action issues a number of rays.
+
+.. data:: BuildAccStruct
+
+  This action builds the acceleration structure.
+
 .. data:: Indexed
 
   The action uses an index buffer.
@@ -4772,6 +4780,8 @@ enum class ActionFlags : uint32_t
   Resolve = 0x0800,
   GenMips = 0x1000,
   PassBoundary = 0x2000,
+  DispatchRay = 0x4000,
+  BuildAccStruct = 0x8000,
 
   // flags
   Indexed = 0x010000,

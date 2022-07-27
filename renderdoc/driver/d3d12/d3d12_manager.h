@@ -1020,6 +1020,21 @@ private:
   uint64_t m_totalAllocatedMemoryInUse;
 };
 
+enum class D3D12PatchAccStructRootParamIndices
+{
+  RootConstantBuffer,
+  RootAddressPairSrv,
+  RootPatchedAddressUav,
+  Count
+};
+
+struct D3D12AccStructPatchInfo
+{
+  D3D12AccStructPatchInfo() : m_rootSignature(NULL), m_pipeline(NULL) {}
+  ID3D12RootSignature *m_rootSignature;
+  ID3D12PipelineState *m_pipeline;
+};
+
 class D3D12RaytracingResourceAndUtilHandler
 {
 public:
@@ -1029,6 +1044,7 @@ public:
   ID3D12CommandAllocator *GetCmdAlloc() const { return m_cmdAlloc; }
   ID3D12CommandQueue *GetCmdQueue() const { return m_cmdQueue; }
   ID3D12Fence *GetFence() const { return m_gpuFence; }
+  D3D12AccStructPatchInfo GetAccStructPatchInfo() const { return m_accStructPatchInfo; }
   void SyncGpuForRtWork();
 
   ~D3D12RaytracingResourceAndUtilHandler()
@@ -1039,7 +1055,10 @@ public:
     SAFE_RELEASE(m_gpuFence);
   }
 
+  void InitInternalResources();
+
 private:
+  void InitReplayBlasPatchingResources();
   WrappedID3D12Device *m_wrappedDevice;
 
   ID3D12GraphicsCommandListX *m_cmdList;
@@ -1048,6 +1067,7 @@ private:
   ID3D12Fence *m_gpuFence;
   HANDLE m_gpuSyncHandle;
   UINT64 m_gpuSyncCounter;
+  D3D12AccStructPatchInfo m_accStructPatchInfo;
 };
 
 struct D3D12ResourceManagerConfiguration

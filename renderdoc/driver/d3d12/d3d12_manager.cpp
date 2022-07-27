@@ -24,11 +24,13 @@
 
 #include "d3d12_manager.h"
 #include <algorithm>
+#include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
+#include "d3d12_shader_cache.h"
 
 void D3D12Descriptor::Init(const D3D12_SAMPLER_DESC2 *pDesc)
 {
@@ -751,6 +753,94 @@ void D3D12RaytracingResourceAndUtilHandler::SyncGpuForRtWork()
     RDCERR("Fence completion event signaling failed with error %s ", ToStr(hr).c_str());
 
   WaitForSingleObject(m_gpuSyncHandle, 10000);
+}
+
+void D3D12RaytracingResourceAndUtilHandler::InitInternalResources()
+{
+  if(IsReplayMode(m_wrappedDevice->GetState()))
+  {
+    InitReplayBlasPatchingResources();
+  }
+}
+
+void D3D12RaytracingResourceAndUtilHandler::InitReplayBlasPatchingResources()
+{
+  // Root Signature
+  rdcarray<D3D12_ROOT_PARAMETER1> rootParameters;
+  rootParameters.reserve((uint16_t)D3D12PatchAccStructRootParamIndices::Count);
+
+  {
+    D3D12_ROOT_PARAMETER1 rootParam;
+    rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+    rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    rootParam.Constants.ShaderRegister = 0;
+    rootParam.Constants.RegisterSpace = 0;
+    rootParam.Constants.Num32BitValues = 1;
+    rootParameters.push_back(rootParam);
+  }
+
+  {
+    D3D12_ROOT_PARAMETER1 rootParam;
+    rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+    rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    rootParam.Descriptor.ShaderRegister = 0;
+    rootParam.Descriptor.RegisterSpace = 0;
+    rootParam.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+    rootParameters.push_back(rootParam);
+  }
+
+  {
+    D3D12_ROOT_PARAMETER1 rootParam;
+    rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+    rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    rootParam.Descriptor.ShaderRegister = 0;
+    rootParam.Descriptor.RegisterSpace = 0;
+    rootParam.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+    rootParameters.push_back(rootParam);
+  }
+
+  D3D12ShaderCache *shaderCache = m_wrappedDevice->GetShaderCache();
+
+  if(shaderCache != NULL)
+  {
+    ID3DBlob *rootSig = shaderCache->MakeRootSig(rootParameters, D3D12_ROOT_SIGNATURE_FLAG_NONE);
+
+    if(rootSig)
+    {
+      HRESULT result = m_wrappedDevice->GetReal()->CreateRootSignature(
+          0, rootSig->GetBufferPointer(), rootSig->GetBufferSize(), __uuidof(ID3D12RootSignature),
+          (void **)&m_accStructPatchInfo.m_rootSignature);
+
+      if(!SUCCEEDED(result))
+        RDCERR("Unable to create root signature for patching the BLAS");
+
+      // PipelineState
+      ID3DBlob *shader = NULL;
+      rdcstr hlsl = GetEmbeddedResource(raytracing_hlsl);
+      shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PatchAccStructAddressCS",
+                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_6_0", &shader);
+
+      if(shader)
+      {
+        D3D12_COMPUTE_PIPELINE_STATE_DESC pipeline;
+        pipeline.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+        pipeline.NodeMask = 0;
+        pipeline.CS = {(void *)shader->GetBufferPointer(), shader->GetBufferSize()};
+        pipeline.CachedPSO = {NULL, 0};
+        pipeline.pRootSignature = m_accStructPatchInfo.m_rootSignature;
+
+        result = m_wrappedDevice->GetReal()->CreateComputePipelineState(
+            &pipeline, __uuidof(ID3D12PipelineState), (void **)&m_accStructPatchInfo.m_pipeline);
+
+        if(!SUCCEEDED(result))
+          RDCERR("Unable to create pipeline for patching the BLAS");
+      }
+    }
+  }
+  else
+  {
+    RDCERR("Shadercache not available");
+  }
 }
 
 D3D12GpuBufferAllocator *D3D12GpuBufferAllocator::m_bufferAllocator = NULL;

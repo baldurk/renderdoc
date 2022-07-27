@@ -1233,6 +1233,12 @@ public:
     m_SparseHeaps.insert(heap);
   }
 
+  void UploadBLASBufferAddresses();
+  ID3D12Resource *GetBLASAddressBufferResource() const { return m_blasAddressBufferResource; }
+  ID3D12Resource *m_blasAddressBufferResource = NULL;
+  ID3D12Resource *m_blasAddressBufferUploadResource = NULL;
+  bool m_addressBufferUploaded = false;
+
   void ReleaseResource(ID3D12DeviceChild *pResource);
 
   // helper function that takes an expanded descriptor, but downcasts it to the regular descriptor

@@ -26,6 +26,7 @@
 #include <algorithm>
 #include "core/core.h"
 #include "core/settings.h"
+#include "data/hlsl/hlsl_cbuffers.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "driver/ihv/amd/amd_rgp.h"
@@ -863,6 +864,9 @@ WrappedID3D12Device::~WrappedID3D12Device()
     SAFE_RELEASE(it->second);
   }
 
+  SAFE_RELEASE(m_blasAddressBufferResource);
+  SAFE_RELEASE(m_blasAddressBufferUploadResource);
+
   m_Replay->DestroyResources();
 
   DestroyInternalResources();
@@ -1529,6 +1533,10 @@ void WrappedID3D12Device::ApplyInitialContents()
   initStateCurList = NULL;
 
   GetResourceManager()->ApplyInitialContents();
+
+  // Upload all buffer addresses as all of the referenced buffer resources would have been
+  // created and addresses had been tracked
+  UploadBLASBufferAddresses();
 
   // close the final list
   if(initStateCurList)
@@ -3068,6 +3076,109 @@ bool WrappedID3D12Device::DiscardFrameCapture(DeviceOwnedWindow devWnd)
   return true;
 }
 
+void WrappedID3D12Device::UploadBLASBufferAddresses()
+{
+  if(m_addressBufferUploaded)
+    return;
+
+  rdcarray<BlasAddressPair> blasAddressPair;
+  D3D12ResourceManager *resManager = GetResourceManager();
+
+  for(size_t i = 0; i < m_OrigGPUAddresses.addresses.size(); i++)
+  {
+    GPUAddressRange addressRange = m_OrigGPUAddresses.addresses[i];
+    ResourceId resId = addressRange.id;
+    if(resManager->HasLiveResource(resId))
+    {
+      WrappedID3D12Resource *wrappedRes = (WrappedID3D12Resource *)resManager->GetLiveResource(resId);
+      if(wrappedRes->IsAccelerationStructureResource())
+      {
+        BlasAddressPair addressPair;
+        addressPair.oldAddress.start = addressRange.start;
+        addressPair.oldAddress.end = addressRange.realEnd;
+
+        addressPair.newAddress.start = wrappedRes->GetGPUVirtualAddress();
+        addressPair.newAddress.end = addressPair.newAddress.start + wrappedRes->GetDesc().Width;
+        blasAddressPair.push_back(addressPair);
+      }
+    }
+  }
+
+  uint64_t requiredSize = blasAddressPair.size() * sizeof(BlasAddressPair);
+
+  D3D12_RESOURCE_DESC addressBufferResDesc;
+  addressBufferResDesc.Alignment = 0;
+  addressBufferResDesc.DepthOrArraySize = 1;
+  addressBufferResDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  addressBufferResDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+  addressBufferResDesc.Format = DXGI_FORMAT_UNKNOWN;
+  addressBufferResDesc.Height = 1;
+  addressBufferResDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  addressBufferResDesc.MipLevels = 1;
+  addressBufferResDesc.SampleDesc.Count = 1;
+  addressBufferResDesc.SampleDesc.Quality = 0;
+  addressBufferResDesc.Width = requiredSize;
+
+  D3D12_HEAP_PROPERTIES heapProps;
+  heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+  heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+  heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+  heapProps.CreationNodeMask = 1;
+  heapProps.VisibleNodeMask = 1;
+
+  HRESULT hr = CreateCommittedResource(
+      &heapProps, D3D12_HEAP_FLAG_NONE, &addressBufferResDesc, D3D12_RESOURCE_STATE_GENERIC_READ,
+      NULL, __uuidof(ID3D12Resource), (void **)&m_blasAddressBufferUploadResource);
+
+  if(!SUCCEEDED(hr))
+  {
+    RDCERR("Unable to create upload buffer for BLAS address");
+  }
+  else
+  {
+    D3D12_RANGE readRange = {0, 0};
+    void *ptr = NULL;
+    HRESULT result = m_blasAddressBufferUploadResource->Map(0, &readRange, &ptr);
+
+    if(!SUCCEEDED(result))
+    {
+      RDCERR("Unable to map the resource for uploading old addresses");
+    }
+    else
+    {
+      memcpy((byte *)ptr, blasAddressPair.data(), (size_t)requiredSize);
+      m_blasAddressBufferUploadResource->Unmap(0, NULL);
+    }
+  }
+
+  heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+  hr = CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &addressBufferResDesc,
+                               D3D12_RESOURCE_STATE_COPY_DEST, NULL, __uuidof(ID3D12Resource),
+                               (void **)&m_blasAddressBufferResource);
+
+  if(!SUCCEEDED(hr))
+  {
+    RDCERR("Unable to create upload buffer for BLAS address");
+  }
+  else
+  {
+    ID3D12GraphicsCommandList *initList = GetInitialStateList();
+    initList->CopyBufferRegion(m_blasAddressBufferResource, 0, m_blasAddressBufferUploadResource, 0,
+                               requiredSize);
+
+    D3D12_RESOURCE_BARRIER resBarrier;
+    resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+    resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
+    resBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    resBarrier.Transition.pResource = m_blasAddressBufferResource;
+    initList->ResourceBarrier(1, &resBarrier);
+  }
+
+  m_addressBufferUploaded = true;
+}
+
 void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
 {
   ResourceId id = GetResID(res);
@@ -3920,6 +4031,7 @@ void WrappedID3D12Device::CreateInternalResources()
   m_Replay->CreateResources();
 
   WrappedID3D12Shader::InternalResources(false);
+  GetResourceManager()->GetRaytracingResourceAndUtilHandler()->InitInternalResources();
 }
 
 void WrappedID3D12Device::DestroyInternalResources()

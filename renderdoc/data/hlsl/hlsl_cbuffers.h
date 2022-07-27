@@ -190,6 +190,34 @@ cbuffer DebugMathOperation REG(b0)
   int mathOp;
 };
 
+cbuffer AccStructPatchInfo REG(b0)
+{
+  uint addressCount;
+};
+
+#if defined(SHADER_MODEL_MIN_6_0_REQUIRED) || defined(__cplusplus)
+typedef uint64_t GPUAddress;
+
+struct BlasAddressRange
+{
+  GPUAddress start;
+  GPUAddress end;
+};
+
+struct BlasAddressPair
+{
+  BlasAddressRange oldAddress;
+  BlasAddressRange newAddress;
+};
+
+// This corresponds to D3D12_RAYTRACING_INSTANCE_DESC structure
+struct InstanceDesc
+{
+  uint64_t padding[7];
+  GPUAddress blasAddress;
+};
+#endif
+
 cbuffer DebugSampleOperation REG(b0)
 {
   float4 debugSampleUV;

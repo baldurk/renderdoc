@@ -732,6 +732,7 @@
     <None Include="data\hlsl\fixedcol.hlsl" />
     <None Include="data\hlsl\shaderdebug.hlsl" />
     <None Include="data\hlsl\depth_copy.hlsl" />
+    <None Include="data\hlsl\raytracing.hlsl" />
   </ItemGroup>
   <!-- try to bake shaders needed in DXIL now, in case we won't be able to find a dxc at runtime -->
   <UsingTask TaskName="GetDXCExecutable" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">

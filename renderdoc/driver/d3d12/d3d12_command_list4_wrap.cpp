@@ -25,6 +25,8 @@
 #include "d3d12_command_list.h"
 #include "d3d12_debug.h"
 
+#include "data/hlsl/hlsl_cbuffers.h"
+
 static rdcstr ToHumanStr(const D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE);
@@ -725,6 +727,168 @@ void WrappedID3D12GraphicsCommandList::ExecuteMetaCommand(
   RDCERR("ExecuteMetaCommand called but no meta commands reported!");
 }
 
+bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
+    const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC *accStructInput,
+    ID3D12GraphicsCommandList4 *dxrCmd, BakedCmdListInfo::PatchRaytracing *patchRaytracing)
+{
+  if(accStructInput->Inputs.Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL)
+  {
+    // Here, we are uploading the old BLAS addresses, and comparing the BLAS
+    // addresses in the TLAS and patching it with the corresponding new address.
+
+    D3D12RaytracingResourceAndUtilHandler *rtHandler =
+        GetResourceManager()->GetRaytracingResourceAndUtilHandler();
+
+    // Create a resource for patched instance desc; we don't
+    // need a resource of same size but of same number of instances in the TLAS with uav
+    uint64_t totalInstancesSize =
+        accStructInput->Inputs.NumDescs * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
+
+    totalInstancesSize =
+        AlignUp<uint64_t>(totalInstancesSize, D3D12_RAYTRACING_INSTANCE_DESCS_BYTE_ALIGNMENT);
+
+    ResourceId instanceResourceId =
+        WrappedID3D12Resource::GetResIDFromAddr(accStructInput->Inputs.InstanceDescs);
+
+    ID3D12Resource *instanceResource =
+        GetResourceManager()->GetCurrentAs<WrappedID3D12Resource>(instanceResourceId)->GetReal();
+    D3D12_GPU_VIRTUAL_ADDRESS instanceGpuAddress = instanceResource->GetGPUVirtualAddress();
+    uint64_t instanceResOffset = accStructInput->Inputs.InstanceDescs - instanceGpuAddress;
+
+    D3D12_RESOURCE_STATES instanceResState =
+        m_pDevice->GetSubresourceStates(instanceResourceId)[0].ToStates();
+
+    bool needInitialTransition = false;
+    if(!(instanceResState & D3D12_RESOURCE_STATE_COPY_SOURCE))
+    {
+      needInitialTransition = true;
+    }
+
+    {
+      rdcarray<D3D12_RESOURCE_BARRIER> resBarriers;
+
+      if(needInitialTransition)
+      {
+        D3D12_RESOURCE_BARRIER resBarrier;
+        resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        resBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        resBarrier.Transition.pResource = instanceResource;
+        resBarrier.Transition.StateBefore = instanceResState;
+        resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+        resBarriers.push_back(resBarrier);
+      }
+
+      {
+        D3D12_RESOURCE_BARRIER resBarrier;
+        resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        resBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        resBarrier.Transition.pResource = patchRaytracing->m_patchedInstanceBuffer.Resource();
+        resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+        resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+        resBarriers.push_back(resBarrier);
+      }
+
+      dxrCmd->ResourceBarrier((UINT)resBarriers.size(), resBarriers.data());
+    }
+
+    dxrCmd->CopyBufferRegion(patchRaytracing->m_patchedInstanceBuffer.Resource(),
+                             patchRaytracing->m_patchedInstanceBuffer.Offset(), instanceResource,
+                             instanceResOffset, totalInstancesSize);
+
+    D3D12AccStructPatchInfo patchInfo = rtHandler->GetAccStructPatchInfo();
+
+    {
+      rdcarray<D3D12_RESOURCE_BARRIER> resBarriers;
+      {
+        D3D12_RESOURCE_BARRIER resBarrier;
+        resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        resBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        resBarrier.Transition.pResource = patchRaytracing->m_patchedInstanceBuffer.Resource();
+        resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+        resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+        resBarriers.push_back(resBarrier);
+      }
+
+      if(needInitialTransition)
+      {
+        D3D12_RESOURCE_BARRIER resBarrier;
+        resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        resBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        resBarrier.Transition.pResource = instanceResource;
+        resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
+        resBarrier.Transition.StateAfter = instanceResState;
+        resBarriers.push_back(resBarrier);
+      }
+
+      dxrCmd->ResourceBarrier((UINT)resBarriers.size(), resBarriers.data());
+    }
+
+    RDCCOMPILE_ASSERT(sizeof(D3D12_RAYTRACING_INSTANCE_DESC) == sizeof(InstanceDesc),
+                      "Mismatch between the hlsl, and cpp size of instance desc");
+
+    if(!patchInfo.m_pipeline || !patchInfo.m_rootSignature)
+    {
+      RDCERR("Pipeline or root signature for patching the TLAS not available");
+      return false;
+    }
+
+    {
+      D3D12_RESOURCE_BARRIER resBarrier;
+      resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+      resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      resBarrier.UAV.pResource = patchRaytracing->m_patchedInstanceBuffer.Resource();
+      dxrCmd->ResourceBarrier(1, &resBarrier);
+    }
+
+    ID3D12Resource *addressPairRes = m_pDevice->GetBLASAddressBufferResource();
+    D3D12_GPU_VIRTUAL_ADDRESS addressPairResAddress = addressPairRes->GetGPUVirtualAddress();
+
+    // TODO: Update to gather the right count.
+    uint64_t addressCount = 0;
+
+    dxrCmd->SetPipelineState(patchInfo.m_pipeline);
+    dxrCmd->SetComputeRootSignature(patchInfo.m_rootSignature);
+    dxrCmd->SetComputeRoot32BitConstant(
+        (UINT)D3D12PatchAccStructRootParamIndices::RootConstantBuffer, (UINT)addressCount, 0);
+    dxrCmd->SetComputeRootShaderResourceView(
+        (UINT)D3D12PatchAccStructRootParamIndices::RootAddressPairSrv, addressPairResAddress);
+    dxrCmd->SetComputeRootUnorderedAccessView(
+        (UINT)D3D12PatchAccStructRootParamIndices::RootPatchedAddressUav,
+        patchRaytracing->m_patchedInstanceBuffer.Address());
+    dxrCmd->Dispatch(accStructInput->Inputs.NumDescs, 1, 1);
+
+    {
+      D3D12_RESOURCE_BARRIER resBarrier;
+      resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+      resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      resBarrier.UAV.pResource = patchRaytracing->m_patchedInstanceBuffer.Resource();
+      dxrCmd->ResourceBarrier(1, &resBarrier);
+    }
+
+    {
+      D3D12_RESOURCE_BARRIER resBarrier;
+      resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      resBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+      resBarrier.Transition.pResource = patchRaytracing->m_patchedInstanceBuffer.Resource();
+      resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+      resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+      dxrCmd->ResourceBarrier(1, &resBarrier);
+    }
+
+    patchRaytracing->m_patched = true;
+
+    return true;
+  }
+
+  RDCDEBUG("Not a TLAS - Invalid call");
+  return true;
+}
+
 template <typename SerialiserType>
 bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStructure(
     SerialiserType &ser, _In_ const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC *pDesc,
@@ -732,8 +896,85 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStru
     _In_reads_opt_(NumPostbuildInfoDescs)
         const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC *pPostbuildInfoDescs)
 {
-  // TODO AMD
-  return false;
+  ID3D12GraphicsCommandList4 *pCommandList = this;
+  SERIALISE_ELEMENT(pCommandList);
+  SERIALISE_ELEMENT_LOCAL(AccStructDesc, *pDesc).TypedAs("AccStructDesc"_lit).Important();
+  SERIALISE_ELEMENT(NumPostbuildInfoDescs);
+  SERIALISE_ELEMENT_ARRAY(pPostbuildInfoDescs, NumPostbuildInfoDescs);
+
+  ID3D12GraphicsCommandList4 *dxrCmd = Unwrap4(pCommandList);
+
+  if(IsReplayingAndReading())
+  {
+    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+    BakedCmdListInfo &bakedCmdInfo = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID];
+    BakedCmdListInfo::PatchRaytracing &patchInfo =
+        bakedCmdInfo.m_patchRaytracingInfo[bakedCmdInfo.curEventID];
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
+      {
+        if(AccStructDesc.Inputs.Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL)
+        {
+          patchInfo.m_patched = false;
+          PatchAccStructBlasAddress(&AccStructDesc, dxrCmd, &patchInfo);
+          if(patchInfo.m_patched)
+          {
+            AccStructDesc.Inputs.InstanceDescs = patchInfo.m_patchedInstanceBuffer.Address();
+          }
+          else
+          {
+            RDCERR("TLAS Buffer isn't patched");
+            return false;
+          }
+        }
+
+        // AMD TODO: Find out do we need pre callback before build Acc struct call
+        dxrCmd->BuildRaytracingAccelerationStructure(&AccStructDesc, NumPostbuildInfoDescs,
+                                                     pPostbuildInfoDescs);
+      }
+    }
+    else
+    {
+      if(AccStructDesc.Inputs.Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL)
+      {
+        uint64_t totalInstancesSize =
+            (uint64_t)(AccStructDesc.Inputs.NumDescs * sizeof(D3D12_RAYTRACING_INSTANCE_DESC));
+
+        totalInstancesSize =
+            AlignUp<uint64_t>(totalInstancesSize, D3D12_RAYTRACING_INSTANCE_DESCS_BYTE_ALIGNMENT);
+
+        if(D3D12GpuBufferAllocator::Inst()->Alloc(
+               D3D12GpuBufferHeapType::DefaultHeapWithUav, D3D12GpuBufferHeapMemoryFlag::Default,
+               totalInstancesSize, D3D12_RAYTRACING_INSTANCE_DESCS_BYTE_ALIGNMENT,
+               patchInfo.m_patchedInstanceBuffer))
+        {
+          PatchAccStructBlasAddress(&AccStructDesc, dxrCmd, &patchInfo);
+
+          if(patchInfo.m_patched)
+          {
+            AccStructDesc.Inputs.InstanceDescs = patchInfo.m_patchedInstanceBuffer.Address();
+          }
+
+          // Switch back to previous state
+          bakedCmdInfo.state.ApplyState(m_pDevice, (ID3D12GraphicsCommandListX *)pCommandList);
+        }
+      }
+
+      dxrCmd->BuildRaytracingAccelerationStructure(&AccStructDesc, NumPostbuildInfoDescs,
+                                                   pPostbuildInfoDescs);
+
+      m_Cmd->AddEvent();
+
+      ActionDescription actionDesc;
+      actionDesc.flags |= ActionFlags::BuildAccStruct;
+      m_Cmd->AddAction(actionDesc);
+    }
+  }
+
+  SERIALISE_CHECK_READ_ERRORS();
+  return true;
 }
 
 void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(

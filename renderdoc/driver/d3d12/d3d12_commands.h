@@ -26,6 +26,8 @@
 
 #include "common/common.h"
 #include "d3d12_common.h"
+#include "d3d12_device.h"
+#include "d3d12_resources.h"
 #include "d3d12_state.h"
 
 struct D3D12ActionTreeNode
@@ -39,7 +41,7 @@ struct D3D12ActionTreeNode
 
   D3D12RenderState *state = NULL;
 
-  rdcarray<rdcpair<ResourceId, EventUsage> > resourceUsage;
+  rdcarray<rdcpair<ResourceId, EventUsage>> resourceUsage;
 
   rdcarray<ResourceId> executedCmds;
 
@@ -172,6 +174,7 @@ struct D3D12ActionCallback
 };
 
 class WrappedID3D12CommandSignature;
+struct AccStructPatchInfo;
 
 struct BakedCmdListInfo
 {
@@ -197,7 +200,15 @@ struct BakedCmdListInfo
   rdcarray<DebugMessage> debugMessages;
   rdcarray<D3D12ActionTreeNode *> actionStack;
 
-  rdcarray<rdcpair<ResourceId, EventUsage> > resourceUsage;
+  rdcarray<rdcpair<ResourceId, EventUsage>> resourceUsage;
+
+  struct PatchRaytracing
+  {
+    bool m_patched = false;
+    D3D12GpuBuffer m_patchedInstanceBuffer;
+  };
+
+  rdcflatmap<uint32_t, PatchRaytracing> m_patchRaytracingInfo;
 
   ResourceId allocator;
   D3D12_COMMAND_LIST_TYPE type;
@@ -279,7 +290,7 @@ struct D3D12CommandData
     // However, a single baked command list can be executed multiple times - so we have to have a
     // list of base events
     // Map from bakeID -> vector<baseEventID>
-    std::map<ResourceId, rdcarray<uint32_t> > cmdListExecs;
+    std::map<ResourceId, rdcarray<uint32_t>> cmdListExecs;
 
     // This is just the baked ID of the parent command list that's partially replayed
     // If we are in the middle of a partial replay - allows fast checking in all CmdList chunks,
@@ -352,7 +363,7 @@ struct D3D12CommandData
   double m_TimeFrequency = 1.0f;
   SDFile *m_StructuredFile;
 
-  std::map<ResourceId, rdcarray<EventUsage> > m_ResourceUses;
+  std::map<ResourceId, rdcarray<EventUsage>> m_ResourceUses;
 
   D3D12ActionTreeNode m_ParentAction;
 
