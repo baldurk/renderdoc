@@ -4244,6 +4244,8 @@ void WrappedID3D11DeviceContext::DrawAuto()
 
   SERIALISE_TIME_CALL(m_pRealContext->DrawAuto());
 
+  LatchSOProperties();
+  
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
