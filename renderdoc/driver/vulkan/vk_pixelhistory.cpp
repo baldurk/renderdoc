@@ -835,7 +835,8 @@ protected:
   // When dynamic rendering is in use, it doesn't create a new renderpass it just modifies the
   // passed in state and returns a NULL handle.
   VkRenderPass PatchRenderPass(VulkanRenderState &pipestate, bool &multiview,
-                               VkFormat newColorFormat = VK_FORMAT_UNDEFINED, uint32_t colorIdx = 0)
+                               VkFormat newColorFormat = VK_FORMAT_UNDEFINED, uint32_t attIdx = 0,
+                               uint32_t colorIdx = 0)
   {
     if(pipestate.dynamicRendering.active)
     {
@@ -1007,21 +1008,27 @@ protected:
     // If needed substitute the color attachment with the new format.
     if(newColorFormat != VK_FORMAT_UNDEFINED)
     {
-      if(colorIdx < descs.size())
+      if(attIdx < descs.size())
       {
         // It is an existing attachment.
-        descs[colorIdx].format = newColorFormat;
+        descs[attIdx].format = newColorFormat;
       }
       else
       {
         // We are adding a new color attachment.
         VkAttachmentReference attRef = {};
         attRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        attRef.attachment = colorIdx;
-        colorAttachments.push_back(attRef);
+        attRef.attachment = attIdx;
+        if(colorIdx < colorAttachments.size())
+          colorAttachments[colorIdx] = attRef;
+        else
+          colorAttachments.push_back(attRef);
         subpassDesc.colorAttachmentCount = (uint32_t)colorAttachments.size();
         subpassDesc.pColorAttachments = colorAttachments.data();
 
+        RDCASSERT(subpassDesc.colorAttachmentCount <= 8);
+
+        RDCASSERT(descs.size() == attIdx);
         VkAttachmentDescription attDesc = {};
         attDesc.format = newColorFormat;
         attDesc.samples = m_CallbackInfo.samples;
@@ -1082,7 +1089,8 @@ protected:
   // passed in state and returns a NULL handle.
   VkFramebuffer PatchFramebuffer(VulkanRenderState &pipestate, VkRenderPass newRp,
                                  VkImageView newColorAtt = VK_NULL_HANDLE,
-                                 VkFormat newColorFormat = VK_FORMAT_UNDEFINED, uint32_t colorIdx = 0)
+                                 VkFormat newColorFormat = VK_FORMAT_UNDEFINED,
+                                 uint32_t attachIdx = 0, uint32_t colorIdx = 0)
   {
     if(pipestate.dynamicRendering.active)
     {
@@ -1124,8 +1132,8 @@ protected:
     // Either modify the existing color attachment view, or add a new one.
     if(newColorAtt != VK_NULL_HANDLE)
     {
-      if(colorIdx < atts.size())
-        atts[colorIdx] = newColorAtt;
+      if(attachIdx < atts.size())
+        atts[attachIdx] = newColorAtt;
       else
         atts.push_back(newColorAtt);
     }
@@ -2634,14 +2642,18 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         // Going to add another color attachment.
         framebufferIndex = (uint32_t)prevState.GetFramebufferAttachments().size();
         colorOutputIndex = (uint32_t)sub.colorAttachments.size();
+
+        while(colorOutputIndex > 0 &&
+              sub.colorAttachments[colorOutputIndex - 1] == VK_ATTACHMENT_UNUSED)
+          colorOutputIndex--;
       }
     }
 
     bool multiview = false;
-    VkRenderPass newRp =
-        PatchRenderPass(state, multiview, VK_FORMAT_R32G32B32A32_SFLOAT, framebufferIndex);
+    VkRenderPass newRp = PatchRenderPass(state, multiview, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                         framebufferIndex, colorOutputIndex);
     PatchFramebuffer(state, newRp, m_CallbackInfo.subImageView, VK_FORMAT_R32G32B32A32_SFLOAT,
-                     framebufferIndex);
+                     framebufferIndex, colorOutputIndex);
 
     Pipelines pipes = CreatePerFragmentPipelines(curPipeline, newRp, eid, 0,
                                                  VK_FORMAT_R32G32B32A32_SFLOAT, colorOutputIndex);
