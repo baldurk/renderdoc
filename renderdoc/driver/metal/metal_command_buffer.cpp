@@ -33,7 +33,8 @@ WrappedMTLCommandBuffer::WrappedMTLCommandBuffer(MTL::CommandBuffer *realMTLComm
                                                  ResourceId objId, WrappedMTLDevice *wrappedMTLDevice)
     : WrappedMTLObject(realMTLCommandBuffer, objId, wrappedMTLDevice, wrappedMTLDevice->GetStateRef())
 {
-  AllocateObjCBridge(this);
+  if(realMTLCommandBuffer && objId != ResourceId())
+    AllocateObjCBridge(this);
 }
 
 template <typename SerialiserType>

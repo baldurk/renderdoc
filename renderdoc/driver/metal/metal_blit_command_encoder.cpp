@@ -31,7 +31,8 @@ WrappedMTLBlitCommandEncoder::WrappedMTLBlitCommandEncoder(
     : WrappedMTLObject(realMTLBlitCommandEncoder, objId, wrappedMTLDevice,
                        wrappedMTLDevice->GetStateRef())
 {
-  AllocateObjCBridge(this);
+  if(realMTLBlitCommandEncoder && objId != ResourceId())
+    AllocateObjCBridge(this);
 }
 
 template <typename SerialiserType>
