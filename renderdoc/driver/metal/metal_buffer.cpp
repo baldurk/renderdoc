@@ -30,7 +30,8 @@ WrappedMTLBuffer::WrappedMTLBuffer(MTL::Buffer *realMTLBuffer, ResourceId objId,
                                    WrappedMTLDevice *wrappedMTLDevice)
     : WrappedMTLObject(realMTLBuffer, objId, wrappedMTLDevice, wrappedMTLDevice->GetStateRef())
 {
-  AllocateObjCBridge(this);
+  if(realMTLBuffer && objId != ResourceId())
+    AllocateObjCBridge(this);
 }
 
 void *WrappedMTLBuffer::contents()
