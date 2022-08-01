@@ -87,7 +87,7 @@ static D3D12FeedbackKey GetDirectHeapAccessKey()
 
 static bool AnnotateDXBCShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
                                const std::map<D3D12FeedbackKey, D3D12FeedbackSlot> &slots,
-                               bytebuf &editedBlob)
+                               uint32_t maxSlot, bytebuf &editedBlob)
 {
   using namespace DXBCBytecode;
   using namespace DXBCBytecode::Edit;
@@ -174,9 +174,11 @@ static bool AnnotateDXBCShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       if(u.first == ~0U && u.second == ~0U)
         u = editor.DeclareUAV(desc, space, 0, 0);
 
+      // clamp to number of slots
+      editor.InsertOperation(i++, oper(OPCODE_UMIN, {temp(t).swizzle(0), imm(maxSlot), idx}));
       // resource base plus index
-      editor.InsertOperation(i++,
-                             oper(OPCODE_IADD, {temp(t).swizzle(0), imm(it->second.Slot()), idx}));
+      editor.InsertOperation(
+          i++, oper(OPCODE_IADD, {temp(t).swizzle(0), temp(t).swizzle(0), imm(it->second.Slot())}));
       // multiply by 4 for byte index
       editor.InsertOperation(i++,
                              oper(OPCODE_ISHL, {temp(t).swizzle(0), temp(t).swizzle(0), imm(2)}));
@@ -202,7 +204,7 @@ static bool AnnotateDXBCShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
 
 static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
                                const std::map<D3D12FeedbackKey, D3D12FeedbackSlot> &slots,
-                               bytebuf &editedBlob)
+                               uint32_t maxSlot, bytebuf &editedBlob)
 {
   DXIL::ProgramEditor editor(dxbc, slots.size() + 64, editedBlob);
 
@@ -280,7 +282,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
     createHandleFromBinding = editor.DeclareFunction(createHandleBaseFunction);
   }
 
-  // get the atomic function we'll need
+  // get the functions we'll need
   const DXIL::Function *atomicBinOp = editor.GetFunctionByName("dx.op.atomicBinOp.i32");
   if(!atomicBinOp)
   {
@@ -312,6 +314,41 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
     // anyway?
 
     atomicBinOp = editor.DeclareFunction(atomicFunc);
+  }
+
+  const DXIL::Function *binOp = editor.GetFunctionByName("dx.op.binOp.i32");
+  if(!binOp)
+  {
+    DXIL::Type binopType;
+    binopType.type = DXIL::Type::Function;
+    // return type
+    binopType.inner = i32;
+    binopType.members = {i32, i32, i32};
+
+    const DXIL::Type *funcType = editor.AddType(binopType);
+
+    DXIL::Function binopFunc;
+    binopFunc.name = "dx.op.binOp.i32";
+    binopFunc.funcType = funcType;
+    binopFunc.external = true;
+
+    for(const DXIL::AttributeSet &attrs : editor.GetAttributeSets())
+    {
+      if(attrs.functionSlot &&
+         attrs.functionSlot->params == (DXIL::Attribute::NoUnwind | DXIL::Attribute::ReadNone))
+      {
+        binopFunc.attrs = &attrs;
+        break;
+      }
+    }
+
+    if(!binopFunc.attrs)
+      RDCWARN("Couldn't find existing nounwind readnone attr set");
+
+    // should we add a set here? or assume the attrs don't matter because this is a builtin function
+    // anyway?
+
+    binOp = editor.DeclareFunction(binopFunc);
   }
 
   // while we're iterating through the metadata to add our UAV, we'll also note the shader-local
@@ -900,13 +937,32 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       DXIL::Instruction *slotPlusBase = editor.AddInstruction(f, i, op);
       i++;
 
+      op.op = DXIL::Operation::Call;
+      op.type = i32;
+      op.funcCall = binOp;
+      op.args = {
+          // dx.op.binOp.i32 UMin opcode
+          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 40U))),
+          // operation OR
+          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 2U))),
+          // slotPlusBase
+          DXIL::Value(slotPlusBase),
+          // max slot
+          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, maxSlot))),
+      };
+
+      // slotPlusBaseClamped = min(slotPlusBase, maxSlot)
+      DXIL::Instruction *slotPlusBaseClamped = editor.AddInstruction(f, i, op);
+      i++;
+
       op.op = DXIL::Operation::ShiftLeft;
       op.type = i32;
       op.args = {
-          DXIL::Value(slotPlusBase), DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 2U))),
+          DXIL::Value(slotPlusBaseClamped),
+          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 2U))),
       };
 
-      // byteOffset = slotPlusBase << 2
+      // byteOffset = slotPlusBaseClamped << 2
       DXIL::Instruction *byteOffset = editor.AddInstruction(f, i, op);
       i++;
 
@@ -1168,7 +1224,7 @@ static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
   // only SM5.1 can have dynamic array indexing
   if(shad->GetDXBC()->m_Version.Major == 5 && shad->GetDXBC()->m_Version.Minor == 1)
   {
-    if(AnnotateDXBCShader(shad->GetDXBC(), space, slots, editedBlob))
+    if(AnnotateDXBCShader(shad->GetDXBC(), space, slots, numSlots, editedBlob))
     {
       if(!D3D12_Debug_FeedbackDumpDirPath().empty())
         FileIO::WriteAll(D3D12_Debug_FeedbackDumpDirPath() + "/before_dxbc_" +
@@ -1186,7 +1242,7 @@ static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
   }
   else if(shad->GetDXBC()->m_Version.Major >= 6)
   {
-    if(AnnotateDXILShader(shad->GetDXBC(), space, slots, editedBlob))
+    if(AnnotateDXILShader(shad->GetDXBC(), space, slots, numSlots, editedBlob))
     {
       // strip ILDB because it's valid code (with debug info) and who knows what might use it
       DXBC::DXBCContainer::StripChunk(editedBlob, DXBC::FOURCC_ILDB);
