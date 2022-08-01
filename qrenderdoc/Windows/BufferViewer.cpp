@@ -3805,8 +3805,15 @@ void BufferViewer::UI_CalculateMeshFormats()
       m_VSInPosition.indexByteStride = ib.byteStride;
       m_VSInPosition.baseVertex = action->baseVertex;
       m_VSInPosition.indexResourceId = ib.resourceId;
-      m_VSInPosition.indexByteOffset = ib.byteOffset + action->indexOffset * ib.byteStride;
-      m_VSInPosition.indexByteSize = ib.byteSize;
+
+      uint32_t drawIdxByteOffs = action->indexOffset * ib.byteStride;
+      m_VSInPosition.indexByteOffset = ib.byteOffset + drawIdxByteOffs;
+      if(ib.byteSize >= ~0U)
+        m_VSInPosition.indexByteSize = ib.byteSize;
+      else if(drawIdxByteOffs > ib.byteSize)
+        m_VSInPosition.indexByteSize = 0;
+      else
+        m_VSInPosition.indexByteSize = ib.byteSize - drawIdxByteOffs;
 
       if((action->flags & ActionFlags::Indexed) && m_VSInPosition.indexByteStride == 0)
         m_VSInPosition.indexByteStride = 4U;
