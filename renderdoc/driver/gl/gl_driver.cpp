@@ -613,7 +613,7 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
   BuildGLExtensions();
   BuildGLESExtensions();
   // by default we assume OpenGL driver
-  SetDriverType(RDCDriver::OpenGL);
+  m_DriverType = RDCDriver::OpenGL;
 
   m_Replay = new GLReplay(this);
 
@@ -976,6 +976,12 @@ WrappedOpenGL::~WrappedOpenGL()
   RenderDoc::Inst().UnregisterMemoryRegion(this);
 
   delete m_Replay;
+}
+
+void WrappedOpenGL::SetDriverType(RDCDriver type)
+{
+  m_DriverType = type;
+  m_Platform.SetDriverType(m_DriverType);
 }
 
 ContextPair &WrappedOpenGL::GetCtx()

@@ -213,6 +213,7 @@ class CGLPlatform : public GLPlatform
     return ret;
   }
 
+  void SetDriverType(RDCDriver api) {}
   RDResult InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
     RDCASSERT(api == RDCDriver::OpenGL);

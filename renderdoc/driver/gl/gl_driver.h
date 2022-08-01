@@ -623,7 +623,7 @@ public:
   CaptureState GetState() { return m_State; }
   GLReplay *GetReplay() { return m_Replay; }
   WriteSerialiser &GetSerialiser() { return m_ScratchSerialiser; }
-  void SetDriverType(RDCDriver type) { m_DriverType = type; }
+  void SetDriverType(RDCDriver type);
   bool isGLESMode() { return m_DriverType == RDCDriver::OpenGLES; }
   RDCDriver GetDriverType() { return m_DriverType; }
   ContextPair &GetCtx();

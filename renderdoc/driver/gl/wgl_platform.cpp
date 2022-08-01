@@ -29,7 +29,7 @@
 
 class WGLPlatform : public GLPlatform
 {
-  RDCDriver m_API = RDCDriver::OpenGLES;
+  RDCDriver m_API = RDCDriver::OpenGL;
 
   bool MakeContextCurrent(GLWindowingData data)
   {
@@ -371,6 +371,7 @@ class WGLPlatform : public GLPlatform
   }
 
   bool PopulateForReplay() { return WGL.PopulateForReplay(); }
+  void SetDriverType(RDCDriver api) { m_API = api; }
   RDResult InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
 // force debug in development builds

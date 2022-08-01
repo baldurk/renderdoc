@@ -371,6 +371,7 @@ class EGLPlatform : public GLPlatform
   }
 
   bool PopulateForReplay() { return EGL.PopulateForReplay(); }
+  void SetDriverType(RDCDriver api) { m_API = api; }
   RDResult InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
     Display *xlibDisplay = RenderDoc::Inst().GetGlobalEnvironment().xlibDisplay;

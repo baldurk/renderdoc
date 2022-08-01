@@ -50,7 +50,7 @@ void *GetGLHandle()
 
 class GLXPlatform : public GLPlatform
 {
-  RDCDriver m_API = RDCDriver::OpenGLES;
+  RDCDriver m_API = RDCDriver::OpenGL;
 
   bool MakeContextCurrent(GLWindowingData data)
   {
@@ -336,6 +336,7 @@ class GLXPlatform : public GLPlatform
   }
 
   bool PopulateForReplay() { return GLX.PopulateForReplay(); }
+  void SetDriverType(RDCDriver api) { m_API = api; }
   RDResult InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
 // force debug in development builds
