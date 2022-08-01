@@ -2303,17 +2303,10 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
     return new ShaderDebugTrace;
   }
 
-  // Add the descriptor for our UAV, then clear it
-  std::set<ResourceId> copiedHeaps;
-  rdcarray<PortableHandle> debugHandles;
-  debugHandles.push_back(ToPortableHandle(GetDebugManager()->GetCPUHandle(SHADER_DEBUG_UAV)));
-  if(pMsaaEvalBuffer)
-    debugHandles.push_back(ToPortableHandle(GetDebugManager()->GetCPUHandle(SHADER_DEBUG_MSAA_UAV)));
-  AddDebugDescriptorsToRenderState(m_pDevice, rs, debugHandles,
-                                   D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, sigElem, copiedHeaps);
-
   ID3D12GraphicsCommandListX *cmdList = m_pDevice->GetDebugManager()->ResetDebugList();
-  rs.ApplyDescriptorHeaps(cmdList);
+
+  // clear our UAVs
+  m_pDevice->GetDebugManager()->SetDescriptorHeaps(cmdList, true, false);
   D3D12_GPU_DESCRIPTOR_HANDLE gpuUav = m_pDevice->GetDebugManager()->GetGPUHandle(SHADER_DEBUG_UAV);
   UINT zero[4] = {0, 0, 0, 0};
   cmdList->ClearUnorderedAccessViewUint(gpuUav, clearUav, pInitialValuesBuffer, zero, 0, NULL);
@@ -2324,6 +2317,17 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
         m_pDevice->GetDebugManager()->GetGPUHandle(SHADER_DEBUG_MSAA_UAV);
     cmdList->ClearUnorderedAccessViewUint(gpuMsaaUav, msaaClearUav, pMsaaEvalBuffer, zero, 0, NULL);
   }
+
+  // Add the descriptor for our UAV
+  std::set<ResourceId> copiedHeaps;
+  rdcarray<PortableHandle> debugHandles;
+  debugHandles.push_back(ToPortableHandle(GetDebugManager()->GetCPUHandle(SHADER_DEBUG_UAV)));
+  if(pMsaaEvalBuffer)
+    debugHandles.push_back(ToPortableHandle(GetDebugManager()->GetCPUHandle(SHADER_DEBUG_MSAA_UAV)));
+  AddDebugDescriptorsToRenderState(m_pDevice, rs, debugHandles,
+                                   D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, sigElem, copiedHeaps);
+
+  rs.ApplyDescriptorHeaps(cmdList);
 
   // Execute the command to ensure that UAV clear and resource creation occur before replay
   hr = cmdList->Close();

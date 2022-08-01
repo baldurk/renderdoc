@@ -2040,6 +2040,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       m_pDevice->CreateUnorderedAccessView(overdrawTex, NULL, NULL,
                                            GetDebugManager()->GetUAVClearHandle(OVERDRAW_UAV));
 
+      GetDebugManager()->SetDescriptorHeaps(list, true, false);
+
       UINT zeroes[4] = {0, 0, 0, 0};
       list->ClearUnorderedAccessViewUint(GetDebugManager()->GetGPUHandle(OVERDRAW_UAV),
                                          GetDebugManager()->GetUAVClearHandle(OVERDRAW_UAV),

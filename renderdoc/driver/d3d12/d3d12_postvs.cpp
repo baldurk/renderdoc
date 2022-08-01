@@ -86,7 +86,7 @@ bool D3D12Replay::CreateSOBuffers()
   heapProps.VisibleNodeMask = 1;
 
   hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc,
-                                          D3D12_RESOURCE_STATE_STREAM_OUT, NULL,
+                                          D3D12_RESOURCE_STATE_COMMON, NULL,
                                           __uuidof(ID3D12Resource), (void **)&m_SOBuffer);
 
   if(FAILED(hr))
@@ -639,9 +639,11 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     // we're done with this after the copy, so we can discard it and reset
     // the counter for the next stream-out
     sobarr.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
-    sobarr.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    sobarr.Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
     list->DiscardResource(m_SOBuffer, NULL);
     list->ResourceBarrier(1, &sobarr);
+
+    GetDebugManager()->SetDescriptorHeaps(list, true, false);
 
     UINT zeroes[4] = {0, 0, 0, 0};
     list->ClearUnorderedAccessViewUint(GetDebugManager()->GetGPUHandle(STREAM_OUT_UAV),
@@ -1008,6 +1010,8 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
         list->ResourceBarrier(1, &sobarr);
 
+        GetDebugManager()->SetDescriptorHeaps(list, true, false);
+
         UINT zeroes[4] = {0, 0, 0, 0};
         list->ClearUnorderedAccessViewUint(GetDebugManager()->GetGPUHandle(STREAM_OUT_UAV),
                                            GetDebugManager()->GetUAVClearHandle(STREAM_OUT_UAV),
@@ -1197,6 +1201,8 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     sobarr.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
     list->DiscardResource(m_SOBuffer, NULL);
     list->ResourceBarrier(1, &sobarr);
+
+    GetDebugManager()->SetDescriptorHeaps(list, true, false);
 
     UINT zeroes[4] = {0, 0, 0, 0};
     list->ClearUnorderedAccessViewUint(GetDebugManager()->GetGPUHandle(STREAM_OUT_UAV),

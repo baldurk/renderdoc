@@ -2482,6 +2482,8 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
   if(!list)
     return ~0U;
 
+  GetDebugManager()->SetDescriptorHeaps(list, true, false);
+
   UINT zeroes[4] = {0, 0, 0, 0};
   list->ClearUnorderedAccessViewUint(GetDebugManager()->GetGPUHandle(PICK_RESULT_CLEAR_UAV),
                                      GetDebugManager()->GetUAVClearHandle(PICK_RESULT_CLEAR_UAV),

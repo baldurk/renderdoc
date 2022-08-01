@@ -198,7 +198,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   sampDesc.MinLOD = 0;
   sampDesc.MaxLOD = FLT_MAX;
   sampDesc.MipLODBias = 0.0f;
-  sampDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+  sampDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
 
   m_pDevice->CreateSampler(&sampDesc, samp);
 
@@ -596,7 +596,7 @@ bool D3D12DebugManager::CreateShaderDebugResources()
   heapProps.VisibleNodeMask = 1;
 
   hr = m_pDevice->CreateCommittedResource(
-      &heapProps, D3D12_HEAP_FLAG_NONE, &rdesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, NULL,
+      &heapProps, D3D12_HEAP_FLAG_NONE, &rdesc, D3D12_RESOURCE_STATE_COMMON, NULL,
       __uuidof(ID3D12Resource), (void **)&m_ShaderDebugResultBuffer);
   m_pDevice->InternalRef();
   if(FAILED(hr))
@@ -2078,7 +2078,7 @@ void D3D12Replay::VertexPicking::Init(WrappedID3D12Device *device, D3D12DebugMan
     heapProps.VisibleNodeMask = 1;
 
     hr = device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &pickResultDesc,
-                                         D3D12_RESOURCE_STATE_UNORDERED_ACCESS, NULL,
+                                         D3D12_RESOURCE_STATE_COMMON, NULL,
                                          __uuidof(ID3D12Resource), (void **)&ResultBuf);
 
     ResultBuf->SetName(L"m_PickResultBuf");
@@ -2305,7 +2305,7 @@ void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugM
     heapProps.VisibleNodeMask = 1;
 
     hr = device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &minmaxDesc,
-                                         D3D12_RESOURCE_STATE_UNORDERED_ACCESS, NULL,
+                                         D3D12_RESOURCE_STATE_COMMON, NULL,
                                          __uuidof(ID3D12Resource), (void **)&MinMaxTileBuffer);
 
     MinMaxTileBuffer->SetName(L"m_MinMaxTileBuffer");
@@ -2367,7 +2367,7 @@ void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugM
     minmaxDesc.Width = 2 * sizeof(Vec4f);
 
     hr = device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &minmaxDesc,
-                                         D3D12_RESOURCE_STATE_UNORDERED_ACCESS, NULL,
+                                         D3D12_RESOURCE_STATE_COMMON, NULL,
                                          __uuidof(ID3D12Resource), (void **)&MinMaxResultBuffer);
 
     MinMaxResultBuffer->SetName(L"m_MinMaxResultBuffer");

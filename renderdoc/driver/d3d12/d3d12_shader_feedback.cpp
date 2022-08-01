@@ -1367,7 +1367,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     heapProps.VisibleNodeMask = 1;
 
     HRESULT hr = m_pDevice->CreateCommittedResource(
-        &heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, NULL,
+        &heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON, NULL,
         __uuidof(ID3D12Resource), (void **)&m_BindlessFeedback.FeedbackBuffer);
 
     if(m_BindlessFeedback.FeedbackBuffer == NULL || FAILED(hr))
@@ -1397,6 +1397,8 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
     if(!list)
       return;
+
+    GetDebugManager()->SetDescriptorHeaps(list, true, false);
 
     UINT zeroes[4] = {0, 0, 0, 0};
     list->ClearUnorderedAccessViewUint(GetDebugManager()->GetGPUHandle(FEEDBACK_CLEAR_UAV),
