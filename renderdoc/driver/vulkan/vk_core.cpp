@@ -1767,8 +1767,6 @@ void WrappedVulkan::FirstFrame()
   {
     RenderDoc::Inst().StartFrameCapture(DeviceOwnedWindow(LayerDisp(m_Instance), NULL));
 
-    RDCLOG("frame 0 cap");
-
     m_FirstFrameCapture = true;
 
     m_AppControlledCapture = false;
@@ -2437,12 +2435,8 @@ void WrappedVulkan::Present(DeviceOwnedWindow devWnd)
 
   RenderDoc::Inst().AddActiveDriver(RDCDriver::Vulkan, true);
 
-  RDCLOG("Present() window %p", devWnd.windowHandle);
-
   if(!activeWindow)
   {
-    RDCLOG("inactive");
-
     // first present to *any* window, even inactive, terminates frame 0
     if(m_FirstFrameCapture && IsActiveCapturing(m_State))
     {
