@@ -617,6 +617,9 @@ treated as covering the code.
 };
 DECLARE_REFLECTION_STRUCT(LineColumnInfo);
 
+DOCUMENT(R"(Gives per-instruction source code mapping information, including what line(s) correspond
+to this instruction and which source variables exist
+)");
 struct InstructionSourceInfo
 {
   DOCUMENT("");
