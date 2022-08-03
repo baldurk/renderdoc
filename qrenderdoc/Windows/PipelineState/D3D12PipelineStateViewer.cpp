@@ -2264,10 +2264,9 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
       for(int i = 0; i < bindArray.count(); i++)
       {
+        uint32_t bind = (uint32_t)bindArray[i].bind;
         if(bindArray[i].bindset == view.space &&
-           (bindArray[i].bind == (int)view.res.bind ||
-            (bindArray[i].bind <= (int)view.res.bind &&
-             bindArray[i].bind + bindArray[i].arraySize > (int)view.res.bind)))
+           (bind == view.res.bind || (bind <= view.res.bind && bind + arraySize > view.res.bind)))
         {
           shaderRes = &resArray[i];
           break;
