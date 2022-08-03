@@ -342,6 +342,33 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       }
     }
 
+    // we haven't implemented adding attribute sets since their encoding is obtuse, so if we can't
+    // get the 'real' binop attributes try to get the next most conservative one
+    if(!binopFunc.attrs)
+    {
+      for(const DXIL::AttributeSet &attrs : editor.GetAttributeSets())
+      {
+        if(attrs.functionSlot &&
+           attrs.functionSlot->params == (DXIL::Attribute::NoUnwind | DXIL::Attribute::ReadOnly))
+        {
+          binopFunc.attrs = &attrs;
+          break;
+        }
+      }
+    }
+
+    if(!binopFunc.attrs)
+    {
+      for(const DXIL::AttributeSet &attrs : editor.GetAttributeSets())
+      {
+        if(attrs.functionSlot && attrs.functionSlot->params == DXIL::Attribute::NoUnwind)
+        {
+          binopFunc.attrs = &attrs;
+          break;
+        }
+      }
+    }
+
     if(!binopFunc.attrs)
       RDCWARN("Couldn't find existing nounwind readnone attr set");
 
@@ -943,8 +970,6 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       op.args = {
           // dx.op.binOp.i32 UMin opcode
           DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 40U))),
-          // operation OR
-          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 2U))),
           // slotPlusBase
           DXIL::Value(slotPlusBase),
           // max slot
