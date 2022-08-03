@@ -2292,7 +2292,7 @@ QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
     case ResourceFormatType::ETC2:
     case ResourceFormatType::EAC:
     case ResourceFormatType::PVRTC:
-      baseType = lit("[[row_major]] [[hex]] int2");
+      baseType = lit("[[hex]] int2");
       break;
     // 4x4 byte block, for 128-bit block formats
     case ResourceFormatType::BC2:
@@ -2300,7 +2300,7 @@ QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
     case ResourceFormatType::BC5:
     case ResourceFormatType::BC6:
     case ResourceFormatType::BC7:
-    case ResourceFormatType::ASTC: baseType = lit("[[row_major]] [[hex]] int4"); break;
+    case ResourceFormatType::ASTC: baseType = lit("[[hex]] int4"); break;
     case ResourceFormatType::R10G10B10A2:
       baseType = lit("[[packed(r10g10b10a2)]] ");
       if(tex.format.compType == CompType::UNorm)
