@@ -111,6 +111,9 @@ Shader Debugging
 .. autoclass:: renderdoc.LineColumnInfo
   :members:
 
+.. autoclass:: renderdoc.InstructionSourceInfo
+  :members:
+
 .. autoclass:: renderdoc.ShaderDebugState
   :members:
 
