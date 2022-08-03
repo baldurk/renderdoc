@@ -850,7 +850,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       case SourceLanguage::Max: break;
     }
 
-    if(!sources[i].name.empty())
+    if(!sources[i].name.empty() || !sources[i].contents.empty())
       reflection.debugInfo.files.push_back({sources[i].name, sources[i].contents});
   }
 
