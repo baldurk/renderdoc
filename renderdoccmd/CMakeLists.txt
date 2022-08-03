@@ -46,6 +46,7 @@ elseif(ENABLE_GGP)
     find_library(GGP_LIBRARY ggp)
     list(APPEND libraries PRIVATE ${GGP_LIBRARY})
     set(LINKER_FLAGS "-Wl,--no-as-needed -Wl,--hash-style=gnu -Wl,--build-id=sha1")
+    set_property(SOURCE renderdoccmd_ggp.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-shadow")
 elseif(UNIX)
     list(APPEND sources renderdoccmd_linux.cpp)
 
