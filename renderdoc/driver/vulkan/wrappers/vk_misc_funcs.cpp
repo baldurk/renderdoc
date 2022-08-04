@@ -1277,10 +1277,13 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass2(SerialiserType &ser, VkDevice 
       if(att[i].stencilStoreOp != VK_ATTACHMENT_STORE_OP_NONE)
         att[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-      if(att[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-        att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-      if(att[i].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-        att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+      if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
+      {
+        if(att[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+          att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        if(att[i].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+          att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+      }
 
       // renderpass can't start or end in presentable layout on replay
       SanitiseOldImageLayout(att[i].initialLayout);
