@@ -37,17 +37,144 @@ RDOC_CONFIG(bool, Vulkan_Hack_AllowNonUniformSubgroups, false,
             "will only work for a limited set and not with the 'real' subgroup.");
 
 // this could be cleaner if ShaderVariable wasn't a very public struct, but it's not worth it so
-// we just reserve value slots that we know won't be used in opaque variables
-static const uint32_t PointerVariableSlot = 0;
-static const uint32_t Scalar0VariableSlot = 1;
-static const uint32_t Scalar1VariableSlot = 2;
-static const uint32_t BaseIdVariableSlot = 3;
-static const uint32_t MajorStrideVariableSlot = 4;
-static const uint32_t ArrayVariableSlot = 8;
-static const uint32_t TextureTypeVariableSlot = 9;
-static const uint32_t BufferPointerByteOffsetVariableSlot = 9;
-static const uint32_t BufferPointerTypeIdVariableSlot = 10;
-static const uint32_t SSBOVariableSlot = 11;
+// we just reserve value slots that we know won't be used in opaque variables.
+// there's significant wasted space to keep things simple with one property = one slot
+static const uint32_t OpaquePointerTypeID = 0x0dd0beef;
+
+enum class PointerFlags
+{
+  RowMajorMatrix = 0x1,
+  SSBO = 0x2,
+  GlobalArrayBinding = 0x4,
+};
+
+BITMASK_OPERATORS(PointerFlags);
+
+// slot 0 for the actual pointer. Shares the same slot as the actual pointer value for GPU pointers
+ShaderVariable *getPointer(ShaderVariable &var)
+{
+  return (ShaderVariable *)(uintptr_t)var.value.u64v[0];
+}
+
+const ShaderVariable *getPointer(const ShaderVariable &var)
+{
+  return (const ShaderVariable *)(uintptr_t)var.value.u64v[0];
+}
+
+void setPointer(ShaderVariable &var, const ShaderVariable *ptr)
+{
+  var.value.u64v[0] = (uint64_t)(uintptr_t)ptr;
+}
+
+// slot 1 is the type ID, for opaque pointers this is OpaquePointerTypeID and for real GPU pointers
+// this is the type ID of the pointer. We only display this properly for base pointers -
+// dereferenced pointers just show the value behind them (otherwise we'd need a pointer type for
+// every child element of any pointer type, which is feasible but probably unnecessary)
+
+// slot 2 contains the scalar indices that we carry around from dereferences
+void setScalars(ShaderVariable &var, uint8_t scalar0, uint8_t scalar1)
+{
+  var.value.u64v[2] = (scalar0 << 8) | scalar1;
+}
+
+rdcpair<uint8_t, uint8_t> getScalars(const ShaderVariable &var)
+{
+  return {(var.value.u64v[2] >> 8) & 0xff, var.value.u64v[2] & 0xff};
+}
+
+// slot 3 contains the base ID of the structure, for registering pointer changes
+void setBaseId(ShaderVariable &var, rdcspv::Id id)
+{
+  var.value.u64v[3] = id.value();
+}
+
+rdcspv::Id getBaseId(const ShaderVariable &var)
+{
+  return rdcspv::Id::fromWord((uint32_t)var.value.u64v[3]);
+}
+
+// slot 4 has the different flags we keep track of
+void setPointerFlags(ShaderVariable &var, PointerFlags flags)
+{
+  var.value.u64v[4] = uint32_t(flags);
+}
+
+PointerFlags getPointerFlags(const ShaderVariable &var)
+{
+  return (PointerFlags)var.value.u64v[4];
+}
+
+void enablePointerFlags(ShaderVariable &var, PointerFlags flags)
+{
+  var.value.u64v[4] = uint32_t((PointerFlags)var.value.u64v[4] | flags);
+}
+
+void disablePointerFlags(ShaderVariable &var, PointerFlags flags)
+{
+  var.value.u64v[4] = uint32_t(PointerFlags((PointerFlags)var.value.u64v[4] & ~flags));
+}
+
+bool checkPointerFlags(const ShaderVariable &var, PointerFlags flags)
+{
+  return ((PointerFlags)var.value.u64v[4] & flags) == flags;
+}
+
+// slot 5 has the matrix stride
+void setMatrixStride(ShaderVariable &var, uint32_t stride)
+{
+  var.value.u64v[5] = stride;
+}
+
+uint32_t getMatrixStride(const ShaderVariable &var)
+{
+  return (uint32_t)var.value.u64v[5];
+}
+
+// slot 6 has the relative byte offset. For plain bindings the global is created with an offset 0
+// and then it's added to for access chains
+void setByteOffset(ShaderVariable &var, uint64_t offset)
+{
+  var.value.u64v[6] = offset;
+}
+
+uint64_t getByteOffset(const ShaderVariable &var)
+{
+  return var.value.u64v[6];
+}
+
+// we also use slot 6 for the texture type (because textures and buffers requiring a byte offset are
+// disjoint)
+void setTextureType(ShaderVariable &var, rdcspv::DebugAPIWrapper::TextureType type)
+{
+  var.value.u64v[6] = type;
+}
+
+rdcspv::DebugAPIWrapper::TextureType getTextureType(const ShaderVariable &var)
+{
+  return (rdcspv::DebugAPIWrapper::TextureType)var.value.u64v[6];
+}
+
+// slot 7 contains the binding array index if we indexed into a global binding array
+void setBindArrayIndex(ShaderVariable &var, uint32_t arrayIndex)
+{
+  var.value.u64v[7] = arrayIndex;
+}
+
+uint32_t getBindArrayIndex(const ShaderVariable &var)
+{
+  return (uint32_t)var.value.u64v[7];
+}
+
+// slot 8 contains the ID of the pointer's type, for further buffer type chasing
+void setBufferTypeId(ShaderVariable &var, rdcspv::Id id)
+{
+  var.value.u64v[8] = id.value();
+}
+
+rdcspv::Id getBufferTypeId(const ShaderVariable &var)
+{
+  return rdcspv::Id::fromWord((uint32_t)var.value.u64v[8]);
+}
 
 static ShaderVariable *pointerIfMutable(const ShaderVariable &var)
 {
@@ -59,36 +186,36 @@ static ShaderVariable *pointerIfMutable(ShaderVariable &var)
 }
 
 static void ClampScalars(rdcspv::DebugAPIWrapper *apiWrapper, const ShaderVariable &var,
-                         uint32_t &scalar0)
+                         uint8_t &scalar0)
 {
-  if(scalar0 > var.columns && scalar0 != ~0U)
+  if(scalar0 > var.columns && scalar0 != 0xff)
   {
     apiWrapper->AddDebugMessage(
         MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
         StringFormat::Fmt("Invalid scalar index %u at %u-vector %s. Clamping to %u", scalar0,
                           var.columns, var.name.c_str(), var.columns - 1));
-    scalar0 = RDCMIN(0U, uint32_t(var.columns - 1));
+    scalar0 = RDCMIN((uint8_t)1, var.columns) - 1;
   }
 }
 
 static void ClampScalars(rdcspv::DebugAPIWrapper *apiWrapper, const ShaderVariable &var,
-                         uint32_t &scalar0, uint32_t &scalar1)
+                         uint8_t &scalar0, uint8_t &scalar1)
 {
-  if(scalar0 > var.columns && scalar0 != ~0U)
+  if(scalar0 > var.columns && scalar0 != 0xff)
   {
     apiWrapper->AddDebugMessage(
         MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
         StringFormat::Fmt("Invalid scalar index %u at matrix %s with %u columns. Clamping to %u",
                           scalar0, var.columns, var.name.c_str(), var.columns - 1));
-    scalar0 = RDCMIN(0U, uint32_t(var.columns - 1));
+    scalar0 = RDCMIN((uint8_t)1, var.columns) - 1;
   }
-  if(scalar1 > var.rows && scalar1 != ~0U)
+  if(scalar1 > var.rows && scalar1 != 0xff)
   {
     apiWrapper->AddDebugMessage(
         MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
         StringFormat::Fmt("Invalid scalar index %u at matrix %s with %u rows. Clamping to %u",
                           scalar1, var.rows, var.name.c_str(), var.rows - 1));
-    scalar1 = RDCMIN(0U, uint32_t(var.rows - 1));
+    scalar1 = RDCMIN((uint8_t)1, var.rows) - 1;
   }
 }
 
@@ -921,10 +1048,10 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
 
           var.SetBinding((int32_t)bindset, (int32_t)bind, 0U);
 
-          var.value.u64v[SSBOVariableSlot] = 1;
+          enablePointerFlags(var, PointerFlags::SSBO);
 
           if(isArray)
-            var.value.u64v[ArrayVariableSlot] = 1;
+            enablePointerFlags(var, PointerFlags::GlobalArrayBinding);
 
           sourceVar.type = VarType::ReadWriteResource;
           sourceVar.rows = 1;
@@ -1084,7 +1211,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
 
       if(innertype->type == DataType::ArrayType)
       {
-        var.value.u64v[ArrayVariableSlot] = 1;
+        enablePointerFlags(var, PointerFlags::GlobalArrayBinding);
         innertype = &dataTypes[innertype->InnerType()];
       }
 
@@ -1124,7 +1251,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
             texType |= DebugAPIWrapper::UInt_Texture;
         }
 
-        var.value.u64v[TextureTypeVariableSlot] = texType;
+        setTextureType(var, (DebugAPIWrapper::TextureType)texType);
 
         if(imageTypes[imgid].sampled == 2 && imageTypes[imgid].dim != Dim::SubpassData)
         {
@@ -1828,17 +1955,17 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
   return ret;
 }
 
-ShaderVariable Debugger::MakePointerVariable(Id id, const ShaderVariable *v, uint32_t scalar0,
-                                             uint32_t scalar1) const
+ShaderVariable Debugger::MakePointerVariable(Id id, const ShaderVariable *v, uint8_t scalar0,
+                                             uint8_t scalar1) const
 {
   ShaderVariable var;
   var.rows = var.columns = 1;
   var.type = VarType::GPUPointer;
   var.name = GetRawName(id);
-  var.value.u64v[PointerVariableSlot] = (uint64_t)(uintptr_t)v;
-  var.value.u64v[Scalar0VariableSlot] = scalar0;
-  var.value.u64v[Scalar1VariableSlot] = scalar1;
-  var.value.u64v[BaseIdVariableSlot] = id.value();
+  var.SetTypedPointer(0, ResourceId(), OpaquePointerTypeID);
+  setPointer(var, v);
+  setScalars(var, scalar0, scalar1);
+  setBaseId(var, id);
   return var;
 }
 
@@ -1850,31 +1977,31 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
   // if the base is a plain value, we just start walking down the chain. If the base is a pointer
   // though, we want to step down the chain in the underlying storage, so dereference first.
   if(base.type == VarType::GPUPointer)
-    leaf = (const ShaderVariable *)(uintptr_t)base.value.u64v[PointerVariableSlot];
+    leaf = getPointer(base);
 
   bool isArray = false;
 
   if((leaf->type == VarType::ReadWriteResource || leaf->type == VarType::ReadOnlyResource ||
       leaf->type == VarType::Sampler) &&
-     leaf->value.u64v[ArrayVariableSlot])
+     checkPointerFlags(*leaf, PointerFlags::GlobalArrayBinding))
   {
     isArray = true;
   }
 
-  if(leaf->type == VarType::ReadWriteResource && leaf->value.u64v[SSBOVariableSlot])
+  if(leaf->type == VarType::ReadWriteResource && checkPointerFlags(*leaf, PointerFlags::SSBO))
   {
     ShaderVariable ret = MakePointerVariable(id, leaf);
 
-    uint64_t byteOffset = base.value.u64v[BufferPointerByteOffsetVariableSlot];
-    ret.value.u64v[MajorStrideVariableSlot] = base.value.u64v[MajorStrideVariableSlot];
+    uint64_t byteOffset = getByteOffset(base);
+    setMatrixStride(ret, getMatrixStride(base));
+    setPointerFlags(ret, getPointerFlags(base));
 
     const DataType *type = &dataTypes[idTypes[id]];
 
     RDCASSERT(type->type == DataType::PointerType);
     type = &dataTypes[type->InnerType()];
 
-    rdcspv::Id typeId =
-        rdcspv::Id::fromWord(uint32_t(base.value.u64v[BufferPointerTypeIdVariableSlot]));
+    rdcspv::Id typeId = getBufferTypeId(base);
 
     if(typeId != rdcspv::Id())
       type = &dataTypes[typeId];
@@ -1885,7 +2012,7 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
     // if it's an array, consume the array index first
     if(isArray)
     {
-      ret.value.u64v[ArrayVariableSlot] = indices[i++];
+      setBindArrayIndex(ret, indices[i++]);
       type = &dataTypes[type->InnerType()];
     }
 
@@ -1923,10 +2050,12 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
     }
 
     if(curDecorations.flags & Decorations::HasMatrixStride)
-      ret.value.u64v[MajorStrideVariableSlot] = curDecorations.matrixStride;
+      setMatrixStride(ret, curDecorations.matrixStride);
 
     if(curDecorations.flags & Decorations::RowMajor)
-      ret.value.u64v[MajorStrideVariableSlot] |= 0x80000000U;
+      enablePointerFlags(ret, PointerFlags::RowMajorMatrix);
+    else if(curDecorations.flags & Decorations::ColMajor)
+      disablePointerFlags(ret, PointerFlags::RowMajorMatrix);
 
     size_t remaining = indices.size() - i;
     if(remaining == 2)
@@ -1980,8 +2109,8 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
       }
     }
 
-    ret.value.u64v[BufferPointerTypeIdVariableSlot] = type->id.value();
-    ret.value.u64v[BufferPointerByteOffsetVariableSlot] = byteOffset;
+    setBufferTypeId(ret, type->id);
+    setByteOffset(ret, byteOffset);
 
     return ret;
   }
@@ -2005,7 +2134,7 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
   }
 
   // apply any remaining scalar selectors
-  uint32_t scalar0 = ~0U, scalar1 = ~0U;
+  uint8_t scalar0 = 0xff, scalar1 = 0xff;
 
   size_t remaining = indices.size() - i;
 
@@ -2020,30 +2149,30 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
 
   if(remaining == 2)
   {
-    scalar0 = indices[i];
-    scalar1 = indices[i + 1];
+    scalar0 = indices[i] & 0xff;
+    scalar1 = indices[i + 1] & 0xff;
   }
   else if(remaining == 1)
   {
-    scalar0 = indices[i];
+    scalar0 = indices[i] & 0xff;
   }
 
   ShaderVariable ret = MakePointerVariable(id, leaf, scalar0, scalar1);
 
   if(isArray)
-    ret.value.u64v[ArrayVariableSlot] = indices[0];
+    setBindArrayIndex(ret, indices[0]);
 
   return ret;
 }
 
 uint64_t Debugger::GetPointerByteOffset(const ShaderVariable &ptr) const
 {
-  return ptr.value.u64v[BufferPointerByteOffsetVariableSlot];
+  return getByteOffset(ptr);
 }
 
 DebugAPIWrapper::TextureType Debugger::GetTextureType(const ShaderVariable &img) const
 {
-  return (DebugAPIWrapper::TextureType)img.value.u64v[TextureTypeVariableSlot];
+  return getTextureType(img);
 }
 
 ShaderVariable Debugger::GetPointerValue(const ShaderVariable &ptr) const
@@ -2051,13 +2180,12 @@ ShaderVariable Debugger::GetPointerValue(const ShaderVariable &ptr) const
   // opaque pointers display as their inner value
   if(IsOpaquePointer(ptr))
   {
-    const ShaderVariable *inner =
-        (const ShaderVariable *)(uintptr_t)ptr.value.u64v[PointerVariableSlot];
+    const ShaderVariable *inner = getPointer(ptr);
     ShaderVariable ret = *inner;
     ret.name = ptr.name;
     // inherit any array index from the pointer
     BindpointIndex bind = ret.GetBinding();
-    ret.SetBinding(bind.bindset, bind.bind, (uint32_t)ptr.value.u64v[ArrayVariableSlot]);
+    ret.SetBinding(bind.bindset, bind.bind, getBindArrayIndex(ptr));
     return ret;
   }
 
@@ -2070,30 +2198,25 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
   if(ptr.type != VarType::GPUPointer)
     return ptr;
 
-  const ShaderVariable *inner =
-      (const ShaderVariable *)(uintptr_t)ptr.value.u64v[PointerVariableSlot];
+  const ShaderVariable *inner = getPointer(ptr);
 
   ShaderVariable ret;
 
-  if(inner->type == VarType::ReadWriteResource && inner->value.u64v[SSBOVariableSlot])
+  if(inner->type == VarType::ReadWriteResource && checkPointerFlags(*inner, PointerFlags::SSBO))
   {
-    rdcspv::Id typeId =
-        rdcspv::Id::fromWord(uint32_t(ptr.value.u64v[BufferPointerTypeIdVariableSlot]));
-    uint64_t byteOffset = ptr.value.u64v[BufferPointerByteOffsetVariableSlot];
+    rdcspv::Id typeId = getBufferTypeId(ptr);
+    uint64_t byteOffset = getByteOffset(ptr);
 
     BindpointIndex bind = inner->GetBinding();
+    bind.arrayIndex = getBindArrayIndex(ptr);
 
-    bind.arrayIndex = (uint32_t)ptr.value.u64v[ArrayVariableSlot];
-
-    uint32_t varMatrixStride = (uint32_t)ptr.value.u64v[MajorStrideVariableSlot];
+    uint32_t varMatrixStride = getMatrixStride(ptr);
 
     Decorations parentDecorations;
-    if((varMatrixStride & 0x80000000U) != 0)
+    if(checkPointerFlags(ptr, PointerFlags::RowMajorMatrix))
       parentDecorations.flags = Decorations::RowMajor;
     else
       parentDecorations.flags = Decorations::ColMajor;
-
-    varMatrixStride &= 0xff;
 
     if(varMatrixStride != 0)
     {
@@ -2183,13 +2306,13 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
   {
     BindpointIndex bind = ret.GetBinding();
 
-    ret.SetBinding(bind.bindset, bind.bind, (uint32_t)ptr.value.u64v[ArrayVariableSlot]);
+    ret.SetBinding(bind.bindset, bind.bind, getBindArrayIndex(ptr));
   }
 
   // we don't support pointers to scalars since our 'unit' of pointer is a ShaderVariable, so check
   // if we have scalar indices to apply:
-  uint32_t scalar0 = (uint32_t)ptr.value.u64v[Scalar0VariableSlot];
-  uint32_t scalar1 = (uint32_t)ptr.value.u64v[Scalar1VariableSlot];
+  uint8_t scalar0 = 0, scalar1 = 0;
+  rdctie(scalar0, scalar1) = getScalars(ptr);
 
   ShaderVariable tmp = ret;
 
@@ -2198,7 +2321,7 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
     // matrix case
     ClampScalars(apiWrapper, ret, scalar0, scalar1);
 
-    if(scalar0 != ~0U && scalar1 != ~0U)
+    if(scalar0 != 0xff && scalar1 != 0xff)
     {
       // two indices - selecting a scalar. scalar0 is the first index in the chain so it chooses
       // column
@@ -2207,7 +2330,7 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
       // it's a scalar now, even if it was a matrix before
       ret.rows = ret.columns = 1;
     }
-    else if(scalar0 != ~0U)
+    else if(scalar0 != 0xff)
     {
       // one index, selecting a column
       for(uint32_t row = 0; row < ret.rows; row++)
@@ -2222,7 +2345,7 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
     ClampScalars(apiWrapper, ret, scalar0);
 
     // vector case, selecting a scalar (if anything)
-    if(scalar0 != ~0U)
+    if(scalar0 != 0xff)
     {
       copyComp(ret, 0, tmp, scalar0);
 
@@ -2239,7 +2362,7 @@ Id Debugger::GetPointerBaseId(const ShaderVariable &ptr) const
   RDCASSERT(ptr.type == VarType::GPUPointer);
 
   // we stored the base ID so that it's always available regardless of access chains
-  return Id::fromWord((uint32_t)ptr.value.u64v[BaseIdVariableSlot]);
+  return getBaseId(ptr);
 }
 
 bool Debugger::IsOpaquePointer(const ShaderVariable &ptr) const
@@ -2247,7 +2370,12 @@ bool Debugger::IsOpaquePointer(const ShaderVariable &ptr) const
   if(ptr.type != VarType::GPUPointer)
     return false;
 
-  ShaderVariable *inner = (ShaderVariable *)(uintptr_t)ptr.value.u64v[PointerVariableSlot];
+  PointerVal val = ptr.GetPointer();
+
+  if(val.pointerTypeID != OpaquePointerTypeID)
+    return false;
+
+  const ShaderVariable *inner = getPointer(ptr);
   return inner->type == VarType::ReadOnlyResource || inner->type == VarType::Sampler ||
          inner->type == VarType::ReadWriteResource;
 }
@@ -2262,22 +2390,20 @@ bool Debugger::ArePointersAndEqual(const ShaderVariable &a, const ShaderVariable
   return false;
 }
 
-void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariable &val)
+void Debugger::WriteThroughPointer(ShaderVariable &ptr, const ShaderVariable &val)
 {
-  ShaderVariable *storage = (ShaderVariable *)(uintptr_t)ptr.value.u64v[PointerVariableSlot];
+  ShaderVariable *storage = getPointer(ptr);
 
   if(storage->type == VarType::ReadWriteResource)
   {
-    rdcspv::Id typeId =
-        rdcspv::Id::fromWord(uint32_t(ptr.value.u64v[BufferPointerTypeIdVariableSlot]));
-    uint64_t byteOffset = ptr.value.u64v[BufferPointerByteOffsetVariableSlot];
+    rdcspv::Id typeId = getBufferTypeId(ptr);
+    uint64_t byteOffset = getByteOffset(ptr);
 
     BindpointIndex bind = storage->GetBinding();
 
-    bind.arrayIndex = (uint32_t)ptr.value.u64v[ArrayVariableSlot];
-    uint32_t matrixStride = (uint32_t)ptr.value.u64v[MajorStrideVariableSlot];
-    bool rowMajor = (matrixStride & 0x80000000U) != 0;
-    matrixStride &= 0xff;
+    bind.arrayIndex = getBindArrayIndex(ptr);
+    uint32_t matrixStride = getMatrixStride(ptr);
+    bool rowMajor = checkPointerFlags(ptr, PointerFlags::RowMajorMatrix);
 
     auto writeCallback = [this, bind, matrixStride, rowMajor](
         const ShaderVariable &var, const Decorations &, const DataType &type, uint64_t offset,
@@ -2346,11 +2472,11 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
 
   // we don't support pointers to scalars since our 'unit' of pointer is a ShaderVariable, so check
   // if we have scalar indices to apply:
-  uint32_t scalar0 = (uint32_t)ptr.value.u64v[Scalar0VariableSlot];
-  uint32_t scalar1 = (uint32_t)ptr.value.u64v[Scalar1VariableSlot];
+  uint8_t scalar0 = 0, scalar1 = 0;
+  rdctie(scalar0, scalar1) = getScalars(ptr);
 
   // in the common case we don't have scalar selectors. In this case just assign the value
-  if(scalar0 == ~0U && scalar1 == ~0U)
+  if(scalar0 == 0xff && scalar1 == 0xff)
   {
     AssignValue(*storage, val);
   }
@@ -2363,13 +2489,13 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
       // matrix case
       ClampScalars(apiWrapper, *storage, scalar0, scalar1);
 
-      if(scalar0 != ~0U && scalar1 != ~0U)
+      if(scalar0 != 0xff && scalar1 != 0xff)
       {
         // two indices - selecting a scalar. scalar0 is the first index in the chain so it chooses
         // column
         copyComp(*storage, scalar1 * storage->columns + scalar0, val, 0);
       }
-      else if(scalar0 != ~0U)
+      else if(scalar0 != 0xff)
       {
         // one index, selecting a column
         for(uint32_t row = 0; row < storage->rows; row++)

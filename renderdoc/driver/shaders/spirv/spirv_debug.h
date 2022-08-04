@@ -361,12 +361,12 @@ public:
   ShaderVariable GetPointerValue(const ShaderVariable &v) const;
   uint64_t GetPointerByteOffset(const ShaderVariable &ptr) const;
   DebugAPIWrapper::TextureType GetTextureType(const ShaderVariable &img) const;
-  ShaderVariable MakePointerVariable(Id id, const ShaderVariable *v, uint32_t scalar0 = ~0U,
-                                     uint32_t scalar1 = ~0U) const;
+  ShaderVariable MakePointerVariable(Id id, const ShaderVariable *v, uint8_t scalar0 = 0xff,
+                                     uint8_t scalar1 = 0xff) const;
   Id GetPointerBaseId(const ShaderVariable &v) const;
   bool IsOpaquePointer(const ShaderVariable &v) const;
   bool ArePointersAndEqual(const ShaderVariable &a, const ShaderVariable &b) const;
-  void WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariable &val);
+  void WriteThroughPointer(ShaderVariable &ptr, const ShaderVariable &val);
   ShaderVariable MakeCompositePointer(const ShaderVariable &base, Id id, rdcarray<uint32_t> &indices);
 
   DebugAPIWrapper *GetAPIWrapper() { return apiWrapper; }
