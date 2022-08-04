@@ -302,7 +302,7 @@ constexpr uint32_t VarTypeByteSize(VarType type)
   return (type == VarType::UByte  || type == VarType::SByte) ? 1
        : (type == VarType::Half   || type == VarType::UShort || type == VarType::SShort) ? 2
        : (type == VarType::Float  || type == VarType::UInt   || type == VarType::SInt   || type == VarType::Bool || type == VarType::Enum) ? 4
-       : (type == VarType::Double || type == VarType::ULong  || type == VarType::SLong ) ? 8
+       : (type == VarType::Double || type == VarType::ULong  || type == VarType::SLong  || type == VarType::GPUPointer) ? 8
        : 0;
   // clang-format on
 }
@@ -394,7 +394,8 @@ constexpr CompType VarTypeCompType(VarType type)
   return (type == VarType::Double || type == VarType::Float  || type == VarType::Half) ? CompType::Float
 
        : (type == VarType::ULong  || type == VarType::UInt   || type == VarType::UShort ||
-          type == VarType::UByte  || type == VarType::Bool   || type == VarType::Enum) ? CompType::UInt
+          type == VarType::UByte  || type == VarType::Bool   || type == VarType::Enum   ||
+          type == VarType::GPUPointer) ? CompType::UInt
 
        : (type == VarType::SLong  || type == VarType::SInt   ||
           type == VarType::SShort || type == VarType::SByte) ? CompType::SInt
