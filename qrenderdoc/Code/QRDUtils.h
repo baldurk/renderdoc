@@ -303,9 +303,10 @@ struct GPUAddress
   uint64_t offset = 0;
 
   // cache the context once we've obtained it.
-  ICaptureContext *ctxptr = NULL;
+  const ICaptureContext *ctxptr = NULL;
 
   void cacheAddress(const QWidget *widget);
+  void cacheAddress(const ICaptureContext &ctx);
 };
 
 struct EnumInterpValue

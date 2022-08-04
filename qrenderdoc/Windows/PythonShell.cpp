@@ -447,13 +447,16 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   {
     return m_Obj.CurRootActions();
   }
-  virtual ResourceDescription *GetResource(ResourceId id) override { return m_Obj.GetResource(id); }
+  virtual const ResourceDescription *GetResource(ResourceId id) const override
+  {
+    return m_Obj.GetResource(id);
+  }
   virtual const rdcarray<ResourceDescription> &GetResources() override
   {
     return m_Obj.GetResources();
   }
-  virtual rdcstr GetResourceName(ResourceId id) override { return m_Obj.GetResourceName(id); }
-  virtual rdcstr GetResourceNameUnsuffixed(ResourceId id) override
+  virtual rdcstr GetResourceName(ResourceId id) const override { return m_Obj.GetResourceName(id); }
+  virtual rdcstr GetResourceNameUnsuffixed(ResourceId id) const override
   {
     return m_Obj.GetResourceNameUnsuffixed(id);
   }
@@ -462,11 +465,14 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   {
     return m_Obj.HasResourceCustomName(id);
   }
-  virtual int32_t ResourceNameCacheID() override { return m_Obj.ResourceNameCacheID(); }
+  virtual int32_t ResourceNameCacheID() const override { return m_Obj.ResourceNameCacheID(); }
   virtual TextureDescription *GetTexture(ResourceId id) override { return m_Obj.GetTexture(id); }
   virtual const rdcarray<TextureDescription> &GetTextures() override { return m_Obj.GetTextures(); }
   virtual BufferDescription *GetBuffer(ResourceId id) override { return m_Obj.GetBuffer(id); }
-  virtual const rdcarray<BufferDescription> &GetBuffers() override { return m_Obj.GetBuffers(); }
+  virtual const rdcarray<BufferDescription> &GetBuffers() const override
+  {
+    return m_Obj.GetBuffers();
+  }
   virtual const ActionDescription *GetAction(uint32_t eventId) override
   {
     return m_Obj.GetAction(eventId);

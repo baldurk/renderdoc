@@ -2011,7 +2011,7 @@ more information for how this differs.
 :return: The information about a resource, or ``None`` if the ID does not correspond to a resource.
 :rtype: renderdoc.ResourceDescription
 )");
-  virtual ResourceDescription *GetResource(ResourceId id) = 0;
+  virtual const ResourceDescription *GetResource(ResourceId id) const = 0;
 
   DOCUMENT(R"(Retrieve the list of resources in the current capture.
 
@@ -2031,7 +2031,7 @@ the resource type.
 :return: The current name of the resource.
 :rtype: str
 )");
-  virtual rdcstr GetResourceName(ResourceId id) = 0;
+  virtual rdcstr GetResourceName(ResourceId id) const = 0;
 
   DOCUMENT(R"(Returns the same name as :meth:`GetResourceName` but without any added suffix, e.g. to
 indicate the resource's status such as (Edited).
@@ -2040,7 +2040,7 @@ indicate the resource's status such as (Edited).
 :return: The unsuffixed resource name.
 :rtype: str
 )");
-  virtual rdcstr GetResourceNameUnsuffixed(ResourceId id) = 0;
+  virtual rdcstr GetResourceNameUnsuffixed(ResourceId id) const = 0;
 
   DOCUMENT(R"(Determines whether the name for the given resource has been customised at all, either
 during capture time or with :meth:`SetResourceCustomName`.
@@ -2093,7 +2093,7 @@ considered out of date
 :return: An incrementing index that can be used as a quick check if any names have changed.
 :rtype: int
 )");
-  virtual int32_t ResourceNameCacheID() = 0;
+  virtual int32_t ResourceNameCacheID() const = 0;
 
   DOCUMENT(R"(Retrieve the information about a particular texture.
 
@@ -2123,7 +2123,7 @@ considered out of date
 :return: The list of buffers.
 :rtype: List[renderdoc.BufferDescription]
 )");
-  virtual const rdcarray<BufferDescription> &GetBuffers() = 0;
+  virtual const rdcarray<BufferDescription> &GetBuffers() const = 0;
 
   DOCUMENT(R"(Retrieve the information about an action at a given
 :data:`eventId <renderdoc.APIEvent.eventId>`.

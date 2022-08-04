@@ -5614,7 +5614,7 @@ void ShaderViewer::updateVariableTooltip()
     QString tooltip;
 
     if(var.type == VarType::Sampler || var.type == VarType::ReadOnlyResource ||
-       var.type == VarType::ReadWriteResource)
+       var.type == VarType::ReadWriteResource || var.type == VarType::GPUPointer)
     {
       tooltip = QFormatStr("%1: ").arg(var.name) + RichResourceTextFormat(m_Ctx, stringRep(var, 0));
     }

@@ -174,7 +174,7 @@ rdcstr DoStringise(const PointerVal &el)
   }
 }
 
-QString GetTruncatedResourceName(ICaptureContext &ctx, ResourceId id)
+QString GetTruncatedResourceName(const ICaptureContext &ctx, ResourceId id)
 {
   QString name = ctx.GetResourceName(id);
   if(name.length() > 64)
@@ -222,7 +222,7 @@ struct RichResourceText
   bool forcehtml = false;
 
   // cache the context once we've obtained it.
-  ICaptureContext *ctxptr = NULL;
+  const ICaptureContext *ctxptr = NULL;
 
   void cacheText(const QWidget *widget)
   {
@@ -232,7 +232,13 @@ struct RichResourceText
     if(!ctxptr)
       return;
 
-    ICaptureContext &ctx = *(ICaptureContext *)ctxptr;
+    cacheText(*ctxptr);
+  }
+
+  void cacheText(const ICaptureContext &ctx)
+  {
+    if(!ctxptr)
+      ctxptr = &ctx;
 
     int refCache = ctx.ResourceNameCacheID();
 
@@ -438,6 +444,14 @@ void GPUAddress::cacheAddress(const QWidget *widget)
   // bail out if we don't have a context
   if(!ctxptr)
     return;
+
+  cacheAddress(*ctxptr);
+}
+
+void GPUAddress::cacheAddress(const ICaptureContext &ctx)
+{
+  if(!ctxptr)
+    ctxptr = &ctx;
 
   // bail if we're already cached
   if(base != ResourceId())
@@ -999,7 +1013,7 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
   {
     ResourceId id;
     GPUAddressPtr ptr;
-    ICaptureContext *ctxptr = NULL;
+    const ICaptureContext *ctxptr = NULL;
 
     if(var.userType() == qMetaTypeId<ResourceId>())
     {
@@ -1198,6 +1212,17 @@ QString RichResourceTextFormat(ICaptureContext &ctx, QVariant var)
   RichResourceTextInitialise(var, &ctx);
   if(var.userType() == qMetaTypeId<ResourceId>())
     return GetTruncatedResourceName(ctx, var.value<ResourceId>());
+
+  if(var.userType() == qMetaTypeId<GPUAddressPtr>())
+  {
+    var.value<GPUAddressPtr>()->cacheAddress(ctx);
+
+    // a bit hacky, but recurse to pick up the 'name' of the pointer base buffer
+    return RichResourceTextFormat(ctx, var.toString());
+  }
+
+  if(var.userType() == qMetaTypeId<RichResourceTextPtr>())
+    var.value<RichResourceTextPtr>()->cacheText(ctx);
 
   // either it's something else and wasn't rich resource, in which case just return the string
   // representation, or it's a fully formatted rich resource document, where the cached text will do
