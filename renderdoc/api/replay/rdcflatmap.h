@@ -99,7 +99,7 @@ struct rdcflatmap
     if(!sorted)
       sort();
 
-    size_t idx = lower_bound(val.first);
+    size_t idx = lower_bound_idx(val.first);
     bool inserted = false;
     if(idx >= size() || storage.at(idx).first != val.first)
     {
@@ -115,7 +115,7 @@ struct rdcflatmap
     if(!sorted)
       sort();
 
-    size_t idx = lower_bound(val.first);
+    size_t idx = lower_bound_idx(val.first);
     bool inserted = false;
     if(idx >= size() || storage.at(idx).first != val.first)
     {
@@ -131,7 +131,7 @@ struct rdcflatmap
     if(!sorted)
       sort();
 
-    size_t idx = lower_bound(key);
+    size_t idx = lower_bound_idx(key);
 
     // almost the same behaviour as lower_bound, except if we actually have the key, return the next
     // element.
@@ -143,7 +143,7 @@ struct rdcflatmap
 
   const_iterator upper_bound(const Key &key) const
   {
-    size_t idx = lower_bound(key);
+    size_t idx = lower_bound_idx(key);
 
     // almost the same behaviour as lower_bound, except if we actually have the key, return the next
     // element.
@@ -153,6 +153,8 @@ struct rdcflatmap
     return begin() + idx;
   }
 
+  iterator lower_bound(const Key &key) { return begin() + lower_bound_idx(key); }
+  const_iterator lower_bound(const Key &key) const { return begin() + lower_bound_idx(key); }
   iterator begin() { return storage.begin(); }
   iterator end() { return storage.end(); }
   const_iterator begin() const { return storage.begin(); }
@@ -180,7 +182,7 @@ private:
 
   iterator sorted_find(const Key &id)
   {
-    size_t idx = lower_bound(id);
+    size_t idx = lower_bound_idx(id);
     if(idx >= size() || storage.at(idx).first != id)
       return end();
 
@@ -189,7 +191,7 @@ private:
 
   const_iterator sorted_find(const Key &id) const
   {
-    size_t idx = lower_bound(id);
+    size_t idx = lower_bound_idx(id);
     if(idx >= size() || storage.at(idx).first != id)
       return end();
 
@@ -198,14 +200,14 @@ private:
 
   void sorted_erase(const Key &id)
   {
-    size_t idx = lower_bound(id);
+    size_t idx = lower_bound_idx(id);
     if(idx < size() && storage.at(idx).first == id)
       storage.erase(idx);
   }
 
   Value &sorted_at(const Key &id)
   {
-    size_t idx = lower_bound(id);
+    size_t idx = lower_bound_idx(id);
     if(idx >= size() || storage.at(idx).first != id)
     {
       storage.insert(idx, {id, Value()});
@@ -214,7 +216,7 @@ private:
     return (begin() + idx)->second;
   }
 
-  size_t lower_bound(const Key &id) const
+  size_t lower_bound_idx(const Key &id) const
   {
     // start looking at the whole range
     size_t start = 0, sz = size();
