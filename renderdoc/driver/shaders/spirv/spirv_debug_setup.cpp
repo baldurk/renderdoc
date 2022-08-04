@@ -79,7 +79,7 @@ void setScalars(ShaderVariable &var, uint8_t scalar0, uint8_t scalar1)
 
 rdcpair<uint8_t, uint8_t> getScalars(const ShaderVariable &var)
 {
-  return {(var.value.u64v[2] >> 8) & 0xff, var.value.u64v[2] & 0xff};
+  return {uint8_t((var.value.u64v[2] >> 8) & 0xff), uint8_t(var.value.u64v[2] & 0xff)};
 }
 
 // slot 3 contains the base ID of the structure, for registering pointer changes
