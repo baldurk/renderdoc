@@ -272,7 +272,7 @@ static int dl_iterate_callback(struct dl_phdr_info *info, size_t size, void *dat
       else if(dynamic->d_tag == DT_JMPREL)
         pltbase = (Elf_Rel *)(info->dlpi_addr + dynamic->d_un.d_ptr);
       else if(dynamic->d_tag == DT_PLTRELSZ)
-        pltcount = dynamic->d_un.d_val / sizeof(Elf_Rel);
+        pltcount = ElfW(Sword)(dynamic->d_un.d_val / sizeof(Elf_Rel));
 
       /*
       if(dynamic->d_tag == DT_NEEDED)
@@ -338,7 +338,7 @@ static int dl_iterate_callback(struct dl_phdr_info *info, size_t size, void *dat
       HOOK_DEBUG_PRINT("Got relro %p -> %p", relro_base, relro_end);
     HOOK_DEBUG_PRINT("Got %i PLT entries", pltcount);
 
-    int pagesize = sysconf(_SC_PAGE_SIZE);
+    size_t pagesize = sysconf(_SC_PAGE_SIZE);
 
     for(ElfW(Sword) i = 0; i < pltcount; i++)
     {

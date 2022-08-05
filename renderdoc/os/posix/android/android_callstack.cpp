@@ -38,7 +38,7 @@ public:
   void Set(uint64_t *calls, size_t num)
   {
     numLevels = num;
-    for(int i = 0; i < numLevels; i++)
+    for(size_t i = 0; i < numLevels; i++)
       addrs[i] = calls[i];
   }
 
@@ -48,7 +48,7 @@ private:
   AndroidCallstack(const Callstack::Stackwalk &other);
 
   uint64_t addrs[128];
-  int numLevels;
+  size_t numLevels;
 };
 
 namespace Callstack
