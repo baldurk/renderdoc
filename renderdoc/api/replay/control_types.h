@@ -562,6 +562,12 @@ struct APIUseData
 
   DOCUMENT("``True`` if the API can be captured.");
   bool supported = false;
+
+  DOCUMENT(R"(A string message if the API is unsupported explaining why.
+
+:type: str
+)");
+  rdcstr supportMessage;
 };
 
 DECLARE_REFLECTION_STRUCT(APIUseData);

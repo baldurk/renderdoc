@@ -654,6 +654,8 @@ void LiveCapture::updateAPIStatus()
     if(!m_APIs[api].supported)
     {
       apiStatus += tr(", %1 (Unsupported)").arg(api);
+      if(!m_APIs[api].supportMessage.isEmpty())
+        apiStatus += lit("\n") + m_APIs[api].supportMessage;
     }
     else if(!m_APIs[api].presenting)
     {
@@ -664,6 +666,8 @@ void LiveCapture::updateAPIStatus()
 
   // remove the redundant starting ", "
   apiStatus.remove(0, 2);
+
+  apiStatus.replace(QLatin1Char('\n'), lit("<br>"));
 
   ui->apiStatus->setText(apiStatus);
 
@@ -1344,13 +1348,11 @@ void LiveCapture::connectionThreadEntry()
 
     if(msg.type == TargetControlMessageType::RegisterAPI)
     {
-      QString api = msg.apiUse.name;
-      bool presenting = msg.apiUse.presenting;
-      bool supported = msg.apiUse.supported;
-      GUIInvoke::call(this, [this, api, presenting, supported]() {
-        m_APIs[api] = APIStatus(presenting, supported);
+      GUIInvoke::call(this, [this, msg]() {
+        m_APIs[msg.apiUse.name] =
+            APIStatus(msg.apiUse.presenting, msg.apiUse.supported, msg.apiUse.supportMessage);
 
-        if(presenting && supported)
+        if(msg.apiUse.presenting && msg.apiUse.supported)
         {
           ui->triggerImmediateCapture->setEnabled(true);
           ui->triggerDelayedCapture->setEnabled(true);

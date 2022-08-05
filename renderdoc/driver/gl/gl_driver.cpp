@@ -1027,7 +1027,28 @@ void WrappedOpenGL::UseUnusedSupportedFunction(const char *name)
     }
   }
 
+  size_t sz = m_UnsupportedFunctions.size();
   m_UnsupportedFunctions.insert(name);
+
+  if(sz != m_UnsupportedFunctions.size())
+  {
+    RDCERR("Unsupported function %s used", name);
+
+    rdcstr unsupportedStatus = StringFormat::Fmt(
+        "Unsupported %s used:\n", m_UnsupportedFunctions.size() == 1 ? "function" : "functions");
+    size_t i = 0;
+    for(const char *func : m_UnsupportedFunctions)
+    {
+      i++;
+      if(i > 4)
+        break;
+      unsupportedStatus += StringFormat::Fmt(" - %s\n", func);
+    }
+    if(m_UnsupportedFunctions.size() > i)
+      unsupportedStatus += " - ...\n";
+
+    RenderDoc::Inst().SetDriverUnsupportedMessage(RDCDriver::OpenGL, unsupportedStatus);
+  }
 }
 
 void WrappedOpenGL::CheckImplicitThread()
@@ -2073,7 +2094,9 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
       // print the unsupported functions (up to a handful) to show
       if(!m_UnsupportedFunctions.empty())
       {
-        overlayText += "Captures disabled.\nUnsupported function used:\n";
+        overlayText +=
+            StringFormat::Fmt("Captures disabled.\nUnsupported %s used:\n",
+                              m_UnsupportedFunctions.size() == 1 ? "function" : "functions");
         size_t i = 0;
         for(const char *func : m_UnsupportedFunctions)
         {

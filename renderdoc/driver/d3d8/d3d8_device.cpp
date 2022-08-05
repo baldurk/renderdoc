@@ -283,6 +283,7 @@ HRESULT __stdcall WrappedD3DDevice8::Present(CONST RECT *pSourceRect, CONST RECT
   }
 
   RenderDoc::Inst().AddActiveDriver(RDCDriver::D3D8, true);
+  RenderDoc::Inst().SetDriverUnsupportedMessage(RDCDriver::D3D8, "D3D8 is not a supported API");
 
   return m_device->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 }

@@ -127,9 +127,10 @@ private:
   struct APIStatus
   {
     APIStatus() = default;
-    APIStatus(bool p, bool s) : presenting(p), supported(s) {}
+    APIStatus(bool p, bool s, rdcstr m) : presenting(p), supported(s), supportMessage(m) {}
     bool presenting = false;
     bool supported = false;
+    rdcstr supportMessage;
   };
 
   Capture *GetCapture(QListWidgetItem *item);

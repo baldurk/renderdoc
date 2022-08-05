@@ -109,7 +109,7 @@
             <string>API:</string>
            </property>
            <property name="alignment">
-            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignTop</set>
            </property>
           </widget>
          </item>

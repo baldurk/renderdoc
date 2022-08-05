@@ -257,6 +257,7 @@ HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT
   }
 
   RenderDoc::Inst().AddActiveDriver(RDCDriver::D3D9, true);
+  RenderDoc::Inst().SetDriverUnsupportedMessage(RDCDriver::D3D9, "D3D9 is not a supported API");
 
   return m_device->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 }

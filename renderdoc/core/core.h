@@ -236,6 +236,20 @@ enum class RDCDriver : uint32_t
 
 DECLARE_REFLECTION_ENUM(RDCDriver);
 
+struct RDCDriverStatus
+{
+  bool presenting = false;
+  bool supported = false;
+  rdcstr supportMessage;
+
+  bool operator==(const RDCDriverStatus &o) const
+  {
+    return presenting == o.presenting && supported == o.supported &&
+           supportMessage == o.supportMessage;
+  }
+  bool operator!=(const RDCDriverStatus &o) const { return !(*this == o); }
+};
+
 enum ReplayLogType
 {
   eReplay_Full,
@@ -547,7 +561,8 @@ public:
   bool HasRemoteDriver(RDCDriver driver) const;
 
   void AddActiveDriver(RDCDriver driver, bool present);
-  std::map<RDCDriver, bool> GetActiveDrivers();
+  void SetDriverUnsupportedMessage(RDCDriver driver, rdcstr message);
+  std::map<RDCDriver, RDCDriverStatus> GetActiveDrivers();
 
   uint32_t GetTargetControlIdent() const { return m_RemoteIdent; }
   bool IsTargetControlConnected();
@@ -644,6 +659,7 @@ private:
   int32_t m_MarkerIndentLevel;
   Threading::CriticalSection m_DriverLock;
   std::map<RDCDriver, uint64_t> m_ActiveDrivers;
+  std::map<RDCDriver, rdcstr> m_APISupportMessages;
 
   Threading::ThreadHandle m_AvailableGPUThread = 0;
   rdcarray<GPUDevice> m_AvailableGPUs;

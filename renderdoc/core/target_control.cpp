@@ -32,7 +32,7 @@
 #include "replay/replay_driver.h"
 #include "serialise/serialiser.h"
 
-static const uint32_t TargetControlProtocolVersion = 7;
+static const uint32_t TargetControlProtocolVersion = 8;
 
 static bool IsProtocolVersionSupported(const uint32_t protocolVersion)
 {
@@ -54,6 +54,10 @@ static bool IsProtocolVersionSupported(const uint32_t protocolVersion)
 
   // 6 -> 7 add 'request show' packet
   if(protocolVersion == 6)
+    return true;
+
+  // 7 -> 8 add custom message for unsupported APIs
+  if(protocolVersion == 7)
     return true;
 
   if(protocolVersion == TargetControlProtocolVersion)
@@ -156,7 +160,7 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
 
   rdcarray<CaptureData> captures;
   rdcarray<rdcpair<uint32_t, uint32_t> > children;
-  std::map<RDCDriver, bool> drivers;
+  std::map<RDCDriver, RDCDriverStatus> drivers;
   float prevCaptureProgress = captureProgress;
   uint32_t prevWindows = 0;
 
@@ -171,7 +175,7 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
     Threading::Sleep(ticktime);
     curtime += ticktime;
 
-    std::map<RDCDriver, bool> curdrivers = RenderDoc::Inst().GetActiveDrivers();
+    std::map<RDCDriver, RDCDriverStatus> curdrivers = RenderDoc::Inst().GetActiveDrivers();
 
     rdcarray<CaptureData> caps = RenderDoc::Inst().GetCaptures();
     rdcarray<rdcpair<uint32_t, uint32_t> > childprocs = RenderDoc::Inst().GetChildProcesses();
@@ -182,7 +186,7 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
     {
       // find the first difference, either a new key or a key with a different value, and send it.
       RDCDriver driver = RDCDriver::Unknown;
-      bool presenting = false;
+      RDCDriverStatus status;
 
       // search for new drivers
       for(auto it = curdrivers.begin(); it != curdrivers.end(); it++)
@@ -190,7 +194,7 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
         if(drivers.find(it->first) == drivers.end() || drivers[it->first] != it->second)
         {
           driver = it->first;
-          presenting = it->second;
+          status = it->second;
           break;
         }
       }
@@ -198,19 +202,18 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
       RDCASSERTNOTEQUAL(driver, RDCDriver::Unknown);
 
       if(driver != RDCDriver::Unknown)
-        drivers[driver] = presenting;
-
-      bool supported =
-          RenderDoc::Inst().HasRemoteDriver(driver) || RenderDoc::Inst().HasReplayDriver(driver);
-
-      supported &= RenderDoc::Inst().HasActiveFrameCapturer(driver);
+        drivers[driver] = status;
 
       WRITE_DATA_SCOPE();
       {
         SCOPED_SERIALISE_CHUNK(ePacket_APIUse);
         SERIALISE_ELEMENT(driver);
-        SERIALISE_ELEMENT(presenting);
-        SERIALISE_ELEMENT(supported);
+        SERIALISE_ELEMENT(status.presenting);
+        SERIALISE_ELEMENT(status.supported);
+        if(version >= 8)
+        {
+          SERIALISE_ELEMENT(status.supportMessage);
+        }
       }
     }
     else if(caps.size() != captures.size())
@@ -843,15 +846,21 @@ public:
       RDCDriver driver = RDCDriver::Unknown;
       bool presenting = false;
       bool supported = false;
+      rdcstr supportMessage;
 
       READ_DATA_SCOPE();
       SERIALISE_ELEMENT(driver);
       SERIALISE_ELEMENT(presenting);
       SERIALISE_ELEMENT(supported);
+      if(m_Version >= 8)
+      {
+        SERIALISE_ELEMENT(supportMessage);
+      }
 
       msg.apiUse.name = ToStr(driver);
       msg.apiUse.presenting = presenting;
       msg.apiUse.supported = supported;
+      msg.apiUse.supportMessage = supportMessage;
 
       if(presenting)
         m_API = ToStr(driver);
@@ -859,6 +868,8 @@ public:
       RDCLOG("Used API: %s (%s & %s)", msg.apiUse.name.c_str(),
              presenting ? "Presenting" : "Not presenting",
              supported ? "supported" : "not supported");
+      if(!supportMessage.empty())
+        RDCLOG("Support: %s", supportMessage.c_str());
 
       reader.EndChunk();
       return msg;

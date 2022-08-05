@@ -1669,7 +1669,16 @@ void RenderDoc::AddActiveDriver(RDCDriver driver, bool present)
   }
 }
 
-std::map<RDCDriver, bool> RenderDoc::GetActiveDrivers()
+void RenderDoc::SetDriverUnsupportedMessage(RDCDriver driver, rdcstr message)
+{
+  if(driver == RDCDriver::Unknown)
+    return;
+
+  SCOPED_LOCK(m_DriverLock);
+  m_APISupportMessages[driver] = message;
+}
+
+std::map<RDCDriver, RDCDriverStatus> RenderDoc::GetActiveDrivers()
 {
   std::map<RDCDriver, uint64_t> drivers;
 
@@ -1678,20 +1687,28 @@ std::map<RDCDriver, bool> RenderDoc::GetActiveDrivers()
     drivers = m_ActiveDrivers;
   }
 
-  std::map<RDCDriver, bool> ret;
+  std::map<RDCDriver, RDCDriverStatus> ret;
 
   for(auto it = drivers.begin(); it != drivers.end(); ++it)
   {
+    RDCDriverStatus &status = ret[it->first];
     // driver is presenting if the timestamp is greater than 0 and less than 10 seconds ago (gives a
     // little leeway for loading screens or something where the presentation stops temporarily).
     // we also assume that during a capture if it was presenting, then it's still capturing.
     // Otherwise a long capture would temporarily set it as not presenting.
-    bool presenting = it->second > 0;
+    status.presenting = it->second > 0;
 
-    if(presenting && !IsFrameCapturing() && it->second < Timing::GetUnixTimestamp() - 10)
-      presenting = false;
+    if(status.presenting && !IsFrameCapturing() && it->second < Timing::GetUnixTimestamp() - 10)
+      status.presenting = false;
 
-    ret[it->first] = presenting;
+    status.supported = (HasRemoteDriver(it->first) || HasReplayDriver(it->first)) &&
+                       HasActiveFrameCapturer(it->first);
+
+    if(!status.supported)
+    {
+      SCOPED_LOCK(m_DriverLock);
+      status.supportMessage = m_APISupportMessages[it->first];
+    }
   }
 
   return ret;
