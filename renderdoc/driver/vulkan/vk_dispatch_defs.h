@@ -866,6 +866,11 @@ struct VkDevDispatchTable
   PFN_vkSetPrivateDataEXT SetPrivateDataEXT;
   PFN_vkGetPrivateDataEXT GetPrivateDataEXT;
 
+  // VK_EXT_metal_objects
+#ifdef VK_USE_PLATFORM_METAL_EXT
+  PFN_vkExportMetalObjectsEXT ExportMetalObjectsEXT;
+#endif // VK_USE_PLATFORM_METAL_EXT
+
   // VK_NV_fragment_shading_rate_enums
   PFN_vkCmdSetFragmentShadingRateEnumNV CmdSetFragmentShadingRateEnumNV;
 
@@ -929,6 +934,14 @@ struct VkDevDispatchTable
   // VK_VALVE_descriptor_set_host_mapping
   PFN_vkGetDescriptorSetLayoutHostMappingInfoVALVE GetDescriptorSetLayoutHostMappingInfoVALVE;
   PFN_vkGetDescriptorSetHostMappingVALVE GetDescriptorSetHostMappingVALVE;
+
+  // VK_EXT_shader_module_identifier
+  PFN_vkGetShaderModuleIdentifierEXT GetShaderModuleIdentifierEXT;
+  PFN_vkGetShaderModuleCreateInfoIdentifierEXT GetShaderModuleCreateInfoIdentifierEXT;
+
+  // VK_QCOM_tile_properties
+  PFN_vkGetFramebufferTilePropertiesQCOM GetFramebufferTilePropertiesQCOM;
+  PFN_vkGetDynamicRenderingTilePropertiesQCOM GetDynamicRenderingTilePropertiesQCOM;
 
   // for consistency with macros, we declare the CreateDevice pointer here
   // even though it won't actually ever get used and is on the instance dispatch chain

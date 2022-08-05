@@ -230,6 +230,7 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 ## EXT Extensions
 
 * `VK_EXT_acquire_drm_display`
+* `VK_EXT_attachment_feedback_loop_layout`
 * `VK_EXT_blend_operation_advanced`
 * `VK_EXT_border_color_swizzle`
 * `VK_EXT_depth_clip_control`
@@ -240,13 +241,18 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_image_compression_control_swapchain`
 * `VK_EXT_image_drm_format_modifier`
 * `VK_EXT_image_view_min_lod`
+* `VK_EXT_metal_objects`
 * `VK_EXT_multi_draw`
+* `VK_EXT_multisampled_render_to_single_sampled`
+* `VK_EXT_non_seamless_cube_map`
 * `VK_EXT_pageable_device_local_memory`
 * `VK_EXT_physical_device_drm`
 * `VK_EXT_pipeline_properties`
+* `VK_EXT_pipeline_robustness`
 * `VK_EXT_primitive_topology_list_restart`
 * `VK_EXT_primitives_generated_query`
 * `VK_EXT_provoking_vertex`
+* `VK_EXT_shader_module_identifier`
 * `VK_EXT_subpass_merge_feedback`
 
 ## Platform/IHV Extensions
@@ -312,10 +318,16 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 ### Qualcomm
 
 * `VK_QCOM_fragment_density_map_offset`
+* `VK_QCOM_image_processing`
 * `VK_QCOM_render_pass_shader_resolve`
 * `VK_QCOM_render_pass_store_ops`
 * `VK_QCOM_render_pass_transform`
 * `VK_QCOM_rotated_copy_commands`
+* `VK_QCOM_tile_properties`
+
+### Samsung
+
+* `VK_SEC_amigo_profiling`
 
 ### Valve
 

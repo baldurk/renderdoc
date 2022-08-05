@@ -51,6 +51,7 @@
 066    VK_EXT_shader_subgroup_vote
 067    VK_EXT_texture_compression_astc_hdr
 068    VK_EXT_astc_decode_mode
+069    VK_EXT_pipeline_robustness
 070    VK_KHR_maintenance1
 071    VK_KHR_device_group_creation
 072    VK_KHR_external_memory_capabilities
@@ -227,6 +228,7 @@
 300    VK_KHR_video_encode_queue
 301    VK_NV_device_diagnostics_config
 302    VK_QCOM_render_pass_store_ops
+312    VK_EXT_metal_objects
 315    VK_KHR_synchronization2
 321    VK_EXT_graphics_pipeline_library
 322    VK_AMD_shader_early_and_late_fragment_tests
@@ -242,6 +244,7 @@
 337    VK_KHR_workgroup_memory_explicit_layout
 338    VK_KHR_copy_commands2
 339    VK_EXT_image_compression_control
+340    VK_EXT_attachment_feedback_loop_layout
 341    VK_EXT_4444_formats
 343    VK_ARM_rasterization_order_attachment_access
 345    VK_EXT_rgba10x6_formats
@@ -262,6 +265,7 @@
 371    VK_HUAWEI_invocation_mask
 372    VK_NV_external_memory_rdma
 373    VK_EXT_pipeline_properties
+377    VK_EXT_multisampled_render_to_single_sampled
 378    VK_EXT_extended_dynamic_state2
 379    VK_QNX_screen_surface
 382    VK_EXT_color_write_enable
@@ -277,8 +281,13 @@
 413    VK_EXT_pageable_device_local_memory
 414    VK_KHR_maintenance4
 421    VK_VALVE_descriptor_set_host_mapping
+423    VK_EXT_non_seamless_cube_map
 426    VK_QCOM_fragment_density_map_offset
 431    VK_NV_linear_color_attachment
 434    VK_GOOGLE_surfaceless_query
 438    VK_EXT_image_compression_control_swapchain
+441    VK_QCOM_image_processing
 459    VK_EXT_subpass_merge_feedback
+463    VK_EXT_shader_module_identifier
+485    VK_QCOM_tile_properties
+486    VK_SEC_amigo_profiling
