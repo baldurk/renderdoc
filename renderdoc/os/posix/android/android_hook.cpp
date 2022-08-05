@@ -677,7 +677,13 @@ void PatchHookedFunctions()
 
 bool LibraryHooks::Detect(const char *identifier)
 {
-  return dlsym(RTLD_DEFAULT, identifier) != NULL;
+  const bool symbol = (dlsym(RTLD_DEFAULT, identifier) != NULL);
+  const bool env = (getenv(identifier) != NULL);
+
+  RDCLOG("Detecting symbol %s by dlsym: %s", identifier, symbol ? "yes" : "no");
+  RDCLOG("Detecting symbol %s by getenv: %s", identifier, env ? "yes" : "no");
+
+  return symbol || env;
 }
 
 void LibraryHooks::RemoveHooks()

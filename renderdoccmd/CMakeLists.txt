@@ -216,6 +216,8 @@ if(ANDROID)
     set(APK_FILE ${CMAKE_BINARY_DIR}/bin/${RENDERDOC_ANDROID_PACKAGE_NAME}.apk)
     add_custom_target(apk ALL
                       DEPENDS ${APK_FILE})
+                  
+    option(ENABLE_CUSTOM_WRAP_SCRIPT "Enable custom wrap.sh on Android to workaround Android bug" ON)
 
     # Copy in android package files, replacing the package name with the architecture-specific package name
     configure_file(android/Loader.java ${CMAKE_CURRENT_BINARY_DIR}/src/org/renderdoc/renderdoccmd/Loader.java)
@@ -233,6 +235,18 @@ if(ANDROID)
                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoc> libs/lib/${ANDROID_ABI}/$<TARGET_FILE_NAME:renderdoc>
                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoccmd> libs/lib/${ANDROID_ABI}/$<TARGET_FILE_NAME:renderdoccmd>
                        )
+    
+    if(ENABLE_CUSTOM_WRAP_SCRIPT)
+        # use configure_file to ensure unix newlines regardless of how it is in the repository (e.g. CRLF on windows)
+        configure_file(android/wrap.sh ${CMAKE_CURRENT_BINARY_DIR}/libs/lib/${ANDROID_ABI}/wrap.sh @ONLY NEWLINE_STYLE UNIX)
+
+        message(STATUS "Using custom wrap script for Android bug workaround")
+        add_custom_command(OUTPUT ${APK_FILE} APPEND
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libs/lib/${ANDROID_ABI}/wrap.sh libs/lib/${ANDROID_ABI}/wrap.sh
+            )
+    else()
+        message(WARNING "Without custom wrap script, some Android versions will break due to Android bug")
+    endif()
 
     if(ENABLE_ASAN)
         set(ASAN_ABI_TAG "")
@@ -260,11 +274,19 @@ if(ANDROID)
         elseif(${ASAN_LIBRARY} STREQUAL "" OR NOT EXISTS ${ASAN_LIBRARY})
             message(WARNING "libasan library couldn't be found in NDK, you will need to manually copy it in and re-generate apk")
         else()
-            message(STATUS "Using wrap script ${WRAP_SCRIPT} and libasan library ${ASAN_LIBRARY}")
-            add_custom_command(OUTPUT ${APK_FILE} APPEND
-                COMMAND ${CMAKE_COMMAND} -E copy ${WRAP_SCRIPT} libs/lib/${ANDROID_ABI}/wrap.sh
-                COMMAND ${CMAKE_COMMAND} -E copy ${ASAN_LIBRARY} libs/lib/${ANDROID_ABI}/
-                )
+            if(ENABLE_CUSTOM_WRAP_SCRIPT)
+                message(STATUS "Chaining to wrap script ${WRAP_SCRIPT} and libasan library ${ASAN_LIBRARY}")
+                add_custom_command(OUTPUT ${APK_FILE} APPEND
+                    COMMAND ${CMAKE_COMMAND} -E copy ${WRAP_SCRIPT} libs/lib/${ANDROID_ABI}/asan.sh
+                    COMMAND ${CMAKE_COMMAND} -E copy ${ASAN_LIBRARY} libs/lib/${ANDROID_ABI}/
+                    )
+            else()
+                message(STATUS "Directly using wrap script ${WRAP_SCRIPT} and libasan library ${ASAN_LIBRARY}")
+                add_custom_command(OUTPUT ${APK_FILE} APPEND
+                    COMMAND ${CMAKE_COMMAND} -E copy ${WRAP_SCRIPT} libs/lib/${ANDROID_ABI}/wrap.sh
+                    COMMAND ${CMAKE_COMMAND} -E copy ${ASAN_LIBRARY} libs/lib/${ANDROID_ABI}/
+                    )
+            endif()
         endif()
     endif()
 
