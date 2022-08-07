@@ -747,6 +747,18 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
 
   if(IsCaptureMode(m_State))
   {
+    VkResourceRecord *memrecord = GetRecord(memory);
+
+    // any forced references were already processed at the start of the frame if we're mid capture.
+    // If we're background capturing though, we need to make sure not to force in buffers
+    // referencing this now-dead memory, as a new memory allocation could be created and use the
+    // same BDA address
+    {
+      SCOPED_LOCK(m_ForcedReferencesLock);
+      m_ForcedReferences.removeIf(
+          [memrecord](const VkResourceRecord *record) { return record->HasParent(memrecord); });
+    }
+
     // artificially extend the lifespan of buffer device address memory or buffers, to ensure their
     // opaque capture address isn't re-used before the capture completes
     {

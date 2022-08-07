@@ -349,7 +349,7 @@ struct ResourceRecord
       Parents.push_back(r);
     }
   }
-
+  bool HasParent(ResourceRecord *r) const { return Parents.indexOf(r) >= 0; }
   void MarkParentsDirty(ResourceRecordHandler *mgr)
   {
     for(auto it = Parents.begin(); it != Parents.end(); ++it)
