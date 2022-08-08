@@ -309,8 +309,19 @@ struct EventItemModel : public QAbstractItemModel
     // iterate nodes in reverse order, because parent nodes will always be before children
     // so we know we'll have the results
     QList<uint32_t> nodeEIDs = m_Nodes.keys();
+    // calculate fake marker durations last, as they have higher eventIds even as parents so are
+    // out of order. Normal markers do not have this problem
+    QList<uint32_t> fakeMarkers;
     for(auto it = nodeEIDs.rbegin(); it != nodeEIDs.rend(); it++)
-      CalculateTotalDuration(m_Nodes[*it]);
+    {
+      if(m_Nodes[*it].action && m_Nodes[*it].action->IsFakeMarker())
+        fakeMarkers.push_back(*it);
+      else
+        CalculateTotalDuration(m_Nodes[*it]);
+    }
+
+    for(uint32_t markerEID : fakeMarkers)
+      CalculateTotalDuration(m_Nodes[markerEID]);
 
     // Qt's item model kind of sucks and doesn't have a good way to say "all data in this column has
     // changed" let alone "all data has changed". dataChanged() is limited to only a group of model
