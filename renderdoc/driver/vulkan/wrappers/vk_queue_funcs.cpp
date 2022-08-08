@@ -259,6 +259,22 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, r
     // we're adding multiple events, need to increment ourselves
     m_RootEventID++;
 
+    if(submitInfo.commandBufferInfoCount == 0)
+    {
+      rdcstr name = StringFormat::Fmt("=> %s: No Command Buffers", basename.c_str());
+
+      ActionDescription action;
+      action.customName = name;
+      action.flags |= ActionFlags::CommandBufferBoundary | ActionFlags::PassBoundary;
+      AddEvent();
+
+      m_RootEvents.back().chunkIndex = APIEvent::NoChunk;
+      m_Events.back().chunkIndex = APIEvent::NoChunk;
+
+      AddAction(action);
+      m_RootEventID++;
+    }
+
     for(uint32_t c = 0; c < submitInfo.commandBufferInfoCount; c++)
     {
       ResourceId cmd = GetResourceManager()->GetOriginalID(
@@ -362,6 +378,13 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, r
   {
     // account for the queue submit event
     m_RootEventID++;
+
+    if(submitInfo.commandBufferInfoCount == 0)
+    {
+      // account for the "No Command Buffers" virtual label
+      m_RootEventID++;
+      m_RootActionID++;
+    }
 
     uint32_t startEID = m_RootEventID;
 
