@@ -1288,8 +1288,8 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   ShaderVariable lookupResult("tex", 0.0f, 0.0f, 0.0f, 0.0f);
 
   float *retFloats = (float *)results;
-  uint32_t *retUInts = (uint32_t *)(retFloats + 16);
-  int32_t *retSInts = (int32_t *)(retUInts + 16);
+  uint32_t *retUInts = (uint32_t *)(retFloats + 8);
+  int32_t *retSInts = (int32_t *)(retUInts + 8);
 
   if(cbufferData.debugSampleRetType == DEBUG_SAMPLE_UINT)
   {
