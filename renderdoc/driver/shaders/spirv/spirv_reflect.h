@@ -131,6 +131,7 @@ private:
   SparseIdMap<size_t> debugSources;
   SparseIdMap<size_t> compUnitToFileIndex;
   SparseIdMap<size_t> funcToBaseFile;
+  SparseIdMap<rdcstr> funcToCmdLine;
   SparseIdMap<LineColumnInfo> debugFuncToLocation;
   SparseIdMap<LineColumnInfo> funcToLocation;
 

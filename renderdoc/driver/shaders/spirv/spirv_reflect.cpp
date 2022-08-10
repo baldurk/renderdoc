@@ -597,6 +597,7 @@ void Reflector::RegisterOp(Iter it)
       else if(dbg.inst == ShaderDbg::EntryPoint)
       {
         funcToBaseFile[dbg.arg<Id>(0)] = compUnitToFileIndex[dbg.arg<Id>(1)];
+        funcToCmdLine[dbg.arg<Id>(0)] = strings[dbg.arg<Id>(3)];
       }
       else if(dbg.inst == ShaderDbg::GlobalVariable)
       {
@@ -831,9 +832,6 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         reflection.dispatchThreadsDimension[2] = 0;
   }
 
-  if(!cmdline.empty())
-    reflection.debugInfo.compileFlags.flags = {{"@cmdline", cmdline}};
-
   for(size_t i = 0; i < sources.size(); i++)
   {
     switch(sources[i].lang)
@@ -864,6 +862,15 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     auto it = funcToBaseFile.find(entry->id);
     if(it != funcToBaseFile.end())
       reflection.debugInfo.editBaseFile = (int32_t)it->second;
+  }
+
+  if(!cmdline.empty())
+    reflection.debugInfo.compileFlags.flags = {{"@cmdline", cmdline}};
+
+  {
+    auto it = funcToCmdLine.find(entry->id);
+    if(it != funcToCmdLine.end())
+      reflection.debugInfo.compileFlags.flags = {{"@cmdline", it->second}};
   }
 
   PreprocessLineDirectives(reflection.debugInfo.files);
