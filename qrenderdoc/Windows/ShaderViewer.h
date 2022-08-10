@@ -116,8 +116,8 @@ public:
 
   static ShaderViewer *EditShader(ICaptureContext &ctx, ResourceId id, ShaderStage stage,
                                   const QString &entryPoint, const rdcstrpairs &files,
-                                  ShaderEncoding shaderEncoding, ShaderCompileFlags flags,
-                                  IShaderViewer::SaveCallback saveCallback,
+                                  KnownShaderTool knownTool, ShaderEncoding shaderEncoding,
+                                  ShaderCompileFlags flags, IShaderViewer::SaveCallback saveCallback,
                                   IShaderViewer::RevertCallback revertCallback,
                                   ModifyCallback modifyCallback, QWidget *parent)
   {
@@ -125,7 +125,7 @@ public:
     ret->m_SaveCallback = saveCallback;
     ret->m_RevertCallback = revertCallback;
     ret->m_ModifyCallback = modifyCallback;
-    ret->editShader(id, stage, entryPoint, files, shaderEncoding, flags);
+    ret->editShader(id, stage, entryPoint, files, knownTool, shaderEncoding, flags);
     return ret;
   }
 
@@ -208,7 +208,8 @@ private slots:
 private:
   explicit ShaderViewer(ICaptureContext &ctx, QWidget *parent = 0);
   void editShader(ResourceId id, ShaderStage stage, const QString &entryPoint,
-                  const rdcstrpairs &files, ShaderEncoding shaderEncoding, ShaderCompileFlags flags);
+                  const rdcstrpairs &files, KnownShaderTool knownTool,
+                  ShaderEncoding shaderEncoding, ShaderCompileFlags flags);
   void debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
                    ResourceId pipeline, ShaderDebugTrace *trace, const QString &debugContext);
 

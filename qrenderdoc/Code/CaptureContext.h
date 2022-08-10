@@ -245,8 +245,9 @@ public:
   void ShowResourceInspector() override;
 
   IShaderViewer *EditShader(ResourceId id, ShaderStage stage, const rdcstr &entryPoint,
-                            const rdcstrpairs &files, ShaderEncoding shaderEncoding,
-                            ShaderCompileFlags flags, IShaderViewer::SaveCallback saveCallback,
+                            const rdcstrpairs &files, KnownShaderTool knownTool,
+                            ShaderEncoding shaderEncoding, ShaderCompileFlags flags,
+                            IShaderViewer::SaveCallback saveCallback,
                             IShaderViewer::RevertCallback revertCallback) override;
 
   void ApplyShaderEdit(IShaderViewer *viewer, ResourceId id, ShaderStage stage,

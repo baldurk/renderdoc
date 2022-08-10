@@ -30,126 +30,6 @@
 
 class QMutex;
 
-DOCUMENT(R"(Identifies a particular known tool used for shader processing.
-
-.. data:: Unknown
-
-  Corresponds to no known tool.
-
-.. data:: SPIRV_Cross
-
-  `SPIRV-Cross <https://github.com/KhronosGroup/SPIRV-Cross>`_.
-
-.. data:: spirv_dis
-
-  `spirv-dis from SPIRV-Tools <https://github.com/KhronosGroup/SPIRV-Tools>`_.
-
-.. data:: glslangValidatorGLSL
-
-  `glslang compiler (GLSL) <https://github.com/KhronosGroup/glslang>`_.
-
-.. data:: glslangValidatorHLSL
-
-  `glslang compiler (HLSL) <https://github.com/KhronosGroup/glslang>`_.
-
-.. data:: spirv_as
-
-  `spirv-as from SPIRV-Tools <https://github.com/KhronosGroup/SPIRV-Tools>`_.
-
-.. data:: dxc
-
-  `DirectX Shader Compiler <https://github.com/microsoft/DirectXShaderCompiler>`_.
-
-)");
-enum class KnownShaderTool : uint32_t
-{
-  Unknown,
-  First = Unknown,
-  SPIRV_Cross,
-  spirv_dis,
-  glslangValidatorGLSL,
-  glslangValidatorHLSL,
-  spirv_as,
-  dxc,
-  Count,
-};
-
-ITERABLE_OPERATORS(KnownShaderTool);
-
-DOCUMENT(R"(Returns the default executable name with no suffix for a given :class:`KnownShaderTool`.
-
-.. note::
-  The executable name is returned with no suffix, e.g. ``foobar`` which may need a platform specific
-  suffix like ``.exe`` appended.
-
-:param KnownShaderTool tool: The tool to get the executable name for.
-:return: The default executable name for this tool, or an empty string if the tool is unrecognised.
-:rtype: str
-)");
-inline rdcstr ToolExecutable(KnownShaderTool tool)
-{
-  if(tool == KnownShaderTool::SPIRV_Cross)
-    return "spirv-cross";
-  else if(tool == KnownShaderTool::spirv_dis)
-    return "spirv-dis";
-  else if(tool == KnownShaderTool::glslangValidatorGLSL)
-    return "glslangValidator";
-  else if(tool == KnownShaderTool::glslangValidatorHLSL)
-    return "glslangValidator";
-  else if(tool == KnownShaderTool::spirv_as)
-    return "spirv-as";
-  else if(tool == KnownShaderTool::dxc)
-    return "dxc";
-
-  return "";
-}
-
-DOCUMENT(R"(Returns the expected default input :class:`~renderdoc.ShaderEncoding` that a
-:class:`KnownShaderTool` expects. This may not be accurate and may be configurable depending on the
-tool.
-
-:param KnownShaderTool tool: The tool to get the input encoding for.
-:return: The encoding that this tool expects as an input by default.
-:rtype: renderdoc.ShaderEncoding
-)");
-inline ShaderEncoding ToolInput(KnownShaderTool tool)
-{
-  if(tool == KnownShaderTool::SPIRV_Cross || tool == KnownShaderTool::spirv_dis)
-    return ShaderEncoding::SPIRV;
-  else if(tool == KnownShaderTool::glslangValidatorGLSL)
-    return ShaderEncoding::GLSL;
-  else if(tool == KnownShaderTool::glslangValidatorHLSL)
-    return ShaderEncoding::HLSL;
-  else if(tool == KnownShaderTool::spirv_as)
-    return ShaderEncoding::SPIRVAsm;
-  else if(tool == KnownShaderTool::dxc)
-    return ShaderEncoding::HLSL;
-
-  return ShaderEncoding::Unknown;
-}
-
-DOCUMENT(R"(Returns the expected default output :class:`~renderdoc.ShaderEncoding` that a
-:class:`KnownShaderTool` produces. This may not be accurate and may be configurable depending on the
-tool.
-
-:param KnownShaderTool tool: The tool to get the output encoding for.
-:return: The encoding that this tool produces as an output by default.
-:rtype: renderdoc.ShaderEncoding
-)");
-inline ShaderEncoding ToolOutput(KnownShaderTool tool)
-{
-  if(tool == KnownShaderTool::SPIRV_Cross)
-    return ShaderEncoding::GLSL;
-  else if(tool == KnownShaderTool::spirv_dis)
-    return ShaderEncoding::SPIRVAsm;
-  else if(tool == KnownShaderTool::glslangValidatorGLSL ||
-          tool == KnownShaderTool::glslangValidatorHLSL || tool == KnownShaderTool::spirv_as ||
-          tool == KnownShaderTool::dxc)
-    return ShaderEncoding::SPIRV;
-
-  return ShaderEncoding::Unknown;
-}
-
 DOCUMENT(R"(Contains the output from invoking a :class:`ShaderProcessingTool`, including both the
 actual output data desired as well as any stdout/stderr messages.
 )");
@@ -241,6 +121,10 @@ struct ShaderProcessingTool
 )");
   ShaderToolOutput CompileShader(QWidget *window, rdcstr source, rdcstr entryPoint,
                                  ShaderStage stage, rdcstr args) const;
+
+private:
+  DOCUMENT("Internal function");
+  rdcstr IOArguments() const;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderProcessingTool);

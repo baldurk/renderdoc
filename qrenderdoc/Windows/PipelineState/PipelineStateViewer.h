@@ -146,8 +146,8 @@ private:
   QString GenerateHLSLStub(const ShaderBindpointMapping &bindpointMapping,
                            const ShaderReflection *shaderDetails, const QString &entryFunc);
   IShaderViewer *EditShader(ResourceId id, ShaderStage shaderType, const rdcstr &entry,
-                            ShaderCompileFlags compileFlags, ShaderEncoding encoding,
-                            const rdcstrpairs &files);
+                            ShaderCompileFlags compileFlags, KnownShaderTool knownTool,
+                            ShaderEncoding shaderEncoding, const rdcstrpairs &files);
   IShaderViewer *EditOriginalShaderSource(ResourceId id, const ShaderReflection *shaderDetails);
   IShaderViewer *EditDecompiledSource(const ShaderProcessingTool &tool, ResourceId id,
                                       const ShaderReflection *shaderDetails);

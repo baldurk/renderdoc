@@ -1233,6 +1233,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
   refl.stage = MakeShaderStage(shadType);
   refl.entryPoint = "main";
   refl.encoding = ShaderEncoding::GLSL;
+  refl.debugInfo.compiler = KnownShaderTool::Unknown;
   refl.debugInfo.encoding = ShaderEncoding::GLSL;
 
   if(shadType == eGL_COMPUTE_SHADER)

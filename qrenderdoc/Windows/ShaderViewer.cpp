@@ -191,8 +191,8 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
 }
 
 void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &entryPoint,
-                              const rdcstrpairs &files, ShaderEncoding shaderEncoding,
-                              ShaderCompileFlags flags)
+                              const rdcstrpairs &files, KnownShaderTool knownTool,
+                              ShaderEncoding shaderEncoding, ShaderCompileFlags flags)
 {
   m_Scintillas.removeOne(m_DisassemblyView);
   ui->docking->removeToolWindow(m_DisassemblyFrame);
@@ -235,6 +235,28 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
                      PopulateCompileToolParameters();
                      MarkModification();
                    });
+
+  // if we know the shader was originally compiled with a specific tool, pick the first matching
+  // tool we have configured.
+  if(knownTool != KnownShaderTool::Unknown)
+  {
+    for(const ShaderProcessingTool &tool : m_Ctx.Config().ShaderProcessors)
+    {
+      // skip tools that can't accept our inputs, or doesn't produce a supported output
+      if(tool.tool == knownTool)
+      {
+        for(int i = 0; i < ui->compileTool->count(); i++)
+        {
+          if(ui->compileTool->itemText(i) == tool.name)
+          {
+            ui->compileTool->setCurrentIndex(i);
+            break;
+          }
+        }
+        break;
+      }
+    }
+  }
 
   // if it's a custom shader, hide the group entirely (don't allow customisation of compile
   // parameters). We can still use it to store the parameters passed in. When visible we collapse it
@@ -1248,8 +1270,9 @@ ShaderViewer *ShaderViewer::LoadEditor(ICaptureContext &ctx, QVariantMap data,
     encoding = ShaderEncoding::HLSL;
   }
 
-  ShaderViewer *view = EditShader(ctx, id, stage, entryPoint, files, encoding, flags, saveCallback,
-                                  revertCallback, modifyCallback, parent);
+  ShaderViewer *view =
+      EditShader(ctx, id, stage, entryPoint, files, KnownShaderTool::Unknown, encoding, flags,
+                 saveCallback, revertCallback, modifyCallback, parent);
 
   int toolIndex = -1;
 
@@ -5775,7 +5798,8 @@ void ShaderViewer::PopulateCompileToolParameters()
     ShaderCompileFlag &flag = m_Flags.flags[i];
     if(flag.name == "@cmdline")
     {
-      // append command line from saved flags
+      // append command line from saved flags, so any specified options override the defaults if
+      // they're specified twice
       ui->toolCommandLine->setPlainText(ui->toolCommandLine->toPlainText() +
                                         lit(" %1").arg(flag.value));
       break;

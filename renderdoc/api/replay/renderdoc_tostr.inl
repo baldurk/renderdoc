@@ -1035,6 +1035,24 @@ rdcstr DoStringise(const ShaderEncoding &el)
 }
 
 template <>
+rdcstr DoStringise(const KnownShaderTool &el)
+{
+  BEGIN_ENUM_STRINGISE(KnownShaderTool);
+  {
+    STRINGISE_ENUM_CLASS_NAMED(Unknown, "Custom Tool");
+    STRINGISE_ENUM_CLASS_NAMED(SPIRV_Cross, "SPIRV-Cross");
+    STRINGISE_ENUM_CLASS_NAMED(spirv_dis, "spirv-dis");
+    STRINGISE_ENUM_CLASS_NAMED(glslangValidatorGLSL, "glslang (GLSL)");
+    STRINGISE_ENUM_CLASS_NAMED(glslangValidatorHLSL, "glslang (HLSL)");
+    STRINGISE_ENUM_CLASS_NAMED(spirv_as, "spirv-as");
+    STRINGISE_ENUM_CLASS_NAMED(dxcSPIRV, "dxc (SPIR-V)");
+    STRINGISE_ENUM_CLASS_NAMED(dxcDXIL, "dxc (DXIL)");
+    STRINGISE_ENUM_CLASS_NAMED(fxc, "fxc");
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const SectionType &el)
 {
   BEGIN_ENUM_STRINGISE(SectionType);

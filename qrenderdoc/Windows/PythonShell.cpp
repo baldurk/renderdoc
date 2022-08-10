@@ -754,13 +754,13 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
     InvokeVoidFunction(&ICaptureContext::ShowResourceInspector);
   }
   virtual IShaderViewer *EditShader(ResourceId id, ShaderStage stage, const rdcstr &entryPoint,
-                                    const rdcstrpairs &files, ShaderEncoding shaderEncoding,
-                                    ShaderCompileFlags flags,
+                                    const rdcstrpairs &files, KnownShaderTool knownTool,
+                                    ShaderEncoding shaderEncoding, ShaderCompileFlags flags,
                                     IShaderViewer::SaveCallback saveCallback,
                                     IShaderViewer::RevertCallback revertCallback) override
   {
     return InvokeRetFunction<IShaderViewer *>(&ICaptureContext::EditShader, id, stage, entryPoint,
-                                              files, shaderEncoding, flags, saveCallback,
+                                              files, knownTool, shaderEncoding, flags, saveCallback,
                                               revertCallback);
   }
 

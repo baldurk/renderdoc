@@ -511,12 +511,6 @@ bool PersistantConfig::Load(const rdcstr &filename)
     // if it's declared
     if(dis.tool != KnownShaderTool::Unknown)
       tools[(size_t)dis.tool] = true;
-
-    for(KnownShaderTool tool : values<KnownShaderTool>())
-    {
-      if(QString(dis.executable).contains(ToolExecutable(tool)))
-        tools[(size_t)tool] = true;
-    }
   }
 
   for(KnownShaderTool tool : values<KnownShaderTool>())
@@ -524,7 +518,7 @@ bool PersistantConfig::Load(const rdcstr &filename)
     if(tool == KnownShaderTool::Unknown || tools[(size_t)tool])
       continue;
 
-    QString exe = ToolExecutable(tool);
+    rdcstr exe = ToolExecutable(tool);
 
     if(exe.isEmpty())
       continue;
@@ -588,6 +582,7 @@ bool PersistantConfig::Load(const rdcstr &filename)
   {
     if(dis.tool != KnownShaderTool::Unknown)
     {
+      dis.name = ToQStr(dis.tool);
       dis.input = ToolInput(dis.tool);
       dis.output = ToolOutput(dis.tool);
     }
@@ -698,20 +693,45 @@ ShaderProcessingTool::ShaderProcessingTool(const QVariant &var)
 rdcstr ShaderProcessingTool::DefaultArguments() const
 {
   if(tool == KnownShaderTool::SPIRV_Cross)
-    return "--output {output_file} {input_file} --vulkan-semantics --entry {entry_point} --stage "
-           "{glsl_stage4}";
+    return "--vulkan-semantics --entry {entry_point} --stage {glsl_stage4}";
   else if(tool == KnownShaderTool::spirv_dis)
-    return "--no-color -o {output_file} {input_file}";
+    return "--no-color";
   else if(tool == KnownShaderTool::glslangValidatorGLSL)
-    return "-g -V -o {output_file} {input_file} -S {glsl_stage4}";
+    return "-g -V -S {glsl_stage4}";
   else if(tool == KnownShaderTool::glslangValidatorHLSL)
-    return "-D -g -V -o {output_file} {input_file} -S {glsl_stage4} -e {entry_point}";
+    return "-D -g -V -S {glsl_stage4} -e {entry_point}";
   else if(tool == KnownShaderTool::spirv_as)
-    return "-o {output_file} {input_file}";
-  else if(tool == KnownShaderTool::dxc)
-    return "-T {hlsl_stage2}_6_0 -E {entry_point} -Fo {output_file} {input_file} -spirv";
+    return "";
+  else if(tool == KnownShaderTool::dxcSPIRV)
+    return "-T {hlsl_stage2}_6_0 -E {entry_point} -spirv";
+  else if(tool == KnownShaderTool::dxcDXIL)
+    return "-T {hlsl_stage2}_6_0 -E {entry_point}";
+  else if(tool == KnownShaderTool::fxc)
+    return "/T {hlsl_stage2}_5_0 /E {entry_point}";
 
   return args;
+}
+
+rdcstr ShaderProcessingTool::IOArguments() const
+{
+  if(tool == KnownShaderTool::SPIRV_Cross)
+    return "--output {output_file} {input_file}";
+  else if(tool == KnownShaderTool::spirv_dis)
+    return "-o {output_file} {input_file}";
+  else if(tool == KnownShaderTool::glslangValidatorGLSL)
+    return "-o {output_file} {input_file}";
+  else if(tool == KnownShaderTool::glslangValidatorHLSL)
+    return "-o {output_file} {input_file}";
+  else if(tool == KnownShaderTool::spirv_as)
+    return "-o {output_file} {input_file}";
+  else if(tool == KnownShaderTool::dxcSPIRV)
+    return "-Fo {output_file} {input_file}";
+  else if(tool == KnownShaderTool::dxcDXIL)
+    return "-Fo {output_file} {input_file}";
+  else if(tool == KnownShaderTool::fxc)
+    return "/Fo {output_file} {input_file}";
+
+  return rdcstr();
 }
 
 ShaderProcessingTool::operator QVariant() const

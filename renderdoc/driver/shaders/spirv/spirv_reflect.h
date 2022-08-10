@@ -130,10 +130,10 @@ private:
   rdcarray<SourceFile> sources;
   SparseIdMap<size_t> debugSources;
   SparseIdMap<size_t> compUnitToFileIndex;
-  SparseIdMap<size_t> funcToBaseFile;
-  SparseIdMap<rdcstr> funcToCmdLine;
+  SparseIdMap<size_t> debugFuncToBaseFile;
+  SparseIdMap<rdcstr> debugFuncToCmdLine;
   SparseIdMap<LineColumnInfo> debugFuncToLocation;
-  SparseIdMap<LineColumnInfo> funcToLocation;
+  SparseIdMap<Id> funcToDebugFunc;
 
   Id curBlock;
   std::set<Id> loopBlocks;

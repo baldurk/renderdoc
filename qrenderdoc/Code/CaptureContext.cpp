@@ -2450,8 +2450,8 @@ void CaptureContext::ShowResourceInspector()
   m_MainWindow->showResourceInspector();
 }
 
-IShaderViewer *CaptureContext::EditShader(ResourceId id, ShaderStage stage,
-                                          const rdcstr &entryPoint, const rdcstrpairs &files,
+IShaderViewer *CaptureContext::EditShader(ResourceId id, ShaderStage stage, const rdcstr &entryPoint,
+                                          const rdcstrpairs &files, KnownShaderTool knownTool,
                                           ShaderEncoding shaderEncoding, ShaderCompileFlags flags,
                                           IShaderViewer::SaveCallback saveCallback,
                                           IShaderViewer::RevertCallback revertCallback)
@@ -2479,8 +2479,8 @@ IShaderViewer *CaptureContext::EditShader(ResourceId id, ShaderStage stage,
         revertCallback(ctx, view, id);
     };
 
-    viewer = ShaderViewer::EditShader(*this, id, stage, entryPoint, files, shaderEncoding, flags,
-                                      replaceSaveCallback, replaceRevertCallback,
+    viewer = ShaderViewer::EditShader(*this, id, stage, entryPoint, files, knownTool, shaderEncoding,
+                                      flags, replaceSaveCallback, replaceRevertCallback,
                                       [this](ShaderViewer *view, bool closed) {
                                         SetModification(CaptureModifications::EditedShaders);
                                         if(closed)
@@ -2493,8 +2493,9 @@ IShaderViewer *CaptureContext::EditShader(ResourceId id, ShaderStage stage,
   }
   else
   {
-    viewer = ShaderViewer::EditShader(*this, id, stage, entryPoint, files, shaderEncoding, flags,
-                                      saveCallback, revertCallback, NULL, m_MainWindow->Widget());
+    viewer =
+        ShaderViewer::EditShader(*this, id, stage, entryPoint, files, knownTool, shaderEncoding,
+                                 flags, saveCallback, revertCallback, NULL, m_MainWindow->Widget());
   }
 
   return viewer;

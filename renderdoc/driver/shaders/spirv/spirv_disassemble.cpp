@@ -1578,6 +1578,31 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
               ret += ToStr(rdcspv::SourceLanguage(lang));
               ret += ")";
             }
+            else if(dbg.inst == ShaderDbg::EntryPoint)
+            {
+              ret += indent;
+              ret += "DebugEntryPoint(";
+              OpShaderDbg debugFunc(GetID(dbg.arg<Id>(0)));
+              ret += idName(debugFunc.arg<Id>(0));
+              ret += ", ";
+              rdcstr gen = ToStr(m_Generator);
+              int i = gen.indexOf('-');
+              if(i > 0)
+                gen.erase(i - 1, ~0u);
+              ret += gen;
+              ret += " ";
+              ret += idName(dbg.arg<Id>(2));
+              rdcstr args = idName(dbg.arg<Id>(3));
+              if(!args.empty())
+              {
+                ret += ",\n";
+                lineNum++;
+                ret += indent + "    command line: ";
+                ret += args;
+              }
+
+              ret += ")";
+            }
             else if(dbg.inst == ShaderDbg::Value && Vulkan_Debug_ShowDebugValues())
             {
               OpShaderDbg localVar(GetID(dbg.arg<Id>(0)));

@@ -344,8 +344,12 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
   }
 
   refl->encoding = ShaderEncoding::DXBC;
+  refl->debugInfo.compiler = KnownShaderTool::fxc;
   if(dxbc->GetDXILByteCode())
+  {
     refl->encoding = ShaderEncoding::DXIL;
+    refl->debugInfo.compiler = KnownShaderTool::dxcDXIL;
+  }
   refl->rawBytes = dxbc->GetShaderBlob();
 
   refl->dispatchThreadsDimension[0] = dxbc->GetReflection()->DispatchThreadsDimension[0];

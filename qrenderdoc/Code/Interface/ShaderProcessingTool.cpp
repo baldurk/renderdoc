@@ -36,22 +36,6 @@ static const QString hlsl_stage2[arraydim<ShaderStage>()] = {
     lit("vs"), lit("hs"), lit("ds"), lit("gs"), lit("ps"), lit("cs"),
 };
 
-template <>
-rdcstr DoStringise(const KnownShaderTool &el)
-{
-  BEGIN_ENUM_STRINGISE(KnownShaderTool);
-  {
-    STRINGISE_ENUM_CLASS_NAMED(Unknown, "Custom Tool");
-    STRINGISE_ENUM_CLASS_NAMED(SPIRV_Cross, "SPIRV-Cross");
-    STRINGISE_ENUM_CLASS_NAMED(spirv_dis, "spirv-dis");
-    STRINGISE_ENUM_CLASS_NAMED(glslangValidatorGLSL, "glslang (GLSL)");
-    STRINGISE_ENUM_CLASS_NAMED(glslangValidatorHLSL, "glslang (HLSL)");
-    STRINGISE_ENUM_CLASS_NAMED(spirv_as, "spirv-as");
-    STRINGISE_ENUM_CLASS_NAMED(dxc, "dxc");
-  }
-  END_ENUM_STRINGISE();
-}
-
 static QString tmpPath(const QString &filename)
 {
   return QDir(QDir::tempPath()).absoluteFilePath(filename);
@@ -201,6 +185,9 @@ ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
                                                          rdcstr arguments) const
 {
   QStringList argList = ParseArgsList(arguments.isEmpty() ? DefaultArguments() : arguments);
+  // always append IO arguments for known tools, so we read/write to our own files and override any
+  // dangling output specified file in the embedded command line
+  argList.append(ParseArgsList(IOArguments()));
 
   QString input_file, output_file;
 
@@ -253,6 +240,9 @@ ShaderToolOutput ShaderProcessingTool::CompileShader(QWidget *window, rdcstr sou
                                                      rdcstr arguments) const
 {
   QStringList argList = ParseArgsList(arguments.isEmpty() ? DefaultArguments() : arguments);
+  // always append IO arguments for known tools, so we read/write to our own files and override any
+  // dangling output specified file in the embedded command line
+  argList.append(ParseArgsList(IOArguments()));
 
   QString input_file, output_file;
 

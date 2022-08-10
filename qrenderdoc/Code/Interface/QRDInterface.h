@@ -2515,6 +2515,7 @@ place if needed.
 :param str entryPoint: The entry point to be used when compiling the edited shader.
 :param List[Tuple[str,str]] files: The source files, with each tuple being a pair of the filename
   and the file contents.
+:param renderdoc.KnownShaderTool knownTool: The preferred tool to use to compile, if known.
 :param renderdoc.ShaderEncoding shaderEncoding: The encoding of the input files.
 :param renderdoc.ShaderCompileFlags flags: The flags originally used to compile the shader.
 :param ShaderViewer.SaveCallback saveCallback: The callback function to call when a save/update is
@@ -2525,8 +2526,8 @@ place if needed.
 :rtype: ShaderViewer
 )");
   virtual IShaderViewer *EditShader(ResourceId id, ShaderStage stage, const rdcstr &entryPoint,
-                                    const rdcstrpairs &files, ShaderEncoding shaderEncoding,
-                                    ShaderCompileFlags flags,
+                                    const rdcstrpairs &files, KnownShaderTool knownTool,
+                                    ShaderEncoding shaderEncoding, ShaderCompileFlags flags,
                                     IShaderViewer::SaveCallback saveCallback,
                                     IShaderViewer::RevertCallback revertCallback) = 0;
 

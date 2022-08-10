@@ -978,10 +978,12 @@ void PipelineStateViewer::shaderEdit_clicked()
 
 IShaderViewer *PipelineStateViewer::EditShader(ResourceId id, ShaderStage shaderType,
                                                const rdcstr &entry, ShaderCompileFlags compileFlags,
-                                               ShaderEncoding encoding, const rdcstrpairs &files)
+                                               KnownShaderTool knownTool,
+                                               ShaderEncoding shaderEncoding,
+                                               const rdcstrpairs &files)
 {
-  IShaderViewer *sv =
-      m_Ctx.EditShader(id, shaderType, entry, files, encoding, compileFlags, NULL, NULL);
+  IShaderViewer *sv = m_Ctx.EditShader(id, shaderType, entry, files, knownTool, shaderEncoding,
+                                       compileFlags, NULL, NULL);
 
   m_Ctx.AddDockWindow(sv->Widget(), DockReference::AddTo, this);
 
@@ -1025,7 +1027,8 @@ IShaderViewer *PipelineStateViewer::EditOriginalShaderSource(ResourceId id,
   }
 
   return EditShader(id, shaderDetails->stage, shaderDetails->entryPoint,
-                    shaderDetails->debugInfo.compileFlags, shaderDetails->debugInfo.encoding, files);
+                    shaderDetails->debugInfo.compileFlags, shaderDetails->debugInfo.compiler,
+                    shaderDetails->debugInfo.encoding, files);
 }
 
 IShaderViewer *PipelineStateViewer::EditDecompiledSource(const ShaderProcessingTool &tool,
@@ -1040,8 +1043,8 @@ IShaderViewer *PipelineStateViewer::EditDecompiledSource(const ShaderProcessingT
   rdcstrpairs files;
   files.push_back(rdcpair<rdcstr, rdcstr>("decompiled", source));
 
-  IShaderViewer *sv =
-      EditShader(id, shaderDetails->stage, shaderDetails->entryPoint, {}, tool.output, files);
+  IShaderViewer *sv = EditShader(id, shaderDetails->stage, shaderDetails->entryPoint, {},
+                                 KnownShaderTool::Unknown, tool.output, files);
 
   sv->ShowErrors(out.log);
 
@@ -1133,7 +1136,8 @@ void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId 
             files.push_back(rdcpair<rdcstr, rdcstr>("pseudocode", editeddisasm));
 
             EditShader(shaderId, shaderDetails->stage, shaderDetails->entryPoint,
-                       shaderDetails->debugInfo.compileFlags, ShaderEncoding::Unknown, files);
+                       shaderDetails->debugInfo.compileFlags, KnownShaderTool::Unknown,
+                       ShaderEncoding::Unknown, files);
           });
         });
       }
@@ -1147,7 +1151,7 @@ void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId 
             "decompiled_stub.hlsl", GenerateHLSLStub(bindpointMapping, shaderDetails, entry)));
 
         EditShader(shaderId, shaderDetails->stage, entry, shaderDetails->debugInfo.compileFlags,
-                   ShaderEncoding::HLSL, files);
+                   KnownShaderTool::Unknown, ShaderEncoding::HLSL, files);
       }
 
     });

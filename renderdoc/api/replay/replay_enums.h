@@ -1830,6 +1830,140 @@ enum class ShaderEncoding : uint32_t
 ITERABLE_OPERATORS(ShaderEncoding);
 DECLARE_REFLECTION_ENUM(ShaderEncoding);
 
+DOCUMENT(R"(Identifies a particular known tool used for shader processing.
+
+.. data:: Unknown
+
+  Corresponds to no known tool.
+
+.. data:: SPIRV_Cross
+
+  `SPIRV-Cross <https://github.com/KhronosGroup/SPIRV-Cross>`_.
+
+.. data:: spirv_dis
+
+  `spirv-dis from SPIRV-Tools <https://github.com/KhronosGroup/SPIRV-Tools>`_.
+
+.. data:: glslangValidatorGLSL
+
+  `glslang compiler (GLSL) <https://github.com/KhronosGroup/glslang>`_.
+
+.. data:: glslangValidatorHLSL
+
+  `glslang compiler (HLSL) <https://github.com/KhronosGroup/glslang>`_.
+
+.. data:: spirv_as
+
+  `spirv-as from SPIRV-Tools <https://github.com/KhronosGroup/SPIRV-Tools>`_.
+
+.. data:: dxc_spirv
+
+  `DirectX Shader Compiler <https://github.com/microsoft/DirectXShaderCompiler>`_ with SPIR-V output.
+
+.. data:: dxcDXIL
+
+  `DirectX Shader Compiler <https://github.com/microsoft/DirectXShaderCompiler>`_ with DXIL output.
+
+.. data:: fxc
+
+  fxc Shader Compiler with DXBC output.
+
+)");
+enum class KnownShaderTool : uint32_t
+{
+  Unknown,
+  First = Unknown,
+  SPIRV_Cross,
+  spirv_dis,
+  glslangValidatorGLSL,
+  glslangValidatorHLSL,
+  spirv_as,
+  dxcSPIRV,
+  dxcDXIL,
+  fxc,
+  Count,
+};
+
+ITERABLE_OPERATORS(KnownShaderTool);
+DECLARE_REFLECTION_ENUM(KnownShaderTool);
+
+DOCUMENT(R"(Returns the default executable name with no suffix for a given :class:`KnownShaderTool`.
+
+.. note::
+  The executable name is returned with no suffix, e.g. ``foobar`` which may need a platform specific
+  suffix like ``.exe`` appended.
+
+:param KnownShaderTool tool: The tool to get the executable name for.
+:return: The default executable name for this tool, or an empty string if the tool is unrecognised.
+:rtype: str
+)");
+constexpr inline const char *const ToolExecutable(KnownShaderTool tool)
+{
+  // temporarily disable clang-format to make this more readable.
+  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
+  // clang-format off
+  return tool == KnownShaderTool::SPIRV_Cross          ?      "spirv-cross" :
+         tool == KnownShaderTool::spirv_dis            ?      "spirv-dis" :
+         tool == KnownShaderTool::glslangValidatorGLSL ?      "glslangValidator" :
+         tool == KnownShaderTool::glslangValidatorHLSL ?      "glslangValidator" :
+         tool == KnownShaderTool::spirv_as             ?      "spirv-as" :
+         tool == KnownShaderTool::dxcSPIRV             ?      "dxc" :
+         tool == KnownShaderTool::dxcDXIL              ?      "dxc" :
+         tool == KnownShaderTool::fxc                  ?      "fxc" :
+         "";
+  // clang-format on
+}
+
+DOCUMENT(R"(Returns the expected default input :class:`~renderdoc.ShaderEncoding` that a
+:class:`KnownShaderTool` expects. This may not be accurate and may be configurable depending on the
+tool.
+
+:param KnownShaderTool tool: The tool to get the input encoding for.
+:return: The encoding that this tool expects as an input by default.
+:rtype: renderdoc.ShaderEncoding
+)");
+constexpr inline ShaderEncoding ToolInput(KnownShaderTool tool)
+{
+  // temporarily disable clang-format to make this more readable.
+  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
+  // clang-format off
+  return tool == KnownShaderTool::SPIRV_Cross          ?      ShaderEncoding::SPIRV :
+         tool == KnownShaderTool::spirv_dis            ?      ShaderEncoding::SPIRV :
+         tool == KnownShaderTool::glslangValidatorGLSL ?      ShaderEncoding::GLSL :
+         tool == KnownShaderTool::glslangValidatorHLSL ?      ShaderEncoding::HLSL :
+         tool == KnownShaderTool::spirv_as             ?      ShaderEncoding::SPIRVAsm :
+         tool == KnownShaderTool::dxcSPIRV             ?      ShaderEncoding::HLSL :
+         tool == KnownShaderTool::dxcDXIL              ?      ShaderEncoding::HLSL :
+         tool == KnownShaderTool::fxc                  ?      ShaderEncoding::HLSL :
+         ShaderEncoding::Unknown;
+  // clang-format on
+}
+
+DOCUMENT(R"(Returns the expected default output :class:`~renderdoc.ShaderEncoding` that a
+:class:`KnownShaderTool` produces. This may not be accurate and may be configurable depending on the
+tool.
+
+:param KnownShaderTool tool: The tool to get the output encoding for.
+:return: The encoding that this tool produces as an output by default.
+:rtype: renderdoc.ShaderEncoding
+)");
+constexpr inline ShaderEncoding ToolOutput(KnownShaderTool tool)
+{
+  // temporarily disable clang-format to make this more readable.
+  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
+  // clang-format off
+  return tool == KnownShaderTool::SPIRV_Cross          ?      ShaderEncoding::GLSL :
+         tool == KnownShaderTool::spirv_dis            ?      ShaderEncoding::SPIRVAsm :
+         tool == KnownShaderTool::glslangValidatorGLSL ?      ShaderEncoding::SPIRV :
+         tool == KnownShaderTool::glslangValidatorHLSL ?      ShaderEncoding::SPIRV :
+         tool == KnownShaderTool::spirv_as             ?      ShaderEncoding::SPIRV :
+         tool == KnownShaderTool::dxcSPIRV             ?      ShaderEncoding::SPIRV :
+         tool == KnownShaderTool::dxcDXIL              ?      ShaderEncoding::DXIL :
+         tool == KnownShaderTool::fxc                  ?      ShaderEncoding::DXBC :
+         ShaderEncoding::Unknown;
+  // clang-format on
+}
+
 DOCUMENT(R"(Check whether or not this is a human readable text representation.
 
 :param ShaderEncoding encoding: The encoding to check.

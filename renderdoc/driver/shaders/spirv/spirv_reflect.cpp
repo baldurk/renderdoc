@@ -585,7 +585,7 @@ void Reflector::RegisterOp(Iter it)
       }
       else if(dbg.inst == ShaderDbg::FunctionDefinition)
       {
-        funcToLocation[dbg.arg<Id>(1)] = debugFuncToLocation[dbg.arg<Id>(0)];
+        funcToDebugFunc[dbg.arg<Id>(1)] = dbg.arg<Id>(0);
       }
       else if(dbg.inst == ShaderDbg::CompilationUnit)
       {
@@ -596,8 +596,8 @@ void Reflector::RegisterOp(Iter it)
       }
       else if(dbg.inst == ShaderDbg::EntryPoint)
       {
-        funcToBaseFile[dbg.arg<Id>(0)] = compUnitToFileIndex[dbg.arg<Id>(1)];
-        funcToCmdLine[dbg.arg<Id>(0)] = strings[dbg.arg<Id>(3)];
+        debugFuncToBaseFile[dbg.arg<Id>(0)] = compUnitToFileIndex[dbg.arg<Id>(1)];
+        debugFuncToCmdLine[dbg.arg<Id>(0)] = strings[dbg.arg<Id>(3)];
       }
       else if(dbg.inst == ShaderDbg::GlobalVariable)
       {
@@ -852,25 +852,32 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       reflection.debugInfo.files.push_back({sources[i].name, sources[i].contents});
   }
 
+  switch(m_Generator)
   {
-    auto it = funcToLocation.find(entry->id);
-    if(it != funcToLocation.end())
-      reflection.debugInfo.entryLocation = it->second;
-  }
-
-  {
-    auto it = funcToBaseFile.find(entry->id);
-    if(it != funcToBaseFile.end())
-      reflection.debugInfo.editBaseFile = (int32_t)it->second;
+    case Generator::GlslangReferenceFrontEnd:
+    case Generator::ShadercoverGlslang:
+      reflection.debugInfo.compiler = reflection.debugInfo.encoding == ShaderEncoding::HLSL
+                                          ? KnownShaderTool::glslangValidatorHLSL
+                                          : KnownShaderTool::glslangValidatorGLSL;
+      break;
+    case Generator::SPIRVToolsAssembler:
+      reflection.debugInfo.compiler = KnownShaderTool::spirv_as;
+      break;
+    case Generator::spiregg: reflection.debugInfo.compiler = KnownShaderTool::dxcSPIRV; break;
+    default: reflection.debugInfo.compiler = KnownShaderTool::Unknown; break;
   }
 
   if(!cmdline.empty())
     reflection.debugInfo.compileFlags.flags = {{"@cmdline", cmdline}};
 
   {
-    auto it = funcToCmdLine.find(entry->id);
-    if(it != funcToCmdLine.end())
-      reflection.debugInfo.compileFlags.flags = {{"@cmdline", it->second}};
+    auto it = funcToDebugFunc.find(entry->id);
+    if(it != funcToDebugFunc.end())
+    {
+      reflection.debugInfo.entryLocation = debugFuncToLocation[it->second];
+      reflection.debugInfo.compileFlags.flags = {{"@cmdline", debugFuncToCmdLine[it->second]}};
+      reflection.debugInfo.editBaseFile = (int32_t)debugFuncToBaseFile[it->second];
+    }
   }
 
   PreprocessLineDirectives(reflection.debugInfo.files);

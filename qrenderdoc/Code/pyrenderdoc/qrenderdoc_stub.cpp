@@ -74,6 +74,11 @@ rdcstr ShaderProcessingTool::DefaultArguments() const
   return "";
 }
 
+rdcstr ShaderProcessingTool::IOArguments() const
+{
+  return "";
+}
+
 ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
                                                          const ShaderReflection *shaderDetails,
                                                          rdcstr arguments) const
