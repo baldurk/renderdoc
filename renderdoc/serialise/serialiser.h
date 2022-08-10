@@ -1921,7 +1921,7 @@ struct ScopedDeserialiseArray
   }
   ~ScopedDeserialiseArray()
   {
-    if(m_Ser.IsReading())
+    if(m_Ser.IsReading() && *m_El)
     {
       for(uint64_t i = 0; i < count; i++)
         Deserialise((*m_El)[i]);
