@@ -997,7 +997,7 @@ IShaderViewer *PipelineStateViewer::EditOriginalShaderSource(ResourceId id,
   rdcstrpairs files;
 
   // add the entry point file first, if we have one
-  const int entryFile = shaderDetails->debugInfo.entryLocation.fileIndex;
+  const int entryFile = shaderDetails->debugInfo.editBaseFile;
 
   for(int i = -1; i < shaderDetails->debugInfo.files.count(); i++)
   {
