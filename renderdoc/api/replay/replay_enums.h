@@ -1897,7 +1897,7 @@ DOCUMENT(R"(Returns the default executable name with no suffix for a given :clas
 :return: The default executable name for this tool, or an empty string if the tool is unrecognised.
 :rtype: str
 )");
-constexpr inline const char *const ToolExecutable(KnownShaderTool tool)
+constexpr inline const char *ToolExecutable(KnownShaderTool tool)
 {
   // temporarily disable clang-format to make this more readable.
   // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
