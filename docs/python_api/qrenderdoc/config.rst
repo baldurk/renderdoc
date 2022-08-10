@@ -25,15 +25,8 @@ Shader Processing
 .. autoclass:: qrenderdoc.ShaderProcessingTool
   :members:
 
-.. autoclass:: qrenderdoc.KnownShaderTool
-  :members:
-
 .. autoclass:: qrenderdoc.ShaderToolOutput
   :members:
-  
-.. autofunction:: qrenderdoc.ToolExecutable
-.. autofunction:: qrenderdoc.ToolInput
-.. autofunction:: qrenderdoc.ToolOutput
 
 Bug Reports
 -----------

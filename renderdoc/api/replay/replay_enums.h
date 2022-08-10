@@ -1856,7 +1856,7 @@ DOCUMENT(R"(Identifies a particular known tool used for shader processing.
 
   `spirv-as from SPIRV-Tools <https://github.com/KhronosGroup/SPIRV-Tools>`_.
 
-.. data:: dxc_spirv
+.. data:: dxcSPIRV
 
   `DirectX Shader Compiler <https://github.com/microsoft/DirectXShaderCompiler>`_ with SPIR-V output.
 

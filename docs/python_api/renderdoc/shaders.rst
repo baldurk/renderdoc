@@ -55,6 +55,13 @@ Debug Info
 .. autoclass:: renderdoc.ShaderEncoding
   :members:
   
+.. autoclass:: renderdoc.KnownShaderTool
+  :members:
+  
+.. autofunction:: renderdoc.ToolExecutable
+.. autofunction:: renderdoc.ToolInput
+.. autofunction:: renderdoc.ToolOutput
+
 .. autofunction:: renderdoc.IsTextRepresentation
 
 .. autoclass:: renderdoc.ShaderEntryPoint
