@@ -598,6 +598,8 @@ void DXBCContainer::FillTraceLineInfo(ShaderDebugTrace &trace) const
     {
       const DXBCBytecode::Operation &op = m_DXBCByteCode->GetInstruction(i);
 
+      trace.instInfo[i].instruction = (uint32_t)i;
+
       if(m_DebugInfo)
         m_DebugInfo->GetLineInfo(i, op.offset, trace.instInfo[i].lineInfo);
 

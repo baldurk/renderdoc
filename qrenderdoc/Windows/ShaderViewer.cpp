@@ -2307,7 +2307,14 @@ const InstructionSourceInfo &ShaderViewer::GetInstInfo(uint32_t instruction) con
 {
   InstructionSourceInfo search;
   search.instruction = instruction;
-  return *std::lower_bound(m_Trace->instInfo.begin(), m_Trace->instInfo.end(), search);
+  auto it = std::lower_bound(m_Trace->instInfo.begin(), m_Trace->instInfo.end(), search);
+  if(it == m_Trace->instInfo.end())
+  {
+    qCritical() << "Couldn't find instruction info for" << instruction;
+    return m_Trace->instInfo[0];
+  }
+
+  return *it;
 }
 
 const LineColumnInfo &ShaderViewer::GetCurrentLineInfo() const
