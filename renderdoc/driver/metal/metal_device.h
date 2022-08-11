@@ -130,6 +130,9 @@ public:
   void RegisterMetalLayer(CA::MetalLayer *mtlLayer);
   void UnregisterMetalLayer(CA::MetalLayer *mtlLayer);
 
+  void AddEvent();
+  void AddAction(const ActionDescription &a);
+
   enum
   {
     TypeEnum = eResDevice

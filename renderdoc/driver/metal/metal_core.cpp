@@ -57,6 +57,16 @@ WriteSerialiser &WrappedMTLDevice::GetThreadSerialiser()
   return *ser;
 }
 
+void WrappedMTLDevice::AddAction(const ActionDescription &a)
+{
+  METAL_NOT_IMPLEMENTED();
+}
+
+void WrappedMTLDevice::AddEvent()
+{
+  METAL_NOT_IMPLEMENTED();
+}
+
 void WrappedMTLDevice::WaitForGPU()
 {
   MTL::CommandBuffer *mtlCommandBuffer = m_mtlCommandQueue->commandBuffer();

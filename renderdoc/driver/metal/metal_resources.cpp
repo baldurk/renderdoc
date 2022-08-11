@@ -57,3 +57,13 @@ MetalResourceRecord::~MetalResourceRecord()
   if(m_Type == eResCommandBuffer)
     SAFE_DELETE(cmdInfo);
 }
+
+void WrappedMTLObject::AddEvent()
+{
+  m_Device->AddEvent();
+}
+
+void WrappedMTLObject::AddAction(const ActionDescription &a)
+{
+  m_Device->AddAction(a);
+}
