@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "amd_isa.h"
+#include <ctype.h>
 #include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
 #include "common/formatting.h"
