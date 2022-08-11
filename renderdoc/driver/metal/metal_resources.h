@@ -66,6 +66,8 @@ struct WrappedMTLObject
 
   MTL::Device *GetDevice() { return (MTL::Device *)m_Device; }
   MetalResourceManager *GetResourceManager();
+  void AddEvent();
+  void AddAction(const ActionDescription &a);
 
   void *m_ObjcBridge = NULL;
   void *m_Real;
