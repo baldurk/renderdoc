@@ -28,10 +28,12 @@
 #include "api/replay/rdcstr.h"
 #include "api/replay/replay_enums.h"
 
+struct DriverInformation;
+
 namespace GCNISA
 {
 void CacheSupport(GraphicsAPI api);
-void GetTargets(GraphicsAPI api, rdcarray<rdcstr> &targets);
+void GetTargets(GraphicsAPI api, const DriverInformation &driver, rdcarray<rdcstr> &targets);
 
 rdcstr Disassemble(ShaderEncoding api, ShaderStage stage, const bytebuf &shaderBytes,
                    const rdcstr &target);

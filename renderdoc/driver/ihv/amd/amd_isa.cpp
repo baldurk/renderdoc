@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "amd_isa.h"
+#include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
 #include "common/formatting.h"
 #include "core/plugins.h"
@@ -114,6 +115,8 @@ static void GetEncodings(GraphicsAPI api, ShaderEncoding &primary, ShaderEncodin
 bool encodingCached[arraydim<ShaderEncoding>()] = {};
 bool encodingSupported[arraydim<ShaderEncoding>()] = {};
 
+static const rdcstr unsupportedTargetName = "AMD GCN ISA";
+
 Threading::ThreadHandle supportCheckThread = 0;
 
 static void CacheSupport(ShaderEncoding primary, ShaderEncoding secondary = ShaderEncoding::Unknown)
@@ -156,14 +159,77 @@ void CacheSupport(GraphicsAPI api)
   CacheSupport(primary, secondary);
 }
 
-void GetTargets(GraphicsAPI api, rdcarray<rdcstr> &targets)
+void GetTargets(GraphicsAPI api, const DriverInformation &driver, rdcarray<rdcstr> &targets)
 {
   targets.reserve(asicCount + 1);
 
   ShaderEncoding primary = ShaderEncoding::SPIRV, secondary = ShaderEncoding::SPIRV;
   GetEncodings(api, primary, secondary);
 
-  if(IsSupported(primary) || IsSupported(secondary))
+  bool validAMDGLDriver = true;
+
+  if(api == GraphicsAPI::OpenGL)
+  {
+    if(driver.vendor == GPUVendor::AMD)
+    {
+      // try to see if we're on 22.7.1 or newer. This is a bit of guesswork but we assume the
+      // version string won't change *too* much over time. If it does, it's impossible to predict
+      // how so this code will just need to be changed.
+      // We match any /[0-9.]+/ substrings by hand, discard if one looks like an OpenGL version
+      // (4.x.y) and assume the next is the driver version
+      const char *num = driver.version;
+      const char *end = num + sizeof(driver.version);
+      while(*num && num < end)
+      {
+        // skip any non-matching digits
+        if(!isdigit(*num) && *num != '.')
+        {
+          num++;
+          continue;
+        }
+
+        // consume all matching digits
+        rdcstr versionStr;
+        while(isdigit(*num) || *num == '.')
+        {
+          versionStr.push_back(*num);
+          num++;
+        }
+
+        // ignore OpenGL-looking versions
+        if(versionStr.beginsWith("4."))
+          continue;
+
+        int versionNum[3] = {};
+        int idx = 0;
+        for(char c : versionStr)
+        {
+          if(isdigit(c))
+          {
+            versionNum[idx] *= 10;
+            versionNum[idx] += int(c - '0');
+          }
+          else if(c == '.')
+          {
+            idx++;
+
+            if(idx > 2)
+              break;
+          }
+        }
+
+        RDCLOG("Running on AMD driver version %d.%d.%d", versionNum[0], versionNum[1], versionNum[2]);
+
+        if(versionNum[0] > 22 || versionNum[1] >= 7)
+          validAMDGLDriver = false;
+
+        // we found a match, stop regardless
+        break;
+      }
+    }
+  }
+
+  if(validAMDGLDriver && (IsSupported(primary) || IsSupported(secondary)))
   {
     targets.push_back("AMDIL");
 
@@ -174,7 +240,7 @@ void GetTargets(GraphicsAPI api, rdcarray<rdcstr> &targets)
   {
     // if unsupported, push a 'dummy' target, so that when the user selects it they'll see the error
     // message
-    targets.push_back("AMD GCN ISA");
+    targets.push_back(unsupportedTargetName);
   }
 }
 
@@ -294,10 +360,11 @@ rdcstr DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, const rdc
 
 rdcstr DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const rdcstr &target)
 {
-  if(!IsSupported(ShaderEncoding::GLSL))
+  if(!IsSupported(ShaderEncoding::GLSL) || target == unsupportedTargetName)
   {
     return R"(; GLSL disassembly not supported, couldn't locate VirtualContext.exe or it failed to run.
-; It only works when the AMD driver is currently being used for graphics.
+; It only works when the AMD driver is currently being used for graphics, and only on drivers older
+; *older* than 22.7.1, where support for this method of disassembly stopped.
 ;
 ; To see instructions on how to download and configure the plugins on your system, go to:
 ; https://github.com/baldurk/renderdoc/wiki/GCN-ISA)";

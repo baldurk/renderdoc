@@ -2153,7 +2153,7 @@ RDResult ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rdc)
   m_pDevice->SetPipelineStates(&m_D3D11PipelineState, &m_D3D12PipelineState, &m_GLPipelineState,
                                &m_VulkanPipelineState);
 
-  GCNISA::GetTargets(m_APIProps.pipelineType, m_GCNTargets);
+  GCNISA::GetTargets(m_APIProps.pipelineType, m_pDevice->GetDriverInfo(), m_GCNTargets);
 
   if(result != ResultCode::Succeeded)
     return result;
