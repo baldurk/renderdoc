@@ -329,11 +329,12 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
     w->setProperty("filename", kv.first);
     w->setProperty("origText", kv.second);
 
-    if(text.contains(entryPoint))
+    if(sel == NULL)
+    {
       sel = scintilla;
 
-    if(sel == scintilla || title.isEmpty())
       title = tr(" - %1 - %2()").arg(name).arg(entryPoint);
+    }
   }
 
   if(sel != NULL)
