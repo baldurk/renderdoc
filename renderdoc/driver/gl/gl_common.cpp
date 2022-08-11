@@ -1672,23 +1672,44 @@ TextureFilter MakeFilter(GLenum minf, GLenum magf, float maxAniso)
   }
   else
   {
-    if(minf == eGL_NEAREST || minf == eGL_LINEAR)
+    switch(minf)
     {
-      ret.minify = (minf == eGL_LINEAR) ? FilterMode::Linear : FilterMode::Point;
-      ret.mip = FilterMode::NoFilter;
-    }
-    else if(minf == eGL_NEAREST_MIPMAP_LINEAR || minf == eGL_LINEAR_MIPMAP_LINEAR)
-    {
-      ret.minify = (minf == eGL_LINEAR_MIPMAP_LINEAR) ? FilterMode::Linear : FilterMode::Point;
-      ret.mip = FilterMode::Linear;
-    }
-    else if(minf == eGL_NEAREST_MIPMAP_NEAREST || minf == eGL_LINEAR_MIPMAP_NEAREST)
-    {
-      ret.minify = (minf == eGL_LINEAR_MIPMAP_NEAREST) ? FilterMode::Linear : FilterMode::Point;
-      ret.mip = FilterMode::Point;
+      case eGL_NEAREST:
+      case eGL_NEAREST_MIPMAP_LINEAR:
+      case eGL_NEAREST_MIPMAP_NEAREST:
+      default: ret.minify = FilterMode::Point; break;
+
+      case eGL_LINEAR:
+      case eGL_LINEAR_MIPMAP_LINEAR:
+      case eGL_LINEAR_MIPMAP_NEAREST: ret.minify = FilterMode::Linear; break;
+
+      case eGL_CUBIC_IMG:
+      case eGL_CUBIC_MIPMAP_LINEAR_IMG:
+      case eGL_CUBIC_MIPMAP_NEAREST_IMG: ret.minify = FilterMode::Cubic; break;
     }
 
-    ret.magnify = (magf == eGL_LINEAR) ? FilterMode::Linear : FilterMode::Point;
+    switch(minf)
+    {
+      case eGL_NEAREST:
+      case eGL_LINEAR:
+      case eGL_CUBIC_IMG:
+      default: ret.mip = FilterMode::NoFilter; break;
+
+      case eGL_NEAREST_MIPMAP_LINEAR:
+      case eGL_LINEAR_MIPMAP_LINEAR:
+      case eGL_CUBIC_MIPMAP_LINEAR_IMG: ret.mip = FilterMode::Linear; break;
+
+      case eGL_NEAREST_MIPMAP_NEAREST:
+      case eGL_LINEAR_MIPMAP_NEAREST:
+      case eGL_CUBIC_MIPMAP_NEAREST_IMG: ret.mip = FilterMode::Point; break;
+    }
+
+    switch(magf)
+    {
+      default: ret.magnify = FilterMode::Point; break;
+      case eGL_LINEAR: ret.magnify = FilterMode::Linear; break;
+      case eGL_CUBIC_IMG: ret.magnify = FilterMode::Cubic; break;
+    }
   }
 
   return ret;
