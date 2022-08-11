@@ -1301,7 +1301,7 @@ TEST_CASE("Check format conversion", "[format]")
 
       INFO(a);
       INFO(c);
-      CHECK(abs(a - c) <= abs(a * 3.0f * FLT_EPSILON));
+      CHECK(fabs(a - c) <= fabs(a * 3.0f * FLT_EPSILON));
 
       if(i == UINT16_MAX)
         break;
