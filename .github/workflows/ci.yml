@@ -16,7 +16,7 @@ defaults:
 jobs:
   commit-msg:
     name: Commit message check
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: true
     steps:
@@ -35,7 +35,7 @@ jobs:
         fi
   clang-format:
     name: Code formatting check
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: true
     steps:
@@ -46,10 +46,12 @@ jobs:
       run: |
         wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
         sudo add-apt-repository -y 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-3.8 main'
+        sudo apt-get update
+        curl -LO http://archive.ubuntu.com/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+        sudo dpkg -i libffi6_3.2.1-8_amd64.deb
     - name: Install clang-format-3.8
       run: |
-        sudo apt-get update -qq
-        sudo apt-get install -y -qq clang-format-3.8 
+        sudo apt-get install -y clang-format-3.8
     - name: Run clang-format-3.8
       run: |
         . ./util/clang_format_all.sh
@@ -66,7 +68,7 @@ jobs:
   cmake-minimum:
     name: Baseline cmake check
     needs: [commit-msg, clang-format]
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       QT_SELECT: qt5
     strategy:
@@ -83,8 +85,8 @@ jobs:
         popd
     - name: Install compilation dependencies
       run: |
-        sudo apt-get update -qq
-        sudo apt-get install -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qtbase5-dev libxcb-keysyms1-dev
+        sudo apt-get update
+        sudo apt-get install -y libx11-dev mesa-common-dev libgl1-mesa-dev qtbase5-dev libxcb-keysyms1-dev
     - name: Configure renderdoc with cmake
       run: |
         mkdir build
@@ -159,7 +161,7 @@ jobs:
   docs:
     name: Documentation Build
     needs: [commit-msg, clang-format]
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       QT_SELECT: qt5
     steps:
@@ -168,8 +170,8 @@ jobs:
         fetch-depth: 5
     - name: Install compilation dependencies
       run: |
-        sudo apt-get update -qq
-        sudo apt-get install -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qtbase5-dev libxcb-keysyms1-dev
+        sudo apt-get update
+        sudo apt-get install -y libx11-dev mesa-common-dev libgl1-mesa-dev qtbase5-dev libxcb-keysyms1-dev
     - name: Install sphinx dependencies
       run: sudo pip3 install Sphinx
     - name: Build cut-down renderdoc for python modules
@@ -187,13 +189,13 @@ jobs:
   linux:
     name: Linux
     needs: [commit-msg, clang-format]
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       QT_SELECT: qt5
     strategy:
       fail-fast: false
       matrix:
-        name: [ GCC 5 Development, Clang 3.8 Development, Clang 3.8 Release, Clang 9 Development ]
+        name: [ GCC 5 Development, Clang 3.8 Development, Clang 3.8 Release, Clang 12 Development ]
         include:
           - name: GCC 5 Development
             cc: gcc-5
@@ -207,9 +209,9 @@ jobs:
             cc: clang-3.8
             cxx: clang++-3.8
             type: Release
-          - name: Clang 9 Development
-            cc: clang-9
-            cxx: clang++-9
+          - name: Clang 12 Development
+            cc: clang-12
+            cxx: clang++-12
             type: Debug
     steps:
     - uses: actions/checkout@v2
@@ -219,10 +221,22 @@ jobs:
       run: |
         wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
         sudo add-apt-repository -y 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-3.8 main'
+        sudo apt-get update
+        curl -LO http://archive.ubuntu.com/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+        curl -LO http://archive.ubuntu.com/ubuntu/pool/universe/g/gcc-5/libobjc-5-dev_5.5.0-12ubuntu1_amd64.deb
+        curl -LO http://archive.ubuntu.com/ubuntu/pool/universe/g/gcc-5/gcc-5-base_5.5.0-12ubuntu1_amd64.deb
+        curl -LO http://archive.ubuntu.com/ubuntu/pool/universe/i/isl-0.18/libisl15_0.18-4_amd64.deb
+        curl -LO http://archive.ubuntu.com/ubuntu/pool/universe/g/gcc-5/cpp-5_5.5.0-12ubuntu1_amd64.deb
+        curl -LO http://archive.ubuntu.com/ubuntu/pool/universe/g/gcc-5/libasan2_5.5.0-12ubuntu1_amd64.deb
+        curl -LO http://archive.ubuntu.com/ubuntu/pool/universe/g/gcc-5/libmpx0_5.5.0-12ubuntu1_amd64.deb
+        curl -LO http://archive.ubuntu.com/ubuntu/pool/universe/g/gcc-5/libgcc-5-dev_5.5.0-12ubuntu1_amd64.deb
+        curl -LO http://archive.ubuntu.com/ubuntu/pool/universe/g/gcc-5/gcc-5_5.5.0-12ubuntu1_amd64.deb
+        curl -LO http://archive.ubuntu.com/ubuntu/pool/universe/g/gcc-5/libstdc++-5-dev_5.5.0-12ubuntu1_amd64.deb
+        curl -LO http://archive.ubuntu.com/ubuntu/pool/universe/g/gcc-5/g++-5_5.5.0-12ubuntu1_amd64.deb
+        sudo apt install ./*.deb
     - name: Install compilation dependencies
       run: |
-        sudo apt-get update -qq
-        sudo apt-get install -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qtbase5-dev libqt5svg5-dev libqt5x11extras5-dev libxcb-keysyms1-dev clang++-3.8 g++-5
+        sudo apt-get install -y libx11-dev mesa-common-dev libgl1-mesa-dev qtbase5-dev libqt5svg5-dev libqt5x11extras5-dev libxcb-keysyms1-dev libx11-xcb-dev clang++-3.8 g++-5
     - name: Build
       run: |
         mkdir build
@@ -247,7 +261,7 @@ jobs:
   android:
     name: Android
     needs: [commit-msg, clang-format]
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
       with:
