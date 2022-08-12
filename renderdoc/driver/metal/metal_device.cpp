@@ -179,7 +179,13 @@ bool WrappedMTLDevice::Serialise_newCommandQueue(SerialiserType &ser, WrappedMTL
 
   if(IsReplayingAndReading())
   {
-    // TODO: implement RD MTL replay
+    MTL::CommandQueue *realMTLCommandQueue = Unwrap(this)->newCommandQueue();
+    WrappedMTLCommandQueue *wrappedMTLCommandQueue;
+    GetResourceManager()->WrapResource(realMTLCommandQueue, wrappedMTLCommandQueue);
+    GetResourceManager()->AddLiveResource(CommandQueue, wrappedMTLCommandQueue);
+
+    AddResource(CommandQueue, ResourceType::Queue, "Queue");
+    DerivedResource(this, CommandQueue);
   }
   return true;
 }
@@ -240,7 +246,17 @@ bool WrappedMTLDevice::Serialise_newDefaultLibrary(SerialiserType &ser, WrappedM
 
   if(IsReplayingAndReading())
   {
-    // TODO: implement RD MTL replay
+    dispatch_data_t dispatchData = dispatch_data_create(
+        data.data(), data.size(), dispatch_get_main_queue(), DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+    NS::Error *error;
+    MTL::Library *realMTLLibrary = Unwrap(this)->newLibrary(dispatchData, &error);
+    dispatch_release(dispatchData);
+
+    WrappedMTLLibrary *wrappedMTLLibrary;
+    GetResourceManager()->WrapResource(realMTLLibrary, wrappedMTLLibrary);
+    GetResourceManager()->AddLiveResource(Library, wrappedMTLLibrary);
+    AddResource(Library, ResourceType::Pool, "Library");
+    DerivedResource(this, Library);
   }
   return true;
 }
@@ -287,7 +303,13 @@ bool WrappedMTLDevice::Serialise_newLibraryWithSource(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    // TODO: implement RD MTL replay
+    NS::Error *compileErrors = NULL;
+    MTL::Library *realMTLLibrary = Unwrap(this)->newLibrary(source, options, &compileErrors);
+    WrappedMTLLibrary *wrappedMTLLibrary;
+    GetResourceManager()->WrapResource(realMTLLibrary, wrappedMTLLibrary);
+    GetResourceManager()->AddLiveResource(Library, wrappedMTLLibrary);
+    AddResource(Library, ResourceType::Pool, "Library");
+    DerivedResource(this, Library);
   }
   return true;
 }
@@ -341,6 +363,22 @@ bool WrappedMTLDevice::Serialise_newBufferWithBytes(SerialiserType &ser, Wrapped
   // TODO: implement RD MTL replay
   if(IsReplayingAndReading())
   {
+    MTL::Buffer *realMTLBuffer;
+    if(initialData.isEmpty())
+    {
+      realMTLBuffer = Unwrap(this)->newBuffer(length, options);
+    }
+    else
+    {
+      RDCASSERT(initialData.size() == length);
+      realMTLBuffer = Unwrap(this)->newBuffer(initialData.data(), initialData.size(), options);
+    }
+    WrappedMTLBuffer *wrappedMTLBuffer;
+    GetResourceManager()->WrapResource(realMTLBuffer, wrappedMTLBuffer);
+    GetResourceManager()->AddLiveResource(Buffer, wrappedMTLBuffer);
+
+    AddResource(Buffer, ResourceType::Buffer, "Buffer");
+    DerivedResource(this, Buffer);
   }
   return true;
 }
@@ -371,6 +409,18 @@ bool WrappedMTLDevice::Serialise_newRenderPipelineStateWithDescriptor(
   // TODO: implement RD MTL replay
   if(IsReplayingAndReading())
   {
+    ResourceId liveID;
+
+    MTL::RenderPipelineDescriptor *mtlDescriptor(descriptor);
+    MTL::RenderPipelineState *realMTLRenderPipelineState =
+        Unwrap(this)->newRenderPipelineState(mtlDescriptor, error);
+    mtlDescriptor->release();
+    WrappedMTLRenderPipelineState *wrappedMTLRenderPipelineState;
+    liveID = GetResourceManager()->WrapResource(realMTLRenderPipelineState,
+                                                wrappedMTLRenderPipelineState);
+    GetResourceManager()->AddLiveResource(RenderPipelineState, wrappedMTLRenderPipelineState);
+    AddResource(RenderPipelineState, ResourceType::PipelineState, "Pipeline State");
+    DerivedResource(this, RenderPipelineState);
   }
   return true;
 }
@@ -430,6 +480,20 @@ bool WrappedMTLDevice::Serialise_newTextureWithDescriptor(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
+    // Ensure the created textures can be read by a shader
+    // Metal driver will treat TextureUsageUnknown as all options
+    if(descriptor.usage != MTL::TextureUsageUnknown)
+      descriptor.usage = (MTL::TextureUsage)(descriptor.usage | MTL::TextureUsageShaderRead);
+
+    MTL::TextureDescriptor *mtlDescriptor(descriptor);
+    MTL::Texture *realMTLTexture = Unwrap(this)->newTexture(mtlDescriptor);
+    mtlDescriptor->release();
+    WrappedMTLTexture *wrappedMTLTexture;
+    ResourceId liveID = GetResourceManager()->WrapResource(realMTLTexture, wrappedMTLTexture);
+    GetResourceManager()->AddLiveResource(Texture, wrappedMTLTexture);
+
+    AddResource(Texture, ResourceType::Texture, "Texture");
+    DerivedResource(this, Texture);
   }
   return true;
 }
