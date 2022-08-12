@@ -49,6 +49,8 @@ set(sources
     metal_helpers_bridge.mm
     metal_serialise.cpp
     metal_stringise.cpp
+    metal_replay.h
+    metal_replay.cpp
     official/metal-cpp.h
     official/metal-cpp.cpp)
 
