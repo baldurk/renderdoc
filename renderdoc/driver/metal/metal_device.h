@@ -29,6 +29,7 @@
 #include "metal_manager.h"
 
 class WrappedMTLDevice;
+class MetalReplay;
 
 class MetalCapturer : public IFrameCapturer
 {
@@ -133,6 +134,15 @@ public:
   void AddEvent();
   void AddAction(const ActionDescription &a);
 
+  MetalReplay *GetReplay() { return m_Replay; }
+  void AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix);
+  void DerivedResource(ResourceId parentLive, ResourceId child);
+  template <typename MetalType>
+  void DerivedResource(MetalType parent, ResourceId child)
+  {
+    DerivedResource(GetResID(parent), child);
+  }
+
   enum
   {
     TypeEnum = eResDevice
@@ -157,6 +167,8 @@ private:
   template <typename SerialiserType>
   bool Serialise_BeginCaptureFrame(SerialiserType &ser);
 
+  void AddResourceCurChunk(ResourceDescription &descr);
+
   WrappedMTLTexture *Common_NewTexture(RDMTL::TextureDescriptor &descriptor, MetalChunk chunkType,
                                        bool ioSurfaceTexture, IOSurfaceRef iosurface,
                                        NS::UInteger plane);
@@ -164,6 +176,8 @@ private:
                                      MTL::ResourceOptions options);
 
   MetalResourceManager *m_ResourceManager = NULL;
+
+  MetalReplay *m_Replay = NULL;
 
   // Back buffer and swap chain emulation
   Threading::CriticalSection m_CapturePotentialBackBuffersLock;
@@ -174,6 +188,7 @@ private:
 
   CaptureState m_State;
   bool m_AppControlledCapture = false;
+  SDFile *m_StructuredFile = NULL;
 
   uint64_t threadSerialiserTLSSlot;
   Threading::CriticalSection m_ThreadSerialisersLock;
