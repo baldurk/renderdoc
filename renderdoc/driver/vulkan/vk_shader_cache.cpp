@@ -962,6 +962,18 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
     ret.pNext = &shadingRate;
   }
 
+  static VkPipelineViewportDepthClipControlCreateInfoEXT depthClipControl = {
+      VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_DEPTH_CLIP_CONTROL_CREATE_INFO_EXT,
+  };
+
+  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_depth_clip_control)
+  {
+    depthClipControl.negativeOneToOne = pipeInfo.negativeOneToOne;
+
+    depthClipControl.pNext = vp.pNext;
+    vp.pNext = &depthClipControl;
+  }
+
   // never create derivatives
   ret.flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
 

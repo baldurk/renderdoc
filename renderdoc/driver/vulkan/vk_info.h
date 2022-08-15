@@ -429,6 +429,9 @@ struct VulkanCreationInfo
     // VkPipelineFragmentShadingRateCreateInfoKHR
     VkExtent2D shadingRate;
     VkFragmentShadingRateCombinerOpKHR shadingRateCombiners[2];
+
+    // VkPipelineViewportDepthClipControlCreateInfoEXT
+    bool negativeOneToOne;
   };
   std::unordered_map<ResourceId, Pipeline> m_Pipeline;
 
