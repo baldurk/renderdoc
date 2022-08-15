@@ -866,6 +866,16 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
     }
   }
 
+  // VkPipelineViewportDepthClipControlCreateInfoEXT
+  negativeOneToOne = false;
+
+  const VkPipelineViewportDepthClipControlCreateInfoEXT *depthClipControl =
+      (const VkPipelineViewportDepthClipControlCreateInfoEXT *)FindNextStruct(
+          pCreateInfo->pViewportState,
+          VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_DEPTH_CLIP_CONTROL_CREATE_INFO_EXT);
+  if(depthClipControl)
+    negativeOneToOne = depthClipControl->negativeOneToOne != VK_FALSE;
+
   const VkPipelineLibraryCreateInfoKHR *libraryReference =
       (const VkPipelineLibraryCreateInfoKHR *)FindNextStruct(
           pCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR);
@@ -933,6 +943,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
 
         discardRectangles = pipeInfo.discardRectangles;
         discardMode = pipeInfo.discardMode;
+
+        negativeOneToOne = pipeInfo.negativeOneToOne;
 
         flags |= pipeInfo.flags;
       }
