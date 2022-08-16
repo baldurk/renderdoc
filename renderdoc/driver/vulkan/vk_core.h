@@ -284,7 +284,7 @@ private:
 
   // the messages retrieved for the current event (filled in Serialise_vk...() and read in
   // AddEvent())
-  rdcarray<DebugMessage> m_RootEventMessages;
+  rdcarray<DebugMessage> m_EventMessages;
 
   // list of all debug messages by EID in the frame
   rdcarray<DebugMessage> m_DebugMessages;

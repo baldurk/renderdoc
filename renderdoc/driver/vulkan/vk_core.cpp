@@ -3952,15 +3952,11 @@ void WrappedVulkan::Serialise_DebugMessages(SerialiserType &ser)
       ProcessDebugMessage(msg);
   }
 
-  SERIALISE_ELEMENT(DebugMessages);
+  SERIALISE_ELEMENT(DebugMessages).Hidden();
 
   // if we're using debug messages from replay, discard any from the capture
   if(ser.IsReading() && IsLoading(m_State) && m_ReplayOptions.apiValidation)
     DebugMessages.clear();
-
-  // hide empty sets of messages.
-  if(ser.IsReading() && DebugMessages.empty())
-    ser.Hidden();
 
   if(ser.IsReading() && IsLoading(m_State))
   {
@@ -4107,16 +4103,7 @@ void WrappedVulkan::AddDebugMessage(DebugMessage msg)
 {
   if(IsLoading(m_State))
   {
-    if(m_LastCmdBufferID != ResourceId())
-    {
-      msg.eventId = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID;
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].debugMessages.push_back(msg);
-    }
-    else
-    {
-      msg.eventId = m_RootEventID;
-      m_RootEventMessages.push_back(msg);
-    }
+    m_EventMessages.push_back(msg);
   }
   else
   {
@@ -4916,9 +4903,15 @@ void WrappedVulkan::AddEvent()
 
   apievent.chunkIndex = uint32_t(m_StructuredFile->chunks.size() - 1);
 
+  for(DebugMessage &msg : m_EventMessages)
+    msg.eventId = apievent.eventId;
+
   if(m_LastCmdBufferID != ResourceId())
   {
     m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents.push_back(apievent);
+
+    m_BakedCmdBufferInfo[m_LastCmdBufferID].debugMessages.append(m_EventMessages);
+    m_EventMessages.clear();
   }
   else
   {
@@ -4926,9 +4919,8 @@ void WrappedVulkan::AddEvent()
     m_Events.resize(apievent.eventId + 1);
     m_Events[apievent.eventId] = apievent;
 
-    m_DebugMessages.append(m_RootEventMessages);
-
-    m_RootEventMessages.clear();
+    m_DebugMessages.append(m_EventMessages);
+    m_EventMessages.clear();
   }
 }
 
