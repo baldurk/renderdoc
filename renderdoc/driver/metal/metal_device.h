@@ -169,6 +169,7 @@ private:
 
   void AddResourceCurChunk(ResourceDescription &descr);
 
+  bool ProcessChunk(ReadSerialiser &ser, MetalChunk chunk);
   WrappedMTLTexture *Common_NewTexture(RDMTL::TextureDescriptor &descriptor, MetalChunk chunkType,
                                        bool ioSurfaceTexture, IOSurfaceRef iosurface,
                                        NS::UInteger plane);
@@ -176,6 +177,14 @@ private:
                                      MTL::ResourceOptions options);
 
   MetalResourceManager *m_ResourceManager = NULL;
+
+  // Dummy objects used for serialisation replay
+  WrappedMTLBuffer *m_DummyBuffer = NULL;
+  WrappedMTLCommandBuffer *m_DummyReplayCommandBuffer = NULL;
+  WrappedMTLCommandQueue *m_DummyReplayCommandQueue = NULL;
+  WrappedMTLLibrary *m_DummyReplayLibrary = NULL;
+  WrappedMTLRenderCommandEncoder *m_DummyReplayRenderCommandEncoder = NULL;
+  WrappedMTLBlitCommandEncoder *m_DummyReplayBlitCommandEncoder = NULL;
 
   MetalReplay *m_Replay = NULL;
 
