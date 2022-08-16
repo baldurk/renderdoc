@@ -527,6 +527,7 @@
   DeclExt(EXT_custom_border_color);             \
   DeclExt(EXT_robustness2);                     \
   DeclExt(EXT_pipeline_creation_cache_control); \
+  DeclExt(EXT_primitive_topology_list_restart); \
   DeclExt(EXT_private_data);                    \
   DeclExt(EXT_extended_dynamic_state);          \
   DeclExt(KHR_copy_commands2);                  \
@@ -636,6 +637,7 @@
   CheckExt(EXT_custom_border_color, VKXX);             \
   CheckExt(EXT_robustness2, VKXX);                     \
   CheckExt(EXT_pipeline_creation_cache_control, VKXX); \
+  CheckExt(EXT_primitive_topology_list_restart, VKXX); \
   CheckExt(EXT_private_data, VK13);                    \
   CheckExt(EXT_extended_dynamic_state, VK13);          \
   CheckExt(KHR_copy_commands2, VK13);                  \
