@@ -570,9 +570,7 @@ void GLPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, TextureDescri
   if(!text.isEmpty())
   {
     node->setToolTip(text);
-
-    node->setBackgroundColor(QColor(127, 255, 212));
-    node->setForegroundColor(QColor(0, 0, 0));
+    node->setBackgroundColor(m_Common.GetViewDetailsColor());
   }
 }
 

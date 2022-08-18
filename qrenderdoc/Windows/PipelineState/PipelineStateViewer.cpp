@@ -1498,6 +1498,12 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
   return format;
 }
 
+QColor PipelineStateViewer::GetViewDetailsColor()
+{
+  return QColor::fromHslF(0.45f, 1.0f,
+                          qBound(0.25, palette().color(QPalette::Base).lightnessF(), 0.75));
+}
+
 bool PipelineStateViewer::SaveShaderFile(const ShaderReflection *shader)
 {
   if(!shader)

@@ -703,8 +703,7 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
 
   if(viewdetails && stageBitsIncluded)
   {
-    node->setBackgroundColor(QColor(127, 255, 212));
-    node->setForegroundColor(QColor(0, 0, 0));
+    node->setBackgroundColor(m_Common.GetViewDetailsColor());
   }
 
   return viewdetails;
@@ -737,10 +736,7 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
   node->setToolTip(text);
 
   if(stageBitsIncluded)
-  {
-    node->setBackgroundColor(QColor(127, 255, 212));
-    node->setForegroundColor(QColor(0, 0, 0));
-  }
+    node->setBackgroundColor(m_Common.GetViewDetailsColor());
 
   return true;
 }

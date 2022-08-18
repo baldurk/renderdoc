@@ -664,10 +664,7 @@ void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
   node->setToolTip(text);
 
   if(viewdetails)
-  {
-    node->setBackgroundColor(QColor(127, 255, 212));
-    node->setForegroundColor(QColor(0, 0, 0));
-  }
+    node->setBackgroundColor(m_Common.GetViewDetailsColor());
 }
 
 void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D11ViewTag &view,
@@ -697,8 +694,7 @@ void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
   }
 
   node->setToolTip(text);
-  node->setBackgroundColor(QColor(127, 255, 212));
-  node->setForegroundColor(QColor(0, 0, 0));
+  node->setBackgroundColor(m_Common.GetViewDetailsColor());
 }
 
 void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,

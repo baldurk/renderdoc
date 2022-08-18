@@ -109,6 +109,8 @@ public:
 
   QString GetVBufferFormatString(uint32_t slot);
 
+  QColor GetViewDetailsColor();
+
   void setTopologyDiagram(QLabel *diagram, Topology topo);
   void setMeshViewPixmap(RDLabel *meshView);
 
