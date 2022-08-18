@@ -2910,6 +2910,11 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
       UnrollConstant(parsed.repeating, bufdata->vsinConfig.columns, bufdata->vsinConfig.props);
     }
+    else
+    {
+      bufdata->vsinConfig.repeatStride = 1U;
+      bufdata->vsinConfig.repeatOffset = parsed.fixed.type.arrayByteStride;
+    }
 
     if((m_Format.isEmpty() || !bufdata->cb.bytesBacked) && IsCBufferView())
     {
