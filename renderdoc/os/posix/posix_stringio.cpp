@@ -201,6 +201,14 @@ void GetDefaultFiles(const rdcstr &logBaseName, rdcstr &capture_filename, rdcstr
   else
     mod = "unknown";
 
+  // If this is a Wine preloader, strip trailing Windows slashes.
+  if(IsWineExecutable())
+  {
+    const char *winMod = strrchr(path.c_str(), '\\');
+    if(winMod != NULL)
+      mod = winMod + 1;
+  }
+
   target = rdcstr(mod);
 
   time_t t = time(NULL);
