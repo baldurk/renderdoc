@@ -608,7 +608,24 @@ rdcstr GetAppFolderFilename(const rdcstr &filename)
 void GetExecutableFilename(rdcstr &selfName)
 {
   char path[512] = {0};
-  readlink("/proc/self/exe", path, 511);
+  // Read /proc/self/cmdline here instead of
+  // /proc/self/exe because otherwise when RenderDoc'ing
+  // under Wine, all applications show up as wine64-preloader.
+  //
+  // /proc/[blah]/cmdline has arguments separated by NUL.
+  FILE *file = fopen("/proc/self/cmdline", FileIO::ReadText);
+  if(file)
+  {
+    // Just read everything at once.
+    ::fread(path, 1, 511, file);
+    ::fclose(file);
+  }
+  else
+  {
+    // Fallback to reading /proc/self/exe if we cannot read
+    // cmdline for some reason.
+    readlink("/proc/self/exe", path, 511);
+  }
 
   selfName = rdcstr(path);
 }
