@@ -1087,7 +1087,7 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
                           StringFormat::Fmt("Creating renderpass %s contains a subpass dependency "
                                             "that would allow writing indirect command arguments.\n"
                                             "Indirect command contents are read at the end of the "
-                                            "render pass, so write-after-read overwrites will "
+                                            "render pass, so writes during the pass will "
                                             "cause incorrect display of indirect arguments.",
                                             ToStr(RenderPass).c_str()));
 

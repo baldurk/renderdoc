@@ -216,6 +216,7 @@ DebugMessageView::DebugMessageView(ICaptureContext &ctx, QWidget *parent)
   ui->messages->setMouseTracking(true);
   ui->messages->setAutoScroll(false);
 
+  ui->messages->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
   ui->messages->horizontalHeader()->setStretchLastSection(false);
 
   ui->messages->setContextMenuPolicy(Qt::CustomContextMenu);
