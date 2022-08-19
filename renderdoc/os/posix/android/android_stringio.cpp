@@ -85,6 +85,11 @@ rdcstr GetAppFolderFilename(const rdcstr &filename)
   return GetTempRootPath() + rdcstr("/") + filename;
 }
 
+bool IsWineExecutable()
+{
+  return false;
+}
+
 // For RenderDoc's apk, this returns our package name
 // For other APKs, we use it to get the writable temp directory.
 void GetExecutableFilename(rdcstr &selfName)

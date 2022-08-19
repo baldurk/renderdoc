@@ -159,6 +159,11 @@ rdcstr GetAppFolderFilename(const rdcstr &filename)
   return ret + filename;
 }
 
+bool IsWineExecutable()
+{
+  return false;
+}
+
 void GetExecutableFilename(rdcstr &selfName)
 {
   char path[512] = {0};

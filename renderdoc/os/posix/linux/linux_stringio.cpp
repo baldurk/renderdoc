@@ -605,6 +605,22 @@ rdcstr GetAppFolderFilename(const rdcstr &filename)
   return ret + filename;
 }
 
+bool IsWineExecutable()
+{
+  char path[512] = {0};
+  readlink("/proc/self/exe", path, 511);
+
+  const char *mod = strrchr(path, '/');
+  if(mod != NULL)
+    mod++;
+  else if(*path)
+    mod = path;
+  else
+    mod = "unknown";
+
+  return !strcmp(mod, "wine-preloader") || !strcmp(mod, "wine64-preloader");
+}
+
 void GetExecutableFilename(rdcstr &selfName)
 {
   char path[512] = {0};

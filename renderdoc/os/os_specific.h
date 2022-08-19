@@ -291,6 +291,7 @@ bool IsRelativePath(const rdcstr &path);
 rdcstr GetFullPathname(const rdcstr &filename);
 rdcstr FindFileInPath(const rdcstr &fileName);
 
+bool IsWineExecutable();
 void GetExecutableFilename(rdcstr &selfName);
 void GetLibraryFilename(rdcstr &selfName);
 

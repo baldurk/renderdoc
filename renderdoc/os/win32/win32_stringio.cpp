@@ -162,6 +162,11 @@ bool GetKeyState(int key)
 
 namespace FileIO
 {
+bool IsWineExecutable()
+{
+  return false;
+}
+
 void GetExecutableFilename(rdcstr &selfName)
 {
   wchar_t curFile[512] = {0};
