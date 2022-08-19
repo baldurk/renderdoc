@@ -232,7 +232,7 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
 
     if(bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
        bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
-      dynamicCount++;
+      dynamicCount += bindings[b].descriptorCount;
 
     if(bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
     {
