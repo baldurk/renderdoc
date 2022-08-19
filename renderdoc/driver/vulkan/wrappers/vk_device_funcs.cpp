@@ -3250,6 +3250,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR,
     };
 
+    if(RDCMIN(m_EnabledExtensions.vulkanVersion, physProps.apiVersion) >= VK_MAKE_VERSION(1, 3, 0))
+    {
+      // VK_EXT_extended_dynamic_state and VK_EXT_extended_dynamic_state2 were unconditionally
+      // promoted and considered implicitly enabled in vulkan 1.3
+      m_ExtendedDynState = true;
+      m_ExtendedDynState2 = true;
+      // logic and patch CPs were not
+    }
+
     if(RDCMIN(m_EnabledExtensions.vulkanVersion, physProps.apiVersion) >= VK_MAKE_VERSION(1, 2, 0))
     {
       VkPhysicalDeviceVulkan12Features avail12Features = {
