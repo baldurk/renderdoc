@@ -652,6 +652,12 @@ WrappedMTLTexture *WrappedMTLDevice::Common_NewTexture(RDMTL::TextureDescriptor 
 {
   MTL::Texture *realMTLTexture;
   MTL::TextureDescriptor *realDescriptor(descriptor);
+  // Ensure the created textures can be read by a shader
+  // Metal driver will treat TextureUsageUnknown as all options
+  MTL::TextureUsage usage = realDescriptor->usage();
+  if(usage != MTL::TextureUsageUnknown)
+    realDescriptor->setUsage((MTL::TextureUsage)(usage | MTL::TextureUsageShaderRead));
+
   SERIALISE_TIME_CALL(realMTLTexture = !ioSurfaceTexture ? Unwrap(this)->newTexture(realDescriptor)
                                                          : Unwrap(this)->newTexture(
                                                                realDescriptor, iosurface, plane));
