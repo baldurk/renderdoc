@@ -946,6 +946,7 @@ for inst in spirv['instructions']:
         manual_init += '    this->wordCount = (uint16_t)it.size();\n'
         oper_cast = '  operator Operation() const\n  {\n    rdcarray<uint32_t> words;\n'
         has_funcs = ''
+        used_ids_str = ''
 
         disassemble += '      Op{} decoded(it);\n'.format(inst['opname'][2:])
         
@@ -984,18 +985,32 @@ for inst in spirv['instructions']:
                             manual_init += '    word = {};\n'.format(all_size)
 
                 if kind['is_id']:
-                    if quantifier == '*':
-                        used_ids += '      for(size_t i=0; i < size-{0}; i++) callback(Id::fromWord(it.word({0}+i)), {1});\n'.format(all_size, 'true' if i+1==result else 'false')
-                    elif quantifier == '?':
-                        used_ids += '      if({0} < size) callback(Id::fromWord(it.word({0})), {1});\n'.format(all_size, 'true' if i+1==result else 'false')
+                    if used_ids_str is None or used_ids_str != '':
+                        if used_ids_str is not None:
+                            used_ids += used_ids_str
+                        if quantifier == '*':
+                            used_ids += '      for(; word < size; word++) callback(Id::fromWord(it.word(word)), {0});\n'.format('true' if i+1==result else 'false')
+                        elif quantifier == '?':
+                            used_ids += '      if(word < size) callback(Id::fromWord(it.word(word)), {0});\n'.format('true' if i+1==result else 'false')
+                        else:
+                            used_ids += '      callback(Id::fromWord(it.word(word)), {});\n'.format('true' if i+1==result else 'false')
                     else:
-                        used_ids += '      callback(Id::fromWord(it.word({})), {});\n'.format(all_size, 'true' if i+1==result else 'false')
+                        if quantifier == '*':
+                            used_ids += '      for(size_t i=0; i < size-{0}; i++) callback(Id::fromWord(it.word({0}+i)), {1});\n'.format(all_size, 'true' if i+1==result else 'false')
+                        elif quantifier == '?':
+                            used_ids += '      if({0} < size) callback(Id::fromWord(it.word({0})), {1});\n'.format(all_size, 'true' if i+1==result else 'false')
+                        else:
+                            used_ids += '      callback(Id::fromWord(it.word({})), {});\n'.format(all_size, 'true' if i+1==result else 'false')
 
                 if kind['size'] < 0:
                     size_name = 'MinWordSize'
                     construct_size = 'MinWordSize'
                     complex_type = True
                     manual_init += '    word = {};\n'.format(all_size)
+                    # use DecodeParam<rdcstr> to advance by the number of words when grabbing IDs
+                    # Only used in OpEntryPoint which has a * qualifier after a string (itself already variable length)
+                    used_ids_str += '      word = {};\n'.format(all_size)
+                    used_ids_str += '      (void)DecodeParam<rdcstr>(it, word);\n'
 
                 opType,opName = (kind['type'], operand_name(operand['name'] if 'name' in operand else kind['def_name']))
 
@@ -1061,13 +1076,14 @@ for inst in spirv['instructions']:
                     manual_init += '    this->{name} = {value};\n'.format(name = opName, type = opType, value = kind['from_words']('it.word({})'.format(all_size)))
                     oper_cast += '    {push_words}\n'.format(push_words = kind['push_words'](opName))
 
-                if kind['size'] >= 0:
+                if kind['size'] >= 0 and type(all_size) is int:
                     all_size += kind['size']
+                    if quantifier == '':
+                        size = all_size
                 else:
-                    all_size += 1
-
-                if quantifier == '':
-                    size = all_size
+                    if quantifier == '':
+                        size += 1
+                    all_size = 'error: must not use all_size after variable length entry'
         else:
             assign = '    // no operands'
             member_decl = '  // no operands'
@@ -1249,6 +1265,8 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdR
 void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)> &callback)
 {{
   size_t size = it.size();
+  uint32_t word = 0;
+  (void)word;
   switch(it.opcode())
   {{
 {used_ids}

@@ -2017,6 +2017,8 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv:
 void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)> &callback)
 {
   size_t size = it.size();
+  uint32_t word = 0;
+  (void)word;
   switch(it.opcode())
   {
     case rdcspv::Op::Nop:
@@ -2055,7 +2057,9 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       break;
     case rdcspv::Op::EntryPoint:
       callback(Id::fromWord(it.word(2)), false);
-      for(size_t i=0; i < size-4; i++) callback(Id::fromWord(it.word(4+i)), false);
+      word = 3;
+      (void)DecodeParam<rdcstr>(it, word);
+      for(; word < size; word++) callback(Id::fromWord(it.word(word)), false);
       break;
     case rdcspv::Op::ExecutionMode:
       callback(Id::fromWord(it.word(1)), false);
