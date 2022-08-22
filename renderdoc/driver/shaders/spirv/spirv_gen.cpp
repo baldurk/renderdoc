@@ -2055,7 +2055,15 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       break;
     case rdcspv::Op::EntryPoint:
       callback(Id::fromWord(it.word(2)), false);
-      for(size_t i=0; i < size-4; i++) callback(Id::fromWord(it.word(4+i)), false);
+      {
+        size_t i;
+        for(i=3; i < size; i++)
+        {
+          uint32_t w = it.word(i);
+          if(!(w & 0xFF) || !(w & 0xFF00) || !(w & 0xFF0000) || !(w & 0xFF000000)) break;
+        }
+        for(i++; i < size; i++) callback(Id::fromWord(it.word(i)), false);
+      }
       break;
     case rdcspv::Op::ExecutionMode:
       callback(Id::fromWord(it.word(1)), false);
