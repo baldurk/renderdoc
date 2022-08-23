@@ -197,7 +197,7 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
       false,
   };
 
-  ia.primitiveRestartEnable = primary.allowRestart && SupportsRestart(primary.topology);
+  ia.primitiveRestartEnable = primary.allowRestart;
 
   VkRect2D scissor = {{0, 0}, {16384, 16384}};
 

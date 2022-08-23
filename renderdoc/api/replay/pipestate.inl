@@ -503,14 +503,17 @@ BoundVBuffer PipeState::GetIBuffer() const
   return ret;
 }
 
-bool PipeState::IsStripRestartEnabled() const
+bool PipeState::IsRestartEnabled() const
 {
   if(IsCaptureLoaded())
   {
     if(IsCaptureD3D11())
     {
-      // D3D11 this is always enabled
-      return true;
+      // D3D11 this is always enabled for strips
+      const Topology topology = m_D3D11->inputAssembly.topology;
+      return topology == Topology::LineStrip || topology == Topology::TriangleStrip ||
+             topology == Topology::LineStrip_Adj || topology == Topology::TriangleStrip_Adj ||
+             topology == Topology::TriangleFan;
     }
     else if(IsCaptureD3D12())
     {
@@ -529,7 +532,7 @@ bool PipeState::IsStripRestartEnabled() const
   return false;
 }
 
-uint32_t PipeState::GetStripRestartIndex() const
+uint32_t PipeState::GetRestartIndex() const
 {
   if(IsCaptureLoaded())
   {

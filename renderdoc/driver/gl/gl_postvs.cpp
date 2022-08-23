@@ -955,9 +955,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
       uint32_t stripRestartValue32 = 0;
 
-      if(SupportsRestart(drawParams.topo) &&
-         (rs.Enabled[GLRenderState::eEnabled_PrimitiveRestart] ||
-          rs.Enabled[GLRenderState::eEnabled_PrimitiveRestartFixedIndex]))
+      if(rs.Enabled[GLRenderState::eEnabled_PrimitiveRestart] ||
+         rs.Enabled[GLRenderState::eEnabled_PrimitiveRestartFixedIndex])
       {
         stripRestartValue32 = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestartFixedIndex]
                                   ? ~0U

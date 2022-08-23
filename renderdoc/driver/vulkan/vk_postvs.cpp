@@ -1728,8 +1728,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
   if(action->flags & ActionFlags::Indexed)
   {
-    const bool restart = pipeCreateInfo.pInputAssemblyState->primitiveRestartEnable &&
-                         SupportsRestart(MakePrimitiveTopology(state.primitiveTopology, 3));
+    const bool restart = pipeCreateInfo.pInputAssemblyState->primitiveRestartEnable == VK_TRUE;
     bytebuf idxdata;
     rdcarray<uint32_t> indices;
     uint8_t *idx8 = NULL;

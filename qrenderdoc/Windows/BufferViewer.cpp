@@ -2825,10 +2825,9 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
     const PipeState &pipe = m_Ctx.CurPipelineState();
 
-    if(pipe.IsStripRestartEnabled() && action && (action->flags & ActionFlags::Indexed) &&
-       SupportsRestart(pipe.GetPrimitiveTopology()))
+    if(pipe.IsRestartEnabled() && action && (action->flags & ActionFlags::Indexed))
     {
-      bufdata->vsinConfig.primRestart = pipe.GetStripRestartIndex();
+      bufdata->vsinConfig.primRestart = pipe.GetRestartIndex();
 
       if(pipe.GetIBuffer().byteStride == 1)
         bufdata->vsinConfig.primRestart &= 0xff;
@@ -3784,10 +3783,8 @@ void BufferViewer::UI_CalculateMeshFormats()
     m_VSInPosition = MeshFormat();
     m_VSInSecondary = MeshFormat();
 
-    m_VSInPosition.allowRestart = pipe.IsStripRestartEnabled() &&
-                                  (action->flags & ActionFlags::Indexed) &&
-                                  SupportsRestart(pipe.GetPrimitiveTopology());
-    m_VSInPosition.restartIndex = pipe.GetStripRestartIndex();
+    m_VSInPosition.allowRestart = pipe.IsRestartEnabled() && (action->flags & ActionFlags::Indexed);
+    m_VSInPosition.restartIndex = pipe.GetRestartIndex();
 
     const BufferConfiguration &vsinConfig = m_ModelVSIn->getConfig();
 
