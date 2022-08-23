@@ -19,7 +19,7 @@ class D3D11_Primitive_Restart(rdtest.TestCase):
         ib = pipe.GetIBuffer()
 
         # Calculate the strip restart index for this index width
-        striprestart_index = pipe.GetStripRestartIndex() & ((1 << (ib.byteStride*8)) - 1)
+        striprestart_index = pipe.GetRestartIndex() & ((1 << (ib.byteStride*8)) - 1)
 
         # We don't check all of the output, we check a few key vertices to ensure they match up
         postvs_ref = {

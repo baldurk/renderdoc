@@ -95,9 +95,9 @@ class Iter_Test(rdtest.TestCase):
 
             idx = indices[0]
 
-            striprestart_index = pipe.GetStripRestartIndex() & ((1 << (ib.byteStride*8)) - 1)
+            striprestart_index = pipe.GetRestartIndex() & ((1 << (ib.byteStride*8)) - 1)
 
-            if pipe.IsStripRestartEnabled() and idx == striprestart_index:
+            if pipe.IsRestartEnabled() and idx == striprestart_index:
                 return
 
         rdtest.log.print("Debugging vtx %d idx %d (inst %d)" % (vtx, idx, inst))

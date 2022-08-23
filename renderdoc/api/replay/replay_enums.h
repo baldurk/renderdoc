@@ -2239,34 +2239,6 @@ constexpr inline uint32_t PatchList_Count(Topology topology)
              : uint32_t(topology) - uint32_t(Topology::PatchList_1CPs) + 1;
 }
 
-DOCUMENT(R"(Check whether or not this topology supports primitive restart.
-
-.. note:: This is almost but not quite the same as being a line/triangle strip - triangle fans
-  also support restart. See also :func:`IsStrip`.
-
-:param Topology topology: The topology to check.
-:return: ``True`` if it describes a topology that allows restart, ``False`` for a list.
-:rtype: bool
-)");
-constexpr inline bool SupportsRestart(Topology topology)
-{
-  return topology == Topology::LineStrip || topology == Topology::TriangleStrip ||
-         topology == Topology::LineStrip_Adj || topology == Topology::TriangleStrip_Adj ||
-         topology == Topology::TriangleFan;
-}
-
-DOCUMENT(R"(Check whether or not this is a strip-type topology.
-
-:param Topology topology: The topology to check.
-:return: ``True`` if it describes a strip topology, ``False`` for a list.
-:rtype: bool
-)");
-constexpr inline bool IsStrip(Topology topology)
-{
-  return topology == Topology::LineStrip || topology == Topology::TriangleStrip ||
-         topology == Topology::LineStrip_Adj || topology == Topology::TriangleStrip_Adj;
-}
-
 DOCUMENT(R"(The stage in a pipeline where a shader runs
 
 .. data:: Vertex

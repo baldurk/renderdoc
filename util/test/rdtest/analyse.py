@@ -58,8 +58,8 @@ def open_capture(filename="", cap: rd.CaptureFile=None, opts: rd.ReplayOptions=N
 def fetch_indices(controller: rd.ReplayController, action: rd.ActionDescription, mesh: rd.MeshFormat, index_offset: int, first_index: int, num_indices: int):
 
     pipe = controller.GetPipelineState()
-    restart_idx = pipe.GetStripRestartIndex() & ((1 << (mesh.indexByteStride*8)) - 1)
-    restart_enabled = pipe.IsStripRestartEnabled() and rd.IsStrip(pipe.GetPrimitiveTopology())
+    restart_idx = pipe.GetRestartIndex() & ((1 << (mesh.indexByteStride*8)) - 1)
+    restart_enabled = pipe.IsRestartEnabled()
 
     # If we have an index buffer
     if mesh.indexResourceId != rd.ResourceId.Null():
@@ -282,8 +282,8 @@ def decode_mesh_data(controller: rd.ReplayController, indices: List[int], displa
 
     # Calculate the strip restart index for this index width
     striprestart_index = None
-    if controller.GetPipelineState().IsStripRestartEnabled() and attrs[0].mesh.indexResourceId != rd.ResourceId.Null():
-        striprestart_index = (controller.GetPipelineState().GetStripRestartIndex() &
+    if controller.GetPipelineState().IsRestartEnabled() and attrs[0].mesh.indexResourceId != rd.ResourceId.Null():
+        striprestart_index = (controller.GetPipelineState().GetRestartIndex() &
                               ((1 << (attrs[0].mesh.indexByteStride*8)) - 1))
 
     for i,idx in enumerate(indices):

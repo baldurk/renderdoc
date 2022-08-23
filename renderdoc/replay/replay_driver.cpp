@@ -804,8 +804,7 @@ FloatVector HighlightCache::InterpretVertex(const byte *data, uint32_t vert, con
 
     vert = indices[vert];
 
-    if(SupportsRestart(cfg.position.topology) && cfg.position.topology != Topology::TriangleFan &&
-       cfg.position.allowRestart)
+    if(cfg.position.topology != Topology::TriangleFan && cfg.position.allowRestart)
     {
       if((cfg.position.indexByteStride == 1 && vert == 0xff) ||
          (cfg.position.indexByteStride == 2 && vert == 0xffff) ||
@@ -933,7 +932,7 @@ void HighlightCache::CacheHighlightingData(uint32_t eventId, const MeshDisplay &
         maxIndex += add;
 
       uint32_t primRestart = 0;
-      if(SupportsRestart(cfg.position.topology) && cfg.position.allowRestart)
+      if(cfg.position.allowRestart)
       {
         if(cfg.position.indexByteStride == 1)
           primRestart = 0xff;
@@ -1001,7 +1000,7 @@ bool HighlightCache::FetchHighlightPositions(const MeshDisplay &cfg, FloatVector
   activeVertex = InterpretVertex(data, idx, cfg, dataEnd, true, valid);
 
   uint32_t primRestart = 0;
-  if(SupportsRestart(meshtopo) && cfg.position.allowRestart)
+  if(cfg.position.allowRestart)
   {
     if(cfg.position.indexByteStride == 1)
       primRestart = 0xff;

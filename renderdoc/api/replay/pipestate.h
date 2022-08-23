@@ -311,14 +311,14 @@ For some APIs that don't distinguish by entry point, this may be empty.
 :return: A boolean indicating if primitive restart is enabled.
 :rtype: bool
 )");
-  bool IsStripRestartEnabled() const;
+  bool IsRestartEnabled() const;
 
   DOCUMENT(R"(Retrieves the primitive restart index.
 
-:return: The index value that represents a strip restart not a real index.
+:return: The index value that represents a primitive restart not a real index.
 :rtype: int
 )");
-  uint32_t GetStripRestartIndex() const;
+  uint32_t GetRestartIndex() const;
 
   DOCUMENT(R"(Retrieves the currently bound vertex buffers.
 

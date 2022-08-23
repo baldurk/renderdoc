@@ -22,8 +22,8 @@ class GL_Draw_Zoo(rdtest.Draw_Zoo):
         ib = pipe.GetIBuffer()
 
 
-        self.check(pipe.IsStripRestartEnabled())
-        self.check((pipe.GetStripRestartIndex() & ((1 << (ib.byteStride*8)) - 1)) == 0xffff)
+        self.check(pipe.IsRestartEnabled())
+        self.check((pipe.GetRestartIndex() & ((1 << (ib.byteStride*8)) - 1)) == 0xffff)
 
         action = self.find_action("GL_PRIMITIVE_RESTART_FIXED_INDEX")
 
@@ -37,8 +37,8 @@ class GL_Draw_Zoo(rdtest.Draw_Zoo):
 
         ib = pipe.GetIBuffer()
 
-        self.check(pipe.IsStripRestartEnabled())
-        self.check((pipe.GetStripRestartIndex() & ((1 << (ib.byteStride*8)) - 1)) == 0xffff)
+        self.check(pipe.IsRestartEnabled())
+        self.check((pipe.GetRestartIndex() & ((1 << (ib.byteStride*8)) - 1)) == 0xffff)
         
         action = self.find_action("GL_ClearDepth")
         self.check(action is not None)
