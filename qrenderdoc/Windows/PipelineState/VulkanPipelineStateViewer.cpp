@@ -332,9 +332,9 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ui->viewports->setHeader(header);
 
-    ui->viewports->setColumns(
-        {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"), tr("MinDepth"), tr("MaxDepth")});
-    header->setColumnStretchHints({-1, -1, -1, -1, -1, -1, 1});
+    ui->viewports->setColumns({tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"),
+                               tr("MinDepth"), tr("MaxDepth"), tr("NDCDepthRange")});
+    header->setColumnStretchHints({-1, -1, -1, -1, -1, -1, -1, 1});
     header->setMinimumSectionSize(40);
 
     ui->viewports->setClearSelectionOnFocusLoss(true);
@@ -2430,11 +2430,14 @@ void VulkanPipelineStateViewer::setState()
   }
 
   {
+    const QString ndcDepthRange =
+        state.viewportScissor.depthNegativeOneToOne ? lit("[-1, 1]") : lit("[0, 1]");
+
     int i = 0;
     for(const VKPipe::ViewportScissor &v : state.viewportScissor.viewportScissors)
     {
-      RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {i, v.vp.x, v.vp.y, v.vp.width, v.vp.height, v.vp.minDepth, v.vp.maxDepth});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({i, v.vp.x, v.vp.y, v.vp.width, v.vp.height,
+                                                     v.vp.minDepth, v.vp.maxDepth, ndcDepthRange});
       ui->viewports->addTopLevelItem(node);
 
       if(v.vp.width == 0 || v.vp.height == 0)
@@ -3880,6 +3883,8 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     xml.writeCharacters(tr("Viewports"));
     xml.writeEndElement();
 
+    const QString ndcDepthRange = vp.depthNegativeOneToOne ? lit("[-1, 1]") : lit("[0, 1]");
+
     QList<QVariantList> rows;
 
     int i = 0;
@@ -3887,14 +3892,14 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     {
       const Viewport &v = vs.vp;
 
-      rows.push_back({i, v.x, v.y, v.width, v.height, v.minDepth, v.maxDepth});
+      rows.push_back({i, v.x, v.y, v.width, v.height, v.minDepth, v.maxDepth, ndcDepthRange});
 
       i++;
     }
 
-    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"),
-                                   tr("Min Depth"), tr("Max Depth")},
-                             rows);
+    QStringList header = {tr("Slot"),   tr("X"),         tr("Y"),         tr("Width"),
+                          tr("Height"), tr("Min Depth"), tr("Max Depth"), tr("NDC Depth Range")};
+    m_Common.exportHTMLTable(xml, header, rows);
   }
 
   {

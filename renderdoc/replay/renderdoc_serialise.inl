@@ -2130,6 +2130,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::ViewState &el)
   SERIALISE_MEMBER(viewportScissors);
   SERIALISE_MEMBER(discardRectangles);
   SERIALISE_MEMBER(discardRectanglesExclusive);
+  SERIALISE_MEMBER(depthNegativeOneToOne);
 
   SIZE_CHECK(56);
 }

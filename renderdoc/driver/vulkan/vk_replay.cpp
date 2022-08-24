@@ -1362,6 +1362,10 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
           (p.discardMode == VK_DISCARD_RECTANGLE_MODE_EXCLUSIVE_EXT);
     }
 
+    {
+      ret.viewportScissor.depthNegativeOneToOne = p.negativeOneToOne;
+    }
+
     // Rasterizer
     ret.rasterizer.depthClampEnable = p.depthClampEnable;
     ret.rasterizer.depthClipEnable = p.depthClipEnable;
@@ -1565,6 +1569,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.viewportScissor.viewportScissors.clear();
     ret.viewportScissor.discardRectangles.clear();
     ret.viewportScissor.discardRectanglesExclusive = true;
+    ret.viewportScissor.depthNegativeOneToOne = false;
 
     ret.colorBlend.blends.clear();
   }
