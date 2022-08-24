@@ -781,6 +781,9 @@ and a fragment in none of them is discarded.
   disabled, since with no rectangles no fragment can be inside one.
 )");
   bool discardRectanglesExclusive = true;
+
+  DOCUMENT(R"(Whether depth clip range is set to [-1, 1] through VK_EXT_depth_clip_control.)");
+  bool depthNegativeOneToOne = false;
 };
 
 DOCUMENT("Describes the rasterizer state in the pipeline.");
