@@ -1460,6 +1460,18 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
                 info.pNext = &shadingRate;
               }
 
+              VkMultisampledRenderToSingleSampledInfoEXT tileOnlyMSAA = {
+                  VK_STRUCTURE_TYPE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_INFO_EXT, NULL,
+                  renderstate.dynamicRendering.tileOnlyMSAAEnable,
+                  renderstate.dynamicRendering.tileOnlyMSAASampleCount,
+              };
+
+              if(renderstate.dynamicRendering.tileOnlyMSAAEnable)
+              {
+                tileOnlyMSAA.pNext = info.pNext;
+                info.pNext = &tileOnlyMSAA;
+              }
+
               byte *tempMem = GetTempMemory(GetNextPatchSize(&info));
               VkRenderingInfo *unwrappedInfo = UnwrapStructAndChain(m_State, tempMem, &info);
 
@@ -6811,6 +6823,17 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
                 shadingRateAttachment->shadingRateAttachmentTexelSize;
           }
 
+          VkMultisampledRenderToSingleSampledInfoEXT *tileOnlyMSAA =
+              (VkMultisampledRenderToSingleSampledInfoEXT *)FindNextStruct(
+                  &RenderingInfo, VK_STRUCTURE_TYPE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_INFO_EXT);
+
+          if(tileOnlyMSAA)
+          {
+            renderstate.dynamicRendering.tileOnlyMSAAEnable =
+                tileOnlyMSAA->multisampledRenderToSingleSampledEnable != VK_FALSE;
+            renderstate.dynamicRendering.tileOnlyMSAASampleCount = tileOnlyMSAA->rasterizationSamples;
+          }
+
           rdcarray<ResourceId> attachments;
 
           for(size_t i = 0; i < renderstate.dynamicRendering.color.size(); i++)
@@ -6955,6 +6978,17 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
           renderstate.dynamicRendering.shadingRateLayout = shadingRateAttachment->imageLayout;
           renderstate.dynamicRendering.shadingRateTexelSize =
               shadingRateAttachment->shadingRateAttachmentTexelSize;
+        }
+
+        VkMultisampledRenderToSingleSampledInfoEXT *tileOnlyMSAA =
+            (VkMultisampledRenderToSingleSampledInfoEXT *)FindNextStruct(
+                &RenderingInfo, VK_STRUCTURE_TYPE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_INFO_EXT);
+
+        if(tileOnlyMSAA)
+        {
+          renderstate.dynamicRendering.tileOnlyMSAAEnable =
+              tileOnlyMSAA->multisampledRenderToSingleSampledEnable != VK_FALSE;
+          renderstate.dynamicRendering.tileOnlyMSAASampleCount = tileOnlyMSAA->rasterizationSamples;
         }
 
         rdcarray<ResourceId> attachments;

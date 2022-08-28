@@ -1082,6 +1082,13 @@ If the list is empty, fdm_offset is disabled and rendering is as normal.
 :type: List[Offset]
 )");
   rdcarray<Offset> fragmentDensityOffsets;
+
+  DOCUMENT(R"(If VK_EXT_multisampled_render_to_single_sampled is enabled, contains the number of
+samples used to render this subpass.
+
+If the subpass is not internally multisampled, tileOnlyMSAASampleCount is set to 0.
+)");
+  uint32_t tileOnlyMSAASampleCount = 0;
 };
 
 DOCUMENT("Describes a single attachment in a framebuffer object.");

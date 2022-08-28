@@ -1587,6 +1587,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     rpState.resourceId = ResourceId();
     rpState.subpass = 0;
     rpState.fragmentDensityOffsets.clear();
+    rpState.tileOnlyMSAASampleCount = 0;
 
     fbState.resourceId = ResourceId();
     // dynamic rendering does not provide a framebuffer dimension, it's implicit from the image
@@ -1772,6 +1773,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].multiviews;
     ret.currentPass.renderpass.feedbackLoop =
         c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].feedbackLoop;
+    ret.currentPass.renderpass.tileOnlyMSAASampleCount =
+        c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].tileOnlyMSAASampleCount;
 
     ResourceId fb = state.GetFramebuffer();
 
@@ -1851,6 +1854,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.currentPass.renderpass.fragmentDensityAttachment = -1;
     ret.currentPass.renderpass.shadingRateAttachment = -1;
     ret.currentPass.renderpass.shadingRateTexelSize = {1, 1};
+    ret.currentPass.renderpass.tileOnlyMSAASampleCount = 0;
 
     ret.currentPass.framebuffer.resourceId = ResourceId();
     ret.currentPass.framebuffer.attachments.clear();

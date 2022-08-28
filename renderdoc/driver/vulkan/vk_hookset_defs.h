@@ -438,109 +438,110 @@
 
 // this is the union of the lists below - necessary because some extensions are in both lists
 // (device extensions with physical device functions)
-#define DeclExts()                              \
-  DeclExt(KHR_xlib_surface);                    \
-  DeclExt(KHR_xcb_surface);                     \
-  DeclExt(KHR_win32_surface);                   \
-  DeclExt(KHR_android_surface);                 \
-  DeclExt(MVK_macos_surface);                   \
-  DeclExt(KHR_surface);                         \
-  DeclExt(GGP_stream_descriptor_surface);       \
-  DeclExt(EXT_debug_report);                    \
-  DeclExt(KHR_display);                         \
-  DeclExt(NV_external_memory_capabilities);     \
-  DeclExt(KHR_get_physical_device_properties2); \
-  DeclExt(EXT_display_surface_counter);         \
-  DeclExt(EXT_direct_mode_display);             \
-  DeclExt(EXT_acquire_xlib_display);            \
-  DeclExt(KHR_external_memory_capabilities);    \
-  DeclExt(KHR_external_semaphore_capabilities); \
-  DeclExt(KHR_external_fence_capabilities);     \
-  DeclExt(EXT_debug_utils);                     \
-  DeclExt(KHR_device_group_creation);           \
-  DeclExt(protected_memory);                    \
-  DeclExt(KHR_get_surface_capabilities2);       \
-  DeclExt(KHR_get_display_properties2);         \
-  DeclExt(EXT_headless_surface);                \
-  DeclExt(EXT_metal_surface);                   \
-  DeclExt(KHR_wayland_surface);                 \
-  /* device extensions */                       \
-  DeclExt(EXT_debug_marker);                    \
-  DeclExt(GGP_frame_token);                     \
-  DeclExt(KHR_swapchain);                       \
-  DeclExt(KHR_display_swapchain);               \
-  DeclExt(NV_external_memory);                  \
-  DeclExt(NV_external_memory_win32);            \
-  DeclExt(NV_win32_keyed_mutex);                \
-  DeclExt(KHR_maintenance1);                    \
-  DeclExt(KHR_maintenance2);                    \
-  DeclExt(KHR_maintenance3);                    \
-  DeclExt(EXT_display_control);                 \
-  DeclExt(KHR_external_memory);                 \
-  DeclExt(KHR_external_memory_win32);           \
-  DeclExt(KHR_external_memory_fd);              \
-  DeclExt(KHR_external_semaphore);              \
-  DeclExt(KHR_external_semaphore_win32);        \
-  DeclExt(KHR_external_semaphore_fd);           \
-  DeclExt(KHR_external_fence);                  \
-  DeclExt(KHR_external_fence_win32);            \
-  DeclExt(KHR_external_fence_fd);               \
-  DeclExt(KHR_get_memory_requirements2);        \
-  DeclExt(AMD_shader_info);                     \
-  DeclExt(KHR_push_descriptor);                 \
-  DeclExt(KHR_descriptor_update_template);      \
-  DeclExt(KHR_bind_memory2);                    \
-  DeclExt(EXT_conservative_rasterization);      \
-  DeclExt(EXT_global_priority);                 \
-  DeclExt(AMD_buffer_marker);                   \
-  DeclExt(EXT_vertex_attribute_divisor);        \
-  DeclExt(EXT_sampler_filter_minmax);           \
-  DeclExt(KHR_sampler_ycbcr_conversion);        \
-  DeclExt(KHR_device_group);                    \
-  DeclExt(MVK_moltenvk);                        \
-  DeclExt(KHR_draw_indirect_count);             \
-  DeclExt(EXT_validation_cache);                \
-  DeclExt(KHR_shared_presentable_image);        \
-  DeclExt(KHR_create_renderpass2);              \
-  DeclExt(EXT_transform_feedback);              \
-  DeclExt(EXT_conditional_rendering);           \
-  DeclExt(EXT_sample_locations);                \
-  DeclExt(EXT_discard_rectangles);              \
-  DeclExt(EXT_calibrated_timestamps);           \
-  DeclExt(EXT_host_query_reset);                \
-  DeclExt(EXT_buffer_device_address);           \
-  DeclExt(EXT_full_screen_exclusive);           \
-  DeclExt(EXT_hdr_metadata);                    \
-  DeclExt(AMD_display_native_hdr);              \
-  DeclExt(EXT_depth_clip_control);              \
-  DeclExt(EXT_depth_clip_enable);               \
-  DeclExt(KHR_pipeline_executable_properties);  \
-  DeclExt(AMD_negative_viewport_height);        \
-  DeclExt(EXT_line_rasterization);              \
-  DeclExt(GOOGLE_display_timing);               \
-  DeclExt(KHR_timeline_semaphore);              \
-  DeclExt(KHR_performance_query);               \
-  DeclExt(KHR_buffer_device_address);           \
-  DeclExt(EXT_tooling_info);                    \
-  DeclExt(KHR_separate_depth_stencil_layouts);  \
-  DeclExt(KHR_shader_non_semantic_info);        \
-  DeclExt(EXT_inline_uniform_block);            \
-  DeclExt(EXT_custom_border_color);             \
-  DeclExt(EXT_robustness2);                     \
-  DeclExt(EXT_pipeline_creation_cache_control); \
-  DeclExt(EXT_primitive_topology_list_restart); \
-  DeclExt(EXT_primitives_generated_query);      \
-  DeclExt(EXT_private_data);                    \
-  DeclExt(EXT_extended_dynamic_state);          \
-  DeclExt(KHR_copy_commands2);                  \
-  DeclExt(KHR_synchronization2);                \
-  DeclExt(KHR_present_wait);                    \
-  DeclExt(KHR_maintenance4);                    \
-  DeclExt(EXT_color_write_enable);              \
-  DeclExt(EXT_extended_dynamic_state2);         \
-  DeclExt(EXT_vertex_input_dynamic_state);      \
-  DeclExt(KHR_dynamic_rendering);               \
-  DeclExt(KHR_fragment_shading_rate);           \
+#define DeclExts()                                    \
+  DeclExt(KHR_xlib_surface);                          \
+  DeclExt(KHR_xcb_surface);                           \
+  DeclExt(KHR_win32_surface);                         \
+  DeclExt(KHR_android_surface);                       \
+  DeclExt(MVK_macos_surface);                         \
+  DeclExt(KHR_surface);                               \
+  DeclExt(GGP_stream_descriptor_surface);             \
+  DeclExt(EXT_debug_report);                          \
+  DeclExt(KHR_display);                               \
+  DeclExt(NV_external_memory_capabilities);           \
+  DeclExt(KHR_get_physical_device_properties2);       \
+  DeclExt(EXT_display_surface_counter);               \
+  DeclExt(EXT_direct_mode_display);                   \
+  DeclExt(EXT_acquire_xlib_display);                  \
+  DeclExt(KHR_external_memory_capabilities);          \
+  DeclExt(KHR_external_semaphore_capabilities);       \
+  DeclExt(KHR_external_fence_capabilities);           \
+  DeclExt(EXT_debug_utils);                           \
+  DeclExt(KHR_device_group_creation);                 \
+  DeclExt(protected_memory);                          \
+  DeclExt(KHR_get_surface_capabilities2);             \
+  DeclExt(KHR_get_display_properties2);               \
+  DeclExt(EXT_headless_surface);                      \
+  DeclExt(EXT_metal_surface);                         \
+  DeclExt(KHR_wayland_surface);                       \
+  /* device extensions */                             \
+  DeclExt(EXT_debug_marker);                          \
+  DeclExt(GGP_frame_token);                           \
+  DeclExt(KHR_swapchain);                             \
+  DeclExt(KHR_display_swapchain);                     \
+  DeclExt(NV_external_memory);                        \
+  DeclExt(NV_external_memory_win32);                  \
+  DeclExt(NV_win32_keyed_mutex);                      \
+  DeclExt(KHR_maintenance1);                          \
+  DeclExt(KHR_maintenance2);                          \
+  DeclExt(KHR_maintenance3);                          \
+  DeclExt(EXT_display_control);                       \
+  DeclExt(KHR_external_memory);                       \
+  DeclExt(KHR_external_memory_win32);                 \
+  DeclExt(KHR_external_memory_fd);                    \
+  DeclExt(KHR_external_semaphore);                    \
+  DeclExt(KHR_external_semaphore_win32);              \
+  DeclExt(KHR_external_semaphore_fd);                 \
+  DeclExt(KHR_external_fence);                        \
+  DeclExt(KHR_external_fence_win32);                  \
+  DeclExt(KHR_external_fence_fd);                     \
+  DeclExt(KHR_get_memory_requirements2);              \
+  DeclExt(AMD_shader_info);                           \
+  DeclExt(KHR_push_descriptor);                       \
+  DeclExt(KHR_descriptor_update_template);            \
+  DeclExt(KHR_bind_memory2);                          \
+  DeclExt(EXT_conservative_rasterization);            \
+  DeclExt(EXT_global_priority);                       \
+  DeclExt(AMD_buffer_marker);                         \
+  DeclExt(EXT_vertex_attribute_divisor);              \
+  DeclExt(EXT_sampler_filter_minmax);                 \
+  DeclExt(KHR_sampler_ycbcr_conversion);              \
+  DeclExt(KHR_device_group);                          \
+  DeclExt(MVK_moltenvk);                              \
+  DeclExt(KHR_draw_indirect_count);                   \
+  DeclExt(EXT_validation_cache);                      \
+  DeclExt(KHR_shared_presentable_image);              \
+  DeclExt(KHR_create_renderpass2);                    \
+  DeclExt(EXT_transform_feedback);                    \
+  DeclExt(EXT_conditional_rendering);                 \
+  DeclExt(EXT_sample_locations);                      \
+  DeclExt(EXT_discard_rectangles);                    \
+  DeclExt(EXT_calibrated_timestamps);                 \
+  DeclExt(EXT_host_query_reset);                      \
+  DeclExt(EXT_buffer_device_address);                 \
+  DeclExt(EXT_full_screen_exclusive);                 \
+  DeclExt(EXT_hdr_metadata);                          \
+  DeclExt(AMD_display_native_hdr);                    \
+  DeclExt(EXT_depth_clip_control);                    \
+  DeclExt(EXT_depth_clip_enable);                     \
+  DeclExt(KHR_pipeline_executable_properties);        \
+  DeclExt(AMD_negative_viewport_height);              \
+  DeclExt(EXT_line_rasterization);                    \
+  DeclExt(GOOGLE_display_timing);                     \
+  DeclExt(KHR_timeline_semaphore);                    \
+  DeclExt(KHR_performance_query);                     \
+  DeclExt(KHR_buffer_device_address);                 \
+  DeclExt(EXT_tooling_info);                          \
+  DeclExt(KHR_separate_depth_stencil_layouts);        \
+  DeclExt(KHR_shader_non_semantic_info);              \
+  DeclExt(EXT_inline_uniform_block);                  \
+  DeclExt(EXT_custom_border_color);                   \
+  DeclExt(EXT_robustness2);                           \
+  DeclExt(EXT_pipeline_creation_cache_control);       \
+  DeclExt(EXT_primitive_topology_list_restart);       \
+  DeclExt(EXT_primitives_generated_query);            \
+  DeclExt(EXT_private_data);                          \
+  DeclExt(EXT_extended_dynamic_state);                \
+  DeclExt(KHR_copy_commands2);                        \
+  DeclExt(KHR_synchronization2);                      \
+  DeclExt(KHR_present_wait);                          \
+  DeclExt(KHR_maintenance4);                          \
+  DeclExt(EXT_color_write_enable);                    \
+  DeclExt(EXT_extended_dynamic_state2);               \
+  DeclExt(EXT_multisampled_render_to_single_sampled); \
+  DeclExt(EXT_vertex_input_dynamic_state);            \
+  DeclExt(KHR_dynamic_rendering);                     \
+  DeclExt(KHR_fragment_shading_rate);                 \
   DeclExt(EXT_attachment_feedback_loop_layout);
 
 // for simplicity and since the check itself is platform agnostic,
@@ -577,82 +578,83 @@
   CheckExt(KHR_performance_query, VKXX);               \
   CheckExt(KHR_fragment_shading_rate, VKXX);
 
-#define CheckDeviceExts()                              \
-  CheckExt(EXT_debug_marker, VKXX);                    \
-  CheckExt(GGP_frame_token, VKXX);                     \
-  CheckExt(KHR_swapchain, VKXX);                       \
-  CheckExt(KHR_display_swapchain, VKXX);               \
-  CheckExt(NV_external_memory, VKXX);                  \
-  CheckExt(NV_external_memory_win32, VKXX);            \
-  CheckExt(NV_win32_keyed_mutex, VKXX);                \
-  CheckExt(KHR_maintenance1, VK11);                    \
-  CheckExt(KHR_maintenance2, VK11);                    \
-  CheckExt(KHR_maintenance3, VK11);                    \
-  CheckExt(EXT_display_control, VKXX);                 \
-  CheckExt(KHR_external_memory, VK11);                 \
-  CheckExt(KHR_external_memory_win32, VKXX);           \
-  CheckExt(KHR_external_memory_fd, VKXX);              \
-  CheckExt(KHR_external_semaphore, VK11);              \
-  CheckExt(KHR_external_semaphore_win32, VKXX);        \
-  CheckExt(KHR_external_semaphore_fd, VKXX);           \
-  CheckExt(KHR_external_fence, VK11);                  \
-  CheckExt(KHR_external_fence_win32, VKXX);            \
-  CheckExt(KHR_external_fence_fd, VKXX);               \
-  CheckExt(KHR_get_memory_requirements2, VK11);        \
-  CheckExt(AMD_shader_info, VKXX);                     \
-  CheckExt(KHR_push_descriptor, VKXX);                 \
-  CheckExt(KHR_descriptor_update_template, VK11);      \
-  CheckExt(KHR_bind_memory2, VK11);                    \
-  CheckExt(EXT_conservative_rasterization, VKXX);      \
-  CheckExt(EXT_global_priority, VKXX);                 \
-  CheckExt(AMD_buffer_marker, VKXX);                   \
-  CheckExt(EXT_vertex_attribute_divisor, VKXX);        \
-  CheckExt(EXT_sampler_filter_minmax, VK12);           \
-  CheckExt(KHR_sampler_ycbcr_conversion, VK11);        \
-  CheckExt(KHR_device_group, VK11);                    \
-  CheckExt(MVK_moltenvk, VKXX);                        \
-  CheckExt(KHR_draw_indirect_count, VK12);             \
-  CheckExt(EXT_validation_cache, VKXX);                \
-  CheckExt(KHR_shared_presentable_image, VKXX);        \
-  CheckExt(KHR_create_renderpass2, VK12);              \
-  CheckExt(EXT_transform_feedback, VKXX);              \
-  CheckExt(EXT_conditional_rendering, VKXX);           \
-  CheckExt(EXT_sample_locations, VKXX);                \
-  CheckExt(EXT_discard_rectangles, VKXX);              \
-  CheckExt(EXT_calibrated_timestamps, VKXX);           \
-  CheckExt(EXT_host_query_reset, VK12);                \
-  CheckExt(EXT_buffer_device_address, VKXX);           \
-  CheckExt(EXT_hdr_metadata, VKXX);                    \
-  CheckExt(AMD_display_native_hdr, VKXX);              \
-  CheckExt(EXT_depth_clip_control, VKXX);              \
-  CheckExt(EXT_depth_clip_enable, VKXX);               \
-  CheckExt(KHR_pipeline_executable_properties, VKXX);  \
-  CheckExt(AMD_negative_viewport_height, VKXX);        \
-  CheckExt(EXT_line_rasterization, VKXX);              \
-  CheckExt(GOOGLE_display_timing, VKXX);               \
-  CheckExt(KHR_timeline_semaphore, VK12);              \
-  CheckExt(KHR_performance_query, VKXX);               \
-  CheckExt(KHR_buffer_device_address, VK12);           \
-  CheckExt(EXT_tooling_info, VK13);                    \
-  CheckExt(KHR_separate_depth_stencil_layouts, VK12);  \
-  CheckExt(KHR_shader_non_semantic_info, VK13);        \
-  CheckExt(EXT_inline_uniform_block, VK13);            \
-  CheckExt(EXT_custom_border_color, VKXX);             \
-  CheckExt(EXT_robustness2, VKXX);                     \
-  CheckExt(EXT_pipeline_creation_cache_control, VKXX); \
-  CheckExt(EXT_primitive_topology_list_restart, VKXX); \
-  CheckExt(EXT_primitives_generated_query, VKXX);      \
-  CheckExt(EXT_private_data, VK13);                    \
-  CheckExt(EXT_extended_dynamic_state, VK13);          \
-  CheckExt(KHR_copy_commands2, VK13);                  \
-  CheckExt(KHR_synchronization2, VK13);                \
-  CheckExt(KHR_present_wait, VKXX);                    \
-  CheckExt(KHR_maintenance4, VK13);                    \
-  CheckExt(EXT_color_write_enable, VKXX);              \
-  CheckExt(EXT_extended_dynamic_state2, VK13);         \
-  CheckExt(EXT_vertex_input_dynamic_state, VKXX);      \
-  CheckExt(KHR_dynamic_rendering, VK13);               \
-  CheckExt(KHR_fragment_shading_rate, VKXX);           \
+#define CheckDeviceExts()                                    \
+  CheckExt(EXT_debug_marker, VKXX);                          \
+  CheckExt(GGP_frame_token, VKXX);                           \
+  CheckExt(KHR_swapchain, VKXX);                             \
+  CheckExt(KHR_display_swapchain, VKXX);                     \
+  CheckExt(NV_external_memory, VKXX);                        \
+  CheckExt(NV_external_memory_win32, VKXX);                  \
+  CheckExt(NV_win32_keyed_mutex, VKXX);                      \
+  CheckExt(KHR_maintenance1, VK11);                          \
+  CheckExt(KHR_maintenance2, VK11);                          \
+  CheckExt(KHR_maintenance3, VK11);                          \
+  CheckExt(EXT_display_control, VKXX);                       \
+  CheckExt(KHR_external_memory, VK11);                       \
+  CheckExt(KHR_external_memory_win32, VKXX);                 \
+  CheckExt(KHR_external_memory_fd, VKXX);                    \
+  CheckExt(KHR_external_semaphore, VK11);                    \
+  CheckExt(KHR_external_semaphore_win32, VKXX);              \
+  CheckExt(KHR_external_semaphore_fd, VKXX);                 \
+  CheckExt(KHR_external_fence, VK11);                        \
+  CheckExt(KHR_external_fence_win32, VKXX);                  \
+  CheckExt(KHR_external_fence_fd, VKXX);                     \
+  CheckExt(KHR_get_memory_requirements2, VK11);              \
+  CheckExt(AMD_shader_info, VKXX);                           \
+  CheckExt(KHR_push_descriptor, VKXX);                       \
+  CheckExt(KHR_descriptor_update_template, VK11);            \
+  CheckExt(KHR_bind_memory2, VK11);                          \
+  CheckExt(EXT_conservative_rasterization, VKXX);            \
+  CheckExt(EXT_global_priority, VKXX);                       \
+  CheckExt(AMD_buffer_marker, VKXX);                         \
+  CheckExt(EXT_vertex_attribute_divisor, VKXX);              \
+  CheckExt(EXT_sampler_filter_minmax, VK12);                 \
+  CheckExt(KHR_sampler_ycbcr_conversion, VK11);              \
+  CheckExt(KHR_device_group, VK11);                          \
+  CheckExt(MVK_moltenvk, VKXX);                              \
+  CheckExt(KHR_draw_indirect_count, VK12);                   \
+  CheckExt(EXT_validation_cache, VKXX);                      \
+  CheckExt(KHR_shared_presentable_image, VKXX);              \
+  CheckExt(KHR_create_renderpass2, VK12);                    \
+  CheckExt(EXT_transform_feedback, VKXX);                    \
+  CheckExt(EXT_conditional_rendering, VKXX);                 \
+  CheckExt(EXT_sample_locations, VKXX);                      \
+  CheckExt(EXT_discard_rectangles, VKXX);                    \
+  CheckExt(EXT_calibrated_timestamps, VKXX);                 \
+  CheckExt(EXT_host_query_reset, VK12);                      \
+  CheckExt(EXT_buffer_device_address, VKXX);                 \
+  CheckExt(EXT_hdr_metadata, VKXX);                          \
+  CheckExt(AMD_display_native_hdr, VKXX);                    \
+  CheckExt(EXT_depth_clip_control, VKXX);                    \
+  CheckExt(EXT_depth_clip_enable, VKXX);                     \
+  CheckExt(KHR_pipeline_executable_properties, VKXX);        \
+  CheckExt(AMD_negative_viewport_height, VKXX);              \
+  CheckExt(EXT_line_rasterization, VKXX);                    \
+  CheckExt(GOOGLE_display_timing, VKXX);                     \
+  CheckExt(KHR_timeline_semaphore, VK12);                    \
+  CheckExt(KHR_performance_query, VKXX);                     \
+  CheckExt(KHR_buffer_device_address, VK12);                 \
+  CheckExt(EXT_tooling_info, VK13);                          \
+  CheckExt(KHR_separate_depth_stencil_layouts, VK12);        \
+  CheckExt(KHR_shader_non_semantic_info, VK13);              \
+  CheckExt(EXT_inline_uniform_block, VK13);                  \
+  CheckExt(EXT_custom_border_color, VKXX);                   \
+  CheckExt(EXT_robustness2, VKXX);                           \
+  CheckExt(EXT_pipeline_creation_cache_control, VKXX);       \
+  CheckExt(EXT_primitive_topology_list_restart, VKXX);       \
+  CheckExt(EXT_primitives_generated_query, VKXX);            \
+  CheckExt(EXT_private_data, VK13);                          \
+  CheckExt(EXT_extended_dynamic_state, VK13);                \
+  CheckExt(KHR_copy_commands2, VK13);                        \
+  CheckExt(KHR_synchronization2, VK13);                      \
+  CheckExt(KHR_present_wait, VKXX);                          \
+  CheckExt(KHR_maintenance4, VK13);                          \
+  CheckExt(EXT_color_write_enable, VKXX);                    \
+  CheckExt(EXT_extended_dynamic_state2, VK13);               \
+  CheckExt(EXT_multisampled_render_to_single_sampled, VKXX); \
+  CheckExt(EXT_vertex_input_dynamic_state, VKXX);            \
+  CheckExt(KHR_dynamic_rendering, VK13);                     \
+  CheckExt(KHR_fragment_shading_rate, VKXX);                 \
   CheckExt(EXT_attachment_feedback_loop_layout, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \

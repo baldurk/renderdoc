@@ -1274,6 +1274,9 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
 
     dst.feedbackLoop = false;
 
+    dst.tileOnlyMSAAEnable = false;
+    dst.tileOnlyMSAASampleCount = VK_SAMPLE_COUNT_1_BIT;
+
     if(multiview && multiview->subpassCount > 0)
     {
       uint32_t mask = multiview->pViewMasks[subp];
@@ -1393,8 +1396,11 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
         (const VkSubpassDescriptionDepthStencilResolve *)FindNextStruct(
             &src, VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE);
 
+    // Note: with VK_EXT_multisampled_render_to_single_sampled, it's possible for
+    // VkSubpassDescriptionDepthStencilResolve to be provided (for the sake of specifying the
+    // resolve mode) without an attachment.
     dst.depthstencilResolveAttachment =
-        (depthstencilResolve &&
+        (depthstencilResolve && depthstencilResolve->pDepthStencilResolveAttachment &&
                  depthstencilResolve->pDepthStencilResolveAttachment->attachment != VK_ATTACHMENT_UNUSED
              ? depthstencilResolve->pDepthStencilResolveAttachment->attachment
              : -1);
@@ -1430,6 +1436,16 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
 
     dst.shadingRateTexelSize =
         shadingRate ? shadingRate->shadingRateAttachmentTexelSize : VkExtent2D({1, 1});
+
+    // VK_EXT_multisampled_render_to_single_sampled
+    const VkMultisampledRenderToSingleSampledInfoEXT *tileOnlyMSAA =
+        (const VkMultisampledRenderToSingleSampledInfoEXT *)FindNextStruct(
+            &src, VK_STRUCTURE_TYPE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_INFO_EXT);
+
+    dst.tileOnlyMSAAEnable =
+        tileOnlyMSAA ? tileOnlyMSAA->multisampledRenderToSingleSampledEnable != VK_FALSE : false;
+    dst.tileOnlyMSAASampleCount =
+        tileOnlyMSAA ? tileOnlyMSAA->rasterizationSamples : VK_SAMPLE_COUNT_1_BIT;
 
     for(uint32_t i = 0; i < 32; i++)
     {

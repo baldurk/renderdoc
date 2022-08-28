@@ -1003,6 +1003,10 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
 #endif
     {
+        VK_EXT_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_EXTENSION_NAME,
+        VK_EXT_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_SPEC_VERSION,
+    },
+    {
         VK_EXT_PCI_BUS_INFO_EXTENSION_NAME, VK_EXT_PCI_BUS_INFO_SPEC_VERSION,
     },
     {

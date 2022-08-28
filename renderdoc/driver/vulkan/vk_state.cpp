@@ -41,6 +41,7 @@ struct RenderingInfoStructs
 
   VkRenderingFragmentDensityMapAttachmentInfoEXT fragmentDensity;
   VkRenderingFragmentShadingRateAttachmentInfoKHR shadingRate;
+  VkMultisampledRenderToSingleSampledInfoEXT tileOnlyMSAA;
 };
 
 void setupRenderingInfo(const VulkanRenderState::DynamicRendering &dynamicRendering,
@@ -116,6 +117,17 @@ void setupRenderingInfo(const VulkanRenderState::DynamicRendering &dynamicRender
   {
     structs->shadingRate.pNext = info->pNext;
     info->pNext = &structs->shadingRate;
+  }
+
+  structs->tileOnlyMSAA = {
+      VK_STRUCTURE_TYPE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_INFO_EXT, NULL,
+      dynamicRendering.tileOnlyMSAAEnable, dynamicRendering.tileOnlyMSAASampleCount,
+  };
+
+  if(dynamicRendering.tileOnlyMSAAEnable)
+  {
+    structs->tileOnlyMSAA.pNext = info->pNext;
+    info->pNext = &structs->tileOnlyMSAA;
   }
 }
 }    // namespace

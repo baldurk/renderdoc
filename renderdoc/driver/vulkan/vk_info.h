@@ -482,6 +482,7 @@ struct VulkanCreationInfo
       int32_t depthstencilResolveAttachment;
       int32_t fragmentDensityAttachment;
       int32_t shadingRateAttachment;
+      VkSampleCountFlagBits tileOnlyMSAASampleCount;
 
       rdcarray<VkImageLayout> inputLayouts;
       rdcarray<VkImageLayout> inputStencilLayouts;
@@ -496,6 +497,7 @@ struct VulkanCreationInfo
       rdcarray<uint32_t> multiviews;
 
       bool feedbackLoop;
+      bool tileOnlyMSAAEnable;
     };
     rdcarray<Subpass> subpasses;
 

@@ -2233,8 +2233,9 @@ void DoSerialise(SerialiserType &ser, VKPipe::RenderPass &el)
   SERIALISE_MEMBER(shadingRateTexelSize);
   SERIALISE_MEMBER(multiviews);
   SERIALISE_MEMBER(fragmentDensityOffsets);
+  SERIALISE_MEMBER(tileOnlyMSAASampleCount);
 
-  SIZE_CHECK(160);
+  SIZE_CHECK(168);
 }
 
 template <typename SerialiserType>
@@ -2284,7 +2285,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::CurrentPass &el)
   SERIALISE_MEMBER(framebuffer);
   SERIALISE_MEMBER(renderArea);
 
-  SIZE_CHECK(224);
+  SIZE_CHECK(232);
 }
 
 template <typename SerialiserType>
@@ -2352,7 +2353,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
   SERIALISE_MEMBER(conditionalRendering);
 
-  SIZE_CHECK(2240);
+  SIZE_CHECK(2248);
 }
 
 #pragma endregion Vulkan pipeline state
