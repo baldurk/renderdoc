@@ -132,7 +132,7 @@ void MyAppDelegate::CreateWindow(int width, int height, const char *title)
   view->setLayer((CA::Layer *)CA::MetalLayer::layer());
 
   _pWindow->setTitle(NS::String::string(title, NS::StringEncoding::UTF8StringEncoding));
-  _pWindow->makeKeyAndOrderFront(nullptr);
+  _pWindow->makeKeyAndOrderFront(NULL);
 }
 
 NS::View *MyAppDelegate::GetContentView()
@@ -147,7 +147,7 @@ NS::Window *MyAppDelegate::GetWindow()
 
 AppleWindow::~AppleWindow()
 {
-  pAppDelegate = nullptr;
+  pAppDelegate = NULL;
 }
 
 AppleWindow::AppleWindow(int width, int height, const char *title) : GraphicsWindow(title)
