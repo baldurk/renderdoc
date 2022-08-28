@@ -39,6 +39,28 @@
 
 Q_DECLARE_METATYPE(CombinedSamplerData);
 
+namespace
+{
+QString getTextureRenderSamples(const TextureDescription *tex, const VKPipe::RenderPass &renderpass)
+{
+  const uint32_t texSamples = tex ? tex->msSamp : 1;
+  const uint32_t renderSamples = renderpass.tileOnlyMSAASampleCount;
+
+  QString result = lit("%1x").arg(std::max(texSamples, renderSamples));
+
+  // With VK_EXT_multisampled_render_to_single_sampled, attachments can either have N or 1 samples,
+  // where N is the same number of samples specified for MSRTSS.  Attachments with Nx samples are
+  // rendered to normally, while 1x ones are implicitly rendered with N samples.  The latter are
+  // specifically tagged as such.
+  if(renderSamples > 1 && texSamples == 1)
+  {
+    result += lit(" (tile-only)");
+  }
+
+  return result;
+}
+}    // namespace
+
 struct VulkanVBIBTag
 {
   VulkanVBIBTag() { offset = 0; }
@@ -377,11 +399,11 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ui->fbAttach->setHeader(header);
 
-    ui->fbAttach->setColumns(
-        {tr("Slot"), tr("Resource"), tr("Type"), tr("Dimensions"), tr("Format"), tr("Go")});
-    header->setColumnStretchHints({2, 4, 2, 2, 3, -1});
+    ui->fbAttach->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Dimensions"),
+                              tr("Format"), tr("Samples"), tr("Go")});
+    header->setColumnStretchHints({2, 4, 2, 2, 3, 1, -1});
 
-    ui->fbAttach->setHoverIconColumn(5, action, action_hover);
+    ui->fbAttach->setHoverIconColumn(6, action, action_hover);
     ui->fbAttach->setClearSelectionOnFocusLoss(true);
     ui->fbAttach->setInstantTooltips(true);
 
@@ -2631,6 +2653,7 @@ void VulkanPipelineStateViewer::setState()
         QString format;
         QString typeName;
         QString dimensions;
+        QString samples;
         bool tooltipOffsets = false;
 
         if(p.imageResourceId != ResourceId())
@@ -2643,6 +2666,7 @@ void VulkanPipelineStateViewer::setState()
           format = lit("-");
           typeName = lit("-");
           dimensions = lit("-");
+          samples = lit("-");
         }
 
         TextureDescription *tex = m_Ctx.GetTexture(p.imageResourceId);
@@ -2656,6 +2680,7 @@ void VulkanPipelineStateViewer::setState()
 
           typeName = ToQStr(tex->type);
         }
+        samples = getTextureRenderSamples(tex, state.currentPass.renderpass);
 
         if(p.swizzle.red != TextureSwizzle::Red || p.swizzle.green != TextureSwizzle::Green ||
            p.swizzle.blue != TextureSwizzle::Blue || p.swizzle.alpha != TextureSwizzle::Alpha)
@@ -2745,8 +2770,8 @@ void VulkanPipelineStateViewer::setState()
           resName +=
               tr(" (%1x%2 texels)").arg(shadingRateTexelSize.first).arg(shadingRateTexelSize.second);
 
-        RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({slotname, resName, typeName, dimensions, format, QString()});
+        RDTreeWidgetItem *node = new RDTreeWidgetItem(
+            {slotname, resName, typeName, dimensions, format, samples, QString()});
 
         if(tex)
           node->setTag(
@@ -4059,7 +4084,8 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       QString name = m_Ctx.GetResourceName(a.imageResourceId);
 
       rows.push_back({i, name, tex->width, tex->height, tex->depth, tex->arraysize, a.firstMip,
-                      a.numMips, a.firstSlice, a.numSlices});
+                      a.numMips, a.firstSlice, a.numSlices,
+                      getTextureRenderSamples(tex, pass.renderpass)});
 
       i++;
     }
@@ -4069,6 +4095,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
         {
             tr("Slot"), tr("Image"), tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
             tr("First mip"), tr("Number of mips"), tr("First array layer"), tr("Number of layers"),
+            tr("Sample Count"),
         },
         rows);
   }

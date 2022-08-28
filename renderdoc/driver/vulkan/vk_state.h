@@ -234,6 +234,9 @@ struct VulkanRenderState
     VkImageView shadingRateView = VK_NULL_HANDLE;
     VkImageLayout shadingRateLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     VkExtent2D shadingRateTexelSize = {1, 1};
+
+    bool tileOnlyMSAAEnable = false;
+    VkSampleCountFlagBits tileOnlyMSAASampleCount = VK_SAMPLE_COUNT_1_BIT;
   } dynamicRendering;
 
   // fdm offset
