@@ -363,6 +363,8 @@ namespace Private
             "keyEnumerator");
         _NS_PRIVATE_DEF_SEL(keyEquivalentModifierMask,
             "keyEquivalentModifierMask");
+        _NS_PRIVATE_DEF_SEL(layer,
+            "layer");
         _NS_PRIVATE_DEF_SEL(length,
             "length");
         _NS_PRIVATE_DEF_SEL(lengthOfBytesUsingEncoding_,
@@ -2917,9 +2919,10 @@ namespace NS
 	class View : public NS::Referencing< View >
 	{
 		public:
-			View*		init( CGRect frame );
-			void		setWantsLayer( bool wantsLayer );
-			void		setLayer( const CA::Layer* layer );
+			View*		   init( CGRect frame );
+			void		   setWantsLayer( bool wantsLayer );
+			void		   setLayer( const CA::Layer* layer );
+      CA::Layer* layer() const;
 	};
 }
 
@@ -2930,12 +2933,17 @@ _NS_INLINE NS::View* NS::View::init( CGRect frame )
 
 _NS_INLINE void  NS::View::setWantsLayer( bool wantsLayer )
 {
-	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setWantsLayer_ ), wantsLayer );
+	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setWantsLayer_ ), wantsLayer ? YES : NO );
 }
 
 _NS_INLINE void  NS::View::setLayer( const CA::Layer* layer )
 {
 	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setLayer_ ), layer );
+}
+
+_NS_INLINE CA::Layer* NS::View::layer() const
+{
+  return Object::sendMessage< CA::Layer* >( this, _NS_PRIVATE_SEL( layer ) );
 }
 
 #include <CoreGraphics/CGGeometry.h>
@@ -2949,7 +2957,7 @@ namespace NS
 			Window*				init( CGRect contentRect, WindowStyleMask styleMask, BackingStoreType backing, bool defer );
 
 			void				setContentView( const View* pContentView );
-			View*				contentView();
+			View*				contentView() const;
 
 			void				makeKeyAndOrderFront( const Object* pSender );
 			void				setTitle( const String* pTitle );
@@ -2975,7 +2983,7 @@ _NS_INLINE void NS::Window::setContentView( const NS::View* pContentView )
 	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setContentView_ ), pContentView );
 }
 
-_NS_INLINE NS::View* NS::Window::contentView()
+_NS_INLINE NS::View* NS::Window::contentView() const
 {
 	return Object::sendMessage< View* >( this, _NS_PRIVATE_SEL( contentView_ ) );
 }

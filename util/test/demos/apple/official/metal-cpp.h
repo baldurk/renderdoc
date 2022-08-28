@@ -97,6 +97,7 @@ namespace Private
         _NS_PRIVATE_DEF_CLS(NSAutoreleasePool);
         _NS_PRIVATE_DEF_CLS(NSBundle);
         _NS_PRIVATE_DEF_CLS(NSCondition);
+        _NS_PRIVATE_DEF_CLS(NSData);
         _NS_PRIVATE_DEF_CLS(NSDate);
         _NS_PRIVATE_DEF_CLS(NSDictionary);
         _NS_PRIVATE_DEF_CLS(NSError);
@@ -192,6 +193,8 @@ namespace Private
             "bundleWithPath:");
         _NS_PRIVATE_DEF_SEL(bundleWithURL_,
             "bundleWithURL:");
+        _NS_PRIVATE_DEF_SEL(bytes,
+            "bytes");
         _NS_PRIVATE_DEF_SEL(characterAtIndex_,
             "characterAtIndex:");
         _NS_PRIVATE_DEF_SEL(charValue,
@@ -216,6 +219,8 @@ namespace Private
             "currentApplication");
         _NS_PRIVATE_DEF_SEL(dateWithTimeIntervalSinceNow_,
             "dateWithTimeIntervalSinceNow:");
+        _NS_PRIVATE_DEF_SEL(dataWithContentsOfFile_,
+            "dataWithContentsOfFile:");
         _NS_PRIVATE_DEF_SEL(distantPast,
             "distantPast");
         _NS_PRIVATE_DEF_SEL(descriptionWithLocale_,
@@ -358,6 +363,8 @@ namespace Private
             "keyEnumerator");
         _NS_PRIVATE_DEF_SEL(keyEquivalentModifierMask,
             "keyEquivalentModifierMask");
+        _NS_PRIVATE_DEF_SEL(layer,
+            "layer");
         _NS_PRIVATE_DEF_SEL(length,
             "length");
         _NS_PRIVATE_DEF_SEL(lengthOfBytesUsingEncoding_,
@@ -446,6 +453,8 @@ namespace Private
             "operatingSystemVersionString");
         _NS_PRIVATE_DEF_SEL(pathForAuxiliaryExecutable_,
             "pathForAuxiliaryExecutable:");
+        _NS_PRIVATE_DEF_SEL(pathForResource_ofType_,
+            "pathForResource:ofType:");
         _NS_PRIVATE_DEF_SEL(performActivityWithOptions_reason_usingBlock_,
             "performActivityWithOptions:reason:usingBlock:");
         _NS_PRIVATE_DEF_SEL(performExpiringActivityWithReason_usingBlock_,
@@ -1350,6 +1359,7 @@ public:
     class String*     resourcePath() const;
     class String*     executablePath() const;
     class String*     pathForAuxiliaryExecutable(const class String* pExecutableName) const;
+    class String*     pathForResource(const class String* pName, const class String* pExt) const;
 
     class String*     privateFrameworksPath() const;
     class String*     sharedFrameworksPath() const;
@@ -1518,6 +1528,11 @@ _NS_INLINE NS::String* NS::Bundle::pathForAuxiliaryExecutable(const String* pExe
     return Object::sendMessage<String*>(this, _NS_PRIVATE_SEL(pathForAuxiliaryExecutable_), pExecutableName);
 }
 
+_NS_INLINE NS::String* NS::Bundle::pathForResource(const class String* pName, const class String* pExt) const
+{
+    return Object::sendMessage<String*>(this, _NS_PRIVATE_SEL(pathForResource_ofType_), pName, pExt);
+}
+
 _NS_INLINE NS::String* NS::Bundle::privateFrameworksPath() const
 {
     return Object::sendMessage<String*>(this, _NS_PRIVATE_SEL(privateFrameworksPath));
@@ -1568,9 +1583,16 @@ namespace NS
 class Data : public Copying<Data>
 {
 public:
-    void*    mutableBytes() const;
-    UInteger length() const;
+    static NS::Data* dataWithContentsOfFile(const String* path);
+    void*            mutableBytes() const;
+    const void*      bytes() const;
+    UInteger         length() const;
 };
+}
+
+_NS_INLINE NS::Data* NS::Data::dataWithContentsOfFile(const String* path)
+{
+    return Object::sendMessage<NS::Data*>(_NS_PRIVATE_CLS(NSData), _NS_PRIVATE_SEL(dataWithContentsOfFile_), path);
 }
 
 _NS_INLINE void* NS::Data::mutableBytes() const
@@ -1581,6 +1603,11 @@ _NS_INLINE void* NS::Data::mutableBytes() const
 _NS_INLINE NS::UInteger NS::Data::length() const
 {
     return Object::sendMessage<UInteger>(this, _NS_PRIVATE_SEL(length));
+}
+
+_NS_INLINE const void* NS::Data::bytes() const
+{
+    return Object::sendMessage<const void*>(this, _NS_PRIVATE_SEL(bytes));
 }
 
 namespace NS
@@ -2882,14 +2909,20 @@ _NS_INLINE void NS::Application::terminate( const Object* pSender )
 
 #include <CoreGraphics/CGGeometry.h>
 
+namespace CA
+{
+class Layer;
+};
+
 namespace NS
 {
 	class View : public NS::Referencing< View >
 	{
 		public:
-			View*		init( CGRect frame );
-			void		setWantsLayer( bool wantsLayer );
-			void		setLayer( void* layer );
+			View*		   init( CGRect frame );
+			void		   setWantsLayer( bool wantsLayer );
+			void		   setLayer( const CA::Layer* layer );
+      CA::Layer* layer() const;
 	};
 }
 
@@ -2903,9 +2936,14 @@ _NS_INLINE void  NS::View::setWantsLayer( bool wantsLayer )
 	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setWantsLayer_ ), wantsLayer ? YES : NO );
 }
 
-_NS_INLINE void  NS::View::setLayer( void* layer )
+_NS_INLINE void  NS::View::setLayer( const CA::Layer* layer )
 {
 	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setLayer_ ), layer );
+}
+
+_NS_INLINE CA::Layer* NS::View::layer() const
+{
+  return Object::sendMessage< CA::Layer* >( this, _NS_PRIVATE_SEL( layer ) );
 }
 
 #include <CoreGraphics/CGGeometry.h>
@@ -2919,7 +2957,7 @@ namespace NS
 			Window*				init( CGRect contentRect, WindowStyleMask styleMask, BackingStoreType backing, bool defer );
 
 			void				setContentView( const View* pContentView );
-			View*				contentView();
+			View*				contentView() const;
 
 			void				makeKeyAndOrderFront( const Object* pSender );
 			void				setTitle( const String* pTitle );
@@ -2945,7 +2983,7 @@ _NS_INLINE void NS::Window::setContentView( const NS::View* pContentView )
 	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setContentView_ ), pContentView );
 }
 
-_NS_INLINE NS::View* NS::Window::contentView()
+_NS_INLINE NS::View* NS::Window::contentView() const
 {
 	return Object::sendMessage< View* >( this, _NS_PRIVATE_SEL( contentView_ ) );
 }
@@ -3809,6 +3847,8 @@ _MTL_PRIVATE_DEF_SEL(layerAtIndex_,
     "layerAtIndex:");
 _MTL_PRIVATE_DEF_SEL(layerCount,
     "layerCount");
+_MTL_PRIVATE_DEF_SEL(layer,
+    "layer");
 _MTL_PRIVATE_DEF_SEL(layers,
     "layers");
 _MTL_PRIVATE_DEF_SEL(layouts,
@@ -17785,6 +17825,7 @@ namespace Private
     {
 
         _CA_PRIVATE_DEF_PRO(CAMetalDrawable);
+        _CA_PRIVATE_DEF_PRO(CAMetalLayer);
 
     } // Protocol
 } // Private
@@ -17801,6 +17842,22 @@ namespace Private
             "layer");
         _CA_PRIVATE_DEF_SEL(texture,
             "texture");
+        _CA_PRIVATE_DEF_SEL(device,
+            "device");
+        _CA_PRIVATE_DEF_SEL(setFramebufferOnly_,
+            "setFramebufferOnly:");
+        _CA_PRIVATE_DEF_SEL(setDevice_,
+            "setDevice:");
+        _CA_PRIVATE_DEF_SEL(setPixelFormat_,
+            "setPixelFormat:");
+        _CA_PRIVATE_DEF_SEL(setDrawableSize_,
+            "setDrawableSize:");
+        _CA_PRIVATE_DEF_SEL(nextDrawable,
+            "nextDrawable");
+        _CA_PRIVATE_DEF_SEL(contentsScale,
+            "contentsScale");
+        _CA_PRIVATE_DEF_SEL(bounds,
+            "bounds");
 
     } // Class
 } // Private
@@ -17849,6 +17906,14 @@ namespace CA
   {
     public:
       static MetalLayer*    layer();
+      MTL::Device*          device() const;
+      void                  setFramebufferOnly(bool enabled);
+      void                  setDevice(const MTL::Device *pDevice);
+      void                  setPixelFormat(const MTL::PixelFormat format);
+      void                  setDrawableSize(const CGSize size);
+      CA::MetalDrawable*    nextDrawable();
+      CGFloat               contentsScale() const;
+      CGRect                bounds() const;
   };
 }
 
@@ -17857,3 +17922,42 @@ _NS_INLINE CA::MetalLayer* CA::MetalLayer::layer()
     return Object::sendMessage< CA::MetalLayer* >( _CA_PRIVATE_CLS( CAMetalLayer ), _CA_PRIVATE_SEL( layer ) );
 }
 
+_CA_INLINE MTL::Device* CA::MetalLayer::device() const
+{
+    return Object::sendMessage< MTL::Device* >(this, _CA_PRIVATE_SEL( device ));
+}
+
+_CA_INLINE void CA::MetalLayer::setFramebufferOnly(bool framebufferOnly)
+{
+    Object::sendMessage< void >( this, _CA_PRIVATE_SEL( setFramebufferOnly_ ), framebufferOnly );
+}
+
+_CA_INLINE void CA::MetalLayer::setDevice(const MTL::Device *pDevice)
+{
+    Object::sendMessage< void >( this, _CA_PRIVATE_SEL( setDevice_ ), pDevice );
+}
+
+_CA_INLINE void CA::MetalLayer::setPixelFormat(const MTL::PixelFormat format)
+{
+    Object::sendMessage< void >( this, _CA_PRIVATE_SEL( setPixelFormat_ ), format );
+}
+
+_CA_INLINE void CA::MetalLayer::setDrawableSize(const CGSize size)
+{
+    Object::sendMessage< void >( this, _CA_PRIVATE_SEL( setDrawableSize_ ), size );
+}
+
+_CA_INLINE CA::MetalDrawable* CA::MetalLayer::nextDrawable()
+{
+    return Object::sendMessage< CA::MetalDrawable* >( this, _CA_PRIVATE_SEL( nextDrawable ) );
+}
+
+_CA_INLINE CGFloat CA::MetalLayer::contentsScale() const
+{
+    return Object::sendMessage< CGFloat >( this, _CA_PRIVATE_SEL( contentsScale ) );
+}
+
+_CA_INLINE CGRect CA::MetalLayer::bounds() const
+{
+    return Object::sendMessage< CGRect >( this, _CA_PRIVATE_SEL( bounds ) );
+}

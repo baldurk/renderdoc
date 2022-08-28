@@ -129,7 +129,7 @@ void MyAppDelegate::CreateWindow(int width, int height, const char *title)
 
   NS::View *view = _pWindow->contentView();
   view->setWantsLayer(true);
-  view->setLayer(CA::MetalLayer::layer());
+  view->setLayer((CA::Layer *)CA::MetalLayer::layer());
 
   _pWindow->setTitle(NS::String::string(title, NS::StringEncoding::UTF8StringEncoding));
   _pWindow->makeKeyAndOrderFront(nullptr);
