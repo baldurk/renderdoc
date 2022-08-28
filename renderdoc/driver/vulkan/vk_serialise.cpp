@@ -749,6 +749,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVE_TOPOLOGY_LIST_RESTART_FEATURES_EXT,         \
                VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT)                                \
                                                                                                        \
+  /* VK_EXT_primitives_generated_query */                                                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVES_GENERATED_QUERY_FEATURES_EXT,              \
+               VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT)                                    \
+                                                                                                       \
   /* VK_EXT_private_data */                                                                            \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIVATE_DATA_FEATURES,                                \
                VkPhysicalDevicePrivateDataFeatures)                                                    \
@@ -1429,9 +1433,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_ROBUSTNESS_CREATE_INFO_EXT)                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_ROBUSTNESS_FEATURES_EXT)                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_ROBUSTNESS_PROPERTIES_EXT)              \
-                                                                                                       \
-  /* VK_EXT_primitives_generated_query */                                                              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVES_GENERATED_QUERY_FEATURES_EXT)         \
                                                                                                        \
   /* VK_EXT_provoking_vertex */                                                                        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROVOKING_VERTEX_FEATURES_EXT)                   \
@@ -6847,6 +6848,24 @@ void Deserialise(const VkPipelineShaderStageRequiredSubgroupSizeCreateInfo &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVES_GENERATED_QUERY_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(primitivesGeneratedQuery);
+  SERIALISE_MEMBER(primitivesGeneratedQueryWithRasterizerDiscard);
+  SERIALISE_MEMBER(primitivesGeneratedQueryWithNonZeroStreams);
+}
+
+template <>
+void Deserialise(const VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -10652,10 +10671,11 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePerformanceQueryPropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePipelineCreationCacheControlFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePointClippingProperties);
-INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePrivateDataFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePresentIdFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePresentWaitFeaturesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePrivateDataFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProtectedMemoryFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProtectedMemoryProperties);
