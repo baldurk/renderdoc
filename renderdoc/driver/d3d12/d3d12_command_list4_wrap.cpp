@@ -468,6 +468,20 @@ void WrappedID3D12GraphicsCommandList::BeginRenderPass(
   {
     unwrappedDSV = *pDepthStencil;
     unwrappedDSV.cpuDescriptor = Unwrap(unwrappedDSV.cpuDescriptor);
+    if(unwrappedDSV.DepthEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+    {
+      unwrappedDSV.DepthEndingAccess.Resolve.pSrcResource =
+          Unwrap(unwrappedDSV.DepthEndingAccess.Resolve.pSrcResource);
+      unwrappedDSV.DepthEndingAccess.Resolve.pDstResource =
+          Unwrap(unwrappedDSV.DepthEndingAccess.Resolve.pDstResource);
+    }
+    if(unwrappedDSV.StencilEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+    {
+      unwrappedDSV.StencilEndingAccess.Resolve.pSrcResource =
+          Unwrap(unwrappedDSV.StencilEndingAccess.Resolve.pSrcResource);
+      unwrappedDSV.StencilEndingAccess.Resolve.pDstResource =
+          Unwrap(unwrappedDSV.StencilEndingAccess.Resolve.pDstResource);
+    }
   }
 
   SERIALISE_TIME_CALL(m_pList4->BeginRenderPass(NumRenderTargets, unwrappedRTs,
