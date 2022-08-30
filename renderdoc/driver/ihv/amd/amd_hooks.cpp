@@ -82,6 +82,9 @@ void FilterDX12(AGSDX12ReturnedParams::ExtensionsSupported &extensionsSupported)
   ret.intrinsics17 = extensionsSupported.intrinsics17;
   ret.intrinsics19 = extensionsSupported.intrinsics19;
 
+  // allow custom UAV slots
+  ret.UAVBindSlot = extensionsSupported.UAVBindSlot;
+
   // allow trivial things
   ret.userMarkers = extensionsSupported.userMarkers;
   ret.appRegistration = extensionsSupported.appRegistration;
