@@ -3208,7 +3208,11 @@ bool WrappedID3D12Device::Serialise_SetShaderExtUAV(SerialiserType &ser, GPUVend
       }
       m_ReplayNVAPI->SetShaderExtUAV(space, reg, true);
     }
+<<<<<<< HEAD
     else if((vendor == GPUVendor::AMD) || (vendor == GPUVendor::Samsung))
+=======
+    else if(vendor == GPUVendor::AMD || vendor == GPUVendor::Samsung)
+>>>>>>> Enabled AMD perf counter support for Samsung GPUs
     {
       m_GlobalEXTUAVSpace = space;
       // do nothing, it was configured at device create time. This is purely informational

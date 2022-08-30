@@ -2934,7 +2934,7 @@ bool WrappedID3D11Device::Serialise_SetShaderExtUAV(SerialiserType &ser, GPUVend
       }
       m_ReplayNVAPI->SetShaderExtUAV(~0U, reg, true);
     }
-    else if((vendor == GPUVendor::AMD) || (vendor == GPUVendor::Samsung))
+    else if(vendor == GPUVendor::AMD || vendor == GPUVendor::Samsung)
     {
       // do nothing, it was configured at device create time. This is purely informational
     }

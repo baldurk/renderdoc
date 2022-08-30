@@ -308,7 +308,7 @@ void GLReplay::SetReplayData(GLWindowingData data)
         RDCLOG("Intel GPU detected - trying to initialise Intel GL counters");
         countersIntel = new IntelGlCounters();
       }
-      else if((m_DriverInfo.vendor == GPUVendor::AMD) || (m_DriverInfo.vendor == GPUVendor::Samsung))
+      else if(m_DriverInfo.vendor == GPUVendor::AMD || m_DriverInfo.vendor == GPUVendor::Samsung)
       {
         RDCLOG("AMD or Samsung GPU detected - trying to initialise AMD counters");
         countersAMD = new AMDCounters();
