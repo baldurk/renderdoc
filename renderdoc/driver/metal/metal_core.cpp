@@ -72,11 +72,10 @@ void WrappedMTLDevice::AddEvent()
   METAL_NOT_IMPLEMENTED();
 }
 
-#define METAL_CHUNK_NOT_HANDLED(CHUNK)            \
-  case MetalChunk::CHUNK:                         \
-  {                                               \
-    RDCERR("MetalChunk::" #CHUNK " not handled"); \
-    return false;                                 \
+#define METAL_CHUNK_NOT_HANDLED()                               \
+  {                                                             \
+    RDCERR("MetalChunk::%s not handled", ToStr(chunk).c_str()); \
+    return false;                                               \
   }
 
 bool WrappedMTLDevice::ProcessChunk(ReadSerialiser &ser, MetalChunk chunk)
@@ -85,15 +84,14 @@ bool WrappedMTLDevice::ProcessChunk(ReadSerialiser &ser, MetalChunk chunk)
   {
     case MetalChunk::MTLCreateSystemDefaultDevice:
       return Serialise_MTLCreateSystemDefaultDevice(ser);
-    case MetalChunk::MTLDevice_newCommandQueue:
-      return Serialise_newCommandQueue(ser, NULL);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newCommandQueueWithMaxCommandBufferCount);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newHeapWithDescriptor);
+    case MetalChunk::MTLDevice_newCommandQueue: return Serialise_newCommandQueue(ser, NULL);
+    case MetalChunk::MTLDevice_newCommandQueueWithMaxCommandBufferCount: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newHeapWithDescriptor: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLDevice_newBufferWithLength:
     case MetalChunk::MTLDevice_newBufferWithBytes:
       return Serialise_newBufferWithBytes(ser, NULL, NULL, 0, MTL::ResourceOptionCPUCacheModeDefault);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newBufferWithBytesNoCopy);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newDepthStencilStateWithDescriptor);
+    case MetalChunk::MTLDevice_newBufferWithBytesNoCopy: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newDepthStencilStateWithDescriptor: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLDevice_newTextureWithDescriptor:
     case MetalChunk::MTLDevice_newTextureWithDescriptor_iosurface:
     case MetalChunk::MTLDevice_newTextureWithDescriptor_nextDrawable:
@@ -101,64 +99,68 @@ bool WrappedMTLDevice::ProcessChunk(ReadSerialiser &ser, MetalChunk chunk)
       RDMTL::TextureDescriptor descriptor;
       return Serialise_newTextureWithDescriptor(ser, NULL, descriptor);
     }
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newSharedTextureWithDescriptor);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newSharedTextureWithHandle);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newSamplerStateWithDescriptor);
-    case MetalChunk::MTLDevice_newDefaultLibrary:
-      return Serialise_newDefaultLibrary(ser, NULL);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newDefaultLibraryWithBundle);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newLibraryWithFile);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newLibraryWithURL);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newLibraryWithData);
+    case MetalChunk::MTLDevice_newSharedTextureWithDescriptor: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newSharedTextureWithHandle: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newSamplerStateWithDescriptor: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newDefaultLibrary: return Serialise_newDefaultLibrary(ser, NULL);
+    case MetalChunk::MTLDevice_newDefaultLibraryWithBundle: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newLibraryWithFile: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newLibraryWithURL: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newLibraryWithData: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLDevice_newLibraryWithSource:
       return Serialise_newLibraryWithSource(ser, NULL, NULL, NULL, NULL);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newLibraryWithStitchedDescriptor);
+    case MetalChunk::MTLDevice_newLibraryWithStitchedDescriptor: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLDevice_newRenderPipelineStateWithDescriptor:
     {
       RDMTL::RenderPipelineDescriptor descriptor;
       return Serialise_newRenderPipelineStateWithDescriptor(ser, NULL, descriptor, NULL);
     }
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newRenderPipelineStateWithDescriptor_options);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newComputePipelineStateWithFunction);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newComputePipelineStateWithFunction_options);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newComputePipelineStateWithDescriptor);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newFence);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newRenderPipelineStateWithTileDescriptor);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newArgumentEncoderWithArguments);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_supportsRasterizationRateMapWithLayerCount);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newRasterizationRateMapWithDescriptor);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newIndirectCommandBufferWithDescriptor);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newEvent);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newSharedEvent);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newSharedEventWithHandle);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newCounterSampleBufferWithDescriptor);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newDynamicLibrary);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newDynamicLibraryWithURL);
-      METAL_CHUNK_NOT_HANDLED(MTLDevice_newBinaryArchiveWithDescriptor);
+    case MetalChunk::MTLDevice_newRenderPipelineStateWithDescriptor_options:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newComputePipelineStateWithFunction: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newComputePipelineStateWithFunction_options:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newComputePipelineStateWithDescriptor: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newFence: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newRenderPipelineStateWithTileDescriptor: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newArgumentEncoderWithArguments: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_supportsRasterizationRateMapWithLayerCount:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newRasterizationRateMapWithDescriptor: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newIndirectCommandBufferWithDescriptor: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newEvent: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newSharedEvent: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newSharedEventWithHandle: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newCounterSampleBufferWithDescriptor: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newDynamicLibrary: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newDynamicLibraryWithURL: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newBinaryArchiveWithDescriptor: METAL_CHUNK_NOT_HANDLED();
 
     case MetalChunk::MTLLibrary_newFunctionWithName:
       return m_DummyReplayLibrary->Serialise_newFunctionWithName(ser, NULL, NULL);
-      METAL_CHUNK_NOT_HANDLED(MTLLibrary_newFunctionWithName_constantValues);
-      METAL_CHUNK_NOT_HANDLED(MTLLibrary_newFunctionWithDescriptor);
-      METAL_CHUNK_NOT_HANDLED(MTLLibrary_newIntersectionFunctionWithDescriptor);
+    case MetalChunk::MTLLibrary_newFunctionWithName_constantValues: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLLibrary_newFunctionWithDescriptor: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLLibrary_newIntersectionFunctionWithDescriptor: METAL_CHUNK_NOT_HANDLED();
 
-      METAL_CHUNK_NOT_HANDLED(MTLFunction_newArgumentEncoderWithBufferIndex);
+    case MetalChunk::MTLFunction_newArgumentEncoderWithBufferIndex: METAL_CHUNK_NOT_HANDLED();
 
     case MetalChunk::MTLCommandQueue_commandBuffer:
       return m_DummyReplayCommandQueue->Serialise_commandBuffer(ser, NULL);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandQueue_commandBufferWithDescriptor);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandQueue_commandBufferWithUnretainedReferences);
+    case MetalChunk::MTLCommandQueue_commandBufferWithDescriptor: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLCommandQueue_commandBufferWithUnretainedReferences:
+      METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLCommandBuffer_enqueue:
       return m_DummyReplayCommandBuffer->Serialise_enqueue(ser);
     case MetalChunk::MTLCommandBuffer_commit:
       return m_DummyReplayCommandBuffer->Serialise_commit(ser);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_addScheduledHandler);
+    case MetalChunk::MTLCommandBuffer_addScheduledHandler: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLCommandBuffer_presentDrawable:
       return m_DummyReplayCommandBuffer->Serialise_presentDrawable(ser, NULL);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_presentDrawable_atTime);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_presentDrawable_afterMinimumDuration);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_waitUntilScheduled);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_addCompletedHandler);
+    case MetalChunk::MTLCommandBuffer_presentDrawable_atTime: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLCommandBuffer_presentDrawable_afterMinimumDuration:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLCommandBuffer_waitUntilScheduled: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLCommandBuffer_addCompletedHandler: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLCommandBuffer_waitUntilCompleted:
       return m_DummyReplayCommandBuffer->Serialise_waitUntilCompleted(ser);
     case MetalChunk::MTLCommandBuffer_blitCommandEncoder:
@@ -169,201 +171,242 @@ bool WrappedMTLDevice::ProcessChunk(ReadSerialiser &ser, MetalChunk chunk)
       return m_DummyReplayCommandBuffer->Serialise_renderCommandEncoderWithDescriptor(ser, NULL,
                                                                                       descriptor);
     }
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_computeCommandEncoderWithDescriptor);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_blitCommandEncoderWithDescriptor);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_computeCommandEncoder);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_computeCommandEncoderWithDispatchType);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_encodeWaitForEvent);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_encodeSignalEvent);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_parallelRenderCommandEncoderWithDescriptor);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_resourceStateCommandEncoder);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_resourceStateCommandEncoderWithDescriptor);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_accelerationStructureCommandEncoder);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_pushDebugGroup);
-      METAL_CHUNK_NOT_HANDLED(MTLCommandBuffer_popDebugGroup);
+    case MetalChunk::MTLCommandBuffer_computeCommandEncoderWithDescriptor:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLCommandBuffer_blitCommandEncoderWithDescriptor: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLCommandBuffer_computeCommandEncoder: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLCommandBuffer_computeCommandEncoderWithDispatchType:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLCommandBuffer_encodeWaitForEvent: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLCommandBuffer_encodeSignalEvent: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLCommandBuffer_parallelRenderCommandEncoderWithDescriptor:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLCommandBuffer_resourceStateCommandEncoder: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLCommandBuffer_resourceStateCommandEncoderWithDescriptor:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLCommandBuffer_accelerationStructureCommandEncoder:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLCommandBuffer_pushDebugGroup: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLCommandBuffer_popDebugGroup: METAL_CHUNK_NOT_HANDLED();
 
-      METAL_CHUNK_NOT_HANDLED(MTLTexture_setPurgeableState);
-      METAL_CHUNK_NOT_HANDLED(MTLTexture_makeAliasable);
-      METAL_CHUNK_NOT_HANDLED(MTLTexture_getBytes);
-      METAL_CHUNK_NOT_HANDLED(MTLTexture_getBytes_slice);
-      METAL_CHUNK_NOT_HANDLED(MTLTexture_replaceRegion);
-      METAL_CHUNK_NOT_HANDLED(MTLTexture_replaceRegion_slice);
-      METAL_CHUNK_NOT_HANDLED(MTLTexture_newTextureViewWithPixelFormat);
-      METAL_CHUNK_NOT_HANDLED(MTLTexture_newTextureViewWithPixelFormat_subset);
-      METAL_CHUNK_NOT_HANDLED(MTLTexture_newTextureViewWithPixelFormat_subset_swizzle);
-      METAL_CHUNK_NOT_HANDLED(MTLTexture_newSharedTextureHandle);
-      METAL_CHUNK_NOT_HANDLED(MTLTexture_remoteStorageTexture);
-      METAL_CHUNK_NOT_HANDLED(MTLTexture_newRemoteTextureViewForDevice);
+    case MetalChunk::MTLTexture_setPurgeableState: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLTexture_makeAliasable: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLTexture_getBytes: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLTexture_getBytes_slice: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLTexture_replaceRegion: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLTexture_replaceRegion_slice: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLTexture_newTextureViewWithPixelFormat: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLTexture_newTextureViewWithPixelFormat_subset: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLTexture_newTextureViewWithPixelFormat_subset_swizzle:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLTexture_newSharedTextureHandle: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLTexture_remoteStorageTexture: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLTexture_newRemoteTextureViewForDevice: METAL_CHUNK_NOT_HANDLED();
 
-      METAL_CHUNK_NOT_HANDLED(MTLRenderPipelineState_functionHandleWithFunction);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderPipelineState_newVisibleFunctionTableWithDescriptor);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderPipelineState_newIntersectionFunctionTableWithDescriptor);
-      METAL_CHUNK_NOT_HANDLED(
-          MTLRenderPipelineState_newRenderPipelineStateWithAdditionalBinaryFunctions);
+    case MetalChunk::MTLRenderPipelineState_functionHandleWithFunction: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderPipelineState_newVisibleFunctionTableWithDescriptor:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderPipelineState_newIntersectionFunctionTableWithDescriptor:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderPipelineState_newRenderPipelineStateWithAdditionalBinaryFunctions:
+      METAL_CHUNK_NOT_HANDLED();
 
     case MetalChunk::MTLRenderCommandEncoder_endEncoding:
       return m_DummyReplayRenderCommandEncoder->Serialise_endEncoding(ser);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_insertDebugSignpost);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_pushDebugGroup);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_popDebugGroup);
+    case MetalChunk::MTLRenderCommandEncoder_insertDebugSignpost: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_pushDebugGroup: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_popDebugGroup: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLRenderCommandEncoder_setRenderPipelineState:
       return m_DummyReplayRenderCommandEncoder->Serialise_setRenderPipelineState(ser, NULL);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVertexBytes);
+    case MetalChunk::MTLRenderCommandEncoder_setVertexBytes: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLRenderCommandEncoder_setVertexBuffer:
       return m_DummyReplayRenderCommandEncoder->Serialise_setVertexBuffer(ser, NULL, 0, 0);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVertexBufferOffset);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVertexBuffers);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVertexTexture);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVertexTextures);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVertexSamplerState);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVertexSamplerState_lodclamp);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVertexSamplerStates);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVertexSamplerStates_lodclamp);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVertexVisibleFunctionTable);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVertexVisibleFunctionTables);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVertexIntersectionFunctionTable);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVertexIntersectionFunctionTables);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVertexAccelerationStructure);
+    case MetalChunk::MTLRenderCommandEncoder_setVertexBufferOffset: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setVertexBuffers: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setVertexTexture: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setVertexTextures: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setVertexSamplerState: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setVertexSamplerState_lodclamp:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setVertexSamplerStates: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setVertexSamplerStates_lodclamp:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setVertexVisibleFunctionTable:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setVertexVisibleFunctionTables:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setVertexIntersectionFunctionTable:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setVertexIntersectionFunctionTables:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setVertexAccelerationStructure:
+      METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLRenderCommandEncoder_setViewport:
     {
       MTL::Viewport viewport;
       return m_DummyReplayRenderCommandEncoder->Serialise_setViewport(ser, viewport);
     }
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setViewports);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setFrontFacingWinding);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVertexAmplificationCount);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setCullMode);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setDepthClipMode);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setDepthBias);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setScissorRect);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setScissorRects);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTriangleFillMode);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setFragmentBytes);
+    case MetalChunk::MTLRenderCommandEncoder_setViewports: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setFrontFacingWinding: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setVertexAmplificationCount: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setCullMode: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setDepthClipMode: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setDepthBias: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setScissorRect: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setScissorRects: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTriangleFillMode: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setFragmentBytes: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLRenderCommandEncoder_setFragmentBuffer:
       return m_DummyReplayRenderCommandEncoder->Serialise_setFragmentBuffer(ser, NULL, 0, 0);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setFragmentBufferOffset);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setFragmentBuffers);
+    case MetalChunk::MTLRenderCommandEncoder_setFragmentBufferOffset: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setFragmentBuffers: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLRenderCommandEncoder_setFragmentTexture:
       return m_DummyReplayRenderCommandEncoder->Serialise_setFragmentTexture(ser, NULL, 0);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setFragmentTextures);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setFragmentSamplerState);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setFragmentSamplerState_lodclamp);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setFragmentSamplerStates);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setFragmentSamplerStates_lodclamp);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setFragmentVisibleFunctionTable);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setFragmentVisibleFunctionTables);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setFragmentIntersectionFunctionTable);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setFragmentIntersectionFunctionTables);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setFragmentAccelerationStructure);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setBlendColor);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setDepthStencilState);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setStencilReferenceValue);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setStencilFrontReferenceValue);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setVisibilityResultMode);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setColorStoreAction);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setDepthStoreAction);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setStencilStoreAction);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setColorStoreActionOptions);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setDepthStoreActionOptions);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setStencilStoreActionOptions);
+    case MetalChunk::MTLRenderCommandEncoder_setFragmentTextures: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setFragmentSamplerState: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setFragmentSamplerState_lodclamp:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setFragmentSamplerStates: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setFragmentSamplerStates_lodclamp:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setFragmentVisibleFunctionTable:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setFragmentVisibleFunctionTables:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setFragmentIntersectionFunctionTable:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setFragmentIntersectionFunctionTables:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setFragmentAccelerationStructure:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setBlendColor: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setDepthStencilState: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setStencilReferenceValue: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setStencilFrontReferenceValue:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setVisibilityResultMode: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setColorStoreAction: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setDepthStoreAction: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setStencilStoreAction: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setColorStoreActionOptions: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setDepthStoreActionOptions: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setStencilStoreActionOptions:
+      METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLRenderCommandEncoder_drawPrimitives:
     case MetalChunk::MTLRenderCommandEncoder_drawPrimitives_instanced:
     case MetalChunk::MTLRenderCommandEncoder_drawPrimitives_instanced_base:
       return m_DummyReplayRenderCommandEncoder->Serialise_drawPrimitives(
           ser, MTL::PrimitiveTypePoint, 0, 0, 0, 0);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_drawPrimitives_indirect);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_drawIndexedPrimitives);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_drawIndexedPrimitives_instanced);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_drawIndexedPrimitives_instanced_base);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_drawIndexedPrimitives_indirect);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_textureBarrier);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_updateFence);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_waitForFence);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTessellationFactorBuffer);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTessellationFactorScale);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_drawPatches);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_drawPatches_indirect);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_drawIndexedPatches);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_drawIndexedPatches_indirect);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTileBytes);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTileBuffer);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTileBufferOffset);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTileBuffers);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTileTexture);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTileTextures);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTileSamplerState);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTileSamplerState_lodclamp);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTileSamplerStates);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTileSamplerStates_lodclamp);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTileVisibleFunctionTable);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTileVisibleFunctionTables);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTileIntersectionFunctionTable);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTileIntersectionFunctionTables);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setTileAccelerationStructure);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_dispatchThreadsPerTile);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_setThreadgroupMemoryLength);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_useResource);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_useResource_stages);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_useResources);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_useResources_stages);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_useHeap);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_useHeap_stages);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_useHeaps);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_useHeaps_stages);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_executeCommandsInBuffer);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_executeCommandsInBuffer_indirect);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_memoryBarrierWithScope);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_memoryBarrierWithResources);
-      METAL_CHUNK_NOT_HANDLED(MTLRenderCommandEncoder_sampleCountersInBuffer);
+    case MetalChunk::MTLRenderCommandEncoder_drawPrimitives_indirect: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_drawIndexedPrimitives: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_drawIndexedPrimitives_instanced:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_drawIndexedPrimitives_instanced_base:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_drawIndexedPrimitives_indirect:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_textureBarrier: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_updateFence: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_waitForFence: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTessellationFactorBuffer: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTessellationFactorScale: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_drawPatches: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_drawPatches_indirect: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_drawIndexedPatches: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_drawIndexedPatches_indirect: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTileBytes: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTileBuffer: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTileBufferOffset: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTileBuffers: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTileTexture: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTileTextures: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTileSamplerState: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTileSamplerState_lodclamp:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTileSamplerStates: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTileSamplerStates_lodclamp:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTileVisibleFunctionTable: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTileVisibleFunctionTables:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTileIntersectionFunctionTable:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTileIntersectionFunctionTables:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setTileAccelerationStructure:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_dispatchThreadsPerTile: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_setThreadgroupMemoryLength: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_useResource: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_useResource_stages: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_useResources: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_useResources_stages: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_useHeap: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_useHeap_stages: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_useHeaps: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_useHeaps_stages: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_executeCommandsInBuffer: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_executeCommandsInBuffer_indirect:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_memoryBarrierWithScope: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_memoryBarrierWithResources: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLRenderCommandEncoder_sampleCountersInBuffer: METAL_CHUNK_NOT_HANDLED();
 
-      METAL_CHUNK_NOT_HANDLED(MTLBuffer_setPurgeableState);
-      METAL_CHUNK_NOT_HANDLED(MTLBuffer_makeAliasable);
-      METAL_CHUNK_NOT_HANDLED(MTLBuffer_contents);
+    case MetalChunk::MTLBuffer_setPurgeableState: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBuffer_makeAliasable: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBuffer_contents: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLBuffer_didModifyRange:
     {
       NS::Range range = NS::Range::Make(0, 0);
       return m_DummyBuffer->Serialise_didModifyRange(ser, range);
     }
-      METAL_CHUNK_NOT_HANDLED(MTLBuffer_newTextureWithDescriptor);
-      METAL_CHUNK_NOT_HANDLED(MTLBuffer_addDebugMarker);
-      METAL_CHUNK_NOT_HANDLED(MTLBuffer_removeAllDebugMarkers);
-      METAL_CHUNK_NOT_HANDLED(MTLBuffer_remoteStorageBuffer);
-      METAL_CHUNK_NOT_HANDLED(MTLBuffer_newRemoteBufferViewForDevice);
+    case MetalChunk::MTLBuffer_newTextureWithDescriptor: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBuffer_addDebugMarker: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBuffer_removeAllDebugMarkers: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBuffer_remoteStorageBuffer: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBuffer_newRemoteBufferViewForDevice: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLBuffer_InternalModifyCPUContents:
       return m_DummyBuffer->Serialise_InternalModifyCPUContents(ser, 0, 0, NULL);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_setLabel);
 
+    case MetalChunk::MTLBlitCommandEncoder_setLabel: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLBlitCommandEncoder_endEncoding:
       return m_DummyReplayBlitCommandEncoder->Serialise_endEncoding(ser);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_insertDebugSignpost);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_pushDebugGroup);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_popDebugGroup);
+    case MetalChunk::MTLBlitCommandEncoder_insertDebugSignpost: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_pushDebugGroup: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_popDebugGroup: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLBlitCommandEncoder_synchronizeResource:
       return m_DummyReplayBlitCommandEncoder->Serialise_synchronizeResource(ser, NULL);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_synchronizeTexture);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_copyFromBuffer_toBuffer);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_copyFromBuffer_toTexture);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_copyFromBuffer_toTexture_options);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_copyFromTexture_toBuffer);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_copyFromTexture_toBuffer_options);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_copyFromTexture_toTexture);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_copyFromTexture_toTexture_slice_level_origin);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_copyFromTexture_toTexture_slice_level_count);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_generateMipmapsForTexture);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_fillBuffer);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_updateFence);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_waitForFence);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_getTextureAccessCounters);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_resetTextureAccessCounters);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_optimizeContentsForGPUAccess);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_optimizeContentsForGPUAccess_slice_level);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_optimizeContentsForCPUAccess);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_optimizeContentsForCPUAccess_slice_level);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_resetCommandsInBuffer);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_copyIndirectCommandBuffer);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_optimizeIndirectCommandBuffer);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_sampleCountersInBuffer);
-      METAL_CHUNK_NOT_HANDLED(MTLBlitCommandEncoder_resolveCounters);
+    case MetalChunk::MTLBlitCommandEncoder_synchronizeTexture: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_copyFromBuffer_toBuffer: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_copyFromBuffer_toTexture: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_copyFromBuffer_toTexture_options:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_copyFromTexture_toBuffer: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_copyFromTexture_toBuffer_options:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_copyFromTexture_toTexture: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_copyFromTexture_toTexture_slice_level_origin:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_copyFromTexture_toTexture_slice_level_count:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_generateMipmapsForTexture: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_fillBuffer: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_updateFence: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_waitForFence: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_getTextureAccessCounters: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_resetTextureAccessCounters: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_optimizeContentsForGPUAccess: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_optimizeContentsForGPUAccess_slice_level:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_optimizeContentsForCPUAccess: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_optimizeContentsForCPUAccess_slice_level:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_resetCommandsInBuffer: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_copyIndirectCommandBuffer: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_optimizeIndirectCommandBuffer: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_sampleCountersInBuffer: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_resolveCounters:
+      METAL_CHUNK_NOT_HANDLED();
 
     // no default to get compile error if a chunk is not handled
     case MetalChunk::Max: break;
