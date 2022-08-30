@@ -153,7 +153,7 @@ void D3D12Replay::CreateResources()
     {
       AMDCounters *counters = NULL;
 
-      if(m_DriverInfo.vendor == GPUVendor::AMD)
+      if(m_DriverInfo.vendor == GPUVendor::AMD || m_DriverInfo.vendor == GPUVendor::Samsung)
       {
         RDCLOG("AMD GPU detected - trying to initialise AMD counters");
         counters = new AMDCounters(m_pDevice->IsDebugLayerEnabled());
@@ -271,7 +271,8 @@ APIProperties D3D12Replay::GetAPIProperties()
   ret.degraded = false;
   ret.shadersMutable = false;
   ret.rgpCapture =
-      m_DriverInfo.vendor == GPUVendor::AMD && m_RGP != NULL && m_RGP->DriverSupportsInterop();
+      (m_DriverInfo.vendor == GPUVendor::AMD || m_DriverInfo.vendor == GPUVendor::Samsung) &&
+      m_RGP != NULL && m_RGP->DriverSupportsInterop();
   ret.shaderDebugging = true;
 
   return ret;
@@ -4424,7 +4425,8 @@ RDResult D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRepl
           "Capture requires nvapi to replay, but it's not available or can't be initialised");
     }
   }
-  else if(initParams.VendorExtensions == GPUVendor::AMD)
+  else if(initParams.VendorExtensions == GPUVendor::AMD ||
+          initParams.VendorExtensions == GPUVendor::Samsung)
   {
     agsDev = InitialiseAGSReplay(initParams.VendorUAVSpace, initParams.VendorUAV);
 

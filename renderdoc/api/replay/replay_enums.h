@@ -1022,7 +1022,7 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
 .. data:: StencilReference
 
   The stencil reference to be used for stenciling operations on this fragment.
-  
+
 .. data:: PointCoord
 
   The fragments co-ordinates within a point primitive being rasterized.
@@ -1701,6 +1701,10 @@ DOCUMENT(R"(Identifies a GPU vendor.
 .. data:: Software
 
   A software-rendering emulated GPU
+
+.. data:: Samsung
+
+  A Samsung GPU
 )");
 enum class GPUVendor : uint32_t
 {
@@ -1714,6 +1718,7 @@ enum class GPUVendor : uint32_t
   Qualcomm,
   Verisilicon,
   Software,
+  Samsung,
 };
 
 DECLARE_REFLECTION_ENUM(GPUVendor);
@@ -1737,6 +1742,7 @@ constexpr GPUVendor GPUVendorFromPCIVendor(uint32_t vendorID)
        : vendorID == 0x5143 ? GPUVendor::Qualcomm
        : vendorID == 0x1AE0 ? GPUVendor::Software   // Google Swiftshader
        : vendorID == 0x1414 ? GPUVendor::Software   // Microsoft WARP
+       : vendorID == 0x144D ? GPUVendor::Samsung    // Xclipse GPU
        : GPUVendor::Unknown;
   // clang-format on
 }

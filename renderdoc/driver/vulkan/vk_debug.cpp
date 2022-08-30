@@ -2995,7 +2995,7 @@ void VulkanReplay::CreateResources()
 
     GPUVendor vendor = m_pDriver->GetDriverInfo().Vendor();
 
-    if(vendor == GPUVendor::AMD)
+    if(vendor == GPUVendor::AMD || vendor == GPUVendor::Samsung)
     {
       RDCLOG("AMD GPU detected - trying to initialise AMD counters");
       counters = new AMDCounters();
