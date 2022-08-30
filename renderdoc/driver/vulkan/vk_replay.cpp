@@ -212,7 +212,7 @@ APIProperties VulkanReplay::GetAPIProperties()
   ret.degraded = false;
   ret.shadersMutable = false;
   ret.rgpCapture =
-      m_DriverInfo.vendor == GPUVendor::AMD && m_RGP != NULL && m_RGP->DriverSupportsInterop();
+      (m_DriverInfo.vendor == GPUVendor::AMD || m_DriverInfo.vendor == GPUVendor::Samsung) && m_RGP != NULL && m_RGP->DriverSupportsInterop();
   ret.shaderDebugging = true;
   ret.pixelHistory = true;
 

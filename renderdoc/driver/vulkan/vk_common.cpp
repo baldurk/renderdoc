@@ -957,7 +957,7 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps, bool act
 // using the AMD official driver, but there's not a great other way to distinguish it from
 // the RADV open source driver.
 #if ENABLED(RDOC_WIN32)
-  if(m_Vendor == GPUVendor::AMD)
+  if((m_Vendor == GPUVendor::AMD) || (m_Vendor == GPUVendor::Samsung))
   {
     // for AMD the bugfix version isn't clear as version numbering wasn't strong for a while, but
     // any driver that reports a version of >= 1.0.0 is fine, as previous versions all reported
