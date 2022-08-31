@@ -65,7 +65,7 @@ class Draw_Zoo(rdtest.TestCase):
 
         ib = self.pipe.GetIBuffer()
 
-        striprestart_index = self.pipe.GetStripRestartIndex() & ((1 << (ib.byteStride*8)) - 1)
+        striprestart_index = self.pipe.GetRestartIndex() & ((1 << (ib.byteStride*8)) - 1)
 
         for v in range(num_verts):
             if v in restarts:
