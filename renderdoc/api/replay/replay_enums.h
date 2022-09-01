@@ -1698,6 +1698,10 @@ DOCUMENT(R"(Identifies a GPU vendor.
 
   A Verisilicon or Vivante GPU
 
+.. data:: Samsung
+
+  A Samsung GPU
+
 .. data:: Software
 
   A software-rendering emulated GPU

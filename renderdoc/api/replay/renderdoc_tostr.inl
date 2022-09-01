@@ -1000,6 +1000,7 @@ rdcstr DoStringise(const GPUVendor &el)
     STRINGISE_ENUM_CLASS(nVidia);
     STRINGISE_ENUM_CLASS(Qualcomm);
     STRINGISE_ENUM_CLASS(Verisilicon);
+    STRINGISE_ENUM_CLASS(Samsung);
     STRINGISE_ENUM_CLASS(Software);
   }
   END_ENUM_STRINGISE();
