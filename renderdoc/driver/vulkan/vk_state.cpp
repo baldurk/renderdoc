@@ -97,6 +97,31 @@ void VulkanRenderState::BeginRenderPassAndApplyState(WrappedVulkan *vk, VkComman
       att->resolveImageView = Unwrap(att->resolveImageView);
     }
 
+    VkRenderingFragmentDensityMapAttachmentInfoEXT fragmentDensity = {
+        VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_DENSITY_MAP_ATTACHMENT_INFO_EXT, NULL,
+        dynamicRendering.fragmentDensityView, dynamicRendering.fragmentDensityLayout,
+    };
+
+    if(dynamicRendering.fragmentDensityView != VK_NULL_HANDLE)
+    {
+      fragmentDensity.pNext = info.pNext;
+      info.pNext = &fragmentDensity;
+    }
+
+    VkRenderingFragmentShadingRateAttachmentInfoKHR shadingRate = {
+        VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR,
+        NULL,
+        dynamicRendering.shadingRateView,
+        dynamicRendering.shadingRateLayout,
+        dynamicRendering.shadingRateTexelSize,
+    };
+
+    if(dynamicRendering.shadingRateView != VK_NULL_HANDLE)
+    {
+      shadingRate.pNext = info.pNext;
+      info.pNext = &shadingRate;
+    }
+
     ObjDisp(cmd)->CmdBeginRendering(Unwrap(cmd), &info);
   }
   else
@@ -223,6 +248,31 @@ void VulkanRenderState::FinishSuspendedRenderPass(VkCommandBuffer cmd)
 
       att->imageView = Unwrap(att->imageView);
       att->resolveImageView = Unwrap(att->resolveImageView);
+    }
+
+    VkRenderingFragmentDensityMapAttachmentInfoEXT fragmentDensity = {
+        VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_DENSITY_MAP_ATTACHMENT_INFO_EXT, NULL,
+        dynamicRendering.fragmentDensityView, dynamicRendering.fragmentDensityLayout,
+    };
+
+    if(dynamicRendering.fragmentDensityView != VK_NULL_HANDLE)
+    {
+      fragmentDensity.pNext = info.pNext;
+      info.pNext = &fragmentDensity;
+    }
+
+    VkRenderingFragmentShadingRateAttachmentInfoKHR shadingRate = {
+        VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR,
+        NULL,
+        dynamicRendering.shadingRateView,
+        dynamicRendering.shadingRateLayout,
+        dynamicRendering.shadingRateTexelSize,
+    };
+
+    if(dynamicRendering.shadingRateView != VK_NULL_HANDLE)
+    {
+      shadingRate.pNext = info.pNext;
+      info.pNext = &shadingRate;
     }
 
     // do nothing, just resume and then end without suspending
