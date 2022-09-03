@@ -29,6 +29,97 @@
 #include "vk_info.h"
 #include "vk_resources.h"
 
+namespace
+{
+struct RenderingInfoStructs
+{
+  VkRenderingInfo info;
+
+  rdcarray<VkRenderingAttachmentInfo> color;
+  VkRenderingAttachmentInfo depth;
+  VkRenderingAttachmentInfo stencil;
+
+  VkRenderingFragmentDensityMapAttachmentInfoEXT fragmentDensity;
+  VkRenderingFragmentShadingRateAttachmentInfoKHR shadingRate;
+};
+
+void setupRenderingInfo(const VulkanRenderState::DynamicRendering &dynamicRendering,
+                        RenderingInfoStructs *structs, VkRenderingFlags flags,
+                        const VkRect2D &renderArea)
+{
+  VkRenderingInfo *info = &structs->info;
+
+  *info = {};
+  info->sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+  info->flags = flags;
+  info->layerCount = dynamicRendering.layerCount;
+  info->renderArea = renderArea;
+  info->viewMask = dynamicRendering.viewMask;
+
+  structs->depth = dynamicRendering.depth;
+  info->pDepthAttachment = &structs->depth;
+  if(structs->depth.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+    info->pDepthAttachment = NULL;
+  structs->stencil = dynamicRendering.stencil;
+  info->pStencilAttachment = &structs->stencil;
+  if(structs->stencil.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+    info->pStencilAttachment = NULL;
+
+  structs->color = dynamicRendering.color;
+
+  info->colorAttachmentCount = (uint32_t)structs->color.size();
+  info->pColorAttachments = structs->color.data();
+
+  // patch the load/store actions and unwrap
+  for(uint32_t i = 0; i < (uint32_t)structs->color.size() + 2; i++)
+  {
+    VkRenderingAttachmentInfo *att = (VkRenderingAttachmentInfo *)info->pColorAttachments + i;
+
+    if(i == info->colorAttachmentCount)
+      att = (VkRenderingAttachmentInfo *)info->pDepthAttachment;
+    else if(i == info->colorAttachmentCount + 1)
+      att = (VkRenderingAttachmentInfo *)info->pStencilAttachment;
+
+    if(!att)
+      continue;
+
+    if(att->loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+      att->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+
+    if(att->storeOp != VK_ATTACHMENT_STORE_OP_NONE)
+      att->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    att->imageView = Unwrap(att->imageView);
+    att->resolveImageView = Unwrap(att->resolveImageView);
+  }
+
+  structs->fragmentDensity = {
+      VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_DENSITY_MAP_ATTACHMENT_INFO_EXT, NULL,
+      dynamicRendering.fragmentDensityView, dynamicRendering.fragmentDensityLayout,
+  };
+
+  if(dynamicRendering.fragmentDensityView != VK_NULL_HANDLE)
+  {
+    structs->fragmentDensity.pNext = info->pNext;
+    info->pNext = &structs->fragmentDensity;
+  }
+
+  structs->shadingRate = {
+      VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR,
+      NULL,
+      dynamicRendering.shadingRateView,
+      dynamicRendering.shadingRateLayout,
+      dynamicRendering.shadingRateTexelSize,
+  };
+
+  if(dynamicRendering.shadingRateView != VK_NULL_HANDLE)
+  {
+    structs->shadingRate.pNext = info->pNext;
+    info->pNext = &structs->shadingRate;
+  }
+}
+}    // namespace
+
 VulkanRenderState::VulkanRenderState()
 {
   RDCEraseEl(ibuffer);
@@ -39,90 +130,24 @@ void VulkanRenderState::BeginRenderPassAndApplyState(WrappedVulkan *vk, VkComman
 {
   if(dynamicRendering.active)
   {
-    VkRenderingInfo info = {};
-    info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-
     // for action callbacks that want to stop the renderpass, do something, then start it with
     // original state, we need to preserve the suspending flag instead of removing it. For other
     // uses, we remove both flags as we're just doing a manual start/stop and we're not in a
     // suspended pass
+    VkRenderingFlags flags = dynamicRendering.flags;
     if(obeySuspending)
     {
-      info.flags = dynamicRendering.flags & ~VK_RENDERING_RESUMING_BIT;
+      flags &= ~VK_RENDERING_RESUMING_BIT;
     }
     else
     {
-      info.flags =
-          dynamicRendering.flags & ~(VK_RENDERING_RESUMING_BIT | VK_RENDERING_SUSPENDING_BIT);
+      flags &= ~(VK_RENDERING_RESUMING_BIT | VK_RENDERING_SUSPENDING_BIT);
     }
 
-    info.layerCount = dynamicRendering.layerCount;
-    info.renderArea = renderArea;
-    info.viewMask = dynamicRendering.viewMask;
+    RenderingInfoStructs structs;
+    setupRenderingInfo(dynamicRendering, &structs, flags, renderArea);
 
-    VkRenderingAttachmentInfo depth = dynamicRendering.depth;
-    info.pDepthAttachment = &depth;
-    if(depth.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
-      info.pDepthAttachment = NULL;
-    VkRenderingAttachmentInfo stencil = dynamicRendering.stencil;
-    info.pStencilAttachment = &stencil;
-    if(stencil.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
-      info.pStencilAttachment = NULL;
-
-    rdcarray<VkRenderingAttachmentInfo> color = dynamicRendering.color;
-
-    info.colorAttachmentCount = (uint32_t)color.size();
-    info.pColorAttachments = color.data();
-
-    // patch the load/store actions and unwrap
-    for(uint32_t i = 0; i < (uint32_t)color.size() + 2; i++)
-    {
-      VkRenderingAttachmentInfo *att = (VkRenderingAttachmentInfo *)info.pColorAttachments + i;
-
-      if(i == info.colorAttachmentCount)
-        att = (VkRenderingAttachmentInfo *)info.pDepthAttachment;
-      else if(i == info.colorAttachmentCount + 1)
-        att = (VkRenderingAttachmentInfo *)info.pStencilAttachment;
-
-      if(!att)
-        continue;
-
-      if(att->loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
-        att->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-
-      if(att->storeOp != VK_ATTACHMENT_STORE_OP_NONE)
-        att->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-      att->imageView = Unwrap(att->imageView);
-      att->resolveImageView = Unwrap(att->resolveImageView);
-    }
-
-    VkRenderingFragmentDensityMapAttachmentInfoEXT fragmentDensity = {
-        VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_DENSITY_MAP_ATTACHMENT_INFO_EXT, NULL,
-        dynamicRendering.fragmentDensityView, dynamicRendering.fragmentDensityLayout,
-    };
-
-    if(dynamicRendering.fragmentDensityView != VK_NULL_HANDLE)
-    {
-      fragmentDensity.pNext = info.pNext;
-      info.pNext = &fragmentDensity;
-    }
-
-    VkRenderingFragmentShadingRateAttachmentInfoKHR shadingRate = {
-        VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR,
-        NULL,
-        dynamicRendering.shadingRateView,
-        dynamicRendering.shadingRateLayout,
-        dynamicRendering.shadingRateTexelSize,
-    };
-
-    if(dynamicRendering.shadingRateView != VK_NULL_HANDLE)
-    {
-      shadingRate.pNext = info.pNext;
-      info.pNext = &shadingRate;
-    }
-
-    ObjDisp(cmd)->CmdBeginRendering(Unwrap(cmd), &info);
+    ObjDisp(cmd)->CmdBeginRendering(Unwrap(cmd), &structs.info);
   }
   else
   {
@@ -203,80 +228,14 @@ void VulkanRenderState::FinishSuspendedRenderPass(VkCommandBuffer cmd)
 {
   if(dynamicRendering.active && dynamicRendering.suspended)
   {
-    VkRenderingInfo info = {};
-    info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-
     // still resume the existing pass, but don't suspend again after that
-    info.flags = dynamicRendering.flags & ~VK_RENDERING_SUSPENDING_BIT;
+    const VkRenderingFlags flags = dynamicRendering.flags & ~VK_RENDERING_SUSPENDING_BIT;
 
-    info.layerCount = dynamicRendering.layerCount;
-    info.renderArea = renderArea;
-    info.viewMask = dynamicRendering.viewMask;
-
-    VkRenderingAttachmentInfo depth = dynamicRendering.depth;
-    info.pDepthAttachment = &depth;
-    if(depth.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
-      info.pDepthAttachment = NULL;
-    VkRenderingAttachmentInfo stencil = dynamicRendering.depth;
-    info.pStencilAttachment = &stencil;
-    if(stencil.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
-      info.pStencilAttachment = NULL;
-
-    rdcarray<VkRenderingAttachmentInfo> color = dynamicRendering.color;
-
-    info.colorAttachmentCount = (uint32_t)color.size();
-    info.pColorAttachments = color.data();
-
-    // patch the load/store actions and unwrap
-    for(uint32_t i = 0; i < (uint32_t)color.size() + 2; i++)
-    {
-      VkRenderingAttachmentInfo *att = (VkRenderingAttachmentInfo *)info.pColorAttachments + i;
-
-      if(i == info.colorAttachmentCount)
-        att = (VkRenderingAttachmentInfo *)info.pDepthAttachment;
-      else if(i == info.colorAttachmentCount + 1)
-        att = (VkRenderingAttachmentInfo *)info.pStencilAttachment;
-
-      if(!att)
-        continue;
-
-      if(att->loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
-        att->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-
-      if(att->storeOp != VK_ATTACHMENT_STORE_OP_NONE)
-        att->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-      att->imageView = Unwrap(att->imageView);
-      att->resolveImageView = Unwrap(att->resolveImageView);
-    }
-
-    VkRenderingFragmentDensityMapAttachmentInfoEXT fragmentDensity = {
-        VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_DENSITY_MAP_ATTACHMENT_INFO_EXT, NULL,
-        dynamicRendering.fragmentDensityView, dynamicRendering.fragmentDensityLayout,
-    };
-
-    if(dynamicRendering.fragmentDensityView != VK_NULL_HANDLE)
-    {
-      fragmentDensity.pNext = info.pNext;
-      info.pNext = &fragmentDensity;
-    }
-
-    VkRenderingFragmentShadingRateAttachmentInfoKHR shadingRate = {
-        VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR,
-        NULL,
-        dynamicRendering.shadingRateView,
-        dynamicRendering.shadingRateLayout,
-        dynamicRendering.shadingRateTexelSize,
-    };
-
-    if(dynamicRendering.shadingRateView != VK_NULL_HANDLE)
-    {
-      shadingRate.pNext = info.pNext;
-      info.pNext = &shadingRate;
-    }
+    RenderingInfoStructs structs;
+    setupRenderingInfo(dynamicRendering, &structs, flags, renderArea);
 
     // do nothing, just resume and then end without suspending
-    ObjDisp(cmd)->CmdBeginRendering(Unwrap(cmd), &info);
+    ObjDisp(cmd)->CmdBeginRendering(Unwrap(cmd), &structs.info);
     ObjDisp(cmd)->CmdEndRendering(Unwrap(cmd));
   }
 }
