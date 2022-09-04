@@ -41,7 +41,9 @@ public:
   DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLRenderCommandEncoder *,
                                           renderCommandEncoderWithDescriptor,
                                           RDMTL::RenderPassDescriptor &descriptor);
-  DECLARE_FUNCTION_SERIALISED(void, presentDrawable, MTL::Drawable *drawable);
+  void presentDrawable(MTL::Drawable *drawable);
+  template <typename SerialiserType>
+  bool Serialise_presentDrawable(SerialiserType &ser, WrappedMTLTexture *presentedImage);
   DECLARE_FUNCTION_SERIALISED(void, commit);
   DECLARE_FUNCTION_SERIALISED(void, enqueue);
   DECLARE_FUNCTION_SERIALISED(void, waitUntilCompleted);

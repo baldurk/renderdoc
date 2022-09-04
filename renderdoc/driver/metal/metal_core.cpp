@@ -442,8 +442,8 @@ bool WrappedMTLDevice::ProcessChunk(ReadSerialiser &ser, MetalChunk chunk)
 
       SERIALISE_CHECK_READ_ERRORS();
 
-      // TODO: handle null PresentedImage
-      // TODO: Track most recently presented texture in Serialise_presentDrawable
+      if(PresentedImage != ResourceId())
+        m_LastPresentedImage = PresentedImage;
 
       if(IsLoading(m_State))
       {
@@ -452,7 +452,7 @@ bool WrappedMTLDevice::ProcessChunk(ReadSerialiser &ser, MetalChunk chunk)
         ActionDescription action;
         action.customName = "End of Capture";
         action.flags |= ActionFlags::Present;
-        action.copyDestination = PresentedImage;
+        action.copyDestination = m_LastPresentedImage;
         AddAction(action);
       }
       return true;
@@ -1027,6 +1027,34 @@ void WrappedMTLDevice::UnregisterMetalLayer(CA::MetalLayer *mtlLayer)
 
   DeviceOwnedWindow devWnd(this, mtlLayer);
   RenderDoc::Inst().RemoveFrameCapturer(devWnd);
+}
+
+void WrappedMTLDevice::RegisterDrawableInfo(CA::MetalDrawable *caMtlDrawable)
+{
+  MetalDrawableInfo drawableInfo;
+  drawableInfo.mtlLayer = caMtlDrawable->layer();
+  drawableInfo.texture = GetWrapped(caMtlDrawable->texture());
+  SCOPED_LOCK(m_CaptureDrawablesLock);
+  RDCASSERTEQUAL(m_CaptureDrawableInfos.find(caMtlDrawable), m_CaptureDrawableInfos.end());
+  m_CaptureDrawableInfos[caMtlDrawable] = drawableInfo;
+}
+
+MetalDrawableInfo WrappedMTLDevice::UnregisterDrawableInfo(MTL::Drawable *mtlDrawable)
+{
+  MetalDrawableInfo drawableInfo;
+  {
+    SCOPED_LOCK(m_CaptureDrawablesLock);
+    auto it = m_CaptureDrawableInfos.find(mtlDrawable);
+    if(it != m_CaptureDrawableInfos.end())
+    {
+      drawableInfo = it->second;
+      m_CaptureDrawableInfos.erase(it);
+      return drawableInfo;
+    }
+  }
+  drawableInfo.mtlLayer = NULL;
+  drawableInfo.texture = NULL;
+  return drawableInfo;
 }
 
 MetalInitParams::MetalInitParams()

@@ -31,6 +31,12 @@
 class WrappedMTLDevice;
 class MetalReplay;
 
+struct MetalDrawableInfo
+{
+  CA::MetalLayer *mtlLayer;
+  WrappedMTLTexture *texture;
+};
+
 class MetalCapturer : public IFrameCapturer
 {
 public:
@@ -131,6 +137,9 @@ public:
   void RegisterMetalLayer(CA::MetalLayer *mtlLayer);
   void UnregisterMetalLayer(CA::MetalLayer *mtlLayer);
 
+  void RegisterDrawableInfo(CA::MetalDrawable *caMtlDrawable);
+  MetalDrawableInfo UnregisterDrawableInfo(MTL::Drawable *mtlDrawable);
+
   void AddEvent();
   void AddAction(const ActionDescription &a);
 
@@ -141,6 +150,11 @@ public:
   void DerivedResource(MetalType parent, ResourceId child)
   {
     DerivedResource(GetResID(parent), child);
+  }
+
+  void SetLastPresentedIamge(ResourceId lastPresentedImage)
+  {
+    m_LastPresentedImage = lastPresentedImage;
   }
 
   enum
@@ -177,6 +191,7 @@ private:
                                      MTL::ResourceOptions options);
 
   MetalResourceManager *m_ResourceManager = NULL;
+  ResourceId m_LastPresentedImage;
 
   // Dummy objects used for serialisation replay
   WrappedMTLBuffer *m_DummyBuffer = NULL;
@@ -194,6 +209,8 @@ private:
   Threading::CriticalSection m_CaptureOutputLayersLock;
   std::unordered_set<CA::MetalLayer *> m_CaptureOutputLayers;
   WrappedMTLTexture *m_CapturedBackbuffer = NULL;
+  Threading::CriticalSection m_CaptureDrawablesLock;
+  rdcflatmap<MTL::Drawable *, MetalDrawableInfo> m_CaptureDrawableInfos;
 
   CaptureState m_State;
   bool m_AppControlledCapture = false;
