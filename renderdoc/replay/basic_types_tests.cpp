@@ -2291,6 +2291,21 @@ TEST_CASE("Test flatmap type", "[basictypes][flatmap]")
     it = test.upper_bound(8);
     CHECK(it == test.end());
   };
+
+  SECTION("empty_map")
+  {
+    rdcflatmap<uint32_t, uint32_t> unsorted;
+    CHECK(unsorted.begin() == unsorted.end());
+    CHECK(unsorted.find(0) == unsorted.end());
+    CHECK(unsorted.lower_bound(1) == 0);
+    CHECK(unsorted.upper_bound(2) == 0);
+
+    rdcflatmap<uint32_t, uint32_t, 0> sorted;
+    CHECK(sorted.begin() == sorted.end());
+    CHECK(sorted.find(0) == sorted.end());
+    CHECK(sorted.lower_bound(1) == 0);
+    CHECK(sorted.upper_bound(2) == 0);
+  }
 };
 
 union foo
