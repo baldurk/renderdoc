@@ -97,20 +97,23 @@ WrappedMTLDevice::WrappedMTLDevice(MTL::Device *realMTLDevice, ResourceId objId)
 IMP WrappedMTLDevice::g_real_CAMetalLayer_nextDrawable;
 uint64_t WrappedMTLDevice::g_nextDrawableTLSSlot;
 
-MTL::Drawable *hooked_CAMetalLayer_nextDrawable(id self, SEL _cmd)
+CA::MetalDrawable *hooked_CAMetalLayer_nextDrawable(id self, SEL _cmd)
 {
   CA::MetalLayer *mtlLayer = (CA::MetalLayer *)self;
   MTL::Device *mtlDevice = mtlLayer->device();
+  WrappedMTLDevice *device = GetWrapped(mtlDevice);
   RDCASSERT(object_getClass(mtlDevice) == objc_getClass("ObjCBridgeMTLDevice"));
-  GetWrapped(mtlDevice)->RegisterMetalLayer(mtlLayer);
+  device->RegisterMetalLayer(mtlLayer);
   mtlLayer->setFramebufferOnly(false);
 
   RDCASSERTEQUAL(Threading::GetTLSValue(WrappedMTLDevice::g_nextDrawableTLSSlot), 0);
   Threading::SetTLSValue(WrappedMTLDevice::g_nextDrawableTLSSlot, (void *)(uintptr_t) true);
-  MTL::Drawable *drawable =
-      ((MTL::Drawable * (*)(id, SEL))WrappedMTLDevice::g_real_CAMetalLayer_nextDrawable)(self, _cmd);
+  CA::MetalDrawable *caMtlDrawable =
+      ((CA::MetalDrawable * (*)(id, SEL))WrappedMTLDevice::g_real_CAMetalLayer_nextDrawable)(self,
+                                                                                             _cmd);
+  device->RegisterDrawableInfo(caMtlDrawable);
   Threading::SetTLSValue(WrappedMTLDevice::g_nextDrawableTLSSlot, (void *)(uintptr_t) false);
-  return drawable;
+  return caMtlDrawable;
 }
 
 void WrappedMTLDevice::MTLHookObjcMethods()

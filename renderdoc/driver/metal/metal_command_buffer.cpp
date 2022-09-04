@@ -149,42 +149,59 @@ WrappedMTLRenderCommandEncoder *WrappedMTLCommandBuffer::renderCommandEncoderWit
 }
 
 template <typename SerialiserType>
-bool WrappedMTLCommandBuffer::Serialise_presentDrawable(SerialiserType &ser, MTL::Drawable *drawable)
+bool WrappedMTLCommandBuffer::Serialise_presentDrawable(SerialiserType &ser,
+                                                        WrappedMTLTexture *presentedImage)
 {
   SERIALISE_ELEMENT_LOCAL(CommandBuffer, this);
+  SERIALISE_ELEMENT(presentedImage).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
   // TODO: implement RD MTL replay
   if(IsReplayingAndReading())
   {
+    if(IsLoading(m_State))
+    {
+      AddEvent();
+
+      ActionDescription action;
+      ResourceId presentedImageId = GetResourceManager()->GetOriginalID(GetResID(presentedImage));
+      action.customName = StringFormat::Fmt("presentDrawable(%s)", ToStr(presentedImageId).c_str());
+      action.flags |= ActionFlags::Present;
+      action.copyDestination = presentedImageId;
+      m_Device->SetLastPresentedIamge(presentedImageId);
+      AddAction(action);
+    }
   }
   return true;
 }
 
 void WrappedMTLCommandBuffer::presentDrawable(MTL::Drawable *drawable)
 {
-  // TODO: remove the (CA::MetalDrawable*) cast. Associate created texture
-  // in hooked nextDrawable with MTL::Drawable* and CA::MetalLayer*
-  CA::MetalDrawable *mtlDrawable = (CA::MetalDrawable *)(drawable);
-  // To avoid metal assert about accessing drawable texture after calling present
-  MTL::Texture *mtlBackBuffer = mtlDrawable->texture();
-
   SERIALISE_TIME_CALL(Unwrap(this)->presentDrawable(drawable));
   if(IsCaptureMode(m_State))
   {
-    Chunk *chunk = NULL;
+    MetalDrawableInfo info = m_Device->UnregisterDrawableInfo(drawable);
+    WrappedMTLTexture *presentedImage = info.texture;
+    if(presentedImage)
     {
-      CACHE_THREAD_SERIALISER();
-      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLCommandBuffer_presentDrawable);
-      Serialise_presentDrawable(ser, drawable);
-      chunk = scope.Get();
+      Chunk *chunk = NULL;
+      {
+        CACHE_THREAD_SERIALISER();
+        SCOPED_SERIALISE_CHUNK(MetalChunk::MTLCommandBuffer_presentDrawable);
+        Serialise_presentDrawable(ser, presentedImage);
+        chunk = scope.Get();
+      }
+      MetalResourceRecord *bufferRecord = GetRecord(this);
+      bufferRecord->AddChunk(chunk);
+      bufferRecord->cmdInfo->presented = true;
+      bufferRecord->cmdInfo->outputLayer = info.mtlLayer;
+      bufferRecord->cmdInfo->backBuffer = presentedImage;
     }
-    MetalResourceRecord *bufferRecord = GetRecord(this);
-    bufferRecord->AddChunk(chunk);
-    bufferRecord->cmdInfo->presented = true;
-    bufferRecord->cmdInfo->outputLayer = mtlDrawable->layer();
-    bufferRecord->cmdInfo->backBuffer = GetWrapped(mtlBackBuffer);
+    else
+    {
+      RDCERR("Ignoring presentDrawable on untracked MTLDrawable");
+    }
   }
   else
   {
@@ -309,7 +326,7 @@ INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLCommandBuffer,
                                             renderCommandEncoderWithDescriptor,
                                             RDMTL::RenderPassDescriptor &descriptor);
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLCommandBuffer, void, presentDrawable,
-                                MTL::Drawable *drawable);
+                                WrappedMTLTexture *presentedImage);
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLCommandBuffer, void, commit);
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLCommandBuffer, void, enqueue);
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLCommandBuffer, void, waitUntilCompleted);
