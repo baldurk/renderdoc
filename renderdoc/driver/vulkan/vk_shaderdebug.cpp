@@ -4479,7 +4479,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   }
 
   modifiedstate.subpassContents = VK_SUBPASS_CONTENTS_INLINE;
-  modifiedstate.dynamicRendering.flags &= VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT;
+  modifiedstate.dynamicRendering.flags &= ~VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT;
 
   {
     VkCommandBuffer cmd = m_pDriver->GetNextCmd();

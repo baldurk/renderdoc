@@ -3844,7 +3844,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       VkSubpassContents subpassContents = m_RenderState.subpassContents;
       VkRenderingFlags dynamicFlags = m_RenderState.dynamicRendering.flags;
       m_RenderState.subpassContents = VK_SUBPASS_CONTENTS_INLINE;
-      m_RenderState.dynamicRendering.flags &= VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT;
+      m_RenderState.dynamicRendering.flags &= ~VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT;
 
       rpWasActive = m_Partial[Primary].renderPassActive;
 
