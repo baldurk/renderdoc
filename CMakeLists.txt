@@ -386,6 +386,10 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
             list(APPEND warning_flags -Wimplicit-fallthrough=2)
         endif()
+        
+        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 11.9)
+            list(APPEND warning_flags -Wno-unused-value)
+        endif()
     endif()
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
