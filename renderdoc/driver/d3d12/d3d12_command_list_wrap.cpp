@@ -4360,8 +4360,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
 
       actionNode.resourceUsage.push_back(make_rdcpair(
           GetResID(pArgumentBuffer), EventUsage(actionNode.action.eventId, ResourceUsage::Indirect)));
-      actionNode.resourceUsage.push_back(make_rdcpair(
-          GetResID(pCountBuffer), EventUsage(actionNode.action.eventId, ResourceUsage::Indirect)));
+      if(pCountBuffer)
+        actionNode.resourceUsage.push_back(make_rdcpair(
+            GetResID(pCountBuffer), EventUsage(actionNode.action.eventId, ResourceUsage::Indirect)));
 
       ID3D12GraphicsCommandList *cracked = GetCrackedList();
 
