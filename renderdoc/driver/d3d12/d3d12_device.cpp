@@ -593,7 +593,6 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_HeaderChunk = NULL;
 
   m_Alloc = m_DataUploadAlloc = NULL;
-  m_DataUploadList = NULL;
   m_GPUSyncFence = NULL;
   m_GPUSyncHandle = NULL;
   m_GPUSyncCounter = 0;
@@ -1778,13 +1777,13 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
         return false;
       }
 
-      SetObjName(uploadBuf,
-                 StringFormat::Fmt("Map data write, %llu bytes for %s/%u @ %llu", rangeSize,
-                                   ToStr(origid).c_str(), Subresource, cmd.m_CurChunkOffset));
-
       // during loading, fill out the buffer itself
       if(IsLoading(m_State))
       {
+        SetObjName(uploadBuf,
+                   StringFormat::Fmt("Map data write, %llu bytes for %s/%u @ %llu", rangeSize,
+                                     ToStr(origid).c_str(), Subresource, cmd.m_CurChunkOffset));
+
         D3D12_RANGE maprange = {0, 0};
         void *dst = NULL;
         HRESULT hr = uploadBuf->Map(Subresource, &maprange, &dst);
@@ -1806,13 +1805,20 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
       }
 
       // then afterwards just execute a list to copy the result
-      m_DataUploadList->Reset(m_DataUploadAlloc, NULL);
-      m_DataUploadList->CopyBufferRegion(Resource, range.Begin, uploadBuf, 0,
-                                         range.End - range.Begin);
-      m_DataUploadList->Close();
-      ID3D12CommandList *l = m_DataUploadList;
+      m_DataUploadList[m_CurDataUpload]->Reset(m_DataUploadAlloc, NULL);
+      m_DataUploadList[m_CurDataUpload]->CopyBufferRegion(Resource, range.Begin, uploadBuf, 0,
+                                                          range.End - range.Begin);
+      m_DataUploadList[m_CurDataUpload]->Close();
+
+      ID3D12CommandList *l = m_DataUploadList[m_CurDataUpload];
       GetQueue()->ExecuteCommandLists(1, &l);
-      GPUSync();
+
+      m_CurDataUpload++;
+      if(m_CurDataUpload == ARRAY_COUNT(m_DataUploadList))
+      {
+        GPUSync();
+        m_CurDataUpload = 0;
+      }
     }
     else
     {
@@ -1964,16 +1970,22 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
       }
 
       // then afterwards just execute a list to copy the result
-      m_DataUploadList->Reset(m_DataUploadAlloc, NULL);
+      m_DataUploadList[m_CurDataUpload]->Reset(m_DataUploadAlloc, NULL);
       UINT64 copySize = dataSize;
       if(pDstBox)
         copySize = RDCMIN(copySize, UINT64(pDstBox->right - pDstBox->left));
-      m_DataUploadList->CopyBufferRegion(Resource, pDstBox ? pDstBox->left : 0, uploadBuf, 0,
-                                         copySize);
-      m_DataUploadList->Close();
-      ID3D12CommandList *l = m_DataUploadList;
+      m_DataUploadList[m_CurDataUpload]->CopyBufferRegion(Resource, pDstBox ? pDstBox->left : 0,
+                                                          uploadBuf, 0, copySize);
+      m_DataUploadList[m_CurDataUpload]->Close();
+      ID3D12CommandList *l = m_DataUploadList[m_CurDataUpload];
       GetQueue()->ExecuteCommandLists(1, &l);
-      GPUSync();
+
+      m_CurDataUpload++;
+      if(m_CurDataUpload == ARRAY_COUNT(m_DataUploadList))
+      {
+        GPUSync();
+        m_CurDataUpload = 0;
+      }
     }
     else
     {
@@ -3458,9 +3470,15 @@ void WrappedID3D12Device::CreateInternalResources()
 
   GetResourceManager()->SetInternalResource(m_DataUploadAlloc);
 
-  CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_DataUploadAlloc, NULL,
-                    __uuidof(ID3D12GraphicsCommandList), (void **)&m_DataUploadList);
-  InternalRef();
+  for(size_t i = 0; i < ARRAY_COUNT(m_DataUploadList); i++)
+  {
+    CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_DataUploadAlloc, NULL,
+                      __uuidof(ID3D12GraphicsCommandList), (void **)&m_DataUploadList[i]);
+    InternalRef();
+
+    m_DataUploadList[i]->Close();
+  }
+  m_CurDataUpload = 0;
 
   D3D12_DESCRIPTOR_HEAP_DESC desc;
   desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -3493,8 +3511,6 @@ void WrappedID3D12Device::CreateInternalResources()
     RDCERR("Failed to create RTV heap");
   }
 
-  m_DataUploadList->Close();
-
   m_GPUSyncCounter = 0;
 
   if(m_ShaderCache == NULL)
@@ -3523,7 +3539,8 @@ void WrappedID3D12Device::DestroyInternalResources()
   SAFE_DELETE(m_TextRenderer);
   SAFE_DELETE(m_ShaderCache);
 
-  SAFE_RELEASE(m_DataUploadList);
+  for(size_t i = 0; i < ARRAY_COUNT(m_DataUploadList); i++)
+    SAFE_RELEASE(m_DataUploadList[i]);
   SAFE_RELEASE(m_DataUploadAlloc);
 
   SAFE_RELEASE(m_Alloc);
@@ -4223,6 +4240,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
       CheckHRESULT(m_Queues[i]->Signal(m_QueueFences[i], m_GPUSyncCounter));
 
     FlushLists(true);
+    m_CurDataUpload = 0;
 
     // take this opportunity to reset command allocators to ensure we don't steadily leak over time.
     if(m_DataUploadAlloc)
