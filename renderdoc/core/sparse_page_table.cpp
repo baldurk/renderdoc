@@ -208,6 +208,8 @@ uint64_t PageTable::setMipTailRange(uint64_t resourceByteOffset, ResourceId memo
         memoryByteOffset += m_PageByteSize;
     }
 
+    mapping.simplifyUnmapped();
+
     // return how much of the mip tail we consumed, clamped to the size. Note resourceByteOffset has
     // been remapped to be mip-tail relative here
     return m_MipTail.byteOffset +
@@ -287,6 +289,9 @@ uint64_t PageTable::setMipTailRange(uint64_t resourceByteOffset, ResourceId memo
         // if we don't have enough remaining to hit the stride, we just zero-out the number of bytes
         // remaining
         byteSize -= RDCMIN(byteSize, m_MipTail.byteStride - mipTailSubresourceByteSize);
+
+        // simplify current mapping before moving on to next subresource
+        mapping.simplifyUnmapped();
         sub++;
       }
       else
@@ -298,6 +303,11 @@ uint64_t PageTable::setMipTailRange(uint64_t resourceByteOffset, ResourceId memo
         resourceByteOffset += consumedBytes;
       }
     }
+
+    // simplify the last tail that we touched, as long as it's still valid. If we just incremented
+    // past the last, we will have simplified above where sub is incremented
+    if(sub < m_MipTail.mappings.size())
+      m_MipTail.mappings[sub].simplifyUnmapped();
 
     if(byteSize > 0)
       RDCERR("Unclaimed bytes being assigned to image after iterating over all subresources");
@@ -383,6 +393,8 @@ void PageTable::setImageBoxRange(uint32_t subresource, const Sparse::Coord &coor
         }
       }
     }
+
+    sub.simplifyUnmapped();
   }
 }
 
@@ -508,6 +520,9 @@ rdcpair<uint32_t, Coord> PageTable::setImageWrappedRange(uint32_t subresource,
           memoryByteOffset += m_PageByteSize;
         byteSize -= m_PageByteSize;
       }
+
+      if(updateMappings)
+        sub.simplifyUnmapped();
 
       // if we consumed all bytes and didn't get to the end of the subresource, calculate where we
       // ended up
@@ -667,6 +682,8 @@ void PageTable::copyImageBoxRange(uint32_t dstSubresource, const Coord &coordInT
       }
     }
   }
+
+  dstSub.simplifyUnmapped();
 }
 
 void PageTable::copyImageWrappedRange(uint32_t dstSubresource, const Coord &coordInTiles,
@@ -802,12 +819,17 @@ void PageTable::copyImageWrappedRange(uint32_t dstSubresource, const Coord &coor
         dstSubresource++;
       }
 
+      // simplify the mapping before we move on
+      dstMapping->simplifyUnmapped();
+
       dstSubSize = calcSubresourcePageDim(dstSubresource);
       dstMapping = &m_Subresources[dstSubresource];
     }
 
     if(srcSubresource >= srcPageTable.getNumSubresources())
     {
+      dstMapping->simplifyUnmapped();
+
       RDCERR(
           "Number of tiles %u in image wrapped range copy exceeded source page table subresource "
           "count %u",
@@ -817,6 +839,8 @@ void PageTable::copyImageWrappedRange(uint32_t dstSubresource, const Coord &coor
 
     if(dstSubresource >= getNumSubresources())
     {
+      dstMapping->simplifyUnmapped();
+
       RDCERR(
           "Number of tiles %u in image wrapped range copy exceeded dest page table subresource "
           "count %u",
@@ -824,6 +848,10 @@ void PageTable::copyImageWrappedRange(uint32_t dstSubresource, const Coord &coor
       return;
     }
   }
+
+  // simplify the last mapping we were working on
+  if(dstMapping < m_Subresources.end())
+    dstMapping->simplifyUnmapped();
 }
 
 Coord PageTable::calcSubresourcePageDim(uint32_t subresource) const
@@ -2722,6 +2750,78 @@ TEST_CASE("Test sparse page table mapping", "[sparse]")
         CHECK(pageTable.getSubresource(0).pages[_idx(2, 4)] == Sparse::Page({ResourceId(), 0}));
       };
     };
+  };
+
+  SECTION("Test unmapped checks")
+  {
+    // create a 256x256 texture with 32x32 pages, 6 mips (the last two are in the mip tail)
+    pageTable.Initialise({256, 256, 1}, 6, 1, 64, {32, 32, 1}, 4, 0, 0, 8192);
+
+    CHECK_FALSE(pageTable.getSubresource(0).isMapped());
+    CHECK_FALSE(pageTable.getSubresource(1).isMapped());
+    CHECK_FALSE(pageTable.getSubresource(2).isMapped());
+    CHECK_FALSE(pageTable.getSubresource(3).isMapped());
+    CHECK_FALSE(pageTable.getMipTail().mappings[0].isMapped());
+  };
+
+  SECTION("Test unmapped simplification")
+  {
+    // create a 256x256 texture with 32x32 pages, 6 mips (the last two are in the mip tail)
+    pageTable.Initialise({256, 256, 1}, 6, 1, 64, {32, 32, 1}, 4, 0, 0, 8192);
+
+    CHECK_FALSE(pageTable.getSubresource(0).isMapped());
+    CHECK_FALSE(pageTable.getSubresource(1).isMapped());
+    CHECK_FALSE(pageTable.getSubresource(2).isMapped());
+    CHECK_FALSE(pageTable.getSubresource(3).isMapped());
+    CHECK_FALSE(pageTable.getMipTail().mappings[0].isMapped());
+
+    ResourceId mem = ResourceIDGen::GetNewUniqueID();
+
+    pageTable.setMipTailRange(0, mem, 128, 256, false);
+
+    CHECK_FALSE(pageTable.getSubresource(0).isMapped());
+    CHECK_FALSE(pageTable.getSubresource(1).isMapped());
+    CHECK_FALSE(pageTable.getSubresource(2).isMapped());
+    CHECK_FALSE(pageTable.getSubresource(3).isMapped());
+    CHECK(pageTable.getMipTail().mappings[0].isMapped());
+
+    pageTable.setMipTailRange(0, ResourceId(), 128, 256, false);
+
+    CHECK_FALSE(pageTable.getSubresource(0).isMapped());
+    CHECK_FALSE(pageTable.getSubresource(1).isMapped());
+    CHECK_FALSE(pageTable.getSubresource(2).isMapped());
+    CHECK_FALSE(pageTable.getSubresource(3).isMapped());
+    CHECK_FALSE(pageTable.getMipTail().mappings[0].isMapped());
+
+    pageTable.setImageWrappedRange(0, {0, 0, 0}, ~0U, mem, 0, false);
+
+    CHECK(pageTable.getSubresource(0).isMapped());
+    CHECK(pageTable.getSubresource(1).isMapped());
+    CHECK(pageTable.getSubresource(2).isMapped());
+    CHECK(pageTable.getSubresource(3).isMapped());
+    CHECK(pageTable.getMipTail().mappings[0].isMapped());
+
+    ResourceId mem2 = ResourceIDGen::GetNewUniqueID();
+
+    pageTable.setImageBoxRange(0, {0, 0, 0}, {32, 32, 1}, mem2, 1024, false);
+
+    CHECK(pageTable.getSubresource(0).isMapped());
+
+    pageTable.setImageBoxRange(0, {64, 0, 0}, {32, 32, 1}, ResourceId(), 1024, false);
+
+    CHECK(pageTable.getSubresource(0).isMapped());
+
+    pageTable.setImageBoxRange(0, {0, 0, 0}, {32, 32, 1}, ResourceId(), 1024, false);
+
+    CHECK(pageTable.getSubresource(0).isMapped());
+
+    pageTable.setImageBoxRange(0, {0, 0, 0}, {256, 192, 1}, ResourceId(), 1024, false);
+
+    CHECK(pageTable.getSubresource(0).isMapped());
+
+    pageTable.setImageBoxRange(0, {0, 192, 0}, {256, 64, 1}, ResourceId(), 1024, false);
+
+    CHECK_FALSE(pageTable.getSubresource(0).isMapped());
   };
 };
 

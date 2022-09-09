@@ -922,7 +922,7 @@ RDResult WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_t st
 
   ser.SetStringDatabase(&m_StringDB);
   ser.SetUserData(GetResourceManager());
-  ser.SetVersion(m_pDevice->GetLogVersion());
+  ser.SetVersion(m_pDevice->GetCaptureVersion());
 
   if(IsLoading(m_State) || IsStructuredExporting(m_State))
   {

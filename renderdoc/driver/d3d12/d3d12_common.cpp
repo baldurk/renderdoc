@@ -235,6 +235,10 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0xC)
     return true;
 
+  // 0xD -> 0xE - Initial contents of sparse resources only serialise subresources with mapped pages
+  if(ver == 0xD)
+    return true;
+
   return false;
 }
 

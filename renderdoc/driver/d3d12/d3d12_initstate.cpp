@@ -61,11 +61,16 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
     D3D12InitialContents initContents;
 
+    Sparse::PageTable *sparseTable = NULL;
+
+    if(GetRecord(r)->sparseTable)
+      sparseTable = new Sparse::PageTable(*GetRecord(r)->sparseTable);
+
     if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
       D3D12_HEAP_PROPERTIES heapProps = {};
 
-      if(GetRecord(r)->sparseTable == NULL)
+      if(sparseTable == NULL)
         r->GetHeapProperties(&heapProps, NULL);
 
       HRESULT hr = S_OK;
@@ -185,6 +190,8 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       bool isDepth =
           IsDepthFormat(desc.Format) || (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
 
+      bool isMSAA = false;
+
       if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D && desc.SampleDesc.Count > 1)
       {
         desc.Alignment = 0;
@@ -212,6 +219,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
         RDCASSERTEQUAL(hr, S_OK);
 
         destState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        isMSAA = true;
       }
 
       ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetInitialStateList());
@@ -288,7 +296,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       bufDesc.MipLevels = 1;
       bufDesc.SampleDesc.Count = 1;
       bufDesc.SampleDesc.Quality = 0;
-      bufDesc.Width = 1;
+      bufDesc.Width = 0;
 
       UINT numSubresources = desc.MipLevels;
       if(desc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
@@ -305,11 +313,33 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
         numSubresources *= planes;
       }
 
-      D3D12_PLACED_SUBRESOURCE_FOOTPRINT *layouts =
-          new D3D12_PLACED_SUBRESOURCE_FOOTPRINT[numSubresources];
+      D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout = {};
 
-      m_Device->GetCopyableFootprints(&desc, 0, numSubresources, 0, layouts, NULL, NULL,
-                                      &bufDesc.Width);
+      rdcarray<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> copyLayouts;
+      rdcarray<uint32_t> subresources;
+
+      for(UINT i = 0; i < numSubresources; i++)
+      {
+        // skip non-MSAA sparse subresources that are not mapped at all
+        if(!isMSAA && sparseTable && !sparseTable->getPageRangeMapping(i).isMapped())
+          continue;
+
+        UINT64 subSize = 0;
+        m_Device->GetCopyableFootprints(&desc, i, 1, bufDesc.Width, &layout, NULL, NULL, &subSize);
+
+        copyLayouts.push_back(layout);
+        subresources.push_back(i);
+        bufDesc.Width += subSize;
+        bufDesc.Width = AlignUp<UINT64>(bufDesc.Width, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+      }
+
+      if(bufDesc.Width == 0)
+        bufDesc.Width = 1U;
+
+      // If we're not a sparse single-sampled texture, we copy the whole resource with all
+      // subresources.
+      if(isMSAA || sparseTable == NULL)
+        subresources = {~0U};
 
       ID3D12Resource *copyDst = NULL;
       HRESULT hr = m_Device->GetReal()->CreateCommittedResource(
@@ -318,7 +348,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
       if(SUCCEEDED(hr))
       {
-        for(UINT i = 0; i < numSubresources; i++)
+        for(UINT i = 0; i < copyLayouts.size(); i++)
         {
           D3D12_TEXTURE_COPY_LOCATION dst, src;
 
@@ -328,7 +358,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
           dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
           dst.pResource = copyDst;
-          dst.PlacedFootprint = layouts[i];
+          dst.PlacedFootprint = copyLayouts[i];
 
           list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
         }
@@ -365,15 +395,12 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       }
 
       SAFE_RELEASE(arrayTexture);
-      SAFE_DELETE_ARRAY(layouts);
 
       initContents = D3D12InitialContents(copyDst);
+      initContents.subresources = subresources;
     }
 
-    if(GetRecord(r)->sparseTable)
-    {
-      initContents.sparseTable = new Sparse::PageTable(*GetRecord(r)->sparseTable);
-    }
+    initContents.sparseTable = sparseTable;
 
     SetInitialContents(GetResID(r), initContents);
     return true;
@@ -628,6 +655,21 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
     }
 
     SparseBinds *sparseBinds = NULL;
+    bool skipUnmapped = false;
+    rdcarray<uint32_t> subresourcesIncluded;
+    if(initial)
+      subresourcesIncluded = initial->subresources;
+
+    // default to {~0U} if this isn't present, which means 'all subresources serialised', since an
+    // empty array is valid and means NO subresources were serialised.
+    if(ser.VersionAtLeast(0xE))
+    {
+      SERIALISE_ELEMENT(subresourcesIncluded);
+    }
+    else
+    {
+      subresourcesIncluded = {~0U};
+    }
 
     if(ser.VersionAtLeast(0xB))
     {
@@ -772,6 +814,8 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
       initContents.resource = mappedBuffer;
 
       initContents.sparseBinds = sparseBinds;
+
+      initContents.subresources = subresourcesIncluded;
 
       D3D12_RESOURCE_DESC resDesc = liveRes->GetDesc();
 
@@ -1006,6 +1050,7 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
       if(FAILED(hr))
       {
         RDCERR("Couldn't create initial state copy: %s", ToStr(hr).c_str());
+        m_Device->CheckHRESULT(hr);
       }
       else
       {
@@ -1229,7 +1274,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
 
           // we only accounted for planes in version 0x6, before then we only copied the first plane
           // so the buffer won't have enough data
-          if(m_Device->GetLogVersion() >= 0x6)
+          if(m_Device->GetCaptureVersion() >= 0x6)
           {
             D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
             formatInfo.Format = desc.Format;
@@ -1240,13 +1285,19 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
             numSubresources *= planes;
           }
 
-          D3D12_PLACED_SUBRESOURCE_FOOTPRINT *layouts =
-              new D3D12_PLACED_SUBRESOURCE_FOOTPRINT[numSubresources];
+          const uint32_t *nextIncludedSubresource = data.subresources.begin();
+          if(data.subresources.empty() || *nextIncludedSubresource == ~0U)
+            nextIncludedSubresource = NULL;
 
-          m_Device->GetCopyableFootprints(&desc, 0, numSubresources, 0, layouts, NULL, NULL, NULL);
+          UINT64 offset = 0;
+          UINT64 subSize = 0;
 
           for(UINT i = 0; i < numSubresources; i++)
           {
+            // if we have a list of subresources included, only copy those
+            if(nextIncludedSubresource && *nextIncludedSubresource != i)
+              continue;
+
             D3D12_TEXTURE_COPY_LOCATION dst, src;
 
             dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
@@ -1255,12 +1306,23 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
 
             src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
             src.pResource = Unwrap(copySrc);
-            src.PlacedFootprint = layouts[i];
+
+            m_Device->GetCopyableFootprints(&desc, i, 1, offset, &src.PlacedFootprint, NULL, NULL,
+                                            &subSize);
 
             list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
-          }
 
-          delete[] layouts;
+            offset += subSize;
+            offset = AlignUp<UINT64>(offset, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+
+            if(nextIncludedSubresource)
+            {
+              nextIncludedSubresource++;
+              // no more subresource after this one were included, even if they exist
+              if(nextIncludedSubresource >= data.subresources.end())
+                break;
+            }
+          }
         }
 
         // transition back to whatever it was before

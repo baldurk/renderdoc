@@ -54,7 +54,7 @@ struct D3D12InitParams
   UINT SDKVersion = 0;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0xD;
+  static const uint64_t CurrentVersion = 0xE;
 
   static bool IsSupportedVersion(uint64_t ver);
 };
@@ -850,7 +850,7 @@ public:
     m_ReplayAGS = ags;
   }
   const ReplayOptions &GetReplayOptions() { return m_ReplayOptions; }
-  uint64_t GetLogVersion() { return m_SectionVersion; }
+  uint64_t GetCaptureVersion() { return m_SectionVersion; }
   CaptureState GetState() { return m_State; }
   D3D12Replay *GetReplay() { return m_Replay; }
   WrappedID3D12CommandQueue *GetQueue() { return m_Queue; }

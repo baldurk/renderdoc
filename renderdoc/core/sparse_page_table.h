@@ -70,6 +70,23 @@ struct PageRangeMapping
   // the memory mappings per-page if there are different mappings per-page
   rdcarray<Page> pages;
 
+  bool isMapped() const { return !pages.empty() || singleMapping.memory != ResourceId(); }
+  void simplifyUnmapped()
+  {
+    // if we're already using singleMapping, don't check anything
+    if(pages.empty())
+      return;
+
+    // if we find a single page with memory mapped, we're not entirely unmapped
+    for(size_t i = 0; i < pages.size(); i++)
+      if(pages[i].memory != ResourceId())
+        return;
+
+    // we're entirely unmapped - revert back to a single page mapping
+    pages.clear();
+    singleMapping = Page();
+    singlePageReused = false;
+  }
   Page getPage(uint32_t idx, uint32_t pageSize) const
   {
     if(pages.empty())
@@ -174,6 +191,13 @@ public:
   const PageRangeMapping &getSubresource(uint32_t subresource) const
   {
     return m_Subresources[subresource];
+  }
+  const PageRangeMapping &getPageRangeMapping(uint32_t subresource) const
+  {
+    if(isSubresourceInMipTail(subresource))
+      return getMipTailMapping(subresource);
+    else
+      return getSubresource(subresource);
   }
   const MipTail &getMipTail() const { return m_MipTail; }
   const PageRangeMapping &getMipTailMapping(uint32_t subresource) const

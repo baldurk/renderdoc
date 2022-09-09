@@ -671,6 +671,8 @@ struct D3D12InitialContents
   byte *srcData;
   size_t dataSize;
 
+  rdcarray<uint32_t> subresources;
+
   // only valid on capture - the snapshotted table at prepare time
   Sparse::PageTable *sparseTable;
   // only valid on replay, the table above converted into a set of binds
