@@ -717,6 +717,7 @@ private:
   // used both on capture and replay side to track resource states. Only locked
   // in capture
   std::map<ResourceId, SubresourceStateVector> m_ResourceStates;
+  std::unordered_map<ResourceId, FrameRefType> m_BindlessFrameRefs;
   Threading::CriticalSection m_ResourceStatesLock;
 
   // used on replay only. Contains the initial resource states before any barriers - this allows us
@@ -736,6 +737,9 @@ private:
 
     WrappedID3D12CommandQueue *queue;
   };
+
+  bool m_BindlessResourceUseActive = false;
+  FrameRefType BindlessRefTypeForRes(ID3D12Resource *wrapped);
 
   std::map<IDXGISwapper *, SwapPresentInfo> m_SwapChains;
   std::map<ResourceId, DXGI_FORMAT> m_BackbufferFormat;
@@ -801,6 +805,7 @@ public:
   void FirstFrame(IDXGISwapper *swapper);
   const ActionDescription *GetAction(uint32_t eventId);
 
+  bool IsBindlessResourceUseActive() const { return m_BindlessResourceUseActive; }
   ResourceId GetFrameCaptureResourceId() { return m_FrameCaptureRecord->GetResourceID(); }
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
   void AddDebugMessage(const DebugMessage &msg);

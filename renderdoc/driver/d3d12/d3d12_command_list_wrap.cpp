@@ -1767,7 +1767,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
         num = HeapNumDescriptors - rangeStart->GetHeapIndex();
       }
 
-      if(!RenderDoc::Inst().GetCaptureOptions().refAllResources)
+      if(!m_pDevice->IsBindlessResourceUseActive())
       {
         rdcarray<rdcpair<D3D12Descriptor *, UINT>> &descs = m_ListRecord->cmdInfo->boundDescs;
         descs.push_back(make_rdcpair(rangeStart, num));
@@ -2344,7 +2344,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
         num = HeapNumDescriptors - rangeStart->GetHeapIndex();
       }
 
-      if(!RenderDoc::Inst().GetCaptureOptions().refAllResources)
+      if(!m_pDevice->IsBindlessResourceUseActive())
       {
         rdcarray<rdcpair<D3D12Descriptor *, UINT>> &descs = m_ListRecord->cmdInfo->boundDescs;
         descs.push_back(make_rdcpair(rangeStart, num));

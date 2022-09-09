@@ -2362,6 +2362,14 @@ void WrappedID3D12Device::StartFrameCapture(DeviceOwnedWindow devWnd)
                                                         eFrameRef_Read);
     }
 
+    if(m_BindlessResourceUseActive)
+    {
+      SCOPED_LOCK(m_ResourceStatesLock);
+
+      for(auto it = m_BindlessFrameRefs.begin(); it != m_BindlessFrameRefs.end(); ++it)
+        GetResourceManager()->MarkResourceFrameReferenced(it->first, it->second);
+    }
+
     m_RefQueues = m_Queues;
     m_RefBuffers = WrappedID3D12Resource::AddRefBuffersBeforeCapture(GetResourceManager());
   }
@@ -3331,6 +3339,18 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Device::QueryVideoMemoryInfo(
     _Out_ DXGI_QUERY_VIDEO_MEMORY_INFO *pVideoMemoryInfo)
 {
   return m_pDownlevel->QueryVideoMemoryInfo(NodeIndex, MemorySegmentGroup, pVideoMemoryInfo);
+}
+
+FrameRefType WrappedID3D12Device::BindlessRefTypeForRes(ID3D12Resource *wrapped)
+{
+  // if the resource could be used in any mutable way, assume it's written. Otherwise assume it's
+  // read-only (if it's modified some other way like with a copy etc, this will naturally become a
+  // read-before-write)
+  return (wrapped->GetDesc().Flags &
+          (D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL |
+           D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)) != 0
+             ? eFrameRef_ReadBeforeWrite
+             : eFrameRef_Read;
 }
 
 byte *WrappedID3D12Device::GetTempMemory(size_t s)
