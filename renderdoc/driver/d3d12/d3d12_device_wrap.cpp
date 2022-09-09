@@ -1504,6 +1504,9 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
 
       GetResourceManager()->AddLiveResource(pResource, ret);
 
+      if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+        m_ModResources.insert(GetResID(ret));
+
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
       states.fill(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
 
@@ -1822,6 +1825,9 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
 
       GetResourceManager()->AddLiveResource(pResource, ret);
 
+      if(Descriptor.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+        m_ModResources.insert(GetResID(ret));
+
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
       states.fill(GetNumSubresources(m_pDevice, &Descriptor), InitialState);
     }
@@ -2024,6 +2030,9 @@ bool WrappedID3D12Device::Serialise_CreateReservedResource(
       ret = new WrappedID3D12Resource(ret, this);
 
       GetResourceManager()->AddLiveResource(pResource, ret);
+
+      if(Descriptor.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+        m_ModResources.insert(GetResID(ret));
 
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
       states.fill(GetNumSubresources(m_pDevice, &Descriptor), InitialState);
@@ -2846,6 +2855,9 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
         ret = new WrappedID3D12Resource(ret, this);
 
         GetResourceManager()->AddLiveResource(resourceId, ret);
+
+        if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+          m_ModResources.insert(GetResID(ret));
 
         SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
         states.fill(GetNumSubresources(m_pDevice, &desc), InitialResourceState);

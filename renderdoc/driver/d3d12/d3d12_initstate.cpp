@@ -1049,7 +1049,12 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
   }
   else if(type == Resource_Resource)
   {
-    if(data.tag == D3D12InitialContents::Copy || data.tag == D3D12InitialContents::ForceCopy)
+    ResourceId id = GetResID(live);
+
+    if(IsActiveReplaying(m_State) && m_Device->IsReadOnlyResource(id))
+    {
+    }
+    else if(data.tag == D3D12InitialContents::Copy || data.tag == D3D12InitialContents::ForceCopy)
     {
       ID3D12Resource *copyDst = Unwrap((ID3D12Resource *)live);
 

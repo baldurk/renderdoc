@@ -298,6 +298,9 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource1(
 
       GetResourceManager()->AddLiveResource(pResource, ret);
 
+      if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+        m_ModResources.insert(GetResID(ret));
+
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
       states.fill(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
 

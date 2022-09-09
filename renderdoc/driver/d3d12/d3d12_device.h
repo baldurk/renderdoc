@@ -634,6 +634,7 @@ private:
   D3D12TextRenderer *m_TextRenderer = NULL;
 
   std::set<ResourceId> m_UploadResourceIds;
+  std::set<ResourceId> m_ModResources;
   std::map<uint64_t, ID3D12Resource *> m_UploadBuffers;
 
   Threading::CriticalSection m_MapsLock;
@@ -901,6 +902,8 @@ public:
 
   ID3D12GraphicsCommandListX *GetNewList();
   ID3D12GraphicsCommandListX *GetInitialStateList();
+
+  bool IsReadOnlyResource(ResourceId id) { return m_ModResources.find(id) == m_ModResources.end(); }
   void CloseInitialStateList();
   ID3D12Resource *GetUploadBuffer(uint64_t chunkOffset, uint64_t byteSize);
   void ApplyInitialContents();

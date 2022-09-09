@@ -119,6 +119,9 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource2(
 
       GetResourceManager()->AddLiveResource(pResource, ret);
 
+      if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+        m_ModResources.insert(GetResID(ret));
+
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
       // D3D12_RESOURCE_DESC is the same as the start of D3D12_RESOURCE_DESC1
       D3D12_RESOURCE_DESC desc0;
@@ -354,6 +357,9 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource1(
       ret = new WrappedID3D12Resource(ret, this);
 
       GetResourceManager()->AddLiveResource(pResource, ret);
+
+      if(Descriptor.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+        m_ModResources.insert(GetResID(ret));
 
       // D3D12_RESOURCE_DESC is the same as the start of D3D12_RESOURCE_DESC1
       D3D12_RESOURCE_DESC desc0;

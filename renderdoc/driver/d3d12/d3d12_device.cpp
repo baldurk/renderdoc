@@ -4186,6 +4186,30 @@ RDResult WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool storeStru
       SAFE_RELEASE(it->second);
   }
 
+  {
+    D3D12CommandData &cmd = *m_Queue->GetCommandData();
+
+    for(auto it = cmd.m_ResourceUses.begin(); it != cmd.m_ResourceUses.end(); ++it)
+    {
+      if(m_ModResources.find(it->first) != m_ModResources.end())
+        continue;
+
+      for(const EventUsage &use : it->second)
+      {
+        if(use.usage == ResourceUsage::CopyDst || use.usage == ResourceUsage::Copy ||
+           use.usage == ResourceUsage::ResolveDst || use.usage == ResourceUsage::Resolve ||
+           use.usage == ResourceUsage::GenMips || use.usage == ResourceUsage::Clear ||
+           use.usage == ResourceUsage::Discard || use.usage == ResourceUsage::CPUWrite ||
+           use.usage == ResourceUsage::ColorTarget ||
+           use.usage == ResourceUsage::DepthStencilTarget || use.usage == ResourceUsage::StreamOut)
+        {
+          m_ModResources.insert(it->first);
+          break;
+        }
+      }
+    }
+  }
+
 #if ENABLED(RDOC_DEVEL)
   for(auto it = chunkInfos.begin(); it != chunkInfos.end(); ++it)
   {
