@@ -1112,16 +1112,73 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
     return;
   }
 
+  static const uint32_t PatternBatchWidth = 256;
+  static const uint32_t PatternBatchHeight = 256;
+
   // see if we already have a buffer with texels in the desired format, if not then create it
   ID3D12Resource *buf = m_DiscardPatterns[desc.Format];
 
   if(buf == NULL)
   {
-    bytebuf pattern = GetDiscardPattern(type, MakeResourceFormat(desc.Format), 256);
+    bytebuf pattern = GetDiscardPattern(type, MakeResourceFormat(desc.Format));
 
-    buf = MakeCBuffer(pattern.size());
+    buf = MakeCBuffer(pattern.size() * (PatternBatchWidth / DiscardPatternWidth) *
+                      (PatternBatchHeight / DiscardPatternHeight));
 
-    FillBuffer(buf, 0, pattern.data(), pattern.size());
+    D3D12_RANGE range = {0, 0};
+    byte *ptr = NULL;
+    HRESULT hr = buf->Map(0, &range, (void **)&ptr);
+    m_pDevice->CheckHRESULT(hr);
+
+    if(ptr)
+    {
+      DXGI_FORMAT fmt = desc.Format;
+      int passes = 1;
+
+      if(IsDepthAndStencilFormat(fmt))
+      {
+        fmt = DXGI_FORMAT_R32_FLOAT;
+        passes = 2;
+      }
+
+      byte *dst = ptr;
+      size_t srcOffset = 0;
+
+      // row pitch is the same for depth and stencil
+      const uint32_t srcRowPitch = GetByteSize(DiscardPatternWidth, 1, 1, fmt, 0);
+
+      for(int pass = 0; pass < passes; pass++)
+      {
+        const uint32_t numHorizBatches = PatternBatchWidth / DiscardPatternWidth;
+        const uint32_t srcRowByteLength = GetByteSize(DiscardPatternWidth, 1, 1, fmt, 0);
+        const uint32_t dstRowByteLength = GetByteSize(PatternBatchWidth, 1, 1, fmt, 0);
+        uint32_t numDstRows = PatternBatchHeight;
+        uint32_t numSrcRows = DiscardPatternHeight;
+        if(IsBlockFormat(fmt))
+        {
+          numDstRows /= 4;
+          numSrcRows /= 4;
+        }
+
+        for(uint32_t row = 0; row < numDstRows; row++)
+        {
+          byte *src = pattern.data() + srcOffset + (row % numSrcRows) * srcRowPitch;
+          for(uint32_t x = 0; x < numHorizBatches; x++)
+            memcpy(dst + srcRowByteLength * x, src, srcRowByteLength);
+
+          dst += dstRowByteLength;
+        }
+
+        if(passes == 2)
+        {
+          fmt = DXGI_FORMAT_R8_UINT;
+          srcOffset =
+              GetByteSize(DiscardPatternWidth, DiscardPatternHeight, 1, DXGI_FORMAT_R32_FLOAT, 0);
+        }
+      }
+
+      buf->Unmap(0, NULL);
+    }
 
     m_DiscardPatterns[desc.Format] = buf;
   }
@@ -1167,8 +1224,7 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
       else
       {
         fmt = DXGI_FORMAT_R8_TYPELESS;
-        bufOffset +=
-            GetByteSize(DiscardPatternWidth, DiscardPatternHeight, 1, DXGI_FORMAT_R32_FLOAT, 0);
+        bufOffset += GetByteSize(PatternBatchWidth, PatternBatchHeight, 1, DXGI_FORMAT_R32_FLOAT, 0);
       }
     }
 
@@ -1183,20 +1239,19 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
         int32_t rectWidth = RDCMIN(LONG(RDCMAX(1U, (UINT)desc.Width >> mip)), r.right);
         int32_t rectHeight = RDCMIN(LONG(RDCMAX(1U, (UINT)desc.Height >> mip)), r.bottom);
 
-        for(int32_t y = r.top; y < rectHeight; y += DiscardPatternHeight)
+        for(int32_t y = r.top; y < rectHeight; y += PatternBatchHeight)
         {
-          for(int32_t x = r.left; x < rectWidth; x += DiscardPatternWidth)
+          for(int32_t x = r.left; x < rectWidth; x += PatternBatchWidth)
           {
             src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
             src.pResource = buf;
             src.PlacedFootprint.Offset = bufOffset;
             src.PlacedFootprint.Footprint.Format = fmt;
             src.PlacedFootprint.Footprint.RowPitch =
-                AlignUp(GetRowPitch(DiscardPatternWidth, fmt, 0), 256U);
-            src.PlacedFootprint.Footprint.Width =
-                RDCMIN(DiscardPatternWidth, uint32_t(rectWidth - x));
+                AlignUp(GetRowPitch(PatternBatchWidth, fmt, 0), 256U);
+            src.PlacedFootprint.Footprint.Width = RDCMIN(PatternBatchWidth, uint32_t(rectWidth - x));
             src.PlacedFootprint.Footprint.Height =
-                RDCMIN(DiscardPatternHeight, uint32_t(rectHeight - y));
+                RDCMIN(PatternBatchHeight, uint32_t(rectHeight - y));
             src.PlacedFootprint.Footprint.Depth = 1;
 
             cmd->CopyTextureRegion(&dst, x, y, z, &src, NULL);
@@ -1208,6 +1263,16 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
     std::swap(b.Transition.StateBefore, b.Transition.StateAfter);
 
     cmd->ResourceBarrier(1, &b);
+
+    // workaround possible nvidia driver bug? without this depth-stencil discards of only one region
+    // (smaller than 256x256) will get corrupted if both depth and stencil are copied to.
+    if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+    {
+      b.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+      b.UAV.pResource = NULL;
+
+      cmd->ResourceBarrier(1, &b);
+    }
   }
 }
 
