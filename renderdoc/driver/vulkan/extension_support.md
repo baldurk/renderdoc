@@ -35,6 +35,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_debug_marker`
 * `VK_EXT_debug_report`
 * `VK_EXT_debug_utils`
+* `VK_EXT_depth_clip_control`
 * `VK_EXT_depth_clip_enable`
 * `VK_EXT_depth_range_unrestricted`
 * `VK_EXT_descriptor_indexing`
@@ -64,10 +65,13 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_memory_budget`
 * `VK_EXT_memory_priority`
 * `VK_EXT_metal_surface`
+* `VK_EXT_multisampled_render_to_single_sampled`
 * `VK_EXT_pci_bus_info`
 * `VK_EXT_pipeline_creation_cache_control`
 * `VK_EXT_pipeline_creation_feedback`
 * `VK_EXT_post_depth_coverage`
+* `VK_EXT_primitive_topology_list_restart`
+* `VK_EXT_primitives_generated_query`
 * `VK_EXT_private_data`
 * `VK_EXT_queue_family_foreign`
 * `VK_EXT_rgba10x6_formats`
@@ -233,7 +237,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_acquire_drm_display`
 * `VK_EXT_blend_operation_advanced`
 * `VK_EXT_border_color_swizzle`
-* `VK_EXT_depth_clip_control`
 * `VK_EXT_device_memory_report`
 * `VK_EXT_external_memory_host`
 * `VK_EXT_image_2d_view_of_3d`
@@ -243,14 +246,11 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_image_view_min_lod`
 * `VK_EXT_metal_objects`
 * `VK_EXT_multi_draw`
-* `VK_EXT_multisampled_render_to_single_sampled`
 * `VK_EXT_non_seamless_cube_map`
 * `VK_EXT_pageable_device_local_memory`
 * `VK_EXT_physical_device_drm`
 * `VK_EXT_pipeline_properties`
 * `VK_EXT_pipeline_robustness`
-* `VK_EXT_primitive_topology_list_restart`
-* `VK_EXT_primitives_generated_query`
 * `VK_EXT_provoking_vertex`
 * `VK_EXT_shader_module_identifier`
 * `VK_EXT_subpass_merge_feedback`
