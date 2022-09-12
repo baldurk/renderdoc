@@ -1202,8 +1202,18 @@ void TextureViewer::UI_UpdateTextureDetails()
   if(current.arraysize > 1)
     status += QFormatStr("[%1]").arg(QString::number(current.arraysize));
 
-  if(current.msQual > 0 || current.msSamp > 1)
-    status += QFormatStr(" MS{%1x %2Q}").arg(current.msSamp).arg(current.msQual);
+  if(current.msSamp > 1)
+  {
+    // quality is only used by D3D, specify these here for simplicity
+    if(current.msQual == 0xffffffff)
+      status += QFormatStr(" MS %1x Std Pattern").arg(current.msSamp);
+    else if(current.msQual == 0xfffffffe)
+      status += QFormatStr(" MS %1x Cent Pattern").arg(current.msSamp);
+    else if(current.msQual > 0)
+      status += QFormatStr(" MS %1x %2 Quality").arg(current.msSamp).arg(current.msQual);
+    else
+      status += QFormatStr(" MS %1x").arg(current.msSamp);
+  }
 
   status += QFormatStr(" %1 mips").arg(current.mips);
 
