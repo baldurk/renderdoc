@@ -595,15 +595,47 @@ SparseBinding::SparseBinding(WrappedVulkan *vk, VkBuffer unwrappedBuffer,
   }
   else
   {
-    opaqueBinds.resize(mapping.pages.size());
+    // always bind a page at once
+    VkSparseMemoryBind bind = {};
+    bind.flags = 0;
+    bind.size = mrq.alignment;
+
+    opaqueBinds.reserve(mapping.pages.size());
     for(size_t i = 0; i < mapping.pages.size(); i++)
     {
-      opaqueBinds[i].flags = 0;
-      opaqueBinds[i].resourceOffset = i * mrq.alignment;
-      opaqueBinds[i].memory =
+      bind.memory =
           Unwrap(vk->GetResourceManager()->GetLiveHandle<VkDeviceMemory>(mapping.pages[i].memory));
-      opaqueBinds[i].memoryOffset = mapping.pages[i].offset;
-      opaqueBinds[i].size = mrq.alignment;
+      bind.memoryOffset = mapping.pages[i].offset;
+
+      VkSparseMemoryBind &previousBind = opaqueBinds.back();
+
+      // simple coalescing for consecutive binds.
+      // We know the previous bind was for the previous resource page so we don't have to compare
+      // resourceOffset, just memory properties
+      if(
+          // if there's a previous bind already - guaranteed after i==0
+          i > 0
+          // and the memory is the same (either both NULL or both the same memory object)
+          && bind.memory == previousBind.memory
+          // and either
+          && (
+                 // the memory is NULL (then offsets don't matter)
+                 bind.memory == VK_NULL_HANDLE
+                 // or the offset immediately follows the last
+                 || bind.memoryOffset == previousBind.memoryOffset + mrq.alignment
+                 //
+                 )
+          //
+          )
+      {
+        // apply the previous bind for one more page
+        previousBind.size += mrq.alignment;
+        continue;
+      }
+
+      // otherwise push a new binding for this memory
+      bind.resourceOffset = i * mrq.alignment;
+      opaqueBinds.push_back(bind);
     }
   }
 
