@@ -575,7 +575,7 @@ void ThreadState::SkipIgnoredInstructions()
   {
     Iter it = debugger.GetIterForInstruction(nextInstruction);
     rdcspv::Op op = it.opcode();
-    if(op == Op::Line || op == Op::NoLine)
+    if(op == Op::Line || op == Op::NoLine || op == Op::Undef)
     {
       nextInstruction++;
       continue;
