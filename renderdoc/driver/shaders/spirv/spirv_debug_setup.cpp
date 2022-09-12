@@ -1981,9 +1981,14 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
 
   bool isArray = false;
 
+  // if this is an arrayed opaque binding, the first index is a 'virtual' array index into the
+  // binding.
+  // We only take this if this is the FIRST dereference from the global pointer.
+  // If the SPIR-V does something like structType *_1234 =
   if((leaf->type == VarType::ReadWriteResource || leaf->type == VarType::ReadOnlyResource ||
       leaf->type == VarType::Sampler) &&
-     checkPointerFlags(*leaf, PointerFlags::GlobalArrayBinding))
+     checkPointerFlags(*leaf, PointerFlags::GlobalArrayBinding) &&
+     getBufferTypeId(base) == rdcspv::Id())
   {
     isArray = true;
   }
@@ -2014,6 +2019,10 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
     {
       setBindArrayIndex(ret, indices[i++]);
       type = &dataTypes[type->InnerType()];
+    }
+    else
+    {
+      setBindArrayIndex(ret, getBindArrayIndex(base));
     }
 
     Decorations curDecorations = decorations[type->id];
