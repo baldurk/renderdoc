@@ -1924,6 +1924,12 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
               state.callstack.insert(insertPoint, scope->name);
             }
 
+            // if this instruction has no scope, don't give it a callstack
+            if(GetScope(endOffs) == NULL)
+            {
+              state.callstack.clear();
+            }
+
             // move to the next inline up on our inline stack. If we reach an actual function
             // call, this parent will be NULL as there was no more inlining - the final scope will
             // refer to the real function which is already on our stack
