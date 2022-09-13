@@ -2170,8 +2170,8 @@ bool ShaderViewer::step(bool forward, StepMode mode)
         // keep going until we hit the closest instruction of any block that maps to this function
         while(!IsFirstState() && !targetInsts.contains(GetCurrentState().nextInstruction))
         {
-          if((oldStack == GetPreviousState().callstack ||
-              oldStack.size() > GetPreviousState().callstack.size()) &&
+          const rdcarray<rdcstr> &prevStack = GetPreviousState().callstack;
+          if((oldStack == prevStack || (!prevStack.empty() && oldStack.size() > prevStack.size())) &&
              !oldLine.SourceEqual(GetPreviousInstInfo().lineInfo))
           {
             // if we hit this case, it means we jumped to an instruction in the same call which maps
