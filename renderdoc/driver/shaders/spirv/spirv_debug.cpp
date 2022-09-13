@@ -363,7 +363,7 @@ void ThreadState::SetDst(Id id, const ShaderVariable &val)
   if(m_State)
   {
     ShaderVariableChange change;
-    change.before = prev;
+    change.before = debugger.GetPointerValue(prev);
     change.after = debugger.GetPointerValue(ids[id]);
     m_State->changes.push_back(change);
   }
