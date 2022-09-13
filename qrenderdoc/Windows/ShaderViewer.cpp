@@ -670,7 +670,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       }
 
       if(disasmLine > 0)
-        m_AsmLine2Inst[disasmLine] = (int)inst;
+        m_AsmLine2Inst[disasmLine] = (int)instInfo.instruction;
 
       if(line.fileIndex < 0)
         continue;
@@ -686,7 +686,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
       prevLine = line;
 
-      m_Location2Inst[line].push_back(inst);
+      m_Location2Inst[line].push_back(instInfo.instruction);
     }
 
     // if we don't have line mapping info, assume we also don't have useful high-level variable
