@@ -5649,6 +5649,10 @@ void ShaderViewer::updateVariableTooltip()
     {
       tooltip = QFormatStr("%1: ").arg(var.name) + RichResourceTextFormat(m_Ctx, stringRep(var, 0));
     }
+    else if(var.type == VarType::ConstantBlock)
+    {
+      tooltip = QFormatStr("<pre>%1: { ... }</pre>").arg(var.name);
+    }
     else
     {
       tooltip = QFormatStr("<pre>%1: %2\n").arg(var.name).arg(RowString(var, 0));
@@ -5670,6 +5674,12 @@ void ShaderViewer::updateVariableTooltip()
                            .arg(var.name)
                            .arg(RichResourceTextFormat(m_Ctx, stringRep(var.members[0], 0)))
                            .arg(RichResourceTextFormat(m_Ctx, stringRep(var.members[1], 0))));
+    return;
+  }
+  else if(!var.members.empty())
+  {
+    // other structs
+    QToolTip::showText(m_TooltipPos, lit("{ ... }"));
     return;
   }
 
