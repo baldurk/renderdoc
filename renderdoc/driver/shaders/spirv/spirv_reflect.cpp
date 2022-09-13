@@ -875,8 +875,10 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     if(it != funcToDebugFunc.end())
     {
       reflection.debugInfo.entryLocation = debugFuncToLocation[it->second];
-      reflection.debugInfo.compileFlags.flags = {{"@cmdline", debugFuncToCmdLine[it->second]}};
-      reflection.debugInfo.editBaseFile = (int32_t)debugFuncToBaseFile[it->second];
+      if(debugFuncToCmdLine.find(it->second) != debugFuncToCmdLine.end())
+        reflection.debugInfo.compileFlags.flags = {{"@cmdline", debugFuncToCmdLine[it->second]}};
+      if(debugFuncToBaseFile.find(it->second) != debugFuncToBaseFile.end())
+        reflection.debugInfo.editBaseFile = (int32_t)debugFuncToBaseFile[it->second];
     }
   }
 
