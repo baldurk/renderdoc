@@ -866,6 +866,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
 
   std::set<rdcpair<ResourceId, VkResourceRecord *>> capDescriptors;
   std::set<rdcpair<ResourceId, VkResourceRecord *>> descriptorSets;
+  std::set<VkResourceRecord *> cmdsWithReferences;
 
   // pull in any copy sources, conservatively
   if(capframe)
@@ -905,11 +906,18 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
           it != record->bakedCommands->cmdInfo->sparse.end(); ++it)
         GetResourceManager()->MarkSparseMapReferenced(*it);
 
-      // pull in frame refs from this baked command buffer
-      record->bakedCommands->AddResourceReferences(GetResourceManager());
+      // can't pull in frame refs here, we need to do these last, since they are disjoint from
+      // descriptor references and we have to apply those first to be conservative.
+      // For example say a buffer is referenced in a descriptor for read, then completely
+      // overwritten in a later CmdFillBuffer. The fill will be listed in the normal references
+      // here, the descriptor reference is lazy tracked and only added below when we handle those.
+      // Since we don't know the ordering, we do it in the most conservative order - descriptor
+      // references can never be CompleteWrite, they're either read-only or read-before-write for
+      // storage descriptors.
+      // record->bakedCommands->AddResourceReferences(GetResourceManager());
+      // GetResourceManager()->MergeReferencedMemory(record->bakedCommands->cmdInfo->memFrameRefs);
+      cmdsWithReferences.insert(record->bakedCommands);
       record->bakedCommands->AddReferencedIDs(refdIDs);
-
-      GetResourceManager()->MergeReferencedMemory(record->bakedCommands->cmdInfo->memFrameRefs);
 
       // ref the parent command buffer's alloc record, this will pull in the cmd buffer pool
       GetResourceManager()->MarkResourceFrameReferenced(
@@ -920,10 +928,15 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
       for(size_t sub = 0; sub < subcmds.size(); sub++)
       {
         VkResourceRecord *bakedSubcmds = subcmds[sub]->bakedCommands;
-        bakedSubcmds->AddResourceReferences(GetResourceManager());
+
+        // cannot add references here until after we've done descriptor sets later, see comment
+        // above
+        // bakedSubcmds->AddResourceReferences(GetResourceManager());
+        // GetResourceManager()->MergeReferencedMemory(bakedSubcmds->cmdInfo->memFrameRefs);
+        cmdsWithReferences.insert(bakedSubcmds);
+
         bakedSubcmds->AddReferencedIDs(refdIDs);
         UpdateImageStates(bakedSubcmds->cmdInfo->imageStates);
-        GetResourceManager()->MergeReferencedMemory(bakedSubcmds->cmdInfo->memFrameRefs);
         GetResourceManager()->MarkResourceFrameReferenced(
             subcmds[sub]->cmdInfo->allocRecord->GetResourceID(), eFrameRef_Read);
 
@@ -1030,6 +1043,14 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
       {
         GetResourceManager()->FixupStorageBufferMemory(refs.storableRefs);
       }
+    }
+
+    // now we can insert frame references from command buffers, to have a conservative ordering vs.
+    // descriptor references since we don't know which happened first
+    for(auto it = cmdsWithReferences.begin(); it != cmdsWithReferences.end(); ++it)
+    {
+      (*it)->AddResourceReferences(GetResourceManager());
+      GetResourceManager()->MergeReferencedMemory((*it)->cmdInfo->memFrameRefs);
     }
 
     GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
