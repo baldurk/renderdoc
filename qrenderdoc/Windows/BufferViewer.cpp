@@ -5302,7 +5302,7 @@ void BufferViewer::exportData(const BufferExport &params)
         if(!m_MeshView)
         {
           // this is the simplest possible case, we just dump the contents of the first buffer.
-          if(!m_IsBuffer || config.buffers[0]->size() >= m_ObjectByteSize)
+          if(!m_IsBuffer || config.buffers[0]->size() >= m_ByteSize)
           {
             f->write((const char *)config.buffers[0]->data(), int(config.buffers[0]->size()));
           }
@@ -5312,12 +5312,14 @@ void BufferViewer::exportData(const BufferExport &params)
             // in memory.
             ResourceId buff = m_BufferID;
 
-            static const uint64_t chunkSize = 4 * 1024 * 1024;
-            for(uint64_t byteOffset = m_ByteOffset; byteOffset < m_ObjectByteSize;
-                byteOffset += chunkSize)
+            static const uint64_t maxChunkSize = 4 * 1024 * 1024;
+            for(uint64_t byteOffset = m_ByteOffset; byteOffset < m_ByteSize;
+                byteOffset += maxChunkSize)
             {
+              uint64_t chunkSize = qMin(m_ByteSize - byteOffset, maxChunkSize);
+
               // it's fine to block invoke, because this is on the export thread
-              m_Ctx.Replay().BlockInvoke([buff, f, byteOffset](IReplayController *r) {
+              m_Ctx.Replay().BlockInvoke([buff, f, byteOffset, chunkSize](IReplayController *r) {
                 bytebuf chunk = r->GetBufferData(buff, byteOffset, chunkSize);
                 f->write((const char *)chunk.data(), (qint64)chunk.size());
               });
@@ -5393,7 +5395,7 @@ void BufferViewer::exportData(const BufferExport &params)
 
         s << "\n";
 
-        if(m_MeshView || !m_IsBuffer || config.buffers[0]->size() >= m_ObjectByteSize)
+        if(m_MeshView || !m_IsBuffer || config.buffers[0]->size() >= m_ByteSize)
         {
           // if there's no pagination to worry about, dump using the model's data()
           for(int row = 0; row < model->rowCount(); row++)
@@ -5413,10 +5415,11 @@ void BufferViewer::exportData(const BufferExport &params)
         {
           // write 64k rows at a time
           ResourceId buff = m_BufferID;
-          const uint64_t chunkSize = 64 * 1024 * config.buffers[0]->stride;
-          for(uint64_t byteOffset = m_ByteOffset; byteOffset < m_ObjectByteSize;
-              byteOffset += chunkSize)
+          const uint64_t maxChunkSize = 64 * 1024 * config.buffers[0]->stride;
+          for(uint64_t byteOffset = m_ByteOffset; byteOffset < m_ByteSize; byteOffset += maxChunkSize)
           {
+            uint64_t chunkSize = qMin(m_ByteSize - byteOffset, maxChunkSize);
+
             // it's fine to block invoke, because this is on the export thread
             m_Ctx.Replay().BlockInvoke(
                 [buff, &s, &config, byteOffset, chunkSize](IReplayController *r) {
