@@ -182,7 +182,7 @@ struct ThreadState
   ShaderVariable CalcDeriv(DerivDir dir, DerivType type, const rdcarray<ThreadState> &workgroup,
                            Id val);
 
-  void FillCallstack(ShaderDebugState &state);
+  void FillCallstack(rdcarray<Id> &funcs);
 
   bool Finished() const;
 
@@ -392,6 +392,7 @@ private:
 
   void MakeSignatureNames(const rdcarray<SPIRVInterfaceAccess> &sigList, rdcarray<rdcstr> &sigNames);
 
+  void FillCallstack(ThreadState &thread, ShaderDebugState &state);
   void FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo);
   void FillDefaultSourceVars(rdcarray<InstructionSourceInfo> &instInfo);
 
@@ -470,6 +471,8 @@ private:
 
     SparseIdMap<int32_t> sources;
     SparseIdMap<rdcstr> filenames;
+
+    SparseIdMap<Id> funcToDebugFunc;
 
     std::map<size_t, ScopeData *> lineScope;
     std::map<size_t, InlineData *> lineInline;

@@ -100,10 +100,10 @@ bool ThreadState::Finished() const
   return killed || callstack.empty();
 }
 
-void ThreadState::FillCallstack(ShaderDebugState &state)
+void ThreadState::FillCallstack(rdcarray<Id> &funcs)
 {
   for(const StackFrame *frame : callstack)
-    state.callstack.push_back(debugger.GetHumanName(frame->function));
+    funcs.push_back(frame->function);
 }
 
 void ThreadState::EnterFunction(const rdcarray<Id> &arguments)

@@ -1422,6 +1422,27 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
   return ret;
 }
 
+void Debugger::FillCallstack(ThreadState &thread, ShaderDebugState &state)
+{
+  rdcarray<Id> funcs;
+  thread.FillCallstack(funcs);
+
+  for(Id f : funcs)
+  {
+    if(m_DebugInfo.valid)
+    {
+      auto it = m_DebugInfo.funcToDebugFunc.find(f);
+      if(it != m_DebugInfo.funcToDebugFunc.end())
+      {
+        state.callstack.push_back(m_DebugInfo.scopes[it->second].name);
+        continue;
+      }
+    }
+
+    state.callstack.push_back(GetHumanName(f));
+  }
+}
+
 void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
 {
   for(InstructionSourceInfo &i : instInfo)
@@ -1804,7 +1825,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
       if(lane == activeLaneIndex)
       {
         thread.EnterEntryPoint(&initial);
-        thread.FillCallstack(initial);
+        FillCallstack(thread, initial);
         initial.nextInstruction = thread.nextInstruction;
       }
       else
@@ -1902,7 +1923,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
           else if(thread.callstack.size() < prevStackSize && funcRet != ~0U)
             instOffs = instructionOffsets[funcRet];
 
-          thread.FillCallstack(state);
+          FillCallstack(thread, state);
 
           if(m_DebugInfo.valid)
           {
@@ -3131,6 +3152,11 @@ void Debugger::RegisterOp(Iter it)
               0,
               m_DebugInfo.filenames[dbg.arg<Id>(2)],
           };
+          break;
+        }
+        case ShaderDbg::FunctionDefinition:
+        {
+          m_DebugInfo.funcToDebugFunc[dbg.arg<Id>(1)] = dbg.arg<Id>(0);
           break;
         }
         case ShaderDbg::Function:
