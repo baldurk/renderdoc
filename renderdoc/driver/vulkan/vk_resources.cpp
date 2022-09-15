@@ -4178,7 +4178,8 @@ void VkResourceRecord::MarkBufferViewFrameReferenced(VkResourceRecord *bufView, 
                               refType);
 }
 
-void ResourceInfo::Update(uint32_t numBindings, const VkSparseImageMemoryBind *pBindings)
+void ResourceInfo::Update(uint32_t numBindings, const VkSparseImageMemoryBind *pBindings,
+                          std::set<ResourceId> &memories)
 {
   // update texel mappings
   for(uint32_t i = 0; i < numBindings; i++)
@@ -4194,10 +4195,13 @@ void ResourceInfo::Update(uint32_t numBindings, const VkSparseImageMemoryBind *p
         sub, {(uint32_t)bind.offset.x, (uint32_t)bind.offset.y, (uint32_t)bind.offset.z},
         {bind.extent.width, bind.extent.height, bind.extent.depth}, GetResID(bind.memory),
         bind.memoryOffset, false);
+
+    memories.insert(GetResID(bind.memory));
   }
 }
 
-void ResourceInfo::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindings)
+void ResourceInfo::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindings,
+                          std::set<ResourceId> &memories)
 {
   // update mip tail mappings
   const bool isBuffer = (imageInfo.extent.width == 0);
@@ -4205,6 +4209,8 @@ void ResourceInfo::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindi
   for(uint32_t i = 0; i < numBindings; i++)
   {
     const VkSparseMemoryBind &bind = pBindings[i];
+
+    memories.insert(GetResID(bind.memory));
 
     // don't need to figure out which aspect we're in if we only have one table
     if(isBuffer || altSparseAspects.empty())

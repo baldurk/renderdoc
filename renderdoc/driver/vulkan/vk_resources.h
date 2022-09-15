@@ -1004,8 +1004,10 @@ struct ResourceInfo
   ImageInfo imageInfo;
 
   bool IsSparse() const { return sparseTable.getPageByteSize() > 0; }
-  void Update(uint32_t numBindings, const VkSparseMemoryBind *pBindings);
-  void Update(uint32_t numBindings, const VkSparseImageMemoryBind *pBindings);
+  void Update(uint32_t numBindings, const VkSparseMemoryBind *pBindings,
+              std::set<ResourceId> &memories);
+  void Update(uint32_t numBindings, const VkSparseImageMemoryBind *pBindings,
+              std::set<ResourceId> &memories);
 };
 
 struct MemRefs

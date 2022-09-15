@@ -1875,26 +1875,30 @@ VkResult WrappedVulkan::vkQueueBindSparse(VkQueue queue, uint32_t bindInfoCount,
   // update our internal page tables
   if(IsCaptureMode(m_State))
   {
+    std::set<ResourceId> memories;
     for(uint32_t i = 0; i < bindInfoCount; i++)
     {
       for(uint32_t buf = 0; buf < pBindInfo[i].bufferBindCount; buf++)
       {
         const VkSparseBufferMemoryBindInfo &bind = pBindInfo[i].pBufferBinds[buf];
-        GetRecord(bind.buffer)->resInfo->Update(bind.bindCount, bind.pBinds);
+        GetRecord(bind.buffer)->resInfo->Update(bind.bindCount, bind.pBinds, memories);
       }
 
       for(uint32_t op = 0; op < pBindInfo[i].imageOpaqueBindCount; op++)
       {
         const VkSparseImageOpaqueMemoryBindInfo &bind = pBindInfo[i].pImageOpaqueBinds[op];
-        GetRecord(bind.image)->resInfo->Update(bind.bindCount, bind.pBinds);
+        GetRecord(bind.image)->resInfo->Update(bind.bindCount, bind.pBinds, memories);
       }
 
       for(uint32_t op = 0; op < pBindInfo[i].imageBindCount; op++)
       {
         const VkSparseImageMemoryBindInfo &bind = pBindInfo[i].pImageBinds[op];
-        GetRecord(bind.image)->resInfo->Update(bind.bindCount, bind.pBinds);
+        GetRecord(bind.image)->resInfo->Update(bind.bindCount, bind.pBinds, memories);
       }
     }
+
+    for(ResourceId id : memories)
+      GetResourceManager()->MarkDirtyResource(id);
   }
 
   return ret;
