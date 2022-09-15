@@ -5413,17 +5413,13 @@ void BufferViewer::exportData(const BufferExport &params)
         {
           // write 64k rows at a time
           ResourceId buff = m_BufferID;
-          const uint64_t byteEnd =
-              std::min(m_ObjectByteSize, m_ByteOffset + config.buffers[0]->size());
-          for(uint64_t byteOffset = m_ByteOffset; byteOffset < byteEnd;)
+          const uint64_t chunkSize = 64 * 1024 * config.buffers[0]->stride;
+          for(uint64_t byteOffset = m_ByteOffset; byteOffset < m_ObjectByteSize;
+              byteOffset += chunkSize)
           {
-            const uint64_t chunkSize =
-                std::min<uint64_t>(byteEnd - byteOffset, 64 * 1024 * config.buffers[0]->stride);
-            const uint64_t localOffset = byteOffset - m_ByteOffset;
-
             // it's fine to block invoke, because this is on the export thread
             m_Ctx.Replay().BlockInvoke(
-                [buff, &s, &config, byteOffset, chunkSize, localOffset](IReplayController *r) {
+                [buff, &s, &config, byteOffset, chunkSize](IReplayController *r) {
                   // cache column data for the inner loop
                   QVector<CachedElData> cache;
 
@@ -5434,7 +5430,7 @@ void BufferViewer::exportData(const BufferExport &params)
 
                   size_t numRows =
                       (bufferData.storage.size() + bufferData.stride - 1) / bufferData.stride;
-                  size_t rowOffset = localOffset / bufferData.stride;
+                  size_t rowOffset = byteOffset / bufferData.stride;
 
                   CacheDataForIteration(cache, config.columns, config.props, {&bufferData}, 0);
 
@@ -5489,7 +5485,6 @@ void BufferViewer::exportData(const BufferExport &params)
                     s << "\n";
                   }
                 });
-            byteOffset += chunkSize;
           }
         }
       }
