@@ -5312,19 +5312,15 @@ void BufferViewer::exportData(const BufferExport &params)
             // in memory.
             ResourceId buff = m_BufferID;
 
-            static const uint64_t maxChunkSize = 4 * 1024 * 1024;
-            const uint64_t byteEnd =
-                std::min(m_ObjectByteSize, m_ByteOffset + config.buffers[0]->size());
-
-            for(uint64_t byteOffset = m_ByteOffset; byteOffset < byteEnd;)
+            static const uint64_t chunkSize = 4 * 1024 * 1024;
+            for(uint64_t byteOffset = m_ByteOffset; byteOffset < m_ObjectByteSize;
+                byteOffset += chunkSize)
             {
-              const uint64_t chunkSize = std::min(byteEnd - byteOffset, maxChunkSize);
               // it's fine to block invoke, because this is on the export thread
-              m_Ctx.Replay().BlockInvoke([buff, f, byteOffset, chunkSize](IReplayController *r) {
+              m_Ctx.Replay().BlockInvoke([buff, f, byteOffset](IReplayController *r) {
                 bytebuf chunk = r->GetBufferData(buff, byteOffset, chunkSize);
                 f->write((const char *)chunk.data(), (qint64)chunk.size());
               });
-              byteOffset += chunkSize;
             }
           }
         }
