@@ -90,6 +90,10 @@ DOCUMENT(R"(Specifies the panel to add a menu item into.
 .. data:: TextureViewer
 
   The :class:`TextureViewer`.
+
+.. data:: BufferViewer
+
+  Any non-mesh previewing :class:`BufferViewer`.
 )");
 enum class PanelMenu
 {
@@ -98,6 +102,7 @@ enum class PanelMenu
   PipelineStateViewer,
   MeshPreview,
   TextureViewer,
+  BufferViewer,
 };
 
 DECLARE_REFLECTION_ENUM(PanelMenu);

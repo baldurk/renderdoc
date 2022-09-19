@@ -2309,7 +2309,8 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
 
     QObject::connect(extensionsMenu, &QMenu::aboutToShow, [this, extensionsMenu]() {
       extensionsMenu->clear();
-      m_Ctx.Extensions().MenuDisplaying(PanelMenu::MeshPreview, extensionsMenu, ui->extensions, {});
+      m_Ctx.Extensions().MenuDisplaying(m_MeshView ? PanelMenu::MeshPreview : PanelMenu::BufferViewer,
+                                        extensionsMenu, ui->extensions, {});
     });
   }
 
