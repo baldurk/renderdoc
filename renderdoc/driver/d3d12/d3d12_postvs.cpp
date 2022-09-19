@@ -831,6 +831,8 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
   if(lastShader)
   {
+    ret.gsout.status.clear();
+
     stride = 0;
     posidx = -1;
     numPosComponents = 0;
