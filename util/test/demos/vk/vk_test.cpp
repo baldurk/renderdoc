@@ -1049,22 +1049,36 @@ VkDescriptorSet VulkanGraphicsTest::allocateDescriptorSet(VkDescriptorSetLayout 
   // failed to allocate, create a new pool and push it
   {
     VkDescriptorPool pool = VK_NULL_HANDLE;
+
+    std::vector<VkDescriptorPoolSize> poolSizes = {
+        {VK_DESCRIPTOR_TYPE_SAMPLER, 1024},
+        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024},
+        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1024},
+        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1024},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1024},
+        {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1024},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024},
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1024},
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1024},
+        {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1024},
+    };
+
+    VkDescriptorPoolInlineUniformBlockCreateInfo inlineCreateInfo = {
+        VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO,
+    };
+    void *next = NULL;
+
+    if(hasExt(VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME) || devVersion >= VK_MAKE_VERSION(1, 3, 0))
+    {
+      poolSizes.push_back({VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK, 128 * 4096});
+
+      inlineCreateInfo.maxInlineUniformBlockBindings = 1024;
+      next = &inlineCreateInfo;
+    }
+
     CHECK_VKR(vkCreateDescriptorPool(
-        device, vkh::DescriptorPoolCreateInfo(128,
-                                              {
-                                                  {VK_DESCRIPTOR_TYPE_SAMPLER, 1024},
-                                                  {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024},
-                                                  {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1024},
-                                                  {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1024},
-                                                  {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1024},
-                                                  {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1024},
-                                                  {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024},
-                                                  {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024},
-                                                  {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1024},
-                                                  {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1024},
-                                                  {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1024},
-                                              }),
-        NULL, &pool));
+        device, vkh::DescriptorPoolCreateInfo(128, poolSizes).next(next), NULL, &pool));
     descPools.push_back(pool);
 
     // this must succeed or we can't continue.

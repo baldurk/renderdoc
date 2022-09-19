@@ -681,6 +681,12 @@ struct DescriptorPoolCreateInfo : public VkDescriptorPoolCreateInfo
     this->pPoolSizes = poolSizes.data();
   }
 
+  DescriptorPoolCreateInfo &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
+
   operator const VkDescriptorPoolCreateInfo *() const { return this; }
 };
 
