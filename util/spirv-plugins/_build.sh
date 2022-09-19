@@ -5,6 +5,13 @@ OUT=$2
 
 set -ex
 
+# Get new cmake for glslang
+
+wget https://cmake.org/files/v3.14/cmake-3.14.7-Linux-x86_64.tar.gz
+tar -zxvf cmake-3.14.7-Linux-x86_64.tar.gz
+
+export PATH=$(pwd)/cmake-3.14.7-Linux-x86_64/bin:$PATH
+
 # Freshly clone repositories
 rm -rf glslang SPIRV-Cross
 git clone https://github.com/KhronosGroup/glslang
