@@ -363,7 +363,8 @@ void main()
     VkFormatProperties props = {};
     vkGetPhysicalDeviceFormatProperties(phys, VK_FORMAT_R64G64B64_SFLOAT, &props);
 
-    const bool doubles = (props.bufferFeatures & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT) != 0;
+    const bool doubles =
+        features.shaderFloat64 && (props.bufferFeatures & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT) != 0;
 
     props = {};
     vkGetPhysicalDeviceFormatProperties(phys, VK_FORMAT_R64G64B64_SINT, &props);
@@ -373,7 +374,7 @@ void main()
     vkGetPhysicalDeviceFormatProperties(phys, VK_FORMAT_R64G64B64_UINT, &props);
     const bool ulongs = (props.bufferFeatures & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT) != 0;
 
-    const bool longs = slongs && ulongs;
+    const bool longs = features.shaderInt64 && slongs && ulongs;
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());
 
