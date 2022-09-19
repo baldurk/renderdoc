@@ -236,6 +236,11 @@ void main()
       d32 = false;
     }
 
+    bool s8 = true;
+    vkGetPhysicalDeviceFormatProperties(phys, VK_FORMAT_S8_UINT, &props);
+    if((props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) == 0)
+      s8 = false;
+
     bool KHR_separate_stencil =
         std::find(devExts.begin(), devExts.end(),
                   VK_KHR_SEPARATE_DEPTH_STENCIL_LAYOUTS_EXTENSION_NAME) != devExts.end();
@@ -538,6 +543,16 @@ void main()
         DiscardImage(cmd, tex);
       }
 
+      if(s8)
+      {
+        TEX_TEST("DiscardAll", MakeTex2D(VK_FORMAT_S8_UINT, 300, 300, 5));
+        DiscardImage(cmd, tex);
+        TEX_TEST("DiscardAll", MakeTex2D(VK_FORMAT_S8_UINT, 300, 300, 1, 4));
+        DiscardImage(cmd, tex);
+        TEX_TEST("DiscardAll", MakeTex2D(VK_FORMAT_S8_UINT, 300, 300, 5, 4));
+        DiscardImage(cmd, tex);
+      }
+
       TEX_TEST("DiscardAll", MakeTex2D(depthFormat, 300, 300, 5));
       DiscardImage(cmd, tex);
       TEX_TEST("DiscardAll", MakeTex2D(depthFormat, 300, 300, 1, 4));
@@ -549,12 +564,6 @@ void main()
       TEX_TEST("DiscardAll", MakeTex2D(depthStencilFormat, 300, 300, 1, 4));
       DiscardImage(cmd, tex);
       TEX_TEST("DiscardAll", MakeTex2D(depthStencilFormat, 300, 300, 5, 4));
-      DiscardImage(cmd, tex);
-      TEX_TEST("DiscardAll", MakeTex2D(VK_FORMAT_S8_UINT, 300, 300, 5));
-      DiscardImage(cmd, tex);
-      TEX_TEST("DiscardAll", MakeTex2D(VK_FORMAT_S8_UINT, 300, 300, 1, 4));
-      DiscardImage(cmd, tex);
-      TEX_TEST("DiscardAll", MakeTex2D(VK_FORMAT_S8_UINT, 300, 300, 5, 4));
       DiscardImage(cmd, tex);
       TEX_TEST("DiscardAll", MakeTex2DMS(depthStencilFormat, 300, 300, 4));
       DiscardImage(cmd, tex);
