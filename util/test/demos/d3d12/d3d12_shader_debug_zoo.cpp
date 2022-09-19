@@ -294,7 +294,7 @@ float4 main(v2f IN) : SV_Target0
   // test reading/writing byte address data
 
   // mis-aligned loads
-  if(IN.tri == 35)
+  if(IN.tri == 35) // undefined-test
   {
     // use this to ensure the compiler doesn't know we're using fixed locations
     uint z = intval - IN.tri - 7;
@@ -340,7 +340,7 @@ float4 main(v2f IN) : SV_Target0
   }
 
   // mis-aligned store
-  if(IN.tri == 40)
+  if(IN.tri == 40) // undefined-test
   {
     // use this to ensure the compiler doesn't know we're using fixed locations
     uint z = intval - IN.tri - 7;
@@ -352,7 +352,7 @@ float4 main(v2f IN) : SV_Target0
     return asfloat(byterwtest.Load(z2+0).x);
   }
   // mis-aligned loads
-  if(IN.tri == 41)
+  if(IN.tri == 41) // undefined-test
   {
     // use this to ensure the compiler doesn't know we're using fixed locations
     uint z = intval - IN.tri - 7;
@@ -753,6 +753,20 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
 
     const uint32_t numTests = atoi(pixel.c_str() + lastTest) + 1;
 
+    std::string undefined_tests = "Undefined tests:";
+
+    size_t undef = pixel.find("undefined-test");
+    while(undef != std::string::npos)
+    {
+      size_t testNumStart = pixel.rfind("IN.tri == ", undef);
+      testNumStart += sizeof("IN.tri == ") - 1;
+      size_t testNumEnd = pixel.find_first_not_of("0123456789", testNumStart);
+
+      undefined_tests += " ";
+      undefined_tests += pixel.substr(testNumStart, testNumEnd - testNumStart);
+
+      undef = pixel.find("undefined-test", undef + 1);
+    }
     ID3DBlobPtr vsblob = Compile(common + vertex, "main", "vs_5_0");
     ID3DBlobPtr psblob = Compile(common + pixel, "main", "ps_5_0");
 
@@ -1079,6 +1093,8 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
       D3D12_CPU_DESCRIPTOR_HANDLE rtv =
           MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(2);
       ClearRenderTargetView(cmd, rtv, {0.2f, 0.2f, 0.2f, 1.0f});
+
+      setMarker(cmd, undefined_tests);
 
       ID3D12PipelineStatePtr psos[2] = {pso_5_0, pso_5_1};
       float blitOffsets[2] = {0.0f, 4.0f};

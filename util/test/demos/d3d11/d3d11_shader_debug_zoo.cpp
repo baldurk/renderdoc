@@ -244,7 +244,7 @@ float4 main(v2f IN) : SV_Target0
   // test reading/writing byte address data
 
   // mis-aligned loads
-  if(IN.tri == 35)
+  if(IN.tri == 35) // undefined-test
   {
     // use this to ensure the compiler doesn't know we're using fixed locations
     uint z = intval - IN.tri - 7;
@@ -290,7 +290,7 @@ float4 main(v2f IN) : SV_Target0
   }
 
   // mis-aligned store
-  if(IN.tri == 40)
+  if(IN.tri == 40) // undefined-test
   {
     // use this to ensure the compiler doesn't know we're using fixed locations
     uint z = intval - IN.tri - 7;
@@ -302,7 +302,7 @@ float4 main(v2f IN) : SV_Target0
     return asfloat(byterwtest.Load(z2+0).x);
   }
   // mis-aligned loads
-  if(IN.tri == 41)
+  if(IN.tri == 41) // undefined-test
   {
     // use this to ensure the compiler doesn't know we're using fixed locations
     uint z = intval - IN.tri - 7;
@@ -901,6 +901,21 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
 
     const uint32_t numTests = atoi(pixel.c_str() + lastTest) + 1;
 
+    std::string undefined_tests = "Undefined tests:";
+
+    size_t undef = pixel.find("undefined-test");
+    while(undef != std::string::npos)
+    {
+      size_t testNumStart = pixel.rfind("IN.tri == ", undef);
+      testNumStart += sizeof("IN.tri == ") - 1;
+      size_t testNumEnd = pixel.find_first_not_of("0123456789", testNumStart);
+
+      undefined_tests += " ";
+      undefined_tests += pixel.substr(testNumStart, testNumEnd - testNumStart);
+
+      undef = pixel.find("undefined-test", undef + 1);
+    }
+
     if(opts2.TypedUAVLoadAdditionalFormats)
       common += "\n#define TYPED_UAV_EXT 1\n";
 
@@ -1053,6 +1068,8 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
       ID3D11UnorderedAccessView *uavs[] = {rawuav, structuav, typeuav};
       ctx->OMSetRenderTargetsAndUnorderedAccessViews(1, &fltRT.GetInterfacePtr(), NULL, 1, 3, uavs,
                                                      NULL);
+
+      setMarker(undefined_tests);
 
       setMarker("Main Test");
       ctx->DrawInstanced(3, numTests, 0, 0);

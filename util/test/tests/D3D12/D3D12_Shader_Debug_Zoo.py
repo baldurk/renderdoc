@@ -11,6 +11,8 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
             rdtest.log.success("Shader debugging not enabled, skipping test")
             return
 
+        undefined_tests = [int(test) for test in self.find_action("Undefined tests: ").customName.split(" ")[2:]]
+
         failed = False
 
         shaderModels = ["sm_5_0", "sm_5_1"]
@@ -43,8 +45,11 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                 try:
                     self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4 * test, 0, debugged.value.f32v[0:4])
                 except rdtest.TestFailureException as ex:
-                    failed = True
-                    rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))
+                    if test in undefined_tests:
+                        rdtest.log.comment("Undefined test {} did not match. {}".format(test, str(ex)))
+                    else:
+                        rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))
+                        failed = True
                     continue
                 finally:
                     self.controller.FreeTrace(trace)

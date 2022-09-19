@@ -10,6 +10,8 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
         # Jump to the action
         action = self.find_action("Main Test").next
 
+        undefined_tests = [int(test) for test in self.find_action("Undefined tests: ").customName.split(" ")[2:]]
+
         self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
@@ -32,8 +34,11 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
             try:
                 self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4 * test, 0, debugged.value.f32v[0:4])
             except rdtest.TestFailureException as ex:
-                failed = True
-                rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))
+                if test in undefined_tests:
+                    rdtest.log.comment("Undefined test {} did not match. {}".format(test, str(ex)))
+                else:
+                    rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))
+                    failed = True
                 continue
             finally:
                 self.controller.FreeTrace(trace)
