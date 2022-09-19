@@ -82,7 +82,8 @@ class D3D11_Counters(rdtest.TestCase):
                     rdtest.log.success("{} of draw {} is expected".format(desc.name, val))
 
         if ps is not None and samp is not None:
-            if ps != samp:
+            # allow 500 difference for overshading counting
+            if abs(ps - samp) > 500:
                 raise rdtest.TestFailureException("Samples passed {} and PS invocations {} don't match".format(samp, ps))
             else:
                 rdtest.log.success("Samples passed {} and PS invocations {} match".format(samp, ps))
