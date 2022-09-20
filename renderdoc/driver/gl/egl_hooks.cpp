@@ -97,6 +97,7 @@ public:
     EGLDisplay display = data.egl_dpy;
     EGLContext ctx = data.egl_ctx;
     EGLSurface draw = data.egl_wnd;
+    EGLConfig config = data.egl_cfg;
 
     if(ctx && draw)
     {
@@ -113,10 +114,18 @@ public:
 
       bool isYFlipped = IsYFlipped(display, draw);
 
+      int multiSamples;
+      EGL.GetConfigAttrib(display, config, EGL_SAMPLES, &multiSamples);
+      if(multiSamples != 1 && multiSamples != 2 && multiSamples != 4 && multiSamples != 8)
+      {
+        multiSamples = 1;
+      }
+
       params.width = width;
       params.height = height;
       params.isSRGB = isSRGB;
       params.isYFlipped = isYFlipped;
+      params.multiSamples = multiSamples;
     }
   }
 
