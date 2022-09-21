@@ -785,13 +785,18 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 // * it's a device extension and available on at least one physical device
 #undef CheckExt
 #define CheckExt(name, ver)                                                                \
-  if(!strcmp(modifiedCreateInfo.ppEnabledExtensionNames[i], "VK_" #name) ||                \
-     record->instDevInfo->vulkanVersion >= ver ||                                          \
+  if(record->instDevInfo->vulkanVersion >= ver ||                                          \
      availablePhysDeviceFunctions.find("VK_" #name) != availablePhysDeviceFunctions.end()) \
   {                                                                                        \
     record->instDevInfo->ext_##name = true;                                                \
   }
-
+  CheckInstanceExts();
+#undef CheckExt
+#define CheckExt(name, ver)                                               \
+  if(!strcmp(modifiedCreateInfo.ppEnabledExtensionNames[i], "VK_" #name)) \
+  {                                                                       \
+    record->instDevInfo->ext_##name = true;                               \
+  }
   for(uint32_t i = 0; i < modifiedCreateInfo.enabledExtensionCount; i++)
   {
     CheckInstanceExts();
@@ -3468,12 +3473,19 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     uint32_t effectiveApiVersion = RDCMIN(m_EnabledExtensions.vulkanVersion, physProps.apiVersion);
 
 #undef CheckExt
-#define CheckExt(name, ver)                                                                     \
-  if(!strcmp(createInfo.ppEnabledExtensionNames[i], "VK_" #name) || effectiveApiVersion >= ver) \
-  {                                                                                             \
-    m_EnabledExtensions.ext_##name = true;                                                      \
+#define CheckExt(name, ver)                \
+  if(effectiveApiVersion >= ver)           \
+  {                                        \
+    m_EnabledExtensions.ext_##name = true; \
   }
+    CheckDeviceExts();
 
+#undef CheckExt
+#define CheckExt(name, ver)                                       \
+  if(!strcmp(createInfo.ppEnabledExtensionNames[i], "VK_" #name)) \
+  {                                                               \
+    m_EnabledExtensions.ext_##name = true;                        \
+  }
     for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
     {
       CheckDeviceExts();
