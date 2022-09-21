@@ -1473,20 +1473,33 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
         // start and end points for each mapping and update the end points, but this is simple and
         // should be limited since it's only per-scope
         bool supercede = false;
-        for(size_t n = m + 1; n < scope->localMappings.size(); n++)
+        const ScopeData *supercedeScope = scope;
+        while(supercedeScope)
         {
-          const LocalMapping &laterMapping = scope->localMappings[n];
-
-          // if this mapping is past the current instruction, stop here.
-          if(laterMapping.instIndex > i.instruction)
-            break;
-
-          // if this mapping will supercede
-          if(laterMapping.isSourceSupersetOf(mapping))
+          for(size_t n = m + 1; n < supercedeScope->localMappings.size(); n++)
           {
-            supercede = true;
-            break;
+            const LocalMapping &laterMapping = supercedeScope->localMappings[n];
+
+            // if this mapping is past the current instruction, stop here.
+            if(laterMapping.instIndex > i.instruction)
+              break;
+
+            // if this mapping will supercede and starts later
+            if(laterMapping.isSourceSupersetOf(mapping) && laterMapping.instIndex > mapping.instIndex)
+            {
+              supercede = true;
+              break;
+            }
           }
+
+          if(supercede)
+            break;
+
+          // if we reach a function scope, don't go up any further.
+          if(supercedeScope->type == DebugScope::Function)
+            break;
+
+          supercedeScope = supercedeScope->parent;
         }
 
         for(size_t n = 0; n < processed.size(); n++)
@@ -3305,8 +3318,21 @@ void Debugger::RegisterOp(Iter it)
 
           m_DebugInfo.curScope = &m_DebugInfo.scopes[dbg.arg<Id>(0)];
 
-          m_DebugInfo.curScope->localMappings.append(std::move(m_DebugInfo.scopelessMappings));
-          m_DebugInfo.scopelessMappings.clear();
+          // pick up any pending mappings for this function if we just entered into a new function.
+          // See the comment below in Value for this workaround
+          for(size_t i = 0; i < m_DebugInfo.pendingMappings.size(); i++)
+          {
+            rdcpair<const ScopeData *, LocalMapping> &cur = m_DebugInfo.pendingMappings[i];
+            if(m_DebugInfo.curScope->HasAncestor(cur.first))
+            {
+              m_DebugInfo.curScope->localMappings.push_back(std::move(cur.second));
+
+              // the array isn't sorted so we can just swap the last one into this spot to avoid
+              // moving everything
+              std::swap(cur, m_DebugInfo.pendingMappings.back());
+              m_DebugInfo.pendingMappings.pop_back();
+            }
+          }
 
           if(dbg.params.size() >= 2)
             m_DebugInfo.curInline = &m_DebugInfo.inlined[dbg.arg<Id>(1)];
@@ -3354,12 +3380,16 @@ void Debugger::RegisterOp(Iter it)
           Id sourceVarId = dbg.arg<Id>(0);
           Id debugVarId = dbg.arg<Id>(1);
 
-          rdcarray<LocalMapping> &mappings = m_DebugInfo.curScope
-                                                 ? m_DebugInfo.curScope->localMappings
-                                                 : m_DebugInfo.scopelessMappings;
+          // check the function this variable is scoped inside of at declaration time.
+          const ScopeData *varDeclScope = m_DebugInfo.locals[sourceVarId].scope;
 
-          mappings.push_back({curInstIndex, sourceVarId, debugVarId, dbg.inst == ShaderDbg::Declare});
-          LocalMapping &mapping = mappings.back();
+          // bit of a hack - only process declares/values for variables inside a scope that is
+          // within that function. If we see a declare/value in another function we defer it hoping
+          // that we will encounter a scope later that's valid for it.
+          const bool insideValidScope = m_DebugInfo.curScope->HasAncestor(varDeclScope);
+
+          LocalMapping mapping = {curInstIndex, sourceVarId, debugVarId,
+                                  dbg.inst == ShaderDbg::Declare};
 
           if(constants.find(debugVarId) != constants.end() &&
              !m_DebugInfo.constants.contains(debugVarId))
@@ -3386,6 +3416,22 @@ void Debugger::RegisterOp(Iter it)
                 RDCERR("Only deref expressions supported");
               }
             }
+          }
+
+          if(insideValidScope)
+          {
+            m_DebugInfo.curScope->localMappings.push_back(mapping);
+          }
+          else
+          {
+            // remove any pending mapping that already exists for this variable, without any way to
+            // meaningfully know which one to use when we pick the latter.
+            m_DebugInfo.pendingMappings.removeIf(
+                [&mapping](const rdcpair<const ScopeData *, LocalMapping> &m) {
+                  return mapping.isSourceSupersetOf(m.second);
+                });
+
+            m_DebugInfo.pendingMappings.push_back({varDeclScope, mapping});
           }
 
           break;

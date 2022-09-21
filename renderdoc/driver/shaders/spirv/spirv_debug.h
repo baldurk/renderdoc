@@ -313,6 +313,20 @@ struct ScopeData
   rdcarray<Id> locals;
 
   rdcarray<LocalMapping> localMappings;
+
+  bool HasAncestor(const ScopeData *check) const
+  {
+    const ScopeData *cur = this;
+
+    while(cur)
+    {
+      if(cur == check)
+        return true;
+      cur = cur->parent;
+    }
+
+    return false;
+  }
 };
 
 struct InlineData
@@ -462,7 +476,7 @@ private:
     ScopeData *curScope = NULL;
     InlineData *curInline = NULL;
 
-    rdcarray<LocalMapping> scopelessMappings;
+    rdcarray<rdcpair<const ScopeData *, LocalMapping>> pendingMappings;
 
     rdcarray<Id> globals;
     rdcarray<Id> constants;
