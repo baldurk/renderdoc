@@ -30,6 +30,7 @@ Vertex Inputs
 .. autofunction:: renderdoc.VertexOffset
 .. autofunction:: renderdoc.PatchList_Count
 .. autofunction:: renderdoc.PatchList_Topology
+.. autofunction:: renderdoc.IsStrip
 
 Shader Resource Bindings
 ------------------------
