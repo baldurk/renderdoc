@@ -1069,7 +1069,11 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
         writes[bind].dstArrayElement = 0;
         // descriptor count starts at 0. We increment it as we find valid descriptors
         writes[bind].descriptorCount = 0;
-        writes[bind].descriptorType = layout.bindings[j].descriptorType;
+
+        if(layout.bindings[j].descriptorType == VK_DESCRIPTOR_TYPE_MUTABLE_VALVE)
+          writes[bind].descriptorType = srcData->actualDescriptorType;
+        else
+          writes[bind].descriptorType = layout.bindings[j].descriptorType;
 
         ResourceId *immutableSamplers = layout.bindings[j].immutableSampler;
 
@@ -1740,6 +1744,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       for(uint32_t d = 0; d < writes[i].descriptorCount; d++)
       {
         uint32_t idx = writes[i].dstArrayElement + d;
+
+        bind[idx].actualDescriptorType = writes[i].descriptorType;
 
         if(writes[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
            writes[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)

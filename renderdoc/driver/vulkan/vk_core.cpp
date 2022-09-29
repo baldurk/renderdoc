@@ -1006,6 +1006,11 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_EXTENSION_NAME,
         VK_EXT_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_SPEC_VERSION,
     },
+#ifdef VK_EXT_mutable_descriptor_type
+    {
+        VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME, VK_EXT_MUTABLE_DESCRIPTOR_TYPE_SPEC_VERSION,
+    },
+#endif
     {
         VK_EXT_PCI_BUS_INFO_EXTENSION_NAME, VK_EXT_PCI_BUS_INFO_SPEC_VERSION,
     },
@@ -1500,7 +1505,9 @@ static const VkExtensionProperties supportedExtensions[] = {
     {
         VK_QCOM_RENDER_PASS_STORE_OPS_EXTENSION_NAME, VK_QCOM_RENDER_PASS_STORE_OPS_SPEC_VERSION,
     },
-};
+    {
+        VK_VALVE_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME, VK_VALVE_MUTABLE_DESCRIPTOR_TYPE_SPEC_VERSION,
+    }};
 
 // this is the list of extensions we provide - regardless of whether the ICD supports them
 static const VkExtensionProperties renderdocProvidedDeviceExtensions[] = {
@@ -4781,7 +4788,12 @@ void WrappedVulkan::AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMes
 
           ResourceId id;
 
-          switch(layout.bindings[bind].descriptorType)
+          VkDescriptorType descType = layout.bindings[bind].descriptorType;
+
+          if(descType == VK_DESCRIPTOR_TYPE_MUTABLE_VALVE)
+            descType = slot.actualDescriptorType;
+
+          switch(descType)
           {
             case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
             case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
@@ -4802,7 +4814,7 @@ void WrappedVulkan::AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMes
                 id = slot.bufferInfo.buffer;
               break;
             case VK_DESCRIPTOR_TYPE_MAX_ENUM: break;
-            default: RDCERR("Unexpected type %d", layout.bindings[bind].descriptorType); break;
+            default: RDCERR("Unexpected type %d", descType); break;
           }
 
           if(id != ResourceId())

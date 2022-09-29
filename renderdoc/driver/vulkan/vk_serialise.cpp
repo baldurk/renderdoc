@@ -1316,6 +1316,12 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_FRAGMENT_DENSITY_MAP_OFFSET_END_INFO_QCOM,                    \
                VkSubpassFragmentDensityMapOffsetEndInfoQCOM)                                           \
                                                                                                        \
+  /* VK_VALVE_mutable_descriptor_type */                                                               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_VALVE,               \
+               VkPhysicalDeviceMutableDescriptorTypeFeaturesVALVE)                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_VALVE,                            \
+               VkMutableDescriptorTypeCreateInfoVALVE)                                                 \
+                                                                                                       \
   /* Surface creation structs. These would pull in dependencies on OS-specific includes. */            \
   /* So treat them as unsupported. */                                                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR)                                 \
@@ -1648,11 +1654,7 @@ SERIALISE_VK_HANDLES();
   /* VK_VALVE_descriptor_set_host_mapping */                                                           \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_SET_HOST_MAPPING_FEATURES_VALVE)      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_BINDING_REFERENCE_VALVE)                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_HOST_MAPPING_INFO_VALVE)                   \
-                                                                                                       \
-  /* VK_VALVE_mutable_descriptor_type */                                                               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_VALVE)          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_VALVE)
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_HOST_MAPPING_INFO_VALVE)
 
 static const rdcliteral pNextName = "pNext"_lit;
 static const rdcliteral pNextTypeName = "pNextType"_lit;
@@ -3717,6 +3719,53 @@ void DoSerialise(SerialiserType &ser, VkPushConstantRange &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceMutableDescriptorTypeFeaturesVALVE &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_VALVE);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(mutableDescriptorType);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceMutableDescriptorTypeFeaturesVALVE &el)
+{
+  DeserialiseNext(el.pNext);
+};
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkMutableDescriptorTypeListVALVE &el)
+{
+  SERIALISE_MEMBER(descriptorTypeCount);
+  SERIALISE_MEMBER_ARRAY(pDescriptorTypes, descriptorTypeCount);
+}
+
+template <>
+void Deserialise(const VkMutableDescriptorTypeListVALVE &el)
+{
+  delete[] el.pDescriptorTypes;
+};
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkMutableDescriptorTypeCreateInfoVALVE &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_VALVE);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(mutableDescriptorTypeListCount);
+  SERIALISE_MEMBER_ARRAY(pMutableDescriptorTypeLists, mutableDescriptorTypeListCount);
+}
+
+template <>
+void Deserialise(const VkMutableDescriptorTypeCreateInfoVALVE &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pMutableDescriptorTypeLists;
+};
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkDescriptorSetLayoutBinding &el)
 {
   SERIALISE_MEMBER(binding);
@@ -4706,6 +4755,15 @@ void DoSerialise(SerialiserType &ser, DescriptorSetSlot &el)
   else if(ser.IsReading())
   {
     el.inlineOffset = 0;
+  }
+
+  if(ser.VersionAtLeast(0x15))
+  {
+    SERIALISE_MEMBER(actualDescriptorType).Named("ActualDescriptorType"_lit);
+  }
+  else if(ser.IsReading())
+  {
+    el.actualDescriptorType = VK_DESCRIPTOR_TYPE_MAX_ENUM;
   }
 }
 
@@ -10753,6 +10811,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMemoryProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultiviewFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultiviewProperties);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMutableDescriptorTypeFeaturesVALVE);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePCIBusInfoPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePerformanceQueryFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePerformanceQueryPropertiesKHR);

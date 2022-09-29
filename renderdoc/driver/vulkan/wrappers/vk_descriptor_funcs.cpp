@@ -1247,14 +1247,14 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
 
       VkResourceRecord *record = GetRecord(descWrite.dstSet);
       RDCASSERT(record->descInfo && record->descInfo->layout);
-      const DescSetLayout &layout = *record->descInfo->layout;
+      DescSetLayout &layout = *record->descInfo->layout;
 
       RDCASSERT(descWrite.dstBinding < record->descInfo->data.binds.size());
 
       DescriptorSetSlot **binding = &record->descInfo->data.binds[descWrite.dstBinding];
       bytebuf &inlineData = record->descInfo->data.inlineBytes;
 
-      const DescSetLayout::Binding *layoutBinding = &layout.bindings[descWrite.dstBinding];
+      DescSetLayout::Binding *layoutBinding = &layout.bindings[descWrite.dstBinding];
 
       FrameRefType ref = GetRefType(layoutBinding->descriptorType);
 
@@ -1309,6 +1309,11 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
         }
 
         DescriptorSetSlot &bind = (*binding)[curIdx];
+
+        // Track actual descriptor type for serialization in case if current layout type is mutable
+        // type if(layoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_MUTABLE_VALVE)
+        layoutBinding->descriptorType = descWrite.descriptorType;
+        bind.actualDescriptorType = descWrite.descriptorType;
 
         if(descWrite.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
            descWrite.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)

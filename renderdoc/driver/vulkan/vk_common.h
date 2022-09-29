@@ -499,6 +499,9 @@ struct DescriptorSetSlot
 
   // inline uniform block
   uint32_t inlineOffset;
+
+  // Used for tracking actual desc type for mutable descriptor type
+  VkDescriptorType actualDescriptorType;
 };
 
 struct BindingStorage
@@ -936,6 +939,8 @@ DECLARE_REFLECTION_STRUCT(VkMemoryPriorityAllocateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkMemoryRequirements2);
 DECLARE_REFLECTION_STRUCT(VkMultisamplePropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkMultisampledRenderToSingleSampledInfoEXT);
+DECLARE_REFLECTION_STRUCT(VkMutableDescriptorTypeCreateInfoVALVE);
+DECLARE_REFLECTION_STRUCT(VkMutableDescriptorTypeListVALVE);
 DECLARE_REFLECTION_STRUCT(VkPastPresentationTimingGOOGLE);
 DECLARE_REFLECTION_STRUCT(VkPerformanceCounterDescriptionKHR);
 DECLARE_REFLECTION_STRUCT(VkPerformanceCounterKHR);
@@ -1006,6 +1011,7 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMemoryProperties2);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMultiviewFeatures);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMultiviewProperties);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMutableDescriptorTypeFeaturesVALVE)
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevicePCIBusInfoPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevicePerformanceQueryFeaturesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevicePerformanceQueryPropertiesKHR);
@@ -1322,6 +1328,8 @@ DECLARE_DESERIALISE_TYPE(VkMemoryPriorityAllocateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkMemoryRequirements2);
 DECLARE_DESERIALISE_TYPE(VkMultisamplePropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkMultisampledRenderToSingleSampledInfoEXT);
+DECLARE_DESERIALISE_TYPE(VkMutableDescriptorTypeCreateInfoVALVE);
+DECLARE_DESERIALISE_TYPE(VkMutableDescriptorTypeListVALVE);
 DECLARE_DESERIALISE_TYPE(VkPerformanceCounterDescriptionKHR);
 DECLARE_DESERIALISE_TYPE(VkPerformanceCounterKHR);
 DECLARE_DESERIALISE_TYPE(VkPerformanceQuerySubmitInfoKHR);
@@ -1389,6 +1397,7 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMemoryProperties2);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMultiviewFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMultiviewProperties);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMutableDescriptorTypeFeaturesVALVE)
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevicePCIBusInfoPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevicePerformanceQueryFeaturesKHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevicePerformanceQueryPropertiesKHR);
