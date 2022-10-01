@@ -259,6 +259,9 @@ void WrappedOpenGL::BuildGLExtensions()
   m_GLExtensions.push_back("GL_KHR_parallel_shader_compile");
   m_GLExtensions.push_back("GL_KHR_robustness");
   m_GLExtensions.push_back("GL_KHR_robust_buffer_access_behavior");
+  m_GLExtensions.push_back("GL_OVR_multiview");
+  m_GLExtensions.push_back("GL_OVR_multiview2");
+  m_GLExtensions.push_back("GL_OVR_multiview_multisampled_render_to_texture");
 
   // this WGL extension is advertised in the gl ext string instead of via the wgl ext string,
   // return it just in case anyone is checking for it via this place. On non-windows platforms
