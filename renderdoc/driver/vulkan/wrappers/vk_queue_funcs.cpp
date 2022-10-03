@@ -883,8 +883,6 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
 
     VkResourceRecord *record = GetRecord(commandBuffers[i]);
 
-    UpdateImageStates(record->bakedCommands->cmdInfo->imageStates);
-
     if(Vulkan_Debug_VerboseCommandRecording())
     {
       RDCLOG("vkQueueSubmit() to queue %s, cmd %zu of %zu: %s baked to %s",
@@ -916,6 +914,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
       // storage descriptors.
       // record->bakedCommands->AddResourceReferences(GetResourceManager());
       // GetResourceManager()->MergeReferencedMemory(record->bakedCommands->cmdInfo->memFrameRefs);
+      // UpdateImageStates(record->bakedCommands->cmdInfo->imageStates);
       cmdsWithReferences.insert(record->bakedCommands);
       record->bakedCommands->AddReferencedIDs(refdIDs);
 
@@ -933,10 +932,10 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
         // above
         // bakedSubcmds->AddResourceReferences(GetResourceManager());
         // GetResourceManager()->MergeReferencedMemory(bakedSubcmds->cmdInfo->memFrameRefs);
+        // UpdateImageStates(bakedSubcmds->cmdInfo->imageStates);
         cmdsWithReferences.insert(bakedSubcmds);
 
         bakedSubcmds->AddReferencedIDs(refdIDs);
-        UpdateImageStates(bakedSubcmds->cmdInfo->imageStates);
         GetResourceManager()->MarkResourceFrameReferenced(
             subcmds[sub]->cmdInfo->allocRecord->GetResourceID(), eFrameRef_Read);
 
@@ -975,9 +974,13 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
       VkResourceRecord *record = GetRecord(commandBuffers[i]);
 
       record->bakedCommands->AddResourceReferences(GetResourceManager());
+      UpdateImageStates(record->bakedCommands->cmdInfo->imageStates);
 
       for(VkResourceRecord *sub : record->bakedCommands->cmdInfo->subcmds)
+      {
         sub->bakedCommands->AddResourceReferences(GetResourceManager());
+        UpdateImageStates(sub->bakedCommands->cmdInfo->imageStates);
+      }
     }
 
     // every 20 submits clean background references, in case the application isn't presenting.
@@ -1051,6 +1054,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
     {
       (*it)->AddResourceReferences(GetResourceManager());
       GetResourceManager()->MergeReferencedMemory((*it)->cmdInfo->memFrameRefs);
+      UpdateImageStates((*it)->cmdInfo->imageStates);
     }
 
     GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
