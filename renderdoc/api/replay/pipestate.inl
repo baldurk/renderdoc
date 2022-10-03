@@ -1530,7 +1530,8 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
     }
     else if(IsCaptureGL())
     {
-      ret.reserve(m_GL->images.size());
+      ret.reserve(m_GL->images.size() + m_GL->atomicBuffers.size() +
+                  m_GL->shaderStorageBuffers.size());
 
       for(int i = 0; i < m_GL->images.count(); i++)
       {
@@ -1541,6 +1542,26 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
         val.firstMip = (int)m_GL->images[i].mipLevel;
         val.firstSlice = (int)m_GL->images[i].slice;
         val.typeCast = m_GL->images[i].imageFormat.compType;
+
+        ret.push_back(BoundResourceArray(key, {val}));
+      }
+
+      for(int i = 0; i < m_GL->atomicBuffers.count(); i++)
+      {
+        Bindpoint key(0, i);
+        BoundResource val;
+
+        val.resourceId = m_GL->atomicBuffers[i].resourceId;
+
+        ret.push_back(BoundResourceArray(key, {val}));
+      }
+
+      for(int i = 0; i < m_GL->shaderStorageBuffers.count(); i++)
+      {
+        Bindpoint key(0, i);
+        BoundResource val;
+
+        val.resourceId = m_GL->atomicBuffers[i].resourceId;
 
         ret.push_back(BoundResourceArray(key, {val}));
       }
