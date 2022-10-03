@@ -241,6 +241,13 @@ struct EventItemModel : public QAbstractItemModel
 
     m_CurrentEID = createIndex(0, 0, TagCaptureStart);
 
+    m_Bookmarks.clear();
+    m_BookmarkIndices.clear();
+
+    m_FindResults.clear();
+    m_FindString.clear();
+    m_FindEIDSearch = false;
+
     RefreshCache();
   }
 
@@ -903,7 +910,7 @@ private:
   rdcarray<QModelIndex> m_BookmarkIndices;
   QString m_FindString;
   rdcarray<QModelIndex> m_FindResults;
-  bool m_FindEIDSearch;
+  bool m_FindEIDSearch = false;
 
   int32_t m_RenameCacheID;
   QString m_ParamColCode;
