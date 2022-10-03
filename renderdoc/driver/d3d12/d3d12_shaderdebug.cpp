@@ -638,7 +638,7 @@ D3D12Descriptor D3D12DebugAPIWrapper::FindDescriptor(DXBCBytecode::OperandType t
       if(IsShaderParameterVisible(GetShaderType(), param.ShaderVisibility))
       {
         if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV && element.type == eRootSRV &&
-           type != DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
+           type == DXBCBytecode::TYPE_RESOURCE)
         {
           if(param.Descriptor.ShaderRegister == slot.shaderRegister &&
              param.Descriptor.RegisterSpace == slot.registerSpace)
