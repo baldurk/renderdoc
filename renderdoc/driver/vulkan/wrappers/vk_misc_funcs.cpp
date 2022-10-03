@@ -1757,15 +1757,6 @@ VkResult WrappedVulkan::vkCreateSamplerYcbcrConversion(
   return ret;
 }
 
-struct UserDebugReportCallbackData
-{
-  VkInstance wrappedInstance;
-  VkDebugReportCallbackCreateInfoEXT createInfo;
-  bool muteWarned;
-
-  VkDebugReportCallbackEXT realObject;
-};
-
 VkBool32 VKAPI_PTR UserDebugReportCallback(VkDebugReportFlagsEXT flags,
                                            VkDebugReportObjectTypeEXT objectType, uint64_t object,
                                            size_t location, int32_t messageCode,
@@ -1808,13 +1799,6 @@ VkBool32 VKAPI_PTR UserDebugReportCallback(VkDebugReportFlagsEXT flags,
   return user->createInfo.pfnCallback(flags, objectType, object, location, messageCode,
                                       pLayerPrefix, pMessage, user->createInfo.pUserData);
 }
-struct UserDebugUtilsCallbackData
-{
-  VkDebugUtilsMessengerCreateInfoEXT createInfo;
-  bool muteWarned;
-
-  VkDebugUtilsMessengerEXT realObject;
-};
 
 VkBool32 VKAPI_PTR UserDebugUtilsCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                           VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -1891,6 +1875,11 @@ VkResult WrappedVulkan::vkCreateDebugReportCallbackEXT(
     return vkr;
   }
 
+  {
+    SCOPED_LOCK(m_CallbacksLock);
+    m_ReportCallbacks.push_back(user);
+  }
+
   *pCallback = (VkDebugReportCallbackEXT)(uint64_t)user;
 
   return vkr;
@@ -1907,6 +1896,11 @@ void WrappedVulkan::vkDestroyDebugReportCallbackEXT(VkInstance instance,
       (UserDebugReportCallbackData *)(uintptr_t)NON_DISP_TO_UINT64(callback);
 
   ObjDisp(instance)->DestroyDebugReportCallbackEXT(Unwrap(instance), user->realObject, pAllocator);
+
+  {
+    SCOPED_LOCK(m_CallbacksLock);
+    m_ReportCallbacks.removeOne(user);
+  }
 
   delete user;
 }
@@ -2314,6 +2308,11 @@ VkResult WrappedVulkan::vkCreateDebugUtilsMessengerEXT(
     return vkr;
   }
 
+  {
+    SCOPED_LOCK(m_CallbacksLock);
+    m_UtilsCallbacks.push_back(user);
+  }
+
   *pMessenger = (VkDebugUtilsMessengerEXT)(uint64_t)user;
 
   return vkr;
@@ -2330,6 +2329,11 @@ void WrappedVulkan::vkDestroyDebugUtilsMessengerEXT(VkInstance instance,
       (UserDebugUtilsCallbackData *)(uintptr_t)NON_DISP_TO_UINT64(messenger);
 
   ObjDisp(instance)->DestroyDebugUtilsMessengerEXT(Unwrap(instance), user->realObject, pAllocator);
+
+  {
+    SCOPED_LOCK(m_CallbacksLock);
+    m_UtilsCallbacks.removeOne(user);
+  }
 
   delete user;
 }

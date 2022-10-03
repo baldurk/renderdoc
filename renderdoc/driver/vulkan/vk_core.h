@@ -257,6 +257,23 @@ struct VulkanActionCallback
                               VkCommandBuffer cmd) = 0;
 };
 
+struct UserDebugReportCallbackData
+{
+  VkInstance wrappedInstance;
+  VkDebugReportCallbackCreateInfoEXT createInfo;
+  bool muteWarned;
+
+  VkDebugReportCallbackEXT realObject;
+};
+
+struct UserDebugUtilsCallbackData
+{
+  VkDebugUtilsMessengerCreateInfoEXT createInfo;
+  bool muteWarned;
+
+  VkDebugUtilsMessengerEXT realObject;
+};
+
 class WrappedVulkan : public IFrameCapturer
 {
 private:
@@ -312,6 +329,11 @@ private:
 
   Threading::CriticalSection m_ThreadSerialisersLock;
   rdcarray<WriteSerialiser *> m_ThreadSerialisers;
+
+  Threading::CriticalSection m_CallbacksLock;
+  rdcarray<UserDebugReportCallbackData *> m_ReportCallbacks;
+  rdcarray<UserDebugUtilsCallbackData *> m_UtilsCallbacks;
+  void SendUserDebugMessage(const rdcstr &msg);
 
   uint64_t tempMemoryTLSSlot;
   struct TempMem
