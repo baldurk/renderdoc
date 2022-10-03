@@ -222,6 +222,11 @@ bool RemoteHost::IsVersionMismatch() const
   return false;
 }
 
+rdcstr RemoteHost::VersionMismatchError() const
+{
+  return rdcstr();
+}
+
 rdcstr RemoteHost::FriendlyName() const
 {
   return rdcstr();

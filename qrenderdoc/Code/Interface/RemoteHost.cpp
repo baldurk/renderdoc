@@ -43,7 +43,7 @@ struct RemoteHostData
   }
 
   RemoteHostData() : refcount(1) {}
-  rdcstr m_friendlyName, m_runCommand, m_lastCapturePath;
+  rdcstr m_friendlyName, m_runCommand, m_lastCapturePath, m_versionError;
   bool m_serverRunning = false, m_connected = false, m_busy = false, m_versionMismatch = false;
 };
 
@@ -122,6 +122,7 @@ void RemoteHost::CheckStatus()
   {
     QMutexLocker autolock(&m_data->mutex);
     m_data->m_serverRunning = m_data->m_versionMismatch = m_data->m_busy = false;
+    m_data->m_versionError.clear();
     return;
   }
 
@@ -157,23 +158,27 @@ void RemoteHost::UpdateStatus(ResultDetails result)
     {
       m_data->m_serverRunning = true;
       m_data->m_versionMismatch = m_data->m_busy = false;
+      m_data->m_versionError.clear();
     }
     else if(result.code == ResultCode::NetworkRemoteBusy)
     {
       m_data->m_serverRunning = true;
       m_data->m_busy = true;
       m_data->m_versionMismatch = false;
+      m_data->m_versionError.clear();
     }
     else if(result.code == ResultCode::NetworkVersionMismatch)
     {
       m_data->m_serverRunning = true;
       m_data->m_busy = true;
       m_data->m_versionMismatch = true;
+      m_data->m_versionError = result.Message();
     }
     else
     {
       m_data->m_serverRunning = false;
       m_data->m_versionMismatch = m_data->m_busy = false;
+      m_data->m_versionError.clear();
     }
   }
 
@@ -224,6 +229,14 @@ bool RemoteHost::IsVersionMismatch() const
 {
   QMutexLocker autolock(&m_data->mutex);
   return m_data->m_versionMismatch;
+}
+
+rdcstr RemoteHost::VersionMismatchError() const
+{
+  QMutexLocker autolock(&m_data->mutex);
+  if(m_data->m_versionError.empty())
+    return "Version Mismatch";
+  return m_data->m_versionError;
 }
 
 rdcstr RemoteHost::FriendlyName() const

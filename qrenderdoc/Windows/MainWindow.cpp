@@ -1892,7 +1892,7 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
     if(host.IsConnected())
       action->setText(tr("%1 (Connected)").arg(host.Name()));
     else if(host.IsServerRunning() && host.IsVersionMismatch())
-      action->setText(tr("%1 (Bad Version)").arg(host.Name()));
+      action->setText(tr("%1 (%2)").arg(host.Name(), host.VersionMismatchError()));
     else if(host.IsServerRunning() && host.IsBusy())
       action->setText(tr("%1 (Busy)").arg(host.Name()));
     else if(host.IsServerRunning())
@@ -2101,8 +2101,7 @@ void MainWindow::setRemoteHost(int hostIdx)
         }
         else if(host.IsVersionMismatch())
         {
-          statusText->setText(
-              tr("Remote server is not running RenderDoc %1").arg(lit(FULL_VERSION_STRING)));
+          statusText->setText(host.VersionMismatchError());
         }
         else if(host.IsBusy())
         {

@@ -149,11 +149,18 @@ void RemoteManager::setRemoteServerLive(RDTreeWidgetItem *node, bool live, bool 
     QString text = live ? tr("Remote server running") : tr("No remote server");
 
     if(host.IsConnected())
+    {
       text += tr(" (Active Context)");
+    }
     else if(host.IsVersionMismatch())
-      text += tr(" (Version Mismatch)");
+    {
+      QString message = host.VersionMismatchError();
+      text += QFormatStr(" (%1)").arg(message);
+    }
     else if(host.IsBusy())
+    {
       text += tr(" (Busy)");
+    }
 
     node->setText(1, text);
 

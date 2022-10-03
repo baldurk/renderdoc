@@ -45,16 +45,22 @@ RDOC_CONFIG(bool, RemoteServer_DebugLogging, false,
             "Output a verbose logging file in the system's temporary folder containing the "
             "traffic to and from the remote server.");
 
+#define MAKE_REMOTE_SERVER_VERSION(maj, min) uint32_t((maj)*1000) + (min)
+
 static const uint32_t RemoteServerProtocolVersion =
-    uint32_t(RENDERDOC_VERSION_MAJOR * 1000) + RENDERDOC_VERSION_MINOR;
+    MAKE_REMOTE_SERVER_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR);
 
 enum RemoteServerPacket
 {
+  // fixed packets. These are used cross-version so MUST NOT CHANGE
   eRemoteServer_Noop = 1,
   eRemoteServer_Handshake,
   eRemoteServer_VersionMismatch,
   eRemoteServer_Busy,
+  eRemoteServer_VersionMismatch2,    // sent for versions 1.23 and above, including the version info
 
+  // variable packets. These are used only after a handshake has been established with an identical
+  // version so can be freely changed
   eRemoteServer_Ping,
   eRemoteServer_RemoteDriverList,
   eRemoteServer_TakeOwnershipCapture,
@@ -97,6 +103,7 @@ rdcstr DoStringise(const RemoteServerPacket &el)
     STRINGISE_ENUM_NAMED(eRemoteServer_Handshake, "Handshake");
     STRINGISE_ENUM_NAMED(eRemoteServer_VersionMismatch, "VersionMismatch");
     STRINGISE_ENUM_NAMED(eRemoteServer_Busy, "Busy");
+    STRINGISE_ENUM_NAMED(eRemoteServer_VersionMismatch2, "VersionMismatch");
 
     STRINGISE_ENUM_NAMED(eRemoteServer_Ping, "Ping");
     STRINGISE_ENUM_NAMED(eRemoteServer_RemoteDriverList, "RemoteDriverList");
@@ -199,6 +206,15 @@ static bool HandleHandshakeClient(ActiveClient &activeClient, ClientThread *thre
       RDCLOG("Connection using protocol %u, but we are running %u", version,
              RemoteServerProtocolVersion);
 
+      // as of 1.23 we started serialising our version so the other end knows what it's talking
+      // to.
+      if(version >= MAKE_REMOTE_SERVER_VERSION(1, 23))
+      {
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_VersionMismatch2);
+
+        SERIALISE_ELEMENT(RemoteServerProtocolVersion);
+      }
+      else
       {
         SCOPED_SERIALISE_CHUNK(eRemoteServer_VersionMismatch);
       }
@@ -1192,6 +1208,12 @@ RENDERDOC_CreateRemoteServerConnection(const rdcstr &URL, IRemoteServer **rend)
 
     RemoteServerPacket type = ser.ReadChunk<RemoteServerPacket>();
 
+    uint32_t remoteVersion = 0;
+    if(type == eRemoteServer_VersionMismatch2)
+    {
+      SERIALISE_ELEMENT(remoteVersion);
+    }
+
     ser.EndChunk();
 
     if(type == eRemoteServer_Busy)
@@ -1200,10 +1222,16 @@ RENDERDOC_CreateRemoteServerConnection(const rdcstr &URL, IRemoteServer **rend)
       return RDResult(ResultCode::NetworkRemoteBusy);
     }
 
-    if(type == eRemoteServer_VersionMismatch)
+    if(type == eRemoteServer_VersionMismatch || type == eRemoteServer_VersionMismatch2)
     {
       SAFE_DELETE(sock);
-      return RDResult(ResultCode::NetworkVersionMismatch);
+
+      rdcstr ver = StringFormat::Fmt("Server on v%d.%d", remoteVersion / 1000, remoteVersion % 1000);
+
+      if(remoteVersion == 0)
+        ver = "Server older than v1.23";
+
+      return RDResult(ResultCode::NetworkVersionMismatch, ver);
     }
 
     if(ser.IsErrored() || type != eRemoteServer_Handshake)

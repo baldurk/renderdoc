@@ -93,6 +93,12 @@ public:
   bool IsVersionMismatch() const;
 
   DOCUMENT(R"(
+:return: The version mismatch error.
+:rtype: str
+)");
+  rdcstr VersionMismatchError() const;
+
+  DOCUMENT(R"(
 :return: The hostname of this host.
 :rtype: str
 )");

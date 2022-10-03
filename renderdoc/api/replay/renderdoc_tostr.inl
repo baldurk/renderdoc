@@ -57,7 +57,7 @@ rdcstr DoStringise(const ResultCode &el)
                                "Process is incompatible with this build of RenderDoc");
     STRINGISE_ENUM_CLASS_NAMED(NetworkIOFailed, "Network I/O operation failed");
     STRINGISE_ENUM_CLASS_NAMED(NetworkRemoteBusy, "Remote side of network connection is busy");
-    STRINGISE_ENUM_CLASS_NAMED(NetworkVersionMismatch, "Version mismatch between network clients");
+    STRINGISE_ENUM_CLASS_NAMED(NetworkVersionMismatch, "Incompatible version");
     STRINGISE_ENUM_CLASS_NAMED(FileIOFailed, "File I/O failed");
     STRINGISE_ENUM_CLASS_NAMED(
         FileIncompatibleVersion,
