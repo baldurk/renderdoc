@@ -864,7 +864,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
     }
   }
 
-  unwrappedInfo.pWaitSemaphores = unwrappedWaitSems.data();
+  unwrappedInfo.pWaitSemaphores = unwrappedWaitSems.empty() ? NULL : unwrappedWaitSems.data();
   unwrappedInfo.waitSemaphoreCount = (uint32_t)unwrappedWaitSems.size();
 
   VkResult vkr;
@@ -1001,7 +1001,7 @@ void WrappedVulkan::HandlePresent(VkQueue queue, const VkPresentInfoKHR *pPresen
 
       // wait on the present's semaphores
       submitInfo.pWaitDstStageMask = waitStage.data();
-      submitInfo.pWaitSemaphores = unwrappedWaitSems.data();
+      submitInfo.pWaitSemaphores = unwrappedWaitSems.empty() ? NULL : unwrappedWaitSems.data();
       submitInfo.waitSemaphoreCount = (uint32_t)unwrappedWaitSems.size();
 
       // and signal overlaydone
@@ -1050,7 +1050,7 @@ void WrappedVulkan::HandlePresent(VkQueue queue, const VkPresentInfoKHR *pPresen
         waitStage.resize(1);
 
         submitInfo.pWaitDstStageMask = waitStage.data();
-        submitInfo.pWaitSemaphores = unwrappedWaitSems.data();
+        submitInfo.pWaitSemaphores = unwrappedWaitSems.empty() ? NULL : unwrappedWaitSems.data();
         submitInfo.waitSemaphoreCount = (uint32_t)unwrappedWaitSems.size();
 
         // and signal toext
@@ -1106,7 +1106,7 @@ void WrappedVulkan::HandlePresent(VkQueue queue, const VkPresentInfoKHR *pPresen
         waitStage.resize(1);
 
         submitInfo.pWaitDstStageMask = waitStage.data();
-        submitInfo.pWaitSemaphores = unwrappedWaitSems.data();
+        submitInfo.pWaitSemaphores = unwrappedWaitSems.empty() ? NULL : unwrappedWaitSems.data();
         submitInfo.waitSemaphoreCount = (uint32_t)unwrappedWaitSems.size();
 
         // release to the external queue

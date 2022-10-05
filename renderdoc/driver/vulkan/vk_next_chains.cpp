@@ -1561,8 +1561,8 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
 
         *out = *in;
 
-        out->pWaitSemaphores = outWaitSemaphores;
-        out->pSignalSemaphores = outSignalSemaphores;
+        out->pWaitSemaphores = in->waitSemaphoreCount == 0 ? NULL : outWaitSemaphores;
+        out->pSignalSemaphores = in->signalSemaphoreCount == 0 ? NULL : outSignalSemaphores;
         out->pBufferBinds = outBufferBinds;
         out->pImageOpaqueBinds = outImageOpaqueBinds;
         out->pImageBinds = outImageBinds;
@@ -2161,7 +2161,7 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
 
         *out = *in;
         out->pSwapchains = outSwapchains;
-        out->pWaitSemaphores = outWaitSemaphores;
+        out->pWaitSemaphores = in->waitSemaphoreCount == 0 ? NULL : outWaitSemaphores;
 
         for(uint32_t i = 0; i < in->swapchainCount; i++)
           outSwapchains[i] = Unwrap(in->pSwapchains[i]);
@@ -2316,9 +2316,9 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
         tempMem += sizeof(VkSemaphore) * in->signalSemaphoreCount;
 
         *out = *in;
-        out->pWaitSemaphores = outWaitSemaphores;
+        out->pWaitSemaphores = in->waitSemaphoreCount == 0 ? NULL : outWaitSemaphores;
         out->pCommandBuffers = outCmdBuffers;
-        out->pSignalSemaphores = outSignalSemaphores;
+        out->pSignalSemaphores = in->signalSemaphoreCount == 0 ? NULL : outSignalSemaphores;
 
         for(uint32_t i = 0; i < in->waitSemaphoreCount; i++)
           outWaitSemaphores[i] = Unwrap(in->pWaitSemaphores[i]);
