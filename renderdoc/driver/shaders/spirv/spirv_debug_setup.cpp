@@ -626,6 +626,14 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::RayTraversalPrimitiveCullingKHR:
       case Capability::RayTracingKHR:
       case Capability::RayCullMaskKHR:
+      case Capability::RayTracingOpacityMicromapEXT:
+      {
+        supported = false;
+        break;
+      }
+
+      // mesh shading
+      case Capability::MeshShadingEXT:
       {
         supported = false;
         break;
@@ -706,6 +714,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::MemoryAccessAliasingINTEL:
       case Capability::SplitBarrierINTEL:
       case Capability::GroupUniformArithmeticKHR:
+      case Capability::CoreBuiltinsARM:
       case Capability::Max:
       case Capability::Invalid:
       {

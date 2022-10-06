@@ -235,6 +235,7 @@ rdcstr DoStringise(const rdcspv::RayFlags &el)
     STRINGISE_BITFIELD_CLASS_BIT(CullNoOpaqueKHR);
     STRINGISE_BITFIELD_CLASS_BIT(SkipTrianglesKHR);
     STRINGISE_BITFIELD_CLASS_BIT(SkipAABBsKHR);
+    STRINGISE_BITFIELD_CLASS_BIT(ForceOpacityMicromap2StateEXT);
   }
   END_BITFIELD_STRINGISE();
 }
@@ -289,6 +290,8 @@ rdcstr DoStringise(const rdcspv::ExecutionModel &el)
     STRINGISE_ENUM_CLASS(ClosestHitNV);
     STRINGISE_ENUM_CLASS(MissNV);
     STRINGISE_ENUM_CLASS(CallableNV);
+    STRINGISE_ENUM_CLASS(TaskEXT);
+    STRINGISE_ENUM_CLASS(MeshEXT);
   }
   END_ENUM_STRINGISE();
 }
@@ -428,6 +431,7 @@ rdcstr DoStringise(const rdcspv::StorageClass &el)
     STRINGISE_ENUM_CLASS(IncomingRayPayloadNV);
     STRINGISE_ENUM_CLASS(ShaderRecordBufferNV);
     STRINGISE_ENUM_CLASS(PhysicalStorageBuffer);
+    STRINGISE_ENUM_CLASS(TaskPayloadWorkgroupEXT);
     STRINGISE_ENUM_CLASS(CodeSectionINTEL);
     STRINGISE_ENUM_CLASS(DeviceOnlyINTEL);
     STRINGISE_ENUM_CLASS(HostOnlyINTEL);
@@ -848,6 +852,11 @@ rdcstr DoStringise(const rdcspv::BuiltIn &el)
     STRINGISE_ENUM_CLASS(SubgroupLocalInvocationId);
     STRINGISE_ENUM_CLASS(VertexIndex);
     STRINGISE_ENUM_CLASS(InstanceIndex);
+    STRINGISE_ENUM_CLASS(CoreIDARM);
+    STRINGISE_ENUM_CLASS(CoreCountARM);
+    STRINGISE_ENUM_CLASS(CoreMaxIDARM);
+    STRINGISE_ENUM_CLASS(WarpIDARM);
+    STRINGISE_ENUM_CLASS(WarpMaxIDARM);
     STRINGISE_ENUM_CLASS(SubgroupEqMask);
     STRINGISE_ENUM_CLASS(SubgroupGeMask);
     STRINGISE_ENUM_CLASS(SubgroupGtMask);
@@ -886,6 +895,10 @@ rdcstr DoStringise(const rdcspv::BuiltIn &el)
     STRINGISE_ENUM_CLASS(BaryCoordNoPerspKHR);
     STRINGISE_ENUM_CLASS(FragSizeEXT);
     STRINGISE_ENUM_CLASS(FragInvocationCountEXT);
+    STRINGISE_ENUM_CLASS(PrimitivePointIndicesEXT);
+    STRINGISE_ENUM_CLASS(PrimitiveLineIndicesEXT);
+    STRINGISE_ENUM_CLASS(PrimitiveTriangleIndicesEXT);
+    STRINGISE_ENUM_CLASS(CullPrimitiveEXT);
     STRINGISE_ENUM_CLASS(LaunchIdNV);
     STRINGISE_ENUM_CLASS(LaunchSizeNV);
     STRINGISE_ENUM_CLASS(WorldRayOriginNV);
@@ -1030,6 +1043,7 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(ShaderLayer);
     STRINGISE_ENUM_CLASS(ShaderViewportIndex);
     STRINGISE_ENUM_CLASS(UniformDecoration);
+    STRINGISE_ENUM_CLASS(CoreBuiltinsARM);
     STRINGISE_ENUM_CLASS(FragmentShadingRateKHR);
     STRINGISE_ENUM_CLASS(SubgroupBallotKHR);
     STRINGISE_ENUM_CLASS(DrawParameters);
@@ -1075,6 +1089,7 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(FragmentFullyCoveredEXT);
     STRINGISE_ENUM_CLASS(MeshShadingNV);
     STRINGISE_ENUM_CLASS(ImageFootprintNV);
+    STRINGISE_ENUM_CLASS(MeshShadingEXT);
     STRINGISE_ENUM_CLASS(FragmentBarycentricKHR);
     STRINGISE_ENUM_CLASS(ComputeDerivativeGroupQuadsNV);
     STRINGISE_ENUM_CLASS(FragmentDensityEXT);
@@ -1104,6 +1119,7 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(ShaderSMBuiltinsNV);
     STRINGISE_ENUM_CLASS(FragmentShaderPixelInterlockEXT);
     STRINGISE_ENUM_CLASS(DemoteToHelperInvocation);
+    STRINGISE_ENUM_CLASS(RayTracingOpacityMicromapEXT);
     STRINGISE_ENUM_CLASS(BindlessTextureNV);
     STRINGISE_ENUM_CLASS(SubgroupShuffleINTEL);
     STRINGISE_ENUM_CLASS(SubgroupBufferBlockIOINTEL);
@@ -1594,6 +1610,8 @@ rdcstr DoStringise(const rdcspv::Op &el)
     STRINGISE_ENUM_CLASS(FragmentFetchAMD);
     STRINGISE_ENUM_CLASS(ReadClockKHR);
     STRINGISE_ENUM_CLASS(ImageSampleFootprintNV);
+    STRINGISE_ENUM_CLASS(EmitMeshTasksEXT);
+    STRINGISE_ENUM_CLASS(SetMeshOutputsEXT);
     STRINGISE_ENUM_CLASS(GroupNonUniformPartitionNV);
     STRINGISE_ENUM_CLASS(WritePackedPrimitiveIndices4x8NV);
     STRINGISE_ENUM_CLASS(ReportIntersectionNV);
@@ -4125,6 +4143,16 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       callback(Id::fromWord(it.word(4)), false);
       callback(Id::fromWord(it.word(5)), false);
       callback(Id::fromWord(it.word(6)), false);
+      break;
+    case rdcspv::Op::EmitMeshTasksEXT:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
+      if(4 < size) callback(Id::fromWord(it.word(4)), false);
+      break;
+    case rdcspv::Op::SetMeshOutputsEXT:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::GroupNonUniformPartitionNV:
       callback(Id::fromWord(it.word(1)), false);
@@ -7255,6 +7283,18 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
       ret += "ImageSampleFootprintNV(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.granularity) + ", " + ParamToStr(idName, decoded.coarse) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
       break;
     }
+    case rdcspv::Op::EmitMeshTasksEXT:
+    {
+      OpEmitMeshTasksEXT decoded(it);
+      ret += "EmitMeshTasksEXT(" + ParamToStr(idName, decoded.groupCountX) + ", " + ParamToStr(idName, decoded.groupCountY) + ", " + ParamToStr(idName, decoded.groupCountZ) + ", " + ParamToStr(idName, decoded.payload) + ")";
+      break;
+    }
+    case rdcspv::Op::SetMeshOutputsEXT:
+    {
+      OpSetMeshOutputsEXT decoded(it);
+      ret += "SetMeshOutputsEXT(" + ParamToStr(idName, decoded.vertexCount) + ", " + ParamToStr(idName, decoded.primitiveCount) + ")";
+      break;
+    }
     case rdcspv::Op::GroupNonUniformPartitionNV:
     {
       OpGroupNonUniformPartitionNV decoded(it);
@@ -8268,6 +8308,8 @@ OpDecoder::OpDecoder(const ConstIter &it)
     case rdcspv::Op::FragmentFetchAMD: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::ReadClockKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::ImageSampleFootprintNV: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::EmitMeshTasksEXT: result = Id(); resultType = Id(); break;
+    case rdcspv::Op::SetMeshOutputsEXT: result = Id(); resultType = Id(); break;
     case rdcspv::Op::GroupNonUniformPartitionNV: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::WritePackedPrimitiveIndices4x8NV: result = Id(); resultType = Id(); break;
     case rdcspv::Op::ReportIntersectionNV: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
@@ -8539,6 +8581,7 @@ rdcstr DoStringise(const rdcspv::Generator &el)
     STRINGISE_ENUM_CLASS_NAMED(SPIRVBeehiveToolkit, "SPIRV Beehive Toolkit from TornadoVM - https://github.com/beehive-lab/spirv-beehive-toolkit");
     STRINGISE_ENUM_CLASS_NAMED(ShaderWriter, "ShaderWriter from DragonJoker - Contact Sylvain Doremus, https://github.com/DragonJoker/ShaderWriter");
     STRINGISE_ENUM_CLASS_NAMED(SPIRVSmith, "SPIRVSmith from Rayan Hatout - Contact Rayan Hatout rayan.hatout@gmail.com, Repo https://github.com/rayanht/SPIRVSmith");
+    STRINGISE_ENUM_CLASS_NAMED(Shady, "Shady from Saarland University - Contact Hugo Devillers devillers@uni-saarland.de, Repo https://github.com/Hugobros3/shady");
   }
   END_ENUM_STRINGISE();
 }

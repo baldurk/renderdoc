@@ -3673,6 +3673,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::ConvertSamplerToUNV:
     case Op::ConvertSampledImageToUNV:
     case Op::SamplerImageAddressingModeNV:
+    case Op::EmitMeshTasksEXT:
+    case Op::SetMeshOutputsEXT:
     {
       RDCERR("Unsupported extension opcode used %s", ToStr(opdata.op).c_str());
 

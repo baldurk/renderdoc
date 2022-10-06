@@ -279,6 +279,9 @@ struct VkInstDispatchTable
   PFN_vkCreateScreenSurfaceQNX CreateScreenSurfaceQNX;
   PFN_vkGetPhysicalDeviceScreenPresentationSupportQNX GetPhysicalDeviceScreenPresentationSupportQNX;
 #endif // VK_USE_PLATFORM_SCREEN_QNX
+
+  // VK_NV_optical_flow
+  PFN_vkGetPhysicalDeviceOpticalFlowImageFormatsNV GetPhysicalDeviceOpticalFlowImageFormatsNV;
 };
 
 struct VkDevDispatchTable
@@ -874,8 +877,16 @@ struct VkDevDispatchTable
   // VK_NV_fragment_shading_rate_enums
   PFN_vkCmdSetFragmentShadingRateEnumNV CmdSetFragmentShadingRateEnumNV;
 
+  // VK_EXT_mesh_shader
+  PFN_vkCmdDrawMeshTasksEXT CmdDrawMeshTasksEXT;
+  PFN_vkCmdDrawMeshTasksIndirectEXT CmdDrawMeshTasksIndirectEXT;
+  PFN_vkCmdDrawMeshTasksIndirectCountEXT CmdDrawMeshTasksIndirectCountEXT;
+
   // VK_EXT_image_compression_control
   PFN_vkGetImageSubresourceLayout2EXT GetImageSubresourceLayout2EXT;
+
+  // VK_EXT_device_fault
+  PFN_vkGetDeviceFaultInfoEXT GetDeviceFaultInfoEXT;
 
   // VK_EXT_vertex_input_dynamic_state
   PFN_vkCmdSetVertexInputEXT CmdSetVertexInputEXT;
@@ -928,6 +939,22 @@ struct VkDevDispatchTable
   PFN_vkCmdDrawMultiEXT CmdDrawMultiEXT;
   PFN_vkCmdDrawMultiIndexedEXT CmdDrawMultiIndexedEXT;
 
+  // VK_EXT_opacity_micromap
+  PFN_vkCreateMicromapEXT CreateMicromapEXT;
+  PFN_vkDestroyMicromapEXT DestroyMicromapEXT;
+  PFN_vkCmdBuildMicromapsEXT CmdBuildMicromapsEXT;
+  PFN_vkBuildMicromapsEXT BuildMicromapsEXT;
+  PFN_vkCopyMicromapEXT CopyMicromapEXT;
+  PFN_vkCopyMicromapToMemoryEXT CopyMicromapToMemoryEXT;
+  PFN_vkCopyMemoryToMicromapEXT CopyMemoryToMicromapEXT;
+  PFN_vkWriteMicromapsPropertiesEXT WriteMicromapsPropertiesEXT;
+  PFN_vkCmdCopyMicromapEXT CmdCopyMicromapEXT;
+  PFN_vkCmdCopyMicromapToMemoryEXT CmdCopyMicromapToMemoryEXT;
+  PFN_vkCmdCopyMemoryToMicromapEXT CmdCopyMemoryToMicromapEXT;
+  PFN_vkCmdWriteMicromapsPropertiesEXT CmdWriteMicromapsPropertiesEXT;
+  PFN_vkGetDeviceMicromapCompatibilityEXT GetDeviceMicromapCompatibilityEXT;
+  PFN_vkGetMicromapBuildSizesEXT GetMicromapBuildSizesEXT;
+
   // VK_EXT_pageable_device_local_memory
   PFN_vkSetDeviceMemoryPriorityEXT SetDeviceMemoryPriorityEXT;
 
@@ -935,9 +962,48 @@ struct VkDevDispatchTable
   PFN_vkGetDescriptorSetLayoutHostMappingInfoVALVE GetDescriptorSetLayoutHostMappingInfoVALVE;
   PFN_vkGetDescriptorSetHostMappingVALVE GetDescriptorSetHostMappingVALVE;
 
+  // VK_EXT_extended_dynamic_state3
+  PFN_vkCmdSetTessellationDomainOriginEXT CmdSetTessellationDomainOriginEXT;
+  PFN_vkCmdSetDepthClampEnableEXT CmdSetDepthClampEnableEXT;
+  PFN_vkCmdSetPolygonModeEXT CmdSetPolygonModeEXT;
+  PFN_vkCmdSetRasterizationSamplesEXT CmdSetRasterizationSamplesEXT;
+  PFN_vkCmdSetSampleMaskEXT CmdSetSampleMaskEXT;
+  PFN_vkCmdSetAlphaToCoverageEnableEXT CmdSetAlphaToCoverageEnableEXT;
+  PFN_vkCmdSetAlphaToOneEnableEXT CmdSetAlphaToOneEnableEXT;
+  PFN_vkCmdSetLogicOpEnableEXT CmdSetLogicOpEnableEXT;
+  PFN_vkCmdSetColorBlendEnableEXT CmdSetColorBlendEnableEXT;
+  PFN_vkCmdSetColorBlendEquationEXT CmdSetColorBlendEquationEXT;
+  PFN_vkCmdSetColorWriteMaskEXT CmdSetColorWriteMaskEXT;
+  PFN_vkCmdSetRasterizationStreamEXT CmdSetRasterizationStreamEXT;
+  PFN_vkCmdSetConservativeRasterizationModeEXT CmdSetConservativeRasterizationModeEXT;
+  PFN_vkCmdSetExtraPrimitiveOverestimationSizeEXT CmdSetExtraPrimitiveOverestimationSizeEXT;
+  PFN_vkCmdSetDepthClipEnableEXT CmdSetDepthClipEnableEXT;
+  PFN_vkCmdSetSampleLocationsEnableEXT CmdSetSampleLocationsEnableEXT;
+  PFN_vkCmdSetColorBlendAdvancedEXT CmdSetColorBlendAdvancedEXT;
+  PFN_vkCmdSetProvokingVertexModeEXT CmdSetProvokingVertexModeEXT;
+  PFN_vkCmdSetLineRasterizationModeEXT CmdSetLineRasterizationModeEXT;
+  PFN_vkCmdSetLineStippleEnableEXT CmdSetLineStippleEnableEXT;
+  PFN_vkCmdSetDepthClipNegativeOneToOneEXT CmdSetDepthClipNegativeOneToOneEXT;
+  PFN_vkCmdSetViewportWScalingEnableNV CmdSetViewportWScalingEnableNV;
+  PFN_vkCmdSetViewportSwizzleNV CmdSetViewportSwizzleNV;
+  PFN_vkCmdSetCoverageToColorEnableNV CmdSetCoverageToColorEnableNV;
+  PFN_vkCmdSetCoverageToColorLocationNV CmdSetCoverageToColorLocationNV;
+  PFN_vkCmdSetCoverageModulationModeNV CmdSetCoverageModulationModeNV;
+  PFN_vkCmdSetCoverageModulationTableEnableNV CmdSetCoverageModulationTableEnableNV;
+  PFN_vkCmdSetCoverageModulationTableNV CmdSetCoverageModulationTableNV;
+  PFN_vkCmdSetShadingRateImageEnableNV CmdSetShadingRateImageEnableNV;
+  PFN_vkCmdSetRepresentativeFragmentTestEnableNV CmdSetRepresentativeFragmentTestEnableNV;
+  PFN_vkCmdSetCoverageReductionModeNV CmdSetCoverageReductionModeNV;
+
   // VK_EXT_shader_module_identifier
   PFN_vkGetShaderModuleIdentifierEXT GetShaderModuleIdentifierEXT;
   PFN_vkGetShaderModuleCreateInfoIdentifierEXT GetShaderModuleCreateInfoIdentifierEXT;
+
+  // VK_NV_optical_flow
+  PFN_vkCreateOpticalFlowSessionNV CreateOpticalFlowSessionNV;
+  PFN_vkDestroyOpticalFlowSessionNV DestroyOpticalFlowSessionNV;
+  PFN_vkBindOpticalFlowSessionImageNV BindOpticalFlowSessionImageNV;
+  PFN_vkCmdOpticalFlowExecuteNV CmdOpticalFlowExecuteNV;
 
   // VK_QCOM_tile_properties
   PFN_vkGetFramebufferTilePropertiesQCOM GetFramebufferTilePropertiesQCOM;

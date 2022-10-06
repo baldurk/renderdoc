@@ -123,6 +123,7 @@ enum class Generator : uint32_t
   SPIRVBeehiveToolkit = 32,
   ShaderWriter = 33,
   SPIRVSmith = 34,
+  Shady = 35,
 };
 
 enum class ImageOperands : uint32_t
@@ -291,6 +292,7 @@ enum class RayFlags : uint32_t
   CullNoOpaqueKHR = 0x0080,
   SkipTrianglesKHR = 0x0100,
   SkipAABBsKHR = 0x0200,
+  ForceOpacityMicromap2StateEXT = 0x0400,
   Max,
   Invalid = ~0U,
 };
@@ -346,6 +348,8 @@ enum class ExecutionModel : uint32_t
   MissKHR = 5317,
   CallableNV = 5318,
   CallableKHR = 5318,
+  TaskEXT = 5364,
+  MeshEXT = 5365,
   Max,
   Invalid = ~0U,
 };
@@ -428,10 +432,13 @@ enum class ExecutionMode : uint32_t
   StencilRefGreaterBackAMD = 5083,
   StencilRefLessBackAMD = 5084,
   OutputLinesNV = 5269,
+  OutputLinesEXT = 5269,
   OutputPrimitivesNV = 5270,
+  OutputPrimitivesEXT = 5270,
   DerivativeGroupQuadsNV = 5289,
   DerivativeGroupLinearNV = 5290,
   OutputTrianglesNV = 5298,
+  OutputTrianglesEXT = 5298,
   PixelInterlockOrderedEXT = 5366,
   PixelInterlockUnorderedEXT = 5367,
   SampleInterlockOrderedEXT = 5368,
@@ -482,6 +489,7 @@ enum class StorageClass : uint32_t
   ShaderRecordBufferKHR = 5343,
   PhysicalStorageBuffer = 5349,
   PhysicalStorageBufferEXT = 5349,
+  TaskPayloadWorkgroupEXT = 5402,
   CodeSectionINTEL = 5605,
   DeviceOnlyINTEL = 5936,
   HostOnlyINTEL = 5937,
@@ -757,6 +765,7 @@ enum class Decoration : uint32_t
   ViewportRelativeNV = 5252,
   SecondaryViewportRelativeNV = 5256,
   PerPrimitiveNV = 5271,
+  PerPrimitiveEXT = 5271,
   PerViewNV = 5272,
   PerTaskNV = 5273,
   PerVertexKHR = 5285,
@@ -860,6 +869,11 @@ enum class BuiltIn : uint32_t
   SubgroupLocalInvocationId = 41,
   VertexIndex = 42,
   InstanceIndex = 43,
+  CoreIDARM = 4160,
+  CoreCountARM = 4161,
+  CoreMaxIDARM = 4162,
+  WarpIDARM = 4163,
+  WarpMaxIDARM = 4164,
   SubgroupEqMask = 4416,
   SubgroupEqMaskKHR = 4416,
   SubgroupGeMask = 4417,
@@ -907,6 +921,10 @@ enum class BuiltIn : uint32_t
   FragmentSizeNV = 5292,
   FragInvocationCountEXT = 5293,
   InvocationsPerPixelNV = 5293,
+  PrimitivePointIndicesEXT = 5294,
+  PrimitiveLineIndicesEXT = 5295,
+  PrimitiveTriangleIndicesEXT = 5296,
+  CullPrimitiveEXT = 5299,
   LaunchIdNV = 5319,
   LaunchIdKHR = 5319,
   LaunchSizeNV = 5320,
@@ -1053,6 +1071,7 @@ enum class Capability : uint32_t
   ShaderLayer = 69,
   ShaderViewportIndex = 70,
   UniformDecoration = 71,
+  CoreBuiltinsARM = 4165,
   FragmentShadingRateKHR = 4422,
   SubgroupBallotKHR = 4423,
   DrawParameters = 4427,
@@ -1101,6 +1120,7 @@ enum class Capability : uint32_t
   FragmentFullyCoveredEXT = 5265,
   MeshShadingNV = 5266,
   ImageFootprintNV = 5282,
+  MeshShadingEXT = 5283,
   FragmentBarycentricKHR = 5284,
   FragmentBarycentricNV = 5284,
   ComputeDerivativeGroupQuadsNV = 5288,
@@ -1148,6 +1168,7 @@ enum class Capability : uint32_t
   FragmentShaderPixelInterlockEXT = 5378,
   DemoteToHelperInvocation = 5379,
   DemoteToHelperInvocationEXT = 5379,
+  RayTracingOpacityMicromapEXT = 5381,
   BindlessTextureNV = 5390,
   SubgroupShuffleINTEL = 5568,
   SubgroupBufferBlockIOINTEL = 5569,
@@ -1478,6 +1499,7 @@ struct ExecutionModeAndParamData
     uint32_t roundingModeRTE;
     uint32_t roundingModeRTZ;
     uint32_t outputPrimitivesNV;
+    uint32_t outputPrimitivesEXT;
     uint32_t sharedLocalMemorySizeINTEL;
     uint32_t roundingModeRTPINTEL;
     uint32_t roundingModeRTNINTEL;
@@ -1957,6 +1979,8 @@ enum class Op : uint16_t
   FragmentFetchAMD = 5012,
   ReadClockKHR = 5056,
   ImageSampleFootprintNV = 5283,
+  EmitMeshTasksEXT = 5294,
+  SetMeshOutputsEXT = 5295,
   GroupNonUniformPartitionNV = 5296,
   WritePackedPrimitiveIndices4x8NV = 5299,
   ReportIntersectionNV = 5334,

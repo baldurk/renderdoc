@@ -13622,6 +13622,71 @@ struct OpImageSampleFootprintNV
   ImageOperandsAndParamDatas imageOperands;
 };
 
+struct OpEmitMeshTasksEXT
+{
+  OpEmitMeshTasksEXT(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->groupCountX = Id::fromWord(it.word(1));
+    this->groupCountY = Id::fromWord(it.word(2));
+    this->groupCountZ = Id::fromWord(it.word(3));
+    this->payload = (it.size() > 4) ? Id::fromWord(it.word(4)) : Id();
+  }
+  OpEmitMeshTasksEXT(Id groupCountX, Id groupCountY, Id groupCountZ, Id payload = Id())
+      : op(Op::EmitMeshTasksEXT)
+      , wordCount(MinWordSize + OptionalWordCount(payload))
+  {
+    this->groupCountX = groupCountX;
+    this->groupCountY = groupCountY;
+    this->groupCountZ = groupCountZ;
+    this->payload = payload;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(groupCountX.value());
+    words.push_back(groupCountY.value());
+    words.push_back(groupCountZ.value());
+    if(payload != Id()) words.push_back(payload.value());
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::EmitMeshTasksEXT;
+  static constexpr uint16_t MinWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  Id groupCountX;
+  Id groupCountY;
+  Id groupCountZ;
+  Id payload;
+
+  bool HasPayload() const { return wordCount > 4; }
+};
+
+struct OpSetMeshOutputsEXT
+{
+  OpSetMeshOutputsEXT(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpSetMeshOutputsEXT(Id vertexCount, Id primitiveCount)
+      : op(Op::SetMeshOutputsEXT)
+      , wordCount(FixedWordSize)
+  {
+    this->vertexCount = vertexCount;
+    this->primitiveCount = primitiveCount;
+  }
+
+  static constexpr Op OpCode = Op::SetMeshOutputsEXT;
+  static constexpr uint16_t FixedWordSize = 3U;
+  Op op;
+  uint16_t wordCount;
+  Id vertexCount;
+  Id primitiveCount;
+};
+
 struct OpGroupNonUniformPartitionNV
 {
   OpGroupNonUniformPartitionNV(const ConstIter &it)

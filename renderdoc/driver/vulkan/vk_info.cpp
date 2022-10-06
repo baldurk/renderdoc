@@ -73,6 +73,42 @@ VkDynamicState ConvertDynamicState(VulkanDynamicStateIndex idx)
     case VkDynamicLogicOpEXT: return VK_DYNAMIC_STATE_LOGIC_OP_EXT;
     case VkDynamicPrimRestart: return VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE;
     case VkDynamicColorWriteEXT: return VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT;
+    case VkDynamicTessDomainOriginEXT: return VK_DYNAMIC_STATE_TESSELLATION_DOMAIN_ORIGIN_EXT;
+    case VkDynamicDepthClampEnableEXT: return VK_DYNAMIC_STATE_DEPTH_CLAMP_ENABLE_EXT;
+    case VkDynamicPolygonModeEXT: return VK_DYNAMIC_STATE_POLYGON_MODE_EXT;
+    case VkDynamicRasterizationSamplesEXT: return VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT;
+    case VkDynamicSampleMaskEXT: return VK_DYNAMIC_STATE_SAMPLE_MASK_EXT;
+    case VkDynamicAlphaToCoverageEXT: return VK_DYNAMIC_STATE_ALPHA_TO_COVERAGE_ENABLE_EXT;
+    case VkDynamicAlphaToOneEXT: return VK_DYNAMIC_STATE_ALPHA_TO_ONE_ENABLE_EXT;
+    case VkDynamicLogicOpEnableEXT: return VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT;
+    case VkDynamicColorBlendEnableEXT: return VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT;
+    case VkDynamicColorBlendEquationEXT: return VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT;
+    case VkDynamicColorWriteMaskEXT: return VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT;
+    case VkDynamicRasterizationStreamEXT: return VK_DYNAMIC_STATE_RASTERIZATION_STREAM_EXT;
+    case VkDynamicConservativeRastModeEXT:
+      return VK_DYNAMIC_STATE_CONSERVATIVE_RASTERIZATION_MODE_EXT;
+    case VkDynamicOverstimationSizeEXT:
+      return VK_DYNAMIC_STATE_EXTRA_PRIMITIVE_OVERESTIMATION_SIZE_EXT;
+    case VkDynamicDepthClipEnableEXT: return VK_DYNAMIC_STATE_DEPTH_CLIP_ENABLE_EXT;
+    case VkDynamicSampleLocationsEnableEXT: return VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_ENABLE_EXT;
+    case VkDynamicStateColorBlendAdvancedEXT: return VK_DYNAMIC_STATE_COLOR_BLEND_ADVANCED_EXT;
+    case VkDynamicProvokingVertexModeEXT: return VK_DYNAMIC_STATE_PROVOKING_VERTEX_MODE_EXT;
+    case VkDynamicLineRastModeEXT: return VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT;
+    case VkDynamicLineStippleEnableEXT: return VK_DYNAMIC_STATE_LINE_STIPPLE_ENABLE_EXT;
+    case VkDynamicDepthClipNegativeOneEXT:
+      return VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT;
+    case VkDynamicViewportWScalingEXT: return VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_ENABLE_NV;
+    case VkDynamicViewportSwizzleEXT: return VK_DYNAMIC_STATE_VIEWPORT_SWIZZLE_NV;
+    case VkDynamicCoverageToColorEnableEXT: return VK_DYNAMIC_STATE_COVERAGE_TO_COLOR_ENABLE_NV;
+    case VkDynamicCoverageToColorLocationEXT: return VK_DYNAMIC_STATE_COVERAGE_TO_COLOR_LOCATION_NV;
+    case VkDynamicCoverageModulationModeEXT: return VK_DYNAMIC_STATE_COVERAGE_MODULATION_MODE_NV;
+    case VkDynamicCoverageModulationTableEnableEXT:
+      return VK_DYNAMIC_STATE_COVERAGE_MODULATION_TABLE_ENABLE_NV;
+    case VkDynamicCoverageModulationTableEXT: return VK_DYNAMIC_STATE_COVERAGE_MODULATION_TABLE_NV;
+    case VkDynamicShadingRateImageEnableEXT: return VK_DYNAMIC_STATE_SHADING_RATE_IMAGE_ENABLE_NV;
+    case VkDynamicRepresentativeFragTestEXT:
+      return VK_DYNAMIC_STATE_REPRESENTATIVE_FRAGMENT_TEST_ENABLE_NV;
+    case VkDynamicCoverageReductionModeEXT: return VK_DYNAMIC_STATE_COVERAGE_REDUCTION_MODE_NV;
     case VkDynamicCount: break;
   }
 
@@ -125,6 +161,42 @@ VulkanDynamicStateIndex ConvertDynamicState(VkDynamicState state)
     case VK_DYNAMIC_STATE_LOGIC_OP_EXT: return VkDynamicLogicOpEXT;
     case VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE: return VkDynamicPrimRestart;
     case VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT: return VkDynamicColorWriteEXT;
+    case VK_DYNAMIC_STATE_TESSELLATION_DOMAIN_ORIGIN_EXT: return VkDynamicTessDomainOriginEXT;
+    case VK_DYNAMIC_STATE_DEPTH_CLAMP_ENABLE_EXT: return VkDynamicDepthClampEnableEXT;
+    case VK_DYNAMIC_STATE_POLYGON_MODE_EXT: return VkDynamicPolygonModeEXT;
+    case VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT: return VkDynamicRasterizationSamplesEXT;
+    case VK_DYNAMIC_STATE_SAMPLE_MASK_EXT: return VkDynamicSampleMaskEXT;
+    case VK_DYNAMIC_STATE_ALPHA_TO_COVERAGE_ENABLE_EXT: return VkDynamicAlphaToCoverageEXT;
+    case VK_DYNAMIC_STATE_ALPHA_TO_ONE_ENABLE_EXT: return VkDynamicAlphaToOneEXT;
+    case VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT: return VkDynamicLogicOpEnableEXT;
+    case VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT: return VkDynamicColorBlendEnableEXT;
+    case VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT: return VkDynamicColorBlendEquationEXT;
+    case VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT: return VkDynamicColorWriteMaskEXT;
+    case VK_DYNAMIC_STATE_RASTERIZATION_STREAM_EXT: return VkDynamicRasterizationStreamEXT;
+    case VK_DYNAMIC_STATE_CONSERVATIVE_RASTERIZATION_MODE_EXT:
+      return VkDynamicConservativeRastModeEXT;
+    case VK_DYNAMIC_STATE_EXTRA_PRIMITIVE_OVERESTIMATION_SIZE_EXT:
+      return VkDynamicOverstimationSizeEXT;
+    case VK_DYNAMIC_STATE_DEPTH_CLIP_ENABLE_EXT: return VkDynamicDepthClipEnableEXT;
+    case VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_ENABLE_EXT: return VkDynamicSampleLocationsEnableEXT;
+    case VK_DYNAMIC_STATE_COLOR_BLEND_ADVANCED_EXT: return VkDynamicStateColorBlendAdvancedEXT;
+    case VK_DYNAMIC_STATE_PROVOKING_VERTEX_MODE_EXT: return VkDynamicProvokingVertexModeEXT;
+    case VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT: return VkDynamicLineRastModeEXT;
+    case VK_DYNAMIC_STATE_LINE_STIPPLE_ENABLE_EXT: return VkDynamicLineStippleEnableEXT;
+    case VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT:
+      return VkDynamicDepthClipNegativeOneEXT;
+    case VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_ENABLE_NV: return VkDynamicViewportWScalingEXT;
+    case VK_DYNAMIC_STATE_VIEWPORT_SWIZZLE_NV: return VkDynamicViewportSwizzleEXT;
+    case VK_DYNAMIC_STATE_COVERAGE_TO_COLOR_ENABLE_NV: return VkDynamicCoverageToColorEnableEXT;
+    case VK_DYNAMIC_STATE_COVERAGE_TO_COLOR_LOCATION_NV: return VkDynamicCoverageToColorLocationEXT;
+    case VK_DYNAMIC_STATE_COVERAGE_MODULATION_MODE_NV: return VkDynamicCoverageModulationModeEXT;
+    case VK_DYNAMIC_STATE_COVERAGE_MODULATION_TABLE_ENABLE_NV:
+      return VkDynamicCoverageModulationTableEnableEXT;
+    case VK_DYNAMIC_STATE_COVERAGE_MODULATION_TABLE_NV: return VkDynamicCoverageModulationTableEXT;
+    case VK_DYNAMIC_STATE_SHADING_RATE_IMAGE_ENABLE_NV: return VkDynamicShadingRateImageEnableEXT;
+    case VK_DYNAMIC_STATE_REPRESENTATIVE_FRAGMENT_TEST_ENABLE_NV:
+      return VkDynamicRepresentativeFragTestEXT;
+    case VK_DYNAMIC_STATE_COVERAGE_REDUCTION_MODE_NV: return VkDynamicCoverageReductionModeEXT;
     case VK_DYNAMIC_STATE_MAX_ENUM: break;
   }
 
@@ -183,6 +255,37 @@ static VkGraphicsPipelineLibraryFlagsEXT DynamicStateValidState(VkDynamicState s
     case VK_DYNAMIC_STATE_LOGIC_OP_EXT: return colout;
     case VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE: return vinput;
     case VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT: return colout;
+    case VK_DYNAMIC_STATE_TESSELLATION_DOMAIN_ORIGIN_EXT: return vert;
+    case VK_DYNAMIC_STATE_DEPTH_CLAMP_ENABLE_EXT: return vert;
+    case VK_DYNAMIC_STATE_POLYGON_MODE_EXT: return vert;
+    case VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT: return frag | colout;
+    case VK_DYNAMIC_STATE_SAMPLE_MASK_EXT: return frag | colout;
+    case VK_DYNAMIC_STATE_ALPHA_TO_COVERAGE_ENABLE_EXT: return frag | colout;
+    case VK_DYNAMIC_STATE_ALPHA_TO_ONE_ENABLE_EXT: return frag | colout;
+    case VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT: return colout;
+    case VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT: return colout;
+    case VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT: return colout;
+    case VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT: return colout;
+    case VK_DYNAMIC_STATE_RASTERIZATION_STREAM_EXT: return vert;
+    case VK_DYNAMIC_STATE_CONSERVATIVE_RASTERIZATION_MODE_EXT: return vert;
+    case VK_DYNAMIC_STATE_EXTRA_PRIMITIVE_OVERESTIMATION_SIZE_EXT: return vert;
+    case VK_DYNAMIC_STATE_DEPTH_CLIP_ENABLE_EXT: return vert;
+    case VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_ENABLE_EXT: return frag | colout;
+    case VK_DYNAMIC_STATE_COLOR_BLEND_ADVANCED_EXT: return colout;
+    case VK_DYNAMIC_STATE_PROVOKING_VERTEX_MODE_EXT: return vert;
+    case VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT: return vert;
+    case VK_DYNAMIC_STATE_LINE_STIPPLE_ENABLE_EXT: return vert;
+    case VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT: return vert;
+    case VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_ENABLE_NV: return vert;
+    case VK_DYNAMIC_STATE_VIEWPORT_SWIZZLE_NV: return vert;
+    case VK_DYNAMIC_STATE_COVERAGE_TO_COLOR_ENABLE_NV: return frag | colout;
+    case VK_DYNAMIC_STATE_COVERAGE_TO_COLOR_LOCATION_NV: return frag | colout;
+    case VK_DYNAMIC_STATE_COVERAGE_MODULATION_MODE_NV: return frag | colout;
+    case VK_DYNAMIC_STATE_COVERAGE_MODULATION_TABLE_ENABLE_NV: return frag | colout;
+    case VK_DYNAMIC_STATE_COVERAGE_MODULATION_TABLE_NV: return frag | colout;
+    case VK_DYNAMIC_STATE_SHADING_RATE_IMAGE_ENABLE_NV: return vert;
+    case VK_DYNAMIC_STATE_REPRESENTATIVE_FRAGMENT_TEST_ENABLE_NV: return frag;
+    case VK_DYNAMIC_STATE_COVERAGE_REDUCTION_MODE_NV: return frag | colout;
     case VK_DYNAMIC_STATE_MAX_ENUM: break;
   }
 

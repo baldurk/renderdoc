@@ -2034,7 +2034,8 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_EAC_R11G11_UNORM_BLOCK:
     case VK_FORMAT_EAC_R11G11_SNORM_BLOCK:
     case VK_FORMAT_R10X6G10X6_UNORM_2PACK16:
-    case VK_FORMAT_R12X4G12X4_UNORM_2PACK16: ret.compCount = 2; break;
+    case VK_FORMAT_R12X4G12X4_UNORM_2PACK16:
+    case VK_FORMAT_R16G16_S10_5_NV: ret.compCount = 2; break;
     case VK_FORMAT_R5G6B5_UNORM_PACK16:
     case VK_FORMAT_R8G8B8_UNORM:
     case VK_FORMAT_R8G8B8_SNORM:
@@ -2410,6 +2411,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_R32G32B32A32_SFLOAT:
     case VK_FORMAT_B10G11R11_UFLOAT_PACK32:
     case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32:
+    case VK_FORMAT_R16G16_S10_5_NV:
     case VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK:
@@ -2724,7 +2726,8 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM:
     case VK_FORMAT_G16_B16R16_2PLANE_422_UNORM:
     case VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM:
-    case VK_FORMAT_G16_B16R16_2PLANE_444_UNORM: ret.compByteWidth = 2; break;
+    case VK_FORMAT_G16_B16R16_2PLANE_444_UNORM:
+    case VK_FORMAT_R16G16_S10_5_NV: ret.compByteWidth = 2; break;
     case VK_FORMAT_UNDEFINED:
     case VK_FORMAT_MAX_ENUM: ret.compByteWidth = 1; break;
   }
