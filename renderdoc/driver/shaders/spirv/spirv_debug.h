@@ -143,6 +143,12 @@ struct StackFrame
   // allocated storage for locals
   rdcarray<ShaderVariable> locals;
 
+  // list of Ids we created, either variables/function parameters in this function, or IDs created
+  // in this function. When we return from this frame they will be emptied.
+  // This prevents a use-after-free with ShaderVariableChanges if we re-enter the same function
+  // and want to show the previous value of an id
+  rdcarray<Id> idsCreated;
+
   // as a hack for scoping without proper debug info, we track locals from their first use
   rdcarray<Id> localsUsed;
 

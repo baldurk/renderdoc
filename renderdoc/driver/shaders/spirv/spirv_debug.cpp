@@ -342,6 +342,11 @@ void ThreadState::SetDst(Id id, const ShaderVariable &val)
 
   ShaderVariable prev = ids[id];
 
+  // if this id didn't exist before it's not a global so it's a local variable, function parameter,
+  // or plain id. Track it in the current frame so it's emptied upon return
+  if(prev.name.empty() && prev.type == VarType::Unknown)
+    callstack.back()->idsCreated.push_back(id);
+
   ids[id] = val;
   ids[id].name = GetRawName(id);
 
@@ -3036,6 +3041,9 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         // restore the live list from the calling frame
         live = callstack.back()->live;
       }
+
+      for(Id id : exitingFrame->idsCreated)
+        ids[id] = ShaderVariable();
 
       delete exitingFrame;
 
