@@ -272,15 +272,49 @@ void main()
 
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 0, 4, &ssboIdx);
 
+      setMarker(cmd, "Draw 0");
+
       vkCmdDraw(cmd, 3, 1, 0, 0);
 
       vkCmdEndRenderingKHR(cmd);
+
+      VkCommandBuffer cmd2 = GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY);
+
+      {
+        VkCommandBufferInheritanceInfo inherit = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO};
+
+        vkBeginCommandBuffer(cmd2, vkh::CommandBufferBeginInfo(0, &inherit));
+
+        vkCmdBeginRenderingKHR(cmd2, &rendInfo);
+
+        VkViewport v = mainWindow->viewport;
+        v.width /= 2;
+        v.height /= 2;
+
+        vkCmdBindPipeline(cmd2, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
+        vkCmdSetViewport(cmd2, 0, 1, &v);
+        vkCmdSetScissor(cmd2, 0, 1, &mainWindow->scissor);
+        vkh::cmdBindVertexBuffers(cmd2, 0, {vb.buffer}, {0});
+        vkh::cmdBindDescriptorSets(cmd2, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});
+
+        vkCmdPushConstants(cmd2, layout, VK_SHADER_STAGE_ALL, 0, 4, &ssboIdx);
+
+        setMarker(cmd2, "Draw 1");
+
+        vkCmdDraw(cmd2, 3, 1, 0, 0);
+
+        vkCmdEndRenderingKHR(cmd2);
+
+        vkEndCommandBuffer(cmd2);
+      }
+
+      vkCmdExecuteCommands(cmd, 1, &cmd2);
 
       FinishUsingBackbuffer(cmd, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
       vkEndCommandBuffer(cmd);
 
-      Submit(0, 1, {cmd});
+      Submit(0, 1, {cmd}, {cmd2});
 
       Present();
     }
