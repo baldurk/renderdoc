@@ -796,6 +796,7 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
   }
 
   MeshFormat helper;
+  helper.allowRestart = false;
   helper.indexByteStride = 2;
   helper.topology = Topology::LineList;
 
