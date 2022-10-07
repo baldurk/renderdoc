@@ -3821,7 +3821,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
     VkResult vkr = VK_SUCCESS;
 
-    bool rpWasActive = false;
+    bool rpWasActive[2] = {};
 
     // we'll need our own command buffer if we're replaying just a subsection
     // of events within a single command buffer record - always if it's only
@@ -3850,9 +3850,10 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       m_RenderState.subpassContents = VK_SUBPASS_CONTENTS_INLINE;
       m_RenderState.dynamicRendering.flags &= ~VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT;
 
-      rpWasActive = m_Partial[Primary].renderPassActive;
+      rpWasActive[Primary] = m_Partial[Primary].renderPassActive;
+      rpWasActive[Secondary] = m_Partial[Secondary].renderPassActive;
 
-      if(m_Partial[Primary].renderPassActive)
+      if(rpWasActive[Primary] || rpWasActive[Secondary])
       {
         const ActionDescription *action = GetAction(endEventID);
 
@@ -3928,13 +3929,14 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       // even if it wasn't before (if the above event was a CmdBeginRenderPass).
       // If we began our own custom single-action loadrp, and it was ended by a CmdEndRenderPass,
       // we need to reverse the virtual transitions we did above, as it won't happen otherwise
-      if(m_Partial[Primary].renderPassActive)
+      if(m_Partial[Primary].renderPassActive || m_Partial[Secondary].renderPassActive)
         m_RenderState.EndRenderPass(cmd);
 
       // we might have replayed a CmdBeginRenderPass or CmdEndRenderPass,
       // but we want to keep the partial replay data state intact, so restore
       // whether or not a render pass was active.
-      m_Partial[Primary].renderPassActive = rpWasActive;
+      m_Partial[Primary].renderPassActive = rpWasActive[Primary];
+      m_Partial[Secondary].renderPassActive = rpWasActive[Secondary];
 
       ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 

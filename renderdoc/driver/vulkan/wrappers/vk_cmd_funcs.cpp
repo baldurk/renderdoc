@@ -1393,8 +1393,10 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
         }
 
         // finish any render pass that was still active in the primary partial parent
-        if(m_Partial[Primary].partialParent == BakedCommandBuffer &&
-           m_Partial[Primary].renderPassActive)
+        if((m_Partial[Primary].partialParent == BakedCommandBuffer &&
+            m_Partial[Primary].renderPassActive) ||
+           (m_Partial[Secondary].partialParent == BakedCommandBuffer &&
+            m_Partial[Secondary].renderPassActive))
         {
           if(m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen)
           {
@@ -6772,9 +6774,13 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
         // only if we're partially recording do we update this state
-        if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          m_Partial[Primary].renderPassActive = true;
+          if(m_Partial[Primary].partialParent == m_LastCmdBufferID)
+            m_Partial[Primary].renderPassActive = true;
+          else if(m_Partial[Secondary].partialParent == m_LastCmdBufferID)
+            m_Partial[Secondary].renderPassActive = true;
+
           m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = true;
         }
         m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass = 0;
@@ -7136,13 +7142,18 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering(SerialiserType &ser, VkCommandBu
 
         bool suspending = (renderstate.dynamicRendering.flags & VK_RENDERING_SUSPENDING_BIT) != 0;
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
 
           // if this rendering is just being suspended, the pass is still active
           if(!suspending)
-            m_Partial[Primary].renderPassActive = false;
+          {
+            if(m_Partial[Primary].partialParent == m_LastCmdBufferID)
+              m_Partial[Primary].renderPassActive = false;
+            else if(m_Partial[Secondary].partialParent == m_LastCmdBufferID)
+              m_Partial[Secondary].renderPassActive = false;
+          }
         }
 
         ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::EndPass;
