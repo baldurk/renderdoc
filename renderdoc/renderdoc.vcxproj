@@ -713,6 +713,10 @@
     <None Include="data\glsl\vktext.vert" />
     <None Include="data\glsl\trisize.frag" />
     <None Include="data\glsl\trisize.geom" />
+    <None Include="data\glsl\vk_buffer2ms.comp" />
+    <None Include="data\glsl\vk_depthbuf2ms.frag" />
+    <None Include="data\glsl\vk_depthms2buffer.comp" />
+    <None Include="data\glsl\vk_ms2buffer.comp" />
     <None Include="data\hlsl\hlsl_texsample.h" />
     <None Include="data\hlsl\misc.hlsl" />
     <None Include="data\hlsl\text.hlsl" />

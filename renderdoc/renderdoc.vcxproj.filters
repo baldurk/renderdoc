@@ -1136,6 +1136,18 @@
     <None Include="data\hlsl\shaderdebug.hlsl">
       <Filter>Resources\hlsl</Filter>
     </None>
+    <None Include="data\glsl\vk_buffer2ms.comp">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\vk_depthbuf2ms.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\vk_depthms2buffer.comp">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\vk_ms2buffer.comp">
+      <Filter>Resources\glsl</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">
