@@ -57,40 +57,41 @@ static bool MatchBaseTypeDeclaration(QString basetype, const bool isUnsigned, Sh
   {
     el.type.baseType = VarType::Bool;
   }
-  else if(basetype == lit("byte") || basetype == lit("char"))
+  else if(basetype == lit("byte") || basetype == lit("char") || basetype == lit("int8_t"))
   {
     el.type.baseType = VarType::SByte;
 
     if(isUnsigned)
       el.type.baseType = VarType::UByte;
   }
-  else if(basetype == lit("ubyte") || basetype == lit("xbyte"))
+  else if(basetype == lit("ubyte") || basetype == lit("xbyte") || basetype == lit("uint8_t"))
   {
     el.type.baseType = VarType::UByte;
   }
-  else if(basetype == lit("short"))
+  else if(basetype == lit("short") || basetype == lit("int16_t"))
   {
     el.type.baseType = VarType::SShort;
 
     if(isUnsigned)
       el.type.baseType = VarType::UShort;
   }
-  else if(basetype == lit("ushort") || basetype == lit("xshort"))
+  else if(basetype == lit("ushort") || basetype == lit("xshort") || basetype == lit("uint16_t"))
   {
     el.type.baseType = VarType::UShort;
   }
-  else if(basetype == lit("long"))
+  else if(basetype == lit("long") || basetype == lit("int64_t"))
   {
     el.type.baseType = VarType::SLong;
 
     if(isUnsigned)
       el.type.baseType = VarType::ULong;
   }
-  else if(basetype == lit("ulong") || basetype == lit("xlong"))
+  else if(basetype == lit("ulong") || basetype == lit("xlong") || basetype == lit("uint64_t"))
   {
     el.type.baseType = VarType::ULong;
   }
-  else if(basetype == lit("int") || basetype == lit("ivec") || basetype == lit("imat"))
+  else if(basetype == lit("int") || basetype == lit("ivec") || basetype == lit("imat") ||
+          basetype == lit("int32_t"))
   {
     el.type.baseType = VarType::SInt;
 
@@ -98,19 +99,21 @@ static bool MatchBaseTypeDeclaration(QString basetype, const bool isUnsigned, Sh
       el.type.baseType = VarType::UInt;
   }
   else if(basetype == lit("uint") || basetype == lit("xint") || basetype == lit("uvec") ||
-          basetype == lit("umat"))
+          basetype == lit("umat") || basetype == lit("uint32_t"))
   {
     el.type.baseType = VarType::UInt;
   }
-  else if(basetype == lit("half"))
+  else if(basetype == lit("half") || basetype == lit("float16_t"))
   {
     el.type.baseType = VarType::Half;
   }
-  else if(basetype == lit("float") || basetype == lit("vec") || basetype == lit("mat"))
+  else if(basetype == lit("float") || basetype == lit("vec") || basetype == lit("mat") ||
+          basetype == lit("float32_t"))
   {
     el.type.baseType = VarType::Float;
   }
-  else if(basetype == lit("double") || basetype == lit("dvec") || basetype == lit("dmat"))
+  else if(basetype == lit("double") || basetype == lit("dvec") || basetype == lit("dmat") ||
+          basetype == lit("float64_t"))
   {
     el.type.baseType = VarType::Double;
   }
@@ -501,6 +504,11 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
           "|half|float|double"                           // float types
           "|vec|uvec|ivec|dvec"                          // OpenGL vector types
           "|mat|umat|imat|dmat"                          // OpenGL matrix types
+          "|int8_t|uint8_t"                              // C-style sized 8-bit types
+          "|int16_t|uint16_t"                            // C-style sized 16-bit types
+          "|int32_t|uint32_t"                            // C-style sized 32-bit types
+          "|int64_t|uint64_t"                            // C-style sized 64-bit types
+          "|float16_t|float32_t|float64_t"               // C-style sized float types
           ")"                                            // end of the type group
           "(?<vec>[1-9])?"                               // might be a vector
           "(?<mat>x[1-9])?"                              // or a matrix
@@ -3942,6 +3950,99 @@ TEST_CASE("Buffer format parsing", "[formatter]")
       REQUIRE(parsed.fixed.type.members.size() == 1);
       CHECK(parsed.fixed.type.members[0].name == "a");
       CHECK((parsed.fixed.type.members[0].type == expect_type));
+    }
+
+    {
+      ShaderConstantType expect_type;
+      expect_type.name = "byte";
+      expect_type.flags = ShaderVariableFlags::RowMajorMatrix;
+      expect_type.baseType = VarType::SByte;
+      expect_type.arrayByteStride = 1;
+
+      parsed = BufferFormatter::ParseFormatString(lit("char a;"), 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expect_type));
+
+      expect_type.name = "ubyte";
+      expect_type.baseType = VarType::UByte;
+
+      parsed = BufferFormatter::ParseFormatString(lit("unsigned char a;"), 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 1);
+      CHECK(parsed.fixed.type.members[0].name == "a");
+      CHECK((parsed.fixed.type.members[0].type == expect_type));
+    }
+  };
+
+  SECTION("C-style sized formats")
+  {
+    parsed = BufferFormatter::ParseFormatString(lit("float32_t a;"), 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK(parsed.repeating.type.members.empty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "a");
+    CHECK((parsed.fixed.type.members[0].type == float_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("int32_t a;"), 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK(parsed.repeating.type.members.empty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "a");
+    CHECK((parsed.fixed.type.members[0].type == int_type));
+
+    parsed = BufferFormatter::ParseFormatString(lit("uint32_t a;"), 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    CHECK(parsed.repeating.type.members.empty());
+    REQUIRE(parsed.fixed.type.members.size() == 1);
+    CHECK(parsed.fixed.type.members[0].name == "a");
+    CHECK((parsed.fixed.type.members[0].type == uint_type));
+
+    rdcarray<rdcpair<rdcstr, VarType>> tests = {
+        {"float16_t", VarType::Half}, {"float64_t", VarType::Double}, {"uint8_t", VarType::UByte},
+        {"int8_t", VarType::SByte},   {"uint16_t", VarType::UShort},  {"int16_t", VarType::SShort},
+        {"uint64_t", VarType::ULong}, {"int64_t", VarType::SLong},
+    };
+
+    for(uint32_t vecSize = 0; vecSize <= 4; vecSize++)
+    {
+      for(const rdcpair<rdcstr, VarType> &test : tests)
+      {
+        ShaderConstantType expect_type;
+        expect_type.flags = ShaderVariableFlags::RowMajorMatrix;
+        expect_type.baseType = test.second;
+        expect_type.columns = qMax(1U, vecSize);
+        expect_type.arrayByteStride = VarTypeByteSize(test.second) * expect_type.columns;
+        expect_type.name = ToStr(test.second);
+
+        QString format;
+
+        if(vecSize == 0)
+        {
+          format = lit("%1 a;").arg(test.first);
+        }
+        else
+        {
+          format = lit("%1%2 a;").arg(test.first).arg(vecSize);
+          expect_type.name += ToStr(vecSize);
+        }
+
+        parsed = BufferFormatter::ParseFormatString(format, 0, true);
+
+        CHECK(parsed.errors.isEmpty());
+        CHECK(parsed.repeating.type.members.empty());
+        REQUIRE(parsed.fixed.type.members.size() == 1);
+        CHECK(parsed.fixed.type.members[0].name == "a");
+        CHECK((parsed.fixed.type.members[0].type == expect_type));
+      }
     }
 
     {
