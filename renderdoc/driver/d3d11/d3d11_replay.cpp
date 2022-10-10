@@ -4314,6 +4314,8 @@ RDResult D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRepl
               "Device creation failed with validation active - check that you have the "
               "SDK installed or Windows feature enabled to get the D3D debug layers.");
 
+          hr = hr2;
+
           break;
         }
       }
