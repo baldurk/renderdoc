@@ -397,7 +397,11 @@ StructSizes CalculateStructProps(uint32_t emptyStructSize, const ShaderConstant 
 
       if(i + 1 == c.type.members.size())
       {
-        ret.scalarSize = AlignUp(m.byteOffset + member.scalarSize, ret.scalarAlign);
+        // scalar struct sizes are NOT padded up to the multiple of their alignment. It is allowed
+        // in scalar packing for an outside variable to 'sit in' the padding at the end of a struct
+        // due to alignment. This rule is more tight than even C packing, which normally has
+        // sizeof(struct) be a multiple of its alignment
+        ret.scalarSize = m.byteOffset + member.scalarSize;
         ret.baseSize = AlignUp(m.byteOffset + member.baseSize, ret.baseAlign);
         ret.extendedSize = AlignUp16(m.byteOffset + member.extendedSize);
       }
