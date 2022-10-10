@@ -3947,9 +3947,13 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
       eventPremods[mod.eventId] = mod.preMod;
     }
 
-    for(int32_t f = 1; f < frags; f++)
+    if(frags > 1)
     {
-      history.insert(h + 1, mod);
+      PixelModification duplicate = mod;
+      for(int32_t f = 1; f < frags; f++)
+      {
+        history.insert(h + 1, duplicate);
+      }
     }
     for(int32_t f = 0; f < frags; f++)
       history[h + f].fragIndex = f;
