@@ -1211,7 +1211,7 @@ void ImageState::ResetToOldState(ImageBarrierSequence &barriers, ImageTransition
     if(subRange.baseDepthSlice != 0)
     {
       // We can't issue barriers per depth slice, so skip the barriers for non-zero depth slices.
-      // The zero depth slice barrier will implicitly cover the non-zerp depth slices.
+      // The zero depth slice barrier will implicitly cover the non-zero depth slices.
       continue;
     }
 
