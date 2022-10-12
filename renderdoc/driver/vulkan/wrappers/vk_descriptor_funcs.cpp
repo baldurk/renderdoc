@@ -490,7 +490,7 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
                 &AllocateInfo,
                 VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO);
 
-        if(variableAlloc)
+        if(variableAlloc && variableAlloc->descriptorSetCount > 0)
         {
           // this struct will have been patched similar to VkDescriptorSetAllocateInfo so we look up
           // the [0]th element
@@ -555,7 +555,8 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(VkDevice device,
       poolrecord = GetRecord(pAllocateInfo->descriptorPool);
 
       if(!layoutRecord->descInfo->layout->bindings.empty() &&
-         layoutRecord->descInfo->layout->bindings.back().variableSize && variableAlloc)
+         layoutRecord->descInfo->layout->bindings.back().variableSize && variableAlloc &&
+         variableAlloc->descriptorSetCount > 0)
       {
         variableDescriptorAlloc = variableAlloc->pDescriptorCounts[i];
       }
@@ -631,7 +632,7 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(VkDevice device,
           info.descriptorSetCount = 1;
           info.pSetLayouts = mutableInfo.pSetLayouts + i;
 
-          if(mutableVariableInfo)
+          if(mutableVariableInfo && variableAlloc->descriptorSetCount > 0)
           {
             mutableVariableInfo->descriptorSetCount = 1;
             mutableVariableInfo->pDescriptorCounts = variableAlloc->pDescriptorCounts + i;

@@ -165,11 +165,43 @@ void main()
 
       vkCmdEndRenderPass(cmd);
 
+      VkCommandBuffer cmd2 = GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY);
+
+      {
+        VkCommandBufferInheritanceInfo inherit = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO};
+        inherit.framebuffer = fb;
+        inherit.renderPass = mainWindow->rp;
+
+        vkBeginCommandBuffer(cmd2, vkh::CommandBufferBeginInfo(
+                                       VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT, &inherit));
+
+        VkViewport v = mainWindow->viewport;
+        v.width /= 2;
+        v.height /= 2;
+
+        vkCmdBindPipeline(cmd2, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
+        vkCmdSetViewport(cmd2, 0, 1, &v);
+        vkCmdSetScissor(cmd2, 0, 1, &mainWindow->scissor);
+        vkh::cmdBindVertexBuffers(cmd2, 0, {vb.buffer}, {0});
+
+        vkCmdDraw(cmd2, 3, 1, 0, 0);
+
+        vkEndCommandBuffer(cmd2);
+      }
+
+      vkCmdBeginRenderPass(
+          cmd, vkh::RenderPassBeginInfo(mainWindow->rp, fb, mainWindow->scissor).next(&usedView),
+          VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+
+      vkCmdExecuteCommands(cmd, 1, &cmd2);
+
+      vkCmdEndRenderPass(cmd);
+
       FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
       vkEndCommandBuffer(cmd);
 
-      Submit(0, 1, {cmd});
+      Submit(0, 1, {cmd}, {cmd2});
 
       Present();
     }

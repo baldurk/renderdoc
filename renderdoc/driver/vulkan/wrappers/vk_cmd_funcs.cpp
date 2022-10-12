@@ -1173,9 +1173,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
                 GetResID(BeginInfo.pInheritanceInfo->renderPass));
           m_BakedCmdBufferInfo[BakedCommandBuffer].state.subpass =
               BeginInfo.pInheritanceInfo->subpass;
-          if(BeginInfo.pInheritanceInfo->framebuffer != VK_NULL_HANDLE)
-            m_BakedCmdBufferInfo[BakedCommandBuffer].state.SetFramebuffer(
-                this, GetResID(BeginInfo.pInheritanceInfo->framebuffer));
+          // framebuffer is not useful here since it may be incomplete (imageless) and it's
+          // optional, so we should just treat it as never present.
         }
 
         ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &unwrappedBeginInfo);
@@ -1960,6 +1959,11 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
         (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
             pRenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
 
+    // ignore degenerate struct (which is only valid - and indeed required - for a non-imageless
+    // framebuffer)
+    if(attachmentsInfo && attachmentsInfo->attachmentCount == 0)
+      attachmentsInfo = NULL;
+
     for(size_t i = 0; fbInfo->imageAttachments[i].barrier.sType; i++)
     {
       VkResourceRecord *att = fbInfo->imageAttachments[i].record;
@@ -2612,6 +2616,11 @@ void WrappedVulkan::vkCmdBeginRenderPass2(VkCommandBuffer commandBuffer,
     const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
         (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
             pRenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
+
+    // ignore degenerate struct (which is only valid - and indeed required - for a non-imageless
+    // framebuffer)
+    if(attachmentsInfo && attachmentsInfo->attachmentCount == 0)
+      attachmentsInfo = NULL;
 
     for(size_t i = 0; fbInfo->imageAttachments[i].barrier.sType; i++)
     {

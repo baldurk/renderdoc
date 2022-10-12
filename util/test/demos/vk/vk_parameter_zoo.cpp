@@ -251,6 +251,8 @@ void main()
     optDevExts.push_back(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME);
     optDevExts.push_back(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
     optDevExts.push_back(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_MULTIVIEW_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_MAINTENANCE2_EXTENSION_NAME);
 
     VulkanGraphicsTest::Prepare(argc, argv);
 
@@ -258,8 +260,7 @@ void main()
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR,
     };
 
-    if(std::find(devExts.begin(), devExts.end(), VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME) !=
-       devExts.end())
+    if(hasExt(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME))
     {
       timeline.timelineSemaphore = VK_TRUE;
       timeline.pNext = (void *)devInfoNext;
@@ -291,12 +292,22 @@ void main()
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT,
     };
 
-    if(std::find(devExts.begin(), devExts.end(), VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME) !=
-       devExts.end())
+    if(hasExt(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME))
     {
       xfbFeats.transformFeedback = VK_TRUE;
       xfbFeats.pNext = (void *)devInfoNext;
       devInfoNext = &xfbFeats;
+    }
+
+    static VkPhysicalDeviceMultiviewFeatures multiview = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES,
+    };
+
+    if(hasExt(VK_KHR_MULTIVIEW_EXTENSION_NAME))
+    {
+      multiview.multiview = VK_TRUE;
+      multiview.pNext = (void *)devInfoNext;
+      devInfoNext = &multiview;
     }
   }
 
@@ -484,10 +495,61 @@ void main()
     VkPipelineLayout asm_layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
         {asm_setlayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, 0, 4)}));
 
+    vkh::RenderPassCreator renderPassCreateInfo;
+
+    renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
+        mainWindow->format, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL));
+    renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
+        VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL));
+
+    // make the renderpass multi-pass for testing, and give each one an input attachment
+    renderPassCreateInfo.addSubpass({VkAttachmentReference({0, VK_IMAGE_LAYOUT_GENERAL})},
+                                    VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED, {},
+                                    {VkAttachmentReference({1, VK_IMAGE_LAYOUT_GENERAL})});
+    renderPassCreateInfo.addSubpass({VkAttachmentReference({0, VK_IMAGE_LAYOUT_GENERAL})},
+                                    VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED, {},
+                                    {VkAttachmentReference({1, VK_IMAGE_LAYOUT_GENERAL})});
+
+    renderPassCreateInfo.dependencies.push_back(vkh::SubpassDependency(
+        0, 1, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT));
+
+    // add pointless structures to ensure they are ignored
+    VkRenderPassMultiviewCreateInfo nonMultiview = {
+        VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO,
+    };
+
+    if(hasExt(VK_KHR_MULTIVIEW_EXTENSION_NAME))
+    {
+      nonMultiview.pNext = renderPassCreateInfo.pNext;
+      renderPassCreateInfo.pNext = &nonMultiview;
+    }
+
+    // add struct that references input attachments in multiple passes
+    VkRenderPassInputAttachmentAspectCreateInfo inputAspects = {
+        VK_STRUCTURE_TYPE_RENDER_PASS_INPUT_ATTACHMENT_ASPECT_CREATE_INFO,
+    };
+
+    VkInputAttachmentAspectReference inputAspectReferences[2] = {
+        {0, 0, VK_IMAGE_ASPECT_COLOR_BIT}, {1, 0, VK_IMAGE_ASPECT_COLOR_BIT},
+    };
+
+    inputAspects.aspectReferenceCount = 2;
+    inputAspects.pAspectReferences = inputAspectReferences;
+
+    if(hasExt(VK_KHR_MAINTENANCE2_EXTENSION_NAME))
+    {
+      inputAspects.pNext = renderPassCreateInfo.pNext;
+      renderPassCreateInfo.pNext = &inputAspects;
+    }
+
+    VkRenderPass renderPass = createRenderPass(renderPassCreateInfo);
+
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
     pipeCreateInfo.layout = layout;
-    pipeCreateInfo.renderPass = mainWindow->rp;
+    pipeCreateInfo.renderPass = renderPass;
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
@@ -697,6 +759,21 @@ void main()
         vkh::ImageViewCreateInfo(validImage, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT));
     VkImageView invalidImgView = (VkImageView)0x1234;
 
+    AllocatedImage inputattach(
+        this,
+        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                             VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    VkImageView inputview = createImageView(vkh::ImageViewCreateInfo(
+        inputattach.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT));
+
+    VkFramebuffer fbs[8];
+    for(size_t i = 0; i < mainWindow->GetCount(); i++)
+      fbs[i] = createFramebuffer(vkh::FramebufferCreateInfo(
+          renderPass, {mainWindow->GetView(i), inputview}, mainWindow->scissor.extent));
+
     {
       VkCommandBuffer cmd = GetCommandBuffer();
       vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
@@ -712,6 +789,9 @@ void main()
           {
               vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
                                       VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL, img.image),
+              vkh::ImageMemoryBarrier(VK_ACCESS_NONE, VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
+                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                                      inputattach.image),
           });
       vkEndCommandBuffer(cmd);
       Submit(99, 99, {cmd});
@@ -1349,9 +1429,9 @@ void main()
         if(KHR_push_descriptor)
           setMarker(cmd, "KHR_push_descriptor");
 
-        vkCmdBeginRenderPass(
-            cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
-            VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, fbs[mainWindow->imgIndex],
+                                                           mainWindow->scissor),
+                             VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, refpipe);
 
@@ -1407,6 +1487,8 @@ void main()
           vkCmdDraw(cmd, 1, 1, 0, 0);
         }
 
+        vkCmdNextSubpass(cmd, VK_SUBPASS_CONTENTS_INLINE);
+
         vkCmdEndRenderPass(cmd);
 
         vkEndCommandBuffer(cmd);
@@ -1461,9 +1543,9 @@ void main()
                              vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                              vkh::ImageSubresourceRange());
 
-        vkCmdBeginRenderPass(
-            cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
-            VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, fbs[mainWindow->imgIndex],
+                                                           mainWindow->scissor),
+                             VK_SUBPASS_CONTENTS_INLINE);
 
         if(!tools.empty())
         {
@@ -1525,6 +1607,8 @@ void main()
           vkCmdBeginTransformFeedbackEXT(cmd, 0, 0, NULL, NULL);
           vkCmdEndTransformFeedbackEXT(cmd, 0, 0, NULL, NULL);
         }
+
+        vkCmdNextSubpass(cmd, VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdEndRenderPass(cmd);
 

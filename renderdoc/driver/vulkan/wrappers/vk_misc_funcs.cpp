@@ -58,27 +58,34 @@ static void MakeSubpassLoadRP(RPCreateInfo &info, const RPCreateInfo *origInfo, 
       (const VkRenderPassMultiviewCreateInfo *)FindNextStruct(
           origInfo, VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO);
 
-  static VkRenderPassMultiviewCreateInfo patched;
+  static VkRenderPassMultiviewCreateInfo patchedMultiview;
 
   if(multiview)
   {
     // remove from the chain, the caller ensured we have a mutable chain so we won't be trashing the
     // pNext chain we'll look up for any subsequent subpasses
     RemoveNextStruct(&info, VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO);
-    patched = *multiview;
+    patchedMultiview = *multiview;
 
-    // keep the view mask for our target subpass
-    patched.subpassCount = 1;
-    patched.pViewMasks = patched.pViewMasks + s;
+    if(patchedMultiview.subpassCount > 0)
+    {
+      // keep the view mask for our target subpass
+      patchedMultiview.subpassCount = 1;
+      patchedMultiview.pViewMasks = patchedMultiview.pViewMasks + s;
 
-    // view offsets are not allowed for self-dependencies, and we remove all other dependencies.
-    patched.dependencyCount = 0;
-    patched.pViewOffsets = NULL;
+      // view offsets are not allowed for self-dependencies, and we remove all other dependencies.
+      patchedMultiview.dependencyCount = 0;
+      patchedMultiview.pViewOffsets = NULL;
 
-    // add onto the chain
-    patched.pNext = info.pNext;
-    info.pNext = &patched;
+      // add onto the chain
+      patchedMultiview.pNext = info.pNext;
+      info.pNext = &patchedMultiview;
+    }
   }
+
+  // remove input attachment aspect structure unconditionally rather than patching it, since it is
+  // optional and omitting it only makes invalid behaviour valid
+  RemoveNextStruct(&info, VK_STRUCTURE_TYPE_RENDER_PASS_INPUT_ATTACHMENT_ASPECT_CREATE_INFO);
 
   // remove any non-self dependencies
   info.dependencyCount = 0;

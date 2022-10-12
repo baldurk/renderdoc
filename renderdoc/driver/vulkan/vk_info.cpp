@@ -312,6 +312,10 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
       (VkDescriptorSetLayoutBindingFlagsCreateInfo *)FindNextStruct(
           pCreateInfo, VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO);
 
+  // ignore degenerate struct
+  if(bindingFlags && bindingFlags->bindingCount == 0)
+    bindingFlags = NULL;
+
   // descriptor set layouts can be sparse, such that only three bindings exist
   // but they are at 0, 5 and 10.
   // We assume here that while the layouts may be sparse that's mostly to allow
