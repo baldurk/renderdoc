@@ -190,6 +190,14 @@ requirements.
   {
     return IsCaptureLoaded() && IsCaptureVK() && stage == MeshDataStage::VSOut;
   }
+
+  DOCUMENT(R"(Retrieves the rasterized stream, if multiple streams are being generated in the GS.
+
+:return: The rasterized stream, or -1 of no stream is being rasterized.
+:rtype: int
+)");
+  int32_t GetRasterizedStream() const;
+
   DOCUMENT(R"(For APIs that have explicit barriers, retrieves the current layout of a resource.
 
 :param ResourceId id: The ID of the resource to query for

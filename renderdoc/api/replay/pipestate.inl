@@ -913,6 +913,37 @@ rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
   return rdcarray<VertexInputAttribute>();
 }
 
+int32_t PipeState::GetRasterizedStream() const
+{
+  if(IsCaptureLoaded())
+  {
+    if(IsCaptureGL())
+    {
+      return 0;
+    }
+    else if(IsCaptureVK())
+    {
+      return (int32_t)m_Vulkan->transformFeedback.rasterizedStream;
+    }
+    else if(IsCaptureD3D11())
+    {
+      if(m_D3D11->streamOut.rasterizedStream == D3D11Pipe::StreamOut::NoRasterization)
+        return -1;
+
+      return (int32_t)m_D3D11->streamOut.rasterizedStream;
+    }
+    else if(IsCaptureD3D12())
+    {
+      if(m_D3D12->streamOut.rasterizedStream == D3D12Pipe::StreamOut::NoRasterization)
+        return -1;
+
+      return (int32_t)m_D3D12->streamOut.rasterizedStream;
+    }
+  }
+
+  return 0;
+}
+
 BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, uint32_t ArrayIdx) const
 {
   BoundCBuffer ret;

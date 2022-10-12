@@ -503,7 +503,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     spirv.resize(vsRefl->rawBytes.size() / sizeof(uint32_t));
     memcpy(spirv.data(), vsRefl->rawBytes.data(), vsRefl->rawBytes.size());
 
-    AddXFBAnnotations(*vsRefl, vsPatch, vsRefl->entryPoint.c_str(), spirv, stride);
+    AddXFBAnnotations(*vsRefl, vsPatch, 0, vsRefl->entryPoint.c_str(), spirv, stride);
 
     drv.glShaderBinary(1, &stageShaders[0], eGL_SHADER_BINARY_FORMAT_SPIR_V, spirv.data(),
                        (GLsizei)spirv.size() * 4);
@@ -1237,7 +1237,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       spirv.resize(lastRefl->rawBytes.size() / sizeof(uint32_t));
       memcpy(spirv.data(), lastRefl->rawBytes.data(), lastRefl->rawBytes.size());
 
-      AddXFBAnnotations(*lastRefl, lastPatch, lastRefl->entryPoint.c_str(), spirv, stride);
+      AddXFBAnnotations(*lastRefl, lastPatch, 0, lastRefl->entryPoint.c_str(), spirv, stride);
 
       drv.glShaderBinary(1, &stageShaders[lastIndex], eGL_SHADER_BINARY_FORMAT_SPIR_V, spirv.data(),
                          (GLsizei)spirv.size() * 4);

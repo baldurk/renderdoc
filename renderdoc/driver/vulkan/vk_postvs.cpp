@@ -2994,9 +2994,15 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
 
   uint32_t xfbStride = 0;
 
+  if(!Vulkan_Debug_PostVSDumpDirPath().empty())
+    FileIO::WriteAll(Vulkan_Debug_PostVSDumpDirPath() + "/debug_postgs_before.spv", modSpirv);
+
   // adds XFB annotations in order of the output signature (with the position first)
-  AddXFBAnnotations(*lastRefl, *pipeInfo.shaders[stageIndex].patchData,
+  AddXFBAnnotations(*lastRefl, *pipeInfo.shaders[stageIndex].patchData, pipeInfo.rasterizationStream,
                     pipeInfo.shaders[stageIndex].entryPoint.c_str(), modSpirv, xfbStride);
+
+  if(!Vulkan_Debug_PostVSDumpDirPath().empty())
+    FileIO::WriteAll(Vulkan_Debug_PostVSDumpDirPath() + "/debug_postgs_after.spv", modSpirv);
 
   // create vertex shader with modified code
   VkShaderModuleCreateInfo moduleCreateInfo = {

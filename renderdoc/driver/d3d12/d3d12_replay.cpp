@@ -1674,6 +1674,8 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
     // Stream Out
     /////////////////////////////////////////////////
 
+    state.streamOut.rasterizedStream = pipe->graphics->StreamOutput.RasterizedStream;
+
     state.streamOut.outputs.resize(rs.streamouts.size());
     for(size_t s = 0; s < rs.streamouts.size(); s++)
     {

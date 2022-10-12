@@ -157,4 +157,5 @@ void FillSpecConstantVariables(ResourceId shader, const SPIRVPatchData &patchDat
 
 // common function used by any API that utilises SPIR-V
 void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patchData,
-                       const char *entryName, rdcarray<uint32_t> &modSpirv, uint32_t &xfbStride);
+                       uint32_t rastStream, const char *entryName, rdcarray<uint32_t> &modSpirv,
+                       uint32_t &xfbStride);

@@ -228,6 +228,8 @@ public:
     return retId;
   }
 
+  using Processor::EvaluateConstant;
+
 private:
   using Processor::Parse;
   inline void addWords(size_t offs, size_t num) { addWords(offs, (int32_t)num); }

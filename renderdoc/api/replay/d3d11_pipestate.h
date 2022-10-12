@@ -505,7 +505,12 @@ struct StreamOutBind
   uint32_t byteOffset = 0;
 };
 
-DOCUMENT("Describes the stream-out stage bindings.");
+DOCUMENT(R"(Describes the stream-out stage bindings.
+
+.. data:: NoRasterization
+
+  Value for :data:`rasterizedStream` that indicates no stream is being rasterized.
+)");
 struct StreamOut
 {
   DOCUMENT("");
@@ -518,6 +523,17 @@ struct StreamOut
 :type: List[D3D11StreamOutBind]
 )");
   rdcarray<StreamOutBind> outputs;
+
+  DOCUMENT(R"(Which stream-out stream is being used for rasterization.
+
+If the value is :data:`NoRasterization` then no stream has been selected for rasterization.
+
+:type: int
+)");
+  uint32_t rasterizedStream = 0;
+
+  // D3D11_SO_NO_RASTERIZED_STREAM
+  static const uint32_t NoRasterization = ~0U;
 };
 
 DOCUMENT("Describes a rasterizer state object.");

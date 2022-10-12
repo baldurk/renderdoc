@@ -56,6 +56,7 @@ struct StreamOutData
 
 struct SOShaderData
 {
+  uint32_t rastStream = 0;
   uint32_t strides[4] = {};
 };
 

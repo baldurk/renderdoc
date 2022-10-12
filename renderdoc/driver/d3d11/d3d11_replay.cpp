@@ -1115,6 +1115,10 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
       ret.streamOut.outputs[s].resourceId = rm->GetOriginalID(GetIDForDeviceChild(rs->SO.Buffers[s]));
       ret.streamOut.outputs[s].byteOffset = rs->SO.Offsets[s];
     }
+
+    const SOShaderData &soshader = m_pDevice->GetSOShaderData(GetIDForDeviceChild(rs->GS.Object));
+
+    ret.streamOut.rasterizedStream = soshader.rastStream;
   }
 
   /////////////////////////////////////////////////

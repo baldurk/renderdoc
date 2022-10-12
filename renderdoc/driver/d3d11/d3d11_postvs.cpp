@@ -282,9 +282,13 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
     RDCASSERT(dxbcDS);
   }
 
-  DXBC::DXBCContainer *lastShader = dxbcGS;
-  if(dxbcDS)
-    lastShader = dxbcDS;
+  ResourceId lastShaderId = GetIDForDeviceChild(ds);
+  DXBC::DXBCContainer *lastShader = dxbcDS;
+  if(dxbcGS)
+  {
+    lastShaderId = GetIDForDeviceChild(gs);
+    lastShader = dxbcGS;
+  }
 
   if(lastShader)
   {
@@ -709,6 +713,8 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
   {
     ret.gsout.status.clear();
 
+    const SOShaderData &soshader = m_pDevice->GetSOShaderData(lastShaderId);
+
     stride = 0;
     posidx = -1;
     numPosComponents = 0;
@@ -720,9 +726,17 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
 
       D3D11_SO_DECLARATION_ENTRY decl;
 
-      // for now, skip streams that aren't stream 0
-      if(sign.stream != 0)
-        continue;
+      // skip streams that aren't rasterized, or if none are rasterized skip non-zero
+      if(soshader.rastStream == ~0U)
+      {
+        if(sign.stream != 0)
+          continue;
+      }
+      else
+      {
+        if(sign.stream != soshader.rastStream)
+          continue;
+      }
 
       decl.Stream = 0;
       decl.OutputSlot = 0;

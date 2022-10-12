@@ -1737,6 +1737,8 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
 
     SOShaderData &soshader = m_SOShaders[GetIDForDeviceChild(ret)];
 
+    soshader.rastStream = RasterizedStream;
+
     for(UINT i = 0; i < NumStrides; i++)
       soshader.strides[i] = pBufferStrides[i] * vertsPerPrim;
 
@@ -1814,6 +1816,8 @@ HRESULT WrappedID3D11Device::CreateGeometryShaderWithStreamOutput(
       vertsPerPrim = 3;
 
     SOShaderData &soshader = m_SOShaders[GetIDForDeviceChild(wrapped)];
+
+    soshader.rastStream = RasterizedStream;
 
     for(UINT i = 0; i < NumStrides; i++)
       soshader.strides[i] = pBufferStrides[i] * vertsPerPrim;

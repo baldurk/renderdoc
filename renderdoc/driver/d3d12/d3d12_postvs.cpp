@@ -263,9 +263,9 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     RDCASSERT(dxbcDS);
   }
 
-  DXBC::DXBCContainer *lastShader = dxbcGS;
-  if(dxbcDS)
-    lastShader = dxbcDS;
+  DXBC::DXBCContainer *lastShader = dxbcDS;
+  if(dxbcGS)
+    lastShader = dxbcGS;
 
   if(lastShader)
   {
@@ -842,9 +842,17 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     {
       D3D12_SO_DECLARATION_ENTRY decl;
 
-      // for now, skip streams that aren't stream 0
-      if(sign.stream != 0)
-        continue;
+      // skip streams that aren't rasterized, or if none are rasterized skip non-zero
+      if(psoDesc.StreamOutput.RasterizedStream == ~0U)
+      {
+        if(sign.stream != 0)
+          continue;
+      }
+      else
+      {
+        if(sign.stream != psoDesc.StreamOutput.RasterizedStream)
+          continue;
+      }
 
       decl.Stream = 0;
       decl.OutputSlot = 0;

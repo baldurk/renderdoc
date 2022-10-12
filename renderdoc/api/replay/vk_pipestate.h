@@ -685,6 +685,12 @@ struct TransformFeedback
 :type: List[VKXFBBuffer]
 )");
   rdcarray<XFBBuffer> buffers;
+
+  DOCUMENT(R"(Which stream-out stream is being used for rasterization.
+
+:type: int
+)");
+  uint32_t rasterizedStream = 0;
 };
 
 DOCUMENT("Describes a render area in the current framebuffer.");

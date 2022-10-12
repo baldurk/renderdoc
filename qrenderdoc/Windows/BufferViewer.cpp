@@ -1534,7 +1534,8 @@ static void ConfigureStatusColumn(rdcarray<ShaderConstant> &columns,
   props.push_back(p);
 }
 
-static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflection *shader,
+static void ConfigureColumnsForShader(ICaptureContext &ctx, int32_t streamSelect,
+                                      const ShaderReflection *shader,
                                       rdcarray<ShaderConstant> &columns,
                                       rdcarray<BufferElementProperties> &props)
 {
@@ -1547,6 +1548,9 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
   int i = 0, posidx = -1;
   for(const SigParameter &sig : shader->outputSignature)
   {
+    if(sig.stream != (uint32_t)streamSelect)
+      continue;
+
     ShaderConstant f;
     BufferElementProperties p;
 
@@ -1782,8 +1786,9 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
     if(last == NULL)
       last = ctx.CurPipelineState().GetShaderReflection(ShaderStage::Domain);
 
-    ConfigureColumnsForShader(ctx, vs, bufdata->vsoutConfig.columns, bufdata->vsoutConfig.props);
-    ConfigureColumnsForShader(ctx, last, bufdata->gsoutConfig.columns, bufdata->gsoutConfig.props);
+    ConfigureColumnsForShader(ctx, 0, vs, bufdata->vsoutConfig.columns, bufdata->vsoutConfig.props);
+    ConfigureColumnsForShader(ctx, ctx.CurPipelineState().GetRasterizedStream(), last,
+                              bufdata->gsoutConfig.columns, bufdata->gsoutConfig.props);
   }
 }
 

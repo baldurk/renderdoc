@@ -1292,6 +1292,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.tessellation.domainOriginUpperLeft =
         p.tessellationDomainOrigin == VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT;
 
+    ret.transformFeedback.rasterizedStream = p.rasterizationStream;
+
     // Transform feedback
     ret.transformFeedback.buffers.resize(state.xfbbuffers.size());
     for(size_t i = 0; i < state.xfbbuffers.size(); i++)

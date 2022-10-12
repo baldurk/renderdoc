@@ -161,6 +161,13 @@ def get_postvs_attrs(controller: rd.ReplayController, mesh: rd.MeshFormat, data_
         attr = MeshAttribute()
         attr.mesh = rd.MeshFormat(mesh)
 
+        if pipe.GetRasterizedStream() >= 0:
+            if sig.stream != pipe.GetRasterizedStream():
+                continue
+        else:
+            if sig.stream != 0:
+                continue
+
         # Construct a resource format for this element
         attr.mesh.format = rd.ResourceFormat()
         attr.mesh.format.compByteWidth = rd.VarTypeByteSize(sig.varType)
