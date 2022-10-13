@@ -1461,8 +1461,9 @@ private:
     ChunkLookup lookup = m_ChunkLookup;
     void *userData = m_pUserData;
     bool buffers = m_ExportBuffers;
+    uint64_t ver = m_Version;
     std::set<rdcstr> *stringDB = m_ExtStringDB;
-    return [lookup, userData, buffers, stringDB](const void *ptr) {
+    return [lookup, userData, buffers, ver, stringDB](const void *ptr) {
       T &input = *(T *)ptr;
       static StreamReader dummy(StreamReader::DummyStream);
 
@@ -1474,6 +1475,7 @@ private:
 
       Serialiser<SerialiserMode::Reading> ser(&dummy, Ownership::Nothing, ret);
 
+      ser.SetVersion(ver);
       ser.ConfigureStructuredExport(lookup, buffers, 0, 1.0);
       ser.SetStreamingMode(true);
       ser.SetStructuriser(true);
