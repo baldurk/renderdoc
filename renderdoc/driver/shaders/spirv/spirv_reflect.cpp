@@ -1650,8 +1650,11 @@ void Reflector::MakeConstantBlockVariables(rdcspv::StorageClass storage, const D
   cblock.resize(structType.children.size());
   for(size_t i = 0; i < structType.children.size(); i++)
   {
+    rdcstr name = structType.children[i].name;
+    if(name.empty())
+      name = StringFormat::Fmt("_child%zu", i);
     MakeConstantBlockVariable(cblock[i], pointerTypes, storage,
-                              dataTypes[structType.children[i].type], structType.children[i].name,
+                              dataTypes[structType.children[i].type], name,
                               structType.children[i].decorations, specInfo);
   }
 
