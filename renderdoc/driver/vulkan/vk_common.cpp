@@ -1149,6 +1149,8 @@ void DescriptorSetSlot::AccumulateBindRefs(DescriptorBindRefs &refs, VulkanResou
   RDCCOMPILE_ASSERT(uint64_t(DescriptorSlotType::Count) <= 0xff,
                     "DescriptorSlotType is no longer 8-bit");
   RDCCOMPILE_ASSERT(sizeof(DescriptorSetSlot) == 32, "DescriptorSetSlot is no longer 32 bytes");
+  RDCCOMPILE_ASSERT(offsetof(DescriptorSetSlot, offset) == 8,
+                    "DescriptorSetSlot first uint64_t bitpacking isn't working as expected");
 
   VkResourceRecord *bufView = NULL, *imgView = NULL, *buffer = NULL;
 

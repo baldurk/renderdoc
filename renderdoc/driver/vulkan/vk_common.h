@@ -460,8 +460,24 @@ struct MemoryAllocation
 struct VkResourceRecord;
 class VulkanResourceManager;
 
+// gcc is buggy garbage, and if these enums are compiled as uint64_t it will warn (until gcc 9) that
+// the enum won't fit in an 8-bit bitfield.
+// As a workaround we use pragma push to pack an explicit uint8_t into a uint64_t:48
+
+#if defined(__GNUC__) && (__GNUC__ < 10)
+
+#define EnumBaseType uint8_t
+#define GCC_WORKAROUND 1
+
+#else
+
+#define EnumBaseType uint64_t
+#define GCC_WORKAROUND 0
+
+#endif
+
 // we inherit from uint64_t to make this more bitfield-able but we intend for this to fit in uint8_t
-enum class DescriptorSlotType : uint64_t
+enum class DescriptorSlotType : EnumBaseType
 {
   // we want an unwritten type as 0 so that zero-initialised descriptors that haven't been written
   // don't look like samplers, so these unfortunately don't match VkDescriptorType in value.
@@ -526,8 +542,7 @@ constexpr DescriptorSlotType convert(VkDescriptorType type)
   // clang-format on
 }
 
-// we inherit from uint64_t to make this more bitfield-able but we intend for this to fit in uint8_t
-enum class DescriptorSlotImageLayout : uint64_t
+enum class DescriptorSlotImageLayout : EnumBaseType
 {
   // these match the core types
   Undefined = 0,
@@ -637,6 +652,10 @@ struct DescriptorSetSlot
   // 48-bit truncated VK_WHOLE_SIZE
   static const VkDeviceSize WholeSizeRange = 0xFFFFFFFFFFFF;
   VkDeviceSize GetRange() const { return range == WholeSizeRange ? VK_WHOLE_SIZE : range; }
+#if GCC_WORKAROUND
+#pragma pack(push, 1)
+#endif
+
   // used for buffers, we assume the max buffer size is less than 1<<48.
   // this is placed first to allow writes to just mask the top bits on read or write and remain
   // aligned, then the type/layout below can be accessed directly as bytes.
@@ -647,6 +666,10 @@ struct DescriptorSetSlot
   DescriptorSlotType type : 8;
   // used for images, the image layout
   DescriptorSlotImageLayout imageLayout : 8;
+
+#if GCC_WORKAROUND
+#pragma pack(pop)
+#endif
 
   // used for buffers and inline blocks. We could steal some bits here if we needed them since 48
   // bits would be plenty for a long time.
