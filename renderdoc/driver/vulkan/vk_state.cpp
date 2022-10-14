@@ -638,7 +638,7 @@ void VulkanRenderState::BindDescriptorSetsForPipeline(WrappedVulkan *vk, VkComma
         const DescSetLayout &createdDescLayout =
             vk->GetDebugManager()->GetDescSetLayout(createdDescSetLayoutId);
 
-        if(descLayout != createdDescLayout)
+        if(!descLayout.isCompatible(createdDescLayout))
         {
           // this set is incompatible, don't rebind it. Assume the application knows the shader
           // doesn't need this set, and the binding is just stale
@@ -730,9 +730,13 @@ void VulkanRenderState::BindDescriptorSetsWithoutPipeline(WrappedVulkan *vk, VkC
           // behaviour to use it anyway. If this binding *should* be valid, it will still be
           // valid at the end.
 
+          const DescSetLayout &iDescLayout =
+              vk->GetDebugManager()->GetDescSetLayout(iPipeLayout.descSetLayouts[i]);
+          const DescSetLayout &refDescLayout =
+              vk->GetDebugManager()->GetDescSetLayout(refPipeLayout.descSetLayouts[i]);
+
           if(iPipeLayout.descSetLayouts[i] != refPipeLayout.descSetLayouts[i] &&
-             vk->GetDebugManager()->GetDescSetLayout(iPipeLayout.descSetLayouts[i]) !=
-                 vk->GetDebugManager()->GetDescSetLayout(refPipeLayout.descSetLayouts[i]))
+             !iDescLayout.isCompatible(refDescLayout))
           {
             // set is incompatible, don't rebind it
             continue;
@@ -753,9 +757,13 @@ void VulkanRenderState::BindDescriptorSetsWithoutPipeline(WrappedVulkan *vk, VkC
             if(j >= refPipeLayout.descSetLayouts.size())
               break;
 
+            const DescSetLayout &iDescLayout =
+                vk->GetDebugManager()->GetDescSetLayout(iPipeLayout.descSetLayouts[i]);
+            const DescSetLayout &refDescLayout =
+                vk->GetDebugManager()->GetDescSetLayout(refPipeLayout.descSetLayouts[i]);
+
             if(iPipeLayout.descSetLayouts[j] != refPipeLayout.descSetLayouts[j] &&
-               vk->GetDebugManager()->GetDescSetLayout(iPipeLayout.descSetLayouts[j]) !=
-                   vk->GetDebugManager()->GetDescSetLayout(refPipeLayout.descSetLayouts[j]))
+               !iDescLayout.isCompatible(refDescLayout))
             {
               compatible = false;
               break;
@@ -842,19 +850,22 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
 
     VkWriteDescriptorSet push = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
 
+    VulkanResourceManager *rm = vk->GetResourceManager();
+
     for(size_t b = 0; b < descLayout.bindings.size(); b++)
     {
-      const DescSetLayout::Binding &bind = descLayout.bindings[b];
+      const DescSetLayout::Binding &layoutBind = descLayout.bindings[b];
 
       // skip if this binding isn't used
-      if(bind.descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+      if(layoutBind.layoutDescType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
         continue;
 
       // push.dstSet; // unused for push descriptors
       push.dstBinding = (uint32_t)b;
       push.dstArrayElement = 0;
-      push.descriptorType = bind.descriptorType;
-      push.descriptorCount = bind.descriptorCount;
+      // we can use the layout type here, since push descriptors are not allowed to be mutable
+      push.descriptorType = layoutBind.layoutDescType;
+      push.descriptorCount = layoutBind.descriptorCount;
 
       const DescriptorSetSlot *slots = setInfo.data.binds[b];
 
@@ -864,8 +875,7 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
         VkBufferView *dst = new VkBufferView[push.descriptorCount];
 
         for(uint32_t a = 0; a < push.descriptorCount; a++)
-          dst[a] = Unwrap(
-              vk->GetResourceManager()->GetCurrentHandle<VkBufferView>(slots[a].texelBufferView));
+          dst[a] = Unwrap(rm->GetCurrentHandle<VkBufferView>(slots[a].resource));
 
         push.pTexelBufferView = dst;
         allocBufViewWrites.push_back(dst);
@@ -880,12 +890,9 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
 
         for(uint32_t a = 0; a < push.descriptorCount; a++)
         {
-          const DescriptorSetSlotImageInfo &src = slots[a].imageInfo;
-
-          dst[a].imageLayout = src.imageLayout;
-          dst[a].sampler = Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkSampler>(src.sampler));
-          dst[a].imageView =
-              Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkImageView>(src.imageView));
+          dst[a].imageLayout = convert(slots[a].imageLayout);
+          dst[a].sampler = Unwrap(rm->GetCurrentHandle<VkSampler>(slots[a].sampler));
+          dst[a].imageView = Unwrap(rm->GetCurrentHandle<VkImageView>(slots[a].resource));
         }
 
         push.pImageInfo = dst;
@@ -897,11 +904,11 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
         VkWriteDescriptorSetInlineUniformBlock *inlineWrite = allocInlineWrites.back();
         inlineWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK;
         inlineWrite->pNext = NULL;
-        inlineWrite->dataSize = bind.descriptorCount;
-        inlineWrite->pData = setInfo.data.inlineBytes.data() + slots[0].inlineOffset;
+        inlineWrite->dataSize = layoutBind.descriptorCount;
+        inlineWrite->pData = setInfo.data.inlineBytes.data() + slots[0].offset;
 
         push.pNext = inlineWrite;
-        push.descriptorCount = bind.descriptorCount;
+        push.descriptorCount = layoutBind.descriptorCount;
         writes.push_back(push);
 
         // skip validity checks
@@ -913,11 +920,9 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
 
         for(uint32_t a = 0; a < push.descriptorCount; a++)
         {
-          const DescriptorSetSlotBufferInfo &src = slots[a].bufferInfo;
-
-          dst[a].offset = src.offset;
-          dst[a].range = src.range;
-          dst[a].buffer = Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkBuffer>(src.buffer));
+          dst[a].offset = slots[a].offset;
+          dst[a].range = slots[a].GetRange();
+          dst[a].buffer = Unwrap(rm->GetCurrentHandle<VkBuffer>(slots[a].resource));
         }
 
         push.pBufferInfo = dst;
@@ -927,7 +932,7 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
       // start with no descriptors
       push.descriptorCount = 0;
 
-      for(uint32_t w = 0; w < bind.descriptorCount; w++)
+      for(uint32_t w = 0; w < layoutBind.descriptorCount; w++)
       {
         // if this push is valid, we increment the descriptor count and continue
         if(IsValid(vk->NULLDescriptorsAllowed(), push, w - push.dstArrayElement))

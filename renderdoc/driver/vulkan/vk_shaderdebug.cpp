@@ -239,88 +239,76 @@ public:
 
           DescSetBindingSnapshot &dstBind = dstSet.bindings[bind];
 
-          switch(bindLayout.descriptorType)
+          if(bindLayout.layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
           {
-            case VK_DESCRIPTOR_TYPE_SAMPLER:
-            case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-            case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-            case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-            case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+            // push directly into the buffer cache from the inline data
+            BindpointIndex idx;
+            idx.bindset = (int32_t)set;
+            idx.bind = (int32_t)bind;
+            idx.arrayIndex = 0;
+            bufferCache[idx].assign(curInline.data() + curSlots->offset, descriptorCount);
+          }
+          else
+          {
+            for(uint32_t i = 0; i < descriptorCount; i++)
             {
-              dstBind.imageInfos.resize(descriptorCount);
-              for(uint32_t i = 0; i < descriptorCount; i++)
-              {
-                dstBind.imageInfos[i].imageLayout = curSlots[i].imageInfo.imageLayout;
-                dstBind.imageInfos[i].imageView =
-                    m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(
-                        curSlots[i].imageInfo.imageView);
-                dstBind.imageInfos[i].sampler =
-                    m_pDriver->GetResourceManager()->GetCurrentHandle<VkSampler>(
-                        bindLayout.immutableSampler ? bindLayout.immutableSampler[i]
-                                                    : curSlots[i].imageInfo.sampler);
-              }
-              break;
-            }
-            case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-            case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-            {
-              dstBind.texelBuffers.resize(descriptorCount);
-              for(uint32_t i = 0; i < descriptorCount; i++)
-              {
-                dstBind.texelBuffers[i] =
-                    m_pDriver->GetResourceManager()->GetCurrentHandle<VkBufferView>(
-                        curSlots[i].texelBufferView);
-              }
-              break;
-            }
-            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-            {
-              dstBind.buffers.resize(descriptorCount);
-              for(uint32_t i = 0; i < descriptorCount; i++)
-              {
-                dstBind.buffers[i].offset = curSlots[i].bufferInfo.offset;
-                dstBind.buffers[i].range = curSlots[i].bufferInfo.range;
-                dstBind.buffers[i].buffer =
-                    m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(
-                        curSlots[i].bufferInfo.buffer);
-              }
-              break;
-            }
-            case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK:
-            {
-              // push directly into the buffer cache from the inline data
-              BindpointIndex idx;
-              idx.bindset = (int32_t)set;
-              idx.bind = (int32_t)bind;
-              idx.arrayIndex = 0;
-              bufferCache[idx].assign(curInline.data() + curSlots->inlineOffset, descriptorCount);
-              break;
-            }
-            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-            {
-              dstBind.buffers.resize(descriptorCount);
-              for(uint32_t i = 0; i < descriptorCount; i++)
-              {
-                dstBind.buffers[i].offset = curSlots[i].bufferInfo.offset;
-                dstBind.buffers[i].range = curSlots[i].bufferInfo.range;
-                dstBind.buffers[i].buffer =
-                    m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(
-                        curSlots[i].bufferInfo.buffer);
+              const DescriptorSetSlot &slot = curSlots[i];
 
-                dstBind.buffers[i].offset += descSets[set].offsets[dynamicOffset++];
+              switch(slot.type)
+              {
+                case DescriptorSlotType::Sampler:
+                case DescriptorSlotType::CombinedImageSampler:
+                case DescriptorSlotType::SampledImage:
+                case DescriptorSlotType::StorageImage:
+                case DescriptorSlotType::InputAttachment:
+                {
+                  dstBind.imageInfos.resize(descriptorCount);
+                  dstBind.imageInfos[i].imageLayout = convert(slot.imageLayout);
+                  dstBind.imageInfos[i].imageView =
+                      m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(slot.resource);
+                  dstBind.imageInfos[i].sampler =
+                      m_pDriver->GetResourceManager()->GetCurrentHandle<VkSampler>(
+                          bindLayout.immutableSampler ? bindLayout.immutableSampler[i]
+                                                      : slot.sampler);
+                  break;
+                }
+                case DescriptorSlotType::UniformTexelBuffer:
+                case DescriptorSlotType::StorageTexelBuffer:
+                {
+                  dstBind.texelBuffers.resize(descriptorCount);
+                  dstBind.texelBuffers[i] =
+                      m_pDriver->GetResourceManager()->GetCurrentHandle<VkBufferView>(slot.resource);
+                  break;
+                }
+                case DescriptorSlotType::UniformBuffer:
+                case DescriptorSlotType::StorageBuffer:
+                case DescriptorSlotType::UniformBufferDynamic:
+                case DescriptorSlotType::StorageBufferDynamic:
+                {
+                  dstBind.buffers.resize(descriptorCount);
+                  dstBind.buffers[i].offset = slot.offset;
+                  dstBind.buffers[i].range = slot.GetRange();
+                  dstBind.buffers[i].buffer =
+                      m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(slot.resource);
+
+                  if(slot.type == DescriptorSlotType::UniformBufferDynamic ||
+                     slot.type == DescriptorSlotType::StorageBufferDynamic)
+                    dstBind.buffers[i].offset += descSets[set].offsets[dynamicOffset++];
+                  break;
+                }
+                case DescriptorSlotType::Unwritten: break;
+                default: RDCERR("Unexpected descriptor type");
               }
-              break;
             }
-            default: RDCERR("Unexpected descriptor type");
           }
         }
         else
         {
           // still need to skip past dynamic offsets for stages that aren't of interest
+          // we can use the layout descriptor type here because mutable descriptors aren't allowed
+          // to be dynamic
 
-          switch(bindLayout.descriptorType)
+          switch(bindLayout.layoutDescType)
           {
             case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
             case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: dynamicOffset += descriptorCount; break;

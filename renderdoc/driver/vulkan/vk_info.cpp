@@ -25,6 +25,7 @@
 #include "vk_info.h"
 #include "core/settings.h"
 #include "lz4/lz4.h"
+#include "vk_core.h"
 
 // for compatibility we use the same DXBC name since it's now configured by the UI
 RDOC_EXTERN_CONFIG(rdcarray<rdcstr>, DXBC_Debug_SearchDirPaths);
@@ -304,6 +305,10 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
   inlineCount = 0;
   inlineByteSize = 0;
 
+  const VkMutableDescriptorTypeCreateInfoEXT *mutableInfo =
+      (const VkMutableDescriptorTypeCreateInfoEXT *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT);
+
   flags = pCreateInfo->flags;
 
   anyStageFlags = 0;
@@ -328,27 +333,44 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
   {
     uint32_t b = pCreateInfo->pBindings[i].binding;
     // expand to fit the binding
-    if(b >= bindings.size())
-      bindings.resize(b + 1);
+    bindings.resize_for_index(b);
+
+    if(mutableInfo && i < mutableInfo->mutableDescriptorTypeListCount)
+    {
+      const VkMutableDescriptorTypeListEXT &mutableTypes =
+          mutableInfo->pMutableDescriptorTypeLists[i];
+
+      RDCCOMPILE_ASSERT(uint64_t(DescriptorSlotType::Count) < 64,
+                        "Descriptor types don't fit in 64-bit bitmask anymore");
+
+      // encode a bitmask with the available types for this descriptor
+      uint64_t mask = 0;
+      for(uint32_t m = 0; m < mutableTypes.descriptorTypeCount; m++)
+        mask |= (1ULL << uint64_t(convert(mutableTypes.pDescriptorTypes[m])));
+
+      mutableBitmasks.resize_for_index(b);
+      mutableBitmasks[b] = mask;
+    }
+
+    VkDescriptorType type = pCreateInfo->pBindings[i].descriptorType;
 
     bindings[b].descriptorCount = pCreateInfo->pBindings[i].descriptorCount;
-    bindings[b].descriptorType = pCreateInfo->pBindings[i].descriptorType;
+    bindings[b].layoutDescType = type;
     bindings[b].stageFlags = pCreateInfo->pBindings[i].stageFlags;
 
     anyStageFlags |= bindings[b].stageFlags;
 
-    if(bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
-       bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+    if(type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
+       type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
       dynamicCount += bindings[b].descriptorCount;
 
-    if(bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+    if(type == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
     {
       inlineCount++;
       inlineByteSize = AlignUp4(inlineByteSize + bindings[b].descriptorCount);
     }
 
-    if((bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
-        bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
+    if((type == VK_DESCRIPTOR_TYPE_SAMPLER || type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
        pCreateInfo->pBindings[i].pImmutableSamplers)
     {
       bindings[b].immutableSampler = new ResourceId[bindings[b].descriptorCount];
@@ -377,7 +399,7 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
     if(bindings[b].variableSize)
       break;
 
-    if(bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+    if(bindings[b].layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
     {
       elemOffset++;
     }
@@ -413,9 +435,11 @@ void DescSetLayout::CreateBindingsArray(BindingStorage &bindingStorage, uint32_t
       {
         bindingStorage.binds[i] = bindingStorage.elems.data() + bindings[i].elemOffset;
 
-        if(bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+        if(bindings[i].layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
-          bindingStorage.binds[i]->inlineOffset = inlineOffset;
+          bindingStorage.binds[i]->type = DescriptorSlotType::InlineBlock;
+          bindingStorage.binds[i]->offset = inlineOffset;
+          bindingStorage.binds[i]->range = bindings[i].descriptorCount;
           inlineOffset = AlignUp4(inlineOffset + bindings[i].descriptorCount);
         }
       }
@@ -462,9 +486,11 @@ void DescSetLayout::UpdateBindingsArray(const DescSetLayout &prevLayout,
       {
         DescriptorSetSlot *newSlots = newElems.data() + bindings[i].elemOffset;
 
-        if(bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+        if(bindings[i].layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
-          bindingStorage.binds[i]->inlineOffset = inlineOffset;
+          bindingStorage.binds[i]->type = DescriptorSlotType::InlineBlock;
+          bindingStorage.binds[i]->offset = inlineOffset;
+          bindingStorage.binds[i]->range = bindings[i].descriptorCount;
           inlineOffset = AlignUp4(inlineOffset + bindings[i].descriptorCount);
         }
         else
@@ -486,7 +512,7 @@ void DescSetLayout::UpdateBindingsArray(const DescSetLayout &prevLayout,
   }
 }
 
-bool DescSetLayout::operator==(const DescSetLayout &other) const
+bool DescSetLayout::isCompatible(const DescSetLayout &other) const
 {
   // shortcut for equality to ourselves
   if(this == &other)
@@ -503,7 +529,7 @@ bool DescSetLayout::operator==(const DescSetLayout &other) const
     const Binding &b = other.bindings[i];
 
     // if the type/stages/count are different, the layout is different
-    if(a.descriptorCount != b.descriptorCount || a.descriptorType != b.descriptorType ||
+    if(a.descriptorCount != b.descriptorCount || a.layoutDescType != b.layoutDescType ||
        a.stageFlags != b.stageFlags)
       return false;
 
@@ -523,6 +549,221 @@ bool DescSetLayout::operator==(const DescSetLayout &other) const
   }
 
   return true;
+}
+
+bool IsValid(bool allowNULLDescriptors, const VkWriteDescriptorSet &write, uint32_t arrayElement)
+{
+  if(write.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+    return true;
+
+  // this makes assumptions that only hold within the context of Serialise_InitialState below,
+  // specifically that if pTexelBufferView/pBufferInfo is set then we are using them. In the general
+  // case they can be garbage and we must ignore them based on the descriptorType
+
+  if(write.pTexelBufferView)
+    return allowNULLDescriptors ? true : write.pTexelBufferView[arrayElement] != VK_NULL_HANDLE;
+
+  if(write.pBufferInfo)
+    return allowNULLDescriptors ? true : write.pBufferInfo[arrayElement].buffer != VK_NULL_HANDLE;
+
+  if(write.pImageInfo)
+  {
+    // only these two types need samplers
+    bool needSampler = (write.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+                        write.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+
+    // but all types that aren't just a sampler need an image
+    bool needImage = (write.descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER);
+
+    if(allowNULLDescriptors)
+      needImage = false;
+
+    if(needSampler && write.pImageInfo[arrayElement].sampler == VK_NULL_HANDLE)
+      return false;
+
+    if(needImage && write.pImageInfo[arrayElement].imageView == VK_NULL_HANDLE)
+      return false;
+
+    return true;
+  }
+
+  RDCERR("Encountered VkWriteDescriptorSet with no data!");
+
+  return false;
+}
+
+bool CreateDescriptorWritesForSlotData(WrappedVulkan *vk, rdcarray<VkWriteDescriptorSet> &writes,
+                                       VkDescriptorBufferInfo *&writeScratch,
+                                       const DescriptorSetSlot *slots, uint32_t descriptorCount,
+                                       VkDescriptorSet set, uint32_t dstBind,
+                                       const DescSetLayout::Binding &layoutBind)
+{
+  bool ret = true;
+
+  RDCCOMPILE_ASSERT(sizeof(VkDescriptorImageInfo) <= sizeof(VkDescriptorBufferInfo),
+                    "VkDescriptorBufferInfo should be large enough for all descriptor write types");
+  RDCCOMPILE_ASSERT(sizeof(VkBufferView) <= sizeof(VkDescriptorBufferInfo),
+                    "VkDescriptorBufferInfo should be large enough for all descriptor write types");
+
+  ResourceId *immutableSamplers = layoutBind.immutableSampler;
+
+  VkWriteDescriptorSet templateWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+  templateWrite.dstSet = set;
+  templateWrite.dstBinding = dstBind;
+
+  writes.push_back(templateWrite);
+
+  VulkanResourceManager *rm = vk->GetResourceManager();
+
+  // loop over every slot in this descriptor array
+  for(uint32_t slot = 0; slot < descriptorCount; slot++)
+  {
+    VkDescriptorType descType = convert(slots[slot].type);
+
+    // if the previous write had some contents, and is a different type to this one,
+    // finish
+    // it off and start a new one. In theory if this descriptor were invalid and NULL
+    // descriptors are supported we could write NULL and continue to combine, but we don't
+    // do that.
+    // note that the previous write is from THIS descriptor as we don't batch across
+    // descriptors - even though there is 'rollover' behaviour allowing this.
+    if(writes.back().descriptorCount > 0 && writes.back().descriptorType != descType)
+    {
+      // consume the write arrays used
+      writeScratch += writes.back().descriptorCount;
+
+      writes.push_back(templateWrite);
+      writes.back().dstArrayElement = slot;
+    }
+
+    // skip unwritten descriptors
+    if(descType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+      continue;
+
+    // the current write is either empty, in which case we can just set it to what we
+    // want,
+    // or it's the same type in which case we're appending to its array
+
+    VkDescriptorBufferInfo *writeBuffer = writeScratch;
+    VkDescriptorImageInfo *writeImage = (VkDescriptorImageInfo *)writeScratch;
+    VkBufferView *writeTexelBuffer = (VkBufferView *)writeScratch;
+
+    // set the type and base of this write if the previous one is as-yet unused.
+    if(writes.back().descriptorCount == 0)
+    {
+      writes.back().descriptorType = descType;
+      writes.back().dstArrayElement = slot;
+    }
+
+    // array index in the above writeArrays, relative to the start of the current
+    // contiguous
+    // range starting at dstArrayElement
+    uint32_t arrayIdx = slot - writes.back().dstArrayElement;
+
+    switch(descType)
+    {
+      case VK_DESCRIPTOR_TYPE_SAMPLER:
+      case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+      case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+      case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+      case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+      {
+        if(descType != VK_DESCRIPTOR_TYPE_SAMPLER && rm->HasLiveResource(slots[slot].resource))
+          writeImage[arrayIdx].imageView = rm->GetLiveHandle<VkImageView>(slots[slot].resource);
+        else
+          writeImage[arrayIdx].imageView = VK_NULL_HANDLE;
+
+        if((descType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+            descType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
+           rm->HasLiveResource(slots[slot].sampler))
+          writeImage[arrayIdx].sampler = rm->GetLiveHandle<VkSampler>(slots[slot].sampler);
+        else
+          writeImage[arrayIdx].sampler = VK_NULL_HANDLE;
+
+        writeImage[arrayIdx].imageLayout = convert(slots[slot].imageLayout);
+
+        // if we're not updating a SAMPLER descriptor fill in immutable samplers so that
+        // our
+        // validity checking doesn't have to look them up.
+        if(immutableSamplers && descType != VK_DESCRIPTOR_TYPE_SAMPLER)
+        {
+          writeImage[arrayIdx].sampler = rm->GetCurrentHandle<VkSampler>(immutableSamplers[slot]);
+        }
+
+        // set the write array (possibly redundant if we're collating as writeImage only
+        // moves when we commit some writes)
+        writes.back().pImageInfo = writeImage;
+        break;
+      }
+      case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+      case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+      {
+        if(rm->HasLiveResource(slots[slot].resource))
+          writeTexelBuffer[arrayIdx] = rm->GetLiveHandle<VkBufferView>(slots[slot].resource);
+        else
+          writeTexelBuffer[arrayIdx] = VK_NULL_HANDLE;
+
+        writes.back().pTexelBufferView = writeTexelBuffer;
+        break;
+      }
+      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+      {
+        if(rm->HasLiveResource(slots[slot].resource))
+          writeBuffer[arrayIdx].buffer = rm->GetLiveHandle<VkBuffer>(slots[slot].resource);
+        else
+          writeBuffer[arrayIdx].buffer = VK_NULL_HANDLE;
+        writeBuffer[arrayIdx].offset = slots[slot].offset;
+        writeBuffer[arrayIdx].range = slots[slot].GetRange();
+
+        writes.back().pBufferInfo = writeBuffer;
+        break;
+      }
+      default:
+      {
+        RDCERR("Unexpected descriptor type %d", descType);
+        ret = false;
+      }
+    }
+
+    // if we made a valid write, count it
+    if(IsValid(vk->NULLDescriptorsAllowed(), writes.back(), arrayIdx))
+    {
+      writes.back().descriptorCount++;
+    }
+    else
+    {
+      // otherwise this is an invalid write. If we previously had valid writes we need to
+      // end them to ensure we don't skip
+      if(writes.back().descriptorCount > 0)
+      {
+        // consume the write arrays used
+        writeScratch += writes.back().descriptorCount;
+
+        writes.push_back(templateWrite);
+        writes.back().dstArrayElement = slot;
+      }
+    }
+  }
+
+  // take any final descriptor write that had descriptors and commit them. E.g. if all
+  // writes succeeded and were the same type then the above loop won't have committed them
+  // yet, since it only commits when it needs to break a range of writes (due to one being
+  // unwritten, or due to types differing)
+  if(writes.back().descriptorCount > 0)
+  {
+    // consume the write arrays used
+    writeScratch += writes.back().descriptorCount;
+  }
+  else if(writes.back().descriptorCount == 0)
+  {
+    // similarly remove the last write if it was unused
+    writes.pop_back();
+  }
+
+  return ret;
 }
 
 void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
@@ -2000,6 +2241,29 @@ void VulkanCreationInfo::DescSetPool::Init(VulkanResourceManager *resourceMan,
 {
   maxSets = pCreateInfo->maxSets;
   poolSizes.assign(pCreateInfo->pPoolSizes, pCreateInfo->poolSizeCount);
+
+  const VkMutableDescriptorTypeCreateInfoEXT *mutableInfo =
+      (const VkMutableDescriptorTypeCreateInfoEXT *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT);
+
+  if(mutableInfo)
+  {
+    for(uint32_t i = 0;
+        i < RDCMIN(pCreateInfo->poolSizeCount, mutableInfo->mutableDescriptorTypeListCount); i++)
+    {
+      const VkMutableDescriptorTypeListEXT &mutableTypes =
+          mutableInfo->pMutableDescriptorTypeLists[i];
+
+      RDCCOMPILE_ASSERT(uint64_t(DescriptorSlotType::Count) < 64,
+                        "Descriptor types don't fit in 64-bit bitmask anymore");
+
+      mutableBitmasks.resize_for_index(i);
+
+      // encode a bitmask with the available types for this descriptor
+      for(uint32_t m = 0; m < mutableTypes.descriptorTypeCount; m++)
+        mutableBitmasks[i] |= (1ULL << uint64_t(convert(mutableTypes.pDescriptorTypes[m])));
+    }
+  }
 }
 
 void VulkanCreationInfo::DescSetPool::CreateOverflow(VkDevice device,
@@ -2013,6 +2277,45 @@ void VulkanCreationInfo::DescSetPool::CreateOverflow(VkDevice device,
       (uint32_t)poolSizes.size(),
       &poolSizes[0],
   };
+
+  VkMutableDescriptorTypeCreateInfoEXT mutableCreateInfo = {
+      VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT,
+  };
+
+  // conservative resizing, not every descriptor type will be used but they can't overlap so at
+  // most we'll see 64 different types
+  VkDescriptorType mutableTypes[64];
+  rdcarray<VkMutableDescriptorTypeListEXT> mutableLists;
+
+  if(!mutableBitmasks.empty())
+  {
+    poolInfo.pNext = &mutableCreateInfo;
+
+    mutableLists.resize(poolInfo.poolSizeCount);
+
+    VkDescriptorType *cur = mutableTypes;
+    for(size_t i = 0; i < mutableBitmasks.size(); i++)
+    {
+      // list of descriptors starts here
+      mutableLists[i].pDescriptorTypes = cur;
+      mutableLists[i].descriptorTypeCount = 0;
+
+      // loop over every type
+      for(uint64_t m = 0; m < 64; m++)
+      {
+        // skip types not in this bitmask
+        if(((1ULL << m) & mutableBitmasks[i]) == 0)
+          continue;
+
+        // for types included, write them into the list and increment
+        *(cur++) = convert(DescriptorSlotType(m));
+        mutableLists[i].descriptorTypeCount++;
+      }
+    }
+
+    mutableCreateInfo.mutableDescriptorTypeListCount = poolInfo.poolSizeCount;
+    mutableCreateInfo.pMutableDescriptorTypeLists = mutableLists.data();
+  }
 
   VkDescriptorPool pool;
 

@@ -1464,12 +1464,12 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
         const DescSetLayout::Binding &bindData = layout.bindings[binding];
 
         // skip empty bindings
-        if(bindData.descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+        if(bindData.layoutDescType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
           continue;
 
         // only process array bindings
         if(bindData.descriptorCount > 1 &&
-           bindData.descriptorType != VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+           bindData.layoutDescType != VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
           key.binding = (uint32_t)binding;
 

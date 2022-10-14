@@ -699,6 +699,7 @@ rdcstr DoStringise(const BindType &el)
 {
   BEGIN_ENUM_STRINGISE(BindType)
   {
+    STRINGISE_ENUM_CLASS_NAMED(Unknown, "Unknown");
     STRINGISE_ENUM_CLASS_NAMED(ConstantBuffer, "Constants");
     STRINGISE_ENUM_CLASS_NAMED(Sampler, "Sampler");
     STRINGISE_ENUM_CLASS_NAMED(ImageSampler, "Image&Sampler");

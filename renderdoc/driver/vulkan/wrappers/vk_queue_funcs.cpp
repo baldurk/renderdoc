@@ -1009,19 +1009,17 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
       {
         const DescSetLayout::Binding &bind = layout->bindings[b];
 
-        // skip empty bindings
-        if(bind.descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM ||
-           bind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+        // skip empty bindings or inline uniform blocks
+        if(bind.layoutDescType == VK_DESCRIPTOR_TYPE_MAX_ENUM ||
+           bind.layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
           continue;
 
         uint32_t count = bind.descriptorCount;
         if(bind.variableSize)
           count = setrecord->descInfo->data.variableDescriptorCount;
 
-        FrameRefType ref = GetRefType(bind.descriptorType);
-
         for(uint32_t a = 0; a < count; a++)
-          setrecord->descInfo->data.binds[b][a].AccumulateBindRefs(refs, rm, ref);
+          setrecord->descInfo->data.binds[b][a].AccumulateBindRefs(refs, rm);
       }
 
       for(auto refit = refs.bindFrameRefs.begin(); refit != refs.bindFrameRefs.end(); ++refit)

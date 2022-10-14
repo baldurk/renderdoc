@@ -1182,7 +1182,6 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
     slotBinds = &pipe.descriptorSets[bindset].bindings[bind].binds;
     firstUsedBind = pipe.descriptorSets[bindset].bindings[bind].firstUsedIndex;
     lastUsedBind = pipe.descriptorSets[bindset].bindings[bind].lastUsedIndex;
-    bindType = pipe.descriptorSets[bindset].bindings[bind].type;
     stageBits = pipe.descriptorSets[bindset].bindings[bind].stageFlags;
   }
   else
@@ -1208,9 +1207,6 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
   if(!usedSlot && !stageBitsIncluded)
     return;
 
-  if(bindType == BindType::ConstantBuffer)
-    return;
-
   // TODO - check compatibility between bindType and shaderRes.resType ?
 
   // consider it filled if any array element is filled
@@ -1218,6 +1214,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
   for(int32_t idx = firstUsedBind;
       slotBinds != NULL && !filledSlot && idx <= lastUsedBind && idx < slotBinds->count(); idx++)
   {
+    bindType = (*slotBinds)[idx].type;
     filledSlot |= (*slotBinds)[idx].resourceResourceId != ResourceId();
     if(bindType == BindType::Sampler || bindType == BindType::ImageSampler)
       filledSlot |= (*slotBinds)[idx].samplerResourceId != ResourceId();
@@ -1250,7 +1247,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
     else
       arrayLength = (bindMap->arraySize == ~0U ? -1 : (int)bindMap->arraySize);
 
-    // for arrays, add a parent element that we add the real cbuffers below
+    // for arrays, add a parent element that we add the real resources below
     if(arrayLength > 1 || arrayLength < 0)
     {
       RDTreeWidgetItem *node =
@@ -1267,10 +1264,6 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       if(!usedSlot)
         setInactiveRow(node);
 
-      resources->addTopLevelItem(node);
-
-      // show the tree column
-      resources->showColumn(0);
       parentNode = node;
     }
 
@@ -1283,11 +1276,16 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       {
         descriptorBind = &(*slotBinds)[idx];
 
+        bindType = descriptorBind->type;
+
         dynamicUsed &= descriptorBind->dynamicallyUsed;
 
         if(!showNode(dynamicUsed, filledSlot))
           continue;
       }
+
+      if(bindType == BindType::ConstantBuffer)
+        continue;
 
       if(arrayLength > 1)
       {
@@ -1587,6 +1585,26 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       if(samplerNode)
         parentNode->addChild(samplerNode);
     }
+
+    // if we were adding to an array node, add it now
+    if(parentNode != resources->invisibleRootItem())
+    {
+      // as long as it has children - if it has no children then delete it and don't add anything
+      // this is possible e.g. if this node is a constant buffer - we couldn't tell that until we
+      // iterated all the descriptors to see if there were any non-constant buffers, given they may
+      // be mutably typed
+      if(parentNode->childCount() > 0)
+      {
+        // show the tree column
+        resources->showColumn(0);
+        // add the root item
+        resources->addTopLevelItem(parentNode);
+      }
+      else
+      {
+        delete parentNode;
+      }
+    }
   }
 }
 
@@ -1616,7 +1634,6 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   }
 
   const rdcarray<VKPipe::BindingElement> *slotBinds = NULL;
-  BindType bindType = BindType::ConstantBuffer;
   ShaderStageMask stageBits = ShaderStageMask::Unknown;
   uint32_t dynamicallyUsedCount = ~0U;
   int32_t firstUsedBind = 0;
@@ -1631,7 +1648,6 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
     slotBinds = &pipe.descriptorSets[bindset].bindings[bind].binds;
     firstUsedBind = pipe.descriptorSets[bindset].bindings[bind].firstUsedIndex;
     lastUsedBind = pipe.descriptorSets[bindset].bindings[bind].lastUsedIndex;
-    bindType = pipe.descriptorSets[bindset].bindings[bind].type;
     stageBits = pipe.descriptorSets[bindset].bindings[bind].stageFlags;
   }
 
@@ -1646,9 +1662,6 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
 
   // skip descriptors that aren't for this shader stage
   if(!usedSlot && !stageBitsIncluded)
-    return;
-
-  if(bindType != BindType::ConstantBuffer)
     return;
 
   // consider it filled if any array element is filled (or it's push constants)
@@ -1702,10 +1715,6 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       if(!usedSlot)
         setInactiveRow(node);
 
-      ubos->addTopLevelItem(node);
-
-      // show the tree column
-      ubos->showColumn(0);
       parentNode = node;
     }
 
@@ -1717,6 +1726,9 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
         descriptorBind = &(*slotBinds)[idx];
 
         if(!showNode(usedSlot && descriptorBind->dynamicallyUsed, filledSlot))
+          continue;
+
+        if(descriptorBind->type != BindType::ConstantBuffer)
           continue;
       }
 
@@ -1817,6 +1829,26 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
         setInactiveRow(node);
 
       parentNode->addChild(node);
+    }
+
+    // if we were adding to an array node, add it now
+    if(parentNode != ubos->invisibleRootItem())
+    {
+      // as long as it has children - if it has no children then delete it and don't add anything
+      // this is possible e.g. if this node is not a constant buffer - we couldn't tell that until
+      // we iterated all the descriptors to see if there were any constant buffers, given they may
+      // be mutably typed
+      if(parentNode->childCount() > 0)
+      {
+        // show the tree column
+        ubos->showColumn(0);
+        // add the root item
+        ubos->addTopLevelItem(parentNode);
+      }
+      else
+      {
+        delete parentNode;
+      }
     }
   }
 }
@@ -3682,13 +3714,13 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
           viewParams = tr("Byte Range: %1").arg(formatByteRange(buf, &descriptorBind));
         }
 
-        if(bind.type != BindType::Sampler)
-          rows.push_back({setname, slotname, name, ToQStr(bind.type), (qulonglong)w, h, d, arr,
-                          format, viewParams});
+        if(descriptorBind.type != BindType::Sampler)
+          rows.push_back({setname, slotname, name, ToQStr(descriptorBind.type), (qulonglong)w, h, d,
+                          arr, format, viewParams});
 
-        if(bind.type == BindType::ImageSampler || bind.type == BindType::Sampler)
+        if(descriptorBind.type == BindType::ImageSampler || descriptorBind.type == BindType::Sampler)
         {
-          if(bind.type == BindType::ImageSampler)
+          if(descriptorBind.type == BindType::ImageSampler)
             setname = slotname = QString();
 
           QString samplerName = m_Ctx.GetResourceName(descriptorBind.samplerResourceId);
@@ -3697,8 +3729,8 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
             samplerName = tr("Empty");
 
           QVariantList sampDetails = makeSampler(QString(), QString(), descriptorBind);
-          rows.push_back({setname, slotname, samplerName, ToQStr(bind.type), QString(), QString(),
-                          QString(), QString(), sampDetails[5], sampDetails[6]});
+          rows.push_back({setname, slotname, samplerName, ToQStr(descriptorBind.type), QString(),
+                          QString(), QString(), QString(), sampDetails[5], sampDetails[6]});
         }
       }
     }
@@ -3794,8 +3826,8 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
           viewParams = tr("Byte Range: %1").arg(formatByteRange(buf, &descriptorBind));
         }
 
-        rows.push_back({setname, slotname, name, ToQStr(bind.type), (qulonglong)w, h, d, arr,
-                        format, viewParams});
+        rows.push_back({setname, slotname, name, ToQStr(descriptorBind.type), (qulonglong)w, h, d,
+                        arr, format, viewParams});
       }
     }
 

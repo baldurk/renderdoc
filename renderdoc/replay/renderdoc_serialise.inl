@@ -1922,6 +1922,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::State &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VKPipe::BindingElement &el)
 {
+  SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(viewResourceId);
   SERIALISE_MEMBER(resourceResourceId);
   SERIALISE_MEMBER(samplerResourceId);
@@ -1960,7 +1961,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::BindingElement &el)
   SERIALISE_MEMBER(chromaFilter);
   SERIALISE_MEMBER(forceExplicitReconstruction);
 
-  SIZE_CHECK(184);
+  SIZE_CHECK(192);
 };
 
 template <typename SerialiserType>
@@ -1970,7 +1971,6 @@ void DoSerialise(SerialiserType &ser, VKPipe::DescriptorBinding &el)
   SERIALISE_MEMBER(dynamicallyUsedCount);
   SERIALISE_MEMBER(firstUsedIndex);
   SERIALISE_MEMBER(lastUsedIndex);
-  SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(stageFlags);
 
   SERIALISE_MEMBER(binds);

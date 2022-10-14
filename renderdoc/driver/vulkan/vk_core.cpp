@@ -1007,6 +1007,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_SPEC_VERSION,
     },
     {
+        VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME, VK_EXT_MUTABLE_DESCRIPTOR_TYPE_SPEC_VERSION,
+    },
+    {
         VK_EXT_PCI_BUS_INFO_EXTENSION_NAME, VK_EXT_PCI_BUS_INFO_SPEC_VERSION,
     },
     {
@@ -1499,6 +1502,9 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
     {
         VK_QCOM_RENDER_PASS_STORE_OPS_EXTENSION_NAME, VK_QCOM_RENDER_PASS_STORE_OPS_SPEC_VERSION,
+    },
+    {
+        VK_VALVE_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME, VK_VALVE_MUTABLE_DESCRIPTOR_TYPE_SPEC_VERSION,
     },
 };
 
@@ -4738,16 +4744,8 @@ void WrappedVulkan::AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMes
           continue;
         }
 
-        // handled as part of the framebuffer attachments
-        if(layout.bindings[bind].descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
-          continue;
-
-        // we don't mark samplers with usage
-        if(layout.bindings[bind].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
-          continue;
-
         // no object to mark for usage with inline blocks
-        if(layout.bindings[bind].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+        if(layout.bindings[bind].layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
           continue;
 
         ResourceUsage usage = ResourceUsage(uint32_t(types[t].usage) + shad);
@@ -4781,30 +4779,41 @@ void WrappedVulkan::AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMes
 
           DescriptorSetSlot &slot = descset.data.binds[bind][a];
 
+          // handled as part of the framebuffer attachments
+          if(slot.type == DescriptorSlotType::InputAttachment)
+            continue;
+
+          // ignore unwritten descriptors
+          if(slot.type == DescriptorSlotType::Unwritten)
+            continue;
+
+          // we don't mark samplers with usage
+          if(slot.type == DescriptorSlotType::Sampler)
+            continue;
+
           ResourceId id;
 
-          switch(layout.bindings[bind].descriptorType)
+          switch(slot.type)
           {
-            case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-            case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-            case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-              if(slot.imageInfo.imageView != ResourceId())
-                id = c.m_ImageView[slot.imageInfo.imageView].image;
+            case DescriptorSlotType::CombinedImageSampler:
+            case DescriptorSlotType::SampledImage:
+            case DescriptorSlotType::StorageImage:
+              if(slot.resource != ResourceId())
+                id = c.m_ImageView[slot.resource].image;
               break;
-            case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-            case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-              if(slot.texelBufferView != ResourceId())
-                id = c.m_BufferView[slot.texelBufferView].buffer;
+            case DescriptorSlotType::UniformTexelBuffer:
+            case DescriptorSlotType::StorageTexelBuffer:
+              if(slot.resource != ResourceId())
+                id = c.m_BufferView[slot.resource].buffer;
               break;
-            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-              if(slot.bufferInfo.buffer != ResourceId())
-                id = slot.bufferInfo.buffer;
+            case DescriptorSlotType::UniformBuffer:
+            case DescriptorSlotType::UniformBufferDynamic:
+            case DescriptorSlotType::StorageBuffer:
+            case DescriptorSlotType::StorageBufferDynamic:
+              if(slot.resource != ResourceId())
+                id = slot.resource;
               break;
-            case VK_DESCRIPTOR_TYPE_MAX_ENUM: break;
-            default: RDCERR("Unexpected type %d", layout.bindings[bind].descriptorType); break;
+            default: RDCERR("Unexpected type %d", slot.type); break;
           }
 
           if(id != ResourceId())

@@ -460,45 +460,208 @@ struct MemoryAllocation
 struct VkResourceRecord;
 class VulkanResourceManager;
 
-FrameRefType GetRefType(VkDescriptorType descType);
+// we inherit from uint64_t to make this more bitfield-able but we intend for this to fit in uint8_t
+enum class DescriptorSlotType : uint64_t
+{
+  // we want an unwritten type as 0 so that zero-initialised descriptors that haven't been written
+  // don't look like samplers, so these unfortunately don't match VkDescriptorType in value.
+  Unwritten = 0,
+  Sampler,
+  CombinedImageSampler,
+  SampledImage,
+  StorageImage,
+  UniformTexelBuffer,
+  StorageTexelBuffer,
+  UniformBuffer,
+  StorageBuffer,
+  UniformBufferDynamic,
+  StorageBufferDynamic,
+  InputAttachment,
+  InlineBlock,
+  Count,
+};
+
+FrameRefType GetRefType(DescriptorSlotType descType);
+
+constexpr VkDescriptorType convert(DescriptorSlotType type)
+{
+  // temporarily disable clang-format to make this more readable.
+  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
+  // clang-format off
+  return type == DescriptorSlotType::Unwritten            ? VK_DESCRIPTOR_TYPE_MAX_ENUM
+       : type == DescriptorSlotType::Sampler              ? VK_DESCRIPTOR_TYPE_SAMPLER
+       : type == DescriptorSlotType::CombinedImageSampler ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+       : type == DescriptorSlotType::SampledImage         ? VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE
+       : type == DescriptorSlotType::StorageImage         ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+       : type == DescriptorSlotType::UniformTexelBuffer   ? VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER
+       : type == DescriptorSlotType::StorageTexelBuffer   ? VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER
+       : type == DescriptorSlotType::UniformBuffer        ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+       : type == DescriptorSlotType::StorageBuffer        ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
+       : type == DescriptorSlotType::UniformBufferDynamic ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
+       : type == DescriptorSlotType::StorageBufferDynamic ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
+       : type == DescriptorSlotType::InputAttachment      ? VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
+       : type == DescriptorSlotType::InlineBlock          ? VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK
+       : VK_DESCRIPTOR_TYPE_MAX_ENUM;
+  // clang-format on
+}
+
+constexpr DescriptorSlotType convert(VkDescriptorType type)
+{
+  // temporarily disable clang-format to make this more readable.
+  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
+  // clang-format off
+  return type == VK_DESCRIPTOR_TYPE_SAMPLER                ? DescriptorSlotType::Sampler
+       : type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ? DescriptorSlotType::CombinedImageSampler
+       : type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE          ? DescriptorSlotType::SampledImage
+       : type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE          ? DescriptorSlotType::StorageImage
+       : type == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER   ? DescriptorSlotType::UniformTexelBuffer
+       : type == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER   ? DescriptorSlotType::StorageTexelBuffer
+       : type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER         ? DescriptorSlotType::UniformBuffer
+       : type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER         ? DescriptorSlotType::StorageBuffer
+       : type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ? DescriptorSlotType::UniformBufferDynamic
+       : type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ? DescriptorSlotType::StorageBufferDynamic
+       : type == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT       ? DescriptorSlotType::InputAttachment
+       : type == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK   ? DescriptorSlotType::InlineBlock
+       : DescriptorSlotType::Unwritten;
+  // clang-format on
+}
+
+// we inherit from uint64_t to make this more bitfield-able but we intend for this to fit in uint8_t
+enum class DescriptorSlotImageLayout : uint64_t
+{
+  // these match the core types
+  Undefined = 0,
+  General = 1,
+  ColorAttach = 2,
+  DepthStencilAttach = 3,
+  DepthStencilRead = 4,
+  ShaderRead = 5,
+  TransferSrc = 6,
+  TransferDst = 7,
+  Preinit = 8,
+  // these are extensions
+  DepthReadStencilAttach,
+  DepthAttachStencilRead,
+  DepthAttach,
+  DepthRead,
+  StencilAttach,
+  StencilRead,
+  Read,
+  Attach,
+  Present,
+  SharedPresent,
+  FragmentDensity,
+  FragmentShadingRate,
+  FeedbackLoop,
+
+  Count,
+};
+
+constexpr VkImageLayout convert(DescriptorSlotImageLayout layout)
+{
+  // temporarily disable clang-format to make this more readable.
+  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
+  // clang-format off
+  return layout == DescriptorSlotImageLayout::Undefined              ? VK_IMAGE_LAYOUT_UNDEFINED
+       : layout == DescriptorSlotImageLayout::General                ? VK_IMAGE_LAYOUT_GENERAL
+       : layout == DescriptorSlotImageLayout::ColorAttach            ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+       : layout == DescriptorSlotImageLayout::DepthStencilAttach     ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+       : layout == DescriptorSlotImageLayout::DepthStencilRead       ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+       : layout == DescriptorSlotImageLayout::ShaderRead             ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+       : layout == DescriptorSlotImageLayout::TransferSrc            ? VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+       : layout == DescriptorSlotImageLayout::TransferDst            ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+       : layout == DescriptorSlotImageLayout::Preinit                ? VK_IMAGE_LAYOUT_PREINITIALIZED
+       : layout == DescriptorSlotImageLayout::DepthReadStencilAttach ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL
+       : layout == DescriptorSlotImageLayout::DepthAttachStencilRead ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL
+       : layout == DescriptorSlotImageLayout::DepthAttach            ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
+       : layout == DescriptorSlotImageLayout::DepthRead              ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL
+       : layout == DescriptorSlotImageLayout::StencilAttach          ? VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL
+       : layout == DescriptorSlotImageLayout::StencilRead            ? VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL
+       : layout == DescriptorSlotImageLayout::Read                   ? VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL
+       : layout == DescriptorSlotImageLayout::Attach                 ? VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL
+       : layout == DescriptorSlotImageLayout::Present                ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+       : layout == DescriptorSlotImageLayout::SharedPresent          ? VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR
+       : layout == DescriptorSlotImageLayout::FragmentDensity        ? VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT
+       : layout == DescriptorSlotImageLayout::FragmentShadingRate    ? VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR
+       : layout == DescriptorSlotImageLayout::FeedbackLoop           ? VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT
+       : VK_IMAGE_LAYOUT_MAX_ENUM;
+  // clang-format on
+}
+
+constexpr DescriptorSlotImageLayout convert(VkImageLayout layout)
+{
+  // temporarily disable clang-format to make this more readable.
+  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
+  // clang-format off
+  return layout == VK_IMAGE_LAYOUT_UNDEFINED                                    ? DescriptorSlotImageLayout::Undefined
+       : layout == VK_IMAGE_LAYOUT_GENERAL                                      ? DescriptorSlotImageLayout::General
+       : layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL                     ? DescriptorSlotImageLayout::ColorAttach
+       : layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL             ? DescriptorSlotImageLayout::DepthStencilAttach
+       : layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL              ? DescriptorSlotImageLayout::DepthStencilRead
+       : layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL                     ? DescriptorSlotImageLayout::ShaderRead
+       : layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL                         ? DescriptorSlotImageLayout::TransferSrc
+       : layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL                         ? DescriptorSlotImageLayout::TransferDst
+       : layout == VK_IMAGE_LAYOUT_PREINITIALIZED                               ? DescriptorSlotImageLayout::Preinit
+       : layout == VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL   ? DescriptorSlotImageLayout::DepthReadStencilAttach
+       : layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL   ? DescriptorSlotImageLayout::DepthAttachStencilRead
+       : layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL                     ? DescriptorSlotImageLayout::DepthAttach
+       : layout == VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL                      ? DescriptorSlotImageLayout::DepthRead
+       : layout == VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL                   ? DescriptorSlotImageLayout::StencilAttach
+       : layout == VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL                    ? DescriptorSlotImageLayout::StencilRead
+       : layout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL                            ? DescriptorSlotImageLayout::Read
+       : layout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL                           ? DescriptorSlotImageLayout::Attach
+       : layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR                              ? DescriptorSlotImageLayout::Present
+       : layout == VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR                           ? DescriptorSlotImageLayout::SharedPresent
+       : layout == VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT             ? DescriptorSlotImageLayout::FragmentDensity
+       : layout == VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR ? DescriptorSlotImageLayout::FragmentShadingRate
+       : layout == VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT         ? DescriptorSlotImageLayout::FeedbackLoop
+       : DescriptorSlotImageLayout::Count;
+  // clang-format on
+}
+
+struct DescriptorBindRefs;
 
 // tracking for descriptor set slots. Needed because if we use something without IDs for tracking
 // binding elements the handles may be deleted and recreated, and stale bindings could interfere
 // with new bindings
-struct DescriptorSetSlotBufferInfo
-{
-  void SetFrom(const VkDescriptorBufferInfo &bufInfo);
-
-  ResourceId buffer;
-  VkDeviceSize offset;
-  VkDeviceSize range;
-};
-
-struct DescriptorSetSlotImageInfo
-{
-  void SetFrom(const VkDescriptorImageInfo &imInfo, bool setSampler, bool setImageView);
-
-  ResourceId sampler;
-  ResourceId imageView;
-  VkImageLayout imageLayout;
-};
-
-struct DescriptorBindRefs;
-
+// this struct is crushed as much as possible in size to minimise memory overhead for descriptor
+// tracking when applications allocate many many millions of descriptors
 struct DescriptorSetSlot
 {
-  void AccumulateBindRefs(DescriptorBindRefs &refs, VulkanResourceManager *rm, FrameRefType ref) const;
+  void AccumulateBindRefs(DescriptorBindRefs &refs, VulkanResourceManager *rm) const;
 
-  // VkDescriptorBufferInfo
-  DescriptorSetSlotBufferInfo bufferInfo;
+  void SetBuffer(VkDescriptorType writeType, const VkDescriptorBufferInfo &bufInfo);
+  void SetImage(VkDescriptorType writeType, const VkDescriptorImageInfo &imInfo, bool useSampler);
+  void SetTexelBuffer(VkDescriptorType writeType, ResourceId id);
 
-  // VkDescriptorImageInfo
-  DescriptorSetSlotImageInfo imageInfo;
+  // 48-bit truncated VK_WHOLE_SIZE
+  static const VkDeviceSize WholeSizeRange = 0xFFFFFFFFFFFF;
+  VkDeviceSize GetRange() const { return range == WholeSizeRange ? VK_WHOLE_SIZE : range; }
+  // used for buffers, we assume the max buffer size is less than 1<<48.
+  // this is placed first to allow writes to just mask the top bits on read or write and remain
+  // aligned, then the type/layout below can be accessed directly as bytes.
+  VkDeviceSize range : 48;
+  // mutable type - for simplicity we treat all descriptors as mutable. It penalises all
+  // applications for mutable descriptors, but there's little point in having a separate path for
+  // normal descriptors.
+  DescriptorSlotType type : 8;
+  // used for images, the image layout
+  DescriptorSlotImageLayout imageLayout : 8;
 
-  ResourceId texelBufferView;
+  // used for buffers and inline blocks. We could steal some bits here if we needed them since 48
+  // bits would be plenty for a long time.
+  VkDeviceSize offset;
 
-  // inline uniform block
-  uint32_t inlineOffset;
+  // resource IDs are kept separate rather than overlapping/union'ing with other types. This
+  // prevents a potential problem where a descriptor has a resource ID written in, then is re-used
+  // as a different type and the resource ID is partly trampled. Since these are disjoint we know
+  // that even if they're stale they're valid IDs.
+
+  // main contents: buffer, image, texel buffer view. NOT the sampler for sampler-only descriptors,
+  // just to avoid confusion
+  ResourceId resource;
+  // sampler for sampler-only descriptors, or sampler for combined image-sampler descriptors
+  ResourceId sampler;
 };
 
 struct BindingStorage
@@ -544,11 +707,7 @@ private:
   friend struct DescSetLayout;
 };
 
-DECLARE_REFLECTION_STRUCT(DescriptorSetSlotBufferInfo);
-DECLARE_REFLECTION_STRUCT(DescriptorSetSlotImageInfo);
 DECLARE_REFLECTION_STRUCT(DescriptorSetSlot);
-
-bool IsValid(bool allowNULLDescriptors, const VkWriteDescriptorSet &write, uint32_t arrayElement);
 
 #define NUM_VK_IMAGE_ASPECTS 4
 #define VK_ACCESS_ALL_READ_BITS                                                        \
@@ -817,8 +976,8 @@ DECLARE_REFLECTION_STRUCT(VkCalibratedTimestampInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkCommandBufferAllocateInfo);
 DECLARE_REFLECTION_STRUCT(VkCommandBufferBeginInfo);
 DECLARE_REFLECTION_STRUCT(VkCommandBufferInheritanceConditionalRenderingInfoEXT);
-DECLARE_REFLECTION_STRUCT(VkCommandBufferInheritanceRenderingInfo);
 DECLARE_REFLECTION_STRUCT(VkCommandBufferInheritanceInfo);
+DECLARE_REFLECTION_STRUCT(VkCommandBufferInheritanceRenderingInfo);
 DECLARE_REFLECTION_STRUCT(VkCommandBufferSubmitInfo);
 DECLARE_REFLECTION_STRUCT(VkCommandPoolCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkComputePipelineCreateInfo);
@@ -934,8 +1093,9 @@ DECLARE_REFLECTION_STRUCT(VkMemoryGetFdInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkMemoryOpaqueCaptureAddressAllocateInfo);
 DECLARE_REFLECTION_STRUCT(VkMemoryPriorityAllocateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkMemoryRequirements2);
-DECLARE_REFLECTION_STRUCT(VkMultisamplePropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkMultisampledRenderToSingleSampledInfoEXT);
+DECLARE_REFLECTION_STRUCT(VkMultisamplePropertiesEXT);
+DECLARE_REFLECTION_STRUCT(VkMutableDescriptorTypeCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkPastPresentationTimingGOOGLE);
 DECLARE_REFLECTION_STRUCT(VkPerformanceCounterDescriptionKHR);
 DECLARE_REFLECTION_STRUCT(VkPerformanceCounterKHR);
@@ -962,31 +1122,31 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDescriptorIndexingProperties)
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDiscardRectanglePropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDriverProperties);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDynamicRenderingFeatures);
-DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExtendedDynamicStateFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExtendedDynamicState2FeaturesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExtendedDynamicStateFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExternalBufferInfo);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExternalFenceInfo);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExternalImageFormatInfo);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExternalSemaphoreInfo);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFeatures2);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFloatControlsProperties);
-DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentDensityMapFeaturesEXT);
-DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentDensityMapPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentDensityMap2FeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentDensityMap2PropertiesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentDensityMapFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentDensityMapOffsetFeaturesQCOM);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentDensityMapOffsetPropertiesQCOM);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentDensityMapPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentShaderBarycentricPropertiesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentShadingRateFeaturesKHR);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentShadingRateKHR);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentShadingRatePropertiesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceGlobalPriorityQueryFeaturesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceGraphicsPipelineLibraryPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceGroupProperties);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceHostQueryResetFeatures);
-DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentShadingRateKHR);
-DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentShadingRateFeaturesKHR);
-DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentShadingRatePropertiesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceIDProperties);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceImageFormatInfo2);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceImagelessFramebufferFeatures);
@@ -1006,6 +1166,7 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMemoryProperties2);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMultiviewFeatures);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMultiviewProperties);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevicePCIBusInfoPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevicePerformanceQueryFeaturesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevicePerformanceQueryPropertiesKHR);
@@ -1029,8 +1190,8 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceSamplerFilterMinmaxProperties);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceSamplerYcbcrConversionFeatures);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceScalarBlockLayoutFeatures);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures);
-DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceShaderAtomicFloatFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceShaderAtomicFloatFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceShaderAtomicInt64Features);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceShaderClockFeaturesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceShaderCorePropertiesAMD);
@@ -1204,8 +1365,8 @@ DECLARE_DESERIALISE_TYPE(VkCalibratedTimestampInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkCommandBufferAllocateInfo);
 DECLARE_DESERIALISE_TYPE(VkCommandBufferBeginInfo);
 DECLARE_DESERIALISE_TYPE(VkCommandBufferInheritanceConditionalRenderingInfoEXT);
-DECLARE_DESERIALISE_TYPE(VkCommandBufferInheritanceRenderingInfo);
 DECLARE_DESERIALISE_TYPE(VkCommandBufferInheritanceInfo);
+DECLARE_DESERIALISE_TYPE(VkCommandBufferInheritanceRenderingInfo);
 DECLARE_DESERIALISE_TYPE(VkCommandBufferSubmitInfo);
 DECLARE_DESERIALISE_TYPE(VkCommandPoolCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkComputePipelineCreateInfo);
@@ -1320,8 +1481,9 @@ DECLARE_DESERIALISE_TYPE(VkMemoryGetFdInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkMemoryOpaqueCaptureAddressAllocateInfo);
 DECLARE_DESERIALISE_TYPE(VkMemoryPriorityAllocateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkMemoryRequirements2);
-DECLARE_DESERIALISE_TYPE(VkMultisamplePropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkMultisampledRenderToSingleSampledInfoEXT);
+DECLARE_DESERIALISE_TYPE(VkMultisamplePropertiesEXT);
+DECLARE_DESERIALISE_TYPE(VkMutableDescriptorTypeCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkPerformanceCounterDescriptionKHR);
 DECLARE_DESERIALISE_TYPE(VkPerformanceCounterKHR);
 DECLARE_DESERIALISE_TYPE(VkPerformanceQuerySubmitInfoKHR);
@@ -1345,31 +1507,31 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDescriptorIndexingProperties)
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDiscardRectanglePropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDriverProperties);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDynamicRenderingFeatures);
-DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicStateFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicState2FeaturesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicStateFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExternalBufferInfo);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExternalFenceInfo);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExternalImageFormatInfo);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExternalSemaphoreInfo);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFeatures2);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFloatControlsProperties);
-DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapFeaturesEXT);
-DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMap2FeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMap2PropertiesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapOffsetFeaturesQCOM);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapOffsetPropertiesQCOM);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentShaderBarycentricPropertiesKHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentShadingRateFeaturesKHR);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentShadingRateKHR);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentShadingRatePropertiesKHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceGlobalPriorityQueryFeaturesKHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceGraphicsPipelineLibraryPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceGroupProperties);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceHostQueryResetFeatures);
-DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentShadingRateKHR);
-DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentShadingRateFeaturesKHR);
-DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentShadingRatePropertiesKHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceIDProperties);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceImageFormatInfo2);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceImagelessFramebufferFeatures);
@@ -1389,6 +1551,7 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMemoryProperties2);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMultiviewFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMultiviewProperties);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevicePCIBusInfoPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevicePerformanceQueryFeaturesKHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevicePerformanceQueryPropertiesKHR);
@@ -1412,8 +1575,8 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceSamplerFilterMinmaxProperties);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceSamplerYcbcrConversionFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceScalarBlockLayoutFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures);
-DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceShaderAtomicFloatFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceShaderAtomicFloatFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceShaderAtomicInt64Features);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceShaderClockFeaturesKHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceShaderCorePropertiesAMD);
@@ -1597,6 +1760,7 @@ DECLARE_REFLECTION_STRUCT(VkInputAttachmentAspectReference);
 DECLARE_REFLECTION_STRUCT(VkMemoryHeap);
 DECLARE_REFLECTION_STRUCT(VkMemoryRequirements);
 DECLARE_REFLECTION_STRUCT(VkMemoryType);
+DECLARE_REFLECTION_STRUCT(VkMutableDescriptorTypeListEXT);
 DECLARE_REFLECTION_STRUCT(VkOffset2D);
 DECLARE_REFLECTION_STRUCT(VkOffset3D);
 DECLARE_REFLECTION_STRUCT(VkPerformanceCounterResultKHR);

@@ -2990,6 +2990,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
                                 (ext->attachmentFragmentShadingRate != VK_FALSE);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(mutableDescriptorType);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

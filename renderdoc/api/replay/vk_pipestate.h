@@ -38,19 +38,21 @@ struct BindingElement
 
   bool operator==(const BindingElement &o) const
   {
-    return dynamicallyUsed == o.dynamicallyUsed && viewResourceId == o.viewResourceId &&
-           resourceResourceId == o.resourceResourceId && samplerResourceId == o.samplerResourceId &&
-           immutableSampler == o.immutableSampler && inlineBlock == o.inlineBlock &&
-           viewFormat == o.viewFormat && swizzle == o.swizzle && firstMip == o.firstMip &&
-           firstSlice == o.firstSlice && numMips == o.numMips && numSlices == o.numSlices &&
-           byteOffset == o.byteOffset && byteSize == o.byteSize && filter == o.filter &&
-           addressU == o.addressU && addressV == o.addressV && addressW == o.addressW &&
-           mipBias == o.mipBias && maxAnisotropy == o.maxAnisotropy &&
+    return type == o.type && dynamicallyUsed == o.dynamicallyUsed &&
+           viewResourceId == o.viewResourceId && resourceResourceId == o.resourceResourceId &&
+           samplerResourceId == o.samplerResourceId && immutableSampler == o.immutableSampler &&
+           inlineBlock == o.inlineBlock && viewFormat == o.viewFormat && swizzle == o.swizzle &&
+           firstMip == o.firstMip && firstSlice == o.firstSlice && numMips == o.numMips &&
+           numSlices == o.numSlices && byteOffset == o.byteOffset && byteSize == o.byteSize &&
+           filter == o.filter && addressU == o.addressU && addressV == o.addressV &&
+           addressW == o.addressW && mipBias == o.mipBias && maxAnisotropy == o.maxAnisotropy &&
            compareFunction == o.compareFunction && minLOD == o.minLOD && maxLOD == o.maxLOD &&
            borderColor == o.borderColor && unnormalized == o.unnormalized;
   }
   bool operator<(const BindingElement &o) const
   {
+    if(!(type == o.type))
+      return type < o.type;
     if(!(dynamicallyUsed == o.dynamicallyUsed))
       return dynamicallyUsed < o.dynamicallyUsed;
     if(!(viewResourceId == o.viewResourceId))
@@ -104,6 +106,8 @@ struct BindingElement
     return false;
   }
 
+  DOCUMENT("The :class:`BindType` of this binding element.");
+  BindType type = BindType::Unknown;
   DOCUMENT("The :class:`ResourceId` of the current view object, if one is in use.");
   ResourceId viewResourceId;    // bufferview, imageview, attachmentview
   DOCUMENT("The :class:`ResourceId` of the current underlying buffer or image object.");
@@ -232,7 +236,7 @@ struct DescriptorBinding
   {
     return descriptorCount == o.descriptorCount && dynamicallyUsedCount == o.dynamicallyUsedCount &&
            firstUsedIndex == o.firstUsedIndex && lastUsedIndex == o.lastUsedIndex &&
-           type == o.type && stageFlags == o.stageFlags && binds == o.binds;
+           stageFlags == o.stageFlags && binds == o.binds;
   }
   bool operator<(const DescriptorBinding &o) const
   {
@@ -244,8 +248,6 @@ struct DescriptorBinding
       return firstUsedIndex < o.firstUsedIndex;
     if(!(lastUsedIndex == o.lastUsedIndex))
       return lastUsedIndex < o.lastUsedIndex;
-    if(!(type == o.type))
-      return type < o.type;
     if(!(stageFlags == o.stageFlags))
       return stageFlags < o.stageFlags;
     if(!(binds == o.binds))
@@ -278,8 +280,6 @@ to avoid redundant iteration in very large descriptor arrays with a small subset
 For more information see :data:`VKBindingElement.dynamicallyUsed`.
 )");
   int32_t lastUsedIndex = 0x7fffffff;
-  DOCUMENT("The :class:`BindType` of this binding.");
-  BindType type = BindType::Unknown;
   DOCUMENT("The :class:`ShaderStageMask` where this binding is visible.");
   ShaderStageMask stageFlags = ShaderStageMask::Unknown;
 

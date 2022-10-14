@@ -24,6 +24,7 @@
 
 #include "vk_common.h"
 #include "vk_core.h"
+#include "vk_debug.h"
 #include "vk_manager.h"
 #include "vk_resources.h"
 
@@ -353,6 +354,10 @@ void GPUBuffer::Unmap()
 bool VkInitParams::IsSupportedVersion(uint64_t ver)
 {
   if(ver == CurrentVersion)
+    return true;
+
+  // 0x14 -> 0x15 - added support for mutable descriptors
+  if(ver == 0x14)
     return true;
 
   // 0x13 -> 0x14 - added missing VkCommandBufferInheritanceRenderingInfo::flags
@@ -1040,84 +1045,55 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps, bool act
   }
 }
 
-FrameRefType GetRefType(VkDescriptorType descType)
+FrameRefType GetRefType(DescriptorSlotType descType)
 {
   switch(descType)
   {
-    case VK_DESCRIPTOR_TYPE_SAMPLER:
-    case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-    case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-    case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK:
-    case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: return eFrameRef_Read;
-    case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-    case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: return eFrameRef_ReadBeforeWrite;
+    case DescriptorSlotType::Unwritten:
+    case DescriptorSlotType::Sampler:
+    case DescriptorSlotType::CombinedImageSampler:
+    case DescriptorSlotType::SampledImage:
+    case DescriptorSlotType::UniformTexelBuffer:
+    case DescriptorSlotType::UniformBuffer:
+    case DescriptorSlotType::UniformBufferDynamic:
+    case DescriptorSlotType::InputAttachment:
+    case DescriptorSlotType::InlineBlock: return eFrameRef_Read;
+    case DescriptorSlotType::StorageImage:
+    case DescriptorSlotType::StorageTexelBuffer:
+    case DescriptorSlotType::StorageBuffer:
+    case DescriptorSlotType::StorageBufferDynamic: return eFrameRef_ReadBeforeWrite;
     default: RDCERR("Unexpected descriptor type");
   }
 
   return eFrameRef_Read;
 }
 
-bool IsValid(bool allowNULLDescriptors, const VkWriteDescriptorSet &write, uint32_t arrayElement)
+void DescriptorSetSlot::SetBuffer(VkDescriptorType writeType, const VkDescriptorBufferInfo &bufInfo)
 {
-  if(write.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
-    return true;
-
-  // this makes assumptions that only hold within the context of Serialise_InitialState below,
-  // specifically that if pTexelBufferView/pBufferInfo is set then we are using them. In the general
-  // case they can be garbage and we must ignore them based on the descriptorType
-
-  if(write.pTexelBufferView)
-    return allowNULLDescriptors ? true : write.pTexelBufferView[arrayElement] != VK_NULL_HANDLE;
-
-  if(write.pBufferInfo)
-    return allowNULLDescriptors ? true : write.pBufferInfo[arrayElement].buffer != VK_NULL_HANDLE;
-
-  if(write.pImageInfo)
-  {
-    // only these two types need samplers
-    bool needSampler = (write.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
-                        write.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-
-    // but all types that aren't just a sampler need an image
-    bool needImage = (write.descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER);
-
-    if(allowNULLDescriptors)
-      needImage = false;
-
-    if(needSampler && write.pImageInfo[arrayElement].sampler == VK_NULL_HANDLE)
-      return false;
-
-    if(needImage && write.pImageInfo[arrayElement].imageView == VK_NULL_HANDLE)
-      return false;
-
-    return true;
-  }
-
-  RDCERR("Encountered VkWriteDescriptorSet with no data!");
-
-  return false;
-}
-
-void DescriptorSetSlotBufferInfo::SetFrom(const VkDescriptorBufferInfo &bufInfo)
-{
-  buffer = GetResID(bufInfo.buffer);
+  type = convert(writeType);
+  resource = GetResID(bufInfo.buffer);
   offset = bufInfo.offset;
   range = bufInfo.range;
+  if(bufInfo.range > VK_WHOLE_SIZE)
+    RDCWARN("Unrepresentable buffer range size: %llx", bufInfo.range);
 }
 
-void DescriptorSetSlotImageInfo::SetFrom(const VkDescriptorImageInfo &imInfo, bool setSampler,
-                                         bool setImageView)
+void DescriptorSetSlot::SetImage(VkDescriptorType writeType, const VkDescriptorImageInfo &imInfo,
+                                 bool useSampler)
 {
-  if(setSampler)
+  type = convert(writeType);
+  if(useSampler &&
+     (type == DescriptorSlotType::CombinedImageSampler || type == DescriptorSlotType::Sampler))
     sampler = GetResID(imInfo.sampler);
-  if(setImageView)
-    imageView = GetResID(imInfo.imageView);
-  imageLayout = imInfo.imageLayout;
+  if(type != DescriptorSlotType::Sampler)
+    resource = GetResID(imInfo.imageView);
+  imageLayout = convert(imInfo.imageLayout);
+}
+
+void DescriptorSetSlot::SetTexelBuffer(VkDescriptorType writeType, ResourceId id)
+{
+  type = convert(writeType);
+  resource = id;
 }
 
 void AddBindFrameRef(DescriptorBindRefs &refs, ResourceId id, FrameRefType ref)
@@ -1166,17 +1142,32 @@ void AddMemFrameRef(DescriptorBindRefs &refs, ResourceId mem, VkDeviceSize offse
   p = ComposeFrameRefsDisjoint(p, maxRef);
 }
 
-void DescriptorSetSlot::AccumulateBindRefs(DescriptorBindRefs &refs, VulkanResourceManager *rm,
-                                           FrameRefType ref) const
+void DescriptorSetSlot::AccumulateBindRefs(DescriptorBindRefs &refs, VulkanResourceManager *rm) const
 {
+  RDCCOMPILE_ASSERT(uint64_t(DescriptorSlotImageLayout::Count) <= 0xff,
+                    "DescriptorSlotImageLayout is no longer 8-bit");
+  RDCCOMPILE_ASSERT(uint64_t(DescriptorSlotType::Count) <= 0xff,
+                    "DescriptorSlotType is no longer 8-bit");
+  RDCCOMPILE_ASSERT(sizeof(DescriptorSetSlot) == 32, "DescriptorSetSlot is no longer 32 bytes");
+
   VkResourceRecord *bufView = NULL, *imgView = NULL, *buffer = NULL;
 
-  if(texelBufferView != ResourceId())
-    bufView = rm->GetResourceRecord(texelBufferView);
-  if(imageInfo.imageView != ResourceId())
-    imgView = rm->GetResourceRecord(imageInfo.imageView);
-  if(bufferInfo.buffer != ResourceId())
-    buffer = rm->GetResourceRecord(bufferInfo.buffer);
+  switch(type)
+  {
+    case DescriptorSlotType::UniformTexelBuffer:
+    case DescriptorSlotType::StorageTexelBuffer: bufView = rm->GetResourceRecord(resource); break;
+    case DescriptorSlotType::StorageBuffer:
+    case DescriptorSlotType::StorageBufferDynamic:
+    case DescriptorSlotType::UniformBuffer:
+    case DescriptorSlotType::UniformBufferDynamic: buffer = rm->GetResourceRecord(resource); break;
+    case DescriptorSlotType::CombinedImageSampler:
+    case DescriptorSlotType::SampledImage:
+    case DescriptorSlotType::StorageImage:
+    case DescriptorSlotType::InputAttachment: imgView = rm->GetResourceRecord(resource); break;
+    default: break;
+  }
+
+  FrameRefType ref = GetRefType(type);
 
   if(bufView)
   {
@@ -1194,13 +1185,13 @@ void DescriptorSetSlot::AccumulateBindRefs(DescriptorBindRefs &refs, VulkanResou
   {
     AddImgFrameRef(refs, imgView, ref);
   }
-  if(imageInfo.sampler != ResourceId())
+  if(sampler != ResourceId())
   {
-    AddBindFrameRef(refs, imageInfo.sampler, eFrameRef_Read);
+    AddBindFrameRef(refs, sampler, eFrameRef_Read);
   }
   if(buffer)
   {
-    AddBindFrameRef(refs, bufferInfo.buffer, eFrameRef_Read);
+    AddBindFrameRef(refs, resource, eFrameRef_Read);
     if(buffer->resInfo && buffer->resInfo->IsSparse())
       refs.sparseRefs.insert(buffer);
     if(buffer->baseResource != ResourceId())

@@ -4680,27 +4680,12 @@ DOCUMENT(R"(INTERNAL: A set of flags giving details of the current status of And
 .. data:: RootAccess
 
    The device being targeted has root access.
-
-.. data:: MissingTools
-
-   When patching, some necessary tools were not found.
-
-.. data:: ManifestPatchFailure
-
-   When patching, modifying the manifest file to include the debuggable flag failed.
-
-.. data:: RepackagingAPKFailure
-
-   When patching, repackaging, signing and installing the new package failed.
 )");
 enum class AndroidFlags : uint32_t
 {
   NoFlags = 0x0,
   Debuggable = 0x1,
   RootAccess = 0x2,
-  MissingTools = 0x1000,
-  ManifestPatchFailure = 0x2000,
-  RepackagingAPKFailure = 0x4000,
 };
 
 BITMASK_OPERATORS(AndroidFlags);

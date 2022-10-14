@@ -5136,7 +5136,8 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
           curIdx = 0;
         }
 
-        (*bind)[curIdx].texelBufferView = GetResID(writeDesc.pTexelBufferView[d]);
+        (*bind)[curIdx].SetTexelBuffer(writeDesc.descriptorType,
+                                       GetResID(writeDesc.pTexelBufferView[d]));
       }
     }
     else if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
@@ -5156,19 +5157,8 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
           curIdx = 0;
         }
 
-        bool sampler = true;
-        bool imageView = true;
-
-        // ignore descriptors not part of the write, as they might not even point to a valid
-        // object so trying to get their ID could crash
-        if(layoutBinding->immutableSampler ||
-           (writeDesc.descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER &&
-            writeDesc.descriptorType != VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER))
-          sampler = false;
-        if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
-          imageView = false;
-
-        (*bind)[curIdx].imageInfo.SetFrom(writeDesc.pImageInfo[d], sampler, imageView);
+        (*bind)[curIdx].SetImage(writeDesc.descriptorType, writeDesc.pImageInfo[d],
+                                 layoutBinding->immutableSampler == NULL);
       }
     }
     else if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
@@ -5176,8 +5166,8 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
       VkWriteDescriptorSetInlineUniformBlock *inlineWrite =
           (VkWriteDescriptorSetInlineUniformBlock *)FindNextStruct(
               &writeDesc, VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK);
-      memcpy(inlineData.data() + (*bind)->inlineOffset + writeDesc.dstArrayElement,
-             inlineWrite->pData, inlineWrite->dataSize);
+      memcpy(inlineData.data() + (*bind)->offset + writeDesc.dstArrayElement, inlineWrite->pData,
+             inlineWrite->dataSize);
     }
     else
     {
@@ -5192,7 +5182,7 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
           curIdx = 0;
         }
 
-        (*bind)[curIdx].bufferInfo.SetFrom(writeDesc.pBufferInfo[d]);
+        (*bind)[curIdx].SetBuffer(writeDesc.descriptorType, writeDesc.pBufferInfo[d]);
       }
     }
   }
@@ -5425,7 +5415,7 @@ void WrappedVulkan::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
     {
       const VkWriteDescriptorSet &write = pDescriptorWrites[i];
 
-      FrameRefType ref = GetRefType(write.descriptorType);
+      FrameRefType ref = GetRefType(convert(write.descriptorType));
 
       for(uint32_t d = 0; d < write.descriptorCount; d++)
       {
@@ -5631,7 +5621,7 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
       byte *dst = memory + entry.offset;
       const byte *src = (const byte *)pData + entry.offset;
 
-      FrameRefType ref = GetRefType(entry.descriptorType);
+      FrameRefType ref = GetRefType(convert(entry.descriptorType));
 
       if(entry.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
          entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)

@@ -783,7 +783,7 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
           curIdx = 0;
 
           // skip past invalid padding descriptors to get to the next real one
-          while(layoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+          while(layoutBinding->layoutDescType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
           {
             layoutBinding++;
           }
@@ -857,14 +857,15 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
             curIdx = 0;
 
             // skip past invalid padding descriptors to get to the next real one
-            while(layoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+            while(layoutBinding->layoutDescType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
             {
               layoutBinding++;
               bind++;
             }
           }
 
-          (*bind)[curIdx].texelBufferView = GetResID(writeDesc.pTexelBufferView[d]);
+          (*bind)[curIdx].SetTexelBuffer(writeDesc.descriptorType,
+                                         GetResID(writeDesc.pTexelBufferView[d]));
         }
       }
       else if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
@@ -884,26 +885,15 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
             curIdx = 0;
 
             // skip past invalid padding descriptors to get to the next real one
-            while(layoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+            while(layoutBinding->layoutDescType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
             {
               layoutBinding++;
               bind++;
             }
           }
 
-          bool sampler = true;
-          bool imageView = true;
-
-          // ignore descriptors not part of the write, as they might not even point to a valid
-          // object so trying to get their ID could crash
-          if(layoutBinding->immutableSampler ||
-             (writeDesc.descriptorType != VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER &&
-              writeDesc.descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER))
-            sampler = false;
-          if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
-            imageView = false;
-
-          (*bind)[curIdx].imageInfo.SetFrom(writeDesc.pImageInfo[d], sampler, imageView);
+          (*bind)[curIdx].SetImage(writeDesc.descriptorType, writeDesc.pImageInfo[d],
+                                   layoutBinding->immutableSampler == NULL);
         }
       }
       else if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
@@ -911,8 +901,8 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
         VkWriteDescriptorSetInlineUniformBlock *inlineWrite =
             (VkWriteDescriptorSetInlineUniformBlock *)FindNextStruct(
                 &writeDesc, VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK);
-        memcpy(inlineData.data() + (*bind)->inlineOffset + writeDesc.dstArrayElement,
-               inlineWrite->pData, inlineWrite->dataSize);
+        memcpy(inlineData.data() + (*bind)->offset + writeDesc.dstArrayElement, inlineWrite->pData,
+               inlineWrite->dataSize);
       }
       else
       {
@@ -927,14 +917,14 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
             curIdx = 0;
 
             // skip past invalid padding descriptors to get to the next real one
-            while(layoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+            while(layoutBinding->layoutDescType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
             {
               layoutBinding++;
               bind++;
             }
           }
 
-          (*bind)[curIdx].bufferInfo.SetFrom(writeDesc.pBufferInfo[d]);
+          (*bind)[curIdx].SetBuffer(writeDesc.descriptorType, writeDesc.pBufferInfo[d]);
         }
       }
     }
@@ -977,7 +967,7 @@ void WrappedVulkan::ReplayDescriptorSetCopy(VkDevice device, const VkCopyDescrip
 
     for(uint32_t d = 0; d < copyDesc.descriptorCount; d++, curSrcIdx++, curDstIdx++)
     {
-      if(layoutSrcBinding->descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+      if(layoutSrcBinding->layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
       {
         // inline uniform blocks are special, the descriptor count is a byte count. The layouts may
         // not match so inline offsets might not match, so we just copy the data and break.
@@ -985,8 +975,8 @@ void WrappedVulkan::ReplayDescriptorSetCopy(VkDevice device, const VkCopyDescrip
         bytebuf &dstInlineData = m_DescriptorSetState[dstSetId].data.inlineBytes;
         bytebuf &srcInlineData = m_DescriptorSetState[srcSetId].data.inlineBytes;
 
-        memcpy(dstInlineData.data() + (*dstbind)[0].inlineOffset + copyDesc.dstArrayElement,
-               srcInlineData.data() + (*srcbind)[0].inlineOffset + copyDesc.srcArrayElement,
+        memcpy(dstInlineData.data() + (*dstbind)[0].offset + copyDesc.dstArrayElement,
+               srcInlineData.data() + (*srcbind)[0].offset + copyDesc.srcArrayElement,
                copyDesc.descriptorCount);
 
         break;
@@ -1257,8 +1247,6 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
 
       const DescSetLayout::Binding *layoutBinding = &layout.bindings[descWrite.dstBinding];
 
-      FrameRefType ref = GetRefType(layoutBinding->descriptorType);
-
       // We need to handle the cases where these bindings are stale:
       // ie. image handle 0xf00baa is allocated
       // bound into a descriptor set
@@ -1300,13 +1288,11 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
           curIdx = 0;
 
           // skip past invalid padding descriptors to get to the next real one
-          while(layoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+          while(layoutBinding->layoutDescType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
           {
             layoutBinding++;
             binding++;
           }
-
-          ref = GetRefType(layoutBinding->descriptorType);
         }
 
         DescriptorSetSlot &bind = (*binding)[curIdx];
@@ -1314,7 +1300,7 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
         if(descWrite.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
            descWrite.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
         {
-          bind.texelBufferView = GetResID(descWrite.pTexelBufferView[d]);
+          bind.SetTexelBuffer(descWrite.descriptorType, GetResID(descWrite.pTexelBufferView[d]));
         }
         else if(descWrite.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
                 descWrite.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
@@ -1322,26 +1308,15 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
                 descWrite.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
                 descWrite.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
         {
-          bool sampler = true;
-          bool imageView = true;
-
-          // ignore descriptors not part of the write, as they might not even point to a valid
-          // object so trying to get their ID could crash
-          if(layoutBinding->immutableSampler ||
-             (descWrite.descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER &&
-              descWrite.descriptorType != VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER))
-            sampler = false;
-          if(descWrite.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
-            imageView = false;
-
-          bind.imageInfo.SetFrom(descWrite.pImageInfo[d], sampler, imageView);
+          bind.SetImage(descWrite.descriptorType, descWrite.pImageInfo[d],
+                        layoutBinding->immutableSampler == NULL);
         }
         else if(descWrite.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
           VkWriteDescriptorSetInlineUniformBlock *inlineWrite =
               (VkWriteDescriptorSetInlineUniformBlock *)FindNextStruct(
                   &descWrite, VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK);
-          memcpy(inlineData.data() + (*binding)->inlineOffset + descWrite.dstArrayElement,
+          memcpy(inlineData.data() + (*binding)->offset + descWrite.dstArrayElement,
                  inlineWrite->pData, inlineWrite->dataSize);
 
           // break now because the descriptorCount is not the number of descriptors
@@ -1349,7 +1324,7 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
         }
         else
         {
-          bind.bufferInfo.SetFrom(descWrite.pBufferInfo[d]);
+          bind.SetBuffer(descWrite.descriptorType, descWrite.pBufferInfo[d]);
         }
       }
     }
@@ -1381,8 +1356,6 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
       const DescSetLayout::Binding *srclayoutBinding =
           &srclayout.bindings[pDescriptorCopies[i].srcBinding];
 
-      FrameRefType ref = GetRefType(dstlayoutBinding->descriptorType);
-
       // allow roll-over between consecutive bindings. See above in the plain write case for more
       // explanation
       uint32_t curSrcIdx = pDescriptorCopies[i].srcArrayElement;
@@ -1390,7 +1363,7 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
 
       for(uint32_t d = 0; d < pDescriptorCopies[i].descriptorCount; d++, curSrcIdx++, curDstIdx++)
       {
-        if(srclayoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+        if(srclayoutBinding->layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
           // inline uniform blocks are special, the descriptor count is a byte count. The layouts
           // may not match so inline offsets might not match, so we just copy the data and break.
@@ -1398,11 +1371,10 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
           bytebuf &dstInlineData = dstrecord->descInfo->data.inlineBytes;
           bytebuf &srcInlineData = srcrecord->descInfo->data.inlineBytes;
 
-          memcpy(dstInlineData.data() + (*dstbinding)[0].inlineOffset +
-                     pDescriptorCopies[i].dstArrayElement,
-                 srcInlineData.data() + (*srcbinding)[0].inlineOffset +
-                     pDescriptorCopies[i].srcArrayElement,
-                 pDescriptorCopies[i].descriptorCount);
+          memcpy(
+              dstInlineData.data() + (*dstbinding)[0].offset + pDescriptorCopies[i].dstArrayElement,
+              srcInlineData.data() + (*srcbinding)[0].offset + pDescriptorCopies[i].srcArrayElement,
+              pDescriptorCopies[i].descriptorCount);
 
           break;
         }
@@ -1412,8 +1384,6 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
           dstlayoutBinding++;
           dstbinding++;
           curDstIdx = 0;
-
-          ref = GetRefType(dstlayoutBinding->descriptorType);
         }
 
         // dst and src indices must roll-over independently
@@ -1687,8 +1657,6 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
 
       const DescSetLayout::Binding *layoutBinding = &layout.bindings[entry.dstBinding];
 
-      FrameRefType ref = GetRefType(layoutBinding->descriptorType);
-
       // start at the dstArrayElement
       uint32_t curIdx = entry.dstArrayElement;
 
@@ -1715,13 +1683,11 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
           curIdx = 0;
 
           // skip past invalid padding descriptors to get to the next real one
-          while(layoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+          while(layoutBinding->layoutDescType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
           {
             layoutBinding++;
             binding++;
           }
-
-          ref = GetRefType(layoutBinding->descriptorType);
         }
 
         const byte *src = (const byte *)pData + entry.offset + entry.stride * d;
@@ -1731,7 +1697,7 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
         if(entry.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
            entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
         {
-          bind.texelBufferView = GetResID(*(const VkBufferView *)src);
+          bind.SetTexelBuffer(entry.descriptorType, GetResID(*(const VkBufferView *)src));
         }
         else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
                 entry.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
@@ -1741,31 +1707,18 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
         {
           const VkDescriptorImageInfo &srcInfo = *(const VkDescriptorImageInfo *)src;
 
-          bool sampler = true;
-          bool imageView = true;
-
-          // ignore descriptors not part of the write, as they might not even point to a valid
-          // object so trying to get their ID could crash
-          if(layoutBinding->immutableSampler ||
-             (entry.descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER &&
-              entry.descriptorType != VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER))
-            sampler = false;
-          if(entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
-            imageView = false;
-
-          bind.imageInfo.SetFrom(srcInfo, sampler, imageView);
+          bind.SetImage(entry.descriptorType, srcInfo, layoutBinding->immutableSampler == NULL);
         }
         else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
-          memcpy(inlineData.data() + bind.inlineOffset + entry.dstArrayElement, src,
-                 entry.descriptorCount);
+          memcpy(inlineData.data() + bind.offset + entry.dstArrayElement, src, entry.descriptorCount);
 
           // break now because the descriptorCount is not the number of descriptors
           break;
         }
         else
         {
-          bind.bufferInfo.SetFrom(*(const VkDescriptorBufferInfo *)src);
+          bind.SetBuffer(entry.descriptorType, *(const VkDescriptorBufferInfo *)src);
         }
       }
     }

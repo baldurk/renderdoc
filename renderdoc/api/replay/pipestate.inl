@@ -1243,20 +1243,23 @@ rdcarray<BoundResourceArray> PipeState::GetSamplers(ShaderStage stage) const
         for(int slot = 0; slot < descset.bindings.count(); slot++)
         {
           const VKPipe::DescriptorBinding &bind = descset.bindings[slot];
-          if((bind.type == BindType::Sampler || bind.type == BindType::ImageSampler) &&
-             (bind.stageFlags & mask) == mask)
+          if((bind.stageFlags & mask) == mask)
           {
             ret.push_back(BoundResourceArray());
             ret.back().bindPoint = Bindpoint(set, slot);
 
             rdcarray<BoundResource> &val = ret.back().resources;
-            val.resize(bind.descriptorCount);
-
-            ret.back().dynamicallyUsedCount = bind.dynamicallyUsedCount;
 
             for(uint32_t i = 0; i < bind.descriptorCount; i++)
             {
-              val[i].resourceId = bind.binds[i].samplerResourceId;
+              if(bind.binds[i].type == BindType::Sampler ||
+                 bind.binds[i].type == BindType::ImageSampler)
+              {
+                val.push_back(BoundResource(bind.binds[i].samplerResourceId));
+
+                if(bind.binds[i].dynamicallyUsed)
+                  ret.back().dynamicallyUsedCount++;
+              }
             }
           }
         }
@@ -1399,9 +1402,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
         for(int slot = 0; slot < descset.bindings.count(); slot++)
         {
           const VKPipe::DescriptorBinding &bind = descset.bindings[slot];
-          if((bind.type == BindType::ImageSampler || bind.type == BindType::InputAttachment ||
-              bind.type == BindType::ReadOnlyImage || bind.type == BindType::ReadOnlyTBuffer) &&
-             (bind.stageFlags & mask) == mask)
+          if((bind.stageFlags & mask) == mask)
           {
             ret.push_back(BoundResourceArray());
             ret.back().bindPoint = Bindpoint(set, slot);
@@ -1420,17 +1421,26 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
             val.reserve(count);
 
             ret.back().firstIndex = (int32_t)firstIdx;
-            ret.back().dynamicallyUsedCount = bind.dynamicallyUsedCount;
+            ret.back().dynamicallyUsedCount = 0;
 
             BoundResource res;
             for(uint32_t i = firstIdx; i < firstIdx + count; i++)
             {
-              res.resourceId = bind.binds[i].resourceResourceId;
-              res.dynamicallyUsed = bind.binds[i].dynamicallyUsed;
-              res.firstMip = (int)bind.binds[i].firstMip;
-              res.firstSlice = (int)bind.binds[i].firstSlice;
-              res.typeCast = bind.binds[i].viewFormat.compType;
-              val.push_back(res);
+              if(bind.binds[i].type == BindType::ImageSampler ||
+                 bind.binds[i].type == BindType::InputAttachment ||
+                 bind.binds[i].type == BindType::ReadOnlyImage ||
+                 bind.binds[i].type == BindType::ReadOnlyTBuffer)
+              {
+                res.resourceId = bind.binds[i].resourceResourceId;
+                res.dynamicallyUsed = bind.binds[i].dynamicallyUsed;
+                res.firstMip = (int)bind.binds[i].firstMip;
+                res.firstSlice = (int)bind.binds[i].firstSlice;
+                res.typeCast = bind.binds[i].viewFormat.compType;
+                val.push_back(res);
+
+                if(bind.binds[i].dynamicallyUsed)
+                  ret.back().dynamicallyUsedCount++;
+              }
             }
           }
         }
@@ -1617,9 +1627,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
         for(int slot = 0; slot < descset.bindings.count(); slot++)
         {
           const VKPipe::DescriptorBinding &bind = descset.bindings[slot];
-          if((bind.type == BindType::ReadWriteBuffer || bind.type == BindType::ReadWriteImage ||
-              bind.type == BindType::ReadWriteTBuffer) &&
-             (bind.stageFlags & mask) == mask)
+          if((bind.stageFlags & mask) == mask)
           {
             ret.push_back(BoundResourceArray());
             ret.back().bindPoint = Bindpoint(set, slot);
@@ -1638,17 +1646,25 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
             val.reserve(count);
 
             ret.back().firstIndex = (int32_t)firstIdx;
-            ret.back().dynamicallyUsedCount = bind.dynamicallyUsedCount;
+            ret.back().dynamicallyUsedCount = 0;
 
             BoundResource res;
             for(uint32_t i = firstIdx; i < firstIdx + count; i++)
             {
-              res.resourceId = bind.binds[i].resourceResourceId;
-              res.dynamicallyUsed = bind.binds[i].dynamicallyUsed;
-              res.firstMip = (int)bind.binds[i].firstMip;
-              res.firstSlice = (int)bind.binds[i].firstSlice;
-              res.typeCast = bind.binds[i].viewFormat.compType;
-              val.push_back(res);
+              if(bind.binds[i].type == BindType::ReadWriteBuffer ||
+                 bind.binds[i].type == BindType::ReadWriteImage ||
+                 bind.binds[i].type == BindType::ReadWriteTBuffer)
+              {
+                res.resourceId = bind.binds[i].resourceResourceId;
+                res.dynamicallyUsed = bind.binds[i].dynamicallyUsed;
+                res.firstMip = (int)bind.binds[i].firstMip;
+                res.firstSlice = (int)bind.binds[i].firstSlice;
+                res.typeCast = bind.binds[i].viewFormat.compType;
+                val.push_back(res);
+
+                if(bind.binds[i].dynamicallyUsed)
+                  ret.back().dynamicallyUsedCount++;
+              }
             }
           }
         }

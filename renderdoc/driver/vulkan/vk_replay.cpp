@@ -1915,43 +1915,44 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
       for(size_t i = 0; i < srcs[p]->size(); i++)
       {
-        ResourceId src = (*srcs[p])[i].descSet;
+        ResourceId sourceSet = (*srcs[p])[i].descSet;
         const uint32_t *srcOffset = (*srcs[p])[i].offsets.begin();
-        VKPipe::DescriptorSet &dst = (*dsts[p])[i];
+        VKPipe::DescriptorSet &destSet = (*dsts[p])[i];
 
-        if(src == ResourceId())
+        if(sourceSet == ResourceId())
         {
-          dst.inlineData.clear();
-          dst.descriptorSetResourceId = ResourceId();
-          dst.pushDescriptor = false;
-          dst.layoutResourceId = ResourceId();
-          dst.bindings.clear();
+          destSet.inlineData.clear();
+          destSet.descriptorSetResourceId = ResourceId();
+          destSet.pushDescriptor = false;
+          destSet.layoutResourceId = ResourceId();
+          destSet.bindings.clear();
           continue;
         }
 
-        dst.inlineData = m_pDriver->m_DescriptorSetState[src].data.inlineBytes;
+        destSet.inlineData = m_pDriver->m_DescriptorSetState[sourceSet].data.inlineBytes;
 
         curBind.bindset = (uint32_t)i;
 
-        ResourceId layoutId = m_pDriver->m_DescriptorSetState[src].layout;
+        ResourceId layoutId = m_pDriver->m_DescriptorSetState[sourceSet].layout;
 
         // push descriptors don't have a real descriptor set backing them
         if(c.m_DescSetLayout[layoutId].flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR)
         {
-          dst.descriptorSetResourceId = ResourceId();
-          dst.pushDescriptor = true;
+          destSet.descriptorSetResourceId = ResourceId();
+          destSet.pushDescriptor = true;
         }
         else
         {
-          dst.descriptorSetResourceId = rm->GetOriginalID(src);
-          dst.pushDescriptor = false;
+          destSet.descriptorSetResourceId = rm->GetOriginalID(sourceSet);
+          destSet.pushDescriptor = false;
         }
 
-        dst.layoutResourceId = rm->GetOriginalID(layoutId);
-        dst.bindings.resize(m_pDriver->m_DescriptorSetState[src].data.binds.size());
-        for(size_t b = 0; b < m_pDriver->m_DescriptorSetState[src].data.binds.size(); b++)
+        destSet.layoutResourceId = rm->GetOriginalID(layoutId);
+        destSet.bindings.resize(m_pDriver->m_DescriptorSetState[sourceSet].data.binds.size());
+        for(size_t b = 0; b < m_pDriver->m_DescriptorSetState[sourceSet].data.binds.size(); b++)
         {
-          DescriptorSetSlot *info = m_pDriver->m_DescriptorSetState[src].data.binds[b];
+          DescriptorSetSlot *sourceSlots = m_pDriver->m_DescriptorSetState[sourceSet].data.binds[b];
+          VKPipe::DescriptorBinding &destSlots = destSet.bindings[b];
           const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[b];
 
           curBind.bind = (uint32_t)b;
@@ -1959,60 +1960,24 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
           uint32_t descriptorCount = layoutBind.descriptorCount;
 
           if(layoutBind.variableSize)
-            descriptorCount = m_pDriver->m_DescriptorSetState[src].data.variableDescriptorCount;
+            descriptorCount = m_pDriver->m_DescriptorSetState[sourceSet].data.variableDescriptorCount;
 
-          dst.bindings[b].descriptorCount = descriptorCount;
+          destSlots.descriptorCount = descriptorCount;
 
-          dst.bindings[b].stageFlags = (ShaderStageMask)layoutBind.stageFlags;
-          switch(layoutBind.descriptorType)
+          if(layoutBind.layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+            destSlots.descriptorCount = 1;
+
+          destSlots.stageFlags = (ShaderStageMask)layoutBind.stageFlags;
+
+          destSlots.firstUsedIndex = -1;
+          destSlots.lastUsedIndex = -1;
+          destSlots.dynamicallyUsedCount = 0;
+
+          destSlots.binds.resize(destSlots.descriptorCount);
+          for(uint32_t a = 0; a < destSlots.descriptorCount; a++)
           {
-            case VK_DESCRIPTOR_TYPE_SAMPLER: dst.bindings[b].type = BindType::Sampler; break;
-            case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-              dst.bindings[b].type = BindType::ImageSampler;
-              break;
-            case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-              dst.bindings[b].type = BindType::ReadOnlyImage;
-              break;
-            case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-              dst.bindings[b].type = BindType::ReadWriteImage;
-              break;
-            case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-              dst.bindings[b].type = BindType::ReadOnlyTBuffer;
-              break;
-            case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-              dst.bindings[b].type = BindType::ReadWriteTBuffer;
-              break;
-            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-              dst.bindings[b].type = BindType::ConstantBuffer;
-              break;
-            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-              dst.bindings[b].type = BindType::ReadWriteBuffer;
-              break;
-            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-              dst.bindings[b].type = BindType::ConstantBuffer;
-              break;
-            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-              dst.bindings[b].type = BindType::ReadWriteBuffer;
-              break;
-            case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
-              dst.bindings[b].type = BindType::InputAttachment;
-              break;
-            case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK:
-              dst.bindings[b].descriptorCount = 1;
-              dst.bindings[b].type = BindType::ConstantBuffer;
-              break;
-            case VK_DESCRIPTOR_TYPE_MAX_ENUM: dst.bindings[b].type = BindType::Unknown; break;
-            default: dst.bindings[b].type = BindType::Unknown; RDCERR("Unexpected descriptor type");
-          }
-
-          dst.bindings[b].firstUsedIndex = -1;
-          dst.bindings[b].lastUsedIndex = -1;
-          dst.bindings[b].dynamicallyUsedCount = 0;
-
-          dst.bindings[b].binds.resize(dst.bindings[b].descriptorCount);
-          for(uint32_t a = 0; a < dst.bindings[b].descriptorCount; a++)
-          {
-            VKPipe::BindingElement &dstel = dst.bindings[b].binds[a];
+            const DescriptorSetSlot &srcel = sourceSlots[a];
+            VKPipe::BindingElement &dstel = destSlots.binds[a];
 
             // clear it so we don't have to manually reset all elements back to normal
             memset(&dstel, 0, sizeof(dstel));
@@ -2021,7 +1986,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
             // if we have a list of used binds, and this is an array descriptor (so would be
             // expected to be in the list), check it for dynamic usage.
-            if(dst.bindings[b].descriptorCount > 1 && hasUsedBinds)
+            if(destSlots.descriptorCount > 1 && hasUsedBinds)
             {
               // if we exhausted the list, all other elements are unused
               if(usedBindsSize == 0)
@@ -2061,32 +2026,70 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
             if(dstel.dynamicallyUsed)
             {
-              dst.bindings[b].dynamicallyUsedCount++;
+              destSlots.dynamicallyUsedCount++;
               // we iterate in forward order, so we can unconditinoally set the last bind to the
               // current one, and only set the first bind if we haven't encountered one before
-              dst.bindings[b].lastUsedIndex = a;
+              destSlots.lastUsedIndex = a;
 
-              if(dst.bindings[b].firstUsedIndex < 0)
-                dst.bindings[b].firstUsedIndex = a;
+              if(destSlots.firstUsedIndex < 0)
+                destSlots.firstUsedIndex = a;
+            }
+
+            DescriptorSlotType descriptorType = srcel.type;
+
+            // immutable samplers cannot be used with mutable descriptors, so if we have immutable
+            // samplers set the type from the layout. That way even if the descriptor is never
+            // written we still process immutable samplers properly.
+            if(layoutBind.immutableSampler)
+              descriptorType = convert(layoutBind.layoutDescType);
+
+            switch(descriptorType)
+            {
+              case DescriptorSlotType::Sampler: dstel.type = BindType::Sampler; break;
+              case DescriptorSlotType::CombinedImageSampler:
+                dstel.type = BindType::ImageSampler;
+                break;
+              case DescriptorSlotType::SampledImage: dstel.type = BindType::ReadOnlyImage; break;
+              case DescriptorSlotType::StorageImage: dstel.type = BindType::ReadWriteImage; break;
+              case DescriptorSlotType::UniformTexelBuffer:
+                dstel.type = BindType::ReadOnlyTBuffer;
+                break;
+              case DescriptorSlotType::StorageTexelBuffer:
+                dstel.type = BindType::ReadWriteTBuffer;
+                break;
+              case DescriptorSlotType::UniformBuffer: dstel.type = BindType::ConstantBuffer; break;
+              case DescriptorSlotType::StorageBuffer: dstel.type = BindType::ReadWriteBuffer; break;
+              case DescriptorSlotType::UniformBufferDynamic:
+                dstel.type = BindType::ConstantBuffer;
+                break;
+              case DescriptorSlotType::StorageBufferDynamic:
+                dstel.type = BindType::ReadWriteBuffer;
+                break;
+              case DescriptorSlotType::InputAttachment:
+                dstel.type = BindType::InputAttachment;
+                break;
+              case DescriptorSlotType::InlineBlock: dstel.type = BindType::ConstantBuffer; break;
+              case DescriptorSlotType::Unwritten:
+              case DescriptorSlotType::Count: dstel.type = BindType::Unknown; break;
             }
 
             // first handle the sampler separately because it might be in a combined descriptor
-            if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
-               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+            if(descriptorType == DescriptorSlotType::Sampler ||
+               descriptorType == DescriptorSlotType::CombinedImageSampler)
             {
               if(layoutBind.immutableSampler)
               {
-                dst.bindings[b].binds[a].samplerResourceId = layoutBind.immutableSampler[a];
-                dst.bindings[b].binds[a].immutableSampler = true;
+                destSlots.binds[a].samplerResourceId = layoutBind.immutableSampler[a];
+                destSlots.binds[a].immutableSampler = true;
               }
-              else if(info[a].imageInfo.sampler != ResourceId())
+              else if(srcel.sampler != ResourceId())
               {
-                dst.bindings[b].binds[a].samplerResourceId = info[a].imageInfo.sampler;
+                destSlots.binds[a].samplerResourceId = srcel.sampler;
               }
 
-              if(dst.bindings[b].binds[a].samplerResourceId != ResourceId())
+              if(destSlots.binds[a].samplerResourceId != ResourceId())
               {
-                VKPipe::BindingElement &el = dst.bindings[b].binds[a];
+                VKPipe::BindingElement &el = destSlots.binds[a];
                 const VulkanCreationInfo::Sampler &sampl = c.m_Sampler[el.samplerResourceId];
 
                 ResourceId liveId = el.samplerResourceId;
@@ -2138,99 +2141,96 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
             }
 
             // now look at the 'base' type. Sampler is excluded from these ifs
-            if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
-               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
-               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT ||
-               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+            if(descriptorType == DescriptorSlotType::SampledImage ||
+               descriptorType == DescriptorSlotType::CombinedImageSampler ||
+               descriptorType == DescriptorSlotType::InputAttachment ||
+               descriptorType == DescriptorSlotType::StorageImage)
             {
-              ResourceId viewid = info[a].imageInfo.imageView;
+              ResourceId viewid = srcel.resource;
 
               if(viewid != ResourceId())
               {
-                dst.bindings[b].binds[a].viewResourceId = rm->GetOriginalID(viewid);
-                dst.bindings[b].binds[a].resourceResourceId =
+                destSlots.binds[a].viewResourceId = rm->GetOriginalID(viewid);
+                destSlots.binds[a].resourceResourceId =
                     rm->GetOriginalID(c.m_ImageView[viewid].image);
-                dst.bindings[b].binds[a].viewFormat =
-                    MakeResourceFormat(c.m_ImageView[viewid].format);
+                destSlots.binds[a].viewFormat = MakeResourceFormat(c.m_ImageView[viewid].format);
 
-                Convert(dst.bindings[b].binds[a].swizzle, c.m_ImageView[viewid].componentMapping);
-                dst.bindings[b].binds[a].firstMip = c.m_ImageView[viewid].range.baseMipLevel;
-                dst.bindings[b].binds[a].firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
-                dst.bindings[b].binds[a].numMips = c.m_ImageView[viewid].range.levelCount;
-                dst.bindings[b].binds[a].numSlices = c.m_ImageView[viewid].range.layerCount;
+                Convert(destSlots.binds[a].swizzle, c.m_ImageView[viewid].componentMapping);
+                destSlots.binds[a].firstMip = c.m_ImageView[viewid].range.baseMipLevel;
+                destSlots.binds[a].firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
+                destSlots.binds[a].numMips = c.m_ImageView[viewid].range.levelCount;
+                destSlots.binds[a].numSlices = c.m_ImageView[viewid].range.layerCount;
 
                 // temporary hack, store image layout enum in byteOffset as it's not used for images
-                dst.bindings[b].binds[a].byteOffset = info[a].imageInfo.imageLayout;
+                destSlots.binds[a].byteOffset = convert(srcel.imageLayout);
               }
               else
               {
-                dst.bindings[b].binds[a].viewResourceId = ResourceId();
-                dst.bindings[b].binds[a].resourceResourceId = ResourceId();
-                dst.bindings[b].binds[a].firstMip = 0;
-                dst.bindings[b].binds[a].firstSlice = 0;
-                dst.bindings[b].binds[a].numMips = 1;
-                dst.bindings[b].binds[a].numSlices = 1;
+                destSlots.binds[a].viewResourceId = ResourceId();
+                destSlots.binds[a].resourceResourceId = ResourceId();
+                destSlots.binds[a].firstMip = 0;
+                destSlots.binds[a].firstSlice = 0;
+                destSlots.binds[a].numMips = 1;
+                destSlots.binds[a].numSlices = 1;
               }
             }
-            else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER ||
-                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER)
+            else if(descriptorType == DescriptorSlotType::UniformTexelBuffer ||
+                    descriptorType == DescriptorSlotType::StorageTexelBuffer)
             {
-              ResourceId viewid = info[a].texelBufferView;
+              ResourceId viewid = srcel.resource;
 
               if(viewid != ResourceId())
               {
-                dst.bindings[b].binds[a].viewResourceId = rm->GetOriginalID(viewid);
-                dst.bindings[b].binds[a].resourceResourceId =
+                destSlots.binds[a].viewResourceId = rm->GetOriginalID(viewid);
+                destSlots.binds[a].resourceResourceId =
                     rm->GetOriginalID(c.m_BufferView[viewid].buffer);
-                dst.bindings[b].binds[a].byteOffset = c.m_BufferView[viewid].offset;
-                dst.bindings[b].binds[a].viewFormat =
-                    MakeResourceFormat(c.m_BufferView[viewid].format);
-                dst.bindings[b].binds[a].byteSize = c.m_BufferView[viewid].size;
+                destSlots.binds[a].byteOffset = c.m_BufferView[viewid].offset;
+                destSlots.binds[a].viewFormat = MakeResourceFormat(c.m_BufferView[viewid].format);
+                destSlots.binds[a].byteSize = c.m_BufferView[viewid].size;
               }
               else
               {
-                dst.bindings[b].binds[a].viewResourceId = ResourceId();
-                dst.bindings[b].binds[a].resourceResourceId = ResourceId();
-                dst.bindings[b].binds[a].byteOffset = 0;
-                dst.bindings[b].binds[a].byteSize = 0;
+                destSlots.binds[a].viewResourceId = ResourceId();
+                destSlots.binds[a].resourceResourceId = ResourceId();
+                destSlots.binds[a].byteOffset = 0;
+                destSlots.binds[a].byteSize = 0;
               }
             }
-            else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+            else if(descriptorType == DescriptorSlotType::InlineBlock)
             {
-              dst.bindings[b].binds[a].viewResourceId = ResourceId();
-              dst.bindings[b].binds[a].resourceResourceId = ResourceId();
-              dst.bindings[b].binds[a].inlineBlock = true;
-              dst.bindings[b].binds[a].byteOffset = info[a].inlineOffset;
-              dst.bindings[b].binds[a].byteSize = descriptorCount;
+              destSlots.binds[a].viewResourceId = ResourceId();
+              destSlots.binds[a].resourceResourceId = ResourceId();
+              destSlots.binds[a].inlineBlock = true;
+              destSlots.binds[a].byteOffset = srcel.offset;
+              destSlots.binds[a].byteSize = descriptorCount;
             }
-            else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
-                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
-                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
-                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+            else if(descriptorType == DescriptorSlotType::StorageBuffer ||
+                    descriptorType == DescriptorSlotType::StorageBufferDynamic ||
+                    descriptorType == DescriptorSlotType::UniformBuffer ||
+                    descriptorType == DescriptorSlotType::UniformBufferDynamic)
             {
-              dst.bindings[b].binds[a].viewResourceId = ResourceId();
+              destSlots.binds[a].viewResourceId = ResourceId();
 
-              if(info[a].bufferInfo.buffer != ResourceId())
-                dst.bindings[b].binds[a].resourceResourceId =
-                    rm->GetOriginalID(info[a].bufferInfo.buffer);
+              if(srcel.resource != ResourceId())
+                destSlots.binds[a].resourceResourceId = rm->GetOriginalID(srcel.resource);
 
-              dst.bindings[b].binds[a].byteOffset = info[a].bufferInfo.offset;
-              if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
-                 layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+              destSlots.binds[a].byteOffset = srcel.offset;
+              if(descriptorType == DescriptorSlotType::StorageBufferDynamic ||
+                 descriptorType == DescriptorSlotType::UniformBufferDynamic)
               {
-                dst.bindings[b].binds[a].byteOffset += *srcOffset;
+                destSlots.binds[a].byteOffset += *srcOffset;
                 srcOffset++;
               }
 
-              dst.bindings[b].binds[a].byteSize = info[a].bufferInfo.range;
+              destSlots.binds[a].byteSize = srcel.GetRange();
             }
           }
 
           // if no bindings were set these will still be negative. Set them to something sensible.
-          if(dst.bindings[b].firstUsedIndex < 0)
+          if(destSlots.firstUsedIndex < 0)
           {
-            dst.bindings[b].firstUsedIndex = 0;
-            dst.bindings[b].lastUsedIndex = 0x7fffffff;
+            destSlots.firstUsedIndex = 0;
+            destSlots.lastUsedIndex = 0x7fffffff;
           }
         }
       }
@@ -2339,13 +2339,12 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, 
         const DescSetLayout::Binding &layoutBind =
             m_pDriver->m_CreationInfo.m_DescSetLayout[layoutId].bindings[bind.bind];
 
-        if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+        if(layoutBind.layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
           bytebuf inlineData;
-          inlineData.assign(
-              setData.data.inlineBytes.data() + setData.data.binds[bind.bind]->inlineOffset,
-              layoutBind.variableSize ? setData.data.variableDescriptorCount
-                                      : layoutBind.descriptorCount);
+          inlineData.assign(setData.data.inlineBytes.data() + setData.data.binds[bind.bind]->offset,
+                            layoutBind.variableSize ? setData.data.variableDescriptorCount
+                                                    : layoutBind.descriptorCount);
           StandardFillCBufferVariables(refl.resourceId, c.variables, outvars, inlineData);
           return;
         }

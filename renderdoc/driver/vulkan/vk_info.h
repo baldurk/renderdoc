@@ -122,7 +122,7 @@ struct DescSetLayout
     // some elements could be untouched. We set stageFlags to 0 so the UI ignores these
     // elements
     Binding()
-        : descriptorType(VK_DESCRIPTOR_TYPE_MAX_ENUM),
+        : layoutDescType(VK_DESCRIPTOR_TYPE_MAX_ENUM),
           elemOffset(0),
           descriptorCount(0),
           stageFlags(0),
@@ -132,7 +132,7 @@ struct DescSetLayout
     }
     // move the immutable sampler
     Binding(Binding &&b)
-        : descriptorType(b.descriptorType),
+        : layoutDescType(b.layoutDescType),
           elemOffset(b.elemOffset),
           descriptorCount(b.descriptorCount),
           stageFlags(b.stageFlags),
@@ -143,7 +143,7 @@ struct DescSetLayout
     }
     // Copy the immutable sampler
     Binding(const Binding &b)
-        : descriptorType(b.descriptorType),
+        : layoutDescType(b.layoutDescType),
           elemOffset(b.elemOffset),
           descriptorCount(b.descriptorCount),
           stageFlags(b.stageFlags),
@@ -161,7 +161,7 @@ struct DescSetLayout
       if(this == &b)
         return *this;
 
-      descriptorType = b.descriptorType;
+      layoutDescType = b.layoutDescType;
       elemOffset = b.elemOffset;
       descriptorCount = b.descriptorCount;
       stageFlags = b.stageFlags;
@@ -175,7 +175,9 @@ struct DescSetLayout
       return *this;
     }
     ~Binding() { SAFE_DELETE_ARRAY(immutableSampler); }
-    VkDescriptorType descriptorType;
+    // this is the layout-declared type, but since it may be mutable in most cases this is not used
+    // - only push descriptors use this
+    VkDescriptorType layoutDescType;
     uint32_t elemOffset;
     uint32_t descriptorCount;
     VkShaderStageFlags stageFlags : 31;
@@ -183,6 +185,9 @@ struct DescSetLayout
     ResourceId *immutableSampler;
   };
   rdcarray<Binding> bindings;
+
+  // parallel array to bindings, with a bitmask of mutable types
+  rdcarray<uint64_t> mutableBitmasks;
 
   uint32_t totalElems;
   uint32_t dynamicCount;
@@ -194,9 +199,15 @@ struct DescSetLayout
   // the cummulative stageFlags for all bindings in this layout
   VkShaderStageFlags anyStageFlags;
 
-  bool operator==(const DescSetLayout &other) const;
-  bool operator!=(const DescSetLayout &other) const { return !(*this == other); }
+  bool isCompatible(const DescSetLayout &other) const;
 };
+
+bool IsValid(bool allowNULLDescriptors, const VkWriteDescriptorSet &write, uint32_t arrayElement);
+bool CreateDescriptorWritesForSlotData(WrappedVulkan *vk, rdcarray<VkWriteDescriptorSet> &writes,
+                                       VkDescriptorBufferInfo *&writeScratch,
+                                       const DescriptorSetSlot *slots, uint32_t descriptorCount,
+                                       VkDescriptorSet set, uint32_t dstBind,
+                                       const DescSetLayout::Binding &layoutBind);
 
 struct DescUpdateTemplateApplication
 {
@@ -731,6 +742,7 @@ struct VulkanCreationInfo
 
     uint32_t maxSets;
     rdcarray<VkDescriptorPoolSize> poolSizes;
+    rdcarray<uint64_t> mutableBitmasks;
 
     void CreateOverflow(VkDevice device, VulkanResourceManager *resourceMan);
 
