@@ -1652,29 +1652,44 @@ public:
   inline size_t size() const { return RDCMAX(m_values.size(), (size_t)1); }
 };
 
-template <typename Barrier>
-struct BarrierSequence
+struct ImageBarrierSequence
 {
   static const uint32_t MAX_BATCH_COUNT = 4;
-  static const uint32_t MAX_QUEUE_FAMILY_COUNT = 3;
 
   // batches[batchIndex][queueFamilyIndex] = array of barriers to submit to queueFamilyIndex as part
   // of batchIndex
-  rdcarray<Barrier> batches[MAX_BATCH_COUNT][MAX_QUEUE_FAMILY_COUNT];
+  using Batch = rdcarray<VkImageMemoryBarrier>;
+  rdcarray<Batch> batches[MAX_BATCH_COUNT];
   size_t barrierCount = 0;
-  void AddWrapped(uint32_t batchIndex, uint32_t queueFamilyIndex, const Barrier &barrier);
-  void Merge(const BarrierSequence<Barrier> &other);
+  void AddWrapped(uint32_t batchIndex, uint32_t queueFamilyIndex,
+                  const VkImageMemoryBarrier &barrier);
+  void Merge(const ImageBarrierSequence &other);
   bool IsBatchEmpty(uint32_t batchIndex) const;
-  void ExtractUnwrappedBatch(uint32_t batchIndex, uint32_t queueFamilyIndex,
-                             rdcarray<Barrier> &result);
-  void ExtractFirstUnwrappedBatchForQueue(uint32_t queueFamilyIndex, rdcarray<Barrier> &result);
-  void ExtractLastUnwrappedBatchForQueue(uint32_t queueFamilyIndex, rdcarray<Barrier> &result);
+  void ExtractUnwrappedBatch(uint32_t batchIndex, uint32_t queueFamilyIndex, Batch &result);
+  void ExtractFirstUnwrappedBatchForQueue(uint32_t queueFamilyIndex, Batch &result);
+  void ExtractLastUnwrappedBatchForQueue(uint32_t queueFamilyIndex, Batch &result);
   inline bool empty() const { return barrierCount == 0; }
   inline size_t size() const { return barrierCount; }
-  static void UnwrapBarriers(rdcarray<Barrier> &barriers);
-};
+  static void UnwrapBarriers(Batch &barriers);
 
-using ImageBarrierSequence = BarrierSequence<VkImageMemoryBarrier>;
+  static uint32_t GetMaxQueueFamilyIndex() { return MaxQueueFamilyIndex; }
+  static void SetMaxQueueFamilyIndex(uint32_t maxQueueFamilyIndex)
+  {
+    if(maxQueueFamilyIndex > MaxQueueFamilyIndex)
+      MaxQueueFamilyIndex = maxQueueFamilyIndex;
+  }
+  ImageBarrierSequence()
+  {
+    for(uint32_t i = 0; i < MAX_BATCH_COUNT; i++)
+      batches[i].resize_for_index(MaxQueueFamilyIndex);
+  }
+
+private:
+  // defaults to 4, resizes up as needed when a device is created with higher queue family indices
+  // used to reserve the size of batches above on construction to avoid copying large arrays when
+  // resizing it
+  static uint32_t MaxQueueFamilyIndex;
+};
 
 struct ImageTransitionInfo
 {

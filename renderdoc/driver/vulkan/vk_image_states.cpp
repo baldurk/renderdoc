@@ -732,54 +732,47 @@ template ImageSubresourceMap::SubresourcePairRef &ImageSubresourceMap::Subresour
 template ImageSubresourceMap::ConstSubresourcePairRef &ImageSubresourceMap::SubresourceRangeIterTemplate<
     const ImageSubresourceMap, ImageSubresourceMap::ConstSubresourcePairRef>::operator*();
 
-template <typename Barrier>
-void BarrierSequence<Barrier>::AddWrapped(uint32_t batchIndex, uint32_t queueFamilyIndex,
-                                          const Barrier &barrier)
+uint32_t ImageBarrierSequence::MaxQueueFamilyIndex = 4;
+
+void ImageBarrierSequence::AddWrapped(uint32_t batchIndex, uint32_t queueFamilyIndex,
+                                      const VkImageMemoryBarrier &barrier)
 {
   RDCASSERT(batchIndex < MAX_BATCH_COUNT);
-  RDCASSERT(queueFamilyIndex < MAX_QUEUE_FAMILY_COUNT);
+  RDCASSERT(queueFamilyIndex < batches[batchIndex].size(), queueFamilyIndex,
+            batches[batchIndex].size());
   batches[batchIndex][queueFamilyIndex].push_back(barrier);
   ++barrierCount;
 }
-template void BarrierSequence<VkImageMemoryBarrier>::AddWrapped(uint32_t batchIndex,
-                                                                uint32_t queueFamilyIndex,
-                                                                const VkImageMemoryBarrier &barrier);
 
-template <typename Barrier>
-void BarrierSequence<Barrier>::Merge(const BarrierSequence<Barrier> &other)
+void ImageBarrierSequence::Merge(const ImageBarrierSequence &other)
 {
   for(uint32_t batchIndex = 0; batchIndex < MAX_BATCH_COUNT; ++batchIndex)
   {
-    rdcarray<Barrier> *batch = batches[batchIndex];
-    const rdcarray<Barrier> *otherBatch = other.batches[batchIndex];
-    for(uint32_t queueFamilyIndex = 0; queueFamilyIndex < MAX_QUEUE_FAMILY_COUNT; ++queueFamilyIndex)
+    rdcarray<Batch> &batch = batches[batchIndex];
+    const rdcarray<Batch> &otherBatch = other.batches[batchIndex];
+    for(size_t queueFamilyIndex = 0; queueFamilyIndex < batch.size(); ++queueFamilyIndex)
     {
-      rdcarray<Barrier> &barriers = batch[queueFamilyIndex];
-      const rdcarray<Barrier> &otherBarriers = otherBatch[queueFamilyIndex];
+      Batch &barriers = batch[queueFamilyIndex];
+      const Batch &otherBarriers = otherBatch[queueFamilyIndex];
       barriers.insert(barriers.size(), otherBarriers.begin(), otherBarriers.size());
       barrierCount += otherBarriers.size();
     }
   }
 }
-template void BarrierSequence<VkImageMemoryBarrier>::Merge(
-    const BarrierSequence<VkImageMemoryBarrier> &other);
 
-template <typename Barrier>
-bool BarrierSequence<Barrier>::IsBatchEmpty(uint32_t batchIndex) const
+bool ImageBarrierSequence::IsBatchEmpty(uint32_t batchIndex) const
 {
   if(batchIndex >= MAX_BATCH_COUNT)
     return true;
-  for(uint32_t queueFamilyIndex = 0; queueFamilyIndex < MAX_QUEUE_FAMILY_COUNT; ++queueFamilyIndex)
+  for(size_t queueFamilyIndex = 0; queueFamilyIndex < batches[batchIndex].size(); ++queueFamilyIndex)
   {
     if(!batches[batchIndex][queueFamilyIndex].empty())
       return false;
   }
   return true;
 }
-template bool BarrierSequence<VkImageMemoryBarrier>::IsBatchEmpty(uint32_t batchIndex) const;
 
-template <>
-void BarrierSequence<VkImageMemoryBarrier>::UnwrapBarriers(rdcarray<VkImageMemoryBarrier> &barriers)
+void ImageBarrierSequence::UnwrapBarriers(rdcarray<VkImageMemoryBarrier> &barriers)
 {
   for(auto it = barriers.begin(); it != barriers.end(); ++it)
   {
@@ -787,24 +780,19 @@ void BarrierSequence<VkImageMemoryBarrier>::UnwrapBarriers(rdcarray<VkImageMemor
   }
 }
 
-template <typename Barrier>
-void BarrierSequence<Barrier>::ExtractUnwrappedBatch(uint32_t batchIndex, uint32_t queueFamilyIndex,
-                                                     rdcarray<Barrier> &result)
+void ImageBarrierSequence::ExtractUnwrappedBatch(uint32_t batchIndex, uint32_t queueFamilyIndex,
+                                                 Batch &result)
 {
-  if(batchIndex >= MAX_BATCH_COUNT || queueFamilyIndex >= MAX_QUEUE_FAMILY_COUNT)
+  if(batchIndex >= MAX_BATCH_COUNT || queueFamilyIndex >= batches[batchIndex].size())
     return;
-  rdcarray<Barrier> &batch = batches[batchIndex][queueFamilyIndex];
+  Batch &batch = batches[batchIndex][queueFamilyIndex];
   batch.swap(result);
   batch.clear();
   barrierCount -= result.size();
   UnwrapBarriers(result);
 }
-template void BarrierSequence<VkImageMemoryBarrier>::ExtractUnwrappedBatch(
-    uint32_t batchIndex, uint32_t queueFamilyIndex, rdcarray<VkImageMemoryBarrier> &result);
 
-template <typename Barrier>
-void BarrierSequence<Barrier>::ExtractFirstUnwrappedBatchForQueue(uint32_t queueFamilyIndex,
-                                                                  rdcarray<Barrier> &result)
+void ImageBarrierSequence::ExtractFirstUnwrappedBatchForQueue(uint32_t queueFamilyIndex, Batch &result)
 {
   for(uint32_t batchIndex = 0; batchIndex < MAX_BATCH_COUNT; ++batchIndex)
   {
@@ -818,12 +806,8 @@ void BarrierSequence<Barrier>::ExtractFirstUnwrappedBatchForQueue(uint32_t queue
     }
   }
 }
-template void BarrierSequence<VkImageMemoryBarrier>::ExtractFirstUnwrappedBatchForQueue(
-    uint32_t queueFamilyIndex, rdcarray<VkImageMemoryBarrier> &result);
 
-template <typename Barrier>
-void BarrierSequence<Barrier>::ExtractLastUnwrappedBatchForQueue(uint32_t queueFamilyIndex,
-                                                                 rdcarray<Barrier> &result)
+void ImageBarrierSequence::ExtractLastUnwrappedBatchForQueue(uint32_t queueFamilyIndex, Batch &result)
 {
   for(uint32_t batchIndex = MAX_BATCH_COUNT; batchIndex > 0;)
   {
@@ -838,8 +822,6 @@ void BarrierSequence<Barrier>::ExtractLastUnwrappedBatchForQueue(uint32_t queueF
     }
   }
 }
-template void BarrierSequence<VkImageMemoryBarrier>::ExtractLastUnwrappedBatchForQueue(
-    uint32_t queueFamilyIndex, rdcarray<VkImageMemoryBarrier> &result);
 
 ImageState ImageState::InitialState() const
 {
