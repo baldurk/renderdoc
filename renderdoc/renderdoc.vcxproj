@@ -108,7 +108,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="3rdparty\android\android_manifest.h" />
     <ClInclude Include="3rdparty\catch\catch.hpp" />
     <ClInclude Include="3rdparty\catch\official\catch.hpp" />
     <ClInclude Include="3rdparty\compressonator\BC1_Encode_kernel.h" />
@@ -526,8 +525,6 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
     </ClCompile>
     <ClCompile Include="android\android.cpp" />
-    <ClCompile Include="android\android_manifest.cpp" />
-    <ClCompile Include="android\android_patch.cpp" />
     <ClCompile Include="android\android_tools.cpp" />
     <ClCompile Include="android\android_utils.cpp" />
     <ClCompile Include="android\jdwp.cpp" />

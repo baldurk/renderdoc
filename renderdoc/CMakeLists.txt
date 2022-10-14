@@ -150,10 +150,8 @@ set(sources
     core/bit_flag_iterator.h
     core/bit_flag_iterator_tests.cpp
     android/android.cpp
-    android/android_patch.cpp
     android/android_tools.cpp
     android/android_utils.cpp
-    android/android_manifest.cpp
     android/android.h
     android/android_utils.h
     android/jdwp.h
@@ -218,7 +216,6 @@ set(sources
     3rdparty/jpeg-compressor/jpgd.h
     3rdparty/jpeg-compressor/jpge.cpp
     3rdparty/jpeg-compressor/jpge.h
-    3rdparty/aosp/android_manifest.h
     3rdparty/catch/catch.cpp
     3rdparty/catch/catch.hpp
     3rdparty/pugixml/pugixml.cpp

@@ -1478,3 +1478,31 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
 AndroidController AndroidController::m_Inst;
 
 DeviceProtocolRegistration androidProtocol("adb", &AndroidController::Get);
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(
+    const rdcstr &URL, const rdcstr &packageAndActivity, AndroidFlags *flags)
+{
+  IDeviceProtocolHandler *adb = RenderDoc::Inst().GetDeviceProtocol("adb");
+
+  rdcstr deviceID = adb->GetDeviceID(URL);
+
+  // Reset the flags each time we check
+  *flags = AndroidFlags::NoFlags;
+
+  if(Android::IsDebuggable(deviceID, Android::GetPackageName(packageAndActivity)))
+  {
+    *flags |= AndroidFlags::Debuggable;
+  }
+  else
+  {
+    RDCLOG("%s is not debuggable", packageAndActivity.c_str());
+  }
+
+  if(Android::HasRootAccess(deviceID))
+  {
+    RDCLOG("Root access detected");
+    *flags |= AndroidFlags::RootAccess;
+  }
+
+  return;
+}

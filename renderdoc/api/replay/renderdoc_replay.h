@@ -2166,10 +2166,6 @@ DOCUMENT("INTERNAL: Check remote Android package for requirements");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(
     const rdcstr &URL, const rdcstr &packageAndActivity, AndroidFlags *flags);
 
-DOCUMENT("INTERNAL: Patch an APK to add debuggable flag.");
-extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePackage(
-    const rdcstr &URL, const rdcstr &packageAndActivity, RENDERDOC_ProgressCallback progress);
-
 DOCUMENT("An interface for enumerating and controlling remote devices.");
 struct IDeviceProtocolController
 {

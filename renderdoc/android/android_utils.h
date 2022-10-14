@@ -48,6 +48,8 @@ enum class ToolDir
 rdcstr getToolPath(ToolDir subdir, const rdcstr &toolname, bool checkExist);
 bool toolExists(const rdcstr &path);
 
+bool IsDebuggable(const rdcstr &deviceID, const rdcstr &packageName);
+bool HasRootAccess(const rdcstr &deviceID);
 rdcstr GetFirstMatchingLine(const rdcstr &haystack, const rdcstr &needle);
 
 bool IsSupported(rdcstr deviceID);

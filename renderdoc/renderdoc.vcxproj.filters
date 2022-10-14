@@ -112,9 +112,6 @@
     <Filter Include="Android">
       <UniqueIdentifier>{f9ed2873-6120-4b34-a3c2-e57b2de31eb9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="3rdparty\android">
-      <UniqueIdentifier>{6e798cbc-0eae-4f48-9d7c-f3fe58bd32dc}</UniqueIdentifier>
-    </Filter>
     <Filter Include="3rdparty\interceptor-lib">
       <UniqueIdentifier>{0362a726-a8e6-436e-b523-893693163440}</UniqueIdentifier>
     </Filter>
@@ -431,9 +428,6 @@
     </ClInclude>
     <ClInclude Include="android\jdwp.h">
       <Filter>Android</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\android\android_manifest.h">
-      <Filter>3rdparty\android</Filter>
     </ClInclude>
     <ClInclude Include="3rdparty\interceptor-lib\lib\code_generator.h">
       <Filter>3rdparty\interceptor-lib</Filter>
@@ -881,9 +875,6 @@
     <ClCompile Include="android\android_utils.cpp">
       <Filter>Android</Filter>
     </ClCompile>
-    <ClCompile Include="android\android_patch.cpp">
-      <Filter>Android</Filter>
-    </ClCompile>
     <ClCompile Include="android\jdwp.cpp">
       <Filter>Android</Filter>
     </ClCompile>
@@ -891,9 +882,6 @@
       <Filter>Android</Filter>
     </ClCompile>
     <ClCompile Include="android\jdwp_util.cpp">
-      <Filter>Android</Filter>
-    </ClCompile>
-    <ClCompile Include="android\android_manifest.cpp">
       <Filter>Android</Filter>
     </ClCompile>
     <ClCompile Include="3rdparty\interceptor-lib\lib\code_generator.cc">

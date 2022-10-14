@@ -619,74 +619,9 @@ void CaptureDialog::androidWarn_mouseClick()
   QString msg = tr(R"(In order to debug on Android, the package must be <b>debuggable</b>.
 <br><br>
 On UE4 you must disable <em>for distribution</em>, on Unity enable <em>development mode</em>.
-<br><br>
-RenderDoc can try to add the flag for you, which will involve completely reinstalling your package
-as well as re-signing it with a debug key. This method is prone to error and is
-<b>not recommended</b>. It is instead advised to configure your app to be debuggable at build time.
-<br><br>
-Would you like RenderDoc to try patching your package?
 )");
 
-  QMessageBox::StandardButton prompt = RDDialog::question(this, caption, msg, RDDialog::YesNoCancel);
-
-  if(prompt == QMessageBox::Yes)
-  {
-    float progress = 0.0f;
-    bool patchSucceeded = false;
-
-    // call into APK pull, patch, install routine, then continue
-    LambdaThread *patch = new LambdaThread([this, host, exe, &patchSucceeded, &progress]() {
-      AndroidFlags result =
-          RENDERDOC_MakeDebuggablePackage(host, exe, [&progress](float p) { progress = p; });
-
-      if(result & AndroidFlags::Debuggable)
-      {
-        // Sucess!
-        patchSucceeded = true;
-
-        RDDialog::information(this, tr("Patch succeeded!"),
-                              tr("The patch process succeeded and the package is ready to debug"));
-      }
-      else
-      {
-        QString failmsg = tr("Something has gone wrong and the patching process failed.<br><br>");
-
-        if(result == AndroidFlags::MissingTools)
-        {
-          failmsg +=
-              tr("Tools required for the process were not found. Try configuring the path to your "
-                 "android SDK or java JDK in the settings dialog.");
-        }
-        else if(result == AndroidFlags::ManifestPatchFailure)
-        {
-          failmsg +=
-              tr("The package manifest could not be patched. This is not solveable, you will have "
-                 "to rebuild the package with the debuggable flag.");
-        }
-        else if(result == AndroidFlags::RepackagingAPKFailure)
-        {
-          failmsg += tr("The package was patched but could not be repackaged and installed.");
-        }
-
-        RDDialog::critical(this, tr("Failed to patch package"), failmsg);
-      }
-    });
-
-    patch->setName(lit("Android patch"));
-    patch->start();
-    // wait a few ms before popping up a progress bar
-    patch->wait(500);
-    if(patch->isRunning())
-    {
-      ShowProgressDialog(this, tr("Patching %1, please wait...").arg(exe),
-                         [patch]() { return !patch->isRunning(); },
-                         [&progress]() { return progress; });
-    }
-    patch->deleteLater();
-
-    if(patchSucceeded)
-      ui->androidWarn->setVisible(false);
-  }
+  RDDialog::information(this, caption, msg);
 }
 
 void CaptureDialog::lineEdit_keyPress(QKeyEvent *ev)

@@ -274,6 +274,57 @@ rdcstr GetFriendlyName(const rdcstr &deviceID)
   return combined;
 }
 
+bool HasRootAccess(const rdcstr &deviceID)
+{
+  RDCLOG("Checking for root access on %s", deviceID.c_str());
+
+  // Try switching adb to root and check a few indicators for success
+  // Nothing will fall over if we get a false positive here, it just enables
+  // additional methods of getting things set up.
+
+  Process::ProcessResult result = adbExecCommand(deviceID, "root");
+
+  rdcstr whoami = adbExecCommand(deviceID, "shell whoami").strStdout.trimmed();
+  if(whoami == "root")
+    return true;
+
+  rdcstr checksu =
+      adbExecCommand(deviceID, "shell test -e /system/xbin/su && echo found").strStdout.trimmed();
+  if(checksu == "found")
+    return true;
+
+  return false;
+}
+
+rdcstr GetFirstMatchingLine(const rdcstr &haystack, const rdcstr &needle)
+{
+  int needleOffset = haystack.find(needle);
+
+  if(needleOffset == -1)
+    return rdcstr();
+
+  int nextLine = haystack.find('\n', needleOffset + 1);
+
+  return haystack.substr(needleOffset, nextLine == -1 ? ~0U : size_t(nextLine - needleOffset));
+}
+
+bool IsDebuggable(const rdcstr &deviceID, const rdcstr &packageName)
+{
+  RDCLOG("Checking that APK is debuggable");
+
+  rdcstr info = adbExecCommand(deviceID, "shell dumpsys package " + packageName).strStdout;
+
+  rdcstr pkgFlags = GetFirstMatchingLine(info, "pkgFlags=[");
+
+  if(pkgFlags == "")
+  {
+    RDCERR("Couldn't get pkgFlags from adb");
+    return false;
+  }
+
+  return pkgFlags.contains("DEBUGGABLE");
+}
+
 // on android only when we hit this function we write a marker that isn't a standard log. The
 // purpose is to always try and have a unique message in the last N lines so that we can detect if
 // we ever lose messages.
