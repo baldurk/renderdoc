@@ -155,15 +155,65 @@ static ShaderToolOutput RunTool(const ShaderProcessingTool &tool, QWidget *windo
 
   QString processStatus;
 
+  QProcess::ProcessError error = process.error();
+
   if(process.exitStatus() == QProcess::CrashExit)
+    error = QProcess::Crashed;
+
+  switch(error)
   {
-    processStatus = QApplication::translate("ShaderProcessingTool", "Process crashed with code %1.")
-                        .arg(process.exitCode());
-  }
-  else
-  {
-    processStatus = QApplication::translate("ShaderProcessingTool", "Process exited with code %1.")
-                        .arg(process.exitCode());
+    case QProcess::FailedToStart:
+    {
+      if(QDir::isAbsolutePath(tool.executable))
+      {
+        if(!QFile::exists(tool.executable))
+        {
+          processStatus =
+              QApplication::translate("ShaderProcessingTool",
+                                      "Process couldn't be started, \"%1\" does not exist.")
+                  .arg(tool.executable);
+        }
+        else
+        {
+          processStatus = QApplication::translate(
+                              "ShaderProcessingTool",
+                              "Process couldn't be started, is \"%1\" a working executable?")
+                              .arg(tool.executable);
+        }
+      }
+      else
+      {
+        processStatus =
+            QApplication::translate(
+                "ShaderProcessingTool",
+                "Process couldn't be started, \"%1\" was located as \"%2\" but didn't start.")
+                .arg(tool.executable)
+                .arg(path);
+      }
+      break;
+    }
+    case QProcess::Crashed:
+    {
+      processStatus =
+          QApplication::translate("ShaderProcessingTool", "Process crashed with code %1.")
+              .arg(process.exitCode());
+      break;
+    }
+    case QProcess::ReadError:
+    case QProcess::WriteError:
+    {
+      processStatus =
+          QApplication::translate("ShaderProcessingTool", "Process failed during I/O with code %1.")
+              .arg(process.exitCode());
+      break;
+    }
+    case QProcess::Timedout:        // shouldn't happen, we don't use a timeout
+    case QProcess::UnknownError:    // return value if nothing went wrong
+    {
+      processStatus =
+          QApplication::translate("ShaderProcessingTool", "Process exited with code %1.")
+              .arg(process.exitCode());
+    }
   }
 
   ret.log = QApplication::translate("ShaderProcessingTool",
