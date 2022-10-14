@@ -1154,7 +1154,10 @@ void ChunkPagePool::ResetPageSet(const rdcarray<ChunkPage> &pages)
       alloc.chunkHead = alloc.chunkBase;
       // move to free list
       freePages.push_back(alloc);
-      allocatedPages.erase(idx);
+      // allocatedPages is not sorted, swap with the back and pop to avoid expensive erases in the
+      // middle of the list
+      std::swap(allocatedPages[idx], allocatedPages.back());
+      allocatedPages.pop_back();
       continue;
     }
   }
