@@ -124,7 +124,6 @@ void DisableGLHooks()
   glhook.enabled = false;
 }
 
-#if ENABLED(RDOC_WIN32) || ENABLED(RDOC_APPLE) || ENABLED(RDOC_SWITCH)
 template <typename ret_type>
 ret_type default_ret()
 {
@@ -136,24 +135,34 @@ void default_ret()
 {
 }
 
-// if we were injected and aren't ready to capture, skip out and call the real function
-#define UNINIT_CALL(function, ...)                                                      \
-  if(!glhook.enabled)                                                                   \
-  {                                                                                     \
-    if(GL.function == NULL)                                                             \
-    {                                                                                   \
-      RDCERR("No function pointer for '%s' while uninitialised!", STRINGIZE(function)); \
-      return default_ret<decltype(GL.function(__VA_ARGS__))>();                         \
-    }                                                                                   \
-    return GL.function(__VA_ARGS__);                                                    \
+template <>
+const char *default_ret()
+{
+  return "";
+}
+
+template <>
+const GLubyte *default_ret()
+{
+  return (const GLubyte *)"";
+}
+
+// on windows we can be injected and not ready to capture when we intercept a GL call. If that
+// happens we need to skip and call the real function
+
+// on linux some systems inject external code into Qt which initialises GL behind our back. If this
+// calls glXGetProcAddress it will get the real function pointers, but if it links against GL it
+// will get routed here via our public exported symbols so we try to call the real function
+#define UNINIT_CALL(function, ...)                                                              \
+  if(!glhook.enabled)                                                                           \
+  {                                                                                             \
+    if(GL.function == NULL)                                                                     \
+    {                                                                                           \
+      RDCERR("No function pointer for '%s' while doing replay fallback!", STRINGIZE(function)); \
+      return default_ret<decltype(GL.function(__VA_ARGS__))>();                                 \
+    }                                                                                           \
+    return GL.function(__VA_ARGS__);                                                            \
   }
-
-#else
-
-// nothing to do - we always assume we are ready to capture
-#define UNINIT_CALL(function, ...)
-
-#endif
 
 DefineSupportedHooks();
 DefineUnsupportedHooks();

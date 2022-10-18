@@ -353,8 +353,16 @@ HOOK_EXPORT Bool glXMakeCurrent_renderdoc_hooked(Display *dpy, GLXDrawable drawa
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
-    if(!GLX.glXMakeCurrent)
+    if(!GLX.glXMakeCurrent || !GLX.glXGetProcAddress)
       GLX.PopulateForReplay();
+
+    // populate GL function pointers now in case linked functions are called
+    if(GLX.glXGetProcAddress)
+    {
+      GL.PopulateWithCallback([](const char *funcName) -> void * {
+        return (void *)GLX.glXGetProcAddress((const GLubyte *)funcName);
+      });
+    }
 
     return GLX.glXMakeCurrent(dpy, drawable, ctx);
   }
@@ -425,8 +433,16 @@ HOOK_EXPORT Bool glXMakeContextCurrent_renderdoc_hooked(Display *dpy, GLXDrawabl
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
-    if(!GLX.glXMakeContextCurrent)
+    if(!GLX.glXMakeContextCurrent || !GLX.glXGetProcAddress)
       GLX.PopulateForReplay();
+
+    // populate GL function pointers now in case linked functions are called
+    if(GLX.glXGetProcAddress)
+    {
+      GL.PopulateWithCallback([](const char *funcName) -> void * {
+        return (void *)GLX.glXGetProcAddress((const GLubyte *)funcName);
+      });
+    }
 
     return GLX.glXMakeContextCurrent(dpy, draw, read, ctx);
   }

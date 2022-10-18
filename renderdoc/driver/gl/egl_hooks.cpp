@@ -447,8 +447,15 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent_renderdoc_hooked(EGLDisplay di
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
-    if(!EGL.MakeCurrent)
+    if(!EGL.MakeCurrent || !EGL.GetProcAddress)
       EGL.PopulateForReplay();
+
+    // populate GL function pointers now in case linked functions are called
+    if(EGL.GetProcAddress)
+    {
+      GL.PopulateWithCallback(
+          [](const char *funcName) -> void * { return (void *)EGL.GetProcAddress(funcName); });
+    }
 
     return EGL.MakeCurrent(display, draw, read, ctx);
   }
