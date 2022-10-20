@@ -2624,8 +2624,6 @@ void VulkanPipelineStateViewer::setState()
   ////////////////////////////////////////////////
   // Output Merger
 
-  bool targets[32] = {};
-
   if(state.currentPass.renderpass.dynamic)
   {
     QString dynamic = tr("Dynamic", "Dynamic rendering renderpass name");
@@ -2650,204 +2648,235 @@ void VulkanPipelineStateViewer::setState()
   vs = ui->fbAttach->verticalScrollBar()->value();
   ui->fbAttach->beginUpdate();
   ui->fbAttach->clear();
-  {
-    int i = 0;
-    for(const VKPipe::Attachment &p : state.currentPass.framebuffer.attachments)
-    {
-      int colIdx = -1;
-      for(int c = 0; c < state.currentPass.renderpass.colorAttachments.count(); c++)
-      {
-        if(state.currentPass.renderpass.colorAttachments[c] == (uint)i)
-        {
-          colIdx = c;
-          break;
-        }
-      }
-      int resIdx = -1;
-      for(int c = 0; c < state.currentPass.renderpass.resolveAttachments.count(); c++)
-      {
-        if(state.currentPass.renderpass.resolveAttachments[c] == (uint)i)
-        {
-          resIdx = c;
-          break;
-        }
-      }
 
-      bool filledSlot = (p.imageResourceId != ResourceId());
-      bool usedSlot =
-          (colIdx >= 0 || resIdx >= 0 || state.currentPass.renderpass.depthstencilAttachment == i ||
-           state.currentPass.renderpass.fragmentDensityAttachment == i ||
-           state.currentPass.renderpass.shadingRateAttachment == i ||
-           state.currentPass.renderpass.depthstencilResolveAttachment == i);
-
-      if(showNode(usedSlot, filledSlot))
-      {
-        QString format;
-        QString typeName;
-        QString dimensions;
-        QString samples;
-        bool tooltipOffsets = false;
-
-        if(p.imageResourceId != ResourceId())
-        {
-          format = p.viewFormat.Name();
-          typeName = tr("Unknown");
-        }
-        else
-        {
-          format = lit("-");
-          typeName = lit("-");
-          dimensions = lit("-");
-          samples = lit("-");
-        }
-
-        TextureDescription *tex = m_Ctx.GetTexture(p.imageResourceId);
-        if(tex)
-        {
-          dimensions += tr("%1x%2").arg(tex->width).arg(tex->height);
-          if(tex->depth > 1)
-            dimensions += tr("x%1").arg(tex->depth);
-          if(tex->arraysize > 1)
-            dimensions += tr("[%1]").arg(tex->arraysize);
-
-          typeName = ToQStr(tex->type);
-        }
-        samples = getTextureRenderSamples(tex, state.currentPass.renderpass);
-
-        if(p.swizzle.red != TextureSwizzle::Red || p.swizzle.green != TextureSwizzle::Green ||
-           p.swizzle.blue != TextureSwizzle::Blue || p.swizzle.alpha != TextureSwizzle::Alpha)
-        {
-          format += tr(" swizzle[%1%2%3%4]")
-                        .arg(ToQStr(p.swizzle.red))
-                        .arg(ToQStr(p.swizzle.green))
-                        .arg(ToQStr(p.swizzle.blue))
-                        .arg(ToQStr(p.swizzle.alpha));
-        }
-
-        rdcpair<uint32_t, uint32_t> shadingRateTexelSize = {0, 0};
-        QString slotname;
-
-        if(colIdx >= 0)
-        {
-          slotname = QFormatStr("Color %1").arg(colIdx);
-        }
-        else if(resIdx >= 0)
-        {
-          slotname = QFormatStr("Resolve %1").arg(resIdx);
-        }
-        else if(state.currentPass.renderpass.depthstencilResolveAttachment == i)
-        {
-          slotname = lit("Depth/Stencil Resolve");
-        }
-        else if(state.currentPass.renderpass.fragmentDensityAttachment == i)
-        {
-          slotname = lit("Fragment Density Map");
-          if(state.currentPass.renderpass.fragmentDensityOffsets.size() > 2)
-          {
-            tooltipOffsets = true;
-          }
-          else if(state.currentPass.renderpass.fragmentDensityOffsets.size() > 0)
-          {
-            dimensions += tr(" : offsets");
-            for(uint32_t j = 0; j < state.currentPass.renderpass.fragmentDensityOffsets.size(); j++)
-            {
-              const Offset &o = state.currentPass.renderpass.fragmentDensityOffsets[j];
-              if(j > 0)
-                dimensions += tr(", ");
-
-              dimensions += tr(" %1x%2").arg(o.x).arg(o.y);
-            }
-          }
-        }
-        else if(state.currentPass.renderpass.shadingRateAttachment == i)
-        {
-          slotname = lit("Fragment Shading Rate Map");
-          shadingRateTexelSize = state.currentPass.renderpass.shadingRateTexelSize;
-        }
-        else
-        {
-          slotname = lit("Depth");
-
-          if(p.viewFormat.type == ResourceFormatType::D16S8 ||
-             p.viewFormat.type == ResourceFormatType::D24S8 ||
-             p.viewFormat.type == ResourceFormatType::D32S8)
-          {
-            slotname = lit("Depth/Stencil");
-          }
-          else if(p.viewFormat.type == ResourceFormatType::S8)
-          {
-            slotname = lit("Stencil");
-          }
-        }
-
-        if(state.fragmentShader.reflection != NULL)
-        {
-          for(int s = 0; s < state.fragmentShader.reflection->outputSignature.count(); s++)
-          {
-            if(state.fragmentShader.reflection->outputSignature[s].regIndex == (uint32_t)colIdx &&
-               (state.fragmentShader.reflection->outputSignature[s].systemValue ==
-                    ShaderBuiltin::Undefined ||
-                state.fragmentShader.reflection->outputSignature[s].systemValue ==
-                    ShaderBuiltin::ColorOutput))
-            {
-              slotname +=
-                  QFormatStr(": %1").arg(state.fragmentShader.reflection->outputSignature[s].varName);
-            }
-          }
-        }
-
-        QString resName = ToQStr(p.imageResourceId);
-
-        if(shadingRateTexelSize.first > 0)
-          resName +=
-              tr(" (%1x%2 texels)").arg(shadingRateTexelSize.first).arg(shadingRateTexelSize.second);
-
-        RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {slotname, resName, typeName, dimensions, format, samples, QString()});
-
-        if(tex)
-          node->setTag(
-              QVariant::fromValue(VulkanTextureTag(p.imageResourceId, p.viewFormat.compType)));
-
-        if(p.imageResourceId == ResourceId())
-        {
-          setEmptyRow(node);
-        }
-        else if(!usedSlot)
-        {
-          setInactiveRow(node);
-        }
-        else
-        {
-          targets[i] = true;
-        }
-
-        bool hasViewDetails =
-            setViewDetails(node, p, tex, true, QString(), resIdx < 0, tooltipOffsets);
-
-        if(hasViewDetails)
-          node->setText(
-              1, tr("%1 viewed by %2").arg(ToQStr(p.imageResourceId)).arg(ToQStr(p.viewResourceId)));
-
-        ui->fbAttach->addTopLevelItem(node);
-      }
-
-      i++;
-    }
-  }
-
-  ui->fbAttach->clearSelection();
-  ui->fbAttach->endUpdate();
-  ui->fbAttach->verticalScrollBar()->setValue(vs);
-
-  vs = ui->blends->verticalScrollBar()->value();
+  vs2 = ui->blends->verticalScrollBar()->value();
   ui->blends->beginUpdate();
   ui->blends->clear();
   {
+    const VKPipe::Framebuffer &fb = state.currentPass.framebuffer;
+    const VKPipe::RenderPass &rp = state.currentPass.renderpass;
+
+    enum class AttType
+    {
+      Color,
+      Resolve,
+      Depth,
+      DepthResolve,
+      Density,
+      ShadingRate
+    };
+
+    struct AttachRef
+    {
+      int32_t fbIdx;
+      int32_t localIdx;
+      AttType type;
+    };
+
+    rdcarray<AttachRef> attachs;
+
+    // iterate the attachments in logical order, checking each index into the framebuffer
+
+    for(int c = 0; c < rp.colorAttachments.count(); c++)
+      attachs.push_back({int32_t(rp.colorAttachments[c]), c, AttType::Color});
+
+    for(int c = 0; c < rp.resolveAttachments.count(); c++)
+      attachs.push_back({int32_t(rp.resolveAttachments[c]), c, AttType::Resolve});
+
+    attachs.push_back({rp.depthstencilAttachment, 0, AttType::Depth});
+    attachs.push_back({rp.depthstencilResolveAttachment, 0, AttType::DepthResolve});
+    attachs.push_back({rp.fragmentDensityAttachment, 0, AttType::Density});
+    attachs.push_back({rp.shadingRateAttachment, 0, AttType::ShadingRate});
+
+    for(const AttachRef &a : attachs)
+    {
+      int32_t attIdx = a.fbIdx;
+
+      // negative index means unused
+      bool usedSlot = (attIdx >= 0);
+
+      bool filledSlot = false;
+      if(usedSlot && attIdx < fb.attachments.count())
+        filledSlot = fb.attachments[attIdx].imageResourceId != ResourceId();
+
+      if(showNode(usedSlot, filledSlot))
+      {
+        QString slotname;
+
+        if(a.type == AttType::Color)
+        {
+          slotname = QFormatStr("Color %1").arg(a.localIdx);
+
+          if(state.fragmentShader.reflection != NULL)
+          {
+            const rdcarray<SigParameter> &outSig = state.fragmentShader.reflection->outputSignature;
+            for(int s = 0; s < outSig.count(); s++)
+            {
+              if(outSig[s].regIndex == (uint32_t)a.localIdx &&
+                 (outSig[s].systemValue == ShaderBuiltin::Undefined ||
+                  outSig[s].systemValue == ShaderBuiltin::ColorOutput))
+              {
+                slotname += QFormatStr(": %1").arg(outSig[s].varName);
+              }
+            }
+          }
+        }
+        else if(a.type == AttType::Resolve)
+        {
+          slotname = QFormatStr("Resolve %1").arg(a.localIdx);
+        }
+        else if(a.type == AttType::Depth)
+        {
+          slotname = lit("Depth/Stencil");
+
+          if(filledSlot)
+          {
+            const VKPipe::Attachment &p = fb.attachments[attIdx];
+
+            slotname = lit("Depth");
+
+            if(p.viewFormat.type == ResourceFormatType::D16S8 ||
+               p.viewFormat.type == ResourceFormatType::D24S8 ||
+               p.viewFormat.type == ResourceFormatType::D32S8)
+              slotname = lit("Depth/Stencil");
+            else if(p.viewFormat.type == ResourceFormatType::S8)
+              slotname = lit("Stencil");
+          }
+        }
+        else if(a.type == AttType::DepthResolve)
+        {
+          slotname = lit("Depth/Stencil Resolve");
+        }
+        else if(a.type == AttType::Density)
+        {
+          slotname = lit("Fragment Density Map");
+        }
+        else if(a.type == AttType::ShadingRate)
+        {
+          slotname = lit("Fragment Shading Rate Map");
+        }
+
+        RDTreeWidgetItem *node;
+
+        if(filledSlot)
+        {
+          const VKPipe::Attachment &p = fb.attachments[attIdx];
+
+          QString format;
+          QString typeName;
+          QString dimensions;
+          QString samples;
+          bool tooltipOffsets = false;
+
+          if(p.imageResourceId != ResourceId())
+          {
+            format = p.viewFormat.Name();
+            typeName = tr("Unknown");
+          }
+          else
+          {
+            format = lit("-");
+            typeName = lit("-");
+            dimensions = lit("-");
+            samples = lit("-");
+          }
+
+          TextureDescription *tex = m_Ctx.GetTexture(p.imageResourceId);
+          if(tex)
+          {
+            dimensions += tr("%1x%2").arg(tex->width).arg(tex->height);
+            if(tex->depth > 1)
+              dimensions += tr("x%1").arg(tex->depth);
+            if(tex->arraysize > 1)
+              dimensions += tr("[%1]").arg(tex->arraysize);
+
+            typeName = ToQStr(tex->type);
+          }
+          samples = getTextureRenderSamples(tex, state.currentPass.renderpass);
+
+          if(p.swizzle.red != TextureSwizzle::Red || p.swizzle.green != TextureSwizzle::Green ||
+             p.swizzle.blue != TextureSwizzle::Blue || p.swizzle.alpha != TextureSwizzle::Alpha)
+          {
+            format += tr(" swizzle[%1%2%3%4]")
+                          .arg(ToQStr(p.swizzle.red))
+                          .arg(ToQStr(p.swizzle.green))
+                          .arg(ToQStr(p.swizzle.blue))
+                          .arg(ToQStr(p.swizzle.alpha));
+          }
+
+          rdcpair<uint32_t, uint32_t> shadingRateTexelSize = {0, 0};
+
+          if(a.type == AttType::Density)
+          {
+            if(state.currentPass.renderpass.fragmentDensityOffsets.size() > 2)
+            {
+              tooltipOffsets = true;
+            }
+            else if(state.currentPass.renderpass.fragmentDensityOffsets.size() > 0)
+            {
+              dimensions += tr(" : offsets");
+              for(uint32_t j = 0; j < state.currentPass.renderpass.fragmentDensityOffsets.size(); j++)
+              {
+                const Offset &o = state.currentPass.renderpass.fragmentDensityOffsets[j];
+                if(j > 0)
+                  dimensions += tr(", ");
+
+                dimensions += tr(" %1x%2").arg(o.x).arg(o.y);
+              }
+            }
+          }
+          else if(a.type == AttType::ShadingRate)
+          {
+            shadingRateTexelSize = state.currentPass.renderpass.shadingRateTexelSize;
+          }
+
+          QString resName = ToQStr(p.imageResourceId);
+
+          if(shadingRateTexelSize.first > 0)
+            resName +=
+                tr(" (%1x%2 texels)").arg(shadingRateTexelSize.first).arg(shadingRateTexelSize.second);
+
+          node = new RDTreeWidgetItem(
+              {slotname, resName, typeName, dimensions, format, samples, QString()});
+
+          if(tex)
+            node->setTag(
+                QVariant::fromValue(VulkanTextureTag(p.imageResourceId, p.viewFormat.compType)));
+
+          if(p.imageResourceId == ResourceId())
+            setEmptyRow(node);
+          else if(!usedSlot)
+            setInactiveRow(node);
+
+          bool hasViewDetails = setViewDetails(
+              node, p, tex, true, QString(),
+              a.type == AttType::Resolve || a.type == AttType::DepthResolve, tooltipOffsets);
+
+          if(hasViewDetails)
+            node->setText(
+                1,
+                tr("%1 viewed by %2").arg(ToQStr(p.imageResourceId)).arg(ToQStr(p.viewResourceId)));
+        }
+        else
+        {
+          // special simple case for an attachment that's not used. No framebuffer to look up so
+          // just display the name and empty contents.
+
+          node = new RDTreeWidgetItem({slotname, usedSlot ? ToQStr(ResourceId()) : tr("Unused"),
+                                       QString(), QString(), QString(), QString(), QString()});
+
+          setEmptyRow(node);
+        }
+
+        ui->fbAttach->addTopLevelItem(node);
+      }
+    }
+
     int i = 0;
     for(const ColorBlend &blend : state.colorBlend.blends)
     {
-      bool usedSlot = (targets[i]);
+      bool usedSlot =
+          (i < rp.colorAttachments.count() && rp.colorAttachments[i] < fb.attachments.size());
 
       if(showNode(usedSlot, /*filledSlot*/ true))
       {
@@ -2875,9 +2904,14 @@ void VulkanPipelineStateViewer::setState()
       i++;
     }
   }
+
+  ui->fbAttach->clearSelection();
+  ui->fbAttach->endUpdate();
+  ui->fbAttach->verticalScrollBar()->setValue(vs);
+
   ui->blends->clearSelection();
   ui->blends->endUpdate();
-  ui->blends->verticalScrollBar()->setValue(vs);
+  ui->blends->verticalScrollBar()->setValue(vs2);
 
   ui->blendFactor->setText(QFormatStr("%1, %2, %3, %4")
                                .arg(state.colorBlend.blendFactor[0], 0, 'f', 2)
