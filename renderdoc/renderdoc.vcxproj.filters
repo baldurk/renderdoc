@@ -127,12 +127,6 @@
     <Filter Include="3rdparty\miniz">
       <UniqueIdentifier>{5994c355-880b-45b9-b17a-2e9e1fc2044a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common\Serialise\Codecs\cpp_codec">
-      <UniqueIdentifier>{27f41754-8fa8-4a78-afb8-f63a32473540}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Common\Serialise\Codecs\cpp_codec\vulkan">
-      <UniqueIdentifier>{ee6a7f7e-becf-43f0-8c7f-e0109a364ebb}</UniqueIdentifier>
-    </Filter>
     <Filter Include="OS\Posix\GGP">
       <UniqueIdentifier>{b76c42f4-d523-4417-a474-56d278d35a36}</UniqueIdentifier>
     </Filter>
@@ -467,9 +461,6 @@
     </ClInclude>
     <ClInclude Include="core\intervals.h">
       <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="serialise\codecs\vk_cpp_codec_common.h">
-      <Filter>Common\Serialise\Codecs\cpp_codec\vulkan</Filter>
     </ClInclude>
     <ClInclude Include="data\glsl\glsl_ubos_cpp.h">
       <Filter>Resources\glsl</Filter>

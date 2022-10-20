@@ -246,7 +246,6 @@
     <ClInclude Include="replay\dummy_driver.h" />
     <ClInclude Include="replay\replay_driver.h" />
     <ClInclude Include="replay\replay_controller.h" />
-    <ClInclude Include="serialise\codecs\vk_cpp_codec_common.h" />
     <ClInclude Include="serialise\lz4io.h" />
     <ClInclude Include="serialise\rdcfile.h" />
     <ClInclude Include="serialise\serialiser.h" />
