@@ -425,6 +425,16 @@ void GLReplay::InitDebugData()
           "#extension GL_ARB_shader_bit_encoding : require\n";
   }
 
+  vs = GenerateGLSLShader(
+      GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer,
+      "#extension GL_ARB_separate_shader_objects : require\n#define FORCE_IO_LOCATION 1");
+
+  // used to combine with custom shaders.
+  // this has to have explicit locations on the output even though we don't normally use that,
+  // because GL doesn't have a fallback to match by name, and custom shaders are expected to have an
+  // explicit location on the input
+  DebugData.texDisplayVertexShader = CreateShader(eGL_VERTEX_SHADER, vs);
+
   vs = GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer);
 
   DebugData.fixedcolFragShaderSPIRV = DebugData.quadoverdrawFragShaderSPIRV = 0;
@@ -452,9 +462,6 @@ void GLReplay::InitDebugData()
       DebugData.quadoverdrawFragShaderSPIRV = CreateSPIRVShader(eGL_FRAGMENT_SHADER, source);
     }
   }
-
-  // used to combine with custom shaders.
-  DebugData.texDisplayVertexShader = CreateShader(eGL_VERTEX_SHADER, vs);
 
   for(int i = 0; i < 3; i++)
   {

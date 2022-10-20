@@ -51,8 +51,25 @@
 // drop I/O location specifiers and bindings on GL, we don't use separate programs so I/O variables
 // can be matched by name, and we don't want to require GL_ARB_shading_language_420pack so we can't
 // specify bindings in shaders.
-#define BINDING(b) layout(std140)
+//
+// however due to obtuse GL rules, variables with identical name and declaration do NOT match if
+// only one of them has an explicit location. This is only used in custom shaders, but means we need
+// to match it as while most drivers will handle the fallback as you'd normally expect, not all do
+// and the spec doesn't require it. This does mean custom shaders won't work if they drop the
+// explicit location, but there's no feasible way to support both and explicit location has been
+// standard since this was added.
+
+#ifdef FORCE_IO_LOCATION
+
+#define IO_LOCATION(l) layout(location = l)
+
+#else
+
 #define IO_LOCATION(l)
+
+#endif
+
+#define BINDING(b) layout(std140)
 #define VERTEX_ID gl_VertexID
 #define INSTANCE_ID gl_InstanceID
 
