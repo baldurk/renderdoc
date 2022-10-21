@@ -1695,8 +1695,9 @@ void DoSerialise(SerialiserType &ser, GLPipe::Texture &el)
   SERIALISE_MEMBER(swizzle);
   SERIALISE_MEMBER(depthReadChannel);
   SERIALISE_MEMBER(completeStatus);
+  SERIALISE_MEMBER(typeConflict);
 
-  SIZE_CHECK(56);
+  SIZE_CHECK(80);
 }
 
 template <typename SerialiserType>

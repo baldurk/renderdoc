@@ -535,34 +535,43 @@ void GLPipelineStateViewer::setEmptyRow(RDTreeWidgetItem *node)
 
 void GLPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, TextureDescription *tex,
                                            uint32_t firstMip, uint32_t numMips, uint32_t firstSlice,
-                                           uint32_t numSlices, const rdcstr &completeStatus)
+                                           uint32_t numSlices, const GLPipe::Texture *texBinding)
 {
   QString text;
 
-  if(!completeStatus.isEmpty())
-    text += tr("The texture is incomplete:\n%1\n\n").arg(completeStatus);
-
-  if((tex->mips > 1 && firstMip > 0) || numMips < tex->mips)
+  if(texBinding)
   {
-    if(numMips == 1)
-      text += tr("The texture has %1 mips, the view covers mip %2.").arg(tex->mips).arg(firstMip);
-    else
-      text += tr("The texture has %1 mips, the view covers mips %2-%3.")
-                  .arg(tex->mips)
-                  .arg(firstMip)
-                  .arg(firstMip + numMips - 1);
+    if(!texBinding->completeStatus.isEmpty())
+      text += tr("The texture is incomplete:\n%1\n\n").arg(texBinding->completeStatus);
+
+    if(!texBinding->typeConflict.isEmpty())
+      text += tr("Multiple conflicting bindings:\n%1\n\n").arg(texBinding->typeConflict);
   }
 
-  if((tex->arraysize > 1 && firstSlice > 0) || numSlices < tex->arraysize)
+  if(tex)
   {
-    if(numSlices == 1)
-      text +=
-          tr("The texture has %1 slices, the view covers slice %2.").arg(tex->arraysize).arg(firstSlice);
-    else
-      text += tr("The texture has %1 slices, the view covers slices %2-%3.")
-                  .arg(tex->arraysize)
-                  .arg(firstSlice)
-                  .arg(firstSlice + numSlices - 1);
+    if((tex->mips > 1 && firstMip > 0) || numMips < tex->mips)
+    {
+      if(numMips == 1)
+        text += tr("The texture has %1 mips, the view covers mip %2.").arg(tex->mips).arg(firstMip);
+      else
+        text += tr("The texture has %1 mips, the view covers mips %2-%3.")
+                    .arg(tex->mips)
+                    .arg(firstMip)
+                    .arg(firstMip + numMips - 1);
+    }
+
+    if((tex->arraysize > 1 && firstSlice > 0) || numSlices < tex->arraysize)
+    {
+      if(numSlices == 1)
+        text +=
+            tr("The texture has %1 slices, the view covers slice %2.").arg(tex->arraysize).arg(firstSlice);
+      else
+        text += tr("The texture has %1 slices, the view covers slices %2-%3.")
+                    .arg(tex->arraysize)
+                    .arg(firstSlice)
+                    .arg(firstSlice + numSlices - 1);
+    }
   }
 
   text = text.trimmed();
@@ -797,7 +806,9 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
       {
         QString slotname = QString::number(i);
 
-        if(shaderInput && !shaderInput->name.empty())
+        if(!r.typeConflict.empty())
+          slotname += tr(": <conflict>");
+        else if(shaderInput && !shaderInput->name.empty())
           slotname += lit(": ") + shaderInput->name;
 
         uint32_t w = 1, h = 1, d = 1;
@@ -843,18 +854,30 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
           }
         }
 
-        RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({slotname, r.resourceId, typeName, w, h, d, a, format, QString()});
+        RDTreeWidgetItem *node = NULL;
 
-        node->setTag(QVariant::fromValue(r.resourceId));
+        if(!r.typeConflict.empty())
+        {
+          node = new RDTreeWidgetItem({slotname, tr("Conflicting bindings"), lit("-"), lit("-"),
+                                       lit("-"), lit("-"), lit("-"), lit("-"), QString()});
 
-        if(tex)
-          setViewDetails(node, tex, r.firstMip, r.numMips, 0, ~0U, r.completeStatus);
+          setViewDetails(node, NULL, 0, 0, 0, ~0U, &r);
+        }
+        else
+        {
+          node =
+              new RDTreeWidgetItem({slotname, r.resourceId, typeName, w, h, d, a, format, QString()});
+
+          node->setTag(QVariant::fromValue(r.resourceId));
+
+          if(tex)
+            setViewDetails(node, tex, r.firstMip, r.numMips, 0, ~0U, &r);
+        }
 
         if(!filledSlot)
           setEmptyRow(node);
 
-        if(!r.completeStatus.isEmpty())
+        if(!r.completeStatus.isEmpty() || !r.typeConflict.isEmpty())
           setEmptyRow(node);
 
         if(!usedSlot)

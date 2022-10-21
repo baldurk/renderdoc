@@ -317,6 +317,16 @@ struct Texture
 complete. Otherwise it contains an explanation of why the texture is believed to be incomplete.
 )");
   rdcstr completeStatus;
+
+  DOCUMENT(R"(The details of any type conflict on this binding. This can happen if
+multiple uniforms are pointing to the same binding but with different types. In this case it is
+impossible to disambiguate which binding was used.
+
+
+If this string is empty, no conflict is present. Otherwise it contains the bindings which are
+in conflict and their types.
+)");
+  rdcstr typeConflict;
 };
 
 DOCUMENT("Describes the sampler properties of a texture.");

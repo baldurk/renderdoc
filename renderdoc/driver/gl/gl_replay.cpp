@@ -1222,6 +1222,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
     GLenum binding = eGL_NONE;
     GLenum target = eGL_NONE;
     TextureType resType = TextureType::Unknown;
+    rdcstr firstBindName;
+    rdcstr typeConflict;
 
     for(size_t s = 0; s < ARRAY_COUNT(refls); s++)
     {
@@ -1255,11 +1257,11 @@ void GLReplay::SavePipelineState(uint32_t eventId)
           if(target != eGL_NONE)
             t = TextureBinding(target);
 
-          resType = res.resType;
-
           if(binding == eGL_NONE)
           {
             binding = t;
+            firstBindName = res.name;
+            resType = res.resType;
           }
           else if(binding == t)
           {
@@ -1268,8 +1270,17 @@ void GLReplay::SavePipelineState(uint32_t eventId)
           }
           else if(binding != t)
           {
-            RDCWARN("Two uniforms pointing to texture unit %d with types %s and %s", unit,
-                    ToStr(binding).c_str(), ToStr(t).c_str());
+            RDCERR("Two uniforms pointing to texture unit %d with types %s and %s", unit,
+                   ToStr(binding).c_str(), ToStr(t).c_str());
+
+            if(typeConflict.empty())
+            {
+              typeConflict = StringFormat::Fmt("First binding found '%s' is %s",
+                                               firstBindName.c_str(), ToStr(resType).c_str());
+            }
+
+            typeConflict +=
+                StringFormat::Fmt(", '%s' is %s", res.name.c_str(), ToStr(res.resType).c_str());
           }
         }
       }
@@ -1285,6 +1296,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
         tex = 0;
       else
         drv.glGetIntegerv(binding, (GLint *)&tex);
+
+      pipe.textures[unit].typeConflict = typeConflict;
 
       if(tex == 0)
       {

@@ -110,7 +110,7 @@ private:
 
   void setViewDetails(RDTreeWidgetItem *node, TextureDescription *tex, uint32_t firstMip,
                       uint32_t numMips, uint32_t firstSlice, uint32_t numSlices,
-                      const rdcstr &completeStatus = rdcstr());
+                      const GLPipe::Texture *texBinding = NULL);
 
   void exportHTML(QXmlStreamWriter &xml, const GLPipe::VertexInput &vtx);
   void exportHTML(QXmlStreamWriter &xml, const GLPipe::Shader &sh);
