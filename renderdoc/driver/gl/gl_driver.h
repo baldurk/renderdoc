@@ -2563,10 +2563,13 @@ public:
                                 GLuint queryNameLength, GLchar *queryName, GLuint *dataSize,
                                 GLuint *noCounters, GLuint *noInstances, GLuint *capsMask);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, glEGLImageTargetRenderbufferStorageOES, GLenum target, GLeglImageOES image);
-  IMPLEMENT_FUNCTION_SERIALISED(void, glEGLImageTargetTexStorageEXT, GLenum target, GLeglImageOES image, const GLint* attrib_list);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glEGLImageTargetRenderbufferStorageOES, GLenum target, 
+                                GLeglImageOES image);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glEGLImageTargetTexStorageEXT, GLenum target, GLeglImageOES image, 
+                                const GLint* attrib_list);
   IMPLEMENT_FUNCTION_SERIALISED(void, glEGLImageTargetTexture2DOES, GLenum target, GLeglImageOES image);
-  IMPLEMENT_FUNCTION_SERIALISED(void, glEGLImageTargetTextureStorageEXT, GLuint texture, GLeglImageOES image, const GLint* attrib_list);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glEGLImageTargetTextureStorageEXT, GLuint texture, 
+                                GLeglImageOES image, const GLint* attrib_list);
 };
 
 class ScopedDebugContext
