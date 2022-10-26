@@ -1438,7 +1438,7 @@ void ResourceManager<Configuration>::PrepareInitialContents()
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
-  RDCDEBUG("Preparing up to %u potentially dirty resources", (uint32_t)m_DirtyResources.size());
+  RDCLOG("Preparing up to %u potentially dirty resources", (uint32_t)m_DirtyResources.size());
   uint32_t prepared = 0;
   uint32_t postponed = 0;
   uint32_t skipped = 0;
@@ -1491,7 +1491,7 @@ void ResourceManager<Configuration>::PrepareInitialContents()
     Prepare_InitialState(res);
   }
 
-  RDCDEBUG("Prepared %u dirty resources, postponed %u, skipped %u", prepared, postponed, skipped);
+  RDCLOG("Prepared %u dirty resources, postponed %u, skipped %u", prepared, postponed, skipped);
 }
 
 template <typename Configuration>
@@ -1502,7 +1502,8 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
   uint32_t dirty = 0;
   uint32_t skipped = 0;
 
-  RDCDEBUG("Checking %u resources with initial contents", (uint32_t)m_InitialContents.size());
+  RDCLOG("Checking %u resources with initial contents against %u referenced resources",
+         (uint32_t)m_InitialContents.size(), (uint32_t)m_FrameReferencedResources.size());
 
   float num = float(m_InitialContents.size());
   float idx = 0.0f;
@@ -1575,7 +1576,7 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
     SetInitialContents(id, InitialContentData());
   }
 
-  RDCDEBUG("Serialised %u resources, skipped %u unreferenced", dirty, skipped);
+  RDCLOG("Serialised %u resources, skipped %u unreferenced", dirty, skipped);
 }
 
 template <typename Configuration>
