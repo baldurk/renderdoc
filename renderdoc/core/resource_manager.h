@@ -267,8 +267,8 @@ inline InitReqType InitReq(FrameRefType refType, InitPolicy policy, bool initial
 
 // handle marking a resource referenced for read or write and storing RAW access etc.
 template <typename Compose>
-bool MarkReferenced(std::map<ResourceId, FrameRefType> &refs, ResourceId id, FrameRefType refType,
-                    Compose comp)
+bool MarkReferenced(std::unordered_map<ResourceId, FrameRefType> &refs, ResourceId id,
+                    FrameRefType refType, Compose comp)
 {
   auto refit = refs.find(id);
   if(refit == refs.end())
@@ -283,7 +283,7 @@ bool MarkReferenced(std::map<ResourceId, FrameRefType> &refs, ResourceId id, Fra
   return false;
 }
 
-inline bool MarkReferenced(std::map<ResourceId, FrameRefType> &refs, ResourceId id,
+inline bool MarkReferenced(std::unordered_map<ResourceId, FrameRefType> &refs, ResourceId id,
                            FrameRefType refType)
 {
   return MarkReferenced(refs, id, refType, ComposeFrameRefs);
@@ -534,7 +534,7 @@ protected:
   rdcarray<StoredChunk> m_Chunks;
   Threading::CriticalSection *m_ChunkLock;
 
-  std::map<ResourceId, FrameRefType> m_FrameRefs;
+  std::unordered_map<ResourceId, FrameRefType> m_FrameRefs;
 };
 
 template <typename Compose>
@@ -722,7 +722,7 @@ protected:
   std::map<RealResourceType, WrappedResourceType> m_WrapperMap;
 
   // used during capture - holds resources referenced in current frame (and how they're referenced)
-  std::map<ResourceId, FrameRefType> m_FrameReferencedResources;
+  std::unordered_map<ResourceId, FrameRefType> m_FrameReferencedResources;
 
   // used during capture - holds resources marked as dirty, needing initial contents
   std::set<ResourceId> m_DirtyResources;
@@ -745,7 +745,7 @@ protected:
   };
 
   // used during capture or replay - holds initial contents
-  std::map<ResourceId, InitialContentDataOrChunk> m_InitialContents;
+  std::unordered_map<ResourceId, InitialContentDataOrChunk> m_InitialContents;
 
   // used during capture or replay - map of resources currently alive with their real IDs, used in
   // capture and replay.
@@ -1306,7 +1306,7 @@ void ResourceManager<Configuration>::CreateInitialContents(ReadSerialiser &ser)
 {
   using namespace ResourceManagerInternal;
 
-  std::set<ResourceId> ids;
+  std::unordered_set<ResourceId> ids;
 
   rdcarray<WrittenRecord> NeededInitials;
   SERIALISE_ELEMENT(NeededInitials);
