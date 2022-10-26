@@ -655,7 +655,6 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
     }
 
     SparseBinds *sparseBinds = NULL;
-    bool skipUnmapped = false;
     rdcarray<uint32_t> subresourcesIncluded;
     if(initial)
       subresourcesIncluded = initial->subresources;
