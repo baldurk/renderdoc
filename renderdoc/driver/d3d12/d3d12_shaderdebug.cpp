@@ -693,19 +693,12 @@ D3D12Descriptor D3D12DebugAPIWrapper::FindDescriptor(DXBCBytecode::OperandType t
           {
             const D3D12_DESCRIPTOR_RANGE1 &range = param.ranges[r];
 
-            if(range.RangeType != searchRangeType)
-              continue;
-
             // For every range, check the number of descriptors so that we are accessing the
             // correct data for append descriptor tables, even if the range type doesn't match
             // what we need to fetch
             UINT offset = range.OffsetInDescriptorsFromTableStart;
             if(range.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
               offset = prevTableOffset;
-
-            D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
-            desc += element.offset;
-            desc += offset;
 
             UINT numDescriptors = range.NumDescriptors;
             if(numDescriptors == UINT_MAX)
@@ -718,6 +711,13 @@ D3D12Descriptor D3D12DebugAPIWrapper::FindDescriptor(DXBCBytecode::OperandType t
             }
 
             prevTableOffset = offset + numDescriptors;
+
+            if(range.RangeType != searchRangeType)
+              continue;
+
+            D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
+            desc += element.offset;
+            desc += offset;
 
             // Check if the slot we want is contained
             if(slot.shaderRegister >= range.BaseShaderRegister &&
