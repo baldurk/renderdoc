@@ -149,34 +149,40 @@ AppendStructuredBuffer<uint4> pickresult : register(u0);
 bool TriangleRayIntersect(float3 A, float3 B, float3 C, float3 RayPosition, float3 RayDirection,
                           out float3 HitPosition)
 {
+  HitPosition = RayPosition;
+
   bool Result = false;
 
   if(all(A == B) || all(A == C) || all(B == C))
-    return false;
-
-  float3 v0v1 = B - A;
-  float3 v0v2 = C - A;
-  float3 pvec = cross(RayDirection, v0v2);
-  float det = dot(v0v1, pvec);
-
-  // if the determinant is negative the triangle is backfacing, but we still take those!
-  // if the determinant is close to 0, the ray misses the triangle
-  if(abs(det) > 0)
   {
-    float invDet = 1 / det;
+    Result = false;
+  }
+  else
+  {
+    float3 v0v1 = B - A;
+    float3 v0v2 = C - A;
+    float3 pvec = cross(RayDirection, v0v2);
+    float det = dot(v0v1, pvec);
 
-    float3 tvec = RayPosition - A;
-    float3 qvec = cross(tvec, v0v1);
-    float u = dot(tvec, pvec) * invDet;
-    float v = dot(RayDirection, qvec) * invDet;
-
-    if(u >= 0 && u <= 1 && v >= 0 && u + v <= 1)
+    // if the determinant is negative the triangle is backfacing, but we still take those!
+    // if the determinant is close to 0, the ray misses the triangle
+    if(abs(det) > 0)
     {
-      float t = dot(v0v2, qvec) * invDet;
-      if(t >= 0)
+      float invDet = 1 / det;
+
+      float3 tvec = RayPosition - A;
+      float3 qvec = cross(tvec, v0v1);
+      float u = dot(tvec, pvec) * invDet;
+      float v = dot(RayDirection, qvec) * invDet;
+
+      if(u >= 0 && u <= 1 && v >= 0 && u + v <= 1)
       {
-        HitPosition = RayPosition + (RayDirection * t);
-        Result = true;
+        float t = dot(v0v2, qvec) * invDet;
+        if(t >= 0)
+        {
+          HitPosition = RayPosition + (RayDirection * t);
+          Result = true;
+        }
       }
     }
   }

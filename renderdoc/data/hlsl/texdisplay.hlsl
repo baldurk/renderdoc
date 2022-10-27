@@ -55,6 +55,11 @@ v2f RENDERDOC_TexDisplayVS(uint vertID : SV_VertexID)
   return OUT;
 }
 
+bool fxc_workaround_isnan(float f)
+{
+  return (asuint(f) & 0x7fffffff) > 0x7f800000;
+}
+
 // main texture display shader, used for the texture viewer. It samples the right resource
 // for the type and applies things like the range check and channel masking.
 // It also does a couple of overlays that we can get 'free' like NaN/inf checks
@@ -168,6 +173,7 @@ float4 RENDERDOC_TexDisplayPS(v2f IN) : SV_Target0
   // workaround for D3DCompiler bug. For some reason it assumes texture samples can
   // never come back as NaN, so involving a cbuffer value like this here ensures
   // the below isnan()s don't get optimised out.
+  // update: this doesn't work when optimisation is disabled :(
   if(Channels.x < 0.5f)
     col.x = pre_range_col.x = AlwaysZero;
   if(Channels.y < 0.5f)
@@ -180,8 +186,8 @@ float4 RENDERDOC_TexDisplayPS(v2f IN) : SV_Target0
   // show nans, infs and negatives
   if(OutputDisplayFormat & TEXDISPLAY_NANS)
   {
-    if(isnan(pre_range_col.r) || isnan(pre_range_col.g) || isnan(pre_range_col.b) ||
-       isnan(pre_range_col.a))
+    if(fxc_workaround_isnan(pre_range_col.r) || fxc_workaround_isnan(pre_range_col.g) ||
+       fxc_workaround_isnan(pre_range_col.b) || fxc_workaround_isnan(pre_range_col.a))
       return float4(1, 0, 0, 1);
 
     if(isinf(pre_range_col.r) || isinf(pre_range_col.g) || isinf(pre_range_col.b) ||
