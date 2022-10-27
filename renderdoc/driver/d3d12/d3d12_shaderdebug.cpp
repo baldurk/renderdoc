@@ -2303,6 +2303,22 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
     return new ShaderDebugTrace;
   }
 
+  // if we have a depth buffer bound and we are testing EQUAL grab the current depth value for our
+  // target sample
+  D3D12_COMPARISON_FUNC depthFunc = pipeDesc.DepthStencilState.DepthFunc;
+  float existingDepth = -1.0f;
+  ResourceId depthTarget = rs.dsv.GetResResourceId();
+
+  if(depthFunc == D3D12_COMPARISON_FUNC_EQUAL && depthTarget != ResourceId())
+  {
+    float depthStencilValue[4] = {};
+    PickPixel(depthTarget, x, y, Subresource(rs.dsv.GetDSV().Texture2DArray.MipSlice,
+                                             rs.dsv.GetDSV().Texture2DArray.FirstArraySlice, sample),
+              CompType::Depth, depthStencilValue);
+
+    existingDepth = depthStencilValue[0];
+  }
+
   ID3D12GraphicsCommandListX *cmdList = m_pDevice->GetDebugManager()->ResetDebugList();
 
   // clear our UAVs
@@ -2403,7 +2419,6 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
   int destIdx = (x - xTL) + 2 * (y - yTL);
 
   // Get depth func and determine "winner" pixel
-  D3D12_COMPARISON_FUNC depthFunc = pipeDesc.DepthStencilState.DepthFunc;
   DebugHit *pWinnerHit = NULL;
   float *evalSampleCache = (float *)evalData.data();
 
@@ -2445,12 +2460,20 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
           pWinnerHit = pHit;
           evalSampleCache = ((float *)evalData.data()) + evalSampleCacheData.size() * 4 * i;
         }
-        else if((depthFunc == D3D12_COMPARISON_FUNC_ALWAYS ||
-                 depthFunc == D3D12_COMPARISON_FUNC_NEVER ||
-                 depthFunc == D3D12_COMPARISON_FUNC_NOT_EQUAL ||
-                 depthFunc == D3D12_COMPARISON_FUNC_EQUAL))
+        else if(depthFunc == D3D12_COMPARISON_FUNC_EQUAL && existingDepth >= 0.0f)
         {
-          // For depth functions without an inequality comparison, use the last sample encountered
+          // for depth equal, check if this hit is closer than the winner, and if so use it.
+          if(fabs(pHit->depth - existingDepth) < fabs(pWinnerHit->depth - existingDepth))
+          {
+            pWinnerHit = pHit;
+            evalSampleCache = ((float *)evalData.data()) + evalSampleCacheData.size() * 4 * i;
+          }
+        }
+        else if(depthFunc == D3D12_COMPARISON_FUNC_ALWAYS ||
+                depthFunc == D3D12_COMPARISON_FUNC_NEVER ||
+                depthFunc == D3D12_COMPARISON_FUNC_NOT_EQUAL)
+        {
+          // For depth functions without a sensible comparison, use the last sample encountered
           pWinnerHit = pHit;
           evalSampleCache = ((float *)evalData.data()) + evalSampleCacheData.size() * 4 * i;
         }
