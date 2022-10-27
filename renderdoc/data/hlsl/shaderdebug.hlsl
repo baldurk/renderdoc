@@ -52,11 +52,11 @@ void RENDERDOC_DebugSampleVS(uint id
                              : UVS)
 {
   if(id == 0)
-    uv = debugSampleUV + debugSampleDDX * 2.0f;
+    uv = debugSampleUV + debugSampleDDY * 2.0f;
   else if(id == 1)
     uv = debugSampleUV;
   else if(id == 2)
-    uv = debugSampleUV + debugSampleDDY * 2.0f;
+    uv = debugSampleUV + debugSampleDDX * 2.0f;
   else
     uv = 0.0f.xxxx;
 
