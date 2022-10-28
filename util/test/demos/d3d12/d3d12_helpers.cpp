@@ -203,6 +203,11 @@ D3D12_ROOT_PARAMETER1 tableParam(D3D12_SHADER_VISIBILITY vis, D3D12_DESCRIPTOR_R
   static D3D12_DESCRIPTOR_RANGE1 ranges[32] = {};
   static int rangeIdx = 0;
 
+  if(type == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
+  {
+    flags &= ~D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
+  }
+
   D3D12_DESCRIPTOR_RANGE1 &range = ranges[rangeIdx];
   rangeIdx = (rangeIdx + 1) % ARRAY_COUNT(ranges);
 
