@@ -27,15 +27,15 @@ Screenshots
 API Support
 --------------
 
-|                          | Windows                  | Linux                    | Android                   | Stadia                    |
-| ------------------------ | ------------------------ | ------------------------ | ------------------------  | ------------------------  |
-| Vulkan                   | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:        | :heavy_check_mark:        |
-| OpenGL ES 2.0 - 3.2      | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:        |  N/A                      |
-| OpenGL 3.2 - 4.6 Core    | :heavy_check_mark:       | :heavy_check_mark:       |  N/A                      |  N/A                      |
-| D3D11 & D3D12            | :heavy_check_mark:       |  N/A                     |  N/A                      |  N/A                      |
-| OpenGL 1.0 - 2.0 Compat  | :heavy_multiplication_x: | :heavy_multiplication_x: |  N/A                      |  N/A                      |
-| D3D9 & 10                | :heavy_multiplication_x: |  N/A                     |  N/A                      |  N/A                      |
-| Metal                    |  N/A                     |  N/A                     |  N/A                      |  N/A                      |
+|                          | Windows                  | Linux                    | Android                   |
+| ------------------------ | ------------------------ | ------------------------ | ------------------------  |
+| Vulkan                   | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:        |
+| OpenGL ES 2.0 - 3.2      | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:        |
+| OpenGL 3.2 - 4.6 Core    | :heavy_check_mark:       | :heavy_check_mark:       |  N/A                      |
+| D3D11 & D3D12            | :heavy_check_mark:       |  N/A                     |  N/A                      |
+| OpenGL 1.0 - 2.0 Compat  | :heavy_multiplication_x: | :heavy_multiplication_x: |  N/A                      |
+| D3D9 & 10                | :heavy_multiplication_x: |  N/A                     |  N/A                      |
+| Metal                    |  N/A                     |  N/A                     |  N/A                      |
 
 * Nintendo Switch&trade; support is distributed separately for authorized developers as part of the NintendoSDK. For more information, consult the Nintendo Developer Portal.
 
