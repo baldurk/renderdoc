@@ -962,6 +962,14 @@ ShaderVariable D3D12DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
         result.value.u32v[3] =
             isarray ? srvDesc.Texture1DArray.MipLevels : srvDesc.Texture1D.MipLevels;
 
+        if(isarray && (result.value.u32v[1] == 0 || result.value.u32v[1] == ~0U))
+          result.value.u32v[1] = resDesc.DepthOrArraySize;
+
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] = resDesc.MipLevels;
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] = CalcNumMips((int)resDesc.Width, resDesc.Height, 1);
+
         if(mipLevel >= result.value.u32v[3])
           result.value.u32v[0] = result.value.u32v[1] = 0;
 
@@ -985,6 +993,9 @@ ShaderVariable D3D12DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
         {
           result.value.u32v[2] = srvDesc.Texture2DArray.ArraySize;
           result.value.u32v[3] = srvDesc.Texture2DArray.MipLevels;
+
+          if(result.value.u32v[2] == 0 || result.value.u32v[2] == ~0U)
+            result.value.u32v[2] = resDesc.DepthOrArraySize;
         }
         else if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMS)
         {
@@ -995,7 +1006,16 @@ ShaderVariable D3D12DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
         {
           result.value.u32v[2] = srvDesc.Texture2DMSArray.ArraySize;
           result.value.u32v[3] = 1;
+
+          if(result.value.u32v[2] == 0 || result.value.u32v[2] == ~0U)
+            result.value.u32v[2] = resDesc.DepthOrArraySize;
         }
+
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] = resDesc.MipLevels;
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] = CalcNumMips((int)resDesc.Width, resDesc.Height, 1);
+
         if(mipLevel >= result.value.u32v[3])
           result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
 
@@ -1009,6 +1029,12 @@ ShaderVariable D3D12DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
         result.value.u32v[1] = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
         result.value.u32v[2] = RDCMAX(1U, (uint32_t)(resDesc.DepthOrArraySize >> mipLevel));
         result.value.u32v[3] = srvDesc.Texture3D.MipLevels;
+
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] = resDesc.MipLevels;
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] =
+              CalcNumMips((int)resDesc.Width, resDesc.Height, resDesc.DepthOrArraySize);
 
         if(mipLevel >= result.value.u32v[3])
           result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
@@ -1033,6 +1059,14 @@ ShaderVariable D3D12DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
         result.value.u32v[2] = isarray ? srvDesc.TextureCubeArray.NumCubes : 0;
         result.value.u32v[3] =
             isarray ? srvDesc.TextureCubeArray.MipLevels : srvDesc.TextureCube.MipLevels;
+
+        if(result.value.u32v[2] == 0 || result.value.u32v[2] == ~0U)
+          result.value.u32v[2] = resDesc.DepthOrArraySize / 6;
+
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] = resDesc.MipLevels;
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] = CalcNumMips((int)resDesc.Width, resDesc.Height, 1);
 
         if(mipLevel >= result.value.u32v[3])
           result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;

@@ -756,6 +756,14 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
             result.value.u32v[3] =
                 isarray ? srvDesc.Texture1DArray.MipLevels : srvDesc.Texture1D.MipLevels;
 
+            if(isarray && (result.value.u32v[2] == 0 || result.value.u32v[2] == ~0U))
+              result.value.u32v[2] = desc.ArraySize;
+
+            if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+              result.value.u32v[3] = desc.MipLevels;
+            if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+              result.value.u32v[3] = CalcNumMips(desc.Width, 1, 1);
+
             if(mipLevel >= result.value.u32v[3])
               result.value.u32v[0] = result.value.u32v[1] = 0;
 
@@ -789,6 +797,9 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
             {
               result.value.u32v[2] = srvDesc.Texture2DArray.ArraySize;
               result.value.u32v[3] = srvDesc.Texture2DArray.MipLevels;
+
+              if(result.value.u32v[2] == 0 || result.value.u32v[2] == ~0U)
+                result.value.u32v[2] = desc.ArraySize;
             }
             else if(srvDesc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2DMS)
             {
@@ -799,7 +810,15 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
             {
               result.value.u32v[2] = srvDesc.Texture2DMSArray.ArraySize;
               result.value.u32v[3] = 1;
+
+              if(result.value.u32v[2] == 0 || result.value.u32v[2] == ~0U)
+                result.value.u32v[2] = desc.ArraySize;
             }
+
+            if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+              result.value.u32v[3] = desc.MipLevels;
+            if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+              result.value.u32v[3] = CalcNumMips(desc.Width, desc.Height, 1);
 
             if(mipLevel >= result.value.u32v[3])
               result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
@@ -823,6 +842,11 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
             result.value.u32v[1] = RDCMAX(1U, desc.Height >> mipLevel);
             result.value.u32v[2] = RDCMAX(1U, desc.Depth >> mipLevel);
             result.value.u32v[3] = srvDesc.Texture3D.MipLevels;
+
+            if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+              result.value.u32v[3] = desc.MipLevels;
+            if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+              result.value.u32v[3] = CalcNumMips(desc.Width, desc.Height, desc.Depth);
 
             if(mipLevel >= result.value.u32v[3])
               result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
@@ -854,6 +878,14 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
             result.value.u32v[2] = isarray ? srvDesc.TextureCubeArray.NumCubes : 0;
             result.value.u32v[3] =
                 isarray ? srvDesc.TextureCubeArray.MipLevels : srvDesc.TextureCube.MipLevels;
+
+            if(isarray && (result.value.u32v[2] == 0 || result.value.u32v[2] == ~0U))
+              result.value.u32v[2] = desc.ArraySize;
+
+            if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+              result.value.u32v[3] = desc.MipLevels;
+            if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+              result.value.u32v[3] = CalcNumMips(desc.Width, desc.Height, 1);
 
             if(mipLevel >= result.value.u32v[3])
               result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
@@ -916,6 +948,9 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
             result.value.u32v[1] = isarray ? uavDesc.Texture1DArray.ArraySize : 0;
             result.value.u32v[2] = 0;
 
+            if(isarray && (result.value.u32v[2] == 0 || result.value.u32v[2] == ~0U))
+              result.value.u32v[2] = desc.ArraySize;
+
             // spec says "For UAVs (u#), the number of mip levels is always 1."
             result.value.u32v[3] = 1;
 
@@ -942,9 +977,16 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
             result.value.u32v[1] = RDCMAX(1U, desc.Height >> mipLevel);
 
             if(uavDesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2D)
+            {
               result.value.u32v[2] = 0;
+            }
             else if(uavDesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
+            {
               result.value.u32v[2] = uavDesc.Texture2DArray.ArraySize;
+
+              if(result.value.u32v[2] == 0 || result.value.u32v[2] == ~0U)
+                result.value.u32v[2] = desc.ArraySize;
+            }
 
             // spec says "For UAVs (u#), the number of mip levels is always 1."
             result.value.u32v[3] = 1;
