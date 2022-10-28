@@ -2052,18 +2052,23 @@ struct PSInitialData
   if(usePrimitiveID)
   {
     extractHlsl += R"(
-void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim : SV_PrimitiveID,
-                     uint sample : SV_SampleIndex, uint covge : SV_Coverage,
-                     bool fface : SV_IsFrontFace)
+void ExtractInputsPS(PSInput IN,
+                     float4 debug_pixelPos : SV_Position,
+                     uint prim : SV_PrimitiveID,
+                     uint fface : SV_IsFrontFace,
+                     uint sample : SV_SampleIndex,
+                     uint covge : SV_Coverage)
 {
 )";
   }
   else
   {
     extractHlsl += R"(
-void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
-                     uint sample : SV_SampleIndex, uint covge : SV_Coverage,
-                     bool fface : SV_IsFrontFace)
+void ExtractInputsPS(PSInput IN,
+                     float4 debug_pixelPos : SV_Position,
+                     uint fface : SV_IsFrontFace,
+                     uint sample : SV_SampleIndex,
+                     uint covge : SV_Coverage)
 {
 )";
   }
