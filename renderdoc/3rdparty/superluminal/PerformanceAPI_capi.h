@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	#endif
 #endif
 
-#define PERFORMANCEAPI_MAJOR_VERSION 2
+#define PERFORMANCEAPI_MAJOR_VERSION 3
 #define PERFORMANCEAPI_MINOR_VERSION 0
 #define PERFORMANCEAPI_VERSION ((PERFORMANCEAPI_MAJOR_VERSION << 16) | PERFORMANCEAPI_MINOR_VERSION)
 
@@ -146,6 +146,43 @@ typedef struct
 	 * Note: the return value can be ignored. It is only there to prevent calls to the function from being optimized to jmp instructions as part of tail call optimization.
 	 */
 	PerformanceAPI_SuppressTailCallOptimization PerformanceAPI_EndEvent();
+
+	/**
+	 * Call this function when a fiber starts running
+	 *
+	 * @param inFiberID    The currently running fiber
+	 */
+	void PerformanceAPI_RegisterFiber(uint64_t inFiberID);
+
+	/**
+	 * Call this function before a fiber ends
+	 *
+	 * @param inFiberID    The currently running fiber
+	 */
+	void PerformanceAPI_UnregisterFiber(uint64_t inFiberID);
+
+	/**
+	 * The call to the Windows SwitchFiber function should be surrounded by BeginFiberSwitch and EndFiberSwitch calls. For example:
+	 * 
+	 *		PerformanceAPI_BeginFiberSwitch(currentFiber, otherFiber);
+	 *		SwitchToFiber(otherFiber);
+	 *		PerformanceAPI_EndFiberSwitch(currentFiber);
+	 *
+	 * @param inCurrentFiberID    The currently running fiber
+	 * @param inNewFiberID		  The fiber we're switching to
+	 */
+	void PerformanceAPI_BeginFiberSwitch(uint64_t inCurrentFiberID, uint64_t inNewFiberID);
+
+	/**
+	 * The call to the Windows SwitchFiber function should be surrounded by BeginFiberSwitch and EndFiberSwitch calls
+	 * 	
+	 *		PerformanceAPI_BeginFiberSwitch(currentFiber, otherFiber);
+	 *		SwitchToFiber(otherFiber);
+	 *		PerformanceAPI_EndFiberSwitch(currentFiber);
+	 *
+	 * @param inFiberID    The fiber that was running before the call to SwitchFiber (so, the same as inCurrentFiberID in the BeginFiberSwitch call)
+	 */
+	void PerformanceAPI_EndFiberSwitch(uint64_t inFiberID);
 #else
 	#define PERFORMANCEAPI_MAKE_COLOR(R, G, B) 0xFFFFFFFF
 	#define PERFORMANCEAPI_DEFAULT_COLOR 0xFFFFFFFF
@@ -157,6 +194,11 @@ typedef struct
 	inline void PerformanceAPI_BeginEvent_Wide(const wchar_t* inID, const wchar_t* inData, uint32_t inColor) {}
 	inline void PerformanceAPI_BeginEvent_Wide_N(const wchar_t* inID, uint16_t inIDLength, const wchar_t* inData, uint16_t inDataLength, uint32_t inColor) {}
 	inline void PerformanceAPI_EndEvent() {}
+
+	inline void PerformanceAPI_RegisterFiber(uint64_t inFiberID) {}
+	inline void PerformanceAPI_UnregisterFiber(uint64_t inFiberID) {}
+	inline void PerformanceAPI_BeginFiberSwitch(uint64_t inCurrentFiberID, uint64_t inNewFiberID) {}
+	inline void PerformanceAPI_EndFiberSwitch(uint64_t inFiberID) {}
 #endif
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -171,6 +213,11 @@ typedef void (PerformanceAPI_BeginEvent_Wide_Func)(const wchar_t* inID, const wc
 typedef void (PerformanceAPI_BeginEvent_Wide_N_Func)(const wchar_t* inID, uint16_t inIDLength, const wchar_t* inData, uint16_t inDataLength, uint32_t inColor);
 typedef PerformanceAPI_SuppressTailCallOptimization (PerformanceAPI_EndEvent_Func)();
 
+typedef void (PerformanceAPI_RegisterFiber_Func)(uint64_t inFiberID);
+typedef void (PerformanceAPI_UnregisterFiber_Func)(uint64_t inFiberID);
+typedef void (PerformanceAPI_BeginFiberSwitch_Func)(uint64_t inCurrentFiberID, uint64_t inNewFiberID);
+typedef void (PerformanceAPI_EndFiberSwitch_Func)(uint64_t inFiberID);
+
 typedef struct
 {
 	PerformanceAPI_SetCurrentThreadName_Func*	SetCurrentThreadName;
@@ -180,6 +227,12 @@ typedef struct
 	PerformanceAPI_BeginEvent_Wide_Func*		BeginEventWide;
 	PerformanceAPI_BeginEvent_Wide_N_Func*		BeginEventWideN;
 	PerformanceAPI_EndEvent_Func*				EndEvent;
+
+	PerformanceAPI_RegisterFiber_Func*			RegisterFiber;
+	PerformanceAPI_UnregisterFiber_Func*		UnregisterFiber;
+	PerformanceAPI_BeginFiberSwitch_Func*		BeginFiberSwitch;
+	PerformanceAPI_EndFiberSwitch_Func*			EndFiberSwitch;
+
 } PerformanceAPI_Functions;
 
 /**
