@@ -180,14 +180,22 @@ void D3D12DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
             {
               D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
 
+              // DXBC allows root buffers to have a stride of up to 16 bytes in the shader, which
+              // means encoding the byte offset into the first element here is wrong without knowing
+              // what the actual accessed stride is. Instead we only fetch the data from that offset
+              // onwards.
+
               // TODO: Root buffers can be 32-bit UINT/SINT/FLOAT. Using UINT for now, but the
               // resource desc format or the DXBC reflection info might be more correct.
               DXBCDebug::FillViewFmt(DXGI_FORMAT_R32_UINT, srvData.format);
-              srvData.firstElement = (uint32_t)(element.offset / sizeof(uint32_t));
-              srvData.numElements = (uint32_t)((resDesc.Width - element.offset) / sizeof(uint32_t));
+              srvData.firstElement = 0;
+              // root arguments have no bounds checking, so use the most conservative number of
+              // elements
+              srvData.numElements = uint32_t(resDesc.Width - element.offset);
 
               if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
-                m_pDevice->GetDebugManager()->GetBufferData(pResource, 0, 0, srvData.data);
+                m_pDevice->GetDebugManager()->GetBufferData(pResource, element.offset, 0,
+                                                            srvData.data);
             }
 
             return;
@@ -346,14 +354,22 @@ void D3D12DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
             {
               D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
 
+              // DXBC allows root buffers to have a stride of up to 16 bytes in the shader, which
+              // means encoding the byte offset into the first element here is wrong without knowing
+              // what the actual accessed stride is. Instead we only fetch the data from that offset
+              // onwards.
+
               // TODO: Root buffers can be 32-bit UINT/SINT/FLOAT. Using UINT for now, but the
               // resource desc format or the DXBC reflection info might be more correct.
               DXBCDebug::FillViewFmt(DXGI_FORMAT_R32_UINT, uavData.format);
-              uavData.firstElement = (uint32_t)(element.offset / sizeof(uint32_t));
-              uavData.numElements = (uint32_t)((resDesc.Width - element.offset) / sizeof(uint32_t));
+              uavData.firstElement = 0;
+              // root arguments have no bounds checking, so use the most conservative number of
+              // elements
+              uavData.numElements = uint32_t(resDesc.Width - element.offset);
 
               if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
-                m_pDevice->GetDebugManager()->GetBufferData(pResource, 0, 0, uavData.data);
+                m_pDevice->GetDebugManager()->GetBufferData(pResource, element.offset, 0,
+                                                            uavData.data);
             }
 
             return;
