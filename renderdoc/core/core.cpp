@@ -297,18 +297,20 @@ void RenderDoc::RecreateCrashHandler()
 {
   SCOPED_WRITELOCK(m_ExHandlerLock);
 
-  if(!m_ExHandler)
-    return;
-
 #if ENABLED(RDOC_CRASH_HANDLER)
 
-#if ENABLED(RDOC_WIN32)
-  // there are way too many invalid reports coming from chrome, completely disable the crash handler
-  // in that case.
   rdcstr exename;
   FileIO::GetExecutableFilename(exename);
   exename = strlower(exename);
 
+  // only create crash handler when we're not in renderdoccmd (to prevent infinite loop as
+  // the crash handler itself launches renderdoccmd)
+  if(exename.contains("renderdoccmd"))
+    return;
+
+#if ENABLED(RDOC_WIN32)
+  // there are way too many invalid reports coming from chrome, completely disable the crash handler
+  // in that case.
   if(exename.find("chrome.exe") &&
      (GetModuleHandleA("chrome_elf.dll") || GetModuleHandleA("chrome_child.dll")))
   {
@@ -504,10 +506,13 @@ void RenderDoc::Initialise()
   RDCWARN("dlsym() hooking enabled!");
 #endif
 
-  if(m_RemoteIdent == 0)
-    RDCWARN("Couldn't open socket for target control");
-  else
-    RDCDEBUG("Listening for target control on %u", m_RemoteIdent);
+  if(!IsReplayApp())
+  {
+    if(m_RemoteIdent == 0)
+      RDCWARN("Couldn't open socket for target control");
+    else
+      RDCDEBUG("Listening for target control on %u", m_RemoteIdent);
+  }
 
   Keyboard::Init();
 
@@ -515,19 +520,7 @@ void RenderDoc::Initialise()
 
   m_ExHandler = NULL;
 
-  {
-    rdcstr curFile;
-    FileIO::GetExecutableFilename(curFile);
-
-    rdcstr f = strlower(curFile);
-
-    // only create crash handler when we're not in renderdoccmd.exe (to prevent infinite loop as
-    // the crash handler itself launches renderdoccmd.exe)
-    if(!f.contains("renderdoccmd.exe"))
-    {
-      RecreateCrashHandler();
-    }
-  }
+  RecreateCrashHandler();
 
   // begin printing to stdout/stderr after this point, earlier logging is debugging
   // cruft that we don't want cluttering output.
@@ -615,11 +608,13 @@ void RenderDoc::InitialiseReplay(GlobalEnvironment env, const rdcarray<rdcstr> &
     m_GlobalEnv.xlibDisplay = XOpenDisplay(NULL);
 #endif
 
+  rdcstr exename;
+  FileIO::GetExecutableFilename(exename);
+  RDCLOG("Replay application '%s' launched", exename.c_str());
   if(!args.empty())
   {
-    RDCDEBUG("Replay application launched with parameters:");
     for(size_t i = 0; i < args.size(); i++)
-      RDCDEBUG("[%u]: %s", (uint32_t)i, args[i].c_str());
+      RDCLOG("Parameter [%u]: %s", (uint32_t)i, args[i].c_str());
   }
 
   if(args.contains("--crash"))

@@ -1685,7 +1685,11 @@ int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
       return 1;
     }
 
-    RENDERDOC_InitialiseReplay(env, convertArgs(cmd.rest()));
+    rdcarray<rdcstr> args = convertArgs(cmd.rest());
+
+    args.append(it->second->ReplayArgs());
+
+    RENDERDOC_InitialiseReplay(env, args);
 
     int ret = it->second->Execute(opts);
 

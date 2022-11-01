@@ -468,6 +468,7 @@ public:
     pipe = conv(parser.get<std::string>("pipe"));
     return true;
   }
+  virtual rdcarray<rdcstr> ReplayArgs() { return {"--crash"}; }
   virtual int Execute(const CaptureOptions &)
   {
     CrashGenerationServer *crashServer = NULL;
