@@ -1285,7 +1285,11 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
           }
 
           const uint32_t *nextIncludedSubresource = data.subresources.begin();
-          if(data.subresources.empty() || *nextIncludedSubresource == ~0U)
+          // if no subresources were serialised, just skip!
+          if(data.subresources.empty())
+            numSubresources = 0;
+          // if ALL subresources were serialised, serialise them all
+          else if(*nextIncludedSubresource == ~0U)
             nextIncludedSubresource = NULL;
 
           UINT64 offset = 0;
