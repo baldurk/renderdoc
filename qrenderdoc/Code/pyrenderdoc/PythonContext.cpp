@@ -72,6 +72,43 @@ PyTypeObject **SbkPySide2_QtWidgetsTypes = NULL;
 #include "PythonContext.h"
 #include "version.h"
 
+// helpers for new PyFrameObject accessors in newer python versions, that are required starting from
+// python 3.11
+#if PY_VERSION_HEX < 0x030B0000
+
+// Get the frame's f_globals attribute.
+// Return a strong reference
+PyObject *PyFrame_GetGlobals(PyFrameObject *frame)
+{
+  PyObject *ret = frame->f_globals;
+  Py_XINCREF(ret);
+  return ret;
+}
+
+#endif
+
+#if PY_VERSION_HEX < 0x03090000
+
+// Get the frame next outer frame.
+// Return a strong reference
+PyFrameObject *PyFrame_GetBack(PyFrameObject *frame)
+{
+  PyFrameObject *ret = frame->f_back;
+  Py_XINCREF(ret);
+  return ret;
+}
+
+// Get the frame code.
+// Return a strong reference
+PyCodeObject *PyFrame_GetCode(PyFrameObject *frame)
+{
+  PyCodeObject *ret = frame->f_code;
+  Py_XINCREF(ret);
+  return ret;
+}
+
+#endif
+
 // exported by generated files, used to check interface compliance
 bool CheckCoreInterface(rdcstr &log);
 bool CheckQtInterface(rdcstr &log);
@@ -1209,11 +1246,11 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
     // contexts. So look up the global variable that stores the context
     if(context == NULL)
     {
-      _frame *frame = PyEval_GetFrame();
+      PyFrameObject *frame = PyEval_GetFrame();
 
       while(frame)
       {
-        PyObject *globals = frame->f_globals;
+        PyObject *globals = PyFrame_GetGlobals(frame);
         if(globals)
         {
           OutputRedirector *global =
@@ -1222,10 +1259,22 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
             context = global->context;
         }
 
-        if(context)
-          break;
+        Py_XDECREF(globals);
 
-        frame = frame->f_back;
+        // first get the next frame without decrefing the current
+        PyFrameObject *back = PyFrame_GetBack(frame);
+        // now decref the old frame
+        Py_XDECREF(frame);
+        // and iterate on the next one, if we got one
+        frame = back;
+
+        if(context)
+        {
+          // release the last trailing ref, which we know is either NULL or a strong reference from
+          // PyFrame_GetBack
+          Py_XDECREF(frame);
+          break;
+        }
       }
     }
 
@@ -1238,7 +1287,7 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
       // if context is still NULL we're running in the extension context
       rdcstr message = text;
 
-      _frame *frame = PyEval_GetFrame();
+      PyFrameObject *frame = PyEval_GetFrame();
 
       while(message.back() == '\n' || message.back() == '\r')
         message.pop_back();
@@ -1248,7 +1297,9 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
 
       if(frame)
       {
-        filename = ToQStr(frame->f_code->co_filename);
+        PyCodeObject *code = PyFrame_GetCode(frame);
+        filename = ToQStr(code->co_filename);
+        Py_XDECREF(code);
         line = PyFrame_GetLineNumber(frame);
       }
 
@@ -1277,13 +1328,17 @@ int PythonContext::traceEvent(PyObject *obj, PyFrameObject *frame, int what, PyO
   uintptr_t thisint = (uintptr_t)thisuint64;
   PythonContext *context = (PythonContext *)thisint;
 
+  PyCodeObject *code = PyFrame_GetCode(frame);
+
   PyObject *compiled = PyDict_GetItemString(obj, "compiled");
-  if(compiled == (PyObject *)frame->f_code && what == PyTrace_LINE)
+  if(compiled == (PyObject *)code && what == PyTrace_LINE)
   {
     context->location.line = PyFrame_GetLineNumber(frame);
 
     emit context->traceLine(context->location.file, context->location.line);
   }
+
+  Py_XDECREF(code);
 
   if(context->shouldAbort())
   {
@@ -1305,6 +1360,39 @@ extern "C" PyThreadState *GetExecutingThreadState(PyObject *global_handle)
 
 extern "C" PyObject *GetCurrentGlobalHandle()
 {
+  PyObject *frame_global_handle = NULL;
+
+  // walk the frames until we find one with _renderdoc_internal. If we call a function in another
+  // module the globals may not have the entry, but the root level is expected to.
+  {
+    PyFrameObject *frame = PyEval_GetFrame();
+
+    while(frame)
+    {
+      PyObject *globals = PyFrame_GetGlobals(frame);
+      frame_global_handle = PyDict_GetItemString(globals, "_renderdoc_internal");
+      Py_XDECREF(globals);
+
+      // first get the next frame without decrefing the current
+      PyFrameObject *back = PyFrame_GetBack(frame);
+      // now decref the old frame
+      Py_XDECREF(frame);
+      // and iterate on the next one, if we got one
+      frame = back;
+
+      if(frame_global_handle)
+      {
+        // release the last trailing ref, which we know is either NULL or a strong reference from
+        // PyFrame_GetBack
+        Py_XDECREF(frame);
+        break;
+      }
+    }
+  }
+
+  if(frame_global_handle)
+    return frame_global_handle;
+
   if(current_global_handle)
     return current_global_handle;
 
@@ -1354,14 +1442,16 @@ extern "C" void HandleException(PyObject *global_handle)
     exString += valueStr;
     exString += "\n";
 
-    _frame *frame = PyEval_GetFrame();
+    PyFrameObject *frame = PyEval_GetFrame();
 
     QString filename = lit("unknown");
     int linenum = 0;
 
     if(frame)
     {
-      filename = ToQStr(frame->f_code->co_filename);
+      PyCodeObject *code = PyFrame_GetCode(frame);
+      filename = ToQStr(code->co_filename);
+      Py_XDECREF(code);
       linenum = PyFrame_GetLineNumber(frame);
     }
 

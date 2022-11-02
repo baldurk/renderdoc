@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include <frameobject.h>
 #include <atomic>
 
 // this is defined elsewhere for managing the opaque global_handle object
@@ -294,25 +293,7 @@ funcType ConvertFunc(const char *funcname, PyObject *func, ExceptionHandler exHa
 
   // add a reference to the global object so it stays alive while we execute, in case this is an
   // async call
-  PyObject *global_internal_handle = NULL;
-
-  // walk the frames until we find one with _renderdoc_internal. If we call a function in another
-  // module the globals may not have the entry, but the root level is expected to.
-  {
-    _frame *frame = PyEval_GetFrame();
-
-    while(frame)
-    {
-      global_internal_handle = PyDict_GetItemString(frame->f_globals, "_renderdoc_internal");
-
-      if(global_internal_handle)
-        break;
-      frame = frame->f_back;
-    }
-  }
-
-  if(!global_internal_handle)
-    global_internal_handle = GetCurrentGlobalHandle();
+  PyObject *global_internal_handle = GetCurrentGlobalHandle();
 
   // process any dangling functions that may need to be cleared up
   ProcessDecRefQueue();
