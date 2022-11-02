@@ -1377,14 +1377,21 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   const ActionDescription *action = m_pDriver->GetAction(eventId);
 
   if(action == NULL || !(action->flags & (ActionFlags::Dispatch | ActionFlags::Drawcall)))
+  {
+    // deliberately show no bindings as used for non-draws
+    result.valid = true;
     return;
+  }
 
   result.compute = bool(action->flags & ActionFlags::Dispatch);
 
   const VulkanStatePipeline &pipe = result.compute ? state.compute : state.graphics;
 
   if(pipe.pipeline == ResourceId())
+  {
+    result.valid = true;
     return;
+  }
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[pipe.pipeline];
 
@@ -1488,7 +1495,10 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   // if we don't have any array descriptors or printf's to feedback then just return now
   if(offsetMap.empty() && !usesPrintf)
+  {
+    result.valid = true;
     return;
+  }
 
   if(!result.compute)
   {

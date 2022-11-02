@@ -293,6 +293,7 @@ private:
   struct Feedback
   {
     ID3D12Resource *FeedbackBuffer = NULL;
+    ID3D12QueryHeap *PipeStatsHeap = NULL;
 
     std::unordered_map<uint32_t, D3D12DynamicShaderFeedback> Usage;
   } m_BindlessFeedback;

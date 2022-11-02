@@ -1162,13 +1162,15 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
   return true;
 }
 
-static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_t space,
+static bool AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_t space,
                           uint32_t maxDescriptors,
                           std::map<D3D12FeedbackKey, D3D12FeedbackSlot> &slots, uint32_t &numSlots,
                           bytebuf &editedBlob, D3D12_SHADER_BYTECODE &desc, bool directHeapAccess)
 {
   if(!shad)
-    return;
+    return false;
+
+  bool dynamicUsed = false;
 
   ShaderReflection &refl = shad->GetDetails();
   const ShaderBindpointMapping &mapping = shad->GetMapping();
@@ -1184,6 +1186,7 @@ static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
 
       slots[key].SetSlot(numSlots);
       numSlots += RDCMIN(maxDescriptors, bind.arraySize);
+      dynamicUsed = true;
     }
     else if(bind.arraySize <= 1 && bind.used)
     {
@@ -1211,6 +1214,7 @@ static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
 
       slots[key].SetSlot(numSlots);
       numSlots += RDCMIN(maxDescriptors, bind.arraySize);
+      dynamicUsed = true;
     }
     else if(bind.arraySize <= 1 && bind.used)
     {
@@ -1240,11 +1244,12 @@ static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
     D3D12FeedbackKey key = GetDirectHeapAccessKey();
     slots[key].SetSlot(numSlots);
     numSlots += maxDescriptors;
+    dynamicUsed = true;
   }
 
   // if we haven't encountered any array slots, no need to do any patching
-  if(numSlots == numReservedSlots)
-    return;
+  if(!dynamicUsed)
+    return false;
 
   // only SM5.1 can have dynamic array indexing
   if(shad->GetDXBC()->m_Version.Major == 5 && shad->GetDXBC()->m_Version.Minor == 1)
@@ -1294,7 +1299,66 @@ static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
       desc.BytecodeLength = editedBlob.size();
     }
   }
+
+  return true;
 }
+
+struct D3D12StatCallback : public D3D12ActionCallback
+{
+  D3D12StatCallback(WrappedID3D12Device *dev, ID3D12QueryHeap *heap)
+      : m_pDevice(dev), m_PipeStatsQueryHeap(heap)
+  {
+    m_pDevice->GetQueue()->GetCommandData()->m_ActionCallback = this;
+  }
+  ~D3D12StatCallback() { m_pDevice->GetQueue()->GetCommandData()->m_ActionCallback = NULL; }
+  void PreDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override
+  {
+    if(cmd->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT)
+      cmd->BeginQuery(m_PipeStatsQueryHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS, 0);
+  }
+
+  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override
+  {
+    if(cmd->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT)
+      cmd->EndQuery(m_PipeStatsQueryHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS, 0);
+    return false;
+  }
+
+  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override {}
+  // we don't need to distinguish, call the Draw functions
+  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override { PreDraw(eid, cmd); }
+  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override
+  {
+    return PostDraw(eid, cmd);
+  }
+  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override
+  {
+    PostRedraw(eid, cmd);
+  }
+  void PreMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) override
+  {
+    if(flags & ActionFlags::PassBoundary)
+      return;
+    PreDraw(eid, cmd);
+  }
+  bool PostMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) override
+  {
+    if(flags & ActionFlags::PassBoundary)
+      return false;
+    return PostDraw(eid, cmd);
+  }
+  void PostRemisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) override
+  {
+    if(flags & ActionFlags::PassBoundary)
+      return;
+    PostRedraw(eid, cmd);
+  }
+
+  void PreCloseCommandList(ID3D12GraphicsCommandListX *cmd) override{};
+  void AliasEvent(uint32_t primary, uint32_t alias) override {}
+  WrappedID3D12Device *m_pDevice;
+  ID3D12QueryHeap *m_PipeStatsQueryHeap;
+};
 
 void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
 {
@@ -1314,7 +1378,11 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   const ActionDescription *action = m_pDevice->GetAction(eventId);
 
   if(action == NULL || !(action->flags & (ActionFlags::Dispatch | ActionFlags::Drawcall)))
+  {
+    // deliberately show no bindings as used for non-draws
+    result.valid = true;
     return;
+  }
 
   result.compute = bool(action->flags & ActionFlags::Dispatch);
 
@@ -1329,6 +1397,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   if(!pipe)
   {
     RDCERR("Can't fetch shader feedback, no pipeline state bound");
+    result.valid = true;
     return;
   }
 
@@ -1358,12 +1427,17 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   m_pDevice->GetShaderCache()->LoadDXC();
 #endif
 
+  bool dynamicAccessPerStage[6] = {};
+
   if(result.compute)
   {
     ID3D12RootSignature *sig = rm->GetCurrentAs<ID3D12RootSignature>(rs.compute.rootsig);
 
     if(!sig)
+    {
+      result.valid = true;
       return;
+    }
 
     modsig = ((WrappedID3D12RootSignature *)sig)->sig;
     bool directHeapAccess =
@@ -1371,15 +1445,19 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
                          D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED)) != 0;
     space = modsig.maxSpaceIndex;
 
-    AddArraySlots(pipe->CS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Compute], numSlots,
-                  editedBlob[(uint32_t)ShaderStage::Compute], pipeDesc.CS, directHeapAccess);
+    dynamicAccessPerStage[5] = AddArraySlots(
+        pipe->CS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Compute], numSlots,
+        editedBlob[(uint32_t)ShaderStage::Compute], pipeDesc.CS, directHeapAccess);
   }
   else
   {
     ID3D12RootSignature *sig = rm->GetCurrentAs<ID3D12RootSignature>(rs.graphics.rootsig);
 
     if(!sig)
+    {
+      result.valid = true;
       return;
+    }
 
     modsig = ((WrappedID3D12RootSignature *)sig)->sig;
     bool directHeapAccess =
@@ -1388,22 +1466,30 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
 
     space = modsig.maxSpaceIndex;
 
-    AddArraySlots(pipe->VS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Vertex], numSlots,
-                  editedBlob[uint32_t(ShaderStage::Vertex)], pipeDesc.VS, directHeapAccess);
-    AddArraySlots(pipe->HS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Hull], numSlots,
-                  editedBlob[uint32_t(ShaderStage::Hull)], pipeDesc.HS, directHeapAccess);
-    AddArraySlots(pipe->DS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Domain], numSlots,
-                  editedBlob[uint32_t(ShaderStage::Domain)], pipeDesc.DS, directHeapAccess);
-    AddArraySlots(pipe->GS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Geometry], numSlots,
-                  editedBlob[uint32_t(ShaderStage::Geometry)], pipeDesc.GS, directHeapAccess);
-    AddArraySlots(pipe->PS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Pixel], numSlots,
-                  editedBlob[uint32_t(ShaderStage::Pixel)], pipeDesc.PS, directHeapAccess);
+    dynamicAccessPerStage[0] = AddArraySlots(
+        pipe->VS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Vertex], numSlots,
+        editedBlob[uint32_t(ShaderStage::Vertex)], pipeDesc.VS, directHeapAccess);
+    dynamicAccessPerStage[1] = AddArraySlots(
+        pipe->HS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Hull], numSlots,
+        editedBlob[uint32_t(ShaderStage::Hull)], pipeDesc.HS, directHeapAccess);
+    dynamicAccessPerStage[2] = AddArraySlots(
+        pipe->DS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Domain], numSlots,
+        editedBlob[uint32_t(ShaderStage::Domain)], pipeDesc.DS, directHeapAccess);
+    dynamicAccessPerStage[3] = AddArraySlots(
+        pipe->GS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Geometry], numSlots,
+        editedBlob[uint32_t(ShaderStage::Geometry)], pipeDesc.GS, directHeapAccess);
+    dynamicAccessPerStage[4] = AddArraySlots(
+        pipe->PS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Pixel], numSlots,
+        editedBlob[uint32_t(ShaderStage::Pixel)], pipeDesc.PS, directHeapAccess);
   }
 
   // if numSlots wasn't increased, none of the resources were arrayed so we have nothing to do.
   // Silently return
   if(numSlots == numReservedSlots)
+  {
+    result.valid = true;
     return;
+  }
 
   // need to be able to add a descriptor of our UAV without hitting the 64 DWORD limit
   if(modsig.dwordLength > 62)
@@ -1422,6 +1508,22 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     param.Descriptor.ShaderRegister = 0;
   }
 
+  if(m_BindlessFeedback.PipeStatsHeap == NULL)
+  {
+    D3D12_QUERY_HEAP_DESC pipestatsQueryDesc;
+    pipestatsQueryDesc.Count = 1;
+    pipestatsQueryDesc.NodeMask = 1;
+    pipestatsQueryDesc.Type = D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS;
+    HRESULT hr = m_pDevice->CreateQueryHeap(&pipestatsQueryDesc, __uuidof(ID3D12QueryHeap),
+                                            (void **)&m_BindlessFeedback.PipeStatsHeap);
+    m_pDevice->CheckHRESULT(hr);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create shader feedback pipeline query heap HRESULT: %s", ToStr(hr).c_str());
+      return;
+    }
+  }
+
   if(m_BindlessFeedback.FeedbackBuffer == NULL ||
      m_BindlessFeedback.FeedbackBuffer->GetDesc().Width < numSlots * sizeof(uint32_t))
   {
@@ -1438,7 +1540,8 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     desc.MipLevels = 1;
     desc.SampleDesc.Count = 1;
     desc.SampleDesc.Quality = 0;
-    desc.Width = numSlots * sizeof(uint32_t);
+    desc.Width = AlignUp<uint32_t>(numSlots * sizeof(uint32_t), 1024) +
+                 sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS);
 
     D3D12_HEAP_PROPERTIES heapProps;
     heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -1539,7 +1642,20 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
         D3D12RenderState::SignatureElement(eRootUAV, GetResID(m_BindlessFeedback.FeedbackBuffer), 0);
   }
 
-  m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+  {
+    D3D12StatCallback cb(m_pDevice, m_BindlessFeedback.PipeStatsHeap);
+
+    m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+
+    ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+    if(!list)
+      return;
+
+    list->ResolveQueryData(m_BindlessFeedback.PipeStatsHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS,
+                           0, 1, m_BindlessFeedback.FeedbackBuffer, numSlots * sizeof(uint32_t));
+
+    list->Close();
+  }
 
   m_pDevice->ExecuteLists();
   m_pDevice->FlushLists();
@@ -1559,6 +1675,9 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   else
   {
     uint32_t *slotsData = (uint32_t *)results.data();
+
+    D3D12_QUERY_DATA_PIPELINE_STATISTICS *pipelinestats =
+        (D3D12_QUERY_DATA_PIPELINE_STATISTICS *)(slotsData + numSlots);
 
     if(slotsData[0] == magicFeedbackValue)
     {
@@ -1722,6 +1841,18 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
       }
 
       std::sort(result.used.begin(), result.used.end());
+    }
+    else if((pipelinestats->VSInvocations == 0 || !dynamicAccessPerStage[0]) &&
+            (pipelinestats->HSInvocations == 0 || !dynamicAccessPerStage[1]) &&
+            (pipelinestats->DSInvocations == 0 || !dynamicAccessPerStage[2]) &&
+            (pipelinestats->GSInvocations == 0 || !dynamicAccessPerStage[3]) &&
+            (pipelinestats->PSInvocations == 0 || !dynamicAccessPerStage[4]) &&
+            (pipelinestats->CSInvocations == 0 || !dynamicAccessPerStage[5]))
+    {
+      RDCDEBUG(
+          "No results from shader feedback but no dynamically-accessing shaders were actually "
+          "invoked");
+      result.valid = true;
     }
     else
     {

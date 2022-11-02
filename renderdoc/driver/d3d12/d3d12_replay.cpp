@@ -195,6 +195,7 @@ void D3D12Replay::DestroyResources()
   m_Histogram.Release();
 
   SAFE_RELEASE(m_BindlessFeedback.FeedbackBuffer);
+  SAFE_RELEASE(m_BindlessFeedback.PipeStatsHeap);
 
   SAFE_RELEASE(m_SOBuffer);
   SAFE_RELEASE(m_SOStagingBuffer);
