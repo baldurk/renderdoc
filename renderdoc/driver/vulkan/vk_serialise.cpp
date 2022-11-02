@@ -542,6 +542,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_NATIVE_HDR_SURFACE_CAPABILITIES_AMD,                          \
                VkDisplayNativeHdrSurfaceCapabilitiesAMD)                                               \
                                                                                                        \
+  /* VK_AMD_memory_overallocation_behavior */                                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_MEMORY_OVERALLOCATION_CREATE_INFO_AMD,                         \
+               VkDeviceMemoryOverallocationCreateInfoAMD)                                              \
+                                                                                                       \
   /* VK_AMD_shader_core_properties */                                                                  \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_AMD,                           \
                VkPhysicalDeviceShaderCorePropertiesAMD)                                                \
@@ -744,6 +748,10 @@ SERIALISE_VK_HANDLES();
                VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT)                                       \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT,                              \
                VkMutableDescriptorTypeCreateInfoEXT)                                                   \
+                                                                                                       \
+  /* VK_EXT_pageable_device_local_memory */                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PAGEABLE_DEVICE_LOCAL_MEMORY_FEATURES_EXT,            \
+               VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT)                                   \
                                                                                                        \
   /* VK_EXT_pci_bus_info */                                                                            \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PCI_BUS_INFO_PROPERTIES_EXT,                          \
@@ -1340,9 +1348,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR)                                    \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SCREEN_SURFACE_CREATE_INFO_QNX)                                  \
                                                                                                        \
-  /* VK_AMD_memory_overallocation_behavior */                                                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEVICE_MEMORY_OVERALLOCATION_CREATE_INFO_AMD)                    \
-                                                                                                       \
   /* VK_AMD_pipeline_compiler_control */                                                               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_COMPILER_CONTROL_CREATE_INFO_AMD)                       \
                                                                                                        \
@@ -1459,9 +1464,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COPY_MICROMAP_INFO_EXT)                                          \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MICROMAP_BUILD_SIZES_INFO_EXT)                                   \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_TRIANGLES_OPACITY_MICROMAP_EXT)           \
-                                                                                                       \
-  /* VK_EXT_pageable_device_local_memory */                                                            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PAGEABLE_DEVICE_LOCAL_MEMORY_FEATURES_EXT)       \
                                                                                                        \
   /* VK_EXT_physical_device_drm */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRM_PROPERTIES_EXT)                              \
@@ -9276,6 +9278,38 @@ void Deserialise(const VkMemoryPriorityAllocateInfoEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDeviceMemoryOverallocationCreateInfoAMD &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_DEVICE_MEMORY_OVERALLOCATION_CREATE_INFO_AMD);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(overallocationBehavior);
+}
+
+template <>
+void Deserialise(const VkDeviceMemoryOverallocationCreateInfoAMD &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PAGEABLE_DEVICE_LOCAL_MEMORY_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(pageableDeviceLocalMemory);
+}
+
+template <>
+void Deserialise(const VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -10805,6 +10839,7 @@ INSTANTIATE_SERIALISE_TYPE(VkDeviceGroupSubmitInfo);
 INSTANTIATE_SERIALISE_TYPE(VkDeviceGroupSwapchainCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkDeviceImageMemoryRequirements);
 INSTANTIATE_SERIALISE_TYPE(VkDeviceMemoryOpaqueCaptureAddressInfo);
+INSTANTIATE_SERIALISE_TYPE(VkDeviceMemoryOverallocationCreateInfoAMD);
 INSTANTIATE_SERIALISE_TYPE(VkDevicePrivateDataCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkDeviceQueueCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkDeviceQueueGlobalPriorityCreateInfoKHR);
@@ -10948,6 +10983,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultisampledRenderToSingleSampledFeat
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultiviewFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultiviewProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePCIBusInfoPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePerformanceQueryFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePerformanceQueryPropertiesKHR);

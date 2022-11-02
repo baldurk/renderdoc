@@ -3485,6 +3485,18 @@ rdcstr DoStringise(const VkRenderingFlagBits &el)
 }
 
 template <>
+rdcstr DoStringise(const VkMemoryOverallocationBehaviorAMD &el)
+{
+  BEGIN_BITFIELD_STRINGISE(VkMemoryOverallocationBehaviorAMD);
+  {
+    STRINGISE_BITFIELD_BIT(VK_MEMORY_OVERALLOCATION_BEHAVIOR_DEFAULT_AMD);
+    STRINGISE_BITFIELD_BIT(VK_MEMORY_OVERALLOCATION_BEHAVIOR_ALLOWED_AMD);
+    STRINGISE_BITFIELD_BIT(VK_MEMORY_OVERALLOCATION_BEHAVIOR_DISALLOWED_AMD);
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const VkExtent3D &el)
 {
   return StringFormat::Fmt("VkExtent3D(%u, %u, %u)", el.width, el.height, el.depth);

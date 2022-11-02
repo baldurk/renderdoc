@@ -12,6 +12,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_AMD_gcn_shader`
 * `VK_AMD_gpu_shader_half_float`
 * `VK_AMD_gpu_shader_int16`
+* `VK_AMD_memory_overallocation_behavior`
 * `VK_AMD_mixed_attachment_samples`
 * `VK_AMD_negative_viewport_height`
 * `VK_AMD_shader_ballot`
@@ -67,6 +68,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_metal_surface`
 * `VK_EXT_multisampled_render_to_single_sampled`
 * `VK_EXT_mutable_descriptor_type`
+* `VK_EXT_pageable_device_local_memory`
 * `VK_EXT_pci_bus_info`
 * `VK_EXT_pipeline_creation_cache_control`
 * `VK_EXT_pipeline_creation_feedback`
@@ -256,7 +258,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_multi_draw`
 * `VK_EXT_non_seamless_cube_map`
 * `VK_EXT_opacity_micromap`
-* `VK_EXT_pageable_device_local_memory`
 * `VK_EXT_physical_device_drm`
 * `VK_EXT_pipeline_protected_access`
 * `VK_EXT_pipeline_properties`
@@ -274,7 +275,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 
 ### AMD
 
-* `VK_AMD_memory_overallocation_behavior`
 * `VK_AMD_pipeline_compiler_control`
 * `VK_AMD_rasterization_order`
 * `VK_AMD_shader_info`
