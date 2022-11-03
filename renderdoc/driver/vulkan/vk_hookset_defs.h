@@ -542,7 +542,8 @@
   DeclExt(EXT_vertex_input_dynamic_state);            \
   DeclExt(KHR_dynamic_rendering);                     \
   DeclExt(KHR_fragment_shading_rate);                 \
-  DeclExt(EXT_attachment_feedback_loop_layout);
+  DeclExt(EXT_attachment_feedback_loop_layout);       \
+  DeclExt(EXT_pageable_device_local_memory);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -655,7 +656,8 @@
   CheckExt(EXT_vertex_input_dynamic_state, VKXX);            \
   CheckExt(KHR_dynamic_rendering, VK13);                     \
   CheckExt(KHR_fragment_shading_rate, VKXX);                 \
-  CheckExt(EXT_attachment_feedback_loop_layout, VKXX);
+  CheckExt(EXT_attachment_feedback_loop_layout, VKXX);       \
+  CheckExt(EXT_pageable_device_local_memory, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -913,6 +915,7 @@
   HookInitPromotedExtension(KHR_dynamic_rendering, CmdBeginRendering, KHR);                        \
   HookInitPromotedExtension(KHR_dynamic_rendering, CmdEndRendering, KHR);                          \
   HookInitExtension(KHR_fragment_shading_rate, CmdSetFragmentShadingRateKHR);                      \
+  HookInitExtension(EXT_pageable_device_local_memory, SetDeviceMemoryPriorityEXT);                 \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
   HookInitExtension_Device_GGP();                                                                  \
@@ -1631,6 +1634,8 @@
   HookDefine3(VkResult, vkGetPhysicalDeviceFragmentShadingRatesKHR, VkPhysicalDevice,                \
               physicalDevice, uint32_t *, pFragmentShadingRateCount,                                 \
               VkPhysicalDeviceFragmentShadingRateKHR *, pFragmentShadingRates);                      \
+  HookDefine3(void, vkSetDeviceMemoryPriorityEXT, VkDevice, device, VkDeviceMemory, memory, float,   \
+              priority);                                                                             \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \

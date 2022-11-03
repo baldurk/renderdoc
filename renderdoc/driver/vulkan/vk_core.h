@@ -2587,4 +2587,9 @@ public:
   VkResult vkGetPhysicalDeviceFragmentShadingRatesKHR(
       VkPhysicalDevice physicalDevice, uint32_t *pFragmentShadingRateCount,
       VkPhysicalDeviceFragmentShadingRateKHR *pFragmentShadingRates);
+
+  // VK_EXT_pageable_device_local_memory
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkSetDeviceMemoryPriorityEXT, VkDevice device,
+                                VkDeviceMemory memory, float priority);
 };

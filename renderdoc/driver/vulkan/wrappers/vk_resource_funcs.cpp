@@ -3019,6 +3019,72 @@ VkResult WrappedVulkan::vkBindImageMemory2(VkDevice device, uint32_t bindInfoCou
   return ret;
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkSetDeviceMemoryPriorityEXT(SerialiserType &ser, VkDevice device,
+                                                           VkDeviceMemory memory, float priority)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(memory);
+  SERIALISE_ELEMENT(priority);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    ObjDisp(device)->SetDeviceMemoryPriorityEXT(Unwrap(device), Unwrap(memory), priority);
+
+    AddResourceCurChunk(GetResourceManager()->GetOriginalID(GetResID(memory)));
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkSetDeviceMemoryPriorityEXT(VkDevice device, VkDeviceMemory memory,
+                                                 float priority)
+{
+  SERIALISE_TIME_CALL(
+      ObjDisp(device)->SetDeviceMemoryPriorityEXT(Unwrap(device), Unwrap(memory), priority));
+
+  // deliberately only serialise this while idle. If we serialised it while active we'd need
+  // arguably to track the priority to restore it each replay, and there's a high chance that during
+  // capture the program might start setting priorities in response to the overhead of capturing
+  if(IsBackgroundCapturing(m_State))
+  {
+    Chunk *chunk = NULL;
+
+    {
+      CACHE_THREAD_SERIALISER();
+
+      SCOPED_SERIALISE_CHUNK(VulkanChunk::vkSetDeviceMemoryPriorityEXT);
+      Serialise_vkSetDeviceMemoryPriorityEXT(ser, device, memory, priority);
+
+      chunk = scope.Get();
+    }
+
+    VkResourceRecord *r = GetRecord(memory);
+
+    // remove any previous memory priority chunks on the tail of the list. Memory records will not
+    // have anything else in here so this keeps redundancy to a minimum
+    r->LockChunks();
+    for(;;)
+    {
+      Chunk *end = r->GetLastChunk();
+
+      if(end->GetChunkType<VulkanChunk>() == VulkanChunk::vkSetDeviceMemoryPriorityEXT)
+      {
+        end->Delete();
+        r->PopChunk();
+        continue;
+      }
+
+      break;
+    }
+    r->UnlockChunks();
+
+    r->AddChunk(chunk);
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkAllocateMemory, VkDevice device,
                                 const VkMemoryAllocateInfo *pAllocateInfo,
                                 const VkAllocationCallbacks *pAllocator, VkDeviceMemory *pMemory);
@@ -3055,3 +3121,6 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkBindBufferMemory2, VkDevice device,
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkBindImageMemory2, VkDevice device,
                                 uint32_t bindInfoCount, const VkBindImageMemoryInfo *pBindInfos);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkSetDeviceMemoryPriorityEXT, VkDevice device,
+                                VkDeviceMemory memory, float priority);

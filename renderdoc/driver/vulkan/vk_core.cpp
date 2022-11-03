@@ -829,6 +829,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_AMD_GPU_SHADER_INT16_EXTENSION_NAME, VK_AMD_GPU_SHADER_INT16_SPEC_VERSION,
     },
     {
+        VK_AMD_MEMORY_OVERALLOCATION_BEHAVIOR_EXTENSION_NAME,
+        VK_AMD_MEMORY_OVERALLOCATION_BEHAVIOR_SPEC_VERSION,
+    },
+    {
         VK_AMD_MIXED_ATTACHMENT_SAMPLES_EXTENSION_NAME, VK_AMD_MIXED_ATTACHMENT_SAMPLES_SPEC_VERSION,
     },
     {
@@ -1006,6 +1010,10 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
     {
         VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME, VK_EXT_MUTABLE_DESCRIPTOR_TYPE_SPEC_VERSION,
+    },
+    {
+        VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY_EXTENSION_NAME,
+        VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY_SPEC_VERSION,
     },
     {
         VK_EXT_PCI_BUS_INFO_EXTENSION_NAME, VK_EXT_PCI_BUS_INFO_SPEC_VERSION,
@@ -3654,6 +3662,9 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
 
     case VulkanChunk::vkCmdSetFragmentShadingRateKHR:
       return Serialise_vkCmdSetFragmentShadingRateKHR(ser, VK_NULL_HANDLE, NULL, NULL);
+
+    case VulkanChunk::vkSetDeviceMemoryPriorityEXT:
+      return Serialise_vkSetDeviceMemoryPriorityEXT(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0.0f);
 
     // chunks that are reserved but not yet serialised
     case VulkanChunk::vkResetCommandPool:

@@ -922,6 +922,7 @@ enum class VulkanChunk : uint32_t
   vkCmdBeginRendering,
   vkCmdEndRendering,
   vkCmdSetFragmentShadingRateKHR,
+  vkSetDeviceMemoryPriorityEXT,
   Max,
 };
 
