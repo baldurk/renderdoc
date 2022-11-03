@@ -596,7 +596,16 @@ rdcstr GetTempRootPath()
 rdcstr GetAppFolderFilename(const rdcstr &filename)
 {
   passwd *pw = getpwuid(getuid());
-  const char *homedir = pw->pw_dir;
+  const char *homedir = pw ? pw->pw_dir : NULL;
+
+  if(!homedir)
+    homedir = getenv("HOME");
+
+  if(!homedir)
+  {
+    RDCERR("Can't get HOME directory, defaulting to '/' instead");
+    homedir = "";
+  }
 
   rdcstr ret = rdcstr(homedir) + "/.renderdoc/";
 
