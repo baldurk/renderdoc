@@ -1502,14 +1502,22 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
     }
   }
 
-  if(pPhysicalDeviceCount)
-    *pPhysicalDeviceCount = count;
+  VkResult result = VK_SUCCESS;
+
   if(pPhysicalDevices)
+  {
+    if(count > *pPhysicalDeviceCount)
+    {
+      count = *pPhysicalDeviceCount;
+      result = VK_INCOMPLETE;
+    }
     memcpy(pPhysicalDevices, devices, count * sizeof(VkPhysicalDevice));
+  }
+  *pPhysicalDeviceCount = count;
 
   SAFE_DELETE_ARRAY(devices);
 
-  return VK_SUCCESS;
+  return result;
 }
 
 bool WrappedVulkan::SelectGraphicsComputeQueue(const rdcarray<VkQueueFamilyProperties> &queueProps,
