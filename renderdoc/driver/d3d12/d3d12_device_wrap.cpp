@@ -3329,16 +3329,22 @@ HRESULT WrappedID3D12Device::SetStablePowerState(BOOL Enable)
 HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pFeatureSupportData,
                                                  UINT FeatureSupportDataSize)
 {
+  RDCLOG("Checking feature support for %d", Feature);
   HRESULT hr = m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
 
   if(FAILED(hr))
+  {
+    RDCLOG("CheckFeatureSupport returned %s", ToStr(hr).c_str());
     return hr;
+  }
 
   if(Feature == D3D12_FEATURE_SHADER_MODEL)
   {
     D3D12_FEATURE_DATA_SHADER_MODEL *model = (D3D12_FEATURE_DATA_SHADER_MODEL *)pFeatureSupportData;
     if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_SHADER_MODEL))
       return E_INVALIDARG;
+
+    RDCLOG("Clamping shader model from 0x%x to 6.6", model->HighestShaderModel);
 
     // clamp SM to what we support
     model->HighestShaderModel = RDCMIN(model->HighestShaderModel, D3D_SHADER_MODEL_6_6);
@@ -3354,6 +3360,8 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
     // can't capture or replay this properly.
     opts->Support = D3D12_PROTECTED_RESOURCE_SESSION_SUPPORT_FLAG_NONE;
 
+    RDCLOG("Forcing no protected session tier support");
+
     return S_OK;
   }
   else if(Feature == D3D12_FEATURE_D3D12_OPTIONS5)
@@ -3365,6 +3373,8 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
 
     // don't support raytracing
     opts->RaytracingTier = D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
+
+    RDCLOG("Forcing no raytracing tier support");
 
     return S_OK;
   }
@@ -3378,6 +3388,8 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
     // don't support mesh shading or sampler feedback
     opts->MeshShaderTier = D3D12_MESH_SHADER_TIER_NOT_SUPPORTED;
     opts->SamplerFeedbackTier = D3D12_SAMPLER_FEEDBACK_TIER_NOT_SUPPORTED;
+
+    RDCLOG("Forcing no mesh shading or sampler feedback tier support");
 
     return S_OK;
   }
