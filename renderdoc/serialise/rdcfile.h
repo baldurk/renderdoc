@@ -74,6 +74,7 @@ public:
   // creates a new file with current properties, file will be overwritten if it already exists
   void Create(const rdcstr &filename);
 
+  bool IsUntrusted() const { return m_Untrusted; }
   const RDResult &Error() const { return m_Error; }
   RDCDriver GetDriver() const { return m_Driver; }
   const rdcstr &GetDriverName() const { return m_DriverName; }
@@ -110,6 +111,7 @@ private:
   double m_TimeFrequency = 1.0;
   RDCThumb m_Thumb;
 
+  bool m_Untrusted = false;
   RDResult m_Error;
 
   struct SectionLocation

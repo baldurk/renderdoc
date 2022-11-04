@@ -249,6 +249,8 @@ void RDCFile::Open(const rdcstr &path)
 
   RDCLOG("Opening RDCFile %s", path.c_str());
 
+  m_Untrusted = FileIO::IsUntrustedFile(path);
+
   // ensure section header is compiled correctly
   RDCCOMPILE_ASSERT(offsetof(BinarySectionHeader, name) == sizeof(uint32_t) * 10,
                     "BinarySectionHeader size has changed or contains padding");

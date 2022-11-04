@@ -4382,7 +4382,8 @@ RDResult D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRepl
   if(initParams.MinimumFeatureLevel < D3D_FEATURE_LEVEL_11_0)
     initParams.MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
-  D3D12_PrepareReplaySDKVersion(initParams.SDKVersion, D3D12Core, D3D12SDKLayers, D3D12Lib);
+  D3D12_PrepareReplaySDKVersion(rdc && rdc->IsUntrusted(), initParams.SDKVersion, D3D12Core,
+                                D3D12SDKLayers, D3D12Lib);
 
   const bool isProxy = (rdc == NULL);
 

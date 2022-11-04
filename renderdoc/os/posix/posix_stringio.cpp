@@ -451,6 +451,12 @@ int fclose(FILE *f)
   return ::fclose(f);
 }
 
+bool IsUntrustedFile(const rdcstr &filename)
+{
+  // do android/linux have any way of marking files as potentially unsafe?
+  return false;
+}
+
 bool exists(const rdcstr &filename)
 {
   struct ::stat st;

@@ -30,6 +30,7 @@
 #include <string.h>
 #include <tchar.h>
 #include <time.h>
+#include <urlmon.h>
 #include <set>
 #include "api/app/renderdoc_app.h"
 #include "api/replay/data_types.h"
@@ -602,6 +603,45 @@ FILE *fopen(const rdcstr &filename, FileMode mode)
   }
 
   return ret;
+}
+
+bool IsUntrustedFile(const rdcstr &filename)
+{
+  IPersistFile *file = NULL;
+  HRESULT hr = CoCreateInstance(CLSID_PersistentZoneIdentifier, 0, CLSCTX_INPROC_SERVER,
+                                __uuidof(IPersistFile), (void **)&file);
+  // we default to trusted on failure
+  if(FAILED(hr))
+  {
+    SAFE_RELEASE(file);
+    return false;
+  }
+  rdcwstr wfn = StringFormat::UTF82Wide(filename);
+  for(size_t i = 0; i < wfn.length(); i++)
+    if(wfn[i] == L'/')
+      wfn[i] = L'\\';
+  hr = file->Load(wfn.c_str(), STGM_READ);
+  if(FAILED(hr))
+  {
+    SAFE_RELEASE(file);
+    return false;
+  }
+  IZoneIdentifier *zone = NULL;
+  hr = file->QueryInterface(__uuidof(IZoneIdentifier), (void **)&zone);
+  if(FAILED(hr))
+  {
+    SAFE_RELEASE(file);
+    SAFE_RELEASE(zone);
+    return false;
+  }
+  DWORD zoneValue = URLZONE_LOCAL_MACHINE;
+  hr = zone->GetId(&zoneValue);
+  if(FAILED(hr))
+    zoneValue = URLZONE_LOCAL_MACHINE;
+  SAFE_RELEASE(file);
+  SAFE_RELEASE(zone);
+  // internet and worse are considered untrusted
+  return zoneValue >= URLZONE_INTERNET;
 }
 
 bool exists(const rdcstr &filename)

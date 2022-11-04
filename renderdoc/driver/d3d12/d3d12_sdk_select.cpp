@@ -26,6 +26,7 @@
 #include "core/settings.h"
 #include "hooks/hooks.h"
 #include "strings/string_utils.h"
+#include "tinyfiledialogs/tinyfiledialogs.h"
 #include "d3d12_common.h"
 
 RDOC_CONFIG(rdcstr, D3D12_D3D12CoreDirPath, "",
@@ -158,7 +159,7 @@ HRESULT WINAPI Hooked_SDKLayers_D3D12GetInterface(_In_ REFCLSID rclsid, _In_ REF
 }
 
 // Can check signatures of .exe and .dll files
-bool IsSignedByMicrosoft(const rdcstr &filename)
+bool IsSignedByMicrosoft(const rdcstr &filename, rdcstr &signer)
 {
   bool IsSignatureValid = false;
 
@@ -188,7 +189,7 @@ bool IsSignedByMicrosoft(const rdcstr &filename)
   DWORD signer_info_size = 0;
   PCCERT_CONTEXT cert_context = NULL;
   CERT_INFO cert_info = {};
-  LPTSTR signer_name = NULL;
+  LPWSTR signer_name = NULL;
   DWORD signer_name_length = 0;
 
   do
@@ -269,7 +270,7 @@ bool IsSignedByMicrosoft(const rdcstr &filename)
     }
 
     // Allocate memory for subject name.
-    signer_name = (LPTSTR)LocalAlloc(LPTR, signer_name_length * sizeof(WCHAR));
+    signer_name = (LPWSTR)LocalAlloc(LPTR, signer_name_length * sizeof(WCHAR));
     if(!signer_name)
     {
       break;
@@ -281,6 +282,8 @@ bool IsSignedByMicrosoft(const rdcstr &filename)
     {
       break;
     }
+
+    signer = StringFormat::Wide2UTF8(rdcwstr(signer_name));
 
     // Check whether signer is Microsoft
     // Since Microsoft uses multiple different signatures,
@@ -311,7 +314,7 @@ bool IsSignedByMicrosoft(const rdcstr &filename)
   return IsSignatureValid;
 }
 
-void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file,
+void D3D12_PrepareReplaySDKVersion(bool untrustedCapture, UINT SDKVersion, bytebuf d3d12core_file,
                                    bytebuf d3d12sdklayers_file, HMODULE d3d12lib)
 {
   // D3D12Core shouldn't be loaded at this point, but it might be due to bugs. If it is, we can't do
@@ -445,7 +448,10 @@ void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file,
         FileIO::fwrite(d3d12core_file.data(), 1, d3d12core_file.size(), f);
         FileIO::fclose(f);
 
-        if(!IsSignedByMicrosoft(filename))
+        rdcstr signer;
+        // trusted captures (i.e. not marked as downloaded from the internet by windows) will skip
+        // this check entirely. Untrusted captures will verify the DLL signature is Microsoft signed
+        if(untrustedCapture && !IsSignedByMicrosoft(filename, signer))
         {
           if(D3D12_Debug_IgnoreSignatureCheck())
           {
@@ -455,12 +461,34 @@ void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file,
           }
           else
           {
-            FileIO::Delete(filename);
-            RDCERR(
-                "Can't verify the digital signature of the D3D12Core.dll embedded in capture, it "
-                "won't be loaded. If the capture came from a trusted source and you want to load "
-                "unsigned dll's, set D3D12.Debug.IgnoreSignatureCheck to true");
-            break;
+            RDCLOG("D3D12Core signed by '%s' instead of MS", signer.c_str());
+
+            rdcstr msg =
+                "Capture file contains an embedded D3D12 dll which is not correctly signed by "
+                "Microsoft.\n\n";
+            if(signer.empty())
+              msg += "There is no signature at all.\n\n";
+            else
+              msg += "The file is signed by '" + signer + "'.\n\n";
+
+            msg +=
+                "If you want to load the capture anyway, click yes. To use the system version of "
+                "D3D12 click no.";
+
+            int res = tinyfd_messageBox("Unexpected DLL signature", msg.c_str(), "yesnocancel",
+                                        "error", 2);
+            // 1 == yes, either no or cancel will abort the load
+            if(res != 1)
+            {
+              FileIO::Delete(filename);
+              RDCERR(
+                  "Can't verify the digital signature of the D3D12Core.dll embedded in capture, it "
+                  "won't be loaded. If the capture came from a trusted source and you want to load "
+                  "unsigned dll's, set D3D12.Debug.IgnoreSignatureCheck to true");
+              break;
+            }
+
+            RDCLOG("User selected to continue with load.");
           }
         }
 
