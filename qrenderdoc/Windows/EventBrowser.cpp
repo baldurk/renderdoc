@@ -912,7 +912,7 @@ private:
   rdcarray<QModelIndex> m_FindResults;
   bool m_FindEIDSearch = false;
 
-  int32_t m_RenameCacheID;
+  int32_t m_RenameCacheID = 0;
   QString m_ParamColCode;
 
   QMap<uint32_t, int> m_MessageCounts;
