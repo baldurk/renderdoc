@@ -2097,11 +2097,6 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       }
     }
 
-    VkResult vkr = VK_SUCCESS;
-
-    VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
-                                          VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
     VkBuffer srcBuf = initial.buf;
 
     VkBuffer dstBuf = m_CreationInfo.m_Memory[id].wholeMemBuf;
@@ -2118,13 +2113,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       return;    // no copy or clear required
     }
 
-    VkCommandBuffer cmd = GetNextCmd();
+    VkCommandBuffer cmd = GetInitStateCmd();
 
     if(cmd == VK_NULL_HANDLE)
       return;
-
-    vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    CheckVkResult(vkr);
 
     VkMarkerRegion::Begin(StringFormat::Fmt("Initial state for %s", ToStr(orig).c_str()), cmd);
 
@@ -2157,11 +2149,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
     VkMarkerRegion::End(cmd);
 
-    vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-    CheckVkResult(vkr);
-
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
+    CloseInitStateCmd();
     SubmitCmds();
+    FlushQ();
 #endif
   }
   else
