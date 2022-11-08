@@ -725,7 +725,13 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
       if(!m_Device->IsSparseResource(GetResID(liveRes)))
         liveRes->GetHeapProperties(&heapProps, NULL);
 
-      if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD)
+      const bool isCPUCopyHeap =
+          heapProps.Type == D3D12_HEAP_TYPE_CUSTOM &&
+          (heapProps.CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_BACK ||
+           heapProps.CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE) &&
+          heapProps.MemoryPoolPreference == D3D12_MEMORY_POOL_L0;
+
+      if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD || isCPUCopyHeap)
       {
         // if destination is on the upload heap, it's impossible to copy via the device,
         // so we have to CPU copy. To save time and make a more optimal copy, we just keep the data
@@ -1008,7 +1014,12 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
     if(!m_Device->IsSparseResource(GetResID(live)))
       res->GetHeapProperties(&heapProps, NULL);
 
-    if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD)
+    const bool isCPUCopyHeap = heapProps.Type == D3D12_HEAP_TYPE_CUSTOM &&
+                               (heapProps.CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_BACK ||
+                                heapProps.CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE) &&
+                               heapProps.MemoryPoolPreference == D3D12_MEMORY_POOL_L0;
+
+    if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD || isCPUCopyHeap)
     {
       // if destination is on the upload heap, it's impossible to copy via the device,
       // so we have to CPU copy. To save time and make a more optimal copy, we just keep the data
@@ -1122,10 +1133,16 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
         copyDst->GetHeapProperties(&heapProps, NULL);
       }
 
+      const bool isCPUCopyHeap =
+          heapProps.Type == D3D12_HEAP_TYPE_CUSTOM &&
+          (heapProps.CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_BACK ||
+           heapProps.CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE) &&
+          heapProps.MemoryPoolPreference == D3D12_MEMORY_POOL_L0;
+
       // if destination is on the upload heap, it's impossible to copy via the device,
       // so we have to CPU copy. We assume that we detected this case above and never uploaded a
       // device copy in the first place, and just kept the data CPU-side to source from.
-      if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD)
+      if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD || isCPUCopyHeap)
       {
         byte *src = data.srcData, *dst = NULL;
 
