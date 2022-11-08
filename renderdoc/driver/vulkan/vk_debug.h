@@ -67,8 +67,8 @@ public:
                            uint32_t baseSlice, uint32_t numSlices, uint32_t baseSample,
                            uint32_t numSamples, VkFormat fmt);
 
-  void CopyBufferToTex2DMS(VkImage destMS, VkBuffer srcBuffer, VkExtent3D extent,
-                           uint32_t numSlices, uint32_t numSamples, VkFormat fmt);
+  void CopyBufferToTex2DMS(VkCommandBuffer cmd, VkImage destMS, VkBuffer srcBuffer,
+                           VkExtent3D extent, uint32_t numSlices, uint32_t numSamples, VkFormat fmt);
 
   void FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType type, VkImage image,
                               VkImageLayout curLayout, VkImageSubresourceRange discardRange,
@@ -161,8 +161,9 @@ private:
                                 uint32_t baseSlice, uint32_t numSlices, uint32_t baseSample,
                                 uint32_t numSamples, VkFormat fmt);
 
-  void CopyDepthBufferToTex2DMS(VkImage destMS, VkBuffer srcBuffer, VkExtent3D extent,
-                                uint32_t numSlices, uint32_t numSamples, VkFormat fmt);
+  void CopyDepthBufferToTex2DMS(VkCommandBuffer cmd, VkImage destMS, VkBuffer srcBuffer,
+                                VkExtent3D extent, uint32_t numSlices, uint32_t numSamples,
+                                VkFormat fmt);
 
   WrappedVulkan *m_pDriver = NULL;
 

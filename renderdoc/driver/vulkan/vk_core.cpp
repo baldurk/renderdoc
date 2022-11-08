@@ -422,6 +422,10 @@ void WrappedVulkan::FlushQ()
   }
 #endif
 
+  for(std::function<void()> cleanup : m_PendingCleanups)
+    cleanup();
+  m_PendingCleanups.clear();
+
   if(!m_InternalCmds.submittedcmds.empty())
   {
     m_InternalCmds.freecmds.append(m_InternalCmds.submittedcmds);

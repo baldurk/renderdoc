@@ -1640,11 +1640,6 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
   }
   else if(type == eResImage)
   {
-    VkResult vkr = VK_SUCCESS;
-
-    VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
-                                          VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
     ResourceId orig = GetResourceManager()->GetOriginalID(id);
 
     bool initialized = false;
@@ -1796,15 +1791,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
     if(m_CreationInfo.m_Image[id].samples != VK_SAMPLE_COUNT_1_BIT)
     {
-      CloseInitStateCmd();
-
-      VkCommandBuffer cmd = GetNextCmd();
+      VkCommandBuffer cmd = GetInitStateCmd();
 
       if(cmd == VK_NULL_HANDLE)
         return;
-
-      vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CheckVkResult(vkr);
 
       VulkanCreationInfo::Image &c = m_CreationInfo.m_Image[id];
 
@@ -1821,10 +1811,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
       VkBuffer buf = initial.buf;
 
-      vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-      CheckVkResult(vkr);
-
-      GetDebugManager()->CopyBufferToTex2DMS(ToUnwrappedHandle<VkImage>(live), Unwrap(buf),
+      GetDebugManager()->CopyBufferToTex2DMS(cmd, ToUnwrappedHandle<VkImage>(live), Unwrap(buf),
                                              c.extent, c.arrayLayers, (uint32_t)c.samples, fmt);
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)

@@ -574,6 +574,7 @@ private:
   static const int initialStateMaxBatch = 100;
   int initStateCurBatch = 0;
   VkCommandBuffer initStateCurCmd = VK_NULL_HANDLE;
+  rdcarray<std::function<void()>> m_PendingCleanups;
 
   // Internal lumped/pooled memory allocations
 
@@ -1153,6 +1154,11 @@ public:
   }
   VkCommandBuffer GetNextCmd();
   VkCommandBuffer GetInitStateCmd();
+
+  void AddPendingObjectCleanup(std::function<void()> &&cleanup)
+  {
+    m_PendingCleanups.push_back(cleanup);
+  }
   void CloseInitStateCmd();
   void RemovePendingCommandBuffer(VkCommandBuffer cmd);
   void AddPendingCommandBuffer(VkCommandBuffer cmd);
