@@ -984,7 +984,13 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
   WrappedID3D12RootSignature *sig =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rootSig.rootsig);
 
-  rootElements.reserve(sig->sig.Parameters.size() + sig->sig.StaticSamplers.size());
+  size_t numReserve = sig->sig.Parameters.size() + sig->sig.StaticSamplers.size();
+
+  for(size_t rootEl = 0; rootEl < sig->sig.Parameters.size(); rootEl++)
+    if(sig->sig.Parameters[rootEl].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+      numReserve += sig->sig.Parameters[rootEl].ranges.size();
+
+  rootElements.reserve(numReserve);
 
   size_t ridx = 0;
 
@@ -1243,6 +1249,8 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
         {
           element.type = BindType::Sampler;
 
+          element.samplers.reserve(num);
+
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
             element.samplers.push_back(D3D12Pipe::Sampler(shaderReg));
@@ -1260,6 +1268,8 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
         {
           element.type = BindType::ConstantBuffer;
+
+          element.constantBuffers.reserve(num);
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
@@ -1289,6 +1299,8 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
 
           if(usage.valid)
             element.dynamicallyUsedCount = 0;
+
+          element.views.reserve(num);
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
@@ -1360,6 +1372,7 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
       }
     }
   }
+
   // direct heap access resources
   {
     D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
