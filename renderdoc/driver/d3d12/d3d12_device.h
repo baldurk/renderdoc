@@ -635,7 +635,8 @@ private:
 
   std::set<ResourceId> m_UploadResourceIds;
   std::set<ResourceId> m_ModResources;
-  std::map<uint64_t, ID3D12Resource *> m_UploadBuffers;
+  rdcflatmap<uint64_t, ID3D12Resource *> m_UploadBuffers;
+  rdcflatmap<uint64_t, D3D12_RANGE> m_UploadRanges;
 
   Threading::CriticalSection m_MapsLock;
   rdcarray<MapState> m_Maps;

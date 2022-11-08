@@ -1701,34 +1701,50 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
   SERIALISE_ELEMENT(Resource).Important();
   SERIALISE_ELEMENT(Subresource);
 
-  // tracks if we've already uploaded the data to a persistent buffer and don't need to re-serialise
-  // pointlessly
-  bool alreadyuploaded = false;
+  // tracks if we're uploading the data to a persistent buffer and don't do the upload from CPU each
+  // time. If this is true, during load we init the buffer and upload, then on replay each time we
+  // just do a GPU-side copy. If this is false, during init we save the range (since currently it's
+  // serialised after the data), then during replay we map the resource and serialise directly into
+  // it.
+  bool gpuUpload = false;
 
+  ResourceId origid;
   if(IsReplayingAndReading() && Resource)
   {
-    ResourceId origid = GetResourceManager()->GetOriginalID(GetResID(Resource));
+    origid = GetResourceManager()->GetOriginalID(GetResID(Resource));
     if(m_UploadResourceIds.find(origid) != m_UploadResourceIds.end())
-    {
-      // while loading, we still have yet to create the buffer so it's not already uploaded. Once
-      // we've loaded, it is.
-      alreadyuploaded = IsActiveReplaying(m_State);
-    }
+      gpuUpload = true;
   }
 
   MappedData += range.Begin;
 
+  const D3D12_RANGE nopRange = {0, 0};
+
   // we serialise MappedData manually, so that when we don't need it we just skip instead of
   // actually allocating and memcpy'ing the buffer.
-  ScopedDeserialiseArray<SerialiserType, byte *> deserialise_map(ser, &MappedData,
-                                                                 range.End - range.Begin);
   SerialiserFlags flags = SerialiserFlags::AllocateMemory;
-  if(alreadyuploaded)
+  if(IsActiveReplaying(m_State))
   {
-    // set the array to explicitly NULL (so it doesn't crash on deserialise) and don't allocate.
-    // This will cause it to be skipped
-    MappedData = NULL;
-    flags = SerialiserFlags::NoFlags;
+    if(gpuUpload)
+    {
+      // set the array to explicitly NULL (so it doesn't crash on deserialise) and don't allocate.
+      // This will cause it to be skipped
+      MappedData = NULL;
+      flags = SerialiserFlags::NoFlags;
+    }
+    else
+    {
+      HRESULT hr = Resource->Map(Subresource, &nopRange, (void **)&MappedData);
+      CheckHRESULT(hr);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to map resource on replay HRESULT: %s", ToStr(hr).c_str());
+      }
+
+      // write into the appropriate offset, don't allocate
+      MappedData += m_UploadRanges[m_Queue->GetCommandData()->m_CurChunkOffset].Begin;
+      flags = SerialiserFlags::NoFlags;
+    }
   }
 
   ser.Serialise("MappedData"_lit, MappedData, range.End - range.Begin, flags).Important();
@@ -1738,6 +1754,14 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
     dataOffset = size_t(ser.GetWriter()->GetOffset() - (range.End - range.Begin));
 
   SERIALISE_ELEMENT(range);
+
+  // if we mapped the resource for a cpu upload, we can unmap now
+  if(!gpuUpload && IsActiveReplaying(m_State))
+  {
+    // set the pointer to NULL so that it doesn't get deserialised
+    MappedData = NULL;
+    Resource->Unmap(Subresource, &range);
+  }
 
   uint64_t rangeSize = range.End - range.Begin;
 
@@ -1764,22 +1788,25 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
     D3D12CommandData &cmd = *m_Queue->GetCommandData();
 
     if(IsLoading(m_State))
+    {
       cmd.AddUsage(GetResID(Resource), ResourceUsage::CPUWrite);
 
-    ResourceId origid = GetResourceManager()->GetOriginalID(GetResID(Resource));
-    if(m_UploadResourceIds.find(origid) != m_UploadResourceIds.end())
-    {
-      ID3D12Resource *uploadBuf = GetUploadBuffer(cmd.m_CurChunkOffset, rangeSize);
-
-      if(!uploadBuf)
+      // when CPU uploading we just save the range (wouldn't be necessary if the range was
+      // serialised before the blob)
+      if(!gpuUpload)
       {
-        RDCERR("Couldn't get upload buffer");
-        return false;
+        m_UploadRanges[cmd.m_CurChunkOffset] = range;
       }
-
-      // during loading, fill out the buffer itself
-      if(IsLoading(m_State))
+      else
       {
+        ID3D12Resource *uploadBuf = GetUploadBuffer(cmd.m_CurChunkOffset, rangeSize);
+
+        if(!uploadBuf)
+        {
+          RDCERR("Couldn't get upload buffer");
+          return false;
+        }
+
         SetObjName(uploadBuf,
                    StringFormat::Fmt("Map data write, %llu bytes for %s/%u @ %llu", rangeSize,
                                      ToStr(origid).c_str(), Subresource, cmd.m_CurChunkOffset));
@@ -1803,6 +1830,18 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
           RDCERR("Failed to map resource on replay HRESULT: %s", ToStr(hr).c_str());
         }
       }
+    }
+
+    // now whether we are loading or replaying, if we're GPU uploading do the actual copy
+    if(gpuUpload)
+    {
+      ID3D12Resource *uploadBuf = GetUploadBuffer(cmd.m_CurChunkOffset, rangeSize);
+
+      if(!uploadBuf)
+      {
+        RDCERR("Couldn't get upload buffer");
+        return false;
+      }
 
       // then afterwards just execute a list to copy the result
       m_DataUploadList[m_CurDataUpload]->Reset(m_DataUploadAlloc, NULL);
@@ -1816,31 +1855,16 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
       m_CurDataUpload++;
       if(m_CurDataUpload == ARRAY_COUNT(m_DataUploadList))
       {
+        RDCLOG("Wraparound GPU map copies");
         GPUSync();
         m_CurDataUpload = 0;
       }
     }
-    else
-    {
-      byte *dst = NULL;
-
-      D3D12_RANGE nopRange = {0, 0};
-
-      HRESULT hr = Resource->Map(Subresource, &nopRange, (void **)&dst);
-      CheckHRESULT(hr);
-
-      if(SUCCEEDED(hr))
-      {
-        memcpy(dst + range.Begin, MappedData, size_t(range.End - range.Begin));
-
-        Resource->Unmap(Subresource, &range);
-      }
-      else
-      {
-        RDCERR("Failed to map resource on replay HRESULT: %s", ToStr(hr).c_str());
-      }
-    }
   }
+
+  // on loading we always alloc'd for this, whether gpu upload or not
+  if(IsLoading(m_State))
+    FreeAlignedBuffer(MappedData);
 
   return true;
 }
