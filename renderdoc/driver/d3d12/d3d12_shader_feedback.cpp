@@ -1487,7 +1487,6 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   // Silently return
   if(numSlots == numReservedSlots)
   {
-    result.valid = true;
     return;
   }
 

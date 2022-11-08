@@ -1496,7 +1496,6 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   // if we don't have any array descriptors or printf's to feedback then just return now
   if(offsetMap.empty() && !usesPrintf)
   {
-    result.valid = true;
     return;
   }
 
