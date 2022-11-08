@@ -588,7 +588,7 @@ private:
   WrappedID3D12CommandQueue *m_Queue;
 
   ID3D12CommandAllocator *m_Alloc = NULL, *m_DataUploadAlloc = NULL;
-  ID3D12GraphicsCommandList *m_DataUploadList[16] = {};
+  ID3D12GraphicsCommandList *m_DataUploadList[64] = {};
   size_t m_CurDataUpload = 0;
   ID3D12DescriptorHeap *m_RTVHeap = NULL;
   ID3D12Fence *m_GPUSyncFence;
