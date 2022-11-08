@@ -350,6 +350,57 @@ rdcarray<ID3D12Resource *> WrappedID3D12Resource::AddRefBuffersBeforeCapture(D3D
   return ret;
 }
 
+bool WrappedID3D12DescriptorHeap::HasValidViewCache(uint32_t index)
+{
+  if(!mutableViewBitmask)
+    return false;
+
+  // don't cache mutable views. In theory we could but we'd need to know which ones were modified
+  // mid-frame, to mark the cache as stale when initial contents are re-applied. This optimisation
+  // is aimed at the assumption of a huge number of descriptors that don't change so we just don't
+  // cache ones that change mid-frame
+  if((mutableViewBitmask[index / 64] & (1ULL << (index % 64))) != 0)
+    return false;
+
+  // anything that's not mutable is valid once it's been set at least once. Since we
+  // zero-initialise, we use bind as a flag (it isn't retrieved from the cache since it depends on
+  // the binding)
+  return cachedViews[index].bind == 1;
+}
+
+void WrappedID3D12DescriptorHeap::MarkMutableView(uint32_t index)
+{
+  if(!mutableViewBitmask)
+    return;
+
+  mutableViewBitmask[index / 64] |= (1ULL << (index % 64));
+}
+
+void WrappedID3D12DescriptorHeap::GetFromViewCache(uint32_t index, D3D12Pipe::View &view)
+{
+  if(!mutableViewBitmask)
+    return;
+
+  bool dynamicallyUsed = view.dynamicallyUsed;
+  uint32_t bind = view.bind;
+  uint32_t tableIndex = view.tableIndex;
+  view = cachedViews[index];
+  view.dynamicallyUsed = dynamicallyUsed;
+  view.bind = bind;
+  view.tableIndex = tableIndex;
+}
+
+void WrappedID3D12DescriptorHeap::SetToViewCache(uint32_t index, const D3D12Pipe::View &view)
+{
+  if(!mutableViewBitmask)
+    return;
+
+  cachedViews[index] = view;
+  // we re-use bind as the indicator that this view is valid
+  cachedViews[index].bind = 1;
+  mutableViewBitmask[index / 64] |= (1ULL << (index % 64));
+}
+
 WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *real,
                                                          WrappedID3D12Device *device,
                                                          const D3D12_DESCRIPTOR_HEAP_DESC &desc,
@@ -368,12 +419,32 @@ WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *r
   RDCEraseMem(descriptors, sizeof(D3D12Descriptor) * desc.NumDescriptors);
   for(UINT i = 0; i < desc.NumDescriptors; i++)
     descriptors[i].Setup(this, i);
+
+  // only cache views for "large" descriptor heaps where we expect few will actually change
+  // mid-frame
+  if(IsReplayMode(device->GetState()) && desc.NumDescriptors > 1024)
+  {
+    size_t bitmaskSize = AlignUp(desc.NumDescriptors, 64U) / 64;
+
+    cachedViews = new D3D12Pipe::View[desc.NumDescriptors];
+    RDCEraseMem(cachedViews, sizeof(D3D12Pipe::View) * desc.NumDescriptors);
+
+    mutableViewBitmask = new uint64_t[bitmaskSize];
+    RDCEraseMem(mutableViewBitmask, sizeof(uint64_t) * bitmaskSize);
+  }
+  else
+  {
+    cachedViews = NULL;
+    mutableViewBitmask = NULL;
+  }
 }
 
 WrappedID3D12DescriptorHeap::~WrappedID3D12DescriptorHeap()
 {
   Shutdown();
   SAFE_DELETE_ARRAY(descriptors);
+  SAFE_DELETE_ARRAY(cachedViews);
+  SAFE_DELETE_ARRAY(mutableViewBitmask);
 }
 
 void WrappedID3D12PipelineState::ShaderEntry::BuildReflection()

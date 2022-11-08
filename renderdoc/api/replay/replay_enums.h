@@ -734,7 +734,7 @@ DOCUMENT(R"(The dimensionality of a texture binding.
 
   A Cubemap texture array.
 )");
-enum class TextureType : uint32_t
+enum class TextureType : uint16_t
 {
   Unknown,
   First = Unknown,

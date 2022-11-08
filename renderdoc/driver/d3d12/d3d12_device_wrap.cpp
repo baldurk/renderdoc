@@ -1176,6 +1176,7 @@ bool WrappedID3D12Device::Serialise_DynamicDescriptorWrite(SerialiserType &ser,
       // be undefined
       RDCASSERT(desc.GetType() != D3D12DescriptorType::Undefined);
       desc.Create(D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES, this, *handle);
+      handle->GetHeap()->MarkMutableView(handle->GetHeapIndex());
     }
   }
 
@@ -2552,7 +2553,10 @@ bool WrappedID3D12Device::Serialise_DynamicDescriptorCopies(
   {
     // not optimal, but simple for now. Do a wrapped copy so that internal tracking is also updated
     for(const DynamicDescriptorCopy &copy : DescriptorCopies)
+    {
       CopyDescriptorsSimple(1, *copy.dst, *copy.src, copy.type);
+      copy.dst->GetHeap()->MarkMutableView(copy.dst->GetHeapIndex());
+    }
   }
 
   return true;

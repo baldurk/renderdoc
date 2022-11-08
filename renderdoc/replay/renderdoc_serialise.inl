@@ -1424,7 +1424,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::View &el)
 
   SERIALISE_MEMBER(minLODClamp);
 
-  SIZE_CHECK(96);
+  SIZE_CHECK(72);
 }
 
 template <typename SerialiserType>
@@ -1565,7 +1565,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::OM &el)
   SERIALISE_MEMBER(multiSampleCount);
   SERIALISE_MEMBER(multiSampleQuality);
 
-  SIZE_CHECK(264);
+  SIZE_CHECK(240);
 }
 
 template <typename SerialiserType>
@@ -1609,7 +1609,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 
   SERIALISE_MEMBER(resourceStates);
 
-  SIZE_CHECK(1424);
+  SIZE_CHECK(1400);
 }
 
 #pragma endregion D3D12 pipeline state

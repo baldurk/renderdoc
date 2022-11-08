@@ -660,10 +660,19 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
     return;
   }
 
+  if(desc->GetHeap()->HasValidViewCache(desc->GetHeapIndex()))
+  {
+    desc->GetHeap()->GetFromViewCache(desc->GetHeapIndex(), view);
+    return;
+  }
+
   view.resourceId = rm->GetOriginalID(desc->GetResResourceId());
 
   if(view.resourceId == ResourceId())
+  {
+    desc->GetHeap()->SetToViewCache(desc->GetHeapIndex(), view);
     return;
+  }
 
   D3D12_RESOURCE_DESC res;
 
@@ -690,30 +699,30 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
       }
       else if(rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE1D)
       {
-        view.firstMip = rtv.Texture1D.MipSlice;
+        view.firstMip = rtv.Texture1D.MipSlice & 0xff;
         view.numMips = 1;
         view.firstSlice = 0;
         view.numSlices = 1;
       }
       else if(rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE1DARRAY)
       {
-        view.firstMip = rtv.Texture1DArray.MipSlice;
+        view.firstMip = rtv.Texture1DArray.MipSlice & 0xff;
         view.numMips = 1;
-        view.numSlices = rtv.Texture1DArray.ArraySize;
-        view.firstSlice = rtv.Texture1DArray.FirstArraySlice;
+        view.numSlices = rtv.Texture1DArray.ArraySize & 0xffff;
+        view.firstSlice = rtv.Texture1DArray.FirstArraySlice & 0xffff;
       }
       else if(rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE2D)
       {
-        view.firstMip = rtv.Texture2D.MipSlice;
+        view.firstMip = rtv.Texture2D.MipSlice & 0xff;
         view.numMips = 1;
         view.firstSlice = 0;
         view.numSlices = 1;
       }
       else if(rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE2DARRAY)
       {
-        view.numSlices = rtv.Texture2DArray.ArraySize;
-        view.firstSlice = rtv.Texture2DArray.FirstArraySlice;
-        view.firstMip = rtv.Texture2DArray.MipSlice;
+        view.numSlices = rtv.Texture2DArray.ArraySize & 0xffff;
+        view.firstSlice = rtv.Texture2DArray.FirstArraySlice & 0xffff;
+        view.firstMip = rtv.Texture2DArray.MipSlice & 0xff;
         view.numMips = 1;
       }
       else if(rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE2DMS)
@@ -727,14 +736,14 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
       {
         view.firstMip = 0;
         view.numMips = 1;
-        view.numSlices = rtv.Texture2DMSArray.ArraySize;
-        view.firstSlice = rtv.Texture2DMSArray.FirstArraySlice;
+        view.numSlices = rtv.Texture2DMSArray.ArraySize & 0xffff;
+        view.firstSlice = rtv.Texture2DMSArray.FirstArraySlice & 0xffff;
       }
       else if(rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE3D)
       {
-        view.numSlices = rtv.Texture3D.WSize;
-        view.firstSlice = rtv.Texture3D.FirstWSlice;
-        view.firstMip = rtv.Texture3D.MipSlice;
+        view.numSlices = rtv.Texture3D.WSize & 0xffff;
+        view.firstSlice = rtv.Texture3D.FirstWSlice & 0xffff;
+        view.firstMip = rtv.Texture3D.MipSlice & 0xff;
         view.numMips = 1;
       }
     }
@@ -748,31 +757,31 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
 
       if(dsv.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE1D)
       {
-        view.firstMip = dsv.Texture1D.MipSlice;
+        view.firstMip = dsv.Texture1D.MipSlice & 0xff;
       }
       else if(dsv.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE1DARRAY)
       {
-        view.numSlices = dsv.Texture1DArray.ArraySize;
-        view.firstSlice = dsv.Texture1DArray.FirstArraySlice;
-        view.firstMip = dsv.Texture1DArray.MipSlice;
+        view.numSlices = dsv.Texture1DArray.ArraySize & 0xffff;
+        view.firstSlice = dsv.Texture1DArray.FirstArraySlice & 0xffff;
+        view.firstMip = dsv.Texture1DArray.MipSlice & 0xff;
       }
       else if(dsv.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2D)
       {
-        view.firstMip = dsv.Texture2D.MipSlice;
+        view.firstMip = dsv.Texture2D.MipSlice & 0xff;
       }
       else if(dsv.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2DARRAY)
       {
-        view.numSlices = dsv.Texture2DArray.ArraySize;
-        view.firstSlice = dsv.Texture2DArray.FirstArraySlice;
-        view.firstMip = dsv.Texture2DArray.MipSlice;
+        view.numSlices = dsv.Texture2DArray.ArraySize & 0xffff;
+        view.firstSlice = dsv.Texture2DArray.FirstArraySlice & 0xffff;
+        view.firstMip = dsv.Texture2DArray.MipSlice & 0xff;
       }
       else if(dsv.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2DMS)
       {
       }
       else if(dsv.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY)
       {
-        view.numSlices = dsv.Texture2DMSArray.ArraySize;
-        view.firstSlice = dsv.Texture2DMSArray.FirstArraySlice;
+        view.numSlices = dsv.Texture2DMSArray.ArraySize & 0xffff;
+        view.firstSlice = dsv.Texture2DMSArray.FirstArraySlice & 0xffff;
       }
     }
     else if(desc->GetType() == D3D12DescriptorType::SRV)
@@ -806,30 +815,30 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
       }
       else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE1D)
       {
-        view.firstMip = srv.Texture1D.MostDetailedMip;
-        view.numMips = srv.Texture1D.MipLevels;
+        view.firstMip = srv.Texture1D.MostDetailedMip & 0xff;
+        view.numMips = srv.Texture1D.MipLevels & 0xff;
         view.minLODClamp = srv.Texture1D.ResourceMinLODClamp;
       }
       else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE1DARRAY)
       {
-        view.numSlices = srv.Texture1DArray.ArraySize;
-        view.firstSlice = srv.Texture1DArray.FirstArraySlice;
-        view.firstMip = srv.Texture1DArray.MostDetailedMip;
-        view.numMips = srv.Texture1DArray.MipLevels;
+        view.numSlices = srv.Texture1DArray.ArraySize & 0xffff;
+        view.firstSlice = srv.Texture1DArray.FirstArraySlice & 0xffff;
+        view.firstMip = srv.Texture1DArray.MostDetailedMip & 0xff;
+        view.numMips = srv.Texture1DArray.MipLevels & 0xff;
         view.minLODClamp = srv.Texture1DArray.ResourceMinLODClamp;
       }
       else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2D)
       {
-        view.firstMip = srv.Texture2D.MostDetailedMip;
-        view.numMips = srv.Texture2D.MipLevels;
+        view.firstMip = srv.Texture2D.MostDetailedMip & 0xff;
+        view.numMips = srv.Texture2D.MipLevels & 0xff;
         view.minLODClamp = srv.Texture2D.ResourceMinLODClamp;
       }
       else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DARRAY)
       {
-        view.numSlices = srv.Texture2DArray.ArraySize;
-        view.firstSlice = srv.Texture2DArray.FirstArraySlice;
-        view.firstMip = srv.Texture2DArray.MostDetailedMip;
-        view.numMips = srv.Texture2DArray.MipLevels;
+        view.numSlices = srv.Texture2DArray.ArraySize & 0xffff;
+        view.firstSlice = srv.Texture2DArray.FirstArraySlice & 0xffff;
+        view.firstMip = srv.Texture2DArray.MostDetailedMip & 0xff;
+        view.numMips = srv.Texture2DArray.MipLevels & 0xff;
         view.minLODClamp = srv.Texture2DArray.ResourceMinLODClamp;
       }
       else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMS)
@@ -837,28 +846,28 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
       }
       else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY)
       {
-        view.numSlices = srv.Texture2DMSArray.ArraySize;
-        view.firstSlice = srv.Texture2DMSArray.FirstArraySlice;
+        view.numSlices = srv.Texture2DMSArray.ArraySize & 0xffff;
+        view.firstSlice = srv.Texture2DMSArray.FirstArraySlice & 0xffff;
       }
       else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE3D)
       {
-        view.firstMip = srv.Texture3D.MostDetailedMip;
-        view.numMips = srv.Texture3D.MipLevels;
+        view.firstMip = srv.Texture3D.MostDetailedMip & 0xff;
+        view.numMips = srv.Texture3D.MipLevels & 0xff;
         view.minLODClamp = srv.Texture3D.ResourceMinLODClamp;
       }
       else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURECUBE)
       {
         view.numSlices = 6;
-        view.firstMip = srv.TextureCube.MostDetailedMip;
-        view.numMips = srv.TextureCube.MipLevels;
+        view.firstMip = srv.TextureCube.MostDetailedMip & 0xff;
+        view.numMips = srv.TextureCube.MipLevels & 0xff;
         view.minLODClamp = srv.TextureCube.ResourceMinLODClamp;
       }
       else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURECUBEARRAY)
       {
-        view.numSlices = srv.TextureCubeArray.NumCubes * 6;
-        view.firstSlice = srv.TextureCubeArray.First2DArrayFace;
-        view.firstMip = srv.TextureCubeArray.MostDetailedMip;
-        view.numMips = srv.TextureCubeArray.MipLevels;
+        view.numSlices = (srv.TextureCubeArray.NumCubes * 6) & 0xffff;
+        view.firstSlice = srv.TextureCubeArray.First2DArrayFace & 0xffff;
+        view.firstMip = srv.TextureCubeArray.MostDetailedMip & 0xff;
+        view.numMips = srv.TextureCubeArray.MipLevels & 0xff;
         view.minLODClamp = srv.TextureCube.ResourceMinLODClamp;
       }
     }
@@ -884,43 +893,44 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
         if(uav.Buffer.StructureByteStride > 0)
           view.elementByteSize = uav.Buffer.StructureByteStride;
 
-        view.counterByteOffset = uav.Buffer.CounterOffsetInBytes;
+        view.counterByteOffset = uav.Buffer.CounterOffsetInBytes & 0xffffffff;
+        RDCASSERT(uav.Buffer.CounterOffsetInBytes < 0xffffffff);
 
         if(view.counterResourceId != ResourceId())
         {
           bytebuf counterVal;
           GetDebugManager()->GetBufferData(
               rm->GetCurrentAs<ID3D12Resource>(desc->GetCounterResourceId()),
-              view.counterByteOffset, 4, counterVal);
+              uav.Buffer.CounterOffsetInBytes, 4, counterVal);
           uint32_t *val = (uint32_t *)&counterVal[0];
           view.bufferStructCount = *val;
         }
       }
       else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE1D)
       {
-        view.firstMip = uav.Texture1D.MipSlice;
+        view.firstMip = uav.Texture1D.MipSlice & 0xff;
       }
       else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE1DARRAY)
       {
-        view.numSlices = uav.Texture1DArray.ArraySize;
-        view.firstSlice = uav.Texture1DArray.FirstArraySlice;
-        view.firstMip = uav.Texture1DArray.MipSlice;
+        view.numSlices = uav.Texture1DArray.ArraySize & 0xffff;
+        view.firstSlice = uav.Texture1DArray.FirstArraySlice & 0xffff;
+        view.firstMip = uav.Texture1DArray.MipSlice & 0xff;
       }
       else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2D)
       {
-        view.firstMip = uav.Texture2D.MipSlice;
+        view.firstMip = uav.Texture2D.MipSlice & 0xff;
       }
       else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2DARRAY)
       {
-        view.numSlices = uav.Texture2DArray.ArraySize;
-        view.firstSlice = uav.Texture2DArray.FirstArraySlice;
-        view.firstMip = uav.Texture2DArray.MipSlice;
+        view.numSlices = uav.Texture2DArray.ArraySize & 0xffff;
+        view.firstSlice = uav.Texture2DArray.FirstArraySlice & 0xffff;
+        view.firstMip = uav.Texture2DArray.MipSlice & 0xff;
       }
       else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE3D)
       {
-        view.numSlices = uav.Texture3D.WSize;
-        view.firstSlice = uav.Texture3D.FirstWSlice;
-        view.firstMip = uav.Texture3D.MipSlice;
+        view.numSlices = uav.Texture3D.WSize & 0xffff;
+        view.firstSlice = uav.Texture3D.FirstWSlice & 0xffff;
+        view.firstMip = uav.Texture3D.MipSlice & 0xff;
       }
     }
 
@@ -932,6 +942,8 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
 
     view.viewFormat = MakeResourceFormat(fmt);
   }
+
+  desc->GetHeap()->SetToViewCache(desc->GetHeapIndex(), view);
 }
 
 void D3D12Replay::FillSampler(D3D12Pipe::Sampler &samp, const D3D12_SAMPLER_DESC &sampDesc)
