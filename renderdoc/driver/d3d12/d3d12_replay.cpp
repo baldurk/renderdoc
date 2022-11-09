@@ -29,6 +29,7 @@
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/ihv/amd/amd_counters.h"
 #include "driver/ihv/amd/amd_rgp.h"
+#include "driver/ihv/nv/nv_d3d12_counters.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
@@ -151,34 +152,43 @@ void D3D12Replay::CreateResources()
 
     if(!m_Proxy && D3D12_HardwareCounters())
     {
-      AMDCounters *counters = NULL;
-
       if(m_DriverInfo.vendor == GPUVendor::AMD || m_DriverInfo.vendor == GPUVendor::Samsung)
       {
         RDCLOG("AMD GPU detected - trying to initialise AMD counters");
-        counters = new AMDCounters(m_pDevice->IsDebugLayerEnabled());
-      }
-      else
-      {
-        RDCLOG("%s GPU detected - no counters available", ToStr(m_DriverInfo.vendor).c_str());
+        AMDCounters *countersAMD = new AMDCounters(m_pDevice->IsDebugLayerEnabled());
+
+        ID3D12Device *d3dDevice = m_pDevice->GetReal();
+
+        if(countersAMD && countersAMD->Init(AMDCounters::ApiType::Dx12, (void *)d3dDevice))
+        {
+          m_pAMDCounters = countersAMD;
+        }
+        else
+        {
+          delete countersAMD;
+        }
       }
 
-      ID3D12Device *d3dDevice = m_pDevice->GetReal();
+      if(m_DriverInfo.vendor == GPUVendor::nVidia)
+      {
+        RDCLOG("NVIDIA GPU detected - trying to initialise NVIDIA counters");
 
-      if(counters && counters->Init(AMDCounters::ApiType::Dx12, (void *)d3dDevice))
-      {
-        m_pAMDCounters = counters;
-      }
-      else
-      {
-        delete counters;
-        m_pAMDCounters = NULL;
+        NVD3D12Counters *countersNV = new NVD3D12Counters();
+
+        bool initSuccess = false;
+        if(countersNV && countersNV->Init(m_pDevice->GetReal()))
+        {
+          m_pNVCounters = countersNV;
+          initSuccess = true;
+        }
+        else
+        {
+          delete countersNV;
+        }
+
+        RDCLOG("NVIDIA D3D12 counter initialisation: %s", initSuccess ? "SUCCEEDED" : "FAILED");
       }
     }
-  }
-  else
-  {
-    m_pAMDCounters = NULL;
   }
 }
 
@@ -209,6 +219,8 @@ void D3D12Replay::DestroyResources()
   SAFE_DELETE(m_DebugManager);
 
   SAFE_DELETE(m_pAMDCounters);
+
+  SAFE_DELETE(m_pNVCounters);
 }
 
 RDResult D3D12Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)

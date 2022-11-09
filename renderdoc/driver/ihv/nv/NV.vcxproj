@@ -60,7 +60,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)renderdoc\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)renderdoc\;$(SolutionDir)renderdoc\3rdparty\;$(SolutionDir)renderdoc\driver\ihv\nv\official\PerfSDK\redist\include;$(SolutionDir)renderdoc\driver\ihv\nv\official\PerfSDK\redist\NvPerfUtility\include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level4</WarningLevel>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -99,10 +99,14 @@
     <ClCompile Include="nvapi_hooks.cpp" />
     <ClCompile Include="nvapi_wrapper.cpp" />
     <ClCompile Include="nv_counters.cpp" />
+    <ClCompile Include="nv_counter_enumerator.cpp" />
+    <ClCompile Include="nv_d3d12_counters.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="nvapi_wrapper.h" />
     <ClInclude Include="nv_counters.h" />
+    <ClInclude Include="nv_counter_enumerator.h" />
+    <ClInclude Include="nv_d3d12_counters.h" />
     <ClInclude Include="official\nvapi\nvapi.h" />
     <ClInclude Include="official\nvapi\nvapi_interface.h" />
     <ClInclude Include="official\PerfKit\include\NvPmApi.h" />
