@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <iterator>
 #include "driver/ihv/amd/amd_counters.h"
+#include "driver/ihv/nv/nv_d3d12_counters.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_common.h"
@@ -54,6 +55,11 @@ rdcarray<GPUCounter> D3D12Replay::EnumerateCounters()
     ret.append(m_pAMDCounters->GetPublicCounterIds());
   }
 
+  if(m_pNVCounters)
+  {
+    ret.append(m_pNVCounters->EnumerateCounters());
+  }
+
   return ret;
 }
 
@@ -70,6 +76,13 @@ CounterDescription D3D12Replay::DescribeCounter(GPUCounter counterID)
 
       return desc;
     }
+  }
+
+  /////NVIDIA//////
+  if(m_pNVCounters && m_pNVCounters->HasCounter(counterID))
+  {
+    desc = m_pNVCounters->DescribeCounter(counterID);
+    return desc;
   }
 
   // 0808CC9B-79DF-4549-81F7-85494E648F22
@@ -497,7 +510,7 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
 
   rdcarray<GPUCounter> d3dCounters;
   std::copy_if(counters.begin(), counters.end(), std::back_inserter(d3dCounters),
-               [](const GPUCounter &c) { return !IsAMDCounter(c); });
+               [](const GPUCounter &c) { return IsGenericCounter(c); });
 
   if(m_pAMDCounters)
   {
@@ -509,6 +522,19 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
     if(!amdCounters.empty())
     {
       ret = FetchCountersAMD(amdCounters);
+    }
+  }
+
+  if(m_pNVCounters)
+  {
+    // Filter out the NVIDIA counters
+    rdcarray<GPUCounter> nvCounters;
+    std::copy_if(counters.begin(), counters.end(), std::back_inserter(nvCounters),
+                 [=](const GPUCounter &c) { return m_pNVCounters->HasCounter(c); });
+    if(!nvCounters.empty())
+    {
+      rdcarray<CounterResult> results = m_pNVCounters->FetchCounters(nvCounters, *m_pDevice);
+      ret.append(results);
     }
   }
 

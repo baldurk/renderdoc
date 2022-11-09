@@ -34,6 +34,8 @@ class AMDCounters;
 struct D3D12AMDActionCallback;
 class WrappedID3D12Device;
 
+class NVD3D12Counters;
+
 class D3D12DebugManager;
 
 struct PortableHandle;
@@ -506,6 +508,7 @@ private:
   std::map<rdcfixedarray<uint32_t, 4>, bytebuf> m_PatchedPSCache;
 
   void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, rdcarray<uint32_t> *eventIDs);
-
   rdcarray<CounterResult> FetchCountersAMD(const rdcarray<GPUCounter> &counters);
+
+  NVD3D12Counters *m_pNVCounters = NULL;
 };
