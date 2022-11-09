@@ -398,7 +398,6 @@ void WrappedID3D12DescriptorHeap::SetToViewCache(uint32_t index, const D3D12Pipe
   cachedViews[index] = view;
   // we re-use bind as the indicator that this view is valid
   cachedViews[index].bind = 1;
-  mutableViewBitmask[index / 64] |= (1ULL << (index % 64));
 }
 
 WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *real,
