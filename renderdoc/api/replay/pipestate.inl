@@ -1338,6 +1338,8 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
               firstIdx = (uint32_t)element.firstUsedIndex;
               count = std::min(count - firstIdx,
                                size_t(element.lastUsedIndex - element.firstUsedIndex + 1));
+              if(element.dynamicallyUsedCount == 0)
+                count = 0;
 
               ret.back().firstIndex = (int32_t)firstIdx;
             }
@@ -1418,6 +1420,8 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
               firstIdx = (uint32_t)bind.firstUsedIndex;
               count =
                   std::min(count - firstIdx, uint32_t(bind.lastUsedIndex - bind.firstUsedIndex + 1));
+              if(bind.dynamicallyUsedCount == 0)
+                count = 0;
             }
 
             rdcarray<BoundResource> &val = ret.back().resources;
@@ -1548,6 +1552,8 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
               firstIdx = (uint32_t)element.firstUsedIndex;
               count = std::min(count - firstIdx,
                                size_t(element.lastUsedIndex - element.firstUsedIndex + 1));
+              if(element.dynamicallyUsedCount == 0)
+                count = 0;
 
               ret.back().firstIndex = (int32_t)firstIdx;
             }
@@ -1645,6 +1651,8 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
               firstIdx = (uint32_t)bind.firstUsedIndex;
               count =
                   std::min(count - firstIdx, uint32_t(bind.lastUsedIndex - bind.firstUsedIndex + 1));
+              if(bind.dynamicallyUsedCount == 0)
+                count = 0;
             }
 
             rdcarray<BoundResource> &val = ret.back().resources;
