@@ -2457,23 +2457,18 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
                                               ThumbnailStrip *prevs, int &prevIndex, bool copy,
                                               bool rw)
 {
-  for(int idx = 0; idx < mapping.count(); idx++)
+  for(int residx = 0; residx < ResList.count(); residx++)
   {
-    const Bindpoint &key = mapping[idx];
+    const rdcarray<BoundResource> &resArray = ResList[residx].resources;
+    uint32_t dynamicallyUsedResCount = ResList[residx].dynamicallyUsedCount;
+    int32_t firstIndex = ResList[residx].firstIndex;
+    int arrayLen = resArray.count();
 
-    const rdcarray<BoundResource> *resArray = NULL;
-    uint32_t dynamicallyUsedResCount = 1;
-    int32_t firstIndex = 0;
+    int idx = mapping.indexOf(ResList[residx].bindPoint);
 
-    int residx = ResList.indexOf(key);
-    if(residx >= 0)
-    {
-      resArray = &ResList[residx].resources;
-      dynamicallyUsedResCount = ResList[residx].dynamicallyUsedCount;
-      firstIndex = ResList[residx].firstIndex;
-    }
-
-    int arrayLen = resArray != NULL ? resArray->count() : 1;
+    // don't display thumbnails for resources that are not bound
+    if(idx < 0)
+      continue;
 
     const bool collapseArray = arrayLen > 8 && dynamicallyUsedResCount > 20;
 
@@ -2481,22 +2476,16 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
     {
       int arrayIdx = firstIndex + i;
 
-      if(resArray && i >= resArray->count())
-        break;
-
-      if(resArray && !resArray->at(i).dynamicallyUsed)
+      if(!resArray[i].dynamicallyUsed)
         continue;
 
-      BoundResource res = {};
-
-      if(resArray)
-        res = resArray->at(i);
+      const BoundResource &res = resArray[i];
 
       Following follow(*this, rw ? FollowType::ReadWrite : FollowType::ReadOnly, stage, idx,
                        arrayIdx);
 
       // show if it's referenced by the shader - regardless of empty or not
-      bool show = key.used || copy;
+      bool show = mapping[idx].used || copy;
 
       // omit buffers even if the shader uses them.
       if(res.resourceId != ResourceId() && m_Ctx.GetTexture(res.resourceId) == NULL)
