@@ -263,7 +263,8 @@ void Editor::AddExtension(const rdcstr &extension)
 
   // insert the extension instruction
   size_t sz = extension.size();
-  rdcarray<uint32_t> uintName((sz / 4) + 1);
+  rdcarray<uint32_t> uintName;
+  uintName.resize((sz / 4) + 1);
   memcpy(&uintName[0], extension.c_str(), sz);
 
   Operation op(Op::Extension, uintName);
@@ -311,7 +312,8 @@ Id Editor::ImportExtInst(const char *setname)
   Id ret = MakeId();
 
   size_t sz = strlen(setname);
-  rdcarray<uint32_t> uintName((sz / 4) + 1);
+  rdcarray<uint32_t> uintName;
+  uintName.resize((sz / 4) + 1);
   memcpy(&uintName[0], setname, sz);
 
   uintName.insert(0, ret.value());

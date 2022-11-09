@@ -92,7 +92,8 @@ rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryR
                                           rdcarray<PixelModification> &history)
 {
   rdcarray<EventUsage> modEvents;
-  rdcarray<GLuint> occlusionQueries(events.size());
+  rdcarray<GLuint> occlusionQueries;
+  occlusionQueries.resize(events.size());
   driver->glGenQueries((GLsizei)occlusionQueries.size(), occlusionQueries.data());
 
   driver->ReplayLog(0, events[0].eventId, eReplay_WithoutDraw);

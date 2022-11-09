@@ -753,7 +753,8 @@ rdcstr Wide2UTF8(const rdcwstr &s)
   // utf-8 characters can be max 4 bytes.
   size_t len = (s.length() + 1) * 4;
 
-  rdcarray<char> charBuffer(len);
+  rdcarray<char> charBuffer;
+  charBuffer.resize(len);
 
   size_t ret;
 
@@ -797,7 +798,8 @@ rdcwstr UTF82Wide(const rdcstr &s)
   // input.
   size_t len = s.length() + 1;
 
-  rdcarray<wchar_t> wcharBuffer(len);
+  rdcarray<wchar_t> wcharBuffer;
+  wcharBuffer.resize(len);
 
   size_t ret;
 

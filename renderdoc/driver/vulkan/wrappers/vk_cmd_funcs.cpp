@@ -1708,7 +1708,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
               (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
                   &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
 
-          rdcarray<ResourceId> attachments(fbinfo.attachments.size());
+          rdcarray<ResourceId> attachments;
+          attachments.resize(fbinfo.attachments.size());
 
           // set framebuffer attachments - by default from the ones used to create it, but if it is
           // imageless then look for the attachments in our pNext chain
@@ -1852,7 +1853,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
       // imageless then look for the attachments in our pNext chain
       {
         VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
-        rdcarray<ResourceId> attachments(fbinfo.attachments.size());
+        rdcarray<ResourceId> attachments;
+        attachments.resize(fbinfo.attachments.size());
 
         if(!fbinfo.imageless)
         {
@@ -2367,7 +2369,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
               (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
                   &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
 
-          rdcarray<ResourceId> attachments(fbinfo.attachments.size());
+          rdcarray<ResourceId> attachments;
+          attachments.resize(fbinfo.attachments.size());
 
           // set framebuffer attachments - by default from the ones used to create it, but if it is
           // imageless then look for the attachments in our pNext chain
@@ -2506,7 +2509,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
       // imageless then look for the attachments in our pNext chain
       {
         VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
-        rdcarray<ResourceId> attachments(fbinfo.attachments.size());
+        rdcarray<ResourceId> attachments;
+        attachments.resize(fbinfo.attachments.size());
 
         if(!fbinfo.imageless)
         {

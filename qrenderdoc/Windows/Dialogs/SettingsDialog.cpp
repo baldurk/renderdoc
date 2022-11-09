@@ -700,7 +700,8 @@ void SettingsDialog::on_TextureViewer_ChooseShaderDirectories_clicked()
   {
     items = list.getItems();
 
-    rdcarray<rdcstr> newDirs(items.size());
+    rdcarray<rdcstr> newDirs;
+    newDirs.resize(items.size());
     for(int i = 0; i < items.size(); i++)
     {
       newDirs[i] = items[i];

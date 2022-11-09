@@ -149,12 +149,6 @@ public:
   typedef T value_type;
 
   rdcarray() : elems(NULL), allocatedCount(0), usedCount(0) {}
-  rdcarray(size_t count)
-  {
-    elems = NULL;
-    allocatedCount = usedCount = 0;
-    resize(count);
-  }
   ~rdcarray()
   {
     // clear will destruct the actual elements still existing

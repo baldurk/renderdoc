@@ -2791,7 +2791,7 @@ rdcarray<ShaderDebugState> D3D12Replay::ContinueDebug(ShaderDebugger *debugger)
   DXBCDebug::InterpretDebugger *interpreter = (DXBCDebug::InterpretDebugger *)debugger;
 
   if(!interpreter)
-    return NULL;
+    return {};
 
   D3D12DebugAPIWrapper apiWrapper(m_pDevice, interpreter->dxbc, interpreter->global,
                                   interpreter->eventId);

@@ -915,8 +915,10 @@ protected:
     // Copy color and input attachments, and ignore resolve attachments.
     // Since we are only using this renderpass to replay a single draw, we don't
     // need to do resolve operations.
-    rdcarray<VkAttachmentReference> colorAttachments(sub.colorAttachments.size());
-    rdcarray<VkAttachmentReference> inputAttachments(sub.inputAttachments.size());
+    rdcarray<VkAttachmentReference> colorAttachments;
+    rdcarray<VkAttachmentReference> inputAttachments;
+    colorAttachments.resize(sub.colorAttachments.size());
+    inputAttachments.resize(sub.inputAttachments.size());
 
     for(size_t i = 0; i < sub.colorAttachments.size(); i++)
     {
@@ -936,7 +938,8 @@ protected:
     subpassDesc.colorAttachmentCount = (uint32_t)sub.colorAttachments.size();
     subpassDesc.pColorAttachments = colorAttachments.data();
 
-    rdcarray<VkAttachmentDescription> descs(rpInfo.attachments.size());
+    rdcarray<VkAttachmentDescription> descs;
+    descs.resize(rpInfo.attachments.size());
     for(uint32_t i = 0; i < rpInfo.attachments.size(); i++)
     {
       descs[i] = {};
@@ -1121,7 +1124,8 @@ protected:
     const VulkanCreationInfo::RenderPass::Subpass &sub = rpInfo.subpasses.front();
     const VulkanCreationInfo::Framebuffer &fbInfo =
         m_pDriver->GetDebugManager()->GetFramebufferInfo(origFb);
-    rdcarray<VkImageView> atts(fbInfo.attachments.size());
+    rdcarray<VkImageView> atts;
+    atts.resize(fbInfo.attachments.size());
 
     for(uint32_t i = 0; i < fbInfo.attachments.size(); i++)
     {

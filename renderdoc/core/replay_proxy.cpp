@@ -2152,7 +2152,8 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
     }
 
     // serialise as an array, move the storage from the list into here
-    rdcarray<DeltaSection> deltas(deltasList.size());
+    rdcarray<DeltaSection> deltas;
+    deltas.resize(deltasList.size());
 
     {
       // swap between the list and array, so all the buffers just move storage

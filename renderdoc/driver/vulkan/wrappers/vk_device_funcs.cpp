@@ -761,7 +761,8 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
     uint32_t count = 0;
     ObjDisp(m_Instance)->EnumeratePhysicalDevices(Unwrap(m_Instance), &count, NULL);
 
-    rdcarray<VkPhysicalDevice> physDevs(count);
+    rdcarray<VkPhysicalDevice> physDevs;
+    physDevs.resize(count);
     ObjDisp(m_Instance)->EnumeratePhysicalDevices(Unwrap(m_Instance), &count, physDevs.data());
 
     rdcarray<VkExtensionProperties> exts;
@@ -3452,14 +3453,16 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
     }
 
-    rdcarray<const char *> layerArray(m_InitParams.Layers.size());
+    rdcarray<const char *> layerArray;
+    layerArray.resize(m_InitParams.Layers.size());
     for(size_t i = 0; i < m_InitParams.Layers.size(); i++)
       layerArray[i] = m_InitParams.Layers[i].c_str();
 
     createInfo.enabledLayerCount = 0;
     createInfo.ppEnabledLayerNames = NULL;
 
-    rdcarray<const char *> extArray(Extensions.size());
+    rdcarray<const char *> extArray;
+    extArray.resize(Extensions.size());
     for(size_t i = 0; i < Extensions.size(); i++)
       extArray[i] = Extensions[i].c_str();
 

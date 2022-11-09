@@ -2478,7 +2478,8 @@ void APIENTRY _glGetProgramResourceiv(GLuint program, GLenum programInterface, G
     return;
   }
 
-  rdcarray<ReflectionProperty> properties(propCount);
+  rdcarray<ReflectionProperty> properties;
+  properties.resize(propCount);
 
   for(GLsizei i = 0; i < propCount; i++)
     properties[i] = ConvertProperty(props[i]);

@@ -269,7 +269,8 @@ void IntelGlCounters::EndPass()
 {
   // Flush all of the pass' queries to ensure we can begin further samples
   // with a different pass.
-  rdcarray<uint8_t> data(m_Queries[m_EnabledQueries[m_passIndex]].size);
+  rdcarray<uint8_t> data;
+  data.resize(m_Queries[m_EnabledQueries[m_passIndex]].size);
   GLuint len;
   uint32_t nSamples = (uint32_t)m_glQueries.size() / (m_passIndex + 1);
 
@@ -321,7 +322,8 @@ void IntelGlCounters::CopyData(void *dest, const IntelGlCounter &counter, uint32
   uint32_t pass = CounterPass(counter);
   uint32_t queryHandle = m_glQueries[maxSampleIndex * pass + sample];
 
-  rdcarray<uint8_t> data(m_Queries[m_EnabledQueries[pass]].size);
+  rdcarray<uint8_t> data;
+  data.resize(m_Queries[m_EnabledQueries[pass]].size);
   GLuint len;
   GL.glGetPerfQueryDataINTEL(queryHandle, 0, (GLsizei)data.size(), &data[0], &len);
 

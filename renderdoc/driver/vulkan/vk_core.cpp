@@ -1590,7 +1590,8 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
   if(vkr != VK_SUCCESS)
     return vkr;
 
-  rdcarray<VkExtensionProperties> exts(numExts);
+  rdcarray<VkExtensionProperties> exts;
+  exts.resize(numExts);
   vkr = ObjDisp(physDev)->EnumerateDeviceExtensionProperties(Unwrap(physDev), pLayerName, &numExts,
                                                              &exts[0]);
 
@@ -1726,7 +1727,8 @@ VkResult WrappedVulkan::FilterInstanceExtensionProperties(
   if(vkr != VK_SUCCESS)
     return vkr;
 
-  rdcarray<VkExtensionProperties> exts(numExts);
+  rdcarray<VkExtensionProperties> exts;
+  exts.resize(numExts);
   vkr = pChain->CallDown(pLayerName, &numExts, &exts[0]);
 
   if(vkr != VK_SUCCESS)

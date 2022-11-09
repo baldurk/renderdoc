@@ -968,7 +968,8 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
     return 1;
   }
 
-  rdcarray<rdcwstr> wideArgs(args.size());
+  rdcarray<rdcwstr> wideArgs;
+  wideArgs.resize(args.size());
 
   for(size_t i = 0; i < args.size(); i++)
     wideArgs[i] = StringFormat::UTF82Wide(args[i]);
@@ -986,7 +987,8 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
                          L"--in-process",
                      });
 
-  rdcarray<wchar_t *> wideArgStrings(wideArgs.size());
+  rdcarray<wchar_t *> wideArgStrings;
+  wideArgStrings.resize(wideArgs.size());
 
   for(size_t i = 0; i < wideArgs.size(); i++)
     wideArgStrings[i] = wideArgs[i].data();

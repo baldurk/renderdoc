@@ -644,8 +644,10 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
 
   rdcspv::Id vbuffersVariable, ibufferVariable;
 
-  rdcarray<rdcspv::Id> vbufferSpecConsts(MeshOutputBufferArraySize);
-  rdcarray<rdcspv::Id> vbufferVariables(MeshOutputBufferArraySize);
+  rdcarray<rdcspv::Id> vbufferSpecConsts;
+  rdcarray<rdcspv::Id> vbufferVariables;
+  vbufferSpecConsts.resize(MeshOutputBufferArraySize);
+  vbufferVariables.resize(MeshOutputBufferArraySize);
   rdcspv::Id ibufferSpecConst;
   rdcspv::Id outputSpecConst;
 
@@ -2043,10 +2045,12 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   };
 
   rdcarray<uint32_t> attrInstDivisor;
-  rdcarray<CompactedAttrBuffer> vbuffers(MeshOutputBufferArraySize);
+  rdcarray<CompactedAttrBuffer> vbuffers;
+  vbuffers.resize(MeshOutputBufferArraySize);
 
   {
-    rdcarray<VkWriteDescriptorSet> descWrites(MeshOutputBufferArraySize);
+    rdcarray<VkWriteDescriptorSet> descWrites;
+    descWrites.resize(MeshOutputBufferArraySize);
     uint32_t numWrites = 0;
 
     RDCASSERT(state.vertexAttributes.size() <= MeshOutputBufferArraySize);
@@ -2532,7 +2536,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
     uint32_t baseOffset = (uint32_t)specData.size();
 
-    rdcarray<uint64_t> addresses(MeshOutputBufferArraySize + 2);
+    rdcarray<uint64_t> addresses;
+    addresses.resize(MeshOutputBufferArraySize + 2);
 
     for(uint32_t i = 0; i <= MeshOutputBufferArraySize + 1; i++)
     {

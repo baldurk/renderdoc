@@ -639,7 +639,8 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
   // while issuing the above queries we can check to see which tests are enabled so we don't
   // bother checking if depth testing failed if the depth test was disabled
-  rdcarray<uint32_t> flags(events.size());
+  rdcarray<uint32_t> flags;
+  flags.resize(events.size());
   std::map<uint32_t, D3D11_COMPARISON_FUNC> depthOps;
   std::map<uint32_t, DXGI_FORMAT> depthFormats;
   enum
