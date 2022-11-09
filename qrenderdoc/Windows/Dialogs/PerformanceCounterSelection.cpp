@@ -303,23 +303,31 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
 
     RDTreeWidgetItem *categoryItem = NULL;
 
-    const rdcstr category = desc.category;
-    auto categoryIterator = categories.find(category);
-
-    if(categoryIterator == categories.end())
+    if(desc.category.empty())
     {
-      RDTreeWidgetItem *item = new RDTreeWidgetItem();
-      item->setText(0, desc.category);
-      item->setCheckState(0, Qt::Unchecked);
-      item->setData(0, PreviousCheckStateRole, Qt::Unchecked);
-      currentRoot->addChild(item);
-
-      categories[category] = item;
-      categoryItem = item;
+      // Show uncategorized counters at the root level
+      categoryItem = currentRoot;
     }
     else
     {
-      categoryItem = categoryIterator.value();
+      const rdcstr category = desc.category;
+      auto categoryIterator = categories.find(category);
+
+      if(categoryIterator == categories.end())
+      {
+        RDTreeWidgetItem *item = new RDTreeWidgetItem();
+        item->setText(0, desc.category);
+        item->setCheckState(0, Qt::Unchecked);
+        item->setData(0, PreviousCheckStateRole, Qt::Unchecked);
+        currentRoot->addChild(item);
+
+        categories[category] = item;
+        categoryItem = item;
+      }
+      else
+      {
+        categoryItem = categoryIterator.value();
+      }
     }
 
     RDTreeWidgetItem *counterItem = new RDTreeWidgetItem();
