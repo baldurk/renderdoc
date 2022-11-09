@@ -1247,6 +1247,9 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
     if(context == NULL)
     {
       PyFrameObject *frame = PyEval_GetFrame();
+      // inc reference count here so all frames can be decref'd whether they come from here or
+      // PyFrame_GetBack
+      Py_XINCREF(frame);
 
       while(frame)
       {
@@ -1366,6 +1369,9 @@ extern "C" PyObject *GetCurrentGlobalHandle()
   // module the globals may not have the entry, but the root level is expected to.
   {
     PyFrameObject *frame = PyEval_GetFrame();
+    // inc reference count here so all frames can be decref'd whether they come from here or
+    // PyFrame_GetBack
+    Py_XINCREF(frame);
 
     while(frame)
     {
