@@ -1192,6 +1192,7 @@ rdcarray<BoundResourceArray> PipeState::GetSamplers(ShaderStage stage) const
 
           if(element.type == BindType::Sampler && element.registerSpace == (uint32_t)bind.bindset)
           {
+            val.reserve(val.size() + element.samplers.size());
             for(size_t j = 0; j < element.samplers.size(); ++j)
             {
               const D3D12Pipe::Sampler &samp = element.samplers[j];
@@ -1250,6 +1251,7 @@ rdcarray<BoundResourceArray> PipeState::GetSamplers(ShaderStage stage) const
 
             rdcarray<BoundResource> &val = ret.back().resources;
 
+            val.reserve(val.size() + bind.descriptorCount);
             for(uint32_t i = 0; i < bind.descriptorCount; i++)
             {
               if(bind.binds[i].type == BindType::Sampler ||
@@ -1340,6 +1342,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
               ret.back().firstIndex = (int32_t)firstIdx;
             }
 
+            val.reserve(val.size() + (count - firstIdx));
             for(size_t j = firstIdx; j < count; ++j)
             {
               const D3D12Pipe::View &view = element.views[j];
@@ -1424,6 +1427,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
             ret.back().dynamicallyUsedCount = 0;
 
             BoundResource res;
+            val.reserve(val.size() + (count - firstIdx));
             for(uint32_t i = firstIdx; i < firstIdx + count; i++)
             {
               if(bind.binds[i].type == BindType::ImageSampler ||
@@ -1548,6 +1552,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
               ret.back().firstIndex = (int32_t)firstIdx;
             }
 
+            val.reserve(val.size() + (count - firstIdx));
             for(size_t j = firstIdx; j < count; ++j)
             {
               const D3D12Pipe::View &view = element.views[j];
@@ -1649,6 +1654,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
             ret.back().dynamicallyUsedCount = 0;
 
             BoundResource res;
+            val.reserve(val.size() + (count - firstIdx));
             for(uint32_t i = firstIdx; i < firstIdx + count; i++)
             {
               if(bind.binds[i].type == BindType::ReadWriteBuffer ||
