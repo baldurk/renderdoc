@@ -1981,10 +1981,11 @@ void TextureViewer::textureTab_Closing(int index)
 
 ResourcePreview *TextureViewer::UI_CreateThumbnail(ThumbnailStrip *strip)
 {
-  ResourcePreview *prev = new ResourcePreview(m_Ctx, m_Output);
+  ResourcePreview *prev = new ResourcePreview(true);
 
   QObject::connect(prev, &ResourcePreview::clicked, this, &TextureViewer::thumb_clicked);
   QObject::connect(prev, &ResourcePreview::doubleClicked, this, &TextureViewer::thumb_doubleClicked);
+  QObject::connect(prev, &ResourcePreview::resized, this, &TextureViewer::UI_PreviewResized);
 
   prev->setActive(false);
   strip->addThumb(prev);
@@ -2366,6 +2367,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
                                         Following &follow, const QString &bindName,
                                         const QString &slotName)
 {
+  Subresource sub = {0, 0, ~0U};
   if(res.resourceId != ResourceId() || force)
   {
     QString fullname = bindName;
@@ -2380,8 +2382,6 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
 
     prev->setResourceName(fullname);
 
-    WindowingData winData = prev->GetWidgetWindowingData();
-
     prev->setProperty("f", QVariant::fromValue(follow));
     prev->setSlotName(slotName);
     prev->setActive(true);
@@ -2389,20 +2389,15 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
 
     if(m_Ctx.GetTexture(res.resourceId))
     {
-      m_Ctx.Replay().AsyncInvoke([this, winData, res](IReplayController *) {
-        Subresource sub = {0, 0, ~0U};
-        if(res.firstMip >= 0)
-          sub.mip = res.firstMip;
-        if(res.firstSlice >= 0)
-          sub.slice = res.firstSlice;
-        m_Output->AddThumbnail(winData, res.resourceId, sub, res.typeCast);
-      });
+      if(res.firstMip >= 0)
+        sub.mip = res.firstMip;
+      if(res.firstSlice >= 0)
+        sub.slice = res.firstSlice;
     }
     else
     {
-      m_Ctx.Replay().AsyncInvoke([this, winData](IReplayController *) {
-        m_Output->AddThumbnail(winData, ResourceId(), {0, 0, ~0U}, CompType::Typeless);
-      });
+      res.resourceId = ResourceId();
+      res.typeCast = CompType::Typeless;
     }
   }
   else if(m_Following == follow)
@@ -2411,17 +2406,48 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
     prev->setActive(true);
     prev->setSelected(true);
 
-    WindowingData winData = prev->GetWidgetWindowingData();
-    m_Ctx.Replay().AsyncInvoke([this, winData](IReplayController *) {
-      m_Output->AddThumbnail(winData, ResourceId(), {0, 0, ~0U}, CompType::Typeless);
-    });
+    res.resourceId = ResourceId();
+    res.typeCast = CompType::Typeless;
   }
   else
   {
     prev->setResourceName(QString());
     prev->setActive(false);
     prev->setSelected(false);
+
+    return;
   }
+
+  prev->setProperty("id", QVariant::fromValue(res.resourceId));
+  prev->setProperty("mip", sub.mip);
+  prev->setProperty("slice", sub.slice);
+  prev->setProperty("cast", uint32_t(res.typeCast));
+
+  GUIInvoke::call(this, [this, prev] { UI_PreviewResized(prev); });
+}
+
+void TextureViewer::UI_PreviewResized(ResourcePreview *prev)
+{
+  QSize s = prev->GetThumbSize();
+
+  ResourceId id = prev->property("id").value<ResourceId>();
+  Subresource sub = {0, 0, ~0U};
+  sub.mip = prev->property("mip").toUInt();
+  sub.slice = prev->property("slice").toUInt();
+  CompType typeCast = (CompType)prev->property("cast").toUInt();
+
+  m_Ctx.Replay().AsyncInvoke(lit("preview%1").arg((qulonglong)(void *)prev),
+                             [this, prev, s, sub, id, typeCast](IReplayController *) {
+                               bytebuf data =
+                                   m_Output->DrawThumbnail(s.width(), s.height(), id, sub, typeCast);
+                               // new and swap to move the data into the lambda
+                               bytebuf *copy = new bytebuf;
+                               copy->swap(data);
+                               GUIInvoke::call(this, [prev, s, copy]() {
+                                 prev->UpdateThumb(s, *copy);
+                                 delete copy;
+                               });
+                             });
 }
 
 void TextureViewer::InitStageResourcePreviews(ShaderStage stage,

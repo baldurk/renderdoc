@@ -48,6 +48,8 @@ public:
   void ClearThumbnails();
   ResultDetails AddThumbnail(WindowingData window, ResourceId texID, const Subresource &sub,
                              CompType typeCast);
+  bytebuf DrawThumbnail(int32_t width, int32_t height, ResourceId textureId, const Subresource &sub,
+                        CompType typeCast);
 
   void Display();
 
@@ -103,6 +105,10 @@ private:
   ResourceId m_CustomShaderResourceId;
 
   rdcarray<OutputPair> m_Thumbnails;
+  rdcarray<rdcpair<uint64_t, uint64_t>> m_ThumbnailGenerators;
+  // keep 8 generators to avoid churn, but most thumbnails should be the same size so this means
+  // during resize we don't create and destroy too many
+  static const size_t MaxThumbnailGenerators = 8;
 
   float m_ContextX;
   float m_ContextY;

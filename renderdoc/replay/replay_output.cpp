@@ -350,6 +350,9 @@ void ReplayOutput::ClearThumbnails()
   for(size_t i = 0; i < m_Thumbnails.size(); i++)
     m_pDevice->DestroyOutputWindow(m_Thumbnails[i].outputID);
 
+  for(auto it = m_ThumbnailGenerators.begin(); it != m_ThumbnailGenerators.end(); ++it)
+    m_pDevice->DestroyOutputWindow(it->second);
+
   m_Thumbnails.clear();
 }
 
@@ -369,6 +372,125 @@ ResultDetails ReplayOutput::SetPixelContext(WindowingData window)
   }
 
   return RDResult();
+}
+
+bytebuf ReplayOutput::DrawThumbnail(int32_t width, int32_t height, ResourceId textureId,
+                                    const Subresource &sub, CompType typeCast)
+{
+  bytebuf ret;
+
+  uint64_t key = (uint64_t(width) << 32) | height;
+  int idx = -1;
+  uint64_t outputID = 0;
+  for(int i = 0; i < m_ThumbnailGenerators.count(); i++)
+  {
+    if(m_ThumbnailGenerators[i].first == key)
+    {
+      idx = i;
+      outputID = m_ThumbnailGenerators[i].second;
+      break;
+    }
+  }
+
+  if(idx < 0)
+  {
+    // resize oldest generator if we have hit the max
+    if(m_ThumbnailGenerators.size() == MaxThumbnailGenerators)
+    {
+      outputID = m_ThumbnailGenerators.back().second;
+      m_pDevice->SetOutputWindowDimensions(outputID, width, height);
+      m_ThumbnailGenerators.pop_back();
+    }
+    else
+    {
+      outputID = m_pDevice->MakeOutputWindow(CreateHeadlessWindowingData(width, height), false);
+    }
+  }
+  else
+  {
+    // remove the found one, so it can get inserted into the front
+    m_ThumbnailGenerators.erase(idx);
+  }
+  // make this the most recent generator, so the oldest one will be kicked out
+  m_ThumbnailGenerators.insert(0, {key, outputID});
+
+  bool depthMode = false;
+
+  for(size_t t = 0; t < m_pController->m_Textures.size(); t++)
+  {
+    if(m_pController->m_Textures[t].resourceId == textureId)
+    {
+      depthMode = (m_pController->m_Textures[t].creationFlags & TextureCategory::DepthTarget) ||
+                  (m_pController->m_Textures[t].format.compType == CompType::Depth);
+      break;
+    }
+  }
+
+  if(textureId == ResourceId())
+  {
+    m_pDevice->BindOutputWindow(outputID, false);
+
+    FloatVector dark = RenderDoc::Inst().DarkCheckerboardColor();
+    FloatVector light = RenderDoc::Inst().LightCheckerboardColor();
+
+    FloatVector dark2;
+    dark2.x = light.x;
+    dark2.y = dark.y;
+    dark2.z = dark.z;
+    dark2.w = 1.0f;
+    FloatVector light2;
+    light2.x = dark.x;
+    light2.y = light.y;
+    light2.z = light.z;
+    light2.w = 1.0f;
+    m_pDevice->RenderCheckerboard(dark2, light2);
+    m_pController->FatalErrorCheck();
+
+    m_pDevice->FlipOutputWindow(outputID);
+    m_pController->FatalErrorCheck();
+  }
+  else
+  {
+    m_pDevice->BindOutputWindow(outputID, false);
+    m_pDevice->ClearOutputWindowColor(outputID, FloatVector());
+
+    TextureDisplay disp;
+
+    disp.red = disp.green = disp.blue = true;
+    disp.alpha = false;
+    disp.hdrMultiplier = -1.0f;
+    disp.linearDisplayAsGamma = true;
+    disp.flipY = false;
+    disp.subresource = sub;
+    disp.subresource.sample = 0;
+    disp.customShaderId = ResourceId();
+    disp.resourceId = m_pDevice->GetLiveID(textureId);
+    disp.typeCast = typeCast;
+    disp.scale = -1.0f;
+    disp.rangeMin = 0.0f;
+    disp.rangeMax = 1.0f;
+    disp.xOffset = 0.0f;
+    disp.yOffset = 0.0f;
+    disp.rawOutput = false;
+    disp.overlay = DebugOverlay::NoOverlay;
+
+    if(typeCast == CompType::SNorm)
+      disp.rangeMin = -1.0f;
+
+    if(depthMode)
+      disp.green = disp.blue = false;
+
+    m_pDevice->RenderTexture(disp);
+    m_pController->FatalErrorCheck();
+
+    m_pDevice->FlipOutputWindow(outputID);
+    m_pController->FatalErrorCheck();
+  }
+
+  m_pDevice->GetOutputWindowData(outputID, ret);
+  m_pController->FatalErrorCheck();
+
+  return ret;
 }
 
 ResultDetails ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID,

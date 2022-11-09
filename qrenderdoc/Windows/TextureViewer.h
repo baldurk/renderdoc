@@ -275,6 +275,8 @@ private:
                                  rdcarray<BoundResourceArray> &ResList, ThumbnailStrip *prevs,
                                  int &prevIndex, bool copy, bool rw);
 
+  void UI_PreviewResized(ResourcePreview *prev);
+
   void AddResourceUsageEntry(QMenu &menu, uint32_t start, uint32_t end, ResourceUsage usage);
   void OpenResourceContextMenu(ResourceId id, bool input, const rdcarray<EventUsage> &usage);
 

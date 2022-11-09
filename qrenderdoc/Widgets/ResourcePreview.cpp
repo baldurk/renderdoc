@@ -35,6 +35,29 @@ ResourcePreview::ResourcePreview(ICaptureContext &c, IReplayOutput *output, QWid
   ui->thumbnail->SetContext(c);
   ui->thumbnail->SetOutput(output);
 
+  Initialise();
+}
+
+ResourcePreview::ResourcePreview(bool, QWidget *parent)
+    : QFrame(parent), ui(new Ui::ResourcePreview)
+{
+  ui->setupUi(this);
+
+  delete ui->thumbnail;
+  ui->thumbnail = NULL;
+  m_ManualThumbnail = new RDLabel();
+  m_ManualThumbnail->setGeometry(QRect(0, 0, 16, 16));
+  m_ManualThumbnail->setScaledContents(true);
+  m_ManualThumbnail->setSizePolicy(
+      QSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding));
+
+  ui->gridLayout->addWidget(m_ManualThumbnail, 0, 0, 1, 2);
+
+  Initialise();
+}
+
+void ResourcePreview::Initialise()
+{
   setBackgroundRole(QPalette::Background);
   setForegroundRole(QPalette::Foreground);
 
@@ -57,12 +80,19 @@ ResourcePreview::ResourcePreview(ICaptureContext &c, IReplayOutput *output, QWid
   ui->descriptionLabel->setForegroundRole(QPalette::Foreground);
   ui->descriptionLabel->setFont(Formatter::PreferredFont());
 
-  QObject::connect(ui->thumbnail, &CustomPaintWidget::clicked, this, &ResourcePreview::clickEvent);
+  if(ui->thumbnail)
+    QObject::connect(ui->thumbnail, &CustomPaintWidget::clicked, this, &ResourcePreview::clickEvent);
+  else if(m_ManualThumbnail)
+    QObject::connect(m_ManualThumbnail, &RDLabel::clicked, this, &ResourcePreview::clickEvent);
   QObject::connect(ui->slotLabel, &RDLabel::clicked, this, &ResourcePreview::clickEvent);
   QObject::connect(ui->descriptionLabel, &RDLabel::clicked, this, &ResourcePreview::clickEvent);
 
-  QObject::connect(ui->thumbnail, &CustomPaintWidget::doubleClicked, this,
-                   &ResourcePreview::doubleClickEvent);
+  if(ui->thumbnail)
+    QObject::connect(ui->thumbnail, &CustomPaintWidget::doubleClicked, this,
+                     &ResourcePreview::doubleClickEvent);
+  else if(m_ManualThumbnail)
+    QObject::connect(m_ManualThumbnail, &RDLabel::doubleClicked, this,
+                     &ResourcePreview::doubleClickEvent);
   QObject::connect(ui->slotLabel, &RDLabel::doubleClicked, this, &ResourcePreview::doubleClickEvent);
   QObject::connect(ui->descriptionLabel, &RDLabel::doubleClicked, this,
                    &ResourcePreview::doubleClickEvent);
@@ -110,5 +140,33 @@ void ResourcePreview::setSelected(bool sel)
 
 WindowingData ResourcePreview::GetWidgetWindowingData()
 {
-  return ui->thumbnail->GetWidgetWindowingData();
+  if(ui->thumbnail)
+    return ui->thumbnail->GetWidgetWindowingData();
+  return {};
+}
+
+QSize ResourcePreview::GetThumbSize()
+{
+  if(ui->thumbnail)
+    return ui->thumbnail->size();
+
+  if(m_ManualThumbnail)
+    return m_ManualThumbnail->size();
+
+  return {};
+}
+
+void ResourcePreview::UpdateThumb(QSize s, const bytebuf &imgData)
+{
+  if(!m_ManualThumbnail)
+    return;
+
+  QImage thumb(imgData.data(), s.width(), s.height(), s.width() * 3, QImage::Format_RGB888);
+  m_ManualThumbnail->setPixmap(QPixmap::fromImage(thumb));
+}
+
+void ResourcePreview::resizeEvent(QResizeEvent *e)
+{
+  emit resized(this);
+  QFrame::resizeEvent(e);
 }

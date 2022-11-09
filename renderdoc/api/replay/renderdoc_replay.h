@@ -292,6 +292,26 @@ Should only be called for texture outputs.
   virtual ResultDetails AddThumbnail(WindowingData window, ResourceId textureId,
                                      const Subresource &sub, CompType typeCast) = 0;
 
+  DOCUMENT(R"(Draws a thumbnail for a particular texture with sensible defaults and returns an RGBA8
+byte buffer for display. This does not render to a window but internally to a texture which is read
+back from the GPU.
+
+Should only be called for texture outputs.
+
+:param int width: The width of the desired thumbnail.
+:param int height: The height of the desired thumbnail.
+:param ResourceId textureId: The texture ID to display in the thumbnail preview.
+:param Subresource sub: The subresource within this texture to use.
+:param CompType typeCast: If possible interpret the texture with this type instead of its normal
+  type. If set to :data:`CompType.Typeless` then no cast is applied, otherwise where allowed the
+  texture data will be reinterpreted - e.g. from unsigned integers to floats, or to unsigned
+  normalised values.
+:return: A buffer with the thumbnail RGBA8 data if successful, or empty if something went wrong.
+:rtype: bytes
+)");
+  virtual bytebuf DrawThumbnail(int32_t width, int32_t height, ResourceId textureId,
+                                const Subresource &sub, CompType typeCast) = 0;
+
   DOCUMENT(R"(Render to the window handle specified when the output was created.
 
 This will also render any thumbnails and the pixel context, if enabled.
