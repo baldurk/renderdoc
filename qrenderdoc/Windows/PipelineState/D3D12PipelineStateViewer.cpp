@@ -1099,10 +1099,27 @@ void D3D12PipelineStateViewer::setShaderState(
         const bool srv = rootElements[i].type == BindType::ReadOnlyResource;
 
         RDTreeWidget *tree = srv ? resources : uavs;
-        const rdcarray<Bindpoint> &binds = srv ? stage.bindpointMapping.readOnlyResources
-                                               : stage.bindpointMapping.readWriteResources;
-        const rdcarray<ShaderResource> &res =
+        rdcarray<Bindpoint> binds = srv ? stage.bindpointMapping.readOnlyResources
+                                        : stage.bindpointMapping.readWriteResources;
+        rdcarray<ShaderResource> res =
             srv ? stage.reflection->readOnlyResources : stage.reflection->readWriteResources;
+
+        // pre-filter binds/res by space
+        for(size_t bi = 0; bi < binds.size();)
+        {
+          if(binds[bi].bindset != tag.space)
+          {
+            binds.erase(bi);
+            res.erase(bi);
+            continue;
+          }
+
+          bi++;
+        }
+
+        // if there are no binds and we're not showing unused slots, skip now
+        if(binds.empty() && !showNode(false, true))
+          continue;
 
         tag.type = srv ? D3D12ViewTag::SRV : D3D12ViewTag::UAV;
 
@@ -1130,49 +1147,50 @@ void D3D12PipelineStateViewer::setShaderState(
           lastView = views.size() - 1;
         }
 
+        const Bindpoint *bind = NULL;
+        const ShaderResource *shaderInput = NULL;
+        bool usedSlot = false;
+        uint32_t arraySize = 1;
+
         for(size_t j = firstView; j < views.size() && j <= lastView;)
         {
           int shaderReg = (int)views[j].bind;
 
-          // find the first matching bind for this element
-          const Bindpoint *bind = NULL;
-          const ShaderResource *shaderInput = NULL;
-
-          for(int k = 0; k < binds.count(); k++)
+          // only look for a new bind if we don't have one that already matches
+          if(bind == NULL ||
+             (bind->arraySize != ~0U && bind->bind + (int)bind->arraySize < shaderReg))
           {
-            const Bindpoint &b = binds[k];
-
-            // ignore binds in other spaces
-            if(b.bindset != tag.space)
-              continue;
-
-            // if we find an exact reg match, it's a match
-            bool regMatch = (b.bind == shaderReg);
-
-            // see if this bind is an array which our range falls into. We handle unbounded arrays
-            // specially assuming any earlier unbounded array contains all larger registers, since
-            // it's illegal to have an unbounded array with anything after it
-            if(b.bind <= shaderReg)
-              regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > shaderReg);
-
-            if(regMatch)
+            for(int k = 0; k < binds.count(); k++)
             {
-              bind = &b;
-              shaderInput = &res[k];
-              break;
+              const Bindpoint &b = binds[k];
+
+              // if we find an exact reg match, it's a match
+              bool regMatch = (b.bind == shaderReg);
+
+              // see if this bind is an array which our range falls into. We handle unbounded arrays
+              // specially assuming any earlier unbounded array contains all larger registers, since
+              // it's illegal to have an unbounded array with anything after it
+              if(b.bind <= shaderReg)
+                regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > shaderReg);
+
+              if(regMatch)
+              {
+                bind = &b;
+                shaderInput = &res[k];
+                break;
+              }
             }
-          }
 
-          bool usedSlot = (bind && bind->used);
+            usedSlot = (bind && bind->used) && rootElements[i].dynamicallyUsedCount > 0;
+            arraySize = bind ? qMax(1U, qMin((uint32_t)views.size(), bind->arraySize)) : 1;
 
-          uint32_t arraySize = bind ? qMax(1U, bind->arraySize) : 1;
-
-          // if this bind isn't used, skip
-          if(!showNode(usedSlot, true))
-          {
-            omittingEmpty = false;
-            j += arraySize;
-            continue;
+            // if this bind isn't used, skip
+            if(!showNode(usedSlot, true))
+            {
+              omittingEmpty = false;
+              j += arraySize;
+              continue;
+            }
           }
 
           if(arraySize > 1)
