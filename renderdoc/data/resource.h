@@ -65,6 +65,7 @@
 #define RESOURCE_glsl_vk_depthms2buffer_comp         448
 #define RESOURCE_glsl_vk_buffer2ms_comp              449
 #define RESOURCE_glsl_vk_depthbuf2ms_frag		     450
+#define RESOURCE_glsl_pixelhistory_primid_legacy_frag 451
 
 // Next default values for new objects
 // 

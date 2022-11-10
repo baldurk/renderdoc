@@ -1030,6 +1030,9 @@
     <None Include="data\glsl\pixelhistory_primid.frag">
       <Filter>Resources\glsl</Filter>
     </None>
+    <None Include="data\glsl\pixelhistory_primid_legacy.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
     <None Include="data\glsl\quadresolve.frag">
       <Filter>Resources\glsl</Filter>
     </None>

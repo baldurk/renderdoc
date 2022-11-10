@@ -433,6 +433,7 @@ set(data
     data/glsl/pixelhistory_mscopy.comp
     data/glsl/pixelhistory_mscopy_depth.comp
     data/glsl/pixelhistory_primid.frag
+    data/glsl/pixelhistory_primid_legacy.frag
     data/glsl/shaderdebug_sample.vert
     data/glsl/texdisplay.frag
     data/glsl/texremap.frag
