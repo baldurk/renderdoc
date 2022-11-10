@@ -45,6 +45,7 @@ struct GLPixelHistoryResources
   GLuint dsImage;
   GLuint frameBuffer;
   GLuint primitiveIdFragmentShader;
+  GLuint primitiveIdFragmentShaderSPIRV;
   std::unordered_map<GLuint, GLuint> programs;
 };
 
@@ -64,6 +65,193 @@ enum class PerFragmentQueryType
   PrimitiveId
 };
 
+GLuint CreatePrimitiveIdProgram(GLuint Program, GLuint Pipeline, GLuint fragShader,
+                                GLuint fragShaderSPIRV, WrappedOpenGL *driver, GLReplay *replay)
+{
+  WrappedOpenGL &drv = *driver;
+
+  ContextPair &ctx = drv.GetCtx();
+
+  GLuint primitiveIdProgram = drv.glCreateProgram();
+
+  // these are the shaders to attach, and the programs to copy details from
+  GLuint shaders[4] = {0};
+  GLuint programs[4] = {0};
+
+  // temporary programs created as needed if the original program was created with
+  // glCreateShaderProgramv and we don't have a shader to attach
+  GLuint tmpShaders[4] = {0};
+
+  // the reflection for the vertex shader, used to copy vertex bindings
+  ShaderReflection *vsRefl = NULL;
+
+  bool HasSPIRVShaders = false;
+  bool HasGLSLShaders = false;
+
+  if(Program == 0)
+  {
+    if(Pipeline == 0)
+    {
+      return false;
+    }
+    else
+    {
+      ResourceId id = driver->GetResourceManager()->GetResID(ProgramPipeRes(ctx, Pipeline));
+      const WrappedOpenGL::PipelineData &pipeDetails = driver->m_Pipelines[id];
+
+      // fetch the corresponding shaders and programs for each stage
+      for(size_t i = 0; i < 4; i++)
+      {
+        if(pipeDetails.stageShaders[i] != ResourceId())
+        {
+          const WrappedOpenGL::ShaderData &shadDetails =
+              driver->m_Shaders[pipeDetails.stageShaders[i]];
+
+          if(shadDetails.reflection->encoding == ShaderEncoding::SPIRV)
+            HasSPIRVShaders = true;
+          else
+            HasGLSLShaders = true;
+
+          programs[i] =
+              driver->GetResourceManager()->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
+          shaders[i] =
+              driver->GetResourceManager()->GetCurrentResource(pipeDetails.stageShaders[i]).name;
+
+          if(pipeDetails.stagePrograms[i] == pipeDetails.stageShaders[i])
+          {
+            const WrappedOpenGL::ProgramData &progDetails =
+                driver->m_Programs[pipeDetails.stagePrograms[i]];
+
+            if(progDetails.shaderProgramUnlinkable)
+            {
+              rdcarray<const char *> sources;
+              sources.reserve(shadDetails.sources.size());
+
+              for(const rdcstr &s : shadDetails.sources)
+                sources.push_back(s.c_str());
+
+              shaders[i] = tmpShaders[i] = drv.glCreateShader(ShaderEnum(i));
+              drv.glShaderSource(tmpShaders[i], (GLsizei)sources.size(), sources.data(), NULL);
+              drv.glCompileShader(tmpShaders[i]);
+
+              GLint status = 0;
+              drv.glGetShaderiv(tmpShaders[i], eGL_COMPILE_STATUS, &status);
+
+              if(status == 0)
+              {
+                char buffer[1024] = {};
+                drv.glGetShaderInfoLog(tmpShaders[i], 1024, NULL, buffer);
+                RDCERR("Trying to create primitive id program, couldn't compile shader:\n%s", buffer);
+              }
+            }
+          }
+
+          if(i == 0)
+            vsRefl = replay->GetShader(ResourceId(), pipeDetails.stageShaders[i], ShaderEntryPoint());
+        }
+      }
+    }
+  }
+  else
+  {
+    const WrappedOpenGL::ProgramData &progDetails =
+        driver->m_Programs[driver->GetResourceManager()->GetResID(ProgramRes(ctx, Program))];
+
+    // fetch any and all non-fragment shader shaders
+    for(size_t i = 0; i < 4; i++)
+    {
+      if(progDetails.stageShaders[i] != ResourceId())
+      {
+        programs[i] = Program;
+        shaders[i] =
+            driver->GetResourceManager()->GetCurrentResource(progDetails.stageShaders[i]).name;
+
+        const WrappedOpenGL::ShaderData &shadDetails = driver->m_Shaders[progDetails.stageShaders[i]];
+
+        if(shadDetails.reflection->encoding == ShaderEncoding::SPIRV)
+          HasSPIRVShaders = true;
+        else
+          HasGLSLShaders = true;
+
+        if(i == 0)
+          vsRefl = replay->GetShader(ResourceId(), progDetails.stageShaders[0], ShaderEntryPoint());
+      }
+    }
+  }
+
+  if(HasGLSLShaders && HasSPIRVShaders)
+    RDCERR("Unsupported - mixed GLSL and SPIR-V shaders in pipeline");
+
+  // attach the shaders
+  for(size_t i = 0; i < 4; i++)
+    if(shaders[i])
+      drv.glAttachShader(primitiveIdProgram, shaders[i]);
+
+  if(HasSPIRVShaders)
+  {
+    RDCASSERT(fragShaderSPIRV);
+    drv.glAttachShader(primitiveIdProgram, fragShaderSPIRV);
+  }
+  else
+  {
+    drv.glAttachShader(primitiveIdProgram, fragShader);
+  }
+
+  // copy the vertex attribs over from the source program
+  if(vsRefl && programs[0] && !HasSPIRVShaders)
+    CopyProgramAttribBindings(programs[0], primitiveIdProgram, vsRefl);
+
+  // link the overlay program
+  drv.glLinkProgram(primitiveIdProgram);
+
+  // detach the shaders
+  for(size_t i = 0; i < 4; i++)
+    if(shaders[i])
+      drv.glDetachShader(primitiveIdProgram, shaders[i]);
+
+  if(HasSPIRVShaders)
+    drv.glDetachShader(primitiveIdProgram, fragShaderSPIRV);
+  else
+    drv.glDetachShader(primitiveIdProgram, fragShader);
+
+  // delete any temporaries
+  for(size_t i = 0; i < 4; i++)
+    if(tmpShaders[i])
+      drv.glDeleteShader(tmpShaders[i]);
+
+  // check that the link succeeded
+  char buffer[1024] = {};
+  GLint status = 0;
+  drv.glGetProgramiv(primitiveIdProgram, eGL_LINK_STATUS, &status);
+  if(status == 0)
+  {
+    drv.glGetProgramInfoLog(primitiveIdProgram, 1024, NULL, buffer);
+    RDCERR("Error linking primitive id program: %s", buffer);
+    return false;
+  }
+
+  // copy the uniform values over from the source program. This is redundant but harmless if the
+  // same program is bound to multiple stages. It's just inefficient
+  {
+    PerStageReflections dstStages;
+    driver->FillReflectionArray(ProgramRes(ctx, primitiveIdProgram), dstStages);
+
+    for(size_t i = 0; i < 4; i++)
+    {
+      if(programs[i])
+      {
+        PerStageReflections stages;
+        driver->FillReflectionArray(ProgramRes(ctx, programs[i]), stages);
+
+        CopyProgramUniforms(stages, programs[i], dstStages, primitiveIdProgram);
+      }
+    }
+  }
+
+  // return HasSPIRVShaders;
+  return primitiveIdProgram;
+}
+
 GLuint GetPrimitiveIdProgram(WrappedOpenGL *driver, GLReplay *replay,
                              GLPixelHistoryResources &resources, GLuint currentProgram)
 {
@@ -73,69 +261,19 @@ GLuint GetPrimitiveIdProgram(WrappedOpenGL *driver, GLReplay *replay,
     return programIterator->second;
   }
 
-  GLuint newProgram;
+  GLRenderState rs;
+  rs.FetchState(driver);
 
-  GLint numAttachedShaders;
-  driver->glGetProgramiv(currentProgram, eGL_ATTACHED_SHADERS, &numAttachedShaders);
-
-  newProgram = driver->glCreateProgram();
-
-  GLuint *attachedShaders = new GLuint[numAttachedShaders];
-
-  driver->glGetAttachedShaders(currentProgram, numAttachedShaders, &numAttachedShaders,
-                               attachedShaders);
-
-  ShaderReflection *vsRefl = NULL;
-  for(int i = 0; i < numAttachedShaders; ++i)
-  {
-    GLint shaderType;
-    driver->glGetShaderiv(attachedShaders[i], eGL_SHADER_TYPE, &shaderType);
-
-    if(shaderType != eGL_FRAGMENT_SHADER)
-    {
-      driver->glAttachShader(newProgram, attachedShaders[i]);
-    }
-
-    if(shaderType == eGL_VERTEX_SHADER)
-    {
-      vsRefl = replay->GetShader(ResourceId(), driver->GetResourceManager()->GetResID(
-                                                   ShaderRes(driver->GetCtx(), attachedShaders[i])),
-                                 ShaderEntryPoint());
-    }
-  }
-  delete[] attachedShaders;
-
-  driver->glAttachShader(newProgram, resources.primitiveIdFragmentShader);
-  if(vsRefl)
-  {
-    CopyProgramAttribBindings(currentProgram, newProgram, vsRefl);
-  }
-  driver->glLinkProgram(newProgram);
-
-  char buffer[1024] = {};
-  GLint status = 0;
-  driver->glGetProgramiv(newProgram, eGL_LINK_STATUS, &status);
-  if(status == 0)
-  {
-    GL.glGetProgramInfoLog(newProgram, 1024, NULL, buffer);
-    RDCERR("Shader error: %s", buffer);
-  }
-
-  resources.programs[currentProgram] = newProgram;
-
-  PerStageReflections dstStages;
-  driver->FillReflectionArray(ProgramRes(driver->GetCtx(), newProgram), dstStages);
-
-  PerStageReflections stages;
-  driver->FillReflectionArray(ProgramRes(driver->GetCtx(), newProgram), stages);
-  CopyProgramUniforms(stages, currentProgram, dstStages, newProgram);
+  GLuint newProgram = CreatePrimitiveIdProgram(
+      rs.Program.name, rs.Pipeline.name, resources.primitiveIdFragmentShader,
+      resources.primitiveIdFragmentShaderSPIRV, driver, replay);
 
   return newProgram;
 }
 
 bool PixelHistorySetupResources(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
                                 const TextureDescription &desc, const Subresource &sub,
-                                uint32_t numEvents)
+                                uint32_t numEvents, GLuint glslVersion)
 {
   // Allocate a framebuffer that will render to the textures
   driver->glGenFramebuffers(1, &resources.frameBuffer);
@@ -156,15 +294,24 @@ bool PixelHistorySetupResources(WrappedOpenGL *driver, GLPixelHistoryResources &
                              desc.msSamp, 1);
   driver->glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, resources.dsImage, 0);
 
-  // The pixel history primitive ID Fragment Shader requires at least version 420.
-  // This is because it requires scalars to be swizzled something enabled
-  // in version 420. We also require intBitsToFloat which is introduced in
-  // version 330.
-  int GLSLVersion = 420;
-
-  rdcstr fs = GenerateGLSLShader(GetEmbeddedResource(glsl_pixelhistory_primid_frag),
-                                 ShaderType::GLSL, GLSLVersion);
-  resources.primitiveIdFragmentShader = CreateShader(eGL_FRAGMENT_SHADER, fs);
+  // If the GLSL version is greater than or equal to 330, we can use IntBitsToFloat, otherwise we
+  // need to write the float value directly.
+  rdcstr glslSource;
+  if(glslVersion >= 330)
+  {
+    glslSource = GenerateGLSLShader(GetEmbeddedResource(glsl_pixelhistory_primid_frag),
+                                    ShaderType::GLSL, glslVersion);
+  }
+  else
+  {
+    glslSource = GenerateGLSLShader(GetEmbeddedResource(glsl_pixelhistory_primid_legacy_frag),
+                                    ShaderType::GLSL, glslVersion);
+  }
+  // SPIR-V shaders are always generated as desktop GL 430, for ease
+  rdcstr spirvSource = GenerateGLSLShader(GetEmbeddedResource(glsl_pixelhistory_primid_frag),
+                                          ShaderType::GLSPIRV, 430);
+  resources.primitiveIdFragmentShaderSPIRV = CreateSPIRVShader(eGL_FRAGMENT_SHADER, spirvSource);
+  resources.primitiveIdFragmentShader = CreateShader(eGL_FRAGMENT_SHADER, glslSource);
 
   return true;
 }
@@ -175,6 +322,7 @@ bool PixelHistoryDestroyResources(WrappedOpenGL *driver, const GLPixelHistoryRes
   driver->glDeleteTextures(1, &resources.dsImage);
   driver->glDeleteFramebuffers(1, &resources.frameBuffer);
   driver->glDeleteShader(resources.primitiveIdFragmentShader);
+  driver->glDeleteShader(resources.primitiveIdFragmentShaderSPIRV);
 
   for(const std::pair<const GLuint, GLuint> &resourceProgram : resources.programs)
   {
@@ -195,7 +343,7 @@ rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryR
 
   driver->ReplayLog(0, events[0].eventId, eReplay_WithoutDraw);
   // execute the occlusion queries
-  for(size_t i = 0; i < events.size(); ++i)
+  for(size_t i = 0; i < events.size(); i++)
   {
     if(!(events[i].usage == ResourceUsage::Clear || isDirectWrite(events[i].usage)))
     {
@@ -220,7 +368,7 @@ rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryR
     }
   }
   // read back the occlusion queries and generate the list of potentially modifying events
-  for(size_t i = 0; i < events.size(); ++i)
+  for(size_t i = 0; i < events.size(); i++)
   {
     if(events[i].usage == ResourceUsage::Clear || isDirectWrite(events[i].usage))
     {
@@ -251,9 +399,48 @@ rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryR
   return modEvents;
 }
 
+void QueryPostModPixelValues(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
+                             const rdcarray<EventUsage> &modEvents, int x, int y,
+                             rdcarray<PixelModification> &history)
+{
+  driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.frameBuffer);
+  driver->glClear(eGL_COLOR_BUFFER_BIT | eGL_DEPTH_BUFFER_BIT | eGL_STENCIL_BUFFER_BIT);
+  driver->ReplayLog(0, modEvents[0].eventId, eReplay_WithoutDraw);
+
+  for(size_t i = 0; i < modEvents.size(); i++)
+  {
+    GLint savedReadFramebuffer, savedDrawFramebuffer;
+    driver->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &savedDrawFramebuffer);
+    driver->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &savedReadFramebuffer);
+    // bind our own framebuffer to save the pixel values
+    driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.frameBuffer);
+    driver->ReplayLog(modEvents[i].eventId, modEvents[i].eventId, eReplay_Full);
+
+    // read the post mod pixel value into the history event
+    ModificationValue modValue;
+    PixelValue pixelValue;
+    driver->glReadPixels(x, y, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)pixelValue.floatValue.data());
+    driver->glReadPixels(x, y, 1, 1, eGL_DEPTH_COMPONENT, eGL_FLOAT, (void *)&modValue.depth);
+    driver->glReadPixels(x, y, 1, 1, eGL_STENCIL_INDEX, eGL_INT, (void *)&modValue.stencil);
+    modValue.col = pixelValue;
+
+    history[i].postMod = modValue;
+
+    // restore the capture's framebuffer
+    driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, savedDrawFramebuffer);
+    driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedReadFramebuffer);
+
+    if(i < modEvents.size() - 1)
+    {
+      driver->ReplayLog(modEvents[i].eventId + 1, modEvents[i + 1].eventId, eReplay_WithoutDraw);
+    }
+  }
+}
+
 std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(WrappedOpenGL *driver,
                                                       GLPixelHistoryResources &resources,
-                                                      const rdcarray<EventUsage> &modEvents, int x,
+                                                      const rdcarray<EventUsage> &modEvents,
+                                                      rdcarray<PixelModification> &history, int x,
                                                       int y)
 {
   driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.frameBuffer);
@@ -264,30 +451,45 @@ std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(WrappedOpenGL *driver,
 
   for(size_t i = 0; i < modEvents.size(); ++i)
   {
-    if(!isDirectWrite(modEvents[i].usage) && modEvents[i].usage != ResourceUsage::Clear)
-    {
-      GLint savedReadFramebuffer, savedDrawFramebuffer;
-      driver->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &savedDrawFramebuffer);
-      driver->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &savedReadFramebuffer);
-      // bind our own framebuffer to save the pixel values
-      driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.frameBuffer);
-      driver->glStencilOp(eGL_INCR, eGL_INCR, eGL_INCR);
-      driver->glStencilMask(0xff);
-      driver->glClearStencil(0);
-      driver->glClear(eGL_STENCIL_BUFFER_BIT);
-      driver->glEnable(eGL_STENCIL_TEST);
-      driver->ReplayLog(modEvents[i].eventId, modEvents[i].eventId, eReplay_Full);
+    GLint savedReadFramebuffer, savedDrawFramebuffer;
+    driver->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &savedDrawFramebuffer);
+    driver->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &savedReadFramebuffer);
+    // bind our own framebuffer to save the pixel values
+    driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.frameBuffer);
+    driver->glStencilOp(eGL_INCR, eGL_INCR, eGL_INCR);
+    driver->glStencilMask(0xff);    // default for 1 byte
+    driver->glStencilFunc(eGL_ALWAYS, 0, 0xff);
+    driver->glClearStencil(0);
+    driver->glClear(eGL_STENCIL_BUFFER_BIT);
+    driver->glEnable(eGL_STENCIL_TEST);
+    // depth test enable
+    driver->glEnable(eGL_DEPTH_TEST);
+    driver->glDepthFunc(eGL_ALWAYS);
+    driver->glDepthMask(GL_TRUE);
+    driver->glDisable(eGL_BLEND);
+    // replay start
+    driver->ReplayLog(modEvents[i].eventId, modEvents[i].eventId, eReplay_OnlyDraw);
 
-      // read and get number of fragments
-      uint32_t numFragments;
-      driver->glReadPixels(x, y, 1, 1, eGL_STENCIL_INDEX, eGL_INT, (void *)&numFragments);
+    uint32_t numFragments;
+    ModificationValue modValue;
+    PixelValue pixelValue;
 
-      eventFragments.emplace(modEvents[i].eventId, numFragments);
+    driver->glReadPixels(x, y, 1, 1, eGL_STENCIL_INDEX, eGL_INT, (void *)&numFragments);
+    driver->glReadPixels(x, y, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)pixelValue.floatValue.data());
+    driver->glReadPixels(x, y, 1, 1, eGL_DEPTH_COMPONENT, eGL_FLOAT, (void *)&modValue.depth);
+    modValue.col = pixelValue;
 
-      // restore the capture's framebuffer
-      driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, savedDrawFramebuffer);
-      driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedReadFramebuffer);
-    }
+    // We're not reading the stencil value here, so use the postMod instead.
+    // Shaders don't actually output stencil values, those are determined by the stencil op.
+    modValue.stencil = history[i].postMod.stencil;
+
+    history[i].shaderOut = modValue;
+
+    eventFragments.emplace(modEvents[i].eventId, numFragments);
+
+    // restore the capture's framebuffer
+    driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, savedDrawFramebuffer);
+    driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedReadFramebuffer);
 
     if(i < modEvents.size() - 1)
     {
@@ -397,14 +599,12 @@ void QueryPerFragmentValues(WrappedOpenGL *driver, GLReplay *replay,
                             GLPixelHistoryResources &resources, const EventUsage &modEvent, int x,
                             int y, rdcarray<PixelModification> &history,
                             const std::map<uint32_t, uint32_t> &eventFragments,
-                            PerFragmentQueryType queryType)
+                            PerFragmentQueryType queryType, bool usingLegacyPrimitiveId,
+                            uint32_t numFragments)
 {
   driver->ReplayLog(0, modEvent.eventId - 1, eReplay_Full);
   driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.frameBuffer);
   driver->glReadBuffer(eGL_COLOR_ATTACHMENT0);
-
-  auto it = eventFragments.find(modEvent.eventId);
-  uint32_t numFragments = (it != eventFragments.end()) ? it->second : 0;
 
   driver->glEnable(eGL_SCISSOR_TEST);
   driver->glScissor(x, y, 1, 1);
@@ -432,6 +632,8 @@ void QueryPerFragmentValues(WrappedOpenGL *driver, GLReplay *replay,
                          return h1.eventId < h2.eventId;
                        });
   RDCASSERT(historyIndex != history.end());
+
+  GLint currentProgram = 0;
 
   if(queryType == PerFragmentQueryType::PostMod)
   {
@@ -464,8 +666,6 @@ void QueryPerFragmentValues(WrappedOpenGL *driver, GLReplay *replay,
     driver->glClearColor(0.84f, 0.17f, 0.2f, 0.49f);
     driver->glClear(eGL_COLOR_BUFFER_BIT);
 
-    GLint currentProgram;
-
     driver->glGetIntegerv(eGL_CURRENT_PROGRAM, &currentProgram);
 
     driver->glUseProgram(GetPrimitiveIdProgram(driver, replay, resources, currentProgram));
@@ -476,19 +676,32 @@ void QueryPerFragmentValues(WrappedOpenGL *driver, GLReplay *replay,
     ModificationValue modValue;
     PixelValue pixelValue;
     modValue.stencil = 0;
+    // Set the stencil function so only jth fragment will pass.
     driver->glStencilFunc(eGL_EQUAL, (int)j, 0xff);
     driver->glClear(eGL_STENCIL_BUFFER_BIT);
 
-    driver->ReplayLog(modEvent.eventId, modEvent.eventId, eReplay_Full);
+    driver->ReplayLog(modEvent.eventId, modEvent.eventId, eReplay_OnlyDraw);
 
     if(queryType == PerFragmentQueryType::PrimitiveId)
     {
-      int primitiveIds[4];
-      driver->glReadPixels(x, y, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)primitiveIds);
+      if(usingLegacyPrimitiveId)
+      {
+        float primitiveIds[4];
+        driver->glReadPixels(x, y, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)primitiveIds);
 
-      RDCASSERT(primitiveIds[0] == primitiveIds[1] && primitiveIds[0] == primitiveIds[2] &&
-                primitiveIds[0] == primitiveIds[3]);
-      historyIndex->primitiveID = primitiveIds[0];
+        RDCASSERT(primitiveIds[0] == primitiveIds[1] && primitiveIds[0] == primitiveIds[2] &&
+                  primitiveIds[0] == primitiveIds[3]);
+        historyIndex->primitiveID = int(primitiveIds[0]);
+      }
+      else
+      {
+        int primitiveIds[4];
+        driver->glReadPixels(x, y, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)primitiveIds);
+
+        RDCASSERT(primitiveIds[0] == primitiveIds[1] && primitiveIds[0] == primitiveIds[2] &&
+                  primitiveIds[0] == primitiveIds[3]);
+        historyIndex->primitiveID = primitiveIds[0];
+      }
     }
     else
     {
@@ -508,43 +721,11 @@ void QueryPerFragmentValues(WrappedOpenGL *driver, GLReplay *replay,
     }
     ++historyIndex;
   }
-}
 
-void WriteClearValues(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
-                      const EventUsage clearEvent, int x, int y, rdcarray<PixelModification> &history)
-{
-  driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.frameBuffer);
-  driver->glClear(eGL_COLOR_BUFFER_BIT | eGL_DEPTH_BUFFER_BIT | eGL_STENCIL_BUFFER_BIT);
-  driver->ReplayLog(0, clearEvent.eventId - 1, eReplay_WithoutDraw);
-
-  GLint savedReadFramebuffer, savedDrawFramebuffer;
-  driver->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &savedDrawFramebuffer);
-  driver->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &savedReadFramebuffer);
-  // bind our own framebuffer to save the pixel values
-  driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.frameBuffer);
-  driver->ReplayLog(clearEvent.eventId, clearEvent.eventId, eReplay_Full);
-
-  // read the post mod pixel value into the history event
-  ModificationValue modValue;
-  PixelValue pixelValue;
-  driver->glReadPixels(x, y, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)pixelValue.floatValue.data());
-  driver->glReadPixels(x, y, 1, 1, eGL_DEPTH_COMPONENT, eGL_FLOAT, (void *)&modValue.depth);
-  driver->glReadPixels(x, y, 1, 1, eGL_STENCIL_INDEX, eGL_INT, (void *)&modValue.stencil);
-  modValue.col = pixelValue;
-
-  PixelModification referenceHistory;
-  referenceHistory.eventId = clearEvent.eventId;
-  auto historyIndex =
-      std::lower_bound(history.begin(), history.end(), referenceHistory,
-                       [](const PixelModification &h1, const PixelModification &h2) -> bool {
-                         return h1.eventId < h2.eventId;
-                       });
-
-  historyIndex->postMod = modValue;
-
-  // restore the capture's framebuffer
-  driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, savedDrawFramebuffer);
-  driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedReadFramebuffer);
+  if(queryType == PerFragmentQueryType::PrimitiveId)
+  {
+    driver->glUseProgram(currentProgram);
+  }
 }
 
 bool depthTestPassed(int depthFunc, float shaderOutputDepth, float depthInBuffer)
@@ -560,19 +741,28 @@ bool depthTestPassed(int depthFunc, float shaderOutputDepth, float depthInBuffer
     case eGL_GEQUAL: return shaderOutputDepth >= depthInBuffer;
     case eGL_ALWAYS: return true;
 
-    default: RDCASSERT(0);
+    default: RDCERR("Unexpected depth function: %d", depthFunc);
   }
   return false;
 }
 
 void CalculateFragmentDepthTests(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
                                  const rdcarray<EventUsage> &modEvents,
-                                 rdcarray<PixelModification> &history)
+                                 rdcarray<PixelModification> &history,
+                                 const std::map<uint32_t, uint32_t> &eventFragments)
 {
   driver->ReplayLog(0, modEvents[0].eventId, eReplay_WithoutDraw);
   size_t historyIndex = 0;
   for(size_t i = 0; i < modEvents.size(); ++i)
   {
+    // We only need to calculate the depth test for events with multiple fragments.
+    auto it = eventFragments.find(modEvents[i].eventId);
+    uint32_t numFragments = (it != eventFragments.end()) ? it->second : 0;
+    if(numFragments <= 1)
+    {
+      continue;
+    }
+
     for(; historyIndex < history.size() && modEvents[i].eventId == history[historyIndex].eventId;
         ++historyIndex)
     {
@@ -649,7 +839,11 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
-  PixelHistorySetupResources(m_pDriver, resources, textureDesc, sub, (uint32_t)events.size());
+  int glslVersion = DebugData.glslVersion;
+  bool usingLegacyPrimitveId = glslVersion < 330;
+
+  PixelHistorySetupResources(m_pDriver, resources, textureDesc, sub, (uint32_t)events.size(),
+                             glslVersion);
 
   rdcarray<EventUsage> modEvents =
       QueryModifyingEvents(m_pDriver, resources, events, x, flippedY, history);
@@ -661,8 +855,10 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
   }
 
   QueryFailedTests(m_pDriver, resources, modEvents, x, flippedY, history);
+  QueryPostModPixelValues(m_pDriver, resources, modEvents, x, flippedY, history);
+
   std::map<uint32_t, uint32_t> eventFragments =
-      QueryNumFragmentsByEvent(m_pDriver, resources, modEvents, x, flippedY);
+      QueryNumFragmentsByEvent(m_pDriver, resources, modEvents, history, x, flippedY);
 
   // copy history entries to create one history per fragment
   for(size_t h = 0; h < history.size();)
@@ -686,18 +882,19 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
 
   for(const EventUsage &modEvent : modEvents)
   {
-    if(modEvent.usage == ResourceUsage::Clear)
-    {
-      WriteClearValues(m_pDriver, resources, modEvent, x, flippedY, history);
-    }
-    else
+    auto it = eventFragments.find(modEvent.eventId);
+    uint32_t numFragments = (it != eventFragments.end()) ? it->second : 0;
+    if(numFragments > 1)
     {
       QueryPerFragmentValues(m_pDriver, this, resources, modEvent, x, flippedY, history,
-                             eventFragments, PerFragmentQueryType::ShaderOut);
+                             eventFragments, PerFragmentQueryType::ShaderOut, usingLegacyPrimitveId,
+                             numFragments);
       QueryPerFragmentValues(m_pDriver, this, resources, modEvent, x, flippedY, history,
-                             eventFragments, PerFragmentQueryType::PrimitiveId);
+                             eventFragments, PerFragmentQueryType::PrimitiveId,
+                             usingLegacyPrimitveId, numFragments);
       QueryPerFragmentValues(m_pDriver, this, resources, modEvent, x, flippedY, history,
-                             eventFragments, PerFragmentQueryType::PostMod);
+                             eventFragments, PerFragmentQueryType::PostMod, usingLegacyPrimitveId,
+                             numFragments);
     }
   }
 
@@ -707,7 +904,7 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
     history[i].preMod = history[i - 1].postMod;
   }
 
-  CalculateFragmentDepthTests(m_pDriver, resources, modEvents, history);
+  CalculateFragmentDepthTests(m_pDriver, resources, modEvents, history, eventFragments);
 
   PixelHistoryDestroyResources(m_pDriver, resources);
   return history;
