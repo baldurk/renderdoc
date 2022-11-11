@@ -916,6 +916,52 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
         // the resource has been unmapped on another thread before we got here.
         if(data)
         {
+          QueueReadbackData &queueReadback = m_pDevice->GetQueueReadbackData();
+
+          D3D12_COMMAND_LIST_TYPE type = GetDesc().Type;
+
+          if(type >= ARRAY_COUNT(queueReadback.lists))
+          {
+            RDCERR("Unexpected invalid queue type %s", ToStr(type).c_str());
+          }
+          else if(1)
+          {
+          }
+          else
+          {
+            ID3D12GraphicsCommandList *list = queueReadback.lists[type];
+            ID3D12CommandAllocator *alloc = queueReadback.allocs[type];
+
+            RDCLOG("Doing GPU readback of mapped memory");
+
+            D3D12_HEAP_PROPERTIES heapProps;
+            res->GetHeapProperties(&heapProps, NULL);
+
+            if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD ||
+               heapProps.CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE)
+            {
+              if(!list)
+              {
+                RDCERR("No readback list prepared for queue type %s", ToStr(type).c_str());
+              }
+              else
+              {
+                queueReadback.lock.Lock();
+
+                queueReadback.Resize(size);
+
+                list->Reset(alloc, NULL);
+                list->CopyBufferRegion(queueReadback.readbackBuf, 0, res, 0, size);
+                list->Close();
+                ID3D12CommandList *listptr = Unwrap(list);
+                m_pReal->ExecuteCommandLists(1, &listptr);
+                m_pDevice->GPUSync(this);
+
+                data = queueReadback.readbackMapped;
+              }
+            }
+          }
+
           if(ref)
             found = FindDiffRange(data, ref, size, diffStart, diffEnd);
           else
@@ -945,6 +991,9 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
           {
             RDCDEBUG("Persistent map flush not needed for %s", ToStr(res->GetResourceID()).c_str());
           }
+
+          if(data == queueReadback.readbackMapped)
+            queueReadback.lock.Unlock();
         }
 
         res->UnlockMaps();

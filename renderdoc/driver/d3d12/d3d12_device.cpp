@@ -724,10 +724,9 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
     m_pInfoQueue->ClearStoredMessages();
 
+    m_pInfoQueue->SetMuteDebugOutput(false);
     if(RenderDoc::Inst().IsReplayApp())
     {
-      m_pInfoQueue->SetMuteDebugOutput(false);
-
       D3D12_MESSAGE_ID mute[] = {
           // the runtime cries foul when you use normal APIs in expected ways (for simple markers)
           D3D12_MESSAGE_ID_CORRUPTED_PARAMETER2,
@@ -3473,6 +3472,54 @@ void WrappedID3D12Device::FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle)
   }
 }
 
+void QueueReadbackData::Resize(uint64_t size)
+{
+  size = AlignUp(size, 4096ULL);
+
+  if(readbackSize >= size && size != 0)
+    return;
+
+  if(readbackBuf)
+  {
+    Unwrap(readbackBuf)->Unmap(0, NULL);
+    SAFE_RELEASE(readbackBuf);
+    readbackMapped = NULL;
+  }
+
+  readbackSize = size;
+
+  if(size == 0)
+    return;
+
+  RDCLOG("Resizing GPU readback window to %llu", size);
+
+  D3D12_RESOURCE_DESC readbackDesc;
+  readbackDesc.Alignment = 0;
+  readbackDesc.DepthOrArraySize = 1;
+  readbackDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  readbackDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+  readbackDesc.Format = DXGI_FORMAT_UNKNOWN;
+  readbackDesc.Height = 1;
+  readbackDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  readbackDesc.MipLevels = 1;
+  readbackDesc.SampleDesc.Count = 1;
+  readbackDesc.SampleDesc.Quality = 0;
+  readbackDesc.Width = size;
+
+  D3D12_HEAP_PROPERTIES heapProps;
+  heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+  heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+  heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+  heapProps.CreationNodeMask = 1;
+  heapProps.VisibleNodeMask = 1;
+
+  device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &readbackDesc,
+                                  D3D12_RESOURCE_STATE_COPY_DEST, NULL, __uuidof(ID3D12Resource),
+                                  (void **)&readbackBuf);
+  // don't intercept the map
+  Unwrap(readbackBuf)->Map(0, NULL, (void **)&readbackMapped);
+}
+
 void WrappedID3D12Device::CreateInternalResources()
 {
   if(IsReplayMode(m_State))
@@ -3497,6 +3544,25 @@ void WrappedID3D12Device::CreateInternalResources()
 
   // we don't want replay-only shaders added in WrappedID3D12Shader to pollute the list of resources
   WrappedID3D12Shader::InternalResources(true);
+
+  {
+    m_QueueReadbackData.device = this;
+    m_QueueReadbackData.Resize(4 * 1024 * 1024);
+    InternalRef();
+
+    for(D3D12_COMMAND_LIST_TYPE type :
+        {D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_TYPE_COMPUTE,
+         D3D12_COMMAND_LIST_TYPE_COPY})
+    {
+      CreateCommandAllocator(type, __uuidof(ID3D12CommandAllocator),
+                             (void **)&m_QueueReadbackData.allocs[type]);
+      InternalRef();
+      CreateCommandList(0, type, m_QueueReadbackData.allocs[type], NULL,
+                        __uuidof(ID3D12GraphicsCommandList),
+                        (void **)&m_QueueReadbackData.lists[type]);
+      InternalRef();
+    }
+  }
 
   CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator),
                          (void **)&m_Alloc);
@@ -3586,6 +3652,12 @@ void WrappedID3D12Device::DestroyInternalResources()
   for(size_t i = 0; i < ARRAY_COUNT(m_DataUploadList); i++)
     SAFE_RELEASE(m_DataUploadList[i]);
   SAFE_RELEASE(m_DataUploadAlloc);
+
+  for(size_t i = 0; i < ARRAY_COUNT(m_QueueReadbackData.allocs); i++)
+    SAFE_RELEASE(m_QueueReadbackData.allocs[i]);
+  for(size_t i = 0; i < ARRAY_COUNT(m_QueueReadbackData.lists); i++)
+    SAFE_RELEASE(m_QueueReadbackData.lists[i]);
+  m_QueueReadbackData.Resize(0);
 
   SAFE_RELEASE(m_Alloc);
   SAFE_RELEASE(m_GPUSyncFence);

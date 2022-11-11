@@ -61,6 +61,20 @@ struct D3D12InitParams
 
 DECLARE_REFLECTION_STRUCT(D3D12InitParams);
 
+struct QueueReadbackData
+{
+  Threading::CriticalSection lock;
+  ID3D12Resource *readbackBuf = NULL;
+  byte *readbackMapped = NULL;
+  uint64_t readbackSize = 0;
+  ID3D12GraphicsCommandList *lists[6] = {};
+  ID3D12CommandAllocator *allocs[6] = {};
+
+  void Resize(uint64_t size);
+
+  WrappedID3D12Device *device;
+};
+
 class WrappedID3D12Device;
 class WrappedID3D12Resource;
 class WrappedID3D12PipelineState;
@@ -588,6 +602,7 @@ private:
   WrappedID3D12CommandQueue *m_Queue;
 
   ID3D12CommandAllocator *m_Alloc = NULL, *m_DataUploadAlloc = NULL;
+  QueueReadbackData m_QueueReadbackData;
   ID3D12GraphicsCommandList *m_DataUploadList[64] = {};
   size_t m_CurDataUpload = 0;
   ID3D12DescriptorHeap *m_RTVHeap = NULL;
@@ -806,6 +821,7 @@ public:
   void FirstFrame(IDXGISwapper *swapper);
   const ActionDescription *GetAction(uint32_t eventId);
 
+  QueueReadbackData &GetQueueReadbackData() { return m_QueueReadbackData; }
   bool IsBindlessResourceUseActive() const { return m_BindlessResourceUseActive; }
   ResourceId GetFrameCaptureResourceId() { return m_FrameCaptureRecord->GetResourceID(); }
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
