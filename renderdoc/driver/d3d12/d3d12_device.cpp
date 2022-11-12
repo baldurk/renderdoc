@@ -1754,15 +1754,35 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
 
   SERIALISE_ELEMENT(range);
 
-  // if we mapped the resource for a cpu upload, we can unmap now
-  if(!gpuUpload && IsActiveReplaying(m_State))
-  {
-    // set the pointer to NULL so that it doesn't get deserialised
-    MappedData = NULL;
-    Resource->Unmap(Subresource, &range);
-  }
-
   uint64_t rangeSize = range.End - range.Begin;
+
+  if(!gpuUpload && ser.IsReading())
+  {
+    if(IsLoading(m_State))
+    {
+      byte *writePtr = NULL;
+      HRESULT hr = Resource->Map(Subresource, &nopRange, (void **)&writePtr);
+      CheckHRESULT(hr);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to map resource on replay HRESULT: %s", ToStr(hr).c_str());
+      }
+
+      if(writePtr)
+      {
+        writePtr += range.Begin;
+        memcpy(writePtr, MappedData, (size_t)rangeSize);
+        Resource->Unmap(Subresource, &range);
+      }
+    }
+    else if(IsActiveReplaying(m_State))
+    {
+      // if we mapped the resource for a cpu upload, we can unmap now
+      // set the pointer to NULL so that it doesn't get freed later
+      MappedData = NULL;
+      Resource->Unmap(Subresource, &range);
+    }
+  }
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1854,7 +1874,6 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
       m_CurDataUpload++;
       if(m_CurDataUpload == ARRAY_COUNT(m_DataUploadList))
       {
-        RDCLOG("Wraparound GPU map copies");
         GPUSync();
         m_CurDataUpload = 0;
       }
