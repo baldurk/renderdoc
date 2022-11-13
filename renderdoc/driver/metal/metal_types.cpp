@@ -169,7 +169,8 @@ static NS::Array *CreateUnwrappedNSArray(rdcarray<typename UnwrapHelper<MTL_TYPE
   int count = from.count();
   if(count)
   {
-    rdcarray<MTL_TYPE> unwrapped(count);
+    rdcarray<MTL_TYPE> unwrapped;
+    unwrapped.resize(count);
     for(int i = 0; i < count; ++i)
     {
       unwrapped[i] = Unwrap(from[i]);
@@ -358,8 +359,10 @@ void LinkedFunctions::CopyTo(MTL::LinkedFunctions *objc)
     int countKeys = groups.count();
     if(countKeys)
     {
-      rdcarray<NS::Array *> values(countKeys);
-      rdcarray<NS::String *> keys(countKeys);
+      rdcarray<NS::Array *> values;
+      rdcarray<NS::String *> keys;
+      keys.resize(countKeys);
+      values.resize(countKeys);
       for(int i = 0; i < countKeys; ++i)
       {
         FunctionGroup &funcGroup = groups[i];
