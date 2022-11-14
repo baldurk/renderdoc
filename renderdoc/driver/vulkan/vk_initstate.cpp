@@ -221,7 +221,10 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
         AllocateMemoryForResource(dstBuf, MemoryScope::InitialContents, MemoryType::Readback);
 
     if(readbackmem.mem == VK_NULL_HANDLE)
+    {
+      RDCERR("Couldn't allocate readback memory");
       return false;
+    }
 
     vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(dstBuf), Unwrap(readbackmem.mem),
                                        readbackmem.offs);
@@ -451,7 +454,10 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
         AllocateMemoryForResource(dstBuf, MemoryScope::InitialContents, MemoryType::Readback);
 
     if(readbackmem.mem == VK_NULL_HANDLE)
+    {
+      RDCERR("Couldn't allocate readback memory");
       return false;
+    }
 
     CheckVkResult(vkr);
     vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(dstBuf), Unwrap(readbackmem.mem),
