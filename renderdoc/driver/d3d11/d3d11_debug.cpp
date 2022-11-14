@@ -1558,6 +1558,8 @@ void ShaderDebugging::Init(WrappedID3D11Device *device)
 void ShaderDebugging::Release()
 {
   SAFE_RELEASE(MathCS);
+  SAFE_RELEASE(SampleVS);
+  SAFE_RELEASE(SamplePS);
   SAFE_RELEASE(ParamBuf);
   SAFE_RELEASE(OutBuf);
   SAFE_RELEASE(OutStageBuf);
