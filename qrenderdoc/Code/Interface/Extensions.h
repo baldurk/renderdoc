@@ -927,6 +927,79 @@ an unknown option is passed, nothing will happen.
 )")
   virtual void SelectComboOption(QWidget *combo, const rdcstr &option) = 0;
 
+  DOCUMENT(R"(Create a progress bar widget.
+
+By default the progress bar has minimum and maximum values of 0 and 100. These can be changed with
+:meth:`SetProgressBarRange`.
+
+:param bool horizontal: the progress bar orientation, true for horizontal otherwise vertical.
+:return: The handle to the newly created widget.
+:rtype: QWidget
+
+)")
+  virtual QWidget *CreateProgressBar(bool horizontal) = 0;
+
+  DOCUMENT(R"(Reset a progress bar widget.
+
+The progress bar "rewinds" and shows no progress. The minimum and maximum values are not changed.
+
+:param QWidget pbar: the progress bar.
+)")
+  virtual void ResetProgressBar(QWidget *pbar) = 0;
+
+  DOCUMENT(R"(Set the progress bar's current value.
+
+Attempting to change the current value outside the minimum and maximum range does not affect
+the current value.
+
+:param QWidget pbar: the progress bar.
+:param int value: the new current value.
+)")
+  virtual void SetProgressBarValue(QWidget *pbar, int32_t value) = 0;
+
+  DOCUMENT(R"(Set the progress bar's current value relative to the existing value.
+
+:param QWidget pbar: the progress bar.
+:param int delta: the relative value to update the current value.
+)")
+  virtual void UpdateProgressBarValue(QWidget *pbar, int32_t delta) = 0;
+
+  DOCUMENT(R"(Get the progress bar's current value.
+
+:param QWidget pbar: the progress bar.
+:return: The current value of the progress bar.
+:rtype: int
+)")
+  virtual int32_t GetProgressBarValue(QWidget *pbar) = 0;
+
+  DOCUMENT(R"(Set a progress bar's minimum and maximum values.
+
+If maximum is smaller than minimum, minimum is set as the maximum, too. If the current value falls
+outside the new range, the progress bar is reset. Use range (0, 0) to set the progress bar to
+undetermined state.
+
+:param QWidget pbar: the progress bar.
+:param int minimum: the minimum value.
+:param int maximum: the maximum value.
+)")
+  virtual void SetProgressBarRange(QWidget *pbar, int32_t minimum, int32_t maximum) = 0;
+
+  DOCUMENT(R"(Get the minimum value of the progress bar's range.
+
+:param QWidget pbar: the progress bar.
+:return: The minimum value of the range.
+:rtype: int
+)")
+  virtual int32_t GetProgressBarMinimum(QWidget *pbar) = 0;
+
+  DOCUMENT(R"(Get the maximum value of the progress bar's range.
+
+:param QWidget pbar: the progress bar.
+:return: The maximum value of the range.
+:rtype: int
+)")
+  virtual int32_t GetProgressBarMaximum(QWidget *pbar) = 0;
+
 protected:
   DOCUMENT("");
   IMiniQtHelper() = default;

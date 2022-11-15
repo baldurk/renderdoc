@@ -119,6 +119,16 @@ public:
   size_t GetComboCount(QWidget *combo) override;
   void SelectComboOption(QWidget *combo, const rdcstr &option) override;
 
+  QWidget *CreateProgressBar(bool horizontal) override;
+
+  void ResetProgressBar(QWidget *pbar) override;
+  void SetProgressBarValue(QWidget *pbar, int32_t value) override;
+  void UpdateProgressBarValue(QWidget *pbar, int32_t delta) override;
+  int32_t GetProgressBarValue(QWidget *pbar) override;
+  void SetProgressBarRange(QWidget *pbar, int32_t minimum, int32_t maximum) override;
+  int32_t GetProgressBarMinimum(QWidget *pbar) override;
+  int32_t GetProgressBarMaximum(QWidget *pbar) override;
+
 private:
   ICaptureContext &m_Ctx;
 

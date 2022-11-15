@@ -312,6 +312,46 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
   {
     InvokeVoidFunction(&IMiniQtHelper::SelectComboOption, combo, option);
   }
+
+  QWidget *CreateProgressBar(bool horizontal)
+  {
+    return InvokeRetFunction<QWidget *>(&IMiniQtHelper::CreateProgressBar, horizontal);
+  }
+
+  void ResetProgressBar(QWidget *pbar)
+  {
+    InvokeVoidFunction(&IMiniQtHelper::ResetProgressBar, pbar);
+  }
+
+  void SetProgressBarValue(QWidget *pbar, int32_t value)
+  {
+    InvokeVoidFunction(&IMiniQtHelper::SetProgressBarValue, pbar, value);
+  }
+
+  void UpdateProgressBarValue(QWidget *pbar, int32_t delta)
+  {
+    InvokeVoidFunction(&IMiniQtHelper::UpdateProgressBarValue, pbar, delta);
+  }
+
+  int32_t GetProgressBarValue(QWidget *pbar)
+  {
+    return InvokeRetFunction<int>(&IMiniQtHelper::GetProgressBarValue, pbar);
+  }
+
+  void SetProgressBarRange(QWidget *pbar, int32_t minimum, int32_t maximum)
+  {
+    InvokeVoidFunction(&IMiniQtHelper::SetProgressBarRange, pbar, minimum, maximum);
+  }
+
+  int32_t GetProgressBarMinimum(QWidget *pbar)
+  {
+    return InvokeRetFunction<int>(&IMiniQtHelper::GetProgressBarMinimum, pbar);
+  }
+
+  int32_t GetProgressBarMaximum(QWidget *pbar)
+  {
+    return InvokeRetFunction<int>(&IMiniQtHelper::GetProgressBarMaximum, pbar);
+  }
 };
 
 struct ExtensionInvoker : ObjectForwarder<IExtensionManager>
