@@ -29,6 +29,7 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QVBoxLayout>
@@ -724,4 +725,96 @@ void MiniQtHelper::SelectComboOption(QWidget *combo, const rdcstr &option)
 
   if(comb)
     comb->setCurrentText(option);
+}
+
+QWidget *MiniQtHelper::CreateProgressBar(bool horizontal)
+{
+  QProgressBar *w = new QProgressBar();
+
+  w->setOrientation(horizontal ? Qt::Horizontal : Qt::Vertical);
+
+  return w;
+}
+
+void MiniQtHelper::ResetProgressBar(QWidget *pbar)
+{
+  if(!pbar)
+    return;
+
+  QProgressBar *pb = qobject_cast<QProgressBar *>(pbar);
+
+  if(pb)
+    pb->reset();
+}
+
+void MiniQtHelper::SetProgressBarValue(QWidget *pbar, int32_t value)
+{
+  if(!pbar)
+    return;
+
+  QProgressBar *pb = qobject_cast<QProgressBar *>(pbar);
+
+  if(pb)
+    pb->setValue(value);
+}
+
+void MiniQtHelper::UpdateProgressBarValue(QWidget *pbar, int32_t delta)
+{
+  if(!pbar)
+    return;
+
+  QProgressBar *pb = qobject_cast<QProgressBar *>(pbar);
+
+  if(pb)
+    pb->setValue(pb->value() + delta);
+}
+
+int32_t MiniQtHelper::GetProgressBarValue(QWidget *pbar)
+{
+  if(!pbar)
+    return 0;
+
+  QProgressBar *pb = qobject_cast<QProgressBar *>(pbar);
+
+  if(pb)
+    return pb->value();
+
+  return 0;
+}
+
+void MiniQtHelper::SetProgressBarRange(QWidget *pbar, int32_t minimum, int32_t maximum)
+{
+  if(!pbar)
+    return;
+
+  QProgressBar *pb = qobject_cast<QProgressBar *>(pbar);
+
+  if(pb)
+    pb->setRange(minimum, maximum);
+}
+
+int32_t MiniQtHelper::GetProgressBarMinimum(QWidget *pbar)
+{
+  if(!pbar)
+    return 0;
+
+  QProgressBar *pb = qobject_cast<QProgressBar *>(pbar);
+
+  if(pb)
+    return pb->minimum();
+
+  return 0;
+}
+
+int32_t MiniQtHelper::GetProgressBarMaximum(QWidget *pbar)
+{
+  if(!pbar)
+    return 0;
+
+  QProgressBar *pb = qobject_cast<QProgressBar *>(pbar);
+
+  if(pbar)
+    return pb->maximum();
+
+  return 0;
 }
