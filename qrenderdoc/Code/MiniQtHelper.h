@@ -115,7 +115,9 @@ public:
 
   QWidget *CreateComboBox(bool editable, WidgetCallback changed) override;
 
-  void SetComboOptions(QWidget *combo, const rdcarray<rdcstr> &options) override;
+  void SetComboBoxOptions(QWidget *combo, const rdcarray<rdcstr> &options) override;
+  size_t GetComboBoxCount(QWidget *combo) override;
+  void SelectComboBoxOption(QWidget *combo, const rdcstr &option) override;
 
 private:
   ICaptureContext &m_Ctx;
