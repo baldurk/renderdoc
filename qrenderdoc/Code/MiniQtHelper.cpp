@@ -419,7 +419,7 @@ void MiniQtHelper::SetWidgetFont(QWidget *widget, const rdcstr &font, int32_t fo
 
   QFont f = widget->font();
 
-  if(font.empty())
+  if(!font.empty())
     f.setFamily(font);
   if(fontSize != 0)
     f.setPointSize(fontSize);
