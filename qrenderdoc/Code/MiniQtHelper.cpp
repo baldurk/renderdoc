@@ -686,7 +686,7 @@ QWidget *MiniQtHelper::CreateComboBox(bool editable, WidgetCallback changed)
   return w;
 }
 
-void MiniQtHelper::SetComboBoxOptions(QWidget *combo, const rdcarray<rdcstr> &options)
+void MiniQtHelper::SetComboOptions(QWidget *combo, const rdcarray<rdcstr> &options)
 {
   if(!combo)
     return;
@@ -701,7 +701,7 @@ void MiniQtHelper::SetComboBoxOptions(QWidget *combo, const rdcarray<rdcstr> &op
   comb->addItems(texts);
 }
 
-size_t MiniQtHelper::GetComboBoxCount(QWidget *combo)
+size_t MiniQtHelper::GetComboCount(QWidget *combo)
 {
   if(!combo)
     return 0;
@@ -710,7 +710,7 @@ size_t MiniQtHelper::GetComboBoxCount(QWidget *combo)
   return comb->count();
 }
 
-void MiniQtHelper::SelectComboBoxOption(QWidget *combo, const rdcstr &option)
+void MiniQtHelper::SelectComboOption(QWidget *combo, const rdcstr &option)
 {
   if(!combo)
     return;

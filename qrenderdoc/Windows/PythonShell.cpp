@@ -298,19 +298,19 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
     return InvokeRetFunction<QWidget *>(&IMiniQtHelper::CreateComboBox, editable, changed);
   }
 
-  void SetComboBoxOptions(QWidget *combo, const rdcarray<rdcstr> &options)
+  void SetComboOptions(QWidget *combo, const rdcarray<rdcstr> &options)
   {
-    InvokeVoidFunction(&IMiniQtHelper::SetComboBoxOptions, combo, options);
+    InvokeVoidFunction(&IMiniQtHelper::SetComboOptions, combo, options);
   }
 
-  size_t GetComboBoxCount(QWidget *combo)
+  size_t GetComboCount(QWidget *combo)
   {
-    return InvokeRetFunction<size_t>(&IMiniQtHelper::GetComboBoxCount, combo);
+    return InvokeRetFunction<size_t>(&IMiniQtHelper::GetComboCount, combo);
   }
 
-  void SelectComboBoxOption(QWidget *combo, const rdcstr &option)
+  void SelectComboOption(QWidget *combo, const rdcstr &option)
   {
-    InvokeVoidFunction(&IMiniQtHelper::SelectComboBoxOption, combo, option);
+    InvokeVoidFunction(&IMiniQtHelper::SelectComboOption, combo, option);
   }
 };
 
