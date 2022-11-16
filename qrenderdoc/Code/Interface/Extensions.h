@@ -891,7 +891,7 @@ happen.
   DOCUMENT(R"(Create a drop-down combo box widget.
 
 When created there are no pre-defined entries in the drop-down section. This can be changed with
-:meth:`SetComboBoxOptions`.
+:meth:`SetComboOptions`.
 
 :param bool editable: ``True`` if the widget should allow the user to enter any text they wish as
   well as being able to select a pre-defined entry.
@@ -908,7 +908,7 @@ passed nothing will happen.
 :param QWidget combo: The combo box.
 :param List[str] options: The new options for the combo box.
 )");
-  virtual void SetComboBoxOptions(QWidget *combo, const rdcarray<rdcstr> &options) = 0;
+  virtual void SetComboOptions(QWidget *combo, const rdcarray<rdcstr> &options) = 0;
 
   DOCUMENT(R"(Get the number of options in a drop-down combo box. If another type of widget is
 passed ``0`` will be returned.
@@ -917,7 +917,7 @@ passed ``0`` will be returned.
 :return: The current number of options.
 :rtype: int
 )")
-  virtual size_t GetComboBoxCount(QWidget *combo) = 0;
+  virtual size_t GetComboCount(QWidget *combo) = 0;
 
   DOCUMENT(R"(Select the current option in a drop-down combo box. If another type of widget or
 an unknown option is passed, nothing will happen.
@@ -925,7 +925,7 @@ an unknown option is passed, nothing will happen.
 :param QWidget combo: The combo box.
 :param str option: The option to select.
 )")
-  virtual void SelectComboBoxOption(QWidget *combo, const rdcstr &option) = 0;
+  virtual void SelectComboOption(QWidget *combo, const rdcstr &option) = 0;
 
 protected:
   DOCUMENT("");
