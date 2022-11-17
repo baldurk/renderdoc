@@ -173,6 +173,9 @@ Buffer<float4> rgb_srv : register(t103);
 
 SamplerState linearclamp : register(s0);
 
+StructuredBuffer<MyStruct> rootsrv : register(t20);
+StructuredBuffer<MyStruct> appendsrv : register(t40);
+
 float4 main(v2f IN) : SV_Target0
 {
   float  posinf = IN.oneVal/IN.zeroVal.x;
@@ -706,6 +709,22 @@ float4 main(v2f IN) : SV_Target0
     float2 uv = posone * float2(0.55f, 0.48f);
     return smiley.Sample(linearclamp, uv, int2(4, 3));
   }
+  if(IN.tri == 78)
+  {
+    uint z = intval - IN.tri - 7;
+
+    MyStruct read = rootsrv[z+0];
+
+    return float4(read.b.xyz, read.c);
+  }
+  if(IN.tri == 79)
+  {
+    uint z = intval - IN.tri - 7;
+
+    MyStruct read = appendsrv[z+0];
+
+    return float4(read.b.xyz, read.c);
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
@@ -794,12 +813,40 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     staticSamp.AddressU = staticSamp.AddressV = staticSamp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
     staticSamp.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
+    D3D12_DESCRIPTOR_RANGE1 multiRanges[3] = {
+        {
+            D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 30, 0,
+            D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE |
+                D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE,
+            30,
+        },
+        {
+            D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 3, 32, 0,
+            D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE |
+                D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE,
+            D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
+        },
+        {
+            D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 40, 0,
+            D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE |
+                D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE,
+            D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
+        },
+    };
+    D3D12_ROOT_PARAMETER1 multiRangeParam;
+    multiRangeParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    multiRangeParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    multiRangeParam.DescriptorTable.NumDescriptorRanges = ARRAY_COUNT(multiRanges);
+    multiRangeParam.DescriptorTable.pDescriptorRanges = multiRanges;
+
     ID3D12RootSignaturePtr sig = MakeSig(
         {
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 6, 0),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 2, 10),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 100, 5, 20),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 4, 3, 30),
+            multiRangeParam, uavParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 21),
+            srvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 20),
         },
         D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 1, &staticSamp);
 
@@ -974,6 +1021,15 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
         .StructureStride(11 * sizeof(float))
         .CreateGPU(2);
 
+    ID3D12ResourcePtr rootStruct = MakeBuffer().Data(structdata);
+    MakeSRV(rootStruct)
+        .Format(DXGI_FORMAT_UNKNOWN)
+        .FirstElement(3)
+        .NumElements(5)
+        .StructureStride(11 * sizeof(float))
+        .CreateGPU(35);
+    ID3D12ResourcePtr rootDummy = MakeBuffer().Data(structdata);
+
     ID3D12ResourcePtr structBuf2 = MakeBuffer().Size(880).UAV();
     D3D12ViewCreator uavView2 = MakeUAV(structBuf2)
                                     .Format(DXGI_FORMAT_UNKNOWN)
@@ -1116,6 +1172,10 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
         cmd->SetGraphicsRootDescriptorTable(1, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
         cmd->SetGraphicsRootDescriptorTable(2, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
         cmd->SetGraphicsRootDescriptorTable(3, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+        cmd->SetGraphicsRootDescriptorTable(4, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+        cmd->SetGraphicsRootUnorderedAccessView(5, rootDummy->GetGPUVirtualAddress());
+        cmd->SetGraphicsRootShaderResourceView(
+            6, rootStruct->GetGPUVirtualAddress() + sizeof(float) * 22);
 
         cmd->SetPipelineState(psos[i]);
 
