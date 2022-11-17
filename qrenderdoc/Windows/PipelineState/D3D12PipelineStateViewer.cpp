@@ -1158,7 +1158,7 @@ void D3D12PipelineStateViewer::setShaderState(
 
           // only look for a new bind if we don't have one that already matches
           if(bind == NULL ||
-             (bind->arraySize != ~0U && bind->bind + (int)bind->arraySize < shaderReg))
+             (bind->arraySize != ~0U && bind->bind + (int)bind->arraySize <= shaderReg))
           {
             for(int k = 0; k < binds.count(); k++)
             {
