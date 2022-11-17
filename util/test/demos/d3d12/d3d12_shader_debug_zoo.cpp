@@ -175,6 +175,7 @@ SamplerState linearclamp : register(s0);
 
 StructuredBuffer<MyStruct> rootsrv : register(t20);
 StructuredBuffer<MyStruct> appendsrv : register(t40);
+Texture2D<float> dimtex_edge : register(t41);
 
 float4 main(v2f IN) : SV_Target0
 {
@@ -725,6 +726,15 @@ float4 main(v2f IN) : SV_Target0
 
     return float4(read.b.xyz, read.c);
   }
+  if(IN.tri == 80)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed mips
+    uint z = intval - IN.tri - 7;
+
+    uint width = 0, height = 0, numLevels = 0;
+    dimtex_edge.GetDimensions(z, width, height, numLevels);
+    return float4(max(1,width), max(1,height), numLevels, 0.0f);
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
@@ -906,6 +916,20 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     D3D12_CPU_DESCRIPTOR_HANDLE cpu = m_CBVUAVSRV->GetCPUDescriptorHandleForHeapStart();
     cpu.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 3;
     dev->CreateShaderResourceView(testTex, NULL, cpu);
+
+    {
+      cpu = m_CBVUAVSRV->GetCPUDescriptorHandleForHeapStart();
+      cpu.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 36;
+
+      D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+      desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+      desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+      desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+      desc.Texture2DArray.ArraySize = ~0U;
+      desc.Texture2DArray.MipLevels = ~0U;
+
+      dev->CreateShaderResourceView(testTex, &desc, cpu);
+    }
 
     ID3D12ResourcePtr rawBuf = MakeBuffer().Data(testdata);
     MakeSRV(rawBuf)
