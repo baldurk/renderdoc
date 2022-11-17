@@ -358,6 +358,27 @@ void main()
       }
     }
 
+    {
+      uint32_t physCount = 0;
+      vkEnumeratePhysicalDevices(instance, &physCount, NULL);
+
+      if(physCount > 1)
+      {
+        std::vector<VkPhysicalDevice> physArray;
+        physArray.resize(physCount);
+
+        physCount = 1;
+        VkResult vkr = vkEnumeratePhysicalDevices(instance, &physCount, physArray.data());
+
+        if(vkr != VK_INCOMPLETE || physCount != 1 || physArray[1] != VK_NULL_HANDLE)
+        {
+          TEST_ERROR(
+              "vkEnumeratePhysicalDevices didn't return correct results for truncated array");
+          return 3;
+        }
+      }
+    }
+
     bool KHR_descriptor_update_template =
         std::find(devExts.begin(), devExts.end(),
                   VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME) != devExts.end();
