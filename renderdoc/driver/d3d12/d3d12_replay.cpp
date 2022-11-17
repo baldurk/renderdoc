@@ -940,6 +940,13 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
     if(view.elementByteSize == 0)
       view.elementByteSize = fmt == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, fmt, 0);
 
+    if(res.MipLevels == 0 && res.Dimension != D3D12_RESOURCE_DIMENSION_BUFFER)
+      res.MipLevels = (uint16_t)CalcNumMips(
+          (uint32_t)res.Width, res.Height,
+          res.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D ? res.DepthOrArraySize : 1);
+    view.numMips = RDCMIN(view.numMips, uint8_t(res.MipLevels & 0xff));
+    view.numSlices = RDCMIN(view.numSlices, res.DepthOrArraySize);
+
     view.viewFormat = MakeResourceFormat(fmt);
   }
 
