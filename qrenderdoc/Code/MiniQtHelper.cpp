@@ -697,8 +697,11 @@ void MiniQtHelper::SetComboOptions(QWidget *combo, const rdcarray<rdcstr> &optio
   for(const rdcstr &o : options)
     texts << o;
 
-  comb->clear();
-  comb->addItems(texts);
+  if(comb)
+  {
+    comb->clear();
+    comb->addItems(texts);
+  }
 }
 
 size_t MiniQtHelper::GetComboCount(QWidget *combo)
@@ -707,7 +710,10 @@ size_t MiniQtHelper::GetComboCount(QWidget *combo)
     return 0;
   const QComboBox *comb = qobject_cast<const QComboBox *>(combo);
 
-  return comb->count();
+  if(comb)
+    return comb->count();
+
+  return 0;
 }
 
 void MiniQtHelper::SelectComboOption(QWidget *combo, const rdcstr &option)
@@ -716,5 +722,6 @@ void MiniQtHelper::SelectComboOption(QWidget *combo, const rdcstr &option)
     return;
   QComboBox *comb = qobject_cast<QComboBox *>(combo);
 
-  comb->setCurrentText(option);
+  if(comb)
+    comb->setCurrentText(option);
 }
