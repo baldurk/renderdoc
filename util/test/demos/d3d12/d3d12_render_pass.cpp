@@ -49,6 +49,8 @@ RD_TEST(D3D12_Render_Pass, D3D12GraphicsTest)
     ID3D12RootSignaturePtr sig = MakeSig({});
 
     ID3D12PipelineStatePtr pso = MakePSO().RootSig(sig).InputLayout().VS(vsblob).PS(psblob);
+    ID3D12PipelineStatePtr mspso =
+        MakePSO().RootSig(sig).SampleCount(4).InputLayout().VS(vsblob).PS(psblob);
 
     ResourceBarrier(vb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
@@ -56,11 +58,19 @@ RD_TEST(D3D12_Render_Pass, D3D12GraphicsTest)
         MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, screenWidth / 2, screenHeight / 2)
             .RTV()
             .InitialState(D3D12_RESOURCE_STATE_COPY_SOURCE);
+    rtv1tex->SetName(L"rtv1tex");
 
     ID3D12ResourcePtr rtv2tex =
         MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, screenWidth / 2, screenHeight / 2)
+            .Multisampled(4)
+            .RTV()
+            .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET);
+    rtv2tex->SetName(L"rtv2tex");
+    ID3D12ResourcePtr rtv2resolve =
+        MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, screenWidth / 2, screenHeight / 2)
             .RTV()
             .InitialState(D3D12_RESOURCE_STATE_COPY_SOURCE);
+    rtv2resolve->SetName(L"rtv2resolve");
 
     while(Running())
     {
@@ -70,8 +80,8 @@ RD_TEST(D3D12_Render_Pass, D3D12GraphicsTest)
 
       ResourceBarrier(cmd, rtv1tex, D3D12_RESOURCE_STATE_COPY_SOURCE,
                       D3D12_RESOURCE_STATE_RENDER_TARGET);
-      ResourceBarrier(cmd, rtv2tex, D3D12_RESOURCE_STATE_COPY_SOURCE,
-                      D3D12_RESOURCE_STATE_RENDER_TARGET);
+      ResourceBarrier(cmd, rtv2resolve, D3D12_RESOURCE_STATE_COPY_SOURCE,
+                      D3D12_RESOURCE_STATE_RESOLVE_DEST);
 
       pushMarker(cmd, "RP 1");
 
@@ -108,11 +118,24 @@ RD_TEST(D3D12_Render_Pass, D3D12GraphicsTest)
 
       rpRTV.cpuDescriptor = MakeRTV(rtv2tex).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
       rpRTV.BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+      rpRTV.EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE;
+      rpRTV.EndingAccess.Resolve.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+      rpRTV.EndingAccess.Resolve.pDstResource = rtv2resolve;
+      rpRTV.EndingAccess.Resolve.PreserveResolveSource = TRUE;
+      rpRTV.EndingAccess.Resolve.pSrcResource = rtv2tex;
+      D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS subParams = {};
+      subParams.SrcRect.right = screenWidth / 2;
+      subParams.SrcRect.bottom = screenHeight / 2;
+      rpRTV.EndingAccess.Resolve.pSubresourceParameters = &subParams;
+      rpRTV.EndingAccess.Resolve.ResolveMode = D3D12_RESOLVE_MODE_AVERAGE;
+      rpRTV.EndingAccess.Resolve.SubresourceCount = 1;
 
       ClearRenderTargetView(cmd, rtv2tex, {1.0f, 0.0f, 1.0f, 1.0f});
+      // ClearRenderTargetView(cmd, rtv2resolve, {1.0f, 0.0f, 1.0f, 1.0f});
 
       cmd4->BeginRenderPass(1, &rpRTV, NULL, D3D12_RENDER_PASS_FLAG_NONE);
 
+      cmd->SetPipelineState(mspso);
       cmd->DrawInstanced(3, 1, 0, 0);
 
       cmd4->EndRenderPass();
@@ -129,7 +152,7 @@ RD_TEST(D3D12_Render_Pass, D3D12GraphicsTest)
       ResourceBarrier(cmd, bb, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
       ResourceBarrier(cmd, rtv1tex, D3D12_RESOURCE_STATE_RENDER_TARGET,
                       D3D12_RESOURCE_STATE_COPY_SOURCE);
-      ResourceBarrier(cmd, rtv2tex, D3D12_RESOURCE_STATE_RENDER_TARGET,
+      ResourceBarrier(cmd, rtv2resolve, D3D12_RESOURCE_STATE_RESOLVE_DEST,
                       D3D12_RESOURCE_STATE_COPY_SOURCE);
 
       D3D12_TEXTURE_COPY_LOCATION src, dst;
@@ -143,7 +166,7 @@ RD_TEST(D3D12_Render_Pass, D3D12GraphicsTest)
 
       cmd->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
 
-      src.pResource = rtv2tex;
+      src.pResource = rtv2resolve;
 
       cmd->CopyTextureRegion(&dst, screenWidth / 2, screenHeight / 2, 0, &src, NULL);
 
