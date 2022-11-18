@@ -107,6 +107,8 @@ StructuredBuffer<MyStruct> structrotest : register(t2);
 Texture2D<float> dimtex : register(t3);
 Texture2DMS<float> dimtexms : register(t4);
 Texture2D<float4> smiley : register(t5);
+Texture2D<int4> smileyint : register(t6);
+Texture2D<uint4> smileyuint : register(t7);
 
 RWByteAddressBuffer byterwtest : register(u1);
 RWStructuredBuffer<MyStruct> structrwtest : register(u2);
@@ -728,6 +730,16 @@ float4 main(v2f IN) : SV_Target0
     float2 uv = posone * float2(0.55f, 0.48f);
     return smiley.Sample(linearwrap, uv, int2(4, 3));
   }
+  if(IN.tri == 89)
+  {
+    float2 uv = posone * float2(1.81f, 0.48f);
+    return smileyint.Load(int3(uv*16,0));
+  }
+  if(IN.tri == 90)
+  {
+    float2 uv = posone * float2(1.81f, 0.48f);
+    return smileyuint.Load(int3(uv*16,0));
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
@@ -1015,13 +1027,15 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     LoadXPM(SmileyTexture, rgba8);
 
     ID3D11Texture2DPtr smiley =
-        MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, rgba8.width, rgba8.height).SRV();
-    ID3D11ShaderResourceViewPtr smileysrv = MakeSRV(smiley);
+        MakeTexture(DXGI_FORMAT_R8G8B8A8_TYPELESS, rgba8.width, rgba8.height).SRV();
+    ID3D11ShaderResourceViewPtr smileysrv = MakeSRV(smiley).Format(DXGI_FORMAT_R8G8B8A8_UNORM);
+    ID3D11ShaderResourceViewPtr smileyintsrv = MakeSRV(smiley).Format(DXGI_FORMAT_R8G8B8A8_SINT);
+    ID3D11ShaderResourceViewPtr smileyuintsrv = MakeSRV(smiley).Format(DXGI_FORMAT_R8G8B8A8_UINT);
 
     ctx->UpdateSubresource(smiley, 0, NULL, rgba8.data.data(), rgba8.width * sizeof(uint32_t), 0);
 
     ID3D11ShaderResourceView *srvs[] = {
-        srv, rawsrv, structsrv, testSRV, msSRV, smileysrv,
+        srv, rawsrv, structsrv, testSRV, msSRV, smileysrv, smileyintsrv, smileyuintsrv,
     };
 
     ctx->PSSetShaderResources(0, ARRAY_COUNT(srvs), srvs);

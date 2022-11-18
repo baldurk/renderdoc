@@ -157,6 +157,8 @@ StructuredBuffer<MyStruct> structrotest : register(t2);
 Texture2D<float> dimtex : register(t3);
 Texture2DMS<float> dimtexms : register(t4);
 Texture2D<float4> smiley : register(t5);
+Texture2D<int4> smileyint : register(t6);
+Texture2D<uint4> smileyuint : register(t7);
 RWByteAddressBuffer byterwtest : register(u1);
 RWStructuredBuffer<MyStruct> structrwtest : register(u2);
 
@@ -735,6 +737,11 @@ float4 main(v2f IN) : SV_Target0
     dimtex_edge.GetDimensions(z, width, height, numLevels);
     return float4(max(1,width), max(1,height), numLevels, 0.0f);
   }
+  if(IN.tri == 81)
+  {
+    float2 uv = posone * float2(0.55f, 0.48f);
+    return smileyint.Load(int3(uv*16,0));
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
@@ -851,7 +858,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
 
     ID3D12RootSignaturePtr sig = MakeSig(
         {
-            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 6, 0),
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 8, 0),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 2, 10),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 100, 5, 20),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 4, 3, 30),
@@ -882,7 +889,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
                                    .RTV()
                                    .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET);
     D3D12_CPU_DESCRIPTOR_HANDLE fltRTV = MakeRTV(fltTex).CreateCPU(0);
-    D3D12_GPU_DESCRIPTOR_HANDLE fltSRV = MakeSRV(fltTex).CreateGPU(7);
+    D3D12_GPU_DESCRIPTOR_HANDLE fltSRV = MakeSRV(fltTex).CreateGPU(8);
 
     float triWidth = 8.0f / float(texDim);
 
@@ -945,7 +952,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     Texture rgba8;
     LoadXPM(SmileyTexture, rgba8);
 
-    ID3D12ResourcePtr smiley = MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 48, 48)
+    ID3D12ResourcePtr smiley = MakeTexture(DXGI_FORMAT_R8G8B8A8_TYPELESS, 48, 48)
                                    .Mips(1)
                                    .InitialState(D3D12_RESOURCE_STATE_COPY_DEST);
 
@@ -1014,7 +1021,9 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
       GPUSync();
     }
 
-    MakeSRV(smiley).CreateGPU(5);
+    MakeSRV(smiley).Format(DXGI_FORMAT_R8G8B8A8_UNORM).CreateGPU(5);
+    MakeSRV(smiley).Format(DXGI_FORMAT_R8G8B8A8_SINT).CreateGPU(6);
+    MakeSRV(smiley).Format(DXGI_FORMAT_R8G8B8A8_UINT).CreateGPU(7);
 
     ID3D12ResourcePtr rawBuf2 = MakeBuffer().Size(1024).UAV();
     D3D12ViewCreator uavView1 =
@@ -1065,8 +1074,8 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
 
     // need to create non-structured version for clearing
     uavView2 = MakeUAV(structBuf2).Format(DXGI_FORMAT_R32_UINT);
-    uav2cpu = uavView2.CreateClearCPU(8);
-    uav2gpu = uavView2.CreateGPU(8);
+    uav2cpu = uavView2.CreateClearCPU(9);
+    uav2gpu = uavView2.CreateGPU(9);
 
     // Create resources for MSAA draw
     ID3DBlobPtr vsmsaablob = Compile(D3DDefaultVertex, "main", "vs_5_0");
@@ -1093,7 +1102,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     psblob = Compile(pixelBlit, "main", "ps_5_0");
     ID3D12RootSignaturePtr blitSig = MakeSig({
         constParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0, 1),
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 7),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 8),
     });
     ID3D12PipelineStatePtr blitpso = MakePSO().RootSig(blitSig).VS(vsblob).PS(psblob);
 
@@ -1101,7 +1110,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     psblob = Compile(vertexSamplePS, "main", "ps_5_0");
     ID3D12RootSignaturePtr vertexSampleSig = MakeSig(
         {
-            tableParam(D3D12_SHADER_VISIBILITY_VERTEX, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 7),
+            tableParam(D3D12_SHADER_VISIBILITY_VERTEX, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 8),
         },
         D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS);
     ID3D12PipelineStatePtr vertexSamplePSO = MakePSO().RootSig(vertexSampleSig).VS(vsblob).PS(psblob);
