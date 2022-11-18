@@ -102,7 +102,11 @@ float4 main(v2f IN) : SV_Target0
     for(int i=0; i < 100; i++)
     {
       tex_ref t = buf[i];
-      if(t.tex == 100) break;
+      if(t.tex == 100)
+      {
+        ret += texArray1[t.binding*100].SampleLevel(s, uv.xy, 0);
+        break;
+      }
 
       if(t.tex == 0)
       {
