@@ -197,6 +197,8 @@ class VK_Parameter_Zoo(rdtest.TestCase):
             raise rdtest.TestFailureException(
                 "Expected validSampler to be at binding slot 0 in immutable action")
 
+        rdtest.log.success("Immutable Draw is as expected")
+
         sdfile = self.controller.GetStructuredFile()
 
         # Check for resource leaks
@@ -222,3 +224,14 @@ class VK_Parameter_Zoo(rdtest.TestCase):
             self.check("No Command Buffers" in action.GetName(sdfile))
             self.check(a != action.GetName(sdfile))
 
+        rdtest.log.success("Empty queue submits are as expected")
+
+        action = self.find_action("Dynamic Array Draw")
+
+        action = action.next
+
+        self.controller.SetFrameEvent(action.eventId, False)
+
+        self.check_triangle()
+
+        rdtest.log.success("Dynamic Array Draw is as expected")

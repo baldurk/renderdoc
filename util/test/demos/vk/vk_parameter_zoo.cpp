@@ -89,6 +89,23 @@ void main()
 
 )EOSHADER";
 
+  const std::string dynarraypixel = R"EOSHADER(
+#version 450 core
+
+layout(location = 0, index = 0) out vec4 Color;
+
+layout(binding=0) uniform myUniformBuffer
+{
+  vec4 data;
+} ubos[8];
+
+void main()
+{
+	Color = ubos[7].data;
+}
+
+)EOSHADER";
+
   const std::string refpixel = R"EOSHADER(
 #version 450 core
 #extension GL_EXT_samplerless_texture_functions : enable
@@ -510,6 +527,14 @@ void main()
 
     VkPipelineLayout layout2 = createPipelineLayout(vkh::PipelineLayoutCreateInfo({setlayout2}));
 
+    VkDescriptorSetLayout dynamicarraysetlayout =
+        createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 8, VK_SHADER_STAGE_FRAGMENT_BIT},
+        }));
+
+    VkPipelineLayout dynamicarraylayout =
+        createPipelineLayout(vkh::PipelineLayoutCreateInfo({dynamicarraysetlayout}));
+
     VkDescriptorSet descset2 = allocateDescriptorSet(setlayout2);
 
     VkDescriptorSetLayout asm_setlayout =
@@ -609,6 +634,15 @@ void main()
     };
 
     VkPipeline immutpipe = createGraphicsPipeline(pipeCreateInfo);
+
+    pipeCreateInfo.layout = dynamicarraylayout;
+
+    pipeCreateInfo.stages = {
+        CompileShaderModule(VKDefaultVertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(dynarraypixel, ShaderLang::glsl, ShaderStage::frag, "main"),
+    };
+
+    VkPipeline dynarraypipe = createGraphicsPipeline(pipeCreateInfo);
 
     pipeCreateInfo.stages = {
         CompileShaderModule(VKDefaultVertex, ShaderLang::glsl, ShaderStage::vert, "main"),
@@ -769,6 +803,7 @@ void main()
     VkDescriptorSet reftempldescset = allocateDescriptorSet(refsetlayout);
 
     VkDescriptorSet immutdescset = allocateDescriptorSet(immutsetlayout);
+    VkDescriptorSet dynamicarrayset = allocateDescriptorSet(dynamicarraysetlayout);
 
     AllocatedBuffer buf(this,
                         vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
@@ -776,6 +811,13 @@ void main()
                                                         VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT |
                                                         VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT),
                         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    float bufData[1024 / sizeof(float)] = {};
+    bufData[64] = 0.0f;
+    bufData[65] = 1.0f;
+    bufData[66] = 0.0f;
+    bufData[67] = 1.0f;
+    buf.upload(bufData);
 
     VkBuffer invalidBuffer = (VkBuffer)0x1234;
     VkBuffer validBuffer = buf.buffer;
@@ -866,7 +908,28 @@ void main()
                                 validCombinedImgs),
         vkh::WriteDescriptorSet(immutdescset, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                                 validSoloImgs),
+        vkh::WriteDescriptorSet(dynamicarrayset, 0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                                validBufInfos),
+        vkh::WriteDescriptorSet(dynamicarrayset, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                                validBufInfos),
+        vkh::WriteDescriptorSet(dynamicarrayset, 0, 2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                                validBufInfos),
+        vkh::WriteDescriptorSet(dynamicarrayset, 0, 3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                                validBufInfos),
+        vkh::WriteDescriptorSet(dynamicarrayset, 0, 4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                                validBufInfos),
+        vkh::WriteDescriptorSet(dynamicarrayset, 0, 5, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                                validBufInfos),
+        vkh::WriteDescriptorSet(dynamicarrayset, 0, 6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                                validBufInfos),
     };
+
+    vkh::updateDescriptorSets(
+        device,
+        {
+            vkh::WriteDescriptorSet(dynamicarrayset, 0, 7, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                                    {vkh::DescriptorBufferInfo(validBuffer, 0, 256)}),
+        });
 
     // do a first update
     vkh::updateDescriptorSets(device, writes);
@@ -1617,6 +1680,13 @@ void main()
                                    {immutdescset}, {});
 
         setMarker(cmd, "Immutable Draw");
+        vkCmdDraw(cmd, 3, 1, 0, 0);
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, dynarraypipe);
+        vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, dynamicarraylayout, 0,
+                                   {dynamicarrayset}, {0, 0, 0, 0, 0, 0, 0, 256});
+
+        setMarker(cmd, "Dynamic Array Draw");
         vkCmdDraw(cmd, 3, 1, 0, 0);
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe2);
