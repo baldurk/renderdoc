@@ -178,7 +178,7 @@ void main(uint3 threadID : SV_DispatchThreadID)
     }
 
     ID3D12Device *ags_devHandle = NULL;
-    CreateExtendedDevice(&ags_devHandle);
+    CreateExtendedDevice(&ags_devHandle, NULL);
 
     // once we've checked that we can create an extension device on an adapter, we can release it
     // and return ready to run
@@ -193,7 +193,8 @@ void main(uint3 threadID : SV_DispatchThreadID)
     Avail = "AGS couldn't create device on any selected adapter.";
   }
 
-  void CreateExtendedDevice(ID3D12Device * *ags_devHandle)
+  void CreateExtendedDevice(ID3D12Device * *ags_devHandle,
+                            AGSDX12ReturnedParams::ExtensionsSupported * exts)
   {
     std::vector<IDXGIAdapterPtr> adapters = GetAdapters();
 
@@ -224,6 +225,8 @@ void main(uint3 threadID : SV_DispatchThreadID)
         else
         {
           *ags_devHandle = ret.pDevice;
+          if(exts)
+            *exts = ret.extensionsSupported;
           return;
         }
       }
@@ -279,9 +282,17 @@ void main(uint3 threadID : SV_DispatchThreadID)
     // we don't use these directly, just copy them into the real device so we know that ags is the
     // one to destroy the last reference to the device
     ID3D12Device *ags_devHandle = NULL;
-    CreateExtendedDevice(&ags_devHandle);
+    AGSDX12ReturnedParams::ExtensionsSupported features = {};
+    CreateExtendedDevice(&ags_devHandle, &features);
 
     dev = ags_devHandle;
+
+    if(!features.UAVBindSlot || !features.intrinsics16 || !features.intrinsics19)
+    {
+      dev = NULL;
+      TEST_ERROR("Couldn't create AMD device with required features");
+      return 4;
+    }
 
     // recreate things we need on the new device
     PostDeviceCreate();
