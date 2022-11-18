@@ -253,6 +253,7 @@ void main()
     optDevExts.push_back(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME);
     optDevExts.push_back(VK_KHR_MULTIVIEW_EXTENSION_NAME);
     optDevExts.push_back(VK_KHR_MAINTENANCE2_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
 
     VulkanGraphicsTest::Prepare(argc, argv);
 
@@ -308,6 +309,17 @@ void main()
       multiview.multiview = VK_TRUE;
       multiview.pNext = (void *)devInfoNext;
       devInfoNext = &multiview;
+    }
+
+    static VkPhysicalDeviceSynchronization2FeaturesKHR sync2Features = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR,
+    };
+
+    if(hasExt(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME))
+    {
+      sync2Features.synchronization2 = VK_TRUE;
+      sync2Features.pNext = (void *)devInfoNext;
+      devInfoNext = &sync2Features;
     }
   }
 
@@ -1652,6 +1664,21 @@ void main()
 
         Submit(3, 4, {cmd});
       }
+
+      // make some empty submits
+
+      setMarker(queue, "before_empty");
+
+      {
+        VkSubmitInfo submit = vkh::SubmitInfo({});
+        CHECK_VKR(vkQueueSubmit(queue, 1, &submit, VK_NULL_HANDLE));
+      }
+      if(hasExt(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME))
+      {
+        VkSubmitInfo2KHR submit = {VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR};
+        CHECK_VKR(vkQueueSubmit2KHR(queue, 1, &submit, VK_NULL_HANDLE));
+      }
+      setMarker(queue, "after_empty");
 
       Present();
     }

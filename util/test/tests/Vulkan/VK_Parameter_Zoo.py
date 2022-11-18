@@ -197,8 +197,28 @@ class VK_Parameter_Zoo(rdtest.TestCase):
             raise rdtest.TestFailureException(
                 "Expected validSampler to be at binding slot 0 in immutable action")
 
+        sdfile = self.controller.GetStructuredFile()
+
         # Check for resource leaks
-        if len(self.controller.GetStructuredFile().chunks) > 500:
+        if len(sdfile.chunks) > 500:
             raise rdtest.TestFailureException(
-                "Too many chunks found: {}".format(len(self.controller.GetStructuredFile().chunks)))
+                "Too many chunks found: {}".format(len(sdfile.chunks)))
+
+        action = self.find_action("before_empty")
+        action = self.get_action(action.eventId+1)
+        self.check("vkQueueSubmit" in action.GetName(sdfile))
+        a = action.GetName(sdfile)
+        action = self.get_action(action.eventId+1)
+        self.check("vkQueueSubmit" in action.GetName(sdfile))
+        self.check("No Command Buffers" in action.GetName(sdfile))
+        self.check(a != action.GetName(sdfile))
+
+        action = self.get_action(action.eventId+1)
+        if "after_empty" not in action.GetName(sdfile):
+            self.check("vkQueueSubmit2" in action.GetName(sdfile))
+            a = action.GetName(sdfile)
+            action = self.get_action(action.eventId + 1)
+            self.check("vkQueueSubmit2" in action.GetName(sdfile))
+            self.check("No Command Buffers" in action.GetName(sdfile))
+            self.check(a != action.GetName(sdfile))
 
