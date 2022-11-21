@@ -2105,6 +2105,8 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
 
   rdcpair<VkFormat, DiscardType> key = {imInfo.format, type};
 
+  if(key.first == VK_FORMAT_X8_D24_UNORM_PACK32)
+    key.first = VK_FORMAT_D24_UNORM_S8_UINT;
   if(key.first == VK_FORMAT_S8_UINT)
     key.first = VK_FORMAT_D32_SFLOAT_S8_UINT;
 
