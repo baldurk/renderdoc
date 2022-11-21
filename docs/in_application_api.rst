@@ -1,7 +1,7 @@
 In-application API
 ==================
 
-Reference for RenderDoc in-application API version 1.5.0. This API is not necessary to use RenderDoc by default, but if you would like more control or custom triggering of captures this API can provide the mechanism to do so.
+Reference for RenderDoc in-application API version 1.6.0. This API is not necessary to use RenderDoc by default, but if you would like more control or custom triggering of captures this API can provide the mechanism to do so.
 
 Make sure to use a matching API header for your build - if you use a newer header, the API version may not be available. All RenderDoc builds supporting this API ship the header in their root directory.
 
@@ -366,7 +366,7 @@ The path follows the template set in :cpp:func:`SetCaptureFilePathTemplate` so i
 
 .. cpp:function:: uint32_t ShowReplayUI()
 
-    This function request that the currently connected replay UI raise its window to the top. This is only possible if an instance of the replay UI is currently connected, otherwise this function does nothing. This can be used in conjunction with IsTargetControlConnected and LaunchReplayUI to intelligently handle showing the UI after making a capture.
+    This function requests that the currently connected replay UI raise its window to the top. This is only possible if an instance of the replay UI is currently connected, otherwise this function does nothing. This can be used in conjunction with IsTargetControlConnected and LaunchReplayUI to intelligently handle showing the UI after making a capture.
 
     Given OS differences it is not guaranteed that the UI will be successfully raised even if the request is passed on. On some OSs it may only be highlighted or otherwise indicated to the user.
 
@@ -433,7 +433,7 @@ The path follows the template set in :cpp:func:`SetCaptureFilePathTemplate` so i
     ``RENDERDOC_DevicePointer`` and ``RENDERDOC_WindowHandle`` are described above in :cpp:func:`SetActiveWindow`.
     ``device`` and ``wndHandle`` can either or both be set to ``NULL`` to wildcard match against active device/window combinations. This wildcard matching can be used if the handle is difficult to obtain where frame captures are triggered.
 
-    Wildcard matching of `device` and `wndHandle` is described above in :cpp:func:`BeginFrameCapture`.
+    Wildcard matching of `device` and `wndHandle` is described above in :cpp:func:`StartFrameCapture`.
 
     There will be undefined results if there is not an active frame capture for the device/window combination.
 
@@ -451,13 +451,26 @@ The path follows the template set in :cpp:func:`SetCaptureFilePathTemplate` so i
     ``RENDERDOC_DevicePointer`` and ``RENDERDOC_WindowHandle`` are described above in :cpp:func:`SetActiveWindow`.
     ``device`` and ``wndHandle`` can either or both be set to ``NULL`` to wildcard match against active device/window combinations. This wildcard matching can be used if the handle is difficult to obtain where frame captures are triggered.
 
-    Wildcard matching of `device` and `wndHandle` is described above in :cpp:func:`BeginFrameCapture`.
+    Wildcard matching of `device` and `wndHandle` is described above in :cpp:func:`StartFrameCapture`.
 
     There will be undefined results if there is not an active frame capture for the device/window combination.
 
 .. note::
 
     Added in API version 1.4.0
+
+.. cpp:function:: void SetCaptureTitle(const char *title)
+
+    This function sets a given title for the currently in-progress capture, which will be displayed in the UI. This can be used either with a user-defined capture using a manual start and end, or an automatic capture triggered by :cpp:func:`TriggerCapture` or a keypress.
+
+    If multiple captures are ongoing at once, the title will be applied to the first capture to end only. Any subsequent captures will not get any title unless the function is called again.
+
+    This function can only be called while a capture is in-progress, after :cpp:func:`StartFrameCapture` and before :cpp:func:`EndFrameCapture`. If it is called elsewhere it will have no effect. If it is called multiple times within a capture, only the last title will have any effect.
+
+
+.. note::
+
+    Added in API version 1.6.0
 
 .. cpp:function:: void TriggerMultiFrameCapture(uint32_t numFrames)
 

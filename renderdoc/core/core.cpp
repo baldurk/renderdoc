@@ -818,6 +818,7 @@ IFrameCapturer *RenderDoc::MatchFrameCapturer(DeviceOwnedWindow devWnd)
 
 void RenderDoc::StartFrameCapture(DeviceOwnedWindow devWnd)
 {
+  m_CaptureTitle.clear();
   IFrameCapturer *frameCap = MatchFrameCapturer(devWnd);
   if(frameCap)
   {
@@ -837,6 +838,11 @@ void RenderDoc::SetActiveWindow(DeviceOwnedWindow devWnd)
   }
 
   m_ActiveWindow = devWnd;
+}
+
+void RenderDoc::SetCaptureTitle(const rdcstr &title)
+{
+  m_CaptureTitle = title;
 }
 
 bool RenderDoc::EndFrameCapture(DeviceOwnedWindow devWnd)
@@ -1869,7 +1875,13 @@ void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
 
     RDCLOG("Written to disk: %s", m_CurrentLogFile.c_str());
 
-    CaptureData cap(m_CurrentLogFile, Timing::GetUnixTimestamp(), rdc->GetDriver(), frameNumber);
+    CaptureData cap;
+    cap.path = m_CurrentLogFile;
+    cap.title = m_CaptureTitle;
+    cap.timestamp = Timing::GetUnixTimestamp();
+    cap.driver = rdc->GetDriver();
+    cap.frameNumber = frameNumber;
+    m_CaptureTitle.clear();
     {
       SCOPED_LOCK(m_CaptureLock);
       m_Captures.push_back(cap);

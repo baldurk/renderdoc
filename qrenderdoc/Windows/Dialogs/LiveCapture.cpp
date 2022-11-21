@@ -681,7 +681,9 @@ QString LiveCapture::MakeText(Capture *cap)
     text += tr(" (Remote)");
 
   text += lit("\n") + cap->api;
-  if(cap->frameNumber == ~0U)
+  if(!cap->title.isEmpty())
+    text += QFormatStr("\n%1").arg(cap->title);
+  else if(cap->frameNumber == ~0U)
     text += tr("\nUser-defined Capture");
   else
     text += tr("\nFrame #%1").arg(cap->frameNumber);
@@ -1145,6 +1147,7 @@ void LiveCapture::captureAdded(const QString &name, const NewCaptureData &newCap
   cap->path = newCapture.path;
   cap->local = newCapture.local;
   cap->frameNumber = newCapture.frameNumber;
+  cap->title = newCapture.title;
 
   QListWidgetItem *item = new QListWidgetItem();
   item->setFlags(item->flags() | Qt::ItemIsEditable);

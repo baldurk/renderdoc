@@ -32,7 +32,7 @@
 #include "replay/replay_driver.h"
 #include "serialise/serialiser.h"
 
-static const uint32_t TargetControlProtocolVersion = 8;
+static const uint32_t TargetControlProtocolVersion = 9;
 
 static bool IsProtocolVersionSupported(const uint32_t protocolVersion)
 {
@@ -58,6 +58,10 @@ static bool IsProtocolVersionSupported(const uint32_t protocolVersion)
 
   // 7 -> 8 add custom message for unsupported APIs
   if(protocolVersion == 7)
+    return true;
+
+  // 8 -> 9 add capture titles
+  if(protocolVersion == 8)
     return true;
 
   if(protocolVersion == TargetControlProtocolVersion)
@@ -252,6 +256,10 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
         {
           uint64_t byteSize = FileIO::GetFileSize(captures.back().path);
           SERIALISE_ELEMENT(byteSize);
+        }
+        if(version >= 9)
+        {
+          SERIALISE_ELEMENT(captures.back().title);
         }
       }
     }
@@ -804,6 +812,14 @@ public:
         else
         {
           msg.newCapture.byteSize = 0;
+        }
+        if(m_Version >= 9)
+        {
+          SERIALISE_ELEMENT(msg.newCapture.title).Named("title"_lit);
+        }
+        else
+        {
+          msg.newCapture.title.clear();
         }
       }
 

@@ -236,6 +236,11 @@ static uint32_t EndFrameCapture(void *device, void *wndHandle)
   return RenderDoc::Inst().EndFrameCapture(DeviceOwnedWindow(device, wndHandle)) ? 1 : 0;
 }
 
+static void SetCaptureTitle(const char *title)
+{
+  RenderDoc::Inst().SetCaptureTitle(title);
+}
+
 static uint32_t DiscardFrameCapture(void *device, void *wndHandle)
 {
   return RenderDoc::Inst().DiscardFrameCapture(DeviceOwnedWindow(device, wndHandle)) ? 1 : 0;
@@ -252,22 +257,22 @@ int RENDERDOC_CC SetCaptureOptionF32(RENDERDOC_CaptureOption opt, float val);
 uint32_t RENDERDOC_CC GetCaptureOptionU32(RENDERDOC_CaptureOption opt);
 float RENDERDOC_CC GetCaptureOptionF32(RENDERDOC_CaptureOption opt);
 
-void RENDERDOC_CC GetAPIVersion_1_5_0(int *major, int *minor, int *patch)
+void RENDERDOC_CC GetAPIVersion_1_6_0(int *major, int *minor, int *patch)
 {
   if(major)
     *major = 1;
   if(minor)
-    *minor = 5;
+    *minor = 6;
   if(patch)
     *patch = 0;
 }
 
-RENDERDOC_API_1_5_0 api_1_5_0;
-void Init_1_5_0()
+RENDERDOC_API_1_6_0 api_1_6_0;
+void Init_1_6_0()
 {
-  RENDERDOC_API_1_5_0 &api = api_1_5_0;
+  RENDERDOC_API_1_6_0 &api = api_1_6_0;
 
-  api.GetAPIVersion = &GetAPIVersion_1_5_0;
+  api.GetAPIVersion = &GetAPIVersion_1_6_0;
 
   api.SetCaptureOptionU32 = &SetCaptureOptionU32;
   api.SetCaptureOptionF32 = &SetCaptureOptionF32;
@@ -308,6 +313,8 @@ void Init_1_5_0()
   api.DiscardFrameCapture = &DiscardFrameCapture;
 
   api.ShowReplayUI = &ShowReplayUI;
+
+  api.SetCaptureTitle = &SetCaptureTitle;
 }
 
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPI(RENDERDOC_Version version,
@@ -334,18 +341,19 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPI(RENDERDOC_Version ver
     ret = 1;                                                       \
   }
 
-  API_VERSION_HANDLE(1_0_0, 1_5_0);
-  API_VERSION_HANDLE(1_0_1, 1_5_0);
-  API_VERSION_HANDLE(1_0_2, 1_5_0);
-  API_VERSION_HANDLE(1_1_0, 1_5_0);
-  API_VERSION_HANDLE(1_1_1, 1_5_0);
-  API_VERSION_HANDLE(1_1_2, 1_5_0);
-  API_VERSION_HANDLE(1_2_0, 1_5_0);
-  API_VERSION_HANDLE(1_3_0, 1_5_0);
-  API_VERSION_HANDLE(1_4_0, 1_5_0);
-  API_VERSION_HANDLE(1_4_1, 1_5_0);
-  API_VERSION_HANDLE(1_4_2, 1_5_0);
-  API_VERSION_HANDLE(1_5_0, 1_5_0);
+  API_VERSION_HANDLE(1_0_0, 1_6_0);
+  API_VERSION_HANDLE(1_0_1, 1_6_0);
+  API_VERSION_HANDLE(1_0_2, 1_6_0);
+  API_VERSION_HANDLE(1_1_0, 1_6_0);
+  API_VERSION_HANDLE(1_1_1, 1_6_0);
+  API_VERSION_HANDLE(1_1_2, 1_6_0);
+  API_VERSION_HANDLE(1_2_0, 1_6_0);
+  API_VERSION_HANDLE(1_3_0, 1_6_0);
+  API_VERSION_HANDLE(1_4_0, 1_6_0);
+  API_VERSION_HANDLE(1_4_1, 1_6_0);
+  API_VERSION_HANDLE(1_4_2, 1_6_0);
+  API_VERSION_HANDLE(1_5_0, 1_6_0);
+  API_VERSION_HANDLE(1_6_0, 1_6_0);
 
 #undef API_VERSION_HANDLE
 

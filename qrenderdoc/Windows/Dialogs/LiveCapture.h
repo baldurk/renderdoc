@@ -107,6 +107,7 @@ private:
     QDateTime timestamp;
     uint32_t frameNumber;
     uint64_t byteSize;
+    QString title;
 
     QImage thumb;
 

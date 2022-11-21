@@ -273,16 +273,12 @@ ITERABLE_OPERATORS(VendorExtensions);
 
 struct CaptureData
 {
-  CaptureData() : timestamp(0), driver(RDCDriver::Unknown), frameNumber(0), retrieved(false) {}
-  CaptureData(rdcstr p, uint64_t t, RDCDriver d, uint32_t f)
-      : path(p), timestamp(t), driver(d), frameNumber(f), retrieved(false)
-  {
-  }
   rdcstr path;
-  uint64_t timestamp;
-  RDCDriver driver;
-  uint32_t frameNumber;
-  bool retrieved;
+  rdcstr title;
+  uint64_t timestamp = 0;
+  RDCDriver driver = RDCDriver::Unknown;
+  uint32_t frameNumber = 0;
+  bool retrieved = false;
 };
 
 enum class LoadProgress
@@ -584,6 +580,7 @@ public:
   void StartFrameCapture(DeviceOwnedWindow devWnd);
   bool IsFrameCapturing() { return m_CapturesActive > 0; }
   void SetActiveWindow(DeviceOwnedWindow devWnd);
+  void SetCaptureTitle(const rdcstr &title);
   bool EndFrameCapture(DeviceOwnedWindow devWnd);
   bool DiscardFrameCapture(DeviceOwnedWindow devWnd);
 
@@ -647,6 +644,7 @@ private:
 
   rdcstr m_Target;
   rdcstr m_CaptureFileTemplate;
+  rdcstr m_CaptureTitle;
   rdcstr m_CurrentLogFile;
   CaptureOptions m_Options;
   uint32_t m_Overlay;
