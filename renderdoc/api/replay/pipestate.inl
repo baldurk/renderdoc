@@ -1344,8 +1344,8 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
               ret.back().firstIndex = (int32_t)firstIdx;
             }
 
-            val.reserve(val.size() + (count - firstIdx));
-            for(size_t j = firstIdx; j < count; ++j)
+            val.reserve(val.size() + count);
+            for(size_t j = firstIdx; j < firstIdx + count; ++j)
             {
               const D3D12Pipe::View &view = element.views[j];
               if(view.bind >= start && view.bind < end)
@@ -1431,7 +1431,6 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
             ret.back().dynamicallyUsedCount = 0;
 
             BoundResource res;
-            val.reserve(val.size() + (count - firstIdx));
             for(uint32_t i = firstIdx; i < firstIdx + count; i++)
             {
               if(bind.binds[i].type == BindType::ImageSampler ||
@@ -1449,7 +1448,16 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
                 if(bind.binds[i].dynamicallyUsed)
                   ret.back().dynamicallyUsedCount++;
               }
+              else
+              {
+                // push empty resources so array indexing is still as expected
+                val.push_back(BoundResource());
+              }
             }
+
+            // if we didn't find any resources this is probably not a read-write bind, remove it
+            if(ret.back().dynamicallyUsedCount == 0)
+              ret.pop_back();
           }
         }
       }
@@ -1558,8 +1566,8 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
               ret.back().firstIndex = (int32_t)firstIdx;
             }
 
-            val.reserve(val.size() + (count - firstIdx));
-            for(size_t j = firstIdx; j < count; ++j)
+            val.reserve(val.size() + count);
+            for(size_t j = firstIdx; j < firstIdx + count; ++j)
             {
               const D3D12Pipe::View &view = element.views[j];
               if(view.bind >= start && view.bind < end)
@@ -1662,7 +1670,6 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
             ret.back().dynamicallyUsedCount = 0;
 
             BoundResource res;
-            val.reserve(val.size() + (count - firstIdx));
             for(uint32_t i = firstIdx; i < firstIdx + count; i++)
             {
               if(bind.binds[i].type == BindType::ReadWriteBuffer ||
@@ -1679,7 +1686,16 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
                 if(bind.binds[i].dynamicallyUsed)
                   ret.back().dynamicallyUsedCount++;
               }
+              else
+              {
+                // push empty resources so array indexing is still as expected
+                val.push_back(BoundResource());
+              }
             }
+
+            // if we didn't find any resources this is probably not a read-write bind, remove it
+            if(ret.back().dynamicallyUsedCount == 0)
+              ret.pop_back();
           }
         }
       }

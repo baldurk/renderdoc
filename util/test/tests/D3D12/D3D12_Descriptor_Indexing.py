@@ -33,6 +33,28 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
                 if root.views[i].dynamicallyUsed:
                     raise rdtest.TestFailureException("Compute root range 0[{}] i dynamically used".format(i))
 
+            # these lists are only expected to be empty because the descriptors aren't written to, and so with mutable
+            # consideration these aren't considered read-only with unknown contents
+            pipe = self.controller.GetPipelineState()
+            ro = pipe.GetReadOnlyResources(rd.ShaderStage.Compute, False)
+            self.check_eq(ro, [])
+            ro = pipe.GetReadOnlyResources(rd.ShaderStage.Compute, True)
+            self.check_eq(ro, [])
+
+            rw = pipe.GetReadWriteResources(rd.ShaderStage.Compute, False)
+            self.check_eq(rw[0].dynamicallyUsedCount, 1)
+            self.check_eq(rw[0].firstIndex, 0)
+            self.check_eq(len(rw[0].resources), 32)
+            self.check(rw[0].resources[15].dynamicallyUsed)
+            self.check_eq(rw[0].resources[15].resourceId, root.views[15].resourceId)
+
+            rw = pipe.GetReadWriteResources(rd.ShaderStage.Compute, True)
+            self.check_eq(rw[0].dynamicallyUsedCount, 1)
+            self.check_eq(rw[0].firstIndex, 15)
+            self.check_eq(len(rw[0].resources), 1)
+            self.check_eq(rw[0].resources[0].resourceId, root.views[15].resourceId)
+            self.check(rw[0].resources[0].dynamicallyUsed)
+
     def check_capture(self):
 
         for sm in ["sm_5_1", "sm_6_0", "sm_6_6"]:
@@ -161,5 +183,58 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
                 if not actually_used:
                     raise rdtest.TestFailureException(
                         "Sampler {} expected to be used, but isn't.".format(elemId))
+
+            pipe = self.controller.GetPipelineState()
+            ro = pipe.GetReadOnlyResources(rd.ShaderStage.Pixel, False)
+            self.check_eq(len(ro), 5)
+            self.check_eq(ro[0].dynamicallyUsedCount, 1)
+            self.check_eq(ro[0].firstIndex, 0)
+            self.check_eq(len(ro[0].resources), 1)
+            self.check_eq(ro[1].dynamicallyUsedCount, 1)
+            self.check_eq(ro[1].firstIndex, 0)
+            self.check_eq(len(ro[1].resources), 1)
+            self.check_eq(ro[2].dynamicallyUsedCount, 3)
+            self.check_eq(ro[2].firstIndex, 0)
+            self.check_eq(len(ro[2].resources), 32)
+            self.check_eq(ro[3].dynamicallyUsedCount, 3)
+            self.check_eq(ro[3].firstIndex, 0)
+            self.check_eq(len(ro[3].resources), 32)
+            self.check_eq(ro[4].dynamicallyUsedCount, 2)
+            self.check_eq(ro[4].firstIndex, 0)
+            self.check_eq(len(ro[4].resources), 32)
+            self.check(not ro[2].resources[18].dynamicallyUsed)
+            self.check(ro[2].resources[19].dynamicallyUsed)
+            ro = pipe.GetReadOnlyResources(rd.ShaderStage.Pixel, True)
+            self.check_eq(len(ro), 5)
+            self.check_eq(ro[0].dynamicallyUsedCount, 1)
+            self.check_eq(ro[0].firstIndex, 0)
+            self.check_eq(len(ro[0].resources), 1)
+            self.check_eq(ro[1].dynamicallyUsedCount, 1)
+            self.check_eq(ro[1].firstIndex, 0)
+            self.check_eq(len(ro[1].resources), 1)
+            self.check_eq(ro[2].dynamicallyUsedCount, 3)
+            self.check_eq(ro[2].firstIndex, 19)
+            # this contains more resources after the dynamically used ones because of the mismatch between
+            # root signature elements and bindings
+            self.check_eq(len(ro[2].resources), 32-8)
+            self.check_eq(ro[3].dynamicallyUsedCount, 3)
+            self.check_eq(ro[3].firstIndex, 0)
+            # similar to above
+            self.check_eq(len(ro[3].resources), 32)
+            self.check_eq(ro[4].dynamicallyUsedCount, 2)
+            self.check_eq(ro[4].firstIndex, 0)
+            self.check_eq(len(ro[4].resources), 103-80+1)
+
+            rw = pipe.GetReadWriteResources(rd.ShaderStage.Pixel, False)
+            self.check_eq(rw[0].dynamicallyUsedCount, 1)
+            self.check_eq(rw[0].firstIndex, 0)
+            self.check_eq(len(rw[0].resources), 32)
+            self.check(rw[0].resources[15].dynamicallyUsed)
+
+            rw = pipe.GetReadWriteResources(rd.ShaderStage.Pixel, True)
+            self.check_eq(rw[0].dynamicallyUsedCount, 1)
+            self.check_eq(rw[0].firstIndex, 15)
+            self.check_eq(len(rw[0].resources), 1)
+            self.check(rw[0].resources[0].dynamicallyUsed)
 
             rdtest.log.success("Dynamic usage is as expected for {}".format(sm))

@@ -1317,7 +1317,11 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
             element.type = BindType::ReadWriteResource;
 
           if(usage.valid)
+          {
+            element.firstUsedIndex = -1;
+            element.lastUsedIndex = -1;
             element.dynamicallyUsedCount = 0;
+          }
 
           element.views.reserve(num);
 
@@ -1386,6 +1390,13 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
               FillResourceView(view, desc);
               desc++;
             }
+          }
+
+          // if no bindings were set these will still be negative. Set them to something sensible.
+          if(element.firstUsedIndex < 0)
+          {
+            element.firstUsedIndex = 0;
+            element.lastUsedIndex = 0x7fffffff;
           }
         }
       }

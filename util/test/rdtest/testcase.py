@@ -204,6 +204,9 @@ class TestCase:
             else:
                 raise TestFailureException('Assertion Failure: {}'.format(msg))
 
+    def check_eq(self, a, b):
+        self.check(a == b, '{} != {}'.format(a, b))
+
     def get_replay_options(self):
         """
         Method to overload if you want to override the replay options used.

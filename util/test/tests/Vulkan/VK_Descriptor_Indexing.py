@@ -11,13 +11,13 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
         self.check(action is not None)
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
 
-        if len(pipe.compute.descriptorSets) != 1:
+        if len(vkpipe.compute.descriptorSets) != 1:
             raise rdtest.TestFailureException("Wrong number of compute sets is bound: {}, not 1"
-                                              .format(len(pipe.compute.descriptorSets)))
+                                              .format(len(vkpipe.compute.descriptorSets)))
 
-        binding = pipe.compute.descriptorSets[0].bindings[0]
+        binding = vkpipe.compute.descriptorSets[0].bindings[0]
 
         if binding.dynamicallyUsedCount != 1:
             raise rdtest.TestFailureException("Compute bind 0 doesn't have the right used count {}"
@@ -26,11 +26,33 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
         if not binding.binds[15].dynamicallyUsed:
             raise rdtest.TestFailureException("Compute bind 0[15] isn't dynamically used")
 
+        # these lists are only expected to be empty because the descriptors aren't written to, and so with mutable
+        # consideration these aren't considered read-only with unknown contents
+        pipe = self.controller.GetPipelineState()
+        ro = pipe.GetReadOnlyResources(rd.ShaderStage.Compute, False)
+        self.check_eq(ro, [])
+        ro = pipe.GetReadOnlyResources(rd.ShaderStage.Compute, True)
+        self.check_eq(ro, [])
+
+        rw = pipe.GetReadWriteResources(rd.ShaderStage.Compute, False)
+        self.check_eq(rw[0].dynamicallyUsedCount, 1)
+        self.check_eq(rw[0].firstIndex, 0)
+        self.check_eq(len(rw[0].resources), 128)
+        self.check(rw[0].resources[15].dynamicallyUsed)
+        self.check_eq(rw[0].resources[15].resourceId, binding.binds[15].resourceResourceId)
+
+        rw = pipe.GetReadWriteResources(rd.ShaderStage.Compute, True)
+        self.check_eq(rw[0].dynamicallyUsedCount, 1)
+        self.check_eq(rw[0].firstIndex, 15)
+        self.check_eq(len(rw[0].resources), 1)
+        self.check_eq(rw[0].resources[0].resourceId, binding.binds[15].resourceResourceId)
+        self.check(rw[0].resources[0].dynamicallyUsed)
+
         action = self.find_action("Draw")
         self.check(action is not None)
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
 
         # Check bindings:
         #   - buffer 15 in bind 0 should be used
@@ -44,11 +66,11 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
             2: { 'dynamicallyUsedCount': 2, 'used': [381, 386] },
         }
 
-        if len(pipe.graphics.descriptorSets) != 1:
+        if len(vkpipe.graphics.descriptorSets) != 1:
             raise rdtest.TestFailureException("Wrong number of sets is bound: {}, not 1"
-                                              .format(len(pipe.graphics.descriptorSets)))
+                                              .format(len(vkpipe.graphics.descriptorSets)))
 
-        desc_set: rd.VKDescriptorSet = pipe.graphics.descriptorSets[0]
+        desc_set: rd.VKDescriptorSet = vkpipe.graphics.descriptorSets[0]
 
         binding: rd.VKDescriptorBinding
         for bind, binding in enumerate(desc_set.bindings):
@@ -66,5 +88,39 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
 
                 if not expected_used and actually_used:
                     raise rdtest.TestFailureException("Bind {} element {} expected to be unused, but is.".format(bind, idx))
+
+        pipe = self.controller.GetPipelineState()
+        ro = pipe.GetReadOnlyResources(rd.ShaderStage.Pixel, False)
+        self.check_eq(len(ro), 2)
+        self.check_eq(ro[0].dynamicallyUsedCount, 6)
+        self.check_eq(ro[0].firstIndex, 0)
+        self.check_eq(len(ro[0].resources), 128)
+        self.check_eq(ro[1].dynamicallyUsedCount, 2)
+        self.check_eq(ro[1].firstIndex, 0)
+        self.check_eq(len(ro[1].resources), 512)
+        self.check(not ro[0].resources[18].dynamicallyUsed)
+        self.check(ro[0].resources[19].dynamicallyUsed)
+        ro = pipe.GetReadOnlyResources(rd.ShaderStage.Pixel, True)
+        self.check_eq(len(ro), 2)
+        self.check_eq(ro[0].dynamicallyUsedCount, 6)
+        self.check_eq(ro[0].firstIndex, 4)
+        self.check_eq(len(ro[0].resources), 56)
+        self.check_eq(ro[1].dynamicallyUsedCount, 2)
+        self.check_eq(ro[1].firstIndex, 381)
+        self.check_eq(len(ro[1].resources), 6)
+        self.check(not ro[0].resources[14].dynamicallyUsed)
+        self.check(ro[0].resources[15].dynamicallyUsed)
+
+        rw = pipe.GetReadWriteResources(rd.ShaderStage.Pixel, False)
+        self.check_eq(rw[0].dynamicallyUsedCount, 1)
+        self.check_eq(rw[0].firstIndex, 0)
+        self.check_eq(len(rw[0].resources), 128)
+        self.check(rw[0].resources[15].dynamicallyUsed)
+
+        rw = pipe.GetReadWriteResources(rd.ShaderStage.Pixel, True)
+        self.check_eq(rw[0].dynamicallyUsedCount, 1)
+        self.check_eq(rw[0].firstIndex, 15)
+        self.check_eq(len(rw[0].resources), 1)
+        self.check(rw[0].resources[0].dynamicallyUsed)
 
         rdtest.log.success("Dynamic usage is as expected")
