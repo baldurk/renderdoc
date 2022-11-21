@@ -643,16 +643,23 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_vertex_attribute_divisor)
   {
     vertexDivisor.pVertexBindingDivisors = vibindDivisors;
-    vertexDivisor.vertexBindingDivisorCount = vi.vertexBindingDescriptionCount;
+    vertexDivisor.vertexBindingDivisorCount = 0;
 
     for(uint32_t i = 0; i < vi.vertexBindingDescriptionCount; i++)
     {
-      vibindDivisors[i].binding = i;
-      vibindDivisors[i].divisor = pipeInfo.vertexBindings[i].instanceDivisor;
+      if(pipeInfo.vertexBindings[i].perInstance)
+      {
+        uint32_t instIdx = vertexDivisor.vertexBindingDivisorCount++;
+        vibindDivisors[instIdx].binding = i;
+        vibindDivisors[instIdx].divisor = pipeInfo.vertexBindings[i].instanceDivisor;
+      }
     }
 
-    vertexDivisor.pNext = vi.pNext;
-    vi.pNext = &vertexDivisor;
+    if(vertexDivisor.vertexBindingDivisorCount > 0)
+    {
+      vertexDivisor.pNext = vi.pNext;
+      vi.pNext = &vertexDivisor;
+    }
   }
 
   RDCASSERT(ARRAY_COUNT(viattr) >= pipeInfo.vertexAttrs.size());
