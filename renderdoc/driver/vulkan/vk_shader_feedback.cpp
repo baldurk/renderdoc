@@ -515,7 +515,8 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
     rdcarray<rdcspv::Id> idxs;
 
     auto fetchOrAddGlobalInput = [&editor, &idxs, &refl, &patchData, &locationGather, &newGlobals](
-        const char *name, ShaderBuiltin builtin, rdcspv::BuiltIn spvBuiltin, rdcspv::Id varType) {
+        const char *name, ShaderBuiltin builtin, rdcspv::BuiltIn spvBuiltin, rdcspv::Id varType,
+        bool integer) {
       rdcspv::Id ret;
 
       rdcspv::Id ptrType = editor.DeclareType(rdcspv::Pointer(varType, rdcspv::StorageClass::Input));
@@ -570,6 +571,10 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
             rdcspv::OpVariable(ptrType, editor.MakeId(), rdcspv::StorageClass::Input));
         editor.AddDecoration(rdcspv::OpDecorate(
             rdocGlobalVar, rdcspv::DecorationParam<rdcspv::Decoration::BuiltIn>(spvBuiltin)));
+        // Fragment shader inputs that are signed or unsigned integers, integer vectors, or any
+        // double-precision floating-point type must be decorated with Flat.
+        if(integer && refl.stage == ShaderStage::Pixel)
+          editor.AddDecoration(rdcspv::OpDecorate(rdocGlobalVar, rdcspv::Decoration::Flat));
 
         newGlobals.push_back(rdocGlobalVar);
 
@@ -588,7 +593,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
     {
       // the location for compute is easy, it's just the global invocation
       location = fetchOrAddGlobalInput("rdoc_invocation", ShaderBuiltin::DispatchThreadIndex,
-                                       rdcspv::BuiltIn::GlobalInvocationId, uvec3Type);
+                                       rdcspv::BuiltIn::GlobalInvocationId, uvec3Type, true);
     }
     else if(stage == ShaderStage::Vertex || stage == ShaderStage::Pixel)
     {
@@ -599,7 +604,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       if(editor.HasCapability(rdcspv::Capability::MultiView))
       {
         view = fetchOrAddGlobalInput("rdoc_viewIndex", ShaderBuiltin::ViewportIndex,
-                                     rdcspv::BuiltIn::ViewIndex, uint32Type);
+                                     rdcspv::BuiltIn::ViewIndex, uint32Type, true);
       }
       else
       {
@@ -609,9 +614,9 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       if(stage == ShaderStage::Vertex)
       {
         rdcspv::Id vtx = fetchOrAddGlobalInput("rdoc_vertexIndex", ShaderBuiltin::VertexIndex,
-                                               rdcspv::BuiltIn::VertexIndex, uint32Type);
+                                               rdcspv::BuiltIn::VertexIndex, uint32Type, true);
         rdcspv::Id inst = fetchOrAddGlobalInput("rdoc_instanceIndex", ShaderBuiltin::InstanceIndex,
-                                                rdcspv::BuiltIn::InstanceIndex, uint32Type);
+                                                rdcspv::BuiltIn::InstanceIndex, uint32Type, true);
 
         location = locationGather.add(
             rdcspv::OpCompositeConstruct(uvec3Type, editor.MakeId(), {vtx, inst, view}));
@@ -622,7 +627,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
         rdcspv::Id float4Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4));
 
         rdcspv::Id coord = fetchOrAddGlobalInput("rdoc_fragCoord", ShaderBuiltin::Position,
-                                                 rdcspv::BuiltIn::FragCoord, float4Type);
+                                                 rdcspv::BuiltIn::FragCoord, float4Type, false);
 
         // grab just the xy
         coord = locationGather.add(
@@ -652,7 +657,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
              refl.inputSignature[i].systemValue == ShaderBuiltin::MSAASamplePosition)
           {
             samp = fetchOrAddGlobalInput("rdoc_sampleIndex", ShaderBuiltin::MSAASampleIndex,
-                                         rdcspv::BuiltIn::SampleId, uint32Type);
+                                         rdcspv::BuiltIn::SampleId, uint32Type, true);
           }
         }
 
@@ -673,7 +678,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
         if(usePrimitiveID)
         {
           prim = fetchOrAddGlobalInput("rdoc_primitiveIndex", ShaderBuiltin::PrimitiveIndex,
-                                       rdcspv::BuiltIn::PrimitiveId, uint32Type);
+                                       rdcspv::BuiltIn::PrimitiveId, uint32Type, true);
         }
         else
         {
@@ -687,7 +692,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
     else if(stage == ShaderStage::Geometry)
     {
       rdcspv::Id prim = fetchOrAddGlobalInput("rdoc_primitiveIndex", ShaderBuiltin::PrimitiveIndex,
-                                              rdcspv::BuiltIn::PrimitiveId, uint32Type);
+                                              rdcspv::BuiltIn::PrimitiveId, uint32Type, true);
 
       rdcspv::Id view;
 
@@ -696,7 +701,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       if(editor.HasCapability(rdcspv::Capability::MultiView))
       {
         view = fetchOrAddGlobalInput("rdoc_viewIndex", ShaderBuiltin::ViewportIndex,
-                                     rdcspv::BuiltIn::ViewIndex, uint32Type);
+                                     rdcspv::BuiltIn::ViewIndex, uint32Type, true);
       }
       else
       {
