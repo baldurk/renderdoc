@@ -661,6 +661,8 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   static VkPipelineInputAssemblyStateCreateInfo ia = {
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
 
+  ia.pNext = NULL;
+
   ia.topology = pipeInfo.topology;
   ia.primitiveRestartEnable = pipeInfo.primitiveRestartEnable;
 
@@ -685,9 +687,10 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
 
   static VkPipelineViewportStateCreateInfo vp = {
       VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
-
   static VkViewport views[32] = {};
   static VkRect2D scissors[32] = {};
+
+  vp.pNext = NULL;
 
   memcpy(views, &pipeInfo.viewports[0], pipeInfo.viewports.size() * sizeof(VkViewport));
 
@@ -701,6 +704,18 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
 
   RDCASSERT(ARRAY_COUNT(views) >= pipeInfo.viewports.size());
   RDCASSERT(ARRAY_COUNT(scissors) >= pipeInfo.scissors.size());
+
+  static VkPipelineViewportDepthClipControlCreateInfoEXT depthClipControl = {
+      VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_DEPTH_CLIP_CONTROL_CREATE_INFO_EXT,
+  };
+
+  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_depth_clip_control)
+  {
+    depthClipControl.negativeOneToOne = pipeInfo.negativeOneToOne;
+
+    depthClipControl.pNext = vp.pNext;
+    vp.pNext = &depthClipControl;
+  }
 
   static VkPipelineRasterizationStateCreateInfo rs = {
       VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -807,6 +822,8 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   static VkPipelineDepthStencilStateCreateInfo ds = {
       VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
 
+  ds.pNext = NULL;
+
   ds.depthTestEnable = pipeInfo.depthTestEnable;
   ds.depthWriteEnable = pipeInfo.depthWriteEnable;
   ds.depthCompareOp = pipeInfo.depthCompareOp;
@@ -819,6 +836,8 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
 
   static VkPipelineColorBlendStateCreateInfo cb = {
       VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
+
+  cb.pNext = NULL;
 
   cb.logicOpEnable = pipeInfo.logicOpEnable;
   cb.logicOp = pipeInfo.logicOp;
@@ -846,6 +865,8 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   static VkDynamicState dynSt[VkDynamicCount];
 
   static VkPipelineDynamicStateCreateInfo dyn = {VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
+
+  dyn.pNext = NULL;
 
   dyn.dynamicStateCount = 0;
   dyn.pDynamicStates = dynSt;
@@ -960,18 +981,6 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
 
     shadingRate.pNext = ret.pNext;
     ret.pNext = &shadingRate;
-  }
-
-  static VkPipelineViewportDepthClipControlCreateInfoEXT depthClipControl = {
-      VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_DEPTH_CLIP_CONTROL_CREATE_INFO_EXT,
-  };
-
-  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_depth_clip_control)
-  {
-    depthClipControl.negativeOneToOne = pipeInfo.negativeOneToOne;
-
-    depthClipControl.pNext = vp.pNext;
-    vp.pNext = &depthClipControl;
   }
 
   // never create derivatives
