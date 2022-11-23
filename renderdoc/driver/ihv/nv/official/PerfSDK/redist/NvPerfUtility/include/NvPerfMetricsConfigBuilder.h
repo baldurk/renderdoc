@@ -324,6 +324,22 @@ namespace nv { namespace perf {
             }
             return true;
         }
+
+        // Returns the number of replay passes for this metrics config.
+        // Total num passes = numPasses * numNestingLevels
+        size_t GetNumPasses() const
+        {
+            NVPW_RawMetricsConfig_GetNumPasses_V2_Params getNumPassesParams;
+            getNumPassesParams.structSize = sizeof(getNumPassesParams);
+            getNumPassesParams.pPriv = NULL;
+            getNumPassesParams.pRawMetricsConfig = m_pRawMetricsConfig;
+            NVPA_Status nvpaStatus = NVPW_RawMetricsConfig_GetNumPasses_V2(&getNumPassesParams);
+            if (nvpaStatus)
+            {
+                return 0u;
+            }
+            return getNumPassesParams.numPasses;
+        }
     };
 
 }}
