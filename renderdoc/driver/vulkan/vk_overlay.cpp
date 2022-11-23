@@ -1918,14 +1918,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       size_t startEvent = 0;
 
-      // this is a bit of a hack, but it's the simplest fix without refactoring the ClearBefore..
-      // overlay to copy the result off into the overlay texture (which has its own issues with
-      // alpha channels since the overlay expects to be blended). If we are selecting a new event
-      // with ClearBeforeDraw enabled then we do this here, and then later the pipeline is fetched
-      // and that triggers the bindless feedback - which will reset the state and undo our clear. If
-      // we force it to be cached here then it won't mess things up later.
-      FetchShaderFeedback(eventId);
-
       // if we're ClearBeforePass the first event will be a vkBeginRenderPass.
       // if there are any other events, we need to play up to right before them
       // so that we have all the render state set up to do

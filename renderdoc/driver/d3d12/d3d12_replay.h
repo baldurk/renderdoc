@@ -266,7 +266,7 @@ private:
   bool CreateSOBuffers();
   void ClearPostVSCache();
 
-  void FetchShaderFeedback(uint32_t eventId);
+  bool FetchShaderFeedback(uint32_t eventId);
   void ClearFeedbackCache();
 
   void RefreshDerivedReplacements();

@@ -281,6 +281,12 @@ APIProperties D3D12Replay::GetAPIProperties()
 
 void D3D12Replay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
+  if(replayType == eReplay_OnlyDraw)
+  {
+    bool replayed = FetchShaderFeedback(endEventID);
+    if(replayed)
+      return;
+  }
   m_pDevice->ReplayLog(0, endEventID, replayType);
 }
 

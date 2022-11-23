@@ -446,7 +446,7 @@ public:
                                 uint32_t bufferOffset, VkFormat format, VkDescriptorSet descSet);
 
 private:
-  void FetchShaderFeedback(uint32_t eventId);
+  bool FetchShaderFeedback(uint32_t eventId);
   void ClearFeedbackCache();
 
   void PatchReservedDescriptors(const VulkanStatePipeline &pipe, VkDescriptorPool &descpool,

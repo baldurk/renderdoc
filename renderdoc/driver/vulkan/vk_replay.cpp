@@ -227,6 +227,12 @@ RDResult VulkanReplay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredB
 
 void VulkanReplay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
+  if(replayType == eReplay_OnlyDraw)
+  {
+    bool replayed = FetchShaderFeedback(endEventID);
+    if(replayed)
+      return;
+  }
   m_pDriver->ReplayLog(0, endEventID, replayType);
 }
 

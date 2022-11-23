@@ -1354,13 +1354,13 @@ void VulkanReplay::ClearFeedbackCache()
   m_BindlessFeedback.Usage.clear();
 }
 
-void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
+bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 {
   if(m_BindlessFeedback.Usage.find(eventId) != m_BindlessFeedback.Usage.end())
-    return;
+    return false;
 
   if(!Vulkan_BindlessFeedback())
-    return;
+    return false;
 
   // create it here so we won't re-run any code if the event is re-selected. We'll mark it as valid
   // if it actually has any data in it later.
@@ -1385,7 +1385,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   {
     // deliberately show no bindings as used for non-draws
     result.valid = true;
-    return;
+    return false;
   }
 
   result.compute = bool(action->flags & ActionFlags::Dispatch);
@@ -1395,7 +1395,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   if(pipe.pipeline == ResourceId())
   {
     result.valid = true;
-    return;
+    return false;
   }
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[pipe.pipeline];
@@ -1501,7 +1501,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   // if we don't have any array descriptors or printf's to feedback then just return now
   if(offsetMap.empty() && !usesPrintf)
   {
-    return;
+    return false;
   }
 
   if(!result.compute)
@@ -1510,12 +1510,9 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     if(!m_pDriver->GetDeviceEnabledFeatures().vertexPipelineStoresAndAtomics &&
        !m_pDriver->GetDeviceEnabledFeatures().fragmentStoresAndAtomics)
     {
-      return;
+      return false;
     }
   }
-
-  // replay from the start without this action, as we want a clean state to do printfs from.
-  m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
 
   // we go through the driver for all these creations since they need to be properly
   // registered in order to be put in the partial replay state. Our patched shader is valid so we
@@ -1576,7 +1573,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
     // if the pool failed due to limits, it will be NULL so bail now
     if(descpool == VK_NULL_HANDLE)
-      return;
+      return false;
 
     // create pipeline layout with new descriptor set layouts
     {
@@ -1775,7 +1772,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
     if(cmd == VK_NULL_HANDLE)
-      return;
+      return false;
 
     VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
@@ -1994,6 +1991,8 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   for(size_t i = 0; i < ARRAY_COUNT(modules); i++)
     if(modules[i] != VK_NULL_HANDLE)
       m_pDriver->vkDestroyShaderModule(dev, modules[i], NULL);
+
+  return true;
 }
 
 #if ENABLED(ENABLE_UNIT_TESTS)

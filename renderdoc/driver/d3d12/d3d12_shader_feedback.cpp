@@ -1360,16 +1360,16 @@ struct D3D12StatCallback : public D3D12ActionCallback
   ID3D12QueryHeap *m_PipeStatsQueryHeap;
 };
 
-void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
+bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
 {
   if(m_BindlessFeedback.Usage.find(eventId) != m_BindlessFeedback.Usage.end())
-    return;
+    return false;
 
   if(!D3D12_BindlessFeedback())
-    return;
+    return false;
 
   if(m_pDevice->HasFatalError())
-    return;
+    return false;
 
   // create it here so we won't re-run any code if the event is re-selected. We'll mark it as valid
   // if it actually has any data in it later.
@@ -1381,7 +1381,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   {
     // deliberately show no bindings as used for non-draws
     result.valid = true;
-    return;
+    return false;
   }
 
   result.compute = bool(action->flags & ActionFlags::Dispatch);
@@ -1398,7 +1398,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   {
     RDCERR("Can't fetch shader feedback, no pipeline state bound");
     result.valid = true;
-    return;
+    return false;
   }
 
   bytebuf editedBlob[(uint32_t)ShaderStage::Count];
@@ -1436,7 +1436,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     if(!sig)
     {
       result.valid = true;
-      return;
+      return false;
     }
 
     modsig = ((WrappedID3D12RootSignature *)sig)->sig;
@@ -1456,7 +1456,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     if(!sig)
     {
       result.valid = true;
-      return;
+      return false;
     }
 
     modsig = ((WrappedID3D12RootSignature *)sig)->sig;
@@ -1487,7 +1487,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   // Silently return
   if(numSlots == numReservedSlots)
   {
-    return;
+    return false;
   }
 
   // need to be able to add a descriptor of our UAV without hitting the 64 DWORD limit
@@ -1519,7 +1519,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     if(FAILED(hr))
     {
       RDCERR("Failed to create shader feedback pipeline query heap HRESULT: %s", ToStr(hr).c_str());
-      return;
+      return false;
     }
   }
 
@@ -1556,7 +1556,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     if(m_BindlessFeedback.FeedbackBuffer == NULL || FAILED(hr))
     {
       RDCERR("Couldn't create feedback buffer with %u slots: %s", numSlots, ToStr(hr).c_str());
-      return;
+      return false;
     }
 
     m_BindlessFeedback.FeedbackBuffer->SetName(L"m_BindlessFeedback.FeedbackBuffer");
@@ -1579,7 +1579,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
 
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
     if(!list)
-      return;
+      return false;
 
     GetDebugManager()->SetDescriptorHeaps(list, true, false);
 
@@ -1602,7 +1602,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     if(annotatedSig == NULL || FAILED(hr))
     {
       RDCERR("Couldn't create feedback modified root signature: %s", ToStr(hr).c_str());
-      return;
+      return false;
     }
   }
 
@@ -1616,11 +1616,11 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     {
       SAFE_RELEASE(annotatedSig);
       RDCERR("Couldn't create feedback modified pipeline: %s", ToStr(hr).c_str());
-      return;
+      return false;
     }
   }
 
-  D3D12RenderState prev = rs;
+  D3D12RenderState prev = m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState();
 
   rs.pipe = GetResID(annotatedPipe);
 
@@ -1648,7 +1648,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
 
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
     if(!list)
-      return;
+      return true;
 
     list->ResolveQueryData(m_BindlessFeedback.PipeStatsHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS,
                            0, 1, m_BindlessFeedback.FeedbackBuffer, numSlots * sizeof(uint32_t));
@@ -1662,7 +1662,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   SAFE_RELEASE(annotatedPipe);
   SAFE_RELEASE(annotatedSig);
 
-  rs = prev;
+  rs = m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState() = prev;
 
   bytebuf results;
   GetDebugManager()->GetBufferData(m_BindlessFeedback.FeedbackBuffer, 0, 0, results);
@@ -1725,7 +1725,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
                 visMask = (uint32_t)ShaderStageMask::Geometry;
                 break;
               case D3D12_SHADER_VISIBILITY_PIXEL: visMask = uint32_t(ShaderStageMask::Pixel); break;
-              default: RDCERR("Unexpected shader visibility %d", p.ShaderVisibility); return;
+              default: RDCERR("Unexpected shader visibility %d", p.ShaderVisibility); return true;
             }
 
             // set the key type
@@ -1860,8 +1860,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     }
   }
 
-  // replay from the start as we may have corrupted state while fetching the above feedback.
-  m_pDevice->ReplayLog(0, eventId, eReplay_Full);
+  return true;
 }
 
 void D3D12Replay::ClearFeedbackCache()
