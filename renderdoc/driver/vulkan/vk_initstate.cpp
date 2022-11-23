@@ -2137,8 +2137,25 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     RDCDEBUG("Apply_InitialState (Mem %s): %d fills, %d copies", ToStr(orig).c_str(), fillCount,
              regions.size());
     if(regions.size() > 0)
+    {
+      VkBufferMemoryBarrier bufBarrier = {
+          VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+          NULL,
+          VK_ACCESS_TRANSFER_WRITE_BIT,
+          VK_ACCESS_TRANSFER_WRITE_BIT,
+          VK_QUEUE_FAMILY_IGNORED,
+          VK_QUEUE_FAMILY_IGNORED,
+          Unwrap(dstBuf),
+          0,
+          VK_WHOLE_SIZE,
+      };
+
+      // be conservative about whether or not the above fills overlap with the below copies
+      DoPipelineBarrier(cmd, 1, &bufBarrier);
+
       ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf),
                                   (uint32_t)regions.size(), regions.data());
+    }
 
     VkMarkerRegion::End(cmd);
 
