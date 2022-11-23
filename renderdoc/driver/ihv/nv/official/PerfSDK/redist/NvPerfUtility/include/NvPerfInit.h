@@ -107,9 +107,10 @@ namespace nv { namespace perf {
 #else // !defined(_WIN32)
     typedef struct timeval LogTimeStamp;
 
-    inline void UserLogImplPlatform(const char* pMessage)
+    inline void UserLogImplPlatform(const char* /* pMessage */)
     {
-        (void*)pMessage;
+        // FIXME: gcc complains that pMessage is not used
+        //(void*)pMessage;
     }
 
     inline void GetTimeStamp(LogTimeStamp* pTimestamp)
