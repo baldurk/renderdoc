@@ -276,6 +276,9 @@ public:
                               GLint yoffset = 0, GLint zoffset = 0, GLsizei width = 65536,
                               GLsizei height = 65536, GLsizei depth = 65536);
 
+  bool CreateFragmentShaderReplacementProgram(GLuint program, GLuint replacedProgram, GLuint pipeline,
+                                              GLuint fragShader, GLuint fragShaderSPIRV);
+
 private:
   void OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool bufferBacked, rdcstr prefix,
                                   const rdcarray<ShaderConstant> &variables,
@@ -285,8 +288,6 @@ private:
                  float *minval, float *maxval);
 
   void CreateCustomShaderTex(uint32_t w, uint32_t h);
-  bool CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint fragShader,
-                            GLuint fragShaderSPIRV);
 
   struct OutputWindow : public GLWindowingData
   {

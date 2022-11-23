@@ -700,7 +700,6 @@
     <None Include="data\glsl\pixelhistory_mscopy.comp" />
     <None Include="data\glsl\pixelhistory_mscopy_depth.comp" />
     <None Include="data\glsl\pixelhistory_primid.frag" />
-    <None Include="data\glsl\pixelhistory_primid_legacy.frag" />
     <None Include="data\glsl\quadresolve.frag" />
     <None Include="data\glsl\quadwrite.frag" />
     <None Include="data\glsl\shaderdebug_sample.vert" />

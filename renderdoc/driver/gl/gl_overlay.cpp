@@ -36,18 +36,13 @@
 #define OPENGL 1
 #include "data/glsl/glsl_ubos_cpp.h"
 
-bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint fragShader,
-                                    GLuint fragShaderSPIRV)
+bool GLReplay::CreateFragmentShaderReplacementProgram(GLuint program, GLuint replacementProgram,
+                                                      GLuint pipeline, GLuint fragShader,
+                                                      GLuint fragShaderSPIRV)
 {
   WrappedOpenGL &drv = *m_pDriver;
 
   ContextPair &ctx = drv.GetCtx();
-
-  // delete the old program if it exists
-  if(DebugData.overlayProg != 0)
-    drv.glDeleteProgram(DebugData.overlayProg);
-
-  DebugData.overlayProg = drv.glCreateProgram();
 
   // these are the shaders to attach, and the programs to copy details from
   GLuint shaders[4] = {0};
@@ -63,15 +58,15 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
   bool HasSPIRVShaders = false;
   bool HasGLSLShaders = false;
 
-  if(Program == 0)
+  if(program == 0)
   {
-    if(Pipeline == 0)
+    if(pipeline == 0)
     {
       return false;
     }
     else
     {
-      ResourceId id = m_pDriver->GetResourceManager()->GetResID(ProgramPipeRes(ctx, Pipeline));
+      ResourceId id = m_pDriver->GetResourceManager()->GetResID(ProgramPipeRes(ctx, pipeline));
       const WrappedOpenGL::PipelineData &pipeDetails = m_pDriver->m_Pipelines[id];
 
       // fetch the corresponding shaders and programs for each stage
@@ -116,7 +111,8 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
               {
                 char buffer[1024] = {};
                 drv.glGetShaderInfoLog(tmpShaders[i], 1024, NULL, buffer);
-                RDCERR("Trying to recreate overlay program, couldn't compile shader:\n%s", buffer);
+                RDCERR("Trying to recreate replacement program, couldn't compile shader:\n%s",
+                       buffer);
               }
             }
           }
@@ -130,14 +126,14 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
   else
   {
     const WrappedOpenGL::ProgramData &progDetails =
-        m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetResID(ProgramRes(ctx, Program))];
+        m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetResID(ProgramRes(ctx, program))];
 
     // fetch any and all non-fragment shader shaders
     for(size_t i = 0; i < 4; i++)
     {
       if(progDetails.stageShaders[i] != ResourceId())
       {
-        programs[i] = Program;
+        programs[i] = program;
         shaders[i] =
             m_pDriver->GetResourceManager()->GetCurrentResource(progDetails.stageShaders[i]).name;
 
@@ -161,34 +157,34 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
   // attach the shaders
   for(size_t i = 0; i < 4; i++)
     if(shaders[i])
-      drv.glAttachShader(DebugData.overlayProg, shaders[i]);
+      drv.glAttachShader(replacementProgram, shaders[i]);
 
   if(HasSPIRVShaders)
   {
     RDCASSERT(fragShaderSPIRV);
-    drv.glAttachShader(DebugData.overlayProg, fragShaderSPIRV);
+    drv.glAttachShader(replacementProgram, fragShaderSPIRV);
   }
   else
   {
-    drv.glAttachShader(DebugData.overlayProg, fragShader);
+    drv.glAttachShader(replacementProgram, fragShader);
   }
 
   // copy the vertex attribs over from the source program
   if(vsRefl && programs[0] && !HasSPIRVShaders)
-    CopyProgramAttribBindings(programs[0], DebugData.overlayProg, vsRefl);
+    CopyProgramAttribBindings(programs[0], replacementProgram, vsRefl);
 
   // link the overlay program
-  drv.glLinkProgram(DebugData.overlayProg);
+  drv.glLinkProgram(replacementProgram);
 
   // detach the shaders
   for(size_t i = 0; i < 4; i++)
     if(shaders[i])
-      drv.glDetachShader(DebugData.overlayProg, shaders[i]);
+      drv.glDetachShader(replacementProgram, shaders[i]);
 
   if(HasSPIRVShaders)
-    drv.glDetachShader(DebugData.overlayProg, fragShaderSPIRV);
+    drv.glDetachShader(replacementProgram, fragShaderSPIRV);
   else
-    drv.glDetachShader(DebugData.overlayProg, fragShader);
+    drv.glDetachShader(replacementProgram, fragShader);
 
   // delete any temporaries
   for(size_t i = 0; i < 4; i++)
@@ -198,10 +194,10 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
   // check that the link succeeded
   char buffer[1024] = {};
   GLint status = 0;
-  drv.glGetProgramiv(DebugData.overlayProg, eGL_LINK_STATUS, &status);
+  drv.glGetProgramiv(replacementProgram, eGL_LINK_STATUS, &status);
   if(status == 0)
   {
-    drv.glGetProgramInfoLog(DebugData.overlayProg, 1024, NULL, buffer);
+    drv.glGetProgramInfoLog(replacementProgram, 1024, NULL, buffer);
     RDCERR("Error linking overlay program: %s", buffer);
     return false;
   }
@@ -210,7 +206,7 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
   // same program is bound to multiple stages. It's just inefficient
   {
     PerStageReflections dstStages;
-    m_pDriver->FillReflectionArray(ProgramRes(ctx, DebugData.overlayProg), dstStages);
+    m_pDriver->FillReflectionArray(ProgramRes(ctx, replacementProgram), dstStages);
 
     for(size_t i = 0; i < 4; i++)
     {
@@ -219,7 +215,7 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
         PerStageReflections stages;
         m_pDriver->FillReflectionArray(ProgramRes(ctx, programs[i]), stages);
 
-        CopyProgramUniforms(stages, programs[i], dstStages, DebugData.overlayProg);
+        CopyProgramUniforms(stages, programs[i], dstStages, replacementProgram);
       }
     }
   }
@@ -479,12 +475,18 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
       RDCWARN("Quad overdraw not supported on GLES", glslVer);
   }
 
+  // delete the old program if it exists
+  if(DebugData.overlayProg != 0)
+    drv.glDeleteProgram(DebugData.overlayProg);
+
+  DebugData.overlayProg = drv.glCreateProgram();
+
   // we bind the separable program created for each shader, and copy
   // uniforms and attrib bindings from the 'real' programs, wherever
   // they are.
-  bool spirvOverlay =
-      CreateOverlayProgram(rs.Program.name, rs.Pipeline.name, DebugData.fixedcolFragShader,
-                           DebugData.fixedcolFragShaderSPIRV);
+  bool spirvOverlay = CreateFragmentShaderReplacementProgram(
+      rs.Program.name, DebugData.overlayProg, rs.Pipeline.name, DebugData.fixedcolFragShader,
+      DebugData.fixedcolFragShaderSPIRV);
   drv.glUseProgram(DebugData.overlayProg);
 
   GLint overlayFixedColLocation = 0;
@@ -2029,11 +2031,18 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
           drv.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
           drv.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
 
+          // delete the old program if it exists
+          if(DebugData.overlayProg != 0)
+            drv.glDeleteProgram(DebugData.overlayProg);
+
+          DebugData.overlayProg = drv.glCreateProgram();
+
           // replace fragment shader. This is exactly what we did
           // at the start of this function for the single-event case, but now we have
           // to do it for every event
-          spirvOverlay = CreateOverlayProgram(prog, pipe, DebugData.quadoverdrawFragShader,
-                                              DebugData.quadoverdrawFragShaderSPIRV);
+          spirvOverlay = CreateFragmentShaderReplacementProgram(
+              prog, DebugData.overlayProg, pipe, DebugData.quadoverdrawFragShader,
+              DebugData.quadoverdrawFragShaderSPIRV);
           drv.glUseProgram(DebugData.overlayProg);
           drv.glBindProgramPipeline(0);
 
