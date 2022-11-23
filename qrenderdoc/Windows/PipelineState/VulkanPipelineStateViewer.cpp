@@ -2521,12 +2521,12 @@ void VulkanPipelineStateViewer::setState()
 
   if(state.rasterizer.depthBiasEnable)
   {
-    ui->depthBias->setText(Formatter::Format(state.rasterizer.depthBias));
-    ui->depthBiasClamp->setText(Formatter::Format(state.rasterizer.depthBiasClamp));
-    ui->slopeScaledBias->setText(Formatter::Format(state.rasterizer.slopeScaledDepthBias));
     ui->depthBias->setPixmap(QPixmap());
     ui->depthBiasClamp->setPixmap(QPixmap());
     ui->slopeScaledBias->setPixmap(QPixmap());
+    ui->depthBias->setText(Formatter::Format(state.rasterizer.depthBias));
+    ui->depthBiasClamp->setText(Formatter::Format(state.rasterizer.depthBiasClamp));
+    ui->slopeScaledBias->setText(Formatter::Format(state.rasterizer.slopeScaledDepthBias));
   }
   else
   {
