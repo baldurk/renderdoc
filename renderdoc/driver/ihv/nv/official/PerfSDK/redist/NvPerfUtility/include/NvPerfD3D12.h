@@ -176,8 +176,15 @@ namespace nv { namespace perf {
     {
         const LUID deviceLuid = pDevice->GetAdapterLuid();
 
+        typedef HRESULT (*PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
+        PFN_CREATE_DXGI_FACTORY pfnCreateDXGIFactory1 = (PFN_CREATE_DXGI_FACTORY)GetProcAddress(GetModuleHandleA("dxgi.dll"), "CreateDXGIFactory1");
+        if (!pfnCreateDXGIFactory1)
+        {
+            return false;
+        }
+
         ComPtr<IDXGIFactory1> pDXGIFactory;
-        HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&pDXGIFactory));
+        HRESULT hr = pfnCreateDXGIFactory1(IID_PPV_ARGS(&pDXGIFactory));
         if (FAILED(hr))
         {
             return false;
