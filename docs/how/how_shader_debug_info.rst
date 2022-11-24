@@ -1,9 +1,11 @@
 How do I use shader debug information?
 ======================================
 
-RenderDoc makes extensive use of shader debug information to provide a smoother debugging experience. This kind of information gives names to anything in the shader interface such as constants, resource bindings, interpolated inputs and outputs. It includes better type information that in many cases is not available, and it can also even include embedded copies of the shader source which is used for source-level debugging.
+RenderDoc makes extensive use of shader reflection and debug information to provide a smoother debugging experience. This kind of information gives names to anything in the shader interface such as constants, resource bindings, interpolated inputs and outputs. It includes better type information that in many cases is not available, and it can also even include embedded copies of the shader source which is used for source-level debugging.
 
 On most APIs this debug information adds up to a large amount of information which is not necessary for functionality, and so it can be optionally stripped out. Many shader compilation pipelines will do this automatically, so the information is lost by the time RenderDoc can intercept it at the API level. For this reason there are several ways to save either the unstripped shader blob or just the debug information separately at compile time and provide ways for RenderDoc to correlate the stripped blob it sees passed to the API with the debug information on disk.
+
+If you did not deliberately strip out debug information and left it embedded in the blob, you do not need to do anything else and RenderDoc will find and use the information. If you used a compiler-based method of generating separate debug information you will at most need to specify search paths in the RenderDoc options but you do not need to follow any of these steps.
 
 .. note::
 
@@ -16,7 +18,7 @@ On most APIs this debug information adds up to a large amount of information whi
 Specifying debug shader blobs
 -----------------------------
 
-Separated debug shader blobs can be specified using a path and an API-specific mechanism. The path itself can either be an absolute path, which will be used directly every time, or it can be a relative path which allows the blob identifier to be specified relative to customisable search folders. If using a relative path, it can be as simple as a filename.
+Separated debug shader blobs can be specified using a path and an API-specific mechanism, if the separation has been done manually. The path itself can either be an absolute path, which will be used directly every time, or it can be a relative path which allows the blob identifier to be specified relative to customisable search folders. If using a relative path, it can be as simple as a filename.
 
 The search folders for shader debug info are specified in the settings window, under the ``Core`` category. You can configure as many search directories as you wish, and they will be searched in the listed order.
 
