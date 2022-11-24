@@ -650,7 +650,7 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
       if(pipeInfo.vertexBindings[i].perInstance)
       {
         uint32_t instIdx = vertexDivisor.vertexBindingDivisorCount++;
-        vibindDivisors[instIdx].binding = i;
+        vibindDivisors[instIdx].binding = pipeInfo.vertexBindings[i].vbufferBinding;
         vibindDivisors[instIdx].divisor = pipeInfo.vertexBindings[i].instanceDivisor;
       }
     }
