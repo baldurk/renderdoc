@@ -307,7 +307,7 @@ jobs:
     - name: Install Homebrew dependencies
       run: |
         brew update || true
-        brew install qt5 lftp automake
+        brew install qt5 lftp automake pcre
         brew link qt5 --force
     - name: Build
       run: |
