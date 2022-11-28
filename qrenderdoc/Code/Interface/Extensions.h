@@ -941,7 +941,9 @@ By default the progress bar has minimum and maximum values of 0 and 100. These c
 
   DOCUMENT(R"(Reset a progress bar widget.
 
-The progress bar "rewinds" and shows no progress. The minimum and maximum values are not changed.
+Rewinds the progress bar's indicator and hides the indicator's label (theme dependent). If you want
+to keep the label visible, call :meth:`SetProgressBarValue(0)` instead. The minimum and maximum values
+are not changed.
 
 :param QWidget pbar: the progress bar.
 )")
@@ -976,7 +978,7 @@ the current value.
 
 If maximum is smaller than minimum, minimum is set as the maximum, too. If the current value falls
 outside the new range, the progress bar is reset. Use range (0, 0) to set the progress bar to
-undetermined state.
+indeterminated state (the progress cannot be estimated or is not being calculated).
 
 :param QWidget pbar: the progress bar.
 :param int minimum: the minimum value.
