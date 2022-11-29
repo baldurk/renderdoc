@@ -1620,7 +1620,7 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     }
   }
 
-  D3D12RenderState prev = m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState();
+  D3D12RenderState prev = rs;
 
   rs.pipe = GetResID(annotatedPipe);
 
@@ -1662,7 +1662,7 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   SAFE_RELEASE(annotatedPipe);
   SAFE_RELEASE(annotatedSig);
 
-  rs = m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState() = prev;
+  rs = prev;
 
   bytebuf results;
   GetDebugManager()->GetBufferData(m_BindlessFeedback.FeedbackBuffer, 0, 0, results);

@@ -190,7 +190,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
   D3D12MarkerRegion postvs(m_pDevice->GetQueue(), StringFormat::Fmt("PostVS for %u", eventId));
 
   D3D12CommandData *cmd = m_pDevice->GetQueue()->GetCommandData();
-  const D3D12RenderState &rs = cmd->GetCurRenderState();
+  const D3D12RenderState &rs = cmd->m_RenderState;
 
   if(rs.pipe == ResourceId())
   {
@@ -201,7 +201,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
   WrappedID3D12PipelineState *origPSO =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
 
-  if(!origPSO->IsGraphics())
+  if(!origPSO || !origPSO->IsGraphics())
   {
     ret.gsout.status = ret.vsout.status = "No graphics pipeline bound";
     return;
