@@ -3200,7 +3200,7 @@ OpBranch %_bottomlabel
           offs += 2;
         }
 
-        int32_t val = std::strtol(&test[offs], NULL, base);
+        int32_t val = (int32_t)std::strtol(&test[offs], NULL, base);
         int_constants.insert(val);
 
         // if it's a hex constant we'll name it in decimal, rename
@@ -3230,7 +3230,7 @@ OpBranch %_bottomlabel
           offs += 2;
         }
 
-        uint32_t val = std::strtoul(&test[offs], NULL, base);
+        uint32_t val = (uint32_t)std::strtoul(&test[offs], NULL, base);
         uint_constants.insert(val);
 
         // if it's a hex constant we'll name it in decimal, rename
