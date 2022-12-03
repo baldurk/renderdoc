@@ -1074,6 +1074,57 @@ rdcstr DoStringise(const MySpecialEnum &el)
   END_ENUM_STRINGISE();
 }
 
+enum MySpecialEnum8 : uint8_t
+{
+  AnotherEnum8Value = UINT8_MAX,
+};
+
+DECLARE_REFLECTION_ENUM(MySpecialEnum8);
+
+template <>
+rdcstr DoStringise(const MySpecialEnum8 &el)
+{
+  BEGIN_ENUM_STRINGISE(MySpecialEnum8);
+  {
+    STRINGISE_ENUM(AnotherEnum8Value);
+  }
+  END_ENUM_STRINGISE();
+}
+
+enum MySpecialEnum16 : uint16_t
+{
+  AnotherEnum16Value = UINT16_MAX,
+};
+
+DECLARE_REFLECTION_ENUM(MySpecialEnum16);
+
+template <>
+rdcstr DoStringise(const MySpecialEnum16 &el)
+{
+  BEGIN_ENUM_STRINGISE(MySpecialEnum16);
+  {
+    STRINGISE_ENUM(AnotherEnum16Value);
+  }
+  END_ENUM_STRINGISE();
+}
+
+enum MySpecialEnum64 : uint64_t
+{
+  AnotherEnum64Value = UINT64_MAX,
+};
+
+DECLARE_REFLECTION_ENUM(MySpecialEnum64);
+
+template <>
+rdcstr DoStringise(const MySpecialEnum64 &el)
+{
+  BEGIN_ENUM_STRINGISE(MySpecialEnum64);
+  {
+    STRINGISE_ENUM(AnotherEnum64Value);
+  }
+  END_ENUM_STRINGISE();
+}
+
 TEST_CASE("Read/write complex types", "[serialiser][structured]")
 {
   StreamWriter *buf = new StreamWriter(StreamWriter::DefaultScratchSize);
@@ -1082,6 +1133,15 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
     WriteSerialiser ser(buf, Ownership::Nothing);
 
     SCOPED_SERIALISE_CHUNK(5);
+
+    MySpecialEnum8 enum8Val = AnotherEnum8Value;
+    SERIALISE_ELEMENT(enum8Val);
+
+    MySpecialEnum16 enum16Val = AnotherEnum16Value;
+    SERIALISE_ELEMENT(enum16Val);
+
+    MySpecialEnum64 enum64Val = AnotherEnum64Value;
+    SERIALISE_ELEMENT(enum64Val);
 
     MySpecialEnum enumVal = AnotherEnumValue;
 
@@ -1129,6 +1189,15 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
 
     CHECK(chunkID == 5);
 
+    MySpecialEnum8 enum8Val;
+    SERIALISE_ELEMENT(enum8Val);
+
+    MySpecialEnum16 enum16Val;
+    SERIALISE_ELEMENT(enum16Val);
+
+    MySpecialEnum64 enum64Val;
+    SERIALISE_ELEMENT(enum64Val);
+
     MySpecialEnum enumVal;
 
     SERIALISE_ELEMENT(enumVal);
@@ -1157,6 +1226,9 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
 
     CHECK(ser.GetReader()->AtEnd());
 
+    CHECK(enum8Val == AnotherEnum8Value);
+    CHECK(enum16Val == AnotherEnum16Value);
+    CHECK(enum64Val == AnotherEnum64Value);
     CHECK(enumVal == AnotherEnumValue);
 
     CHECK(enumArray[0] == TheLastEnumValue);
@@ -1207,6 +1279,15 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
 
     ser.ReadChunk<uint32_t>();
     {
+      MySpecialEnum8 enum8Val;
+      SERIALISE_ELEMENT(enum8Val);
+
+      MySpecialEnum16 enum16Val;
+      SERIALISE_ELEMENT(enum16Val);
+
+      MySpecialEnum64 enum64Val;
+      SERIALISE_ELEMENT(enum64Val);
+
       MySpecialEnum enumVal;
 
       SERIALISE_ELEMENT(enumVal);
@@ -1244,18 +1325,54 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
 
     const SDChunk &chunk = *structData.chunks[0];
 
-    REQUIRE(chunk.NumChildren() == 6);
+    REQUIRE(chunk.NumChildren() == 9);
 
     for(const SDObject *o : chunk)
       REQUIRE(o);
 
     int childIdx = 0;
+    {
+      const SDObject &o = *chunk.GetChild(childIdx++);
+
+      CHECK(o.name == "enum8Val");
+      CHECK(o.type.basetype == SDBasic::Enum);
+      CHECK(o.type.byteSize == 1);
+      CHECK(o.type.flags == SDTypeFlags::HasCustomString);
+
+      CHECK(o.data.basic.u == AnotherEnum8Value);
+      CHECK(o.data.str == "AnotherEnum8Value");
+    }
+
+    {
+      const SDObject &o = *chunk.GetChild(childIdx++);
+
+      CHECK(o.name == "enum16Val");
+      CHECK(o.type.basetype == SDBasic::Enum);
+      CHECK(o.type.byteSize == 2);
+      CHECK(o.type.flags == SDTypeFlags::HasCustomString);
+
+      CHECK(o.data.basic.u == AnotherEnum16Value);
+      CHECK(o.data.str == "AnotherEnum16Value");
+    }
+
+    {
+      const SDObject &o = *chunk.GetChild(childIdx++);
+
+      CHECK(o.name == "enum64Val");
+      CHECK(o.type.basetype == SDBasic::Enum);
+      CHECK(o.type.byteSize == 8);
+      CHECK(o.type.flags == SDTypeFlags::HasCustomString);
+
+      CHECK(o.data.basic.u == AnotherEnum64Value);
+      CHECK(o.data.str == "AnotherEnum64Value");
+    }
 
     {
       const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "enumVal");
       CHECK(o.type.basetype == SDBasic::Enum);
+      CHECK(o.type.byteSize == 4);
       CHECK(o.type.flags == SDTypeFlags::HasCustomString);
 
       CHECK(o.data.basic.u == AnotherEnumValue);
