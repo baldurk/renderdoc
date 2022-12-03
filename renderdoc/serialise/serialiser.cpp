@@ -813,15 +813,10 @@ void DoSerialise(SerialiserType &ser, SDObject *el)
       }
       break;
     }
-    case SDBasic::Enum:
-    {
-      uint32_t e = (uint32_t)el->data.basic.u;
-      ser.Serialise(""_lit, e);
-      break;
-    }
     case SDBasic::Boolean: ser.Serialise(""_lit, el->data.basic.b); break;
     case SDBasic::Character: ser.Serialise(""_lit, el->data.basic.c); break;
     case SDBasic::Resource: ser.Serialise(""_lit, el->data.basic.id); break;
+    case SDBasic::Enum:
     case SDBasic::UnsignedInteger:
       if(el->type.byteSize == 1)
       {
