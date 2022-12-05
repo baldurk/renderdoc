@@ -1452,6 +1452,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
               {
                 // push empty resources so array indexing is still as expected
                 val.push_back(BoundResource());
+                val.back().dynamicallyUsed = false;
               }
             }
 
@@ -1690,6 +1691,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
               {
                 // push empty resources so array indexing is still as expected
                 val.push_back(BoundResource());
+                val.back().dynamicallyUsed = false;
               }
             }
 
