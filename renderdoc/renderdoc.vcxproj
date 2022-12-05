@@ -745,34 +745,47 @@ using System.Runtime.CompilerServices;
 namespace DXCEnumerateAndCheck {
   public class GetDXCExecutable : Microsoft.Build.Utilities.Task {
     public override bool Execute() {
-      string[] dirs = System.IO.Directory.GetDirectories(SDKPath, "10.*");
-      // sort and reverse so we try from latest to oldest
-      System.Array.Sort(dirs);
-      System.Array.Reverse(dirs);
+      string[] sdkPathsCheck = SDKPath.Split(';');
 
-      // look for the latest dxc.exe available that works
-      foreach(string path in dirs)
+      foreach(string sdkPathCheck in sdkPathsCheck)
       {
-        string dxcCheck = System.IO.Path.Combine(path, "x64", "dxc.exe");
-        if(System.IO.File.Exists(dxcCheck))
+        try
         {
-          // check that dxc.exe is runnable, some dxc.exe are broken
-          try
+          string[] dirs = System.IO.Directory.GetDirectories(sdkPathCheck, "10.*");
+          // sort and reverse so we try from latest to oldest
+          System.Array.Sort(dirs);
+          System.Array.Reverse(dirs);
+
+          // look for the latest dxc.exe available that works
+          foreach(string path in dirs)
           {
-            ProcessStartInfo psi = new ProcessStartInfo();
-            psi.UseShellExecute = false;
-            psi.FileName = dxcCheck;
-            psi.CreateNoWindow = true;
-            Process.Start(psi);
-            DXC = dxcCheck;
-            return true;
-          }
-          catch(Exception ex)
-          {
-            // keep going, maybe we'll find one that works
+            string dxcCheck = System.IO.Path.Combine(path, "x64", "dxc.exe");
+            if(System.IO.File.Exists(dxcCheck))
+            {
+              // check that dxc.exe is runnable, some dxc.exe are broken
+              try
+              {
+                ProcessStartInfo psi = new ProcessStartInfo();
+                psi.UseShellExecute = false;
+                psi.FileName = dxcCheck;
+                psi.CreateNoWindow = true;
+                Process.Start(psi);
+                DXC = dxcCheck;
+                return true;
+              }
+              catch(Exception ex)
+              {
+                // keep going, maybe we'll find one that works
+              }
+            }
           }
         }
+        catch(Exception ex)
+        {
+          // try next SDK path
+        }
       }
+
       // always succeed even if we don't find dxc
       return true;
     }
@@ -785,7 +798,7 @@ namespace DXCEnumerateAndCheck {
     </Task>
   </UsingTask>
   <Target Name="_findDXC" BeforeTargets="PrepareForBuild">
-    <GetDXCExecutable SDKPath="$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v10.0@InstallationFolder)bin" ContinueOnError="WarnAndContinue">
+    <GetDXCExecutable SDKPath="$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v10.0@InstallationFolder)bin;$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Microsoft SDKs\Windows\v10.0@InstallationFolder)bin" ContinueOnError="WarnAndContinue">
       <Output TaskParameter="DXC" PropertyName="DXCExecutable" />
     </GetDXCExecutable>
     <Message Condition="$(DXCExecutable.Length) == 0" Importance="high" Text="Can't build DXIL shaders without DXC. Install windows 10 SDK to bake DXIL shaders." />
