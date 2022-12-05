@@ -1490,6 +1490,8 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     return false;
   }
 
+  numSlots = AlignUp16(numSlots);
+
   // need to be able to add a descriptor of our UAV without hitting the 64 DWORD limit
   if(modsig.dwordLength > 62)
   {
