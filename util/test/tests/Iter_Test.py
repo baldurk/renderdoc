@@ -296,6 +296,39 @@ class Iter_Test(rdtest.TestCase):
 
             self.controller.SetFrameEvent(action.eventId, True)
 
+    def mesh_output(self, action: rd.ActionDescription):
+        self.controller.GetPostVSData(0, 0, rd.MeshDataStage.VSOut)
+        self.controller.GetPostVSData(0, 0, rd.MeshDataStage.GSOut)
+
+        rdtest.log.success('Successfully fetched mesh output')
+
+    def drawcall_overlay(self, action: rd.ActionDescription):
+        pipe = self.controller.GetPipelineState()
+
+        if len(pipe.GetOutputTargets()) == 0 and pipe.GetDepthTarget().resourceId == rd.ResourceId.Null():
+            rdtest.log.print("No render targets bound at {}".format(action.eventId))
+            return
+
+        if not (action.flags & rd.ActionFlags.Drawcall):
+            rdtest.log.print("{} is not a drawcall".format(action.eventId))
+            return
+
+        tex = rd.TextureDisplay()
+        tex.overlay = rd.DebugOverlay.Drawcall
+        tex.resourceId = rd.ResourceId()
+
+        col = pipe.GetOutputTargets()
+        depth = pipe.GetDepthTarget()
+        if len(col) > 1 and col[0].resourceId != rd.ResourceId():
+            tex.resourceId = col[0].resourceId
+        elif depth.resourceId != rd.ResourceId():
+            tex.resourceId = depth.resourceId
+
+        if tex.resourceId != rd.ResourceId():
+            self.texout.SetTextureDisplay(tex)
+            self.texout.Display()
+            rdtest.log.success('Successfully did drawcall overlay')
+
     def iter_test(self):
         # Handy tweaks when running locally to disable certain things
 
@@ -303,6 +336,8 @@ class Iter_Test(rdtest.TestCase):
         do_image_save = 0.25    # Chance of saving images of the outputs
         do_vert_debug = 1.0     # Chance of debugging a vertex (if valid)
         do_pixel_debug = 1.0    # Chance of doing pixel history at the current event and debugging a pixel (if valid)
+        mesh_output = 1.0       # Chance of fetching mesh output data
+        drawcall_overlay = 1.0  # Chance of showing the drawcall overlay
 
         self.props: rd.APIProperties = self.controller.GetAPIProperties()
 
@@ -310,6 +345,8 @@ class Iter_Test(rdtest.TestCase):
             'Image Save': {'chance': do_image_save, 'func': self.image_save},
             'Vertex Debug': {'chance': do_vert_debug, 'func': self.vert_debug},
             'Pixel History & Debug': {'chance': do_pixel_debug, 'func': self.pixel_debug},
+            'Mesh Output': {'chance': mesh_output, 'func': self.mesh_output},
+            'Drawcall overlay': {'chance': drawcall_overlay, 'func': self.drawcall_overlay},
         }
 
         # To choose an action, if we're going to do one, we take random in range(0, choice_max) then check each action
@@ -320,6 +357,8 @@ class Iter_Test(rdtest.TestCase):
 
         action = self.get_first_action()
         last_action = self.get_last_action()
+
+        self.texout = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
         while action:
             rdtest.log.print("{}/{}".format(action.eventId, last_action.eventId))
@@ -342,6 +381,8 @@ class Iter_Test(rdtest.TestCase):
                         c -= chance
 
             action = action.next
+
+        self.texout.Shutdown()
 
     def run(self):
         dir_path = self.get_ref_path('', extra=True)
