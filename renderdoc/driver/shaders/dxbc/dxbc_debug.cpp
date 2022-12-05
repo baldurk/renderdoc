@@ -1953,14 +1953,17 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
 
   const Operation &op = program->GetInstruction((size_t)nextInstruction);
 
-  if(state && debug)
-    debug->GetCallstack(nextInstruction, op.offset, state->callstack);
-
   apiWrapper->SetCurrentInstruction(nextInstruction);
   nextInstruction++;
 
   if(nextInstruction >= program->GetNumInstructions())
     nextInstruction--;
+
+  if(state && debug)
+  {
+    const Operation &nextOp = program->GetInstruction((size_t)nextInstruction);
+    debug->GetCallstack(nextInstruction, nextOp.offset, state->callstack);
+  }
 
   rdcarray<ShaderVariable> srcOpers;
 
