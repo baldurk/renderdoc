@@ -337,7 +337,7 @@ class Iter_Test(rdtest.TestCase):
         do_vert_debug = 1.0     # Chance of debugging a vertex (if valid)
         do_pixel_debug = 1.0    # Chance of doing pixel history at the current event and debugging a pixel (if valid)
         mesh_output = 1.0       # Chance of fetching mesh output data
-        drawcall_overlay = 1.0  # Chance of showing the drawcall overlay
+        drawcall_overlay = 0.0  # Always show drawcall overlay when we run tests
 
         self.props: rd.APIProperties = self.controller.GetAPIProperties()
 
@@ -373,7 +373,7 @@ class Iter_Test(rdtest.TestCase):
 
                 for event_test in event_tests:
                     chance = event_tests[event_test]['chance']
-                    if c < chance:
+                    if c < chance or chance == 0.0:
                         rdtest.log.print("Performing test '{}' on event {}".format(event_test, action.eventId))
                         event_tests[event_test]['func'](action)
                         break
