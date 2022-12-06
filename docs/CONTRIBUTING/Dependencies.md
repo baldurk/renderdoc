@@ -95,14 +95,12 @@ sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev l
 
 ## Mac
 
-Mac requires Xcode version 12.2 or newer, CMake version 3.20 or newer, and Qt5 version 5.15.2 or newer. If you're using [homebrew](http://brew.sh) then this will do the trick:
+Mac requires Xcode version 12.2 or newer, CMake version 3.20 or newer, `autoconf`, `automake`, `pcre` and Qt5 version 5.15.2 or newer. If you're using [homebrew](http://brew.sh) then this will do the trick:
 
 ```
-brew install cmake qt5
+brew install cmake autoconf automake pcre qt5
 brew link qt5 --force
 ```
-
-You will also need `autotools`. That is usually available by default but might need to be explicitly installed with `brew install autoconf automake`. 
 
 ## Android
 
