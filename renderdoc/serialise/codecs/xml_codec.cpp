@@ -201,7 +201,7 @@ static void Obj2XML(pugi::xml_node &parent, SDObject &child)
 
   if(child.type.basetype == SDBasic::UnsignedInteger ||
      child.type.basetype == SDBasic::SignedInteger || child.type.basetype == SDBasic::Float ||
-     child.type.basetype == SDBasic::Resource)
+     child.type.basetype == SDBasic::Resource || child.type.basetype == SDBasic::Enum)
   {
     obj.append_attribute("width") = child.type.byteSize;
   }
@@ -490,10 +490,11 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
     }
   }
 
-  if(ret->type.basetype == SDBasic::UnsignedInteger || ret->type.basetype == SDBasic::SignedInteger ||
-     ret->type.basetype == SDBasic::Float || ret->type.basetype == SDBasic::Resource)
+  if(ret->type.basetype == SDBasic::UnsignedInteger ||
+     ret->type.basetype == SDBasic::SignedInteger || ret->type.basetype == SDBasic::Float ||
+     ret->type.basetype == SDBasic::Resource || ret->type.basetype == SDBasic::Enum)
   {
-    ret->type.byteSize = obj.attribute("width").as_uint();
+    ret->type.byteSize = obj.attribute("width").as_uint(4);
   }
 
   if(obj.attribute("hidden"))
