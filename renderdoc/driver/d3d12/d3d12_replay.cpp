@@ -1322,12 +1322,9 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
           else
             element.type = BindType::ReadWriteResource;
 
-          if(usage.valid)
-          {
-            element.firstUsedIndex = -1;
-            element.lastUsedIndex = -1;
-            element.dynamicallyUsedCount = 0;
-          }
+          element.firstUsedIndex = -1;
+          element.lastUsedIndex = -1;
+          element.dynamicallyUsedCount = 0;
 
           element.views.reserve(num);
 
