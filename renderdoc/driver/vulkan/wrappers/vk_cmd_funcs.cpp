@@ -5415,6 +5415,7 @@ void WrappedVulkan::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
                                         descriptorWriteCount, pDescriptorWrites);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+    record->MarkResourceFrameReferenced(GetResID(layout), eFrameRef_Read);
     for(uint32_t i = 0; i < descriptorWriteCount; i++)
     {
       const VkWriteDescriptorSet &write = pDescriptorWrites[i];
@@ -5719,6 +5720,7 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
     record->MarkResourceFrameReferenced(GetResID(descriptorUpdateTemplate), eFrameRef_Read);
+    record->MarkResourceFrameReferenced(GetResID(layout), eFrameRef_Read);
     for(size_t i = 0; i < frameRefs.size(); i++)
       record->MarkResourceFrameReferenced(frameRefs[i].first, frameRefs[i].second);
     for(size_t i = 0; i < imgViewFrameRefs.size(); i++)
