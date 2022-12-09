@@ -336,7 +336,7 @@ void main()
 
     VkPipeline stride0pipe = createGraphicsPipeline(pipeCreateInfo);
 
-    VkPipeline xfbpipe;
+    VkPipeline xfbpipe = NULL;
 
     VkPipelineRasterizationStateStreamCreateInfoEXT rastInfo = {
         VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_STREAM_CREATE_INFO_EXT, NULL, 0, 2,
