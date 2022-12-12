@@ -7300,12 +7300,12 @@ void MapIntercept::Init(ID3D11Texture1D *tex, UINT sub, void *appMemory)
 
   int mip = GetMipForSubresource(tex, sub);
 
-  // a row in block formats is a row of 4x4 blocks.
-  if(IsBlockFormat(fmt))
-    numRows /= 4;
-
   numRows = RDCMAX(1, numRows >> mip);
   numSlices = RDCMAX(1, numSlices >> mip);
+
+  // a row in block formats is a row of 4x4 blocks.
+  if(IsBlockFormat(fmt))
+    numRows = AlignUp4(numRows) / 4;
 
   if(IsYUVPlanarFormat(fmt))
     numRows = GetYUVNumRows(fmt, numRows);
@@ -7335,12 +7335,12 @@ void MapIntercept::Init(ID3D11Texture2D *tex, UINT sub, void *appMemory)
 
   int mip = GetMipForSubresource(tex, sub);
 
-  // a row in block formats is a row of 4x4 blocks.
-  if(IsBlockFormat(fmt))
-    numRows /= 4;
-
   numRows = RDCMAX(1, numRows >> mip);
   numSlices = RDCMAX(1, numSlices >> mip);
+
+  // a row in block formats is a row of 4x4 blocks.
+  if(IsBlockFormat(fmt))
+    numRows = AlignUp4(numRows) / 4;
 
   if(IsYUVPlanarFormat(fmt))
     numRows = GetYUVNumRows(fmt, numRows);
@@ -7369,12 +7369,12 @@ void MapIntercept::Init(ID3D11Texture3D *tex, UINT sub, void *appMemory)
 
   int mip = GetMipForSubresource(tex, sub);
 
-  // a row in block formats is a row of 4x4 blocks.
-  if(IsBlockFormat(fmt))
-    numRows /= 4;
-
   numRows = RDCMAX(1, numRows >> mip);
   numSlices = RDCMAX(1, numSlices >> mip);
+
+  // a row in block formats is a row of 4x4 blocks.
+  if(IsBlockFormat(fmt))
+    numRows = AlignUp4(numRows) / 4;
 
   if(IsYUVPlanarFormat(fmt))
     numRows = GetYUVNumRows(fmt, numRows);
