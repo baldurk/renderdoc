@@ -1622,7 +1622,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
         Bindpoint key(0, i);
         BoundResource val;
 
-        val.resourceId = m_GL->atomicBuffers[i].resourceId;
+        val.resourceId = m_GL->shaderStorageBuffers[i].resourceId;
 
         ret.push_back(BoundResourceArray(key, {val}));
       }
