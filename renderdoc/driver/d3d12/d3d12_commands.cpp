@@ -1690,8 +1690,8 @@ void D3D12CommandData::AddEvent()
   m_EventMessages.clear();
 }
 
-void D3D12CommandData::AddUsage(D3D12ActionTreeNode &actionNode, ResourceId id, uint32_t EID,
-                                ResourceUsage usage)
+void D3D12CommandData::AddResourceUsage(D3D12ActionTreeNode &actionNode, ResourceId id,
+                                        uint32_t EID, ResourceUsage usage)
 {
   if(id == ResourceId())
     return;
@@ -1699,52 +1699,256 @@ void D3D12CommandData::AddUsage(D3D12ActionTreeNode &actionNode, ResourceId id, 
   actionNode.resourceUsage.push_back(make_rdcpair(id, EventUsage(EID, usage)));
 }
 
-void D3D12CommandData::AddUsage(ResourceId id, ResourceUsage usage)
+void D3D12CommandData::AddCPUUsage(ResourceId id, ResourceUsage usage)
 {
   m_ResourceUses[id].push_back(EventUsage(m_RootEventID, usage));
+}
+
+void D3D12CommandData::AddUsageForBindInRootSig(const D3D12RenderState &state,
+                                                D3D12ActionTreeNode &actionNode,
+                                                const D3D12RenderState::RootSignature *rootsig,
+                                                D3D12_DESCRIPTOR_RANGE_TYPE type, const Bindpoint &b)
+{
+  static bool hugeRangeWarned = false;
+
+  ActionDescription &a = actionNode.action;
+  uint32_t eid = a.eventId;
+
+  const uint32_t space = b.bindset;
+  const uint32_t bind = b.bind;
+  // use a 'clamped' range size to avoid annoying overflow issues
+  const uint32_t rangeSize = b.arraySize == ~0U ? 0x10000000 : b.arraySize;
+
+  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
+  WrappedID3D12RootSignature *sig = rm->GetCurrentAs<WrappedID3D12RootSignature>(rootsig->rootsig);
+
+  for(size_t rootEl = 0; rootEl < sig->sig.Parameters.size(); rootEl++)
+  {
+    if(rootEl >= rootsig->sigelems.size())
+      break;
+
+    const D3D12RootSignatureParameter &p = sig->sig.Parameters[rootEl];
+    const D3D12RenderState::SignatureElement &el = rootsig->sigelems[rootEl];
+
+    if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
+      continue;
+
+    ResourceUsage cb = ResourceUsage::CS_Constants;
+    ResourceUsage ro = ResourceUsage::CS_Resource;
+    ResourceUsage rw = ResourceUsage::CS_RWResource;
+
+    if(rootsig == &state.graphics)
+    {
+      if(p.ShaderVisibility == D3D12_SHADER_VISIBILITY_ALL)
+      {
+        cb = ResourceUsage::All_Constants;
+        ro = ResourceUsage::All_Resource;
+        rw = ResourceUsage::All_RWResource;
+      }
+      else
+      {
+        cb = CBUsage(p.ShaderVisibility - D3D12_SHADER_VISIBILITY_VERTEX);
+        ro = ResUsage(p.ShaderVisibility - D3D12_SHADER_VISIBILITY_VERTEX);
+        rw = RWResUsage(p.ShaderVisibility - D3D12_SHADER_VISIBILITY_VERTEX);
+      }
+    }
+
+    if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV && el.type == eRootCBV &&
+       type == D3D12_DESCRIPTOR_RANGE_TYPE_CBV && p.Descriptor.RegisterSpace == space &&
+       p.Descriptor.ShaderRegister >= bind && p.Descriptor.ShaderRegister < bind + rangeSize)
+    {
+      AddResourceUsage(actionNode, el.id, eid, cb);
+
+      // common case - root element matches 1:1 with a non-array shader bind, if so we can exit. If
+      // not we might have to continue since other parts of it might be mapped to a table, or
+      // another root element
+      if(rangeSize == 1)
+        return;
+    }
+    else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV && el.type == eRootSRV &&
+            type == D3D12_DESCRIPTOR_RANGE_TYPE_SRV && p.Descriptor.RegisterSpace == space &&
+            p.Descriptor.ShaderRegister >= bind && p.Descriptor.ShaderRegister < bind + rangeSize)
+    {
+      AddResourceUsage(actionNode, el.id, eid, ro);
+
+      // common case - root element matches 1:1 with a non-array shader bind, if so we can exit. If
+      // not we might have to continue since other parts of it might be mapped to a table, or
+      // another root element
+      if(rangeSize == 1)
+        return;
+    }
+    else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV && el.type == eRootUAV &&
+            type == D3D12_DESCRIPTOR_RANGE_TYPE_UAV && p.Descriptor.RegisterSpace == space &&
+            p.Descriptor.ShaderRegister >= bind && p.Descriptor.ShaderRegister < bind + rangeSize)
+    {
+      AddResourceUsage(actionNode, el.id, eid, rw);
+
+      // common case - root element matches 1:1 with a non-array shader bind, if so we can exit. If
+      // not we might have to continue since other parts of it might be mapped to a table, or
+      // another root element
+      if(rangeSize == 1)
+        return;
+    }
+    else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE && el.type == eRootTable)
+    {
+      WrappedID3D12DescriptorHeap *heap =
+          m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(el.id);
+
+      if(heap == NULL)
+        continue;
+
+      UINT prevTableOffset = 0;
+
+      for(size_t r = 0; r < p.ranges.size(); r++)
+      {
+        const D3D12_DESCRIPTOR_RANGE1 &range = p.ranges[r];
+
+        UINT offset = range.OffsetInDescriptorsFromTableStart;
+
+        if(range.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
+          offset = prevTableOffset;
+
+        D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
+        desc += el.offset;
+        desc += offset;
+
+        UINT num = range.NumDescriptors;
+
+        if(num == UINT_MAX)
+        {
+          // find out how many descriptors are left after
+          num = heap->GetNumDescriptors() - offset - UINT(el.offset);
+        }
+
+        prevTableOffset = offset + num;
+
+        // skip ranges that aren't the type or register space we want
+        if(range.RangeType != type || range.RegisterSpace != space)
+          continue;
+
+        // skip ranges that don't overlap with the registers we are looking for at all
+        if(range.BaseShaderRegister + num <= bind || range.BaseShaderRegister >= bind + rangeSize)
+          continue;
+
+        if(num > 1000)
+        {
+          if(!hugeRangeWarned)
+            RDCWARN("Skipping large, most likely 'bindless', descriptor range");
+          hugeRangeWarned = true;
+
+          continue;
+        }
+
+        bool allInRange = (bind >= range.BaseShaderRegister && b.arraySize <= range.NumDescriptors);
+
+        // move to the first descriptor in the range which is in the binding we want
+        desc += (bind - range.BaseShaderRegister);
+
+        if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
+        {
+          EventUsage usage(eid, cb);
+
+          for(UINT i = 0; i < num && i < rangeSize; i++)
+          {
+            ResourceId id = WrappedID3D12Resource::GetResIDFromAddr(desc->GetCBV().BufferLocation);
+
+            AddResourceUsage(actionNode, id, eid, cb);
+
+            desc++;
+          }
+        }
+        else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV ||
+                range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
+        {
+          ResourceUsage usage = range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV ? ro : rw;
+
+          for(UINT i = 0; i < num && i < rangeSize; i++)
+          {
+            AddResourceUsage(actionNode, desc->GetResResourceId(), eid, usage);
+
+            desc++;
+          }
+        }
+
+        // if this descriptor range fully covered the binding (which may be quite common) we can
+        // return now, other ranges/root elements won't overlap so don't bother looking at them
+        if(allInRange)
+          return;
+      }
+    }
+  }
 }
 
 void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12ActionTreeNode &actionNode)
 {
   ActionDescription &a = actionNode.action;
 
-  uint32_t e = a.eventId;
+  uint32_t eid = a.eventId;
 
   ActionFlags DrawMask = ActionFlags::Drawcall | ActionFlags::Dispatch;
   if(!(a.flags & DrawMask))
     return;
 
-  static bool hugeRangeWarned = false;
+  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
-  const D3D12RenderState::RootSignature *rootdata = NULL;
+  const D3D12RenderState::RootSignature *rootsig = NULL;
+
+  WrappedID3D12PipelineState *pipe = NULL;
+
+  if(state.pipe != ResourceId())
+    pipe = rm->GetCurrentAs<WrappedID3D12PipelineState>(state.pipe);
+
+  const ShaderBindpointMapping *bindMap[6] = {};
 
   if((a.flags & ActionFlags::Dispatch) && state.compute.rootsig != ResourceId())
   {
-    rootdata = &state.compute;
+    rootsig = &state.compute;
+
+    if(pipe && pipe->IsCompute())
+    {
+      WrappedID3D12Shader *sh = (WrappedID3D12Shader *)pipe->compute->CS.pShaderBytecode;
+
+      bindMap[uint32_t(ShaderStage::Compute)] = &sh->GetMapping();
+    }
   }
   else if(state.graphics.rootsig != ResourceId())
   {
-    rootdata = &state.graphics;
+    rootsig = &state.graphics;
+
+    if(pipe && pipe->IsGraphics())
+    {
+      D3D12_SHADER_BYTECODE *srcArr[] = {&pipe->graphics->VS, &pipe->graphics->HS,
+                                         &pipe->graphics->DS, &pipe->graphics->GS,
+                                         &pipe->graphics->PS};
+      for(size_t stage = 0; stage < 5; stage++)
+      {
+        WrappedID3D12Shader *sh = (WrappedID3D12Shader *)srcArr[stage]->pShaderBytecode;
+
+        if(sh)
+          bindMap[stage] = &sh->GetMapping();
+      }
+    }
 
     if(a.flags & ActionFlags::Indexed && state.ibuffer.buf != ResourceId())
       actionNode.resourceUsage.push_back(
-          make_rdcpair(state.ibuffer.buf, EventUsage(e, ResourceUsage::IndexBuffer)));
+          make_rdcpair(state.ibuffer.buf, EventUsage(eid, ResourceUsage::IndexBuffer)));
 
     for(size_t i = 0; i < state.vbuffers.size(); i++)
     {
       if(state.vbuffers[i].buf != ResourceId())
         actionNode.resourceUsage.push_back(
-            make_rdcpair(state.vbuffers[i].buf, EventUsage(e, ResourceUsage::VertexBuffer)));
+            make_rdcpair(state.vbuffers[i].buf, EventUsage(eid, ResourceUsage::VertexBuffer)));
     }
 
     for(size_t i = 0; i < state.streamouts.size(); i++)
     {
       if(state.streamouts[i].buf != ResourceId())
         actionNode.resourceUsage.push_back(
-            make_rdcpair(state.streamouts[i].buf, EventUsage(e, ResourceUsage::StreamOut)));
+            make_rdcpair(state.streamouts[i].buf, EventUsage(eid, ResourceUsage::StreamOut)));
       if(state.streamouts[i].countbuf != ResourceId())
         actionNode.resourceUsage.push_back(
-            make_rdcpair(state.streamouts[i].countbuf, EventUsage(e, ResourceUsage::StreamOut)));
+            make_rdcpair(state.streamouts[i].countbuf, EventUsage(eid, ResourceUsage::StreamOut)));
     }
 
     rdcarray<ResourceId> rts = state.GetRTVIDs();
@@ -1753,138 +1957,48 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12ActionTreeNo
     {
       if(rts[i] != ResourceId())
         actionNode.resourceUsage.push_back(
-            make_rdcpair(rts[i], EventUsage(e, ResourceUsage::ColorTarget)));
+            make_rdcpair(rts[i], EventUsage(eid, ResourceUsage::ColorTarget)));
     }
 
     ResourceId id = state.GetDSVID();
     if(id != ResourceId())
       actionNode.resourceUsage.push_back(
-          make_rdcpair(id, EventUsage(e, ResourceUsage::DepthStencilTarget)));
+          make_rdcpair(id, EventUsage(eid, ResourceUsage::DepthStencilTarget)));
   }
 
-  if(rootdata)
+  if(rootsig)
   {
-    WrappedID3D12RootSignature *sig =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rootdata->rootsig);
-
-    for(size_t rootEl = 0; rootEl < sig->sig.Parameters.size(); rootEl++)
+    // iterate over each stage, looking at its used binds, then for each bind find it in the root
+    // signature. We have to do this kind of N:N lookup because of D3D12's bad design, but this
+    // should be a better way around to do it than iterating over the root signature and finding a
+    // bind for each element
+    for(size_t sh = 0; sh < ARRAY_COUNT(bindMap); sh++)
     {
-      if(rootEl >= rootdata->sigelems.size())
-        break;
+      if(!bindMap[sh])
+        continue;
 
-      const D3D12RootSignatureParameter &p = sig->sig.Parameters[rootEl];
-      const D3D12RenderState::SignatureElement &el = rootdata->sigelems[rootEl];
-
-      ResourceUsage cb = ResourceUsage::CS_Constants;
-      ResourceUsage ro = ResourceUsage::CS_Resource;
-      ResourceUsage rw = ResourceUsage::CS_RWResource;
-
-      if(rootdata == &state.graphics)
+      for(const Bindpoint &b : bindMap[sh]->constantBlocks)
       {
-        if(p.ShaderVisibility == D3D12_SHADER_VISIBILITY_ALL)
-        {
-          cb = ResourceUsage::All_Constants;
-          ro = ResourceUsage::All_Resource;
-          rw = ResourceUsage::All_RWResource;
-        }
-        else
-        {
-          cb = CBUsage(p.ShaderVisibility - D3D12_SHADER_VISIBILITY_VERTEX);
-          ro = ResUsage(p.ShaderVisibility - D3D12_SHADER_VISIBILITY_VERTEX);
-          rw = RWResUsage(p.ShaderVisibility - D3D12_SHADER_VISIBILITY_VERTEX);
-        }
-      }
-
-      if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV && el.type == eRootCBV)
-      {
-        AddUsage(actionNode, el.id, e, cb);
-      }
-      else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV && el.type == eRootSRV)
-      {
-        AddUsage(actionNode, el.id, e, ro);
-      }
-      else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV && el.type == eRootUAV)
-      {
-        AddUsage(actionNode, el.id, e, rw);
-      }
-      else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE && el.type == eRootTable)
-      {
-        WrappedID3D12DescriptorHeap *heap =
-            m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(el.id);
-
-        if(heap == NULL)
+        if(!b.used)
           continue;
 
-        UINT prevTableOffset = 0;
+        AddUsageForBindInRootSig(state, actionNode, rootsig, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, b);
+      }
 
-        for(size_t r = 0; r < p.ranges.size(); r++)
-        {
-          const D3D12_DESCRIPTOR_RANGE1 &range = p.ranges[r];
+      for(const Bindpoint &b : bindMap[sh]->readOnlyResources)
+      {
+        if(!b.used)
+          continue;
 
-          UINT offset = range.OffsetInDescriptorsFromTableStart;
+        AddUsageForBindInRootSig(state, actionNode, rootsig, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, b);
+      }
 
-          if(range.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
-            offset = prevTableOffset;
+      for(const Bindpoint &b : bindMap[sh]->readWriteResources)
+      {
+        if(!b.used)
+          continue;
 
-          D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
-          desc += el.offset;
-          desc += offset;
-
-          UINT num = range.NumDescriptors;
-
-          if(num == UINT_MAX)
-          {
-            // find out how many descriptors are left after
-            num = heap->GetNumDescriptors() - offset - UINT(el.offset);
-          }
-
-          prevTableOffset = offset + num;
-
-          if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
-          {
-            EventUsage usage(e, cb);
-
-            if(num > 1000)
-            {
-              if(!hugeRangeWarned)
-                RDCWARN("Skipping large, most likely 'bindless', descriptor range");
-              hugeRangeWarned = true;
-            }
-            else
-            {
-              for(UINT i = 0; i < num; i++)
-              {
-                ResourceId id =
-                    WrappedID3D12Resource::GetResIDFromAddr(desc->GetCBV().BufferLocation);
-
-                AddUsage(actionNode, id, e, cb);
-
-                desc++;
-              }
-            }
-          }
-          else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV ||
-                  range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
-          {
-            ResourceUsage usage = range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV ? ro : rw;
-
-            if(num > 1000)
-            {
-              if(!hugeRangeWarned)
-                RDCWARN("Skipping large, most likely 'bindless', descriptor range");
-              hugeRangeWarned = true;
-            }
-            else
-            {
-              for(UINT i = 0; i < num; i++)
-              {
-                AddUsage(actionNode, desc->GetResResourceId(), e, usage);
-
-                desc++;
-              }
-            }
-          }
-        }
+        AddUsageForBindInRootSig(state, actionNode, rootsig, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, b);
       }
     }
   }

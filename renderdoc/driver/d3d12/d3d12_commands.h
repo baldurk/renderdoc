@@ -386,6 +386,12 @@ struct D3D12CommandData
   void AddAction(const ActionDescription &a);
   void AddEvent();
   void AddUsage(const D3D12RenderState &state, D3D12ActionTreeNode &actionNode);
-  void AddUsage(D3D12ActionTreeNode &actionNode, ResourceId id, uint32_t EID, ResourceUsage usage);
-  void AddUsage(ResourceId id, ResourceUsage usage);
+
+  void AddUsageForBindInRootSig(const D3D12RenderState &state, D3D12ActionTreeNode &actionNode,
+                                const D3D12RenderState::RootSignature *rootsig,
+                                D3D12_DESCRIPTOR_RANGE_TYPE type, const Bindpoint &b);
+
+  void AddResourceUsage(D3D12ActionTreeNode &actionNode, ResourceId id, uint32_t EID,
+                        ResourceUsage usage);
+  void AddCPUUsage(ResourceId id, ResourceUsage usage);
 };
