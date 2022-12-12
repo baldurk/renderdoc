@@ -1600,6 +1600,29 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     reflection.readWriteResources[i].bindPoint = (int32_t)i;
   }
 
+  // go through each pointer type and populate it. This may generate more pointer types so we repeat
+  // this until it converges. This is a bit redundant but not the end of the world
+  size_t numPointerTypes = 0;
+  do
+  {
+    numPointerTypes = pointerTypes.size();
+
+    rdcarray<Id> ids;
+    for(auto it = pointerTypes.begin(); it != pointerTypes.end(); ++it)
+      ids.push_back(it->first);
+
+    // generate a variable for each of the types. This will add to pointerTypes if it finds
+    // something new
+    for(Id id : ids)
+    {
+      ShaderConstant dummy;
+      MakeConstantBlockVariable(dummy, pointerTypes, dataTypes[id].pointerType.storage,
+                                dataTypes[id], rdcstr(), Decorations(), specInfo);
+    }
+
+    // continue if we generated some more
+  } while(pointerTypes.size() != numPointerTypes);
+
   // populate the pointer types
   reflection.pointerTypes.reserve(pointerTypes.size());
   for(auto it = pointerTypes.begin(); it != pointerTypes.end(); ++it)
@@ -1614,6 +1637,9 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
     reflection.pointerTypes[it->second] = dummy.type;
   }
+
+  // shouldn't have changed in the above loop!
+  RDCASSERT(pointerTypes.size() == numPointerTypes);
 }
 
 void Reflector::MakeConstantBlockVariables(rdcspv::StorageClass storage, const DataType &structType,
