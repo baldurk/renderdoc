@@ -1072,3 +1072,64 @@ static ConversionRegistration XMLOnlyConversionRegistration(
 easier to work with but it cannot then be imported.)",
         false,
     });
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#include "catch/catch.hpp"
+
+TEST_CASE("XML/SDObject round trip", "[xml serialiser]")
+{
+  pugi::xml_document doc;
+  pugi::xml_node xRoot = doc.append_child("root");
+
+  rdcarray<SDObject *> objs;
+  SDObject *obj;
+
+  obj = new SDObject("Enum64Test"_lit, "enum64"_lit);
+  obj->type.basetype = SDBasic::Enum;
+  obj->type.byteSize = 8;
+  obj->data.basic.u = UINT64_MAX;
+  objs.push_back(obj);
+
+  obj = new SDObject("Enum32Test"_lit, "enum32"_lit);
+  obj->type.basetype = SDBasic::Enum;
+  obj->type.byteSize = 4;
+  obj->data.basic.u = UINT32_MAX;
+  objs.push_back(obj);
+
+  obj = new SDObject("Enum16Test"_lit, "enum16"_lit);
+  obj->type.basetype = SDBasic::Enum;
+  obj->type.byteSize = 2;
+  obj->data.basic.u = UINT16_MAX;
+  objs.push_back(obj);
+
+  obj = new SDObject("Enum8Test"_lit, "enum8"_lit);
+  obj->type.basetype = SDBasic::Enum;
+  obj->type.byteSize = 1;
+  obj->data.basic.u = UINT8_MAX;
+  objs.push_back(obj);
+
+  for(int i = 0; i < objs.count(); ++i)
+  {
+    Obj2XML(xRoot, *objs[i]);
+  }
+
+  for(pugi::xml_node xChild = xRoot.last_child(); xChild; xChild = xChild.previous_sibling())
+  {
+    SDObject *newObj = XML2Obj(xChild);
+    obj = objs.back();
+    objs.pop_back();
+
+    CHECK(newObj->type.basetype == obj->type.basetype);
+    CHECK(newObj->type.byteSize == obj->type.byteSize);
+    CHECK(newObj->type.name == obj->type.name);
+    CHECK(newObj->type.flags == obj->type.flags);
+    CHECK(newObj->data.basic.i == obj->data.basic.i);
+    CHECK(newObj->data.str == obj->data.str);
+
+    delete newObj;
+    delete obj;
+  }
+}
+
+#endif    // ENABLED(ENABLE_UNIT_TESTS)
