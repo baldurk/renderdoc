@@ -22,7 +22,7 @@ PyObject *__lt__(PyObject *other)
   {
     int res = SWIG_ConvertPtr(other, &resptr, SWIGTYPE_p_ResourceId, 0);
     if (!SWIG_IsOK(res)) {
-      SWIG_exception_fail(SWIG_ArgError(res), "incorrect comparison type");
+      goto fail;
     }
 
     id = (ResourceId *)resptr;
@@ -129,7 +129,7 @@ PyObject *__eq__(PyObject *other)
   {
     int res = SWIG_ConvertPtr(other, &resptr, SWIGTYPE_p_##Class, 0);
     if (!SWIG_IsOK(res)) {
-      SWIG_exception_fail(SWIG_ArgError(res), "incorrect comparison type");
+      goto fail;
     }
 
     id = (Class *)resptr;
@@ -152,7 +152,7 @@ PyObject *__ne__(PyObject *other)
   {
     int res = SWIG_ConvertPtr(other, &resptr, SWIGTYPE_p_##Class, 0);
     if (!SWIG_IsOK(res)) {
-      SWIG_exception_fail(SWIG_ArgError(res), "incorrect comparison type");
+      goto fail;
     }
 
     id = (Class *)resptr;
