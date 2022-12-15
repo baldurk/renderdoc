@@ -75,7 +75,7 @@ void MakePixel(byte *data, const TexConfig &cfg, uint32_t x, uint32_t y, uint32_
         else if(cfg.data == DataType::UNorm)
           h = uint16_t(f * 0xffff);
         else if(cfg.data == DataType::SNorm)
-          h = int16_t(f * 0x7fff);
+          h = f < 0 ? int16_t(roundf(f * 0x8000)) : int16_t(roundf(f * 0x7fff));
         memcpy(data, &h, cfg.componentBytes);
       }
       else if(cfg.componentBytes == 1)
@@ -84,7 +84,7 @@ void MakePixel(byte *data, const TexConfig &cfg, uint32_t x, uint32_t y, uint32_
         if(cfg.data == DataType::UNorm)
           b = uint8_t(f * 0xff);
         else if(cfg.data == DataType::SNorm)
-          b = int8_t(f * 0x7f);
+          b = f < 0 ? int8_t(roundf(f * 0x80)) : int8_t(roundf(f * 0x7f));
         memcpy(data, &b, cfg.componentBytes);
       }
       else
