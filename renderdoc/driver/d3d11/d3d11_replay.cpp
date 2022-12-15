@@ -2101,19 +2101,17 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     {
       if(params.remap == RemapTexture::RGBA8)
       {
-        desc.Format = GetTypedFormat(DXGI_FORMAT_R8G8B8A8_TYPELESS, BaseRemapType(params.typeCast));
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R8G8B8A8_TYPELESS, BaseRemapType(params));
         if(IsSRGBFormat(desc.Format) && params.typeCast == CompType::Typeless)
           desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
       }
       else if(params.remap == RemapTexture::RGBA16)
       {
-        desc.Format =
-            GetTypedFormat(DXGI_FORMAT_R16G16B16A16_TYPELESS, BaseRemapType(params.typeCast));
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R16G16B16A16_TYPELESS, BaseRemapType(params));
       }
       else if(params.remap == RemapTexture::RGBA32)
       {
-        desc.Format =
-            GetTypedFormat(DXGI_FORMAT_R32G32B32A32_TYPELESS, BaseRemapType(params.typeCast));
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R32G32B32A32_TYPELESS, BaseRemapType(params));
       }
 
       desc.ArraySize = 1;
@@ -2263,20 +2261,18 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     {
       if(params.remap == RemapTexture::RGBA8)
       {
-        desc.Format = GetTypedFormat(DXGI_FORMAT_R8G8B8A8_TYPELESS, BaseRemapType(params.typeCast));
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R8G8B8A8_TYPELESS, BaseRemapType(params));
         if((IsSRGBFormat(desc.Format) || wrapTex->m_RealDescriptor) &&
            params.typeCast == CompType::Typeless)
           desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
       }
       else if(params.remap == RemapTexture::RGBA16)
       {
-        desc.Format =
-            GetTypedFormat(DXGI_FORMAT_R16G16B16A16_TYPELESS, BaseRemapType(params.typeCast));
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R16G16B16A16_TYPELESS, BaseRemapType(params));
       }
       else if(params.remap == RemapTexture::RGBA32)
       {
-        desc.Format =
-            GetTypedFormat(DXGI_FORMAT_R32G32B32A32_TYPELESS, BaseRemapType(params.typeCast));
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R32G32B32A32_TYPELESS, BaseRemapType(params));
       }
 
       desc.ArraySize = 1;
@@ -2440,19 +2436,17 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     {
       if(params.remap == RemapTexture::RGBA8)
       {
-        desc.Format = GetTypedFormat(DXGI_FORMAT_R8G8B8A8_TYPELESS, BaseRemapType(params.typeCast));
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R8G8B8A8_TYPELESS, BaseRemapType(params));
         if(IsSRGBFormat(desc.Format) && params.typeCast == CompType::Typeless)
           desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
       }
       else if(params.remap == RemapTexture::RGBA16)
       {
-        desc.Format =
-            GetTypedFormat(DXGI_FORMAT_R16G16B16A16_TYPELESS, BaseRemapType(params.typeCast));
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R16G16B16A16_TYPELESS, BaseRemapType(params));
       }
       else if(params.remap == RemapTexture::RGBA32)
       {
-        desc.Format =
-            GetTypedFormat(DXGI_FORMAT_R32G32B32A32_TYPELESS, BaseRemapType(params.typeCast));
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R32G32B32A32_TYPELESS, BaseRemapType(params));
       }
     }
 

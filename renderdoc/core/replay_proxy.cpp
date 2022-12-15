@@ -2479,7 +2479,7 @@ void ReplayProxy::EnsureTexCached(ResourceId &texid, CompType &typeCast, const S
   }
 
   if(proxyit->second.params.remap != RemapTexture::NoRemap)
-    typeCast = BaseRemapType(typeCast);
+    typeCast = BaseRemapType(proxyit->second.params.remap, typeCast);
 
   // change texid to the proxy texture's ID for passing to our proxy renderer
   texid = proxyit->second.id;

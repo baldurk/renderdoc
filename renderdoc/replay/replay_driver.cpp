@@ -62,14 +62,15 @@ static bool PreviousNextExcludedMarker(ActionDescription *action)
                                ActionFlags::SetMarker | ActionFlags::MultiAction));
 }
 
-CompType BaseRemapType(CompType typeCast)
+CompType BaseRemapType(RemapTexture remap, CompType typeCast)
 {
   switch(typeCast)
   {
     case CompType::Float:
-    case CompType::UNorm:
     case CompType::SNorm:
-    case CompType::UNormSRGB: return CompType::Float;
+    case CompType::UNorm: return CompType::Float;
+    case CompType::UNormSRGB:
+      return remap == RemapTexture::RGBA8 ? CompType::UNormSRGB : CompType::Float;
     case CompType::UInt: return CompType::UInt;
     case CompType::SInt: return CompType::SInt;
     default: return typeCast;

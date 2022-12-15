@@ -101,7 +101,11 @@ struct GetTextureDataParams
 
 DECLARE_REFLECTION_STRUCT(GetTextureDataParams);
 
-CompType BaseRemapType(CompType typeCast);
+CompType BaseRemapType(RemapTexture remap, CompType typeCast);
+inline CompType BaseRemapType(const GetTextureDataParams &params)
+{
+  return BaseRemapType(params.remap, params.typeCast);
+}
 
 class RDCFile;
 
