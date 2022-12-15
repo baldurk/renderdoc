@@ -8,8 +8,8 @@ div.test {
 	background: linear-gradient(#afa 0px, #fff 3em);
 }
 
-div.test.failed {
-	background: linear-gradient(#faa 0px, #fff 3em);
+div.failed {
+	background: linear-gradient(#faa 0px, #fff 3em) !important;
 }
 
 div.diff pre {

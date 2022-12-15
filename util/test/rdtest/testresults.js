@@ -204,7 +204,7 @@ document.body.onload = function() {
         }
       } else if(m[1] == '$$') {
         if(m[2] == 'FAILED') {
-          failed_tests.push(test_name)
+        	html += '<div class="failed"></div>';
         }
       }
     } else {
@@ -226,8 +226,10 @@ document.body.onload = function() {
   document.body.innerHTML += html;
   document.body.style.visibility = 'inherit';
 
-  for(var i=0; i < failed_tests.length; i++) {
-    var test = document.getElementById(failed_tests[i]);
+  var failed = document.getElementsByClassName('failed');
+
+  for(var i=0; i < failed.length; i++) {
+    var test = failed[i].parentElement.parentElement;
     test.classList.add('failed');
   }
 

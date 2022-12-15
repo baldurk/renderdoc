@@ -28,6 +28,7 @@ class TestLogger:
         self.test_name = ''
         self.outputs = [sys.stdout]
         self.failed = False
+        self.section_failed = False
 
     def subprocess_print(self, line: str):
         for o in self.outputs:
@@ -85,8 +86,11 @@ class TestLogger:
     def begin_section(self, name: str):
         self.rawprint(">> Section {}".format(name))
         self.indent()
+        self.section_failed = False
 
     def end_section(self, name: str):
+        if self.section_failed:
+            self.rawprint("$$ FAILED")
         self.dedent()
         self.rawprint("<< Section {}".format(name))
 
@@ -104,12 +108,12 @@ class TestLogger:
         self.rawprint("** " + message)
 
     def error(self, message):
-        self.failed = True
+        self.failed = self.section_failed = True
 
         self.rawprint("!! " + message)
 
     def failure(self, ex):
-        self.failed = True
+        self.failed = self.section_failed = True
 
         if ex is TestFailureException:
             self.rawprint("!+ FAILURE in {}: {}".format(self.test_name, str(ex)))
