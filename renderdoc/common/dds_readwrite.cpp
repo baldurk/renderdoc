@@ -641,6 +641,7 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
       {
         case CompType::UInt: return DXGI_FORMAT_R32_UINT;
         case CompType::SInt: return DXGI_FORMAT_R32_SINT;
+        case CompType::Depth: return DXGI_FORMAT_D32_FLOAT;
         default: return DXGI_FORMAT_R32_FLOAT;
       }
     }
