@@ -810,8 +810,7 @@ RDResult write_dds_to_file(FILE *f, const write_dds_data &data)
   // special case a couple of formats to write out non-DX10 style, for
   // backwards compatibility
   if(data.format.compByteWidth * data.format.compCount <= 4 &&
-     data.format.type == ResourceFormatType::Regular &&
-     (data.format.compType == CompType::UNorm || data.format.compType == CompType::UNormSRGB))
+     data.format.type == ResourceFormatType::Regular && data.format.compType == CompType::UNorm)
   {
     uint32_t bits = data.format.compByteWidth * 8;
 
@@ -856,17 +855,17 @@ RDResult write_dds_to_file(FILE *f, const write_dds_data &data)
     header.ddspf.dwBBitMask = 0x001f;
     header.ddspf.dwABitMask = 0x0000;
   }
-  else if(data.format.type == ResourceFormatType::BC1)
+  else if(data.format.type == ResourceFormatType::BC1 && data.format.compType == CompType::UNorm)
   {
     header.ddspf.dwFlags = DDPF_FOURCC;
     header.ddspf.dwFourCC = MAKE_FOURCC('D', 'X', 'T', '1');
   }
-  else if(data.format.type == ResourceFormatType::BC2)
+  else if(data.format.type == ResourceFormatType::BC2 && data.format.compType == CompType::UNorm)
   {
     header.ddspf.dwFlags = DDPF_FOURCC;
     header.ddspf.dwFourCC = MAKE_FOURCC('D', 'X', 'T', '3');
   }
-  else if(data.format.type == ResourceFormatType::BC3)
+  else if(data.format.type == ResourceFormatType::BC3 && data.format.compType == CompType::UNorm)
   {
     header.ddspf.dwFlags = DDPF_FOURCC;
     header.ddspf.dwFourCC = MAKE_FOURCC('D', 'X', 'T', '5');
