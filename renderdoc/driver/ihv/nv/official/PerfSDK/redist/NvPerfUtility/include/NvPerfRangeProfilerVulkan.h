@@ -40,6 +40,8 @@ namespace nv { namespace perf { namespace profiler {
             size_t nextCommandBufferIdx;
             SessionOptions sessionOptions;
 
+            nv::perf::VulkanFunctions m_vkFunctions;
+
             ProfilerApi()
                 : queue()
                 , device()
@@ -156,7 +158,7 @@ namespace nv { namespace perf { namespace profiler {
             bool SubmitRangeCommandBufferFunctor(Functor&& functor)
             {
                 VkFence fence = rangeFences[nextCommandBufferIdx];
-                VkResult vkResult = vkWaitForFences(device, 1, &fence, false, 0);
+                VkResult vkResult = m_vkFunctions.pfnVkWaitForFences(device, 1, &fence, false, 0);
                 if (vkResult == VK_TIMEOUT)
                 {
                     NV_PERF_LOG_ERR(10, "No more command buffer available for queue level ranges, consider increasing sessionOptions.maxNumRange\n");
@@ -176,7 +178,7 @@ namespace nv { namespace perf { namespace profiler {
                     nextCommandBufferIdx = 0;
                 }
 
-                vkResult = vkResetCommandBuffer(commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+                vkResult = m_vkFunctions.pfnVkResetCommandBuffer(commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
                 if (vkResult)
                 {
                     NV_PERF_LOG_ERR(10, "vkResetCommandBuffer failed, VkResult = %d\n", vkResult);
@@ -184,7 +186,7 @@ namespace nv { namespace perf { namespace profiler {
                 }
 
                 VkCommandBufferBeginInfo commandBufferBeginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-                vkResult = vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo);
+                vkResult = m_vkFunctions.pfnVkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo);
                 if (vkResult)
                 {
                     NV_PERF_LOG_ERR(10, "vkBeginCommandBuffer failed, VkResult = %d\n", vkResult);
@@ -195,14 +197,14 @@ namespace nv { namespace perf { namespace profiler {
                     return false;
                 }
 
-                vkResult = vkEndCommandBuffer(commandBuffer);
+                vkResult = m_vkFunctions.pfnVkEndCommandBuffer(commandBuffer);
                 if (vkResult)
                 {
                     NV_PERF_LOG_ERR(10, "vkEndCommandBuffer failed, VkResult = %d\n", vkResult);
                     return false;
                 }
 
-                vkResult = vkResetFences(device, 1, &fence);
+                vkResult = m_vkFunctions.pfnVkResetFences(device, 1, &fence);
                 if (vkResult)
                 {
                     NV_PERF_LOG_ERR(10, "vkResetFences failed, VkResult = %d\n", vkResult);
@@ -212,7 +214,7 @@ namespace nv { namespace perf { namespace profiler {
                 VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
                 submitInfo.commandBufferCount = 1;
                 submitInfo.pCommandBuffers = &commandBuffer;
-                vkResult = vkQueueSubmit(queue, 1, &submitInfo, fence);
+                vkResult = m_vkFunctions.pfnVkQueueSubmit(queue, 1, &submitInfo, fence);
                 if (vkResult)
                 {
                     NV_PERF_LOG_ERR(10, "vkQueueSubmit failed, VkResult = %d\n", vkResult);
@@ -272,16 +274,26 @@ namespace nv { namespace perf { namespace profiler {
                 return true;
             }
 
-            bool Initialize(VkDevice device_, VkQueue queue_, uint32_t queueFamilyIndex, const SessionOptions& sessionOptions_)
+            bool Initialize(VkDevice device_, VkQueue queue_, uint32_t queueFamilyIndex, const SessionOptions& sessionOptions_
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                           , PFN_vkGetDeviceProcAddr pfnVkGetDeviceProcAddr_
+#endif
+                           )
             {
                 device = device_;
                 queue = queue_;
                 sessionOptions = sessionOptions_;
 
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                m_vkFunctions.Initialize(VK_NULL_HANDLE, device, nullptr, pfnVkGetDeviceProcAddr_);
+#else
+                m_vkFunctions.Initialize();
+#endif
+
                 VkCommandPoolCreateInfo commandPoolCreateInfo = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
                 commandPoolCreateInfo.queueFamilyIndex = queueFamilyIndex;
                 commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-                VkResult vkResult = vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &commandPool);
+                VkResult vkResult = m_vkFunctions.pfnVkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &commandPool);
                 if (vkResult)
                 {
                     return false;
@@ -292,7 +304,7 @@ namespace nv { namespace perf { namespace profiler {
                 VkCommandBufferAllocateInfo commandBufferAllocateInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
                 commandBufferAllocateInfo.commandPool = commandPool;
                 commandBufferAllocateInfo.commandBufferCount = (uint32_t)maxRangeCommandBuffers;
-                vkResult = vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, rangeCommandBuffers.data());
+                vkResult = m_vkFunctions.pfnVkAllocateCommandBuffers(device, &commandBufferAllocateInfo, rangeCommandBuffers.data());
                 if (vkResult)
                 {
                     return false;
@@ -303,7 +315,7 @@ namespace nv { namespace perf { namespace profiler {
                 fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
                 for (auto& rangeFence : rangeFences)
                 {
-                    vkResult = vkCreateFence(device, &fenceCreateInfo, nullptr, &rangeFence);
+                    vkResult = m_vkFunctions.pfnVkCreateFence(device, &fenceCreateInfo, nullptr, &rangeFence);
                     if (vkResult)
                     {
                         return false;
@@ -327,18 +339,19 @@ namespace nv { namespace perf { namespace profiler {
                 sessionOptions = {};
                 nextCommandBufferIdx = 0;
 
-                vkFreeCommandBuffers(device, commandPool, (uint32_t)rangeCommandBuffers.size(), rangeCommandBuffers.data());
+                m_vkFunctions.pfnVkFreeCommandBuffers(device, commandPool, (uint32_t)rangeCommandBuffers.size(), rangeCommandBuffers.data());
                 rangeCommandBuffers.clear();
 
-                vkDestroyCommandPool(device, commandPool, nullptr);
+                m_vkFunctions.pfnVkDestroyCommandPool(device, commandPool, nullptr);
                 commandPool = VK_NULL_HANDLE;
 
                 for (auto fence : rangeFences)
                 {
-                    vkDestroyFence(device, fence, nullptr);
+                    m_vkFunctions.pfnVkDestroyFence(device, fence, nullptr);
                 }
                 queue = VK_NULL_HANDLE;
                 device = VK_NULL_HANDLE;
+                m_vkFunctions.Reset();
             }
         };
 
@@ -414,14 +427,31 @@ namespace nv { namespace perf { namespace profiler {
             VkDevice device,
             VkQueue queue,
             uint32_t queueFamilyIndex,
-            const SessionOptions& sessionOptions)
+            const SessionOptions& sessionOptions
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+            , PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr
+            , PFN_vkGetDeviceProcAddr pfnVkGetDeviceProcAddr
+#endif
+            )
         {
             if (IsInSession())
             {
                 NV_PERF_LOG_ERR(10, "already in a session\n");
                 return false;
             }
-            if (!VulkanIsNvidiaDevice(physicalDevice) || !VulkanIsGpuSupported(instance, physicalDevice, device))
+            const bool isNvidiaDevice = VulkanIsNvidiaDevice(physicalDevice
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                            , instance
+                                                            , pfnVkGetInstanceProcAddr
+#endif
+                                                            );
+            const bool isGpuSupported = isNvidiaDevice && VulkanIsGpuSupported(instance, physicalDevice, device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                                              , pfnVkGetInstanceProcAddr
+                                                                              , pfnVkGetDeviceProcAddr
+#endif
+                                                                              );
+            if (!isGpuSupported)
             {
                 // TODO: error - device is not supported for profiling
                 return false;
@@ -443,8 +473,13 @@ namespace nv { namespace perf { namespace profiler {
             beginSessionParams.physicalDevice = physicalDevice;
             beginSessionParams.device = device;
             beginSessionParams.queue = queue;
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+            beginSessionParams.pfnGetInstanceProcAddr = (void*)pfnVkGetInstanceProcAddr;
+            beginSessionParams.pfnGetDeviceProcAddr = (void*)pfnVkGetDeviceProcAddr;
+#else
             beginSessionParams.pfnGetInstanceProcAddr = (void*)vkGetInstanceProcAddr;
             beginSessionParams.pfnGetDeviceProcAddr = (void*)vkGetDeviceProcAddr;
+#endif
             beginSessionParams.numTraceBuffers = sessionOptions.numTraceBuffers;
             beginSessionParams.traceBufferSize = calcTraceBufferSizeParam.traceBufferSize;
             beginSessionParams.maxRangesPerPass = sessionOptions.maxNumRanges;
@@ -477,7 +512,11 @@ namespace nv { namespace perf { namespace profiler {
 
             m_spgoThreadExited = false;
             m_spgoThread = std::thread(SpgoThreadProc, this, queue);
-            if(!m_profilerApi.Initialize(device, queue, queueFamilyIndex, sessionOptions))
+            if(!m_profilerApi.Initialize(device, queue, queueFamilyIndex, sessionOptions
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                        , pfnVkGetDeviceProcAddr
+#endif
+                                        ))
             {
                 return false;
             }
