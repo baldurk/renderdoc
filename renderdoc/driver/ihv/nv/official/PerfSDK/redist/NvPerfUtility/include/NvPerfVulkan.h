@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include "driver/vulkan/official/vulkan_core.h"
 #include "NvPerfInit.h"
 #include "NvPerfDeviceProperties.h"
 #include "NvPerfPeriodicSamplerGpu.h"
@@ -29,17 +29,177 @@ namespace nv { namespace perf {
     // Vulkan Only Utilities
     //
 
-    inline std::string VulkanGetDeviceName(VkPhysicalDevice physicalDevice)
+    struct VulkanFunctions
     {
+        PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr;
+        PFN_vkGetDeviceProcAddr pfnVkGetDeviceProcAddr;
+
+        // Vulkan instance functions
+        PFN_vkGetPhysicalDeviceMemoryProperties pfnVkGetPhysicalDeviceMemoryProperties;
+        PFN_vkGetPhysicalDeviceProperties pfnVkGetPhysicalDeviceProperties;
+
+        // Vulkan device functions
+        PFN_vkAllocateCommandBuffers pfnVkAllocateCommandBuffers;
+        PFN_vkAllocateMemory pfnVkAllocateMemory;
+        PFN_vkBeginCommandBuffer pfnVkBeginCommandBuffer;
+        PFN_vkBindBufferMemory pfnVkBindBufferMemory;
+        PFN_vkCreateBuffer pfnVkCreateBuffer;
+        PFN_vkCreateCommandPool pfnVkCreateCommandPool;
+        PFN_vkCreateFence pfnVkCreateFence;
+        PFN_vkDestroyBuffer pfnVkDestroyBuffer;
+        PFN_vkDestroyCommandPool pfnVkDestroyCommandPool;
+        PFN_vkDestroyFence pfnVkDestroyFence;
+        PFN_vkEndCommandBuffer pfnVkEndCommandBuffer;
+        PFN_vkFreeCommandBuffers pfnVkFreeCommandBuffers;
+        PFN_vkFreeMemory pfnVkFreeMemory;
+        PFN_vkGetBufferMemoryRequirements pfnVkGetBufferMemoryRequirements;
+        PFN_vkGetFenceStatus pfnVkGetFenceStatus;
+        PFN_vkMapMemory pfnVkMapMemory;
+        PFN_vkQueueSubmit pfnVkQueueSubmit;
+        PFN_vkQueueWaitIdle pfnVkQueueWaitIdle;
+        PFN_vkResetCommandBuffer pfnVkResetCommandBuffer;
+        PFN_vkResetFences pfnVkResetFences;
+        PFN_vkUnmapMemory pfnVkUnmapMemory;
+        PFN_vkWaitForFences pfnVkWaitForFences;
+
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+        void Initialize(VkInstance instance, VkDevice device, PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr_, PFN_vkGetDeviceProcAddr pfnVkGetDeviceProcAddr_)
+        {
+            pfnVkGetInstanceProcAddr = pfnVkGetInstanceProcAddr_;
+            pfnVkGetDeviceProcAddr = pfnVkGetDeviceProcAddr_;
+
+            if (pfnVkGetInstanceProcAddr)
+            {
+                pfnVkGetPhysicalDeviceMemoryProperties = (PFN_vkGetPhysicalDeviceMemoryProperties)pfnVkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceMemoryProperties");
+                pfnVkGetPhysicalDeviceProperties = (PFN_vkGetPhysicalDeviceProperties)pfnVkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties");
+            }
+
+            if (pfnVkGetDeviceProcAddr)
+            {
+                pfnVkAllocateCommandBuffers = (PFN_vkAllocateCommandBuffers)pfnVkGetDeviceProcAddr(device, "vkAllocateCommandBuffers");
+                pfnVkAllocateMemory = (PFN_vkAllocateMemory)pfnVkGetDeviceProcAddr(device, "vkAllocateMemory");
+                pfnVkBeginCommandBuffer = (PFN_vkBeginCommandBuffer)pfnVkGetDeviceProcAddr(device, "vkBeginCommandBuffer");
+                pfnVkBindBufferMemory = (PFN_vkBindBufferMemory)pfnVkGetDeviceProcAddr(device, "vkBindBufferMemory");
+                pfnVkCreateBuffer = (PFN_vkCreateBuffer)pfnVkGetDeviceProcAddr(device, "vkCreateBuffer");
+                pfnVkCreateCommandPool = (PFN_vkCreateCommandPool)pfnVkGetDeviceProcAddr(device, "vkCreateCommandPool");
+                pfnVkCreateFence = (PFN_vkCreateFence)pfnVkGetDeviceProcAddr(device, "vkCreateFence");
+                pfnVkDestroyBuffer = (PFN_vkDestroyBuffer)pfnVkGetDeviceProcAddr(device, "vkDestroyBuffer");
+                pfnVkDestroyCommandPool = (PFN_vkDestroyCommandPool)pfnVkGetDeviceProcAddr(device, "vkDestroyCommandPool");
+                pfnVkDestroyFence = (PFN_vkDestroyFence)pfnVkGetDeviceProcAddr(device, "vkDestroyFence");
+                pfnVkEndCommandBuffer = (PFN_vkEndCommandBuffer)pfnVkGetDeviceProcAddr(device, "vkEndCommandBuffer");
+                pfnVkFreeCommandBuffers = (PFN_vkFreeCommandBuffers)pfnVkGetDeviceProcAddr(device, "vkFreeCommandBuffers");
+                pfnVkFreeMemory = (PFN_vkFreeMemory)pfnVkGetDeviceProcAddr(device, "vkFreeMemory");
+                pfnVkGetBufferMemoryRequirements = (PFN_vkGetBufferMemoryRequirements)pfnVkGetDeviceProcAddr(device, "vkGetBufferMemoryRequirements");
+                pfnVkGetFenceStatus = (PFN_vkGetFenceStatus)pfnVkGetDeviceProcAddr(device, "vkGetFenceStatus");
+                pfnVkMapMemory = (PFN_vkMapMemory)pfnVkGetDeviceProcAddr(device, "vkMapMemory");
+                pfnVkQueueSubmit = (PFN_vkQueueSubmit)pfnVkGetDeviceProcAddr(device, "vkQueueSubmit");
+                pfnVkQueueWaitIdle = (PFN_vkQueueWaitIdle)pfnVkGetDeviceProcAddr(device, "vkQueueWaitIdle");
+                pfnVkResetCommandBuffer = (PFN_vkResetCommandBuffer)pfnVkGetDeviceProcAddr(device, "vkResetCommandBuffer");
+                pfnVkResetFences = (PFN_vkResetFences)pfnVkGetDeviceProcAddr(device, "vkResetFences");
+                pfnVkUnmapMemory = (PFN_vkUnmapMemory)pfnVkGetDeviceProcAddr(device, "vkUnmapMemory");
+                pfnVkWaitForFences = (PFN_vkWaitForFences)pfnVkGetDeviceProcAddr(device, "vkWaitForFences");
+            }
+        }
+#else
+        void Initialize()
+        {
+            pfnVkGetInstanceProcAddr = vkGetInstanceProcAddr;
+            pfnVkGetDeviceProcAddr = vkGetDeviceProcAddr;
+
+            pfnVkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+            pfnVkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+
+            pfnVkAllocateCommandBuffers = vkAllocateCommandBuffers;
+            pfnVkAllocateMemory = vkAllocateMemory;
+            pfnVkBeginCommandBuffer = vkBeginCommandBuffer;
+            pfnVkBindBufferMemory = vkBindBufferMemory;
+            pfnVkCreateBuffer = vkCreateBuffer;
+            pfnVkCreateCommandPool = vkCreateCommandPool;
+            pfnVkCreateFence = vkCreateFence;
+            pfnVkDestroyBuffer = vkDestroyBuffer;
+            pfnVkDestroyCommandPool = vkDestroyCommandPool;
+            pfnVkDestroyFence = vkDestroyFence;
+            pfnVkEndCommandBuffer = vkEndCommandBuffer;
+            pfnVkFreeCommandBuffers = vkFreeCommandBuffers;
+            pfnVkFreeMemory = vkFreeMemory;
+            pfnVkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+            pfnVkGetFenceStatus = vkGetFenceStatus;
+            pfnVkMapMemory = vkMapMemory;
+            pfnVkQueueSubmit = vkQueueSubmit;
+            pfnVkQueueWaitIdle = vkQueueWaitIdle;
+            pfnVkResetCommandBuffer = vkResetCommandBuffer;
+            pfnVkResetFences = vkResetFences;
+            pfnVkUnmapMemory = vkUnmapMemory;
+            pfnVkWaitForFences = vkWaitForFences;
+        }
+#endif
+
+        void Reset()
+        {
+            pfnVkGetInstanceProcAddr = nullptr;
+            pfnVkGetDeviceProcAddr = nullptr;
+
+            pfnVkGetPhysicalDeviceMemoryProperties = nullptr;
+            pfnVkGetPhysicalDeviceProperties = nullptr;
+
+            pfnVkAllocateCommandBuffers = nullptr;
+            pfnVkAllocateMemory = nullptr;
+            pfnVkBeginCommandBuffer = nullptr;
+            pfnVkBindBufferMemory = nullptr;
+            pfnVkCreateBuffer = nullptr;
+            pfnVkCreateCommandPool = nullptr;
+            pfnVkCreateFence = nullptr;
+            pfnVkDestroyBuffer = nullptr;
+            pfnVkDestroyCommandPool = nullptr;
+            pfnVkDestroyFence = nullptr;
+            pfnVkEndCommandBuffer = nullptr;
+            pfnVkFreeCommandBuffers = nullptr;
+            pfnVkFreeMemory = nullptr;
+            pfnVkGetBufferMemoryRequirements = nullptr;
+            pfnVkGetFenceStatus = nullptr;
+            pfnVkMapMemory = nullptr;
+            pfnVkQueueSubmit = nullptr;
+            pfnVkQueueWaitIdle = nullptr;
+            pfnVkResetCommandBuffer = nullptr;
+            pfnVkResetFences = nullptr;
+            pfnVkUnmapMemory = nullptr;
+            pfnVkWaitForFences = nullptr;
+        }
+    };
+
+    inline std::string VulkanGetDeviceName(VkPhysicalDevice physicalDevice
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                          , VkInstance instance
+                                          , PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr
+#endif
+        )
+    {
+        PFN_vkGetPhysicalDeviceProperties pfnVkGetPhysicalDeviceProperties =
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+            (PFN_vkGetPhysicalDeviceProperties)pfnVkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties");
+#else
+            vkGetPhysicalDeviceProperties;
+#endif
         VkPhysicalDeviceProperties properties;
-        vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+        pfnVkGetPhysicalDeviceProperties(physicalDevice, &properties);
         return properties.deviceName;
     }
 
-    inline bool VulkanIsNvidiaDevice(VkPhysicalDevice physicalDevice)
+    inline bool VulkanIsNvidiaDevice(VkPhysicalDevice physicalDevice
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                    , VkInstance instance
+                                    , PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr
+#endif
+        )
     {
+        PFN_vkGetPhysicalDeviceProperties pfnVkGetPhysicalDeviceProperties =
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+            (PFN_vkGetPhysicalDeviceProperties)pfnVkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties");
+#else
+            vkGetPhysicalDeviceProperties;
+#endif
         VkPhysicalDeviceProperties properties;
-        vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+        pfnVkGetPhysicalDeviceProperties(physicalDevice, &properties);
         if (properties.vendorID != NVIDIA_VENDOR_ID)
         {
             return false;
@@ -48,15 +208,22 @@ namespace nv { namespace perf {
         return true;
     }
 
-    inline uint32_t VulkanGetInstanceApiVersion()
+    inline uint32_t VulkanGetInstanceApiVersion(
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+        PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr
+#endif
+        )
     {
-        PFN_vkEnumerateInstanceVersion pfnVkEnumerateInstanceVersion = (PFN_vkEnumerateInstanceVersion)vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceVersion");
+#if !defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+        PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr = vkGetInstanceProcAddr;
+#endif
+        PFN_vkEnumerateInstanceVersion pfnVkEnumerateInstanceVersion = (PFN_vkEnumerateInstanceVersion)pfnVkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceVersion");
         //This API doesn't exist on 1.0 loader
         if (!pfnVkEnumerateInstanceVersion)
         {
             return VK_API_VERSION_1_0;
         }
-        
+
         uint32_t loaderVersion;
         VkResult res = pfnVkEnumerateInstanceVersion(&loaderVersion);
         if (res != VK_SUCCESS)
@@ -67,10 +234,21 @@ namespace nv { namespace perf {
         return loaderVersion;
     }
 
-    inline uint32_t VulkanGetPhysicalDeviceApiVersion(VkPhysicalDevice physicalDevice)
+    inline uint32_t VulkanGetPhysicalDeviceApiVersion(VkPhysicalDevice physicalDevice
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                     , VkInstance instance
+                                                     , PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr
+#endif
+        )
     {
+        PFN_vkGetPhysicalDeviceProperties pfnVkGetPhysicalDeviceProperties =
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+            (PFN_vkGetPhysicalDeviceProperties)pfnVkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties");
+#else
+            vkGetPhysicalDeviceProperties;
+#endif
         VkPhysicalDeviceProperties properties;
-        vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+        pfnVkGetPhysicalDeviceProperties(physicalDevice, &properties);
         return properties.apiVersion;
     }
 
@@ -106,20 +284,30 @@ namespace nv { namespace perf {
         return true;
     }
 
-    inline bool VulkanAppendDeviceRequiredExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, void* pfnGetInstanceProcAddr, std::vector<const char*>& deviceExtensionNames)
+    inline bool VulkanAppendDeviceRequiredExtensions(VkInstance instance, VkPhysicalDevice physicalDevice, void* pfnVkGetInstanceProcAddr, std::vector<const char*>& deviceExtensionNames)
     {
-        if (!VulkanIsNvidiaDevice(physicalDevice))
+        if (!VulkanIsNvidiaDevice(physicalDevice
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                 , instance
+                                 , (PFN_vkGetInstanceProcAddr)pfnVkGetInstanceProcAddr
+#endif
+            ))
         {
             return true; // do nothing on non-NVIDIA devices
         }
 
         NVPW_VK_Profiler_GetRequiredDeviceExtensions_Params getRequiredDeviceExtensionsParams = { NVPW_VK_Profiler_GetRequiredDeviceExtensions_Params_STRUCT_SIZE };
-        getRequiredDeviceExtensionsParams.apiVersion = VulkanGetPhysicalDeviceApiVersion(physicalDevice);
+        getRequiredDeviceExtensionsParams.apiVersion = VulkanGetPhysicalDeviceApiVersion(physicalDevice
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                                                        , instance
+                                                                                        , reinterpret_cast<PFN_vkGetInstanceProcAddr>(pfnVkGetInstanceProcAddr)
+#endif
+                                                                                        );
 
         // optional parameters - this allows NvPerf to query if certain advanced features are available for use
         getRequiredDeviceExtensionsParams.instance = instance;
         getRequiredDeviceExtensionsParams.physicalDevice = physicalDevice;
-        getRequiredDeviceExtensionsParams.pfnGetInstanceProcAddr = pfnGetInstanceProcAddr;
+        getRequiredDeviceExtensionsParams.pfnGetInstanceProcAddr = pfnVkGetInstanceProcAddr;
 
         NVPA_Status nvpaStatus = NVPW_VK_Profiler_GetRequiredDeviceExtensions(&getRequiredDeviceExtensionsParams);
         if (nvpaStatus)
@@ -146,7 +334,7 @@ namespace nv { namespace perf {
         return true;
     }
 
-    inline bool VulkanAppendRequiredExtensions(std::vector<const char*>& instanceExtensionNames, std::vector<const char*>& deviceExtensionNames, uint32_t apiVersion)
+    inline bool VulkanAppendRequiredExtensions(std::vector<const char*>& instanceExtensionNames, std::vector<const char*>& deviceExtensionNames, uint32_t apiVersion, VkInstance instance = VK_NULL_HANDLE, VkPhysicalDevice physicalDevice = VK_NULL_HANDLE, PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr = nullptr)
     {
         bool status = VulkanAppendInstanceRequiredExtensions(instanceExtensionNames, apiVersion);
         if (!status)
@@ -154,7 +342,7 @@ namespace nv { namespace perf {
             return false;
         }
 
-        status = VulkanAppendDeviceRequiredExtensions(VK_NULL_HANDLE, VK_NULL_HANDLE, nullptr, deviceExtensionNames);
+        status = VulkanAppendDeviceRequiredExtensions(instance, physicalDevice, (void*)pfnVkGetInstanceProcAddr, deviceExtensionNames);
         if (!status)
         {
             return false;
@@ -176,15 +364,25 @@ namespace nv { namespace perf {
         return true;
     }
 
-    inline size_t VulkanGetNvperfDeviceIndex(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device, size_t sliIndex = 0)
+    inline size_t VulkanGetNvperfDeviceIndex(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                            , PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr
+                                            , PFN_vkGetDeviceProcAddr pfnVkGetDeviceProcAddr
+#endif
+                                            , size_t sliIndex = 0)
     {
         NVPW_VK_Device_GetDeviceIndex_Params getDeviceIndexParams = { NVPW_VK_Device_GetDeviceIndex_Params_STRUCT_SIZE };
         getDeviceIndexParams.instance = instance;
         getDeviceIndexParams.physicalDevice = physicalDevice;
         getDeviceIndexParams.device = device;
         getDeviceIndexParams.sliIndex = sliIndex;
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+        getDeviceIndexParams.pfnGetInstanceProcAddr = (void*)pfnVkGetInstanceProcAddr;
+        getDeviceIndexParams.pfnGetDeviceProcAddr = (void*)pfnVkGetDeviceProcAddr;
+#else
         getDeviceIndexParams.pfnGetInstanceProcAddr = (void*)vkGetInstanceProcAddr;
         getDeviceIndexParams.pfnGetDeviceProcAddr = (void*)vkGetDeviceProcAddr;
+#endif
 
         NVPA_Status nvpaStatus = NVPW_VK_Device_GetDeviceIndex(&getDeviceIndexParams);
         if (nvpaStatus)
@@ -195,29 +393,69 @@ namespace nv { namespace perf {
         return getDeviceIndexParams.deviceIndex;
     }
 
-    inline DeviceIdentifiers VulkanGetDeviceIdentifiers(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device, size_t sliIndex = 0)
+    inline DeviceIdentifiers VulkanGetDeviceIdentifiers(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                       , PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr
+                                                       , PFN_vkGetDeviceProcAddr pfnVkGetDeviceProcAddr
+#endif
+                                                       , size_t sliIndex = 0)
     {
-        const size_t deviceIndex = VulkanGetNvperfDeviceIndex(instance, physicalDevice, device, sliIndex);
+        const size_t deviceIndex = VulkanGetNvperfDeviceIndex(instance, physicalDevice, device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                             , pfnVkGetInstanceProcAddr
+                                                             , pfnVkGetDeviceProcAddr
+#endif
+                                                             , sliIndex);
 
         DeviceIdentifiers deviceIdentifiers = GetDeviceIdentifiers(deviceIndex);
         return deviceIdentifiers;
     }
 
-    inline NVPW_Device_ClockStatus VulkanGetDeviceClockState(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device)
+    inline NVPW_Device_ClockStatus VulkanGetDeviceClockState(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                            , PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr
+                                                            , PFN_vkGetDeviceProcAddr pfnVkGetDeviceProcAddr
+#endif
+        )
     {
-        size_t nvperfDeviceIndex = VulkanGetNvperfDeviceIndex(instance, physicalDevice, device);
+        size_t nvperfDeviceIndex = VulkanGetNvperfDeviceIndex(instance, physicalDevice, device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                             , pfnVkGetInstanceProcAddr
+                                                             , pfnVkGetDeviceProcAddr
+#endif
+            );
         return GetDeviceClockState(nvperfDeviceIndex);
     }
 
-    inline bool VulkanSetDeviceClockState(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device, NVPW_Device_ClockSetting clockStatus)
+    inline bool VulkanSetDeviceClockState(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device, NVPW_Device_ClockSetting clockStatus
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                         , PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr
+                                         , PFN_vkGetDeviceProcAddr pfnVkGetDeviceProcAddr
+#endif
+        )
     {
-        size_t nvperfDeviceIndex = VulkanGetNvperfDeviceIndex(instance, physicalDevice, device);
+        size_t nvperfDeviceIndex = VulkanGetNvperfDeviceIndex(instance, physicalDevice, device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                             , pfnVkGetInstanceProcAddr
+                                                             , pfnVkGetDeviceProcAddr
+#endif
+            );
         return SetDeviceClockState(nvperfDeviceIndex, clockStatus);
     }
 
-    inline bool VulkanSetDeviceClockState(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device, NVPW_Device_ClockStatus clockStatus)
+    inline bool VulkanSetDeviceClockState(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device, NVPW_Device_ClockStatus clockStatus
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                         , PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr
+                                         , PFN_vkGetDeviceProcAddr pfnVkGetDeviceProcAddr
+#endif
+        )
     {
-        size_t nvperfDeviceIndex = VulkanGetNvperfDeviceIndex(instance, physicalDevice, device);
+        size_t nvperfDeviceIndex = VulkanGetNvperfDeviceIndex(instance, physicalDevice, device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                             , pfnVkGetInstanceProcAddr
+                                                             , pfnVkGetDeviceProcAddr
+#endif
+                );
         return SetDeviceClockState(nvperfDeviceIndex, clockStatus);
     }
 
@@ -268,25 +506,52 @@ namespace nv { namespace perf { namespace profiler {
         return configParams.pRawMetricsConfig;
     }
 
-    inline bool VulkanIsGpuSupported(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device, size_t sliIndex = 0)
+    inline bool VulkanIsGpuSupported(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                    , PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr
+                                    , PFN_vkGetDeviceProcAddr pfnVkGetDeviceProcAddr
+#endif
+                                    , size_t sliIndex = 0)
     {
-        const size_t deviceIndex = VulkanGetNvperfDeviceIndex(instance, physicalDevice, device, sliIndex);
+        const size_t deviceIndex = VulkanGetNvperfDeviceIndex(instance, physicalDevice, device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                             , pfnVkGetInstanceProcAddr
+                                                             , pfnVkGetDeviceProcAddr
+#endif
+                                                             , sliIndex);
 
         NVPW_VK_Profiler_IsGpuSupported_Params params = { NVPW_VK_Profiler_IsGpuSupported_Params_STRUCT_SIZE };
         params.deviceIndex = deviceIndex;
         NVPA_Status nvpaStatus = NVPW_VK_Profiler_IsGpuSupported(&params);
         if (nvpaStatus)
         {
-            NV_PERF_LOG_ERR(10, "NVPW_VK_Profiler_IsGpuSupported failed on %s\n", VulkanGetDeviceName(physicalDevice).c_str());
+            std::string deviceName = VulkanGetDeviceName(physicalDevice
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                        , instance
+                                                        , pfnVkGetInstanceProcAddr
+#endif
+                                                        );
+            NV_PERF_LOG_ERR(10, "NVPW_VK_Profiler_IsGpuSupported failed on %s\n", deviceName.c_str());
             return false;
         }
 
         if (!params.isSupported)
         {
-            NV_PERF_LOG_ERR(10, "%s is not supported for profiling\n", VulkanGetDeviceName(physicalDevice).c_str());
+            std::string deviceName = VulkanGetDeviceName(physicalDevice
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                        , instance
+                                                        , pfnVkGetInstanceProcAddr
+#endif
+                                                        );
+            NV_PERF_LOG_ERR(10, "%s is not supported for profiling\n", deviceName.c_str());
             if (params.gpuArchitectureSupportLevel != NVPW_GPU_ARCHITECTURE_SUPPORT_LEVEL_SUPPORTED)
             {
-                const DeviceIdentifiers deviceIdentifiers = VulkanGetDeviceIdentifiers(instance, physicalDevice, device, sliIndex);
+                const DeviceIdentifiers deviceIdentifiers = VulkanGetDeviceIdentifiers(instance, physicalDevice, device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                                                      , pfnVkGetInstanceProcAddr
+                                                                                      , pfnVkGetDeviceProcAddr
+#endif
+                                                                                      , sliIndex);
                 NV_PERF_LOG_ERR(10, "Unsupported GPU architecture %s\n", deviceIdentifiers.pChipName);
             }
             if (params.sliSupportLevel == NVPW_SLI_SUPPORT_LEVEL_UNSUPPORTED)
@@ -369,9 +634,19 @@ namespace nv { namespace perf { namespace profiler {
             }
         }
 
-        void Initialize(VkPhysicalDevice physicalDevice)
+        void Initialize(VkPhysicalDevice physicalDevice
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                       , VkInstance instance
+                       , PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr
+#endif
+            )
         {
-            const bool isNvidiaDevice_ = VulkanIsNvidiaDevice(physicalDevice);
+            const bool isNvidiaDevice_ = VulkanIsNvidiaDevice(physicalDevice
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                             , instance
+                                                             , pfnVkGetInstanceProcAddr
+#endif
+                                                             );
             return Initialize(isNvidiaDevice_);
         }
     };
@@ -380,12 +655,29 @@ namespace nv { namespace perf { namespace profiler {
 
 namespace nv { namespace perf { namespace mini_trace {
 
-    inline bool VulkanIsGpuSupported(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device, size_t sliIndex = 0)
+    inline bool VulkanIsGpuSupported(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                    , PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr
+                                    , PFN_vkGetDeviceProcAddr pfnVkGetDeviceProcAddr
+#endif
+                                    , size_t sliIndex = 0)
     {
-        const size_t deviceIndex = VulkanGetNvperfDeviceIndex(instance, physicalDevice, device, sliIndex);
+        const size_t deviceIndex = VulkanGetNvperfDeviceIndex(instance, physicalDevice, device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                             , pfnVkGetInstanceProcAddr
+                                                             , pfnVkGetDeviceProcAddr
+#endif
+                                                             , sliIndex);
         if (deviceIndex == ~size_t(0))
         {
-            NV_PERF_LOG_ERR(10, "VulkanGetNvperfDeviceIndex failed on %ls\n", VulkanGetDeviceName(physicalDevice).c_str());
+            std::string deviceName = VulkanGetDeviceName(physicalDevice
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                        , instance
+                                                        , pfnVkGetInstanceProcAddr
+#endif
+                                                        );
+            NV_PERF_LOG_ERR(10, "VulkanGetNvperfDeviceIndex failed on %ls\n", deviceName.c_str());
+
             return false;
         }
 
@@ -394,16 +686,33 @@ namespace nv { namespace perf { namespace mini_trace {
         NVPA_Status nvpaStatus = NVPW_VK_MiniTrace_IsGpuSupported(&params);
         if (nvpaStatus)
         {
-            NV_PERF_LOG_ERR(10, "NVPW_VK_MiniTrace_IsGpuSupported failed on %s\n", VulkanGetDeviceName(physicalDevice).c_str());
+            std::string deviceName = VulkanGetDeviceName(physicalDevice
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                        , instance
+                                                        , pfnVkGetInstanceProcAddr
+#endif
+                                                        );
+            NV_PERF_LOG_ERR(10, "NVPW_VK_MiniTrace_IsGpuSupported failed on %s\n", deviceName.c_str());
             return false;
         }
 
         if (!params.isSupported)
         {
-            NV_PERF_LOG_ERR(10, "%s is not supported for profiling\n", VulkanGetDeviceName(physicalDevice).c_str());
+            std::string deviceName = VulkanGetDeviceName(physicalDevice
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                        , instance
+                                                        , pfnVkGetInstanceProcAddr
+#endif
+                                                        );
+            NV_PERF_LOG_ERR(10, "%s is not supported for profiling\n", deviceName.c_str());
             if (params.gpuArchitectureSupportLevel != NVPW_GPU_ARCHITECTURE_SUPPORT_LEVEL_SUPPORTED)
             {
-                const DeviceIdentifiers deviceIdentifiers = VulkanGetDeviceIdentifiers(instance, physicalDevice, device, sliIndex);
+                const DeviceIdentifiers deviceIdentifiers = VulkanGetDeviceIdentifiers(instance, physicalDevice, device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                                                      , pfnVkGetInstanceProcAddr
+                                                                                      , pfnVkGetDeviceProcAddr
+#endif
+                                                                                      , sliIndex);
                 NV_PERF_LOG_ERR(10, "Unsupported GPU architecture %s\n", deviceIdentifiers.pChipName);
             }
             if (params.sliSupportLevel == NVPW_SLI_SUPPORT_LEVEL_UNSUPPORTED)
@@ -424,19 +733,40 @@ namespace nv { namespace perf { namespace mini_trace {
 
 namespace nv { namespace perf { namespace sampler {
 
-    inline bool VulkanIsGpuSupported(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device, size_t sliIndex = 0)
+    inline bool VulkanIsGpuSupported(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                    , PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr
+                                    , PFN_vkGetDeviceProcAddr pfnVkGetDeviceProcAddr
+#endif
+                                    , size_t sliIndex = 0)
     {
-        const size_t deviceIndex = VulkanGetNvperfDeviceIndex(instance, physicalDevice, device, sliIndex);
+        const size_t deviceIndex = VulkanGetNvperfDeviceIndex(instance, physicalDevice, device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                             , pfnVkGetInstanceProcAddr
+                                                             , pfnVkGetDeviceProcAddr
+#endif
+                                                             , sliIndex);
         if (deviceIndex == ~size_t(0))
         {
-            NV_PERF_LOG_ERR(10, "VulkanGetNvperfDeviceIndex failed on %ls\n", VulkanGetDeviceName(physicalDevice).c_str());
+            std::string deviceName = VulkanGetDeviceName(physicalDevice
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                                        , instance
+                                                        , pfnVkGetInstanceProcAddr
+#endif
+                                                        );
+            NV_PERF_LOG_ERR(10, "VulkanGetNvperfDeviceIndex failed on %ls\n", deviceName.c_str());
             return false;
         }
         if (!GpuPeriodicSamplerIsGpuSupported(deviceIndex))
         {
             return false;
         }
-        if (!mini_trace::VulkanIsGpuSupported(instance, physicalDevice, device, sliIndex))
+        if (!mini_trace::VulkanIsGpuSupported(instance, physicalDevice, device
+#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+                                             , pfnVkGetInstanceProcAddr
+                                             , pfnVkGetDeviceProcAddr
+#endif
+                                             , sliIndex))
         {
             return false;
         }
