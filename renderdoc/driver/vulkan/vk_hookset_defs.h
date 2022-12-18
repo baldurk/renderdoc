@@ -532,6 +532,7 @@
   DeclExt(EXT_primitives_generated_query);            \
   DeclExt(EXT_private_data);                          \
   DeclExt(EXT_extended_dynamic_state);                \
+  DeclExt(EXT_rasterization_order_attachment_access); \
   DeclExt(KHR_copy_commands2);                        \
   DeclExt(KHR_synchronization2);                      \
   DeclExt(KHR_present_wait);                          \
@@ -646,6 +647,7 @@
   CheckExt(EXT_primitives_generated_query, VKXX);            \
   CheckExt(EXT_private_data, VK13);                          \
   CheckExt(EXT_extended_dynamic_state, VK13);                \
+  CheckExt(EXT_rasterization_order_attachment_access, VKXX); \
   CheckExt(KHR_copy_commands2, VK13);                        \
   CheckExt(KHR_synchronization2, VK13);                      \
   CheckExt(KHR_present_wait, VKXX);                          \
