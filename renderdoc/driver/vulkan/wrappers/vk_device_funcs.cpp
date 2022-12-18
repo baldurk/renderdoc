@@ -2521,6 +2521,49 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceDepthClipControlFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_CONTROL_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(depthClipControl);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(
+          VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT,
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVE_TOPOLOGY_LIST_RESTART_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(primitiveTopologyListRestart);
+        CHECK_PHYS_EXT_FEATURE(primitiveTopologyPatchListRestart);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVES_GENERATED_QUERY_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(primitivesGeneratedQuery);
+        CHECK_PHYS_EXT_FEATURE(primitivesGeneratedQueryWithRasterizerDiscard);
+        CHECK_PHYS_EXT_FEATURE(primitivesGeneratedQueryWithNonZeroStreams);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(
+          VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT,
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(multisampledRenderToSingleSampled);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(
+          VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT,
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RASTERIZATION_ORDER_ATTACHMENT_ACCESS_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(rasterizationOrderColorAttachmentAccess);
+        CHECK_PHYS_EXT_FEATURE(rasterizationOrderDepthAttachmentAccess);
+        CHECK_PHYS_EXT_FEATURE(rasterizationOrderStencilAttachmentAccess);
+      }
+      END_PHYS_EXT_CHECK();
+
       BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceDepthClipEnableFeaturesEXT,
                            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT);
       {
