@@ -529,6 +529,7 @@ void GLReplay::CacheTexture(ResourceId id)
     case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY: tex.type = TextureType::Texture2DMSArray; break;
     case eGL_TEXTURE_CUBE_MAP: tex.type = TextureType::TextureCube; break;
     case eGL_TEXTURE_CUBE_MAP_ARRAY: tex.type = TextureType::TextureCubeArray; break;
+    case eGL_TEXTURE_EXTERNAL_OES: tex.type = TextureType::TextureExternal; break;
 
     default:
       tex.type = TextureType::Unknown;
@@ -551,6 +552,7 @@ void GLReplay::CacheTexture(ResourceId id)
     case eGL_TEXTURE_RECTANGLE:
     case eGL_TEXTURE_2D_MULTISAMPLE:
     case eGL_TEXTURE_CUBE_MAP:
+    case eGL_TEXTURE_EXTERNAL_OES:
       tex.dimension = 2;
       tex.width = (uint32_t)width;
       tex.height = (uint32_t)height;
@@ -1251,6 +1253,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
             case TextureType::Texture3D: target = eGL_TEXTURE_3D; break;
             case TextureType::TextureCube: target = eGL_TEXTURE_CUBE_MAP; break;
             case TextureType::TextureCubeArray: target = eGL_TEXTURE_CUBE_MAP_ARRAY; break;
+            case TextureType::TextureExternal: target = eGL_TEXTURE_EXTERNAL_OES; break;
             case TextureType::Count: RDCERR("Invalid shader resource type"); break;
           }
 
@@ -2429,6 +2432,50 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     return;
   }
 
+  if(texType == eGL_TEXTURE_EXTERNAL_OES)
+  {
+    const rdcarray<byte> &intData = texDetails.compressedData[0];
+
+    if(params.remap == RemapTexture::NoRemap)
+    {
+      data.assign(intData);
+    }
+    else if(params.remap == RemapTexture::RGBA8)
+    {
+      size_t size = width * height;
+      data.resize(size * sizeof(uint32_t));
+      uint32_t *pwrite = (uint32_t *)data.data();
+      const byte *pread = (const byte *)intData.data();
+
+      if(intFormat == eGL_R8)
+      {
+        while(size--)
+        {
+          *pwrite++ = uint32_t(pread[0]) | 0xff000000u;
+          pread += 1;
+        }
+      }
+      else if(intFormat == eGL_RGB8)
+      {
+        while(size--)
+        {
+          *pwrite++ =
+              uint32_t(pread[0]) | uint32_t(pread[1]) << 8 | uint32_t(pread[2]) << 16 | 0xff000000u;
+          pread += 3;
+        }
+      }
+      else
+      {
+        RDCERR("GLReplay::GetTextureData - Unsupported external texture format for remap");
+      }
+    }
+    else
+    {
+      RDCERR("GLReplay::GetTextureData - Invalid remap option for external texture");
+    }
+    return;
+  }
+
   if(texType == eGL_TEXTURE_BUFFER)
   {
     GLuint bufName = 0;
@@ -3253,6 +3300,7 @@ ResourceId GLReplay::CreateProxyTexture(const TextureDescription &templateTex)
     case TextureType::Texture3D: target = eGL_TEXTURE_3D; break;
     case TextureType::TextureCube: target = eGL_TEXTURE_CUBE_MAP; break;
     case TextureType::TextureCubeArray: target = eGL_TEXTURE_CUBE_MAP_ARRAY; break;
+    case TextureType::TextureExternal: target = eGL_TEXTURE_EXTERNAL_OES; break;
     case TextureType::Count: RDCERR("Invalid texture dimension"); break;
   }
 
@@ -3667,6 +3715,7 @@ bool GLReplay::IsTextureSupported(const TextureDescription &tex)
     case TextureType::Texture3D: target = eGL_TEXTURE_3D; break;
     case TextureType::TextureCube: target = eGL_TEXTURE_CUBE_MAP; break;
     case TextureType::TextureCubeArray: target = eGL_TEXTURE_CUBE_MAP_ARRAY; break;
+    case TextureType::TextureExternal: target = eGL_TEXTURE_EXTERNAL_OES; break;
     case TextureType::Count: RDCERR("Invalid texture dimension"); break;
   }
 

@@ -47,6 +47,7 @@ set(sources
     wrappers/gl_shader_funcs.cpp
     wrappers/gl_state_funcs.cpp
     wrappers/gl_texture_funcs.cpp
+	wrappers/gl_external_texture.cpp
     wrappers/gl_uniform_funcs.cpp)
 
 # Common hooking code for any GL/GLES on any platform

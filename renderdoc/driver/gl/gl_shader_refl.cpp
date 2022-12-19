@@ -1376,6 +1376,13 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       res.variableType.name = "sampler2DMSArray";
       res.variableType.baseType = VarType::Float;
     }
+    else if(values[0] == eGL_SAMPLER_EXTERNAL_OES)
+    {
+      res.resType = TextureType::TextureExternal;
+      res.variableType.name = "samplerExternalOES";
+      res.variableType.baseType = VarType::Float;
+    }
+
     // int samplers
     else if(values[0] == eGL_INT_SAMPLER_BUFFER)
     {

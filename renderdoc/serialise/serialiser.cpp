@@ -587,14 +587,14 @@ void Serialiser<SerialiserMode::Writing>::WriteStructuredFile(const SDFile &file
 
     Serialiser<SerialiserMode::Writing> *ser = this;
 
+    m_ChunkMetadata.chunkID = 0;
+
     if(m_ChunkMetadata.length == 0)
     {
       ser = &scratchWriter;
       scratchWriter.m_ChunkMetadata = m_ChunkMetadata;
       scratchWriter.m_ChunkFlags = m_ChunkFlags;
     }
-
-    m_ChunkMetadata.chunkID = 0;
 
     ser->BeginChunk(chunk.metadata.chunkID, m_ChunkMetadata.length);
 

@@ -178,6 +178,7 @@
     <ClCompile Include="wrappers\gl_debug_funcs.cpp" />
     <ClCompile Include="wrappers\gl_draw_funcs.cpp" />
     <ClCompile Include="wrappers\gl_emulated.cpp" />
+    <ClCompile Include="wrappers\gl_external_texture.cpp" />
     <ClCompile Include="wrappers\gl_framebuffer_funcs.cpp" />
     <ClCompile Include="wrappers\gl_get_funcs.cpp" />
     <ClCompile Include="wrappers\gl_interop_funcs.cpp" />

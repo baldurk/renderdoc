@@ -629,6 +629,7 @@ rdcstr DoStringise(const TextureType &el)
     STRINGISE_ENUM_CLASS_NAMED(Texture3D, "Texture 3D");
     STRINGISE_ENUM_CLASS_NAMED(TextureCube, "Texture Cube");
     STRINGISE_ENUM_CLASS_NAMED(TextureCubeArray, "Texture Cube Array");
+    STRINGISE_ENUM_CLASS_NAMED(TextureExternal, "Texture External");
   }
   END_ENUM_STRINGISE();
 }

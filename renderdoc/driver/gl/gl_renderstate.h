@@ -136,6 +136,7 @@ struct GLRenderState
   GLResource TexCube[128];
   GLResource Tex2DMS[128];
   GLResource Tex2DMSArray[128];
+  GLResource TexExternal[128];
   GLResource Samplers[128];
   GLenum ActiveTexture;
 

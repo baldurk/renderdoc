@@ -68,6 +68,10 @@ typedef PFNEGLPOSTSUBBUFFERNVPROC PFN_eglPostSubBufferNV;
 typedef PFNEGLSWAPBUFFERSWITHDAMAGEEXTPROC PFN_eglSwapBuffersWithDamageEXT;
 typedef PFNEGLSWAPBUFFERSWITHDAMAGEKHRPROC PFN_eglSwapBuffersWithDamageKHR;
 
+typedef PFNEGLCREATEIMAGEKHRPROC PFN_eglCreateImageKHR;
+typedef PFNEGLDESTROYIMAGEKHRPROC PFN_eglDestroyImageKHR;
+typedef PFNEGLGETNATIVECLIENTBUFFERANDROIDPROC PFN_eglGetNativeClientBufferANDROID;
+
 #define EGL_HOOKED_SYMBOLS(FUNC)                   \
   FUNC(BindAPI, false, true);                      \
   FUNC(GetProcAddress, false, true);               \
@@ -96,7 +100,10 @@ typedef PFNEGLSWAPBUFFERSWITHDAMAGEKHRPROC PFN_eglSwapBuffersWithDamageKHR;
   FUNC(QueryAPI, false, true);             \
   FUNC(QueryString, false, true);          \
   FUNC(QuerySurface, false, true);         \
-  FUNC(QueryContext, false, true);
+  FUNC(QueryContext, false, true);         \
+  FUNC(CreateImageKHR, false, true);       \
+  FUNC(DestroyImageKHR, false, true);      \
+  FUNC(GetNativeClientBufferANDROID, false, true);
 
 struct EGLDispatchTable
 {

@@ -167,7 +167,8 @@ vec3 CalcCubeCoord(vec2 uv, int face)
 #define RESTYPE_TEXBUFFER 0x9
 #define RESTYPE_TEX2DMS 0xA
 #define RESTYPE_TEX2DMSARRAY 0xB
-#define RESTYPE_TEXTYPEMAX 0xB
+#define RESTYPE_TEXEXTERNAL 0xC
+#define RESTYPE_TEXTYPEMAX 0xC
 
 #endif
 

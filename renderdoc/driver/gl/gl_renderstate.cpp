@@ -421,7 +421,7 @@ GLRenderState::GLRenderState()
     Tex1D[i].Namespace = Tex2D[i].Namespace = Tex3D[i].Namespace = Tex1DArray[i].Namespace =
         Tex2DArray[i].Namespace = TexCubeArray[i].Namespace = TexRect[i].Namespace =
             TexBuffer[i].Namespace = TexCube[i].Namespace = Tex2DMS[i].Namespace =
-                Tex2DMSArray[i].Namespace = eResTexture;
+                Tex2DMSArray[i].Namespace = TexExternal[i].Namespace = eResTexture;
     Samplers[i].Namespace = eResSampler;
   }
 
@@ -469,6 +469,7 @@ void GLRenderState::MarkReferenced(WrappedOpenGL *driver, bool initial) const
     manager->MarkResourceFrameReferenced(TexCube[i], initial ? eFrameRef_None : eFrameRef_Read);
     manager->MarkResourceFrameReferenced(Tex2DMS[i], initial ? eFrameRef_None : eFrameRef_Read);
     manager->MarkResourceFrameReferenced(Tex2DMSArray[i], initial ? eFrameRef_None : eFrameRef_Read);
+    manager->MarkResourceFrameReferenced(TexExternal[i], initial ? eFrameRef_None : eFrameRef_Read);
     manager->MarkResourceFrameReferenced(Samplers[i], initial ? eFrameRef_None : eFrameRef_Read);
   }
 
@@ -718,7 +719,7 @@ void GLRenderState::FetchState(WrappedOpenGL *driver)
           sizeof(Tex2DArray) == sizeof(TexCubeArray) && sizeof(TexCubeArray) == sizeof(TexRect) &&
           sizeof(TexRect) == sizeof(TexBuffer) && sizeof(TexBuffer) == sizeof(TexCube) &&
           sizeof(TexCube) == sizeof(Tex2DMS) && sizeof(Tex2DMS) == sizeof(Tex2DMSArray) &&
-          sizeof(Tex2DMSArray) == sizeof(Samplers),
+          sizeof(Tex2DMSArray) == sizeof(TexExternal) && sizeof(Tex2DMSArray) == sizeof(Samplers),
       "All texture arrays should be identically sized");
 
   for(GLuint i = 0; i < RDCMIN(maxTextures, (GLuint)ARRAY_COUNT(Tex2D)); i++)
@@ -737,6 +738,7 @@ void GLRenderState::FetchState(WrappedOpenGL *driver)
     Tex2DMS[i].ContextShareGroup = ctx.shareGroup;
     Tex2DMSArray[i].ContextShareGroup = ctx.shareGroup;
     TexCubeArray[i].ContextShareGroup = ctx.shareGroup;
+    TexExternal[i].ContextShareGroup = ctx.shareGroup;
     Samplers[i].ContextShareGroup = ctx.shareGroup;
 
     if(!IsGLES)
@@ -779,6 +781,11 @@ void GLRenderState::FetchState(WrappedOpenGL *driver)
       GL.glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY, (GLint *)&TexCubeArray[i].name);
     else
       TexCubeArray[i].name = 0;
+
+    if(HasExt[OES_EGL_image_external])
+      GL.glGetIntegerv(eGL_TEXTURE_BINDING_EXTERNAL_OES, (GLint *)&TexExternal[i].name);
+    else
+      TexExternal[i].name = 0;
 
     if(HasExt[ARB_sampler_objects])
       GL.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&Samplers[i].name);
@@ -1327,6 +1334,9 @@ void GLRenderState::ApplyState(WrappedOpenGL *driver)
 
     if(HasExt[ARB_texture_cube_map_array])
       GL.glBindTexture(eGL_TEXTURE_CUBE_MAP_ARRAY, TexCubeArray[i].name);
+
+    if(HasExt[OES_EGL_image_external])
+      GL.glBindTexture(eGL_TEXTURE_EXTERNAL_OES, TexExternal[i].name);
   }
 
   if(HasExt[ARB_shader_image_load_store])
@@ -1720,6 +1730,7 @@ void GLRenderState::Clear()
   RDCEraseEl(TexCube);
   RDCEraseEl(Tex2DMS);
   RDCEraseEl(Tex2DMSArray);
+  RDCEraseEl(TexExternal);
   RDCEraseEl(Samplers);
   RDCEraseEl(ActiveTexture);
 
@@ -1908,6 +1919,7 @@ void DoSerialise(SerialiserType &ser, GLRenderState &el)
   ser.Serialise("GL_TEXTURE_BINDING_CUBE_MAP"_lit, el.TexCube);
   ser.Serialise("GL_TEXTURE_BINDING_2D_MULTISAMPLE"_lit, el.Tex2DMS);
   ser.Serialise("GL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY"_lit, el.Tex2DMSArray);
+  ser.Serialise("GL_TEXTURE_BINDING_EXTERNAL_OES"_lit, el.TexExternal);
 
   ser.Serialise("GL_SAMPLER_BINDING"_lit, el.Samplers);
 

@@ -1786,6 +1786,7 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
     case eGL_TEXTURE_1D_ARRAY: texSlot = RESTYPE_TEX1DARRAY; break;
     case eGL_TEXTURE_2D_ARRAY: texSlot = RESTYPE_TEX2DARRAY; break;
     case eGL_TEXTURE_CUBE_MAP_ARRAY: texSlot = RESTYPE_TEXCUBEARRAY; break;
+    case eGL_TEXTURE_EXTERNAL_OES: texSlot = RESTYPE_TEXEXTERNAL; break;
   }
 
   GLenum target = texDetails.curType;
@@ -2016,6 +2017,7 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
     case eGL_TEXTURE_1D_ARRAY: texSlot = RESTYPE_TEX1DARRAY; break;
     case eGL_TEXTURE_2D_ARRAY: texSlot = RESTYPE_TEX2DARRAY; break;
     case eGL_TEXTURE_CUBE_MAP_ARRAY: texSlot = RESTYPE_TEXCUBEARRAY; break;
+    case eGL_TEXTURE_EXTERNAL_OES: texSlot = RESTYPE_TEXEXTERNAL; break;
   }
 
   GLenum target = texDetails.curType;
@@ -2192,7 +2194,7 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
   GLint forcedparam[4] = {};
 
   bool levelsTex = (target != eGL_TEXTURE_BUFFER && target != eGL_TEXTURE_2D_MULTISAMPLE &&
-                    target != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY);
+                    target != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY && target != eGL_TEXTURE_EXTERNAL_OES);
 
   if(levelsTex)
   {

@@ -75,6 +75,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
     case eGL_TEXTURE_1D_ARRAY: resType = RESTYPE_TEX1DARRAY; break;
     case eGL_TEXTURE_2D_ARRAY: resType = RESTYPE_TEX2DARRAY; break;
     case eGL_TEXTURE_CUBE_MAP_ARRAY: resType = RESTYPE_TEXCUBEARRAY; break;
+    case eGL_TEXTURE_EXTERNAL_OES: resType = RESTYPE_TEXEXTERNAL; break;
   }
 
   GLuint texname = texDetails.resource.name;
@@ -459,7 +460,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
   GLint forcedparam[4] = {};
 
   bool levelsTex = (target != eGL_TEXTURE_BUFFER && target != eGL_TEXTURE_2D_MULTISAMPLE &&
-                    target != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY);
+                    target != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY && target != eGL_TEXTURE_EXTERNAL_OES);
 
   if(levelsTex)
   {

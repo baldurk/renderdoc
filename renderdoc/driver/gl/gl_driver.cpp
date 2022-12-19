@@ -4830,6 +4830,9 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glGetQueryBufferObjectuiv:
       return Serialise_glGetQueryBufferObjectuiv(ser, 0, 0, eGL_NONE, 0);
 
+    case GLChunk::glEGLImageTargetTexture2DOES:
+      return Serialise_glEGLImageTargetTexture2DOES(ser, eGL_NONE, NULL);
+
     // these functions are not currently serialised - they do nothing on replay and are not
     // serialised for information (it would be harmless and perhaps useful for the user to see
     // where and how they're called).
@@ -5548,6 +5551,7 @@ void WrappedOpenGL::AddUsage(const ActionDescription &a)
             case TextureType::Texture3D: texList = rs.Tex3D; break;
             case TextureType::TextureCube: texList = rs.TexCube; break;
             case TextureType::TextureCubeArray: texList = rs.TexCubeArray; break;
+            case TextureType::TextureExternal: texList = rs.TexExternal; break;
             case TextureType::Count: RDCERR("Invalid shader resource type"); break;
           }
 
