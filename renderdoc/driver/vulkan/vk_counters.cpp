@@ -427,7 +427,7 @@ struct VulkanAMDActionCallback : public VulkanActionCallback
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that
   // we'll just be told which other EIDs alias this event.
-  rdcarray<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
+  rdcarray<rdcpair<uint32_t, uint32_t>> m_AliasEvents;
 };
 
 void VulkanReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
@@ -584,7 +584,7 @@ struct VulkanKHRCallback : public VulkanActionCallback
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that
   // we'll just be told which other EIDs alias this event.
-  rdcarray<std::pair<uint32_t, uint32_t> > m_AliasEvents;
+  rdcarray<std::pair<uint32_t, uint32_t>> m_AliasEvents;
 };
 
 rdcarray<CounterResult> VulkanReplay::FetchCountersKHR(const rdcarray<GPUCounter> &counters)
@@ -719,23 +719,33 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersKHR(const rdcarray<GPUCounter
 struct VulkanGPUTimerCallback : public VulkanActionCallback
 {
   VulkanGPUTimerCallback(WrappedVulkan *vk, VulkanReplay *rp, VkQueryPool tsqp, VkQueryPool occqp,
-                         VkQueryPool psqp)
+                         VkQueryPool psqp, VkQueryPool cpsqp)
       : m_pDriver(vk),
         m_pReplay(rp),
         m_TimeStampQueryPool(tsqp),
         m_OcclusionQueryPool(occqp),
-        m_PipeStatsQueryPool(psqp)
+        m_PipeStatsQueryPool(psqp),
+        m_ComputePipeStatsQueryPool(cpsqp)
   {
     m_pDriver->SetActionCB(this);
   }
   ~VulkanGPUTimerCallback() { m_pDriver->SetActionCB(NULL); }
   void PreDraw(uint32_t eid, VkCommandBuffer cmd) override
   {
-    if(m_OcclusionQueryPool != VK_NULL_HANDLE)
-      ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionQueryPool, (uint32_t)m_Results.size(),
-                                  VK_QUERY_CONTROL_PRECISE_BIT);
-    if(m_PipeStatsQueryPool != VK_NULL_HANDLE)
-      ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_PipeStatsQueryPool, (uint32_t)m_Results.size(), 0);
+    VkQueueFlags cmdType = m_pDriver->GetCommandType();
+    if(cmdType & VK_QUEUE_GRAPHICS_BIT)
+    {
+      if(m_OcclusionQueryPool != VK_NULL_HANDLE)
+        ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionQueryPool, m_GraphicsQueries,
+                                    VK_QUERY_CONTROL_PRECISE_BIT);
+      if(m_PipeStatsQueryPool != VK_NULL_HANDLE)
+        ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_PipeStatsQueryPool, m_GraphicsQueries, 0);
+    }
+    else if(cmdType & VK_QUEUE_COMPUTE_BIT)
+    {
+      if(m_ComputePipeStatsQueryPool != VK_NULL_HANDLE)
+        ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_ComputePipeStatsQueryPool, m_ComputeQueries, 0);
+    }
     ObjDisp(cmd)->CmdWriteTimestamp(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                                     m_TimeStampQueryPool, (uint32_t)(m_Results.size() * 2 + 0));
   }
@@ -744,11 +754,23 @@ struct VulkanGPUTimerCallback : public VulkanActionCallback
   {
     ObjDisp(cmd)->CmdWriteTimestamp(Unwrap(cmd), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                                     m_TimeStampQueryPool, (uint32_t)(m_Results.size() * 2 + 1));
-    if(m_OcclusionQueryPool != VK_NULL_HANDLE)
-      ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_OcclusionQueryPool, (uint32_t)m_Results.size());
-    if(m_PipeStatsQueryPool != VK_NULL_HANDLE)
-      ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_PipeStatsQueryPool, (uint32_t)m_Results.size());
-    m_Results.push_back(eid);
+
+    VkQueueFlags cmdType = m_pDriver->GetCommandType();
+    if(cmdType & VK_QUEUE_GRAPHICS_BIT)
+    {
+      if(m_OcclusionQueryPool != VK_NULL_HANDLE)
+        ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_OcclusionQueryPool, m_GraphicsQueries);
+      if(m_PipeStatsQueryPool != VK_NULL_HANDLE)
+        ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_PipeStatsQueryPool, m_GraphicsQueries);
+      m_GraphicsQueries++;
+    }
+    else if(cmdType & VK_QUEUE_COMPUTE_BIT)
+    {
+      if(m_ComputePipeStatsQueryPool != VK_NULL_HANDLE)
+        ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_ComputePipeStatsQueryPool, m_ComputeQueries);
+      m_ComputeQueries++;
+    }
+    m_Results.push_back({eid, cmdType});
     return false;
   }
 
@@ -796,12 +818,15 @@ struct VulkanGPUTimerCallback : public VulkanActionCallback
   VkQueryPool m_TimeStampQueryPool;
   VkQueryPool m_OcclusionQueryPool;
   VkQueryPool m_PipeStatsQueryPool;
-  rdcarray<uint32_t> m_Results;
+  VkQueryPool m_ComputePipeStatsQueryPool;
+  rdcarray<rdcpair<uint32_t, VkQueueFlags>> m_Results;
+  uint32_t m_GraphicsQueries = 0;
+  uint32_t m_ComputeQueries = 0;
   // events which are the 'same' from being the same command buffer resubmitted
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that
   // we'll just be told which other EIDs alias this event.
-  rdcarray<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
+  rdcarray<rdcpair<uint32_t, uint32_t>> m_AliasEvents;
 };
 
 rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &counters)
@@ -904,6 +929,16 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
     CheckVkResult(vkr);
   }
 
+  VkQueryPool compPipeStatsPool = VK_NULL_HANDLE;
+  if(availableFeatures.pipelineStatisticsQuery && statsNeeded)
+  {
+    pipeStatsPoolCreateInfo.pipelineStatistics =
+        VK_QUERY_PIPELINE_STATISTIC_COMPUTE_SHADER_INVOCATIONS_BIT;
+    vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &pipeStatsPoolCreateInfo, NULL,
+                                        &compPipeStatsPool);
+    CheckVkResult(vkr);
+  }
+
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
   if(cmd == VK_NULL_HANDLE)
@@ -920,6 +955,8 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
     ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), occlusionPool, 0, maxEID);
   if(pipeStatsPool != VK_NULL_HANDLE)
     ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), pipeStatsPool, 0, maxEID);
+  if(compPipeStatsPool != VK_NULL_HANDLE)
+    ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), compPipeStatsPool, 0, maxEID);
 
   vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
   CheckVkResult(vkr);
@@ -928,83 +965,122 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
   m_pDriver->SubmitCmds();
 #endif
 
-  VulkanGPUTimerCallback cb(m_pDriver, this, timeStampPool, occlusionPool, pipeStatsPool);
+  VulkanGPUTimerCallback cb(m_pDriver, this, timeStampPool, occlusionPool, pipeStatsPool,
+                            compPipeStatsPool);
 
   // replay the events to perform all the queries
   m_pDriver->ReplayLog(0, maxEID, eReplay_Full);
 
-  rdcarray<uint64_t> m_TimeStampData;
-  m_TimeStampData.resize(cb.m_Results.size() * 2);
+  rdcarray<uint64_t> timeStampData;
+  timeStampData.resize(cb.m_Results.size() * 2);
 
   vkr = ObjDisp(dev)->GetQueryPoolResults(
-      Unwrap(dev), timeStampPool, 0, (uint32_t)m_TimeStampData.size(),
-      sizeof(uint64_t) * m_TimeStampData.size(), &m_TimeStampData[0], sizeof(uint64_t),
+      Unwrap(dev), timeStampPool, 0, (uint32_t)timeStampData.size(),
+      sizeof(uint64_t) * timeStampData.size(), &timeStampData[0], sizeof(uint64_t),
       VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
   CheckVkResult(vkr);
 
   ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), timeStampPool, NULL);
 
-  rdcarray<uint64_t> m_OcclusionData;
-  m_OcclusionData.resize(cb.m_Results.size());
+  rdcarray<uint64_t> occlusionData;
+  occlusionData.resize(cb.m_GraphicsQueries);
   if(occlusionPool != VK_NULL_HANDLE)
   {
-    vkr = ObjDisp(dev)->GetQueryPoolResults(
-        Unwrap(dev), occlusionPool, 0, (uint32_t)m_OcclusionData.size(),
-        sizeof(uint64_t) * m_OcclusionData.size(), &m_OcclusionData[0], sizeof(uint64_t),
-        VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+    vkr = VK_SUCCESS;
+    if(cb.m_GraphicsQueries > 0)
+      vkr = ObjDisp(dev)->GetQueryPoolResults(Unwrap(dev), occlusionPool, 0, cb.m_GraphicsQueries,
+                                              sizeof(uint64_t) * cb.m_GraphicsQueries,
+                                              occlusionData.data(), sizeof(uint64_t),
+                                              VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
     CheckVkResult(vkr);
 
     ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), occlusionPool, NULL);
   }
 
-  rdcarray<uint64_t> m_PipeStatsData;
-  m_PipeStatsData.resize(cb.m_Results.size() * 11);
+  rdcarray<uint64_t> pipeStatsData;
+  pipeStatsData.resize(cb.m_GraphicsQueries * 11);
   if(pipeStatsPool != VK_NULL_HANDLE)
   {
-    vkr = ObjDisp(dev)->GetQueryPoolResults(
-        Unwrap(dev), pipeStatsPool, 0, (uint32_t)cb.m_Results.size(),
-        sizeof(uint64_t) * m_PipeStatsData.size(), &m_PipeStatsData[0], sizeof(uint64_t) * 11,
-        VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+    vkr = VK_SUCCESS;
+    if(cb.m_GraphicsQueries > 0)
+      vkr = ObjDisp(dev)->GetQueryPoolResults(Unwrap(dev), pipeStatsPool, 0, cb.m_GraphicsQueries,
+                                              sizeof(uint64_t) * cb.m_GraphicsQueries * 11,
+                                              pipeStatsData.data(), sizeof(uint64_t) * 11,
+                                              VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
     CheckVkResult(vkr);
 
     ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), pipeStatsPool, NULL);
   }
 
+  rdcarray<uint64_t> m_CompPipeStatsData;
+  m_CompPipeStatsData.resize(cb.m_ComputeQueries);
+  if(compPipeStatsPool != VK_NULL_HANDLE)
+  {
+    vkr = VK_SUCCESS;
+    if(cb.m_ComputeQueries > 0)
+      vkr = ObjDisp(dev)->GetQueryPoolResults(Unwrap(dev), compPipeStatsPool, 0, cb.m_ComputeQueries,
+                                              sizeof(uint64_t) * cb.m_ComputeQueries,
+                                              m_CompPipeStatsData.data(), sizeof(uint64_t),
+                                              VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+    CheckVkResult(vkr);
+
+    ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), compPipeStatsPool, NULL);
+  }
+
+  uint32_t graphicsIdx = 0, computeIdx = 0;
+
   for(size_t i = 0; i < cb.m_Results.size(); i++)
   {
+    uint64_t pipeStats[11] = {};
+    uint64_t occl = 0;
+
+    if(cb.m_Results[i].second & VK_QUEUE_GRAPHICS_BIT)
+    {
+      if(graphicsIdx < cb.m_GraphicsQueries)
+      {
+        occl = occlusionData[graphicsIdx];
+        memcpy(pipeStats, &pipeStatsData[graphicsIdx * 11], sizeof(pipeStats));
+      }
+      graphicsIdx++;
+    }
+    else if(cb.m_Results[i].second & VK_QUEUE_COMPUTE_BIT)
+    {
+      if(computeIdx < cb.m_ComputeQueries)
+      {
+        pipeStats[10] = m_CompPipeStatsData[computeIdx];
+      }
+      computeIdx++;
+    }
+
     for(size_t c = 0; c < vkCounters.size(); c++)
     {
       CounterResult result;
 
-      result.eventId = cb.m_Results[i];
+      result.eventId = cb.m_Results[i].first;
       result.counter = vkCounters[c];
 
       switch(vkCounters[c])
       {
         case GPUCounter::EventGPUDuration:
         {
-          uint64_t delta = m_TimeStampData[i * 2 + 1] - m_TimeStampData[i * 2 + 0];
+          uint64_t delta = timeStampData[i * 2 + 1] - timeStampData[i * 2 + 0];
           result.value.d = (double(m_pDriver->GetDeviceProps().limits.timestampPeriod) *
                             double(delta))                  // nanoseconds
                            / (1000.0 * 1000.0 * 1000.0);    // to seconds
         }
         break;
-        case GPUCounter::InputVerticesRead: result.value.u64 = m_PipeStatsData[i * 11 + 0]; break;
-        case GPUCounter::IAPrimitives: result.value.u64 = m_PipeStatsData[i * 11 + 1]; break;
-        case GPUCounter::GSPrimitives: result.value.u64 = m_PipeStatsData[i * 11 + 4]; break;
-        case GPUCounter::RasterizerInvocations:
-          result.value.u64 = m_PipeStatsData[i * 11 + 5];
-          break;
-        case GPUCounter::RasterizedPrimitives:
-          result.value.u64 = m_PipeStatsData[i * 11 + 6];
-          break;
-        case GPUCounter::SamplesPassed: result.value.u64 = m_OcclusionData[i]; break;
-        case GPUCounter::VSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 2]; break;
-        case GPUCounter::TCSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 8]; break;
-        case GPUCounter::TESInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 9]; break;
-        case GPUCounter::GSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 3]; break;
-        case GPUCounter::PSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 7]; break;
-        case GPUCounter::CSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 10]; break;
+        case GPUCounter::InputVerticesRead: result.value.u64 = pipeStats[0]; break;
+        case GPUCounter::IAPrimitives: result.value.u64 = pipeStats[1]; break;
+        case GPUCounter::GSPrimitives: result.value.u64 = pipeStats[4]; break;
+        case GPUCounter::RasterizerInvocations: result.value.u64 = pipeStats[5]; break;
+        case GPUCounter::RasterizedPrimitives: result.value.u64 = pipeStats[6]; break;
+        case GPUCounter::SamplesPassed: result.value.u64 = occl; break;
+        case GPUCounter::VSInvocations: result.value.u64 = pipeStats[2]; break;
+        case GPUCounter::TCSInvocations: result.value.u64 = pipeStats[8]; break;
+        case GPUCounter::TESInvocations: result.value.u64 = pipeStats[9]; break;
+        case GPUCounter::GSInvocations: result.value.u64 = pipeStats[3]; break;
+        case GPUCounter::PSInvocations: result.value.u64 = pipeStats[7]; break;
+        case GPUCounter::CSInvocations: result.value.u64 = pipeStats[10]; break;
         default: break;
       }
       ret.push_back(result);

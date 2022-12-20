@@ -1231,6 +1231,8 @@ public:
   VkDriverInfo GetDriverInfo() { return m_PhysicalDeviceData.driverInfo; }
   uint32_t FindCommandQueueFamily(ResourceId cmdId);
   void InsertCommandQueueFamily(ResourceId cmdId, uint32_t queueFamilyIndex);
+  VkQueueFlags GetCommandType(ResourceId cmdId);
+  VkQueueFlags GetCommandType() { return GetCommandType(m_LastCmdBufferID); }
   LockedImageStateRef FindImageState(ResourceId id);
   LockedConstImageStateRef FindConstImageState(ResourceId id);
   LockedImageStateRef InsertImageState(VkImage wrappedHandle, ResourceId id, const ImageInfo &info,

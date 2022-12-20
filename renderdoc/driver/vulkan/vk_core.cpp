@@ -3015,7 +3015,8 @@ RDResult WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEv
 
   if(!IsStructuredExporting(m_State))
   {
-    ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
+    VkResult vkr = ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
+    CheckVkResult(vkr);
 
     // destroy any events we created for waiting on
     for(size_t i = 0; i < m_CleanupEvents.size(); i++)
@@ -5043,6 +5044,17 @@ LockedImageStateRef WrappedVulkan::InsertImageState(VkImage wrappedHandle, Resou
     it = m_ImageStates.insert({id, LockingImageState(wrappedHandle, info, refType)}).first;
     return it->second.LockWrite();
   }
+}
+
+VkQueueFlags WrappedVulkan::GetCommandType(ResourceId cmdId)
+{
+  auto it = m_commandQueueFamilies.find(cmdId);
+  if(it == m_commandQueueFamilies.end())
+  {
+    RDCERR("Unknown queue family for %s", ToStr(cmdId).c_str());
+    return VkQueueFlags(0);
+  }
+  return m_PhysicalDeviceData.queueProps[it->second].queueFlags;
 }
 
 bool WrappedVulkan::EraseImageState(ResourceId id)
