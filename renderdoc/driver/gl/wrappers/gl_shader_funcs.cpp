@@ -205,7 +205,12 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
   // if we don't have program_interface_query, need to compile the shader with glslang to be able
   // to reflect with. This is needed on capture or replay
   if(!HasExt[ARB_program_interface_query] && status == 1)
+  {
     glslangShader = CompileShaderForReflection(rdcspv::ShaderStage(ShaderIdx(type)), sources);
+
+    if(glslangShader == NULL)
+      RDCERR("glslang shader failed to compile, reflection will fail");
+  }
 
   if(IsReplayMode(drv.GetState()) && !drv.IsInternalShader())
   {
@@ -249,22 +254,30 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
         // In this case we forcibly emulate ARB_program_interface_query.
         RDCASSERT(!HasExt[ARB_program_interface_query]);
 
-        // to do this, we need to create an empty program object and manually configure its glslang
-        // program.
-        GLuint fakeProgram = drv.glCreateProgram();
+        if(glslangShader == NULL)
+        {
+          RDCERR("Couldn't compile shader via glslang - functionality will be broken.");
+        }
+        else
+        {
+          // to do this, we need to create an empty program object and manually configure its
+          // glslang program.
+          GLuint fakeProgram = drv.glCreateProgram();
 
-        ResourceId progid = drv.GetResourceManager()->GetResID(ProgramRes(drv.GetCtx(), fakeProgram));
+          ResourceId progid =
+              drv.GetResourceManager()->GetResID(ProgramRes(drv.GetCtx(), fakeProgram));
 
-        ProgramData &progDetails = drv.m_Programs[progid];
+          ProgramData &progDetails = drv.m_Programs[progid];
 
-        progDetails.linked = true;
+          progDetails.linked = true;
 
-        progDetails.glslangProgram = LinkProgramForReflection({glslangShader});
+          progDetails.glslangProgram = LinkProgramForReflection({glslangShader});
 
-        MakeShaderReflection(type, fakeProgram, *reflection, outputUsage);
-        reflected = true;
+          MakeShaderReflection(type, fakeProgram, *reflection, outputUsage);
+          reflected = true;
 
-        drv.glDeleteProgram(fakeProgram);
+          drv.glDeleteProgram(fakeProgram);
+        }
       }
 
       if(reflected)
