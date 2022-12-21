@@ -121,7 +121,7 @@ namespace nv { namespace perf {
     inline size_t FormatTime(LogTimeStamp* pTimestamp, char* pBuf, size_t size)
     {
         const struct tm* ltm = localtime(&pTimestamp->tv_sec);
-        int milliseconds = pTimestamp->tv_usec / 1000;
+        int milliseconds = static_cast<int>(pTimestamp->tv_usec / 1000);
         return FormatTimeCommon(pBuf, size, (uint32_t)ltm->tm_hour, (uint32_t)ltm->tm_min, (uint32_t)ltm->tm_sec, (uint32_t)milliseconds);
     }
 
@@ -225,7 +225,7 @@ namespace nv { namespace perf {
                 if (GetEnvVariable("NV_PERF_LOG_FILE_FLUSH_SEVERITY", envValue))
                 {
                     char* pEnd = nullptr;
-                    int severity = strtol(envValue.c_str(), &pEnd, 0);
+                    int severity = static_cast<int>(strtol(envValue.c_str(), &pEnd, 0));
                     if (0 <= severity && severity < (int)LogSeverity::COUNT)
                     {
                         flushFileSeverity = (LogSeverity)severity;
