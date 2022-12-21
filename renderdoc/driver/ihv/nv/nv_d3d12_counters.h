@@ -28,7 +28,6 @@
 #include "api/replay/rdcarray.h"
 #include "api/replay/replay_enums.h"
 
-struct ID3D12Device;
 class WrappedID3D12Device;
 
 class NVD3D12Counters final
@@ -37,7 +36,7 @@ public:
   NVD3D12Counters();
   ~NVD3D12Counters();
 
-  bool Init(ID3D12Device *device);
+  bool Init(WrappedID3D12Device &device);
 
   rdcarray<GPUCounter> EnumerateCounters() const;
   bool HasCounter(GPUCounter counterID) const;

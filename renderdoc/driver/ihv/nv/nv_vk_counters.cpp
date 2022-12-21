@@ -46,6 +46,23 @@ struct NVVulkanCounters::Impl
     CounterEnumerator = NULL;
   }
 
+  static void LogNvPerfAsDebugMessage(const char *pPrefix, const char *pDate, const char *pTime,
+                                      const char *pFunctionName, const char *pMessage, void *pData)
+  {
+    WrappedVulkan *driver = (WrappedVulkan *)pData;
+    rdcstr message =
+        StringFormat::Fmt("NVIDIA Nsight Perf SDK\n%s%s\n%s", pPrefix, pFunctionName, pMessage);
+    driver->AddDebugMessage(MessageCategory::Miscellaneous, MessageSeverity::High,
+                            MessageSource::RuntimeWarning, message);
+  }
+
+  static void LogDebugMessage(const char *pFunctionName, const char *pMessage, WrappedVulkan *driver)
+  {
+    rdcstr message = StringFormat::Fmt("NVIDIA Nsight Perf SDK\n%s\n%s", pFunctionName, pMessage);
+    driver->AddDebugMessage(MessageCategory::Miscellaneous, MessageSeverity::High,
+                            MessageSource::RuntimeWarning, message);
+  }
+
   bool TryInitializePerfSDK(WrappedVulkan *driver)
   {
     if(!NVCounterEnumerator::InitializeNvPerf())
@@ -60,7 +77,8 @@ struct NVVulkanCounters::Impl
 
     if(!nv::perf::VulkanLoadDriver(Unwrap(driver->GetInstance())))
     {
-      RDCERR("NvPerf failed to load Vulkan driver");
+      Impl::LogDebugMessage("NVVulkanCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf failed to load Vulkan driver", driver);
       return false;
     }
 
@@ -69,7 +87,8 @@ struct NVVulkanCounters::Impl
            ObjDisp(driver->GetInstance())->GetInstanceProcAddr,
            ObjDisp(driver->GetDev())->GetDeviceProcAddr))
     {
-      RDCERR("NvPerf does not support profiling on this GPU");
+      Impl::LogDebugMessage("NVVulkanCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf does not support profiling on this GPU", driver);
       return false;
     }
 
@@ -79,7 +98,8 @@ struct NVVulkanCounters::Impl
         ObjDisp(driver->GetDev())->GetDeviceProcAddr);
     if(!deviceIdentifiers.pChipName)
     {
-      RDCERR("NvPerf could not determine chip name");
+      Impl::LogDebugMessage("NVVulkanCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf could not determine chip name", driver);
       return false;
     }
 
@@ -87,7 +107,9 @@ struct NVVulkanCounters::Impl
         nv::perf::VulkanCalculateMetricsEvaluatorScratchBufferSize(deviceIdentifiers.pChipName);
     if(!scratchBufferSize)
     {
-      RDCERR("NvPerf could not determine scratch buffer size for metrics evaluation");
+      Impl::LogDebugMessage("NVVulkanCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf could not determine scratch buffer size for metrics evaluation",
+                            driver);
       return false;
     }
 
@@ -97,7 +119,8 @@ struct NVVulkanCounters::Impl
         scratchBuffer.data(), scratchBuffer.size(), deviceIdentifiers.pChipName);
     if(!pMetricsEvaluator)
     {
-      RDCERR("NvPerf could not initialize metrics evaluator");
+      Impl::LogDebugMessage("NVVulkanCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf could not initialize metrics evaluator", driver);
       return false;
     }
 
@@ -106,7 +129,8 @@ struct NVVulkanCounters::Impl
     CounterEnumerator = new NVCounterEnumerator;
     if(!CounterEnumerator->Init(std::move(metricsEvaluator)))
     {
-      RDCERR("NvPerf could not initialize metrics evaluator");
+      Impl::LogDebugMessage("NVVulkanCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf could not initialize metrics evaluator", driver);
       delete CounterEnumerator;
       return false;
     }
@@ -157,6 +181,9 @@ bool NVVulkanCounters::Init(WrappedVulkan *driver)
   m_Impl = new Impl;
   if(!m_Impl)
     return false;
+
+  nv::perf::UserLogEnableCustom(NVVulkanCounters::Impl::LogNvPerfAsDebugMessage, (void *)driver);
+  auto logGuard = nv::perf::ScopeExitGuard([]() { nv::perf::UserLogDisableCustom(); });
 
   const bool initSuccess = m_Impl->TryInitializePerfSDK(driver);
   if(!initSuccess)
@@ -259,6 +286,9 @@ rdcarray<CounterResult> NVVulkanCounters::FetchCounters(const rdcarray<GPUCounte
     return {};
   }
 
+  nv::perf::UserLogEnableCustom(NVVulkanCounters::Impl::LogNvPerfAsDebugMessage, (void *)driver);
+  auto logGuard = nv::perf::ScopeExitGuard([]() { nv::perf::UserLogDisableCustom(); });
+
   uint32_t maxEID = driver->GetMaxEID();
 
   uint32_t maxNumRanges = 0;
@@ -287,7 +317,8 @@ rdcarray<CounterResult> NVVulkanCounters::FetchCounters(const rdcarray<GPUCounte
                                    ObjDisp(driver->GetInstance())->GetInstanceProcAddr,
                                    ObjDisp(driver->GetDev())->GetDeviceProcAddr))
     {
-      RDCERR("NvPerf failed to start profiling session");
+      Impl::LogDebugMessage("NVVulkanCounters::FetchCounters",
+                            "NvPerf failed to start profiling session", driver);
       return {};    // Failure
     }
     auto sessionGuard = nv::perf::ScopeExitGuard([&rangeProfiler]() { rangeProfiler.EndSession(); });
@@ -318,7 +349,8 @@ rdcarray<CounterResult> NVVulkanCounters::FetchCounters(const rdcarray<GPUCounte
 
     if(!rangeProfiler.EnqueueCounterCollection(setConfigParams))
     {
-      RDCERR("NvPerf failed to schedule counter collection");
+      Impl::LogDebugMessage("NVVulkanCounters::FetchCounters",
+                            "NvPerf failed to schedule counter collection", driver);
       return {};    // Failure
     }
 
@@ -329,7 +361,8 @@ rdcarray<CounterResult> NVVulkanCounters::FetchCounters(const rdcarray<GPUCounte
     {
       if(!rangeProfiler.BeginPass())
       {
-        RDCERR("NvPerf failed to start counter collection pass");
+        Impl::LogDebugMessage("NVVulkanCounters::FetchCounters",
+                              "NvPerf failed to start counter collection pass", driver);
         break;
       }
 
@@ -339,7 +372,8 @@ rdcarray<CounterResult> NVVulkanCounters::FetchCounters(const rdcarray<GPUCounte
 
       if(!rangeProfiler.EndPass())
       {
-        RDCERR("NvPerf failed to end counter collection pass!");
+        Impl::LogDebugMessage("NVVulkanCounters::FetchCounters",
+                              "NvPerf failed to end counter collection pass!", driver);
         break;
       }
 
@@ -348,7 +382,8 @@ rdcarray<CounterResult> NVVulkanCounters::FetchCounters(const rdcarray<GPUCounte
       nv::perf::profiler::DecodeResult decodeResult;
       if(!rangeProfiler.DecodeCounters(decodeResult))
       {
-        RDCERR("NvPerf failed to decode counters in collection pass");
+        Impl::LogDebugMessage("NVVulkanCounters::FetchCounters",
+                              "NvPerf failed to decode counters in collection pass", driver);
         break;
       }
 
@@ -360,21 +395,24 @@ rdcarray<CounterResult> NVVulkanCounters::FetchCounters(const rdcarray<GPUCounte
 
       if(replayPass >= maxNumReplayPasses - 1)
       {
-        RDCERR("NvPerf exceeded the maximum expected number of replay passes");
+        Impl::LogDebugMessage("NVVulkanCounters::FetchCounters",
+                              "NvPerf exceeded the maximum expected number of replay passes", driver);
         break;    // Failure
       }
     }
 
     if(counterDataImage.empty())
     {
-      RDCERR("No data found in NvPerf counter data image");
+      Impl::LogDebugMessage("NVVulkanCounters::FetchCounters",
+                            "No data found in NvPerf counter data image", driver);
       return {};
     }
 
     if(!m_Impl->CounterEnumerator->EvaluateMetrics(counterDataImage.data(), counterDataImage.size(),
                                                    results))
     {
-      RDCERR("NvPerf failed to evaluate metrics from counter data");
+      Impl::LogDebugMessage("NVVulkanCounters::FetchCounters",
+                            "NvPerf failed to evaluate metrics from counter data", driver);
       return {};
     }
   }

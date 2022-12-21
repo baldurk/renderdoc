@@ -176,7 +176,7 @@ void D3D12Replay::CreateResources()
         NVD3D12Counters *countersNV = new NVD3D12Counters();
 
         bool initSuccess = false;
-        if(countersNV && countersNV->Init(m_pDevice->GetReal()))
+        if(countersNV && countersNV->Init(*m_pDevice))
         {
           m_pNVCounters = countersNV;
           initSuccess = true;
