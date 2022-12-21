@@ -1070,6 +1070,9 @@ RDResult WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_t st
       return m_Cmd.m_FailedReplayResult;
     }
 
+    if(m_pDevice->HasFatalError())
+      return ResultCode::Succeeded;
+
     RenderDoc::Inst().SetProgress(
         LoadProgress::FrameEventsRead,
         float(m_Cmd.m_CurChunkOffset - startOffset) / float(ser.GetReader()->GetSize()));

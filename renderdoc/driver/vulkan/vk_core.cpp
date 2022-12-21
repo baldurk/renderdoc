@@ -2705,6 +2705,9 @@ RDResult WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructured
       return m_FailedReplayResult;
     }
 
+    if(m_FatalError != ResultCode::Succeeded)
+      return m_FatalError;
+
     uint64_t offsetEnd = reader->GetOffset();
 
     // only set progress after we've initialised the debug manager, to prevent progress jumping
@@ -2971,6 +2974,9 @@ RDResult WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEv
       m_FailedReplayResult.message = rdcstr(m_FailedReplayResult.message) + extra;
       return m_FailedReplayResult;
     }
+
+    if(m_FatalError != ResultCode::Succeeded)
+      return m_FatalError;
 
     RenderDoc::Inst().SetProgress(
         LoadProgress::FrameEventsRead,

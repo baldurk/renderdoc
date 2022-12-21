@@ -4246,6 +4246,9 @@ RDResult WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool storeStru
       return m_FailedReplayResult;
     }
 
+    if(m_FatalError != ResultCode::Succeeded)
+      return m_FatalError;
+
     uint64_t offsetEnd = reader->GetOffset();
 
     RenderDoc::Inst().SetProgress(LoadProgress::FileInitialRead,
