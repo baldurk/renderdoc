@@ -37,6 +37,23 @@ struct NVGLCounters::Impl
   NVCounterEnumerator *CounterEnumerator;
   bool LibraryNotFound = false;
 
+  static void LogNvPerfAsDebugMessage(const char *pPrefix, const char *pDate, const char *pTime,
+                                      const char *pFunctionName, const char *pMessage, void *pData)
+  {
+    WrappedOpenGL *driver = (WrappedOpenGL *)pData;
+    rdcstr message =
+        StringFormat::Fmt("NVIDIA Nsight Perf SDK\n%s%s\n%s", pPrefix, pFunctionName, pMessage);
+    driver->AddDebugMessage(MessageCategory::Miscellaneous, MessageSeverity::High,
+                            MessageSource::RuntimeWarning, message);
+  }
+
+  static void LogDebugMessage(const char *pFunctionName, const char *pMessage, WrappedOpenGL *driver)
+  {
+    rdcstr message = StringFormat::Fmt("NVIDIA Nsight Perf SDK\n%s\n%s", pFunctionName, pMessage);
+    driver->AddDebugMessage(MessageCategory::Miscellaneous, MessageSeverity::High,
+                            MessageSource::RuntimeWarning, message);
+  }
+
   Impl() : CounterEnumerator(NULL) {}
   ~Impl()
   {
@@ -44,7 +61,7 @@ struct NVGLCounters::Impl
     CounterEnumerator = NULL;
   }
 
-  bool TryInitializePerfSDK()
+  bool TryInitializePerfSDK(WrappedOpenGL *driver)
   {
     if(!NVCounterEnumerator::InitializeNvPerf())
     {
@@ -58,20 +75,23 @@ struct NVGLCounters::Impl
 
     if(!nv::perf::OpenGLLoadDriver())
     {
-      RDCERR("NvPerf failed to load OpenGL driver");
+      Impl::LogDebugMessage("NVGLCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf failed to load OpenGL driver", driver);
       return false;
     }
 
     if(!nv::perf::profiler::OpenGLIsGpuSupported())
     {
-      RDCERR("NvPerf does not support profiling on this GPU");
+      Impl::LogDebugMessage("NVGLCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf does not support profiling on this GPU", driver);
       return false;
     }
 
     nv::perf::DeviceIdentifiers deviceIdentifiers = nv::perf::OpenGLGetDeviceIdentifiers();
     if(!deviceIdentifiers.pChipName)
     {
-      RDCERR("NvPerf could not determine chip name");
+      Impl::LogDebugMessage("NVGLCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf could not determine chip name", driver);
       return false;
     }
 
@@ -79,7 +99,9 @@ struct NVGLCounters::Impl
         nv::perf::OpenGLCalculateMetricsEvaluatorScratchBufferSize(deviceIdentifiers.pChipName);
     if(!scratchBufferSize)
     {
-      RDCERR("NvPerf could not determine scratch buffer size for metrics evaluation");
+      Impl::LogDebugMessage("NVGLCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf could not determine scratch buffer size for metrics evaluation",
+                            driver);
       return false;
     }
 
@@ -89,7 +111,8 @@ struct NVGLCounters::Impl
         scratchBuffer.data(), scratchBuffer.size(), deviceIdentifiers.pChipName);
     if(!pMetricsEvaluator)
     {
-      RDCERR("NvPerf could not initialize metrics evaluator");
+      Impl::LogDebugMessage("NVGLCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf could not initialize metrics evaluator", driver);
       return false;
     }
 
@@ -98,7 +121,8 @@ struct NVGLCounters::Impl
     CounterEnumerator = new NVCounterEnumerator;
     if(!CounterEnumerator->Init(std::move(metricsEvaluator)))
     {
-      RDCERR("NvPerf could not initialize metrics evaluator");
+      Impl::LogDebugMessage("NVGLCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf could not initialize metrics evaluator", driver);
       delete CounterEnumerator;
       return false;
     }
@@ -168,13 +192,16 @@ NVGLCounters::~NVGLCounters()
   m_Impl = NULL;
 }
 
-bool NVGLCounters::Init()
+bool NVGLCounters::Init(WrappedOpenGL *driver)
 {
   m_Impl = new Impl;
   if(!m_Impl)
     return false;
 
-  const bool initSuccess = m_Impl->TryInitializePerfSDK();
+  nv::perf::UserLogEnableCustom(NVGLCounters::Impl::LogNvPerfAsDebugMessage, (void *)driver);
+  auto logGuard = nv::perf::ScopeExitGuard([]() { nv::perf::UserLogDisableCustom(); });
+
+  const bool initSuccess = m_Impl->TryInitializePerfSDK(driver);
   if(!initSuccess)
   {
     delete m_Impl;
@@ -222,6 +249,9 @@ rdcarray<CounterResult> NVGLCounters::FetchCounters(const rdcarray<GPUCounter> &
     return {};
   }
 
+  nv::perf::UserLogEnableCustom(NVGLCounters::Impl::LogNvPerfAsDebugMessage, (void *)driver);
+  auto logGuard = nv::perf::ScopeExitGuard([]() { nv::perf::UserLogDisableCustom(); });
+
   uint32_t maxNumRanges;
   {
     uint32_t numEvents = 0u;
@@ -241,7 +271,8 @@ rdcarray<CounterResult> NVGLCounters::FetchCounters(const rdcarray<GPUCounter> &
 
   if(!rangeProfiler.BeginSession(sessionOptions))
   {
-    RDCERR("NvPerf failed to start profiling session");
+    Impl::LogDebugMessage("NVGLCounters::FetchCounters", "NvPerf failed to start profiling session",
+                          driver);
     return {};    // Failure
   }
   auto sessionGuard = nv::perf::ScopeExitGuard([&rangeProfiler]() { rangeProfiler.EndSession(); });
@@ -267,7 +298,8 @@ rdcarray<CounterResult> NVGLCounters::FetchCounters(const rdcarray<GPUCounter> &
 
   if(!rangeProfiler.EnqueueCounterCollection(setConfigParams))
   {
-    RDCERR("NvPerf failed to schedule counter collection");
+    Impl::LogDebugMessage("NVGLCounters::FetchCounters",
+                          "NvPerf failed to schedule counter collection", driver);
     return {};    // Failure
   }
 
@@ -276,7 +308,8 @@ rdcarray<CounterResult> NVGLCounters::FetchCounters(const rdcarray<GPUCounter> &
   {
     if(!rangeProfiler.BeginPass())
     {
-      RDCERR("NvPerf failed to start counter collection pass");
+      Impl::LogDebugMessage("NVGLCounters::FetchCounters",
+                            "NvPerf failed to start counter collection pass", driver);
       break;    // Failure
     }
 
@@ -285,14 +318,16 @@ rdcarray<CounterResult> NVGLCounters::FetchCounters(const rdcarray<GPUCounter> &
 
     if(!rangeProfiler.EndPass())
     {
-      RDCERR("NvPerf failed to end counter collection pass!");
+      Impl::LogDebugMessage("NVGLCounters::FetchCounters",
+                            "NvPerf failed to end counter collection pass!", driver);
       break;    // Failure
     }
 
     nv::perf::profiler::DecodeResult decodeResult;
     if(!rangeProfiler.DecodeCounters(decodeResult))
     {
-      RDCERR("NvPerf failed to decode counters in collection pass");
+      Impl::LogDebugMessage("NVGLCounters::FetchCounters",
+                            "NvPerf failed to decode counters in collection pass", driver);
       break;    // Failure
     }
 
@@ -304,21 +339,24 @@ rdcarray<CounterResult> NVGLCounters::FetchCounters(const rdcarray<GPUCounter> &
 
     if(replayPass >= maxNumReplayPasses - 1)
     {
-      RDCERR("NvPerf exceeded the maximum expected number of replay passes");
+      Impl::LogDebugMessage("NVGLCounters::FetchCounters",
+                            "NvPerf exceeded the maximum expected number of replay passes", driver);
       break;    // Failure
     }
   }
 
   if(counterDataImage.empty())
   {
-    RDCERR("No data found in NvPerf counter data image");
+    Impl::LogDebugMessage("NVGLCounters::FetchCounters",
+                          "No data found in NvPerf counter data image", driver);
     return {};    // Failure
   }
 
   if(!m_Impl->CounterEnumerator->EvaluateMetrics(counterDataImage.data(), counterDataImage.size(),
                                                  results))
   {
-    RDCERR("NvPerf failed to evaluate metrics from counter data");
+    Impl::LogDebugMessage("NVGLCounters::FetchCounters",
+                          "NvPerf failed to evaluate metrics from counter data", driver);
     return {};
   }
 

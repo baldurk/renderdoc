@@ -36,7 +36,7 @@ public:
   NVGLCounters();
   ~NVGLCounters();
 
-  bool Init();
+  bool Init(WrappedOpenGL *driver);
 
   rdcarray<GPUCounter> EnumerateCounters() const;
   bool HasCounter(GPUCounter counterID) const;

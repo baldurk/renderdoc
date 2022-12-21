@@ -370,7 +370,7 @@ void GLReplay::SetReplayData(GLWindowingData data)
     }
 
 #if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_APPLE)
-    if(countersNV && countersNV->Init())
+    if(countersNV && countersNV->Init(m_pDriver))
     {
       m_pNVCounters = countersNV;
     }

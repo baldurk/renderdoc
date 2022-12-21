@@ -49,7 +49,25 @@ struct NVD3D12Counters::Impl
     CounterEnumerator = NULL;
   }
 
-  bool TryInitializePerfSDK(ID3D12Device *device)
+  static void LogNvPerfAsDebugMessage(const char *pPrefix, const char *pDate, const char *pTime,
+                                      const char *pFunctionName, const char *pMessage, void *pData)
+  {
+    WrappedID3D12Device *device = (WrappedID3D12Device *)pData;
+    rdcstr message =
+        StringFormat::Fmt("NVIDIA Nsight Perf SDK\n%s%s\n%s", pPrefix, pFunctionName, pMessage);
+    device->AddDebugMessage(MessageCategory::Miscellaneous, MessageSeverity::High,
+                            MessageSource::RuntimeWarning, message);
+  }
+
+  static void LogDebugMessage(const char *pFunctionName, const char *pMessage,
+                              WrappedID3D12Device &device)
+  {
+    rdcstr message = StringFormat::Fmt("NVIDIA Nsight Perf SDK\n%s\n%s", pFunctionName, pMessage);
+    device.AddDebugMessage(MessageCategory::Miscellaneous, MessageSeverity::High,
+                           MessageSource::RuntimeWarning, message);
+  }
+
+  bool TryInitializePerfSDK(WrappedID3D12Device &device)
   {
     if(!NVCounterEnumerator::InitializeNvPerf())
     {
@@ -63,20 +81,24 @@ struct NVD3D12Counters::Impl
 
     if(!nv::perf::D3D12LoadDriver())
     {
-      RDCERR("NvPerf failed to load D3D12 driver");
+      Impl::LogDebugMessage("NVD3D12Counters::Impl::TryInitializePerfSDK",
+                            "NvPerf failed to load D3D12 driver", device);
       return false;
     }
 
-    if(!nv::perf::profiler::D3D12IsGpuSupported(device))
+    if(!nv::perf::profiler::D3D12IsGpuSupported(device.GetReal()))
     {
-      RDCERR("NvPerf does not support profiling on this GPU");
+      Impl::LogDebugMessage("NVD3D12Counters::Impl::TryInitializePerfSDK",
+                            "NvPerf does not support profiling on this GPU", device);
       return false;
     }
 
-    nv::perf::DeviceIdentifiers deviceIdentifiers = nv::perf::D3D12GetDeviceIdentifiers(device);
+    nv::perf::DeviceIdentifiers deviceIdentifiers =
+        nv::perf::D3D12GetDeviceIdentifiers(device.GetReal());
     if(!deviceIdentifiers.pChipName)
     {
-      RDCERR("NvPerf could not determine chip name");
+      Impl::LogDebugMessage("NVD3D12Counters::Impl::TryInitializePerfSDK",
+                            "NvPerf could not determine chip name", device);
       return false;
     }
 
@@ -84,7 +106,9 @@ struct NVD3D12Counters::Impl
         nv::perf::D3D12CalculateMetricsEvaluatorScratchBufferSize(deviceIdentifiers.pChipName);
     if(!scratchBufferSize)
     {
-      RDCERR("NvPerf could not determine the scratch buffer size for metrics evaluation");
+      Impl::LogDebugMessage(
+          "NVD3D12Counters::Impl::TryInitializePerfSDK",
+          "NvPerf could not determine the scratch buffer size for metrics evaluation", device);
       return false;
     }
 
@@ -94,7 +118,8 @@ struct NVD3D12Counters::Impl
         scratchBuffer.data(), scratchBuffer.size(), deviceIdentifiers.pChipName);
     if(!pMetricsEvaluator)
     {
-      RDCERR("NvPerf could not initialize metrics evaluator");
+      Impl::LogDebugMessage("NVD3D12Counters::Impl::TryInitializePerfSDK",
+                            "NvPerf could not initialize metrics evaluator", device);
       return false;
     }
 
@@ -103,7 +128,8 @@ struct NVD3D12Counters::Impl
     CounterEnumerator = new NVCounterEnumerator;
     if(!CounterEnumerator->Init(std::move(metricsEvaluator)))
     {
-      RDCERR("NvPerf could not initialize metrics evaluator");
+      Impl::LogDebugMessage("NVD3D12Counters::Impl::TryInitializePerfSDK",
+                            "NvPerf could not initialize metrics evaluator", device);
       delete CounterEnumerator;
       return false;
     }
@@ -149,12 +175,15 @@ NVD3D12Counters::~NVD3D12Counters()
   m_Impl = NULL;
 }
 
-bool NVD3D12Counters::Init(ID3D12Device *device)
+bool NVD3D12Counters::Init(WrappedID3D12Device &device)
 {
   m_Impl = new Impl;
 
   if(!m_Impl)
     return false;
+
+  nv::perf::UserLogEnableCustom(NVD3D12Counters::Impl::LogNvPerfAsDebugMessage, (void *)&device);
+  auto logGuard = nv::perf::ScopeExitGuard([]() { nv::perf::UserLogDisableCustom(); });
 
   bool initSuccess = m_Impl->TryInitializePerfSDK(device);
   if(!initSuccess)
@@ -265,6 +294,9 @@ rdcarray<CounterResult> NVD3D12Counters::FetchCounters(const rdcarray<GPUCounter
     return {};
   }
 
+  nv::perf::UserLogEnableCustom(NVD3D12Counters::Impl::LogNvPerfAsDebugMessage, (void *)&device);
+  auto logGuard = nv::perf::ScopeExitGuard([]() { nv::perf::UserLogDisableCustom(); });
+
   uint32_t maxEID = device.GetQueue()->GetMaxEID();
   ID3D12Device *d3dDevice = device.GetReal();
 
@@ -316,7 +348,8 @@ rdcarray<CounterResult> NVD3D12Counters::FetchCounters(const rdcarray<GPUCounter
 
     if(!rangeProfiler.BeginSession(d3dQueue, sessionOptions))
     {
-      RDCERR("NvPerf failed to start profiling session");
+      Impl::LogDebugMessage("NVD3D12Counters::FetchCounters",
+                            "NvPerf failed to start profiling session", device);
       continue;    // Try the next command queue
     }
     auto sessionGuard = nv::perf::ScopeExitGuard([&rangeProfiler]() { rangeProfiler.EndSession(); });
@@ -343,7 +376,8 @@ rdcarray<CounterResult> NVD3D12Counters::FetchCounters(const rdcarray<GPUCounter
 
     if(!rangeProfiler.EnqueueCounterCollection(setConfigParams))
     {
-      RDCERR("NvPerf failed to schedule counter collection");
+      Impl::LogDebugMessage("NVD3D12Counters::FetchCounters",
+                            "NvPerf failed to schedule counter collection", device);
       continue;    // Try the next command queue
     }
 
@@ -354,7 +388,8 @@ rdcarray<CounterResult> NVD3D12Counters::FetchCounters(const rdcarray<GPUCounter
     {
       if(!rangeProfiler.BeginPass())
       {
-        RDCERR("NvPerf failed to start counter collection pass");
+        Impl::LogDebugMessage("NVD3D12Counters::FetchCounters",
+                              "NvPerf failed to start counter collection pass", device);
         break;
       }
 
@@ -364,7 +399,8 @@ rdcarray<CounterResult> NVD3D12Counters::FetchCounters(const rdcarray<GPUCounter
 
       if(!rangeProfiler.EndPass())
       {
-        RDCERR("NvPerf failed to end counter collection pass!");
+        Impl::LogDebugMessage("NVD3D12Counters::FetchCounters",
+                              "NvPerf failed to end counter collection pass!", device);
         break;
       }
 
@@ -373,7 +409,8 @@ rdcarray<CounterResult> NVD3D12Counters::FetchCounters(const rdcarray<GPUCounter
       nv::perf::profiler::DecodeResult decodeResult;
       if(!rangeProfiler.DecodeCounters(decodeResult))
       {
-        RDCERR("NvPerf failed to decode counters in collection pass");
+        Impl::LogDebugMessage("NVD3D12Counters::FetchCounters",
+                              "NvPerf failed to decode counters in collection pass", device);
         break;
       }
 
@@ -385,21 +422,24 @@ rdcarray<CounterResult> NVD3D12Counters::FetchCounters(const rdcarray<GPUCounter
 
       if(replayPass >= maxNumReplayPasses - 1)
       {
-        RDCERR("NvPerf exceeded the maximum expected number of replay passes");
+        Impl::LogDebugMessage("NVD3D12Counters::FetchCounters",
+                              "NvPerf exceeded the maximum expected number of replay passes", device);
         break;    // Failure
       }
     }
 
     if(counterDataImage.empty())
     {
-      RDCERR("No data found in NvPerf counter data image");
+      Impl::LogDebugMessage("NVD3D12Counters::FetchCounters",
+                            "No data found in NvPerf counter data image", device);
       return {};
     }
 
     if(!m_Impl->CounterEnumerator->EvaluateMetrics(counterDataImage.data(), counterDataImage.size(),
                                                    results))
     {
-      RDCERR("NvPerf failed to evaluate metrics from counter data");
+      Impl::LogDebugMessage("NVD3D12Counters::FetchCounters",
+                            "NvPerf failed to evaluate metrics from counter data", device);
       return {};
     }
   }
