@@ -595,7 +595,6 @@ private:
                                              MemoryScope scope, MemoryType type);
 
   rdcarray<VkEvent> m_CleanupEvents;
-  rdcarray<VkEvent> m_PersistentEvents;
 
   // reset queries must be restored to a valid state on next replay to ensure any query pool
   // results copies that refer to previous frames have valid data. We initialised all of the

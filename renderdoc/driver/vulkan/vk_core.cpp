@@ -426,6 +426,20 @@ void WrappedVulkan::FlushQ()
     cleanup();
   m_PendingCleanups.clear();
 
+  if(!IsStructuredExporting(m_State))
+  {
+    // destroy any events we created for waiting on
+    for(size_t i = 0; i < m_CleanupEvents.size(); i++)
+      ObjDisp(GetDev())->DestroyEvent(Unwrap(GetDev()), m_CleanupEvents[i], NULL);
+
+    m_CleanupEvents.clear();
+
+    for(const rdcpair<VkCommandPool, VkCommandBuffer> &rerecord : m_RerecordCmdList)
+      vkFreeCommandBuffers(GetDev(), rerecord.first, 1, &rerecord.second);
+
+    m_RerecordCmdList.clear();
+  }
+
   if(!m_InternalCmds.submittedcmds.empty())
   {
     m_InternalCmds.freecmds.append(m_InternalCmds.submittedcmds);
@@ -3013,19 +3027,6 @@ RDResult WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEv
     m_ParentAction.children.clear();
   }
 
-  if(!IsStructuredExporting(m_State))
-  {
-    VkResult vkr = ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
-    CheckVkResult(vkr);
-
-    // destroy any events we created for waiting on
-    for(size_t i = 0; i < m_CleanupEvents.size(); i++)
-      ObjDisp(GetDev())->DestroyEvent(Unwrap(GetDev()), m_CleanupEvents[i], NULL);
-
-    for(const rdcpair<VkCommandPool, VkCommandBuffer> &rerecord : m_RerecordCmdList)
-      vkFreeCommandBuffers(GetDev(), rerecord.first, 1, &rerecord.second);
-  }
-
   // submit the indirect preparation command buffer, if we need to
   if(m_IndirectDraw)
   {
@@ -3047,10 +3048,7 @@ RDResult WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEv
 
   m_IndirectDraw = false;
 
-  m_CleanupEvents.clear();
-
   m_RerecordCmds.clear();
-  m_RerecordCmdList.clear();
 
   return ResultCode::Succeeded;
 }

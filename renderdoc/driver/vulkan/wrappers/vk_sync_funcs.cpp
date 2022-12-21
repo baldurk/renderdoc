@@ -663,8 +663,8 @@ bool WrappedVulkan::Serialise_vkCmdSetEvent(SerialiserType &ser, VkCommandBuffer
         commandBuffer = VK_NULL_HANDLE;
     }
 
-    if(commandBuffer != VK_NULL_HANDLE)
-      ObjDisp(commandBuffer)->CmdSetEvent(Unwrap(commandBuffer), Unwrap(event), stageMask);
+    // if(commandBuffer != VK_NULL_HANDLE)
+    //   ObjDisp(commandBuffer)->CmdSetEvent(Unwrap(commandBuffer), Unwrap(event), stageMask);
   }
 
   return true;
@@ -825,28 +825,15 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
         VK_STRUCTURE_TYPE_EVENT_CREATE_INFO, NULL, 0,
     };
 
-    VkEvent ev = VK_NULL_HANDLE;
-    ObjDisp(commandBuffer)->CreateEvent(Unwrap(GetDev()), &evInfo, NULL, &ev);
-    // don't wrap this event
-
-    ObjDisp(commandBuffer)->ResetEvent(Unwrap(GetDev()), ev);
-
     if(IsActiveReplaying(m_State))
     {
       if(InRerecordRange(m_LastCmdBufferID))
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
       else
         commandBuffer = VK_NULL_HANDLE;
-
-      // register to clean this event up once we're done replaying this section of the log
-      m_CleanupEvents.push_back(ev);
     }
     else
     {
-      // since we cache and replay this command buffer we can't clean up this event just when we're
-      // done replaying this section. We have to keep this event until shutdown
-      m_PersistentEvents.push_back(ev);
-
       for(uint32_t i = 0; i < imageMemoryBarrierCount; i++)
       {
         const VkImageMemoryBarrier &b = pImageMemoryBarriers[i];
@@ -859,12 +846,20 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
       }
     }
 
-    GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
-                                         m_commandQueueFamilies[m_LastCmdBufferID],
-                                         (uint32_t)imgBarriers.size(), &imgBarriers[0]);
-
     if(commandBuffer != VK_NULL_HANDLE)
     {
+      // don't wrap this event
+      VkEvent ev = VK_NULL_HANDLE;
+      ObjDisp(commandBuffer)->CreateEvent(Unwrap(GetDev()), &evInfo, NULL, &ev);
+      // register to clean this event up once we're done replaying this section of the log
+      m_CleanupEvents.push_back(ev);
+
+      ObjDisp(commandBuffer)->ResetEvent(Unwrap(GetDev()), ev);
+
+      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
+                                           m_commandQueueFamilies[m_LastCmdBufferID],
+                                           (uint32_t)imgBarriers.size(), &imgBarriers[0]);
+
       // now sanitise layouts before passing to vulkan
       for(VkImageMemoryBarrier &barrier : imgBarriers)
       {
@@ -1320,16 +1315,6 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents2(SerialiserType &ser, VkCommandBuf
 
       // see top of this file for current event/fence handling
 
-      VkEventCreateInfo evInfo = {
-          VK_STRUCTURE_TYPE_EVENT_CREATE_INFO, NULL, 0,
-      };
-
-      VkEvent ev = VK_NULL_HANDLE;
-      ObjDisp(commandBuffer)->CreateEvent(Unwrap(GetDev()), &evInfo, NULL, &ev);
-      // don't wrap this event
-
-      ObjDisp(commandBuffer)->ResetEvent(Unwrap(GetDev()), ev);
-
       VkDependencyInfo UnwrappedDependencyInfo = depInfo;
 
       UnwrappedDependencyInfo.pBufferMemoryBarriers = bufBarriers.data();
@@ -1343,16 +1328,9 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents2(SerialiserType &ser, VkCommandBuf
           commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
         else
           commandBuffer = VK_NULL_HANDLE;
-
-        // register to clean this event up once we're done replaying this section of the log
-        m_CleanupEvents.push_back(ev);
       }
       else
       {
-        // since we cache and replay this command buffer we can't clean up this event just when
-        // we're done replaying this section. We have to keep this event until shutdown
-        m_PersistentEvents.push_back(ev);
-
         for(uint32_t i = 0; i < depInfo.imageMemoryBarrierCount; i++)
         {
           const VkImageMemoryBarrier2 &b = depInfo.pImageMemoryBarriers[i];
@@ -1366,12 +1344,24 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents2(SerialiserType &ser, VkCommandBuf
         }
       }
 
-      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
-                                           m_commandQueueFamilies[m_LastCmdBufferID],
-                                           (uint32_t)imgBarriers.size(), &imgBarriers[0]);
-
       if(commandBuffer != VK_NULL_HANDLE)
       {
+        VkEventCreateInfo evInfo = {
+            VK_STRUCTURE_TYPE_EVENT_CREATE_INFO, NULL, 0,
+        };
+
+        // don't wrap this event
+        VkEvent ev = VK_NULL_HANDLE;
+        ObjDisp(commandBuffer)->CreateEvent(Unwrap(GetDev()), &evInfo, NULL, &ev);
+        // register to clean this event up once we're done replaying this section of the log
+        m_CleanupEvents.push_back(ev);
+
+        ObjDisp(commandBuffer)->ResetEvent(Unwrap(GetDev()), ev);
+
+        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
+                                             m_commandQueueFamilies[m_LastCmdBufferID],
+                                             (uint32_t)imgBarriers.size(), &imgBarriers[0]);
+
         // now sanitise layouts before passing to vulkan
         for(VkImageMemoryBarrier2 &barrier : imgBarriers)
         {
