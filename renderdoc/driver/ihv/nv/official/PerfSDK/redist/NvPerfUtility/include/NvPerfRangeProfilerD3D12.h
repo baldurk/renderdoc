@@ -170,7 +170,7 @@ namespace nv { namespace perf { namespace profiler {
                 return true;
             }
 
-            virtual bool DecodeCounters(std::vector<uint8_t>& counterDataImage, std::vector<uint8_t>& counterDataScratch, bool& onePassDecoded, bool& allPassesDecoded) const
+            virtual bool DecodeCounters(std::vector<uint8_t>& counterDataImage, std::vector<uint8_t>& counterDataScratch, bool& onePassDecoded, bool& allPassesDecoded) const override
             {
                 NVPW_D3D12_Profiler_Queue_DecodeCounters_Params decodeParams = { NVPW_D3D12_Profiler_Queue_DecodeCounters_Params_STRUCT_SIZE };
                 decodeParams.pCommandQueue = pCommandQueue.Get();
