@@ -269,8 +269,8 @@ namespace nv { namespace perf { namespace profiler {
                     return false;
                 }
 
-                onePassDecoded = decodeParams.onePassCollected;
-                allPassesDecoded = decodeParams.allPassesCollected;
+                onePassDecoded = !!decodeParams.onePassCollected;
+                allPassesDecoded = !!decodeParams.allPassesCollected;
                 return true;
             }
 

@@ -179,8 +179,8 @@ namespace nv { namespace perf { namespace profiler {
                     return false;
                 }
 
-                onePassDecoded = decodeParams.onePassCollected;
-                allPassesDecoded = decodeParams.allPassesCollected;
+                onePassDecoded = !!decodeParams.onePassCollected;
+                allPassesDecoded = !!decodeParams.allPassesCollected;
                 return true;
             }
 
@@ -231,7 +231,7 @@ namespace nv { namespace perf { namespace profiler {
 
         bool IsInSession() const
         {
-            return m_profilerApi.pGraphicsContext;
+            return !!m_profilerApi.pGraphicsContext;
         }
 
         bool IsInPass() const
