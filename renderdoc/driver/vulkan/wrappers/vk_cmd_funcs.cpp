@@ -1832,9 +1832,6 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                              FindCommandQueueFamily(m_LastCmdBufferID),
                                              (uint32_t)imgBarriers.size(), imgBarriers.data());
-
-        if(m_FirstEventID == m_LastEventID)
-          UpdateImageStates(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates);
       }
     }
     else
@@ -2487,9 +2484,6 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                              FindCommandQueueFamily(m_LastCmdBufferID),
                                              (uint32_t)imgBarriers.size(), imgBarriers.data());
-
-        if(m_FirstEventID == m_LastEventID)
-          UpdateImageStates(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates);
       }
     }
     else

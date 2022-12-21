@@ -3937,6 +3937,9 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
     if(m_OutsideCmdBuffer != VK_NULL_HANDLE)
     {
+      if(replayType == eReplay_OnlyDraw)
+        UpdateImageStates(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates);
+
       VkCommandBuffer cmd = m_OutsideCmdBuffer;
 
       // end any active XFB
@@ -4434,8 +4437,8 @@ bool WrappedVulkan::InRerecordRange(ResourceId cmdid)
   {
     if(cmdid == m_Partial[p].partialParent)
     {
-      return m_BakedCmdBufferInfo[m_Partial[p].partialParent].curEventID <=
-             m_LastEventID - m_Partial[p].baseEvent;
+      return m_BakedCmdBufferInfo[m_Partial[p].partialParent].curEventID + m_Partial[p].baseEvent <=
+             m_LastEventID;
     }
   }
 
