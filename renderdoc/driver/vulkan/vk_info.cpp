@@ -660,6 +660,13 @@ bool CreateDescriptorWritesForSlotData(WrappedVulkan *vk, rdcarray<VkWriteDescri
     // range starting at dstArrayElement
     uint32_t arrayIdx = slot - writes.back().dstArrayElement;
 
+    ResourceId resId = slots[slot].resource;
+    if(rm->HasLiveResource(resId))
+      resId = rm->GetLiveID(resId);
+    ResourceId sampId = slots[slot].sampler;
+    if(rm->HasLiveResource(resId))
+      sampId = rm->GetLiveID(sampId);
+
     switch(descType)
     {
       case VK_DESCRIPTOR_TYPE_SAMPLER:
@@ -668,15 +675,15 @@ bool CreateDescriptorWritesForSlotData(WrappedVulkan *vk, rdcarray<VkWriteDescri
       case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
       case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
       {
-        if(descType != VK_DESCRIPTOR_TYPE_SAMPLER && rm->HasLiveResource(slots[slot].resource))
-          writeImage[arrayIdx].imageView = rm->GetLiveHandle<VkImageView>(slots[slot].resource);
+        if(descType != VK_DESCRIPTOR_TYPE_SAMPLER && rm->HasCurrentResource(resId))
+          writeImage[arrayIdx].imageView = rm->GetCurrentHandle<VkImageView>(resId);
         else
           writeImage[arrayIdx].imageView = VK_NULL_HANDLE;
 
         if((descType == VK_DESCRIPTOR_TYPE_SAMPLER ||
             descType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
-           rm->HasLiveResource(slots[slot].sampler))
-          writeImage[arrayIdx].sampler = rm->GetLiveHandle<VkSampler>(slots[slot].sampler);
+           rm->HasCurrentResource(slots[slot].sampler))
+          writeImage[arrayIdx].sampler = rm->GetCurrentHandle<VkSampler>(slots[slot].sampler);
         else
           writeImage[arrayIdx].sampler = VK_NULL_HANDLE;
 
@@ -698,8 +705,8 @@ bool CreateDescriptorWritesForSlotData(WrappedVulkan *vk, rdcarray<VkWriteDescri
       case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
       case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
       {
-        if(rm->HasLiveResource(slots[slot].resource))
-          writeTexelBuffer[arrayIdx] = rm->GetLiveHandle<VkBufferView>(slots[slot].resource);
+        if(rm->HasCurrentResource(slots[slot].resource))
+          writeTexelBuffer[arrayIdx] = rm->GetCurrentHandle<VkBufferView>(slots[slot].resource);
         else
           writeTexelBuffer[arrayIdx] = VK_NULL_HANDLE;
 
@@ -711,8 +718,8 @@ bool CreateDescriptorWritesForSlotData(WrappedVulkan *vk, rdcarray<VkWriteDescri
       case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
       case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
       {
-        if(rm->HasLiveResource(slots[slot].resource))
-          writeBuffer[arrayIdx].buffer = rm->GetLiveHandle<VkBuffer>(slots[slot].resource);
+        if(rm->HasCurrentResource(slots[slot].resource))
+          writeBuffer[arrayIdx].buffer = rm->GetCurrentHandle<VkBuffer>(slots[slot].resource);
         else
           writeBuffer[arrayIdx].buffer = VK_NULL_HANDLE;
         writeBuffer[arrayIdx].offset = slots[slot].offset;
