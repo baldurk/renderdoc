@@ -1098,7 +1098,24 @@ void D3D12PipelineStateViewer::setShaderState(
       {
         const bool srv = rootElements[i].type == BindType::ReadOnlyResource;
 
+        tag.type = srv ? D3D12ViewTag::SRV : D3D12ViewTag::UAV;
         RDTreeWidget *tree = srv ? resources : uavs;
+
+        const rdcarray<D3D12Pipe::View> &views = rootElements[i].views;
+
+        // add direct heap access resources
+        if(directHeapAccess)
+        {
+          for(size_t view = 0; view < views.size(); ++view)
+          {
+            tag.space = -1;
+            tag.res = views[view];
+            tag.directHeapAccess = directHeapAccess;
+            addResourceRow(tag, NULL, NULL, tree);
+          }
+          continue;
+        }
+
         rdcarray<Bindpoint> binds = srv ? stage.bindpointMapping.readOnlyResources
                                         : stage.bindpointMapping.readWriteResources;
         rdcarray<ShaderResource> res =
@@ -1120,23 +1137,6 @@ void D3D12PipelineStateViewer::setShaderState(
         // if there are no binds and we're not showing unused slots, skip now
         if(binds.empty() && !showNode(false, true))
           continue;
-
-        tag.type = srv ? D3D12ViewTag::SRV : D3D12ViewTag::UAV;
-
-        const rdcarray<D3D12Pipe::View> &views = rootElements[i].views;
-
-        // add direct heap access resources
-        if(directHeapAccess)
-        {
-          for(size_t view = 0; view < views.size(); ++view)
-          {
-            tag.space = -1;
-            tag.res = views[view];
-            tag.directHeapAccess = directHeapAccess;
-            addResourceRow(tag, NULL, NULL, tree);
-          }
-          continue;
-        }
 
         size_t firstView = rootElements[i].firstUsedIndex;
         size_t lastView = qMin(views.size() - 1, size_t(rootElements[i].lastUsedIndex));
