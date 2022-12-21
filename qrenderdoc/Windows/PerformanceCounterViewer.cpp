@@ -182,11 +182,11 @@ public:
       if((role == Qt::DisplayRole && col == 0) || role == EIDRole)
         return (qulonglong)getData(row, 0).u;
 
-      const CounterDescription &desc = m_Descriptions[col - 1];
+      const CounterDescription &desc = m_Descriptions[qMax(1, col) - 1];
 
       if(role == SortDataRole)
       {
-        if(desc.resultType == CompType::UInt)
+        if(col == 0 || desc.resultType == CompType::UInt)
           return (qulonglong)getData(row, col).u;
         else
           return getData(row, col).f;
@@ -194,7 +194,7 @@ public:
 
       if(role == Qt::DisplayRole)
       {
-        if(desc.resultType == CompType::UInt)
+        if(col == 0 || desc.resultType == CompType::UInt)
           return (qulonglong)getData(row, col).u;
 
         double val = getData(row, col).f;
