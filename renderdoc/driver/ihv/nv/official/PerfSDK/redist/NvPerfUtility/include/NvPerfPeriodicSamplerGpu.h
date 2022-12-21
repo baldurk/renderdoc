@@ -477,7 +477,7 @@ namespace nv { namespace perf { namespace sampler {
             }
             totalSize = getRecordBufferStatusParams.totalSize;
             usedSize = getRecordBufferStatusParams.usedSize;
-            overflow = getRecordBufferStatusParams.overflow;
+            overflow = !!getRecordBufferStatusParams.overflow;
             return true;
         }
 
@@ -508,7 +508,7 @@ namespace nv { namespace perf { namespace sampler {
                 return false;
             }
             numSamplingRangesDecoded = decodeCountersParams.numRangesDecoded;
-            recordBufferOverflow = decodeCountersParams.recordBufferOverflow;
+            recordBufferOverflow = !!decodeCountersParams.recordBufferOverflow;
             numSamplesDropped = decodeCountersParams.numSamplesDropped;
             numSamplesMerged = decodeCountersParams.numSamplesMerged;
             return true;
