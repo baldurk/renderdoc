@@ -939,7 +939,7 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps, bool act
   // major|minor
   if(m_Vendor == GPUVendor::Intel)
   {
-    m_Major = ((uint32_t)(physProps.driverVersion) >> 14) & 0xffffc;
+    m_Major = ((uint32_t)(physProps.driverVersion) >> 14) & 0x3fff;
     m_Minor = (uint32_t)(physProps.driverVersion) & 0x3fff;
     m_Patch = 0;
   }
