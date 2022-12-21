@@ -271,6 +271,11 @@ struct VulkanGraphicsTest : public GraphicsTest
   VkQueueFlags queueFlagsRequired = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
   VkQueueFlags queueFlagsBanned = 0;
 
+  bool forceGraphicsQueue = false;
+  bool forceComputeQueue = false;
+  uint32_t graphicsQueueFamilyIndex = ~0U;
+  uint32_t computeQueueFamilyIndex = ~0U;
+
   bool hasExt(const char *ext);
 
   // a custom struct to pass to vkDeviceCreateInfo::pNext

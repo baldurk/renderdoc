@@ -580,6 +580,20 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
   std::vector<VkQueueFamilyProperties> queueProps;
   vkh::getQueueFamilyProperties(queueProps, phys);
 
+  for(uint32_t q = 0; q < queueProps.size(); q++)
+  {
+    if(queueProps[q].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+    {
+      if(graphicsQueueFamilyIndex == ~0U)
+        graphicsQueueFamilyIndex = q;
+    }
+    else if(queueProps[q].queueFlags & VK_QUEUE_COMPUTE_BIT)
+    {
+      if(computeQueueFamilyIndex == ~0U)
+        computeQueueFamilyIndex = q;
+    }
+  }
+
   // if no queue has been selected, find it now
   if(queueFamilyIndex == ~0U)
   {
@@ -652,10 +666,24 @@ bool VulkanGraphicsTest::Init()
       devExts.push_back(search);
   }
 
+  const std::vector<float> priorities = {
+      1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+      1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+  };
+
+  std::vector<VkDeviceQueueCreateInfo> queueCreates = {
+      vkh::DeviceQueueCreateInfo(queueFamilyIndex, queueCount, priorities),
+  };
+
+  if(queueFamilyIndex != graphicsQueueFamilyIndex && forceGraphicsQueue)
+    queueCreates.push_back(vkh::DeviceQueueCreateInfo(graphicsQueueFamilyIndex, 1, priorities));
+  if(queueFamilyIndex != computeQueueFamilyIndex &&
+     (graphicsQueueFamilyIndex != computeQueueFamilyIndex || !forceGraphicsQueue) &&
+     forceComputeQueue)
+    queueCreates.push_back(vkh::DeviceQueueCreateInfo(computeQueueFamilyIndex, 1, priorities));
+
   CHECK_VKR(vkCreateDevice(
-      phys, vkh::DeviceCreateInfo({vkh::DeviceQueueCreateInfo(queueFamilyIndex, queueCount)},
-                                  enabledLayers, devExts, features)
-                .next(devInfoNext),
+      phys, vkh::DeviceCreateInfo(queueCreates, enabledLayers, devExts, features).next(devInfoNext),
       NULL, &device));
 
   volkLoadDevice(device);
