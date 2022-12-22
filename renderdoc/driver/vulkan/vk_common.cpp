@@ -974,7 +974,7 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps,
   switch(driverProps.driverID)
   {
     case VK_DRIVER_ID_GOOGLE_SWIFTSHADER:
-    case VK_DRIVER_ID_MESA_LLVMPIPE: m_Vendor = GPUVendor::Software;
+    case VK_DRIVER_ID_MESA_LLVMPIPE: m_Vendor = GPUVendor::Software; break;
     case VK_DRIVER_ID_MOLTENVK: metalBackend = true;
     default: break;
   }
