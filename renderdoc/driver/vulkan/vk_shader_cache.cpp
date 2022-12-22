@@ -229,7 +229,7 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
 
   SetCaching(true);
 
-  VkDriverInfo driverVersion = driver->GetDriverInfo();
+  const VkDriverInfo &driverVersion = driver->GetDriverInfo();
   const VkPhysicalDeviceFeatures &enabledFeatures = driver->GetDeviceEnabledFeatures();
   const VkPhysicalDeviceFeatures &availFeatures = driver->GetDeviceAvailableFeatures();
 

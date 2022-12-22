@@ -132,34 +132,8 @@ rdcarray<GPUDevice> VulkanReplay::GetAvailableGPUs()
     VkPhysicalDeviceProperties props = {};
     ObjDisp(instance)->GetPhysicalDeviceProperties(devices[p], &props);
 
-    VkPhysicalDeviceDriverProperties driverProps = {
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES,
-    };
-
-    VkPhysicalDeviceProperties2 physProps2 = {
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2, &driverProps,
-    };
-
-    // get driver properties if available
-    if(m_pDriver->GetExtensions(GetRecord(instance)).ext_KHR_get_physical_device_properties2)
-    {
-      uint32_t extCount = 0;
-      ObjDisp(instance)->EnumerateDeviceExtensionProperties(devices[p], NULL, &extCount, NULL);
-
-      VkExtensionProperties *extProps = new VkExtensionProperties[extCount];
-      ObjDisp(instance)->EnumerateDeviceExtensionProperties(devices[p], NULL, &extCount, extProps);
-
-      for(uint32_t e = 0; e < extCount; e++)
-      {
-        if(!strcmp(extProps[e].extensionName, VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME))
-        {
-          ObjDisp(instance)->GetPhysicalDeviceProperties2(devices[p], &physProps2);
-          break;
-        }
-      }
-
-      SAFE_DELETE_ARRAY(extProps);
-    }
+    VkPhysicalDeviceDriverProperties driverProps = {};
+    GetPhysicalDeviceDriverProperties(ObjDisp(instance), devices[p], driverProps);
 
     GPUDevice dev;
     dev.vendor = GPUVendorFromPCIVendor(props.vendorID);
@@ -1018,15 +992,19 @@ void VulkanReplay::GetInitialDriverVersion()
     return;
   }
 
-  VkPhysicalDeviceProperties props;
+  VkPhysicalDeviceProperties props = {};
   ObjDisp(inst)->GetPhysicalDeviceProperties(firstDevice, &props);
 
-  SetDriverInformation(props);
+  VkPhysicalDeviceDriverProperties driverProps = {};
+  GetPhysicalDeviceDriverProperties(ObjDisp(inst), firstDevice, driverProps);
+
+  SetDriverInformation(props, driverProps);
 }
 
-void VulkanReplay::SetDriverInformation(const VkPhysicalDeviceProperties &props)
+void VulkanReplay::SetDriverInformation(const VkPhysicalDeviceProperties &props,
+                                        const VkPhysicalDeviceDriverProperties &driverProps)
 {
-  VkDriverInfo info(props);
+  VkDriverInfo info(props, driverProps);
   m_DriverInfo.vendor = info.Vendor();
   rdcstr versionString =
       StringFormat::Fmt("%s %u.%u.%u", props.deviceName, info.Major(), info.Minor(), info.Patch());

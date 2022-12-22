@@ -865,11 +865,29 @@ rdcstr HumanDriverName(VkDriverId driverId)
 {
   switch(driverId)
   {
-    case VK_DRIVER_ID_AMD_PROPRIETARY: return "AMD Propriertary";
+    case VK_DRIVER_ID_AMD_PROPRIETARY: return "AMD Proprietary";
     case VK_DRIVER_ID_AMD_OPEN_SOURCE: return "AMD Open-source";
     case VK_DRIVER_ID_MESA_RADV: return "AMD RADV";
-    case VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS: return "Intel Propriertary";
+    case VK_DRIVER_ID_NVIDIA_PROPRIETARY: return "NVIDIA Proprietary";
+    case VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS: return "Intel Proprietary";
     case VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA: return "Intel Open-source";
+    case VK_DRIVER_ID_IMAGINATION_PROPRIETARY: return "NVIDIA Proprietary";
+    case VK_DRIVER_ID_QUALCOMM_PROPRIETARY: return "NVIDIA Proprietary";
+    case VK_DRIVER_ID_ARM_PROPRIETARY: return "NVIDIA Proprietary";
+    case VK_DRIVER_ID_GOOGLE_SWIFTSHADER: return "Swiftshader";
+    case VK_DRIVER_ID_GGP_PROPRIETARY: return "GGP Proprietary";
+    case VK_DRIVER_ID_BROADCOM_PROPRIETARY: return "Broadcom Proprietary";
+    case VK_DRIVER_ID_MESA_LLVMPIPE: return "Mesa LLVMPipe";
+    case VK_DRIVER_ID_MOLTENVK: return "MoltenVK";
+    case VK_DRIVER_ID_COREAVI_PROPRIETARY: return "Coreavi Proprietary";
+    case VK_DRIVER_ID_JUICE_PROPRIETARY: return "Juice Proprietary";
+    case VK_DRIVER_ID_VERISILICON_PROPRIETARY: return "Verisilicon Proprietary";
+    case VK_DRIVER_ID_MESA_TURNIP: return "Mesa Turnip";
+    case VK_DRIVER_ID_MESA_V3DV: return "Mesa V3DV";
+    case VK_DRIVER_ID_MESA_PANVK: return "Mesa Panvk";
+    case VK_DRIVER_ID_SAMSUNG_PROPRIETARY: return "Samsung Proprietary";
+    case VK_DRIVER_ID_MESA_VENUS: return "Mesa Venus";
+    case VK_DRIVER_ID_MESA_DOZEN: return "Mesa Dozen";
     default: break;
   }
 
@@ -895,7 +913,40 @@ void DoSerialise(SerialiserType &ser, VkInitParams &el)
 
 INSTANTIATE_SERIALISE_TYPE(VkInitParams);
 
-VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps, bool active)
+void GetPhysicalDeviceDriverProperties(VkInstDispatchTable *instDispatchTable,
+                                       VkPhysicalDevice unwrappedPhysicalDevice,
+                                       VkPhysicalDeviceDriverProperties &driverProps)
+{
+  uint32_t count = 0;
+  instDispatchTable->EnumerateDeviceExtensionProperties(unwrappedPhysicalDevice, NULL, &count, NULL);
+
+  VkExtensionProperties *props = new VkExtensionProperties[count];
+  instDispatchTable->EnumerateDeviceExtensionProperties(unwrappedPhysicalDevice, NULL, &count, props);
+
+  RDCEraseEl(driverProps);
+  driverProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
+
+  for(uint32_t e = 0; e < count; e++)
+  {
+    // GPDP2 must be available if the driver properties extension is, and we always enable it if
+    // available, so we can unconditionally query here
+    if(!strcmp(props[e].extensionName, VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME))
+    {
+      VkPhysicalDeviceProperties2 physProps2 = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+      };
+
+      physProps2.pNext = &driverProps;
+      instDispatchTable->GetPhysicalDeviceProperties2(unwrappedPhysicalDevice, &physProps2);
+      break;
+    }
+  }
+
+  SAFE_DELETE_ARRAY(props);
+}
+
+VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps,
+                           const VkPhysicalDeviceDriverProperties &origDriverProps, bool active)
 {
   m_Vendor = GPUVendorFromPCIVendor(physProps.vendorID);
 
@@ -911,18 +962,63 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps, bool act
   if(physProps.vendorID == VK_VENDOR_ID_MESA)
     m_Vendor = GPUVendor::Software;
 
-  m_Major = VK_VERSION_MAJOR(physProps.driverVersion);
-  m_Minor = VK_VERSION_MINOR(physProps.driverVersion);
-  m_Patch = VK_VERSION_PATCH(physProps.driverVersion);
+  // take a copy so we can patch the driverID
+  VkPhysicalDeviceDriverProperties driverProps = origDriverProps;
 
+  switch(driverProps.driverID)
+  {
+    case VK_DRIVER_ID_GOOGLE_SWIFTSHADER:
+    case VK_DRIVER_ID_MESA_LLVMPIPE: m_Vendor = GPUVendor::Software;
+    case VK_DRIVER_ID_MOLTENVK: metalBackend = true;
+    default: break;
+  }
+
+// true by definition
 #if ENABLED(RDOC_APPLE)
   metalBackend = true;
 #endif
 
-  // nvidia uses its own version packing:
+  // guess driver by OS & vendor, if we don't have a driver ID. This is mostly for cases where only
+  // the proprietary driver exists
+  if(driverProps.driverID == 0)
+  {
+    RDCWARN("Estimating driver based on OS & vendor ID - may be inaccurate");
+    switch(m_Vendor)
+    {
+#if ENABLED(RDOC_WIN32)
+      case GPUVendor::AMD:
+      case GPUVendor::Samsung: driverProps.driverID = VK_DRIVER_ID_AMD_PROPRIETARY; break;
+#elif ENABLED(RDOC_LINUX)
+      // this could be radv, but we expect radv to provide the driverID
+      case GPUVendor::AMD:
+      case GPUVendor::Samsung: driverProps.driverID = VK_DRIVER_ID_AMD_OPEN_SOURCE; break;
+#endif
+
+#if ENABLED(RDOC_WIN32)
+      case GPUVendor::Intel: driverProps.driverID = VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS; break;
+#elif ENABLED(RDOC_LINUX)
+      case GPUVendor::Intel: driverProps.driverID = VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA; break;
+#endif
+
+      case GPUVendor::nVidia: driverProps.driverID = VK_DRIVER_ID_NVIDIA_PROPRIETARY; break;
+      case GPUVendor::Qualcomm: driverProps.driverID = VK_DRIVER_ID_QUALCOMM_PROPRIETARY; break;
+      case GPUVendor::ARM: driverProps.driverID = VK_DRIVER_ID_ARM_PROPRIETARY; break;
+      case GPUVendor::Imagination:
+        driverProps.driverID = VK_DRIVER_ID_IMAGINATION_PROPRIETARY;
+        break;
+      case GPUVendor::Broadcom: driverProps.driverID = VK_DRIVER_ID_BROADCOM_PROPRIETARY; break;
+      default: break;
+    }
+  }
+
+  m_Major = VK_VERSION_MAJOR(physProps.driverVersion);
+  m_Minor = VK_VERSION_MINOR(physProps.driverVersion);
+  m_Patch = VK_VERSION_PATCH(physProps.driverVersion);
+
+  // nvidia proprietary uses its own version packing:
   //   10 |  8  |        8       |       6
   // major|minor|secondary_branch|tertiary_branch
-  if(m_Vendor == GPUVendor::nVidia)
+  if(driverProps.driverID == VK_DRIVER_ID_NVIDIA_PROPRIETARY)
   {
     m_Major = ((uint32_t)(physProps.driverVersion) >> (8 + 8 + 6)) & 0x3ff;
     m_Minor = ((uint32_t)(physProps.driverVersion) >> (8 + 6)) & 0x0ff;
@@ -933,19 +1029,17 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps, bool act
     m_Patch = (secondary << 8) | tertiary;
   }
 
-#if ENABLED(RDOC_WIN32)
-  // Ditto for Intel on windows
+  // Ditto for Intel proprietary
   //  18  | 14
   // major|minor
-  if(m_Vendor == GPUVendor::Intel)
+  if(driverProps.driverID == VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS)
   {
     m_Major = ((uint32_t)(physProps.driverVersion) >> 14) & 0x3fff;
     m_Minor = (uint32_t)(physProps.driverVersion) & 0x3fff;
     m_Patch = 0;
   }
-#endif
 
-  if(m_Vendor == GPUVendor::nVidia)
+  if(driverProps.driverID == VK_DRIVER_ID_NVIDIA_PROPRIETARY)
   {
     // drivers before 372.54 did not handle a glslang bugfix about separated samplers,
     // and disabling texelFetch works as a workaround.
@@ -958,11 +1052,8 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps, bool act
     }
   }
 
-// only check this on windows. This is a bit of a hack, as really we want to check if we're
-// using the AMD official driver, but there's not a great other way to distinguish it from
-// the RADV open source driver.
-#if ENABLED(RDOC_WIN32)
-  if(m_Vendor == GPUVendor::AMD || m_Vendor == GPUVendor::Samsung)
+  if(driverProps.driverID == VK_DRIVER_ID_AMD_PROPRIETARY ||
+     driverProps.driverID == VK_DRIVER_ID_AMD_OPEN_SOURCE)
   {
     // for AMD the bugfix version isn't clear as version numbering wasn't strong for a while, but
     // any driver that reports a version of >= 1.0.0 is fine, as previous versions all reported
@@ -1000,11 +1091,8 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps, bool act
       bdaBrokenDriver = true;
     }
   }
-#endif
 
-// Intel windows workarounds
-#if ENABLED(RDOC_WIN32)
-  if(m_Vendor == GPUVendor::Intel)
+  if(driverProps.driverID == VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS)
   {
     // buffer device address doesn't work well on older drivers, even using it internally we get
     // VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS thrown when creating multiple buffers, even though we
@@ -1024,9 +1112,8 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps, bool act
     // Only affects windows drivers, linux drivers are unaffected.
     intelBrokenOcclusionQueries = true;
   }
-#endif
 
-  if(m_Vendor == GPUVendor::Qualcomm)
+  if(driverProps.driverID == VK_DRIVER_ID_QUALCOMM_PROPRIETARY)
   {
     if(active)
       RDCLOG("Enabling Qualcomm driver workarounds");

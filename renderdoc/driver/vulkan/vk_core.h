@@ -424,9 +424,10 @@ private:
     VkPhysicalDeviceFeatures availFeatures = {};
     VkPhysicalDeviceFeatures enabledFeatures = {};
     VkPhysicalDeviceProperties props = {};
+    VkPhysicalDeviceDriverProperties driverProps = {};
     VkPhysicalDeviceMemoryProperties memProps = {};
     std::map<VkFormat, VkFormatProperties> fmtProps = {};
-    VkDriverInfo driverInfo = VkDriverInfo(props);
+    VkDriverInfo driverInfo = VkDriverInfo(false);
 
     VkPhysicalDevicePerformanceQueryFeaturesKHR performanceQueryFeatures = {};
 
@@ -1227,7 +1228,7 @@ public:
   {
     return m_PhysicalDeviceData.performanceQueryFeatures;
   }
-  VkDriverInfo GetDriverInfo() { return m_PhysicalDeviceData.driverInfo; }
+  const VkDriverInfo &GetDriverInfo() const { return m_PhysicalDeviceData.driverInfo; }
   uint32_t FindCommandQueueFamily(ResourceId cmdId);
   void InsertCommandQueueFamily(ResourceId cmdId, uint32_t queueFamilyIndex);
   VkQueueFlags GetCommandType(ResourceId cmdId);

@@ -634,9 +634,9 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
   if(!internalInstance)
   {
-    addedExts = new const char *[modifiedCreateInfo.enabledExtensionCount + 1];
+    addedExts = new const char *[modifiedCreateInfo.enabledExtensionCount + 2];
 
-    bool hasDebugReport = false, hasDebugUtils = false;
+    bool hasDebugReport = false, hasDebugUtils = false, hasGPDP2 = false;
     for(uint32_t i = 0; i < modifiedCreateInfo.enabledExtensionCount; i++)
     {
       addedExts[i] = modifiedCreateInfo.ppEnabledExtensionNames[i];
@@ -644,6 +644,8 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
         hasDebugReport = true;
       if(!strcmp(addedExts[i], VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
         hasDebugUtils = true;
+      if(!strcmp(addedExts[i], VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
+        hasGPDP2 = true;
     }
 
     rdcarray<VkExtensionProperties> supportedExts;
@@ -670,6 +672,20 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
       RDCWARN(
           "Couldn't load vkEnumerateInstanceExtensionProperties in vkCreateInstance to enumerate "
           "instance extensions");
+
+    // always enable GPDP2 if it's available
+    if(!hasGPDP2)
+    {
+      for(const VkExtensionProperties &ext : supportedExts)
+      {
+        if(!strcmp(ext.extensionName, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
+        {
+          addedExts[modifiedCreateInfo.enabledExtensionCount++] =
+              VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME;
+          break;
+        }
+      }
+    }
 
     // always enable debug report/utils, if it's available
     if(!hasDebugUtils)
@@ -1050,32 +1066,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
     ObjDisp(instance)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(*pPhysicalDevices),
                                                               &queueCount, queueProps);
 
-    if(GetExtensions(GetRecord(instance)).ext_KHR_get_physical_device_properties2)
-    {
-      uint32_t count = 0;
-      ObjDisp(*pPhysicalDevices)
-          ->EnumerateDeviceExtensionProperties(Unwrap(*pPhysicalDevices), NULL, &count, NULL);
-
-      VkExtensionProperties *props = new VkExtensionProperties[count];
-      ObjDisp(*pPhysicalDevices)
-          ->EnumerateDeviceExtensionProperties(Unwrap(*pPhysicalDevices), NULL, &count, props);
-
-      for(uint32_t e = 0; e < count; e++)
-      {
-        if(!strcmp(props[e].extensionName, VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME))
-        {
-          VkPhysicalDeviceProperties2 physProps2 = {
-              VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
-          };
-
-          physProps2.pNext = &driverProps;
-          ObjDisp(instance)->GetPhysicalDeviceProperties2(Unwrap(*pPhysicalDevices), &physProps2);
-          break;
-        }
-      }
-
-      SAFE_DELETE_ARRAY(props);
-    }
+    GetPhysicalDeviceDriverProperties(ObjDisp(instance), Unwrap(*pPhysicalDevices), driverProps);
   }
 
   SERIALISE_ELEMENT(legacyUnused_memIdxMap).Hidden();    // was never used
@@ -1111,6 +1102,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
         m_OriginalPhysicalDevices.resize(PhysicalDeviceIndex + 1);
 
       m_OriginalPhysicalDevices[PhysicalDeviceIndex].props = physProps;
+      m_OriginalPhysicalDevices[PhysicalDeviceIndex].driverProps = driverProps;
       m_OriginalPhysicalDevices[PhysicalDeviceIndex].memProps = memProps;
       m_OriginalPhysicalDevices[PhysicalDeviceIndex].availFeatures = physFeatures;
       m_OriginalPhysicalDevices[PhysicalDeviceIndex].queueCount = queueCount;
@@ -1150,34 +1142,11 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
       // find the best possible match for this physical device
       ObjDisp(pd)->GetPhysicalDeviceProperties(Unwrap(pd), &compPhysProps);
 
-      if(m_EnabledExtensions.ext_KHR_get_physical_device_properties2)
-      {
-        uint32_t count = 0;
-        ObjDisp(pd)->EnumerateDeviceExtensionProperties(Unwrap(pd), NULL, &count, NULL);
-
-        VkExtensionProperties *props = new VkExtensionProperties[count];
-        ObjDisp(pd)->EnumerateDeviceExtensionProperties(Unwrap(pd), NULL, &count, props);
-
-        for(uint32_t e = 0; e < count; e++)
-        {
-          if(!strcmp(props[e].extensionName, VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME))
-          {
-            VkPhysicalDeviceProperties2 physProps2 = {
-                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
-            };
-
-            physProps2.pNext = &compDriverProps;
-            ObjDisp(pd)->GetPhysicalDeviceProperties2(Unwrap(pd), &physProps2);
-            break;
-          }
-        }
-
-        SAFE_DELETE_ARRAY(props);
-      }
+      GetPhysicalDeviceDriverProperties(ObjDisp(pd), Unwrap(pd), compDriverProps);
 
       if(firstTime)
       {
-        VkDriverInfo runningVersion(compPhysProps);
+        VkDriverInfo runningVersion(compPhysProps, compDriverProps);
 
         RDCLOG("Replay has physical device %u available:", i);
         RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", compPhysProps.deviceName,
@@ -1204,8 +1173,8 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
         const VkPhysicalDeviceProperties &compPhysProps = compPhysPropsArray[i];
         const VkPhysicalDeviceDriverProperties &compDriverProps = compDriverPropsArray[i];
 
-        VkDriverInfo bestInfo(bestPhysProps);
-        VkDriverInfo compInfo(compPhysProps);
+        VkDriverInfo bestInfo(bestPhysProps, bestDriverProps);
+        VkDriverInfo compInfo(compPhysProps, compDriverProps);
 
         // an exact vendorID match is a better match than not
         if(compInfo.Vendor() == m_ReplayOptions.forceGPUVendor &&
@@ -1357,7 +1326,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
     }
 
     {
-      VkDriverInfo capturedVersion(physProps);
+      VkDriverInfo capturedVersion(physProps, driverProps);
 
       RDCLOG("Found capture physical device %u:", PhysicalDeviceIndex);
       RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", physProps.deviceName,
@@ -1459,11 +1428,16 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
         VkResourceRecord *record = GetResourceManager()->AddResourceRecord(devices[i]);
         RDCASSERT(record);
 
+        VkResourceRecord *instrecord = GetRecord(instance);
+
         VkPhysicalDeviceProperties physProps;
 
         ObjDisp(devices[i])->GetPhysicalDeviceProperties(Unwrap(devices[i]), &physProps);
 
-        VkDriverInfo capturedVersion(physProps);
+        VkPhysicalDeviceDriverProperties driverProps = {};
+        GetPhysicalDeviceDriverProperties(ObjDisp(devices[i]), Unwrap(devices[i]), driverProps);
+
+        VkDriverInfo capturedVersion(physProps, driverProps);
 
         RDCLOG("physical device %u: %s (ver %u.%u patch 0x%x) - %04x:%04x", i, physProps.deviceName,
                capturedVersion.Major(), capturedVersion.Minor(), capturedVersion.Patch(),
@@ -1479,8 +1453,6 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
 
           record->AddChunk(scope.Get());
         }
-
-        VkResourceRecord *instrecord = GetRecord(instance);
 
         instrecord->AddParent(record);
 
@@ -1655,7 +1627,11 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     ObjDisp(physicalDevice)
         ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.availFeatures);
 
-    m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props, true);
+    GetPhysicalDeviceDriverProperties(ObjDisp(physicalDevice), Unwrap(physicalDevice),
+                                      m_PhysicalDeviceData.driverProps);
+
+    m_PhysicalDeviceData.driverInfo =
+        VkDriverInfo(m_PhysicalDeviceData.props, m_PhysicalDeviceData.driverProps, true);
 
     rdcarray<VkDeviceQueueGlobalPriorityCreateInfoKHR *> queuePriorities;
 
@@ -1673,7 +1649,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     const PhysicalDeviceData &origData = m_OriginalPhysicalDevices[physicalDeviceIndex];
 
     m_OrigPhysicalDeviceData = origData;
-    m_OrigPhysicalDeviceData.driverInfo = VkDriverInfo(origData.props, false);
+    m_OrigPhysicalDeviceData.driverInfo = VkDriverInfo(origData.props, origData.driverProps, false);
 
     // we must make any modifications locally, so the free of pointers
     // in the serialised VkDeviceCreateInfo don't double-free
@@ -3678,7 +3654,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
     }
 
-    m_Replay->SetDriverInformation(m_PhysicalDeviceData.props);
+    m_Replay->SetDriverInformation(m_PhysicalDeviceData.props, m_PhysicalDeviceData.driverProps);
 
     m_PhysicalDeviceData.enabledFeatures = enabledFeatures;
 
@@ -4134,7 +4110,11 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
         ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.availFeatures);
     m_PhysicalDeviceData.enabledFeatures = enabledFeatures;
 
-    m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props, true);
+    GetPhysicalDeviceDriverProperties(ObjDisp(physicalDevice), Unwrap(physicalDevice),
+                                      m_PhysicalDeviceData.driverProps);
+
+    m_PhysicalDeviceData.driverInfo =
+        VkDriverInfo(m_PhysicalDeviceData.props, m_PhysicalDeviceData.driverProps, true);
 
     ChooseMemoryIndices();
 

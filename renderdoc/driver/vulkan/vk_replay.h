@@ -441,7 +441,8 @@ public:
                                rdcarray<rdcstr> &otherJSONs);
   static void InstallVulkanLayer(bool systemLevel);
   void GetInitialDriverVersion();
-  void SetDriverInformation(const VkPhysicalDeviceProperties &props);
+  void SetDriverInformation(const VkPhysicalDeviceProperties &props,
+                            const VkPhysicalDeviceDriverProperties &driverProps);
 
   AMDCounters *GetAMDCounters() { return m_pAMDCounters; }
   void CopyPixelForPixelHistory(VkCommandBuffer cmd, VkOffset2D offset, uint32_t sample,

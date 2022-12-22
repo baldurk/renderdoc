@@ -235,6 +235,10 @@ struct GPUBuffer
 // in vk_<platform>.cpp
 extern void *LoadVulkanLibrary();
 
+void GetPhysicalDeviceDriverProperties(VkInstDispatchTable *instDispatchTable,
+                                       VkPhysicalDevice unwrappedPhysicalDevice,
+                                       VkPhysicalDeviceDriverProperties &driverProps);
+
 class VkDriverInfo
 {
 public:
@@ -242,7 +246,9 @@ public:
   uint32_t Major() const { return m_Major; }
   uint32_t Minor() const { return m_Minor; }
   uint32_t Patch() const { return m_Patch; }
-  VkDriverInfo(const VkPhysicalDeviceProperties &physProps, bool active = false);
+  VkDriverInfo(bool){};
+  VkDriverInfo(const VkPhysicalDeviceProperties &physProps,
+               const VkPhysicalDeviceDriverProperties &driverProps, bool active = false);
 
   bool operator==(const VkDriverInfo &o) const
   {
