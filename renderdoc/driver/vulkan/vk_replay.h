@@ -795,7 +795,7 @@ private:
 
   VulkanAMDActionCallback *m_pAMDActionCallback = NULL;
 
-#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_APPLE)
   NVVulkanCounters *m_pNVCounters = NULL;
 #endif
 

@@ -3043,7 +3043,7 @@ void VulkanReplay::CreateResources()
         m_pAMDCounters = NULL;
       }
     }
-#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_APPLE)
     else if(vendor == GPUVendor::nVidia)
     {
       RDCLOG("NVIDIA GPU detected - trying to initialise NVIDIA counters");
@@ -3084,7 +3084,7 @@ void VulkanReplay::DestroyResources()
 
   SAFE_DELETE(m_pAMDCounters);
 
-#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_APPLE)
   SAFE_DELETE(m_pNVCounters);
 #endif
 }

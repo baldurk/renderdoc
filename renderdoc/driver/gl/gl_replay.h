@@ -509,7 +509,7 @@ private:
 
   rdcarray<CounterResult> FetchCountersARM(const rdcarray<GPUCounter> &counters);
 
-#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_APPLE)
   // NVIDIA counter instance
   NVGLCounters *m_pNVCounters = NULL;
 #endif

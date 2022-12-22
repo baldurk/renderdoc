@@ -72,7 +72,7 @@ rdcarray<GPUCounter> GLReplay::EnumerateCounters()
     ret.append(m_pARMCounters->GetPublicCounterIds());
   }
 
-#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_APPLE)
   if(m_pNVCounters)
   {
     ret.append(m_pNVCounters->EnumerateCounters());
@@ -115,7 +115,7 @@ CounterDescription GLReplay::DescribeCounter(GPUCounter counterID)
     return m_pARMCounters->GetCounterDescription(counterID);
   }
 
-#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_APPLE)
   /////NVIDIA/////
   if(m_pNVCounters && m_pNVCounters->HasCounter(counterID))
   {
@@ -622,7 +622,7 @@ rdcarray<CounterResult> GLReplay::FetchCounters(const rdcarray<GPUCounter> &allC
       ret = FetchCountersARM(armCounters);
   }
 
-#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_APPLE)
   if(m_pNVCounters)
   {
     // Filter out the NVIDIA counters

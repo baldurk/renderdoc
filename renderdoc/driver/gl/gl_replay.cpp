@@ -73,7 +73,7 @@ void GLReplay::Shutdown()
   SAFE_DELETE(m_pAMDCounters);
   SAFE_DELETE(m_pIntelCounters);
   SAFE_DELETE(m_pARMCounters);
-#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_APPLE)
   SAFE_DELETE(m_pNVCounters);
 #endif
 
@@ -265,7 +265,7 @@ void GLReplay::SetReplayData(GLWindowingData data)
     AMDCounters *countersAMD = NULL;
     IntelGlCounters *countersIntel = NULL;
     ARMCounters *countersARM = NULL;
-#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_APPLE)
     NVGLCounters *countersNV = NULL;
 #endif
 
@@ -326,7 +326,7 @@ void GLReplay::SetReplayData(GLWindowingData data)
         RDCLOG("ARM Mali GPU detected - trying to initialise ARM counters");
         countersARM = new ARMCounters();
       }
-#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_APPLE)
       else if(m_DriverInfo.vendor == GPUVendor::nVidia)
       {
         RDCLOG("NVIDIA GPU detected - trying to initialise NVIDIA counters");
@@ -369,7 +369,7 @@ void GLReplay::SetReplayData(GLWindowingData data)
       m_pARMCounters = NULL;
     }
 
-#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_ANDROID)
+#if DISABLED(RDOC_ANDROID) && DISABLED(RDOC_APPLE)
     if(countersNV && countersNV->Init())
     {
       m_pNVCounters = countersNV;
