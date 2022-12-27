@@ -1803,12 +1803,24 @@ DOCUMENT(R"(Identifies a shader encoding used to pass shader code to an API.
 
 .. data:: SPIRV
 
-  SPIR-V binary shader, used by Vulkan and with an extension by OpenGL.
+  SPIR-V binary shader, as used by Vulkan. This format is technically not distinct from
+  :data:`OpenGLSPIRV` but is considered unique here since it really *should* have been a different
+  format, and introducing a separation allows better selection of tools automatically.
 
 .. data:: SPIRVAsm
 
-  Canonical SPIR-V assembly form, used (indirectly via :data:`SPIRV`) by Vulkan and with an
-  extension by OpenGL.
+  Canonical SPIR-V assembly form, used (indirectly via :data:`SPIRV`) by Vulkan. See :data:`SPIRV`.
+
+.. data:: OpenGLSPIRV
+
+  SPIR-V binary shader, as used by OpenGL. This format is technically not distinct from
+  :data:`VulkanSPIRV` but is considered unique here since it really *should* have been a different
+  format, and introducing a separation allows better selection of tools automatically.
+
+.. data:: OpenGLSPIRVAsm
+
+  Canonical SPIR-V assembly form, used (indirectly via :data:`OpenGLSPIRV`) by OpenGL. See
+  :data:`OpenGLSPIRV` and note that it's artificially differentiated from :data:`SPIRVAsm`.
 
 .. data:: HLSL
 
@@ -1830,6 +1842,8 @@ enum class ShaderEncoding : uint32_t
   SPIRVAsm,
   HLSL,
   DXIL,
+  OpenGLSPIRV,
+  OpenGLSPIRVAsm,
   Count,
 };
 
@@ -1844,15 +1858,33 @@ DOCUMENT(R"(Identifies a particular known tool used for shader processing.
 
 .. data:: SPIRV_Cross
 
-  `SPIRV-Cross <https://github.com/KhronosGroup/SPIRV-Cross>`_.
+  `SPIRV-Cross <https://github.com/KhronosGroup/SPIRV-Cross>`_
+   targetting normal Vulkan flavoured SPIR-V.
+
+.. data:: SPIRV_Cross_OpenGL
+
+  `SPIRV-Cross <https://github.com/KhronosGroup/SPIRV-Cross>`_
+   targetting OpenGL extension flavoured SPIR-V.
 
 .. data:: spirv_dis
 
-  `spirv-dis from SPIRV-Tools <https://github.com/KhronosGroup/SPIRV-Tools>`_.
+  `spirv-dis from SPIRV-Tools <https://github.com/KhronosGroup/SPIRV-Tools>`_
+   targetting normal Vulkan flavoured SPIR-V.
+
+.. data:: spirv_dis_OpenGL
+
+  `spirv-dis from SPIRV-Tools <https://github.com/KhronosGroup/SPIRV-Tools>`_
+   targetting OpenGL extension flavoured SPIR-V.
 
 .. data:: glslangValidatorGLSL
 
-  `glslang compiler (GLSL) <https://github.com/KhronosGroup/glslang>`_.
+  `glslang compiler (GLSL) <https://github.com/KhronosGroup/glslang>`_
+   targetting normal Vulkan flavoured SPIR-V.
+
+.. data:: glslangValidatorGLSL_OpenGL
+
+  `glslang compiler (GLSL) <https://github.com/KhronosGroup/glslang>`_
+   targetting OpenGL extension flavoured SPIR-V.
 
 .. data:: glslangValidatorHLSL
 
@@ -1860,11 +1892,18 @@ DOCUMENT(R"(Identifies a particular known tool used for shader processing.
 
 .. data:: spirv_as
 
-  `spirv-as from SPIRV-Tools <https://github.com/KhronosGroup/SPIRV-Tools>`_.
+  `spirv-as from SPIRV-Tools <https://github.com/KhronosGroup/SPIRV-Tools>`_
+   targetting normal Vulkan flavoured SPIR-V.
+
+.. data:: spirv_as_OpenGL
+
+  `spirv-as from SPIRV-Tools <https://github.com/KhronosGroup/SPIRV-Tools>`_
+   targetting OpenGL extension flavoured SPIR-V.
 
 .. data:: dxcSPIRV
 
-  `DirectX Shader Compiler <https://github.com/microsoft/DirectXShaderCompiler>`_ with SPIR-V output.
+  `DirectX Shader Compiler <https://github.com/microsoft/DirectXShaderCompiler>`_ with Vulkan SPIR-V
+   output.
 
 .. data:: dxcDXIL
 
@@ -1887,6 +1926,10 @@ enum class KnownShaderTool : uint32_t
   dxcSPIRV,
   dxcDXIL,
   fxc,
+  glslangValidatorGLSL_OpenGL,
+  SPIRV_Cross_OpenGL,
+  spirv_as_OpenGL,
+  spirv_dis_OpenGL,
   Count,
 };
 
@@ -1908,14 +1951,18 @@ constexpr inline const char *ToolExecutable(KnownShaderTool tool)
   // temporarily disable clang-format to make this more readable.
   // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
   // clang-format off
-  return tool == KnownShaderTool::SPIRV_Cross          ?      "spirv-cross" :
-         tool == KnownShaderTool::spirv_dis            ?      "spirv-dis" :
-         tool == KnownShaderTool::glslangValidatorGLSL ?      "glslangValidator" :
-         tool == KnownShaderTool::glslangValidatorHLSL ?      "glslangValidator" :
-         tool == KnownShaderTool::spirv_as             ?      "spirv-as" :
-         tool == KnownShaderTool::dxcSPIRV             ?      "dxc" :
-         tool == KnownShaderTool::dxcDXIL              ?      "dxc" :
-         tool == KnownShaderTool::fxc                  ?      "fxc" :
+  return tool == KnownShaderTool::SPIRV_Cross                 ?      "spirv-cross" :
+         tool == KnownShaderTool::SPIRV_Cross_OpenGL          ?      "spirv-cross" :
+         tool == KnownShaderTool::spirv_dis                   ?      "spirv-dis" :
+         tool == KnownShaderTool::spirv_dis_OpenGL            ?      "spirv-dis" :
+         tool == KnownShaderTool::glslangValidatorGLSL        ?      "glslangValidator" :
+         tool == KnownShaderTool::glslangValidatorGLSL_OpenGL ?      "glslangValidator" :
+         tool == KnownShaderTool::glslangValidatorHLSL        ?      "glslangValidator" :
+         tool == KnownShaderTool::spirv_as                    ?      "spirv-as" :
+         tool == KnownShaderTool::spirv_as_OpenGL             ?      "spirv-as" :
+         tool == KnownShaderTool::dxcSPIRV                    ?      "dxc" :
+         tool == KnownShaderTool::dxcDXIL                     ?      "dxc" :
+         tool == KnownShaderTool::fxc                         ?      "fxc" :
          "";
   // clang-format on
 }
@@ -1933,14 +1980,18 @@ constexpr inline ShaderEncoding ToolInput(KnownShaderTool tool)
   // temporarily disable clang-format to make this more readable.
   // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
   // clang-format off
-  return tool == KnownShaderTool::SPIRV_Cross          ?      ShaderEncoding::SPIRV :
-         tool == KnownShaderTool::spirv_dis            ?      ShaderEncoding::SPIRV :
-         tool == KnownShaderTool::glslangValidatorGLSL ?      ShaderEncoding::GLSL :
-         tool == KnownShaderTool::glslangValidatorHLSL ?      ShaderEncoding::HLSL :
-         tool == KnownShaderTool::spirv_as             ?      ShaderEncoding::SPIRVAsm :
-         tool == KnownShaderTool::dxcSPIRV             ?      ShaderEncoding::HLSL :
-         tool == KnownShaderTool::dxcDXIL              ?      ShaderEncoding::HLSL :
-         tool == KnownShaderTool::fxc                  ?      ShaderEncoding::HLSL :
+  return tool == KnownShaderTool::SPIRV_Cross                 ?      ShaderEncoding::SPIRV :
+         tool == KnownShaderTool::SPIRV_Cross_OpenGL          ?      ShaderEncoding::OpenGLSPIRV :
+         tool == KnownShaderTool::spirv_dis                   ?      ShaderEncoding::SPIRV :
+         tool == KnownShaderTool::spirv_dis_OpenGL            ?      ShaderEncoding::OpenGLSPIRV :
+         tool == KnownShaderTool::glslangValidatorGLSL        ?      ShaderEncoding::GLSL :
+         tool == KnownShaderTool::glslangValidatorGLSL_OpenGL ?      ShaderEncoding::GLSL :
+         tool == KnownShaderTool::glslangValidatorHLSL        ?      ShaderEncoding::HLSL :
+         tool == KnownShaderTool::spirv_as                    ?      ShaderEncoding::SPIRVAsm :
+         tool == KnownShaderTool::spirv_as_OpenGL             ?      ShaderEncoding::OpenGLSPIRVAsm :
+         tool == KnownShaderTool::dxcSPIRV                    ?      ShaderEncoding::HLSL :
+         tool == KnownShaderTool::dxcDXIL                     ?      ShaderEncoding::HLSL :
+         tool == KnownShaderTool::fxc                         ?      ShaderEncoding::HLSL :
          ShaderEncoding::Unknown;
   // clang-format on
 }
@@ -1958,14 +2009,18 @@ constexpr inline ShaderEncoding ToolOutput(KnownShaderTool tool)
   // temporarily disable clang-format to make this more readable.
   // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
   // clang-format off
-  return tool == KnownShaderTool::SPIRV_Cross          ?      ShaderEncoding::GLSL :
-         tool == KnownShaderTool::spirv_dis            ?      ShaderEncoding::SPIRVAsm :
-         tool == KnownShaderTool::glslangValidatorGLSL ?      ShaderEncoding::SPIRV :
-         tool == KnownShaderTool::glslangValidatorHLSL ?      ShaderEncoding::SPIRV :
-         tool == KnownShaderTool::spirv_as             ?      ShaderEncoding::SPIRV :
-         tool == KnownShaderTool::dxcSPIRV             ?      ShaderEncoding::SPIRV :
-         tool == KnownShaderTool::dxcDXIL              ?      ShaderEncoding::DXIL :
-         tool == KnownShaderTool::fxc                  ?      ShaderEncoding::DXBC :
+  return tool == KnownShaderTool::SPIRV_Cross                 ?      ShaderEncoding::GLSL :
+         tool == KnownShaderTool::SPIRV_Cross_OpenGL          ?      ShaderEncoding::GLSL :
+         tool == KnownShaderTool::spirv_dis                   ?      ShaderEncoding::SPIRVAsm :
+         tool == KnownShaderTool::spirv_dis_OpenGL            ?      ShaderEncoding::OpenGLSPIRVAsm :
+         tool == KnownShaderTool::glslangValidatorGLSL        ?      ShaderEncoding::SPIRV :
+         tool == KnownShaderTool::glslangValidatorGLSL_OpenGL ?      ShaderEncoding::OpenGLSPIRV :
+         tool == KnownShaderTool::glslangValidatorHLSL        ?      ShaderEncoding::SPIRV :
+         tool == KnownShaderTool::spirv_as                    ?      ShaderEncoding::SPIRV :
+         tool == KnownShaderTool::spirv_as_OpenGL             ?      ShaderEncoding::OpenGLSPIRV :
+         tool == KnownShaderTool::dxcSPIRV                    ?      ShaderEncoding::SPIRV :
+         tool == KnownShaderTool::dxcDXIL                     ?      ShaderEncoding::DXIL :
+         tool == KnownShaderTool::fxc                         ?      ShaderEncoding::DXBC :
          ShaderEncoding::Unknown;
   // clang-format on
 }
@@ -1979,7 +2034,7 @@ DOCUMENT(R"(Check whether or not this is a human readable text representation.
 constexpr inline bool IsTextRepresentation(ShaderEncoding encoding)
 {
   return encoding == ShaderEncoding::HLSL || encoding == ShaderEncoding::GLSL ||
-         encoding == ShaderEncoding::SPIRVAsm;
+         encoding == ShaderEncoding::SPIRVAsm || encoding == ShaderEncoding::OpenGLSPIRVAsm;
 }
 
 DOCUMENT(R"(A primitive topology used for processing vertex data.

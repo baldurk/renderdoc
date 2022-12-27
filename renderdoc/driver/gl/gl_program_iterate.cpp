@@ -570,11 +570,13 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state,
   // skip fetching or applying UBO bindings etc.
   bool IsSrcProgramSPIRV = false;
   for(size_t i = 0; i < 6; i++)
-    IsSrcProgramSPIRV |= srcStages.refls[i] && srcStages.refls[i]->encoding == ShaderEncoding::SPIRV;
+    IsSrcProgramSPIRV |=
+        srcStages.refls[i] && srcStages.refls[i]->encoding == ShaderEncoding::OpenGLSPIRV;
 
   bool IsDstProgramSPIRV = false;
   for(size_t i = 0; i < 6; i++)
-    IsDstProgramSPIRV |= dstStages.refls[i] && dstStages.refls[i]->encoding == ShaderEncoding::SPIRV;
+    IsDstProgramSPIRV |=
+        dstStages.refls[i] && dstStages.refls[i]->encoding == ShaderEncoding::OpenGLSPIRV;
 
   RDCASSERTMSG("Expect both programs to be SPIR-V in ForAllProgramUniforms",
                IsSrcProgramSPIRV == IsDstProgramSPIRV, IsSrcProgramSPIRV, IsDstProgramSPIRV);
@@ -1196,7 +1198,7 @@ bool CopyProgramAttribBindings(GLuint progsrc, GLuint progdst, ShaderReflection 
 {
   // don't try to copy bindings for SPIR-V shaders. The queries by name may fail, and the bindings
   // are immutable anyway
-  if(refl->encoding == ShaderEncoding::SPIRV)
+  if(refl->encoding == ShaderEncoding::OpenGLSPIRV)
     return false;
 
   // copy over attrib bindings
@@ -1218,7 +1220,7 @@ bool CopyProgramFragDataBindings(GLuint progsrc, GLuint progdst, ShaderReflectio
 {
   // don't try to copy bindings for SPIR-V shaders. The queries by name may fail, and the bindings
   // are immutable anyway
-  if(refl->encoding == ShaderEncoding::SPIRV)
+  if(refl->encoding == ShaderEncoding::OpenGLSPIRV)
     return false;
 
   uint64_t used = 0;
@@ -1271,7 +1273,7 @@ bool SerialiseProgramBindings(SerialiserType &ser, CaptureState state,
   // compatible way.
   bool IsProgramSPIRV = false;
   for(size_t i = 0; i < 6; i++)
-    IsProgramSPIRV |= stages.refls[i] && stages.refls[i]->encoding == ShaderEncoding::SPIRV;
+    IsProgramSPIRV |= stages.refls[i] && stages.refls[i]->encoding == ShaderEncoding::OpenGLSPIRV;
 
   const bool hasVert = stages.refls[0] != NULL;
   const bool hasFrag = stages.refls[5] != NULL;

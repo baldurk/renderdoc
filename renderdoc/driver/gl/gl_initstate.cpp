@@ -1195,7 +1195,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
 
         const auto &shadDetails = m_Driver->m_Shaders[details.stageShaders[i]];
 
-        IsProgramSPIRV |= shadDetails.reflection->encoding == ShaderEncoding::SPIRV;
+        IsProgramSPIRV |= shadDetails.reflection->encoding == ShaderEncoding::OpenGLSPIRV;
 
         GLuint shad = drv.glCreateShader(shadDetails.type);
 

@@ -82,7 +82,7 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
           const WrappedOpenGL::ShaderData &shadDetails =
               m_pDriver->m_Shaders[pipeDetails.stageShaders[i]];
 
-          if(shadDetails.reflection->encoding == ShaderEncoding::SPIRV)
+          if(shadDetails.reflection->encoding == ShaderEncoding::OpenGLSPIRV)
             HasSPIRVShaders = true;
           else
             HasGLSLShaders = true;
@@ -144,7 +144,7 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
         const WrappedOpenGL::ShaderData &shadDetails =
             m_pDriver->m_Shaders[progDetails.stageShaders[i]];
 
-        if(shadDetails.reflection->encoding == ShaderEncoding::SPIRV)
+        if(shadDetails.reflection->encoding == ShaderEncoding::OpenGLSPIRV)
           HasSPIRVShaders = true;
         else
           HasGLSLShaders = true;

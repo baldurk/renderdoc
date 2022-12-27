@@ -492,7 +492,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     }
   }
 
-  if(vsRefl->encoding == ShaderEncoding::SPIRV)
+  if(vsRefl->encoding == ShaderEncoding::OpenGLSPIRV)
   {
     // SPIR-V path
     vsOrigShader = stageShaders[0];
@@ -1189,7 +1189,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       lastIndex = 2;
     }
 
-    bool lastSPIRV = (lastRefl->encoding == ShaderEncoding::SPIRV);
+    bool lastSPIRV = (lastRefl->encoding == ShaderEncoding::OpenGLSPIRV);
 
     RDCASSERT(lastRefl);
 

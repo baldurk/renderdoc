@@ -694,13 +694,17 @@ rdcstr ShaderProcessingTool::DefaultArguments() const
 {
   if(tool == KnownShaderTool::SPIRV_Cross)
     return "--vulkan-semantics --entry {entry_point} --stage {glsl_stage4}";
-  else if(tool == KnownShaderTool::spirv_dis)
+  else if(tool == KnownShaderTool::SPIRV_Cross_OpenGL)
+    return "--entry {entry_point} --stage {glsl_stage4}";
+  else if(tool == KnownShaderTool::spirv_dis || tool == KnownShaderTool::spirv_dis_OpenGL)
     return "--no-color";
   else if(tool == KnownShaderTool::glslangValidatorGLSL)
     return "-g -V -S {glsl_stage4}";
+  else if(tool == KnownShaderTool::glslangValidatorGLSL_OpenGL)
+    return "-g -G -S {glsl_stage4}";
   else if(tool == KnownShaderTool::glslangValidatorHLSL)
     return "-D -g -V -S {glsl_stage4} -e {entry_point}";
-  else if(tool == KnownShaderTool::spirv_as)
+  else if(tool == KnownShaderTool::spirv_as || tool == KnownShaderTool::spirv_as_OpenGL)
     return "";
   else if(tool == KnownShaderTool::dxcSPIRV)
     return "-T {hlsl_stage2}_6_0 -E {entry_point} -spirv";
@@ -714,15 +718,16 @@ rdcstr ShaderProcessingTool::DefaultArguments() const
 
 rdcstr ShaderProcessingTool::IOArguments() const
 {
-  if(tool == KnownShaderTool::SPIRV_Cross)
+  if(tool == KnownShaderTool::SPIRV_Cross || tool == KnownShaderTool::SPIRV_Cross_OpenGL)
     return "--output {output_file} {input_file}";
-  else if(tool == KnownShaderTool::spirv_dis)
+  else if(tool == KnownShaderTool::spirv_dis || tool == KnownShaderTool::spirv_dis_OpenGL)
     return "-o {output_file} {input_file}";
-  else if(tool == KnownShaderTool::glslangValidatorGLSL)
+  else if(tool == KnownShaderTool::glslangValidatorGLSL ||
+          tool == KnownShaderTool::glslangValidatorGLSL_OpenGL)
     return "-o {output_file} {input_file}";
   else if(tool == KnownShaderTool::glslangValidatorHLSL)
     return "-o {output_file} {input_file}";
-  else if(tool == KnownShaderTool::spirv_as)
+  else if(tool == KnownShaderTool::spirv_as || tool == KnownShaderTool::spirv_as_OpenGL)
     return "-o {output_file} {input_file}";
   else if(tool == KnownShaderTool::dxcSPIRV)
     return "-Fo {output_file} {input_file}";

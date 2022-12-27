@@ -294,7 +294,7 @@ void main() {
       compile(ShaderStage::Fragment, source, "main", refl, mapping);
 
       if(testType == ShaderType::GLSPIRV)
-        CHECK(refl.encoding == ShaderEncoding::SPIRV);
+        CHECK(refl.encoding == ShaderEncoding::OpenGLSPIRV);
       else
         CHECK(refl.encoding == ShaderEncoding::GLSL);
 

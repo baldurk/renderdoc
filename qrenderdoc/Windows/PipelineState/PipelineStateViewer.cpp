@@ -1109,7 +1109,8 @@ void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId 
   {
     QString label = tr("Edit Generated Stub");
 
-    if(shaderDetails->encoding == ShaderEncoding::SPIRV)
+    if(shaderDetails->encoding == ShaderEncoding::SPIRV ||
+       shaderDetails->encoding == ShaderEncoding::OpenGLSPIRV)
       label = tr("Edit Pseudocode");
 
     QAction *action = new QAction(label, menu);
@@ -1120,7 +1121,8 @@ void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId 
       QString entry;
       QString src;
 
-      if(shaderDetails->encoding == ShaderEncoding::SPIRV)
+      if(shaderDetails->encoding == ShaderEncoding::SPIRV ||
+         shaderDetails->encoding == ShaderEncoding::OpenGLSPIRV)
       {
         m_Ctx.Replay().AsyncInvoke([this, pipelineId, shaderId, shaderDetails](IReplayController *r) {
           rdcstr disasm = r->DisassembleShader(pipelineId, shaderDetails, "");
@@ -1516,8 +1518,10 @@ bool PipelineStateViewer::SaveShaderFile(const ShaderReflection *shader)
     case ShaderEncoding::DXBC: filter = tr("DXBC Shader files (*.dxbc)"); break;
     case ShaderEncoding::HLSL: filter = tr("HLSL files (*.hlsl)"); break;
     case ShaderEncoding::GLSL: filter = tr("GLSL files (*.glsl)"); break;
-    case ShaderEncoding::SPIRV: filter = tr("SPIR-V files (*.spv)"); break;
-    case ShaderEncoding::SPIRVAsm: filter = tr("SPIR-V assembly files (*.spvasm)"); break;
+    case ShaderEncoding::SPIRV:
+    case ShaderEncoding::OpenGLSPIRV: filter = tr("SPIR-V files (*.spv)"); break;
+    case ShaderEncoding::SPIRVAsm:
+    case ShaderEncoding::OpenGLSPIRVAsm: filter = tr("SPIR-V assembly files (*.spvasm)"); break;
     case ShaderEncoding::DXIL: filter = tr("DXIL Shader files (*.dxbc)"); break;
     case ShaderEncoding::Unknown:
     case ShaderEncoding::Count: filter = tr("All files (*.*)"); break;

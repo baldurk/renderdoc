@@ -806,7 +806,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   // set global properties
   reflection.entryPoint = entryPoint;
   reflection.stage = stage;
-  reflection.encoding = ShaderEncoding::SPIRV;
+  reflection.encoding =
+      sourceAPI == GraphicsAPI::OpenGL ? ShaderEncoding::OpenGLSPIRV : ShaderEncoding::SPIRV;
   reflection.rawBytes.assign((byte *)m_SPIRV.data(), m_SPIRV.size() * sizeof(uint32_t));
 
   CheckDebuggable(reflection.debugInfo.debuggable, reflection.debugInfo.debugStatus);
@@ -899,9 +900,15 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       reflection.debugInfo.compiler = reflection.debugInfo.encoding == ShaderEncoding::HLSL
                                           ? KnownShaderTool::glslangValidatorHLSL
                                           : KnownShaderTool::glslangValidatorGLSL;
+
+      if(sourceAPI == GraphicsAPI::OpenGL &&
+         reflection.debugInfo.compiler == KnownShaderTool::glslangValidatorGLSL)
+        reflection.debugInfo.compiler = KnownShaderTool::glslangValidatorGLSL_OpenGL;
       break;
     case Generator::SPIRVToolsAssembler:
-      reflection.debugInfo.compiler = KnownShaderTool::spirv_as;
+      reflection.debugInfo.compiler = sourceAPI == GraphicsAPI::OpenGL
+                                          ? KnownShaderTool::spirv_as_OpenGL
+                                          : KnownShaderTool::spirv_as;
       break;
     case Generator::spiregg: reflection.debugInfo.compiler = KnownShaderTool::dxcSPIRV; break;
     default: reflection.debugInfo.compiler = KnownShaderTool::Unknown; break;

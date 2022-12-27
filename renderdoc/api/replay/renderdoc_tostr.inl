@@ -1032,6 +1032,8 @@ rdcstr DoStringise(const ShaderEncoding &el)
     STRINGISE_ENUM_CLASS_NAMED(SPIRVAsm, "SPIR-V Asm");
     STRINGISE_ENUM_CLASS(HLSL);
     STRINGISE_ENUM_CLASS(DXIL);
+    STRINGISE_ENUM_CLASS_NAMED(OpenGLSPIRV, "SPIR-V (OpenGL)");
+    STRINGISE_ENUM_CLASS_NAMED(OpenGLSPIRVAsm, "SPIR-V Asm (OpenGL)");
   }
   END_ENUM_STRINGISE();
 }
@@ -1050,6 +1052,10 @@ rdcstr DoStringise(const KnownShaderTool &el)
     STRINGISE_ENUM_CLASS_NAMED(dxcSPIRV, "dxc (SPIR-V)");
     STRINGISE_ENUM_CLASS_NAMED(dxcDXIL, "dxc (DXIL)");
     STRINGISE_ENUM_CLASS_NAMED(fxc, "fxc");
+    STRINGISE_ENUM_CLASS_NAMED(glslangValidatorGLSL_OpenGL, "glslang (GLSL to OpenGL SPIR-V)");
+    STRINGISE_ENUM_CLASS_NAMED(SPIRV_Cross_OpenGL, "SPIRV-Cross (OpenGL SPIR-V)");
+    STRINGISE_ENUM_CLASS_NAMED(spirv_as_OpenGL, "spirv-as (OpenGL SPIR-V)");
+    STRINGISE_ENUM_CLASS_NAMED(spirv_dis_OpenGL, "spirv-dis (OpenGL SPIR-V)");
   }
   END_ENUM_STRINGISE();
 }

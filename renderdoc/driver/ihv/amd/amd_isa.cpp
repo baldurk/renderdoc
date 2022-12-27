@@ -68,7 +68,7 @@ static bool CheckForSupport(ShaderEncoding encoding)
     return true;
   }
 
-  if(encoding == ShaderEncoding::SPIRV)
+  if(encoding == ShaderEncoding::SPIRV || encoding == ShaderEncoding::OpenGLSPIRV)
   {
     // TODO need to check if an AMD context is running
     rdcstr amdspv = LocatePluginFile(pluginPath, amdspv_name);
@@ -104,7 +104,7 @@ static void GetEncodings(GraphicsAPI api, ShaderEncoding &primary, ShaderEncodin
   else if(api == GraphicsAPI::OpenGL)
   {
     primary = ShaderEncoding::GLSL;
-    secondary = ShaderEncoding::SPIRV;
+    secondary = ShaderEncoding::OpenGLSPIRV;
   }
   else if(api == GraphicsAPI::Vulkan)
   {
@@ -531,7 +531,7 @@ rdcstr Disassemble(ShaderEncoding encoding, ShaderStage stage, const bytebuf &sh
   if(encoding == ShaderEncoding::DXBC)
     return DisassembleDXBC(shaderBytes, target);
 
-  if(encoding == ShaderEncoding::SPIRV)
+  if(encoding == ShaderEncoding::SPIRV || encoding == ShaderEncoding::OpenGLSPIRV)
     return DisassembleSPIRV(stage, shaderBytes, target);
 
   if(encoding == ShaderEncoding::GLSL)

@@ -60,6 +60,7 @@ static QMap<QString, ShaderEncoding> encodingExtensions = {
     {lit("glsl"), ShaderEncoding::GLSL},
     {lit("frag"), ShaderEncoding::GLSL},
     {lit("spvasm"), ShaderEncoding::SPIRVAsm},
+    {lit("spvasm"), ShaderEncoding::OpenGLSPIRVAsm},
 };
 
 Q_DECLARE_METATYPE(Following);
@@ -4537,7 +4538,7 @@ void TextureViewer::on_customCreate_clicked()
             "    color_out = vec4(0,0,0,1);\n"
             "}\n");
   }
-  else if(enc == ShaderEncoding::SPIRVAsm)
+  else if(enc == ShaderEncoding::SPIRVAsm || enc == ShaderEncoding::OpenGLSPIRVAsm)
   {
     src = lit("; SPIR-V");
   }

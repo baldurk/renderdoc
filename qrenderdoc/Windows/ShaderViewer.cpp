@@ -446,7 +446,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
             // add any custom decompiling tools we have after the first one
             for(const ShaderProcessingTool &d : m_Ctx.Config().ShaderProcessors)
             {
-              if(d.input == m_ShaderDetails->encoding)
+              if(d.input == m_ShaderDetails->encoding && IsTextRepresentation(d.output))
                 targetNames << targetName(d);
             }
           }
@@ -5391,7 +5391,7 @@ float2 RD_SelectedRange();
 
 )");
   }
-  else if(encoding == ShaderEncoding::SPIRVAsm)
+  else if(encoding == ShaderEncoding::SPIRVAsm || encoding == ShaderEncoding::OpenGLSPIRVAsm)
   {
     text = lit("; Can't insert snippets for SPIR-V ASM");
   }
@@ -5417,7 +5417,7 @@ SamplerState linearSampler : register(RD_LINEAR_SAMPLER_BINDING);
 
 )"));
   }
-  else
+  else if(encoding == ShaderEncoding::GLSL)
   {
     insertSnippet(lit(R"(
 
@@ -5434,6 +5434,10 @@ layout(binding = RD_LINEAR_SAMPLER_BINDING) uniform sampler linearSampler;
 
 /////////////////////////////////////
 )"));
+  }
+  else if(encoding == ShaderEncoding::SPIRVAsm || encoding == ShaderEncoding::OpenGLSPIRVAsm)
+  {
+    insertSnippet(lit("; Can't insert snippets for SPIR-V ASM"));
   }
 }
 
@@ -5537,6 +5541,10 @@ layout (binding = RD_UINT_2DMS_BINDING) uniform usampler2DMS texUInt2DMS;
 
 /////////////////////////////////////
 )"));
+  }
+  else if(encoding == ShaderEncoding::SPIRVAsm || encoding == ShaderEncoding::OpenGLSPIRVAsm)
+  {
+    insertSnippet(lit("; Can't insert snippets for SPIR-V ASM"));
   }
 }
 
