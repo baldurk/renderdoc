@@ -48,7 +48,7 @@ struct NVGLCounters::Impl
   {
     if(!NVCounterEnumerator::InitializeNvPerf())
     {
-      RDCERR("NvPerf library failed to initialize");
+      RDCWARN("NvPerf library failed to initialize");
       LibraryNotFound = true;
 
       // NOTE: Return success here so that we can later show a message
