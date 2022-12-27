@@ -307,6 +307,11 @@ jobs:
     - name: Install Homebrew dependencies
       run: |
         brew update || true
+        sudo rm /usr/local/bin/2to3-3.11 || true
+        sudo rm /usr/local/bin/idle3.11 || true
+        sudo rm /usr/local/bin/pydoc3.11 || true
+        sudo rm /usr/local/bin/python3.11 || true
+        sudo rm /usr/local/bin/python3.11-config || true
         sudo rm /usr/local/bin/2to3 || true
         sudo rm /usr/local/bin/idle3 || true
         sudo rm /usr/local/bin/pydoc3 || true
