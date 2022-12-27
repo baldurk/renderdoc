@@ -4455,7 +4455,10 @@ uint32_t TextureViewer::MipCoordFromBase(int coord, uint32_t dim)
 
   float coordf = float(coord) / float(dim);
 
-  return uint32_t(mipDim * coordf);
+  // we add 1e-6 to account for float errors, where we might not get back coord after rounding down
+  // in the coordf calculation even when mipDim == dim. This will not affect the rounding for any
+  // realistic texture sizes - even for a dim of 16383 and coord of 16382
+  return uint32_t(mipDim * coordf + 1e-6);
 }
 
 uint32_t TextureViewer::BaseCoordFromMip(int coord, uint32_t dim)
@@ -4467,7 +4470,7 @@ uint32_t TextureViewer::BaseCoordFromMip(int coord, uint32_t dim)
 
   float coordf = float(coord) / float(mipDim);
 
-  return uint32_t(dim * coordf);
+  return uint32_t(dim * coordf + 1e-6);
 }
 
 void TextureViewer::on_customCreate_clicked()
