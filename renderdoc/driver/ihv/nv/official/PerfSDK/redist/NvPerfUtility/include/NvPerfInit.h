@@ -174,6 +174,15 @@ namespace nv { namespace perf {
         COUNT
     };
 
+    using WriteCustomLogCallbackFn = void (*)(
+            const char* /* pPrefix */,
+            const char* /* pDate */,
+            const char* /* pTime */,
+            const char* /* pFunctionName */,
+            const char* /* pMessage */,
+            void*       /* pData */
+            );
+
     struct LogSettings
     {
         uint32_t volumeLevels[(unsigned)LogSeverity::COUNT] = { 50, 50, 50 };
@@ -183,13 +192,15 @@ namespace nv { namespace perf {
 #else
         bool writePlatform = false;
 #endif
-        bool writeStderr                        = true;
-        FILE* writeFileFD                       = nullptr;
-        bool appendToFile                       = true;
-        LogSeverity flushFileSeverity           = LogSeverity::Err;
+        bool writeStderr                          = true;
+        FILE* writeFileFD                         = nullptr;
+        bool appendToFile                         = true;
+        LogSeverity flushFileSeverity             = LogSeverity::Err;
+        WriteCustomLogCallbackFn pFnWriteCustomCB = nullptr;
+        void* writeCustomData                     = nullptr;
 
-        bool logDate                            = true;
-        bool logTime                            = true;
+        bool logDate                              = true;
+        bool logTime                              = true;
 
         LogSettings()
         {
@@ -327,6 +338,18 @@ namespace nv { namespace perf {
         return true;
     }
 
+    inline void UserLogEnableCustom(WriteCustomLogCallbackFn cb, void* data)
+    {
+        LogSettings* pSettings = GetLogSettingsStorage_();
+        pSettings->pFnWriteCustomCB = cb;
+        pSettings->writeCustomData = data;
+    }
+
+    inline void UserLogDisableCustom()
+    {
+        UserLogEnableCustom(nullptr, nullptr);
+    }
+
     inline void UserLogImplStderr(const char* pMessage) 
     {
         fprintf(stderr, "%s", pMessage);
@@ -445,6 +468,17 @@ namespace nv { namespace perf {
             {
                 UserLogImplFileFlush(settings.writeFileFD);
             }
+        }
+        if (settings.pFnWriteCustomCB)
+        {
+            settings.pFnWriteCustomCB(
+                pPrefix,
+                settings.logDate ? datebuf : nullptr,
+                settings.logTime ? timebuf : nullptr,
+                pFunctionName,
+                str.c_str(),
+                settings.writeCustomData
+            );
         }
     }
 
