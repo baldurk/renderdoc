@@ -220,6 +220,7 @@ void WrappedOpenGL::BuildGLExtensions()
   m_GLExtensions.push_back("GL_EXT_semaphore");
   m_GLExtensions.push_back("GL_EXT_semaphore_fd");
   m_GLExtensions.push_back("GL_EXT_semaphore_win32");
+  m_GLExtensions.push_back("GL_EXT_shader_framebuffer_fetch");
   m_GLExtensions.push_back("GL_EXT_shader_image_load_store");
   m_GLExtensions.push_back("GL_EXT_shader_image_load_formatted");
   m_GLExtensions.push_back("GL_EXT_shader_integer_mix");
