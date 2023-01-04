@@ -412,6 +412,12 @@ std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(WrappedOpenGL *driver,
 
   for(size_t i = 0; i < modEvents.size(); ++i)
   {
+    GLint savedReadFramebuffer, savedDrawFramebuffer;
+    driver->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &savedDrawFramebuffer);
+    driver->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &savedReadFramebuffer);
+    driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, resources.fullPrecisionFrameBuffer);
+    driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, resources.fullPrecisionFrameBuffer);
+
     driver->glStencilOp(eGL_INCR, eGL_INCR, eGL_INCR);
     driver->glStencilMask(0xff);    // default for 1 byte
     driver->glStencilFunc(eGL_ALWAYS, 0, 0xff);
@@ -423,13 +429,6 @@ std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(WrappedOpenGL *driver,
     driver->glDepthFunc(eGL_ALWAYS);
     driver->glDepthMask(GL_TRUE);
     driver->glDisable(eGL_BLEND);
-
-    // Blit the values into out framebuffer
-    GLint savedReadFramebuffer, savedDrawFramebuffer;
-    driver->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &savedDrawFramebuffer);
-    driver->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &savedReadFramebuffer);
-    driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, resources.fullPrecisionFrameBuffer);
-    driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, resources.fullPrecisionFrameBuffer);
 
     // replay event
     driver->ReplayLog(modEvents[i].eventId, modEvents[i].eventId, eReplay_OnlyDraw);
@@ -922,7 +921,7 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
   // When RenderDoc passed y, the value being passed in is with the Y axis starting from the top
   // However, we need to have it starting from the bottom, so flip it by subtracting y from the
   // height.
-  uint32_t flippedY = textureDesc.height - y - 1;
+  uint32_t flippedY = (textureDesc.height >> sub.mip) - y - 1;
 
   rdcstr regionName = StringFormat::Fmt(
       "PixelHistory: pixel: (%u, %u) on %s subresource (%u, %u, %u) cast to %s with %zu events", x,
