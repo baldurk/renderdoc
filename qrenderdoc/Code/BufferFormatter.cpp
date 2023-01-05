@@ -2018,7 +2018,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
   uint32_t end = root.offset;
   if(!fixed.type.members.isEmpty())
     end = qMax(
-        end, fixed.type.members.back().byteOffset + fixed.type.members.back().type.arrayByteStride);
+        end, fixed.type.members.back().byteOffset + GetVarSizeAndTrail(fixed.type.members.back()));
 
   fixed.type.arrayByteStride = AlignUp(end, GetAlignment(pack, fixed));
 
@@ -5529,6 +5529,77 @@ struct s
 
       CHECK(parsed.fixed.type.members[6].byteOffset == 160);    // g
       CHECK(parsed.fixed.type.members[7].byteOffset == 165);    // h
+    };
+
+    SECTION("Testing trailing member alignments")
+    {
+      rdcstr def = R"(
+#pack(std140)
+
+struct blah
+{
+   float4x4 a;
+   float4 b;
+};
+)";
+      parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 2);
+      CHECK(parsed.fixed.type.members[0].byteOffset == 0);     // a
+      CHECK(parsed.fixed.type.members[1].byteOffset == 64);    // b
+      CHECK(parsed.fixed.type.arrayByteStride == 80);          // stride 80
+
+      def = R"(
+#pack(std140)
+
+struct blah
+{
+   float4x4 a;
+   uint b;
+   uint c;
+   uint d;
+   uint e;
+};
+)";
+
+      parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 5);
+      CHECK(parsed.fixed.type.members[0].byteOffset == 0);     // a
+      CHECK(parsed.fixed.type.members[1].byteOffset == 64);    // b
+      CHECK(parsed.fixed.type.members[2].byteOffset == 68);    // c
+      CHECK(parsed.fixed.type.members[3].byteOffset == 72);    // d
+      CHECK(parsed.fixed.type.members[4].byteOffset == 76);    // e
+      CHECK(parsed.fixed.type.arrayByteStride == 80);          // stride 80
+
+      def = R"(
+#pack(std140)
+
+struct blah
+{
+   float4x4 a;
+   uint b;
+   uint c;
+   float d;
+   uint e;
+};
+)";
+
+      parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+      CHECK(parsed.errors.isEmpty());
+      CHECK(parsed.repeating.type.members.empty());
+      REQUIRE(parsed.fixed.type.members.size() == 5);
+      CHECK(parsed.fixed.type.members[0].byteOffset == 0);     // a
+      CHECK(parsed.fixed.type.members[1].byteOffset == 64);    // b
+      CHECK(parsed.fixed.type.members[2].byteOffset == 68);    // c
+      CHECK(parsed.fixed.type.members[3].byteOffset == 72);    // d
+      CHECK(parsed.fixed.type.members[4].byteOffset == 76);    // e
+      CHECK(parsed.fixed.type.arrayByteStride == 80);          // stride 80
     };
   };
 
