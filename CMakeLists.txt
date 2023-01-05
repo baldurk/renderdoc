@@ -4,7 +4,7 @@ if(APPLE)
   # Building for Apple requires at least CMake 3.20.0
   cmake_minimum_required(VERSION 3.20.0)
 
-  SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum SDK for Mac OS X")
+  SET(CMAKE_OSX_DEPLOYMENT_TARGET "12.00" CACHE STRING "Minimum SDK for Mac OS X")
   SET(CMAKE_XCODE_GENERATE_SCHEME ON)
 endif()
 
