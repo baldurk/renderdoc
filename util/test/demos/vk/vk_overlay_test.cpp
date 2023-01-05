@@ -339,6 +339,12 @@ void main()
     pipeCreateInfo.renderPass = msaaRP;
     pipe[1] = createGraphicsPipeline(pipeCreateInfo);
 
+    VkPipeline sampleMaskPipe;
+    const uint32_t sampleMask = 0x2;
+    pipeCreateInfo.multisampleState.pSampleMask = &sampleMask;
+    sampleMaskPipe = createGraphicsPipeline(pipeCreateInfo);
+    pipeCreateInfo.multisampleState.pSampleMask = NULL;
+
     pipeCreateInfo.stages[1] =
         CompileShaderModule(whitepixel, ShaderLang::glsl, ShaderStage::frag, "main");
     pipeCreateInfo.stages[1].pSpecializationInfo = &spec;
@@ -512,6 +518,22 @@ void main()
           vkCmdSetScissor(cmd, 0, 1, &s);
           vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, backgroundPipe[0]);
           vkCmdDraw(cmd, 3, 1, 33, 0);
+        }
+
+        if(is_msaa)
+        {
+          setMarker(cmd, "Sample Mask Test");
+          v = {0.0f, 0.0f, 80.0f, 80.0f, 0.0f, 1.0f};
+          if(KHR_maintenance1)
+          {
+            v.y += v.height;
+            v.height = -v.height;
+          }
+          s = {{0, 0}, {80, 80}};
+          vkCmdSetViewport(cmd, 0, 1, &v);
+          vkCmdSetScissor(cmd, 0, 1, &s);
+          vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, sampleMaskPipe);
+          vkCmdDraw(cmd, 3, 1, 6, 0);
         }
 
         vkCmdEndRenderPass(cmd);

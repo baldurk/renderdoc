@@ -294,6 +294,19 @@ void main()
           glDrawArrays(GL_TRIANGLES, 33, 3);
         }
 
+        if(fb == msaafbo)
+        {
+          setMarker("Sample Mask Test");
+          glDisable(GL_STENCIL_TEST);
+          glEnable(GL_SAMPLE_MASK);
+          glSampleMaski(0, 0x2);
+          glViewport(0, screenHeight - 80, 80, 80);
+          glScissor(0, screenHeight - 80, 80, 80);
+          glDrawArrays(GL_TRIANGLES, 6, 3);
+          glSampleMaski(0, ~0U);
+          glDisable(GL_SAMPLE_MASK);
+        }
+
         glScissor(0, 0, screenWidth, screenHeight);
       }
 

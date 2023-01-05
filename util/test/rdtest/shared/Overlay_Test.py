@@ -506,10 +506,42 @@ class Overlay_Test(rdtest.TestCase):
 
         rdtest.log.success("Overlays are as expected around viewport/scissor behaviour")
 
+        # Check the sample mask test
+        mask_marker: rd.ActionDescription = self.find_action("Sample Mask Test", base_event)
+
+        self.controller.SetFrameEvent(mask_marker.next.eventId, True)
+
+        col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resourceId
+
+        # Check just highlight drawcall to make sure it renders on sample 0
+        tex.resourceId = col_tex
+        tex.overlay = rd.DebugOverlay.Drawcall
+        out.SetTextureDisplay(tex)
+        out.Display()
+
+        overlay_id: rd.ResourceId = out.GetDebugOverlayTexID()
+
+        save_data = rd.TextureSave()
+        save_data.resourceId = overlay_id
+        save_data.destType = rd.FileType.PNG
+
+        self.controller.SaveTexture(save_data, rdtest.get_tmp_path('overlay.png'))
+
+        eps = 1.0/256.0
+
+        self.check_pixel_value(overlay_id, 40, 15, [0.8, 0.1, 0.8, 1.0], eps=eps)
+        self.check_pixel_value(overlay_id, 40, 70, [0.8, 0.1, 0.8, 1.0], eps=eps)
+        self.check_pixel_value(overlay_id, 40, 1, [0.0, 0.0, 0.0, 0.5], eps=eps)
+        self.check_pixel_value(overlay_id, 40, 90, [0.0, 0.0, 0.0, 0.5], eps=eps)
+
+        rdtest.log.success("Overlays are as expected around sample mask behaviour")
+
         test_marker: rd.ActionDescription = self.find_action("Normal Test", base_event)
 
         # Now check clear-before-X by hand, for colour and for depth
         self.controller.SetFrameEvent(test_marker.next.eventId, True)
+
+        col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resourceId
 
         depth_tex: rd.ResourceId = pipe.GetDepthTarget().resourceId
 

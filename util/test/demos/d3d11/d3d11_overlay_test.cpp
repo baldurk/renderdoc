@@ -222,6 +222,16 @@ float4 main() : SV_Target0
           RSSetScissor({24, 24, 76, 76});
           ctx->Draw(3, 33);
         }
+
+        if(rtv == msaartv)
+        {
+          setMarker("Sample Mask Test");
+          RSSetViewport({0.0f, 0.0f, 80.0f, 80.0f, 0.0f, 1.0f});
+          RSSetScissor({0, 0, 80, 80});
+          ctx->OMSetBlendState(NULL, NULL, 0x2);
+          ctx->Draw(3, 6);
+          ctx->OMSetBlendState(NULL, NULL, ~0U);
+        }
       }
 
       ctx->PSSetShader(whiteps, NULL, 0);

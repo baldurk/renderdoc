@@ -677,6 +677,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
     drv.glEnable(eGL_DEPTH_CLAMP);
   }
 
+  if(HasExt[ARB_texture_multisample_no_array] || HasExt[ARB_texture_multisample])
+    drv.glDisable(eGL_SAMPLE_MASK);
+
   if(HasExt[ARB_viewport_array])
   {
     for(size_t s = 0; s < ARRAY_COUNT(rs.Scissors); s++)

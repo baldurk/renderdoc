@@ -201,6 +201,7 @@ float4 main() : SV_Target0
     ID3D12PipelineStatePtr backgroundPipe[3][2];
     ID3D12PipelineStatePtr pipe[3][2];
     ID3D12PipelineStatePtr whitepipe[3];
+    ID3D12PipelineStatePtr sampleMaskPipe[3];
 
     for(int i = 0; i < 3; i++)
     {
@@ -251,6 +252,10 @@ float4 main() : SV_Target0
       pipe[i][0] = creator;
       creator.GraphicsDesc.SampleDesc = yesMSAA;
       pipe[i][1] = creator;
+
+      creator.GraphicsDesc.SampleMask = 0x2;
+      sampleMaskPipe[i] = creator;
+      creator.GraphicsDesc.SampleMask = 0xFFFFFFFF;
 
       creator.GraphicsDesc.DepthStencilState.StencilEnable = FALSE;
       creator.GraphicsDesc.DepthStencilState.DepthEnable = FALSE;
@@ -350,6 +355,16 @@ float4 main() : SV_Target0
             RSSetScissorRect(cmd, {24, 24, 76, 76});
             cmd->SetPipelineState(backgroundPipe[pass][0]);
             cmd->DrawInstanced(3, 1, 33, 0);
+          }
+
+          if(is_msaa)
+          {
+            setMarker(cmd, "Sample Mask Test");
+
+            RSSetViewport(cmd, {0.0f, 0.0f, 80.0f, 80.0f, 0.0f, 1.0f});
+            RSSetScissorRect(cmd, {0, 0, 80, 80});
+            cmd->SetPipelineState(sampleMaskPipe[pass]);
+            cmd->DrawInstanced(3, 1, 6, 0);
           }
         }
 

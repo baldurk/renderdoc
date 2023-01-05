@@ -852,6 +852,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       rs->cullMode = VK_CULL_MODE_NONE;
       rs->rasterizerDiscardEnable = false;
 
+      VkPipelineMultisampleStateCreateInfo *msaa =
+          (VkPipelineMultisampleStateCreateInfo *)pipeCreateInfo.pMultisampleState;
+      msaa->pSampleMask = NULL;
+
       // disable tests in dynamic state too
       state.depthTestEnable = VK_FALSE;
       state.depthWriteEnable = VK_FALSE;
@@ -1144,6 +1148,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
       rs->cullMode = VK_CULL_MODE_NONE;    // first render without any culling
       rs->rasterizerDiscardEnable = false;
+
+      VkPipelineMultisampleStateCreateInfo *msaa =
+          (VkPipelineMultisampleStateCreateInfo *)pipeCreateInfo.pMultisampleState;
+      msaa->pSampleMask = NULL;
 
       // disable tests in dynamic state too
       state.depthTestEnable = VK_FALSE;
@@ -1439,6 +1447,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       rs->cullMode = VK_CULL_MODE_NONE;    // first render without any culling
       rs->rasterizerDiscardEnable = false;
 
+      VkPipelineMultisampleStateCreateInfo *msaa =
+          (VkPipelineMultisampleStateCreateInfo *)pipeCreateInfo.pMultisampleState;
+      msaa->pSampleMask = NULL;
+
       if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
         rs->depthClampEnable = true;
 
@@ -1731,6 +1743,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       VkBool32 origStencilTest = prevstate.stencilTestEnable;
       ds->stencilTestEnable = false;
       ds->depthBoundsTestEnable = false;
+
+      VkPipelineMultisampleStateCreateInfo *msaa =
+          (VkPipelineMultisampleStateCreateInfo *)pipeCreateInfo.pMultisampleState;
+      msaa->pSampleMask = NULL;
 
       VkPipelineColorBlendStateCreateInfo *cb =
           (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
