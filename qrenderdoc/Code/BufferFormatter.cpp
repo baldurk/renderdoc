@@ -164,6 +164,20 @@ static bool MatchBaseTypeDeclaration(QString basetype, const bool isUnsigned, Sh
   return true;
 }
 
+static QString MakeIdentifierName(const rdcstr &name)
+{
+  QString ret = name;
+
+  ret = ret.replace(QLatin1Char('['), QLatin1Char('_')).replace(QLatin1Char(']'), QString());
+
+  if(ret[0].isDigit())
+    ret.prepend(QLatin1Char('_'));
+
+  ret.replace(QRegularExpression(lit("[^A-Za-z0-9@_]+")), lit("_"));
+
+  return ret;
+}
+
 void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, ResourceId shader,
                                            const ShaderConstant &constant)
 {
@@ -2610,7 +2624,7 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, ResourceId shader,
 
   QString ret;
 
-  ret = lit("struct %1\n{\n").arg(name);
+  ret = lit("struct %1\n{\n").arg(MakeIdentifierName(name));
 
   ret += innerSkippedPrefixString;
 
@@ -2660,17 +2674,14 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, ResourceId shader,
         arraySize = lit("[]");
     }
 
-    QString varTypeName = members[i].type.name;
+    QString varTypeName = MakeIdentifierName(members[i].type.name);
 
     if(members[i].type.pointerTypeID != ~0U)
     {
       const ShaderConstantType &pointeeType =
           PointerTypeRegistry::GetTypeDescriptor(shader, members[i].type.pointerTypeID);
 
-      varTypeName = pointeeType.name;
-
-      varTypeName =
-          varTypeName.replace(QLatin1Char('['), QLatin1Char('_')).replace(QLatin1Char(']'), QString());
+      varTypeName = MakeIdentifierName(pointeeType.name);
 
       if(!declaredStructs.contains(varTypeName))
       {
@@ -2702,9 +2713,6 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, ResourceId shader,
         }
       }
 
-      varTypeName =
-          varTypeName.replace(QLatin1Char('['), QLatin1Char('_')).replace(QLatin1Char(']'), QString());
-
       if(!declaredStructs.contains(varTypeName))
       {
         declaredStructs.push_back(varTypeName);
@@ -2715,14 +2723,10 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, ResourceId shader,
       }
     }
 
-    QString varName = members[i].name;
+    QString varName = MakeIdentifierName(members[i].name);
 
     if(varName.isEmpty())
       varName = QFormatStr("_child%1").arg(i);
-
-    if(varName[0] == QLatin1Char('['))
-      varName =
-          varName.replace(QLatin1Char('['), QLatin1Char('_')).replace(QLatin1Char(']'), QString());
 
     if(members[i].type.rows > 1)
     {
