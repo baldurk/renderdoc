@@ -2253,6 +2253,10 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
     UINT sampleCount = desc.SampleDesc.Count;
 
+    s.mip = RDCMIN(mips - 1, s.mip);
+    s.slice = RDCMIN(desc.ArraySize - 1, s.slice);
+    s.sample = RDCMIN(sampleCount - 1, s.sample);
+
     if(desc.SampleDesc.Count > 1)
     {
       desc.ArraySize *= desc.SampleDesc.Count;
@@ -2265,10 +2269,6 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     ID3D11Texture2D *d = NULL;
 
     mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, 1);
-
-    s.mip = RDCMIN(mips - 1, s.mip);
-    s.slice = RDCMIN(desc.ArraySize - 1, s.slice);
-    s.sample = RDCMIN(sampleCount - 1, s.sample);
 
     if(params.remap != RemapTexture::NoRemap)
     {
