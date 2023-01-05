@@ -2424,7 +2424,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
   prev->setProperty("slice", sub.slice);
   prev->setProperty("cast", uint32_t(res.typeCast));
 
-  GUIInvoke::call(this, [this, prev] { UI_PreviewResized(prev); });
+  GUIInvoke::call(prev, [this, prev] { UI_PreviewResized(prev); });
 }
 
 void TextureViewer::UI_PreviewResized(ResourcePreview *prev)
@@ -2444,7 +2444,7 @@ void TextureViewer::UI_PreviewResized(ResourcePreview *prev)
                                // new and swap to move the data into the lambda
                                bytebuf *copy = new bytebuf;
                                copy->swap(data);
-                               GUIInvoke::call(this, [prev, s, copy]() {
+                               GUIInvoke::call(prev, [prev, s, copy]() {
                                  prev->UpdateThumb(s, *copy);
                                  delete copy;
                                });
