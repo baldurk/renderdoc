@@ -664,7 +664,7 @@ bool CreateDescriptorWritesForSlotData(WrappedVulkan *vk, rdcarray<VkWriteDescri
     if(rm->HasLiveResource(resId))
       resId = rm->GetLiveID(resId);
     ResourceId sampId = slots[slot].sampler;
-    if(rm->HasLiveResource(resId))
+    if(rm->HasLiveResource(sampId))
       sampId = rm->GetLiveID(sampId);
 
     switch(descType)
@@ -682,8 +682,8 @@ bool CreateDescriptorWritesForSlotData(WrappedVulkan *vk, rdcarray<VkWriteDescri
 
         if((descType == VK_DESCRIPTOR_TYPE_SAMPLER ||
             descType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
-           rm->HasCurrentResource(slots[slot].sampler))
-          writeImage[arrayIdx].sampler = rm->GetCurrentHandle<VkSampler>(slots[slot].sampler);
+           rm->HasCurrentResource(sampId))
+          writeImage[arrayIdx].sampler = rm->GetCurrentHandle<VkSampler>(sampId);
         else
           writeImage[arrayIdx].sampler = VK_NULL_HANDLE;
 
@@ -705,8 +705,8 @@ bool CreateDescriptorWritesForSlotData(WrappedVulkan *vk, rdcarray<VkWriteDescri
       case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
       case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
       {
-        if(rm->HasCurrentResource(slots[slot].resource))
-          writeTexelBuffer[arrayIdx] = rm->GetCurrentHandle<VkBufferView>(slots[slot].resource);
+        if(rm->HasCurrentResource(resId))
+          writeTexelBuffer[arrayIdx] = rm->GetCurrentHandle<VkBufferView>(resId);
         else
           writeTexelBuffer[arrayIdx] = VK_NULL_HANDLE;
 
@@ -718,8 +718,8 @@ bool CreateDescriptorWritesForSlotData(WrappedVulkan *vk, rdcarray<VkWriteDescri
       case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
       case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
       {
-        if(rm->HasCurrentResource(slots[slot].resource))
-          writeBuffer[arrayIdx].buffer = rm->GetCurrentHandle<VkBuffer>(slots[slot].resource);
+        if(rm->HasCurrentResource(resId))
+          writeBuffer[arrayIdx].buffer = rm->GetCurrentHandle<VkBuffer>(resId);
         else
           writeBuffer[arrayIdx].buffer = VK_NULL_HANDLE;
         writeBuffer[arrayIdx].offset = slots[slot].offset;
