@@ -290,7 +290,7 @@ jobs:
   macOS:
     name: Mac
     needs: [commit-msg, clang-format]
-    runs-on: macos-11
+    runs-on: macos-12
     strategy:
       fail-fast: false
       matrix:
