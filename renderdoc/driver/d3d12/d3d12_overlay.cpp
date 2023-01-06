@@ -87,15 +87,20 @@ struct D3D12QuadOverdrawCallback : public D3D12ActionCallback
 
       D3D12RootSignature modsig = sig->sig;
 
-      UINT regSpace = modsig.maxSpaceIndex + 1;
-      MoveRootSignatureElementsToRegisterSpace(modsig, regSpace, D3D12DescriptorType::UAV,
-                                               D3D12_SHADER_VISIBILITY_PIXEL);
+      uint32_t regSpace = GetFreeRegSpace(modsig, QUADOVERDRAW_UAV_SPACE, D3D12DescriptorType::UAV,
+                                          D3D12_SHADER_VISIBILITY_PIXEL);
+
+      if(regSpace != QUADOVERDRAW_UAV_SPACE)
+      {
+        RDCLOG("Register space %u wasn't available for use, recompiling shaders",
+               QUADOVERDRAW_UAV_SPACE);
+      }
 
       D3D12_DESCRIPTOR_RANGE1 range;
       range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
       range.NumDescriptors = 1;
       range.BaseShaderRegister = 0;
-      range.RegisterSpace = 0;
+      range.RegisterSpace = regSpace;
       range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
       range.OffsetInDescriptorsFromTableStart = 0;
 
@@ -147,7 +152,7 @@ struct D3D12QuadOverdrawCallback : public D3D12ActionCallback
       // dxil is stricter about pipeline signatures matching. On D3D11 there's an error but all
       // drivers handle a PS that reads no VS outputs and only screenspace SV_Position and
       // SV_Coverage. On D3D12 we need to patch to generate a new PS
-      m_pDevice->GetReplay()->PatchQuadWritePS(pipeDesc, dxil);
+      m_pDevice->GetReplay()->PatchQuadWritePS(pipeDesc, regSpace, dxil);
       if(pipeDesc.PS.BytecodeLength == 0)
       {
         m_pDevice->AddDebugMessage(
@@ -296,12 +301,34 @@ static void SetRTVDesc(D3D12_RENDER_TARGET_VIEW_DESC &rtDesc, const D3D12_RESOUR
   }
 }
 
-void D3D12Replay::PatchQuadWritePS(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &pipeDesc, bool dxil)
+void D3D12Replay::PatchQuadWritePS(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &pipeDesc,
+                                   uint32_t regSpace, bool dxil)
 {
   pipeDesc.PS.pShaderBytecode = NULL;
   pipeDesc.PS.BytecodeLength = 0;
 
   ID3DBlob *quadWriteBlob = dxil ? m_Overlay.QuadOverdrawWriteDXILPS : m_Overlay.QuadOverdrawWritePS;
+
+  if(regSpace != QUADOVERDRAW_UAV_SPACE)
+  {
+    rdcstr hlsl = GetEmbeddedResource(quadoverdraw_hlsl);
+
+    hlsl =
+        "#define D3D12 1\n\n" + StringFormat::Fmt("#define UAV_SPACE space%u\n\n", regSpace) + hlsl;
+
+    if(dxil)
+    {
+      m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
+                                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_6_0",
+                                                 &quadWriteBlob);
+    }
+    else
+    {
+      m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
+                                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_1",
+                                                 &quadWriteBlob);
+    }
+  }
 
   if(!quadWriteBlob)
   {

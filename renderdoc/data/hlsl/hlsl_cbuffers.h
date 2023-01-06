@@ -259,6 +259,10 @@ cbuffer DebugSampleOperation REG(b0)
 #define FLT_EPSILON 1.192092896e-07f
 #endif
 
+// we pick a space that hopefully no-one else will use
+// must match the define in quadoverdraw.hlsl
+#define QUADOVERDRAW_UAV_SPACE 105202922
+
 // histogram/minmax is calculated in blocks of NxN each with MxM tiles.
 // e.g. a tile is 32x32 pixels, then this is arranged in blocks of 32x32 tiles.
 // 1 compute thread = 1 tile, 1 compute group = 1 block

@@ -517,7 +517,7 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
     }
   }
 
-  if(m_CacheShaders)
+  if(m_CacheShaders && byteBlob)
   {
     m_ShaderCache[hash] = byteBlob;
     byteBlob->AddRef();

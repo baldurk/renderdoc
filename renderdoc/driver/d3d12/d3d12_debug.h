@@ -253,9 +253,8 @@ private:
   rdcarray<ID3D12Resource *> m_DiscardBuffers;
 };
 
-void MoveRootSignatureElementsToRegisterSpace(D3D12RootSignature &sig, uint32_t registerSpace,
-                                              D3D12DescriptorType type,
-                                              D3D12_SHADER_VISIBILITY visibility);
+uint32_t GetFreeRegSpace(const D3D12RootSignature &sig, const uint32_t registerSpace,
+                         D3D12DescriptorType type, D3D12_SHADER_VISIBILITY visibility);
 
 void AddDebugDescriptorsToRenderState(WrappedID3D12Device *pDevice, D3D12RenderState &rs,
                                       const rdcarray<PortableHandle> &handles,

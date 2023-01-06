@@ -2055,14 +2055,25 @@ struct PSInitialData
 
 )";
 
+  WrappedID3D12RootSignature *sig =
+      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rs.graphics.rootsig);
+
+  // Need to be able to add a descriptor table with our UAV without hitting the 64 DWORD limit
+  RDCASSERT(sig->sig.dwordLength < 64);
+  D3D12RootSignature modsig = sig->sig;
+
+  UINT regSpace = GetFreeRegSpace(modsig, 0, D3D12DescriptorType::UAV, D3D12_SHADER_VISIBILITY_PIXEL);
+
   // If this event uses MSAA, then at least one render target must be preserved to get
   // multisampling info. leave u0 alone and start with register u1
-  extractHlsl += "RWStructuredBuffer<PSInitialData> PSInitialBuffer : register(u1);\n\n";
+  extractHlsl += StringFormat::Fmt(
+      "RWStructuredBuffer<PSInitialData> PSInitialBuffer : register(u1, space%u);\n\n", regSpace);
 
   if(!evalSampleCacheData.empty())
   {
     // float4 is wasteful in some cases but it's easier than using byte buffers and manual packing
-    extractHlsl += "RWBuffer<float4> PSEvalBuffer : register(u2);\n\n";
+    extractHlsl +=
+        StringFormat::Fmt("RWBuffer<float4> PSEvalBuffer : register(u2, space%u);\n\n", regSpace);
   }
 
   if(usePrimitiveID)
@@ -2188,7 +2199,7 @@ void ExtractInputsPS(PSInput IN,
   ID3DBlob *psBlob = NULL;
   UINT flags = D3DCOMPILE_WARNINGS_ARE_ERRORS;
   if(m_pDevice->GetShaderCache()->GetShaderBlob(extractHlsl.c_str(), "ExtractInputsPS", flags, {},
-                                                "ps_5_0", &psBlob) != "")
+                                                "ps_5_1", &psBlob) != "")
   {
     RDCERR("Failed to create shader to extract inputs");
     return new ShaderDebugTrace;
@@ -2293,23 +2304,12 @@ void ExtractInputsPS(PSInput IN,
     m_pDevice->CreateUnorderedAccessView(pMsaaEvalBuffer, NULL, &uavDesc, msaaClearUav);
   }
 
-  WrappedID3D12RootSignature *sig =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rs.graphics.rootsig);
-
-  // Need to be able to add a descriptor table with our UAV without hitting the 64 DWORD limit
-  RDCASSERT(sig->sig.dwordLength < 64);
-  D3D12RootSignature modsig = sig->sig;
-
-  UINT regSpace = modsig.maxSpaceIndex + 1;
-  MoveRootSignatureElementsToRegisterSpace(modsig, regSpace, D3D12DescriptorType::UAV,
-                                           D3D12_SHADER_VISIBILITY_PIXEL);
-
   // Create the descriptor table for our UAV
   D3D12_DESCRIPTOR_RANGE1 descRange;
   descRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
   descRange.NumDescriptors = pMsaaEvalBuffer ? 2 : 1;
   descRange.BaseShaderRegister = 1;
-  descRange.RegisterSpace = 0;
+  descRange.RegisterSpace = regSpace;
   descRange.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
   descRange.OffsetInDescriptorsFromTableStart = 0;
 

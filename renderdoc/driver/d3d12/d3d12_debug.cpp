@@ -1949,8 +1949,10 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
 
     rdcstr hlsl = GetEmbeddedResource(quadoverdraw_hlsl);
 
+    hlsl = "#define D3D12 1\n\n" + hlsl;
+
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &QuadOverdrawWritePS);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_1", &QuadOverdrawWritePS);
 
     // only create DXIL shaders if DXIL was used by the application, since dxc/dxcompiler is really
     // flakey.
@@ -2480,15 +2482,17 @@ void D3D12Replay::HistogramMinMax::Release()
   SAFE_RELEASE(MinMaxTileBuffer);
 }
 
-void MoveRootSignatureElementsToRegisterSpace(D3D12RootSignature &sig, uint32_t registerSpace,
-                                              D3D12DescriptorType type,
-                                              D3D12_SHADER_VISIBILITY visibility)
+uint32_t GetFreeRegSpace(const D3D12RootSignature &sig, const uint32_t registerSpace,
+                         D3D12DescriptorType type, D3D12_SHADER_VISIBILITY visibility)
 {
   // This function is used when root signature elements need to be added to a specific register
   // space, such as for debug overlays. We can't remove elements from the root signature entirely
-  // because then then the root signature indices wouldn't match up as expected. Instead move them
-  // into the specified register space so that another register space (commonly space0) can be used
-  // for other purposes.
+  // because then then the root signature indices wouldn't match up as expected. Instead we see if a
+  // given desired register space is unused (which can be referenced in pre-compiled shaders), and
+  // if not return an unused space for use instead.
+  uint32_t maxSpace = 0;
+  bool usedDesiredSpace = false;
+
   size_t numParams = sig.Parameters.size();
   for(size_t i = 0; i < numParams; i++)
   {
@@ -2504,32 +2508,43 @@ void MoveRootSignatureElementsToRegisterSpace(D3D12RootSignature &sig, uint32_t 
           D3D12_DESCRIPTOR_RANGE_TYPE rangeType = sig.Parameters[i].ranges[r].RangeType;
           if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV && type == D3D12DescriptorType::CBV)
           {
-            sig.Parameters[i].ranges[r].RegisterSpace += registerSpace;
+            maxSpace = RDCMAX(maxSpace, sig.Parameters[i].ranges[r].RegisterSpace);
+            usedDesiredSpace |= (sig.Parameters[i].ranges[r].RegisterSpace == registerSpace);
           }
           else if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV && type == D3D12DescriptorType::SRV)
           {
-            sig.Parameters[i].ranges[r].RegisterSpace += registerSpace;
+            maxSpace = RDCMAX(maxSpace, sig.Parameters[i].ranges[r].RegisterSpace);
+            usedDesiredSpace |= (sig.Parameters[i].ranges[r].RegisterSpace == registerSpace);
           }
           else if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV && type == D3D12DescriptorType::UAV)
           {
-            sig.Parameters[i].ranges[r].RegisterSpace += registerSpace;
+            maxSpace = RDCMAX(maxSpace, sig.Parameters[i].ranges[r].RegisterSpace);
+            usedDesiredSpace |= (sig.Parameters[i].ranges[r].RegisterSpace == registerSpace);
           }
         }
       }
       else if(rootType == D3D12_ROOT_PARAMETER_TYPE_CBV && type == D3D12DescriptorType::CBV)
       {
-        sig.Parameters[i].Descriptor.RegisterSpace += registerSpace;
+        maxSpace = RDCMAX(maxSpace, sig.Parameters[i].Descriptor.RegisterSpace);
+        usedDesiredSpace |= (sig.Parameters[i].Descriptor.RegisterSpace == registerSpace);
       }
       else if(rootType == D3D12_ROOT_PARAMETER_TYPE_SRV && type == D3D12DescriptorType::SRV)
       {
-        sig.Parameters[i].Descriptor.RegisterSpace += registerSpace;
+        maxSpace = RDCMAX(maxSpace, sig.Parameters[i].Descriptor.RegisterSpace);
+        usedDesiredSpace |= (sig.Parameters[i].Descriptor.RegisterSpace == registerSpace);
       }
       else if(rootType == D3D12_ROOT_PARAMETER_TYPE_UAV && type == D3D12DescriptorType::UAV)
       {
-        sig.Parameters[i].Descriptor.RegisterSpace += registerSpace;
+        maxSpace = RDCMAX(maxSpace, sig.Parameters[i].Descriptor.RegisterSpace);
+        usedDesiredSpace |= (sig.Parameters[i].Descriptor.RegisterSpace == registerSpace);
       }
     }
   }
+
+  if(usedDesiredSpace)
+    return maxSpace + 1;
+
+  return registerSpace;
 }
 
 void AddDebugDescriptorsToRenderState(WrappedID3D12Device *pDevice, D3D12RenderState &rs,

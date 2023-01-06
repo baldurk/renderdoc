@@ -29,7 +29,17 @@
 // https://github.com/selfshadow/demos/blob/master/QuadShading/QuadShading.fx
 ////////////////////////////////////////////////////////////////////////////////////////////
 
+#if !defined(UAV_SPACE) && defined(D3D12)
+// must match the define in hlsl_cbuffers.h
+#define UAV_SPACE space105202922
+#endif
+
+#if defined(D3D12)
+RWTexture2DArray<uint> overdrawUAV : register(u0, UAV_SPACE);
+#else
 RWTexture2DArray<uint> overdrawUAV : register(u0);
+#endif
+
 Texture2DArray<uint> overdrawSRV : register(t0);
 
 [earlydepthstencil] void RENDERDOC_QuadOverdrawPS(float4 vpos

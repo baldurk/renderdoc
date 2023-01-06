@@ -820,7 +820,7 @@ namespace DXCEnumerateAndCheck {
     <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\fixedcol.hlsl&quot; -T ps_6_0 -DVARIANT=1 -E main -Qstrip_reflect -Fo &quot;$(DXILBakedDir)fixedcol_1.dxbc&quot;" />
     <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\fixedcol.hlsl&quot; -T ps_6_0 -DVARIANT=2 -E main -Qstrip_reflect -Fo &quot;$(DXILBakedDir)fixedcol_2.dxbc&quot;" />
     <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\fixedcol.hlsl&quot; -T ps_6_0 -DVARIANT=3 -E main -Qstrip_reflect -Fo &quot;$(DXILBakedDir)fixedcol_3.dxbc&quot;" />
-    <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\quadoverdraw.hlsl&quot; -T ps_6_0 -E RENDERDOC_QuadOverdrawPS -Qstrip_reflect -Fo &quot;$(DXILBakedDir)quadwrite.dxbc&quot;" />
+    <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\quadoverdraw.hlsl&quot; -T ps_6_0 -DD3D12=1 -E RENDERDOC_QuadOverdrawPS -Qstrip_reflect -Fo &quot;$(DXILBakedDir)quadwrite.dxbc&quot;" />
   </Target>
   <ItemGroup>
     <Natvis Include="renderdoc.natvis" />
