@@ -104,35 +104,47 @@
   return self.real.supportIndirectCommandBuffers;
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (NSUInteger)maxTotalThreadsPerObjectThreadgroup API_AVAILABLE(macos(13.0), ios(16.0))
 {
   return self.real.maxTotalThreadsPerObjectThreadgroup;
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (NSUInteger)maxTotalThreadsPerMeshThreadgroup API_AVAILABLE(macos(13.0), ios(16.0))
 {
   return self.real.maxTotalThreadsPerMeshThreadgroup;
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (NSUInteger)objectThreadExecutionWidth API_AVAILABLE(macos(13.0), ios(16.0))
 {
   return self.real.objectThreadExecutionWidth;
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (NSUInteger)meshThreadExecutionWidth API_AVAILABLE(macos(13.0), ios(16.0))
 {
   return self.real.meshThreadExecutionWidth;
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (NSUInteger)maxTotalThreadgroupsPerMeshGrid API_AVAILABLE(macos(13.0), ios(16.0))
 {
   return self.real.maxTotalThreadgroupsPerMeshGrid;
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (MTLResourceID)gpuResourceID API_AVAILABLE(macos(13.0), ios(16.0))
 {
   return self.real.gpuResourceID;
 }
+#endif
 
 - (nullable id<MTLFunctionHandle>)functionHandleWithFunction:(id<MTLFunction>)function
                                                        stage:(MTLRenderStages)stage

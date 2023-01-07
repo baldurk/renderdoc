@@ -491,6 +491,7 @@
   return [self.real setStencilStoreActionOptions:storeActionOptions];
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setObjectBytes:(const void *)bytes
                 length:(NSUInteger)length
                atIndex:(NSUInteger)index API_AVAILABLE(macos(13.0), ios(16.0))
@@ -498,7 +499,9 @@
   METAL_NOT_HOOKED();
   return [self.real setObjectBytes:bytes length:length atIndex:index];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setObjectBuffer:(nullable id<MTLBuffer>)buffer
                  offset:(NSUInteger)offset
                 atIndex:(NSUInteger)index API_AVAILABLE(macos(13.0), ios(16.0))
@@ -506,14 +509,18 @@
   METAL_NOT_HOOKED();
   return [self.real setObjectBuffer:buffer offset:offset atIndex:index];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setObjectBufferOffset:(NSUInteger)offset
                       atIndex:(NSUInteger)index API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real setObjectBufferOffset:offset atIndex:index];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setObjectBuffers:(const id<MTLBuffer> __nullable[__nonnull])buffers
                  offsets:(const NSUInteger[__nonnull])offsets
                withRange:(NSRange)range API_AVAILABLE(macos(13.0), ios(16.0))
@@ -521,35 +528,45 @@
   METAL_NOT_HOOKED();
   return [self.real setObjectBuffers:buffers offsets:offsets withRange:range];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setObjectTexture:(nullable id<MTLTexture>)texture
                  atIndex:(NSUInteger)index API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real setObjectTexture:texture atIndex:index];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setObjectTextures:(const id<MTLTexture> __nullable[__nonnull])textures
                 withRange:(NSRange)range API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real setObjectTextures:textures withRange:range];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setObjectSamplerState:(nullable id<MTLSamplerState>)sampler
                       atIndex:(NSUInteger)index API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real setObjectSamplerState:sampler atIndex:index];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setObjectSamplerStates:(const id<MTLSamplerState> __nullable[__nonnull])samplers
                      withRange:(NSRange)range API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real setObjectSamplerStates:samplers withRange:range];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setObjectSamplerState:(nullable id<MTLSamplerState>)sampler
                   lodMinClamp:(float)lodMinClamp
                   lodMaxClamp:(float)lodMaxClamp
@@ -561,7 +578,9 @@
                               lodMaxClamp:lodMaxClamp
                                   atIndex:index];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setObjectSamplerStates:(const id<MTLSamplerState> __nullable[__nonnull])samplers
                   lodMinClamps:(const float[__nonnull])lodMinClamps
                   lodMaxClamps:(const float[__nonnull])lodMaxClamps
@@ -573,14 +592,18 @@
                               lodMaxClamps:lodMaxClamps
                                  withRange:range];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setObjectThreadgroupMemoryLength:(NSUInteger)length
                                  atIndex:(NSUInteger)index API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real setObjectThreadgroupMemoryLength:length atIndex:index];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setMeshBytes:(const void *)bytes
               length:(NSUInteger)length
              atIndex:(NSUInteger)index API_AVAILABLE(macos(13.0), ios(16.0))
@@ -588,7 +611,9 @@
   METAL_NOT_HOOKED();
   return [self.real setMeshBytes:bytes length:length atIndex:index];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setMeshBuffer:(nullable id<MTLBuffer>)buffer
                offset:(NSUInteger)offset
               atIndex:(NSUInteger)index API_AVAILABLE(macos(13.0), ios(16.0))
@@ -596,14 +621,18 @@
   METAL_NOT_HOOKED();
   return [self.real setMeshBuffer:buffer offset:offset atIndex:index];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setMeshBufferOffset:(NSUInteger)offset
                     atIndex:(NSUInteger)index API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real setMeshBufferOffset:offset atIndex:index];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setMeshBuffers:(const id<MTLBuffer> __nullable[__nonnull])buffers
                offsets:(const NSUInteger[__nonnull])offsets
              withRange:(NSRange)range API_AVAILABLE(macos(13.0), ios(16.0))
@@ -611,35 +640,45 @@
   METAL_NOT_HOOKED();
   return [self.real setMeshBuffers:buffers offsets:offsets withRange:range];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setMeshTexture:(nullable id<MTLTexture>)texture
                atIndex:(NSUInteger)index API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real setMeshTexture:texture atIndex:index];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setMeshTextures:(const id<MTLTexture> __nullable[__nonnull])textures
               withRange:(NSRange)range API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real setMeshTextures:textures withRange:range];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setMeshSamplerState:(nullable id<MTLSamplerState>)sampler
                     atIndex:(NSUInteger)index API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real setMeshSamplerState:sampler atIndex:index];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setMeshSamplerStates:(const id<MTLSamplerState> __nullable[__nonnull])samplers
                    withRange:(NSRange)range API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real setMeshSamplerStates:samplers withRange:range];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setMeshSamplerState:(nullable id<MTLSamplerState>)sampler
                 lodMinClamp:(float)lodMinClamp
                 lodMaxClamp:(float)lodMaxClamp
@@ -651,7 +690,9 @@
                             lodMaxClamp:lodMaxClamp
                                 atIndex:index];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)setMeshSamplerStates:(const id<MTLSamplerState> __nullable[__nonnull])samplers
                 lodMinClamps:(const float[__nonnull])lodMinClamps
                 lodMaxClamps:(const float[__nonnull])lodMaxClamps
@@ -663,7 +704,9 @@
                             lodMaxClamps:lodMaxClamps
                                withRange:range];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)drawMeshThreadgroups:(MTLSize)threadgroupsPerGrid
     threadsPerObjectThreadgroup:(MTLSize)threadsPerObjectThreadgroup
       threadsPerMeshThreadgroup:(MTLSize)threadsPerMeshThreadgroup
@@ -674,7 +717,9 @@
              threadsPerObjectThreadgroup:threadsPerObjectThreadgroup
                threadsPerMeshThreadgroup:threadsPerMeshThreadgroup];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)drawMeshThreads:(MTLSize)threadsPerGrid
     threadsPerObjectThreadgroup:(MTLSize)threadsPerObjectThreadgroup
       threadsPerMeshThreadgroup:(MTLSize)threadsPerMeshThreadgroup
@@ -685,7 +730,9 @@
         threadsPerObjectThreadgroup:threadsPerObjectThreadgroup
           threadsPerMeshThreadgroup:threadsPerMeshThreadgroup];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)drawMeshThreadgroupsWithIndirectBuffer:(id<MTLBuffer>)indirectBuffer
                           indirectBufferOffset:(NSUInteger)indirectBufferOffset
                    threadsPerObjectThreadgroup:(MTLSize)threadsPerObjectThreadgroup
@@ -698,6 +745,7 @@
                                threadsPerObjectThreadgroup:threadsPerObjectThreadgroup
                                  threadsPerMeshThreadgroup:threadsPerMeshThreadgroup];
 }
+#endif
 
 - (void)drawPrimitives:(MTLPrimitiveType)primitiveType
            vertexStart:(NSUInteger)vertexStart

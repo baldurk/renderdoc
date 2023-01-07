@@ -56,6 +56,10 @@ inline WrappedMTLResource *GetWrapped(id<MTLResource> objC)
 }
 
 // Define Mac SDK versions when compiling with earlier SDKs
-#ifndef __MAC_12_0
-#define __MAC_12_0 120000
+#ifndef __MAC_12_5
+#define __MAC_12_5 120500
+#endif
+
+#ifndef __MAC_13_0
+#define __MAC_13_0 130000
 #endif

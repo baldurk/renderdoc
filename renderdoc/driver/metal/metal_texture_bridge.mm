@@ -260,15 +260,19 @@
   return self.real.allowGPUOptimizedContents;
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_5
 - (MTLTextureCompressionType)compressionType API_AVAILABLE(macos(12.5), ios(15.0))
 {
   return self.real.compressionType;
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (MTLResourceID)gpuResourceID API_AVAILABLE(macos(13.0), ios(16.0))
 {
   return self.real.gpuResourceID;
 }
+#endif
 
 - (void)getBytes:(void *)pixelBytes
       bytesPerRow:(NSUInteger)bytesPerRow
