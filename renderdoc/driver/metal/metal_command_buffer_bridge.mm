@@ -265,12 +265,14 @@
   return [self.real accelerationStructureCommandEncoder];
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (id<MTLAccelerationStructureCommandEncoder>)accelerationStructureCommandEncoderWithDescriptor:
     (MTLAccelerationStructurePassDescriptor *)descriptor API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real accelerationStructureCommandEncoderWithDescriptor:descriptor];
 }
+#endif
 
 - (void)pushDebugGroup:(NSString *)string API_AVAILABLE(macos(10.13), ios(11.0))
 {

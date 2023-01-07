@@ -526,6 +526,7 @@ newRenderPipelineStateWithTileDescriptor:(MTLTileRenderPipelineDescriptor *)desc
                                            completionHandler:completionHandler];
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (nullable id<MTLRenderPipelineState>)
 newRenderPipelineStateWithMeshDescriptor:(MTLMeshRenderPipelineDescriptor *)descriptor
                                  options:(MTLPipelineOption)options
@@ -539,7 +540,9 @@ newRenderPipelineStateWithMeshDescriptor:(MTLMeshRenderPipelineDescriptor *)desc
                                                   reflection:reflection
                                                        error:error];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (void)newRenderPipelineStateWithMeshDescriptor:(MTLMeshRenderPipelineDescriptor *)descriptor
                                          options:(MTLPipelineOption)options
                                completionHandler:
@@ -551,6 +554,7 @@ newRenderPipelineStateWithMeshDescriptor:(MTLMeshRenderPipelineDescriptor *)desc
                                                      options:options
                                            completionHandler:completionHandler];
 }
+#endif
 
 - (NSUInteger)maxThreadgroupMemoryLength API_AVAILABLE(macos(10.13), ios(11.0))
 {
@@ -641,6 +645,7 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
   return self.real.peerCount;
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (nullable id<MTLIOFileHandle>)newIOHandleWithURL:(NSURL *)url
                                              error:(NSError **)error
     API_AVAILABLE(macos(13.0), ios(16.0))
@@ -648,7 +653,9 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
   METAL_NOT_HOOKED();
   return [self.real newIOHandleWithURL:url error:error];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (nullable id<MTLIOCommandQueue>)newIOCommandQueueWithDescriptor:(MTLIOCommandQueueDescriptor *)descriptor
                                                             error:(NSError **)error
     API_AVAILABLE(macos(13.0), ios(16.0))
@@ -656,7 +663,9 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
   METAL_NOT_HOOKED();
   return [self.real newIOCommandQueueWithDescriptor:descriptor error:error];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (nullable id<MTLIOFileHandle>)newIOHandleWithURL:(NSURL *)url
                                  compressionMethod:(MTLIOCompressionMethod)compressionMethod
                                              error:(NSError **)error
@@ -665,6 +674,7 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
   METAL_NOT_HOOKED();
   return [self.real newIOHandleWithURL:url compressionMethod:compressionMethod error:error];
 }
+#endif
 
 - (MTLSize)sparseTileSizeWithTextureType:(MTLTextureType)textureType
                              pixelFormat:(MTLPixelFormat)pixelFormat
@@ -710,13 +720,16 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
                                   numRegions:numRegions];
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (NSUInteger)sparseTileSizeInBytesForSparsePageSize:(MTLSparsePageSize)sparsePageSize
     API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real sparseTileSizeInBytesForSparsePageSize:sparsePageSize];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (MTLSize)sparseTileSizeWithTextureType:(MTLTextureType)textureType
                              pixelFormat:(MTLPixelFormat)pixelFormat
                              sampleCount:(NSUInteger)sampleCount
@@ -729,6 +742,7 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
                                       sampleCount:sampleCount
                                    sparsePageSize:sparsePageSize];
 }
+#endif
 
 - (NSUInteger)maxBufferLength API_AVAILABLE(macos(10.14), ios(12.0))
 {
@@ -756,12 +770,14 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
   return [self.real sampleTimestamps:cpuTimestamp gpuTimestamp:gpuTimestamp];
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (id<MTLArgumentEncoder>)newArgumentEncoderWithBufferBinding:(id<MTLBufferBinding>)bufferBinding
     API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real newArgumentEncoderWithBufferBinding:bufferBinding];
 }
+#endif
 
 - (BOOL)supportsCounterSampling:(MTLCounterSamplingPoint)samplingPoint
     API_AVAILABLE(macos(11.0), ios(14.0))
@@ -835,19 +851,23 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
   return [self.real newAccelerationStructureWithDescriptor:descriptor];
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (MTLSizeAndAlign)heapAccelerationStructureSizeAndAlignWithSize:(NSUInteger)size
     API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real heapAccelerationStructureSizeAndAlignWithSize:size];
 }
+#endif
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (MTLSizeAndAlign)heapAccelerationStructureSizeAndAlignWithDescriptor:
     (MTLAccelerationStructureDescriptor *)descriptor API_AVAILABLE(macos(13.0), ios(16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real heapAccelerationStructureSizeAndAlignWithDescriptor:descriptor];
 }
+#endif
 
 - (BOOL)supportsFunctionPointers API_AVAILABLE(macos(11.0), ios(14.0))
 {
