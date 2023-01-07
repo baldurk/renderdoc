@@ -66,7 +66,7 @@
 }
 
 // MTLDevice : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLDevice.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLDevice.h
 
 - (NSString *)name
 {
@@ -160,11 +160,7 @@
   return GetWrapped(self)->supportsQueryTextureLOD();
 }
 
-- (BOOL)supportsBCTextureCompression API_AVAILABLE(macos(11.0))
-// It is available for ios in SDK 11.1 and it is marked as unavailable in SDK 12
-#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
-    API_UNAVAILABLE(ios)
-#endif    // #if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
+- (BOOL)supportsBCTextureCompression API_AVAILABLE(macos(11.0))API_UNAVAILABLE(ios)
 {
   return GetWrapped(self)->supportsBCTextureCompression();
 }
@@ -173,12 +169,15 @@
 {
   return GetWrapped(self)->supportsPullModelInterpolation();
 }
-- (BOOL)areBarycentricCoordsSupported API_AVAILABLE(macos(10.15))API_UNAVAILABLE(ios)
+
+- (BOOL)areBarycentricCoordsSupported
+    API_DEPRECATED_WITH_REPLACEMENT("supportsShaderBarycentricCoordinates", macos(10.15, 13.0),
+                                    ios(14.0, 16.0))API_UNAVAILABLE(tvos)
 {
   return GetWrapped(self)->areBarycentricCoordsSupported();
 }
 
-- (BOOL)supportsShaderBarycentricCoordinates API_AVAILABLE(macos(10.15))API_UNAVAILABLE(ios)
+- (BOOL)supportsShaderBarycentricCoordinates API_AVAILABLE(macos(10.15), ios(14.0))
 {
   return GetWrapped(self)->supportsShaderBarycentricCoordinates();
 }
@@ -304,6 +303,7 @@
 
 - (nullable id<MTLLibrary>)newLibraryWithFile:(NSString *)filepath
                                         error:(__autoreleasing NSError **)error
+    API_DEPRECATED("Use -newLibraryWithURL:error: instead", macos(10.11, 13.0), ios(8.0, 16.0))
 {
   METAL_NOT_HOOKED();
   return [self.real newLibraryWithFile:filepath error:error];
@@ -341,7 +341,6 @@
       [self.real newLibraryWithSource:source options:options completionHandler:completionHandler];
 }
 
-#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
 - (nullable id<MTLLibrary>)newLibraryWithStitchedDescriptor:(MTLStitchedLibraryDescriptor *)descriptor
                                                       error:(__autoreleasing NSError **)error
     API_AVAILABLE(macos(12.0), ios(15.0))
@@ -349,9 +348,7 @@
   METAL_NOT_HOOKED();
   return [self.real newLibraryWithStitchedDescriptor:descriptor error:error];
 }
-#endif
 
-#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
 - (void)newLibraryWithStitchedDescriptor:(MTLStitchedLibraryDescriptor *)descriptor
                        completionHandler:(MTLNewLibraryCompletionHandler)completionHandler
     API_AVAILABLE(macos(12.0), ios(15.0))
@@ -359,7 +356,6 @@
   METAL_NOT_HOOKED();
   [self.real newLibraryWithStitchedDescriptor:descriptor completionHandler:completionHandler];
 }
-#endif
 
 - (nullable id<MTLRenderPipelineState>)
 newRenderPipelineStateWithDescriptor:(MTLRenderPipelineDescriptor *)descriptor
@@ -475,6 +471,7 @@ newComputePipelineStateWithDescriptor:(MTLComputePipelineDescriptor *)descriptor
 }
 
 - (BOOL)supportsFeatureSet:(MTLFeatureSet)featureSet
+    API_DEPRECATED("Use supportsFamily instead", macos(10.11, 13.0), ios(8.0, 16.0), tvos(9.0, 16.0))
 {
   return GetWrapped(self)->supportsFeatureSet((MTL::FeatureSet)featureSet);
 }
@@ -525,6 +522,32 @@ newRenderPipelineStateWithTileDescriptor:(MTLTileRenderPipelineDescriptor *)desc
 {
   METAL_NOT_HOOKED();
   return [self.real newRenderPipelineStateWithTileDescriptor:descriptor
+                                                     options:options
+                                           completionHandler:completionHandler];
+}
+
+- (nullable id<MTLRenderPipelineState>)
+newRenderPipelineStateWithMeshDescriptor:(MTLMeshRenderPipelineDescriptor *)descriptor
+                                 options:(MTLPipelineOption)options
+                              reflection:(MTLAutoreleasedRenderPipelineReflection *__nullable)reflection
+                                   error:(__autoreleasing NSError **)error
+    API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newRenderPipelineStateWithMeshDescriptor:descriptor
+                                                     options:options
+                                                  reflection:reflection
+                                                       error:error];
+}
+
+- (void)newRenderPipelineStateWithMeshDescriptor:(MTLMeshRenderPipelineDescriptor *)descriptor
+                                         options:(MTLPipelineOption)options
+                               completionHandler:
+                                   (MTLNewRenderPipelineStateWithReflectionCompletionHandler)
+                                       completionHandler API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newRenderPipelineStateWithMeshDescriptor:descriptor
                                                      options:options
                                            completionHandler:completionHandler];
 }
@@ -618,6 +641,31 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
   return self.real.peerCount;
 }
 
+- (nullable id<MTLIOFileHandle>)newIOHandleWithURL:(NSURL *)url
+                                             error:(NSError **)error
+    API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newIOHandleWithURL:url error:error];
+}
+
+- (nullable id<MTLIOCommandQueue>)newIOCommandQueueWithDescriptor:(MTLIOCommandQueueDescriptor *)descriptor
+                                                            error:(NSError **)error
+    API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newIOCommandQueueWithDescriptor:descriptor error:error];
+}
+
+- (nullable id<MTLIOFileHandle>)newIOHandleWithURL:(NSURL *)url
+                                 compressionMethod:(MTLIOCompressionMethod)compressionMethod
+                                             error:(NSError **)error
+    API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newIOHandleWithURL:url compressionMethod:compressionMethod error:error];
+}
+
 - (MTLSize)sparseTileSizeWithTextureType:(MTLTextureType)textureType
                              pixelFormat:(MTLPixelFormat)pixelFormat
                              sampleCount:(NSUInteger)sampleCount
@@ -662,6 +710,26 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
                                   numRegions:numRegions];
 }
 
+- (NSUInteger)sparseTileSizeInBytesForSparsePageSize:(MTLSparsePageSize)sparsePageSize
+    API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real sparseTileSizeInBytesForSparsePageSize:sparsePageSize];
+}
+
+- (MTLSize)sparseTileSizeWithTextureType:(MTLTextureType)textureType
+                             pixelFormat:(MTLPixelFormat)pixelFormat
+                             sampleCount:(NSUInteger)sampleCount
+                          sparsePageSize:(MTLSparsePageSize)sparsePageSize
+    API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real sparseTileSizeWithTextureType:textureType
+                                      pixelFormat:pixelFormat
+                                      sampleCount:sampleCount
+                                   sparsePageSize:sparsePageSize];
+}
+
 - (NSUInteger)maxBufferLength API_AVAILABLE(macos(10.14), ios(12.0))
 {
   return self.real.maxBufferLength;
@@ -688,6 +756,13 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
   return [self.real sampleTimestamps:cpuTimestamp gpuTimestamp:gpuTimestamp];
 }
 
+- (id<MTLArgumentEncoder>)newArgumentEncoderWithBufferBinding:(id<MTLBufferBinding>)bufferBinding
+    API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newArgumentEncoderWithBufferBinding:bufferBinding];
+}
+
 - (BOOL)supportsCounterSampling:(MTLCounterSamplingPoint)samplingPoint
     API_AVAILABLE(macos(11.0), ios(14.0))
 {
@@ -705,12 +780,10 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
   return GetWrapped(self)->supportsDynamicLibraries();
 }
 
-#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
 - (BOOL)supportsRenderDynamicLibraries API_AVAILABLE(macos(12.0), ios(15.0))
 {
   return GetWrapped(self)->supportsRenderDynamicLibraries();
 }
-#endif
 
 - (nullable id<MTLDynamicLibrary>)newDynamicLibrary:(id<MTLLibrary>)library
                                               error:(NSError **)error
@@ -762,32 +835,38 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
   return [self.real newAccelerationStructureWithDescriptor:descriptor];
 }
 
+- (MTLSizeAndAlign)heapAccelerationStructureSizeAndAlignWithSize:(NSUInteger)size
+    API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real heapAccelerationStructureSizeAndAlignWithSize:size];
+}
+
+- (MTLSizeAndAlign)heapAccelerationStructureSizeAndAlignWithDescriptor:
+    (MTLAccelerationStructureDescriptor *)descriptor API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real heapAccelerationStructureSizeAndAlignWithDescriptor:descriptor];
+}
+
 - (BOOL)supportsFunctionPointers API_AVAILABLE(macos(11.0), ios(14.0))
 {
   return GetWrapped(self)->supportsFunctionPointers();
 }
 
-#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
 - (BOOL)supportsFunctionPointersFromRender API_AVAILABLE(macos(12.0), ios(15.0))
 {
   return GetWrapped(self)->supportsFunctionPointersFromRender();
 }
-#endif
 
-#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
 - (BOOL)supportsRaytracingFromRender API_AVAILABLE(macos(12.0), ios(15.0))
 {
   return GetWrapped(self)->supportsRaytracingFromRender();
 }
-#endif
 
-// Treat as if the API is available from SDK 12.0
-// It is marked as available from SDK 11.0, however it was not present in SDK 11.1 MTLDevice.h
-#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
 - (BOOL)supportsPrimitiveMotionBlur API_AVAILABLE(macos(11.0), ios(14.0))
 {
   return GetWrapped(self)->supportsPrimitiveMotionBlur();
 }
-#endif
 
 @end

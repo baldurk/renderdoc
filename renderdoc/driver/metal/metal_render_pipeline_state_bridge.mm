@@ -63,7 +63,7 @@
 }
 
 // MTLRenderPipelineState : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderPipeline.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderPipeline.h
 
 - (nullable NSString *)label
 {
@@ -104,7 +104,36 @@
   return self.real.supportIndirectCommandBuffers;
 }
 
-#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
+- (NSUInteger)maxTotalThreadsPerObjectThreadgroup API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  return self.real.maxTotalThreadsPerObjectThreadgroup;
+}
+
+- (NSUInteger)maxTotalThreadsPerMeshThreadgroup API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  return self.real.maxTotalThreadsPerMeshThreadgroup;
+}
+
+- (NSUInteger)objectThreadExecutionWidth API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  return self.real.objectThreadExecutionWidth;
+}
+
+- (NSUInteger)meshThreadExecutionWidth API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  return self.real.meshThreadExecutionWidth;
+}
+
+- (NSUInteger)maxTotalThreadgroupsPerMeshGrid API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  return self.real.maxTotalThreadgroupsPerMeshGrid;
+}
+
+- (MTLResourceID)gpuResourceID API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  return self.real.gpuResourceID;
+}
+
 - (nullable id<MTLFunctionHandle>)functionHandleWithFunction:(id<MTLFunction>)function
                                                        stage:(MTLRenderStages)stage
     API_AVAILABLE(macos(12.0), ios(15.0))
@@ -112,9 +141,7 @@
   METAL_NOT_HOOKED();
   return [self.real functionHandleWithFunction:function stage:stage];
 }
-#endif
 
-#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
 - (nullable id<MTLVisibleFunctionTable>)newVisibleFunctionTableWithDescriptor:
                                             (MTLVisibleFunctionTableDescriptor *__nonnull)descriptor
                                                                         stage:(MTLRenderStages)stage
@@ -123,9 +150,7 @@
   METAL_NOT_HOOKED();
   return [self.real newVisibleFunctionTableWithDescriptor:descriptor stage:stage];
 }
-#endif
 
-#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
 - (nullable id<MTLIntersectionFunctionTable>)
 newIntersectionFunctionTableWithDescriptor:(MTLIntersectionFunctionTableDescriptor *_Nonnull)descriptor
                                      stage:(MTLRenderStages)stage
@@ -134,9 +159,7 @@ newIntersectionFunctionTableWithDescriptor:(MTLIntersectionFunctionTableDescript
   METAL_NOT_HOOKED();
   return [self.real newIntersectionFunctionTableWithDescriptor:descriptor stage:stage];
 }
-#endif
 
-#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_12_0
 - (nullable id<MTLRenderPipelineState>)
 newRenderPipelineStateWithAdditionalBinaryFunctions:
     (nonnull MTLRenderPipelineFunctionsDescriptor *)additionalBinaryFunctions
@@ -147,6 +170,5 @@ newRenderPipelineStateWithAdditionalBinaryFunctions:
   return [self.real newRenderPipelineStateWithAdditionalBinaryFunctions:additionalBinaryFunctions
                                                                   error:error];
 }
-#endif
 
 @end
