@@ -63,7 +63,7 @@
 }
 
 // MTLResource : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLResource.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLResource.h
 
 - (nullable NSString *)label
 {
@@ -258,6 +258,16 @@
 - (BOOL)allowGPUOptimizedContents API_AVAILABLE(macos(10.14), ios(12.0))
 {
   return self.real.allowGPUOptimizedContents;
+}
+
+- (MTLTextureCompressionType)compressionType API_AVAILABLE(macos(12.5), ios(15.0))
+{
+  return self.real.compressionType;
+}
+
+- (MTLResourceID)gpuResourceID API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  return self.real.gpuResourceID;
 }
 
 - (void)getBytes:(void *)pixelBytes

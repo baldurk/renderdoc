@@ -63,7 +63,7 @@
 }
 
 // MTLResource : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLResource.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLResource.h
 
 - (nullable NSString *)label
 {
@@ -184,6 +184,11 @@
 {
   METAL_NOT_HOOKED();
   return [self.real newRemoteBufferViewForDevice:device];
+}
+
+- (uint64_t)gpuAddress API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  return self.real.gpuAddress;
 }
 
 @end

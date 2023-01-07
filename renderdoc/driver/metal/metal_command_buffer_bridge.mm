@@ -63,7 +63,7 @@
 }
 
 // MTLCommandBuffer : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLCommandBuffer.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLCommandBuffer.h
 
 - (id<MTLDevice>)device
 {
@@ -263,6 +263,13 @@
 {
   METAL_NOT_HOOKED();
   return [self.real accelerationStructureCommandEncoder];
+}
+
+- (id<MTLAccelerationStructureCommandEncoder>)accelerationStructureCommandEncoderWithDescriptor:
+    (MTLAccelerationStructurePassDescriptor *)descriptor API_AVAILABLE(macos(13.0), ios(16.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real accelerationStructureCommandEncoderWithDescriptor:descriptor];
 }
 
 - (void)pushDebugGroup:(NSString *)string API_AVAILABLE(macos(10.13), ios(11.0))
