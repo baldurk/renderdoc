@@ -570,7 +570,7 @@ public:
 
   void AddFrameCapturer(DeviceOwnedWindow devWnd, IFrameCapturer *cap);
   void RemoveFrameCapturer(DeviceOwnedWindow devWnd);
-  bool HasActiveFrameCapturer(RDCDriver driver) const;
+  bool HasActiveFrameCapturer(RDCDriver driver);
 
   // add window-less frame capturers for use via users capturing
   // manually through the renderdoc API with NULL device/window handles
@@ -586,8 +586,8 @@ public:
 
   bool MatchClosestWindow(DeviceOwnedWindow &devWnd);
 
-  bool IsActiveWindow(DeviceOwnedWindow devWnd) { return devWnd == m_ActiveWindow; }
-  void GetActiveWindow(DeviceOwnedWindow &devWnd) { devWnd = m_ActiveWindow; }
+  bool IsActiveWindow(DeviceOwnedWindow devWnd);
+  void GetActiveWindow(DeviceOwnedWindow &devWnd);
   void TriggerCapture(uint32_t numFrames) { m_Cap = numFrames; }
   uint32_t GetOverlayBits() { return m_Overlay; }
   void MaskOverlayBits(uint32_t And, uint32_t Or) { m_Overlay = (m_Overlay & And) | Or; }
@@ -617,7 +617,8 @@ public:
   rdcstr GetOverlayText(RDCDriver driver, DeviceOwnedWindow devWnd, uint32_t frameNumber, int flags);
 
   void CycleActiveWindow();
-  uint32_t GetCapturableWindowCount() { return (uint32_t)m_WindowFrameCapturers.size(); }
+  uint32_t GetCapturableWindowCount();
+
 private:
   RenderDoc();
   ~RenderDoc();
@@ -700,6 +701,7 @@ private:
 
   int m_CapturesActive;
 
+  Threading::CriticalSection m_CapturerListLock;
   std::map<DeviceOwnedWindow, FrameCap> m_WindowFrameCapturers;
   DeviceOwnedWindow m_ActiveWindow;
   std::map<void *, IFrameCapturer *> m_DeviceFrameCapturers;

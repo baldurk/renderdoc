@@ -752,6 +752,8 @@ void RenderDoc::RegisterShutdownFunction(ShutdownFunction func)
 
 bool RenderDoc::MatchClosestWindow(DeviceOwnedWindow &devWnd)
 {
+  SCOPED_LOCK(m_CapturerListLock);
+
   // lower_bound and the DeviceWnd ordering (pointer compares, dev over wnd) means that if either
   // element in devWnd is NULL we can go forward from this iterator and find the first wildcardMatch
   // note that if dev is specified and wnd is NULL, this will actually point at the first
@@ -777,11 +779,25 @@ bool RenderDoc::MatchClosestWindow(DeviceOwnedWindow &devWnd)
   return false;
 }
 
+bool RenderDoc::IsActiveWindow(DeviceOwnedWindow devWnd)
+{
+  SCOPED_LOCK(m_CapturerListLock);
+  return devWnd == m_ActiveWindow;
+}
+
+void RenderDoc::GetActiveWindow(DeviceOwnedWindow &devWnd)
+{
+  SCOPED_LOCK(m_CapturerListLock);
+  devWnd = m_ActiveWindow;
+}
+
 IFrameCapturer *RenderDoc::MatchFrameCapturer(DeviceOwnedWindow devWnd)
 {
   // try and find the closest frame capture registered, and update
   // the values in devWnd to point to it precisely
   bool exactMatch = MatchClosestWindow(devWnd);
+
+  SCOPED_LOCK(m_CapturerListLock);
 
   if(!exactMatch)
   {
@@ -829,6 +845,8 @@ void RenderDoc::StartFrameCapture(DeviceOwnedWindow devWnd)
 
 void RenderDoc::SetActiveWindow(DeviceOwnedWindow devWnd)
 {
+  SCOPED_LOCK(m_CapturerListLock);
+
   auto it = m_WindowFrameCapturers.find(devWnd);
   if(it == m_WindowFrameCapturers.end())
   {
@@ -939,6 +957,8 @@ void RenderDoc::Tick()
 
 void RenderDoc::CycleActiveWindow()
 {
+  SCOPED_LOCK(m_CapturerListLock);
+
   m_Cap = 0;
 
   // can only shift focus if we have multiple windows
@@ -962,10 +982,16 @@ void RenderDoc::CycleActiveWindow()
   }
 }
 
+uint32_t RenderDoc::GetCapturableWindowCount()
+{
+  SCOPED_LOCK(m_CapturerListLock);
+  return (uint32_t)m_WindowFrameCapturers.size();
+}
+
 rdcstr RenderDoc::GetOverlayText(RDCDriver driver, DeviceOwnedWindow devWnd, uint32_t frameNumber,
                                  int flags)
 {
-  const bool activeWindow = (devWnd == m_ActiveWindow);
+  bool activeWindow;
   const bool capturesEnabled = (flags & eOverlay_CaptureDisabled) == 0;
 
   uint32_t overlay = GetOverlayBits();
@@ -974,18 +1000,27 @@ rdcstr RenderDoc::GetOverlayText(RDCDriver driver, DeviceOwnedWindow devWnd, uin
   RDCDriver curDriver = RDCDriver::Unknown;
 
   int activeIdx = -1, curIdx = -1, idx = 0;
-  for(auto it = m_WindowFrameCapturers.begin(); it != m_WindowFrameCapturers.end(); ++it, ++idx)
+  size_t numWindows;
   {
-    if(it->first == m_ActiveWindow)
+    SCOPED_LOCK(m_CapturerListLock);
+
+    activeWindow = (devWnd == m_ActiveWindow);
+
+    for(auto it = m_WindowFrameCapturers.begin(); it != m_WindowFrameCapturers.end(); ++it, ++idx)
     {
-      activeIdx = idx;
-      activeDriver = it->second.FrameCapturer->GetFrameCaptureDriver();
+      if(it->first == m_ActiveWindow)
+      {
+        activeIdx = idx;
+        activeDriver = it->second.FrameCapturer->GetFrameCaptureDriver();
+      }
+      if(it->first == devWnd)
+      {
+        curIdx = idx;
+        curDriver = it->second.FrameCapturer->GetFrameCaptureDriver();
+      }
     }
-    if(it->first == devWnd)
-    {
-      curIdx = idx;
-      curDriver = it->second.FrameCapturer->GetFrameCaptureDriver();
-    }
+
+    numWindows = m_WindowFrameCapturers.size();
   }
 
   if(activeDriver == RDCDriver::Unknown)
@@ -1025,8 +1060,6 @@ rdcstr RenderDoc::GetOverlayText(RDCDriver driver, DeviceOwnedWindow devWnd, uin
     overlayText.push_back(' ');
 
   overlayText = "Capturing " + overlayText;
-
-  size_t numWindows = m_WindowFrameCapturers.size();
 
   if(numWindows > 1)
   {
@@ -1967,6 +2000,7 @@ void RenderDoc::AddDeviceFrameCapturer(void *dev, IFrameCapturer *cap)
 
   RDCLOG("Adding %s device frame capturer for %#p", ToStr(cap->GetFrameCaptureDriver()).c_str(), dev);
 
+  SCOPED_LOCK(m_CapturerListLock);
   m_DeviceFrameCapturers[dev] = cap;
 }
 
@@ -1983,6 +2017,7 @@ void RenderDoc::RemoveDeviceFrameCapturer(void *dev)
 
   RDCLOG("Removing device frame capturer for %#p", dev);
 
+  SCOPED_LOCK(m_CapturerListLock);
   m_DeviceFrameCapturers.erase(dev);
 }
 
@@ -2000,6 +2035,8 @@ void RenderDoc::AddFrameCapturer(DeviceOwnedWindow devWnd, IFrameCapturer *cap)
 
   RDCLOG("Adding %s frame capturer for %#p / %#p", ToStr(cap->GetFrameCaptureDriver()).c_str(),
          devWnd.device, devWnd.windowHandle);
+
+  SCOPED_LOCK(m_CapturerListLock);
 
   auto it = m_WindowFrameCapturers.find(devWnd);
   if(it != m_WindowFrameCapturers.end())
@@ -2025,6 +2062,8 @@ void RenderDoc::RemoveFrameCapturer(DeviceOwnedWindow devWnd)
     return;
 
   RDCLOG("Removing frame capturer for %#p / %#p", devWnd.device, devWnd.windowHandle);
+
+  SCOPED_LOCK(m_CapturerListLock);
 
   auto it = m_WindowFrameCapturers.find(devWnd);
   if(it != m_WindowFrameCapturers.end())
@@ -2063,8 +2102,10 @@ void RenderDoc::RemoveFrameCapturer(DeviceOwnedWindow devWnd)
   }
 }
 
-bool RenderDoc::HasActiveFrameCapturer(RDCDriver driver) const
+bool RenderDoc::HasActiveFrameCapturer(RDCDriver driver)
 {
+  SCOPED_LOCK(m_CapturerListLock);
+
   for(auto cap = m_WindowFrameCapturers.begin(); cap != m_WindowFrameCapturers.end(); cap++)
     if(cap->second.FrameCapturer->GetFrameCaptureDriver() == driver)
       return true;
