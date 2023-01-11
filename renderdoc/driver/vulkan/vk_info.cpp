@@ -1264,7 +1264,10 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
         subpass = pipeInfo.subpass;
 
         for(uint32_t i = 0; i < 4; i++)
+        {
           shaders[i] = pipeInfo.shaders[i];
+          info.m_ShaderModule[shaders[i].module].m_PipeReferences[id] = pipeid;
+        }
 
         vertLayout = pipeInfo.vertLayout;
 
@@ -1310,6 +1313,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
         subpass = pipeInfo.subpass;
 
         shaders[4] = pipeInfo.shaders[4];
+        info.m_ShaderModule[shaders[4].module].m_PipeReferences[id] = pipeid;
 
         fragLayout = pipeInfo.fragLayout;
 

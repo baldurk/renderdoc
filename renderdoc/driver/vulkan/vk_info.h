@@ -718,6 +718,10 @@ struct VulkanCreationInfo
 
     ShaderModuleReflection &GetReflection(ShaderStage stage, const rdcstr &entry, ResourceId pipe)
     {
+      auto redirIt = m_PipeReferences.find(pipe);
+      if(redirIt != m_PipeReferences.end())
+        pipe = redirIt->second;
+
       // look for one from this pipeline specifically, if it was specialised
       auto it = m_Reflections.find({stage, entry, pipe});
       if(it != m_Reflections.end())
@@ -732,6 +736,10 @@ struct VulkanCreationInfo
     rdcstr unstrippedPath;
 
     std::map<ShaderModuleReflectionKey, ShaderModuleReflection> m_Reflections;
+    // in graphics pipeline library the linked pipeline may reference a different pipeline where the
+    // shaders are. So when looking up the reflection as specialised by a given pipeline we may want
+    // to redirect to the 'real' pipeline that specialised it.
+    std::unordered_map<ResourceId, ResourceId> m_PipeReferences;
   };
   std::unordered_map<ResourceId, ShaderModule> m_ShaderModule;
 
