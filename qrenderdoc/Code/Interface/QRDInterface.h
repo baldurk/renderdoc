@@ -597,13 +597,18 @@ DOCUMENT(R"(Specifies a type of followed resource for the :class:`TextureViewer`
   The index specifies a resource within the given shader's
   :data:`read-only resources <~renderdoc.ShaderReflection.readOnlyResources>`. The array element
   then specifies the index within that resource's array, if applicable.
+
+.. data:: OutputDepthResolve
+
+  The resource followed is the depth/stencil resolve output target. All other parameters are ignored.
 )");
 enum class FollowType : int
 {
   OutputColor,
   OutputDepth,
   ReadWrite,
-  ReadOnly
+  ReadOnly,
+  OutputDepthResolve
 };
 
 DOCUMENT("The texture viewer window.");

@@ -72,6 +72,7 @@ struct Following
   static rdcarray<BoundResource> GetOutputTargets(ICaptureContext &ctx);
 
   static BoundResource GetDepthTarget(ICaptureContext &ctx);
+  static BoundResource GetDepthResolveTarget(ICaptureContext &ctx);
   static rdcarray<BoundResourceArray> GetReadWriteResources(ICaptureContext &ctx, ShaderStage stage,
                                                             bool onlyUsed);
   static rdcarray<BoundResourceArray> GetReadOnlyResources(ICaptureContext &ctx, ShaderStage stage,
