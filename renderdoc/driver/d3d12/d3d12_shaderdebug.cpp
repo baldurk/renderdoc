@@ -1117,6 +1117,8 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
                     "Opcode enum doesn't match shader define");
   RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_SAMPLE_C == DEBUG_SAMPLE_TEX_SAMPLE_C,
                     "Opcode enum doesn't match shader define");
+  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_SAMPLE_D == DEBUG_SAMPLE_TEX_SAMPLE_D,
+                    "Opcode enum doesn't match shader define");
   RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_SAMPLE_C_LZ == DEBUG_SAMPLE_TEX_SAMPLE_C_LZ,
                     "Opcode enum doesn't match shader define");
   RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_GATHER4 == DEBUG_SAMPLE_TEX_GATHER4,
@@ -1176,6 +1178,15 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
                                                    m_instruction, opString));
     }
   }
+
+  // set array slice selection to 0 if the resource is declared non-arrayed
+
+  if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE1D)
+    uv.value.f32v[1] = 0.0f;
+  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE2D ||
+          resourceData.dim == RESOURCE_DIMENSION_TEXTURE2DMS ||
+          resourceData.dim == RESOURCE_DIMENSION_TEXTURECUBE)
+    uv.value.f32v[2] = 0.0f;
 
   DebugSampleOperation cbufferData = {};
 
