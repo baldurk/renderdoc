@@ -388,6 +388,13 @@ For some APIs that don't distinguish by entry point, this may be empty.
 )");
   BoundResource GetDepthTarget() const;
 
+  DOCUMENT(R"(Retrieves the read/write resources bound to the depth-stencil resolve output.
+
+:return: The currently bound depth-stencil resolve resource.
+:rtype: BoundResource
+)");
+  BoundResource GetDepthResolveTarget() const;
+
   DOCUMENT(R"(Retrieves the resources bound to the color outputs.
 
 :return: The currently bound output targets.

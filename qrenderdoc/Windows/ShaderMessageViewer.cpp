@@ -185,6 +185,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
   m_Multisampled = false;
   rdcarray<BoundResource> outs = pipe.GetOutputTargets();
   outs.push_back(pipe.GetDepthTarget());
+  outs.push_back(pipe.GetDepthResolveTarget());
   for(const BoundResource &o : outs)
   {
     if(o.resourceId == ResourceId())

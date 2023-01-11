@@ -1760,6 +1760,32 @@ BoundResource PipeState::GetDepthTarget() const
   return BoundResource();
 }
 
+BoundResource PipeState::GetDepthResolveTarget() const
+{
+  if(IsCaptureLoaded())
+  {
+    if(IsCaptureVK())
+    {
+      const VKPipe::RenderPass &rp = m_Vulkan->currentPass.renderpass;
+      const VKPipe::Framebuffer &fb = m_Vulkan->currentPass.framebuffer;
+
+      if(rp.depthstencilResolveAttachment >= 0 &&
+         rp.depthstencilResolveAttachment < fb.attachments.count())
+      {
+        BoundResource ret;
+        ret.resourceId = fb.attachments[rp.depthstencilResolveAttachment].imageResourceId;
+        ret.firstMip = (int)fb.attachments[rp.depthstencilResolveAttachment].firstMip;
+        ret.firstSlice = (int)fb.attachments[rp.depthstencilResolveAttachment].firstSlice;
+        ret.typeCast = fb.attachments[rp.depthstencilResolveAttachment].viewFormat.compType;
+        return ret;
+      }
+
+      return BoundResource();
+    }
+  }
+  return BoundResource();
+}
+
 rdcarray<BoundResource> PipeState::GetOutputTargets() const
 {
   rdcarray<BoundResource> ret;

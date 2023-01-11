@@ -160,6 +160,10 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
   {
     ret = GetDepthTarget(ctx);
   }
+  else if(Type == FollowType::OutputDepthResolve)
+  {
+    ret = GetDepthResolveTarget(ctx);
+  }
   else if(Type == FollowType::ReadWrite)
   {
     const rdcarray<BoundResourceArray> &rw = tex.m_ReadWriteResources[(int)Stage];
@@ -247,6 +251,17 @@ BoundResource Following::GetDepthTarget(ICaptureContext &ctx)
     return BoundResource(ResourceId());
   else
     return ctx.CurPipelineState().GetDepthTarget();
+}
+
+BoundResource Following::GetDepthResolveTarget(ICaptureContext &ctx)
+{
+  bool copy = false, clear = false, compute = false;
+  GetActionContext(ctx, copy, clear, compute);
+
+  if(copy || clear || compute)
+    return BoundResource(ResourceId());
+  else
+    return ctx.CurPipelineState().GetDepthResolveTarget();
 }
 
 rdcarray<BoundResourceArray> Following::GetReadWriteResources(ICaptureContext &ctx,
@@ -1167,6 +1182,9 @@ void TextureViewer::UI_UpdateTextureDetails()
         case FollowType::ReadOnly:
           title = QString(tr("Cur Input %1 - %2")).arg(m_Following.index).arg(name);
           break;
+        case FollowType::OutputDepthResolve:
+          title = QString(tr("Cur Depth Resolve Output - %1")).arg(name);
+          break;
       }
     }
     else
@@ -1183,6 +1201,7 @@ void TextureViewer::UI_UpdateTextureDetails()
         case FollowType::ReadOnly:
           title = QString(tr("Cur Input %1")).arg(m_Following.index);
           break;
+        case FollowType::OutputDepthResolve: title = QString(tr("Cur Depth Resolve Output")); break;
       }
     }
 
@@ -2099,7 +2118,7 @@ void TextureViewer::ViewFollowedResource(FollowType followType, ShaderStage stag
     f.arrayEl = 0;
   }
 
-  if(f.Type == FollowType::OutputDepth)
+  if(f.Type == FollowType::OutputDepth || f.Type == FollowType::OutputDepthResolve)
     f.index = 0;
 
   for(ResourcePreview *p :
@@ -3154,6 +3173,7 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
 
   rdcarray<BoundResource> RTs = Following::GetOutputTargets(m_Ctx);
   BoundResource Depth = Following::GetDepthTarget(m_Ctx);
+  BoundResource DepthResolve = Following::GetDepthResolveTarget(m_Ctx);
 
   int outIndex = 0;
   int inIndex = 0;
@@ -3195,6 +3215,21 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
     Following follow(*this, FollowType::OutputDepth, ShaderStage::Pixel, 0, 0);
 
     InitResourcePreview(prev, Depth, false, follow, QString(), tr("DS"));
+  }
+  // depth resolve
+  {
+    ResourcePreview *prev;
+
+    if(outIndex < ui->outputThumbs->thumbs().size())
+      prev = ui->outputThumbs->thumbs()[outIndex];
+    else
+      prev = UI_CreateThumbnail(ui->outputThumbs);
+
+    outIndex++;
+
+    Following follow(*this, FollowType::OutputDepthResolve, ShaderStage::Pixel, 0, 0);
+
+    InitResourcePreview(prev, DepthResolve, false, follow, QString(), tr("DSR"));
   }
 
   const rdcarray<ShaderResource> empty;
