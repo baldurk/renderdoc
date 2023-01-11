@@ -371,9 +371,16 @@ void D3D11Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
   }
 
   D3D11_MAPPED_SUBRESOURCE mapped = {};
-  ctx->Map(readback, 0, D3D11_MAP_READ, 0, &mapped);
+  hr = ctx->Map(readback, 0, D3D11_MAP_READ, 0, &mapped);
+  m_pDevice->CheckHRESULT(hr);
 
   retData.resize(outw.width * outw.height * 3);
+
+  if(FAILED(hr) || m_pDevice->HasFatalError())
+  {
+    RDCERR("Failed to Map HRESULT: %s", ToStr(hr).c_str());
+    return;
+  }
 
   byte *src = (byte *)mapped.pData;
   byte *dst = retData.data();
