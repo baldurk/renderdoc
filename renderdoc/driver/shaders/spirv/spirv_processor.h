@@ -112,7 +112,7 @@ Scalar scalar(VarType t);
   }
 
 SCALAR_TYPE(void, Op::TypeVoid, 0, false);
-SCALAR_TYPE(bool, Op::TypeBool, 0, false);
+SCALAR_TYPE(bool, Op::TypeBool, 32, false);
 SCALAR_TYPE(uint8_t, Op::TypeInt, 8, false);
 SCALAR_TYPE(uint16_t, Op::TypeInt, 16, false);
 SCALAR_TYPE(uint32_t, Op::TypeInt, 32, false);

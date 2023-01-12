@@ -47,6 +47,11 @@ Scalar::Scalar(Iter it)
     width = decoded.width;
     signedness = false;
   }
+  else if(type == Op::TypeBool)
+  {
+    width = 32;
+    signedness = false;
+  }
   else
   {
     width = 0;
