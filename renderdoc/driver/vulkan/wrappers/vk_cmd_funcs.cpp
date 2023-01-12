@@ -664,7 +664,7 @@ void WrappedVulkan::ApplyRPLoadDiscards(VkCommandBuffer commandBuffer, VkRect2D 
           StringFormat::Fmt("Render pass %s has resolve feedback loop detected with at "
                             "least one attachment read before it is resolved to.\n"
                             "No discard patterns will be shown to avoid cross-pollution.",
-                            rpName));
+                            rpName.c_str()));
     }
 
     return;
