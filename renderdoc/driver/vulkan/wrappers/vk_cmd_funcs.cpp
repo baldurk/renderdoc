@@ -588,10 +588,87 @@ void WrappedVulkan::ApplyRPLoadDiscards(VkCommandBuffer commandBuffer, VkRect2D 
   if(m_ReplayOptions.optimisation == ReplayOptimisationLevel::Fastest)
     return;
 
-  const VulkanCreationInfo::RenderPass &rpinfo =
-      m_CreationInfo.m_RenderPass[GetCmdRenderState().GetRenderPass()];
+  ResourceId rpId = GetCmdRenderState().GetRenderPass();
+
+  const VulkanCreationInfo::RenderPass &rpinfo = m_CreationInfo.m_RenderPass[rpId];
 
   const rdcarray<ResourceId> &attachments = GetCmdRenderState().GetFramebufferAttachments();
+
+  bool feedbackLoop = false;
+
+  // this is a bit of a coarse check and may have false positives, but the cases should be
+  // extremely rare where it fires at all. We look for any attachment that is detectably resolved to
+  // after it is read, and avoid applying discard patterns anywhere to avoid pollution across
+  // partial replays.
+  //
+  // The reason we only look at resolves is because without significant work those can't be avoided
+  // and so they still continue to happen even if we are not intending to replay to the end where
+  // the resolve logically happens (as we must always finish a renderpass we started). If that
+  // resolve then writes over an attachment which was read earlier in the renderpass we are now
+  // polluting results with an effective time-travel via the feedback loop.
+  //
+  // Subpass 0 reads from attachment 0 and writes to attachment 1
+  // Subpass 1 reads from attachment 1 and resolves to attachment 0
+  //
+  // when selecting a draw in subpass 0 attachment 0 we'll replay up to the draw, then finish the
+  // renderpass, but the act of finishing that renderpass will resolve into attachment 0 trashing
+  // the contents that should be there. Later replaying the draw alone we'll read the wrong data.
+  //
+  // note this also doesn't cover all cases, because we only handle detecting input attachment
+  // reads, but it would be perfectly valid for subpass 0 to read via a descriptor above.
+  //
+  // the only 'perfect' solution is extremely invasive and requires either completely splitting
+  // apart render passes to manually invoke all resolve actions, which interacts poorly with other
+  // things, or else have some kind of future-knowledge at begin renderpass time to know how far
+  // into the RP we're going to go, and substitute in a patched RP if needed to avoid resolves.
+  // That solution is more maintenance burden & bug surface than handling this case merits.
+  rdcarray<rdcpair<bool, bool>> readResolves;
+  readResolves.resize(rpinfo.attachments.size());
+  for(size_t i = 0; i < rpinfo.subpasses.size(); i++)
+  {
+    // if the subpass is explicitly marked as a feedback loop, consider that as a read for all
+    // attachments since we don't know which will be read from. If there are no resolve attachments
+    // this still won't make the whole RP considered a feedback loop for our purposes since there
+    // won't be any accidental time travel
+    if(rpinfo.subpasses[i].feedbackLoop)
+    {
+      for(rdcpair<bool, bool> &rw : readResolves)
+        rw.first = true;
+    }
+    else
+    {
+      for(uint32_t a : rpinfo.subpasses[i].inputAttachments)
+        if(a < readResolves.size())
+          readResolves[a].first = true;
+    }
+
+    for(uint32_t a : rpinfo.subpasses[i].resolveAttachments)
+      if(a < readResolves.size())
+        readResolves[a].second = true;
+  }
+
+  // if any attachment is (provably) read and resolved to, we've got a feedback loop
+  for(rdcpair<bool, bool> &rw : readResolves)
+    feedbackLoop |= (rw.first && rw.second);
+
+  if(feedbackLoop)
+  {
+    if(!m_FeedbackRPs.contains(rpId))
+    {
+      m_FeedbackRPs.push_back(rpId);
+
+      const rdcstr rpName = ToStr(GetResourceManager()->GetOriginalID(rpId));
+
+      AddDebugMessage(
+          MessageCategory::Execution, MessageSeverity::Medium, MessageSource::RuntimeWarning,
+          StringFormat::Fmt("Render pass %s has resolve feedback loop detected with at "
+                            "least one attachment read before it is resolved to.\n"
+                            "No discard patterns will be shown to avoid cross-pollution.",
+                            rpName));
+    }
+
+    return;
+  }
 
   for(size_t i = 0; i < attachments.size(); i++)
   {
@@ -2175,7 +2252,8 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
           m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
         }
 
-        if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
+        if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest &&
+           !m_FeedbackRPs.contains(currentRP))
         {
           const VulkanCreationInfo::RenderPass &rpinfo = m_CreationInfo.m_RenderPass[currentRP];
 
@@ -2839,10 +2917,11 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
               m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
         }
 
+        ResourceId currentRP = GetCmdRenderState().GetRenderPass();
+
         rdcarray<ResourceId> attachments;
         VkRect2D renderArea;
-        const VulkanCreationInfo::RenderPass &rpinfo =
-            m_CreationInfo.m_RenderPass[GetCmdRenderState().GetRenderPass()];
+        const VulkanCreationInfo::RenderPass &rpinfo = m_CreationInfo.m_RenderPass[currentRP];
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
@@ -2865,7 +2944,8 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
           m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
         }
 
-        if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
+        if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest &&
+           !m_FeedbackRPs.contains(currentRP))
         {
           for(size_t i = 0; i < attachments.size(); i++)
           {

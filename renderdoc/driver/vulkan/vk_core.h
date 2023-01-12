@@ -876,6 +876,7 @@ private:
 
   std::map<ResourceId, rdcarray<EventUsage>> m_ResourceUses;
   std::map<uint32_t, EventFlags> m_EventFlags;
+  rdcarray<ResourceId> m_FeedbackRPs;
 
   bytebuf m_MaskedMapData;
 
