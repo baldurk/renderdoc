@@ -212,6 +212,7 @@
     <ClCompile Include="d3d12\d3d12_texture_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_untyped_backbuffer_descriptor.cpp" />
     <ClCompile Include="d3d12\d3d12_vertex_attr_zoo.cpp" />
+    <ClCompile Include="d3d12\d3d12_vertex_uav.cpp" />
     <ClCompile Include="d3d12\d3d12_video_textures.cpp" />
     <ClCompile Include="d3d12\d3d12_vrs.cpp" />
     <ClCompile Include="d3d12\d3d12_write_subresource.cpp" />
