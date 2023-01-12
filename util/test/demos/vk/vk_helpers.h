@@ -720,11 +720,12 @@ struct PushConstantRange : public VkPushConstantRange
 struct PipelineLayoutCreateInfo : public VkPipelineLayoutCreateInfo
 {
   PipelineLayoutCreateInfo(const std::vector<VkDescriptorSetLayout> &setLayouts = {},
-                           const std::vector<VkPushConstantRange> &pushConstantRanges = {})
+                           const std::vector<VkPushConstantRange> &pushConstantRanges = {},
+                           VkPipelineLayoutCreateFlags flags = 0)
   {
     sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pNext = NULL;
-    this->flags = 0;
+    this->flags = flags;
     this->setLayoutCount = (uint32_t)setLayouts.size();
     this->pSetLayouts = setLayouts.data();
     this->pushConstantRangeCount = (uint32_t)pushConstantRanges.size();
@@ -1367,6 +1368,12 @@ struct GraphicsPipelineCreateInfo : private VkGraphicsPipelineCreateInfo
   {
     bake();
     return (const VkGraphicsPipelineCreateInfo *)this;
+  }
+
+  operator VkGraphicsPipelineCreateInfo *()
+  {
+    bake();
+    return (VkGraphicsPipelineCreateInfo *)this;
   }
 
 private:

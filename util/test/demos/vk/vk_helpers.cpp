@@ -244,6 +244,16 @@ const GraphicsPipelineCreateInfo &GraphicsPipelineCreateInfo::operator=(
 
 void GraphicsPipelineCreateInfo::bake()
 {
+  pVertexInputState = &vertexInputState;
+  pInputAssemblyState = &inputAssemblyState;
+  pTessellationState = &tessellationState;
+  pViewportState = &viewportState;
+  pRasterizationState = &rasterizationState;
+  pMultisampleState = &multisampleState;
+  pDepthStencilState = &depthStencilState;
+  pColorBlendState = &colorBlendState;
+  pDynamicState = &dynamicState;
+
   stageCount = (uint32_t)stages.size();
   pStages = stages.data();
 

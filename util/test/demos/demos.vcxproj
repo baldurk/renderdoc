@@ -291,6 +291,7 @@
     <ClCompile Include="vk\vk_dynamic_rendering.cpp" />
     <ClCompile Include="vk\vk_empty_capture.cpp" />
     <ClCompile Include="vk\vk_extended_dyn_state.cpp" />
+    <ClCompile Include="vk\vk_graphics_pipeline.cpp" />
     <ClCompile Include="vk\vk_khr_buffer_address.cpp" />
     <ClCompile Include="vk\vk_large_buffer.cpp" />
     <ClCompile Include="vk\vk_large_descriptor_sets.cpp" />

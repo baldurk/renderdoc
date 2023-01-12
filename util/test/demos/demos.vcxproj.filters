@@ -637,6 +637,9 @@
     <ClCompile Include="vk\vk_read_before_overwrite.cpp">
       <Filter>Vulkan\demos</Filter>
     </ClCompile>
+    <ClCompile Include="vk\vk_graphics_pipeline.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
     <ClCompile Include="d3d12\d3d12_vertex_uav.cpp">
       <Filter>D3D12\demos</Filter>
     </ClCompile>
