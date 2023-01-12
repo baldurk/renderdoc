@@ -307,8 +307,13 @@ jobs:
     - name: Install Homebrew dependencies
       run: |
         brew update || true
-        brew install lftp automake pcre
-        brew install --overwrite qt5
+        brew unlink python
+        brew link --overwrite --force python
+        brew unlink python@3.10
+        brew link --overwrite --force python@3.10
+        brew unlink python@3.11
+        brew link --overwrite --force python@3.11
+        brew install --overwrite lftp automake pcre qt5
         brew link --overwrite --force qt5
     - name: Build
       run: |
