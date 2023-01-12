@@ -1247,16 +1247,14 @@ public:
     // reset descriptor sets to dummy state
     if(depthTex)
     {
-      // for depth not all descriptors are valid, in particular we skip 3D and cube
       uint32_t resetIndex = 3;
 
       rdcarray<VkWriteDescriptorSet> writes;
 
       for(size_t i = 0; i < ARRAY_COUNT(m_DebugData.DummyWrites[resetIndex]); i++)
       {
-        if(m_DebugData.DummyWrites[resetIndex][i].dstBinding != (uint32_t)ShaderDebugBind::Tex3D &&
-           m_DebugData.DummyWrites[resetIndex][i].dstBinding != (uint32_t)ShaderDebugBind::TexCube &&
-           m_DebugData.DummyWrites[resetIndex][i].dstBinding != (uint32_t)ShaderDebugBind::Buffer)
+        // not all textures may be supported for depth, so only update those that are valid
+        if(m_DebugData.DummyWrites[resetIndex][i].descriptorCount != 0)
           writes.push_back(m_DebugData.DummyWrites[resetIndex][i]);
       }
 
@@ -2374,8 +2372,13 @@ private:
     {
       rdcspv::StorageClass storageClass = rdcspv::StorageClass::UniformConstant;
 
-      if(depthTex && (i == (size_t)ShaderDebugBind::Tex3D || i == (size_t)ShaderDebugBind::TexCube))
-        continue;
+      if(depthTex)
+      {
+        if(i == (size_t)ShaderDebugBind::Tex3D && !m_pDriver->GetReplay()->Depth3DSupported())
+          continue;
+        else if(i == (size_t)ShaderDebugBind::TexCube && !m_pDriver->GetReplay()->DepthCubeSupported())
+          continue;
+      }
 
       if(i == (size_t)ShaderDebugBind::Constants)
         storageClass = rdcspv::StorageClass::Uniform;
@@ -2392,10 +2395,10 @@ private:
 
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex1D], "Tex1D");
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex2D], "Tex2D");
-    if(!depthTex)
+    if(bindVars[(size_t)ShaderDebugBind::Tex3D] != rdcspv::Id())
       editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex3D], "Tex3D");
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex2DMS], "Tex2DMS");
-    if(!depthTex)
+    if(bindVars[(size_t)ShaderDebugBind::TexCube] != rdcspv::Id())
       editor.SetName(bindVars[(size_t)ShaderDebugBind::TexCube], "TexCube");
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Buffer], "Buffer");
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Sampler], "Sampler");
@@ -2575,7 +2578,7 @@ private:
       if(i == sampIdx || i == (uint32_t)ShaderDebugBind::Constants)
         continue;
 
-      if(depthTex && (i == (size_t)ShaderDebugBind::Tex3D || i == (size_t)ShaderDebugBind::TexCube))
+      if(bindVars[i] == rdcspv::Id())
         continue;
 
       rdcspv::ImageOperandsAndParamDatas imageOperandsWithOffsets;
@@ -2706,8 +2709,7 @@ private:
 
       // VUID-StandaloneSpirv-OpImage-04777
       // OpImage*Dref must not consume an image whose Dim is 3D
-      // also skip cube
-      if(i == (uint32_t)ShaderDebugBind::Tex3D || i == (uint32_t)ShaderDebugBind::TexCube)
+      if(i == (uint32_t)ShaderDebugBind::Tex3D)
         depthTex = false;
 
       // don't emit dref's for uint/sint textures
@@ -4834,6 +4836,9 @@ rdcarray<ShaderDebugState> VulkanReplay::ContinueDebug(ShaderDebugger *debugger)
   {
     for(size_t dim = 0; dim < ARRAY_COUNT(m_TexRender.DummyImageViews[0]); dim++)
     {
+      if(m_TexRender.DummyImageViews[fmt][dim] == VK_NULL_HANDLE)
+        continue;
+
       m_ShaderDebugData.DummyImageInfos[fmt][dim].imageLayout =
           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       m_ShaderDebugData.DummyImageInfos[fmt][dim].imageView =
@@ -4857,13 +4862,16 @@ rdcarray<ShaderDebugState> VulkanReplay::ContinueDebug(ShaderDebugger *debugger)
     m_ShaderDebugData.DummyWrites[fmt][5].dstSet = Unwrap(m_ShaderDebugData.DescSet);
     m_ShaderDebugData.DummyWrites[fmt][5].pImageInfo = &m_ShaderDebugData.DummyImageInfos[fmt][5];
 
-    m_ShaderDebugData.DummyWrites[fmt][6].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    m_ShaderDebugData.DummyWrites[fmt][6].descriptorCount = 1;
-    m_ShaderDebugData.DummyWrites[fmt][6].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
-    m_ShaderDebugData.DummyWrites[fmt][6].dstBinding = (uint32_t)ShaderDebugBind::Buffer;
-    m_ShaderDebugData.DummyWrites[fmt][6].dstSet = Unwrap(m_ShaderDebugData.DescSet);
-    m_ShaderDebugData.DummyWrites[fmt][6].pTexelBufferView =
-        UnwrapPtr(m_TexRender.DummyBufferView[fmt]);
+    if(m_TexRender.DummyBufferView[fmt] != VK_NULL_HANDLE)
+    {
+      m_ShaderDebugData.DummyWrites[fmt][6].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      m_ShaderDebugData.DummyWrites[fmt][6].descriptorCount = 1;
+      m_ShaderDebugData.DummyWrites[fmt][6].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+      m_ShaderDebugData.DummyWrites[fmt][6].dstBinding = (uint32_t)ShaderDebugBind::Buffer;
+      m_ShaderDebugData.DummyWrites[fmt][6].dstSet = Unwrap(m_ShaderDebugData.DescSet);
+      m_ShaderDebugData.DummyWrites[fmt][6].pTexelBufferView =
+          UnwrapPtr(m_TexRender.DummyBufferView[fmt]);
+    }
   }
 
   rdcarray<ShaderDebugState> ret = spvDebugger->ContinueDebug();

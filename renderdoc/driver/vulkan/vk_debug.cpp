@@ -3330,10 +3330,6 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     {
       for(size_t type = 0; type < ARRAY_COUNT(types); type++)
       {
-        // don't create 3D depth
-        if(formats[fmt] == VK_FORMAT_D16_UNORM && types[type] == VK_IMAGE_TYPE_3D)
-          continue;
-
         // create 1x1 image of the right size
         VkImageCreateInfo imInfo = {
             VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -3354,10 +3350,38 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
         };
 
         // make the 2D image cube-compatible for non-depth
-        if(type == 1 && formats[fmt] != VK_FORMAT_D16_UNORM)
+        if(type == 1)
         {
           imInfo.arrayLayers = 6;
           imInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+        }
+
+        // some depth images might not be supported
+        if(formats[fmt] == VK_FORMAT_D16_UNORM)
+        {
+          VkImageFormatProperties props = {};
+          vkr = driver->vkGetPhysicalDeviceImageFormatProperties(
+              driver->GetPhysDev(), imInfo.format, imInfo.imageType, imInfo.tiling, imInfo.usage,
+              imInfo.flags, &props);
+
+          if(vkr != VK_SUCCESS)
+          {
+            if(type == 1)
+            {
+              // create non-cube compatible
+              imInfo.arrayLayers = 1;
+              imInfo.flags = 0;
+
+              DepthCubesSupported = false;
+            }
+            else
+            {
+              RDCLOG("Couldn't create image with format %s type %s and sample count %s",
+                     ToStr(formats[fmt]).c_str(), ToStr(types[type]).c_str(),
+                     ToStr(sampleCounts[type]).c_str());
+              continue;
+            }
+          }
         }
 
         vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &DummyImages[fmt][type]);
@@ -3462,8 +3486,12 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
           cube = true;
         }
 
-        // don't create 3D depth or cubes
-        if(formats[fmt] == VK_FORMAT_D16_UNORM && (viewtypes[type] == VK_IMAGE_VIEW_TYPE_3D || cube))
+        // don't make cube views if cubes weren't supported for depth
+        if(formats[fmt] == VK_FORMAT_D16_UNORM && cube && !DepthCubesSupported)
+          continue;
+
+        // don't create views when we failed to make the images
+        if(DummyImages[fmt][imType] == VK_NULL_HANDLE)
           continue;
 
         VkImageViewCreateInfo viewInfo = {

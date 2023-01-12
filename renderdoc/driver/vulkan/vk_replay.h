@@ -448,6 +448,8 @@ public:
   void CopyPixelForPixelHistory(VkCommandBuffer cmd, VkOffset2D offset, uint32_t sample,
                                 uint32_t bufferOffset, VkFormat format, VkDescriptorSet descSet);
 
+  bool Depth3DSupported() { return m_TexRender.DummyImages[3][2] != VK_NULL_HANDLE; }
+  bool DepthCubeSupported() { return m_TexRender.DepthCubesSupported; }
 private:
   bool FetchShaderFeedback(uint32_t eventId);
   void ClearFeedbackCache();
@@ -605,6 +607,7 @@ private:
     VkSampler DummySampler = VK_NULL_HANDLE;
     VkBuffer DummyBuffer = VK_NULL_HANDLE;
     VkBufferView DummyBufferView[4] = {};
+    bool DepthCubesSupported = true;
 
     std::map<ResourceId, TextureDisplayViews> TextureViews;
 
