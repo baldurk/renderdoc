@@ -687,9 +687,9 @@ protected:
 
   uint32_t GetOrAssignMetaID(Metadata *m);
   uint32_t GetOrAssignMetaID(DebugLocation &l);
-  const Type *GetVoidType();
-  const Type *GetBoolType();
-  const Type *GetInt32Type();
+  const Type *GetVoidType(bool precache = false);
+  const Type *GetBoolType(bool precache = false);
+  const Type *GetInt32Type(bool precache = false);
   const Type *GetInt8Type();
   const Type *GetPointerType(const Type *type, Type::PointerAddrSpace addrSpace) const;
 

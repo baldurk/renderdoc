@@ -490,9 +490,9 @@ ProgramEditor::~ProgramEditor()
 #endif
 
   // cache known types for encoding
-  GetVoidType();
-  GetBoolType();
-  GetInt32Type();
+  GetVoidType(true);
+  GetBoolType(true);
+  GetInt32Type(true);
 
   // replace the DXIL bytecode in the container with
   DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, DXBC::FOURCC_DXIL, EncodeProgram());

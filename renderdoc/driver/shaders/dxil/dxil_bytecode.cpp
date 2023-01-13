@@ -2346,7 +2346,7 @@ uint32_t Program::GetOrAssignMetaID(DebugLocation &l)
   return l.id;
 }
 
-const DXIL::Type *Program::GetVoidType()
+const DXIL::Type *Program::GetVoidType(bool precache)
 {
   if(m_VoidType)
     return m_VoidType;
@@ -2360,13 +2360,13 @@ const DXIL::Type *Program::GetVoidType()
     }
   }
 
-  if(!m_VoidType)
+  if(!m_VoidType && !precache)
     RDCERR("Couldn't find void type");
 
   return m_VoidType;
 }
 
-const DXIL::Type *Program::GetBoolType()
+const DXIL::Type *Program::GetBoolType(bool precache)
 {
   if(m_BoolType)
     return m_BoolType;
@@ -2381,13 +2381,13 @@ const DXIL::Type *Program::GetBoolType()
     }
   }
 
-  if(!m_BoolType)
+  if(!m_BoolType && !precache)
     RDCERR("Couldn't find bool type");
 
   return m_BoolType;
 }
 
-const Type *Program::GetInt32Type()
+const Type *Program::GetInt32Type(bool precache)
 {
   if(m_Int32Type)
     return m_Int32Type;
@@ -2402,7 +2402,7 @@ const Type *Program::GetInt32Type()
     }
   }
 
-  if(!m_Int32Type)
+  if(!m_Int32Type && !precache)
     RDCERR("Couldn't find int32 type");
 
   return m_Int32Type;
