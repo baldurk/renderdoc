@@ -31,6 +31,8 @@
 #include "driver/dx/official/d3dcommon.h"
 #include "driver/shaders/dxbc/dxbc_common.h"
 
+#define DXC_COMPATIBLE_DISASM OPTION_OFF
+
 namespace LLVMBC
 {
 struct BlockOrRecord;

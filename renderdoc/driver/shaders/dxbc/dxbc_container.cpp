@@ -567,6 +567,7 @@ const rdcstr &DXBCContainer::GetDisassembly()
     {
       m_Disassembly.clear();
 
+#if DISABLED(DXC_COMPATIBLE_DISASM)
       if(m_GlobalFlags != GlobalShaderFlags::None)
         m_Disassembly += globalFlagsString;
 
@@ -581,6 +582,7 @@ const rdcstr &DXBCContainer::GetDisassembly()
       for(size_t i = 0; i < sizeof(m_Hash); i++)
         m_Disassembly += StringFormat::Fmt("%02x", hashBytes[i]);
       m_Disassembly += "\n\n";
+#endif
 
       m_Disassembly += m_DXILByteCode->GetDisassembly();
     }

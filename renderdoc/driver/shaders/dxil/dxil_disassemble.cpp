@@ -30,8 +30,6 @@
 #include "dxil_bytecode.h"
 #include "dxil_common.h"
 
-#define DXC_COMPATIBLE_DISASM OPTION_OFF
-
 #if ENABLED(DXC_COMPATIBLE_DISASM) && ENABLED(RDOC_RELEASE)
 
 #error "DXC compatible disassembly should only be enabled in debug builds for testing"
@@ -368,8 +366,11 @@ void Program::MakeDisassemblyString()
   };
   // clang-format on
 
-  m_Disassembly = StringFormat::Fmt("; %s Shader, compiled under SM%u.%u\n\n",
-                                    shaderName[int(m_Type)], m_Major, m_Minor);
+  m_Disassembly.clear();
+#if DISABLED(DXC_COMPATIBLE_DISASM)
+  m_Disassembly += StringFormat::Fmt("; %s Shader, compiled under SM%u.%u\n\n",
+                                     shaderName[int(m_Type)], m_Major, m_Minor);
+#endif
   m_Disassembly += StringFormat::Fmt("target datalayout = \"%s\"\n", m_Datalayout.c_str());
   m_Disassembly += StringFormat::Fmt("target triple = \"%s\"\n\n", m_Triple.c_str());
 
