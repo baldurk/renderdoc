@@ -429,7 +429,7 @@ ProgramEditor::~ProgramEditor()
     for(Constant &c : f.constants)
     {
       Fixup(c.type);
-      Fixup(c.inner);
+      Fixup(c.inner, &oldf, &f);
       for(size_t i = 0; i < c.members.size(); i++)
         Fixup(c.members[i], &oldf, &f);
     }
