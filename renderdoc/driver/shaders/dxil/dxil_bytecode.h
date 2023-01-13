@@ -681,6 +681,7 @@ protected:
 
   bool ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Metadata &meta);
   rdcstr GetDebugVarName(const DIBase *d);
+  rdcstr GetFunctionScopeName(const DIBase *d);
 
   rdcstr &GetValueSymtabString(const Value &v);
 

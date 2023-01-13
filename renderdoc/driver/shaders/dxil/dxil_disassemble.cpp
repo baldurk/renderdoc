@@ -219,7 +219,7 @@ void Program::MakeDisassemblyString()
     "CheckAccessFullyMapped(status)",
     "GetDimensions(handle,mipLevel)",
     "TextureGather(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,channel)",
-    "TextureGatherCmp(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,channel,compareVale)",
+    "TextureGatherCmp(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,channel,compareValue)",
     "Texture2DMSGetSamplePosition(srv,index)",
     "RenderTargetGetSamplePosition(index)",
     "RenderTargetGetSampleCount()",
@@ -1263,6 +1263,10 @@ void Program::MakeDisassemblyString()
             m_Disassembly += StringFormat::Fmt(
                 " ; var:%s ", escapeString(GetDebugVarName(inst.args[varIdx].meta->dwarf)).c_str());
             m_Disassembly += inst.args[exprIdx].meta->valString();
+
+            rdcstr funcName = GetFunctionScopeName(inst.args[varIdx].meta->dwarf);
+            if(!funcName.empty())
+              m_Disassembly += StringFormat::Fmt(" func:%s", escapeString(funcName).c_str());
           }
         }
 
@@ -1539,7 +1543,7 @@ rdcstr Type::toString() const
       else
         return StringFormat::Fmt("%s addrspace(%d)*", inner->toString().c_str(), addrSpace);
     case Array: return StringFormat::Fmt("[%u x %s]", elemCount, inner->toString().c_str());
-    case Function: return declFunction(rdcstr(), {}, NULL);
+    case Function: return declFunction(rdcstr(), {}, NULL) + "*";
     case Struct:
     {
       rdcstr ret;

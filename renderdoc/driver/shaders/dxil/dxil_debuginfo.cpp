@@ -245,6 +245,33 @@ rdcstr Program::GetDebugVarName(const DIBase *d)
   return "???";
 }
 
+rdcstr Program::GetFunctionScopeName(const DIBase *d)
+{
+  const Metadata *scope = NULL;
+  if(d->type == DIBase::LocalVariable)
+    scope = d->As<DILocalVariable>()->scope;
+  if(d->type == DIBase::GlobalVariable)
+    scope = d->As<DIGlobalVariable>()->scope;
+
+  while(scope && scope->dwarf)
+  {
+    if(scope->dwarf->type == DIBase::Subprogram)
+    {
+      const rdcstr *name = scope->dwarf->As<DISubprogram>()->name;
+      return name ? *name : "";
+    }
+    else if(scope->dwarf->type == DIBase::LexicalBlock)
+    {
+      scope = scope->dwarf->As<DILexicalBlock>()->scope;
+      continue;
+    }
+
+    break;
+  }
+
+  return "";
+}
+
 rdcstr getOptMetaString(const Metadata *meta)
 {
   return meta ? escapeString(meta->str).c_str() : "\"\"";
