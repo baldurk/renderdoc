@@ -894,6 +894,7 @@ rdcstr HumanDriverName(VkDriverId driverId)
     case VK_DRIVER_ID_SAMSUNG_PROPRIETARY: return "Samsung Proprietary";
     case VK_DRIVER_ID_MESA_VENUS: return "Mesa Venus";
     case VK_DRIVER_ID_MESA_DOZEN: return "Mesa Dozen";
+    case VK_DRIVER_ID_MESA_NVK: return "Mesa NVK";
     default: break;
   }
 

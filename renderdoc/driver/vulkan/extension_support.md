@@ -242,6 +242,7 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_blend_operation_advanced`
 * `VK_EXT_border_color_swizzle`
 * `VK_EXT_depth_clamp_zero_one`
+* `VK_EXT_descriptor_buffer`
 * `VK_EXT_device_address_binding_report`
 * `VK_EXT_device_fault`
 * `VK_EXT_device_memory_report`
@@ -266,12 +267,15 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_rasterization_order_attachment_access`
 * `VK_EXT_shader_module_identifier`
 * `VK_EXT_subpass_merge_feedback`
+* `VK_EXT_surface_maintenance1`
+* `VK_EXT_swapchain_maintenance1`
 
 ## Platform/IHV Extensions
 
 ### ARM
 
 * `VK_ARM_rasterization_order_attachment_access`
+* `VK_ARM_shader_core_builtins`
 
 ### AMD
 
@@ -305,6 +309,7 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 
 * `VK_NV_clip_space_w_scaling`
 * `VK_NV_cooperative_matrix`
+* `VK_NV_copy_memory_indirect`
 * `VK_NV_corner_sampled_image`
 * `VK_NV_coverage_reduction_mode`
 * `VK_NV_dedicated_allocation_image_aliasing`
@@ -318,9 +323,11 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_NV_framebuffer_mixed_samples`
 * `VK_NV_inherited_viewport_scissor`
 * `VK_NV_linear_color_attachment`
+* `VK_NV_memory_decompression`
 * `VK_NV_mesh_shader`
 * `VK_NV_optical_flow`
 * `VK_NV_present_barrier`
+* `VK_NV_ray_tracing_invocation_reorder`
 * `VK_NV_ray_tracing_motion_blur`
 * `VK_NV_representative_fragment_test`
 * `VK_NV_scissor_exclusive`
@@ -332,6 +339,7 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 
 * `VK_QCOM_fragment_density_map_offset`
 * `VK_QCOM_image_processing`
+* `VK_QCOM_multiview_per_view_viewports`
 * `VK_QCOM_render_pass_shader_resolve`
 * `VK_QCOM_render_pass_store_ops`
 * `VK_QCOM_render_pass_transform`
@@ -356,24 +364,33 @@ These only make sense to implement if the platform as a whole is supported.
 * `VK_NV_acquire_winrt_display`
 * `VK_QNX_screen_surface`
 
-## Deliberately nsupported extensions
+## Deliberately unsupported extensions
 
-These will never be implemented in their current form.
+These are expected to never be implemented in their current form.
 
 ### Complex IHV extensions
 
 * `VK_NV_ray_tracing`
 
+### Vulkan Video extensions
+
+* `VK_KHR_video_queue`
+* `VK_KHR_video_decode_queue`
+* `VK_KHR_video_decode_h264`
+* `VK_KHR_video_decode_h265`
+
+### System extensions
+
+* `VK_LUNARG_direct_driver_loading`
+
 ### Deprecated / experimental / IHV
 
 * `VK_AMD_draw_indirect_count`
+* `VK_KHR_video_encode_queue`
 * `VK_EXT_video_encode_h264`
 * `VK_EXT_video_encode_h265`
 * `VK_EXT_video_decode_h264`
 * `VK_EXT_video_decode_h265`
-* `VK_KHR_video_queue`
-* `VK_KHR_video_decode_queue`
-* `VK_KHR_video_encode_queue`
 * `VK_MVK_ios_surface`
 * `VK_NV_glsl_shader`
 * `VK_NVX_binary_import`

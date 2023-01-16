@@ -29,7 +29,7 @@
 038    VK_AMD_shader_ballot
 039    VK_EXT_video_encode_h264
 040    VK_EXT_video_encode_h265
-041    VK_EXT_video_decode_h264
+041    VK_KHR_video_decode_h264
 042    VK_AMD_texture_gather_bias_lod
 043    VK_AMD_shader_info
 045    VK_KHR_dynamic_rendering
@@ -146,7 +146,7 @@
 184    VK_AMD_pipeline_compiler_control
 185    VK_EXT_calibrated_timestamps
 186    VK_AMD_shader_core_properties
-188    VK_EXT_video_decode_h265
+188    VK_KHR_video_decode_h265
 189    VK_KHR_global_priority
 190    VK_AMD_memory_overallocation_behavior
 191    VK_EXT_vertex_attribute_divisor
@@ -209,6 +209,8 @@
 269    VK_KHR_deferred_host_operations
 270    VK_KHR_pipeline_executable_properties
 274    VK_EXT_shader_atomic_float2
+275    VK_EXT_surface_maintenance1
+276    VK_EXT_swapchain_maintenance1
 277    VK_EXT_shader_demote_to_helper_invocation
 278    VK_NV_device_generated_commands
 279    VK_NV_inherited_viewport_scissor
@@ -231,6 +233,7 @@
 302    VK_QCOM_render_pass_store_ops
 312    VK_EXT_metal_objects
 315    VK_KHR_synchronization2
+317    VK_EXT_descriptor_buffer
 321    VK_EXT_graphics_pipeline_library
 322    VK_AMD_shader_early_and_late_fragment_tests
 323    VK_KHR_fragment_shader_barycentric
@@ -289,12 +292,15 @@
 422    VK_EXT_depth_clamp_zero_one
 423    VK_EXT_non_seamless_cube_map
 426    VK_QCOM_fragment_density_map_offset
+427    VK_NV_copy_memory_indirect
+428    VK_NV_memory_decompression
 431    VK_NV_linear_color_attachment
 434    VK_GOOGLE_surfaceless_query
 438    VK_EXT_image_compression_control_swapchain
 441    VK_QCOM_image_processing
 456    VK_EXT_extended_dynamic_state3
 459    VK_EXT_subpass_merge_feedback
+460    VK_LUNARG_direct_driver_loading
 463    VK_EXT_shader_module_identifier
 464    VK_EXT_rasterization_order_attachment_access
 465    VK_NV_optical_flow
@@ -302,4 +308,7 @@
 467    VK_EXT_pipeline_protected_access
 485    VK_QCOM_tile_properties
 486    VK_SEC_amigo_profiling
+489    VK_QCOM_multiview_per_view_viewports
+491    VK_NV_ray_tracing_invocation_reorder
 495    VK_EXT_mutable_descriptor_type
+498    VK_ARM_shader_core_builtins

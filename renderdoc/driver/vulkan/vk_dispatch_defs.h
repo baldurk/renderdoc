@@ -137,10 +137,8 @@ struct VkInstDispatchTable
 #endif // VK_USE_PLATFORM_WIN32_KHR
 
   // VK_KHR_video_queue
-#ifdef VK_ENABLE_BETA_EXTENSIONS
   PFN_vkGetPhysicalDeviceVideoCapabilitiesKHR GetPhysicalDeviceVideoCapabilitiesKHR;
   PFN_vkGetPhysicalDeviceVideoFormatPropertiesKHR GetPhysicalDeviceVideoFormatPropertiesKHR;
-#endif // VK_ENABLE_BETA_EXTENSIONS
 
   // VK_KHR_get_physical_device_properties2
   PFN_vkGetPhysicalDeviceFeatures2KHR GetPhysicalDeviceFeatures2KHR;
@@ -494,7 +492,6 @@ struct VkDevDispatchTable
   PFN_vkCreateSharedSwapchainsKHR CreateSharedSwapchainsKHR;
 
   // VK_KHR_video_queue
-#ifdef VK_ENABLE_BETA_EXTENSIONS
   PFN_vkCreateVideoSessionKHR CreateVideoSessionKHR;
   PFN_vkDestroyVideoSessionKHR DestroyVideoSessionKHR;
   PFN_vkGetVideoSessionMemoryRequirementsKHR GetVideoSessionMemoryRequirementsKHR;
@@ -505,12 +502,9 @@ struct VkDevDispatchTable
   PFN_vkCmdBeginVideoCodingKHR CmdBeginVideoCodingKHR;
   PFN_vkCmdEndVideoCodingKHR CmdEndVideoCodingKHR;
   PFN_vkCmdControlVideoCodingKHR CmdControlVideoCodingKHR;
-#endif // VK_ENABLE_BETA_EXTENSIONS
 
   // VK_KHR_video_decode_queue
-#ifdef VK_ENABLE_BETA_EXTENSIONS
   PFN_vkCmdDecodeVideoKHR CmdDecodeVideoKHR;
-#endif // VK_ENABLE_BETA_EXTENSIONS
 
   // VK_KHR_dynamic_rendering
   PFN_vkCmdBeginRenderingKHR CmdBeginRenderingKHR;
@@ -855,6 +849,9 @@ struct VkDevDispatchTable
   PFN_vkCmdSetStencilTestEnableEXT CmdSetStencilTestEnableEXT;
   PFN_vkCmdSetStencilOpEXT CmdSetStencilOpEXT;
 
+  // VK_EXT_swapchain_maintenance1
+  PFN_vkReleaseSwapchainImagesEXT ReleaseSwapchainImagesEXT;
+
   // VK_NV_device_generated_commands
   PFN_vkGetGeneratedCommandsMemoryRequirementsNV GetGeneratedCommandsMemoryRequirementsNV;
   PFN_vkCmdPreprocessGeneratedCommandsNV CmdPreprocessGeneratedCommandsNV;
@@ -873,6 +870,19 @@ struct VkDevDispatchTable
 #ifdef VK_USE_PLATFORM_METAL_EXT
   PFN_vkExportMetalObjectsEXT ExportMetalObjectsEXT;
 #endif // VK_USE_PLATFORM_METAL_EXT
+
+  // VK_EXT_descriptor_buffer
+  PFN_vkGetDescriptorSetLayoutSizeEXT GetDescriptorSetLayoutSizeEXT;
+  PFN_vkGetDescriptorSetLayoutBindingOffsetEXT GetDescriptorSetLayoutBindingOffsetEXT;
+  PFN_vkGetDescriptorEXT GetDescriptorEXT;
+  PFN_vkCmdBindDescriptorBuffersEXT CmdBindDescriptorBuffersEXT;
+  PFN_vkCmdSetDescriptorBufferOffsetsEXT CmdSetDescriptorBufferOffsetsEXT;
+  PFN_vkCmdBindDescriptorBufferEmbeddedSamplersEXT CmdBindDescriptorBufferEmbeddedSamplersEXT;
+  PFN_vkGetBufferOpaqueCaptureDescriptorDataEXT GetBufferOpaqueCaptureDescriptorDataEXT;
+  PFN_vkGetImageOpaqueCaptureDescriptorDataEXT GetImageOpaqueCaptureDescriptorDataEXT;
+  PFN_vkGetImageViewOpaqueCaptureDescriptorDataEXT GetImageViewOpaqueCaptureDescriptorDataEXT;
+  PFN_vkGetSamplerOpaqueCaptureDescriptorDataEXT GetSamplerOpaqueCaptureDescriptorDataEXT;
+  PFN_vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT GetAccelerationStructureOpaqueCaptureDescriptorDataEXT;
 
   // VK_NV_fragment_shading_rate_enums
   PFN_vkCmdSetFragmentShadingRateEnumNV CmdSetFragmentShadingRateEnumNV;
@@ -961,6 +971,14 @@ struct VkDevDispatchTable
   // VK_VALVE_descriptor_set_host_mapping
   PFN_vkGetDescriptorSetLayoutHostMappingInfoVALVE GetDescriptorSetLayoutHostMappingInfoVALVE;
   PFN_vkGetDescriptorSetHostMappingVALVE GetDescriptorSetHostMappingVALVE;
+
+  // VK_NV_copy_memory_indirect
+  PFN_vkCmdCopyMemoryIndirectNV CmdCopyMemoryIndirectNV;
+  PFN_vkCmdCopyMemoryToImageIndirectNV CmdCopyMemoryToImageIndirectNV;
+
+  // VK_NV_memory_decompression
+  PFN_vkCmdDecompressMemoryNV CmdDecompressMemoryNV;
+  PFN_vkCmdDecompressMemoryIndirectCountNV CmdDecompressMemoryIndirectCountNV;
 
   // VK_EXT_extended_dynamic_state3
   PFN_vkCmdSetTessellationDomainOriginEXT CmdSetTessellationDomainOriginEXT;

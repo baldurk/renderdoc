@@ -2051,6 +2051,8 @@ static ObjData GetObjData(VkObjectType objType, uint64_t object)
     case VK_OBJECT_TYPE_MICROMAP_EXT:
     case VK_OBJECT_TYPE_OPTICAL_FLOW_SESSION_NV:
     case VK_OBJECT_TYPE_UNKNOWN:
+    case VK_OBJECT_TYPE_VIDEO_SESSION_KHR:
+    case VK_OBJECT_TYPE_VIDEO_SESSION_PARAMETERS_KHR:
     case VK_OBJECT_TYPE_MAX_ENUM: break;
   }
 

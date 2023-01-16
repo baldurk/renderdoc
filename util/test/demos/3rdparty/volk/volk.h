@@ -1,7 +1,7 @@
 /**
  * volk
  *
- * Copyright (C) 2018-2022, by Arseny Kapoulkine (arseny.kapoulkine@gmail.com)
+ * Copyright (C) 2018-2023, by Arseny Kapoulkine (arseny.kapoulkine@gmail.com)
  * Report bugs and download new versions at https://github.com/zeux/volk
  *
  * This library is distributed under the MIT License. See notice at the end of this file.
@@ -15,7 +15,7 @@
 #endif
 
 /* VOLK_GENERATE_VERSION_DEFINE */
-#define VOLK_HEADER_VERSION 230
+#define VOLK_HEADER_VERSION 238
 /* VOLK_GENERATE_VERSION_DEFINE */
 
 #ifndef VK_NO_PROTOTYPES
@@ -360,6 +360,21 @@ struct VolkDeviceTable
 	PFN_vkDebugMarkerSetObjectNameEXT vkDebugMarkerSetObjectNameEXT;
 	PFN_vkDebugMarkerSetObjectTagEXT vkDebugMarkerSetObjectTagEXT;
 #endif /* defined(VK_EXT_debug_marker) */
+#if defined(VK_EXT_descriptor_buffer)
+	PFN_vkCmdBindDescriptorBufferEmbeddedSamplersEXT vkCmdBindDescriptorBufferEmbeddedSamplersEXT;
+	PFN_vkCmdBindDescriptorBuffersEXT vkCmdBindDescriptorBuffersEXT;
+	PFN_vkCmdSetDescriptorBufferOffsetsEXT vkCmdSetDescriptorBufferOffsetsEXT;
+	PFN_vkGetBufferOpaqueCaptureDescriptorDataEXT vkGetBufferOpaqueCaptureDescriptorDataEXT;
+	PFN_vkGetDescriptorEXT vkGetDescriptorEXT;
+	PFN_vkGetDescriptorSetLayoutBindingOffsetEXT vkGetDescriptorSetLayoutBindingOffsetEXT;
+	PFN_vkGetDescriptorSetLayoutSizeEXT vkGetDescriptorSetLayoutSizeEXT;
+	PFN_vkGetImageOpaqueCaptureDescriptorDataEXT vkGetImageOpaqueCaptureDescriptorDataEXT;
+	PFN_vkGetImageViewOpaqueCaptureDescriptorDataEXT vkGetImageViewOpaqueCaptureDescriptorDataEXT;
+	PFN_vkGetSamplerOpaqueCaptureDescriptorDataEXT vkGetSamplerOpaqueCaptureDescriptorDataEXT;
+#endif /* defined(VK_EXT_descriptor_buffer) */
+#if defined(VK_EXT_descriptor_buffer) && defined(VK_KHR_acceleration_structure) && defined(VK_NV_ray_tracing)
+	PFN_vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT;
+#endif /* defined(VK_EXT_descriptor_buffer) && defined(VK_KHR_acceleration_structure) && defined(VK_NV_ray_tracing) */
 #if defined(VK_EXT_device_fault)
 	PFN_vkGetDeviceFaultInfoEXT vkGetDeviceFaultInfoEXT;
 #endif /* defined(VK_EXT_device_fault) */
@@ -495,6 +510,9 @@ struct VolkDeviceTable
 	PFN_vkGetShaderModuleCreateInfoIdentifierEXT vkGetShaderModuleCreateInfoIdentifierEXT;
 	PFN_vkGetShaderModuleIdentifierEXT vkGetShaderModuleIdentifierEXT;
 #endif /* defined(VK_EXT_shader_module_identifier) */
+#if defined(VK_EXT_swapchain_maintenance1)
+	PFN_vkReleaseSwapchainImagesEXT vkReleaseSwapchainImagesEXT;
+#endif /* defined(VK_EXT_swapchain_maintenance1) */
 #if defined(VK_EXT_transform_feedback)
 	PFN_vkCmdBeginQueryIndexedEXT vkCmdBeginQueryIndexedEXT;
 	PFN_vkCmdBeginTransformFeedbackEXT vkCmdBeginTransformFeedbackEXT;
@@ -753,6 +771,10 @@ struct VolkDeviceTable
 #if defined(VK_NV_clip_space_w_scaling)
 	PFN_vkCmdSetViewportWScalingNV vkCmdSetViewportWScalingNV;
 #endif /* defined(VK_NV_clip_space_w_scaling) */
+#if defined(VK_NV_copy_memory_indirect)
+	PFN_vkCmdCopyMemoryIndirectNV vkCmdCopyMemoryIndirectNV;
+	PFN_vkCmdCopyMemoryToImageIndirectNV vkCmdCopyMemoryToImageIndirectNV;
+#endif /* defined(VK_NV_copy_memory_indirect) */
 #if defined(VK_NV_device_diagnostic_checkpoints)
 	PFN_vkCmdSetCheckpointNV vkCmdSetCheckpointNV;
 	PFN_vkGetQueueCheckpointDataNV vkGetQueueCheckpointDataNV;
@@ -774,6 +796,10 @@ struct VolkDeviceTable
 #if defined(VK_NV_fragment_shading_rate_enums)
 	PFN_vkCmdSetFragmentShadingRateEnumNV vkCmdSetFragmentShadingRateEnumNV;
 #endif /* defined(VK_NV_fragment_shading_rate_enums) */
+#if defined(VK_NV_memory_decompression)
+	PFN_vkCmdDecompressMemoryIndirectCountNV vkCmdDecompressMemoryIndirectCountNV;
+	PFN_vkCmdDecompressMemoryNV vkCmdDecompressMemoryNV;
+#endif /* defined(VK_NV_memory_decompression) */
 #if defined(VK_NV_mesh_shader)
 	PFN_vkCmdDrawMeshTasksIndirectCountNV vkCmdDrawMeshTasksIndirectCountNV;
 	PFN_vkCmdDrawMeshTasksIndirectNV vkCmdDrawMeshTasksIndirectNV;
@@ -1119,6 +1145,21 @@ extern PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT;
 extern PFN_vkSetDebugUtilsObjectTagEXT vkSetDebugUtilsObjectTagEXT;
 extern PFN_vkSubmitDebugUtilsMessageEXT vkSubmitDebugUtilsMessageEXT;
 #endif /* defined(VK_EXT_debug_utils) */
+#if defined(VK_EXT_descriptor_buffer)
+extern PFN_vkCmdBindDescriptorBufferEmbeddedSamplersEXT vkCmdBindDescriptorBufferEmbeddedSamplersEXT;
+extern PFN_vkCmdBindDescriptorBuffersEXT vkCmdBindDescriptorBuffersEXT;
+extern PFN_vkCmdSetDescriptorBufferOffsetsEXT vkCmdSetDescriptorBufferOffsetsEXT;
+extern PFN_vkGetBufferOpaqueCaptureDescriptorDataEXT vkGetBufferOpaqueCaptureDescriptorDataEXT;
+extern PFN_vkGetDescriptorEXT vkGetDescriptorEXT;
+extern PFN_vkGetDescriptorSetLayoutBindingOffsetEXT vkGetDescriptorSetLayoutBindingOffsetEXT;
+extern PFN_vkGetDescriptorSetLayoutSizeEXT vkGetDescriptorSetLayoutSizeEXT;
+extern PFN_vkGetImageOpaqueCaptureDescriptorDataEXT vkGetImageOpaqueCaptureDescriptorDataEXT;
+extern PFN_vkGetImageViewOpaqueCaptureDescriptorDataEXT vkGetImageViewOpaqueCaptureDescriptorDataEXT;
+extern PFN_vkGetSamplerOpaqueCaptureDescriptorDataEXT vkGetSamplerOpaqueCaptureDescriptorDataEXT;
+#endif /* defined(VK_EXT_descriptor_buffer) */
+#if defined(VK_EXT_descriptor_buffer) && defined(VK_KHR_acceleration_structure) && defined(VK_NV_ray_tracing)
+extern PFN_vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT;
+#endif /* defined(VK_EXT_descriptor_buffer) && defined(VK_KHR_acceleration_structure) && defined(VK_NV_ray_tracing) */
 #if defined(VK_EXT_device_fault)
 extern PFN_vkGetDeviceFaultInfoEXT vkGetDeviceFaultInfoEXT;
 #endif /* defined(VK_EXT_device_fault) */
@@ -1272,6 +1313,9 @@ extern PFN_vkGetPhysicalDeviceMultisamplePropertiesEXT vkGetPhysicalDeviceMultis
 extern PFN_vkGetShaderModuleCreateInfoIdentifierEXT vkGetShaderModuleCreateInfoIdentifierEXT;
 extern PFN_vkGetShaderModuleIdentifierEXT vkGetShaderModuleIdentifierEXT;
 #endif /* defined(VK_EXT_shader_module_identifier) */
+#if defined(VK_EXT_swapchain_maintenance1)
+extern PFN_vkReleaseSwapchainImagesEXT vkReleaseSwapchainImagesEXT;
+#endif /* defined(VK_EXT_swapchain_maintenance1) */
 #if defined(VK_EXT_tooling_info)
 extern PFN_vkGetPhysicalDeviceToolPropertiesEXT vkGetPhysicalDeviceToolPropertiesEXT;
 #endif /* defined(VK_EXT_tooling_info) */
@@ -1626,6 +1670,10 @@ extern PFN_vkCmdSetViewportWScalingNV vkCmdSetViewportWScalingNV;
 #if defined(VK_NV_cooperative_matrix)
 extern PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesNV vkGetPhysicalDeviceCooperativeMatrixPropertiesNV;
 #endif /* defined(VK_NV_cooperative_matrix) */
+#if defined(VK_NV_copy_memory_indirect)
+extern PFN_vkCmdCopyMemoryIndirectNV vkCmdCopyMemoryIndirectNV;
+extern PFN_vkCmdCopyMemoryToImageIndirectNV vkCmdCopyMemoryToImageIndirectNV;
+#endif /* defined(VK_NV_copy_memory_indirect) */
 #if defined(VK_NV_coverage_reduction_mode)
 extern PFN_vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV;
 #endif /* defined(VK_NV_coverage_reduction_mode) */
@@ -1653,6 +1701,10 @@ extern PFN_vkGetMemoryWin32HandleNV vkGetMemoryWin32HandleNV;
 #if defined(VK_NV_fragment_shading_rate_enums)
 extern PFN_vkCmdSetFragmentShadingRateEnumNV vkCmdSetFragmentShadingRateEnumNV;
 #endif /* defined(VK_NV_fragment_shading_rate_enums) */
+#if defined(VK_NV_memory_decompression)
+extern PFN_vkCmdDecompressMemoryIndirectCountNV vkCmdDecompressMemoryIndirectCountNV;
+extern PFN_vkCmdDecompressMemoryNV vkCmdDecompressMemoryNV;
+#endif /* defined(VK_NV_memory_decompression) */
 #if defined(VK_NV_mesh_shader)
 extern PFN_vkCmdDrawMeshTasksIndirectCountNV vkCmdDrawMeshTasksIndirectCountNV;
 extern PFN_vkCmdDrawMeshTasksIndirectNV vkCmdDrawMeshTasksIndirectNV;
@@ -1730,7 +1782,7 @@ extern PFN_vkAcquireNextImage2KHR vkAcquireNextImage2KHR;
 #endif
 
 /**
- * Copyright (c) 2018-2022 Arseny Kapoulkine
+ * Copyright (c) 2018-2023 Arseny Kapoulkine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
