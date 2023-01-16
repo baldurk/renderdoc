@@ -336,11 +336,6 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       if(bufDesc.Width == 0)
         bufDesc.Width = 1U;
 
-      // If we're not a sparse single-sampled texture, we copy the whole resource with all
-      // subresources.
-      if(isMSAA || sparseTable == NULL)
-        subresources = {~0U};
-
       ID3D12Resource *copyDst = NULL;
       HRESULT hr = m_Device->GetReal()->CreateCommittedResource(
           &heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
@@ -354,7 +349,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
           src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
           src.pResource = unwrappedCopySource;
-          src.SubresourceIndex = i;
+          src.SubresourceIndex = subresources[i];
 
           dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
           dst.pResource = copyDst;
@@ -367,6 +362,12 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       {
         RDCERR("Couldn't create readback buffer: HRESULT: %s", ToStr(hr).c_str());
       }
+
+      // If we're not a sparse single-sampled texture, we copy the whole resource with all
+      // subresources. (In the loop above the continue will never be hit, so we can indicate quickly
+      // here that all subresources are present without needing to have {0...n}
+      if(isMSAA || sparseTable == NULL)
+        subresources = {~0U};
 
       // transition back
       for(size_t i = 0; i < barriers.size(); i++)
