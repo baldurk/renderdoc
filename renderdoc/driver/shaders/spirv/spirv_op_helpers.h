@@ -384,9 +384,14 @@ inline LoopControlAndParamDatas DecodeParam(const ConstIter &it, uint32_t &word)
     ret.speculatedIterationsINTEL = (uint32_t)it.word(word);
     word += 1;
   }
-  if(ret.flags & LoopControl::NoFusionINTEL)
+  if(ret.flags & LoopControl::LoopCountINTEL)
   {
-    ret.noFusionINTEL = (uint32_t)it.word(word);
+    ret.loopCountINTEL = (uint32_t)it.word(word);
+    word += 1;
+  }
+  if(ret.flags & LoopControl::MaxReinvocationDelayINTEL)
+  {
+    ret.maxReinvocationDelayINTEL = (uint32_t)it.word(word);
     word += 1;
   }
   return ret;
@@ -447,9 +452,13 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const LoopControlAndParamData
   {
     words.push_back((uint32_t)param.speculatedIterationsINTEL);
   }
-  if(param.flags & LoopControl::NoFusionINTEL)
+  if(param.flags & LoopControl::LoopCountINTEL)
   {
-    words.push_back((uint32_t)param.noFusionINTEL);
+    words.push_back((uint32_t)param.loopCountINTEL);
+  }
+  if(param.flags & LoopControl::MaxReinvocationDelayINTEL)
+  {
+    words.push_back((uint32_t)param.maxReinvocationDelayINTEL);
   }
 }
 
@@ -470,7 +479,8 @@ inline uint16_t ExtraWordCount(const LoopControl loopControl)
     case LoopControl::LoopCoalesceINTEL: return 1;
     case LoopControl::MaxInterleavingINTEL: return 1;
     case LoopControl::SpeculatedIterationsINTEL: return 1;
-    case LoopControl::NoFusionINTEL: return 1;
+    case LoopControl::LoopCountINTEL: return 1;
+    case LoopControl::MaxReinvocationDelayINTEL: return 1;
     default: break;
   }
   return 0;
@@ -896,6 +906,19 @@ struct ExecutionModeParam<ExecutionMode::SchedulerTargetFmaxMhzINTEL>
 };
 
 template<>
+struct ExecutionModeParam<ExecutionMode::StreamingInterfaceINTEL>
+{
+  uint32_t streamingInterfaceINTEL;
+  ExecutionModeParam(uint32_t streamingInterfaceINTELParam) {  streamingInterfaceINTEL = streamingInterfaceINTELParam; }
+  operator ExecutionModeAndParamData()
+  {
+    ExecutionModeAndParamData ret(ExecutionMode::StreamingInterfaceINTEL);
+    ret.streamingInterfaceINTEL = streamingInterfaceINTEL;
+    return ret;
+  }
+};
+
+template<>
 struct ExecutionModeParam<ExecutionMode::NamedBarrierCountINTEL>
 {
   uint32_t namedBarrierCountINTEL;
@@ -1029,6 +1052,10 @@ inline ExecutionModeAndParamData DecodeParam(const ConstIter &it, uint32_t &word
       ret.schedulerTargetFmaxMhzINTEL = (uint32_t)it.word(word);
       word += 1;
       break;
+    case ExecutionMode::StreamingInterfaceINTEL:
+      ret.streamingInterfaceINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
     case ExecutionMode::NamedBarrierCountINTEL:
       ret.namedBarrierCountINTEL = (uint32_t)it.word(word);
       word += 1;
@@ -1128,6 +1155,9 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const ExecutionModeAndParamDa
     case ExecutionMode::SchedulerTargetFmaxMhzINTEL:
       words.push_back((uint32_t)param.schedulerTargetFmaxMhzINTEL);
       break;
+    case ExecutionMode::StreamingInterfaceINTEL:
+      words.push_back((uint32_t)param.streamingInterfaceINTEL);
+      break;
     case ExecutionMode::NamedBarrierCountINTEL:
       words.push_back((uint32_t)param.namedBarrierCountINTEL);
       break;
@@ -1164,6 +1194,7 @@ inline uint16_t ExtraWordCount(const ExecutionMode executionMode)
     case ExecutionMode::MaxWorkDimINTEL: return 1;
     case ExecutionMode::NumSIMDWorkitemsINTEL: return 1;
     case ExecutionMode::SchedulerTargetFmaxMhzINTEL: return 1;
+    case ExecutionMode::StreamingInterfaceINTEL: return 1;
     case ExecutionMode::NamedBarrierCountINTEL: return 1;
     default: break;
   }
@@ -1686,6 +1717,20 @@ struct DecorationParam<Decoration::PrefetchINTEL>
 };
 
 template<>
+struct DecorationParam<Decoration::MathOpDSPModeINTEL>
+{
+  MathOpDSPModeINTELParams mathOpDSPModeINTEL;
+  DecorationParam(uint32_t mode, uint32_t propagate) {  mathOpDSPModeINTEL.mode = mode; mathOpDSPModeINTEL.propagate = propagate; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::MathOpDSPModeINTEL);
+    ret.mathOpDSPModeINTEL.mode = mathOpDSPModeINTEL.mode;
+    ret.mathOpDSPModeINTEL.propagate = mathOpDSPModeINTEL.propagate;
+    return ret;
+  }
+};
+
+template<>
 struct DecorationParam<Decoration::AliasScopeINTEL>
 {
   Id aliasScopeINTEL;
@@ -1707,6 +1752,45 @@ struct DecorationParam<Decoration::NoAliasINTEL>
   {
     DecorationAndParamData ret(Decoration::NoAliasINTEL);
     ret.noAliasINTEL = noAliasINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::InitiationIntervalINTEL>
+{
+  uint32_t initiationIntervalINTEL;
+  DecorationParam(uint32_t initiationIntervalINTELParam) {  initiationIntervalINTEL = initiationIntervalINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::InitiationIntervalINTEL);
+    ret.initiationIntervalINTEL = initiationIntervalINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::MaxConcurrencyINTEL>
+{
+  uint32_t maxConcurrencyINTEL;
+  DecorationParam(uint32_t maxConcurrencyINTELParam) {  maxConcurrencyINTEL = maxConcurrencyINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::MaxConcurrencyINTEL);
+    ret.maxConcurrencyINTEL = maxConcurrencyINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::PipelineEnableINTEL>
+{
+  uint32_t pipelineEnableINTEL;
+  DecorationParam(uint32_t pipelineEnableINTELParam) {  pipelineEnableINTEL = pipelineEnableINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::PipelineEnableINTEL);
+    ret.pipelineEnableINTEL = pipelineEnableINTEL;
     return ret;
   }
 };
@@ -1912,12 +1996,29 @@ inline DecorationAndParamData DecodeParam(const ConstIter &it, uint32_t &word)
       ret.prefetchINTEL = (uint32_t)it.word(word);
       word += 1;
       break;
+    case Decoration::MathOpDSPModeINTEL:
+      ret.mathOpDSPModeINTEL.mode = (uint32_t)it.word(word+0);
+      ret.mathOpDSPModeINTEL.propagate = (uint32_t)it.word(word+1);
+      word += 2;
+      break;
     case Decoration::AliasScopeINTEL:
       ret.aliasScopeINTEL = Id::fromWord(it.word(word));
       word += 1;
       break;
     case Decoration::NoAliasINTEL:
       ret.noAliasINTEL = Id::fromWord(it.word(word));
+      word += 1;
+      break;
+    case Decoration::InitiationIntervalINTEL:
+      ret.initiationIntervalINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::MaxConcurrencyINTEL:
+      ret.maxConcurrencyINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::PipelineEnableINTEL:
+      ret.pipelineEnableINTEL = (uint32_t)it.word(word);
       word += 1;
       break;
     case Decoration::BufferLocationINTEL:
@@ -2056,11 +2157,24 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const DecorationAndParamData 
     case Decoration::PrefetchINTEL:
       words.push_back((uint32_t)param.prefetchINTEL);
       break;
+    case Decoration::MathOpDSPModeINTEL:
+      words.push_back((uint32_t)param.mathOpDSPModeINTEL.mode);
+      words.push_back((uint32_t)param.mathOpDSPModeINTEL.propagate);
+      break;
     case Decoration::AliasScopeINTEL:
       words.push_back(param.aliasScopeINTEL.value());
       break;
     case Decoration::NoAliasINTEL:
       words.push_back(param.noAliasINTEL.value());
+      break;
+    case Decoration::InitiationIntervalINTEL:
+      words.push_back((uint32_t)param.initiationIntervalINTEL);
+      break;
+    case Decoration::MaxConcurrencyINTEL:
+      words.push_back((uint32_t)param.maxConcurrencyINTEL);
+      break;
+    case Decoration::PipelineEnableINTEL:
+      words.push_back((uint32_t)param.pipelineEnableINTEL);
       break;
     case Decoration::BufferLocationINTEL:
       words.push_back((uint32_t)param.bufferLocationINTEL);
@@ -2117,8 +2231,12 @@ inline uint16_t ExtraWordCount(const Decoration decoration)
     case Decoration::ForcePow2DepthINTEL: return 1;
     case Decoration::CacheSizeINTEL: return 1;
     case Decoration::PrefetchINTEL: return 1;
+    case Decoration::MathOpDSPModeINTEL: return 2;
     case Decoration::AliasScopeINTEL: return 1;
     case Decoration::NoAliasINTEL: return 1;
+    case Decoration::InitiationIntervalINTEL: return 1;
+    case Decoration::MaxConcurrencyINTEL: return 1;
+    case Decoration::PipelineEnableINTEL: return 1;
     case Decoration::BufferLocationINTEL: return 1;
     case Decoration::IOPipeStorageINTEL: return 1;
     case Decoration::FunctionFloatingPointModeINTEL: return 2;
@@ -13566,6 +13684,932 @@ struct OpReadClockKHR
   IdResultType resultType;
   IdResult result;
   IdScope scope;
+};
+
+struct OpHitObjectRecordHitMotionNV
+{
+  OpHitObjectRecordHitMotionNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectRecordHitMotionNV(Id hitObject, Id accelerationStructure, Id instanceId, Id primitiveId, Id geometryIndex, Id hitKind, Id sBTRecordOffset, Id sBTRecordStride, Id origin, Id tMin, Id direction, Id tMax, Id currentTime, Id hitObjectAttributes)
+      : op(Op::HitObjectRecordHitMotionNV)
+      , wordCount(FixedWordSize)
+  {
+    this->hitObject = hitObject;
+    this->accelerationStructure = accelerationStructure;
+    this->instanceId = instanceId;
+    this->primitiveId = primitiveId;
+    this->geometryIndex = geometryIndex;
+    this->hitKind = hitKind;
+    this->sBTRecordOffset = sBTRecordOffset;
+    this->sBTRecordStride = sBTRecordStride;
+    this->origin = origin;
+    this->tMin = tMin;
+    this->direction = direction;
+    this->tMax = tMax;
+    this->currentTime = currentTime;
+    this->hitObjectAttributes = hitObjectAttributes;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectRecordHitMotionNV;
+  static constexpr uint16_t FixedWordSize = 15U;
+  Op op;
+  uint16_t wordCount;
+  Id hitObject;
+  Id accelerationStructure;
+  Id instanceId;
+  Id primitiveId;
+  Id geometryIndex;
+  Id hitKind;
+  Id sBTRecordOffset;
+  Id sBTRecordStride;
+  Id origin;
+  Id tMin;
+  Id direction;
+  Id tMax;
+  Id currentTime;
+  Id hitObjectAttributes;
+};
+
+struct OpHitObjectRecordHitWithIndexMotionNV
+{
+  OpHitObjectRecordHitWithIndexMotionNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectRecordHitWithIndexMotionNV(Id hitObject, Id accelerationStructure, Id instanceId, Id primitiveId, Id geometryIndex, Id hitKind, Id sBTRecordIndex, Id origin, Id tMin, Id direction, Id tMax, Id currentTime, Id hitObjectAttributes)
+      : op(Op::HitObjectRecordHitWithIndexMotionNV)
+      , wordCount(FixedWordSize)
+  {
+    this->hitObject = hitObject;
+    this->accelerationStructure = accelerationStructure;
+    this->instanceId = instanceId;
+    this->primitiveId = primitiveId;
+    this->geometryIndex = geometryIndex;
+    this->hitKind = hitKind;
+    this->sBTRecordIndex = sBTRecordIndex;
+    this->origin = origin;
+    this->tMin = tMin;
+    this->direction = direction;
+    this->tMax = tMax;
+    this->currentTime = currentTime;
+    this->hitObjectAttributes = hitObjectAttributes;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectRecordHitWithIndexMotionNV;
+  static constexpr uint16_t FixedWordSize = 14U;
+  Op op;
+  uint16_t wordCount;
+  Id hitObject;
+  Id accelerationStructure;
+  Id instanceId;
+  Id primitiveId;
+  Id geometryIndex;
+  Id hitKind;
+  Id sBTRecordIndex;
+  Id origin;
+  Id tMin;
+  Id direction;
+  Id tMax;
+  Id currentTime;
+  Id hitObjectAttributes;
+};
+
+struct OpHitObjectRecordMissMotionNV
+{
+  OpHitObjectRecordMissMotionNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectRecordMissMotionNV(Id hitObject, Id sBTIndex, Id origin, Id tMin, Id direction, Id tMax, Id currentTime)
+      : op(Op::HitObjectRecordMissMotionNV)
+      , wordCount(FixedWordSize)
+  {
+    this->hitObject = hitObject;
+    this->sBTIndex = sBTIndex;
+    this->origin = origin;
+    this->tMin = tMin;
+    this->direction = direction;
+    this->tMax = tMax;
+    this->currentTime = currentTime;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectRecordMissMotionNV;
+  static constexpr uint16_t FixedWordSize = 8U;
+  Op op;
+  uint16_t wordCount;
+  Id hitObject;
+  Id sBTIndex;
+  Id origin;
+  Id tMin;
+  Id direction;
+  Id tMax;
+  Id currentTime;
+};
+
+struct OpHitObjectGetWorldToObjectNV
+{
+  OpHitObjectGetWorldToObjectNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetWorldToObjectNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetWorldToObjectNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetWorldToObjectNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectGetObjectToWorldNV
+{
+  OpHitObjectGetObjectToWorldNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetObjectToWorldNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetObjectToWorldNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetObjectToWorldNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectGetObjectRayDirectionNV
+{
+  OpHitObjectGetObjectRayDirectionNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetObjectRayDirectionNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetObjectRayDirectionNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetObjectRayDirectionNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectGetObjectRayOriginNV
+{
+  OpHitObjectGetObjectRayOriginNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetObjectRayOriginNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetObjectRayOriginNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetObjectRayOriginNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectTraceRayMotionNV
+{
+  OpHitObjectTraceRayMotionNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectTraceRayMotionNV(Id hitObject, Id accelerationStructure, Id rayFlags, Id cullmask, Id sBTRecordOffset, Id sBTRecordStride, Id missIndex, Id origin, Id tMin, Id direction, Id tMax, Id time, Id payload)
+      : op(Op::HitObjectTraceRayMotionNV)
+      , wordCount(FixedWordSize)
+  {
+    this->hitObject = hitObject;
+    this->accelerationStructure = accelerationStructure;
+    this->rayFlags = rayFlags;
+    this->cullmask = cullmask;
+    this->sBTRecordOffset = sBTRecordOffset;
+    this->sBTRecordStride = sBTRecordStride;
+    this->missIndex = missIndex;
+    this->origin = origin;
+    this->tMin = tMin;
+    this->direction = direction;
+    this->tMax = tMax;
+    this->time = time;
+    this->payload = payload;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectTraceRayMotionNV;
+  static constexpr uint16_t FixedWordSize = 14U;
+  Op op;
+  uint16_t wordCount;
+  Id hitObject;
+  Id accelerationStructure;
+  Id rayFlags;
+  Id cullmask;
+  Id sBTRecordOffset;
+  Id sBTRecordStride;
+  Id missIndex;
+  Id origin;
+  Id tMin;
+  Id direction;
+  Id tMax;
+  Id time;
+  Id payload;
+};
+
+struct OpHitObjectGetShaderRecordBufferHandleNV
+{
+  OpHitObjectGetShaderRecordBufferHandleNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetShaderRecordBufferHandleNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetShaderRecordBufferHandleNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetShaderRecordBufferHandleNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectGetShaderBindingTableRecordIndexNV
+{
+  OpHitObjectGetShaderBindingTableRecordIndexNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetShaderBindingTableRecordIndexNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetShaderBindingTableRecordIndexNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetShaderBindingTableRecordIndexNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectRecordEmptyNV
+{
+  OpHitObjectRecordEmptyNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectRecordEmptyNV(Id hitObject)
+      : op(Op::HitObjectRecordEmptyNV)
+      , wordCount(FixedWordSize)
+  {
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectRecordEmptyNV;
+  static constexpr uint16_t FixedWordSize = 2U;
+  Op op;
+  uint16_t wordCount;
+  Id hitObject;
+};
+
+struct OpHitObjectTraceRayNV
+{
+  OpHitObjectTraceRayNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectTraceRayNV(Id hitObject, Id accelerationStructure, Id rayFlags, Id cullmask, Id sBTRecordOffset, Id sBTRecordStride, Id missIndex, Id origin, Id tMin, Id direction, Id tMax, Id payload)
+      : op(Op::HitObjectTraceRayNV)
+      , wordCount(FixedWordSize)
+  {
+    this->hitObject = hitObject;
+    this->accelerationStructure = accelerationStructure;
+    this->rayFlags = rayFlags;
+    this->cullmask = cullmask;
+    this->sBTRecordOffset = sBTRecordOffset;
+    this->sBTRecordStride = sBTRecordStride;
+    this->missIndex = missIndex;
+    this->origin = origin;
+    this->tMin = tMin;
+    this->direction = direction;
+    this->tMax = tMax;
+    this->payload = payload;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectTraceRayNV;
+  static constexpr uint16_t FixedWordSize = 13U;
+  Op op;
+  uint16_t wordCount;
+  Id hitObject;
+  Id accelerationStructure;
+  Id rayFlags;
+  Id cullmask;
+  Id sBTRecordOffset;
+  Id sBTRecordStride;
+  Id missIndex;
+  Id origin;
+  Id tMin;
+  Id direction;
+  Id tMax;
+  Id payload;
+};
+
+struct OpHitObjectRecordHitNV
+{
+  OpHitObjectRecordHitNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectRecordHitNV(Id hitObject, Id accelerationStructure, Id instanceId, Id primitiveId, Id geometryIndex, Id hitKind, Id sBTRecordOffset, Id sBTRecordStride, Id origin, Id tMin, Id direction, Id tMax, Id hitObjectAttributes)
+      : op(Op::HitObjectRecordHitNV)
+      , wordCount(FixedWordSize)
+  {
+    this->hitObject = hitObject;
+    this->accelerationStructure = accelerationStructure;
+    this->instanceId = instanceId;
+    this->primitiveId = primitiveId;
+    this->geometryIndex = geometryIndex;
+    this->hitKind = hitKind;
+    this->sBTRecordOffset = sBTRecordOffset;
+    this->sBTRecordStride = sBTRecordStride;
+    this->origin = origin;
+    this->tMin = tMin;
+    this->direction = direction;
+    this->tMax = tMax;
+    this->hitObjectAttributes = hitObjectAttributes;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectRecordHitNV;
+  static constexpr uint16_t FixedWordSize = 14U;
+  Op op;
+  uint16_t wordCount;
+  Id hitObject;
+  Id accelerationStructure;
+  Id instanceId;
+  Id primitiveId;
+  Id geometryIndex;
+  Id hitKind;
+  Id sBTRecordOffset;
+  Id sBTRecordStride;
+  Id origin;
+  Id tMin;
+  Id direction;
+  Id tMax;
+  Id hitObjectAttributes;
+};
+
+struct OpHitObjectRecordHitWithIndexNV
+{
+  OpHitObjectRecordHitWithIndexNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectRecordHitWithIndexNV(Id hitObject, Id accelerationStructure, Id instanceId, Id primitiveId, Id geometryIndex, Id hitKind, Id sBTRecordIndex, Id origin, Id tMin, Id direction, Id tMax, Id hitObjectAttributes)
+      : op(Op::HitObjectRecordHitWithIndexNV)
+      , wordCount(FixedWordSize)
+  {
+    this->hitObject = hitObject;
+    this->accelerationStructure = accelerationStructure;
+    this->instanceId = instanceId;
+    this->primitiveId = primitiveId;
+    this->geometryIndex = geometryIndex;
+    this->hitKind = hitKind;
+    this->sBTRecordIndex = sBTRecordIndex;
+    this->origin = origin;
+    this->tMin = tMin;
+    this->direction = direction;
+    this->tMax = tMax;
+    this->hitObjectAttributes = hitObjectAttributes;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectRecordHitWithIndexNV;
+  static constexpr uint16_t FixedWordSize = 13U;
+  Op op;
+  uint16_t wordCount;
+  Id hitObject;
+  Id accelerationStructure;
+  Id instanceId;
+  Id primitiveId;
+  Id geometryIndex;
+  Id hitKind;
+  Id sBTRecordIndex;
+  Id origin;
+  Id tMin;
+  Id direction;
+  Id tMax;
+  Id hitObjectAttributes;
+};
+
+struct OpHitObjectRecordMissNV
+{
+  OpHitObjectRecordMissNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectRecordMissNV(Id hitObject, Id sBTIndex, Id origin, Id tMin, Id direction, Id tMax)
+      : op(Op::HitObjectRecordMissNV)
+      , wordCount(FixedWordSize)
+  {
+    this->hitObject = hitObject;
+    this->sBTIndex = sBTIndex;
+    this->origin = origin;
+    this->tMin = tMin;
+    this->direction = direction;
+    this->tMax = tMax;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectRecordMissNV;
+  static constexpr uint16_t FixedWordSize = 7U;
+  Op op;
+  uint16_t wordCount;
+  Id hitObject;
+  Id sBTIndex;
+  Id origin;
+  Id tMin;
+  Id direction;
+  Id tMax;
+};
+
+struct OpHitObjectExecuteShaderNV
+{
+  OpHitObjectExecuteShaderNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectExecuteShaderNV(Id hitObject, Id payload)
+      : op(Op::HitObjectExecuteShaderNV)
+      , wordCount(FixedWordSize)
+  {
+    this->hitObject = hitObject;
+    this->payload = payload;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectExecuteShaderNV;
+  static constexpr uint16_t FixedWordSize = 3U;
+  Op op;
+  uint16_t wordCount;
+  Id hitObject;
+  Id payload;
+};
+
+struct OpHitObjectGetCurrentTimeNV
+{
+  OpHitObjectGetCurrentTimeNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetCurrentTimeNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetCurrentTimeNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetCurrentTimeNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectGetAttributesNV
+{
+  OpHitObjectGetAttributesNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetAttributesNV(Id hitObject, Id hitObjectAttribute)
+      : op(Op::HitObjectGetAttributesNV)
+      , wordCount(FixedWordSize)
+  {
+    this->hitObject = hitObject;
+    this->hitObjectAttribute = hitObjectAttribute;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetAttributesNV;
+  static constexpr uint16_t FixedWordSize = 3U;
+  Op op;
+  uint16_t wordCount;
+  Id hitObject;
+  Id hitObjectAttribute;
+};
+
+struct OpHitObjectGetHitKindNV
+{
+  OpHitObjectGetHitKindNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetHitKindNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetHitKindNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetHitKindNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectGetPrimitiveIndexNV
+{
+  OpHitObjectGetPrimitiveIndexNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetPrimitiveIndexNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetPrimitiveIndexNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetPrimitiveIndexNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectGetGeometryIndexNV
+{
+  OpHitObjectGetGeometryIndexNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetGeometryIndexNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetGeometryIndexNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetGeometryIndexNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectGetInstanceIdNV
+{
+  OpHitObjectGetInstanceIdNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetInstanceIdNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetInstanceIdNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetInstanceIdNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectGetInstanceCustomIndexNV
+{
+  OpHitObjectGetInstanceCustomIndexNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetInstanceCustomIndexNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetInstanceCustomIndexNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetInstanceCustomIndexNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectGetWorldRayDirectionNV
+{
+  OpHitObjectGetWorldRayDirectionNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetWorldRayDirectionNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetWorldRayDirectionNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetWorldRayDirectionNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectGetWorldRayOriginNV
+{
+  OpHitObjectGetWorldRayOriginNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetWorldRayOriginNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetWorldRayOriginNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetWorldRayOriginNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectGetRayTMaxNV
+{
+  OpHitObjectGetRayTMaxNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetRayTMaxNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetRayTMaxNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetRayTMaxNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectGetRayTMinNV
+{
+  OpHitObjectGetRayTMinNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectGetRayTMinNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectGetRayTMinNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectGetRayTMinNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectIsEmptyNV
+{
+  OpHitObjectIsEmptyNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectIsEmptyNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectIsEmptyNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectIsEmptyNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectIsHitNV
+{
+  OpHitObjectIsHitNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectIsHitNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectIsHitNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectIsHitNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpHitObjectIsMissNV
+{
+  OpHitObjectIsMissNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpHitObjectIsMissNV(IdResultType resultType, IdResult result, Id hitObject)
+      : op(Op::HitObjectIsMissNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->hitObject = hitObject;
+  }
+
+  static constexpr Op OpCode = Op::HitObjectIsMissNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id hitObject;
+};
+
+struct OpReorderThreadWithHitObjectNV
+{
+  OpReorderThreadWithHitObjectNV(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->hitObject = Id::fromWord(it.word(1));
+    this->hint = (it.size() > 2) ? Id::fromWord(it.word(2)) : Id();
+    this->bits = (it.size() > 3) ? Id::fromWord(it.word(3)) : Id();
+  }
+  OpReorderThreadWithHitObjectNV(Id hitObject, Id hint = Id(), Id bits = Id())
+      : op(Op::ReorderThreadWithHitObjectNV)
+      , wordCount(MinWordSize + OptionalWordCount(hint) + OptionalWordCount(bits))
+  {
+    this->hitObject = hitObject;
+    this->hint = hint;
+    this->bits = bits;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(hitObject.value());
+    if(hint != Id()) words.push_back(hint.value());
+    if(bits != Id()) words.push_back(bits.value());
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::ReorderThreadWithHitObjectNV;
+  static constexpr uint16_t MinWordSize = 2U;
+  Op op;
+  uint16_t wordCount;
+  Id hitObject;
+  Id hint;
+  Id bits;
+
+  bool HasHint() const { return wordCount > 2; }
+  bool HasBits() const { return wordCount > 3; }
+};
+
+struct OpReorderThreadWithHintNV
+{
+  OpReorderThreadWithHintNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpReorderThreadWithHintNV(Id hint, Id bits)
+      : op(Op::ReorderThreadWithHintNV)
+      , wordCount(FixedWordSize)
+  {
+    this->hint = hint;
+    this->bits = bits;
+  }
+
+  static constexpr Op OpCode = Op::ReorderThreadWithHintNV;
+  static constexpr uint16_t FixedWordSize = 3U;
+  Op op;
+  uint16_t wordCount;
+  Id hint;
+  Id bits;
+};
+
+struct OpTypeHitObjectNV
+{
+  OpTypeHitObjectNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpTypeHitObjectNV(IdResult result)
+      : op(Op::TypeHitObjectNV)
+      , wordCount(FixedWordSize)
+  {
+    this->result = result;
+  }
+
+  static constexpr Op OpCode = Op::TypeHitObjectNV;
+  static constexpr uint16_t FixedWordSize = 2U;
+  Op op;
+  uint16_t wordCount;
+  IdResult result;
 };
 
 struct OpImageSampleFootprintNV

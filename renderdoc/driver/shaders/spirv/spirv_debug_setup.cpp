@@ -627,6 +627,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::RayTracingKHR:
       case Capability::RayCullMaskKHR:
       case Capability::RayTracingOpacityMicromapEXT:
+      case Capability::ShaderInvocationReorderNV:
       {
         supported = false;
         break;
@@ -715,6 +716,9 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::SplitBarrierINTEL:
       case Capability::GroupUniformArithmeticKHR:
       case Capability::CoreBuiltinsARM:
+      case Capability::FPGADSPControlINTEL:
+      case Capability::FPGAInvocationPipeliningAttributesINTEL:
+      case Capability::RuntimeAlignedAttributeINTEL:
       case Capability::Max:
       case Capability::Invalid:
       {

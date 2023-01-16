@@ -124,6 +124,7 @@ enum class Generator : uint32_t
   ShaderWriter = 33,
   SPIRVSmith = 34,
   Shady = 35,
+  Taichi = 36,
 };
 
 enum class ImageOperands : uint32_t
@@ -202,6 +203,8 @@ enum class LoopControl : uint32_t
   MaxInterleavingINTEL = 0x200000,
   SpeculatedIterationsINTEL = 0x400000,
   NoFusionINTEL = 0x800000,
+  LoopCountINTEL = 0x1000000,
+  MaxReinvocationDelayINTEL = 0x2000000,
   Max,
   Invalid = ~0U,
 };
@@ -455,6 +458,7 @@ enum class ExecutionMode : uint32_t
   NoGlobalOffsetINTEL = 5895,
   NumSIMDWorkitemsINTEL = 5896,
   SchedulerTargetFmaxMhzINTEL = 5903,
+  StreamingInterfaceINTEL = 6154,
   NamedBarrierCountINTEL = 6417,
   Max,
   Invalid = ~0U,
@@ -489,6 +493,7 @@ enum class StorageClass : uint32_t
   ShaderRecordBufferKHR = 5343,
   PhysicalStorageBuffer = 5349,
   PhysicalStorageBufferEXT = 5349,
+  HitObjectAttributeNV = 5385,
   TaskPayloadWorkgroupEXT = 5402,
   CodeSectionINTEL = 5605,
   DeviceOnlyINTEL = 5936,
@@ -704,6 +709,7 @@ enum class FunctionParameterAttribute : uint32_t
   NoCapture = 5,
   NoWrite = 6,
   NoReadWrite = 7,
+  RuntimeAlignedINTEL = 5940,
   Max,
   Invalid = ~0U,
 };
@@ -776,6 +782,7 @@ enum class Decoration : uint32_t
   RestrictPointerEXT = 5355,
   AliasedPointer = 5356,
   AliasedPointerEXT = 5356,
+  HitObjectShaderRecordBufferNV = 5386,
   BindlessSamplerNV = 5398,
   BindlessImageNV = 5399,
   BoundSamplerNV = 5400,
@@ -814,8 +821,12 @@ enum class Decoration : uint32_t
   PrefetchINTEL = 5902,
   StallEnableINTEL = 5905,
   FuseLoopsInFunctionINTEL = 5907,
+  MathOpDSPModeINTEL = 5909,
   AliasScopeINTEL = 5914,
   NoAliasINTEL = 5915,
+  InitiationIntervalINTEL = 5917,
+  MaxConcurrencyINTEL = 5918,
+  PipelineEnableINTEL = 5919,
   BufferLocationINTEL = 5921,
   IOPipeStorageINTEL = 5944,
   FunctionFloatingPointModeINTEL = 6080,
@@ -1169,6 +1180,7 @@ enum class Capability : uint32_t
   DemoteToHelperInvocation = 5379,
   DemoteToHelperInvocationEXT = 5379,
   RayTracingOpacityMicromapEXT = 5381,
+  ShaderInvocationReorderNV = 5383,
   BindlessTextureNV = 5390,
   SubgroupShuffleINTEL = 5568,
   SubgroupBufferBlockIOINTEL = 5569,
@@ -1202,10 +1214,13 @@ enum class Capability : uint32_t
   FPGAMemoryAccessesINTEL = 5898,
   FPGAClusterAttributesINTEL = 5904,
   LoopFuseINTEL = 5906,
+  FPGADSPControlINTEL = 5908,
   MemoryAccessAliasingINTEL = 5910,
+  FPGAInvocationPipeliningAttributesINTEL = 5916,
   FPGABufferLocationINTEL = 5920,
   ArbitraryPrecisionFixedPointINTEL = 5922,
   USMStorageClassesINTEL = 5935,
+  RuntimeAlignedAttributeINTEL = 5939,
   IOPipesINTEL = 5943,
   BlockingPipesINTEL = 5945,
   FPGARegINTEL = 5948,
@@ -1360,7 +1375,8 @@ struct LoopControlAndParamDatas
   uint32_t loopCoalesceINTEL;
   uint32_t maxInterleavingINTEL;
   uint32_t speculatedIterationsINTEL;
-  uint32_t noFusionINTEL;
+  uint32_t loopCountINTEL;
+  uint32_t maxReinvocationDelayINTEL;
   
   operator LoopControl() const { return flags; }
   bool operator &(const LoopControl v) const { return bool(flags & v); }
@@ -1398,8 +1414,12 @@ struct LoopControlAndParamDatas
   void unsetMaxInterleavingINTEL() { flags &= ~LoopControl::MaxInterleavingINTEL; }
   void setSpeculatedIterationsINTEL(uint32_t speculatedIterationsINTELParam) { flags |= LoopControl::SpeculatedIterationsINTEL; speculatedIterationsINTEL = speculatedIterationsINTELParam; }
   void unsetSpeculatedIterationsINTEL() { flags &= ~LoopControl::SpeculatedIterationsINTEL; }
-  void setNoFusionINTEL(uint32_t noFusionINTELParam) { flags |= LoopControl::NoFusionINTEL; noFusionINTEL = noFusionINTELParam; }
+  void setNoFusionINTEL() { flags |= LoopControl::NoFusionINTEL; }
   void unsetNoFusionINTEL() { flags &= ~LoopControl::NoFusionINTEL; }
+  void setLoopCountINTEL(uint32_t loopCountINTELParam) { flags |= LoopControl::LoopCountINTEL; loopCountINTEL = loopCountINTELParam; }
+  void unsetLoopCountINTEL() { flags &= ~LoopControl::LoopCountINTEL; }
+  void setMaxReinvocationDelayINTEL(uint32_t maxReinvocationDelayINTELParam) { flags |= LoopControl::MaxReinvocationDelayINTEL; maxReinvocationDelayINTEL = maxReinvocationDelayINTELParam; }
+  void unsetMaxReinvocationDelayINTEL() { flags &= ~LoopControl::MaxReinvocationDelayINTEL; }
 };
 
 struct MemoryAccessAndParamDatas
@@ -1509,6 +1529,7 @@ struct ExecutionModeAndParamData
     uint32_t maxWorkDimINTEL;
     uint32_t numSIMDWorkitemsINTEL;
     uint32_t schedulerTargetFmaxMhzINTEL;
+    uint32_t streamingInterfaceINTEL;
     uint32_t namedBarrierCountINTEL;
   };
   
@@ -1526,6 +1547,12 @@ struct FunctionDenormModeINTELParams
 {
   uint32_t targetWidth;
   FPDenormMode fPDenormMode;
+};
+
+struct MathOpDSPModeINTELParams
+{
+  uint32_t mode;
+  uint32_t propagate;
 };
 
 struct FunctionFloatingPointModeINTELParams
@@ -1578,8 +1605,12 @@ struct DecorationAndParamData
     uint32_t forcePow2DepthINTEL;
     uint32_t cacheSizeINTEL;
     uint32_t prefetchINTEL;
+    MathOpDSPModeINTELParams mathOpDSPModeINTEL;
     Id aliasScopeINTEL;
     Id noAliasINTEL;
+    uint32_t initiationIntervalINTEL;
+    uint32_t maxConcurrencyINTEL;
+    uint32_t pipelineEnableINTEL;
     uint32_t bufferLocationINTEL;
     uint32_t iOPipeStorageINTEL;
     FunctionFloatingPointModeINTELParams functionFloatingPointModeINTEL;
@@ -1978,6 +2009,39 @@ enum class Op : uint16_t
   FragmentMaskFetchAMD = 5011,
   FragmentFetchAMD = 5012,
   ReadClockKHR = 5056,
+  HitObjectRecordHitMotionNV = 5249,
+  HitObjectRecordHitWithIndexMotionNV = 5250,
+  HitObjectRecordMissMotionNV = 5251,
+  HitObjectGetWorldToObjectNV = 5252,
+  HitObjectGetObjectToWorldNV = 5253,
+  HitObjectGetObjectRayDirectionNV = 5254,
+  HitObjectGetObjectRayOriginNV = 5255,
+  HitObjectTraceRayMotionNV = 5256,
+  HitObjectGetShaderRecordBufferHandleNV = 5257,
+  HitObjectGetShaderBindingTableRecordIndexNV = 5258,
+  HitObjectRecordEmptyNV = 5259,
+  HitObjectTraceRayNV = 5260,
+  HitObjectRecordHitNV = 5261,
+  HitObjectRecordHitWithIndexNV = 5262,
+  HitObjectRecordMissNV = 5263,
+  HitObjectExecuteShaderNV = 5264,
+  HitObjectGetCurrentTimeNV = 5265,
+  HitObjectGetAttributesNV = 5266,
+  HitObjectGetHitKindNV = 5267,
+  HitObjectGetPrimitiveIndexNV = 5268,
+  HitObjectGetGeometryIndexNV = 5269,
+  HitObjectGetInstanceIdNV = 5270,
+  HitObjectGetInstanceCustomIndexNV = 5271,
+  HitObjectGetWorldRayDirectionNV = 5272,
+  HitObjectGetWorldRayOriginNV = 5273,
+  HitObjectGetRayTMaxNV = 5274,
+  HitObjectGetRayTMinNV = 5275,
+  HitObjectIsEmptyNV = 5276,
+  HitObjectIsHitNV = 5277,
+  HitObjectIsMissNV = 5278,
+  ReorderThreadWithHitObjectNV = 5279,
+  ReorderThreadWithHintNV = 5280,
+  TypeHitObjectNV = 5281,
   ImageSampleFootprintNV = 5283,
   EmitMeshTasksEXT = 5294,
   SetMeshOutputsEXT = 5295,

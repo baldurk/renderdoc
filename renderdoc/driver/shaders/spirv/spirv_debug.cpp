@@ -3683,6 +3683,39 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::SamplerImageAddressingModeNV:
     case Op::EmitMeshTasksEXT:
     case Op::SetMeshOutputsEXT:
+    case Op::HitObjectRecordHitMotionNV:
+    case Op::HitObjectRecordHitWithIndexMotionNV:
+    case Op::HitObjectRecordMissMotionNV:
+    case Op::HitObjectGetWorldToObjectNV:
+    case Op::HitObjectGetObjectToWorldNV:
+    case Op::HitObjectGetObjectRayDirectionNV:
+    case Op::HitObjectGetObjectRayOriginNV:
+    case Op::HitObjectTraceRayMotionNV:
+    case Op::HitObjectGetShaderRecordBufferHandleNV:
+    case Op::HitObjectGetShaderBindingTableRecordIndexNV:
+    case Op::HitObjectRecordEmptyNV:
+    case Op::HitObjectTraceRayNV:
+    case Op::HitObjectRecordHitNV:
+    case Op::HitObjectRecordHitWithIndexNV:
+    case Op::HitObjectRecordMissNV:
+    case Op::HitObjectExecuteShaderNV:
+    case Op::HitObjectGetCurrentTimeNV:
+    case Op::HitObjectGetAttributesNV:
+    case Op::HitObjectGetHitKindNV:
+    case Op::HitObjectGetPrimitiveIndexNV:
+    case Op::HitObjectGetGeometryIndexNV:
+    case Op::HitObjectGetInstanceIdNV:
+    case Op::HitObjectGetInstanceCustomIndexNV:
+    case Op::HitObjectGetWorldRayDirectionNV:
+    case Op::HitObjectGetWorldRayOriginNV:
+    case Op::HitObjectGetRayTMaxNV:
+    case Op::HitObjectGetRayTMinNV:
+    case Op::HitObjectIsEmptyNV:
+    case Op::HitObjectIsHitNV:
+    case Op::HitObjectIsMissNV:
+    case Op::ReorderThreadWithHitObjectNV:
+    case Op::ReorderThreadWithHintNV:
+    case Op::TypeHitObjectNV:
     {
       RDCERR("Unsupported extension opcode used %s", ToStr(opdata.op).c_str());
 
