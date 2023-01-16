@@ -530,7 +530,7 @@ rdcpair<uint32_t, Coord> PageTable::setImageWrappedRange(uint32_t subresource,
       {
         if(isSubresourceInMipTail(subresource))
         {
-          curCoord.x += numPages * m_PageByteSize;
+          curCoord.x += numPages * m_PageTexelSize.x;
         }
         else
         {
@@ -1305,9 +1305,11 @@ TEST_CASE("Test sparse page table mapping", "[sparse]")
       // wrap a binding part-way into a mip tail
       nextCoord = pageTable.setImageWrappedRange(3, {0, 0, 0}, 64 + 128, sub, 0, false);
 
-      // the 'coord' for mip tail is effectively 1D and 1 texel per tile
+      // the 'coord' for mip tail is effectively 1D. For compatibility with the D3D12 API it returns
+      // coords with 1 page worth of texels per tile (since D3D12 we unconditionally multiply the
+      // tile region coords with tile size to get texel coords, which also applies to the miptail
       CHECK(nextCoord.first == 4);
-      CHECK(nextCoord.second == Sparse::Coord({128, 0, 0}));
+      CHECK(nextCoord.second == Sparse::Coord({64, 0, 0}));
 
       CHECK(pageTable.getSubresource(3).hasSingleMapping());
       CHECK(pageTable.getSubresource(3).singleMapping == Sparse::Page({sub, 0}));
