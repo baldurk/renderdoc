@@ -162,7 +162,8 @@ static void StripUnwantedExtensions(rdcarray<rdcstr> &Extensions)
 
     // remove direct display extensions
     if(ext == "VK_KHR_display" || ext == "VK_EXT_direct_mode_display" ||
-       ext == "VK_EXT_acquire_xlib_display" || ext == "VK_EXT_display_surface_counter")
+       ext == "VK_EXT_acquire_xlib_display" || ext == "VK_EXT_display_surface_counter" ||
+       ext == "VK_EXT_acquire_drm_display")
     {
       return true;
     }

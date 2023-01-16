@@ -1286,6 +1286,19 @@ VkResult WrappedVulkan::vkReleaseDisplayEXT(VkPhysicalDevice physicalDevice, VkD
   return ObjDisp(physicalDevice)->ReleaseDisplayEXT(Unwrap(physicalDevice), display);
 }
 
+VkResult WrappedVulkan::vkAcquireDrmDisplayEXT(VkPhysicalDevice physicalDevice, int32_t drmFd,
+                                               VkDisplayKHR display)
+{
+  return ObjDisp(physicalDevice)->AcquireDrmDisplayEXT(Unwrap(physicalDevice), drmFd, display);
+}
+
+VkResult WrappedVulkan::vkGetDrmDisplayEXT(VkPhysicalDevice physicalDevice, int32_t drmFd,
+                                           uint32_t connectorId, VkDisplayKHR *display)
+{
+  // displays are not wrapped
+  return ObjDisp(physicalDevice)->GetDrmDisplayEXT(Unwrap(physicalDevice), drmFd, connectorId, display);
+}
+
 VkResult WrappedVulkan::vkGetDeviceGroupPresentCapabilitiesKHR(
     VkDevice device, VkDeviceGroupPresentCapabilitiesKHR *pDeviceGroupPresentCapabilities)
 {

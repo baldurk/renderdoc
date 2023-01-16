@@ -2601,4 +2601,11 @@ public:
 
   IMPLEMENT_FUNCTION_SERIALISED(void, vkSetDeviceMemoryPriorityEXT, VkDevice device,
                                 VkDeviceMemory memory, float priority);
+
+  // VK_EXT_acquire_drm_display
+  VkResult vkAcquireDrmDisplayEXT(VkPhysicalDevice physicalDevice, int32_t drmFd,
+                                  VkDisplayKHR display);
+
+  VkResult vkGetDrmDisplayEXT(VkPhysicalDevice physicalDevice, int32_t drmFd, uint32_t connectorId,
+                              VkDisplayKHR *display);
 };

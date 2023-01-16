@@ -464,6 +464,7 @@
   DeclExt(EXT_headless_surface);                      \
   DeclExt(EXT_metal_surface);                         \
   DeclExt(KHR_wayland_surface);                       \
+  DeclExt(EXT_acquire_drm_display);                   \
   /* device extensions */                             \
   DeclExt(EXT_debug_marker);                          \
   DeclExt(GGP_frame_token);                           \
@@ -578,7 +579,8 @@
   CheckExt(EXT_metal_surface, VKXX);                   \
   CheckExt(KHR_wayland_surface, VKXX);                 \
   CheckExt(KHR_performance_query, VKXX);               \
-  CheckExt(KHR_fragment_shading_rate, VKXX);
+  CheckExt(KHR_fragment_shading_rate, VKXX);           \
+  CheckExt(EXT_acquire_drm_display, VKXX);
 
 #define CheckDeviceExts()                                    \
   CheckExt(EXT_debug_marker, VKXX);                          \
@@ -706,6 +708,8 @@
   HookInitExtension(KHR_performance_query, GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR);   \
   HookInitPromotedExtension(EXT_tooling_info, GetPhysicalDeviceToolProperties, EXT);                 \
   HookInitExtension(KHR_fragment_shading_rate, GetPhysicalDeviceFragmentShadingRatesKHR);            \
+  HookInitExtension(EXT_acquire_drm_display, AcquireDrmDisplayEXT);                                  \
+  HookInitExtension(EXT_acquire_drm_display, GetDrmDisplayEXT);                                      \
   HookInitExtension_PhysDev_Win32();                                                                 \
   HookInitExtension_PhysDev_Linux();                                                                 \
   HookInitExtension_PhysDev_GGP();                                                                   \
@@ -1638,6 +1642,10 @@
               VkPhysicalDeviceFragmentShadingRateKHR *, pFragmentShadingRates);                      \
   HookDefine3(void, vkSetDeviceMemoryPriorityEXT, VkDevice, device, VkDeviceMemory, memory, float,   \
               priority);                                                                             \
+  HookDefine3(VkResult, vkAcquireDrmDisplayEXT, VkPhysicalDevice, physicalDevice, int32_t, drmFd,    \
+              VkDisplayKHR, display);                                                                \
+  HookDefine4(VkResult, vkGetDrmDisplayEXT, VkPhysicalDevice, physicalDevice, int32_t, drmFd,        \
+              uint32_t, connectorId, VkDisplayKHR *, display);                                       \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \
