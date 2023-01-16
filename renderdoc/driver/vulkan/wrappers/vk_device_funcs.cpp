@@ -182,7 +182,8 @@ static void StripUnwantedExtensions(rdcarray<rdcstr> &Extensions)
     // remove WSI-only extensions
     if(ext == "VK_GOOGLE_display_timing" || ext == "VK_KHR_display_swapchain" ||
        ext == "VK_EXT_display_control" || ext == "VK_KHR_present_id" ||
-       ext == "VK_KHR_present_wait")
+       ext == "VK_KHR_present_wait" || ext == "VK_EXT_surface_maintenance1" ||
+       ext == "VK_EXT_swapchain_maintenance1")
       return true;
 
     // remove fullscreen exclusive extension
@@ -3026,6 +3027,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PAGEABLE_DEVICE_LOCAL_MEMORY_FEATURES_EXT);
       {
         CHECK_PHYS_EXT_FEATURE(pageableDeviceLocalMemory);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(swapchainMaintenance1);
       }
       END_PHYS_EXT_CHECK();
     }

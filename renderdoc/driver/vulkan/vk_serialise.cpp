@@ -165,6 +165,8 @@ DECL_VKFLAG_EXT(VkAccess, 2);
 DECL_VKFLAG_EXT(VkFormatFeature, 2);
 DECL_VKFLAG_EXT(VkGraphicsPipelineLibrary, EXT);
 DECL_VKFLAG(VkRendering);
+DECL_VKFLAG_EXT(VkPresentScaling, EXT);
+DECL_VKFLAG_EXT(VkPresentGravity, EXT);
 
 // serialise a member as flags - cast to the Bits enum for serialisation so the stringification
 // picks up the bitfield and doesn't treat it as uint32_t. Then we rename the type back to the base
@@ -839,6 +841,24 @@ SERIALISE_VK_HANDLES();
                VkPhysicalDeviceSubgroupSizeControlProperties)                                          \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO,             \
                VkPipelineShaderStageRequiredSubgroupSizeCreateInfo)                                    \
+                                                                                                       \
+  /* VK_EXT_surface_maintenance1 */                                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_EXT, VkSurfacePresentModeEXT)                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SURFACE_PRESENT_SCALING_CAPABILITIES_EXT,                             \
+               VkSurfacePresentScalingCapabilitiesEXT)                                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_COMPATIBILITY_EXT,                               \
+               VkSurfacePresentModeCompatibilityEXT)                                                   \
+                                                                                                       \
+  /* VK_EXT_swapchain_maintenance1 */                                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT,                 \
+               VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT)                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RELEASE_SWAPCHAIN_IMAGES_INFO_EXT, VkReleaseSwapchainImagesInfoEXT)   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_EXT, VkSwapchainPresentFenceInfoEXT)     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODES_CREATE_INFO_EXT,                              \
+               VkSwapchainPresentModesCreateInfoEXT)                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODE_INFO_EXT, VkSwapchainPresentModeInfoEXT)       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_SCALING_CREATE_INFO_EXT,                            \
+               VkSwapchainPresentScalingCreateInfoEXT)                                                 \
                                                                                                        \
   /* VK_EXT_texel_buffer_alignment */                                                                  \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_FEATURES_EXT,                  \
@@ -1519,19 +1539,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_CREATION_CONTROL_EXT)                                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_CREATION_FEEDBACK_CREATE_INFO_EXT)                   \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_SUBPASS_FEEDBACK_CREATE_INFO_EXT)                    \
-                                                                                                       \
-  /* VK_EXT_surface_maintenance1 */                                                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_EXT)                                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SURFACE_PRESENT_SCALING_CAPABILITIES_EXT)                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_COMPATIBILITY_EXT)                          \
-                                                                                                       \
-  /* VK_EXT_swapchain_maintenance1 */                                                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT)            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RELEASE_SWAPCHAIN_IMAGES_INFO_EXT)                               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_EXT)                                \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODES_CREATE_INFO_EXT)                         \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODE_INFO_EXT)                                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_SCALING_CREATE_INFO_EXT)                       \
                                                                                                        \
   /* VK_HUAWEI_invocation_mask */                                                                      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INVOCATION_MASK_FEATURES_HUAWEI)                 \
@@ -4143,6 +4150,161 @@ void DoSerialise(SerialiserType &ser, VkSwapchainDisplayNativeHdrCreateInfoAMD &
 
 template <>
 void Deserialise(const VkSwapchainDisplayNativeHdrCreateInfoAMD &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSurfacePresentModeEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(presentMode);
+}
+
+template <>
+void Deserialise(const VkSurfacePresentModeEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSurfacePresentScalingCapabilitiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_SURFACE_PRESENT_SCALING_CAPABILITIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkPresentScalingFlagsEXT, supportedPresentScaling);
+  SERIALISE_MEMBER_VKFLAGS(VkPresentGravityFlagsEXT, supportedPresentGravityX);
+  SERIALISE_MEMBER_VKFLAGS(VkPresentGravityFlagsEXT, supportedPresentGravityY);
+  SERIALISE_MEMBER(minScaledImageExtent);
+  SERIALISE_MEMBER(maxScaledImageExtent);
+}
+
+template <>
+void Deserialise(const VkSurfacePresentScalingCapabilitiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSurfacePresentModeCompatibilityEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_COMPATIBILITY_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(presentModeCount);
+  SERIALISE_MEMBER_ARRAY(pPresentModes, presentModeCount);
+}
+
+template <>
+void Deserialise(const VkSurfacePresentModeCompatibilityEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pPresentModes;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(swapchainMaintenance1);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkReleaseSwapchainImagesInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_RELEASE_SWAPCHAIN_IMAGES_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(swapchain);
+  SERIALISE_MEMBER(imageIndexCount);
+  SERIALISE_MEMBER_ARRAY(pImageIndices, imageIndexCount);
+}
+
+template <>
+void Deserialise(const VkReleaseSwapchainImagesInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pImageIndices;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSwapchainPresentFenceInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(swapchainCount);
+  SERIALISE_MEMBER_ARRAY(pFences, swapchainCount);
+}
+
+template <>
+void Deserialise(const VkSwapchainPresentFenceInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pFences;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSwapchainPresentModesCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODES_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(presentModeCount);
+  SERIALISE_MEMBER_ARRAY(pPresentModes, presentModeCount);
+}
+
+template <>
+void Deserialise(const VkSwapchainPresentModesCreateInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pPresentModes;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSwapchainPresentModeInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(swapchainCount);
+  SERIALISE_MEMBER_ARRAY(pPresentModes, swapchainCount);
+}
+
+template <>
+void Deserialise(const VkSwapchainPresentModeInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pPresentModes;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSwapchainPresentScalingCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_SCALING_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkPresentScalingFlagsEXT, scalingBehavior);
+  SERIALISE_MEMBER_VKFLAGS(VkPresentGravityFlagsEXT, presentGravityX);
+  SERIALISE_MEMBER_VKFLAGS(VkPresentGravityFlagsEXT, presentGravityY);
+}
+
+template <>
+void Deserialise(const VkSwapchainPresentScalingCreateInfoEXT &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -11138,6 +11300,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSubgroupProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSubgroupSizeControlFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSubgroupSizeControlProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSurfaceInfo2KHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSynchronization2Features);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTexelBufferAlignmentProperties);
@@ -11207,6 +11370,7 @@ INSTANTIATE_SERIALISE_TYPE(VkQueryPoolPerformanceCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkQueueFamilyGlobalPriorityPropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkQueueFamilyProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkRefreshCycleDurationGOOGLE);
+INSTANTIATE_SERIALISE_TYPE(VkReleaseSwapchainImagesInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkRenderingAttachmentInfo);
 INSTANTIATE_SERIALISE_TYPE(VkRenderingFragmentDensityMapAttachmentInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkRenderingFragmentShadingRateAttachmentInfoKHR);
@@ -11251,10 +11415,17 @@ INSTANTIATE_SERIALISE_TYPE(VkSubpassSampleLocationsEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceCapabilities2EXT);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceCapabilities2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceFormat2KHR);
+INSTANTIATE_SERIALISE_TYPE(VkSurfacePresentModeCompatibilityEXT);
+INSTANTIATE_SERIALISE_TYPE(VkSurfacePresentModeEXT);
+INSTANTIATE_SERIALISE_TYPE(VkSurfacePresentScalingCapabilitiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceProtectedCapabilitiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSwapchainCounterCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSwapchainCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSwapchainDisplayNativeHdrCreateInfoAMD);
+INSTANTIATE_SERIALISE_TYPE(VkSwapchainPresentFenceInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkSwapchainPresentModeInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkSwapchainPresentModesCreateInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkSwapchainPresentScalingCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkTextureLODGatherFormatPropertiesAMD);
 INSTANTIATE_SERIALISE_TYPE(VkTimelineSemaphoreSubmitInfo);
 INSTANTIATE_SERIALISE_TYPE(VkValidationCacheCreateInfoEXT);

@@ -788,7 +788,6 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
   unwrappedInfo.pSwapchains = unwrappedSwaps.data();
 
-  // Don't support any extensions for present info
   const VkBaseInStructure *next = (const VkBaseInStructure *)pPresentInfo->pNext;
   while(next)
   {
@@ -798,7 +797,9 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
        next->sType != VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP &&
        next->sType != VK_STRUCTURE_TYPE_PRESENT_REGIONS_KHR &&
        next->sType != VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE &&
-       next->sType != VK_STRUCTURE_TYPE_PRESENT_ID_KHR)
+       next->sType != VK_STRUCTURE_TYPE_PRESENT_ID_KHR &&
+       next->sType != VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_EXT &&
+       next->sType != VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODE_INFO_EXT)
     {
       RDCWARN("Unsupported pNext structure in pPresentInfo: %s", ToStr(next->sType).c_str());
     }
@@ -846,6 +847,16 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
     if(ids)
       ids->swapchainCount = 1;
 
+    VkSwapchainPresentFenceInfoEXT *fences = (VkSwapchainPresentFenceInfoEXT *)FindNextStruct(
+        &mutableInfo, VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_EXT);
+    if(fences)
+      fences->swapchainCount = 1;
+
+    VkSwapchainPresentModeInfoEXT *mode = (VkSwapchainPresentModeInfoEXT *)FindNextStruct(
+        &mutableInfo, VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_EXT);
+    if(mode)
+      mode->swapchainCount = 1;
+
     for(uint32_t i = 0; i < pPresentInfo->swapchainCount; i++)
     {
       HandlePresent(queue, &mutableInfo, unwrappedWaitSems);
@@ -861,6 +872,10 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
         ids->pPresentIds++;
       if(times)
         times->pTimes++;
+      if(fences)
+        fences->pFences++;
+      if(mode)
+        mode->pPresentModes++;
     }
   }
 
@@ -1432,6 +1447,14 @@ VkResult WrappedVulkan::vkWaitForPresentKHR(VkDevice device, VkSwapchainKHR swap
                                             uint64_t presentId, uint64_t timeout)
 {
   return ObjDisp(device)->WaitForPresentKHR(Unwrap(device), Unwrap(swapchain), presentId, timeout);
+}
+
+VkResult WrappedVulkan::vkReleaseSwapchainImagesEXT(VkDevice device,
+                                                    const VkReleaseSwapchainImagesInfoEXT *pReleaseInfo)
+{
+  VkReleaseSwapchainImagesInfoEXT releaseInfo = *pReleaseInfo;
+  releaseInfo.swapchain = Unwrap(releaseInfo.swapchain);
+  return ObjDisp(device)->ReleaseSwapchainImagesEXT(Unwrap(device), &releaseInfo);
 }
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR

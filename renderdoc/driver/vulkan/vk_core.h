@@ -2608,4 +2608,8 @@ public:
 
   VkResult vkGetDrmDisplayEXT(VkPhysicalDevice physicalDevice, int32_t drmFd, uint32_t connectorId,
                               VkDisplayKHR *display);
+
+  // VK_EXT_swapchain_maintenance1
+  VkResult vkReleaseSwapchainImagesEXT(VkDevice device,
+                                       const VkReleaseSwapchainImagesInfoEXT *pReleaseInfo);
 };

@@ -421,6 +421,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceSubgroupSizeControlFeatures)                                           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_PROPERTIES,                    \
               VkPhysicalDeviceSubgroupSizeControlProperties)                                         \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT,                \
+              VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT)                                      \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,                          \
               VkPhysicalDeviceSynchronization2Features);                                             \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_FEATURES_EXT,                 \
@@ -571,10 +573,20 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_EXT, VkSurfaceCapabilities2EXT);              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR, VkSurfaceCapabilities2KHR);              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR, VkSurfaceFormat2KHR);                          \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_COMPATIBILITY_EXT,                              \
+              VkSurfacePresentModeCompatibilityEXT)                                                  \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_EXT, VkSurfacePresentModeEXT)                   \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_PRESENT_SCALING_CAPABILITIES_EXT,                            \
+              VkSurfacePresentScalingCapabilitiesEXT)                                                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_PROTECTED_CAPABILITIES_KHR,                                  \
               VkSurfaceProtectedCapabilitiesKHR);                                                    \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_DISPLAY_NATIVE_HDR_CREATE_INFO_AMD,                        \
               VkSwapchainDisplayNativeHdrCreateInfoAMD)                                              \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODE_INFO_EXT, VkSwapchainPresentModeInfoEXT)      \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODES_CREATE_INFO_EXT,                             \
+              VkSwapchainPresentModesCreateInfoEXT)                                                  \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_SCALING_CREATE_INFO_EXT,                           \
+              VkSwapchainPresentScalingCreateInfoEXT)                                                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_TEXTURE_LOD_GATHER_FORMAT_PROPERTIES_AMD,                            \
               VkTextureLODGatherFormatPropertiesAMD);                                                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO, VkTimelineSemaphoreSubmitInfo);      \
@@ -677,6 +689,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
                 UnwrapInPlace(out->imageView), UnwrapInPlace(out->resolveImageView));                \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, VkRenderPassBeginInfo,                     \
                 UnwrapInPlace(out->renderPass), UnwrapInPlace(out->framebuffer));                    \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_RELEASE_SWAPCHAIN_IMAGES_INFO_EXT,                                 \
+                VkReleaseSwapchainImagesInfoEXT, UnwrapInPlace(out->swapchain))                      \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO, VkSamplerYcbcrConversionInfo,       \
                 UnwrapInPlace(out->conversion));                                                     \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO, VkSemaphoreSignalInfo,                      \
@@ -933,7 +947,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBPASS_MERGE_FEEDBACK_FEATURES_EXT:               \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBPASS_SHADING_FEATURES_HUAWEI:                   \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBPASS_SHADING_PROPERTIES_HUAWEI:                 \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT:              \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TILE_PROPERTIES_FEATURES_QCOM:                     \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VIDEO_FORMAT_INFO_KHR:                             \
   case VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_ADVANCED_STATE_CREATE_INFO_EXT:               \
@@ -963,7 +976,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_INTERFACE_CREATE_INFO_KHR:                    \
   case VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR:                          \
   case VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV:                           \
-  case VK_STRUCTURE_TYPE_RELEASE_SWAPCHAIN_IMAGES_INFO_EXT:                                 \
   case VK_STRUCTURE_TYPE_RENDER_PASS_CREATION_CONTROL_EXT:                                  \
   case VK_STRUCTURE_TYPE_RENDER_PASS_CREATION_FEEDBACK_CREATE_INFO_EXT:                     \
   case VK_STRUCTURE_TYPE_RENDER_PASS_SUBPASS_FEEDBACK_CREATE_INFO_EXT:                      \
@@ -976,14 +988,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_SUBPASS_SHADING_PIPELINE_CREATE_INFO_HUAWEI:                       \
   case VK_STRUCTURE_TYPE_SUBRESOURCE_LAYOUT_2_EXT:                                          \
   case VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_PRESENT_BARRIER_NV:                           \
-  case VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_COMPATIBILITY_EXT:                            \
-  case VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_EXT:                                          \
-  case VK_STRUCTURE_TYPE_SURFACE_PRESENT_SCALING_CAPABILITIES_EXT:                          \
   case VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_BARRIER_CREATE_INFO_NV:                          \
-  case VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_EXT:                                  \
-  case VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODE_INFO_EXT:                                   \
-  case VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODES_CREATE_INFO_EXT:                           \
-  case VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_SCALING_CREATE_INFO_EXT:                         \
   case VK_STRUCTURE_TYPE_SYSMEM_COLOR_SPACE_FUCHSIA:                                        \
   case VK_STRUCTURE_TYPE_TILE_PROPERTIES_QCOM:                                              \
   case VK_STRUCTURE_TYPE_VIDEO_BEGIN_CODING_INFO_KHR:                                       \
@@ -1388,6 +1393,14 @@ size_t GetNextPatchSize(const void *pNext)
         memSize += info->signalSemaphoreInfoCount * sizeof(VkSemaphoreSubmitInfo);
         for(uint32_t i = 0; i < info->signalSemaphoreInfoCount; i++)
           memSize += GetNextPatchSize(info->pSignalSemaphoreInfos[i].pNext);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_EXT:
+      {
+        memSize += sizeof(VkSwapchainPresentFenceInfoEXT);
+
+        VkSwapchainPresentFenceInfoEXT *info = (VkSwapchainPresentFenceInfoEXT *)next;
+        memSize += info->swapchainCount * sizeof(VkFence);
         break;
       }
       case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET:
@@ -2476,6 +2489,26 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
 
         break;
       }
+      case VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_EXT:
+      {
+        const VkSwapchainPresentFenceInfoEXT *in = (const VkSwapchainPresentFenceInfoEXT *)nextInput;
+        VkSwapchainPresentFenceInfoEXT *out = (VkSwapchainPresentFenceInfoEXT *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        // allocate unwrapped array
+        VkFence *outFences = (VkFence *)tempMem;
+        tempMem += sizeof(VkFence) * in->swapchainCount;
+
+        *out = *in;
+        out->pFences = outFences;
+
+        for(uint32_t i = 0; i < in->swapchainCount; i++)
+          outFences[i] = Unwrap(in->pFences[i]);
+
+        break;
+      }
       case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET:
       {
         const VkWriteDescriptorSet *in = (const VkWriteDescriptorSet *)nextInput;
@@ -2854,6 +2887,10 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
         break;
       case VK_STRUCTURE_TYPE_SUBMIT_INFO_2:
         CopyNextChainedStruct(sizeof(VkSubmitInfo2), tempMem, nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_EXT:
+        CopyNextChainedStruct(sizeof(VkSwapchainPresentFenceInfoEXT), tempMem, nextInput,
+                              nextChainTail);
         break;
       case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET:
         CopyNextChainedStruct(sizeof(VkWriteDescriptorSet), tempMem, nextInput, nextChainTail);

@@ -545,7 +545,8 @@
   DeclExt(KHR_dynamic_rendering);                     \
   DeclExt(KHR_fragment_shading_rate);                 \
   DeclExt(EXT_attachment_feedback_loop_layout);       \
-  DeclExt(EXT_pageable_device_local_memory);
+  DeclExt(EXT_pageable_device_local_memory);          \
+  DeclExt(EXT_swapchain_maintenance1);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -661,7 +662,8 @@
   CheckExt(KHR_dynamic_rendering, VK13);                     \
   CheckExt(KHR_fragment_shading_rate, VKXX);                 \
   CheckExt(EXT_attachment_feedback_loop_layout, VKXX);       \
-  CheckExt(EXT_pageable_device_local_memory, VKXX);
+  CheckExt(EXT_pageable_device_local_memory, VKXX);          \
+  CheckExt(EXT_swapchain_maintenance1, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -922,6 +924,7 @@
   HookInitPromotedExtension(KHR_dynamic_rendering, CmdEndRendering, KHR);                          \
   HookInitExtension(KHR_fragment_shading_rate, CmdSetFragmentShadingRateKHR);                      \
   HookInitExtension(EXT_pageable_device_local_memory, SetDeviceMemoryPriorityEXT);                 \
+  HookInitExtension(EXT_swapchain_maintenance1, ReleaseSwapchainImagesEXT);                        \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
   HookInitExtension_Device_GGP();                                                                  \
@@ -1646,6 +1649,8 @@
               VkDisplayKHR, display);                                                                \
   HookDefine4(VkResult, vkGetDrmDisplayEXT, VkPhysicalDevice, physicalDevice, int32_t, drmFd,        \
               uint32_t, connectorId, VkDisplayKHR *, display);                                       \
+  HookDefine2(VkResult, vkReleaseSwapchainImagesEXT, VkDevice, device,                               \
+              const VkReleaseSwapchainImagesInfoEXT *, pReleaseInfo);                                \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \
