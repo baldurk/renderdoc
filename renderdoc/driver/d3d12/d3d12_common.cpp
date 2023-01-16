@@ -1026,7 +1026,9 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
   }
 
   {
-    DepthStencilState.DepthEnable = TRUE;
+    // Per D3D12 headers, depth is disabled if no DSV format is specified. We track this below
+    // and enable depth if DSVFormat is specified without dpeth stencil state.
+    DepthStencilState.DepthEnable = FALSE;
     DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
     DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
     DepthStencilState.StencilEnable = FALSE;
@@ -1047,7 +1049,8 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
 
   RDCEraseEl(InputLayout);
   IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
-  PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+  // Per D3D12 headers, if primitive topology is absent from the PSO stream, it defaults to triangle
+  PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
   RDCEraseEl(RTVFormats);
   DSVFormat = DXGI_FORMAT_UNKNOWN;
   SampleDesc.Count = 1;
@@ -1056,6 +1059,8 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
   ViewInstancing.Flags = D3D12_VIEW_INSTANCING_FLAG_NONE;
   ViewInstancing.pViewInstanceLocations = NULL;
   ViewInstancing.ViewInstanceCount = 0;
+
+  bool SeenDSS = false;
 
 #define ITER_ADV(objtype)                    \
   iter = iter + sizeof(obj->type);           \
@@ -1148,6 +1153,7 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
         DepthStencilState.StencilWriteMask = dsdesc.StencilWriteMask;
         DepthStencilState.FrontFace = dsdesc.FrontFace;
         DepthStencilState.BackFace = dsdesc.BackFace;
+        SeenDSS = true;
         ITER_ADV(D3D12_DEPTH_STENCIL_DESC);
         break;
       }
@@ -1178,6 +1184,9 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
       case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT:
       {
         DSVFormat = u32->data.DSVFormat;
+        if(!SeenDSS && DSVFormat != DXGI_FORMAT_UNKNOWN)
+          DepthStencilState.DepthEnable = TRUE;
+
         ITER_ADV(DXGI_FORMAT);
         break;
       }
@@ -1208,6 +1217,7 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
       case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL1:
       {
         DepthStencilState = u32->data.DepthStencilState1;
+        SeenDSS = true;
         ITER_ADV(D3D12_DEPTH_STENCIL_DESC1);
         break;
       }
