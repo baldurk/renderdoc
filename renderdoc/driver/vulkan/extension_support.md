@@ -38,6 +38,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_debug_marker`
 * `VK_EXT_debug_report`
 * `VK_EXT_debug_utils`
+* `VK_EXT_depth_clamp_zero_one`
 * `VK_EXT_depth_clip_control`
 * `VK_EXT_depth_clip_enable`
 * `VK_EXT_depth_range_unrestricted`
@@ -244,7 +245,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 ## EXT Extensions
 
 * `VK_EXT_blend_operation_advanced`
-* `VK_EXT_depth_clamp_zero_one`
 * `VK_EXT_descriptor_buffer`
 * `VK_EXT_device_address_binding_report`
 * `VK_EXT_device_fault`
