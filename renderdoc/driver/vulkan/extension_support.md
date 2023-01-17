@@ -62,6 +62,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_headless_surface`
 * `VK_EXT_host_query_reset`
 * `VK_EXT_image_robustness`
+* `VK_EXT_image_view_min_lod`
 * `VK_EXT_index_type_uint8`
 * `VK_EXT_inline_uniform_block`
 * `VK_EXT_line_rasterization`
@@ -255,7 +256,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_image_compression_control`
 * `VK_EXT_image_compression_control_swapchain`
 * `VK_EXT_image_drm_format_modifier`
-* `VK_EXT_image_view_min_lod`
 * `VK_EXT_legacy_dithering`
 * `VK_EXT_mesh_shader`
 * `VK_EXT_metal_objects`

@@ -2153,6 +2153,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
                 // temporary hack, store image layout enum in byteOffset as it's not used for images
                 destSlots.binds[a].byteOffset = convert(srcel.imageLayout);
+
+                destSlots.binds[a].minLOD = c.m_ImageView[viewid].minLOD;
               }
               else
               {
@@ -2162,6 +2164,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 destSlots.binds[a].firstSlice = 0;
                 destSlots.binds[a].numMips = 1;
                 destSlots.binds[a].numSlices = 1;
+                destSlots.binds[a].minLOD = 0.0f;
               }
             }
             else if(descriptorType == DescriptorSlotType::UniformTexelBuffer ||

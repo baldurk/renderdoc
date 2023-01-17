@@ -183,6 +183,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_RESOLVE_2, VkImageResolve2);                                   \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO, VkImageStencilUsageCreateInfo);     \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_ASTC_DECODE_MODE_EXT, VkImageViewASTCDecodeModeEXT);      \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT, VkImageViewMinLodCreateInfoEXT); \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO, VkImageViewUsageCreateInfo);           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, VkInstanceCreateInfo);                         \
   COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO, VkMemoryAllocateFlagsInfo);              \
@@ -312,6 +313,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceImageRobustnessFeatures)                                               \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT,                       \
               VkPhysicalDeviceIndexTypeUint8FeaturesEXT);                                            \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_MIN_LOD_FEATURES_EXT,                     \
+              VkPhysicalDeviceImageViewMinLodFeaturesEXT)                                            \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES,                       \
               VkPhysicalDeviceInlineUniformBlockFeatures);                                           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES,                     \
@@ -836,7 +839,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_IMAGE_VIEW_ADDRESS_PROPERTIES_NVX:                                 \
   case VK_STRUCTURE_TYPE_IMAGE_VIEW_CAPTURE_DESCRIPTOR_DATA_INFO_EXT:                       \
   case VK_STRUCTURE_TYPE_IMAGE_VIEW_HANDLE_INFO_NVX:                                        \
-  case VK_STRUCTURE_TYPE_IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT:                                \
   case VK_STRUCTURE_TYPE_IMAGE_VIEW_SAMPLE_WEIGHT_CREATE_INFO_QCOM:                         \
   case VK_STRUCTURE_TYPE_IMPORT_MEMORY_BUFFER_COLLECTION_FUCHSIA:                           \
   case VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT:                               \
@@ -903,7 +905,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT:                \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_PROCESSING_FEATURES_QCOM:                    \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_PROCESSING_PROPERTIES_QCOM:                  \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_MIN_LOD_FEATURES_EXT:                   \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INHERITED_VIEWPORT_SCISSOR_FEATURES_NV:            \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INVOCATION_MASK_FEATURES_HUAWEI:                   \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LEGACY_DITHERING_FEATURES_EXT:                     \

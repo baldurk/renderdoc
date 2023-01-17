@@ -724,6 +724,11 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_ROBUSTNESS_FEATURES,                            \
                VkPhysicalDeviceImageRobustnessFeatures)                                                \
                                                                                                        \
+  /* VK_EXT_image_view_min_lod */                                                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_MIN_LOD_FEATURES_EXT,                      \
+               VkPhysicalDeviceImageViewMinLodFeaturesEXT)                                             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT, VkImageViewMinLodCreateInfoEXT)   \
+                                                                                                       \
   /* VK_EXT_index_type_uint8 */                                                                        \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT,                        \
                VkPhysicalDeviceIndexTypeUint8FeaturesEXT)                                              \
@@ -1470,10 +1475,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT)              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT)                        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_2_EXT)                       \
-                                                                                                       \
-  /* VK_EXT_image_view_min_lod */                                                                      \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_MIN_LOD_FEATURES_EXT)                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT)                              \
                                                                                                        \
   /* VK_EXT_legacy_dithering */                                                                        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LEGACY_DITHERING_FEATURES_EXT)                   \
@@ -9332,6 +9333,37 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceIndexTypeUint8FeaturesEXT 
 
 template <>
 void Deserialise(const VkPhysicalDeviceIndexTypeUint8FeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceImageViewMinLodFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_MIN_LOD_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(minLod);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceImageViewMinLodFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkImageViewMinLodCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(minLod);
+}
+
+template <>
+void Deserialise(const VkImageViewMinLodCreateInfoEXT &el)
 {
   DeserialiseNext(el.pNext);
 }

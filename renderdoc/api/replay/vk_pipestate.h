@@ -179,7 +179,7 @@ set's inline block data.
   float maxAnisotropy = 0.0f;
   DOCUMENT("For samplers - the :class:`CompareFunction` for comparison samplers.");
   CompareFunction compareFunction = CompareFunction::AlwaysTrue;
-  DOCUMENT("For samplers - the minimum mip level that can be used.");
+  DOCUMENT("For samplers and image views - the minimum mip level that can be used.");
   float minLOD = 0.0f;
   DOCUMENT("For samplers - the maximum mip level that can be used.");
   float maxLOD = 0.0f;

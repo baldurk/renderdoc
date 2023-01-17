@@ -713,6 +713,9 @@ struct VulkanCreationInfo
     VkFormat format;
     VkImageSubresourceRange range;
     VkComponentMapping componentMapping;
+
+    // VkImageViewMinLodCreateInfoEXT
+    float minLOD;
   };
   std::unordered_map<ResourceId, ImageView> m_ImageView;
 

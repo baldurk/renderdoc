@@ -611,6 +611,16 @@ void VulkanPipelineStateViewer::setEmptyRow(RDTreeWidgetItem *node)
   node->setForegroundColor(QColor(0, 0, 0));
 }
 
+float minLOD(const VKPipe::Attachment &view)
+{
+  return 0.0f;
+}
+
+float minLOD(const VKPipe::BindingElement &view)
+{
+  return view.minLOD;
+}
+
 template <typename bindType>
 bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bindType &view,
                                                TextureDescription *tex, bool stageBitsIncluded,
@@ -682,6 +692,11 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
 
       viewdetails = true;
     }
+  }
+
+  if(minLOD(view) != 0.0f)
+  {
+    text += tr("Clamped to a minimum LOD of %1\n").arg(minLOD(view));
   }
 
   if(includeSampleLocations && state.multisample.rasterSamples > 1 &&

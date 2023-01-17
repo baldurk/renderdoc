@@ -2090,6 +2090,16 @@ void VulkanCreationInfo::ImageView::Init(VulkanResourceManager *resourceMan, Vul
     range.layerCount = info.m_Image[image].arrayLayers - range.baseArrayLayer;
 
   componentMapping = pCreateInfo->components;
+
+  minLOD = 0.0f;
+
+  const VkImageViewMinLodCreateInfoEXT *minLODInfo =
+      (const VkImageViewMinLodCreateInfoEXT *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT);
+  if(minLODInfo)
+  {
+    minLOD = minLODInfo->minLod;
+  }
 }
 
 void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan,
