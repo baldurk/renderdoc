@@ -415,6 +415,10 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
   if(ret.name.beginsWith(alignmentPrefix))
     ret.name.erase(0, sizeof(alignmentPrefix) - 1);
 
+  char hostlayoutPrefix[] = "hostlayout.";
+  if(ret.name.beginsWith(hostlayoutPrefix))
+    ret.name.erase(0, sizeof(hostlayoutPrefix) - 1);
+
   char structPrefix[] = "struct.";
   if(ret.name.beginsWith(structPrefix))
     ret.name.erase(0, sizeof(structPrefix) - 1);
