@@ -28,9 +28,6 @@
 #include "spirv_op_helpers.h"
 #include "spirv_reflect.h"
 
-RDOC_CONFIG(bool, Vulkan_Debug_ShowDebugValues, false,
-            "Show DebugValue instructions in shader disassembly.");
-
 struct StructuredCFG
 {
   enum
@@ -1603,15 +1600,15 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
 
               ret += ")";
             }
-            else if(dbg.inst == ShaderDbg::Value && Vulkan_Debug_ShowDebugValues())
+            else if(dbg.inst == ShaderDbg::Value)
             {
               OpShaderDbg localVar(GetID(dbg.arg<Id>(0)));
               ret += indent;
               ret += "// DebugValue(";
               ret += idName(dbg.arg<Id>(1));
-              ret += " = ";
+              ret += " is ";
               ret += idName(localVar.arg<Id>(0));
-              ret += " ";
+              ret += " @ ";
               ret += idName(localVar.arg<Id>(2));
               ret += ":";
               ret += idName(localVar.arg<Id>(3));
