@@ -70,6 +70,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_metal_surface`
 * `VK_EXT_multisampled_render_to_single_sampled`
 * `VK_EXT_mutable_descriptor_type`
+* `VK_EXT_non_seamless_cube_map`
 * `VK_EXT_pageable_device_local_memory`
 * `VK_EXT_pci_bus_info`
 * `VK_EXT_pipeline_creation_cache_control`
@@ -259,7 +260,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_mesh_shader`
 * `VK_EXT_metal_objects`
 * `VK_EXT_multi_draw`
-* `VK_EXT_non_seamless_cube_map`
 * `VK_EXT_opacity_micromap`
 * `VK_EXT_physical_device_drm`
 * `VK_EXT_pipeline_protected_access`

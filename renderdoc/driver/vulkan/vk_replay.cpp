@@ -2094,6 +2094,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 el.maxLOD = sampl.maxLod;
                 MakeBorderColor(sampl.borderColor, el.borderColor);
                 el.unnormalized = sampl.unnormalizedCoordinates;
+                el.seamless = sampl.seamless;
 
                 if(sampl.ycbcr != ResourceId())
                 {

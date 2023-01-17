@@ -1051,6 +1051,9 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
                .arg(ToQStr(descriptor.swizzle.alpha));
   }
 
+  if(!descriptor.seamless)
+    addressing += tr(" Non-Seamless");
+
   if(descriptor.ycbcrSampler != ResourceId())
   {
     obj += lit(" ") + ToQStr(descriptor.ycbcrSampler);

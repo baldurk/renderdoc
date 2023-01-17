@@ -682,6 +682,9 @@ struct VulkanCreationInfo
     // VkSamplerBorderColorComponentMappingCreateInfoEXT
     VkComponentMapping componentMapping;
     bool srgbBorder;
+
+    // VK_SAMPLER_CREATE_NON_SEAMLESS_CUBE_MAP_BIT_EXT
+    bool seamless;
   };
   std::unordered_map<ResourceId, Sampler> m_Sampler;
 

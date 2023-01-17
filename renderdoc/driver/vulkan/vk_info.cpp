@@ -1984,6 +1984,10 @@ void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, Vulka
   borderColor = pCreateInfo->borderColor;
   unnormalizedCoordinates = pCreateInfo->unnormalizedCoordinates != 0;
 
+  seamless = true;
+  if((pCreateInfo->flags & VK_SAMPLER_CREATE_NON_SEAMLESS_CUBE_MAP_BIT_EXT) != 0)
+    seamless = false;
+
   reductionMode = VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE;
 
   const VkSamplerReductionModeCreateInfo *reduction =

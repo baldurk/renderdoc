@@ -48,7 +48,7 @@ struct BindingElement
            addressW == o.addressW && mipBias == o.mipBias && maxAnisotropy == o.maxAnisotropy &&
            compareFunction == o.compareFunction && minLOD == o.minLOD && maxLOD == o.maxLOD &&
            borderColor == o.borderColor && unnormalized == o.unnormalized &&
-           srgbBorder == o.srgbBorder;
+           srgbBorder == o.srgbBorder && seamless == o.seamless;
   }
   bool operator<(const BindingElement &o) const
   {
@@ -106,6 +106,8 @@ struct BindingElement
       return unnormalized < o.unnormalized;
     if(!(srgbBorder == o.srgbBorder))
       return srgbBorder < o.srgbBorder;
+    if(!(seamless == o.seamless))
+      return seamless < o.seamless;
     return false;
   }
 
@@ -201,6 +203,9 @@ information for border colors.
 
   DOCUMENT("``True`` if this is an inline uniform block binding.");
   bool inlineBlock = false;
+
+  DOCUMENT("``True`` if this sampler is seamless across cubemap boundaries (the default).");
+  bool seamless = true;
 
   DOCUMENT(R"(For samplers - the :class:`ResourceId` of the ycbcr conversion object associated with
 this sampler.
