@@ -2015,6 +2015,18 @@ void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, Vulka
     customBorderColor = border->customBorderColor;
     customBorderFormat = border->format;
   }
+
+  RDCEraseEl(componentMapping);
+  srgbBorder = false;
+
+  const VkSamplerBorderColorComponentMappingCreateInfoEXT *borderSwizzle =
+      (const VkSamplerBorderColorComponentMappingCreateInfoEXT *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_SAMPLER_BORDER_COLOR_COMPONENT_MAPPING_CREATE_INFO_EXT);
+  if(borderSwizzle)
+  {
+    componentMapping = borderSwizzle->components;
+    srgbBorder = borderSwizzle->srgb != VK_FALSE;
+  }
 }
 
 void VulkanCreationInfo::YCbCrSampler::Init(VulkanResourceManager *resourceMan,

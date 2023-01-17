@@ -47,7 +47,8 @@ struct BindingElement
            filter == o.filter && addressU == o.addressU && addressV == o.addressV &&
            addressW == o.addressW && mipBias == o.mipBias && maxAnisotropy == o.maxAnisotropy &&
            compareFunction == o.compareFunction && minLOD == o.minLOD && maxLOD == o.maxLOD &&
-           borderColor == o.borderColor && unnormalized == o.unnormalized;
+           borderColor == o.borderColor && unnormalized == o.unnormalized &&
+           srgbBorder == o.srgbBorder;
   }
   bool operator<(const BindingElement &o) const
   {
@@ -103,6 +104,8 @@ struct BindingElement
       return borderColor < o.borderColor;
     if(!(unnormalized == o.unnormalized))
       return unnormalized < o.unnormalized;
+    if(!(srgbBorder == o.srgbBorder))
+      return srgbBorder < o.srgbBorder;
     return false;
   }
 
@@ -183,6 +186,16 @@ set's inline block data.
 :type: Tuple[float,float,float,float]
 )");
   rdcfixedarray<float, 4> borderColor = {0.0f, 0.0f, 0.0f, 0.0f};
+  DOCUMENT(R"(The swizzle applied to samplers. Primarily for ycbcr samplers applied before
+conversion but for non-ycbcr samplers can be used for implementations that require sampler swizzle
+information for border colors.
+
+:type: TextureSwizzle4
+)");
+  TextureSwizzle4 samplerSwizzle;
+  DOCUMENT(
+      "For samplers - ``True`` if the border colour is swizzled with an sRGB formatted image.");
+  bool srgbBorder = false;
   DOCUMENT("For samplers - ``True`` if unnormalized co-ordinates are used in this sampler.");
   bool unnormalized = false;
 
@@ -198,11 +211,6 @@ this sampler.
   YcbcrConversion ycbcrModel;
   DOCUMENT("For ycbcr samplers - the :class:`YcbcrRange` used for conversion.");
   YcbcrRange ycbcrRange;
-  DOCUMENT(R"(For ycbcr samplers - The swizzle applied before conversion.
-
-:type: TextureSwizzle4
-)");
-  TextureSwizzle4 ycbcrSwizzle;
   DOCUMENT("For ycbcr samplers - the :class:`ChromaSampleLocation` X-axis chroma offset.");
   ChromaSampleLocation xChromaOffset;
   DOCUMENT("For ycbcr samplers - the :class:`ChromaSampleLocation` Y-axis chroma offset.");

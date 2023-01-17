@@ -2102,11 +2102,16 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
                   el.ycbcrModel = ycbcr.ycbcrModel;
                   el.ycbcrRange = ycbcr.ycbcrRange;
-                  Convert(el.ycbcrSwizzle, ycbcr.componentMapping);
+                  Convert(el.samplerSwizzle, ycbcr.componentMapping);
                   el.xChromaOffset = ycbcr.xChromaOffset;
                   el.yChromaOffset = ycbcr.yChromaOffset;
                   el.chromaFilter = ycbcr.chromaFilter;
                   el.forceExplicitReconstruction = ycbcr.forceExplicitReconstruction;
+                }
+                else
+                {
+                  Convert(el.samplerSwizzle, sampl.componentMapping);
+                  el.srgbBorder = sampl.srgbBorder;
                 }
 
                 if(sampl.customBorder)

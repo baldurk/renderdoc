@@ -1949,6 +1949,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::BindingElement &el)
   SERIALISE_MEMBER(minLOD);
   SERIALISE_MEMBER(maxLOD);
   SERIALISE_MEMBER(borderColor);
+  SERIALISE_MEMBER(samplerSwizzle);
   SERIALISE_MEMBER(unnormalized);
   SERIALISE_MEMBER(inlineBlock);
 
@@ -1956,13 +1957,12 @@ void DoSerialise(SerialiserType &ser, VKPipe::BindingElement &el)
 
   SERIALISE_MEMBER(ycbcrModel);
   SERIALISE_MEMBER(ycbcrRange);
-  SERIALISE_MEMBER(ycbcrSwizzle);
   SERIALISE_MEMBER(xChromaOffset);
   SERIALISE_MEMBER(yChromaOffset);
   SERIALISE_MEMBER(chromaFilter);
   SERIALISE_MEMBER(forceExplicitReconstruction);
 
-  SIZE_CHECK(192);
+  SIZE_CHECK(184);
 };
 
 template <typename SerialiserType>

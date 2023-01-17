@@ -678,6 +678,10 @@ struct VulkanCreationInfo
     bool customBorder;
     VkClearColorValue customBorderColor;
     VkFormat customBorderFormat;
+
+    // VkSamplerBorderColorComponentMappingCreateInfoEXT
+    VkComponentMapping componentMapping;
+    bool srgbBorder;
   };
   std::unordered_map<ResourceId, Sampler> m_Sampler;
 

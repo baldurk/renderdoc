@@ -1039,21 +1039,21 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
 
   QString obj = ToQStr(descriptor.samplerResourceId);
 
+  if(descriptor.samplerSwizzle.red != TextureSwizzle::Red ||
+     descriptor.samplerSwizzle.green != TextureSwizzle::Green ||
+     descriptor.samplerSwizzle.blue != TextureSwizzle::Blue ||
+     descriptor.samplerSwizzle.alpha != TextureSwizzle::Alpha)
+  {
+    obj += tr(" swizzle[%1%2%3%4]")
+               .arg(ToQStr(descriptor.swizzle.red))
+               .arg(ToQStr(descriptor.swizzle.green))
+               .arg(ToQStr(descriptor.swizzle.blue))
+               .arg(ToQStr(descriptor.swizzle.alpha));
+  }
+
   if(descriptor.ycbcrSampler != ResourceId())
   {
     obj += lit(" ") + ToQStr(descriptor.ycbcrSampler);
-
-    if(descriptor.ycbcrSwizzle.red != TextureSwizzle::Red ||
-       descriptor.ycbcrSwizzle.green != TextureSwizzle::Green ||
-       descriptor.ycbcrSwizzle.blue != TextureSwizzle::Blue ||
-       descriptor.ycbcrSwizzle.alpha != TextureSwizzle::Alpha)
-    {
-      obj += tr(" swizzle[%1%2%3%4]")
-                 .arg(ToQStr(descriptor.swizzle.red))
-                 .arg(ToQStr(descriptor.swizzle.green))
-                 .arg(ToQStr(descriptor.swizzle.blue))
-                 .arg(ToQStr(descriptor.swizzle.alpha));
-    }
 
     filter +=
         QFormatStr(", %1 %2").arg(ToQStr(descriptor.ycbcrModel)).arg(ToQStr(descriptor.ycbcrRange));

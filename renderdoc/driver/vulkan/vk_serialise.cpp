@@ -569,6 +569,12 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ATTACHMENT_FEEDBACK_LOOP_LAYOUT_FEATURES_EXT,         \
                VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT)                                \
                                                                                                        \
+  /* VK_EXT_border_color_swizzle */                                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BORDER_COLOR_SWIZZLE_FEATURES_EXT,                    \
+               VkPhysicalDeviceBorderColorSwizzleFeaturesEXT)                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_BORDER_COLOR_COMPONENT_MAPPING_CREATE_INFO_EXT,               \
+               VkSamplerBorderColorComponentMappingCreateInfoEXT)                                      \
+                                                                                                       \
   /* VK_EXT_buffer_device_address */                                                                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT,                                \
                VkBufferDeviceAddressCreateInfoEXT)                                                     \
@@ -1393,10 +1399,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_FEATURES_EXT)           \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_PROPERTIES_EXT)         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_ADVANCED_STATE_CREATE_INFO_EXT)             \
-                                                                                                       \
-  /* VK_EXT_border_color_swizzle */                                                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BORDER_COLOR_SWIZZLE_FEATURES_EXT)               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SAMPLER_BORDER_COLOR_COMPONENT_MAPPING_CREATE_INFO_EXT)          \
                                                                                                        \
   /* VK_EXT_depth_clamp_zero_one */                                                                    \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLAMP_ZERO_ONE_FEATURES_EXT)               \
@@ -5451,6 +5453,40 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceCustomBorderColorPropertie
 
 template <>
 void Deserialise(const VkPhysicalDeviceCustomBorderColorPropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSamplerBorderColorComponentMappingCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_SAMPLER_BORDER_COLOR_COMPONENT_MAPPING_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(components);
+  SERIALISE_MEMBER(srgb);
+}
+
+template <>
+void Deserialise(const VkSamplerBorderColorComponentMappingCreateInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceBorderColorSwizzleFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BORDER_COLOR_SWIZZLE_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(borderColorSwizzle);
+  SERIALISE_MEMBER(borderColorSwizzleFromImage);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceBorderColorSwizzleFeaturesEXT &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -11195,6 +11231,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice4444FormatsFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice8BitStorageFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceASTCDecodeFeaturesEXT)
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceBorderColorSwizzleFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceBufferDeviceAddressFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceBufferDeviceAddressFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceCoherentMemoryFeaturesAMD);
@@ -11385,6 +11422,7 @@ INSTANTIATE_SERIALISE_TYPE(VkRenderPassMultiviewCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassSampleLocationsBeginInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkResolveImageInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkSampleLocationsInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkSamplerBorderColorComponentMappingCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSamplerCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSamplerCustomBorderColorCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSamplerReductionModeCreateInfo);

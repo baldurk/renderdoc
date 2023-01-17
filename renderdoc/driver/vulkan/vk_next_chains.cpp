@@ -213,6 +213,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceASTCDecodeFeaturesEXT);                                                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ATTACHMENT_FEEDBACK_LOOP_LAYOUT_FEATURES_EXT,        \
               VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT);                              \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BORDER_COLOR_SWIZZLE_FEATURES_EXT,                   \
+              VkPhysicalDeviceBorderColorSwizzleFeaturesEXT);                                        \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT,                  \
               VkPhysicalDeviceBufferDeviceAddressFeaturesEXT);                                       \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,                      \
@@ -543,6 +545,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_SAMPLE_LOCATIONS_BEGIN_INFO_EXT,                         \
               VkRenderPassSampleLocationsBeginInfoEXT);                                              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT, VkSampleLocationsInfoEXT);                \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_BORDER_COLOR_COMPONENT_MAPPING_CREATE_INFO_EXT,              \
+              VkSamplerBorderColorComponentMappingCreateInfoEXT);                                    \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO, VkSamplerCreateInfo);                           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_CUSTOM_BORDER_COLOR_CREATE_INFO_EXT,                         \
               VkSamplerCustomBorderColorCreateInfoEXT);                                              \
@@ -866,7 +870,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_AMIGO_PROFILING_FEATURES_SEC:                      \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_FEATURES_EXT:             \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_PROPERTIES_EXT:           \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BORDER_COLOR_SWIZZLE_FEATURES_EXT:                 \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COOPERATIVE_MATRIX_FEATURES_NV:                    \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COOPERATIVE_MATRIX_PROPERTIES_NV:                  \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COPY_MEMORY_INDIRECT_FEATURES_NV:                  \
@@ -980,7 +983,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_RENDER_PASS_CREATION_FEEDBACK_CREATE_INFO_EXT:                     \
   case VK_STRUCTURE_TYPE_RENDER_PASS_SUBPASS_FEEDBACK_CREATE_INFO_EXT:                      \
   case VK_STRUCTURE_TYPE_RENDER_PASS_TRANSFORM_BEGIN_INFO_QCOM:                             \
-  case VK_STRUCTURE_TYPE_SAMPLER_BORDER_COLOR_COMPONENT_MAPPING_CREATE_INFO_EXT:            \
   case VK_STRUCTURE_TYPE_SAMPLER_CAPTURE_DESCRIPTOR_DATA_INFO_EXT:                          \
   case VK_STRUCTURE_TYPE_SCREEN_SURFACE_CREATE_INFO_QNX:                                    \
   case VK_STRUCTURE_TYPE_SEMAPHORE_GET_ZIRCON_HANDLE_INFO_FUCHSIA:                          \
