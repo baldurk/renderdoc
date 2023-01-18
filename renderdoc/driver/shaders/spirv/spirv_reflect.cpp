@@ -1802,14 +1802,11 @@ void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst,
 
     if(varDecorations.arrayStride != ~0U)
     {
-      RDCASSERTMSG("Stride is too large for uint16_t", varDecorations.arrayStride <= 0xffff);
-      outConst.type.arrayByteStride = RDCMIN(varDecorations.arrayStride, 0xffffu) & 0xffff;
+      outConst.type.arrayByteStride = varDecorations.arrayStride;
     }
     else if(decorations[curType->id].arrayStride != ~0U)
     {
-      RDCASSERTMSG("Stride is too large for uint16_t",
-                   decorations[curType->id].arrayStride <= 0xffff);
-      outConst.type.arrayByteStride = RDCMIN(decorations[curType->id].arrayStride, 0xffffu) & 0xffff;
+      outConst.type.arrayByteStride = decorations[curType->id].arrayStride;
     }
 
     if(varDecorations.matrixStride != ~0U)

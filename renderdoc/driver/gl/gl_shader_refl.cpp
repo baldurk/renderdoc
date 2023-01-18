@@ -745,9 +745,7 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
   if(values[6] > 0)
     var.type.flags |= ShaderVariableFlags::RowMajorMatrix;
   var.type.matrixByteStride = (uint8_t)values[8];
-
-  RDCASSERTMSG("Stride is too large for uint16_t", values[7] <= 0xffff);
-  var.type.arrayByteStride = RDCMIN((uint32_t)values[7], 0xffffu) & 0xffff;
+  var.type.arrayByteStride = (uint32_t)values[7];
 
   bool bareUniform = false;
 
@@ -891,9 +889,7 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     parentVar.type.baseType = VarType::Struct;
     parentVar.type.elements = isarray && !multiDimArray ? RDCMAX(1U, uint32_t(arrayIdx + 1)) : 1;
     parentVar.type.matrixByteStride = 0;
-
-    RDCASSERTMSG("Stride is too large for uint16_t", topLevelStride <= 0xffff);
-    parentVar.type.arrayByteStride = RDCMIN((uint32_t)topLevelStride, 0xffffu) & 0xffff;
+    parentVar.type.arrayByteStride = (uint32_t)topLevelStride;
 
     // consider all block-level SSBO structs to have infinite elements if they are an array at all
     // for structs that aren't the last struct in a block which can't be infinite, this will be

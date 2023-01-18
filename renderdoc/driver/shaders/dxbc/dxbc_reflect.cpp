@@ -91,9 +91,7 @@ static ShaderConstantType MakeShaderConstantType(bool cbufferPacking, DXBC::CBuf
         stride = 0;
     }
 
-    RDCASSERTMSG("Stride is too large for uint16_t", stride <= 0xffff);
-
-    ret.arrayByteStride = RDCMIN(stride, 0xffffu) & 0xffff;
+    ret.arrayByteStride = stride;
     // in D3D only cbuffers have 16-byte aligned structs
     if(cbufferPacking)
       ret.arrayByteStride = AlignUp16(ret.arrayByteStride);
