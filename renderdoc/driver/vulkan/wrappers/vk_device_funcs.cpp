@@ -4078,7 +4078,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
         CheckDeviceExts();
       }
 
-      m_EnabledExtensions = record->instDevInfo;
+      m_EnabledExtensions = *record->instDevInfo;
 
       InitDeviceExtensionTables(*pDevice, record->instDevInfo);
     }
