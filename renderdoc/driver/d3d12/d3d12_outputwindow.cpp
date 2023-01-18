@@ -81,7 +81,7 @@ void D3D12Replay::OutputWindow::MakeRTV(bool msaa)
 
   colResolve = NULL;
 
-  if(msaa)
+  if(msaa && D3D12_MSAA_SAMPLECOUNT > 1)
   {
     texDesc.SampleDesc.Count = 1;
 
