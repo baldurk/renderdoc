@@ -75,6 +75,9 @@ struct NVVulkanCounters::Impl
       return true;
     }
 
+    nv::perf::UserLogEnableCustom(NVVulkanCounters::Impl::LogNvPerfAsDebugMessage, (void *)driver);
+    auto logGuard = nv::perf::ScopeExitGuard([]() { nv::perf::UserLogDisableCustom(); });
+
     if(!nv::perf::VulkanLoadDriver(Unwrap(driver->GetInstance())))
     {
       Impl::LogDebugMessage("NVVulkanCounters::Impl::TryInitializePerfSDK",
@@ -181,9 +184,6 @@ bool NVVulkanCounters::Init(WrappedVulkan *driver)
   m_Impl = new Impl;
   if(!m_Impl)
     return false;
-
-  nv::perf::UserLogEnableCustom(NVVulkanCounters::Impl::LogNvPerfAsDebugMessage, (void *)driver);
-  auto logGuard = nv::perf::ScopeExitGuard([]() { nv::perf::UserLogDisableCustom(); });
 
   const bool initSuccess = m_Impl->TryInitializePerfSDK(driver);
   if(!initSuccess)
