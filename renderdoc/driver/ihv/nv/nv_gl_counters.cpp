@@ -73,6 +73,9 @@ struct NVGLCounters::Impl
       return true;
     }
 
+    nv::perf::UserLogEnableCustom(NVGLCounters::Impl::LogNvPerfAsDebugMessage, (void *)driver);
+    auto logGuard = nv::perf::ScopeExitGuard([]() { nv::perf::UserLogDisableCustom(); });
+
     if(!nv::perf::OpenGLLoadDriver())
     {
       Impl::LogDebugMessage("NVGLCounters::Impl::TryInitializePerfSDK",
@@ -197,9 +200,6 @@ bool NVGLCounters::Init(WrappedOpenGL *driver)
   m_Impl = new Impl;
   if(!m_Impl)
     return false;
-
-  nv::perf::UserLogEnableCustom(NVGLCounters::Impl::LogNvPerfAsDebugMessage, (void *)driver);
-  auto logGuard = nv::perf::ScopeExitGuard([]() { nv::perf::UserLogDisableCustom(); });
 
   const bool initSuccess = m_Impl->TryInitializePerfSDK(driver);
   if(!initSuccess)

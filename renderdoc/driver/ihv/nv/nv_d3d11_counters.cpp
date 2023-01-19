@@ -76,6 +76,9 @@ struct NVD3D11Counters::Impl
       return true;
     }
 
+    nv::perf::UserLogEnableCustom(NVD3D11Counters::Impl::LogNvPerfAsDebugMessage, (void *)device);
+    auto logGuard = nv::perf::ScopeExitGuard([]() { nv::perf::UserLogDisableCustom(); });
+
     if(!nv::perf::D3D11LoadDriver())
     {
       Impl::LogDebugMessage("NVD3D11Counters::Impl::TryInitializePerfSDK",
@@ -201,9 +204,6 @@ bool NVD3D11Counters::Init(WrappedID3D11Device *device)
   m_Impl = new Impl;
   if(!m_Impl)
     return false;
-
-  nv::perf::UserLogEnableCustom(NVD3D11Counters::Impl::LogNvPerfAsDebugMessage, (void *)device);
-  auto logGuard = nv::perf::ScopeExitGuard([]() { nv::perf::UserLogDisableCustom(); });
 
   const bool initSuccess = m_Impl->TryInitializePerfSDK(device);
   if(!initSuccess)
