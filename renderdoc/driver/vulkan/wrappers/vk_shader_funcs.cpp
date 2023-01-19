@@ -761,6 +761,8 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
     VkResult ret = ObjDisp(device)->CreateComputePipelines(Unwrap(device), Unwrap(pipelineCache), 1,
                                                            unwrapped, NULL, &pipe);
 
+    AddResource(Pipeline, ResourceType::PipelineState, "Compute Pipeline");
+
     if(ret != VK_SUCCESS)
     {
       SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
@@ -787,11 +789,50 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
         live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
         GetResourceManager()->AddLiveResource(Pipeline, pipe);
 
-        m_CreationInfo.m_Pipeline[live].Init(GetResourceManager(), m_CreationInfo, live, &CreateInfo);
+        VkPipelineShaderStageCreateInfo shadInstantiated = CreateInfo.stage;
+
+        // search for inline shader, and create shader module so we have objects to pull
+        // out for recreating the compute pipeline (and to replace for shader editing)
+        if(shadInstantiated.module == VK_NULL_HANDLE)
+        {
+          const VkShaderModuleCreateInfo *inlineShad =
+              (const VkShaderModuleCreateInfo *)FindNextStruct(
+                  &shadInstantiated, VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO);
+          const VkDebugUtilsObjectNameInfoEXT *shadName =
+              (const VkDebugUtilsObjectNameInfoEXT *)FindNextStruct(
+                  &shadInstantiated, VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT);
+          if(inlineShad)
+          {
+            vkCreateShaderModule(device, inlineShad, NULL, &shadInstantiated.module);
+
+            // this will be a replay ID, there is no equivalent original ID
+            ResourceId shadId = GetResID(shadInstantiated.module);
+
+            AddResource(shadId, ResourceType::Shader, "Shader Module");
+            DerivedResource(device, shadId);
+            DerivedResource(pipe, shadId);
+
+            if(shadName)
+              GetReplay()->GetResourceDesc(shadId).SetCustomName(shadName->pObjectName);
+            else
+              GetReplay()->GetResourceDesc(shadId).name =
+                  GetReplay()->GetResourceDesc(Pipeline).name + " shader";
+          }
+          else
+          {
+            RDCERR("NULL module (entry %s) with no linked module create info",
+                   shadInstantiated.pName);
+          }
+        }
+
+        VkComputePipelineCreateInfo shadInstantiatedInfo = CreateInfo;
+        shadInstantiatedInfo.stage = shadInstantiated;
+
+        m_CreationInfo.m_Pipeline[live].Init(GetResourceManager(), m_CreationInfo, live,
+                                             &shadInstantiatedInfo);
       }
     }
 
-    AddResource(Pipeline, ResourceType::PipelineState, "Compute Pipeline");
     DerivedResource(device, Pipeline);
     if(origCache != VK_NULL_HANDLE)
       DerivedResource(origCache, Pipeline);
@@ -801,7 +842,8 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
         DerivedResource(CreateInfo.basePipelineHandle, Pipeline);
     }
     DerivedResource(CreateInfo.layout, Pipeline);
-    DerivedResource(CreateInfo.stage.module, Pipeline);
+    if(CreateInfo.stage.module != VK_NULL_HANDLE)
+      DerivedResource(CreateInfo.stage.module, Pipeline);
   }
 
   return true;
@@ -882,7 +924,8 @@ VkResult WrappedVulkan::vkCreateComputePipelines(VkDevice device, VkPipelineCach
         record->AddParent(layoutrecord);
 
         VkResourceRecord *modulerecord = GetRecord(pCreateInfos[i].stage.module);
-        record->AddParent(modulerecord);
+        if(modulerecord)
+          record->AddParent(modulerecord);
       }
       else
       {
