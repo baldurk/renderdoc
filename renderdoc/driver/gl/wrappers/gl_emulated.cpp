@@ -2987,6 +2987,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
       if(bindTarget == eGL_TEXTURE_CUBE_MAP)
       {
         vssource =
+            "#version 100\n"
             "attribute vec2 pos;\n"
             "void main() { gl_Position = vec4(pos, 0.5, 0.5); }";
 
@@ -3008,6 +3009,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
         cubecoord += "\nreturn coord;\n}\n";
 
         fssource = rdcstr(
+                       "#version 100\n"
                        "precision highp float;\n"
                        "uniform vec3 res;\n"
                        "uniform samplerCube srcTex;\n") +
@@ -3019,11 +3021,13 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
       else if(target == eGL_TEXTURE_2D)
       {
         vssource =
+            "#version 100\n"
             "attribute vec2 pos;\n"
             "void main() { gl_Position = vec4(pos, 0.5, 0.5); }";
 
         fssource =
             rdcstr(
+                "#version 100\n"
                 "precision highp float;\n"
                 "uniform vec3 res;\n"
                 "uniform sampler2D srcTex;\n"
