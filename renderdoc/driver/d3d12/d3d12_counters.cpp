@@ -666,6 +666,7 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
 
   m_pDevice->ExecuteLists();
   m_pDevice->FlushLists();
+  m_pDevice->GPUSyncAllQueues();
 
   D3D12_RANGE range;
   range.Begin = 0;
