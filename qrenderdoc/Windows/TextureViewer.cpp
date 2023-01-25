@@ -1581,12 +1581,12 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newAction)
     AutoFitRange();
 
   m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
-    RT_UpdateVisualRange(r);
-
     RT_UpdateAndDisplay(r);
 
     if(m_Output != NULL)
       RT_PickPixelsAndUpdate(r);
+
+    RT_UpdateVisualRange(r);
   });
 
   HighlightUsage();
@@ -3815,14 +3815,14 @@ void TextureViewer::on_mipLevel_currentIndexChanged(int index)
     return;
   }
 
-  INVOKE_MEMFN(RT_UpdateVisualRange);
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
 
   if(m_Output != NULL && m_PickedPoint.x() >= 0 && m_PickedPoint.y() >= 0)
   {
     INVOKE_MEMFN(RT_PickPixelsAndUpdate);
   }
 
-  INVOKE_MEMFN(RT_UpdateAndDisplay);
+  INVOKE_MEMFN(RT_UpdateVisualRange);
 }
 
 void TextureViewer::on_sliceFace_currentIndexChanged(int index)
@@ -3834,14 +3834,14 @@ void TextureViewer::on_sliceFace_currentIndexChanged(int index)
   TextureDescription &tex = *texptr;
   m_TexDisplay.subresource.slice = (uint32_t)qMax(0, index);
 
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+
   INVOKE_MEMFN(RT_UpdateVisualRange);
 
   if(m_Output != NULL && m_PickedPoint.x() >= 0 && m_PickedPoint.y() >= 0)
   {
     INVOKE_MEMFN(RT_PickPixelsAndUpdate);
   }
-
-  INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
 void TextureViewer::on_locationGoto_clicked()
