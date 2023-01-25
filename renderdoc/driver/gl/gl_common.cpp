@@ -2263,7 +2263,14 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
         case eGL_SIGNED_NORMALIZED: ret.compType = CompType::SNorm; break;
         case eGL_FLOAT: ret.compType = CompType::Float; break;
         case eGL_INT: ret.compType = CompType::SInt; break;
-        default: RDCERR("Unexpected texture type");
+        default:
+        {
+          RDCERR("Unexpected texture type");
+          if(ret.compByteWidth == 1)
+            ret.compType = CompType::UNorm;
+          else
+            ret.compType = CompType::Float;
+        }
       }
     }
     else
