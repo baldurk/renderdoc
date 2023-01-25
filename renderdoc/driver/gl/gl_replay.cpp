@@ -1450,16 +1450,16 @@ void GLReplay::SavePipelineState(uint32_t eventId)
             drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_WRAP_R, &v);
           pipe.samplers[unit].addressR = MakeAddressMode((GLenum)v);
 
-          v = 0;
-          if(HasExt[ARB_seamless_cubemap_per_texture])
+          // GLES 3 is always seamless
+          if(IsGLES && GLCoreVersion > 30)
           {
-            if(samp != 0)
-              drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
-            else
-              drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
+            pipe.samplers[unit].seamlessCubeMap = true;
           }
-          pipe.samplers[unit].seamlessCubeMap =
-              (v != 0 || rs.Enabled[GLRenderState::eEnabled_TexCubeSeamless]);
+          else
+          {
+            // toggle on proper GL, GLES 2 this is always going to be false
+            pipe.samplers[unit].seamlessCubeMap = rs.Enabled[GLRenderState::eEnabled_TexCubeSeamless];
+          }
 
           v = 0;
           if(samp != 0)
