@@ -323,6 +323,25 @@ bool CheckAndroidServerVersion(const rdcstr &deviceID, ABI abi)
   return false;
 }
 
+Process::ProcessResult ListPackages(const rdcstr &deviceID, const rdcstr &parameters)
+{
+  Process::ProcessResult result = adbExecCommand(deviceID, "shell getprop ro.build.version.sdk");
+
+  int sdkVersion = -1;
+  if(result.retCode == 0)
+    sdkVersion = atoi(result.strStdout.c_str());
+
+  // Android 13 and higher
+  if(sdkVersion >= 33)
+    result = adbExecCommand(deviceID,
+                            "shell pm list packages --user $(am get-current-user) " + parameters);
+
+  if(result.retCode != 0 || sdkVersion < 33)
+    result = adbExecCommand(deviceID, "shell pm list packages " + parameters);
+
+  return result;
+}
+
 RDResult InstallRenderDocServer(const rdcstr &deviceID)
 {
   ResultCode result = ResultCode::Succeeded;
@@ -464,8 +483,7 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
   }
 
   // Ensure installation succeeded. We should have as many lines as abis we installed
-  Process::ProcessResult adbCheck =
-      adbExecCommand(deviceID, "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE);
+  Process::ProcessResult adbCheck = ListPackages(deviceID, RENDERDOC_ANDROID_PACKAGE_BASE);
 
   if(adbCheck.strStdout.empty())
   {
@@ -498,7 +516,7 @@ bool RemoveRenderDocAndroidServer(const rdcstr &deviceID)
     adbExecCommand(deviceID, "uninstall " + packageName);
 
     // Ensure uninstall succeeded
-    rdcstr adbCheck = adbExecCommand(deviceID, "shell pm list packages " + packageName).strStdout;
+    rdcstr adbCheck = ListPackages(deviceID, packageName).strStdout;
 
     if(!adbCheck.empty())
     {
@@ -601,7 +619,7 @@ struct AndroidRemoteServer : public RemoteServer
     {
       SCOPED_TIMER("Fetching android packages and activities");
 
-      rdcstr adbStdout = Android::adbExecCommand(m_deviceID, "shell pm list packages -3").strStdout;
+      rdcstr adbStdout = Android::ListPackages(m_deviceID, "-3").strStdout;
 
       rdcarray<rdcstr> lines;
       split(adbStdout, lines, '\n');
@@ -629,7 +647,7 @@ struct AndroidRemoteServer : public RemoteServer
       }
 
       // also fetch the system packages but mark them as hidden folders
-      adbStdout = Android::adbExecCommand(m_deviceID, "shell pm list packages -s").strStdout;
+      adbStdout = Android::ListPackages(m_deviceID, "-s").strStdout;
 
       split(adbStdout, lines, '\n');
       for(rdcstr &line : lines)
@@ -1003,9 +1021,7 @@ struct AndroidController : public IDeviceProtocolHandler
       }
 
       rdcstr packagesOutput =
-          Android::adbExecCommand(deviceID,
-                                  "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE)
-              .strStdout.trimmed();
+          Android::ListPackages(deviceID, RENDERDOC_ANDROID_PACKAGE_BASE).strStdout.trimmed();
 
       rdcarray<rdcstr> packages;
       split(packagesOutput, packages, '\n');
