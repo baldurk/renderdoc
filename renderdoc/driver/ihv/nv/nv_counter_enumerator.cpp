@@ -430,6 +430,7 @@ bool NVCounterEnumerator::InitializeNvPerf()
   {
     RDCWARN("NvPerf could not set library search path");
   }
+  nv::perf::UserLogEnableStderr(false);
   return nv::perf::InitializeNvPerf();
 }
 
