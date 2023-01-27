@@ -729,11 +729,11 @@ void ReplayOutput::DisplayContext()
     rdcpair<uint32_t, uint32_t> mipDim = {RDCMAX(1U, m_TextureDim.first >> disp.subresource.mip),
                                           RDCMAX(1U, m_TextureDim.second >> disp.subresource.mip)};
 
-    x = int((float(x) / float(m_TextureDim.first)) * mipDim.first + 1e-6f);
-    x = int((float(x) / float(mipDim.first)) * m_TextureDim.first + 1e-6f);
+    x = int((float(x) / float(m_TextureDim.first) + 1e-6f) * mipDim.first);
+    x = int((float(x) / float(mipDim.first) + 1e-6f) * m_TextureDim.first);
 
-    y = int((float(y) / float(m_TextureDim.second)) * mipDim.second + 1e-6f);
-    y = int((float(y) / float(mipDim.second)) * m_TextureDim.second + 1e-6f);
+    y = int((float(y) / float(m_TextureDim.second) + 1e-6f) * mipDim.second);
+    y = int((float(y) / float(mipDim.second) + 1e-6f) * m_TextureDim.second);
   }
   else
   {

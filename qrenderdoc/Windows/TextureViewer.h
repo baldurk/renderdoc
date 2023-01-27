@@ -310,8 +310,8 @@ private:
   void ShowGotoPopup();
 
   bool ShouldFlipForGL();
-  uint32_t MipCoordFromBase(int coord, uint32_t dim);
-  uint32_t BaseCoordFromMip(int coord, uint32_t dim);
+  uint32_t MipCoordFromBase(int coord, const uint32_t dim);
+  uint32_t BaseCoordFromMip(int coord, const uint32_t dim);
 
   void UI_UpdateFittedScale();
   void UI_SetScale(float s);

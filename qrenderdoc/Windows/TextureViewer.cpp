@@ -55,6 +55,38 @@ float aspect(const QSizeF &s)
   return s.width() / s.height();
 }
 
+// if changing these functions, consider running the 'exhaustive test' at the bottom of this file
+// once
+
+static inline uint32_t MipCoordFromBase(const uint32_t coord, const uint32_t mip, const uint32_t dim)
+{
+  const uint32_t mipDim = (dim >> mip) > 0 ? (dim >> mip) : 1;
+
+  // for mip levels where we more than half (e.g. 15x15 to 7x7) the coord can't be shifted by the
+  // mip.
+  // e.g. if the top level is 960x540 an x coordinate of 950 would be shifted by 7 down to 7, but
+  // mip 7 is 7x4 so the max x co-ordinate is 6. Instead we need to get the float value on the top
+  // mip, multiply by the mip dimension, and floor it
+
+  const float coordf = float(coord) / float(dim);
+
+  // we add 1e-6 to account for float errors, where we might not get back coord after rounding down
+  // in the coordf calculation even when mipDim == dim. This will not affect the rounding for any
+  // realistic texture sizes - even for a dim of 16383 and coord of 16382
+  return uint32_t(mipDim * (coordf + 1e-6f));
+}
+
+static inline uint32_t BaseCoordFromMip(uint32_t coord, const uint32_t mip, const uint32_t dim)
+{
+  const uint32_t mipDim = (dim >> mip) > 0 ? (dim >> mip) : 1;
+
+  // reverse of the above conversion
+
+  const float coordf = float(coord) / float(mipDim);
+
+  return uint32_t(dim * (coordf + 1e-6f));
+}
+
 static QMap<QString, ShaderEncoding> encodingExtensions = {
     {lit("hlsl"), ShaderEncoding::HLSL},
     {lit("glsl"), ShaderEncoding::GLSL},
@@ -4478,35 +4510,14 @@ QString TextureViewer::getShaderPath(const QString &filename) const
   return path;
 }
 
-uint32_t TextureViewer::MipCoordFromBase(int coord, uint32_t dim)
+uint32_t TextureViewer::MipCoordFromBase(int coord, const uint32_t dim)
 {
-  const uint32_t mip = m_TexDisplay.subresource.mip;
-  const uint32_t mipDim = qMax(1U, dim >> mip);
-
-  // for mip levels where we more than half (e.g. 15x15 to 7x7) the coord can't be shifted by the
-  // mip.
-  // e.g. if the top level is 960x540 an x coordinate of 950 would be shifted by 7 down to 7, but
-  // mip 7 is 7x4 so the max x co-ordinate is 6. Instead we need to get the float value on the top
-  // mip, multiply by the mip dimension, and floor it
-
-  float coordf = float(coord) / float(dim);
-
-  // we add 1e-6 to account for float errors, where we might not get back coord after rounding down
-  // in the coordf calculation even when mipDim == dim. This will not affect the rounding for any
-  // realistic texture sizes - even for a dim of 16383 and coord of 16382
-  return uint32_t(mipDim * coordf + 1e-6);
+  return ::MipCoordFromBase(coord, m_TexDisplay.subresource.mip, dim);
 }
 
-uint32_t TextureViewer::BaseCoordFromMip(int coord, uint32_t dim)
+uint32_t TextureViewer::BaseCoordFromMip(int coord, const uint32_t dim)
 {
-  const uint32_t mip = m_TexDisplay.subresource.mip;
-  uint32_t mipDim = qMax(1U, dim >> mip);
-
-  // reverse of the above conversion
-
-  float coordf = float(coord) / float(mipDim);
-
-  return uint32_t(dim * coordf + 1e-6);
+  return ::BaseCoordFromMip(coord, m_TexDisplay.subresource.mip, dim);
 }
 
 void TextureViewer::on_customCreate_clicked()
@@ -4759,3 +4770,116 @@ void TextureViewer::customShaderModified(const QString &path)
 
   recurse = false;
 }
+
+#if ENABLE_UNIT_TESTS
+
+#include "3rdparty/catch/catch.hpp"
+
+// helper to avoid needing to test every possibility, which being O(n^2) up to with n=65536 can
+// still be a bit slow.
+// This can be disabled to exhaustively test when changing the function
+
+TEST_CASE("mip co-ordinate helpers", "[helpers]")
+{
+  for(uint32_t dim = 0; dim < 65536;)
+  {
+    const uint32_t numMips = (uint32_t)floor(log2(double(dim)));
+
+    // last mip coord seen
+    uint32_t lastCoord[16] = {};
+
+    for(uint32_t coord = 0; coord < dim; coord++)
+    {
+      // do manual checks so that this is fast. If we use a CHECK() for these this is orders of
+      // magnitude slower
+      if(BaseCoordFromMip(coord, 0, dim) != coord)
+      {
+        INFO(coord);
+        INFO(dim);
+        FAIL("BaseCoordFromMip isn't identity on mip 0");
+      }
+      if(MipCoordFromBase(coord, 0, dim) != coord)
+      {
+        INFO(coord);
+        INFO(dim);
+        FAIL("MipCoordFromBase isn't identity on mip 0");
+      }
+
+      for(uint32_t mip = 1; mip < numMips; mip++)
+      {
+        uint32_t mc = MipCoordFromBase(coord, mip, dim);
+
+        if(mc != lastCoord[mip] && mc != lastCoord[mip] + 1)
+        {
+          INFO(coord);
+          INFO(dim);
+          INFO(mip);
+          FAIL("MipCoordFromBase isn't continuous");
+        }
+
+        lastCoord[mip] = mc;
+      }
+
+      // for power of two textures we can do some extra tests
+      if((dim & (dim - 1)) == 0)
+      {
+        // any co-ordinate that's divisible by a power of two up to that mip level should be
+        // reflexive on that mip. E.g. on a 16x16 texture 0,0 at mip 0 should map 1:1 with 0,0 on
+        // mip 1
+        // and similarly 2,2 on mip 0 should map to 1,1 on mip 1 and back again
+        for(uint32_t mip = 1; mip < numMips; mip++)
+        {
+          uint32_t pow2 = 1U << mip;
+          if((coord % pow2) == 0)
+          {
+            if(BaseCoordFromMip(MipCoordFromBase(coord, mip, dim), mip, dim) != coord)
+            {
+              INFO(coord);
+              INFO(dim);
+              FAIL("MipCoordFromBase isn't reflexive on mip when lined up");
+            }
+          }
+        }
+      }
+    }
+
+    for(uint32_t mip = 1; mip < numMips; mip++)
+    {
+      uint32_t mipDim = qMax(1U, dim >> mip);
+
+      if(lastCoord[mip] != mipDim - 1)
+      {
+        INFO(lastCoord[mip]);
+        INFO(dim);
+        INFO(mip);
+        FAIL("not all mip co-ords are mapped to");
+      }
+    }
+
+// exhaustive test
+#if 0
+    dim++;
+#else
+    if(dim < 8192)
+    {
+      dim++;
+    }
+    else if(dim < 16384)
+    {
+      if((dim % 2) == 0)
+        dim++;
+      else
+        dim += 2;
+    }
+    else if(dim < 65536)
+    {
+      if((dim % 2) == 0)
+        dim++;
+      else
+        dim += 8;
+    }
+#endif
+  }
+};
+
+#endif
