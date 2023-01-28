@@ -66,7 +66,7 @@ class GLXPlatform : public GLPlatform
 
     ret.ctx = NULL;
 
-    if(!GLX.glXCreateContext)
+    if(!GLX.glXCreateContextAttribsARB)
       return ret;
 
     bool is_direct = false;
@@ -74,26 +74,48 @@ class GLXPlatform : public GLPlatform
     if(GLX.glXIsDirect)
       is_direct = GLX.glXIsDirect(share.dpy, share.ctx);
 
-    XVisualInfo *cfg = share.cfg;
+    int visAttribs[64] = {0};
+    int i = 0;
 
-    if(cfg == NULL)
+    if(share.cfg)
     {
-      static int visAttribs[] = {0};
-      int numCfgs = 0;
-      GLXFBConfig *fbcfg =
-          GLX.glXChooseFBConfig(share.dpy, DefaultScreen(share.dpy), visAttribs, &numCfgs);
-
-      cfg = GLX.glXGetVisualFromFBConfig(share.dpy, fbcfg[0]);
-
-      XFree(fbcfg);
+      int fbcfgID = -1;
+      GLX.glXGetConfig(share.dpy, share.cfg, GLX_FBCONFIG_ID, &fbcfgID);
+      if(fbcfgID != -1)
+      {
+        visAttribs[i++] = GLX_FBCONFIG_ID;
+        visAttribs[i++] = fbcfgID;
+      }
     }
 
-    ret.ctx = GLX.glXCreateContext(share.dpy, cfg, share.ctx, is_direct);
+    int numCfgs = 0;
+    GLXFBConfig *fbcfg =
+        GLX.glXChooseFBConfig(share.dpy, DefaultScreen(share.dpy), visAttribs, &numCfgs);
 
-    if(cfg != share.cfg)
+    int attribs[64] = {0};
+    i = 0;
+
+    if(m_API == RDCDriver::OpenGLES)
     {
-      XFree(cfg);
+      attribs[i++] = GLX_CONTEXT_MAJOR_VERSION_ARB;
+      attribs[i++] = 2;
+      attribs[i++] = GLX_CONTEXT_MINOR_VERSION_ARB;
+      attribs[i++] = 0;
+      attribs[i++] = GLX_CONTEXT_PROFILE_MASK_ARB;
+      attribs[i++] = GLX_CONTEXT_ES2_PROFILE_BIT_EXT;
     }
+    else
+    {
+      attribs[i++] = GLX_CONTEXT_MAJOR_VERSION_ARB;
+      attribs[i++] = 3;
+      attribs[i++] = GLX_CONTEXT_MINOR_VERSION_ARB;
+      attribs[i++] = 2;
+      attribs[i++] = GLX_CONTEXT_PROFILE_MASK_ARB;
+      attribs[i++] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+    }
+    ret.ctx = GLX.glXCreateContextAttribsARB(share.dpy, fbcfg[0], share.ctx, is_direct, attribs);
+
+    XFree(fbcfg);
 
     return ret;
   }
