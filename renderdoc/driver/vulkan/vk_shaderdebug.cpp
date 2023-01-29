@@ -254,7 +254,14 @@ public:
             {
               const DescriptorSetSlot &slot = curSlots[i];
 
-              switch(slot.type)
+              // When bind layout contains immutable samplers, sampler-only slots always have type
+              // DescriptorSlotType::Unwritten. Treat them as sampler slots in that case.
+              DescriptorSlotType slotType = slot.type;
+              if(bindLayout.immutableSampler &&
+                 bindLayout.layoutDescType == VK_DESCRIPTOR_TYPE_SAMPLER)
+                slotType = DescriptorSlotType::Sampler;
+
+              switch(slotType)
               {
                 case DescriptorSlotType::Sampler:
                 case DescriptorSlotType::CombinedImageSampler:
