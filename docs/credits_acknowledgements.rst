@@ -132,6 +132,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used for calculating DXBC container hash.
 
+* `NVIDIA Nsight Perf SDK <https://developer.nvidia.com/nsight-perf-sdk>`_ - Redistributable portions distributed under the NVIDIA Nsight Perf SDK license available in the RenderDoc source repository or in the SDK.
+
+  Provides hardware-specific counters over and above what individual hardware-agnostic graphics APIs are able to provide.
+
 Thanks
 ------
 
