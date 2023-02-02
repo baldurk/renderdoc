@@ -187,6 +187,7 @@ void RDLabel::resizeEvent(QResizeEvent *event)
     }
   }
 
+  emit resized();
   QLabel::resizeEvent(event);
 }
 

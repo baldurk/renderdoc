@@ -96,6 +96,9 @@ void ResourcePreview::Initialise()
   QObject::connect(ui->slotLabel, &RDLabel::doubleClicked, this, &ResourcePreview::doubleClickEvent);
   QObject::connect(ui->descriptionLabel, &RDLabel::doubleClicked, this,
                    &ResourcePreview::doubleClickEvent);
+
+  if(m_ManualThumbnail)
+    QObject::connect(m_ManualThumbnail, &RDLabel::resized, [this]() { emit resized(this); });
 }
 
 ResourcePreview::~ResourcePreview()

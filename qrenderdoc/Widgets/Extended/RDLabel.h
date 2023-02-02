@@ -48,6 +48,7 @@ signals:
   void doubleClicked(QMouseEvent *event);
   void mouseMoved(QMouseEvent *event);
   void leave();
+  void resized();
   void styleChanged(QEvent *event);
 
 public slots:
