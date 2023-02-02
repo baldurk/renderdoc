@@ -52,6 +52,15 @@ static VkApplicationInfo renderdocAppInfo = {
     VK_API_VERSION_1_0,
 };
 
+static bool equivalent(const VkQueueFamilyProperties &a, const VkQueueFamilyProperties &b)
+{
+  return a.timestampValidBits == b.timestampValidBits &&
+         a.minImageTransferGranularity.width == b.minImageTransferGranularity.width &&
+         a.minImageTransferGranularity.height == b.minImageTransferGranularity.height &&
+         a.minImageTransferGranularity.depth == b.minImageTransferGranularity.depth &&
+         a.queueFlags == b.queueFlags;
+}
+
 // we store the index in the loader table, since it won't be dereferenced and other parts of the
 // code expect to copy it into a wrapped object
 static VkPhysicalDevice MakePhysicalDeviceHandleFromIndex(uint32_t physDeviceIndex)
@@ -1869,7 +1878,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       // ensure the remapped queue family is at least as good as it was at capture time.
       uint32_t destFamily = 0;
 
-      if(origQIndex < queueProps.size() && origprops[origQIndex] == queueProps[origQIndex])
+      if(origQIndex < queueProps.size() && equivalent(origprops[origQIndex], queueProps[origQIndex]))
       {
         destFamily = origQIndex;
         RDCLOG(" (identity match)");
