@@ -1869,6 +1869,12 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       // ensure the remapped queue family is at least as good as it was at capture time.
       uint32_t destFamily = 0;
 
+      if(origprops[origQIndex] == queueProps[replayQIndex])
+      {
+        destFamily = origQIndex;
+        RDCLOG(" (identity match)");
+      }
+      else
       {
         // we categorise the original queue as one of four types: universal
         // (graphics/compute/transfer), graphics/transfer only (rare), compute-only
