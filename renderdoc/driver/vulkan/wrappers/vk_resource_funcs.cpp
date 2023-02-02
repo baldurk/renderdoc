@@ -1627,7 +1627,7 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
     CreateInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
     // remap the queue family indices
-    if(CreateInfo.sharingMode == VK_SHARING_MODE_EXCLUSIVE)
+    if(CreateInfo.sharingMode == VK_SHARING_MODE_CONCURRENT)
     {
       uint32_t *queueFamiles = (uint32_t *)CreateInfo.pQueueFamilyIndices;
       for(uint32_t q = 0; q < CreateInfo.queueFamilyIndexCount; q++)
@@ -2030,7 +2030,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
     CreateInfo.usage &= ~VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
 
     // remap the queue family indices
-    if(CreateInfo.sharingMode == VK_SHARING_MODE_EXCLUSIVE)
+    if(CreateInfo.sharingMode == VK_SHARING_MODE_CONCURRENT)
     {
       uint32_t *queueFamiles = (uint32_t *)CreateInfo.pQueueFamilyIndices;
       for(uint32_t q = 0; q < CreateInfo.queueFamilyIndexCount; q++)

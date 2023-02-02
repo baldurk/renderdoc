@@ -338,7 +338,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
             ImageSubresourceStateForRange p;
             p.range = st.subresourceRange;
             p.range.sliceCount = imageLayouts.imageInfo.extent.depth;
-            p.state.oldQueueFamilyIndex = st.dstQueueFamilyIndex;
+            p.state.oldQueueFamilyIndex = m_Core->RemapQueue(st.dstQueueFamilyIndex);
             p.state.newQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             p.state.oldLayout = st.newLayout;
             p.state.newLayout = imageState.GetImageInfo().initialLayout;
@@ -372,6 +372,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
             // initial state to the state it was in at the beginning of the capture.
             ImageSubresourceState &state = it->state();
             state.newLayout = imageState.GetImageInfo().initialLayout;
+            state.oldQueueFamilyIndex = m_Core->RemapQueue(state.oldQueueFamilyIndex);
             state.newQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
           }
         }

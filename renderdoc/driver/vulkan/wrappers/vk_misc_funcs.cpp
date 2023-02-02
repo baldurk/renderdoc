@@ -1526,6 +1526,14 @@ bool WrappedVulkan::Serialise_vkCreateQueryPool(SerialiserType &ser, VkDevice de
   {
     VkQueryPool pool = VK_NULL_HANDLE;
 
+    VkQueryPoolPerformanceCreateInfoKHR *perfInfo =
+        (VkQueryPoolPerformanceCreateInfoKHR *)FindNextStruct(
+            &CreateInfo, VK_STRUCTURE_TYPE_QUERY_POOL_PERFORMANCE_CREATE_INFO_KHR);
+    if(perfInfo)
+    {
+      perfInfo->queueFamilyIndex = m_QueueRemapping[perfInfo->queueFamilyIndex][0].family;
+    }
+
     VkResult ret = ObjDisp(device)->CreateQueryPool(Unwrap(device), &CreateInfo, NULL, &pool);
 
     if(ret != VK_SUCCESS)

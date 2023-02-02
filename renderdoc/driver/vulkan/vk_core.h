@@ -1067,6 +1067,7 @@ public:
     return it->second.state;
   }
 
+  uint32_t RemapQueue(uint32_t q) { return m_QueueRemapping[q][0].family; }
   static rdcstr GetChunkName(uint32_t idx);
   VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
   VulkanDebugManager *GetDebugManager() { return m_DebugManager; }

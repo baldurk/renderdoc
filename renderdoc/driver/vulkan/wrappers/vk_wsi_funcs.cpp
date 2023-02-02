@@ -391,6 +391,13 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
         VK_IMAGE_LAYOUT_UNDEFINED,
     };
 
+    if(CreateInfo.imageSharingMode == VK_SHARING_MODE_CONCURRENT)
+    {
+      uint32_t *queueFamiles = (uint32_t *)CreateInfo.pQueueFamilyIndices;
+      for(uint32_t q = 0; q < CreateInfo.queueFamilyIndexCount; q++)
+        queueFamiles[q] = m_QueueRemapping[queueFamiles[q]][0].family;
+    }
+
     for(uint32_t i = 0; i < NumImages; i++)
     {
       VkDeviceMemory mem = VK_NULL_HANDLE;
