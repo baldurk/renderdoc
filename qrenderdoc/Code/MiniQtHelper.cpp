@@ -590,11 +590,14 @@ void MiniQtHelper::SetWidgetChecked(QWidget *checkableWidget, bool checked)
 
   QCheckBox *check = qobject_cast<QCheckBox *>(checkableWidget);
   QRadioButton *radio = qobject_cast<QRadioButton *>(checkableWidget);
+  CollapseGroupBox *group = qobject_cast<CollapseGroupBox *>(checkableWidget);
 
   if(check)
     check->setChecked(checked);
   else if(radio)
     radio->setChecked(checked);
+  else if(group)
+    group->setCollapsed(checked);
 }
 
 bool MiniQtHelper::IsWidgetChecked(QWidget *checkableWidget)
@@ -604,11 +607,14 @@ bool MiniQtHelper::IsWidgetChecked(QWidget *checkableWidget)
 
   QCheckBox *check = qobject_cast<QCheckBox *>(checkableWidget);
   QRadioButton *radio = qobject_cast<QRadioButton *>(checkableWidget);
+  CollapseGroupBox *group = qobject_cast<CollapseGroupBox *>(checkableWidget);
 
   if(check)
     return check->isChecked();
   else if(radio)
     return radio->isChecked();
+  else if(group)
+    return group->collapsed();
 
   return false;
 }

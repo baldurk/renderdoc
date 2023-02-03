@@ -819,7 +819,7 @@ If you want a default radio box to be checked, you should use :meth:`SetWidgetCh
   virtual QWidget *CreateRadiobox(WidgetCallback changed) = 0;
 
   DOCUMENT(R"(Set whether the widget is checked or not. This only affects checkboxes and radio
-boxes. If another type of widget is passed nothing will happen.
+boxes and group box. If another type of widget is passed nothing will happen.
 
 :param QWidget checkableWidget: The widget to check or uncheck.
 :param bool checked: ``True`` if the widget should be checked.
@@ -827,7 +827,7 @@ boxes. If another type of widget is passed nothing will happen.
   virtual void SetWidgetChecked(QWidget *checkableWidget, bool checked) = 0;
 
   DOCUMENT(R"(Return the current checked-state of a widget. See :meth:`SetWidgetChecked`. If another
-type of widget is passed other than a checkbox or radio box ``False`` will be returned.
+type of widget is passed other than a checkbox or radio box or group box ``False`` will be returned.
 
 :param QWidget checkableWidget: The widget to query.
 :return: ``True`` if the widget is currently checked.
