@@ -4952,10 +4952,18 @@ void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
     bool included = true;
 
     // handled specially to account for SV_ ordering
-    if(sig.systemValue == ShaderBuiltin::PrimitiveIndex ||
-       sig.systemValue == ShaderBuiltin::MSAACoverage ||
+    if(sig.systemValue == ShaderBuiltin::MSAACoverage ||
        sig.systemValue == ShaderBuiltin::IsFrontFace ||
        sig.systemValue == ShaderBuiltin::MSAASampleIndex)
+    {
+      psInputDefinition += "//";
+      included = false;
+    }
+
+    // it seems sometimes primitive ID can be included within inputs and isn't subject to the SV_
+    // ordering restrictions - possibly to allow for geometry shaders to output the primitive ID as
+    // an interpolant. Only comment it out if it's the last input.
+    if(i + 1 == numInputs && sig.systemValue == ShaderBuiltin::PrimitiveIndex)
     {
       psInputDefinition += "//";
       included = false;
