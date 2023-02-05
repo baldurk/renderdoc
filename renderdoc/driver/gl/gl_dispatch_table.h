@@ -970,7 +970,6 @@ struct GLDispatchTable
   PFNWGLDXOBJECTACCESSNVPROC wglDXObjectAccessNV;
   PFNWGLDXLOCKOBJECTSNVPROC wglDXLockObjectsNV;
   PFNWGLDXUNLOCKOBJECTSNVPROC wglDXUnlockObjectsNV;
-
 };
 // clang-format on
 

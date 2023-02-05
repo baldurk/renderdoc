@@ -736,7 +736,7 @@ DOCUMENT(R"(The dimensionality of a texture binding.
 
 .. data:: TextureExternal
 
-  A External texture.
+  An External texture.
 )");
 enum class TextureType : uint32_t
 {

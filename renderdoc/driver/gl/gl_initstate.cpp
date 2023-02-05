@@ -2014,7 +2014,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialConte
 
       if(buffer && fmt != eGL_NONE)
       {
-        // update width from here as it's authoratitive - the texture might have been resized in
+        // update width from here as it's authoritative - the texture might have been resized in
         // multiple rebinds that we will not have serialised before.
         details.width =
             state.texBufSize / uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt)));

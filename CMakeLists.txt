@@ -61,7 +61,7 @@ if(BUILD_ANDROID)
 
     option(STRIP_ANDROID_LIBRARY "Strip the resulting android library" OFF)
 
-    # Set default API level to 21 if not configured explicitly
+    # Set default API level to 26 if not configured explicitly
     if(NOT ANDROID_PLATFORM)
         set(ANDROID_PLATFORM "android-26")
     endif()

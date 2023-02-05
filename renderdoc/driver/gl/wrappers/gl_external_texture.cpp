@@ -1,3 +1,27 @@
+/******************************************************************************
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2019-2022 Baldur Karlsson
+ * Copyright (c) 2014 Crytek
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
 
 #if defined(RENDERDOC_SUPPORT_EGL)
 #include "../egl_dispatch_table.h"
@@ -7,7 +31,7 @@
 rdcarray<byte> WrappedOpenGL::GetExternalTextureData(GLuint texture)
 {
   rdcarray<byte> pixels;
-  GLuint prevTex = 0;    // for any current texture unit
+  GLuint prevTex = 0;
   GL.glGetIntegerv(eGL_TEXTURE_BINDING_EXTERNAL_OES, (GLint *)&prevTex);
   GL.glBindTexture(eGL_TEXTURE_EXTERNAL_OES, texture);
 
@@ -22,7 +46,7 @@ rdcarray<byte> WrappedOpenGL::GetExternalTextureData(GLuint texture)
   size_t size = GetByteSize(width, height, 1, GetBaseFormat(internalFormat), eGL_UNSIGNED_BYTE);
 
   pixels.resize(size);
-  //
+
   // read pixels. ref: https://developer.arm.com/documentation/ka004859/1-0
   GLuint prevReadFramebuffer = 0, prevPixelPackBuffer = 0, fb = 0;
   GL.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, (GLint *)&prevPixelPackBuffer);
@@ -50,7 +74,7 @@ rdcarray<byte> WrappedOpenGL::GetExternalTextureData(GLuint texture)
 GLeglImageOES WrappedOpenGL::CreateEGLImage(GLint width, GLint height, GLenum internalFormat,
                                             const byte *pixels, uint64_t size)
 {
-  GLeglImageOES image = nullptr;
+  GLeglImageOES image = NULL;
 
 #if defined(RENDERDOC_PLATFORM_ANDROID)
   uint32_t bufferFormat = 0;
@@ -60,8 +84,8 @@ GLeglImageOES WrappedOpenGL::CreateEGLImage(GLint width, GLint height, GLenum in
     case eGL_RGBA8: bufferFormat = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM; break;
     default: RDCERR("Unsupported internal format 0x%X", internalFormat);
   }
-  AHardwareBuffer *hardwareBuffer = nullptr;
-  EGLClientBuffer clientBuffer = nullptr;
+  AHardwareBuffer *hardwareBuffer = NULL;
+  EGLClientBuffer clientBuffer = NULL;
 
   AHardwareBuffer_Desc hardwareBufferDesc{};
   hardwareBufferDesc.width = width;
@@ -76,7 +100,7 @@ GLeglImageOES WrappedOpenGL::CreateEGLImage(GLint width, GLint height, GLenum in
   clientBuffer = EGL.GetNativeClientBufferANDROID(hardwareBuffer);
   RDCASSERT(clientBuffer);
   image = EGL.CreateImageKHR(EGL.GetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
-                             clientBuffer, nullptr);
+                             clientBuffer, NULL);
   RDCASSERT(image != EGL_NO_IMAGE_KHR);
 
   m_ExternalTextureResources.push_back({image, hardwareBuffer});
@@ -85,9 +109,9 @@ GLeglImageOES WrappedOpenGL::CreateEGLImage(GLint width, GLint height, GLenum in
   {
     RDCASSERT(hardwareBuffer);
     AHardwareBuffer_describe(hardwareBuffer, &hardwareBufferDesc);
-    byte *pwrite = nullptr;
-    int res = AHardwareBuffer_lock(hardwareBuffer, AHARDWAREBUFFER_USAGE_CPU_WRITE_RARELY, -1,
-                                   nullptr, (void **)&pwrite);
+    byte *pwrite = NULL;
+    int res = AHardwareBuffer_lock(hardwareBuffer, AHARDWAREBUFFER_USAGE_CPU_WRITE_RARELY, -1, NULL,
+                                   (void **)&pwrite);
     RDCASSERT(res == 0);
     if(hardwareBufferDesc.stride == hardwareBufferDesc.width)
     {
@@ -115,16 +139,16 @@ GLeglImageOES WrappedOpenGL::CreateEGLImage(GLint width, GLint height, GLenum in
         pwrite += hardwareBufferDesc.stride;
       }
     }
-    res = AHardwareBuffer_unlock(hardwareBuffer, nullptr);
+    res = AHardwareBuffer_unlock(hardwareBuffer, NULL);
     RDCASSERT(res == 0);
   }
-#endif    // if defined(RENDERDOC_PLATFORM_ANDROID)
+#endif
   return image;
 }
 
 void WrappedOpenGL::ReleaseExternalTextureResources()
 {
-  for(auto &etr : m_ExternalTextureResources)
+  for(rdcpair<GLeglImageOES, struct AHardwareBuffer *> &etr : m_ExternalTextureResources)
   {
     GLeglImageOES image = etr.first;
 #if defined(RENDERDOC_SUPPORT_EGL)
