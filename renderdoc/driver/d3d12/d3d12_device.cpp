@@ -4316,7 +4316,7 @@ RDResult WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool storeStru
     for(auto it = cmd.m_BakedCmdListInfo.begin(); it != cmd.m_BakedCmdListInfo.end(); it++)
     {
       for(size_t i = 0; i < it->second.crackedLists.size(); i++)
-        it->second.crackedLists[i]->Release();
+        SAFE_RELEASE(it->second.crackedLists[i]);
       it->second.crackedLists.clear();
     }
 
