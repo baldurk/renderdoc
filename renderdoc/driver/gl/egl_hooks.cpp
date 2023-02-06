@@ -22,9 +22,16 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "core/settings.h"
 #include "hooks/hooks.h"
+#include "strings/string_utils.h"
 #include "egl_dispatch_table.h"
 #include "gl_driver.h"
+
+RDOC_CONFIG(bool, Android_AllowAllEGLExtensions, false,
+            "Normally certain extensions are removed from the EGL extension string for "
+            "compatibility, but with this option that behaviour can be overridden and all "
+            "extensions will be reported.");
 
 #if ENABLED(RDOC_POSIX)
 #include <dlfcn.h>
@@ -59,6 +66,11 @@ class EGLHook : LibraryHook
 {
 public:
   EGLHook() : driver(GetEGLPlatform()) {}
+  ~EGLHook()
+  {
+    for(auto it : extStrings)
+      SAFE_DELETE(it.second);
+  }
   void RegisterHooks();
 
   RDCDriver activeAPI = RDCDriver::OpenGLES;
@@ -69,6 +81,7 @@ public:
   std::map<EGLContext, EGLConfig> configs;
   std::map<EGLSurface, SurfaceConfig> windows;
   std::map<EGLDisplay, DisplayConfig> displays;
+  std::map<EGLDisplay, rdcstr *> extStrings;
 
   // indicates we're in a swap function, so don't process the swap any further if we recurse - could
   // happen due to driver implementation of one function calling another
@@ -551,6 +564,45 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers_renderdoc_hooked(EGLDisplay dp
   }
 }
 
+HOOK_EXPORT const char *EGLAPIENTRY eglQueryString_renderdoc_hooked(EGLDisplay dpy, EGLint name)
+{
+  if(RenderDoc::Inst().IsReplayApp())
+  {
+    if(!EGL.QueryString)
+      EGL.PopulateForReplay();
+
+    return EGL.QueryString(dpy, name);
+  }
+
+  EnsureRealLibraryLoaded();
+
+  SCOPED_LOCK(glLock);
+
+  if(name == EGL_EXTENSIONS && !Android_AllowAllEGLExtensions())
+  {
+    rdcstr *extStr = eglhook.extStrings[dpy];
+    if(extStr == NULL)
+      extStr = eglhook.extStrings[dpy] = new rdcstr;
+
+    const rdcstr implExtStr = EGL.QueryString(dpy, name);
+
+    rdcarray<rdcstr> exts;
+    split(implExtStr, exts, ' ');
+
+    // We take the unusual approach here of explicitly _disallowing_ extensions only when we know
+    // they are unsupported. The main reason for this is because EGL is the android platform API and
+    // it may well be that undocumented internal or private extensions are important and should not
+    // be filtered out. Also since we have minimal interaction with the API as long as they don't
+    // affect the functions we care about for context management and swapping most extensions can be
+    // allowed silently.
+    exts.removeOne("EGL_KHR_no_config_context");
+
+    merge(exts, *extStr, ' ');
+  }
+
+  return EGL.QueryString(dpy, name);
+}
+
 HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV_renderdoc_hooked(EGLDisplay dpy,
                                                                        EGLSurface surface, EGLint x,
                                                                        EGLint y, EGLint width,
@@ -752,6 +804,11 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface sur
   return eglSwapBuffers_renderdoc_hooked(dpy, surface);
 }
 
+HOOK_EXPORT const char *EGLAPIENTRY eglQueryString(EGLDisplay dpy, EGLint name)
+{
+  return eglQueryString_renderdoc_hooked(dpy, name);
+}
+
 HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV(EGLDisplay dpy, EGLSurface surface, EGLint x,
                                                       EGLint y, EGLint width, EGLint height)
 {
@@ -866,7 +923,6 @@ EGL_PASSTHRU_0(EGLint, eglGetError)
 EGL_PASSTHRU_3(EGLBoolean, eglInitialize, EGLDisplay, dpy, EGLint *, major, EGLint *, minor)
 EGL_PASSTHRU_4(EGLBoolean, eglQueryContext, EGLDisplay, dpy, EGLContext, ctx, EGLint, attribute,
                EGLint *, value)
-EGL_PASSTHRU_2(const char *, eglQueryString, EGLDisplay, dpy, EGLint, name)
 EGL_PASSTHRU_4(EGLBoolean, eglQuerySurface, EGLDisplay, dpy, EGLSurface, surface, EGLint, attribute,
                EGLint *, value)
 EGL_PASSTHRU_1(EGLBoolean, eglTerminate, EGLDisplay, dpy)

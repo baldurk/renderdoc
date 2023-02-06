@@ -79,6 +79,7 @@ typedef PFNEGLSWAPBUFFERSWITHDAMAGEKHRPROC PFN_eglSwapBuffersWithDamageKHR;
   FUNC(CreatePlatformWindowSurface, false, false); \
   FUNC(MakeCurrent, false, true);                  \
   FUNC(SwapBuffers, false, true);                  \
+  FUNC(QueryString, false, true);                  \
   FUNC(PostSubBufferNV, true, false);              \
   FUNC(SwapBuffersWithDamageEXT, true, false);     \
   FUNC(SwapBuffersWithDamageKHR, true, false);
@@ -94,7 +95,6 @@ typedef PFNEGLSWAPBUFFERSWITHDAMAGEKHRPROC PFN_eglSwapBuffersWithDamageKHR;
   FUNC(GetError, false, true);             \
   FUNC(Initialize, false, true);           \
   FUNC(QueryAPI, false, true);             \
-  FUNC(QueryString, false, true);          \
   FUNC(QuerySurface, false, true);         \
   FUNC(QueryContext, false, true);
 
