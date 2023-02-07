@@ -1109,9 +1109,6 @@
     <None Include="data\glsl\pixelhistory_mscopy_depth.comp">
       <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\glsl\pixelhistory_mscopy_gl.comp">
-      <Filter>Resources\glsl</Filter>
-    </None>
     <None Include="data\glsl\discard.frag">
       <Filter>Resources\glsl</Filter>
     </None>

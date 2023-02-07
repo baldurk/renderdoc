@@ -26,8 +26,13 @@
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
+#ifdef VULKAN
 layout(binding = 0) uniform PRECISION sampler2DMSArray depthMS;
 layout(binding = 1) uniform PRECISION usampler2DMSArray stencilMS;
+#else
+layout(binding = 0) uniform PRECISION sampler2DMS depthMS;
+layout(binding = 1) uniform PRECISION usampler2DMS stencilMS;
+#endif
 
 layout(binding = 2, std140) writeonly buffer pixelhistorydest
 {
@@ -35,7 +40,11 @@ layout(binding = 2, std140) writeonly buffer pixelhistorydest
 }
 dest;
 
+#ifdef VULKAN
 layout(push_constant) uniform multisamplePush
+#else
+layout(std140, binding = 3) uniform multisamplePush
+#endif
 {
   int currentSample;
   int x;
@@ -55,11 +64,16 @@ mscopy;
 
 void main()
 {
+#ifdef VULKAN
+  ivec3 loc = ivec3(x, y, 0);
+#else
+  ivec2 loc = ivec2(x, y);
+#endif
   float depth = 0.0;
   if(hasDepth == 1)
-    depth = texelFetch(depthMS, ivec3(x, y, 0), currentSample).r;
+    depth = texelFetch(depthMS, loc, currentSample).r;
   uint stencil = 0;
   if(hasStencil == 1)
-    stencil = texelFetch(stencilMS, ivec3(x, y, 0), currentSample).r;
+    stencil = texelFetch(stencilMS, loc, currentSample).r;
   dest.result[dstOffset] = uvec4(floatBitsToUint(depth), stencil, 0, 0);
 }

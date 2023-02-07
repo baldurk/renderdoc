@@ -26,14 +26,21 @@
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
+#ifdef VULKAN
 layout(binding = 0) uniform PRECISION usampler2DMSArray srcMS;
+#else
+layout(binding = 0) uniform PRECISION usampler2DMS srcMS;
+#endif
 layout(binding = 2, std140) writeonly buffer pixelhistorydest
 {
   uvec4 result[];
 }
 dest;
-
+#ifdef VULKAN
 layout(push_constant) uniform multisamplePush
+#else
+layout(std140, binding = 3) uniform multisamplePush
+#endif
 {
   int currentSample;
   int x;
@@ -49,6 +56,11 @@ mscopy;
 
 void main()
 {
-  uvec4 data = texelFetch(srcMS, ivec3(x, y, 0), currentSample);
+#ifdef VULKAN
+  ivec3 loc = ivec3(x, y, 0);
+#else
+  ivec2 loc = ivec2(x, y);
+#endif
+  uvec4 data = texelFetch(srcMS, loc, currentSample);
   dest.result[dstOffset] = data;
 }
