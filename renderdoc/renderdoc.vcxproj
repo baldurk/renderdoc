@@ -699,7 +699,6 @@
     <None Include="data\glsl\ms2array.comp" />
     <None Include="data\glsl\pixelhistory_mscopy.comp" />
     <None Include="data\glsl\pixelhistory_mscopy_depth.comp" />
-    <None Include="data\glsl\pixelhistory_mscopy_gl.comp" />
     <None Include="data\glsl\pixelhistory_primid.frag" />
     <None Include="data\glsl\quadresolve.frag" />
     <None Include="data\glsl\quadwrite.frag" />
