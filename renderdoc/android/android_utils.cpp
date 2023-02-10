@@ -271,6 +271,9 @@ rdcstr GetFriendlyName(const rdcstr &deviceID)
   else if(!manuf.empty() && !model.empty())
     combined = manuf + " " + model;
 
+  // User could have multiple identical devices connected
+  combined += " (" + deviceID + ")";
+
   return combined;
 }
 
