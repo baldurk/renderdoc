@@ -138,11 +138,19 @@ namespace GitIntrospection {
 
         if(HEADref.StartsWith("ref: ")) {
           string refpath = Repository + ".git\\" + HEADref.Substring(5).Replace('/', '\\');
-          if(File.Exists(refpath))
+          if(File.Exists(refpath)) {
             Sha1 = File.ReadAllText(refpath).Trim();
+          }
+          else {
+            Log.LogError("File not found: " + refpath);
+            Log.LogError("Looks like this is a shallow git clone; do a full clone instead.");
+          }
         } else {
           Sha1 = HEADref;
         }
+      }
+      else {
+        Log.LogError("File not found: " + HEADpath);
       }
     }
 
@@ -170,7 +178,7 @@ namespace GitIntrospection {
   </Target>
   <!-- Similarly, only run this task if we didn't locate the assembly (or thought we couldn't use it) -->
   <Target Name="RunTaskManual" BeforeTargets="PrepareForBuild" Condition="!exists('$(LibGit2SharpPath)')">
-    <GetGitCommitManual Repository="$(SolutionDir)" ContinueOnError="WarnAndContinue">
+    <GetGitCommitManual Repository="$(SolutionDir)" ContinueOnError="false">
       <Output TaskParameter="Sha1" PropertyName="CommitId" />
     </GetGitCommitManual>
     <Message Importance="high" Text="Read Git commit: '$(CommitId)'" Condition="$(CommitId.Length) &gt; 0" />
