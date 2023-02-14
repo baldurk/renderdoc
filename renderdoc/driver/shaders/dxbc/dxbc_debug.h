@@ -291,6 +291,7 @@ public:
 
   bool Finished() const;
 
+  void PrepareInitial(ShaderDebugState &initial);
   void StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
                 const rdcarray<ThreadState> &prevWorkgroup);
 

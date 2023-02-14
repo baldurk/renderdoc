@@ -1945,6 +1945,18 @@ void ThreadState::MarkResourceAccess(ShaderDebugState *state, DXBCBytecode::Oper
     accessed.push_back(bp);
 }
 
+void ThreadState::PrepareInitial(ShaderDebugState &initial)
+{
+  for(const ShaderVariable &v : variables)
+    initial.changes.push_back({ShaderVariable(), v});
+
+  if(debug)
+  {
+    const Operation &nextOp = program->GetInstruction(0);
+    debug->GetCallstack(0, nextOp.offset, initial.callstack);
+  }
+}
+
 void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
                            const rdcarray<ThreadState> &prevWorkgroup)
 {
@@ -5660,8 +5672,7 @@ rdcarray<ShaderDebugState> InterpretDebugger::ContinueDebug(DXBCDebug::DebugAPIW
   {
     ShaderDebugState initial;
 
-    for(const ShaderVariable &v : active.variables)
-      initial.changes.push_back({ShaderVariable(), v});
+    active.PrepareInitial(initial);
 
     ret.push_back(std::move(initial));
 
