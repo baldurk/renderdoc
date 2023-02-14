@@ -28,6 +28,7 @@
 
 #include "api/replay/apidefs.h"
 #include "api/replay/rdcstr.h"
+#include "common/common.h"
 #include "driver/dx/official/d3dcommon.h"
 #include "driver/shaders/dxbc/dxbc_common.h"
 
@@ -40,6 +41,25 @@ struct BlockOrRecord;
 
 namespace DXIL
 {
+struct BumpAllocator
+{
+  BumpAllocator(size_t totalSize);
+  ~BumpAllocator();
+  void *alloc(size_t sz);
+
+  template <typename T>
+  T *alloc()
+  {
+    void *mem = alloc(sizeof(T));
+    return new(mem) T();
+  }
+
+private:
+  byte *base, *cur;
+  rdcarray<byte *> storage;
+  size_t m_BlockSize;
+};
+
 struct ProgramHeader
 {
   uint16_t ProgramVersion;
@@ -88,9 +108,11 @@ struct Type
     ImmediateCBuffer = 5,
   };
 
+  static void *operator new(size_t count, BumpAllocator &b) { return b.alloc(count); }
+  static void operator delete(void *ptr, BumpAllocator &b) {}
   bool isVoid() const { return type == Scalar && scalarType == Void; }
   rdcstr toString() const;
-  rdcstr declFunction(rdcstr funcName, const rdcarray<Instruction> &args,
+  rdcstr declFunction(rdcstr funcName, const rdcarray<Instruction *> &args,
                       const AttributeSet *attrs) const;
 
   // for scalars, arrays, vectors, pointers
@@ -109,109 +131,6 @@ struct Type
   uint16_t id = 0xFFFF;
   rdcstr name;
   rdcarray<const Type *> members;    // the members for a struct, the parameters for functions
-};
-
-enum class ValueType
-{
-  Unknown,
-  Function,
-  GlobalVar,
-  Alias,
-  Constant,
-  Instruction,
-  Metadata,
-  Literal,
-  BasicBlock,
-};
-
-struct Function;
-struct GlobalVar;
-struct Alias;
-struct Constant;
-struct Instruction;
-struct Metadata;
-struct Block;
-struct Type;
-
-struct Value
-{
-  enum ForwardRefTag
-  {
-    ForwardRef
-  };
-  Value() : type(ValueType::Unknown), literal(0) {}
-  explicit Value(ForwardRefTag, const Value *value) : type(ValueType::Unknown), value(value) {}
-  explicit Value(const Function *function) : type(ValueType::Function), function(function) {}
-  explicit Value(const GlobalVar *global) : type(ValueType::GlobalVar), global(global) {}
-  explicit Value(const Alias *alias) : type(ValueType::Alias), alias(alias) {}
-  explicit Value(const Constant *constant) : type(ValueType::Constant), constant(constant) {}
-  explicit Value(const Instruction *instruction)
-      : type(ValueType::Instruction), instruction(instruction)
-  {
-  }
-  explicit Value(const Metadata *meta) : type(ValueType::Metadata), meta(meta) {}
-  explicit Value(const Block *block) : type(ValueType::BasicBlock), block(block) {}
-  explicit Value(uint64_t literal) : type(ValueType::Literal), literal(literal) {}
-  bool empty() const { return type == ValueType::Unknown && literal == 0; }
-  const Type *GetType() const;
-  rdcstr toString(bool withType = false) const;
-
-  bool operator==(const Value &o) { return type == o.type && literal == o.literal; }
-  ValueType type;
-  union
-  {
-    const Value *value;
-    const Function *function;
-    const GlobalVar *global;
-    const Alias *alias;
-    const Constant *constant;
-    const Instruction *instruction;
-    const Metadata *meta;
-    const Block *block;
-    uint64_t literal;
-  };
-};
-
-enum class GlobalFlags : uint32_t
-{
-  NoFlags = 0,
-  ExternalLinkage = 1,
-  AvailableExternallyLinkage = 2,
-  LinkOnceAnyLinkage = 3,
-  LinkOnceODRLinkage = 4,
-  WeakAnyLinkage = 5,
-  WeakODRLinkage = 6,
-  AppendingLinkage = 7,
-  InternalLinkage = 8,
-  PrivateLinkage = 9,
-  ExternalWeakLinkage = 10,
-  CommonLinkage = 11,
-  LinkageMask = 0xf,
-  IsConst = 0x10,
-  IsExternal = 0x20,
-  LocalUnnamedAddr = 0x40,
-  GlobalUnnamedAddr = 0x80,
-  IsAppending = 0x100,
-  ExternallyInitialised = 0x200,
-};
-
-BITMASK_OPERATORS(GlobalFlags);
-
-struct GlobalVar
-{
-  rdcstr name;
-  const Type *type = NULL;
-  uint64_t align = 0;
-  int32_t section = -1;
-  GlobalFlags flags = GlobalFlags::NoFlags;
-  const Constant *initialiser = NULL;
-};
-
-struct Alias
-{
-  rdcstr name;
-  const Type *type = NULL;
-  Value val;
 };
 
 // this enum is ordered to match the serialised order of these attributes
@@ -430,22 +349,392 @@ inline uint64_t EncodeCast(Operation op)
   }
 }
 
-struct Constant
+enum class ValueKind : uint32_t
 {
-  Constant() = default;
-  Constant(const Type *t, uint32_t v) : type(t) { val.u32v[0] = v; }
-  const Type *type = NULL;
-  ShaderValue val = {};
-  rdcarray<Value> members;
-  Value inner;
-  rdcstr str;
-  bool undef = false, nullconst = false, data = false;
-  Operation op = Operation::NoOp;
+  ForwardReferencePlaceholder,
+  Literal,
+  Alias,
+  Constant,
+  GlobalVar,
+  Metadata,
+  Instruction,
+  Function,
+  BasicBlock,
+};
 
-  // steal the last unused part of ShaderValue, used for identifying constants under patching
-  uint32_t getID() { return val.u32v[15]; }
-  void setID(uint32_t id) { val.u32v[15] = id; }
+struct Type;
+
+struct PlaceholderValue;
+
+struct Value
+{
+  const Type *type = NULL;
+
+  // the ID for this value (two namespaces: values, and metadata)
+  // note, not all derived classes from Value have an id - e.g. void instructions, blocks, these
+  // don't have IDs because they don't go in the values array
+  //
+  // this ID is very close but different to the number displayed in disassembly. This ID is only
+  // used internally for encoding
+  static constexpr uint32_t NoID = 0x00ffffff;
+  uint32_t id : 24;
+
   rdcstr toString(bool withType = false) const;
+
+  static void *operator new(size_t count, BumpAllocator &b) { return b.alloc(count); }
+  static void operator delete(void *ptr, BumpAllocator &b) {}
+  static void *operator new(size_t count, PlaceholderValue *v) { return v; }
+  static void operator delete(void *ptr, PlaceholderValue *v) {}
+  static void operator delete(void *ptr) {}
+  ValueKind kind() const { return valKind; }
+protected:
+  Value(ValueKind k) : valKind(k), id(NoID) {}
+  ValueKind valKind : 8;
+  uint32_t flags = 0;
+};
+
+struct PlaceholderValue : public Value
+{
+private:
+  friend struct ValueList;
+
+  PlaceholderValue() : Value(ValueKind::ForwardReferencePlaceholder) {}
+  byte storage[64 - sizeof(Value)];
+};
+
+// helper class to check at compile time that values will be able to be forward referenced as
+// we conservatively allocate room for them.
+template <typename T>
+struct ForwardReferencableValue : public Value
+{
+  static constexpr bool IsForwardReferenceable = true;
+
+protected:
+  ForwardReferencableValue(ValueKind k) : Value(k)
+  {
+    RDCCOMPILE_ASSERT(sizeof(T) <= sizeof(PlaceholderValue),
+                      "Type is too large to be forward referenceable in-place");
+  }
+};
+
+// loose wrapper around an array for value pointers. This doesn't use the underlying array size for
+// anything but instead tracks the current latest value, so relative indices can be resolved against
+// it while we can still future-allocate in the array for forward reference placeholders.
+struct ValueList : private rdcarray<Value *>
+{
+  ValueList(BumpAllocator &alloc) : rdcarray(), alloc(alloc) {}
+  Value *&operator[](size_t i)
+  {
+    resize_for_index(i);
+    RDCASSERT(at(i));
+    return at(i);
+  }
+  void hintExpansion(size_t newValues) { reserve(lastValue + newValues); }
+  void beginFunction() { functionWatermark = lastValue; }
+  void endFunction()
+  {
+    resize(functionWatermark);
+    lastValue = functionWatermark;
+  }
+  size_t curValueIndex() const { return lastValue; }
+  Value *createPlaceholderValue(size_t i)
+  {
+    resize_for_index(i);
+    Value *ret = at(i);
+    if(ret)
+    {
+      RDCASSERT(ret->kind() == ValueKind::ForwardReferencePlaceholder);
+      return ret;
+    }
+    at(i) = ret = new(alloc) PlaceholderValue();
+    return ret;
+  }
+  Value *getOrCreatePlaceholder(size_t i)
+  {
+    resize_for_index(i);
+    Value *ret = at(i);
+    if(ret)
+      return ret;
+    return createPlaceholderValue(i);
+  }
+  // alloc a value in-place to resolve forward references. Should always be paired with a call to
+  // addAllocedValue() once you're done creating the value
+  // if you're creating a 'Value' that isn't actually a value (e.g. instruction with no return
+  // value) then you can new it directly
+  template <typename T>
+  T *nextValue()
+  {
+    RDCASSERT(!pendingValue);
+    RDCCOMPILE_ASSERT(typename T::IsForwardReferenceable,
+                      "alloc'ing next value for non-forward-referenceable type");
+
+    pendingValue = true;
+
+    // if this value was already allocated as a placeholder, re-use the memory to keep any pointers
+    // to it valid
+    if(lastValue < size() && at(lastValue))
+    {
+      Value *v = at(lastValue);
+      RDCASSERT(v->kind() == ValueKind::ForwardReferencePlaceholder);
+      PlaceholderValue *memory = (PlaceholderValue *)v;
+      return new(memory) T();
+    }
+
+    // no placeholder, put it in place now and addValue() will be called to bump the count below
+    resize_for_index(lastValue);
+    T *ret = new(alloc) T();
+    at(lastValue) = ret;
+    return ret;
+  }
+  void addValue(Value *v = NULL)
+  {
+    // either pendingValue should be true, or v should be true, but they shouldn't both be
+    if(pendingValue)
+    {
+      RDCASSERT(v == NULL);
+      pendingValue = false;
+      lastValue++;
+    }
+    else
+    {
+      RDCASSERT(v);
+      v->id = lastValue;
+      resize_for_index(lastValue);
+      RDCASSERTMSG("Forward reference being overwritten with new pointer", at(lastValue) == NULL);
+      at(lastValue) = v;
+      lastValue++;
+    }
+  }
+  size_t getRelativeBackwards(uint64_t ref) { return lastValue - (size_t)ref; }
+  size_t getRelativeForwards(uint64_t ref) { return lastValue + (size_t)ref; }
+private:
+  BumpAllocator &alloc;
+  size_t functionWatermark = 0;
+  size_t lastValue = 0;
+  bool pendingValue = false;
+};
+
+template <typename T>
+T *cast(Value *v)
+{
+  if(v && v->kind() == T::Kind)
+    return (T *)v;
+  return NULL;
+}
+
+template <typename T>
+const T *cast(const Value *v)
+{
+  if(v && v->kind() == T::Kind)
+    return (const T *)v;
+  return NULL;
+}
+
+enum class GlobalFlags : uint32_t
+{
+  NoFlags = 0,
+  ExternalLinkage = 1,
+  AvailableExternallyLinkage = 2,
+  LinkOnceAnyLinkage = 3,
+  LinkOnceODRLinkage = 4,
+  WeakAnyLinkage = 5,
+  WeakODRLinkage = 6,
+  AppendingLinkage = 7,
+  InternalLinkage = 8,
+  PrivateLinkage = 9,
+  ExternalWeakLinkage = 10,
+  CommonLinkage = 11,
+  LinkageMask = 0xf,
+  IsConst = 0x10,
+  IsExternal = 0x20,
+  LocalUnnamedAddr = 0x40,
+  GlobalUnnamedAddr = 0x80,
+  IsAppending = 0x100,
+  ExternallyInitialised = 0x200,
+};
+
+BITMASK_OPERATORS(GlobalFlags);
+
+struct Literal : public ForwardReferencableValue<Literal>
+{
+  static constexpr ValueKind Kind = ValueKind::Literal;
+  Literal(uint64_t v) : ForwardReferencableValue(Kind), literal(v) {}
+  uint64_t literal;
+};
+
+struct Alias : public ForwardReferencableValue<Alias>
+{
+  static constexpr ValueKind Kind = ValueKind::Alias;
+  Alias() : ForwardReferencableValue(Kind) {}
+  rdcstr name;
+  Value *val = NULL;
+};
+
+struct Constant : public ForwardReferencableValue<Constant>
+{
+  static constexpr ValueKind Kind = ValueKind::Constant;
+  Constant() : ForwardReferencableValue(Kind) { u64 = 0; }
+  Constant(const Type *t, uint32_t v) : ForwardReferencableValue(ValueKind::Constant)
+  {
+    type = t;
+    u64 = 0;
+    setValue(v);
+  }
+  Operation op = Operation::NoOp;
+  rdcstr str;
+  // used during encoding to sort constants by number of uses...
+  uint32_t refCount = 0;
+
+  bool isUndef() const { return (flags & 0x1) != 0; }
+  bool isNULL() const { return (flags & 0x2) != 0; }
+  bool isData() const { return (flags & 0x4) != 0; }
+  bool isLiteral() const { return (flags & 0x10) != 0; }
+  bool isShaderVal() const { return (flags & 0x20) != 0; }
+  bool isCast() const { return (flags & 0x40) != 0; }
+  bool isCompound() const { return (flags & 0x80) != 0; }
+  void setUndef(bool u)
+  {
+    flags &= ~0x1;
+    flags |= u ? 0x1 : 0x0;
+  }
+  void setNULL(bool n)
+  {
+    flags &= ~0x2;
+    flags |= n ? 0x2 : 0x0;
+  }
+  void setData(bool d)
+  {
+    flags &= ~0x4;
+    flags |= d ? 0x4 : 0x0;
+  }
+  void setValue(uint32_t l)
+  {
+    flags &= ~0xf0;
+    flags |= 0x10;
+    u32 = l;
+  }
+  void setValue(uint64_t l)
+  {
+    flags &= ~0xf0;
+    flags |= 0x10;
+    u64 = l;
+  }
+  void setValue(int64_t l)
+  {
+    flags &= ~0xf0;
+    flags |= 0x10;
+    s64 = l;
+  }
+  void setValue(BumpAllocator &alloc, const ShaderValue &v)
+  {
+    flags &= ~0xf0;
+    flags |= 0x20;
+    val = alloc.alloc<ShaderValue>();
+    *val = v;
+  }
+  void setInner(Value *i)
+  {
+    flags &= ~0xf0;
+    flags |= 0x40;
+    inner = i;
+  }
+  void setCompound(BumpAllocator &alloc, rdcarray<Value *> &&m)
+  {
+    flags &= ~0xf0;
+    flags |= 0x80;
+    members = alloc.alloc<rdcarray<Value *>>();
+    new(members) rdcarray<Value *>(m);
+  }
+  void setCompound(BumpAllocator &alloc, const rdcarray<Value *> &m)
+  {
+    flags &= ~0xf0;
+    flags |= 0x80;
+    members = alloc.alloc<rdcarray<Value *>>();
+    new(members) rdcarray<Value *>(m);
+  }
+
+  uint32_t getU32() const
+  {
+    if(flags & 0x10)
+      return u32;
+    // silently return 0 for NULL/Undef constants
+    if(flags & 0x06)
+      return 0U;
+    RDCERR("Wrong type of constant being accessed");
+    return 0U;
+  }
+
+  uint64_t getU64() const
+  {
+    if(flags & 0x10)
+      return u64;
+    // silently return 0 for NULL/Undef constants
+    if(flags & 0x06)
+      return 0U;
+    RDCERR("Wrong type of constant being accessed");
+    return 0U;
+  }
+
+  int64_t getS64() const
+  {
+    if(flags & 0x10)
+      return s64;
+    // silently return 0 for NULL/Undef constants
+    if(flags & 0x06)
+      return 0;
+    RDCERR("Wrong type of constant being accessed");
+    return 0U;
+  }
+
+  const ShaderValue &getShaderVal() const
+  {
+    if(flags & 0x20)
+      return *val;
+    static ShaderValue empty;
+    RDCERR("Wrong type of constant being accessed");
+    return empty;
+  }
+
+  Value *getInner() const
+  {
+    if(flags & 0x40)
+      return inner;
+    RDCERR("No inner available");
+    return NULL;
+  }
+
+  const rdcarray<Value *> &getMembers() const
+  {
+    if(flags & 0x80)
+      return *members;
+    static rdcarray<Value *> empty;
+    RDCERR("No members available");
+    return empty;
+  }
+
+  rdcstr toString(bool withType = false) const;
+
+private:
+  union
+  {
+    uint64_t u64;
+    int64_t s64;
+    uint32_t u32;
+    ShaderValue *val;
+    Value *inner;
+    rdcarray<Value *> *members;
+  };
+};
+
+struct GlobalVar : public ForwardReferencableValue<GlobalVar>
+{
+  static constexpr ValueKind Kind = ValueKind::GlobalVar;
+  GlobalVar() : ForwardReferencableValue(Kind) {}
+  rdcstr name;
+  uint64_t align = 0;
+  int32_t section = -1;
+  GlobalFlags flags = GlobalFlags::NoFlags;
+  const Constant *initialiser = NULL;
 };
 
 struct DIBase
@@ -480,9 +769,11 @@ struct DIBase
   }
 };
 
+struct Metadata;
+
 struct DebugLocation
 {
-  uint32_t id = ~0U;
+  uint32_t slot = ~0U;
 
   uint64_t line = 0;
   uint64_t col = 0;
@@ -497,16 +788,20 @@ struct DebugLocation
   rdcstr toString() const;
 };
 
-struct Metadata
+struct Metadata : public Value
 {
+  static constexpr ValueKind Kind = ValueKind::Metadata;
+  Metadata(size_t idx = 0xffffff) : Value(Kind) { id = idx; }
   ~Metadata();
 
-  uint32_t id = ~0U;
   bool isDistinct = false, isConstant = false, isString = false;
 
-  Value value;
+  // only used for disassembly, the number given to metadata that's directly referenced. NOT the
+  // same as it's id (ha ha)
+  uint32_t slot = ~0U;
 
-  const Type *type = NULL;
+  Value *value = NULL;
+
   rdcstr str;
   rdcarray<Metadata *> children;
   DIBase *dwarf = NULL;
@@ -514,6 +809,39 @@ struct Metadata
 
   rdcstr refString() const;
   rdcstr valString() const;
+};
+
+// loose wrapper around an array for metadata pointer. This creates metadata nodes on demand because
+// they can be forward referenced (sigh...)
+struct MetadataList : private rdcarray<Metadata *>
+{
+  MetadataList(BumpAllocator &alloc) : rdcarray(), alloc(&alloc) {}
+  MetadataList() : rdcarray(), alloc(NULL) {}
+  Metadata *&operator[](size_t i)
+  {
+    resize_for_index(i);
+    if(at(i))
+      return at(i);
+    RDCASSERT(alloc);
+    at(i) = new(*alloc) Metadata(i);
+    return at(i);
+  }
+  void hintExpansion(size_t newValues) { reserve(size() + newValues); }
+  void beginFunction() { functionWatermark = size(); }
+  void endFunction() { resize(functionWatermark); }
+  using rdcarray<Metadata *>::size;
+  using rdcarray<Metadata *>::back;
+  using rdcarray<Metadata *>::empty;
+  using rdcarray<Metadata *>::contains;
+
+  Metadata *getDirect(uint64_t id) { return (*this)[size_t(id)]; }
+  Metadata *getOrNULL(uint64_t id) { return id ? (*this)[size_t(id - 1)] : NULL; }
+  rdcstr *getStringOrNULL(uint64_t id) { return id ? &(*this)[size_t(id - 1)]->str : NULL; }
+private:
+  BumpAllocator *alloc = NULL;
+  size_t functionWatermark = 0;
+  size_t lastValue = 0;
+  bool pendingValue = false;
 };
 
 struct NamedMetadata : public Metadata
@@ -573,62 +901,112 @@ enum class InstructionFlags : uint32_t
 
 BITMASK_OPERATORS(InstructionFlags);
 
+// pair of <kind, Metadata>
 typedef rdcarray<rdcpair<uint64_t, Metadata *>> AttachedMetadata;
 
-struct Instruction
+struct Function;
+
+struct Instruction : public ForwardReferencableValue<Instruction>
 {
-  Operation op = Operation::NoOp;
-  InstructionFlags opFlags = InstructionFlags::NoFlags;
-
-  // common to all instructions
-  rdcstr name;
+  static constexpr ValueKind Kind = ValueKind::Instruction;
+  Instruction() : ForwardReferencableValue(Kind) {}
   uint32_t disassemblyLine = 0;
-  uint32_t resultID = ~0U;
   uint32_t debugLoc = ~0U;
-  uint32_t align = 0;
-  const Type *type = NULL;
-  rdcarray<Value> args;
-  AttachedMetadata attachedMeta;
+  Operation op = Operation::NoOp;
+  uint8_t align = 0;
+  // number assigned to instructions that don't have names and return a value, for disassembly
+  uint32_t slot = ~0U;
+  InstructionFlags &opFlags() { return (InstructionFlags &)flags; }
+  InstructionFlags opFlags() const { return (InstructionFlags)flags; }
+  rdcarray<Value *> args;
 
-  // function calls
-  const AttributeSet *paramAttrs = NULL;
-  const Function *funcCall = NULL;
+  struct ExtraInstructionInfo
+  {
+    rdcstr name;
+    AttachedMetadata attachedMeta;
+
+    // function calls
+    const AttributeSet *paramAttrs = NULL;
+    const Function *funcCall = NULL;
+  };
+
+  const rdcstr &getName() const
+  {
+    static rdcstr empty;
+    if(extraData)
+      return extraData->name;
+    return empty;
+  }
+
+  const AttachedMetadata &getAttachedMeta() const
+  {
+    static AttachedMetadata empty;
+    if(extraData)
+      return extraData->attachedMeta;
+    return empty;
+  }
+
+  const AttributeSet *getParamAttrs() const
+  {
+    if(extraData)
+      return extraData->paramAttrs;
+    return NULL;
+  }
+
+  const Function *getFuncCall() const
+  {
+    if(extraData)
+      return extraData->funcCall;
+    return NULL;
+  }
+
+  ExtraInstructionInfo &extra(BumpAllocator &alloc)
+  {
+    if(!extraData)
+      extraData = alloc.alloc<ExtraInstructionInfo>();
+    return *extraData;
+  }
+
+private:
+  ExtraInstructionInfo *extraData = NULL;
 };
 
-struct Block
+struct Block : public ForwardReferencableValue<Block>
 {
-  uint32_t resultID = ~0U;
-  rdcstr name;
+  static constexpr ValueKind Kind = ValueKind::BasicBlock;
+  Block(const Type *labelType) : ForwardReferencableValue(Kind) { type = labelType; }
+  rdcinflexiblestr name;
   rdcarray<const Block *> preds;
+  uint32_t slot = ~0U;
 };
 
 struct UselistEntry
 {
   bool block = false;
-  Value value;
+  Value *value;
   rdcarray<uint64_t> shuffle;
 };
 
-struct Function
+// functions are deliberately not forward referenceable since they're larger, and we shouldn't need
+// to
+struct Function : public Value
 {
+  static constexpr ValueKind Kind = ValueKind::Function;
+  Function() : Value(Kind) {}
   rdcstr name;
 
-  const Type *funcType = NULL;
   bool external = false;
+  bool sortedSymtab = true;
   const AttributeSet *attrs = NULL;
 
   uint64_t align = 0;
 
-  rdcarray<Instruction> args;
-  rdcarray<Instruction> instructions;
-  rdcarray<Value> values;
+  rdcarray<Instruction *> args;
+  rdcarray<Instruction *> instructions;
 
-  rdcarray<Value> valueSymtabOrder;
-  bool sortedSymtab = true;
+  rdcarray<Value *> valueSymtabOrder;
 
-  rdcarray<Block> blocks;
-  rdcarray<Constant> constants;
-  rdcarray<Metadata> metadata;
+  rdcarray<Block *> blocks;
 
   rdcarray<UselistEntry> uselist;
 
@@ -674,26 +1052,32 @@ public:
                  rdcarray<SourceVariableMapping> &locals) const override;
 
   const Metadata *GetMetadataByName(const rdcstr &name) const;
-  size_t GetMetadataCount() const { return m_Metadata.size() + m_NamedMeta.size(); }
   uint32_t GetDirectHeapAcessCount() const { return m_directHeapAccessCount; }
 protected:
   void MakeDisassemblyString();
 
-  bool ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Metadata &meta);
+  void ParseConstant(ValueList &values, const LLVMBC::BlockOrRecord &constant);
+  bool ParseDebugMetaRecord(MetadataList &metadata, const LLVMBC::BlockOrRecord &metaRecord,
+                            Metadata &meta);
   rdcstr GetDebugVarName(const DIBase *d);
   rdcstr GetFunctionScopeName(const DIBase *d);
 
-  rdcstr &GetValueSymtabString(const Value &v);
+  rdcstr GetValueSymtabString(Value *v);
+  void SetValueSymtabString(Value *v, const rdcstr &s);
 
-  uint32_t GetOrAssignMetaID(Metadata *m);
-  uint32_t GetOrAssignMetaID(DebugLocation &l);
-  const Type *GetVoidType(bool precache = false);
-  const Type *GetBoolType(bool precache = false);
-  const Type *GetInt32Type(bool precache = false);
-  const Type *GetInt8Type();
+  uint32_t GetOrAssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t &nextMetaSlot, Metadata *m);
+  uint32_t GetOrAssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t &nextMetaSlot,
+                               DebugLocation &l);
+
+  const Type *GetVoidType() { return m_VoidType; }
+  const Type *GetBoolType() { return m_BoolType; }
+  const Type *GetInt32Type() { return m_Int32Type; }
+  const Type *GetInt8Type() { return m_Int8Type; }
   const Type *GetPointerType(const Type *type, Type::PointerAddrSpace addrSpace) const;
 
   bytebuf m_Bytes;
+
+  BumpAllocator alloc;
 
   DXBC::ShaderType m_Type;
   uint32_t m_Major, m_Minor;
@@ -702,46 +1086,90 @@ protected:
   rdcstr m_CompilerSig, m_EntryPoint, m_Profile;
   ShaderCompileFlags m_CompileFlags;
 
-  rdcarray<GlobalVar> m_GlobalVars;
-  rdcarray<Function> m_Functions;
-  rdcarray<Alias> m_Aliases;
-  rdcarray<Value> m_Values;
+  const Type *m_CurParseType = NULL;
+
+  rdcarray<GlobalVar *> m_GlobalVars;
+  rdcarray<Function *> m_Functions;
+  rdcarray<Alias *> m_Aliases;
   rdcarray<rdcstr> m_Sections;
   uint32_t m_directHeapAccessCount = 0;
 
   rdcarray<rdcstr> m_Kinds;
 
-  rdcarray<Value> m_ValueSymtabOrder;
+  rdcarray<Value *> m_ValueSymtabOrder;
   bool m_SortedSymtab = true;
 
-  rdcarray<Type> m_Types;
+  rdcarray<Type *> m_Types;
   const Type *m_VoidType = NULL;
   const Type *m_BoolType = NULL;
   const Type *m_Int32Type = NULL;
   const Type *m_Int8Type = NULL;
+  const Type *m_MetaType = NULL;
+  const Type *m_LabelType = NULL;
 
   rdcarray<AttributeGroup> m_AttributeGroups;
   rdcarray<AttributeSet> m_AttributeSets;
 
-  rdcarray<Constant> m_Constants;
-
-  rdcarray<Metadata> m_Metadata;
-  rdcarray<NamedMetadata> m_NamedMeta;
-  rdcarray<Metadata *> m_NumberedMeta;
-  uint32_t m_NextMetaID = 0;
+  rdcarray<NamedMetadata *> m_NamedMeta;
 
   rdcarray<DebugLocation> m_DebugLocations;
+
+  bool m_Uselists = false;
 
   rdcstr m_Triple, m_Datalayout;
 
   rdcstr m_Disassembly;
 
   friend struct OpReader;
+  friend class LLVMOrderAccumulator;
 };
 
 bool needsEscaping(const rdcstr &name);
 rdcstr escapeString(const rdcstr &str);
 rdcstr escapeStringIfNeeded(const rdcstr &name);
+
+class LLVMOrderAccumulator
+{
+public:
+  // types in id order
+  rdcarray<const Type *> types;
+  // types in disassembly print order
+  rdcarray<const Type *> printOrderTypes;
+  // values in id order
+  rdcarray<const Value *> values;
+  // metadata in id order
+  rdcarray<const Metadata *> metadata;
+
+  size_t firstConst;
+  size_t numConsts;
+
+  void processGlobals(Program *p);
+
+  size_t firstFuncConst;
+  size_t numFuncConsts;
+
+  void processFunction(Function *f);
+  void exitFunction();
+
+private:
+  size_t functionWaterMark;
+  bool sortConsts = true;
+
+  void reset(GlobalVar *g);
+  void reset(Alias *a);
+  void reset(Constant *c);
+  void reset(Metadata *m);
+  void reset(Function *f);
+  void reset(Block *b);
+  void reset(Instruction *i);
+  void reset(Value *v);
+
+  void accumulate(const Value *v);
+  void accumulate(const Metadata *m);
+  void accumulateTypePrintOrder(const Type *t);
+  void accumulateTypePrintOrder(rdcarray<const Metadata *> &visited, const Metadata *m);
+  void assignTypeId(const Type *t);
+};
 
 };    // namespace DXIL
 

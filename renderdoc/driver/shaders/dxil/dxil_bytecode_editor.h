@@ -64,7 +64,7 @@ enum class HandleKind
 class ProgramEditor : public Program
 {
 public:
-  ProgramEditor(const DXBC::DXBCContainer *container, size_t reservationSize, bytebuf &outBlob);
+  ProgramEditor(const DXBC::DXBCContainer *container, bytebuf &outBlob);
   ~ProgramEditor();
 
   // publish these interfaces
@@ -75,25 +75,33 @@ public:
   using Program::GetPointerType;
 
   const rdcarray<AttributeSet> &GetAttributeSets() { return m_AttributeSets; }
-  // find existing type or metadata by name, returns NULL if not found
-  const rdcarray<Type> &GetTypes() const { return m_Types; }
-  const Type *GetTypeByName(const rdcstr &name);
+  const rdcarray<Type *> &GetTypes() const { return m_Types; }
+  Type *CreateNamedStructType(const rdcstr &name, rdcarray<const Type *> members);
+  Type *CreateFunctionType(const Type *ret, rdcarray<const Type *> params);
+  Type *CreatePointerType(const Type *inner, Type::PointerAddrSpace addrSpace);
   Function *GetFunctionByName(const rdcstr &name);
   Metadata *GetMetadataByName(const rdcstr &name);
 
-  // add a type, function, or metadata, and return the pointer to the stored one (which can be
-  // referenced from elsewhere)
-  const Type *AddType(const Type &t);
-  const Function *DeclareFunction(const Function &f);
-  Metadata *AddMetadata(const Metadata &m);
-  NamedMetadata *AddNamedMetadata(const NamedMetadata &m);
+  Function *DeclareFunction(const Function &f);
+  Metadata *CreateMetadata();
+  Metadata *CreateConstantMetadata(Constant *val);
+  Metadata *CreateConstantMetadata(uint32_t val);
+  Metadata *CreateConstantMetadata(uint8_t val);
+  Metadata *CreateConstantMetadata(bool val);
+  Metadata *CreateConstantMetadata(const char *str) { return CreateConstantMetadata(rdcstr(str)); }
+  Metadata *CreateConstantMetadata(const rdcstr &str);
+  NamedMetadata *CreateNamedMetadata(const rdcstr &name);
 
   // I think constants have to be unique, so this will return an existing constant (for simple cases
   // like integers or NULL) if it exists
-  const Constant *GetOrAddConstant(const Constant &c);
-  const Constant *GetOrAddConstant(Function *f, const Constant &c);
+  Constant *CreateConstant(const Constant &c);
+  Constant *CreateConstant(const Type *t, const rdcarray<Value *> &members);
 
-  Instruction *AddInstruction(Function *f, size_t idx, const Instruction &inst);
+  Constant *CreateConstant(uint32_t u) { return CreateConstant(Constant(m_Int32Type, u)); }
+  Constant *CreateConstant(uint8_t u) { return CreateConstant(Constant(m_Int8Type, u)); }
+  Constant *CreateConstant(bool b) { return CreateConstant(Constant(m_BoolType, b)); }
+  Instruction *CreateInstruction(Operation op);
+  Instruction *CreateInstruction(const Function *f);
 
   void RegisterUAV(DXILResourceType type, uint32_t space, uint32_t regBase, uint32_t regEnd,
                    ResourceKind kind);
@@ -101,63 +109,15 @@ public:
 private:
   bytebuf &m_OutBlob;
 
-  void Fixup(Type *&t);
-  void Fixup(Function *&f);
-  void Fixup(Block *&b, Function *oldf = NULL, Function *newf = NULL);
-  void Fixup(Instruction *&i, Function *oldf = NULL, Function *newf = NULL);
-  void Fixup(Constant *&c, Function *oldf = NULL, Function *newf = NULL);
-  void Fixup(Metadata *&m, Function *oldf = NULL, Function *newf = NULL);
-  void Fixup(Value &v, Function *oldf = NULL, Function *newf = NULL);
+  rdcarray<Constant *> m_Constants;
 
-  void Fixup(const Type *&t) { Fixup((Type *&)t); }
-  void Fixup(const Function *&f) { Fixup((Function *&)f); }
-  void Fixup(const Block *&b, Function *oldf = NULL, Function *newf = NULL)
-  {
-    Fixup((Block *&)b, oldf, newf);
-  }
-  void Fixup(const Instruction *&i, Function *oldf = NULL, Function *newf = NULL)
-  {
-    Fixup((Instruction *&)i, oldf, newf);
-  }
-  void Fixup(const Constant *&c, Function *oldf = NULL, Function *newf = NULL)
-  {
-    Fixup((Constant *&)c, oldf, newf);
-  }
+  Type *CreateNewType();
 
-  bytebuf EncodeProgram() const;
+  bytebuf EncodeProgram();
 
-  void EncodeConstants(LLVMBC::BitcodeWriter &writer, const rdcarray<Value> &values,
-                       const rdcarray<Constant> &constants) const;
-  void EncodeMetadata(LLVMBC::BitcodeWriter &writer, const rdcarray<Value> &values,
-                      const rdcarray<Metadata> &meta) const;
-
-  // these are arrays which hold the original program's storage, so all pointers remain valid. We
-  // then duplicate into the editable arrays
-
-  // in the destructor before encoding we will look up any pointers that still point here and find
-  // the element in the current arrays
-
-  // every array which might be mutated by editing must be here
-  rdcarray<Function> m_OldFunctions;
-  rdcarray<Type> m_OldTypes;
-  rdcarray<Constant> m_OldConstants;
-  rdcarray<Metadata> m_OldMetadata;
-
-  uint32_t m_InsertedInstructionID = 0xfffffff0;
-
-#if ENABLED(RDOC_DEVEL)
-  Function *m_DebugFunctionsData;
-  Type *m_DebugTypesData;
-  Constant *m_DebugConstantsData;
-  Metadata *m_DebugMetadataData;
-
-  struct DebugFunctionData
-  {
-    Instruction *instructions;
-    Constant *constants;
-  };
-  rdcarray<DebugFunctionData> m_DebugFunctions;
-#endif
+  void EncodeConstants(LLVMBC::BitcodeWriter &writer, const rdcarray<const Value *> &values,
+                       size_t firstIdx, size_t count) const;
+  void EncodeMetadata(LLVMBC::BitcodeWriter &writer, const rdcarray<const Metadata *> &meta) const;
 };
 
 };    // namespace DXIL

@@ -206,15 +206,16 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
                                const std::map<D3D12FeedbackKey, D3D12FeedbackSlot> &slots,
                                uint32_t maxSlot, bytebuf &editedBlob)
 {
-  DXIL::ProgramEditor editor(dxbc, slots.size() + 64, editedBlob);
+  using namespace DXIL;
 
-  const DXIL::Type *handleType = editor.GetTypeByName("dx.types.Handle");
-  const DXIL::Function *createHandle = editor.GetFunctionByName("dx.op.createHandle");
-  const DXIL::Function *createHandleFromBinding =
+  ProgramEditor editor(dxbc, editedBlob);
+
+  const Type *handleType = editor.CreateNamedStructType("dx.types.Handle", {});
+  const Function *createHandle = editor.GetFunctionByName("dx.op.createHandle");
+  const Function *createHandleFromBinding =
       editor.GetFunctionByName("dx.op.createHandleFromBinding");
-  const DXIL::Function *createHandleFromHeap =
-      editor.GetFunctionByName("dx.op.createHandleFromHeap");
-  const DXIL::Function *annotateHandle = editor.GetFunctionByName("dx.op.annotateHandle");
+  const Function *createHandleFromHeap = editor.GetFunctionByName("dx.op.createHandleFromHeap");
+  const Function *annotateHandle = editor.GetFunctionByName("dx.op.annotateHandle");
   bool isShaderModel6_6OrAbove =
       dxbc->m_Version.Major > 6 || (dxbc->m_Version.Major == 6 && dxbc->m_Version.Minor >= 6);
 
@@ -224,53 +225,24 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
      (isShaderModel6_6OrAbove && !createHandleFromHeap && !createHandleFromBinding))
     return false;
 
-  const DXIL::Type *i32 = editor.GetInt32Type();
-  const DXIL::Type *i8 = editor.GetInt8Type();
-  const DXIL::Type *i1 = editor.GetBoolType();
+  const Type *i32 = editor.GetInt32Type();
+  const Type *i8 = editor.GetInt8Type();
+  const Type *i1 = editor.GetBoolType();
 
   // Create createHandleFromBinding we'll need to create the feedback UAV
   if(!createHandleFromBinding && isShaderModel6_6OrAbove)
   {
-    const DXIL::Type *resBindType = editor.GetTypeByName("dx.types.ResBind");
-    if(!resBindType)
-    {
-      DXIL::Type resBindTypeTmp;
-      resBindTypeTmp.type = DXIL::Type::Struct;
-      resBindTypeTmp.scalarType = DXIL::Type::Void;
-      resBindTypeTmp.name = "dx.types.ResBind";
-      resBindTypeTmp.members = {i32, i32, i32, i8};
-      resBindType = editor.AddType(resBindTypeTmp);
-    }
+    const Type *resBindType = editor.CreateNamedStructType("dx.types.ResBind", {i32, i32, i32, i8});
+    const Type *funcType = editor.CreateFunctionType(handleType, {i32, resBindType, i32, i1});
 
-    const DXIL::Type *funcType = NULL;
-    for(const DXIL::Type &type : editor.GetTypes())
-    {
-      if(type.type == DXIL::Type::Function && type.inner == handleType &&
-         type.members.size() == 4 && type.members[0] == i32 && type.members[1] == resBindType &&
-         type.members[2] == i32 && type.members[3] == i1)
-      {
-        funcType = &type;
-        break;
-      }
-    }
-
-    if(!funcType)
-    {
-      DXIL::Type funcTypeTmp;
-      funcTypeTmp.type = DXIL::Type::Function;
-      funcTypeTmp.inner = handleType;
-      funcTypeTmp.members = {i32, resBindType, i32, i1};
-      funcType = editor.AddType(funcTypeTmp);
-    }
-
-    DXIL::Function createHandleBaseFunction;
+    Function createHandleBaseFunction;
     createHandleBaseFunction.name = "dx.op.createHandleFromBinding";
-    createHandleBaseFunction.funcType = funcType;
+    createHandleBaseFunction.type = funcType;
     createHandleBaseFunction.external = true;
 
-    for(const DXIL::AttributeSet &attrs : editor.GetAttributeSets())
+    for(const AttributeSet &attrs : editor.GetAttributeSets())
     {
-      if(attrs.functionSlot && attrs.functionSlot->params == DXIL::Attribute::NoUnwind)
+      if(attrs.functionSlot && attrs.functionSlot->params == Attribute::NoUnwind)
       {
         createHandleBaseFunction.attrs = &attrs;
         break;
@@ -283,25 +255,19 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
   }
 
   // get the functions we'll need
-  const DXIL::Function *atomicBinOp = editor.GetFunctionByName("dx.op.atomicBinOp.i32");
+  Function *atomicBinOp = editor.GetFunctionByName("dx.op.atomicBinOp.i32");
   if(!atomicBinOp)
   {
-    DXIL::Type atomicType;
-    atomicType.type = DXIL::Type::Function;
-    // return type
-    atomicType.inner = i32;
-    atomicType.members = {i32, handleType, i32, i32, i32, i32, i32};
+    const Type *funcType = editor.CreateFunctionType(i32, {i32, handleType, i32, i32, i32, i32, i32});
 
-    const DXIL::Type *funcType = editor.AddType(atomicType);
-
-    DXIL::Function atomicFunc;
+    Function atomicFunc;
     atomicFunc.name = "dx.op.atomicBinOp.i32";
-    atomicFunc.funcType = funcType;
+    atomicFunc.type = funcType;
     atomicFunc.external = true;
 
-    for(const DXIL::AttributeSet &attrs : editor.GetAttributeSets())
+    for(const AttributeSet &attrs : editor.GetAttributeSets())
     {
-      if(attrs.functionSlot && attrs.functionSlot->params == DXIL::Attribute::NoUnwind)
+      if(attrs.functionSlot && attrs.functionSlot->params == Attribute::NoUnwind)
       {
         atomicFunc.attrs = &attrs;
         break;
@@ -316,26 +282,20 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
     atomicBinOp = editor.DeclareFunction(atomicFunc);
   }
 
-  const DXIL::Function *binOp = editor.GetFunctionByName("dx.op.binOp.i32");
+  const Function *binOp = editor.GetFunctionByName("dx.op.binary.i32");
   if(!binOp)
   {
-    DXIL::Type binopType;
-    binopType.type = DXIL::Type::Function;
-    // return type
-    binopType.inner = i32;
-    binopType.members = {i32, i32, i32};
+    const Type *funcType = editor.CreateFunctionType(i32, {i32, i32, i32});
 
-    const DXIL::Type *funcType = editor.AddType(binopType);
-
-    DXIL::Function binopFunc;
-    binopFunc.name = "dx.op.binOp.i32";
-    binopFunc.funcType = funcType;
+    Function binopFunc;
+    binopFunc.name = "dx.op.binary.i32";
+    binopFunc.type = funcType;
     binopFunc.external = true;
 
-    for(const DXIL::AttributeSet &attrs : editor.GetAttributeSets())
+    for(const AttributeSet &attrs : editor.GetAttributeSets())
     {
       if(attrs.functionSlot &&
-         attrs.functionSlot->params == (DXIL::Attribute::NoUnwind | DXIL::Attribute::ReadNone))
+         attrs.functionSlot->params == (Attribute::NoUnwind | Attribute::ReadNone))
       {
         binopFunc.attrs = &attrs;
         break;
@@ -346,10 +306,10 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
     // get the 'real' binop attributes try to get the next most conservative one
     if(!binopFunc.attrs)
     {
-      for(const DXIL::AttributeSet &attrs : editor.GetAttributeSets())
+      for(const AttributeSet &attrs : editor.GetAttributeSets())
       {
         if(attrs.functionSlot &&
-           attrs.functionSlot->params == (DXIL::Attribute::NoUnwind | DXIL::Attribute::ReadOnly))
+           attrs.functionSlot->params == (Attribute::NoUnwind | Attribute::ReadOnly))
         {
           binopFunc.attrs = &attrs;
           break;
@@ -359,9 +319,9 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
 
     if(!binopFunc.attrs)
     {
-      for(const DXIL::AttributeSet &attrs : editor.GetAttributeSets())
+      for(const AttributeSet &attrs : editor.GetAttributeSets())
       {
-        if(attrs.functionSlot && attrs.functionSlot->params == DXIL::Attribute::NoUnwind)
+        if(attrs.functionSlot && attrs.functionSlot->params == Attribute::NoUnwind)
         {
           binopFunc.attrs = &attrs;
           break;
@@ -391,51 +351,25 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
 
   // declare the resource, this happens purely in metadata but we need to store the slot
   uint32_t regSlot = 0;
-  DXIL::Metadata *reslist = NULL;
+  Metadata *reslist = NULL;
   {
-    const DXIL::Type *rw = editor.GetTypeByName("struct.RWByteAddressBuffer");
+    const Type *rw = editor.CreateNamedStructType("struct.RWByteAddressBuffer", {i32});
+    const Type *rwptr = editor.CreatePointerType(rw, Type::PointerAddrSpace::Default);
 
-    // declare the type if not present
-    if(!rw)
-    {
-      DXIL::Type rwType;
-      rwType.name = "struct.RWByteAddressBuffer";
-      rwType.type = DXIL::Type::Struct;
-      rwType.members = {i32};
-
-      rw = editor.AddType(rwType);
-    }
-
-    const DXIL::Type *rwptr = editor.GetPointerType(rw, DXIL::Type::PointerAddrSpace::Default);
-
-    if(!rwptr)
-    {
-      DXIL::Type rwPtrType;
-      rwPtrType.type = DXIL::Type::Pointer;
-      rwPtrType.addrSpace = DXIL::Type::PointerAddrSpace::Default;
-      rwPtrType.inner = rw;
-
-      rwptr = editor.AddType(rwPtrType);
-    }
-
-    DXIL::Metadata *resources = editor.GetMetadataByName("dx.resources");
-    if(!resources)
-    {
-      DXIL::Metadata tmpResList;
-      tmpResList.children.resize(4);
-      DXIL::NamedMetadata tmpResources;
-      tmpResources.name = "dx.resources";
-      tmpResources.children.push_back(editor.AddMetadata(tmpResList));
-      resources = editor.AddNamedMetadata(tmpResources);
-    }
-    // if there are no resources declared we can't have any dynamic indexing
-    if(!resources)
-      return false;
+    Metadata *resources = editor.CreateNamedMetadata("dx.resources");
+    if(resources->children.empty())
+      resources->children.push_back(editor.CreateMetadata());
 
     reslist = resources->children[0];
 
-    DXIL::Metadata *srvs = reslist->children[0];
-    DXIL::Metadata *uavs = reslist->children[1];
+    if(reslist->children.empty())
+      reslist->children.resize(4);
+
+    Metadata *srvs = reslist->children[0];
+    Metadata *uavs = reslist->children[1];
+    // if there isn't a UAV list, create an empty one so we can add our own
+    if(!uavs)
+      uavs = reslist->children[1] = editor.CreateMetadata();
 
     D3D12FeedbackKey key;
 
@@ -444,32 +378,32 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
     for(size_t i = 0; srvs && i < srvs->children.size(); i++)
     {
       // each SRV child should have a fixed format
-      const DXIL::Metadata *srv = srvs->children[i];
-      const DXIL::Metadata *slot = srv->children[(size_t)DXIL::ResField::ID];
-      const DXIL::Metadata *srvSpace = srv->children[(size_t)DXIL::ResField::Space];
-      const DXIL::Metadata *reg = srv->children[(size_t)DXIL::ResField::RegBase];
+      const Metadata *srv = srvs->children[i];
+      const Constant *slot = cast<Constant>(srv->children[(size_t)ResField::ID]->value);
+      const Constant *srvSpace = cast<Constant>(srv->children[(size_t)ResField::Space]->value);
+      const Constant *reg = cast<Constant>(srv->children[(size_t)ResField::RegBase]->value);
 
-      if(slot->value.type != DXIL::ValueType::Constant)
+      if(!slot)
       {
         RDCWARN("Unexpected non-constant slot ID in SRV");
         continue;
       }
 
-      if(srvSpace->value.type != DXIL::ValueType::Constant)
+      if(!srvSpace)
       {
         RDCWARN("Unexpected non-constant register space in SRV");
         continue;
       }
 
-      if(reg->value.type != DXIL::ValueType::Constant)
+      if(!reg)
       {
         RDCWARN("Unexpected non-constant register base in SRV");
         continue;
       }
 
-      uint32_t id = slot->value.constant->val.u32v[0];
-      key.bind.bindset = srvSpace->value.constant->val.u32v[0];
-      key.bind.bind = reg->value.constant->val.u32v[0];
+      uint32_t id = slot->getU32();
+      key.bind.bindset = srvSpace->getU32();
+      key.bind.bind = reg->getU32();
 
       // ensure every valid ID has an index, even if it's 0
       srvBaseSlots.resize_for_index(id);
@@ -495,43 +429,43 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
 
     key.type = DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW;
 
-    for(size_t i = 0; uavs && i < uavs->children.size(); i++)
+    for(size_t i = 0; i < uavs->children.size(); i++)
     {
       // each UAV child should have a fixed format, [0] is the reg ID and I think this should always
       // be == the index
-      const DXIL::Metadata *uav = uavs->children[i];
-      const DXIL::Metadata *slot = uav->children[(size_t)DXIL::ResField::ID];
-      const DXIL::Metadata *uavSpace = uav->children[(size_t)DXIL::ResField::Space];
-      const DXIL::Metadata *reg = uav->children[(size_t)DXIL::ResField::RegBase];
+      const Metadata *uav = uavs->children[i];
+      const Constant *slot = cast<Constant>(uav->children[(size_t)ResField::ID]->value);
+      const Constant *uavSpace = cast<Constant>(uav->children[(size_t)ResField::Space]->value);
+      const Constant *reg = cast<Constant>(uav->children[(size_t)ResField::RegBase]->value);
 
-      if(slot->value.type != DXIL::ValueType::Constant)
+      if(!slot)
       {
         RDCWARN("Unexpected non-constant slot ID in UAV");
         continue;
       }
 
-      if(uavSpace->value.type != DXIL::ValueType::Constant)
+      if(!uavSpace)
       {
         RDCWARN("Unexpected non-constant register space in UAV");
         continue;
       }
 
-      if(reg->value.type != DXIL::ValueType::Constant)
+      if(!reg)
       {
         RDCWARN("Unexpected non-constant register base in UAV");
         continue;
       }
 
-      RDCASSERT(slot->value.constant->val.u32v[0] == i);
+      RDCASSERT(slot->getU32() == i);
 
-      uint32_t id = slot->value.constant->val.u32v[0];
+      uint32_t id = slot->getU32();
       regSlot = RDCMAX(id + 1, regSlot);
 
       // ensure every valid ID has an index, even if it's 0
       uavBaseSlots.resize_for_index(id);
 
-      key.bind.bindset = uavSpace->value.constant->val.u32v[0];
-      key.bind.bind = reg->value.constant->val.u32v[0];
+      key.bind.bindset = uavSpace->getU32();
+      key.bind.bind = reg->getU32();
 
       auto it = slots.find(key);
 
@@ -552,80 +486,33 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       uavBaseSlots[id] = {feedbackSlot, key.bind.bind};
     }
 
-    DXIL::Metadata *uavRecord[11] = {
-        editor.AddMetadata(DXIL::Metadata()),
-        editor.AddMetadata(DXIL::Metadata()),
-        editor.AddMetadata(DXIL::Metadata()),
-        editor.AddMetadata(DXIL::Metadata()),
-        editor.AddMetadata(DXIL::Metadata()),
-        editor.AddMetadata(DXIL::Metadata()),
-        editor.AddMetadata(DXIL::Metadata()),
-        editor.AddMetadata(DXIL::Metadata()),
-        editor.AddMetadata(DXIL::Metadata()),
-        editor.AddMetadata(DXIL::Metadata()),
-        NULL,
-    };
-
-#define SET_CONST_META(m, t, v) \
-  m->isConstant = true;         \
-  m->type = t;                  \
-  m->value = DXIL::Value(editor.GetOrAddConstant(DXIL::Constant(t, v)));
-
-    // linear reg slot/ID
-    SET_CONST_META(uavRecord[0], i32, regSlot);
-    // variable
-    {
-      DXIL::Constant c;
-      c.type = rwptr;
-      c.undef = true;
-      uavRecord[1]->isConstant = true;
-      uavRecord[1]->type = rwptr;
-      uavRecord[1]->value = DXIL::Value(editor.GetOrAddConstant(c));
-    }
-    // name, empty
-    uavRecord[2]->isString = true;
-    // reg space
-    SET_CONST_META(uavRecord[3], i32, space);
-    // reg base
-    SET_CONST_META(uavRecord[4], i32, 0U);
-    // reg count
-    SET_CONST_META(uavRecord[5], i32, 1U);
-    // shape
-    SET_CONST_META(uavRecord[6], i32, uint32_t(DXIL::ResourceKind::RawBuffer));
-    // globally coherent
-    SET_CONST_META(uavRecord[7], i1, 0U);
-    // hidden counter
-    SET_CONST_META(uavRecord[8], i1, 0U);
-    // raster order
-    SET_CONST_META(uavRecord[9], i1, 0U);
-    // UAV tags
-    uavRecord[10] = NULL;
+    Constant rwundef;
+    rwundef.type = rwptr;
+    rwundef.setUndef(true);
 
     // create the new UAV record
-    DXIL::Metadata *feedbackuav = editor.AddMetadata(DXIL::Metadata());
-    feedbackuav->children.assign(uavRecord, ARRAY_COUNT(uavRecord));
-
-    // now push our record onto a new UAV list (either copied from the existing, or created fresh if
-    // there isn't an existing one). This ensures it has all backwards references
-    if(uavs)
-      uavs = editor.AddMetadata(*uavs);
-    else
-      uavs = editor.AddMetadata(DXIL::Metadata());
+    Metadata *feedbackuav = editor.CreateMetadata();
+    feedbackuav->children = {
+        editor.CreateConstantMetadata(regSlot),
+        editor.CreateConstantMetadata(editor.CreateConstant(rwundef)),
+        editor.CreateConstantMetadata(""),
+        editor.CreateConstantMetadata(space),
+        editor.CreateConstantMetadata(0U),                                   // reg base
+        editor.CreateConstantMetadata(1U),                                   // reg count
+        editor.CreateConstantMetadata(uint32_t(ResourceKind::RawBuffer)),    // shape
+        editor.CreateConstantMetadata(false),                                // globally coherent
+        editor.CreateConstantMetadata(false),                                // hidden counter
+        editor.CreateConstantMetadata(false),                                // raster order
+        NULL,                                                                // UAV tags
+    };
 
     uavs->children.push_back(feedbackuav);
-
-    // now recreate the reslist, and repoint the uavs
-    reslist = editor.AddMetadata(*reslist);
-    reslist->children[1] = uavs;
-
-    // finally repoint the named metadata
-    resources->children[0] = reslist;
   }
 
   rdcstr entryName;
   // add the entry point tags
   {
-    DXIL::Metadata *entryPoints = editor.GetMetadataByName("dx.entryPoints");
+    Metadata *entryPoints = editor.GetMetadataByName("dx.entryPoints");
 
     if(!entryPoints)
     {
@@ -634,21 +521,23 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
     }
 
     // TODO select the entry point for multiple entry points? RT only for now
-    DXIL::Metadata *entry = entryPoints->children[0];
+    Metadata *entry = entryPoints->children[0];
 
     entryName = entry->children[1]->str;
 
-    DXIL::Metadata *taglist = entry->children[4];
+    Metadata *taglist = entry->children[4];
+    if(!taglist)
+      taglist = entry->children[4] = editor.CreateMetadata();
 
     // find existing shader flags tag, if there is one
-    DXIL::Metadata *shaderFlagsTag = NULL;
-    DXIL::Metadata *shaderFlagsData = NULL;
+    Metadata *shaderFlagsTag = NULL;
+    Metadata *shaderFlagsData = NULL;
     size_t existingTag = 0;
     for(size_t t = 0; taglist && t < taglist->children.size(); t += 2)
     {
       RDCASSERT(taglist->children[t]->isConstant);
-      if(taglist->children[t]->value.constant->val.u32v[0] ==
-         (uint32_t)DXIL::ShaderEntryTag::ShaderFlags)
+      if(cast<Constant>(taglist->children[t]->value)->getU32() ==
+         (uint32_t)ShaderEntryTag::ShaderFlags)
       {
         shaderFlagsTag = taglist->children[t];
         shaderFlagsData = taglist->children[t + 1];
@@ -657,7 +546,8 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       }
     }
 
-    uint32_t shaderFlagsValue = shaderFlagsData ? shaderFlagsData->value.constant->val.u32v[0] : 0U;
+    uint32_t shaderFlagsValue =
+        shaderFlagsData ? cast<Constant>(shaderFlagsData->value)->getU32() : 0U;
 
     // raw and structured buffers
     shaderFlagsValue |= 0x10;
@@ -670,22 +560,12 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
     }
 
     // (re-)create shader flags tag
-    shaderFlagsData = editor.AddMetadata(DXIL::Metadata());
-    SET_CONST_META(shaderFlagsData, i32, shaderFlagsValue);
+    shaderFlagsData = editor.CreateConstantMetadata(shaderFlagsValue);
 
     // if we didn't have a shader tags entry at all, create the metadata node for the shader flags
     // tag
     if(!shaderFlagsTag)
-    {
-      shaderFlagsTag = editor.AddMetadata(DXIL::Metadata());
-      SET_CONST_META(shaderFlagsTag, i32, (uint32_t)DXIL::ShaderEntryTag::ShaderFlags);
-    }
-
-    // (re-)create tag list
-    if(taglist)
-      taglist = editor.AddMetadata(*taglist);
-    else
-      taglist = editor.AddMetadata(DXIL::Metadata());
+      shaderFlagsTag = editor.CreateConstantMetadata((uint32_t)ShaderEntryTag::ShaderFlags);
 
     // if we had a tag already, we can just re-use that tag node and replace the data node.
     // Otherwise we need to add both, and we insert them first
@@ -699,22 +579,15 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       taglist->children.insert(1, shaderFlagsData);
     }
 
-    // recreate the entry
-    entry = editor.AddMetadata(*entry);
-
-    // repoint taglist and reslist
+    // set reslist and taglist in case they were null before
     entry->children[3] = reslist;
     entry->children[4] = taglist;
-
-    // finally repoint the named metadata
-    entryPoints->children[0] = entry;
   }
 
   // get the editor to patch PSV0 with our extra UAV
-  editor.RegisterUAV(DXIL::DXILResourceType::ByteAddressUAV, space, 0, 0,
-                     DXIL::ResourceKind::RawBuffer);
+  editor.RegisterUAV(DXILResourceType::ByteAddressUAV, space, 0, 0, ResourceKind::RawBuffer);
 
-  DXIL::Function *f = editor.GetFunctionByName(entryName);
+  Function *f = editor.GetFunctionByName(entryName);
 
   if(!f)
   {
@@ -726,132 +599,123 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
   RDCASSERTNOTEQUAL(createHandle == NULL, createHandleFromBinding == NULL);
   int startInst = 0;
   // create our handle first thing
-  DXIL::Instruction *handle = NULL;
+  Instruction *handle = NULL;
   if(createHandle)
   {
     RDCASSERT(!isShaderModel6_6OrAbove);
-    DXIL::Instruction inst;
-    inst.op = DXIL::Operation::Call;
-    inst.type = handleType;
-    inst.funcCall = createHandle;
-    inst.args = {
+    handle = editor.CreateInstruction(createHandle);
+    handle->type = handleType;
+    handle->args = {
         // dx.op.createHandle opcode
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 57U))),
+        editor.CreateConstant(57U),
         // kind = UAV
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i8, (uint32_t)DXIL::HandleKind::UAV))),
+        editor.CreateConstant((uint8_t)HandleKind::UAV),
         // ID/slot
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, regSlot))),
+        editor.CreateConstant(regSlot),
         // array index
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 0U))),
+        editor.CreateConstant(0U),
         // non-uniform
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i1, 0U))),
+        editor.CreateConstant(false),
     };
 
-    handle = editor.AddInstruction(f, startInst++, inst);
+    f->instructions.insert(startInst++, handle);
   }
   else if(createHandleFromBinding)
   {
     RDCASSERT(isShaderModel6_6OrAbove);
-    const DXIL::Type *resBindType = editor.GetTypeByName("dx.types.ResBind");
-    DXIL::Constant resBindConstant(resBindType, 0U);
-    resBindConstant.members = {
-        // Lower id bound
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 0))),
-        // Upper id bound
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 0))),
-        // Space ID
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, space))),
-        // kind = UAV
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i8, (uint32_t)DXIL::HandleKind::UAV))),
-    };
+    const Type *resBindType = editor.CreateNamedStructType("dx.types.ResBind", {});
+    Constant *resBindConstant =
+        editor.CreateConstant(resBindType, {
+                                               // Lower id bound
+                                               editor.CreateConstant(0U),
+                                               // Upper id bound
+                                               editor.CreateConstant(0U),
+                                               // Space ID
+                                               editor.CreateConstant(space),
+                                               // kind = UAV
+                                               editor.CreateConstant((uint8_t)HandleKind::UAV),
+                                           });
 
-    DXIL::Instruction inst;
-    inst.op = DXIL::Operation::Call;
-    inst.type = handleType;
-    inst.funcCall = createHandleFromBinding;
-    inst.args = {
+    Instruction *handleCreate = editor.CreateInstruction(createHandleFromBinding);
+    handleCreate->type = handleType;
+    handleCreate->args = {
         // dx.op.createHandleFromBinding opcode
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 217U))),
+        editor.CreateConstant(217U),
         // resBind
-        DXIL::Value(editor.GetOrAddConstant(f, resBindConstant)),
+        resBindConstant,
         // ID/slot
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 0U))),
+        editor.CreateConstant(0U),
         // non-uniform
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i1, 0U))),
+        editor.CreateConstant(false),
     };
 
-    handle = editor.AddInstruction(f, startInst++, inst);
-
-    const DXIL::Type *resPropsType = editor.GetTypeByName("dx.types.ResourceProperties");
-    DXIL::Constant resPropConstant(resPropsType, 0U);
-    resPropConstant.members = {
-        // IsUav : (1 << 12)
-        DXIL::Value(editor.GetOrAddConstant(
-            f, DXIL::Constant(i32, (1 << 12) | (uint32_t)DXIL::ResourceKind::RawBuffer))),
-        //
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 0))),
-    };
+    f->instructions.insert(startInst++, handleCreate);
 
     // Annotate handle
-    DXIL::Instruction inst2;
-    inst2.op = DXIL::Operation::Call;
-    inst2.type = handleType;
-    inst2.funcCall = editor.GetFunctionByName("dx.op.annotateHandle");
-    inst2.args = {// dx.op.annotateHandle opcode
-                  DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 216U))),
-                  // Resource handle
-                  DXIL::Value(handle),
-                  // Resource properties
-                  DXIL::Value(editor.GetOrAddConstant(f, resPropConstant))};
-
-    handle = editor.AddInstruction(f, startInst++, inst2);
-  }
-
-  const DXIL::Constant *undefi32;
-  {
-    DXIL::Constant c;
-    c.type = i32;
-    c.undef = true;
-    undefi32 = editor.GetOrAddConstant(f, c);
-  }
-
-  // insert an or to offset 0, just to indicate validity
-  {
-    DXIL::Instruction inst;
-    inst.op = DXIL::Operation::Call;
-    inst.type = i32;
-    inst.funcCall = atomicBinOp;
-    inst.args = {
-        // dx.op.atomicBinOp.i32 opcode
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 78U))),
-        // feedback UAV handle
-        DXIL::Value(handle),
-        // operation OR
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 2U))),
-        // offset
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 0U))),
-        // offset 2
-        DXIL::Value(undefi32),
-        // offset 3
-        DXIL::Value(undefi32),
-        // value
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, magicFeedbackValue))),
+    handle = editor.CreateInstruction(editor.GetFunctionByName("dx.op.annotateHandle"));
+    handle->type = handleType;
+    handle->args = {
+        // dx.op.annotateHandle opcode
+        editor.CreateConstant(216U),
+        // Resource handle
+        handleCreate,
+        // Resource properties
+        editor.CreateConstant(
+            editor.CreateNamedStructType("dx.types.ResourceProperties", {}),
+            {
+                // IsUav : (1 << 12)
+                editor.CreateConstant(uint32_t((1 << 12) | (uint32_t)ResourceKind::RawBuffer)),
+                //
+                editor.CreateConstant(0U),
+            }),
     };
 
-    editor.AddInstruction(f, startInst++, inst);
+    f->instructions.insert(startInst++, handle);
+  }
+
+  Constant *undefi32;
+  {
+    Constant c;
+    c.type = i32;
+    c.setUndef(true);
+    undefi32 = editor.CreateConstant(c);
+  }
+
+  // insert an OR to offset 0, just to indicate validity
+  {
+    Instruction *inst = editor.CreateInstruction(atomicBinOp);
+    inst->type = i32;
+    inst->args = {
+        // dx.op.atomicBinOp.i32 opcode
+        editor.CreateConstant(78U),
+        // feedback UAV handle
+        handle,
+        // operation OR
+        editor.CreateConstant(2U),
+        // offset
+        editor.CreateConstant(0U),
+        // offset 2
+        undefi32,
+        // offset 3
+        undefi32,
+        // value
+        editor.CreateConstant(magicFeedbackValue),
+    };
+
+    f->instructions.insert(startInst++, inst);
   }
 
   for(size_t i = startInst; i < f->instructions.size(); i++)
   {
-    const DXIL::Instruction &inst = f->instructions[i];
+    const Instruction &inst = *f->instructions[i];
     // we want to annotate any calls to createHandle
-    if(inst.op == DXIL::Operation::Call &&
-       ((createHandle && inst.funcCall->name == createHandle->name) ||
-        (createHandleFromBinding && inst.funcCall->name == createHandleFromBinding->name)))
+    if(inst.op == Operation::Call &&
+       ((createHandle && inst.getFuncCall()->name == createHandle->name) ||
+        (createHandleFromBinding && inst.getFuncCall()->name == createHandleFromBinding->name)))
     {
-      DXIL::Value idxArg;
+      Value *idxArg;
       rdcpair<uint32_t, int32_t> slotInfo = {0, 0};
-      if((createHandle && inst.funcCall->name == createHandle->name))
+      if((createHandle && inst.getFuncCall()->name == createHandle->name))
       {
         RDCASSERT(!isShaderModel6_6OrAbove);
         if(inst.args.size() != 5)
@@ -860,20 +724,20 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
           continue;
         }
 
-        DXIL::Value kindArg = inst.args[1];
-        DXIL::Value idArg = inst.args[2];
+        Constant *kindArg = cast<Constant>(inst.args[1]);
+        Constant *idArg = cast<Constant>(inst.args[2]);
         idxArg = inst.args[3];
 
-        if(kindArg.type != DXIL::ValueType::Constant || idArg.type != DXIL::ValueType::Constant)
+        if(!kindArg || !idArg)
         {
           RDCERR("Unexpected non-constant argument to createHandle");
           continue;
         }
-        DXIL::HandleKind kind = (DXIL::HandleKind)kindArg.constant->val.u32v[0];
-        uint32_t id = idArg.constant->val.u32v[0];
-        if(kind == DXIL::HandleKind::SRV && id < srvBaseSlots.size())
+        HandleKind kind = (HandleKind)kindArg->getU32();
+        uint32_t id = idArg->getU32();
+        if(kind == HandleKind::SRV && id < srvBaseSlots.size())
           slotInfo = srvBaseSlots[id];
-        else if(kind == DXIL::HandleKind::UAV && id < uavBaseSlots.size())
+        else if(kind == HandleKind::UAV && id < uavBaseSlots.size())
           slotInfo = uavBaseSlots[id];
       }
       else
@@ -884,21 +748,21 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
           RDCERR("Unexpected number of arguments to createHandleFromBinding");
           continue;
         }
-        DXIL::Value resBindArg = inst.args[1];
+        Constant *resBindArg = cast<Constant>(inst.args[1]);
         idxArg = inst.args[2];
-        if(resBindArg.type != DXIL::ValueType::Constant)
+        if(!resBindArg)
         {
           RDCERR("Unexpected non-constant argument to createHandleFromBinding");
           continue;
         }
-        if(resBindArg.constant->members.size() != 4 && !resBindArg.constant->nullconst)
+        if(resBindArg->getMembers().size() != 4 && !resBindArg->isNULL())
         {
           RDCERR("Unexpected number of members to resBind");
           continue;
         }
 
         D3D12FeedbackKey key;
-        if(resBindArg.constant->nullconst)
+        if(resBindArg->isNULL())
         {
           key.type = DXBCBytecode::TYPE_RESOURCE;
           key.bind.bindset = 0;
@@ -906,23 +770,22 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
         }
         else
         {
-          DXIL::Value regArg = resBindArg.constant->members[0];
-          DXIL::Value spaceArg = resBindArg.constant->members[2];
-          DXIL::Value kindArg = resBindArg.constant->members[3];
-          if(regArg.type != DXIL::ValueType::Constant ||
-             spaceArg.type != DXIL::ValueType::Constant || kindArg.type != DXIL::ValueType::Constant)
+          Constant *regArg = cast<Constant>(resBindArg->getMembers()[0]);
+          Constant *spaceArg = cast<Constant>(resBindArg->getMembers()[2]);
+          Constant *kindArg = cast<Constant>(resBindArg->getMembers()[3]);
+          if(!regArg || !spaceArg || !kindArg)
           {
             RDCERR("Unexpected non-constant argument to createHandleFromBinding");
             continue;
           }
 
-          DXIL::HandleKind kind = (DXIL::HandleKind)kindArg.constant->val.u32v[0];
-          if(kind != DXIL::HandleKind::SRV && kind != DXIL::HandleKind::UAV)
+          HandleKind kind = (HandleKind)kindArg->getU32();
+          if(kind != HandleKind::SRV && kind != HandleKind::UAV)
             continue;
-          key.type = kind == DXIL::HandleKind::UAV ? DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW
-                                                   : DXBCBytecode::TYPE_RESOURCE;
-          key.bind.bindset = spaceArg.constant->val.u32v[0];
-          key.bind.bind = regArg.constant->val.u32v[0];
+          key.type = kind == HandleKind::UAV ? DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW
+                                             : DXBCBytecode::TYPE_RESOURCE;
+          key.bind.bindset = spaceArg->getU32();
+          key.bind.bind = regArg->getU32();
         }
 
         auto it = slots.find(key);
@@ -937,86 +800,74 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       if(slotInfo.first == 0)
         continue;
 
-      DXIL::Instruction op;
-      op.op = DXIL::Operation::Sub;
-      op.type = i32;
-      op.args = {
+      Instruction op;
+      op.op = Operation::Sub;
+
+      // idx0Based = idx - baseReg
+      Instruction *idx0Based = editor.CreateInstruction(Operation::Sub);
+      f->instructions.insert(i++, idx0Based);
+      idx0Based->type = i32;
+      idx0Based->args = {
           // idx to the createHandle op
           idxArg,
           // register that this is relative to
-          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, (uint32_t)slotInfo.second))),
-      };
-
-      // idx0Based = idx - baseReg
-      DXIL::Instruction *idx0Based = editor.AddInstruction(f, i, op);
-      i++;
-
-      op.op = DXIL::Operation::Add;
-      op.type = i32;
-      op.args = {
-          // idx to the createHandle op
-          DXIL::Value(idx0Based),
-          // base slot
-          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, slotInfo.first))),
+          editor.CreateConstant((uint32_t)slotInfo.second),
       };
 
       // slotPlusBase = idx0Based + slot
-      DXIL::Instruction *slotPlusBase = editor.AddInstruction(f, i, op);
-      i++;
-
-      op.op = DXIL::Operation::Call;
-      op.type = i32;
-      op.funcCall = binOp;
-      op.args = {
-          // dx.op.binOp.i32 UMin opcode
-          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 40U))),
-          // slotPlusBase
-          DXIL::Value(slotPlusBase),
-          // max slot
-          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, maxSlot))),
+      Instruction *slotPlusBase = editor.CreateInstruction(Operation::Add);
+      f->instructions.insert(i++, slotPlusBase);
+      slotPlusBase->type = i32;
+      slotPlusBase->args = {
+          // idx to the createHandle op
+          idx0Based,
+          // base slot
+          editor.CreateConstant(slotInfo.first),
       };
 
       // slotPlusBaseClamped = min(slotPlusBase, maxSlot)
-      DXIL::Instruction *slotPlusBaseClamped = editor.AddInstruction(f, i, op);
-      i++;
-
-      op.op = DXIL::Operation::ShiftLeft;
-      op.type = i32;
-      op.args = {
-          DXIL::Value(slotPlusBaseClamped),
-          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 2U))),
+      Instruction *slotPlusBaseClamped = editor.CreateInstruction(binOp);
+      f->instructions.insert(i++, slotPlusBaseClamped);
+      slotPlusBaseClamped->type = i32;
+      slotPlusBaseClamped->args = {
+          // dx.op.binOp.i32 UMin opcode
+          editor.CreateConstant(40U),
+          // slotPlusBase
+          slotPlusBase,
+          // max slot
+          editor.CreateConstant(maxSlot),
       };
 
       // byteOffset = slotPlusBaseClamped << 2
-      DXIL::Instruction *byteOffset = editor.AddInstruction(f, i, op);
-      i++;
-
-      op.op = DXIL::Operation::Call;
-      op.type = i32;
-      op.funcCall = atomicBinOp;
-      op.args = {
-          // dx.op.atomicBinOp.i32 opcode
-          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 78U))),
-          // feedback UAV handle
-          DXIL::Value(handle),
-          // operation OR
-          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 2U))),
-          // offset
-          DXIL::Value(byteOffset),
-          // offset 2
-          DXIL::Value(undefi32),
-          // offset 3
-          DXIL::Value(undefi32),
-          // value
-          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, magicFeedbackValue))),
+      Instruction *byteOffset = editor.CreateInstruction(Operation::ShiftLeft);
+      f->instructions.insert(i++, byteOffset);
+      byteOffset->type = i32;
+      byteOffset->args = {
+          slotPlusBaseClamped, editor.CreateConstant(2U),
       };
 
-      // don't care about the return value from this
-      editor.AddInstruction(f, i, op);
-      i++;
+      Instruction *atomicOr = editor.CreateInstruction(atomicBinOp);
+      f->instructions.insert(i++, atomicOr);
+      atomicOr->args = {
+          // dx.op.atomicBinOp.i32 opcode
+          editor.CreateConstant(78U),
+          // feedback UAV handle
+          handle,
+          // operation OR
+          editor.CreateConstant(2U),
+          // offset
+          byteOffset,
+          // offset 2
+          undefi32,
+          // offset 3
+          undefi32,
+          // value
+          editor.CreateConstant(magicFeedbackValue),
+      };
+      atomicOr->type = i32;
     }
-    else if(inst.op == DXIL::Operation::Call && createHandleFromHeap &&
-            inst.funcCall->name == createHandleFromHeap->name)
+    else if(inst.op == Operation::Call && createHandleFromHeap &&
+            inst.getFuncCall()->name == createHandleFromHeap->name)
     {
       RDCASSERT(isShaderModel6_6OrAbove);
       if(inst.args.size() != 4)
@@ -1024,13 +875,13 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
         RDCERR("Unexpected number of arguments to createHandleFromHeap");
         continue;
       }
-      DXIL::Value isSamplerArg = inst.args[2];
-      if(isSamplerArg.type != DXIL::ValueType::Constant)
+      Constant *isSamplerArg = cast<Constant>(inst.args[2]);
+      if(!isSamplerArg)
       {
         RDCERR("Unexpected non-constant argument to createHandleFromHeap");
         continue;
       }
-      bool isSampler = isSamplerArg.constant->val.u32v[0] != 0;
+      bool isSampler = isSamplerArg->getU32() != 0;
 
       D3D12FeedbackKey key = GetDirectHeapAccessKey();
       auto it = slots.find(key);
@@ -1038,21 +889,20 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
         continue;
 
       // Look for annotation for the type of this view ( SRV/UAV/CBV/Sampler )
-      const DXIL::Instruction *annotateInst = NULL;
+      const Instruction *annotateInst = NULL;
       for(size_t nextInstIndex = i + 1; nextInstIndex < f->instructions.size(); nextInstIndex++)
       {
-        const DXIL::Instruction &nextInst = f->instructions[nextInstIndex];
-        if(nextInst.op == DXIL::Operation::Call && annotateHandle &&
-           nextInst.funcCall->name == annotateHandle->name)
+        const Instruction &nextInst = *f->instructions[nextInstIndex];
+        if(nextInst.op == Operation::Call && annotateHandle &&
+           nextInst.getFuncCall()->name == annotateHandle->name)
         {
           if(nextInst.args.size() != 3)
           {
             RDCERR("Unexpected number of arguments to annotateHandle");
             continue;
           }
-          DXIL::Value idxArg = nextInst.args[1];
-          DXIL::Value instValue(&inst);
-          if(idxArg.instruction->resultID == instValue.instruction->resultID)
+          Value *idxArg = nextInst.args[1];
+          if(idxArg->id == inst.id)
           {
             annotateInst = &nextInst;
             break;
@@ -1065,97 +915,91 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
         continue;
       }
 
-      DXIL::Value resPropArg = annotateInst->args[2];
-      if(resPropArg.type != DXIL::ValueType::Constant)
+      Constant *resPropArg = cast<Constant>(annotateInst->args[2]);
+      if(!resPropArg)
       {
         RDCERR("Unexpected non-constant argument for dx.types.ResourceProperties");
         continue;
       }
-      if(resPropArg.constant->members.size() != 2)
+      if(resPropArg->getMembers().size() != 2)
       {
         RDCERR("Unexpected number of arguments to dx.types.ResourceProperties");
         continue;
       }
-      DXIL::Value resKindArg = resPropArg.constant->members[0];
-      if(resKindArg.type != DXIL::ValueType::Constant)
+      Constant *resKindArg = cast<Constant>(resPropArg->getMembers()[0]);
+      if(!resKindArg)
       {
         RDCERR("Unexpected non-constant argument for dx.types.ResourceProperties's resource kind");
         continue;
       }
-      DXIL::HandleKind handleKind = DXIL::HandleKind::SRV;
-      DXIL::ResourceKind resKind = (DXIL::ResourceKind)(resKindArg.constant->val.u32v[0] & 0xFF);
-      bool isUav = (resKindArg.constant->val.u32v[0] & (1 << 12)) != 0;
-      if(resKind == DXIL::ResourceKind::Sampler || resKind == DXIL::ResourceKind::SamplerComparison)
+      HandleKind handleKind = HandleKind::SRV;
+      ResourceKind resKind = (ResourceKind)(resKindArg->getU32() & 0xFF);
+      bool isUav = (resKindArg->getU32() & (1 << 12)) != 0;
+      if(resKind == ResourceKind::Sampler || resKind == ResourceKind::SamplerComparison)
       {
-        handleKind = DXIL::HandleKind::Sampler;
+        handleKind = HandleKind::Sampler;
         RDCASSERT(isSampler);
         RDCASSERT(!isUav);
       }
-      else if(resKind == DXIL::ResourceKind::CBuffer)
+      else if(resKind == ResourceKind::CBuffer)
       {
-        handleKind = DXIL::HandleKind::CBuffer;
+        handleKind = HandleKind::CBuffer;
         RDCASSERT(!isSampler);
         RDCASSERT(!isUav);
       }
       else if(isUav)
       {
-        handleKind = DXIL::HandleKind::UAV;
+        handleKind = HandleKind::UAV;
         RDCASSERT(!isSampler);
       }
       else
       {
-        handleKind = DXIL::HandleKind::SRV;
+        handleKind = HandleKind::SRV;
         RDCASSERT(!isSampler);
       }
 
-      DXIL::Value idxArg = inst.args[1];
-      DXIL::Instruction op;
+      Value *idxArg = inst.args[1];
+      Instruction op;
 
-      op.op = DXIL::Operation::Add;
-      op.type = i32;
-      op.args = {
-          // idx to the createHandleFromHeap op
-          DXIL::Value(idxArg),
-          // base slot
-          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, it->second.Slot()))),
-      };
       // slotPlusBase = idx0Based + slot
-      DXIL::Instruction *slotPlusBase = editor.AddInstruction(f, i, op);
-      i++;
-
-      op.op = DXIL::Operation::ShiftLeft;
-      op.type = i32;
-      op.args = {
-          DXIL::Value(slotPlusBase), DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 2U))),
+      Instruction *slotPlusBase = editor.CreateInstruction(Operation::Add);
+      f->instructions.insert(i++, slotPlusBase);
+      slotPlusBase->type = i32;
+      slotPlusBase->args = {
+          // idx to the createHandleFromHeap op
+          idxArg,
+          // base slot
+          editor.CreateConstant(it->second.Slot()),
       };
+
       // byteOffset = slotPlusBase << 2
-      DXIL::Instruction *byteOffset = editor.AddInstruction(f, i, op);
-      i++;
+      Instruction *byteOffset = editor.CreateInstruction(Operation::ShiftLeft);
+      f->instructions.insert(i++, byteOffset);
+      byteOffset->type = i32;
+      byteOffset->args = {
+          slotPlusBase, editor.CreateConstant(2U),
+      };
 
       uint32_t feedbackValue = magicFeedbackValue | (1 << (uint32_t)handleKind);
-      op.op = DXIL::Operation::Call;
-      op.type = i32;
-      op.funcCall = atomicBinOp;
-      op.args = {
+      Instruction *atomicOr = editor.CreateInstruction(atomicBinOp);
+      f->instructions.insert(i++, atomicOr);
+      atomicOr->args = {
           // dx.op.atomicBinOp.i32 opcode
-          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 78U))),
+          editor.CreateConstant(78U),
           // feedback UAV handle
-          DXIL::Value(handle),
+          handle,
           // operation OR
-          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 2U))),
+          editor.CreateConstant(2U),
           // offset
-          DXIL::Value(byteOffset),
+          byteOffset,
           // offset 2
-          DXIL::Value(undefi32),
+          undefi32,
           // offset 3
-          DXIL::Value(undefi32),
+          undefi32,
           // value
-          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, feedbackValue))),
+          editor.CreateConstant(feedbackValue),
       };
-
-      // don't care about the return value from this
-      editor.AddInstruction(f, i, op);
-      i++;
+      atomicOr->type = i32;
     }
   }
 

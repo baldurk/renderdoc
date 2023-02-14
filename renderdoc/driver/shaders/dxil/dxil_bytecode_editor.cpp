@@ -35,469 +35,77 @@ typedef DXC_API_IMPORT HRESULT(__stdcall *pDxcCreateInstance)(REFCLSID rclsid, R
 
 namespace DXIL
 {
-ProgramEditor::ProgramEditor(const DXBC::DXBCContainer *container, size_t reservationSize,
-                             bytebuf &outBlob)
+ProgramEditor::ProgramEditor(const DXBC::DXBCContainer *container, bytebuf &outBlob)
     : Program(container->GetNonDebugDXILByteCode(), container->GetNonDebugDXILByteCodeSize()),
       m_OutBlob(outBlob)
 {
   m_OutBlob = container->GetShaderBlob();
 
-  // swap into preserved storage
-  m_Functions.swap(m_OldFunctions);
-  m_Types.swap(m_OldTypes);
-  m_Constants.swap(m_OldConstants);
-  m_Metadata.swap(m_OldMetadata);
-
-  // give all objects an ID so we can find them afterwards uniquely and easy.
-  for(size_t i = 0; i < m_OldTypes.size(); i++)
-    m_OldTypes[i].id = (uint16_t)i;
-
-  for(Function &f : m_OldFunctions)
+  if(!m_VoidType)
   {
-    // This ID is only used in disassembly so we can freely overwrite it
-    for(size_t i = 0; i < f.instructions.size(); i++)
-      f.instructions[i].resultID = (uint32_t)i;
-    for(size_t i = 0; i < f.args.size(); i++)
-      f.args[i].resultID = (uint32_t)i;
-
-    for(size_t i = 0; i < f.blocks.size(); i++)
-      f.blocks[i].resultID = (uint32_t)i;
-
-    for(size_t i = 0; i < f.metadata.size(); i++)
-      f.metadata[i].id = (uint32_t)i;
-    for(size_t i = 0; i < f.constants.size(); i++)
-      f.constants[i].setID((uint32_t)i);
+    Type *t = new(alloc) Type;
+    m_VoidType = t;
+    t->type = Type::Scalar;
+    t->scalarType = Type::Void;
+    m_Types.push_back(t);
+  }
+  if(!m_BoolType)
+  {
+    Type *t = new(alloc) Type;
+    m_BoolType = t;
+    t->type = Type::Scalar;
+    t->scalarType = Type::Int;
+    t->bitWidth = 1;
+    m_Types.push_back(t);
+  }
+  if(!m_Int32Type)
+  {
+    Type *t = new(alloc) Type;
+    m_Int32Type = t;
+    t->type = Type::Scalar;
+    t->scalarType = Type::Int;
+    t->bitWidth = 32;
+    m_Types.push_back(t);
+  }
+  if(!m_Int8Type)
+  {
+    Type *t = new(alloc) Type;
+    m_Int8Type = t;
+    t->type = Type::Scalar;
+    t->scalarType = Type::Int;
+    t->bitWidth = 8;
+    m_Types.push_back(t);
   }
 
-  for(size_t i = 0; i < m_OldMetadata.size(); i++)
-    m_OldMetadata[i].id = (uint32_t)i;
+  // enumerate constants for deduplicating. The encoding automatically partitions these into global
+  // (if they're referenced globally) and function, we don't need to.
+  //
+  // We use the accumulator here not because it's efficient, but because it handles all the
+  // potential cycles that llvm puts in :(
 
-  for(size_t i = 0; i < m_OldConstants.size(); i++)
-    m_OldConstants[i].setID((uint32_t)i);
+  LLVMOrderAccumulator accum;
+  accum.processGlobals(this);
 
-  // now duplicate. Any copied pointers underneath these elements will *still be valid* and
-  // importantly *still point to the right element even if we edit the arrays*, because they're now
-  // pointing into the old arrays above. Just the indices will be wrong, which we only need when
-  // encoding
-  m_Functions = m_OldFunctions;
-  m_Types = m_OldTypes;
-  m_Constants = m_OldConstants;
-  m_Metadata = m_OldMetadata;
+  for(size_t idx = accum.firstConst; idx < accum.firstConst + accum.numConsts; idx++)
+    m_Constants.push_back((Constant *)cast<const Constant>(accum.values[idx]));
 
-  // reserve enough space so that these arrays don't resize out from under us
-  for(Function &f : m_Functions)
+  for(Function *f : m_Functions)
   {
-    f.instructions.reserve(f.instructions.size() * 4 + reservationSize * 4);
-    f.constants.reserve(f.constants.size() * 2 + reservationSize * 4);
+    accum.processFunction(f);
+    for(size_t idx = accum.firstFuncConst; idx < accum.firstFuncConst + accum.numFuncConsts; idx++)
+      m_Constants.push_back((Constant *)cast<const Constant>(accum.values[idx]));
+    accum.exitFunction();
   }
 
-  m_Functions.reserve(m_Functions.size() * 2 + reservationSize);
-  m_Types.reserve(m_Types.size() * 2 + reservationSize);
-  m_Constants.reserve(m_Constants.size() * 2 + reservationSize);
-  m_Metadata.reserve(m_Metadata.size() * 2 + reservationSize);
-
-#if ENABLED(RDOC_DEVEL)
-  m_DebugFunctionsData = m_Functions.data();
-  m_DebugFunctions.resize(m_Functions.size());
-  for(size_t i = 0; i < m_DebugFunctions.size(); i++)
-  {
-    m_DebugFunctions[i].instructions = m_Functions[i].instructions.data();
-    m_DebugFunctions[i].constants = m_Functions[i].constants.data();
-  }
-  m_DebugTypesData = m_Types.data();
-  m_DebugConstantsData = m_Constants.data();
-  m_DebugMetadataData = m_Metadata.data();
-#endif
-
-  // reset cached types
-  m_VoidType = NULL;
-  m_BoolType = NULL;
-  m_Int32Type = NULL;
-  m_Int8Type = NULL;
-}
-
-#define IN_ARRAY(array, ptr) (array.begin() <= ptr && ptr < array.end())
-
-#define GET_META_ID(a) (a)->id
-#define GET_CONST_ID(a) (a)->getID()
-#define GET_INST_ID(a) (a)->resultID
-#define GET_TYPE_ID(a) (a)->id
-
-// this is our main fixup algorithm. We start from the old ID (which was the index in the old array)
-// then start searching forward until we find it, or another valid ID. If we find another valid ID
-// that's greater we switch and go backwards (less likely since we don't expect to remove much) to
-// find the new location, and then get the updated pointer
-//
-// we skip any items with an ID of ~0U as these are new items, so we don't know which side our one
-// will be - again we assume it will be later as we usually insert, pushing indices later
-#define REPOINT_PTR(array, ptr, getId)        \
-  uint32_t idx = getId(ptr);                  \
-  RDCASSERT(idx < 0x80000000U);               \
-  if(idx >= array.size())                     \
-    idx = uint32_t(array.size() - 1);         \
-                                              \
-  /* search forward first */                  \
-  for(; idx < array.size(); idx++)            \
-  {                                           \
-    if(getId(&array[idx]) == getId(ptr))      \
-      break;                                  \
-                                              \
-    if(getId(&array[idx]) >= 0x80000000U)     \
-      continue;                               \
-                                              \
-    if(getId(&array[idx]) > getId(ptr))       \
-      break;                                  \
-  }                                           \
-                                              \
-  /* if we didn't find it, search back */     \
-  if(getId(&array[idx]) != getId(ptr))        \
-  {                                           \
-    idx = getId(ptr);                         \
-    for(; idx > 0; idx--)                     \
-    {                                         \
-      if(getId(&array[idx]) == getId(ptr))    \
-        break;                                \
-                                              \
-      if(getId(&array[idx]) >= 0x80000000U)   \
-        continue;                             \
-                                              \
-      if(getId(&array[idx]) < getId(ptr))     \
-        break;                                \
-    }                                         \
-  }                                           \
-                                              \
-  decltype(array)::value_type *result = NULL; \
-  if(getId(&array[idx]) == getId(ptr))        \
-    result = &array[idx];                     \
-  else                                        \
-    RDCERR("Couldn't find item in new array!");
-
-void ProgramEditor::Fixup(Value &v, Function *oldf, Function *newf)
-{
-  switch(v.type)
-  {
-    case ValueType::Constant: Fixup((Constant *&)v.constant, oldf, newf); break;
-    case ValueType::Metadata: Fixup((Metadata *&)v.meta, oldf, newf); break;
-    case ValueType::Instruction: Fixup((Instruction *&)v.instruction, oldf, newf); break;
-    case ValueType::BasicBlock: Fixup((Block *&)v.block, oldf, newf); break;
-    case ValueType::Function:
-      Fixup((Function *&)v.function);
-      break;
-    // other value types shouldn't need fixups
-    default: break;
-  }
-}
-
-void ProgramEditor::Fixup(Function *&f)
-{
-  if(!f)
-    return;
-
-  if(IN_ARRAY(m_OldFunctions, f))
-  {
-    // most of the time we won't modify the functions, check if it's at the same index
-    size_t idx = f - m_OldFunctions.begin();
-
-    if(m_Functions[idx].name == f->name)
-    {
-      f = &m_Functions[idx];
-    }
-    else
-    {
-      // otherwise just do a linear search, we don't expect too many functions
-      for(Function &newf : m_Functions)
-      {
-        if(newf.name == f->name)
-        {
-          f = &newf;
-          break;
-        }
-      }
-    }
-  }
-
-#if ENABLED(RDOC_DEVEL)
-  RDCASSERT(IN_ARRAY(m_Functions, f));
-#endif
-}
-
-void ProgramEditor::Fixup(Type *&t)
-{
-  if(!t)
-    return;
-
-  if(IN_ARRAY(m_OldTypes, t))
-  {
-    REPOINT_PTR(m_Types, t, GET_TYPE_ID);
-
-    if(result)
-      t = result;
-  }
-
-#if ENABLED(RDOC_DEVEL)
-  RDCASSERT(IN_ARRAY(m_Types, t));
-#endif
-}
-
-void ProgramEditor::Fixup(Block *&b, Function *oldf, Function *newf)
-{
-  if(IN_ARRAY(oldf->blocks, b))
-  {
-    REPOINT_PTR(newf->blocks, b, GET_INST_ID);
-
-    if(result)
-      b = result;
-  }
-
-#if ENABLED(RDOC_DEVEL)
-  RDCASSERT(IN_ARRAY(newf->blocks, b));
-#endif
-}
-
-// this variant fixes up the pointer itself only, but doesn't recurse. We don't recurse because we
-// have a parent loop that iterates over all the instructions in the new function
-void ProgramEditor::Fixup(Instruction *&i, Function *oldf, Function *newf)
-{
-  if(!i)
-    return;
-
-  if(IN_ARRAY(oldf->args, i))
-  {
-    REPOINT_PTR(newf->args, i, GET_INST_ID);
-
-    if(result)
-      i = result;
-  }
-
-  if(IN_ARRAY(oldf->instructions, i))
-  {
-    REPOINT_PTR(newf->instructions, i, GET_INST_ID);
-
-    if(result)
-      i = result;
-  }
-
-#if ENABLED(RDOC_DEVEL)
-  RDCASSERT(IN_ARRAY(newf->args, i) || IN_ARRAY(newf->instructions, i));
-#endif
-}
-
-void ProgramEditor::Fixup(Constant *&c, Function *oldf, Function *newf)
-{
-  if(!c)
-    return;
-
-  if(IN_ARRAY(m_OldConstants, c))
-  {
-    REPOINT_PTR(m_Constants, c, GET_CONST_ID);
-
-    if(result)
-      c = result;
-  }
-
-  if(oldf && IN_ARRAY(oldf->constants, c))
-  {
-    REPOINT_PTR(newf->constants, c, GET_CONST_ID);
-
-    if(result)
-      c = result;
-  }
-
-#if ENABLED(RDOC_DEVEL)
-  RDCASSERT(IN_ARRAY(m_Constants, c) || (newf && IN_ARRAY(newf->constants, c)));
-#endif
-}
-
-void ProgramEditor::Fixup(Metadata *&m, Function *oldf, Function *newf)
-{
-  if(!m)
-    return;
-
-  if(IN_ARRAY(m_OldMetadata, m))
-  {
-    REPOINT_PTR(m_Metadata, m, GET_META_ID);
-
-    if(result)
-      m = result;
-  }
-
-  if(oldf && IN_ARRAY(oldf->metadata, m))
-  {
-    REPOINT_PTR(newf->metadata, m, GET_META_ID);
-
-    if(result)
-      m = result;
-  }
-
-#if ENABLED(RDOC_DEVEL)
-  RDCASSERT(IN_ARRAY(m_Metadata, m) || (newf && IN_ARRAY(newf->metadata, m)));
-#endif
+  m_Constants.removeIf([](Constant *a) { return a == NULL; });
 }
 
 ProgramEditor::~ProgramEditor()
 {
-#if ENABLED(RDOC_DEVEL)
-  RDCASSERTMSG("Function storage has resized", m_DebugFunctionsData == m_Functions.data());
-  for(size_t i = 0; i < m_DebugFunctions.size(); i++)
-  {
-    RDCASSERTMSG("Instruction storage has resized",
-                 m_DebugFunctions[i].instructions == m_Functions[i].instructions.data());
-    RDCASSERTMSG("Function constant storage has resized",
-                 m_DebugFunctions[i].constants == m_Functions[i].constants.data());
-  }
-  RDCASSERTMSG("Types storage has resized", m_DebugTypesData == m_Types.data());
-  RDCASSERTMSG("Constants storage has resized", m_DebugConstantsData == m_Constants.data());
-  RDCASSERTMSG("Metadata storage has resized", m_DebugMetadataData == m_Metadata.data());
-#endif
-
-  // fixup pass. Find any pointers into m_Old* and repoint them to the appropriate corresponding
-  // element in m_*
-
-  for(GlobalVar &v : m_GlobalVars)
-  {
-    if(v.initialiser && !IN_ARRAY(m_Constants, v.initialiser))
-      Fixup(v.initialiser);
-
-    Fixup(v.type);
-  }
-
-  for(Type &t : m_Types)
-  {
-    Fixup(t.inner);
-
-    for(size_t i = 0; i < t.members.size(); i++)
-      Fixup(t.members[i]);
-  }
-
-  for(Alias &a : m_Aliases)
-  {
-    Fixup(a.type);
-    Fixup(a.val);
-  }
-
-  for(Constant &c : m_Constants)
-  {
-    Fixup(c.type);
-    Fixup(c.inner);
-    for(size_t i = 0; i < c.members.size(); i++)
-      Fixup(c.members[i]);
-  }
-
-  for(Metadata &m : m_Metadata)
-  {
-    Fixup(m.type);
-
-    Fixup(m.value);
-
-    for(size_t i = 0; i < m.children.size(); i++)
-      Fixup(m.children[i]);
-  }
-
-  for(Metadata &m : m_NamedMeta)
-  {
-    Fixup(m.type);
-
-    Fixup(m.value);
-
-    for(size_t i = 0; i < m.children.size(); i++)
-      Fixup(m.children[i]);
-  }
-
-  for(size_t fidx = 0; fidx < m_Functions.size(); fidx++)
-  {
-    Function &oldf = m_OldFunctions[fidx];
-    Function &f = m_Functions[fidx];
-
-    Fixup(f.funcType);
-
-    for(Instruction &i : f.args)
-      Fixup(i.type);
-
-    for(Instruction &i : f.instructions)
-    {
-      Fixup(i.type);
-
-      for(Value &v : i.args)
-        Fixup(v, &oldf, &f);
-
-      for(rdcpair<uint64_t, Metadata *> &m : i.attachedMeta)
-        Fixup(m.second, &oldf, &f);
-
-      Fixup(i.funcCall);
-    }
-
-    for(Constant &c : f.constants)
-    {
-      Fixup(c.type);
-      Fixup(c.inner, &oldf, &f);
-      for(size_t i = 0; i < c.members.size(); i++)
-        Fixup(c.members[i], &oldf, &f);
-    }
-
-    for(Value &v : f.values)
-      Fixup(v, &oldf, &f);
-
-    for(Block &b : f.blocks)
-    {
-      for(size_t i = 0; i < b.preds.size(); i++)
-        Fixup(b.preds[i], &oldf, &f);
-    }
-
-    for(Metadata &m : f.metadata)
-    {
-      Fixup(m.type);
-
-      Fixup(m.value, &oldf, &f);
-
-      for(size_t i = 0; i < m.children.size(); i++)
-        Fixup(m.children[i], &oldf, &f);
-    }
-
-    for(UselistEntry &u : f.uselist)
-      Fixup(u.value, &oldf, &f);
-
-    for(Value &v : f.valueSymtabOrder)
-      Fixup(v, &oldf, &f);
-  }
-
-  for(Value &v : m_Values)
-    Fixup(v);
-
-  for(Value &v : m_ValueSymtabOrder)
-    Fixup(v);
-
-#if ENABLED(RDOC_DEVEL)
-#define CLEAR_THEN_FILL(array)      \
-  {                                 \
-    sz = array.size();              \
-    array.clear();                  \
-    memset(array.data(), 0xfe, sz); \
-  }
-  size_t sz;
-  // clear, then fill the old arrays with garbage, so we can be more sure we're not accessing stale
-  // data
-  for(Function &f : m_OldFunctions)
-  {
-    CLEAR_THEN_FILL(f.instructions);
-    CLEAR_THEN_FILL(f.constants);
-    CLEAR_THEN_FILL(f.metadata);
-  }
-
-  CLEAR_THEN_FILL(m_OldFunctions);
-  CLEAR_THEN_FILL(m_OldTypes);
-  CLEAR_THEN_FILL(m_OldConstants);
-  CLEAR_THEN_FILL(m_OldMetadata);
-#endif
-
-  // cache known types for encoding
-  GetVoidType(true);
-  GetBoolType(true);
-  GetInt32Type(true);
-
   // replace the DXIL bytecode in the container with
   DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, DXBC::FOURCC_DXIL, EncodeProgram());
 
-#if ENABLED(RDOC_DEVEL) && 0
+#if ENABLED(RDOC_DEVEL) && 1
   // on debug builds, run through dxil for "validation" if it's available.
   // we need BOTH of htese because dxil.dll's interface is incomplete, it lacks the library
   // functionality that we only need to create blobs
@@ -591,20 +199,59 @@ ProgramEditor::~ProgramEditor()
 #endif
 }
 
-const Type *ProgramEditor::GetTypeByName(const rdcstr &name)
+Type *ProgramEditor::CreateNewType()
+{
+  m_Types.push_back(new(alloc) Type);
+  return m_Types.back();
+}
+
+Type *ProgramEditor::CreateNamedStructType(const rdcstr &name, rdcarray<const Type *> members)
 {
   for(size_t i = 0; i < m_Types.size(); i++)
-    if(m_Types[i].name == name)
-      return &m_Types[i];
+    if(m_Types[i]->name == name)
+      return m_Types[i];
 
-  return NULL;
+  if(members.empty())
+    return NULL;
+
+  Type *structType = CreateNewType();
+  structType->type = Type::Struct;
+  structType->name = name;
+  structType->members = members;
+  return structType;
+}
+
+DXIL::Type *ProgramEditor::CreateFunctionType(const Type *ret, rdcarray<const Type *> params)
+{
+  for(Type *type : m_Types)
+    if(type->type == Type::Function && type->inner == ret && type->members == params)
+      return type;
+
+  Type *funcType = CreateNewType();
+  funcType->type = Type::Function;
+  funcType->inner = ret;
+  funcType->members = params;
+  return funcType;
+}
+
+DXIL::Type *ProgramEditor::CreatePointerType(const Type *inner, Type::PointerAddrSpace addrSpace)
+{
+  for(Type *type : m_Types)
+    if(type->type == Type::Pointer && type->inner == inner && type->addrSpace == addrSpace)
+      return type;
+
+  Type *ptrType = CreateNewType();
+  ptrType->type = Type::Pointer;
+  ptrType->inner = inner;
+  ptrType->addrSpace = addrSpace;
+  return ptrType;
 }
 
 Function *ProgramEditor::GetFunctionByName(const rdcstr &name)
 {
   for(size_t i = 0; i < m_Functions.size(); i++)
-    if(m_Functions[i].name == name)
-      return &m_Functions[i];
+    if(m_Functions[i]->name == name)
+      return m_Functions[i];
 
   return NULL;
 }
@@ -612,64 +259,23 @@ Function *ProgramEditor::GetFunctionByName(const rdcstr &name)
 Metadata *ProgramEditor::GetMetadataByName(const rdcstr &name)
 {
   for(size_t i = 0; i < m_NamedMeta.size(); i++)
-    if(m_NamedMeta[i].name == name)
-      return &m_NamedMeta[i];
+    if(m_NamedMeta[i]->name == name)
+      return m_NamedMeta[i];
 
   return NULL;
 }
 
-const Type *ProgramEditor::AddType(const Type &t)
-{
-  // check all inner types already point into our array
-  if(t.inner && !IN_ARRAY(m_Types, t.inner) && !IN_ARRAY(m_OldTypes, t.inner))
-  {
-    RDCERR("New type references invalid inner type");
-    return NULL;
-  }
-
-  for(const Type *c : t.members)
-  {
-    if(!IN_ARRAY(m_Types, c) && !IN_ARRAY(m_OldTypes, c))
-    {
-      RDCERR("New type references invalid member type");
-      return NULL;
-    }
-  }
-
-  m_Types.push_back(t);
-  return &m_Types.back();
-}
-
-const Function *ProgramEditor::DeclareFunction(const Function &f)
+Function *ProgramEditor::DeclareFunction(const Function &f)
 {
   // only accept function declarations, not definitions
-  if(!f.args.empty() || !f.instructions.empty() || !f.values.empty() || !f.blocks.empty() ||
-     !f.constants.empty() || !f.metadata.empty() || !f.uselist.empty() || !f.attachedMeta.empty() ||
-     !f.valueSymtabOrder.empty())
+  if(!f.instructions.empty())
   {
     RDCERR("Only function declarations are allowed");
     return NULL;
   }
 
-  // check that inner pointers are valid
-  if(!IN_ARRAY(m_Types, f.funcType) && !IN_ARRAY(m_OldTypes, f.funcType))
-  {
-    RDCERR("Function references invalid type");
-    return NULL;
-  }
-
-  Value v(&m_Functions[m_Functions.size()]);
-
-  // insert the value after the last current function
-  for(size_t i = m_Functions.size() - 1; i < m_Values.size(); i++)
-  {
-    if(m_Values[i].type == ValueType::Function &&
-       m_Values[i].function->name == m_Functions.back().name)
-    {
-      m_Values.insert(i + 1, v);
-      break;
-    }
-  }
+  m_Functions.push_back(new(alloc) Function(f));
+  Function *ret = m_Functions.back();
 
   // functions need to be added to the symtab or dxc complains
   if(m_SortedSymtab)
@@ -682,213 +288,176 @@ const Function *ProgramEditor::DeclareFunction(const Function &f)
         break;
     }
 
-    m_ValueSymtabOrder.insert(idx, v);
+    m_ValueSymtabOrder.insert(idx, ret);
   }
   else
   {
     // otherwise just append
-    m_ValueSymtabOrder.push_back(v);
+    m_ValueSymtabOrder.push_back(ret);
   }
 
-  m_Functions.push_back(f);
-  return &m_Functions.back();
+  return ret;
 }
 
-Metadata *ProgramEditor::AddMetadata(const Metadata &m)
+Metadata *ProgramEditor::CreateMetadata()
 {
-  if(m.dwarf || m.debugLoc)
-  {
-    RDCERR("Metadata with debug information is not supported");
-    return NULL;
-  }
-
-  // check that inner pointers are valid
-  if(m.type && !IN_ARRAY(m_Types, m.type) && !IN_ARRAY(m_OldTypes, m.type))
-  {
-    RDCERR("Metadata references invalid type");
-    return NULL;
-  }
-
-  for(const Metadata *c : m.children)
-  {
-    if(c && !IN_ARRAY(m_Metadata, c) && !IN_ARRAY(m_OldMetadata, c))
-    {
-      RDCERR("New metadata references invalid member metadata");
-      return NULL;
-    }
-  }
-
-  m_Metadata.push_back(m);
-  return &m_Metadata.back();
+  return new(alloc) Metadata;
 }
 
-NamedMetadata *ProgramEditor::AddNamedMetadata(const NamedMetadata &m)
+Metadata *ProgramEditor::CreateConstantMetadata(uint32_t val)
 {
-  if(m.dwarf || m.debugLoc)
-  {
-    RDCERR("Metadata with debug information is not supported");
-    return NULL;
-  }
-
-  // check that inner pointers are valid
-  if(m.type && !IN_ARRAY(m_Types, m.type) && !IN_ARRAY(m_OldTypes, m.type))
-  {
-    RDCERR("Metadata references invalid type");
-    return NULL;
-  }
-
-  for(const Metadata *c : m.children)
-  {
-    if(c && !IN_ARRAY(m_Metadata, c) && !IN_ARRAY(m_OldMetadata, c))
-    {
-      RDCERR("New metadata references invalid member metadata");
-      return NULL;
-    }
-  }
-
-  m_NamedMeta.push_back(m);
-  return &m_NamedMeta.back();
+  Metadata *m = CreateMetadata();
+  m->isConstant = true;
+  m->type = m_Int32Type;
+  m->value = CreateConstant(Constant(m_Int32Type, val));
+  return m;
 }
 
-const Constant *ProgramEditor::GetOrAddConstant(const Constant &c)
+Metadata *ProgramEditor::CreateConstantMetadata(uint8_t val)
 {
-  // check that inner pointers are valid
-  if(!IN_ARRAY(m_Types, c.type) && !IN_ARRAY(m_OldTypes, c.type))
-  {
-    RDCERR("Constant references invalid type");
-    return NULL;
-  }
+  Metadata *m = CreateMetadata();
+  m->isConstant = true;
+  m->type = m_Int8Type;
+  m->value = CreateConstant(Constant(m_Int32Type, val));
+  return m;
+}
 
+Metadata *ProgramEditor::CreateConstantMetadata(const rdcstr &str)
+{
+  Metadata *m = CreateMetadata();
+  m->isConstant = true;
+  m->isString = true;
+  m->str = str;
+  return m;
+}
+
+Metadata *ProgramEditor::CreateConstantMetadata(bool val)
+{
+  Metadata *m = CreateMetadata();
+  m->isConstant = true;
+  m->type = m_BoolType;
+  m->value = CreateConstant(Constant(m_BoolType, val));
+  return m;
+}
+
+Metadata *ProgramEditor::CreateConstantMetadata(Constant *val)
+{
+  Metadata *m = CreateMetadata();
+  m->isConstant = true;
+  m->type = val->type;
+  m->value = val;
+  return m;
+}
+
+NamedMetadata *ProgramEditor::CreateNamedMetadata(const rdcstr &name)
+{
+  for(NamedMetadata *m : m_NamedMeta)
+    if(m->name == name)
+      return m;
+
+  m_NamedMeta.push_back(new(alloc) NamedMetadata);
+  return m_NamedMeta.back();
+}
+
+Constant *ProgramEditor::CreateConstant(const Constant &c)
+{
   // for scalars, check for an existing constant
   if(c.type->type == Type::Scalar)
   {
-    for(Constant &existing : m_Constants)
+    for(Constant *existing : m_Constants)
     {
-      if(existing.type == c.type && existing.undef == c.undef &&
-         existing.nullconst == c.nullconst && existing.val.u64v[0] == c.val.u64v[0])
+      if(existing->type == c.type)
       {
-        return &existing;
+        if(existing->isUndef() && c.isUndef())
+          return existing;
+        if(existing->isNULL() && c.isNULL())
+          return existing;
+        if(existing->isLiteral() && c.isLiteral() && existing->getU64() == c.getU64())
+          return existing;
       }
     }
   }
 
-  m_Constants.push_back(c);
-  m_Values.push_back(Value(&m_Constants.back()));
-  return &m_Constants.back();
+  m_Constants.push_back(new(alloc) Constant(c));
+  return m_Constants.back();
 }
 
-const Constant *ProgramEditor::GetOrAddConstant(Function *f, const Constant &c)
+Constant *ProgramEditor::CreateConstant(const Type *type, const rdcarray<Value *> &members)
 {
-  // check that inner pointers are valid
-  if(!IN_ARRAY(m_Types, c.type) && !IN_ARRAY(m_OldTypes, c.type))
-  {
-    RDCERR("Constant references invalid type");
-    return NULL;
-  }
-
-  // for scalars, check for an existing constant
-  if(c.type->type == Type::Scalar)
-  {
-    for(Constant &existing : f->constants)
-    {
-      if(existing.type == c.type && existing.undef == c.undef &&
-         existing.nullconst == c.nullconst && existing.val.u64v[0] == c.val.u64v[0])
-      {
-        return &existing;
-      }
-    }
-  }
-
-  f->constants.push_back(c);
-  f->values.insert(f->constants.size() - 1, Value(&f->constants.back()));
-  return &f->constants.back();
+  Constant *ret = new(alloc) Constant;
+  ret->type = type;
+  ret->setCompound(alloc, members);
+  return ret;
 }
 
-Instruction *ProgramEditor::AddInstruction(Function *f, size_t idx, const Instruction &inst)
+Instruction *ProgramEditor::CreateInstruction(Operation op)
 {
-  size_t valueIdx = RDCMIN(f->values.size() - 1, f->constants.size() + idx);
-  if(inst.type != m_VoidType)
-  {
-    // find the value index for the instruction we're inserting before. This won't match up exactly
-    // with the instructions sadly as not all
-    // instructions are values :(
-    for(; valueIdx > f->constants.size(); valueIdx--)
-      if(f->values[valueIdx].instruction->resultID == f->instructions[idx].resultID)
-        break;
+  Instruction *ret = new(alloc) Instruction;
+  ret->op = op;
+  return ret;
+}
 
-    RDCASSERT(f->values[valueIdx].instruction->resultID == f->instructions[idx].resultID);
-  }
-
-  f->instructions.insert(idx, inst);
-  f->instructions[idx].resultID = m_InsertedInstructionID--;
-  Instruction *ret = &f->instructions[idx];
-  if(inst.type != m_VoidType)
-    f->values.insert(valueIdx, Value(ret));
+Instruction *ProgramEditor::CreateInstruction(const Function *f)
+{
+  Instruction *ret = CreateInstruction(Operation::Call);
+  ret->extra(alloc).funcCall = f;
   return ret;
 }
 
 #define getAttribID(a) uint64_t(a - m_AttributeSets.begin())
-#define getTypeID(t) uint64_t(t - m_Types.begin())
-#define getMetaID(m) uint64_t(m - m_Metadata.begin())
+#define getTypeID(t) uint64_t(t->id)
+#define getMetaID(m) uint64_t(m->id)
+#define getValueID(v) uint64_t(v->id)
 #define getMetaIDOrNull(m) (m ? (getMetaID(m) + 1) : 0ULL)
-#define getFunctionMetaID(m)                                                        \
-  uint64_t(m >= m_Metadata.begin() && m < m_Metadata.end() ? m - m_Metadata.begin() \
-                                                           : m - f.metadata.begin())
-#define getFunctionMetaIDOrNull(m) (m ? (getFunctionMetaID(m) + 1) : 0ULL)
 
-#define getValueID(v) uint64_t(values.indexOf(v))
-
-bytebuf ProgramEditor::EncodeProgram() const
+bytebuf ProgramEditor::EncodeProgram()
 {
-  rdcarray<Value> values = m_Values;
-
   bytebuf ret;
 
   LLVMBC::BitcodeWriter writer(ret);
 
   LLVMBC::BitcodeWriter::Config cfg = {};
 
+  LLVMOrderAccumulator accum;
+  accum.processGlobals(this);
+
+  const rdcarray<const Value *> &values = accum.values;
+  const rdcarray<const Metadata *> &metadata = accum.metadata;
+
   for(size_t i = 0; i < m_GlobalVars.size(); i++)
   {
-    cfg.maxAlign = RDCMAX(m_GlobalVars[i].align, cfg.maxAlign);
-    RDCASSERT(m_GlobalVars[i].type->type == Type::Pointer);
-    uint32_t typeIndex = uint32_t(getTypeID(m_GlobalVars[i].type->inner));
+    cfg.maxAlign = RDCMAX(m_GlobalVars[i]->align, cfg.maxAlign);
+    RDCASSERT(m_GlobalVars[i]->type->type == Type::Pointer);
+    uint32_t typeIndex = uint32_t(getTypeID(m_GlobalVars[i]->type->inner));
     cfg.maxGlobalType = RDCMAX(typeIndex, cfg.maxGlobalType);
   }
 
   for(size_t i = 0; i < m_Functions.size(); i++)
-    cfg.maxAlign = RDCMAX(m_Functions[i].align, cfg.maxAlign);
+    cfg.maxAlign = RDCMAX(m_Functions[i]->align, cfg.maxAlign);
 
-  for(size_t i = 0; i < m_Metadata.size(); i++)
+  for(size_t i = 0; i < metadata.size(); i++)
   {
-    if(m_Metadata[i].isString)
+    if(metadata[i]->isString)
       cfg.hasMetaString = true;
 
-    if(m_Metadata[i].debugLoc)
+    if(metadata[i]->debugLoc)
       cfg.hasDebugLoc = true;
   }
 
   for(size_t i = 0; i < m_NamedMeta.size(); i++)
   {
-    if(m_NamedMeta[i].isString)
+    if(m_NamedMeta[i]->isString)
       cfg.hasMetaString = true;
 
-    if(m_NamedMeta[i].debugLoc)
+    if(m_NamedMeta[i]->debugLoc)
       cfg.hasDebugLoc = true;
   }
 
   cfg.hasNamedMeta = !m_NamedMeta.empty();
 
-  for(size_t i = m_GlobalVars.size() + m_Functions.size(); i < m_Values.size(); i++)
-  {
-    // stop once we pass constants
-    if(m_Values[i].type != ValueType::Constant)
-      break;
-  }
-
   cfg.numTypes = m_Types.size();
   cfg.numSections = m_Sections.size();
-  cfg.numGlobalValues = m_Values.size();
+  cfg.numGlobalValues = values.size();
 
   writer.ConfigureSizes(cfg);
 
@@ -1003,52 +572,51 @@ bytebuf ProgramEditor::EncodeProgram() const
   {
     writer.BeginBlock(LLVMBC::KnownBlock::TYPE_BLOCK);
 
-    writer.Record(LLVMBC::TypeRecord::NUMENTRY, (uint32_t)m_Types.size());
+    writer.Record(LLVMBC::TypeRecord::NUMENTRY, (uint32_t)accum.types.size());
 
-    for(size_t i = 0; i < m_Types.size(); i++)
+    for(size_t i = 0; i < accum.types.size(); i++)
     {
-      if(m_Types[i].isVoid())
+      const Type &t = *accum.types[i];
+      if(t.isVoid())
       {
         writer.Record(LLVMBC::TypeRecord::VOID);
       }
-      else if(m_Types[i].type == Type::Label)
+      else if(t.type == Type::Label)
       {
         writer.Record(LLVMBC::TypeRecord::LABEL);
       }
-      else if(m_Types[i].type == Type::Metadata)
+      else if(t.type == Type::Metadata)
       {
         writer.Record(LLVMBC::TypeRecord::METADATA);
       }
-      else if(m_Types[i].type == Type::Scalar && m_Types[i].scalarType == Type::Float)
+      else if(t.type == Type::Scalar && t.scalarType == Type::Float)
       {
-        if(m_Types[i].bitWidth == 16)
+        if(t.bitWidth == 16)
           writer.Record(LLVMBC::TypeRecord::HALF);
-        else if(m_Types[i].bitWidth == 32)
+        else if(t.bitWidth == 32)
           writer.Record(LLVMBC::TypeRecord::FLOAT);
-        else if(m_Types[i].bitWidth == 64)
+        else if(t.bitWidth == 64)
           writer.Record(LLVMBC::TypeRecord::DOUBLE);
       }
-      else if(m_Types[i].type == Type::Scalar && m_Types[i].scalarType == Type::Int)
+      else if(t.type == Type::Scalar && t.scalarType == Type::Int)
       {
-        writer.Record(LLVMBC::TypeRecord::INTEGER, m_Types[i].bitWidth);
+        writer.Record(LLVMBC::TypeRecord::INTEGER, t.bitWidth);
       }
-      else if(m_Types[i].type == Type::Vector)
+      else if(t.type == Type::Vector)
       {
-        writer.Record(LLVMBC::TypeRecord::VECTOR,
-                      {m_Types[i].elemCount, getTypeID(m_Types[i].inner)});
+        writer.Record(LLVMBC::TypeRecord::VECTOR, {t.elemCount, getTypeID(t.inner)});
       }
-      else if(m_Types[i].type == Type::Array)
+      else if(t.type == Type::Array)
       {
-        writer.Record(LLVMBC::TypeRecord::ARRAY, {m_Types[i].elemCount, getTypeID(m_Types[i].inner)});
+        writer.Record(LLVMBC::TypeRecord::ARRAY, {t.elemCount, getTypeID(t.inner)});
       }
-      else if(m_Types[i].type == Type::Pointer)
+      else if(t.type == Type::Pointer)
       {
-        writer.Record(LLVMBC::TypeRecord::POINTER,
-                      {getTypeID(m_Types[i].inner), (uint64_t)m_Types[i].addrSpace});
+        writer.Record(LLVMBC::TypeRecord::POINTER, {getTypeID(t.inner), (uint64_t)t.addrSpace});
       }
-      else if(m_Types[i].type == Type::Struct)
+      else if(t.type == Type::Struct)
       {
-        if(m_Types[i].opaque)
+        if(t.opaque)
         {
           writer.Record(LLVMBC::TypeRecord::OPAQUE);
         }
@@ -1056,32 +624,32 @@ bytebuf ProgramEditor::EncodeProgram() const
         {
           LLVMBC::TypeRecord type = LLVMBC::TypeRecord::STRUCT_ANON;
 
-          if(!m_Types[i].name.empty())
+          if(!t.name.empty())
           {
-            writer.Record(LLVMBC::TypeRecord::STRUCT_NAME, m_Types[i].name);
+            writer.Record(LLVMBC::TypeRecord::STRUCT_NAME, t.name);
             type = LLVMBC::TypeRecord::STRUCT_NAMED;
           }
 
           rdcarray<uint64_t> vals;
 
-          vals.push_back(m_Types[i].packedStruct ? 1 : 0);
+          vals.push_back(t.packedStruct ? 1 : 0);
 
-          for(const Type *t : m_Types[i].members)
-            vals.push_back(getTypeID(t));
+          for(const Type *member : t.members)
+            vals.push_back(getTypeID(member));
 
           writer.Record(type, vals);
         }
       }
-      else if(m_Types[i].type == Type::Function)
+      else if(t.type == Type::Function)
       {
         rdcarray<uint64_t> vals;
 
-        vals.push_back(m_Types[i].vararg ? 1 : 0);
+        vals.push_back(t.vararg ? 1 : 0);
 
-        vals.push_back(getTypeID(m_Types[i].inner));
+        vals.push_back(getTypeID(t.inner));
 
-        for(const Type *t : m_Types[i].members)
-          vals.push_back(getTypeID(t));
+        for(const Type *member : t.members)
+          vals.push_back(getTypeID(member));
 
         writer.Record(LLVMBC::TypeRecord::FUNCTION, vals);
       }
@@ -1109,12 +677,12 @@ bytebuf ProgramEditor::EncodeProgram() const
 
   for(size_t i = 0; i < m_GlobalVars.size(); i++)
   {
-    const GlobalVar &g = m_GlobalVars[i];
+    const GlobalVar &g = *m_GlobalVars[i];
 
     // global vars write the value type, not the pointer
     uint64_t typeIndex = getTypeID(g.type->inner);
 
-    RDCASSERT((size_t)typeIndex < m_Types.size());
+    RDCASSERT((size_t)typeIndex < accum.types.size());
 
     uint64_t linkageValue = 0;
 
@@ -1145,7 +713,7 @@ bytebuf ProgramEditor::EncodeProgram() const
                   {
                       typeIndex, uint64_t(((g.flags & GlobalFlags::IsConst) ? 1 : 0) | 0x2 |
                                           ((uint32_t)g.type->addrSpace << 2)),
-                      g.initialiser ? getValueID(Value(g.initialiser)) + 1 : 0, linkageValue,
+                      g.initialiser ? getValueID(g.initialiser) + 1 : 0, linkageValue,
                       Log2Floor((uint32_t)g.align) + 1, uint64_t(g.section + 1),
                       // visibility
                       0U,
@@ -1162,10 +730,10 @@ bytebuf ProgramEditor::EncodeProgram() const
 
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
-    const Function &f = m_Functions[i];
-    uint64_t typeIndex = getTypeID(f.funcType);
+    const Function &f = *m_Functions[i];
+    uint64_t typeIndex = getTypeID(f.type);
 
-    RDCASSERT((size_t)typeIndex < m_Types.size());
+    RDCASSERT((size_t)typeIndex < accum.types.size());
 
     writer.Record(LLVMBC::ModuleRecord::FUNCTION,
                   {
@@ -1203,7 +771,7 @@ bytebuf ProgramEditor::EncodeProgram() const
 
   for(size_t i = 0; i < m_Aliases.size(); i++)
   {
-    const Alias &a = m_Aliases[i];
+    const Alias &a = *m_Aliases[i];
     uint64_t typeIndex = getTypeID(a.type);
 
     writer.Record(LLVMBC::ModuleRecord::ALIAS, {
@@ -1217,32 +785,32 @@ bytebuf ProgramEditor::EncodeProgram() const
 
   // the symbols for constants start after the global variables and functions which we just
   // outputted
-  if(!m_Constants.empty())
+  if(accum.numConsts)
   {
     writer.BeginBlock(LLVMBC::KnownBlock::CONSTANTS_BLOCK);
 
-    EncodeConstants(writer, values, m_Constants);
+    EncodeConstants(writer, values, accum.firstConst, accum.numConsts);
 
     writer.EndBlock();
   }
 
-  if(!m_Metadata.empty())
+  if(!metadata.empty())
   {
     writer.BeginBlock(LLVMBC::KnownBlock::METADATA_BLOCK);
 
     writer.EmitMetaDataAbbrev();
 
-    EncodeMetadata(writer, values, m_Metadata);
+    EncodeMetadata(writer, metadata);
 
     rdcarray<uint64_t> vals;
 
     for(size_t i = 0; i < m_NamedMeta.size(); i++)
     {
-      writer.Record(LLVMBC::MetaDataRecord::NAME, m_NamedMeta[i].name);
+      writer.Record(LLVMBC::MetaDataRecord::NAME, m_NamedMeta[i]->name);
 
       vals.clear();
-      for(size_t m = 0; m < m_NamedMeta[i].children.size(); m++)
-        vals.push_back(getMetaID(m_NamedMeta[i].children[m]));
+      for(size_t m = 0; m < m_NamedMeta[i]->children.size(); m++)
+        vals.push_back(getMetaID(m_NamedMeta[i]->children[m]));
 
       writer.Record(LLVMBC::MetaDataRecord::NAMED_NODE, vals);
     }
@@ -1276,14 +844,14 @@ bytebuf ProgramEditor::EncodeProgram() const
   {
     writer.BeginBlock(LLVMBC::KnownBlock::VALUE_SYMTAB_BLOCK);
 
-    for(Value v : m_ValueSymtabOrder)
+    for(Value *v : m_ValueSymtabOrder)
     {
       const rdcstr *str = NULL;
-      switch(v.type)
+      switch(v->kind())
       {
-        case ValueType::GlobalVar: str = &v.global->name; break;
-        case ValueType::Function: str = &v.function->name; break;
-        case ValueType::Alias: str = &v.alias->name; break;
+        case ValueKind::GlobalVar: str = &cast<GlobalVar>(v)->name; break;
+        case ValueKind::Function: str = &cast<Function>(v)->name; break;
+        case ValueKind::Alias: str = &cast<Alias>(v)->name; break;
         default: break;
       }
 
@@ -1294,108 +862,111 @@ bytebuf ProgramEditor::EncodeProgram() const
     writer.EndBlock();
   }
 
-#define encodeRelativeValueID(v)                              \
-  {                                                           \
-    uint64_t valID = getValueID(v);                           \
-    if(valID <= instValueID)                                  \
-    {                                                         \
-      vals.push_back(instValueID - valID);                    \
-    }                                                         \
-    else                                                      \
-    {                                                         \
-      forwardRefs = true;                                     \
-      /* signed integer two's complement for negative    */   \
-      /* values referencing forward from the instruction */   \
-      vals.push_back(0x100000000ULL - (valID - instValueID)); \
-      vals.push_back(getTypeID(v.GetType()));                 \
-    }                                                         \
+#define encodeRelativeValueID(v)                                 \
+  {                                                              \
+    uint64_t valID = getValueID(v);                              \
+    if(valID <= zeroIdxValueId)                                  \
+    {                                                            \
+      vals.push_back(zeroIdxValueId - valID);                    \
+    }                                                            \
+    else                                                         \
+    {                                                            \
+      forwardRefs = true;                                        \
+      /* signed integer two's complement for negative    */      \
+      /* values referencing forward from the instruction */      \
+      vals.push_back(0x100000000ULL - (valID - zeroIdxValueId)); \
+      vals.push_back(getTypeID(v->type));                        \
+    }                                                            \
   }
 
 // some cases don't encode the type even for forward refs, if it's implicit (e.g. second parameter
 // in a binop). This also doesn't count as a forward ref for the case of breaking the abbrev use
-#define encodeRelativeValueIDTypeless(v)                      \
-  {                                                           \
-    uint64_t valID = getValueID(v);                           \
-    if(valID <= instValueID)                                  \
-    {                                                         \
-      vals.push_back(instValueID - valID);                    \
-    }                                                         \
-    else                                                      \
-    {                                                         \
-      vals.push_back(0x100000000ULL - (valID - instValueID)); \
-    }                                                         \
+#define encodeRelativeValueIDTypeless(v)                         \
+  {                                                              \
+    uint64_t valID = getValueID(v);                              \
+    if(valID <= zeroIdxValueId)                                  \
+    {                                                            \
+      vals.push_back(zeroIdxValueId - valID);                    \
+    }                                                            \
+    else                                                         \
+    {                                                            \
+      vals.push_back(0x100000000ULL - (valID - zeroIdxValueId)); \
+    }                                                            \
   }
 
-  for(const Function &f : m_Functions)
+  for(Function *f : m_Functions)
   {
-    if(f.external)
+    if(f->external)
       continue;
-
-    values.append(f.values);
 
     writer.BeginBlock(LLVMBC::KnownBlock::FUNCTION_BLOCK);
 
-    writer.Record(LLVMBC::FunctionRecord::DECLAREBLOCKS, f.blocks.size());
+    writer.Record(LLVMBC::FunctionRecord::DECLAREBLOCKS, f->blocks.size());
 
-    if(!f.constants.empty())
+    accum.processFunction(f);
+
+    if(accum.numFuncConsts)
     {
       writer.BeginBlock(LLVMBC::KnownBlock::CONSTANTS_BLOCK);
 
-      EncodeConstants(writer, values, f.constants);
+      EncodeConstants(writer, values, accum.firstFuncConst, accum.numFuncConsts);
 
       writer.EndBlock();
     }
-
-    if(!f.metadata.empty())
-    {
-      writer.BeginBlock(LLVMBC::KnownBlock::METADATA_BLOCK);
-
-      EncodeMetadata(writer, values, f.metadata);
-
-      writer.EndBlock();
-    }
-
-    // value IDs for instructions start after all the constants
-    uint32_t instValueID = uint32_t(m_Values.size() + f.constants.size() + f.args.size());
 
     uint32_t debugLoc = ~0U;
 
     bool forwardRefs = false;
     rdcarray<uint64_t> vals;
 
-    bool needMetaAttach = !f.attachedMeta.empty();
+    bool needMetaAttach = !f->attachedMeta.empty();
 
-    for(const Instruction &inst : f.instructions)
+    uint32_t lastValidInstId =
+        uint32_t(accum.firstFuncConst + accum.numFuncConsts + f->args.size()) - 1;
+
+    for(const Instruction *inst : f->instructions)
     {
       forwardRefs = false;
       vals.clear();
 
-      needMetaAttach |= !inst.attachedMeta.empty();
+      if(inst->id != Value::NoID)
+        lastValidInstId = inst->id;
 
-      switch(inst.op)
+      // a reference to this value ID is '0'. Usually the current instruction, 1 is then the
+      // previous, etc
+      uint32_t zeroIdxValueId = inst->id;
+      // except if the current instruction isn't a value. Then '0' is impossible, 1 still refers to
+      // the previous. In order to have a value ID to construct relative references, we pretend we
+      // are on the next value
+      if(zeroIdxValueId == Value::NoID)
+        zeroIdxValueId = lastValidInstId + 1;
+
+      needMetaAttach |= !inst->getAttachedMeta().empty();
+
+      switch(inst->op)
       {
         case Operation::NoOp: RDCERR("Unexpected no-op encoding"); continue;
         case Operation::Call:
         {
-          vals.push_back(inst.paramAttrs ? getAttribID(inst.paramAttrs) + 1 : 0);
+          vals.push_back(inst->getParamAttrs() ? getAttribID(inst->getParamAttrs()) + 1 : 0);
           // always emit func type
           uint64_t flags = 1 << 15;
-          if(inst.opFlags != InstructionFlags::NoFlags)
+          if(inst->opFlags() != InstructionFlags::NoFlags)
             flags |= 1 << 17;
           vals.push_back(flags);
-          if(inst.opFlags != InstructionFlags::NoFlags)
-            vals.push_back((uint64_t)inst.opFlags);
-          vals.push_back(getTypeID(inst.funcCall->funcType));
-          encodeRelativeValueID(Value(inst.funcCall));
-          for(size_t a = 0; a < inst.args.size(); a++)
+          if(inst->opFlags() != InstructionFlags::NoFlags)
+            vals.push_back((uint64_t)inst->opFlags());
+          vals.push_back(getTypeID(inst->getFuncCall()->type));
+          encodeRelativeValueID(inst->getFuncCall());
+          for(size_t a = 0; a < inst->args.size(); a++)
           {
-            if(inst.args[a].type == ValueType::Metadata)
+            if(inst->args[a]->kind() == ValueKind::Metadata)
             {
-              vals.push_back(getFunctionMetaID(inst.args[a].meta));
+              vals.push_back(getMetaID(cast<Metadata>(inst->args[a])));
             }
             else
             {
-              encodeRelativeValueIDTypeless(inst.args[a]);
+              encodeRelativeValueIDTypeless(inst->args[a]);
             }
           }
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_CALL, vals, forwardRefs);
@@ -1415,26 +986,26 @@ bytebuf ProgramEditor::EncodeProgram() const
         case Operation::Bitcast:
         case Operation::AddrSpaceCast:
         {
-          encodeRelativeValueID(inst.args[0]);
-          vals.push_back(getTypeID(inst.type));
-          vals.push_back(EncodeCast(inst.op));
+          encodeRelativeValueID(inst->args[0]);
+          vals.push_back(getTypeID(inst->type));
+          vals.push_back(EncodeCast(inst->op));
 
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_CAST, vals, forwardRefs);
           break;
         }
         case Operation::ExtractVal:
         {
-          encodeRelativeValueID(inst.args[0]);
-          for(size_t i = 1; i < inst.args.size(); i++)
-            vals.push_back(inst.args[i].literal);
+          encodeRelativeValueID(inst->args[0]);
+          for(size_t i = 1; i < inst->args.size(); i++)
+            vals.push_back(cast<Literal>(inst->args[i])->literal);
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_EXTRACTVAL, vals, forwardRefs);
           break;
         }
         case Operation::Ret:
         {
-          if(!inst.args.empty())
+          if(!inst->args.empty())
           {
-            encodeRelativeValueID(inst.args[0]);
+            encodeRelativeValueID(inst->args[0]);
           }
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_RET, vals, forwardRefs);
           break;
@@ -1458,15 +1029,15 @@ bytebuf ProgramEditor::EncodeProgram() const
         case Operation::Or:
         case Operation::Xor:
         {
-          encodeRelativeValueID(inst.args[0]);
-          encodeRelativeValueIDTypeless(inst.args[1]);
+          encodeRelativeValueID(inst->args[0]);
+          encodeRelativeValueIDTypeless(inst->args[1]);
 
-          const Type *t = inst.args[0].GetType();
+          const Type *t = inst->args[0]->type;
 
           const bool isFloatOp = (t->scalarType == Type::Float);
 
           uint64_t opcode = 0;
-          switch(inst.op)
+          switch(inst->op)
           {
             case Operation::FAdd:
             case Operation::Add: opcode = 0; break;
@@ -1490,29 +1061,30 @@ bytebuf ProgramEditor::EncodeProgram() const
           }
           vals.push_back(opcode);
 
-          if(inst.opFlags != InstructionFlags::NoFlags)
+          if(inst->opFlags() != InstructionFlags::NoFlags)
           {
             uint64_t flags = 0;
-            if(inst.op == Operation::Add || inst.op == Operation::Sub ||
-               inst.op == Operation::Mul || inst.op == Operation::ShiftLeft)
+            if(inst->op == Operation::Add || inst->op == Operation::Sub ||
+               inst->op == Operation::Mul || inst->op == Operation::ShiftLeft)
             {
-              if(inst.opFlags & InstructionFlags::NoSignedWrap)
+              if(inst->opFlags() & InstructionFlags::NoSignedWrap)
                 flags |= 0x2;
-              if(inst.opFlags & InstructionFlags::NoUnsignedWrap)
+              if(inst->opFlags() & InstructionFlags::NoUnsignedWrap)
                 flags |= 0x1;
               vals.push_back(flags);
             }
-            else if(inst.op == Operation::SDiv || inst.op == Operation::UDiv ||
-                    inst.op == Operation::LogicalShiftRight || inst.op == Operation::ArithShiftRight)
+            else if(inst->op == Operation::SDiv || inst->op == Operation::UDiv ||
+                    inst->op == Operation::LogicalShiftRight ||
+                    inst->op == Operation::ArithShiftRight)
             {
-              if(inst.opFlags & InstructionFlags::Exact)
+              if(inst->opFlags() & InstructionFlags::Exact)
                 flags |= 0x1;
               vals.push_back(flags);
             }
             else if(isFloatOp)
             {
               // fast math flags overlap
-              vals.push_back(uint64_t(inst.opFlags));
+              vals.push_back(uint64_t(inst->opFlags()));
             }
           }
 
@@ -1526,13 +1098,13 @@ bytebuf ProgramEditor::EncodeProgram() const
         }
         case Operation::Alloca:
         {
-          vals.push_back(getTypeID(inst.type->inner));
-          vals.push_back(getTypeID(inst.args[0].GetType()));
-          vals.push_back(getValueID(inst.args[0]));
-          uint64_t alignAndFlags = Log2Floor(inst.align) + 1;
-          // DXC always sets this bit, as the type is ap ointer
+          vals.push_back(getTypeID(inst->type->inner));
+          vals.push_back(getTypeID(inst->args[0]->type));
+          vals.push_back(getValueID(inst->args[0]));
+          uint64_t alignAndFlags = inst->align;
+          // DXC always sets this bit, as the type is a pointer
           alignAndFlags |= 1U << 6;
-          if(inst.opFlags & InstructionFlags::ArgumentAlloca)
+          if(inst->opFlags() & InstructionFlags::ArgumentAlloca)
             alignAndFlags |= 1U << 5;
           vals.push_back(alignAndFlags);
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_ALLOCA, vals, forwardRefs);
@@ -1540,12 +1112,12 @@ bytebuf ProgramEditor::EncodeProgram() const
         }
         case Operation::GetElementPtr:
         {
-          vals.push_back((inst.opFlags & InstructionFlags::InBounds) ? 1U : 0U);
-          vals.push_back(getTypeID(inst.args[0].GetType()->inner));
+          vals.push_back((inst->opFlags() & InstructionFlags::InBounds) ? 1U : 0U);
+          vals.push_back(getTypeID(inst->args[0]->type->inner));
 
-          for(size_t i = 0; i < inst.args.size(); i++)
+          for(size_t i = 0; i < inst->args.size(); i++)
           {
-            encodeRelativeValueID(inst.args[i]);
+            encodeRelativeValueID(inst->args[i]);
           }
 
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_GEP, vals, forwardRefs);
@@ -1553,19 +1125,19 @@ bytebuf ProgramEditor::EncodeProgram() const
         }
         case Operation::Load:
         {
-          encodeRelativeValueID(inst.args[0]);
-          vals.push_back(getTypeID(inst.type));
-          vals.push_back(Log2Floor(inst.align) + 1);
-          vals.push_back((inst.opFlags & InstructionFlags::Volatile) ? 1U : 0U);
+          encodeRelativeValueID(inst->args[0]);
+          vals.push_back(getTypeID(inst->type));
+          vals.push_back(inst->align);
+          vals.push_back((inst->opFlags() & InstructionFlags::Volatile) ? 1U : 0U);
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_LOAD, vals, forwardRefs);
           break;
         }
         case Operation::Store:
         {
-          encodeRelativeValueID(inst.args[0]);
-          encodeRelativeValueID(inst.args[1]);
-          vals.push_back(Log2Floor(inst.align) + 1);
-          vals.push_back((inst.opFlags & InstructionFlags::Volatile) ? 1U : 0U);
+          encodeRelativeValueID(inst->args[0]);
+          encodeRelativeValueID(inst->args[1]);
+          vals.push_back(inst->align);
+          vals.push_back((inst->opFlags() & InstructionFlags::Volatile) ? 1U : 0U);
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_STORE, vals, forwardRefs);
           break;
         }
@@ -1596,11 +1168,11 @@ bytebuf ProgramEditor::EncodeProgram() const
         case Operation::SLess:
         case Operation::SLessEqual:
         {
-          encodeRelativeValueID(inst.args[0]);
-          encodeRelativeValueIDTypeless(inst.args[1]);
+          encodeRelativeValueID(inst->args[0]);
+          encodeRelativeValueIDTypeless(inst->args[1]);
 
           uint64_t opcode = 0;
-          switch(inst.op)
+          switch(inst->op)
           {
             case Operation::FOrdFalse: opcode = 0; break;
             case Operation::FOrdEqual: opcode = 1; break;
@@ -1635,60 +1207,60 @@ bytebuf ProgramEditor::EncodeProgram() const
 
           vals.push_back(opcode);
 
-          if(inst.opFlags != InstructionFlags::NoFlags)
-            vals.push_back((uint64_t)inst.opFlags);
+          if(inst->opFlags() != InstructionFlags::NoFlags)
+            vals.push_back((uint64_t)inst->opFlags());
 
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_CMP2, vals, forwardRefs);
           break;
         }
         case Operation::Select:
         {
-          encodeRelativeValueID(inst.args[0]);
-          encodeRelativeValueIDTypeless(inst.args[1]);
-          encodeRelativeValueID(inst.args[2]);
+          encodeRelativeValueID(inst->args[0]);
+          encodeRelativeValueIDTypeless(inst->args[1]);
+          encodeRelativeValueID(inst->args[2]);
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_VSELECT, vals, forwardRefs);
           break;
         }
         case Operation::ExtractElement:
         {
-          encodeRelativeValueID(inst.args[0]);
-          encodeRelativeValueID(inst.args[1]);
+          encodeRelativeValueID(inst->args[0]);
+          encodeRelativeValueID(inst->args[1]);
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_EXTRACTELT, vals, forwardRefs);
           break;
         }
         case Operation::InsertElement:
         {
-          encodeRelativeValueID(inst.args[0]);
-          encodeRelativeValueIDTypeless(inst.args[1]);
-          encodeRelativeValueID(inst.args[2]);
+          encodeRelativeValueID(inst->args[0]);
+          encodeRelativeValueIDTypeless(inst->args[1]);
+          encodeRelativeValueID(inst->args[2]);
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_INSERTELT, vals, forwardRefs);
           break;
         }
         case Operation::ShuffleVector:
         {
-          encodeRelativeValueID(inst.args[0]);
-          encodeRelativeValueIDTypeless(inst.args[1]);
-          encodeRelativeValueID(inst.args[2]);
+          encodeRelativeValueID(inst->args[0]);
+          encodeRelativeValueIDTypeless(inst->args[1]);
+          encodeRelativeValueID(inst->args[2]);
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_SHUFFLEVEC, vals, forwardRefs);
           break;
         }
         case Operation::InsertValue:
         {
-          encodeRelativeValueID(inst.args[0]);
-          encodeRelativeValueID(inst.args[1]);
-          for(size_t i = 2; i < inst.args.size(); i++)
-            vals.push_back(inst.args[i].literal);
+          encodeRelativeValueID(inst->args[0]);
+          encodeRelativeValueID(inst->args[1]);
+          for(size_t i = 2; i < inst->args.size(); i++)
+            vals.push_back(cast<Literal>(inst->args[i])->literal);
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_INSERTVAL, vals, forwardRefs);
           break;
         }
         case Operation::Branch:
         {
-          vals.push_back(uint64_t(inst.args[0].block - f.blocks.begin()));
+          vals.push_back(inst->args[0]->id);
 
-          if(inst.args.size() > 1)
+          if(inst->args.size() > 1)
           {
-            vals.push_back(uint64_t(inst.args[1].block - f.blocks.begin()));
-            encodeRelativeValueIDTypeless(inst.args[2]);
+            vals.push_back(inst->args[1]->id);
+            encodeRelativeValueIDTypeless(inst->args[2]);
           }
 
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_BR, vals, forwardRefs);
@@ -1696,15 +1268,15 @@ bytebuf ProgramEditor::EncodeProgram() const
         }
         case Operation::Phi:
         {
-          vals.push_back(getTypeID(inst.type));
+          vals.push_back(getTypeID(inst->type));
 
-          for(size_t i = 0; i < inst.args.size(); i += 2)
+          for(size_t i = 0; i < inst->args.size(); i += 2)
           {
-            uint64_t valID = getValueID(inst.args[i]);
-            int64_t valRef = int64_t(instValueID) - int64_t(valID);
+            uint64_t valID = getValueID(inst->args[i]);
+            int64_t valRef = int64_t(inst->id) - int64_t(valID);
 
             vals.push_back(LLVMBC::BitWriter::svbr(valRef));
-            vals.push_back(uint64_t(inst.args[i + 1].block - f.blocks.begin()));
+            vals.push_back(inst->args[i + 1]->id);
           }
 
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_PHI, vals, forwardRefs);
@@ -1712,15 +1284,15 @@ bytebuf ProgramEditor::EncodeProgram() const
         }
         case Operation::Switch:
         {
-          vals.push_back(getTypeID(inst.args[0].GetType()));
-          encodeRelativeValueIDTypeless(inst.args[0]);
+          vals.push_back(getTypeID(inst->args[0]->type));
+          encodeRelativeValueIDTypeless(inst->args[0]);
 
-          vals.push_back(uint64_t(inst.args[1].block - f.blocks.begin()));
+          vals.push_back(inst->args[1]->id);
 
-          for(size_t i = 2; i < inst.args.size(); i += 2)
+          for(size_t i = 2; i < inst->args.size(); i += 2)
           {
-            vals.push_back(getValueID(inst.args[i]));
-            vals.push_back(uint64_t(inst.args[i + 1].block - f.blocks.begin()));
+            vals.push_back(getValueID(inst->args[i]));
+            vals.push_back(inst->args[i + 1]->id);
           }
 
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_SWITCH, vals, forwardRefs);
@@ -1728,48 +1300,48 @@ bytebuf ProgramEditor::EncodeProgram() const
         }
         case Operation::Fence:
         {
-          vals.push_back(((uint64_t)inst.opFlags & (uint64_t)InstructionFlags::SuccessOrderMask) >>
-                         12U);
-          vals.push_back((inst.opFlags & InstructionFlags::SingleThread) ? 0U : 1U);
+          vals.push_back(
+              ((uint64_t)inst->opFlags() & (uint64_t)InstructionFlags::SuccessOrderMask) >> 12U);
+          vals.push_back((inst->opFlags() & InstructionFlags::SingleThread) ? 0U : 1U);
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_FENCE, vals, forwardRefs);
           break;
         }
         case Operation::CompareExchange:
         {
-          encodeRelativeValueID(inst.args[0]);
-          encodeRelativeValueID(inst.args[1]);
-          encodeRelativeValueIDTypeless(inst.args[2]);
-          vals.push_back((inst.opFlags & InstructionFlags::Volatile) ? 1U : 0U);
-          vals.push_back(((uint64_t)inst.opFlags & (uint64_t)InstructionFlags::SuccessOrderMask) >>
-                         12U);
-          vals.push_back((inst.opFlags & InstructionFlags::SingleThread) ? 0U : 1U);
-          vals.push_back(((uint64_t)inst.opFlags & (uint64_t)InstructionFlags::FailureOrderMask) >>
-                         15U);
-          vals.push_back((inst.opFlags & InstructionFlags::Weak) ? 1U : 0U);
+          encodeRelativeValueID(inst->args[0]);
+          encodeRelativeValueID(inst->args[1]);
+          encodeRelativeValueIDTypeless(inst->args[2]);
+          vals.push_back((inst->opFlags() & InstructionFlags::Volatile) ? 1U : 0U);
+          vals.push_back(
+              ((uint64_t)inst->opFlags() & (uint64_t)InstructionFlags::SuccessOrderMask) >> 12U);
+          vals.push_back((inst->opFlags() & InstructionFlags::SingleThread) ? 0U : 1U);
+          vals.push_back(
+              ((uint64_t)inst->opFlags() & (uint64_t)InstructionFlags::FailureOrderMask) >> 15U);
+          vals.push_back((inst->opFlags() & InstructionFlags::Weak) ? 1U : 0U);
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_CMPXCHG, vals, forwardRefs);
           break;
         }
         case Operation::LoadAtomic:
         {
-          encodeRelativeValueID(inst.args[0]);
-          vals.push_back(getTypeID(inst.type));
-          vals.push_back(Log2Floor(inst.align) + 1);
-          vals.push_back((inst.opFlags & InstructionFlags::Volatile) ? 1U : 0U);
-          vals.push_back(((uint64_t)inst.opFlags & (uint64_t)InstructionFlags::SuccessOrderMask) >>
-                         12U);
-          vals.push_back((inst.opFlags & InstructionFlags::SingleThread) ? 0U : 1U);
+          encodeRelativeValueID(inst->args[0]);
+          vals.push_back(getTypeID(inst->type));
+          vals.push_back(inst->align);
+          vals.push_back((inst->opFlags() & InstructionFlags::Volatile) ? 1U : 0U);
+          vals.push_back(
+              ((uint64_t)inst->opFlags() & (uint64_t)InstructionFlags::SuccessOrderMask) >> 12U);
+          vals.push_back((inst->opFlags() & InstructionFlags::SingleThread) ? 0U : 1U);
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_LOADATOMIC, vals, forwardRefs);
           break;
         }
         case Operation::StoreAtomic:
         {
-          encodeRelativeValueID(inst.args[0]);
-          encodeRelativeValueID(inst.args[1]);
-          vals.push_back(Log2Floor(inst.align) + 1);
-          vals.push_back((inst.opFlags & InstructionFlags::Volatile) ? 1U : 0U);
-          vals.push_back(((uint64_t)inst.opFlags & (uint64_t)InstructionFlags::SuccessOrderMask) >>
-                         12U);
-          vals.push_back((inst.opFlags & InstructionFlags::SingleThread) ? 0U : 1U);
+          encodeRelativeValueID(inst->args[0]);
+          encodeRelativeValueID(inst->args[1]);
+          vals.push_back(inst->align);
+          vals.push_back((inst->opFlags() & InstructionFlags::Volatile) ? 1U : 0U);
+          vals.push_back(
+              ((uint64_t)inst->opFlags() & (uint64_t)InstructionFlags::SuccessOrderMask) >> 12U);
+          vals.push_back((inst->opFlags() & InstructionFlags::SingleThread) ? 0U : 1U);
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_STOREATOMIC, vals, forwardRefs);
           break;
         }
@@ -1785,11 +1357,11 @@ bytebuf ProgramEditor::EncodeProgram() const
         case Operation::AtomicUMax:
         case Operation::AtomicUMin:
         {
-          encodeRelativeValueID(inst.args[0]);
-          encodeRelativeValueIDTypeless(inst.args[1]);
+          encodeRelativeValueID(inst->args[0]);
+          encodeRelativeValueIDTypeless(inst->args[1]);
 
           uint64_t opcode = 0;
-          switch(inst.op)
+          switch(inst->op)
           {
             case Operation::AtomicExchange: opcode = 0; break;
             case Operation::AtomicAdd: opcode = 1; break;
@@ -1808,66 +1380,56 @@ bytebuf ProgramEditor::EncodeProgram() const
 
           vals.push_back(opcode);
 
-          vals.push_back((inst.opFlags & InstructionFlags::Volatile) ? 1U : 0U);
-          vals.push_back(((uint64_t)inst.opFlags & (uint64_t)InstructionFlags::SuccessOrderMask) >>
-                         12U);
-          vals.push_back((inst.opFlags & InstructionFlags::SingleThread) ? 0U : 1U);
+          vals.push_back((inst->opFlags() & InstructionFlags::Volatile) ? 1U : 0U);
+          vals.push_back(
+              ((uint64_t)inst->opFlags() & (uint64_t)InstructionFlags::SuccessOrderMask) >> 12U);
+          vals.push_back((inst->opFlags() & InstructionFlags::SingleThread) ? 0U : 1U);
           writer.RecordInstruction(LLVMBC::FunctionRecord::INST_ATOMICRMW, vals, forwardRefs);
           break;
         }
       }
 
-      // instruction IDs are the values (i.e. all instructions that return non-void are a value)
-      if(inst.type != m_VoidType)
-      {
-#if 0
-        uint64_t dbgValueId = getValueID(Value(&inst));
-        RDCASSERT(instValueID == dbgValueId);
-#endif
-        instValueID++;
-      }
-
       // no debug location? omit
-      if(inst.debugLoc == ~0U)
+      if(inst->debugLoc == ~0U)
         continue;
 
       // same as last time? emit 'again' record
-      if(inst.debugLoc == debugLoc)
+      if(inst->debugLoc == debugLoc)
         writer.Record(LLVMBC::FunctionRecord::DEBUG_LOC_AGAIN);
 
       // new debug location
-      const DebugLocation &loc = m_DebugLocations[inst.debugLoc];
+      const DebugLocation &loc = m_DebugLocations[inst->debugLoc];
 
       writer.Record(LLVMBC::FunctionRecord::DEBUG_LOC,
                     {
-                        loc.line, loc.col, getFunctionMetaIDOrNull(loc.scope),
-                        getFunctionMetaIDOrNull(loc.inlinedAt),
+                        loc.line, loc.col, getMetaIDOrNull(loc.scope), getMetaIDOrNull(loc.inlinedAt),
                     });
 
-      debugLoc = inst.debugLoc;
+      debugLoc = inst->debugLoc;
     }
 
-    if(!f.valueSymtabOrder.empty())
+    if(!f->valueSymtabOrder.empty())
     {
       writer.BeginBlock(LLVMBC::KnownBlock::VALUE_SYMTAB_BLOCK);
 
-      for(Value v : f.valueSymtabOrder)
+      for(Value *v : f->valueSymtabOrder)
       {
-        const rdcstr *str = NULL;
-        switch(v.type)
+        bool found = true;
+        rdcstr str;
+        switch(v->kind())
         {
-          case ValueType::Instruction: str = &v.instruction->name; break;
-          case ValueType::Constant: str = &v.constant->str; break;
-          case ValueType::BasicBlock: str = &v.block->name; break;
-          default: break;
+          case ValueKind::Instruction: str = cast<Instruction>(v)->getName(); break;
+          case ValueKind::Constant: str = cast<Constant>(v)->str; break;
+          case ValueKind::BasicBlock: str = cast<Block>(v)->name; break;
+          default: found = false; break;
         }
 
-        if(str)
+        if(found)
         {
-          if(v.type == ValueType::BasicBlock)
-            writer.RecordSymTabEntry(v.block - f.blocks.begin(), *str, true);
+          if(v->kind() == ValueKind::BasicBlock)
+            writer.RecordSymTabEntry(v->id, str, true);
           else
-            writer.RecordSymTabEntry(getValueID(v), *str);
+            writer.RecordSymTabEntry(getValueID(v), str);
         }
       }
 
@@ -1880,28 +1442,28 @@ bytebuf ProgramEditor::EncodeProgram() const
 
       vals.clear();
 
-      for(const rdcpair<uint64_t, Metadata *> &m : f.attachedMeta)
+      for(const rdcpair<uint64_t, Metadata *> &m : f->attachedMeta)
       {
         vals.push_back(m.first);
-        vals.push_back(getFunctionMetaID(m.second));
+        vals.push_back(getMetaID(m.second));
       }
 
       if(!vals.empty())
         writer.Record(LLVMBC::MetaDataRecord::ATTACHMENT, vals);
 
-      for(size_t i = 0; i < f.instructions.size(); i++)
+      for(size_t i = 0; i < f->instructions.size(); i++)
       {
-        if(f.instructions[i].attachedMeta.empty())
+        if(f->instructions[i]->getAttachedMeta().empty())
           continue;
 
         vals.clear();
 
         vals.push_back(uint64_t(i));
 
-        for(const rdcpair<uint64_t, Metadata *> &m : f.instructions[i].attachedMeta)
+        for(const rdcpair<uint64_t, Metadata *> &m : f->instructions[i]->getAttachedMeta())
         {
           vals.push_back(m.first);
-          vals.push_back(getFunctionMetaID(m.second));
+          vals.push_back(getMetaID(m.second));
         }
 
         writer.Record(LLVMBC::MetaDataRecord::ATTACHMENT, vals);
@@ -1910,11 +1472,11 @@ bytebuf ProgramEditor::EncodeProgram() const
       writer.EndBlock();
     }
 
-    if(!f.uselist.empty())
+    if(!f->uselist.empty())
     {
       writer.BeginBlock(LLVMBC::KnownBlock::USELIST_BLOCK);
 
-      for(const UselistEntry &u : f.uselist)
+      for(const UselistEntry &u : f->uselist)
       {
         vals = u.shuffle;
         vals.push_back(getValueID(u.value));
@@ -1927,7 +1489,7 @@ bytebuf ProgramEditor::EncodeProgram() const
 
     writer.EndBlock();
 
-    values.resize(values.size() - f.values.size());
+    accum.exitFunction();
   }
 
   writer.EndBlock();
@@ -2059,104 +1621,109 @@ void ProgramEditor::RegisterUAV(DXILResourceType type, uint32_t space, uint32_t 
   DXBC::DXBCContainer::StripChunk(m_OutBlob, DXBC::FOURCC_RTS0);
 }
 
-void ProgramEditor::EncodeConstants(LLVMBC::BitcodeWriter &writer, const rdcarray<Value> &values,
-                                    const rdcarray<Constant> &constants) const
+void ProgramEditor::EncodeConstants(LLVMBC::BitcodeWriter &writer,
+                                    const rdcarray<const Value *> &values, size_t firstIdx,
+                                    size_t count) const
 {
   const Type *curType = NULL;
 
-  for(const Constant &c : constants)
+  for(size_t i = firstIdx; i < firstIdx + count; i++)
   {
-    if(c.type != curType)
+    const Constant *c = cast<const Constant>(values[i]);
+
+    if(c->type != curType)
     {
-      writer.Record(LLVMBC::ConstantsRecord::SETTYPE, getTypeID(c.type));
-      curType = c.type;
+      writer.Record(LLVMBC::ConstantsRecord::SETTYPE, getTypeID(c->type));
+      curType = c->type;
     }
 
-    if(c.nullconst)
+    if(c->isNULL())
     {
       writer.Record(LLVMBC::ConstantsRecord::CONST_NULL);
     }
-    else if(c.undef)
+    else if(c->isUndef())
     {
       writer.Record(LLVMBC::ConstantsRecord::UNDEF);
     }
-    else if(c.op == Operation::GetElementPtr)
+    else if(c->op == Operation::GetElementPtr)
     {
       rdcarray<uint64_t> vals;
-      vals.reserve(c.members.size() * 2 + 1);
+      vals.reserve(c->getMembers().size() * 2 + 1);
 
       // DXC's version of llvm always writes the explicit type here
-      vals.push_back(getTypeID(c.members[0].GetType()->inner));
+      vals.push_back(getTypeID(c->getMembers()[0]->type->inner));
 
-      for(size_t m = 0; m < c.members.size(); m++)
+      for(size_t m = 0; m < c->getMembers().size(); m++)
       {
-        vals.push_back(getTypeID(c.members[m].GetType()));
-        vals.push_back(getValueID(c.members[m]));
+        vals.push_back(getTypeID(c->getMembers()[m]->type));
+        vals.push_back(getValueID(c->getMembers()[m]));
       }
 
       writer.Record(LLVMBC::ConstantsRecord::EVAL_GEP, vals);
     }
-    else if(c.op != Operation::NoOp)
+    else if(c->op != Operation::NoOp)
     {
-      uint64_t cast = EncodeCast(c.op);
+      uint64_t cast = EncodeCast(c->op);
       RDCASSERT(cast != ~0U);
 
       writer.Record(LLVMBC::ConstantsRecord::EVAL_CAST,
-                    {cast, getTypeID(c.inner.GetType()), getValueID(c.inner)});
+                    {cast, getTypeID(c->getInner()->type), getValueID(c->getInner())});
     }
-    else if(c.data)
+    else if(c->isData())
     {
       rdcarray<uint64_t> vals;
-      vals.reserve(c.members.size());
 
-      if(c.type->type == Type::Vector)
+      if(c->type->type == Type::Vector)
       {
-        for(uint32_t m = 0; m < c.type->elemCount; m++)
-          vals.push_back(c.type->bitWidth <= 32 ? c.val.u32v[m] : c.val.u64v[m]);
+        vals.reserve(c->type->elemCount);
+        for(uint32_t m = 0; m < c->type->elemCount; m++)
+          vals.push_back(c->type->bitWidth <= 32 ? c->getShaderVal().u32v[m]
+                                                 : c->getShaderVal().u64v[m]);
       }
       else
       {
-        for(size_t m = 0; m < c.members.size(); m++)
-          vals.push_back(c.members[m].literal);
+        vals.reserve(c->getMembers().size());
+        for(size_t m = 0; m < c->getMembers().size(); m++)
+          vals.push_back(cast<Literal>(c->getMembers()[m])->literal);
       }
 
       writer.Record(LLVMBC::ConstantsRecord::DATA, vals);
     }
-    else if(c.type->type == Type::Vector || c.type->type == Type::Array ||
-            c.type->type == Type::Struct)
+    else if(c->type->type == Type::Vector || c->type->type == Type::Array ||
+            c->type->type == Type::Struct)
     {
       rdcarray<uint64_t> vals;
-      vals.reserve(c.members.size());
+      vals.reserve(c->getMembers().size());
 
-      for(size_t m = 0; m < c.members.size(); m++)
-        vals.push_back(getValueID(c.members[m]));
+      for(size_t m = 0; m < c->getMembers().size(); m++)
+        vals.push_back(getValueID(c->getMembers()[m]));
 
       writer.Record(LLVMBC::ConstantsRecord::AGGREGATE, vals);
     }
-    else if(c.type->scalarType == Type::Int)
+    else if(c->type->scalarType == Type::Int)
     {
-      writer.Record(LLVMBC::ConstantsRecord::INTEGER, LLVMBC::BitWriter::svbr(c.val.s64v[0]));
+      writer.Record(LLVMBC::ConstantsRecord::INTEGER, LLVMBC::BitWriter::svbr(c->getS64()));
     }
-    else if(c.type->scalarType == Type::Float)
+    else if(c->type->scalarType == Type::Float)
     {
-      writer.Record(LLVMBC::ConstantsRecord::FLOAT, c.val.u64v[0]);
+      writer.Record(LLVMBC::ConstantsRecord::FLOAT, c->getU64());
     }
-    else if(!c.str.empty())
+    else if(!c->str.empty())
     {
-      if(c.str.indexOf('\0') < 0)
+      if(c->str.indexOf('\0') < 0)
       {
-        writer.Record(LLVMBC::ConstantsRecord::CSTRING, c.str);
+        writer.Record(LLVMBC::ConstantsRecord::CSTRING, c->str);
       }
       else
       {
-        writer.Record(LLVMBC::ConstantsRecord::STRING, c.str);
+        writer.Record(LLVMBC::ConstantsRecord::STRING, c->str);
       }
     }
   }
 }
 
-void ProgramEditor::EncodeMetadata(LLVMBC::BitcodeWriter &writer, const rdcarray<Value> &values,
-                                   const rdcarray<Metadata> &meta) const
+void ProgramEditor::EncodeMetadata(LLVMBC::BitcodeWriter &writer,
+                                   const rdcarray<const Metadata *> &meta) const
 {
   rdcarray<uint64_t> vals;
 
@@ -2164,39 +1731,33 @@ void ProgramEditor::EncodeMetadata(LLVMBC::BitcodeWriter &writer, const rdcarray
 
   for(size_t i = 0; i < meta.size(); i++)
   {
-    if(meta[i].isString)
+    if(meta[i]->isString)
     {
-      writer.Record(LLVMBC::MetaDataRecord::STRING_OLD, meta[i].str);
+      writer.Record(LLVMBC::MetaDataRecord::STRING_OLD, meta[i]->str);
     }
-    else if(meta[i].isConstant)
+    else if(meta[i]->isConstant)
     {
       writer.Record(LLVMBC::MetaDataRecord::VALUE,
-                    {getTypeID(meta[i].type), getValueID(meta[i].value)});
+                    {getTypeID(meta[i]->type), getValueID(meta[i]->value)});
     }
-    else if(meta[i].dwarf || meta[i].debugLoc)
+    else if(meta[i]->dwarf || meta[i]->debugLoc)
     {
       if(!errored)
         RDCERR("Unexpected debug metadata node - expect to only encode stripped DXIL chunks");
       errored = true;
 
-      // replace this with the first NULL constant value
-      for(size_t c = 0; c < m_Constants.size(); c++)
-      {
-        if(m_Constants[c].nullconst)
-        {
-          writer.Record(LLVMBC::MetaDataRecord::VALUE, {getTypeID(m_Constants[c].type), (uint64_t)c});
-        }
-      }
+      // replace this with an error. This is an error to reference but we can't get away from that
+      writer.Record(LLVMBC::MetaDataRecord::STRING_OLD, "unexpected_debug_metadata");
     }
     else
     {
       vals.clear();
-      for(size_t m = 0; m < meta[i].children.size(); m++)
-        vals.push_back(getMetaIDOrNull(meta[i].children[m]));
+      for(size_t m = 0; m < meta[i]->children.size(); m++)
+        vals.push_back(getMetaIDOrNull(meta[i]->children[m]));
 
-      writer.Record(
-          meta[i].isDistinct ? LLVMBC::MetaDataRecord::DISTINCT_NODE : LLVMBC::MetaDataRecord::NODE,
-          vals);
+      writer.Record(meta[i]->isDistinct ? LLVMBC::MetaDataRecord::DISTINCT_NODE
+                                        : LLVMBC::MetaDataRecord::NODE,
+                    vals);
     }
   }
 }

@@ -38,69 +38,6 @@
 
 namespace DXIL
 {
-struct TypeOrderer
-{
-  rdcarray<const Type *> types;
-
-  rdcarray<const Type *> visitedTypes = {NULL};
-  rdcarray<const Metadata *> visitedMeta;
-
-  void accumulate(const Type *t)
-  {
-    if(!t || visitedTypes.contains(t))
-      return;
-
-    visitedTypes.push_back(t);
-
-    // LLVM doesn't do quite a depth-first search, so we replicate its search order to ensure types
-    // are printed in the same order
-
-    rdcarray<const Type *> workingSet;
-    workingSet.push_back(t);
-    do
-    {
-      const Type *cur = workingSet.back();
-      workingSet.pop_back();
-
-      types.push_back(cur);
-
-      for(size_t i = 0; i < cur->members.size(); i++)
-      {
-        size_t idx = cur->members.size() - 1 - i;
-        if(!visitedTypes.contains(cur->members[idx]))
-        {
-          visitedTypes.push_back(cur->members[idx]);
-          workingSet.push_back(cur->members[idx]);
-        }
-      }
-
-      if(!visitedTypes.contains(cur->inner))
-      {
-        visitedTypes.push_back(cur->inner);
-        workingSet.push_back(cur->inner);
-      }
-    } while(!workingSet.empty());
-  }
-
-  void accumulate(const Metadata *m)
-  {
-    auto it = std::lower_bound(visitedMeta.begin(), visitedMeta.end(), m);
-    if(it != visitedMeta.end() && *it == m)
-      return;
-    visitedMeta.insert(it - visitedMeta.begin(), m);
-
-    if(m->type)
-      accumulate(m->type);
-
-    if(!m->value.empty())
-      accumulate(m->value.GetType());
-
-    for(const Metadata *c : m->children)
-      if(c)
-        accumulate(c);
-  }
-};
-
 bool needsEscaping(const rdcstr &name)
 {
   return name.find_first_not_of(
@@ -376,47 +313,12 @@ void Program::MakeDisassemblyString()
 
   int instructionLine = 6;
 
-  TypeOrderer typeOrderer;
-  rdcarray<const Type *> orderedTypes;
-
-  for(size_t i = 0; i < m_GlobalVars.size(); i++)
-  {
-    const GlobalVar &g = m_GlobalVars[i];
-    typeOrderer.accumulate(g.type);
-
-    if(g.initialiser)
-      typeOrderer.accumulate(g.initialiser->type);
-  }
-
-  for(size_t i = 0; i < m_Functions.size(); i++)
-  {
-    const Function &func = m_Functions[i];
-
-    // the function type will also accumulate the arguments
-    typeOrderer.accumulate(func.funcType);
-
-    for(const Instruction &inst : func.instructions)
-    {
-      typeOrderer.accumulate(inst.type);
-      for(size_t a = 0; a < inst.args.size(); a++)
-      {
-        if(inst.args[a].type != ValueType::Literal && inst.args[a].type != ValueType::BasicBlock)
-          typeOrderer.accumulate(inst.args[a].GetType());
-      }
-
-      for(size_t m = 0; m < inst.attachedMeta.size(); m++)
-        typeOrderer.accumulate(inst.attachedMeta[m].second);
-    }
-  }
-
-  for(size_t i = 0; i < m_NamedMeta.size(); i++)
-  {
-    typeOrderer.accumulate(&m_NamedMeta[i]);
-  }
+  LLVMOrderAccumulator accum;
+  accum.processGlobals(this);
 
   bool printedTypes = false;
 
-  for(const Type *typ : typeOrderer.types)
+  for(const Type *typ : accum.printOrderTypes)
   {
     if(typ->type == Type::Struct && !typ->name.empty())
     {
@@ -448,7 +350,7 @@ void Program::MakeDisassemblyString()
 
   for(size_t i = 0; i < m_GlobalVars.size(); i++)
   {
-    const GlobalVar &g = m_GlobalVars[i];
+    const GlobalVar &g = *m_GlobalVars[i];
 
     m_Disassembly += StringFormat::Fmt("@%s = ", escapeStringIfNeeded(g.name).c_str());
     switch(g.flags & GlobalFlags::LinkageMask)
@@ -504,18 +406,23 @@ void Program::MakeDisassemblyString()
 
   rdcstr namedMeta;
 
+  rdcarray<Metadata *> metaSlots;
+  uint32_t nextMetaSlot = 0;
+
   // need to disassemble the named metadata here so the IDs are assigned first before any functions
   // get dibs
   for(size_t i = 0; i < m_NamedMeta.size(); i++)
   {
-    namedMeta += StringFormat::Fmt("!%s = %s!{", m_NamedMeta[i].name.c_str(),
-                                   m_NamedMeta[i].isDistinct ? "distinct " : "");
-    for(size_t m = 0; m < m_NamedMeta[i].children.size(); m++)
+    const NamedMetadata &m = *m_NamedMeta[i];
+
+    namedMeta += StringFormat::Fmt("!%s = %s!{", m.name.c_str(), m.isDistinct ? "distinct " : "");
+    for(size_t c = 0; c < m.children.size(); c++)
     {
-      if(m != 0)
+      if(c != 0)
         namedMeta += ", ";
-      if(m_NamedMeta[i].children[m])
-        namedMeta += StringFormat::Fmt("!%u", GetOrAssignMetaID(m_NamedMeta[i].children[m]));
+      if(m.children[c])
+        namedMeta +=
+            StringFormat::Fmt("!%u", GetOrAssignMetaSlot(metaSlots, nextMetaSlot, m.children[c]));
       else
         namedMeta += "null";
     }
@@ -537,87 +444,97 @@ void Program::MakeDisassemblyString()
 
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
-    Function &func = m_Functions[i];
+    const Function &func = *m_Functions[i];
 
-    auto argToString = [this, &func](Value v, bool withTypes, const rdcstr &attrString = "") {
+    accum.processFunction(m_Functions[i]);
+
+    auto argToString = [this, &metaSlots, &nextMetaSlot](const Value *v, bool withTypes,
+                                                         const rdcstr &attrString = "") {
       rdcstr ret;
-      switch(v.type)
+
+      if(const Literal *lit = cast<Literal>(v))
       {
-        case ValueType::Unknown:
-        case ValueType::Alias: ret = "???"; break;
-        case ValueType::Literal:
-          if(withTypes)
-            ret += "i32 ";
-          ret += attrString;
-          ret += StringFormat::Fmt("%llu", v.literal);
-          break;
-        case ValueType::Metadata:
-          if(withTypes)
-            ret += "metadata ";
-          ret += attrString;
-          if(m_Metadata.begin() <= v.meta && v.meta < m_Metadata.end())
+        if(withTypes)
+          ret += "i32 ";
+        ret += attrString;
+        ret += StringFormat::Fmt("%llu", lit->literal);
+      }
+      else if(const Metadata *meta = cast<Metadata>(v))
+      {
+        const Metadata &m = *meta;
+        if(withTypes)
+          ret += "metadata ";
+        ret += attrString;
+        {
+          const Constant *metaConst = cast<Constant>(m.value);
+          const GlobalVar *metaGlobal = cast<GlobalVar>(m.value);
+          const Instruction *metaInst = cast<Instruction>(m.value);
+          if(m.isConstant && metaConst &&
+             (metaConst->type->type == Type::Scalar || metaConst->type->type == Type::Vector ||
+              metaConst->isUndef() || metaConst->isNULL() ||
+              metaConst->type->name.beginsWith("class.matrix.")))
           {
-            const Metadata &m = *v.meta;
-            if(m.isConstant && m.value.type == ValueType::Constant &&
-               (m.value.constant->type->type == Type::Scalar ||
-                m.value.constant->type->type == Type::Vector || m.value.constant->undef ||
-                m.value.constant->nullconst ||
-                m.value.constant->type->name.beginsWith("class.matrix.")))
-            {
-              ret += m.value.constant->toString(withTypes);
-            }
-            else if(m.isConstant && m.value.type == ValueType::GlobalVar)
-            {
-              if(withTypes)
-                ret += m.value.global->type->toString() + " ";
-              ret += "@" + escapeStringIfNeeded(m.value.global->name);
-            }
-            else
-            {
-              ret += StringFormat::Fmt("!%u", GetOrAssignMetaID((Metadata *)&m));
-            }
+            ret += metaConst->toString(withTypes);
+          }
+          else if(m.isConstant && metaInst)
+          {
+            ret += m.valString();
+          }
+          else if(m.isConstant && metaGlobal)
+          {
+            if(withTypes)
+              ret += metaGlobal->type->toString() + " ";
+            ret += "@" + escapeStringIfNeeded(metaGlobal->name);
           }
           else
           {
-            ret += v.meta->refString();
+            ret += StringFormat::Fmt("!%u",
+                                     GetOrAssignMetaSlot(metaSlots, nextMetaSlot, (Metadata *)&m));
           }
-          break;
-        case ValueType::Function:
-          ret += attrString;
-          ret = "@" + escapeStringIfNeeded(v.function->name);
-          break;
-        case ValueType::GlobalVar:
-          if(withTypes)
-            ret = v.global->type->toString() + " ";
-          ret += attrString;
-          ret += "@" + escapeStringIfNeeded(v.global->name);
-          break;
-        case ValueType::Constant:
-          ret += attrString;
-          ret = v.constant->toString(withTypes);
-          break;
-        case ValueType::Instruction:
-        {
-          if(withTypes)
-            ret = v.instruction->type->toString() + " ";
-          ret += attrString;
-          if(v.instruction->name.empty())
-            ret += StringFormat::Fmt("%%%u", v.instruction->resultID);
-          else
-            ret += StringFormat::Fmt("%%%s", escapeStringIfNeeded(v.instruction->name).c_str());
-          break;
-        }
-        case ValueType::BasicBlock:
-        {
-          if(withTypes)
-            ret = "label ";
-          ret += attrString;
-          if(v.block->name.empty())
-            ret += StringFormat::Fmt("%%%u", v.block->resultID);
-          else
-            ret += StringFormat::Fmt("%%%s", escapeStringIfNeeded(v.block->name).c_str());
         }
       }
+      else if(const Function *func = cast<Function>(v))
+      {
+        ret += attrString;
+        ret = "@" + escapeStringIfNeeded(func->name);
+      }
+      else if(const GlobalVar *global = cast<GlobalVar>(v))
+      {
+        if(withTypes)
+          ret = global->type->toString() + " ";
+        ret += attrString;
+        ret += "@" + escapeStringIfNeeded(global->name);
+      }
+      else if(const Constant *c = cast<Constant>(v))
+      {
+        ret += attrString;
+        ret = c->toString(withTypes);
+      }
+      else if(const Instruction *inst = cast<Instruction>(v))
+      {
+        if(withTypes)
+          ret = inst->type->toString() + " ";
+        ret += attrString;
+        if(inst->getName().empty())
+          ret += StringFormat::Fmt("%%%u", inst->slot);
+        else
+          ret += StringFormat::Fmt("%%%s", escapeStringIfNeeded(inst->getName()).c_str());
+      }
+      else if(const Block *block = cast<Block>(v))
+      {
+        if(withTypes)
+          ret = "label ";
+        ret += attrString;
+        if(block->name.empty())
+          ret += StringFormat::Fmt("%%%u", block->slot);
+        else
+          ret += StringFormat::Fmt("%%%s", escapeStringIfNeeded(block->name).c_str());
+      }
+      else
+      {
+        ret = "???";
+      }
+
       return ret;
     };
 
@@ -630,7 +547,7 @@ void Program::MakeDisassemblyString()
 
     m_Disassembly += (func.external ? "declare " : "define ");
     m_Disassembly +=
-        func.funcType->declFunction("@" + escapeStringIfNeeded(func.name), func.args, func.attrs);
+        func.type->declFunction("@" + escapeStringIfNeeded(func.name), func.args, func.attrs);
 
     if(func.attrs && func.attrs->functionSlot)
       m_Disassembly += StringFormat::Fmt(" #%u", funcAttrGroups.indexOf(func.attrs->functionSlot));
@@ -643,23 +560,23 @@ void Program::MakeDisassemblyString()
       size_t curBlock = 0;
 
       // if the first block has a name, use it
-      if(!func.blocks[curBlock].name.empty())
+      if(!func.blocks[curBlock]->name.empty())
       {
         m_Disassembly +=
-            StringFormat::Fmt("%s:\n", escapeStringIfNeeded(func.blocks[curBlock].name).c_str());
+            StringFormat::Fmt("%s:\n", escapeStringIfNeeded(func.blocks[curBlock]->name).c_str());
         instructionLine++;
       }
 
       for(size_t funcIdx = 0; funcIdx < func.instructions.size(); funcIdx++)
       {
-        Instruction &inst = func.instructions[funcIdx];
+        Instruction &inst = *func.instructions[funcIdx];
 
         inst.disassemblyLine = instructionLine;
         m_Disassembly += "  ";
-        if(!inst.name.empty())
-          m_Disassembly += "%" + escapeStringIfNeeded(inst.name) + " = ";
-        else if(inst.resultID != ~0U)
-          m_Disassembly += StringFormat::Fmt("%%%u = ", inst.resultID);
+        if(!inst.getName().empty())
+          m_Disassembly += "%" + escapeStringIfNeeded(inst.getName()) + " = ";
+        else if(inst.slot != ~0U)
+          m_Disassembly += StringFormat::Fmt("%%%u = ", inst.slot);
 
         bool debugCall = false;
 
@@ -668,14 +585,16 @@ void Program::MakeDisassemblyString()
           case Operation::NoOp: m_Disassembly += "??? "; break;
           case Operation::Call:
           {
+            rdcstr funcCallName = inst.getFuncCall()->name;
             m_Disassembly += "call " + inst.type->toString();
-            m_Disassembly += " @" + escapeStringIfNeeded(inst.funcCall->name);
+            m_Disassembly += " @" + escapeStringIfNeeded(funcCallName);
             m_Disassembly += "(";
             bool first = true;
 
+            const AttributeSet *paramAttrs = inst.getParamAttrs();
             // attribute args start from 1
             size_t argIdx = 1;
-            for(Value &s : inst.args)
+            for(const Value *s : inst.args)
             {
               if(!first)
                 m_Disassembly += ", ";
@@ -683,10 +602,10 @@ void Program::MakeDisassemblyString()
 
               // see if we have param attrs for this param
               rdcstr attrString;
-              if(inst.paramAttrs && argIdx < inst.paramAttrs->groupSlots.size() &&
-                 inst.paramAttrs->groupSlots[argIdx])
+              if(paramAttrs && argIdx < paramAttrs->groupSlots.size() &&
+                 paramAttrs->groupSlots[argIdx])
               {
-                attrString = inst.paramAttrs->groupSlots[argIdx]->toString(true) + " ";
+                attrString = paramAttrs->groupSlots[argIdx]->toString(true) + " ";
               }
 
               m_Disassembly += argToString(s, true, attrString);
@@ -694,11 +613,11 @@ void Program::MakeDisassemblyString()
               argIdx++;
             }
             m_Disassembly += ")";
-            debugCall = inst.funcCall->name.beginsWith("llvm.dbg.");
+            debugCall = funcCallName.beginsWith("llvm.dbg.");
 
-            if(inst.paramAttrs && inst.paramAttrs->functionSlot)
+            if(paramAttrs && paramAttrs->functionSlot)
               m_Disassembly +=
-                  StringFormat::Fmt(" #%u", funcAttrGroups.indexOf(inst.paramAttrs->functionSlot));
+                  StringFormat::Fmt(" #%u", funcAttrGroups.indexOf(paramAttrs->functionSlot));
             break;
           }
           case Operation::Trunc:
@@ -743,7 +662,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += "extractvalue ";
             m_Disassembly += argToString(inst.args[0], true);
             for(size_t n = 1; n < inst.args.size(); n++)
-              m_Disassembly += StringFormat::Fmt(", %llu", inst.args[n].literal);
+              m_Disassembly += StringFormat::Fmt(", %llu", cast<Literal>(inst.args[n])->literal);
             break;
           }
           case Operation::FAdd:
@@ -788,7 +707,7 @@ void Program::MakeDisassemblyString()
               default: break;
             }
 
-            rdcstr opFlagsStr = ToStr(inst.opFlags);
+            rdcstr opFlagsStr = ToStr(inst.opFlags());
             {
               int offs = opFlagsStr.indexOf('|');
               while(offs >= 0)
@@ -798,11 +717,11 @@ void Program::MakeDisassemblyString()
               }
             }
             m_Disassembly += opFlagsStr;
-            if(inst.opFlags != InstructionFlags::NoFlags)
+            if(inst.opFlags() != InstructionFlags::NoFlags)
               m_Disassembly += " ";
 
             bool first = true;
-            for(Value &s : inst.args)
+            for(const Value *s : inst.args)
             {
               if(!first)
                 m_Disassembly += ", ";
@@ -820,18 +739,18 @@ void Program::MakeDisassemblyString()
             m_Disassembly += "alloca ";
             m_Disassembly += inst.type->inner->toString();
             if(inst.align > 0)
-              m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
+              m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
           }
           case Operation::GetElementPtr:
           {
             m_Disassembly += "getelementptr ";
-            if(inst.opFlags & InstructionFlags::InBounds)
+            if(inst.opFlags() & InstructionFlags::InBounds)
               m_Disassembly += "inbounds ";
-            m_Disassembly += inst.args[0].GetType()->inner->toString();
+            m_Disassembly += inst.args[0]->type->inner->toString();
             m_Disassembly += ", ";
             bool first = true;
-            for(Value &s : inst.args)
+            for(const Value *s : inst.args)
             {
               if(!first)
                 m_Disassembly += ", ";
@@ -844,12 +763,12 @@ void Program::MakeDisassemblyString()
           case Operation::Load:
           {
             m_Disassembly += "load ";
-            if(inst.opFlags & InstructionFlags::Volatile)
+            if(inst.opFlags() & InstructionFlags::Volatile)
               m_Disassembly += "volatile ";
             m_Disassembly += inst.type->toString();
             m_Disassembly += ", ";
             bool first = true;
-            for(Value &s : inst.args)
+            for(const Value *s : inst.args)
             {
               if(!first)
                 m_Disassembly += ", ";
@@ -858,19 +777,19 @@ void Program::MakeDisassemblyString()
               first = false;
             }
             if(inst.align > 0)
-              m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
+              m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
           }
           case Operation::Store:
           {
             m_Disassembly += "store ";
-            if(inst.opFlags & InstructionFlags::Volatile)
+            if(inst.opFlags() & InstructionFlags::Volatile)
               m_Disassembly += "volatile ";
             m_Disassembly += argToString(inst.args[1], true);
             m_Disassembly += ", ";
             m_Disassembly += argToString(inst.args[0], true);
             if(inst.align > 0)
-              m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
+              m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
           }
           case Operation::FOrdFalse:
@@ -891,7 +810,7 @@ void Program::MakeDisassemblyString()
           case Operation::FOrdTrue:
           {
             m_Disassembly += "fcmp ";
-            rdcstr opFlagsStr = ToStr(inst.opFlags);
+            rdcstr opFlagsStr = ToStr(inst.opFlags());
             {
               int offs = opFlagsStr.indexOf('|');
               while(offs >= 0)
@@ -901,7 +820,7 @@ void Program::MakeDisassemblyString()
               }
             }
             m_Disassembly += opFlagsStr;
-            if(inst.opFlags != InstructionFlags::NoFlags)
+            if(inst.opFlags() != InstructionFlags::NoFlags)
               m_Disassembly += " ";
             switch(inst.op)
             {
@@ -1005,7 +924,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += argToString(inst.args[1], true);
             for(size_t a = 2; a < inst.args.size(); a++)
             {
-              m_Disassembly += ", " + ToStr(inst.args[a].literal);
+              m_Disassembly += ", " + ToStr(cast<Literal>(inst.args[a])->literal);
             }
             break;
           }
@@ -1062,9 +981,9 @@ void Program::MakeDisassemblyString()
           case Operation::Fence:
           {
             m_Disassembly += "fence ";
-            if(inst.opFlags & InstructionFlags::SingleThread)
+            if(inst.opFlags() & InstructionFlags::SingleThread)
               m_Disassembly += "singlethread ";
-            switch((inst.opFlags & InstructionFlags::SuccessOrderMask))
+            switch((inst.opFlags() & InstructionFlags::SuccessOrderMask))
             {
               case InstructionFlags::SuccessUnordered: m_Disassembly += "unordered"; break;
               case InstructionFlags::SuccessMonotonic: m_Disassembly += "monotonic"; break;
@@ -1080,12 +999,12 @@ void Program::MakeDisassemblyString()
           case Operation::LoadAtomic:
           {
             m_Disassembly += "load atomic ";
-            if(inst.opFlags & InstructionFlags::Volatile)
+            if(inst.opFlags() & InstructionFlags::Volatile)
               m_Disassembly += "volatile ";
             m_Disassembly += inst.type->toString();
             m_Disassembly += ", ";
             bool first = true;
-            for(Value &s : inst.args)
+            for(const Value *s : inst.args)
             {
               if(!first)
                 m_Disassembly += ", ";
@@ -1093,30 +1012,30 @@ void Program::MakeDisassemblyString()
               m_Disassembly += argToString(s, true);
               first = false;
             }
-            m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
+            m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
           }
           case Operation::StoreAtomic:
           {
             m_Disassembly += "store atomic ";
-            if(inst.opFlags & InstructionFlags::Volatile)
+            if(inst.opFlags() & InstructionFlags::Volatile)
               m_Disassembly += "volatile ";
             m_Disassembly += argToString(inst.args[1], true);
             m_Disassembly += ", ";
             m_Disassembly += argToString(inst.args[0], true);
-            m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
+            m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
           }
           case Operation::CompareExchange:
           {
             m_Disassembly += "cmpxchg ";
-            if(inst.opFlags & InstructionFlags::Weak)
+            if(inst.opFlags() & InstructionFlags::Weak)
               m_Disassembly += "weak ";
-            if(inst.opFlags & InstructionFlags::Volatile)
+            if(inst.opFlags() & InstructionFlags::Volatile)
               m_Disassembly += "volatile ";
 
             bool first = true;
-            for(Value &s : inst.args)
+            for(const Value *s : inst.args)
             {
               if(!first)
                 m_Disassembly += ", ";
@@ -1126,9 +1045,9 @@ void Program::MakeDisassemblyString()
             }
 
             m_Disassembly += " ";
-            if(inst.opFlags & InstructionFlags::SingleThread)
+            if(inst.opFlags() & InstructionFlags::SingleThread)
               m_Disassembly += "singlethread ";
-            switch((inst.opFlags & InstructionFlags::SuccessOrderMask))
+            switch((inst.opFlags() & InstructionFlags::SuccessOrderMask))
             {
               case InstructionFlags::SuccessUnordered: m_Disassembly += "unordered"; break;
               case InstructionFlags::SuccessMonotonic: m_Disassembly += "monotonic"; break;
@@ -1141,7 +1060,7 @@ void Program::MakeDisassemblyString()
               default: break;
             }
             m_Disassembly += " ";
-            switch((inst.opFlags & InstructionFlags::FailureOrderMask))
+            switch((inst.opFlags() & InstructionFlags::FailureOrderMask))
             {
               case InstructionFlags::FailureUnordered: m_Disassembly += "unordered"; break;
               case InstructionFlags::FailureMonotonic: m_Disassembly += "monotonic"; break;
@@ -1168,7 +1087,7 @@ void Program::MakeDisassemblyString()
           case Operation::AtomicUMin:
           {
             m_Disassembly += "atomicrmw ";
-            if(inst.opFlags & InstructionFlags::Volatile)
+            if(inst.opFlags() & InstructionFlags::Volatile)
               m_Disassembly += "volatile ";
             switch(inst.op)
             {
@@ -1187,7 +1106,7 @@ void Program::MakeDisassemblyString()
             }
 
             bool first = true;
-            for(Value &s : inst.args)
+            for(const Value *s : inst.args)
             {
               if(!first)
                 m_Disassembly += ", ";
@@ -1197,9 +1116,9 @@ void Program::MakeDisassemblyString()
             }
 
             m_Disassembly += " ";
-            if(inst.opFlags & InstructionFlags::SingleThread)
+            if(inst.opFlags() & InstructionFlags::SingleThread)
               m_Disassembly += "singlethread ";
-            switch((inst.opFlags & InstructionFlags::SuccessOrderMask))
+            switch((inst.opFlags() & InstructionFlags::SuccessOrderMask))
             {
               case InstructionFlags::SuccessUnordered: m_Disassembly += "unordered"; break;
               case InstructionFlags::SuccessMonotonic: m_Disassembly += "monotonic"; break;
@@ -1219,16 +1138,18 @@ void Program::MakeDisassemblyString()
         {
           DebugLocation &debugLoc = m_DebugLocations[inst.debugLoc];
 
-          m_Disassembly += StringFormat::Fmt(", !dbg !%u", GetOrAssignMetaID(debugLoc));
+          m_Disassembly += StringFormat::Fmt(
+              ", !dbg !%u", GetOrAssignMetaSlot(metaSlots, nextMetaSlot, debugLoc));
         }
 
-        if(!inst.attachedMeta.empty())
+        const AttachedMetadata &attachedMeta = inst.getAttachedMeta();
+        if(!attachedMeta.empty())
         {
-          for(size_t m = 0; m < inst.attachedMeta.size(); m++)
+          for(size_t m = 0; m < attachedMeta.size(); m++)
           {
-            m_Disassembly +=
-                StringFormat::Fmt(", !%s !%u", m_Kinds[(size_t)inst.attachedMeta[m].first].c_str(),
-                                  GetOrAssignMetaID(inst.attachedMeta[m].second));
+            m_Disassembly += StringFormat::Fmt(
+                ", !%s !%u", m_Kinds[(size_t)attachedMeta[m].first].c_str(),
+                GetOrAssignMetaSlot(metaSlots, nextMetaSlot, attachedMeta[m].second));
           }
         }
 
@@ -1242,15 +1163,15 @@ void Program::MakeDisassemblyString()
           }
         }
 
-        if(debugCall && inst.funcCall)
+        if(debugCall)
         {
           size_t varIdx = 0, exprIdx = 0;
-          if(inst.funcCall->name == "llvm.dbg.value")
+          if(inst.getFuncCall()->name == "llvm.dbg.value")
           {
             varIdx = 2;
             exprIdx = 3;
           }
-          else if(inst.funcCall->name == "llvm.dbg.declare")
+          else if(inst.getFuncCall()->name == "llvm.dbg.declare")
           {
             varIdx = 1;
             exprIdx = 2;
@@ -1258,23 +1179,25 @@ void Program::MakeDisassemblyString()
 
           if(varIdx > 0)
           {
-            RDCASSERT(inst.args[varIdx].type == ValueType::Metadata);
-            RDCASSERT(inst.args[exprIdx].type == ValueType::Metadata);
-            m_Disassembly += StringFormat::Fmt(
-                " ; var:%s ", escapeString(GetDebugVarName(inst.args[varIdx].meta->dwarf)).c_str());
-            m_Disassembly += inst.args[exprIdx].meta->valString();
+            Metadata *var = cast<Metadata>(inst.args[varIdx]);
+            Metadata *expr = cast<Metadata>(inst.args[exprIdx]);
+            RDCASSERT(var);
+            RDCASSERT(expr);
+            m_Disassembly +=
+                StringFormat::Fmt(" ; var:%s ", escapeString(GetDebugVarName(var->dwarf)).c_str());
+            m_Disassembly += expr->valString();
 
-            rdcstr funcName = GetFunctionScopeName(inst.args[varIdx].meta->dwarf);
+            rdcstr funcName = GetFunctionScopeName(var->dwarf);
             if(!funcName.empty())
               m_Disassembly += StringFormat::Fmt(" func:%s", escapeString(funcName).c_str());
           }
         }
 
-        if(inst.funcCall && inst.funcCall->name.beginsWith("dx.op."))
+        if(inst.getFuncCall() && inst.getFuncCall()->name.beginsWith("dx.op."))
         {
-          if(inst.args[0].type == ValueType::Constant)
+          if(Constant *op = cast<Constant>(inst.args[0]))
           {
-            uint32_t opcode = inst.args[0].constant->val.u32v[0];
+            uint32_t opcode = op->getU32();
             if(opcode < ARRAY_COUNT(funcSigs))
             {
               m_Disassembly += "  ; ";
@@ -1283,17 +1206,18 @@ void Program::MakeDisassemblyString()
           }
         }
 
-        if(inst.funcCall && inst.funcCall->name.beginsWith("dx.op.annotateHandle"))
+        if(inst.getFuncCall() && inst.getFuncCall()->name.beginsWith("dx.op.annotateHandle"))
         {
-          if(inst.args[2].type == ValueType::Constant)
+          if(const Constant *props = cast<Constant>(inst.args[2]))
           {
-            const Constant *props = inst.args[2].constant;
-            if(props && !props->nullconst && props->members.size() == 2 &&
-               props->members[0].type == ValueType::Constant)
+            const Constant *packed[2];
+            if(props && !props->isNULL() && props->getMembers().size() == 2 &&
+               (packed[0] = cast<Constant>(props->getMembers()[0])) != NULL &&
+               (packed[1] = cast<Constant>(props->getMembers()[1])) != NULL)
             {
               uint32_t packedProps[2] = {};
-              packedProps[0] = props->members[0].constant->val.u32v[0];
-              packedProps[1] = props->members[1].constant->val.u32v[0];
+              packedProps[0] = packed[0]->getU32();
+              packedProps[1] = packed[1]->getU32();
 
               bool uav = (packedProps[0] & (1 << 12)) != 0;
               ResourceKind resKind = (ResourceKind)(packedProps[0] & 0xFF);
@@ -1420,11 +1344,11 @@ void Program::MakeDisassemblyString()
 
           rdcstr labelName;
 
-          if(func.blocks[curBlock].name.empty())
-            labelName = StringFormat::Fmt("; <label>:%u", func.blocks[curBlock].resultID);
+          if(func.blocks[curBlock]->name.empty())
+            labelName = StringFormat::Fmt("; <label>:%u", func.blocks[curBlock]->slot);
           else
             labelName =
-                StringFormat::Fmt("%s: ", escapeStringIfNeeded(func.blocks[curBlock].name).c_str());
+                StringFormat::Fmt("%s: ", escapeStringIfNeeded(func.blocks[curBlock]->name).c_str());
 
           labelName.reserve(50);
           while(labelName.size() < 50)
@@ -1438,13 +1362,13 @@ void Program::MakeDisassemblyString()
           labelName += "...";
 #else
           bool first = true;
-          for(const Block *pred : func.blocks[curBlock].preds)
+          for(const Block *pred : func.blocks[curBlock]->preds)
           {
             if(!first)
               labelName += ", ";
             first = false;
             if(pred->name.empty())
-              labelName += StringFormat::Fmt("%%%u", pred->resultID);
+              labelName += StringFormat::Fmt("%%%u", pred->slot);
             else
               labelName += "%" + escapeStringIfNeeded(pred->name);
           }
@@ -1463,6 +1387,8 @@ void Program::MakeDisassemblyString()
       m_Disassembly += "\n\n";
       instructionLine += 2;
     }
+
+    accum.exitFunction();
   }
 
   for(size_t i = 0; i < funcAttrGroups.size(); i++)
@@ -1479,24 +1405,24 @@ void Program::MakeDisassemblyString()
   size_t numIdx = 0;
   size_t dbgIdx = 0;
 
-  for(uint32_t i = 0; i < m_NextMetaID; i++)
+  for(uint32_t i = 0; i < nextMetaSlot; i++)
   {
-    if(numIdx < m_NumberedMeta.size() && m_NumberedMeta[numIdx]->id == i)
+    if(numIdx < metaSlots.size() && metaSlots[numIdx]->slot == i)
     {
-      rdcstr metaline = StringFormat::Fmt("!%u = %s%s\n", i,
-                                          m_NumberedMeta[numIdx]->isDistinct ? "distinct " : "",
-                                          m_NumberedMeta[numIdx]->valString().c_str());
+      rdcstr metaline =
+          StringFormat::Fmt("!%u = %s%s\n", i, metaSlots[numIdx]->isDistinct ? "distinct " : "",
+                            metaSlots[numIdx]->valString().c_str());
 #if ENABLED(DXC_COMPATIBLE_DISASM)
       for(size_t c = 0; c < metaline.size(); c += 4096)
         m_Disassembly += metaline.substr(c, 4096);
 #else
       m_Disassembly += metaline;
 #endif
-      if(m_NumberedMeta[numIdx]->dwarf)
-        m_NumberedMeta[numIdx]->dwarf->setID(i);
+      if(metaSlots[numIdx]->dwarf)
+        metaSlots[numIdx]->dwarf->setID(i);
       numIdx++;
     }
-    else if(dbgIdx < m_DebugLocations.size() && m_DebugLocations[dbgIdx].id == i)
+    else if(dbgIdx < m_DebugLocations.size() && m_DebugLocations[dbgIdx].slot == i)
     {
       m_Disassembly +=
           StringFormat::Fmt("!%u = %s\n", i, m_DebugLocations[dbgIdx].toString().c_str());
@@ -1570,7 +1496,7 @@ rdcstr Type::toString() const
   }
 }
 
-rdcstr Type::declFunction(rdcstr funcName, const rdcarray<Instruction> &args,
+rdcstr Type::declFunction(rdcstr funcName, const rdcarray<Instruction *> &args,
                           const AttributeSet *attrs) const
 {
   rdcstr ret = inner->toString();
@@ -1586,8 +1512,8 @@ rdcstr Type::declFunction(rdcstr funcName, const rdcarray<Instruction> &args,
       ret += " " + attrs->groupSlots[i + 1]->toString(true);
     }
 
-    if(i < args.size() && !args[i].name.empty())
-      ret += " %" + escapeStringIfNeeded(args[i].name);
+    if(i < args.size() && !args[i]->getName().empty())
+      ret += " %" + escapeStringIfNeeded(args[i]->getName());
   }
   ret += ")";
   return ret;
@@ -1648,9 +1574,9 @@ rdcstr AttributeGroup::toString(bool stringAttrs) const
 
 rdcstr Metadata::refString() const
 {
-  if(id == ~0U)
+  if(slot == ~0U)
     return valString();
-  return StringFormat::Fmt("!%u", id);
+  return StringFormat::Fmt("!%u", slot);
 }
 
 rdcstr DebugLocation::toString() const
@@ -1696,22 +1622,19 @@ rdcstr Metadata::valString() const
     }
     else
     {
-      const Instruction *i = NULL;
-
-      if(value.type == ValueType::Instruction)
-        i = value.instruction;
+      const Instruction *i = cast<Instruction>(value);
 
       if(i)
       {
-        if(i->name.empty())
-          return StringFormat::Fmt("%s %%%u", i->type->toString().c_str(), i->resultID);
+        if(i->getName().empty())
+          return StringFormat::Fmt("%s %%%u", i->type->toString().c_str(), i->slot);
         else
           return StringFormat::Fmt("%s %%%s", i->type->toString().c_str(),
-                                   escapeStringIfNeeded(i->name).c_str());
+                                   escapeStringIfNeeded(i->getName()).c_str());
       }
-      else if(!value.empty())
+      else if(value)
       {
-        return value.toString(true);
+        return value->toString(true);
       }
       else
       {
@@ -1732,7 +1655,7 @@ rdcstr Metadata::valString() const
       else if(children[i]->isConstant)
         ret += children[i]->valString();
       else
-        ret += StringFormat::Fmt("!%u", children[i]->id);
+        ret += StringFormat::Fmt("!%u", children[i]->slot);
     }
     ret += "}";
 
@@ -1771,6 +1694,7 @@ static void floatAppendToString(const Type *t, const ShaderValue &val, uint32_t 
     }
 #else
     ret += flt;
+    return;
 #endif
   }
 
@@ -1800,32 +1724,31 @@ rdcstr Value::toString(bool withType) const
   rdcstr ret;
   if(withType)
   {
-    const Type *t = GetType();
-    if(t)
-      ret += t->toString() + " ";
+    if(type)
+      ret += type->toString() + " ";
     else
       RDCERR("Type requested in value string, but no type available");
   }
-  switch(type)
+  switch(kind())
   {
-    case ValueType::Function:
-      ret += StringFormat::Fmt("@%s", escapeStringIfNeeded(function->name).c_str());
+    case ValueKind::Function:
+      ret += StringFormat::Fmt("@%s", escapeStringIfNeeded(cast<Function>(this)->name).c_str());
       break;
-    case ValueType::GlobalVar:
-      ret += StringFormat::Fmt("@%s", escapeStringIfNeeded(global->name).c_str());
+    case ValueKind::GlobalVar:
+      ret += StringFormat::Fmt("@%s", escapeStringIfNeeded(cast<GlobalVar>(this)->name).c_str());
       break;
-    case ValueType::Alias:
-      ret += StringFormat::Fmt("@%s", escapeStringIfNeeded(alias->name).c_str());
+    case ValueKind::Alias:
+      ret += StringFormat::Fmt("@%s", escapeStringIfNeeded(cast<Alias>(this)->name).c_str());
       break;
-    case ValueType::Constant: return constant->toString(withType); break;
-    case ValueType::Unknown:
-      RDCERR("Invalid or forward-reference value being stringised");
+    case ValueKind::Constant: return cast<Constant>(this)->toString(withType); break;
+    case ValueKind::ForwardReferencePlaceholder:
+      RDCERR("forward-reference value being stringised");
       ret += "???";
       break;
-    case ValueType::Instruction:
-    case ValueType::Metadata:
-    case ValueType::Literal:
-    case ValueType::BasicBlock:
+    case ValueKind::Instruction:
+    case ValueKind::Metadata:
+    case ValueKind::Literal:
+    case ValueKind::BasicBlock:
       RDCERR("Unexpected value being stringised");
       ret += "???";
       break;
@@ -1841,7 +1764,7 @@ rdcstr Constant::toString(bool withType) const
   rdcstr ret;
   if(withType)
     ret += type->toString() + " ";
-  if(undef)
+  if(isUndef())
   {
     ret += "undef";
   }
@@ -1854,14 +1777,14 @@ rdcstr Constant::toString(bool withType) const
       {
         ret += "getelementptr inbounds (";
 
-        const Type *baseType = members[0].GetType();
+        const Type *baseType = members->at(0)->type;
         RDCASSERT(baseType->type == Type::Pointer);
         ret += baseType->inner->toString();
-        for(size_t i = 0; i < members.size(); i++)
+        for(size_t i = 0; i < members->size(); i++)
         {
           ret += ", ";
 
-          ret += members[i].toString(withType);
+          ret += members->at(i)->toString(withType);
         }
         ret += ")";
         break;
@@ -1899,7 +1822,7 @@ rdcstr Constant::toString(bool withType) const
         }
 
         ret += "(";
-        ret += inner.toString(withType);
+        ret += inner->toString(withType);
         ret += " to ";
         ret += type->toString();
         ret += ")";
@@ -1909,46 +1832,67 @@ rdcstr Constant::toString(bool withType) const
   }
   else if(type->type == Type::Scalar)
   {
-    shaderValAppendToString(type, val, 0, ret);
+    ShaderValue v;
+    v.u64v[0] = u64;
+    shaderValAppendToString(type, v, 0, ret);
   }
-  else if(nullconst)
+  else if(isNULL())
   {
     ret += "zeroinitializer";
   }
   else if(type->type == Type::Vector)
   {
     ret += "<";
+    ShaderValue v;
+
+    // data vectors may only have a value, use it directly
+    if(isShaderVal())
+    {
+      v = *val;
+    }
+    // all other vectors use just a members array, so we extract the values here
+    else if(isCompound())
+    {
+      for(uint32_t i = 0; i < type->elemCount; i++)
+      {
+        if(type->bitWidth <= 32)
+          v.u32v[i] = cast<Constant>(members->at(i))->getU32();
+        else
+          v.u64v[i] = cast<Constant>(members->at(i))->getU64();
+      }
+    }
+
     for(uint32_t i = 0; i < type->elemCount; i++)
     {
       if(i > 0)
         ret += ", ";
       if(withType)
         ret += type->inner->toString() + " ";
-      shaderValAppendToString(type, val, i, ret);
+      shaderValAppendToString(type, v, i, ret);
     }
     ret += ">";
   }
   else if(type->type == Type::Array)
   {
     ret += "[";
-    for(size_t i = 0; i < members.size(); i++)
+    for(size_t i = 0; i < members->size(); i++)
     {
       if(i > 0)
         ret += ", ";
 
-      if(members[i].type == ValueType::Literal)
+      if(Literal *l = cast<Literal>(members->at(i)))
       {
         if(withType)
           ret += type->inner->toString() + " ";
 
         ShaderValue v;
-        v.u64v[0] = members[i].literal;
+        v.u64v[0] = l->literal;
 
         shaderValAppendToString(type->inner, v, 0, ret);
       }
       else
       {
-        ret += members[i].toString(withType);
+        ret += members->at(i)->toString(withType);
       }
     }
     ret += "]";
@@ -1956,21 +1900,21 @@ rdcstr Constant::toString(bool withType) const
   else if(type->type == Type::Struct)
   {
     ret += "{ ";
-    for(size_t i = 0; i < members.size(); i++)
+    for(size_t i = 0; i < members->size(); i++)
     {
       if(i > 0)
         ret += ", ";
 
-      if(members[i].type == ValueType::Literal)
+      if(Literal *l = cast<Literal>(members->at(i)))
       {
         ShaderValue v;
-        v.u64v[0] = members[i].literal;
+        v.u64v[0] = l->literal;
 
-        shaderValAppendToString(members[i].GetType(), v, 0, ret);
+        shaderValAppendToString(members->at(i)->type, v, 0, ret);
       }
       else
       {
-        ret += members[i].toString(withType);
+        ret += members->at(i)->toString(withType);
       }
     }
     ret += " }";

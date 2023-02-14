@@ -51,13 +51,18 @@ enum class StructMemberAnnotation
 template <typename T>
 T getival(const Metadata *m)
 {
-  return T(m->value.constant->val.u32v[0]);
+  Constant *c = cast<Constant>(m->value);
+  if(c && c->isLiteral())
+    return T(c->getU32());
+  return T();
 }
 
 void Program::FetchComputeProperties(DXBC::Reflection *reflection)
 {
-  for(const Function &f : m_Functions)
+  for(size_t i = 0; i < m_Functions.size(); i++)
   {
+    const Function &f = *m_Functions[i];
+
     if(f.name.beginsWith("dx.op.threadId"))
     {
       SigParameter param;
@@ -98,12 +103,13 @@ void Program::FetchComputeProperties(DXBC::Reflection *reflection)
 
   for(size_t i = 0; i < m_NamedMeta.size(); i++)
   {
-    if(m_NamedMeta[i].name == "dx.entryPoints")
+    const NamedMetadata &m = *m_NamedMeta[i];
+    if(m.name == "dx.entryPoints")
     {
       // expect only one child for this, DX doesn't support multiple entry points for compute
       // shaders
-      RDCASSERTEQUAL(m_NamedMeta[i].children.size(), 1);
-      Metadata &entry = *m_NamedMeta[i].children[0];
+      RDCASSERTEQUAL(m.children.size(), 1);
+      Metadata &entry = *m.children[0];
       RDCASSERTEQUAL(entry.children.size(), 5);
       Metadata &tags = *entry.children[4];
 
@@ -139,12 +145,13 @@ D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology()
 
   for(size_t i = 0; i < m_NamedMeta.size(); i++)
   {
-    if(m_NamedMeta[i].name == "dx.entryPoints")
+    const NamedMetadata &m = *m_NamedMeta[i];
+    if(m.name == "dx.entryPoints")
     {
       // expect only one child for this, DX doesn't support multiple entry points for compute
       // shaders
-      RDCASSERTEQUAL(m_NamedMeta[i].children.size(), 1);
-      Metadata &entry = *m_NamedMeta[i].children[0];
+      RDCASSERTEQUAL(m.children.size(), 1);
+      Metadata &entry = *m.children[0];
       RDCASSERTEQUAL(entry.children.size(), 5);
       Metadata &tags = *entry.children[4];
 
@@ -189,16 +196,16 @@ struct DXMeta
   // technically llvm.ident
   const Metadata *ident = NULL;
 
-  DXMeta(const rdcarray<NamedMetadata> &namedMeta)
+  DXMeta(const rdcarray<NamedMetadata *> &namedMeta)
   {
     DXMeta &dx = *this;
     DXMeta &llvm = *this;
 
     for(size_t i = 0; i < namedMeta.size(); i++)
     {
-#define GRAB_META(metaname)          \
-  if(namedMeta[i].name == #metaname) \
-    metaname = &namedMeta[i];
+#define GRAB_META(metaname)           \
+  if(namedMeta[i]->name == #metaname) \
+    metaname = namedMeta[i];
 
       GRAB_META(llvm.ident);
       GRAB_META(dx.source.contents);
@@ -780,9 +787,10 @@ DXBC::Reflection *Program::GetReflection()
 
   if(dx.valver && dx.valver->children.size() == 1 && dx.valver->children[0]->children.size() == 2)
   {
-    m_CompilerSig += StringFormat::Fmt(
-        " (Validation version %s.%s)", dx.valver->children[0]->children[0]->value.toString().c_str(),
-        dx.valver->children[0]->children[1]->value.toString().c_str());
+    m_CompilerSig +=
+        StringFormat::Fmt(" (Validation version %s.%s)",
+                          dx.valver->children[0]->children[0]->value->toString().c_str(),
+                          dx.valver->children[0]->children[1]->value->toString().c_str());
   }
 
   if(dx.entryPoints && dx.entryPoints->children.size() > 0 &&
@@ -801,8 +809,8 @@ DXBC::Reflection *Program::GetReflection()
   {
     m_Profile =
         StringFormat::Fmt("%s_%s_%s", dx.shaderModel->children[0]->children[0]->str.c_str(),
-                          dx.shaderModel->children[0]->children[1]->value.toString().c_str(),
-                          dx.shaderModel->children[0]->children[2]->value.toString().c_str());
+                          dx.shaderModel->children[0]->children[1]->value->toString().c_str(),
+                          dx.shaderModel->children[0]->children[2]->value->toString().c_str());
   }
   else
   {
@@ -1001,11 +1009,13 @@ void Program::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &
 {
   lineInfo = LineColumnInfo();
 
-  for(const Function &f : m_Functions)
+  for(size_t i = 0; i < m_Functions.size(); i++)
   {
+    const Function &f = *m_Functions[i];
+
     if(instruction < f.instructions.size())
     {
-      lineInfo.disassemblyLine = f.instructions[instruction].disassemblyLine;
+      lineInfo.disassemblyLine = f.instructions[instruction]->disassemblyLine;
       break;
     }
     instruction -= f.instructions.size();
