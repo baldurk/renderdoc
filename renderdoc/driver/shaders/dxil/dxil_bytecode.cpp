@@ -182,7 +182,7 @@ void Program::ParseConstant(ValueList &values, const LLVMBC::BlockOrRecord &cons
 {
   if(IS_KNOWN(constant.id, ConstantsRecord::SETTYPE))
   {
-    m_CurParseType = m_Types[constant.ops[0]];
+    m_CurParseType = m_Types[(size_t)constant.ops[0]];
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::CONST_NULL) ||
           IS_KNOWN(constant.id, ConstantsRecord::UNDEF))
@@ -222,7 +222,7 @@ void Program::ParseConstant(ValueList &values, const LLVMBC::BlockOrRecord &cons
     Constant *c = values.nextValue<Constant>();
     c->op = DecodeCast(constant.ops[0]);
     c->type = m_CurParseType;
-    c->setInner(values.getOrCreatePlaceholder(constant.ops[2]));
+    c->setInner(values.getOrCreatePlaceholder((size_t)constant.ops[2]));
     values.addValue();
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::EVAL_GEP))
@@ -233,14 +233,14 @@ void Program::ParseConstant(ValueList &values, const LLVMBC::BlockOrRecord &cons
 
     size_t idx = 0;
     if(constant.ops.size() & 1)
-      c->type = m_Types[constant.ops[idx++]];
+      c->type = m_Types[(size_t)constant.ops[idx++]];
 
     rdcarray<Value *> members;
 
     for(; idx < constant.ops.size(); idx += 2)
     {
-      const Type *t = m_Types[constant.ops[idx]];
-      Value *v = values[constant.ops[idx + 1]];
+      const Type *t = m_Types[(size_t)constant.ops[idx]];
+      Value *v = values[(size_t)constant.ops[idx + 1]];
       RDCASSERT(v->type == t);
 
       members.push_back(v);
@@ -278,7 +278,7 @@ void Program::ParseConstant(ValueList &values, const LLVMBC::BlockOrRecord &cons
     c->type = m_CurParseType;
     rdcarray<Value *> members;
     for(uint64_t m : constant.ops)
-      members.push_back(values.getOrCreatePlaceholder(m));
+      members.push_back(values.getOrCreatePlaceholder((size_t)m));
     c->setCompound(alloc, std::move(members));
     values.addValue();
   }
