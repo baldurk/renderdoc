@@ -144,7 +144,7 @@ const CopyFramebuffer &getCopyFramebuffer(WrappedOpenGL *driver,
   driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &stencilType);
 
-  auto it = copyFramebuffers.find(FramebufferKey{depthFormat, stencilFormat, numSamples});
+  auto it = copyFramebuffers.find({depthFormat, stencilFormat, numSamples});
   if(it != copyFramebuffers.end())
   {
     return it->second;
@@ -209,7 +209,7 @@ const CopyFramebuffer &getCopyFramebuffer(WrappedOpenGL *driver,
   driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, savedDrawFramebuffer);
   driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedReadFramebuffer);
 
-  FramebufferKey key{depthFormat, stencilFormat, numSamples};
+  FramebufferKey key = {depthFormat, stencilFormat, numSamples};
   copyFramebuffers[key] = copyFramebuffer;
   return copyFramebuffers[key];
 }
@@ -370,10 +370,10 @@ bool PixelHistorySetupResources(WrappedOpenGL *driver, GLPixelHistoryResources &
   // SPIR-V shaders are always generated as desktop GL 430, for ease
   rdcstr spirvSource = GenerateGLSLShader(GetEmbeddedResource(glsl_pixelhistory_primid_frag),
                                           ShaderType::GLSPIRV, 430);
-  rdcstr msCopySource = GenerateGLSLShader(GetEmbeddedResource(glsl_pixelhistory_mscopy_comp),
-                                           ShaderType::GLSPIRV, 430);
+  rdcstr msCopySource =
+      GenerateGLSLShader(GetEmbeddedResource(glsl_pixelhistory_mscopy_comp), ShaderType::GLSL, 430);
   rdcstr msCopySourceDepth = GenerateGLSLShader(
-      GetEmbeddedResource(glsl_pixelhistory_mscopy_depth_comp), ShaderType::GLSPIRV, 430);
+      GetEmbeddedResource(glsl_pixelhistory_mscopy_depth_comp), ShaderType::GLSL, 430);
   resources.primitiveIdFragmentShaderSPIRV = CreateSPIRVShader(eGL_FRAGMENT_SHADER, spirvSource);
   resources.primitiveIdFragmentShader = CreateShader(eGL_FRAGMENT_SHADER, glslSource);
   resources.msCopyComputeProgram = CreateCShaderProgram(msCopySource);
@@ -427,14 +427,7 @@ void CopyMSSample(WrappedOpenGL *driver, const GLPixelHistoryResources &resource
 
   driver->glUseProgram(resources.msCopyComputeProgram);
   GLint srcMSLoc = driver->glGetUniformLocation(resources.msCopyComputeProgram, "srcMS");
-  // GLint srcDepthMSLoc = driver->glGetUniformLocation(resources.msCopyComputeProgram,
-  // "srcDepthMS");
-  // GLint srcStencilMSLoc =
-  //     driver->glGetUniformLocation(resources.msCopyComputeProgram, "srcStencilMS");
-
   driver->glUniform1i(srcMSLoc, 0);
-  // driver->glUniform1i(srcDepthMSLoc, 1);
-  // driver->glUniform1i(srcStencilMSLoc, 2);
 
   uint32_t uniforms[4] = {uint32_t(sampleIdx), uint32_t(x), uint32_t(y),
                           0};    // { sampleIdx, x, y, dstOffset }
