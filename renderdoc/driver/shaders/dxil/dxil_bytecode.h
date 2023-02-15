@@ -658,7 +658,7 @@ struct Constant : public ForwardReferencableValue<Constant>
     if(flags & 0x10)
       return u32;
     // silently return 0 for NULL/Undef constants
-    if(flags & 0x06)
+    if(flags & 0x03)
       return 0U;
     RDCERR("Wrong type of constant being accessed");
     return 0U;
@@ -669,7 +669,7 @@ struct Constant : public ForwardReferencableValue<Constant>
     if(flags & 0x10)
       return u64;
     // silently return 0 for NULL/Undef constants
-    if(flags & 0x06)
+    if(flags & 0x03)
       return 0U;
     RDCERR("Wrong type of constant being accessed");
     return 0U;
@@ -680,7 +680,7 @@ struct Constant : public ForwardReferencableValue<Constant>
     if(flags & 0x10)
       return s64;
     // silently return 0 for NULL/Undef constants
-    if(flags & 0x06)
+    if(flags & 0x03)
       return 0;
     RDCERR("Wrong type of constant being accessed");
     return 0U;

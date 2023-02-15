@@ -1875,7 +1875,10 @@ rdcstr Constant::toString(bool withType) const
         ret += ", ";
       if(withType)
         ret += type->inner->toString() + " ";
-      shaderValAppendToString(type, v, i, ret);
+      if(isCompound() && cast<Constant>(members->at(i))->isUndef())
+        ret += "undef";
+      else
+        shaderValAppendToString(type, v, i, ret);
     }
     ret += ">";
   }
