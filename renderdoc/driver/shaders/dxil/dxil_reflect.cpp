@@ -247,7 +247,6 @@ struct TypeInfo
 
   struct StructData
   {
-    uint32_t byteSize;
     rdcarray<MemberData> members;
   };
 
@@ -281,7 +280,6 @@ struct TypeInfo
                 structMembers->children.size(), type->members.size());
 
       StructData &data = structData[type];
-      data.byteSize = getival<uint32_t>(structMembers->children[0]);
       data.members.resize(type->members.size());
 
       for(size_t m = 0; m < type->members.size(); m++)
@@ -440,116 +438,135 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
 
   auto it = typeInfo.structData.find(t);
 
-  if(it != typeInfo.structData.end())
-  {
-    ret.bytesize = it->second.byteSize;
-  }
-  else
+  if(it == typeInfo.structData.end())
   {
     // shouldn't get here if we don't have type information at all
     RDCERR("Couldn't find type information for struct '%s'!", t->name.c_str());
     return ret;
   }
 
+  bool structured = false;
   if(ret.name.contains("StructuredBuffer<"))
   {
-    // silently go into the inner member that's declared in this type as we only care about
-    // reflecting that actual structure
-    if(t->members.size() == 1 && it->second.members.size() == 1 && it->second.members[0].name == "h")
-      return MakeCBufferVariableType(typeInfo, t->members[0]);
+    structured = true;
 
-    RDCWARN("Structured buffer declaration found but expected single inner handle");
+    if(t->members.size() != 1 || it->second.members.size() != 1 || it->second.members[0].name != "h")
+    {
+      RDCWARN("Structured buffer declaration found but expected single inner handle");
 
-    // otherwise use it as-is and trim off the name in an attempt to make it look normal
+      // otherwise use it as-is and trim off the name in an attempt to make it look normal
 
-    ret.name.trim();
+      ret.name.trim();
 
-    // remove any outer definition of the type
-    if(ret.name.back() == '>')
-      ret.name.pop_back();
-    else
-      RDCERR("Expected closing > in StructuredBuffer type name");
+      // remove any outer definition of the type
+      if(ret.name.back() == '>')
+        ret.name.pop_back();
+      else
+        RDCERR("Expected closing > in StructuredBuffer type name");
 
-    int idx = ret.name.indexOf('<');
-    ret.name.erase(0, idx + 1);
+      int idx = ret.name.indexOf('<');
+      ret.name.erase(0, idx + 1);
+    }
   }
 
   for(size_t i = 0; i < t->members.size(); i++)
   {
     CBufferVariable var;
-    var.type = MakeCBufferVariableType(typeInfo, t->members[i]);
-    if(it != typeInfo.structData.end())
+
+    var.name = it->second.members[i].name;
+    var.offset = it->second.members[i].offset;
+
+    const Type *inner = t->members[i];
+    // unpeel any arrays
+    while(inner->type == Type::Array)
+      inner = inner->inner;
+
+    if(var.type.members.empty() &&
+       (inner->type != Type::Struct || (it->second.members[i].flags & TypeInfo::MemberData::Matrix)))
     {
-      var.name = it->second.members[i].name;
-      var.offset = it->second.members[i].offset;
-
-      if(it->second.members[i].flags & TypeInfo::MemberData::Matrix)
+      switch(it->second.members[i].type)
       {
-        var.type.rows = it->second.members[i].rows;
-        var.type.cols = it->second.members[i].cols;
-        var.type.varClass = (it->second.members[i].flags & TypeInfo::MemberData::RowMajor)
-                                ? CLASS_MATRIX_ROWS
-                                : CLASS_MATRIX_COLUMNS;
+        case ComponentType::Invalid:
+          var.type.varType = VarType::Unknown;
+          RDCERR("Unexpected type in cbuffer annotations");
+          break;
+        case ComponentType::I1: var.type.varType = VarType::Bool; break;
+        case ComponentType::I16: var.type.varType = VarType::SShort; break;
+        case ComponentType::U16: var.type.varType = VarType::UShort; break;
+        case ComponentType::I32: var.type.varType = VarType::SInt; break;
+        case ComponentType::U32: var.type.varType = VarType::UInt; break;
+        case ComponentType::I64: var.type.varType = VarType::SLong; break;
+        case ComponentType::U64: var.type.varType = VarType::ULong; break;
+        case ComponentType::F16: var.type.varType = VarType::Half; break;
+        case ComponentType::F32: var.type.varType = VarType::Float; break;
+        case ComponentType::F64: var.type.varType = VarType::Double; break;
+        case ComponentType::SNormF16:
+          var.type.varType = VarType::Half;
+          RDCERR("Unexpected type in cbuffer annotations");
+          break;
+        case ComponentType::UNormF16:
+          var.type.varType = VarType::Half;
+          RDCERR("Unexpected type in cbuffer annotations");
+          break;
+        case ComponentType::SNormF32:
+          var.type.varType = VarType::Float;
+          RDCERR("Unexpected type in cbuffer annotations");
+          break;
+        case ComponentType::UNormF32:
+          var.type.varType = VarType::Float;
+          RDCERR("Unexpected type in cbuffer annotations");
+          break;
+        case ComponentType::SNormF64:
+          var.type.varType = VarType::Double;
+          RDCERR("Unexpected type in cbuffer annotations");
+          break;
+        case ComponentType::UNormF64:
+          var.type.varType = VarType::Double;
+          RDCERR("Unexpected type in cbuffer annotations");
+          break;
+      }
+    }
 
-        // the array was expanded out like float[4][3] would be, so divide by the matrix dimension
-        // to get the real array size
-        var.type.elements /= (it->second.members[i].flags & TypeInfo::MemberData::RowMajor)
-                                 ? var.type.rows
-                                 : var.type.cols;
+    if(it->second.members[i].flags & TypeInfo::MemberData::Matrix)
+    {
+      var.type.elements = 1;
+      const Type *matType = t->members[i];
+      // unpeel any arrays that aren't the last one (that's the matrix array)
+      while(matType->type == Type::Array && matType->inner->type == Type::Array)
+      {
+        var.type.elements *= matType->elemCount;
+        matType = matType->inner;
       }
 
-      if(var.type.members.empty() && t->members[i]->type != Type::Struct)
-      {
-        switch(it->second.members[i].type)
-        {
-          case ComponentType::Invalid:
-            var.type.varType = VarType::Unknown;
-            RDCERR("Unexpected type in cbuffer annotations");
-            break;
-          case ComponentType::I1: var.type.varType = VarType::Bool; break;
-          case ComponentType::I16: var.type.varType = VarType::SShort; break;
-          case ComponentType::U16: var.type.varType = VarType::UShort; break;
-          case ComponentType::I32: var.type.varType = VarType::SInt; break;
-          case ComponentType::U32: var.type.varType = VarType::UInt; break;
-          case ComponentType::I64: var.type.varType = VarType::SLong; break;
-          case ComponentType::U64: var.type.varType = VarType::ULong; break;
-          case ComponentType::F16: var.type.varType = VarType::Half; break;
-          case ComponentType::F32: var.type.varType = VarType::Float; break;
-          case ComponentType::F64: var.type.varType = VarType::Double; break;
-          case ComponentType::SNormF16:
-            var.type.varType = VarType::Half;
-            RDCERR("Unexpected type in cbuffer annotations");
-            break;
-          case ComponentType::UNormF16:
-            var.type.varType = VarType::Half;
-            RDCERR("Unexpected type in cbuffer annotations");
-            break;
-          case ComponentType::SNormF32:
-            var.type.varType = VarType::Float;
-            RDCERR("Unexpected type in cbuffer annotations");
-            break;
-          case ComponentType::UNormF32:
-            var.type.varType = VarType::Float;
-            RDCERR("Unexpected type in cbuffer annotations");
-            break;
-          case ComponentType::SNormF64:
-            var.type.varType = VarType::Double;
-            RDCERR("Unexpected type in cbuffer annotations");
-            break;
-          case ComponentType::UNormF64:
-            var.type.varType = VarType::Double;
-            RDCERR("Unexpected type in cbuffer annotations");
-            break;
-        }
-      }
+      RDCASSERT(var.type.varType != VarType::Unknown);
+
+      var.type.rows = it->second.members[i].rows;
+      var.type.cols = it->second.members[i].cols;
+      var.type.varClass = (it->second.members[i].flags & TypeInfo::MemberData::RowMajor)
+                              ? CLASS_MATRIX_ROWS
+                              : CLASS_MATRIX_COLUMNS;
+
+      var.type.name = ToStr(var.type.varType);
+      var.type.name += ToStr(var.type.rows);
+      var.type.name += "x";
+      var.type.name += ToStr(var.type.cols);
+
+      var.type.bytesize =
+          VarTypeByteSize(var.type.varType) * var.type.rows * var.type.cols * var.type.elements;
     }
     else
     {
-      var.name = StringFormat::Fmt("_child%zu", i);
-      var.offset = 0;
+      var.type = MakeCBufferVariableType(typeInfo, t->members[i]);
     }
+
     ret.members.push_back(var);
   }
+
+  // silently go into the inner member that's declared in this type as we only care about
+  // reflecting that actual structure
+  if(structured && t->members.size() == 1 && it->second.members.size() == 1 &&
+     it->second.members[0].name == "h")
+    return ret.members[0].type;
 
   return ret;
 }
