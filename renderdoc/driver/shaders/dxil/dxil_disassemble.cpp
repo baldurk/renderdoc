@@ -732,7 +732,14 @@ void Program::MakeDisassemblyString()
 
             break;
           }
-          case Operation::Ret: m_Disassembly += "ret " + inst.type->toString(); break;
+          case Operation::Ret:
+          {
+            if(inst.args.empty())
+              m_Disassembly += "ret " + inst.type->toString();
+            else
+              m_Disassembly += "ret " + argToString(inst.args[0], true);
+            break;
+          }
           case Operation::Unreachable: m_Disassembly += "unreachable"; break;
           case Operation::Alloca:
           {

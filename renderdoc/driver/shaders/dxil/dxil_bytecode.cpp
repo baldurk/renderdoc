@@ -1293,22 +1293,12 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
             }
             else if(op.type == FunctionRecord::INST_RET)
             {
-              Instruction *inst = NULL;
+              // even rets returning a value are still void
+              Instruction *inst = new(alloc) Instruction;
+              inst->type = GetVoidType();
 
-              if(op.remaining() == 0)
-              {
-                inst = new(alloc) Instruction;
-                inst->type = GetVoidType();
-
-                RDCASSERT(inst->type);
-              }
-              else
-              {
-                inst = values.nextValue<Instruction>();
+              if(op.remaining() != 0)
                 inst->args.push_back(op.getSymbol());
-                inst->type = inst->args.back()->type;
-                values.addValue();
-              }
 
               inst->op = Operation::Ret;
 
