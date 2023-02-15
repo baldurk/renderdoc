@@ -996,6 +996,7 @@ struct Function : public Value
   rdcstr name;
 
   bool external = false;
+  bool internalLinkage = false;
   bool sortedSymtab = true;
   const AttributeSet *attrs = NULL;
 

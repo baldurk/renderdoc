@@ -478,7 +478,11 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
         RDCASSERTMSG("Calling convention is non-default", rootchild.ops[1] == 0);
         f->external = (rootchild.ops[2] != 0);
         // ignore linkage
-        RDCASSERTMSG("Linkage is non-default", rootchild.ops[3] == 0);
+        if(rootchild.ops[3] == 3)
+          f->internalLinkage = true;
+        else
+          RDCASSERTMSG("Linkage is non-default and not internal", rootchild.ops[3] == 0,
+                       rootchild.ops[3]);
         if(rootchild.ops[4] > 0 && rootchild.ops[4] - 1 < m_AttributeSets.size())
           f->attrs = &m_AttributeSets[(size_t)rootchild.ops[4] - 1];
 

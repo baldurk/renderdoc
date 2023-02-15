@@ -546,6 +546,8 @@ void Program::MakeDisassemblyString()
     }
 
     m_Disassembly += (func.external ? "declare " : "define ");
+    if(func.internalLinkage)
+      m_Disassembly += "internal ";
     m_Disassembly +=
         func.type->declFunction("@" + escapeStringIfNeeded(func.name), func.args, func.attrs);
 
