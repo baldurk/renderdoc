@@ -659,19 +659,21 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
   {
     case ResourceKind::Unknown:
     case ResourceKind::SamplerComparison:
-    case ResourceKind::RTAccelerationStructure:
     case ResourceKind::CBuffer:
     case ResourceKind::Sampler:
-    case ResourceKind::FeedbackTexture2D:
-    case ResourceKind::FeedbackTexture2DArray:
       RDCERR("Unexpected %s shape %u", srv ? "SRV" : "UAV", shape);
       defName = srv ? "SRV" : "UAV";
+      break;
+    case ResourceKind::RTAccelerationStructure:
+      RDCWARN("CS or PS with RT use, not reflected");
       break;
     case ResourceKind::Texture1D:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
       defName = srv ? "Texture1D" : "RWTexture1D";
       bind.dimension = ShaderInputBind::DIM_TEXTURE1D;
       break;
+    case ResourceKind::FeedbackTexture2D:
+    // fallthrough, resource type unhandled right now
     case ResourceKind::Texture2D:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
       defName = srv ? "Texture2D" : "RWTexture2D";
@@ -697,6 +699,8 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
       defName = srv ? "Texture1DArray" : "RWTexture1DArray";
       bind.dimension = ShaderInputBind::DIM_TEXTURE1DARRAY;
       break;
+    case ResourceKind::FeedbackTexture2DArray:
+    // fallthrough, resource type unhandled right now
     case ResourceKind::Texture2DArray:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
       defName = srv ? "Texture2DArray" : "RWTexture2DArray";
