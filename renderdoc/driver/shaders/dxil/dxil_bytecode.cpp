@@ -490,7 +490,17 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
 
         // ignore rest of properties, assert that if present they are 0
         for(size_t p = 6; p < rootchild.ops.size(); p++)
+        {
+          // 12, if present, is the comdat index
+          if(p == 12 && rootchild.ops[p] > 0)
+          {
+            RDCASSERT(rootchild.ops[p] - 1 < m_Comdats.size(), rootchild.ops[p], m_Comdats.size());
+            f->comdatIdx = uint32_t(rootchild.ops[p] - 1);
+            continue;
+          }
+
           RDCASSERT(rootchild.ops[p] == 0, p, rootchild.ops[p]);
+        }
 
         if(!f->external)
           functionDecls.push_back(m_Functions.size());
@@ -516,6 +526,11 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
       else if(IS_KNOWN(rootchild.id, ModuleRecord::SECTIONNAME))
       {
         m_Sections.push_back(rootchild.getString(0));
+      }
+      else if(IS_KNOWN(rootchild.id, ModuleRecord::COMDAT))
+      {
+        // can ignore the length for now, it's implicit anyway as there's nothing after the string
+        m_Comdats.push_back({rootchild.ops[0], rootchild.getString(2)});
       }
       else
       {

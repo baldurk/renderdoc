@@ -658,7 +658,14 @@ bytebuf ProgramEditor::EncodeProgram()
     writer.EndBlock();
   }
 
-  // COMDAT would be next, but we don't read these (DXIL seems not to use them...?)
+  for(size_t i = 0; i < m_Comdats.size(); i++)
+  {
+    rdcarray<uint64_t> vals;
+    vals.push_back(m_Comdats[i].first);
+    for(char c : m_Comdats[i].second)
+      vals.push_back(c);
+    writer.Record(LLVMBC::ModuleRecord::COMDAT, vals);
+  }
 
   if(!m_Triple.empty())
     writer.Record(LLVMBC::ModuleRecord::TRIPLE, m_Triple);
@@ -761,7 +768,7 @@ bytebuf ProgramEditor::EncodeProgram()
                       // dllstorageclass
                       0U,
                       // comdat
-                      0U,
+                      uint64_t(f.comdatIdx != ~0U ? 1U + f.comdatIdx : 0U),
                       // prefixdata
                       0U,
                       // personality

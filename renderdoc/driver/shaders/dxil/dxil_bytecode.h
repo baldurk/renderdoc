@@ -998,6 +998,7 @@ struct Function : public Value
   bool external = false;
   bool internalLinkage = false;
   bool sortedSymtab = true;
+  uint32_t comdatIdx = ~0U;
   const AttributeSet *attrs = NULL;
 
   uint64_t align = 0;
@@ -1093,6 +1094,7 @@ protected:
   rdcarray<Function *> m_Functions;
   rdcarray<Alias *> m_Aliases;
   rdcarray<rdcstr> m_Sections;
+  rdcarray<rdcpair<uint64_t, rdcstr>> m_Comdats;
   uint32_t m_directHeapAccessCount = 0;
 
   rdcarray<rdcstr> m_Kinds;

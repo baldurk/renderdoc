@@ -96,6 +96,7 @@ enum class ModuleRecord : uint32_t
   GLOBALVAR = 7,
   FUNCTION = 8,
   ALIAS = 9,
+  COMDAT = 12,
 };
 
 enum class ConstantsRecord : uint32_t

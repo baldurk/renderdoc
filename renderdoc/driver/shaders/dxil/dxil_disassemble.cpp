@@ -313,6 +313,28 @@ void Program::MakeDisassemblyString()
 
   int instructionLine = 6;
 
+  for(const rdcpair<uint64_t, rdcstr> &comdat : m_Comdats)
+  {
+    rdcstr type = "unknown";
+    switch(comdat.first)
+    {
+      case 1: type = "any"; break;
+      case 2: type = "exactmatch"; break;
+      case 3: type = "largest"; break;
+      case 4: type = "noduplicates"; break;
+      case 5: type = "samesize"; break;
+    }
+    m_Disassembly += StringFormat::Fmt("$%s = comdat %s\n",
+                                       escapeStringIfNeeded(comdat.second).c_str(), type.c_str());
+    instructionLine++;
+  }
+
+  if(!m_Comdats.empty())
+  {
+    m_Disassembly += "\n";
+    instructionLine++;
+  }
+
   LLVMOrderAccumulator accum;
   accum.processGlobals(this);
 
@@ -550,6 +572,10 @@ void Program::MakeDisassemblyString()
       m_Disassembly += "internal ";
     m_Disassembly +=
         func.type->declFunction("@" + escapeStringIfNeeded(func.name), func.args, func.attrs);
+
+    if(func.comdatIdx < m_Comdats.size())
+      m_Disassembly += StringFormat::Fmt(
+          " comdat($%s)", escapeStringIfNeeded(m_Comdats[func.comdatIdx].second).c_str());
 
     if(func.attrs && func.attrs->functionSlot)
       m_Disassembly += StringFormat::Fmt(" #%u", funcAttrGroups.indexOf(func.attrs->functionSlot));
