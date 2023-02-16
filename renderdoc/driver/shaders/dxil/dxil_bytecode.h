@@ -1172,6 +1172,7 @@ private:
   void accumulateTypePrintOrder(const Type *t);
   void accumulateTypePrintOrder(rdcarray<const Metadata *> &visited, const Metadata *m);
   void assignTypeId(const Type *t);
+  void assignTypeId(const Constant *c);
 };
 
 };    // namespace DXIL

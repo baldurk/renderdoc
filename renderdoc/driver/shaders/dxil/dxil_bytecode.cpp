@@ -2513,6 +2513,7 @@ void LLVMOrderAccumulator::processGlobals(Program *prog)
       {
         assignTypeId(inst->args[a]->type);
         accumulate(cast<Metadata>(inst->args[a]));
+        assignTypeId(cast<Constant>(inst->args[a]));
       }
       assignTypeId(inst->type);
       for(size_t m = 0; m < inst->getAttachedMeta().size(); m++)
@@ -2714,6 +2715,19 @@ void LLVMOrderAccumulator::assignTypeId(const Type *t)
   Type *type = (Type *)t;
   type->id = types.size() & 0xffff;
   types.push_back(t);
+}
+
+void LLVMOrderAccumulator::assignTypeId(const Constant *c)
+{
+  if(!c)
+    return;
+
+  assignTypeId(c->type);
+  if(c->isCast())
+    assignTypeId(cast<Constant>(c->getInner()));
+  else if(c->isCompound())
+    for(Value *v : c->getMembers())
+      assignTypeId(cast<Constant>(v));
 }
 
 void LLVMOrderAccumulator::accumulate(const Value *v)
