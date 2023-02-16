@@ -505,6 +505,16 @@ struct DICompositeType : public DIBase
   virtual rdcstr toString() const;
 };
 
+struct DIEnum : public DIBase
+{
+  static const DIBase::Type DIType = DIBase::Enum;
+  DIEnum(int64_t value, const rdcstr *name) : DIBase(DIType), value(value), name(name) {}
+  int64_t value;
+  const rdcstr *name;
+
+  virtual rdcstr toString() const;
+};
+
 struct DITemplateTypeParameter : public DIBase
 {
   static const DIBase::Type DIType = DIBase::TemplateTypeParameter;
@@ -607,7 +617,7 @@ struct DIGlobalVariable : public DIBase
   static const DIBase::Type DIType = DIBase::GlobalVariable;
   DIGlobalVariable(const Metadata *scope, const rdcstr *name, const rdcstr *linkageName,
                    const Metadata *file, uint64_t line, const Metadata *type, bool isLocal,
-                   bool isDefinition, const Metadata *variable, const Metadata *staticData)
+                   bool isDefinition, const Metadata *variable, const Metadata *declaration)
       : DIBase(DIType),
         scope(scope),
         name(name),
@@ -618,7 +628,7 @@ struct DIGlobalVariable : public DIBase
         isLocal(isLocal),
         isDefinition(isDefinition),
         variable(variable),
-        staticData(staticData)
+        declaration(declaration)
   {
   }
 
@@ -631,7 +641,7 @@ struct DIGlobalVariable : public DIBase
   bool isLocal;
   bool isDefinition;
   const Metadata *variable;
-  const Metadata *staticData;
+  const Metadata *declaration;
 
   virtual rdcstr toString() const;
 };
@@ -640,8 +650,7 @@ struct DILocalVariable : public DIBase
 {
   static const DIBase::Type DIType = DIBase::LocalVariable;
   DILocalVariable(DW_TAG tag, const Metadata *scope, const rdcstr *name, const Metadata *file,
-                  uint64_t line, const Metadata *type, uint64_t arg, DIFlags flags,
-                  uint64_t alignInBits)
+                  uint64_t line, const Metadata *type, uint64_t arg, DIFlags flags)
       : DIBase(DIType),
         tag(tag),
         scope(scope),
@@ -650,8 +659,7 @@ struct DILocalVariable : public DIBase
         line(line),
         type(type),
         arg(arg),
-        flags(flags),
-        alignInBits(alignInBits)
+        flags(flags)
   {
   }
 
@@ -705,17 +713,50 @@ struct DILexicalBlock : public DIBase
 struct DISubrange : public DIBase
 {
   static const DIBase::Type DIType = DIBase::Subrange;
-  DISubrange(uint64_t count, int64_t lowerBound)
+  DISubrange(int64_t count, int64_t lowerBound)
       : DIBase(DIType), count(count), lowerBound(lowerBound)
   {
   }
 
-  uint64_t count;
+  int64_t count;
   int64_t lowerBound;
 
   virtual rdcstr toString() const;
 };
 
+struct DINamespace : public DIBase
+{
+  static const DIBase::Type DIType = DIBase::Namespace;
+  DINamespace(const Metadata *scope, const Metadata *file, const rdcstr *name, uint64_t line)
+      : DIBase(DIType), scope(scope), file(file), name(name), line(line)
+  {
+  }
+
+  const Metadata *scope;
+  const Metadata *file;
+  const rdcstr *name;
+  uint64_t line;
+
+  virtual rdcstr toString() const;
+};
+
+struct DIImportedEntity : public DIBase
+{
+  static const DIBase::Type DIType = DIBase::ImportedEntity;
+  DIImportedEntity(DW_TAG tag, const Metadata *scope, const Metadata *entity, uint64_t line,
+                   const rdcstr *name)
+      : DIBase(DIType), tag(tag), scope(scope), entity(entity), line(line), name(name)
+  {
+  }
+
+  DW_TAG tag;
+  const Metadata *scope;
+  const Metadata *entity;
+  uint64_t line;
+  const rdcstr *name;
+
+  virtual rdcstr toString() const;
+};
 };    // namespace DXIL
 
 DECLARE_REFLECTION_ENUM(DXIL::DW_LANG);

@@ -755,6 +755,9 @@ struct DIBase
     Expression,
     LexicalBlock,
     Subrange,
+    Namespace,
+    ImportedEntity,
+    Enum,
   } type;
 
   DIBase(Type t) : type(t) {}
