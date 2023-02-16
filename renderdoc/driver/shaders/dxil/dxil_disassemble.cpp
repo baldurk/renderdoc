@@ -1577,7 +1577,7 @@ rdcstr AttributeGroup::toString(bool stringAttrs) const
   }
   if(p & Attribute::Dereferenceable)
   {
-    ret += StringFormat::Fmt(" dereferenceable=%llu", derefBytes);
+    ret += StringFormat::Fmt(" dereferenceable(%llu)", derefBytes);
     p &= ~Attribute::Dereferenceable;
   }
   if(p & Attribute::DereferenceableOrNull)
@@ -1588,7 +1588,7 @@ rdcstr AttributeGroup::toString(bool stringAttrs) const
 
   if(p != Attribute::None)
   {
-    ret = ToStr(p) + " " + ret;
+    ret = ToStr(p) + " " + ret.trimmed();
     int offs = ret.indexOf('|');
     while(offs >= 0)
     {
@@ -2004,11 +2004,18 @@ rdcstr DoStringise(const DXIL::Attribute &el)
   {
     STRINGISE_BITFIELD_CLASS_VALUE_NAMED(None, "");
 
-    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Alignment, "align");
+    // these bits are ordered not in declaration order (which matches how they're serialised) but in
+    // the (mostly but not quite) alphabetical order since that's how LLVM prints them
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Alignment, "alignment");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(AlwaysInline, "alwaysinline");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Builtin, "builtin");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(ByVal, "byval");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(InAlloca, "inalloca");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Cold, "cold");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Convergent, "convergent");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(InlineHint, "inlinehint");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(InReg, "inreg");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(JumpTable, "jumptable");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(MinSize, "minsize");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(Naked, "naked");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(Nest, "nest");
@@ -2019,12 +2026,17 @@ rdcstr DoStringise(const DXIL::Attribute &el)
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoImplicitFloat, "noimplicitfloat");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoInline, "noinline");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(NonLazyBind, "nonlazybind");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NonNull, "nonnull");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Dereferenceable, "dereferenceable");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(DereferenceableOrNull, "dereferenceable_or_null");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoRedZone, "noredzone");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoReturn, "noreturn");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoUnwind, "nounwind");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(OptimizeForSize, "optsize");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(OptimizeNone, "optnone");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(ReadNone, "readnone");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(ReadOnly, "readonly");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(ArgMemOnly, "argmemonly");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(Returned, "returned");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(ReturnsTwice, "returns_twice");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(SExt, "signext");
@@ -2032,23 +2044,13 @@ rdcstr DoStringise(const DXIL::Attribute &el)
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(StackProtect, "ssp");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(StackProtectReq, "sspreq");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(StackProtectStrong, "sspstrong");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(SafeStack, "safestack");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(StructRet, "sret");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(SanitizeAddress, "sanitize_address");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(SanitizeThread, "sanitize_thread");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(SanitizeMemory, "sanitize_memory");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(UWTable, "uwtable");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(ZExt, "zeroext");
-    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Builtin, "builtin");
-    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Cold, "cold");
-    STRINGISE_BITFIELD_CLASS_BIT_NAMED(OptimizeNone, "optnone");
-    STRINGISE_BITFIELD_CLASS_BIT_NAMED(InAlloca, "inalloca");
-    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NonNull, "nonnull");
-    STRINGISE_BITFIELD_CLASS_BIT_NAMED(JumpTable, "jumptable");
-    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Dereferenceable, "dereferenceable");
-    STRINGISE_BITFIELD_CLASS_BIT_NAMED(DereferenceableOrNull, "dereferenceable_or_null");
-    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Convergent, "convergent");
-    STRINGISE_BITFIELD_CLASS_BIT_NAMED(SafeStack, "safestack");
-    STRINGISE_BITFIELD_CLASS_BIT_NAMED(ArgMemOnly, "argmemonly");
   }
   END_BITFIELD_STRINGISE();
 }
