@@ -984,7 +984,6 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
         {
           Instruction *arg = values.nextValue<Instruction>();
           arg->type = f->type->members[i];
-          arg->extra(alloc).name = StringFormat::Fmt("arg%zu", i);
           f->args.push_back(arg);
           values.addValue();
         }
@@ -2601,6 +2600,10 @@ void LLVMOrderAccumulator::processFunction(Function *f)
 
   uint32_t slot = 0;
   uint32_t curBlock = 0;
+
+  for(Instruction *arg : func.args)
+    if(arg->getName().isEmpty())
+      arg->slot = slot++;
 
   if(!func.blocks.empty() && func.blocks[0]->name.empty())
     func.blocks[0]->slot = slot++;
