@@ -455,7 +455,7 @@ bytebuf ProgramEditor::EncodeProgram()
 
   cfg.hasNamedMeta = !m_NamedMeta.empty();
 
-  cfg.numTypes = m_Types.size();
+  cfg.numTypes = accum.types.size();
   cfg.numSections = m_Sections.size();
   cfg.numGlobalValues = values.size();
 
