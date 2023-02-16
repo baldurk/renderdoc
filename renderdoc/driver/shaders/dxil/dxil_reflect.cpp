@@ -348,6 +348,27 @@ struct TypeInfo
   }
 };
 
+// a struct is empty if it has no members, or all members are empty structs
+static bool IsEmptyStruct(const Type *t)
+{
+  // base case - a non-struct is defined as 'non-empty' to propagate up
+  if(t->type != Type::Struct)
+    return false;
+
+  // for structs, no members is a trivial empty struct
+  if(t->members.empty())
+    return true;
+
+  // now recurse.
+  // is any member a non-empty struct? if so this is also a non-empty struct
+  for(const Type *m : t->members)
+    if(!IsEmptyStruct(m))
+      return false;
+
+  // no members are non-empty => all members are empty => this is empty
+  return true;
+}
+
 static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInfo, const Type *t)
 {
   using namespace DXBC;
@@ -432,8 +453,8 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
   if(ret.name.beginsWith(classPrefix))
     ret.name.erase(0, sizeof(classPrefix) - 1);
 
-  // if there are no members, return straight away
-  if(t->members.empty())
+  // if this is an empty struct (including recursion), return straight away
+  if(IsEmptyStruct(t))
     return ret;
 
   auto it = typeInfo.structData.find(t);
