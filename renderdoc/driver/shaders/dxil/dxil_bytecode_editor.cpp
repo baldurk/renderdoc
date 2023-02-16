@@ -750,7 +750,7 @@ bytebuf ProgramEditor::EncodeProgram()
                       // external/declaration
                       f.external ? 1U : 0U,
                       // linkage
-                      0U,
+                      f.internalLinkage ? 3U : 0U,
                       // attributes
                       uint64_t(f.attrs ? 1U + getAttribID(f.attrs) : 0U),
                       // alignment
