@@ -1888,7 +1888,10 @@ rdcstr Constant::toString(bool withType) const
   }
   else if(isNULL())
   {
-    ret += "zeroinitializer";
+    if(type->type == Type::Pointer)
+      ret += "null";
+    else
+      ret += "zeroinitializer";
   }
   else if(type->type == Type::Vector)
   {
