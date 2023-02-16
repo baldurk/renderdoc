@@ -1505,10 +1505,19 @@ rdcstr Type::toString() const
     }
     case Vector: return StringFormat::Fmt("<%u x %s>", elemCount, inner->toString().c_str());
     case Pointer:
+    {
+      if(inner->type == Type::Function)
+      {
+        if(addrSpace == Type::PointerAddrSpace::Default)
+          return inner->toString();
+        else
+          return StringFormat::Fmt("%s addrspace(%d)", inner->toString().c_str(), addrSpace);
+      }
       if(addrSpace == Type::PointerAddrSpace::Default)
         return StringFormat::Fmt("%s*", inner->toString().c_str());
       else
         return StringFormat::Fmt("%s addrspace(%d)*", inner->toString().c_str(), addrSpace);
+    }
     case Array: return StringFormat::Fmt("[%u x %s]", elemCount, inner->toString().c_str());
     case Function: return declFunction(rdcstr(), {}, NULL) + "*";
     case Struct:
