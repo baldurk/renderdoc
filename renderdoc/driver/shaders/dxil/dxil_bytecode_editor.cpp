@@ -928,8 +928,7 @@ bytebuf ProgramEditor::EncodeProgram()
 
     bool needMetaAttach = !f->attachedMeta.empty();
 
-    uint32_t lastValidInstId =
-        uint32_t(accum.firstFuncConst + accum.numFuncConsts + f->args.size()) - 1;
+    uint32_t lastValidInstId = uint32_t(accum.firstFuncConst + accum.numFuncConsts) - 1;
 
     for(const Instruction *inst : f->instructions)
     {
