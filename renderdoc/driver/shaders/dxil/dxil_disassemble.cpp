@@ -562,9 +562,12 @@ void Program::MakeDisassemblyString()
 
     if(func.attrs && func.attrs->functionSlot)
     {
-      m_Disassembly += StringFormat::Fmt("; Function Attrs: %s\n",
-                                         func.attrs->functionSlot->toString(false).c_str());
-      instructionLine++;
+      rdcstr funcAttrs = func.attrs->functionSlot->toString(false).c_str();
+      if(!funcAttrs.empty())
+      {
+        m_Disassembly += StringFormat::Fmt("; Function Attrs: %s\n", funcAttrs.c_str());
+        instructionLine++;
+      }
     }
 
     m_Disassembly += (func.external ? "declare " : "define ");
@@ -576,6 +579,9 @@ void Program::MakeDisassemblyString()
     if(func.comdatIdx < m_Comdats.size())
       m_Disassembly += StringFormat::Fmt(
           " comdat($%s)", escapeStringIfNeeded(m_Comdats[func.comdatIdx].second).c_str());
+
+    if(func.align)
+      m_Disassembly += StringFormat::Fmt(" align %u", (1U << func.align) >> 1);
 
     if(func.attrs && func.attrs->functionSlot)
       m_Disassembly += StringFormat::Fmt(" #%u", funcAttrGroups.indexOf(func.attrs->functionSlot));
