@@ -298,8 +298,16 @@ void Program::MakeDisassemblyString()
     "GeometryIndex()",
     "RayQuery_CandidateInstanceContributionToHitGroupIndex(rayQueryHandle)",
     "RayQuery_CommittedInstanceContributionToHitGroupIndex(rayQueryHandle)",
-    "CreateHandleFromHeap(index,nonUniformIndex)",
-    "AnnotateHandle(res,resourceClass,resourceKind,props)"
+    "AnnotateHandle(res,props)",
+    "CreateHandleFromBinding(bind,index,nonUniformIndex)",
+    "CreateHandleFromHeap(index,samplerHeap,nonUniformIndex)",
+    "Unpack4x8(unpackMode,pk)",
+    "Pack4x8(packMode,x,y,z,w)",
+    "IsHelperLane()",
+    "QuadVote(cond,op)",
+    "TextureGatherRaw(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1)",
+    "SampleCmpLevel(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,lod)",
+    "TextureStoreSample(srv,coord0,coord1,coord2,value0,value1,value2,value3,mask,sampleIdx)"
   };
   // clang-format on
 
@@ -1261,8 +1269,13 @@ void Program::MakeDisassemblyString()
               packedProps[1] = packed[1]->getU32();
 
               bool uav = (packedProps[0] & (1 << 12)) != 0;
+              bool rov = (packedProps[0] & (1 << 13)) != 0;
+              bool globallyCoherent = (packedProps[0] & (1 << 14)) != 0;
+              bool sampelCmpOrCounter = (packedProps[0] & (1 << 15)) != 0;
               ResourceKind resKind = (ResourceKind)(packedProps[0] & 0xFF);
               ResourceClass resClass;
+              if(sampelCmpOrCounter && resKind == ResourceKind::Sampler)
+                resKind = ResourceKind::SamplerComparison;
               if(resKind == ResourceKind::Sampler || resKind == ResourceKind::SamplerComparison)
                 resClass = ResourceClass::Sampler;
               else if(resKind == ResourceKind::CBuffer)
@@ -1277,22 +1290,23 @@ void Program::MakeDisassemblyString()
               bool srv = (resClass == ResourceClass::SRV);
 
               ComponentType compType = ComponentType(packedProps[1] & 0xFF);
-              bool singleComp = (packedProps[1] & 0xFF00) == 1;
+              uint8_t compCount = (packedProps[1] & 0xFF00) >> 8;
+
+              uint8_t feedbackType = packedProps[1] & 0xFF;
 
               uint32_t structStride = packedProps[1];
-
-              bool rov = (packedProps[0] & (1 << 13)) != 0;
-              bool globallyCoherent = (packedProps[0] & (1 << 14)) != 0;
 
               switch(resKind)
               {
                 case ResourceKind::Unknown: m_Disassembly += "Unknown"; break;
                 case ResourceKind::Texture1D:
                 case ResourceKind::Texture2D:
+                case ResourceKind::Texture2DMS:
                 case ResourceKind::Texture3D:
                 case ResourceKind::TextureCube:
                 case ResourceKind::Texture1DArray:
                 case ResourceKind::Texture2DArray:
+                case ResourceKind::Texture2DMSArray:
                 case ResourceKind::TextureCubeArray:
                 case ResourceKind::TypedBuffer:
                   if(globallyCoherent)
@@ -1305,16 +1319,16 @@ void Program::MakeDisassemblyString()
                   {
                     case ResourceKind::Texture1D: m_Disassembly += "Texture1D"; break;
                     case ResourceKind::Texture2D: m_Disassembly += "Texture2D"; break;
+                    case ResourceKind::Texture2DMS: m_Disassembly += "Texture2DMS"; break;
                     case ResourceKind::Texture3D: m_Disassembly += "Texture3D"; break;
                     case ResourceKind::TextureCube: m_Disassembly += "TextureCube"; break;
                     case ResourceKind::Texture1DArray: m_Disassembly += "Texture1DArray"; break;
                     case ResourceKind::Texture2DArray: m_Disassembly += "Texture2DArray"; break;
+                    case ResourceKind::Texture2DMSArray: m_Disassembly += "Texture2DMSArray"; break;
                     case ResourceKind::TextureCubeArray: m_Disassembly += "TextureCubeArray"; break;
                     case ResourceKind::TypedBuffer: m_Disassembly += "TypedBuffer"; break;
                     default: break;
                   }
-                  m_Disassembly += StringFormat::Fmt("<%s%s>", ToStr(compType).c_str(),
-                                                     !srv && !singleComp ? "[vec]" : "");
                   break;
                 case ResourceKind::RTAccelerationStructure:
                   m_Disassembly += "RTAccelerationStructure";
@@ -1327,7 +1341,10 @@ void Program::MakeDisassemblyString()
                   if(globallyCoherent)
                     m_Disassembly += "globallycoherent ";
                   m_Disassembly += srv ? "StructuredBuffer" : "RWStructuredBuffer";
-                  m_Disassembly += StringFormat::Fmt("<stride=%u>", structStride);
+                  m_Disassembly += StringFormat::Fmt("<stride=%u", structStride);
+                  if(sampelCmpOrCounter)
+                    m_Disassembly += ", counter";
+                  m_Disassembly += ">";
                   break;
                 case ResourceKind::StructuredBufferWithCounter:
                   if(globallyCoherent)
@@ -1340,12 +1357,6 @@ void Program::MakeDisassemblyString()
                   if(globallyCoherent)
                     m_Disassembly += "globallycoherent ";
                   m_Disassembly += srv ? "ByteAddressBuffer" : "RWByteAddressBuffer";
-                  break;
-                case ResourceKind::Texture2DMS:
-                  m_Disassembly += StringFormat::Fmt("Texture2DMS<%s>", ToStr(compType).c_str());
-                  break;
-                case ResourceKind::Texture2DMSArray:
-                  m_Disassembly += StringFormat::Fmt("Texture2DMSArray<%>", ToStr(compType).c_str());
                   break;
                 case ResourceKind::CBuffer:
                   RDCASSERT(resClass == ResourceClass::CBuffer);
@@ -1363,6 +1374,30 @@ void Program::MakeDisassemblyString()
                   RDCASSERT(resClass == ResourceClass::Sampler);
                   m_Disassembly += "SamplerComparisonState";
                   break;
+              }
+
+              if(resKind == ResourceKind::FeedbackTexture2D ||
+                 resKind == ResourceKind::FeedbackTexture2DArray)
+              {
+                if(feedbackType == 0)
+                  m_Disassembly += "<MinMip>";
+                else if(feedbackType == 1)
+                  m_Disassembly += "<MipRegionUsed>";
+                else
+                  m_Disassembly += "<Invalid>";
+              }
+              else if(resKind == ResourceKind::Texture1D || resKind == ResourceKind::Texture2D ||
+                      resKind == ResourceKind::Texture3D || resKind == ResourceKind::TextureCube ||
+                      resKind == ResourceKind::Texture1DArray ||
+                      resKind == ResourceKind::Texture2DArray ||
+                      resKind == ResourceKind::TextureCubeArray ||
+                      resKind == ResourceKind::TypedBuffer || resKind == ResourceKind::Texture2DMS ||
+                      resKind == ResourceKind::Texture2DMSArray)
+              {
+                m_Disassembly += "<";
+                if(compCount > 1)
+                  m_Disassembly += StringFormat::Fmt("%dx", compCount);
+                m_Disassembly += StringFormat::Fmt("%s>", ToStr(compType).c_str());
               }
             }
           }

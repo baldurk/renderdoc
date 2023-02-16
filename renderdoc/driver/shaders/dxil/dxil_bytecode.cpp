@@ -2093,8 +2093,7 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
             }
             else if(op.type == FunctionRecord::INST_SHUFFLEVEC)
             {
-              // DXIL claims to be scalarised so should this appear?
-              RDCWARN("Unexpected vector instruction shufflevector in DXIL");
+              // DXIL claims to be scalarised but is not. Surprise surprise!
 
               Instruction *inst = values.nextValue<Instruction>();
 
