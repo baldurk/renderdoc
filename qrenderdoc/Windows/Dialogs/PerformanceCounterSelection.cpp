@@ -253,17 +253,21 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx,
 
   ui->counterTree->setMouseTracking(true);
 
-  ctx.Replay().AsyncInvoke([this, selectedCounters](IReplayController *controller) {
+  QPointer<PerformanceCounterSelection> ptr(this);
+  ctx.Replay().AsyncInvoke([this, ptr, selectedCounters](IReplayController *controller) {
     QVector<CounterDescription> counterDescriptions;
     for(const GPUCounter counter : controller->EnumerateCounters())
     {
       counterDescriptions.append(controller->DescribeCounter(counter));
     }
 
-    GUIInvoke::call(this, [counterDescriptions, selectedCounters, this]() {
-      SetCounters(counterDescriptions);
-      SetSelectedCounters(selectedCounters);
-    });
+    if(ptr)
+    {
+      GUIInvoke::call(this, [counterDescriptions, selectedCounters, this]() {
+        SetCounters(counterDescriptions);
+        SetSelectedCounters(selectedCounters);
+      });
+    }
   });
 }
 
