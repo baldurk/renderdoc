@@ -72,7 +72,7 @@ set(sources
 
 set(definitions ${RDOC_DEFINITIONS})
 
-set(VULKAN_LAYER_FOLDER_DEFAULT /etc/vulkan/implicit_layer.d)
+set(VULKAN_LAYER_FOLDER_DEFAULT etc/vulkan/implicit_layer.d)
 
 if(NOT ANDROID AND NOT CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND NOT DEFINED VULKAN_LAYER_FOLDER)
     message(WARNING "*** CMAKE_INSTALL_PREFIX has been customised to ${CMAKE_INSTALL_PREFIX}, but VULKAN_LAYER_FOLDER is not customised and defaults to ${VULKAN_LAYER_FOLDER_DEFAULT}. This may not do what you expect, e.g. installing to a non-root location ***")
