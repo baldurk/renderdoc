@@ -580,6 +580,8 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
       var.type = MakeCBufferVariableType(typeInfo, t->members[i]);
     }
 
+    ret.bytesize = var.offset + var.type.bytesize;
+
     ret.members.push_back(var);
   }
 
