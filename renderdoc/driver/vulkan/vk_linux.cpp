@@ -293,7 +293,8 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
     xcb_get_geometry_cookie_t geomCookie =
         xcb_get_geometry(outw.xcb.connection, outw.xcb.window);    // window is a xcb_drawable_t
     xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(outw.xcb.connection, geomCookie, NULL);
-    if (geom == NULL) {
+    if(geom == NULL)
+    {
       w = 0;
       h = 0;
       return;
