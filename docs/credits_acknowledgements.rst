@@ -192,6 +192,11 @@ There have been many people who have helped in the creation of RenderDoc. Whethe
 * Alex Kharlamov
 * Steve Karolewics
 * Kevin McCullough
+* Ting Cai
+* Zi Ming He
+* Orson Baines
+* John Kattukudiyil
+* Tony Tascioglu
 
 Contributors
 ------------
@@ -206,3 +211,4 @@ The following list highlights notable open source contributions. Many other peop
 * Balazs Torok - Implemented the RenderDoc in-application overlay for D3D9.
 * Steve Karolewics - Implemented DXBC shader debugging support for D3D12.
 * Aliya Pazylbekova - Implemented pixel history support for Vulkan.
+* Orson Baines, Zi Ming He, John Kattukudiyil, Ting Cai, Tony Tascioglu - Implemented pixel history support for OpenGL.
