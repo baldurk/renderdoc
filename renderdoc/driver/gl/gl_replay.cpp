@@ -43,7 +43,6 @@
 
 RDOC_CONFIG(bool, OpenGL_HardwareCounters, true,
             "Enable support for IHV-specific hardware counters on OpenGL.");
-RDOC_CONFIG(bool, OpenGL_PixelHistory, false, "Enable Pixel History on OpenGL (WIP).");
 
 static const char *SPIRVDisassemblyTarget = "SPIR-V (RenderDoc)";
 
@@ -224,7 +223,7 @@ APIProperties GLReplay::GetAPIProperties()
   ret.degraded = m_Degraded;
   ret.vendor = m_DriverInfo.vendor;
   ret.shadersMutable = true;
-  ret.pixelHistory = OpenGL_PixelHistory();
+  ret.pixelHistory = true;
 
   return ret;
 }
