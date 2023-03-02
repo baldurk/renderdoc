@@ -494,6 +494,7 @@ void DoSerialise(SerialiserType &ser, APIProperties &el)
 
   SERIALISE_MEMBER(shaderDebugging);
   SERIALISE_MEMBER(pixelHistory);
+  SERIALISE_MEMBER(rgpCapture);
 
   SERIALISE_MEMBER(ShaderLinkage);
   SERIALISE_MEMBER(YUVTextures);
