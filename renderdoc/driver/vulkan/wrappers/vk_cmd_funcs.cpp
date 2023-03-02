@@ -1121,13 +1121,20 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
 
       if(m_ActionCallback && m_ActionCallback->ForceLoadRPs())
       {
-        const VulkanCreationInfo::RenderPass &rpinfo =
-            m_CreationInfo.m_RenderPass[GetResID(unwrappedInheritInfo.renderPass)];
-        const VulkanCreationInfo::Framebuffer &fbinfo =
-            m_CreationInfo.m_Framebuffer[GetResID(unwrappedInheritInfo.framebuffer)];
+        if(unwrappedInheritInfo.framebuffer != VK_NULL_HANDLE)
+        {
+          const VulkanCreationInfo::Framebuffer &fbinfo =
+              m_CreationInfo.m_Framebuffer[GetResID(unwrappedInheritInfo.framebuffer)];
 
-        unwrappedInheritInfo.framebuffer = Unwrap(fbinfo.loadFBs[unwrappedInheritInfo.subpass]);
-        unwrappedInheritInfo.renderPass = Unwrap(rpinfo.loadRPs[unwrappedInheritInfo.subpass]);
+          unwrappedInheritInfo.framebuffer = Unwrap(fbinfo.loadFBs[unwrappedInheritInfo.subpass]);
+        }
+
+        if(unwrappedInheritInfo.renderPass != VK_NULL_HANDLE)
+        {
+          const VulkanCreationInfo::RenderPass &rpinfo =
+              m_CreationInfo.m_RenderPass[GetResID(unwrappedInheritInfo.renderPass)];
+          unwrappedInheritInfo.renderPass = Unwrap(rpinfo.loadRPs[unwrappedInheritInfo.subpass]);
+        }
       }
       else
       {
