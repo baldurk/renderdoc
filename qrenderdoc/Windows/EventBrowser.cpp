@@ -330,6 +330,10 @@ struct EventItemModel : public QAbstractItemModel
     for(uint32_t markerEID : fakeMarkers)
       CalculateTotalDuration(m_Nodes[markerEID]);
 
+    // if we had fake markers recalculate the root node for the frame
+    if(!fakeMarkers.empty())
+      CalculateTotalDuration(m_Nodes[0]);
+
     // Qt's item model kind of sucks and doesn't have a good way to say "all data in this column has
     // changed" let alone "all data has changed". dataChanged() is limited to only a group of model
     // indices under a single parent. Instead we just force the view itself to refresh here.
