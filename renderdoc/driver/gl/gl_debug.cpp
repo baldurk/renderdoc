@@ -425,9 +425,10 @@ void GLReplay::InitDebugData()
           "#extension GL_ARB_shader_bit_encoding : require\n";
   }
 
-  vs = GenerateGLSLShader(
-      GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer,
-      "#extension GL_ARB_separate_shader_objects : require\n#define FORCE_IO_LOCATION 1");
+  vs = GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer,
+                          "#extension GL_ARB_separate_shader_objects : require\n"
+                          "#extension GL_ARB_explicit_attrib_location : require\n"
+                          "#define FORCE_IO_LOCATION 1");
 
   // used to combine with custom shaders.
   // this has to have explicit locations on the output even though we don't normally use that,
