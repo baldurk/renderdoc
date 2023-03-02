@@ -67,8 +67,8 @@ uint64_t AMDRGPControl::GetEndTag()
 AMDRGPControl::AMDRGPControl()
 {
   m_RGPDispatchTable = new DevDriverAPI;
-  m_RGPDispatchTable->majorVersion = DEV_DRIVER_API_MAJOR_VERSION;
-  m_RGPDispatchTable->minorVersion = DEV_DRIVER_API_MINOR_VERSION;
+  m_RGPDispatchTable->major_version = kDevDriverApiMajorVersion;
+  m_RGPDispatchTable->minor_version = kDevDriverApiMinorVersion;
   m_RGPContext = NULL;
 
   if(!AMD_RGP_Enable())
@@ -117,18 +117,18 @@ AMDRGPControl::AMDRGPControl()
       (DevDriverGetFuncTableType)Process::GetFunctionAddress(module, "DevDriverGetFuncTable");
 
   DevDriverStatus rgpStatus = DevDriverGetFuncTable(m_RGPDispatchTable);
-  if(rgpStatus == DEV_DRIVER_STATUS_SUCCESS)
+  if(rgpStatus == kDevDriverStatusSuccess)
   {
     DevDriverFeatures initOptions[] = {
-        {DEV_DRIVER_FEATURE_ENABLE_RGP, sizeof(DevDriverFeatureRGP)},
+        {kDevDriverFeatureEnableRgp, sizeof(DevDriverFeatureRGP), {}},
     };
 
     int numFeatures = sizeof(initOptions) / sizeof(initOptions[0]);
-    rgpStatus = m_RGPDispatchTable->DevDriverInit(initOptions, numFeatures, &m_RGPContext);
+    rgpStatus = m_RGPDispatchTable->devdriver_init(initOptions, numFeatures, &m_RGPContext);
 
     // check the driver version if initialization succeeded.
     bool supportsInterop = false;
-    if(rgpStatus == DEV_DRIVER_STATUS_SUCCESS)
+    if(rgpStatus == kDevDriverStatusSuccess)
     {
       supportsInterop = DriverSupportsInterop();
 
@@ -142,7 +142,7 @@ AMDRGPControl::AMDRGPControl()
     if(supportsInterop == false)
     {
       if(m_RGPContext != NULL)
-        m_RGPDispatchTable->DevDriverFinish(m_RGPContext);
+        m_RGPDispatchTable->devdriver_finish(m_RGPContext);
       m_RGPContext = NULL;
     }
   }
@@ -156,7 +156,7 @@ AMDRGPControl::AMDRGPControl()
 AMDRGPControl::~AMDRGPControl()
 {
   if(m_RGPContext != NULL)
-    m_RGPDispatchTable->DevDriverFinish(m_RGPContext);
+    m_RGPDispatchTable->devdriver_finish(m_RGPContext);
 
   delete m_RGPDispatchTable;
   m_RGPContext = NULL;
@@ -176,15 +176,15 @@ bool AMDRGPControl::TriggerCapture(const rdcstr &path)
   // set up for capturing
   RGPProfileOptions profileOptions = {};
 
-  profileOptions.m_pProfileFilePath = path.c_str();
+  profileOptions.profile_file_path = path.c_str();
 
-  profileOptions.m_beginFrameTerminatorTag = GetBeginTag();
-  profileOptions.m_endFrameTerminatorTag = GetEndTag();
-  profileOptions.m_pBeginFrameTerminatorString = GetBeginMarker();
-  profileOptions.m_pEndFrameTerminatorString = GetEndMarker();
+  profileOptions.begin_frame_terminator_tag = GetBeginTag();
+  profileOptions.end_frame_terminator_tag = GetEndTag();
+  profileOptions.begin_frame_terminator_string = GetBeginMarker();
+  profileOptions.end_frame_terminator_string = GetEndMarker();
 
-  DevDriverStatus result = m_RGPDispatchTable->TriggerRgpProfile(m_RGPContext, &profileOptions);
-  if(result == DEV_DRIVER_STATUS_SUCCESS)
+  DevDriverStatus result = m_RGPDispatchTable->trigger_rgp_profile(m_RGPContext, &profileOptions);
+  if(result == kDevDriverStatusSuccess)
     return true;
   else
     return false;
@@ -195,7 +195,8 @@ bool AMDRGPControl::HasCapture()
   if(m_RGPContext == NULL)
     return false;
 
-  return m_RGPDispatchTable->IsRgpProfileCaptured(m_RGPContext) == DEV_DRIVER_STATUS_SUCCESS;
+  DevDriverStatus result = m_RGPDispatchTable->is_rgp_profile_captured(m_RGPContext);
+  return (result == kDevDriverStatusSuccess) || (result == kDevDriverStatusAlreadyCaptured);
 }
 
 bool AMDRGPControl::DriverSupportsInterop()
@@ -208,8 +209,8 @@ bool AMDRGPControl::DriverSupportsInterop()
   unsigned int minorVersion = 0;
   unsigned int subminorVersion = 0;
 
-  if(m_RGPDispatchTable->GetFullDriverVersion(m_RGPContext, &majorVersion, &minorVersion,
-                                              &subminorVersion) == DEV_DRIVER_STATUS_SUCCESS)
+  if(m_RGPDispatchTable->get_full_driver_version(m_RGPContext, &majorVersion, &minorVersion,
+                                                 &subminorVersion) == kDevDriverStatusSuccess)
   {
     if(
         // 19.x.x+
