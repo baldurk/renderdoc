@@ -1677,6 +1677,10 @@ bool WrappedID3D12Device::Serialise_CreateHeap(SerialiserType &ser, const D3D12_
     // don't create resources non-resident
     Descriptor.Flags &= ~D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT;
 
+    if(m_DriverInfo.vendor == GPUVendor::Software &&
+       Descriptor.Properties.Type == D3D12_HEAP_TYPE_CUSTOM)
+      Descriptor.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+
     HRESULT hr = m_pDevice->CreateHeap(&Descriptor, guid, &realptr);
 
     ID3D12Heap *ret = NULL;
