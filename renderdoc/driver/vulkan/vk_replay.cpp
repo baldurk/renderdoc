@@ -4605,6 +4605,12 @@ RDResult Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRep
   Process::RegisterEnvironmentModification(
       EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_VULKAN_OW_OBS_CAPTURE", "1"));
 
+  // buggy program AgaueEye which also doesn't have a proper layer configuration. As a result
+  // this is likely to have side-effects but probably also on other buggy layers that duplicate
+  // sample code without even changing the layer json
+  Process::RegisterEnvironmentModification(
+      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_SAMPLE_LAYER", "1"));
+
   // mesa device select layer crashes when it calls GPDP2 inside vkCreateInstance, which fails on
   // the current loader.
   Process::RegisterEnvironmentModification(
