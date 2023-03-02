@@ -114,6 +114,8 @@ void D3D12Replay::Initialise(IDXGIFactory1 *factory)
       SAFE_RELEASE(pDXGIAdapter);
     }
   }
+
+  m_pDevice->SetDriverInfo(m_DriverInfo);
 }
 
 RDResult D3D12Replay::FatalErrorCheck()

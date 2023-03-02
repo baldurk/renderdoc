@@ -712,6 +712,8 @@ private:
 
   bool m_UsedDXIL = false;
 
+  DriverInformation m_DriverInfo = {};
+
   D3D12InitParams m_InitParams;
   uint64_t m_SectionVersion;
   ReplayOptions m_ReplayOptions;
@@ -857,6 +859,7 @@ public:
   }
   const std::map<ResourceId, DXGI_FORMAT> &GetBackbufferFormats() { return m_BackbufferFormat; }
   void SetLogFile(const char *logfile);
+  void SetDriverInfo(const DriverInformation &info) { m_DriverInfo = info; }
   void SetInitParams(const D3D12InitParams &params, uint64_t sectionVersion,
                      const ReplayOptions &opts, INVAPID3DDevice *nvapi, IAGSD3DDevice *ags)
   {

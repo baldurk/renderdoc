@@ -3542,7 +3542,7 @@ void QueueReadbackData::Resize(uint64_t size)
 
 void WrappedID3D12Device::CreateInternalResources()
 {
-  if(IsReplayMode(m_State))
+  if(IsReplayMode(m_State) && m_DriverInfo.vendor == GPUVendor::AMD)
   {
     // Initialise AMD extension, if possible
     HMODULE mod = GetModuleHandleA("amdxc64.dll");
