@@ -193,7 +193,6 @@ void WrappedVulkan::vkDestroyFramebuffer(VkDevice device, VkFramebuffer obj,
   if(obj == VK_NULL_HANDLE)
     return;
   VkFramebuffer unwrappedObj = Unwrap(obj);
-  m_ForcedReferences.removeOne(GetRecord(obj));
   if(IsReplayMode(m_State))
   {
     const VulkanCreationInfo::Framebuffer &rpinfo = m_CreationInfo.m_Framebuffer[GetResID(obj)];
@@ -216,7 +215,6 @@ void WrappedVulkan::vkDestroyRenderPass(VkDevice device, VkRenderPass obj,
   if(obj == VK_NULL_HANDLE)
     return;
   VkRenderPass unwrappedObj = Unwrap(obj);
-  m_ForcedReferences.removeOne(GetRecord(obj));
   if(IsReplayMode(m_State))
   {
     const VulkanCreationInfo::RenderPass &rpinfo = m_CreationInfo.m_RenderPass[GetResID(obj)];
@@ -263,7 +261,10 @@ void WrappedVulkan::vkDestroyBuffer(VkDevice device, VkBuffer buffer,
       GetResourceManager()->PreFreeMemory(record->resInfo->dedicatedMemory);
   }
 
-  m_ForcedReferences.removeOne(GetRecord(buffer));
+  {
+    SCOPED_LOCK(m_ForcedReferencesLock);
+    m_ForcedReferences.removeOne(GetRecord(buffer));
+  }
 
   if(IsReplayMode(m_State))
     m_CreationInfo.erase(GetResID(buffer));
