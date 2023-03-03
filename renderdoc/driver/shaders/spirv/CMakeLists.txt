@@ -117,12 +117,9 @@ add_definitions(-DNV_EXTENSIONS)
 set_property(SOURCE ${glslang_sources}
     PROPERTY COMPILE_FLAGS "-Wno-ignored-qualifiers -Wno-strict-aliasing -Wno-unreachable-code-break")
 
-# GCC 7.0 and above needs -Wno-implicit-fallthrough on these files
+# GCC 7.0 and above needs -Wno-implicit-fallthrough
 if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.9)
-    set_property(SOURCE
-        ${glslang_dir}/glslang/MachineIndependent/reflection.cpp
-        ${glslang_dir}/glslang/MachineIndependent/Intermediate.cpp
-        ${glslang_dir}/glslang/MachineIndependent/ParseHelper.cpp
+    set_property(SOURCE ${glslang_sources}
         APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-implicit-fallthrough")
 endif()
 
