@@ -28,7 +28,7 @@
 #include "core/settings.h"
 
 RDOC_CONFIG(bool, Vulkan_GPUReadbackDeviceLocal, true,
-            "When reading back mapped device-local memory from discrete GPUs, use a GPU copy "
+            "When reading back mapped device-local memory, use a GPU copy "
             "instead of a CPU side comparison directly to mapped memory.");
 
 /************************************************************************
@@ -686,16 +686,20 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
       {
         record->memMapState->mapCoherent = (memProps & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
 
-        // only mark this memory as needing readback on the GPU if it's device-local on a discrete
-        // GPU. On non-discrete GPUs we assume the CPU can access the memory at a good speed, and on
-        // discrete GPUs where the memory isn't device local it's CPU side so of course it's fast to
-        // access. Only in this case do we want to push the memory from the GPU to the CPU with a
-        // command buffer.
-        if(Vulkan_GPUReadbackDeviceLocal() &&
-           m_PhysicalDeviceData.props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        // mark this memory as needing readback on the GPU if it's device-local on a discrete GPU,
+        // or host-uncached on any other type of GPU. On non-discrete GPUs it's unfortunately not
+        // always the case that the CPU can access memory at good speed, even if it's on the same
+        // chip. On discrete GPUs where the memory isn't device local it's CPU side so it should
+        // always be fast to access. In these cases we want to push the memory from the GPU to the
+        // CPU with a command buffer.
+        if(Vulkan_GPUReadbackDeviceLocal())
         {
-          record->memMapState->readbackOnGPU =
-              ((memProps & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0);
+          if(m_PhysicalDeviceData.props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+            record->memMapState->readbackOnGPU =
+                (memProps & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0;
+          else
+            record->memMapState->readbackOnGPU =
+                ((memProps & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) == 0);
 
           // we need a wholeMemBuf to readback on the GPU
           if(record->memMapState->readbackOnGPU && wholeMemBuf == VK_NULL_HANDLE)
