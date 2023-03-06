@@ -7155,6 +7155,26 @@ void WrappedVulkan::vkCmdBeginRendering(VkCommandBuffer commandBuffer,
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
+    VkRenderingFragmentDensityMapAttachmentInfoEXT *densityMap =
+        (VkRenderingFragmentDensityMapAttachmentInfoEXT *)FindNextStruct(
+            pRenderingInfo, VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_DENSITY_MAP_ATTACHMENT_INFO_EXT);
+
+    if(densityMap)
+    {
+      VkResourceRecord *viewRecord = GetRecord(densityMap->imageView);
+      record->MarkImageViewFrameReferenced(viewRecord, ImageRange(), eFrameRef_Read);
+    }
+
+    VkRenderingFragmentShadingRateAttachmentInfoKHR *shadingRate =
+        (VkRenderingFragmentShadingRateAttachmentInfoKHR *)FindNextStruct(
+            pRenderingInfo, VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR);
+
+    if(shadingRate)
+    {
+      VkResourceRecord *viewRecord = GetRecord(shadingRate->imageView);
+      record->MarkImageViewFrameReferenced(viewRecord, ImageRange(), eFrameRef_Read);
+    }
+
     for(uint32_t i = 0; i < pRenderingInfo->colorAttachmentCount + 2; i++)
     {
       const VkRenderingAttachmentInfo *att = pRenderingInfo->pColorAttachments + i;

@@ -96,7 +96,7 @@ void setupRenderingInfo(const VulkanRenderState::DynamicRendering &dynamicRender
 
   structs->fragmentDensity = {
       VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_DENSITY_MAP_ATTACHMENT_INFO_EXT, NULL,
-      dynamicRendering.fragmentDensityView, dynamicRendering.fragmentDensityLayout,
+      Unwrap(dynamicRendering.fragmentDensityView), dynamicRendering.fragmentDensityLayout,
   };
 
   if(dynamicRendering.fragmentDensityView != VK_NULL_HANDLE)
@@ -108,7 +108,7 @@ void setupRenderingInfo(const VulkanRenderState::DynamicRendering &dynamicRender
   structs->shadingRate = {
       VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR,
       NULL,
-      dynamicRendering.shadingRateView,
+      Unwrap(dynamicRendering.shadingRateView),
       dynamicRendering.shadingRateLayout,
       dynamicRendering.shadingRateTexelSize,
   };
