@@ -1243,7 +1243,7 @@ void QueryPrimitiveIdPerFragment(WrappedOpenGL *driver, GLReplay *replay,
 
     // we expect this value to be overwritten by the primitive id shader. if not
     // it will cause an assertion that all color values are the same to fail
-    driver->glClearColor(0.0f, 0.17f, 0.2f, 0.49f);
+    driver->glClearColor(0.84f, 0.17f, 0.2f, 0.49f);
     driver->glClear(eGL_COLOR_BUFFER_BIT);
 
     driver->glGetIntegerv(eGL_CURRENT_PROGRAM, &currentProgram);
@@ -1278,15 +1278,23 @@ void QueryPrimitiveIdPerFragment(WrappedOpenGL *driver, GLReplay *replay,
                             eGL_NEAREST);
         CopyMSSample(driver, resources, copyFramebuffer, sampleIndex, 0, 0, primitiveIds);
       }
-      RDCASSERT(primitiveIds[0] == primitiveIds[1] && primitiveIds[0] == primitiveIds[2] &&
-                primitiveIds[0] == primitiveIds[3]);
-      if(usingFloatForPrimitiveId)
+
+      if(primitiveIds[0] == primitiveIds[1] && primitiveIds[0] == primitiveIds[2] &&
+         primitiveIds[0] == primitiveIds[3])
       {
-        historyIndex->primitiveID = int(primitiveIds[0]);
+        if(usingFloatForPrimitiveId)
+        {
+          historyIndex->primitiveID = int(primitiveIds[0]);
+        }
+        else
+        {
+          historyIndex->primitiveID = *(int *)primitiveIds;
+        }
       }
       else
       {
-        historyIndex->primitiveID = *(int *)primitiveIds;
+        historyIndex->primitiveID = ~0u;
+        RDCERR("Primitive ID was not written correctly");
       }
 
       ++historyIndex;
