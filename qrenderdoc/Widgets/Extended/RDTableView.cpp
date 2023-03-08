@@ -221,6 +221,12 @@ void RDTableView::keyPressEvent(QKeyEvent *e)
   return QTableView::keyPressEvent(e);
 }
 
+void RDTableView::keyboardSearch(const QString &search)
+{
+  if(m_allowKeyboardSearches)
+    return QTableView::keyboardSearch(search);
+}
+
 void RDTableView::paintEvent(QPaintEvent *e)
 {
   const int gridWidth = showGrid() ? 1 : 0;

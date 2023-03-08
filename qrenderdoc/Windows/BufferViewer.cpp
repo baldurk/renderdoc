@@ -2221,6 +2221,10 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   ui->vsoutData->setCustomHeaderSizing(true);
   ui->gsoutData->setCustomHeaderSizing(true);
 
+  ui->vsinData->setAllowKeyboardSearches(false);
+  ui->vsoutData->setAllowKeyboardSearches(false);
+  ui->gsoutData->setAllowKeyboardSearches(false);
+
   QObject::connect(ui->fixedVars, &RDTreeWidget::customContextMenuRequested, this,
                    &BufferViewer::fixedVars_contextMenu);
 

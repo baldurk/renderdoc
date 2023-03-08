@@ -45,6 +45,10 @@ public:
   void setColumnWidths(const QList<int> &widths);
   void resizeColumnsToContents();
 
+  void setAllowKeyboardSearches(bool allow) { m_allowKeyboardSearches = allow; }
+  bool allowKeyboardSearches() const { return m_allowKeyboardSearches; }
+  void keyboardSearch(const QString &search) override;
+
   void setCustomHeaderSizing(bool sizing) { m_horizontalHeader->setCustomSizing(sizing); }
   void setItemDelegate(QAbstractItemDelegate *delegate);
   QAbstractItemDelegate *itemDelegate() const;
@@ -73,6 +77,8 @@ protected:
 private:
   int m_pinnedColumns = 0;
   int m_columnGroupRole = 0;
+
+  bool m_allowKeyboardSearches = true;
 
   RDHeaderView *m_horizontalHeader;
 
