@@ -130,7 +130,7 @@ void EnvironmentEditor::on_variables_currentItemChanged(RDTreeWidgetItem *curren
 
   EnvironmentModification mod = current->tag().value<EnvironmentModification>();
 
-  if(!mod.value.empty())
+  if(!mod.name.empty())
   {
     ui->name->setText(mod.name);
     ui->value->setText(mod.value);
