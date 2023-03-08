@@ -1309,17 +1309,23 @@ public:
 
   const ShaderConstant &elementForColumn(int col) const
   {
-    return config.columns[columnLookup[col - reservedColumnCount()]];
+    if(col >= reservedColumnCount())
+      col -= reservedColumnCount();
+    return config.columns[columnLookup[col]];
   }
 
   const BufferElementProperties &propForColumn(int col) const
   {
-    return config.props[columnLookup[col - reservedColumnCount()]];
+    if(col >= reservedColumnCount())
+      col -= reservedColumnCount();
+    return config.props[columnLookup[col]];
   }
 
   bool useGenerics(int col) const
   {
-    col = columnLookup[col - reservedColumnCount()];
+    if(col >= reservedColumnCount())
+      col -= reservedColumnCount();
+    col = columnLookup[col];
     return col < config.genericsEnabled.size() && config.genericsEnabled[col];
   }
 
@@ -1360,7 +1366,12 @@ private:
   bool secondaryElAlpha = false;
 
   int reservedColumnCount() const { return (meshView ? 2 : 1); }
-  int componentForIndex(int col) const { return componentLookup[col - reservedColumnCount()]; }
+  int componentForIndex(int col) const
+  {
+    if(col >= reservedColumnCount())
+      col -= reservedColumnCount();
+    return componentLookup[col];
+  }
   int firstColumnForElement(int el) const
   {
     for(int i = 0; i < columnLookup.count(); i++)
@@ -1407,7 +1418,9 @@ private:
   {
     int comp = componentForIndex(col);
 
-    col = columnLookup[col - reservedColumnCount()];
+    if(col >= reservedColumnCount())
+      col -= reservedColumnCount();
+    col = columnLookup[col];
 
     if(col < config.generics.size())
     {
