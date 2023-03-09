@@ -643,7 +643,7 @@
     <ClCompile Include="d3d12\d3d12_vertex_uav.cpp">
       <Filter>D3D12\demos</Filter>
     </ClCompile>
-    <ClCompile Include="gl\gl_pixelhistory_formats.cpp">
+    <ClCompile Include="gl\gl_pixel_history.cpp">
       <Filter>OpenGL\demos</Filter>
     </ClCompile>
   </ItemGroup>

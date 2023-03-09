@@ -2,10 +2,8 @@ import renderdoc as rd
 import rdtest
 from typing import List
 
-def event_id(x): return x.eventId
-
-class GL_PixelHistory_Formats(rdtest.TestCase):
-    demos_test_name = 'GL_PixelHistory_Formats'
+class GL_Pixel_History(rdtest.TestCase):
+    demos_test_name = 'GL_Pixel_History'
     demos_frame_cap = 10
 
     def check_capture(self):

@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include "gl_test.h"
 
-RD_TEST(GL_PixelHistory_Formats, OpenGLGraphicsTest)
+RD_TEST(GL_Pixel_History, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Draw a triangle to a variety of texture formats (to test pixel history).";
