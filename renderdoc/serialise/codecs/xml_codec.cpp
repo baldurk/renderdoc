@@ -48,12 +48,14 @@ struct LiteralFileSection
   SectionType type;
   rdcstr filename;
   rdcstr chunkName;
+  SectionFlags sectionFlags;
 };
 
 static const LiteralFileSection literalFileSections[] = {
-    {SectionType::EmbeddedLogfile, "diagnostic.log", "diagnostic_log"},
-    {SectionType::D3D12Core, "D3D12Core.dll", "d3d12core"},
-    {SectionType::D3D12SDKLayers, "D3D12SDKLayers.dll", "d3d12sdklayers"},
+    {SectionType::EmbeddedLogfile, "diagnostic.log", "diagnostic_log", SectionFlags::LZ4Compressed},
+    {SectionType::D3D12Core, "D3D12Core.dll", "d3d12core", SectionFlags::ZstdCompressed},
+    {SectionType::D3D12SDKLayers, "D3D12SDKLayers.dll", "d3d12sdklayers",
+     SectionFlags::ZstdCompressed},
 };
 
 static bool isLiteralFileChunkName(const rdcstr &chunkName)
@@ -738,7 +740,7 @@ static RDResult XML2Structured(const rdcstr &xml, const ThumbTypeAndData &thumb,
             SectionProperties props = {};
             props.type = section.type;
             props.version = 1;
-            props.flags = SectionFlags::LZ4Compressed;
+            props.flags = section.sectionFlags;
 
             StreamWriter *w = rdc->WriteSection(props);
             w->Write(litIt->second.data(), litIt->second.size());
