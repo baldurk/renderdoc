@@ -544,7 +544,8 @@ ResultDetails CaptureFile::Convert(const rdcstr &filename, const rdcstr &filetyp
     delete reader;
     delete writer;
 
-    return ret;
+    if(ret != ResultCode::Succeeded)
+      return ret;
   }
 
   return RDResult();
