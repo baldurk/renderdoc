@@ -272,7 +272,7 @@
     <ClCompile Include="gl\gl_unsized_ms_fbo_attachment.cpp" />
     <ClCompile Include="gl\gl_vao_0.cpp" />
     <ClCompile Include="gl\gl_vertex_attr_zoo.cpp" />
-    <ClCompile Include="gl\gl_pixelhistory_formats.cpp" />
+    <ClCompile Include="gl\gl_pixel_history.cpp" />
     <ClCompile Include="linux\linux_platform.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
