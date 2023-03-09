@@ -159,7 +159,7 @@ WrappedID3D12Resource::~WrappedID3D12Resource()
   }
 
   if(IsReplayMode(m_pDevice->GetState()))
-    m_pDevice->GetResourceList().erase(GetResourceID());
+    m_pDevice->RemoveReplayResource(GetResourceID());
 
   // assuming only valid for buffers
   if(m_pReal->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)

@@ -980,7 +980,7 @@ public:
       : WrappedDeviceChild12(real, device)
   {
     if(IsReplayMode(device->GetState()))
-      device->GetResourceList()[GetResourceID()] = this;
+      device->AddReplayResource(GetResourceID(), this);
 
     // assuming only valid for buffers
     if(m_pReal->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)

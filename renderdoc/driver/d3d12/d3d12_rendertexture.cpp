@@ -341,7 +341,13 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
 {
   const bool blendAlpha = (flags & eTexDisplay_BlendAlpha) != 0;
 
-  ID3D12Resource *resource = m_pDevice->GetResourceList()[cfg.resourceId];
+  ID3D12Resource *resource = NULL;
+
+  {
+    auto it = m_pDevice->GetResourceList().find(cfg.resourceId);
+    if(it != m_pDevice->GetResourceList().end())
+      resource = it->second;
+  }
 
   if(resource == NULL)
     return false;

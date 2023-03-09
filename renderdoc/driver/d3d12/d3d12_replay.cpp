@@ -360,7 +360,7 @@ BufferDescription D3D12Replay::GetBuffer(ResourceId id)
 
   auto it = m_pDevice->GetResourceList().find(id);
 
-  if(it == m_pDevice->GetResourceList().end())
+  if(it == m_pDevice->GetResourceList().end() || it->second == NULL)
     return ret;
 
   D3D12_RESOURCE_DESC desc = it->second->GetDesc();
@@ -401,7 +401,7 @@ TextureDescription D3D12Replay::GetTexture(ResourceId id)
 
   auto it = m_pDevice->GetResourceList().find(id);
 
-  if(it == m_pDevice->GetResourceList().end())
+  if(it == m_pDevice->GetResourceList().end() || it->second == NULL)
     return ret;
 
   D3D12_RESOURCE_DESC desc = it->second->GetDesc();
@@ -2647,7 +2647,13 @@ void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Su
     texDisplay.typeCast = typeCast;
     texDisplay.rawOutput = true;
 
-    ID3D12Resource *resource = m_pDevice->GetResourceList()[texture];
+    ID3D12Resource *resource = NULL;
+
+    {
+      auto it = m_pDevice->GetResourceList().find(texture);
+      if(it != m_pDevice->GetResourceList().end())
+        resource = it->second;
+    }
 
     if(resource)
     {
@@ -2735,7 +2741,13 @@ void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Su
 bool D3D12Replay::GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast,
                             float *minval, float *maxval)
 {
-  ID3D12Resource *resource = m_pDevice->GetResourceList()[texid];
+  ID3D12Resource *resource = NULL;
+
+  {
+    auto it = m_pDevice->GetResourceList().find(texid);
+    if(it != m_pDevice->GetResourceList().end())
+      resource = it->second;
+  }
 
   if(resource == NULL)
     return false;
@@ -2920,7 +2932,13 @@ bool D3D12Replay::GetHistogram(ResourceId texid, const Subresource &sub, CompTyp
   if(minval >= maxval)
     return false;
 
-  ID3D12Resource *resource = m_pDevice->GetResourceList()[texid];
+  ID3D12Resource *resource = NULL;
+
+  {
+    auto it = m_pDevice->GetResourceList().find(texid);
+    if(it != m_pDevice->GetResourceList().end())
+      resource = it->second;
+  }
 
   if(resource == NULL)
     return false;
@@ -3155,7 +3173,7 @@ void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t lengt
 {
   auto it = m_pDevice->GetResourceList().find(buff);
 
-  if(it == m_pDevice->GetResourceList().end())
+  if(it == m_pDevice->GetResourceList().end() || it->second == NULL)
   {
     RDCERR("Getting buffer data for unknown buffer %s!",
            ToStr(m_pDevice->GetResourceManager()->GetLiveID(buff)).c_str());
@@ -3497,7 +3515,13 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   bool wasms = false;
   bool resolve = params.resolve;
 
-  ID3D12Resource *resource = m_pDevice->GetResourceList()[tex];
+  ID3D12Resource *resource = NULL;
+
+  {
+    auto it = m_pDevice->GetResourceList().find(tex);
+    if(it != m_pDevice->GetResourceList().end())
+      resource = it->second;
+  }
 
   if(resource == NULL)
   {
@@ -4149,7 +4173,13 @@ void D3D12Replay::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf
 
 ResourceId D3D12Replay::ApplyCustomShader(TextureDisplay &display)
 {
-  ID3D12Resource *resource = m_pDevice->GetResourceList()[display.resourceId];
+  ID3D12Resource *resource = NULL;
+
+  {
+    auto it = m_pDevice->GetResourceList().find(display.resourceId);
+    if(it != m_pDevice->GetResourceList().end())
+      resource = it->second;
+  }
 
   if(resource == NULL)
     return ResourceId();

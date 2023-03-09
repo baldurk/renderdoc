@@ -55,12 +55,19 @@ class D3D12_Simple_Triangle(rdtest.TestCase):
         tex = self.get_resource_by_name("dsvMStex").resourceId
         self.check_pixel_value(tex, 1, 1, [0.2, (0x55)/255.0, 0.0, 1.0])
 
+        save_data = rd.TextureSave()
+        save_data.destType = rd.FileType.DDS
+        path = rdtest.get_tmp_path('temp.dds')
+
         # Check that nothing breaks if we call typical enumeration functions on resources
         for res in self.controller.GetResources():
             res: rd.ResourceDescription
+
+            save_data.resourceId = res.resourceId
 
             self.controller.GetShaderEntryPoints(res.resourceId)
             self.controller.GetUsage(res.resourceId)
             self.controller.GetBufferData(res.resourceId, 0, 0)
             self.controller.GetTextureData(res.resourceId, rd.Subresource())
+            self.controller.SaveTexture(save_data, path)
 

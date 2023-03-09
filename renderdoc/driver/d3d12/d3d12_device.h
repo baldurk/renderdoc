@@ -803,7 +803,9 @@ public:
   void RemoveQueue(WrappedID3D12CommandQueue *queue);
 
   // only valid on replay
-  std::map<ResourceId, WrappedID3D12Resource *> &GetResourceList() { return *m_ResourceList; }
+  const std::map<ResourceId, WrappedID3D12Resource *> &GetResourceList() { return *m_ResourceList; }
+  void AddReplayResource(ResourceId id, WrappedID3D12Resource *res) { (*m_ResourceList)[id] = res; }
+  void RemoveReplayResource(ResourceId id) { (*m_ResourceList).erase(id); }
   rdcarray<WrappedID3D12PipelineState *> &GetPipelineList() { return *m_PipelineList; }
   ////////////////////////////////////////////////////////////////
   // non wrapping interface
