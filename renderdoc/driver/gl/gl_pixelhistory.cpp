@@ -251,24 +251,11 @@ const CopyFramebuffer &getCopyFramebuffer(WrappedOpenGL *driver,
 
 GLenum getTextureFormatType(GLenum internalFormat)
 {
-  static GLenum unsignedIntegerTextureFormatsArray[] = {
-      eGL_R8UI,    eGL_R16UI,   eGL_R32UI,   eGL_RG8UI,    eGL_RG16UI,   eGL_RG32UI,    eGL_RGB8UI,
-      eGL_RGB16UI, eGL_RGB32UI, eGL_RGBA8UI, eGL_RGBA16UI, eGL_RGBA32UI, eGL_RGB10_A2UI};
-  static std::set<GLenum> unsignedIntegerTextureFormats(
-      unsignedIntegerTextureFormatsArray,
-      unsignedIntegerTextureFormatsArray +
-          (sizeof(unsignedIntegerTextureFormatsArray) / sizeof(GLenum)));
-  static GLenum signedIntegerTextureFormatsArray[] = {
-      eGL_R8I,   eGL_R16I,   eGL_R32I,   eGL_RG8I,   eGL_RG16I,   eGL_RG32I,
-      eGL_RGB8I, eGL_RGB16I, eGL_RGB32I, eGL_RGBA8I, eGL_RGBA16I, eGL_RGBA32I};
-  static std::set<GLenum> signedIntegerTextureFormats(
-      signedIntegerTextureFormatsArray,
-      signedIntegerTextureFormatsArray + (sizeof(signedIntegerTextureFormatsArray) / sizeof(GLenum)));
-  if(unsignedIntegerTextureFormats.count(internalFormat) != 0)
+  if(IsUIntFormat(internalFormat))
   {
     return eGL_UNSIGNED_INT;
   }
-  if(signedIntegerTextureFormats.count(internalFormat) != 0)
+  if(IsSIntFormat(internalFormat))
   {
     return eGL_INT;
   }
@@ -301,8 +288,7 @@ GLenum getCurrentTextureFormat(WrappedOpenGL *driver)
     {
       id = driver->GetResourceManager()->GetResID(RenderbufferRes(driver->GetCtx(), curColor));
     }
-    WrappedOpenGL::TextureData textureData = driver->m_Textures[id];
-    colorFormat = textureData.internalFormat;
+    colorFormat = driver->m_Textures[id].internalFormat;
   }
 
   return colorFormat;
@@ -383,8 +369,7 @@ const CopyFramebuffer &getCopyFramebuffer(WrappedOpenGL *driver,
     {
       id = driver->GetResourceManager()->GetResID(RenderbufferRes(driver->GetCtx(), curColor));
     }
-    WrappedOpenGL::TextureData textureData = driver->m_Textures[id];
-    colorFormat = textureData.internalFormat;
+    colorFormat = driver->m_Textures[id].internalFormat;
   }
 
   return getCopyFramebuffer(driver, copyFramebuffers, numSamples, numEvents, depthFormat,
