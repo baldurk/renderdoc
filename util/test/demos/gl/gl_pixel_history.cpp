@@ -112,8 +112,13 @@ void main()
         GL_R16F,       GL_R32F,           GL_R8I,     GL_R8UI,     GL_RGB5_A1, GL_RGB10_A2,
         GL_RGB10_A2UI, GL_R11F_G11F_B10F, GL_RGB565};
 
-    GLenum depthFormats[] = {GL_DEPTH_COMPONENT16,  GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32,
-                             GL_DEPTH_COMPONENT32F, GL_DEPTH24_STENCIL8,  GL_DEPTH32F_STENCIL8};
+    GLenum depthFormats[] = {GL_NONE,
+                             GL_DEPTH_COMPONENT16,
+                             GL_DEPTH_COMPONENT24,
+                             GL_DEPTH_COMPONENT32,
+                             GL_DEPTH_COMPONENT32F,
+                             GL_DEPTH24_STENCIL8,
+                             GL_DEPTH32F_STENCIL8};
 
     constexpr size_t colorFormatSize = sizeof(colorFormats) / sizeof(GLenum);
     constexpr size_t depthFormatSize = sizeof(depthFormats) / sizeof(GLenum);
@@ -121,6 +126,7 @@ void main()
     GLuint colorTextures[colorFormatSize];
     GLuint multisampledColorTextures[colorFormatSize];
     GLuint depthTextures[depthFormatSize];
+    GLuint multisampledDepthTextures[depthFormatSize];
 
     for(size_t i = 0; i < colorFormatSize; ++i)
     {
@@ -136,8 +142,12 @@ void main()
     for(size_t i = 0; i < depthFormatSize; ++i)
     {
       depthTextures[i] = MakeTexture();
+      multisampledDepthTextures[i] = MakeTexture();
       glBindTexture(GL_TEXTURE_2D, depthTextures[i]);
       glTexStorage2D(GL_TEXTURE_2D, 1, depthFormats[i], screenWidth, screenHeight);
+      glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, multisampledDepthTextures[i]);
+      glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 2, depthFormats[i], screenWidth,
+                                screenHeight, GL_TRUE);
     }
 
     GLuint fbo = MakeFBO();
@@ -156,76 +166,84 @@ void main()
     {
       glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-      for(size_t i = 0; i < colorFormatSize; ++i)
+      for(size_t multisampled = 0; multisampled < 2; multisampled++)
       {
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-                               colorTextures[i], 0);
-
-        if(i >= depthFormatSize)
+        for(size_t h = 0; h < depthFormatSize; ++h)
         {
-          glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+          for(size_t i = 0; i < colorFormatSize; ++i)
+          {
+            if(multisampled)
+            {
+              glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                                     GL_TEXTURE_2D_MULTISAMPLE, multisampledColorTextures[i], 0);
+            }
+            else
+            {
+              glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                                     colorTextures[i], 0);
+            }
+
+            if(depthFormats[h] == GL_NONE)
+            {
+              glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0,
+                                     0);
+            }
+            else if(depthFormats[h] == GL_DEPTH24_STENCIL8 || depthFormats[h] == GL_DEPTH32F_STENCIL8)
+            {
+              if(multisampled)
+              {
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
+                                       GL_TEXTURE_2D_MULTISAMPLE, multisampledDepthTextures[h], 0);
+              }
+              else
+              {
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D,
+                                       depthTextures[h], 0);
+              }
+            }
+            else
+            {
+              if(multisampled)
+              {
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE,
+                                       multisampledDepthTextures[h], 0);
+              }
+              else
+              {
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                                       depthTextures[h], 0);
+              
+			  }
+
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+            }
+
+            GLenum bufs[] = {GL_COLOR_ATTACHMENT0};
+            glDrawBuffers(1, bufs);
+
+            float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
+            GLenum check = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+            if(check != GL_FRAMEBUFFER_COMPLETE)
+            {
+              TEST_ERROR(
+                  "Framebuffer is not complete with depth format %x colour format %x multisampled "
+                  "%d\n ",
+                  depthFormats[h], colorFormats[i], multisampled);
+              continue;
+            }
+
+            glClearBufferfv(GL_COLOR, 0, col);
+            glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0);
+
+            glBindVertexArray(vao);
+
+            glUseProgram(program);
+
+            glViewport(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
+
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+          }
         }
-        else if(depthFormats[i] == GL_DEPTH24_STENCIL8 || depthFormats[i] == GL_DEPTH32F_STENCIL8)
-        {
-          glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D,
-                                 depthTextures[i], 0);
-        }
-        else
-        {
-          glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
-                                 depthTextures[i], 0);
-          glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
-        }
-
-        GLenum bufs[] = {GL_COLOR_ATTACHMENT0};
-        glDrawBuffers(1, bufs);
-
-        float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
-        GLenum check = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-        if(check != GL_FRAMEBUFFER_COMPLETE)
-        {
-          printf("%x\n", colorFormats[i]);
-          continue;
-        }
-
-        glClearBufferfv(GL_COLOR, 0, col);
-        glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0);
-
-        glBindVertexArray(vao);
-
-        glUseProgram(program);
-
-        glViewport(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
-
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-      }
-
-      for(size_t i = 0; i < colorFormatSize; ++i)
-      {
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE,
-                               multisampledColorTextures[i], 0);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
-
-        GLenum bufs[] = {GL_COLOR_ATTACHMENT0};
-        glDrawBuffers(1, bufs);
-
-        float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
-        GLenum check = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-        if(check != GL_FRAMEBUFFER_COMPLETE)
-        {
-          printf("%x\n", colorFormats[i]);
-          continue;
-        }
-
-        glClearBufferfv(GL_COLOR, 0, col);
-
-        glBindVertexArray(vao);
-
-        glUseProgram(program);
-
-        glViewport(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
-
-        glDrawArrays(GL_TRIANGLES, 0, 3);
       }
 
       glBindFramebuffer(GL_FRAMEBUFFER, 0);
