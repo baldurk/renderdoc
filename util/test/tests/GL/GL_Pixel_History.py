@@ -59,9 +59,8 @@ class GL_Pixel_History(rdtest.TestCase):
     def check_events(self, events, modifs, hasSecondary):
         eventMatchingModifs = modifs[(-1 * len(events)):]
         print(f"Events: {events}, Modifs: {modifs}, EventMatchingModifs: {eventMatchingModifs}")
-        #self.check(len(modifs) == len(events), "Expected {} events, got {}, modifs {}".format(len(events), len(modifs), modifs))
 
-        # modifications can show results from previous colour passes which we don't care about for now, so we only check the last two modifs
+        # modifications can show results from previous colour passes which we don't care about for now, so we only check the last relevant modifs
         for i in range(len(eventMatchingModifs)):
             self.check(eventMatchingModifs[i].eventId == events[i], f"Expected event with id {events[i]}, but got {eventMatchingModifs[i].eventId}")
 

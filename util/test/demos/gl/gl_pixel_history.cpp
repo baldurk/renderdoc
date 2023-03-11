@@ -25,6 +25,51 @@
 #include <stdio.h>
 #include "gl_test.h"
 
+bool IsUIntFormat(GLenum internalFormat)
+{
+  switch(internalFormat)
+  {
+    case GL_R8UI:
+    case GL_RG8UI:
+    case GL_RGB8UI:
+    case GL_RGBA8UI:
+    case GL_R16UI:
+    case GL_RG16UI:
+    case GL_RGB16UI:
+    case GL_RGBA16UI:
+    case GL_R32UI:
+    case GL_RG32UI:
+    case GL_RGB32UI:
+    case GL_RGBA32UI:
+    case GL_RGB10_A2UI: return true;
+    default: break;
+  }
+
+  return false;
+}
+
+bool IsSIntFormat(GLenum internalFormat)
+{
+  switch(internalFormat)
+  {
+    case GL_R8I:
+    case GL_RG8I:
+    case GL_RGB8I:
+    case GL_RGBA8I:
+    case GL_R16I:
+    case GL_RG16I:
+    case GL_RGB16I:
+    case GL_RGBA16I:
+    case GL_R32I:
+    case GL_RG32I:
+    case GL_RGB32I:
+    case GL_RGBA32I: return true;
+    default: break;
+  }
+
+  return false;
+}
+
 RD_TEST(GL_Pixel_History, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
@@ -36,9 +81,9 @@ RD_TEST(GL_Pixel_History, OpenGLGraphicsTest)
 
 #define v2f v2f_block \
 {                     \
-	vec4 pos;           \
-	vec4 col;           \
-	vec4 uv;            \
+    vec4 pos;           \
+    vec4 col;           \
+    vec4 uv;            \
 }
 
 )EOSHADER";
@@ -53,10 +98,10 @@ out v2f vertOut;
 
 void main()
 {
-	vertOut.pos = vec4(Position.xyz, 1);
-	gl_Position = vertOut.pos;
-	vertOut.col = Color;
-	vertOut.uv = vec4(UV.xy, 0, 1);
+    vertOut.pos = vec4(Position.xyz, 1);
+    gl_Position = vertOut.pos;
+    vertOut.col = Color;
+    vertOut.uv = vec4(UV.xy, 0, 1);
 }
 
 )EOSHADER";
@@ -69,7 +114,35 @@ layout(location = 0, index = 0) out vec4 Color;
 
 void main()
 {
-	Color = vertIn.col;
+    Color = vertIn.col;
+}
+
+)EOSHADER";
+
+  std::string pixelSigned = R"EOSHADER(
+
+in v2f vertIn;
+
+layout(location = 0, index = 0) out ivec4 Color;
+
+void main()
+{
+    vec4 a = vertIn.col * 127.0;
+    Color = ivec4(a.r, a.g, a.b, a.a);
+}
+
+)EOSHADER";
+
+  std::string pixelUnsigned = R"EOSHADER(
+
+in v2f vertIn;
+
+layout(location = 0, index = 0) out uvec4 Color;
+
+void main()
+{
+    vec4 a = vertIn.col * 255.0;
+    Color = uvec4(a.r, a.g, a.b, a.a);
 }
 
 )EOSHADER";
@@ -103,6 +176,8 @@ void main()
     glEnableVertexAttribArray(2);
 
     GLuint program = MakeProgram(common + vertex, common + pixel);
+    GLuint programSigned = MakeProgram(common + vertex, common + pixelSigned);
+    GLuint programUnsigned = MakeProgram(common + vertex, common + pixelUnsigned);
 
     GLenum colorFormats[] = {
         GL_RGBA8,      GL_RGBA16,         GL_RGBA16F, GL_RGBA32F,  GL_RGBA8I,  GL_RGBA8UI,
@@ -205,23 +280,21 @@ void main()
             {
               if(multisampled)
               {
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE,
-                                       multisampledDepthTextures[h], 0);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                                       GL_TEXTURE_2D_MULTISAMPLE, multisampledDepthTextures[h], 0);
               }
               else
               {
                 glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
                                        depthTextures[h], 0);
-              
-			  }
+              }
 
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+              glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
             }
 
             GLenum bufs[] = {GL_COLOR_ATTACHMENT0};
             glDrawBuffers(1, bufs);
 
-            float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
             GLenum check = glCheckFramebufferStatus(GL_FRAMEBUFFER);
             if(check != GL_FRAMEBUFFER_COMPLETE)
             {
@@ -232,12 +305,28 @@ void main()
               continue;
             }
 
-            glClearBufferfv(GL_COLOR, 0, col);
-            glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0);
-
             glBindVertexArray(vao);
 
-            glUseProgram(program);
+            if(IsUIntFormat(colorFormats[i]))
+            {
+              GLuint col[] = {20, 20, 20, 255};
+              glClearBufferuiv(GL_COLOR, 0, col);
+              glUseProgram(programUnsigned);
+            }
+            else if(IsSIntFormat(colorFormats[i]))
+            {
+              GLint col[] = {20, 20, -20, 127};
+              glClearBufferiv(GL_COLOR, 0, col);
+              glUseProgram(programSigned);
+            }
+            else
+            {
+              float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
+              glClearBufferfv(GL_COLOR, 0, col);
+              glUseProgram(program);
+            }
+
+            glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0);
 
             glViewport(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
 
