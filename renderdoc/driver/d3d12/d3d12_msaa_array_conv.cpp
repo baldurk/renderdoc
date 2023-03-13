@@ -48,6 +48,10 @@ rdcpair<ID3D12PipelineState *, ID3D12PipelineState *> D3D12DebugManager::GetMSTo
     pipeDesc.PS.BytecodeLength = m_FloatMS2Array->GetBufferSize();
     pipeDesc.PS.pShaderBytecode = m_FloatMS2Array->GetBufferPointer();
 
+    pipeDesc.NumRenderTargets = 1;
+    pipeDesc.RTVFormats[0] = format;
+    pipeDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+
     if(IsDepthFormat(format))
     {
       pipeDesc.PS.BytecodeLength = m_DepthMS2Array->GetBufferSize();
@@ -61,9 +65,6 @@ rdcpair<ID3D12PipelineState *, ID3D12PipelineState *> D3D12DebugManager::GetMSTo
     }
     else if(IsUIntFormat(format) || IsIntFormat(format))
     {
-      pipeDesc.NumRenderTargets = 1;
-      pipeDesc.RTVFormats[0] = format;
-      pipeDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
       pipeDesc.PS.BytecodeLength = m_IntMS2Array->GetBufferSize();
       pipeDesc.PS.pShaderBytecode = m_IntMS2Array->GetBufferPointer();
     }
