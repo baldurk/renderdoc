@@ -646,6 +646,9 @@
     <ClCompile Include="gl\gl_pixel_history.cpp">
       <Filter>OpenGL\demos</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12\d3d12_map_placed_alias.cpp">
+      <Filter>D3D12\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

@@ -191,6 +191,7 @@
     <ClCompile Include="d3d12\d3d12_leak_check.cpp" />
     <ClCompile Include="d3d12\d3d12_list_alloc_tests.cpp" />
     <ClCompile Include="d3d12\d3d12_list_types.cpp" />
+    <ClCompile Include="d3d12\d3d12_map_placed_alias.cpp" />
     <ClCompile Include="d3d12\d3d12_mesh_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_overlay_test.cpp" />
     <ClCompile Include="d3d12\d3d12_parameter_zoo.cpp" />

@@ -327,6 +327,22 @@ void WrappedID3D12Resource::RefBuffers(D3D12ResourceManager *rm)
     rm->MarkResourceFrameReferenced(m_Addresses.addresses[i].id, eFrameRef_Read);
 }
 
+void WrappedID3D12Resource::GetMappableIDs(D3D12ResourceManager *rm,
+                                           const std::unordered_set<ResourceId> &refdIDs,
+                                           std::unordered_set<ResourceId> &mappableIDs)
+{
+  SCOPED_READLOCK(m_Addresses.addressLock);
+  for(size_t i = 0; i < m_Addresses.addresses.size(); i++)
+  {
+    if(refdIDs.find(m_Addresses.addresses[i].id) != refdIDs.end())
+    {
+      WrappedID3D12Resource *resource =
+          (WrappedID3D12Resource *)rm->GetCurrentResource(m_Addresses.addresses[i].id);
+      mappableIDs.insert(resource->GetMappableID());
+    }
+  }
+}
+
 rdcarray<ID3D12Resource *> WrappedID3D12Resource::AddRefBuffersBeforeCapture(D3D12ResourceManager *rm)
 {
   rdcarray<ID3D12Resource *> ret;

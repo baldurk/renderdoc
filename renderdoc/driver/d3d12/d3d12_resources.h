@@ -946,12 +946,21 @@ public:
     return this->GetReal();
   }
 
+  ResourceId GetMappableID()
+  {
+    if(m_Heap)
+      return m_Heap->GetResourceID();
+    return this->GetResourceID();
+  }
+
   void SetHeap(ID3D12Heap *heap)
   {
     m_Heap = (WrappedID3D12Heap *)heap;
     SAFE_ADDREF(m_Heap);
   }
   static void RefBuffers(D3D12ResourceManager *rm);
+  static void GetMappableIDs(D3D12ResourceManager *rm, const std::unordered_set<ResourceId> &refdIDs,
+                             std::unordered_set<ResourceId> &mappableIDs);
 
   static rdcarray<ID3D12Resource *> AddRefBuffersBeforeCapture(D3D12ResourceManager *rm);
 

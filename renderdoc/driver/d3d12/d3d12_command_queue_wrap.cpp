@@ -886,6 +886,12 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
     {
       rdcarray<MapState> maps = m_pDevice->GetMaps();
 
+      // get the Mappable referenced IDs. With the case of placed resources the resource that's
+      // mapped may not be the one that was bound but they may overlap, so we use the heap as
+      // reference for non-committed resource.
+      std::unordered_set<ResourceId> mappableIDs;
+      WrappedID3D12Resource::GetMappableIDs(GetResourceManager(), refdIDs, mappableIDs);
+
       for(auto it = maps.begin(); it != maps.end(); ++it)
       {
         WrappedID3D12Resource *res = GetWrapped(it->res);
@@ -893,10 +899,10 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
         size_t size = (size_t)it->totalSize;
 
         // only need to flush memory that could affect this submitted batch of work
-        if(refdIDs.find(res->GetResourceID()) == refdIDs.end())
+        if(mappableIDs.find(res->GetMappableID()) == mappableIDs.end())
         {
-          RDCDEBUG("Map of memory %s not referenced in this queue - not flushing",
-                   ToStr(res->GetResourceID()).c_str());
+          RDCDEBUG("Map of memory %s (mappable ID %s) not referenced in this queue - not flushing",
+                   ToStr(res->GetResourceID()).c_str(), ToStr(res->GetMappableID()).c_str());
           continue;
         }
 
