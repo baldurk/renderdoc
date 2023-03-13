@@ -831,8 +831,6 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
     if(overlay == DebugOverlay::TriangleSizePass)
       m_pDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
-    events.push_back(eventId);
-
     D3D11_VIEWPORT view = m_pImmediateContext->GetCurrentPipelineState()->RS.Viewports[0];
 
     Vec4f viewport = Vec4f(view.Width, view.Height);
