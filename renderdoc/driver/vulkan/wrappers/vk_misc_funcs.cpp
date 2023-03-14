@@ -345,6 +345,10 @@ void WrappedVulkan::vkFreeCommandBuffers(VkDevice device, VkCommandPool commandP
 
     WrappedVkDispRes *wrapped = (WrappedVkDispRes *)GetWrapped(pCommandBuffers[c]);
 
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
+    RDCLOG("vkFreeCommandBuffers(%s)", ToStr(wrapped->id).c_str());
+#endif
+
     VkCommandBuffer unwrapped = wrapped->real.As<VkCommandBuffer>();
 
     GetResourceManager()->ReleaseWrappedResource(pCommandBuffers[c]);

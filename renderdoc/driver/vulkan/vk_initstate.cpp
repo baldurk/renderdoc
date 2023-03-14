@@ -1821,6 +1821,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
                                              c.extent, c.arrayLayers, (uint32_t)c.samples, fmt);
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
+      CloseInitStateCmd();
       SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
       SubmitCmds();
       FlushQ();

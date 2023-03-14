@@ -426,20 +426,6 @@ void WrappedVulkan::FlushQ()
     cleanup();
   m_PendingCleanups.clear();
 
-  if(!IsStructuredExporting(m_State))
-  {
-    // destroy any events we created for waiting on
-    for(size_t i = 0; i < m_CleanupEvents.size(); i++)
-      ObjDisp(GetDev())->DestroyEvent(Unwrap(GetDev()), m_CleanupEvents[i], NULL);
-
-    m_CleanupEvents.clear();
-
-    for(const rdcpair<VkCommandPool, VkCommandBuffer> &rerecord : m_RerecordCmdList)
-      vkFreeCommandBuffers(GetDev(), rerecord.first, 1, &rerecord.second);
-
-    m_RerecordCmdList.clear();
-  }
-
   if(!m_InternalCmds.submittedcmds.empty())
   {
     m_InternalCmds.freecmds.append(m_InternalCmds.submittedcmds);
@@ -4007,6 +3993,22 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     FlushQ();
     SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
 #endif
+  }
+
+  if(!IsStructuredExporting(m_State))
+  {
+    AddPendingObjectCleanup([this]() {
+      // destroy any events we created for waiting on
+      for(size_t i = 0; i < m_CleanupEvents.size(); i++)
+        ObjDisp(GetDev())->DestroyEvent(Unwrap(GetDev()), m_CleanupEvents[i], NULL);
+
+      m_CleanupEvents.clear();
+
+      for(const rdcpair<VkCommandPool, VkCommandBuffer> &rerecord : m_RerecordCmdList)
+        vkFreeCommandBuffers(GetDev(), rerecord.first, 1, &rerecord.second);
+
+      m_RerecordCmdList.clear();
+    });
   }
 
   VkMarkerRegion::Set("!!!!RenderDoc Internal: Done replay");
