@@ -746,12 +746,12 @@ void WrappedVulkan::ApplyRPLoadDiscards(VkCommandBuffer commandBuffer, VkRect2D 
         VkImageSubresourceRange range = viewInfo.range;
 
         range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        if(depthDontCareLoad)
+        if(depthDontCareLoad && (viewInfo.range.aspectMask & range.aspectMask) != 0)
           GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
                                                     image, initialLayout, range, renderArea);
 
         range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-        if(stencilDontCareLoad)
+        if(stencilDontCareLoad && (viewInfo.range.aspectMask & range.aspectMask) != 0)
           GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
                                                     image, initialLayout, range, renderArea);
       }
@@ -2295,13 +2295,13 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
                 VkImageSubresourceRange range = viewInfo.range;
 
                 range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-                if(depthDontCareStore)
+                if(depthDontCareStore && (viewInfo.range.aspectMask & range.aspectMask) != 0)
                   GetDebugManager()->FillWithDiscardPattern(
                       commandBuffer, DiscardType::RenderPassStore, image,
                       rpinfo.attachments[i].finalLayout, range, renderArea);
 
                 range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-                if(stencilDontCareStore)
+                if(stencilDontCareStore && (viewInfo.range.aspectMask & range.aspectMask) != 0)
                   GetDebugManager()->FillWithDiscardPattern(
                       commandBuffer, DiscardType::RenderPassStore, image,
                       rpinfo.attachments[i].finalLayout, range, renderArea);
@@ -6942,14 +6942,20 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
            (RenderingInfo.flags & VK_RENDERING_RESUMING_BIT) == 0)
         {
           rdcarray<VkRenderingAttachmentInfo> dynAtts = renderstate.dynamicRendering.color;
-          dynAtts.push_back(renderstate.dynamicRendering.depth);
 
-          size_t depthIdx = dynAtts.size() - 1;
+          size_t depthIdx = ~0U;
           size_t stencilIdx = ~0U;
           VkImageAspectFlags depthAspects = VK_IMAGE_ASPECT_DEPTH_BIT;
 
+          if(renderstate.dynamicRendering.depth.imageView != VK_NULL_HANDLE)
+          {
+            dynAtts.push_back(renderstate.dynamicRendering.depth);
+            depthIdx = dynAtts.size() - 1;
+          }
+
           // if we have different images attached, or different store ops, treat stencil separately
-          if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE &&
+          if(renderstate.dynamicRendering.depth.imageView != VK_NULL_HANDLE &&
+             renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE &&
              (renderstate.dynamicRendering.depth.imageView !=
                   renderstate.dynamicRendering.stencil.imageView ||
               renderstate.dynamicRendering.depth.loadOp !=
@@ -6962,6 +6968,12 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
           else if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE)
           {
             depthAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
+
+            if(renderstate.dynamicRendering.depth.imageView == VK_NULL_HANDLE)
+            {
+              dynAtts.push_back(renderstate.dynamicRendering.stencil);
+              stencilIdx = dynAtts.size() - 1;
+            }
           }
 
           for(size_t i = 0; i < dynAtts.size(); i++)
@@ -6980,6 +6992,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
               if(i == depthIdx)
                 range.aspectMask = depthAspects;
 
+              // if this is a stencil-only attachment this will override depthAspects
               if(i == stencilIdx)
                 range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
 

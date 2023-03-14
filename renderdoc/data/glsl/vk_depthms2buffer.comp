@@ -115,4 +115,24 @@ void main()
     result[dispatchOffset + (idx * 2 + 0)] = floatBitsToUint(depth);
     result[dispatchOffset + (idx * 2 + 1)] = stencil;
   }
+  // For S8, we need to sample 4 pixels at a time
+  else if(format == SHADER_S8_UINT)
+  {
+    int pxIdx = int(idx * 4);
+    int x0 = (pxIdx + 0) % textureWidth;
+    int y0 = (pxIdx + 0) / textureWidth;
+    int x1 = (pxIdx + 1) % textureWidth;
+    int y1 = (pxIdx + 1) / textureWidth;
+    int x2 = (pxIdx + 2) % textureWidth;
+    int y2 = (pxIdx + 2) / textureWidth;
+    int x3 = (pxIdx + 3) % textureWidth;
+    int y3 = (pxIdx + 3) / textureWidth;
+
+    uvec4 stencil = uvec4(texelFetch(srcStencilMS, ivec3(x0, y0, slice), sampleIdx).x,
+                          texelFetch(srcStencilMS, ivec3(x1, y1, slice), sampleIdx).x,
+                          texelFetch(srcStencilMS, ivec3(x2, y2, slice), sampleIdx).x,
+                          texelFetch(srcStencilMS, ivec3(x3, y3, slice), sampleIdx).x);
+    result[dispatchOffset + idx] = ((stencil.x & 0xFF) << 0) | ((stencil.y & 0xFF) << 8) |
+                                   ((stencil.z & 0xFF) << 16) | ((stencil.w & 0xFF) << 24);
+  }
 }

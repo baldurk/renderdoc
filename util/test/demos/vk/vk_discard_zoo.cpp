@@ -551,6 +551,10 @@ void main()
         DiscardImage(cmd, tex);
         TEX_TEST("DiscardAll", MakeTex2D(VK_FORMAT_S8_UINT, 300, 300, 5, 4));
         DiscardImage(cmd, tex);
+        TEX_TEST("DiscardAll", MakeTex2DMS(VK_FORMAT_S8_UINT, 300, 300, 4));
+        DiscardImage(cmd, tex);
+        TEX_TEST("DiscardAll", MakeTex2DMS(VK_FORMAT_S8_UINT, 300, 300, 4, 2));
+        DiscardImage(cmd, tex);
       }
 
       TEX_TEST("DiscardAll", MakeTex2D(depthFormat, 300, 300, 5));

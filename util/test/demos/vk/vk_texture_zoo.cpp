@@ -1068,6 +1068,8 @@ void main()
 
         TEST_CASE(TextureType::Unknown, VK_FORMAT_D16_UNORM, VK_FORMAT_D16_UNORM, 0, 0,
                   DataType::Float),
+
+        TEST_CASE(TextureType::Unknown, VK_FORMAT_S8_UINT, VK_FORMAT_S8_UINT, 0, 0, DataType::UInt),
     };
 
     for(VKFormat f : depth_tests)
@@ -1121,9 +1123,11 @@ void main()
       {
         aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-        if(t.fmt.viewFmt == VK_FORMAT_S8_UINT || t.fmt.viewFmt == VK_FORMAT_D16_UNORM_S8_UINT ||
-           t.fmt.viewFmt == VK_FORMAT_D24_UNORM_S8_UINT ||
-           t.fmt.viewFmt == VK_FORMAT_D32_SFLOAT_S8_UINT)
+        if(t.fmt.viewFmt == VK_FORMAT_S8_UINT)
+          aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+        else if(t.fmt.viewFmt == VK_FORMAT_D16_UNORM_S8_UINT ||
+                t.fmt.viewFmt == VK_FORMAT_D24_UNORM_S8_UINT ||
+                t.fmt.viewFmt == VK_FORMAT_D32_SFLOAT_S8_UINT)
           aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
       }
 

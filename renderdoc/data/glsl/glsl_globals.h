@@ -108,6 +108,7 @@ precision highp int;
 #define SHADER_D24_UNORM_S8_UINT 3
 #define SHADER_D32_SFLOAT 4
 #define SHADER_D32_SFLOAT_S8_UINT 5
+#define SHADER_S8_UINT 6
 
 // divide MS<->buffer workgroups by 64
 #define MS_DISPATCH_LOCAL_SIZE 64

@@ -124,21 +124,27 @@ private:
   std::map<uint64_t, VKMeshDisplayPipelines> m_CachedMeshPipelines;
 
   // CopyBufferToTex2DMS
-  VkDescriptorPool m_BufferMSDescriptorPool;
   VkDescriptorSetLayout m_BufferMSDescSetLayout = VK_NULL_HANDLE;
   VkPipelineLayout m_BufferMSPipeLayout = VK_NULL_HANDLE;
-  VkDescriptorSet m_BufferMSDescSet = VK_NULL_HANDLE;
+  static const uint32_t BufferMSDescriptorPoolSize = 64;
+  rdcarray<VkDescriptorPool> m_BufferMSDescriptorPools;
+  rdcarray<VkDescriptorSet> m_FreeBufferMSDescriptorSets;
+  rdcarray<VkDescriptorSet> m_UsedBufferMSDescriptorSets;
+  VkDescriptorSet GetBufferMSDescSet();
+  void ResetBufferMSDescriptorPools();
   VkPipeline m_Buffer2MSPipe = VK_NULL_HANDLE;
   VkPipeline m_MS2BufferPipe = VK_NULL_HANDLE;
   VkPipeline m_DepthMS2BufferPipe = VK_NULL_HANDLE;
 
   // MSAA dummy images
-  VkDeviceMemory m_DummyStencilMemory = VK_NULL_HANDLE;
+  VkDeviceMemory m_DummyMemory = VK_NULL_HANDLE;
+  VkImage m_DummyDepthImage = {VK_NULL_HANDLE};
+  VkImageView m_DummyDepthView = {VK_NULL_HANDLE};
   VkImage m_DummyStencilImage = {VK_NULL_HANDLE};
   VkImageView m_DummyStencilView = {VK_NULL_HANDLE};
 
   // one per depth/stencil output format, per sample count
-  VkPipeline m_DepthArray2MSPipe[6][4] = {{VK_NULL_HANDLE}};
+  VkPipeline m_DepthArray2MSPipe[7][4] = {{VK_NULL_HANDLE}};
 
   VkPipelineCache m_PipelineCache = VK_NULL_HANDLE;
 
