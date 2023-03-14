@@ -207,6 +207,10 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
     // offs is where we can put our next sub-allocation
     VkDeviceSize offs = block.offs;
 
+    // for ease, ensure all allocations are allocated to the non-coherent atom size, so we can
+    // invalidate/flush safely. This is at most 256 bytes which is likely already satisfied.
+    offs = AlignUp(offs, nonCoherentAtomSize);
+
     // if we are on a buffer/image, account for any alignment we might have to do
     if(ret.buffer != block.buffer)
       offs = AlignUp(offs, m_PhysicalDeviceData.props.limits.bufferImageGranularity);

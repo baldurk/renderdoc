@@ -1306,9 +1306,11 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
     {
       if(initial && initial->mem.mem != VK_NULL_HANDLE)
       {
+        VkDeviceSize size = AlignUp(initial->mem.size, nonCoherentAtomSize);
+
         mappedMem = initial->mem;
-        vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), initial->mem.offs,
-                                    initial->mem.size, 0, (void **)&Contents);
+        vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), initial->mem.offs, size, 0,
+                                    (void **)&Contents);
         CheckVkResult(vkr);
 
         // invalidate the cpu cache for this memory range to avoid reading stale data
@@ -1317,7 +1319,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
             NULL,
             Unwrap(mappedMem.mem),
             mappedMem.offs,
-            mappedMem.size,
+            size,
         };
 
         vkr = ObjDisp(d)->InvalidateMappedMemoryRanges(Unwrap(d), 1, &range);
