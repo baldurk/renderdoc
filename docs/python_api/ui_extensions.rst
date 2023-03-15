@@ -115,11 +115,11 @@ And finally we can fill in the event functions to set the breadcrumbs. We use ``
         breadcrumbs = ''
 
         if action is not None:
-            breadcrumbs = '@{}: {}'.format(action.eventId, action.name)
+            breadcrumbs = '@{}: {}'.format(action.eventId, action.customName)
 
             while action.parent is not None:
                 action = action.parent
-                breadcrumbs = '@{}: {}'.format(action.eventId, action.name) + '\n' + breadcrumbs
+                breadcrumbs = '@{}: {}'.format(action.eventId, action.customName) + '\n' + breadcrumbs
 
         self.mqt.SetWidgetText(self.breadcrumbs, "Breadcrumbs:\n{}".format(breadcrumbs))
 
@@ -159,7 +159,7 @@ Finally we'll register a new menu item to display the window. We only allow one 
     def register(version: str, ctx: qrd.CaptureContext):
         # as above ...
 
-        ctx.Extensions().RegisterWindowMenu(qrd.WindowMenu.Window, ["Extension Window"], window_callback)
+        ctx.Extensions().RegisterWindowMenu(qrd.WindowMenu.Window, ["Extension Window"], open_window_callback)
 
 
     def unregister():
