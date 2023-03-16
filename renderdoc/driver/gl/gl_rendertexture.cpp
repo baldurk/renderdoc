@@ -341,9 +341,14 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
       }
       cfg.rangeMin *= rangeScale;
       cfg.rangeMax *= rangeScale;
+
+      if(displayFormat == eGL_STENCIL_INDEX8)
+        cfg.red = true;
     }
     else
+    {
       dsTexMode = eGL_DEPTH_COMPONENT;
+    }
   }
   else
   {

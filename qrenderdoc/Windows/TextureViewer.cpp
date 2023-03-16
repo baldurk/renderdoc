@@ -975,7 +975,8 @@ void TextureViewer::UI_UpdateStatusText()
      !yuv)
     compType = m_TexDisplay.typeCast;
 
-  bool dsv = (tex.creationFlags & TextureCategory::DepthTarget) || (compType == CompType::Depth);
+  bool dsv = (tex.creationFlags & TextureCategory::DepthTarget) || (compType == CompType::Depth) ||
+             (tex.format.type == ResourceFormatType::S8);
   bool uintTex = (compType == CompType::UInt);
   bool sintTex = (compType == CompType::SInt);
 
@@ -1100,9 +1101,14 @@ void TextureViewer::UI_UpdateStatusText()
         int stencil = (int)(255.0f * val.floatValue[1]);
 
         if(tex.format.type == ResourceFormatType::S8)
+        {
           pickedText.clear();
+          stencil = val.uintValue[0];
+        }
         else
+        {
           pickedText += lit(", ");
+        }
 
         pickedText += tr("Stencil 0x%1").arg(Formatter::Format(uint8_t(stencil & 0xff), true));
 
@@ -1598,6 +1604,15 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newAction)
       m_NoRangePaint = false;
     }
 
+    ui->depthDisplay->setEnabled(true);
+
+    if(tex.format.type == ResourceFormatType::S8)
+    {
+      ui->depthDisplay->setEnabled(false);
+      ui->depthDisplay->setChecked(false);
+      ui->stencilDisplay->setChecked(true);
+    }
+
     // reset the range if desired
     if(m_Ctx.Config().TextureViewer_ResetRange)
     {
@@ -1711,6 +1726,9 @@ void TextureViewer::UI_UpdateChannels()
     HIDE(ui->customDelete);
     SHOW(ui->depthDisplay);
     SHOW(ui->stencilDisplay);
+
+    if(tex != NULL && tex->format.type == ResourceFormatType::S8)
+      HIDE(ui->depthDisplay);
 
     m_TexDisplay.red = ui->depthDisplay->isChecked();
     m_TexDisplay.green = ui->stencilDisplay->isChecked();

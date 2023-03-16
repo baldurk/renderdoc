@@ -3398,7 +3398,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     imCreateInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
     // we'll need to cast to remap the stencil part
-    if(IsDepthAndStencilFormat(imInfo.format))
+    if(IsStencilFormat(imInfo.format))
       imCreateInfo.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
     imCreateInfo.extent.width = RDCMAX(1U, imCreateInfo.extent.width >> s.mip);
@@ -3488,7 +3488,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     numFBs = imCreateInfo.arrayLayers;
 
     // we'll need twice as many temp views/FBs for stencil views
-    if(IsDepthAndStencilFormat(imInfo.format))
+    if(IsStencilFormat(imInfo.format))
     {
       tmpFB = new VkFramebuffer[numFBs * 2];
       tmpView = new VkImageView[numFBs * 2];
@@ -3612,6 +3612,15 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
         stencilFlags |= eTexDisplay_RemapUInt | eTexDisplay_GreenOnly;
 
         texDisplay.red = texDisplay.blue = texDisplay.alpha = false;
+
+        // S8 renders into red
+        if(IsStencilOnlyFormat(imInfo.format))
+        {
+          texDisplay.red = true;
+          texDisplay.green = false;
+          stencilFlags &= ~eTexDisplay_GreenOnly;
+        }
+
         RenderTextureInternal(texDisplay, *srcImageState, rpbegin, stencilFlags);
         renderCount++;
       }
@@ -4169,7 +4178,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
   if(tmpFB != NULL)
   {
-    if(IsDepthAndStencilFormat(imInfo.format))
+    if(IsStencilFormat(imInfo.format))
       numFBs *= 2;
 
     for(uint32_t i = 0; i < numFBs; i++)

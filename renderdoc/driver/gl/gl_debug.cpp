@@ -1665,8 +1665,7 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subre
     // at the same time.
     if(texDetails.internalFormat == eGL_DEPTH24_STENCIL8 ||
        texDetails.internalFormat == eGL_DEPTH32F_STENCIL8 ||
-       texDetails.internalFormat == eGL_DEPTH_STENCIL ||
-       texDetails.internalFormat == eGL_STENCIL_INDEX8)
+       texDetails.internalFormat == eGL_DEPTH_STENCIL)
     {
       texDisplay.red = texDisplay.blue = texDisplay.alpha = false;
 
@@ -1688,14 +1687,6 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subre
       // not sure whether [0] or [1] will return stencil values, so use
       // max of two because other channel should be 0
       pixel[1] = float(RDCMAX(stencilpixel[0], stencilpixel[1])) / 255.0f;
-
-      // the first depth read will have read stencil instead.
-      // NULL it out so the UI sees only stencil
-      if(texDetails.internalFormat == eGL_STENCIL_INDEX8)
-      {
-        pixel[1] = float(RDCMAX(stencilpixel[0], stencilpixel[1])) / 255.0f;
-        pixel[0] = 0.0f;
-      }
     }
   }
 }

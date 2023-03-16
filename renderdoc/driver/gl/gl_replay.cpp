@@ -2612,7 +2612,7 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
       }
 
       // do one more time for the stencil
-      if(baseFormat == eGL_DEPTH_STENCIL)
+      if(baseFormat == eGL_DEPTH_STENCIL || baseFormat == eGL_STENCIL_INDEX)
       {
         TextureDisplay texDisplay;
 
@@ -2640,6 +2640,8 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
         GLboolean color_mask[4];
         drv.glGetBooleanv(eGL_COLOR_WRITEMASK, color_mask);
         drv.glColorMask(GL_FALSE, GL_TRUE, GL_FALSE, GL_FALSE);
+        if(baseFormat == eGL_STENCIL_INDEX)
+          drv.glColorMask(GL_TRUE, GL_TRUE, GL_FALSE, GL_FALSE);
 
         flags = TexDisplayFlags(
             flags & ~(eTexDisplay_RemapFloat | eTexDisplay_RemapUInt | eTexDisplay_RemapSInt));

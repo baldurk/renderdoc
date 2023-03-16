@@ -401,7 +401,8 @@ void main()
     Vec4i dimensions(texWidth, texHeight, texDepth);
 
     bool isCompressed =
-        (test.fmt.cfg.type != TextureType::R9G9B9E5 && test.fmt.cfg.type != TextureType::Regular);
+        (test.fmt.cfg.type != TextureType::R9G9B9E5 && test.fmt.cfg.type != TextureType::Regular) ||
+        test.fmt.internalFormat == GL_STENCIL_INDEX8;
 
     // Some GL drivers report that block compressed textures are supported for MSAA and color
     // rendering. Save them from themselves. Similarly they report support for 1D and 3D but then it
@@ -589,6 +590,9 @@ void main()
       format = isInt ? GL_RG_INTEGER : GL_RG;
     else if(test.fmt.cfg.componentCount == 1)
       format = isInt ? GL_RED_INTEGER : GL_RED;
+
+    if(test.fmt.internalFormat == GL_STENCIL_INDEX8)
+      format = GL_STENCIL_INDEX;
 
     if(test.fmt.cfg.type == TextureType::R9G9B9E5)
     {
@@ -881,6 +885,8 @@ void main()
         TEST_CASE(TextureType::Unknown, GL_DEPTH_COMPONENT24, 0, 0, DataType::Float),
 
         TEST_CASE(TextureType::Unknown, GL_DEPTH_COMPONENT16, 0, 0, DataType::Float),
+
+        TEST_CASE(TextureType::Regular, GL_STENCIL_INDEX8, 1, 1, DataType::UInt),
     };
 
     for(GLFormat f : depth_tests)

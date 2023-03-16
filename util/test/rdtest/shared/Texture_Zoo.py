@@ -74,6 +74,9 @@ class Texture_Zoo():
 
         pickCompType = testCompType
 
+        if tex.format.type == rd.ResourceFormatType.S8:
+            pickCompType = rd.CompType.UInt
+
         # When not running proxied, save non-typecasted textures to disk
         if not image_view and not self.proxied and (tex.format.compType == testCompType or
                                                     tex.format.type == rd.ResourceFormatType.D24S8 or
@@ -122,8 +125,6 @@ class Texture_Zoo():
                 except Exception:
                     pass
 
-        value0 = []
-
         # When viewing PNGs only compare the components that the original texture had
         if test_mode == Texture_Zoo.TEST_PNG:
             tex.format = self.textures[self.filename].format
@@ -132,6 +133,10 @@ class Texture_Zoo():
             tex.arraysize = 1
             tex.depth = 1
             self.fake_msaa = 'MSAA' in name
+
+            orig_format = self.textures[self.filename].format
+            if orig_format.type == rd.ResourceFormatType.S8:
+                pickCompType = rd.CompType.UInt
         elif test_mode == Texture_Zoo.TEST_DDS:
             tex_format = tex.format
             orig_format = self.textures[self.filename].format
@@ -147,6 +152,11 @@ class Texture_Zoo():
             # DDS only supports SRGB for four-component formats
             if orig_format.compType == rd.CompType.UNormSRGB and tex_format.compCount < 4:
                 tex_format.compType = orig_format.compType
+
+            # S8 will be loaded up as R8_UINT
+            if orig_format.type == rd.ResourceFormatType.S8:
+                tex_format = orig_format
+                pickCompType = rd.CompType.UInt
 
             if tex_format.type == rd.ResourceFormatType.D24S8 or tex_format.type == rd.ResourceFormatType.D16S8 or tex_format.type == rd.ResourceFormatType.D32S8:
                 if tex_format.type != orig_format.type:
@@ -202,7 +212,7 @@ class Texture_Zoo():
             eps = (eps_significand / 127.0)
         elif tex.format.compByteWidth == 1:
             eps = (eps_significand / 255.0)
-        elif testCompType == rd.CompType.Depth and tex.format.compCount == 2:
+        elif testCompType == rd.CompType.Depth and tex.format.compCount == 2 or tex.format.type == rd.ResourceFormatType.S8:
             eps = (eps_significand / 255.0)  # stencil is only 8-bit
         elif tex.format.type == rd.ResourceFormatType.A8:
             eps = (eps_significand / 255.0)
@@ -348,7 +358,7 @@ class Texture_Zoo():
                             picked = self.get_picked_pixel_value(comp_count, pickCompType, cur_sub, tex, tex_id, x, y)
 
                             if mp == 0 and sl == 0 and sm == 0 and x == 0 and y == 0:
-                                value0 = picked
+                                pass
 
                             if not rdtest.value_compare(picked, expected, eps):
                                 raise rdtest.TestFailureException(
@@ -374,9 +384,7 @@ class Texture_Zoo():
             # Clamp to number of components in the texture
             picked = picked[0:comp_count]
 
-            # If we didn't get a value0 (because we did all texture render compares) then fetch it here
-            if len(value0) == 0:
-                value0 = self.get_picked_pixel_value(comp_count, pickCompType, rd.Subresource(), tex, tex_id, 0, 0)
+            value0 = self.get_picked_pixel_value(comp_count, pickCompType, rd.Subresource(), tex, tex_id, 0, 0)
 
             # Up-convert any non-float expected values to floats
             value0 = [float(x) for x in value0]
@@ -398,6 +406,8 @@ class Texture_Zoo():
                         value0[1] = 0.0
                     if picked[1] > 1.0:
                         picked[1] /= 255.0
+            elif tex.format.type == rd.ResourceFormatType.S8:
+                picked[0] /= 255.0
 
             if not rdtest.value_compare(picked, value0, eps):
                 raise rdtest.TestFailureException(
@@ -421,13 +431,17 @@ class Texture_Zoo():
         if tex.arraysize > 1 and ((sl % 2) == 1) and ((int(x / 2) % 2) != (int(y / 2) % 2)):
             inverted = not inverted
 
-        if comp_type == rd.CompType.UInt or comp_type == rd.CompType.SInt:
+        if comp_type == rd.CompType.UInt or comp_type == rd.CompType.SInt or tex.format.type == rd.ResourceFormatType.S8:
             expected = [10.0, 40.0, 70.0, 100.0]
 
             if inverted:
                 expected = list(reversed(expected))
 
             expected = [c + 10.0 * (sm + mp) for c in expected]
+
+            # Normalise stencil value
+            if tex.format.type == rd.ResourceFormatType.S8:
+                expected[0] = expected[0] / 255.0
         elif (tex.format.type == rd.ResourceFormatType.D16S8 or
               tex.format.type == rd.ResourceFormatType.D24S8 or
               tex.format.type == rd.ResourceFormatType.D32S8):
@@ -509,6 +523,10 @@ class Texture_Zoo():
         # A8 picked values come out in alpha, but we want to compare against the single channel
         if tex.format.type == rd.ResourceFormatType.A8:
             picked[0] = picked[3]
+
+        # Normalise stencil values
+        if tex.format.type == rd.ResourceFormatType.S8:
+            picked[0] /= 255.0
 
         # Clamp to number of components in the texture
         picked = picked[0:comp_count]

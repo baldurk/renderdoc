@@ -2317,6 +2317,10 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
     switch(tex.format.type)
     {
       case ResourceFormatType::S8:
+        tex.format.compType = CompType::UInt;
+        params.remap = RemapTexture::RGBA8;
+        tex.creationFlags &= ~TextureCategory::DepthTarget;
+        break;
       case ResourceFormatType::D16S8:
       case ResourceFormatType::D24S8:
       case ResourceFormatType::D32S8:
