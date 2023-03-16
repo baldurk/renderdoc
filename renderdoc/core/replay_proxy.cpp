@@ -1989,7 +1989,10 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
         if(offs < uncompSize)
         {
           if(uncompSize - offs > 128)
+          {
             RDCERR("Unexpected amount of padding: %llu", uncompSize - offs);
+            m_IsErrored = true;
+          }
           ser.GetReader()->Read(NULL, uncompSize - offs);
         }
       }
@@ -1997,6 +2000,7 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
       if(deltas.empty())
       {
         RDCERR("Unexpected empty delta list");
+        m_IsErrored = true;
       }
       else if(referenceData.empty())
       {
