@@ -286,6 +286,7 @@ bool LZ4Decompressor::FillPage0()
       SET_ERROR_RESULT(m_Error, ResultCode::CompressionFailed,
                        "LZ4 decompression encountered invalid compressed block size: %i", compSize);
     }
+    return false;
   }
 
   success &= m_Read->Read(m_CompressBuffer, compSize);
