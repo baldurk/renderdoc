@@ -9,7 +9,7 @@ class Discard_Zoo(rdtest.TestCase):
         if type(val) != list:
             val = [val, val, val, val]
 
-        if fmt.compType == rd.CompType.UInt or fmt.compType == rd.CompType.SInt:
+        if fmt.compType == rd.CompType.UInt or fmt.compType == rd.CompType.SInt or fmt.type == rd.ResourceFormatType.S8:
             val = [int(a) for a in val]
             return rdtest.value_compare(picked.intValue[0:fmt.compCount], val[0:fmt.compCount])
         else:
@@ -52,9 +52,9 @@ class Discard_Zoo(rdtest.TestCase):
                 minval = [0.4, minval]
                 maxval = [0.4, maxval]
         elif fmt.type == rd.ResourceFormatType.S8:
-            minval = [0.0, 0.0]
-            maxval = [0.0, 1.0]
-            fmt.compCount = 2
+            minval = [0.0]
+            maxval = [255.0]
+            fmt.compCount = 1
         elif fmt.compType == rd.CompType.UNorm or fmt.compType == rd.CompType.Depth:
             maxval = 1.0
         elif fmt.compType == rd.CompType.UInt or fmt.compType == rd.CompType.SInt:
