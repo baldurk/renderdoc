@@ -113,6 +113,7 @@ set(VULKAN_SRC
         vk/vk_leak_check.cpp
         vk/vk_line_raster.cpp
         vk/vk_load_store_none.cpp
+        vk/vk_mem_bench.cpp
         vk/vk_mesh_zoo.cpp
         vk/vk_misaligned_dirty.cpp
         vk/vk_multi_entry.cpp

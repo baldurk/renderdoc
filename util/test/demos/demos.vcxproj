@@ -308,6 +308,7 @@
     <ClCompile Include="vk\vk_large_descriptor_sets.cpp" />
     <ClCompile Include="vk\vk_leak_check.cpp" />
     <ClCompile Include="vk\vk_load_store_none.cpp" />
+    <ClCompile Include="vk\vk_mem_bench.cpp" />
     <ClCompile Include="vk\vk_mesh_zoo.cpp" />
     <ClCompile Include="vk\vk_multi_entry.cpp" />
     <ClCompile Include="vk\vk_multi_present.cpp" />

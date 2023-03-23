@@ -1740,7 +1740,8 @@ void main()
       setMarker(queue, "before_empty");
 
       {
-        VkSubmitInfo submit = vkh::SubmitInfo({});
+        std::vector<VkCommandBuffer> cmds = {};
+        VkSubmitInfo submit = vkh::SubmitInfo(cmds);
         CHECK_VKR(vkQueueSubmit(queue, 1, &submit, VK_NULL_HANDLE));
       }
       if(hasExt(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME))

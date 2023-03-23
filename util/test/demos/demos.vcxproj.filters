@@ -649,6 +649,9 @@
     <ClCompile Include="d3d12\d3d12_map_placed_alias.cpp">
       <Filter>D3D12\demos</Filter>
     </ClCompile>
+    <ClCompile Include="vk\vk_mem_bench.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
     <ClCompile Include="android\android_platform.cpp">
       <Filter>Android</Filter>
     </ClCompile>
