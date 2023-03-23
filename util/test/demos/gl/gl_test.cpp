@@ -25,9 +25,19 @@
 #include "gl_test.h"
 #include <stdio.h>
 
-static std::string common = R"EOSHADER(
+#if defined(ANDROID)
+static std::string version = "#version 320 es";
+#else
+static std::string version = "#version 410 core";
+#endif
 
-#version 410 core
+static std::string common = version + R"EOSHADER(
+
+
+#if defined(GL_ES)
+precision highp float;
+precision highp int;
+#endif
 
 #define v2f v2f_block \
 {                     \
@@ -60,7 +70,7 @@ std::string GLDefaultPixel = common + R"EOSHADER(
 
 in v2f vertIn;
 
-layout(location = 0, index = 0) out vec4 Color;
+layout(location = 0) out vec4 Color;
 
 void main()
 {

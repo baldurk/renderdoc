@@ -26,6 +26,8 @@
 
 #if defined(WIN32)
 #include "win32/win32_platform.h"
+#elif defined(ANDROID)
+#include "android/android_platform.h"
 #elif defined(__linux__)
 #include "linux/linux_platform.h"
 #elif defined(__APPLE__)

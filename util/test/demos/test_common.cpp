@@ -154,6 +154,10 @@ std::string trim(const std::string &str)
 static char printBuf[4096] = {};
 static FILE *logFile = NULL;
 
+#if defined(ANDROID)
+#include <android/log.h>
+#endif
+
 void DebugPrint(const char *fmt, ...)
 {
   va_list args;
@@ -174,6 +178,10 @@ void DebugPrint(const char *fmt, ...)
 
 #if defined(WIN32)
   OutputDebugStringA(printBuf);
+#endif
+
+#if defined(ANDROID)
+  __android_log_print(ANDROID_LOG_INFO, "rd_demos", "%s", printBuf);
 #endif
 }
 
@@ -214,6 +222,10 @@ void LoadXPM(const char **XPM, Texture &tex)
 // this define toggles on/off using the linked shaderc. This can be useful for quick testing without
 // having to remove the built shaderc files
 #define USE_LINKED_SHADERC (1 && HAVE_SHADERC)
+
+#if !USE_LINKED_SHADERC && defined(ANDROID)
+#error "can't execute shaderc on android"
+#endif
 
 #if USE_LINKED_SHADERC
 #include <shaderc/shaderc.h>
@@ -569,6 +581,10 @@ bool GraphicsTest::Init()
   HMODULE mod = GetModuleHandleA("renderdoc.dll");
   if(mod)
     RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+#elif defined(ANDROID)
+  void *mod = dlopen("libVkLayer_GLES_RenderDoc.so", RTLD_NOW | RTLD_NOLOAD);
+  if(mod)
+    RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
 #elif defined(__linux__)
   void *mod = dlopen("librenderdoc.so", RTLD_NOW | RTLD_NOLOAD);
   if(mod)

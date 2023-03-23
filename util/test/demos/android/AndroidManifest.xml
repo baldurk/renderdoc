@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!-- BEGIN_INCLUDE(manifest) -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="@RENDERDOC_ANDROID_PACKAGE_NAME@">
+
+  <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="26"/>
+
+  <uses-permission android:name="android.permission.INTERNET" />
+
+  <!-- Use GL ES 3.2 version -->
+  <uses-feature android:glEsVersion="0x00030000" android:required="true" />
+
+  <application android:debuggable="true" android:label="demos" android:icon="@drawable/icon" android:hasCode="true">
+    <activity android:name=".Loader" android:label="RenderDoc" android:exported="true" android:screenOrientation="landscape" android:configChanges="orientation|keyboardHidden">
+      <meta-data android:name="android.app.lib_name" android:value="demos"/>
+    </activity>
+
+  </application>
+</manifest>
+<!-- END_INCLUDE(manifest) -->

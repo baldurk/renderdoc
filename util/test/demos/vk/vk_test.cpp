@@ -102,6 +102,8 @@ void main()
 
 #if defined(WIN32)
 #include "../win32/win32_window.h"
+#elif defined(ANDROID)
+#include "../android/android_window.h"
 #elif defined(__linux__)
 #include "../linux/linux_window.h"
 #elif defined(__APPLE__)
@@ -161,6 +163,8 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
 
 #if defined(WIN32)
       enabledInstExts.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+#elif defined(ANDROID)
+      enabledInstExts.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
 #elif defined(__linux__)
       enabledInstExts.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 
@@ -592,6 +596,11 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
       if(computeQueueFamilyIndex == ~0U)
         computeQueueFamilyIndex = q;
     }
+    else if(queueProps[q].queueFlags & VK_QUEUE_TRANSFER_BIT)
+    {
+      if(transferQueueFamilyIndex == ~0U)
+        transferQueueFamilyIndex = q;
+    }
   }
 
   // if no queue has been selected, find it now
@@ -679,8 +688,13 @@ bool VulkanGraphicsTest::Init()
     queueCreates.push_back(vkh::DeviceQueueCreateInfo(graphicsQueueFamilyIndex, 1, priorities));
   if(queueFamilyIndex != computeQueueFamilyIndex &&
      (graphicsQueueFamilyIndex != computeQueueFamilyIndex || !forceGraphicsQueue) &&
-     forceComputeQueue)
+     computeQueueFamilyIndex != ~0U && forceComputeQueue)
     queueCreates.push_back(vkh::DeviceQueueCreateInfo(computeQueueFamilyIndex, 1, priorities));
+  if(queueFamilyIndex != transferQueueFamilyIndex &&
+     graphicsQueueFamilyIndex != transferQueueFamilyIndex &&
+     computeQueueFamilyIndex != transferQueueFamilyIndex && transferQueueFamilyIndex != ~0U &&
+     forceTransferQueue)
+    queueCreates.push_back(vkh::DeviceQueueCreateInfo(transferQueueFamilyIndex, 1, priorities));
 
   CHECK_VKR(vkCreateDevice(
       phys, vkh::DeviceCreateInfo(queueCreates, enabledLayers, devExts, features).next(devInfoNext),
@@ -744,6 +758,8 @@ VulkanWindow *VulkanGraphicsTest::MakeWindow(int width, int height, const char *
 {
 #if defined(WIN32)
   GraphicsWindow *platWin = new Win32Window(width, height, title);
+#elif defined(ANDROID)
+  GraphicsWindow *platWin = new AndroidWindow(width, height, title);
 #elif defined(__linux__)
   GraphicsWindow *platWin = new X11Window(width, height, 0, title);
 #elif defined(__APPLE__)
@@ -1325,6 +1341,15 @@ VulkanWindow::VulkanWindow(VulkanGraphicsTest *test, GraphicsWindow *win)
     createInfo.hinstance = GetModuleHandleA(NULL);
 
     vkCreateWin32SurfaceKHR(m_Test->instance, &createInfo, NULL, &surface);
+#elif defined(ANDROID)
+    VkAndroidSurfaceCreateInfoKHR createInfo;
+
+    createInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+    createInfo.pNext = NULL;
+    createInfo.flags = 0;
+    createInfo.window = ((AndroidWindow *)win)->window;
+
+    vkCreateAndroidSurfaceKHR(m_Test->instance, &createInfo, NULL, &surface);
 #elif defined(__linux__)
     VkXcbSurfaceCreateInfoKHR createInfo;
 

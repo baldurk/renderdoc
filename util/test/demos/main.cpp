@@ -139,6 +139,26 @@ void NuklearShutdown()
   UnregisterClassW(wc.lpszClassName, wc.hInstance);
 }
 
+#elif defined(ANDROID)
+
+nk_context *NuklearInit(int width, int height, const char *title)
+{
+  return NULL;
+}
+
+bool NuklearTick(nk_context *ctx)
+{
+  return false;
+}
+
+void NuklearRender()
+{
+}
+
+void NuklearShutdown()
+{
+}
+
 #elif defined(__linux__)
 
 #define NK_XLIB_IMPLEMENTATION
@@ -707,6 +727,112 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
 
   delete[] argv;
   LocalFree(wargv);
+}
+
+#endif
+
+#if defined(ANDROID)
+#include <android_native_app_glue.h>
+#include <sstream>
+
+#include <android/log.h>
+
+struct android_app *android_state;
+pthread_t cmdthread_handle = 0;
+
+#define ANDROID_LOG(...) __android_log_print(ANDROID_LOG_INFO, "rd_demos", __VA_ARGS__);
+
+std::vector<std::string> getArgs()
+{
+  JNIEnv *env;
+  android_state->activity->vm->AttachCurrentThread(&env, 0);
+
+  jobject me = android_state->activity->clazz;
+
+  jclass acl = env->GetObjectClass(me);    // class pointer of NativeActivity
+  jmethodID giid = env->GetMethodID(acl, "getIntent", "()Landroid/content/Intent;");
+  jobject intent = env->CallObjectMethod(me, giid);    // Got our intent
+
+  jclass icl = env->GetObjectClass(intent);    // class pointer of Intent
+  jmethodID gseid =
+      env->GetMethodID(icl, "getStringExtra", "(Ljava/lang/String;)Ljava/lang/String;");
+
+  jstring jsParam1 = (jstring)env->CallObjectMethod(intent, gseid, env->NewStringUTF("rd_demos"));
+
+  std::vector<std::string> ret;
+  if(jsParam1)    // Check if arg value found
+  {
+    ret.push_back("rd_demos");
+    const char *param1 = env->GetStringUTFChars(jsParam1, 0);
+    std::istringstream iss(param1);
+    while(iss)
+    {
+      std::string sub;
+      iss >> sub;
+      ret.push_back(sub);
+    }
+  }
+  android_state->activity->vm->DetachCurrentThread();
+
+  return ret;
+}
+
+void *cmdthread(void *)
+{
+  ANDROID_LOG("cmdthread");
+  std::vector<std::string> args = getArgs();
+  if(args.size())
+  {
+    std::vector<char *> argv;
+    for(size_t i = 0; i < args.size(); i++)
+    {
+      ANDROID_LOG("argv %d: %s", (int)i, args[i].c_str());
+      argv.push_back(&args[i][0]);
+    }
+    int argc = argv.size();
+    argv.push_back(NULL);
+    ANDROID_LOG("premain");
+    main(argc, argv.data());
+    ANDROID_LOG("postmain");
+  }
+
+  // activity is done and should be closed
+  ANativeActivity_finish(android_state->activity);
+
+  return NULL;
+}
+
+void handle_cmd(android_app *app, int32_t cmd)
+{
+  if(cmd == APP_CMD_INIT_WINDOW)
+  {
+    ANDROID_LOG("APP_CMD_INIT_WINDOW");
+    pthread_create(&cmdthread_handle, NULL, cmdthread, NULL);
+  }
+}
+
+void android_main(struct android_app *state)
+{
+  android_state = state;
+  android_state->onAppCmd = handle_cmd;
+
+  ANDROID_LOG("android_main");
+
+  // Used to poll the events in the main loop
+  int events;
+  android_poll_source *source;
+  do
+  {
+    if(ALooper_pollAll(1, nullptr, &events, (void **)&source) >= 0)
+    {
+      if(source != NULL)
+        source->process(android_state, source);
+    }
+  } while(android_state->destroyRequested == 0);
+
+  ANDROID_LOG("end android_main");
+
+  android_state = NULL;
 }
 
 #endif

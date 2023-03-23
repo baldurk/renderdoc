@@ -273,8 +273,10 @@ struct VulkanGraphicsTest : public GraphicsTest
 
   bool forceGraphicsQueue = false;
   bool forceComputeQueue = false;
+  bool forceTransferQueue = false;
   uint32_t graphicsQueueFamilyIndex = ~0U;
   uint32_t computeQueueFamilyIndex = ~0U;
+  uint32_t transferQueueFamilyIndex = ~0U;
 
   bool hasExt(const char *ext);
 

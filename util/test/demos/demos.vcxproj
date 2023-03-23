@@ -121,6 +121,12 @@
   <ItemGroup>
     <ClCompile Include="3rdparty\fmt\format.cc" />
     <ClCompile Include="3rdparty\md5\md5.c" />
+    <ClCompile Include="android\android_platform.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="android\android_window.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="d3d11\d3d11_1_many_uavs.cpp" />
     <ClCompile Include="d3d11\d3d11_amd_shader_extensions.cpp" />
     <ClCompile Include="d3d11\d3d11_array_interpolator.cpp" />
@@ -267,6 +273,9 @@
     <ClCompile Include="gl\gl_test_linux.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="gl\gl_test_android.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="gl\gl_test_win32.cpp" />
     <ClCompile Include="gl\gl_texture_zoo.cpp" />
     <ClCompile Include="gl\gl_unshared_context.cpp" />
@@ -358,6 +367,12 @@
     <ClInclude Include="3rdparty\glad\khrplatform.h" />
     <ClInclude Include="3rdparty\md5\md5.h" />
     <ClInclude Include="3rdparty\VulkanMemoryAllocator\vk_mem_alloc.h" />
+    <ClInclude Include="android\android_platform.h">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="android\android_window.h">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="d3d11\d3d11_helpers.h" />
     <ClInclude Include="d3d11\d3d11_test.h" />
     <ClInclude Include="d3d12\d3d12_helpers.h" />
