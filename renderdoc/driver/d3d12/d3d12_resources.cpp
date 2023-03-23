@@ -179,8 +179,6 @@ WrappedID3D12Resource::~WrappedID3D12Resource()
 
 byte *WrappedID3D12Resource::GetMap(UINT Subresource)
 {
-  SCOPED_LOCK(GetResourceRecord()->m_MapLock);
-
   D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
   size_t mapcount = GetResourceRecord()->m_MapsCount;
 
@@ -192,8 +190,6 @@ byte *WrappedID3D12Resource::GetMap(UINT Subresource)
 
 byte *WrappedID3D12Resource::GetShadow(UINT Subresource)
 {
-  SCOPED_LOCK(GetResourceRecord()->m_MapLock);
-
   D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
 
   return map[Subresource].shadowPtr;
@@ -201,8 +197,6 @@ byte *WrappedID3D12Resource::GetShadow(UINT Subresource)
 
 void WrappedID3D12Resource::AllocShadow(UINT Subresource, size_t size)
 {
-  SCOPED_LOCK(GetResourceRecord()->m_MapLock);
-
   D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
 
   if(map[Subresource].shadowPtr == NULL)

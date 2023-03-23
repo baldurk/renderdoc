@@ -1659,11 +1659,11 @@ void WrappedID3D12Device::Unmap(ID3D12Resource *Resource, UINT Subresource, byte
   if(heapProps.Type == D3D12_HEAP_TYPE_READBACK)
     return;
 
+  map.res = Resource;
+  map.subres = Subresource;
+
   {
     SCOPED_LOCK(m_MapsLock);
-    map.res = Resource;
-    map.subres = Subresource;
-
     int32_t idx = m_Maps.indexOf(map);
 
     if(idx < 0)
@@ -2481,13 +2481,11 @@ bool WrappedID3D12Device::EndFrameCapture(DeviceOwnedWindow devWnd)
     m_State = CaptureState::BackgroundCapturing;
 
     GPUSync();
-
-    {
-      SCOPED_LOCK(m_MapsLock);
-      for(auto it = m_Maps.begin(); it != m_Maps.end(); ++it)
-        GetWrapped(it->res)->FreeShadow();
-    }
   }
+
+  rdcarray<MapState> maps = GetMaps();
+  for(auto it = maps.begin(); it != maps.end(); ++it)
+    GetWrapped(it->res)->FreeShadow();
 
   const uint32_t maxSize = 2048;
   RenderDoc::FramePixels fp;
@@ -2834,14 +2832,12 @@ bool WrappedID3D12Device::DiscardFrameCapture(DeviceOwnedWindow devWnd)
 
     GPUSync();
 
-    {
-      SCOPED_LOCK(m_MapsLock);
-      for(auto it = m_Maps.begin(); it != m_Maps.end(); ++it)
-        GetWrapped(it->res)->FreeShadow();
-    }
-
     queues = m_Queues;
   }
+
+  rdcarray<MapState> maps = GetMaps();
+  for(auto it = maps.begin(); it != maps.end(); ++it)
+    GetWrapped(it->res)->FreeShadow();
 
   m_HeaderChunk->Delete();
   m_HeaderChunk = NULL;
