@@ -686,20 +686,25 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
       {
         record->memMapState->mapCoherent = (memProps & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
 
-        // mark this memory as needing readback on the GPU if it's device-local on a discrete GPU,
-        // or host-uncached on any other type of GPU. On non-discrete GPUs it's unfortunately not
-        // always the case that the CPU can access memory at good speed, even if it's on the same
-        // chip. On discrete GPUs where the memory isn't device local it's CPU side so it should
-        // always be fast to access. In these cases we want to push the memory from the GPU to the
-        // CPU with a command buffer.
+        // some types of memory are faster to readback via a synchronous call to the GPU
         if(Vulkan_GPUReadbackDeviceLocal())
         {
+          // on discrete GPUs, all device local memory should be readback this way
           if(m_PhysicalDeviceData.props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
             record->memMapState->readbackOnGPU =
                 (memProps & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0;
-          else
-            record->memMapState->readbackOnGPU =
-                ((memProps & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) == 0);
+
+          // non-cached memory are generally always faster to readback on the GPU. Some GPUs allow
+          // faster readback via non-temporal loads but GPU copy speeds are comparable enough
+          record->memMapState->readbackOnGPU = ((memProps & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) == 0);
+
+#if ENABLED(RDOC_ANDROID)
+          // on Android all memory types are marked as device local. Types which are fast to read
+          // back directly from the CPU are CACHED but *not* COHERENT. Any types which are either
+          // only COHERENT, or are both CACHED and COHERENT, are still faster to readback via GPU
+          // copy.
+          record->memMapState->readbackOnGPU = (memProps & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
+#endif
 
           // we need a wholeMemBuf to readback on the GPU
           if(record->memMapState->readbackOnGPU && wholeMemBuf == VK_NULL_HANDLE)
