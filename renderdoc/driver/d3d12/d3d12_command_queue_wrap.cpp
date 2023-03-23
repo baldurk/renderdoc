@@ -930,9 +930,6 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
           {
             RDCERR("Unexpected invalid queue type %s", ToStr(type).c_str());
           }
-          else if(1)
-          {
-          }
           else
           {
             ID3D12GraphicsCommandList *list = queueReadback.lists[type];
