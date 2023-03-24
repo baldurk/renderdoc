@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include "data/glsl_shaders.h"
+#include "maths/formatpacking.h"
 #include "gl_common.h"
 #include "gl_driver.h"
 #include "gl_replay.h"
@@ -878,6 +879,9 @@ void readPixelValues(WrappedOpenGL *driver, const GLPixelHistoryResources &resou
   {
     driver->glReadPixels(0, 0, GLint(numPixels), 1, eGL_RGBA, eGL_FLOAT,
                          (void *)floatColourValues.data());
+    if(IsSRGBFormat(copyFramebuffer.format.colorFormat))
+      for(float &f : floatColourValues)
+        f = ConvertSRGBToLinear(f);
   }
   if(copyFramebuffer.dsTextureId != 0 || copyFramebuffer.depthTextureId != 0)
   {
