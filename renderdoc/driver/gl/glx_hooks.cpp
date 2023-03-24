@@ -415,9 +415,9 @@ HOOK_EXPORT Bool glXMakeCurrent_renderdoc_hooked(Display *dpy, GLXDrawable drawa
         data.cfg = NULL;
     }
 
-    glxhook.driver.ActivateContext(data);
-
     glxhook.UpdateWindowSize(data, dpy, drawable);
+
+    glxhook.driver.ActivateContext(data);
 
     if(config)
       XFree(config);
@@ -494,9 +494,9 @@ HOOK_EXPORT Bool glXMakeContextCurrent_renderdoc_hooked(Display *dpy, GLXDrawabl
         data.cfg = NULL;
     }
 
-    glxhook.driver.ActivateContext(data);
-
     glxhook.UpdateWindowSize(data, dpy, draw);
+
+    glxhook.driver.ActivateContext(data);
 
     if(config)
       XFree(config);

@@ -517,9 +517,9 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent_renderdoc_hooked(EGLDisplay di
 
     eglhook.driver.SetDriverType(eglhook.activeAPI);
 
-    eglhook.driver.ActivateContext(data);
-
     eglhook.RefreshWindowParameters(data);
+
+    eglhook.driver.ActivateContext(data);
   }
 
   return ret;

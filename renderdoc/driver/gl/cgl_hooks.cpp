@@ -147,14 +147,14 @@ CGLError GL_EXPORT_NAME(CGLSetCurrentContext)(CGLContextObj ctx)
       CGL.CGSGetSurfaceBounds(conn, window, surface, &rect);
     }
 
-    cglhook.driver.ActivateContext(data);
-
     if(data.ctx)
     {
       GLInitParams &params = cglhook.driver.GetInitParams(data);
       params.width = (uint32_t)rect.size.width;
       params.height = (uint32_t)rect.size.height;
     }
+
+    cglhook.driver.ActivateContext(data);
   }
 
   return ret;
