@@ -96,6 +96,8 @@ struct ShaderOutFramebuffer
 
 struct GLPixelHistoryResources
 {
+  ResourceId target;
+
   // Used for offscreen rendering for draw call events.
   GLuint fullPrecisionColorImage;
   GLuint fullPrecisionDsImage;
@@ -264,15 +266,16 @@ GLenum getTextureFormatType(GLenum internalFormat)
   return eGL_UNSIGNED_NORMALIZED;
 }
 
-GLenum getCurrentTextureFormat(WrappedOpenGL *driver)
+GLenum getCurrentTextureFormat(WrappedOpenGL *driver, uint32_t colIdx)
 {
   GLuint curColor;
   GLint colorType;
 
-  driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0,
-                                                eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                                (GLint *)&curColor);
-  driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0,
+  driver->glGetFramebufferAttachmentParameteriv(
+      eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + colIdx),
+      eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&curColor);
+  driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER,
+                                                GLenum(eGL_COLOR_ATTACHMENT0 + colIdx),
                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &colorType);
 
   GLenum colorFormat = eGL_NONE;
@@ -294,7 +297,7 @@ GLenum getCurrentTextureFormat(WrappedOpenGL *driver)
   return colorFormat;
 }
 
-const CopyFramebuffer &getCopyFramebuffer(WrappedOpenGL *driver,
+const CopyFramebuffer &getCopyFramebuffer(WrappedOpenGL *driver, uint32_t colIdx,
                                           std::map<FramebufferKey, CopyFramebuffer> &copyFramebuffers,
                                           uint32_t numSamples, uint32_t numEvents)
 {
@@ -319,11 +322,12 @@ const CopyFramebuffer &getCopyFramebuffer(WrappedOpenGL *driver,
   driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &stencilType);
 
-  driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0,
-                                                eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                                (GLint *)&curColor);
+  driver->glGetFramebufferAttachmentParameteriv(
+      eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + colIdx),
+      eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&curColor);
 
-  driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0,
+  driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER,
+                                                GLenum(eGL_COLOR_ATTACHMENT0 + colIdx),
                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &colorType);
 
   GLenum depthFormat = eGL_NONE;
@@ -376,7 +380,7 @@ const CopyFramebuffer &getCopyFramebuffer(WrappedOpenGL *driver,
                             stencilFormat, colorFormat);
 }
 
-ShaderOutFramebuffer getShaderOutFramebuffer(WrappedOpenGL *driver,
+ShaderOutFramebuffer getShaderOutFramebuffer(WrappedOpenGL *driver, uint32_t colIdx,
                                              GLPixelHistoryResources &resources, FramebufferKey key,
                                              uint32_t width, uint32_t height)
 {
@@ -386,6 +390,11 @@ ShaderOutFramebuffer getShaderOutFramebuffer(WrappedOpenGL *driver,
 
   if(it != shaderOutFramebuffers.end())
   {
+    driver->glBindFramebuffer(eGL_FRAMEBUFFER, it->second.framebufferId);
+    for(uint32_t i = 0; i < 8; i++)
+      driver->glFramebufferTexture(eGL_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i), 0, 0);
+    driver->glFramebufferTexture(eGL_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + colIdx),
+                                 it->second.colorTextureId, 0);
     return it->second;
   }
 
@@ -407,7 +416,7 @@ ShaderOutFramebuffer getShaderOutFramebuffer(WrappedOpenGL *driver,
   driver->glBindTexture(textureTarget, shaderOutFramebuffer.colorTextureId);
   driver->CreateTextureImage(shaderOutFramebuffer.colorTextureId, key.colorFormat, eGL_NONE,
                              eGL_NONE, textureTarget, 2, width, height, 1, key.numSamples, 1);
-  driver->glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0,
+  driver->glFramebufferTexture(eGL_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + colIdx),
                                shaderOutFramebuffer.colorTextureId, 0);
 
   // Allocate a texture for the pixel history depth/stencil values
@@ -436,7 +445,7 @@ GLbitfield getFramebufferCopyMask(WrappedOpenGL *driver)
 
   if(colorAttachment)
   {
-    driver->glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, RDCGLenum(colorAttachment),
+    driver->glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, GLenum(colorAttachment),
                                                   eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
                                                   (GLint *)&curColor);
   }
@@ -462,6 +471,72 @@ GLbitfield getFramebufferCopyMask(WrappedOpenGL *driver)
     mask |= eGL_STENCIL_BUFFER_BIT;
   }
   return mask;
+}
+
+uint32_t getFramebufferColIndex(WrappedOpenGL *driver, ResourceId target)
+{
+  WrappedOpenGL &drv = *driver;
+  GLResourceManager *rm = driver->GetResourceManager();
+
+  GLuint numCols = 8;
+  drv.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, (GLint *)&numCols);
+
+  GLuint curCol[32] = {0};
+  GLuint curDepth = 0;
+  GLuint curStencil = 0;
+  bool rbCol[32] = {false};
+  bool rbDepth = false;
+  bool rbStencil = false;
+
+  GLenum type = eGL_TEXTURE;
+  for(GLuint i = 0; i < numCols; i++)
+  {
+    drv.glGetFramebufferAttachmentParameteriv(
+        eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
+        eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&curCol[i]);
+    drv.glGetFramebufferAttachmentParameteriv(
+        eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
+        eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+    if(type == eGL_RENDERBUFFER)
+      rbCol[i] = true;
+  }
+
+  drv.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                            eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                            (GLint *)&curDepth);
+  drv.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                            eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+  if(type == eGL_RENDERBUFFER)
+    rbDepth = true;
+  drv.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                            eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                            (GLint *)&curStencil);
+  drv.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                            eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+  if(type == eGL_RENDERBUFFER)
+    rbStencil = true;
+
+  for(GLuint i = 0; i < numCols; i++)
+  {
+    ResourceId id = rm->GetResID(rbCol[i] ? RenderbufferRes(driver->GetCtx(), curCol[i])
+                                          : TextureRes(driver->GetCtx(), curCol[i]));
+
+    if(id == target)
+      return i;
+  }
+
+  ResourceId depth = rm->GetResID(rbDepth ? RenderbufferRes(driver->GetCtx(), curDepth)
+                                          : TextureRes(driver->GetCtx(), curDepth));
+  ResourceId stencil = rm->GetResID(rbStencil ? RenderbufferRes(driver->GetCtx(), curStencil)
+                                              : TextureRes(driver->GetCtx(), curStencil));
+
+  // silently return attachment 0, it doesn't matter which colour attachment we use
+  if(depth == target || stencil == target)
+    return 0;
+
+  RDCWARN("Couldn't find attachment %s anywhere in this framebuffer", ToStr(target).c_str());
+
+  return 0;
 }
 
 bool PixelHistorySetupResources(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
@@ -659,7 +734,7 @@ void CopyMSSample(WrappedOpenGL *driver, const GLPixelHistoryResources &resource
   driver->glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, savedMSTexture0);
   driver->glActiveTexture(eGL_TEXTURE1);
   driver->glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, savedMSTexture1);
-  driver->glActiveTexture((RDCGLenum)savedActiveTexture);
+  driver->glActiveTexture((GLenum)savedActiveTexture);
   driver->glBindBuffer(eGL_SHADER_STORAGE_BUFFER, savedShaderStorageBuffer);
   driver->glBindBuffer(eGL_UNIFORM_BUFFER, savedShaderStorageBuffer);
 }
@@ -678,19 +753,21 @@ rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryR
   // execute the occlusion queries
   for(size_t i = 0; i < events.size(); i++)
   {
+    uint32_t colIdx = getFramebufferColIndex(driver, resources.target);
+
     bool ignored = false;
     int objectType;
-    driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0,
-                                                  eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
-                                                  &objectType);
+    driver->glGetFramebufferAttachmentParameteriv(
+        eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + colIdx),
+        eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &objectType);
     // Ignore the event if the framebuffer is attached to a different mip level than the one we're
     // interested in
     if(objectType == eGL_TEXTURE)
     {
       int attachedMipLevel;
-      driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0,
-                                                    eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
-                                                    &attachedMipLevel);
+      driver->glGetFramebufferAttachmentParameteriv(
+          eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + colIdx),
+          eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &attachedMipLevel);
       if(mipLevel != attachedMipLevel)
       {
         ignoredEvents.insert(events[i].eventId);
@@ -851,6 +928,44 @@ void QueryPostModPixelValues(WrappedOpenGL *driver, GLPixelHistoryResources &res
   copyFramebuffer.framebufferId = ~0u;
   int lastHistoryIdx = 0;
 
+  // get the premod of the first event
+  {
+    GLint savedReadFramebuffer, savedDrawFramebuffer;
+    driver->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &savedDrawFramebuffer);
+    driver->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &savedReadFramebuffer);
+
+    uint32_t colIdx = getFramebufferColIndex(driver, resources.target);
+
+    CopyFramebuffer preModFramebuffer = getCopyFramebuffer(
+        driver, colIdx, resources.copyFramebuffers, numSamples, int(modEvents.size()));
+    GLenum colourFormatType = getTextureFormatType(preModFramebuffer.format.colorFormat);
+    bool integerColour = colourFormatType == eGL_UNSIGNED_INT || colourFormatType == eGL_INT;
+
+    driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, preModFramebuffer.framebufferId);
+    driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedDrawFramebuffer);
+
+    rdcarray<PixelModification> tmp;
+    tmp.resize(1);
+
+    GLenum savedReadBuffer;
+    driver->glGetIntegerv(eGL_READ_BUFFER, (GLint *)&savedReadBuffer);
+
+    driver->glReadBuffer(GLenum(eGL_COLOR_ATTACHMENT0 + colIdx));
+    SafeBlitFramebuffer(x, y, x + 1, y + 1, 0, 0, 1, 1, getFramebufferCopyMask(driver), eGL_NEAREST);
+    if(numSamples > 1)
+      readPixelValuesMS(driver, resources, preModFramebuffer, sampleIndex, 0, 0, tmp, 0, true);
+    else
+      readPixelValues(driver, resources, preModFramebuffer, tmp, 0, true, 1, integerColour);
+
+    driver->glReadBuffer(savedReadBuffer);
+
+    history[0].preMod = tmp[0].postMod;
+
+    // restore the capture's framebuffer
+    driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, savedDrawFramebuffer);
+    driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedReadFramebuffer);
+  }
+
   for(size_t i = 0; i < modEvents.size(); i++)
   {
     driver->ReplayLog(modEvents[i].eventId, modEvents[i].eventId, eReplay_OnlyDraw);
@@ -859,22 +974,30 @@ void QueryPostModPixelValues(WrappedOpenGL *driver, GLPixelHistoryResources &res
     driver->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &savedDrawFramebuffer);
     driver->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &savedReadFramebuffer);
 
+    uint32_t colIdx = getFramebufferColIndex(driver, resources.target);
+
     if(numSamples > 1)
     {
-      copyFramebuffer =
-          getCopyFramebuffer(driver, resources.copyFramebuffers, numSamples, int(modEvents.size()));
+      copyFramebuffer = getCopyFramebuffer(driver, colIdx, resources.copyFramebuffers, numSamples,
+                                           int(modEvents.size()));
 
       driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, copyFramebuffer.framebufferId);
       driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedDrawFramebuffer);
 
+      GLenum savedReadBuffer;
+      driver->glGetIntegerv(eGL_READ_BUFFER, (GLint *)&savedReadBuffer);
+
+      driver->glReadBuffer(GLenum(eGL_COLOR_ATTACHMENT0 + colIdx));
       SafeBlitFramebuffer(x, y, x + 1, y + 1, 0, 0, 1, 1, getFramebufferCopyMask(driver),
                           eGL_NEAREST);
       readPixelValuesMS(driver, resources, copyFramebuffer, sampleIndex, 0, 0, history, int(i), true);
+
+      driver->glReadBuffer(savedReadBuffer);
     }
     else
     {
       CopyFramebuffer newCopyFramebuffer = getCopyFramebuffer(
-          driver, resources.copyFramebuffers, 1 /*single sampled*/, int(modEvents.size()));
+          driver, colIdx, resources.copyFramebuffers, 1 /*single sampled*/, int(modEvents.size()));
       GLenum colourFormatType = getTextureFormatType(copyFramebuffer.format.colorFormat);
       bool integerColour = colourFormatType == eGL_UNSIGNED_INT || colourFormatType == eGL_INT;
       if(newCopyFramebuffer.framebufferId != copyFramebuffer.framebufferId)
@@ -891,9 +1014,15 @@ void QueryPostModPixelValues(WrappedOpenGL *driver, GLPixelHistoryResources &res
       driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, copyFramebuffer.framebufferId);
       driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedDrawFramebuffer);
 
+      GLenum savedReadBuffer;
+      driver->glGetIntegerv(eGL_READ_BUFFER, (GLint *)&savedReadBuffer);
+
+      driver->glReadBuffer(GLenum(eGL_COLOR_ATTACHMENT0 + colIdx));
       SafeBlitFramebuffer(x, y, x + 1, y + 1, GLint(i) - lastHistoryIdx, 0,
                           GLint(i) + 1 - lastHistoryIdx, 1, getFramebufferCopyMask(driver),
                           eGL_NEAREST);
+
+      driver->glReadBuffer(savedReadBuffer);
     }
 
     // restore the capture's framebuffer
@@ -986,7 +1115,9 @@ std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(
     driver->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &savedDrawFramebuffer);
     driver->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &savedReadFramebuffer);
 
-    GLenum colourFormat = getCurrentTextureFormat(driver);
+    uint32_t colIdx = getFramebufferColIndex(driver, resources.target);
+
+    GLenum colourFormat = getCurrentTextureFormat(driver, colIdx);
     GLenum colourFormatType = getTextureFormatType(colourFormat);
     GLenum shaderOutColourFormat = eGL_NONE;
 
@@ -996,15 +1127,26 @@ std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(
       FramebufferKey key = {shaderOutColourFormat, eGL_DEPTH24_STENCIL8, eGL_DEPTH24_STENCIL8,
                             numSamples};
       ShaderOutFramebuffer framebuffer =
-          getShaderOutFramebuffer(driver, resources, key, width, height);
+          getShaderOutFramebuffer(driver, colIdx, resources, key, width, height);
       driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, framebuffer.framebufferId);
       driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, framebuffer.framebufferId);
+      glReadBuffer(GLenum(eGL_COLOR_ATTACHMENT0 + colIdx));
     }
     else
     {
       driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, resources.fullPrecisionFrameBuffer);
       driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, resources.fullPrecisionFrameBuffer);
+      for(uint32_t a = 0; a < 8; a++)
+        driver->glFramebufferTexture(eGL_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + a), 0, 0);
+      driver->glFramebufferTexture(eGL_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + colIdx),
+                                   resources.fullPrecisionColorImage, 0);
+      glReadBuffer(GLenum(eGL_COLOR_ATTACHMENT0 + colIdx));
     }
+
+    rdcarray<GLenum> drawBufs;
+    drawBufs.resize(colIdx);
+    drawBufs.push_back(GLenum(eGL_COLOR_ATTACHMENT0 + colIdx));
+    driver->glDrawBuffers((GLsizei)drawBufs.size(), drawBufs.data());
 
     driver->glStencilOp(eGL_INCR, eGL_INCR, eGL_INCR);
     driver->glStencilMask(0xff);    // default for 1 byte
@@ -1061,6 +1203,7 @@ std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(
           driver, resources.copyFramebuffers, numSamples, int(modEvents.size()),
           eGL_DEPTH24_STENCIL8, eGL_DEPTH24_STENCIL8, copyFramebufferColourFormat);
       driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, copyFramebuffer.framebufferId);
+      glReadBuffer(eGL_COLOR_ATTACHMENT0);
       SafeBlitFramebuffer(x, y, x + 1, y + 1, 0, 0, 1, 1, getFramebufferCopyMask(driver),
                           eGL_NEAREST);
       readShaderOutMS(driver, resources, copyFramebuffer, sampleIndex, 0, 0, history, int(i));
@@ -1269,7 +1412,9 @@ void QueryShaderOutPerFragment(WrappedOpenGL *driver, GLReplay *replay,
     driver->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &savedDrawFramebuffer);
     driver->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &savedReadFramebuffer);
 
-    GLenum colourFormat = getCurrentTextureFormat(driver);
+    uint32_t colIdx = getFramebufferColIndex(driver, resources.target);
+
+    GLenum colourFormat = getCurrentTextureFormat(driver, colIdx);
     GLenum colourFormatType = getTextureFormatType(colourFormat);
     GLenum shaderOutColourFormat = eGL_NONE;
 
@@ -1284,15 +1429,26 @@ void QueryShaderOutPerFragment(WrappedOpenGL *driver, GLReplay *replay,
         FramebufferKey key = {shaderOutColourFormat, eGL_DEPTH24_STENCIL8, eGL_DEPTH24_STENCIL8,
                               numSamples};
         ShaderOutFramebuffer framebuffer =
-            getShaderOutFramebuffer(driver, resources, key, width, height);
+            getShaderOutFramebuffer(driver, colIdx, resources, key, width, height);
         driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, framebuffer.framebufferId);
         driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, framebuffer.framebufferId);
+        glReadBuffer(GLenum(eGL_COLOR_ATTACHMENT0 + colIdx));
       }
       else
       {
         driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, resources.fullPrecisionFrameBuffer);
         driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, resources.fullPrecisionFrameBuffer);
+        for(uint32_t a = 0; a < 8; a++)
+          driver->glFramebufferTexture(eGL_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + a), 0, 0);
+        driver->glFramebufferTexture(eGL_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + colIdx),
+                                     resources.fullPrecisionColorImage, 0);
+        glReadBuffer(GLenum(eGL_COLOR_ATTACHMENT0 + colIdx));
       }
+
+      rdcarray<GLenum> drawBufs;
+      drawBufs.resize(colIdx);
+      drawBufs.push_back(GLenum(eGL_COLOR_ATTACHMENT0 + colIdx));
+      driver->glDrawBuffers((GLsizei)drawBufs.size(), drawBufs.data());
 
       driver->glClear(eGL_STENCIL_BUFFER_BIT | eGL_COLOR_BUFFER_BIT | eGL_DEPTH_BUFFER_BIT);
 
@@ -1328,6 +1484,7 @@ void QueryShaderOutPerFragment(WrappedOpenGL *driver, GLReplay *replay,
             driver, resources.copyFramebuffers, numSamples, int(modEvents.size()),
             eGL_DEPTH24_STENCIL8, eGL_DEPTH24_STENCIL8, copyFramebufferColourFormat);
         driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, copyFramebuffer.framebufferId);
+        glReadBuffer(eGL_COLOR_ATTACHMENT0);
         SafeBlitFramebuffer(x, y, x + 1, y + 1, 0, 0, 1, 1, getFramebufferCopyMask(driver),
                             eGL_NEAREST);
         int oldStencil = historyIndex->shaderOut.stencil;
@@ -1395,7 +1552,9 @@ void QueryPostModPerFragment(WrappedOpenGL *driver, GLReplay *replay,
     driver->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &savedDrawFramebuffer);
     driver->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &savedReadFramebuffer);
 
-    GLenum colourFormat = getCurrentTextureFormat(driver);
+    uint32_t colIdx = getFramebufferColIndex(driver, resources.target);
+
+    GLenum colourFormat = getCurrentTextureFormat(driver, colIdx);
     GLenum colourFormatType = getTextureFormatType(colourFormat);
     bool integerColour = colourFormatType == eGL_UNSIGNED_INT || colourFormatType == eGL_INT;
 
@@ -1414,23 +1573,30 @@ void QueryPostModPerFragment(WrappedOpenGL *driver, GLReplay *replay,
 
       if(numSamples > 1)
       {
-        copyFramebuffer = getCopyFramebuffer(driver, resources.copyFramebuffers, numSamples,
+        copyFramebuffer = getCopyFramebuffer(driver, colIdx, resources.copyFramebuffers, numSamples,
                                              int(modEvents.size()));
 
         driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, copyFramebuffer.framebufferId);
         driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedDrawFramebuffer);
+
+        GLenum savedReadBuffer;
+        driver->glGetIntegerv(eGL_READ_BUFFER, (GLint *)&savedReadBuffer);
+
+        driver->glReadBuffer(GLenum(eGL_COLOR_ATTACHMENT0 + colIdx));
         SafeBlitFramebuffer(x, y, x + 1, y + 1, 0, 0, 1, 1, getFramebufferCopyMask(driver),
                             eGL_NEAREST);
 
         readPixelValuesMS(driver, resources, copyFramebuffer, sampleIndex, 0, 0, history,
                           int(historyIndex - history.begin()), false);
         historyIndex++;
+
+        driver->glReadBuffer(savedReadBuffer);
       }
       else
       {
         // Blit the values into out framebuffer
         CopyFramebuffer newCopyFramebuffer = getCopyFramebuffer(
-            driver, resources.copyFramebuffers, 1 /*single sampled*/, int(modEvents.size()));
+            driver, colIdx, resources.copyFramebuffers, 1 /*single sampled*/, int(modEvents.size()));
         if(newCopyFramebuffer.framebufferId != copyFramebuffer.framebufferId ||
            (j - lastJ >= copyFramebuffer.width))
         {
@@ -1445,8 +1611,15 @@ void QueryPostModPerFragment(WrappedOpenGL *driver, GLReplay *replay,
         copyFramebuffer = newCopyFramebuffer;
         driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, copyFramebuffer.framebufferId);
         driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedDrawFramebuffer);
+
+        GLenum savedReadBuffer;
+        driver->glGetIntegerv(eGL_READ_BUFFER, (GLint *)&savedReadBuffer);
+
+        driver->glReadBuffer(GLenum(eGL_COLOR_ATTACHMENT0 + colIdx));
         SafeBlitFramebuffer(x, y, x + 1, y + 1, GLint(j) - lastJ, 0, GLint(j) + 1 - lastJ, 1,
                             getFramebufferCopyMask(driver), eGL_NEAREST);
+
+        driver->glReadBuffer(savedReadBuffer);
       }
 
       // restore the capture's framebuffer
@@ -1496,6 +1669,12 @@ void QueryPrimitiveIdPerFragment(WrappedOpenGL *driver, GLReplay *replay,
 
     driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.fullPrecisionFrameBuffer);
     driver->glReadBuffer(eGL_COLOR_ATTACHMENT0);
+    // rebind colour image to 0
+    for(uint32_t a = 1; a < 8; a++)
+      driver->glFramebufferTexture(eGL_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + a), 0, 0);
+    driver->glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0,
+                                 resources.fullPrecisionColorImage, 0);
+    driver->glDrawBuffer(eGL_COLOR_ATTACHMENT0);
 
     driver->glEnable(eGL_SCISSOR_TEST);
     driver->glScissor(x, y, 1, 1);
@@ -1532,6 +1711,16 @@ void QueryPrimitiveIdPerFragment(WrappedOpenGL *driver, GLReplay *replay,
 
     driver->glUseProgram(GetPrimitiveIdProgram(driver, replay, resources, currentProgram));
 
+    driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.fullPrecisionFrameBuffer);
+
+    // rebind output colour to 0
+    for(uint32_t a = 1; a < 8; a++)
+      driver->glFramebufferTexture(eGL_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + a), 0, 0);
+    driver->glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0,
+                                 resources.fullPrecisionColorImage, 0);
+    driver->glDrawBuffer(eGL_COLOR_ATTACHMENT0);
+    driver->glReadBuffer(eGL_COLOR_ATTACHMENT0);
+
     for(size_t j = 0; j < std::max(numFragments, 1u); ++j)
     {
       ModificationValue modValue;
@@ -1556,6 +1745,7 @@ void QueryPrimitiveIdPerFragment(WrappedOpenGL *driver, GLReplay *replay,
                                eGL_DEPTH24_STENCIL8, eGL_DEPTH24_STENCIL8, eGL_RGBA32F);
         driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, copyFramebuffer.framebufferId);
         driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, resources.fullPrecisionFrameBuffer);
+        glReadBuffer(eGL_COLOR_ATTACHMENT0);
         SafeBlitFramebuffer(x, y, x + 1, y + 1, 0, 0, 1, 1, getFramebufferCopyMask(driver),
                             eGL_NEAREST);
         CopyMSSample(driver, resources, copyFramebuffer, sampleIndex, 0, 0, primitiveIds);
@@ -1701,6 +1891,8 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
   }
 
   GLPixelHistoryResources resources;
+
+  resources.target = target;
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
