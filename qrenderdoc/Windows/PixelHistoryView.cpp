@@ -188,6 +188,7 @@ public:
 
       if(role == Qt::DisplayRole)
       {
+        QString uavName = IsD3D(m_Ctx.APIProps().pipelineType) ? lit("UAV") : lit("Storage");
         // main text
         if(col == 0)
         {
@@ -229,9 +230,10 @@ public:
 
             if(mods.front().directShaderWrite)
             {
-              ret += tr("EID %1\n%2\nBound as UAV or copy - potential modification")
+              ret += tr("EID %1\n%2\nBound as %3 or copy - potential modification")
                          .arg(mods.front().eventId)
-                         .arg(m_Ctx.GetEventBrowser()->GetEventName(action->eventId));
+                         .arg(m_Ctx.GetEventBrowser()->GetEventName(action->eventId))
+                         .arg(uavName);
 
               if(mods[0].preMod.col.uintValue == mods[0].postMod.col.uintValue)
               {
@@ -262,7 +264,7 @@ public:
 
             if(mod.directShaderWrite)
             {
-              QString ret = tr("Potential UAV/Copy write");
+              QString ret = tr("Potential %1/Copy write").arg(uavName);
 
               if(mod.preMod.col.uintValue[0] == mod.postMod.col.uintValue[0] &&
                  mod.preMod.col.uintValue[1] == mod.postMod.col.uintValue[1] &&

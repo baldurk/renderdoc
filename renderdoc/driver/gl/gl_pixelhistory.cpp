@@ -731,6 +731,7 @@ rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryR
       PixelModification mod;
       RDCEraseEl(mod);
       mod.eventId = events[i].eventId;
+      mod.directShaderWrite = isDirectWrite(events[i].usage);
       history.push_back(mod);
 
       modEvents.push_back(events[i]);
