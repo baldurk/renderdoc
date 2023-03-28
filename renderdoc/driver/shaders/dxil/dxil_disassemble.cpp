@@ -1913,6 +1913,71 @@ rdcstr Constant::toString(bool withType) const
         ret += ")";
         break;
       }
+      case Operation::FAdd:
+      case Operation::FSub:
+      case Operation::FMul:
+      case Operation::FDiv:
+      case Operation::FRem:
+      case Operation::Add:
+      case Operation::Sub:
+      case Operation::Mul:
+      case Operation::UDiv:
+      case Operation::SDiv:
+      case Operation::URem:
+      case Operation::SRem:
+      case Operation::ShiftLeft:
+      case Operation::LogicalShiftRight:
+      case Operation::ArithShiftRight:
+      case Operation::And:
+      case Operation::Or:
+      case Operation::Xor:
+      {
+        switch(op)
+        {
+          case Operation::FAdd: ret += "fadd "; break;
+          case Operation::FSub: ret += "fsub "; break;
+          case Operation::FMul: ret += "fmul "; break;
+          case Operation::FDiv: ret += "fdiv "; break;
+          case Operation::FRem: ret += "frem "; break;
+          case Operation::Add: ret += "add "; break;
+          case Operation::Sub: ret += "sub "; break;
+          case Operation::Mul: ret += "mul "; break;
+          case Operation::UDiv: ret += "udiv "; break;
+          case Operation::SDiv: ret += "sdiv "; break;
+          case Operation::URem: ret += "urem "; break;
+          case Operation::SRem: ret += "srem "; break;
+          case Operation::ShiftLeft: ret += "shl "; break;
+          case Operation::LogicalShiftRight: ret += "lshr "; break;
+          case Operation::ArithShiftRight: ret += "ashr "; break;
+          case Operation::And: ret += "and "; break;
+          case Operation::Or: ret += "or "; break;
+          case Operation::Xor: ret += "xor "; break;
+          default: break;
+        }
+
+        ret += "(";
+        for(size_t i = 0; i < members->size(); i++)
+        {
+          if(i > 0)
+            ret += ", ";
+
+          if(Literal *l = cast<Literal>(members->at(i)))
+          {
+            ShaderValue v;
+            v.u64v[0] = l->literal;
+
+            shaderValAppendToString(members->at(i)->type, v, 0, ret);
+          }
+          else
+          {
+            ret += members->at(i)->toString(withType);
+          }
+        }
+
+        ret += ")";
+
+        break;
+      }
     }
   }
   else if(type->type == Type::Scalar)

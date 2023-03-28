@@ -307,6 +307,55 @@ enum class Operation : uint8_t
   AtomicUMin,
 };
 
+inline Operation DecodeBinOp(const Type *type, uint64_t opcode)
+{
+  bool isFloatOp = (type->scalarType == Type::Float);
+
+  switch(opcode)
+  {
+    case 0: return isFloatOp ? Operation::FAdd : Operation::Add; break;
+    case 1: return isFloatOp ? Operation::FSub : Operation::Sub; break;
+    case 2: return isFloatOp ? Operation::FMul : Operation::Mul; break;
+    case 3: return Operation::UDiv; break;
+    case 4: return isFloatOp ? Operation::FDiv : Operation::SDiv; break;
+    case 5: return Operation::URem; break;
+    case 6: return isFloatOp ? Operation::FRem : Operation::SRem; break;
+    case 7: return Operation::ShiftLeft; break;
+    case 8: return Operation::LogicalShiftRight; break;
+    case 9: return Operation::ArithShiftRight; break;
+    case 10: return Operation::And; break;
+    case 11: return Operation::Or; break;
+    case 12: return Operation::Xor; break;
+    default: RDCERR("Unhandled binop type %llu", opcode); return Operation::And;
+  }
+}
+
+inline uint64_t EncodeBinOp(Operation op)
+{
+  switch(op)
+  {
+    case Operation::FAdd:
+    case Operation::Add: return 0; break;
+    case Operation::FSub:
+    case Operation::Sub: return 1; break;
+    case Operation::FMul:
+    case Operation::Mul: return 2; break;
+    case Operation::UDiv: return 3; break;
+    case Operation::FDiv:
+    case Operation::SDiv: return 4; break;
+    case Operation::URem: return 5; break;
+    case Operation::FRem:
+    case Operation::SRem: return 6; break;
+    case Operation::ShiftLeft: return 7; break;
+    case Operation::LogicalShiftRight: return 8; break;
+    case Operation::ArithShiftRight: return 9; break;
+    case Operation::And: return 10; break;
+    case Operation::Or: return 11; break;
+    case Operation::Xor: return 12; break;
+    default: return ~0U;
+  }
+}
+
 inline Operation DecodeCast(uint64_t opcode)
 {
   switch(opcode)
@@ -347,6 +396,11 @@ inline uint64_t EncodeCast(Operation op)
     case Operation::AddrSpaceCast: return 12; break;
     default: return ~0U;
   }
+}
+
+inline bool IsCast(Operation op)
+{
+  return EncodeCast(op) != ~0U;
 }
 
 enum class ValueKind : uint32_t

@@ -225,6 +225,17 @@ void Program::ParseConstant(ValueList &values, const LLVMBC::BlockOrRecord &cons
     c->setInner(values.getOrCreatePlaceholder((size_t)constant.ops[2]));
     values.addValue();
   }
+  else if(IS_KNOWN(constant.id, ConstantsRecord::EVAL_BINOP))
+  {
+    Constant *c = values.nextValue<Constant>();
+    c->type = m_CurParseType;
+    c->op = DecodeBinOp(c->type, constant.ops[0]);
+    rdcarray<Value *> members;
+    members.push_back(values.getOrCreatePlaceholder((size_t)constant.ops[1]));
+    members.push_back(values.getOrCreatePlaceholder((size_t)constant.ops[2]));
+    c->setCompound(alloc, std::move(members));
+    values.addValue();
+  }
   else if(IS_KNOWN(constant.id, ConstantsRecord::EVAL_GEP))
   {
     Constant *c = values.nextValue<Constant>();
@@ -1332,29 +1343,7 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
               inst->type = inst->args.back()->type;
               inst->args.push_back(op.getSymbol(false));
 
-              bool isFloatOp = (inst->type->scalarType == Type::Float);
-
-              uint64_t opcode = op.get<uint64_t>();
-              switch(opcode)
-              {
-                case 0: inst->op = isFloatOp ? Operation::FAdd : Operation::Add; break;
-                case 1: inst->op = isFloatOp ? Operation::FSub : Operation::Sub; break;
-                case 2: inst->op = isFloatOp ? Operation::FMul : Operation::Mul; break;
-                case 3: inst->op = Operation::UDiv; break;
-                case 4: inst->op = isFloatOp ? Operation::FDiv : Operation::SDiv; break;
-                case 5: inst->op = Operation::URem; break;
-                case 6: inst->op = isFloatOp ? Operation::FRem : Operation::SRem; break;
-                case 7: inst->op = Operation::ShiftLeft; break;
-                case 8: inst->op = Operation::LogicalShiftRight; break;
-                case 9: inst->op = Operation::ArithShiftRight; break;
-                case 10: inst->op = Operation::And; break;
-                case 11: inst->op = Operation::Or; break;
-                case 12: inst->op = Operation::Xor; break;
-                default:
-                  inst->op = Operation::And;
-                  RDCERR("Unhandled binop type %llu", opcode);
-                  break;
-              }
+              inst->op = DecodeBinOp(inst->type, op.get<uint64_t>());
 
               if(op.remaining() > 0)
               {
@@ -1374,7 +1363,7 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
                   if(flags & 0x1)
                     inst->opFlags() |= InstructionFlags::Exact;
                 }
-                else if(isFloatOp)
+                else if(inst->type->scalarType == Type::Float)
                 {
                   // fast math flags overlap
                   inst->opFlags() = InstructionFlags(flags);

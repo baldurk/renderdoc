@@ -1667,13 +1667,21 @@ void ProgramEditor::EncodeConstants(LLVMBC::BitcodeWriter &writer,
 
       writer.Record(LLVMBC::ConstantsRecord::EVAL_GEP, vals);
     }
-    else if(c->op != Operation::NoOp)
+    else if(IsCast(c->op))
     {
       uint64_t cast = EncodeCast(c->op);
       RDCASSERT(cast != ~0U);
 
       writer.Record(LLVMBC::ConstantsRecord::EVAL_CAST,
                     {cast, getTypeID(c->getInner()->type), getValueID(c->getInner())});
+    }
+    else if(c->op != Operation::NoOp)
+    {
+      uint64_t binop = EncodeBinOp(c->op);
+      RDCASSERT(binop != ~0U);
+
+      writer.Record(LLVMBC::ConstantsRecord::EVAL_BINOP,
+                    {binop, getValueID(c->getMembers()[0]), getValueID(c->getMembers()[1])});
     }
     else if(c->isData())
     {
