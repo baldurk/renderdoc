@@ -7175,7 +7175,8 @@ void WrappedVulkan::vkCmdBeginRendering(VkCommandBuffer commandBuffer,
     if(densityMap)
     {
       VkResourceRecord *viewRecord = GetRecord(densityMap->imageView);
-      record->MarkImageViewFrameReferenced(viewRecord, ImageRange(), eFrameRef_Read);
+      if(viewRecord)
+        record->MarkImageViewFrameReferenced(viewRecord, ImageRange(), eFrameRef_Read);
     }
 
     VkRenderingFragmentShadingRateAttachmentInfoKHR *shadingRate =
@@ -7185,7 +7186,8 @@ void WrappedVulkan::vkCmdBeginRendering(VkCommandBuffer commandBuffer,
     if(shadingRate)
     {
       VkResourceRecord *viewRecord = GetRecord(shadingRate->imageView);
-      record->MarkImageViewFrameReferenced(viewRecord, ImageRange(), eFrameRef_Read);
+      if(viewRecord)
+        record->MarkImageViewFrameReferenced(viewRecord, ImageRange(), eFrameRef_Read);
     }
 
     for(uint32_t i = 0; i < pRenderingInfo->colorAttachmentCount + 2; i++)
