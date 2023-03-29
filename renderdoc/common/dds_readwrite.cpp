@@ -1134,6 +1134,14 @@ RDResult load_dds_from_file(StreamReader *reader, read_dds_data &ret)
         if(bits[i] < bits[0] && bits[i] > 0)
           bitWidth = bits[i];
 
+      if(bitWidth == 0)
+      {
+        RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                            "Unsupported RGBA mask: %08x %08x %08x %08x", header.ddspf.dwRBitMask,
+                            header.ddspf.dwGBitMask, header.ddspf.dwBBitMask,
+                            header.ddspf.dwABitMask);
+      }
+
       ret.format.compByteWidth = uint8_t(bitWidth / 8);
       ret.format.compCount = uint8_t(header.ddspf.dwRGBBitCount / bitWidth);
       ret.format.compType = CompType::UNorm;
