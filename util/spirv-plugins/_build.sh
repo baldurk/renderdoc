@@ -10,7 +10,7 @@ set -ex
 wget https://github.com/Kitware/CMake/releases/download/v3.26.2/cmake-3.26.2-linux-x86_64.tar.gz
 tar -zxvf cmake-3.26.2-linux-x86_64.tar.gz
 
-export PATH=$(pwd)/cmake-3.14.7-Linux-x86_64/bin:$PATH
+export PATH=$(pwd)/cmake-3.26.2-linux-x86_64/bin:$PATH
 
 # Freshly clone repositories
 rm -rf glslang SPIRV-Cross
