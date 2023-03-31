@@ -36,10 +36,9 @@ RenderDoc supports many ARB, EXT and other vendor-agnostic extensions - primaril
 OpenGL remaining work
 ---------------------
 
-There are a couple of places where OpenGL is not yet at feature parity with other APIs.
+There is one place where OpenGL is not at feature parity with other APIs.
 
 * Shader debugging is not supported on any shader stage.
-* Pixel history is not implemented.
 
 Android
 -------
