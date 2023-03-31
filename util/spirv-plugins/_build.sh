@@ -5,13 +5,6 @@ OUT=$2
 
 set -ex
 
-# Get new cmake for glslang and spirv-tools
-
-wget https://github.com/Kitware/CMake/releases/download/v3.26.2/cmake-3.26.2-linux-x86_64.tar.gz
-tar -zxvf cmake-3.26.2-linux-x86_64.tar.gz
-
-export PATH=$(pwd)/cmake-3.26.2-linux-x86_64/bin:$PATH
-
 # Freshly clone repositories
 rm -rf glslang SPIRV-Cross
 git clone https://github.com/KhronosGroup/glslang
@@ -24,7 +17,10 @@ if [ "$PLATFORM" == "win64" ]; then
 elif [ "$PLATFORM" == "win32" ]; then
 	GENERATOR="Visual Studio 15 2017";
 else
-	export CC=clang CXX=clang++ CFLAGS="-fPIC -fvisibility=hidden" LDFLAGS="-static-libstdc++"
+	export CC=clang CXX=clang++ CFLAGS="-fPIC -fvisibility=hidden -stdlib=libc++" LDFLAGS="-nostdlib++ -Wl,--start-group /usr/lib/libc++.a /usr/lib/libc++abi.a -lpthread"
+	export CXXFLAGS="${CFLAGS}"
+
+	export PATH=$(pwd)/cmake-3.26.2-linux-x86_64/bin:$PATH
 fi
 
 ##### SPIRV-Cross

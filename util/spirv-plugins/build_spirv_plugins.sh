@@ -31,7 +31,15 @@ else
 	if docker image ls | grep -q renderdoc-build; then
 		echo "Building for linux";
 
-		docker run --rm -v $(pwd):/script:ro -v $(pwd)/spirv-plugins-linux64:/out renderdoc-build bash /script/_build.sh linux64 /out
+		echo "Building renderdoc-spirv-build docker image";
+
+		pushd docker
+		docker build -t renderdoc-spirv-build . || exit 1
+		popd
+
+		echo "Docker image built. Running build"
+
+		docker run --rm -v $(pwd):/script:ro -v $(pwd)/spirv-plugins-linux64:/out renderdoc-spirv-build bash /script/_build.sh linux64 /out
 
 	else
 		echo "Run normal RenderDoc build first to generate renderdoc-build image";
