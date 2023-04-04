@@ -1232,12 +1232,18 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
         if(heap)
         {
           desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
+          const D3D12Descriptor *endDesc = desc + heap->GetNumDescriptors();
           desc += e->offset;
           desc += offset;
 
-          if(num >= heap->GetNumDescriptors())
+          if(desc >= endDesc)
           {
-            UINT availDescriptors = heap->GetNumDescriptors() - offset - UINT(e->offset);
+            RDCERR("Binding points past end of corresponding heap.");
+            num = 0;
+          }
+          else if(desc + num >= endDesc)
+          {
+            const UINT availDescriptors = UINT(endDesc - desc);
 
             const Bindpoint *highestBind = NULL;
             UINT maxBindReg = shaderReg + availDescriptors;
