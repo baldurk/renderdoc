@@ -86,15 +86,18 @@ void WrappedVulkan::AddImplicitResolveResourceUsage(uint32_t subpass)
         EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::ResolveSrc)));
   }
 
-  // also add any discards
-  for(size_t i = 0; i < rpinfo.attachments.size(); i++)
+  // also add any discards on the final subpass
+  if(subpass + 1 == rpinfo.subpasses.size())
   {
-    if(rpinfo.attachments[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
+    for(size_t i = 0; i < rpinfo.attachments.size(); i++)
     {
-      ResourceId image = m_CreationInfo.m_ImageView[fbattachments[i]].image;
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
-          image,
-          EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Discard)));
+      if(rpinfo.attachments[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
+      {
+        ResourceId image = m_CreationInfo.m_ImageView[fbattachments[i]].image;
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
+            image,
+            EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Discard)));
+      }
     }
   }
 }
