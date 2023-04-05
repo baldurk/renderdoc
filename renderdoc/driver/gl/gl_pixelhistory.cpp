@@ -744,6 +744,7 @@ rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryR
                                           const rdcarray<EventUsage> &events, int x, int y,
                                           int mipLevel, rdcarray<PixelModification> &history)
 {
+  GLMarkerRegion region("QueryModifyingEvents");
   rdcarray<EventUsage> modEvents;
   rdcarray<GLuint> occlusionQueries;
   std::set<uint32_t> ignoredEvents;
@@ -926,6 +927,7 @@ void QueryPostModPixelValues(WrappedOpenGL *driver, GLPixelHistoryResources &res
                              rdcarray<PixelModification> &history, uint32_t numSamples,
                              uint32_t sampleIndex)
 {
+  GLMarkerRegion region("QueryPostModPixelValues");
   driver->ReplayLog(0, modEvents[0].eventId, eReplay_WithoutDraw);
   CopyFramebuffer copyFramebuffer;
   RDCEraseEl(copyFramebuffer);
@@ -1109,6 +1111,7 @@ std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(
     const rdcarray<EventUsage> &modEvents, rdcarray<PixelModification> &history, int x, int y,
     uint32_t numSamples, uint32_t sampleIndex, uint32_t width, uint32_t height)
 {
+  GLMarkerRegion region("QueryNumFragmentsByEvent");
   driver->ReplayLog(0, modEvents[0].eventId, eReplay_WithoutDraw);
 
   std::map<uint32_t, uint32_t> eventFragments;
@@ -1301,6 +1304,7 @@ void QueryFailedTests(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
                       const rdcarray<EventUsage> &modEvents, int x, int y,
                       rdcarray<PixelModification> &history, uint32_t sampleIndex)
 {
+  GLMarkerRegion region("QueryFailedTests");
   for(size_t i = 0; i < modEvents.size(); ++i)
   {
     OpenGLTest failedTest = OpenGLTest::NumTests;
@@ -1354,6 +1358,7 @@ void QueryShaderOutPerFragment(WrappedOpenGL *driver, GLReplay *replay,
                                uint32_t numSamples, uint32_t sampleIndex, uint32_t width,
                                uint32_t height)
 {
+  GLMarkerRegion region("QueryShaderOutPerFragment");
   driver->ReplayLog(0, modEvents[0].eventId, eReplay_WithoutDraw);
   for(size_t i = 0; i < modEvents.size(); ++i)
   {
@@ -1517,6 +1522,7 @@ void QueryPostModPerFragment(WrappedOpenGL *driver, GLReplay *replay,
                              const std::map<uint32_t, uint32_t> &eventFragments, uint32_t numSamples,
                              uint32_t sampleIndex, uint32_t width, uint32_t height)
 {
+  GLMarkerRegion region("QueryPostModPerFragment");
   driver->ReplayLog(0, modEvents[0].eventId, eReplay_WithoutDraw);
 
   for(size_t i = 0; i < modEvents.size(); i++)
@@ -1757,6 +1763,7 @@ void QueryPrimitiveIdPerFragment(WrappedOpenGL *driver, GLReplay *replay,
                                  bool usingFloatForPrimitiveId, uint32_t numSamples,
                                  uint32_t sampleIndex)
 {
+  GLMarkerRegion region("QueryPrimitiveIdPerFragment");
   driver->ReplayLog(0, modEvents[0].eventId, eReplay_WithoutDraw);
 
   for(size_t i = 0; i < modEvents.size(); i++)
@@ -1909,6 +1916,7 @@ void CalculateFragmentDepthTests(WrappedOpenGL *driver, GLPixelHistoryResources 
                                  rdcarray<PixelModification> &history,
                                  const std::map<uint32_t, uint32_t> &eventFragments)
 {
+  GLMarkerRegion region("CalculateFragmentDepthTests");
   driver->ReplayLog(0, modEvents[0].eventId, eReplay_WithoutDraw);
   size_t historyIndex = 0;
   for(size_t i = 0; i < modEvents.size(); ++i)
@@ -1981,8 +1989,6 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
       flippedY, ToStr(target).c_str(), sub.mip, sub.slice, sub.sample, ToStr(typeCast).c_str(),
       events.size());
 
-  RDCDEBUG("%s", regionName.c_str());
-
   uint32_t sampleIdx = sub.sample;
 
   if(sampleIdx > textureDesc.msSamp)
@@ -2002,6 +2008,10 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
+  m_pDriver->ReplayMarkers(false);
+
+  GLMarkerRegion region(regionName);
+
   int glslVersion = DebugData.glslVersion;
   bool usingFloatForPrimitiveId = glslVersion < 330;
 
@@ -2014,6 +2024,7 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
   if(modEvents.empty())
   {
     PixelHistoryDestroyResources(m_pDriver, resources);
+    m_pDriver->ReplayMarkers(true);
     return history;
   }
 
@@ -2065,5 +2076,6 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
   CalculateFragmentDepthTests(m_pDriver, resources, modEvents, history, eventFragments);
 
   PixelHistoryDestroyResources(m_pDriver, resources);
+  m_pDriver->ReplayMarkers(true);
   return history;
 }
