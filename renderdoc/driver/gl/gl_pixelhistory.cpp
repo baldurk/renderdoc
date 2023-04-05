@@ -1514,8 +1514,8 @@ void QueryPostModPerFragment(WrappedOpenGL *driver, GLReplay *replay,
                              GLPixelHistoryResources &resources,
                              const rdcarray<EventUsage> &modEvents, int x, int y,
                              rdcarray<PixelModification> &history,
-                             const std::map<uint32_t, uint32_t> &eventFragments,
-                             uint32_t numSamples, uint32_t sampleIndex)
+                             const std::map<uint32_t, uint32_t> &eventFragments, uint32_t numSamples,
+                             uint32_t sampleIndex, uint32_t width, uint32_t height)
 {
   driver->ReplayLog(0, modEvents[0].eventId, eReplay_WithoutDraw);
 
@@ -1567,6 +1567,82 @@ void QueryPostModPerFragment(WrappedOpenGL *driver, GLReplay *replay,
     copyFramebuffer.framebufferId = ~0u;
     int lastJ = 0;
 
+    // save D/S attachment since we'll substitute our own depth
+    GLuint curDepth;
+    GLint curDepthType;
+    GLuint curStencil;
+    GLint curStencilType;
+    GLint curStencilLevel = 0, curDepthLevel = 0;
+
+    driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                                  eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                  (GLint *)&curDepth);
+    driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                                  eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                  &curDepthType);
+    if(curDepth)
+    {
+      driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                                    eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
+                                                    &curDepthLevel);
+    }
+
+    driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                                  eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                  (GLint *)&curStencil);
+    driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                                  eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                  &curStencilType);
+    if(curStencil)
+    {
+      driver->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                                    eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
+                                                    &curStencilLevel);
+    }
+
+    GLuint forcedDepth = 0;
+    // replace depth and clear it to premod value
+    {
+      driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, savedDrawFramebuffer);
+      driver->glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, forcedDepth,
+                                   0);
+
+      GLenum textureTarget = numSamples > 1 ? eGL_TEXTURE_2D_MULTISAMPLE : eGL_TEXTURE_2D;
+      driver->glGenTextures(1, &forcedDepth);
+      driver->CreateTextureImage(forcedDepth, eGL_DEPTH32F_STENCIL8, eGL_NONE, eGL_NONE,
+                                 textureTarget, 2, width, height, 1, numSamples, 1);
+      driver->glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, forcedDepth,
+                                   0);
+
+      driver->glClearDepth(historyIndex->preMod.depth);
+      driver->glClear(eGL_DEPTH_BUFFER_BIT);
+    }
+
+    GLuint curColor = 0;
+    GLint colorType = 0;
+    driver->glGetFramebufferAttachmentParameteriv(
+        eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + colIdx),
+        eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&curColor);
+
+    driver->glGetFramebufferAttachmentParameteriv(
+        eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + colIdx),
+        eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &colorType);
+
+    GLenum colorFormat = eGL_NONE;
+    if(curColor != 0)
+    {
+      ResourceId id;
+      if(colorType != eGL_RENDERBUFFER)
+      {
+        id = driver->GetResourceManager()->GetResID(TextureRes(driver->GetCtx(), curColor));
+      }
+      else
+      {
+        id = driver->GetResourceManager()->GetResID(RenderbufferRes(driver->GetCtx(), curColor));
+      }
+      colorFormat = driver->m_Textures[id].internalFormat;
+    }
+
     for(size_t j = 0; j < std::max(numFragments, 1u); ++j)
     {
       // Set the stencil function so only jth fragment will pass.
@@ -1577,8 +1653,9 @@ void QueryPostModPerFragment(WrappedOpenGL *driver, GLReplay *replay,
 
       if(numSamples > 1)
       {
-        copyFramebuffer = getCopyFramebuffer(driver, colIdx, resources.copyFramebuffers, numSamples,
-                                             int(modEvents.size()));
+        copyFramebuffer = getCopyFramebuffer(driver, resources.copyFramebuffers, numSamples,
+                                             int(modEvents.size()), eGL_DEPTH32F_STENCIL8,
+                                             eGL_DEPTH32F_STENCIL8, colorFormat);
 
         driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, copyFramebuffer.framebufferId);
         driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedDrawFramebuffer);
@@ -1599,8 +1676,9 @@ void QueryPostModPerFragment(WrappedOpenGL *driver, GLReplay *replay,
       else
       {
         // Blit the values into out framebuffer
-        CopyFramebuffer newCopyFramebuffer = getCopyFramebuffer(
-            driver, colIdx, resources.copyFramebuffers, 1 /*single sampled*/, int(modEvents.size()));
+        CopyFramebuffer newCopyFramebuffer =
+            getCopyFramebuffer(driver, resources.copyFramebuffers, numSamples, int(modEvents.size()),
+                               eGL_DEPTH32F_STENCIL8, eGL_DEPTH32F_STENCIL8, colorFormat);
         if(newCopyFramebuffer.framebufferId != copyFramebuffer.framebufferId ||
            (j - lastJ >= copyFramebuffer.width))
         {
@@ -1630,6 +1708,30 @@ void QueryPostModPerFragment(WrappedOpenGL *driver, GLReplay *replay,
       driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, savedDrawFramebuffer);
       driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedReadFramebuffer);
     }
+
+    // restore original D/S attachments
+    if(curDepthType != eGL_RENDERBUFFER)
+    {
+      driver->glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, curDepth,
+                                   curDepthLevel);
+    }
+    else
+    {
+      driver->glFramebufferRenderbuffer(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                        eGL_RENDERBUFFER, curDepth);
+    }
+    if(curStencilType != eGL_RENDERBUFFER)
+    {
+      driver->glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, curStencil,
+                                   curStencilLevel);
+    }
+    else
+    {
+      driver->glFramebufferRenderbuffer(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                        eGL_RENDERBUFFER, curStencil);
+    }
+
+    driver->glDeleteTextures(1, &forcedDepth);
 
     if(numSamples == 1 && copyFramebuffer.framebufferId != ~0u)
     {
@@ -1952,7 +2054,7 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
                               eventFragments, usingFloatForPrimitiveId, textureDesc.msSamp,
                               sampleIdx);
   QueryPostModPerFragment(m_pDriver, this, resources, modEvents, x, flippedY, history,
-                          eventFragments, textureDesc.msSamp, sampleIdx);
+                          eventFragments, textureDesc.msSamp, sampleIdx, textureWidth, textureHeight);
 
   // copy the postMod to next history's preMod
   for(size_t i = 1; i < history.size(); ++i)
