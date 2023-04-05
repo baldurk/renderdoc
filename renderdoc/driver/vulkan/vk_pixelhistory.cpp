@@ -2654,12 +2654,15 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     }
 
     bool multiview = false;
+    VkRenderPass origRpWithDepth = PatchRenderPass(state, multiview);
+    state.SetRenderPass(prevState.GetRenderPass());
+    state.dynamicRendering = prevState.dynamicRendering;
     VkRenderPass newRp = PatchRenderPass(state, multiview, VK_FORMAT_R32G32B32A32_SFLOAT,
                                          framebufferIndex, colorOutputIndex);
     PatchFramebuffer(state, newRp, m_CallbackInfo.subImageView, VK_FORMAT_R32G32B32A32_SFLOAT,
                      framebufferIndex, colorOutputIndex);
 
-    Pipelines pipes = CreatePerFragmentPipelines(curPipeline, newRp, eid, 0,
+    Pipelines pipes = CreatePerFragmentPipelines(curPipeline, newRp, origRpWithDepth, eid, 0,
                                                  VK_FORMAT_R32G32B32A32_SFLOAT, colorOutputIndex);
 
     for(uint32_t i = 0; i < state.views.size(); i++)
@@ -2845,10 +2848,13 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       }
     }
 
-    // use the original renderpass and framebuffer attachment
+    // use the original renderpass and framebuffer attachment, but ensure we have depth and stencil
     state.SetRenderPass(prevState.GetRenderPass());
     state.SetFramebuffer(prevState.GetFramebuffer(), prevState.GetFramebufferAttachments());
     state.dynamicRendering = prevState.dynamicRendering;
+
+    PatchRenderPass(state, multiview);
+    PatchFramebuffer(state, origRpWithDepth);
 
     colourCopyParams.srcImage = m_CallbackInfo.targetImage;
     colourCopyParams.srcImageFormat = m_CallbackInfo.targetImageFormat;
@@ -2934,9 +2940,9 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
   bool PostDraw(uint32_t eid, VkCommandBuffer cmd) { return false; }
   void PostRedraw(uint32_t eid, VkCommandBuffer cmd) {}
   // CreatePerFragmentPipelines for getting per fragment information.
-  Pipelines CreatePerFragmentPipelines(ResourceId pipe, VkRenderPass rp, uint32_t eid,
-                                       uint32_t fragmentIndex, VkFormat colorOutputFormat,
-                                       uint32_t colorOutputIndex)
+  Pipelines CreatePerFragmentPipelines(ResourceId pipe, VkRenderPass rp, VkRenderPass origRpWithDepth,
+                                       uint32_t eid, uint32_t fragmentIndex,
+                                       VkFormat colorOutputFormat, uint32_t colorOutputIndex)
   {
     const VulkanCreationInfo::Pipeline &p = m_pDriver->GetDebugManager()->GetPipelineInfo(pipe);
     VkGraphicsPipelineCreateInfo pipeCreateInfo = {};
@@ -3017,7 +3023,8 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     }
     pipeCreateInfo.pStages = stages.data();
 
-    // the postmod pipe is used with the original renderpass and attachment setup
+    // the postmod pipe is used with the renderpass with added depth/stencil
+    pipeCreateInfo.renderPass = origRpWithDepth;
     Pipelines pipes = {};
     VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
                                                         &pipeCreateInfo, NULL, &pipes.postModPipe);
