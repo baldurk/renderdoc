@@ -82,16 +82,18 @@ class EGLPlatform : public GLPlatform
 
       if(ret.egl_ctx == EGL_NO_CONTEXT)
       {
+        EGLint err = EGL.GetError();
         EGL.QueryContext(share.egl_dpy, share.egl_ctx, eEGL_CONTEXT_CLIENT_VERSION, &baseAttribs[1]);
 
         RDCWARN(
-            "Creating cloned context failed. Trying again with queried old EGL client version: %d",
-            baseAttribs[1]);
+            "Creating cloned context failed (%x). Trying again with queried old EGL client "
+            "version: %d",
+            err, baseAttribs[1]);
 
         ret.egl_ctx = EGL.CreateContext(share.egl_dpy, share.egl_cfg, share.egl_ctx, baseAttribs);
-
+        err = EGL.GetError();
         if(ret.egl_ctx == EGL_NO_CONTEXT)
-          RDCERR("Cloned context failed again. Capture will likely fail");
+          RDCERR("Cloned context failed again (%x). Capture will likely fail", err);
       }
     }
 

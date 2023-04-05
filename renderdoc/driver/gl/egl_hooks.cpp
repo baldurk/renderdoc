@@ -303,6 +303,13 @@ HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext_renderdoc_hooked(EGLDisplay 
           continue;
         }
 
+        // remove reset notification attributes, so that we don't have to carry this bit around to
+        // know how to safely create sharing contexts.
+        if(name == EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT)
+        {
+          continue;
+        }
+
         attribs.push_back(name);
         attribs.push_back(value);
       }
