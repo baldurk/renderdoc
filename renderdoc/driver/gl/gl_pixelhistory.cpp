@@ -423,7 +423,7 @@ ShaderOutFramebuffer getShaderOutFramebuffer(WrappedOpenGL *driver, uint32_t col
   // Allocate a texture for the pixel history depth/stencil values
   driver->glGenTextures(1, &shaderOutFramebuffer.dsTextureId);
   driver->glBindTexture(textureTarget, shaderOutFramebuffer.dsTextureId);
-  driver->CreateTextureImage(shaderOutFramebuffer.dsTextureId, eGL_DEPTH24_STENCIL8, eGL_NONE,
+  driver->CreateTextureImage(shaderOutFramebuffer.dsTextureId, eGL_DEPTH32F_STENCIL8, eGL_NONE,
                              eGL_NONE, textureTarget, 2, width, height, 1, key.numSamples, 1);
   driver->glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT,
                                shaderOutFramebuffer.dsTextureId, 0);
@@ -562,7 +562,7 @@ bool PixelHistorySetupResources(WrappedOpenGL *driver, GLPixelHistoryResources &
   // Allocate a texture for the pixel history depth/stencil values
   driver->glGenTextures(1, &resources.fullPrecisionDsImage);
   driver->glBindTexture(textureTarget, resources.fullPrecisionDsImage);
-  driver->CreateTextureImage(resources.fullPrecisionDsImage, eGL_DEPTH24_STENCIL8, eGL_NONE,
+  driver->CreateTextureImage(resources.fullPrecisionDsImage, eGL_DEPTH32F_STENCIL8, eGL_NONE,
                              eGL_NONE, textureTarget, 2, desc.width >> sub.mip,
                              desc.height >> sub.mip, 1, numSamples, 1);
   driver->glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT,
@@ -1128,7 +1128,7 @@ std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(
     if(colourFormatType == eGL_UNSIGNED_INT || colourFormatType == eGL_INT)
     {
       shaderOutColourFormat = getShaderOutColourFormat(colourFormat);
-      FramebufferKey key = {shaderOutColourFormat, eGL_DEPTH24_STENCIL8, eGL_DEPTH24_STENCIL8,
+      FramebufferKey key = {shaderOutColourFormat, eGL_DEPTH32F_STENCIL8, eGL_DEPTH32F_STENCIL8,
                             numSamples};
       ShaderOutFramebuffer framebuffer =
           getShaderOutFramebuffer(driver, colIdx, resources, key, width, height);
@@ -1205,7 +1205,7 @@ std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(
 
       const CopyFramebuffer &copyFramebuffer = getCopyFramebuffer(
           driver, resources.copyFramebuffers, numSamples, int(modEvents.size()),
-          eGL_DEPTH24_STENCIL8, eGL_DEPTH24_STENCIL8, copyFramebufferColourFormat);
+          eGL_DEPTH32F_STENCIL8, eGL_DEPTH32F_STENCIL8, copyFramebufferColourFormat);
       driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, copyFramebuffer.framebufferId);
       glReadBuffer(eGL_COLOR_ATTACHMENT0);
       SafeBlitFramebuffer(x, y, x + 1, y + 1, 0, 0, 1, 1, getFramebufferCopyMask(driver),
@@ -1430,7 +1430,7 @@ void QueryShaderOutPerFragment(WrappedOpenGL *driver, GLReplay *replay,
       if(colourFormatType == eGL_UNSIGNED_INT || colourFormatType == eGL_INT)
       {
         shaderOutColourFormat = getShaderOutColourFormat(colourFormat);
-        FramebufferKey key = {shaderOutColourFormat, eGL_DEPTH24_STENCIL8, eGL_DEPTH24_STENCIL8,
+        FramebufferKey key = {shaderOutColourFormat, eGL_DEPTH32F_STENCIL8, eGL_DEPTH32F_STENCIL8,
                               numSamples};
         ShaderOutFramebuffer framebuffer =
             getShaderOutFramebuffer(driver, colIdx, resources, key, width, height);
@@ -1486,7 +1486,7 @@ void QueryShaderOutPerFragment(WrappedOpenGL *driver, GLReplay *replay,
 
         const CopyFramebuffer &copyFramebuffer = getCopyFramebuffer(
             driver, resources.copyFramebuffers, numSamples, int(modEvents.size()),
-            eGL_DEPTH24_STENCIL8, eGL_DEPTH24_STENCIL8, copyFramebufferColourFormat);
+            eGL_DEPTH32F_STENCIL8, eGL_DEPTH32F_STENCIL8, copyFramebufferColourFormat);
         driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, copyFramebuffer.framebufferId);
         glReadBuffer(eGL_COLOR_ATTACHMENT0);
         SafeBlitFramebuffer(x, y, x + 1, y + 1, 0, 0, 1, 1, getFramebufferCopyMask(driver),
@@ -1848,7 +1848,7 @@ void QueryPrimitiveIdPerFragment(WrappedOpenGL *driver, GLReplay *replay,
       {
         const CopyFramebuffer &copyFramebuffer =
             getCopyFramebuffer(driver, resources.copyFramebuffers, numSamples, int(modEvents.size()),
-                               eGL_DEPTH24_STENCIL8, eGL_DEPTH24_STENCIL8, eGL_RGBA32F);
+                               eGL_DEPTH32F_STENCIL8, eGL_DEPTH32F_STENCIL8, eGL_RGBA32F);
         driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, copyFramebuffer.framebufferId);
         driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, resources.fullPrecisionFrameBuffer);
         glReadBuffer(eGL_COLOR_ATTACHMENT0);
