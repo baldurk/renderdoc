@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include <float.h>
+#include "core/settings.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
@@ -33,6 +34,8 @@
 
 #define VULKAN 1
 #include "data/glsl/glsl_ubos_cpp.h"
+
+RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_SingleSubmitFlushing);
 
 VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineLayout pipeLayout,
                                                                      const MeshFormat &primary,
@@ -977,9 +980,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
       CheckVkResult(vkr);
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-      m_pDriver->SubmitCmds();
-#endif
+      if(Vulkan_Debug_SingleSubmitFlushing())
+        m_pDriver->SubmitCmds();
     }
 
     m_HighlightCache.CacheHighlightingData(eventId, cfg);
@@ -1226,7 +1228,6 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
   CheckVkResult(vkr);
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  m_pDriver->SubmitCmds();
-#endif
+  if(Vulkan_Debug_SingleSubmitFlushing())
+    m_pDriver->SubmitCmds();
 }

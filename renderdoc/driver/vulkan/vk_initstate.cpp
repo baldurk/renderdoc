@@ -26,6 +26,8 @@
 #include "vk_core.h"
 #include "vk_debug.h"
 
+RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_SingleSubmitFlushing);
+
 // VKTODOLOW there's a lot of duplicated code in this file for creating a buffer to do
 // a memory copy and saving to disk.
 
@@ -1749,13 +1751,14 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
         VkMarkerRegion::End(cmd);
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-        CloseInitStateCmd();
-        SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
-        SubmitCmds();
-        FlushQ();
-        SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
-#endif
+        if(Vulkan_Debug_SingleSubmitFlushing())
+        {
+          CloseInitStateCmd();
+          SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
+          SubmitCmds();
+          FlushQ();
+          SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
+        }
       }
       else if(initial.tag == VkInitialContents::ClearDepthStencilImage)
       {
@@ -1781,13 +1784,14 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
         VkMarkerRegion::End(cmd);
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-        CloseInitStateCmd();
-        SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
-        SubmitCmds();
-        FlushQ();
-        SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
-#endif
+        if(Vulkan_Debug_SingleSubmitFlushing())
+        {
+          CloseInitStateCmd();
+          SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
+          SubmitCmds();
+          FlushQ();
+          SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
+        }
       }
       else
       {
@@ -1822,13 +1826,14 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       GetDebugManager()->CopyBufferToTex2DMS(cmd, ToUnwrappedHandle<VkImage>(live), Unwrap(buf),
                                              c.extent, c.arrayLayers, (uint32_t)c.samples, fmt);
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-      CloseInitStateCmd();
-      SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
-      SubmitCmds();
-      FlushQ();
-      SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
-#endif
+      if(Vulkan_Debug_SingleSubmitFlushing())
+      {
+        CloseInitStateCmd();
+        SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
+        SubmitCmds();
+        FlushQ();
+        SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
+      }
       return;
     }
 
@@ -2055,13 +2060,14 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       VkMarkerRegion::End(cmd);
     }
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-    CloseInitStateCmd();
-    SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
-    SubmitCmds();
-    FlushQ();
-    SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
-#endif
+    if(Vulkan_Debug_SingleSubmitFlushing())
+    {
+      CloseInitStateCmd();
+      SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
+      SubmitCmds();
+      FlushQ();
+      SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
+    }
   }
   else if(type == eResDeviceMemory)
   {
@@ -2162,11 +2168,12 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
     VkMarkerRegion::End(cmd);
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-    CloseInitStateCmd();
-    SubmitCmds();
-    FlushQ();
-#endif
+    if(Vulkan_Debug_SingleSubmitFlushing())
+    {
+      CloseInitStateCmd();
+      SubmitCmds();
+      FlushQ();
+    }
   }
   else
   {

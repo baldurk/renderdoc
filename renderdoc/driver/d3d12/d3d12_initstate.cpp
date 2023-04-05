@@ -31,6 +31,8 @@
 #include "d3d12_manager.h"
 #include "d3d12_resources.h"
 
+RDOC_EXTERN_CONFIG(bool, D3D12_Debug_SingleSubmitFlushing);
+
 bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 {
   ResourceId id = GetResID(res);
@@ -167,13 +169,11 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
         m_Device->GetReal()->Evict(1, &unwrappedPageable);
       }
-      else
+      else if(D3D12_Debug_SingleSubmitFlushing())
       {
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
         m_Device->CloseInitialStateList();
         m_Device->ExecuteLists(NULL, true);
         m_Device->FlushLists(true);
-#endif
       }
 
       initContents = D3D12InitialContents(copyDst);
@@ -386,13 +386,11 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
         if(nonresident)
           m_Device->GetReal()->Evict(1, &unwrappedPageable);
       }
-      else
+      else if(D3D12_Debug_SingleSubmitFlushing())
       {
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
         m_Device->CloseInitialStateList();
         m_Device->ExecuteLists(NULL, true);
         m_Device->FlushLists(true);
-#endif
       }
 
       SAFE_RELEASE(arrayTexture);
@@ -1353,11 +1351,12 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
         if(!barriers.empty())
           list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-        m_Device->CloseInitialStateList();
-        m_Device->ExecuteLists(NULL, true);
-        m_Device->FlushLists(true);
-#endif
+        if(D3D12_Debug_SingleSubmitFlushing())
+        {
+          m_Device->CloseInitialStateList();
+          m_Device->ExecuteLists(NULL, true);
+          m_Device->FlushLists(true);
+        }
       }
     }
     else

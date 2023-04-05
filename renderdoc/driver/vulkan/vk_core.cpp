@@ -39,6 +39,10 @@
 
 RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_VerboseCommandRecording);
 
+RDOC_DEBUG_CONFIG(bool, Vulkan_Debug_SingleSubmitFlushing, false,
+                  "Every command buffer is submitted and fully flushed to the GPU, to narrow down "
+                  "the source of problems.");
+
 uint64_t VkInitParams::GetSerialiseSize()
 {
   // misc bytes and fixed integer members
@@ -351,9 +355,8 @@ void WrappedVulkan::SubmitCmds(VkSemaphore *unwrappedWaitSemaphores,
   m_InternalCmds.submittedcmds.append(m_InternalCmds.pendingcmds);
   m_InternalCmds.pendingcmds.clear();
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  FlushQ();
-#endif
+  if(Vulkan_Debug_SingleSubmitFlushing())
+    FlushQ();
 }
 
 VkSemaphore WrappedVulkan::GetNextSemaphore()
@@ -413,14 +416,12 @@ void WrappedVulkan::FlushQ()
     CheckVkResult(vkr);
   }
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  if(m_Device != VK_NULL_HANDLE)
+  if(Vulkan_Debug_SingleSubmitFlushing() && m_Device != VK_NULL_HANDLE)
   {
     ObjDisp(m_Device)->DeviceWaitIdle(Unwrap(m_Device));
     VkResult vkr = ObjDisp(m_Device)->DeviceWaitIdle(Unwrap(m_Device));
     CheckVkResult(vkr);
   }
-#endif
 
   for(std::function<void()> cleanup : m_PendingCleanups)
     cleanup();
@@ -528,48 +529,52 @@ void WrappedVulkan::SubmitAndFlushImageStateBarriers(ImageBarrierSequence &barri
           NULL,    // signal semaphores
       };
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-      for(auto it = batch.begin(); it != batch.end(); ++it)
+      if(Vulkan_Debug_SingleSubmitFlushing())
+      {
+        for(auto it = batch.begin(); it != batch.end(); ++it)
+        {
+          vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+          CheckVkResult(vkr);
+
+          DoPipelineBarrier(cmd, 1, it);
+          vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+          CheckVkResult(vkr);
+
+          vkr = ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+          CheckVkResult(vkr);
+
+          vkr = ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
+          CheckVkResult(vkr);
+        }
+      }
+      else
       {
         vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
         CheckVkResult(vkr);
 
-        DoPipelineBarrier(cmd, 1, it);
+        DoPipelineBarrier(cmd, (uint32_t)batch.size(), batch.data());
+
         vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
         CheckVkResult(vkr);
 
-        vkr = ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+        queueFamilyFences.resize_for_index(queueFamilyIndex);
+        VkFence &fence = queueFamilyFences[queueFamilyIndex];
+        if(fence == VK_NULL_HANDLE)
+        {
+          VkFenceCreateInfo fenceInfo = {
+              /* sType = */ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+              /* pNext = */ NULL,
+              /* flags = */ 0,
+          };
+          vkr = ObjDisp(m_Device)->CreateFence(Unwrap(m_Device), &fenceInfo, NULL, &fence);
+          CheckVkResult(vkr);
+        }
+
+        vkr = ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, fence);
         CheckVkResult(vkr);
-
-        vkr = ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
-        CheckVkResult(vkr);
-      }
-#else
-      vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CheckVkResult(vkr);
-
-      DoPipelineBarrier(cmd, (uint32_t)batch.size(), batch.data());
-
-      vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-      CheckVkResult(vkr);
-
-      queueFamilyFences.resize_for_index(queueFamilyIndex);
-      VkFence &fence = queueFamilyFences[queueFamilyIndex];
-      if(fence == VK_NULL_HANDLE)
-      {
-        VkFenceCreateInfo fenceInfo = {
-            /* sType = */ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-            /* pNext = */ NULL,
-            /* flags = */ 0,
-        };
-        vkr = ObjDisp(m_Device)->CreateFence(Unwrap(m_Device), &fenceInfo, NULL, &fence);
-        CheckVkResult(vkr);
+        submittedFences.push_back(fence);
       }
 
-      vkr = ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, fence);
-      CheckVkResult(vkr);
-      submittedFences.push_back(fence);
-#endif
       batch.clear();
     }
     if(!submittedFences.empty())
@@ -3987,12 +3992,13 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       m_OutsideCmdBuffer = VK_NULL_HANDLE;
     }
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-    SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
-    SubmitCmds();
-    FlushQ();
-    SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
-#endif
+    if(Vulkan_Debug_SingleSubmitFlushing())
+    {
+      SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
+      SubmitCmds();
+      FlushQ();
+      SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
+    }
   }
 
   if(!IsStructuredExporting(m_State))

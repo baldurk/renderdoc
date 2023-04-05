@@ -48,6 +48,8 @@
 RDOC_CONFIG(rdcstr, D3D12_Debug_OverlayDumpDirPath, "",
             "Path to dump quad overdraw patched DXIL files.");
 
+RDOC_EXTERN_CONFIG(bool, D3D12_Debug_SingleSubmitFlushing);
+
 struct D3D12QuadOverdrawCallback : public D3D12ActionCallback
 {
   D3D12QuadOverdrawCallback(WrappedID3D12Device *dev, const rdcarray<uint32_t> &events,
@@ -2004,10 +2006,11 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       list->Close();
       list = NULL;
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-      m_pDevice->ExecuteLists();
-      m_pDevice->FlushLists();
-#endif
+      if(D3D12_Debug_SingleSubmitFlushing())
+      {
+        m_pDevice->ExecuteLists();
+        m_pDevice->FlushLists();
+      }
 
       m_pDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
 

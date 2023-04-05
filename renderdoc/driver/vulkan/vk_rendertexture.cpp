@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "core/settings.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "vk_core.h"
@@ -30,6 +31,8 @@
 
 #define VULKAN 1
 #include "data/glsl/glsl_ubos_cpp.h"
+
+RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_SingleSubmitFlushing);
 
 void VulkanReplay::CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::Image &iminfo,
                                       CompType typeCast, TextureDisplayViews &views)
@@ -597,12 +600,10 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
     m_pDriver->FlushQ();
     m_pDriver->SubmitAndFlushImageStateBarriers(cleanupBarriers);
   }
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  else
+  else if(Vulkan_Debug_SingleSubmitFlushing())
   {
     m_pDriver->SubmitCmds();
   }
-#endif
 
   return true;
 }

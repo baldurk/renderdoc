@@ -42,6 +42,8 @@
 #define VULKAN 1
 #include "data/glsl/glsl_ubos_cpp.h"
 
+RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_SingleSubmitFlushing);
+
 RDOC_CONFIG(bool, Vulkan_HardwareCounters, true,
             "Enable support for IHV-specific hardware counters on Vulkan.");
 
@@ -969,9 +971,8 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
   vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
   CheckVkResult(vkr);
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  m_pDriver->SubmitCmds();
-#endif
+  if(Vulkan_Debug_SingleSubmitFlushing())
+    m_pDriver->SubmitCmds();
 
   CREATE_OBJECT(m_Custom.TexRP, imInfo.format, imInfo.samples);
 
@@ -1562,9 +1563,8 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t width, int32_t heigh
   VkResult vkr = vt->EndCommandBuffer(Unwrap(cmd));
   CheckVkResult(vkr);
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  m_pDriver->SubmitCmds();
-#endif
+  if(Vulkan_Debug_SingleSubmitFlushing())
+    m_pDriver->SubmitCmds();
 
   m_pDriver->SubmitCmds();
   m_pDriver->FlushQ();
@@ -1879,9 +1879,8 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
   CheckVkResult(vkr);
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  m_pDriver->SubmitCmds();
-#endif
+  if(Vulkan_Debug_SingleSubmitFlushing())
+    m_pDriver->SubmitCmds();
 
   while(sizeRemaining > 0)
   {

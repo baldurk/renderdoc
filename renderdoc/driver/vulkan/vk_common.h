@@ -78,10 +78,6 @@
 typedef VkBufferDeviceAddressInfo VkBufferDeviceAddressInfoEXT;
 typedef VkPhysicalDeviceBufferDeviceAddressFeatures VkPhysicalDeviceBufferDeviceAddressFeaturesKHR;
 
-// enable this to cause every internal QueueSubmit to immediately call DeviceWaitIdle(), and to only
-// submit one command buffer at once to narrow down the cause of device lost errors
-#define SINGLE_FLUSH_VALIDATE OPTION_OFF
-
 // enable this to get verbose debugging about when/where/why partial command buffer replay is
 // happening
 #define VERBOSE_PARTIAL_REPLAY OPTION_OFF

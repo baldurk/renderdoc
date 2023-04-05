@@ -137,11 +137,6 @@ StencilOperation MakeStencilOp(D3D12_STENCIL_OP op);
     }                                                   \
   }
 
-// uncomment this to cause every internal ExecuteCommandLists to immediately call
-// FlushLists(), and to only submit one command list at once to narrow
-// down the cause of device lost errors
-#define SINGLE_FLUSH_VALIDATE OPTION_OFF
-
 // uncomment this to get verbose debugging about when/where/why partial command
 // buffer replay is happening
 #define VERBOSE_PARTIAL_REPLAY OPTION_OFF

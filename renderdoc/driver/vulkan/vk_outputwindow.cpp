@@ -22,8 +22,11 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "core/settings.h"
 #include "vk_core.h"
 #include "vk_replay.h"
+
+RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_SingleSubmitFlushing);
 
 VulkanReplay::OutputWindow::OutputWindow()
     : m_WindowSystem(WindowingSystem::Unknown), width(0), height(0)
@@ -1044,9 +1047,8 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 
   vt->EndCommandBuffer(Unwrap(cmd));
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  m_pDriver->SubmitCmds();
-#endif
+  if(Vulkan_Debug_SingleSubmitFlushing())
+    m_pDriver->SubmitCmds();
 }
 
 void VulkanReplay::ClearOutputWindowColor(uint64_t id, FloatVector col)
@@ -1101,9 +1103,8 @@ void VulkanReplay::ClearOutputWindowColor(uint64_t id, FloatVector col)
 
   vt->EndCommandBuffer(Unwrap(cmd));
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  m_pDriver->SubmitCmds();
-#endif
+  if(Vulkan_Debug_SingleSubmitFlushing())
+    m_pDriver->SubmitCmds();
 }
 
 void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
@@ -1157,9 +1158,8 @@ void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t sten
 
   vt->EndCommandBuffer(Unwrap(cmd));
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  m_pDriver->SubmitCmds();
-#endif
+  if(Vulkan_Debug_SingleSubmitFlushing())
+    m_pDriver->SubmitCmds();
 }
 
 void VulkanReplay::FlipOutputWindow(uint64_t id)

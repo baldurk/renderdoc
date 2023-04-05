@@ -25,6 +25,7 @@
 #include "d3d12_device.h"
 #include <algorithm>
 #include "core/core.h"
+#include "core/settings.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "driver/ihv/amd/amd_rgp.h"
@@ -39,6 +40,10 @@
 #include "d3d12_replay.h"
 #include "d3d12_resources.h"
 #include "d3d12_shader_cache.h"
+
+RDOC_DEBUG_CONFIG(bool, D3D12_Debug_SingleSubmitFlushing, false,
+                  "Every command buffer is submitted and fully flushed to the GPU, to narrow down "
+                  "the source of problems.");
 
 WRAPPED_POOL_INST(WrappedID3D12Device);
 
@@ -4513,12 +4518,13 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     cmd.m_RenderState =
         cmd.m_BakedCmdListInfo[cmd.m_Partial[D3D12CommandData::Primary].partialParent].state;
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-    FlushLists(true);
+    if(D3D12_Debug_SingleSubmitFlushing())
+    {
+      FlushLists(true);
 
-    if(HasFatalError())
-      return;
-#endif
+      if(HasFatalError())
+        return;
+    }
   }
 
   D3D12MarkerRegion::Set(GetQueue(), "!!!!RenderDoc Internal: Done replay");

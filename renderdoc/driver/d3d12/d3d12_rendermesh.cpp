@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "core/settings.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
@@ -34,6 +35,8 @@
 #include "d3d12_replay.h"
 
 #include "data/hlsl/hlsl_cbuffers.h"
+
+RDOC_EXTERN_CONFIG(bool, D3D12_Debug_SingleSubmitFlushing);
 
 MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipelines(const MeshFormat &primary,
                                                                   const MeshFormat &secondary)
@@ -849,8 +852,9 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
   list->Close();
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  m_pDevice->ExecuteLists();
-  m_pDevice->FlushLists();
-#endif
+  if(D3D12_Debug_SingleSubmitFlushing())
+  {
+    m_pDevice->ExecuteLists();
+    m_pDevice->FlushLists();
+  }
 }

@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include "core/settings.h"
 #include "vk_core.h"
 #include "vk_replay.h"
 #include "vk_resources.h"
@@ -35,6 +36,8 @@
 #include "strings/string_utils.h"
 
 #include "driver/ihv/nv/nv_vk_counters.h"
+
+RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_SingleSubmitFlushing);
 
 static uint32_t FromKHRCounter(GPUCounter counterID)
 {
@@ -994,9 +997,8 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
   vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
   CheckVkResult(vkr);
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  m_pDriver->SubmitCmds();
-#endif
+  if(Vulkan_Debug_SingleSubmitFlushing())
+    m_pDriver->SubmitCmds();
 
   VulkanGPUTimerCallback cb(m_pDriver, this, timeStampPool, occlusionPool, pipeStatsPool,
                             compPipeStatsPool);

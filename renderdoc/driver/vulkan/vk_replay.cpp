@@ -44,6 +44,8 @@
 #define VULKAN 1
 #include "data/glsl/glsl_ubos_cpp.h"
 
+RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_SingleSubmitFlushing);
+
 static const char *SPIRVDisassemblyTarget = "SPIR-V (RenderDoc)";
 static const char *AMDShaderInfoTarget = "AMD_shader_info";
 static const char *KHRExecutablePropertiesTarget = "KHR_pipeline_executable_properties";
@@ -843,9 +845,8 @@ void VulkanReplay::RenderCheckerboard(FloatVector dark, FloatVector light)
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
   CheckVkResult(vkr);
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  m_pDriver->SubmitCmds();
-#endif
+  if(Vulkan_Debug_SingleSubmitFlushing())
+    m_pDriver->SubmitCmds();
 }
 
 void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
@@ -946,9 +947,8 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
   CheckVkResult(vkr);
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  m_pDriver->SubmitCmds();
-#endif
+  if(Vulkan_Debug_SingleSubmitFlushing())
+    m_pDriver->SubmitCmds();
 }
 
 void VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData)
@@ -3446,9 +3446,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     // ordering
     vt->EndCommandBuffer(Unwrap(cmd));
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-    m_pDriver->SubmitCmds();
-#endif
+    if(Vulkan_Debug_SingleSubmitFlushing())
+      m_pDriver->SubmitCmds();
 
     // create framebuffer/render pass to render to
     VkAttachmentDescription attDesc = {0,

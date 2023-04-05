@@ -28,6 +28,7 @@
 #include "core/settings.h"
 
 RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_VerboseCommandRecording);
+RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_SingleSubmitFlushing);
 
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice device,
@@ -470,26 +471,28 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, r
 
       submitInfo.pCommandBufferInfos = rerecordedCmds.data();
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-      submitInfo.commandBufferInfoCount = 1;
-      for(size_t i = 0; i < rerecordedCmds.size(); i++)
+      if(Vulkan_Debug_SingleSubmitFlushing())
       {
-        DoSubmit(queue, submitInfo);
-        submitInfo.pCommandBufferInfos++;
+        submitInfo.commandBufferInfoCount = 1;
+        for(size_t i = 0; i < rerecordedCmds.size(); i++)
+        {
+          DoSubmit(queue, submitInfo);
+          submitInfo.pCommandBufferInfos++;
 
-        FlushQ();
+          FlushQ();
+        }
       }
-#else
-      submitInfo.commandBufferInfoCount = (uint32_t)rerecordedCmds.size();
+      else
+      {
+        submitInfo.commandBufferInfoCount = (uint32_t)rerecordedCmds.size();
 
-      DoSubmit(queue, submitInfo);
-#endif
+        DoSubmit(queue, submitInfo);
+      }
     }
   }
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  FlushQ();
-#endif
+  if(Vulkan_Debug_SingleSubmitFlushing())
+    FlushQ();
 }
 
 bool WrappedVulkan::PatchIndirectDraw(size_t drawIndex, uint32_t paramStride,

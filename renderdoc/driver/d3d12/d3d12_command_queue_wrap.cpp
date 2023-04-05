@@ -27,6 +27,8 @@
 #include "d3d12_command_list.h"
 #include "d3d12_resources.h"
 
+RDOC_EXTERN_CONFIG(bool, D3D12_Debug_SingleSubmitFlushing);
+
 template <typename SerialiserType>
 bool WrappedID3D12CommandQueue::Serialise_UpdateTileMappings(
     SerialiserType &ser, ID3D12Resource *pResource, UINT NumResourceRegions,
@@ -489,9 +491,8 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         {
           ID3D12CommandList *list = Unwrap(ppCommandLists[i]);
           real->ExecuteCommandLists(1, &list);
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-          m_pDevice->GPUSyncAllQueues();
-#endif
+          if(D3D12_Debug_SingleSubmitFlushing())
+            m_pDevice->GPUSyncAllQueues();
         }
         else
         {
@@ -523,9 +524,8 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
               return false;
           }
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-          m_pDevice->GPUSyncAllQueues();
-#endif
+          if(D3D12_Debug_SingleSubmitFlushing())
+            m_pDevice->GPUSyncAllQueues();
         }
       }
 
@@ -709,15 +709,18 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
           }
         }
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-        for(size_t i = 0; i < rerecordedCmds.size(); i++)
+        if(D3D12_Debug_SingleSubmitFlushing())
         {
-          real->ExecuteCommandLists(1, &rerecordedCmds[i]);
-          m_pDevice->GPUSyncAllQueues();
+          for(size_t i = 0; i < rerecordedCmds.size(); i++)
+          {
+            real->ExecuteCommandLists(1, &rerecordedCmds[i]);
+            m_pDevice->GPUSyncAllQueues();
+          }
         }
-#else
-        real->ExecuteCommandLists((UINT)rerecordedCmds.size(), &rerecordedCmds[0]);
-#endif
+        else
+        {
+          real->ExecuteCommandLists((UINT)rerecordedCmds.size(), &rerecordedCmds[0]);
+        }
       }
     }
   }
