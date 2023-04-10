@@ -81,6 +81,10 @@ class GLXPlatform : public GLPlatform
     {
       int fbcfgID = -1;
       GLX.glXGetConfig(share.dpy, share.cfg, GLX_FBCONFIG_ID, &fbcfgID);
+
+      if(fbcfgID == -1)
+        GLX.glXQueryContext(share.dpy, share.ctx, GLX_FBCONFIG_ID, &fbcfgID);
+
       if(fbcfgID != -1)
       {
         visAttribs[i++] = GLX_FBCONFIG_ID;
