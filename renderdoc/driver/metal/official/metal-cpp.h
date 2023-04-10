@@ -6387,6 +6387,8 @@ namespace Private
 {
     namespace Selector
     {
+        _CA_PRIVATE_DEF_SEL(bounds,
+            "bounds");
         _CA_PRIVATE_DEF_SEL(device,
             "device");
         _CA_PRIVATE_DEF_SEL(drawableSize,
@@ -6399,6 +6401,8 @@ namespace Private
             "nextDrawable");
         _CA_PRIVATE_DEF_SEL(pixelFormat,
             "pixelFormat");
+        _CA_PRIVATE_DEF_SEL(contentsScale,
+            "contentsScale");
         _CA_PRIVATE_DEF_SEL(setDevice_,
             "setDevice:");
         _CA_PRIVATE_DEF_SEL(setDrawableSize_,
@@ -6456,6 +6460,9 @@ public:
     void                     setDrawableSize(CGSize drawableSize);
 
     class MetalDrawable*     nextDrawable();
+
+    CGFloat                  contentsScale() const;
+    CGRect                   bounds() const;
 };
 } // namespace CA
 
@@ -6512,6 +6519,16 @@ _CA_INLINE CA::MetalDrawable* CA::MetalLayer::nextDrawable()
 {
     return Object::sendMessage<MetalDrawable*>(this,
         _CA_PRIVATE_SEL(nextDrawable));
+}
+
+_CA_INLINE CGFloat CA::MetalLayer::contentsScale() const
+{
+    return Object::sendMessage< CGFloat >( this, _CA_PRIVATE_SEL( contentsScale ) );
+}
+
+_CA_INLINE CGRect CA::MetalLayer::bounds() const
+{
+    return Object::sendMessage< CGRect >( this, _CA_PRIVATE_SEL( bounds ) );
 }
 
 #pragma once
