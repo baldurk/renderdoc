@@ -86,6 +86,7 @@ namespace Private
     namespace Class
     {
 
+        _NS_PRIVATE_DEF_CLS(NSApplication);
         _NS_PRIVATE_DEF_CLS(NSArray);
         _NS_PRIVATE_DEF_CLS(NSAutoreleasePool);
         _NS_PRIVATE_DEF_CLS(NSBundle);
@@ -95,13 +96,18 @@ namespace Private
         _NS_PRIVATE_DEF_CLS(NSDictionary);
         _NS_PRIVATE_DEF_CLS(NSError);
         _NS_PRIVATE_DEF_CLS(NSNotificationCenter);
+        _NS_PRIVATE_DEF_CLS(NSMenu);
+        _NS_PRIVATE_DEF_CLS(NSMenuItem);
         _NS_PRIVATE_DEF_CLS(NSNumber);
         _NS_PRIVATE_DEF_CLS(NSObject);
         _NS_PRIVATE_DEF_CLS(NSProcessInfo);
         _NS_PRIVATE_DEF_CLS(NSSet);
+        _NS_PRIVATE_DEF_CLS(NSRunningApplication);
         _NS_PRIVATE_DEF_CLS(NSString);
         _NS_PRIVATE_DEF_CLS(NSURL);
         _NS_PRIVATE_DEF_CLS(NSValue);
+        _NS_PRIVATE_DEF_CLS(NSView);
+        _NS_PRIVATE_DEF_CLS(NSWindow);
 
     } // Class
 } // Private
@@ -125,6 +131,12 @@ namespace Private
     namespace Selector
     {
 
+        _NS_PRIVATE_DEF_SEL(activateIgnoringOtherApps_,
+            "activateIgnoringOtherApps:");
+        _NS_PRIVATE_DEF_SEL(addItem_,
+            "addItem:");
+        _NS_PRIVATE_DEF_SEL(addItemWithTitle_action_keyEquivalent_,
+            "addItemWithTitle:action:keyEquivalent:");
         _NS_PRIVATE_DEF_SEL(addObject_,
             "addObject:");
         _NS_PRIVATE_DEF_SEL(addObserverName_object_queue_block_,
@@ -139,6 +151,12 @@ namespace Private
             "allObjects");
         _NS_PRIVATE_DEF_SEL(alloc,
             "alloc");
+        _NS_PRIVATE_DEF_SEL(applicationDidFinishLaunching_,
+            "applicationDidFinishLaunching:");
+        _NS_PRIVATE_DEF_SEL(applicationShouldTerminateAfterLastWindowClosed_,
+            "applicationShouldTerminateAfterLastWindowClosed:");
+        _NS_PRIVATE_DEF_SEL(applicationWillFinishLaunching_,
+            "applicationWillFinishLaunching:");
         _NS_PRIVATE_DEF_SEL(appStoreReceiptURL,
             "appStoreReceiptURL");
         _NS_PRIVATE_DEF_SEL(arguments,
@@ -181,6 +199,8 @@ namespace Private
             "characterAtIndex:");
         _NS_PRIVATE_DEF_SEL(charValue,
             "charValue");
+        _NS_PRIVATE_DEF_SEL(close,
+            "close");
         _NS_PRIVATE_DEF_SEL(countByEnumeratingWithState_objects_count_,
             "countByEnumeratingWithState:objects:count:");
         _NS_PRIVATE_DEF_SEL(cStringUsingEncoding_,
@@ -189,10 +209,14 @@ namespace Private
             "code");
         _NS_PRIVATE_DEF_SEL(compare_,
             "compare:");
+        _NS_PRIVATE_DEF_SEL(contentView_,
+            "contentView");
         _NS_PRIVATE_DEF_SEL(copy,
             "copy");
         _NS_PRIVATE_DEF_SEL(count,
             "count");
+        _NS_PRIVATE_DEF_SEL(currentApplication,
+            "currentApplication");
         _NS_PRIVATE_DEF_SEL(dateWithTimeIntervalSinceNow_,
             "dateWithTimeIntervalSinceNow:");
         _NS_PRIVATE_DEF_SEL(dataWithContentsOfFile_,
@@ -241,6 +265,10 @@ namespace Private
             "fileSystemRepresentation");
         _NS_PRIVATE_DEF_SEL(fileURLWithPath_,
             "fileURLWithPath:");
+        _NS_PRIVATE_DEF_SEL(finishedLaunching,
+            "isFinishedLaunching");
+        _NS_PRIVATE_DEF_SEL(finishLaunching,
+            "finishLaunching");
         _NS_PRIVATE_DEF_SEL(floatValue,
             "floatValue");
         _NS_PRIVATE_DEF_SEL(fullUserName,
@@ -269,6 +297,8 @@ namespace Private
             "initWithChar:");
         _NS_PRIVATE_DEF_SEL(initWithCoder_,
             "initWithCoder:");
+        _NS_PRIVATE_DEF_SEL(initWithContentRect_styleMask_backing_defer_,
+            "initWithContentRect:styleMask:backing:defer:");
         _NS_PRIVATE_DEF_SEL(initWithCString_encoding_,
             "initWithCString:encoding:");
         _NS_PRIVATE_DEF_SEL(initWithDomain_code_userInfo_,
@@ -277,6 +307,8 @@ namespace Private
             "initWithDouble:");
         _NS_PRIVATE_DEF_SEL(initWithFloat_,
             "initWithFloat:");
+        _NS_PRIVATE_DEF_SEL(initWithFrame_,
+            "initWithFrame:");
         _NS_PRIVATE_DEF_SEL(initWithInt_,
             "initWithInt:");
         _NS_PRIVATE_DEF_SEL(initWithLong_,
@@ -293,6 +325,8 @@ namespace Private
             "initWithShort:");
         _NS_PRIVATE_DEF_SEL(initWithString_,
             "initWithString:");
+        _NS_PRIVATE_DEF_SEL(initWithTitle_,
+            "initWithTitle:");
         _NS_PRIVATE_DEF_SEL(initWithUnsignedChar_,
             "initWithUnsignedChar:");
         _NS_PRIVATE_DEF_SEL(initWithUnsignedInt_,
@@ -329,6 +363,10 @@ namespace Private
             "isOperatingSystemAtLeastVersion:");
         _NS_PRIVATE_DEF_SEL(keyEnumerator,
             "keyEnumerator");
+        _NS_PRIVATE_DEF_SEL(keyEquivalentModifierMask,
+            "keyEquivalentModifierMask");
+        _NS_PRIVATE_DEF_SEL(layer_,
+            "layer");
         _NS_PRIVATE_DEF_SEL(length,
             "length");
         _NS_PRIVATE_DEF_SEL(lengthOfBytesUsingEncoding_,
@@ -343,6 +381,8 @@ namespace Private
             "localizedFailureReason");
         _NS_PRIVATE_DEF_SEL(localizedInfoDictionary,
             "localizedInfoDictionary");
+        _NS_PRIVATE_DEF_SEL(localizedName,
+            "localizedName");
         _NS_PRIVATE_DEF_SEL(localizedRecoveryOptions,
             "localizedRecoveryOptions");
         _NS_PRIVATE_DEF_SEL(localizedRecoverySuggestion,
@@ -357,6 +397,8 @@ namespace Private
             "longLongValue");
         _NS_PRIVATE_DEF_SEL(mainBundle,
             "mainBundle");
+        _NS_PRIVATE_DEF_SEL(makeKeyAndOrderFront_,
+            "makeKeyAndOrderFront:");
         _NS_PRIVATE_DEF_SEL(maximumLengthOfBytesUsingEncoding_,
             "maximumLengthOfBytesUsingEncoding:");
         _NS_PRIVATE_DEF_SEL(methodSignatureForSelector_,
@@ -365,6 +407,8 @@ namespace Private
             "mutableBytes");
         _NS_PRIVATE_DEF_SEL(name,
             "name");
+        _NS_PRIVATE_DEF_SEL(nextEventMatchingMask_untilDate_inMode_dequeue,
+            "nextEventMatchingMask:untilDate:inMode:dequeue:");
         _NS_PRIVATE_DEF_SEL(nextObject,
             "nextObject");
         _NS_PRIVATE_DEF_SEL(numberWithBool_,
@@ -453,10 +497,34 @@ namespace Private
             "retain");
         _NS_PRIVATE_DEF_SEL(retainCount,
             "retainCount");
+        _NS_PRIVATE_DEF_SEL(run,
+            "run");
+        _NS_PRIVATE_DEF_SEL(sendEvent,
+            "sendEvent:");
+        _NS_PRIVATE_DEF_SEL(setActivationPolicy_,
+            "setActivationPolicy:");
         _NS_PRIVATE_DEF_SEL(setAutomaticTerminationSupportEnabled_,
             "setAutomaticTerminationSupportEnabled:");
+        _NS_PRIVATE_DEF_SEL(setContentView_,
+            "setContentView:");
+        _NS_PRIVATE_DEF_SEL(setDelegate_,
+            "setDelegate:");
+        _NS_PRIVATE_DEF_SEL(setKeyEquivalentModifierMask_,
+            "setKeyEquivalentModifierMask:");
+        _NS_PRIVATE_DEF_SEL(setLayer_,
+            "setLayer:");
+        _NS_PRIVATE_DEF_SEL(setMainMenu_,
+            "setMainMenu:");
         _NS_PRIVATE_DEF_SEL(setProcessName_,
             "setProcessName:");
+        _NS_PRIVATE_DEF_SEL(setSubmenu_,
+            "setSubmenu:");
+        _NS_PRIVATE_DEF_SEL(setTitle_,
+            "setTitle:");
+        _NS_PRIVATE_DEF_SEL(setWantsLayer_,
+            "setWantsLayer:");
+        _NS_PRIVATE_DEF_SEL(sharedApplication,
+            "sharedApplication");
         _NS_PRIVATE_DEF_SEL(sharedFrameworksPath,
             "sharedFrameworksPath");
         _NS_PRIVATE_DEF_SEL(sharedFrameworksURL,
@@ -483,6 +551,8 @@ namespace Private
             "stringByAppendingString:");
         _NS_PRIVATE_DEF_SEL(systemUptime,
             "systemUptime");
+        _NS_PRIVATE_DEF_SEL(terminate_,
+            "terminate:");
         _NS_PRIVATE_DEF_SEL(thermalState,
             "thermalState");
         _NS_PRIVATE_DEF_SEL(unload,
@@ -513,10 +583,14 @@ namespace Private
             "valueWithBytes:objCType:");
         _NS_PRIVATE_DEF_SEL(valueWithPointer_,
             "valueWithPointer:");
+        _NS_PRIVATE_DEF_SEL(visible_,
+            "isVisible");
         _NS_PRIVATE_DEF_SEL(wait,
             "wait");
         _NS_PRIVATE_DEF_SEL(waitUntilDate_,
             "waitUntilDate:");
+        _NS_PRIVATE_DEF_SEL(windows,
+            "windows");
     } // Class
 } // Private
 } // MTL
@@ -1613,6 +1687,7 @@ class Date : public Copying<Date>
 {
 public:
     static Date* dateWithTimeIntervalSinceNow(TimeInterval secs);
+    static Date* distantPast();
 };
 
 } // NS
@@ -1622,6 +1697,10 @@ _NS_INLINE NS::Date* NS::Date::dateWithTimeIntervalSinceNow(NS::TimeInterval sec
     return NS::Object::sendMessage<NS::Date*>(_NS_PRIVATE_CLS(NSDate), _NS_PRIVATE_SEL(dateWithTimeIntervalSinceNow_), secs);
 }
 
+_NS_INLINE NS::Date* NS::Date::distantPast()
+{
+    return NS::Object::sendMessage<NS::Date*>(_NS_PRIVATE_CLS(NSDate), _NS_PRIVATE_SEL(distantPast) );
+}
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 namespace NS
@@ -1743,6 +1822,18 @@ _NS_INLINE NS::String* NS::Error::localizedFailureReason() const
 
 namespace NS
 {
+  _NS_OPTIONS( NS::UInteger, EventMask )
+  {
+    EventMaskAny              = NS::UIntegerMax,
+  };
+
+  class Event : public Copying<Event>
+  {
+  };
+}
+
+namespace NS
+{
 
 template <class _Class, class _Base = class Object>
 class Locking : public _Base
@@ -1810,6 +1901,130 @@ _NS_INLINE void NS::Condition::broadcast()
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+namespace NS
+{
+	class MenuItem;
+
+	class Menu : public Referencing< Menu >
+	{
+		public:
+			static Menu*	alloc();
+			Menu*			init();
+			Menu*			init( const String* pTitle );
+
+			MenuItem*		addItem( const String* pTitle, SEL pSelector, const String* pKeyEquivalent );
+			void			addItem( const MenuItem* pItem );
+	};
+}
+
+_NS_INLINE NS::Menu* NS::Menu::alloc()
+{
+	return Object::alloc< Menu >( _NS_PRIVATE_CLS( NSMenu ) );
+}
+
+_NS_INLINE NS::Menu* NS::Menu::init()
+{
+	return Object::sendMessage< Menu* >( this, _NS_PRIVATE_SEL( init ) );
+}
+
+_NS_INLINE NS::Menu* NS::Menu::init( const String* pTitle )
+{
+	return Object::sendMessage< Menu* >( this, _NS_PRIVATE_SEL( initWithTitle_ ), pTitle );
+}
+
+_NS_INLINE NS::MenuItem* NS::Menu::addItem( const String* pTitle, SEL pSelector, const String* pKeyEquivalent )
+{
+	return Object::sendMessage< MenuItem* >( this, _NS_PRIVATE_SEL( addItemWithTitle_action_keyEquivalent_ ), pTitle, pSelector, pKeyEquivalent );
+}
+
+_NS_INLINE void NS::Menu::addItem( const MenuItem* pItem )
+{
+	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( addItem_ ), pItem );
+}
+
+#include <string>
+
+namespace NS
+{
+	_NS_OPTIONS( NS::UInteger, KeyEquivalentModifierMask )
+	{
+		EventModifierFlagCapsLock			= 1 << 16, // Set if Caps Lock key is pressed.
+		EventModifierFlagShift				= 1 << 17, // Set if Shift key is pressed.
+		EventModifierFlagControl			= 1 << 18, // Set if Control key is pressed.
+		EventModifierFlagOption				= 1 << 19, // Set if Option or Alternate key is pressed.
+		EventModifierFlagCommand			= 1 << 20, // Set if Command key is pressed.
+		EventModifierFlagNumericPad			= 1 << 21, // Set if any key in the numeric keypad is pressed.
+		EventModifierFlagHelp				= 1 << 22, // Set if the Help key is pressed.
+		EventModifierFlagFunction			= 1 << 23, // Set if any function key is pressed.
+		
+		// Used to retrieve only the device-independent modifier flags, allowing applications to mask off the device-dependent modifier flags, including event coalescing information.
+		EventModifierFlagDeviceIndependentFlagsMask	= 0xffff0000UL
+	};
+
+	typedef void (*MenuItemCallback)( void* unused, SEL name, const NS::Object* pSender );
+
+	class MenuItem : public NS::Referencing< MenuItem >
+	{
+		public:
+			static SEL						registerActionCallback( const char* name, MenuItemCallback callback );
+			static MenuItem*				alloc();
+			MenuItem*						init();
+
+			void							setKeyEquivalentModifierMask( NS::KeyEquivalentModifierMask modifierMask );
+			NS::KeyEquivalentModifierMask	KeyEquivalentModifierMask() const;
+			void							setSubmenu( const class Menu* pSubmenu );
+	};
+}
+
+_NS_INLINE SEL NS::MenuItem::registerActionCallback( const char* name, NS::MenuItemCallback callback )
+{
+	auto siz = strlen( name );
+	SEL sel;
+	if ( ( siz > 0 ) && ( name[ siz - 1 ] != ':' ) )
+	{
+		char* colName = (char *)alloca( siz + 2 );
+		memcpy( colName, name, siz );
+		colName[ siz ] = ':';
+		colName[ siz + 1 ] = '\0';
+		sel = sel_registerName( colName );
+	}
+	else
+	{
+		sel = sel_registerName( name );
+	}
+
+	if ( callback )
+	{
+		class_addMethod( (Class)_NS_PRIVATE_CLS( NSObject ), sel, (IMP)callback, "v@:@" );
+	}
+	return sel;
+}
+
+_NS_INLINE NS::MenuItem* NS::MenuItem::alloc()
+{
+	return Object::alloc< NS::MenuItem >( _NS_PRIVATE_CLS( NSMenuItem ) );
+}
+
+_NS_INLINE NS::MenuItem* NS::MenuItem::init()
+{
+	return Object::sendMessage< NS::MenuItem* >( this, _NS_PRIVATE_SEL( init ) );
+}
+
+_NS_INLINE void NS::MenuItem::setKeyEquivalentModifierMask( NS::KeyEquivalentModifierMask modifierMask )
+{
+	return Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setKeyEquivalentModifierMask_ ), modifierMask );
+}
+
+_NS_INLINE NS::KeyEquivalentModifierMask NS::MenuItem::KeyEquivalentModifierMask() const
+{
+	return Object::sendMessage< NS::KeyEquivalentModifierMask >( this, _NS_PRIVATE_SEL( keyEquivalentModifierMask ) );
+}
+
+_NS_INLINE void NS::MenuItem::setSubmenu( const class NS::Menu* pSubmenu )
+{
+	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setSubmenu_ ), pSubmenu );
+}
 
 namespace NS
 {
@@ -2761,6 +2976,31 @@ _NS_INLINE bool operator!=(const NS::SharedPtr<_ClassLhs>& lhs, const NS::Shared
 
 namespace NS
 {
+	class RunningApplication : NS::Referencing< RunningApplication >
+	{
+		public:
+			static RunningApplication*	currentApplication();
+			String*						localizedName() const;
+			bool							finishedLaunching() const;
+	};
+}
+
+_NS_INLINE NS::RunningApplication* NS::RunningApplication::currentApplication()
+{
+	return Object::sendMessage< NS::RunningApplication* >( _NS_PRIVATE_CLS( NSRunningApplication ), _NS_PRIVATE_SEL( currentApplication ) );
+}
+
+_NS_INLINE NS::String* NS::RunningApplication::localizedName() const
+{
+	return Object::sendMessage< NS::String* >( this, _NS_PRIVATE_SEL( localizedName ) );
+}
+_NS_INLINE bool NS::RunningApplication::finishedLaunching() const
+{
+	return Object::sendMessage< bool >( this, _NS_PRIVATE_SEL( finishedLaunching ) );
+}
+
+namespace NS
+{
 class URL : public Copying<URL>
 {
 public:
@@ -2804,6 +3044,301 @@ _NS_INLINE const char* NS::URL::fileSystemRepresentation() const
 {
     return Object::sendMessage<const char*>(this, _NS_PRIVATE_SEL(fileSystemRepresentation));
 }
+
+namespace NS
+{
+  typedef NS::String* RunLoopMode;
+
+//  extern "C" NSRunLoopMode const NSDefaultRunLoopMode;
+//  NS::RunLoopMode const DefaultRunLoopMode = (NS::String *)NSDefaultRunLoopMode;
+
+	_NS_OPTIONS( NS::UInteger, WindowStyleMask )
+	{
+		WindowStyleMaskBorderless	   = 0,
+		WindowStyleMaskTitled		   = ( 1 << 0 ),
+		WindowStyleMaskClosable		 = ( 1 << 1 ),
+		WindowStyleMaskMiniaturizable   = ( 1 << 2 ),
+		WindowStyleMaskResizable		= ( 1 << 3 ),
+		WindowStyleMaskTexturedBackground = ( 1 << 8 ),
+		WindowStyleMaskUnifiedTitleAndToolbar = ( 1 << 12 ),
+		WindowStyleMaskFullScreen	   = ( 1 << 14 ),
+		WindowStyleMaskFullSizeContentView = ( 1 << 15 ),
+		WindowStyleMaskUtilityWindow	= ( 1 << 4 ),
+		WindowStyleMaskDocModalWindow   = ( 1 << 6 ),
+		WindowStyleMaskNonactivatingPanel   = ( 1 << 7 ),
+		WindowStyleMaskHUDWindow		= ( 1 << 13 )
+	};
+
+	_NS_ENUM( NS::UInteger, BackingStoreType )
+	{
+		BackingStoreRetained = 0,
+		BackingStoreNonretained = 1,
+		BackingStoreBuffered = 2
+	};
+
+	_NS_ENUM( NS::UInteger, ActivationPolicy )
+	{
+		ActivationPolicyRegular,
+		ActivationPolicyAccessory,
+		ActivationPolicyProhibited
+	};
+
+	class ApplicationDelegate
+	{
+		public:
+			virtual					~ApplicationDelegate() { }
+			virtual void			applicationWillFinishLaunching( Notification* pNotification ) { }
+			virtual void			applicationDidFinishLaunching( Notification* pNotification ) { }
+			virtual bool			applicationShouldTerminateAfterLastWindowClosed( class Application* pSender ) { return false; }
+	};
+
+	class Application : public NS::Referencing< Application >
+	{
+		public:
+			static Application*		sharedApplication();
+
+      NS::Event*    nextEventMatchingMask(int mask, NS::Date *expiration, NS::RunLoopMode mode, bool deqFlag);
+      void          sendEvent(NS::Event* event);
+
+			void 					setDelegate( const ApplicationDelegate* pDelegate );
+
+			bool					setActivationPolicy( ActivationPolicy activationPolicy );
+
+			void					activateIgnoringOtherApps( bool ignoreOtherApps );
+
+			void					setMainMenu( const class Menu* pMenu );
+
+			NS::Array*				windows() const;
+
+      void          finishLaunching();
+			void					run();
+
+			void					terminate( const Object* pSender );
+	};
+
+}
+
+_NS_INLINE NS::Application* NS::Application::sharedApplication()
+{
+	return Object::sendMessage< Application* >( _NS_PRIVATE_CLS( NSApplication ), _NS_PRIVATE_SEL( sharedApplication ) );
+}
+
+_NS_INLINE NS::Event* NS::Application::nextEventMatchingMask(int mask, NS::Date *expiration, NS::RunLoopMode mode, bool deqFlag)
+{
+  return NS::Object::sendMessage< NS::Event * >( this, _NS_PRIVATE_SEL( nextEventMatchingMask_untilDate_inMode_dequeue),
+                                           mask, expiration, mode, deqFlag ? YES : NO);
+}
+
+_NS_INLINE void NS::Application::sendEvent( NS::Event* event )
+{
+  NS::Object::sendMessage< void >( this, _NS_PRIVATE_SEL( sendEvent ), event );
+}
+
+_NS_INLINE void NS::Application::setDelegate( const ApplicationDelegate* pAppDelegate )
+{
+	// TODO: Use a more suitable Object instead of NS::Value?
+	// NOTE: this pWrapper is only held with a weak reference
+	NS::Value* pWrapper = NS::Value::value( pAppDelegate );
+
+	typedef void (*DispatchFunction)( NS::Value*, SEL, void* );
+	
+	DispatchFunction willFinishLaunching = []( Value* pSelf, SEL, void* pNotification ){
+		auto pDel = reinterpret_cast< NS::ApplicationDelegate* >( pSelf->pointerValue() );
+		pDel->applicationWillFinishLaunching( (NS::Notification *)pNotification );
+	};
+
+	DispatchFunction didFinishLaunching = []( Value* pSelf, SEL, void* pNotification ){
+		auto pDel = reinterpret_cast< NS::ApplicationDelegate* >( pSelf->pointerValue() );
+		pDel->applicationDidFinishLaunching( (NS::Notification *)pNotification );
+	};
+
+	DispatchFunction shouldTerminateAfterLastWindowClosed = []( Value* pSelf, SEL, void* pApplication ){
+		auto pDel = reinterpret_cast< NS::ApplicationDelegate* >( pSelf->pointerValue() );
+		pDel->applicationShouldTerminateAfterLastWindowClosed( (NS::Application *)pApplication );
+	};
+
+	class_addMethod( (Class)_NS_PRIVATE_CLS( NSValue ), _NS_PRIVATE_SEL( applicationWillFinishLaunching_ ), (IMP)willFinishLaunching, "v@:@" );
+	class_addMethod( (Class)_NS_PRIVATE_CLS( NSValue ), _NS_PRIVATE_SEL( applicationDidFinishLaunching_ ), (IMP)didFinishLaunching, "v@:@" );
+	class_addMethod( (Class)_NS_PRIVATE_CLS( NSValue ), _NS_PRIVATE_SEL( applicationShouldTerminateAfterLastWindowClosed_), (IMP)shouldTerminateAfterLastWindowClosed, "B@:@" );
+
+	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setDelegate_ ), pWrapper );
+}
+
+_NS_INLINE bool NS::Application::setActivationPolicy( ActivationPolicy activationPolicy )
+{
+	return NS::Object::sendMessage< bool >( this, _NS_PRIVATE_SEL( setActivationPolicy_ ), activationPolicy );
+}
+
+_NS_INLINE void NS::Application::activateIgnoringOtherApps( bool ignoreOtherApps )
+{
+	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( activateIgnoringOtherApps_ ), (ignoreOtherApps ? YES : NO) );
+}
+
+_NS_INLINE void NS::Application::setMainMenu( const class Menu* pMenu )
+{
+	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setMainMenu_ ), pMenu );
+}
+
+_NS_INLINE NS::Array* NS::Application::windows() const
+{
+	return Object::sendMessage< NS::Array* >( this, _NS_PRIVATE_SEL( windows ) );
+}
+
+_NS_INLINE void NS::Application::finishLaunching()
+{
+  Object::sendMessage< void >( this, _NS_PRIVATE_SEL( finishLaunching ) );
+}
+
+_NS_INLINE void NS::Application::run()
+{
+	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( run ) );
+}
+
+_NS_INLINE void NS::Application::terminate( const Object* pSender )
+{
+	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( terminate_ ), pSender );
+}
+
+#include <CoreGraphics/CGGeometry.h>
+
+namespace CA
+{
+class Layer;
+};
+
+namespace NS
+{
+	class View : public NS::Referencing< View >
+	{
+		public:
+			View*		init( CGRect frame );
+			void		setWantsLayer( bool wantsLayer );
+			CA::Layer*	layer();
+			void		setLayer( const CA::Layer* layer );
+	};
+}
+
+_NS_INLINE NS::View* NS::View::init( CGRect frame )
+{
+	return Object::sendMessage< View* >( _NS_PRIVATE_CLS( NSView ), _NS_PRIVATE_SEL( initWithFrame_ ), frame );
+}
+
+_NS_INLINE void  NS::View::setWantsLayer( bool wantsLayer )
+{
+	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setWantsLayer_ ), wantsLayer );
+}
+
+_NS_INLINE CA::Layer* NS::View::layer()
+{
+	return Object::sendMessage< CA::Layer* >( this, _NS_PRIVATE_SEL( layer_ ));
+}
+
+_NS_INLINE void  NS::View::setLayer( const CA::Layer* layer )
+{
+	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setLayer_ ), layer );
+}
+
+#include <CoreGraphics/CGGeometry.h>
+
+namespace NS
+{
+	class Window : public Referencing< Window >
+	{
+		public:
+			static Window*		alloc();
+			Window*				init( CGRect contentRect, WindowStyleMask styleMask, BackingStoreType backing, bool defer );
+
+			void				setContentView( const View* pContentView );
+			View*				contentView();
+
+			void				makeKeyAndOrderFront( const Object* pSender );
+			void				setTitle( const String* pTitle );
+
+			void				close();
+			bool				visible() const;
+	};
+
+}
+
+_NS_INLINE NS::Window* NS::Window::alloc()
+{
+	return Object::sendMessage< Window* >( _NS_PRIVATE_CLS( NSWindow ), _NS_PRIVATE_SEL( alloc ) );
+}
+
+_NS_INLINE NS::Window* NS::Window::init( CGRect contentRect, WindowStyleMask styleMask, BackingStoreType backing, bool defer )
+{
+	return Object::sendMessage< Window* >( this, _NS_PRIVATE_SEL( initWithContentRect_styleMask_backing_defer_ ), contentRect, styleMask, backing, defer );
+}
+
+_NS_INLINE void NS::Window::setContentView( const NS::View* pContentView )
+{
+	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setContentView_ ), pContentView );
+}
+
+_NS_INLINE NS::View* NS::Window::contentView()
+{
+	return Object::sendMessage< View* >( this, _NS_PRIVATE_SEL( contentView_ ) );
+}
+
+_NS_INLINE void NS::Window::makeKeyAndOrderFront( const Object* pSender )
+{
+	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( makeKeyAndOrderFront_ ), pSender );
+}
+
+_NS_INLINE void NS::Window::setTitle( const String* pTitle )
+{
+	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( setTitle_), pTitle );
+}
+
+_NS_INLINE void NS::Window::close()
+{
+	Object::sendMessage< void >( this, _NS_PRIVATE_SEL( close ) );
+}
+
+_NS_INLINE bool NS::Window::visible() const
+{
+	return Object::sendMessage< bool >( this, _NS_PRIVATE_SEL( visible_ ) );
+}
+
+#include <objc/runtime.h>
+
+#define _APPKIT_PRIVATE_CLS( symbol )				   ( Private::Class::s_k ## symbol )
+#define _APPKIT_PRIVATE_SEL( accessor )				 ( Private::Selector::s_k ## accessor )
+
+#if defined( NS_PRIVATE_IMPLEMENTATION )
+
+#define _APPKIT_PRIVATE_VISIBILITY						__attribute__( ( visibility( "default" ) ) )
+#define _APPKIT_PRIVATE_IMPORT						  __attribute__( ( weak_import ) )
+
+#if __OBJC__
+#define  _APPKIT_PRIVATE_OBJC_LOOKUP_CLASS( symbol  )   ( ( __bridge void* ) objc_lookUpClass( # symbol ) )
+#else
+#define  _APPKIT_PRIVATE_OBJC_LOOKUP_CLASS( symbol  )   objc_lookUpClass( # symbol ) 
+#endif // __OBJC__
+
+#define _APPKIT_PRIVATE_DEF_CLS( symbol )				void*				   s_k ## symbol 	_NS_PRIVATE_VISIBILITY = _NS_PRIVATE_OBJC_LOOKUP_CLASS( symbol );
+#define _APPKIT_PRIVATE_DEF_SEL( accessor, symbol )	 SEL					 s_k ## accessor	_NS_PRIVATE_VISIBILITY = sel_registerName( symbol );
+#define _APPKIT_PRIVATE_DEF_CONST( type, symbol )	   _NS_EXTERN type const   NS ## symbol   _NS_PRIVATE_IMPORT; \
+													type const			  NS::symbol	 = ( nullptr != &NS ## symbol ) ? NS ## symbol : nullptr;
+
+#else
+
+#define _APPKIT_PRIVATE_DEF_CLS( symbol )				extern void*			s_k ## symbol;
+#define _APPKIT_PRIVATE_DEF_SEL( accessor, symbol )	 extern SEL			  s_k ## accessor;
+#define _APPKIT_PRIVATE_DEF_CONST( type, symbol )
+
+#endif // NS_PRIVATE_IMPLEMENTATION
+
+namespace NS::Private::Class {
+
+} // Class
+
+namespace NS::Private::Selector
+{
+
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #pragma once
 
