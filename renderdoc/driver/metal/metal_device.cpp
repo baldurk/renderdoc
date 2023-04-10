@@ -647,6 +647,16 @@ bool WrappedMTLDevice::supportsPrimitiveMotionBlur()
   return Unwrap(this)->supportsPrimitiveMotionBlur();
 }
 
+bool WrappedMTLDevice::shouldMaximizeConcurrentCompilation()
+{
+  return Unwrap(this)->shouldMaximizeConcurrentCompilation();
+}
+
+NS::UInteger WrappedMTLDevice::maximumConcurrentCompilationTaskCount()
+{
+  return Unwrap(this)->maximumConcurrentCompilationTaskCount();
+}
+
 // End of MTLDevice APIs
 
 WrappedMTLTexture *WrappedMTLDevice::Common_NewTexture(RDMTL::TextureDescriptor &descriptor,

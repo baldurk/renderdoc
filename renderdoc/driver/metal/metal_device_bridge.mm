@@ -160,7 +160,7 @@
   return GetWrapped(self)->supportsQueryTextureLOD();
 }
 
-- (BOOL)supportsBCTextureCompression API_AVAILABLE(macos(11.0))API_UNAVAILABLE(ios)
+- (BOOL)supportsBCTextureCompression API_AVAILABLE(macos(11.0), ios(16.4))
 {
   return GetWrapped(self)->supportsBCTextureCompression();
 }
@@ -888,5 +888,28 @@ newIndirectCommandBufferWithDescriptor:(MTLIndirectCommandBufferDescriptor *)des
 {
   return GetWrapped(self)->supportsPrimitiveMotionBlur();
 }
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_3
+- (BOOL)shouldMaximizeConcurrentCompilation API_AVAILABLE(macos(13.3))API_UNAVAILABLE(ios)
+{
+  return GetWrapped(self)->shouldMaximizeConcurrentCompilation();
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_3
+- (void)setShouldMaximizeConcurrentCompilation:(BOOL)value API_AVAILABLE(macos(13.3))
+                                                   API_UNAVAILABLE(ios)
+{
+  METAL_NOT_HOOKED();
+  return [self.real setShouldMaximizeConcurrentCompilation:value];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_3
+- (NSUInteger)maximumConcurrentCompilationTaskCount API_AVAILABLE(macos(13.3))API_UNAVAILABLE(ios)
+{
+  return GetWrapped(self)->maximumConcurrentCompilationTaskCount();
+}
+#endif
 
 @end
