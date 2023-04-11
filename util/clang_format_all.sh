@@ -15,8 +15,8 @@ CLANG_FORMAT_VERSION=$CLANG_MAJOR.$CLANG_MINOR
 
 # define a function to check the current $CLANG_FORMAT
 valid_clang_format() {
-	if which $CLANG_FORMAT > /dev/null 2>&1; then
-		if $CLANG_FORMAT --version | grep -q $CLANG_FORMAT_VERSION; then
+	if which "$CLANG_FORMAT" > /dev/null 2>&1; then
+		if "$CLANG_FORMAT" --version | grep -q $CLANG_FORMAT_VERSION; then
 			echo "Located $CLANG_FORMAT";
 			return 0;
 		fi
@@ -27,7 +27,7 @@ valid_clang_format() {
 
 if ! valid_clang_format; then
 	# if not valid yet, first try the command line parameter
-	CLANG_FORMAT=$1
+	CLANG_FORMAT="$1"
 fi;
 
 if ! valid_clang_format; then
@@ -57,4 +57,4 @@ if ! valid_clang_format; then
 fi;
 
 # Search through the code that should be formatted, exclude any non-renderdoc code.
-find qrenderdoc/ renderdoc/ renderdoccmd/ renderdocshim/ util/test/demos/ -name "3rdparty" -prune -o -name "official" -prune -o -print | grep -E ".*\.(h|c|cpp|m|mm|inl|geom|frag|vert|comp|hlsl)$" | grep -E -v "resource.h$" | awk '{printf("%s%c",$0,0)}' | xargs -0 -n1 $CLANG_FORMAT -i -style=file
+find qrenderdoc/ renderdoc/ renderdoccmd/ renderdocshim/ util/test/demos/ -name "3rdparty" -prune -o -name "official" -prune -o -print | grep -E ".*\.(h|c|cpp|m|mm|inl|geom|frag|vert|comp|hlsl)$" | grep -E -v "resource.h$" | awk '{printf("%s%c",$0,0)}' | xargs -0 -n1 "$CLANG_FORMAT" -i -style=file
