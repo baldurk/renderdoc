@@ -761,9 +761,6 @@
       <property name="checked">
        <bool>true</bool>
       </property>
-      <property name="popupMode">
-       <enum>QToolButton::DelayedPopup</enum>
-      </property>
       <property name="autoRaise">
        <bool>true</bool>
       </property>
