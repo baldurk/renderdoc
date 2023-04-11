@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 2.8.12)
 
 if(APPLE)
-  # Building for Apple requires at least CMake 3.20.0
-  cmake_minimum_required(VERSION 3.20.0)
+  # Building for Apple requires at least CMake 3.23.0
+  cmake_minimum_required(VERSION 3.23.0)
 
   SET(CMAKE_OSX_DEPLOYMENT_TARGET "12.00" CACHE STRING "Minimum SDK for Mac OS X")
   SET(CMAKE_XCODE_GENERATE_SCHEME ON)
+  SET(CMAKE_XCODE_SCHEME_ENABLE_GPU_FRAME_CAPTURE_MODE "Disabled")
 endif()
 
 # Configure some stuff that needs to be set really early
