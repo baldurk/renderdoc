@@ -1034,6 +1034,7 @@ void WrappedMTLDevice::RegisterDrawableInfo(CA::MetalDrawable *caMtlDrawable)
   MetalDrawableInfo drawableInfo;
   drawableInfo.mtlLayer = caMtlDrawable->layer();
   drawableInfo.texture = GetWrapped(caMtlDrawable->texture());
+  drawableInfo.drawableID = caMtlDrawable->drawableID();
   SCOPED_LOCK(m_CaptureDrawablesLock);
   RDCASSERTEQUAL(m_CaptureDrawableInfos.find(caMtlDrawable), m_CaptureDrawableInfos.end());
   m_CaptureDrawableInfos[caMtlDrawable] = drawableInfo;
@@ -1048,6 +1049,17 @@ MetalDrawableInfo WrappedMTLDevice::UnregisterDrawableInfo(MTL::Drawable *mtlDra
     if(it != m_CaptureDrawableInfos.end())
     {
       drawableInfo = it->second;
+      m_CaptureDrawableInfos.erase(it);
+      return drawableInfo;
+    }
+  }
+  // Not found by pointer fall back and check by drawableID
+  NS::UInteger drawableID = mtlDrawable->drawableID();
+  for(auto it = m_CaptureDrawableInfos.begin(); it != m_CaptureDrawableInfos.end(); ++it)
+  {
+    drawableInfo = it->second;
+    if(drawableInfo.drawableID == drawableID)
+    {
       m_CaptureDrawableInfos.erase(it);
       return drawableInfo;
     }
