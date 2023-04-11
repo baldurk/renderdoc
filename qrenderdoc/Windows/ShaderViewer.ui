@@ -439,7 +439,7 @@
         <normaloff>:/control_reverse_blue@2x.png</normaloff>:/control_reverse_blue@2x.png</iconset>
       </property>
       <property name="popupMode">
-       <enum>QToolButton::MenuButtonPopup</enum>
+       <enum>QToolButton::InstantPopup</enum>
       </property>
       <property name="toolButtonStyle">
        <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -462,7 +462,7 @@
         <normaloff>:/control_play_blue.png</normaloff>:/control_play_blue.png</iconset>
       </property>
       <property name="popupMode">
-       <enum>QToolButton::MenuButtonPopup</enum>
+       <enum>QToolButton::InstantPopup</enum>
       </property>
       <property name="toolButtonStyle">
        <enum>Qt::ToolButtonTextBesideIcon</enum>
