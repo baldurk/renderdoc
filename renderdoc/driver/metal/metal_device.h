@@ -35,6 +35,7 @@ struct MetalDrawableInfo
 {
   CA::MetalLayer *mtlLayer;
   WrappedMTLTexture *texture;
+  NS::UInteger drawableID;
 };
 
 class MetalCapturer : public IFrameCapturer
