@@ -705,6 +705,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
     {
       QMenu *backwardsMenu = new QMenu(this);
+      backwardsMenu->setToolTipsVisible(true);
       QAction *act;
 
       act = MakeExecuteAction(tr("&Run backwards"), Icons::control_start_blue(),
@@ -770,6 +771,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
     {
       QMenu *forwardsMenu = new QMenu(this);
+      forwardsMenu->setToolTipsVisible(true);
       QAction *act;
 
       act = MakeExecuteAction(tr("&Run forwards"), Icons::control_end_blue(),
