@@ -106,6 +106,7 @@ CaptureSettings::operator QVariant() const
   opts[lit("refAllResources")] = options.refAllResources;
   opts[lit("captureAllCmdLists")] = options.captureAllCmdLists;
   opts[lit("debugOutputMute")] = options.debugOutputMute;
+  opts[lit("softMemoryLimit")] = options.softMemoryLimit;
   ret[lit("options")] = opts;
 
   ret[lit("queuedFrameCap")] = queuedFrameCap;
@@ -149,6 +150,7 @@ CaptureSettings::CaptureSettings(const QVariant &v)
   options.refAllResources = opts[lit("refAllResources")].toBool();
   options.captureAllCmdLists = opts[lit("captureAllCmdLists")].toBool();
   options.debugOutputMute = opts[lit("debugOutputMute")].toBool();
+  options.softMemoryLimit = opts[lit("softMemoryLimit")].toUInt();
 
   if(data.contains(lit("queuedFrameCap")))
     queuedFrameCap = data[lit("queuedFrameCap")].toUInt();

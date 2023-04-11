@@ -393,6 +393,17 @@ public:
 
   uint64_t GetOffset() { return m_WriteSize; }
   const byte *GetData() { return m_BufferBase; }
+  byte *StealDataAndRewind()
+  {
+    byte *ret = m_BufferBase;
+
+    const uint64_t bufferSize = m_BufferEnd - m_BufferBase;
+    m_BufferBase = m_BufferHead = AllocAlignedBuffer(bufferSize);
+    m_BufferEnd = m_BufferBase + bufferSize;
+    m_WriteSize = 0;
+
+    return ret;
+  }
   template <uint64_t alignment>
   bool AlignTo()
   {

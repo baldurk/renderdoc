@@ -625,7 +625,7 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
   {
     RDResult err;
     SET_ERROR_RESULT(
-        err, ResultCode::ReplayDeviceLost,
+        err, ResultCode::DeviceLost,
         "D3D12 counters require Win10 developer mode enabled: Settings > Update & Security "
         "> For Developers > Developer Mode");
     m_pDevice->ReportFatalError(err);

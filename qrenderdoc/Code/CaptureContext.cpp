@@ -123,7 +123,7 @@ CaptureContext::CaptureContext(PersistantConfig &cfg) : m_Config(cfg)
                "a connection issue.")
                 .arg(err.Message());
       }
-      else if(err.code == ResultCode::ReplayDeviceLost)
+      else if(err.code == ResultCode::DeviceLost)
       {
         title = tr("Device Lost error");
         text = tr("%1.\n\n"
@@ -133,7 +133,7 @@ CaptureContext::CaptureContext(PersistantConfig &cfg) : m_Config(cfg)
                   "API usage errors can cause this kind of problem.")
                    .arg(err.Message());
       }
-      else if(err.code == ResultCode::ReplayOutOfMemory)
+      else if(err.code == ResultCode::OutOfMemory)
       {
         title = tr("Out of memory");
         text =

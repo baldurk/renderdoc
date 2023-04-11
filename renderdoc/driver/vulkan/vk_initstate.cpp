@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "core/settings.h"
+#include "strings/string_utils.h"
 #include "vk_core.h"
 #include "vk_debug.h"
 
@@ -45,11 +46,106 @@ void DoSerialise(SerialiserType &ser, AspectSparseTable &el)
   SERIALISE_MEMBER(table);
 }
 
+void WrappedVulkan::Begin_PrepareInitialBatch()
+{
+  m_PrepareInitStateBatching = true;
+}
+
+void WrappedVulkan::End_PrepareInitialBatch()
+{
+  CloseInitStateCmd();
+  SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
+  SubmitCmds();
+  FlushQ();
+  SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
+  m_PrepareInitStateBatching = false;
+}
+
 bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 {
   ResourceId id = GetResourceManager()->GetID(res);
 
+  RDCASSERT(m_PrepareInitStateBatching);
+
   VkResourceType type = IdentifyTypeByPtr(res);
+
+  uint64_t estimatedSize = 0;
+  if(type == eResDeviceMemory)
+  {
+    VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+    if(record)
+      estimatedSize = record->Length;
+  }
+  else if(type == eResImage)
+  {
+    WrappedVkImage *im = (WrappedVkImage *)res;
+    const ResourceInfo &resInfo = *im->record->resInfo;
+    const ImageInfo &imageInfo = resInfo.imageInfo;
+
+    estimatedSize = GetByteSize(imageInfo.extent.width, imageInfo.extent.height,
+                                imageInfo.extent.depth, imageInfo.format, 0);
+    if(imageInfo.sampleCount > 1)
+      estimatedSize *= imageInfo.sampleCount;
+    if(imageInfo.layerCount > 1)
+      estimatedSize *= imageInfo.layerCount;
+    // conservative estimate of full mip chain impact
+    if(imageInfo.levelCount > 1)
+      estimatedSize *= 2;
+  }
+
+  uint32_t softMemoryLimit = RenderDoc::Inst().GetCaptureOptions().softMemoryLimit;
+  if(softMemoryLimit > 0 && !m_PreparedNotSerialisedInitStates.empty() &&
+     CurMemoryUsage(MemoryScope::InitialContents) + estimatedSize > softMemoryLimit * 1024 * 1024ULL)
+  {
+    CloseInitStateCmd();
+    SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
+    SubmitCmds();
+    FlushQ();
+    SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
+
+    RDCLOG("Flushing batch of initial states to disk with %llu bytes allocated",
+           CurMemoryUsage(MemoryScope::InitialContents));
+    rdcstr tempFile = StringFormat::Fmt(
+        "%s/rdoc_%llu_%llu.bin", get_dirname(RenderDoc::Inst().GetCaptureFileTemplate()).c_str(),
+        Timing::GetTick(), Threading::GetCurrentID());
+    FileIO::CreateParentDirectory(tempFile);
+    m_InitTempFiles.push_back(tempFile);
+    WriteSerialiser ser(
+        new StreamWriter(FileIO::fopen(tempFile, FileIO::WriteBinary), Ownership::Stream),
+        Ownership::Stream);
+
+    for(ResourceId flushId : m_PreparedNotSerialisedInitStates)
+    {
+      VkInitialContents initData = GetResourceManager()->GetInitialContents(flushId);
+
+      GetResourceManager()->SetInitialContents(flushId, VkInitialContents());
+
+      uint64_t start = ser.GetWriter()->GetOffset();
+      {
+        uint64_t size = GetSize_InitialState(id, initData);
+
+        SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContents, size);
+
+        // record is not needed on vulkan
+        Serialise_InitialState(ser, flushId, NULL, &initData);
+      }
+      uint64_t end = ser.GetWriter()->GetOffset();
+
+      if(ser.IsErrored())
+        break;
+
+      GetResourceManager()->SetInitialFileStore(flushId, tempFile, start, end);
+    }
+
+    m_PreparedNotSerialisedInitStates.clear();
+
+    if(ser.IsErrored())
+    {
+      m_CaptureFailure = true;
+      m_LastCaptureError = ser.GetError();
+      return false;
+    }
+  }
 
   if(type == eResDescriptorSet)
   {
@@ -115,8 +211,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     }
 
     VkDevice d = GetDev();
-    // INITSTATEBATCH
-    VkCommandBuffer cmd = GetNextCmd();
+    VkCommandBuffer cmd = GetInitStateCmd();
 
     // must ensure offset remains valid. Must be multiple of block size, or 4, depending on format
     VkDeviceSize bufAlignment = 4;
@@ -211,31 +306,26 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     }
 
     // since this happens during capture, we don't want to start serialising extra buffer creates,
-    // so we manually create & then just wrap.
+    // leave this buffer as unwrapped
     VkBuffer dstBuf;
 
     vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
     CheckVkResult(vkr);
 
-    GetResourceManager()->WrapResource(Unwrap(d), dstBuf);
-
-    MemoryAllocation readbackmem =
-        AllocateMemoryForResource(dstBuf, MemoryScope::InitialContents, MemoryType::Readback);
+    VkMemoryRequirements dstBufMrq = {};
+    ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), dstBuf, &dstBufMrq);
+    MemoryAllocation readbackmem = AllocateMemoryForResource(
+        true, dstBufMrq, MemoryScope::InitialContents, MemoryType::Readback);
 
     if(readbackmem.mem == VK_NULL_HANDLE)
     {
-      RDCERR("Couldn't allocate readback memory");
+      SET_ERROR_RESULT(m_LastCaptureError, ResultCode::OutOfMemory,
+                       "Couldn't allocate readback memory");
+      m_CaptureFailure = true;
       return false;
     }
 
-    vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(dstBuf), Unwrap(readbackmem.mem),
-                                       readbackmem.offs);
-    CheckVkResult(vkr);
-
-    VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
-                                          VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
-    vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+    vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(readbackmem.mem), readbackmem.offs);
     CheckVkResult(vkr);
 
     VkImageAspectFlags aspectFlags = FormatImageAspects(imageInfo.format);
@@ -252,17 +342,9 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     m_setupImageBarriers.Merge(setupBarriers);
     if(wasms)
     {
-      vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
-      CheckVkResult(vkr);
-
-      GetDebugManager()->CopyTex2DMSToBuffer(Unwrap(dstBuf), realim, imageInfo.extent, 0,
+      GetDebugManager()->CopyTex2DMSToBuffer(cmd, dstBuf, realim, imageInfo.extent, 0,
                                              imageInfo.layerCount, 0, imageInfo.sampleCount,
                                              imageInfo.format);
-
-      cmd = GetNextCmd();
-
-      vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CheckVkResult(vkr);
 
       VkBufferMemoryBarrier bufBarrier = {
           VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
@@ -271,7 +353,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
           VK_ACCESS_HOST_READ_BIT,
           VK_QUEUE_FAMILY_IGNORED,
           VK_QUEUE_FAMILY_IGNORED,
-          Unwrap(dstBuf),
+          dstBuf,
           0,
           bufInfo.size,
       };
@@ -321,9 +403,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
             bufOffset += GetPlaneByteSize(imageInfo.extent.width, imageInfo.extent.height,
                                           imageInfo.extent.depth, sizeFormat, m, i);
 
-            ObjDisp(d)->CmdCopyImageToBuffer(Unwrap(cmd), realim,
-                                             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(dstBuf),
-                                             1, &region);
+            ObjDisp(d)->CmdCopyImageToBuffer(
+                Unwrap(cmd), realim, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstBuf, 1, &region);
           }
         }
         else
@@ -340,7 +421,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
                                    imageInfo.extent.depth, sizeFormat, m);
 
           ObjDisp(d)->CmdCopyImageToBuffer(
-              Unwrap(cmd), realim, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(dstBuf), 1, &region);
+              Unwrap(cmd), realim, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstBuf, 1, &region);
 
           if(aspectFlags == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
           {
@@ -353,9 +434,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
             bufOffset += GetByteSize(imageInfo.extent.width, imageInfo.extent.height,
                                      imageInfo.extent.depth, VK_FORMAT_S8_UINT, m);
 
-            ObjDisp(d)->CmdCopyImageToBuffer(Unwrap(cmd), realim,
-                                             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(dstBuf),
-                                             1, &region);
+            ObjDisp(d)->CmdCopyImageToBuffer(
+                Unwrap(cmd), realim, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstBuf, 1, &region);
           }
         }
 
@@ -372,16 +452,16 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     InlineCleanupImageBarriers(cmd, cleanupBarriers);
     m_cleanupImageBarriers.Merge(cleanupBarriers);
 
-    vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
-    CheckVkResult(vkr);
+    if(Vulkan_Debug_SingleSubmitFlushing())
+    {
+      CloseInitStateCmd();
+      SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
+      SubmitCmds();
+      FlushQ();
+      SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
+    }
 
-    SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
-    SubmitCmds();
-    FlushQ();
-    SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
-
-    ObjDisp(d)->DestroyBuffer(Unwrap(d), Unwrap(dstBuf), NULL);
-    GetResourceManager()->ReleaseWrappedResource(dstBuf);
+    AddPendingObjectCleanup([d, dstBuf]() { ObjDisp(d)->DestroyBuffer(Unwrap(d), dstBuf, NULL); });
 
     VkInitialContents initialContents(type, readbackmem);
 
@@ -392,6 +472,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     }
 
     GetResourceManager()->SetInitialContents(id, initialContents);
+    m_PreparedNotSerialisedInitStates.push_back(id);
 
     return true;
   }
@@ -410,8 +491,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     VkResult vkr = VK_SUCCESS;
 
     VkDevice d = GetDev();
-    // INITSTATEBATCH
-    VkCommandBuffer cmd = GetNextCmd();
+    VkCommandBuffer cmd = GetInitStateCmd();
 
     VkDeviceMemory datamem = ToUnwrappedHandle<VkDeviceMemory>(res);
     VkDeviceSize datasize = record->Length;
@@ -443,51 +523,45 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       bufInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     // since this happens during capture, we don't want to start serialising extra buffer creates,
-    // so we manually create & then just wrap.
+    // leave this buffer as unwrapped
     VkBuffer dstBuf;
 
     bufInfo.size = datasize;
     vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
     CheckVkResult(vkr);
 
-    GetResourceManager()->WrapResource(Unwrap(d), dstBuf);
-
-    MemoryAllocation readbackmem =
-        AllocateMemoryForResource(dstBuf, MemoryScope::InitialContents, MemoryType::Readback);
+    VkMemoryRequirements dstBufMrq = {};
+    ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), dstBuf, &dstBufMrq);
+    MemoryAllocation readbackmem = AllocateMemoryForResource(
+        true, dstBufMrq, MemoryScope::InitialContents, MemoryType::Readback);
 
     if(readbackmem.mem == VK_NULL_HANDLE)
     {
-      RDCERR("Couldn't allocate readback memory");
+      SET_ERROR_RESULT(m_LastCaptureError, ResultCode::OutOfMemory,
+                       "Couldn't allocate readback memory");
+      m_CaptureFailure = true;
       return false;
     }
 
     CheckVkResult(vkr);
-    vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(dstBuf), Unwrap(readbackmem.mem),
-                                       readbackmem.offs);
-    CheckVkResult(vkr);
-
-    VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
-                                          VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
-    vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+    vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(readbackmem.mem), readbackmem.offs);
     CheckVkResult(vkr);
 
     VkBufferCopy region = {0, 0, datasize};
 
-    ObjDisp(d)->CmdCopyBuffer(Unwrap(cmd), Unwrap(record->memMapState->wholeMemBuf), Unwrap(dstBuf),
-                              1, &region);
+    ObjDisp(d)->CmdCopyBuffer(Unwrap(cmd), Unwrap(record->memMapState->wholeMemBuf), dstBuf, 1,
+                              &region);
 
-    vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
-    CheckVkResult(vkr);
+    AddPendingObjectCleanup([d, dstBuf]() { ObjDisp(d)->DestroyBuffer(Unwrap(d), dstBuf, NULL); });
 
-    // INITSTATEBATCH
-    SubmitCmds();
-    FlushQ();
-
-    ObjDisp(d)->DestroyBuffer(Unwrap(d), Unwrap(dstBuf), NULL);
-    GetResourceManager()->ReleaseWrappedResource(dstBuf);
+    if(Vulkan_Debug_SingleSubmitFlushing())
+    {
+      SubmitCmds();
+      FlushQ();
+    }
 
     GetResourceManager()->SetInitialContents(id, VkInitialContents(type, readbackmem));
+    m_PreparedNotSerialisedInitStates.push_back(id);
 
     return true;
   }
@@ -496,6 +570,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     RDCERR("Unhandled resource type %d", type);
   }
 
+  m_CaptureFailure = true;
+  SET_ERROR_RESULT(m_LastCaptureError, ResultCode::InternalError, "Unknown resource encountered");
   return false;
 }
 
@@ -967,6 +1043,41 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
   if(IsReplayingAndReading())
   {
     AddResourceCurChunk(id);
+  }
+
+  // we will never have a case where we prepare some resources, serialise one, and then don't
+  // serialise all the rest of those resources before any further prepares. Whenever we see a
+  // serialise we can then reset the memory for re-use in any prepares that do then come later.
+  //
+  // The expected order is:
+  // 1. Prepare all non-postponed resources.
+  //    As part of this in Prepare_initialState we might serialise all pending resources if we
+  //    bump into the memory limit. This means memory can be re-used so complies with our
+  //    stipulations above
+  // 2. Prepare postponed resources last minute
+  //    These are individually synchronised to the GPU (not batched) to ensure we have the right
+  //    data, but otherwise are treated as above - they will be left pending unless flushed due to
+  //    the memory limit and if they are flushed they work exactly the same way
+  // 3. At the end of the frame, all postponed resources are prepared in a batch
+  // 4. Finally any resources that must be serialised are.
+  //
+  // Note that with no memory limit, all prepares will happen in steps 1-3 (in two large batches 1
+  // and 3 and a batch-per-resource in 2) before any serialises in 4, so this reset is effectively
+  // redundant at that point.
+  //
+  // Note also that with a memory limit resources may overlap between these cases - the only
+  // Serialise calls happen when the memory limit is hit and we flush everything pending, but it is
+  // likely that some resources will be prepared in step 1, and not be flushed and so still be
+  // pending through some or all of the last-minute prepares in step 2 and into step 3.
+  // This is still fine though as Serialise is not called in between there for other resources.
+
+  if(IsCaptureMode(m_State))
+  {
+    ResetMemoryBlocks(MemoryScope::InitialContents);
+
+    // if got here through 'natural' serialises, this array will not be cleared otherwise so we
+    // clear it here just for sanity. It should not be used otherwise though
+    m_PreparedNotSerialisedInitStates.clear();
   }
 
   if(type == eResDescriptorSet)

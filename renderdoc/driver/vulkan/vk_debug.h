@@ -63,9 +63,9 @@ public:
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &ret);
 
-  void CopyTex2DMSToBuffer(VkBuffer destBuffer, VkImage srcMS, VkExtent3D extent,
-                           uint32_t baseSlice, uint32_t numSlices, uint32_t baseSample,
-                           uint32_t numSamples, VkFormat fmt);
+  void CopyTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer destBuffer, VkImage srcMS,
+                           VkExtent3D extent, uint32_t baseSlice, uint32_t numSlices,
+                           uint32_t baseSample, uint32_t numSamples, VkFormat fmt);
 
   void CopyBufferToTex2DMS(VkCommandBuffer cmd, VkImage destMS, VkBuffer srcBuffer,
                            VkExtent3D extent, uint32_t numSlices, uint32_t numSamples, VkFormat fmt);
@@ -163,9 +163,9 @@ private:
     VkPipeline TexPipeline = VK_NULL_HANDLE;
   } m_Custom;
 
-  void CopyDepthTex2DMSToBuffer(VkBuffer destBuffer, VkImage srcMS, VkExtent3D extent,
-                                uint32_t baseSlice, uint32_t numSlices, uint32_t baseSample,
-                                uint32_t numSamples, VkFormat fmt);
+  void CopyDepthTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer destBuffer, VkImage srcMS,
+                                VkExtent3D extent, uint32_t baseSlice, uint32_t numSlices,
+                                uint32_t baseSample, uint32_t numSamples, VkFormat fmt);
 
   void CopyDepthBufferToTex2DMS(VkCommandBuffer cmd, VkImage destMS, VkBuffer srcBuffer,
                                 VkExtent3D extent, uint32_t numSlices, uint32_t numSamples,

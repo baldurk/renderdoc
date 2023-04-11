@@ -280,6 +280,10 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
         break;
     }
 
+    uint64_t initStateLimitMB = RenderDoc::Inst().GetCaptureOptions().softMemoryLimit;
+    if(initStateLimitMB > 0)
+      allocSize = RDCMAX(initStateLimitMB, allocSize);
+
     uint32_t memoryTypeIndex = 0;
 
     // Upload heaps are sometimes limited in size. To prevent OOM issues, deselect any memory types
@@ -323,8 +327,11 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
     {
       // if we get an over-sized allocation, first try to immediately jump to the largest block
       // size.
-      allocSize = 256;
-      info.allocationSize = allocSize * 1024 * 1024;
+      if(initStateLimitMB == 0)
+      {
+        allocSize = 256;
+        info.allocationSize = allocSize * 1024 * 1024;
+      }
 
       // if it's still over-sized, just allocate precisely enough and give it a dedicated allocation
       if(ret.size > info.allocationSize)
@@ -399,6 +406,17 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(VkBuffer buf, MemorySc
   ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), Unwrap(buf), &mrq);
 
   return AllocateMemoryForResource(true, mrq, scope, type);
+}
+
+uint64_t WrappedVulkan::CurMemoryUsage(MemoryScope scope)
+{
+  rdcarray<MemoryAllocation> &allocList = m_MemoryBlocks[(size_t)scope];
+
+  uint64_t ret = 0;
+  for(MemoryAllocation &alloc : allocList)
+    ret += alloc.offs;
+
+  return ret;
 }
 
 void WrappedVulkan::FreeAllMemory(MemoryScope scope)

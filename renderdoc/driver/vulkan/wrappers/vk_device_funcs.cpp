@@ -4221,6 +4221,17 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     m_PhysicalDeviceData.driverInfo =
         VkDriverInfo(m_PhysicalDeviceData.props, m_PhysicalDeviceData.driverProps, true);
 
+    // hack for steamdeck, set soft memory limit to 200MB if it's not specified
+    if(m_PhysicalDeviceData.driverProps.driverID == VK_DRIVER_ID_MESA_RADV &&
+       m_PhysicalDeviceData.props.vendorID == 0x1002 && m_PhysicalDeviceData.props.deviceID == 0x163F)
+    {
+      CaptureOptions opts = RenderDoc::Inst().GetCaptureOptions();
+      if(opts.softMemoryLimit == 0)
+        opts.softMemoryLimit = 200;
+      RenderDoc::Inst().SetCaptureOptions(opts);
+      RDCLOG("Forcing 200MB soft memory limit");
+    }
+
     ChooseMemoryIndices();
 
     m_PhysicalDeviceData.queueCount = (uint32_t)queueProps.size();

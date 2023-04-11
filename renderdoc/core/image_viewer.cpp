@@ -731,7 +731,7 @@ void ImageViewer::RefreshFile()
 
     if(!data)
     {
-      SET_ERROR_RESULT(m_Error, ResultCode::ReplayOutOfMemory,
+      SET_ERROR_RESULT(m_Error, ResultCode::OutOfMemory,
                        "Allocation for %zu bytes failed for EXR data", datasize);
       return;
     }

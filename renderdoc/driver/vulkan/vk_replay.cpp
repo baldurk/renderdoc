@@ -3788,20 +3788,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     m_pDriver->InlineSetupImageBarriers(cmd, setupBarriers);
     m_pDriver->SubmitAndFlushImageStateBarriers(setupBarriers);
 
-    vkr = vt->EndCommandBuffer(Unwrap(cmd));
-    CheckVkResult(vkr);
-
-    GetDebugManager()->CopyTex2DMSToBuffer(readbackBuf, srcImage, imCreateInfo.extent, s.slice, 1,
-                                           s.sample, 1, imCreateInfo.format);
-
-    // fetch a new command buffer for copy & readback
-    cmd = m_pDriver->GetNextCmd();
-
-    if(cmd == VK_NULL_HANDLE)
-      return;
-
-    vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    CheckVkResult(vkr);
+    GetDebugManager()->CopyTex2DMSToBuffer(cmd, readbackBuf, srcImage, imCreateInfo.extent, s.slice,
+                                           1, s.sample, 1, imCreateInfo.format);
 
     m_pDriver->InlineCleanupImageBarriers(cmd, cleanupBarriers);
 

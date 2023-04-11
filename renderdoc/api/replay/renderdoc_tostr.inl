@@ -92,8 +92,8 @@ rdcstr DoStringise(const ResultCode &el)
     STRINGISE_ENUM_CLASS_NAMED(AndroidAPKVerifyFailed,
                                "Failed to verify installed Android remote server");
     STRINGISE_ENUM_CLASS_NAMED(RemoteServerConnectionLost, "Connection lost to remote server");
-    STRINGISE_ENUM_CLASS_NAMED(ReplayOutOfMemory, "Encountered an out of memory error");
-    STRINGISE_ENUM_CLASS_NAMED(ReplayDeviceLost, "Encountered a GPU device lost error");
+    STRINGISE_ENUM_CLASS_NAMED(OutOfMemory, "Encountered an out of memory error");
+    STRINGISE_ENUM_CLASS_NAMED(DeviceLost, "Encountered a GPU device lost error");
     STRINGISE_ENUM_CLASS_NAMED(DataNotAvailable,
                                "Data was requested through RenderDoc's API which is not available");
     STRINGISE_ENUM_CLASS_NAMED(InvalidParameter,

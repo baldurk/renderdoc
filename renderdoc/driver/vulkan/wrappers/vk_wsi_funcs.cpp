@@ -1090,6 +1090,10 @@ void WrappedVulkan::HandlePresent(VkQueue queue, const VkPresentInfoKHR *pPresen
       rdcstr overlayText =
           RenderDoc::Inst().GetOverlayText(RDCDriver::Vulkan, devWnd, m_FrameCounter, 0);
 
+      if(m_LastCaptureFailed > 0 && Timing::GetUnixTimestamp() - m_LastCaptureFailed < 5)
+        overlayText += StringFormat::Fmt("\nCapture failed: %s",
+                                         ResultDetails(m_LastCaptureError).Message().c_str());
+
       if(!overlayText.empty())
       {
         m_TextRenderer->BeginText(textstate);

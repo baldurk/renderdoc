@@ -1535,7 +1535,7 @@ RDResult WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool storeStru
     return m_FatalError;
 
   if(m_pDevice && m_pDevice->GetDeviceRemovedReason() != S_OK)
-    RETURN_ERROR_RESULT(ResultCode::ReplayDeviceLost, "Device lost during load: %s",
+    RETURN_ERROR_RESULT(ResultCode::DeviceLost, "Device lost during load: %s",
                         ToStr(m_pDevice->GetDeviceRemovedReason()).c_str());
 
   return ResultCode::Succeeded;
@@ -1587,7 +1587,7 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
   D3D11MarkerRegion::Set("!!!!RenderDoc Internal: Done replay");
 
   if(m_pDevice->GetDeviceRemovedReason() != S_OK)
-    SET_ERROR_RESULT(m_FatalError, ResultCode::ReplayDeviceLost, "Device lost during replay: %s",
+    SET_ERROR_RESULT(m_FatalError, ResultCode::DeviceLost, "Device lost during replay: %s",
                      ToStr(m_pDevice->GetDeviceRemovedReason()).c_str());
 }
 
@@ -2594,8 +2594,8 @@ void WrappedID3D11Device::CheckHRESULT(HRESULT hr)
   if(hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET ||
      hr == DXGI_ERROR_DEVICE_HUNG || hr == DXGI_ERROR_DRIVER_INTERNAL_ERROR)
   {
-    SET_ERROR_RESULT(m_FatalError, ResultCode::ReplayDeviceLost,
-                     "Logging device lost fatal error for %s", ToStr(hr).c_str());
+    SET_ERROR_RESULT(m_FatalError, ResultCode::DeviceLost, "Logging device lost fatal error for %s",
+                     ToStr(hr).c_str());
   }
   else if(hr == E_OUTOFMEMORY)
   {
@@ -2605,7 +2605,7 @@ void WrappedID3D11Device::CheckHRESULT(HRESULT hr)
     }
     else
     {
-      SET_ERROR_RESULT(m_FatalError, ResultCode::ReplayOutOfMemory,
+      SET_ERROR_RESULT(m_FatalError, ResultCode::OutOfMemory,
                        "Logging out of memory fatal error for %s", ToStr(hr).c_str());
     }
   }

@@ -610,6 +610,7 @@ public:
   InitialContentData GetInitialContents(ResourceId id);
   void SetInitialContents(ResourceId id, InitialContentData contents);
   void SetInitialChunk(ResourceId id, Chunk *chunk);
+  void SetInitialFileStore(ResourceId id, const rdcstr &filename, uint64_t start, uint64_t end);
 
   // generate chunks for initial contents and insert.
   void InsertInitialContentsChunks(WriteSerialiser &ser);
@@ -692,7 +693,9 @@ protected:
   {
     return true;
   }
+  virtual void Begin_PrepareInitialBatch() {}
   virtual bool Prepare_InitialState(WrappedResourceType res) = 0;
+  virtual void End_PrepareInitialBatch() {}
   virtual uint64_t GetSize_InitialState(ResourceId id, const InitialContentData &initial) = 0;
   virtual bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id, RecordType *record,
                                       const InitialContentData *initialData) = 0;
@@ -727,10 +730,12 @@ protected:
   // used during capture - holds resources marked as dirty, needing initial contents
   std::set<ResourceId> m_DirtyResources;
 
-  struct InitialContentDataOrChunk
+  struct InitialContentStorage
   {
     Chunk *chunk = NULL;
     InitialContentData data;
+    rdcstr filename;
+    uint64_t fileStart = 0, fileEnd = 0;
 
     void Free(ResourceManager *mgr)
     {
@@ -745,7 +750,7 @@ protected:
   };
 
   // used during capture or replay - holds initial contents
-  std::unordered_map<ResourceId, InitialContentDataOrChunk> m_InitialContents;
+  std::unordered_map<ResourceId, InitialContentStorage> m_InitialContents;
 
   // used during capture or replay - map of resources currently alive with their real IDs, used in
   // capture and replay.
@@ -930,9 +935,7 @@ void ResourceManager<Configuration>::MarkResourceFrameReferenced(ResourceId id,
     SkipOrPostponeOrPrepare_InitialState(id, refType);
 
     if(IsDirtyFrameRef(refType))
-    {
       Prepare_InitialStateIfPostponed(id, true);
-    }
   }
 
   UpdateLastWriteTime(id, refType);
@@ -1002,12 +1005,29 @@ void ResourceManager<Configuration>::SetInitialChunk(ResourceId id, Chunk *chunk
   RDCASSERT(id != ResourceId());
   RDCASSERT(chunk->GetChunkType<SystemChunk>() == SystemChunk::InitialContents);
 
-  InitialContentDataOrChunk &data = m_InitialContents[id];
+  InitialContentStorage &data = m_InitialContents[id];
 
   if(data.chunk)
     data.chunk->Delete();
 
   data.chunk = chunk;
+}
+
+template <typename Configuration>
+void ResourceManager<Configuration>::SetInitialFileStore(ResourceId id, const rdcstr &filename,
+                                                         uint64_t start, uint64_t end)
+{
+  SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
+
+  RDCASSERT(id != ResourceId());
+  RDCASSERT(!filename.empty());
+  RDCASSERT(end > start);
+
+  InitialContentStorage &data = m_InitialContents[id];
+
+  data.filename = filename;
+  data.fileStart = start;
+  data.fileEnd = end;
 }
 
 template <typename Configuration>
@@ -1121,10 +1141,16 @@ void ResourceManager<Configuration>::Prepare_InitialStateIfPostponed(ResourceId 
     return;
 
   if(midframe)
+  {
     RDCLOG("Preparing resource %s after it has been postponed.", ToStr(id).c_str());
+    Begin_PrepareInitialBatch();
+  }
 
   WrappedResourceType res = GetCurrentResource(id);
   Prepare_InitialState(res);
+
+  if(midframe)
+    End_PrepareInitialBatch();
 
   m_PostponedResourceIDs.erase(id);
 }
@@ -1166,7 +1192,9 @@ void ResourceManager<Configuration>::SkipOrPostponeOrPrepare_InitialState(Resour
     WrappedResourceType res = GetCurrentResource(id);
     RDCDEBUG("Preparing resource %s after it has been skipped on refType of %s", ToStr(id).c_str(),
              ToStr(refType).c_str());
+    Begin_PrepareInitialBatch();
     Prepare_InitialState(res);
+    End_PrepareInitialBatch();
   }
 }
 
@@ -1349,7 +1377,7 @@ void ResourceManager<Configuration>::ApplyInitialContents()
   for(auto it = resources.begin(); it != resources.end(); ++it)
   {
     ResourceId id = *it;
-    const InitialContentDataOrChunk &data = m_InitialContents[id];
+    const InitialContentStorage &data = m_InitialContents[id];
     WrappedResourceType live = GetLiveResource(id);
     Apply_InitialState(live, data.data);
   }
@@ -1446,6 +1474,8 @@ void ResourceManager<Configuration>::PrepareInitialContents()
   float num = float(m_DirtyResources.size());
   float idx = 0.0f;
 
+  Begin_PrepareInitialBatch();
+
   for(auto it = m_DirtyResources.begin(); it != m_DirtyResources.end(); ++it)
   {
     ResourceId id = *it;
@@ -1491,6 +1521,8 @@ void ResourceManager<Configuration>::PrepareInitialContents()
     Prepare_InitialState(res);
   }
 
+  End_PrepareInitialBatch();
+
   RDCLOG("Prepared %u dirty resources, postponed %u, skipped %u", prepared, postponed, skipped);
 }
 
@@ -1507,6 +1539,32 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
 
   float num = float(m_InitialContents.size());
   float idx = 0.0f;
+
+  Begin_PrepareInitialBatch();
+
+  for(auto it = m_InitialContents.begin(); it != m_InitialContents.end(); ++it)
+  {
+    ResourceId id = it->first;
+
+    if(m_FrameReferencedResources.find(id) == m_FrameReferencedResources.end() &&
+       !RenderDoc::Inst().GetCaptureOptions().refAllResources)
+    {
+      continue;
+    }
+
+    RecordType *record = GetResourceRecord(id);
+
+    if(record == NULL)
+      continue;
+
+    if(record->InternalResource)
+      continue;
+
+    // Load postponed resource if needed.
+    Prepare_InitialStateIfPostponed(id, false);
+  }
+
+  End_PrepareInitialBatch();
 
   for(auto it = m_InitialContents.begin(); it != m_InitialContents.end(); ++it)
   {
@@ -1547,9 +1605,6 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
     RDCDEBUG("Serialising dirty Resource %s", ToStr(id).c_str());
 #endif
 
-    // Load postponed resource if needed.
-    Prepare_InitialStateIfPostponed(id, false);
-
     dirty++;
 
     if(!Need_InitialStateChunk(id, it->second.data))
@@ -1562,6 +1617,14 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
     if(it->second.chunk)
     {
       it->second.chunk->Write(ser);
+    }
+    else if(!it->second.filename.empty())
+    {
+      FILE *f = FileIO::fopen(it->second.filename, FileIO::ReadBinary);
+      FileIO::fseek64(f, it->second.fileStart, SEEK_SET);
+      StreamReader reader(f, it->second.fileEnd - it->second.fileStart, Ownership::Stream);
+
+      StreamTransfer(ser.GetWriter(), &reader, NULL);
     }
     else
     {
@@ -1895,9 +1958,7 @@ void ResourceManager<Configuration>::ReleaseCurrentResource(ResourceId id)
   // We potentially need to prepare this resource on Active Capture,
   // if it was postponed, but is about to go away.
   if(IsActiveCapturing(m_State))
-  {
     Prepare_InitialStateIfPostponed(id, true);
-  }
 
   m_CurrentResourceMap.erase(id);
   m_DirtyResources.erase(id);

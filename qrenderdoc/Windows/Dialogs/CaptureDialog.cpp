@@ -928,6 +928,7 @@ void CaptureDialog::SetSettings(CaptureSettings settings)
   ui->DelayForDebugger->setValue(settings.options.delayForDebugger);
   ui->VerifyBufferAccess->setChecked(settings.options.verifyBufferAccess);
   ui->AutoStart->setChecked(settings.autoStart);
+  ui->SoftMemoryLimit->setValue(settings.options.softMemoryLimit);
 
   // force flush this state
   on_CaptureCallstacks_toggled(ui->CaptureCallstacks->isChecked());
@@ -975,6 +976,7 @@ CaptureSettings CaptureDialog::Settings()
   ret.options.captureAllCmdLists = ui->CaptureAllCmdLists->isChecked();
   ret.options.delayForDebugger = (uint32_t)ui->DelayForDebugger->value();
   ret.options.verifyBufferAccess = ui->VerifyBufferAccess->isChecked();
+  ret.options.softMemoryLimit = (uint32_t)ui->SoftMemoryLimit->value();
 
   if(ui->queueFrameCap->isChecked())
   {

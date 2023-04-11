@@ -380,8 +380,15 @@ bool StreamReader::ReadFromExternal(void *buffer, uint64_t length)
     success = (numRead == length);
 
     if(!success)
-      SET_ERROR_RESULT(m_Error, ResultCode::FileIOFailed, "Error reading from file: %s",
-                       FileIO::ErrorString().c_str());
+    {
+      if(FileIO::feof(m_File))
+        SET_ERROR_RESULT(m_Error, ResultCode::FileIOFailed,
+                         "Error reading from file: hit end of file unexpectedly. Out of disk space "
+                         "or truncated file?");
+      else
+        SET_ERROR_RESULT(m_Error, ResultCode::FileIOFailed, "Error reading from file: %s",
+                         FileIO::ErrorString().c_str());
+    }
   }
   else if(m_Sock)
   {

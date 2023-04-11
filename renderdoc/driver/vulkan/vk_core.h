@@ -312,6 +312,9 @@ private:
   rdcarray<DebugMessage> GetDebugMessages();
   void AddDebugMessage(DebugMessage msg);
 
+  bool m_CaptureFailure = false;
+  uint64_t m_LastCaptureFailed = 0;
+  RDResult m_LastCaptureError = ResultCode::Succeeded;
   int m_OOMHandler = 0;
   RDResult m_FatalError = ResultCode::Succeeded;
   CaptureState m_State;
@@ -574,6 +577,12 @@ private:
 
   static const int initialStateMaxBatch = 100;
   int initStateCurBatch = 0;
+
+  bool m_PrepareInitStateBatching = false;
+  // list of resources which have been prepared but haven't been serialised
+  rdcarray<ResourceId> m_PreparedNotSerialisedInitStates;
+
+  rdcarray<rdcstr> m_InitTempFiles;
   VkCommandBuffer initStateCurCmd = VK_NULL_HANDLE;
   rdcarray<std::function<void()>> m_PendingCleanups;
 
@@ -590,6 +599,7 @@ private:
   VkDeviceSize m_MemoryBlockSize[arraydim<MemoryScope>()] = {};
 
   void FreeAllMemory(MemoryScope scope);
+  uint64_t CurMemoryUsage(MemoryScope scope);
   void ResetMemoryBlocks(MemoryScope scope);
   void FreeMemoryAllocation(MemoryAllocation alloc);
 
@@ -1083,6 +1093,8 @@ public:
   CaptureState GetState() { return m_State; }
   VulkanReplay *GetReplay() { return m_Replay; }
   // replay interface
+  void Begin_PrepareInitialBatch();
+  void End_PrepareInitialBatch();
   bool Prepare_InitialState(WrappedVkRes *res);
   uint64_t GetSize_InitialState(ResourceId id, const VkInitialContents &initial);
   template <typename SerialiserType>

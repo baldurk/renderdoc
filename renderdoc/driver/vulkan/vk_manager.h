@@ -315,7 +315,11 @@ public:
   void PreFreeMemory(ResourceId id)
   {
     if(IsActiveCapturing(m_State))
+    {
+      ResourceManager::Begin_PrepareInitialBatch();
       ResourceManager::Prepare_InitialStateIfPostponed(id, true);
+      ResourceManager::End_PrepareInitialBatch();
+    }
   }
 
   template <typename realtype>
@@ -452,6 +456,8 @@ private:
   bool ResourceTypeRelease(WrappedVkRes *res);
 
   bool Prepare_InitialState(WrappedVkRes *res);
+  void Begin_PrepareInitialBatch();
+  void End_PrepareInitialBatch();
   uint64_t GetSize_InitialState(ResourceId id, const VkInitialContents &initial);
   bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id, VkResourceRecord *record,
                               const VkInitialContents *initial);

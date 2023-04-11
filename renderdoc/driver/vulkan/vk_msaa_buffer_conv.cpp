@@ -30,13 +30,14 @@
 #include "data/glsl/glsl_globals.h"
 #include "data/glsl/glsl_ubos_cpp.h"
 
-void VulkanDebugManager::CopyTex2DMSToBuffer(VkBuffer destBuffer, VkImage srcMS, VkExtent3D extent,
-                                             uint32_t baseSlice, uint32_t numSlices,
-                                             uint32_t baseSample, uint32_t numSamples, VkFormat fmt)
+void VulkanDebugManager::CopyTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer destBuffer,
+                                             VkImage srcMS, VkExtent3D extent, uint32_t baseSlice,
+                                             uint32_t numSlices, uint32_t baseSample,
+                                             uint32_t numSamples, VkFormat fmt)
 {
   if(IsDepthOrStencilFormat(fmt))
   {
-    CopyDepthTex2DMSToBuffer(destBuffer, srcMS, extent, baseSlice, numSlices, baseSample,
+    CopyDepthTex2DMSToBuffer(cmd, destBuffer, srcMS, extent, baseSlice, numSlices, baseSample,
                              numSamples, fmt);
     return;
   }
@@ -87,15 +88,21 @@ void VulkanDebugManager::CopyTex2DMSToBuffer(VkBuffer destBuffer, VkImage srcMS,
   CheckVkResult(vkr);
   NameUnwrappedVulkanObject(srcView, "MS -> Buffer srcView");
 
-  VkCommandBuffer cmd = VK_NULL_HANDLE;
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-  cmd = m_pDriver->GetNextCmd();
+
+  bool endCommand = false;
+
+  if(cmd == VK_NULL_HANDLE)
+  {
+    cmd = m_pDriver->GetNextCmd();
+    if(cmd != VK_NULL_HANDLE)
+      ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+    endCommand = true;
+  }
 
   if(cmd == VK_NULL_HANDLE)
     return;
-
-  ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
   {
     VkMarkerRegion region(cmd, "CopyTex2DMSToBuffer");
@@ -159,24 +166,21 @@ void VulkanDebugManager::CopyTex2DMSToBuffer(VkBuffer destBuffer, VkImage srcMS,
       }
     }
   }
-  ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 
-  cmd = VK_NULL_HANDLE;
+  if(endCommand)
+    ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 
-  // submit cmds and wait for idle so we can readback
-  m_pDriver->SubmitCmds();
-  m_pDriver->FlushQ();
-
-  RDCASSERT(cmd == VK_NULL_HANDLE);
-
-  ObjDisp(dev)->DestroyImageView(Unwrap(dev), srcView, NULL);
-  ResetBufferMSDescriptorPools();
+  m_pDriver->AddPendingObjectCleanup([this, dev, srcView]() {
+    ObjDisp(dev)->DestroyImageView(Unwrap(dev), srcView, NULL);
+    ResetBufferMSDescriptorPools();
+  });
 }
 
-void VulkanDebugManager::CopyDepthTex2DMSToBuffer(VkBuffer destBuffer, VkImage srcMS,
-                                                  VkExtent3D extent, uint32_t baseSlice,
-                                                  uint32_t numSlices, uint32_t baseSample,
-                                                  uint32_t numSamples, VkFormat fmt)
+void VulkanDebugManager::CopyDepthTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer destBuffer,
+                                                  VkImage srcMS, VkExtent3D extent,
+                                                  uint32_t baseSlice, uint32_t numSlices,
+                                                  uint32_t baseSample, uint32_t numSamples,
+                                                  VkFormat fmt)
 {
   if(m_DepthMS2BufferPipe == VK_NULL_HANDLE)
     return;
@@ -242,16 +246,21 @@ void VulkanDebugManager::CopyDepthTex2DMSToBuffer(VkBuffer destBuffer, VkImage s
     NameUnwrappedVulkanObject(srcStencilView, "Depth MS -> Array srcStencilView");
   }
 
-  VkCommandBuffer cmd = VK_NULL_HANDLE;
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
-  cmd = m_pDriver->GetNextCmd();
+  bool endCommand = false;
+
+  if(cmd == VK_NULL_HANDLE)
+  {
+    cmd = m_pDriver->GetNextCmd();
+    if(cmd != VK_NULL_HANDLE)
+      ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+    endCommand = true;
+  }
 
   if(cmd == VK_NULL_HANDLE)
     return;
-
-  ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
   ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
                                 Unwrap(m_DepthMS2BufferPipe));
@@ -344,21 +353,16 @@ void VulkanDebugManager::CopyDepthTex2DMSToBuffer(VkBuffer destBuffer, VkImage s
     }
   }
 
-  ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+  if(endCommand)
+    ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 
-  cmd = VK_NULL_HANDLE;
-
-  // submit cmds and wait for idle so we can readback
-  m_pDriver->SubmitCmds();
-  m_pDriver->FlushQ();
-
-  RDCASSERT(cmd == VK_NULL_HANDLE);
-
-  if(srcDepthView != VK_NULL_HANDLE)
-    ObjDisp(dev)->DestroyImageView(Unwrap(dev), srcDepthView, NULL);
-  if(srcStencilView != VK_NULL_HANDLE)
-    ObjDisp(dev)->DestroyImageView(Unwrap(dev), srcStencilView, NULL);
-  ResetBufferMSDescriptorPools();
+  m_pDriver->AddPendingObjectCleanup([this, dev, srcDepthView, srcStencilView]() {
+    if(srcDepthView != VK_NULL_HANDLE)
+      ObjDisp(dev)->DestroyImageView(Unwrap(dev), srcDepthView, NULL);
+    if(srcStencilView != VK_NULL_HANDLE)
+      ObjDisp(dev)->DestroyImageView(Unwrap(dev), srcStencilView, NULL);
+    ResetBufferMSDescriptorPools();
+  });
 }
 
 void VulkanDebugManager::CopyBufferToTex2DMS(VkCommandBuffer cmd, VkImage destMS,

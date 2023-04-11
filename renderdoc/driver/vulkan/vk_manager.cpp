@@ -996,6 +996,16 @@ MemRefs *VulkanResourceManager::FindMemRefs(ResourceId mem)
     return NULL;
 }
 
+void VulkanResourceManager::Begin_PrepareInitialBatch()
+{
+  return m_Core->Begin_PrepareInitialBatch();
+}
+
+void VulkanResourceManager::End_PrepareInitialBatch()
+{
+  return m_Core->End_PrepareInitialBatch();
+}
+
 bool VulkanResourceManager::Prepare_InitialState(WrappedVkRes *res)
 {
   return m_Core->Prepare_InitialState(res);
