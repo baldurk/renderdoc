@@ -432,6 +432,17 @@ void WrappedVulkan::FreeAllMemory(MemoryScope scope)
   });
 }
 
+void WrappedVulkan::ResetMemoryBlocks(MemoryScope scope)
+{
+  rdcarray<MemoryAllocation> &allocList = m_MemoryBlocks[(size_t)scope];
+
+  if(allocList.empty())
+    return;
+
+  for(MemoryAllocation &alloc : allocList)
+    alloc.offs = 0;
+}
+
 void WrappedVulkan::FreeMemoryAllocation(MemoryAllocation alloc)
 {
   // don't do anything at the moment, we only support freeing the whole scope at once.

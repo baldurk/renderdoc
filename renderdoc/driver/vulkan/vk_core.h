@@ -590,6 +590,7 @@ private:
   VkDeviceSize m_MemoryBlockSize[arraydim<MemoryScope>()] = {};
 
   void FreeAllMemory(MemoryScope scope);
+  void ResetMemoryBlocks(MemoryScope scope);
   void FreeMemoryAllocation(MemoryAllocation alloc);
 
   // internal implementation - call one of the functions above
