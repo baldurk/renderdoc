@@ -317,33 +317,7 @@ bool RDStyle::eventFilter(QObject *watched, QEvent *event)
 QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt, SubControl sc,
                               const QWidget *widget) const
 {
-  if(cc == QStyle::CC_ToolButton)
-  {
-    int indicatorWidth = proxy()->pixelMetric(PM_MenuButtonIndicator, opt, widget);
-
-    QRect ret = opt->rect;
-
-    const QStyleOptionToolButton *toolbutton = qstyleoption_cast<const QStyleOptionToolButton *>(opt);
-
-    // return the normal rect if there's no menu
-    if(!(toolbutton->subControls & SC_ToolButtonMenu) &&
-       !(toolbutton->features & QStyleOptionToolButton::MenuButtonPopup))
-    {
-      return ret;
-    }
-
-    if(sc == QStyle::SC_ToolButton)
-    {
-      ret.setRight(ret.right() - indicatorWidth);
-    }
-    else if(sc == QStyle::SC_ToolButtonMenu)
-    {
-      ret.setLeft(ret.right() - indicatorWidth);
-    }
-
-    return ret;
-  }
-  else if(cc == QStyle::CC_GroupBox)
+  if(cc == QStyle::CC_GroupBox)
   {
     QRect ret = opt->rect;
 
