@@ -501,6 +501,17 @@ void Serialiser<SerialiserMode::Writing>::EndChunk()
     {
       uint64_t numPadBytes = m_ChunkMetadata.length - writtenLength;
 
+      if(numPadBytes > 1024)
+      {
+        byte padding[1024] = {};
+        memset(padding, 0xbb, 1024);
+        while(numPadBytes > 1024)
+        {
+          m_Write->Write(padding, 1024);
+          numPadBytes -= 1024;
+        }
+      }
+
       // need to write some padding bytes so that the length is accurate
       for(uint64_t i = 0; i < numPadBytes; i++)
       {
@@ -512,7 +523,7 @@ void Serialiser<SerialiserMode::Writing>::EndChunk()
       if(m_ChunkMetadata.length - writtenLength > 128)
       {
         RDCDEBUG("Chunk estimated at %llu bytes, actual length %llu. Added %llu bytes padding.",
-                 m_ChunkMetadata.length, writtenLength, numPadBytes);
+                 m_ChunkMetadata.length, writtenLength, m_ChunkMetadata.length - writtenLength);
       }
     }
     else if(writtenLength > m_ChunkMetadata.length)
