@@ -470,6 +470,246 @@ bool StreamReader::ReadFromExternal(void *buffer, uint64_t length)
   return success;
 }
 
+FileWriter *FileWriter::MakeDefault(FILE *file, Ownership own)
+{
+  FileWriter *ret = new FileWriter(file, own);
+  ret->m_ThreadRunning = 0;
+  return ret;
+}
+
+FileWriter *FileWriter::MakeThreaded(FILE *file, Ownership own)
+{
+  FileWriter *ret = new FileWriter(file, own);
+  for(size_t i = 0; i < NumBlocks; i++)
+    ret->m_AllocBlocks[i] = {AllocAlignedBuffer(BlockSize), 0};
+  ret->m_ProducerOwned.append(ret->m_AllocBlocks, NumBlocks);
+  ret->m_ThreadRunning = 1;
+  ret->m_Thread = Threading::CreateThread([ret]() { ret->ThreadEntry(); });
+  return ret;
+}
+
+RDResult FileWriter::Write(const void *data, uint64_t length)
+{
+  if(m_ThreadRunning == 0)
+    return WriteUnthreaded(data, length);
+
+  return WriteThreaded(data, length);
+}
+
+RDResult FileWriter::WriteUnthreaded(const void *data, uint64_t length)
+{
+  // this may be called directly in Write, or deferred on the thread. It is unsynchronised and
+  // internal
+  RDResult result;
+  uint64_t written = (uint64_t)FileIO::fwrite(data, 1, (size_t)length, m_File);
+  if(written != length)
+  {
+    SET_ERROR_RESULT(result, ResultCode::FileIOFailed, "Writing to file failed: %s",
+                     FileIO::ErrorString().c_str());
+  }
+  return result;
+}
+
+RDResult FileWriter::WriteThreaded(const void *data, uint64_t length)
+{
+  // if write fits in this block, memcpy and return. We allow this to completely fill a block, it
+  // will get flushed on the next write or Flush() call
+  if(!m_ProducerOwned.empty() && length <= BlockSize - m_ProducerOwned.back().second)
+  {
+    memcpy(m_ProducerOwned.back().first + m_ProducerOwned.back().second, data, length);
+    m_ProducerOwned.back().second += length;
+    return ResultCode::Succeeded;
+  }
+
+  RDResult ret;
+
+  // write doesn't fit in the block (or we don't have one free)
+
+  // loop until all bytes are written
+  const byte *dataPtr = (byte *)data;
+  while(length > 0)
+  {
+    // blocks to submit, we'll have at least one
+    rdcarray<Block> pending;
+
+    // while we have free blocks that we own, and still bytes to write
+    while(length > 0 && !m_ProducerOwned.empty())
+    {
+      Block &curBlock = m_ProducerOwned.back();
+
+      // write either the rest of what will fit in the block, or the rest of the data, whatever is
+      // smaller
+      uint64_t writeSize = RDCMIN(length, BlockSize - curBlock.second);
+      memcpy(curBlock.first + curBlock.second, dataPtr, writeSize);
+      curBlock.second += writeSize;
+      dataPtr += writeSize;
+      length -= writeSize;
+
+      // should not be possible with writeSize above being clamped
+      if(curBlock.second > BlockSize)
+      {
+        RDCERR("Block has been overrun");
+        // truncate writes to be safe
+        curBlock.second = BlockSize;
+        return ResultCode::InternalError;
+      }
+
+      // if the block is completely full, push it to the consumer
+      if(curBlock.second == BlockSize)
+      {
+        m_ProducerOwned.pop_back();
+        pending.push_back(curBlock);
+      }
+    }
+
+    // we got here, either we ran out of blocks to write to (or more likely) we finished writing.
+    // now we push the pending list to the consumer and at the same time grab any blocks that have
+    // freed up. Hold the lock while modifying those block-passing lists
+    m_Lock.Lock();
+    if(!pending.empty())
+    {
+      m_PendingForConsumer.append(pending);
+      pending.clear();
+    }
+    if(!m_CompletedFromConsumer.empty())
+    {
+      m_ProducerOwned.insert(0, m_CompletedFromConsumer);
+      m_CompletedFromConsumer.clear();
+    }
+    if(ret == ResultCode::Succeeded)
+      ret = m_Error;
+    m_Lock.Unlock();
+
+    // if we still have bytes to write and are waiting for blocks to free up, sleep here so we
+    // don't busy loop trying to get more blocks
+    if(length > 0)
+      Threading::Sleep(5);
+  }
+
+  return ret;
+}
+
+void FileWriter::ThreadEntry()
+{
+  rdcarray<Block> completed;
+  RDResult error;
+
+  int busyLoopCounter = 0;
+
+  // loop as long as the thread is not being killed
+  while(Atomic::CmpExch32(&m_ThreadKill, 0, 0) == 0)
+  {
+    Block work = {};
+
+    // hold the lock, take any new work and return any completed work
+    m_Lock.Lock();
+    m_ConsumerOwned.append(m_PendingForConsumer);
+    m_CompletedFromConsumer.append(completed);
+    m_PendingForConsumer.clear();
+    completed.clear();
+    // don't overwrite an old error, but update if there's a new error
+    if(m_Error == ResultCode::Succeeded && error != ResultCode::Succeeded)
+      m_Error = error;
+    m_Lock.Unlock();
+
+    // grab work to do if we can
+    if(!m_ConsumerOwned.empty())
+    {
+      work = m_ConsumerOwned[0];
+      m_ConsumerOwned.erase(0);
+      busyLoopCounter = 0;
+    }
+
+    if(work.second)
+    {
+      RDResult res = WriteUnthreaded(work.first, work.second);
+      if(error == ResultCode::Succeeded)
+        error = res;
+
+      // reset the offset/size to 0 when returning it
+      completed.push_back({work.first, 0});
+    }
+
+    // after a certain number of loops without any work start to do small sleeps to break up the
+    // busy loop
+    if(busyLoopCounter++ > 500)
+      Threading::Sleep(1);
+  }
+
+  Atomic::CmpExch32(&m_ThreadRunning, 1, 0);
+}
+
+RDResult FileWriter::Flush()
+{
+  // if we have some writes, push these now even with a partial block
+  if(!m_ProducerOwned.empty() && m_ProducerOwned.back().second > 0)
+  {
+    Block b = m_ProducerOwned.back();
+    m_ProducerOwned.pop_back();
+
+    // hold the lock so we can push this incomplete block through
+    m_Lock.Lock();
+    m_PendingForConsumer.push_back(b);
+    m_Lock.Unlock();
+
+    // all other blocks should be empty
+    for(Block &owned : m_ProducerOwned)
+      RDCASSERTEQUAL(owned.second, 0);
+  }
+
+  // loop as long as the thread is alive. Flushing is rare so we don't mind sleeping here
+  // if we're unthreaded this loop just won't execute
+  while(Atomic::CmpExch32(&m_ThreadRunning, 1, 1) > 0)
+  {
+    m_Lock.Lock();
+    // take ownership of any blocks due to us
+    m_ProducerOwned.insert(0, m_CompletedFromConsumer);
+    m_CompletedFromConsumer.clear();
+    m_Lock.Unlock();
+
+    // if we own all the blocks again, we're done
+    if(m_ProducerOwned.size() == NumBlocks)
+      break;
+
+    Threading::Sleep(1);
+  }
+
+  // flush the underlying file
+  bool success = FileIO::fflush(m_File);
+  if(!success && m_Error == ResultCode::Succeeded)
+  {
+    SET_ERROR_RESULT(m_Error, ResultCode::FileIOFailed, "File flushing failed: %s",
+                     FileIO::ErrorString().c_str());
+  }
+  m_Lock.Lock();
+  RDResult ret = m_Error;
+  m_Lock.Unlock();
+
+  return ret;
+}
+
+FileWriter::~FileWriter()
+{
+  if(m_Thread)
+  {
+    // ensure we've written everything
+    Flush();
+
+    // ask the thread to stop
+    Atomic::Inc32(&m_ThreadKill);
+
+    Threading::JoinThread(m_Thread);
+    Threading::CloseThread(m_Thread);
+    m_Thread = 0;
+
+    for(size_t i = 0; i < NumBlocks; i++)
+      FreeAlignedBuffer(m_AllocBlocks[i].first);
+  }
+
+  if(m_Ownership == Ownership::Stream)
+    FileIO::fclose(m_File);
+}
+
 StreamWriter::StreamWriter(uint64_t initialBufSize)
 {
   m_BufferBase = m_BufferHead = AllocAlignedBuffer(initialBufSize);
@@ -502,7 +742,7 @@ StreamWriter::StreamWriter(Network::Socket *sock, Ownership own)
   m_InMemory = false;
 }
 
-StreamWriter::StreamWriter(FILE *file, Ownership own)
+StreamWriter::StreamWriter(FileWriter *file, Ownership own)
 {
   m_BufferBase = m_BufferHead = m_BufferEnd = NULL;
 
@@ -524,19 +764,24 @@ StreamWriter::StreamWriter(Compressor *compressor, Ownership own)
 
 StreamWriter::~StreamWriter()
 {
-  for(StreamCloseCallback cb : m_Callbacks)
-    cb();
-
   FreeAlignedBuffer(m_BufferBase);
 
   if(m_Ownership == Ownership::Stream)
   {
     if(m_File)
-      FileIO::fclose(m_File);
+      delete m_File;
 
     if(m_Compressor)
       delete m_Compressor;
   }
+  else
+  {
+    if(m_File)
+      m_File->Flush();
+  }
+
+  for(StreamCloseCallback cb : m_Callbacks)
+    cb();
 }
 
 bool StreamWriter::SendSocketData(const void *data, uint64_t numBytes)
@@ -604,7 +849,7 @@ void StreamWriter::HandleError(RDResult result)
   if(m_Ownership == Ownership::Stream)
   {
     if(m_File)
-      FileIO::fclose(m_File);
+      delete m_File;
 
     if(m_Sock)
       delete m_Sock;

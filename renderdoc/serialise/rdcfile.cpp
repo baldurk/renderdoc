@@ -1222,7 +1222,8 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
   }
 
   // create a writer for writing to disk. It shouldn't close the file
-  StreamWriter *fileWriter = new StreamWriter(m_File, Ownership::Nothing);
+  StreamWriter *fileWriter =
+      new StreamWriter(FileWriter::MakeThreaded(m_File, Ownership::Nothing), Ownership::Stream);
 
   StreamWriter *compWriter = NULL;
 
@@ -1246,8 +1247,6 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
 
   // register a destroy callback to tidy up the section at the end
   fileWriter->AddCloseCallback([this, type, name, headerOffset, dataOffset, fileWriter, compWriter]() {
-    FileIO::fflush(m_File);
-
     // the offset of the file writer is how many bytes were written to disk - the compressed length.
     uint64_t compressedLength = fileWriter->GetOffset();
 
