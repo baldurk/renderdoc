@@ -27,6 +27,8 @@
 #include <QPalette>
 #include <QProxyStyle>
 
+class QStyleOptionToolButton;
+
 class RDTweakedNativeStyle : public QProxyStyle
 {
 private:
@@ -56,4 +58,7 @@ public:
                            const QWidget *widget = NULL) const override;
 
 protected:
+  bool shouldDrawToolButtonMenuArrow(const QStyleOptionToolButton *toolbutton) const;
+  QSize adjustToolButtonSize(const QStyleOptionToolButton *toolbutton, const QSize &size,
+                             const QWidget *widget) const;
 };

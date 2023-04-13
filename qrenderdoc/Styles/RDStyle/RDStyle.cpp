@@ -622,6 +622,7 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
   if(type == CT_PushButton || type == CT_ToolButton)
   {
     const QStyleOptionButton *button = qstyleoption_cast<const QStyleOptionButton *>(opt);
+    const QStyleOptionToolButton *toolbutton = qstyleoption_cast<const QStyleOptionToolButton *>(opt);
 
     QSize ret = size;
 
@@ -630,6 +631,10 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
     {
       ret.setWidth(qMax(50, ret.width()));
       ret.setHeight(qMax(15, ret.height()));
+    }
+    else if(type == CT_ToolButton && toolbutton)
+    {
+      ret = adjustToolButtonSize(toolbutton, size, widget);
     }
 
     // add margin and border
@@ -897,17 +902,16 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
     const QStyleOptionToolButton *toolbutton = qstyleoption_cast<const QStyleOptionToolButton *>(opt);
 
     QStyleOptionToolButton labelTextIcon = *toolbutton;
-    labelTextIcon.rect = proxy()->subControlRect(control, opt, SC_ToolButton, widget);
+    labelTextIcon.rect = subControlRect(control, opt, SC_ToolButton, widget);
 
     // draw the label text/icon
     proxy()->drawControl(CE_ToolButtonLabel, &labelTextIcon, p, widget);
 
     // draw the menu arrow, if there is one
-    if((toolbutton->subControls & SC_ToolButtonMenu) ||
-       (toolbutton->features & QStyleOptionToolButton::HasMenu))
+    if(shouldDrawToolButtonMenuArrow(toolbutton))
     {
       QStyleOptionToolButton menu = *toolbutton;
-      menu.rect = proxy()->subControlRect(control, opt, SC_ToolButtonMenu, widget);
+      menu.rect = subControlRect(control, opt, SC_ToolButtonMenu, widget);
       proxy()->drawPrimitive(PE_IndicatorArrowDown, &menu, p, widget);
     }
 
