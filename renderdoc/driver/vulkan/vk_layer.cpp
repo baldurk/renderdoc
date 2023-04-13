@@ -122,6 +122,10 @@ class VulkanHook : LibraryHook
     Process::RegisterEnvironmentModification(
         EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_SAMPLE_LAYER", "1"));
 
+    // buggy overlay gamepp
+    Process::RegisterEnvironmentModification(
+        EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_GAMEPP_LAYER", "1"));
+
     // mesa device select layer crashes when it calls GPDP2 inside vkCreateInstance, which fails on
     // the current loader.
     Process::RegisterEnvironmentModification(
