@@ -408,15 +408,28 @@ void WrappedVulkan::FreeAllMemory(MemoryScope scope)
   if(allocList.empty())
     return;
 
-  VkDevice d = GetDev();
-
-  for(MemoryAllocation alloc : allocList)
+  // freeing a lot of memory can take a while on some implementations. Since this only needs to
+  // externally synchronise the memory we do it on a thread and synchronise if we need to free again
+  // or on device shutdown
+  if(m_MemoryFreeThread)
   {
-    ObjDisp(d)->FreeMemory(Unwrap(d), Unwrap(alloc.mem), NULL);
-    GetResourceManager()->ReleaseWrappedResource(alloc.mem);
+    Threading::JoinThread(m_MemoryFreeThread);
+    Threading::CloseThread(m_MemoryFreeThread);
+    m_MemoryFreeThread = 0;
   }
 
-  allocList.clear();
+  VkDevice d = GetDev();
+
+  rdcarray<MemoryAllocation> allocs;
+  allocs.swap(allocList);
+
+  m_MemoryFreeThread = Threading::CreateThread([this, d, allocs]() {
+    for(const MemoryAllocation &alloc : allocs)
+    {
+      ObjDisp(d)->FreeMemory(Unwrap(d), Unwrap(alloc.mem), NULL);
+      GetResourceManager()->ReleaseWrappedResource(alloc.mem);
+    }
+  });
 }
 
 void WrappedVulkan::FreeMemoryAllocation(MemoryAllocation alloc)

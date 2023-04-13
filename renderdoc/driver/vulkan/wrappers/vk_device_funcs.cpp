@@ -955,6 +955,13 @@ void WrappedVulkan::Shutdown()
 
   FreeAllMemory(MemoryScope::InitialContents);
 
+  if(m_MemoryFreeThread)
+  {
+    Threading::JoinThread(m_MemoryFreeThread);
+    Threading::CloseThread(m_MemoryFreeThread);
+    m_MemoryFreeThread = 0;
+  }
+
   // we do more in Shutdown than the equivalent vkDestroyInstance since on replay there's
   // no explicit vkDestroyDevice, we destroy the device here then the instance
 
@@ -4236,6 +4243,13 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks
 {
   if(device == VK_NULL_HANDLE)
     return;
+
+  if(m_MemoryFreeThread)
+  {
+    Threading::JoinThread(m_MemoryFreeThread);
+    Threading::CloseThread(m_MemoryFreeThread);
+    m_MemoryFreeThread = 0;
+  }
 
   // flush out any pending commands/semaphores
   SubmitCmds();

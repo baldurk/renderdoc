@@ -583,6 +583,7 @@ private:
   // all 'base' allocations. The offset is used to indicate the current offset, and the size is the
   // total size, thus the free space can be determined with size - offset.
   rdcarray<MemoryAllocation> m_MemoryBlocks[arraydim<MemoryScope>()];
+  Threading::ThreadHandle m_MemoryFreeThread = 0;
 
   // Per memory scope, the size of the next allocation. This allows us to balance number of memory
   // allocation objects with size by incrementally allocating larger blocks.
