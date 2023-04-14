@@ -1559,17 +1559,27 @@ GLuint GetBoundVertexBuffer(GLuint i)
 void SafeBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0,
                          GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
 {
-  bool scissorEnabled = false;
+  // only viewport 0's scissor should be used for blits, but Intel seems to require all scissors to
+  // be disabled. Since it's only a bit more work to disable them all, we push/pop all of them
+  bool scissorEnabled[16] = {};
   GLboolean ColorMask[4] = {GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE};
   GLboolean DepthMask = GL_TRUE;
   GLint StencilMask = 0xff, StencilBackMask = 0xff;
 
+  GLint maxViews = 0;
+  GL.glGetIntegerv(eGL_MAX_VIEWPORTS, &maxViews);
+
   // fetch current state
   {
     if(HasExt[ARB_viewport_array])
-      scissorEnabled = GL.glIsEnabledi(eGL_SCISSOR_TEST, 0) != 0;
+    {
+      for(GLint v = 0; v < maxViews; v++)
+        scissorEnabled[v] = GL.glIsEnabledi(eGL_SCISSOR_TEST, v) != 0;
+    }
     else
-      scissorEnabled = GL.glIsEnabled(eGL_SCISSOR_TEST) != 0;
+    {
+      scissorEnabled[0] = GL.glIsEnabled(eGL_SCISSOR_TEST) != 0;
+    }
 
     if(HasExt[EXT_draw_buffers2] || HasExt[ARB_draw_buffers_blend])
       GL.glGetBooleani_v(eGL_COLOR_WRITEMASK, 0, ColorMask);
@@ -1585,9 +1595,14 @@ void SafeBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLi
   // apply safe state
   {
     if(HasExt[ARB_viewport_array])
-      GL.glDisablei(eGL_SCISSOR_TEST, 0);
+    {
+      for(GLint v = 0; v < maxViews; v++)
+        GL.glDisablei(eGL_SCISSOR_TEST, v);
+    }
     else
+    {
       GL.glDisable(eGL_SCISSOR_TEST);
+    }
 
     if(HasExt[EXT_draw_buffers2] || HasExt[ARB_draw_buffers_blend])
       GL.glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -1606,14 +1621,17 @@ void SafeBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLi
   {
     if(HasExt[ARB_viewport_array])
     {
-      if(scissorEnabled)
-        GL.glEnablei(eGL_SCISSOR_TEST, 0);
-      else
-        GL.glDisablei(eGL_SCISSOR_TEST, 0);
+      for(GLint v = 0; v < maxViews; v++)
+      {
+        if(scissorEnabled[v])
+          GL.glEnablei(eGL_SCISSOR_TEST, v);
+        else
+          GL.glDisablei(eGL_SCISSOR_TEST, v);
+      }
     }
     else
     {
-      if(scissorEnabled)
+      if(scissorEnabled[0])
         GL.glEnable(eGL_SCISSOR_TEST);
       else
         GL.glDisable(eGL_SCISSOR_TEST);
