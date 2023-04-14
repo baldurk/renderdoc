@@ -884,16 +884,13 @@ protected:
 
       dyn.depth.resolveMode = VK_RESOLVE_MODE_NONE;
       dyn.depth.resolveImageView = VK_NULL_HANDLE;
-      if(dyn.depth.loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
-        dyn.depth.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-      if(dyn.depth.storeOp != VK_ATTACHMENT_STORE_OP_NONE)
-        dyn.depth.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+      dyn.depth.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+      dyn.depth.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
       dyn.stencil.resolveMode = VK_RESOLVE_MODE_NONE;
       dyn.stencil.resolveImageView = VK_NULL_HANDLE;
-      dyn.stencil.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-      if(dyn.stencil.storeOp != VK_ATTACHMENT_STORE_OP_NONE)
-        dyn.stencil.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+      dyn.stencil.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+      dyn.stencil.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
       // we'll be using our own depth/stencil attachment but it will be updated in PatchFramebuffer.
       // Just set the image layout here
@@ -985,9 +982,9 @@ protected:
     VkAttachmentDescription dsAtt = {};
     dsAtt.format = m_CallbackInfo.dsFormat;
     dsAtt.samples = m_CallbackInfo.samples;
-    dsAtt.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    dsAtt.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    dsAtt.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    dsAtt.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    dsAtt.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    dsAtt.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     dsAtt.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
     dsAtt.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     dsAtt.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -2921,9 +2918,9 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       if(depthImage != VK_NULL_HANDLE)
       {
         CopyPixelParams depthCopyParams = colourCopyParams;
-        depthCopyParams.srcImage = depthImage;
-        depthCopyParams.srcImageLayout = depthLayout;
-        depthCopyParams.srcImageFormat = depthFormat;
+        depthCopyParams.srcImage = m_CallbackInfo.dsImage;
+        depthCopyParams.srcImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthCopyParams.srcImageFormat = m_CallbackInfo.dsFormat;
         CopyImagePixel(cmd, depthCopyParams, (fragsProcessed + f) * sizeof(PerFragmentInfo) +
                                                  offsetof(struct PerFragmentInfo, postMod) +
                                                  offsetof(struct PixelHistoryValue, depth));
@@ -3182,11 +3179,11 @@ private:
 struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
 {
   // Key is event ID and value is a list of primitive IDs
-  std::map<uint32_t, rdcarray<int32_t> > m_Events;
+  std::map<uint32_t, rdcarray<int32_t>> m_Events;
   VulkanPixelHistoryDiscardedFragmentsCallback(WrappedVulkan *vk,
                                                PixelHistoryShaderCache *shaderCache,
                                                const PixelHistoryCallbackInfo &callbackInfo,
-                                               std::map<uint32_t, rdcarray<int32_t> > events,
+                                               std::map<uint32_t, rdcarray<int32_t>> events,
                                                VkQueryPool occlusionPool)
       : VulkanPixelHistoryCallback(vk, shaderCache, callbackInfo, occlusionPool), m_Events(events)
   {
@@ -4004,7 +4001,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     // Retrieve primitive ID values where fragment shader discarded some
     // fragments. For these primitives we are going to perform an occlusion
     // query to see if a primitive was discarded.
-    std::map<uint32_t, rdcarray<int32_t> > discardedPrimsEvents;
+    std::map<uint32_t, rdcarray<int32_t>> discardedPrimsEvents;
     uint32_t primitivesToCheck = 0;
     for(size_t h = 0; h < history.size(); h++)
     {
@@ -4084,7 +4081,8 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
           if((uint32_t)callbackInfo.samples > 1)
             history[h].postMod.depth = bp[offset].postMod.depth.fdepth;
           else
-            history[h].postMod.depth = GetDepthValue(cb.GetDepthFormat(eid), bp[offset].postMod);
+            history[h].postMod.depth =
+                GetDepthValue(VK_FORMAT_D32_SFLOAT_S8_UINT, bp[offset].postMod);
           history[h].postMod.stencil = -2;
         }
         // If it is not the first fragment for the event, set the preMod to the
