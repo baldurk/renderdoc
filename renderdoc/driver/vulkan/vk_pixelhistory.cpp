@@ -2077,6 +2077,10 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
         m_pDriver->GetDebugManager()->GetPipelineInfo(pipestate.graphics.pipeline);
     uint32_t eventFlags = CalculateEventFlags(p, pipestate);
     m_EventFlags[eid] = eventFlags;
+    if(pipestate.depthBoundsTestEnable)
+      m_EventDepthBounds[eid] = {pipestate.mindepth, pipestate.maxdepth};
+    else
+      m_EventDepthBounds[eid] = {};
 
     // TODO: figure out if the shader has early fragments tests turned on,
     // based on the currently bound fragment shader.
@@ -2126,6 +2130,13 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
   {
     auto it = m_EventFlags.find(eventId);
     if(it == m_EventFlags.end())
+      RDCERR("Can't find event flags for event %u", eventId);
+    return it->second;
+  }
+  rdcpair<float, float> GetEventDepthBounds(uint32_t eventId)
+  {
+    auto it = m_EventDepthBounds.find(eventId);
+    if(it == m_EventDepthBounds.end())
       RDCERR("Can't find event flags for event %u", eventId);
     return it->second;
   }
@@ -2571,6 +2582,7 @@ private:
   rdcarray<uint32_t> m_Events;
   // Key is event ID, value is the flags for that event.
   std::map<uint32_t, uint32_t> m_EventFlags;
+  std::map<uint32_t, rdcpair<float, float>> m_EventDepthBounds;
   // Key is a pair <Base pipeline, pipeline flags>
   std::map<rdcpair<ResourceId, uint32_t>, VkPipeline> m_PipeCache;
   // Key: pair <event ID, test>
@@ -4131,6 +4143,13 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
 
         if(!passed)
           history[h].depthTestFailed = true;
+
+        rdcpair<float, float> depthBounds = tfCb->GetEventDepthBounds(history[h].eventId);
+
+        if((history[h].preMod.depth < depthBounds.first ||
+            history[h].preMod.depth > depthBounds.second) &&
+           depthBounds.second > depthBounds.first)
+          history[h].depthBoundsFailed = true;
       }
     }
   }
