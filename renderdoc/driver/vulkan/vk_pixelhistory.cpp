@@ -4085,6 +4085,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
             history[h].postMod.depth = bp[offset].postMod.depth.fdepth;
           else
             history[h].postMod.depth = GetDepthValue(cb.GetDepthFormat(eid), bp[offset].postMod);
+          history[h].postMod.stencil = -2;
         }
         // If it is not the first fragment for the event, set the preMod to the
         // postMod of the previous fragment.

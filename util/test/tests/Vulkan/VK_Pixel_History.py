@@ -425,6 +425,10 @@ class VK_Pixel_History(rdtest.TestCase):
                     a = (modifs[i].preMod.depth, modifs[i].preMod.stencil)
                     b = (modifs[i].postMod.depth, modifs[i].postMod.stencil)
 
+                    if a[1] == -2 or b[2] == -2:
+                        a = (a[0], -2)
+                        b = (b[0], -2)
+
                 if not rdtest.value_compare(a, b):
                     raise rdtest.TestFailureException(
                         "postmod at {} primitive {}: {} doesn't match premod: {}".format(modifs[i].eventId,

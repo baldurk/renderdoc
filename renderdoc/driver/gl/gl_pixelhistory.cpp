@@ -949,6 +949,15 @@ void readPixelValues(WrappedOpenGL *driver, const GLPixelHistoryResources &resou
     {
       modValue.stencil = stencilValues[i];
     }
+    else
+    {
+      // if this isn't the last fragment in this event, the stencil is unavailable
+      if(historyIndex + i + 1 < history.size() &&
+         history[historyIndex + i].eventId == history[historyIndex + i + 1].eventId)
+        modValue.stencil = -2;
+      else
+        modValue.stencil = history[historyIndex + i].postMod.stencil;
+    }
 
     history[historyIndex + i].postMod = modValue;
   }
@@ -1778,7 +1787,7 @@ void QueryPostModPerFragment(WrappedOpenGL *driver, GLReplay *replay,
     if(numSamples == 1 && copyFramebuffer.framebufferId != ~0u)
     {
       readPixelValues(driver, resources, copyFramebuffer, history,
-                      lastJ + int(historyIndex - history.begin()), true, numFragments - lastJ,
+                      lastJ + int(historyIndex - history.begin()), false, numFragments - lastJ,
                       integerColour);
     }
 
