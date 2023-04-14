@@ -858,10 +858,42 @@ void readPixelValuesMS(WrappedOpenGL *driver, const GLPixelHistoryResources &res
   }
 }
 
+struct ScopedReadPixelsSanitiser
+{
+  PixelUnpackState unpack;
+  PixelPackState pack;
+  GLuint pixelPackBuffer = 0;
+  GLuint pixelUnpackBuffer = 0;
+
+  ScopedReadPixelsSanitiser()
+  {
+    unpack.Fetch(false);
+    pack.Fetch(false);
+
+    GL.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, (GLint *)&pixelPackBuffer);
+    GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&pixelUnpackBuffer);
+
+    ResetPixelPackState(false, 1);
+    ResetPixelUnpackState(false, 1);
+    GL.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
+    GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+  }
+
+  ~ScopedReadPixelsSanitiser()
+  {
+    unpack.Apply(false);
+    pack.Apply(false);
+    GL.glBindBuffer(eGL_PIXEL_PACK_BUFFER, pixelPackBuffer);
+    GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, pixelUnpackBuffer);
+  }
+};
+
 void readPixelValues(WrappedOpenGL *driver, const GLPixelHistoryResources &resources,
                      const CopyFramebuffer &copyFramebuffer, rdcarray<PixelModification> &history,
                      int historyIndex, bool readStencil, uint32_t numPixels, bool isIntegerColour)
 {
+  ScopedReadPixelsSanitiser scope;
+
   driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, copyFramebuffer.framebufferId);
   rdcarray<int> intColourValues;
   intColourValues.resize(4 * numPixels);
@@ -1180,6 +1212,8 @@ std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(
     uint32_t numFragments = 0;
     if(numSamples == 1)
     {
+      ScopedReadPixelsSanitiser scope;
+
       ModificationValue modValue;
       if(colourFormatType == eGL_UNSIGNED_INT || colourFormatType == eGL_INT)
       {
@@ -1465,6 +1499,8 @@ void QueryShaderOutPerFragment(WrappedOpenGL *driver, GLReplay *replay,
 
       if(numSamples == 1)
       {
+        ScopedReadPixelsSanitiser scope;
+
         ModificationValue modValue;
 
         if(colourFormatType == eGL_UNSIGNED_INT || colourFormatType == eGL_INT)
@@ -1849,6 +1885,8 @@ void QueryPrimitiveIdPerFragment(WrappedOpenGL *driver, GLReplay *replay,
       float primitiveIds[8];
       if(numSamples == 1)
       {
+        ScopedReadPixelsSanitiser scope;
+
         driver->glReadPixels(x, y, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)primitiveIds);
       }
       else
