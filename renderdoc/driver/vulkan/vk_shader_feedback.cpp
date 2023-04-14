@@ -235,6 +235,87 @@ rdcstr PatchFormatString(rdcstr format)
   return format;
 }
 
+// uintvulkanmax_t is uint64_t if int64 is supported in shaders, otherwise uint32_t
+// if it's int32 we just truncate all maths and assume things won't overflow
+template <typename uintvulkanmax_t>
+rdcspv::Id MakeOffsettedPointer(rdcspv::Editor &editor, rdcspv::Iter &it, rdcspv::Id ptrType,
+                                rdcspv::Id carryStructType, rdcspv::Id bufferAddressConst,
+                                rdcspv::Id offset);
+
+// easy case with uint64, we do an IAdd then a ConvertUToPtr
+template <>
+rdcspv::Id MakeOffsettedPointer<uint64_t>(rdcspv::Editor &editor, rdcspv::Iter &it,
+                                          rdcspv::Id ptrType, rdcspv::Id carryStructType,
+                                          rdcspv::Id bufferAddressConst, rdcspv::Id offset)
+{
+  if(offset == rdcspv::Id())
+    return editor.AddOperation(it, rdcspv::OpBitcast(ptrType, editor.MakeId(), bufferAddressConst));
+
+  rdcspv::Id uint64Type = editor.DeclareType(rdcspv::scalar<uint64_t>());
+
+  // first bitcast to uint64 for addition
+  rdcspv::Id base =
+      editor.AddOperation(it, rdcspv::OpBitcast(uint64Type, editor.MakeId(), bufferAddressConst));
+  it++;
+
+  // add the offset
+  rdcspv::Id finalAddr =
+      editor.AddOperation(it, rdcspv::OpIAdd(uint64Type, editor.MakeId(), base, offset));
+  it++;
+
+  // convert to pointer
+  return editor.AddOperation(it, rdcspv::OpConvertUToPtr(ptrType, editor.MakeId(), finalAddr));
+}
+
+// hard case with {uint32,uint32}
+template <>
+rdcspv::Id MakeOffsettedPointer<uint32_t>(rdcspv::Editor &editor, rdcspv::Iter &it,
+                                          rdcspv::Id ptrType, rdcspv::Id carryStructType,
+                                          rdcspv::Id bufferAddressConst, rdcspv::Id offset)
+{
+  rdcspv::Id finalAddr = bufferAddressConst;
+
+  if(offset != rdcspv::Id())
+  {
+    rdcspv::Id uint32Type = editor.DeclareType(rdcspv::scalar<uint32_t>());
+    rdcspv::Id uintVec = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 2));
+
+    // pull the lsb/msb out of the vector
+    rdcspv::Id lsb = editor.AddOperation(
+        it, rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), bufferAddressConst, {0}));
+    it++;
+    rdcspv::Id msb = editor.AddOperation(
+        it, rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), bufferAddressConst, {1}));
+    it++;
+
+    // add the offset to the LSB and allow it to carry
+    rdcspv::Id offsetWithCarry =
+        editor.AddOperation(it, rdcspv::OpIAddCarry(carryStructType, editor.MakeId(), lsb, offset));
+    it++;
+
+    // extract the result to the new lsb, and carry
+    lsb = editor.AddOperation(
+        it, rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), offsetWithCarry, {0}));
+    it++;
+    rdcspv::Id carry = editor.AddOperation(
+        it, rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), offsetWithCarry, {1}));
+    it++;
+
+    // add carry bit to msb
+    msb = editor.AddOperation(it, rdcspv::OpIAdd(uint32Type, editor.MakeId(), msb, carry));
+    it++;
+
+    // construct a vector again
+    finalAddr =
+        editor.AddOperation(it, rdcspv::OpCompositeConstruct(uintVec, editor.MakeId(), {lsb, msb}));
+    it++;
+  }
+
+  // bitcast the vector to a pointer
+  return editor.AddOperation(it, rdcspv::OpBitcast(ptrType, editor.MakeId(), finalAddr));
+}
+
+template <typename uintvulkanmax_t>
 void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchData, ShaderStage stage,
                     const char *entryName, const std::map<rdcspv::Binding, feedbackData> &offsetMap,
                     uint32_t maxSlot, bool usePrimitiveID, VkDeviceAddress addr,
@@ -256,11 +337,11 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
 
   const bool useBufferAddress = (addr != 0);
 
-  const uint32_t targetIndexWidth = useBufferAddress ? 64 : 32;
+  const uint32_t targetIndexWidth = useBufferAddress ? sizeof(uintvulkanmax_t) * 8 : 32;
 
   // store the maximum slot we can use, for clamping outputs to avoid writing out of bounds
-  rdcspv::Id maxSlotID = useBufferAddress ? editor.AddConstantImmediate<uint64_t>(maxSlot)
-                                          : editor.AddConstantImmediate<uint32_t>(maxSlot);
+  rdcspv::Id maxSlotID = targetIndexWidth == 64 ? editor.AddConstantImmediate<uint64_t>(maxSlot)
+                                                : editor.AddConstantImmediate<uint32_t>(maxSlot);
 
   rdcspv::Id maxPrintfWordOffset =
       editor.AddConstantImmediate<uint32_t>(Vulkan_Debug_PrintfBufferSize() / sizeof(uint32_t));
@@ -271,20 +352,24 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
   rdcspv::Id uint32Type = editor.DeclareType(rdcspv::scalar<uint32_t>());
   rdcspv::Id int32Type = editor.DeclareType(rdcspv::scalar<int32_t>());
   rdcspv::Id f32Type = editor.DeclareType(rdcspv::scalar<float>());
-  rdcspv::Id uint64Type, int64Type;
+  rdcspv::Id uint64Type;
   rdcspv::Id uint32StructID;
-  rdcspv::Id funcParamType;
+  rdcspv::Id indexOffsetType;
+
+  // if the module declares int64 capability, or we use it, ensure uint64 is declared in case we
+  // need to transform it for printf arguments
+  if(editor.HasCapability(rdcspv::Capability::Int64) || targetIndexWidth == 64)
+  {
+    editor.AddCapability(rdcspv::Capability::Int64);
+    uint64Type = editor.DeclareType(rdcspv::scalar<uint64_t>());
+  }
 
   if(useBufferAddress)
   {
-    // declare the int64 types we'll need
-    uint64Type = editor.DeclareType(rdcspv::scalar<uint64_t>());
-    int64Type = editor.DeclareType(rdcspv::scalar<int64_t>());
-
     uint32StructID = editor.AddType(rdcspv::OpTypeStruct(editor.MakeId(), {uint32Type}));
 
-    // any function parameters we add are uint64 byte offsets
-    funcParamType = uint64Type;
+    // any function parameters we add are byte offsets
+    indexOffsetType = editor.DeclareType(rdcspv::scalar<uintvulkanmax_t>());
   }
   else
   {
@@ -297,15 +382,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
     uint32StructID = editor.AddType(rdcspv::OpTypeStruct(editor.MakeId(), {runtimeArrayID}));
 
     // any function parameters we add are uint32 indices
-    funcParamType = uint32Type;
-
-    // if the module declares int64 capability, ensure uint64/int64 are declared in case we need to
-    // transform them for printf arguments
-    if(editor.HasCapability(rdcspv::Capability::Int64))
-    {
-      uint64Type = editor.DeclareType(rdcspv::scalar<uint64_t>());
-      int64Type = editor.DeclareType(rdcspv::scalar<int64_t>());
-    }
+    indexOffsetType = uint32Type;
   }
 
   editor.SetName(uint32StructID, "__rd_feedbackStruct");
@@ -314,7 +391,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       uint32StructID, 0, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(0)));
 
   // map from variable ID to watch, to variable ID to get offset from (as a SPIR-V constant,
-  // or as either uint64 byte offset for buffer addressing or uint32 ssbo index otherwise)
+  // or as either byte offset for buffer addressing or ssbo index otherwise)
   std::map<rdcspv::Id, rdcspv::Id> varLookup;
 
   // iterate over all variables. We do this here because in the absence of the buffer address
@@ -337,7 +414,8 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       // store the offset for this variable so we watch for access chains and know where to store to
       if(useBufferAddress)
       {
-        rdcspv::Id id = varLookup[var.id] = editor.AddConstantImmediate<uint64_t>(it->second.offset);
+        rdcspv::Id id = varLookup[var.id] =
+            editor.AddConstantImmediate<uintvulkanmax_t>(uintvulkanmax_t(it->second.offset));
 
         editor.SetName(id, StringFormat::Fmt("__feedbackOffset_set%u_bind%u", it->first.set,
                                              it->first.binding));
@@ -355,6 +433,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
     }
   }
 
+  rdcspv::Id carryStructType = editor.DeclareStructType({uint32Type, uint32Type});
   rdcspv::Id bufferAddressConst, ssboVar, uint32ptrtype;
 
   if(usesMultiview &&
@@ -385,10 +464,27 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
 
     // add capabilities
     editor.AddCapability(rdcspv::Capability::PhysicalStorageBufferAddresses);
-    editor.AddCapability(rdcspv::Capability::Int64);
+    // for simplicity on KHR we always load from uint2 so we're compatible with the case where int64
+    // isn't supported
+    if(bufferAddressKHR)
+    {
+      rdcspv::Id addressConstantLSB = editor.AddConstantImmediate<uint32_t>(addr & 0xffffffffu);
+      rdcspv::Id addressConstantMSB =
+          editor.AddConstantImmediate<uint32_t>((addr >> 32) & 0xffffffffu);
 
-    // declare the address constants and make our pointers physical storage buffer pointers
-    bufferAddressConst = editor.AddConstantImmediate<uint64_t>(addr);
+      rdcspv::Id uint2 = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 2));
+
+      bufferAddressConst = editor.AddConstant(rdcspv::OpConstantComposite(
+          uint2, editor.MakeId(), {addressConstantLSB, addressConstantMSB}));
+    }
+    else
+    {
+      editor.AddCapability(rdcspv::Capability::Int64);
+
+      // declare the address constants and make our pointers physical storage buffer pointers
+      bufferAddressConst = editor.AddConstantImmediate<uint64_t>(addr);
+    }
+
     uint32ptrtype =
         editor.DeclareType(rdcspv::Pointer(uint32Type, rdcspv::StorageClass::PhysicalStorageBuffer));
 
@@ -460,7 +556,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
 
   if(useBufferAddress)
   {
-    printfIncrement = editor.AddConstantImmediate<uint64_t>(sizeof(uint32_t));
+    printfIncrement = editor.AddConstantImmediate<uintvulkanmax_t>(sizeof(uint32_t));
   }
   else
   {
@@ -780,7 +876,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
         {
           rdcspv::FunctionType patchedFuncType = funcType.first;
           for(size_t i = 0; i < patchArgIndices.size(); i++)
-            patchedFuncType.argumentIds.push_back(funcParamType);
+            patchedFuncType.argumentIds.push_back(indexOffsetType);
 
           rdcspv::Id newFuncTypeID = editor.DeclareType(patchedFuncType);
 
@@ -830,7 +926,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
     // we're past the existing function parameters, now declare our new ones
     for(size_t i = 0; i < patchedParamIDs.size(); i++)
     {
-      editor.AddOperation(it, rdcspv::OpFunctionParameter(funcParamType, patchedParamIDs[i]));
+      editor.AddOperation(it, rdcspv::OpFunctionParameter(indexOffsetType, patchedParamIDs[i]));
       ++it;
     }
 
@@ -1128,9 +1224,10 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
           if(useBufferAddress)
           {
             // make a pointer out of the buffer address
-            // uint32_t *bufptr = (uint32_t *)offsetaddr
-            counterptr = editor.AddOperation(
-                it, rdcspv::OpConvertUToPtr(uint32ptrtype, editor.MakeId(), bufferAddressConst));
+            // uint32_t *bufptr = (uint32_t *)(ptr+0)
+            counterptr = MakeOffsettedPointer<uintvulkanmax_t>(
+                editor, it, uint32ptrtype, carryStructType, bufferAddressConst, rdcspv::Id());
+
             it++;
           }
           else
@@ -1160,30 +1257,26 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
 
           if(useBufferAddress)
           {
-            // convert to a 64-bit value
-            idx = editor.AddOperation(it, rdcspv::OpUConvert(uint64Type, editor.MakeId(), idx));
+            // convert to an offset value (upconverting as needed, indexOffsetType is always the
+            // largest uint type)
+            idx = editor.AddOperation(it, rdcspv::OpUConvert(indexOffsetType, editor.MakeId(), idx));
             it++;
 
             // the index is in words, so multiply by the increment to get a byte offset
             rdcspv::Id byteOffset = editor.AddOperation(
-                it, rdcspv::OpIMul(uint64Type, editor.MakeId(), idx, printfIncrement));
-            it++;
-
-            // add the offset to the base address
-            rdcspv::Id bufAddr = editor.AddOperation(
-                it, rdcspv::OpIAdd(uint64Type, editor.MakeId(), bufferAddressConst, byteOffset));
+                it, rdcspv::OpIMul(indexOffsetType, editor.MakeId(), idx, printfIncrement));
             it++;
 
             for(rdcspv::Id word : packetWords)
             {
               // we pre-increment idx because it starts from 0 but we want to write into words
               // starting from [1] to leave the counter itself alone.
-              bufAddr = editor.AddOperation(
-                  it, rdcspv::OpIAdd(uint64Type, editor.MakeId(), bufAddr, printfIncrement));
+              byteOffset = editor.AddOperation(
+                  it, rdcspv::OpIAdd(indexOffsetType, editor.MakeId(), byteOffset, printfIncrement));
               it++;
 
-              rdcspv::Id ptr = editor.AddOperation(
-                  it, rdcspv::OpConvertUToPtr(uint32ptrtype, editor.MakeId(), bufAddr));
+              rdcspv::Id ptr = MakeOffsettedPointer<uintvulkanmax_t>(
+                  editor, it, uint32ptrtype, carryStructType, bufferAddressConst, byteOffset);
               it++;
 
               editor.AddOperation(it, rdcspv::OpStore(ptr, word, memoryAccess));
@@ -1235,7 +1328,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
           // patch after the access chain
           it++;
 
-          // upcast the index to uint32 or uint64 depending on which path we're taking
+          // upcast the index to our target uint size for indexing/offsetting
           {
             rdcspv::Id indexType = editor.GetIDType(index);
 
@@ -1295,28 +1388,22 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
           {
             // convert the constant embedded device address to a pointer
 
-            // get our output slot address by adding an offset to the base pointer
-            // baseaddr = bufferAddressConst + bindingOffset
-            rdcspv::Id baseaddr = editor.AddOperation(
-                it, rdcspv::OpIAdd(uint64Type, editor.MakeId(), bufferAddressConst, varIt->second));
-            it++;
-
             // shift the index since this is a byte offset
             // shiftedindex = index << uint32shift
             rdcspv::Id shiftedindex = editor.AddOperation(
-                it, rdcspv::OpShiftLeftLogical(uint64Type, editor.MakeId(), index, uint32shift));
+                it, rdcspv::OpShiftLeftLogical(indexOffsetType, editor.MakeId(), index, uint32shift));
             it++;
 
             // add the index on top of that
-            // offsetaddr = baseaddr + shiftedindex
+            // offsetaddr = bindingOffset + shiftedindex
             rdcspv::Id offsetaddr = editor.AddOperation(
-                it, rdcspv::OpIAdd(uint64Type, editor.MakeId(), baseaddr, shiftedindex));
+                it, rdcspv::OpIAdd(indexOffsetType, editor.MakeId(), varIt->second, shiftedindex));
             it++;
 
             // make a pointer out of it
-            // uint32_t *bufptr = (uint32_t *)offsetaddr
-            bufptr = editor.AddOperation(
-                it, rdcspv::OpConvertUToPtr(uint32ptrtype, editor.MakeId(), offsetaddr));
+            // uint32_t *bufptr = (uint32_t *)(ptr + offsetaddr)
+            bufptr = MakeOffsettedPointer<uintvulkanmax_t>(
+                editor, it, uint32ptrtype, carryStructType, bufferAddressConst, offsetaddr);
             it++;
           }
           else
@@ -1367,8 +1454,7 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   VKDynamicShaderFeedback &result = m_BindlessFeedback.Usage[eventId];
 
   bool useBufferAddress = (m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address ||
-                           m_pDriver->GetExtensions(NULL).ext_EXT_buffer_device_address) &&
-                          m_pDriver->GetDeviceEnabledFeatures().shaderInt64;
+                           m_pDriver->GetExtensions(NULL).ext_EXT_buffer_device_address);
 
   if(Vulkan_Debug_DisableBufferDeviceAddress() ||
      m_pDriver->GetDriverInfo().BufferDeviceAddressBrokenDriver())
@@ -1501,6 +1587,14 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   // if we don't have any array descriptors or printf's to feedback then just return now
   if(offsetMap.empty() && !usesPrintf)
   {
+    return false;
+  }
+
+  if(!m_pDriver->GetDeviceEnabledFeatures().shaderInt64 && feedbackStorageSize > 0xffff0000U)
+  {
+    RDCLOG(
+        "Feedback buffer is too large for 32-bit addressed maths, and device doesn't support "
+        "int64");
     return false;
   }
 
@@ -1644,9 +1738,20 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
       FileIO::WriteAll(Vulkan_Debug_FeedbackDumpDirPath() + "/before_" + filename[5], modSpirv);
 
-    AnnotateShader(*pipeInfo.shaders[5].refl, *pipeInfo.shaders[5].patchData,
-                   ShaderStage(StageIndex(stage.stage)), stage.pName, offsetMap, maxSlot, false,
-                   bufferAddress, useBufferAddressKHR, false, modSpirv, printfData[5]);
+    if(m_pDriver->GetDeviceEnabledFeatures().shaderInt64)
+    {
+      AnnotateShader<uint64_t>(*pipeInfo.shaders[5].refl, *pipeInfo.shaders[5].patchData,
+                               ShaderStage(StageIndex(stage.stage)), stage.pName, offsetMap,
+                               maxSlot, false, bufferAddress, useBufferAddressKHR, false, modSpirv,
+                               printfData[5]);
+    }
+    else
+    {
+      AnnotateShader<uint32_t>(*pipeInfo.shaders[5].refl, *pipeInfo.shaders[5].patchData,
+                               ShaderStage(StageIndex(stage.stage)), stage.pName, offsetMap,
+                               maxSlot, false, bufferAddress, useBufferAddressKHR, false, modSpirv,
+                               printfData[5]);
+    }
 
     if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
       FileIO::WriteAll(Vulkan_Debug_FeedbackDumpDirPath() + "/after_" + filename[5], modSpirv);
@@ -1710,10 +1815,20 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
         FileIO::WriteAll(Vulkan_Debug_FeedbackDumpDirPath() + "/before_" + filename[idx], modSpirv);
 
-      AnnotateShader(*pipeInfo.shaders[idx].refl, *pipeInfo.shaders[idx].patchData,
-                     ShaderStage(StageIndex(stage.stage)), stage.pName, offsetMap, maxSlot,
-                     usePrimitiveID, bufferAddress, useBufferAddressKHR, usesMultiview, modSpirv,
-                     printfData[idx]);
+      if(m_pDriver->GetDeviceEnabledFeatures().shaderInt64)
+      {
+        AnnotateShader<uint64_t>(*pipeInfo.shaders[idx].refl, *pipeInfo.shaders[idx].patchData,
+                                 ShaderStage(StageIndex(stage.stage)), stage.pName, offsetMap,
+                                 maxSlot, usePrimitiveID, bufferAddress, useBufferAddressKHR,
+                                 usesMultiview, modSpirv, printfData[idx]);
+      }
+      else
+      {
+        AnnotateShader<uint32_t>(*pipeInfo.shaders[idx].refl, *pipeInfo.shaders[idx].patchData,
+                                 ShaderStage(StageIndex(stage.stage)), stage.pName, offsetMap,
+                                 maxSlot, usePrimitiveID, bufferAddress, useBufferAddressKHR,
+                                 usesMultiview, modSpirv, printfData[idx]);
+      }
 
       if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
         FileIO::WriteAll(Vulkan_Debug_FeedbackDumpDirPath() + "/after_" + filename[idx], modSpirv);
