@@ -1788,17 +1788,24 @@ void CaptureContext::SaveChanges()
 {
   bool success = true;
 
-  if(m_CaptureMods & CaptureModifications::Renames)
-    success &= SaveRenames();
+  if(!m_Replay.GetCaptureFile())
+  {
+    success = false;
+  }
+  else
+  {
+    if(m_CaptureMods & CaptureModifications::Renames)
+      success &= SaveRenames();
 
-  if(m_CaptureMods & CaptureModifications::Bookmarks)
-    success &= SaveBookmarks();
+    if(m_CaptureMods & CaptureModifications::Bookmarks)
+      success &= SaveBookmarks();
 
-  if(m_CaptureMods & CaptureModifications::Notes)
-    success &= SaveNotes();
+    if(m_CaptureMods & CaptureModifications::Notes)
+      success &= SaveNotes();
 
-  if(m_CaptureMods & CaptureModifications::EditedShaders)
-    success &= SaveEdits();
+    if(m_CaptureMods & CaptureModifications::EditedShaders)
+      success &= SaveEdits();
+  }
 
   if(!success)
   {
@@ -1827,7 +1834,7 @@ bool CaptureContext::SaveRenames()
   props.type = SectionType::ResourceRenames;
   props.version = 1;
 
-  return Replay().GetCaptureAccess()->WriteSection(props, json.toUtf8()).OK();
+  return Replay().GetCaptureFile()->WriteSection(props, json.toUtf8()).OK();
 }
 
 void CaptureContext::LoadRenames(const QString &data)
@@ -1879,7 +1886,7 @@ bool CaptureContext::SaveBookmarks()
   props.type = SectionType::Bookmarks;
   props.version = 1;
 
-  return Replay().GetCaptureAccess()->WriteSection(props, json.toUtf8()).OK();
+  return Replay().GetCaptureFile()->WriteSection(props, json.toUtf8()).OK();
 }
 
 void CaptureContext::LoadBookmarks(const QString &data)
@@ -1919,7 +1926,7 @@ bool CaptureContext::SaveNotes()
 
   ANALYTIC_SET(UIFeatures.CaptureComments, true);
 
-  return Replay().GetCaptureAccess()->WriteSection(props, json.toUtf8()).OK();
+  return Replay().GetCaptureFile()->WriteSection(props, json.toUtf8()).OK();
 }
 
 void CaptureContext::LoadNotes(const QString &data)
@@ -1954,7 +1961,7 @@ bool CaptureContext::SaveEdits()
   props.type = SectionType::EditedShaders;
   props.version = 1;
 
-  return Replay().GetCaptureAccess()->WriteSection(props, json.toUtf8()).OK();
+  return Replay().GetCaptureFile()->WriteSection(props, json.toUtf8()).OK();
 }
 
 void CaptureContext::LoadEdits(const QString &data)

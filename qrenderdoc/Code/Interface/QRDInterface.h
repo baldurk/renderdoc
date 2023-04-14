@@ -1393,12 +1393,23 @@ struct IReplayManager
 )");
   virtual RemoteHost CurrentRemote() = 0;
 
-  DOCUMENT(R"(Retrieves the capture file handle for the currently open file.
+  DOCUMENT(R"(Retrieves the capture access handle for the currently open file.
 
 :return: The file handle active, or ``None`` if no capture is open.
 :rtype: renderdoc.CaptureAccess
 )");
   virtual ICaptureAccess *GetCaptureAccess() = 0;
+
+  DOCUMENT(R"(Retrieves the capture file handle for the currently open file, if it is available.
+
+If the capture is not open locally this will not be available, and only :meth:`GetCaptureAccess`
+will be usable.
+
+:return: The file handle active, or ``None`` if no capture is open or the capture is only available
+  remotely.
+:rtype: renderdoc.CaptureFile
+)");
+  virtual ICaptureFile *GetCaptureFile() = 0;
 
   DOCUMENT(R"(Launch an application and inject into it to allow capturing.
 
