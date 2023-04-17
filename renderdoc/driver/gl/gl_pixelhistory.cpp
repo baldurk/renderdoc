@@ -1240,6 +1240,7 @@ std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(
     driver->glDepthFunc(eGL_ALWAYS);
     driver->glDepthMask(GL_TRUE);
     driver->glDisable(eGL_BLEND);
+    driver->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     // enable the sample we're looking at so we get the shaderOut even if it's masked off
     driver->glEnable(eGL_SAMPLE_MASK);
@@ -1471,6 +1472,7 @@ void QueryShaderOutPerFragment(WrappedOpenGL *driver, GLReplay *replay,
       driver->glSampleMaski(0, ~0u);
     }
 
+    driver->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     driver->glStencilMask(0xff);
     driver->glStencilOp(eGL_INCR, eGL_INCR, eGL_INCR);
     driver->glEnable(eGL_STENCIL_TEST);
@@ -1621,6 +1623,7 @@ void QueryPostModPerFragment(WrappedOpenGL *driver, GLReplay *replay,
     driver->glStencilMask(0xff);
     driver->glStencilOp(eGL_INCR, eGL_INCR, eGL_INCR);
     driver->glEnable(eGL_STENCIL_TEST);
+    driver->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     PixelModification referenceHistory;
     referenceHistory.eventId = modEvents[i].eventId;
@@ -1875,6 +1878,7 @@ void QueryPrimitiveIdPerFragment(WrappedOpenGL *driver, GLReplay *replay,
     driver->glDepthMask(GL_TRUE);
     driver->glDisable(eGL_BLEND);
     driver->glDisable(eGL_SAMPLE_MASK);
+    driver->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     driver->glStencilMask(0xff);
     driver->glStencilOp(eGL_INCR, eGL_INCR, eGL_INCR);
