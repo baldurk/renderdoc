@@ -2172,31 +2172,34 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
       ActionDescription action;
       action.flags |= ActionFlags::Resolve;
 
-      GLint numCols = 8;
-      GL.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
-
-      for(int i = 0; i < numCols + 2; i++)
+      for(int i = 0; i < 3; i++)
       {
-        GLenum attachName = GLenum(eGL_COLOR_ATTACHMENT0 + i);
-        if(i == numCols)
-          attachName = eGL_DEPTH_ATTACHMENT;
-        if(i == numCols + 1)
-          attachName = eGL_STENCIL_ATTACHMENT;
+        GLenum drawAttachName = eGL_COLOR_ATTACHMENT0;
+        if(i == 0)
+          GL.glGetIntegerv(eGL_DRAW_BUFFER0, (GLint *)&drawAttachName);
+        if(i == 1)
+          drawAttachName = eGL_DEPTH_ATTACHMENT;
+        if(i == 2)
+          drawAttachName = eGL_STENCIL_ATTACHMENT;
+
+        GLenum readAttachName = drawAttachName;
+        if(i == 0)
+          GL.glGetIntegerv(eGL_READ_BUFFER, (GLint *)&readAttachName);
 
         GLuint srcattachment = 0, dstattachment = 0;
         GLenum srctype = eGL_TEXTURE, dsttype = eGL_TEXTURE;
 
-        GL.glGetNamedFramebufferAttachmentParameterivEXT(readFramebuffer.name, attachName,
+        GL.glGetNamedFramebufferAttachmentParameterivEXT(readFramebuffer.name, readAttachName,
                                                          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
                                                          (GLint *)&srcattachment);
-        GL.glGetNamedFramebufferAttachmentParameterivEXT(readFramebuffer.name, attachName,
+        GL.glGetNamedFramebufferAttachmentParameterivEXT(readFramebuffer.name, readAttachName,
                                                          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
                                                          (GLint *)&srctype);
 
-        GL.glGetNamedFramebufferAttachmentParameterivEXT(drawFramebuffer.name, attachName,
+        GL.glGetNamedFramebufferAttachmentParameterivEXT(drawFramebuffer.name, drawAttachName,
                                                          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
                                                          (GLint *)&dstattachment);
-        GL.glGetNamedFramebufferAttachmentParameterivEXT(drawFramebuffer.name, attachName,
+        GL.glGetNamedFramebufferAttachmentParameterivEXT(drawFramebuffer.name, drawAttachName,
                                                          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
                                                          (GLint *)&dsttype);
 
@@ -2214,28 +2217,30 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
 
         if(mask & GL_COLOR_BUFFER_BIT)
         {
-          if(attachName == eGL_COLOR_ATTACHMENT0)
+          if(i == 0)
           {
             action.copySource = GetResourceManager()->GetOriginalID(srcid);
             action.copyDestination = GetResourceManager()->GetOriginalID(dstid);
 
             GLint mip = 0, slice = 0;
             if(dsttype == eGL_TEXTURE)
-              GetFramebufferMipAndLayer(drawFramebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+              GetFramebufferMipAndLayer(drawFramebuffer.name, drawAttachName, &mip, &slice);
             action.copyDestinationSubresource.mip = mip;
             action.copyDestinationSubresource.slice = slice;
 
             mip = 0;
             slice = 0;
             if(srctype == eGL_TEXTURE)
-              GetFramebufferMipAndLayer(readFramebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+              GetFramebufferMipAndLayer(readFramebuffer.name, readAttachName, &mip, &slice);
             action.copySourceSubresource.mip = mip;
             action.copySourceSubresource.slice = slice;
           }
         }
         else
         {
-          if(attachName == eGL_DEPTH_ATTACHMENT)
+          if(drawAttachName == eGL_DEPTH_ATTACHMENT ||
+             (drawAttachName == eGL_STENCIL_ATTACHMENT &&
+              (mask & (GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)) == GL_STENCIL_BUFFER_BIT))
           {
             action.copySource = GetResourceManager()->GetOriginalID(srcid);
             action.copyDestination = GetResourceManager()->GetOriginalID(dstid);

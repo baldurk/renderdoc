@@ -5585,13 +5585,18 @@ void WrappedOpenGL::AddUsage(const ActionDescription &a)
   GLenum type = eGL_TEXTURE;
   for(GLint i = 0; i < numCols; i++)
   {
+    GLenum dbEnum = eGL_NONE;
+    GL.glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&dbEnum);
+
+    if(dbEnum == eGL_NONE)
+      continue;
+
     type = eGL_TEXTURE;
 
-    GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
-                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                             (GLint *)&attachment);
-    GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
-                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+    GL.glGetFramebufferAttachmentParameteriv(
+        eGL_DRAW_FRAMEBUFFER, dbEnum, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&attachment);
+    GL.glGetFramebufferAttachmentParameteriv(
+        eGL_DRAW_FRAMEBUFFER, dbEnum, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
 
     if(attachment)
     {
@@ -5651,48 +5656,52 @@ void WrappedOpenGL::AddAction(const ActionDescription &a)
   m_DrawcallParams[m_CurEventID].indexWidth = m_LastIndexWidth;
   m_DrawcallParams[m_CurEventID].topo = m_LastTopology;
 
-  GLenum type;
-  GLuint curCol[8] = {0};
-  GLuint curDepth = 0;
-
   {
     GLint numCols = 8;
     GL.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
 
     RDCEraseEl(action.outputs);
 
-    for(GLint i = 0; i < RDCMIN(numCols, 8); i++)
+    GLenum type;
+
+    for(GLint i = 0, att = 0; i < RDCMIN(numCols, 8); i++)
     {
       type = eGL_TEXTURE;
 
+      GLenum dbEnum = eGL_NONE;
+      GL.glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&dbEnum);
+
+      if(dbEnum == eGL_NONE)
+        continue;
+
+      GLuint depth = 0;
       GL.glGetFramebufferAttachmentParameteriv(
-          eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
-          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&curCol[i]);
+          eGL_DRAW_FRAMEBUFFER, dbEnum, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&depth);
       GL.glGetFramebufferAttachmentParameteriv(
-          eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
-          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+          eGL_DRAW_FRAMEBUFFER, dbEnum, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
 
       if(type == eGL_TEXTURE)
-        action.outputs[i] = GetResourceManager()->GetOriginalID(
-            GetResourceManager()->GetResID(TextureRes(GetCtx(), curCol[i])));
+        action.outputs[att] = GetResourceManager()->GetOriginalID(
+            GetResourceManager()->GetResID(TextureRes(GetCtx(), depth)));
       else
-        action.outputs[i] = GetResourceManager()->GetOriginalID(
-            GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), curCol[i])));
+        action.outputs[att] = GetResourceManager()->GetOriginalID(
+            GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), depth)));
+      att++;
     }
 
     type = eGL_TEXTURE;
 
+    GLuint depth = 0;
     GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                             (GLint *)&curDepth);
+                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&depth);
     GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
                                              eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
     if(type == eGL_TEXTURE)
       action.depthOut = GetResourceManager()->GetOriginalID(
-          GetResourceManager()->GetResID(TextureRes(GetCtx(), curDepth)));
+          GetResourceManager()->GetResID(TextureRes(GetCtx(), depth)));
     else
       action.depthOut = GetResourceManager()->GetOriginalID(
-          GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), curDepth)));
+          GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), depth)));
   }
 
   // markers don't increment action ID

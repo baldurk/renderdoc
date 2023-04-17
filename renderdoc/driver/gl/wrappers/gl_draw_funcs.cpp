@@ -4494,15 +4494,20 @@ bool WrappedOpenGL::Serialise_glClear(SerialiserType &ser, GLbitfield mask)
 
         for(int i = numCols - 1; i >= 0; --i)
         {
-          ResourceId res_id =
-              ExtractFBOAttachment(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i));
+          GLenum dbEnum = eGL_NONE;
+          GL.glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&dbEnum);
+
+          if(dbEnum == eGL_NONE)
+            continue;
+
+          ResourceId res_id = ExtractFBOAttachment(eGL_DRAW_FRAMEBUFFER, dbEnum);
 
           if(res_id != ResourceId())
           {
             m_ResourceUses[res_id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
 
             dstId = res_id;
-            attach = GLenum(eGL_COLOR_ATTACHMENT0 + i);
+            attach = dbEnum;
           }
         }
       }
