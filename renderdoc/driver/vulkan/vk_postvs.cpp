@@ -1166,16 +1166,35 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
 
           if(valueID)
           {
+            rdcspv::Id ptr = ins[i].variable;
+
+            if(!patchData.inputs[i].accessChain.empty())
+            {
+              // for composite types we need to access chain first
+              rdcarray<rdcspv::Id> chain;
+
+              for(uint32_t accessIdx : patchData.inputs[i].accessChain)
+              {
+                if(idxs[accessIdx] == 0)
+                  idxs[accessIdx] = editor.AddConstantImmediate<uint32_t>(accessIdx);
+
+                chain.push_back(idxs[accessIdx]);
+              }
+
+              ptr = ops.add(rdcspv::OpAccessChain(ins[i].privatePtrType, editor.MakeId(),
+                                                  patchData.inputs[i].ID, chain));
+            }
+
             if(VarTypeCompType(vType) == compType)
             {
-              ops.add(rdcspv::OpStore(ins[i].variable, valueID));
+              ops.add(rdcspv::OpStore(ptr, valueID));
             }
             else
             {
               // assume we can just bitcast
               rdcspv::Id castedValue =
                   ops.add(rdcspv::OpBitcast(ins[i].baseType, editor.MakeId(), valueID));
-              ops.add(rdcspv::OpStore(ins[i].variable, castedValue));
+              ops.add(rdcspv::OpStore(ptr, castedValue));
             }
           }
           else
