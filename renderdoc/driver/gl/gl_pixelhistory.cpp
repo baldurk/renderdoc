@@ -824,6 +824,10 @@ rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryR
 
       state.ApplyState(driver);
     }
+    else
+    {
+      driver->ReplayLog(events[i].eventId, events[i].eventId, eReplay_OnlyDraw);
+    }
 
     if(i < events.size() - 1)
     {
@@ -2015,6 +2019,12 @@ void CalculateFragmentDepthTests(WrappedOpenGL *driver, GLPixelHistoryResources 
       {
         ++historyIndex;
       }
+
+      if(i < modEvents.size() - 1)
+      {
+        driver->ReplayLog(modEvents[i].eventId, modEvents[i + 1].eventId, eReplay_WithoutDraw);
+      }
+
       continue;
     }
 
