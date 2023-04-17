@@ -136,10 +136,10 @@ IReplayDriver *D3D12Replay::MakeDummyDriver()
 
 void D3D12Replay::CreateResources()
 {
-  m_DebugManager = new D3D12DebugManager(m_pDevice);
-
   if(RenderDoc::Inst().IsReplayApp())
   {
+    m_DebugManager = new D3D12DebugManager(m_pDevice);
+
     CreateSOBuffers();
 
     if(m_pDevice->UsedDXIL())
