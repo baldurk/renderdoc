@@ -1324,7 +1324,7 @@ bool QueryScissorTest(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
 bool QueryTest(WrappedOpenGL *driver, GLPixelHistoryResources &resources, const EventUsage event,
                int x, int y, OpenGLTest test, uint32_t sampleIndex)
 {
-  driver->ReplayLog(0, event.eventId - 1, eReplay_Full);
+  driver->ReplayLog(0, event.eventId, eReplay_WithoutDraw);
   GLuint samplesPassedQuery;
   driver->glGenQueries(1, &samplesPassedQuery);
   driver->glEnable(eGL_SCISSOR_TEST);
@@ -1364,7 +1364,7 @@ bool QueryTest(WrappedOpenGL *driver, GLPixelHistoryResources &resources, const 
 
   driver->SetFetchCounters(true);
   driver->glBeginQuery(eGL_SAMPLES_PASSED, samplesPassedQuery);
-  driver->ReplayLog(event.eventId, event.eventId, eReplay_Full);
+  driver->ReplayLog(event.eventId, event.eventId, eReplay_OnlyDraw);
   driver->glEndQuery(eGL_SAMPLES_PASSED);
   driver->SetFetchCounters(false);
   int numSamplesPassed;
@@ -2043,7 +2043,7 @@ void CalculateFragmentDepthTests(WrappedOpenGL *driver, GLPixelHistoryResources 
 
     if(i < modEvents.size() - 1)
     {
-      driver->ReplayLog(modEvents[i].eventId + 1, modEvents[i + 1].eventId, eReplay_WithoutDraw);
+      driver->ReplayLog(modEvents[i].eventId, modEvents[i + 1].eventId, eReplay_WithoutDraw);
     }
   }
 }
