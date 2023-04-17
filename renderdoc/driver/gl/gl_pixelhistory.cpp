@@ -662,6 +662,21 @@ void CopyMSSample(WrappedOpenGL *driver, const GLPixelHistoryResources &resource
   GLint savedUniformBuffer;
   driver->glGetIntegerv(eGL_UNIFORM_BUFFER_BINDING, &savedUniformBuffer);
 
+  struct Bufbind
+  {
+    GLuint buf;
+    GLuint64 start;
+    GLuint64 size;
+  } ubo3, ssbo2;
+
+  GL.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 3, (GLint *)&ubo3.buf);
+  GL.glGetInteger64i_v(eGL_UNIFORM_BUFFER_START, 3, (GLint64 *)&ubo3.start);
+  GL.glGetInteger64i_v(eGL_UNIFORM_BUFFER_SIZE, 3, (GLint64 *)&ubo3.size);
+
+  GL.glGetIntegeri_v(eGL_SHADER_STORAGE_BUFFER_BINDING, 2, (GLint *)&ssbo2.buf);
+  GL.glGetInteger64i_v(eGL_SHADER_STORAGE_BUFFER_START, 2, (GLint64 *)&ssbo2.start);
+  GL.glGetInteger64i_v(eGL_SHADER_STORAGE_BUFFER_SIZE, 2, (GLint64 *)&ssbo2.size);
+
   driver->glUseProgram(resources.msCopyComputeProgram);
   GLint srcMSLoc = driver->glGetUniformLocation(resources.msCopyComputeProgram, "srcMS");
   driver->glUniform1i(srcMSLoc, 0);
@@ -730,6 +745,18 @@ void CopyMSSample(WrappedOpenGL *driver, const GLPixelHistoryResources &resource
 
   driver->glGetBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, 8 * 4, pixelDst);
 
+  if(ubo3.buf == 0 || (ubo3.start == 0 && ubo3.size == 0))
+    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 3, ubo3.buf);
+  else
+    GL.glBindBufferRange(eGL_UNIFORM_BUFFER, 3, ubo3.buf, (GLintptr)ubo3.start,
+                         (GLsizeiptr)ubo3.size);
+
+  if(ssbo2.buf == 0 || (ssbo2.start == 0 && ssbo2.size == 0))
+    GL.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 2, ssbo2.buf);
+  else
+    GL.glBindBufferRange(eGL_SHADER_STORAGE_BUFFER, 2, ssbo2.buf, (GLintptr)ssbo2.start,
+                         (GLsizeiptr)ssbo2.size);
+
   driver->glUseProgram(savedProgram);
   driver->glActiveTexture(eGL_TEXTURE0);
   driver->glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, savedMSTexture0);
@@ -737,7 +764,7 @@ void CopyMSSample(WrappedOpenGL *driver, const GLPixelHistoryResources &resource
   driver->glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, savedMSTexture1);
   driver->glActiveTexture((GLenum)savedActiveTexture);
   driver->glBindBuffer(eGL_SHADER_STORAGE_BUFFER, savedShaderStorageBuffer);
-  driver->glBindBuffer(eGL_UNIFORM_BUFFER, savedShaderStorageBuffer);
+  driver->glBindBuffer(eGL_UNIFORM_BUFFER, savedUniformBuffer);
 }
 
 rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
@@ -778,6 +805,9 @@ rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryR
     }
     if(!ignored && !(events[i].usage == ResourceUsage::Clear || isDirectWrite(events[i].usage)))
     {
+      GLRenderState state;
+      state.FetchState(driver);
+
       driver->glDisable(eGL_DEPTH_TEST);
       driver->glDisable(eGL_STENCIL_TEST);
       driver->glDisable(eGL_CULL_FACE);
@@ -791,6 +821,8 @@ rdcarray<EventUsage> QueryModifyingEvents(WrappedOpenGL *driver, GLPixelHistoryR
       driver->ReplayLog(events[i].eventId, events[i].eventId, eReplay_OnlyDraw);
       driver->glEndQuery(eGL_SAMPLES_PASSED);
       driver->SetFetchCounters(false);
+
+      state.ApplyState(driver);
     }
 
     if(i < events.size() - 1)
@@ -1159,9 +1191,8 @@ std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(
 
   for(size_t i = 0; i < modEvents.size(); ++i)
   {
-    GLint savedReadFramebuffer, savedDrawFramebuffer;
-    driver->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &savedDrawFramebuffer);
-    driver->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &savedReadFramebuffer);
+    GLRenderState state;
+    state.FetchState(driver);
 
     uint32_t colIdx = getFramebufferColIndex(driver, resources.target);
 
@@ -1263,9 +1294,7 @@ std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(
 
     eventFragments.emplace(modEvents[i].eventId, numFragments);
 
-    // restore the capture's framebuffer
-    driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, savedDrawFramebuffer);
-    driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedReadFramebuffer);
+    state.ApplyState(driver);
 
     if(i < modEvents.size() - 1)
     {
@@ -1417,6 +1446,9 @@ void QueryShaderOutPerFragment(WrappedOpenGL *driver, GLReplay *replay,
       continue;
     }
 
+    GLRenderState state;
+    state.FetchState(driver);
+
     driver->glEnable(eGL_SCISSOR_TEST);
     driver->glScissor(x, y, 1, 1);
 
@@ -1459,10 +1491,6 @@ void QueryShaderOutPerFragment(WrappedOpenGL *driver, GLReplay *replay,
                          });
 
     RDCASSERT(historyIndex != history.end());
-
-    GLint savedReadFramebuffer, savedDrawFramebuffer;
-    driver->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &savedDrawFramebuffer);
-    driver->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &savedReadFramebuffer);
 
     uint32_t colIdx = getFramebufferColIndex(driver, resources.target);
 
@@ -1549,9 +1577,7 @@ void QueryShaderOutPerFragment(WrappedOpenGL *driver, GLReplay *replay,
       historyIndex++;
     }
 
-    // restore the capture's framebuffer
-    driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, savedDrawFramebuffer);
-    driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedReadFramebuffer);
+    state.ApplyState(driver);
 
     if(i < modEvents.size() - 1)
     {
@@ -1583,6 +1609,9 @@ void QueryPostModPerFragment(WrappedOpenGL *driver, GLReplay *replay,
       }
       continue;
     }
+
+    GLRenderState state;
+    state.FetchState(driver);
 
     driver->glEnable(eGL_SCISSOR_TEST);
     driver->glScissor(x, y, 1, 1);
@@ -1791,8 +1820,8 @@ void QueryPostModPerFragment(WrappedOpenGL *driver, GLReplay *replay,
                       integerColour);
     }
 
-    driver->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, savedDrawFramebuffer);
-    driver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, savedReadFramebuffer);
+    state.ApplyState(driver);
+
     if(i < modEvents.size() - 1)
     {
       driver->ReplayLog(modEvents[i].eventId + 1, modEvents[i + 1].eventId, eReplay_WithoutDraw);
@@ -1824,6 +1853,9 @@ void QueryPrimitiveIdPerFragment(WrappedOpenGL *driver, GLReplay *replay,
       }
       continue;
     }
+
+    GLRenderState state;
+    state.FetchState(driver);
 
     driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.fullPrecisionFrameBuffer);
     driver->glReadBuffer(eGL_COLOR_ATTACHMENT0);
@@ -1858,13 +1890,12 @@ void QueryPrimitiveIdPerFragment(WrappedOpenGL *driver, GLReplay *replay,
                          });
     RDCASSERT(historyIndex != history.end());
 
-    GLint currentProgram = 0;
-
     // we expect this value to be overwritten by the primitive id shader. if not
     // it will cause an assertion that all color values are the same to fail
     driver->glClearColor(0.84f, 0.17f, 0.2f, 0.49f);
     driver->glClear(eGL_COLOR_BUFFER_BIT);
 
+    GLint currentProgram = 0;
     driver->glGetIntegerv(eGL_CURRENT_PROGRAM, &currentProgram);
 
     driver->glUseProgram(GetPrimitiveIdProgram(driver, replay, resources, currentProgram));
@@ -1932,6 +1963,8 @@ void QueryPrimitiveIdPerFragment(WrappedOpenGL *driver, GLReplay *replay,
       ++historyIndex;
     }
     driver->glUseProgram(currentProgram);
+
+    state.ApplyState(driver);
 
     if(i < modEvents.size() - 1)
     {
