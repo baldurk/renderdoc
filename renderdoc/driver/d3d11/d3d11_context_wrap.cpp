@@ -5570,6 +5570,15 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
       // we pick up on that.
       m_EmptyCommandList = true;
 
+      // except if we were supposed to restore the deferred context state. Then there would have to
+      // be some state setting here (which we're not recording).
+      // This makes the command list immediately unsuccessful and forces a retry - if this happens
+      // again the restore will be recorded
+      if(RestoreDeferredContextState)
+        m_EmptyCommandList = false;
+
+      m_SuccessfulCapture = false;
+
       // still need to propagate up dirty resources to the immediate context
       wrapped->SwapDirtyResources(m_DeferredDirty);
 
