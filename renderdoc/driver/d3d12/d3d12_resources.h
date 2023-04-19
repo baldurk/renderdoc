@@ -1022,7 +1022,7 @@ public:
 
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
   {
-    if(riid == __uuidof(ID3D12Resource2))
+    if(riid == __uuidof(ID3D12ManualWriteTrackingResource))
     {
       return E_NOINTERFACE;
     }

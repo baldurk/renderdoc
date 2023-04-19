@@ -1145,6 +1145,18 @@ void DoSerialise(SerialiserType &ser, D3D12_TEX2D_ARRAY_UAV &el)
 }
 
 template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2DMS_UAV &el)
+{
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2DMS_ARRAY_UAV &el)
+{
+  SERIALISE_MEMBER(FirstArraySlice);
+  SERIALISE_MEMBER(ArraySize);
+}
+
+template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_TEX3D_UAV &el)
 {
   SERIALISE_MEMBER(MipSlice);
@@ -1168,6 +1180,8 @@ void DoSerialise(SerialiserType &ser, D3D12_UNORDERED_ACCESS_VIEW_DESC &el)
     case D3D12_UAV_DIMENSION_TEXTURE1DARRAY: SERIALISE_MEMBER(Texture1DArray); break;
     case D3D12_UAV_DIMENSION_TEXTURE2D: SERIALISE_MEMBER(Texture2D); break;
     case D3D12_UAV_DIMENSION_TEXTURE2DARRAY: SERIALISE_MEMBER(Texture2DArray); break;
+    case D3D12_UAV_DIMENSION_TEXTURE2DMS: SERIALISE_MEMBER(Texture2DMS); break;
+    case D3D12_UAV_DIMENSION_TEXTURE2DMSARRAY: SERIALISE_MEMBER(Texture2DMSArray); break;
     case D3D12_UAV_DIMENSION_TEXTURE3D: SERIALISE_MEMBER(Texture3D); break;
     default: RDCERR("Unrecognised RTV Dimension %d", el.ViewDimension); break;
   }

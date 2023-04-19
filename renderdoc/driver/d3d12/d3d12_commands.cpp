@@ -388,6 +388,7 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
   if(m_pReal)
   {
     m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandQueue), (void **)&m_WrappedDebug.m_pReal);
+    m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandQueue1), (void **)&m_WrappedDebug.m_pReal1);
     m_pReal->QueryInterface(__uuidof(ID3D12CommandQueueDownlevel), (void **)&m_pDownlevel);
     m_pReal->QueryInterface(__uuidof(ID3D12CompatibilityQueue), (void **)&m_WrappedCompat.m_pReal);
   }
@@ -449,6 +450,7 @@ WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
 
   SAFE_RELEASE(m_WrappedCompat.m_pReal);
   SAFE_RELEASE(m_WrappedDebug.m_pReal);
+  SAFE_RELEASE(m_WrappedDebug.m_pReal1);
   SAFE_RELEASE(m_pReal);
 }
 
@@ -472,6 +474,19 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::QueryInterface(REFIID riid,
     {
       AddRef();
       *ppvObject = (ID3D12DebugCommandQueue *)&m_WrappedDebug;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12DebugCommandQueue1))
+  {
+    if(m_WrappedDebug.m_pReal1)
+    {
+      AddRef();
+      *ppvObject = (ID3D12DebugCommandQueue1 *)&m_WrappedDebug;
       return S_OK;
     }
     else
@@ -1140,6 +1155,7 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
     m_pList->QueryInterface(__uuidof(ID3D12DebugCommandList), (void **)&m_WrappedDebug.m_pReal);
     m_pList->QueryInterface(__uuidof(ID3D12DebugCommandList1), (void **)&m_WrappedDebug.m_pReal1);
     m_pList->QueryInterface(__uuidof(ID3D12DebugCommandList2), (void **)&m_WrappedDebug.m_pReal2);
+    m_pList->QueryInterface(__uuidof(ID3D12DebugCommandList3), (void **)&m_WrappedDebug.m_pReal3);
 
     m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList1), (void **)&m_pList1);
     m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList2), (void **)&m_pList2);
@@ -1222,6 +1238,7 @@ WrappedID3D12GraphicsCommandList::~WrappedID3D12GraphicsCommandList()
   SAFE_RELEASE(m_WrappedDebug.m_pReal);
   SAFE_RELEASE(m_WrappedDebug.m_pReal1);
   SAFE_RELEASE(m_WrappedDebug.m_pReal2);
+  SAFE_RELEASE(m_WrappedDebug.m_pReal3);
   SAFE_RELEASE(m_pList5);
   SAFE_RELEASE(m_pList4);
   SAFE_RELEASE(m_pList3);
@@ -1304,6 +1321,19 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFII
     {
       AddRef();
       *ppvObject = (ID3D12DebugCommandList2 *)&m_WrappedDebug;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12DebugCommandList3))
+  {
+    if(m_WrappedDebug.m_pReal3)
+    {
+      AddRef();
+      *ppvObject = (ID3D12DebugCommandList3 *)&m_WrappedDebug;
       return S_OK;
     }
     else

@@ -928,6 +928,28 @@ ShaderVariable D3D12DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
 
         break;
       }
+      case D3D12_UAV_DIMENSION_TEXTURE2DMS:
+      case D3D12_UAV_DIMENSION_TEXTURE2DMSARRAY:
+      {
+        // note, DXBC doesn't support MSAA UAVs so this is here mostly for completeness and sanity
+        dim = 2;
+
+        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+        result.value.u32v[1] = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
+
+        if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2DMS)
+          result.value.u32v[2] = 0;
+        else if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2DMSARRAY)
+          result.value.u32v[2] = uavDesc.Texture2DMSArray.ArraySize;
+
+        // spec says "For UAVs (u#), the number of mip levels is always 1."
+        result.value.u32v[3] = 1;
+
+        if(mipLevel >= result.value.u32v[3])
+          result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
+
+        break;
+      }
       case D3D12_UAV_DIMENSION_TEXTURE3D:
       {
         dim = 3;

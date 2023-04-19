@@ -648,10 +648,22 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC MakeUAVDesc(const D3D12_RESOURCE_DESC &desc)
   }
   else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)
   {
-    ret.ViewDimension = arrayed ? D3D12_UAV_DIMENSION_TEXTURE2DARRAY : D3D12_UAV_DIMENSION_TEXTURE2D;
+    if(desc.SampleDesc.Count > 1)
+    {
+      ret.ViewDimension =
+          arrayed ? D3D12_UAV_DIMENSION_TEXTURE2DMSARRAY : D3D12_UAV_DIMENSION_TEXTURE2DMS;
 
-    if(arrayed)
-      ret.Texture2DArray.ArraySize = desc.DepthOrArraySize;
+      if(arrayed)
+        ret.Texture2DMSArray.ArraySize = desc.DepthOrArraySize;
+    }
+    else
+    {
+      ret.ViewDimension =
+          arrayed ? D3D12_UAV_DIMENSION_TEXTURE2DARRAY : D3D12_UAV_DIMENSION_TEXTURE2D;
+
+      if(arrayed)
+        ret.Texture2DArray.ArraySize = desc.DepthOrArraySize;
+    }
   }
   else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
   {

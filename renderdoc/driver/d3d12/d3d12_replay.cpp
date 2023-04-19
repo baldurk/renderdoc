@@ -950,6 +950,14 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
         view.firstSlice = uav.Texture2DArray.FirstArraySlice & 0xffff;
         view.firstMip = uav.Texture2DArray.MipSlice & 0xff;
       }
+      else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2DMS)
+      {
+      }
+      else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2DMSARRAY)
+      {
+        view.numSlices = uav.Texture2DMSArray.ArraySize & 0xffff;
+        view.firstSlice = uav.Texture2DMSArray.FirstArraySlice & 0xffff;
+      }
       else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE3D)
       {
         view.numSlices = uav.Texture3D.WSize & 0xffff;

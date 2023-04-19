@@ -105,7 +105,7 @@ public:
 // The inheritance is awful for these. See WrappedID3D12DebugDevice for why there are multiple
 // parent classes
 class WrappedID3D12Debug : public RefCounter12<ID3D12Debug>,
-                           public ID3D12Debug5,
+                           public ID3D12Debug6,
                            public ID3D12Debug1,
                            public ID3D12Debug2
 {
@@ -148,6 +148,24 @@ public:
       AddRef();
       return S_OK;
     }
+    if(riid == __uuidof(ID3D12Debug4))
+    {
+      *ppvObject = (ID3D12Debug4 *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(ID3D12Debug5))
+    {
+      *ppvObject = (ID3D12Debug5 *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(ID3D12Debug6))
+    {
+      *ppvObject = (ID3D12Debug6 *)this;
+      AddRef();
+      return S_OK;
+    }
 
     return E_NOINTERFACE;
   }
@@ -169,6 +187,9 @@ public:
   //////////////////////////////
   // Implement ID3D12Debug5
   virtual void STDMETHODCALLTYPE SetEnableAutoName(BOOL Enable) {}
+  //////////////////////////////
+  // Implement ID3D12Debug6
+  virtual void STDMETHODCALLTYPE SetForceLegacyBarrierValidation(BOOL Enable) {}
 };
 
 class D3D12Hook : LibraryHook
@@ -416,24 +437,39 @@ private:
 
   static HRESULT WINAPI D3D12GetDebugInterface_hook(REFIID riid, void **ppvDebug)
   {
-    if(riid != __uuidof(ID3D12Debug))
+    if(riid == __uuidof(ID3D12Debug))
     {
       *ppvDebug = (ID3D12Debug *)(new WrappedID3D12Debug());
       return S_OK;
     }
-    else if(riid != __uuidof(ID3D12Debug1))
+    else if(riid == __uuidof(ID3D12Debug1))
     {
       *ppvDebug = (ID3D12Debug1 *)(new WrappedID3D12Debug());
       return S_OK;
     }
-    else if(riid != __uuidof(ID3D12Debug2))
+    else if(riid == __uuidof(ID3D12Debug2))
     {
       *ppvDebug = (ID3D12Debug2 *)(new WrappedID3D12Debug());
       return S_OK;
     }
-    else if(riid != __uuidof(ID3D12Debug3))
+    else if(riid == __uuidof(ID3D12Debug3))
     {
       *ppvDebug = (ID3D12Debug3 *)(new WrappedID3D12Debug());
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Debug4))
+    {
+      *ppvDebug = (ID3D12Debug4 *)(new WrappedID3D12Debug());
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Debug5))
+    {
+      *ppvDebug = (ID3D12Debug5 *)(new WrappedID3D12Debug());
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Debug6))
+    {
+      *ppvDebug = (ID3D12Debug6 *)(new WrappedID3D12Debug());
       return S_OK;
     }
     else

@@ -70,12 +70,13 @@ struct WrappedID3D12CompatibilityQueue : public ID3D12CompatibilityQueue
                                                       _In_range_(0, 0) UINT Reserved);
 };
 
-struct WrappedID3D12DebugCommandQueue : public ID3D12DebugCommandQueue
+struct WrappedID3D12DebugCommandQueue : public ID3D12DebugCommandQueue1
 {
-  WrappedID3D12CommandQueue *m_pQueue;
-  ID3D12DebugCommandQueue *m_pReal;
+  WrappedID3D12CommandQueue *m_pQueue = NULL;
+  ID3D12DebugCommandQueue *m_pReal = NULL;
+  ID3D12DebugCommandQueue1 *m_pReal1 = NULL;
 
-  WrappedID3D12DebugCommandQueue() : m_pQueue(NULL), m_pReal(NULL) {}
+  WrappedID3D12DebugCommandQueue() {}
   //////////////////////////////
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
@@ -83,6 +84,12 @@ struct WrappedID3D12DebugCommandQueue : public ID3D12DebugCommandQueue
     if(riid == __uuidof(ID3D12DebugCommandQueue))
     {
       *ppvObject = (ID3D12DebugCommandQueue *)this;
+      AddRef();
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12DebugCommandQueue1))
+    {
+      *ppvObject = (ID3D12DebugCommandQueue1 *)this;
       AddRef();
       return S_OK;
     }
@@ -102,6 +109,23 @@ struct WrappedID3D12DebugCommandQueue : public ID3D12DebugCommandQueue
     if(m_pReal)
       return m_pReal->AssertResourceState(Unwrap(pResource), Subresource, State);
     return TRUE;
+  }
+
+  //////////////////////////////
+  // implement ID3D12DebugCommandQueue1
+
+  virtual void STDMETHODCALLTYPE AssertResourceAccess(ID3D12Resource *pResource, UINT Subresource,
+                                                      D3D12_BARRIER_ACCESS Access)
+  {
+    if(m_pReal1)
+      m_pReal1->AssertResourceAccess(Unwrap(pResource), Subresource, Access);
+  }
+
+  virtual void STDMETHODCALLTYPE AssertTextureLayout(ID3D12Resource *pResource, UINT Subresource,
+                                                     D3D12_BARRIER_LAYOUT Layout)
+  {
+    if(m_pReal1)
+      m_pReal1->AssertTextureLayout(Unwrap(pResource), Subresource, Layout);
   }
 };
 

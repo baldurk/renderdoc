@@ -35,14 +35,15 @@ class WrappedID3D12GraphicsCommandList;
 
 // The inheritance is awful for these. See WrappedID3D12DebugDevice for why there are multiple
 // parent classes
-struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList2, public ID3D12DebugCommandList1
+struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList3, public ID3D12DebugCommandList1
 {
-  WrappedID3D12GraphicsCommandList *m_pList;
-  ID3D12DebugCommandList *m_pReal;
-  ID3D12DebugCommandList1 *m_pReal1;
-  ID3D12DebugCommandList2 *m_pReal2;
+  WrappedID3D12GraphicsCommandList *m_pList = NULL;
+  ID3D12DebugCommandList *m_pReal = NULL;
+  ID3D12DebugCommandList1 *m_pReal1 = NULL;
+  ID3D12DebugCommandList2 *m_pReal2 = NULL;
+  ID3D12DebugCommandList3 *m_pReal3 = NULL;
 
-  WrappedID3D12DebugCommandList() : m_pList(NULL), m_pReal(NULL), m_pReal1(NULL), m_pReal2(NULL) {}
+  WrappedID3D12DebugCommandList() {}
   //////////////////////////////
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
@@ -62,6 +63,12 @@ struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList2, public ID
     else if(riid == __uuidof(ID3D12DebugCommandList2))
     {
       *ppvObject = (ID3D12DebugCommandList2 *)this;
+      AddRef();
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12DebugCommandList3))
+    {
+      *ppvObject = (ID3D12DebugCommandList3 *)this;
       AddRef();
       return S_OK;
     }
@@ -101,8 +108,7 @@ struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList2, public ID
   // implement ID3D12DebugCommandList1 / ID3D12DebugCommandList2
 
   virtual HRESULT STDMETHODCALLTYPE SetDebugParameter(D3D12_DEBUG_COMMAND_LIST_PARAMETER_TYPE Type,
-                                                      _In_reads_bytes_(DataSize) const void *pData,
-                                                      UINT DataSize)
+                                                      const void *pData, UINT DataSize)
   {
     if(m_pReal1)
       return m_pReal1->SetDebugParameter(Type, pData, DataSize);
@@ -112,14 +118,30 @@ struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList2, public ID
   }
 
   virtual HRESULT STDMETHODCALLTYPE GetDebugParameter(D3D12_DEBUG_COMMAND_LIST_PARAMETER_TYPE Type,
-                                                      _Out_writes_bytes_(DataSize) void *pData,
-                                                      UINT DataSize)
+                                                      void *pData, UINT DataSize)
   {
     if(m_pReal1)
       return m_pReal1->GetDebugParameter(Type, pData, DataSize);
     if(m_pReal2)
       return m_pReal2->GetDebugParameter(Type, pData, DataSize);
     return S_OK;
+  }
+
+  //////////////////////////////
+  // implement ID3D12DebugCommandList3
+
+  virtual void STDMETHODCALLTYPE AssertResourceAccess(ID3D12Resource *pResource, UINT Subresource,
+                                                      D3D12_BARRIER_ACCESS Access)
+  {
+    if(m_pReal3)
+      m_pReal3->AssertResourceAccess(Unwrap(pResource), Subresource, Access);
+  }
+
+  virtual void STDMETHODCALLTYPE AssertTextureLayout(ID3D12Resource *pResource, UINT Subresource,
+                                                     D3D12_BARRIER_LAYOUT Layout)
+  {
+    if(m_pReal3)
+      m_pReal3->AssertTextureLayout(Unwrap(pResource), Subresource, Layout);
   }
 };
 

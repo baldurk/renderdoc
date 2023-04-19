@@ -147,6 +147,7 @@ UINT GetByteSize(int Width, int Height, int Depth, DXGI_FORMAT Format, int mip)
       ret *= 1;
       break;
     case DXGI_FORMAT_B4G4R4A4_UNORM:
+    case DXGI_FORMAT_A4B4G4R4_UNORM:
       ret *= 2;    // 4 channels, half a byte each
       break;
     /*
@@ -1420,7 +1421,8 @@ DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT f)
     case DXGI_FORMAT_P208:
     case DXGI_FORMAT_V208:
     case DXGI_FORMAT_V408:
-    case DXGI_FORMAT_B4G4R4A4_UNORM: return f;
+    case DXGI_FORMAT_B4G4R4A4_UNORM:
+    case DXGI_FORMAT_A4B4G4R4_UNORM: return f;
 
     case DXGI_FORMAT_UNKNOWN: return DXGI_FORMAT_UNKNOWN;
 
@@ -1565,8 +1567,7 @@ D3D_PRIMITIVE_TOPOLOGY MakeD3DPrimitiveTopology(Topology Topo)
 {
   switch(Topo)
   {
-    case Topology::LineLoop:
-    case Topology::TriangleFan: RDCWARN("Unsupported primitive topology on D3D: %x", Topo); break;
+    case Topology::LineLoop: RDCWARN("Unsupported primitive topology on D3D: %x", Topo); break;
     default:
     case Topology::Unknown: return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
     case Topology::PointList: return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
@@ -1574,6 +1575,7 @@ D3D_PRIMITIVE_TOPOLOGY MakeD3DPrimitiveTopology(Topology Topo)
     case Topology::LineStrip: return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
     case Topology::TriangleList: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     case Topology::TriangleStrip: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+    case Topology::TriangleFan: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLEFAN;
     case Topology::LineList_Adj: return D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
     case Topology::LineStrip_Adj: return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ;
     case Topology::TriangleList_Adj: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
@@ -2050,6 +2052,7 @@ Topology MakePrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY Topo)
     case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP: return Topology::LineStrip;
     case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST: return Topology::TriangleList;
     case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP: return Topology::TriangleStrip;
+    case D3D_PRIMITIVE_TOPOLOGY_TRIANGLEFAN: return Topology::TriangleFan;
     case D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ: return Topology::LineList_Adj;
     case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ: return Topology::LineStrip_Adj;
     case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ: return Topology::TriangleList_Adj;
@@ -2133,10 +2136,10 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
         break;
       case ResourceFormatType::R9G9B9E5: ret = DXGI_FORMAT_R9G9B9E5_SHAREDEXP; break;
       case ResourceFormatType::R4G4B4A4:
-        // only support bgra order
-        if(!fmt.BGRAOrder())
-          return DXGI_FORMAT_UNKNOWN;
-        ret = DXGI_FORMAT_B4G4R4A4_UNORM;
+        if(fmt.BGRAOrder())
+          ret = DXGI_FORMAT_B4G4R4A4_UNORM;
+        else
+          ret = DXGI_FORMAT_A4B4G4R4_UNORM;
         break;
       case ResourceFormatType::D24S8: ret = DXGI_FORMAT_R24G8_TYPELESS; break;
       case ResourceFormatType::D32S8: ret = DXGI_FORMAT_R32G8X24_TYPELESS; break;
@@ -2392,7 +2395,8 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
     case DXGI_FORMAT_R8G8B8A8_UINT:
     case DXGI_FORMAT_R8G8B8A8_SNORM:
     case DXGI_FORMAT_R8G8B8A8_SINT:
-    case DXGI_FORMAT_B4G4R4A4_UNORM: ret.compCount = 4; break;
+    case DXGI_FORMAT_B4G4R4A4_UNORM:
+    case DXGI_FORMAT_A4B4G4R4_UNORM: ret.compCount = 4; break;
     case DXGI_FORMAT_R32G32B32_TYPELESS:
     case DXGI_FORMAT_R32G32B32_FLOAT:
     case DXGI_FORMAT_R32G32B32_UINT:
@@ -2664,6 +2668,7 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
     case DXGI_FORMAT_R8G8_B8G8_UNORM:
     case DXGI_FORMAT_G8R8_G8B8_UNORM:
     case DXGI_FORMAT_B4G4R4A4_UNORM:
+    case DXGI_FORMAT_A4B4G4R4_UNORM:
     case DXGI_FORMAT_B5G6R5_UNORM:
     case DXGI_FORMAT_B5G5R5A1_UNORM:
     case DXGI_FORMAT_B8G8R8A8_UNORM:
@@ -2852,9 +2857,7 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
       break;
 
     case DXGI_FORMAT_B4G4R4A4_UNORM:
-      ret.type = ResourceFormatType::R4G4B4A4;
-      ret.SetBGRAOrder(true);
-      break;
+    case DXGI_FORMAT_A4B4G4R4_UNORM: ret.type = ResourceFormatType::R4G4B4A4; break;
 
     case DXGI_FORMAT_UNKNOWN: ret.type = ResourceFormatType::Undefined; break;
 
@@ -2959,19 +2962,23 @@ INSTANTIATE_SERIALISE_TYPE(DXGI_ADAPTER_DESC);
 TEST_CASE("DXGI formats", "[format][d3d]")
 {
   // must be updated by hand
-  DXGI_FORMAT maxFormat = DXGI_FORMAT_V408;
+  DXGI_FORMAT maxFormat = DXGI_FORMAT_A4B4G4R4_UNORM;
 
   // we want to skip formats that we deliberately don't represent or handle.
   auto isUnsupportedFormat = [](DXGI_FORMAT f) {
-    // gap in DXGI_FORMAT enum
+    // gaps in DXGI_FORMAT enum
     if(f > DXGI_FORMAT_B4G4R4A4_UNORM && f < DXGI_FORMAT_P208)
+      return true;
+    if(f > DXGI_FORMAT_V408 && f < DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE)
       return true;
     return (f == DXGI_FORMAT_R1_UNORM || f == DXGI_FORMAT_R8G8_B8G8_UNORM ||
             f == DXGI_FORMAT_G8R8_G8B8_UNORM || f == DXGI_FORMAT_B8G8R8X8_TYPELESS ||
             f == DXGI_FORMAT_B8G8R8X8_UNORM || f == DXGI_FORMAT_B8G8R8X8_UNORM_SRGB ||
             f == DXGI_FORMAT_NV11 || f == DXGI_FORMAT_AI44 || f == DXGI_FORMAT_IA44 ||
             f == DXGI_FORMAT_P8 || f == DXGI_FORMAT_A8P8 || f == DXGI_FORMAT_P208 ||
-            f == DXGI_FORMAT_V208 || f == DXGI_FORMAT_V408 || f == DXGI_FORMAT_420_OPAQUE);
+            f == DXGI_FORMAT_V208 || f == DXGI_FORMAT_V408 || f == DXGI_FORMAT_420_OPAQUE ||
+            f == DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE ||
+            f == DXGI_FORMAT_SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE);
   };
 
   SECTION("Only DXGI_FORMAT_UNKNOWN is ResourceFormatType::Undefined")

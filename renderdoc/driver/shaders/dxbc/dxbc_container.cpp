@@ -358,11 +358,19 @@ CBufferVariableType DXBCContainer::ParseRDEFType(const RDEFHeader *h, const byte
     case DXBC::VARTYPE_BOOL: ret.varType = VarType::Bool; break;
     case DXBC::VARTYPE_MIN16UINT:
     case DXBC::VARTYPE_UINT: ret.varType = VarType::UInt; break;
+    case DXBC::VARTYPE_INT64:
+    case DXBC::VARTYPE_UINT64:
     case DXBC::VARTYPE_DOUBLE: ret.varType = VarType::Double; break;
     case DXBC::VARTYPE_FLOAT:
     case DXBC::VARTYPE_MIN8FLOAT:
     case DXBC::VARTYPE_MIN10FLOAT:
     case DXBC::VARTYPE_MIN16FLOAT:
+      ret.varType = VarType::Float;
+      break;
+    // new types are actually 16-bit, though alignment is still the same as 32-bit
+    case DXBC::VARTYPE_INT16: ret.varType = VarType::SShort; break;
+    case DXBC::VARTYPE_UINT16: ret.varType = VarType::UShort; break;
+    case DXBC::VARTYPE_FLOAT16: ret.varType = VarType::Half; break;
     default: ret.varType = VarType::Float; break;
   }
 

@@ -378,6 +378,8 @@ TextureType MakeTextureDim(D3D12_UAV_DIMENSION dim)
     case D3D12_UAV_DIMENSION_TEXTURE1DARRAY: return TextureType::Texture1DArray;
     case D3D12_UAV_DIMENSION_TEXTURE2D: return TextureType::Texture2D;
     case D3D12_UAV_DIMENSION_TEXTURE2DARRAY: return TextureType::Texture2DArray;
+    case D3D12_UAV_DIMENSION_TEXTURE2DMS: return TextureType::Texture2DMS;
+    case D3D12_UAV_DIMENSION_TEXTURE2DMSARRAY: return TextureType::Texture2DMSArray;
     case D3D12_UAV_DIMENSION_TEXTURE3D: return TextureType::Texture3D;
     default: break;
   }
@@ -404,6 +406,7 @@ CompareFunction MakeCompareFunc(D3D12_COMPARISON_FUNC func)
 {
   switch(func)
   {
+    case D3D12_COMPARISON_FUNC_NONE:
     case D3D12_COMPARISON_FUNC_NEVER: return CompareFunction::Never;
     case D3D12_COMPARISON_FUNC_LESS: return CompareFunction::Less;
     case D3D12_COMPARISON_FUNC_EQUAL: return CompareFunction::Equal;
@@ -450,6 +453,10 @@ TextureFilter MakeFilter(D3D12_FILTER filter)
   {
     case D3D12_FILTER_ANISOTROPIC:
       ret.minify = ret.magnify = ret.mip = FilterMode::Anisotropic;
+      break;
+    case D3D12_FILTER_MIN_MAG_ANISOTROPIC_MIP_POINT:
+      ret.minify = ret.magnify = FilterMode::Anisotropic;
+      ret.mip = FilterMode::Point;
       break;
     case D3D12_FILTER_MIN_MAG_MIP_POINT:
       ret.minify = ret.magnify = ret.mip = FilterMode::Point;
@@ -558,6 +565,8 @@ BlendMultiplier MakeBlendMultiplier(D3D12_BLEND blend, bool alpha)
     case D3D12_BLEND_INV_SRC1_COLOR: return BlendMultiplier::InvSrc1Col;
     case D3D12_BLEND_SRC1_ALPHA: return BlendMultiplier::Src1Alpha;
     case D3D12_BLEND_INV_SRC1_ALPHA: return BlendMultiplier::InvSrc1Alpha;
+    case D3D12_BLEND_ALPHA_FACTOR: return BlendMultiplier::FactorAlpha;
+    case D3D12_BLEND_INV_ALPHA_FACTOR: return BlendMultiplier::InvFactorAlpha;
     default: break;
   }
 

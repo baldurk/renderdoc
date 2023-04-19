@@ -360,11 +360,12 @@ struct WrappedDRED : public ID3D12DeviceRemovedExtendedData1
   }
 };
 
-struct WrappedDREDSettings : public ID3D12DeviceRemovedExtendedDataSettings1
+struct WrappedDREDSettings : public ID3D12DeviceRemovedExtendedDataSettings2
 {
   WrappedID3D12Device &m_pDevice;
   ID3D12DeviceRemovedExtendedDataSettings *m_pReal = NULL;
   ID3D12DeviceRemovedExtendedDataSettings1 *m_pReal1 = NULL;
+  ID3D12DeviceRemovedExtendedDataSettings2 *m_pReal2 = NULL;
 
   WrappedDREDSettings(WrappedID3D12Device &dev) : m_pDevice(dev) {}
   //////////////////////////////
@@ -392,7 +393,16 @@ struct WrappedDREDSettings : public ID3D12DeviceRemovedExtendedDataSettings1
   // implement ID3D12DeviceRemovedExtendedDataSettings1
   virtual void STDMETHODCALLTYPE SetBreadcrumbContextEnablement(D3D12_DRED_ENABLEMENT Enablement)
   {
-    m_pReal1->SetBreadcrumbContextEnablement(Enablement);
+    if(m_pReal1)
+      m_pReal1->SetBreadcrumbContextEnablement(Enablement);
+  }
+
+  //////////////////////////////
+  // implement ID3D12DeviceRemovedExtendedDataSettings2
+  virtual void STDMETHODCALLTYPE UseMarkersOnlyAutoBreadcrumbs(BOOL MarkersOnly)
+  {
+    if(m_pReal2)
+      m_pReal2->UseMarkersOnlyAutoBreadcrumbs(MarkersOnly);
   }
 };
 
