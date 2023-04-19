@@ -43,9 +43,9 @@
      </item>
      <item>
       <widget class="QTextBrowser" name="counterDescription">
-        <property name="openExternalLinks">
-          <bool>true</bool>
-        </property>
+       <property name="openExternalLinks">
+        <bool>true</bool>
+       </property>
       </widget>
      </item>
      <item>
