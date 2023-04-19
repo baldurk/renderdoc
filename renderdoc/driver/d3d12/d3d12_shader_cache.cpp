@@ -602,10 +602,13 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
 
     if(desc->NumStaticSamplers > 0)
     {
-      ret.StaticSamplers.assign(desc->pStaticSamplers, desc->NumStaticSamplers);
+      ret.StaticSamplers.resize(desc->NumStaticSamplers);
 
       for(size_t i = 0; i < ret.StaticSamplers.size(); i++)
+      {
+        ret.StaticSamplers[i] = Upconvert(desc->pStaticSamplers[i]);
         ret.maxSpaceIndex = RDCMAX(ret.maxSpaceIndex, ret.StaticSamplers[i].RegisterSpace + 1);
+      }
     }
 
     SAFE_RELEASE(deser);
@@ -626,8 +629,15 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
 
   D3D12RootSignature ret;
 
+  uint32_t version = 12;
   const D3D12_VERSIONED_ROOT_SIGNATURE_DESC *verdesc = NULL;
-  hr = deser->GetRootSignatureDescAtVersion(D3D_ROOT_SIGNATURE_VERSION_1_1, &verdesc);
+  hr = deser->GetRootSignatureDescAtVersion(D3D_ROOT_SIGNATURE_VERSION_1_2, &verdesc);
+  if(FAILED(hr))
+  {
+    version = 11;
+    hr = deser->GetRootSignatureDescAtVersion(D3D_ROOT_SIGNATURE_VERSION_1_1, &verdesc);
+  }
+
   if(FAILED(hr))
   {
     SAFE_RELEASE(deser);
@@ -660,10 +670,24 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
 
   if(desc->NumStaticSamplers > 0)
   {
-    ret.StaticSamplers.assign(desc->pStaticSamplers, desc->NumStaticSamplers);
+    if(version >= 12)
+    {
+      ret.StaticSamplers.assign(verdesc->Desc_1_2.pStaticSamplers,
+                                verdesc->Desc_1_2.NumStaticSamplers);
 
-    for(size_t i = 0; i < ret.StaticSamplers.size(); i++)
-      ret.maxSpaceIndex = RDCMAX(ret.maxSpaceIndex, ret.StaticSamplers[i].RegisterSpace + 1);
+      for(size_t i = 0; i < ret.StaticSamplers.size(); i++)
+        ret.maxSpaceIndex = RDCMAX(ret.maxSpaceIndex, ret.StaticSamplers[i].RegisterSpace + 1);
+    }
+    else
+    {
+      ret.StaticSamplers.resize(desc->NumStaticSamplers);
+
+      for(size_t i = 0; i < ret.StaticSamplers.size(); i++)
+      {
+        ret.StaticSamplers[i] = Upconvert(desc->pStaticSamplers[i]);
+        ret.maxSpaceIndex = RDCMAX(ret.maxSpaceIndex, ret.StaticSamplers[i].RegisterSpace + 1);
+      }
+    }
   }
 
   SAFE_RELEASE(deser);
@@ -673,7 +697,7 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
 
 ID3DBlob *D3D12ShaderCache::MakeRootSig(const rdcarray<D3D12_ROOT_PARAMETER1> &params,
                                         D3D12_ROOT_SIGNATURE_FLAGS Flags, UINT NumStaticSamplers,
-                                        const D3D12_STATIC_SAMPLER_DESC *StaticSamplers)
+                                        const D3D12_STATIC_SAMPLER_DESC1 *StaticSamplers)
 {
   PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE serializeRootSig =
       (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)GetProcAddress(
@@ -693,10 +717,15 @@ ID3DBlob *D3D12ShaderCache::MakeRootSig(const rdcarray<D3D12_ROOT_PARAMETER1> &p
       return NULL;
     }
 
+    rdcarray<D3D12_STATIC_SAMPLER_DESC> oldSamplers;
+    oldSamplers.resize(NumStaticSamplers);
+    for(size_t i = 0; i < oldSamplers.size(); i++)
+      oldSamplers[i] = Downconvert(StaticSamplers[i]);
+
     D3D12_ROOT_SIGNATURE_DESC desc;
     desc.Flags = Flags;
     desc.NumStaticSamplers = NumStaticSamplers;
-    desc.pStaticSamplers = StaticSamplers;
+    desc.pStaticSamplers = oldSamplers.data();
     desc.NumParameters = (UINT)params.size();
 
     rdcarray<D3D12_ROOT_PARAMETER> params_1_0;
@@ -776,18 +805,33 @@ ID3DBlob *D3D12ShaderCache::MakeRootSig(const rdcarray<D3D12_ROOT_PARAMETER1> &p
   }
 
   D3D12_VERSIONED_ROOT_SIGNATURE_DESC verdesc;
-  verdesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+  verdesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_2;
 
-  D3D12_ROOT_SIGNATURE_DESC1 &desc = verdesc.Desc_1_1;
-  desc.Flags = Flags;
-  desc.NumStaticSamplers = NumStaticSamplers;
-  desc.pStaticSamplers = StaticSamplers;
-  desc.NumParameters = (UINT)params.size();
-  desc.pParameters = &params[0];
+  D3D12_ROOT_SIGNATURE_DESC2 &desc12 = verdesc.Desc_1_2;
+  desc12.Flags = Flags;
+  desc12.NumStaticSamplers = NumStaticSamplers;
+  desc12.pStaticSamplers = StaticSamplers;
+  desc12.NumParameters = (UINT)params.size();
+  desc12.pParameters = &params[0];
 
   ID3DBlob *ret = NULL;
   ID3DBlob *errBlob = NULL;
   HRESULT hr = serializeRootSig(&verdesc, &ret, &errBlob);
+  SAFE_RELEASE(errBlob);
+
+  if(SUCCEEDED(hr))
+    return ret;
+
+  // if it failed, try again at version 1.1
+  verdesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+  D3D12_ROOT_SIGNATURE_DESC1 &desc11 = verdesc.Desc_1_1;
+  rdcarray<D3D12_STATIC_SAMPLER_DESC> oldSamplers;
+  oldSamplers.resize(NumStaticSamplers);
+  for(size_t i = 0; i < oldSamplers.size(); i++)
+    oldSamplers[i] = Downconvert(StaticSamplers[i]);
+  desc11.pStaticSamplers = oldSamplers.data();
+
+  hr = serializeRootSig(&verdesc, &ret, &errBlob);
 
   if(FAILED(hr))
   {
@@ -858,4 +902,25 @@ ID3DBlob *D3D12ShaderCache::GetQuadShaderDXILBlob()
 void D3D12ShaderCache::LoadDXC()
 {
   GetDXC();
+}
+
+D3D12_STATIC_SAMPLER_DESC1 D3D12ShaderCache::Upconvert(const D3D12_STATIC_SAMPLER_DESC &StaticSampler)
+{
+  D3D12_STATIC_SAMPLER_DESC1 ret;
+  memcpy(&ret, &StaticSampler, sizeof(StaticSampler));
+  ret.Flags = D3D12_SAMPLER_FLAG_NONE;
+  return ret;
+}
+
+D3D12_STATIC_SAMPLER_DESC D3D12ShaderCache::Downconvert(const D3D12_STATIC_SAMPLER_DESC1 &StaticSampler)
+{
+  D3D12_STATIC_SAMPLER_DESC ret;
+  memcpy(&ret, &StaticSampler, sizeof(ret));
+  if(StaticSampler.Flags != 0)
+    RDCWARN("Downconverting sampler with advanced features set");
+  if(ret.BorderColor == D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK_UINT)
+    ret.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK_UINT;
+  else if(ret.BorderColor == D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE_UINT)
+    ret.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE_UINT;
+  return ret;
 }

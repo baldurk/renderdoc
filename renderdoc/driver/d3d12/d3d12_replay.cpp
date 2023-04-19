@@ -985,13 +985,18 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
   desc->GetHeap()->SetToViewCache(desc->GetHeapIndex(), view);
 }
 
-void D3D12Replay::FillSampler(D3D12Pipe::Sampler &samp, const D3D12_SAMPLER_DESC &sampDesc)
+void D3D12Replay::FillSampler(D3D12Pipe::Sampler &samp, const D3D12_SAMPLER_DESC2 &sampDesc)
 {
   samp.addressU = MakeAddressMode(sampDesc.AddressU);
   samp.addressV = MakeAddressMode(sampDesc.AddressV);
   samp.addressW = MakeAddressMode(sampDesc.AddressW);
 
-  samp.borderColor = sampDesc.BorderColor;
+  samp.borderColorValue.uintValue = sampDesc.UintBorderColor;
+  samp.borderColorType =
+      ((sampDesc.Flags & D3D12_SAMPLER_FLAG_UINT_BORDER_COLOR) != 0 ? CompType::UInt
+                                                                    : CompType::Float);
+
+  samp.unnormalized = (sampDesc.Flags & D3D12_SAMPLER_FLAG_NON_NORMALIZED_COORDINATES) != 0;
 
   samp.compareFunction = MakeCompareFunc(sampDesc.ComparisonFunc);
   samp.filter = MakeFilter(sampDesc.Filter);
@@ -1316,7 +1321,7 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
 
             if(desc)
             {
-              const D3D12_SAMPLER_DESC &sampDesc = desc->GetSampler();
+              const D3D12_SAMPLER_DESC2 &sampDesc = desc->GetSampler();
               FillSampler(samp, sampDesc);
               desc++;
             }
@@ -1482,7 +1487,7 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
           desc += curUsage->descIndex;
           element->samplers.push_back(D3D12Pipe::Sampler());
           D3D12Pipe::Sampler &samp = element->samplers.back();
-          const D3D12_SAMPLER_DESC &sampDesc = desc->GetSampler();
+          const D3D12_SAMPLER_DESC2 &sampDesc = desc->GetSampler();
           FillSampler(samp, sampDesc);
           samp.tableIndex = curUsage->descIndex;
           element->dynamicallyUsedCount++;
@@ -1539,7 +1544,7 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
   // Each static sampler gets its own RootElement
   for(size_t i = 0; i < sig->sig.StaticSamplers.size(); i++)
   {
-    D3D12_STATIC_SAMPLER_DESC &sampDesc = sig->sig.StaticSamplers[i];
+    D3D12_STATIC_SAMPLER_DESC1 &sampDesc = sig->sig.StaticSamplers[i];
 
     rootElements.resize_for_index(ridx);
     D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
@@ -1560,31 +1565,51 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
     samp.addressV = MakeAddressMode(sampDesc.AddressV);
     samp.addressW = MakeAddressMode(sampDesc.AddressW);
 
+    samp.borderColorType = CompType::Float;
+
     if(sampDesc.BorderColor == D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK)
     {
-      samp.borderColor[0] = 0.0f;
-      samp.borderColor[1] = 0.0f;
-      samp.borderColor[2] = 0.0f;
-      samp.borderColor[3] = 0.0f;
+      samp.borderColorValue.floatValue[0] = 0.0f;
+      samp.borderColorValue.floatValue[1] = 0.0f;
+      samp.borderColorValue.floatValue[2] = 0.0f;
+      samp.borderColorValue.floatValue[3] = 0.0f;
     }
     else if(sampDesc.BorderColor == D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK)
     {
-      samp.borderColor[0] = 0.0f;
-      samp.borderColor[1] = 0.0f;
-      samp.borderColor[2] = 0.0f;
-      samp.borderColor[3] = 1.0f;
+      samp.borderColorValue.floatValue[0] = 0.0f;
+      samp.borderColorValue.floatValue[1] = 0.0f;
+      samp.borderColorValue.floatValue[2] = 0.0f;
+      samp.borderColorValue.floatValue[3] = 1.0f;
     }
     else if(sampDesc.BorderColor == D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE)
     {
-      samp.borderColor[0] = 1.0f;
-      samp.borderColor[1] = 1.0f;
-      samp.borderColor[2] = 1.0f;
-      samp.borderColor[3] = 1.0f;
+      samp.borderColorValue.floatValue[0] = 1.0f;
+      samp.borderColorValue.floatValue[1] = 1.0f;
+      samp.borderColorValue.floatValue[2] = 1.0f;
+      samp.borderColorValue.floatValue[3] = 1.0f;
+    }
+    else if(sampDesc.BorderColor == D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK_UINT)
+    {
+      samp.borderColorValue.uintValue[0] = 0;
+      samp.borderColorValue.uintValue[1] = 0;
+      samp.borderColorValue.uintValue[2] = 0;
+      samp.borderColorValue.uintValue[3] = 1;
+      samp.borderColorType = CompType::UInt;
+    }
+    else if(sampDesc.BorderColor == D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE_UINT)
+    {
+      samp.borderColorValue.uintValue[0] = 1;
+      samp.borderColorValue.uintValue[1] = 1;
+      samp.borderColorValue.uintValue[2] = 1;
+      samp.borderColorValue.uintValue[3] = 1;
+      samp.borderColorType = CompType::UInt;
     }
     else
     {
       RDCERR("Unexpected static border colour: %u", sampDesc.BorderColor);
     }
+
+    samp.unnormalized = (sampDesc.Flags & D3D12_SAMPLER_FLAG_NON_NORMALIZED_COORDINATES) != 0;
 
     samp.compareFunction = MakeCompareFunc(sampDesc.ComparisonFunc);
     samp.filter = MakeFilter(sampDesc.Filter);

@@ -30,12 +30,37 @@
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
 
-void D3D12Descriptor::Init(const D3D12_SAMPLER_DESC *pDesc)
+void D3D12Descriptor::Init(const D3D12_SAMPLER_DESC2 *pDesc)
 {
   if(pDesc)
-    data.samp.desc = *pDesc;
+    data.samp.desc.Init(*pDesc);
   else
     RDCEraseEl(data.samp.desc);
+}
+
+void D3D12Descriptor::Init(const D3D12_SAMPLER_DESC *pDesc)
+{
+  if(!pDesc)
+  {
+    RDCEraseEl(data.samp.desc);
+    return;
+  }
+
+  D3D12_SAMPLER_DESC2 desc;
+  desc.Filter = pDesc->Filter;
+  desc.Filter = pDesc->Filter;
+  desc.AddressU = pDesc->AddressU;
+  desc.AddressV = pDesc->AddressV;
+  desc.AddressW = pDesc->AddressW;
+  desc.ComparisonFunc = pDesc->ComparisonFunc;
+  desc.MipLODBias = pDesc->MipLODBias;
+  desc.MaxAnisotropy = pDesc->MaxAnisotropy;
+  memcpy(desc.UintBorderColor, pDesc->BorderColor, sizeof(desc.UintBorderColor));
+  desc.MinLOD = pDesc->MinLOD;
+  desc.MaxLOD = pDesc->MaxLOD;
+  desc.Flags = D3D12_SAMPLER_FLAG_NONE;
+
+  data.samp.desc.Init(desc);
 }
 
 void D3D12Descriptor::Init(const D3D12_CONSTANT_BUFFER_VIEW_DESC *pDesc)
@@ -146,7 +171,17 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
   {
     case D3D12DescriptorType::Sampler:
     {
-      dev->CreateSampler(&data.samp.desc, handle);
+      D3D12_SAMPLER_DESC2 desc = data.samp.desc.AsDesc();
+      if(desc.Flags == D3D12_SAMPLER_FLAG_NONE)
+      {
+        D3D12_SAMPLER_DESC desc1;
+        memcpy(&desc1, &desc, sizeof(desc1));
+        dev->CreateSampler(&desc1, handle);
+      }
+      else
+      {
+        dev->CreateSampler2(&desc, handle);
+      }
       break;
     }
     case D3D12DescriptorType::CBV:

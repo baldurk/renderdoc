@@ -608,11 +608,11 @@ D3D12Descriptor D3D12DebugAPIWrapper::FindDescriptor(DXBCBytecode::OperandType t
 
     if(searchRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
     {
-      for(const D3D12_STATIC_SAMPLER_DESC &samp : pD3D12RootSig->sig.StaticSamplers)
+      for(const D3D12_STATIC_SAMPLER_DESC1 &samp : pD3D12RootSig->sig.StaticSamplers)
       {
         if(samp.RegisterSpace == slot.registerSpace && samp.ShaderRegister == slot.shaderRegister)
         {
-          D3D12_SAMPLER_DESC desc;
+          D3D12_SAMPLER_DESC2 desc;
 
           desc.Filter = samp.Filter;
           desc.AddressU = samp.AddressU;
@@ -625,20 +625,29 @@ D3D12Descriptor D3D12DebugAPIWrapper::FindDescriptor(DXBCBytecode::OperandType t
           {
             default:
             case D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK:
-              desc.BorderColor[0] = desc.BorderColor[1] = desc.BorderColor[2] =
-                  desc.BorderColor[3] = 0.0f;
+              desc.FloatBorderColor[0] = desc.FloatBorderColor[1] = desc.FloatBorderColor[2] =
+                  desc.FloatBorderColor[3] = 0.0f;
               break;
             case D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK:
-              desc.BorderColor[0] = desc.BorderColor[1] = desc.BorderColor[2] = 0.0f;
-              desc.BorderColor[3] = 1.0f;
+              desc.FloatBorderColor[0] = desc.FloatBorderColor[1] = desc.FloatBorderColor[2] = 0.0f;
+              desc.FloatBorderColor[3] = 1.0f;
               break;
             case D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE:
-              desc.BorderColor[0] = desc.BorderColor[1] = desc.BorderColor[2] =
-                  desc.BorderColor[3] = 1.0f;
+              desc.FloatBorderColor[0] = desc.FloatBorderColor[1] = desc.FloatBorderColor[2] =
+                  desc.FloatBorderColor[3] = 1.0f;
+              break;
+            case D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK_UINT:
+              desc.UintBorderColor[0] = desc.UintBorderColor[1] = desc.UintBorderColor[2] = 0;
+              desc.UintBorderColor[3] = 1;
+              break;
+            case D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE_UINT:
+              desc.UintBorderColor[0] = desc.UintBorderColor[1] = desc.UintBorderColor[2] =
+                  desc.UintBorderColor[3] = 1;
               break;
           }
           desc.MinLOD = samp.MinLOD;
           desc.MaxLOD = samp.MaxLOD;
+          desc.Flags = samp.Flags;
 
           descriptor.Init(&desc);
           return descriptor;

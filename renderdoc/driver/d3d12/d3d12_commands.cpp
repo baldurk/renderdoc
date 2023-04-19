@@ -686,6 +686,7 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     case D3D12Chunk::Device_CreateRenderTargetView:
     case D3D12Chunk::Device_CreateDepthStencilView:
     case D3D12Chunk::Device_CreateSampler:
+    case D3D12Chunk::Device_CreateSampler2:
       ret = m_pDevice->Serialise_DynamicDescriptorWrite(ser, NULL);
       break;
     case D3D12Chunk::Device_CopyDescriptors:
@@ -947,7 +948,6 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     case D3D12Chunk::Device_CreateCommittedResource2:
     case D3D12Chunk::Device_CreatePlacedResource1:
     case D3D12Chunk::Device_CreateCommandQueue1:
-    case D3D12Chunk::Device_CreateSampler2:
     case D3D12Chunk::Device_CreateCommittedResource3:
     case D3D12Chunk::Device_CreatePlacedResource2:
     case D3D12Chunk::Device_CreateReservedResource1:

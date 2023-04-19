@@ -175,6 +175,25 @@ void DoSerialise(SerialiserType &ser, D3D12_STATIC_SAMPLER_DESC &el)
 }
 
 template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_STATIC_SAMPLER_DESC1 &el)
+{
+  SERIALISE_MEMBER(Filter);
+  SERIALISE_MEMBER(AddressU);
+  SERIALISE_MEMBER(AddressV);
+  SERIALISE_MEMBER(AddressW);
+  SERIALISE_MEMBER(MipLODBias);
+  SERIALISE_MEMBER(MaxAnisotropy);
+  SERIALISE_MEMBER(ComparisonFunc);
+  SERIALISE_MEMBER(BorderColor);
+  SERIALISE_MEMBER(MinLOD);
+  SERIALISE_MEMBER(MaxLOD);
+  SERIALISE_MEMBER(ShaderRegister);
+  SERIALISE_MEMBER(RegisterSpace);
+  SERIALISE_MEMBER(ShaderVisibility);
+  SERIALISE_MEMBER(Flags);
+}
+
+template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12RootSignatureParameter &el)
 {
   RDCASSERTMSG(
@@ -363,7 +382,13 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
   {
     case D3D12DescriptorType::Sampler:
     {
-      ser.Serialise("Descriptor"_lit, el.data.samp.desc);
+      // special case because of squeezed descriptor
+      D3D12_SAMPLER_DESC2 desc;
+      if(ser.IsWriting() || ser.IsStructurising())
+        desc = el.data.samp.desc.AsDesc();
+      ser.Serialise("Descriptor"_lit, desc);
+      if(ser.IsReading() && !ser.IsStructurising())
+        el.data.samp.desc.Init(desc);
       RDCASSERTEQUAL(el.GetType(), D3D12DescriptorType::Sampler);
       break;
     }
@@ -1392,8 +1417,13 @@ void DoSerialise(SerialiserType &ser, D3D12_BOX &el)
   SERIALISE_MEMBER(back);
 }
 
+// deliberately do not serialise D3D12_SAMPLER_DESC
+// for ease of compatibility we serialise D3D12_SAMPLER_DESC2 here and use serialise versioning to
+// detect old captures where the fields did not exist
+// in descriptors where this is referenced, we unconditionally serialise the new version
+
 template <class SerialiserType>
-void DoSerialise(SerialiserType &ser, D3D12_SAMPLER_DESC &el)
+void DoSerialise(SerialiserType &ser, D3D12_SAMPLER_DESC2 &el)
 {
   SERIALISE_MEMBER(Filter).Important();
   SERIALISE_MEMBER(AddressU);
@@ -1402,9 +1432,21 @@ void DoSerialise(SerialiserType &ser, D3D12_SAMPLER_DESC &el)
   SERIALISE_MEMBER(MipLODBias);
   SERIALISE_MEMBER(MaxAnisotropy);
   SERIALISE_MEMBER(ComparisonFunc);
-  SERIALISE_MEMBER(BorderColor);
+  // serialise as floats since that is the most common case. It's also compatible with
+  // D3D12_SAMPLER_DESC
+  // since the flags come later in struct order, we can't do anything clever to serialise by that
+  // type
+  SERIALISE_MEMBER(FloatBorderColor);
   SERIALISE_MEMBER(MinLOD);
   SERIALISE_MEMBER(MaxLOD);
+  if(ser.VersionAtLeast(0xF))
+  {
+    SERIALISE_MEMBER(Flags);
+  }
+  else
+  {
+    el.Flags = D3D12_SAMPLER_FLAG_NONE;
+  }
 }
 
 template <class SerialiserType>
@@ -1626,7 +1668,7 @@ INSTANTIATE_SERIALISE_TYPE(D3D12_DESCRIPTOR_HEAP_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_INDIRECT_ARGUMENT_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_COMMAND_SIGNATURE_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_QUERY_HEAP_DESC);
-INSTANTIATE_SERIALISE_TYPE(D3D12_SAMPLER_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_SAMPLER_DESC2);
 INSTANTIATE_SERIALISE_TYPE(D3D12_CONSTANT_BUFFER_VIEW_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_SHADER_RESOURCE_VIEW_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_RENDER_TARGET_VIEW_DESC);

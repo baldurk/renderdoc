@@ -2092,7 +2092,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 el.compareFunction = MakeCompareFunc(sampl.compareOp);
                 el.minLOD = sampl.minLod;
                 el.maxLOD = sampl.maxLod;
-                MakeBorderColor(sampl.borderColor, el.borderColor);
+                MakeBorderColor(sampl.borderColor, el.borderColorValue.floatValue);
+                el.borderColorType = CompType::Float;
                 el.unnormalized = sampl.unnormalizedCoordinates;
                 el.seamless = sampl.seamless;
 
@@ -2119,12 +2120,12 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 {
                   if(sampl.borderColor == VK_BORDER_COLOR_INT_CUSTOM_EXT)
                   {
-                    for(int bord = 0; bord < 4; bord++)
-                      el.borderColor[bord] = float(sampl.customBorderColor.int32[bord]);
+                    el.borderColorValue.uintValue = sampl.customBorderColor.uint32;
+                    el.borderColorType = CompType::UInt;
                   }
                   else
                   {
-                    el.borderColor = sampl.customBorderColor.float32;
+                    el.borderColorValue.floatValue = sampl.customBorderColor.float32;
                   }
                 }
               }

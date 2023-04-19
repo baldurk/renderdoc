@@ -1436,7 +1436,9 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::Sampler &el)
   SERIALISE_MEMBER(addressU);
   SERIALISE_MEMBER(addressV);
   SERIALISE_MEMBER(addressW);
-  SERIALISE_MEMBER(borderColor);
+  SERIALISE_MEMBER(borderColorValue);
+  SERIALISE_MEMBER(borderColorType);
+  SERIALISE_MEMBER(unnormalized);
   SERIALISE_MEMBER(compareFunction);
   SERIALISE_MEMBER(filter);
   SERIALISE_MEMBER(maxAnisotropy);
@@ -1444,7 +1446,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::Sampler &el)
   SERIALISE_MEMBER(minLOD);
   SERIALISE_MEMBER(mipLODBias);
 
-  SIZE_CHECK(72);
+  SIZE_CHECK(76);
 }
 
 template <typename SerialiserType>
@@ -1949,7 +1951,8 @@ void DoSerialise(SerialiserType &ser, VKPipe::BindingElement &el)
   SERIALISE_MEMBER(compareFunction);
   SERIALISE_MEMBER(minLOD);
   SERIALISE_MEMBER(maxLOD);
-  SERIALISE_MEMBER(borderColor);
+  SERIALISE_MEMBER(borderColorValue);
+  SERIALISE_MEMBER(borderColorType);
   SERIALISE_MEMBER(samplerSwizzle);
   SERIALISE_MEMBER(unnormalized);
   SERIALISE_MEMBER(inlineBlock);
@@ -1963,7 +1966,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::BindingElement &el)
   SERIALISE_MEMBER(chromaFilter);
   SERIALISE_MEMBER(forceExplicitReconstruction);
 
-  SIZE_CHECK(184);
+  SIZE_CHECK(192);
 };
 
 template <typename SerialiserType>

@@ -264,7 +264,7 @@ private:
                         const ShaderBindpointMapping *mappings[(uint32_t)ShaderStage::Count],
                         rdcarray<D3D12Pipe::RootSignatureRange> &rootElements);
   void FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor *desc);
-  void FillSampler(D3D12Pipe::Sampler &view, const D3D12_SAMPLER_DESC &desc);
+  void FillSampler(D3D12Pipe::Sampler &view, const D3D12_SAMPLER_DESC2 &desc);
 
   bool CreateSOBuffers();
   void ClearPostVSCache();

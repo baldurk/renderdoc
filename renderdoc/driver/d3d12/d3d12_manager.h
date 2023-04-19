@@ -215,6 +215,59 @@ struct PortableHandle
 
 DECLARE_REFLECTION_STRUCT(PortableHandle);
 
+struct D3D12_SAMPLER_DESC_SQUEEZED
+{
+  // this filter must be first and the same size, since we alias it for the descriptor type
+  D3D12_FILTER Filter;
+
+  // we just save the enums in a byte since they'll never be larger
+  uint8_t AddressU;
+  uint8_t AddressV;
+  uint8_t AddressW;
+  uint8_t ComparisonFunc;
+  FLOAT MipLODBias;
+  UINT MaxAnisotropy;
+  // just copy as uint
+  FLOAT UintBorderColor[4];
+  FLOAT MinLOD;
+  FLOAT MaxLOD;
+  D3D12_SAMPLER_FLAGS Flags;
+
+  void Init(const D3D12_SAMPLER_DESC2 &desc)
+  {
+    Filter = desc.Filter;
+    AddressU = uint8_t(desc.AddressU);
+    AddressV = uint8_t(desc.AddressV);
+    AddressW = uint8_t(desc.AddressW);
+    ComparisonFunc = uint8_t(desc.ComparisonFunc);
+    MipLODBias = desc.MipLODBias;
+    MaxAnisotropy = desc.MaxAnisotropy;
+    memcpy(UintBorderColor, desc.UintBorderColor, sizeof(UintBorderColor));
+    MinLOD = desc.MinLOD;
+    MaxLOD = desc.MaxLOD;
+    Flags = desc.Flags;
+  }
+
+  D3D12_SAMPLER_DESC2 AsDesc() const
+  {
+    D3D12_SAMPLER_DESC2 desc = {};
+
+    desc.Filter = Filter;
+    desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE(AddressU);
+    desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE(AddressV);
+    desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE(AddressW);
+    desc.ComparisonFunc = D3D12_COMPARISON_FUNC(ComparisonFunc);
+    desc.MipLODBias = MipLODBias;
+    desc.MaxAnisotropy = MaxAnisotropy;
+    memcpy(desc.UintBorderColor, UintBorderColor, sizeof(UintBorderColor));
+    desc.MinLOD = MinLOD;
+    desc.MaxLOD = MaxLOD;
+    desc.Flags = Flags;
+
+    return desc;
+  }
+};
+
 // the heap pointer & index are inside the data structs, because in the sampler case we don't need
 // to pad up for any alignment, and in the non-sampler case we declare the type before uint64/ptr
 // aligned elements come, so we don't get any padding waste.
@@ -224,7 +277,7 @@ struct SamplerDescriptorData
   WrappedID3D12DescriptorHeap *heap;
   uint32_t idx;
 
-  D3D12_SAMPLER_DESC desc;
+  D3D12_SAMPLER_DESC_SQUEEZED desc;
 };
 
 struct NonSamplerDescriptorData
@@ -317,6 +370,7 @@ public:
     return handle;
   }
 
+  void Init(const D3D12_SAMPLER_DESC2 *pDesc);
   void Init(const D3D12_SAMPLER_DESC *pDesc);
   void Init(const D3D12_CONSTANT_BUFFER_VIEW_DESC *pDesc);
   void Init(ID3D12Resource *pResource, const D3D12_SHADER_RESOURCE_VIEW_DESC *pDesc);
@@ -351,11 +405,11 @@ public:
 
   // Accessors for descriptor structs. The squeezed structs return only by value, others have const
   // reference returns
-  const D3D12_SAMPLER_DESC &GetSampler() const { return data.samp.desc; }
   const D3D12_RENDER_TARGET_VIEW_DESC &GetRTV() const { return data.nonsamp.rtv; }
   const D3D12_DEPTH_STENCIL_VIEW_DESC &GetDSV() const { return data.nonsamp.dsv; }
   const D3D12_CONSTANT_BUFFER_VIEW_DESC &GetCBV() const { return data.nonsamp.cbv; }
   // squeezed descriptors
+  D3D12_SAMPLER_DESC2 GetSampler() const { return data.samp.desc.AsDesc(); }
   D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAV() const { return data.nonsamp.uav.AsDesc(); }
   D3D12_SHADER_RESOURCE_VIEW_DESC GetSRV() const { return data.nonsamp.srv.AsDesc(); }
 private:

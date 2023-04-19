@@ -332,7 +332,9 @@ struct Sampler
   bool operator==(const Sampler &o) const
   {
     return bind == o.bind && tableIndex == o.tableIndex && addressU == o.addressU &&
-           addressV == o.addressV && addressW == o.addressW && borderColor == o.borderColor &&
+           addressV == o.addressV && addressW == o.addressW &&
+           borderColorValue.uintValue == o.borderColorValue.uintValue &&
+           borderColorType == o.borderColorType && unnormalized == o.unnormalized &&
            compareFunction == o.compareFunction && filter == o.filter &&
            maxAnisotropy == o.maxAnisotropy && maxLOD == o.maxLOD && minLOD == o.minLOD &&
            mipLODBias == o.mipLODBias;
@@ -349,8 +351,12 @@ struct Sampler
       return addressV < o.addressV;
     if(!(addressW == o.addressW))
       return addressW < o.addressW;
-    if(!(borderColor == o.borderColor))
-      return borderColor < o.borderColor;
+    if(!(borderColorValue.uintValue == o.borderColorValue.uintValue))
+      return borderColorValue.uintValue < o.borderColorValue.uintValue;
+    if(!(borderColorType == o.borderColorType))
+      return borderColorType < o.borderColorType;
+    if(!(unnormalized == o.unnormalized))
+      return unnormalized < o.unnormalized;
     if(!(compareFunction == o.compareFunction))
       return compareFunction < o.compareFunction;
     if(!(filter == o.filter))
@@ -376,11 +382,20 @@ struct Sampler
   AddressMode addressV = AddressMode::Wrap;
   DOCUMENT("The :class:`AddressMode` in the W direction.");
   AddressMode addressW = AddressMode::Wrap;
-  DOCUMENT(R"(The RGBA border color.
+  DOCUMENT(R"(For samplers - the RGBA border color value. Typically the float tuple inside will be used,
+but the exact component type can be checked with :data:`borderColorType`.
 
-:type: Tuple[float,float,float,float]
+:type: PixelValue
 )");
-  rdcfixedarray<float, 4> borderColor = {0.0f, 0.0f, 0.0f, 0.0f};
+  PixelValue borderColorValue = {};
+  DOCUMENT(R"(For samplers - the RGBA border color type. This determines how the data in
+:data:`borderColorValue` will be interpreted.
+
+:type: CompType
+)");
+  CompType borderColorType = CompType::Float;
+  DOCUMENT("``True`` if unnormalized co-ordinates are used in this sampler.");
+  bool unnormalized = false;
   DOCUMENT("The :class:`CompareFunction` for comparison samplers.");
   CompareFunction compareFunction = CompareFunction::AlwaysTrue;
   DOCUMENT(R"(The filtering mode.

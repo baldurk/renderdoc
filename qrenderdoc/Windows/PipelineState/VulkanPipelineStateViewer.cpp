@@ -1001,11 +1001,20 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
   addressing += addPrefix + lit(": ") + addVal;
 
   if(descriptor.UseBorder())
-    addressing += QFormatStr(" <%1, %2, %3, %4>")
-                      .arg(descriptor.borderColor[0])
-                      .arg(descriptor.borderColor[1])
-                      .arg(descriptor.borderColor[2])
-                      .arg(descriptor.borderColor[3]);
+  {
+    if(descriptor.borderColorType == CompType::Float)
+      addressing += QFormatStr(" <%1, %2, %3, %4>")
+                        .arg(descriptor.borderColorValue.floatValue[0])
+                        .arg(descriptor.borderColorValue.floatValue[1])
+                        .arg(descriptor.borderColorValue.floatValue[2])
+                        .arg(descriptor.borderColorValue.floatValue[3]);
+    else
+      addressing += QFormatStr(" <%1, %2, %3, %4>")
+                        .arg(descriptor.borderColorValue.uintValue[0])
+                        .arg(descriptor.borderColorValue.uintValue[1])
+                        .arg(descriptor.borderColorValue.uintValue[2])
+                        .arg(descriptor.borderColorValue.uintValue[3]);
+  }
 
   if(descriptor.unnormalized)
     addressing += lit(" (Un-norm)");

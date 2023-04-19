@@ -27,7 +27,34 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_resources.h"
 
-void WrappedID3D12Device::CreateSampler2(_In_ const D3D12_SAMPLER_DESC2 *pDesc,
-                                         _In_ D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
+void WrappedID3D12Device::CreateSampler2(const D3D12_SAMPLER_DESC2 *pDesc,
+                                         D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
+  bool capframe = false;
+
+  {
+    SCOPED_READLOCK(m_CapTransitionLock);
+    capframe = IsActiveCapturing(m_State);
+  }
+
+  SERIALISE_TIME_CALL(m_pDevice11->CreateSampler2(pDesc, Unwrap(DestDescriptor)));
+
+  // assume descriptors are volatile
+  if(capframe)
+  {
+    DynamicDescriptorWrite write;
+    write.desc.Init(pDesc);
+    write.dest = GetWrapped(DestDescriptor);
+
+    {
+      CACHE_THREAD_SERIALISER();
+
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateSampler2);
+      Serialise_DynamicDescriptorWrite(ser, &write);
+
+      m_FrameCaptureRecord->AddChunk(scope.Get());
+    }
+  }
+
+  GetWrapped(DestDescriptor)->Init(pDesc);
 }

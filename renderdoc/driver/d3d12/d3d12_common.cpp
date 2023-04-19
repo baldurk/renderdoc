@@ -239,6 +239,11 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0xD)
     return true;
 
+  // 0xE -> 0xF - Sampler descriptors are now serialised as D3D12_SAMPLER_DESC2 in a backwards
+  //              compatible manner
+  if(ver == 0xE)
+    return true;
+
   return false;
 }
 

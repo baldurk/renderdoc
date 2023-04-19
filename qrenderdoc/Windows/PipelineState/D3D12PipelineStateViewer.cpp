@@ -1314,11 +1314,20 @@ void D3D12PipelineStateViewer::setShaderState(
             if(shaderInput && !shaderInput->name.empty())
               regname += lit(": ") + shaderInput->name;
 
-            QString borderColor = QFormatStr("%1, %2, %3, %4")
-                                      .arg(s.borderColor[0])
-                                      .arg(s.borderColor[1])
-                                      .arg(s.borderColor[2])
-                                      .arg(s.borderColor[3]);
+            QString borderColor;
+
+            if(s.borderColorType == CompType::Float)
+              borderColor = QFormatStr("%1, %2, %3, %4")
+                                .arg(s.borderColorValue.floatValue[0])
+                                .arg(s.borderColorValue.floatValue[1])
+                                .arg(s.borderColorValue.floatValue[2])
+                                .arg(s.borderColorValue.floatValue[3]);
+            else
+              borderColor = QFormatStr("%1, %2, %3, %4")
+                                .arg(s.borderColorValue.uintValue[0])
+                                .arg(s.borderColorValue.uintValue[1])
+                                .arg(s.borderColorValue.uintValue[2])
+                                .arg(s.borderColorValue.uintValue[3]);
 
             QString addressing;
 
@@ -1352,6 +1361,9 @@ void D3D12PipelineStateViewer::setShaderState(
 
             if(s.UseBorder())
               addressing += QFormatStr("<%1>").arg(borderColor);
+
+            if(s.unnormalized)
+              addressing += lit(" (Non-norm)");
 
             QString filter = ToQStr(s.filter);
 
@@ -2927,11 +2939,20 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
             if(shaderInput && !shaderInput->name.empty())
               regname += lit(": ") + shaderInput->name;
 
-            QString borderColor = QFormatStr("%1, %2, %3, %4")
-                                      .arg(s.borderColor[0])
-                                      .arg(s.borderColor[1])
-                                      .arg(s.borderColor[2])
-                                      .arg(s.borderColor[3]);
+            QString borderColor;
+
+            if(s.borderColorType == CompType::Float)
+              borderColor = QFormatStr("%1, %2, %3, %4")
+                                .arg(s.borderColorValue.floatValue[0])
+                                .arg(s.borderColorValue.floatValue[1])
+                                .arg(s.borderColorValue.floatValue[2])
+                                .arg(s.borderColorValue.floatValue[3]);
+            else
+              borderColor = QFormatStr("%1, %2, %3, %4")
+                                .arg(s.borderColorValue.uintValue[0])
+                                .arg(s.borderColorValue.uintValue[1])
+                                .arg(s.borderColorValue.uintValue[2])
+                                .arg(s.borderColorValue.uintValue[3]);
 
             QString addressing;
 
@@ -2965,6 +2986,9 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
             if(s.UseBorder())
               addressing += QFormatStr("<%1>").arg(borderColor);
+
+            if(s.unnormalized)
+              addressing += lit(" (Un-norm)");
 
             QString filter = ToQStr(s.filter);
 
