@@ -9,7 +9,7 @@
 /* this ALWAYS GENERATED file contains the definitions for the interfaces */
 
 
- /* File created by MIDL compiler version 8.01.0625 */
+ /* File created by MIDL compiler version 8.01.0628 */
 /* @@MIDL_FILE_HEADING(  ) */
 
 
@@ -44,7 +44,7 @@
 #endif
 
 #ifndef DECLSPEC_XFGVIRT
-#if _CONTROL_FLOW_GUARD_XFG
+#if defined(_CONTROL_FLOW_GUARD_XFG)
 #define DECLSPEC_XFGVIRT(base, func) __declspec(xfg_virtual(base, func))
 #else
 #define DECLSPEC_XFGVIRT(base, func)
@@ -68,8 +68,8 @@ typedef interface ID3DDestructionNotifier ID3DDestructionNotifier;
 
 
 /* header files for imported files */
-#include "OAIdl.h"
-#include "OCIdl.h"
+#include "oaidl.h"
+#include "ocidl.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -130,6 +130,7 @@ enum D3D_PRIMITIVE_TOPOLOGY
         D3D_PRIMITIVE_TOPOLOGY_LINESTRIP	= 3,
         D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST	= 4,
         D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP	= 5,
+        D3D_PRIMITIVE_TOPOLOGY_TRIANGLEFAN	= 6,
         D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ	= 10,
         D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ	= 11,
         D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ	= 12,
@@ -386,6 +387,8 @@ enum D3D_SRV_DIMENSION
 #define D3D_SHADER_FEATURE_SAMPLER_DESCRIPTOR_HEAP_INDEXING                               0x4000000
 #define D3D_SHADER_FEATURE_WAVE_MMA                                                       0x8000000
 #define D3D_SHADER_FEATURE_ATOMIC_INT64_ON_DESCRIPTOR_HEAP_RESOURCE                       0x10000000
+#define D3D_SHADER_FEATURE_ADVANCED_TEXTURE_OPS                                           0x20000000
+#define D3D_SHADER_FEATURE_WRITEABLE_MSAA_TEXTURES                                        0x40000000
 typedef struct _D3D_SHADER_MACRO
     {
     LPCSTR Name;
@@ -733,6 +736,11 @@ enum _D3D_SHADER_VARIABLE_TYPE
         D3D_SVT_MIN12INT	= 55,
         D3D_SVT_MIN16INT	= 56,
         D3D_SVT_MIN16UINT	= 57,
+        D3D_SVT_INT16	= 58,
+        D3D_SVT_UINT16	= 59,
+        D3D_SVT_FLOAT16	= 60,
+        D3D_SVT_INT64	= 61,
+        D3D_SVT_UINT64	= 62,
         D3D10_SVT_VOID	= D3D_SVT_VOID,
         D3D10_SVT_BOOL	= D3D_SVT_BOOL,
         D3D10_SVT_INT	= D3D_SVT_INT,
@@ -1035,6 +1043,46 @@ enum _D3D_PARAMETER_FLAGS
         D3D_PF_OUT	= 0x2,
         D3D_PF_FORCE_DWORD	= 0x7fffffff
     } 	D3D_PARAMETER_FLAGS;
+
+typedef 
+enum D3D_FORMAT_LAYOUT
+    {
+        D3DFL_STANDARD	= 0,
+        D3DFL_CUSTOM	= -1
+    } 	D3D_FORMAT_LAYOUT;
+
+typedef 
+enum D3D_FORMAT_TYPE_LEVEL
+    {
+        D3DFTL_NO_TYPE	= 0,
+        D3DFTL_PARTIAL_TYPE	= -2,
+        D3DFTL_FULL_TYPE	= -1
+    } 	D3D_FORMAT_TYPE_LEVEL;
+
+typedef 
+enum D3D_FORMAT_COMPONENT_NAME
+    {
+        D3DFCN_R	= -4,
+        D3DFCN_G	= -3,
+        D3DFCN_B	= -2,
+        D3DFCN_A	= -1,
+        D3DFCN_D	= 0,
+        D3DFCN_S	= 1,
+        D3DFCN_X	= 2
+    } 	D3D_FORMAT_COMPONENT_NAME;
+
+typedef 
+enum D3D_FORMAT_COMPONENT_INTERPRETATION
+    {
+        D3DFCI_TYPELESS	= 0,
+        D3DFCI_FLOAT	= -4,
+        D3DFCI_SNORM	= -3,
+        D3DFCI_UNORM	= -2,
+        D3DFCI_SINT	= -1,
+        D3DFCI_UINT	= 1,
+        D3DFCI_UNORM_SRGB	= 2,
+        D3DFCI_BIASED_FIXED_2_8	= 3
+    } 	D3D_FORMAT_COMPONENT_INTERPRETATION;
 
 DEFINE_GUID(WKPDID_D3DDebugObjectName,0x429b8c22,0x9188,0x4b0c,0x87,0x42,0xac,0xb0,0xbf,0x85,0xc2,0x00);
 DEFINE_GUID(WKPDID_D3DDebugObjectNameW,0x4cca5fd8,0x921f,0x42c8,0x85,0x66,0x70,0xca,0xf2,0xa9,0xb7,0x41);

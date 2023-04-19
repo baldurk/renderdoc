@@ -1,5 +1,6 @@
 //
-//    Copyright (C) Microsoft.  All rights reserved.
+//    Copyright (C) Microsoft Corporation.
+//    Licensed under the MIT license
 //
 
 #ifndef __dxgiformat_h__
@@ -133,6 +134,8 @@ typedef enum DXGI_FORMAT
 
     DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE         = 189,
     DXGI_FORMAT_SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE = 190,
+
+    DXGI_FORMAT_A4B4G4R4_UNORM                          = 191,
 
 
     DXGI_FORMAT_FORCE_UINT                  = 0xffffffff
