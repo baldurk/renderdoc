@@ -526,6 +526,9 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   RDCEraseEl(m_D3D12Opts2);
   RDCEraseEl(m_D3D12Opts3);
   RDCEraseEl(m_D3D12Opts6);
+  RDCEraseEl(m_D3D12Opts14);
+  RDCEraseEl(m_D3D12Opts15);
+  RDCEraseEl(m_D3D12Opts16);
 
   m_pDevice1 = NULL;
   m_pDevice2 = NULL;
@@ -592,6 +595,18 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
                                         sizeof(m_D3D12Opts6));
     if(hr != S_OK)
       RDCEraseEl(m_D3D12Opts6);
+    hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS14, &m_D3D12Opts14,
+                                        sizeof(m_D3D12Opts14));
+    if(hr != S_OK)
+      RDCEraseEl(m_D3D12Opts14);
+    hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS14, &m_D3D12Opts15,
+                                        sizeof(m_D3D12Opts15));
+    if(hr != S_OK)
+      RDCEraseEl(m_D3D12Opts15);
+    hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS14, &m_D3D12Opts16,
+                                        sizeof(m_D3D12Opts16));
+    if(hr != S_OK)
+      RDCEraseEl(m_D3D12Opts16);
   }
 
   // refcounters implicitly construct with one reference, but we don't start with any soft
@@ -3077,17 +3092,67 @@ HRESULT WrappedID3D12Device::CreatePipeState(D3D12_EXPANDED_PIPELINE_STATE_STREA
     graphicsDesc.StreamOutput = desc.StreamOutput;
     graphicsDesc.BlendState = desc.BlendState;
     graphicsDesc.SampleMask = desc.SampleMask;
-    graphicsDesc.RasterizerState = desc.RasterizerState;
+
+    // graphicsDesc.RasterizerState = desc.RasterizerState;
+    {
+      graphicsDesc.RasterizerState.FillMode = desc.RasterizerState.FillMode;
+      graphicsDesc.RasterizerState.CullMode = desc.RasterizerState.CullMode;
+      graphicsDesc.RasterizerState.FrontCounterClockwise = desc.RasterizerState.FrontCounterClockwise;
+      graphicsDesc.RasterizerState.DepthBias = INT(desc.RasterizerState.DepthBias);
+      graphicsDesc.RasterizerState.DepthBiasClamp = desc.RasterizerState.DepthBiasClamp;
+      graphicsDesc.RasterizerState.SlopeScaledDepthBias = desc.RasterizerState.SlopeScaledDepthBias;
+      graphicsDesc.RasterizerState.DepthClipEnable = desc.RasterizerState.DepthClipEnable;
+      graphicsDesc.RasterizerState.ForcedSampleCount = desc.RasterizerState.ForcedSampleCount;
+      graphicsDesc.RasterizerState.ConservativeRaster = desc.RasterizerState.ConservativeRaster;
+
+      switch(desc.RasterizerState.LineRasterizationMode)
+      {
+        case D3D12_LINE_RASTERIZATION_MODE_ALIASED:
+          graphicsDesc.RasterizerState.MultisampleEnable = FALSE;
+          graphicsDesc.RasterizerState.AntialiasedLineEnable = FALSE;
+          break;
+        case D3D12_LINE_RASTERIZATION_MODE_ALPHA_ANTIALIASED:
+          graphicsDesc.RasterizerState.MultisampleEnable = FALSE;
+          graphicsDesc.RasterizerState.AntialiasedLineEnable = TRUE;
+          break;
+        case D3D12_LINE_RASTERIZATION_MODE_QUADRILATERAL_WIDE:
+        case D3D12_LINE_RASTERIZATION_MODE_QUADRILATERAL_NARROW:
+          graphicsDesc.RasterizerState.MultisampleEnable = TRUE;
+          graphicsDesc.RasterizerState.AntialiasedLineEnable = FALSE;
+          break;
+        default:
+          graphicsDesc.RasterizerState.MultisampleEnable = FALSE;
+          graphicsDesc.RasterizerState.AntialiasedLineEnable = FALSE;
+          break;
+      }
+    }
+
     // graphicsDesc.DepthStencilState = desc.DepthStencilState;
     {
       graphicsDesc.DepthStencilState.DepthEnable = desc.DepthStencilState.DepthEnable;
       graphicsDesc.DepthStencilState.DepthWriteMask = desc.DepthStencilState.DepthWriteMask;
       graphicsDesc.DepthStencilState.DepthFunc = desc.DepthStencilState.DepthFunc;
       graphicsDesc.DepthStencilState.StencilEnable = desc.DepthStencilState.StencilEnable;
-      graphicsDesc.DepthStencilState.StencilReadMask = desc.DepthStencilState.StencilReadMask;
-      graphicsDesc.DepthStencilState.StencilWriteMask = desc.DepthStencilState.StencilWriteMask;
-      graphicsDesc.DepthStencilState.FrontFace = desc.DepthStencilState.FrontFace;
-      graphicsDesc.DepthStencilState.BackFace = desc.DepthStencilState.BackFace;
+      graphicsDesc.DepthStencilState.StencilReadMask =
+          desc.DepthStencilState.FrontFace.StencilReadMask;
+      graphicsDesc.DepthStencilState.StencilWriteMask =
+          desc.DepthStencilState.FrontFace.StencilWriteMask;
+      graphicsDesc.DepthStencilState.FrontFace.StencilFunc =
+          desc.DepthStencilState.FrontFace.StencilFunc;
+      graphicsDesc.DepthStencilState.FrontFace.StencilPassOp =
+          desc.DepthStencilState.FrontFace.StencilPassOp;
+      graphicsDesc.DepthStencilState.FrontFace.StencilFailOp =
+          desc.DepthStencilState.FrontFace.StencilFailOp;
+      graphicsDesc.DepthStencilState.FrontFace.StencilDepthFailOp =
+          desc.DepthStencilState.FrontFace.StencilDepthFailOp;
+      graphicsDesc.DepthStencilState.BackFace.StencilFunc =
+          desc.DepthStencilState.BackFace.StencilFunc;
+      graphicsDesc.DepthStencilState.BackFace.StencilPassOp =
+          desc.DepthStencilState.BackFace.StencilPassOp;
+      graphicsDesc.DepthStencilState.BackFace.StencilFailOp =
+          desc.DepthStencilState.BackFace.StencilFailOp;
+      graphicsDesc.DepthStencilState.BackFace.StencilDepthFailOp =
+          desc.DepthStencilState.BackFace.StencilDepthFailOp;
       // no DepthBoundsTestEnable
     }
     graphicsDesc.InputLayout = desc.InputLayout;

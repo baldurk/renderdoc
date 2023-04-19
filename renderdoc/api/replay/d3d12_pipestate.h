@@ -683,7 +683,7 @@ struct RasterizerState
 )");
   bool frontCCW = false;
   DOCUMENT("The fixed depth bias value to apply to z-values.");
-  int32_t depthBias = 0;
+  float depthBias = 0.0f;
   DOCUMENT(R"(The clamp value for calculated depth bias from :data:`depthBias` and
 :data:`slopeScaledDepthBias`
 )");
@@ -692,12 +692,8 @@ struct RasterizerState
   float slopeScaledDepthBias = 0.0f;
   DOCUMENT("``True`` if pixels outside of the near and far depth planes should be clipped.");
   bool depthClip = false;
-  DOCUMENT("``True`` if the quadrilateral MSAA algorithm should be used on MSAA targets.");
-  bool multisampleEnable = false;
-  DOCUMENT(
-      "``True`` if lines should be anti-aliased. Ignored if :data:`multisampleEnable` is "
-      "``False``.");
-  bool antialiasedLines = false;
+  DOCUMENT("The line rasterization mode.");
+  LineRaster lineRasterMode = LineRaster::Default;
   DOCUMENT(R"(A sample count to force rasterization to when UAV rendering or rasterizing, or 0 to
 not force any sample count.
 )");

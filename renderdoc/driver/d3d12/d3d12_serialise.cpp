@@ -506,8 +506,29 @@ void DoSerialise(SerialiserType &ser, D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC 
   SERIALISE_MEMBER(StreamOutput);
   SERIALISE_MEMBER(BlendState);
   SERIALISE_MEMBER(SampleMask);
-  SERIALISE_MEMBER(RasterizerState);
-  SERIALISE_MEMBER(DepthStencilState);
+
+  if(ser.VersionAtLeast(0x10))
+  {
+    SERIALISE_MEMBER(RasterizerState);
+  }
+  else
+  {
+    D3D12_RASTERIZER_DESC oldState;
+    ser.Serialise("RasterizerState"_lit, oldState);
+    el.RasterizerState = Upconvert(oldState);
+  }
+
+  if(ser.VersionAtLeast(0x10))
+  {
+    SERIALISE_MEMBER(DepthStencilState);
+  }
+  else
+  {
+    D3D12_DEPTH_STENCIL_DESC1 oldState;
+    ser.Serialise("DepthStencilState"_lit, oldState);
+    el.DepthStencilState = Upconvert(oldState);
+  }
+
   SERIALISE_MEMBER(InputLayout);
   SERIALISE_MEMBER(IBStripCutValue);
   SERIALISE_MEMBER(PrimitiveTopologyType);
@@ -679,6 +700,37 @@ void DoSerialise(SerialiserType &ser, D3D12_RASTERIZER_DESC &el)
 }
 
 template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RASTERIZER_DESC1 &el)
+{
+  SERIALISE_MEMBER(FillMode);
+  SERIALISE_MEMBER(CullMode);
+  SERIALISE_MEMBER(FrontCounterClockwise);
+  SERIALISE_MEMBER(DepthBias);
+  SERIALISE_MEMBER(DepthBiasClamp);
+  SERIALISE_MEMBER(SlopeScaledDepthBias);
+  SERIALISE_MEMBER(DepthClipEnable);
+  SERIALISE_MEMBER(MultisampleEnable);
+  SERIALISE_MEMBER(AntialiasedLineEnable);
+  SERIALISE_MEMBER(ForcedSampleCount);
+  SERIALISE_MEMBER(ConservativeRaster);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RASTERIZER_DESC2 &el)
+{
+  SERIALISE_MEMBER(FillMode);
+  SERIALISE_MEMBER(CullMode);
+  SERIALISE_MEMBER(FrontCounterClockwise);
+  SERIALISE_MEMBER(DepthBias);
+  SERIALISE_MEMBER(DepthBiasClamp);
+  SERIALISE_MEMBER(SlopeScaledDepthBias);
+  SERIALISE_MEMBER(DepthClipEnable);
+  SERIALISE_MEMBER(LineRasterizationMode);
+  SERIALISE_MEMBER(ForcedSampleCount);
+  SERIALISE_MEMBER(ConservativeRaster);
+}
+
+template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_DEPTH_STENCILOP_DESC &el)
 {
   SERIALISE_MEMBER(StencilFailOp);
@@ -692,12 +744,49 @@ void DoSerialise(SerialiserType &ser, D3D12_DEPTH_STENCIL_DESC &el)
 {
   SERIALISE_MEMBER(DepthEnable);
   SERIALISE_MEMBER(DepthWriteMask);
-  SERIALISE_MEMBER(DepthFunc);
+  SERIALISE_MEMBER(DepthFunc).Important();
   SERIALISE_MEMBER(StencilEnable);
   SERIALISE_MEMBER(StencilReadMask);
   SERIALISE_MEMBER(StencilWriteMask);
   SERIALISE_MEMBER(FrontFace);
   SERIALISE_MEMBER(BackFace);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_DEPTH_STENCIL_DESC1 &el)
+{
+  SERIALISE_MEMBER(DepthEnable);
+  SERIALISE_MEMBER(DepthWriteMask);
+  SERIALISE_MEMBER(DepthFunc).Important();
+  SERIALISE_MEMBER(StencilEnable);
+  SERIALISE_MEMBER(StencilReadMask);
+  SERIALISE_MEMBER(StencilWriteMask);
+  SERIALISE_MEMBER(FrontFace);
+  SERIALISE_MEMBER(BackFace);
+  SERIALISE_MEMBER(DepthBoundsTestEnable);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_DEPTH_STENCILOP_DESC1 &el)
+{
+  SERIALISE_MEMBER(StencilFailOp);
+  SERIALISE_MEMBER(StencilDepthFailOp);
+  SERIALISE_MEMBER(StencilPassOp);
+  SERIALISE_MEMBER(StencilFunc);
+  SERIALISE_MEMBER(StencilReadMask);
+  SERIALISE_MEMBER(StencilWriteMask);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_DEPTH_STENCIL_DESC2 &el)
+{
+  SERIALISE_MEMBER(DepthEnable);
+  SERIALISE_MEMBER(DepthWriteMask);
+  SERIALISE_MEMBER(DepthFunc);
+  SERIALISE_MEMBER(StencilEnable);
+  SERIALISE_MEMBER(FrontFace);
+  SERIALISE_MEMBER(BackFace);
+  SERIALISE_MEMBER(DepthBoundsTestEnable);
 }
 
 template <class SerialiserType>
@@ -1457,20 +1546,6 @@ void DoSerialise(SerialiserType &ser, D3D12_RT_FORMAT_ARRAY &el)
 }
 
 template <class SerialiserType>
-void DoSerialise(SerialiserType &ser, D3D12_DEPTH_STENCIL_DESC1 &el)
-{
-  SERIALISE_MEMBER(DepthEnable);
-  SERIALISE_MEMBER(DepthWriteMask);
-  SERIALISE_MEMBER(DepthFunc).Important();
-  SERIALISE_MEMBER(StencilEnable);
-  SERIALISE_MEMBER(StencilReadMask);
-  SERIALISE_MEMBER(StencilWriteMask);
-  SERIALISE_MEMBER(FrontFace);
-  SERIALISE_MEMBER(BackFace);
-  SERIALISE_MEMBER(DepthBoundsTestEnable);
-}
-
-template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_VIEW_INSTANCE_LOCATION &el)
 {
   SERIALISE_MEMBER(ViewportArrayIndex);
@@ -1686,7 +1761,11 @@ INSTANTIATE_SERIALISE_TYPE(D3D12_BOX);
 INSTANTIATE_SERIALISE_TYPE(D3D12_VIEWPORT);
 INSTANTIATE_SERIALISE_TYPE(D3D12_PIPELINE_STATE_STREAM_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_RT_FORMAT_ARRAY);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RASTERIZER_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RASTERIZER_DESC1);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RASTERIZER_DESC2);
 INSTANTIATE_SERIALISE_TYPE(D3D12_DEPTH_STENCIL_DESC1);
+INSTANTIATE_SERIALISE_TYPE(D3D12_DEPTH_STENCIL_DESC2);
 INSTANTIATE_SERIALISE_TYPE(D3D12_VIEW_INSTANCING_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_SAMPLE_POSITION);
 INSTANTIATE_SERIALISE_TYPE(D3D12_SUBRESOURCE_RANGE_UINT64);

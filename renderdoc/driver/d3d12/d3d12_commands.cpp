@@ -891,6 +891,16 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     case D3D12Chunk::List_RSSetShadingRateImage:
       ret = m_ReplayList->Serialise_RSSetShadingRateImage(ser, NULL);
       break;
+    case D3D12Chunk::List_OMSetFrontAndBackStencilRef:
+      ret = m_ReplayList->Serialise_OMSetFrontAndBackStencilRef(ser, 0, 0);
+      break;
+    case D3D12Chunk::List_RSSetDepthBias:
+      ret = m_ReplayList->Serialise_RSSetDepthBias(ser, 0.0f, 0.0f, 0.0f);
+      break;
+    case D3D12Chunk::List_IASetIndexBufferStripCutValue:
+      ret = m_ReplayList->Serialise_IASetIndexBufferStripCutValue(
+          ser, D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED);
+      break;
 
     case D3D12Chunk::PushMarker: ret = m_ReplayList->Serialise_BeginEvent(ser, 0, NULL, 0); break;
     case D3D12Chunk::PopMarker: ret = m_ReplayList->Serialise_EndEvent(ser); break;
@@ -952,9 +962,6 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     case D3D12Chunk::Device_CreatePlacedResource2:
     case D3D12Chunk::Device_CreateReservedResource1:
     case D3D12Chunk::Device_CreateReservedResource2:
-    case D3D12Chunk::List_OMSetFrontAndBackStencilRef:
-    case D3D12Chunk::List_RSSetDepthBias:
-    case D3D12Chunk::List_IASetIndexBufferStripCutValue:
       RDCERR("Unexpected chunk while processing frame: %s", ToStr(chunk).c_str());
       return false;
 
@@ -1260,6 +1267,10 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
     m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList3), (void **)&m_pList3);
     m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList4), (void **)&m_pList4);
     m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList5), (void **)&m_pList5);
+    m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList6), (void **)&m_pList6);
+    m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList7), (void **)&m_pList7);
+    m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList8), (void **)&m_pList8);
+    m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList9), (void **)&m_pList9);
   }
 
   // create a temporary and grab its resource ID
@@ -1337,6 +1348,10 @@ WrappedID3D12GraphicsCommandList::~WrappedID3D12GraphicsCommandList()
   SAFE_RELEASE(m_WrappedDebug.m_pReal1);
   SAFE_RELEASE(m_WrappedDebug.m_pReal2);
   SAFE_RELEASE(m_WrappedDebug.m_pReal3);
+  SAFE_RELEASE(m_pList9);
+  SAFE_RELEASE(m_pList8);
+  SAFE_RELEASE(m_pList7);
+  SAFE_RELEASE(m_pList6);
   SAFE_RELEASE(m_pList5);
   SAFE_RELEASE(m_pList4);
   SAFE_RELEASE(m_pList3);

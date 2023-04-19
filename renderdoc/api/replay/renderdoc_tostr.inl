@@ -359,6 +359,7 @@ rdcstr DoStringise(const LineRaster &el)
     STRINGISE_ENUM_CLASS(Rectangular);
     STRINGISE_ENUM_CLASS(Bresenham);
     STRINGISE_ENUM_CLASS(RectangularSmooth);
+    STRINGISE_ENUM_CLASS(RectangularD3D);
   }
   END_ENUM_STRINGISE();
 }

@@ -1800,9 +1800,24 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
 
     {
       D3D12Pipe::RasterizerState &dst = state.rasterizer.state;
-      D3D12_RASTERIZER_DESC &src = pipe->graphics->RasterizerState;
+      D3D12_RASTERIZER_DESC2 &src = pipe->graphics->RasterizerState;
 
-      dst.antialiasedLines = src.AntialiasedLineEnable == TRUE;
+      switch(src.LineRasterizationMode)
+      {
+        case D3D12_LINE_RASTERIZATION_MODE_ALIASED:
+          dst.lineRasterMode = LineRaster::Bresenham;
+          break;
+        case D3D12_LINE_RASTERIZATION_MODE_ALPHA_ANTIALIASED:
+          dst.lineRasterMode = LineRaster::RectangularSmooth;
+          break;
+        case D3D12_LINE_RASTERIZATION_MODE_QUADRILATERAL_WIDE:
+          dst.lineRasterMode = LineRaster::RectangularD3D;
+          break;
+        case D3D12_LINE_RASTERIZATION_MODE_QUADRILATERAL_NARROW:
+          dst.lineRasterMode = LineRaster::Rectangular;
+          break;
+        default: dst.lineRasterMode = LineRaster::Default; break;
+      }
 
       dst.cullMode = CullMode::NoCull;
       if(src.CullMode == D3D12_CULL_MODE_FRONT)
@@ -1818,7 +1833,6 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
       dst.depthBiasClamp = src.DepthBiasClamp;
       dst.depthClip = src.DepthClipEnable == TRUE;
       dst.frontCCW = src.FrontCounterClockwise == TRUE;
-      dst.multisampleEnable = src.MultisampleEnable == TRUE;
       dst.slopeScaledDepthBias = src.SlopeScaledDepthBias;
       dst.forcedSampleCount = src.ForcedSampleCount;
 
@@ -1940,7 +1954,7 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
     }
 
     {
-      D3D12_DEPTH_STENCIL_DESC1 &src = pipe->graphics->DepthStencilState;
+      D3D12_DEPTH_STENCIL_DESC2 &src = pipe->graphics->DepthStencilState;
 
       state.outputMerger.depthStencilState.depthEnable = src.DepthEnable == TRUE;
       state.outputMerger.depthStencilState.depthFunction = MakeCompareFunc(src.DepthFunc);
@@ -1960,6 +1974,9 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
           MakeStencilOp(src.FrontFace.StencilPassOp);
       state.outputMerger.depthStencilState.frontFace.failOperation =
           MakeStencilOp(src.FrontFace.StencilFailOp);
+      state.outputMerger.depthStencilState.frontFace.reference = rs.stencilRefFront;
+      state.outputMerger.depthStencilState.frontFace.compareMask = src.FrontFace.StencilReadMask;
+      state.outputMerger.depthStencilState.frontFace.writeMask = src.FrontFace.StencilWriteMask;
 
       state.outputMerger.depthStencilState.backFace.function =
           MakeCompareFunc(src.BackFace.StencilFunc);
@@ -1969,15 +1986,9 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
           MakeStencilOp(src.BackFace.StencilPassOp);
       state.outputMerger.depthStencilState.backFace.failOperation =
           MakeStencilOp(src.BackFace.StencilFailOp);
-
-      // due to shared structs, this is slightly duplicated - D3D doesn't have separate states for
-      // front/back.
-      state.outputMerger.depthStencilState.frontFace.reference = rs.stencilRef;
-      state.outputMerger.depthStencilState.frontFace.compareMask = src.StencilReadMask;
-      state.outputMerger.depthStencilState.frontFace.writeMask = src.StencilWriteMask;
-      state.outputMerger.depthStencilState.backFace.reference = rs.stencilRef;
-      state.outputMerger.depthStencilState.backFace.compareMask = src.StencilReadMask;
-      state.outputMerger.depthStencilState.backFace.writeMask = src.StencilWriteMask;
+      state.outputMerger.depthStencilState.backFace.reference = rs.stencilRefBack;
+      state.outputMerger.depthStencilState.backFace.compareMask = src.BackFace.StencilReadMask;
+      state.outputMerger.depthStencilState.backFace.writeMask = src.BackFace.StencilWriteMask;
     }
   }
 

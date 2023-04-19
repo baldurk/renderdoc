@@ -2999,7 +2999,13 @@ DOCUMENT(R"(The line rasterization mode.
 
 .. data:: RectangularSmooth
 
-  Lines are rasterized as rectangles extruded from the line with coverage falloff.
+  Lines are rasterized as rectangles extruded from the line with coverage falloff being
+  implementation independent.
+
+.. data:: RectangularD3D
+
+  Lines are rasterized as rectangles extruded from the line, but with a width of 1.4 according to
+  legacy D3D behaviour
 )");
 enum class LineRaster : uint32_t
 {
@@ -3007,6 +3013,7 @@ enum class LineRaster : uint32_t
   Rectangular,
   Bresenham,
   RectangularSmooth,
+  RectangularD3D,
 };
 
 DECLARE_REFLECTION_ENUM(LineRaster);

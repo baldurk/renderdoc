@@ -54,7 +54,7 @@ struct D3D12InitParams
   UINT SDKVersion = 0;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0xF;
+  static const uint64_t CurrentVersion = 0x10;
 
   static bool IsSupportedVersion(uint64_t ver);
 };
@@ -785,6 +785,9 @@ private:
   D3D12_FEATURE_DATA_D3D12_OPTIONS2 m_D3D12Opts2;
   D3D12_FEATURE_DATA_D3D12_OPTIONS3 m_D3D12Opts3;
   D3D12_FEATURE_DATA_D3D12_OPTIONS6 m_D3D12Opts6;
+  D3D12_FEATURE_DATA_D3D12_OPTIONS14 m_D3D12Opts14;
+  D3D12_FEATURE_DATA_D3D12_OPTIONS15 m_D3D12Opts15;
+  D3D12_FEATURE_DATA_D3D12_OPTIONS16 m_D3D12Opts16;
   UINT m_DescriptorIncrements[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
   template <typename SerialiserType>
@@ -816,6 +819,9 @@ public:
   const D3D12_FEATURE_DATA_D3D12_OPTIONS2 &GetOpts2() { return m_D3D12Opts2; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS3 &GetOpts3() { return m_D3D12Opts3; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS6 &GetOpts6() { return m_D3D12Opts6; }
+  const D3D12_FEATURE_DATA_D3D12_OPTIONS14 &GetOpts14() { return m_D3D12Opts14; }
+  const D3D12_FEATURE_DATA_D3D12_OPTIONS15 &GetOpts15() { return m_D3D12Opts15; }
+  const D3D12_FEATURE_DATA_D3D12_OPTIONS16 &GetOpts16() { return m_D3D12Opts16; }
   void RemoveQueue(WrappedID3D12CommandQueue *queue);
 
   // only valid on replay

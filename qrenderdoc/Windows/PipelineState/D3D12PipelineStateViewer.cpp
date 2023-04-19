@@ -425,9 +425,9 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ui->stencils->setHeader(header);
 
-    ui->stencils->setColumns(
-        {tr("Face"), tr("Func"), tr("Fail Op"), tr("Depth Fail Op"), tr("Pass Op")});
-    header->setColumnStretchHints({1, 2, 2, 2, 2});
+    ui->stencils->setColumns({tr("Face"), tr("Func"), tr("Fail Op"), tr("Depth Fail Op"),
+                              tr("Pass Op"), tr("Write Mask"), tr("Comp Mask"), tr("Ref")});
+    header->setColumnStretchHints({1, 2, 2, 2, 2, 1, 1, 1});
 
     ui->stencils->setClearSelectionOnFocusLoss(true);
     ui->stencils->setInstantTooltips(true);
@@ -1000,8 +1000,7 @@ void D3D12PipelineStateViewer::clearState()
   ui->forcedSampleCount->setText(lit("0"));
 
   ui->depthClip->setPixmap(tick);
-  ui->multisample->setPixmap(tick);
-  ui->lineAA->setPixmap(tick);
+  ui->lineAA->setText(lit("-"));
   ui->sampleMask->setText(lit("FFFFFFFF"));
 
   ui->independentBlend->setPixmap(cross);
@@ -1021,11 +1020,6 @@ void D3D12PipelineStateViewer::clearState()
 
   ui->depthBounds->setPixmap(QPixmap());
   ui->depthBounds->setText(lit("0.0-1.0"));
-
-  ui->stencilEnabled->setPixmap(cross);
-  ui->stencilReadMask->setText(lit("FF"));
-  ui->stencilWriteMask->setText(lit("FF"));
-  ui->stencilRef->setText(lit("FF"));
 
   ui->stencils->clear();
 
@@ -1946,9 +1940,15 @@ void D3D12PipelineStateViewer::setState()
   ui->cullMode->setText(ToQStr(state.rasterizer.state.cullMode));
   ui->frontCCW->setPixmap(state.rasterizer.state.frontCCW ? tick : cross);
 
-  ui->lineAA->setPixmap(state.rasterizer.state.antialiasedLines ? tick : cross);
+  switch(state.rasterizer.state.lineRasterMode)
+  {
+    case LineRaster::Default: ui->lineAA->setText(lit("Default")); break;
+    case LineRaster::Bresenham: ui->lineAA->setText(lit("Aliased")); break;
+    case LineRaster::RectangularSmooth: ui->lineAA->setText(lit("Alpha antialiased")); break;
+    case LineRaster::Rectangular: ui->lineAA->setText(lit("Quadrilateral (narrow)")); break;
+    case LineRaster::RectangularD3D: ui->lineAA->setText(lit("Quadrilateral")); break;
+  }
   ui->sampleMask->setText(Formatter::Format(state.rasterizer.sampleMask, true));
-  ui->multisample->setPixmap(state.rasterizer.state.multisampleEnable ? tick : cross);
 
   ui->depthClip->setPixmap(state.rasterizer.state.depthClip ? tick : cross);
   ui->depthBias->setText(Formatter::Format(state.rasterizer.state.depthBias));
@@ -2078,26 +2078,47 @@ void D3D12PipelineStateViewer::setState()
     ui->depthBounds->setPixmap(cross);
   }
 
-  ui->stencilEnabled->setPixmap(state.outputMerger.depthStencilState.stencilEnable ? tick : cross);
-  m_Common.SetStencilLabelValue(
-      ui->stencilReadMask, (uint8_t)state.outputMerger.depthStencilState.frontFace.compareMask);
-  m_Common.SetStencilLabelValue(ui->stencilWriteMask,
-                                (uint8_t)state.outputMerger.depthStencilState.frontFace.writeMask);
-  m_Common.SetStencilLabelValue(ui->stencilRef,
-                                (uint8_t)state.outputMerger.depthStencilState.frontFace.reference);
-
   ui->stencils->beginUpdate();
   ui->stencils->clear();
-  ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
-      {tr("Front"), ToQStr(state.outputMerger.depthStencilState.frontFace.function),
-       ToQStr(state.outputMerger.depthStencilState.frontFace.failOperation),
-       ToQStr(state.outputMerger.depthStencilState.frontFace.depthFailOperation),
-       ToQStr(state.outputMerger.depthStencilState.frontFace.passOperation)}));
-  ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
-      {tr("Back"), ToQStr(state.outputMerger.depthStencilState.backFace.function),
-       ToQStr(state.outputMerger.depthStencilState.backFace.failOperation),
-       ToQStr(state.outputMerger.depthStencilState.backFace.depthFailOperation),
-       ToQStr(state.outputMerger.depthStencilState.backFace.passOperation)}));
+  if(state.outputMerger.depthStencilState.stencilEnable)
+  {
+    ui->stencils->addTopLevelItem(new RDTreeWidgetItem({
+        tr("Front"), ToQStr(state.outputMerger.depthStencilState.frontFace.function),
+        ToQStr(state.outputMerger.depthStencilState.frontFace.failOperation),
+        ToQStr(state.outputMerger.depthStencilState.frontFace.depthFailOperation),
+        ToQStr(state.outputMerger.depthStencilState.frontFace.passOperation), QVariant(),
+        QVariant(), QVariant(),
+    }));
+
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(0), 5,
+                                     state.outputMerger.depthStencilState.frontFace.writeMask);
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(0), 6,
+                                     state.outputMerger.depthStencilState.frontFace.compareMask);
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(0), 7,
+                                     state.outputMerger.depthStencilState.frontFace.reference);
+
+    ui->stencils->addTopLevelItem(new RDTreeWidgetItem({
+        tr("Back"), ToQStr(state.outputMerger.depthStencilState.backFace.function),
+        ToQStr(state.outputMerger.depthStencilState.backFace.failOperation),
+        ToQStr(state.outputMerger.depthStencilState.backFace.depthFailOperation),
+        ToQStr(state.outputMerger.depthStencilState.backFace.passOperation), QVariant(), QVariant(),
+        QVariant(),
+    }));
+
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(1), 5,
+                                     state.outputMerger.depthStencilState.backFace.writeMask);
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(1), 6,
+                                     state.outputMerger.depthStencilState.backFace.compareMask);
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(1), 7,
+                                     state.outputMerger.depthStencilState.backFace.reference);
+  }
+  else
+  {
+    ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
+        {tr("Front"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-")}));
+    ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
+        {tr("Back"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-")}));
+  }
   ui->stencils->clearSelection();
   ui->stencils->endUpdate();
 
@@ -3199,10 +3220,9 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
     xml.writeEndElement();
 
     m_Common.exportHTMLTable(
-        xml, {tr("Line AA Enable"), tr("Multisample Enable"), tr("Forced Sample Count"),
-              tr("Conservative Raster"), tr("Sample Mask")},
-        {rs.state.antialiasedLines ? tr("Yes") : tr("No"),
-         rs.state.multisampleEnable ? tr("Yes") : tr("No"), rs.state.forcedSampleCount,
+        xml, {tr("Line Rasteriztion"), tr("Forced Sample Count"), tr("Conservative Raster"),
+              tr("Sample Mask")},
+        {ToQStr(rs.state.lineRasterMode), rs.state.forcedSampleCount,
          rs.state.conservativeRasterization != ConservativeRaster::Disabled ? tr("Yes") : tr("No"),
          Formatter::Format(rs.sampleMask, true)});
 
@@ -3340,27 +3360,41 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
     xml.writeCharacters(tr("Stencil State"));
     xml.writeEndElement();
 
-    m_Common.exportHTMLTable(
-        xml, {tr("Stencil Test Enable"), tr("Stencil Read Mask"), tr("Stencil Write Mask")},
-        {om.depthStencilState.stencilEnable ? tr("Yes") : tr("No"),
-         Formatter::Format(om.depthStencilState.frontFace.compareMask, true),
-         Formatter::Format(om.depthStencilState.frontFace.writeMask, true)});
+    if(om.depthStencilState.stencilEnable)
+    {
+      QList<QVariantList> rows;
 
-    xml.writeStartElement(lit("p"));
-    xml.writeEndElement();
+      rows.push_back({
+          tr("Front"), Formatter::Format(om.depthStencilState.frontFace.reference, true),
+          Formatter::Format(om.depthStencilState.frontFace.compareMask, true),
+          Formatter::Format(om.depthStencilState.frontFace.writeMask, true),
+          ToQStr(om.depthStencilState.frontFace.function),
+          ToQStr(om.depthStencilState.frontFace.passOperation),
+          ToQStr(om.depthStencilState.frontFace.failOperation),
+          ToQStr(om.depthStencilState.frontFace.depthFailOperation),
+      });
 
-    m_Common.exportHTMLTable(xml, {tr("Face"), tr("Function"), tr("Pass Operation"),
-                                   tr("Fail Operation"), tr("Depth Fail Operation")},
-                             {
-                                 {tr("Front"), ToQStr(om.depthStencilState.frontFace.function),
-                                  ToQStr(om.depthStencilState.frontFace.passOperation),
-                                  ToQStr(om.depthStencilState.frontFace.failOperation),
-                                  ToQStr(om.depthStencilState.frontFace.depthFailOperation)},
-                                 {tr("Back"), ToQStr(om.depthStencilState.backFace.function),
-                                  ToQStr(om.depthStencilState.backFace.passOperation),
-                                  ToQStr(om.depthStencilState.backFace.failOperation),
-                                  ToQStr(om.depthStencilState.backFace.depthFailOperation)},
-                             });
+      rows.push_back({
+          tr("back"), Formatter::Format(om.depthStencilState.backFace.reference, true),
+          Formatter::Format(om.depthStencilState.backFace.compareMask, true),
+          Formatter::Format(om.depthStencilState.backFace.writeMask, true),
+          ToQStr(om.depthStencilState.backFace.function),
+          ToQStr(om.depthStencilState.backFace.passOperation),
+          ToQStr(om.depthStencilState.backFace.failOperation),
+          ToQStr(om.depthStencilState.backFace.depthFailOperation),
+      });
+
+      m_Common.exportHTMLTable(xml,
+                               {tr("Face"), tr("Ref"), tr("Compare Mask"), tr("Write Mask"),
+                                tr("Function"), tr("Pass Op"), tr("Fail Op"), tr("Depth Fail Op")},
+                               rows);
+    }
+    else
+    {
+      xml.writeStartElement(lit("p"));
+      xml.writeCharacters(tr("Disabled"));
+      xml.writeEndElement();
+    }
   }
 
   {

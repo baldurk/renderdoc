@@ -310,6 +310,18 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
       state.m_DebugManager = m_pDevice->GetDebugManager();
       state.pipe = GetResID(pInitialState);
 
+      if(state.pipe != ResourceId())
+      {
+        WrappedID3D12PipelineState *pipe = (WrappedID3D12PipelineState *)pInitialState;
+        if(pipe->IsGraphics())
+        {
+          state.depthBias = pipe->graphics->RasterizerState.DepthBias;
+          state.depthBiasClamp = pipe->graphics->RasterizerState.DepthBiasClamp;
+          state.slopeScaledDepthBias = pipe->graphics->RasterizerState.SlopeScaledDepthBias;
+          state.cutValue = pipe->graphics->IBStripCutValue;
+        }
+      }
+
       // whenever a command-building chunk asks for the command list, it
       // will get our baked version.
       if(GetResourceManager()->HasReplacement(CommandList))
@@ -406,6 +418,18 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
         state.m_ResourceManager = GetResourceManager();
         state.m_DebugManager = m_pDevice->GetDebugManager();
         state.pipe = GetResID(pInitialState);
+
+        if(state.pipe != ResourceId())
+        {
+          WrappedID3D12PipelineState *pipe = (WrappedID3D12PipelineState *)pInitialState;
+          if(pipe->IsGraphics())
+          {
+            state.depthBias = pipe->graphics->RasterizerState.DepthBias;
+            state.depthBiasClamp = pipe->graphics->RasterizerState.DepthBiasClamp;
+            state.slopeScaledDepthBias = pipe->graphics->RasterizerState.SlopeScaledDepthBias;
+            state.cutValue = pipe->graphics->IBStripCutValue;
+          }
+        }
       }
     }
   }
@@ -676,6 +700,18 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearState(SerialiserType &ser,
       state.m_DebugManager = m_pDevice->GetDebugManager();
       state.m_ResourceManager = m_pDevice->GetResourceManager();
       state.pipe = GetResID(pPipelineState);
+
+      if(state.pipe != ResourceId())
+      {
+        WrappedID3D12PipelineState *pipe = (WrappedID3D12PipelineState *)pPipelineState;
+        if(pipe->IsGraphics())
+        {
+          state.depthBias = pipe->graphics->RasterizerState.DepthBias;
+          state.depthBiasClamp = pipe->graphics->RasterizerState.DepthBiasClamp;
+          state.slopeScaledDepthBias = pipe->graphics->RasterizerState.SlopeScaledDepthBias;
+          state.cutValue = pipe->graphics->IBStripCutValue;
+        }
+      }
     }
   }
 
@@ -991,7 +1027,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetStencilRef(SerialiserType 
     }
 
     if(stateUpdate)
-      m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state.stencilRef = StencilRef;
+    {
+      D3D12RenderState &rs = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
+      rs.stencilRefFront = rs.stencilRefBack = StencilRef;
+    }
   }
 
   return true;
@@ -1371,7 +1410,22 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState(SerialiserType
     }
 
     if(stateUpdate)
-      m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state.pipe = GetResID(pPipelineState);
+    {
+      D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
+      state.pipe = GetResID(pPipelineState);
+
+      if(pPipelineState)
+      {
+        WrappedID3D12PipelineState *pipe = (WrappedID3D12PipelineState *)pPipelineState;
+        if(pipe->IsGraphics())
+        {
+          state.depthBias = pipe->graphics->RasterizerState.DepthBias;
+          state.depthBiasClamp = pipe->graphics->RasterizerState.DepthBiasClamp;
+          state.slopeScaledDepthBias = pipe->graphics->RasterizerState.SlopeScaledDepthBias;
+          state.cutValue = pipe->graphics->IBStripCutValue;
+        }
+      }
+    }
   }
 
   return true;

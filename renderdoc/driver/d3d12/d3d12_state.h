@@ -68,6 +68,9 @@ struct D3D12RenderState
   rdcarray<ResourceId> GetRTVIDs() const;
   ResourceId GetDSVID() const;
 
+  float depthBias = 0.0f, depthBiasClamp = 0.0f, slopeScaledDepthBias = 0.0f;
+  D3D12_INDEX_BUFFER_STRIP_CUT_VALUE cutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+
   ResourceId shadingRateImage;
   D3D12_SHADING_RATE shadingRate;
   D3D12_SHADING_RATE_COMBINER shadingRateCombiners[2];
@@ -188,7 +191,7 @@ struct D3D12RenderState
   } samplePos;
 
   D3D12_PRIMITIVE_TOPOLOGY topo = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
-  UINT stencilRef = 0;
+  UINT stencilRefFront = 0, stencilRefBack = 0;
   float blendFactor[4] = {};
 
   float depthBoundsMin = 0.0f, depthBoundsMax = 1.0f;

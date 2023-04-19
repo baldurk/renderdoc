@@ -24,12 +24,153 @@
 
 #include "d3d12_command_list.h"
 
-void STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::RSSetDepthBias(
-    _In_ FLOAT DepthBias, _In_ FLOAT DepthBiasClamp, _In_ FLOAT SlopeScaledDepthBias)
+template <typename SerialiserType>
+bool WrappedID3D12GraphicsCommandList::Serialise_RSSetDepthBias(SerialiserType &ser, FLOAT DepthBias,
+                                                                FLOAT DepthBiasClamp,
+                                                                FLOAT SlopeScaledDepthBias)
 {
+  ID3D12GraphicsCommandList9 *pCommandList = this;
+  SERIALISE_ELEMENT(pCommandList);
+  SERIALISE_ELEMENT(DepthBias).Important();
+  SERIALISE_ELEMENT(DepthBiasClamp).Important();
+  SERIALISE_ELEMENT(SlopeScaledDepthBias).Important();
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    if(GetWrapped(pCommandList)->GetReal9() == NULL)
+    {
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12GraphicsCommandList9 which isn't available");
+      return false;
+    }
+
+    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+
+    bool stateUpdate = false;
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
+      {
+        Unwrap9(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+            ->RSSetDepthBias(DepthBias, DepthBiasClamp, SlopeScaledDepthBias);
+
+        stateUpdate = true;
+      }
+      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+      {
+        stateUpdate = true;
+      }
+    }
+    else
+    {
+      Unwrap9(pCommandList)->RSSetDepthBias(DepthBias, DepthBiasClamp, SlopeScaledDepthBias);
+      GetCrackedList9()->RSSetDepthBias(DepthBias, DepthBiasClamp, SlopeScaledDepthBias);
+
+      stateUpdate = true;
+    }
+
+    if(stateUpdate)
+    {
+      D3D12RenderState &rs = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
+      rs.depthBias = DepthBias;
+      rs.depthBiasClamp = DepthBiasClamp;
+      rs.slopeScaledDepthBias = SlopeScaledDepthBias;
+    }
+  }
+
+  return true;
+}
+
+void STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::RSSetDepthBias(FLOAT DepthBias,
+                                                                        FLOAT DepthBiasClamp,
+                                                                        FLOAT SlopeScaledDepthBias)
+{
+  SERIALISE_TIME_CALL(m_pList9->RSSetDepthBias(DepthBias, DepthBiasClamp, SlopeScaledDepthBias));
+
+  if(IsCaptureMode(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_RSSetDepthBias);
+    Serialise_RSSetDepthBias(ser, DepthBias, DepthBiasClamp, SlopeScaledDepthBias);
+
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBufferStripCutValue(
+    SerialiserType &ser, D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue)
+{
+  ID3D12GraphicsCommandList9 *pCommandList = this;
+  SERIALISE_ELEMENT(pCommandList);
+  SERIALISE_ELEMENT(IBStripCutValue).Important();
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    if(GetWrapped(pCommandList)->GetReal9() == NULL)
+    {
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12GraphicsCommandList9 which isn't available");
+      return false;
+    }
+
+    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+
+    bool stateUpdate = false;
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
+      {
+        Unwrap9(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+            ->IASetIndexBufferStripCutValue(IBStripCutValue);
+
+        stateUpdate = true;
+      }
+      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+      {
+        stateUpdate = true;
+      }
+    }
+    else
+    {
+      Unwrap9(pCommandList)->IASetIndexBufferStripCutValue(IBStripCutValue);
+      GetCrackedList9()->IASetIndexBufferStripCutValue(IBStripCutValue);
+
+      stateUpdate = true;
+    }
+
+    if(stateUpdate)
+    {
+      D3D12RenderState &rs = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
+      rs.cutValue = IBStripCutValue;
+    }
+  }
+
+  return true;
 }
 
 void STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::IASetIndexBufferStripCutValue(
-    _In_ D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue)
+    D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue)
 {
+  SERIALISE_TIME_CALL(m_pList9->IASetIndexBufferStripCutValue(IBStripCutValue));
+
+  if(IsCaptureMode(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_IASetIndexBufferStripCutValue);
+    Serialise_IASetIndexBufferStripCutValue(ser, IBStripCutValue);
+
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
+  }
 }
+
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, RSSetDepthBias,
+                                FLOAT DepthBias, FLOAT DepthBiasClamp, FLOAT SlopeScaledDepthBias);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, IASetIndexBufferStripCutValue,
+                                D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue);

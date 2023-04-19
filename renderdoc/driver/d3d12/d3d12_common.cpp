@@ -244,6 +244,10 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0xE)
     return true;
 
+  // 0xF -> 0x10 - Expanded PSO desc is serialised with new rasterizer/depth-stencil descs
+  if(ver == 0xF)
+    return true;
+
   return false;
 }
 
@@ -882,6 +886,76 @@ rdcstr PIX3DecodeEventString(const UINT64 *pData, UINT64 &color)
   return formatString;
 }
 
+D3D12_DEPTH_STENCILOP_DESC1 Upconvert(const D3D12_DEPTH_STENCILOP_DESC &face)
+{
+  D3D12_DEPTH_STENCILOP_DESC1 ret = {};
+
+  ret.StencilFunc = face.StencilFunc;
+  ret.StencilPassOp = face.StencilPassOp;
+  ret.StencilFailOp = face.StencilFailOp;
+  ret.StencilDepthFailOp = face.StencilDepthFailOp;
+
+  return ret;
+}
+
+D3D12_DEPTH_STENCILOP_DESC Downconvert(const D3D12_DEPTH_STENCILOP_DESC1 &face)
+{
+  D3D12_DEPTH_STENCILOP_DESC ret;
+
+  ret.StencilFunc = face.StencilFunc;
+  ret.StencilPassOp = face.StencilPassOp;
+  ret.StencilFailOp = face.StencilFailOp;
+  ret.StencilDepthFailOp = face.StencilDepthFailOp;
+
+  return ret;
+}
+
+D3D12_DEPTH_STENCIL_DESC2 Upconvert(const D3D12_DEPTH_STENCIL_DESC1 &desc)
+{
+  D3D12_DEPTH_STENCIL_DESC2 DepthStencilState;
+
+  DepthStencilState.DepthBoundsTestEnable = desc.DepthBoundsTestEnable;
+  DepthStencilState.DepthEnable = desc.DepthEnable;
+  DepthStencilState.DepthFunc = desc.DepthFunc;
+  DepthStencilState.DepthWriteMask = desc.DepthWriteMask;
+  DepthStencilState.StencilEnable = desc.StencilEnable;
+  DepthStencilState.FrontFace = Upconvert(desc.FrontFace);
+  DepthStencilState.BackFace = Upconvert(desc.BackFace);
+
+  // duplicate this across both faces when it's not independent
+  DepthStencilState.FrontFace.StencilReadMask = desc.StencilReadMask;
+  DepthStencilState.FrontFace.StencilWriteMask = desc.StencilWriteMask;
+  DepthStencilState.BackFace.StencilReadMask = desc.StencilReadMask;
+  DepthStencilState.BackFace.StencilWriteMask = desc.StencilWriteMask;
+
+  return DepthStencilState;
+}
+
+D3D12_RASTERIZER_DESC2 Upconvert(const D3D12_RASTERIZER_DESC &desc)
+{
+  D3D12_RASTERIZER_DESC2
+  RasterizerState;
+
+  RasterizerState.FillMode = desc.FillMode;
+  RasterizerState.CullMode = desc.CullMode;
+  RasterizerState.FrontCounterClockwise = desc.FrontCounterClockwise;
+  RasterizerState.DepthBias = FLOAT(desc.DepthBias);
+  RasterizerState.DepthBiasClamp = desc.DepthBiasClamp;
+  RasterizerState.SlopeScaledDepthBias = desc.SlopeScaledDepthBias;
+  RasterizerState.DepthClipEnable = desc.DepthClipEnable;
+  RasterizerState.ForcedSampleCount = desc.ForcedSampleCount;
+  RasterizerState.ConservativeRaster = desc.ConservativeRaster;
+
+  if(desc.MultisampleEnable)
+    RasterizerState.LineRasterizationMode = D3D12_LINE_RASTERIZATION_MODE_QUADRILATERAL_WIDE;
+  else if(desc.AntialiasedLineEnable)
+    RasterizerState.LineRasterizationMode = D3D12_LINE_RASTERIZATION_MODE_ALPHA_ANTIALIASED;
+  else
+    RasterizerState.LineRasterizationMode = D3D12_LINE_RASTERIZATION_MODE_ALIASED;
+
+  return RasterizerState;
+}
+
 D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(
     const D3D12_GRAPHICS_PIPELINE_STATE_DESC &graphics)
 {
@@ -894,16 +968,40 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
   StreamOutput = graphics.StreamOutput;
   BlendState = graphics.BlendState;
   SampleMask = graphics.SampleMask;
-  RasterizerState = graphics.RasterizerState;
+
+  {
+    RasterizerState.FillMode = graphics.RasterizerState.FillMode;
+    RasterizerState.CullMode = graphics.RasterizerState.CullMode;
+    RasterizerState.FrontCounterClockwise = graphics.RasterizerState.FrontCounterClockwise;
+    RasterizerState.DepthBias = FLOAT(graphics.RasterizerState.DepthBias);
+    RasterizerState.DepthBiasClamp = graphics.RasterizerState.DepthBiasClamp;
+    RasterizerState.SlopeScaledDepthBias = graphics.RasterizerState.SlopeScaledDepthBias;
+    RasterizerState.DepthClipEnable = graphics.RasterizerState.DepthClipEnable;
+    RasterizerState.ForcedSampleCount = graphics.RasterizerState.ForcedSampleCount;
+    RasterizerState.ConservativeRaster = graphics.RasterizerState.ConservativeRaster;
+
+    if(graphics.RasterizerState.MultisampleEnable)
+      RasterizerState.LineRasterizationMode = D3D12_LINE_RASTERIZATION_MODE_QUADRILATERAL_WIDE;
+    else if(graphics.RasterizerState.AntialiasedLineEnable)
+      RasterizerState.LineRasterizationMode = D3D12_LINE_RASTERIZATION_MODE_ALPHA_ANTIALIASED;
+    else
+      RasterizerState.LineRasterizationMode = D3D12_LINE_RASTERIZATION_MODE_ALIASED;
+  }
+
   {
     DepthStencilState.DepthEnable = graphics.DepthStencilState.DepthEnable;
     DepthStencilState.DepthWriteMask = graphics.DepthStencilState.DepthWriteMask;
     DepthStencilState.DepthFunc = graphics.DepthStencilState.DepthFunc;
     DepthStencilState.StencilEnable = graphics.DepthStencilState.StencilEnable;
-    DepthStencilState.StencilReadMask = graphics.DepthStencilState.StencilReadMask;
-    DepthStencilState.StencilWriteMask = graphics.DepthStencilState.StencilWriteMask;
-    DepthStencilState.FrontFace = graphics.DepthStencilState.FrontFace;
-    DepthStencilState.BackFace = graphics.DepthStencilState.BackFace;
+
+    DepthStencilState.FrontFace = Upconvert(graphics.DepthStencilState.FrontFace);
+    DepthStencilState.BackFace = Upconvert(graphics.DepthStencilState.BackFace);
+
+    // this is not separate, so duplicate it
+    DepthStencilState.FrontFace.StencilReadMask = graphics.DepthStencilState.StencilReadMask;
+    DepthStencilState.FrontFace.StencilWriteMask = graphics.DepthStencilState.StencilWriteMask;
+    DepthStencilState.BackFace.StencilReadMask = graphics.DepthStencilState.StencilReadMask;
+    DepthStencilState.BackFace.StencilWriteMask = graphics.DepthStencilState.StencilWriteMask;
 
     // DepthBounds defaults to disabled
     DepthStencilState.DepthBoundsTestEnable = FALSE;
@@ -953,8 +1051,11 @@ struct D3D12_U32_PSO_SUBOBJECT
     UINT NodeMask;
     D3D12_BLEND_DESC BlendState;
     D3D12_RASTERIZER_DESC RasterizerState;
+    D3D12_RASTERIZER_DESC1 RasterizerState1;
+    D3D12_RASTERIZER_DESC2 RasterizerState2;
     D3D12_DEPTH_STENCIL_DESC DepthStencilState;
     D3D12_DEPTH_STENCIL_DESC1 DepthStencilState1;
+    D3D12_DEPTH_STENCIL_DESC2 DepthStencilState2;
     D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue;
     D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;
     D3D12_RT_FORMAT_ARRAY RTVFormats;
@@ -1016,8 +1117,7 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
   RasterizerState.DepthBiasClamp = 0.0f;
   RasterizerState.SlopeScaledDepthBias = 0.0f;
   RasterizerState.DepthClipEnable = TRUE;
-  RasterizerState.MultisampleEnable = FALSE;
-  RasterizerState.AntialiasedLineEnable = FALSE;
+  RasterizerState.LineRasterizationMode = D3D12_LINE_RASTERIZATION_MODE_ALIASED;
   RasterizerState.ForcedSampleCount = 0;
   RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 
@@ -1046,16 +1146,14 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
     DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
     DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
     DepthStencilState.StencilEnable = FALSE;
-    DepthStencilState.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
-    DepthStencilState.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
-    DepthStencilState.FrontFace.StencilFunc = DepthStencilState.BackFace.StencilFunc =
-        D3D12_COMPARISON_FUNC_ALWAYS;
-    DepthStencilState.FrontFace.StencilDepthFailOp = DepthStencilState.BackFace.StencilDepthFailOp =
-        D3D12_STENCIL_OP_KEEP;
-    DepthStencilState.FrontFace.StencilPassOp = DepthStencilState.BackFace.StencilPassOp =
-        D3D12_STENCIL_OP_KEEP;
-    DepthStencilState.FrontFace.StencilFailOp = DepthStencilState.BackFace.StencilFailOp =
-        D3D12_STENCIL_OP_KEEP;
+    DepthStencilState.FrontFace.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+    DepthStencilState.FrontFace.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+    DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+    DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+    DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+    DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+
+    DepthStencilState.BackFace = DepthStencilState.FrontFace;
 
     // DepthBounds defaults to disabled
     DepthStencilState.DepthBoundsTestEnable = FALSE;
@@ -1152,8 +1250,38 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
       }
       case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER:
       {
-        RasterizerState = u32->data.RasterizerState;
+        RasterizerState = Upconvert(u32->data.RasterizerState);
+
         ITER_ADV(D3D12_RASTERIZER_DESC);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER1:
+      {
+        RasterizerState.FillMode = u32->data.RasterizerState1.FillMode;
+        RasterizerState.CullMode = u32->data.RasterizerState1.CullMode;
+        RasterizerState.FrontCounterClockwise = u32->data.RasterizerState1.FrontCounterClockwise;
+        RasterizerState.DepthBias = FLOAT(u32->data.RasterizerState1.DepthBias);
+        RasterizerState.DepthBiasClamp = u32->data.RasterizerState1.DepthBiasClamp;
+        RasterizerState.SlopeScaledDepthBias = u32->data.RasterizerState1.SlopeScaledDepthBias;
+        RasterizerState.DepthClipEnable = u32->data.RasterizerState1.DepthClipEnable;
+        RasterizerState.ForcedSampleCount = u32->data.RasterizerState1.ForcedSampleCount;
+        RasterizerState.ConservativeRaster = u32->data.RasterizerState1.ConservativeRaster;
+
+        if(u32->data.RasterizerState1.MultisampleEnable)
+          RasterizerState.LineRasterizationMode = D3D12_LINE_RASTERIZATION_MODE_QUADRILATERAL_WIDE;
+        else if(u32->data.RasterizerState1.AntialiasedLineEnable)
+          RasterizerState.LineRasterizationMode = D3D12_LINE_RASTERIZATION_MODE_ALPHA_ANTIALIASED;
+        else
+          RasterizerState.LineRasterizationMode = D3D12_LINE_RASTERIZATION_MODE_ALIASED;
+
+        ITER_ADV(D3D12_RASTERIZER_DESC1);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER2:
+      {
+        RasterizerState = u32->data.RasterizerState2;
+
+        ITER_ADV(D3D12_RASTERIZER_DESC2);
         break;
       }
       case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL:
@@ -1163,10 +1291,14 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
         DepthStencilState.DepthWriteMask = dsdesc.DepthWriteMask;
         DepthStencilState.DepthFunc = dsdesc.DepthFunc;
         DepthStencilState.StencilEnable = dsdesc.StencilEnable;
-        DepthStencilState.StencilReadMask = dsdesc.StencilReadMask;
-        DepthStencilState.StencilWriteMask = dsdesc.StencilWriteMask;
-        DepthStencilState.FrontFace = dsdesc.FrontFace;
-        DepthStencilState.BackFace = dsdesc.BackFace;
+        DepthStencilState.FrontFace = Upconvert(dsdesc.FrontFace);
+        DepthStencilState.BackFace = Upconvert(dsdesc.BackFace);
+
+        // duplicate this across both faces when it's not independent
+        DepthStencilState.FrontFace.StencilReadMask = dsdesc.StencilReadMask;
+        DepthStencilState.FrontFace.StencilWriteMask = dsdesc.StencilWriteMask;
+        DepthStencilState.BackFace.StencilReadMask = dsdesc.StencilReadMask;
+        DepthStencilState.BackFace.StencilWriteMask = dsdesc.StencilWriteMask;
         SeenDSS = true;
         ITER_ADV(D3D12_DEPTH_STENCIL_DESC);
         break;
@@ -1230,9 +1362,17 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
       }
       case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL1:
       {
-        DepthStencilState = u32->data.DepthStencilState1;
+        DepthStencilState = Upconvert(u32->data.DepthStencilState1);
+
         SeenDSS = true;
         ITER_ADV(D3D12_DEPTH_STENCIL_DESC1);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL2:
+      {
+        DepthStencilState = u32->data.DepthStencilState2;
+        SeenDSS = true;
+        ITER_ADV(D3D12_DEPTH_STENCIL_DESC2);
         break;
       }
       case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VIEW_INSTANCING:
@@ -1299,8 +1439,6 @@ D3D12_PACKED_PIPELINE_STATE_STREAM_DESC &D3D12_PACKED_PIPELINE_STATE_STREAM_DESC
     m_GraphicsStreamData.StreamOutput = expanded.StreamOutput;
     m_GraphicsStreamData.BlendState = expanded.BlendState;
     m_GraphicsStreamData.SampleMask = expanded.SampleMask;
-    m_GraphicsStreamData.RasterizerState = expanded.RasterizerState;
-    m_GraphicsStreamData.DepthStencilState = expanded.DepthStencilState;
     m_GraphicsStreamData.InputLayout = expanded.InputLayout;
     m_GraphicsStreamData.IBStripCutValue = expanded.IBStripCutValue;
     m_GraphicsStreamData.PrimitiveTopologyType = expanded.PrimitiveTopologyType;
@@ -1311,6 +1449,133 @@ D3D12_PACKED_PIPELINE_STATE_STREAM_DESC &D3D12_PACKED_PIPELINE_STATE_STREAM_DESC
     m_GraphicsStreamData.CachedPSO = expanded.CachedPSO;
     m_GraphicsStreamData.Flags = expanded.Flags;
     m_GraphicsStreamData.ViewInstancing = expanded.ViewInstancing;
+
+    byte *ptr = m_GraphicsStreamData.VariableVersionedData;
+    const byte *start = ptr;
+    D3D12_PIPELINE_STATE_SUBOBJECT_TYPE type;
+
+#define WRITE_VERSIONED_SUBOJBECT(subobjType, subobj) \
+  type = subobjType;                                  \
+  memcpy(ptr, &type, sizeof(type));                   \
+  ptr += sizeof(type);                                \
+  ptr = AlignUpPtr(ptr, alignof(decltype(subobj)));   \
+  memcpy(ptr, &subobj, sizeof(subobj));               \
+  ptr += sizeof(subobj);                              \
+  ptr = AlignUpPtr(ptr, sizeof(void *));
+
+    // is the line rasterization mode narrow quadrilateral? if so we need version 2.
+    if(expanded.RasterizerState.LineRasterizationMode ==
+       D3D12_LINE_RASTERIZATION_MODE_QUADRILATERAL_NARROW)
+    {
+      WRITE_VERSIONED_SUBOJBECT(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER2,
+                                expanded.RasterizerState);
+    }
+    // otherwise is the depth bias not an int? then we need version 1
+    else if(FLOAT(INT(expanded.RasterizerState.DepthBias)) != expanded.RasterizerState.DepthBias)
+    {
+      D3D12_RASTERIZER_DESC1 desc1;
+
+      desc1.FillMode = expanded.RasterizerState.FillMode;
+      desc1.CullMode = expanded.RasterizerState.CullMode;
+      desc1.FrontCounterClockwise = expanded.RasterizerState.FrontCounterClockwise;
+      desc1.DepthBias = expanded.RasterizerState.DepthBias;
+      desc1.DepthBiasClamp = expanded.RasterizerState.DepthBiasClamp;
+      desc1.SlopeScaledDepthBias = expanded.RasterizerState.SlopeScaledDepthBias;
+      desc1.DepthClipEnable = expanded.RasterizerState.DepthClipEnable;
+      desc1.ForcedSampleCount = expanded.RasterizerState.ForcedSampleCount;
+      desc1.ConservativeRaster = expanded.RasterizerState.ConservativeRaster;
+
+      switch(expanded.RasterizerState.LineRasterizationMode)
+      {
+        case D3D12_LINE_RASTERIZATION_MODE_ALIASED:
+          desc1.MultisampleEnable = FALSE;
+          desc1.AntialiasedLineEnable = FALSE;
+          break;
+        case D3D12_LINE_RASTERIZATION_MODE_ALPHA_ANTIALIASED:
+          desc1.MultisampleEnable = FALSE;
+          desc1.AntialiasedLineEnable = TRUE;
+          break;
+        case D3D12_LINE_RASTERIZATION_MODE_QUADRILATERAL_WIDE:
+        case D3D12_LINE_RASTERIZATION_MODE_QUADRILATERAL_NARROW:
+          desc1.MultisampleEnable = TRUE;
+          desc1.AntialiasedLineEnable = FALSE;
+          break;
+        default:
+          desc1.MultisampleEnable = FALSE;
+          desc1.AntialiasedLineEnable = FALSE;
+          break;
+      }
+
+      WRITE_VERSIONED_SUBOJBECT(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER1, desc1);
+    }
+    // if neither of those, we can use the old version
+    else
+    {
+      D3D12_RASTERIZER_DESC desc;
+
+      desc.FillMode = expanded.RasterizerState.FillMode;
+      desc.CullMode = expanded.RasterizerState.CullMode;
+      desc.FrontCounterClockwise = expanded.RasterizerState.FrontCounterClockwise;
+      desc.DepthBias = INT(expanded.RasterizerState.DepthBias);
+      desc.DepthBiasClamp = expanded.RasterizerState.DepthBiasClamp;
+      desc.SlopeScaledDepthBias = expanded.RasterizerState.SlopeScaledDepthBias;
+      desc.DepthClipEnable = expanded.RasterizerState.DepthClipEnable;
+      desc.ForcedSampleCount = expanded.RasterizerState.ForcedSampleCount;
+      desc.ConservativeRaster = expanded.RasterizerState.ConservativeRaster;
+
+      switch(expanded.RasterizerState.LineRasterizationMode)
+      {
+        case D3D12_LINE_RASTERIZATION_MODE_ALIASED:
+          desc.MultisampleEnable = FALSE;
+          desc.AntialiasedLineEnable = FALSE;
+          break;
+        case D3D12_LINE_RASTERIZATION_MODE_ALPHA_ANTIALIASED:
+          desc.MultisampleEnable = FALSE;
+          desc.AntialiasedLineEnable = TRUE;
+          break;
+        case D3D12_LINE_RASTERIZATION_MODE_QUADRILATERAL_WIDE:
+        case D3D12_LINE_RASTERIZATION_MODE_QUADRILATERAL_NARROW:
+          desc.MultisampleEnable = TRUE;
+          desc.AntialiasedLineEnable = FALSE;
+          break;
+        default:
+          desc.MultisampleEnable = FALSE;
+          desc.AntialiasedLineEnable = FALSE;
+          break;
+      }
+
+      WRITE_VERSIONED_SUBOJBECT(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER, desc);
+    }
+
+    // do we have separate stencil masks? if so use the new type of D/S desc. Otherwise use the old
+    // one to ensure we don't fail when the new one isn't supported
+    if(expanded.DepthStencilState.StencilEnable &&
+       (expanded.DepthStencilState.FrontFace.StencilReadMask !=
+            expanded.DepthStencilState.FrontFace.StencilReadMask ||
+        expanded.DepthStencilState.BackFace.StencilWriteMask !=
+            expanded.DepthStencilState.BackFace.StencilWriteMask))
+    {
+      WRITE_VERSIONED_SUBOJBECT(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL2,
+                                expanded.DepthStencilState);
+    }
+    else
+    {
+      D3D12_DEPTH_STENCIL_DESC1 desc1;
+
+      desc1.DepthEnable = expanded.DepthStencilState.DepthEnable;
+      desc1.DepthFunc = expanded.DepthStencilState.DepthFunc;
+      desc1.DepthBoundsTestEnable = expanded.DepthStencilState.DepthBoundsTestEnable;
+      desc1.DepthWriteMask = expanded.DepthStencilState.DepthWriteMask;
+      desc1.StencilEnable = expanded.DepthStencilState.StencilEnable;
+      desc1.FrontFace = Downconvert(expanded.DepthStencilState.FrontFace);
+      desc1.BackFace = Downconvert(expanded.DepthStencilState.BackFace);
+      desc1.StencilReadMask = expanded.DepthStencilState.FrontFace.StencilReadMask;
+      desc1.StencilWriteMask = expanded.DepthStencilState.FrontFace.StencilWriteMask;
+
+      WRITE_VERSIONED_SUBOJBECT(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL1, desc1);
+    }
+
+    m_VariableVersionedDataLength = ptr - start;
   }
 
   return *this;

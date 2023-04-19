@@ -1505,8 +1505,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::RasterizerState &el)
   SERIALISE_MEMBER(depthBiasClamp);
   SERIALISE_MEMBER(slopeScaledDepthBias);
   SERIALISE_MEMBER(depthClip);
-  SERIALISE_MEMBER(multisampleEnable);
-  SERIALISE_MEMBER(antialiasedLines);
+  SERIALISE_MEMBER(lineRasterMode);
   SERIALISE_MEMBER(forcedSampleCount);
   SERIALISE_MEMBER(conservativeRasterization);
   SERIALISE_MEMBER(baseShadingRate);
