@@ -28,7 +28,7 @@
 template <>
 rdcstr DoStringise(const D3D12Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1114, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1122, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
   {
@@ -205,6 +205,20 @@ rdcstr DoStringise(const D3D12Chunk &el)
                                "ID3D12Device8::CreatePlacedResource1");
     STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommandQueue1, "ID3D12Device9::CreateCommandQueue1");
     STRINGISE_ENUM_CLASS_NAMED(CoherentMapWrite, "Internal::Coherent Mapped Memory Write");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateSampler2, "ID3D12Device11::CreateSampler2");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommittedResource3,
+                               "ID3D12Device10::Device_CreateCommittedResource3");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreatePlacedResource2,
+                               "ID3D12Device10::Device_CreatePlacedResource2");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateReservedResource1,
+                               "ID3D12Device4::Device_CreateReservedResource1");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateReservedResource2,
+                               "ID3D12Device10::Device_CreateReservedResource2");
+    STRINGISE_ENUM_CLASS_NAMED(List_OMSetFrontAndBackStencilRef,
+                               "ID3D12GraphicsCommandList8::OMSetFrontAndBackStencilRef");
+    STRINGISE_ENUM_CLASS_NAMED(List_RSSetDepthBias, "ID3D12GraphicsCommandList9::RSSetDepthBias");
+    STRINGISE_ENUM_CLASS_NAMED(List_IASetIndexBufferStripCutValue,
+                               "ID3D12GraphicsCommandList9::IASetIndexBufferStripCutValue");
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()

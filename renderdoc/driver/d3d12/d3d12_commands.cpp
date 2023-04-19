@@ -88,6 +88,30 @@ ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList6 *obj)
   return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal();
 }
 
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList7 *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal();
+}
+
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList8 *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal();
+}
+
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList9 *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal();
+}
+
 ID3D12GraphicsCommandList1 *Unwrap1(ID3D12GraphicsCommandList1 *obj)
 {
   if(obj == NULL)
@@ -134,6 +158,30 @@ ID3D12GraphicsCommandList6 *Unwrap6(ID3D12GraphicsCommandList6 *obj)
     return NULL;
 
   return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal6();
+}
+
+ID3D12GraphicsCommandList7 *Unwrap7(ID3D12GraphicsCommandList7 *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal7();
+}
+
+ID3D12GraphicsCommandList8 *Unwrap8(ID3D12GraphicsCommandList8 *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal8();
+}
+
+ID3D12GraphicsCommandList9 *Unwrap9(ID3D12GraphicsCommandList9 *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal9();
 }
 
 template <>
@@ -201,6 +249,33 @@ ResourceId GetResID(ID3D12GraphicsCommandList5 *obj)
 
 template <>
 ResourceId GetResID(ID3D12GraphicsCommandList6 *obj)
+{
+  if(obj == NULL)
+    return ResourceId();
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetResourceID();
+}
+
+template <>
+ResourceId GetResID(ID3D12GraphicsCommandList7 *obj)
+{
+  if(obj == NULL)
+    return ResourceId();
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetResourceID();
+}
+
+template <>
+ResourceId GetResID(ID3D12GraphicsCommandList8 *obj)
+{
+  if(obj == NULL)
+    return ResourceId();
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetResourceID();
+}
+
+template <>
+ResourceId GetResID(ID3D12GraphicsCommandList9 *obj)
 {
   if(obj == NULL)
     return ResourceId();
@@ -288,6 +363,21 @@ WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList5 *obj)
 }
 
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList6 *obj)
+{
+  return ((WrappedID3D12GraphicsCommandList *)obj);
+}
+
+WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList7 *obj)
+{
+  return ((WrappedID3D12GraphicsCommandList *)obj);
+}
+
+WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList8 *obj)
+{
+  return ((WrappedID3D12GraphicsCommandList *)obj);
+}
+
+WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList9 *obj)
 {
   return ((WrappedID3D12GraphicsCommandList *)obj);
 }
@@ -857,6 +947,14 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     case D3D12Chunk::Device_CreateCommittedResource2:
     case D3D12Chunk::Device_CreatePlacedResource1:
     case D3D12Chunk::Device_CreateCommandQueue1:
+    case D3D12Chunk::Device_CreateSampler2:
+    case D3D12Chunk::Device_CreateCommittedResource3:
+    case D3D12Chunk::Device_CreatePlacedResource2:
+    case D3D12Chunk::Device_CreateReservedResource1:
+    case D3D12Chunk::Device_CreateReservedResource2:
+    case D3D12Chunk::List_OMSetFrontAndBackStencilRef:
+    case D3D12Chunk::List_RSSetDepthBias:
+    case D3D12Chunk::List_IASetIndexBufferStripCutValue:
       RDCERR("Unexpected chunk while processing frame: %s", ToStr(chunk).c_str());
       return false;
 
@@ -1411,6 +1509,45 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFII
     if(m_pList6)
     {
       *ppvObject = (ID3D12GraphicsCommandList6 *)this;
+      AddRef();
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12GraphicsCommandList7))
+  {
+    if(m_pList7)
+    {
+      *ppvObject = (ID3D12GraphicsCommandList7 *)this;
+      AddRef();
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12GraphicsCommandList8))
+  {
+    if(m_pList8)
+    {
+      *ppvObject = (ID3D12GraphicsCommandList8 *)this;
+      AddRef();
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12GraphicsCommandList9))
+  {
+    if(m_pList9)
+    {
+      *ppvObject = (ID3D12GraphicsCommandList9 *)this;
       AddRef();
       return S_OK;
     }

@@ -323,7 +323,9 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
   if(riid != __uuidof(ID3D12GraphicsCommandList) && riid != __uuidof(ID3D12CommandList) &&
      riid != __uuidof(ID3D12GraphicsCommandList1) && riid != __uuidof(ID3D12GraphicsCommandList2) &&
      riid != __uuidof(ID3D12GraphicsCommandList3) && riid != __uuidof(ID3D12GraphicsCommandList4) &&
-     riid != __uuidof(ID3D12GraphicsCommandList5) && riid != __uuidof(ID3D12GraphicsCommandList6))
+     riid != __uuidof(ID3D12GraphicsCommandList5) && riid != __uuidof(ID3D12GraphicsCommandList6) &&
+     riid != __uuidof(ID3D12GraphicsCommandList7) && riid != __uuidof(ID3D12GraphicsCommandList8) &&
+     riid != __uuidof(ID3D12GraphicsCommandList9))
     return E_NOINTERFACE;
 
   void *realptr = NULL;
@@ -350,6 +352,12 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
     real = (ID3D12GraphicsCommandList5 *)realptr;
   else if(riid == __uuidof(ID3D12GraphicsCommandList6))
     real = (ID3D12GraphicsCommandList6 *)realptr;
+  else if(riid == __uuidof(ID3D12GraphicsCommandList7))
+    real = (ID3D12GraphicsCommandList7 *)realptr;
+  else if(riid == __uuidof(ID3D12GraphicsCommandList8))
+    real = (ID3D12GraphicsCommandList8 *)realptr;
+  else if(riid == __uuidof(ID3D12GraphicsCommandList9))
+    real = (ID3D12GraphicsCommandList9 *)realptr;
 
   if(SUCCEEDED(ret))
   {
@@ -404,6 +412,12 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
       *ppCommandList = (ID3D12GraphicsCommandList5 *)wrapped;
     else if(riid == __uuidof(ID3D12GraphicsCommandList6))
       *ppCommandList = (ID3D12GraphicsCommandList6 *)wrapped;
+    else if(riid == __uuidof(ID3D12GraphicsCommandList7))
+      *ppCommandList = (ID3D12GraphicsCommandList7 *)wrapped;
+    else if(riid == __uuidof(ID3D12GraphicsCommandList8))
+      *ppCommandList = (ID3D12GraphicsCommandList8 *)wrapped;
+    else if(riid == __uuidof(ID3D12GraphicsCommandList9))
+      *ppCommandList = (ID3D12GraphicsCommandList9 *)wrapped;
     else if(riid == __uuidof(ID3D12CommandList))
       *ppCommandList = (ID3D12CommandList *)wrapped;
     else
@@ -3337,9 +3351,14 @@ HRESULT WrappedID3D12Device::SetStablePowerState(BOOL Enable)
 HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pFeatureSupportData,
                                                  UINT FeatureSupportDataSize)
 {
-  static bool logged = false;
-  bool dolog = !logged;
-  logged = true;
+  static uint64_t logged = 0;
+  bool dolog = true;
+  if(uint32_t(Feature) < 64)
+  {
+    const uint64_t bit = 1ULL << uint32_t(Feature);
+    dolog = (logged & bit) == 0;
+    logged |= bit;
+  }
 
   if(dolog)
     RDCLOG("Checking feature support for %d", Feature);
@@ -3408,6 +3427,36 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
 
     if(dolog)
       RDCLOG("Forcing no mesh shading or sampler feedback tier support");
+
+    return S_OK;
+  }
+  else if(Feature == D3D12_FEATURE_D3D12_OPTIONS12)
+  {
+    D3D12_FEATURE_DATA_D3D12_OPTIONS12 *opts =
+        (D3D12_FEATURE_DATA_D3D12_OPTIONS12 *)pFeatureSupportData;
+    if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS12))
+      return E_INVALIDARG;
+
+    opts->EnhancedBarriersSupported = FALSE;
+    // could support this but the entry point is tied to barriers
+    opts->RelaxedFormatCastingSupported = FALSE;
+
+    if(dolog)
+      RDCLOG("Forcing no new barrier support");
+
+    return S_OK;
+  }
+  else if(Feature == D3D12_FEATURE_D3D12_OPTIONS18)
+  {
+    D3D12_FEATURE_DATA_D3D12_OPTIONS18 *opts =
+        (D3D12_FEATURE_DATA_D3D12_OPTIONS18 *)pFeatureSupportData;
+    if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS18))
+      return E_INVALIDARG;
+
+    opts->RenderPassesValid = FALSE;
+
+    if(dolog)
+      RDCLOG("Forcing no changed renderpass support");
 
     return S_OK;
   }

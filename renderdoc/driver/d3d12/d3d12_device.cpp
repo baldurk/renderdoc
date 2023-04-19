@@ -94,12 +94,14 @@ ULONG STDMETHODCALLTYPE DummyID3D12DebugDevice::Release()
 
 HRESULT STDMETHODCALLTYPE DummyID3D12DebugDevice::QueryInterface(REFIID riid, void **ppvObject)
 {
-  if(riid == __uuidof(ID3D12InfoQueue) || riid == __uuidof(ID3D12DebugDevice) ||
-     riid == __uuidof(ID3D12Device) || riid == __uuidof(ID3D12Device1) ||
-     riid == __uuidof(ID3D12Device2) || riid == __uuidof(ID3D12Device3) ||
-     riid == __uuidof(ID3D12Device4) || riid == __uuidof(ID3D12Device5) ||
-     riid == __uuidof(ID3D12Device6) || riid == __uuidof(ID3D12Device7) ||
-     riid == __uuidof(ID3D12Device8) || riid == __uuidof(ID3D12Device9))
+  if(riid == __uuidof(ID3D12InfoQueue) || riid == __uuidof(ID3D12InfoQueue1) ||
+     riid == __uuidof(ID3D12DebugDevice) || riid == __uuidof(ID3D12Device) ||
+     riid == __uuidof(ID3D12Device1) || riid == __uuidof(ID3D12Device2) ||
+     riid == __uuidof(ID3D12Device3) || riid == __uuidof(ID3D12Device4) ||
+     riid == __uuidof(ID3D12Device5) || riid == __uuidof(ID3D12Device6) ||
+     riid == __uuidof(ID3D12Device7) || riid == __uuidof(ID3D12Device8) ||
+     riid == __uuidof(ID3D12Device9) || riid == __uuidof(ID3D12Device10) ||
+     riid == __uuidof(ID3D12Device11) || riid == __uuidof(ID3D12Device12))
     return m_pDevice->QueryInterface(riid, ppvObject);
 
   if(riid == __uuidof(IUnknown))
@@ -128,12 +130,14 @@ ULONG STDMETHODCALLTYPE WrappedID3D12DebugDevice::Release()
 
 HRESULT STDMETHODCALLTYPE WrappedID3D12DebugDevice::QueryInterface(REFIID riid, void **ppvObject)
 {
-  if(riid == __uuidof(ID3D12InfoQueue) || riid == __uuidof(ID3D12DebugDevice) ||
-     riid == __uuidof(ID3D12Device) || riid == __uuidof(ID3D12Device1) ||
-     riid == __uuidof(ID3D12Device2) || riid == __uuidof(ID3D12Device3) ||
-     riid == __uuidof(ID3D12Device4) || riid == __uuidof(ID3D12Device5) ||
-     riid == __uuidof(ID3D12Device6) || riid == __uuidof(ID3D12Device7) ||
-     riid == __uuidof(ID3D12Device8) || riid == __uuidof(ID3D12Device9))
+  if(riid == __uuidof(ID3D12InfoQueue) || riid == __uuidof(ID3D12InfoQueue1) ||
+     riid == __uuidof(ID3D12DebugDevice) || riid == __uuidof(ID3D12Device) ||
+     riid == __uuidof(ID3D12Device1) || riid == __uuidof(ID3D12Device2) ||
+     riid == __uuidof(ID3D12Device3) || riid == __uuidof(ID3D12Device4) ||
+     riid == __uuidof(ID3D12Device5) || riid == __uuidof(ID3D12Device6) ||
+     riid == __uuidof(ID3D12Device7) || riid == __uuidof(ID3D12Device8) ||
+     riid == __uuidof(ID3D12Device9) || riid == __uuidof(ID3D12Device10) ||
+     riid == __uuidof(ID3D12Device11) || riid == __uuidof(ID3D12Device12))
     return m_pDevice->QueryInterface(riid, ppvObject);
 
   if(riid == __uuidof(IUnknown))
@@ -532,6 +536,9 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_pDevice7 = NULL;
   m_pDevice8 = NULL;
   m_pDevice9 = NULL;
+  m_pDevice10 = NULL;
+  m_pDevice11 = NULL;
+  m_pDevice12 = NULL;
   m_pDownlevel = NULL;
   if(m_pDevice)
   {
@@ -544,6 +551,9 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_pDevice->QueryInterface(__uuidof(ID3D12Device7), (void **)&m_pDevice7);
     m_pDevice->QueryInterface(__uuidof(ID3D12Device8), (void **)&m_pDevice8);
     m_pDevice->QueryInterface(__uuidof(ID3D12Device9), (void **)&m_pDevice9);
+    m_pDevice->QueryInterface(__uuidof(ID3D12Device10), (void **)&m_pDevice10);
+    m_pDevice->QueryInterface(__uuidof(ID3D12Device11), (void **)&m_pDevice11);
+    m_pDevice->QueryInterface(__uuidof(ID3D12Device12), (void **)&m_pDevice12);
     m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedData), (void **)&m_DRED.m_pReal);
     m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedData1), (void **)&m_DRED.m_pReal1);
     m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedDataSettings),
@@ -840,6 +850,9 @@ WrappedID3D12Device::~WrappedID3D12Device()
   SAFE_RELEASE(m_CompatDevice.m_pReal);
   SAFE_RELEASE(m_SharingContract.m_pReal);
   SAFE_RELEASE(m_pDownlevel);
+  SAFE_RELEASE(m_pDevice12);
+  SAFE_RELEASE(m_pDevice11);
+  SAFE_RELEASE(m_pDevice10);
   SAFE_RELEASE(m_pDevice9);
   SAFE_RELEASE(m_pDevice8);
   SAFE_RELEASE(m_pDevice7);
@@ -979,6 +992,22 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
       return hr;
     }
   }
+  else if(riid == __uuidof(IDXGIDevice4))
+  {
+    hr = m_pDevice->QueryInterface(riid, ppvObject);
+
+    if(SUCCEEDED(hr))
+    {
+      IDXGIDevice4 *real = (IDXGIDevice4 *)(*ppvObject);
+      *ppvObject = (IDXGIDevice4 *)(new WrappedIDXGIDevice4(real, this));
+      return S_OK;
+    }
+    else
+    {
+      *ppvObject = NULL;
+      return hr;
+    }
+  }
   else if(riid == __uuidof(ID3D12Device))
   {
     AddRef();
@@ -1102,6 +1131,45 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
       return E_NOINTERFACE;
     }
   }
+  else if(riid == __uuidof(ID3D12Device10))
+  {
+    if(m_pDevice10)
+    {
+      AddRef();
+      *ppvObject = (ID3D12Device10 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12Device11))
+  {
+    if(m_pDevice11)
+    {
+      AddRef();
+      *ppvObject = (ID3D12Device11 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12Device12))
+  {
+    if(m_pDevice12)
+    {
+      AddRef();
+      *ppvObject = (ID3D12Device12 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
   else if(riid == __uuidof(ID3D12DeviceDownlevel))
   {
     if(m_pDownlevel)
@@ -1120,6 +1188,15 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
     RDCWARN(
         "Returning a dummy ID3D12InfoQueue that does nothing. This ID3D12InfoQueue will not work!");
     *ppvObject = (ID3D12InfoQueue *)&m_DummyInfoQueue;
+    m_DummyInfoQueue.AddRef();
+    return S_OK;
+  }
+  else if(riid == __uuidof(ID3D12InfoQueue1))
+  {
+    RDCWARN(
+        "Returning a dummy ID3D12InfoQueue1 that does nothing. This ID3D12InfoQueue1 will not "
+        "work!");
+    *ppvObject = (ID3D12InfoQueue1 *)&m_DummyInfoQueue;
     m_DummyInfoQueue.AddRef();
     return S_OK;
   }
@@ -4098,6 +4175,14 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::Swapchain_Present:
     case D3D12Chunk::List_ClearState:
     case D3D12Chunk::CoherentMapWrite:
+    case D3D12Chunk::Device_CreateSampler2:
+    case D3D12Chunk::Device_CreateCommittedResource3:
+    case D3D12Chunk::Device_CreatePlacedResource2:
+    case D3D12Chunk::Device_CreateReservedResource1:
+    case D3D12Chunk::Device_CreateReservedResource2:
+    case D3D12Chunk::List_OMSetFrontAndBackStencilRef:
+    case D3D12Chunk::List_RSSetDepthBias:
+    case D3D12Chunk::List_IASetIndexBufferStripCutValue:
       RDCERR("Unexpected chunk while processing initialisation: %s", ToStr(context).c_str());
       return false;
 

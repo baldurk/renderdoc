@@ -64,6 +64,21 @@ ID3D12GraphicsCommandList6 *WrappedID3D12GraphicsCommandList::GetCrackedList6()
   return Unwrap6(m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.back());
 }
 
+ID3D12GraphicsCommandList7 *WrappedID3D12GraphicsCommandList::GetCrackedList7()
+{
+  return Unwrap7(m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.back());
+}
+
+ID3D12GraphicsCommandList8 *WrappedID3D12GraphicsCommandList::GetCrackedList8()
+{
+  return Unwrap8(m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.back());
+}
+
+ID3D12GraphicsCommandList9 *WrappedID3D12GraphicsCommandList::GetCrackedList9()
+{
+  return Unwrap9(m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.back());
+}
+
 ID3D12GraphicsCommandListX *WrappedID3D12GraphicsCommandList::GetWrappedCrackedList()
 {
   return m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.back();

@@ -582,7 +582,7 @@ class WrappedID3D12CommandQueue;
   template <typename SerialiserType>                         \
   bool CONCAT(Serialise_, func(SerialiserType &ser, __VA_ARGS__));
 
-class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device9
+class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device12
 {
 private:
   ID3D12Device *m_pDevice;
@@ -595,6 +595,9 @@ private:
   ID3D12Device7 *m_pDevice7;
   ID3D12Device8 *m_pDevice8;
   ID3D12Device9 *m_pDevice9;
+  ID3D12Device10 *m_pDevice10;
+  ID3D12Device11 *m_pDevice11;
+  ID3D12Device12 *m_pDevice12;
   ID3D12DeviceDownlevel *m_pDownlevel;
 
   // list of all queues being captured
@@ -1011,7 +1014,9 @@ public:
        iid == __uuidof(ID3D12Device2) || iid == __uuidof(ID3D12Device3) ||
        iid == __uuidof(ID3D12Device4) || iid == __uuidof(ID3D12Device5) ||
        iid == __uuidof(ID3D12Device6) || iid == __uuidof(ID3D12Device7) ||
-       iid == __uuidof(ID3D12Device8) || iid == __uuidof(ID3D12Device9))
+       iid == __uuidof(ID3D12Device8) || iid == __uuidof(ID3D12Device9) ||
+       iid == __uuidof(ID3D12Device10) || iid == __uuidof(ID3D12Device11) ||
+       iid == __uuidof(ID3D12Device12))
       return true;
 
     return false;
@@ -1038,6 +1043,12 @@ public:
       return (ID3D12Device8 *)this;
     else if(iid == __uuidof(ID3D12Device9))
       return (ID3D12Device9 *)this;
+    else if(iid == __uuidof(ID3D12Device10))
+      return (ID3D12Device10 *)this;
+    else if(iid == __uuidof(ID3D12Device11))
+      return (ID3D12Device11 *)this;
+    else if(iid == __uuidof(ID3D12Device12))
+      return (ID3D12Device12 *)this;
 
     RDCERR("Requested unknown device interface %s", ToStr(iid).c_str());
 
@@ -1126,6 +1137,24 @@ public:
     else if(riid == __uuidof(ID3D12Device9))
     {
       *ppvDevice = (ID3D12Device9 *)this;
+      this->AddRef();
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Device10))
+    {
+      *ppvDevice = (ID3D12Device10 *)this;
+      this->AddRef();
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Device11))
+    {
+      *ppvDevice = (ID3D12Device11 *)this;
+      this->AddRef();
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Device12))
+    {
+      *ppvDevice = (ID3D12Device12 *)this;
       this->AddRef();
       return S_OK;
     }
@@ -1589,4 +1618,49 @@ public:
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateCommandQueue1,
                                        _In_ const D3D12_COMMAND_QUEUE_DESC *pDesc, REFIID CreatorID,
                                        REFIID riid, _COM_Outptr_ void **ppCommandQueue);
+
+  //////////////////////////////
+  // implement ID3D12Device10
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(
+      virtual HRESULT STDMETHODCALLTYPE, CreateCommittedResource3,
+      _In_ const D3D12_HEAP_PROPERTIES *pHeapProperties, D3D12_HEAP_FLAGS HeapFlags,
+      _In_ const D3D12_RESOURCE_DESC1 *pDesc, D3D12_BARRIER_LAYOUT InitialLayout,
+      _In_opt_ const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+      _In_opt_ ID3D12ProtectedResourceSession *pProtectedSession, UINT32 NumCastableFormats,
+      _In_opt_count_(NumCastableFormats) const DXGI_FORMAT *pCastableFormats, REFIID riidResource,
+      _COM_Outptr_opt_ void **ppvResource);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(
+      virtual HRESULT STDMETHODCALLTYPE, CreatePlacedResource2, _In_ ID3D12Heap *pHeap,
+      UINT64 HeapOffset, _In_ const D3D12_RESOURCE_DESC1 *pDesc, D3D12_BARRIER_LAYOUT InitialLayout,
+      _In_opt_ const D3D12_CLEAR_VALUE *pOptimizedClearValue, UINT32 NumCastableFormats,
+      _In_opt_count_(NumCastableFormats) const DXGI_FORMAT *pCastableFormats, REFIID riid,
+      _COM_Outptr_opt_ void **ppvResource);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateReservedResource2,
+                                       _In_ const D3D12_RESOURCE_DESC *pDesc,
+                                       D3D12_BARRIER_LAYOUT InitialLayout,
+                                       _In_opt_ const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+                                       _In_opt_ ID3D12ProtectedResourceSession *pProtectedSession,
+                                       UINT32 NumCastableFormats,
+                                       _In_opt_count_(NumCastableFormats)
+                                           const DXGI_FORMAT *pCastableFormats,
+                                       REFIID riid, _COM_Outptr_opt_ void **ppvResource);
+
+  //////////////////////////////
+  // implement ID3D12Device11
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual void STDMETHODCALLTYPE, CreateSampler2,
+                                       _In_ const D3D12_SAMPLER_DESC2 *pDesc,
+                                       _In_ D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor);
+
+  //////////////////////////////
+  // implement ID3D12Device12
+
+  virtual D3D12_RESOURCE_ALLOCATION_INFO STDMETHODCALLTYPE GetResourceAllocationInfo3(
+      UINT visibleMask, UINT numResourceDescs,
+      _In_reads_(numResourceDescs) const D3D12_RESOURCE_DESC1 *pResourceDescs,
+      _In_opt_count_(numResourceDescs) const UINT32 *pNumCastableFormats,
+      _In_opt_count_(numResourceDescs) const DXGI_FORMAT *const *ppCastableFormats,
+      _Out_writes_opt_(numResourceDescs) D3D12_RESOURCE_ALLOCATION_INFO1 *pResourceAllocationInfo1);
 };

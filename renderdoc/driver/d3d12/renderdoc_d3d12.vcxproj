@@ -108,6 +108,9 @@
     <ClCompile Include="d3d12_command_list4_wrap.cpp" />
     <ClCompile Include="d3d12_command_list5_wrap.cpp" />
     <ClCompile Include="d3d12_command_list6_wrap.cpp" />
+    <ClCompile Include="d3d12_command_list7_wrap.cpp" />
+    <ClCompile Include="d3d12_command_list8_wrap.cpp" />
+    <ClCompile Include="d3d12_command_list9_wrap.cpp" />
     <ClCompile Include="d3d12_command_list_wrap.cpp" />
     <ClCompile Include="d3d12_command_queue_wrap.cpp" />
     <ClCompile Include="d3d12_common.cpp" />
@@ -116,6 +119,9 @@
     <ClCompile Include="d3d12_device.cpp" />
     <ClCompile Include="d3d12_device_wrap.cpp" />
     <ClCompile Include="d3d12_device_wrap1.cpp" />
+    <ClCompile Include="d3d12_device_wrap10.cpp" />
+    <ClCompile Include="d3d12_device_wrap11.cpp" />
+    <ClCompile Include="d3d12_device_wrap12.cpp" />
     <ClCompile Include="d3d12_device_wrap2.cpp" />
     <ClCompile Include="d3d12_device_wrap3.cpp" />
     <ClCompile Include="d3d12_device_wrap4.cpp" />

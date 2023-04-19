@@ -35,7 +35,7 @@
 
 // we need to use the most-derived native interface all over the place. To make things easier when
 // new versions come out we typedef it here when we don't need the specific interface
-using ID3D12GraphicsCommandListX = ID3D12GraphicsCommandList6;
+using ID3D12GraphicsCommandListX = ID3D12GraphicsCommandList9;
 
 // replay only class for handling marker regions
 struct D3D12MarkerRegion
@@ -408,6 +408,9 @@ struct D3D12CommandSignature
   SERIALISE_INTERFACE(ID3D12GraphicsCommandList4); \
   SERIALISE_INTERFACE(ID3D12GraphicsCommandList5); \
   SERIALISE_INTERFACE(ID3D12GraphicsCommandList6); \
+  SERIALISE_INTERFACE(ID3D12GraphicsCommandList7); \
+  SERIALISE_INTERFACE(ID3D12GraphicsCommandList8); \
+  SERIALISE_INTERFACE(ID3D12GraphicsCommandList9); \
   SERIALISE_INTERFACE(ID3D12RootSignature);        \
   SERIALISE_INTERFACE(ID3D12Resource);             \
   SERIALISE_INTERFACE(ID3D12QueryHeap);            \
@@ -904,5 +907,13 @@ enum class D3D12Chunk : uint32_t
   Device_CreatePlacedResource1,
   Device_CreateCommandQueue1,
   CoherentMapWrite,
+  Device_CreateSampler2,
+  Device_CreateCommittedResource3,
+  Device_CreatePlacedResource2,
+  Device_CreateReservedResource1,
+  Device_CreateReservedResource2,
+  List_OMSetFrontAndBackStencilRef,
+  List_RSSetDepthBias,
+  List_IASetIndexBufferStripCutValue,
   Max,
 };

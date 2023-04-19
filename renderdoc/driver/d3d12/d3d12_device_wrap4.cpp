@@ -94,7 +94,9 @@ HRESULT WrappedID3D12Device::CreateCommandList1(UINT nodeMask, D3D12_COMMAND_LIS
   if(riid != __uuidof(ID3D12GraphicsCommandList) && riid != __uuidof(ID3D12CommandList) &&
      riid != __uuidof(ID3D12GraphicsCommandList1) && riid != __uuidof(ID3D12GraphicsCommandList2) &&
      riid != __uuidof(ID3D12GraphicsCommandList3) && riid != __uuidof(ID3D12GraphicsCommandList4) &&
-     riid != __uuidof(ID3D12GraphicsCommandList5) && riid != __uuidof(ID3D12GraphicsCommandList6))
+     riid != __uuidof(ID3D12GraphicsCommandList5) && riid != __uuidof(ID3D12GraphicsCommandList6) &&
+     riid != __uuidof(ID3D12GraphicsCommandList7) && riid != __uuidof(ID3D12GraphicsCommandList8) &&
+     riid != __uuidof(ID3D12GraphicsCommandList9))
     return E_NOINTERFACE;
 
   void *realptr = NULL;
@@ -120,6 +122,12 @@ HRESULT WrappedID3D12Device::CreateCommandList1(UINT nodeMask, D3D12_COMMAND_LIS
     real = (ID3D12GraphicsCommandList5 *)realptr;
   else if(riid == __uuidof(ID3D12GraphicsCommandList6))
     real = (ID3D12GraphicsCommandList6 *)realptr;
+  else if(riid == __uuidof(ID3D12GraphicsCommandList7))
+    real = (ID3D12GraphicsCommandList7 *)realptr;
+  else if(riid == __uuidof(ID3D12GraphicsCommandList8))
+    real = (ID3D12GraphicsCommandList8 *)realptr;
+  else if(riid == __uuidof(ID3D12GraphicsCommandList9))
+    real = (ID3D12GraphicsCommandList9 *)realptr;
 
   if(SUCCEEDED(ret))
   {
@@ -169,6 +177,12 @@ HRESULT WrappedID3D12Device::CreateCommandList1(UINT nodeMask, D3D12_COMMAND_LIS
       *ppCommandList = (ID3D12GraphicsCommandList5 *)wrapped;
     else if(riid == __uuidof(ID3D12GraphicsCommandList6))
       *ppCommandList = (ID3D12GraphicsCommandList6 *)wrapped;
+    else if(riid == __uuidof(ID3D12GraphicsCommandList7))
+      *ppCommandList = (ID3D12GraphicsCommandList7 *)wrapped;
+    else if(riid == __uuidof(ID3D12GraphicsCommandList8))
+      *ppCommandList = (ID3D12GraphicsCommandList8 *)wrapped;
+    else if(riid == __uuidof(ID3D12GraphicsCommandList9))
+      *ppCommandList = (ID3D12GraphicsCommandList9 *)wrapped;
     else if(riid == __uuidof(ID3D12CommandList))
       *ppCommandList = (ID3D12CommandList *)wrapped;
     else
