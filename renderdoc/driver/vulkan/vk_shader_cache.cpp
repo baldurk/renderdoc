@@ -952,7 +952,7 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   if(pipeInfo.renderpass == ResourceId())
   {
     dynRenderCreate.depthAttachmentFormat = pipeInfo.depthFormat;
-    dynRenderCreate.stencilAttachmentFormat = pipeInfo.depthFormat;
+    dynRenderCreate.stencilAttachmentFormat = pipeInfo.stencilFormat;
     dynRenderCreate.colorAttachmentCount = (uint32_t)pipeInfo.colorFormats.size();
     memcpy(colFormats, pipeInfo.colorFormats.data(), pipeInfo.colorFormats.byteSize());
 
