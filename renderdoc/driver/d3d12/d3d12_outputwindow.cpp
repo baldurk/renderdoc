@@ -117,6 +117,9 @@ void D3D12Replay::OutputWindow::MakeDSV()
 {
   SAFE_RELEASE(depth);
 
+  if(!col)
+    return;
+
   D3D12_RESOURCE_DESC texDesc = col->GetDesc();
 
   texDesc.Alignment = 0;
