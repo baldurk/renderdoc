@@ -379,8 +379,8 @@ bytebuf ReplayOutput::DrawThumbnail(int32_t width, int32_t height, ResourceId te
 {
   bytebuf ret;
 
-  width = RDCMAX(width, 1U);
-  height = RDCMAX(height, 1U);
+  width = RDCMAX(width, 1);
+  height = RDCMAX(height, 1);
 
   uint64_t key = (uint64_t(width) << 32) | height;
   int idx = -1;
