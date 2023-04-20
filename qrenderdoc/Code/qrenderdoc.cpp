@@ -39,6 +39,36 @@
 #include "Windows/MainWindow.h"
 #include "version.h"
 
+#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
+
+#include <QOperatingSystemVersion>
+
+QString getOSVersion()
+{
+  QOperatingSystemVersion ver = QOperatingSystemVersion::current();
+
+  if(ver.type() == QOperatingSystemVersion::Windows && ver.majorVersion() >= 10)
+  {
+    int major = ver.majorVersion();
+    int build = ver.microVersion();
+    if(build >= 22000)
+      major = 11;
+
+    return QFormatStr("Windows %1 Build num %2").arg(major).arg(build);
+  }
+
+  return QSysInfo::prettyProductName();
+}
+
+#else
+
+QString getOSVersion()
+{
+  return QSysInfo::prettyProductName();
+}
+
+#endif
+
 #if ENABLE_UNIT_TESTS
 
 #define CATCH_CONFIG_RUNNER
@@ -580,7 +610,7 @@ int main(int argc, char *argv[])
       ANALYTIC_SET(Metadata.DistributionVersion, lit(DISTRIBUTION_NAME));
 #endif
       ANALYTIC_SET(Metadata.Bitness, ((sizeof(void *) == sizeof(uint64_t)) ? 64 : 32));
-      ANALYTIC_SET(Metadata.OSVersion, QSysInfo::prettyProductName());
+      ANALYTIC_SET(Metadata.OSVersion, getOSVersion());
 
 #if RENDERDOC_STABLE_BUILD
       ANALYTIC_SET(Metadata.OfficialBuildRun, true);
