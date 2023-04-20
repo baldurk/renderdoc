@@ -652,8 +652,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
             rdcspv::Id subElement = locationGather.add(
                 rdcspv::OpAccessChain(ptrType, editor.MakeId(), patchData.inputs[i].ID, chain));
 
-            ret =
-                locationGather.add(rdcspv::OpLoad(loadType, editor.MakeId(), patchData.inputs[i].ID));
+            ret = locationGather.add(rdcspv::OpLoad(loadType, editor.MakeId(), subElement));
           }
 
           if(loadType != varType)
