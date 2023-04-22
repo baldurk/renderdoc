@@ -1126,6 +1126,17 @@ rdcstr DoStringise(const MTL::CullMode &el)
 };
 
 template <>
+rdcstr DoStringise(const MTL::IndexType &el)
+{
+  BEGIN_ENUM_STRINGISE(MTL::IndexType)
+  {
+    MTL_STRINGISE_ENUM(IndexTypeUInt16);
+    MTL_STRINGISE_ENUM(IndexTypeUInt32);
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
 rdcstr DoStringise(const MetalResourceType &el)
 {
   RDCCOMPILE_ASSERT((uint32_t)MetalResourceType::eResMax == 11, "MetalResourceType changed");

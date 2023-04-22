@@ -159,6 +159,7 @@ MTL_DECLARE_REFLECTION_TYPE(ArgumentBuffersTier);
 MTL_DECLARE_REFLECTION_TYPE(DepthClipMode);
 MTL_DECLARE_REFLECTION_TYPE(TriangleFillMode);
 MTL_DECLARE_REFLECTION_TYPE(CullMode);
+MTL_DECLARE_REFLECTION_TYPE(IndexType);
 
 template <>
 inline rdcliteral TypeName<NS::Range>()
