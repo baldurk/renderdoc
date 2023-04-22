@@ -248,7 +248,7 @@ struct VertexBufferLayoutDescriptor
   NS::UInteger stepRate = 1;
 };
 
-// MTLVertexBufferLayoutDescriptor : based on the interface defined in
+// MTLVertexDescriptor : based on the interface defined in
 // Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLVertexDescriptor.h
 struct VertexDescriptor
 {
@@ -259,6 +259,8 @@ struct VertexDescriptor
   rdcarray<VertexAttributeDescriptor> attributes;
 };
 
+// Helper struct for holding MTLLinkedFunctions::groups data
+// NSDictionary<NSString*, NSArray<id<MTLFunction>>*> *groups;
 struct FunctionGroup
 {
   rdcstr callsite;
@@ -404,6 +406,8 @@ struct RenderPassSampleBufferAttachmentDescriptor
   NS::UInteger endOfFragmentSampleIndex = MTLCounterDontSample;
 };
 
+// MTLRenderPassDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderPass.h
 struct RenderPassDescriptor
 {
   RenderPassDescriptor() = default;
