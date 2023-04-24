@@ -797,6 +797,9 @@ Win32CallstackResolver::Win32CallstackResolver(bool interactive, byte *moduleDB,
           // try to see if it's just in the PATH somewhere
           L"msdia140.dll",
           // otherwise try each VS2017/2019 SKU
+          L"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\DIA SDK\\" DIA140,
+          L"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\DIA SDK\\" DIA140,
+          L"C:\\Program Files\\Microsoft Visual Studio\\2022\\Professional\\DIA SDK\\" DIA140,
           L"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\DIA SDK\\" DIA140,
           L"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\DIA SDK\\" DIA140,
           L"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\DIA SDK\\" DIA140,
