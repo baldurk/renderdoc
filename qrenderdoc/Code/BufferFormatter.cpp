@@ -192,9 +192,13 @@ void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, ResourceId shad
     // column major matrices have vectors that are 'rows' long. Everything else is vectors of
     // 'columns' long
     uint8_t vecSize = constant.type.columns;
+    uint8_t matSize = constant.type.rows;
 
     if(constant.type.rows > 1 && constant.type.ColMajor())
+    {
       vecSize = constant.type.rows;
+      matSize = constant.type.columns;
+    }
 
     if(vecSize > 1)
     {
@@ -216,9 +220,17 @@ void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, ResourceId shad
       {
         // with arrays we can check the stride as well. If the stride isn't vector-aligned then
         // that's the same as vectors being aligned to components (even if we don't see it)
-        if(vecSize >= 3 && constant.type.arrayByteStride != vec4Size)
+        if(vecSize >= 3 && constant.type.arrayByteStride < vec4Size)
           pack.vector_align_component = true;
-        if(vecSize == 3 && constant.type.arrayByteStride != vec4Size / 2)
+        if(vecSize == 2 && constant.type.arrayByteStride < vec4Size / 2)
+          pack.vector_align_component = true;
+      }
+
+      if(matSize > 1)
+      {
+        if(vecSize >= 3 && constant.type.matrixByteStride < vec4Size)
+          pack.vector_align_component = true;
+        if(vecSize == 2 && constant.type.matrixByteStride < vec4Size / 2)
           pack.vector_align_component = true;
       }
 
@@ -231,6 +243,13 @@ void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, ResourceId shad
       // if the vector crosses a 16-byte boundary, vectors can straddle them
       if(low16b != high16b)
         pack.vector_straddle_16b = true;
+    }
+
+    if(!pack.tight_arrays && matSize > 1)
+    {
+      // if the array has a byte stride less than 16, it must be non-tight packed
+      if(constant.type.matrixByteStride < 16)
+        pack.tight_arrays = true;
     }
   }
 
@@ -270,13 +289,19 @@ void BufferFormatter::EstimatePackingRules(Packing::Rules &pack, ResourceId shad
     // check for trailing array/struct use
     if(i > 0)
     {
-      const uint32_t prevOffset = members[i - 1].byteOffset;
-      const uint32_t prevArrayCount = members[i - 1].type.elements;
-      const uint32_t prevArrayStride = members[i - 1].type.arrayByteStride;
+      Packing::Rules unpadded = pack;
+      Packing::Rules padded = pack;
+      unpadded.trailing_overlap = true;
+      unpadded.vector_align_component = true;
+      padded.trailing_overlap = false;
 
-      // if we overlap into the previous element, trailing padding is not reserved
-      // this works for structs too, as the array stride *includes* padding
-      if(prevArrayCount > 1 && members[i].byteOffset < (prevOffset + prevArrayCount * prevArrayStride))
+      const uint32_t unpaddedAdvance = GetVarAdvance(unpadded, members[i - 1]);
+      const uint32_t paddedAdvance = GetVarAdvance(padded, members[i - 1]);
+
+      // if we overlap into the previous element, and it contains padding, then trailing padding is
+      // not reserved. This applies to structs, arrays and matrices.
+      if(paddedAdvance > unpaddedAdvance &&
+         members[i].byteOffset < (members[i - 1].byteOffset + paddedAdvance))
       {
         pack.trailing_overlap = true;
       }
@@ -2518,7 +2543,7 @@ uint32_t BufferFormatter::GetVarSizeAndTrail(const ShaderConstant &var)
   return VarTypeByteSize(var.type.baseType) * var.type.columns;
 }
 
-uint32_t BufferFormatter::GetVarAdvance(Packing::Rules pack, const ShaderConstant &var)
+uint32_t BufferFormatter::GetVarAdvance(const Packing::Rules &pack, const ShaderConstant &var)
 {
   uint32_t ret = GetVarSizeAndTrail(var);
 
@@ -3787,6 +3812,224 @@ TEST_CASE("round-trip via format", "[formatter]")
       0, true);
 
   CHECK((parsed.fixed.type.members == members));
+}
+
+TEST_CASE("Packing rule estimation", "[formatter]")
+{
+  BufferFormatter::Init(GraphicsAPI::Vulkan);
+
+  // test that each possible "rule violation" of a stricter packing ruleset bumps it down to the
+  // appropriate new ruleset, using vulkan for the biggest range.
+  ShaderResource res;
+  rdcarray<ShaderConstant> &members = res.variableType.members;
+
+  {
+    // use a string parse to quickly initialise our template that we'll then fiddle with
+    QString tmpFormat = lit(R"(
+#pack(std140)
+
+float a;
+float2 a;
+float3 a;
+float4 a;
+
+float a[4];
+float2 a[4];
+float3 a[4];
+float4 a[4];
+
+[[col_major]] float2x4 a;
+[[col_major]] float4x2 a;
+
+[[row_major]] float2x4 a;
+[[row_major]] float4x2 a;
+
+[[col_major]] float3x4 a;
+[[col_major]] float4x3 a;
+
+[[row_major]] float3x4 a;
+[[row_major]] float4x3 a;
+
+[[col_major]] float3x4 a[4];
+[[col_major]] float4x3 a[4];
+
+[[row_major]] float3x4 a[4];
+[[row_major]] float4x3 a[4];
+
+struct struct_with_trailing
+{
+  float4 inner;
+  float4 inner;
+  float4 inner;
+  float3 inner;
+};
+
+struct_with_trailing a;
+float trail_test;
+
+float3 a[4];
+float trail_test;
+
+float3x4 a;
+float trail_test;
+
+)");
+    ParsedFormat tmp = BufferFormatter::ParseFormatString(tmpFormat, 1024 * 1024, true);
+
+    members.swap(tmp.fixed.type.members);
+
+    // space everything very conservatively to ensure we don't have to worry about overlaps
+    uint32_t byteOffset = 0;
+    for(size_t i = 0; i < members.size(); i++)
+    {
+      members[i].byteOffset = byteOffset;
+      byteOffset += 1024;
+
+      if(members[i].name == "trail_test")
+        members[i].byteOffset = members[i - 1].byteOffset + 64;
+    }
+  }
+
+  ResourceFormat fmt;
+  ParsedFormat parsed;
+
+  Packing::Rules pack;
+
+  SECTION("No changes")
+  {
+    // we generated the members with std140 packing so it should stay std140
+    pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+    CHECK((pack == Packing::std140));
+  }
+
+  SECTION("std140 compatible offsets")
+  {
+    for(size_t i = 0; i < members.size(); i++)
+    {
+      if(i == 0)    // float
+        members[i].byteOffset += 4;
+      else if(i == 1)    // float2
+        members[i].byteOffset += 8;
+      else
+        members[i].byteOffset += 16;
+    }
+
+    pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+    CHECK((pack == Packing::std140));
+  }
+
+  // no other changes we can make that are std140 compatible, alignments and strides are already at
+  // their most conservative
+
+  SECTION("std430 compatible arrays")
+  {
+    // check that each individual change is detected as std430, to prevent one change from hiding
+    // the lack of detection of others
+    SECTION("float[4] tight array")
+    {
+      members[4].type.arrayByteStride = 4;
+      pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+      CHECK((pack == Packing::std430));
+    }
+    SECTION("float2[4] tight array")
+    {
+      members[5].type.arrayByteStride = 8;
+      pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+      CHECK((pack == Packing::std430));
+    }
+    SECTION("[[col_major]] float2x4 tight array")
+    {
+      members[8].type.matrixByteStride = 8;
+      pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+      CHECK((pack == Packing::std430));
+    }
+    SECTION("[[row_major]] float4x2 tight array")
+    {
+      members[11].type.matrixByteStride = 8;
+      pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+      CHECK((pack == Packing::std430));
+    }
+  }
+
+  // D3DCB, on vulkan relaxed block layout, allows 'misaligned' vectors as long as they don't
+  // straddle a 16-byte boundary
+  SECTION("D3DCB offsets")
+  {
+    SECTION("float2 4-byte offset")
+    {
+      members[1].byteOffset += 4;
+      pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+      CHECK((pack == Packing::D3DCB));
+    }
+    SECTION("float3 4-byte offset")
+    {
+      members[2].byteOffset += 4;
+      pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+      CHECK((pack == Packing::D3DCB));
+    }
+  }
+
+  // it becomes a scalar offset once it straddles
+  SECTION("scalar offsets")
+  {
+    SECTION("float2 12-byte offset")
+    {
+      members[1].byteOffset += 12;
+      pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+      CHECK((pack == Packing::Scalar));
+    }
+    SECTION("float3 8-byte offset")
+    {
+      members[2].byteOffset += 8;
+      pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+      CHECK((pack == Packing::Scalar));
+    }
+  }
+
+  SECTION("scalar array strides")
+  {
+    // float3[4] is the only stride of a pure array that actually changes
+    members[6].type.arrayByteStride = 12;
+    pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+    CHECK((pack == Packing::Scalar));
+  }
+
+  SECTION("scalar matrix strides")
+  {
+    SECTION("[[col_major]] float3x4 tight matrix")
+    {
+      members[12].type.matrixByteStride = 12;
+      pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+      CHECK((pack == Packing::Scalar));
+    }
+    SECTION("[[row_major]] float4x3 tight matrix")
+    {
+      members[15].type.matrixByteStride = 12;
+      pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+      CHECK((pack == Packing::Scalar));
+    }
+  }
+
+  SECTION("trailing struct overlap")
+  {
+    members[21].byteOffset = members[20].byteOffset + 64 - 4;
+    pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+    CHECK((pack == Packing::Scalar));
+  }
+
+  SECTION("trailing array overlap")
+  {
+    members[23].byteOffset = members[22].byteOffset + 64 - 4;
+    pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+    CHECK((pack == Packing::Scalar));
+  }
+
+  SECTION("trailing matrix overlap")
+  {
+    members[25].byteOffset = members[24].byteOffset + 64 - 4;
+    pack = BufferFormatter::EstimatePackingRules(ResourceId(), members);
+    CHECK((pack == Packing::Scalar));
+  }
 }
 
 TEST_CASE("Buffer format parsing", "[formatter]")

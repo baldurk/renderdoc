@@ -226,7 +226,7 @@ public:
 
   static void Init(GraphicsAPI api) { m_API = api; }
   static ParsedFormat ParseFormatString(const QString &formatString, uint64_t maxLen, bool cbuffer);
-  static uint32_t GetVarAdvance(Packing::Rules pack, const ShaderConstant &var);
+  static uint32_t GetVarAdvance(const Packing::Rules &pack, const ShaderConstant &var);
 
   static Packing::Rules EstimatePackingRules(ResourceId shader,
                                              const rdcarray<ShaderConstant> &members);
