@@ -2055,25 +2055,52 @@ rdcstr Constant::toString(bool withType) const
   }
   else if(type->type == Type::Struct)
   {
-    ret += "{ ";
+    bool allNULL = true, allUndef = true;
     for(size_t i = 0; i < members->size(); i++)
     {
-      if(i > 0)
-        ret += ", ";
-
-      if(Literal *l = cast<Literal>(members->at(i)))
+      if(Constant *c = cast<Constant>(members->at(i)))
       {
-        ShaderValue v;
-        v.u64v[0] = l->literal;
-
-        shaderValAppendToString(members->at(i)->type, v, 0, ret);
+        if(!c->isNULL())
+          allNULL = false;
+        if(!c->isUndef())
+          allUndef = false;
       }
       else
       {
-        ret += members->at(i)->toString(withType);
+        allNULL = allUndef = false;
       }
     }
-    ret += " }";
+
+    if(allUndef)
+    {
+      ret += "undef";
+    }
+    else if(allNULL)
+    {
+      ret += "zeroinitializer";
+    }
+    else
+    {
+      ret += "{ ";
+      for(size_t i = 0; i < members->size(); i++)
+      {
+        if(i > 0)
+          ret += ", ";
+
+        if(Literal *l = cast<Literal>(members->at(i)))
+        {
+          ShaderValue v;
+          v.u64v[0] = l->literal;
+
+          shaderValAppendToString(members->at(i)->type, v, 0, ret);
+        }
+        else
+        {
+          ret += members->at(i)->toString(withType);
+        }
+      }
+      ret += " }";
+    }
   }
   else
   {
