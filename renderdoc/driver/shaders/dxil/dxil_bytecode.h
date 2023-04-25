@@ -1132,7 +1132,7 @@ protected:
   const Type *GetBoolType() { return m_BoolType; }
   const Type *GetInt32Type() { return m_Int32Type; }
   const Type *GetInt8Type() { return m_Int8Type; }
-  const Type *GetPointerType(const Type *type, Type::PointerAddrSpace addrSpace) const;
+  const Type *GetPointerType(const Type *type, Type::PointerAddrSpace addrSpace);
 
   bytebuf m_Bytes;
 

@@ -468,12 +468,7 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
           RDCASSERTMSG("global has comdat", rootchild.ops[11] == 0);
         }
 
-        const Type *ptrType = GetPointerType(g->type, addrSpace);
-
-        if(ptrType == g->type)
-          RDCERR("Expected to find pointer type for global variable");
-
-        g->type = ptrType;
+        g->type = GetPointerType(g->type, addrSpace);
 
         m_GlobalVars.push_back(g);
         values.addValue();
@@ -2280,13 +2275,21 @@ uint32_t Program::GetOrAssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t 
   return l.slot;
 }
 
-const Type *Program::GetPointerType(const Type *type, Type::PointerAddrSpace addrSpace) const
+const Type *Program::GetPointerType(const Type *type, Type::PointerAddrSpace addrSpace)
 {
   for(const Type *t : m_Types)
     if(t->type == Type::Pointer && t->inner == type && t->addrSpace == addrSpace)
       return t;
 
-  return NULL;
+  RDCWARN("Couldn't find pointer type as expected. Adding transient type");
+
+  Type *newType = new(alloc) Type;
+  newType->type = Type::Pointer;
+  newType->inner = type;
+  newType->addrSpace = addrSpace;
+  m_Types.push_back(newType);
+
+  return m_Types.back();
 }
 
 Metadata::~Metadata()
