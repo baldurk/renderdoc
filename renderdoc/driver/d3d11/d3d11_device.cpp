@@ -575,6 +575,10 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
   static const GUID unwrappedID3D11InfoQueue__uuid = {
       0x3fc4e618, 0x3f70, 0x452a, {0x8b, 0x8f, 0xa7, 0x3a, 0xcc, 0xb5, 0x8e, 0x3d}};
 
+  // UUID for internal interface that breaks hooks {26C5DC23-E49C-4B0A-8F79-E7B1AC804D32}
+  static const GUID D3DInternal_uuid = {
+      0x26c5dc23, 0xe49c, 0x4b0a, {0x8f, 0x79, 0xe7, 0xb1, 0xac, 0x80, 0x4d, 0x32}};
+
   HRESULT hr = S_OK;
 
   if(riid == __uuidof(IUnknown))
@@ -690,6 +694,12 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
   else if(riid == IDirect3DDevice9_uuid)
   {
     RDCWARN("Trying to get IDirect3DDevice9 - not supported.");
+    *ppvObject = NULL;
+    return E_NOINTERFACE;
+  }
+  else if(riid == D3DInternal_uuid)
+  {
+    RDCWARN("Trying to get internal unsupported D3D interface - not supported.");
     *ppvObject = NULL;
     return E_NOINTERFACE;
   }
