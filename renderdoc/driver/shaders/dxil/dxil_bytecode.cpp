@@ -1722,7 +1722,7 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
                 int64_t valSrc = LLVMBC::BitReader::svbr(op.get<uint64_t>());
                 uint64_t blockSrc = op.get<uint64_t>();
 
-                if(valSrc <= 0)
+                if(valSrc < 0)
                 {
                   inst->args.push_back(
                       values.createPlaceholderValue(values.getRelativeForwards(-valSrc)));
