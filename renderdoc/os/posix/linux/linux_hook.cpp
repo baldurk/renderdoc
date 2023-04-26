@@ -102,6 +102,7 @@ void ResetHookingEnvVars();
 void StopAtMainInChild();
 bool StopChildAtMain(pid_t childPid);
 void ResumeProcess(pid_t childPid, uint32_t delay = 0);
+int direct_setenv(const char *name, const char *value, int overwrite);
 
 ///////////////////////////////////////////////////////////////
 // exec hooks - we have to hook each variant since if the application calls the 'real' one of a
@@ -293,7 +294,7 @@ __attribute__((visibility("default"))) pid_t fork()
 
     pid_t ret = realfork();
     if(ret == 0)
-      unsetenv(RENDERDOC_VULKAN_LAYER_VAR);
+      direct_setenv(RENDERDOC_VULKAN_LAYER_VAR, "", true);
 
     return ret;
   }

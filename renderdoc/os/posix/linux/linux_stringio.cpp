@@ -596,18 +596,18 @@ rdcstr GetTempRootPath()
 rdcstr GetAppFolderFilename(const rdcstr &filename)
 {
   passwd *pw = getpwuid(getuid());
-  const char *homedir = pw ? pw->pw_dir : NULL;
+  rdcstr homedir = pw ? pw->pw_dir : "";
 
-  if(!homedir)
-    homedir = getenv("HOME");
+  if(homedir.empty())
+    homedir = Process::GetEnvVariable("HOME");
 
-  if(!homedir)
+  if(homedir.empty())
   {
     RDCERR("Can't get HOME directory, defaulting to '/' instead");
     homedir = "";
   }
 
-  rdcstr ret = rdcstr(homedir) + "/.renderdoc/";
+  rdcstr ret = homedir + "/.renderdoc/";
 
   mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 

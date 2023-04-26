@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <dlfcn.h>
 #include <elf.h>
 #include <stdlib.h>
 #include <sys/ptrace.h>
@@ -717,9 +718,30 @@ bool OSUtility::DebuggerPresent()
   return debuggerPresent;
 }
 
+using PFN_getenv = decltype(&getenv);
+
 rdcstr Process::GetEnvVariable(const rdcstr &name)
 {
-  const char *val = getenv(name.c_str());
+  const char *val = NULL;
+  // try to bypass any hooks to ensure we don't break (looking at you bash)
+
+  static PFN_getenv dyn_getenv = NULL;
+  static bool checked = false;
+  if(!checked)
+  {
+    checked = true;
+    void *libc = dlopen("libc.so.6", RTLD_NOLOAD | RTLD_GLOBAL | RTLD_NOW);
+    if(libc)
+    {
+      dyn_getenv = (PFN_getenv)dlsym(libc, "getenv");
+    }
+  }
+
+  if(dyn_getenv)
+    val = dyn_getenv(name.c_str());
+  else
+    val = getenv(name.c_str());
+
   return val ? val : rdcstr();
 }
 

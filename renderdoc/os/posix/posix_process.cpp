@@ -308,7 +308,7 @@ static rdcstr shellExpand(const rdcstr &in)
 
   // if it's ~/... then replace with $HOME and return
   if(path[0] == '~' && path[1] == '/')
-    return rdcstr(getenv("HOME")) + path.substr(1);
+    return Process::GetEnvVariable("HOME") + path.substr(1);
 
   // if it's ~user/... then use getpwname
   if(path[0] == '~')
@@ -339,6 +339,29 @@ static rdcstr shellExpand(const rdcstr &in)
   }
 
   return path;
+}
+
+using PFN_setenv = decltype(&setenv);
+
+int direct_setenv(const char *name, const char *value, int overwrite)
+{
+// on linux try to bypass any hooks to ensure we don't break (looking at you bash)
+#if ENABLED(RDOC_LINUX)
+  static PFN_setenv dyn_setenv = NULL;
+  static bool checked = false;
+  if(!checked)
+  {
+    checked = true;
+    void *libc = dlopen("libc.so.6", RTLD_NOLOAD | RTLD_GLOBAL | RTLD_NOW);
+    if(libc)
+      dyn_setenv = (PFN_setenv)dlsym(libc, "setenv");
+  }
+
+  if(dyn_setenv)
+    return dyn_setenv(name, value, overwrite);
+#endif
+
+  return setenv(name, value, overwrite);
 }
 
 void Process::RegisterEnvironmentModification(const EnvironmentModification &modif)
@@ -397,7 +420,7 @@ void ApplyEnvironmentModifications(rdcarray<EnvironmentModification> &modificati
 
     ApplySingleEnvMod(m, value);
 
-    setenv(m.name.c_str(), value.c_str(), true);
+    direct_setenv(m.name.c_str(), value.c_str(), true);
   }
 }
 
@@ -875,10 +898,10 @@ void GetHookedEnvp(char *const *envp, rdcstr &envpStr, rdcarray<char *> &modifie
 
 void ResetHookingEnvVars()
 {
-  setenv(LIB_PATH_ENV_VAR, Process::GetEnvVariable("RENDERDOC_ORIGLIBPATH").c_str(), true);
-  setenv(PRELOAD_ENV_VAR, Process::GetEnvVariable("RENDERDOC_ORIGPRELOAD").c_str(), true);
-  unsetenv("RENDERDOC_ORIGLIBPATH");
-  unsetenv("RENDERDOC_ORIGPRELOAD");
+  direct_setenv(LIB_PATH_ENV_VAR, Process::GetEnvVariable("RENDERDOC_ORIGLIBPATH").c_str(), true);
+  direct_setenv(PRELOAD_ENV_VAR, Process::GetEnvVariable("RENDERDOC_ORIGPRELOAD").c_str(), true);
+  direct_setenv("RENDERDOC_ORIGLIBPATH", "", true);
+  direct_setenv("RENDERDOC_ORIGPRELOAD", "", true);
 }
 
 rdcpair<RDResult, uint32_t> Process::LaunchAndInjectIntoProcess(

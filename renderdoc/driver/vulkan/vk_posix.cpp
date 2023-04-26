@@ -373,15 +373,14 @@ rdcstr LayerRegistrationPath(LayerPath path)
           RENDERDOC_VULKAN_JSON_SUFFIX) ".json";
     case LayerPath::home:
     {
-      const char *xdg = getenv("XDG_DATA_HOME");
-      if(xdg && FileIO::exists(xdg))
-        return rdcstr(xdg) + "/vulkan/implicit_layer.d/renderdoc_capture" STRINGIZE(
-                                 RENDERDOC_VULKAN_JSON_SUFFIX) ".json";
+      rdcstr xdg = Process::GetEnvVariable("XDG_DATA_HOME");
+      if(!xdg.empty() && FileIO::exists(xdg))
+        return xdg + "/vulkan/implicit_layer.d/renderdoc_capture" STRINGIZE(
+                         RENDERDOC_VULKAN_JSON_SUFFIX) ".json";
 
-      const char *home_path = getenv("HOME");
-      return rdcstr(home_path != NULL ? home_path : "") +
-             "/.local/share/vulkan/implicit_layer.d/renderdoc_capture" STRINGIZE(
-                 RENDERDOC_VULKAN_JSON_SUFFIX) ".json";
+      rdcstr home_path = Process::GetEnvVariable("HOME");
+      return home_path + "/.local/share/vulkan/implicit_layer.d/renderdoc_capture" STRINGIZE(
+                             RENDERDOC_VULKAN_JSON_SUFFIX) ".json";
     }
     default: break;
   }
