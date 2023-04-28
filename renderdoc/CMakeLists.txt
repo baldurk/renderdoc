@@ -460,21 +460,36 @@ set(data
 set(data_objects)
 
 # If we're cross-compiling, include-bin will get built for the target and we
-# then can't execute it. Instead, we force calling c++ (which we can safely
-# assume is present) directly to build the binary
+# then can't execute it. Instead, we invoke a new CMake instance and use that
+# to build it.
 
 if(CMAKE_CROSSCOMPILING)
-    set(HOST_NATIVE_CPP_COMPILER c++ CACHE STRING "Command to run to compile a .cpp into an executable. Default is just c++")
+    set(INCLUDE_BIN_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin")
+    if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+        set(HOST_NATIVE_CMAKE_ARGS "" CACHE STRING "Arguments to pass to CMake when configuring for a host-native executable.")
+        set(HOST_NATIVE_CMAKE_BUILD_ARGS --config Release CACHE STRING "Arguments to pass to CMake when building a host-native executable.")
+        # Although Windows will happily execute include-bin.exe if include-bin is specified due to
+        # the PATHEXT environment variable, CMake only looks for include-bin when checking if tasks
+        # are up to date (and won't find include-bin.exe). Cygwin and derivatives (e.g. MSYS2) have
+        # magic to make such checks work but standalone CMake does not use those and we need to give
+        # special default arguments on Windows anyways.
+        set(INCLUDE_BIN_EXE "${INCLUDE_BIN_DIRECTORY}/include-bin.exe")
+    else()
+        set(HOST_NATIVE_CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release CACHE STRING "Arguments to pass to CMake when configuring for a host-native executable.")
+        set(HOST_NATIVE_CMAKE_BUILD_ARGS "" CACHE STRING "Arguments to pass to CMake when building a host-native executable.")
+        set(INCLUDE_BIN_EXE "${INCLUDE_BIN_DIRECTORY}/include-bin")
+    endif()
+    set(INCLUDE_BIN_DEP "${INCLUDE_BIN_EXE}")
 
-    add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-        COMMAND ${HOST_NATIVE_CPP_COMPILER} 3rdparty/include-bin/main.cpp -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
-        DEPENDS 3rdparty/include-bin/main.cpp)
-    set(INCLUDE_BIN_EXE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin")
-    set(INCLUDE_BIN_DEP "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin")
+    add_custom_command(OUTPUT ${INCLUDE_BIN_DEP}
+        COMMAND ${CMAKE_COMMAND} -E remove_directory "${INCLUDE_BIN_DIRECTORY}"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${INCLUDE_BIN_DIRECTORY}"
+        COMMAND ${CMAKE_COMMAND} -E chdir "${INCLUDE_BIN_DIRECTORY}" ${CMAKE_COMMAND} "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/include-bin/" ${HOST_NATIVE_CMAKE_ARGS}
+        COMMAND ${CMAKE_COMMAND} --build "${INCLUDE_BIN_DIRECTORY}" ${HOST_NATIVE_CMAKE_BUILD_ARGS}
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/include-bin/CMakeLists.txt"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/include-bin/main.cpp")
 else()
-    add_executable(include-bin 3rdparty/include-bin/main.cpp)
+    add_subdirectory(3rdparty/include-bin)
     set(INCLUDE_BIN_EXE $<TARGET_FILE:include-bin>)
     set(INCLUDE_BIN_DEP include-bin)
 endif()
