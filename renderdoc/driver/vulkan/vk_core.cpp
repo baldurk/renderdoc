@@ -2395,6 +2395,8 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
         it->second->Write(ser);
       }
 
+      m_FrameCaptureRecord->DeleteChunks();
+
       RDCDEBUG("Done");
     }
 
