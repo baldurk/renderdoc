@@ -459,43 +459,41 @@ set(data
 
 set(data_objects)
 
-if(UNIX)
-    # If we're cross-compiling, include-bin will get built for the target and we
-    # then can't execute it. Instead, we force calling c++ (which we can safely
-    # assume is present) directly to build the binary
+# If we're cross-compiling, include-bin will get built for the target and we
+# then can't execute it. Instead, we force calling c++ (which we can safely
+# assume is present) directly to build the binary
 
-    if(CMAKE_CROSSCOMPILING)
-        set(HOST_NATIVE_CPP_COMPILER c++ CACHE STRING "Command to run to compile a .cpp into an executable. Default is just c++")
+if(CMAKE_CROSSCOMPILING)
+    set(HOST_NATIVE_CPP_COMPILER c++ CACHE STRING "Command to run to compile a .cpp into an executable. Default is just c++")
 
-        add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-            COMMAND ${HOST_NATIVE_CPP_COMPILER} 3rdparty/include-bin/main.cpp -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
-            DEPENDS 3rdparty/include-bin/main.cpp)
-        set(INCLUDE_BIN_EXE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin")
-        set(INCLUDE_BIN_DEP "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin")
-    else()
-        add_executable(include-bin 3rdparty/include-bin/main.cpp)
-        set(INCLUDE_BIN_EXE $<TARGET_FILE:include-bin>)
-        set(INCLUDE_BIN_DEP include-bin)
-    endif()
-
-    foreach(res ${data})
-        set(in ${res})
-        set(working_dir ${CMAKE_CURRENT_SOURCE_DIR})
-        set(out_src ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/data.src/${in}.c)
-        get_filename_component(out_src_dir ${out_src} DIRECTORY)
-
-        add_custom_command(OUTPUT ${out_src}
-            WORKING_DIRECTORY ${working_dir}
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${out_src_dir}
-            COMMAND ${INCLUDE_BIN_EXE} ${in} ${out_src}
-            DEPENDS ${INCLUDE_BIN_DEP}
-            DEPENDS ${res})
-
-        list(APPEND data_objects ${out_src})
-    endforeach()
+    add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+        COMMAND ${HOST_NATIVE_CPP_COMPILER} 3rdparty/include-bin/main.cpp -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
+        DEPENDS 3rdparty/include-bin/main.cpp)
+    set(INCLUDE_BIN_EXE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin")
+    set(INCLUDE_BIN_DEP "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin")
+else()
+    add_executable(include-bin 3rdparty/include-bin/main.cpp)
+    set(INCLUDE_BIN_EXE $<TARGET_FILE:include-bin>)
+    set(INCLUDE_BIN_DEP include-bin)
 endif()
+
+foreach(res ${data})
+    set(in ${res})
+    set(working_dir ${CMAKE_CURRENT_SOURCE_DIR})
+    set(out_src ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/data.src/${in}.c)
+    get_filename_component(out_src_dir ${out_src} DIRECTORY)
+
+    add_custom_command(OUTPUT ${out_src}
+        WORKING_DIRECTORY ${working_dir}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${out_src_dir}
+        COMMAND ${INCLUDE_BIN_EXE} ${in} ${out_src}
+        DEPENDS ${INCLUDE_BIN_DEP}
+        DEPENDS ${res})
+
+    list(APPEND data_objects ${out_src})
+endforeach()
 
 set(renderdoc_objects)
 
