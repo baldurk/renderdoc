@@ -400,13 +400,7 @@ FILE *fopen(const rdcstr &filename, FileMode mode)
 
 rdcstr ErrorString()
 {
-  int err = errno;
-
-  char buf[256] = {0};
-
-  strerror_r(err, buf, 256);
-
-  return buf;
+  return strerror(errno);
 }
 
 size_t fread(void *buf, size_t elementSize, size_t count, FILE *f)
