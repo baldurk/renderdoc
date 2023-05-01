@@ -3902,7 +3902,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   // move chain on for next layer
   layerCreateInfo->u.pLayerInfo = layerCreateInfo->u.pLayerInfo->pNext;
 
-  PFN_vkCreateDevice createFunc = (PFN_vkCreateDevice)gipa(VK_NULL_HANDLE, "vkCreateDevice");
+  PFN_vkCreateDevice createFunc = (PFN_vkCreateDevice)gipa(Unwrap(m_Instance), "vkCreateDevice");
 
   // now search again through for the loader data callback (if it exists)
   layerCreateInfo = (VkLayerDeviceCreateInfo *)pCreateInfo->pNext;
