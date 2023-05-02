@@ -1295,6 +1295,51 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
   return m_RefCounter.QueryInterface("ID3D12Device", riid, ppvObject);
 }
 
+HRESULT WrappedID3D12Device::CreateInitialStateBuffer(const D3D12_RESOURCE_DESC &desc,
+                                                      ID3D12Resource **buf)
+{
+  const UINT64 InitialStateHeapSize = 128 * 1024 * 1024;
+
+  HRESULT ret = S_OK;
+
+  if(m_InitialStateHeaps.empty() || m_LastInitialStateHeapOffset >= InitialStateHeapSize ||
+     desc.Width > InitialStateHeapSize - m_LastInitialStateHeapOffset)
+  {
+    D3D12_HEAP_DESC heapDesc = {};
+    heapDesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+    heapDesc.SizeInBytes = InitialStateHeapSize;
+    heapDesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
+
+    heapDesc.Properties.Type = D3D12_HEAP_TYPE_READBACK;
+    heapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapDesc.Properties.CreationNodeMask = 1;
+    heapDesc.Properties.VisibleNodeMask = 1;
+
+    ID3D12Heap *heap = NULL;
+
+    ret = GetReal()->CreateHeap(&heapDesc, __uuidof(ID3D12Heap), (void **)&heap);
+
+    if(FAILED(ret))
+    {
+      SAFE_RELEASE(heap);
+      return ret;
+    }
+
+    m_InitialStateHeaps.push_back(heap);
+    m_LastInitialStateHeapOffset = 0;
+  }
+
+  ret = GetReal()->CreatePlacedResource(m_InitialStateHeaps.back(), m_LastInitialStateHeapOffset,
+                                        &desc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+                                        __uuidof(ID3D12Resource), (void **)buf);
+
+  // all D3D12 buffers are 64kb aligned
+  m_LastInitialStateHeapOffset = AlignUp(m_LastInitialStateHeapOffset + desc.Width, 64 * 1024LLU);
+
+  return ret;
+}
+
 ID3D12Resource *WrappedID3D12Device::GetUploadBuffer(uint64_t chunkOffset, uint64_t byteSize)
 {
   ID3D12Resource *buf = m_UploadBuffers[chunkOffset];
@@ -2805,6 +2850,10 @@ bool WrappedID3D12Device::EndFrameCapture(DeviceOwnedWindow devWnd)
   for(ID3D12Resource *r : m_RefBuffers)
     r->Release();
 
+  for(ID3D12Heap *h : m_InitialStateHeaps)
+    h->Release();
+  m_InitialStateHeaps.clear();
+
   WrappedID3D12CommandAllocator::ResumeResets();
 
   GetResourceManager()->MarkUnwrittenResources();
@@ -2856,6 +2905,10 @@ bool WrappedID3D12Device::DiscardFrameCapture(DeviceOwnedWindow devWnd)
 
   for(ID3D12Resource *r : m_RefBuffers)
     r->Release();
+
+  for(ID3D12Heap *h : m_InitialStateHeaps)
+    h->Release();
+  m_InitialStateHeaps.clear();
 
   WrappedID3D12CommandAllocator::ResumeResets();
 

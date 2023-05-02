@@ -934,6 +934,11 @@ public:
   bool IsReadOnlyResource(ResourceId id) { return m_ModResources.find(id) == m_ModResources.end(); }
   void CloseInitialStateList();
   ID3D12Resource *GetUploadBuffer(uint64_t chunkOffset, uint64_t byteSize);
+
+  HRESULT CreateInitialStateBuffer(const D3D12_RESOURCE_DESC &desc, ID3D12Resource **buf);
+  rdcarray<ID3D12Heap *> m_InitialStateHeaps;
+  UINT64 m_LastInitialStateHeapOffset = 0;
+
   void ApplyInitialContents();
 
   void AddCaptureSubmission();

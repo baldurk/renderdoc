@@ -105,18 +105,10 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
       const bool isUploadHeap = (heapProps.Type == D3D12_HEAP_TYPE_UPLOAD);
 
-      heapProps.Type = D3D12_HEAP_TYPE_READBACK;
-      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-      heapProps.CreationNodeMask = 1;
-      heapProps.VisibleNodeMask = 1;
-
       desc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
       ID3D12Resource *copyDst = NULL;
-      hr = m_Device->GetReal()->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc,
-                                                        D3D12_RESOURCE_STATE_COPY_DEST, NULL,
-                                                        __uuidof(ID3D12Resource), (void **)&copyDst);
+      hr = m_Device->CreateInitialStateBuffer(desc, &copyDst);
 
       if(nonresident)
         m_Device->GetReal()->MakeResident(1, &unwrappedPageable);
@@ -277,13 +269,6 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
         unwrappedCopySource = arrayTexture;
       }
 
-      D3D12_HEAP_PROPERTIES heapProps;
-      heapProps.Type = D3D12_HEAP_TYPE_READBACK;
-      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-      heapProps.CreationNodeMask = 1;
-      heapProps.VisibleNodeMask = 1;
-
       D3D12_RESOURCE_DESC bufDesc;
 
       bufDesc.Alignment = 0;
@@ -337,9 +322,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
         bufDesc.Width = 1U;
 
       ID3D12Resource *copyDst = NULL;
-      HRESULT hr = m_Device->GetReal()->CreateCommittedResource(
-          &heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
-          __uuidof(ID3D12Resource), (void **)&copyDst);
+      HRESULT hr = m_Device->CreateInitialStateBuffer(bufDesc, &copyDst);
 
       if(SUCCEEDED(hr))
       {
