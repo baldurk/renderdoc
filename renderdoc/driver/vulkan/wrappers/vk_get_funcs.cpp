@@ -742,6 +742,14 @@ VkResult WrappedVulkan::vkGetMemoryFdPropertiesKHR(VkDevice device,
                                                    pMemoryFdProperties);
 }
 
+VkResult WrappedVulkan::vkGetMemoryHostPointerPropertiesEXT(
+    VkDevice device, VkExternalMemoryHandleTypeFlagBits handleType, const void *pHostPointer,
+    VkMemoryHostPointerPropertiesEXT *pMemoryHostPointerProperties)
+{
+  return ObjDisp(device)->GetMemoryHostPointerPropertiesEXT(
+      Unwrap(device), handleType, pHostPointer, pMemoryHostPointerProperties);
+}
+
 void WrappedVulkan::vkGetPhysicalDeviceExternalBufferProperties(
     VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalBufferInfo *pExternalBufferInfo,
     VkExternalBufferProperties *pExternalBufferProperties)

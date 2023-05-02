@@ -301,6 +301,16 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
   {
     VkDeviceMemory mem = VK_NULL_HANDLE;
 
+    VkImportMemoryHostPointerInfoEXT *importMem = (VkImportMemoryHostPointerInfoEXT *)FindNextStruct(
+        &AllocateInfo, VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT);
+    if(importMem && importMem->handleType == VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT)
+    {
+      // don't use the captured host pointer address since it won't be allocated on replay time
+      bool res =
+          RemoveNextStruct(&AllocateInfo, VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT);
+      RDCASSERTEQUAL(res, true);
+    }
+
     VkMemoryAllocateInfo patched = AllocateInfo;
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));

@@ -2074,6 +2074,11 @@ public:
   VkResult vkImportFenceFdKHR(VkDevice device, const VkImportFenceFdInfoKHR *pImportFenceFdInfo);
   VkResult vkGetFenceFdKHR(VkDevice device, const VkFenceGetFdInfoKHR *pGetFdInfo, int *pFd);
 
+  // VK_EXT_external_memory_host
+  VkResult vkGetMemoryHostPointerPropertiesEXT(
+      VkDevice device, VkExternalMemoryHandleTypeFlagBits handleType, const void *pHostPointer,
+      VkMemoryHostPointerPropertiesEXT *pMemoryHostPointerProperties);
+
   // VK_KHR_get_memory_requirements2
   void vkGetImageMemoryRequirements2(VkDevice device, const VkImageMemoryRequirementsInfo2 *pInfo,
                                      VkMemoryRequirements2 *pMemoryRequirements);

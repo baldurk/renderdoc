@@ -1069,6 +1069,14 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_FD_PROPERTIES_KHR, VkMemoryFdPropertiesKHR)                    \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR, VkMemoryGetFdInfoKHR)                         \
                                                                                                        \
+  /* VK_EXT_external_memory_host */                                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT,                                  \
+               VkImportMemoryHostPointerInfoEXT)                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT,                                   \
+               VkMemoryHostPointerPropertiesEXT)                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT,                  \
+               VkPhysicalDeviceExternalMemoryHostPropertiesEXT)                                        \
+                                                                                                       \
   /* VK_KHR_external_semaphore_capabilities */                                                         \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_SEMAPHORE_INFO,                              \
                VkPhysicalDeviceExternalSemaphoreInfo)                                                  \
@@ -1441,11 +1449,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FAULT_FEATURES_EXT)                              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEVICE_FAULT_COUNTS_EXT)                                         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEVICE_FAULT_INFO_EXT)                                           \
-                                                                                                       \
-  /* VK_EXT_external_memory_host */                                                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT)                             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT)                              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT)             \
                                                                                                        \
   /* VK_EXT_extended_dynamic_state3 */                                                                 \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT)           \
@@ -8417,6 +8420,54 @@ void Deserialise(const VkMemoryGetFdInfoKHR &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkImportMemoryHostPointerInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkExternalMemoryHandleTypeFlags, handleType);
+  // pHostPointer's value is merely informative
+  SERIALISE_MEMBER_TYPED(uint64_t, pHostPointer);
+}
+
+template <>
+void Deserialise(const VkImportMemoryHostPointerInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkMemoryHostPointerPropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_TYPED(uint32_t, memoryTypeBits);
+}
+
+template <>
+void Deserialise(const VkMemoryHostPointerPropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceExternalMemoryHostPropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(minImportedHostPointerAlignment);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceExternalMemoryHostPropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceExternalSemaphoreInfo &el)
 {
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_SEMAPHORE_INFO);
@@ -11270,6 +11321,7 @@ INSTANTIATE_SERIALISE_TYPE(VkImageViewUsageCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkImportFenceFdInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkImportMemoryFdInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkImportSemaphoreFdInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkImportMemoryHostPointerInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkInstanceCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkLayerDeviceCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkLayerInstanceCreateInfo);
@@ -11282,6 +11334,7 @@ INSTANTIATE_SERIALISE_TYPE(VkMemoryDedicatedAllocateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryDedicatedRequirements);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryFdPropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryGetFdInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkMemoryHostPointerPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryOpaqueCaptureAddressAllocateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryPriorityAllocateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryRequirements2);
@@ -11321,6 +11374,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicStateFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalBufferInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalFenceInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalImageFormatInfo);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalMemoryHostPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalSemaphoreInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFeatures2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFloatControlsProperties);

@@ -480,6 +480,7 @@
   DeclExt(KHR_external_memory);                       \
   DeclExt(KHR_external_memory_win32);                 \
   DeclExt(KHR_external_memory_fd);                    \
+  DeclExt(EXT_external_memory_host);                  \
   DeclExt(KHR_external_semaphore);                    \
   DeclExt(KHR_external_semaphore_win32);              \
   DeclExt(KHR_external_semaphore_fd);                 \
@@ -598,6 +599,7 @@
   CheckExt(KHR_external_memory, VK11);                       \
   CheckExt(KHR_external_memory_win32, VKXX);                 \
   CheckExt(KHR_external_memory_fd, VKXX);                    \
+  CheckExt(EXT_external_memory_host, VKXX);                  \
   CheckExt(KHR_external_semaphore, VK11);                    \
   CheckExt(KHR_external_semaphore_win32, VKXX);              \
   CheckExt(KHR_external_semaphore_fd, VKXX);                 \
@@ -807,6 +809,7 @@
   HookInitExtension(KHR_external_semaphore_fd, GetSemaphoreFdKHR);                                 \
   HookInitExtension(KHR_external_fence_fd, ImportFenceFdKHR);                                      \
   HookInitExtension(KHR_external_fence_fd, GetFenceFdKHR);                                         \
+  HookInitExtension(EXT_external_memory_host, GetMemoryHostPointerPropertiesEXT);                  \
   HookInitPromotedExtension(KHR_get_memory_requirements2, GetBufferMemoryRequirements2, KHR);      \
   HookInitPromotedExtension(KHR_get_memory_requirements2, GetImageMemoryRequirements2, KHR);       \
   HookInitPromotedExtension(KHR_get_memory_requirements2, GetImageSparseMemoryRequirements2, KHR); \
@@ -1335,6 +1338,9 @@
               pImportFenceFdInfo);                                                                   \
   HookDefine3(VkResult, vkGetFenceFdKHR, VkDevice, device, const VkFenceGetFdInfoKHR *,              \
               pGetFdInfo, int *, pFd);                                                               \
+  HookDefine4(VkResult, vkGetMemoryHostPointerPropertiesEXT, VkDevice, device,                       \
+              VkExternalMemoryHandleTypeFlagBits, handleType, const void *, pHostPointer,            \
+              VkMemoryHostPointerPropertiesEXT *, pMemoryHostPointerProperties);                     \
   HookDefine3(void, vkGetImageMemoryRequirements2, VkDevice, device,                                 \
               const VkImageMemoryRequirementsInfo2 *, pInfo, VkMemoryRequirements2 *,                \
               pMemoryRequirements);                                                                  \
