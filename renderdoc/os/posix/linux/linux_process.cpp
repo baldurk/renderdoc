@@ -24,6 +24,7 @@
 
 #include <dlfcn.h>
 #include <elf.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <sys/ptrace.h>
 #include <sys/types.h>
@@ -91,6 +92,7 @@ int GetIdentPort(pid_t childPid)
 {
   int ret = 0;
 
+  rdcstr pidvalidfile = StringFormat::Fmt("/proc/%d/stat", (int)childPid);
   rdcstr procfile = StringFormat::Fmt("/proc/%d/net/tcp", (int)childPid);
 
   int waitTime = INITIAL_WAIT_TIME;
@@ -98,6 +100,13 @@ int GetIdentPort(pid_t childPid)
   // try for a little while for the /proc entry to appear
   while(ret == 0 && waitTime <= MAX_WAIT_TIME)
   {
+    if(!FileIO::exists(pidvalidfile))
+    {
+      RDCWARN("Process %u is not running - did it exit during initialisation or fail to run?",
+              childPid);
+      return 0;
+    }
+
     // back-off for each retry
     usleep(waitTime);
 
@@ -288,7 +297,7 @@ static bool wait_traced_child(pid_t childPid, uint32_t timeoutMS, int &status)
   return WIFSTOPPED(status);
 }
 
-bool StopChildAtMain(pid_t childPid)
+bool StopChildAtMain(pid_t childPid, bool *exitWithNoExec)
 {
   // don't do this unless the ptrace scope is OK.
   if(!ptrace_scope_ok())
@@ -320,7 +329,7 @@ bool StopChildAtMain(pid_t childPid)
   int64_t ptraceRet = 0;
 
   // continue until exec
-  ptraceRet = ptrace(PTRACE_SETOPTIONS, childPid, NULL, PTRACE_O_TRACEEXEC);
+  ptraceRet = ptrace(PTRACE_SETOPTIONS, childPid, NULL, PTRACE_O_TRACEEXEC | PTRACE_O_TRACEEXIT);
   RDCASSERTEQUAL(ptraceRet, 0);
 
   if(Linux_Debug_PtraceLogging())
@@ -338,15 +347,33 @@ bool StopChildAtMain(pid_t childPid)
     return false;
   }
 
-  if(childStatus > 0 && (childStatus >> 8) != (SIGTRAP | (PTRACE_EVENT_EXEC << 8)))
+  int statusResult = childStatus >> 8;
+
+  if(childStatus > 0 &&
+     (statusResult == SIGCHLD || statusResult == (SIGTRAP | (PTRACE_EVENT_EXIT << 8))))
   {
-    RDCERR("Exec wait event from child PID %u was status %x, expected %x", childPid,
-           (childStatus >> 8), (SIGTRAP | (PTRACE_EVENT_EXEC << 8)));
+    if(Linux_Debug_PtraceLogging())
+      RDCLOG("Child PID %u exited while waiting for exec() 0x%x", childPid, childStatus);
+    if(exitWithNoExec)
+      *exitWithNoExec = true;
+
+    if(statusResult == SIGCHLD)
+      ptrace(PTRACE_DETACH, childPid, NULL, SIGCHLD);
+    else
+      ptrace(PTRACE_DETACH, childPid, NULL, NULL);
+    return false;
+  }
+
+  if(childStatus > 0 && statusResult != (SIGTRAP | (PTRACE_EVENT_EXEC << 8)))
+  {
+    RDCERR("Exec wait event from child PID %u was status 0x%x, expected 0x%x", childPid,
+           statusResult, (SIGTRAP | (PTRACE_EVENT_EXEC << 8)));
+
     return false;
   }
 
   if(Linux_Debug_PtraceLogging())
-    RDCLOG("Child PID %u is stopped at execve()", childPid);
+    RDCLOG("Child PID %u is stopped at execve() 0x%x", childPid, childStatus);
 
   rdcstr exepath;
   long baseVirtualPointer = 0;
@@ -551,6 +578,9 @@ void StopAtMainInChild()
 
 void ResumeProcess(pid_t childPid, uint32_t delaySeconds)
 {
+  if(!ptrace_scope_ok())
+    return;
+
   if(childPid != 0)
   {
     // if we have a delay, see if the process is paused. If so then detach it but keep it stopped
@@ -561,6 +591,10 @@ void ResumeProcess(pid_t childPid, uint32_t delaySeconds)
 
       if(ip != 0)
       {
+        if(Linux_Debug_PtraceLogging())
+          RDCLOG("Detaching %u with SIGSTOP to allow a debugger to attach, waiting %u seconds",
+                 childPid, delaySeconds);
+
         // detach but stop, to allow a debugger to attach
         ptrace(PTRACE_DETACH, childPid, NULL, SIGSTOP);
 
@@ -613,8 +647,14 @@ void ResumeProcess(pid_t childPid, uint32_t delaySeconds)
       }
     }
 
+    if(Linux_Debug_PtraceLogging())
+      RDCLOG("Detaching immediately from %u", childPid);
+
     // try to detach and resume the process, ignoring any errors if we weren't tracing
-    ptrace(PTRACE_DETACH, childPid, NULL, NULL);
+    long ret = ptrace(PTRACE_DETACH, childPid, NULL, NULL);
+
+    if(Linux_Debug_PtraceLogging())
+      RDCLOG("Detached pid %u (%ld)", childPid, ret);
   }
 }
 

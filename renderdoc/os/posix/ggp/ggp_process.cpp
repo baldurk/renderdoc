@@ -140,7 +140,7 @@ void StopAtMainInChild()
 {
 }
 
-bool StopChildAtMain(pid_t childPid)
+bool StopChildAtMain(pid_t childPid, bool *exitWithNoExec)
 {
   return false;
 }

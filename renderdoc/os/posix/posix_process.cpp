@@ -52,7 +52,7 @@ int GetIdentPort(pid_t childPid);
 // functions to try and let the child run just far enough to get to main() but no further. This lets
 // us check the ident port and resume.
 void StopAtMainInChild();
-bool StopChildAtMain(pid_t childPid);
+bool StopChildAtMain(pid_t childPid, bool *exitWithNoExec);
 void ResumeProcess(pid_t childPid, uint32_t delay = 0);
 
 #if ENABLED(RDOC_APPLE)
@@ -634,7 +634,7 @@ static pid_t RunProcess(rdcstr appName, rdcstr workDir, const rdcstr &cmdLine, c
     else
     {
       if(pauseAtMain)
-        StopChildAtMain(childPid);
+        StopChildAtMain(childPid, NULL);
 
       if(!stdoutPipe)
       {

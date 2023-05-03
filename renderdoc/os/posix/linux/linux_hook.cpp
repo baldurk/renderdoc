@@ -100,7 +100,7 @@ void GetUnhookedEnvp(char *const *envp, rdcstr &envpStr, rdcarray<char *> &modif
 void GetHookedEnvp(char *const *envp, rdcstr &envpStr, rdcarray<char *> &modifiedEnv);
 void ResetHookingEnvVars();
 void StopAtMainInChild();
-bool StopChildAtMain(pid_t childPid);
+bool StopChildAtMain(pid_t childPid, bool *exitWithNoExec);
 void ResumeProcess(pid_t childPid, uint32_t delay = 0);
 int direct_setenv(const char *name, const char *value, int overwrite);
 
@@ -324,9 +324,15 @@ __attribute__((visibility("default"))) pid_t fork()
     if(Linux_Debug_PtraceLogging())
       RDCLOG("hooked fork() in parent, child is %d", ret);
 
-    bool stopped = StopChildAtMain(ret);
+    bool exitWithNoExec = false;
+    bool stopped = StopChildAtMain(ret, &exitWithNoExec);
 
-    if(stopped)
+    if(exitWithNoExec)
+    {
+      if(Linux_Debug_PtraceLogging())
+        RDCLOG("hooked fork() child %d exited gracefully while waiting for exec(). Ignoring", ret);
+    }
+    else if(stopped)
     {
       int ident = GetIdentPort(ret);
 
@@ -375,6 +381,9 @@ __attribute__((visibility("default"))) pid_t fork()
       RenderDoc::Inst().AddChildThread((uint32_t)ret, handle);
     }
   }
+
+  if(Linux_Debug_PtraceLogging())
+    RDCLOG("Returning from fork");
 
   return ret;
 }
