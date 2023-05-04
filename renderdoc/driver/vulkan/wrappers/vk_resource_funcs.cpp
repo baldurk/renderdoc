@@ -1163,10 +1163,13 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
       {
         if(IsLoading(m_State))
         {
-          AddDebugMessage(MessageCategory::Performance, MessageSeverity::Medium,
-                          MessageSource::GeneralPerformance,
-                          "Unmapped memory overlaps tiled-only memory region. "
-                          "Taking slow path to mask tiled memory writes");
+          AddDebugMessage(
+              MessageCategory::Performance, MessageSeverity::Medium,
+              MessageSource::GeneralPerformance,
+              StringFormat::Fmt(
+                  "Unmapped memory %s overlaps tiled-only memory region. "
+                  "Taking slow path to mask tiled memory writes",
+                  ToStr(GetResourceManager()->GetOriginalID(GetResID(MemRange.memory))).c_str()));
         }
         directStream = false;
         m_MaskedMapData.resize((size_t)memRangeSize);
@@ -1224,7 +1227,23 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
   }
 
   if(IsReplayingAndReading() && MappedData && MemRange.memory != VK_NULL_HANDLE && MemRange.size > 0)
+  {
+    const VulkanCreationInfo::Memory &memInfo = m_CreationInfo.m_Memory[GetResID(MemRange.memory)];
+    if((m_PhysicalDeviceData.memProps.memoryTypes[memInfo.memoryTypeIndex].propertyFlags &
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
+    {
+      VkMappedMemoryRange range = {
+          VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+          NULL,
+          Unwrap(MemRange.memory),
+          MemRange.offset,
+          MemRange.size,
+      };
+
+      ObjDisp(device)->FlushMappedMemoryRanges(Unwrap(device), 1, &range);
+    }
     ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(MemRange.memory));
+  }
 
   SERIALISE_CHECK_READ_ERRORS();
 
