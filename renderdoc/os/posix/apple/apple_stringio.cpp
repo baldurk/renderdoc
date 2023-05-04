@@ -159,6 +159,12 @@ rdcstr GetAppFolderFilename(const rdcstr &filename)
   return ret + filename;
 }
 
+rdcstr DefaultFindFileInPath(const rdcstr &fileName);
+rdcstr FindFileInPath(const rdcstr &fileName)
+{
+  return DefaultFindFileInPath(fileName);
+}
+
 void GetExecutableFilename(rdcstr &selfName)
 {
   char path[512] = {0};

@@ -101,7 +101,7 @@ rdcstr GetFullPathname(const rdcstr &filename)
   return rdcstr(path);
 }
 
-rdcstr FindFileInPath(const rdcstr &fileName)
+rdcstr DefaultFindFileInPath(const rdcstr &fileName)
 {
   rdcstr filePath;
 
