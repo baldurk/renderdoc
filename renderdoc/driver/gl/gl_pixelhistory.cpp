@@ -1236,7 +1236,14 @@ std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(
     driver->glStencilFunc(eGL_ALWAYS, 0, 0xff);
     driver->glClearStencil(0);
     driver->glClearColor(0, 0, 0, 0);
-    driver->glClearDepth(0);
+    if(driver->isGLESMode())
+    {
+      driver->glClearDepthf(0.0f);
+    }
+    else
+    {
+      driver->glClearDepth(0);
+    }
     driver->glClear(eGL_STENCIL_BUFFER_BIT | eGL_COLOR_BUFFER_BIT | eGL_DEPTH_BUFFER_BIT);
     driver->glEnable(eGL_STENCIL_TEST);
     // depth test enable
