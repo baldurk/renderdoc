@@ -67,8 +67,8 @@ rdcstr apple_GetExecutablePathFromAppBundle(const char *appBundlePath)
   NSBundle *nsBundle = [NSBundle bundleWithPath:path];
   if(!nsBundle)
   {
-    RDCERR("Failed to open application '%s' as an NSBundle", appBundlePath);
-    return rdcstr();
+    RDCWARN("Failed to open application '%s' as an NSBundle", appBundlePath);
+    return rdcstr(appBundlePath);
   }
 
   NSString *executablePath = nsBundle.executablePath;
