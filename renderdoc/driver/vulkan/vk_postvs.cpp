@@ -3310,6 +3310,22 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
       ObjDisp(cmd)->CmdEndTransformFeedbackEXT(Unwrap(cmd), 0, 1, NULL, NULL);
 
       ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), Unwrap(m_PostVS.XFBQueryPool), inst - 1);
+
+      // Instanced draws with a wild number of instances can hang the GPU, sync after every 1000
+      if((inst % 1000) == 0)
+      {
+        state.EndRenderPass(cmd);
+
+        vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
+        CheckVkResult(vkr);
+
+        cmd = m_pDriver->GetNextCmd();
+
+        vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+        CheckVkResult(vkr);
+
+        state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
+      }
     }
 
     state.EndRenderPass(cmd);
