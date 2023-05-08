@@ -894,10 +894,14 @@ struct AndroidController : public IDeviceProtocolHandler
 
       cmd->meth();
 
-      Atomic::Inc32(&cmd->done);
-
       if(cmd->selfdelete)
+      {
         delete cmd;
+      }
+      else
+      {
+        Atomic::Inc32(&cmd->done);
+      }
     }
   }
 
