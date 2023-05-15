@@ -964,12 +964,12 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       case eGL_INT_2_10_10_10_REV:
         fmt.type = ResourceFormatType::R10G10B10A2;
         fmt.compCount = 4;
-        fmt.compType = CompType::UInt;
+        fmt.compType = CompType::SInt;
         break;
       case eGL_UNSIGNED_INT_2_10_10_10_REV:
         fmt.type = ResourceFormatType::R10G10B10A2;
         fmt.compCount = 4;
-        fmt.compType = CompType::SInt;
+        fmt.compType = CompType::UInt;
         break;
       case eGL_UNSIGNED_INT_10F_11F_11F_REV:
         fmt.type = ResourceFormatType::R11G11B10;
