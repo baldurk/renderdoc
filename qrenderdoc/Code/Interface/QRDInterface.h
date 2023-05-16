@@ -2752,11 +2752,11 @@ data.
 rdcstr ConfigFilePath(const rdcstr &filename);
 
 // simple helper for the common case of 'we just need to run this on the replay thread'
-#define INVOKE_MEMFN(function)                                    \
-  {                                                               \
-    QPointer<std::remove_reference<decltype(*this)>::type> meptr; \
-    m_Ctx.Replay().AsyncInvoke([meptr](IReplayController *r) {    \
-      if(meptr)                                                   \
-        meptr->function(r);                                       \
-    });                                                           \
+#define INVOKE_MEMFN(function)                                          \
+  {                                                                     \
+    QPointer<std::remove_reference<decltype(*this)>::type> meptr(this); \
+    m_Ctx.Replay().AsyncInvoke([meptr](IReplayController *r) {          \
+      if(meptr)                                                         \
+        meptr->function(r);                                             \
+    });                                                                 \
   }
