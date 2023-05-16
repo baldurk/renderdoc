@@ -699,6 +699,9 @@ protected:
     m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE);
     m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_OP);
     m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT);
 
     if(disableTests)
     {
@@ -766,7 +769,27 @@ protected:
       VkPipelineColorBlendAttachmentState *atts =
           (VkPipelineColorBlendAttachmentState *)cbs->pAttachments;
       for(uint32_t i = 0; i < cbs->attachmentCount; i++)
+      {
         atts[i].colorWriteMask = 0;
+
+        // on intel with a color write mask of 0, shader discards seem to be ignored for occlusion
+        // queries
+        if(m_pDriver->GetDriverInfo().IntelBrokenOcclusionQueries())
+        {
+          // only writemask alpha just in case some other bug manifests
+          atts[i].colorWriteMask = 0x8;
+
+          // disable logic ops
+          cbs->logicOpEnable = VK_FALSE;
+
+          // set blend state to source=0 and dest=1 with ADD, which is equivalent to a disabled
+          // write mask
+          atts[i].srcColorBlendFactor = atts[i].srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+          atts[i].srcColorBlendFactor = atts[i].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+          atts[i].colorBlendOp = atts[i].alphaBlendOp = VK_BLEND_OP_ADD;
+          atts[i].blendEnable = VK_TRUE;
+        }
+      }
     }
 
     stages.resize(pipeCreateInfo.stageCount);
@@ -2964,6 +2987,9 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE);
     m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_OP);
     m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT);
     m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE);
     m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_COMPARE_OP);
 
