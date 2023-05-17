@@ -1792,7 +1792,8 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
       }
 
       // write into the appropriate offset, don't allocate
-      MappedData += m_UploadRanges[m_Queue->GetCommandData()->m_CurChunkOffset].Begin;
+      if(MappedData != NULL)
+        MappedData += m_UploadRanges[m_Queue->GetCommandData()->m_CurChunkOffset].Begin;
       flags = SerialiserFlags::NoFlags;
     }
   }
