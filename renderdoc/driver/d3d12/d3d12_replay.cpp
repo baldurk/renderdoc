@@ -2855,17 +2855,16 @@ bool D3D12Replay::GetMinMax(ResourceId texid, const Subresource &sub, CompType t
   int blocksY = (int)ceil(cdata.HistogramTextureResolution.y /
                           float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
 
-  rdcarray<D3D12_RESOURCE_BARRIER> barriers;
+  BarrierSet barriers;
   int resType = 0;
   GetDebugManager()->PrepareTextureSampling(resource, typeCast, resType, barriers);
 
   {
-    ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+    ID3D12GraphicsCommandListX *list = m_pDevice->GetNewList();
     if(!list)
       return false;
 
-    if(!barriers.empty())
-      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+    barriers.Apply(list);
 
     list->SetPipelineState(m_Histogram.TileMinMaxPipe[resType][intIdx]);
 
@@ -2933,12 +2932,7 @@ bool D3D12Replay::GetMinMax(ResourceId texid, const Subresource &sub, CompType t
 
     list->ResourceBarrier(1, &tileBarriers[1]);
 
-    // transition image back to where it was
-    for(size_t i = 0; i < barriers.size(); i++)
-      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
-
-    if(!barriers.empty())
-      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+    barriers.Unapply(list);
 
     list->Close();
 
@@ -3060,17 +3054,16 @@ bool D3D12Replay::GetHistogram(ResourceId texid, const Subresource &sub, CompTyp
   int tilesY = (int)ceil(cdata.HistogramTextureResolution.y /
                          float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
 
-  rdcarray<D3D12_RESOURCE_BARRIER> barriers;
+  BarrierSet barriers;
   int resType = 0;
   GetDebugManager()->PrepareTextureSampling(resource, typeCast, resType, barriers);
 
   {
-    ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+    ID3D12GraphicsCommandListX *list = m_pDevice->GetNewList();
     if(!list)
       return false;
 
-    if(!barriers.empty())
-      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+    barriers.Apply(list);
 
     list->SetPipelineState(m_Histogram.HistogramPipe[resType][intIdx]);
 
@@ -3113,12 +3106,7 @@ bool D3D12Replay::GetHistogram(ResourceId texid, const Subresource &sub, CompTyp
 
     list->ResourceBarrier(1, &tileBarriers[1]);
 
-    // transition image back to where it was
-    for(size_t i = 0; i < barriers.size(); i++)
-      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
-
-    if(!barriers.empty())
-      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+    barriers.Unapply(list);
 
     list->Close();
 
@@ -3655,7 +3643,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   ID3D12Resource *srcTexture = resource;
   ID3D12Resource *tmpTexture = NULL;
 
-  ID3D12GraphicsCommandList *list = NULL;
+  ID3D12GraphicsCommandListX *list = NULL;
 
   if(params.remap != RemapTexture::NoRemap)
   {
@@ -3817,40 +3805,16 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       return;
 
     // put source texture into resolve source state
-    const rdcarray<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
+    BarrierSet barriers;
+    barriers.Configure(resource, m_pDevice->GetSubresourceStates(tex),
+                       BarrierSet::ResolveSourceAccess);
 
-    rdcarray<D3D12_RESOURCE_BARRIER> barriers;
-    barriers.reserve(states.size());
-    for(size_t i = 0; i < states.size(); i++)
-    {
-      D3D12_RESOURCE_BARRIER b;
-
-      // skip unneeded barriers
-      if(states[i] & D3D12_RESOURCE_STATE_RESOLVE_SOURCE)
-        continue;
-
-      b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-      b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-      b.Transition.pResource = resource;
-      b.Transition.Subresource = (UINT)i;
-      b.Transition.StateBefore = states[i];
-      b.Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
-
-      barriers.push_back(b);
-    }
-
-    if(!barriers.empty())
-      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+    barriers.Apply(list);
 
     list->ResolveSubresource(resolveTexture, 0, srcTexture,
                              s.slice * resDesc.DepthOrArraySize + s.mip, resDesc.Format);
 
-    // real resource back to normal
-    for(size_t i = 0; i < barriers.size(); i++)
-      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
-
-    if(!barriers.empty())
-      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+    barriers.Unapply(list);
 
     D3D12_RESOURCE_BARRIER b = {};
     b.Transition.pResource = resolveTexture;
@@ -3891,30 +3855,10 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       return;
 
     // put source texture into shader read state
-    const rdcarray<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
+    BarrierSet barriers;
+    barriers.Configure(resource, m_pDevice->GetSubresourceStates(tex), BarrierSet::SRVAccess);
 
-    rdcarray<D3D12_RESOURCE_BARRIER> barriers;
-    barriers.reserve(states.size());
-    for(size_t i = 0; i < states.size(); i++)
-    {
-      D3D12_RESOURCE_BARRIER b;
-
-      // skip unneeded barriers
-      if(states[i] & D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
-        continue;
-
-      b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-      b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-      b.Transition.pResource = resource;
-      b.Transition.Subresource = (UINT)i;
-      b.Transition.StateBefore = states[i];
-      b.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-
-      barriers.push_back(b);
-    }
-
-    if(!barriers.empty())
-      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+    barriers.Apply(list);
 
     list->Close();
     list = NULL;
@@ -3931,12 +3875,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     if(!list)
       return;
 
-    // real resource back to normal
-    for(size_t i = 0; i < barriers.size(); i++)
-      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
-
-    if(!barriers.empty())
-      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+    barriers.Unapply(list);
 
     D3D12_RESOURCE_BARRIER b = {};
     b.Transition.pResource = arrayTexture;
@@ -3955,33 +3894,14 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   if(!list)
     return;
 
-  rdcarray<D3D12_RESOURCE_BARRIER> barriers;
+  BarrierSet barriers;
 
   // if we have no tmpImage, we're copying directly from the real image
   if(tmpTexture == NULL)
   {
-    const rdcarray<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
-    barriers.reserve(states.size());
-    for(size_t i = 0; i < states.size(); i++)
-    {
-      D3D12_RESOURCE_BARRIER b;
+    barriers.Configure(resource, m_pDevice->GetSubresourceStates(tex), BarrierSet::CopySourceAccess);
 
-      // skip unneeded barriers
-      if(states[i] & D3D12_RESOURCE_STATE_COPY_SOURCE)
-        continue;
-
-      b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-      b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-      b.Transition.pResource = resource;
-      b.Transition.Subresource = (UINT)i;
-      b.Transition.StateBefore = states[i];
-      b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-
-      barriers.push_back(b);
-    }
-
-    if(!barriers.empty())
-      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+    barriers.Apply(list);
   }
 
   D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
@@ -4063,14 +3983,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
   // if we have no tmpImage, we're copying directly from the real image
   if(tmpTexture == NULL)
-  {
-    // real resource back to normal
-    for(size_t i = 0; i < barriers.size(); i++)
-      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
-
-    if(!barriers.empty())
-      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
-  }
+    barriers.Unapply(list);
 
   list->Close();
 

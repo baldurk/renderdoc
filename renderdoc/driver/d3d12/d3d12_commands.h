@@ -206,7 +206,7 @@ struct BakedCmdListInfo
   UINT nodeMask;
   D3D12RenderState state;
 
-  rdcarray<D3D12_RESOURCE_BARRIER> barriers;
+  BarrierSet barriers;
 
   ResourceId parentList;
 

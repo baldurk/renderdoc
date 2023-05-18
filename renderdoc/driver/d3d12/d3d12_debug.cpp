@@ -391,9 +391,18 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     fmt.compType = CompType::UInt;
     pattern.append(GetDiscardPattern(DiscardType::DiscardCall, fmt));
 
-    m_DiscardConstants = MakeCBuffer(pattern.size());
+    m_DiscardConstantsDiscard = MakeCBuffer(pattern.size());
     m_pDevice->InternalRef();
-    FillBuffer(m_DiscardConstants, 0, pattern.data(), pattern.size());
+    FillBuffer(m_DiscardConstantsDiscard, 0, pattern.data(), pattern.size());
+
+    fmt.compType = CompType::Float;
+    pattern = GetDiscardPattern(DiscardType::UndefinedTransition, fmt);
+    fmt.compType = CompType::UInt;
+    pattern.append(GetDiscardPattern(DiscardType::UndefinedTransition, fmt));
+
+    m_DiscardConstantsUndefined = MakeCBuffer(pattern.size());
+    m_pDevice->InternalRef();
+    FillBuffer(m_DiscardConstantsUndefined, 0, pattern.data(), pattern.size());
 
     ID3DBlob *root = shaderCache->MakeRootSig({
         cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
@@ -457,7 +466,8 @@ D3D12DebugManager::~D3D12DebugManager()
 
   SAFE_RELEASE(m_TexResource);
 
-  SAFE_RELEASE(m_DiscardConstants);
+  SAFE_RELEASE(m_DiscardConstantsDiscard);
+  SAFE_RELEASE(m_DiscardConstantsUndefined);
   SAFE_RELEASE(m_DiscardRootSig);
   SAFE_RELEASE(m_DiscardFloatPS);
   SAFE_RELEASE(m_DiscardIntPS);
@@ -854,9 +864,10 @@ void D3D12DebugManager::ResetDebugAlloc()
 void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
                                                const D3D12RenderState &state, DiscardType type,
                                                ID3D12Resource *res,
-                                               const D3D12_DISCARD_REGION *region)
+                                               const D3D12_DISCARD_REGION *region,
+                                               D3D12_BARRIER_LAYOUT LayoutAfter)
 {
-  RDCASSERT(type == DiscardType::DiscardCall);
+  RDCASSERT(type == DiscardType::DiscardCall || type == DiscardType::UndefinedTransition);
 
   D3D12MarkerRegion marker(
       cmd, StringFormat::Fmt("FillWithDiscardPattern %s", ToStr(GetResID(res)).c_str()));
@@ -1032,7 +1043,9 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     cmd->SetPipelineState(pipe);
     cmd->SetGraphicsRootSignature(m_DiscardRootSig);
-    cmd->SetGraphicsRootConstantBufferView(0, m_DiscardConstants->GetGPUVirtualAddress());
+    cmd->SetGraphicsRootConstantBufferView(
+        0, type == DiscardType::DiscardCall ? m_DiscardConstantsDiscard->GetGPUVirtualAddress()
+                                            : m_DiscardConstantsUndefined->GetGPUVirtualAddress());
     D3D12_VIEWPORT viewport = {0, 0, (float)desc.Width, (float)desc.Height, 0.0f, 1.0f};
     cmd->RSSetViewports(1, &viewport);
 
@@ -1116,7 +1129,7 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
   static const uint32_t PatternBatchHeight = 256;
 
   // see if we already have a buffer with texels in the desired format, if not then create it
-  ID3D12Resource *buf = m_DiscardPatterns[desc.Format];
+  ID3D12Resource *buf = m_DiscardPatterns[{type, desc.Format}];
 
   if(buf == NULL)
   {
@@ -1180,7 +1193,7 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
       buf->Unmap(0, NULL);
     }
 
-    m_DiscardPatterns[desc.Format] = buf;
+    m_DiscardPatterns[{type, desc.Format}] = buf;
   }
 
   for(UINT sub = firstSub; sub < firstSub + numSubs; sub++)
@@ -1198,7 +1211,36 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
       b.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
 
     b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-    cmd->ResourceBarrier(1, &b);
+
+    D3D12_TEXTURE_BARRIER tex = {};
+    D3D12_BARRIER_GROUP group = {};
+
+    if(m_pDevice->GetOpts12().EnhancedBarriersSupported)
+    {
+      // with new barriers we can explicitly discard here instead of guessing StateBefore, though we
+      // still need to guess a LayoutAfter once we're done for DiscardResource() calls
+
+      tex.LayoutBefore = D3D12_BARRIER_LAYOUT_UNDEFINED;
+      tex.AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS;
+      tex.SyncBefore = D3D12_BARRIER_SYNC_ALL;
+      tex.LayoutAfter = D3D12_BARRIER_LAYOUT_COPY_DEST;
+      tex.AccessAfter = D3D12_BARRIER_ACCESS_COPY_DEST;
+      tex.SyncAfter = D3D12_BARRIER_SYNC_COPY;
+
+      tex.Flags = D3D12_TEXTURE_BARRIER_FLAG_DISCARD;
+      tex.Subresources.IndexOrFirstMipLevel = (UINT)sub;
+      tex.pResource = res;
+
+      group.NumBarriers = 1;
+      group.Type = D3D12_BARRIER_TYPE_TEXTURE;
+      group.pTextureBarriers = &tex;
+
+      cmd->Barrier(1, &group);
+    }
+    else
+    {
+      cmd->ResourceBarrier(1, &b);
+    }
 
     D3D12_TEXTURE_COPY_LOCATION dst, src;
 
@@ -1260,9 +1302,36 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
       }
     }
 
-    std::swap(b.Transition.StateBefore, b.Transition.StateAfter);
+    if(group.NumBarriers > 0)
+    {
+      tex.LayoutBefore = D3D12_BARRIER_LAYOUT_COPY_DEST;
+      tex.AccessBefore = D3D12_BARRIER_ACCESS_COPY_DEST;
+      tex.SyncBefore = D3D12_BARRIER_SYNC_COPY;
+      tex.LayoutAfter = LayoutAfter;
+      tex.AccessAfter = D3D12_BARRIER_ACCESS_COMMON;
+      tex.SyncAfter = D3D12_BARRIER_SYNC_ALL;
+      tex.Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE;
 
-    cmd->ResourceBarrier(1, &b);
+      if(LayoutAfter == D3D12_BARRIER_LAYOUT_UNDEFINED)
+      {
+        // still need to guess, oops.
+        // since we don't know if the user will use old or new barriers we transition to common so
+        // that it's hopefully as suitable as possible for possible interactions. There is no single
+        // legal layout we can transition to, but we err on the side of assuming that calls to
+        // DiscardResource (where an undefined LayoutAfter would happen) will be used with old
+        // states, since new layouts have a built-in discard function with undefined transitions. So
+        // transitioning to common makes it more compatible with an old barrier after that
+        tex.LayoutAfter = D3D12_BARRIER_LAYOUT_COMMON;
+      }
+
+      cmd->Barrier(1, &group);
+    }
+    else
+    {
+      std::swap(b.Transition.StateBefore, b.Transition.StateAfter);
+
+      cmd->ResourceBarrier(1, &b);
+    }
 
     // workaround possible nvidia driver bug? without this depth-stencil discards of only one region
     // (smaller than 256x256) will get corrupted if both depth and stencil are copied to.
@@ -1526,11 +1595,15 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
 
   D3D12_RESOURCE_BARRIER barrier = {};
 
+  D3D12ResourceLayout layout = m_pDevice->GetSubresourceStates(GetResID(buffer))[0];
+
   barrier.Transition.pResource = buffer;
-  barrier.Transition.StateBefore = m_pDevice->GetSubresourceStates(GetResID(buffer))[0];
+  barrier.Transition.StateBefore = layout.ToStates();
   barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
 
-  if(barrier.Transition.StateBefore != D3D12_RESOURCE_STATE_COPY_SOURCE)
+  // new layouts guarantee that buffers are safe to use in a new list like this with no barrier, so
+  // only barrier for old states
+  if(layout.IsStates() && (barrier.Transition.StateBefore & D3D12_RESOURCE_STATE_COPY_SOURCE) == 0)
     m_DebugList->ResourceBarrier(1, &barrier);
 
   while(length > 0)
@@ -1572,7 +1645,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     m_DebugList->Reset(m_DebugAlloc, NULL);
   }
 
-  if(barrier.Transition.StateBefore != D3D12_RESOURCE_STATE_COPY_SOURCE)
+  if(layout.IsStates() && (barrier.Transition.StateBefore & D3D12_RESOURCE_STATE_COPY_SOURCE) == 0)
   {
     std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
 

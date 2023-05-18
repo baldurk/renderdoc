@@ -105,6 +105,153 @@ void D3D12MarkerRegion::End(ID3D12CommandQueue *queue)
   queue->EndEvent();
 }
 
+void BarrierSet::Configure(ID3D12Resource *res, const SubresourceStateVector &states,
+                           AccessType access)
+{
+  bool allowCommon = false;
+  D3D12_RESOURCE_STATES resourceState;
+  D3D12_BARRIER_LAYOUT resourceLayout;
+  D3D12_BARRIER_ACCESS resourceAccess;
+  D3D12_BARRIER_SYNC resourceSync;
+
+  // we assume wrapped resources
+  RDCASSERT(WrappedID3D12Resource::IsAlloc(res));
+
+  const bool isBuffer = (res->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER);
+
+  switch(access)
+  {
+    case SRVAccess:
+      resourceState = D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
+      resourceLayout = D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
+      resourceAccess = D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
+      resourceSync = D3D12_BARRIER_SYNC_ALL_SHADING;
+      // common layouts allow shader resource access with no layout change
+      allowCommon = true;
+      break;
+    case ResolveSourceAccess:
+      resourceState = D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+      resourceLayout = D3D12_BARRIER_LAYOUT_RESOLVE_SOURCE;
+      resourceAccess = D3D12_BARRIER_ACCESS_RESOLVE_SOURCE;
+      resourceSync = D3D12_BARRIER_SYNC_RESOLVE;
+      break;
+    default:
+    // should not happen but is the neatest solution to uninitialised variable warnings
+    case CopySourceAccess:
+      resourceState = D3D12_RESOURCE_STATE_COPY_SOURCE;
+      resourceLayout = D3D12_BARRIER_LAYOUT_COPY_SOURCE;
+      resourceAccess = D3D12_BARRIER_ACCESS_COPY_SOURCE;
+      resourceSync = D3D12_BARRIER_SYNC_COPY;
+      // common layouts allow shader resource access with no layout change
+      allowCommon = true;
+      break;
+    case CopyDestAccess:
+      resourceState = D3D12_RESOURCE_STATE_COPY_DEST;
+      resourceLayout = D3D12_BARRIER_LAYOUT_COPY_DEST;
+      resourceAccess = D3D12_BARRIER_ACCESS_COPY_DEST;
+      resourceSync = D3D12_BARRIER_SYNC_COPY;
+      // common layouts allow shader resource access with no layout change
+      allowCommon = true;
+      break;
+  }
+
+  barriers.reserve(states.size());
+  newBarriers.reserve(states.size());
+  for(size_t i = 0; i < states.size(); i++)
+  {
+    if(states[i].IsStates())
+    {
+      D3D12_RESOURCE_BARRIER b;
+
+      b.Transition.StateBefore = states[i].ToStates();
+
+      // skip unneeded barriers
+      if((resourceState != D3D12_RESOURCE_STATE_COMMON &&
+          (b.Transition.StateBefore & resourceState) == resourceState) ||
+         b.Transition.StateBefore == resourceState)
+        continue;
+
+      b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      b.Transition.pResource = res;
+      b.Transition.Subresource = (UINT)i;
+      b.Transition.StateAfter = resourceState;
+
+      barriers.push_back(b);
+    }
+    // buffers don't need any transitions with the new layouts
+    else if(!isBuffer)
+    {
+      D3D12_TEXTURE_BARRIER b = {};
+
+      b.LayoutBefore = states[i].ToLayout();
+
+      // as long as the layout matches we don't need any extra access/sync since we're in a
+      // different command buffer.
+      if(b.LayoutBefore == resourceLayout ||
+         (allowCommon && (b.LayoutBefore == D3D12_BARRIER_LAYOUT_COMMON ||
+                          b.LayoutBefore == D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COMMON ||
+                          b.LayoutBefore == D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COMMON)))
+        continue;
+
+      b.AccessBefore = D3D12_BARRIER_ACCESS_COMMON;
+      b.SyncBefore = D3D12_BARRIER_SYNC_ALL;
+      b.AccessAfter = resourceAccess;
+      b.SyncAfter = resourceSync;
+      b.LayoutAfter = resourceLayout;
+      b.Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE;
+      b.Subresources.IndexOrFirstMipLevel = (UINT)i;
+      b.pResource = res;
+
+      newBarriers.push_back(b);
+    }
+  }
+}
+
+void BarrierSet::Apply(ID3D12GraphicsCommandListX *list)
+{
+  D3D12_BARRIER_GROUP group;
+  group.NumBarriers = (UINT)newBarriers.size();
+  group.Type = D3D12_BARRIER_TYPE_TEXTURE;
+  group.pTextureBarriers = newBarriers.data();
+
+  if(!barriers.empty())
+    list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+  // we unconditionally call new barriers, because they can only appear if a new layout was
+  // previously used (otherwise we stick to old states). This will only break if we're replaying
+  // a capture that used new layouts but new barrier support isn't present.
+  if(!newBarriers.empty())
+    list->Barrier(1, &group);
+  if(!newToOldBarriers.empty())
+    list->ResourceBarrier((UINT)newToOldBarriers.size(), &newToOldBarriers[0]);
+}
+
+void BarrierSet::Unapply(ID3D12GraphicsCommandListX *list)
+{
+  D3D12_BARRIER_GROUP group;
+  group.NumBarriers = (UINT)newBarriers.size();
+  group.Type = D3D12_BARRIER_TYPE_TEXTURE;
+  group.pTextureBarriers = newBarriers.data();
+
+  // real resource back to itself
+  for(size_t i = 0; i < barriers.size(); i++)
+    std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
+  for(size_t i = 0; i < newBarriers.size(); i++)
+  {
+    std::swap(newBarriers[i].AccessBefore, newBarriers[i].AccessAfter);
+    std::swap(newBarriers[i].SyncBefore, newBarriers[i].SyncAfter);
+    std::swap(newBarriers[i].LayoutBefore, newBarriers[i].LayoutAfter);
+  }
+
+  if(!barriers.empty())
+    list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+  if(!newBarriers.empty())
+    list->Barrier(1, &group);
+  // if we had new-to-old barriers we should not ever be unapplying that barrier set as it's
+  // one-way.
+  RDCASSERT(newToOldBarriers.empty());
+}
+
 bool EnableD3D12DebugLayer(PFN_D3D12_GET_DEBUG_INTERFACE getDebugInterface)
 {
   if(!getDebugInterface)

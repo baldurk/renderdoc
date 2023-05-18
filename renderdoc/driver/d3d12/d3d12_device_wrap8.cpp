@@ -126,7 +126,8 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource2(
       // D3D12_RESOURCE_DESC is the same as the start of D3D12_RESOURCE_DESC1
       D3D12_RESOURCE_DESC desc0;
       memcpy(&desc0, &desc, sizeof(desc0));
-      states.fill(GetNumSubresources(m_pDevice, &desc0), InitialResourceState);
+      states.fill(GetNumSubresources(m_pDevice, &desc0),
+                  D3D12ResourceLayout::FromStates(InitialResourceState));
 
       ResourceType type = ResourceType::Texture;
       const char *prefix = "Texture";
@@ -251,7 +252,8 @@ HRESULT WrappedID3D12Device::CreateCommittedResource2(
       // D3D12_RESOURCE_DESC is the same as the start of D3D12_RESOURCE_DESC1
       D3D12_RESOURCE_DESC desc0;
       memcpy(&desc0, pDesc, sizeof(desc0));
-      states.fill(GetNumSubresources(m_pDevice, &desc0), InitialResourceState);
+      states.fill(GetNumSubresources(m_pDevice, &desc0),
+                  D3D12ResourceLayout::FromStates(InitialResourceState));
 
       m_BindlessFrameRefs[wrapped->GetResourceID()] = BindlessRefTypeForRes(wrapped);
     }
@@ -370,7 +372,8 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource1(
       D3D12_RESOURCE_DESC desc0;
       memcpy(&desc0, &Descriptor, sizeof(desc0));
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
-      states.fill(GetNumSubresources(m_pDevice, &desc0), InitialState);
+      states.fill(GetNumSubresources(m_pDevice, &desc0),
+                  D3D12ResourceLayout::FromStates(InitialState));
     }
 
     ResourceType type = ResourceType::Texture;
@@ -490,7 +493,8 @@ HRESULT WrappedID3D12Device::CreatePlacedResource1(ID3D12Heap *pHeap, UINT64 Hea
       // D3D12_RESOURCE_DESC is the same as the start of D3D12_RESOURCE_DESC1
       D3D12_RESOURCE_DESC desc0;
       memcpy(&desc0, pDesc, sizeof(desc0));
-      states.fill(GetNumSubresources(m_pDevice, &desc0), InitialState);
+      states.fill(GetNumSubresources(m_pDevice, &desc0),
+                  D3D12ResourceLayout::FromStates(InitialState));
 
       m_BindlessFrameRefs[wrapped->GetResourceID()] = BindlessRefTypeForRes(wrapped);
     }

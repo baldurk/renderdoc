@@ -316,7 +316,8 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource1(
         m_ModResources.insert(GetResID(ret));
 
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
-      states.fill(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
+      states.fill(GetNumSubresources(m_pDevice, &desc),
+                  D3D12ResourceLayout::FromStates(InitialResourceState));
 
       ResourceType type = ResourceType::Texture;
       const char *prefix = "Texture";
@@ -435,7 +436,8 @@ HRESULT WrappedID3D12Device::CreateCommittedResource1(
       SCOPED_LOCK(m_ResourceStatesLock);
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
-      states.fill(GetNumSubresources(m_pDevice, pDesc), InitialResourceState);
+      states.fill(GetNumSubresources(m_pDevice, pDesc),
+                  D3D12ResourceLayout::FromStates(InitialResourceState));
 
       m_BindlessFrameRefs[wrapped->GetResourceID()] = BindlessRefTypeForRes(wrapped);
     }

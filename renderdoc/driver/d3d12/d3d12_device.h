@@ -785,6 +785,7 @@ private:
   D3D12_FEATURE_DATA_D3D12_OPTIONS2 m_D3D12Opts2;
   D3D12_FEATURE_DATA_D3D12_OPTIONS3 m_D3D12Opts3;
   D3D12_FEATURE_DATA_D3D12_OPTIONS6 m_D3D12Opts6;
+  D3D12_FEATURE_DATA_D3D12_OPTIONS12 m_D3D12Opts12;
   D3D12_FEATURE_DATA_D3D12_OPTIONS14 m_D3D12Opts14;
   D3D12_FEATURE_DATA_D3D12_OPTIONS15 m_D3D12Opts15;
   D3D12_FEATURE_DATA_D3D12_OPTIONS16 m_D3D12Opts16;
@@ -819,6 +820,7 @@ public:
   const D3D12_FEATURE_DATA_D3D12_OPTIONS2 &GetOpts2() { return m_D3D12Opts2; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS3 &GetOpts3() { return m_D3D12Opts3; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS6 &GetOpts6() { return m_D3D12Opts6; }
+  const D3D12_FEATURE_DATA_D3D12_OPTIONS12 &GetOpts12() { return m_D3D12Opts12; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS14 &GetOpts14() { return m_D3D12Opts14; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS15 &GetOpts15() { return m_D3D12Opts15; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS16 &GetOpts16() { return m_D3D12Opts16; }
@@ -873,10 +875,7 @@ public:
   void AddResourceCurChunk(ResourceId id);
 
   bool UsedDXIL() { return m_UsedDXIL; }
-  rdcarray<D3D12_RESOURCE_STATES> &GetSubresourceStates(ResourceId id)
-  {
-    return m_ResourceStates[id];
-  }
+  SubresourceStateVector &GetSubresourceStates(ResourceId id) { return m_ResourceStates[id]; }
   const std::map<ResourceId, SubresourceStateVector> &GetSubresourceStates()
   {
     return m_ResourceStates;
@@ -901,7 +900,7 @@ public:
   const rdcarray<WrappedID3D12CommandQueue *> &GetQueues() { return m_Queues; }
   ID3D12CommandAllocator *GetAlloc() { return m_Alloc; }
   ID3D12InfoQueue *GetInfoQueue() { return m_pInfoQueue; }
-  void ApplyBarriers(rdcarray<D3D12_RESOURCE_BARRIER> &barriers);
+  void ApplyBarriers(BarrierSet &barriers);
 
   void GetDynamicDescriptorReferences(rdcarray<D3D12Descriptor> &refs)
   {

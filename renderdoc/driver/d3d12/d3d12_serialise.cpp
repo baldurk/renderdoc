@@ -1718,6 +1718,110 @@ void DoSerialise(SerialiserType &ser, D3D12_DISPATCH_ARGUMENTS &el)
   SERIALISE_MEMBER(ThreadGroupCountZ).Important();
 }
 
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12ResourceLayout &el)
+{
+  RDCCOMPILE_ASSERT(sizeof(el) == sizeof(uint32_t),
+                    "D3D12ResourceLayout is expected to be a 32-bit value");
+  ser.SerialiseValue(SDBasic::Enum, 4, (uint32_t &)el);
+  ser.SerialiseStringify(el);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_GLOBAL_BARRIER &el)
+{
+  SERIALISE_MEMBER(SyncBefore);
+  SERIALISE_MEMBER(SyncAfter);
+  SERIALISE_MEMBER(AccessBefore);
+  SERIALISE_MEMBER(AccessAfter);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_BARRIER_SUBRESOURCE_RANGE &el)
+{
+  SERIALISE_MEMBER(IndexOrFirstMipLevel);
+  SERIALISE_MEMBER(NumMipLevels);
+  SERIALISE_MEMBER(FirstArraySlice);
+  SERIALISE_MEMBER(NumArraySlices);
+  SERIALISE_MEMBER(FirstPlane);
+  SERIALISE_MEMBER(NumPlanes);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEXTURE_BARRIER &el)
+{
+  SERIALISE_MEMBER(SyncBefore);
+  SERIALISE_MEMBER(SyncAfter);
+  SERIALISE_MEMBER(AccessBefore);
+  SERIALISE_MEMBER(AccessAfter);
+  SERIALISE_MEMBER(LayoutBefore);
+  SERIALISE_MEMBER(LayoutAfter);
+  SERIALISE_MEMBER(pResource);
+  SERIALISE_MEMBER(Subresources);
+  SERIALISE_MEMBER(Flags);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_BUFFER_BARRIER &el)
+{
+  SERIALISE_MEMBER(SyncBefore);
+  SERIALISE_MEMBER(SyncAfter);
+  SERIALISE_MEMBER(AccessBefore);
+  SERIALISE_MEMBER(AccessAfter);
+  SERIALISE_MEMBER(pResource);
+  SERIALISE_MEMBER(Offset);
+  SERIALISE_MEMBER(Size);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_BARRIER_GROUP &el)
+{
+  SERIALISE_MEMBER(Type).Important();
+  SERIALISE_MEMBER(NumBarriers).Important();
+
+  switch(el.Type)
+  {
+    case D3D12_BARRIER_TYPE_GLOBAL:
+    {
+      SERIALISE_MEMBER_ARRAY(pGlobalBarriers, NumBarriers);
+      break;
+    }
+    case D3D12_BARRIER_TYPE_TEXTURE:
+    {
+      SERIALISE_MEMBER_ARRAY(pTextureBarriers, NumBarriers);
+      break;
+    }
+    case D3D12_BARRIER_TYPE_BUFFER:
+    {
+      SERIALISE_MEMBER_ARRAY(pBufferBarriers, NumBarriers);
+      break;
+    }
+  }
+}
+
+template <>
+void Deserialise(const D3D12_BARRIER_GROUP &el)
+{
+  switch(el.Type)
+  {
+    case D3D12_BARRIER_TYPE_GLOBAL:
+    {
+      delete[] el.pGlobalBarriers;
+      break;
+    }
+    case D3D12_BARRIER_TYPE_TEXTURE:
+    {
+      delete[] el.pTextureBarriers;
+      break;
+    }
+    case D3D12_BARRIER_TYPE_BUFFER:
+    {
+      delete[] el.pBufferBarriers;
+      break;
+    }
+  }
+}
+
 INSTANTIATE_SERIALISE_TYPE(D3D12RootSignature);
 INSTANTIATE_SERIALISE_TYPE(PortableHandle);
 INSTANTIATE_SERIALISE_TYPE(D3D12_CPU_DESCRIPTOR_HANDLE);
@@ -1772,6 +1876,8 @@ INSTANTIATE_SERIALISE_TYPE(D3D12_SUBRESOURCE_RANGE_UINT64);
 INSTANTIATE_SERIALISE_TYPE(D3D12_WRITEBUFFERIMMEDIATE_PARAMETER);
 INSTANTIATE_SERIALISE_TYPE(D3D12_RENDER_PASS_RENDER_TARGET_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_RENDER_PASS_DEPTH_STENCIL_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_BARRIER_GROUP);
+INSTANTIATE_SERIALISE_TYPE(D3D12ResourceLayout);
 INSTANTIATE_SERIALISE_TYPE(D3D12_DRAW_ARGUMENTS);
 INSTANTIATE_SERIALISE_TYPE(D3D12_DRAW_INDEXED_ARGUMENTS);
 INSTANTIATE_SERIALISE_TYPE(D3D12_DISPATCH_ARGUMENTS);

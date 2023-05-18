@@ -1517,7 +1517,8 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
         m_ModResources.insert(GetResID(ret));
 
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
-      states.fill(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
+      states.fill(GetNumSubresources(m_pDevice, &desc),
+                  D3D12ResourceLayout::FromStates(InitialResourceState));
 
       ResourceType type = ResourceType::Texture;
       const char *prefix = "Texture";
@@ -1638,7 +1639,8 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
       SCOPED_LOCK(m_ResourceStatesLock);
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
-      states.fill(GetNumSubresources(m_pDevice, pDesc), InitialResourceState);
+      states.fill(GetNumSubresources(m_pDevice, pDesc),
+                  D3D12ResourceLayout::FromStates(InitialResourceState));
 
       m_BindlessFrameRefs[wrapped->GetResourceID()] = BindlessRefTypeForRes(wrapped);
     }
@@ -1847,7 +1849,8 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
         m_ModResources.insert(GetResID(ret));
 
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
-      states.fill(GetNumSubresources(m_pDevice, &Descriptor), InitialState);
+      states.fill(GetNumSubresources(m_pDevice, &Descriptor),
+                  D3D12ResourceLayout::FromStates(InitialState));
     }
 
     ResourceType type = ResourceType::Texture;
@@ -1962,7 +1965,8 @@ HRESULT WrappedID3D12Device::CreatePlacedResource(ID3D12Heap *pHeap, UINT64 Heap
       SCOPED_LOCK(m_ResourceStatesLock);
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
-      states.fill(GetNumSubresources(m_pDevice, pDesc), InitialState);
+      states.fill(GetNumSubresources(m_pDevice, pDesc),
+                  D3D12ResourceLayout::FromStates(InitialState));
 
       m_BindlessFrameRefs[wrapped->GetResourceID()] = BindlessRefTypeForRes(wrapped);
     }
@@ -2058,7 +2062,8 @@ bool WrappedID3D12Device::Serialise_CreateReservedResource(
         m_ModResources.insert(GetResID(ret));
 
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
-      states.fill(GetNumSubresources(m_pDevice, &Descriptor), InitialState);
+      states.fill(GetNumSubresources(m_pDevice, &Descriptor),
+                  D3D12ResourceLayout::FromStates(InitialState));
     }
 
     m_SparseResources.insert(GetResID(ret));
@@ -2205,7 +2210,8 @@ HRESULT WrappedID3D12Device::CreateReservedResource(const D3D12_RESOURCE_DESC *p
       SCOPED_LOCK(m_ResourceStatesLock);
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
-      states.fill(GetNumSubresources(m_pDevice, pDesc), InitialState);
+      states.fill(GetNumSubresources(m_pDevice, pDesc),
+                  D3D12ResourceLayout::FromStates(InitialState));
 
       m_BindlessFrameRefs[wrapped->GetResourceID()] = BindlessRefTypeForRes(wrapped);
     }
@@ -2891,7 +2897,8 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
           m_ModResources.insert(GetResID(ret));
 
         SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
-        states.fill(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
+        states.fill(GetNumSubresources(m_pDevice, &desc),
+                    D3D12ResourceLayout::FromStates(InitialResourceState));
 
         ResourceType type = ResourceType::Texture;
         const char *prefix = "Texture";
@@ -3162,7 +3169,8 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType,
         SCOPED_LOCK(m_ResourceStatesLock);
         SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
-        states.fill(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
+        states.fill(GetNumSubresources(m_pDevice, &desc),
+                    D3D12ResourceLayout::FromStates(InitialResourceState));
 
         m_BindlessFrameRefs[wrapped->GetResourceID()] = BindlessRefTypeForRes(wrapped);
       }

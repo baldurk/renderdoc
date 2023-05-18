@@ -479,7 +479,7 @@ struct CmdListRecordingInfo
 
   D3D12ResourceRecord *allocRecord = NULL;
 
-  rdcarray<D3D12_RESOURCE_BARRIER> barriers;
+  BarrierSet barriers;
 
   // a list of all resources dirtied by this command list
   std::set<ResourceId> dirtied;
@@ -599,8 +599,6 @@ struct D3D12ResourceRecord : public ResourceRecord
   size_t m_MapsCount;
   Threading::CriticalSection m_MapLock;
 };
-
-typedef rdcarray<D3D12_RESOURCE_STATES> SubresourceStateVector;
 
 struct SparseBinds
 {
@@ -760,11 +758,10 @@ public:
     return (T *)GetCurrentResource(id);
   }
 
-  void ApplyBarriers(rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
-                     std::map<ResourceId, SubresourceStateVector> &states);
+  void ApplyBarriers(BarrierSet &barriers, std::map<ResourceId, SubresourceStateVector> &states);
 
   template <typename SerialiserType>
-  void SerialiseResourceStates(SerialiserType &ser, rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
+  void SerialiseResourceStates(SerialiserType &ser, BarrierSet &barriers,
                                std::map<ResourceId, SubresourceStateVector> &states,
                                const std::map<ResourceId, SubresourceStateVector> &initialStates);
 

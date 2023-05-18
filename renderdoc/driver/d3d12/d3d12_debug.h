@@ -153,7 +153,7 @@ public:
 
   void FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd, const D3D12RenderState &state,
                               DiscardType type, ID3D12Resource *res,
-                              const D3D12_DISCARD_REGION *region);
+                              const D3D12_DISCARD_REGION *region, D3D12_BARRIER_LAYOUT LayoutAfter);
 
   D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(CBVUAVSRVSlot slot);
   D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(RTVSlot slot);
@@ -173,7 +173,7 @@ public:
   D3D12_CPU_DESCRIPTOR_HANDLE GetUAVClearHandle(CBVUAVSRVSlot slot);
 
   void PrepareTextureSampling(ID3D12Resource *resource, CompType typeCast, int &resType,
-                              rdcarray<D3D12_RESOURCE_BARRIER> &barriers);
+                              BarrierSet &barrierSet);
 
   MeshDisplayPipelines CacheMeshDisplayPipelines(const MeshFormat &primary,
                                                  const MeshFormat &secondary);
@@ -245,11 +245,12 @@ private:
   // Discard pattern rendering
   ID3DBlob *m_DiscardFloatPS = NULL;
   ID3DBlob *m_DiscardIntPS = NULL;
-  ID3D12Resource *m_DiscardConstants = NULL;
+  ID3D12Resource *m_DiscardConstantsDiscard = NULL;
+  ID3D12Resource *m_DiscardConstantsUndefined = NULL;
   ID3D12RootSignature *m_DiscardRootSig = NULL;
 
   std::map<rdcpair<DXGI_FORMAT, UINT>, ID3D12PipelineState *> m_DiscardPipes;
-  std::map<DXGI_FORMAT, ID3D12Resource *> m_DiscardPatterns;
+  std::map<rdcpair<DiscardType, DXGI_FORMAT>, ID3D12Resource *> m_DiscardPatterns;
   rdcarray<ID3D12Resource *> m_DiscardBuffers;
 };
 

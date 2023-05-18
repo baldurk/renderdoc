@@ -526,6 +526,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   RDCEraseEl(m_D3D12Opts2);
   RDCEraseEl(m_D3D12Opts3);
   RDCEraseEl(m_D3D12Opts6);
+  RDCEraseEl(m_D3D12Opts12);
   RDCEraseEl(m_D3D12Opts14);
   RDCEraseEl(m_D3D12Opts15);
   RDCEraseEl(m_D3D12Opts16);
@@ -595,6 +596,10 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
                                         sizeof(m_D3D12Opts6));
     if(hr != S_OK)
       RDCEraseEl(m_D3D12Opts6);
+    hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS12, &m_D3D12Opts12,
+                                        sizeof(m_D3D12Opts12));
+    if(hr != S_OK)
+      RDCEraseEl(m_D3D12Opts12);
     hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS14, &m_D3D12Opts14,
                                         sizeof(m_D3D12Opts14));
     if(hr != S_OK)
@@ -1551,7 +1556,7 @@ void WrappedID3D12Device::FirstFrame(IDXGISwapper *swapper)
   }
 }
 
-void WrappedID3D12Device::ApplyBarriers(rdcarray<D3D12_RESOURCE_BARRIER> &barriers)
+void WrappedID3D12Device::ApplyBarriers(BarrierSet &barriers)
 {
   SCOPED_LOCK(m_ResourceStatesLock);
   GetResourceManager()->ApplyBarriers(barriers, m_ResourceStates);
@@ -1662,7 +1667,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
 
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
-      states = {D3D12_RESOURCE_STATE_PRESENT};
+      states = {D3D12ResourceLayout::FromStates(D3D12_RESOURCE_STATE_PRESENT)};
     }
   }
 
@@ -1724,7 +1729,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
         SCOPED_LOCK(m_ResourceStatesLock);
         SubresourceStateVector &states = m_ResourceStates[id];
 
-        states = {D3D12_RESOURCE_STATE_PRESENT};
+        states = {D3D12ResourceLayout::FromStates(D3D12_RESOURCE_STATE_PRESENT)};
       }
     }
     else
@@ -2422,7 +2427,7 @@ bool WrappedID3D12Device::Serialise_CaptureScope(SerialiserType &ser)
 template <typename SerialiserType>
 bool WrappedID3D12Device::Serialise_BeginCaptureFrame(SerialiserType &ser)
 {
-  rdcarray<D3D12_RESOURCE_BARRIER> barriers;
+  BarrierSet barriers;
 
   if(IsReplayingAndReading() && IsLoading(m_State))
   {
@@ -2442,11 +2447,11 @@ bool WrappedID3D12Device::Serialise_BeginCaptureFrame(SerialiserType &ser)
   if(IsReplayingAndReading() && !barriers.empty())
   {
     // apply initial resource states
-    ID3D12GraphicsCommandList *list = GetNewList();
+    ID3D12GraphicsCommandListX *list = GetNewList();
     if(!list)
       return false;
 
-    list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+    barriers.Apply(list);
 
     list->Close();
 

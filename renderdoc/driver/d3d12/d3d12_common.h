@@ -125,6 +125,87 @@ BlendMultiplier MakeBlendMultiplier(D3D12_BLEND blend, bool alpha);
 BlendOperation MakeBlendOp(D3D12_BLEND_OP op);
 StencilOperation MakeStencilOp(D3D12_STENCIL_OP op);
 
+// wrapper around D3D12_RESOURCE_STATES and D3D12_BARRIER_LAYOUT to handle resources that could be
+// in either and varying support
+struct D3D12ResourceLayout
+{
+  D3D12ResourceLayout() : value(0)
+  {
+    RDCCOMPILE_ASSERT(sizeof(*this) == sizeof(D3D12_BARRIER_LAYOUT),
+                      "Layout/state wrapper is wrongly sized");
+    RDCCOMPILE_ASSERT(sizeof(*this) == sizeof(D3D12_RESOURCE_STATES),
+                      "Layout/state wrapper is wrongly sized");
+  }
+  static D3D12ResourceLayout FromStates(D3D12_RESOURCE_STATES s)
+  {
+    return D3D12ResourceLayout((uint32_t)s);
+  }
+  static D3D12ResourceLayout FromLayout(D3D12_BARRIER_LAYOUT s)
+  {
+    return D3D12ResourceLayout(uint32_t(s) | LayoutBit);
+  }
+  bool IsLayout() const { return (value & LayoutBit) != 0; }
+  bool IsStates() const { return (value & LayoutBit) == 0; }
+  D3D12_RESOURCE_STATES ToStates() const { return D3D12_RESOURCE_STATES(value & ~LayoutBit); }
+  D3D12_BARRIER_LAYOUT ToLayout() const { return D3D12_BARRIER_LAYOUT(value & ~LayoutBit); }
+  bool operator==(const D3D12ResourceLayout &o) const { return value == o.value; }
+  bool operator!=(const D3D12ResourceLayout &o) const { return !(*this == o); }
+private:
+  explicit D3D12ResourceLayout(uint32_t v) : value(v) {}
+  // layouts are an enum so this bit should hopefully never be used. Note that LAYOUT_UNDEFINED is
+  // ~0U but that's not valid except as a previous state for discards, it's not a layout anything
+  // can be put into so stored here.
+  // states are a bitmask but they only use just over 6 hex digits so far, and we assume they won't
+  // be extended (or not by much).
+  // We set the bit for layouts and not for states so that we can serialise this
+  // backwards-compatibly and replace any serialised D3D12_RESOURCE_STATES and have them appear as
+  // the correct enum.
+  static constexpr uint32_t LayoutBit = 0x80000000U;
+  uint32_t value;
+};
+
+typedef rdcarray<D3D12ResourceLayout> SubresourceStateVector;
+
+struct BarrierSet
+{
+  enum AccessType
+  {
+    SRVAccess,
+    CopySourceAccess,
+    CopyDestAccess,
+    ResolveSourceAccess,
+  };
+
+  // set up the barriers to barrier this resource a given type of access
+  void Configure(ID3D12Resource *res, const SubresourceStateVector &states, AccessType access);
+
+  // apply the barrier set onto this list
+  void Apply(ID3D12GraphicsCommandListX *list);
+
+  // unapply the barrier set - used for when we are barrier'ing a resource, doing some work, then
+  // barrier'ing it back to the original state
+  void Unapply(ID3D12GraphicsCommandListX *list);
+
+  void clear()
+  {
+    barriers.clear();
+    newBarriers.clear();
+    newToOldBarriers.clear();
+  }
+  bool empty() const { return barriers.empty() && newBarriers.empty(); }
+  void swap(BarrierSet &other)
+  {
+    barriers.swap(other.barriers);
+    newBarriers.swap(other.newBarriers);
+  }
+
+  rdcarray<D3D12_RESOURCE_BARRIER> barriers;
+  rdcarray<D3D12_TEXTURE_BARRIER> newBarriers;
+  // these are used specifically when we need to record a transition from a new layout to an old
+  // state. Because we execute barriers before newBarriers we can do the other way without this
+  rdcarray<D3D12_RESOURCE_BARRIER> newToOldBarriers;
+};
+
 // similar to RDCUNIMPLEMENTED but for things that are hit often so we don't want to fire the
 // debugbreak.
 #define D3D12NOTIMP(...)                                \
@@ -689,6 +770,11 @@ DECLARE_REFLECTION_ENUM(D3D12_DESCRIPTOR_RANGE_FLAGS);
 DECLARE_REFLECTION_ENUM(D3D12_TILE_COPY_FLAGS);
 DECLARE_REFLECTION_ENUM(D3D12_TILE_RANGE_FLAGS);
 DECLARE_REFLECTION_ENUM(D3D12_TILE_MAPPING_FLAGS);
+DECLARE_REFLECTION_ENUM(D3D12_BARRIER_ACCESS);
+DECLARE_REFLECTION_ENUM(D3D12_BARRIER_SYNC);
+DECLARE_REFLECTION_ENUM(D3D12_BARRIER_LAYOUT);
+DECLARE_REFLECTION_ENUM(D3D12_BARRIER_TYPE);
+DECLARE_REFLECTION_ENUM(D3D12_TEXTURE_BARRIER_FLAGS);
 
 DECLARE_REFLECTION_STRUCT(D3D12_RESOURCE_DESC);
 DECLARE_REFLECTION_STRUCT(D3D12_COMMAND_QUEUE_DESC);
@@ -799,6 +885,12 @@ DECLARE_REFLECTION_STRUCT(D3D12_ROOT_CONSTANTS);
 DECLARE_REFLECTION_STRUCT(D3D12_ROOT_DESCRIPTOR1);
 DECLARE_REFLECTION_STRUCT(D3D12_RESOURCE_DESC1);
 DECLARE_REFLECTION_STRUCT(D3D12_MIP_REGION);
+DECLARE_REFLECTION_STRUCT(D3D12_BARRIER_SUBRESOURCE_RANGE);
+DECLARE_REFLECTION_STRUCT(D3D12_BUFFER_BARRIER);
+DECLARE_REFLECTION_STRUCT(D3D12_TEXTURE_BARRIER);
+DECLARE_REFLECTION_STRUCT(D3D12_GLOBAL_BARRIER);
+DECLARE_REFLECTION_STRUCT(D3D12_BARRIER_GROUP);
+DECLARE_REFLECTION_STRUCT(D3D12ResourceLayout);
 
 DECLARE_DESERIALISE_TYPE(D3D12_DISCARD_REGION);
 DECLARE_DESERIALISE_TYPE(D3D12_GRAPHICS_PIPELINE_STATE_DESC);
@@ -807,6 +899,7 @@ DECLARE_DESERIALISE_TYPE(D3D12_COMMAND_SIGNATURE_DESC);
 DECLARE_DESERIALISE_TYPE(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC);
 DECLARE_DESERIALISE_TYPE(D3D12_RENDER_PASS_RENDER_TARGET_DESC);
 DECLARE_DESERIALISE_TYPE(D3D12_RENDER_PASS_DEPTH_STENCIL_DESC);
+DECLARE_DESERIALISE_TYPE(D3D12_BARRIER_GROUP);
 
 enum class D3D12Chunk : uint32_t
 {

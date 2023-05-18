@@ -682,42 +682,198 @@ D3D12Descriptor *DescriptorFromPortableHandle(D3D12ResourceManager *manager, Por
 #define BARRIER_ASSERT(...)
 #endif
 
-void D3D12ResourceManager::ApplyBarriers(rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
+void D3D12ResourceManager::ApplyBarriers(BarrierSet &barriers,
                                          std::map<ResourceId, SubresourceStateVector> &states)
 {
-  for(size_t b = 0; b < barriers.size(); b++)
+  for(size_t b = 0; b < barriers.barriers.size(); b++)
   {
-    D3D12_RESOURCE_TRANSITION_BARRIER &trans = barriers[b].Transition;
+    const D3D12_RESOURCE_TRANSITION_BARRIER &trans = barriers.barriers[b].Transition;
     ResourceId id = GetResID(trans.pResource);
     SubresourceStateVector &st = states[id];
 
     // skip non-transitions, or begin-halves of transitions
-    if(barriers[b].Type != D3D12_RESOURCE_BARRIER_TYPE_TRANSITION ||
-       (barriers[b].Flags & D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY))
+    if(barriers.barriers[b].Type != D3D12_RESOURCE_BARRIER_TYPE_TRANSITION ||
+       (barriers.barriers[b].Flags & D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY))
       continue;
 
+    size_t first = trans.Subresource;
     if(trans.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+      first = 0;
+
+    for(size_t i = first; i < st.size(); i++)
     {
-      for(size_t i = 0; i < st.size(); i++)
+      // layout must either match StateBefore or else be in the common layout
+      BARRIER_ASSERT("Mismatching before state",
+                     (st[i].IsStates() && st[i].ToStates() == trans.StateBefore) ||
+                         (st[i].IsLayout() && st[i].ToLayout() == D3D12_BARRIER_LAYOUT_COMMON),
+                     st[i], trans.StateBefore, i);
+      st[i] = D3D12ResourceLayout::FromStates(trans.StateAfter);
+
+      if(trans.Subresource != D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+        break;
+    }
+  }
+
+  for(size_t b = 0; b < barriers.newBarriers.size(); b++)
+  {
+    const D3D12_TEXTURE_BARRIER &trans = barriers.newBarriers[b];
+    ResourceId id = GetResID(trans.pResource);
+    SubresourceStateVector &st = states[id];
+
+    // skip begin-halves of split transitions
+    if(trans.SyncBefore == D3D12_BARRIER_SYNC_SPLIT)
+      continue;
+
+    if(trans.Subresources.NumMipLevels == 0)
+    {
+      size_t first = 0;
+      if(trans.Subresources.IndexOrFirstMipLevel == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+        first = 0;
+
+      for(size_t sub = first; sub < st.size(); sub++)
       {
-        BARRIER_ASSERT("Mismatching before state", st[i] == trans.StateBefore, st[i],
-                       trans.StateBefore, i);
-        st[i] = trans.StateAfter;
+        // layout must either match StateBefore, be undefined, or else be in the common state
+        BARRIER_ASSERT("Mismatching before state",
+                       (st[sub].IsLayout() && st[sub].ToLayout() == trans.LayoutBefore) ||
+                           trans.LayoutBefore == D3D12_BARRIER_LAYOUT_UNDEFINED ||
+                           (st[sub].IsStates() && st[sub].ToStates() == D3D12_RESOURCE_STATE_COMMON),
+                       st[sub], trans.LayoutBefore, sub);
+        st[sub] = D3D12ResourceLayout::FromLayout(trans.LayoutAfter);
+
+        if(trans.Subresources.IndexOrFirstMipLevel != D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+          break;
+      }
+    }
+
+    D3D12_RESOURCE_DESC desc = trans.pResource->GetDesc();
+
+    UINT arrays = RDCMAX((UINT16)1, desc.DepthOrArraySize);
+    if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+      arrays = 1;
+    UINT mips = RDCMAX((UINT16)1, desc.MipLevels);
+
+    for(UINT p = trans.Subresources.FirstPlane; p < trans.Subresources.NumPlanes; p++)
+    {
+      for(UINT a = trans.Subresources.FirstArraySlice; a < trans.Subresources.NumArraySlices; a++)
+      {
+        for(UINT m = trans.Subresources.IndexOrFirstMipLevel; m < trans.Subresources.NumMipLevels; m++)
+        {
+          UINT sub = ((p * arrays) + a) * mips + m;
+
+          // layout must either match StateBefore, be undefined, or else be in the common state
+          BARRIER_ASSERT(
+              "Mismatching before state",
+              (st[sub].IsLayout() && st[sub].ToLayout() == trans.LayoutBefore) ||
+                  trans.LayoutBefore == D3D12_BARRIER_LAYOUT_UNDEFINED ||
+                  (st[sub].IsStates() && st[sub].ToStates() == D3D12_RESOURCE_STATE_COMMON),
+              st[sub], trans.LayoutBefore, sub);
+          st[sub] = D3D12ResourceLayout::FromLayout(trans.LayoutAfter);
+        }
+      }
+    }
+  }
+}
+
+void AddStateResetBarrier(D3D12ResourceLayout srcState, D3D12ResourceLayout dstState,
+                          ID3D12Resource *res, UINT subresource, BarrierSet &barriers)
+{
+  if(srcState.IsStates() && dstState.IsStates())
+  {
+    D3D12_RESOURCE_BARRIER b;
+    b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    b.Transition.pResource = res;
+    b.Transition.Subresource = (UINT)subresource;
+    b.Transition.StateBefore = srcState.ToStates();
+    b.Transition.StateAfter = dstState.ToStates();
+
+    barriers.barriers.push_back(b);
+  }
+  else if(srcState.IsLayout() && dstState.IsLayout())
+  {
+    D3D12_TEXTURE_BARRIER b = {};
+
+    b.LayoutBefore = srcState.ToLayout();
+    b.AccessBefore = D3D12_BARRIER_ACCESS_COMMON;
+    b.SyncBefore = D3D12_BARRIER_SYNC_ALL;
+    b.AccessAfter = D3D12_BARRIER_ACCESS_COMMON;
+    b.SyncAfter = D3D12_BARRIER_SYNC_ALL;
+    b.LayoutAfter = dstState.ToLayout();
+    b.Subresources.IndexOrFirstMipLevel = (UINT)subresource;
+    b.pResource = res;
+
+    barriers.newBarriers.push_back(b);
+  }
+  else
+  {
+    // difficult case, moving between barrier types and need to go to common in between
+
+    if(srcState.IsStates())
+    {
+      if(srcState.ToStates() != D3D12_RESOURCE_STATE_COMMON)
+      {
+        D3D12_RESOURCE_BARRIER b;
+        b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        b.Transition.pResource = res;
+        b.Transition.Subresource = (UINT)subresource;
+        b.Transition.StateBefore = srcState.ToStates();
+        b.Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
+
+        barriers.barriers.push_back(b);
+      }
+
+      {
+        D3D12_TEXTURE_BARRIER b = {};
+
+        b.LayoutBefore = D3D12_BARRIER_LAYOUT_COMMON;
+        b.AccessBefore = D3D12_BARRIER_ACCESS_COMMON;
+        b.SyncBefore = D3D12_BARRIER_SYNC_ALL;
+        b.AccessAfter = D3D12_BARRIER_ACCESS_COMMON;
+        b.SyncAfter = D3D12_BARRIER_SYNC_ALL;
+        b.LayoutAfter = dstState.ToLayout();
+        b.Subresources.IndexOrFirstMipLevel = (UINT)subresource;
+        b.pResource = res;
+
+        barriers.newBarriers.push_back(b);
       }
     }
     else
     {
-      BARRIER_ASSERT("Mismatching before state", st[trans.Subresource] == trans.StateBefore,
-                     st[trans.Subresource], trans.StateBefore, trans.Subresource);
-      st[trans.Subresource] = trans.StateAfter;
+      {
+        D3D12_TEXTURE_BARRIER b = {};
+
+        b.LayoutBefore = srcState.ToLayout();
+        b.AccessBefore = D3D12_BARRIER_ACCESS_COMMON;
+        b.SyncBefore = D3D12_BARRIER_SYNC_ALL;
+        b.AccessAfter = D3D12_BARRIER_ACCESS_COMMON;
+        b.SyncAfter = D3D12_BARRIER_SYNC_ALL;
+        b.LayoutAfter = D3D12_BARRIER_LAYOUT_COMMON;
+        b.Subresources.IndexOrFirstMipLevel = (UINT)subresource;
+        b.pResource = res;
+
+        barriers.newBarriers.push_back(b);
+      }
+
+      if(dstState.ToStates() != D3D12_RESOURCE_STATE_COMMON)
+      {
+        D3D12_RESOURCE_BARRIER b;
+        b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        b.Transition.pResource = res;
+        b.Transition.Subresource = (UINT)subresource;
+        b.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
+        b.Transition.StateAfter = dstState.ToStates();
+
+        barriers.newToOldBarriers.push_back(b);
+      }
     }
   }
 }
 
 template <typename SerialiserType>
 void D3D12ResourceManager::SerialiseResourceStates(
-    SerialiserType &ser, rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
-    std::map<ResourceId, SubresourceStateVector> &states,
+    SerialiserType &ser, BarrierSet &barriers, std::map<ResourceId, SubresourceStateVector> &states,
     const std::map<ResourceId, SubresourceStateVector> &initialStates)
 {
   SERIALISE_ELEMENT_LOCAL(NumMems, (uint32_t)states.size());
@@ -741,18 +897,11 @@ void D3D12ResourceManager::SerialiseResourceStates(
 
       for(size_t m = 0; m < States.size(); m++)
       {
-        if(states[liveid][m] != States[m])
-        {
-          D3D12_RESOURCE_BARRIER b;
-          b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-          b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-          b.Transition.pResource = (ID3D12Resource *)GetCurrentResource(liveid);
-          b.Transition.Subresource = (UINT)m;
-          b.Transition.StateBefore = states[liveid][m];
-          b.Transition.StateAfter = States[m];
-
-          barriers.push_back(b);
-        }
+        const D3D12ResourceLayout srcState = states[liveid][m];
+        const D3D12ResourceLayout dstState = States[m];
+        if(srcState != dstState)
+          AddStateResetBarrier(srcState, dstState, (ID3D12Resource *)GetCurrentResource(liveid),
+                               (UINT)m, barriers);
       }
     }
 
@@ -774,18 +923,11 @@ void D3D12ResourceManager::SerialiseResourceStates(
       {
         for(size_t m = 0; m < it->second.size(); m++)
         {
-          if(states[it->first][m] != it->second[m])
-          {
-            D3D12_RESOURCE_BARRIER b;
-            b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-            b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-            b.Transition.pResource = (ID3D12Resource *)GetCurrentResource(it->first);
-            b.Transition.Subresource = (UINT)m;
-            b.Transition.StateBefore = states[it->first][m];
-            b.Transition.StateAfter = it->second[m];
-
-            barriers.push_back(b);
-          }
+          const D3D12ResourceLayout srcState = states[it->first][m];
+          const D3D12ResourceLayout dstState = it->second[m];
+          if(srcState != dstState)
+            AddStateResetBarrier(srcState, dstState,
+                                 (ID3D12Resource *)GetCurrentResource(it->first), (UINT)m, barriers);
         }
       }
     }
@@ -795,12 +937,10 @@ void D3D12ResourceManager::SerialiseResourceStates(
 }
 
 template void D3D12ResourceManager::SerialiseResourceStates(
-    ReadSerialiser &ser, rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
-    std::map<ResourceId, SubresourceStateVector> &states,
+    ReadSerialiser &ser, BarrierSet &barriers, std::map<ResourceId, SubresourceStateVector> &states,
     const std::map<ResourceId, SubresourceStateVector> &initialStates);
 template void D3D12ResourceManager::SerialiseResourceStates(
-    WriteSerialiser &ser, rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
-    std::map<ResourceId, SubresourceStateVector> &states,
+    WriteSerialiser &ser, BarrierSet &barriers, std::map<ResourceId, SubresourceStateVector> &states,
     const std::map<ResourceId, SubresourceStateVector> &initialStates);
 
 void D3D12ResourceManager::SetInternalResource(ID3D12DeviceChild *res)

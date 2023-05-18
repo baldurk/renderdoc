@@ -992,10 +992,6 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
   D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
 
-  rdcarray<D3D12_RESOURCE_BARRIER> barriers;
-  int resType = 0;
-  GetDebugManager()->PrepareTextureSampling(resource, CompType::Float, resType, barriers);
-
   D3D12_RESOURCE_DESC overlayTexDesc;
   overlayTexDesc.Alignment = 0;
   overlayTexDesc.DepthOrArraySize = resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D
@@ -1085,43 +1081,19 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
     renderDepth->SetName(L"Overlay renderDepth");
 
-    ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+    ID3D12GraphicsCommandListX *list = m_pDevice->GetNewList();
     if(!list)
       return ResourceId();
 
-    const rdcarray<D3D12_RESOURCE_STATES> &states =
-        m_pDevice->GetSubresourceStates(GetResID(realDepth));
+    BarrierSet barriers;
+    barriers.Configure(realDepth, m_pDevice->GetSubresourceStates(GetResID(realDepth)),
+                       BarrierSet::CopySourceAccess);
 
-    rdcarray<D3D12_RESOURCE_BARRIER> depthBarriers;
-    depthBarriers.reserve(states.size());
-    for(size_t i = 0; i < states.size(); i++)
-    {
-      D3D12_RESOURCE_BARRIER b;
-
-      // skip unneeded barriers
-      if(states[i] & D3D12_RESOURCE_STATE_COPY_SOURCE)
-        continue;
-
-      b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-      b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-      b.Transition.pResource = realDepth;
-      b.Transition.Subresource = (UINT)i;
-      b.Transition.StateBefore = states[i];
-      b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-
-      depthBarriers.push_back(b);
-    }
-
-    if(!depthBarriers.empty())
-      list->ResourceBarrier((UINT)depthBarriers.size(), &depthBarriers[0]);
+    barriers.Apply(list);
 
     list->CopyResource(renderDepth, realDepth);
 
-    for(size_t i = 0; i < depthBarriers.size(); i++)
-      std::swap(depthBarriers[i].Transition.StateBefore, depthBarriers[i].Transition.StateAfter);
-
-    if(!depthBarriers.empty())
-      list->ResourceBarrier((UINT)depthBarriers.size(), &depthBarriers[0]);
+    barriers.Unapply(list);
 
     D3D12_RESOURCE_BARRIER b = {};
 

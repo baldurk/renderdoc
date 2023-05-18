@@ -115,4 +115,8 @@
    </ArrayItems>
   </Expand>
  </Type>
+ <Type Name="D3D12ResourceLayout">
+    <DisplayString Condition="value &amp; 0x80000000U">{D3D12_BARRIER_LAYOUT(value &amp; 0x7fffffffU)}</DisplayString>
+    <DisplayString>{D3D12_RESOURCE_STATES(value)}</DisplayString>
+ </Type>
 </AutoVisualizer>

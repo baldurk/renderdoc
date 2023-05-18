@@ -606,7 +606,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(
         if(pBarriers[i].Type != D3D12_RESOURCE_BARRIER_TYPE_TRANSITION ||
            pBarriers[i].Transition.pResource)
         {
-          m_Cmd->m_BakedCmdListInfo[cmd].barriers.push_back(pBarriers[i]);
+          m_Cmd->m_BakedCmdListInfo[cmd].barriers.barriers.push_back(pBarriers[i]);
         }
       }
     }
@@ -649,7 +649,7 @@ void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,
 
     m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
 
-    m_ListRecord->cmdInfo->barriers.append(pBarriers, NumBarriers);
+    m_ListRecord->cmdInfo->barriers.barriers.append(pBarriers, NumBarriers);
   }
 }
 
@@ -4456,9 +4456,41 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
 
       UINT barrierCount = 2;
 
-      if(m_pDevice->GetSubresourceStates(GetResID(pArgumentBuffer))[0] &
-         D3D12_RESOURCE_STATE_COPY_SOURCE)
+      D3D12ResourceLayout layout = m_pDevice->GetSubresourceStates(GetResID(pArgumentBuffer))[0];
+      // with new barriers (layouts) we don't need a layout change but we do need a new-style
+      // barrier
+      if(layout.IsLayout())
+      {
         barrierCount = 1;
+
+        ID3D12GraphicsCommandList7 *list7 = GetCrackedList7();
+
+        if(list7)
+        {
+          D3D12_BUFFER_BARRIER buf;
+          buf.pResource = Unwrap(pArgumentBuffer);
+          buf.Offset = 0;
+          buf.Size = UINT64_MAX;
+          buf.SyncBefore = D3D12_BARRIER_SYNC_ALL;
+          buf.SyncAfter = D3D12_BARRIER_SYNC_COPY;
+          buf.AccessBefore = D3D12_BARRIER_ACCESS_COMMON;
+          buf.AccessAfter = D3D12_BARRIER_ACCESS_COPY_SOURCE;
+
+          D3D12_BARRIER_GROUP group;
+          group.NumBarriers = 1;
+          group.Type = D3D12_BARRIER_TYPE_BUFFER;
+          group.pBufferBarriers = &buf;
+          list7->Barrier(1, &group);
+        }
+        else
+        {
+          RDCERR("Encountered new layout at ExecuteIndirect time but couldn't get cracked list 7");
+        }
+      }
+      else if(layout.ToStates() & D3D12_RESOURCE_STATE_COPY_SOURCE)
+      {
+        barrierCount = 1;
+      }
 
       cracked->ResourceBarrier(barrierCount, barriers);
 
@@ -4468,6 +4500,29 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
       std::swap(barriers[0].Transition.StateBefore, barriers[0].Transition.StateAfter);
       std::swap(barriers[1].Transition.StateBefore, barriers[1].Transition.StateAfter);
       cracked->ResourceBarrier(barrierCount, barriers);
+
+      if(layout.IsLayout())
+      {
+        ID3D12GraphicsCommandList7 *list7 = GetCrackedList7();
+
+        if(list7)
+        {
+          D3D12_BUFFER_BARRIER buf;
+          buf.pResource = Unwrap(pArgumentBuffer);
+          buf.Offset = 0;
+          buf.Size = UINT64_MAX;
+          buf.SyncBefore = D3D12_BARRIER_SYNC_COPY;
+          buf.SyncAfter = D3D12_BARRIER_SYNC_ALL;
+          buf.AccessBefore = D3D12_BARRIER_ACCESS_COPY_SOURCE;
+          buf.AccessAfter = D3D12_BARRIER_ACCESS_COMMON;
+
+          D3D12_BARRIER_GROUP group;
+          group.NumBarriers = 1;
+          group.Type = D3D12_BARRIER_TYPE_BUFFER;
+          group.pBufferBarriers = &buf;
+          list7->Barrier(1, &group);
+        }
+      }
 
       cracked->Close();
 
@@ -5014,7 +5069,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DiscardResource(SerialiserType 
           m_pDevice->GetDebugManager()->FillWithDiscardPattern(
               m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID),
               m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state, DiscardType::DiscardCall,
-              pResource, pRegion);
+              pResource, pRegion, D3D12_BARRIER_LAYOUT_UNDEFINED);
         }
       }
     }
