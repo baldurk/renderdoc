@@ -25,7 +25,7 @@ class D3D12_Compute_Only(rdtest.TestCase):
 
         if not rdtest.value_compare(uints, [222, 222, 222, 222]):
             raise rdtest.TestFailureException(
-                'bufin data is incorrect before dispatch: {}'.format(uints))
+                'bufout data is incorrect before dispatch: {}'.format(uints))
 
         self.controller.SetFrameEvent(self.find_action("Post-Dispatch").eventId, True)
 
