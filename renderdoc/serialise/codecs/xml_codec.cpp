@@ -221,7 +221,7 @@ static void HexDecode(const char *str, const char *end, bytebuf &out)
   }
 }
 
-static void Obj2XML(pugi::xml_node &parent, SDObject &child)
+static bool Obj2XML(pugi::xml_node &parent, SDObject &child)
 {
   pugi::xml_node obj = parent.append_child(typeNames[(uint32_t)child.type.basetype]);
 
@@ -263,7 +263,8 @@ static void Obj2XML(pugi::xml_node &parent, SDObject &child)
 
   if(child.type.basetype == SDBasic::Chunk)
   {
-    RDCFATAL("Nested chunks!");
+    RDCERR("Cannot contain a chunk within a chunk");
+    return false;
   }
   else if(child.type.basetype == SDBasic::Null)
   {
@@ -277,7 +278,8 @@ static void Obj2XML(pugi::xml_node &parent, SDObject &child)
 
     for(size_t o = 0; o < child.NumChildren(); o++)
     {
-      Obj2XML(obj, *child.GetChild(o));
+      if(!Obj2XML(obj, *child.GetChild(o)))
+        return false;
 
       if(child.type.basetype == SDBasic::Array)
         obj.last_child().remove_attribute("name");
@@ -313,6 +315,8 @@ static void Obj2XML(pugi::xml_node &parent, SDObject &child)
       default: RDCERR("Unexpected case");
     }
   }
+
+  return true;
 }
 
 static RDResult Structured2XML(const rdcstr &filename, const RDCFile &file, uint64_t version,
@@ -503,7 +507,14 @@ static RDResult Structured2XML(const rdcstr &filename, const RDCFile &file, uint
     else
     {
       for(size_t o = 0; o < chunk->NumChildren(); o++)
-        Obj2XML(xChunk, *chunk->GetChild(o));
+      {
+        if(!Obj2XML(xChunk, *chunk->GetChild(o)))
+        {
+          RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                              "Malformed structured data, couldn't encode chunk child %s",
+                              chunk->GetChild(o)->name.c_str());
+        }
+      }
     }
 
     if(progress)
@@ -567,7 +578,9 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
 
   if(ret->type.basetype == SDBasic::Chunk)
   {
-    RDCFATAL("Nested chunks!");
+    RDCERR("Cannot contain a chunk within a chunk");
+    delete ret;
+    return NULL;
   }
   else if(ret->type.basetype == SDBasic::Null)
   {
@@ -577,7 +590,13 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
   {
     for(pugi::xml_node child = obj.first_child(); child; child = child.next_sibling())
     {
-      SDObject *c = ret->AddAndOwnChild(XML2Obj(child));
+      SDObject *c = XML2Obj(child);
+      if(!c)
+      {
+        delete ret;
+        return NULL;
+      }
+      ret->AddAndOwnChild(c);
 
       if(ret->type.basetype == SDBasic::Array)
         c->name = "$el";
@@ -873,6 +892,8 @@ static RDResult XML2Structured(const rdcstr &xml, const ThumbTypeAndData &thumb,
       }
     }
 
+    chunks.push_back(chunk);
+
     if(xChunk.attribute("opaque"))
     {
       pugi::xml_node opaque = xChunk.child("buffer");
@@ -887,10 +908,16 @@ static RDResult XML2Structured(const rdcstr &xml, const ThumbTypeAndData &thumb,
     else
     {
       for(pugi::xml_node child = xChunk.first_child(); child; child = child.next_sibling())
-        chunk->AddAndOwnChild(XML2Obj(child));
+      {
+        SDObject *obj = XML2Obj(child);
+        if(!obj)
+        {
+          RETURN_ERROR_RESULT(ResultCode::FileCorrupted,
+                              "Malformed xml document, converting chunk child <%s>", child.name());
+        }
+        chunk->AddAndOwnChild(obj);
+      }
     }
-
-    chunks.push_back(chunk);
 
     if(progress)
       progress(StructuredProgress(0.2f + 0.8f * (float(chunkIdx) / float(numChunks))));
