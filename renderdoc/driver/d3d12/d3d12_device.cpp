@@ -3766,13 +3766,20 @@ void WrappedID3D12Device::GPUSync(ID3D12CommandQueue *queue, ID3D12Fence *fence)
 
 void WrappedID3D12Device::GPUSyncAllQueues()
 {
+  if(m_GPUSynced)
+    return;
+
   for(size_t i = 0; i < m_QueueFences.size(); i++)
     GPUSync(m_Queues[i], m_QueueFences[i]);
+
+  m_GPUSynced = true;
 }
 
 ID3D12GraphicsCommandListX *WrappedID3D12Device::GetNewList()
 {
   ID3D12GraphicsCommandListX *ret = NULL;
+
+  m_GPUSynced = false;
 
   if(!m_InternalCmds.freecmds.empty())
   {
@@ -4443,6 +4450,8 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
                                     ReplayLogType replayType)
 {
   bool partial = true;
+
+  m_GPUSynced = false;
 
   if(startEventID == 0 && (replayType == eReplay_WithoutDraw || replayType == eReplay_Full))
   {

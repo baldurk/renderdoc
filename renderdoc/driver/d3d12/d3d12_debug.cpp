@@ -1460,6 +1460,8 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
   if(buffer == NULL)
     return;
 
+  m_pDevice->GPUSyncAllQueues();
+
   D3D12_RESOURCE_DESC desc = buffer->GetDesc();
   D3D12_HEAP_PROPERTIES heapProps = {};
   // can't call GetHeapProperties on sparse resources

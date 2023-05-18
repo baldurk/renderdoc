@@ -591,6 +591,9 @@ private:
   rdcarray<WrappedID3D12CommandQueue *> m_Queues;
   rdcarray<ID3D12Fence *> m_QueueFences;
 
+  // if we've called GPUSyncAllQueues since the last replay
+  bool m_GPUSynced = false;
+
   // list of queues and buffers kept alive during capture artificially even if the user destroys
   // them, so we can use them in the capture. Storing this separately prevents races where a
   // queue/buffer is added between us transitioning away from active capturing (so we don't addref

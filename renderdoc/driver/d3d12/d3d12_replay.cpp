@@ -301,7 +301,11 @@ void D3D12Replay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
     if(replayed)
       return;
   }
+
   m_pDevice->ReplayLog(0, endEventID, replayType);
+
+  if(replayType == eReplay_WithoutDraw)
+    m_pDevice->GPUSyncAllQueues();
 }
 
 SDFile *D3D12Replay::GetStructuredFile()
@@ -3520,6 +3524,8 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 {
   bool wasms = false;
   bool resolve = params.resolve;
+
+  m_pDevice->GPUSyncAllQueues();
 
   ID3D12Resource *resource = NULL;
 
