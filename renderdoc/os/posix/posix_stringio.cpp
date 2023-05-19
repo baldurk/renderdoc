@@ -497,8 +497,8 @@ rdcstr logfile_readall(uint64_t offset, const rdcstr &filename)
 
 LogFileHandle *logfile_open(const rdcstr &filename)
 {
-  int fd =
-      open(filename.c_str(), O_APPEND | O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+  int fd = open(filename.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_NOFOLLOW,
+                S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
   if(fd < 0)
   {
