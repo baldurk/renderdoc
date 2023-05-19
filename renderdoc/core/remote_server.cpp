@@ -464,7 +464,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 
       reader.EndChunk();
 
-      RDCLOG("Taking ownership of '%s'.", path.c_str());
+      RDCLOG("Taking ownership of capture.");
 
       tempFiles.push_back(path);
     }

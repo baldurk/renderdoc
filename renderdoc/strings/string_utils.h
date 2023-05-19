@@ -37,5 +37,10 @@ rdcstr get_basename(const rdcstr &path);
 rdcstr get_dirname(const rdcstr &path);
 rdcstr strip_extension(const rdcstr &path);
 
+// remove everything but alphanumeric ' ' and '.'
+// It replaces everything else with _
+// for logging strings where they might contain garbage characters
+rdcstr strip_nonbasic(rdcstr &str);
+
 void split(const rdcstr &in, rdcarray<rdcstr> &out, const char sep);
 void merge(const rdcarray<rdcstr> &in, rdcstr &out, const char sep);

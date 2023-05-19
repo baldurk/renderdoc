@@ -31,6 +31,7 @@
 #include "os/os_specific.h"
 #include "replay/replay_driver.h"
 #include "serialise/serialiser.h"
+#include "strings/string_utils.h"
 
 static const uint32_t TargetControlProtocolVersion = 9;
 
@@ -484,6 +485,8 @@ void RenderDoc::TargetControlServerThread(Network::Socket *sock)
 
       ser.EndChunk();
 
+      strip_nonbasic(newClient);
+
       if(newClient.empty() || !IsProtocolVersionSupported(version))
       {
         RDCLOG("Invalid/Unsupported handshake '%s' / %d", newClient.c_str(), version);
@@ -605,12 +608,23 @@ public:
 
     m_Version = 0;
 
+    if(type == ePacket_Handshake)
     {
       READ_DATA_SCOPE();
       SERIALISE_ELEMENT(m_Version);
       SERIALISE_ELEMENT(m_Target);
       SERIALISE_ELEMENT(m_PID);
     }
+    else if(type == ePacket_Busy)
+    {
+      READ_DATA_SCOPE();
+      SERIALISE_ELEMENT(m_Version);
+      SERIALISE_ELEMENT(m_Target);
+      SERIALISE_ELEMENT(m_BusyClient);
+    }
+
+    strip_nonbasic(m_Target);
+    strip_nonbasic(m_BusyClient);
 
     reader.EndChunk();
 
@@ -745,17 +759,6 @@ public:
       reader.EndChunk();
       return msg;
     }
-    else if(type == ePacket_Busy)
-    {
-      READ_DATA_SCOPE();
-      SERIALISE_ELEMENT(msg.busy.clientName).Named("Client Name"_lit);
-
-      SAFE_DELETE(m_Socket);
-
-      RDCLOG("Got busy signal: '%s", msg.busy.clientName.c_str());
-      msg.type = TargetControlMessageType::Busy;
-      return msg;
-    }
     else if(type == ePacket_NewChild)
     {
       msg.type = TargetControlMessageType::NewChild;
@@ -884,8 +887,12 @@ public:
       RDCLOG("Used API: %s (%s & %s)", msg.apiUse.name.c_str(),
              presenting ? "Presenting" : "Not presenting",
              supported ? "supported" : "not supported");
+
       if(!supportMessage.empty())
+      {
+        strip_nonbasic(supportMessage);
         RDCLOG("Support: %s", supportMessage.c_str());
+      }
 
       reader.EndChunk();
       return msg;

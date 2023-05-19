@@ -473,6 +473,17 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
     va_end(args2);
   }
 
+  // normalise newlines
+  {
+    char *nl = base;
+    while(*nl)
+    {
+      if(*nl == '\r')
+        *nl = '\n';
+      nl++;
+    }
+  }
+
   // likely path - string contains no newlines
   char *nl = strchr(base, '\n');
   if(nl == NULL)

@@ -141,6 +141,18 @@ rdcstr strip_extension(const rdcstr &path)
   return path.substr(0, offs);
 }
 
+rdcstr strip_nonbasic(rdcstr &str)
+{
+  for(char &c : str)
+  {
+    if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' ||
+       c == ' ')
+      continue;
+
+    c = '_';
+  }
+}
+
 void split(const rdcstr &in, rdcarray<rdcstr> &out, const char sep)
 {
   if(in.empty())
