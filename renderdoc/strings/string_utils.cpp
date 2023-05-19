@@ -141,7 +141,7 @@ rdcstr strip_extension(const rdcstr &path)
   return path.substr(0, offs);
 }
 
-rdcstr strip_nonbasic(rdcstr &str)
+void strip_nonbasic(rdcstr &str)
 {
   for(char &c : str)
   {
