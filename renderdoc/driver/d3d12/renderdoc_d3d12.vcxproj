@@ -117,9 +117,9 @@
     <ClCompile Include="d3d12_counters.cpp" />
     <ClCompile Include="d3d12_debug.cpp" />
     <ClCompile Include="d3d12_device.cpp" />
+    <ClCompile Include="d3d12_device_rescreate_wrap.cpp" />
     <ClCompile Include="d3d12_device_wrap.cpp" />
     <ClCompile Include="d3d12_device_wrap1.cpp" />
-    <ClCompile Include="d3d12_device_wrap10.cpp" />
     <ClCompile Include="d3d12_device_wrap11.cpp" />
     <ClCompile Include="d3d12_device_wrap12.cpp" />
     <ClCompile Include="d3d12_device_wrap2.cpp" />

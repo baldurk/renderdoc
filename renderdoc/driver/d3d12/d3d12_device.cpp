@@ -4327,6 +4327,9 @@ void WrappedID3D12Device::AddResource(ResourceId id, ResourceType type, const ch
 
 void WrappedID3D12Device::DerivedResource(ID3D12DeviceChild *parent, ResourceId child)
 {
+  if(!parent)
+    return;
+
   ResourceId parentId = GetResourceManager()->GetOriginalID(GetResID(parent));
 
   DerivedResource(parentId, child);

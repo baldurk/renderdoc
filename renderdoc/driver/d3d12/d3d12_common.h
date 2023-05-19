@@ -227,6 +227,13 @@ D3D12_RASTERIZER_DESC2 Upconvert(const D3D12_RASTERIZER_DESC &desc);
 
 ShaderStageMask ConvertVisibility(D3D12_SHADER_VISIBILITY ShaderVisibility);
 UINT GetNumSubresources(ID3D12Device *dev, const D3D12_RESOURCE_DESC *desc);
+inline UINT GetNumSubresources(ID3D12Device *dev, const D3D12_RESOURCE_DESC1 *desc)
+{
+  // D3D12_RESOURCE_DESC is the same as the start of D3D12_RESOURCE_DESC1
+  D3D12_RESOURCE_DESC desc0;
+  memcpy(&desc0, desc, sizeof(desc0));
+  return GetNumSubresources(dev, &desc0);
+}
 
 class WrappedID3D12Device;
 

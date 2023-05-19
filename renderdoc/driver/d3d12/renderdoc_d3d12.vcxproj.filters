@@ -215,9 +215,6 @@
     <ClCompile Include="d3d12_device_wrap12.cpp">
       <Filter>Wrapped</Filter>
     </ClCompile>
-    <ClCompile Include="d3d12_device_wrap10.cpp">
-      <Filter>Wrapped</Filter>
-    </ClCompile>
     <ClCompile Include="d3d12_command_list8_wrap.cpp">
       <Filter>Wrapped</Filter>
     </ClCompile>
@@ -225,6 +222,9 @@
       <Filter>Wrapped</Filter>
     </ClCompile>
     <ClCompile Include="d3d12_command_list7_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_device_rescreate_wrap.cpp">
       <Filter>Wrapped</Filter>
     </ClCompile>
   </ItemGroup>
