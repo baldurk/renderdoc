@@ -270,7 +270,7 @@ bool StreamReader::Reserve(uint64_t numBytes)
 
 bool StreamReader::ReadLargeBuffer(void *buffer, uint64_t length)
 {
-  RDCASSERT(m_Sock || m_File || m_Decompressor);
+  RDCASSERT(m_File || m_Decompressor);
 
   byte *dest = (byte *)buffer;
 
@@ -398,6 +398,9 @@ bool StreamReader::ReadFromExternal(void *buffer, uint64_t length)
       // first get the required data blocking (this will sleep the thread until it comes in).
       byte *readDest = (byte *)buffer;
 
+      // we expect to be reading into our window buffer
+      RDCASSERT(readDest >= m_BufferBase && readDest <= m_BufferBase + m_BufferSize);
+
       success = m_Sock->RecvDataBlocking(readDest, (uint32_t)length);
 
       if(success)
@@ -406,6 +409,12 @@ bool StreamReader::ReadFromExternal(void *buffer, uint64_t length)
         readDest += length;
 
         uint32_t bufSize = uint32_t(m_BufferSize - m_InputSize);
+
+        if(m_InputSize > m_BufferSize)
+        {
+          bufSize = 0;
+          RDCERR("Invalid read in ReadFromExternal!");
+        }
 
         // now read more, as much as possible, to try and batch future reads
         success = m_Sock->RecvDataNonBlocking(readDest, bufSize);

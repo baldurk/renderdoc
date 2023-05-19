@@ -180,7 +180,9 @@ public:
         // and larger by just skating over the limit each time, but that's fine because the main
         // case we want to catch is a window that's only a few MB and then suddenly we read 100s of
         // MB.
-        if(numBytes >= 10 * 1024 * 1024 && Available() + 128 < numBytes)
+        // We don't do this on sockets since we want to opportunistically read more into the window
+        // to batch lots of small reads together.
+        if(m_Sock == NULL && numBytes >= 10 * 1024 * 1024 && Available() + 128 < numBytes)
         {
           success = ReadLargeBuffer(data, numBytes);
           alreadyread = true;
