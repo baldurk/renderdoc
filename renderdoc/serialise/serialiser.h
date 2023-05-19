@@ -727,7 +727,7 @@ public:
       arr.ReserveChildren((size_t)size);
 
       if(IsReading())
-        el.resize((int)size);
+        el.resize((size_t)size);
 
       if(m_LazyThreshold > 0 && size > m_LazyThreshold)
       {
@@ -762,7 +762,7 @@ public:
     else
     {
       if(IsReading())
-        el.resize((int)size);
+        el.resize((size_t)size);
 
       for(size_t i = 0; i < (size_t)size; i++)
         SerialiseDispatch<Serialiser, U>::Do(*this, el[i]);
@@ -1311,7 +1311,8 @@ public:
     if(IsReading())
     {
       m_Read->Read(len);
-      el.resize((int)len);
+      VerifyArraySize(len);
+      el.resize((size_t)len);
       if(len > 0)
         m_Read->Read(&el[0], len);
     }
@@ -1426,13 +1427,20 @@ private:
     }
   };
 
-  void VerifyArraySize(uint64_t &count)
+  template <typename intSize>
+  void VerifyArraySize(intSize &count)
   {
     uint64_t size = m_Read->GetSize();
 
-    // for streaming, just take 4GB as a 'semi reasonable' upper limit for array sizes
+// for streaming, just take 4GB as a 'semi reasonable' upper limit for array sizes
+// use 1GB on 32-bit to avoid overflows
+#if ENABLED(RDOC_X64)
     if(m_DataStreaming)
       size = 0xFFFFFFFFU;
+#else
+    if(m_DataStreaming)
+      size = 0x3FFFFFFFU;
+#endif
 
     if(count > size)
     {
