@@ -28,7 +28,7 @@
 template <>
 rdcstr DoStringise(const D3D12Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1122, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1123, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
   {
@@ -219,6 +219,7 @@ rdcstr DoStringise(const D3D12Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(List_RSSetDepthBias, "ID3D12GraphicsCommandList9::RSSetDepthBias");
     STRINGISE_ENUM_CLASS_NAMED(List_IASetIndexBufferStripCutValue,
                                "ID3D12GraphicsCommandList9::IASetIndexBufferStripCutValue");
+    STRINGISE_ENUM_CLASS_NAMED(List_Barrier, "ID3D12GraphicsCommandList7::Barrier");
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()

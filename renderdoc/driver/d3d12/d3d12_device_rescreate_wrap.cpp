@@ -29,8 +29,12 @@
 bool WrappedID3D12Device::Serialise_CreateResource(
     D3D12Chunk chunkType, ID3D12Heap *pHeap, UINT64 HeapOffset, D3D12_HEAP_PROPERTIES &props,
     D3D12_HEAP_FLAGS HeapFlags, D3D12_RESOURCE_DESC1 &desc, D3D12ResourceLayout InitialLayout,
-    const D3D12_CLEAR_VALUE *pOptimizedClearValue, ResourceId pResource, uint64_t gpuAddress)
+    const D3D12_CLEAR_VALUE *pOptimizedClearValue, UINT NumCastableFormats,
+    const DXGI_FORMAT *pCastableFormats, ResourceId pResource, uint64_t gpuAddress)
 {
+  rdcarray<DXGI_FORMAT> CastableFormats;
+  CastableFormats.assign(pCastableFormats, NumCastableFormats);
+
   // if we're creating a placed resource
   if(pHeap)
   {
@@ -142,6 +146,14 @@ bool WrappedID3D12Device::Serialise_CreateResource(
                                                 __uuidof(ID3D12Resource), (void **)&ret);
       break;
     }
+    case D3D12Chunk::Device_CreateCommittedResource3:
+    {
+      hr = m_pDevice10->CreateCommittedResource3(
+          &props, HeapFlags, &desc, InitialLayout.ToLayout(), pOptimizedClearValue, NULL,
+          (UINT)CastableFormats.size(), CastableFormats.data(), __uuidof(ID3D12Resource),
+          (void **)&ret);
+      break;
+    }
     case D3D12Chunk::Device_CreatePlacedResource:
     {
       hr = m_pDevice->CreatePlacedResource(Unwrap(pHeap), HeapOffset, &desc0,
@@ -156,6 +168,14 @@ bool WrappedID3D12Device::Serialise_CreateResource(
                                              __uuidof(ID3D12Resource), (void **)&ret);
       break;
     }
+    case D3D12Chunk::Device_CreatePlacedResource2:
+    {
+      hr = m_pDevice10->CreatePlacedResource2(Unwrap(pHeap), HeapOffset, &desc,
+                                              InitialLayout.ToLayout(), pOptimizedClearValue,
+                                              (UINT)CastableFormats.size(), CastableFormats.data(),
+                                              __uuidof(ID3D12Resource), (void **)&ret);
+      break;
+    }
     case D3D12Chunk::Device_CreateReservedResource:
     {
       hr = m_pDevice->CreateReservedResource(&desc0, InitialLayout.ToStates(), pOptimizedClearValue,
@@ -166,6 +186,13 @@ bool WrappedID3D12Device::Serialise_CreateResource(
     {
       hr = m_pDevice4->CreateReservedResource1(&desc0, InitialLayout.ToStates(), pOptimizedClearValue,
                                                NULL, __uuidof(ID3D12Resource), (void **)&ret);
+      break;
+    }
+    case D3D12Chunk::Device_CreateReservedResource2:
+    {
+      hr = m_pDevice10->CreateReservedResource2(
+          &desc0, InitialLayout.ToLayout(), pOptimizedClearValue, NULL, (UINT)CastableFormats.size(),
+          CastableFormats.data(), __uuidof(ID3D12Resource), (void **)&ret);
       break;
     }
     default: break;
@@ -268,14 +295,13 @@ bool WrappedID3D12Device::Serialise_CreateResource(
   return true;
 }
 
-HRESULT WrappedID3D12Device::CreateResource(D3D12Chunk chunkType, ID3D12Heap *pHeap,
-                                            UINT64 HeapOffset,
-                                            const D3D12_HEAP_PROPERTIES *pHeapProperties,
-                                            D3D12_HEAP_FLAGS HeapFlags, D3D12_RESOURCE_DESC1 desc,
-                                            D3D12ResourceLayout InitialLayout,
-                                            const D3D12_CLEAR_VALUE *pOptimizedClearValue,
-                                            ID3D12ProtectedResourceSession *pProtectedSession,
-                                            REFIID riidResource, void **ppvResource)
+HRESULT WrappedID3D12Device::CreateResource(
+    D3D12Chunk chunkType, ID3D12Heap *pHeap, UINT64 HeapOffset,
+    const D3D12_HEAP_PROPERTIES *pHeapProperties, D3D12_HEAP_FLAGS HeapFlags,
+    D3D12_RESOURCE_DESC1 desc, D3D12ResourceLayout InitialLayout,
+    const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+    ID3D12ProtectedResourceSession *pProtectedSession, UINT NumCastableFormats,
+    const DXGI_FORMAT *pCastableFormats, REFIID riidResource, void **ppvResource)
 {
   if(riidResource != __uuidof(ID3D12Resource) && riidResource != __uuidof(ID3D12Resource1) &&
      riidResource != __uuidof(ID3D12Resource2))
@@ -330,7 +356,13 @@ HRESULT WrappedID3D12Device::CreateResource(D3D12Chunk chunkType, ID3D12Heap *pH
                               outPtr));
       break;
     }
-    case D3D12Chunk::Device_CreateCommittedResource3: { break;
+    case D3D12Chunk::Device_CreateCommittedResource3:
+    {
+      SERIALISE_TIME_CALL(ret = m_pDevice10->CreateCommittedResource3(
+                              pHeapProperties, HeapFlags, &desc, InitialLayout.ToLayout(),
+                              pOptimizedClearValue, pProtectedSession, NumCastableFormats,
+                              pCastableFormats, __uuidof(ID3D12Resource), outPtr));
+      break;
     }
     case D3D12Chunk::Device_CreatePlacedResource:
     {
@@ -346,7 +378,13 @@ HRESULT WrappedID3D12Device::CreateResource(D3D12Chunk chunkType, ID3D12Heap *pH
                               pOptimizedClearValue, __uuidof(ID3D12Resource), outPtr));
       break;
     }
-    case D3D12Chunk::Device_CreatePlacedResource2: { break;
+    case D3D12Chunk::Device_CreatePlacedResource2:
+    {
+      SERIALISE_TIME_CALL(ret = m_pDevice10->CreatePlacedResource2(
+                              Unwrap(pHeap), HeapOffset, &desc, InitialLayout.ToLayout(),
+                              pOptimizedClearValue, NumCastableFormats, pCastableFormats,
+                              __uuidof(ID3D12Resource), outPtr));
+      break;
     }
     case D3D12Chunk::Device_CreateReservedResource:
     {
@@ -362,7 +400,13 @@ HRESULT WrappedID3D12Device::CreateResource(D3D12Chunk chunkType, ID3D12Heap *pH
                               pProtectedSession, __uuidof(ID3D12Resource), outPtr));
       break;
     }
-    case D3D12Chunk::Device_CreateReservedResource2: { break;
+    case D3D12Chunk::Device_CreateReservedResource2:
+    {
+      SERIALISE_TIME_CALL(ret = m_pDevice10->CreateReservedResource2(
+                              &desc0, InitialLayout.ToLayout(), pOptimizedClearValue,
+                              pProtectedSession, NumCastableFormats, pCastableFormats,
+                              __uuidof(ID3D12Resource), outPtr));
+      break;
     }
     default: break;
   }
@@ -420,7 +464,13 @@ HRESULT WrappedID3D12Device::CreateResource(D3D12Chunk chunkType, ID3D12Heap *pH
                                            pProtectedSession, riidResource, (void **)&wrapped);
         break;
       }
-      case D3D12Chunk::Device_CreateCommittedResource3: { break;
+      case D3D12Chunk::Device_CreateCommittedResource3:
+      {
+        Serialise_CreateCommittedResource3(ser, pHeapProperties, HeapFlags, &desc,
+                                           InitialLayout.ToLayout(), pOptimizedClearValue,
+                                           pProtectedSession, NumCastableFormats, pCastableFormats,
+                                           riidResource, (void **)&wrapped);
+        break;
       }
       case D3D12Chunk::Device_CreatePlacedResource:
       {
@@ -434,7 +484,12 @@ HRESULT WrappedID3D12Device::CreateResource(D3D12Chunk chunkType, ID3D12Heap *pH
                                         pOptimizedClearValue, riidResource, (void **)&wrapped);
         break;
       }
-      case D3D12Chunk::Device_CreatePlacedResource2: { break;
+      case D3D12Chunk::Device_CreatePlacedResource2:
+      {
+        Serialise_CreatePlacedResource2(ser, pHeap, HeapOffset, &desc, InitialLayout.ToLayout(),
+                                        pOptimizedClearValue, NumCastableFormats, pCastableFormats,
+                                        riidResource, (void **)&wrapped);
+        break;
       }
       case D3D12Chunk::Device_CreateReservedResource:
       {
@@ -448,7 +503,12 @@ HRESULT WrappedID3D12Device::CreateResource(D3D12Chunk chunkType, ID3D12Heap *pH
                                           pProtectedSession, riidResource, (void **)&wrapped);
         break;
       }
-      case D3D12Chunk::Device_CreateReservedResource2: { break;
+      case D3D12Chunk::Device_CreateReservedResource2:
+      {
+        Serialise_CreateReservedResource2(
+            ser, &desc0, InitialLayout.ToLayout(), pOptimizedClearValue, pProtectedSession,
+            NumCastableFormats, pCastableFormats, riidResource, (void **)&wrapped);
+        break;
       }
       default: break;
     }
@@ -570,7 +630,7 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
     return Serialise_CreateResource(D3D12Chunk::Device_CreateCommittedResource, NULL, 0, props,
                                     HeapFlags, desc,
                                     D3D12ResourceLayout::FromStates(InitialResourceState),
-                                    pOptimizedClearValue, pResource, gpuAddress);
+                                    pOptimizedClearValue, 0, NULL, pResource, gpuAddress);
   }
 
   return true;
@@ -585,7 +645,7 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
 {
   return CreateResource(D3D12Chunk::Device_CreateCommittedResource, NULL, 0, pHeapProperties,
                         HeapFlags, *pDesc, D3D12ResourceLayout::FromStates(InitialResourceState),
-                        pOptimizedClearValue, NULL, riidResource, ppvResource);
+                        pOptimizedClearValue, NULL, 0, NULL, riidResource, ppvResource);
 }
 
 template <typename SerialiserType>
@@ -615,7 +675,7 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
     return Serialise_CreateResource(D3D12Chunk::Device_CreatePlacedResource, pHeap, HeapOffset,
                                     props, D3D12_HEAP_FLAG_NONE, desc,
                                     D3D12ResourceLayout::FromStates(InitialState),
-                                    pOptimizedClearValue, pResource, gpuAddress);
+                                    pOptimizedClearValue, 0, NULL, pResource, gpuAddress);
   }
 
   return true;
@@ -629,7 +689,7 @@ HRESULT WrappedID3D12Device::CreatePlacedResource(ID3D12Heap *pHeap, UINT64 Heap
 {
   return CreateResource(D3D12Chunk::Device_CreatePlacedResource, pHeap, HeapOffset, NULL,
                         D3D12_HEAP_FLAG_NONE, *pDesc, D3D12ResourceLayout::FromStates(InitialState),
-                        pOptimizedClearValue, NULL, riid, ppvResource);
+                        pOptimizedClearValue, NULL, 0, NULL, riid, ppvResource);
 }
 
 template <typename SerialiserType>
@@ -653,9 +713,10 @@ bool WrappedID3D12Device::Serialise_CreateReservedResource(
   if(IsReplayingAndReading())
   {
     D3D12_HEAP_PROPERTIES props = {};
-    return Serialise_CreateResource(
-        D3D12Chunk::Device_CreateReservedResource, NULL, 0, props, D3D12_HEAP_FLAG_NONE, desc,
-        D3D12ResourceLayout::FromStates(InitialState), pOptimizedClearValue, pResource, gpuAddress);
+    return Serialise_CreateResource(D3D12Chunk::Device_CreateReservedResource, NULL, 0, props,
+                                    D3D12_HEAP_FLAG_NONE, desc,
+                                    D3D12ResourceLayout::FromStates(InitialState),
+                                    pOptimizedClearValue, 0, NULL, pResource, gpuAddress);
   }
 
   return true;
@@ -668,7 +729,7 @@ HRESULT WrappedID3D12Device::CreateReservedResource(const D3D12_RESOURCE_DESC *p
 {
   return CreateResource(D3D12Chunk::Device_CreateReservedResource, NULL, 0, NULL,
                         D3D12_HEAP_FLAG_NONE, *pDesc, D3D12ResourceLayout::FromStates(InitialState),
-                        pOptimizedClearValue, NULL, riid, ppvResource);
+                        pOptimizedClearValue, NULL, 0, NULL, riid, ppvResource);
 }
 
 template <typename SerialiserType>
@@ -753,9 +814,10 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
       heapFlags &= ~(D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES |
                      D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES);
 
-      Serialise_CreateResource(
-          D3D12Chunk::Device_OpenSharedHandle, NULL, 0, heapProperties, heapFlags, desc,
-          D3D12ResourceLayout::FromStates(D3D12_RESOURCE_STATE_COMMON), NULL, resourceId, 0);
+      Serialise_CreateResource(D3D12Chunk::Device_OpenSharedHandle, NULL, 0, heapProperties,
+                               heapFlags, desc,
+                               D3D12ResourceLayout::FromStates(D3D12_RESOURCE_STATE_COMMON), NULL,
+                               0, NULL, resourceId, 0);
     }
   }
   else if(isHeap)
@@ -961,7 +1023,7 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType,
       hr = CreateResource(D3D12Chunk::Device_OpenSharedHandle, NULL, 0, NULL, D3D12_HEAP_FLAG_NONE,
                           real->GetDesc(),
                           D3D12ResourceLayout::FromStates(D3D12_RESOURCE_STATE_COMMON), NULL, NULL,
-                          riid_internal, (void **)&real);
+                          0, NULL, riid_internal, (void **)&real);
 
       // use queryinterface to get the right interface into ppvObj, then release the reference
       real->QueryInterface(riid, ppvObj);
@@ -1035,7 +1097,7 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource1(
     return Serialise_CreateResource(D3D12Chunk::Device_CreateCommittedResource1, NULL, 0, props,
                                     HeapFlags, desc,
                                     D3D12ResourceLayout::FromStates(InitialResourceState),
-                                    pOptimizedClearValue, pResource, gpuAddress);
+                                    pOptimizedClearValue, 0, NULL, pResource, gpuAddress);
   }
 
   return true;
@@ -1049,7 +1111,7 @@ HRESULT WrappedID3D12Device::CreateCommittedResource1(
 {
   return CreateResource(D3D12Chunk::Device_CreateCommittedResource1, NULL, 0, pHeapProperties,
                         HeapFlags, *pDesc, D3D12ResourceLayout::FromStates(InitialResourceState),
-                        pOptimizedClearValue, pProtectedSession, riidResource, ppvResource);
+                        pOptimizedClearValue, pProtectedSession, 0, NULL, riidResource, ppvResource);
 }
 
 template <typename SerialiserType>
@@ -1076,9 +1138,10 @@ bool WrappedID3D12Device::Serialise_CreateReservedResource1(
   if(IsReplayingAndReading())
   {
     D3D12_HEAP_PROPERTIES props = {};
-    return Serialise_CreateResource(
-        D3D12Chunk::Device_CreateReservedResource, NULL, 0, props, D3D12_HEAP_FLAG_NONE, desc,
-        D3D12ResourceLayout::FromStates(InitialState), pOptimizedClearValue, pResource, gpuAddress);
+    return Serialise_CreateResource(D3D12Chunk::Device_CreateReservedResource1, NULL, 0, props,
+                                    D3D12_HEAP_FLAG_NONE, desc,
+                                    D3D12ResourceLayout::FromStates(InitialState),
+                                    pOptimizedClearValue, 0, NULL, pResource, gpuAddress);
   }
 
   return true;
@@ -1092,7 +1155,7 @@ HRESULT WrappedID3D12Device::CreateReservedResource1(
 {
   return CreateResource(D3D12Chunk::Device_CreateReservedResource1, NULL, 0, NULL,
                         D3D12_HEAP_FLAG_NONE, *pDesc, D3D12ResourceLayout::FromStates(InitialState),
-                        pOptimizedClearValue, pProtectedSession, riid, ppvResource);
+                        pOptimizedClearValue, pProtectedSession, 0, NULL, riid, ppvResource);
 }
 
 template <typename SerialiserType>
@@ -1124,7 +1187,7 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource2(
     return Serialise_CreateResource(D3D12Chunk::Device_CreateCommittedResource2, NULL, 0, props,
                                     HeapFlags, desc,
                                     D3D12ResourceLayout::FromStates(InitialResourceState),
-                                    pOptimizedClearValue, pResource, gpuAddress);
+                                    pOptimizedClearValue, 0, NULL, pResource, gpuAddress);
   }
 
   return true;
@@ -1138,7 +1201,7 @@ HRESULT WrappedID3D12Device::CreateCommittedResource2(
 {
   return CreateResource(D3D12Chunk::Device_CreateCommittedResource2, NULL, 0, pHeapProperties,
                         HeapFlags, *pDesc, D3D12ResourceLayout::FromStates(InitialResourceState),
-                        pOptimizedClearValue, pProtectedSession, riidResource, ppvResource);
+                        pOptimizedClearValue, pProtectedSession, 0, NULL, riidResource, ppvResource);
 }
 
 template <typename SerialiserType>
@@ -1168,7 +1231,7 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource1(
     return Serialise_CreateResource(D3D12Chunk::Device_CreatePlacedResource1, pHeap, HeapOffset,
                                     props, D3D12_HEAP_FLAG_NONE, desc,
                                     D3D12ResourceLayout::FromStates(InitialState),
-                                    pOptimizedClearValue, pResource, gpuAddress);
+                                    pOptimizedClearValue, 0, NULL, pResource, gpuAddress);
   }
 
   return true;
@@ -1182,7 +1245,45 @@ HRESULT WrappedID3D12Device::CreatePlacedResource1(ID3D12Heap *pHeap, UINT64 Hea
 {
   return CreateResource(D3D12Chunk::Device_CreatePlacedResource1, pHeap, HeapOffset, NULL,
                         D3D12_HEAP_FLAG_NONE, *pDesc, D3D12ResourceLayout::FromStates(InitialState),
-                        pOptimizedClearValue, NULL, riid, ppvResource);
+                        pOptimizedClearValue, NULL, 0, NULL, riid, ppvResource);
+}
+
+template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_CreateCommittedResource3(
+    SerialiserType &ser, const D3D12_HEAP_PROPERTIES *pHeapProperties, D3D12_HEAP_FLAGS HeapFlags,
+    const D3D12_RESOURCE_DESC1 *pDesc, D3D12_BARRIER_LAYOUT InitialLayout,
+    const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+    ID3D12ProtectedResourceSession *pProtectedSession, UINT32 NumCastableFormats,
+    const DXGI_FORMAT *pCastableFormats, REFIID riidResource, void **ppvResource)
+{
+  SERIALISE_ELEMENT_LOCAL(props, *pHeapProperties).Named("pHeapProperties"_lit);
+  SERIALISE_ELEMENT(HeapFlags);
+  SERIALISE_ELEMENT_LOCAL(desc, *pDesc).Named("pDesc"_lit).Important();
+  SERIALISE_ELEMENT(InitialLayout);
+  SERIALISE_ELEMENT_OPT(pOptimizedClearValue);
+  // placeholder for future use if we properly capture & replay protected sessions
+  SERIALISE_ELEMENT_LOCAL(ProtectedSession, ResourceId()).Named("pProtectedSession"_lit);
+  SERIALISE_ELEMENT(NumCastableFormats);
+  SERIALISE_ELEMENT_ARRAY(pCastableFormats, NumCastableFormats);
+  SERIALISE_ELEMENT_LOCAL(guid, riidResource).Named("riidResource"_lit);
+  SERIALISE_ELEMENT_LOCAL(pResource, ((WrappedID3D12Resource *)*ppvResource)->GetResourceID())
+      .TypedAs("ID3D12Resource *"_lit);
+
+  SERIALISE_ELEMENT_LOCAL(gpuAddress,
+                          ((WrappedID3D12Resource *)*ppvResource)->GetGPUVirtualAddressIfBuffer())
+      .Hidden();
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    return Serialise_CreateResource(D3D12Chunk::Device_CreateCommittedResource3, NULL, 0, props,
+                                    HeapFlags, desc, D3D12ResourceLayout::FromLayout(InitialLayout),
+                                    pOptimizedClearValue, NumCastableFormats, pCastableFormats,
+                                    pResource, gpuAddress);
+  }
+
+  return true;
 }
 
 HRESULT WrappedID3D12Device::CreateCommittedResource3(
@@ -1193,7 +1294,45 @@ HRESULT WrappedID3D12Device::CreateCommittedResource3(
     _In_opt_count_(NumCastableFormats) const DXGI_FORMAT *pCastableFormats, REFIID riidResource,
     _COM_Outptr_opt_ void **ppvResource)
 {
-  return E_NOTIMPL;
+  return CreateResource(D3D12Chunk::Device_CreateCommittedResource3, NULL, 0, pHeapProperties,
+                        HeapFlags, *pDesc, D3D12ResourceLayout::FromLayout(InitialLayout),
+                        pOptimizedClearValue, pProtectedSession, NumCastableFormats,
+                        pCastableFormats, riidResource, ppvResource);
+}
+
+template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_CreatePlacedResource2(
+    SerialiserType &ser, ID3D12Heap *pHeap, UINT64 HeapOffset, const D3D12_RESOURCE_DESC1 *pDesc,
+    D3D12_BARRIER_LAYOUT InitialLayout, const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+    UINT32 NumCastableFormats, const DXGI_FORMAT *pCastableFormats, REFIID riid, void **ppvResource)
+{
+  SERIALISE_ELEMENT(pHeap).Important();
+  SERIALISE_ELEMENT(HeapOffset);
+  SERIALISE_ELEMENT_LOCAL(desc, *pDesc).Named("pDesc"_lit).Important();
+  SERIALISE_ELEMENT(InitialLayout);
+  SERIALISE_ELEMENT_OPT(pOptimizedClearValue);
+  SERIALISE_ELEMENT(NumCastableFormats);
+  SERIALISE_ELEMENT_ARRAY(pCastableFormats, NumCastableFormats);
+  SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
+  SERIALISE_ELEMENT_LOCAL(pResource, ((WrappedID3D12Resource *)*ppvResource)->GetResourceID())
+      .TypedAs("ID3D12Resource *"_lit);
+
+  SERIALISE_ELEMENT_LOCAL(gpuAddress,
+                          ((WrappedID3D12Resource *)*ppvResource)->GetGPUVirtualAddressIfBuffer())
+      .Hidden();
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    D3D12_HEAP_PROPERTIES props = {};
+    return Serialise_CreateResource(
+        D3D12Chunk::Device_CreatePlacedResource2, pHeap, HeapOffset, props, D3D12_HEAP_FLAG_NONE,
+        desc, D3D12ResourceLayout::FromLayout(InitialLayout), pOptimizedClearValue,
+        NumCastableFormats, pCastableFormats, pResource, gpuAddress);
+  }
+
+  return true;
 }
 
 HRESULT WrappedID3D12Device::CreatePlacedResource2(
@@ -1202,7 +1341,45 @@ HRESULT WrappedID3D12Device::CreatePlacedResource2(
     UINT32 NumCastableFormats, _In_opt_count_(NumCastableFormats) const DXGI_FORMAT *pCastableFormats,
     REFIID riid, _COM_Outptr_opt_ void **ppvResource)
 {
-  return E_NOTIMPL;
+  return CreateResource(D3D12Chunk::Device_CreatePlacedResource2, pHeap, HeapOffset, NULL,
+                        D3D12_HEAP_FLAG_NONE, *pDesc,
+                        D3D12ResourceLayout::FromLayout(InitialLayout), pOptimizedClearValue, NULL,
+                        NumCastableFormats, pCastableFormats, riid, ppvResource);
+}
+
+template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_CreateReservedResource2(
+    SerialiserType &ser, const D3D12_RESOURCE_DESC *pDesc, D3D12_BARRIER_LAYOUT InitialLayout,
+    const D3D12_CLEAR_VALUE *pOptimizedClearValue, ID3D12ProtectedResourceSession *pProtectedSession,
+    UINT32 NumCastableFormats, const DXGI_FORMAT *pCastableFormats, REFIID riid, void **ppvResource)
+{
+  SERIALISE_ELEMENT_LOCAL(desc, *pDesc).Named("pDesc"_lit).Important();
+  SERIALISE_ELEMENT(InitialLayout);
+  SERIALISE_ELEMENT_OPT(pOptimizedClearValue);
+  // placeholder for future use if we properly capture & replay protected sessions
+  SERIALISE_ELEMENT_LOCAL(ProtectedSession, ResourceId()).Named("pProtectedSession"_lit);
+  SERIALISE_ELEMENT(NumCastableFormats);
+  SERIALISE_ELEMENT_ARRAY(pCastableFormats, NumCastableFormats);
+  SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
+  SERIALISE_ELEMENT_LOCAL(pResource, ((WrappedID3D12Resource *)*ppvResource)->GetResourceID())
+      .TypedAs("ID3D12Resource *"_lit);
+
+  SERIALISE_ELEMENT_LOCAL(gpuAddress,
+                          ((WrappedID3D12Resource *)*ppvResource)->GetGPUVirtualAddressIfBuffer())
+      .Hidden();
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    D3D12_HEAP_PROPERTIES props = {};
+    return Serialise_CreateResource(
+        D3D12Chunk::Device_CreateReservedResource2, NULL, 0, props, D3D12_HEAP_FLAG_NONE, desc,
+        D3D12ResourceLayout::FromLayout(InitialLayout), pOptimizedClearValue, NumCastableFormats,
+        pCastableFormats, pResource, gpuAddress);
+  }
+
+  return true;
 }
 
 HRESULT WrappedID3D12Device::CreateReservedResource2(
@@ -1212,7 +1389,10 @@ HRESULT WrappedID3D12Device::CreateReservedResource2(
     _In_opt_count_(NumCastableFormats) const DXGI_FORMAT *pCastableFormats, REFIID riid,
     _COM_Outptr_opt_ void **ppvResource)
 {
-  return E_NOTIMPL;
+  return CreateResource(D3D12Chunk::Device_CreateReservedResource2, NULL, 0, NULL,
+                        D3D12_HEAP_FLAG_NONE, *pDesc,
+                        D3D12ResourceLayout::FromLayout(InitialLayout), pOptimizedClearValue,
+                        pProtectedSession, NumCastableFormats, pCastableFormats, riid, ppvResource);
 }
 
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, CreateCommittedResource,
@@ -1256,3 +1436,23 @@ INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, CreatePlacedResource1
                                 D3D12_RESOURCE_STATES InitialState,
                                 const D3D12_CLEAR_VALUE *pOptimizedClearValue, REFIID riid,
                                 void **ppvResource);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, CreateCommittedResource3,
+                                const D3D12_HEAP_PROPERTIES *pHeapProperties,
+                                D3D12_HEAP_FLAGS HeapFlags, const D3D12_RESOURCE_DESC1 *pDesc,
+                                D3D12_BARRIER_LAYOUT InitialLayout,
+                                const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+                                ID3D12ProtectedResourceSession *pProtectedSession,
+                                UINT NumCastableFormats, const DXGI_FORMAT *pCastableFormats,
+                                REFIID riidResource, void **ppvResource);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, CreatePlacedResource2, ID3D12Heap *pHeap,
+                                UINT64 HeapOffset, const D3D12_RESOURCE_DESC1 *pDesc,
+                                D3D12_BARRIER_LAYOUT InitialLayout,
+                                const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+                                UINT NumCastableFormats, const DXGI_FORMAT *pCastableFormats,
+                                REFIID riid, void **ppvResource);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, CreateReservedResource2,
+                                const D3D12_RESOURCE_DESC *pDesc, D3D12_BARRIER_LAYOUT InitialLayout,
+                                const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+                                ID3D12ProtectedResourceSession *pProtectedSession,
+                                UINT NumCastableFormats, const DXGI_FORMAT *pCastableFormats,
+                                REFIID riid, void **ppvResource);

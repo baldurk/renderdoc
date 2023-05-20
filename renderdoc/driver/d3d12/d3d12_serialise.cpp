@@ -1756,7 +1756,7 @@ void DoSerialise(SerialiserType &ser, D3D12_TEXTURE_BARRIER &el)
   SERIALISE_MEMBER(AccessAfter);
   SERIALISE_MEMBER(LayoutBefore);
   SERIALISE_MEMBER(LayoutAfter);
-  SERIALISE_MEMBER(pResource);
+  SERIALISE_MEMBER(pResource).Important();
   SERIALISE_MEMBER(Subresources);
   SERIALISE_MEMBER(Flags);
 }
@@ -1768,7 +1768,7 @@ void DoSerialise(SerialiserType &ser, D3D12_BUFFER_BARRIER &el)
   SERIALISE_MEMBER(SyncAfter);
   SERIALISE_MEMBER(AccessBefore);
   SERIALISE_MEMBER(AccessAfter);
-  SERIALISE_MEMBER(pResource);
+  SERIALISE_MEMBER(pResource).Important();
   SERIALISE_MEMBER(Offset);
   SERIALISE_MEMBER(Size);
 }
@@ -1788,12 +1788,12 @@ void DoSerialise(SerialiserType &ser, D3D12_BARRIER_GROUP &el)
     }
     case D3D12_BARRIER_TYPE_TEXTURE:
     {
-      SERIALISE_MEMBER_ARRAY(pTextureBarriers, NumBarriers);
+      SERIALISE_MEMBER_ARRAY(pTextureBarriers, NumBarriers).Important();
       break;
     }
     case D3D12_BARRIER_TYPE_BUFFER:
     {
-      SERIALISE_MEMBER_ARRAY(pBufferBarriers, NumBarriers);
+      SERIALISE_MEMBER_ARRAY(pBufferBarriers, NumBarriers).Important();
       break;
     }
   }

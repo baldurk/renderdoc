@@ -147,14 +147,19 @@ struct D3D12ResourceLayout
   bool IsLayout() const { return (value & LayoutBit) != 0; }
   bool IsStates() const { return (value & LayoutBit) == 0; }
   D3D12_RESOURCE_STATES ToStates() const { return D3D12_RESOURCE_STATES(value & ~LayoutBit); }
-  D3D12_BARRIER_LAYOUT ToLayout() const { return D3D12_BARRIER_LAYOUT(value & ~LayoutBit); }
+  D3D12_BARRIER_LAYOUT ToLayout() const
+  {
+    if(value == D3D12_BARRIER_LAYOUT_UNDEFINED)
+      return D3D12_BARRIER_LAYOUT_UNDEFINED;
+    return D3D12_BARRIER_LAYOUT(value & ~LayoutBit);
+  }
   bool operator==(const D3D12ResourceLayout &o) const { return value == o.value; }
   bool operator!=(const D3D12ResourceLayout &o) const { return !(*this == o); }
 private:
   explicit D3D12ResourceLayout(uint32_t v) : value(v) {}
   // layouts are an enum so this bit should hopefully never be used. Note that LAYOUT_UNDEFINED is
-  // ~0U but that's not valid except as a previous state for discards, it's not a layout anything
-  // can be put into so stored here.
+  // ~0U and annoyingly it has to be specified for buffers (instead of D3D12_BARRIER_LAYOUT_COMMON)
+  // so we need to special-case it.
   // states are a bitmask but they only use just over 6 hex digits so far, and we assume they won't
   // be extended (or not by much).
   // We set the bit for layouts and not for states so that we can serialise this
@@ -1032,5 +1037,6 @@ enum class D3D12Chunk : uint32_t
   List_OMSetFrontAndBackStencilRef,
   List_RSSetDepthBias,
   List_IASetIndexBufferStripCutValue,
+  List_Barrier,
   Max,
 };

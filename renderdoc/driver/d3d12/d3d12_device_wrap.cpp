@@ -2286,22 +2286,6 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
 
     return S_OK;
   }
-  else if(Feature == D3D12_FEATURE_D3D12_OPTIONS12)
-  {
-    D3D12_FEATURE_DATA_D3D12_OPTIONS12 *opts =
-        (D3D12_FEATURE_DATA_D3D12_OPTIONS12 *)pFeatureSupportData;
-    if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS12))
-      return E_INVALIDARG;
-
-    opts->EnhancedBarriersSupported = FALSE;
-    // could support this but the entry point is tied to barriers
-    opts->RelaxedFormatCastingSupported = FALSE;
-
-    if(dolog)
-      RDCLOG("Forcing no new barrier support");
-
-    return S_OK;
-  }
   else if(Feature == D3D12_FEATURE_D3D12_OPTIONS18)
   {
     D3D12_FEATURE_DATA_D3D12_OPTIONS18 *opts =

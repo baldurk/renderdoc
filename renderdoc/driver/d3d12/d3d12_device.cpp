@@ -4158,6 +4158,19 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
                                              IID(), NULL);
     case D3D12Chunk::Device_CreateCommandQueue1:
       return Serialise_CreateCommandQueue1(ser, NULL, IID(), IID(), NULL);
+    case D3D12Chunk::Device_CreateCommittedResource3:
+      return Serialise_CreateCommittedResource3(ser, NULL, D3D12_HEAP_FLAG_NONE, NULL,
+                                                D3D12_BARRIER_LAYOUT_COMMON, NULL, NULL, 0, NULL,
+                                                IID(), NULL);
+    case D3D12Chunk::Device_CreatePlacedResource2:
+      return Serialise_CreatePlacedResource2(ser, NULL, 0, NULL, D3D12_BARRIER_LAYOUT_COMMON, NULL,
+                                             0, NULL, IID(), NULL);
+    case D3D12Chunk::Device_CreateReservedResource1:
+      return Serialise_CreateReservedResource1(ser, NULL, D3D12_RESOURCE_STATE_COMMON, NULL, NULL,
+                                               IID(), NULL);
+    case D3D12Chunk::Device_CreateReservedResource2:
+      return Serialise_CreateReservedResource2(ser, NULL, D3D12_BARRIER_LAYOUT_COMMON, NULL, NULL,
+                                               0, NULL, IID(), NULL);
 
     // in order to get a warning if we miss a case, we explicitly handle the list/queue chunks here.
     // If we actually encounter one it's an error (we should hit CaptureBegin first and switch to
@@ -4246,13 +4259,10 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::List_ClearState:
     case D3D12Chunk::CoherentMapWrite:
     case D3D12Chunk::Device_CreateSampler2:
-    case D3D12Chunk::Device_CreateCommittedResource3:
-    case D3D12Chunk::Device_CreatePlacedResource2:
-    case D3D12Chunk::Device_CreateReservedResource1:
-    case D3D12Chunk::Device_CreateReservedResource2:
     case D3D12Chunk::List_OMSetFrontAndBackStencilRef:
     case D3D12Chunk::List_RSSetDepthBias:
     case D3D12Chunk::List_IASetIndexBufferStripCutValue:
+    case D3D12Chunk::List_Barrier:
       RDCERR("Unexpected chunk while processing initialisation: %s", ToStr(context).c_str());
       return false;
 
@@ -4719,6 +4729,8 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     {
       ID3D12GraphicsCommandListX *list = cmd.m_OutsideCmdList = GetNewList();
 
+      cmd.m_BakedCmdListInfo[GetResID(cmd.m_OutsideCmdList)].barriers.clear();
+
       if(!list)
         return;
 
@@ -4740,6 +4752,9 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
     if(cmd.m_OutsideCmdList != NULL)
     {
+      if(replayType == eReplay_OnlyDraw)
+        ApplyBarriers(cmd.m_BakedCmdListInfo[GetResID(cmd.m_OutsideCmdList)].barriers);
+
       ID3D12GraphicsCommandList *list = cmd.m_OutsideCmdList;
 
       CheckHRESULT(list->Close());

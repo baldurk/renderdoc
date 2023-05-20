@@ -1363,13 +1363,15 @@ public:
   bool Serialise_CreateResource(D3D12Chunk chunkType, ID3D12Heap *pHeap, UINT64 HeapOffset,
                                 D3D12_HEAP_PROPERTIES &props, D3D12_HEAP_FLAGS HeapFlags,
                                 D3D12_RESOURCE_DESC1 &desc, D3D12ResourceLayout InitialResourceState,
-                                const D3D12_CLEAR_VALUE *pOptimizedClearValue, ResourceId pResource,
-                                uint64_t gpuAddress);
+                                const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+                                UINT NumCastableFormats, const DXGI_FORMAT *pCastableFormats,
+                                ResourceId pResource, uint64_t gpuAddress);
   bool Serialise_CreateResource(D3D12Chunk chunkType, ID3D12Heap *pHeap, UINT64 HeapOffset,
                                 D3D12_HEAP_PROPERTIES &props, D3D12_HEAP_FLAGS HeapFlags,
                                 D3D12_RESOURCE_DESC &desc, D3D12ResourceLayout InitialResourceState,
-                                const D3D12_CLEAR_VALUE *pOptimizedClearValue, ResourceId pResource,
-                                uint64_t gpuAddress)
+                                const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+                                UINT NumCastableFormats, const DXGI_FORMAT *pCastableFormats,
+                                ResourceId pResource, uint64_t gpuAddress)
   {
     // upconvert to the DESC1 by just memcpy, since it's a superset and the remainder can be
     // 0-initialised
@@ -1377,22 +1379,23 @@ public:
     memcpy(&desc1, &desc, sizeof(desc));
 
     return Serialise_CreateResource(chunkType, pHeap, HeapOffset, props, HeapFlags, desc1,
-                                    InitialResourceState, pOptimizedClearValue, pResource,
-                                    gpuAddress);
+                                    InitialResourceState, pOptimizedClearValue, NumCastableFormats,
+                                    pCastableFormats, pResource, gpuAddress);
   }
 
   HRESULT CreateResource(D3D12Chunk chunkType, ID3D12Heap *pHeap, UINT64 HeapOffset,
                          const D3D12_HEAP_PROPERTIES *pHeapProperties, D3D12_HEAP_FLAGS HeapFlags,
                          D3D12_RESOURCE_DESC1 pDesc, D3D12ResourceLayout InitialLayout,
                          const D3D12_CLEAR_VALUE *pOptimizedClearValue,
-                         ID3D12ProtectedResourceSession *pProtectedSession, REFIID riidResource,
+                         ID3D12ProtectedResourceSession *pProtectedSession, UINT NumCastableFormats,
+                         const DXGI_FORMAT *pCastableFormats, REFIID riidResource,
                          void **ppvResource);
   HRESULT CreateResource(D3D12Chunk chunkType, ID3D12Heap *pHeap, UINT64 HeapOffset,
                          const D3D12_HEAP_PROPERTIES *pHeapProperties, D3D12_HEAP_FLAGS HeapFlags,
                          D3D12_RESOURCE_DESC pDesc, D3D12ResourceLayout InitialLayout,
                          const D3D12_CLEAR_VALUE *pOptimizedClearValue,
-                         ID3D12ProtectedResourceSession *pProtectedSession, REFIID riidResource,
-                         void **ppvResource)
+                         ID3D12ProtectedResourceSession *pProtectedSession, UINT NumCastableFormats,
+                         const DXGI_FORMAT *pCastableFormats, REFIID riidResource, void **ppvResource)
   {
     // upconvert to the DESC1 by just memcpy, since it's a superset and the remainder can be
     // 0-initialised
@@ -1400,8 +1403,8 @@ public:
     memcpy(&desc1, &pDesc, sizeof(D3D12_RESOURCE_DESC));
 
     return CreateResource(chunkType, pHeap, HeapOffset, pHeapProperties, HeapFlags, desc1,
-                          InitialLayout, pOptimizedClearValue, pProtectedSession, riidResource,
-                          ppvResource);
+                          InitialLayout, pOptimizedClearValue, pProtectedSession,
+                          NumCastableFormats, pCastableFormats, riidResource, ppvResource);
   }
 
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateCommittedResource,

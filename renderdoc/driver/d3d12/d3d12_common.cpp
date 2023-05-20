@@ -196,6 +196,10 @@ void BarrierSet::Configure(ID3D12Resource *res, const SubresourceStateVector &st
 
       b.AccessBefore = D3D12_BARRIER_ACCESS_COMMON;
       b.SyncBefore = D3D12_BARRIER_SYNC_ALL;
+
+      if(b.LayoutBefore == D3D12_BARRIER_LAYOUT_UNDEFINED)
+        b.AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS;
+
       b.AccessAfter = resourceAccess;
       b.SyncAfter = resourceSync;
       b.LayoutAfter = resourceLayout;

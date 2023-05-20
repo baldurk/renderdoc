@@ -335,6 +335,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
           m_Cmd->m_BakedCmdListInfo[BakedCommandList].curEventID = 0;
       m_Cmd->m_BakedCmdListInfo[CommandList].executeEvents =
           m_Cmd->m_BakedCmdListInfo[BakedCommandList].executeEvents;
+      m_Cmd->m_BakedCmdListInfo[CommandList].barriers.clear();
+      m_Cmd->m_BakedCmdListInfo[BakedCommandList].barriers.clear();
     }
     else
     {
@@ -400,6 +402,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
             m_Cmd->m_BakedCmdListInfo[BakedCommandList].nodeMask = nodeMask;
         m_Cmd->m_BakedCmdListInfo[CommandList].allocator =
             m_Cmd->m_BakedCmdListInfo[BakedCommandList].allocator = GetResID(pAllocator);
+        m_Cmd->m_BakedCmdListInfo[CommandList].barriers.clear();
+        m_Cmd->m_BakedCmdListInfo[BakedCommandList].barriers.clear();
 
         // On list execute we increment all child events/actions by
         // m_RootEventID and insert them into the tree.
