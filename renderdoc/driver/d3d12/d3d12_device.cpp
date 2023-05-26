@@ -1415,12 +1415,17 @@ HRESULT WrappedID3D12Device::CreateInitialStateBuffer(const D3D12_RESOURCE_DESC 
 
   HRESULT ret = S_OK;
 
+  // if desc.Width is greater than InitialStateHeapSize this will forcibly be true, regardless of
+  // m_LastInitialStateHeapOffset
+  // it will create a dedicated heap for that resource, and then when m_LastInitialStateHeapOffset
+  // is updated the next resource (regardless of size) will go in a new heap because
+  // m_LastInitialStateHeapOffset >= InitialStateHeapSize will be true
   if(m_InitialStateHeaps.empty() || m_LastInitialStateHeapOffset >= InitialStateHeapSize ||
      desc.Width > InitialStateHeapSize - m_LastInitialStateHeapOffset)
   {
     D3D12_HEAP_DESC heapDesc = {};
     heapDesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-    heapDesc.SizeInBytes = InitialStateHeapSize;
+    heapDesc.SizeInBytes = RDCMAX(InitialStateHeapSize, desc.Width);
     heapDesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
 
     heapDesc.Properties.Type = D3D12_HEAP_TYPE_READBACK;
@@ -1435,6 +1440,9 @@ HRESULT WrappedID3D12Device::CreateInitialStateBuffer(const D3D12_RESOURCE_DESC 
 
     if(FAILED(ret))
     {
+      CheckHRESULT(ret);
+      RDCERR("Couldn't create new initial state heap #%zu: %s", m_InitialStateHeaps.size(),
+             ToStr(ret).c_str());
       SAFE_RELEASE(heap);
       return ret;
     }
