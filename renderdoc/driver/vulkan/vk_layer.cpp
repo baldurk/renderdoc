@@ -137,6 +137,12 @@ class VulkanHook : LibraryHook
     Process::RegisterEnvironmentModification(EnvironmentModification(
         EnvMod::Set, EnvSep::NoSep, "VK_LAYER_bandicam_helper_DEBUG_1", "1"));
 
+    // fpsmon not only has a buggy layer but it also picks an absurdly generic disable environment
+    // variable :(. Hopefully no other program picks this, or if it does then it's probably not a
+    // bad thing to disable too
+    Process::RegisterEnvironmentModification(
+        EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_LAYER", "1"));
+
 #if ENABLED(RDOC_WIN32)
     // on windows support self-hosted capture by checking our filename and tweaking the env var we
     // set

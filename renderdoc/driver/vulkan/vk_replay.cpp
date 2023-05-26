@@ -4635,6 +4635,12 @@ RDResult Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRep
   Process::RegisterEnvironmentModification(
       EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "VK_LAYER_bandicam_helper_DEBUG_1", "1"));
 
+  // fpsmon not only has a buggy layer but it also picks an absurdly generic disable environment
+  // variable :(. Hopefully no other program picks this, or if it does then it's probably not a
+  // bad thing to disable too
+  Process::RegisterEnvironmentModification(
+      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_LAYER", "1"));
+
   Process::ApplyEnvironmentModification();
 
   void *module = LoadVulkanLibrary();
