@@ -283,6 +283,12 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       rdcarray<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> copyLayouts;
       rdcarray<uint32_t> subresources;
 
+      if(IsBlockFormat(desc.Format) && (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS))
+      {
+        RDCDEBUG("Removing UAV flag from BCn desc to allow GetCopyableFootprints");
+        desc.Flags &= ~D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+      }
+
       for(UINT i = 0; i < numSubresources; i++)
       {
         // skip non-MSAA sparse subresources that are not mapped at all
@@ -291,6 +297,12 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
         UINT64 subSize = 0;
         m_Device->GetCopyableFootprints(&desc, i, 1, bufDesc.Width, &layout, NULL, NULL, &subSize);
+
+        if(subSize == ~0ULL)
+        {
+          RDCERR("Failed to call GetCopyableFootprints on %s! skipping copy", ToStr(id).c_str());
+          continue;
+        }
 
         copyLayouts.push_back(layout);
         subresources.push_back(i);
@@ -1248,6 +1260,12 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
           UINT64 offset = 0;
           UINT64 subSize = 0;
 
+          if(IsBlockFormat(desc.Format) && (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS))
+          {
+            RDCDEBUG("Removing UAV flag from BCn desc to allow GetCopyableFootprints");
+            desc.Flags &= ~D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+          }
+
           for(UINT i = 0; i < numSubresources; i++)
           {
             // if we have a list of subresources included, only copy those
@@ -1265,6 +1283,12 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
 
             m_Device->GetCopyableFootprints(&desc, i, 1, offset, &src.PlacedFootprint, NULL, NULL,
                                             &subSize);
+
+            if(subSize == ~0ULL)
+            {
+              RDCERR("Failed to call GetCopyableFootprints on %s! skipping copy", ToStr(id).c_str());
+              continue;
+            }
 
             list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
 
