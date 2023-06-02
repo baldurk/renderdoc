@@ -523,7 +523,7 @@ RDResult FileWriter::WriteThreaded(const void *data, uint64_t length)
   // will get flushed on the next write or Flush() call
   if(!m_ProducerOwned.empty() && length <= BlockSize - m_ProducerOwned.back().second)
   {
-    memcpy(m_ProducerOwned.back().first + m_ProducerOwned.back().second, data, length);
+    memcpy(m_ProducerOwned.back().first + m_ProducerOwned.back().second, data, (size_t)length);
     m_ProducerOwned.back().second += length;
     return ResultCode::Succeeded;
   }
@@ -547,7 +547,7 @@ RDResult FileWriter::WriteThreaded(const void *data, uint64_t length)
       // write either the rest of what will fit in the block, or the rest of the data, whatever is
       // smaller
       uint64_t writeSize = RDCMIN(length, BlockSize - curBlock.second);
-      memcpy(curBlock.first + curBlock.second, dataPtr, writeSize);
+      memcpy(curBlock.first + curBlock.second, dataPtr, (size_t)writeSize);
       curBlock.second += writeSize;
       dataPtr += writeSize;
       length -= writeSize;
