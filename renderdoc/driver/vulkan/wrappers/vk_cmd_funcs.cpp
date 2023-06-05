@@ -328,6 +328,11 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
       }
     }
 
+    SanitiseOldImageLayout(barrier.oldLayout);
+    SanitiseNewImageLayout(barrier.newLayout);
+    SanitiseOldImageLayout(barrierStencil.oldLayout);
+    SanitiseNewImageLayout(barrierStencil.newLayout);
+
     // if we support separate depth stencil and the format contains stencil, add barriers
     // separately
     if(SeparateDepthStencil())
