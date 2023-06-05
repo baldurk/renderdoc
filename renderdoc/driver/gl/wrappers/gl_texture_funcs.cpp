@@ -2672,11 +2672,14 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(SerialiserType &ser, GLuint te
     // or just size the texture to be filled with data later (buf=NULL)
     GLuint unpackbuf = 0;
     GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
-    GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-
     GLint align = 1;
     GL.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-    GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
+    if(IsLoading(m_State) && m_CurEventID == 0)
+    {
+      GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+      GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+    }
 
     GL.glTextureImage1DEXT(texture.name, target, level, internalformat, width, border, format, type,
                            pixels);
@@ -2740,7 +2743,17 @@ void WrappedOpenGL::Common_glTextureImage1DEXT(ResourceId texId, GLenum target, 
       Serialise_glTextureImage1DEXT(ser, record->Resource.name, target, level, internalformat,
                                     width, border, format, type, fromunpackbuf ? NULL : pixels);
 
-      record->AddChunk(scope.Get());
+      Chunk *chunk = scope.Get();
+      record->AddChunk(chunk);
+
+      // if we're actively capturing this may be a creation but it may be a re-initialise. Insert
+      // the chunk here as well to ensure consistent replay
+      if(IsActiveCapturing(m_State))
+      {
+        GetContextRecord()->AddChunk(chunk->Duplicate());
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                          eFrameRef_PartialWrite);
+      }
 
       // illegal to re-type textures
       record->VerifyDataType(target);
@@ -2900,11 +2913,14 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(SerialiserType &ser, GLuint te
     // or just size the texture to be filled with data later (buf=NULL)
     GLuint unpackbuf = 0;
     GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
-    GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-
     GLint align = 1;
     GL.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-    GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
+    if(IsLoading(m_State) && m_CurEventID == 0)
+    {
+      GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+      GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+    }
 
     if(TextureBinding(target) == eGL_TEXTURE_BINDING_CUBE_MAP &&
        mipsValid != m_Textures[liveId].mipsValid)
@@ -2992,7 +3008,17 @@ void WrappedOpenGL::Common_glTextureImage2DEXT(ResourceId texId, GLenum target, 
       Serialise_glTextureImage2DEXT(ser, record->Resource.name, target, level, internalformat, width,
                                     height, border, format, type, fromunpackbuf ? NULL : pixels);
 
-      record->AddChunk(scope.Get());
+      Chunk *chunk = scope.Get();
+      record->AddChunk(chunk);
+
+      // if we're actively capturing this may be a creation but it may be a re-initialise. Insert
+      // the chunk here as well to ensure consistent replay
+      if(IsActiveCapturing(m_State))
+      {
+        GetContextRecord()->AddChunk(chunk->Duplicate());
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                          eFrameRef_PartialWrite);
+      }
 
       // illegal to re-type textures
       record->VerifyDataType(target);
@@ -3154,11 +3180,14 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(SerialiserType &ser, GLuint te
     // or just size the texture to be filled with data later (buf=NULL)
     GLuint unpackbuf = 0;
     GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
-    GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-
     GLint align = 1;
     GL.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-    GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
+    if(IsLoading(m_State) && m_CurEventID == 0)
+    {
+      GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+      GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+    }
 
     GL.glTextureImage3DEXT(texture.name, target, level, internalformat, width, height, depth,
                            border, format, type, pixels);
@@ -3226,7 +3255,17 @@ void WrappedOpenGL::Common_glTextureImage3DEXT(ResourceId texId, GLenum target, 
                                     width, height, depth, border, format, type,
                                     fromunpackbuf ? NULL : pixels);
 
-      record->AddChunk(scope.Get());
+      Chunk *chunk = scope.Get();
+      record->AddChunk(chunk);
+
+      // if we're actively capturing this may be a creation but it may be a re-initialise. Insert
+      // the chunk here as well to ensure consistent replay
+      if(IsActiveCapturing(m_State))
+      {
+        GetContextRecord()->AddChunk(chunk->Duplicate());
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                          eFrameRef_PartialWrite);
+      }
 
       // illegal to re-type textures
       record->VerifyDataType(target);
@@ -3390,11 +3429,14 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage1DEXT(SerialiserType &ser,
     // or just size the texture to be filled with data later (buf=NULL)
     GLuint unpackbuf = 0;
     GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
-    GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-
     GLint align = 1;
     GL.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-    GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
+    if(IsLoading(m_State) && m_CurEventID == 0)
+    {
+      GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+      GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+    }
 
     GL.glCompressedTextureImage1DEXT(texture.name, target, level, internalformat, width, border,
                                      imageSize, databuf);
@@ -3460,7 +3502,17 @@ void WrappedOpenGL::Common_glCompressedTextureImage1DEXT(ResourceId texId, GLenu
                                               internalformat, width, border, imageSize,
                                               fromunpackbuf ? NULL : pixels);
 
-      record->AddChunk(scope.Get());
+      Chunk *chunk = scope.Get();
+      record->AddChunk(chunk);
+
+      // if we're actively capturing this may be a creation but it may be a re-initialise. Insert
+      // the chunk here as well to ensure consistent replay
+      if(IsActiveCapturing(m_State))
+      {
+        GetContextRecord()->AddChunk(chunk->Duplicate());
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                          eFrameRef_PartialWrite);
+      }
 
       // illegal to re-type textures
       record->VerifyDataType(target);
@@ -3717,11 +3769,14 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(SerialiserType &ser,
     // or just size the texture to be filled with data later (buf=NULL)
     GLuint unpackbuf = 0;
     GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
-    GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-
     GLint align = 1;
     GL.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-    GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
+    if(IsLoading(m_State) && m_CurEventID == 0)
+    {
+      GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+      GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+    }
 
     if(TextureBinding(target) == eGL_TEXTURE_BINDING_CUBE_MAP &&
        mipsValid != m_Textures[liveId].mipsValid)
@@ -3814,7 +3869,17 @@ void WrappedOpenGL::Common_glCompressedTextureImage2DEXT(ResourceId texId, GLenu
                                               internalformat, width, height, border, imageSize,
                                               fromunpackbuf ? NULL : pixels);
 
-      record->AddChunk(scope.Get());
+      Chunk *chunk = scope.Get();
+      record->AddChunk(chunk);
+
+      // if we're actively capturing this may be a creation but it may be a re-initialise. Insert
+      // the chunk here as well to ensure consistent replay
+      if(IsActiveCapturing(m_State))
+      {
+        GetContextRecord()->AddChunk(chunk->Duplicate());
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                          eFrameRef_PartialWrite);
+      }
 
       // illegal to re-type textures
       record->VerifyDataType(target);
@@ -3976,11 +4041,14 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(SerialiserType &ser,
     // or just size the texture to be filled with data later (buf=NULL)
     GLuint unpackbuf = 0;
     GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
-    GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-
     GLint align = 1;
     GL.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-    GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
+    if(IsLoading(m_State) && m_CurEventID == 0)
+    {
+      GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+      GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+    }
 
     GL.glCompressedTextureImage3DEXT(texture.name, target, level, internalformat, width, height,
                                      depth, border, imageSize, databuf);
@@ -4052,7 +4120,17 @@ void WrappedOpenGL::Common_glCompressedTextureImage3DEXT(ResourceId texId, GLenu
                                               internalformat, width, height, depth, border,
                                               imageSize, fromunpackbuf ? NULL : pixels);
 
-      record->AddChunk(scope.Get());
+      Chunk *chunk = scope.Get();
+      record->AddChunk(chunk);
+
+      // if we're actively capturing this may be a creation but it may be a re-initialise. Insert
+      // the chunk here as well to ensure consistent replay
+      if(IsActiveCapturing(m_State))
+      {
+        GetContextRecord()->AddChunk(chunk->Duplicate());
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                          eFrameRef_PartialWrite);
+      }
 
       // illegal to re-type textures
       record->VerifyDataType(target);
