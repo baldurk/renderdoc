@@ -1215,12 +1215,20 @@ RDResult load_dds_from_file(StreamReader *reader, read_dds_data &ret)
     }
   }
 
-  if(uint64_t(ret.slices) > fileSize || uint64_t(ret.mips) > fileSize ||
-     uint64_t(ret.slices) * ret.mips > fileSize)
+  // catch any invalid dimensions here, including the total dimension with a very conservative 1/16
+  // byte per pixel
+  if(uint64_t(ret.width) > fileSize || uint64_t(ret.height) > fileSize ||
+     uint64_t(ret.depth) > fileSize || uint64_t(ret.slices) > fileSize ||
+     uint64_t(ret.mips) > fileSize || uint64_t(ret.slices) * ret.mips > fileSize ||
+     (uint64_t(ret.width) * uint64_t(ret.height) * uint64_t(ret.depth) *
+      RDCMAX(uint64_t(ret.slices), uint64_t(ret.depth))) /
+             16 >
+         fileSize)
   {
-    RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
-                        "Invalid slice count %u or mip count %u loaded from DDS of size %llu",
-                        ret.slices, ret.mips, fileSize);
+    RETURN_ERROR_RESULT(
+        ResultCode::ImageUnsupported,
+        "Invalid dimension (%ux%ux%u) slice count %u or mip count %u loaded from DDS of size %llu",
+        ret.width, ret.height, ret.depth, ret.slices, ret.mips, fileSize);
   }
 
   // we reserve space for a full mip-chain (twice the size of the top mip) just to be conservative
