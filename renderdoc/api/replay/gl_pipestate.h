@@ -339,8 +339,8 @@ struct Sampler
 
   bool operator==(const Sampler &o) const
   {
-    return resourceId == o.resourceId && type == o.type && addressS == o.addressS && addressT == o.addressT &&
-           addressR == o.addressR && borderColor == o.borderColor &&
+    return resourceId == o.resourceId && type == o.type && addressS == o.addressS &&
+           addressT == o.addressT && addressR == o.addressR && borderColor == o.borderColor &&
            compareFunction == o.compareFunction && filter == o.filter &&
            seamlessCubeMap == o.seamlessCubeMap && maxAnisotropy == o.maxAnisotropy &&
            maxLOD == o.maxLOD && minLOD == o.minLOD && mipLODBias == o.mipLODBias;

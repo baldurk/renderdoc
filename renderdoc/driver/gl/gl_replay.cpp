@@ -1401,7 +1401,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
         pipe.samplers[unit].resourceId = rm->GetOriginalID(rm->GetResID(SamplerRes(ctx, samp)));
 
-        std::map<std::string, SamplerType> samplerTypesFromString = { 
+        std::map<std::string, SamplerType> samplerTypesFromString = {
             {"sampler1D", SamplerType::GSampler1D},
             {"sampler2D", SamplerType::GSampler2D},
             {"sampler3D", SamplerType::GSampler3D},
@@ -1421,14 +1421,16 @@ void GLReplay::SavePipelineState(uint32_t eventId)
             {"sampler2DArrayShadow", SamplerType::Sampler2DArrayShadow},
             {"samplerCubeArrayShadow", SamplerType::SamplerCubeArrayShadow},
         };
-        ShaderConstantType samplerType = pipe.fragmentShader.reflection->readOnlyResources[unit].variableType;
+        ShaderConstantType samplerType =
+            pipe.fragmentShader.reflection->readOnlyResources[unit].variableType;
         std::string samplerName = samplerType.name.c_str();
         if(samplerTypesFromString.count(samplerName))
         {
-            pipe.samplers[unit].type = samplerTypesFromString[samplerName];
+          pipe.samplers[unit].type = samplerTypesFromString[samplerName];
         }
-        else {
-            pipe.samplers[unit].type = SamplerType::Unknown;
+        else
+        {
+          pipe.samplers[unit].type = SamplerType::Unknown;
         }
 
         // checking texture completeness is a pretty expensive operation since it requires a lot of
@@ -3059,7 +3061,7 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
           dst = data.data() + d * sliceSize;
           src = dst + (height - 1) * rowSize;
 
-          for(GLsizei i = 0; i<height>> 1; i++)
+          for(GLsizei i = 0; i < height >> 1; i++)
           {
             memcpy(row, src, rowSize);
             memcpy(src, dst, rowSize);
@@ -3083,9 +3085,7 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     drv.glDeleteTextures(1, &tempTex);
 }
 
-void GLReplay::SetCustomShaderIncludes(const rdcarray<rdcstr> &directories)
-{
-}
+void GLReplay::SetCustomShaderIncludes(const rdcarray<rdcstr> &directories) {}
 
 void GLReplay::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source,
                                  const rdcstr &entry, const ShaderCompileFlags &compileFlags,
@@ -3219,8 +3219,7 @@ void GLReplay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf &s
     case ShaderStage::Geometry: shtype = eGL_GEOMETRY_SHADER; break;
     case ShaderStage::Fragment: shtype = eGL_FRAGMENT_SHADER; break;
     case ShaderStage::Compute: shtype = eGL_COMPUTE_SHADER; break;
-    default:
-    {
+    default: {
       RDCERR("Unknown shader type %u", type);
       id = ResourceId();
       return;
@@ -3998,7 +3997,9 @@ rdcarray<GLVersion> GetReplayVersions(RDCDriver api)
   if(api == RDCDriver::OpenGLES)
   {
     return {
-        {3, 2}, {3, 1}, {3, 0},
+        {3, 2},
+        {3, 1},
+        {3, 0},
     };
   }
   else
