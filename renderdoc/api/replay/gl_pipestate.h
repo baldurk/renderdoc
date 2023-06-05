@@ -339,7 +339,7 @@ struct Sampler
 
   bool operator==(const Sampler &o) const
   {
-    return resourceId == o.resourceId && addressS == o.addressS && addressT == o.addressT &&
+    return resourceId == o.resourceId && type == o.type && addressS == o.addressS && addressT == o.addressT &&
            addressR == o.addressR && borderColor == o.borderColor &&
            compareFunction == o.compareFunction && filter == o.filter &&
            seamlessCubeMap == o.seamlessCubeMap && maxAnisotropy == o.maxAnisotropy &&
@@ -349,6 +349,8 @@ struct Sampler
   {
     if(!(resourceId == o.resourceId))
       return resourceId < o.resourceId;
+    if(!(type == o.type))
+      return type < o.type;
     if(!(addressS == o.addressS))
       return addressS < o.addressS;
     if(!(addressT == o.addressT))
@@ -375,6 +377,8 @@ struct Sampler
   }
   DOCUMENT("The :class:`ResourceId` of the sampler object, if a separate one is set.");
   ResourceId resourceId;
+  DOCUMENT("The :class:`Type` of the sampler object.");
+  SamplerType type;
   DOCUMENT("The :class:`AddressMode` in the S direction.");
   AddressMode addressS = AddressMode::Wrap;
   DOCUMENT("The :class:`AddressMode` in the T direction.");

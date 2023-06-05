@@ -1401,6 +1401,36 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
         pipe.samplers[unit].resourceId = rm->GetOriginalID(rm->GetResID(SamplerRes(ctx, samp)));
 
+        std::map<std::string, SamplerType> samplerTypesFromString = { 
+            {"sampler1D", SamplerType::GSampler1D},
+            {"sampler2D", SamplerType::GSampler2D},
+            {"sampler3D", SamplerType::GSampler3D},
+            {"samplerCube", SamplerType::GSamplerCube},
+            {"sampler2DRect", SamplerType::GSampler2DRect},
+            {"sampler1DArray", SamplerType::GSampler1DArray},
+            {"sampler2DArray", SamplerType::GSampler2DArray},
+            {"samplerCubeArray", SamplerType::GSamplerCubeArray},
+            {"samplerBuffer", SamplerType::GSamplerBuffer},
+            {"sampler2DMS", SamplerType::GSampler2DMS},
+            {"sampler2DMSArray", SamplerType::GSampler2DMSArray},
+            {"sampler1DShadow", SamplerType::Sampler1DShadow},
+            {"sampler2DShadow", SamplerType::Sampler2DShadow},
+            {"samplerCubeShadow", SamplerType::SamplerCubeShadow},
+            {"sampler2DRectShadow", SamplerType::Sampler2DRectShadow},
+            {"sampler1DArrayShadow", SamplerType::Sampler1DArrayShadow},
+            {"sampler2DArrayShadow", SamplerType::Sampler2DArrayShadow},
+            {"samplerCubeArrayShadow", SamplerType::SamplerCubeArrayShadow},
+        };
+        ShaderConstantType samplerType = pipe.fragmentShader.reflection->readOnlyResources[unit].variableType;
+        std::string samplerName = samplerType.name.c_str();
+        if(samplerTypesFromString.count(samplerName))
+        {
+            pipe.samplers[unit].type = samplerTypesFromString[samplerName];
+        }
+        else {
+            pipe.samplers[unit].type = SamplerType::Unknown;
+        }
+
         // checking texture completeness is a pretty expensive operation since it requires a lot of
         // queries against the driver's texture properties.
         // We assume that if a texture and sampler are complete at any point, even if their

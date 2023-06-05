@@ -635,6 +635,34 @@ rdcstr DoStringise(const TextureType &el)
 }
 
 template <>
+rdcstr DoStringise(const SamplerType &el)
+{
+  BEGIN_ENUM_STRINGISE(SamplerType)
+  {
+    STRINGISE_ENUM_CLASS_NAMED(Unknown, "Unknown");
+    STRINGISE_ENUM_CLASS_NAMED(GSampler1D, "Sampler 1D");
+    STRINGISE_ENUM_CLASS_NAMED(GSampler2D, "Sampler 2D");
+    STRINGISE_ENUM_CLASS_NAMED(GSampler3D, "Sampler 3D");
+    STRINGISE_ENUM_CLASS_NAMED(GSamplerCube, "Sampler Cube");
+    STRINGISE_ENUM_CLASS_NAMED(GSampler2DRect, "Sampler 2D Rect");
+    STRINGISE_ENUM_CLASS_NAMED(GSampler1DArray, "Sampler 1D Array");
+    STRINGISE_ENUM_CLASS_NAMED(GSampler2DArray, "Sampler 2D Array");
+    STRINGISE_ENUM_CLASS_NAMED(GSamplerCubeArray, "Sampler Cube Array");
+    STRINGISE_ENUM_CLASS_NAMED(GSamplerBuffer, "Sampler Buffer");
+    STRINGISE_ENUM_CLASS_NAMED(GSampler2DMS, "Sampler 2D MS");
+    STRINGISE_ENUM_CLASS_NAMED(GSampler2DMSArray, "Sampler 2D MS Array");
+    STRINGISE_ENUM_CLASS_NAMED(Sampler1DShadow, "Sampler 1D Shadow");
+    STRINGISE_ENUM_CLASS_NAMED(Sampler2DShadow, "Sampler 2D Shadow");
+    STRINGISE_ENUM_CLASS_NAMED(SamplerCubeShadow, "Sampler Cube Shadow");
+    STRINGISE_ENUM_CLASS_NAMED(Sampler2DRectShadow, "Sampler 2D Rect Shadow");
+    STRINGISE_ENUM_CLASS_NAMED(Sampler1DArrayShadow, "Sampler 1D Array Shadow");
+    STRINGISE_ENUM_CLASS_NAMED(Sampler2DArrayShadow, "Sampler 2D Array Shadow");
+    STRINGISE_ENUM_CLASS_NAMED(SamplerCubeArrayShadow, "Sampler Cube Array Shadow");
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const ShaderBuiltin &el)
 {
   BEGIN_ENUM_STRINGISE(ShaderBuiltin)

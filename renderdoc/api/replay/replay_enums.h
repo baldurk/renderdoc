@@ -755,6 +755,43 @@ enum class TextureType : uint16_t
 ITERABLE_OPERATORS(TextureType);
 DECLARE_REFLECTION_ENUM(TextureType);
 
+DOCUMENT(R"(The type of the sampler in the shader.
+
+.. data:: Unknown
+
+  An unknown type of texture.
+
+.. data:: Buffer
+
+  A texel buffer.
+)");
+enum class SamplerType : uint16_t
+{
+  Unknown,
+  GSampler1D,
+  GSampler2D,
+  GSampler3D,
+  GSamplerCube,
+  GSampler2DRect,
+  GSampler1DArray,
+  GSampler2DArray,
+  GSamplerCubeArray,
+  GSamplerBuffer,
+  GSampler2DMS,
+  GSampler2DMSArray,
+  Sampler1DShadow,
+  Sampler2DShadow,
+  SamplerCubeShadow,
+  Sampler2DRectShadow,
+  Sampler1DArrayShadow,
+  Sampler2DArrayShadow,
+  SamplerCubeArrayShadow,
+  Count,
+};
+
+ITERABLE_OPERATORS(SamplerType);
+DECLARE_REFLECTION_ENUM(SamplerType);
+
 DOCUMENT(R"(The type of a shader resource bind.
 
 .. data:: Unknown
