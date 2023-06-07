@@ -2256,6 +2256,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
         // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
         // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
         // the first sub-draw in that range.
+
+        m_CurEventID += (uint32_t)drawcount;
       }
       else if(m_FirstEventID <= baseEventID)
       {
@@ -2264,6 +2266,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
         // works if we're replaying from the first multidraw to the nth (n less than drawcount)
         GL.glMultiDrawArrays(mode, first, count,
                              RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID));
+
+        m_CurEventID += (uint32_t)drawcount;
       }
       else
       {
@@ -2284,9 +2288,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
           modcount[d] = 0;
 
         GL.glMultiDrawArrays(mode, first, count, lastDrawIdx + 1);
-      }
 
-      m_CurEventID += (uint32_t)drawcount;
+        m_CurEventID += (uint32_t)RDCMIN((uint32_t)drawcount, lastDrawIdx - firstDrawIdx);
+      }
     }
   }
 
@@ -2420,6 +2424,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
         // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
         // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
         // the first sub-draw in that range.
+
+        m_CurEventID += (uint32_t)drawcount;
       }
       else if(m_FirstEventID <= baseEventID)
       {
@@ -2429,6 +2435,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
         if(drawcount == 0 || count == 0 || Check_SafeDraw(true))
           GL.glMultiDrawElements(mode, count, type, inds.data(),
                                  RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID));
+
+        m_CurEventID += (uint32_t)drawcount;
       }
       else
       {
@@ -2450,9 +2458,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
 
         if(count == 0 || Check_SafeDraw(true))
           GL.glMultiDrawElements(mode, count, type, inds.data(), lastDrawIdx + 1);
-      }
 
-      m_CurEventID += (uint32_t)drawcount;
+        m_CurEventID += (uint32_t)RDCMIN((uint32_t)drawcount, lastDrawIdx - firstDrawIdx);
+      }
     }
   }
 
@@ -2589,6 +2597,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
         // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
         // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
         // the first sub-draw in that range.
+
+        m_CurEventID += (uint32_t)drawcount;
       }
       else if(m_FirstEventID <= baseEventID)
       {
@@ -2599,6 +2609,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
           GL.glMultiDrawElementsBaseVertex(mode, count, type, inds.data(),
                                            RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID),
                                            basevertex);
+
+        m_CurEventID += (uint32_t)drawcount;
       }
       else
       {
@@ -2621,9 +2633,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
         if(count == 0 || Check_SafeDraw(true))
           GL.glMultiDrawElementsBaseVertex(mode, count, type, inds.data(), lastDrawIdx + 1,
                                            basevertex);
-      }
 
-      m_CurEventID += (uint32_t)drawcount;
+        m_CurEventID += (uint32_t)RDCMIN((uint32_t)drawcount, lastDrawIdx - firstDrawIdx);
+      }
     }
   }
 
@@ -2777,6 +2789,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
         // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
         // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
         // the first sub-draw in that range.
+
+        m_CurEventID += drawcount;
       }
       else if(m_FirstEventID <= baseEventID)
       {
@@ -2787,6 +2801,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
           GL.glMultiDrawArraysIndirect(mode, (const void *)offset,
                                        RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID),
                                        stride);
+
+        m_CurEventID += drawcount;
       }
       else
       {
@@ -2839,9 +2855,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
 
           GL.glBindBuffer(eGL_DRAW_INDIRECT_BUFFER, prevBuf);
         }
-      }
 
-      m_CurEventID += drawcount;
+        m_CurEventID += (uint32_t)RDCMIN((uint32_t)drawcount, lastDrawIdx - firstDrawIdx);
+      }
     }
   }
 
@@ -3003,6 +3019,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
         // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
         // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
         // the first sub-draw in that range.
+
+        m_CurEventID += drawcount;
       }
       else if(m_FirstEventID <= baseEventID)
       {
@@ -3013,6 +3031,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
           GL.glMultiDrawElementsIndirect(mode, type, (const void *)offset,
                                          RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID),
                                          stride);
+
+        m_CurEventID += drawcount;
       }
       else
       {
@@ -3065,9 +3085,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
 
           GL.glBindBuffer(eGL_DRAW_INDIRECT_BUFFER, prevBuf);
         }
-      }
 
-      m_CurEventID += drawcount;
+        m_CurEventID += (uint32_t)RDCMIN((uint32_t)drawcount, lastDrawIdx - firstDrawIdx);
+      }
     }
   }
 
@@ -3229,6 +3249,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
         // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
         // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
         // the first sub-draw in that range.
+
+        m_CurEventID += realdrawcount;
       }
       else if(m_FirstEventID <= baseEventID)
       {
@@ -3239,6 +3261,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
           GL.glMultiDrawArraysIndirect(mode, (const void *)offset,
                                        RDCMIN((uint32_t)realdrawcount, m_LastEventID - baseEventID),
                                        stride);
+
+        m_CurEventID += realdrawcount;
       }
       else
       {
@@ -3291,9 +3315,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
 
           GL.glBindBuffer(eGL_DRAW_INDIRECT_BUFFER, prevBuf);
         }
-      }
 
-      m_CurEventID += realdrawcount;
+        m_CurEventID += (uint32_t)RDCMIN((uint32_t)realdrawcount, lastDrawIdx - firstDrawIdx);
+      }
     }
   }
 
@@ -3464,6 +3488,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
         // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
         // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
         // the first sub-draw in that range.
+
+        m_CurEventID += realdrawcount;
       }
       else if(m_FirstEventID <= baseEventID)
       {
@@ -3474,6 +3500,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
           GL.glMultiDrawElementsIndirect(
               mode, type, (const void *)offset,
               RDCMIN((uint32_t)realdrawcount, m_LastEventID - baseEventID), stride);
+
+        m_CurEventID += realdrawcount;
       }
       else
       {
@@ -3526,9 +3554,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
 
           GL.glBindBuffer(eGL_DRAW_INDIRECT_BUFFER, prevBuf);
         }
-      }
 
-      m_CurEventID += realdrawcount;
+        m_CurEventID += (uint32_t)RDCMIN((uint32_t)realdrawcount, lastDrawIdx - firstDrawIdx);
+      }
     }
   }
 
