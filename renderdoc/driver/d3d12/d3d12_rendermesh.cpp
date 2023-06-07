@@ -251,6 +251,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
   if(!list)
     return;
 
+  D3D12MarkerRegion::Begin(list, StringFormat::Fmt("RenderMesh(%u)", eventId));
+
   list->OMSetRenderTargets(1, &outw.rtv, TRUE, &outw.dsv);
 
   D3D12_VIEWPORT viewport = {0, 0, (float)outw.width, (float)outw.height, 0.0f, 1.0f};
@@ -308,6 +310,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
   if(!secondaryDraws.empty())
   {
+    D3D12MarkerRegion region(list, "Secondary draws");
+
     ID3D12RootSignature *rootSig = NULL;
 
     for(size_t i = 0; i < secondaryDraws.size(); i++)
@@ -380,6 +384,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
   if(cfg.position.vertexResourceId != ResourceId())
   {
+    D3D12MarkerRegion::Set(list, "Primary");
+
     ID3D12Resource *vb =
         m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.vertexResourceId);
 
@@ -413,6 +419,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
   if(solidShadeMode == SolidShade::Secondary)
   {
+    D3D12MarkerRegion::Set(list, "Secondary");
+
     ID3D12Resource *vb =
         m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.vertexResourceId);
 
@@ -434,6 +442,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
   // solid render
   if(solidShadeMode != SolidShade::NoSolid && cfg.position.topology < Topology::PatchList)
   {
+    D3D12MarkerRegion region(list, "Solid render");
+
     ID3D12PipelineState *pipe = NULL;
     switch(solidShadeMode)
     {
@@ -500,6 +510,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
   if(solidShadeMode == SolidShade::NoSolid || cfg.wireframeDraw ||
      cfg.position.topology >= Topology::PatchList)
   {
+    D3D12MarkerRegion region(list, "Wireframe render");
+
     Vec4f wireCol =
         Vec4f(cfg.position.meshColor.x, cfg.position.meshColor.y, cfg.position.meshColor.z, 1.0f);
 
@@ -558,6 +570,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
   if(cfg.showBBox)
   {
+    D3D12MarkerRegion region(list, "Bounding box");
+
     Vec4f a = Vec4f(cfg.minBounds.x, cfg.minBounds.y, cfg.minBounds.z, cfg.minBounds.w);
     Vec4f b = Vec4f(cfg.maxBounds.x, cfg.maxBounds.y, cfg.maxBounds.z, cfg.maxBounds.w);
 
@@ -603,6 +617,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
   // draw axis helpers
   if(!cfg.position.unproject)
   {
+    D3D12MarkerRegion region(list, "Axis helpers");
+
     Vec4f axismarker[6] = {
         Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f),
         Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f),
@@ -638,6 +654,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
   // 'fake' helper frustum
   if(cfg.position.unproject)
   {
+    D3D12MarkerRegion region(list, "Frustum");
+
     Vec4f TLN = Vec4f(-1.0f, 1.0f, 0.0f, 1.0f);    // TopLeftNear, etc...
     Vec4f TRN = Vec4f(1.0f, 1.0f, 0.0f, 1.0f);
     Vec4f BLN = Vec4f(-1.0f, -1.0f, 0.0f, 1.0f);
@@ -680,6 +698,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
   // show highlighted vertex
   if(cfg.highlightVert != ~0U)
   {
+    D3D12MarkerRegion region(list, "Highlighted Vertex");
+
     m_HighlightCache.CacheHighlightingData(eventId, cfg);
 
     Topology meshtopo = cfg.position.topology;
@@ -849,6 +869,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
       }
     }
   }
+
+  D3D12MarkerRegion::End(list);
 
   list->Close();
 
