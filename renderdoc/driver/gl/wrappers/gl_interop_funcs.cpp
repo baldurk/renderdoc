@@ -131,6 +131,9 @@ HANDLE WrappedOpenGL::wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLui
 
     GL.glTextureParameteriEXT(wrapped->res.name, type, eGL_TEXTURE_MAX_LEVEL, GLint(mips - 1));
 
+    // consume any errors
+    ClearGLErrors();
+
     ResourceId texId = record->GetResourceID();
     m_Textures[texId].resource = wrapped->res;
     m_Textures[texId].curType = type;
