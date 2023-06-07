@@ -698,6 +698,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
   // show highlighted vertex
   if(cfg.highlightVert != ~0U)
   {
+    vertexData.homogenousInput = cfg.position.unproject;
+
     D3D12MarkerRegion region(list, "Highlighted Vertex");
 
     m_HighlightCache.CacheHighlightingData(eventId, cfg);
