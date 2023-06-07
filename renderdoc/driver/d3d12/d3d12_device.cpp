@@ -652,6 +652,18 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_FrameCaptureRecord = NULL;
 
     ResourceIDGen::SetReplayResourceIDs();
+
+    HMODULE D3D12Core = GetModuleHandleA("D3D12Core.dll");
+    if(D3D12Core != NULL)
+    {
+      DWORD *ver_ptr = (DWORD *)GetProcAddress(D3D12Core, "D3D12SDKVersion");
+
+      if(ver_ptr && *ver_ptr >= 700 && *ver_ptr <= 706)
+      {
+        RDCLOG("Disabling new barrier support on older beta SDK");
+        m_D3D12Opts12.EnhancedBarriersSupported = FALSE;
+      }
+    }
   }
   else
   {
