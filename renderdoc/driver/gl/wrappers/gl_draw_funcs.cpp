@@ -4165,7 +4165,8 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferDataEXT(SerialiserType &ser, GLu
       case eGL_UNSIGNED_BYTE:
       case eGL_BYTE: s *= 1; break;
       case eGL_UNSIGNED_SHORT:
-      case eGL_SHORT: s *= 2; break;
+      case eGL_SHORT:
+      case eGL_HALF_FLOAT: s *= 2; break;
       case eGL_UNSIGNED_INT:
       case eGL_INT:
       case eGL_FLOAT: s *= 4; break;
@@ -4318,7 +4319,8 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferSubDataEXT(SerialiserType &ser, 
       case eGL_UNSIGNED_BYTE:
       case eGL_BYTE: s *= 1; break;
       case eGL_UNSIGNED_SHORT:
-      case eGL_SHORT: s *= 2; break;
+      case eGL_SHORT:
+      case eGL_HALF_FLOAT: s *= 2; break;
       case eGL_UNSIGNED_INT:
       case eGL_INT:
       case eGL_FLOAT: s *= 4; break;
@@ -4620,7 +4622,8 @@ bool WrappedOpenGL::Serialise_glClearTexImage(SerialiserType &ser, GLuint textur
       case eGL_UNSIGNED_BYTE:
       case eGL_BYTE: s *= 1; break;
       case eGL_UNSIGNED_SHORT:
-      case eGL_SHORT: s *= 2; break;
+      case eGL_SHORT:
+      case eGL_HALF_FLOAT: s *= 2; break;
       case eGL_UNSIGNED_INT:
       case eGL_INT:
       case eGL_FLOAT: s *= 4; break;
@@ -4767,7 +4770,8 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(SerialiserType &ser, GLuint tex
       case eGL_UNSIGNED_BYTE:
       case eGL_BYTE: s *= 1; break;
       case eGL_UNSIGNED_SHORT:
-      case eGL_SHORT: s *= 2; break;
+      case eGL_SHORT:
+      case eGL_HALF_FLOAT: s *= 2; break;
       case eGL_UNSIGNED_INT:
       case eGL_INT:
       case eGL_FLOAT: s *= 4; break;
