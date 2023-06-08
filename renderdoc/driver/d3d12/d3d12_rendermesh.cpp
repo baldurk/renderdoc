@@ -358,19 +358,23 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
         if(fmt.indexByteStride)
         {
-          if(fmt.indexResourceId != ResourceId())
-          {
-            ID3D12Resource *ib =
-                m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(fmt.indexResourceId);
+          ID3D12Resource *ib =
+              m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(fmt.indexResourceId);
 
+          if(ib)
+          {
             D3D12_INDEX_BUFFER_VIEW iview;
             iview.BufferLocation = ib->GetGPUVirtualAddress() + fmt.indexByteOffset;
             iview.SizeInBytes = (UINT)fmt.indexByteSize;
             iview.Format = fmt.indexByteStride == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
             list->IASetIndexBuffer(&iview);
-
-            list->DrawIndexedInstanced(fmt.numIndices, 1, 0, fmt.baseVertex, 0);
           }
+          else
+          {
+            list->IASetIndexBuffer(NULL);
+          }
+
+          list->DrawIndexedInstanced(fmt.numIndices, 1, 0, fmt.baseVertex, 0);
         }
         else
         {
@@ -486,19 +490,23 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
     if(cfg.position.indexByteStride)
     {
-      if(cfg.position.indexResourceId != ResourceId())
-      {
-        ID3D12Resource *ib = m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(
-            cfg.position.indexResourceId);
+      ID3D12Resource *ib =
+          m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.indexResourceId);
 
+      if(ib)
+      {
         D3D12_INDEX_BUFFER_VIEW view;
         view.BufferLocation = ib->GetGPUVirtualAddress() + cfg.position.indexByteOffset;
         view.SizeInBytes = (UINT)cfg.position.indexByteSize;
         view.Format = cfg.position.indexByteStride == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
         list->IASetIndexBuffer(&view);
-
-        list->DrawIndexedInstanced(cfg.position.numIndices, 1, 0, cfg.position.baseVertex, 0);
       }
+      else
+      {
+        list->IASetIndexBuffer(NULL);
+      }
+
+      list->DrawIndexedInstanced(cfg.position.numIndices, 1, 0, cfg.position.baseVertex, 0);
     }
     else
     {
@@ -529,16 +537,23 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
     list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
 
-    if(cfg.position.indexByteStride && cfg.position.indexResourceId != ResourceId())
+    if(cfg.position.indexByteStride)
     {
       ID3D12Resource *ib =
           m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.indexResourceId);
 
-      D3D12_INDEX_BUFFER_VIEW view;
-      view.BufferLocation = ib->GetGPUVirtualAddress() + cfg.position.indexByteOffset;
-      view.SizeInBytes = (UINT)cfg.position.indexByteSize;
-      view.Format = cfg.position.indexByteStride == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
-      list->IASetIndexBuffer(&view);
+      if(ib)
+      {
+        D3D12_INDEX_BUFFER_VIEW view;
+        view.BufferLocation = ib->GetGPUVirtualAddress() + cfg.position.indexByteOffset;
+        view.SizeInBytes = (UINT)cfg.position.indexByteSize;
+        view.Format = cfg.position.indexByteStride == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+        list->IASetIndexBuffer(&view);
+      }
+      else
+      {
+        list->IASetIndexBuffer(NULL);
+      }
 
       list->DrawIndexedInstanced(cfg.position.numIndices, 1, 0, cfg.position.baseVertex, 0);
     }

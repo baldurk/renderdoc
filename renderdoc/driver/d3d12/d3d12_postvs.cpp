@@ -1495,6 +1495,11 @@ MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint
     ret.indexByteStride = s.idxFmt == DXGI_FORMAT_R16_UINT ? 2 : 4;
     ret.indexByteSize = ~0ULL;
   }
+  else if(s.useIndices)
+  {
+    // indicate that an index buffer is still needed
+    ret.indexByteStride = 4;
+  }
   else
   {
     ret.indexResourceId = ResourceId();

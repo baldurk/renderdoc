@@ -2138,7 +2138,7 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
 
   cbuf.PickCoords = Vec2f((float)x, (float)y);
   cbuf.PickViewport = Vec2f((float)width, (float)height);
-  cbuf.PickIdx = cfg.position.indexByteStride ? 1 : 0;
+  cbuf.PickIdx = cfg.position.indexByteStride && cfg.position.indexResourceId != ResourceId() ? 1 : 0;
   cbuf.PickNumVerts = cfg.position.numIndices;
   cbuf.PickUnproject = cfg.position.unproject ? 1 : 0;
   cbuf.PickFlipY = cfg.position.flipY;
@@ -2489,6 +2489,13 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
   }
   else
   {
+    if(cfg.position.indexByteStride)
+    {
+      maxIndex = 0;
+      if(cfg.position.baseVertex > 0)
+        minIndex = maxIndex = (uint32_t)cfg.position.baseVertex;
+    }
+
     sdesc.Buffer.NumElements = 4;
     m_pDevice->CreateShaderResourceView(NULL, &sdesc, GetDebugManager()->GetCPUHandle(PICK_IB_SRV));
   }
