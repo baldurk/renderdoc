@@ -772,7 +772,7 @@ bool SettingsDialog::editTool(int existing, ShaderProcessingTool &tool)
   grid.addWidget(lab, 4, 0, 1, 1);
 
   QLineEdit nameEdit;
-  nameEdit.setPlaceholderText(lit("Tool Name"));
+  nameEdit.setPlaceholderText(tr("Tool Name"));
   nameEdit.setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
   nameEdit.setMinimumHeight(20);
 
@@ -857,6 +857,8 @@ bool SettingsDialog::editTool(int existing, ShaderProcessingTool &tool)
       executableEdit.setText(filename);
   });
 
+  QString customName;
+
   QObject::connect(&toolEdit, OverloadedSlot<int>::of(&QComboBox::currentIndexChanged),
                    [&](int index) {
                      if(index > 0)
@@ -866,12 +868,22 @@ bool SettingsDialog::editTool(int existing, ShaderProcessingTool &tool)
                        // -1 because we skip ShaderEncoding::Unknown
                        inputEdit.setCurrentIndex(int(ToolInput(tool)) - 1);
                        outputEdit.setCurrentIndex(int(ToolOutput(tool)) - 1);
+
+                       // save the current custom name if it was editable, in case the user
+                       // re-selects the custom tool entry
+                       if(nameEdit.isEnabled())
+                         customName = nameEdit.text();
+                       nameEdit.setEnabled(false);
+                       nameEdit.setText(ToQStr(tool));
+
                        argsEdit.setEnabled(false);
                        inputEdit.setEnabled(false);
                        outputEdit.setEnabled(false);
                      }
                      else
                      {
+                       nameEdit.setEnabled(true);
+                       nameEdit.setText(customName);
                        argsEdit.setEnabled(true);
                        inputEdit.setEnabled(true);
                        outputEdit.setEnabled(true);
@@ -950,8 +962,19 @@ bool SettingsDialog::editTool(int existing, ShaderProcessingTool &tool)
 
         if(tool.name == m_Ctx.Config().ShaderProcessors[i].name)
         {
+          if(tool.tool != KnownShaderTool::Unknown)
+          {
+            message = tr("The builtin tool '%1' already exists, "
+                         "please edit that entry directly if you wish to choose a custom path.")
+                          .arg(tool.name);
+          }
+          else
+          {
+            message = tr("There's already a tool named '%1', "
+                         "please select another name or edit that entry directly.")
+                          .arg(tool.name);
+          }
           invalid = true;
-          message = tr("There's already a tool named '%1', please select another.").arg(tool.name);
           break;
         }
       }
