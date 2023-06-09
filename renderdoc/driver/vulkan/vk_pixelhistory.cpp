@@ -785,7 +785,7 @@ protected:
           // set blend state to source=0 and dest=1 with ADD, which is equivalent to a disabled
           // write mask
           atts[i].srcColorBlendFactor = atts[i].srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-          atts[i].srcColorBlendFactor = atts[i].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+          atts[i].dstColorBlendFactor = atts[i].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
           atts[i].colorBlendOp = atts[i].alphaBlendOp = VK_BLEND_OP_ADD;
           atts[i].blendEnable = VK_TRUE;
         }
