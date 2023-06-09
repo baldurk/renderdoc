@@ -771,8 +771,6 @@ StreamWriter::StreamWriter(Compressor *compressor, Ownership own)
 
 StreamWriter::~StreamWriter()
 {
-  FreeAlignedBuffer(m_BufferBase);
-
   if(m_Ownership == Ownership::Stream)
   {
     if(m_File)
@@ -789,6 +787,8 @@ StreamWriter::~StreamWriter()
 
   for(StreamCloseCallback cb : m_Callbacks)
     cb();
+
+  FreeAlignedBuffer(m_BufferBase);
 }
 
 bool StreamWriter::SendSocketData(const void *data, uint64_t numBytes)
