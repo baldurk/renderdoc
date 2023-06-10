@@ -1375,7 +1375,9 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
         bool srcIsCompressed = IsCompressedFormat(srcData.internalFormat);
         GLenum srcFmt = srcIsCompressed ? eGL_NONE : GetBaseFormat(srcData.internalFormat);
         GLenum srcType = srcIsCompressed ? eGL_NONE : GetDataType(srcData.internalFormat);
-
+        rdcfixedarray<uint32_t, 3> srcBlockSize =
+            srcIsCompressed ? GetCompressedBlockSize(srcData.internalFormat)
+                            : rdcfixedarray<uint32_t, 3>{1u, 1u, 1u};
         GLsizei srcLevelWidth = RDCMAX(1, srcData.width >> srcLevel);
         GLsizei srcLevelHeight = (srcData.curType != eGL_TEXTURE_1D_ARRAY)
                                      ? RDCMAX(1, srcData.height >> srcLevel)
@@ -1384,7 +1386,13 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
                                  srcData.curType != eGL_TEXTURE_CUBE_MAP_ARRAY)
                                     ? RDCMAX(1, srcData.depth >> srcLevel)
                                     : srcData.depth;
+        size_t srcSize =
+            srcIsCompressed
+                ? GetCompressedByteSize(srcLevelWidth, srcLevelHeight, srcLevelDepth,
+                                        srcData.internalFormat)
+                : GetByteSize(srcLevelWidth, srcLevelHeight, srcLevelDepth, srcFmt, srcType);
 
+        rdcfixedarray<uint32_t, 3> dstBlockSize = GetCompressedBlockSize(dstData.internalFormat);
         GLsizei dstLevelWidth = RDCMAX(1, dstData.width >> dstLevel);
         GLsizei dstLevelHeight = (dstData.curType != eGL_TEXTURE_1D_ARRAY)
                                      ? RDCMAX(1, dstData.height >> dstLevel)
@@ -1393,46 +1401,58 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
                                  dstData.curType != eGL_TEXTURE_CUBE_MAP_ARRAY)
                                     ? RDCMAX(1, dstData.depth >> dstLevel)
                                     : dstData.depth;
+        size_t dstSize = GetCompressedByteSize(dstLevelWidth, dstLevelHeight, dstLevelDepth,
+                                               dstData.internalFormat);
 
-        bytebuf srcCd;
+        bytebuf *srcCdPtr = NULL;
+        bytebuf tempCd;
         // if we have source compressed data to copy
         if(srcData.compressedData.find(srcLevel) != srcData.compressedData.end())
         {
-          // TODO: avoid copy
-          srcCd = srcData.compressedData[srcLevel];
+          srcCdPtr = &srcData.compressedData[srcLevel];
         }
-        else if(!srcIsCompressed &&
-                (srcData.curType == eGL_TEXTURE_2D || srcData.curType == eGL_TEXTURE_2D_ARRAY))
+        else if(!srcIsCompressed)
         {
-          // try reading back without existing compressedData
-          RDCASSERT(!srcIsCompressed);
+          if(srcData.curType == eGL_TEXTURE_2D || srcData.curType == eGL_TEXTURE_2D_ARRAY)
+          {
+            // try reading back without existing compressedData
+            RDCASSERT(!srcIsCompressed);
 
-          uint32_t size =
-              (uint32_t)GetByteSize(srcLevelWidth, srcLevelHeight, srcLevelDepth, srcFmt, srcType);
-          srcCd.resize(size);
+            tempCd.resize(srcSize);
+            srcCdPtr = &tempCd;
 
-          GLuint prevTex = 0;
-          GL.glGetIntegerv(srcData.curType == eGL_TEXTURE_2D ? eGL_TEXTURE_BINDING_2D
-                                                             : eGL_TEXTURE_BINDING_2D_ARRAY,
-                           (GLint *)&prevTex);
+            GLuint packbuf = 0;
+            GL.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, (GLint *)&packbuf);
+            GLint align = 1;
+            GL.glGetIntegerv(eGL_PACK_ALIGNMENT, &align);
 
-          GLenum oldActive = eGL_TEXTURE0;
-          GL.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&oldActive);
-          GL.glActiveTexture(eGL_TEXTURE0);
+            GLuint prevTex = 0;
+            GL.glGetIntegerv(TextureBinding(srcData.curType), (GLint *)&prevTex);
 
-          GL.glBindTexture(srcData.curType, srcName);
-          GL.glGetTexImage(srcData.curType, srcLevel, srcFmt, srcType, srcCd.data());
+            GLenum oldActive = eGL_TEXTURE0;
+            GL.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&oldActive);
+            GL.glActiveTexture(eGL_TEXTURE0);
 
-          GL.glBindTexture(srcData.curType, prevTex);
-          GL.glActiveTexture(oldActive);
+            GL.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
+            GL.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
+
+            GL.glBindTexture(srcData.curType, srcName);
+            GL.glGetTexImage(srcData.curType, srcLevel, srcFmt, srcType, tempCd.data());
+
+            GL.glBindTexture(srcData.curType, prevTex);
+            GL.glActiveTexture(oldActive);
+
+            if(packbuf)
+              GL.glBindBuffer(eGL_PIXEL_PACK_BUFFER, packbuf);
+            GL.glPixelStorei(eGL_PACK_ALIGNMENT, align);
+          }
+          else
+          {
+            RDCLOG("Unsupported format %d to copy from in glCopyImageSubData", srcData.curType);
+          }
         }
-        if(!srcCd.isEmpty())
+        if(srcCdPtr)
         {
-          rdcfixedarray<uint32_t, 3> srcBlockSize =
-              srcIsCompressed ? GetCompressedBlockSize(srcData.internalFormat)
-                              : rdcfixedarray<uint32_t, 3>{1u, 1u, 1u};
-          rdcfixedarray<uint32_t, 3> dstBlockSize = GetCompressedBlockSize(dstData.internalFormat);
-
           RDCASSERT(srcWidth % srcBlockSize[0] == 0);
           RDCASSERT(srcHeight % srcBlockSize[1] == 0);
           RDCASSERT(srcDepth % srcBlockSize[2] == 0);
@@ -1442,21 +1462,12 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
           RDCASSERT(dstX % dstBlockSize[0] == 0);
           RDCASSERT(dstY % dstBlockSize[1] == 0);
           RDCASSERT(dstZ % dstBlockSize[2] == 0);
-
-          size_t srcSize =
-              srcIsCompressed
-                  ? GetCompressedByteSize(srcLevelWidth, srcLevelHeight, srcLevelDepth,
-                                          srcData.internalFormat)
-                  : GetByteSize(srcLevelWidth, srcLevelHeight, srcLevelDepth, srcFmt, srcType);
-          size_t dstSize = GetCompressedByteSize(dstLevelWidth, dstLevelHeight, dstLevelDepth,
-                                                 dstData.internalFormat);
-
           if(srcX == 0 && srcY == 0 && srcZ == 0 && dstX == 0 && dstY == 0 && dstZ == 0 &&
-             srcLevelWidth == srcWidth && srcLevelHeight == srcHeight &&
-             srcLevelDepth == srcDepth && srcSize == dstSize)
+             srcWidth == srcLevelWidth && srcHeight == srcLevelHeight &&
+             srcDepth == srcLevelDepth && srcSize == dstSize)
           {
             // fast path when perform full copy
-            dstData.compressedData[dstLevel] = srcCd;
+            dstData.compressedData[dstLevel] = *srcCdPtr;
           }
           else
           {
@@ -1501,10 +1512,10 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
                                  dstRowSize * (dstY / (GLsizei)dstBlockSize[1]) + dstStartOffset;
               for(size_t y = 0; y < (size_t)srcHeight; y += srcBlockSize[1])
               {
-                RDCASSERT(srcCd.size() >= srcOffset + blockSize);
+                RDCASSERT(srcCdPtr->size() >= srcOffset + blockSize);
                 if(dstCd.size() < dstOffset + blockSize)
                   dstCd.resize(dstOffset + blockSize);
-                memcpy(dstCd.data() + dstOffset, srcCd.data() + srcOffset, blockSize);
+                memcpy(dstCd.data() + dstOffset, srcCdPtr->data() + srcOffset, blockSize);
                 srcOffset += srcRowSize;
                 dstOffset += dstRowSize;
               }
