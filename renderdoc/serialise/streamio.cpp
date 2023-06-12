@@ -681,15 +681,17 @@ RDResult FileWriter::Flush()
     Threading::Sleep(1);
   }
 
+  RDResult ret;
+
   // flush the underlying file
   bool success = FileIO::fflush(m_File);
+  m_Lock.Lock();
   if(!success && m_Error == ResultCode::Succeeded)
   {
     SET_ERROR_RESULT(m_Error, ResultCode::FileIOFailed, "File flushing failed: %s",
                      FileIO::ErrorString().c_str());
   }
-  m_Lock.Lock();
-  RDResult ret = m_Error;
+  ret = m_Error;
   m_Lock.Unlock();
 
   return ret;
