@@ -36,10 +36,19 @@
 #include "vk_hookset_defs.h"
 #include "vk_resources.h"
 
-// this should be in the vulkan definition header
+// this was removed from the vulkan definition header
+#undef VK_LAYER_EXPORT
+#define VK_LAYER_EXPORT
 #if ENABLED(RDOC_WIN32)
+
 #undef VK_LAYER_EXPORT
 #define VK_LAYER_EXPORT extern "C" __declspec(dllexport)
+
+#elif ENABLED(RDOC_LINUX)
+
+#undef VK_LAYER_EXPORT
+#define VK_LAYER_EXPORT __attribute__((visibility("default")))
+
 #endif
 
 #if ENABLED(RDOC_ANDROID)
