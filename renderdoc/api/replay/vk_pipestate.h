@@ -855,6 +855,8 @@ See :data:`conservativeRasterizationMode`
 )");
   float extraPrimitiveOverestimationSize = 0.0f;
 
+  DOCUMENT("Whether the provoking vertex is the first one (default behaviour).");
+  bool provokingVertexFirst = true;
   DOCUMENT("Whether depth biasing is enabled.");
   bool depthBiasEnable = false;
   DOCUMENT("The fixed depth bias value to apply to z-values.");

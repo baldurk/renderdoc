@@ -478,6 +478,9 @@ struct VulkanCreationInfo
 
     // VkPipelineViewportDepthClipControlCreateInfoEXT
     bool negativeOneToOne;
+
+    // VkPipelineRasterizationProvokingVertexStateCreateInfoEXT
+    VkProvokingVertexModeEXT provokingVertex;
   };
   std::unordered_map<ResourceId, Pipeline> m_Pipeline;
 

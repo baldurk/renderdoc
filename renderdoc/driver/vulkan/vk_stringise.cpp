@@ -3112,6 +3112,17 @@ rdcstr DoStringise(const VkDeviceMemoryReportEventTypeEXT &el)
 }
 
 template <>
+rdcstr DoStringise(const VkProvokingVertexModeEXT &el)
+{
+  BEGIN_ENUM_STRINGISE(VkProvokingVertexModeEXT);
+  {
+    STRINGISE_ENUM(VK_PROVOKING_VERTEX_MODE_FIRST_VERTEX_EXT)
+    STRINGISE_ENUM(VK_PROVOKING_VERTEX_MODE_LAST_VERTEX_EXT)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const VkSemaphoreImportFlagBits &el)
 {
   BEGIN_BITFIELD_STRINGISE(VkSemaphoreImportFlagBits);

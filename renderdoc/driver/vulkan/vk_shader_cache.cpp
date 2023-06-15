@@ -990,6 +990,18 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
     ret.pNext = &shadingRate;
   }
 
+  static VkPipelineRasterizationProvokingVertexStateCreateInfoEXT provokeSetup = {
+      VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_PROVOKING_VERTEX_STATE_CREATE_INFO_EXT,
+  };
+
+  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_provoking_vertex)
+  {
+    provokeSetup.provokingVertexMode = pipeInfo.provokingVertex;
+
+    provokeSetup.pNext = rs.pNext;
+    rs.pNext = &provokeSetup;
+  }
+
   // never create derivatives
   ret.flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
 

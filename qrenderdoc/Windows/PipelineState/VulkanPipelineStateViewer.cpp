@@ -929,6 +929,7 @@ void VulkanPipelineStateViewer::clearState()
 
   ui->pipelineShadingRate->setText(tr("1x1"));
   ui->shadingRateCombiners->setText(tr("Keep, Keep"));
+  ui->provokingVertex->setText(tr("First"));
 
   ui->sampleCount->setText(lit("1"));
   ui->sampleShading->setPixmap(tick);
@@ -2599,6 +2600,8 @@ void VulkanPipelineStateViewer::setState()
       QFormatStr("%1, %2")
           .arg(ToQStr(state.rasterizer.shadingRateCombiners.first, GraphicsAPI::Vulkan))
           .arg(ToQStr(state.rasterizer.shadingRateCombiners.second, GraphicsAPI::Vulkan)));
+
+  ui->provokingVertex->setText(state.rasterizer.provokingVertexFirst ? tr("First") : tr("Last"));
 
   if(state.currentPass.renderpass.multiviews.isEmpty())
   {

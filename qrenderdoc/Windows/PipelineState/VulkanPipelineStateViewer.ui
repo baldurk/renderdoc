@@ -2328,6 +2328,37 @@
              </widget>
             </item>
             <item row="4" column="0">
+             <widget class="QLabel" name="label_10">
+              <property name="text">
+               <string>Provoking Vertex:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <widget class="QLabel" name="provokingVertex">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>First</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+              <property name="margin">
+               <number>4</number>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="0">
              <spacer name="rastVSpacer">
               <property name="orientation">
                <enum>Qt::Vertical</enum>

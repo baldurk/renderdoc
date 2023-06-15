@@ -546,7 +546,8 @@
   DeclExt(KHR_fragment_shading_rate);                 \
   DeclExt(EXT_attachment_feedback_loop_layout);       \
   DeclExt(EXT_pageable_device_local_memory);          \
-  DeclExt(EXT_swapchain_maintenance1);
+  DeclExt(EXT_swapchain_maintenance1);                \
+  DeclExt(EXT_provoking_vertex);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -663,7 +664,8 @@
   CheckExt(KHR_fragment_shading_rate, VKXX);                 \
   CheckExt(EXT_attachment_feedback_loop_layout, VKXX);       \
   CheckExt(EXT_pageable_device_local_memory, VKXX);          \
-  CheckExt(EXT_swapchain_maintenance1, VKXX);
+  CheckExt(EXT_swapchain_maintenance1, VKXX);                \
+  CheckExt(EXT_provoking_vertex, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \

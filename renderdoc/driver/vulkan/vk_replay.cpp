@@ -1448,6 +1448,9 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         break;
     }
 
+    ret.rasterizer.provokingVertexFirst =
+        p.provokingVertex == VK_PROVOKING_VERTEX_MODE_FIRST_VERTEX_EXT;
+
     ret.rasterizer.depthBiasEnable = state.depthBiasEnable != VK_FALSE;
     ret.rasterizer.depthBias = state.bias.depth;
     ret.rasterizer.depthBiasClamp = state.bias.biasclamp;

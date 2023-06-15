@@ -2156,6 +2156,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::Rasterizer &el)
   SERIALISE_MEMBER(conservativeRasterization);
   SERIALISE_MEMBER(extraPrimitiveOverestimationSize);
 
+  SERIALISE_MEMBER(provokingVertexFirst);
   SERIALISE_MEMBER(depthBiasEnable);
   SERIALISE_MEMBER(depthBias);
   SERIALISE_MEMBER(depthBiasClamp);

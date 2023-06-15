@@ -1245,6 +1245,16 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
   if(depthClipControl)
     negativeOneToOne = depthClipControl->negativeOneToOne != VK_FALSE;
 
+  // VkPipelineRasterizationProvokingVertexStateCreateInfoEXT
+  provokingVertex = VK_PROVOKING_VERTEX_MODE_FIRST_VERTEX_EXT;
+
+  const VkPipelineRasterizationProvokingVertexStateCreateInfoEXT *provokeInfo =
+      (const VkPipelineRasterizationProvokingVertexStateCreateInfoEXT *)FindNextStruct(
+          pCreateInfo->pRasterizationState,
+          VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_PROVOKING_VERTEX_STATE_CREATE_INFO_EXT);
+  if(provokeInfo)
+    provokingVertex = provokeInfo->provokingVertexMode;
+
   const VkPipelineLibraryCreateInfoKHR *libraryReference =
       (const VkPipelineLibraryCreateInfoKHR *)FindNextStruct(
           pCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR);
@@ -1317,6 +1327,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
         discardMode = pipeInfo.discardMode;
 
         negativeOneToOne = pipeInfo.negativeOneToOne;
+
+        provokingVertex = pipeInfo.provokingVertex;
 
         flags |= pipeInfo.flags;
       }
