@@ -528,7 +528,8 @@
          <string>Verify Buffer Access</string>
         </property>
        </widget>
-      </item><item>
+      </item>
+      <item>
        <widget class="QFrame" name="SoftMemoryLimitFrame">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
