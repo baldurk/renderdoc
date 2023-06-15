@@ -459,6 +459,20 @@ void D3D12GraphicsTest::PostDeviceCreate()
 
     infoqueue->AddStorageFilterEntries(&filter);
   }
+
+  {
+    ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_4_0");
+    ID3DBlobPtr psblob = Compile(D3DDefaultPixel, "main", "ps_4_0");
+
+    DefaultTriVB = MakeBuffer().Data(DefaultTri);
+
+    DefaultTriSig = MakeSig({});
+
+    DefaultTriPSO = MakePSO().RootSig(DefaultTriSig).InputLayout().VS(vsblob).PS(psblob);
+
+    ResourceBarrier(DefaultTriVB, D3D12_RESOURCE_STATE_COMMON,
+                    D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+  }
 }
 
 HRESULT D3D12GraphicsTest::EnumAdapterByLuid(LUID luid, IDXGIAdapterPtr &pAdapter)
@@ -584,6 +598,8 @@ ID3D12ResourcePtr D3D12GraphicsTest::StartUsingBackbuffer(ID3D12GraphicsCommandL
   if(useState != D3D12_RESOURCE_STATE_PRESENT)
     ResourceBarrier(cmd, bbTex[texIdx], D3D12_RESOURCE_STATE_PRESENT, useState);
 
+  BBRTV = MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(31);
+
   return bbTex[texIdx];
 }
 
@@ -621,6 +637,12 @@ void D3D12GraphicsTest::GPUSync()
   CHECK_HR(queue->Signal(m_GPUSyncFence, m_GPUSyncCounter));
   CHECK_HR(m_GPUSyncFence->SetEventOnCompletion(m_GPUSyncCounter, m_GPUSyncHandle));
   WaitForSingleObject(m_GPUSyncHandle, 10000);
+}
+
+void D3D12GraphicsTest::SubmitAndPresent(const std::vector<ID3D12GraphicsCommandListPtr> &cmds)
+{
+  Submit(cmds);
+  Present();
 }
 
 void D3D12GraphicsTest::Present()
@@ -1112,6 +1134,12 @@ void D3D12GraphicsTest::RSSetViewport(ID3D12GraphicsCommandListPtr cmd, D3D12_VI
 void D3D12GraphicsTest::RSSetScissorRect(ID3D12GraphicsCommandListPtr cmd, D3D12_RECT rect)
 {
   cmd->RSSetScissorRects(1, &rect);
+}
+
+void D3D12GraphicsTest::SetMainWindowViewScissor(ID3D12GraphicsCommandListPtr cmd)
+{
+  RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
+  RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
 }
 
 void D3D12GraphicsTest::OMSetRenderTargets(ID3D12GraphicsCommandListPtr cmd,

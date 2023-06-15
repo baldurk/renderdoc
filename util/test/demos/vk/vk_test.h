@@ -139,6 +139,9 @@ struct VulkanWindow : public GraphicsWindow, public VulkanCommands
   virtual ~VulkanWindow();
   void Shutdown();
 
+  vkh::RenderPassBeginInfo beginRP() { return vkh::RenderPassBeginInfo(rp, GetFB(), scissor); }
+  void setViewScissor(VkCommandBuffer cmd);
+
   size_t GetCount() { return imgs.size(); }
   VkImage GetImage(size_t idx = ~0U)
   {
@@ -197,12 +200,19 @@ struct VulkanGraphicsTest : public GraphicsTest
   VulkanWindow *MakeWindow(int width, int height, const char *title);
 
   bool Running();
-  VkImage StartUsingBackbuffer(VkCommandBuffer cmd, VkAccessFlags nextUse, VkImageLayout layout,
+  VkImage StartUsingBackbuffer(VkCommandBuffer cmd,
+                               VkAccessFlags nextUse = VK_ACCESS_TRANSFER_WRITE_BIT |
+                                                       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                               VkImageLayout layout = VK_IMAGE_LAYOUT_GENERAL,
                                VulkanWindow *window = NULL);
-  void FinishUsingBackbuffer(VkCommandBuffer cmd, VkAccessFlags prevUse, VkImageLayout layout,
+  void FinishUsingBackbuffer(VkCommandBuffer cmd,
+                             VkAccessFlags prevUse = VK_ACCESS_TRANSFER_WRITE_BIT |
+                                                     VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                             VkImageLayout layout = VK_IMAGE_LAYOUT_GENERAL,
                              VulkanWindow *window = NULL);
   void Submit(int index, int totalSubmits, const std::vector<VkCommandBuffer> &cmds,
               const std::vector<VkCommandBuffer> &seccmds = {});
+  void SubmitAndPresent(const std::vector<VkCommandBuffer> &cmds);
   void Present();
 
   VkPipelineShaderStageCreateInfo CompileShaderModule(
@@ -313,6 +323,9 @@ struct VulkanGraphicsTest : public GraphicsTest
   VulkanWindow *mainWindow = NULL;
 
   VulkanCommands *headlessCmds = NULL;
+
+  VkPipeline DefaultTriPipe;
+  AllocatedBuffer DefaultTriVB;
 
   // VMA
   bool vmaDedicated = false;

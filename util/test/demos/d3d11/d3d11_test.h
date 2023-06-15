@@ -174,6 +174,11 @@ struct D3D11GraphicsTest : public GraphicsTest
 
   DXGI_ADAPTER_DESC adapterDesc = {};
 
+  ID3D11VertexShaderPtr DefaultTriVS;
+  ID3D11PixelShaderPtr DefaultTriPS;
+
+  ID3D11BufferPtr DefaultTriVB;
+
   ID3D11VertexShaderPtr swapBlitVS;
   ID3D11PixelShaderPtr swapBlitPS;
 

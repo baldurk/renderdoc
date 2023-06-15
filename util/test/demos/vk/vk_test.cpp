@@ -751,6 +751,35 @@ bool VulkanGraphicsTest::Init()
 
   headlessCmds = new VulkanCommands(this);
 
+  {
+    VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());
+
+    vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
+
+    pipeCreateInfo.layout = layout;
+    pipeCreateInfo.renderPass = mainWindow->rp;
+
+    pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
+    pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
+        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(2, 0, DefaultA2V, uv),
+    };
+
+    pipeCreateInfo.stages = {
+        CompileShaderModule(VKDefaultVertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(VKDefaultPixel, ShaderLang::glsl, ShaderStage::frag, "main"),
+    };
+
+    DefaultTriPipe = createGraphicsPipeline(pipeCreateInfo);
+
+    DefaultTriVB = AllocatedBuffer(
+        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    DefaultTriVB.upload(DefaultTri);
+  }
+
   return true;
 }
 
@@ -875,6 +904,12 @@ void VulkanGraphicsTest::Submit(int index, int totalSubmits, const std::vector<V
     mainWindow->Submit(index, totalSubmits, cmds, seccmds, queue);
   else
     headlessCmds->Submit(cmds, seccmds, queue, VK_NULL_HANDLE, VK_NULL_HANDLE);
+}
+
+void VulkanGraphicsTest::SubmitAndPresent(const std::vector<VkCommandBuffer> &cmds)
+{
+  Submit(0, 1, cmds, {});
+  Present();
 }
 
 void VulkanGraphicsTest::Present()
@@ -1393,6 +1428,12 @@ VulkanWindow::~VulkanWindow()
   delete m_Win;
 }
 
+void VulkanWindow::setViewScissor(VkCommandBuffer cmd)
+{
+  vkCmdSetViewport(cmd, 0, 1, &viewport);
+  vkCmdSetScissor(cmd, 0, 1, &scissor);
+}
+
 bool VulkanWindow::CreateSwapchain()
 {
   std::lock_guard<std::mutex> lock(m_Test->mutex);
@@ -1672,22 +1713,6 @@ bool VulkanGraphicsTest::hasExt(const char *ext)
 {
   return std::find_if(devExts.begin(), devExts.end(),
                       [ext](const char *a) { return !strcmp(a, ext); }) != devExts.end();
-}
-
-template <>
-VkFormat vkh::_FormatFromObj<Vec4f>()
-{
-  return VK_FORMAT_R32G32B32A32_SFLOAT;
-}
-template <>
-VkFormat vkh::_FormatFromObj<Vec3f>()
-{
-  return VK_FORMAT_R32G32B32_SFLOAT;
-}
-template <>
-VkFormat vkh::_FormatFromObj<Vec2f>()
-{
-  return VK_FORMAT_R32G32_SFLOAT;
 }
 
 AllocatedImage::AllocatedImage(VulkanGraphicsTest *test, const VkImageCreateInfo &imgInfo,

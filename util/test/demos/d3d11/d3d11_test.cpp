@@ -339,6 +339,16 @@ float4 main(float4 pos : SV_Position) : SV_Target0
     swapBlitVS = CreateVS(Compile(D3DFullscreenQuadVertex, "main", "vs_4_0"));
     swapBlitPS = CreatePS(Compile(blitPixel, "main", "ps_5_0"));
   }
+
+  ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_4_0");
+  ID3DBlobPtr psblob = Compile(D3DDefaultPixel, "main", "ps_4_0");
+
+  CreateDefaultInputLayout(vsblob);
+
+  DefaultTriVS = CreateVS(vsblob);
+  DefaultTriPS = CreatePS(psblob);
+
+  DefaultTriVB = MakeBuffer().Vertex().Data(DefaultTri);
 }
 
 void D3D11GraphicsTest::Shutdown()

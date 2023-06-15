@@ -174,6 +174,8 @@ struct D3D12GraphicsTest : public GraphicsTest
   void RSSetViewport(ID3D12GraphicsCommandListPtr cmd, D3D12_VIEWPORT view);
   void RSSetScissorRect(ID3D12GraphicsCommandListPtr cmd, D3D12_RECT rect);
 
+  void SetMainWindowViewScissor(ID3D12GraphicsCommandListPtr cmd);
+
   void OMSetRenderTargets(ID3D12GraphicsCommandListPtr cmd,
                           const std::vector<ID3D12ResourcePtr> &rtvs, ID3D12ResourcePtr dsv);
   void OMSetRenderTargets(ID3D12GraphicsCommandListPtr cmd,
@@ -186,6 +188,7 @@ struct D3D12GraphicsTest : public GraphicsTest
   void FinishUsingBackbuffer(ID3D12GraphicsCommandListPtr cmd, D3D12_RESOURCE_STATES usedState);
   void Submit(const std::vector<ID3D12GraphicsCommandListPtr> &cmds);
   void GPUSync();
+  void SubmitAndPresent(const std::vector<ID3D12GraphicsCommandListPtr> &cmds);
   void Present();
 
   DXGI_FORMAT backbufferFmt = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -199,9 +202,14 @@ struct D3D12GraphicsTest : public GraphicsTest
 
   ID3D12ResourcePtr bbTex[2];
   uint32_t texIdx = 0;
+  D3D12_CPU_DESCRIPTOR_HANDLE BBRTV;
 
   ID3D12RootSignaturePtr swapBlitSig;
   ID3D12PipelineStatePtr swapBlitPso;
+
+  ID3D12ResourcePtr DefaultTriVB;
+  ID3D12RootSignaturePtr DefaultTriSig;
+  ID3D12PipelineStatePtr DefaultTriPSO;
 
   D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 

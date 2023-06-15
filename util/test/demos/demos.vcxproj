@@ -176,6 +176,7 @@
     <ClCompile Include="d3d11\d3d11_structured_buffer_nested.cpp" />
     <ClCompile Include="d3d11\d3d11_structured_buffer_read.cpp" />
     <ClCompile Include="d3d11\d3d11_swapchain_zoo.cpp" />
+    <ClCompile Include="d3d11\d3d11_template.cpp" />
     <ClCompile Include="d3d11\d3d11_test.cpp" />
     <ClCompile Include="d3d11\d3d11_texture_3d.cpp" />
     <ClCompile Include="d3d11\d3d11_texture_zoo.cpp" />
@@ -215,6 +216,7 @@
     <ClCompile Include="d3d12\d3d12_simple_dispatch.cpp" />
     <ClCompile Include="d3d12\d3d12_simple_triangle.cpp" />
     <ClCompile Include="d3d12\d3d12_swapchain_zoo.cpp" />
+    <ClCompile Include="d3d12\d3d12_template.cpp" />
     <ClCompile Include="d3d12\d3d12_test.cpp" />
     <ClCompile Include="d3d12\d3d12_texture_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_untyped_backbuffer_descriptor.cpp" />
@@ -269,6 +271,7 @@
     <ClCompile Include="gl\gl_spirv_shader.cpp" />
     <ClCompile Include="gl\gl_state_trashing.cpp" />
     <ClCompile Include="gl\gl_structured_buffer_nested.cpp" />
+    <ClCompile Include="gl\gl_template.cpp" />
     <ClCompile Include="gl\gl_test.cpp" />
     <ClCompile Include="gl\gl_test_linux.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
@@ -331,6 +334,7 @@
     <ClCompile Include="vk\vk_spec_constants.cpp" />
     <ClCompile Include="vk\vk_spirv_13_shaders.cpp" />
     <ClCompile Include="vk\vk_sync2.cpp" />
+    <ClCompile Include="vk\vk_template.cpp" />
     <ClCompile Include="vk\vk_texture_zoo.cpp" />
     <ClCompile Include="vk\vk_triangle_fan.cpp" />
     <ClCompile Include="vk\vk_buffer_truncation.cpp" />

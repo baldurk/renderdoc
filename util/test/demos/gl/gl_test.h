@@ -71,7 +71,12 @@ struct OpenGLGraphicsTest : public GraphicsTest
 
   bool vsync = false;
 
+  GLuint DefaultTriVAO;
+  GLuint DefaultTriVB;
+  GLuint DefaultTriProgram;
   GLuint swapBlitFBO;
+
+  static constexpr GLfloat DefaultClearCol[] = {0.2f, 0.2f, 0.2f, 1.0f};
 
   GraphicsWindow *mainWindow = NULL;
   void *mainContext = NULL;

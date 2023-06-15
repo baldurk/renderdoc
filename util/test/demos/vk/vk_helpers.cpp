@@ -24,6 +24,7 @@
 
 #include <assert.h>
 #include <algorithm>
+#include "../test_common.h"
 #include "vk_headers.h"
 
 #include "vk_helpers.h"
@@ -78,6 +79,22 @@ VkFormat _FormatFromObj<float>()
   return VK_FORMAT_R32_SFLOAT;
 }
 
+template <>
+VkFormat _FormatFromObj<Vec4f>()
+{
+  return VK_FORMAT_R32G32B32A32_SFLOAT;
+}
+template <>
+VkFormat _FormatFromObj<Vec3f>()
+{
+  return VK_FORMAT_R32G32B32_SFLOAT;
+}
+template <>
+VkFormat _FormatFromObj<Vec2f>()
+{
+  return VK_FORMAT_R32G32_SFLOAT;
+}
+
 void updateDescriptorSets(VkDevice device, const std::vector<VkWriteDescriptorSet> &writes,
                           const std::vector<VkCopyDescriptorSet> &copies)
 {
@@ -105,12 +122,30 @@ void cmdPipelineBarrier(VkCommandBuffer cmd, const std::vector<VkImageMemoryBarr
                        img.data());
 }
 
+void cmdClearImage(VkCommandBuffer cmd, VkImage img, const ClearColorValue &col, VkImageLayout layout)
+{
+  vkCmdClearColorImage(cmd, img, layout, col, 1, vkh::ImageSubresourceRange());
+}
+
+void cmdClearImage(VkCommandBuffer cmd, VkImage img, const ClearDepthStencilValue &ds,
+                   VkImageLayout layout)
+{
+  vkCmdClearDepthStencilImage(cmd, img, layout, ds, 1, vkh::ImageSubresourceRange());
+}
+
 void cmdBindVertexBuffers(VkCommandBuffer cmd, uint32_t firstBinding,
                           std::initializer_list<VkBuffer> bufs,
                           std::initializer_list<VkDeviceSize> offsets)
 {
   vkCmdBindVertexBuffers(cmd, firstBinding, (uint32_t)bufs.size(), &(*bufs.begin()),
                          &(*offsets.begin()));
+}
+
+void cmdBindVertexBuffers(VkCommandBuffer cmd, std::initializer_list<VkBuffer> bufs)
+{
+  VkDeviceSize offsets[32] = {};
+  TEST_ASSERT(bufs.size() < 32, "More than 32 VBs being bound");
+  vkCmdBindVertexBuffers(cmd, 0, (uint32_t)bufs.size(), &(*bufs.begin()), offsets);
 }
 
 void cmdBindDescriptorSets(VkCommandBuffer cmd, VkPipelineBindPoint pipelineBindPoint,

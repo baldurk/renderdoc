@@ -158,9 +158,18 @@ void cmdPipelineBarrier(VkCommandBuffer cmd, const std::vector<VkImageMemoryBarr
                         VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
                         VkDependencyFlags dependencyFlags = 0);
 
+struct ClearColorValue;
+struct ClearDepthStencilValue;
+void cmdClearImage(VkCommandBuffer cmd, VkImage img, const ClearColorValue &col,
+                   VkImageLayout layout = VK_IMAGE_LAYOUT_GENERAL);
+void cmdClearImage(VkCommandBuffer cmd, VkImage img, const ClearDepthStencilValue &ds,
+                   VkImageLayout layout = VK_IMAGE_LAYOUT_GENERAL);
+
 void cmdBindVertexBuffers(VkCommandBuffer cmd, uint32_t firstBinding,
                           std::initializer_list<VkBuffer> bufs,
-                          std::initializer_list<VkDeviceSize> offsets);
+                          std::initializer_list<VkDeviceSize> offsets = {});
+
+void cmdBindVertexBuffers(VkCommandBuffer cmd, std::initializer_list<VkBuffer> bufs);
 
 void cmdBindDescriptorSets(VkCommandBuffer cmd, VkPipelineBindPoint pipelineBindPoint,
                            VkPipelineLayout layout, uint32_t firstSet,
