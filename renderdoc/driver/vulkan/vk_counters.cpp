@@ -456,6 +456,8 @@ void VulkanReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
 {
   uint32_t maxEID = m_pDriver->GetMaxEID();
 
+  RDCASSERT(m_pAMDActionCallback == NULL);
+
   m_pAMDActionCallback = new VulkanAMDActionCallback(m_pDriver, this, *sampleIndex, *eventIDs);
 
   // replay the events to perform all the queries
@@ -502,7 +504,12 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersAMD(const rdcarray<GPUCounter
 
     eventIDs.clear();
 
+    // delete any callback from a previous pass, we only use it for EID aliasing
+    SAFE_DELETE(m_pAMDActionCallback);
+
     FillTimersAMD(&eventStartID, &sampleIndex, &eventIDs);
+
+    // leave this one alive, it will be deleted below
 
     m_pAMDCounters->EndPass();
   }
