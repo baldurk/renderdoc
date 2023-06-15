@@ -1423,8 +1423,8 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
 
             GLuint packbuf = 0;
             GL.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, (GLint *)&packbuf);
-            GLint align = 1;
-            GL.glGetIntegerv(eGL_PACK_ALIGNMENT, &align);
+            PixelPackState pack;
+            pack.Fetch(false);
 
             GLuint prevTex = 0;
             GL.glGetIntegerv(TextureBinding(srcData.curType), (GLint *)&prevTex);
@@ -1434,7 +1434,7 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
             GL.glActiveTexture(eGL_TEXTURE0);
 
             GL.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
-            GL.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
+            ResetPixelPackState(false, 1);
 
             GL.glBindTexture(srcData.curType, srcName);
             GL.glGetTexImage(srcData.curType, srcLevel, srcFmt, srcType, tempCd.data());
@@ -1444,7 +1444,7 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
 
             if(packbuf)
               GL.glBindBuffer(eGL_PIXEL_PACK_BUFFER, packbuf);
-            GL.glPixelStorei(eGL_PACK_ALIGNMENT, align);
+            pack.Apply(false);
           }
           else
           {
@@ -1462,9 +1462,15 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
           RDCASSERT(dstX % dstBlockSize[0] == 0);
           RDCASSERT(dstY % dstBlockSize[1] == 0);
           RDCASSERT(dstZ % dstBlockSize[2] == 0);
+          // copy full texture rather than subregion
           if(srcX == 0 && srcY == 0 && srcZ == 0 && dstX == 0 && dstY == 0 && dstZ == 0 &&
-             srcWidth == srcLevelWidth && srcHeight == srcLevelHeight &&
-             srcDepth == srcLevelDepth && srcSize == dstSize)
+             srcLevelWidth == srcWidth && srcLevelHeight == srcHeight && srcLevelDepth == srcDepth &&
+             // equal dimension after normalising for blocks/texels
+             (srcLevelWidth / srcBlockSize[0] == dstLevelWidth / dstBlockSize[0]) &&
+             (srcLevelHeight / srcBlockSize[1] == dstLevelHeight / dstBlockSize[1]) &&
+             (srcLevelDepth / srcBlockSize[2] == dstLevelDepth / dstBlockSize[2]) &&
+             // compatible size across formats
+             srcSize == dstSize)
           {
             // fast path when perform full copy
             dstData.compressedData[dstLevel] = *srcCdPtr;
