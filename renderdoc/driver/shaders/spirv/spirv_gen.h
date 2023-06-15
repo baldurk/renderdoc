@@ -120,11 +120,13 @@ enum class Generator : uint32_t
   MSPShaderCompiler = 29,
   SpvGenTwoSPIRVIRTools = 30,
   SkiaSkSL = 31,
-  SPIRVBeehiveToolkit = 32,
+  BeehiveSPIRVToolkit = 32,
   ShaderWriter = 33,
   SPIRVSmith = 34,
   Shady = 35,
   Taichi = 36,
+  HeroCCompiler = 37,
+  SparkSL = 38,
 };
 
 enum class ImageOperands : uint32_t
@@ -324,6 +326,7 @@ enum class SourceLanguage : uint32_t
   HLSL = 5,
   CPP_for_OpenCL = 6,
   SYCL = 7,
+  HERO_C = 8,
   Max,
   Invalid = ~0U,
 };
@@ -419,6 +422,9 @@ enum class ExecutionMode : uint32_t
   SubgroupsPerWorkgroupId = 37,
   LocalSizeId = 38,
   LocalSizeHintId = 39,
+  NonCoherentColorAttachmentReadEXT = 4169,
+  NonCoherentDepthAttachmentReadEXT = 4170,
+  NonCoherentStencilAttachmentReadEXT = 4171,
   SubgroupUniformControlFlowKHR = 4421,
   PostDepthCoverage = 4446,
   DenormPreserve = 4459,
@@ -459,6 +465,7 @@ enum class ExecutionMode : uint32_t
   NumSIMDWorkitemsINTEL = 5896,
   SchedulerTargetFmaxMhzINTEL = 5903,
   StreamingInterfaceINTEL = 6154,
+  RegisterMapInterfaceINTEL = 6160,
   NamedBarrierCountINTEL = 6417,
   Max,
   Invalid = ~0U,
@@ -479,6 +486,7 @@ enum class StorageClass : uint32_t
   AtomicCounter = 10,
   Image = 11,
   StorageBuffer = 12,
+  TileImageEXT = 4172,
   CallableDataNV = 5328,
   CallableDataKHR = 5328,
   IncomingCallableDataNV = 5329,
@@ -511,6 +519,7 @@ enum class Dim : uint32_t
   Rect = 4,
   Buffer = 5,
   SubpassData = 6,
+  TileImageDataEXT = 4173,
   Max,
   Invalid = ~0U,
 };
@@ -765,6 +774,8 @@ enum class Decoration : uint32_t
   MaxByteOffsetId = 47,
   NoSignedWrap = 4469,
   NoUnsignedWrap = 4470,
+  WeightTextureQCOM = 4487,
+  BlockMatchTextureQCOM = 4488,
   ExplicitInterpAMD = 4999,
   OverrideCoverageNV = 5248,
   PassthroughNV = 5250,
@@ -833,6 +844,17 @@ enum class Decoration : uint32_t
   SingleElementVectorINTEL = 6085,
   VectorComputeCallableFunctionINTEL = 6087,
   MediaBlockIOINTEL = 6140,
+  LatencyControlLabelINTEL = 6172,
+  LatencyControlConstraintINTEL = 6173,
+  ConduitKernelArgumentINTEL = 6175,
+  RegisterMapKernelArgumentINTEL = 6176,
+  MMHostInterfaceAddressWidthINTEL = 6177,
+  MMHostInterfaceDataWidthINTEL = 6178,
+  MMHostInterfaceLatencyINTEL = 6179,
+  MMHostInterfaceReadWriteModeINTEL = 6180,
+  MMHostInterfaceMaxBurstINTEL = 6181,
+  MMHostInterfaceWaitRequestINTEL = 6182,
+  StableKernelArgumentINTEL = 6183,
   Max,
   Invalid = ~0U,
 };
@@ -962,6 +984,7 @@ enum class BuiltIn : uint32_t
   HitKindNV = 5333,
   HitKindKHR = 5333,
   CurrentRayTimeNV = 5334,
+  HitTriangleVertexPositionsKHR = 5335,
   IncomingRayFlagsNV = 5351,
   IncomingRayFlagsKHR = 5351,
   RayGeometryIndexKHR = 5352,
@@ -1083,6 +1106,9 @@ enum class Capability : uint32_t
   ShaderViewportIndex = 70,
   UniformDecoration = 71,
   CoreBuiltinsARM = 4165,
+  TileImageColorReadAccessEXT = 4166,
+  TileImageDepthReadAccessEXT = 4167,
+  TileImageStencilReadAccessEXT = 4168,
   FragmentShadingRateKHR = 4422,
   SubgroupBallotKHR = 4423,
   DrawParameters = 4427,
@@ -1114,6 +1140,9 @@ enum class Capability : uint32_t
   RayQueryKHR = 4472,
   RayTraversalPrimitiveCullingKHR = 4478,
   RayTracingKHR = 4479,
+  TextureSampleWeightedQCOM = 4484,
+  TextureBoxFilterQCOM = 4485,
+  TextureBlockMatchQCOM = 4486,
   Float16ImageAMD = 5008,
   ImageGatherBiasLodAMD = 5009,
   FragmentMaskAMD = 5010,
@@ -1162,6 +1191,7 @@ enum class Capability : uint32_t
   UniformTexelBufferArrayNonUniformIndexingEXT = 5311,
   StorageTexelBufferArrayNonUniformIndexing = 5312,
   StorageTexelBufferArrayNonUniformIndexingEXT = 5312,
+  RayTracingPositionFetchKHR = 5336,
   RayTracingNV = 5340,
   RayTracingMotionBlurNV = 5341,
   VulkanMemoryModel = 5345,
@@ -1182,6 +1212,7 @@ enum class Capability : uint32_t
   RayTracingOpacityMicromapEXT = 5381,
   ShaderInvocationReorderNV = 5383,
   BindlessTextureNV = 5390,
+  RayQueryPositionFetchKHR = 5391,
   SubgroupShuffleINTEL = 5568,
   SubgroupBufferBlockIOINTEL = 5569,
   SubgroupImageBlockIOINTEL = 5570,
@@ -1241,7 +1272,11 @@ enum class Capability : uint32_t
   OptNoneINTEL = 6094,
   AtomicFloat16AddEXT = 6095,
   DebugInfoModuleINTEL = 6114,
+  BFloat16ConversionINTEL = 6115,
   SplitBarrierINTEL = 6141,
+  FPGAKernelAttributesv2INTEL = 6161,
+  FPGALatencyControlINTEL = 6171,
+  FPGAArgumentInterfacesINTEL = 6174,
   GroupUniformArithmeticKHR = 6400,
   Max,
   Invalid = ~0U,
@@ -1530,6 +1565,7 @@ struct ExecutionModeAndParamData
     uint32_t numSIMDWorkitemsINTEL;
     uint32_t schedulerTargetFmaxMhzINTEL;
     uint32_t streamingInterfaceINTEL;
+    uint32_t registerMapInterfaceINTEL;
     uint32_t namedBarrierCountINTEL;
   };
   
@@ -1559,6 +1595,13 @@ struct FunctionFloatingPointModeINTELParams
 {
   uint32_t targetWidth;
   FPOperationMode fPOperationMode;
+};
+
+struct LatencyControlConstraintINTELParams
+{
+  uint32_t relativeTo;
+  uint32_t controlType;
+  uint32_t relativeCycle;
 };
 
 struct DecorationAndParamData
@@ -1614,6 +1657,14 @@ struct DecorationAndParamData
     uint32_t bufferLocationINTEL;
     uint32_t iOPipeStorageINTEL;
     FunctionFloatingPointModeINTELParams functionFloatingPointModeINTEL;
+    uint32_t latencyControlLabelINTEL;
+    LatencyControlConstraintINTELParams latencyControlConstraintINTEL;
+    uint32_t mMHostInterfaceAddressWidthINTEL;
+    uint32_t mMHostInterfaceDataWidthINTEL;
+    uint32_t mMHostInterfaceLatencyINTEL;
+    AccessQualifier mMHostInterfaceReadWriteModeINTEL;
+    uint32_t mMHostInterfaceMaxBurstINTEL;
+    uint32_t mMHostInterfaceWaitRequestINTEL;
   };
   
   operator Decoration() const { return value; }
@@ -1966,6 +2017,9 @@ enum class Op : uint16_t
   PtrEqual = 401,
   PtrNotEqual = 402,
   PtrDiff = 403,
+  ColorAttachmentReadEXT = 4160,
+  DepthAttachmentReadEXT = 4161,
+  StencilAttachmentReadEXT = 4162,
   TerminateInvocation = 4416,
   SubgroupBallotKHR = 4421,
   SubgroupFirstInvocationKHR = 4422,
@@ -1998,6 +2052,10 @@ enum class Op : uint16_t
   RayQueryConfirmIntersectionKHR = 4476,
   RayQueryProceedKHR = 4477,
   RayQueryGetIntersectionTypeKHR = 4479,
+  ImageSampleWeightedQCOM = 4480,
+  ImageBoxFilterQCOM = 4481,
+  ImageBlockMatchSSDQCOM = 4482,
+  ImageBlockMatchSADQCOM = 4483,
   GroupIAddNonUniformAMD = 5000,
   GroupFAddNonUniformAMD = 5001,
   GroupFMinNonUniformAMD = 5002,
@@ -2054,6 +2112,7 @@ enum class Op : uint16_t
   TraceNV = 5337,
   TraceMotionNV = 5338,
   TraceRayMotionNV = 5339,
+  RayQueryGetIntersectionTriangleVertexPositionsKHR = 5340,
   TypeAccelerationStructureNV = 5341,
   TypeAccelerationStructureKHR = 5341,
   ExecuteCallableNV = 5344,
@@ -2132,6 +2191,8 @@ enum class Op : uint16_t
   TypeStructContinuedINTEL = 6090,
   ConstantCompositeContinuedINTEL = 6091,
   SpecConstantCompositeContinuedINTEL = 6092,
+  ConvertFToBF16INTEL = 6116,
+  ConvertBF16ToFINTEL = 6117,
   ControlBarrierArriveINTEL = 6142,
   ControlBarrierWaitINTEL = 6143,
   GroupIMulKHR = 6401,

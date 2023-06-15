@@ -208,6 +208,7 @@
 268    VK_EXT_extended_dynamic_state
 269    VK_KHR_deferred_host_operations
 270    VK_KHR_pipeline_executable_properties
+272    VK_KHR_map_memory2
 274    VK_EXT_shader_atomic_float2
 275    VK_EXT_surface_maintenance1
 276    VK_EXT_swapchain_maintenance1
@@ -231,6 +232,7 @@
 300    VK_KHR_video_encode_queue
 301    VK_NV_device_diagnostics_config
 302    VK_QCOM_render_pass_store_ops
+311    VK_NV_low_latency
 312    VK_EXT_metal_objects
 315    VK_KHR_synchronization2
 317    VK_EXT_descriptor_buffer
@@ -283,11 +285,16 @@
 393    VK_EXT_multi_draw
 394    VK_EXT_image_2d_view_of_3d
 395    VK_KHR_portability_enumeration
+396    VK_EXT_shader_tile_image
 397    VK_EXT_opacity_micromap
+398    VK_NV_displacement_micromap
 401    VK_EXT_load_store_op_none
+405    VK_HUAWEI_cluster_culling_shader
 412    VK_EXT_border_color_swizzle
 413    VK_EXT_pageable_device_local_memory
 414    VK_KHR_maintenance4
+416    VK_ARM_shader_core_properties
+419    VK_EXT_image_sliced_view_of_3d
 421    VK_VALVE_descriptor_set_host_mapping
 422    VK_EXT_depth_clamp_zero_one
 423    VK_EXT_non_seamless_cube_map
@@ -298,6 +305,7 @@
 434    VK_GOOGLE_surfaceless_query
 438    VK_EXT_image_compression_control_swapchain
 441    VK_QCOM_image_processing
+454    VK_EXT_external_memory_acquire_unmodified
 456    VK_EXT_extended_dynamic_state3
 459    VK_EXT_subpass_merge_feedback
 460    VK_LUNARG_direct_driver_loading
@@ -306,9 +314,16 @@
 465    VK_NV_optical_flow
 466    VK_EXT_legacy_dithering
 467    VK_EXT_pipeline_protected_access
+482    VK_KHR_ray_tracing_position_fetch
+483    VK_EXT_shader_object
 485    VK_QCOM_tile_properties
 486    VK_SEC_amigo_profiling
 489    VK_QCOM_multiview_per_view_viewports
 491    VK_NV_ray_tracing_invocation_reorder
 495    VK_EXT_mutable_descriptor_type
 498    VK_ARM_shader_core_builtins
+499    VK_EXT_pipeline_library_group_handles
+500    VK_EXT_dynamic_rendering_unused_attachments
+511    VK_QCOM_multiview_per_view_render_areas
+525    VK_EXT_attachment_feedback_loop_dynamic_state
+530    VK_QNX_external_memory_screen_buffer

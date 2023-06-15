@@ -25,7 +25,7 @@
 /******************************************************************************
  * Generated from Khronos's vk.xml:
  *
- * Copyright 2015-2022 The Khronos Group Inc.
+ * Copyright 2015-2023 The Khronos Group Inc.
  *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  * *
@@ -177,6 +177,11 @@ struct VkInstDispatchTable
 
   // VK_KHR_fragment_shading_rate
   PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR GetPhysicalDeviceFragmentShadingRatesKHR;
+
+  // VK_KHR_video_encode_queue
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+  PFN_vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR GetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR;
+#endif // VK_ENABLE_BETA_EXTENSIONS
 
   // VK_EXT_debug_report
   PFN_vkCreateDebugReportCallbackEXT CreateDebugReportCallbackEXT;
@@ -636,8 +641,13 @@ struct VkDevDispatchTable
   PFN_vkGetPipelineExecutableStatisticsKHR GetPipelineExecutableStatisticsKHR;
   PFN_vkGetPipelineExecutableInternalRepresentationsKHR GetPipelineExecutableInternalRepresentationsKHR;
 
+  // VK_KHR_map_memory2
+  PFN_vkMapMemory2KHR MapMemory2KHR;
+  PFN_vkUnmapMemory2KHR UnmapMemory2KHR;
+
   // VK_KHR_video_encode_queue
 #ifdef VK_ENABLE_BETA_EXTENSIONS
+  PFN_vkGetEncodedVideoSessionParametersKHR GetEncodedVideoSessionParametersKHR;
   PFN_vkCmdEncodeVideoKHR CmdEncodeVideoKHR;
 #endif // VK_ENABLE_BETA_EXTENSIONS
 
@@ -733,6 +743,8 @@ struct VkDevDispatchTable
 
   // VK_EXT_discard_rectangles
   PFN_vkCmdSetDiscardRectangleEXT CmdSetDiscardRectangleEXT;
+  PFN_vkCmdSetDiscardRectangleEnableEXT CmdSetDiscardRectangleEnableEXT;
+  PFN_vkCmdSetDiscardRectangleModeEXT CmdSetDiscardRectangleModeEXT;
 
   // VK_EXT_hdr_metadata
   PFN_vkSetHdrMetadataEXT SetHdrMetadataEXT;
@@ -799,6 +811,7 @@ struct VkDevDispatchTable
   PFN_vkCmdDrawMeshTasksIndirectCountNV CmdDrawMeshTasksIndirectCountNV;
 
   // VK_NV_scissor_exclusive
+  PFN_vkCmdSetExclusiveScissorEnableNV CmdSetExclusiveScissorEnableNV;
   PFN_vkCmdSetExclusiveScissorNV CmdSetExclusiveScissorNV;
 
   // VK_NV_device_diagnostic_checkpoints
@@ -965,6 +978,10 @@ struct VkDevDispatchTable
   PFN_vkGetDeviceMicromapCompatibilityEXT GetDeviceMicromapCompatibilityEXT;
   PFN_vkGetMicromapBuildSizesEXT GetMicromapBuildSizesEXT;
 
+  // VK_HUAWEI_cluster_culling_shader
+  PFN_vkCmdDrawClusterHUAWEI CmdDrawClusterHUAWEI;
+  PFN_vkCmdDrawClusterIndirectHUAWEI CmdDrawClusterIndirectHUAWEI;
+
   // VK_EXT_pageable_device_local_memory
   PFN_vkSetDeviceMemoryPriorityEXT SetDeviceMemoryPriorityEXT;
 
@@ -1023,9 +1040,23 @@ struct VkDevDispatchTable
   PFN_vkBindOpticalFlowSessionImageNV BindOpticalFlowSessionImageNV;
   PFN_vkCmdOpticalFlowExecuteNV CmdOpticalFlowExecuteNV;
 
+  // VK_EXT_shader_object
+  PFN_vkCreateShadersEXT CreateShadersEXT;
+  PFN_vkDestroyShaderEXT DestroyShaderEXT;
+  PFN_vkGetShaderBinaryDataEXT GetShaderBinaryDataEXT;
+  PFN_vkCmdBindShadersEXT CmdBindShadersEXT;
+
   // VK_QCOM_tile_properties
   PFN_vkGetFramebufferTilePropertiesQCOM GetFramebufferTilePropertiesQCOM;
   PFN_vkGetDynamicRenderingTilePropertiesQCOM GetDynamicRenderingTilePropertiesQCOM;
+
+  // VK_EXT_attachment_feedback_loop_dynamic_state
+  PFN_vkCmdSetAttachmentFeedbackLoopEnableEXT CmdSetAttachmentFeedbackLoopEnableEXT;
+
+  // VK_QNX_external_memory_screen_buffer
+#ifdef VK_USE_PLATFORM_SCREEN_QNX
+  PFN_vkGetScreenBufferPropertiesQNX GetScreenBufferPropertiesQNX;
+#endif // VK_USE_PLATFORM_SCREEN_QNX
 
   // for consistency with macros, we declare the CreateDevice pointer here
   // even though it won't actually ever get used and is on the instance dispatch chain

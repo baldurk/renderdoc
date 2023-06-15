@@ -45,10 +45,13 @@ enum VulkanDynamicStateIndex
   VkDynamicStencilReference,
   VkDynamicViewportWScalingNV,
   VkDynamicDiscardRectangleEXT,
+  VkDynamicDiscardRectangleEnableEXT,
+  VkDynamicDiscardRectangleModeEXT,
   VkDynamicSampleLocationsEXT,
   VkDynamicViewportShadingRatePaletteNV,
   VkDynamicViewportCoarseSampleOrderNV,
   VkDynamicExclusiveScissorNV,
+  VkDynamicExclusiveScissorEnableNV,
   VkDynamicShadingRateKHR,
   VkDynamicLineStippleEXT,
   VkDynamicCullMode,
@@ -102,6 +105,7 @@ enum VulkanDynamicStateIndex
   VkDynamicShadingRateImageEnableEXT,
   VkDynamicRepresentativeFragTestEXT,
   VkDynamicCoverageReductionModeEXT,
+  VkDynamicAttachmentFeedbackLoopEnableEXT,
   VkDynamicCount,
 };
 

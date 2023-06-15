@@ -268,6 +268,7 @@ rdcstr DoStringise(const rdcspv::SourceLanguage &el)
     STRINGISE_ENUM_CLASS(HLSL);
     STRINGISE_ENUM_CLASS(CPP_for_OpenCL);
     STRINGISE_ENUM_CLASS(SYCL);
+    STRINGISE_ENUM_CLASS(HERO_C);
   }
   END_ENUM_STRINGISE();
 }
@@ -367,6 +368,9 @@ rdcstr DoStringise(const rdcspv::ExecutionMode &el)
     STRINGISE_ENUM_CLASS(SubgroupsPerWorkgroupId);
     STRINGISE_ENUM_CLASS(LocalSizeId);
     STRINGISE_ENUM_CLASS(LocalSizeHintId);
+    STRINGISE_ENUM_CLASS(NonCoherentColorAttachmentReadEXT);
+    STRINGISE_ENUM_CLASS(NonCoherentDepthAttachmentReadEXT);
+    STRINGISE_ENUM_CLASS(NonCoherentStencilAttachmentReadEXT);
     STRINGISE_ENUM_CLASS(SubgroupUniformControlFlowKHR);
     STRINGISE_ENUM_CLASS(PostDepthCoverage);
     STRINGISE_ENUM_CLASS(DenormPreserve);
@@ -404,6 +408,7 @@ rdcstr DoStringise(const rdcspv::ExecutionMode &el)
     STRINGISE_ENUM_CLASS(NumSIMDWorkitemsINTEL);
     STRINGISE_ENUM_CLASS(SchedulerTargetFmaxMhzINTEL);
     STRINGISE_ENUM_CLASS(StreamingInterfaceINTEL);
+    STRINGISE_ENUM_CLASS(RegisterMapInterfaceINTEL);
     STRINGISE_ENUM_CLASS(NamedBarrierCountINTEL);
   }
   END_ENUM_STRINGISE();
@@ -427,6 +432,7 @@ rdcstr DoStringise(const rdcspv::StorageClass &el)
     STRINGISE_ENUM_CLASS(AtomicCounter);
     STRINGISE_ENUM_CLASS(Image);
     STRINGISE_ENUM_CLASS(StorageBuffer);
+    STRINGISE_ENUM_CLASS(TileImageEXT);
     STRINGISE_ENUM_CLASS(CallableDataNV);
     STRINGISE_ENUM_CLASS(IncomingCallableDataNV);
     STRINGISE_ENUM_CLASS(RayPayloadNV);
@@ -455,6 +461,7 @@ rdcstr DoStringise(const rdcspv::Dim &el)
     STRINGISE_ENUM_CLASS(Rect);
     STRINGISE_ENUM_CLASS(Buffer);
     STRINGISE_ENUM_CLASS(SubpassData);
+    STRINGISE_ENUM_CLASS(TileImageDataEXT);
   }
   END_ENUM_STRINGISE();
 }
@@ -751,6 +758,8 @@ rdcstr DoStringise(const rdcspv::Decoration &el)
     STRINGISE_ENUM_CLASS(MaxByteOffsetId);
     STRINGISE_ENUM_CLASS(NoSignedWrap);
     STRINGISE_ENUM_CLASS(NoUnsignedWrap);
+    STRINGISE_ENUM_CLASS(WeightTextureQCOM);
+    STRINGISE_ENUM_CLASS(BlockMatchTextureQCOM);
     STRINGISE_ENUM_CLASS(ExplicitInterpAMD);
     STRINGISE_ENUM_CLASS(OverrideCoverageNV);
     STRINGISE_ENUM_CLASS(PassthroughNV);
@@ -812,6 +821,17 @@ rdcstr DoStringise(const rdcspv::Decoration &el)
     STRINGISE_ENUM_CLASS(SingleElementVectorINTEL);
     STRINGISE_ENUM_CLASS(VectorComputeCallableFunctionINTEL);
     STRINGISE_ENUM_CLASS(MediaBlockIOINTEL);
+    STRINGISE_ENUM_CLASS(LatencyControlLabelINTEL);
+    STRINGISE_ENUM_CLASS(LatencyControlConstraintINTEL);
+    STRINGISE_ENUM_CLASS(ConduitKernelArgumentINTEL);
+    STRINGISE_ENUM_CLASS(RegisterMapKernelArgumentINTEL);
+    STRINGISE_ENUM_CLASS(MMHostInterfaceAddressWidthINTEL);
+    STRINGISE_ENUM_CLASS(MMHostInterfaceDataWidthINTEL);
+    STRINGISE_ENUM_CLASS(MMHostInterfaceLatencyINTEL);
+    STRINGISE_ENUM_CLASS(MMHostInterfaceReadWriteModeINTEL);
+    STRINGISE_ENUM_CLASS(MMHostInterfaceMaxBurstINTEL);
+    STRINGISE_ENUM_CLASS(MMHostInterfaceWaitRequestINTEL);
+    STRINGISE_ENUM_CLASS(StableKernelArgumentINTEL);
   }
   END_ENUM_STRINGISE();
 }
@@ -923,6 +943,7 @@ rdcstr DoStringise(const rdcspv::BuiltIn &el)
     STRINGISE_ENUM_CLASS(HitTNV);
     STRINGISE_ENUM_CLASS(HitKindNV);
     STRINGISE_ENUM_CLASS(CurrentRayTimeNV);
+    STRINGISE_ENUM_CLASS(HitTriangleVertexPositionsKHR);
     STRINGISE_ENUM_CLASS(IncomingRayFlagsNV);
     STRINGISE_ENUM_CLASS(RayGeometryIndexKHR);
     STRINGISE_ENUM_CLASS(WarpsPerSMNV);
@@ -1054,6 +1075,9 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(ShaderViewportIndex);
     STRINGISE_ENUM_CLASS(UniformDecoration);
     STRINGISE_ENUM_CLASS(CoreBuiltinsARM);
+    STRINGISE_ENUM_CLASS(TileImageColorReadAccessEXT);
+    STRINGISE_ENUM_CLASS(TileImageDepthReadAccessEXT);
+    STRINGISE_ENUM_CLASS(TileImageStencilReadAccessEXT);
     STRINGISE_ENUM_CLASS(FragmentShadingRateKHR);
     STRINGISE_ENUM_CLASS(SubgroupBallotKHR);
     STRINGISE_ENUM_CLASS(DrawParameters);
@@ -1083,6 +1107,9 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(RayQueryKHR);
     STRINGISE_ENUM_CLASS(RayTraversalPrimitiveCullingKHR);
     STRINGISE_ENUM_CLASS(RayTracingKHR);
+    STRINGISE_ENUM_CLASS(TextureSampleWeightedQCOM);
+    STRINGISE_ENUM_CLASS(TextureBoxFilterQCOM);
+    STRINGISE_ENUM_CLASS(TextureBlockMatchQCOM);
     STRINGISE_ENUM_CLASS(Float16ImageAMD);
     STRINGISE_ENUM_CLASS(ImageGatherBiasLodAMD);
     STRINGISE_ENUM_CLASS(FragmentMaskAMD);
@@ -1116,6 +1143,7 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(InputAttachmentArrayNonUniformIndexing);
     STRINGISE_ENUM_CLASS(UniformTexelBufferArrayNonUniformIndexing);
     STRINGISE_ENUM_CLASS(StorageTexelBufferArrayNonUniformIndexing);
+    STRINGISE_ENUM_CLASS(RayTracingPositionFetchKHR);
     STRINGISE_ENUM_CLASS(RayTracingNV);
     STRINGISE_ENUM_CLASS(RayTracingMotionBlurNV);
     STRINGISE_ENUM_CLASS(VulkanMemoryModel);
@@ -1132,6 +1160,7 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(RayTracingOpacityMicromapEXT);
     STRINGISE_ENUM_CLASS(ShaderInvocationReorderNV);
     STRINGISE_ENUM_CLASS(BindlessTextureNV);
+    STRINGISE_ENUM_CLASS(RayQueryPositionFetchKHR);
     STRINGISE_ENUM_CLASS(SubgroupShuffleINTEL);
     STRINGISE_ENUM_CLASS(SubgroupBufferBlockIOINTEL);
     STRINGISE_ENUM_CLASS(SubgroupImageBlockIOINTEL);
@@ -1187,7 +1216,11 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(OptNoneINTEL);
     STRINGISE_ENUM_CLASS(AtomicFloat16AddEXT);
     STRINGISE_ENUM_CLASS(DebugInfoModuleINTEL);
+    STRINGISE_ENUM_CLASS(BFloat16ConversionINTEL);
     STRINGISE_ENUM_CLASS(SplitBarrierINTEL);
+    STRINGISE_ENUM_CLASS(FPGAKernelAttributesv2INTEL);
+    STRINGISE_ENUM_CLASS(FPGALatencyControlINTEL);
+    STRINGISE_ENUM_CLASS(FPGAArgumentInterfacesINTEL);
     STRINGISE_ENUM_CLASS(GroupUniformArithmeticKHR);
   }
   END_ENUM_STRINGISE();
@@ -1586,6 +1619,9 @@ rdcstr DoStringise(const rdcspv::Op &el)
     STRINGISE_ENUM_CLASS(PtrEqual);
     STRINGISE_ENUM_CLASS(PtrNotEqual);
     STRINGISE_ENUM_CLASS(PtrDiff);
+    STRINGISE_ENUM_CLASS(ColorAttachmentReadEXT);
+    STRINGISE_ENUM_CLASS(DepthAttachmentReadEXT);
+    STRINGISE_ENUM_CLASS(StencilAttachmentReadEXT);
     STRINGISE_ENUM_CLASS(TerminateInvocation);
     STRINGISE_ENUM_CLASS(SubgroupBallotKHR);
     STRINGISE_ENUM_CLASS(SubgroupFirstInvocationKHR);
@@ -1612,6 +1648,10 @@ rdcstr DoStringise(const rdcspv::Op &el)
     STRINGISE_ENUM_CLASS(RayQueryConfirmIntersectionKHR);
     STRINGISE_ENUM_CLASS(RayQueryProceedKHR);
     STRINGISE_ENUM_CLASS(RayQueryGetIntersectionTypeKHR);
+    STRINGISE_ENUM_CLASS(ImageSampleWeightedQCOM);
+    STRINGISE_ENUM_CLASS(ImageBoxFilterQCOM);
+    STRINGISE_ENUM_CLASS(ImageBlockMatchSSDQCOM);
+    STRINGISE_ENUM_CLASS(ImageBlockMatchSADQCOM);
     STRINGISE_ENUM_CLASS(GroupIAddNonUniformAMD);
     STRINGISE_ENUM_CLASS(GroupFAddNonUniformAMD);
     STRINGISE_ENUM_CLASS(GroupFMinNonUniformAMD);
@@ -1667,6 +1707,7 @@ rdcstr DoStringise(const rdcspv::Op &el)
     STRINGISE_ENUM_CLASS(TraceNV);
     STRINGISE_ENUM_CLASS(TraceMotionNV);
     STRINGISE_ENUM_CLASS(TraceRayMotionNV);
+    STRINGISE_ENUM_CLASS(RayQueryGetIntersectionTriangleVertexPositionsKHR);
     STRINGISE_ENUM_CLASS(TypeAccelerationStructureNV);
     STRINGISE_ENUM_CLASS(ExecuteCallableNV);
     STRINGISE_ENUM_CLASS(TypeCooperativeMatrixNV);
@@ -1741,6 +1782,8 @@ rdcstr DoStringise(const rdcspv::Op &el)
     STRINGISE_ENUM_CLASS(TypeStructContinuedINTEL);
     STRINGISE_ENUM_CLASS(ConstantCompositeContinuedINTEL);
     STRINGISE_ENUM_CLASS(SpecConstantCompositeContinuedINTEL);
+    STRINGISE_ENUM_CLASS(ConvertFToBF16INTEL);
+    STRINGISE_ENUM_CLASS(ConvertBF16ToFINTEL);
     STRINGISE_ENUM_CLASS(ControlBarrierArriveINTEL);
     STRINGISE_ENUM_CLASS(ControlBarrierWaitINTEL);
     STRINGISE_ENUM_CLASS(GroupIMulKHR);
@@ -1978,6 +2021,8 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv:
       ret +=  "(" + ToStr(el.schedulerTargetFmaxMhzINTEL) + ")"; break;
     case ExecutionMode::StreamingInterfaceINTEL:
       ret +=  "(" + ToStr(el.streamingInterfaceINTEL) + ")"; break;
+    case ExecutionMode::RegisterMapInterfaceINTEL:
+      ret +=  "(" + ToStr(el.registerMapInterfaceINTEL) + ")"; break;
     case ExecutionMode::NamedBarrierCountINTEL:
       ret +=  "(" + ToStr(el.namedBarrierCountINTEL) + ")"; break;
     default:
@@ -2086,6 +2131,22 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv:
       ret +=  "(" + ToStr(el.iOPipeStorageINTEL) + ")"; break;
     case Decoration::FunctionFloatingPointModeINTEL:
       ret +=  "(" + ToStr(el.functionFloatingPointModeINTEL.targetWidth) + ", "  + ToStr(el.functionFloatingPointModeINTEL.fPOperationMode) + ")"; break;
+    case Decoration::LatencyControlLabelINTEL:
+      ret +=  "(" + ToStr(el.latencyControlLabelINTEL) + ")"; break;
+    case Decoration::LatencyControlConstraintINTEL:
+      ret +=  "(" + ToStr(el.latencyControlConstraintINTEL.relativeTo) + ", "  + ToStr(el.latencyControlConstraintINTEL.controlType) + ", "  + ToStr(el.latencyControlConstraintINTEL.relativeCycle) + ")"; break;
+    case Decoration::MMHostInterfaceAddressWidthINTEL:
+      ret +=  "(" + ToStr(el.mMHostInterfaceAddressWidthINTEL) + ")"; break;
+    case Decoration::MMHostInterfaceDataWidthINTEL:
+      ret +=  "(" + ToStr(el.mMHostInterfaceDataWidthINTEL) + ")"; break;
+    case Decoration::MMHostInterfaceLatencyINTEL:
+      ret +=  "(" + ToStr(el.mMHostInterfaceLatencyINTEL) + ")"; break;
+    case Decoration::MMHostInterfaceReadWriteModeINTEL:
+      ret +=  "(" + ToStr(el.mMHostInterfaceReadWriteModeINTEL) + ")"; break;
+    case Decoration::MMHostInterfaceMaxBurstINTEL:
+      ret +=  "(" + ToStr(el.mMHostInterfaceMaxBurstINTEL) + ")"; break;
+    case Decoration::MMHostInterfaceWaitRequestINTEL:
+      ret +=  "(" + ToStr(el.mMHostInterfaceWaitRequestINTEL) + ")"; break;
     default:
       break;
   }
@@ -3991,6 +4052,22 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(4)), false);
       break;
+    case rdcspv::Op::ColorAttachmentReadEXT:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      if(4 < size) callback(Id::fromWord(it.word(4)), false);
+      break;
+    case rdcspv::Op::DepthAttachmentReadEXT:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      if(3 < size) callback(Id::fromWord(it.word(3)), false);
+      break;
+    case rdcspv::Op::StencilAttachmentReadEXT:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      if(3 < size) callback(Id::fromWord(it.word(3)), false);
+      break;
     case rdcspv::Op::TerminateInvocation:
       break;
     case rdcspv::Op::SubgroupBallotKHR:
@@ -4130,6 +4207,38 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(4)), false);
+      break;
+    case rdcspv::Op::ImageSampleWeightedQCOM:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      break;
+    case rdcspv::Op::ImageBoxFilterQCOM:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      break;
+    case rdcspv::Op::ImageBlockMatchSSDQCOM:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
+      break;
+    case rdcspv::Op::ImageBlockMatchSADQCOM:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
       break;
     case rdcspv::Op::GroupIAddNonUniformAMD:
       callback(Id::fromWord(it.word(1)), false);
@@ -4498,6 +4607,12 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       callback(Id::fromWord(it.word(10)), false);
       callback(Id::fromWord(it.word(11)), false);
       callback(Id::fromWord(it.word(12)), false);
+      break;
+    case rdcspv::Op::RayQueryGetIntersectionTriangleVertexPositionsKHR:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::TypeAccelerationStructureNV:
       callback(Id::fromWord(it.word(1)), true);
@@ -4890,6 +5005,16 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       break;
     case rdcspv::Op::SpecConstantCompositeContinuedINTEL:
       for(size_t i=0; i < size-1; i++) callback(Id::fromWord(it.word(1+i)), false);
+      break;
+    case rdcspv::Op::ConvertFToBF16INTEL:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      break;
+    case rdcspv::Op::ConvertBF16ToFINTEL:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::ControlBarrierArriveINTEL:
       callback(Id::fromWord(it.word(1)), false);
@@ -7311,6 +7436,27 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
       ret += "PtrDiff(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
       break;
     }
+    case rdcspv::Op::ColorAttachmentReadEXT:
+    {
+      OpColorAttachmentReadEXT decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "ColorAttachmentReadEXT(" + ParamToStr(idName, decoded.attachment) + ", " + ParamToStr(idName, decoded.sample) + ")";
+      break;
+    }
+    case rdcspv::Op::DepthAttachmentReadEXT:
+    {
+      OpDepthAttachmentReadEXT decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "DepthAttachmentReadEXT(" + ParamToStr(idName, decoded.sample) + ")";
+      break;
+    }
+    case rdcspv::Op::StencilAttachmentReadEXT:
+    {
+      OpStencilAttachmentReadEXT decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "StencilAttachmentReadEXT(" + ParamToStr(idName, decoded.sample) + ")";
+      break;
+    }
     case rdcspv::Op::TerminateInvocation:
     {
       OpTerminateInvocation decoded(it);
@@ -7482,6 +7628,34 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
       OpRayQueryGetIntersectionTypeKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
       ret += "RayQueryGetIntersectionTypeKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
+      break;
+    }
+    case rdcspv::Op::ImageSampleWeightedQCOM:
+    {
+      OpImageSampleWeightedQCOM decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "ImageSampleWeightedQCOM(" + ParamToStr(idName, decoded.texture) + ", " + ParamToStr(idName, decoded.coordinates) + ", " + ParamToStr(idName, decoded.weights) + ")";
+      break;
+    }
+    case rdcspv::Op::ImageBoxFilterQCOM:
+    {
+      OpImageBoxFilterQCOM decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "ImageBoxFilterQCOM(" + ParamToStr(idName, decoded.texture) + ", " + ParamToStr(idName, decoded.coordinates) + ", " + ParamToStr(idName, decoded.boxSize) + ")";
+      break;
+    }
+    case rdcspv::Op::ImageBlockMatchSSDQCOM:
+    {
+      OpImageBlockMatchSSDQCOM decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "ImageBlockMatchSSDQCOM(" + ParamToStr(idName, decoded.target) + ", " + ParamToStr(idName, decoded.targetCoordinates) + ", " + ParamToStr(idName, decoded.reference) + ", " + ParamToStr(idName, decoded.referenceCoordinates) + ", " + ParamToStr(idName, decoded.blockSize) + ")";
+      break;
+    }
+    case rdcspv::Op::ImageBlockMatchSADQCOM:
+    {
+      OpImageBlockMatchSADQCOM decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "ImageBlockMatchSADQCOM(" + ParamToStr(idName, decoded.target) + ", " + ParamToStr(idName, decoded.targetCoordinates) + ", " + ParamToStr(idName, decoded.reference) + ", " + ParamToStr(idName, decoded.referenceCoordinates) + ", " + ParamToStr(idName, decoded.blockSize) + ")";
       break;
     }
     case rdcspv::Op::GroupIAddNonUniformAMD:
@@ -7846,6 +8020,13 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
     {
       OpTraceRayMotionNV decoded(it);
       ret += "TraceRayMotionNV(" + ParamToStr(idName, decoded.accel) + ", " + ParamToStr(idName, decoded.rayFlags) + ", " + ParamToStr(idName, decoded.cullMask) + ", " + ParamToStr(idName, decoded.sBTOffset) + ", " + ParamToStr(idName, decoded.sBTStride) + ", " + ParamToStr(idName, decoded.missIndex) + ", " + ParamToStr(idName, decoded.rayOrigin) + ", " + ParamToStr(idName, decoded.rayTmin) + ", " + ParamToStr(idName, decoded.rayDirection) + ", " + ParamToStr(idName, decoded.rayTmax) + ", " + ParamToStr(idName, decoded.time) + ", " + ParamToStr(idName, decoded.payload) + ")";
+      break;
+    }
+    case rdcspv::Op::RayQueryGetIntersectionTriangleVertexPositionsKHR:
+    {
+      OpRayQueryGetIntersectionTriangleVertexPositionsKHR decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "RayQueryGetIntersectionTriangleVertexPositionsKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
       break;
     }
     case rdcspv::Op::TypeAccelerationStructureNV:
@@ -8350,6 +8531,20 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
       ret += "SpecConstantCompositeContinuedINTEL(" + ParamsToStr(idName, decoded.constituents) + ")";
       break;
     }
+    case rdcspv::Op::ConvertFToBF16INTEL:
+    {
+      OpConvertFToBF16INTEL decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "ConvertFToBF16INTEL(" + ParamToStr(idName, decoded.floatValue) + ")";
+      break;
+    }
+    case rdcspv::Op::ConvertBF16ToFINTEL:
+    {
+      OpConvertBF16ToFINTEL decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "ConvertBF16ToFINTEL(" + ParamToStr(idName, decoded.bFloat16Value) + ")";
+      break;
+    }
     case rdcspv::Op::ControlBarrierArriveINTEL:
     {
       OpControlBarrierArriveINTEL decoded(it);
@@ -8773,6 +8968,9 @@ OpDecoder::OpDecoder(const ConstIter &it)
     case rdcspv::Op::PtrEqual: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::PtrNotEqual: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::PtrDiff: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::ColorAttachmentReadEXT: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::DepthAttachmentReadEXT: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::StencilAttachmentReadEXT: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::TerminateInvocation: result = Id(); resultType = Id(); break;
     case rdcspv::Op::SubgroupBallotKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::SubgroupFirstInvocationKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
@@ -8799,6 +8997,10 @@ OpDecoder::OpDecoder(const ConstIter &it)
     case rdcspv::Op::RayQueryConfirmIntersectionKHR: result = Id(); resultType = Id(); break;
     case rdcspv::Op::RayQueryProceedKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::RayQueryGetIntersectionTypeKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::ImageSampleWeightedQCOM: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::ImageBoxFilterQCOM: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::ImageBlockMatchSSDQCOM: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::ImageBlockMatchSADQCOM: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::GroupIAddNonUniformAMD: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::GroupFAddNonUniformAMD: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::GroupFMinNonUniformAMD: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
@@ -8854,6 +9056,7 @@ OpDecoder::OpDecoder(const ConstIter &it)
     case rdcspv::Op::TraceNV: result = Id(); resultType = Id(); break;
     case rdcspv::Op::TraceMotionNV: result = Id(); resultType = Id(); break;
     case rdcspv::Op::TraceRayMotionNV: result = Id(); resultType = Id(); break;
+    case rdcspv::Op::RayQueryGetIntersectionTriangleVertexPositionsKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::TypeAccelerationStructureNV: result = Id::fromWord(it.word(1)); resultType = Id(); break;
     case rdcspv::Op::ExecuteCallableNV: result = Id(); resultType = Id(); break;
     case rdcspv::Op::TypeCooperativeMatrixNV: result = Id::fromWord(it.word(1)); resultType = Id(); break;
@@ -8928,6 +9131,8 @@ OpDecoder::OpDecoder(const ConstIter &it)
     case rdcspv::Op::TypeStructContinuedINTEL: result = Id(); resultType = Id(); break;
     case rdcspv::Op::ConstantCompositeContinuedINTEL: result = Id(); resultType = Id(); break;
     case rdcspv::Op::SpecConstantCompositeContinuedINTEL: result = Id(); resultType = Id(); break;
+    case rdcspv::Op::ConvertFToBF16INTEL: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::ConvertBF16ToFINTEL: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::ControlBarrierArriveINTEL: result = Id(); resultType = Id(); break;
     case rdcspv::Op::ControlBarrierWaitINTEL: result = Id(); resultType = Id(); break;
     case rdcspv::Op::GroupIMulKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
@@ -9114,11 +9319,13 @@ rdcstr DoStringise(const rdcspv::Generator &el)
     STRINGISE_ENUM_CLASS_NAMED(MSPShaderCompiler, "MSP Shader Compiler from Mikkosoft Productions - Contact Mikko Rasa, tdb@tdb.fi");
     STRINGISE_ENUM_CLASS_NAMED(SpvGenTwoSPIRVIRTools, "SpvGenTwo SPIR-V IR Tools from SpvGenTwo community - https://github.com/rAzoR8/SpvGenTwo");
     STRINGISE_ENUM_CLASS_NAMED(SkiaSkSL, "Skia SkSL from Google - Contact Ethan Nicholas, ethannicholas@google.com");
-    STRINGISE_ENUM_CLASS_NAMED(SPIRVBeehiveToolkit, "SPIRV Beehive Toolkit from TornadoVM - https://github.com/beehive-lab/spirv-beehive-toolkit");
+    STRINGISE_ENUM_CLASS_NAMED(BeehiveSPIRVToolkit, "Beehive SPIRV Toolkit from TornadoVM - https://github.com/beehive-lab/beehive-spirv-toolkit");
     STRINGISE_ENUM_CLASS_NAMED(ShaderWriter, "ShaderWriter from DragonJoker - Contact Sylvain Doremus, https://github.com/DragonJoker/ShaderWriter");
     STRINGISE_ENUM_CLASS_NAMED(SPIRVSmith, "SPIRVSmith from Rayan Hatout - Contact Rayan Hatout rayan.hatout@gmail.com, Repo https://github.com/rayanht/SPIRVSmith");
     STRINGISE_ENUM_CLASS_NAMED(Shady, "Shady from Saarland University - Contact Hugo Devillers devillers@uni-saarland.de, Repo https://github.com/Hugobros3/shady");
     STRINGISE_ENUM_CLASS_NAMED(Taichi, "Taichi from Taichi Graphics - Contact Rendong Liang rendongliang@taichi.graphics, Repo https://github.com/taichi-dev/taichi");
+    STRINGISE_ENUM_CLASS_NAMED(HeroCCompiler, "Hero C Compiler from heroseh - https://github.com/heroseh/hcc");
+    STRINGISE_ENUM_CLASS_NAMED(SparkSL, "SparkSL from Meta - Contact Dunfan Lu, dunfanlu@meta.com, https://sparkar.facebook.com/ar-studio/learn/sparksl/sparksl-overview");
   }
   END_ENUM_STRINGISE();
 }

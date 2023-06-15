@@ -45,6 +45,8 @@ VkDynamicState ConvertDynamicState(VulkanDynamicStateIndex idx)
     case VkDynamicStencilReference: return VK_DYNAMIC_STATE_STENCIL_REFERENCE;
     case VkDynamicViewportWScalingNV: return VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_NV;
     case VkDynamicDiscardRectangleEXT: return VK_DYNAMIC_STATE_DISCARD_RECTANGLE_EXT;
+    case VkDynamicDiscardRectangleEnableEXT: return VK_DYNAMIC_STATE_DISCARD_RECTANGLE_ENABLE_EXT;
+    case VkDynamicDiscardRectangleModeEXT: return VK_DYNAMIC_STATE_DISCARD_RECTANGLE_MODE_EXT;
     case VkDynamicSampleLocationsEXT: return VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT;
     case VkDynamicRayTracingStackSizeKHR:
       return VK_DYNAMIC_STATE_RAY_TRACING_PIPELINE_STACK_SIZE_KHR;
@@ -53,6 +55,7 @@ VkDynamicState ConvertDynamicState(VulkanDynamicStateIndex idx)
     case VkDynamicViewportCoarseSampleOrderNV:
       return VK_DYNAMIC_STATE_VIEWPORT_COARSE_SAMPLE_ORDER_NV;
     case VkDynamicExclusiveScissorNV: return VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV;
+    case VkDynamicExclusiveScissorEnableNV: return VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_ENABLE_NV;
     case VkDynamicShadingRateKHR: return VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR;
     case VkDynamicLineStippleEXT: return VK_DYNAMIC_STATE_LINE_STIPPLE_EXT;
     case VkDynamicCullMode: return VK_DYNAMIC_STATE_CULL_MODE;
@@ -110,6 +113,8 @@ VkDynamicState ConvertDynamicState(VulkanDynamicStateIndex idx)
     case VkDynamicRepresentativeFragTestEXT:
       return VK_DYNAMIC_STATE_REPRESENTATIVE_FRAGMENT_TEST_ENABLE_NV;
     case VkDynamicCoverageReductionModeEXT: return VK_DYNAMIC_STATE_COVERAGE_REDUCTION_MODE_NV;
+    case VkDynamicAttachmentFeedbackLoopEnableEXT:
+      return VK_DYNAMIC_STATE_ATTACHMENT_FEEDBACK_LOOP_ENABLE_EXT;
     case VkDynamicCount: break;
   }
 
@@ -133,6 +138,8 @@ VulkanDynamicStateIndex ConvertDynamicState(VkDynamicState state)
     case VK_DYNAMIC_STATE_STENCIL_REFERENCE: return VkDynamicStencilReference;
     case VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_NV: return VkDynamicViewportWScalingNV;
     case VK_DYNAMIC_STATE_DISCARD_RECTANGLE_EXT: return VkDynamicDiscardRectangleEXT;
+    case VK_DYNAMIC_STATE_DISCARD_RECTANGLE_ENABLE_EXT: return VkDynamicDiscardRectangleEnableEXT;
+    case VK_DYNAMIC_STATE_DISCARD_RECTANGLE_MODE_EXT: return VkDynamicDiscardRectangleModeEXT;
     case VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT: return VkDynamicSampleLocationsEXT;
     case VK_DYNAMIC_STATE_RAY_TRACING_PIPELINE_STACK_SIZE_KHR:
       return VkDynamicRayTracingStackSizeKHR;
@@ -141,6 +148,7 @@ VulkanDynamicStateIndex ConvertDynamicState(VkDynamicState state)
     case VK_DYNAMIC_STATE_VIEWPORT_COARSE_SAMPLE_ORDER_NV:
       return VkDynamicViewportCoarseSampleOrderNV;
     case VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV: return VkDynamicExclusiveScissorNV;
+    case VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_ENABLE_NV: return VkDynamicExclusiveScissorEnableNV;
     case VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR: return VkDynamicShadingRateKHR;
     case VK_DYNAMIC_STATE_LINE_STIPPLE_EXT: return VkDynamicLineStippleEXT;
     case VK_DYNAMIC_STATE_CULL_MODE: return VkDynamicCullMode;
@@ -198,6 +206,8 @@ VulkanDynamicStateIndex ConvertDynamicState(VkDynamicState state)
     case VK_DYNAMIC_STATE_REPRESENTATIVE_FRAGMENT_TEST_ENABLE_NV:
       return VkDynamicRepresentativeFragTestEXT;
     case VK_DYNAMIC_STATE_COVERAGE_REDUCTION_MODE_NV: return VkDynamicCoverageReductionModeEXT;
+    case VK_DYNAMIC_STATE_ATTACHMENT_FEEDBACK_LOOP_ENABLE_EXT:
+      return VkDynamicAttachmentFeedbackLoopEnableEXT;
     case VK_DYNAMIC_STATE_MAX_ENUM: break;
   }
 
@@ -229,12 +239,15 @@ static VkGraphicsPipelineLibraryFlagsEXT DynamicStateValidState(VkDynamicState s
     case VK_DYNAMIC_STATE_STENCIL_REFERENCE: return frag;
     case VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_NV: return vert;
     case VK_DYNAMIC_STATE_DISCARD_RECTANGLE_EXT: return vert;
+    case VK_DYNAMIC_STATE_DISCARD_RECTANGLE_ENABLE_EXT: return vert;
+    case VK_DYNAMIC_STATE_DISCARD_RECTANGLE_MODE_EXT: return vert;
     case VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT: return frag | colout;
     case VK_DYNAMIC_STATE_RAY_TRACING_PIPELINE_STACK_SIZE_KHR:
       return (VkGraphicsPipelineLibraryFlagsEXT)0;
     case VK_DYNAMIC_STATE_VIEWPORT_SHADING_RATE_PALETTE_NV: return vert;
     case VK_DYNAMIC_STATE_VIEWPORT_COARSE_SAMPLE_ORDER_NV: return vert;
     case VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV: return vert;
+    case VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_ENABLE_NV: return vert;
     case VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR: return vert | frag;
     case VK_DYNAMIC_STATE_LINE_STIPPLE_EXT: return vert;
     case VK_DYNAMIC_STATE_CULL_MODE: return vert;
@@ -287,6 +300,7 @@ static VkGraphicsPipelineLibraryFlagsEXT DynamicStateValidState(VkDynamicState s
     case VK_DYNAMIC_STATE_SHADING_RATE_IMAGE_ENABLE_NV: return vert;
     case VK_DYNAMIC_STATE_REPRESENTATIVE_FRAGMENT_TEST_ENABLE_NV: return frag;
     case VK_DYNAMIC_STATE_COVERAGE_REDUCTION_MODE_NV: return frag | colout;
+    case VK_DYNAMIC_STATE_ATTACHMENT_FEEDBACK_LOOP_ENABLE_EXT: return colout;
     case VK_DYNAMIC_STATE_MAX_ENUM: break;
   }
 

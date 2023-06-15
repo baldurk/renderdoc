@@ -719,6 +719,18 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::FPGADSPControlINTEL:
       case Capability::FPGAInvocationPipeliningAttributesINTEL:
       case Capability::RuntimeAlignedAttributeINTEL:
+      case Capability::TileImageColorReadAccessEXT:
+      case Capability::TileImageDepthReadAccessEXT:
+      case Capability::TileImageStencilReadAccessEXT:
+      case Capability::TextureSampleWeightedQCOM:
+      case Capability::TextureBoxFilterQCOM:
+      case Capability::TextureBlockMatchQCOM:
+      case Capability::RayQueryPositionFetchKHR:
+      case Capability::RayTracingPositionFetchKHR:
+      case Capability::BFloat16ConversionINTEL:
+      case Capability::FPGAKernelAttributesv2INTEL:
+      case Capability::FPGALatencyControlINTEL:
+      case Capability::FPGAArgumentInterfacesINTEL:
       case Capability::Max:
       case Capability::Invalid:
       {

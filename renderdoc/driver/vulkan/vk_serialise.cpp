@@ -1395,6 +1395,9 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_BUILTINS_FEATURES_ARM)               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_BUILTINS_PROPERTIES_ARM)             \
                                                                                                        \
+  /* VK_ARM_shader_core_properties */                                                                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_ARM)                      \
+                                                                                                       \
   /* VK_AMD_pipeline_compiler_control */                                                               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_COMPILER_CONTROL_CREATE_INFO_AMD)                       \
                                                                                                        \
@@ -1407,6 +1410,13 @@ SERIALISE_VK_HANDLES();
   /* VK_AMD_shader_early_and_late_fragment_tests */                                                    \
   PNEXT_UNSUPPORTED(                                                                                   \
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_EARLY_AND_LATE_FRAGMENT_TESTS_FEATURES_AMD)             \
+                                                                                                       \
+  /* VK_EXT_attachment_feedback_loop_dynamic_state */                                                  \
+  PNEXT_UNSUPPORTED(                                                                                   \
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ATTACHMENT_FEEDBACK_LOOP_DYNAMIC_STATE_FEATURES_EXT)           \
+                                                                                                       \
+  /* VK_EXT_external_memory_acquire_unmodified */                                                      \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_ACQUIRE_UNMODIFIED_EXT)                          \
                                                                                                        \
   /* VK_EXT_blend_operation_advanced */                                                                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_FEATURES_EXT)           \
@@ -1442,6 +1452,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEVICE_FAULT_COUNTS_EXT)                                         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEVICE_FAULT_INFO_EXT)                                           \
                                                                                                        \
+  /* VK_EXT_dynamic_rendering_unused_attachments */                                                    \
+  PNEXT_UNSUPPORTED(                                                                                   \
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT)             \
+                                                                                                       \
   /* VK_EXT_external_memory_host */                                                                    \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT)                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT)                              \
@@ -1456,6 +1470,10 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_EXT_image_2d_view_of_3d */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_2D_VIEW_OF_3D_FEATURES_EXT)                \
+                                                                                                       \
+  /* VK_EXT_image_sliced_view_of_3d */                                                                 \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_SLICED_VIEW_OF_3D_FEATURES_EXT)            \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_VIEW_SLICED_CREATE_INFO_EXT)                               \
                                                                                                        \
   /* VK_EXT_image_compression_control */                                                               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_COMPRESSION_CONTROL_FEATURES_EXT)          \
@@ -1516,6 +1534,9 @@ SERIALISE_VK_HANDLES();
   /* VK_EXT_physical_device_drm */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRM_PROPERTIES_EXT)                              \
                                                                                                        \
+  /* VK_EXT_pipeline_library_group_handles */                                                          \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_LIBRARY_GROUP_HANDLES_FEATURES_EXT)     \
+                                                                                                       \
   /* VK_EXT_pipeline_properties */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_PROPERTIES_IDENTIFIER_EXT)                              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_PROPERTIES_FEATURES_EXT)                \
@@ -1539,11 +1560,24 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_MODULE_IDENTIFIER_CREATE_INFO_EXT)         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SHADER_MODULE_IDENTIFIER_EXT)                                    \
                                                                                                        \
+  /* VK_EXT_shader_object */                                                                           \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT)                      \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_PROPERTIES_EXT)                    \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT)                                          \
+                                                                                                       \
+  /* VK_EXT_shader_tile_image */                                                                       \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_TILE_IMAGE_FEATURES_EXT)                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_TILE_IMAGE_PROPERTIES_EXT)                \
+                                                                                                       \
   /* VK_EXT_subpass_merge_feedback */                                                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBPASS_MERGE_FEEDBACK_FEATURES_EXT)             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_CREATION_CONTROL_EXT)                                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_CREATION_FEEDBACK_CREATE_INFO_EXT)                   \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_SUBPASS_FEEDBACK_CREATE_INFO_EXT)                    \
+                                                                                                       \
+  /* VK_HUAWEI_cluster_culling_shader */                                                               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CLUSTER_CULLING_SHADER_FEATURES_HUAWEI)          \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CLUSTER_CULLING_SHADER_PROPERTIES_HUAWEI)        \
                                                                                                        \
   /* VK_HUAWEI_invocation_mask */                                                                      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INVOCATION_MASK_FEATURES_HUAWEI)                 \
@@ -1581,6 +1615,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR)           \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR)                 \
                                                                                                        \
+  /* VK_KHR_map_memory2 */                                                                             \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_MAP_INFO_KHR)                                             \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_UNMAP_INFO_KHR)                                           \
+                                                                                                       \
   /* VK_KHR_ray_tracing_maintenance1 */                                                                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_MAINTENANCE_1_FEATURES_KHR)          \
                                                                                                        \
@@ -1590,6 +1628,9 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR)                        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR)               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR)             \
+                                                                                                       \
+  /* VK_KHR_ray_tracing_position_fetch */                                                              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_POSITION_FETCH_FEATURES_KHR)         \
                                                                                                        \
   /* VK_KHR_ray_query */                                                                               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR)                          \
@@ -1690,6 +1731,9 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_NV_linear_color_attachment */                                                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINEAR_COLOR_ATTACHMENT_FEATURES_NV)             \
+                                                                                                       \
+  /* VK_NV_low_latency */                                                                              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_QUERY_LOW_LATENCY_SUPPORT_NV)                                    \
                                                                                                        \
   /* VK_NVX_image_view_handle */                                                                       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_VIEW_HANDLE_INFO_NVX)                                      \
@@ -1794,9 +1838,12 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_PROCESSING_PROPERTIES_QCOM)                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_VIEW_SAMPLE_WEIGHT_CREATE_INFO_QCOM)                       \
                                                                                                        \
+  /* VK_QCOM_multiview_per_view_render_areas */                                                        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_RENDER_AREAS_FEATURES_QCOM)   \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MULTIVIEW_PER_VIEW_RENDER_AREAS_RENDER_PASS_BEGIN_INFO_QCOM)     \
+                                                                                                       \
   /* VK_QCOM_multiview_per_view_viewports */                                                           \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_VIEWPORTS_FEATURES_QCOM)      \
-                                                                                                       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDER_PASS_TRANSFORM_INFO_QCOM)      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_TRANSFORM_BEGIN_INFO_QCOM)                           \
                                                                                                        \

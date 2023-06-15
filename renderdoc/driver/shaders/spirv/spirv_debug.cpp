@@ -3716,6 +3716,16 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::ReorderThreadWithHitObjectNV:
     case Op::ReorderThreadWithHintNV:
     case Op::TypeHitObjectNV:
+    case Op::ColorAttachmentReadEXT:
+    case Op::DepthAttachmentReadEXT:
+    case Op::StencilAttachmentReadEXT:
+    case Op::ImageSampleWeightedQCOM:
+    case Op::ImageBoxFilterQCOM:
+    case Op::ImageBlockMatchSADQCOM:
+    case Op::ImageBlockMatchSSDQCOM:
+    case Op::RayQueryGetIntersectionTriangleVertexPositionsKHR:
+    case Op::ConvertBF16ToFINTEL:
+    case Op::ConvertFToBF16INTEL:
     {
       RDCERR("Unsupported extension opcode used %s", ToStr(opdata.op).c_str());
 

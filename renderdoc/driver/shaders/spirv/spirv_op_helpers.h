@@ -919,6 +919,19 @@ struct ExecutionModeParam<ExecutionMode::StreamingInterfaceINTEL>
 };
 
 template<>
+struct ExecutionModeParam<ExecutionMode::RegisterMapInterfaceINTEL>
+{
+  uint32_t registerMapInterfaceINTEL;
+  ExecutionModeParam(uint32_t registerMapInterfaceINTELParam) {  registerMapInterfaceINTEL = registerMapInterfaceINTELParam; }
+  operator ExecutionModeAndParamData()
+  {
+    ExecutionModeAndParamData ret(ExecutionMode::RegisterMapInterfaceINTEL);
+    ret.registerMapInterfaceINTEL = registerMapInterfaceINTEL;
+    return ret;
+  }
+};
+
+template<>
 struct ExecutionModeParam<ExecutionMode::NamedBarrierCountINTEL>
 {
   uint32_t namedBarrierCountINTEL;
@@ -1056,6 +1069,10 @@ inline ExecutionModeAndParamData DecodeParam(const ConstIter &it, uint32_t &word
       ret.streamingInterfaceINTEL = (uint32_t)it.word(word);
       word += 1;
       break;
+    case ExecutionMode::RegisterMapInterfaceINTEL:
+      ret.registerMapInterfaceINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
     case ExecutionMode::NamedBarrierCountINTEL:
       ret.namedBarrierCountINTEL = (uint32_t)it.word(word);
       word += 1;
@@ -1158,6 +1175,9 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const ExecutionModeAndParamDa
     case ExecutionMode::StreamingInterfaceINTEL:
       words.push_back((uint32_t)param.streamingInterfaceINTEL);
       break;
+    case ExecutionMode::RegisterMapInterfaceINTEL:
+      words.push_back((uint32_t)param.registerMapInterfaceINTEL);
+      break;
     case ExecutionMode::NamedBarrierCountINTEL:
       words.push_back((uint32_t)param.namedBarrierCountINTEL);
       break;
@@ -1195,6 +1215,7 @@ inline uint16_t ExtraWordCount(const ExecutionMode executionMode)
     case ExecutionMode::NumSIMDWorkitemsINTEL: return 1;
     case ExecutionMode::SchedulerTargetFmaxMhzINTEL: return 1;
     case ExecutionMode::StreamingInterfaceINTEL: return 1;
+    case ExecutionMode::RegisterMapInterfaceINTEL: return 1;
     case ExecutionMode::NamedBarrierCountINTEL: return 1;
     default: break;
   }
@@ -1835,6 +1856,112 @@ struct DecorationParam<Decoration::FunctionFloatingPointModeINTEL>
   }
 };
 
+template<>
+struct DecorationParam<Decoration::LatencyControlLabelINTEL>
+{
+  uint32_t latencyControlLabelINTEL;
+  DecorationParam(uint32_t latencyControlLabelINTELParam) {  latencyControlLabelINTEL = latencyControlLabelINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::LatencyControlLabelINTEL);
+    ret.latencyControlLabelINTEL = latencyControlLabelINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::LatencyControlConstraintINTEL>
+{
+  LatencyControlConstraintINTELParams latencyControlConstraintINTEL;
+  DecorationParam(uint32_t relativeTo, uint32_t controlType, uint32_t relativeCycle) {  latencyControlConstraintINTEL.relativeTo = relativeTo; latencyControlConstraintINTEL.controlType = controlType; latencyControlConstraintINTEL.relativeCycle = relativeCycle; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::LatencyControlConstraintINTEL);
+    ret.latencyControlConstraintINTEL.relativeTo = latencyControlConstraintINTEL.relativeTo;
+    ret.latencyControlConstraintINTEL.controlType = latencyControlConstraintINTEL.controlType;
+    ret.latencyControlConstraintINTEL.relativeCycle = latencyControlConstraintINTEL.relativeCycle;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::MMHostInterfaceAddressWidthINTEL>
+{
+  uint32_t mMHostInterfaceAddressWidthINTEL;
+  DecorationParam(uint32_t mMHostInterfaceAddressWidthINTELParam) {  mMHostInterfaceAddressWidthINTEL = mMHostInterfaceAddressWidthINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::MMHostInterfaceAddressWidthINTEL);
+    ret.mMHostInterfaceAddressWidthINTEL = mMHostInterfaceAddressWidthINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::MMHostInterfaceDataWidthINTEL>
+{
+  uint32_t mMHostInterfaceDataWidthINTEL;
+  DecorationParam(uint32_t mMHostInterfaceDataWidthINTELParam) {  mMHostInterfaceDataWidthINTEL = mMHostInterfaceDataWidthINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::MMHostInterfaceDataWidthINTEL);
+    ret.mMHostInterfaceDataWidthINTEL = mMHostInterfaceDataWidthINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::MMHostInterfaceLatencyINTEL>
+{
+  uint32_t mMHostInterfaceLatencyINTEL;
+  DecorationParam(uint32_t mMHostInterfaceLatencyINTELParam) {  mMHostInterfaceLatencyINTEL = mMHostInterfaceLatencyINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::MMHostInterfaceLatencyINTEL);
+    ret.mMHostInterfaceLatencyINTEL = mMHostInterfaceLatencyINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::MMHostInterfaceReadWriteModeINTEL>
+{
+  AccessQualifier mMHostInterfaceReadWriteModeINTEL;
+  DecorationParam(AccessQualifier mMHostInterfaceReadWriteModeINTELParam) {  mMHostInterfaceReadWriteModeINTEL = mMHostInterfaceReadWriteModeINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::MMHostInterfaceReadWriteModeINTEL);
+    ret.mMHostInterfaceReadWriteModeINTEL = mMHostInterfaceReadWriteModeINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::MMHostInterfaceMaxBurstINTEL>
+{
+  uint32_t mMHostInterfaceMaxBurstINTEL;
+  DecorationParam(uint32_t mMHostInterfaceMaxBurstINTELParam) {  mMHostInterfaceMaxBurstINTEL = mMHostInterfaceMaxBurstINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::MMHostInterfaceMaxBurstINTEL);
+    ret.mMHostInterfaceMaxBurstINTEL = mMHostInterfaceMaxBurstINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::MMHostInterfaceWaitRequestINTEL>
+{
+  uint32_t mMHostInterfaceWaitRequestINTEL;
+  DecorationParam(uint32_t mMHostInterfaceWaitRequestINTELParam) {  mMHostInterfaceWaitRequestINTEL = mMHostInterfaceWaitRequestINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::MMHostInterfaceWaitRequestINTEL);
+    ret.mMHostInterfaceWaitRequestINTEL = mMHostInterfaceWaitRequestINTEL;
+    return ret;
+  }
+};
+
 
 
 template<>
@@ -2034,6 +2161,40 @@ inline DecorationAndParamData DecodeParam(const ConstIter &it, uint32_t &word)
       ret.functionFloatingPointModeINTEL.fPOperationMode = (FPOperationMode)it.word(word+1);
       word += 2;
       break;
+    case Decoration::LatencyControlLabelINTEL:
+      ret.latencyControlLabelINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::LatencyControlConstraintINTEL:
+      ret.latencyControlConstraintINTEL.relativeTo = (uint32_t)it.word(word+0);
+      ret.latencyControlConstraintINTEL.controlType = (uint32_t)it.word(word+1);
+      ret.latencyControlConstraintINTEL.relativeCycle = (uint32_t)it.word(word+2);
+      word += 3;
+      break;
+    case Decoration::MMHostInterfaceAddressWidthINTEL:
+      ret.mMHostInterfaceAddressWidthINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::MMHostInterfaceDataWidthINTEL:
+      ret.mMHostInterfaceDataWidthINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::MMHostInterfaceLatencyINTEL:
+      ret.mMHostInterfaceLatencyINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::MMHostInterfaceReadWriteModeINTEL:
+      ret.mMHostInterfaceReadWriteModeINTEL = (AccessQualifier)it.word(word);
+      word += 1;
+      break;
+    case Decoration::MMHostInterfaceMaxBurstINTEL:
+      ret.mMHostInterfaceMaxBurstINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::MMHostInterfaceWaitRequestINTEL:
+      ret.mMHostInterfaceWaitRequestINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
     default: break;
   }
   return ret;
@@ -2186,6 +2347,32 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const DecorationAndParamData 
       words.push_back((uint32_t)param.functionFloatingPointModeINTEL.targetWidth);
       words.push_back((uint32_t)param.functionFloatingPointModeINTEL.fPOperationMode);
       break;
+    case Decoration::LatencyControlLabelINTEL:
+      words.push_back((uint32_t)param.latencyControlLabelINTEL);
+      break;
+    case Decoration::LatencyControlConstraintINTEL:
+      words.push_back((uint32_t)param.latencyControlConstraintINTEL.relativeTo);
+      words.push_back((uint32_t)param.latencyControlConstraintINTEL.controlType);
+      words.push_back((uint32_t)param.latencyControlConstraintINTEL.relativeCycle);
+      break;
+    case Decoration::MMHostInterfaceAddressWidthINTEL:
+      words.push_back((uint32_t)param.mMHostInterfaceAddressWidthINTEL);
+      break;
+    case Decoration::MMHostInterfaceDataWidthINTEL:
+      words.push_back((uint32_t)param.mMHostInterfaceDataWidthINTEL);
+      break;
+    case Decoration::MMHostInterfaceLatencyINTEL:
+      words.push_back((uint32_t)param.mMHostInterfaceLatencyINTEL);
+      break;
+    case Decoration::MMHostInterfaceReadWriteModeINTEL:
+      words.push_back((uint32_t)param.mMHostInterfaceReadWriteModeINTEL);
+      break;
+    case Decoration::MMHostInterfaceMaxBurstINTEL:
+      words.push_back((uint32_t)param.mMHostInterfaceMaxBurstINTEL);
+      break;
+    case Decoration::MMHostInterfaceWaitRequestINTEL:
+      words.push_back((uint32_t)param.mMHostInterfaceWaitRequestINTEL);
+      break;
     default: break;
   }
 }
@@ -2240,6 +2427,14 @@ inline uint16_t ExtraWordCount(const Decoration decoration)
     case Decoration::BufferLocationINTEL: return 1;
     case Decoration::IOPipeStorageINTEL: return 1;
     case Decoration::FunctionFloatingPointModeINTEL: return 2;
+    case Decoration::LatencyControlLabelINTEL: return 1;
+    case Decoration::LatencyControlConstraintINTEL: return 3;
+    case Decoration::MMHostInterfaceAddressWidthINTEL: return 1;
+    case Decoration::MMHostInterfaceDataWidthINTEL: return 1;
+    case Decoration::MMHostInterfaceLatencyINTEL: return 1;
+    case Decoration::MMHostInterfaceReadWriteModeINTEL: return 1;
+    case Decoration::MMHostInterfaceMaxBurstINTEL: return 1;
+    case Decoration::MMHostInterfaceWaitRequestINTEL: return 1;
     default: break;
   }
   return 0;
@@ -12581,6 +12776,127 @@ struct OpPtrDiff
   Id operand2;
 };
 
+struct OpColorAttachmentReadEXT
+{
+  OpColorAttachmentReadEXT(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    this->attachment = Id::fromWord(it.word(3));
+    this->sample = (it.size() > 4) ? Id::fromWord(it.word(4)) : Id();
+  }
+  OpColorAttachmentReadEXT(IdResultType resultType, IdResult result, Id attachment, Id sample = Id())
+      : op(Op::ColorAttachmentReadEXT)
+      , wordCount(MinWordSize + OptionalWordCount(sample))
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->attachment = attachment;
+    this->sample = sample;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    words.push_back(attachment.value());
+    if(sample != Id()) words.push_back(sample.value());
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::ColorAttachmentReadEXT;
+  static constexpr uint16_t MinWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id attachment;
+  Id sample;
+
+  bool HasSample() const { return wordCount > 4; }
+};
+
+struct OpDepthAttachmentReadEXT
+{
+  OpDepthAttachmentReadEXT(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    this->sample = (it.size() > 3) ? Id::fromWord(it.word(3)) : Id();
+  }
+  OpDepthAttachmentReadEXT(IdResultType resultType, IdResult result, Id sample = Id())
+      : op(Op::DepthAttachmentReadEXT)
+      , wordCount(MinWordSize + OptionalWordCount(sample))
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->sample = sample;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    if(sample != Id()) words.push_back(sample.value());
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::DepthAttachmentReadEXT;
+  static constexpr uint16_t MinWordSize = 3U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id sample;
+
+  bool HasSample() const { return wordCount > 3; }
+};
+
+struct OpStencilAttachmentReadEXT
+{
+  OpStencilAttachmentReadEXT(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    this->sample = (it.size() > 3) ? Id::fromWord(it.word(3)) : Id();
+  }
+  OpStencilAttachmentReadEXT(IdResultType resultType, IdResult result, Id sample = Id())
+      : op(Op::StencilAttachmentReadEXT)
+      , wordCount(MinWordSize + OptionalWordCount(sample))
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->sample = sample;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    if(sample != Id()) words.push_back(sample.value());
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::StencilAttachmentReadEXT;
+  static constexpr uint16_t MinWordSize = 3U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id sample;
+
+  bool HasSample() const { return wordCount > 3; }
+};
+
 struct OpTerminateInvocation
 {
   OpTerminateInvocation(const ConstIter &it)
@@ -13382,6 +13698,126 @@ struct OpRayQueryGetIntersectionTypeKHR
   IdResult result;
   Id rayQuery;
   Id intersection;
+};
+
+struct OpImageSampleWeightedQCOM
+{
+  OpImageSampleWeightedQCOM(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpImageSampleWeightedQCOM(IdResultType resultType, IdResult result, Id texture, Id coordinates, Id weights)
+      : op(Op::ImageSampleWeightedQCOM)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->texture = texture;
+    this->coordinates = coordinates;
+    this->weights = weights;
+  }
+
+  static constexpr Op OpCode = Op::ImageSampleWeightedQCOM;
+  static constexpr uint16_t FixedWordSize = 6U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id texture;
+  Id coordinates;
+  Id weights;
+};
+
+struct OpImageBoxFilterQCOM
+{
+  OpImageBoxFilterQCOM(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpImageBoxFilterQCOM(IdResultType resultType, IdResult result, Id texture, Id coordinates, Id boxSize)
+      : op(Op::ImageBoxFilterQCOM)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->texture = texture;
+    this->coordinates = coordinates;
+    this->boxSize = boxSize;
+  }
+
+  static constexpr Op OpCode = Op::ImageBoxFilterQCOM;
+  static constexpr uint16_t FixedWordSize = 6U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id texture;
+  Id coordinates;
+  Id boxSize;
+};
+
+struct OpImageBlockMatchSSDQCOM
+{
+  OpImageBlockMatchSSDQCOM(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpImageBlockMatchSSDQCOM(IdResultType resultType, IdResult result, Id target, Id targetCoordinates, Id reference, Id referenceCoordinates, Id blockSize)
+      : op(Op::ImageBlockMatchSSDQCOM)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->target = target;
+    this->targetCoordinates = targetCoordinates;
+    this->reference = reference;
+    this->referenceCoordinates = referenceCoordinates;
+    this->blockSize = blockSize;
+  }
+
+  static constexpr Op OpCode = Op::ImageBlockMatchSSDQCOM;
+  static constexpr uint16_t FixedWordSize = 8U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id target;
+  Id targetCoordinates;
+  Id reference;
+  Id referenceCoordinates;
+  Id blockSize;
+};
+
+struct OpImageBlockMatchSADQCOM
+{
+  OpImageBlockMatchSADQCOM(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpImageBlockMatchSADQCOM(IdResultType resultType, IdResult result, Id target, Id targetCoordinates, Id reference, Id referenceCoordinates, Id blockSize)
+      : op(Op::ImageBlockMatchSADQCOM)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->target = target;
+    this->targetCoordinates = targetCoordinates;
+    this->reference = reference;
+    this->referenceCoordinates = referenceCoordinates;
+    this->blockSize = blockSize;
+  }
+
+  static constexpr Op OpCode = Op::ImageBlockMatchSADQCOM;
+  static constexpr uint16_t FixedWordSize = 8U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id target;
+  Id targetCoordinates;
+  Id reference;
+  Id referenceCoordinates;
+  Id blockSize;
 };
 
 struct OpGroupIAddNonUniformAMD
@@ -14965,6 +15401,32 @@ struct OpTraceRayMotionNV
   Id rayTmax;
   Id time;
   Id payload;
+};
+
+struct OpRayQueryGetIntersectionTriangleVertexPositionsKHR
+{
+  OpRayQueryGetIntersectionTriangleVertexPositionsKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetIntersectionTriangleVertexPositionsKHR(IdResultType resultType, IdResult result, Id rayQuery, Id intersection)
+      : op(Op::RayQueryGetIntersectionTriangleVertexPositionsKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+    this->intersection = intersection;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetIntersectionTriangleVertexPositionsKHR;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+  Id intersection;
 };
 
 struct OpTypeAccelerationStructureNV
@@ -16923,6 +17385,54 @@ struct OpSpecConstantCompositeContinuedINTEL
   Op op;
   uint16_t wordCount;
   rdcarray<Id> constituents;
+};
+
+struct OpConvertFToBF16INTEL
+{
+  OpConvertFToBF16INTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpConvertFToBF16INTEL(IdResultType resultType, IdResult result, Id floatValue)
+      : op(Op::ConvertFToBF16INTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->floatValue = floatValue;
+  }
+
+  static constexpr Op OpCode = Op::ConvertFToBF16INTEL;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id floatValue;
+};
+
+struct OpConvertBF16ToFINTEL
+{
+  OpConvertBF16ToFINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpConvertBF16ToFINTEL(IdResultType resultType, IdResult result, Id bFloat16Value)
+      : op(Op::ConvertBF16ToFINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->bFloat16Value = bFloat16Value;
+  }
+
+  static constexpr Op OpCode = Op::ConvertBF16ToFINTEL;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id bFloat16Value;
 };
 
 struct OpControlBarrierArriveINTEL

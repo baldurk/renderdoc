@@ -1,6 +1,7 @@
 #!/bin/bash
 
-grep '<extension ' vk.xml | grep -v 'supported="disabled"' |
+grep '<extension ' vk.xml |
+	 grep -v 'supported="disabled"' | grep -v 'supported="vulkansc"' |
    sed -e '{s#.*name="\([^"]*\)".*number="\([0-9]*\)".*#\2    \1#g}' |
    sed -e '{s#\<[0-9]\>#00&#g}' | sed -e '{s#\<[0-9][0-9]\>#0&#g}' |
    sort > all_exts.txt

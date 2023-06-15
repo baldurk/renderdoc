@@ -747,6 +747,7 @@ void Reflector::PostParse()
           case Dim::Rect: name = "Rect"; break;
           case Dim::SubpassData: name = "Subpass"; break;
           case Dim::Buffer: name = "Buffer"; break;
+          case Dim::TileImageDataEXT: name = "TileImageData"; break;
           case Dim::Invalid:
           case Dim::Max: name = "Invalid"; break;
         }
@@ -886,6 +887,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       case SourceLanguage::Unknown:
       case SourceLanguage::Invalid:
       case SourceLanguage::SYCL:
+      case SourceLanguage::HERO_C:
       case SourceLanguage::Max: break;
     }
 
