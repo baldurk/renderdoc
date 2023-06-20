@@ -2159,6 +2159,9 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 destSlots.binds[a].numMips = c.m_ImageView[viewid].range.levelCount;
                 destSlots.binds[a].numSlices = c.m_ImageView[viewid].range.layerCount;
 
+                if(c.m_ImageView[viewid].viewType == VK_IMAGE_VIEW_TYPE_3D)
+                  destSlots.binds[a].firstSlice = destSlots.binds[a].numSlices = 0;
+
                 // temporary hack, store image layout enum in byteOffset as it's not used for images
                 destSlots.binds[a].byteOffset = convert(srcel.imageLayout);
 

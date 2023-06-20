@@ -692,6 +692,21 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
 
       viewdetails = true;
     }
+
+    if(tex->depth > 1 && ((tex->depth != view.numSlices && view.numSlices > 0) || view.firstSlice > 0))
+    {
+      if(view.numSlices == 1)
+        text += tr("The texture has %1 3D slices, the view covers slice %2.\n")
+                    .arg(tex->depth)
+                    .arg(view.firstSlice);
+      else
+        text += tr("The texture has %1 3D slices, the view covers slices %2-%3.\n")
+                    .arg(tex->depth)
+                    .arg(view.firstSlice)
+                    .arg(view.firstSlice + view.numSlices);
+
+      viewdetails = true;
+    }
   }
 
   if(minLOD(view) != 0.0f)
