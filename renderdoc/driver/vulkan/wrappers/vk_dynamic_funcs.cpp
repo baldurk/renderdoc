@@ -1945,6 +1945,67 @@ void WrappedVulkan::vkCmdSetFragmentShadingRateKHR(
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetAttachmentFeedbackLoopEnableEXT(SerialiserType &ser,
+                                                                      VkCommandBuffer commandBuffer,
+                                                                      VkImageAspectFlags aspectMask)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(aspectMask).Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.feedbackAspects = aspectMask;
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)->CmdSetAttachmentFeedbackLoopEnableEXT(Unwrap(commandBuffer), aspectMask);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetAttachmentFeedbackLoopEnableEXT(VkCommandBuffer commandBuffer,
+                                                            VkImageAspectFlags aspectMask)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdSetAttachmentFeedbackLoopEnableEXT(Unwrap(commandBuffer), aspectMask));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetAttachmentFeedbackLoopEnableEXT);
+    Serialise_vkCmdSetAttachmentFeedbackLoopEnableEXT(ser, commandBuffer, aspectMask);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetViewport, VkCommandBuffer commandBuffer,
                                 uint32_t firstViewport, uint32_t viewportCount,
                                 const VkViewport *pViewports);
@@ -2032,7 +2093,8 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetPrimitiveRestartEnable, VkCommandB
                                 VkBool32 primitiveRestartEnable);
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetRasterizerDiscardEnable,
                                 VkCommandBuffer commandBuffer, VkBool32 rasterizerDiscardEnable);
-
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetFragmentShadingRateKHR, VkCommandBuffer commandBuffer,
                                 const VkExtent2D *pFragmentSize,
                                 const VkFragmentShadingRateCombinerOpKHR combinerOps[2]);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetAttachmentFeedbackLoopEnableEXT,
+                                VkCommandBuffer commandBuffer, VkImageAspectFlags aspectMask);

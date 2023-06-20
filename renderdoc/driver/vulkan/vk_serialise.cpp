@@ -565,6 +565,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ASTC_DECODE_FEATURES_EXT,                             \
                VkPhysicalDeviceASTCDecodeFeaturesEXT)                                                  \
                                                                                                        \
+  /* VK_EXT_attachment_feedback_loop_dynamic_state */                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ATTACHMENT_FEEDBACK_LOOP_DYNAMIC_STATE_FEATURES_EXT,  \
+               VkPhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT)                          \
+                                                                                                       \
   /* VK_EXT_attachment_feedback_loop_layout */                                                         \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ATTACHMENT_FEEDBACK_LOOP_LAYOUT_FEATURES_EXT,         \
                VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT)                                \
@@ -1418,10 +1422,6 @@ SERIALISE_VK_HANDLES();
   /* VK_AMD_shader_early_and_late_fragment_tests */                                                    \
   PNEXT_UNSUPPORTED(                                                                                   \
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_EARLY_AND_LATE_FRAGMENT_TESTS_FEATURES_AMD)             \
-                                                                                                       \
-  /* VK_EXT_attachment_feedback_loop_dynamic_state */                                                  \
-  PNEXT_UNSUPPORTED(                                                                                   \
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ATTACHMENT_FEEDBACK_LOOP_DYNAMIC_STATE_FEATURES_EXT)           \
                                                                                                        \
   /* VK_EXT_external_memory_acquire_unmodified */                                                      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_ACQUIRE_UNMODIFIED_EXT)                          \
@@ -8271,6 +8271,24 @@ void Deserialise(const VkExternalMemoryImageCreateInfoNV &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser,
+                 VkPhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType ==
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ATTACHMENT_FEEDBACK_LOOP_DYNAMIC_STATE_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(attachmentFeedbackLoopDynamicState);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -11397,6 +11415,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice16BitStorageFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice4444FormatsFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice8BitStorageFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceASTCDecodeFeaturesEXT)
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceBorderColorSwizzleFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceBufferDeviceAddressFeatures);

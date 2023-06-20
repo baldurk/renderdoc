@@ -1849,6 +1849,10 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.currentPass.framebuffer.attachments.clear();
   }
 
+  ret.currentPass.colorFeedbackAllowed = (state.feedbackAspects & VK_IMAGE_ASPECT_COLOR_BIT) != 0;
+  ret.currentPass.depthFeedbackAllowed = (state.feedbackAspects & VK_IMAGE_ASPECT_DEPTH_BIT) != 0;
+  ret.currentPass.stencilFeedbackAllowed = (state.feedbackAspects & VK_IMAGE_ASPECT_STENCIL_BIT) != 0;
+
   // Descriptor sets
   ret.graphics.descriptorSets.resize(state.graphics.descSets.size());
   ret.compute.descriptorSets.resize(state.compute.descSets.size());

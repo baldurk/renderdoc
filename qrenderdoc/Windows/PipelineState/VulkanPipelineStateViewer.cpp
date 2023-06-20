@@ -2866,6 +2866,41 @@ void VulkanPipelineStateViewer::setState()
             resName +=
                 tr(" (%1x%2 texels)").arg(shadingRateTexelSize.first).arg(shadingRateTexelSize.second);
 
+          // append if colour or depth/stencil feedback is allowed
+          if(a.type == AttType::Color && state.currentPass.colorFeedbackAllowed)
+          {
+            resName += tr(" (Feedback)");
+          }
+          else if(a.type == AttType::Depth && state.currentPass.depthFeedbackAllowed &&
+                  state.currentPass.stencilFeedbackAllowed)
+          {
+            resName += tr(" (Feedback)");
+          }
+          else if(a.type == AttType::Depth && (state.currentPass.depthFeedbackAllowed ||
+                                               state.currentPass.stencilFeedbackAllowed))
+          {
+            // if only one of depth or stencil is allowed, display that specifically
+            if(tex->format.type == ResourceFormatType::D16S8 ||
+               tex->format.type == ResourceFormatType::D24S8 ||
+               tex->format.type == ResourceFormatType::D32S8)
+            {
+              if(state.currentPass.depthFeedbackAllowed)
+                resName += tr(" (Depth Feedback)");
+              else if(state.currentPass.stencilFeedbackAllowed)
+                resName += tr(" (Depth Feedback)");
+            }
+            else if(tex->format.type == ResourceFormatType::S8 &&
+                    state.currentPass.stencilFeedbackAllowed)
+            {
+              resName += tr(" (Feedback)");
+            }
+            // this case must be depth-only, since depth/stencil and stencil-only are covered above.
+            else if(state.currentPass.depthFeedbackAllowed)
+            {
+              resName += tr(" (Feedback)");
+            }
+          }
+
           node = new RDTreeWidgetItem(
               {slotname, resName, typeName, dimensions, format, samples, QString()});
 

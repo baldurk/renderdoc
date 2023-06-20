@@ -925,6 +925,7 @@ enum class VulkanChunk : uint32_t
   vkCmdEndRendering,
   vkCmdSetFragmentShadingRateKHR,
   vkSetDeviceMemoryPriorityEXT,
+  vkCmdSetAttachmentFeedbackLoopEnableEXT,
   Max,
 };
 
@@ -1132,6 +1133,7 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDevice16BitStorageFeatures);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevice4444FormatsFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevice8BitStorageFeatures);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceASTCDecodeFeaturesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceBorderColorSwizzleFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceBufferDeviceAddressFeatures);
@@ -1540,6 +1542,7 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDevice16BitStorageFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevice4444FormatsFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevice8BitStorageFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceASTCDecodeFeaturesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceBorderColorSwizzleFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceCoherentMemoryFeaturesAMD);

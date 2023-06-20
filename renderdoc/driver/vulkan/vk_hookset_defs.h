@@ -547,7 +547,8 @@
   DeclExt(EXT_attachment_feedback_loop_layout);       \
   DeclExt(EXT_pageable_device_local_memory);          \
   DeclExt(EXT_swapchain_maintenance1);                \
-  DeclExt(EXT_provoking_vertex);
+  DeclExt(EXT_provoking_vertex);                      \
+  DeclExt(EXT_attachment_feedback_loop_dynamic_state);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -665,7 +666,8 @@
   CheckExt(EXT_attachment_feedback_loop_layout, VKXX);       \
   CheckExt(EXT_pageable_device_local_memory, VKXX);          \
   CheckExt(EXT_swapchain_maintenance1, VKXX);                \
-  CheckExt(EXT_provoking_vertex, VKXX);
+  CheckExt(EXT_provoking_vertex, VKXX);                      \
+  CheckExt(EXT_attachment_feedback_loop_dynamic_state, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -927,6 +929,8 @@
   HookInitExtension(KHR_fragment_shading_rate, CmdSetFragmentShadingRateKHR);                      \
   HookInitExtension(EXT_pageable_device_local_memory, SetDeviceMemoryPriorityEXT);                 \
   HookInitExtension(EXT_swapchain_maintenance1, ReleaseSwapchainImagesEXT);                        \
+  HookInitExtension(EXT_attachment_feedback_loop_dynamic_state,                                    \
+                    CmdSetAttachmentFeedbackLoopEnableEXT);                                        \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
   HookInitExtension_Device_GGP();                                                                  \
@@ -1653,6 +1657,8 @@
               uint32_t, connectorId, VkDisplayKHR *, display);                                       \
   HookDefine2(VkResult, vkReleaseSwapchainImagesEXT, VkDevice, device,                               \
               const VkReleaseSwapchainImagesInfoEXT *, pReleaseInfo);                                \
+  HookDefine2(void, vkCmdSetAttachmentFeedbackLoopEnableEXT, VkCommandBuffer, commandBuffer,         \
+              VkImageAspectFlags, aspectMask);                                                       \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \

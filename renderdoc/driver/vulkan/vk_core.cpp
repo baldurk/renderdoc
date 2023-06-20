@@ -896,6 +896,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_ASTC_DECODE_MODE_EXTENSION_NAME, VK_EXT_ASTC_DECODE_MODE_SPEC_VERSION,
     },
     {
+        VK_EXT_ATTACHMENT_FEEDBACK_LOOP_DYNAMIC_STATE_EXTENSION_NAME,
+        VK_EXT_ATTACHMENT_FEEDBACK_LOOP_DYNAMIC_STATE_SPEC_VERSION,
+    },
+    {
         VK_EXT_ATTACHMENT_FEEDBACK_LOOP_LAYOUT_EXTENSION_NAME,
         VK_EXT_ATTACHMENT_FEEDBACK_LOOP_LAYOUT_SPEC_VERSION,
     },
@@ -3717,6 +3721,10 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
 
     case VulkanChunk::vkSetDeviceMemoryPriorityEXT:
       return Serialise_vkSetDeviceMemoryPriorityEXT(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0.0f);
+
+    case VulkanChunk::vkCmdSetAttachmentFeedbackLoopEnableEXT:
+      return Serialise_vkCmdSetAttachmentFeedbackLoopEnableEXT(ser, VK_NULL_HANDLE,
+                                                               VK_IMAGE_ASPECT_NONE);
 
     // chunks that are reserved but not yet serialised
     case VulkanChunk::vkResetCommandPool:

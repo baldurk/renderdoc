@@ -1229,6 +1229,15 @@ struct CurrentPass
 :type: VKRenderArea
 )");
   RenderArea renderArea;
+
+  DOCUMENT("If feedback loops are allowed on color attachments");
+  bool colorFeedbackAllowed = false;
+
+  DOCUMENT("If feedback loops are allowed on depth attachments");
+  bool depthFeedbackAllowed = false;
+
+  DOCUMENT("If feedback loops are allowed on stencil attachments");
+  bool stencilFeedbackAllowed = false;
 };
 
 DOCUMENT("Contains the layout of a range of subresources in an image.");

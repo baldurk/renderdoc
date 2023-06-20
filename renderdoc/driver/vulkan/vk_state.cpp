@@ -475,6 +475,12 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
                                                    shadingRateCombiners);
     }
 
+    if(vk->DynamicAttachmentLoop())
+    {
+      if(dynamicStates[VkDynamicAttachmentFeedbackLoopEnableEXT])
+        ObjDisp(cmd)->CmdSetAttachmentFeedbackLoopEnableEXT(Unwrap(cmd), feedbackAspects);
+    }
+
     if(graphics.pipeline != ResourceId())
       BindDescriptorSetsForPipeline(vk, cmd, graphics, VK_PIPELINE_BIND_POINT_GRAPHICS);
     else

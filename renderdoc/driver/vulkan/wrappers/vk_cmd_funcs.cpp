@@ -3294,6 +3294,15 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
                 renderstate.vertexBindings[i].divisor = pipeInfo.vertexBindings[i].instanceDivisor;
               }
             }
+            if(!pipeInfo.dynamicStates[VkDynamicAttachmentFeedbackLoopEnableEXT])
+            {
+              renderstate.feedbackAspects = VK_IMAGE_ASPECT_NONE;
+              if(pipeInfo.flags & VK_PIPELINE_CREATE_COLOR_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT)
+                renderstate.feedbackAspects |= VK_IMAGE_ASPECT_COLOR_BIT;
+              if(pipeInfo.flags & VK_PIPELINE_CREATE_DEPTH_STENCIL_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT)
+                renderstate.feedbackAspects |=
+                    VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+            }
           }
         }
       }

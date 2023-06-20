@@ -447,6 +447,7 @@ private:
   bool m_FragmentShadingRate = false;
   bool m_DynColorWrite = false;
   bool m_DynVertexInput = false;
+  bool m_DynAttachmentLoop = false;
 
   PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
 
@@ -1220,6 +1221,7 @@ public:
   bool FragmentShadingRate() const { return m_FragmentShadingRate; }
   bool DynamicColorWrite() const { return m_DynColorWrite; }
   bool DynamicVertexInput() const { return m_DynVertexInput; }
+  bool DynamicAttachmentLoop() const { return m_DynAttachmentLoop; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetActionCB(VulkanActionCallback *cb) { m_ActionCallback = cb; }
   void SetSubmitChain(void *submitChain) { m_SubmitChain = submitChain; }
@@ -2633,4 +2635,8 @@ public:
   // VK_EXT_swapchain_maintenance1
   VkResult vkReleaseSwapchainImagesEXT(VkDevice device,
                                        const VkReleaseSwapchainImagesInfoEXT *pReleaseInfo);
+
+  // VK_EXT_attachment_feedback_loop_dynamic_state
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetAttachmentFeedbackLoopEnableEXT,
+                                VkCommandBuffer commandBuffer, VkImageAspectFlags aspectMask);
 };

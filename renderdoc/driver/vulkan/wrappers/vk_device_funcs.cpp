@@ -3095,6 +3095,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(transformFeedbackPreservesProvokingVertex);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(
+          VkPhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT,
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ATTACHMENT_FEEDBACK_LOOP_DYNAMIC_STATE_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(attachmentFeedbackLoopDynamicState);
+        m_DynAttachmentLoop = ext->attachmentFeedbackLoopDynamicState != VK_FALSE;
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

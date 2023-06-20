@@ -2830,6 +2830,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
                 {
                   RDCERR("Vertex input dynamic state found, should have been stripped");
                 }
+                else if(d == VK_DYNAMIC_STATE_ATTACHMENT_FEEDBACK_LOOP_ENABLE_EXT)
+                {
+                  vt->CmdSetAttachmentFeedbackLoopEnableEXT(Unwrap(cmd), state.feedbackAspects);
+                }
               }
 
               if(fmt.indexByteStride)

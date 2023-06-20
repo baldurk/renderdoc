@@ -2293,8 +2293,11 @@ void DoSerialise(SerialiserType &ser, VKPipe::CurrentPass &el)
   SERIALISE_MEMBER(renderpass);
   SERIALISE_MEMBER(framebuffer);
   SERIALISE_MEMBER(renderArea);
+  SERIALISE_MEMBER(colorFeedbackAllowed);
+  SERIALISE_MEMBER(depthFeedbackAllowed);
+  SERIALISE_MEMBER(stencilFeedbackAllowed);
 
-  SIZE_CHECK(232);
+  SIZE_CHECK(240);
 }
 
 template <typename SerialiserType>
@@ -2362,7 +2365,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
   SERIALISE_MEMBER(conditionalRendering);
 
-  SIZE_CHECK(2256);
+  SIZE_CHECK(2264);
 }
 
 #pragma endregion Vulkan pipeline state

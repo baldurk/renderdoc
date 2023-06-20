@@ -248,6 +248,9 @@ struct VulkanRenderState
       VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR, VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
   };
 
+  // attachment feedback loop
+  VkImageAspectFlags feedbackAspects = VK_IMAGE_ASPECT_NONE;
+
 private:
   ResourceId renderPass;
   ResourceId framebuffer;
