@@ -167,6 +167,9 @@ RD_TEST(D3D11_Refcount_Check, D3D11GraphicsTest)
       reftest.annot = NULL;
       reftest.swapBlitVS = NULL;
       reftest.swapBlitPS = NULL;
+      reftest.DefaultTriVS = NULL;
+      reftest.DefaultTriPS = NULL;
+      reftest.DefaultTriVB = NULL;
 
       dbg->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 

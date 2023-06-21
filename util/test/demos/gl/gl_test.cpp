@@ -113,6 +113,9 @@ void OpenGLGraphicsTest::PostInit()
   glBindVertexArray(DefaultTriVAO);
   ConfigureDefaultVAO();
 
+  glBindVertexArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
   DefaultTriProgram = MakeProgram(GLDefaultVertex, GLDefaultPixel);
 }
 
