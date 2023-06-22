@@ -123,6 +123,9 @@
     <ClCompile Include="d3d11_video.cpp">
       <Filter>Wrapped</Filter>
     </ClCompile>
+    <ClCompile Include="d3d9_hooks.cpp">
+      <Filter>Hooks</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d11_replay.h">
