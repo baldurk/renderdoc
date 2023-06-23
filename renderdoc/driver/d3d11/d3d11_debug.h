@@ -38,7 +38,7 @@ class WrappedID3D11DeviceContext;
 
 class D3D11ResourceManager;
 
-struct CopyPixelParams;
+struct D3D11CopyPixelParams;
 
 namespace DXBC
 {
@@ -147,7 +147,7 @@ public:
 
   TextureShaderDetails GetShaderDetails(ResourceId id, CompType typeCast, bool rawOutput);
 
-  void PixelHistoryCopyPixel(CopyPixelParams &params, size_t eventSlot, uint32_t storeSlot);
+  void PixelHistoryCopyPixel(D3D11CopyPixelParams &params, size_t eventSlot, uint32_t storeSlot);
 
   struct CacheElem
   {

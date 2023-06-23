@@ -131,7 +131,7 @@
  *   PixelModifications
  */
 
-struct CopyPixelParams
+struct D3D11CopyPixelParams
 {
   bool multisampled;
   bool floatTex;
@@ -160,7 +160,8 @@ static const uint32_t pixstoreStride = 4;
 
 // Helper function to copy a single pixel out of a source texture, which will handle any texture
 // type and binding type, doing any copying as needed. Writes the result to a given buffer UAV.
-void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, size_t eventSlot, uint32_t storeSlot)
+void D3D11DebugManager::PixelHistoryCopyPixel(D3D11CopyPixelParams &p, size_t eventSlot,
+                                              uint32_t storeSlot)
 {
   // perform a subresource copy if the real source tex couldn't be directly bound as SRV
   if(p.sourceTex != p.srvTex && p.sourceTex && p.srvTex)
@@ -611,7 +612,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
           WrappedID3D11Texture3D1::m_TextureList.end())
     targetres = WrappedID3D11Texture3D1::m_TextureList[target].m_Texture;
 
-  CopyPixelParams colourCopyParams = {};
+  D3D11CopyPixelParams colourCopyParams = {};
 
   // common parameters
   colourCopyParams.multisampled = multisampled;
@@ -625,7 +626,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   else
     colourCopyParams.subres = details.texArraySize * slice + mip;
 
-  CopyPixelParams depthCopyParams = colourCopyParams;
+  D3D11CopyPixelParams depthCopyParams = colourCopyParams;
 
   colourCopyParams.depthcopy = false;
   colourCopyParams.sourceTex = (ID3D11Texture2D *)targetres;
@@ -1274,7 +1275,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       m_pImmediateContext->OMGetRenderTargetsAndUnorderedAccessViews(
           UAVStartSlot, prevRTVs, &prevDSV, UAVStartSlot, numUAVs - UAVStartSlot, prevUAVs);
 
-      CopyPixelParams params = depthCopyParams;
+      D3D11CopyPixelParams params = depthCopyParams;
       params.depthbound = true;
       params.srvTex = params.sourceTex = shaddepthOutput;
       params.srv[0] = shaddepthOutputDepthSRV;
@@ -1987,7 +1988,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
   ID3D11DepthStencilState *ds = NULL;
 
-  CopyPixelParams shadoutCopyParams = colourCopyParams;
+  D3D11CopyPixelParams shadoutCopyParams = colourCopyParams;
   shadoutCopyParams.sourceTex = shadoutCopyParams.srvTex = shadOutput;
   shadoutCopyParams.srv[0] = shadOutputSRV;
   shadoutCopyParams.uav = shadoutStoreUAV;

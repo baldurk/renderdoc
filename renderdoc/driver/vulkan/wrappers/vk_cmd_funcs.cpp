@@ -1977,7 +1977,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
               image, EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
                                 rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
                                     ? ResourceUsage::Clear
-                                    : ResourceUsage::Discard)));
+                                    : ResourceUsage::Discard,
+                                fbattachments[i])));
         }
       }
 
@@ -2631,7 +2632,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
               image, EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
                                 rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
                                     ? ResourceUsage::Clear
-                                    : ResourceUsage::Discard)));
+                                    : ResourceUsage::Discard,
+                                fbattachments[i])));
         }
       }
 
@@ -7147,7 +7149,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
           m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
               image, EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
                                 att->loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ? ResourceUsage::Clear
-                                                                           : ResourceUsage::Discard)));
+                                                                           : ResourceUsage::Discard,
+                                GetResID(att->imageView))));
         }
       }
 

@@ -146,13 +146,14 @@ enum : uint32_t
   DepthTest_GreaterEqual = 7U << DepthTest_Shift,
 };
 
-struct CopyPixelParams
+struct VkCopyPixelParams
 {
   VkImage srcImage;
   VkFormat srcImageFormat;
   VkImageLayout srcImageLayout;
   bool multisampled;
   bool multiview;
+  Subresource sub;
 };
 
 struct PixelHistoryResources
@@ -1247,7 +1248,7 @@ protected:
     return descSet;
   }
 
-  void CopyImagePixel(VkCommandBuffer cmd, CopyPixelParams &p, size_t offset)
+  void CopyImagePixel(VkCommandBuffer cmd, VkCopyPixelParams &p, size_t offset)
   {
     VkImageAspectFlags aspectFlags = 0;
     bool depthCopy = IsDepthOrStencilFormat(p.srcImageFormat);
@@ -1263,8 +1264,8 @@ protected:
       aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
     }
 
-    uint32_t baseMip = m_CallbackInfo.targetSubresource.mip;
-    uint32_t baseSlice = m_CallbackInfo.targetSubresource.slice;
+    uint32_t baseMip = p.sub.mip;
+    uint32_t baseSlice = p.sub.slice;
     // The images that are created specifically for evaluating pixel history are
     // already based on the target mip/slice. Unless we're using multiview, in which case the output
     // is still view-dependent.
@@ -1657,12 +1658,13 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       pipestate.back = pipestate.front;
       ReplayDraw(cmd, eid, true);
 
-      CopyPixelParams params = {};
+      VkCopyPixelParams params = {};
       params.srcImage = m_CallbackInfo.dsImage;
       params.srcImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
       params.srcImageFormat = m_CallbackInfo.dsFormat;
       params.multisampled = (m_CallbackInfo.samples != VK_SAMPLE_COUNT_1_BIT);
       params.multiview = multiview;
+      params.sub = m_CallbackInfo.targetSubresource;
       // Copy stencil value that indicates the number of fragments ignoring
       // shader discard.
       CopyImagePixel(cmd, params, storeOffset + offsetof(struct EventInfo, dsWithoutShaderDiscard));
@@ -1828,14 +1830,14 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
     if(!m_Events.contains(eid))
       return;
     size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
-    CopyPixel(eid, cmd, storeOffset);
+    CopyPixel(eid, cmd, storeOffset, false);
   }
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd)
   {
     if(!m_Events.contains(eid))
       return false;
     size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
-    CopyPixel(eid, cmd, storeOffset + offsetof(struct EventInfo, postmod));
+    CopyPixel(eid, cmd, storeOffset + offsetof(struct EventInfo, postmod), false);
     m_EventIndices.insert(std::make_pair(eid, m_EventIndices.size()));
     return false;
   }
@@ -1920,12 +1922,13 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
   }
 
 private:
-  void CopyPixel(uint32_t eid, VkCommandBuffer cmd, size_t offset)
+  void CopyPixel(uint32_t eid, VkCommandBuffer cmd, size_t offset, bool autoDepthCopy = true)
   {
-    CopyPixelParams targetCopyParams = {};
+    VkCopyPixelParams targetCopyParams = {};
     targetCopyParams.srcImage = m_CallbackInfo.targetImage;
     targetCopyParams.srcImageFormat = m_CallbackInfo.targetImageFormat;
     targetCopyParams.multisampled = (m_CallbackInfo.samples != VK_SAMPLE_COUNT_1_BIT);
+    targetCopyParams.sub = m_CallbackInfo.targetSubresource;
     VkImageAspectFlagBits aspect = VK_IMAGE_ASPECT_COLOR_BIT;
     if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat))
     {
@@ -1938,14 +1941,17 @@ private:
     CopyImagePixel(cmd, targetCopyParams, offset);
 
     // If the target image is a depth/stencil attachment, we already
-    // copied the value above.
-    if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat))
+    // copied the value above. Or if we are not wanting to automatically copy the depth (e.g. in the
+    // case that this is a clear, dispatch, or other write where copying depth is irrelevant and the
+    // pixel co-ordinate we're tracking may even be out of bounds)
+    if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat) || autoDepthCopy == false)
       return;
 
     const VulkanRenderState &state = m_pDriver->GetCmdRenderState();
 
     ResourceId depthImageId;
     VkImageLayout depthLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    Subresource depthSub;
 
     if(state.dynamicRendering.active)
     {
@@ -1959,7 +1965,10 @@ private:
 
       if(dsView != VK_NULL_HANDLE)
       {
-        depthImageId = m_pDriver->GetDebugManager()->GetImageViewInfo(GetResID(dsView)).image;
+        const VulkanCreationInfo::ImageView &viewInfo =
+            m_pDriver->GetDebugManager()->GetImageViewInfo(GetResID(dsView));
+        depthImageId = viewInfo.image;
+        depthSub = {viewInfo.range.baseMipLevel, viewInfo.range.baseArrayLayer};
       }
     }
     else if(state.GetRenderPass() != ResourceId())
@@ -1972,7 +1981,10 @@ private:
 
       if(att >= 0)
       {
-        depthImageId = m_pDriver->GetDebugManager()->GetImageViewInfo(atts[att]).image;
+        const VulkanCreationInfo::ImageView &viewInfo =
+            m_pDriver->GetDebugManager()->GetImageViewInfo(atts[att]);
+        depthImageId = viewInfo.image;
+        depthSub = {viewInfo.range.baseMipLevel, viewInfo.range.baseArrayLayer};
         depthLayout = rpInfo.subpasses[state.subpass].depthLayout;
       }
     }
@@ -1983,11 +1995,12 @@ private:
 
       const VulkanCreationInfo::Image &imginfo =
           m_pDriver->GetDebugManager()->GetImageInfo(depthImageId);
-      CopyPixelParams depthCopyParams = targetCopyParams;
+      VkCopyPixelParams depthCopyParams = targetCopyParams;
       depthCopyParams.srcImage = depthImage;
       depthCopyParams.srcImageLayout = depthLayout;
       depthCopyParams.srcImageFormat = imginfo.format;
       depthCopyParams.multisampled = (imginfo.samples != VK_SAMPLE_COUNT_1_BIT);
+      depthCopyParams.sub = depthSub;
       CopyImagePixel(cmd, depthCopyParams, offset + offsetof(struct PixelHistoryValue, depth));
       m_DepthFormats.insert(std::make_pair(eid, imginfo.format));
     }
@@ -2710,11 +2723,12 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     pipesIter[0] = pipes.primitiveIdPipe;
     pipesIter[1] = pipes.shaderOutPipe;
 
-    CopyPixelParams colourCopyParams = {};
+    VkCopyPixelParams colourCopyParams = {};
     colourCopyParams.srcImage = m_CallbackInfo.subImage;
     colourCopyParams.srcImageFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
     colourCopyParams.multisampled = (m_CallbackInfo.samples != VK_SAMPLE_COUNT_1_BIT);
     colourCopyParams.multiview = multiview;
+    colourCopyParams.sub = m_CallbackInfo.targetSubresource;
     if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat))
     {
       colourCopyParams.srcImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -2829,7 +2843,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
           storeOffset += offsetof(struct PerFragmentInfo, shaderOut);
           if(depthEnabled)
           {
-            CopyPixelParams depthCopyParams = colourCopyParams;
+            VkCopyPixelParams depthCopyParams = colourCopyParams;
             depthCopyParams.srcImage = m_CallbackInfo.dsImage;
             depthCopyParams.srcImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             depthCopyParams.srcImageFormat = m_CallbackInfo.dsFormat;
@@ -2952,7 +2966,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
       if(depthImage != VK_NULL_HANDLE)
       {
-        CopyPixelParams depthCopyParams = colourCopyParams;
+        VkCopyPixelParams depthCopyParams = colourCopyParams;
         depthCopyParams.srcImage = m_CallbackInfo.dsImage;
         depthCopyParams.srcImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         depthCopyParams.srcImageFormat = m_CallbackInfo.dsFormat;
@@ -3836,11 +3850,12 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
 
     if(events[ev].view != ResourceId())
     {
-      // TODO: Check that the slice and mip matches.
       VulkanCreationInfo::ImageView viewInfo =
           m_pDriver->GetDebugManager()->GetImageViewInfo(events[ev].view);
       uint32_t layerEnd = viewInfo.range.baseArrayLayer + viewInfo.range.layerCount;
-      if(sub.slice < viewInfo.range.baseArrayLayer || sub.slice >= layerEnd)
+      uint32_t levelEnd = viewInfo.range.baseMipLevel + viewInfo.range.levelCount;
+      if(sub.slice < viewInfo.range.baseArrayLayer || sub.slice >= layerEnd ||
+         sub.mip < viewInfo.range.baseMipLevel || sub.mip >= levelEnd)
       {
         RDCDEBUG("Usage %d at %u didn't refer to the matching mip/slice (%u/%u)", events[ev].usage,
                  events[ev].eventId, sub.mip, sub.slice);
@@ -3895,7 +3910,8 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     bool clear = (events[ev].usage == ResourceUsage::Clear);
     bool directWrite = isDirectWrite(events[ev].usage);
 
-    if(drawEvents.contains(events[ev].eventId) || clear || directWrite)
+    if(drawEvents.contains(events[ev].eventId) ||
+       (modEvents.contains(events[ev].eventId) && (clear || directWrite)))
     {
       PixelModification mod;
       RDCEraseEl(mod);

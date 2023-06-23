@@ -49,7 +49,7 @@ struct VKMeshDisplayPipelines
   uint32_t secondaryStridePadding = 0;
 };
 
-struct CopyPixelParams;
+struct VkCopyPixelParams;
 
 struct PixelHistoryResources;
 
@@ -99,7 +99,7 @@ public:
                                   const Subresource &sub, uint32_t numEvents);
   bool PixelHistoryDestroyResources(const PixelHistoryResources &resources);
 
-  void PixelHistoryCopyPixel(VkCommandBuffer cmd, CopyPixelParams &p, size_t offset);
+  void PixelHistoryCopyPixel(VkCommandBuffer cmd, VkCopyPixelParams &p, size_t offset);
 
   VkImageLayout GetImageLayout(ResourceId image, VkImageAspectFlagBits aspect, uint32_t mip,
                                uint32_t slice);
