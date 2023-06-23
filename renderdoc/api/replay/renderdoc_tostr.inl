@@ -63,6 +63,7 @@ rdcstr DoStringise(const ResultCode &el)
         FileIncompatibleVersion,
         "Capture file incompatible due to being made on an different major version of RenderDoc");
     STRINGISE_ENUM_CLASS_NAMED(FileCorrupted, "File is corrupted");
+    STRINGISE_ENUM_CLASS_NAMED(FileUnrecognised, "File format is unrecognised");
     STRINGISE_ENUM_CLASS_NAMED(
         ImageUnsupported, "The image file or format is unrecognised or not supported in this form");
     STRINGISE_ENUM_CLASS_NAMED(APIUnsupported, "API used in this capture is unsupported");

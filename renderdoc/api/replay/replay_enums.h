@@ -3803,6 +3803,10 @@ a remote server.
 
   The capture file is corrupted or otherwise unrecognisable.
 
+.. data:: FileUnrecognised
+
+  The file was not recognised as any supported file type.
+
 .. data:: ImageUnsupported
 
   The image file or format is unrecognised or not supported in this form.
@@ -3895,6 +3899,7 @@ enum class ResultCode : uint32_t
   FileIOFailed,
   FileIncompatibleVersion,
   FileCorrupted,
+  FileUnrecognised,
   ImageUnsupported,
   APIUnsupported,
   APIInitFailed,

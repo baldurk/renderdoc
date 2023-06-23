@@ -329,9 +329,8 @@ void RDCFile::Init(StreamReader &reader)
 
   if(header.magic != MAGIC_HEADER)
   {
-    SET_ERROR_RESULT(m_Error, ResultCode::FileCorrupted,
-                     "Invalid capture file. Expected magic %08x, got %08x.", MAGIC_HEADER,
-                     (uint32_t)header.magic);
+    SET_ERROR_RESULT(m_Error, ResultCode::FileUnrecognised,
+                     "Unrecognised file type. File magic number is %08x.", (uint32_t)header.magic);
     return;
   }
 
