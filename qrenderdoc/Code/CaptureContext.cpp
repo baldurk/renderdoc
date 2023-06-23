@@ -168,12 +168,13 @@ CaptureContext::CaptureContext(PersistantConfig &cfg) : m_Config(cfg)
       }
       else if(CrashDialog::CaptureTooLarge(m_Config))
       {
-        text +=
-            tr("<html>Your capture is too lage to upload as a crash report so this can't be "
-               "automatically reported. "
-               "Please email me at <a "
-               "href=\"mailto:baldurk@baldurk.org?subject=RenderDoc%20Unrecoverable%20error\">"
-               "baldurk@baldurk.org</a> with information and I can help investigate.</html>");
+        text = tr("<html>%1<br><br>"
+                  "Your capture is too lage to upload as a crash report so this can't be "
+                  "automatically reported. "
+                  "Please email me at <a "
+                  "href=\"mailto:baldurk@baldurk.org?subject=RenderDoc%20Unrecoverable%20error\">"
+                  "baldurk@baldurk.org</a> with information and I can help investigate.</html>")
+                   .arg(text);
       }
       else
       {
