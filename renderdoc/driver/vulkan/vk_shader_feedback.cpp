@@ -315,6 +315,37 @@ rdcspv::Id MakeOffsettedPointer<uint32_t>(rdcspv::Editor &editor, rdcspv::Iter &
   return editor.AddOperation(it, rdcspv::OpBitcast(ptrType, editor.MakeId(), finalAddr));
 }
 
+void OffsetBindingsToMatch(rdcarray<uint32_t> &modSpirv)
+{
+  rdcspv::Editor editor(modSpirv);
+
+  editor.Prepare();
+
+  // patch all bindings up by 1
+  for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Annotations),
+                   end = editor.End(rdcspv::Section::Annotations);
+      it < end; ++it)
+  {
+    // we will use descriptor set 0 for our own purposes if we don't have a buffer address.
+    //
+    // Since bindings are arbitrary, we just increase all user bindings to make room, and we'll
+    // redeclare the descriptor set layouts and pipeline layout. This is inevitable in the case
+    // where all descriptor sets are already used. In theory we only have to do this with set 0,
+    // but that requires knowing which variables are in set 0 and it's simpler to increase all
+    // bindings.
+    if(it.opcode() == rdcspv::Op::Decorate)
+    {
+      rdcspv::OpDecorate dec(it);
+      if(dec.decoration == rdcspv::Decoration::Binding)
+      {
+        RDCASSERT(dec.decoration.binding != 0xffffffff);
+        dec.decoration.binding += 1;
+        it = dec;
+      }
+    }
+  }
+}
+
 template <typename uintvulkanmax_t>
 void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchData, ShaderStage stage,
                     const char *entryName, const std::map<rdcspv::Binding, feedbackData> &offsetMap,
@@ -1793,15 +1824,27 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       VkPipelineShaderStageCreateInfo &stage =
           (VkPipelineShaderStageCreateInfo &)graphicsInfo.pStages[i];
 
+      bool storesUnsupported = false;
+
       if(stage.stage & VK_SHADER_STAGE_FRAGMENT_BIT)
       {
         if(!m_pDriver->GetDeviceEnabledFeatures().fragmentStoresAndAtomics)
-          continue;
+          storesUnsupported = true;
       }
       else
       {
         if(!m_pDriver->GetDeviceEnabledFeatures().vertexPipelineStoresAndAtomics)
-          continue;
+          storesUnsupported = true;
+      }
+
+      // if we are using buffer device address, we can just skip patching this shader
+      if(storesUnsupported && bufferAddress != 0)
+      {
+        continue;
+
+        // if we're not using BDA, we need to be sure all stages have the bindings patched in-kind.
+        // Otherwise if e.g. vertex stores aren't supported the vertex bindings won't be patched and
+        // will mismatch our patched descriptor sets
       }
 
       int idx = StageIndex(stage.stage);
@@ -1814,7 +1857,11 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
         FileIO::WriteAll(Vulkan_Debug_FeedbackDumpDirPath() + "/before_" + filename[idx], modSpirv);
 
-      if(m_pDriver->GetDeviceEnabledFeatures().shaderInt64)
+      if(storesUnsupported)
+      {
+        OffsetBindingsToMatch(modSpirv);
+      }
+      else if(m_pDriver->GetDeviceEnabledFeatures().shaderInt64)
       {
         AnnotateShader<uint64_t>(*pipeInfo.shaders[idx].refl, *pipeInfo.shaders[idx].patchData,
                                  ShaderStage(StageIndex(stage.stage)), stage.pName, offsetMap,
