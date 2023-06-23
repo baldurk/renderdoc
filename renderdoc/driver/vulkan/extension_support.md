@@ -27,6 +27,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_acquire_drm_display`
 * `VK_EXT_acquire_xlib_display`
 * `VK_EXT_astc_decode_mode`
+* `VK_EXT_attachment_feedback_loop_dynamic_state`
 * `VK_EXT_attachment_feedback_loop_layout`
 * `VK_EXT_border_color_swizzle`
 * `VK_EXT_buffer_device_address`
@@ -61,6 +62,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_hdr_metadata`
 * `VK_EXT_headless_surface`
 * `VK_EXT_host_query_reset`
+* `VK_EXT_image_2d_view_of_3d`
 * `VK_EXT_image_robustness`
 * `VK_EXT_image_view_min_lod`
 * `VK_EXT_index_type_uint8`
@@ -81,6 +83,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_primitive_topology_list_restart`
 * `VK_EXT_primitives_generated_query`
 * `VK_EXT_private_data`
+* `VK_EXT_provoking_vertex`
 * `VK_EXT_queue_family_foreign`
 * `VK_EXT_rgba10x6_formats`
 * `VK_EXT_robustness2`
@@ -246,7 +249,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 
 ## EXT Extensions
 
-* `VK_EXT_attachment_feedback_loop_dynamic_state`
 * `VK_EXT_blend_operation_advanced`
 * `VK_EXT_descriptor_buffer`
 * `VK_EXT_device_address_binding_report`
@@ -256,7 +258,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_external_memory_acquire_unmodified`
 * `VK_EXT_external_memory_host`
 * `VK_EXT_extended_dynamic_state3`
-* `VK_EXT_image_2d_view_of_3d`
 * `VK_EXT_image_sliced_view_of_3d`
 * `VK_EXT_image_compression_control`
 * `VK_EXT_image_compression_control_swapchain`
@@ -271,7 +272,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_pipeline_protected_access`
 * `VK_EXT_pipeline_properties`
 * `VK_EXT_pipeline_robustness`
-* `VK_EXT_provoking_vertex`
 * `VK_EXT_rasterization_order_attachment_access`
 * `VK_EXT_shader_module_identifier`
 * `VK_EXT_shader_object`
