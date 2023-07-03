@@ -81,20 +81,23 @@ RD_TEST(D3D12_Execute_Indirect, D3D12GraphicsTest)
       D3D12_CPU_DESCRIPTOR_HANDLE rtv =
           MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
 
-      ClearRenderTargetView(cmd, rtv, {1.0f, 0.0f, 0.0f, 1.0f});
+      for(int i = 0; i < 8; ++i)
+      {
+        ClearRenderTargetView(cmd, rtv, {1.0f, 0.0f, 0.0f, 1.0f});
 
-      cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-      IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
-      cmd->SetPipelineState(pso);
-      cmd->SetGraphicsRootSignature(sig);
+        IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
+        cmd->SetPipelineState(pso);
+        cmd->SetGraphicsRootSignature(sig);
 
-      RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
-      RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
+        RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
+        RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
 
-      OMSetRenderTargets(cmd, {rtv}, {});
+        OMSetRenderTargets(cmd, {rtv}, {});
 
-      cmd->ExecuteIndirect(cmdsig, 1, argBuf, 0, NULL, 0);
+        cmd->ExecuteIndirect(cmdsig, 1, argBuf, 0, NULL, 0);
+      }
 
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
