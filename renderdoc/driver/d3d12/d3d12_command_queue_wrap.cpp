@@ -492,7 +492,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
           ID3D12CommandList *list = Unwrap(ppCommandLists[i]);
           real->ExecuteCommandLists(1, &list);
           if(D3D12_Debug_SingleSubmitFlushing())
-            m_pDevice->GPUSyncAllQueues();
+            m_pDevice->GPUSync();
         }
         else
         {
@@ -504,8 +504,8 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
           for(size_t c = 1; c < info.crackedLists.size(); c++)
           {
-            // ensure all work on all queues has finished
-            m_pDevice->GPUSyncAllQueues();
+            // ensure all GPU work has finished
+            m_pDevice->GPUSync();
 
             if(m_pDevice->HasFatalError())
               return false;
@@ -525,7 +525,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
           }
 
           if(D3D12_Debug_SingleSubmitFlushing())
-            m_pDevice->GPUSyncAllQueues();
+            m_pDevice->GPUSync();
         }
       }
 
@@ -714,7 +714,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
           for(size_t i = 0; i < rerecordedCmds.size(); i++)
           {
             real->ExecuteCommandLists(1, &rerecordedCmds[i]);
-            m_pDevice->GPUSyncAllQueues();
+            m_pDevice->GPUSync();
           }
         }
         else
