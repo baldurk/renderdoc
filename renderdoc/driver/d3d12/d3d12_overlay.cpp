@@ -956,7 +956,7 @@ RenderOutputSubresource D3D12Replay::GetRenderOutputSubresource(ResourceId id)
     }
   }
 
-  if(id == rs.dsv.GetResResourceId())
+  if(id == rs.dsv.GetResResourceId() && rs.dsv.GetResResourceId() != ResourceId())
   {
     FillResourceView(view, &rs.dsv);
     return RenderOutputSubresource(view.firstMip, view.firstSlice, view.numSlices);
