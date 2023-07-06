@@ -288,7 +288,7 @@ void ReplayOutput::RefreshOverlay()
   {
     ResourceId id = m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId);
 
-    if(action && m_pDevice->IsRenderOutput(id))
+    if(id != ResourceId() && action && m_pDevice->IsRenderOutput(id))
     {
       FloatVector f = m_RenderData.texDisplay.backgroundColor;
 
