@@ -2442,7 +2442,7 @@ QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, ResourceId s
       }
       else if(viewFormat.type == ResourceFormatType::R11G11B10)
       {
-        format = lit("[[packed(r11g11b10]] float3");
+        format = lit("[[packed(r11g11b10)]] float3");
       }
       else
       {
