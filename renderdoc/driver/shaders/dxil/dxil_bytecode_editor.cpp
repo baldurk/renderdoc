@@ -356,6 +356,7 @@ NamedMetadata *ProgramEditor::CreateNamedMetadata(const rdcstr &name)
       return m;
 
   m_NamedMeta.push_back(new(alloc) NamedMetadata);
+  m_NamedMeta.back()->name = name;
   return m_NamedMeta.back();
 }
 
