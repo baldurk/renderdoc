@@ -1154,6 +1154,10 @@ void D3D12PipelineStateViewer::setShaderState(
           if(bind == NULL ||
              (bind->arraySize != ~0U && bind->bind + (int)bind->arraySize <= shaderReg))
           {
+            // reset the bind if we don't have any match
+            bind = NULL;
+            shaderInput = NULL;
+
             for(int k = 0; k < binds.count(); k++)
             {
               const Bindpoint &b = binds[k];
