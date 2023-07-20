@@ -751,6 +751,7 @@ bool VulkanGraphicsTest::Init()
 
   headlessCmds = new VulkanCommands(this);
 
+  if(!headless)
   {
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());
 
