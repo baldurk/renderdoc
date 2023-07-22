@@ -1943,12 +1943,15 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstants(
 
     bool stateUpdate = false;
 
+    UINT dummyData;
+    // nVidia driver crashes if pSrcData is NULL even with Num32BitValuesToSet = 0
+    const UINT *pValidSrcData = (Num32BitValuesToSet > 0) ? pSrcData : &dummyData;
     if(IsActiveReplaying(m_State))
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
         Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData,
+            ->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pValidSrcData,
                                            DestOffsetIn32BitValues);
 
         stateUpdate = true;
@@ -1961,10 +1964,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstants(
     else
     {
       Unwrap(pCommandList)
-          ->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData,
+          ->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pValidSrcData,
                                          DestOffsetIn32BitValues);
       GetCrackedList()->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet,
-                                                     pSrcData, DestOffsetIn32BitValues);
+                                                     pValidSrcData, DestOffsetIn32BitValues);
 
       stateUpdate = true;
     }
@@ -1974,7 +1977,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstants(
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 
       state.compute.sigelems.resize_for_index(RootParameterIndex);
-      state.compute.sigelems[RootParameterIndex].SetConstants(Num32BitValuesToSet, pSrcData,
+      state.compute.sigelems[RootParameterIndex].SetConstants(Num32BitValuesToSet, pValidSrcData,
                                                               DestOffsetIn32BitValues);
     }
   }
