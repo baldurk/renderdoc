@@ -1374,14 +1374,14 @@ bool QueryTest(WrappedOpenGL *driver, GLPixelHistoryResources &resources, const 
   }
 
   driver->SetFetchCounters(true);
-  driver->glBeginQuery(eGL_SAMPLES_PASSED, samplesPassedQuery);
+  driver->glBeginQuery(eGL_ANY_SAMPLES_PASSED, samplesPassedQuery);
   driver->ReplayLog(event.eventId, event.eventId, eReplay_OnlyDraw);
-  driver->glEndQuery(eGL_SAMPLES_PASSED);
+  driver->glEndQuery(eGL_ANY_SAMPLES_PASSED);
   driver->SetFetchCounters(false);
-  int numSamplesPassed;
-  driver->glGetQueryObjectiv(samplesPassedQuery, eGL_QUERY_RESULT, &numSamplesPassed);
+  int anySamplesPassed = GL_FALSE;
+  driver->glGetQueryObjectiv(samplesPassedQuery, eGL_QUERY_RESULT, &anySamplesPassed);
   driver->glDeleteQueries(1, &samplesPassedQuery);
-  return numSamplesPassed == 0;
+  return anySamplesPassed == GL_FALSE;
 }
 
 void QueryFailedTests(WrappedOpenGL *driver, GLPixelHistoryResources &resources,
