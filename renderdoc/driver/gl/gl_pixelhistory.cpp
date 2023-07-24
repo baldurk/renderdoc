@@ -2035,6 +2035,11 @@ void CalculateFragmentDepthTests(WrappedOpenGL *driver, GLPixelHistoryResources 
       continue;
     }
 
+    GLboolean depthTestEnabled = driver->glIsEnabled(eGL_DEPTH_TEST);
+    // default for no depth test
+    int depthFunc = eGL_ALWAYS;
+    if(depthTestEnabled)
+      driver->glGetIntegerv(eGL_DEPTH_FUNC, &depthFunc);
     for(; historyIndex < history.size() && modEvents[i].eventId == history[historyIndex].eventId;
         ++historyIndex)
     {
@@ -2043,19 +2048,8 @@ void CalculateFragmentDepthTests(WrappedOpenGL *driver, GLPixelHistoryResources 
         continue;
       }
 
-      if(driver->glIsEnabled(eGL_DEPTH_TEST))
-      {
-        int depthFunc;
-        driver->glGetIntegerv(eGL_DEPTH_FUNC, &depthFunc);
-
-        history[historyIndex].depthTestFailed = !depthTestPassed(
-            depthFunc, history[historyIndex].shaderOut.depth, history[historyIndex].preMod.depth);
-      }
-      else
-      {
-        // since there is no depth test, there is no failure.
-        history[historyIndex].depthTestFailed = false;
-      }
+      history[historyIndex].depthTestFailed = !depthTestPassed(
+          depthFunc, history[historyIndex].shaderOut.depth, history[historyIndex].preMod.depth);
     }
 
     if(i < modEvents.size() - 1)
