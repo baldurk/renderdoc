@@ -2165,6 +2165,12 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
   QueryPrimitiveIdPerFragment(m_pDriver, this, resources, modEvents, x, flippedY, history,
                               eventFragments, usingFloatForPrimitiveId, textureDesc.msSamp,
                               sampleIdx);
+  // copy the postMod depth to next history's preMod depth
+  // (preMode depth is to prime the depth buffer in QueryPostModPerFragment)
+  for(size_t i = 1; i < history.size(); ++i)
+  {
+    history[i].preMod.depth = history[i - 1].postMod.depth;
+  }
   QueryPostModPerFragment(m_pDriver, this, resources, modEvents, x, flippedY, history,
                           eventFragments, textureDesc.msSamp, sampleIdx, textureWidth, textureHeight);
 
