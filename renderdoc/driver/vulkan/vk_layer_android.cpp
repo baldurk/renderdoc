@@ -33,7 +33,7 @@
 #include "vk_resources.h"
 
 #undef VK_LAYER_EXPORT
-#define VK_LAYER_EXPORT
+#define VK_LAYER_EXPORT __attribute__((visibility("default")))
 
 // The android loader has limitations at present that require the enumerate functions
 // to be exported with the precise canonical names. We just forward them to the
