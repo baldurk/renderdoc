@@ -44,7 +44,7 @@
 #undef VK_LAYER_EXPORT
 #define VK_LAYER_EXPORT extern "C" __declspec(dllexport)
 
-#elif ENABLED(RDOC_LINUX)
+#elif ENABLED(RDOC_LINUX) || ENABLED(RDOC_ANDROID)
 
 #undef VK_LAYER_EXPORT
 #define VK_LAYER_EXPORT __attribute__((visibility("default")))
