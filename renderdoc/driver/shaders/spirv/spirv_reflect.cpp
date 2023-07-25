@@ -653,6 +653,41 @@ void Reflector::UnregisterOp(Iter it)
   RDCFATAL("Reflector should not be used for editing! UnregisterOp() call invalid");
 }
 
+void Reflector::CalculateArrayTypeName(DataType &type)
+{
+  // prefer the name
+  rdcstr lengthName;
+
+  if(type.length != Id())
+  {
+    lengthName = strings[type.length];
+
+    // if not, use the constant value
+    if(lengthName.empty())
+      lengthName = StringiseConstant(type.length);
+
+    // if not, it might be a spec constant, use the fallback
+    if(lengthName.empty())
+      lengthName = StringFormat::Fmt("_%u", type.length.value());
+  }
+
+  rdcstr basename = dataTypes[type.InnerType()].name;
+
+  // arrays are inside-out, so we need to insert our new array length before the first array
+  // length
+  int arrayCharIdx = basename.indexOf('[');
+  if(arrayCharIdx > 0)
+  {
+    type.name = StringFormat::Fmt("%s[%s]%s", basename.substr(0, arrayCharIdx).c_str(),
+                                  lengthName.c_str(), basename.substr(arrayCharIdx).c_str());
+  }
+  else
+  {
+    type.name =
+        StringFormat::Fmt("%s[%s]", dataTypes[type.InnerType()].name.c_str(), lengthName.c_str());
+  }
+}
+
 void Reflector::PostParse()
 {
   Processor::PostParse();
@@ -685,37 +720,7 @@ void Reflector::PostParse()
       }
       else if(type.type == DataType::ArrayType)
       {
-        // prefer the name
-        rdcstr lengthName;
-
-        if(type.length != Id())
-        {
-          lengthName = strings[type.length];
-
-          // if not, use the constant value
-          if(lengthName.empty())
-            lengthName = StringiseConstant(type.length);
-
-          // if not, it might be a spec constant, use the fallback
-          if(lengthName.empty())
-            lengthName = StringFormat::Fmt("_%u", type.length.value());
-        }
-
-        rdcstr basename = dataTypes[type.InnerType()].name;
-
-        // arrays are inside-out, so we need to insert our new array length before the first array
-        // length
-        int arrayCharIdx = basename.indexOf('[');
-        if(arrayCharIdx > 0)
-        {
-          type.name = StringFormat::Fmt("%s[%s]%s", basename.substr(0, arrayCharIdx).c_str(),
-                                        lengthName.c_str(), basename.substr(arrayCharIdx).c_str());
-        }
-        else
-        {
-          type.name = StringFormat::Fmt("%s[%s]", dataTypes[type.InnerType()].name.c_str(),
-                                        lengthName.c_str());
-        }
+        CalculateArrayTypeName(type);
       }
       else if(type.type < DataType::StructType)
       {
@@ -780,6 +785,20 @@ void Reflector::PostParse()
   {
     if(it->second.type == DataType::PointerType && it->second.name.empty())
       it->second.name = StringFormat::Fmt("%s*", dataTypes[it->second.InnerType()].name.c_str());
+  }
+
+  // finally do a last pass for arrays of pointers, now that we have pointer types
+  for(auto it = dataTypes.begin(); it != dataTypes.end(); ++it)
+  {
+    if(it->second.type == DataType::ArrayType)
+    {
+      DataType *iter = &it->second;
+      while(iter->type == DataType::ArrayType)
+        iter = &dataTypes[iter->InnerType()];
+
+      if(iter->type == DataType::PointerType)
+        CalculateArrayTypeName(it->second);
+    }
   }
 
   for(const MemberName &mem : memberNames)
