@@ -308,9 +308,7 @@ static uint32_t CalculateMinimumByteSize(const rdcarray<ShaderConstant> &variabl
 
     RDCASSERT(last.type.elements <= 1);
 
-    uint32_t basicTypeSize = 4;
-    if(last.type.baseType == VarType::Double)
-      basicTypeSize = 8;
+    uint32_t basicTypeSize = VarTypeByteSize(last.type.baseType);
 
     uint32_t rows = last.type.rows;
     uint32_t cols = last.type.columns;
