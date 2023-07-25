@@ -1334,7 +1334,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         el.type.arrayByteStride = 8;
         el.type.elements = arrayCount;
 
-        cur->offset += 8;
+        cur->offset += 8 * arrayCount;
 
         if(!isPadding)
         {
