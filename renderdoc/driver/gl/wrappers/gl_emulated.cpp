@@ -3254,14 +3254,17 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
       // see what format and type the implementation supports
       GLenum implFormat = eGL_NONE, implType = eGL_NONE;
 
-      GL.glGetIntegerv(eGL_IMPLEMENTATION_COLOR_READ_FORMAT, (GLint *)&implFormat);
-      GL.glGetIntegerv(eGL_IMPLEMENTATION_COLOR_READ_TYPE, (GLint *)&implType);
+      if(!depthFormat)
+      {
+        GL.glGetIntegerv(eGL_IMPLEMENTATION_COLOR_READ_FORMAT, (GLint *)&implFormat);
+        GL.glGetIntegerv(eGL_IMPLEMENTATION_COLOR_READ_TYPE, (GLint *)&implType);
 
-      // GL_HALF_FLOAT and GL_HALF_FLOAT_OES have different enum values but are the same otherwise.
-      // we always use the normal enum ourselves, but if the driver wants the _OES version then just
-      // use that so we match and can do a direct readback.
-      if(implType == eGL_HALF_FLOAT_OES && readType == eGL_HALF_FLOAT)
-        readType = eGL_HALF_FLOAT_OES;
+        // GL_HALF_FLOAT and GL_HALF_FLOAT_OES have different enum values but are the same
+        // otherwise. we always use the normal enum ourselves, but if the driver wants the _OES
+        // version then just use that so we match and can do a direct readback.
+        if(implType == eGL_HALF_FLOAT_OES && readType == eGL_HALF_FLOAT)
+          readType = eGL_HALF_FLOAT_OES;
+      }
 
       if(!depthFormat && implFormat == readFormat && implType == readType)
       {
