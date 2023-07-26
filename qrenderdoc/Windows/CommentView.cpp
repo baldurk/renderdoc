@@ -89,7 +89,10 @@ CommentView::CommentView(ICaptureContext &ctx, QWidget *parent)
       });
 
   m_commentsEditor->styleSetHotSpot(link_style, true);
-  m_commentsEditor->styleSetFore(link_style, SCINTILLA_COLOUR(0, 0, 255));
+  QColor back = palette().base().color();
+  QColor fore = palette().link().color();
+  m_commentsEditor->styleSetBack(link_style, SCINTILLA_COLOUR(back.red(), back.green(), back.blue()));
+  m_commentsEditor->styleSetFore(link_style, SCINTILLA_COLOUR(fore.red(), fore.green(), fore.blue()));
 
   QObject::connect(
       m_commentsEditor, &ScintillaEdit::hotSpotClick, [this](int position, int modifiers) {
