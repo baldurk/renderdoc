@@ -1576,8 +1576,8 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
         //             X
         //             | CheckCornerSize
         //             X
-        //              \\   innerSize (width and height)
-        //               \\
+        //              \\   innerSize
+        //               \\  (width and height)
         // CheckHeight    X
         //               /
         //              /
