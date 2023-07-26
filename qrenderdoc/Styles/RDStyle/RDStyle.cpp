@@ -44,6 +44,7 @@ static const int HighlightBorder = 2;
 
 static const int CheckWidth = 14;
 static const int CheckHeight = 14;
+static float CheckCornerSize = 2.0f;
 static const int CheckMargin = 3;
 
 static const int GroupHMargin = 8;
@@ -1567,7 +1568,89 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
 
       if(opt->state & State_On)
       {
-        p->fillRect(rect, opt->palette.brush(QPalette::ButtonText));
+        QPainterPath checkpath;
+        QPolygonF poly;
+
+        // Left side:
+        //
+        //             X
+        //             | CheckCornerSize
+        //             X
+        //              \\   innerSize (width and height)
+        //               \\
+        // CheckHeight    X
+        //               /
+        //              /
+        //             X
+        //             | CheckCornerSize
+        //             X
+
+        // Top side:
+        //
+        // X---X      X----X
+        //      \\   /
+        //       \\ /
+        //         X
+
+        Q_ASSERT(rect.height() == rect.width());
+
+        const float innerSize = float(rect.height() - Constants::CheckCornerSize * 2) / 2.0f;
+
+        const float totalSize = innerSize * 2 + Constants::CheckCornerSize * 2;
+        Q_ASSERT(totalSize == rect.height());
+
+        // left edge
+        QPointF pt = rect.topLeft();
+        poly << pt;
+        pt.setY(pt.y() + Constants::CheckCornerSize);
+        poly << pt;
+        pt.setY(pt.y() + innerSize);
+        pt.setX(pt.x() + innerSize);
+        poly << pt;
+        pt.setY(pt.y() + innerSize);
+        pt.setX(pt.x() - innerSize);
+        poly << pt;
+        pt.setY(pt.y() + Constants::CheckCornerSize);
+        poly << pt;
+
+        // bottom edge
+        pt.setX(pt.x() + Constants::CheckCornerSize);
+        poly << pt;
+        pt.setX(pt.x() + innerSize);
+        pt.setY(pt.y() - innerSize);
+        poly << pt;
+        pt.setX(pt.x() + innerSize);
+        pt.setY(pt.y() + innerSize);
+        poly << pt;
+        pt.setX(pt.x() + Constants::CheckCornerSize);
+        poly << pt;
+
+        // right edge
+        pt.setY(pt.y() - Constants::CheckCornerSize);
+        poly << pt;
+        pt.setX(pt.x() - innerSize);
+        pt.setY(pt.y() - innerSize);
+        poly << pt;
+        pt.setX(pt.x() + innerSize);
+        pt.setY(pt.y() - innerSize);
+        poly << pt;
+        pt.setY(pt.y() - Constants::CheckCornerSize);
+        poly << pt;
+
+        // topt edge
+        pt.setX(pt.x() - Constants::CheckCornerSize);
+        poly << pt;
+        pt.setX(pt.x() - innerSize);
+        pt.setY(pt.y() + innerSize);
+        poly << pt;
+        pt.setX(pt.x() - innerSize);
+        pt.setY(pt.y() - innerSize);
+        poly << pt;
+        pt.setX(pt.x() - Constants::CheckCornerSize);
+        poly << pt;
+
+        checkpath.addPolygon(poly);
+        p->fillPath(checkpath, opt->palette.brush(QPalette::ButtonText));
       }
       else if(opt->state & State_NoChange)
       {
