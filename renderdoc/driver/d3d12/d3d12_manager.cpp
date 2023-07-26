@@ -803,6 +803,8 @@ void AddStateResetBarrier(D3D12ResourceLayout srcState, D3D12ResourceLayout dstS
     b.AccessAfter = D3D12_BARRIER_ACCESS_COMMON;
     b.SyncAfter = D3D12_BARRIER_SYNC_ALL;
     b.LayoutAfter = dstState.ToLayout();
+    if(b.LayoutBefore == D3D12_BARRIER_LAYOUT_UNDEFINED)
+      b.AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS;
     if(b.LayoutAfter == D3D12_BARRIER_LAYOUT_UNDEFINED)
       b.AccessAfter = D3D12_BARRIER_ACCESS_NO_ACCESS;
     b.Subresources.IndexOrFirstMipLevel = (UINT)subresource;
@@ -838,6 +840,8 @@ void AddStateResetBarrier(D3D12ResourceLayout srcState, D3D12ResourceLayout dstS
         b.AccessAfter = D3D12_BARRIER_ACCESS_COMMON;
         b.SyncAfter = D3D12_BARRIER_SYNC_ALL;
         b.LayoutAfter = dstState.ToLayout();
+        if(b.LayoutBefore == D3D12_BARRIER_LAYOUT_UNDEFINED)
+          b.AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS;
         if(b.LayoutAfter == D3D12_BARRIER_LAYOUT_UNDEFINED)
           b.AccessAfter = D3D12_BARRIER_ACCESS_NO_ACCESS;
         b.Subresources.IndexOrFirstMipLevel = (UINT)subresource;
