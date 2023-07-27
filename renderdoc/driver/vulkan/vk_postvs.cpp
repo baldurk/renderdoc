@@ -1749,7 +1749,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
   if(action->flags & ActionFlags::Indexed)
   {
-    const bool restart = pipeCreateInfo.pInputAssemblyState->primitiveRestartEnable == VK_TRUE;
+    const bool restart = state.primRestartEnable != VK_FALSE;
     bytebuf idxdata;
     rdcarray<uint32_t> indices;
     uint8_t *idx8 = NULL;
@@ -1837,6 +1837,10 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       // from filtering through. Worst case we index to the end of the vertex
       // buffers which is generally much more reasonable
       i32 = RDCMIN(maxIdx, i32);
+
+      // ignore primitive restart indices
+      if(restart && i32 == (0xffffffff >> ((4 - idxsize) * 8)))
+        continue;
 
       auto it = std::lower_bound(indices.begin(), indices.end(), i32);
 
