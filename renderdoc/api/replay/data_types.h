@@ -2100,8 +2100,9 @@ struct PixelModification
   {
     return eventId == o.eventId && directShaderWrite == o.directShaderWrite &&
            unboundPS == o.unboundPS && fragIndex == o.fragIndex && primitiveID == o.primitiveID &&
-           preMod == o.preMod && shaderOut == o.shaderOut && shaderOutDualSrc == o.shaderOutDualSrc &&
-           postMod == o.postMod && sampleMasked == o.sampleMasked &&
+           preMod == o.preMod && shaderOut == o.shaderOut &&
+           shaderOutDualSrc == o.shaderOutDualSrc && blendSrc == o.blendSrc &&
+           blendDst == o.blendDst && postMod == o.postMod && sampleMasked == o.sampleMasked &&
            backfaceCulled == o.backfaceCulled && depthClipped == o.depthClipped &&
            depthBoundsFailed == o.depthBoundsFailed && viewClipped == o.viewClipped &&
            scissorClipped == o.scissorClipped && shaderDiscarded == o.shaderDiscarded &&
@@ -2125,6 +2126,10 @@ struct PixelModification
       return shaderOut < o.shaderOut;
     if(!(shaderOutDualSrc == o.shaderOutDualSrc))
       return shaderOutDualSrc < o.shaderOutDualSrc;
+    if(!(blendSrc == o.blendSrc))
+      return blendSrc < o.blendSrc;
+    if(!(blendDst == o.blendDst))
+      return blendDst < o.blendDst;
     if(!(postMod == o.postMod))
       return postMod < o.postMod;
     if(!(sampleMasked == o.sampleMasked))
@@ -2182,6 +2187,16 @@ pixel.
 :type: ModificationValue
 )");
   ModificationValue shaderOutDualSrc;
+  DOCUMENT(R"(The source component in the blend equation for this fragment.
+
+:type: ModificationValue
+)");
+  ModificationValue blendSrc;
+  DOCUMENT(R"(The destination component in the blend equation for this fragment.
+
+:type: ModificationValue
+)");
+  ModificationValue blendDst;
   DOCUMENT(R"(The value of the texture after this fragment ran.
 
 :type: ModificationValue
