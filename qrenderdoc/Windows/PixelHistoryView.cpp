@@ -848,8 +848,8 @@ void PixelHistoryView::on_events_customContextMenuRequested(const QPoint &pos)
     debugText = tr("&Debug Pixel (%1, %2) primitive %3 at Event %4")
                     .arg(m_Pixel.x())
                     .arg(m_Pixel.y())
-                    .arg(tag.eventId)
-                    .arg(tag.primitive);
+                    .arg(tag.primitive)
+                    .arg(tag.eventId);
 
     contextMenu.addAction(&jumpAction);
   }
