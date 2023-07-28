@@ -49,8 +49,6 @@ struct VKMeshDisplayPipelines
   uint32_t secondaryStridePadding = 0;
 };
 
-struct VkCopyPixelParams;
-
 struct PixelHistoryResources;
 
 class VulkanResourceManager;
@@ -98,8 +96,6 @@ public:
                                   VkExtent3D extent, VkFormat format, VkSampleCountFlagBits samples,
                                   const Subresource &sub, uint32_t numEvents);
   bool PixelHistoryDestroyResources(const PixelHistoryResources &resources);
-
-  void PixelHistoryCopyPixel(VkCommandBuffer cmd, VkCopyPixelParams &p, size_t offset);
 
   VkImageLayout GetImageLayout(ResourceId image, VkImageAspectFlagBits aspect, uint32_t mip,
                                uint32_t slice);
