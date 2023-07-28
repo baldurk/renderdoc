@@ -1303,6 +1303,7 @@ std::map<uint32_t, uint32_t> QueryNumFragmentsByEvent(
       numFragments = history[i].shaderOut.stencil;
       history[i].shaderOut.stencil = history[i].postMod.stencil;
     }
+    history[i].shaderOutDualSrc.SetInvalid();
 
     eventFragments.emplace(modEvents[i].eventId, numFragments);
 
@@ -1587,6 +1588,7 @@ void QueryShaderOutPerFragment(WrappedOpenGL *driver, GLReplay *replay,
                         int(historyIndex - history.begin()));
         historyIndex->shaderOut.stencil = oldStencil;
       }
+      historyIndex->shaderOutDualSrc.SetInvalid();
       historyIndex++;
     }
 

@@ -3972,6 +3972,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
       mod.preMod.SetInvalid();
       mod.postMod.SetInvalid();
       mod.shaderOut.SetInvalid();
+      mod.shaderOutDualSrc.SetInvalid();
       h++;
       continue;
     }
@@ -3999,6 +4000,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     int32_t fragsClipped = int32_t(ei.dsWithShaderDiscard[4]);
     mod.shaderOut.col.intValue[0] = frags;
     mod.shaderOut.col.intValue[1] = fragsClipped;
+    mod.shaderOutDualSrc.SetInvalid();
     bool someFragsClipped = (fragsClipped < frags);
     mod.primitiveID = someFragsClipped;
     // Draws in secondary command buffers will fail this check,
@@ -4145,6 +4147,8 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
         {
           history[h].preMod = history[h - 1].postMod;
         }
+
+        history[h].shaderOutDualSrc.SetInvalid();
       }
 
       // check the depth value between premod/shaderout against the known test if we have valid

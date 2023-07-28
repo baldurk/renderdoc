@@ -2100,12 +2100,12 @@ struct PixelModification
   {
     return eventId == o.eventId && directShaderWrite == o.directShaderWrite &&
            unboundPS == o.unboundPS && fragIndex == o.fragIndex && primitiveID == o.primitiveID &&
-           preMod == o.preMod && shaderOut == o.shaderOut && postMod == o.postMod &&
-           sampleMasked == o.sampleMasked && backfaceCulled == o.backfaceCulled &&
-           depthClipped == o.depthClipped && depthBoundsFailed == o.depthBoundsFailed &&
-           viewClipped == o.viewClipped && scissorClipped == o.scissorClipped &&
-           shaderDiscarded == o.shaderDiscarded && depthTestFailed == o.depthTestFailed &&
-           stencilTestFailed == o.stencilTestFailed;
+           preMod == o.preMod && shaderOut == o.shaderOut && shaderOutDualSrc == o.shaderOutDualSrc &&
+           postMod == o.postMod && sampleMasked == o.sampleMasked &&
+           backfaceCulled == o.backfaceCulled && depthClipped == o.depthClipped &&
+           depthBoundsFailed == o.depthBoundsFailed && viewClipped == o.viewClipped &&
+           scissorClipped == o.scissorClipped && shaderDiscarded == o.shaderDiscarded &&
+           depthTestFailed == o.depthTestFailed && stencilTestFailed == o.stencilTestFailed;
   }
   bool operator<(const PixelModification &o) const
   {
@@ -2123,6 +2123,8 @@ struct PixelModification
       return preMod < o.preMod;
     if(!(shaderOut == o.shaderOut))
       return shaderOut < o.shaderOut;
+    if(!(shaderOutDualSrc == o.shaderOutDualSrc))
+      return shaderOutDualSrc < o.shaderOutDualSrc;
     if(!(postMod == o.postMod))
       return postMod < o.postMod;
     if(!(sampleMasked == o.sampleMasked))
@@ -2175,6 +2177,11 @@ pixel.
 :type: ModificationValue
 )");
   ModificationValue shaderOut;
+  DOCUMENT(R"(The value that this fragment wrote from the pixel shader to the second output.
+
+:type: ModificationValue
+)");
+  ModificationValue shaderOutDualSrc;
   DOCUMENT(R"(The value of the texture after this fragment ran.
 
 :type: ModificationValue
