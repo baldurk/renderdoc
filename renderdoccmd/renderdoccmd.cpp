@@ -174,127 +174,6 @@ struct HelpCommand : public Command
   }
 };
 
-struct ThumbCommand : public Command
-{
-private:
-  std::string infile;
-  std::string outfile;
-  std::string format;
-  uint32_t maxsize = 0;
-
-public:
-  ThumbCommand() : Command() {}
-  virtual void AddOptions(cmdline::parser &parser)
-  {
-    parser.set_footer("<filename.rdc>");
-    parser.add<std::string>("out", 'o', "The output filename to save the file to", true,
-                            "filename.jpg");
-    parser.add<std::string>("format", 'f',
-                            "The format of the output file. If empty, detected from filename",
-                            false, "", cmdline::oneof<std::string>("jpg", "png", "bmp", "tga"));
-    parser.add<uint32_t>(
-        "max-size", 's',
-        "The maximum dimension of the thumbnail. Default is 0, which is unlimited.", false, 0);
-  }
-  virtual const char *Description() { return "Saves a capture's embedded thumbnail to disk."; }
-  virtual bool IsInternalOnly() { return false; }
-  virtual bool IsCaptureCommand() { return false; }
-  virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &)
-  {
-    std::vector<std::string> rest = parser.rest();
-    if(rest.empty())
-    {
-      std::cerr << "Error: thumb command requires a capture filename." << std::endl
-                << std::endl
-                << parser.usage();
-      return false;
-    }
-
-    infile = rest[0];
-
-    rest.erase(rest.begin());
-
-    parser.set_rest(rest);
-
-    outfile = parser.get<std::string>("out");
-    format = parser.get<std::string>("format");
-    maxsize = parser.get<uint32_t>("max-size");
-
-    return true;
-  }
-
-  virtual int Execute(const CaptureOptions &)
-  {
-    FileType type = FileType::JPG;
-
-    if(format == "png")
-    {
-      type = FileType::PNG;
-    }
-    else if(format == "tga")
-    {
-      type = FileType::TGA;
-    }
-    else if(format == "bmp")
-    {
-      type = FileType::BMP;
-    }
-    else
-    {
-      const char *dot = strrchr(outfile.c_str(), '.');
-
-      if(dot != NULL && strstr(dot, "png"))
-        type = FileType::PNG;
-      else if(dot != NULL && strstr(dot, "tga"))
-        type = FileType::TGA;
-      else if(dot != NULL && strstr(dot, "bmp"))
-        type = FileType::BMP;
-      else if(dot != NULL && strstr(dot, "jpg"))
-        type = FileType::JPG;
-      else
-        std::cerr << "Couldn't guess format from '" << outfile << "', defaulting to jpg."
-                  << std::endl;
-    }
-
-    bytebuf buf;
-
-    ICaptureFile *file = RENDERDOC_OpenCaptureFile();
-    ResultDetails st = file->OpenFile(conv(infile), "rdc", NULL);
-    if(st.OK())
-    {
-      buf = file->GetThumbnail(type, maxsize).data;
-    }
-    else
-    {
-      std::cerr << "Couldn't open '" << infile << "': " << st.Message() << std::endl;
-    }
-    file->Shutdown();
-
-    if(buf.empty())
-    {
-      std::cerr << "Couldn't fetch the thumbnail in '" << infile << "'" << std::endl;
-    }
-    else
-    {
-      FILE *f = fopen(outfile.c_str(), "wb");
-
-      if(!f)
-      {
-        std::cerr << "Couldn't open destination file '" << outfile << "'" << std::endl;
-      }
-      else
-      {
-        fwrite(buf.data(), 1, buf.size(), f);
-        fclose(f);
-
-        std::cout << "Wrote thumbnail from '" << infile << "' to '" << outfile << "'." << std::endl;
-      }
-    }
-
-    return 0;
-  }
-};
-
 struct CaptureCommand : public Command
 {
 private:
@@ -447,6 +326,129 @@ public:
     }
 
     return res.ident;
+  }
+};
+
+#if !defined(RDOC_SELFCAPTURE_LIMITEDAPI)
+
+struct ThumbCommand : public Command
+{
+private:
+  std::string infile;
+  std::string outfile;
+  std::string format;
+  uint32_t maxsize = 0;
+
+public:
+  ThumbCommand() : Command() {}
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.set_footer("<filename.rdc>");
+    parser.add<std::string>("out", 'o', "The output filename to save the file to", true,
+                            "filename.jpg");
+    parser.add<std::string>("format", 'f',
+                            "The format of the output file. If empty, detected from filename",
+                            false, "", cmdline::oneof<std::string>("jpg", "png", "bmp", "tga"));
+    parser.add<uint32_t>(
+        "max-size", 's',
+        "The maximum dimension of the thumbnail. Default is 0, which is unlimited.", false, 0);
+  }
+  virtual const char *Description() { return "Saves a capture's embedded thumbnail to disk."; }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &)
+  {
+    std::vector<std::string> rest = parser.rest();
+    if(rest.empty())
+    {
+      std::cerr << "Error: thumb command requires a capture filename." << std::endl
+                << std::endl
+                << parser.usage();
+      return false;
+    }
+
+    infile = rest[0];
+
+    rest.erase(rest.begin());
+
+    parser.set_rest(rest);
+
+    outfile = parser.get<std::string>("out");
+    format = parser.get<std::string>("format");
+    maxsize = parser.get<uint32_t>("max-size");
+
+    return true;
+  }
+
+  virtual int Execute(const CaptureOptions &)
+  {
+    FileType type = FileType::JPG;
+
+    if(format == "png")
+    {
+      type = FileType::PNG;
+    }
+    else if(format == "tga")
+    {
+      type = FileType::TGA;
+    }
+    else if(format == "bmp")
+    {
+      type = FileType::BMP;
+    }
+    else
+    {
+      const char *dot = strrchr(outfile.c_str(), '.');
+
+      if(dot != NULL && strstr(dot, "png"))
+        type = FileType::PNG;
+      else if(dot != NULL && strstr(dot, "tga"))
+        type = FileType::TGA;
+      else if(dot != NULL && strstr(dot, "bmp"))
+        type = FileType::BMP;
+      else if(dot != NULL && strstr(dot, "jpg"))
+        type = FileType::JPG;
+      else
+        std::cerr << "Couldn't guess format from '" << outfile << "', defaulting to jpg."
+                  << std::endl;
+    }
+
+    bytebuf buf;
+
+    ICaptureFile *file = RENDERDOC_OpenCaptureFile();
+    ResultDetails st = file->OpenFile(conv(infile), "rdc", NULL);
+    if(st.OK())
+    {
+      buf = file->GetThumbnail(type, maxsize).data;
+    }
+    else
+    {
+      std::cerr << "Couldn't open '" << infile << "': " << st.Message() << std::endl;
+    }
+    file->Shutdown();
+
+    if(buf.empty())
+    {
+      std::cerr << "Couldn't fetch the thumbnail in '" << infile << "'" << std::endl;
+    }
+    else
+    {
+      FILE *f = fopen(outfile.c_str(), "wb");
+
+      if(!f)
+      {
+        std::cerr << "Couldn't open destination file '" << outfile << "'" << std::endl;
+      }
+      else
+      {
+        fwrite(buf.data(), 1, buf.size(), f);
+        fclose(f);
+
+        std::cout << "Wrote thumbnail from '" << infile << "' to '" << outfile << "'." << std::endl;
+      }
+    }
+
+    return 0;
   }
 };
 
@@ -1258,6 +1260,8 @@ public:
   }
 };
 
+#endif    // !defined(RDOC_SELFCAPTURE_LIMITEDAPI)
+
 struct VulkanRegisterCommand : public Command
 {
 private:
@@ -1555,9 +1559,12 @@ int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
     add_alias("/?", "help");
 
     // add platform agnostic commands
-    add_command("thumb", new ThumbCommand());
+
     add_command("capture", new CaptureCommand());
     add_command("inject", new InjectCommand());
+
+#if !defined(RDOC_SELFCAPTURE_LIMITEDAPI)
+    add_command("thumb", new ThumbCommand());
     add_command("remoteserver", new RemoteServerCommand());
     add_command("replay", new ReplayCommand());
     add_command("capaltbit", new CapAltBitCommand());
@@ -1565,6 +1572,7 @@ int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
     add_command("convert", new ConvertCommand());
     add_command("embed", new EmbeddedSectionCommand(false));
     add_command("extract", new EmbeddedSectionCommand(true));
+#endif    // !defined(RDOC_SELFCAPTURE_LIMITEDAPI)
 
     if(argv.size() <= 1)
     {

@@ -100,11 +100,11 @@ elseif(ENABLE_GGP)
     list(APPEND sources vk_posix.cpp vk_ggp.cpp)
     add_definitions(-DVK_USE_PLATFORM_GGP)
 
-    set(VULKAN_LAYER_MODULE_PATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/${LIB_SUBFOLDER_TRAIL_SLASH}librenderdoc.so")
-    set(VULKAN_ENABLE_VAR "ENABLE_VULKAN_RENDERDOC_CAPTURE")
+    set(VULKAN_LAYER_MODULE_PATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/${LIB_SUBFOLDER_TRAIL_SLASH}lib${RDOC_BASE_NAME}.so")
+    set(VULKAN_ENABLE_VAR "ENABLE_VULKAN_${RDOC_BASE_NAME_UPPER}_CAPTURE")
 
     set(json_in ${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.json)
-    set(json_out ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/renderdoc_capture.json)
+    set(json_out ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${RDOC_BASE_NAME}_capture.json)
     
     configure_file(${json_in} ${json_out})
 
@@ -126,11 +126,11 @@ elseif(UNIX)
     
     add_definitions(-DVK_USE_PLATFORM_WIN32_KHR)
 
-    set(VULKAN_LAYER_MODULE_PATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/${LIB_SUBFOLDER_TRAIL_SLASH}librenderdoc.so")
-    set(VULKAN_ENABLE_VAR "ENABLE_VULKAN_RENDERDOC_CAPTURE")
+    set(VULKAN_LAYER_MODULE_PATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/${LIB_SUBFOLDER_TRAIL_SLASH}lib${RDOC_BASE_NAME}.so")
+    set(VULKAN_ENABLE_VAR "ENABLE_VULKAN_${RDOC_BASE_NAME_UPPER}_CAPTURE")
 
     set(json_in ${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.json)
-    set(json_out ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/renderdoc_capture${VULKAN_JSON_SUFFIX}.json)
+    set(json_out ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${RDOC_BASE_NAME}_capture${VULKAN_JSON_SUFFIX}.json)
     
     configure_file(${json_in} ${json_out})
 

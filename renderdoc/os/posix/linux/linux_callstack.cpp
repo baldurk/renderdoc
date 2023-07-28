@@ -103,7 +103,7 @@ void Init()
       char line[512] = {0};
       if(fgets(line, 511, f))
       {
-        if(strstr(line, "librenderdoc") && strstr(line, "r-xp"))
+        if(strstr(line, "lib" STRINGIZE(RDOC_BASE_NAME)) && strstr(line, "r-xp"))
         {
           sscanf(line, "%p-%p", &renderdocBase, &renderdocEnd);
           break;

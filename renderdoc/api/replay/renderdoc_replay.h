@@ -30,6 +30,21 @@
 
 #include "apidefs.h"
 
+#if defined(RDOC_SELFCAPTURE_LIMITEDAPI)
+
+#define RENDERDOC_AllocArrayMem RDOCSELF_AllocArrayMem
+#define RENDERDOC_FreeArrayMem RDOCSELF_FreeArrayMem
+#define RENDERDOC_GetDefaultCaptureOptions RDOCSELF_GetDefaultCaptureOptions
+#define RENDERDOC_NeedVulkanLayerRegistration RDOCSELF_NeedVulkanLayerRegistration
+#define RENDERDOC_UpdateVulkanLayerRegistration RDOCSELF_UpdateVulkanLayerRegistration
+#define RENDERDOC_ExecuteAndInject RDOCSELF_ExecuteAndInject
+#define RENDERDOC_InjectIntoProcess RDOCSELF_InjectIntoProcess
+#define RENDERDOC_GetCommitHash RDOCSELF_GetCommitHash
+#define RENDERDOC_InitialiseReplay RDOCSELF_InitialiseReplay
+#define RENDERDOC_ShutdownReplay RDOCSELF_ShutdownReplay
+
+#endif
+
 // this #define can be used to mark a program as a 'replay' program which should not be captured.
 // Any program used for such purpose must define and export this symbol in the main exe or one dll
 // that will be loaded before renderdoc.dll is loaded.
@@ -1985,6 +2000,13 @@ DOCUMENT(R"(Where supported by operating system and permissions, inject into a r
 extern "C" RENDERDOC_API ExecuteResult RENDERDOC_CC
 RENDERDOC_InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
                             const rdcstr &capturefile, const CaptureOptions &opts, bool waitForExit);
+
+DOCUMENT(R"(When debugging RenderDoc it can be useful to capture itself by doing a side-build with a
+temporary name. This function checks to see if a given self-hosted DLL is available.
+
+:param str dllname: The name of the self-hosted capture module.
+)");
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_CanSelfHostedCapture(const rdcstr &dllname);
 
 DOCUMENT(R"(When debugging RenderDoc it can be useful to capture itself by doing a side-build with a
 temporary name. This function wraps up the use of the in-application API to start a capture.

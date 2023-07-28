@@ -99,6 +99,16 @@ set(LIB_SUFFIX "" CACHE STRING "Suffix for 'lib' folder in target directory stru
 set(LIB_SUBFOLDER "" CACHE STRING "Subfolder under the 'lib' folder in target directory structure. E.g. set to 'renderdoc' to use /usr/local/lib/renderdoc instead of /usr/local/lib.")
 set(VULKAN_JSON_SUFFIX "" CACHE STRING "Suffix for the vulkan implicit_layer json file. E.g. set to '.x86_64' to use renderdoc_capture.x86_64.json instead of renderdoc_capture.json")
 
+option(INTERNAL_SELF_CAPTURE "Internal option: enable self-capture" OFF)
+
+set(RDOC_BASE_NAME "renderdoc")
+if(INTERNAL_SELF_CAPTURE)
+    set(RDOC_BASE_NAME "rdocself")
+    add_definitions(-DRDOC_SELFCAPTURE_LIMITEDAPI=1)
+endif()
+string(TOUPPER ${RDOC_BASE_NAME} RDOC_BASE_NAME_UPPER)
+add_definitions(-DRDOC_BASE_NAME=${RDOC_BASE_NAME})
+
 if(NOT LIB_SUFFIX STREQUAL "")
     add_definitions(-DRENDERDOC_LIB_SUFFIX=${LIB_SUFFIX})
 endif()
@@ -261,6 +271,16 @@ if(APPLE)
     message(STATUS "Disabling GLES driver on apple")
     set(ENABLE_GLES OFF CACHE BOOL "" FORCE)
     set(ENABLE_EGL OFF CACHE BOOL "" FORCE)
+endif()
+
+if(INTERNAL_SELF_CAPTURE)
+    message(STATUS "Disabling GL/GLES for self-capture")
+    set(ENABLE_GLES OFF CACHE BOOL "" FORCE)
+    set(ENABLE_EGL OFF CACHE BOOL "" FORCE)
+    
+    message(STATUS "Disabling qrenderdoc & python modules for self-capture")
+    set(ENABLE_QRENDERDOC OFF CACHE BOOL "" FORCE)
+    set(ENABLE_PYRENDERDOC OFF CACHE BOOL "" FORCE)
 endif()
 
 if(ANDROID)
@@ -520,5 +540,9 @@ if(UNIX AND NOT ANDROID AND NOT APPLE AND NOT ENABLE_GGP)
     if(ENABLE_WAYLAND)
         message(STATUS "  - Wayland")
     endif()
+endif()
+
+if(INTERNAL_SELF_CAPTURE)
+    message(STATUS "INTERNAL: Configuring for self-capture")
 endif()
 

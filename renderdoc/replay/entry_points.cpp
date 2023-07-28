@@ -532,6 +532,11 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(
                                        killReplay, previewWindow);
 }
 
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_CanSelfHostedCapture(const rdcstr &dllname)
+{
+  return Process::IsModuleLoaded(dllname);
+}
+
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartSelfHostCapture(const rdcstr &dllname)
 {
   if(!Process::IsModuleLoaded(dllname))

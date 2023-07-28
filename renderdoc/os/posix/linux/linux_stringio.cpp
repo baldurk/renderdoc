@@ -650,7 +650,7 @@ void GetLibraryFilename(rdcstr &selfName)
 
     ::fclose(f);
 
-    char *c = strstr(map_string, "/librenderdoc.so");
+    char *c = strstr(map_string, "/lib" STRINGIZE(RDOC_BASE_NAME) ".so");
 
     if(c)
     {
@@ -718,7 +718,8 @@ void GetLibraryFilename(rdcstr &selfName)
 
   if(librenderdoc_path.empty())
   {
-    RDCWARN("Couldn't get librenderdoc.so path from /proc/self/maps, falling back to dladdr");
+    RDCWARN("Couldn't get lib" STRINGIZE(
+        RDOC_BASE_NAME) ".so path from /proc/self/maps, falling back to dladdr");
 
     Dl_info info;
     if(dladdr(&LibraryLocator, &info))

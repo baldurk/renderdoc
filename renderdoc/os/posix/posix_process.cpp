@@ -780,7 +780,7 @@ void GetHookingEnvMods(rdcarray<EnvironmentModification> &modifications, const C
   FileIO::GetLibraryFilename(ownlibpath);
   ownlibpath = get_dirname(ownlibpath);
 
-  rdcstr libfile = "librenderdoc" LIB_SUFFIX;
+  rdcstr libfile = "lib" STRINGIZE(RDOC_BASE_NAME) LIB_SUFFIX;
 
 // on macOS, the path must be absolute
 #if ENABLED(RDOC_APPLE)

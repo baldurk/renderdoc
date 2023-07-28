@@ -544,7 +544,7 @@ void *intercept_dlopen(const char *filename, int flag, void *ret)
         if(cb)
           cb(ret);
 
-      ret = realdlopen("librenderdoc.so", flag);
+      ret = realdlopen("lib" STRINGIZE(RDOC_BASE_NAME) ".so", flag);
       break;
     }
   }

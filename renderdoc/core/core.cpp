@@ -46,6 +46,8 @@
 
 #include "replay/renderdoc_serialise.inl"
 
+extern "C" const rdcstr VulkanLayerJSONBasename = STRINGIZE(RDOC_BASE_NAME);
+
 RDOC_DEBUG_CONFIG(bool, Capture_Debug_SnapshotDiagnosticLog, false,
                   "Snapshot the diagnostic log at capture time and embed in the capture.");
 
@@ -601,6 +603,14 @@ void RenderDoc::RemoveHooks()
 
 void RenderDoc::InitialiseReplay(GlobalEnvironment env, const rdcarray<rdcstr> &args)
 {
+  if(!IsReplayApp())
+  {
+    RDCERR(
+        "Initialising replay within non-replaying app. Did you properly export replay marker in "
+        "host executable or library, or are you trying to replay directly with a self-hosted "
+        "capture build?");
+  }
+
   m_GlobalEnv = env;
 
 #if ENABLED(RDOC_LINUX) && ENABLED(RDOC_XLIB)

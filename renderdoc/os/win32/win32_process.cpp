@@ -409,7 +409,7 @@ void InjectFunctionCall(HANDLE hProcess, uintptr_t renderdoc_remote, const char 
 
   RDCDEBUG("Injecting call to %s", funcName);
 
-  HMODULE renderdoc_local = GetModuleHandleA(STRINGIZE(RDOC_DLL_FILE) ".dll");
+  HMODULE renderdoc_local = GetModuleHandleA(STRINGIZE(RDOC_BASE_NAME) ".dll");
 
   uintptr_t func_local = (uintptr_t)GetProcAddress(renderdoc_local, funcName);
 
@@ -610,7 +610,7 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
   RDCLOG("Injecting renderdoc into process %lu", pid);
 
   wchar_t renderdocPath[MAX_PATH] = {0};
-  GetModuleFileNameW(GetModuleHandleA(STRINGIZE(RDOC_DLL_FILE) ".dll"), &renderdocPath[0],
+  GetModuleFileNameW(GetModuleHandleA(STRINGIZE(RDOC_BASE_NAME) ".dll"), &renderdocPath[0],
                      MAX_PATH - 1);
 
   wchar_t renderdocPathLower[MAX_PATH] = {0};
@@ -972,9 +972,9 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
 
   InjectDLL(hProcess, renderdocPath);
 
-  const char *rdoc_dll = STRINGIZE(RDOC_DLL_FILE);
+  const char *rdoc_dll = STRINGIZE(RDOC_BASE_NAME);
 
-  uintptr_t loc = FindRemoteDLL(pid, STRINGIZE(RDOC_DLL_FILE) ".dll");
+  uintptr_t loc = FindRemoteDLL(pid, STRINGIZE(RDOC_BASE_NAME) ".dll");
 
   rdcpair<RDResult, uint32_t> result = {ResultCode::Succeeded, 0};
 
@@ -1125,11 +1125,11 @@ rdcpair<RDResult, uint32_t> Process::LaunchAndInjectIntoProcess(
     const CaptureOptions &opts, bool waitForExit)
 {
   void *func =
-      GetProcAddress(GetModuleHandleA(STRINGIZE(RDOC_DLL_FILE) ".dll"), "INTERNAL_SetCaptureFile");
+      GetProcAddress(GetModuleHandleA(STRINGIZE(RDOC_BASE_NAME) ".dll"), "INTERNAL_SetCaptureFile");
 
   if(func == NULL)
   {
-    const char *rdoc_dll = STRINGIZE(RDOC_DLL_FILE);
+    const char *rdoc_dll = STRINGIZE(RDOC_BASE_NAME);
     RDResult result;
     SET_ERROR_RESULT(result, ResultCode::InternalError,
                      "Can't find required export function in %s.dll - corrupted/missing file?",

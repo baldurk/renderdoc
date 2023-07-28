@@ -36,6 +36,8 @@
 #include "vk_hookset_defs.h"
 #include "vk_resources.h"
 
+extern "C" const rdcstr VulkanLayerJSONBasename;
+
 // this was removed from the vulkan definition header
 #undef VK_LAYER_EXPORT
 #define VK_LAYER_EXPORT
@@ -152,18 +154,13 @@ class VulkanHook : LibraryHook
     Process::RegisterEnvironmentModification(
         EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_LAYER", "1"));
 
-#if ENABLED(RDOC_WIN32)
-    // on windows support self-hosted capture by checking our filename and tweaking the env var we
-    // set
-    rdcstr module_name;
-    FileIO::GetLibraryFilename(module_name);
-    module_name = strupper(strip_extension(get_basename(module_name)));
-    if(module_name != "RENDERDOC")
+    // support self-hosted capture by checking our filename and tweaking the env var we set
+    if(VulkanLayerJSONBasename != "renderdoc")
     {
       Process::RegisterEnvironmentModification(EnvironmentModification(
-          EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_" + module_name + "_CAPTURE", "1"));
+          EnvMod::Set, EnvSep::NoSep,
+          "ENABLE_VULKAN_" + strupper(VulkanLayerJSONBasename) + "_CAPTURE", "1"));
     }
-#endif
 
     // check options to set further variables, and apply
     OptionsUpdated();
