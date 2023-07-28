@@ -81,6 +81,25 @@
  *
  * We slot the per frament data correctly accounting for the fragments that were discarded.
  *
+ * Dual Source:
+ *
+ * To capture the output for both output indices when dual source blending is in use, we need to
+ * patch the shader so that ouptut index 1 is directed to output index 0. This might seem as simple
+ * as iterating through all of the outputs, and then for each Index decoration, swapping 0 with 1.
+ * Unfortunately, this does not work because index 0 is implicitly used if there is no Index
+ * decoration, meaning index 1 would get swapped into index 0, but index 0 would not get swapped to
+ * index 1, so multiple outputs end up at index 0.
+ *
+ * Another possible implementation would be to swap the target of any Index decorations which use
+ * index 1 to those which use index 0. However, there's no guarantee that there are the same number
+ * of outputs decorated with index 1 as with index 0, because the Component decoration means that
+ * e.g. index 0 could be written separately as ra and gb while index 1 is written as one output.
+ *
+ * The current implementation first computes what index values are currently in use for each output,
+ * and then NOPing out all Index decorations and adding new ones with the correctly swapped ones.
+ * Care is also taken to ensure that built-in outputs (those with the BuiltIn decoration) aren't
+ * given an Index decoration.
+ *
  * Current Limitations:
  *
  * - Multiple subpasses
@@ -100,6 +119,9 @@
  */
 
 #include <float.h>
+#include <map>
+#include <set>
+#include <unordered_map>
 #include "driver/shaders/spirv/spirv_editor.h"
 #include "driver/shaders/spirv/spirv_op_helpers.h"
 #include "maths/formatpacking.h"
@@ -314,14 +336,31 @@ struct PixelHistoryShaderCache
     if(it != m_ShaderReplacements.end())
       return it->second;
 
-    VkShaderModule shaderModule = CreateShaderReplacement(shaderId, entryPoint, stage);
+    VkShaderModule shaderModule = CreateShaderReplacement(shaderId, entryPoint, stage, false);
     m_ShaderReplacements.insert(std::make_pair(shaderKey, shaderModule));
+    return shaderModule;
+  }
+
+  // Returns a shader that is equivalent to the given shader, except that index 0 outputs
+  // are directed to index 1 and index 1 outputs are directed to index 0 (as long as both exist).
+  // The shader is also stripped of side effects as is done by GetShaderWithoutSideEffects.
+  VkShaderModule GetDualSrcSwappedShader(ResourceId shaderId, const rdcstr &entryPoint,
+                                         ShaderStage stage)
+  {
+    ShaderKey shaderKey = make_rdcpair(shaderId, entryPoint);
+    auto it = m_ShaderReplacementsDualSrc.find(shaderKey);
+    // Check if we processed this shader before.
+    if(it != m_ShaderReplacementsDualSrc.end())
+      return it->second;
+
+    VkShaderModule shaderModule = CreateShaderReplacement(shaderId, entryPoint, stage, true);
+    m_ShaderReplacementsDualSrc.insert(std::make_pair(shaderKey, shaderModule));
     return shaderModule;
   }
 
 private:
   VkShaderModule CreateShaderReplacement(ResourceId shaderId, const rdcstr &entryName,
-                                         ShaderStage stage)
+                                         ShaderStage stage, bool swapDualSrc)
   {
     const VulkanCreationInfo::ShaderModule &moduleInfo =
         m_pDriver->GetDebugManager()->GetShaderInfo(shaderId);
@@ -343,6 +382,8 @@ private:
           // just insert VK_NULL_HANDLE to indicate that this shader has been processed.
           found = true;
           modified = StripShaderSideEffects(editor, entry.id);
+          if(swapDualSrc)
+            modified |= SwapOutputIndex(editor, entry.usedIds, 1);
           break;
         }
       }
@@ -589,6 +630,185 @@ private:
     return modified;
   }
 
+  bool SwapOutputIndex(rdcspv::Editor &editor, const rdcarray<rdcspv::Id> usedIds,
+                       uint32_t index_to_swap_with_zero)
+  {
+    if(index_to_swap_with_zero == 0)
+    {
+      // Swapping 0 with 0 does nothing interesting
+      return false;
+    }
+
+    bool modified = false;
+
+    std::set<rdcspv::Id> outputs;
+    for(const rdcspv::Variable var : editor.GetGlobals())
+    {
+      if(var.storage == rdcspv::StorageClass::Output && usedIds.contains(var.id))
+      {
+        outputs.insert(var.id);
+      }
+    }
+
+    // First pass: build up maps for location and index.
+    // Also NOP out any existing index declarations (but don't flag the shader as modified
+    // while doing so, as we might still decide that it doesn't need to be modified
+    // afterwards)
+    std::map<rdcspv::Id, uint32_t> id_to_location;
+    std::unordered_multimap<uint32_t, rdcspv::Id> location_to_id;
+    std::map<rdcspv::Id, uint32_t> id_to_index;
+
+    std::set<rdcspv::Id> builtins;
+
+    for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Annotations),
+                     end = editor.End(rdcspv::Section::Annotations);
+        it < end; ++it)
+    {
+      if(it.opcode() == rdcspv::Op::Decorate)
+      {
+        rdcspv::OpDecorate dec(it);
+        const rdcspv::Id decorated_id = dec.target;
+        if(dec.decoration == rdcspv::Decoration::Location && outputs.count(decorated_id) > 0)
+        {
+          const uint32_t decorated_location = dec.decoration.location;
+
+          const auto insert_result =
+              id_to_location.emplace(std::make_pair(decorated_id, decorated_location));
+          if(!insert_result.second)
+          {
+            // Note: by definition insert_result.first->first == decorated_id
+            const uint32_t existing_location = insert_result.first->second;
+            RDCWARN("Variable %u is decorated with multiple Locations: was %u, is %u",
+                    decorated_id.value(), existing_location, decorated_location);
+          }
+          else
+          {
+            location_to_id.emplace(std::make_pair(decorated_location, decorated_id));
+          }
+        }
+        if(dec.decoration == rdcspv::Decoration::Index && outputs.count(decorated_id) > 0)
+        {
+          const uint32_t decorated_index = dec.decoration.index;
+
+          const auto insert_result =
+              id_to_index.emplace(std::make_pair(decorated_id, decorated_index));
+          if(!insert_result.second)
+          {
+            // Note: by definition insert_result.first->first == decorated_id
+            const uint32_t existing_index = insert_result.first->second;
+            RDCWARN("Variable %u is decorated with multiple Indexes: was %u, is %u",
+                    decorated_id.value(), existing_index, decorated_index);
+          }
+
+          it.nopRemove();
+        }
+        if(dec.decoration == rdcspv::Decoration::BuiltIn && outputs.count(decorated_id) > 0)
+        {
+          builtins.insert(decorated_id);
+        }
+      }
+    }
+
+    std::unordered_map<uint32_t, std::set<uint32_t>> location_to_indexes;
+    for(const auto entry : location_to_id)
+    {
+      const uint32_t location = entry.first;
+      const rdcspv::Id id = entry.second;
+
+      const auto index_itr = id_to_index.find(id);
+      // Index is allowed to be absent, in which case it is implicitly zero
+      const uint32_t index = (index_itr != id_to_index.end()) ? index_itr->second : 0;
+
+      location_to_indexes[location].insert(index);
+    }
+
+    std::set<uint32_t> locations_to_swap;
+    for(const auto &entry : location_to_indexes)
+    {
+      // https://registry.khronos.org/OpenGL/specs/gl/GLSLangSpec.4.60.html#output-layout-qualifiers
+      // The GLSL spec says that "Compile-time errors may also be given if at compile time it is
+      // known the link will fail. [...] It is also a compile-time error if a fragment shader sets a
+      // layout index to less than 0 or greater than 1." This is enforced by glslang. However, the
+      // Vulkan spec does not make this requirement (nor does the SPIRV spec).
+      // Note also that glslang will still compile a shader that uses index 1 but not index 0.
+      const uint32_t location = entry.first;
+      const std::set<uint32_t> &indexes = entry.second;
+
+      if(indexes.empty() || indexes.count(0) == 0)
+      {
+        RDCWARN("Output location %u does not output anything to index 0", location);
+        continue;
+      }
+
+      const uint32_t highest_index = *indexes.rbegin();
+      if(highest_index != (indexes.size() - 1))
+      {
+        RDCWARN(
+            "Indexes for output location %u has a gap in the used indexes (highest used: %u, but "
+            "should be %zu based on size)",
+            location, highest_index, indexes.size() - 1);
+        continue;
+      }
+
+      if(index_to_swap_with_zero <= highest_index)
+      {
+        // This location contains index 0 and the index we want to swap,
+        // so we can safely do the swap.
+        locations_to_swap.insert(location);
+      }
+    }
+
+    for(const rdcspv::Id output : outputs)
+    {
+      if(builtins.count(output) > 0)
+      {
+        // VUID-StandaloneSpirv-Location-04915: "The Location or Component decorations must not be
+        // used with BuiltIn"
+        const auto location_itr = id_to_location.find(output);
+        if(location_itr != id_to_location.end())
+        {
+          RDCWARN("Variable %u is a BuiltIn but is decorated with Location %u", output.value(),
+                  location_itr->second);
+          continue;
+        }
+      }
+      else
+      {
+        // VUID-StandaloneSpirv-Location-04916: "The Location decorations must be used on
+        // user-defined variables" (Sec 15.1.2: "The non-built-in variables listed by OpEntryPoint
+        // with the Input or Output storage class form the user-defined variable interface.")
+        const auto location_itr = id_to_location.find(output);
+        if(location_itr == id_to_location.end())
+        {
+          RDCWARN("Variable %u is missing a Location decoration", output.value());
+          continue;
+        }
+
+        const uint32_t location = location_itr->second;
+
+        const auto index_itr = id_to_index.find(output);
+        // Index is allowed to be absent, in which case it is implicitly zero
+        const uint32_t existing_index = (index_itr != id_to_index.end()) ? index_itr->second : 0;
+
+        uint32_t new_index = existing_index;
+
+        if(locations_to_swap.count(location) != 0)
+        {
+          if(existing_index == 0)
+            new_index = index_to_swap_with_zero;
+          else if(existing_index == index_to_swap_with_zero)
+            new_index = 0;
+          modified = true;
+        }
+
+        editor.AddDecoration(rdcspv::OpDecorate(
+            output, rdcspv::DecorationParam<rdcspv::Decoration::Index>(new_index)));
+      }
+    }
+
+    return modified;
+  }
+
   WrappedVulkan *m_pDriver;
   std::map<uint32_t, VkShaderModule> m_FixedColFS;
   std::map<uint32_t, VkShaderModule> m_PrimIDFS;
@@ -596,6 +816,7 @@ private:
   // ShaderKey consists of original shader module ID and entry point name.
   typedef rdcpair<ResourceId, rdcstr> ShaderKey;
   std::map<ShaderKey, VkShaderModule> m_ShaderReplacements;
+  std::map<ShaderKey, VkShaderModule> m_ShaderReplacementsDualSrc;
 
   GPUBuffer dummybuf;
 };
