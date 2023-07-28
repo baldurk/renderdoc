@@ -894,6 +894,8 @@ void DoSerialise(SerialiserType &ser, PixelModification &el)
   SERIALISE_MEMBER(preMod);
   SERIALISE_MEMBER(shaderOut);
   SERIALISE_MEMBER(shaderOutDualSrc);
+  SERIALISE_MEMBER(blendSrc);
+  SERIALISE_MEMBER(blendDst);
   SERIALISE_MEMBER(postMod);
 
   SERIALISE_MEMBER(sampleMasked);
@@ -907,7 +909,7 @@ void DoSerialise(SerialiserType &ser, PixelModification &el)
   SERIALISE_MEMBER(stencilTestFailed);
   SERIALISE_MEMBER(predicationSkipped);
 
-  SIZE_CHECK(124);
+  SIZE_CHECK(172);
 }
 
 template <typename SerialiserType>
