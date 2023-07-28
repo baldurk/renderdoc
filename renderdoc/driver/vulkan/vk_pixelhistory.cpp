@@ -63,12 +63,17 @@
  *
  * - Fourth callback: Per fragment callback (VulkanPixelHistoryPerFragmentCallback)
  * This callback is used to get per fragment data for each event and fragment (primitive ID,
- * shader output value, dual source shader output value, post event value for each fragment).
- * For each fragment the draw is replayed 4 times:
+ * shader output value, dual source shader output value, blending source/destination components,
+ * and post event value for each fragment).
+ * For each fragment the draw is replayed 8 times:
  * 1) with a fragment shader that outputs primitive ID only
  * 2) with blending OFF, to get shader output value
  * 3) with blending OFF and a modified shader, to get the output at index 1 (dual source)
- * 4) with blending ON, to get post modification value
+ * 4) with blending ON, but with the stencil configured to only draw previous fragments
+ * 5) with blending ON but the destination factor set to 0, to get the source blend component
+ * 6) with blending ON, but with the stencil configured to only draw previous fragments
+ * 7) with blending ON but the source factor set to 0, to get the destination blend component
+ * 8) with blending ON, to get post modification value
  * For each such replay we set the stencil reference to the fragment number and set the
  * stencil compare to equal, so it passes for that particular fragment only.
  *
@@ -252,6 +257,8 @@ struct PerFragmentInfo
   uint32_t padding[3];
   PixelHistoryValue shaderOut;
   PixelHistoryValue shaderOutDualSrc;
+  PixelHistoryValue blendSrc;
+  PixelHistoryValue blendDst;
   PixelHistoryValue postMod;
 };
 
@@ -2879,8 +2886,15 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     VkPipeline shaderOutPipe;
     // Turn off blending, and swaps output indexes to get the dual source output.
     VkPipeline shaderOutDualSrcPipe;
+    // Enable blending but zero out the destination factor
+    VkPipeline blendSrcPipe;
+    // Enable blending but zero out the source factor
+    VkPipeline blendDstPipe;
     // Enable blending to get post event values.
     VkPipeline postModPipe;
+    // Enable blending to get post event values, and configure stencil to only draw up to
+    // immediately before the current event.
+    VkPipeline redrawToBeforePipe;
   };
 
   void PreDraw(uint32_t eid, VkCommandBuffer cmd)
@@ -3124,6 +3138,99 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       }
     }
 
+    // Get the blend source and destination components
+    const ModificationValue &premod = m_EventPremods[eid];
+    if(m_HasBlend)
+    {
+      for(uint32_t f = 0; f < numFragmentsInEvent; f++)
+      {
+        for(uint32_t i = 0; i < 2; i++)
+        {
+          const uint32_t offset = (i == 0) ? offsetof(struct PerFragmentInfo, blendSrc)
+                                           : offsetof(struct PerFragmentInfo, blendDst);
+          VkMarkerRegion::Begin(StringFormat::Fmt("Prepare getting blend %s for fragment %u in %u",
+                                                  i == 0 ? "source" : "destination", f, eid));
+
+          // Apply all draws BEFORE this point
+          // It's obvious why this is needed for the destination component; but for the source
+          // component, it is needed if the source factor uses the destination color or alpha.
+          state.graphics.pipeline = GetResID(pipes.redrawToBeforePipe);
+          state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
+
+          // Have to reset stencil.
+          VkClearAttachment stencilAtt = {};
+          stencilAtt.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+          VkClearRect rect = {};
+          rect.rect.offset.x = m_CallbackInfo.x;
+          rect.rect.offset.y = m_CallbackInfo.y;
+          rect.rect.extent.width = 1;
+          rect.rect.extent.height = 1;
+          rect.baseArrayLayer = 0;
+          rect.layerCount = 1;
+          ObjDisp(cmd)->CmdClearAttachments(Unwrap(cmd), 1, &stencilAtt, 1, &rect);
+
+          // Before starting the draw, initialize the pixel to the premodification value
+          // for this event, for both color and depth.
+          VkClearAttachment clearAtts[2] = {};
+
+          clearAtts[0].aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+          clearAtts[0].colorAttachment = colorOutputIndex;
+          memcpy(clearAtts[0].clearValue.color.float32, premod.col.floatValue.data(),
+                 sizeof(clearAtts[0].clearValue.color));
+
+          clearAtts[1].aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+          clearAtts[1].clearValue.depthStencil.depth = premod.depth;
+
+          if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat))
+            ObjDisp(cmd)->CmdClearAttachments(Unwrap(cmd), 1, clearAtts + 1, 1, &rect);
+          else
+            ObjDisp(cmd)->CmdClearAttachments(Unwrap(cmd), 2, clearAtts, 1, &rect);
+
+          // Note: pipes.redrawToBeforePipe has the stencil compare op set to VK_COMPARE_OP_GREATER,
+          // so this reference is not inclusive
+          ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
+          ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
+          ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, f);
+
+          const ActionDescription *action = m_pDriver->GetAction(eid);
+          m_pDriver->ReplayDraw(cmd, *action);
+
+          // Now actually draw the current one. Stencil op is set to VK_COMPARE_OP_EQUAL.
+          VkMarkerRegion::Set(StringFormat::Fmt("Getting blend %s for fragment %u in %u",
+                                                i == 0 ? "source" : "destination", f, eid),
+                              cmd);
+
+          state.graphics.pipeline = GetResID(i == 0 ? pipes.blendSrcPipe : pipes.blendDstPipe);
+          state.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
+
+          ObjDisp(cmd)->CmdClearAttachments(Unwrap(cmd), 1, &stencilAtt, 1, &rect);
+          ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
+          ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
+          ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, f);
+
+          m_pDriver->ReplayDraw(cmd, *action);
+          state.EndRenderPass(cmd);
+
+          CopyImagePixel(cmd, colourCopyParams,
+                         (fragsProcessed + f) * sizeof(PerFragmentInfo) + offset);
+
+          // TODO: is this useful?
+          if(depthImage != VK_NULL_HANDLE)
+          {
+            VkCopyPixelParams depthCopyParams = colourCopyParams;
+            depthCopyParams.srcImage = depthImage;
+            depthCopyParams.srcImageLayout = depthLayout;
+            depthCopyParams.srcImageFormat = depthFormat;
+            CopyImagePixel(cmd, depthCopyParams, (fragsProcessed + f) * sizeof(PerFragmentInfo) +
+                                                     offset +
+                                                     offsetof(struct PixelHistoryValue, depth));
+          }
+
+          VkMarkerRegion::End();
+        }
+      }
+    }
+
     // use the original renderpass and framebuffer attachment, but ensure we have depth and stencil
     state.SetRenderPass(prevState.GetRenderPass());
     state.SetFramebuffer(prevState.GetFramebuffer(), prevState.GetFramebufferAttachments());
@@ -3142,7 +3249,6 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         GetResID(m_CallbackInfo.targetImage), aspect, m_CallbackInfo.targetSubresource.mip,
         m_CallbackInfo.targetSubresource.slice);
 
-    const ModificationValue &premod = m_EventPremods[eid];
     // For every fragment except the last one, retrieve post-modification
     // value.
     for(uint32_t f = 0; f < numFragmentsInEvent - 1; f++)
@@ -3322,19 +3428,32 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
     pipeCreateInfo.renderPass = rp;
 
+    ds->front.compareOp = VK_COMPARE_OP_GREATER;
+    ds->back.compareOp = VK_COMPARE_OP_GREATER;
+
+    // Note: this uses the modified renderpass, as we switch to a different pipeline with the
+    // modified renderpass
+    vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
+                                               &pipeCreateInfo, NULL, &pipes.redrawToBeforePipe);
+    m_pDriver->CheckVkResult(vkr);
+    m_PipesToDestroy.push_back(pipes.redrawToBeforePipe);
+
+    // Revert to the previous stencil op
+    ds->front.compareOp = VK_COMPARE_OP_EQUAL;
+    ds->back.compareOp = VK_COMPARE_OP_EQUAL;
+
     VkPipelineColorBlendStateCreateInfo *cbs =
         (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
-    // Turn off blending so that we can get shader output values.
-    VkPipelineColorBlendAttachmentState *atts =
-        (VkPipelineColorBlendAttachmentState *)cbs->pAttachments;
+
     rdcarray<VkPipelineColorBlendAttachmentState> newAtts;
+    newAtts.resize(colorOutputIndex == cbs->attachmentCount ? cbs->attachmentCount + 1
+                                                            : cbs->attachmentCount);
+    memcpy(newAtts.data(), cbs->pAttachments,
+           cbs->attachmentCount * sizeof(VkPipelineColorBlendAttachmentState));
 
     // Check if we need to add a new color attachment.
     if(colorOutputIndex == cbs->attachmentCount)
     {
-      newAtts.resize(cbs->attachmentCount + 1);
-      memcpy(newAtts.data(), cbs->pAttachments,
-             cbs->attachmentCount * sizeof(VkPipelineColorBlendAttachmentState));
       VkPipelineColorBlendAttachmentState newAtt = {};
       if(cbs->attachmentCount > 0)
       {
@@ -3346,19 +3465,26 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       {
         newAtt.blendEnable = VK_FALSE;
       }
-      newAtts[cbs->attachmentCount] = newAtt;
-      cbs->attachmentCount = (uint32_t)newAtts.size();
-      cbs->pAttachments = newAtts.data();
-
-      atts = newAtts.data();
+      newAtts[colorOutputIndex] = newAtt;
+      cbs->logicOpEnable = VK_FALSE;
     }
 
+    cbs->attachmentCount = (uint32_t)newAtts.size();
+    cbs->pAttachments = newAtts.data();
+
+    // Turn off blending so that we can get shader output values.
     for(uint32_t i = 0; i < cbs->attachmentCount; i++)
     {
-      atts[i].blendEnable = 0;
-      atts[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                               VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+      if(newAtts[i].blendEnable)
+        m_HasBlend = true;
+      newAtts[i].blendEnable = VK_FALSE;
+      newAtts[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                                  VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     }
+
+    // Logic ops treat it as if blendEnable were false
+    if(cbs->logicOpEnable)
+      m_HasBlend = false;
 
     {
       ds->depthBoundsTestEnable = VK_FALSE;
@@ -3391,6 +3517,52 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       m_PipesToDestroy.push_back(pipes.shaderOutDualSrcPipe);
 
       pipeCreateInfo.pStages = stages.data();
+    }
+
+    if(m_HasBlend)
+    {
+      rdcarray<VkPipelineColorBlendAttachmentState> blendModifiedAtts;
+      blendModifiedAtts.resize(newAtts.size());
+      cbs->pAttachments = blendModifiedAtts.data();
+
+      // Get the source component (shader out * source factor) of the blend equation
+      for(uint32_t i = 0; i < cbs->attachmentCount; i++)
+      {
+        blendModifiedAtts[i] = newAtts[i];
+        blendModifiedAtts[i].blendEnable = VK_TRUE;
+        // Without changing the op, VK_BLEND_OP_REVERSE_SUBTRACT would cause problems
+        blendModifiedAtts[i].colorBlendOp = VK_BLEND_OP_ADD;
+        blendModifiedAtts[i].dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+        blendModifiedAtts[i].alphaBlendOp = VK_BLEND_OP_ADD;
+        blendModifiedAtts[i].dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+      }
+
+      vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
+                                                 &pipeCreateInfo, NULL, &pipes.blendSrcPipe);
+      m_pDriver->CheckVkResult(vkr);
+
+      m_PipesToDestroy.push_back(pipes.blendSrcPipe);
+
+      // Get the destination component (pre mod * destination factor) of the blend equation
+      for(uint32_t i = 0; i < cbs->attachmentCount; i++)
+      {
+        blendModifiedAtts[i] = newAtts[i];
+        blendModifiedAtts[i].blendEnable = VK_TRUE;
+        // Without changing the op, VK_BLEND_OP_SUBTRACT would cause problems
+        blendModifiedAtts[i].colorBlendOp = VK_BLEND_OP_ADD;
+        blendModifiedAtts[i].srcColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+        blendModifiedAtts[i].alphaBlendOp = VK_BLEND_OP_ADD;
+        blendModifiedAtts[i].srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+      }
+
+      vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
+                                                 &pipeCreateInfo, NULL, &pipes.blendDstPipe);
+      m_pDriver->CheckVkResult(vkr);
+
+      m_PipesToDestroy.push_back(pipes.blendDstPipe);
+
+      // Return to blending being disabled
+      cbs->pAttachments = newAtts.data();
     }
 
     {
@@ -3472,6 +3644,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     return it->second;
   }
 
+  bool m_HasBlend = false;
   bool m_HasDualSrc = false;
 
 private:
@@ -4497,8 +4670,16 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
         else
           history[h].shaderOutDualSrc.SetInvalid();
 
-        history[h].blendSrc.SetInvalid();
-        history[h].blendDst.SetInvalid();
+        if(perFragmentCB.m_HasBlend)
+        {
+          FillInColor(shaderOutFormat, bp[offset].blendSrc, history[h].blendSrc);
+          FillInColor(shaderOutFormat, bp[offset].blendDst, history[h].blendDst);
+        }
+        else
+        {
+          history[h].blendSrc.SetInvalid();
+          history[h].blendDst.SetInvalid();
+        }
       }
 
       // check the depth value between premod/shaderout against the known test if we have valid
