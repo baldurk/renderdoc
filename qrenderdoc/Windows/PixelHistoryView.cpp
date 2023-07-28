@@ -48,6 +48,10 @@ enum
   COL_SHADER_OUT_COLOR,
   COL_SHADER_OUT_2,
   COL_SHADER_OUT_2_COLOR,
+  COL_BLEND_SRC,
+  COL_BLEND_SRC_COLOR,
+  COL_BLEND_DST,
+  COL_BLEND_DST_COLOR,
   COL_TEX_AFTER,
   COL_TEX_AFTER_COLOR,
   COL_COUNT,
@@ -92,6 +96,8 @@ public:
       case COL_TEX_BEFORE_COLOR:
       case COL_SHADER_OUT_COLOR:
       case COL_SHADER_OUT_2_COLOR:
+      case COL_BLEND_SRC_COLOR:
+      case COL_BLEND_DST_COLOR:
       case COL_TEX_AFTER_COLOR: return true;
       default: return false;
     }
@@ -193,6 +199,10 @@ public:
         case COL_SHADER_OUT_COLOR: result = lit("Shader Out"); break;
         case COL_SHADER_OUT_2:
         case COL_SHADER_OUT_2_COLOR: result = lit("Shader Out 2"); break;
+        case COL_BLEND_SRC:
+        case COL_BLEND_SRC_COLOR: result = lit("Blend Source"); break;
+        case COL_BLEND_DST:
+        case COL_BLEND_DST_COLOR: result = lit("Blend Dest"); break;
         case COL_TEX_AFTER:
         case COL_TEX_AFTER_COLOR: result = lit("Tex After"); break;
       }
@@ -342,11 +352,12 @@ public:
         {
           // We can't provide meaningful shader out messages for events, only individual primitives.
           // So, use the Tex Before value for all of them.
-          if(col == COL_TEX_BEFORE || col == COL_SHADER_OUT || col == COL_SHADER_OUT_2)
+          if(col == COL_TEX_BEFORE || col == COL_SHADER_OUT || col == COL_SHADER_OUT_2 ||
+             col == COL_BLEND_SRC)
           {
             return tr("Tex Before\n\n") + modString(getMods(index).first().preMod);
           }
-          else if(col == COL_TEX_AFTER)
+          else if(col == COL_TEX_AFTER || col == COL_BLEND_DST)
           {
             return tr("Tex After\n\n") + modString(getMods(index).last().postMod);
           }
@@ -370,6 +381,14 @@ public:
             else
               return tr("Shader Out 2\n\n") + modString(mod.shaderOutDualSrc, 4);
           }
+          else if(col == COL_BLEND_SRC)
+          {
+            return tr("Blend Source\n\n") + modString(getMod(index).blendSrc);
+          }
+          else if(col == COL_BLEND_DST)
+          {
+            return tr("Blend Dest\n\n") + modString(getMod(index).blendDst);
+          }
           else if(col == COL_TEX_AFTER)
           {
             return tr("Tex After\n\n") + modString(getMod(index).postMod);
@@ -382,11 +401,11 @@ public:
         if(isEvent(index))
         {
           if(col == COL_TEX_BEFORE_COLOR || col == COL_SHADER_OUT_COLOR ||
-             col == COL_SHADER_OUT_2_COLOR)
+             col == COL_SHADER_OUT_2_COLOR || col == COL_BLEND_SRC_COLOR)
           {
             return backgroundBrush(getMods(index).first().preMod);
           }
-          else if(col == COL_TEX_AFTER_COLOR)
+          else if(col == COL_TEX_AFTER_COLOR || col == COL_BLEND_DST_COLOR)
           {
             return backgroundBrush(getMods(index).last().postMod);
           }
@@ -407,6 +426,14 @@ public:
               return backgroundBrush(mod.shaderOut);
             else
               return backgroundBrush(mod.shaderOutDualSrc);
+          }
+          else if(col == COL_BLEND_SRC_COLOR)
+          {
+            return backgroundBrush(getMod(index).blendSrc);
+          }
+          else if(col == COL_BLEND_DST_COLOR)
+          {
+            return backgroundBrush(getMod(index).blendDst);
           }
           else if(col == COL_TEX_AFTER_COLOR)
           {
@@ -716,6 +743,10 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
   ui->events->header()->setSectionResizeMode(COL_SHADER_OUT_COLOR, QHeaderView::ResizeToContents);
   ui->events->header()->setSectionResizeMode(COL_SHADER_OUT_2, QHeaderView::ResizeToContents);
   ui->events->header()->setSectionResizeMode(COL_SHADER_OUT_2_COLOR, QHeaderView::ResizeToContents);
+  ui->events->header()->setSectionResizeMode(COL_BLEND_SRC, QHeaderView::ResizeToContents);
+  ui->events->header()->setSectionResizeMode(COL_BLEND_SRC_COLOR, QHeaderView::ResizeToContents);
+  ui->events->header()->setSectionResizeMode(COL_BLEND_DST, QHeaderView::ResizeToContents);
+  ui->events->header()->setSectionResizeMode(COL_BLEND_DST_COLOR, QHeaderView::ResizeToContents);
   ui->events->header()->setSectionResizeMode(COL_TEX_AFTER, QHeaderView::ResizeToContents);
   ui->events->header()->setSectionResizeMode(COL_TEX_AFTER_COLOR, QHeaderView::ResizeToContents);
 
@@ -724,6 +755,10 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
   ui->events->header()->hideSection(COL_TEX_BEFORE_COLOR);
   ui->events->header()->hideSection(COL_SHADER_OUT_2);
   ui->events->header()->hideSection(COL_SHADER_OUT_2_COLOR);
+  ui->events->header()->hideSection(COL_BLEND_SRC);
+  ui->events->header()->hideSection(COL_BLEND_SRC_COLOR);
+  ui->events->header()->hideSection(COL_BLEND_DST);
+  ui->events->header()->hideSection(COL_BLEND_DST_COLOR);
 
   QObject::connect(ui->events, &RDTreeView::customContextMenuRequested, this,
                    &PixelHistoryView::events_contextMenu);
