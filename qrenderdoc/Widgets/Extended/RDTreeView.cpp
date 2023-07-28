@@ -771,17 +771,10 @@ void RDTreeView::drawBranches(QPainter *painter, const QRect &rect, const QModel
     idx = idx.parent();
   }
 
-  opt.rect = rect;
-  opt.rect.setWidth(depth * indentation());
+  opt.rect = allLinesRect;
   opt.showDecorationSelected = true;
+  opt.backgroundBrush = index.data(Qt::BackgroundRole).value<QBrush>();
   style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &opt, painter, this);
-
-  QBrush back = index.data(Qt::BackgroundRole).value<QBrush>();
-
-  if(!selectionModel()->isSelected(index) && back.style() != Qt::NoBrush)
-  {
-    painter->fillRect(allLinesRect, back);
-  }
 
   if(m_VisibleBranches)
   {
@@ -821,12 +814,12 @@ void RDTreeView::drawBranches(QPainter *painter, const QRect &rect, const QModel
   {
     parent = parents.pop();
 
-    back = parent.data(RDTreeView::TreeLineColorRole).value<QBrush>();
+    QBrush line = parent.data(RDTreeView::TreeLineColorRole).value<QBrush>();
 
-    if(back.style() != Qt::NoBrush)
+    if(line.style() != Qt::NoBrush)
     {
       // draw a centred pen vertically down the middle of branchRect
-      painter->setPen(QPen(QBrush(back), m_treeColorLineWidth));
+      painter->setPen(QPen(line, m_treeColorLineWidth));
 
       QPoint topCentre = QRect(branchRect).center();
       QPoint bottomCentre = topCentre;
