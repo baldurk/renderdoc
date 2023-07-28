@@ -442,6 +442,10 @@ public:
         }
       }
 
+      const QColor GRAY_BACKGROUND = QColor::fromRgb(235, 235, 235);
+      const QColor GREEN_BACKGROUND = QColor::fromRgb(235, 255, 235);
+      const QColor RED_BACKGROUND = QColor::fromRgb(255, 235, 235);
+
       // text backgrounds marking pass/fail
       if(role == Qt::BackgroundRole && !isColorColumn(col))
       {
@@ -456,15 +460,14 @@ public:
 
           if(mods[0].directShaderWrite &&
              mods[0].preMod.col.uintValue == mods[0].postMod.col.uintValue)
-            return QBrush(QColor::fromRgb(235, 235, 235));
+            return QBrush(GRAY_BACKGROUND);
 
-          return passed ? QBrush(QColor::fromRgb(235, 255, 235))
-                        : QBrush(QColor::fromRgb(255, 235, 235));
+          return passed ? QBrush(GREEN_BACKGROUND) : QBrush(RED_BACKGROUND);
         }
         else
         {
           if(!getMod(index).Passed())
-            return QBrush(QColor::fromRgb(255, 235, 235));
+            return QBrush(RED_BACKGROUND);
         }
       }
 
@@ -472,8 +475,7 @@ public:
       // ensure contrast with all UI themes
       if(role == Qt::ForegroundRole && !isColorColumn(col))
       {
-        QColor textColor =
-            contrastingColor(QColor::fromRgb(235, 235, 235), m_Palette.color(QPalette::Text));
+        QColor textColor = contrastingColor(GRAY_BACKGROUND, m_Palette.color(QPalette::Text));
         if(isEvent(index))
         {
           return QBrush(textColor);
