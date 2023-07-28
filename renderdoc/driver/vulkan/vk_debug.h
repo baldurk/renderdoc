@@ -95,6 +95,8 @@ public:
   bool PixelHistorySetupResources(PixelHistoryResources &resources, VkImage targetImage,
                                   VkExtent3D extent, VkFormat format, VkSampleCountFlagBits samples,
                                   const Subresource &sub, uint32_t numEvents);
+  bool PixelHistorySetupPerFragResources(PixelHistoryResources &resources, uint32_t numEvents,
+                                         uint32_t numFragments);
   bool PixelHistoryDestroyResources(const PixelHistoryResources &resources);
 
   VkImageLayout GetImageLayout(ResourceId image, VkImageAspectFlagBits aspect, uint32_t mip,
