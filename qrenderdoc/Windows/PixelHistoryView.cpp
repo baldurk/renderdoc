@@ -42,6 +42,8 @@ Q_DECLARE_METATYPE(EventTag);
 enum
 {
   COL_EVENT,
+  COL_TEX_BEFORE,
+  COL_TEX_BEFORE_COLOR,
   COL_SHADER_OUT,
   COL_SHADER_OUT_COLOR,
   COL_TEX_AFTER,
@@ -85,6 +87,7 @@ public:
   {
     switch(column)
     {
+      case COL_TEX_BEFORE_COLOR:
       case COL_SHADER_OUT_COLOR:
       case COL_TEX_AFTER_COLOR: return true;
       default: return false;
@@ -181,6 +184,8 @@ public:
       switch(section)
       {
         case COL_EVENT: result = lit("Event"); break;
+        case COL_TEX_BEFORE:
+        case COL_TEX_BEFORE_COLOR: result = lit("Tex Before"); break;
         case COL_SHADER_OUT:
         case COL_SHADER_OUT_COLOR: result = lit("Shader Out"); break;
         case COL_TEX_AFTER:
@@ -328,57 +333,73 @@ public:
           }
         }
 
-        // pre mod/shader out text
-        if(col == COL_SHADER_OUT)
+        if(isEvent(index))
         {
-          if(isEvent(index))
+          // We can't provide meaningful shader out messages for events, only individual primitives.
+          // So, use the Tex Before value for all of them.
+          if(col == COL_TEX_BEFORE || col == COL_SHADER_OUT)
           {
             return tr("Tex Before\n\n") + modString(getMods(index).first().preMod);
           }
-          else
+          else if(col == COL_TEX_AFTER)
+          {
+            return tr("Tex After\n\n") + modString(getMods(index).last().postMod);
+          }
+        }
+        else
+        {
+          if(col == COL_TEX_BEFORE)
+          {
+            return tr("Tex Before\n\n") + modString(getMod(index).preMod);
+          }
+          else if(col == COL_SHADER_OUT)
           {
             const PixelModification &mod = getMod(index);
             if(mod.unboundPS)
               return tr("No Pixel\nShader\nBound");
             if(mod.directShaderWrite)
               return tr("Tex Before\n\n") + modString(mod.preMod);
+
             return tr("Shader Out\n\n") + modString(mod.shaderOut, 4);
           }
-        }
-
-        // post mod text
-        if(col == COL_TEX_AFTER)
-        {
-          if(isEvent(index))
-            return tr("Tex After\n\n") + modString(getMods(index).last().postMod);
-          else
+          else if(col == COL_TEX_AFTER)
+          {
             return tr("Tex After\n\n") + modString(getMod(index).postMod);
+          }
         }
       }
 
       if(role == Qt::BackgroundRole && (m_IsDepth || m_IsFloat))
       {
-        // pre mod color
-        if(col == COL_SHADER_OUT_COLOR)
+        if(isEvent(index))
         {
-          if(isEvent(index))
+          if(col == COL_TEX_BEFORE_COLOR || col == COL_SHADER_OUT_COLOR)
           {
             return backgroundBrush(getMods(index).first().preMod);
           }
-          else
+          else if(col == COL_TEX_AFTER_COLOR)
+          {
+            return backgroundBrush(getMods(index).last().postMod);
+          }
+        }
+        else
+        {
+          if(col == COL_TEX_BEFORE_COLOR)
+          {
+            return backgroundBrush(getMod(index).preMod);
+          }
+          else if(col == COL_SHADER_OUT_COLOR)
           {
             const PixelModification &mod = getMod(index);
             if(mod.directShaderWrite)
               return backgroundBrush(mod.preMod);
+
             return backgroundBrush(mod.shaderOut);
           }
-        }
-        else if(col == COL_TEX_AFTER_COLOR)
-        {
-          if(isEvent(index))
-            return backgroundBrush(getMods(index).last().postMod);
-          else
+          else if(col == COL_TEX_AFTER_COLOR)
+          {
             return backgroundBrush(getMod(index).postMod);
+          }
         }
       }
 
@@ -677,10 +698,16 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
   ui->events->hideBranches();
 
   ui->events->header()->setSectionResizeMode(COL_EVENT, QHeaderView::Stretch);
+  ui->events->header()->setSectionResizeMode(COL_TEX_BEFORE, QHeaderView::ResizeToContents);
+  ui->events->header()->setSectionResizeMode(COL_TEX_BEFORE_COLOR, QHeaderView::ResizeToContents);
   ui->events->header()->setSectionResizeMode(COL_SHADER_OUT, QHeaderView::ResizeToContents);
   ui->events->header()->setSectionResizeMode(COL_SHADER_OUT_COLOR, QHeaderView::ResizeToContents);
   ui->events->header()->setSectionResizeMode(COL_TEX_AFTER, QHeaderView::ResizeToContents);
   ui->events->header()->setSectionResizeMode(COL_TEX_AFTER_COLOR, QHeaderView::ResizeToContents);
+
+  // Hide these by default; only shader out and tex after are visible by default
+  ui->events->header()->hideSection(COL_TEX_BEFORE);
+  ui->events->header()->hideSection(COL_TEX_BEFORE_COLOR);
 
   QObject::connect(ui->events, &RDTreeView::customContextMenuRequested, this,
                    &PixelHistoryView::events_contextMenu);
