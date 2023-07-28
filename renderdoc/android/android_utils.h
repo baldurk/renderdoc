@@ -73,8 +73,6 @@ rdcarray<ABI> GetSupportedABIs(const rdcstr &deviceID);
 rdcstr GetRenderDocPackageForABI(ABI abi);
 rdcstr GetPathForPackage(const rdcstr &deviceID, const rdcstr &packageName);
 rdcstr GetFolderName(const rdcstr &deviceID);
-
-bool PatchManifest(bytebuf &manifest);
 };
 
 DECLARE_REFLECTION_ENUM(Android::ABI);

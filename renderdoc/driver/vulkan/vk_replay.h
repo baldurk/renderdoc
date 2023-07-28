@@ -429,10 +429,6 @@ public:
   bool IsRenderOutput(ResourceId id) { return GetRenderOutputSubresource(id).mip != ~0U; }
   void FileChanged();
 
-  void InitCallstackResolver();
-  bool HasCallstacks();
-  Callstack::StackResolver *GetCallstackResolver();
-
   // used for vulkan layer bookkeeping. Ideally this should all be handled by installers/packages,
   // but for developers running builds locally or just in case, we need to be able to update the
   // layer registration ourselves.
