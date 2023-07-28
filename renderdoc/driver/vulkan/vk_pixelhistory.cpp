@@ -1378,7 +1378,7 @@ protected:
     return (rpInfo.subpasses.size() > 1);
   }
 
-  // Returns teh color attachment index that corresponds to the target image for
+  // Returns the color attachment index that corresponds to the target image for
   // pixel history.
   uint32_t GetColorAttachmentIndex(const VulkanRenderState &renderstate,
                                    uint32_t *framebufferIndex = NULL)
@@ -3105,7 +3105,6 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       else
       {
         newAtt.blendEnable = VK_FALSE;
-        newAtt.srcColorBlendFactor = VK_BLEND_FACTOR_DST_COLOR;
       }
       newAtts[cbs->attachmentCount] = newAtt;
       cbs->attachmentCount = (uint32_t)newAtts.size();
