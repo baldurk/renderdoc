@@ -129,13 +129,14 @@ private:
 
 struct VulkanWindow : public GraphicsWindow, public VulkanCommands
 {
+  VkFormat m_requestedFormat;
   VkFormat format;
   uint32_t imgIndex = 0;
   VkRenderPass rp = VK_NULL_HANDLE;
   VkViewport viewport;
   VkRect2D scissor;
 
-  VulkanWindow(VulkanGraphicsTest *test, GraphicsWindow *win);
+  VulkanWindow(VulkanGraphicsTest *test, GraphicsWindow *win, VkFormat requestedFormat);
   virtual ~VulkanWindow();
   void Shutdown();
 
@@ -197,7 +198,8 @@ struct VulkanGraphicsTest : public GraphicsTest
   void Prepare(int argc, char **argv);
   bool Init();
   void Shutdown();
-  VulkanWindow *MakeWindow(int width, int height, const char *title);
+  VulkanWindow *MakeWindow(int width, int height, const char *title,
+                           VkFormat requestedFormat = VK_FORMAT_B8G8R8A8_SRGB);
 
   bool Running();
   VkImage StartUsingBackbuffer(VkCommandBuffer cmd,
@@ -287,6 +289,8 @@ struct VulkanGraphicsTest : public GraphicsTest
   uint32_t graphicsQueueFamilyIndex = ~0U;
   uint32_t computeQueueFamilyIndex = ~0U;
   uint32_t transferQueueFamilyIndex = ~0U;
+
+  VkFormat requestedSwapChainFormat = VK_FORMAT_B8G8R8A8_SRGB;
 
   bool hasExt(const char *ext);
 
