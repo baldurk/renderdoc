@@ -1940,6 +1940,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       // data[3].x (depth) unused
       // fragments writing to the pixel in this event with original shader
       mod.shaderOut.col.intValue[1] = int32_t(data[3].y);
+      mod.shaderOutDualSrc.SetInvalid();
     }
   }
 
@@ -2316,6 +2317,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
         byte *data = shadoutStoreData + sizeof(Vec4f) * pixstoreStride * offsettedSlot;
 
         memcpy(&history[h].shaderOut.col.uintValue[0], data, 4 * sizeof(float));
+        history[h].shaderOutDualSrc.SetInvalid();
 
         // primitive ID is in the next slot after that
         memcpy(&history[h].primitiveID, data + sizeof(Vec4f), sizeof(uint32_t));
