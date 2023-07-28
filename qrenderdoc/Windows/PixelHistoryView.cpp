@@ -175,8 +175,25 @@ public:
 
   QVariant headerData(int section, Qt::Orientation orientation, int role) const override
   {
-    if(orientation == Qt::Horizontal && role == Qt::DisplayRole && section == COL_EVENT)
-      return lit("Event");
+    if(orientation == Qt::Horizontal && role == Qt::DisplayRole)
+    {
+      QString result;
+      switch(section)
+      {
+        case COL_EVENT: result = lit("Event"); break;
+        case COL_SHADER_OUT:
+        case COL_SHADER_OUT_COLOR: result = lit("Shader Out"); break;
+        case COL_TEX_AFTER:
+        case COL_TEX_AFTER_COLOR: result = lit("Tex After"); break;
+      }
+      if(isColorColumn(section))
+      {
+        // Pad with spaces so that the text isn't visible in the headers, only on the column chooser
+        // (it wouldn't fit anyways)
+        result = lit("        ") + result + lit(" color");
+      }
+      return result;
+    }
 
     // sizes for the colour previews
     if(orientation == Qt::Horizontal && role == Qt::SizeHintRole && isColorColumn(section))
@@ -665,6 +682,13 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
   ui->events->header()->setSectionResizeMode(COL_TEX_AFTER, QHeaderView::ResizeToContents);
   ui->events->header()->setSectionResizeMode(COL_TEX_AFTER_COLOR, QHeaderView::ResizeToContents);
 
+  QObject::connect(ui->events, &RDTreeView::customContextMenuRequested, this,
+                   &PixelHistoryView::events_contextMenu);
+
+  ui->events->header()->setContextMenuPolicy(Qt::CustomContextMenu);
+  QObject::connect(ui->events->header(), &QHeaderView::customContextMenuRequested, this,
+                   &PixelHistoryView::events_contextMenu);
+
   m_Ctx.AddCaptureViewer(this);
 }
 
@@ -822,8 +846,19 @@ void PixelHistoryView::jumpToPrimitive(EventTag tag)
   }
 }
 
-void PixelHistoryView::on_events_customContextMenuRequested(const QPoint &pos)
+void PixelHistoryView::colSelect_clicked()
 {
+  QStringList headers;
+  for(int i = 0; i < ui->events->model()->columnCount(); i++)
+    headers << ui->events->model()->headerData(i, Qt::Horizontal).toString();
+  UpdateVisibleColumns(tr("Select Pixel History Columns"), COL_COUNT, ui->events->header(), headers);
+}
+
+void PixelHistoryView::events_contextMenu(const QPoint &pos)
+{
+  // TODO: this uses coordinates that are supposed to be relative to the header as coordinates in
+  // the table, so right-clicking the header uses the first entry instead (same applies to
+  // EventBrowser.cpp)
   QModelIndex index = ui->events->indexAt(pos);
 
   QMenu contextMenu(this);
@@ -838,6 +873,13 @@ void PixelHistoryView::on_events_customContextMenuRequested(const QPoint &pos)
     m_Model->setShowFailures(m_ShowFailures = checked);
     ui->eventsHidden->setVisible(!m_ShowFailures);
   });
+
+  QAction selectCols(tr("&Select Columns..."), this);
+
+  contextMenu.addAction(&selectCols);
+  selectCols.setIcon(Icons::timeline_marker());
+
+  QObject::connect(&selectCols, &QAction::triggered, this, &PixelHistoryView::colSelect_clicked);
 
   if(!index.isValid())
   {

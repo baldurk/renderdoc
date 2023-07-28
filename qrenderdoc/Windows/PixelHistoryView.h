@@ -55,8 +55,11 @@ public:
   void OnEventChanged(uint32_t eventId) override;
 private slots:
   // automatic slots
-  void on_events_customContextMenuRequested(const QPoint &pos);
   void on_events_doubleClicked(const QModelIndex &index);
+
+  // manual slots
+  void colSelect_clicked();
+  void events_contextMenu(const QPoint &pos);
 
 protected:
   void enterEvent(QEvent *event) override;
