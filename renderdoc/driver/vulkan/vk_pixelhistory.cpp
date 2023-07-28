@@ -63,11 +63,12 @@
  *
  * - Fourth callback: Per fragment callback (VulkanPixelHistoryPerFragmentCallback)
  * This callback is used to get per fragment data for each event and fragment (primitive ID,
- * shader output value, post event value for each fragment).
- * For each fragment the draw is replayed 3 times:
+ * shader output value, dual source shader output value, post event value for each fragment).
+ * For each fragment the draw is replayed 4 times:
  * 1) with a fragment shader that outputs primitive ID only
  * 2) with blending OFF, to get shader output value
- * 3) with blending ON, to get post modification value
+ * 3) with blending OFF and a modified shader, to get the output at index 1 (dual source)
+ * 4) with blending ON, to get post modification value
  * For each such replay we set the stencil reference to the fragment number and set the
  * stencil compare to equal, so it passes for that particular fragment only.
  *
@@ -250,6 +251,7 @@ struct PerFragmentInfo
   int32_t primitiveID;
   uint32_t padding[3];
   PixelHistoryValue shaderOut;
+  PixelHistoryValue shaderOutDualSrc;
   PixelHistoryValue postMod;
 };
 
@@ -2875,6 +2877,8 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     VkPipeline primitiveIdPipe;
     // Turn off blending.
     VkPipeline shaderOutPipe;
+    // Turn off blending, and swaps output indexes to get the dual source output.
+    VkPipeline shaderOutDualSrcPipe;
     // Enable blending to get post event values.
     VkPipeline postModPipe;
   };
@@ -2940,9 +2944,14 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       state.scissors[i].extent = {2, 2};
     }
 
-    VkPipeline pipesIter[2];
+    VkPipeline pipesIter[3] = {};
+    uint32_t outputOffsetIter[3] = {};
     pipesIter[0] = pipes.primitiveIdPipe;
+    outputOffsetIter[0] = offsetof(struct PerFragmentInfo, primitiveID);
     pipesIter[1] = pipes.shaderOutPipe;
+    outputOffsetIter[1] = offsetof(struct PerFragmentInfo, shaderOut);
+    pipesIter[2] = pipes.shaderOutDualSrcPipe;
+    outputOffsetIter[2] = offsetof(struct PerFragmentInfo, shaderOutDualSrc);
 
     VkCopyPixelParams colourCopyParams = {};
     colourCopyParams.srcImage = m_CallbackInfo.subImage;
@@ -2971,12 +2980,13 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     // Get primitive ID and shader output value for each fragment.
     for(uint32_t f = 0; f < numFragmentsInEvent; f++)
     {
-      for(uint32_t i = 0; i < 2; i++)
-      {
-        uint32_t storeOffset = (fragsProcessed + f) * sizeof(PerFragmentInfo);
+      const uint32_t fragStoreOffset = (fragsProcessed + f) * sizeof(PerFragmentInfo);
 
-        VkMarkerRegion region(cmd, StringFormat::Fmt("Getting %s for %u",
-                                                     i == 0 ? "primitive ID" : "shader output", eid));
+      for(uint32_t i = 0; i < (m_HasDualSrc ? 3u : 2u); i++)
+      {
+        const uint32_t storeOffset = fragStoreOffset + outputOffsetIter[i];
+        const char *type = i == 0 ? "primitive ID" : i == 1 ? "shader output" : "shader output 2";
+        VkMarkerRegion region(cmd, StringFormat::Fmt("Getting %s for %u", type, eid));
 
         if(i == 0 && !m_pDriver->GetDeviceEnabledFeatures().geometryShader)
         {
@@ -2993,7 +3003,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
           // without one of the pipelines (e.g. if there was a geometry shader in use and we can't
           // read primitive ID in the fragment shader) we can't continue.
           // technically we can if the geometry shader outs a primitive ID, but that is unlikely.
-          VkMarkerRegion::Set("Can't get primitive ID with geometry shader in use", cmd);
+          VkMarkerRegion::Set(StringFormat::Fmt("No replacement shader in pipesIter[%d]", i), cmd);
 
           ObjDisp(cmd)->CmdFillBuffer(Unwrap(cmd), Unwrap(m_CallbackInfo.dstBuffer), storeOffset,
                                       16, ~0U);
@@ -3059,9 +3069,9 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         m_pDriver->ReplayDraw(cmd, *action);
         state.EndRenderPass(cmd);
 
-        if(i == 1)
+        CopyImagePixel(cmd, colourCopyParams, storeOffset);
+        if(i != 0)
         {
-          storeOffset += offsetof(struct PerFragmentInfo, shaderOut);
           if(depthEnabled)
           {
             VkCopyPixelParams depthCopyParams = colourCopyParams;
@@ -3072,7 +3082,6 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
                            storeOffset + offsetof(struct PixelHistoryValue, depth));
           }
         }
-        CopyImagePixel(cmd, colourCopyParams, storeOffset);
       }
     }
 
@@ -3276,14 +3285,24 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
     EventFlags eventFlags = m_pDriver->GetEventFlags(eid);
     VkShaderModule replacementShaders[5] = {};
+    VkShaderModule replacementDualSourceFragmentShader = VK_NULL_HANDLE;
 
     // Clean shaders
     uint32_t numberOfStages = 5;
     for(size_t i = 0; i < numberOfStages; i++)
     {
-      if((eventFlags & PipeStageRWEventFlags(StageFromIndex(i))) != EventFlags::NoFlags)
+      ShaderStage stage = StageFromIndex(i);
+      if(m_pDriver->GetDeviceEnabledFeatures().dualSrcBlend && stage == ShaderStage::Fragment)
+      {
+        replacementDualSourceFragmentShader = m_ShaderCache->GetDualSrcSwappedShader(
+            p.shaders[i].module, p.shaders[i].entryPoint, p.shaders[i].stage);
+      }
+      bool rwInStage = (eventFlags & PipeStageRWEventFlags(stage)) != EventFlags::NoFlags;
+      if(rwInStage)
+      {
         replacementShaders[i] = m_ShaderCache->GetShaderWithoutSideEffects(
             p.shaders[i].module, p.shaders[i].entryPoint, p.shaders[i].stage);
+      }
     }
     for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
     {
@@ -3352,6 +3371,27 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     m_pDriver->CheckVkResult(vkr);
 
     m_PipesToDestroy.push_back(pipes.shaderOutPipe);
+
+    if(replacementDualSourceFragmentShader != VK_NULL_HANDLE)
+    {
+      m_HasDualSrc = true;
+      rdcarray<VkPipelineShaderStageCreateInfo> dual_src_stages = stages;
+      for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
+      {
+        if(dual_src_stages[i].stage == VK_SHADER_STAGE_FRAGMENT_BIT)
+          dual_src_stages[i].module = replacementDualSourceFragmentShader;
+      }
+
+      pipeCreateInfo.pStages = dual_src_stages.data();
+
+      vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
+                                                 &pipeCreateInfo, NULL, &pipes.shaderOutDualSrcPipe);
+      m_pDriver->CheckVkResult(vkr);
+
+      m_PipesToDestroy.push_back(pipes.shaderOutDualSrcPipe);
+
+      pipeCreateInfo.pStages = stages.data();
+    }
 
     {
       ds->depthTestEnable = VK_FALSE;
@@ -3431,6 +3471,8 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     RDCASSERT(it != m_EventIndices.end());
     return it->second;
   }
+
+  bool m_HasDualSrc = false;
 
 private:
   // For each event, specifies where the occlusion query results start.
@@ -4450,7 +4492,10 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
           history[h].preMod = history[h - 1].postMod;
         }
 
-        history[h].shaderOutDualSrc.SetInvalid();
+        if(perFragmentCB.m_HasDualSrc)
+          FillInColor(shaderOutFormat, bp[offset].shaderOutDualSrc, history[h].shaderOutDualSrc);
+        else
+          history[h].shaderOutDualSrc.SetInvalid();
 
         history[h].blendSrc.SetInvalid();
         history[h].blendDst.SetInvalid();
