@@ -39,6 +39,16 @@ struct EventTag
 
 Q_DECLARE_METATYPE(EventTag);
 
+enum
+{
+  COL_EVENT,
+  COL_SHADER_OUT,
+  COL_SHADER_OUT_COLOR,
+  COL_TEX_AFTER,
+  COL_TEX_AFTER_COLOR,
+  COL_COUNT,
+};
+
 class PixelHistoryItemModel : public QAbstractItemModel
 {
 public:
@@ -68,6 +78,16 @@ public:
       case ResourceFormatType::D32S8:
       case ResourceFormatType::S8: m_IsDepth = true; break;
       default: break;
+    }
+  }
+
+  static bool isColorColumn(int column)
+  {
+    switch(column)
+    {
+      case COL_SHADER_OUT_COLOR:
+      case COL_TEX_AFTER_COLOR: return true;
+      default: return false;
     }
   }
 
@@ -144,7 +164,7 @@ public:
 
     return 0;
   }
-  int columnCount(const QModelIndex &parent = QModelIndex()) const override { return 5; }
+  int columnCount(const QModelIndex &parent = QModelIndex()) const override { return COL_COUNT; }
   Qt::ItemFlags flags(const QModelIndex &index) const override
   {
     if(!index.isValid())
@@ -155,11 +175,11 @@ public:
 
   QVariant headerData(int section, Qt::Orientation orientation, int role) const override
   {
-    if(orientation == Qt::Horizontal && role == Qt::DisplayRole && section == 0)
+    if(orientation == Qt::Horizontal && role == Qt::DisplayRole && section == COL_EVENT)
       return lit("Event");
 
     // sizes for the colour previews
-    if(orientation == Qt::Horizontal && role == Qt::SizeHintRole && (section == 2 || section == 4))
+    if(orientation == Qt::Horizontal && role == Qt::SizeHintRole && isColorColumn(section))
       return QSize(18, 0);
 
     return QVariant();
@@ -172,7 +192,7 @@ public:
       int col = index.column();
 
       // preview columns
-      if(col == 2 || col == 4)
+      if(isColorColumn(col))
       {
         if(role == Qt::SizeHintRole)
           return QSize(16, 0);
@@ -180,7 +200,7 @@ public:
 
       if(m_Loading)
       {
-        if(role == Qt::DisplayRole && col == 0)
+        if(role == Qt::DisplayRole && col == COL_EVENT)
           return tr("Loading...");
 
         return QVariant();
@@ -190,7 +210,7 @@ public:
       {
         QString uavName = IsD3D(m_Ctx.APIProps().pipelineType) ? lit("UAV") : lit("Storage");
         // main text
-        if(col == 0)
+        if(col == COL_EVENT)
         {
           if(isEvent(index))
           {
@@ -292,7 +312,7 @@ public:
         }
 
         // pre mod/shader out text
-        if(col == 1)
+        if(col == COL_SHADER_OUT)
         {
           if(isEvent(index))
           {
@@ -310,7 +330,7 @@ public:
         }
 
         // post mod text
-        if(col == 3)
+        if(col == COL_TEX_AFTER)
         {
           if(isEvent(index))
             return tr("Tex After\n\n") + modString(getMods(index).last().postMod);
@@ -322,7 +342,7 @@ public:
       if(role == Qt::BackgroundRole && (m_IsDepth || m_IsFloat))
       {
         // pre mod color
-        if(col == 2)
+        if(col == COL_SHADER_OUT_COLOR)
         {
           if(isEvent(index))
           {
@@ -336,7 +356,7 @@ public:
             return backgroundBrush(mod.shaderOut);
           }
         }
-        else if(col == 4)
+        else if(col == COL_TEX_AFTER_COLOR)
         {
           if(isEvent(index))
             return backgroundBrush(getMods(index).last().postMod);
@@ -346,7 +366,7 @@ public:
       }
 
       // text backgrounds marking pass/fail
-      if(role == Qt::BackgroundRole && (col == 0 || col == 1 || col == 3))
+      if(role == Qt::BackgroundRole && !isColorColumn(col))
       {
         // rest
         if(isEvent(index))
@@ -373,7 +393,7 @@ public:
 
       // Since we change the background color for some cells, also change the foreground color to
       // ensure contrast with all UI themes
-      if(role == Qt::ForegroundRole && (col == 0 || col == 1 || col == 3))
+      if(role == Qt::ForegroundRole && !isColorColumn(col))
       {
         QColor textColor =
             contrastingColor(QColor::fromRgb(235, 235, 235), m_Palette.color(QPalette::Text));
@@ -639,11 +659,11 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
 
   ui->events->hideBranches();
 
-  ui->events->header()->setSectionResizeMode(0, QHeaderView::Stretch);
-  ui->events->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-  ui->events->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-  ui->events->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-  ui->events->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+  ui->events->header()->setSectionResizeMode(COL_EVENT, QHeaderView::Stretch);
+  ui->events->header()->setSectionResizeMode(COL_SHADER_OUT, QHeaderView::ResizeToContents);
+  ui->events->header()->setSectionResizeMode(COL_SHADER_OUT_COLOR, QHeaderView::ResizeToContents);
+  ui->events->header()->setSectionResizeMode(COL_TEX_AFTER, QHeaderView::ResizeToContents);
+  ui->events->header()->setSectionResizeMode(COL_TEX_AFTER_COLOR, QHeaderView::ResizeToContents);
 
   m_Ctx.AddCaptureViewer(this);
 }
