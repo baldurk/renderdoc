@@ -1551,9 +1551,25 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
       group = QPalette::Inactive;
 
     if(viewitem->state & QStyle::State_Selected)
-      p->fillRect(viewitem->rect, viewitem->palette.brush(group, QPalette::Highlight));
-    else if(viewitem->backgroundBrush.style() != Qt::NoBrush)
-      p->fillRect(viewitem->rect, viewitem->backgroundBrush);
+    {
+      if(viewitem->backgroundBrush.style() != Qt::NoBrush)
+      {
+        p->fillRect(viewitem->rect, viewitem->backgroundBrush);
+        // If we have a custom color, use the selection color at half opacity over the custom color
+        QColor col = viewitem->palette.color(group, QPalette::Highlight);
+        col.setAlphaF(0.5f);
+        p->fillRect(viewitem->rect, QBrush(col));
+      }
+      else
+      {
+        p->fillRect(viewitem->rect, viewitem->palette.brush(group, QPalette::Highlight));
+      }
+    }
+    else
+    {
+      if(viewitem->backgroundBrush.style() != Qt::NoBrush)
+        p->fillRect(viewitem->rect, viewitem->backgroundBrush);
+    }
 
     return;
   }
