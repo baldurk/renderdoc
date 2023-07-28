@@ -706,7 +706,7 @@ bool VulkanGraphicsTest::Init()
 
   if(!headless)
   {
-    mainWindow = MakeWindow(screenWidth, screenHeight, "Autotesting");
+    mainWindow = MakeWindow(screenWidth, screenHeight, "Autotesting", requestedSwapChainFormat);
 
     if(!mainWindow->Initialised())
     {
@@ -784,7 +784,8 @@ bool VulkanGraphicsTest::Init()
   return true;
 }
 
-VulkanWindow *VulkanGraphicsTest::MakeWindow(int width, int height, const char *title)
+VulkanWindow *VulkanGraphicsTest::MakeWindow(int width, int height, const char *title,
+                                             VkFormat requestedFormat)
 {
 #if defined(WIN32)
   GraphicsWindow *platWin = new Win32Window(width, height, title);
@@ -798,7 +799,7 @@ VulkanWindow *VulkanGraphicsTest::MakeWindow(int width, int height, const char *
 #error UNKNOWN PLATFORM
 #endif
 
-  return new VulkanWindow(this, platWin);
+  return new VulkanWindow(this, platWin, requestedFormat);
 }
 
 void VulkanGraphicsTest::Shutdown()
@@ -1350,11 +1351,12 @@ void VulkanCommands::Submit(const std::vector<VkCommandBuffer> &cmds,
     pendingCommandBuffers[1].push_back(std::make_pair(cmd, fence));
 }
 
-VulkanWindow::VulkanWindow(VulkanGraphicsTest *test, GraphicsWindow *win)
+VulkanWindow::VulkanWindow(VulkanGraphicsTest *test, GraphicsWindow *win, VkFormat requestedFormat)
     : GraphicsWindow(win->title), VulkanCommands(test)
 {
   m_Test = test;
   m_Win = win;
+  m_requestedFormat = requestedFormat;
 
   {
     std::lock_guard<std::mutex> lock(m_Test->mutex);
@@ -1464,7 +1466,7 @@ bool VulkanWindow::CreateSwapchain()
 
   for(const VkSurfaceFormatKHR &f : formats)
   {
-    if(f.format == VK_FORMAT_B8G8R8A8_SRGB && f.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+    if(f.format == m_requestedFormat && f.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
     {
       surfaceFormat = f;
       break;
@@ -1478,6 +1480,10 @@ bool VulkanWindow::CreateSwapchain()
   }
 
   format = surfaceFormat.format;
+  if(format != m_requestedFormat)
+  {
+    TEST_WARN("Wanted surface format %d but got %d", m_requestedFormat, format);
+  }
 
   std::vector<VkPresentModeKHR> modes;
   CHECK_VKR(vkh::getSurfacePresentModesKHR(modes, m_Test->phys, surface));
