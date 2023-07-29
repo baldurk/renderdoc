@@ -296,6 +296,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="test_common.cpp" />
     <ClCompile Include="texture_zoo.cpp" />
+    <ClCompile Include="vk\vk_blend.cpp" />
     <ClCompile Include="vk\vk_compute_only.cpp" />
     <ClCompile Include="vk\vk_custom_border_color.cpp" />
     <ClCompile Include="vk\vk_dedicated_allocation.cpp" />

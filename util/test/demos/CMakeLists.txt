@@ -87,6 +87,7 @@ set(VULKAN_SRC
         vk/vk_test.cpp
         vk/vk_test.h
         vk/vk_adv_cbuffer_zoo.cpp
+        vk/vk_blend.cpp
         vk/vk_buffer_truncation.cpp
         vk/vk_cbuffer_zoo.cpp
         vk/vk_compute_only.cpp
