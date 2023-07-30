@@ -85,7 +85,7 @@
     defined(RENDERDOC_PLATFORM_ANDROID) || defined(RENDERDOC_PLATFORM_GGP) ||   \
     defined(RENDERDOC_PLATFORM_SWITCH)
 
-#define RENDERDOC_EXPORT_API __attribute__((visibility("default")))
+#define RENDERDOC_EXPORT_API __attribute__((visibility("default"), used))
 #define RENDERDOC_IMPORT_API
 
 #define RENDERDOC_CC
