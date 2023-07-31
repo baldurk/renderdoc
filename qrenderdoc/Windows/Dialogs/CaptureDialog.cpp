@@ -674,12 +674,14 @@ void CaptureDialog::on_exePathBrowse_clicked()
   }
 
   QString filename;
+  bool remoteSelection = false;
 
   if(m_Ctx.Replay().CurrentRemote().IsValid())
   {
     VirtualFileDialog vfd(m_Ctx, initDir, this);
     RDDialog::show(&vfd);
     filename = vfd.chosenPath();
+    remoteSelection = true;
   }
   else
   {
@@ -688,7 +690,7 @@ void CaptureDialog::on_exePathBrowse_clicked()
 
   if(!filename.isEmpty())
   {
-    SetExecutableFilename(filename);
+    SetExecutableFilename(filename, remoteSelection);
 
     if(m_Ctx.Replay().CurrentRemote().Protocol() &&
        m_Ctx.Replay().CurrentRemote().Protocol()->GetProtocolName() == "adb")
@@ -1031,11 +1033,11 @@ void CaptureDialog::fillProcessList()
   }
 }
 
-void CaptureDialog::SetExecutableFilename(const rdcstr &filename)
+void CaptureDialog::SetExecutableFilename(const rdcstr &filename, bool remoteSelection)
 {
   QString fn = filename;
 
-  if(!m_Ctx.Replay().CurrentRemote().IsValid())
+  if(!m_Ctx.Replay().CurrentRemote().IsValid() && !remoteSelection)
     fn = QDir::toNativeSeparators(QFileInfo(fn).absoluteFilePath());
 
   ui->exePath->setText(fn);
@@ -1061,7 +1063,7 @@ void CaptureDialog::SetExecutableFilename(const rdcstr &filename)
 
     m_Ctx.Replay().CurrentRemote().SetLastCapturePath(fn);
   }
-  else
+  else if(!remoteSelection)
   {
     m_Ctx.Config().LastCapturePath = QFileInfo(fn).absolutePath();
     m_Ctx.Config().LastCaptureExe = QFileInfo(fn).fileName();
