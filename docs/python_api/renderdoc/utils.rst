@@ -44,5 +44,6 @@ Settings
 Self-hosted captures
 --------------------
 
+.. autofunction:: renderdoc.CanSelfHostedCapture
 .. autofunction:: renderdoc.StartSelfHostCapture
 .. autofunction:: renderdoc.EndSelfHostCapture
