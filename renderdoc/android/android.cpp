@@ -669,7 +669,14 @@ struct AndroidRemoteServer : public RemoteServer
         }
       }
 
+      // Android is a completely garbage platform, and the command below can take several orders of
+      // magnitude more time than is reasonable and hit the remote server timeout. To give the best
+      // chance of that not happening, we ping before and after running it.
+      RemoteServer::Ping();
+
       adbStdout = Android::adbExecCommand(m_deviceID, "shell dumpsys package").strStdout;
+
+      RemoteServer::Ping();
 
       split(adbStdout, lines, '\n');
       for(rdcstr &line : lines)
