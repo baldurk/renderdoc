@@ -2005,6 +2005,8 @@ DOCUMENT(R"(When debugging RenderDoc it can be useful to capture itself by doing
 temporary name. This function checks to see if a given self-hosted DLL is available.
 
 :param str dllname: The name of the self-hosted capture module.
+:return: Whether the specified dll is loaded, ready for self-hosted capture.
+:rtype: bool
 )");
 extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_CanSelfHostedCapture(const rdcstr &dllname);
 
