@@ -1269,6 +1269,30 @@ public:
     return ImageTransitionInfo(m_State, m_QueueFamilyIdx, SeparateDepthStencil());
   }
 
+  const ImageState *GetRecordingLayoutWithinActionCallback(ResourceId id) const
+  {
+    if(m_ActionCallback == NULL)
+    {
+      RDCERR("Attempting to get latest layout with no action callback active");
+      return NULL;
+    }
+
+    if(m_LastCmdBufferID == ResourceId())
+      return NULL;
+
+    auto cmdIt = m_BakedCmdBufferInfo.find(m_LastCmdBufferID);
+
+    if(cmdIt != m_BakedCmdBufferInfo.end())
+    {
+      auto it = cmdIt->second.imageStates.find(id);
+
+      if(it != cmdIt->second.imageStates.end())
+        return &it->second;
+    }
+
+    return NULL;
+  }
+
   // Device initialization
 
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateInstance, const VkInstanceCreateInfo *pCreateInfo,

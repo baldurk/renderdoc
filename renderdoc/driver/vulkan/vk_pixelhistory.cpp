@@ -674,6 +674,36 @@ struct VulkanPixelHistoryCallback : public VulkanActionCallback
   }
 
 protected:
+  VkImageLayout GetImageLayout(ResourceId id, VkImageAspectFlagBits aspect, const Subresource &sub)
+  {
+    const ImageState *latestState = m_pDriver->GetRecordingLayoutWithinActionCallback(id);
+
+    VkImageLayout ret = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    if(latestState)
+    {
+      for(auto it = latestState->subresourceStates.begin();
+          it != latestState->subresourceStates.end(); ++it)
+      {
+        const ImageSubresourceRange &range = it->range();
+        if(VkImageAspectFlagBits(range.aspectMask & aspect) == aspect &&
+           // check slice (respecting layerCount == ~0U for 'all')
+           range.baseArrayLayer <= sub.slice &&
+           (sub.slice - range.baseArrayLayer) < range.layerCount &&
+           // check mip (respecting levelCount == ~0U for 'all')
+           range.baseMipLevel <= sub.mip && (sub.mip - range.baseMipLevel) < range.levelCount)
+        {
+          ret = it->state().newLayout;
+        }
+      }
+    }
+
+    if(ret == VK_IMAGE_LAYOUT_UNDEFINED)
+      ret = m_pDriver->GetDebugManager()->GetImageLayout(id, aspect, sub.mip, sub.slice);
+
+    return ret;
+  }
+
   // MakeIncrementStencilPipelineCI fills in the provided pipeCreateInfo
   // to create a graphics pipeline that is based on the original. The modifications
   // to the original pipeline: disables depth test and write, stencil is set
@@ -1935,9 +1965,8 @@ private:
       offset += offsetof(struct PixelHistoryValue, depth);
       aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
     }
-    targetCopyParams.srcImageLayout = m_pDriver->GetDebugManager()->GetImageLayout(
-        GetResID(m_CallbackInfo.targetImage), aspect, m_CallbackInfo.targetSubresource.mip,
-        m_CallbackInfo.targetSubresource.slice);
+    targetCopyParams.srcImageLayout = GetImageLayout(GetResID(m_CallbackInfo.targetImage), aspect,
+                                                     m_CallbackInfo.targetSubresource);
     CopyImagePixel(cmd, targetCopyParams, offset);
 
     // If the target image is a depth/stencil attachment, we already
@@ -2736,9 +2765,9 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     else
     {
       // Use the layout of the image we are substituting for.
-      VkImageLayout srcImageLayout = m_pDriver->GetDebugManager()->GetImageLayout(
-          GetResID(m_CallbackInfo.targetImage), VK_IMAGE_ASPECT_COLOR_BIT,
-          m_CallbackInfo.targetSubresource.mip, m_CallbackInfo.targetSubresource.slice);
+      VkImageLayout srcImageLayout =
+          GetImageLayout(GetResID(m_CallbackInfo.targetImage), VK_IMAGE_ASPECT_COLOR_BIT,
+                         m_CallbackInfo.targetSubresource);
       colourCopyParams.srcImageLayout = srcImageLayout;
     }
 
@@ -2908,9 +2937,8 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     VkImageAspectFlagBits aspect = VK_IMAGE_ASPECT_COLOR_BIT;
     if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat))
       aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
-    colourCopyParams.srcImageLayout = m_pDriver->GetDebugManager()->GetImageLayout(
-        GetResID(m_CallbackInfo.targetImage), aspect, m_CallbackInfo.targetSubresource.mip,
-        m_CallbackInfo.targetSubresource.slice);
+    colourCopyParams.srcImageLayout = GetImageLayout(GetResID(m_CallbackInfo.targetImage), aspect,
+                                                     m_CallbackInfo.targetSubresource);
 
     const ModificationValue &premod = m_EventPremods[eid];
     // For every fragment except the last one, retrieve post-modification
