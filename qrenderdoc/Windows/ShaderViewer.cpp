@@ -1524,6 +1524,9 @@ void ShaderViewer::editable_keyPressed(QKeyEvent *event)
 
 void ShaderViewer::debug_contextMenu(const QPoint &pos)
 {
+  m_ContextActive = true;
+  hideVariableTooltip();
+
   ScintillaEdit *edit = qobject_cast<ScintillaEdit *>(QObject::sender());
 
   bool isDisasm = (edit == m_DisassemblyView);
@@ -1619,6 +1622,8 @@ void ShaderViewer::debug_contextMenu(const QPoint &pos)
   contextMenu.addSeparator();
 
   RDDialog::show(&contextMenu, edit->viewport()->mapToGlobal(pos));
+
+  m_ContextActive = false;
 }
 
 void ShaderViewer::variables_contextMenu(const QPoint &pos)
@@ -5636,6 +5641,10 @@ void ShaderViewer::showVariableTooltip(QString name)
 {
   m_TooltipVarPath = name.replace(QRegularExpression(lit("\\s+")), QString());
   m_TooltipPos = QCursor::pos();
+
+  // don't do anything if we're showing a context menu
+  if(m_ContextActive)
+    return;
 
   updateVariableTooltip();
 }
