@@ -1990,8 +1990,11 @@ void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstants(UINT RootPar
                                                                     const void *pSrcData,
                                                                     UINT DestOffsetIn32BitValues)
 {
-  SERIALISE_TIME_CALL(m_pList->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet,
-                                                            pSrcData, DestOffsetIn32BitValues));
+  // nVidia driver crashes if pSrcData is NULL even with Num32BitValuesToSet = 0
+  UINT dummyData;
+  const void *pValidSrcData = Num32BitValuesToSet > 0 ? pSrcData : &dummyData;
+  SERIALISE_TIME_CALL(m_pList->SetComputeRoot32BitConstants(
+      RootParameterIndex, Num32BitValuesToSet, pValidSrcData, DestOffsetIn32BitValues));
 
   if(IsCaptureMode(m_State))
   {
@@ -2523,12 +2526,15 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstants(
 
     bool stateUpdate = false;
 
+    UINT dummyData;
+    // nVidia driver crashes if pSrcData is NULL even with Num32BitValuesToSet = 0
+    const UINT *pValidSrcData = (Num32BitValuesToSet > 0) ? pSrcData : &dummyData;
     if(IsActiveReplaying(m_State))
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
         Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->SetGraphicsRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData,
+            ->SetGraphicsRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pValidSrcData,
                                             DestOffsetIn32BitValues);
 
         stateUpdate = true;
@@ -2541,10 +2547,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstants(
     else
     {
       Unwrap(pCommandList)
-          ->SetGraphicsRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData,
+          ->SetGraphicsRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pValidSrcData,
                                           DestOffsetIn32BitValues);
       GetCrackedList()->SetGraphicsRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet,
-                                                      pSrcData, DestOffsetIn32BitValues);
+                                                      pValidSrcData, DestOffsetIn32BitValues);
 
       stateUpdate = true;
     }
@@ -2554,7 +2560,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstants(
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 
       state.graphics.sigelems.resize_for_index(RootParameterIndex);
-      state.graphics.sigelems[RootParameterIndex].SetConstants(Num32BitValuesToSet, pSrcData,
+      state.graphics.sigelems[RootParameterIndex].SetConstants(Num32BitValuesToSet, pValidSrcData,
                                                                DestOffsetIn32BitValues);
     }
   }
@@ -2567,8 +2573,11 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRoot32BitConstants(UINT RootPa
                                                                      const void *pSrcData,
                                                                      UINT DestOffsetIn32BitValues)
 {
+  // nVidia driver crashes if pSrcData is NULL even with Num32BitValuesToSet = 0
+  UINT dummyData;
+  const void *pValidSrcData = Num32BitValuesToSet > 0 ? pSrcData : &dummyData;
   SERIALISE_TIME_CALL(m_pList->SetGraphicsRoot32BitConstants(
-      RootParameterIndex, Num32BitValuesToSet, pSrcData, DestOffsetIn32BitValues));
+      RootParameterIndex, Num32BitValuesToSet, pValidSrcData, DestOffsetIn32BitValues));
 
   if(IsCaptureMode(m_State))
   {
