@@ -471,6 +471,8 @@ void RenderDoc::TargetControlServerThread(Network::Socket *sock)
     {
       ReadSerialiser ser(new StreamReader(client, Ownership::Nothing), Ownership::Stream);
 
+      ser.SetStreamingMode(true);
+
       PacketType type = ser.ReadChunk<PacketType>();
 
       if(type != ePacket_Handshake)

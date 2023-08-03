@@ -179,6 +179,13 @@ uint32_t Serialiser<SerialiserMode::Reading>::BeginChunk(uint32_t, uint64_t)
       m_ChunkMetadata.length = chunkSize;
     }
 
+    uint64_t len = m_ChunkMetadata.length;
+    VerifyArraySize(m_ChunkMetadata.length);
+    // if length was set to 0 by VerifyArraySize due to being invalid, set it to something
+    // reasonable just to prevent knock-on problems with error handling
+    if(len != 0 && m_ChunkMetadata.length == 0)
+      m_ChunkMetadata.length = 1024;
+
     m_LastChunkOffset = m_Read->GetOffset();
   }
 
