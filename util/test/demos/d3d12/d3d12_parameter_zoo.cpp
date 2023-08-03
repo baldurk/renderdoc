@@ -142,8 +142,8 @@ float4 main() : SV_Target0
 
     ID3D12RootSignaturePtr duplicateSig = MakeSig(
         {
-            cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
-            constParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 1, 1),
+            cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
+            constParam(D3D12_SHADER_VISIBILITY_ALL, 0, 1, 1),
         },
         D3D12_ROOT_SIGNATURE_FLAG_NONE);
 
@@ -346,6 +346,10 @@ float4 main() : SV_Target0
       cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
       cmd->SetDescriptorHeaps(2, heaps);
+
+      cmd->SetComputeRootSignature(duplicateSig);
+      cmd->SetComputeRoot32BitConstants(1, 0, &debug, 0);
+      cmd->SetGraphicsRoot32BitConstants(1, 0, &debug, 0);
 
       IASetVertexBuffer(cmd, vb2, sizeof(DefaultA2V), 0);
       IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
