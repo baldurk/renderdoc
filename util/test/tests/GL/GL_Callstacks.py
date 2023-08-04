@@ -47,8 +47,8 @@ class GL_Callstacks(rdtest.TestCase):
         ]
 
         expected_lines = [
-            7001,
-            8002
+            7000,
+            8000
         ]
 
         sdfile = self.controller.GetStructuredFile()
@@ -72,7 +72,9 @@ class GL_Callstacks(rdtest.TestCase):
             if idx < 0:
                 raise rdtest.TestFailureException("Expected a line number in '{}'".format(stack))
 
-            if int(stack[idx+5:]) != expected_lines[i]:
-                raise rdtest.TestFailureException("Expected line number {} in '{}'".format(expected_lines[i], stack))
+            # allow line numbers reported to be off by 1 or 2, to allow for compiler differences.
+            line_diff = int(stack[idx+5:]) - expected_lines[i]
+            if line_diff < 0 or line_diff > 2:
+                raise rdtest.TestFailureException("Expected line number around {} in '{}'".format(expected_lines[i], stack))
 
         rdtest.log.success("Callstacks are as expected")
