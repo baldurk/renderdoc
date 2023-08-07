@@ -94,6 +94,69 @@ TEST_CASE("Test basic stream I/O operations", "[streamio]")
   CHECK(reader.IsErrored());
 };
 
+TEST_CASE("Test stream I/O with invalid/broken outputs", "[streamio]")
+{
+  SECTION("NULL file writer")
+  {
+    StreamWriter writer((FILE *)NULL, Ownership::Stream);
+
+    CHECK(writer.IsErrored());
+
+    uint32_t test = 5;
+    writer.Write(test);
+
+    CHECK(writer.IsErrored());
+  };
+
+  SECTION("NULL socket writer")
+  {
+    StreamWriter writer((Network::Socket *)NULL, Ownership::Stream);
+
+    CHECK(writer.IsErrored());
+
+    uint32_t test = 5;
+    writer.Write(test);
+
+    CHECK(writer.IsErrored());
+  };
+
+  SECTION("NULL file reader")
+  {
+    StreamReader reader((FILE *)NULL, 0, Ownership::Stream);
+
+    CHECK(reader.IsErrored());
+
+    uint32_t test = 5;
+    reader.Read(test);
+
+    CHECK(reader.IsErrored());
+  };
+
+  SECTION("NULL file reader")
+  {
+    StreamReader reader((FILE *)NULL);
+
+    CHECK(reader.IsErrored());
+
+    uint32_t test = 5;
+    reader.Read(test);
+
+    CHECK(reader.IsErrored());
+  };
+
+  SECTION("NULL socket reader")
+  {
+    StreamReader reader((Network::Socket *)NULL, Ownership::Stream);
+
+    CHECK(reader.IsErrored());
+
+    uint32_t test = 5;
+    reader.Read(test);
+
+    CHECK(reader.IsErrored());
+  };
+};
+
 TEST_CASE("Test stream I/O operations over the network", "[streamio][network]")
 {
   uint16_t port = 8235;

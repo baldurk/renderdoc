@@ -91,6 +91,18 @@ StreamReader::StreamReader(StreamDummyType)
 
 StreamReader::StreamReader(Network::Socket *sock, Ownership own)
 {
+  if(sock == NULL)
+  {
+    SET_ERROR_RESULT(m_Error, ResultCode::InvalidParameter, "Stream created with invalid socket");
+    m_InputSize = 0;
+
+    m_BufferSize = 0;
+    m_BufferHead = m_BufferBase = NULL;
+
+    m_Ownership = Ownership::Nothing;
+    return;
+  }
+
   m_Sock = sock;
 
   m_BufferSize = initialBufferSize;
@@ -107,6 +119,8 @@ StreamReader::StreamReader(FILE *file, uint64_t fileSize, Ownership own)
 {
   if(file == NULL)
   {
+    SET_ERROR_RESULT(m_Error, ResultCode::InvalidParameter,
+                     "Stream created with invalid file handle");
     m_InputSize = 0;
 
     m_BufferSize = 0;
@@ -131,6 +145,8 @@ StreamReader::StreamReader(FILE *file)
 {
   if(file == NULL)
   {
+    SET_ERROR_RESULT(m_Error, ResultCode::InvalidParameter,
+                     "Stream created with invalid file handle");
     m_InputSize = 0;
 
     m_BufferSize = 0;
@@ -479,6 +495,8 @@ bool StreamReader::ReadFromExternal(void *buffer, uint64_t length)
 
 FileWriter *FileWriter::MakeDefault(FILE *file, Ownership own)
 {
+  if(file == NULL)
+    return NULL;
   FileWriter *ret = new FileWriter(file, own);
   ret->m_ThreadRunning = 0;
   return ret;
@@ -486,6 +504,8 @@ FileWriter *FileWriter::MakeDefault(FILE *file, Ownership own)
 
 FileWriter *FileWriter::MakeThreaded(FILE *file, Ownership own)
 {
+  if(file == NULL)
+    return NULL;
   FileWriter *ret = new FileWriter(file, own);
   for(size_t i = 0; i < NumBlocks; i++)
     ret->m_AllocBlocks[i] = {AllocAlignedBuffer(BlockSize), 0};
@@ -742,6 +762,16 @@ StreamWriter::StreamWriter(StreamInvalidType, RDResult res)
 
 StreamWriter::StreamWriter(Network::Socket *sock, Ownership own)
 {
+  if(sock == NULL)
+  {
+    SET_ERROR_RESULT(m_Error, ResultCode::InvalidParameter, "Stream created with invalid socket");
+    m_BufferHead = m_BufferBase = m_BufferEnd = NULL;
+
+    m_Ownership = Ownership::Nothing;
+    m_InMemory = false;
+    return;
+  }
+
   m_BufferBase = m_BufferHead = AllocAlignedBuffer(initialBufferSize);
   m_BufferEnd = m_BufferBase + initialBufferSize;
 
@@ -753,6 +783,17 @@ StreamWriter::StreamWriter(Network::Socket *sock, Ownership own)
 
 StreamWriter::StreamWriter(FileWriter *file, Ownership own)
 {
+  if(file == NULL)
+  {
+    SET_ERROR_RESULT(m_Error, ResultCode::InvalidParameter,
+                     "Stream created with invalid file handle");
+    m_BufferHead = m_BufferBase = m_BufferEnd = NULL;
+
+    m_Ownership = Ownership::Nothing;
+    m_InMemory = false;
+    return;
+  }
+
   m_BufferBase = m_BufferHead = m_BufferEnd = NULL;
 
   m_File = file;
