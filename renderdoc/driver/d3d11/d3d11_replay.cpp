@@ -1672,6 +1672,14 @@ RDResult D3D11Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBu
 void D3D11Replay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
   m_pDevice->ReplayLog(0, endEventID, replayType);
+
+  // if this is a fresh replay from start, update the render state with the bindings at this event
+  if(replayType == eReplay_WithoutDraw || replayType == eReplay_Full)
+  {
+    D3D11RenderState *rs = m_pDevice->GetImmediateContext()->GetCurrentPipelineState();
+
+    m_RenderStateOM = rs->OM;
+  }
 }
 
 SDFile *D3D11Replay::GetStructuredFile()
