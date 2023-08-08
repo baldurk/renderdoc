@@ -3272,6 +3272,27 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           RDCWARN("meshShaderQueries = false, mesh shader performance counters unavailable");
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceAccelerationStructureFeaturesKHR,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR);
+      {
+        CHECK_PHYS_EXT_FEATURE(accelerationStructure);
+        CHECK_PHYS_EXT_FEATURE(accelerationStructureIndirectBuild);
+        CHECK_PHYS_EXT_FEATURE(accelerationStructureCaptureReplay);
+
+        if(ext->accelerationStructure && !avail.accelerationStructureCaptureReplay)
+        {
+          SET_ERROR_RESULT(
+              m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+              "Capture requires accelerationStructure support, which is available, but "
+              "accelerationStructureCaptureReplay support is not available which is required to "
+              "replay\n"
+              "\n%s",
+              GetPhysDeviceCompatString(false, false).c_str());
+          return false;
+        }
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)
@@ -4291,6 +4312,19 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
   if(bufferAddressFeaturesEXT)
     bufferAddressFeaturesEXT->bufferDeviceAddressCaptureReplay = VK_TRUE;
+
+  // acceleration structures
+  VkPhysicalDeviceAccelerationStructureFeaturesKHR *accelerationStructureFeaturesKHR =
+      (VkPhysicalDeviceAccelerationStructureFeaturesKHR *)FindNextStruct(
+          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR);
+
+  // capture of acceleration structures require enabling capture-replay functionality
+  if(accelerationStructureFeaturesKHR)
+    accelerationStructureFeaturesKHR->accelerationStructureCaptureReplay = VK_TRUE;
+
+  if(accelerationStructureFeaturesKHR &&
+     accelerationStructureFeaturesKHR->accelerationStructureHostCommands)
+    RDCERR("Currently, we are not supporting acceleration structure operations on host.");
 
   // check features that we care about at capture time
 

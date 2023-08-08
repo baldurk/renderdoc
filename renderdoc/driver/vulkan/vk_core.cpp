@@ -1322,6 +1322,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_8BIT_STORAGE_EXTENSION_NAME,
         VK_KHR_8BIT_STORAGE_SPEC_VERSION,
     },
+    {
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+        VK_KHR_ACCELERATION_STRUCTURE_SPEC_VERSION,
+    },
 #ifdef VK_KHR_android_surface
     {
         VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
@@ -1351,6 +1355,10 @@ static const VkExtensionProperties supportedExtensions[] = {
     {
         VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
         VK_KHR_DEDICATED_ALLOCATION_SPEC_VERSION,
+    },
+    {
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+        VK_KHR_DEFERRED_HOST_OPERATIONS_SPEC_VERSION,
     },
     {
         VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME,
