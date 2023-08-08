@@ -37,6 +37,8 @@ void D3D11Replay::OutputWindow::MakeRTV()
   {
     hr = swap->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)&texture);
 
+    SetDebugName(texture, "Output window backbuffer 0");
+
     dev->CheckHRESULT(hr);
 
     if(FAILED(hr))
@@ -63,6 +65,8 @@ void D3D11Replay::OutputWindow::MakeRTV()
     texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
     hr = dev->CreateTexture2D(&texDesc, NULL, &texture);
+
+    SetDebugName(texture, "Output window fake backbuffer 0");
   }
 
   hr = dev->CreateRenderTargetView(texture, NULL, &rtv);
@@ -106,6 +110,8 @@ void D3D11Replay::OutputWindow::MakeDSV()
   texDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
   HRESULT hr = dev->CreateTexture2D(&texDesc, NULL, &texture);
+
+  SetDebugName(texture, "Output window depth");
 
   dev->CheckHRESULT(hr);
 
@@ -301,6 +307,8 @@ void D3D11Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
   if(!outw.rtv)
     return;
 
+  D3D11MarkerRegion renderoverlay("GetOutputWindowData");
+
   ID3D11Texture2D *texture = NULL;
   {
     ID3D11Resource *res = NULL;
@@ -328,6 +336,8 @@ void D3D11Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
 
   HRESULT hr = m_pDevice->CreateTexture2D(&texDesc, NULL, &readback);
 
+  SetDebugName(readback, "Output window readback");
+
   m_pDevice->CheckHRESULT(hr);
 
   if(FAILED(hr))
@@ -345,6 +355,8 @@ void D3D11Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
     texDesc.Usage = D3D11_USAGE_DEFAULT;
 
     hr = m_pDevice->CreateTexture2D(&texDesc, NULL, &resolve);
+
+    SetDebugName(resolve, "Output window resolve");
 
     m_pDevice->CheckHRESULT(hr);
 

@@ -124,7 +124,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
     sub = RenderOutputSubresource(0, 0, 1);
   }
 
-  D3D11MarkerRegion renderoverlay(StringFormat::Fmt("RenderOverlay %d", overlay));
+  D3D11MarkerRegion renderoverlay(StringFormat::Fmt("RenderOverlay %s", ToStr(overlay).c_str()));
 
   ResourceId id = texid;
 
@@ -176,6 +176,8 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
     }
     wrappedCustomRenderTex = (WrappedID3D11Texture2D1 *)customRenderTex;
 
+    SetDebugName(wrappedCustomRenderTex, "Overlay render texture");
+
     m_Overlay.Texture = wrappedCustomRenderTex;
     m_Overlay.resourceId = wrappedCustomRenderTex->GetResourceID();
   }
@@ -219,6 +221,9 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       SAFE_RELEASE(realDepth);
       return m_Overlay.resourceId;
     }
+
+    SetDebugName(preDrawDepth, "Pre-draw overlay depth");
+    SetDebugName(renderDepth, "Render overlay depth");
 
     m_pImmediateContext->CopyResource(preDrawDepth, realDepth);
 
