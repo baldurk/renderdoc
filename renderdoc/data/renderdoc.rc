@@ -116,6 +116,7 @@ RESOURCE_texremap_hlsl     TYPE_EMBED   "hlsl/texremap.hlsl"
 RESOURCE_fixedcol_hlsl     TYPE_EMBED   "hlsl/fixedcol.hlsl"
 RESOURCE_shaderdebug_hlsl  TYPE_EMBED   "hlsl/shaderdebug.hlsl"
 RESOURCE_d3d12_pixelhistory_hlsl TYPE_EMBED   "hlsl/d3d12_pixelhistory.hlsl"
+RESOURCE_depth_copy_hlsl   TYPE_EMBED   "hlsl/depth_copy.hlsl"
 
 #ifdef RENDERDOC_BAKED_DXC_SHADERS
 

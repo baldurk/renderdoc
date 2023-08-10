@@ -1135,6 +1135,40 @@ void D3D11Replay::OverlayRendering::Init(WrappedID3D11Device *device)
     TriangleSizePS =
         shaderCache->MakePShader(meshhlsl.c_str(), "RENDERDOC_TriangleSizePS", "ps_4_0");
   }
+  {
+    rdcstr hlsl = GetEmbeddedResource(depth_copy_hlsl);
+
+    DepthCopyPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DepthCopyPS", "ps_5_0");
+    DepthCopyMSPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DepthCopyMSPS", "ps_5_0");
+  }
+  {
+    D3D11_BLEND_DESC blendDesc = {};
+    blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+    HRESULT hr = device->CreateBlendState(&blendDesc, &DepthBlendRTMaskZero);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create depth overlay blend state HRESULT: %s", ToStr(hr).c_str());
+    }
+  }
+  {
+    D3D11_DEPTH_STENCIL_DESC dsDesc = {};
+    dsDesc.DepthEnable = FALSE;
+    dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+    dsDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+    dsDesc.StencilEnable = TRUE;
+    dsDesc.StencilReadMask = 0xff;
+    dsDesc.StencilWriteMask = 0x0;
+    dsDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+    dsDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    dsDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+    dsDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
+    dsDesc.BackFace = dsDesc.FrontFace;
+    HRESULT hr = device->CreateDepthStencilState(&dsDesc, &DepthResolveDS);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create depth resolve depth stencil state HRESULT: %s", ToStr(hr).c_str());
+    }
+  }
 }
 
 void D3D11Replay::OverlayRendering::Release()
@@ -1144,6 +1178,11 @@ void D3D11Replay::OverlayRendering::Release()
   SAFE_RELEASE(QOResolvePS);
   SAFE_RELEASE(TriangleSizeGS);
   SAFE_RELEASE(TriangleSizePS);
+  SAFE_RELEASE(DepthCopyPS);
+  SAFE_RELEASE(DepthCopyMSPS);
+
+  SAFE_RELEASE(DepthResolveDS);
+  SAFE_RELEASE(DepthBlendRTMaskZero);
 
   SAFE_RELEASE(Texture);
 }
