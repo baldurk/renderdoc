@@ -1136,6 +1136,9 @@
     <None Include="data\glsl\depth_copyms.frag">
       <Filter>Resources\glsl</Filter>
     </None>
+    <None Include="data\hlsl\depth_copy.hlsl">
+      <Filter>Resources\hlsl</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">
