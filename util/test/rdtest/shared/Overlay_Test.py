@@ -195,6 +195,9 @@ class Overlay_Test(rdtest.TestCase):
                         self.check_pixel_value(overlay_id, 200, 65, [0.0, 1.0, 0.0, 1.0], eps=eps)
                         self.check_pixel_value(overlay_id, 200, 79, [0.0, 1.0, 0.0, 1.0], eps=eps)
                         self.check_pixel_value(overlay_id, 200, 93, [0.0, 1.0, 0.0, 1.0], eps=eps)
+
+                        # Shader modified depth (pass)
+                        self.check_pixel_value(overlay_id, 180, 160, [0.0, 1.0, 0.0, 1.0], eps=eps)
                     elif overlay == rd.DebugOverlay.Stencil:
                         self.check_pixel_value(overlay_id, 150, 90, [0.0, 1.0, 0.0, 1.0], eps=eps)
                         # Intersection with different stencil - stencil fail
@@ -587,7 +590,7 @@ class Overlay_Test(rdtest.TestCase):
             eps = 0.001
 
             if has_stencil:
-                self.check_pixel_value(depth_tex, 180, 160, [0.0, 0.0/255.0, 0.0, 1.0], eps=eps)
+                self.check_pixel_value(depth_tex, 170, 160, [0.0, 0.0/255.0, 0.0, 1.0], eps=eps)
                 self.check_pixel_value(depth_tex, 160, 135, [0.9, 85.0/255.0, 0.0, 1.0], eps=eps)
                 self.check_pixel_value(depth_tex, 160, 165, [0.0, 0.0/255.0, 0.0, 1.0], eps=eps)
                 self.check_pixel_value(depth_tex, 250, 150, [0.5, 85.0/255.0, 0.0, 1.0], eps=eps)
