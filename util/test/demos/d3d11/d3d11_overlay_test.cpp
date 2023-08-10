@@ -38,6 +38,39 @@ float4 main() : SV_Target0
 
 )EOSHADER";
 
+  std::string depthWritePixel = R"EOSHADER(
+
+struct v2f
+{
+	float4 pos : SV_POSITION;
+	float4 col : COLOR0;
+	float2 uv : TEXCOORD0;
+};
+
+struct PixOut
+{
+	float4 colour : SV_Target0;
+	float depth : SV_Depth;
+};
+
+PixOut main(v2f IN)
+{
+  PixOut OUT;
+	OUT.colour  = IN.col;
+  if ((IN.pos.x > 180.0) && (IN.pos.x < 185.0) &&
+      (IN.pos.y > 155.0) && (IN.pos.y < 165.0))
+	{
+		OUT.depth = 0.0;
+	}
+	else
+	{
+		OUT.depth = IN.pos.z;
+	}
+  return OUT;
+}
+
+)EOSHADER";
+
   int main()
   {
     // initialise, create window, create device, etc
@@ -52,6 +85,7 @@ float4 main() : SV_Target0
     ID3D11VertexShaderPtr vs = CreateVS(vsblob);
     ID3D11PixelShaderPtr ps = CreatePS(psblob);
     ID3D11PixelShaderPtr whiteps = CreatePS(Compile(whitePixel, "main", "ps_4_0"));
+    ID3D11PixelShaderPtr depthwriteps = CreatePS(Compile(depthWritePixel, "main", "ps_4_0"));
 
     const DefaultA2V VBData[] = {
         // this triangle occludes in depth
@@ -171,7 +205,6 @@ float4 main() : SV_Target0
       ctx->IASetInputLayout(defaultLayout);
 
       ctx->VSSetShader(vs, NULL, 0);
-      ctx->PSSetShader(ps, NULL, 0);
 
       for(size_t f = 0; f < countFmts; f++)
       {
@@ -182,6 +215,7 @@ float4 main() : SV_Target0
           hasStencil = true;
         for(ID3D11RenderTargetViewPtr rtv : {bbRTV, msaartv})
         {
+          ctx->PSSetShader(ps, NULL, 0);
           D3D11_DEPTH_STENCIL_DESC depth = GetDepthState();
 
           depth.StencilEnable = FALSE;
@@ -237,7 +271,9 @@ float4 main() : SV_Target0
           depth.StencilEnable = TRUE;
           depth.FrontFace.StencilFunc = D3D11_COMPARISON_GREATER;
           SetDepthState(depth);
+          ctx->PSSetShader(depthwriteps, NULL, 0);
           ctx->Draw(24, 9);
+          ctx->PSSetShader(ps, NULL, 0);
 
           depth.StencilEnable = FALSE;
           depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
