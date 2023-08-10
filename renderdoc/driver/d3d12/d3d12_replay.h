@@ -439,6 +439,9 @@ private:
     ID3DBlob *QuadOverdrawWriteDXILPS = NULL;
     ID3D12RootSignature *QuadResolveRootSig = NULL;
     ID3D12PipelineState *QuadResolvePipe[8] = {NULL};
+    ID3D12RootSignature *DepthCopyResolveRootSig = NULL;
+    ID3D12PipelineState *DepthResolvePipe[2][5] = {NULL};
+    ID3D12PipelineState *DepthCopyPipe[2][5] = {NULL};
 
     ID3D12Resource *Texture = NULL;
     ResourceId resourceId;
