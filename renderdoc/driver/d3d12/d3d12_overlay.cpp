@@ -1102,7 +1102,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
     b.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
     b.Transition.StateAfter = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 
-    // prepare tex resource for copying
+    // prepare tex resource for writing
     list->ResourceBarrier(1, &b);
 
     list->Close();
@@ -2089,6 +2089,144 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
   {
     if(pipe && pipe->IsGraphics())
     {
+      ID3D12Resource *renderDepthStencil = NULL;
+      bool useDepthWriteStencilPass = (overlay == DebugOverlay::Depth) && renderDepth;
+
+      HRESULT hr;
+      DXGI_FORMAT dsFmt = dsViewDesc.Format;
+      // the depth overlay uses stencil buffer as a mask for the passing pixels
+      if(useDepthWriteStencilPass)
+      {
+        DXGI_FORMAT dsNewFmt = dsFmt;
+        if(dsFmt == DXGI_FORMAT_D32_FLOAT_S8X24_UINT)
+          dsNewFmt = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+        else if(dsFmt == DXGI_FORMAT_D24_UNORM_S8_UINT)
+          dsNewFmt = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        else if(dsFmt == DXGI_FORMAT_D32_FLOAT)
+          dsNewFmt = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+        else if(dsFmt == DXGI_FORMAT_D16_UNORM)
+          dsNewFmt = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        else
+          dsNewFmt = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+
+        RDCASSERT((dsNewFmt == DXGI_FORMAT_D24_UNORM_S8_UINT) ||
+                  (dsNewFmt == DXGI_FORMAT_D32_FLOAT_S8X24_UINT));
+        size_t fmtIndex = (dsNewFmt == DXGI_FORMAT_D24_UNORM_S8_UINT) ? 0 : 1;
+        size_t sampleIndex = Log2Floor(overlayTexDesc.SampleDesc.Count);
+        if(m_Overlay.DepthResolvePipe[fmtIndex][sampleIndex] == NULL)
+        {
+          RDCERR("Unhandled depth resolve format : %s", ToStr(dsNewFmt).c_str());
+          return m_Overlay.resourceId;
+        }
+        if(m_Overlay.DepthCopyPipe[fmtIndex][sampleIndex] == NULL)
+        {
+          RDCERR("Unhandled depth copy format : %s", ToStr(dsNewFmt).c_str());
+          return m_Overlay.resourceId;
+        }
+        // copy depth over to a new depth-stencil buffer
+        if(dsFmt != dsNewFmt)
+        {
+          D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+          srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+          if(overlayTexDesc.SampleDesc.Count == 1)
+          {
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+            srvDesc.Texture2D.MipLevels = ~0U;
+            srvDesc.Texture2D.MostDetailedMip = 0;
+            srvDesc.Texture2D.PlaneSlice = 0;
+            srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+          }
+          else
+          {
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+          }
+
+          srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+          switch(dsFmt)
+          {
+            case DXGI_FORMAT_D32_FLOAT:
+            case DXGI_FORMAT_R32_FLOAT:
+            case DXGI_FORMAT_R32_TYPELESS: srvDesc.Format = DXGI_FORMAT_R32_FLOAT; break;
+
+            case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+            case DXGI_FORMAT_R32G8X24_TYPELESS:
+            case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
+            case DXGI_FORMAT_X32_TYPELESS_G8X24_UINT:
+              srvDesc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+              break;
+
+            case DXGI_FORMAT_D24_UNORM_S8_UINT:
+            case DXGI_FORMAT_R24G8_TYPELESS:
+            case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
+            case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
+              srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+              break;
+
+            case DXGI_FORMAT_D16_UNORM:
+            case DXGI_FORMAT_R16_TYPELESS: srvDesc.Format = DXGI_FORMAT_R16_UNORM; break;
+
+            default: break;
+          }
+          if(srvDesc.Format == DXGI_FORMAT_UNKNOWN)
+          {
+            RDCERR("Unknown Depth overlay format %s", dsFmt);
+            SAFE_RELEASE(renderDepth);
+            return m_Overlay.resourceId;
+          }
+
+          m_pDevice->CreateShaderResourceView(renderDepth, &srvDesc,
+                                              GetDebugManager()->GetCPUHandle(DEPTH_COPY_SRV));
+
+          // New depth-stencil texture
+          dsFmt = dsNewFmt;
+          depthTexDesc.Format = dsFmt;
+          hr = m_pDevice->CreateCommittedResource(
+              &heapProps, D3D12_HEAP_FLAG_NONE, &depthTexDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE,
+              NULL, __uuidof(ID3D12Resource), (void **)&renderDepthStencil);
+          if(FAILED(hr))
+          {
+            RDCERR("Failed to create renderDepthStencil HRESULT: %s", ToStr(hr).c_str());
+            SAFE_RELEASE(renderDepth);
+            return m_Overlay.resourceId;
+          }
+
+          // Copy renderDepth depth data into renderDepthStencil depth data using fullscreen pass
+          // the shader writes 0 to the stencil during the copy
+          D3D12_RESOURCE_BARRIER b = {};
+
+          b.Transition.pResource = renderDepth;
+          b.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+          b.Transition.StateBefore = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+          b.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+          list->ResourceBarrier(1, &b);
+
+          D3D12_DEPTH_STENCIL_VIEW_DESC dsNewViewDesc = dsViewDesc;
+          dsNewViewDesc.Format = dsFmt;
+          m_pDevice->CreateDepthStencilView(renderDepthStencil, &dsNewViewDesc, dsv);
+
+          list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+          D3D12_VIEWPORT view = {0.0f, 0.0f, (float)resourceDesc.Width, (float)resourceDesc.Height,
+                                 0.0f, 1.0f};
+          list->RSSetViewports(1, &view);
+
+          D3D12_RECT scissor = {0, 0, 16384, 16384};
+          list->RSSetScissorRects(1, &scissor);
+
+          list->SetPipelineState(m_Overlay.DepthCopyPipe[fmtIndex][sampleIndex]);
+          list->SetGraphicsRootSignature(m_Overlay.DepthCopyResolveRootSig);
+
+          GetDebugManager()->SetDescriptorHeaps(list, true, false);
+          list->SetGraphicsRootDescriptorTable(0, GetDebugManager()->GetGPUHandle(DEPTH_COPY_SRV));
+
+          list->OMSetRenderTargets(0, NULL, FALSE, &dsv);
+
+          list->DrawInstanced(3, 1, 0, 0);
+
+          rs.ApplyState(m_pDevice, list);
+        }
+      }
+
       D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC psoDesc;
       pipe->Fill(psoDesc);
 
@@ -2098,6 +2236,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       ID3DBlob *red = m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::RED, dxil);
       ID3DBlob *green =
           m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::GREEN, dxil);
+
+      D3D12_SHADER_BYTECODE originalPS = psoDesc.PS;
 
       // make sure that if a test is disabled, it shows all
       // pixels passing
@@ -2109,17 +2249,34 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         psoDesc.DepthStencilState.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
       }
 
-      if(overlay == DebugOverlay::Depth)
+      if(useDepthWriteStencilPass)
       {
-        psoDesc.DepthStencilState.StencilEnable = FALSE;
+        // Do not replace shader
+        // disable colour write
+        psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0x0;
+        // Write stencil 0x1 for depth passing pixels
+        psoDesc.DepthStencilState.StencilEnable = TRUE;
         psoDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-        psoDesc.DepthStencilState.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        psoDesc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+        psoDesc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+        psoDesc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+        psoDesc.DepthStencilState.BackFace = psoDesc.DepthStencilState.FrontFace;
       }
       else
       {
-        psoDesc.DepthStencilState.DepthEnable = FALSE;
-        psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-        psoDesc.DepthStencilState.DepthBoundsTestEnable = FALSE;
+        psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+        if(overlay == DebugOverlay::Depth)
+        {
+          psoDesc.DepthStencilState.StencilEnable = FALSE;
+          psoDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+          psoDesc.DepthStencilState.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        }
+        else
+        {
+          psoDesc.DepthStencilState.DepthEnable = FALSE;
+          psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+          psoDesc.DepthStencilState.DepthBoundsTestEnable = FALSE;
+        }
       }
 
       RDCEraseEl(psoDesc.RTVFormats.RTFormats);
@@ -2130,7 +2287,6 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
       psoDesc.BlendState.IndependentBlendEnable = FALSE;
       psoDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
-      psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0xf;
       psoDesc.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
 
       psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
@@ -2146,6 +2302,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       {
         SAFE_RELEASE(red);
         SAFE_RELEASE(green);
+        SAFE_RELEASE(renderDepthStencil);
+        SAFE_RELEASE(renderDepth);
         m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
                                    MessageSource::UnsupportedConfiguration,
                                    "No DXIL shader available for overlay");
@@ -2156,14 +2314,37 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       psoDesc.PS.BytecodeLength = green->GetBufferSize();
 
       ID3D12PipelineState *greenPSO = NULL;
-      HRESULT hr = m_pDevice->CreatePipeState(psoDesc, &greenPSO);
+      hr = m_pDevice->CreatePipeState(psoDesc, &greenPSO);
       if(FAILED(hr))
       {
         RDCERR("Failed to create overlay pso HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(red);
         SAFE_RELEASE(green);
+        SAFE_RELEASE(renderDepthStencil);
+        SAFE_RELEASE(renderDepth);
         return m_Overlay.resourceId;
       }
+
+      ID3D12PipelineState *depthWriteStencilPSO = NULL;
+      if(useDepthWriteStencilPass)
+      {
+        psoDesc.DSVFormat = dsFmt;
+        psoDesc.PS = originalPS;
+
+        hr = m_pDevice->CreatePipeState(psoDesc, &depthWriteStencilPSO);
+        if(FAILED(hr))
+        {
+          RDCERR("Failed to create depth write overlay pso HRESULT: %s", ToStr(hr).c_str());
+          SAFE_RELEASE(greenPSO);
+          SAFE_RELEASE(red);
+          SAFE_RELEASE(green);
+          SAFE_RELEASE(renderDepthStencil);
+          SAFE_RELEASE(renderDepth);
+          return m_Overlay.resourceId;
+        }
+      }
+
+      psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
       psoDesc.DepthStencilState.DepthEnable = FALSE;
       psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
@@ -2182,9 +2363,12 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       if(FAILED(hr))
       {
         RDCERR("Failed to create overlay pso HRESULT: %s", ToStr(hr).c_str());
-        SAFE_RELEASE(redPSO);
+        SAFE_RELEASE(depthWriteStencilPSO);
+        SAFE_RELEASE(greenPSO);
         SAFE_RELEASE(red);
         SAFE_RELEASE(green);
+        SAFE_RELEASE(renderDepthStencil);
+        SAFE_RELEASE(renderDepth);
         return m_Overlay.resourceId;
       }
 
@@ -2200,11 +2384,55 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
       m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
-      rs.pipe = GetResID(greenPSO);
+      if(useDepthWriteStencilPass)
+      {
+        rs.stencilRefBack = rs.stencilRefFront = 0x1;
+        rs.pipe = GetResID(depthWriteStencilPSO);
+      }
+      else
+      {
+        rs.pipe = GetResID(greenPSO);
+      }
 
       m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
       rs = prev;
+
+      if(useDepthWriteStencilPass)
+      {
+        // Resolve stencil = 0x1 pixels to green
+        list = m_pDevice->GetNewList();
+        if(!list)
+          return ResourceId();
+
+        list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        D3D12_VIEWPORT view = {0.0f, 0.0f, (float)resourceDesc.Width, (float)resourceDesc.Height,
+                               0.0f, 1.0f};
+        list->RSSetViewports(1, &view);
+
+        D3D12_RECT scissor = {0, 0, 16384, 16384};
+        list->RSSetScissorRects(1, &scissor);
+
+        RDCASSERT((dsFmt == DXGI_FORMAT_D24_UNORM_S8_UINT) ||
+                  (dsFmt == DXGI_FORMAT_D32_FLOAT_S8X24_UINT));
+        size_t fmtIndex = (dsFmt == DXGI_FORMAT_D24_UNORM_S8_UINT) ? 0 : 1;
+        size_t sampleIndex = Log2Floor(overlayTexDesc.SampleDesc.Count);
+
+        list->SetPipelineState(m_Overlay.DepthResolvePipe[fmtIndex][sampleIndex]);
+        list->SetGraphicsRootSignature(m_Overlay.DepthCopyResolveRootSig);
+
+        GetDebugManager()->SetDescriptorHeaps(list, true, false);
+        list->SetGraphicsRootDescriptorTable(0, GetDebugManager()->GetGPUHandle(DEPTH_COPY_SRV));
+
+        list->OMSetStencilRef(0x1);
+        list->OMSetRenderTargets(1, &rtv, TRUE, &dsv);
+
+        list->DrawInstanced(3, 1, 0, 0);
+
+        list->Close();
+        list = NULL;
+      }
 
       m_pDevice->ExecuteLists();
       m_pDevice->FlushLists();
@@ -2213,6 +2441,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       SAFE_RELEASE(green);
       SAFE_RELEASE(redPSO);
       SAFE_RELEASE(greenPSO);
+      SAFE_RELEASE(depthWriteStencilPSO);
+      SAFE_RELEASE(renderDepthStencil);
     }
   }
   else
