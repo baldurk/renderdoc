@@ -60,6 +60,8 @@ enum class BuiltinShader
   DepthMS2BufferCS,
   Buffer2MSCS,
   DepthBuf2MSFS,
+  DepthCopyFS,
+  DepthCopyMSFS,
   Count,
 };
 
