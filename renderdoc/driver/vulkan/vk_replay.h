@@ -646,10 +646,21 @@ private:
     VkPipelineLayout m_QuadResolvePipeLayout = VK_NULL_HANDLE;
     VkPipeline m_QuadResolvePipeline[8] = {VK_NULL_HANDLE};
 
+    VkDescriptorSetLayout m_DepthCopyDescSetLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_DepthCopyDescSet = VK_NULL_HANDLE;
+    VkPipelineLayout m_DepthCopyPipeLayout = VK_NULL_HANDLE;
+    VkPipeline m_DepthCopyPipeline[2][5];
+
+    VkPipelineLayout m_DepthResolvePipeLayout = VK_NULL_HANDLE;
+    VkPipeline m_DepthResolvePipeline[2][5];
+
     GPUBuffer m_TriSizeUBO;
     VkDescriptorSetLayout m_TriSizeDescSetLayout = VK_NULL_HANDLE;
     VkDescriptorSet m_TriSizeDescSet = VK_NULL_HANDLE;
     VkPipelineLayout m_TriSizePipeLayout = VK_NULL_HANDLE;
+
+    VkSampler m_PointSampler = VK_NULL_HANDLE;
+    VkFormat m_DefaultDepthStencilFormat;
   } m_Overlay;
 
   struct MeshRendering

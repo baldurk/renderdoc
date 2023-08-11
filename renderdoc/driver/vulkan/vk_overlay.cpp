@@ -1189,7 +1189,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
 
       VkPipelineShaderStageCreateInfo *fragShader = NULL;
-
       for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
       {
         VkPipelineShaderStageCreateInfo &sh =
@@ -1567,6 +1566,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
   }
   else if(overlay == DebugOverlay::Depth || overlay == DebugOverlay::Stencil)
   {
+    VkImage dsImage = VK_NULL_HANDLE;
+    VkDeviceMemory dsImageMem = VK_NULL_HANDLE;
+
     float highlightCol[] = {0.0f, 0.0f, 0.0f, 0.0f};
 
     VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -1595,6 +1597,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     {
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
       CheckVkResult(vkr);
+      cmd = VK_NULL_HANDLE;
 
       VkFramebuffer depthFB = VK_NULL_HANDLE;
       VkRenderPass depthRP = VK_NULL_HANDLE;
@@ -1602,6 +1605,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       VulkanCreationInfo &createinfo = m_pDriver->m_CreationInfo;
 
       ResourceId depthStencilView;
+      VkFormat dsFmt = VK_FORMAT_UNDEFINED;
 
       if(state.dynamicRendering.active)
       {
@@ -1624,8 +1628,17 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         }
       }
 
+      bool useDepthWriteStencilPass = false;
+      bool needDepthCopyToDepthStencil = false;
+
+      size_t fmtIndex = ARRAY_COUNT(m_Overlay.m_DepthCopyPipeline);
+      size_t sampleIndex = SampleIndex(iminfo.samples);
+
       if(depthStencilView != ResourceId())
       {
+        if(overlay == DebugOverlay::Depth)
+          useDepthWriteStencilPass = true;
+
         VkAttachmentDescription attDescs[] = {
             {0, overlayFormat, VK_SAMPLE_COUNT_1_BIT, VK_ATTACHMENT_LOAD_OP_LOAD,
              VK_ATTACHMENT_STORE_OP_STORE, VK_ATTACHMENT_LOAD_OP_DONT_CARE,
@@ -1642,7 +1655,41 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         ResourceId depthIm = depthViewInfo.image;
         VulkanCreationInfo::Image &depthImageInfo = createinfo.m_Image[depthIm];
 
-        attDescs[1].format = depthImageInfo.format;
+        dsFmt = depthImageInfo.format;
+        VkFormat dsNewFmt = dsFmt;
+        if(useDepthWriteStencilPass)
+        {
+          if(dsFmt == VK_FORMAT_D32_SFLOAT_S8_UINT)
+            dsNewFmt = VK_FORMAT_D32_SFLOAT_S8_UINT;
+          else if(dsFmt == VK_FORMAT_D24_UNORM_S8_UINT)
+            dsNewFmt = VK_FORMAT_D24_UNORM_S8_UINT;
+          else if(dsFmt == VK_FORMAT_D32_SFLOAT)
+            dsNewFmt = VK_FORMAT_D32_SFLOAT_S8_UINT;
+          else if(dsFmt == VK_FORMAT_D16_UNORM)
+            dsNewFmt = m_Overlay.m_DefaultDepthStencilFormat;
+          else
+            dsNewFmt = m_Overlay.m_DefaultDepthStencilFormat;
+
+          RDCASSERT((dsNewFmt == VK_FORMAT_D24_UNORM_S8_UINT) ||
+                    (dsNewFmt == VK_FORMAT_D32_SFLOAT_S8_UINT));
+          fmtIndex = (dsNewFmt == VK_FORMAT_D24_UNORM_S8_UINT) ? 0 : 1;
+          if(m_Overlay.m_DepthResolvePipeline[fmtIndex][sampleIndex] == 0)
+          {
+            RDCERR("Unhandled depth resolve format : %s", ToStr(dsNewFmt).c_str());
+            return ResourceId();
+          }
+          if(dsNewFmt != dsFmt)
+          {
+            needDepthCopyToDepthStencil = true;
+            if(m_Overlay.m_DepthCopyPipeline[fmtIndex][sampleIndex] == 0)
+            {
+              RDCERR("Unhandled depth copy format : %s", ToStr(dsNewFmt).c_str());
+              return ResourceId();
+            }
+          }
+        }
+
+        attDescs[1].format = dsNewFmt;
         attDescs[0].samples = attDescs[1].samples = iminfo.samples;
 
         {
@@ -1688,9 +1735,144 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, NULL, &depthRP);
         CheckVkResult(vkr);
 
+        VkImageView dsView =
+            m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(depthStencilView);
+
+        if(needDepthCopyToDepthStencil)
+        {
+          VkImageSubresourceRange dsSubRange = {
+              VK_IMAGE_ASPECT_DEPTH_BIT, sub.mip, 1, sub.slice, sub.numSlices,
+          };
+
+          VkImage dsRealImage = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(depthIm);
+          VkImageViewCreateInfo dsViewInfo = {
+              VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+              NULL,
+              0,
+              dsRealImage,
+              VK_IMAGE_VIEW_TYPE_2D,
+              dsFmt,
+              {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+               VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
+              dsSubRange,
+          };
+
+          vkr = m_pDriver->vkCreateImageView(m_Device, &dsViewInfo, NULL, &dsView);
+
+          // update descriptor to point to copy of original depth buffer
+          VkDescriptorImageInfo imdesc = {0};
+          imdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+          imdesc.sampler = VK_NULL_HANDLE;
+          imdesc.imageView = Unwrap(dsView);
+
+          VkWriteDescriptorSet write = {
+              VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+              NULL,
+              Unwrap(m_Overlay.m_DepthCopyDescSet),
+              0,
+              0,
+              1,
+              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+              &imdesc,
+              NULL,
+              NULL,
+          };
+          vt->UpdateDescriptorSets(Unwrap(m_Device), 1, &write, 0, NULL);
+
+          // Create texture for new depth buffer
+          VkImageCreateInfo dsNewImInfo = {
+              VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+              NULL,
+              0,
+              VK_IMAGE_TYPE_2D,
+              dsNewFmt,
+              depthImageInfo.extent,
+              (uint32_t)depthImageInfo.mipLevels,
+              (uint32_t)depthImageInfo.arrayLayers,
+              depthImageInfo.samples,
+              VK_IMAGE_TILING_OPTIMAL,
+              VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+                  VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+              VK_SHARING_MODE_EXCLUSIVE,
+              0,
+              NULL,
+              VK_IMAGE_LAYOUT_UNDEFINED,
+          };
+
+          vkr = m_pDriver->vkCreateImage(m_Device, &dsNewImInfo, NULL, &dsImage);
+          CheckVkResult(vkr);
+
+          NameVulkanObject(dsImage, "Overlay Depth+Stencil Image");
+
+          VkMemoryRequirements mrq = {0};
+          m_pDriver->vkGetImageMemoryRequirements(m_Device, dsImage, &mrq);
+
+          VkMemoryAllocateInfo allocInfo = {
+              VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+              NULL,
+              mrq.size,
+              m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
+          };
+
+          vkr = m_pDriver->vkAllocateMemory(m_Device, &allocInfo, NULL, &dsImageMem);
+          CheckVkResult(vkr);
+
+          if(vkr != VK_SUCCESS)
+            return ResourceId();
+
+          vkr = m_pDriver->vkBindImageMemory(m_Device, dsImage, dsImageMem, 0);
+          CheckVkResult(vkr);
+
+          cmd = m_pDriver->GetNextCmd();
+          if(cmd == VK_NULL_HANDLE)
+            return ResourceId();
+
+          vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+          CheckVkResult(vkr);
+
+          // move original depth buffer to shader read state
+          m_pDriver->FindImageState(depthIm)->InlineTransition(
+              cmd, m_pDriver->m_QueueFamilyIdx, VK_IMAGE_LAYOUT_GENERAL,
+              VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+              m_pDriver->GetImageTransitionInfo());
+
+          // transition new depth buffer to depth write state
+          m_pDriver->FindImageState(GetResID(dsImage))
+              ->InlineTransition(cmd, m_pDriver->m_QueueFamilyIdx, VK_IMAGE_LAYOUT_GENERAL, 0,
+                                 VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                 m_pDriver->GetImageTransitionInfo());
+
+          vkr = vt->EndCommandBuffer(Unwrap(cmd));
+          CheckVkResult(vkr);
+          cmd = VK_NULL_HANDLE;
+
+          dsSubRange = {
+              VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
+              sub.mip,
+              1,
+              sub.slice,
+              sub.numSlices,
+          };
+
+          dsViewInfo = {
+              VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+              NULL,
+              0,
+              dsImage,
+              VK_IMAGE_VIEW_TYPE_2D,
+              dsNewFmt,
+              {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+               VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
+              dsSubRange,
+          };
+
+          vkr = m_pDriver->vkCreateImageView(m_Device, &dsViewInfo, NULL, &dsView);
+          CheckVkResult(vkr);
+        }
+
         VkImageView views[] = {
             m_Overlay.ImageView,
-            m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(depthStencilView),
+            dsView,
         };
 
         // Create framebuffer rendering just to overlay image, no depth
@@ -1708,6 +1890,50 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &depthFB);
         CheckVkResult(vkr);
+
+        // Fullscreen pass using shader to copy original depth buffer -> new depth buffer
+        // Pipeline also writes 0 to the stencil during the pass
+        if(needDepthCopyToDepthStencil)
+        {
+          cmd = m_pDriver->GetNextCmd();
+          if(cmd == VK_NULL_HANDLE)
+            return ResourceId();
+
+          vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+          CheckVkResult(vkr);
+
+          VkClearValue clearval = {};
+          VkRenderPassBeginInfo rpbegin = {
+              VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+              NULL,
+              Unwrap(depthRP),
+              Unwrap(depthFB),
+              state.renderArea,
+              1,
+              &clearval,
+          };
+          vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+
+          vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              Unwrap(m_Overlay.m_DepthCopyPipeline[fmtIndex][sampleIndex]));
+          vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    Unwrap(m_Overlay.m_DepthCopyPipeLayout), 0, 1,
+                                    UnwrapPtr(m_Overlay.m_DepthCopyDescSet), 0, NULL);
+
+          VkViewport viewport = {
+              0.0f, 0.0f, (float)m_Overlay.ImageDim.width, (float)m_Overlay.ImageDim.height,
+              0.0f, 1.0f,
+          };
+          vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
+
+          vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
+          vt->CmdEndRenderPass(Unwrap(cmd));
+
+          vkr = vt->EndCommandBuffer(Unwrap(cmd));
+          CheckVkResult(vkr);
+          cmd = VK_NULL_HANDLE;
+        }
+        dsFmt = dsNewFmt;
       }
 
       // if depthRP is NULL, so is depthFB, and it means no depth buffer was
@@ -1722,7 +1948,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       // make patched shader
       VkShaderModule failmod = {}, passmod = {};
-      VkPipeline failpipe = {}, passpipe = {};
+      VkPipeline failpipe = {}, passpipe = {}, depthWriteStencilPipe = {};
 
       // first shader, no depth/stencil testing, writes red
       GetDebugManager()->PatchFixedColShader(failmod, highlightCol);
@@ -1768,6 +1994,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       // subpass 0 in either render pass
       pipeCreateInfo.subpass = 0;
 
+      VkPipelineShaderStageCreateInfo orgFragShader = {};
       VkPipelineShaderStageCreateInfo *fragShader = NULL;
 
       for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
@@ -1776,6 +2003,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
             (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
         if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
         {
+          orgFragShader = sh;
           sh.pName = "main";
           fragShader = &sh;
           break;
@@ -1784,6 +2012,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       if(fragShader == NULL)
       {
+        useDepthWriteStencilPass = false;
         // we know this is safe because it's pointing to a static array that's
         // big enough for all shaders
 
@@ -1832,6 +2061,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       // disable culling/discard and enable depth clamp. That way we show any failures due to these
       VkPipelineRasterizationStateCreateInfo *rs =
           (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
+      VkPipelineRasterizationStateCreateInfo orgRS = *rs;
       rs->cullMode = VK_CULL_MODE_NONE;
       rs->rasterizerDiscardEnable = false;
 
@@ -1841,6 +2071,39 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
                                                  &failpipe);
       CheckVkResult(vkr);
+
+      if(useDepthWriteStencilPass)
+      {
+        pipeCreateInfo.renderPass = depthRP;
+        *rs = orgRS;
+
+        // disable colour write
+        for(uint32_t i = 0; i < cb->attachmentCount; i++)
+        {
+          VkPipelineColorBlendAttachmentState *att =
+              (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
+          att->blendEnable = false;
+          att->colorWriteMask = 0x0;
+        }
+
+        // Write stencil 0x1 for depth passing pixels
+        ds->stencilTestEnable = true;
+        ds->front.compareOp = VK_COMPARE_OP_ALWAYS;
+        ds->front.failOp = VK_STENCIL_OP_KEEP;
+        ds->front.depthFailOp = VK_STENCIL_OP_KEEP;
+        ds->front.passOp = VK_STENCIL_OP_REPLACE;
+        ds->front.compareMask = 0xff;
+        ds->front.reference = 0x1;
+        ds->front.writeMask = 0xff;
+        ds->back = ds->front;
+
+        // Use original shader
+        *fragShader = orgFragShader;
+
+        vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
+                                                   NULL, &depthWriteStencilPipe);
+        CheckVkResult(vkr);
+      }
 
       // modify state
       state.SetRenderPass(GetResID(m_Overlay.NoDepthRP));
@@ -1858,7 +2121,11 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
-      state.graphics.pipeline = GetResID(passpipe);
+      if(useDepthWriteStencilPass)
+        state.graphics.pipeline = GetResID(depthWriteStencilPipe);
+      else
+        state.graphics.pipeline = GetResID(passpipe);
+
       if(depthRP != VK_NULL_HANDLE)
       {
         state.SetRenderPass(GetResID(depthRP));
@@ -1871,6 +2138,47 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         state.stencilTestEnable = origStencilTest;
 
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
+
+      if(useDepthWriteStencilPass)
+      {
+        // Resolve stencil = 0x1 pixels to green
+        cmd = m_pDriver->GetNextCmd();
+
+        if(cmd == VK_NULL_HANDLE)
+          return ResourceId();
+
+        RDCASSERT((dsFmt == VK_FORMAT_D24_UNORM_S8_UINT) || (dsFmt == VK_FORMAT_D32_SFLOAT_S8_UINT));
+        vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+        CheckVkResult(vkr);
+
+        VkClearValue clearval = {};
+        VkRenderPassBeginInfo rpbegin = {
+            VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+            NULL,
+            Unwrap(depthRP),
+            Unwrap(depthFB),
+            state.renderArea,
+            1,
+            &clearval,
+        };
+        vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+
+        vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            Unwrap(m_Overlay.m_DepthResolvePipeline[fmtIndex][sampleIndex]));
+
+        VkViewport viewport = {
+            0.0f, 0.0f, (float)m_Overlay.ImageDim.width, (float)m_Overlay.ImageDim.height,
+            0.0f, 1.0f,
+        };
+        vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
+
+        vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
+        vt->CmdEndRenderPass(Unwrap(cmd));
+
+        vkr = vt->EndCommandBuffer(Unwrap(cmd));
+        CheckVkResult(vkr);
+        cmd = VK_NULL_HANDLE;
+      }
 
       // submit & flush so that we don't have to keep pipeline around for a while
       m_pDriver->SubmitCmds();
@@ -1891,6 +2199,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       m_pDriver->vkDestroyShaderModule(m_Device, failmod, NULL);
       m_pDriver->vkDestroyPipeline(m_Device, passpipe, NULL);
       m_pDriver->vkDestroyShaderModule(m_Device, passmod, NULL);
+      m_pDriver->vkDestroyPipeline(m_Device, depthWriteStencilPipe, NULL);
+      m_pDriver->vkDestroyImage(m_Device, dsImage, NULL);
+      m_pDriver->vkFreeMemory(m_Device, dsImageMem, NULL);
 
       if(depthRP != VK_NULL_HANDLE)
       {
