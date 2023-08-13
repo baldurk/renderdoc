@@ -194,10 +194,10 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
         if(SUCCEEDED(hr) && mutex)
         {
           // complete guess but let's try and acquire key 0 so we can cop this texture out.
-          mutex->AcquireSync(0, 10);
+          hr = mutex->AcquireSync(0, 10);
 
           // if it failed, give up. Otherwise we can release the sync below
-          if(FAILED(hr))
+          if(hr != S_OK)
             SAFE_RELEASE(mutex);
         }
         else
