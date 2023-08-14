@@ -919,7 +919,11 @@ void ImageViewer::RefreshFile()
   if(m_TextureID == ResourceId())
   {
     SET_ERROR_RESULT(m_Error, ResultCode::APIInitFailed,
-                     "Couldn't create proxy texture for image file");
+                     "Couldn't create proxy texture for image file. This is typically caused by "
+                     "exceeding a graphics API limit for texture dimensions: %u x %u x %u "
+                     "[%u array, %u mips] @ %s",
+                     texDetails.width, texDetails.height, texDetails.depth, texDetails.arraysize,
+                     texDetails.mips, texDetails.format.Name().c_str());
   }
 
   m_TexDetails.resourceId = m_TextureID;
