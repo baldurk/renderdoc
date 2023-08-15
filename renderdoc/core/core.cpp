@@ -2176,4 +2176,115 @@ TEST_CASE("Check ResourceId tostr", "[tostr]")
   CHECK(ToStr(*u.id) == "ResourceId::1311768465173141112");
 }
 
+TEST_CASE("Check ResamplePixels", "[core][resamplepixels]")
+{
+  RenderDoc::FramePixels sourcePixels;
+  uint32_t height = 4;
+  uint32_t width = 4;
+  uint32_t bytesPerComponent = 1;
+  uint32_t countComponents = 3;
+  uint32_t stride = bytesPerComponent * countComponents;
+  uint32_t pitch = width * stride;
+  sourcePixels.data = new byte[pitch * height];
+  sourcePixels.len = 0;
+  sourcePixels.width = width;
+  sourcePixels.pitch = width * stride;
+  sourcePixels.height = height;
+  sourcePixels.stride = stride;
+  sourcePixels.bpc = bytesPerComponent;
+  sourcePixels.buf1010102 = false;
+  sourcePixels.buf565 = false;
+  sourcePixels.buf5551 = false;
+  sourcePixels.bgra = false;
+  sourcePixels.pitch_requirement = width;
+  sourcePixels.max_width = width;
+
+  byte *source = (byte *)sourcePixels.data;
+  for(uint32_t y = 0; y < height; ++y)
+  {
+    for(uint32_t x = 0; x < width; ++x)
+    {
+      byte *src = &source[stride * x + pitch * y];
+      src[0] = (byte)(y + x);
+      src[1] = (byte)(y + x * 2);
+      src[2] = (byte)(y + x * 3);
+    }
+  }
+
+  RDCThumb thumbOutYNotFlipped;
+  sourcePixels.is_y_flipped = false;
+  RenderDoc::Inst().ResamplePixels(sourcePixels, thumbOutYNotFlipped);
+  CHECK(thumbOutYNotFlipped.width == width);
+  CHECK(thumbOutYNotFlipped.height == height);
+
+  byte *dest = (byte *)thumbOutYNotFlipped.pixels.data();
+  for(uint32_t y = 0; y < height; ++y)
+  {
+    for(uint32_t x = 0; x < width; ++x)
+    {
+      byte *src = &source[stride * x + pitch * y];
+      byte *dst = &dest[stride * x + pitch * (height - y - 1)];
+      CHECK((uint32_t)src[0] == (uint32_t)dst[0]);
+      CHECK((uint32_t)src[1] == (uint32_t)dst[1]);
+      CHECK((uint32_t)src[2] == (uint32_t)dst[2]);
+    }
+  }
+
+  RDCThumb thumbOutYFlipped;
+  sourcePixels.is_y_flipped = true;
+  RenderDoc::Inst().ResamplePixels(sourcePixels, thumbOutYFlipped);
+  CHECK(thumbOutYFlipped.width == width);
+  CHECK(thumbOutYFlipped.height == height);
+  dest = (byte *)thumbOutYFlipped.pixels.data();
+  for(uint32_t y = 0; y < height; ++y)
+  {
+    for(uint32_t x = 0; x < width; ++x)
+    {
+      byte *src = &source[stride * x + pitch * y];
+      byte *dst = &dest[stride * x + pitch * y];
+      CHECK((uint32_t)src[0] == (uint32_t)dst[0]);
+      CHECK((uint32_t)src[1] == (uint32_t)dst[1]);
+      CHECK((uint32_t)src[2] == (uint32_t)dst[2]);
+    }
+  }
+
+  RDCThumb thumbOutBGRA;
+  sourcePixels.bgra = true;
+  RenderDoc::Inst().ResamplePixels(sourcePixels, thumbOutBGRA);
+  CHECK(thumbOutBGRA.width == width);
+  CHECK(thumbOutBGRA.height == height);
+  dest = (byte *)thumbOutBGRA.pixels.data();
+  for(uint32_t y = 0; y < height; ++y)
+  {
+    for(uint32_t x = 0; x < width; ++x)
+    {
+      byte *src = &source[stride * x + pitch * y];
+      byte *dst = &dest[stride * x + pitch * y];
+      CHECK((uint32_t)src[0] == (uint32_t)dst[2]);
+      CHECK((uint32_t)src[1] == (uint32_t)dst[1]);
+      CHECK((uint32_t)src[2] == (uint32_t)dst[0]);
+    }
+  }
+
+  RDCThumb thumbOutDownsample;
+  sourcePixels.bgra = false;
+  sourcePixels.max_width = 2;
+  sourcePixels.pitch_requirement = 2;
+  RenderDoc::Inst().ResamplePixels(sourcePixels, thumbOutDownsample);
+  CHECK(thumbOutDownsample.width == 2);
+  CHECK(thumbOutDownsample.height == 2);
+  dest = (byte *)thumbOutDownsample.pixels.data();
+  for(uint32_t y = 0; y < 2; ++y)
+  {
+    for(uint32_t x = 0; x < 2; ++x)
+    {
+      byte *src = &source[stride * x * 2 + pitch * y * 2];
+      byte *dst = &dest[stride * x + pitch / 2 * y];
+      CHECK((uint32_t)src[0] == (uint32_t)dst[0]);
+      CHECK((uint32_t)src[1] == (uint32_t)dst[1]);
+      CHECK((uint32_t)src[2] == (uint32_t)dst[2]);
+    }
+  }
+}
+
 #endif
