@@ -1320,7 +1320,7 @@ void RenderDoc::ResamplePixels(const FramePixels &in, RDCThumb &out)
 
   if(!in.is_y_flipped)
   {
-    for(uint16_t y = 0; y <= out.height / 2; y++)
+    for(uint16_t y = 0; y < out.height / 2; y++)
     {
       uint16_t flipY = (out.height - 1 - y);
       for(uint16_t x = 0; x < out.width; x++)
