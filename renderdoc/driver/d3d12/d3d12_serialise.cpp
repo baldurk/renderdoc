@@ -27,6 +27,18 @@
 #include "d3d12_common.h"
 #include "d3d12_resources.h"
 
+wchar_t *AllocateWideCharArray(rdcstr src)
+{
+  if(src.empty())
+  {
+    return NULL;
+  }
+  rdcwstr wstr = StringFormat::UTF82Wide(src);
+  wchar_t *dest = new wchar_t[wstr.length() + 1];
+  wcscpy_s(dest, wstr.length() + 1, wstr.c_str());
+  return dest;
+}
+
 // some helper enums with custom stringise to handle special cases
 enum D3D12ResourceBarrierSubresource
 {
@@ -1973,6 +1985,410 @@ void DoSerialise(SerialiserType &ser, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_SR
   SERIALISE_MEMBER_TYPED(D3D12BufferLocation, Location);
 }
 
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_STATE_OBJECT_DESC &el)
+{
+  SERIALISE_MEMBER(Type);
+  SERIALISE_MEMBER(NumSubobjects);
+
+  if(ser.IsReading())
+  {
+    el.pSubobjects = new D3D12_STATE_SUBOBJECT[el.NumSubobjects];
+  }
+
+  ser.SetStructArg((uintptr_t)el.pSubobjects);
+  ser.Serialise("pSubobjects"_lit, el.pSubobjects, el.NumSubobjects);
+}
+
+template <>
+void Deserialise(const D3D12_STATE_OBJECT_DESC &el)
+{
+  for(size_t i = 0; i < el.NumSubobjects; i++)
+  {
+    if(el.pSubobjects[i].pDesc != NULL)
+    {
+      switch(el.pSubobjects[i].Type)
+      {
+        case D3D12_STATE_SUBOBJECT_TYPE_STATE_OBJECT_CONFIG:
+        {
+          D3D12_STATE_OBJECT_CONFIG *temp = (D3D12_STATE_OBJECT_CONFIG *)el.pSubobjects[i].pDesc;
+          delete temp;
+          break;
+        }
+        case D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE:
+        {
+          D3D12_GLOBAL_ROOT_SIGNATURE *temp = (D3D12_GLOBAL_ROOT_SIGNATURE *)el.pSubobjects[i].pDesc;
+          delete temp;
+          break;
+        }
+        case D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE:
+        {
+          D3D12_LOCAL_ROOT_SIGNATURE *temp = (D3D12_LOCAL_ROOT_SIGNATURE *)el.pSubobjects[i].pDesc;
+          delete temp;
+          break;
+        }
+        case D3D12_STATE_SUBOBJECT_TYPE_NODE_MASK:
+        {
+          D3D12_NODE_MASK *temp = (D3D12_NODE_MASK *)el.pSubobjects[i].pDesc;
+          delete temp;
+          break;
+        }
+        case D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY:
+        {
+          D3D12_DXIL_LIBRARY_DESC *temp = (D3D12_DXIL_LIBRARY_DESC *)el.pSubobjects[i].pDesc;
+          Deserialise(*temp);
+          delete temp;
+          break;
+        }
+        case D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION:
+        {
+          D3D12_EXISTING_COLLECTION_DESC *temp =
+              (D3D12_EXISTING_COLLECTION_DESC *)el.pSubobjects[i].pDesc;
+          Deserialise(*temp);
+          delete temp;
+          break;
+        }
+        case D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION:
+        {
+          D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION *temp =
+              (D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION *)el.pSubobjects[i].pDesc;
+          Deserialise(*temp);
+          delete temp;
+          break;
+        }
+        case D3D12_STATE_SUBOBJECT_TYPE_DXIL_SUBOBJECT_TO_EXPORTS_ASSOCIATION:
+        {
+          D3D12_DXIL_SUBOBJECT_TO_EXPORTS_ASSOCIATION *temp =
+              (D3D12_DXIL_SUBOBJECT_TO_EXPORTS_ASSOCIATION *)el.pSubobjects[i].pDesc;
+          Deserialise(*temp);
+          delete temp;
+          break;
+        }
+        case D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG:
+        {
+          D3D12_RAYTRACING_SHADER_CONFIG *temp =
+              (D3D12_RAYTRACING_SHADER_CONFIG *)el.pSubobjects[i].pDesc;
+          delete temp;
+          break;
+        }
+        case D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG:
+        {
+          D3D12_RAYTRACING_PIPELINE_CONFIG *temp =
+              (D3D12_RAYTRACING_PIPELINE_CONFIG *)el.pSubobjects[i].pDesc;
+          delete temp;
+          break;
+        }
+        case D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP:
+        {
+          D3D12_HIT_GROUP_DESC *temp = (D3D12_HIT_GROUP_DESC *)el.pSubobjects[i].pDesc;
+          Deserialise(*temp);
+          delete temp;
+          break;
+        }
+        case D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG1:
+        {
+          D3D12_RAYTRACING_PIPELINE_CONFIG1 *temp =
+              (D3D12_RAYTRACING_PIPELINE_CONFIG1 *)el.pSubobjects[i].pDesc;
+          delete temp;
+          break;
+        }
+        default: RDCERR("Unsupported state sub-object type"); break;
+      }
+    }
+  }
+
+  delete[] el.pSubobjects;
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_STATE_SUBOBJECT &el)
+{
+  SERIALISE_MEMBER(Type);
+
+  switch(el.Type)
+  {
+    case D3D12_STATE_SUBOBJECT_TYPE_STATE_OBJECT_CONFIG:
+      ser.SerialiseNullable("pDesc"_lit, (D3D12_STATE_OBJECT_CONFIG *&)el.pDesc);
+      break;
+    case D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE:
+      ser.SerialiseNullable("pDesc"_lit, (D3D12_GLOBAL_ROOT_SIGNATURE *&)el.pDesc);
+      break;
+    case D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE:
+      ser.SerialiseNullable("pDesc"_lit, (D3D12_LOCAL_ROOT_SIGNATURE *&)el.pDesc);
+      break;
+    case D3D12_STATE_SUBOBJECT_TYPE_NODE_MASK:
+      ser.SerialiseNullable("pDesc"_lit, (D3D12_NODE_MASK *&)el.pDesc);
+      break;
+    case D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY:
+      ser.SerialiseNullable("pDesc"_lit, (D3D12_DXIL_LIBRARY_DESC *&)el.pDesc);
+      break;
+    case D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION:
+      ser.SerialiseNullable("pDesc"_lit, (D3D12_EXISTING_COLLECTION_DESC *&)el.pDesc);
+      break;
+    case D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION:
+      ser.SerialiseNullable("pDesc"_lit, (D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION *&)el.pDesc);
+      break;
+    case D3D12_STATE_SUBOBJECT_TYPE_DXIL_SUBOBJECT_TO_EXPORTS_ASSOCIATION:
+      ser.SerialiseNullable("pDesc"_lit, (D3D12_DXIL_SUBOBJECT_TO_EXPORTS_ASSOCIATION *&)el.pDesc);
+      break;
+    case D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG:
+      ser.SerialiseNullable("pDesc"_lit, (D3D12_RAYTRACING_SHADER_CONFIG *&)el.pDesc);
+      break;
+    case D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG:
+      ser.SerialiseNullable("pDesc"_lit, (D3D12_RAYTRACING_PIPELINE_CONFIG *&)el.pDesc);
+      break;
+    case D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP:
+      ser.SerialiseNullable("pDesc"_lit, (D3D12_HIT_GROUP_DESC *&)el.pDesc);
+      break;
+    case D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG1:
+      ser.SerialiseNullable("pDesc"_lit, (D3D12_RAYTRACING_PIPELINE_CONFIG1 *&)el.pDesc);
+      break;
+    default: RDCERR("Unsupported state sub-object type"); break;
+  }
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_STATE_OBJECT_CONFIG &el)
+{
+  SERIALISE_MEMBER(Flags);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_GLOBAL_ROOT_SIGNATURE &el)
+{
+  SERIALISE_MEMBER(pGlobalRootSignature);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_LOCAL_ROOT_SIGNATURE &el)
+{
+  SERIALISE_MEMBER(pLocalRootSignature);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_NODE_MASK &el)
+{
+  SERIALISE_MEMBER(NodeMask);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_DXIL_LIBRARY_DESC &el)
+{
+  SERIALISE_MEMBER(DXILLibrary);
+  SERIALISE_MEMBER(NumExports);
+  SERIALISE_MEMBER_ARRAY(pExports, NumExports);
+}
+
+template <>
+void Deserialise(const D3D12_DXIL_LIBRARY_DESC &el)
+{
+  FreeAlignedBuffer((byte *)(el.DXILLibrary.pShaderBytecode));
+  for(size_t i = 0; i < el.NumExports; i++)
+  {
+    Deserialise(el.pExports[i]);
+  }
+  delete[] el.pExports;
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_EXISTING_COLLECTION_DESC &el)
+{
+  // AMD TODO
+  RDCERR("D3D12_EXISTING_COLLECTION_DESC serialization is not handled");
+}
+
+template <>
+void Deserialise(const D3D12_EXISTING_COLLECTION_DESC &el)
+{
+  // AMD TODO
+  RDCERR("D3D12_EXISTING_COLLECTION_DESC de-serialization is not handled");
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION &el)
+{
+  uint64_t subobjectToAssociateIndex;
+  rdcarray<rdcstr> exports;
+
+  if(ser.IsWriting())
+  {
+    subobjectToAssociateIndex =
+        el.pSubobjectToAssociate - (D3D12_STATE_SUBOBJECT *)ser.GetStructArg();
+
+    exports.resize(el.NumExports);
+    for(size_t i = 0; i < el.NumExports; i++)
+    {
+      exports[i] = StringFormat::Wide2UTF8(el.pExports[i]);
+    }
+  }
+
+  SERIALISE_ELEMENT(subobjectToAssociateIndex).Named("pSubobjectToAssociate");
+  SERIALISE_MEMBER(NumExports);
+  SERIALISE_ELEMENT(exports).Named("pExports");
+
+  if(ser.IsReading())
+  {
+#if ENABLED(RDOC_WIN32)
+    RDCASSERT(subobjectToAssociateIndex == (uintptr_t)subobjectToAssociateIndex);
+#endif
+    el.pSubobjectToAssociate =
+        (D3D12_STATE_SUBOBJECT *)ser.GetStructArg() + subobjectToAssociateIndex;
+
+    el.pExports = new LPCWSTR[el.NumExports];
+    for(size_t i = 0; i < el.NumExports; i++)
+    {
+      el.pExports[i] = AllocateWideCharArray(exports[i]);
+    }
+  }
+}
+
+template <>
+void Deserialise(const D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION &el)
+{
+  for(size_t i = 0; i < el.NumExports; i++)
+  {
+    delete[] el.pExports[i];
+  }
+  delete[] el.pExports;
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_DXIL_SUBOBJECT_TO_EXPORTS_ASSOCIATION &el)
+{
+  rdcstr subobjectToAssociate;
+  rdcarray<rdcstr> exports;
+
+  if(ser.IsWriting())
+  {
+    subobjectToAssociate =
+        el.SubobjectToAssociate ? StringFormat::Wide2UTF8(el.SubobjectToAssociate) : "";
+
+    exports.resize(el.NumExports);
+    for(size_t i = 0; i < el.NumExports; i++)
+    {
+      exports[i] = StringFormat::Wide2UTF8(el.pExports[i]);
+    }
+  }
+
+  SERIALISE_ELEMENT(subobjectToAssociate).Named("SubobjectToAssociate");
+  SERIALISE_MEMBER(NumExports);
+  SERIALISE_ELEMENT(exports).Named("pExports");
+
+  if(ser.IsReading())
+  {
+    el.SubobjectToAssociate = AllocateWideCharArray(subobjectToAssociate);
+
+    el.pExports = new LPCWSTR[el.NumExports];
+    for(size_t i = 0; i < el.NumExports; i++)
+    {
+      el.pExports[i] = AllocateWideCharArray(exports[i]);
+    }
+  }
+}
+
+template <>
+void Deserialise(const D3D12_DXIL_SUBOBJECT_TO_EXPORTS_ASSOCIATION &el)
+{
+  delete[] el.SubobjectToAssociate;
+  for(size_t i = 0; i < el.NumExports; i++)
+  {
+    delete[] el.pExports[i];
+  }
+  delete[] el.pExports;
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RAYTRACING_SHADER_CONFIG &el)
+{
+  SERIALISE_MEMBER(MaxPayloadSizeInBytes);
+  SERIALISE_MEMBER(MaxAttributeSizeInBytes);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RAYTRACING_PIPELINE_CONFIG &el)
+{
+  SERIALISE_MEMBER(MaxTraceRecursionDepth);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_HIT_GROUP_DESC &el)
+{
+  rdcstr hitGroupExport;
+  rdcstr anyHitShaderImport;
+  rdcstr closestHitShaderImport;
+  rdcstr intersectionShaderImport;
+
+  if(ser.IsWriting())
+  {
+    hitGroupExport = el.HitGroupExport ? StringFormat::Wide2UTF8(el.HitGroupExport) : "";
+    anyHitShaderImport = el.AnyHitShaderImport ? StringFormat::Wide2UTF8(el.AnyHitShaderImport) : "";
+    closestHitShaderImport =
+        el.ClosestHitShaderImport ? StringFormat::Wide2UTF8(el.ClosestHitShaderImport) : "";
+    intersectionShaderImport =
+        el.IntersectionShaderImport ? StringFormat::Wide2UTF8(el.IntersectionShaderImport) : "";
+  }
+
+  SERIALISE_ELEMENT(hitGroupExport).Named("HitGroupExport");
+  SERIALISE_MEMBER(Type);
+  SERIALISE_ELEMENT(anyHitShaderImport).Named("AnyHitShaderImport");
+  SERIALISE_ELEMENT(closestHitShaderImport).Named("ClosestHitShaderImport");
+  SERIALISE_ELEMENT(intersectionShaderImport).Named("IntersectionShaderImport");
+
+  if(ser.IsReading())
+  {
+    el.HitGroupExport = AllocateWideCharArray(hitGroupExport);
+    el.AnyHitShaderImport = AllocateWideCharArray(anyHitShaderImport);
+    el.ClosestHitShaderImport = AllocateWideCharArray(closestHitShaderImport);
+    el.IntersectionShaderImport = AllocateWideCharArray(intersectionShaderImport);
+  }
+}
+
+template <>
+void Deserialise(const D3D12_HIT_GROUP_DESC &el)
+{
+  delete[] el.HitGroupExport;
+  delete[] el.AnyHitShaderImport;
+  delete[] el.ClosestHitShaderImport;
+  delete[] el.IntersectionShaderImport;
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RAYTRACING_PIPELINE_CONFIG1 &el)
+{
+  SERIALISE_MEMBER(MaxTraceRecursionDepth);
+  SERIALISE_MEMBER(Flags);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_EXPORT_DESC &el)
+{
+  rdcstr name;
+  rdcstr exportToRename;
+
+  if(ser.IsWriting())
+  {
+    name = el.Name ? StringFormat::Wide2UTF8(el.Name) : "";
+    exportToRename = el.ExportToRename ? StringFormat::Wide2UTF8(el.ExportToRename) : "";
+  }
+
+  SERIALISE_ELEMENT(name).Named("Name");
+  SERIALISE_ELEMENT(exportToRename).Named("ExportToRename");
+  SERIALISE_MEMBER(Flags);
+
+  if(ser.IsReading())
+  {
+    el.Name = AllocateWideCharArray(name);
+    el.ExportToRename = AllocateWideCharArray(exportToRename);
+  }
+}
+
+template <>
+void Deserialise(const D3D12_EXPORT_DESC &el)
+{
+  delete[] el.Name;
+  delete[] el.ExportToRename;
+}
+
 INSTANTIATE_SERIALISE_TYPE(D3D12RootSignature);
 INSTANTIATE_SERIALISE_TYPE(PortableHandle);
 INSTANTIATE_SERIALISE_TYPE(D3D12_CPU_DESCRIPTOR_HANDLE);
@@ -2042,3 +2458,18 @@ INSTANTIATE_SERIALISE_TYPE(D3D12_RAYTRACING_GEOMETRY_AABBS_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_SERIALIZATION_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_SRV);
+INSTANTIATE_SERIALISE_TYPE(D3D12_STATE_OBJECT_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_STATE_SUBOBJECT);
+INSTANTIATE_SERIALISE_TYPE(D3D12_STATE_OBJECT_CONFIG);
+INSTANTIATE_SERIALISE_TYPE(D3D12_GLOBAL_ROOT_SIGNATURE);
+INSTANTIATE_SERIALISE_TYPE(D3D12_LOCAL_ROOT_SIGNATURE);
+INSTANTIATE_SERIALISE_TYPE(D3D12_NODE_MASK);
+INSTANTIATE_SERIALISE_TYPE(D3D12_DXIL_LIBRARY_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_EXISTING_COLLECTION_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION);
+INSTANTIATE_SERIALISE_TYPE(D3D12_DXIL_SUBOBJECT_TO_EXPORTS_ASSOCIATION);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RAYTRACING_SHADER_CONFIG);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RAYTRACING_PIPELINE_CONFIG);
+INSTANTIATE_SERIALISE_TYPE(D3D12_HIT_GROUP_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RAYTRACING_PIPELINE_CONFIG1);
+INSTANTIATE_SERIALISE_TYPE(D3D12_EXPORT_DESC);
