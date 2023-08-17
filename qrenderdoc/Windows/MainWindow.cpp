@@ -2942,14 +2942,22 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
   bool noToAll = false;
 
-  QList<LiveCapture *> liveCaptures = m_LiveCaptures;
+  QList<QPointer<LiveCapture>> liveCaptures;
 
   int unsavedCaps = 0;
-  for(LiveCapture *live : liveCaptures)
-    unsavedCaps += live->unsavedCaptureCount();
-
-  for(LiveCapture *live : liveCaptures)
+  for(QPointer<LiveCapture> live : m_LiveCaptures)
   {
+    unsavedCaps += live->unsavedCaptureCount();
+    liveCaptures.append(live);
+  }
+
+  for(QPointer<LiveCapture> live : liveCaptures)
+  {
+    // The live capture could be deleted during this loop via the save capture modal message box
+    // message pump of an earlier live capture
+    if(live.isNull())
+      continue;
+
     // if the user previously selected 'no to all' in the save prompts below, apply that to all
     // subsequent live captures by skipping the check and unconditionally cleaning all captures
     if(!noToAll)
