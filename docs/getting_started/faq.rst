@@ -261,3 +261,32 @@ What is an Action?
 RenderDoc uses 'action' as an umbrella term to cover events like draws, dispatches, copies, clears, resolves, and other calls that cause the GPU to do work or can affect memory and resources like textures and buffers. This is sometimes referred to as a drawcall, but the term action is used to be less ambiguous compared to actual rasterization drawing.
 
 This means that when browsing in the event browser by default only actions will be shown, meaning you can only see the list of actions and user-defined markers.
+
+How do I configure renderdoc to use XDG base directories?
+---------------------------------------------------------
+
+By default, renderdoc uses the ``~/.renderdoc`` directory to store its configuration files and data.
+
+If you want renderdoc to use the XDG config directory instead, you have to do the following
+
+Make sure that the directory ``~/.renderdoc`` does not exist. renderdoc will always use ``~/.renderdoc`` if it finds this path.
+
+Make sure that the ``XDG_CONFIG_HOME`` environment variable, which is typically ``~/.config``, points to your XDG config base directory. 
+
+.. highlight:: bash
+.. code:: bash
+
+    export XDG_CONFIG_HOME="$HOME/.config"
+
+Create or move ``~/.renderdoc`` to ``$XDG_CONFIG_HOME/renderdoc``
+
+For example
+
+.. highlight:: bash
+.. code:: bash
+
+    mkdir -p $XDG_CONFIG_HOME/renderdoc
+    # or
+    mv ~/.renderdoc $XDG_CONFIG_HOME/renderdoc
+
+Without ``~/.renderdoc`` and with XDG_CONFIG_HOME set to a config base directory containing a renderdoc subdirectory, renderdoc will now use ``$XDG_CONFIG_HOME/renderdoc`` instead of ``~/.renderdoc``.

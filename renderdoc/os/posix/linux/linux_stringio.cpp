@@ -607,11 +607,23 @@ rdcstr GetAppFolderFilename(const rdcstr &filename)
     homedir = "";
   }
 
-  rdcstr ret = homedir + "/.renderdoc/";
+  rdcstr default_path = homedir + "/.renderdoc/";
 
-  mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  // If and only if ~/.renderdoc is not writable or does not exist,
+  // and xdg_path is writable, then the XDG-specific path will be used.
+  // Therefore ~/.renderdoc will always take precedence over the XDG-specific path.
+  rdcstr xdg_config_home = Process::GetEnvVariable("XDG_CONFIG_HOME");
+  if(!xdg_config_home.isEmpty() && access(default_path.c_str(), W_OK) != 0)
+  {
+    rdcstr xdg_path = xdg_config_home + "/renderdoc/";
+    if(access(xdg_path.c_str(), W_OK) == 0)
+    {
+      return xdg_path + filename;
+    }
+  }
 
-  return ret + filename;
+  mkdir(default_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  return default_path + filename;
 }
 
 rdcstr DefaultFindFileInPath(const rdcstr &fileName);
