@@ -9,6 +9,8 @@ Release32/
 Release64/
 build/
 build-*/
+/compile_commands.json
+.cache/
 /dist/
 /package/
 util/buildscripts/support
@@ -25,6 +27,7 @@ obj/
 *.opensdf
 *.VC.*db
 .vs/
+.vscode/
 *.pdb
 *.sln.ide/
 *.so
