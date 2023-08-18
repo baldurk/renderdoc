@@ -543,7 +543,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
     drv.glGenFramebuffers(1, &DebugData.overlayFBO);
     drv.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.overlayFBO);
 
-    glObjectLabel(eGL_FRAMEBUFFER, DebugData.overlayFBO, -1, "FBO for overlay");
+    drv.glObjectLabel(eGL_FRAMEBUFFER, DebugData.overlayFBO, -1, "FBO for overlay");
 
     GLuint curTex = 0;
     drv.glGetIntegerv(texQueryEnum, (GLint *)&curTex);
@@ -551,7 +551,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
     drv.glGenTextures(1, &DebugData.overlayTex);
     drv.glBindTexture(texBindingEnum, DebugData.overlayTex);
 
-    glObjectLabel(eGL_TEXTURE, DebugData.overlayTex, -1, "Colour tex for overlay");
+    drv.glObjectLabel(eGL_TEXTURE, DebugData.overlayTex, -1, "Colour tex for overlay");
 
     DebugData.overlayTexWidth = texDetails.width;
     DebugData.overlayTexHeight = texDetails.height;

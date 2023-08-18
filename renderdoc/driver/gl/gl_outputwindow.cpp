@@ -41,12 +41,12 @@ void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
   drv.glGenFramebuffers(1, &outwin.BlitData.windowFBO);
   drv.glBindFramebuffer(eGL_FRAMEBUFFER, outwin.BlitData.windowFBO);
 
-  glObjectLabel(eGL_FRAMEBUFFER, outwin.BlitData.windowFBO, -1, "FBO for output window");
+  drv.glObjectLabel(eGL_FRAMEBUFFER, outwin.BlitData.windowFBO, -1, "FBO for output window");
 
   drv.glGenTextures(1, &outwin.BlitData.backbuffer);
   drv.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.backbuffer);
 
-  glObjectLabel(eGL_TEXTURE, outwin.BlitData.backbuffer, -1, "Colour for output window");
+  drv.glObjectLabel(eGL_TEXTURE, outwin.BlitData.backbuffer, -1, "Colour for output window");
 
   drv.glTextureImage2DEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, 0, eGL_SRGB8_ALPHA8,
                           outwin.width, outwin.height, 0, eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
@@ -67,7 +67,8 @@ void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
     drv.glGenTextures(1, &outwin.BlitData.depthstencil);
     drv.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.depthstencil);
 
-    glObjectLabel(eGL_TEXTURE, outwin.BlitData.depthstencil, -1, "Depth-stencil for output window");
+    drv.glObjectLabel(eGL_TEXTURE, outwin.BlitData.depthstencil, -1,
+                      "Depth-stencil for output window");
 
     drv.glTextureImage2DEXT(outwin.BlitData.depthstencil, eGL_TEXTURE_2D, 0, eGL_DEPTH_COMPONENT24,
                             outwin.width, outwin.height, 0, eGL_DEPTH_COMPONENT, eGL_UNSIGNED_INT,
@@ -103,13 +104,13 @@ void GLReplay::InitOutputWindow(OutputWindow &outwin)
   drv.glGenVertexArrays(1, &outwin.BlitData.emptyVAO);
   drv.glBindVertexArray(outwin.BlitData.emptyVAO);
 
-  glObjectLabel(eGL_VERTEX_ARRAY, outwin.BlitData.emptyVAO, -1, "Empty VAO for output window");
+  drv.glObjectLabel(eGL_VERTEX_ARRAY, outwin.BlitData.emptyVAO, -1, "Empty VAO for output window");
 
   drv.glGenFramebuffers(1, &outwin.BlitData.readFBO);
   drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, outwin.BlitData.readFBO);
   drv.glReadBuffer(eGL_COLOR_ATTACHMENT0);
 
-  glObjectLabel(eGL_FRAMEBUFFER, outwin.BlitData.readFBO, -1, "Read FBO for output window");
+  drv.glObjectLabel(eGL_FRAMEBUFFER, outwin.BlitData.readFBO, -1, "Read FBO for output window");
 
   if(HasExt[EXT_framebuffer_sRGB])
     drv.glEnable(eGL_FRAMEBUFFER_SRGB);
