@@ -1883,8 +1883,9 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       pipe.framebuffer.drawFBO.colorAttachments[i].swizzle.alpha = MakeSwizzle(swizzles[3]);
     }
 
-    pipe.framebuffer.drawFBO.depthAttachment.resourceId = rm->GetOriginalID(
-        rm->GetResID(rbDepth ? RenderbufferRes(ctx, curDepth) : TextureRes(ctx, curDepth)));
+    ResourceId id =
+        rm->GetResID(rbDepth ? RenderbufferRes(ctx, curDepth) : TextureRes(ctx, curDepth));
+    pipe.framebuffer.drawFBO.depthAttachment.resourceId = rm->GetOriginalID(id);
     pipe.framebuffer.drawFBO.stencilAttachment.resourceId = rm->GetOriginalID(
         rm->GetResID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
 
@@ -1901,7 +1902,6 @@ void GLReplay::SavePipelineState(uint32_t eventId)
     pipe.framebuffer.drawFBO.depthAttachment.numSlices = 1;
     pipe.framebuffer.drawFBO.stencilAttachment.numSlices = 1;
 
-    ResourceId id = pipe.framebuffer.drawFBO.depthAttachment.resourceId;
     if(!rbDepth && id != ResourceId())
     {
       // desktop GL allows layered attachments which attach all slices from 0 to N
