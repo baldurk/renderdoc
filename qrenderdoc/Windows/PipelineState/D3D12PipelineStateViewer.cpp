@@ -705,7 +705,7 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
   if(res.firstElement > 0 || (res.numElements * res.elementByteSize) < buf->length)
   {
     text += tr("The view covers bytes %1-%2 (%3 elements).\nThe buffer is %4 bytes in length (%5 "
-               "elements).")
+               "elements).\n")
                 .arg(res.firstElement * res.elementByteSize)
                 .arg((res.firstElement + res.numElements) * res.elementByteSize)
                 .arg(res.numElements)
