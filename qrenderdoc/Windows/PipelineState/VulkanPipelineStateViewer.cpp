@@ -775,7 +775,7 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
 
   if(view.byteOffset > 0 || view.byteSize < buf->length)
   {
-    text += tr("The view covers bytes %1-%2.\nThe buffer is %3 bytes in length.")
+    text += tr("The view covers bytes %1-%2.\nThe buffer is %3 bytes in length.\n")
                 .arg(view.byteOffset)
                 .arg(view.byteOffset + view.byteSize)
                 .arg(buf->length);

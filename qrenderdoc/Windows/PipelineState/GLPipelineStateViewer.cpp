@@ -553,9 +553,9 @@ void GLPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, TextureDescri
     if((tex->mips > 1 && firstMip > 0) || numMips < tex->mips)
     {
       if(numMips == 1)
-        text += tr("The texture has %1 mips, the view covers mip %2.").arg(tex->mips).arg(firstMip);
+        text += tr("The texture has %1 mips, the view covers mip %2.\n").arg(tex->mips).arg(firstMip);
       else
-        text += tr("The texture has %1 mips, the view covers mips %2-%3.")
+        text += tr("The texture has %1 mips, the view covers mips %2-%3.\n")
                     .arg(tex->mips)
                     .arg(firstMip)
                     .arg(firstMip + numMips - 1);
@@ -564,10 +564,11 @@ void GLPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, TextureDescri
     if((tex->arraysize > 1 && firstSlice > 0) || numSlices < tex->arraysize)
     {
       if(numSlices == 1)
-        text +=
-            tr("The texture has %1 slices, the view covers slice %2.").arg(tex->arraysize).arg(firstSlice);
+        text += tr("The texture has %1 slices, the view covers slice %2.\n")
+                    .arg(tex->arraysize)
+                    .arg(firstSlice);
       else
-        text += tr("The texture has %1 slices, the view covers slices %2-%3.")
+        text += tr("The texture has %1 slices, the view covers slices %2-%3.\n")
                     .arg(tex->arraysize)
                     .arg(firstSlice)
                     .arg(firstSlice + numSlices - 1);
