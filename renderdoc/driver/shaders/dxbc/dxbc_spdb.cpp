@@ -1467,9 +1467,25 @@ SPDBChunk::SPDBChunk(byte *data, uint32_t spdblength)
             // source according to #line
             if(!name.empty())
             {
-              Files.push_back({name, ""});
+              int32_t fileIdx = -1;
+              if(name == "unnamed_shader")
+              {
+                for(int32_t i = 0; i < Files.count(); i++)
+                {
+                  if(!_stricmp(Files[i].filename.c_str(), name.c_str()))
+                  {
+                    fileIdx = i;
+                    break;
+                  }
+                }
+              }
+              if(fileIdx == -1)
+              {
+                Files.push_back({name, ""});
+                fileIdx = (int32_t)Files.size() - 1;
+              }
 
-              FileMapping[chunkOffs] = (int32_t)Files.size() - 1;
+              FileMapping[chunkOffs] = fileIdx;
             }
             else
             {
