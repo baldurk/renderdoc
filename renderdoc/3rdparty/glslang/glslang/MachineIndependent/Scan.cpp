@@ -343,6 +343,7 @@ void TScanContext::fillInKeywordMap()
 
     (*KeywordMap)["const"] =                   CONST;
     (*KeywordMap)["uniform"] =                 UNIFORM;
+    (*KeywordMap)["tileImageEXT"] =            TILEIMAGEEXT;
     (*KeywordMap)["buffer"] =                  BUFFER;
     (*KeywordMap)["in"] =                      IN;
     (*KeywordMap)["out"] =                     OUT;
@@ -365,6 +366,9 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["if"] =                      IF;
     (*KeywordMap)["else"] =                    ELSE;
     (*KeywordMap)["discard"] =                 DISCARD;
+    (*KeywordMap)["terminateInvocation"] =     TERMINATE_INVOCATION;
+    (*KeywordMap)["terminateRayEXT"] =         TERMINATE_RAY;
+    (*KeywordMap)["ignoreIntersectionEXT"] =   IGNORE_INTERSECTION;
     (*KeywordMap)["return"] =                  RETURN;
     (*KeywordMap)["void"] =                    VOID;
     (*KeywordMap)["bool"] =                    BOOL;
@@ -471,6 +475,28 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["image2DMSArray"] =          IMAGE2DMSARRAY;
     (*KeywordMap)["iimage2DMSArray"] =         IIMAGE2DMSARRAY;
     (*KeywordMap)["uimage2DMSArray"] =         UIMAGE2DMSARRAY;
+    (*KeywordMap)["i64image1D"] =              I64IMAGE1D;
+    (*KeywordMap)["u64image1D"] =              U64IMAGE1D;
+    (*KeywordMap)["i64image2D"] =              I64IMAGE2D;
+    (*KeywordMap)["u64image2D"] =              U64IMAGE2D;
+    (*KeywordMap)["i64image3D"] =              I64IMAGE3D;
+    (*KeywordMap)["u64image3D"] =              U64IMAGE3D;
+    (*KeywordMap)["i64image2DRect"] =          I64IMAGE2DRECT;
+    (*KeywordMap)["u64image2DRect"] =          U64IMAGE2DRECT;
+    (*KeywordMap)["i64imageCube"] =            I64IMAGECUBE;
+    (*KeywordMap)["u64imageCube"] =            U64IMAGECUBE;
+    (*KeywordMap)["i64imageBuffer"] =          I64IMAGEBUFFER;
+    (*KeywordMap)["u64imageBuffer"] =          U64IMAGEBUFFER;
+    (*KeywordMap)["i64image1DArray"] =         I64IMAGE1DARRAY;
+    (*KeywordMap)["u64image1DArray"] =         U64IMAGE1DARRAY;
+    (*KeywordMap)["i64image2DArray"] =         I64IMAGE2DARRAY;
+    (*KeywordMap)["u64image2DArray"] =         U64IMAGE2DARRAY;
+    (*KeywordMap)["i64imageCubeArray"] =       I64IMAGECUBEARRAY;
+    (*KeywordMap)["u64imageCubeArray"] =       U64IMAGECUBEARRAY;
+    (*KeywordMap)["i64image2DMS"] =            I64IMAGE2DMS;
+    (*KeywordMap)["u64image2DMS"] =            U64IMAGE2DMS;
+    (*KeywordMap)["i64image2DMSArray"] =       I64IMAGE2DMSARRAY;
+    (*KeywordMap)["u64image2DMSArray"] =       U64IMAGE2DMSARRAY;
     (*KeywordMap)["double"] =                  DOUBLE;
     (*KeywordMap)["dvec2"] =                   DVEC2;
     (*KeywordMap)["dvec3"] =                   DVEC3;
@@ -561,6 +587,18 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["f64mat4x2"] =               F64MAT4X2;
     (*KeywordMap)["f64mat4x3"] =               F64MAT4X3;
     (*KeywordMap)["f64mat4x4"] =               F64MAT4X4;
+
+    // GL_EXT_spirv_intrinsics
+    (*KeywordMap)["spirv_instruction"] =       SPIRV_INSTRUCTION;
+    (*KeywordMap)["spirv_execution_mode"] =    SPIRV_EXECUTION_MODE;
+    (*KeywordMap)["spirv_execution_mode_id"] = SPIRV_EXECUTION_MODE_ID;
+    (*KeywordMap)["spirv_decorate"] =          SPIRV_DECORATE;
+    (*KeywordMap)["spirv_decorate_id"] =       SPIRV_DECORATE_ID;
+    (*KeywordMap)["spirv_decorate_string"] =   SPIRV_DECORATE_STRING;
+    (*KeywordMap)["spirv_type"] =              SPIRV_TYPE;
+    (*KeywordMap)["spirv_storage_class"] =     SPIRV_STORAGE_CLASS;
+    (*KeywordMap)["spirv_by_reference"] =      SPIRV_BY_REFERENCE;
+    (*KeywordMap)["spirv_literal"] =           SPIRV_LITERAL;
 #endif
 
     (*KeywordMap)["sampler2D"] =               SAMPLER2D;
@@ -648,6 +686,10 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["texture2DRect"] =           TEXTURE2DRECT;
     (*KeywordMap)["texture1DArray"] =          TEXTURE1DARRAY;
 
+    (*KeywordMap)["attachmentEXT"] =           ATTACHMENTEXT;
+    (*KeywordMap)["iattachmentEXT"] =          IATTACHMENTEXT;
+    (*KeywordMap)["uattachmentEXT"] =          UATTACHMENTEXT;
+
     (*KeywordMap)["subpassInput"] =            SUBPASSINPUT;
     (*KeywordMap)["subpassInputMS"] =          SUBPASSINPUTMS;
     (*KeywordMap)["isubpassInput"] =           ISUBPASSINPUT;
@@ -702,6 +744,7 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["f16subpassInputMS"] =            F16SUBPASSINPUTMS;
     (*KeywordMap)["__explicitInterpAMD"] =     EXPLICITINTERPAMD;
     (*KeywordMap)["pervertexNV"] =             PERVERTEXNV;
+    (*KeywordMap)["pervertexEXT"] =            PERVERTEXEXT;
     (*KeywordMap)["precise"] =                 PRECISE;
 
     (*KeywordMap)["rayPayloadNV"] =            PAYLOADNV;
@@ -720,10 +763,15 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["perprimitiveNV"] =          PERPRIMITIVENV;
     (*KeywordMap)["perviewNV"] =               PERVIEWNV;
     (*KeywordMap)["taskNV"] =                  PERTASKNV;
+    (*KeywordMap)["perprimitiveEXT"] =         PERPRIMITIVEEXT;
+    (*KeywordMap)["taskPayloadSharedEXT"] =    TASKPAYLOADWORKGROUPEXT;
 
     (*KeywordMap)["fcoopmatNV"] =              FCOOPMATNV;
     (*KeywordMap)["icoopmatNV"] =              ICOOPMATNV;
     (*KeywordMap)["ucoopmatNV"] =              UCOOPMATNV;
+
+    (*KeywordMap)["hitObjectNV"] =             HITOBJECTNV;
+    (*KeywordMap)["hitObjectAttributeNV"] =    HITOBJECTATTRNV;
 
     ReservedSet = new std::unordered_set<const char*, str_hash, str_eq>;
 
@@ -899,6 +947,7 @@ int TScanContext::tokenizeIdentifier()
     switch (keyword) {
     case CONST:
     case UNIFORM:
+    case TILEIMAGEEXT:
     case IN:
     case OUT:
     case INOUT:
@@ -912,6 +961,17 @@ int TScanContext::tokenizeIdentifier()
     case DISCARD:
     case RETURN:
     case CASE:
+        return keyword;
+
+    case TERMINATE_INVOCATION:
+        if (!parseContext.extensionTurnedOn(E_GL_EXT_terminate_invocation))
+            return identifierOrType();
+        return keyword;
+
+    case TERMINATE_RAY:
+    case IGNORE_INTERSECTION:
+        if (!parseContext.extensionTurnedOn(E_GL_EXT_ray_tracing))
+            return identifierOrType();
         return keyword;
 
     case BUFFER:
@@ -982,7 +1042,7 @@ int TScanContext::tokenizeIdentifier()
         return keyword;
     case PACKED:
         if ((parseContext.isEsProfile() && parseContext.version < 300) ||
-            (!parseContext.isEsProfile() && parseContext.version < 330))
+            (!parseContext.isEsProfile() && parseContext.version < 140))
             return reservedWord();
         return identifierOrType();
 
@@ -1147,6 +1207,19 @@ int TScanContext::tokenizeIdentifier()
         afterType = true;
         return firstGenerationImage(false);
 
+    case I64IMAGE1D:
+    case U64IMAGE1D:
+    case I64IMAGE1DARRAY:
+    case U64IMAGE1DARRAY:
+    case I64IMAGE2DRECT:
+    case U64IMAGE2DRECT:
+        afterType = true;
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            parseContext.extensionTurnedOn(E_GL_EXT_shader_image_int64)) {
+            return firstGenerationImage(false);
+        }
+        return identifierOrType();
+
     case IMAGEBUFFER:
     case IIMAGEBUFFER:
     case UIMAGEBUFFER:
@@ -1155,6 +1228,18 @@ int TScanContext::tokenizeIdentifier()
             parseContext.extensionsTurnedOn(Num_AEP_texture_buffer, AEP_texture_buffer))
             return keyword;
         return firstGenerationImage(false);
+        
+    case I64IMAGEBUFFER:
+    case U64IMAGEBUFFER:
+        afterType = true;        
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            parseContext.extensionTurnedOn(E_GL_EXT_shader_image_int64)) {
+            if ((parseContext.isEsProfile() && parseContext.version >= 320) ||
+                parseContext.extensionsTurnedOn(Num_AEP_texture_buffer, AEP_texture_buffer))
+                return keyword;
+            return firstGenerationImage(false);
+        }
+        return identifierOrType();
 
     case IMAGE2D:
     case IIMAGE2D:
@@ -1171,6 +1256,20 @@ int TScanContext::tokenizeIdentifier()
         afterType = true;
         return firstGenerationImage(true);
 
+    case I64IMAGE2D:
+    case U64IMAGE2D:
+    case I64IMAGE3D:
+    case U64IMAGE3D:
+    case I64IMAGECUBE:
+    case U64IMAGECUBE:
+    case I64IMAGE2DARRAY:
+    case U64IMAGE2DARRAY:
+        afterType = true;
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            parseContext.extensionTurnedOn(E_GL_EXT_shader_image_int64))
+            return firstGenerationImage(true);
+        return identifierOrType();
+        
     case IMAGECUBEARRAY:
     case IIMAGECUBEARRAY:
     case UIMAGECUBEARRAY:
@@ -1179,6 +1278,18 @@ int TScanContext::tokenizeIdentifier()
             parseContext.extensionsTurnedOn(Num_AEP_texture_cube_map_array, AEP_texture_cube_map_array))
             return keyword;
         return secondGenerationImage();
+        
+    case I64IMAGECUBEARRAY:
+    case U64IMAGECUBEARRAY:
+        afterType = true;
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            parseContext.extensionTurnedOn(E_GL_EXT_shader_image_int64)) {
+            if ((parseContext.isEsProfile() && parseContext.version >= 320) ||
+                parseContext.extensionsTurnedOn(Num_AEP_texture_cube_map_array, AEP_texture_cube_map_array))
+                return keyword;
+            return secondGenerationImage();
+        }
+        return identifierOrType();
 
     case IMAGE2DMS:
     case IIMAGE2DMS:
@@ -1188,6 +1299,17 @@ int TScanContext::tokenizeIdentifier()
     case UIMAGE2DMSARRAY:
         afterType = true;
         return secondGenerationImage();
+        
+    case I64IMAGE2DMS:
+    case U64IMAGE2DMS:
+    case I64IMAGE2DMSARRAY:
+    case U64IMAGE2DMSARRAY:
+        afterType = true;
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            parseContext.extensionTurnedOn(E_GL_EXT_shader_image_int64)) {
+            return secondGenerationImage();
+        }
+        return identifierOrType();
 
     case DOUBLE:
     case DVEC2:
@@ -1196,8 +1318,8 @@ int TScanContext::tokenizeIdentifier()
         afterType = true;
         if (parseContext.isEsProfile() || parseContext.version < 150 ||
             (!parseContext.symbolTable.atBuiltInLevel() &&
-              parseContext.version < 400 &&
-             !parseContext.extensionTurnedOn(E_GL_ARB_gpu_shader_fp64)))
+              (parseContext.version < 400 && !parseContext.extensionTurnedOn(E_GL_ARB_gpu_shader_fp64) &&
+              (parseContext.version < 410 && !parseContext.extensionTurnedOn(E_GL_ARB_vertex_attrib_64bit)))))
             reservedWord();
         return keyword;
 
@@ -1542,6 +1664,9 @@ int TScanContext::tokenizeIdentifier()
     case ISUBPASSINPUTMS:
     case USUBPASSINPUT:
     case USUBPASSINPUTMS:
+    case ATTACHMENTEXT:
+    case IATTACHMENTEXT:
+    case UATTACHMENTEXT:
         if (parseContext.spvVersion.vulkan > 0)
             return keyword;
         else
@@ -1609,6 +1734,12 @@ int TScanContext::tokenizeIdentifier()
             return keyword;
         return identifierOrType();
 
+    case PERVERTEXEXT:
+        if ((!parseContext.isEsProfile() && parseContext.version >= 450) ||
+            parseContext.extensionTurnedOn(E_GL_EXT_fragment_shader_barycentric))
+            return keyword;
+        return identifierOrType();
+
     case PRECISE:
         if ((parseContext.isEsProfile() &&
              (parseContext.version >= 320 || parseContext.extensionsTurnedOn(Num_AEP_gpu_shader5, AEP_gpu_shader5))) ||
@@ -1623,9 +1754,15 @@ int TScanContext::tokenizeIdentifier()
     case PERPRIMITIVENV:
     case PERVIEWNV:
     case PERTASKNV:
-        if ((!parseContext.isEsProfile() && parseContext.version >= 450) ||
-            (parseContext.isEsProfile() && parseContext.version >= 320) ||
+        if (parseContext.symbolTable.atBuiltInLevel() ||
             parseContext.extensionTurnedOn(E_GL_NV_mesh_shader))
+            return keyword;
+        return identifierOrType();
+
+    case PERPRIMITIVEEXT:
+    case TASKPAYLOADWORKGROUPEXT:
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            parseContext.extensionTurnedOn(E_GL_EXT_mesh_shader))
             return keyword;
         return identifierOrType();
 
@@ -1649,6 +1786,35 @@ int TScanContext::tokenizeIdentifier()
             return keyword;
         else
             return identifierOrType();
+
+    case SPIRV_INSTRUCTION:
+    case SPIRV_EXECUTION_MODE:
+    case SPIRV_EXECUTION_MODE_ID:
+    case SPIRV_DECORATE:
+    case SPIRV_DECORATE_ID:
+    case SPIRV_DECORATE_STRING:
+    case SPIRV_TYPE:
+    case SPIRV_STORAGE_CLASS:
+    case SPIRV_BY_REFERENCE:
+    case SPIRV_LITERAL:
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            parseContext.extensionTurnedOn(E_GL_EXT_spirv_intrinsics))
+            return keyword;
+        return identifierOrType();
+
+    case HITOBJECTNV:
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            (!parseContext.isEsProfile() && parseContext.version >= 460
+                 && parseContext.extensionTurnedOn(E_GL_NV_shader_invocation_reorder)))
+            return keyword;
+        return identifierOrType();
+
+    case HITOBJECTATTRNV:
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            (!parseContext.isEsProfile() && parseContext.version >= 460
+                 && parseContext.extensionTurnedOn(E_GL_NV_shader_invocation_reorder)))
+            return keyword;
+        return identifierOrType();
 #endif
 
     default:
@@ -1774,7 +1940,9 @@ int TScanContext::dMat()
 
     if (!parseContext.isEsProfile() && (parseContext.version >= 400 ||
         parseContext.symbolTable.atBuiltInLevel() ||
-        (parseContext.version >= 150 && parseContext.extensionTurnedOn(E_GL_ARB_gpu_shader_fp64))))
+        (parseContext.version >= 150 && parseContext.extensionTurnedOn(E_GL_ARB_gpu_shader_fp64)) ||
+        (parseContext.version >= 150 && parseContext.extensionTurnedOn(E_GL_ARB_vertex_attrib_64bit)
+         && parseContext.language == EShLangVertex)))
         return keyword;
 
     if (parseContext.isForwardCompatible())

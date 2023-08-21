@@ -5,10 +5,13 @@ set(glslang_sources
     ${glslang_dir}/SPIRV/GlslangToSpv.cpp
     ${glslang_dir}/SPIRV/GlslangToSpv.h
     ${glslang_dir}/SPIRV/GLSL.std.450.h
+    ${glslang_dir}/SPIRV/GLSL.ext.ARM.h
     ${glslang_dir}/SPIRV/GLSL.ext.AMD.h
     ${glslang_dir}/SPIRV/GLSL.ext.EXT.h
     ${glslang_dir}/SPIRV/GLSL.ext.KHR.h
     ${glslang_dir}/SPIRV/GLSL.ext.NV.h
+    ${glslang_dir}/SPIRV/NonSemanticDebugPrintf.h
+    ${glslang_dir}/SPIRV/NonSemanticShaderDebugInfo100.h
     ${glslang_dir}/SPIRV/hex_float.h
     ${glslang_dir}/SPIRV/InReadableOrder.cpp
     ${glslang_dir}/SPIRV/Logger.cpp
@@ -30,6 +33,7 @@ set(glslang_sources
     ${glslang_dir}/glslang/Include/intermediate.h
     ${glslang_dir}/glslang/Include/PoolAlloc.h
     ${glslang_dir}/glslang/Include/ResourceLimits.h
+    ${glslang_dir}/glslang/Include/SpirvIntrinsics.h
     ${glslang_dir}/glslang/Include/revision.h
     ${glslang_dir}/glslang/Include/ShHandle.h
     ${glslang_dir}/glslang/Include/Types.h
@@ -72,6 +76,7 @@ set(glslang_sources
     ${glslang_dir}/glslang/MachineIndependent/Scan.cpp
     ${glslang_dir}/glslang/MachineIndependent/Scan.h
     ${glslang_dir}/glslang/MachineIndependent/ShaderLang.cpp
+    ${glslang_dir}/glslang/MachineIndependent/SpirvIntrinsics.cpp
     ${glslang_dir}/glslang/MachineIndependent/SymbolTable.cpp
     ${glslang_dir}/glslang/MachineIndependent/SymbolTable.h
     ${glslang_dir}/glslang/MachineIndependent/Versions.cpp
@@ -79,7 +84,9 @@ set(glslang_sources
     ${glslang_dir}/glslang/MachineIndependent/attribute.cpp
     ${glslang_dir}/glslang/MachineIndependent/attribute.h
     ${glslang_dir}/glslang/OSDependent/osinclude.h
-    ${glslang_dir}/glslang/Public/ShaderLang.h)
+    ${glslang_dir}/glslang/ResourceLimits/ResourceLimits.cpp
+    ${glslang_dir}/glslang/Public/ShaderLang.h
+    ${glslang_dir}/glslang/Public/ResourceLimits.h)
 
 if(UNIX)
     list(APPEND glslang_sources

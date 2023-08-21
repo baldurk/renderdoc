@@ -32,6 +32,7 @@
 #undef max
 
 #include "glslang/SPIRV/GlslangToSpv.h"
+#include "glslang/glslang/Public/ResourceLimits.h"
 #include "glslang/glslang/Public/ShaderLang.h"
 
 rdcstr rdcspv::Compile(const rdcspv::CompilationSettings &settings, const rdcarray<rdcstr> &sources,

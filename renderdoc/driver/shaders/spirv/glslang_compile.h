@@ -38,9 +38,6 @@ glslang::TShader *CompileShaderForReflection(rdcspv::ShaderStage stage,
                                              const rdcarray<rdcstr> &sources);
 glslang::TProgram *LinkProgramForReflection(const rdcarray<glslang::TShader *> &shaders);
 
-struct TBuiltInResource;
-extern TBuiltInResource *GetDefaultResources();
-
 enum class ReflectionInterface
 {
   Input,

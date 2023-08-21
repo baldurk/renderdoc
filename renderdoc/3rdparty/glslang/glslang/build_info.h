@@ -1,5 +1,5 @@
+// Copyright (C) 2020 The Khronos Group Inc.
 //
-// Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
 //    disclaimer in the documentation and/or other materials provided
 //    with the distribution.
 //
-//    Neither the name of 3Dlabs Inc. Ltd. nor the names of its
+//    Neither the name of The Khronos Group Inc. nor the names of its
 //    contributors may be used to endorse or promote products derived
 //    from this software without specific prior written permission.
 //
@@ -30,62 +30,33 @@
 // LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 // ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
-//
 
-//
-// The top level algorithms for linking multiple
-// shaders together.
-//
-#include "../Include/Common.h"
-#include "../Include/ShHandle.h"
+#ifndef GLSLANG_BUILD_INFO
+#define GLSLANG_BUILD_INFO
 
-//
-// Actual link object, derived from the shader handle base classes.
-//
-class TGenericLinker : public TLinker {
-public:
-    TGenericLinker(EShExecutable e, int dOptions) : TLinker(e, infoSink), debugOptions(dOptions) { }
-    bool link(TCompilerList&, TUniformMap*) { return true; }
-    void getAttributeBindings(ShBindingTable const **) const { }
-    TInfoSink infoSink;
-    int debugOptions;
-};
+#define GLSLANG_VERSION_MAJOR 12
+#define GLSLANG_VERSION_MINOR 3
+#define GLSLANG_VERSION_PATCH 1
+#define GLSLANG_VERSION_FLAVOR ""
 
-//
-// The internal view of a uniform/float object exchanged with the driver.
-//
-class TUniformLinkedMap : public TUniformMap {
-public:
-    TUniformLinkedMap() { }
-    virtual int getLocation(const char*) { return 0; }
-};
+#define GLSLANG_VERSION_GREATER_THAN(major, minor, patch) \
+    ((GLSLANG_VERSION_MAJOR) > (major) || ((major) == GLSLANG_VERSION_MAJOR && \
+    ((GLSLANG_VERSION_MINOR) > (minor) || ((minor) == GLSLANG_VERSION_MINOR && \
+     (GLSLANG_VERSION_PATCH) > (patch)))))
 
-TShHandleBase* ConstructLinker(EShExecutable executable, int debugOptions)
-{
-    return new TGenericLinker(executable, debugOptions);
-}
+#define GLSLANG_VERSION_GREATER_OR_EQUAL_TO(major, minor, patch) \
+    ((GLSLANG_VERSION_MAJOR) > (major) || ((major) == GLSLANG_VERSION_MAJOR && \
+    ((GLSLANG_VERSION_MINOR) > (minor) || ((minor) == GLSLANG_VERSION_MINOR && \
+     (GLSLANG_VERSION_PATCH >= (patch))))))
 
-void DeleteLinker(TShHandleBase* linker)
-{
-    delete linker;
-}
+#define GLSLANG_VERSION_LESS_THAN(major, minor, patch) \
+    ((GLSLANG_VERSION_MAJOR) < (major) || ((major) == GLSLANG_VERSION_MAJOR && \
+    ((GLSLANG_VERSION_MINOR) < (minor) || ((minor) == GLSLANG_VERSION_MINOR && \
+     (GLSLANG_VERSION_PATCH) < (patch)))))
 
-TUniformMap* ConstructUniformMap()
-{
-    return new TUniformLinkedMap();
-}
+#define GLSLANG_VERSION_LESS_OR_EQUAL_TO(major, minor, patch) \
+    ((GLSLANG_VERSION_MAJOR) < (major) || ((major) == GLSLANG_VERSION_MAJOR && \
+    ((GLSLANG_VERSION_MINOR) < (minor) || ((minor) == GLSLANG_VERSION_MINOR && \
+     (GLSLANG_VERSION_PATCH <= (patch))))))
 
-void DeleteUniformMap(TUniformMap* map)
-{
-    delete map;
-}
-
-TShHandleBase* ConstructBindings()
-{
-    return nullptr;
-}
-
-void DeleteBindingList(TShHandleBase* bindingList)
-{
-    delete bindingList;
-}
+#endif // GLSLANG_BUILD_INFO

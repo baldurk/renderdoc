@@ -1,5 +1,6 @@
 //
-// Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
+// Copyright (C) 2016 Google, Inc.
+//
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -14,7 +15,7 @@
 //    disclaimer in the documentation and/or other materials provided
 //    with the distribution.
 //
-//    Neither the name of 3Dlabs Inc. Ltd. nor the names of its
+//    Neither the name of Google Inc. nor the names of its
 //    contributors may be used to endorse or promote products derived
 //    from this software without specific prior written permission.
 //
@@ -30,62 +31,27 @@
 // LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 // ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
-//
 
-//
-// The top level algorithms for linking multiple
-// shaders together.
-//
-#include "../Include/Common.h"
-#include "../Include/ShHandle.h"
+#ifndef _STAND_ALONE_RESOURCE_LIMITS_INCLUDED_
+#define _STAND_ALONE_RESOURCE_LIMITS_INCLUDED_
 
-//
-// Actual link object, derived from the shader handle base classes.
-//
-class TGenericLinker : public TLinker {
-public:
-    TGenericLinker(EShExecutable e, int dOptions) : TLinker(e, infoSink), debugOptions(dOptions) { }
-    bool link(TCompilerList&, TUniformMap*) { return true; }
-    void getAttributeBindings(ShBindingTable const **) const { }
-    TInfoSink infoSink;
-    int debugOptions;
-};
+#include <string>
 
-//
-// The internal view of a uniform/float object exchanged with the driver.
-//
-class TUniformLinkedMap : public TUniformMap {
-public:
-    TUniformLinkedMap() { }
-    virtual int getLocation(const char*) { return 0; }
-};
+#include "../Include/ResourceLimits.h"
 
-TShHandleBase* ConstructLinker(EShExecutable executable, int debugOptions)
-{
-    return new TGenericLinker(executable, debugOptions);
-}
+// Return pointer to user-writable Resource to pass through API in
+// future-proof way.
+extern TBuiltInResource* GetResources();
 
-void DeleteLinker(TShHandleBase* linker)
-{
-    delete linker;
-}
+// These are the default resources for TBuiltInResources, used for both
+//  - parsing this string for the case where the user didn't supply one,
+//  - dumping out a template for user construction of a config file.
+extern const TBuiltInResource* GetDefaultResources();
 
-TUniformMap* ConstructUniformMap()
-{
-    return new TUniformLinkedMap();
-}
+// Returns the DefaultTBuiltInResource as a human-readable string.
+std::string GetDefaultTBuiltInResourceString();
 
-void DeleteUniformMap(TUniformMap* map)
-{
-    delete map;
-}
+// Decodes the resource limits from |config| to |resources|.
+void DecodeResourceLimits(TBuiltInResource* resources, char* config);
 
-TShHandleBase* ConstructBindings()
-{
-    return nullptr;
-}
-
-void DeleteBindingList(TShHandleBase* bindingList)
-{
-    delete bindingList;
-}
+#endif  // _STAND_ALONE_RESOURCE_LIMITS_INCLUDED_

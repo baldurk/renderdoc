@@ -55,6 +55,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <set>
 
 namespace spv {
 
@@ -96,6 +97,8 @@ public:
     explicit Instruction(Op opCode) : resultId(NoResult), typeId(NoType), opCode(opCode), block(nullptr) { }
     virtual ~Instruction() {}
     void addIdOperand(Id id) {
+        // ids can't be 0
+        assert(id);
         operands.push_back(id);
         idOperand.push_back(true);
     }
@@ -110,27 +113,23 @@ public:
 
     void addStringOperand(const char* str)
     {
-        unsigned int word;
-        char* wordString = (char*)&word;
-        char* wordPtr = wordString;
-        int charCount = 0;
+        unsigned int word = 0;
+        unsigned int shiftAmount = 0;
         char c;
+
         do {
             c = *(str++);
-            *(wordPtr++) = c;
-            ++charCount;
-            if (charCount == 4) {
+            word |= ((unsigned int)c) << shiftAmount;
+            shiftAmount += 8;
+            if (shiftAmount == 32) {
                 addImmediateOperand(word);
-                wordPtr = wordString;
-                charCount = 0;
+                word = 0;
+                shiftAmount = 0;
             }
         } while (c != 0);
 
         // deal with partial last word
-        if (charCount > 0) {
-            // pad with 0s
-            for (; charCount < 4; ++charCount)
-                *(wordPtr++) = 0;
+        if (shiftAmount > 0) {
             addImmediateOperand(word);
         }
     }
@@ -262,6 +261,7 @@ public:
         case OpBranchConditional:
         case OpSwitch:
         case OpKill:
+        case OpTerminateInvocation:
         case OpReturn:
         case OpReturnValue:
         case OpUnreachable:
@@ -351,12 +351,44 @@ public:
     const std::vector<Block*>& getBlocks() const { return blocks; }
     void addLocalVariable(std::unique_ptr<Instruction> inst);
     Id getReturnType() const { return functionInstruction.getTypeId(); }
+    Id getFuncId() const { return functionInstruction.getResultId(); }
+    void setReturnPrecision(Decoration precision)
+    {
+        if (precision == DecorationRelaxedPrecision)
+            reducedPrecisionReturn = true;
+    }
+    Decoration getReturnPrecision() const
+        { return reducedPrecisionReturn ? DecorationRelaxedPrecision : NoPrecision; }
+
+    void setDebugLineInfo(Id fileName, int line, int column) {
+        lineInstruction = std::unique_ptr<Instruction>{new Instruction(OpLine)};
+        lineInstruction->addIdOperand(fileName);
+        lineInstruction->addImmediateOperand(line);
+        lineInstruction->addImmediateOperand(column);
+    }
+    bool hasDebugLineInfo() const { return lineInstruction != nullptr; }
 
     void setImplicitThis() { implicitThis = true; }
     bool hasImplicitThis() const { return implicitThis; }
 
+    void addParamPrecision(unsigned param, Decoration precision)
+    {
+        if (precision == DecorationRelaxedPrecision)
+            reducedPrecisionParams.insert(param);
+    }
+    Decoration getParamPrecision(unsigned param) const
+    {
+        return reducedPrecisionParams.find(param) != reducedPrecisionParams.end() ?
+            DecorationRelaxedPrecision : NoPrecision;
+    }
+
     void dump(std::vector<unsigned int>& out) const
     {
+        // OpLine
+        if (lineInstruction != nullptr) {
+            lineInstruction->dump(out);
+        }
+
         // OpFunction
         functionInstruction.dump(out);
 
@@ -375,10 +407,13 @@ protected:
     Function& operator=(Function&);
 
     Module& parent;
+    std::unique_ptr<Instruction> lineInstruction;
     Instruction functionInstruction;
     std::vector<Instruction*> parameterInstructions;
     std::vector<Block*> blocks;
     bool implicitThis;  // true if this is a member function expecting to be passed a 'this' as the first argument
+    bool reducedPrecisionReturn;
+    std::set<int> reducedPrecisionParams;  // list of parameter indexes that need a relaxed precision arg
 };
 
 //
@@ -439,7 +474,9 @@ protected:
 // - the OpFunction instruction
 // - all the OpFunctionParameter instructions
 __inline Function::Function(Id id, Id resultType, Id functionType, Id firstParamId, Module& parent)
-    : parent(parent), functionInstruction(id, resultType, OpFunction), implicitThis(false)
+    : parent(parent), lineInstruction(nullptr),
+      functionInstruction(id, resultType, OpFunction), implicitThis(false),
+      reducedPrecisionReturn(false)
 {
     // OpFunction
     functionInstruction.addImmediateOperand(FunctionControlMaskNone);

@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <functional>
 #include "driver/shaders/spirv/glslang_compile.h"
+#include "glslang/glslang/Public/ResourceLimits.h"
 #include "glslang/glslang/Public/ShaderLang.h"
 #include "gl_driver.h"
 
