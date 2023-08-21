@@ -699,7 +699,7 @@ void PreprocessLineDirectives(rdcarray<ShaderSourceFile> &sourceFiles)
 
           rdcstr fname = filename;
           if(fname.empty())
-            fname = "shader";
+            fname = "unnamed_shader";
 
           // find the new destination file
           bool found = false;

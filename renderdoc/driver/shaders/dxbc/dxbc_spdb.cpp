@@ -167,7 +167,7 @@ SPDBChunk::SPDBChunk(byte *data, uint32_t spdblength)
       SPDBLOG("Found file '%s' from stream %u", filename, it->second);
 
       if(filename[0] == 0)
-        filename = "shader";
+        filename = "unnamed_shader";
 
       Files.push_back({filename, rdcstr((const char *)fileContents.Data(), s.byteLength)});
     }
@@ -1397,7 +1397,7 @@ SPDBChunk::SPDBChunk(byte *data, uint32_t spdblength)
           {
             name = Names[checksum->nameIndex];
             if(name.empty())
-              name = Names[checksum->nameIndex] = "shader";
+              name = Names[checksum->nameIndex] = "unnamed_shader";
           }
           else
           {
