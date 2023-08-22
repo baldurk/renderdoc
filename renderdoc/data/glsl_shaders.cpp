@@ -722,7 +722,7 @@ void main() {
     {
       CHECK(refl.debugInfo.files[0].filename == "source0.glsl");
 
-      REQUIRE(refl.debugInfo.compileFlags.flags.size() == 1);
+      REQUIRE(refl.debugInfo.compileFlags.flags.size() == 2);
 
       CHECK(refl.debugInfo.compileFlags.flags[0].name == "@cmdline");
 
@@ -732,6 +732,9 @@ void main() {
       else
         CHECK(refl.debugInfo.compileFlags.flags[0].value ==
               " --client vulkan100 --target-env vulkan1.0 --entry-point main");
+
+      CHECK(refl.debugInfo.compileFlags.flags[1].name == "@spirver");
+      CHECK(refl.debugInfo.compileFlags.flags[1].value == "spirv1.0");
     }
   };
 
