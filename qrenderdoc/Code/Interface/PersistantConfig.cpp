@@ -699,15 +699,15 @@ rdcstr ShaderProcessingTool::DefaultArguments() const
   else if(tool == KnownShaderTool::spirv_dis || tool == KnownShaderTool::spirv_dis_OpenGL)
     return "--no-color";
   else if(tool == KnownShaderTool::glslangValidatorGLSL)
-    return "-g -V -S {glsl_stage4}";
+    return "-g -V -S {glsl_stage4} --target-env {spirv_ver}";
   else if(tool == KnownShaderTool::glslangValidatorGLSL_OpenGL)
-    return "-g -G -S {glsl_stage4}";
+    return "-g -G -S {glsl_stage4} --target-env {spirv_ver}";
   else if(tool == KnownShaderTool::glslangValidatorHLSL)
-    return "-D -g -V -S {glsl_stage4} -e {entry_point}";
+    return "-D -g -V -S {glsl_stage4} -e {entry_point} --target-env {spirv_ver}";
   else if(tool == KnownShaderTool::spirv_as || tool == KnownShaderTool::spirv_as_OpenGL)
     return "";
   else if(tool == KnownShaderTool::dxcSPIRV)
-    return "-T {hlsl_stage2}_6_0 -E {entry_point} -spirv";
+    return "-T {hlsl_stage2}_6_0 -E {entry_point} -spirv -fspv-target-env={vulkan_ver}";
   else if(tool == KnownShaderTool::dxcDXIL)
     return "-T {hlsl_stage2}_6_0 -E {entry_point}";
   else if(tool == KnownShaderTool::fxc)

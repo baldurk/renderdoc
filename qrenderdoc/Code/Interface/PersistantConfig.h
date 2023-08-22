@@ -113,6 +113,8 @@ struct ShaderProcessingTool
 :param str source: The source code, preprocessed into a single file.
 :param str entryPoint: The name of the entry point in the shader to compile.
 :param renderdoc.ShaderStage stage: The pipeline stage that this shader represents.
+:param str spirvVer: The version of SPIR-V in use for this shader, or an empty string for defaults.
+  The current version can be obtained from reflection data via the ``@spirver`` compile flag.
 :param str args: arguments to pass to the tool. The default arguments can be obtained using
   :meth:`DefaultArguments` which can then be customised as desired. Passing an empty string uses the
   default arguments.
@@ -120,7 +122,7 @@ struct ShaderProcessingTool
 :rtype: ShaderToolOutput
 )");
   ShaderToolOutput CompileShader(QWidget *window, rdcstr source, rdcstr entryPoint,
-                                 ShaderStage stage, rdcstr args) const;
+                                 ShaderStage stage, rdcstr spirvVer, rdcstr args) const;
 
 private:
   DOCUMENT("Internal function");

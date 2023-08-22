@@ -1043,7 +1043,13 @@ IShaderViewer *PipelineStateViewer::EditDecompiledSource(const ShaderProcessingT
   rdcstrpairs files;
   files.push_back(rdcpair<rdcstr, rdcstr>("decompiled", source));
 
-  IShaderViewer *sv = EditShader(id, shaderDetails->stage, shaderDetails->entryPoint, {},
+  ShaderCompileFlags flags;
+
+  for(const ShaderCompileFlag &flag : shaderDetails->debugInfo.compileFlags.flags)
+    if(flag.name == "@spirver")
+      flags.flags.push_back(flag);
+
+  IShaderViewer *sv = EditShader(id, shaderDetails->stage, shaderDetails->entryPoint, flags,
                                  KnownShaderTool::Unknown, tool.output, files);
 
   sv->ShowErrors(out.log);

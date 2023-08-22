@@ -936,6 +936,9 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   if(!cmdline.empty())
     reflection.debugInfo.compileFlags.flags = {{"@cmdline", cmdline}};
 
+  reflection.debugInfo.compileFlags.flags.push_back(
+      {"@spirver", StringFormat::Fmt("spirv%d.%d", m_MajorVersion, m_MinorVersion)});
+
   {
     auto it = funcToDebugFunc.find(entry->id);
     if(it != funcToDebugFunc.end())

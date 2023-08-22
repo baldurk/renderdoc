@@ -88,7 +88,7 @@ ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
 
 ShaderToolOutput ShaderProcessingTool::CompileShader(QWidget *window, rdcstr source,
                                                      rdcstr entryPoint, ShaderStage stage,
-                                                     rdcstr arguments) const
+                                                     rdcstr spirvVer, rdcstr arguments) const
 {
   return {};
 }

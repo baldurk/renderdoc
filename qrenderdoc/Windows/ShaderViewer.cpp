@@ -6029,6 +6029,11 @@ void ShaderViewer::on_refresh_clicked()
 
     rdcarray<ShaderEncoding> accepted = m_Ctx.TargetShaderEncodings();
 
+    rdcstr spirvVer = "spirv1.0";
+    for(const ShaderCompileFlag &flag : m_Flags.flags)
+      if(flag.name == "@spirver")
+        spirvVer = flag.value;
+
     if(m_CustomShader || (accepted.indexOf(encoding) >= 0 &&
                           ui->compileTool->currentIndex() == ui->compileTool->count() - 1))
     {
@@ -6041,7 +6046,7 @@ void ShaderViewer::on_refresh_clicked()
         if(QString(tool.name) == ui->compileTool->currentText())
         {
           ShaderToolOutput out = tool.CompileShader(this, source, ui->entryFunc->text(), m_Stage,
-                                                    ui->toolCommandLine->toPlainText());
+                                                    spirvVer, ui->toolCommandLine->toPlainText());
 
           ShowErrors(out.log);
 

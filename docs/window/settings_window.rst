@@ -241,6 +241,8 @@ Other custom tools can be configured, but for those the command line arguments m
 * ``{entry_point}`` will be replaced by the entry point name, only when compiling a shader.
 * ``{glsl_stage4}`` will be replaced by the glsl stage short-hand, one of: vert, tesc, tese, geom, frag, or comp.
 * ``{hlsl_stage2}`` will be replaced by the hlsl stage short-hand, one of: vs, hs, ds, gs, ps, or cs.
+* ``{spirv_ver}`` will be replaced by the SPIR-V version in use, e.g. spirv1.2 or spirv1.6.
+* ``{vulkan_ver}`` will be replaced by the Vulkan-identified SPIR-V version in use, e.g. vulkan1.0 or vulkan1.3. This value may be lossy, and will pick the next *lowest* version that compiles with a given SPIR-V version. E.g. SPIR-V 1.2 was not used by a vulkan version, so will be rounded down to vulkan1.0.
 
 You must also select the input and output format of the tool, such as HLSL input and SPIR-V output. This will be used to match the tool against a given need at runtime with different types of shaders.
 

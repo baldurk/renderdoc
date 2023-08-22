@@ -41,6 +41,22 @@ static QString tmpPath(const QString &filename)
   return QDir(QDir::tempPath()).absoluteFilePath(filename);
 }
 
+QString vulkanVerForSpirVer(QString spirvVer)
+{
+  if(spirvVer == lit("spirv1.0") || spirvVer == lit("spirv1.1") || spirvVer == lit("spirv1.2"))
+    return lit("vulkan1.0");
+  if(spirvVer == lit("spirv1.3"))
+    return lit("vulkan1.1");
+  if(spirvVer == lit("spirv1.4"))
+    return lit("vulkan1.1spirv1.4");
+  if(spirvVer == lit("spirv1.5"))
+    return lit("vulkan1.2");
+  if(spirvVer == lit("spirv1.6"))
+    return lit("vulkan1.3");
+  else
+    return lit("vulkan1.3");
+}
+
 static ShaderToolOutput RunTool(const ShaderProcessingTool &tool, QWidget *window,
                                 QString input_file, QString output_file, QStringList &argList)
 {
@@ -243,6 +259,11 @@ ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
 
   input_file = tmpPath(lit("shader_input"));
 
+  QString spirvVer = lit("spirv1.0");
+  for(const ShaderCompileFlag &flag : shaderDetails->debugInfo.compileFlags.flags)
+    if(flag.name == "@spirver")
+      spirvVer = flag.value;
+
   // replace arguments after expansion to avoid problems with quoting paths etc
   for(QString &arg : argList)
   {
@@ -262,6 +283,10 @@ ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
       arg.replace(0, 13, glsl_stage4[int(shaderDetails->stage)]);
     if(arg.left(13) == lit("{hlsl_stage2}"))
       arg.replace(0, 13, hlsl_stage2[int(shaderDetails->stage)]);
+    if(arg.left(11) == lit("{spirv_ver}"))
+      arg.replace(0, 11, spirvVer);
+    if(arg.left(12) == lit("{vulkan_ver}"))
+      arg.replace(0, 12, vulkanVerForSpirVer(spirvVer));
   }
 
   QFile binHandle(input_file);
@@ -287,7 +312,7 @@ ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
 
 ShaderToolOutput ShaderProcessingTool::CompileShader(QWidget *window, rdcstr source,
                                                      rdcstr entryPoint, ShaderStage stage,
-                                                     rdcstr arguments) const
+                                                     rdcstr spirvVer, rdcstr arguments) const
 {
   QStringList argList = ParseArgsList(arguments.isEmpty() ? DefaultArguments() : arguments);
   // always append IO arguments for known tools, so we read/write to our own files and override any
@@ -297,6 +322,9 @@ ShaderToolOutput ShaderProcessingTool::CompileShader(QWidget *window, rdcstr sou
   QString input_file, output_file;
 
   input_file = tmpPath(lit("shader_input"));
+
+  if(spirvVer.isEmpty())
+    spirvVer = "spirv1.0";
 
   // replace arguments after expansion to avoid problems with quoting paths etc
   for(QString &arg : argList)
@@ -313,6 +341,10 @@ ShaderToolOutput ShaderProcessingTool::CompileShader(QWidget *window, rdcstr sou
       arg.replace(0, 13, glsl_stage4[int(stage)]);
     if(arg.left(13) == lit("{hlsl_stage2}"))
       arg.replace(0, 13, hlsl_stage2[int(stage)]);
+    if(arg.left(11) == lit("{spirv_ver}"))
+      arg.replace(0, 11, spirvVer);
+    if(arg.left(12) == lit("{vulkan_ver}"))
+      arg.replace(0, 12, vulkanVerForSpirVer(spirvVer));
   }
 
   QFile binHandle(input_file);

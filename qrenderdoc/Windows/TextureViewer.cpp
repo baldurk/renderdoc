@@ -4415,7 +4415,7 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
               }
 
               ShaderToolOutput out =
-                  tool.CompileShader(this, source, "main", ShaderStage::Pixel, "");
+                  tool.CompileShader(this, source, "main", ShaderStage::Pixel, "", "");
 
               errors = out.log;
 
