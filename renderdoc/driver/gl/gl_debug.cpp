@@ -444,6 +444,14 @@ void GLReplay::InitDebugData()
   DebugData.texDisplayVertexShader = CreateShader(eGL_VERTEX_SHADER, vs);
 
   vs = GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer);
+  fs = GenerateGLSLShader(GetEmbeddedResource(glsl_fixedcol_frag), shaderType, glslBaseVer);
+  DebugData.fullScreenFixedColProg = CreateShaderProgram(vs, fs);
+
+  fs = GenerateGLSLShader(GetEmbeddedResource(glsl_depth_copy_frag), shaderType, glslBaseVer);
+  DebugData.fullScreenCopyDepth = CreateShaderProgram(vs, fs);
+
+  fs = GenerateGLSLShader(GetEmbeddedResource(glsl_depth_copyms_frag), shaderType, glslBaseVer);
+  DebugData.fullScreenCopyDepthMS = CreateShaderProgram(vs, fs);
 
   DebugData.fixedcolFragShaderSPIRV = DebugData.quadoverdrawFragShaderSPIRV = 0;
 
@@ -1224,6 +1232,13 @@ void GLReplay::DeleteDebugData()
 
   drv.glDeleteFramebuffers(1, &DebugData.overlayFBO);
   drv.glDeleteTextures(1, &DebugData.overlayTex);
+
+  if(DebugData.fullScreenFixedColProg)
+    drv.glDeleteProgram(DebugData.fullScreenFixedColProg);
+  if(DebugData.fullScreenCopyDepth)
+    drv.glDeleteProgram(DebugData.fullScreenCopyDepth);
+  if(DebugData.fullScreenCopyDepthMS)
+    drv.glDeleteProgram(DebugData.fullScreenCopyDepthMS);
 
   if(DebugData.quadoverdrawFragShader)
     drv.glDeleteShader(DebugData.quadoverdrawFragShader);

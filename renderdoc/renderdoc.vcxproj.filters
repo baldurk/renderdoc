@@ -1130,6 +1130,12 @@
     <None Include="data\glsl\vk_ms2buffer.comp">
       <Filter>Resources\glsl</Filter>
     </None>
+    <None Include="data\glsl\depth_copy.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\depth_copyms.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">
