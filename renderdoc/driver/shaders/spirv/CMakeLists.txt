@@ -132,7 +132,7 @@ endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set_property(SOURCE ${glslang_sources}
-        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unknown-warning-option -Wno-shadow")
+        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unknown-warning-option -Wno-shadow -Wno-shorten-64-to-32")
 
     set_property(SOURCE 
         spirv_debug.cpp
