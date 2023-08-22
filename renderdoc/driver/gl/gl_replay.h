@@ -411,6 +411,10 @@ private:
     GLuint quadoverdrawFragShaderSPIRV;
     GLuint quadoverdrawResolveProg;
 
+    GLuint fullScreenFixedColProg;
+    GLuint fullScreenCopyDepth;
+    GLuint fullScreenCopyDepthMS;
+
     GLuint discardProg[3][4];
     GLuint discardPatternBuffer;
 

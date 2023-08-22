@@ -418,6 +418,8 @@ endif()
 set(data
     data/glsl/blit.vert
     data/glsl/checkerboard.frag
+    data/glsl/depth_copy.frag
+    data/glsl/depth_copyms.frag
     data/glsl/glsl_ubos.h
     data/glsl/glsl_globals.h
     data/glsl/fixedcol.frag
