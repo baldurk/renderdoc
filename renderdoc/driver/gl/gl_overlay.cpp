@@ -475,6 +475,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
       RDCWARN("Quad overdraw not supported on GLES", glslVer);
   }
 
+  GLuint prog = 0, pipe = 0;
+  drv.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
+  drv.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
   // delete the old program if it exists
   if(DebugData.overlayProg != 0)
     drv.glDeleteProgram(DebugData.overlayProg);
@@ -1008,6 +1011,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
     GLenum copyQueryEnum = texQueryEnum;
 
     GLuint depthCopy = 0, stencilCopy = 0;
+    bool useBlitFramebuffer = true;
 
     // create matching depth for existing FBO
     if(curDepth != 0)
@@ -1045,6 +1049,22 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
           fmt = eGL_DEPTH32F_STENCIL8;
         else if(depth == 0 && stencil == 8)
           fmt = eGL_STENCIL_INDEX8;
+      }
+      // For depth overlay : need a stencil buffer
+      if(overlay == DebugOverlay::Depth)
+      {
+        GLenum oldFmt = fmt;
+        if((oldFmt == eGL_DEPTH_COMPONENT16) || (oldFmt == eGL_DEPTH_COMPONENT24) ||
+           (oldFmt == eGL_DEPTH24_STENCIL8))
+          fmt = eGL_DEPTH24_STENCIL8;
+        else
+          fmt = eGL_DEPTH32F_STENCIL8;
+
+        if(oldFmt != fmt)
+        {
+          useBlitFramebuffer = false;
+          curStencil = curDepth;
+        }
       }
 
       if(copyBindingEnum == eGL_TEXTURE_CUBE_MAP)
@@ -1127,18 +1147,18 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
 
       if(type != eGL_RENDERBUFFER)
       {
-        ResourceId id = m_pDriver->GetResourceManager()->GetResID(TextureRes(ctx, curDepth));
+        ResourceId id = m_pDriver->GetResourceManager()->GetResID(TextureRes(ctx, curStencil));
         fmt = m_pDriver->m_Textures[id].internalFormat;
       }
       else
       {
-        ResourceId id = m_pDriver->GetResourceManager()->GetResID(RenderbufferRes(ctx, curDepth));
+        ResourceId id = m_pDriver->GetResourceManager()->GetResID(RenderbufferRes(ctx, curStencil));
         fmt = m_pDriver->m_Textures[id].internalFormat;
 
         GLint depth = 0;
         GLint stencil = 0;
-        GL.glGetNamedRenderbufferParameterivEXT(curDepth, eGL_RENDERBUFFER_DEPTH_SIZE, &depth);
-        GL.glGetNamedRenderbufferParameterivEXT(curDepth, eGL_RENDERBUFFER_STENCIL_SIZE, &stencil);
+        GL.glGetNamedRenderbufferParameterivEXT(curStencil, eGL_RENDERBUFFER_DEPTH_SIZE, &depth);
+        GL.glGetNamedRenderbufferParameterivEXT(curStencil, eGL_RENDERBUFFER_STENCIL_SIZE, &stencil);
 
         if(depth == 16 && stencil == 0)
           fmt = eGL_DEPTH_COMPONENT16;
@@ -1222,6 +1242,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
       drv.glBindTexture(copyBindingEnum, curTex);
     }
 
+    // bind the 'real' fbo to the read framebuffer, so we can blit from it
+    drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, rs.DrawFBO.name);
+
     // bind depth/stencil to overlay FBO (currently bound to DRAW_FRAMEBUFFER)
     if(curDepth != 0 && curDepth == curStencil)
     {
@@ -1239,11 +1262,46 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
                                  stencilCopy, sub.mip);
     }
 
-    // bind the 'real' fbo to the read framebuffer, so we can blit from it
-    drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, rs.DrawFBO.name);
+    if(useBlitFramebuffer)
+    {
+      // get latest depth/stencil from read FBO (existing FBO) into draw FBO (overlay FBO)
+      SafeBlitFramebuffer(0, 0, outWidth, outHeight, 0, 0, outWidth, outHeight,
+                          GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
+    }
+    else
+    {
+      GLRenderState savedRS;
+      savedRS.FetchState(&drv);
 
-    float green[] = {0.0f, 1.0f, 0.0f, 1.0f};
-    drv.glProgramUniform4fv(DebugData.overlayProg, overlayFixedColLocation, 1, green);
+      // Fullscreen pass with shader to read from old depth buffer and write to new depth buffer
+      drv.glDisable(eGL_BLEND);
+      drv.glDisable(eGL_SCISSOR_TEST);
+      drv.glDisable(eGL_STENCIL_TEST);
+      drv.glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+      drv.glEnable(eGL_DEPTH_TEST);
+      drv.glDepthFunc(eGL_ALWAYS);
+      drv.glDepthMask(GL_TRUE);
+      drv.glDisable(eGL_CULL_FACE);
+      if(!IsGLES)
+        drv.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+
+      if(DebugData.overlayTexSamples > 1)
+        drv.glUseProgram(DebugData.fullScreenCopyDepthMS);
+      else
+        drv.glUseProgram(DebugData.fullScreenCopyDepth);
+      drv.glBindProgramPipeline(0);
+
+      drv.glActiveTexture(eGL_TEXTURE0);
+      drv.glBindTexture(copyBindingEnum, curDepth);
+
+      GLuint emptyVAO = 0;
+      drv.glGenVertexArrays(1, &emptyVAO);
+      drv.glBindVertexArray(emptyVAO);
+      drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+      drv.glDeleteVertexArrays(1, &emptyVAO);
+
+      savedRS.ApplyState(&drv);
+    }
 
     if(overlay == DebugOverlay::Depth)
     {
@@ -1273,11 +1331,60 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
     if(!IsGLES && !rs.Enabled[GLRenderState::eEnabled_DepthClamp])
       drv.glDisable(eGL_DEPTH_CLAMP);
 
-    // get latest depth/stencil from read FBO (existing FBO) into draw FBO (overlay FBO)
-    SafeBlitFramebuffer(0, 0, outWidth, outHeight, 0, 0, outWidth, outHeight,
-                        GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
+    bool useDepthStencilMask = (overlay == DebugOverlay::Depth) && (curDepth != 0);
+    if(useDepthStencilMask)
+    {
+      drv.glStencilMask(0xff);
+      GLint stencilClear = 0x0;
+      drv.glClearBufferiv(eGL_STENCIL, 0, &stencilClear);
+      drv.glEnable(eGL_STENCIL_TEST);
+      drv.glStencilFunc(eGL_ALWAYS, 1, 0xff);
+      drv.glStencilOp(eGL_KEEP, eGL_KEEP, eGL_REPLACE);
+
+      drv.glBindProgramPipeline(pipe);
+      drv.glUseProgram(prog);
+
+      drv.glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    }
+    else
+    {
+      float green[] = {0.0f, 1.0f, 0.0f, 1.0f};
+      drv.glProgramUniform4fv(DebugData.overlayProg, overlayFixedColLocation, 1, green);
+    }
 
     ReplayLog(eventId, eReplay_OnlyDraw);
+
+    if(useDepthStencilMask)
+    {
+      float green[] = {0.0f, 1.0f, 0.0f, 1.0f};
+      GLint fixedColLocation = 99;
+      if(!spirvOverlay)
+        fixedColLocation =
+            drv.glGetUniformLocation(DebugData.fullScreenFixedColProg, "RENDERDOC_Fixed_Color");
+      drv.glProgramUniform4fv(DebugData.fullScreenFixedColProg, fixedColLocation, 1, green);
+
+      drv.glDisable(eGL_BLEND);
+      drv.glDisable(eGL_SCISSOR_TEST);
+      drv.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+      drv.glDepthMask(GL_FALSE);
+      drv.glDisable(eGL_CULL_FACE);
+      if(!IsGLES)
+        drv.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+      drv.glDisable(eGL_DEPTH_TEST);
+      drv.glEnable(eGL_STENCIL_TEST);
+      drv.glStencilMask(0x0);
+      drv.glStencilFunc(eGL_EQUAL, 1, 0xff);
+
+      drv.glUseProgram(DebugData.fullScreenFixedColProg);
+      drv.glBindProgramPipeline(0);
+
+      GLuint emptyVAO = 0;
+      drv.glGenVertexArrays(1, &emptyVAO);
+      drv.glBindVertexArray(emptyVAO);
+      drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+      drv.glBindVertexArray(0);
+      drv.glDeleteVertexArrays(1, &emptyVAO);
+    }
 
     // unset depth/stencil textures from overlay FBO and delete temp depth/stencil
     if(curDepth != 0 && curDepth == curStencil)
@@ -1681,7 +1788,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
           }
         }
 
-        GLuint prog = 0, pipe = 0;
+        prog = 0;
+        pipe = 0;
         drv.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
         drv.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
 
@@ -2060,7 +2168,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
           // bind image
           drv.glBindImageTexture(0, quadtexs[1], 0, GL_TRUE, 0, eGL_READ_WRITE, eGL_R32UI);
 
-          GLuint prog = 0, pipe = 0;
+          prog = 0;
+          pipe = 0;
           drv.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
           drv.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
 
