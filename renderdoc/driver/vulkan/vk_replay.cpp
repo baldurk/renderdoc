@@ -137,8 +137,9 @@ rdcarray<GPUDevice> VulkanReplay::GetAvailableGPUs()
     VkPhysicalDeviceDriverProperties driverProps = {};
     GetPhysicalDeviceDriverProperties(ObjDisp(instance), devices[p], driverProps);
 
+    VkDriverInfo driverInfo(props, driverProps);
     GPUDevice dev;
-    dev.vendor = GPUVendorFromPCIVendor(props.vendorID);
+    dev.vendor = driverInfo.Vendor();
     dev.deviceID = props.deviceID;
     dev.name = props.deviceName;
     dev.apis = {GraphicsAPI::Vulkan};
