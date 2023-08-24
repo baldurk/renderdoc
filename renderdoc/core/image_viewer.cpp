@@ -493,7 +493,7 @@ RDResult IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   {
     FileIO::fseek64(f, 0, SEEK_SET);
     StreamReader reader(f);
-    read_dds_data read_data;
+    read_dds_data read_data = {};
     RDResult res = load_dds_from_file(&reader, read_data);
     f = NULL;
 

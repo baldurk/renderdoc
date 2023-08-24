@@ -138,6 +138,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       }
 
       StreamReader reader(captureHeader.data(), (ULONG)size);
+      m_ddsData = {};
       RDResult res = load_dds_from_file(&reader, m_ddsData);
 
       if(res != ResultCode::Succeeded)
