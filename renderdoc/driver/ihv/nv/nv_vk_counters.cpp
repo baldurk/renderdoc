@@ -148,8 +148,9 @@ struct NVVulkanCounters::Impl
     if(actionnode.events.empty())
       return false;    // Skip nodes with no events
 
-    if(!(actionnode.flags & (ActionFlags::Clear | ActionFlags::Drawcall | ActionFlags::Dispatch |
-                             ActionFlags::Present | ActionFlags::Copy | ActionFlags::Resolve)))
+    if(!(actionnode.flags &
+         (ActionFlags::Clear | ActionFlags::MeshDispatch | ActionFlags::Drawcall |
+          ActionFlags::Dispatch | ActionFlags::Present | ActionFlags::Copy | ActionFlags::Resolve)))
       return false;    // Filter out events we cannot profile
 
     return true;

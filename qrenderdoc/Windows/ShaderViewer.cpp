@@ -1109,6 +1109,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
         if(multipleStreams)
           name = QFormatStr("Stream %1 : %2").arg(s.stream).arg(name);
+        if(s.perPrimitiveRate)
+          name += tr(" (Per-Prim)");
 
         QString semIdx = s.needSemanticIndex ? QString::number(s.semanticIndex) : QString();
 

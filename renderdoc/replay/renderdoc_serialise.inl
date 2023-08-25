@@ -157,6 +157,7 @@ void DoSerialise(SerialiserType &ser, SigParameter &el)
   SERIALISE_MEMBER(needSemanticIndex);
   SERIALISE_MEMBER(compCount);
   SERIALISE_MEMBER(stream);
+  SERIALISE_MEMBER(perPrimitiveRate);
 
   SIZE_CHECK(96);
 }
@@ -290,6 +291,7 @@ void DoSerialise(SerialiserType &ser, ShaderReflection &el)
   SERIALISE_MEMBER(encoding);
   SERIALISE_MEMBER(rawBytes);
 
+  SERIALISE_MEMBER(outputTopology);
   SERIALISE_MEMBER(dispatchThreadsDimension);
 
   SERIALISE_MEMBER(inputSignature);
@@ -306,7 +308,9 @@ void DoSerialise(SerialiserType &ser, ShaderReflection &el)
 
   SERIALISE_MEMBER(pointerTypes);
 
-  SIZE_CHECK(392);
+  SERIALISE_MEMBER(taskPayload);
+
+  SIZE_CHECK(456);
 }
 
 template <typename SerialiserType>
@@ -784,6 +788,25 @@ void DoSerialise(SerialiserType &ser, FrameRecord &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, TaskGroupSize &el)
+{
+  SERIALISE_MEMBER(x);
+  SERIALISE_MEMBER(y);
+  SERIALISE_MEMBER(z);
+
+  SIZE_CHECK(12);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, MeshletSize &el)
+{
+  SERIALISE_MEMBER(numIndices);
+  SERIALISE_MEMBER(numVertices);
+
+  SIZE_CHECK(8);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, MeshFormat &el)
 {
   SERIALISE_MEMBER(indexResourceId);
@@ -795,6 +818,11 @@ void DoSerialise(SerialiserType &ser, MeshFormat &el)
   SERIALISE_MEMBER(vertexByteOffset);
   SERIALISE_MEMBER(vertexByteStride);
   SERIALISE_MEMBER(vertexByteSize);
+  SERIALISE_MEMBER(meshletSizes);
+  SERIALISE_MEMBER(taskSizes);
+  SERIALISE_MEMBER(meshletIndexOffset);
+  SERIALISE_MEMBER(perPrimitiveOffset);
+  SERIALISE_MEMBER(perPrimitiveStride);
   SERIALISE_MEMBER(format);
   SERIALISE_MEMBER(meshColor);
   SERIALISE_MEMBER(topology);
@@ -807,7 +835,7 @@ void DoSerialise(SerialiserType &ser, MeshFormat &el)
   SERIALISE_MEMBER(showAlpha);
   SERIALISE_MEMBER(status);
 
-  SIZE_CHECK(152);
+  SIZE_CHECK(224);
 }
 
 template <typename SerialiserType>
@@ -1030,6 +1058,16 @@ void DoSerialise(SerialiserType &ser, StencilFace &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ShaderMeshMessageLocation &el)
+{
+  SERIALISE_MEMBER(taskGroup);
+  SERIALISE_MEMBER(meshGroup);
+  SERIALISE_MEMBER(thread);
+
+  SIZE_CHECK(36);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ShaderComputeMessageLocation &el)
 {
   SERIALISE_MEMBER(workgroup);
@@ -1071,9 +1109,9 @@ void DoSerialise(SerialiserType &ser, ShaderGeometryMessageLocation &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ShaderMessageLocation &el)
 {
-  SERIALISE_MEMBER(compute);
+  SERIALISE_MEMBER(mesh);
 
-  SIZE_CHECK(24);
+  SIZE_CHECK(36);
 }
 
 template <typename SerialiserType>
@@ -1083,7 +1121,7 @@ void DoSerialise(SerialiserType &ser, ShaderMessage &el)
   SERIALISE_MEMBER(location);
   SERIALISE_MEMBER(message);
 
-  SIZE_CHECK(56);
+  SIZE_CHECK(72);
 }
 
 #pragma endregion
@@ -1604,6 +1642,8 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
   SERIALISE_MEMBER(geometryShader);
   SERIALISE_MEMBER(pixelShader);
   SERIALISE_MEMBER(computeShader);
+  SERIALISE_MEMBER(ampShader);
+  SERIALISE_MEMBER(meshShader);
 
   SERIALISE_MEMBER(streamOut);
 
@@ -1613,7 +1653,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 
   SERIALISE_MEMBER(resourceStates);
 
-  SIZE_CHECK(1400);
+  SIZE_CHECK(1688);
 }
 
 #pragma endregion D3D12 pipeline state
@@ -2350,6 +2390,8 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
   SERIALISE_MEMBER(geometryShader);
   SERIALISE_MEMBER(fragmentShader);
   SERIALISE_MEMBER(computeShader);
+  SERIALISE_MEMBER(taskShader);
+  SERIALISE_MEMBER(meshShader);
 
   SERIALISE_MEMBER(tessellation);
 
@@ -2366,7 +2408,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
   SERIALISE_MEMBER(conditionalRendering);
 
-  SIZE_CHECK(2264);
+  SIZE_CHECK(2712);
 }
 
 #pragma endregion Vulkan pipeline state

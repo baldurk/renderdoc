@@ -277,6 +277,8 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
     case DXBC::ShaderType::Hull: refl->stage = ShaderStage::Hull; break;
     case DXBC::ShaderType::Domain: refl->stage = ShaderStage::Domain; break;
     case DXBC::ShaderType::Compute: refl->stage = ShaderStage::Compute; break;
+    case DXBC::ShaderType::Amplification: refl->stage = ShaderStage::Amplification; break;
+    case DXBC::ShaderType::Mesh: refl->stage = ShaderStage::Mesh; break;
     default:
       RDCERR("Unexpected DXBC shader type %u", dxbc->m_Type);
       refl->stage = ShaderStage::Vertex;

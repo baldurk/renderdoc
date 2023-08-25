@@ -296,6 +296,8 @@ rdcstr DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, const rdc
     case ShaderStage::Geometry: stageName = "geom"; break;
     case ShaderStage::Fragment: stageName = "frag"; break;
     case ShaderStage::Compute: stageName = "comp"; break;
+    case ShaderStage::Task: stageName = "task"; break;
+    case ShaderStage::Mesh: stageName = "mesh"; break;
     case ShaderStage::Count: return "; Cannot identify shader type";
   }
 
@@ -399,6 +401,14 @@ rdcstr DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const rdcs
     case ShaderStage::Compute:
       stageIndex = 5;
       stageName = "comp";
+      break;
+    case ShaderStage::Task:
+      stageIndex = 6;
+      stageName = "task";
+      break;
+    case ShaderStage::Mesh:
+      stageIndex = 7;
+      stageName = "mesh";
       break;
     case ShaderStage::Count: return "; Cannot identify shader type";
   }

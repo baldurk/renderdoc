@@ -278,8 +278,14 @@ static int32_t GetBinding(uint32_t binding)
   return binding == ~0U ? INVALID_BIND : (uint32_t)binding;
 }
 
-static bool IsStrippableBuiltin(rdcspv::BuiltIn builtin)
+static bool IsStrippableBuiltin(rdcspv::BuiltIn builtin, bool perPrimitive)
 {
+  if(perPrimitive &&
+     (builtin == rdcspv::BuiltIn::PrimitiveId || builtin == rdcspv::BuiltIn::Layer ||
+      builtin == rdcspv::BuiltIn::ViewportIndex || builtin == rdcspv::BuiltIn::CullPrimitiveEXT ||
+      builtin == rdcspv::BuiltIn::ShadingRateKHR))
+    return true;
+
   return builtin == rdcspv::BuiltIn::PointSize || builtin == rdcspv::BuiltIn::ClipDistance ||
          builtin == rdcspv::BuiltIn::CullDistance;
 }
@@ -871,6 +877,18 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       reflection.dispatchThreadsDimension[2] = e.executionModes.localSize.z;
     }
 
+    {
+      int idx = e.executionModes.others.indexOf(rdcspv::ExecutionMode::OutputVertices);
+      if(idx >= 0)
+        patchData.maxVertices = e.executionModes.others[idx].outputVertices;
+    }
+
+    {
+      int idx = e.executionModes.others.indexOf(rdcspv::ExecutionMode::OutputPrimitivesEXT);
+      if(idx >= 0)
+        patchData.maxPrimitives = e.executionModes.others[idx].outputPrimitivesEXT;
+    }
+
     // vulkan spec says "If an object is decorated with the WorkgroupSize decoration, this must take
     // precedence over any execution mode set for LocalSize."
     for(auto it : constants)
@@ -968,6 +986,10 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
   std::set<Id> usedIds;
   std::map<Id, std::set<uint32_t>> usedStructChildren;
+  // for arrayed top level builtins like gl_MeshPrimitivesEXT[] there could be an access chain
+  // first with just the array index, then later the access to the builtin. This map tracks those
+  // first access chains so the second one can reference the original global
+  std::map<Id, Id> topLevelChildChain;
 
   // build the static call tree from the entry point, and build a list of all IDs referenced
   {
@@ -993,10 +1015,37 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         {
           OpAccessChain access(it);
 
+          const DataType &pointeeType = dataTypes[dataTypes[idTypes[access.base]].InnerType()];
+
+          if(pointeeType.type == DataType::ArrayType)
+          {
+            const DataType &innerType = dataTypes[pointeeType.InnerType()];
+
+            if(innerType.type == DataType::StructType &&
+               (innerType.children[0].decorations.flags & rdcspv::Decorations::HasBuiltIn))
+            {
+              if(access.indexes.size() == 1)
+              {
+                topLevelChildChain[access.result] = access.base;
+              }
+              else if(access.indexes.size() == 2)
+              {
+                usedStructChildren[access.base].insert(
+                    EvaluateConstant(access.indexes[1], specInfo).value.u32v[0]);
+              }
+            }
+          }
           // save top-level children referenced in structs
-          if(dataTypes[dataTypes[idTypes[access.base]].InnerType()].type == DataType::StructType)
-            usedStructChildren[access.base].insert(
+          else if(pointeeType.type == DataType::StructType)
+          {
+            rdcspv::Id globalId = access.base;
+
+            if(topLevelChildChain.find(access.base) != topLevelChildChain.end())
+              globalId = topLevelChildChain[access.base];
+
+            usedStructChildren[globalId].insert(
                 EvaluateConstant(access.indexes[0], specInfo).value.u32v[0]);
+          }
         }
 
         if(it.opcode() == Op::FunctionCall)
@@ -1078,7 +1127,10 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       //
       // Some compilers generate global variables instead of members of a global struct. If this is
       // a directly decorated builtin variable which is never used, skip it
-      if(IsStrippableBuiltin(decorations[global.id].builtIn) && !used)
+      if(IsStrippableBuiltin(
+             decorations[global.id].builtIn,
+             decorations[global.id].others.contains(rdcspv::Decoration::PerPrimitiveEXT)) &&
+         !used)
         continue;
 
       // move to the inner struct if this is an array of structs - e.g. for arrayed shader outputs
@@ -1123,7 +1175,9 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
               continue;
 
             // skip this member if it's unused and of a type that is commonly included 'by accident'
-            if(IsStrippableBuiltin(structType->children[i].decorations.builtIn) &&
+            if(IsStrippableBuiltin(structType->children[i].decorations.builtIn,
+                                   structType->children[i].decorations.others.contains(
+                                       rdcspv::Decoration::PerPrimitiveEXT)) &&
                usedchildren.find(i) == usedchildren.end())
               continue;
 
@@ -1951,6 +2005,9 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
   if(varDecorations.builtIn != BuiltIn::Invalid)
     sig.systemValue = MakeShaderBuiltin(stage, varDecorations.builtIn);
 
+  if(varDecorations.others.contains(rdcspv::Decoration::PerPrimitiveEXT))
+    sig.perPrimitiveRate = true;
+
   // fragment shader outputs are implicitly colour outputs. All other builtin outputs do not have a
   // register index
   if(stage == ShaderStage::Fragment && !isInput && sig.systemValue == ShaderBuiltin::Undefined)
@@ -1980,6 +2037,13 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
       // outputs
       if(stage == ShaderStage::Tess_Control)
         arraySize = 1;
+
+      // for mesh shaders too, ignore the root level of array-ness for outputs
+      if(stage == ShaderStage::Mesh && !isInput)
+      {
+        arraySize = 1;
+        isArray = false;
+      }
 
       // if this is a root array in the geometry shader, don't reflect it as an array either
       if(stage == ShaderStage::Geometry && isInput)
@@ -2090,6 +2154,21 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
 
     if(isArray)
       n += StringFormat::Fmt("[%u]", a);
+
+    // remove certain common prefixes that generate only useless noise from GLSL. This is mostly
+    // irrelevant for the majority of cases but is primarily relevant for single-component outputs
+    // like gl_PointSize or gl_CullPrimitiveEXT
+    const rdcstr prefixesToRemove[] = {
+        "gl_PerVertex.",           "gl_PerVertex_var.",     "gl_MeshVerticesEXT.",
+        "gl_MeshVerticesEXT_var.", "gl_MeshPrimitivesEXT.", "gl_MeshPrimitivesEXT_var.",
+    };
+
+    for(const rdcstr &prefix : prefixesToRemove)
+    {
+      int offs = n.find(prefix);
+      if(offs == 0)
+        n.erase(0, prefix.length());
+    }
 
     sig.varName = n;
 

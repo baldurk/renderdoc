@@ -59,7 +59,9 @@ rdcstr rdcspv::Compile(const rdcspv::CompilationSettings &settings, const rdcarr
                         (int)EShLangTessControl == (int)rdcspv::ShaderStage::TessControl &&
                         (int)EShLangTessEvaluation == (int)rdcspv::ShaderStage::TessEvaluation &&
                         (int)EShLangGeometry == (int)rdcspv::ShaderStage::Geometry &&
-                        (int)EShLangCompute == (int)rdcspv::ShaderStage::Compute,
+                        (int)EShLangCompute == (int)rdcspv::ShaderStage::Compute &&
+                        (int)EShLangTask == (int)rdcspv::ShaderStage::Task &&
+                        (int)EShLangMesh == (int)rdcspv::ShaderStage::Mesh,
                     "Shader language enums don't match");
 
   {

@@ -133,6 +133,26 @@
           </widget>
          </item>
          <item>
+          <widget class="QCheckBox" name="task">
+           <property name="text">
+            <string>Task</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="mesh">
+           <property name="text">
+            <string>Mesh</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QCheckBox" name="vertex">
            <property name="text">
             <string>Vertex</string>

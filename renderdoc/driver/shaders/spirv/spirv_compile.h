@@ -37,6 +37,9 @@ enum class ShaderStage
   Geometry,
   Fragment,
   Compute,
+  // gap of 6 for RT shaders
+  Task = Compute + 7,
+  Mesh,
   Invalid,
 };
 

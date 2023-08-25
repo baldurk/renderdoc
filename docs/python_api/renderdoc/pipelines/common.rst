@@ -147,6 +147,9 @@ Shader Messages
 .. autoclass:: renderdoc.ShaderMessageLocation
   :members:
 
+.. autoclass:: renderdoc.ShaderMeshMessageLocation
+  :members:
+
 .. autoclass:: renderdoc.ShaderVertexMessageLocation
   :members:
 

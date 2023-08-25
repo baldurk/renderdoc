@@ -360,8 +360,8 @@ private:
 
   friend struct Following;
 
-  rdcarray<BoundResourceArray> m_ReadOnlyResources[(uint32_t)ShaderStage::Count];
-  rdcarray<BoundResourceArray> m_ReadWriteResources[(uint32_t)ShaderStage::Count];
+  rdcarray<BoundResourceArray> m_ReadOnlyResources[NumShaderStages];
+  rdcarray<BoundResourceArray> m_ReadWriteResources[NumShaderStages];
 
   QTime m_CustomShaderTimer;
   int m_CustomShaderWriteTime = 0;

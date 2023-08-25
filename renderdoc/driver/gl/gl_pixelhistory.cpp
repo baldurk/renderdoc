@@ -707,14 +707,15 @@ void CopyMSSample(WrappedOpenGL *driver, const GLPixelHistoryResources &resource
   driver->glUniform1i(depthMSLoc, 0);
   driver->glUniform1i(stencilMSLoc, 1);
 
-  uint32_t newUniforms[6] = {uint32_t(sampleIdx),
-                             uint32_t(x),
-                             uint32_t(y),
-                             1,
-                             copyFramebuffer.dsTextureId != 0 || copyFramebuffer.depthTextureId != 0,
-                             copyFramebuffer.dsTextureId != 0 ||
-                                 copyFramebuffer.stencilTextureId !=
-                                     0};    // { sampleIdx, x, y, dstOffset, hasDepth, hasStencil }
+  // { sampleIdx, x, y, dstOffset, hasDepth, hasStencil }
+  uint32_t newUniforms[6] = {
+      uint32_t(sampleIdx),
+      uint32_t(x),
+      uint32_t(y),
+      1,
+      copyFramebuffer.dsTextureId != 0 || copyFramebuffer.depthTextureId != 0,
+      copyFramebuffer.dsTextureId != 0 || copyFramebuffer.stencilTextureId != 0,
+  };
   driver->glNamedBufferSubDataEXT(resources.msCopyUniformBlockBuffer, 0, sizeof(newUniforms),
                                   newUniforms);
 

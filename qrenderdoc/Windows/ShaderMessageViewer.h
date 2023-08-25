@@ -94,6 +94,7 @@ private:
   const ActionDescription *m_Action;
   rdcarray<ShaderMessage> m_Messages;
 
-  ResourceId m_OrigShaders[6];
-  ResourceId m_ReplacedShaders[6];
+  ShaderStage m_LayoutStage;
+  ResourceId m_OrigShaders[NumShaderStages];
+  ResourceId m_ReplacedShaders[NumShaderStages];
 };

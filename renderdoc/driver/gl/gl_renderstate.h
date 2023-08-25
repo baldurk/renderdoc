@@ -157,6 +157,8 @@ struct GLRenderState
     GLint numSubroutines;
     GLuint Values[128];
   } Subroutines[6];
+  // since this array is serialised (and because GL will never support other shader stages) we leave
+  // this at 6 instead of NumShaderStages
 
   enum
   {

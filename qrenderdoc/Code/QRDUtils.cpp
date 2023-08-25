@@ -1378,31 +1378,37 @@ QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
       case ResourceUsage::VertexBuffer: return lit("Vertex Buffer");
       case ResourceUsage::IndexBuffer: return lit("Index Buffer");
 
-      case ResourceUsage::VS_Constants: return lit("VS - Uniform Buffer");
-      case ResourceUsage::GS_Constants: return lit("GS - Uniform Buffer");
-      case ResourceUsage::HS_Constants: return lit("HS - Uniform Buffer");
-      case ResourceUsage::DS_Constants: return lit("DS - Uniform Buffer");
-      case ResourceUsage::CS_Constants: return lit("CS - Uniform Buffer");
-      case ResourceUsage::PS_Constants: return lit("PS - Uniform Buffer");
-      case ResourceUsage::All_Constants: return lit("All - Uniform Buffer");
+      case ResourceUsage::VS_Constants: return lit("VS - Constant Buffer");
+      case ResourceUsage::GS_Constants: return lit("GS - Constant Buffer");
+      case ResourceUsage::HS_Constants: return lit("TCS - Constant Buffer");
+      case ResourceUsage::DS_Constants: return lit("TES - Constant Buffer");
+      case ResourceUsage::PS_Constants: return lit("FS - Constant Buffer");
+      case ResourceUsage::CS_Constants: return lit("CS - Constant Buffer");
+      case ResourceUsage::TS_Constants: return lit("TS - Constant Buffer");
+      case ResourceUsage::MS_Constants: return lit("MS - Constant Buffer");
+      case ResourceUsage::All_Constants: return lit("All - Constant Buffer");
 
       case ResourceUsage::StreamOut: return lit("Stream Out");
 
-      case ResourceUsage::VS_Resource: return lit("VS - Texture");
-      case ResourceUsage::GS_Resource: return lit("GS - Texture");
-      case ResourceUsage::HS_Resource: return lit("HS - Texture");
-      case ResourceUsage::DS_Resource: return lit("DS - Texture");
-      case ResourceUsage::CS_Resource: return lit("CS - Texture");
-      case ResourceUsage::PS_Resource: return lit("PS - Texture");
-      case ResourceUsage::All_Resource: return lit("All - Texture");
+      case ResourceUsage::VS_Resource: return lit("VS - Resource");
+      case ResourceUsage::GS_Resource: return lit("GS - Resource");
+      case ResourceUsage::HS_Resource: return lit("TCS - Resource");
+      case ResourceUsage::DS_Resource: return lit("TES - Resource");
+      case ResourceUsage::PS_Resource: return lit("FS - Resource");
+      case ResourceUsage::CS_Resource: return lit("CS - Resource");
+      case ResourceUsage::TS_Resource: return lit("TS - Resource");
+      case ResourceUsage::MS_Resource: return lit("MS - Resource");
+      case ResourceUsage::All_Resource: return lit("All - Resource");
 
-      case ResourceUsage::VS_RWResource: return lit("VS - Image/SSBO");
-      case ResourceUsage::HS_RWResource: return lit("HS - Image/SSBO");
-      case ResourceUsage::DS_RWResource: return lit("DS - Image/SSBO");
-      case ResourceUsage::GS_RWResource: return lit("GS - Image/SSBO");
-      case ResourceUsage::PS_RWResource: return lit("PS - Image/SSBO");
-      case ResourceUsage::CS_RWResource: return lit("CS - Image/SSBO");
-      case ResourceUsage::All_RWResource: return lit("All - Image/SSBO");
+      case ResourceUsage::VS_RWResource: return lit("VS - UAV");
+      case ResourceUsage::HS_RWResource: return lit("TCS - UAV");
+      case ResourceUsage::DS_RWResource: return lit("TES - UAV");
+      case ResourceUsage::GS_RWResource: return lit("GS - UAV");
+      case ResourceUsage::PS_RWResource: return lit("FS - UAV");
+      case ResourceUsage::CS_RWResource: return lit("CS - UAV");
+      case ResourceUsage::TS_RWResource: return lit("TS - UAV");
+      case ResourceUsage::MS_RWResource: return lit("MS - UAV");
+      case ResourceUsage::All_RWResource: return lit("All - UAV");
 
       case ResourceUsage::InputTarget: return lit("Color Input");
       case ResourceUsage::ColorTarget: return lit("Rendertarget");
@@ -1437,31 +1443,37 @@ QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
       case ResourceUsage::VertexBuffer: return lit("Vertex Buffer");
       case ResourceUsage::IndexBuffer: return lit("Index Buffer");
 
-      case ResourceUsage::VS_Constants: return lit("VS - Constant Buffer");
-      case ResourceUsage::GS_Constants: return lit("GS - Constant Buffer");
-      case ResourceUsage::HS_Constants: return lit("TCS - Constant Buffer");
-      case ResourceUsage::DS_Constants: return lit("TES - Constant Buffer");
-      case ResourceUsage::CS_Constants: return lit("CS - Constant Buffer");
-      case ResourceUsage::PS_Constants: return lit("FS - Constant Buffer");
-      case ResourceUsage::All_Constants: return lit("All - Constant Buffer");
+      case ResourceUsage::VS_Constants: return lit("VS - Uniform Buffer");
+      case ResourceUsage::GS_Constants: return lit("GS - Uniform Buffer");
+      case ResourceUsage::HS_Constants: return lit("HS - Uniform Buffer");
+      case ResourceUsage::DS_Constants: return lit("DS - Uniform Buffer");
+      case ResourceUsage::PS_Constants: return lit("PS - Uniform Buffer");
+      case ResourceUsage::CS_Constants: return lit("CS - Uniform Buffer");
+      case ResourceUsage::TS_Constants: return lit("TS - Uniform Buffer");
+      case ResourceUsage::MS_Constants: return lit("MS - Uniform Buffer");
+      case ResourceUsage::All_Constants: return lit("All - Uniform Buffer");
 
       case ResourceUsage::StreamOut: return lit("Transform Feedback");
 
-      case ResourceUsage::VS_Resource: return lit("VS - Resource");
-      case ResourceUsage::GS_Resource: return lit("GS - Resource");
-      case ResourceUsage::HS_Resource: return lit("TCS - Resource");
-      case ResourceUsage::DS_Resource: return lit("TES - Resource");
-      case ResourceUsage::CS_Resource: return lit("CS - Resource");
-      case ResourceUsage::PS_Resource: return lit("FS - Resource");
-      case ResourceUsage::All_Resource: return lit("All - Resource");
+      case ResourceUsage::VS_Resource: return lit("VS - Texture");
+      case ResourceUsage::GS_Resource: return lit("GS - Texture");
+      case ResourceUsage::HS_Resource: return lit("HS - Texture");
+      case ResourceUsage::DS_Resource: return lit("DS - Texture");
+      case ResourceUsage::PS_Resource: return lit("PS - Texture");
+      case ResourceUsage::CS_Resource: return lit("CS - Texture");
+      case ResourceUsage::TS_Resource: return lit("TS - Texture");
+      case ResourceUsage::MS_Resource: return lit("MS - Texture");
+      case ResourceUsage::All_Resource: return lit("All - Texture");
 
-      case ResourceUsage::VS_RWResource: return lit("VS - UAV");
-      case ResourceUsage::HS_RWResource: return lit("TCS - UAV");
-      case ResourceUsage::DS_RWResource: return lit("TES - UAV");
-      case ResourceUsage::GS_RWResource: return lit("GS - UAV");
-      case ResourceUsage::PS_RWResource: return lit("FS - UAV");
-      case ResourceUsage::CS_RWResource: return lit("CS - UAV");
-      case ResourceUsage::All_RWResource: return lit("All - UAV");
+      case ResourceUsage::VS_RWResource: return lit("VS - Image/SSBO");
+      case ResourceUsage::HS_RWResource: return lit("HS - Image/SSBO");
+      case ResourceUsage::DS_RWResource: return lit("DS - Image/SSBO");
+      case ResourceUsage::GS_RWResource: return lit("GS - Image/SSBO");
+      case ResourceUsage::PS_RWResource: return lit("PS - Image/SSBO");
+      case ResourceUsage::CS_RWResource: return lit("CS - Image/SSBO");
+      case ResourceUsage::TS_RWResource: return lit("TS - Image/SSBO");
+      case ResourceUsage::MS_RWResource: return lit("MS - Image/SSBO");
+      case ResourceUsage::All_RWResource: return lit("All - Image/SSBO");
 
       case ResourceUsage::InputTarget: return lit("FB Input");
       case ResourceUsage::ColorTarget: return lit("FB Color");
@@ -1503,6 +1515,8 @@ QString ToQStr(const ShaderStage stage, const GraphicsAPI apitype)
       case ShaderStage::Geometry: return lit("Geometry");
       case ShaderStage::Pixel: return lit("Pixel");
       case ShaderStage::Compute: return lit("Compute");
+      case ShaderStage::Amplification: return lit("Amplif.");
+      case ShaderStage::Mesh: return lit("Mesh");
       default: break;
     }
   }
@@ -1516,6 +1530,8 @@ QString ToQStr(const ShaderStage stage, const GraphicsAPI apitype)
       case ShaderStage::Geometry: return lit("Geometry");
       case ShaderStage::Fragment: return lit("Fragment");
       case ShaderStage::Compute: return lit("Compute");
+      case ShaderStage::Task: return lit("Task");
+      case ShaderStage::Mesh: return lit("Mesh");
       default: break;
     }
   }
@@ -1636,6 +1652,7 @@ QString D3DSemanticString(const SigParameter &sig)
       lit("SV_ShadingRate"),
       lit("SV_Barycentrics"),
       lit("SV_CullPrimitive"),
+      lit("out indices"),
   };
 
   static_assert(arraydim<ShaderBuiltin>() == ARRAY_COUNT(sysValues),
@@ -1705,7 +1722,8 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
 
       while(prev != NULL && prev->eventId > end)
       {
-        if(!(prev->flags & (ActionFlags::Dispatch | ActionFlags::Drawcall | ActionFlags::CmdList)))
+        if(!(prev->flags & (ActionFlags::Dispatch | ActionFlags::MeshDispatch |
+                            ActionFlags::Drawcall | ActionFlags::CmdList)))
         {
           prev = prev->previous;
         }

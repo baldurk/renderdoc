@@ -1036,7 +1036,7 @@ void WrappedID3D11DeviceContext::AddUsage(const ActionDescription &a)
   //////////////////////////////
   // Shaders
 
-  const D3D11RenderState::Shader *shArr[6] = {
+  const D3D11RenderState::Shader *shArr[NumShaderStages] = {
       &pipe->VS, &pipe->HS, &pipe->DS, &pipe->GS, &pipe->PS, &pipe->CS,
   };
 

@@ -31,6 +31,59 @@
 #include "rdcarray.h"
 #include "replay_enums.h"
 
+DOCUMENT(R"(The size information for a task group.
+)");
+struct TaskGroupSize
+{
+  DOCUMENT("The size in the x dimension.");
+  uint32_t x;
+  DOCUMENT("The size in the y dimension.");
+  uint32_t y;
+  DOCUMENT("The size in the z dimension.");
+  uint32_t z;
+
+  bool operator==(const TaskGroupSize &o) const { return x == o.x && y == o.y && z == o.z; }
+  bool operator<(const TaskGroupSize &o) const
+  {
+    if(!(x == o.x))
+      return x < o.x;
+    if(!(y == o.y))
+      return y < o.y;
+    if(!(z == o.z))
+      return z < o.z;
+    return false;
+  }
+};
+
+DECLARE_REFLECTION_STRUCT(TaskGroupSize);
+
+DOCUMENT(R"(The size information for a meshlet.
+)");
+struct MeshletSize
+{
+  DOCUMENT("The number of indices in the meshlet.");
+  uint32_t numIndices;
+  DOCUMENT(R"(The number of vertices in this meshlet. This may be larger or smaller than the number
+of indices.
+)");
+  uint32_t numVertices;
+
+  bool operator==(const MeshletSize &o) const
+  {
+    return numIndices == o.numIndices && numVertices == o.numVertices;
+  }
+  bool operator<(const MeshletSize &o) const
+  {
+    if(!(numIndices == o.numIndices))
+      return numIndices < o.numIndices;
+    if(!(numVertices == o.numVertices))
+      return numVertices < o.numVertices;
+    return false;
+  }
+};
+
+DECLARE_REFLECTION_STRUCT(MeshletSize);
+
 DOCUMENT(R"(Contains the details of a single element of data (such as position or texture
 co-ordinates) within a mesh.
 )");
@@ -59,6 +112,54 @@ struct MeshFormat
   uint32_t vertexByteStride = 0;
   DOCUMENT("The number of bytes to use from the vertex buffer. Only valid on APIs that allow it.");
   uint64_t vertexByteSize = 0;
+
+  DOCUMENT(R"(The size of each meshlet, for a meshlet based draw.
+
+Each meshlet lists its individual size, but a cumulative sum can be used for defining boundaries
+between meshlets either by raw vertex order (using the number of indices) or by index value (using
+the number of vertices).
+
+:type: List[MeshletSize]
+)");
+  rdcarray<MeshletSize> meshletSizes;
+
+  DOCUMENT(R"(The size of each task group's dispatch, for a meshlet based draw.
+
+Each group of a task shader within a dispatch can itself fill out a payload and dispatch a number
+of mesh groups. This list contains the 3-dimensional dimension that each task group emitted.
+
+:type: List[TaskGroupSize]
+)");
+  rdcarray<TaskGroupSize> taskSizes;
+
+  DOCUMENT(R"(If showing a set of meshlets that don't start from meshlet 0, this is the number of
+meshlet to consider skipped before :data:`meshletSizes`.
+
+Primarily useful for keeping a consistent colouring of meshlets when filtering to a subset
+
+See also :data:`meshletIndexOffset`.
+)");
+  uint32_t meshletOffset = 0;
+
+  DOCUMENT(R"(If showing a set of meshlets that don't start from index 0, this is the number of
+vertices to consider skipped before :data:`meshletSizes` - equivalent to baseVertex.
+
+Primarily useful for keeping a consistent colouring of meshlets when filtering to a subset
+
+See also :data:`meshletOffset`.
+)");
+  uint32_t meshletIndexOffset = 0;
+
+  DOCUMENT(R"(The offset in bytes to the start of the per-primitive rate vertex data.
+
+Only for meshlet outputs.
+)");
+  uint64_t perPrimitiveOffset = 0;
+  DOCUMENT(R"(The stride in bytes of the per-primitive rate vertex data.
+
+Only for meshlet outputs.
+)");
+  uint32_t perPrimitiveStride = 0;
 
   DOCUMENT(R"(The format description of this mesh components elements.
 
@@ -130,7 +231,7 @@ struct MeshDisplay
   MeshDisplay &operator=(const MeshDisplay &) = default;
 
   DOCUMENT("The :class:`MeshDataStage` where this mesh data comes from.");
-  MeshDataStage type = MeshDataStage::Unknown;
+  MeshDataStage type = MeshDataStage::VSIn;
 
   DOCUMENT(R"(The camera to use when rendering all of the meshes.
 

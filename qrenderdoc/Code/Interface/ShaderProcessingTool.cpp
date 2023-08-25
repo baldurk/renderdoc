@@ -29,11 +29,12 @@
 #include "QRDInterface.h"
 
 static const QString glsl_stage4[arraydim<ShaderStage>()] = {
-    lit("vert"), lit("tesc"), lit("tese"), lit("geom"), lit("frag"), lit("comp"),
+    lit("vert"), lit("tesc"), lit("tese"), lit("geom"),
+    lit("frag"), lit("comp"), lit("task"), lit("mesh"),
 };
 
 static const QString hlsl_stage2[arraydim<ShaderStage>()] = {
-    lit("vs"), lit("hs"), lit("ds"), lit("gs"), lit("ps"), lit("cs"),
+    lit("vs"), lit("hs"), lit("ds"), lit("gs"), lit("ps"), lit("cs"), lit("as"), lit("ms"),
 };
 
 static QString tmpPath(const QString &filename)

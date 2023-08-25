@@ -268,7 +268,7 @@ void ReplayOutput::RefreshOverlay()
     if(m_Type == ReplayOutputType::Mesh)
       m_OverlayDirty = false;
 
-    if(action != NULL && (action->flags & ActionFlags::Drawcall))
+    if(action != NULL && (action->flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall)))
     {
       m_pDevice->InitPostVSBuffers(action->eventId);
       m_pController->FatalErrorCheck();
@@ -563,9 +563,7 @@ rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t x, uint32_t y)
 
   if(!action)
     return errorReturn;
-  if(m_RenderData.meshDisplay.type == MeshDataStage::Unknown)
-    return errorReturn;
-  if(!(action->flags & ActionFlags::Drawcall))
+  if(!(action->flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall)))
     return errorReturn;
 
   MeshDisplay cfg = m_RenderData.meshDisplay;
@@ -1004,8 +1002,8 @@ void ReplayOutput::DisplayMesh()
   ActionDescription *action = m_pController->GetActionByEID(m_EventID);
 
   if(action == NULL || m_MainOutput.outputID == 0 || m_Width <= 0 || m_Height <= 0 ||
-     (m_RenderData.meshDisplay.type == MeshDataStage::Unknown) ||
-     !(action->flags & ActionFlags::Drawcall))
+     (m_RenderData.meshDisplay.position.vertexResourceId == ResourceId()) ||
+     !(action->flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall)))
   {
     FloatVector color;
     m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
@@ -1084,6 +1082,12 @@ void ReplayOutput::DisplayMesh()
           {
             fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, m_RenderData.meshDisplay.curView,
                                               MeshDataStage::VSOut);
+            m_pController->FatalErrorCheck();
+          }
+          if(fmt.vertexResourceId == ResourceId())
+          {
+            fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, m_RenderData.meshDisplay.curView,
+                                              MeshDataStage::MeshOut);
             m_pController->FatalErrorCheck();
           }
 

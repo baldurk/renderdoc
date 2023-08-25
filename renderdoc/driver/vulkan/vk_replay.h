@@ -191,13 +191,14 @@ struct VulkanPostVSData
     float farPlane;
 
     rdcstr status;
-  } vsin, vsout, gsout;
+  } vsout, gsout, taskout, meshout;
 
   VulkanPostVSData()
   {
-    RDCEraseEl(vsin);
     RDCEraseEl(vsout);
     RDCEraseEl(gsout);
+    RDCEraseEl(taskout);
+    RDCEraseEl(meshout);
   }
 
   const StageData &GetStage(MeshDataStage type)
@@ -206,10 +207,14 @@ struct VulkanPostVSData
       return vsout;
     else if(type == MeshDataStage::GSOut)
       return gsout;
+    else if(type == MeshDataStage::TaskOut)
+      return taskout;
+    else if(type == MeshDataStage::MeshOut)
+      return meshout;
     else
       RDCERR("Unexpected mesh data stage!");
 
-    return vsin;
+    return vsout;
   }
 };
 
@@ -459,6 +464,7 @@ private:
 
   void FetchVSOut(uint32_t eventId, VulkanRenderState &state);
   void FetchTessGSOut(uint32_t eventId, VulkanRenderState &state);
+  void FetchMeshOut(uint32_t eventId, VulkanRenderState &state);
   void ClearPostVSCache();
 
   void RefreshDerivedReplacements();

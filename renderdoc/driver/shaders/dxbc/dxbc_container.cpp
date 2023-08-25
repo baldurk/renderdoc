@@ -1785,7 +1785,7 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
         desc.regChannelMask = (uint8_t)(el->mask & 0xff);
         desc.channelUsedMask = (uint8_t)(el->rwMask & 0xff);
         desc.regIndex = el->registerNum;
-        desc.semanticIndex = el->semanticIdx;
+        desc.semanticIndex = (uint16_t)el->semanticIdx;
         desc.semanticName = chunkContents + el->nameOffset;
         desc.systemValue = GetSystemValue(el->systemType);
         desc.compCount = (desc.regChannelMask & 0x1 ? 1 : 0) + (desc.regChannelMask & 0x2 ? 1 : 0) +

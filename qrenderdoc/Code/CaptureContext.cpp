@@ -1701,8 +1701,9 @@ void CaptureContext::RefreshUIStatus(const rdcarray<ICaptureViewer *> &exclude,
                                      bool updateSelectedEvent, bool updateEvent)
 {
   // cache and assign pointer type IDs for any known pointer types in current shaders
-  for(ShaderStage stage : {ShaderStage::Vertex, ShaderStage::Hull, ShaderStage::Domain,
-                           ShaderStage::Geometry, ShaderStage::Pixel, ShaderStage::Compute})
+  for(ShaderStage stage :
+      {ShaderStage::Vertex, ShaderStage::Hull, ShaderStage::Domain, ShaderStage::Geometry,
+       ShaderStage::Pixel, ShaderStage::Compute, ShaderStage::Task, ShaderStage::Mesh})
   {
     const ShaderReflection *refl = m_CurPipelineState->GetShaderReflection(stage);
     if(refl)

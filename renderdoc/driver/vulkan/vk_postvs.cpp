@@ -1515,7 +1515,6 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   // set defaults so that we don't try to fetch this output again if something goes wrong and the
   // same event is selected again
   {
-    ret.vsin.topo = state.primitiveTopology;
     ret.vsout.buf = VK_NULL_HANDLE;
     ret.vsout.bufmem = VK_NULL_HANDLE;
     ret.vsout.instStride = 0;
@@ -2880,7 +2879,6 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   }
 
   // fill out m_PostVS.Data
-  ret.vsin.topo = state.primitiveTopology;
   ret.vsout.topo = state.primitiveTopology;
   ret.vsout.buf = meshBuffer;
   ret.vsout.bufmem = meshMem;

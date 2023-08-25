@@ -757,7 +757,7 @@ public:
     // the application to modify anything.
     bool shaderProgramUnlinkable = false;
     bool linked;
-    ResourceId stageShaders[6];
+    ResourceId stageShaders[NumShaderStages];
 
     // used only when we're capturing and don't have driver-side reflection so we need to emulate
     glslang::TProgram *glslangProgram = NULL;
@@ -778,8 +778,8 @@ public:
       GLbitfield use;
     };
 
-    ResourceId stagePrograms[6];
-    ResourceId stageShaders[6];
+    ResourceId stagePrograms[NumShaderStages];
+    ResourceId stageShaders[NumShaderStages];
   };
 
   std::map<ResourceId, ShaderData> m_Shaders;

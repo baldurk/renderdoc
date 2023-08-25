@@ -117,6 +117,8 @@ struct PipelineInitialData
 {
   bool valid;
   GLResource programs[6];
+  // since this array is serialised (and because GL will never support other shader stages) we leave
+  // this at 6 instead of NumShaderStages
 };
 
 DECLARE_REFLECTION_STRUCT(PipelineInitialData);

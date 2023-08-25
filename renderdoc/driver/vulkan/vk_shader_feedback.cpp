@@ -1761,14 +1761,14 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   // create vertex shader with modified code
   VkShaderModuleCreateInfo moduleCreateInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
 
-  VkShaderModule modules[6] = {};
+  VkShaderModule modules[NumShaderStages] = {};
 
-  const rdcstr filename[6] = {
-      "bindless_vertex.spv",   "bindless_hull.spv",  "bindless_domain.spv",
-      "bindless_geometry.spv", "bindless_pixel.spv", "bindless_compute.spv",
+  const rdcstr filename[NumShaderStages] = {
+      "bindless_vertex.spv", "bindless_hull.spv",    "bindless_domain.spv", "bindless_geometry.spv",
+      "bindless_pixel.spv",  "bindless_compute.spv", "bindless_task.spv",   "bindless_mesh.spv",
   };
 
-  std::map<uint32_t, PrintfData> printfData[6];
+  std::map<uint32_t, PrintfData> printfData[NumShaderStages];
 
   if(result.compute)
   {

@@ -265,7 +265,7 @@ rdcarray<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventId)
     // so we don't actually do anything (init postvs/action overlay)
     // but it's useful to have the first part of the pass as part
     // of the list
-    if(start->flags & (ActionFlags::Drawcall | ActionFlags::PassBoundary))
+    if(start->flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall | ActionFlags::PassBoundary))
       passEvents.push_back(start->eventId);
 
     start = start->next;
@@ -4390,6 +4390,8 @@ void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebu
       case ShaderStage::Geometry: stage = rdcspv::ShaderStage::Geometry; break;
       case ShaderStage::Pixel: stage = rdcspv::ShaderStage::Fragment; break;
       case ShaderStage::Compute: stage = rdcspv::ShaderStage::Compute; break;
+      case ShaderStage::Task: stage = rdcspv::ShaderStage::Task; break;
+      case ShaderStage::Mesh: stage = rdcspv::ShaderStage::Mesh; break;
       default:
         RDCERR("Unexpected type in BuildShader!");
         id = ResourceId();

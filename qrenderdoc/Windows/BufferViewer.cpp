@@ -1473,11 +1473,16 @@ struct PopulateBufferData
 
   CBufferData cb;
 
+  // {VSIn, VSOut, GSOut} x {primary, secondary}
   QString highlightNames[6];
 
-  BufferConfiguration vsinConfig, vsoutConfig, gsoutConfig;
+  bool meshDispatch = false;
 
+  BufferConfiguration vsinConfig, vsoutConfig, gsoutConfig;
   MeshFormat postVS, postGS;
+
+  BufferConfiguration msoutConfig;
+  MeshFormat postMS;
 };
 
 struct CalcBoundingBoxData
@@ -1564,10 +1569,15 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, int32_t streamSelect
     if(sig.stream != (uint32_t)streamSelect)
       continue;
 
+    if(sig.systemValue == ShaderBuiltin::OutputIndices)
+      continue;
+
     ShaderConstant f;
     BufferElementProperties p;
 
     f.name = !sig.varName.isEmpty() ? sig.varName : sig.semanticIdxName;
+    if(sig.perPrimitiveRate)
+      f.name += lit(" (Per-Prim)");
     f.type.rows = 1;
     f.type.columns = sig.compCount;
 
@@ -1624,7 +1634,20 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, int32_t streamSelect
   }
 }
 
-static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufdata)
+static void ConfigureColumnsForMeshPipe(ICaptureContext &ctx, PopulateBufferData *bufdata)
+{
+  bufdata->vsinConfig.numRows = 0;
+  bufdata->vsinConfig.unclampedNumRows = 0;
+
+  bufdata->vsinConfig.noVertices = true;
+  bufdata->vsinConfig.noInstances = true;
+
+  const ShaderReflection *ms = ctx.CurPipelineState().GetShaderReflection(ShaderStage::Mesh);
+
+  ConfigureColumnsForShader(ctx, 0, ms, bufdata->vsoutConfig.columns, bufdata->vsoutConfig.props);
+}
+
+static void ConfigureColumnsForVertexPipe(ICaptureContext &ctx, PopulateBufferData *bufdata)
 {
   const ActionDescription *action = ctx.CurAction();
 
@@ -1633,28 +1656,6 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
 
   bufdata->vsinConfig.noVertices = false;
   bufdata->vsinConfig.noInstances = false;
-
-  if(!action || !(action->flags & ActionFlags::Drawcall))
-  {
-    IEventBrowser *eb = ctx.GetEventBrowser();
-
-    bufdata->vsinConfig.statusString = bufdata->vsoutConfig.statusString =
-        bufdata->gsoutConfig.statusString =
-            lit("No current draw action\nSelected EID @%1 - %2\nEffective EID: @%3 - %4")
-                .arg(ctx.CurSelectedEvent())
-                .arg(QString(eb->GetEventName(ctx.CurSelectedEvent())))
-                .arg(ctx.CurEvent())
-                .arg(QString(eb->GetEventName(ctx.CurEvent())));
-
-    ConfigureStatusColumn(bufdata->vsinConfig.columns, bufdata->vsinConfig.props);
-    ConfigureStatusColumn(bufdata->vsoutConfig.columns, bufdata->vsoutConfig.props);
-    ConfigureStatusColumn(bufdata->gsoutConfig.columns, bufdata->gsoutConfig.props);
-
-    bufdata->vsinConfig.genericsEnabled.push_back(false);
-    bufdata->vsinConfig.generics.push_back(PixelValue());
-
-    return;
-  }
 
   rdcarray<VertexInputAttribute> vinputs = ctx.CurPipelineState().GetVertexInputs();
 
@@ -1696,33 +1697,63 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
     bufdata->vsinConfig.props.push_back(p);
   }
 
-  if(action)
+  bufdata->vsinConfig.numRows = action->numIndices;
+  bufdata->vsinConfig.unclampedNumRows = 0;
+
+  // calculate an upper bound on the valid number of rows just in case it's an invalid value (e.g.
+  // 0xdeadbeef) and we want to clamp.
+  uint32_t numRowsUpperBound = 0;
+
+  if(action->flags & ActionFlags::Indexed)
   {
-    bufdata->vsinConfig.numRows = action->numIndices;
-    bufdata->vsinConfig.unclampedNumRows = 0;
+    // In an indexed draw we clamp to however many indices are available in the index buffer
 
-    // calculate an upper bound on the valid number of rows just in case it's an invalid value (e.g.
-    // 0xdeadbeef) and we want to clamp.
-    uint32_t numRowsUpperBound = 0;
+    BoundVBuffer ib = ctx.CurPipelineState().GetIBuffer();
 
-    if(action->flags & ActionFlags::Indexed)
+    uint32_t bytesAvailable = ib.byteSize;
+
+    if(bytesAvailable == ~0U)
     {
-      // In an indexed draw we clamp to however many indices are available in the index buffer
+      BufferDescription *buf = ctx.GetBuffer(ib.resourceId);
+      if(buf)
+      {
+        uint64_t offset = ib.byteOffset + action->indexOffset * ib.byteStride;
+        if(offset > buf->length)
+          bytesAvailable = 0;
+        else
+          bytesAvailable = buf->length - offset;
+      }
+      else
+      {
+        bytesAvailable = 0;
+      }
+    }
 
-      BoundVBuffer ib = ctx.CurPipelineState().GetIBuffer();
+    // drawing more than this many indices will read off the end of the index buffer - which while
+    // technically not invalid is certainly not intended, so serves as a good 'upper bound'
+    numRowsUpperBound = bytesAvailable / qMax(1U, ib.byteStride);
+  }
+  else
+  {
+    // for a non-indexed draw, we take the largest vertex buffer
+    rdcarray<BoundVBuffer> VBs = ctx.CurPipelineState().GetVBuffers();
 
-      uint32_t bytesAvailable = ib.byteSize;
+    for(const BoundVBuffer &vb : VBs)
+    {
+      if(vb.byteStride == 0)
+        continue;
+
+      uint32_t bytesAvailable = vb.byteSize;
 
       if(bytesAvailable == ~0U)
       {
-        BufferDescription *buf = ctx.GetBuffer(ib.resourceId);
+        BufferDescription *buf = ctx.GetBuffer(vb.resourceId);
         if(buf)
         {
-          uint64_t offset = ib.byteOffset + action->indexOffset * ib.byteStride;
-          if(offset > buf->length)
+          if(vb.byteOffset > buf->length)
             bytesAvailable = 0;
           else
-            bytesAvailable = buf->length - offset;
+            bytesAvailable = buf->length - vb.byteOffset;
         }
         else
         {
@@ -1730,61 +1761,28 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
         }
       }
 
-      // drawing more than this many indices will read off the end of the index buffer - which while
-      // technically not invalid is certainly not intended, so serves as a good 'upper bound'
-      numRowsUpperBound = bytesAvailable / qMax(1U, ib.byteStride);
-    }
-    else
-    {
-      // for a non-indexed draw, we take the largest vertex buffer
-      rdcarray<BoundVBuffer> VBs = ctx.CurPipelineState().GetVBuffers();
-
-      for(const BoundVBuffer &vb : VBs)
-      {
-        if(vb.byteStride == 0)
-          continue;
-
-        uint32_t bytesAvailable = vb.byteSize;
-
-        if(bytesAvailable == ~0U)
-        {
-          BufferDescription *buf = ctx.GetBuffer(vb.resourceId);
-          if(buf)
-          {
-            if(vb.byteOffset > buf->length)
-              bytesAvailable = 0;
-            else
-              bytesAvailable = buf->length - vb.byteOffset;
-          }
-          else
-          {
-            bytesAvailable = 0;
-          }
-        }
-
-        numRowsUpperBound = qMax(numRowsUpperBound, bytesAvailable / qMax(1U, vb.byteStride));
-      }
-
-      // if there are no vertex buffers we can't clamp.
-      if(numRowsUpperBound == 0)
-        numRowsUpperBound = ~0U;
+      numRowsUpperBound = qMax(numRowsUpperBound, bytesAvailable / qMax(1U, vb.byteStride));
     }
 
-    // if we have significantly clamped, then set the unclamped number of rows and clamp.
-    if(numRowsUpperBound != ~0U && numRowsUpperBound + 100 < bufdata->vsinConfig.numRows)
-    {
-      bufdata->vsinConfig.unclampedNumRows = bufdata->vsinConfig.numRows;
-      bufdata->vsinConfig.numRows = numRowsUpperBound + 100;
-    }
+    // if there are no vertex buffers we can't clamp.
+    if(numRowsUpperBound == 0)
+      numRowsUpperBound = ~0U;
+  }
 
-    if((action->flags & ActionFlags::Drawcall) && action->numIndices == 0)
-      bufdata->vsinConfig.noVertices = true;
+  // if we have significantly clamped, then set the unclamped number of rows and clamp.
+  if(numRowsUpperBound != ~0U && numRowsUpperBound + 100 < bufdata->vsinConfig.numRows)
+  {
+    bufdata->vsinConfig.unclampedNumRows = bufdata->vsinConfig.numRows;
+    bufdata->vsinConfig.numRows = numRowsUpperBound + 100;
+  }
 
-    if((action->flags & ActionFlags::Instanced) && action->numInstances == 0)
-    {
-      bufdata->vsinConfig.noInstances = true;
-      bufdata->vsinConfig.numRows = bufdata->vsinConfig.unclampedNumRows = 0;
-    }
+  if((action->flags & ActionFlags::Drawcall) && action->numIndices == 0)
+    bufdata->vsinConfig.noVertices = true;
+
+  if((action->flags & ActionFlags::Instanced) && action->numInstances == 0)
+  {
+    bufdata->vsinConfig.noInstances = true;
+    bufdata->vsinConfig.numRows = bufdata->vsinConfig.unclampedNumRows = 0;
   }
 
   bufdata->vsoutConfig.columns.clear();
@@ -1792,16 +1790,46 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
   bufdata->gsoutConfig.columns.clear();
   bufdata->gsoutConfig.props.clear();
 
-  if(action)
-  {
-    const ShaderReflection *vs = ctx.CurPipelineState().GetShaderReflection(ShaderStage::Vertex);
-    const ShaderReflection *last = ctx.CurPipelineState().GetShaderReflection(ShaderStage::Geometry);
-    if(last == NULL)
-      last = ctx.CurPipelineState().GetShaderReflection(ShaderStage::Domain);
+  const ShaderReflection *vs = ctx.CurPipelineState().GetShaderReflection(ShaderStage::Vertex);
+  const ShaderReflection *last = ctx.CurPipelineState().GetShaderReflection(ShaderStage::Geometry);
+  if(last == NULL)
+    last = ctx.CurPipelineState().GetShaderReflection(ShaderStage::Domain);
 
-    ConfigureColumnsForShader(ctx, 0, vs, bufdata->vsoutConfig.columns, bufdata->vsoutConfig.props);
-    ConfigureColumnsForShader(ctx, ctx.CurPipelineState().GetRasterizedStream(), last,
-                              bufdata->gsoutConfig.columns, bufdata->gsoutConfig.props);
+  ConfigureColumnsForShader(ctx, 0, vs, bufdata->vsoutConfig.columns, bufdata->vsoutConfig.props);
+  ConfigureColumnsForShader(ctx, ctx.CurPipelineState().GetRasterizedStream(), last,
+                            bufdata->gsoutConfig.columns, bufdata->gsoutConfig.props);
+}
+
+static void ConfigureColumns(ICaptureContext &ctx, PopulateBufferData *bufdata)
+{
+  const ActionDescription *action = ctx.CurAction();
+
+  if(action && (action->flags & ActionFlags::MeshDispatch))
+  {
+    ConfigureColumnsForMeshPipe(ctx, bufdata);
+  }
+  else if(action && (action->flags & ActionFlags::Drawcall))
+  {
+    ConfigureColumnsForVertexPipe(ctx, bufdata);
+  }
+  else
+  {
+    IEventBrowser *eb = ctx.GetEventBrowser();
+
+    bufdata->vsinConfig.statusString = bufdata->vsoutConfig.statusString =
+        bufdata->gsoutConfig.statusString =
+            lit("No current draw action\nSelected EID @%1 - %2\nEffective EID: @%3 - %4")
+                .arg(ctx.CurSelectedEvent())
+                .arg(QString(eb->GetEventName(ctx.CurSelectedEvent())))
+                .arg(ctx.CurEvent())
+                .arg(QString(eb->GetEventName(ctx.CurEvent())));
+
+    ConfigureStatusColumn(bufdata->vsinConfig.columns, bufdata->vsinConfig.props);
+    ConfigureStatusColumn(bufdata->vsoutConfig.columns, bufdata->vsoutConfig.props);
+    ConfigureStatusColumn(bufdata->gsoutConfig.columns, bufdata->gsoutConfig.props);
+
+    bufdata->vsinConfig.genericsEnabled.push_back(false);
+    bufdata->vsinConfig.generics.push_back(PixelValue());
   }
 }
 
@@ -2860,7 +2888,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       // GS Out doesn't use primitive restart because it is post-expansion
     }
 
-    ConfigureMeshColumns(m_Ctx, bufdata);
+    ConfigureColumns(m_Ctx, bufdata);
 
     Viewport vp = m_Ctx.CurPipelineState().GetViewport(0);
 

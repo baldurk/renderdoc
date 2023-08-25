@@ -1054,16 +1054,19 @@ void GLReplay::SavePipelineState(uint32_t eventId)
   GLuint curProg = 0;
   drv.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&curProg);
 
-  GLPipe::Shader *stages[6] = {
+  GLPipe::Shader *stages[NumShaderStages] = {
       &pipe.vertexShader,   &pipe.tessControlShader, &pipe.tessEvalShader,
       &pipe.geometryShader, &pipe.fragmentShader,    &pipe.computeShader,
   };
-  ShaderReflection *refls[6] = {NULL};
-  ShaderBindpointMapping *mappings[6] = {NULL};
-  bool spirv[6] = {false};
+  ShaderReflection *refls[NumShaderStages] = {NULL};
+  ShaderBindpointMapping *mappings[NumShaderStages] = {NULL};
+  bool spirv[NumShaderStages] = {false};
 
-  for(int i = 0; i < 6; i++)
+  for(size_t i = 0; i < NumShaderStages; i++)
   {
+    if(!stages[i])
+      continue;
+
     stages[i]->programResourceId = stages[i]->shaderResourceId = ResourceId();
     stages[i]->reflection = NULL;
     stages[i]->bindpointMapping = ShaderBindpointMapping();
@@ -1090,6 +1093,9 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
       for(size_t i = 0; i < ARRAY_COUNT(pipeDetails.stageShaders); i++)
       {
+        if(!stages[i])
+          continue;
+
         if(pipeDetails.stageShaders[i] != ResourceId())
         {
           curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
@@ -1134,6 +1140,9 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
     for(size_t i = 0; i < ARRAY_COUNT(progDetails.stageShaders); i++)
     {
+      if(!stages[i])
+        continue;
+
       if(progDetails.stageShaders[i] != ResourceId())
       {
         auto &shaderDetails = m_pDriver->m_Shaders[progDetails.stageShaders[i]];
@@ -1214,7 +1223,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
     pipe.transformFeedback.active = (p != 0) || m_pDriver->m_WasActiveFeedback;
   }
 
-  for(int i = 0; i < 6; i++)
+  for(size_t i = 0; i < ARRAY_COUNT(rs.Subroutines); i++)
   {
     size_t num = RDCMIN(128, rs.Subroutines[i].numSubroutines);
     if(num == 0)

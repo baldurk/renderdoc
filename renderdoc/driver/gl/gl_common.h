@@ -902,8 +902,8 @@ struct ShaderReflection;
 
 struct PerStageReflections
 {
-  const ShaderReflection *refls[6] = {};
-  const ShaderBindpointMapping *mappings[6] = {};
+  const ShaderReflection *refls[NumShaderStages] = {};
+  const ShaderBindpointMapping *mappings[NumShaderStages] = {};
 };
 
 void CopyProgramUniforms(const PerStageReflections &srcStages, GLuint progSrc,

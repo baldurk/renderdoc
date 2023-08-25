@@ -144,6 +144,8 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
 
   m_API = m_Ctx.APIProps().pipelineType;
 
+  QObject::connect(ui->task, &QToolButton::toggled, [this](bool) { refreshMessages(); });
+  QObject::connect(ui->mesh, &QToolButton::toggled, [this](bool) { refreshMessages(); });
   QObject::connect(ui->vertex, &QToolButton::toggled, [this](bool) { refreshMessages(); });
   QObject::connect(ui->hull, &QToolButton::toggled, [this](bool) { refreshMessages(); });
   QObject::connect(ui->domain, &QToolButton::toggled, [this](bool) { refreshMessages(); });
@@ -167,6 +169,8 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
   ui->exportButton->setMenu(menu);
   QObject::connect(ui->exportButton, &QToolButton::clicked, this, &ShaderMessageViewer::exportText);
 
+  ui->task->setText(ToQStr(ShaderStage::Task, m_API));
+  ui->mesh->setText(ToQStr(ShaderStage::Mesh, m_API));
   ui->vertex->setText(ToQStr(ShaderStage::Vertex, m_API));
   ui->hull->setText(ToQStr(ShaderStage::Hull, m_API));
   ui->domain->setText(ToQStr(ShaderStage::Domain, m_API));
@@ -219,11 +223,30 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
     ui->messages->setItemDelegateForColumn(0, m_debugDelegate);
 
     m_OrigShaders[5] = pipe.GetShader(ShaderStage::Compute);
+    m_LayoutStage = ShaderStage::Compute;
   }
   else
   {
-    ui->messages->setColumns({lit("Debug"), lit("Go to"), tr("Location"), lit("Message")});
-    sortColumn = 2;
+    if(pipe.GetShader(ShaderStage::Task) != ResourceId())
+    {
+      ui->messages->setColumns({lit("Debug"), lit("Go to"), tr("Task group"), tr("Mesh group"),
+                                lit("Thread"), lit("Message")});
+      sortColumn = 4;
+      m_LayoutStage = ShaderStage::Task;
+    }
+    else if(pipe.GetShader(ShaderStage::Mesh) != ResourceId())
+    {
+      ui->messages->setColumns(
+          {lit("Debug"), lit("Go to"), tr("Workgroup"), lit("Thread/Location"), lit("Message")});
+      sortColumn = 3;
+      m_LayoutStage = ShaderStage::Mesh;
+    }
+    else
+    {
+      ui->messages->setColumns({lit("Debug"), lit("Go to"), tr("Location"), lit("Message")});
+      sortColumn = 2;
+      m_LayoutStage = ShaderStage::Vertex;
+    }
 
     m_gotoDelegate = new ButtonDelegate(Icons::find(), gotoableRole, this);
 
@@ -231,7 +254,15 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
     ui->messages->setItemDelegateForColumn(1, m_gotoDelegate);
 
     QCheckBox *boxes[] = {
-        ui->vertex, ui->hull, ui->domain, ui->geometry, ui->pixel,
+        ui->vertex,
+        ui->hull,
+        ui->domain,
+        ui->geometry,
+        ui->pixel,
+        // compute
+        NULL,
+        ui->task,
+        ui->mesh,
     };
 
     for(ShaderStage s : values<ShaderStage>())
@@ -314,7 +345,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
           trace = r->DebugPixel(msg.location.pixel.x, msg.location.pixel.y,
                                 msg.location.pixel.sample, msg.location.pixel.primitive);
 
-        if(trace->debugger == NULL)
+        if(trace && trace->debugger == NULL)
         {
           r->FreeTrace(trace);
           trace = NULL;
@@ -326,6 +357,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
       QString debugContext;
 
       if(msg.stage == ShaderStage::Compute)
+      {
         debugContext = lit("Group [%1,%2,%3] Thread [%4,%5,%6]")
                            .arg(msg.location.compute.workgroup[0])
                            .arg(msg.location.compute.workgroup[1])
@@ -333,10 +365,57 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
                            .arg(msg.location.compute.thread[0])
                            .arg(msg.location.compute.thread[1])
                            .arg(msg.location.compute.thread[2]);
+      }
       else if(msg.stage == ShaderStage::Vertex)
+      {
         debugContext = tr("Vertex %1").arg(msg.location.vertex.vertexIndex);
+      }
       else if(msg.stage == ShaderStage::Pixel)
+      {
         debugContext = tr("Pixel %1,%2").arg(msg.location.pixel.x).arg(msg.location.pixel.y);
+      }
+      else if(msg.stage == ShaderStage::Task)
+      {
+        QString groupIdx = QFormatStr("%1").arg(msg.location.mesh.taskGroup[0]);
+        if(msg.location.mesh.taskGroup[1] != ShaderMeshMessageLocation::NotUsed)
+          groupIdx += QFormatStr(",%1").arg(msg.location.mesh.taskGroup[1]);
+        if(msg.location.mesh.taskGroup[2] != ShaderMeshMessageLocation::NotUsed)
+          groupIdx += QFormatStr(",%1").arg(msg.location.mesh.taskGroup[2]);
+
+        QString threadIdx = QFormatStr("%1").arg(msg.location.mesh.thread[0]);
+        if(msg.location.mesh.thread[1] != ShaderMeshMessageLocation::NotUsed)
+          threadIdx += QFormatStr(",%1").arg(msg.location.mesh.thread[1]);
+        if(msg.location.mesh.thread[2] != ShaderMeshMessageLocation::NotUsed)
+          threadIdx += QFormatStr(",%1").arg(msg.location.mesh.thread[2]);
+
+        debugContext = tr("Task Group [%1] Thread [%2]").arg(groupIdx).arg(threadIdx);
+      }
+      else if(msg.stage == ShaderStage::Mesh)
+      {
+        QString groupIdx = QFormatStr("%1").arg(msg.location.mesh.meshGroup[0]);
+        if(msg.location.mesh.meshGroup[1] != ShaderMeshMessageLocation::NotUsed)
+          groupIdx += QFormatStr(",%1").arg(msg.location.mesh.meshGroup[1]);
+        if(msg.location.mesh.meshGroup[2] != ShaderMeshMessageLocation::NotUsed)
+          groupIdx += QFormatStr(",%1").arg(msg.location.mesh.meshGroup[2]);
+
+        QString threadIdx = QFormatStr("%1").arg(msg.location.mesh.thread[0]);
+        if(msg.location.mesh.thread[1] != ShaderMeshMessageLocation::NotUsed)
+          threadIdx += QFormatStr(",%1").arg(msg.location.mesh.thread[1]);
+        if(msg.location.mesh.thread[2] != ShaderMeshMessageLocation::NotUsed)
+          threadIdx += QFormatStr(",%1").arg(msg.location.mesh.thread[2]);
+
+        debugContext = tr("Mesh Group [%1] Thread [%2]").arg(groupIdx).arg(threadIdx);
+
+        if(msg.location.mesh.taskGroup[0] != ShaderMeshMessageLocation::NotUsed)
+        {
+          debugContext += tr(" from Task [%1").arg(msg.location.mesh.taskGroup[0]);
+          if(msg.location.mesh.taskGroup[1] != ShaderMeshMessageLocation::NotUsed)
+            debugContext += tr(",%1").arg(msg.location.mesh.taskGroup[1]);
+          if(msg.location.mesh.taskGroup[2] != ShaderMeshMessageLocation::NotUsed)
+            debugContext += tr(",%1").arg(msg.location.mesh.taskGroup[2]);
+          debugContext += lit("]");
+        }
+      }
 
       // wait a short while before displaying the progress dialog (which won't show if we're already
       // done by the time we reach it)
@@ -436,6 +515,10 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
                                    msg.location.geometry.primitive),
             MeshDataStage::GSOut);
       }
+      else if(msg.stage == ShaderStage::Task || msg.stage == ShaderStage::Mesh)
+      {
+        // TODO mesh shader jumping
+      }
       else
       {
         qCritical() << "Can't go to a compute thread";
@@ -472,9 +555,42 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
         const ShaderMessage &am = m_Messages[a->tag().toInt()];
         const ShaderMessage &bm = m_Messages[b->tag().toInt()];
 
-        if(col == 3)
+        if(col == 5)
         {
+          // column 5 is the message when task shaders are used
           return am.message < bm.message;
+        }
+        else if(col == 4)
+        {
+          // column 4 is the message, except when task shaders are used - then it's
+          // the thread index
+          if((am.stage == ShaderStage::Task || am.stage == ShaderStage::Mesh) &&
+             am.location.mesh.taskGroup[0] != ShaderMeshMessageLocation::NotUsed)
+          {
+            return am.location.mesh.thread < bm.location.mesh.thread;
+          }
+          else
+          {
+            return am.message < bm.message;
+          }
+        }
+        else if(col == 3)
+        {
+          // column 3 is the mesh thread when only mesh shaders are used, or the mesh group when
+          // task shaders are used. For non mesh/task it is the message
+          if((am.stage == ShaderStage::Task || am.stage == ShaderStage::Mesh) &&
+             am.location.mesh.taskGroup[0] != ShaderMeshMessageLocation::NotUsed)
+          {
+            return am.location.mesh.meshGroup < bm.location.mesh.meshGroup;
+          }
+          else if(am.stage == ShaderStage::Mesh)
+          {
+            return am.location.mesh.thread < bm.location.mesh.thread;
+          }
+          else
+          {
+            return am.message < bm.message;
+          }
         }
         else if(col == 2 || m_OrigShaders[5] == ResourceId())
         {
@@ -516,6 +632,15 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
           {
             // column 2 is the thread column for compute
             return am.location.compute.thread < bm.location.compute.thread;
+          }
+          else if(am.stage == ShaderStage::Task || am.stage == ShaderStage::Mesh)
+          {
+            // column 2 is the mesh group column, or the task group column, depending on if
+            // task shaders were in use
+            if(am.location.mesh.taskGroup[0] != ShaderMeshMessageLocation::NotUsed)
+              return am.location.mesh.taskGroup < bm.location.mesh.taskGroup;
+            else
+              return am.location.mesh.meshGroup < bm.location.mesh.meshGroup;
           }
           else if(am.stage == ShaderStage::Geometry)
           {
@@ -571,7 +696,7 @@ void ShaderMessageViewer::OnCaptureClosed()
 
 void ShaderMessageViewer::OnEventChanged(uint32_t eventId)
 {
-  ResourceId shaders[6];
+  ResourceId shaders[NumShaderStages];
   bool editsChanged = false;
   QString staleReason;
 
@@ -740,6 +865,10 @@ void ShaderMessageViewer::refreshMessages()
   {
     mask = ShaderStageMask::Unknown;
 
+    if(ui->task->isChecked())
+      mask |= ShaderStageMask::Task;
+    if(ui->mesh->isChecked())
+      mask |= ShaderStageMask::Mesh;
     if(ui->vertex->isChecked())
       mask |= ShaderStageMask::Vertex;
     if(ui->hull->isChecked())
@@ -768,6 +897,8 @@ void ShaderMessageViewer::refreshMessages()
   const ShaderReflection *vsrefl = m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Vertex);
   const ShaderReflection *psrefl = m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
   const ShaderReflection *csrefl = m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);
+  const ShaderReflection *tsrefl = m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Task);
+  const ShaderReflection *msrefl = m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Mesh);
 
   for(int i = 0; i < m_Messages.count(); i++)
   {
@@ -846,6 +977,14 @@ void ShaderMessageViewer::refreshMessages()
         location += lit(", View %1").arg(msg.location.geometry.view);
       }
     }
+    else if(msg.stage == ShaderStage::Task)
+    {
+      refl = tsrefl;
+    }
+    else if(msg.stage == ShaderStage::Mesh)
+    {
+      refl = msrefl;
+    }
     else
     {
       // no location info for other stages
@@ -876,9 +1015,83 @@ void ShaderMessageViewer::refreshMessages()
 
       node->setData(0, debuggableRole, refl && refl->debugInfo.debuggable);
     }
+    else if(msg.stage == ShaderStage::Task)
+    {
+      QString groupIdx = QFormatStr("%1").arg(msg.location.mesh.taskGroup[0]);
+      if(msg.location.mesh.taskGroup[1] != ShaderMeshMessageLocation::NotUsed)
+        groupIdx += QFormatStr(",%1").arg(msg.location.mesh.taskGroup[1]);
+      if(msg.location.mesh.taskGroup[2] != ShaderMeshMessageLocation::NotUsed)
+        groupIdx += QFormatStr(",%1").arg(msg.location.mesh.taskGroup[2]);
+
+      QString threadIdx = QFormatStr("%1").arg(msg.location.mesh.thread[0]);
+      if(msg.location.mesh.thread[1] != ShaderMeshMessageLocation::NotUsed)
+        threadIdx += QFormatStr(",%1").arg(msg.location.mesh.thread[1]);
+      if(msg.location.mesh.thread[2] != ShaderMeshMessageLocation::NotUsed)
+        threadIdx += QFormatStr(",%1").arg(msg.location.mesh.thread[2]);
+
+      node = new RDTreeWidgetItem({
+          QString(),
+          QString(),
+          groupIdx,
+          lit("-"),
+          threadIdx,
+          text,
+      });
+
+      node->setData(0, debuggableRole, refl && refl->debugInfo.debuggable);
+      node->setData(1, gotoableRole, true);
+    }
+    else if(msg.stage == ShaderStage::Mesh)
+    {
+      QString taskIdx;
+      if(msg.location.mesh.taskGroup[0] != ShaderMeshMessageLocation::NotUsed)
+        taskIdx = QFormatStr("%1").arg(msg.location.mesh.taskGroup[0]);
+      if(msg.location.mesh.taskGroup[1] != ShaderMeshMessageLocation::NotUsed)
+        taskIdx += QFormatStr(",%1").arg(msg.location.mesh.taskGroup[1]);
+      if(msg.location.mesh.taskGroup[2] != ShaderMeshMessageLocation::NotUsed)
+        taskIdx += QFormatStr(",%1").arg(msg.location.mesh.taskGroup[2]);
+
+      QString groupIdx = QFormatStr("%1").arg(msg.location.mesh.meshGroup[0]);
+      if(msg.location.mesh.meshGroup[1] != ShaderMeshMessageLocation::NotUsed)
+        groupIdx += QFormatStr(",%1").arg(msg.location.mesh.meshGroup[1]);
+      if(msg.location.mesh.meshGroup[2] != ShaderMeshMessageLocation::NotUsed)
+        groupIdx += QFormatStr(",%1").arg(msg.location.mesh.meshGroup[2]);
+
+      QString threadIdx = QFormatStr("%1").arg(msg.location.mesh.thread[0]);
+      if(msg.location.mesh.thread[1] != ShaderMeshMessageLocation::NotUsed)
+        threadIdx += QFormatStr(",%1").arg(msg.location.mesh.thread[1]);
+      if(msg.location.mesh.thread[2] != ShaderMeshMessageLocation::NotUsed)
+        threadIdx += QFormatStr(",%1").arg(msg.location.mesh.thread[2]);
+
+      if(m_LayoutStage == ShaderStage::Task)
+        node = new RDTreeWidgetItem({
+            QString(),
+            QString(),
+            taskIdx,
+            groupIdx,
+            threadIdx,
+            text,
+        });
+      else
+        node = new RDTreeWidgetItem({
+            QString(),
+            QString(),
+            groupIdx,
+            threadIdx,
+            text,
+        });
+
+      node->setData(0, debuggableRole, refl && refl->debugInfo.debuggable);
+      node->setData(1, gotoableRole, true);
+    }
     else
     {
-      node = new RDTreeWidgetItem({QString(), QString(), location, text});
+      if(m_LayoutStage == ShaderStage::Task)
+        node = new RDTreeWidgetItem({QString(), QString(), QString(), QString(), location, text});
+      else if(m_LayoutStage == ShaderStage::Mesh)
+        node = new RDTreeWidgetItem({QString(), QString(), QString(), location, text});
+      else
+        node = new RDTreeWidgetItem({QString(), QString(), location, text});
 
       node->setData(0, debuggableRole, refl && refl->debugInfo.debuggable);
       node->setData(1, gotoableRole,

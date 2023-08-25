@@ -132,7 +132,7 @@ private:
   Ui::PipelineStateViewer *ui;
   ICaptureContext &m_Ctx;
 
-  QMenu *editMenus[6] = {};
+  QMenu *editMenus[NumShaderStages] = {};
 
   RDPreviewTooltip *m_Tooltip = NULL;
 

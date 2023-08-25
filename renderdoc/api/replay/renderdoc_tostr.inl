@@ -692,6 +692,7 @@ rdcstr DoStringise(const ShaderBuiltin &el)
     STRINGISE_ENUM_CLASS_NAMED(PackedFragRate, "Packed Fragment Rate");
     STRINGISE_ENUM_CLASS_NAMED(Barycentrics, "Barycentrics");
     STRINGISE_ENUM_CLASS_NAMED(CullPrimitive, "Cull Primitive Output");
+    STRINGISE_ENUM_CLASS_NAMED(OutputIndices, "Output Indices");
   }
   END_ENUM_STRINGISE();
 }
@@ -918,6 +919,8 @@ rdcstr DoStringise(const GPUCounter &el)
     STRINGISE_ENUM_CLASS(GSInvocations);
     STRINGISE_ENUM_CLASS(PSInvocations);
     STRINGISE_ENUM_CLASS(CSInvocations);
+    STRINGISE_ENUM_CLASS(TSInvocations);
+    STRINGISE_ENUM_CLASS(MSInvocations);
   }
   END_ENUM_STRINGISE();
 }
@@ -948,6 +951,8 @@ rdcstr DoStringise(const ShaderStage &el)
     STRINGISE_ENUM_CLASS(Geometry);
     STRINGISE_ENUM_CLASS(Pixel);
     STRINGISE_ENUM_CLASS(Compute);
+    STRINGISE_ENUM_CLASS(Task);
+    STRINGISE_ENUM_CLASS(Mesh);
   }
   END_ENUM_STRINGISE();
 }
@@ -957,10 +962,11 @@ rdcstr DoStringise(const MeshDataStage &el)
 {
   BEGIN_ENUM_STRINGISE(MeshDataStage)
   {
-    STRINGISE_ENUM_CLASS(Unknown);
     STRINGISE_ENUM_CLASS(VSIn);
     STRINGISE_ENUM_CLASS(VSOut);
     STRINGISE_ENUM_CLASS(GSOut);
+    STRINGISE_ENUM_CLASS(TaskOut);
+    STRINGISE_ENUM_CLASS(MeshOut);
   }
   END_ENUM_STRINGISE();
 }
@@ -1214,6 +1220,7 @@ rdcstr DoStringise(const ActionFlags &el)
     STRINGISE_BITFIELD_CLASS_BIT(Clear);
     STRINGISE_BITFIELD_CLASS_BIT(Drawcall);
     STRINGISE_BITFIELD_CLASS_BIT(Dispatch);
+    STRINGISE_BITFIELD_CLASS_BIT(MeshDispatch);
     STRINGISE_BITFIELD_CLASS_BIT(CmdList);
     STRINGISE_BITFIELD_CLASS_BIT(SetMarker);
     STRINGISE_BITFIELD_CLASS_BIT(PushMarker);
@@ -1252,6 +1259,8 @@ rdcstr DoStringise(const ShaderStageMask &el)
     STRINGISE_BITFIELD_CLASS_BIT(Geometry);
     STRINGISE_BITFIELD_CLASS_BIT(Pixel);
     STRINGISE_BITFIELD_CLASS_BIT(Compute);
+    STRINGISE_BITFIELD_CLASS_BIT(Task);
+    STRINGISE_BITFIELD_CLASS_BIT(Mesh);
   }
   END_BITFIELD_STRINGISE();
 }

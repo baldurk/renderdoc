@@ -2089,7 +2089,7 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12ActionTreeNo
   if(state.pipe != ResourceId())
     pipe = rm->GetCurrentAs<WrappedID3D12PipelineState>(state.pipe);
 
-  const ShaderBindpointMapping *bindMap[6] = {};
+  const ShaderBindpointMapping *bindMap[NumShaderStages] = {};
 
   if((a.flags & ActionFlags::Dispatch) && state.compute.rootsig != ResourceId())
   {

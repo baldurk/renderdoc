@@ -1818,7 +1818,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
 
     bool usesReplacedShader = false;
 
-    for(int i = 0; i < 6; i++)
+    for(size_t i = 0; i < NumShaderStages; i++)
     {
       if(GetResourceManager()->HasReplacement(
              GetResourceManager()->GetOriginalID(progdata.stageShaders[i])))
@@ -1839,7 +1839,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
       ResourceId progdstid = GetResourceManager()->GetResID(ProgramRes(GetCtx(), progdst));
 
       // attach shaders, going via the original ID to pick up replacements
-      for(int i = 0; i < 6; i++)
+      for(size_t i = 0; i < NumShaderStages; i++)
       {
         if(progdata.stageShaders[i] != ResourceId())
         {
@@ -1947,7 +1947,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
 
     bool usesReplacedProgram = false;
 
-    for(int i = 0; i < 6; i++)
+    for(size_t i = 0; i < NumShaderStages; i++)
     {
       if(GetResourceManager()->HasReplacement(
              GetResourceManager()->GetOriginalID(pipedata.stagePrograms[i])))
@@ -1967,7 +1967,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
       ResourceId pipedstid = GetResourceManager()->GetResID(ProgramPipeRes(GetCtx(), pipedst));
 
       // attach programs, going via the original ID to pick up replacements
-      for(int i = 0; i < 6; i++)
+      for(size_t i = 0; i < NumShaderStages; i++)
       {
         if(pipedata.stagePrograms[i] != ResourceId())
         {
@@ -5436,8 +5436,8 @@ void WrappedOpenGL::AddUsage(const ActionDescription &a)
     GLRenderState rs;
     rs.FetchState(this);
 
-    ShaderReflection *refl[6] = {NULL};
-    ShaderBindpointMapping mapping[6];
+    ShaderReflection *refl[NumShaderStages] = {NULL};
+    ShaderBindpointMapping mapping[NumShaderStages];
 
     GLuint curProg = 0;
     GL.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&curProg);

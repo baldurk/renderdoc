@@ -2670,7 +2670,9 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
 
   // start with the limits as they are, and subtract off them incrementally. When any limit would
   // drop below 0, we fail.
-  uint32_t maxPerStageDescriptorSamplers[6] = {
+  uint32_t maxPerStageDescriptorSamplers[NumShaderStages] = {
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSamplers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSamplers,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSamplers,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSamplers,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSamplers,
@@ -2678,7 +2680,9 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSamplers,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSamplers,
   };
-  uint32_t maxPerStageDescriptorUniformBuffers[6] = {
+  uint32_t maxPerStageDescriptorUniformBuffers[NumShaderStages] = {
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorUniformBuffers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorUniformBuffers,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorUniformBuffers,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorUniformBuffers,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorUniformBuffers,
@@ -2686,7 +2690,9 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorUniformBuffers,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorUniformBuffers,
   };
-  uint32_t maxPerStageDescriptorStorageBuffers[6] = {
+  uint32_t maxPerStageDescriptorStorageBuffers[NumShaderStages] = {
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageBuffers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageBuffers,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageBuffers,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageBuffers,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageBuffers,
@@ -2694,7 +2700,9 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageBuffers,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageBuffers,
   };
-  uint32_t maxPerStageDescriptorSampledImages[6] = {
+  uint32_t maxPerStageDescriptorSampledImages[NumShaderStages] = {
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSampledImages,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSampledImages,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSampledImages,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSampledImages,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSampledImages,
@@ -2702,7 +2710,9 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSampledImages,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSampledImages,
   };
-  uint32_t maxPerStageDescriptorStorageImages[6] = {
+  uint32_t maxPerStageDescriptorStorageImages[NumShaderStages] = {
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageImages,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageImages,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageImages,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageImages,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageImages,
@@ -2710,7 +2720,9 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageImages,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageImages,
   };
-  uint32_t maxPerStageDescriptorInputAttachments[6] = {
+  uint32_t maxPerStageDescriptorInputAttachments[NumShaderStages] = {
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorInputAttachments,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorInputAttachments,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorInputAttachments,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorInputAttachments,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorInputAttachments,
@@ -2718,7 +2730,9 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorInputAttachments,
       m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorInputAttachments,
   };
-  uint32_t maxPerStageResources[6] = {
+  uint32_t maxPerStageResources[NumShaderStages] = {
+      m_pDriver->GetDeviceProps().limits.maxPerStageResources,
+      m_pDriver->GetDeviceProps().limits.maxPerStageResources,
       m_pDriver->GetDeviceProps().limits.maxPerStageResources,
       m_pDriver->GetDeviceProps().limits.maxPerStageResources,
       m_pDriver->GetDeviceProps().limits.maxPerStageResources,
@@ -2743,7 +2757,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
       m_pDriver->GetDeviceProps().limits.maxDescriptorSetInputAttachments;
 
   uint32_t maxDescriptorSetInlineUniformBlocks = 0;
-  uint32_t maxPerStageDescriptorInlineUniformBlocks[6] = {};
+  uint32_t maxPerStageDescriptorInlineUniformBlocks[NumShaderStages] = {};
 
   if(m_pDriver->GetExtensions(NULL).ext_EXT_inline_uniform_block)
   {

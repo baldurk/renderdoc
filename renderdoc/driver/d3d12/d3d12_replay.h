@@ -333,7 +333,7 @@ private:
       float farPlane = 0.0f;
 
       rdcstr status;
-    } vsin, vsout, gsout;
+    } vsout, gsout, ampout, meshout;
 
     const StageData &GetStage(MeshDataStage type)
     {
@@ -341,10 +341,14 @@ private:
         return vsout;
       else if(type == MeshDataStage::GSOut)
         return gsout;
+      else if(type == MeshDataStage::TaskOut)
+        return ampout;
+      else if(type == MeshDataStage::MeshOut)
+        return meshout;
       else
         RDCERR("Unexpected mesh data stage!");
 
-      return vsin;
+      return vsout;
     }
   };
 

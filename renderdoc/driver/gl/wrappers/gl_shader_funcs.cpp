@@ -842,7 +842,7 @@ bool WrappedOpenGL::Serialise_glLinkProgram(SerialiserType &ser, GLuint programH
 
     progDetails.linked = true;
 
-    for(size_t s = 0; s < 6; s++)
+    for(size_t s = 0; s < NumShaderStages; s++)
     {
       for(size_t sh = 0; sh < progDetails.shaders.size(); sh++)
       {
@@ -916,7 +916,7 @@ void WrappedOpenGL::glLinkProgram(GLuint program)
 
     progDetails.linked = true;
 
-    for(size_t s = 0; s < 6; s++)
+    for(size_t s = 0; s < NumShaderStages; s++)
     {
       for(size_t sh = 0; sh < progDetails.shaders.size(); sh++)
       {
@@ -1494,7 +1494,7 @@ bool WrappedOpenGL::Serialise_glUseProgramStages(SerialiserType &ser, GLuint pip
       PipelineData &pipeDetails = m_Pipelines[livePipeId];
       ProgramData &progDetails = m_Programs[liveProgId];
 
-      for(size_t s = 0; s < 6; s++)
+      for(size_t s = 0; s < NumShaderStages; s++)
       {
         if(stages & ShaderBit(s))
         {
@@ -1517,7 +1517,7 @@ bool WrappedOpenGL::Serialise_glUseProgramStages(SerialiserType &ser, GLuint pip
       ResourceId livePipeId = GetResourceManager()->GetResID(pipeline);
       PipelineData &pipeDetails = m_Pipelines[livePipeId];
 
-      for(size_t s = 0; s < 6; s++)
+      for(size_t s = 0; s < NumShaderStages; s++)
       {
         if(stages & ShaderBit(s))
         {
@@ -1593,7 +1593,7 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
       PipelineData &pipeDetails = m_Pipelines[pipeID];
       ProgramData &progDetails = m_Programs[progID];
 
-      for(size_t s = 0; s < 6; s++)
+      for(size_t s = 0; s < NumShaderStages; s++)
       {
         if(stages & ShaderBit(s))
         {
@@ -1614,7 +1614,7 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
       ResourceId pipeID = GetResourceManager()->GetResID(ProgramPipeRes(GetCtx(), pipeline));
       PipelineData &pipeDetails = m_Pipelines[pipeID];
 
-      for(size_t s = 0; s < 6; s++)
+      for(size_t s = 0; s < NumShaderStages; s++)
       {
         if(stages & ShaderBit(s))
         {

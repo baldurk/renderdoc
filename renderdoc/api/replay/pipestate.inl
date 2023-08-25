@@ -62,6 +62,8 @@ rdcstr PipeState::Abbrev(ShaderStage stage) const
       case ShaderStage::Geometry: return "GS";
       case ShaderStage::Fragment: return "FS";
       case ShaderStage::Compute: return "CS";
+      case ShaderStage::Task: return "TS";
+      case ShaderStage::Mesh: return "MS";
       default: break;
     }
   }
@@ -75,6 +77,8 @@ rdcstr PipeState::Abbrev(ShaderStage stage) const
       case ShaderStage::Geometry: return "GS";
       case ShaderStage::Pixel: return "PS";
       case ShaderStage::Compute: return "CS";
+      case ShaderStage::Amplification: return "AS";
+      case ShaderStage::Mesh: return "MS";
       default: break;
     }
   }
@@ -90,6 +94,62 @@ rdcstr PipeState::OutputAbbrev() const
   }
 
   return "RT";
+}
+
+bool PipeState::IsD3D11Stage(ShaderStage stage) const
+{
+  switch(stage)
+  {
+    case ShaderStage::Vertex:
+    case ShaderStage::Domain:
+    case ShaderStage::Hull:
+    case ShaderStage::Geometry:
+    case ShaderStage::Pixel:
+    case ShaderStage::Compute: return true;
+    default: return false;
+  }
+}
+
+bool PipeState::IsD3D12Stage(ShaderStage stage) const
+{
+  switch(stage)
+  {
+    case ShaderStage::Vertex:
+    case ShaderStage::Domain:
+    case ShaderStage::Hull:
+    case ShaderStage::Geometry:
+    case ShaderStage::Pixel:
+    case ShaderStage::Compute: return true;
+    default: return false;
+  }
+}
+
+bool PipeState::IsGLStage(ShaderStage stage) const
+{
+  switch(stage)
+  {
+    case ShaderStage::Vertex:
+    case ShaderStage::Domain:
+    case ShaderStage::Hull:
+    case ShaderStage::Geometry:
+    case ShaderStage::Pixel:
+    case ShaderStage::Compute: return true;
+    default: return false;
+  }
+}
+
+bool PipeState::IsVulkanStage(ShaderStage stage) const
+{
+  switch(stage)
+  {
+    case ShaderStage::Vertex:
+    case ShaderStage::Domain:
+    case ShaderStage::Hull:
+    case ShaderStage::Geometry:
+    case ShaderStage::Pixel:
+    case ShaderStage::Compute: return true;
+    default: return false;
+  }
 }
 
 const D3D11Pipe::Shader &PipeState::GetD3D11Stage(ShaderStage stage) const
@@ -952,6 +1012,9 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
   {
     if(IsCaptureD3D11())
     {
+      if(!IsD3D11Stage(stage))
+        return ret;
+
       const D3D11Pipe::Shader &s = GetD3D11Stage(stage);
 
       if(s.reflection != NULL && BufIdx < (uint32_t)s.reflection->constantBlocks.count())
@@ -971,6 +1034,9 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
     }
     else if(IsCaptureD3D12())
     {
+      if(!IsD3D12Stage(stage))
+        return ret;
+
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
       if(s.reflection != NULL && BufIdx < (uint32_t)s.reflection->constantBlocks.count())
@@ -1014,6 +1080,9 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
     }
     else if(IsCaptureGL())
     {
+      if(!IsGLStage(stage))
+        return ret;
+
       const GLPipe::Shader &s = GetGLStage(stage);
 
       if(s.reflection != NULL && BufIdx < (uint32_t)s.reflection->constantBlocks.count())
@@ -1038,6 +1107,9 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
     }
     else if(IsCaptureVK())
     {
+      if(!IsVulkanStage(stage))
+        return ret;
+
       const VKPipe::Pipeline &pipe =
           stage == ShaderStage::Compute ? m_Vulkan->compute : m_Vulkan->graphics;
       const VKPipe::Shader &s = GetVulkanStage(stage);
@@ -1150,6 +1222,9 @@ rdcarray<BoundResourceArray> PipeState::GetSamplers(ShaderStage stage) const
   {
     if(IsCaptureD3D11())
     {
+      if(!IsD3D11Stage(stage))
+        return ret;
+
       const D3D11Pipe::Shader &s = GetD3D11Stage(stage);
 
       ret.reserve(s.samplers.size());
@@ -1168,6 +1243,9 @@ rdcarray<BoundResourceArray> PipeState::GetSamplers(ShaderStage stage) const
     }
     else if(IsCaptureD3D12())
     {
+      if(!IsD3D12Stage(stage))
+        return ret;
+
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
       size_t size = s.bindpointMapping.samplers.size();
@@ -1210,6 +1288,9 @@ rdcarray<BoundResourceArray> PipeState::GetSamplers(ShaderStage stage) const
     }
     else if(IsCaptureGL())
     {
+      if(!IsGLStage(stage))
+        return ret;
+
       ret.reserve(m_GL->samplers.size());
 
       for(int i = 0; i < m_GL->samplers.count(); i++)
@@ -1226,6 +1307,9 @@ rdcarray<BoundResourceArray> PipeState::GetSamplers(ShaderStage stage) const
     }
     else if(IsCaptureVK())
     {
+      if(!IsVulkanStage(stage))
+        return ret;
+
       const rdcarray<VKPipe::DescriptorSet> &descsets = stage == ShaderStage::Compute
                                                             ? m_Vulkan->compute.descriptorSets
                                                             : m_Vulkan->graphics.descriptorSets;
@@ -1282,6 +1366,9 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
   {
     if(IsCaptureD3D11())
     {
+      if(!IsD3D11Stage(stage))
+        return ret;
+
       const D3D11Pipe::Shader &s = GetD3D11Stage(stage);
 
       ret.reserve(s.srvs.size());
@@ -1303,6 +1390,9 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
     }
     else if(IsCaptureD3D12())
     {
+      if(!IsD3D12Stage(stage))
+        return ret;
+
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
       size_t size = s.bindpointMapping.readOnlyResources.size();
@@ -1370,6 +1460,9 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
     }
     else if(IsCaptureGL())
     {
+      if(!IsGLStage(stage))
+        return ret;
+
       ret.reserve(m_GL->textures.size());
 
       for(int i = 0; i < m_GL->textures.count(); i++)
@@ -1389,6 +1482,9 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
     }
     else if(IsCaptureVK())
     {
+      if(!IsVulkanStage(stage))
+        return ret;
+
       const rdcarray<VKPipe::DescriptorSet> &descsets = stage == ShaderStage::Compute
                                                             ? m_Vulkan->compute.descriptorSets
                                                             : m_Vulkan->graphics.descriptorSets;
@@ -1478,6 +1574,9 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
   {
     if(IsCaptureD3D11())
     {
+      if(!IsD3D11Stage(stage))
+        return ret;
+
       if(stage == ShaderStage::Compute)
       {
         ret.reserve(m_D3D11->computeShader.uavs.size());
@@ -1526,6 +1625,9 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
     }
     else if(IsCaptureD3D12())
     {
+      if(!IsD3D12Stage(stage))
+        return ret;
+
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
       size_t size = s.bindpointMapping.readWriteResources.size();
@@ -1591,6 +1693,9 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
     }
     else if(IsCaptureGL())
     {
+      if(!IsGLStage(stage))
+        return ret;
+
       ret.reserve(m_GL->images.size() + m_GL->atomicBuffers.size() +
                   m_GL->shaderStorageBuffers.size());
 
@@ -1629,6 +1734,9 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
     }
     else if(IsCaptureVK())
     {
+      if(!IsVulkanStage(stage))
+        return ret;
+
       const rdcarray<VKPipe::DescriptorSet> &descsets = stage == ShaderStage::Compute
                                                             ? m_Vulkan->compute.descriptorSets
                                                             : m_Vulkan->graphics.descriptorSets;

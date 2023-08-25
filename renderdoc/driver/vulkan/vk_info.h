@@ -352,7 +352,7 @@ struct VulkanCreationInfo
 
       rdcarray<SpecConstant> specialization;
     };
-    Shader shaders[6];
+    Shader shaders[NumShaderStages];
 
     // VkPipelineVertexInputStateCreateInfo
     struct VertBinding

@@ -1153,7 +1153,7 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   m_pDevice->GetShaderCache()->LoadDXC();
 #endif
 
-  bool dynamicAccessPerStage[6] = {};
+  bool dynamicAccessPerStage[NumShaderStages] = {};
 
   if(result.compute)
   {

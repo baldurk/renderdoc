@@ -100,9 +100,9 @@ ShaderStage MakeShaderStage(rdcspv::ExecutionModel model)
     case rdcspv::ExecutionModel::Geometry: return ShaderStage::Geometry;
     case rdcspv::ExecutionModel::Fragment: return ShaderStage::Fragment;
     case rdcspv::ExecutionModel::GLCompute: return ShaderStage::Compute;
+    case rdcspv::ExecutionModel::TaskEXT: return ShaderStage::Task;
+    case rdcspv::ExecutionModel::MeshEXT: return ShaderStage::Mesh;
     case rdcspv::ExecutionModel::Kernel:
-    case rdcspv::ExecutionModel::TaskEXT:
-    case rdcspv::ExecutionModel::MeshEXT:
     case rdcspv::ExecutionModel::RayGenerationKHR:
     case rdcspv::ExecutionModel::IntersectionKHR:
     case rdcspv::ExecutionModel::AnyHitKHR:
@@ -181,6 +181,10 @@ ShaderBuiltin MakeShaderBuiltin(ShaderStage stage, const rdcspv::BuiltIn el)
     case rdcspv::BuiltIn::BaryCoordKHR: return ShaderBuiltin::Barycentrics;
     case rdcspv::BuiltIn::FragSizeEXT: return ShaderBuiltin::FragAreaSize;
     case rdcspv::BuiltIn::FragInvocationCountEXT: return ShaderBuiltin::FragInvocationCount;
+    case rdcspv::BuiltIn::PrimitivePointIndicesEXT: return ShaderBuiltin::OutputIndices;
+    case rdcspv::BuiltIn::PrimitiveLineIndicesEXT: return ShaderBuiltin::OutputIndices;
+    case rdcspv::BuiltIn::PrimitiveTriangleIndicesEXT: return ShaderBuiltin::OutputIndices;
+    case rdcspv::BuiltIn::CullPrimitiveEXT: return ShaderBuiltin::CullPrimitive;
     default: break;
   }
 

@@ -1762,7 +1762,7 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
             &m_D3D11PipelineState->pixelShader,  &m_D3D11PipelineState->computeShader,
         };
 
-        for(int i = 0; i < 6; i++)
+        for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
           if(stages[i]->resourceId != ResourceId())
             stages[i]->reflection =
                 GetShader(ResourceId(), GetLiveID(stages[i]->resourceId), ShaderEntryPoint());
@@ -1778,11 +1778,12 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
             &m_D3D12PipelineState->vertexShader, &m_D3D12PipelineState->hullShader,
             &m_D3D12PipelineState->domainShader, &m_D3D12PipelineState->geometryShader,
             &m_D3D12PipelineState->pixelShader,  &m_D3D12PipelineState->computeShader,
+            &m_D3D12PipelineState->ampShader,    &m_D3D12PipelineState->meshShader,
         };
 
         ResourceId pipe = GetLiveID(m_D3D12PipelineState->pipelineResourceId);
 
-        for(int i = 0; i < 6; i++)
+        for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
           if(stages[i]->resourceId != ResourceId())
             stages[i]->reflection =
                 GetShader(pipe, GetLiveID(stages[i]->resourceId), ShaderEntryPoint());
@@ -1795,7 +1796,7 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
             &m_GLPipelineState->fragmentShader, &m_GLPipelineState->computeShader,
         };
 
-        for(int i = 0; i < 6; i++)
+        for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
           if(stages[i]->shaderResourceId != ResourceId())
             stages[i]->reflection =
                 GetShader(ResourceId(), GetLiveID(stages[i]->shaderResourceId), ShaderEntryPoint());
@@ -1806,11 +1807,12 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
             &m_VulkanPipelineState->vertexShader,   &m_VulkanPipelineState->tessControlShader,
             &m_VulkanPipelineState->tessEvalShader, &m_VulkanPipelineState->geometryShader,
             &m_VulkanPipelineState->fragmentShader, &m_VulkanPipelineState->computeShader,
+            &m_VulkanPipelineState->taskShader,     &m_VulkanPipelineState->meshShader,
         };
 
         ResourceId pipe = GetLiveID(m_VulkanPipelineState->graphics.pipelineResourceId);
 
-        for(int i = 0; i < 6; i++)
+        for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
         {
           if(i == 5)
             pipe = GetLiveID(m_VulkanPipelineState->compute.pipelineResourceId);
@@ -2930,7 +2932,7 @@ bool ReplayProxy::Tick(int type)
       InitPostVSBuffers(dummy);
       break;
     }
-    case eReplayProxy_GetPostVS: GetPostVSBuffers(0, 0, 0, MeshDataStage::Unknown); break;
+    case eReplayProxy_GetPostVS: GetPostVSBuffers(0, 0, 0, MeshDataStage::VSIn); break;
     case eReplayProxy_BuildTargetShader:
     {
       rdcstr entry;

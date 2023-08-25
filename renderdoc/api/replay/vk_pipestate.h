@@ -1394,6 +1394,18 @@ struct State
 )");
   Shader computeShader;
 
+  DOCUMENT(R"(The task shader stage.
+
+:type: VKShader
+)");
+  Shader taskShader;
+
+  DOCUMENT(R"(The mesh shader stage.
+
+:type: VKShader
+)");
+  Shader meshShader;
+
   DOCUMENT(R"(The tessellation stage.
 
 :type: VKTessellation

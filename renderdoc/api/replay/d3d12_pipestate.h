@@ -974,6 +974,16 @@ struct State
 :type: D3D12Shader
 )");
   Shader computeShader;
+  DOCUMENT(R"(The amplification shader stage.
+
+:type: D3D12Shader
+)");
+  Shader ampShader;
+  DOCUMENT(R"(The mesh shader stage.
+
+:type: D3D12Shader
+)");
+  Shader meshShader;
 
   DOCUMENT(R"(The stream-out pipeline stage.
 

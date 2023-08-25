@@ -495,7 +495,7 @@ MeshFormat ReplayController::GetPostVSData(uint32_t instID, uint32_t viewID, Mes
 
   ActionDescription *action = GetActionByEID(m_EventID);
 
-  if(action == NULL || !(action->flags & ActionFlags::Drawcall))
+  if(action == NULL || !(action->flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall)))
     return MeshFormat();
 
   instID = RDCMIN(instID, action->numInstances - 1);
@@ -1479,6 +1479,8 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
       case ResourceUsage::GS_Constants:
       case ResourceUsage::PS_Constants:
       case ResourceUsage::CS_Constants:
+      case ResourceUsage::TS_Constants:
+      case ResourceUsage::MS_Constants:
       case ResourceUsage::All_Constants:
       case ResourceUsage::VS_Resource:
       case ResourceUsage::HS_Resource:
@@ -1486,6 +1488,8 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
       case ResourceUsage::GS_Resource:
       case ResourceUsage::PS_Resource:
       case ResourceUsage::CS_Resource:
+      case ResourceUsage::TS_Resource:
+      case ResourceUsage::MS_Resource:
       case ResourceUsage::All_Resource:
       case ResourceUsage::InputTarget:
       case ResourceUsage::CopySrc:
@@ -1511,6 +1515,8 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
       case ResourceUsage::GS_RWResource:
       case ResourceUsage::PS_RWResource:
       case ResourceUsage::CS_RWResource:
+      case ResourceUsage::TS_RWResource:
+      case ResourceUsage::MS_RWResource:
       case ResourceUsage::All_RWResource:
       case ResourceUsage::ColorTarget:
       case ResourceUsage::DepthStencilTarget:
@@ -1998,7 +2004,9 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
     case ShaderStage::Domain:
     case ShaderStage::Geometry:
     case ShaderStage::Pixel:
-    case ShaderStage::Compute: break;
+    case ShaderStage::Compute:
+    case ShaderStage::Task:
+    case ShaderStage::Mesh: break;
     default: RDCERR("Unexpected type in BuildShader!"); return rdcpair<ResourceId, rdcstr>();
   }
 
@@ -2037,7 +2045,9 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildCustomShader(
     case ShaderStage::Domain:
     case ShaderStage::Geometry:
     case ShaderStage::Pixel:
-    case ShaderStage::Compute: break;
+    case ShaderStage::Compute:
+    case ShaderStage::Task:
+    case ShaderStage::Mesh: break;
     default: RDCERR("Unexpected type in BuildShader!"); return rdcpair<ResourceId, rdcstr>();
   }
 

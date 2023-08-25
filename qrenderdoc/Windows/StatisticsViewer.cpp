@@ -633,7 +633,7 @@ void StatisticsViewer::CountContributingEvents(const ActionDescription &action, 
   if(diagnosticMasked != ActionFlags::NoFlags)
     diagnosticCount += 1;
 
-  if(action.flags & ActionFlags::Drawcall)
+  if(action.flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall))
     drawCount += 1;
 
   if(action.flags & ActionFlags::Dispatch)

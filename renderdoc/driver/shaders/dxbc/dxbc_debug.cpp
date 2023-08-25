@@ -5127,7 +5127,8 @@ void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
       }
 
       if(arrayLength > 0)
-        arrays.push_back(make_rdcpair(sig.semanticName, make_rdcpair(sig.semanticIndex, nextIdx - 1)));
+        arrays.push_back(
+            make_rdcpair(sig.semanticName, make_rdcpair((uint32_t)sig.semanticIndex, nextIdx - 1)));
     }
 
     if(included)

@@ -291,7 +291,7 @@ static void UnrollConstant(rdcarray<UnrolledSPIRVConstant> &unrolled, const Shad
 static void UnrollConstants(const PerStageReflections &stages,
                             rdcarray<UnrolledSPIRVConstant> &globals)
 {
-  for(size_t s = 0; s < 6; s++)
+  for(size_t s = 0; s < NumShaderStages; s++)
   {
     if(!stages.refls[s])
       continue;
@@ -569,12 +569,12 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state,
   // we only need to process uniform values - for compatibility we still serialise the same, but we
   // skip fetching or applying UBO bindings etc.
   bool IsSrcProgramSPIRV = false;
-  for(size_t i = 0; i < 6; i++)
+  for(size_t i = 0; i < NumShaderStages; i++)
     IsSrcProgramSPIRV |=
         srcStages.refls[i] && srcStages.refls[i]->encoding == ShaderEncoding::OpenGLSPIRV;
 
   bool IsDstProgramSPIRV = false;
-  for(size_t i = 0; i < 6; i++)
+  for(size_t i = 0; i < NumShaderStages; i++)
     IsDstProgramSPIRV |=
         dstStages.refls[i] && dstStages.refls[i]->encoding == ShaderEncoding::OpenGLSPIRV;
 
@@ -1268,7 +1268,7 @@ bool SerialiseProgramBindings(SerialiserType &ser, CaptureState state,
   // instead just skip the fetch & apply steps, so that we can still serialise in a backwards
   // compatible way.
   bool IsProgramSPIRV = false;
-  for(size_t i = 0; i < 6; i++)
+  for(size_t i = 0; i < NumShaderStages; i++)
     IsProgramSPIRV |= stages.refls[i] && stages.refls[i]->encoding == ShaderEncoding::OpenGLSPIRV;
 
   const bool hasVert = stages.refls[0] != NULL;

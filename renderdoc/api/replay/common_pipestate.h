@@ -529,6 +529,68 @@ be emulated.
 
 DECLARE_REFLECTION_STRUCT(VertexInputAttribute);
 
+DOCUMENT(R"(A task or mesh message's location.
+
+.. data:: NotUsed
+
+  Set for values of task group/thread index when no task shaders were run.
+
+  Also set for values of a mesh group or thread index when that dimensionality is unused. For
+  example if the shader declares a group dimension of (128,1,1) then the y and z values for
+  thread index will be indicated as not used.
+)");
+struct ShaderMeshMessageLocation
+{
+  DOCUMENT("");
+  ShaderMeshMessageLocation() = default;
+  ShaderMeshMessageLocation(const ShaderMeshMessageLocation &) = default;
+  ShaderMeshMessageLocation &operator=(const ShaderMeshMessageLocation &) = default;
+
+  bool operator==(const ShaderMeshMessageLocation &o) const
+  {
+    return taskGroup == o.taskGroup && meshGroup == o.meshGroup && thread == o.thread;
+  }
+  bool operator<(const ShaderMeshMessageLocation &o) const
+  {
+    if(!(taskGroup == o.taskGroup))
+      return taskGroup < o.taskGroup;
+    if(!(meshGroup == o.meshGroup))
+      return meshGroup < o.meshGroup;
+    if(!(thread == o.thread))
+      return thread < o.thread;
+    return false;
+  }
+
+  DOCUMENT(R"(The task workgroup index between the task dispatch.
+
+.. note::
+  If no task shader is in use, this will be :data:`NotUsed`, :data:`NotUsed`, :data:`NotUsed`.
+
+:type: Tuple[int,int,int]
+)");
+  rdcfixedarray<uint32_t, 3> taskGroup;
+
+  DOCUMENT(R"(The mesh workgroup index within the dispatch or launching task workgroup.
+
+:type: Tuple[int,int,int]
+)");
+  rdcfixedarray<uint32_t, 3> meshGroup;
+
+  DOCUMENT(R"(The thread index within the workgroup, either for a task shader or mesh shader.
+
+.. note::
+  Since task shaders can only emit one set of meshes per group, the task thread is not relevant
+  for mesh shader messages, so this is the thread either for a task or a mesh shader message.
+
+:type: Tuple[int,int,int]
+)");
+  rdcfixedarray<uint32_t, 3> thread;
+
+  static const uint32_t NotUsed = ~0U;
+};
+
+DECLARE_REFLECTION_STRUCT(ShaderMeshMessageLocation);
+
 DOCUMENT("A compute shader message's location.");
 struct ShaderComputeMessageLocation
 {
@@ -664,6 +726,12 @@ union ShaderMessageLocation
 )");
   ShaderComputeMessageLocation compute;
 
+  DOCUMENT(R"(The location if the shader is a task or mesh shader.
+
+:type: ShaderMeshMessageLocation
+)");
+  ShaderMeshMessageLocation mesh;
+
   DOCUMENT(R"(The location if the shader is a vertex shader.
 
 :type: ShaderVertexMessageLocation
@@ -696,7 +764,7 @@ struct ShaderMessage
   bool operator==(const ShaderMessage &o) const
   {
     return stage == o.stage && disassemblyLine == o.disassemblyLine &&
-           location.compute == o.location.compute && message == o.message;
+           location.mesh == o.location.mesh && message == o.message;
   }
   bool operator<(const ShaderMessage &o) const
   {
@@ -704,8 +772,8 @@ struct ShaderMessage
       return stage < o.stage;
     if(!(disassemblyLine == o.disassemblyLine))
       return disassemblyLine < o.disassemblyLine;
-    if(!(location.compute == o.location.compute))
-      return location.compute < o.location.compute;
+    if(!(location.mesh == o.location.mesh))
+      return location.mesh < o.location.mesh;
     if(!(message == o.message))
       return message < o.message;
     return false;

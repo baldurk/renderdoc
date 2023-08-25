@@ -490,7 +490,7 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
         GetResourceManager()->AddLiveResource(Pipeline, pipe);
 
         VkGraphicsPipelineCreateInfo shadInstantiatedInfo = CreateInfo;
-        VkPipelineShaderStageCreateInfo shadInstantiations[6];
+        VkPipelineShaderStageCreateInfo shadInstantiations[NumShaderStages];
 
         // search for inline shaders, and create shader modules for them so we have objects to pull
         // out for recreating graphics pipelines (and to replace for shader editing)

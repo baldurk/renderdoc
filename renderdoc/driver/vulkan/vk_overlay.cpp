@@ -2678,6 +2678,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
             MeshFormat fmt = GetPostVSBuffers(events[i], inst, 0, MeshDataStage::GSOut);
             if(fmt.vertexResourceId == ResourceId())
               fmt = GetPostVSBuffers(events[i], inst, 0, MeshDataStage::VSOut);
+            if(fmt.vertexResourceId == ResourceId())
+              fmt = GetPostVSBuffers(events[i], inst, 0, MeshDataStage::MeshOut);
 
             if(fmt.vertexResourceId != ResourceId())
             {

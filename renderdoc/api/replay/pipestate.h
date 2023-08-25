@@ -442,4 +442,8 @@ private:
   const D3D12Pipe::Shader &GetD3D12Stage(ShaderStage stage) const;
   const GLPipe::Shader &GetGLStage(ShaderStage stage) const;
   const VKPipe::Shader &GetVulkanStage(ShaderStage stage) const;
+  bool IsD3D11Stage(ShaderStage stage) const;
+  bool IsD3D12Stage(ShaderStage stage) const;
+  bool IsGLStage(ShaderStage stage) const;
+  bool IsVulkanStage(ShaderStage stage) const;
 };

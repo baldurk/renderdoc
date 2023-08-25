@@ -831,7 +831,7 @@ enum class BindType : uint32_t
 
 DECLARE_REFLECTION_ENUM(BindType);
 
-DOCUMENT2(R"(Annotates a particular built-in input or output from a shader with a special meaning to
+DOCUMENT3(R"(Annotates a particular built-in input or output from a shader with a special meaning to
 the hardware or API.
 
 Some of the built-in inputs or outputs can be declared multiple times in arrays or otherwise indexed
@@ -929,6 +929,8 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
 
   This is related to :data:`GroupIndex` and :data:`DispatchThreadIndex`.
 
+)",
+          R"(
 .. data:: GSInstanceIndex
 
   An input to the geometry shader giving the instance being run, if the geometry shader was setup to
@@ -956,8 +958,6 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
   in a pixel were covered by the rasterizer. As an output, it specifies which samples in the
   destination target should be updated.
 
-)",
-          R"(
 .. data:: MSAASamplePosition
 
   An input to the pixel shader that contains the location of the current sample relative to the
@@ -1034,6 +1034,8 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
 
   Indicates if the current invocation is a helper invocation.
 
+)",
+          R"(
 .. data:: SubgroupSize
 
   The number of invocations in a subgroup.
@@ -1103,6 +1105,10 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
 .. data:: CullPrimitive
 
   An output to indicate whether or not a primitive should be culled.
+
+.. data:: OutputIndices
+
+  An output containing the indices for a meshlet.
 )");
 enum class ShaderBuiltin : uint32_t
 {
@@ -1159,6 +1165,7 @@ enum class ShaderBuiltin : uint32_t
   PackedFragRate,
   Barycentrics,
   CullPrimitive,
+  OutputIndices,
   Count,
 };
 
@@ -1191,10 +1198,6 @@ DECLARE_REFLECTION_ENUM(ReplayOutputType);
 
 DOCUMENT(R"(Describes a particular stage in the geometry transformation pipeline.
 
-.. data:: Unknown
-
-  Unknown or invalid stage.
-
 .. data:: VSIn
 
   The inputs to the vertex shader described by the explicit API vertex input bindings.
@@ -1208,13 +1211,29 @@ DOCUMENT(R"(Describes a particular stage in the geometry transformation pipeline
   The final output from the last stage in the pipeline, be that tessellation or geometry shader.
 
   This has possibly been expanded/multiplied from the inputs
+
+.. data:: TaskOut
+
+  Data from a task/amplification shader.
+
+.. data:: AmpOut
+
+  Data from an amplification shader (alias for :data:`TaskOut`).
+
+.. data:: MeshOut
+
+  Data from a mesh shader.
 )");
 enum class MeshDataStage : uint32_t
 {
-  Unknown = 0,
-  VSIn,
+  VSIn = 0,
+  First = VSIn,
   VSOut,
   GSOut,
+  TaskOut,
+  AmpOut = TaskOut,
+  MeshOut,
+  Count,
 };
 
 DECLARE_REFLECTION_ENUM(MeshDataStage);
@@ -2336,6 +2355,18 @@ DOCUMENT(R"(The stage in a pipeline where a shader runs
 .. data:: Compute
 
   The compute shader.
+
+.. data:: Amplification
+
+  The amplification shader. See also :data:`Task`.
+
+.. data:: Task
+
+  The task shader. See also :data:`Amplification`.
+
+.. data:: Mesh
+
+  The mesh shader.
 )");
 enum class ShaderStage : uint32_t
 {
@@ -2355,11 +2386,18 @@ enum class ShaderStage : uint32_t
 
   Compute,
 
+  Task,
+  Amplification = Task,
+
+  Mesh,
+
   Count,
 };
 
 ITERABLE_OPERATORS(ShaderStage);
 DECLARE_REFLECTION_ENUM(ShaderStage);
+
+#define NumShaderStages arraydim<ShaderStage>()
 
 template <typename integer>
 constexpr inline ShaderStage StageFromIndex(integer stage)
@@ -2528,7 +2566,7 @@ enum class MessageSource : uint32_t
 
 DECLARE_REFLECTION_ENUM(MessageSource);
 
-DOCUMENT(R"(How a resource is being used in the pipeline at a particular point.
+DOCUMENT2(R"(How a resource is being used in the pipeline at a particular point.
 
 Note that a resource may be used for more than one thing in one event, see :class:`EventUsage`.
 
@@ -2570,6 +2608,15 @@ Note that a resource may be used for more than one thing in one event, see :clas
 
   The resource is being used for constants in the :data:`compute shader <ShaderStage.Compute>`.
 
+.. data:: TS_Constants
+
+  The resource is being used as a constants in the amplification or
+  :data:`task shader <ShaderStage.Task>`.
+
+.. data:: MS_Constants
+
+  The resource is being used as a constants in the :data:`mesh shader <ShaderStage.Mesh>`.
+
 .. data:: All_Constants
 
   The resource is being used for constants in all shader stages.
@@ -2608,10 +2655,22 @@ Note that a resource may be used for more than one thing in one event, see :clas
   The resource is being used as a read-only resource in the
   :data:`compute shader <ShaderStage.Compute>`.
 
+.. data:: TS_Resource
+
+  The resource is being used as a read-only resource in the amplification or
+  :data:`task shader <ShaderStage.Task>`.
+
+.. data:: MS_Resource
+
+  The resource is being used as a read-only resource in the
+  :data:`mesh shader <ShaderStage.Mesh>`.
+
 .. data:: All_Resource
 
   The resource is being used as a read-only resource in all shader stages.
 
+)",
+          R"(
 .. data:: VS_RWResource
 
   The resource is being used as a read-write resource in the
@@ -2641,6 +2700,16 @@ Note that a resource may be used for more than one thing in one event, see :clas
 
   The resource is being used as a read-write resource in the
   :data:`compute shader <ShaderStage.Compute>`.
+
+.. data:: TS_RWResource
+
+  The resource is being used as a read-write resource in the amplification or
+  :data:`task shader <ShaderStage.Task>`.
+
+.. data:: MS_RWResource
+
+  The resource is being used as a read-write resource in the
+  :data:`mesh shader <ShaderStage.Mesh>`.
 
 .. data:: All_RWResource
 
@@ -2720,6 +2789,8 @@ enum class ResourceUsage : uint32_t
   GS_Constants,
   PS_Constants,
   CS_Constants,
+  TS_Constants,
+  MS_Constants,
 
   All_Constants,
 
@@ -2731,6 +2802,8 @@ enum class ResourceUsage : uint32_t
   GS_Resource,
   PS_Resource,
   CS_Resource,
+  TS_Resource,
+  MS_Resource,
 
   All_Resource,
 
@@ -2740,6 +2813,8 @@ enum class ResourceUsage : uint32_t
   GS_RWResource,
   PS_RWResource,
   CS_RWResource,
+  TS_RWResource,
+  MS_RWResource,
 
   All_RWResource,
 
@@ -2838,6 +2913,10 @@ DOCUMENT(R"(What kind of solid shading to use when rendering a mesh.
 
   The mesh should be rendered using the secondary element as color.
 
+.. data:: Meshlet
+
+  The mesh should be rendered colorising each meshlet differently.
+
 )");
 enum class SolidShade : uint32_t
 {
@@ -2845,6 +2924,7 @@ enum class SolidShade : uint32_t
   Solid,
   Lit,
   Secondary,
+  Meshlet,
   Count,
 };
 
@@ -3495,6 +3575,18 @@ enumerated with IDs in the appropriate ranges.
 
   Number of times a :data:`compute shader <ShaderStage.Compute>` was invoked.
 
+.. data:: TSInvocations
+
+  Number of times a :data:`task shader <ShaderStage.Task>` was invoked.
+
+.. data:: ASInvocations
+
+  Number of times a :data:`amplification shader <ShaderStage.Amplification>` was invoked.
+
+.. data:: MSInvocations
+
+  Number of times a :data:`mesh shader <ShaderStage.Mesh>` was invoked.
+
 .. data:: FirstAMD
 
   The AMD-specific counter IDs start from this value.
@@ -3554,6 +3646,9 @@ enum class GPUCounter : uint32_t
   PSInvocations,
   FSInvocations = PSInvocations,
   CSInvocations,
+  ASInvocations,
+  TSInvocations = ASInvocations,
+  MSInvocations,
   Count,
 
   // IHV specific counters can be set above this point
@@ -4416,7 +4511,10 @@ enum class ShaderStageMask : uint32_t
   Pixel = 1 << uint32_t(ShaderStage::Pixel),
   Fragment = Pixel,
   Compute = 1 << uint32_t(ShaderStage::Compute),
-  All = Vertex | Hull | Domain | Geometry | Pixel | Compute,
+  Task = 1 << uint32_t(ShaderStage::Task),
+  Amplification = Task,
+  Mesh = 1 << uint32_t(ShaderStage::Mesh),
+  All = Vertex | Hull | Domain | Geometry | Pixel | Compute | Task | Mesh,
 };
 
 BITMASK_OPERATORS(ShaderStageMask);
@@ -4541,6 +4639,10 @@ actions.
 
   The action issues a number of compute workgroups.
 
+.. data:: MeshDispatch
+
+  The action issues a number of mesh groups for a draw.
+
 .. data:: CmdList
 
   The action calls into a previously recorded child command list.
@@ -4629,16 +4731,17 @@ enum class ActionFlags : uint32_t
   Clear = 0x0001,
   Drawcall = 0x0002,
   Dispatch = 0x0004,
-  CmdList = 0x0008,
-  SetMarker = 0x0010,
-  PushMarker = 0x0020,
-  PopMarker = 0x0040,    // this is only for internal tracking use
-  Present = 0x0080,
-  MultiAction = 0x0100,
-  Copy = 0x0200,
-  Resolve = 0x0400,
-  GenMips = 0x0800,
-  PassBoundary = 0x1000,
+  MeshDispatch = 0x0008,
+  CmdList = 0x0010,
+  SetMarker = 0x0020,
+  PushMarker = 0x0040,
+  PopMarker = 0x0080,
+  Present = 0x0100,
+  MultiAction = 0x0200,
+  Copy = 0x0400,
+  Resolve = 0x0800,
+  GenMips = 0x1000,
+  PassBoundary = 0x2000,
 
   // flags
   Indexed = 0x010000,

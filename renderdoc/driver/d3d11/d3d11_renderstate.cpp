@@ -107,7 +107,7 @@ void D3D11RenderState::ReleaseRefs()
     IntRelease(IA.VBs[i]);
 
   Shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
-  for(int s = 0; s < 6; s++)
+  for(int s = 0; s < ARRAY_COUNT(stages); s++)
   {
     Shader *sh = stages[s];
 
@@ -176,7 +176,7 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
                                 initial ? eFrameRef_None : eFrameRef_Read);
 
   const Shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
-  for(int s = 0; s < 6; s++)
+  for(int s = 0; s < ARRAY_COUNT(stages); s++)
   {
     const Shader *sh = stages[s];
 
@@ -285,7 +285,7 @@ void D3D11RenderState::AddRefs()
     IntAddRef(IA.VBs[i]);
 
   Shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
-  for(int s = 0; s < 6; s++)
+  for(int s = 0; s < ARRAY_COUNT(stages); s++)
   {
     Shader *sh = stages[s];
 
@@ -606,7 +606,7 @@ void D3D11RenderState::UnbindRangeForRead(const ResourceRange &range)
 
   // const char *names[] = { "VS", "DS", "HS", "GS", "PS", "CS" };
   Shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
-  for(int s = 0; s < 6; s++)
+  for(int s = 0; s < ARRAY_COUNT(stages); s++)
   {
     Shader *sh = stages[s];
 

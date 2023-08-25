@@ -930,7 +930,12 @@ struct SigParameter
   DOCUMENT("The combined semantic name and index.");
   rdcstr semanticIdxName;
   DOCUMENT("The semantic index of this variable - see :data:`semanticName`.");
-  uint32_t semanticIndex = 0;
+  uint16_t semanticIndex = 0;
+
+  DOCUMENT(
+      "A flag indicating if this parameter is output at per-primitive rate rather than "
+      "per-vertex.");
+  bool perPrimitiveRate = false;
 
   DOCUMENT(R"(The index of the shader register/binding used to store this signature element.
 
@@ -956,7 +961,7 @@ shader itself, for APIs that pack signatures together.
   DOCUMENT("A convenience flag - ``True`` if the semantic name is unique and no index is needed.");
   bool needSemanticIndex = false;
 
-  DOCUMENT("The number of components used to store this element. See :data:`compType`.");
+  DOCUMENT("The number of components used to store this element. See :data:`varType`.");
   uint32_t compCount = 0;
   DOCUMENT(
       "Selects a stream for APIs that provide multiple output streams for the same named output.");
@@ -1526,6 +1531,12 @@ struct ShaderReflection
 )");
   rdcfixedarray<uint32_t, 3> dispatchThreadsDimension;
 
+  DOCUMENT(R"(The output topology for geometry, tessellation and mesh shaders.
+
+:type: Topology
+)");
+  Topology outputTopology = Topology::Unknown;
+
   DOCUMENT(R"(The input signature.
 
 :type: List[SigParameter]
@@ -1574,6 +1585,15 @@ struct ShaderReflection
 :type: List[ShaderConstantType]
 )");
   rdcarray<ShaderConstantType> pointerTypes;
+
+  DOCUMENT(R"(The block layout of the task-mesh communication payload.
+
+Only relevant for task or mesh shaders, this gives the output payload (for task shaders) or the
+input payload (for mesh shaders)
+
+:type: ConstantBlock
+)");
+  ConstantBlock taskPayload;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderReflection);

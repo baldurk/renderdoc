@@ -445,7 +445,8 @@ void TextureViewer::UI_UpdateCachedTexture()
       const ShaderReflection *shaderDetails =
           m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
 
-      if(!m_Ctx.CurAction() || !(m_Ctx.CurAction()->flags & ActionFlags::Drawcall))
+      if(!m_Ctx.CurAction() ||
+         !(m_Ctx.CurAction()->flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall)))
       {
         ui->debugPixelContext->setEnabled(false);
         ui->debugPixelContext->setToolTip(tr("No draw call selected"));
@@ -3167,10 +3168,12 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
   bool copy = false, clear = false, compute = false;
   Following::GetActionContext(m_Ctx, copy, clear, compute);
 
-  ShaderStage stages[] = {ShaderStage::Vertex, ShaderStage::Hull, ShaderStage::Domain,
-                          ShaderStage::Geometry, ShaderStage::Pixel};
+  ShaderStage stages[] = {
+      ShaderStage::Vertex, ShaderStage::Hull, ShaderStage::Domain, ShaderStage::Geometry,
+      ShaderStage::Pixel,  ShaderStage::Task, ShaderStage::Mesh,
+  };
 
-  int count = 5;
+  int count = 7;
 
   if(compute)
   {

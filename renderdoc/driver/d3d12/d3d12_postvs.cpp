@@ -220,7 +220,6 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
   D3D_PRIMITIVE_TOPOLOGY topo = rs.topo;
 
-  ret.vsin.topo = topo;
   ret.vsout.topo = topo;
 
   const ActionDescription *action = m_pDevice->GetAction(eventId);
@@ -789,7 +788,6 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
     m_SOStagingBuffer->Unmap(0, &range);
 
-    ret.vsin.topo = topo;
     ret.vsout.buf = vsoutBuffer;
     ret.vsout.vertStride = stride;
     ret.vsout.nearPlane = nearp;
@@ -816,7 +814,6 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
   else
   {
     // empty vertex output signature
-    ret.vsin.topo = topo;
     ret.vsout.buf = NULL;
     ret.vsout.instStride = 0;
     ret.vsout.vertStride = 0;
