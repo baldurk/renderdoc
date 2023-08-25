@@ -62,7 +62,7 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
       m_pDriver->vkDestroyPipelineLayout(dev, it->second.pipeLayout, NULL);
     }
   }
-  void PreDraw(uint32_t eid, VkCommandBuffer cmd)
+  void PreDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd)
   {
     if(!m_Events.contains(eid))
       return;
@@ -236,7 +236,7 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
       pipestate.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
   }
 
-  bool PostDraw(uint32_t eid, VkCommandBuffer cmd)
+  bool PostDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd)
   {
     if(!m_Events.contains(eid))
       return false;
@@ -251,15 +251,15 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
     return true;
   }
 
-  void PostRedraw(uint32_t eid, VkCommandBuffer cmd)
+  void PostRedraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd)
   {
     // nothing to do
   }
 
   // Dispatches don't rasterize, so do nothing
-  void PreDispatch(uint32_t eid, VkCommandBuffer cmd) {}
-  bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) { return false; }
-  void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) {}
+  void PreDispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
+  bool PostDispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) { return false; }
+  void PostRedispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
   // Ditto copy/etc
   void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
   bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) { return false; }
@@ -731,7 +731,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
   const VulkanCreationInfo::Pipeline &pipeInfo =
       m_pDriver->m_CreationInfo.m_Pipeline[state.graphics.pipeline];
 
-  if((mainDraw && !(mainDraw->flags & ActionFlags::Drawcall)) ||
+  if((mainDraw && !(mainDraw->flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall))) ||
      (!m_pDriver->m_Partial[WrappedVulkan::Primary].renderPassActive &&
       !m_pDriver->m_Partial[WrappedVulkan::Secondary].renderPassActive))
   {
@@ -2373,7 +2373,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           const ActionDescription *action = m_pDriver->GetAction(events[0]);
 
           // remove any non-drawcalls, like the pass boundary.
-          if(!action || !(action->flags & ActionFlags::Drawcall))
+          if(!action || !(action->flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall)))
             events.erase(0);
           else
             break;

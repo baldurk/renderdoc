@@ -81,6 +81,8 @@
         <file>del@2x.png</file>
         <file>disconnect.png</file>
         <file>disconnect@2x.png</file>
+        <file>draw_vertex.png</file>
+        <file>draw_vertex@2x.png</file>
         <file>filter.png</file>
         <file>filter@2x.png</file>
         <file>filter_reapply.png</file>

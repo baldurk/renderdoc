@@ -549,7 +549,8 @@
   DeclExt(EXT_swapchain_maintenance1);                 \
   DeclExt(EXT_provoking_vertex);                       \
   DeclExt(EXT_attachment_feedback_loop_dynamic_state); \
-  DeclExt(EXT_extended_dynamic_state3);
+  DeclExt(EXT_extended_dynamic_state3);                \
+  DeclExt(EXT_mesh_shader);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -669,7 +670,8 @@
   CheckExt(EXT_swapchain_maintenance1, VKXX);                 \
   CheckExt(EXT_provoking_vertex, VKXX);                       \
   CheckExt(EXT_attachment_feedback_loop_dynamic_state, VKXX); \
-  CheckExt(EXT_extended_dynamic_state3, VKXX);
+  CheckExt(EXT_extended_dynamic_state3, VKXX);                \
+  CheckExt(EXT_mesh_shader, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -964,6 +966,9 @@
   HookInitExtension(EXT_extended_dynamic_state3, CmdSetTessellationDomainOriginEXT);               \
   HookInitExtension(EXT_extended_dynamic_state3, CmdSetViewportSwizzleNV);                         \
   HookInitExtension(EXT_extended_dynamic_state3, CmdSetViewportWScalingEnableNV);                  \
+  HookInitExtension(EXT_mesh_shader, CmdDrawMeshTasksEXT);                                         \
+  HookInitExtension(EXT_mesh_shader, CmdDrawMeshTasksIndirectEXT);                                 \
+  HookInitExtension(EXT_mesh_shader, CmdDrawMeshTasksIndirectCountEXT);                            \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
   HookInitExtension_Device_GGP();                                                                  \
@@ -1758,6 +1763,13 @@
               pViewportSwizzles);                                                                    \
   HookDefine2(void, vkCmdSetViewportWScalingEnableNV, VkCommandBuffer, commandBuffer, VkBool32,      \
               viewportWScalingEnable);                                                               \
+  HookDefine4(void, vkCmdDrawMeshTasksEXT, VkCommandBuffer, commandBuffer, uint32_t, groupCountX,    \
+              uint32_t, groupCountY, uint32_t, groupCountZ);                                         \
+  HookDefine5(void, vkCmdDrawMeshTasksIndirectEXT, VkCommandBuffer, commandBuffer, VkBuffer,         \
+              buffer, VkDeviceSize, offset, uint32_t, drawCount, uint32_t, stride);                  \
+  HookDefine7(void, vkCmdDrawMeshTasksIndirectCountEXT, VkCommandBuffer, commandBuffer, VkBuffer,    \
+              buffer, VkDeviceSize, offset, VkBuffer, countBuffer, VkDeviceSize,                     \
+              countBufferOffset, uint32_t, maxDrawCount, uint32_t, stride);                          \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \

@@ -3177,6 +3177,26 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
             (ext->extendedDynamicState3DepthClipNegativeOneToOne != VK_FALSE);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceMeshShaderFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(taskShader);
+        CHECK_PHYS_EXT_FEATURE(meshShader);
+        CHECK_PHYS_EXT_FEATURE(multiviewMeshShader);
+        CHECK_PHYS_EXT_FEATURE(primitiveFragmentShadingRateMeshShader);
+        CHECK_PHYS_EXT_FEATURE(meshShaderQueries);
+
+        m_MeshShaders = ext->meshShader != VK_FALSE;
+        m_TaskShaders = ext->taskShader != VK_FALSE;
+        m_MeshQueries = avail.meshShaderQueries != VK_FALSE;
+
+        if(avail.meshShaderQueries)
+          ext->meshShaderQueries = true;
+        else
+          RDCWARN("meshShaderQueries = false, mesh shader performance counters unavailable");
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

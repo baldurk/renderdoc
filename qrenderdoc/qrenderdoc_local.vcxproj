@@ -1980,6 +1980,8 @@
     <Image Include="Resources\del.png" />
     <Image Include="Resources\disconnect%402x.png" />
     <Image Include="Resources\disconnect.png" />
+    <Image Include="Resources\draw_vertex%402x.png" />
+    <Image Include="Resources\draw_vertex.png" />
     <Image Include="Resources\filter%402x.png" />
     <Image Include="Resources\filter.png" />
     <Image Include="Resources\filter_reapply%402x.png" />

@@ -147,7 +147,9 @@ bool PipeState::IsVulkanStage(ShaderStage stage) const
     case ShaderStage::Hull:
     case ShaderStage::Geometry:
     case ShaderStage::Pixel:
-    case ShaderStage::Compute: return true;
+    case ShaderStage::Compute:
+    case ShaderStage::Task:
+    case ShaderStage::Mesh: return true;
     default: return false;
   }
 }
@@ -223,6 +225,10 @@ const VKPipe::Shader &PipeState::GetVulkanStage(ShaderStage stage) const
     return m_Vulkan->fragmentShader;
   if(stage == ShaderStage::Compute)
     return m_Vulkan->computeShader;
+  if(stage == ShaderStage::Task)
+    return m_Vulkan->taskShader;
+  if(stage == ShaderStage::Mesh)
+    return m_Vulkan->meshShader;
 
   RENDERDOC_LogMessage(LogType::Error, "PIPE", __FILE__, __LINE__, "Error - invalid stage");
   return m_Vulkan->computeShader;
@@ -335,6 +341,8 @@ const ShaderBindpointMapping &PipeState::GetBindpointMapping(ShaderStage stage) 
         case ShaderStage::Geometry: return m_Vulkan->geometryShader.bindpointMapping;
         case ShaderStage::Fragment: return m_Vulkan->fragmentShader.bindpointMapping;
         case ShaderStage::Compute: return m_Vulkan->computeShader.bindpointMapping;
+        case ShaderStage::Task: return m_Vulkan->taskShader.bindpointMapping;
+        case ShaderStage::Mesh: return m_Vulkan->meshShader.bindpointMapping;
         default: break;
       }
     }
@@ -398,6 +406,8 @@ const ShaderReflection *PipeState::GetShaderReflection(ShaderStage stage) const
         case ShaderStage::Geometry: return m_Vulkan->geometryShader.reflection;
         case ShaderStage::Fragment: return m_Vulkan->fragmentShader.reflection;
         case ShaderStage::Compute: return m_Vulkan->computeShader.reflection;
+        case ShaderStage::Task: return m_Vulkan->taskShader.reflection;
+        case ShaderStage::Mesh: return m_Vulkan->meshShader.reflection;
         default: break;
       }
     }
@@ -456,6 +466,8 @@ rdcstr PipeState::GetShaderEntryPoint(ShaderStage stage) const
       case ShaderStage::Geometry: return m_Vulkan->geometryShader.entryPoint;
       case ShaderStage::Fragment: return m_Vulkan->fragmentShader.entryPoint;
       case ShaderStage::Compute: return m_Vulkan->computeShader.entryPoint;
+      case ShaderStage::Task: return m_Vulkan->taskShader.entryPoint;
+      case ShaderStage::Mesh: return m_Vulkan->meshShader.entryPoint;
       default: break;
     }
   }
@@ -516,6 +528,8 @@ ResourceId PipeState::GetShader(ShaderStage stage) const
         case ShaderStage::Geometry: return m_Vulkan->geometryShader.resourceId;
         case ShaderStage::Fragment: return m_Vulkan->fragmentShader.resourceId;
         case ShaderStage::Compute: return m_Vulkan->computeShader.resourceId;
+        case ShaderStage::Task: return m_Vulkan->taskShader.resourceId;
+        case ShaderStage::Mesh: return m_Vulkan->meshShader.resourceId;
         default: break;
       }
     }
@@ -1182,6 +1196,14 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
                 case ShaderStage::Compute:
                   ret.byteOffset = m_Vulkan->computeShader.pushConstantRangeByteOffset;
                   ret.byteSize = m_Vulkan->computeShader.pushConstantRangeByteSize;
+                  break;
+                case ShaderStage::Task:
+                  ret.byteOffset = m_Vulkan->taskShader.pushConstantRangeByteOffset;
+                  ret.byteSize = m_Vulkan->taskShader.pushConstantRangeByteSize;
+                  break;
+                case ShaderStage::Mesh:
+                  ret.byteOffset = m_Vulkan->meshShader.pushConstantRangeByteOffset;
+                  ret.byteSize = m_Vulkan->meshShader.pushConstantRangeByteSize;
                   break;
                 default: break;
               }

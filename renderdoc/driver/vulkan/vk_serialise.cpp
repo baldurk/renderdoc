@@ -773,6 +773,12 @@ SERIALISE_VK_HANDLES();
                VkPhysicalDeviceMemoryPriorityFeaturesEXT)                                              \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_PRIORITY_ALLOCATE_INFO_EXT, VkMemoryPriorityAllocateInfoEXT)   \
                                                                                                        \
+  /* VK_EXT_mesh_shader */                                                                             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,                             \
+               VkPhysicalDeviceMeshShaderFeaturesEXT)                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT,                           \
+               VkPhysicalDeviceMeshShaderPropertiesEXT)                                                \
+                                                                                                       \
   /* VK_EXT_mutable_descriptor_type */                                                                 \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT,                 \
                VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT)                                       \
@@ -1506,10 +1512,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_EXT_legacy_dithering */                                                                        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LEGACY_DITHERING_FEATURES_EXT)                   \
-                                                                                                       \
-  /* VK_EXT_mesh_shader */                                                                             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT)                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT)                      \
                                                                                                        \
   /* VK_EXT_metal_objects */                                                                           \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_EXPORT_METAL_OBJECT_CREATE_INFO_EXT)                             \
@@ -8274,6 +8276,14 @@ void DoSerialise(SerialiserType &ser, VkDrawIndexedIndirectCommand &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDrawMeshTasksIndirectCommandEXT &el)
+{
+  SERIALISE_MEMBER(groupCountX);
+  SERIALISE_MEMBER(groupCountY);
+  SERIALISE_MEMBER(groupCountZ);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkDeviceQueueInfo2 &el)
 {
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2);
@@ -9907,6 +9917,69 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDevicePageableDeviceLocalMemoryF
 
 template <>
 void Deserialise(const VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceMeshShaderFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(taskShader);
+  SERIALISE_MEMBER(meshShader);
+  SERIALISE_MEMBER(multiviewMeshShader);
+  SERIALISE_MEMBER(primitiveFragmentShadingRateMeshShader);
+  SERIALISE_MEMBER(meshShaderQueries);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceMeshShaderFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceMeshShaderPropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(maxTaskWorkGroupTotalCount);
+  SERIALISE_MEMBER(maxTaskWorkGroupCount);
+  SERIALISE_MEMBER(maxTaskWorkGroupInvocations);
+  SERIALISE_MEMBER(maxTaskWorkGroupSize);
+  SERIALISE_MEMBER(maxTaskPayloadSize);
+  SERIALISE_MEMBER(maxTaskSharedMemorySize);
+  SERIALISE_MEMBER(maxTaskPayloadAndSharedMemorySize);
+  SERIALISE_MEMBER(maxMeshWorkGroupTotalCount);
+  SERIALISE_MEMBER(maxMeshWorkGroupCount);
+  SERIALISE_MEMBER(maxMeshWorkGroupInvocations);
+  SERIALISE_MEMBER(maxMeshWorkGroupSize);
+  SERIALISE_MEMBER(maxMeshSharedMemorySize);
+  SERIALISE_MEMBER(maxMeshPayloadAndSharedMemorySize);
+  SERIALISE_MEMBER(maxMeshOutputMemorySize);
+  SERIALISE_MEMBER(maxMeshPayloadAndOutputMemorySize);
+  SERIALISE_MEMBER(maxMeshOutputComponents);
+  SERIALISE_MEMBER(maxMeshOutputVertices);
+  SERIALISE_MEMBER(maxMeshOutputPrimitives);
+  SERIALISE_MEMBER(maxMeshOutputLayers);
+  SERIALISE_MEMBER(maxMeshMultiviewViewCount);
+  SERIALISE_MEMBER(meshOutputPerVertexGranularity);
+  SERIALISE_MEMBER(meshOutputPerPrimitiveGranularity);
+  SERIALISE_MEMBER(maxPreferredTaskWorkGroupInvocations);
+  SERIALISE_MEMBER(maxPreferredMeshWorkGroupInvocations);
+  SERIALISE_MEMBER(prefersLocalInvocationVertexOutput);
+  SERIALISE_MEMBER(prefersLocalInvocationPrimitiveOutput);
+  SERIALISE_MEMBER(prefersCompactVertexOutput);
+  SERIALISE_MEMBER(prefersCompactPrimitiveOutput);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceMeshShaderPropertiesEXT &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -11587,6 +11660,8 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMaintenance4Properties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMemoryBudgetPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMemoryPriorityFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMemoryProperties2);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMeshShaderFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMeshShaderPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultiviewFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultiviewProperties);
@@ -11803,6 +11878,7 @@ INSTANTIATE_SERIALISE_TYPE(VkDisplayPlanePropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkDisplayPropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkDrawIndexedIndirectCommand);
 INSTANTIATE_SERIALISE_TYPE(VkDrawIndirectCommand);
+INSTANTIATE_SERIALISE_TYPE(VkDrawMeshTasksIndirectCommandEXT);
 INSTANTIATE_SERIALISE_TYPE(VkExtent2D);
 INSTANTIATE_SERIALISE_TYPE(VkExtent3D);
 INSTANTIATE_SERIALISE_TYPE(VkExternalMemoryProperties);

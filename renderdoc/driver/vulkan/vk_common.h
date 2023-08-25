@@ -975,6 +975,9 @@ enum class VulkanChunk : uint32_t
   vkCmdSetSampleLocationsEnableEXT,
   vkCmdSetSampleMaskEXT,
   vkCmdSetTessellationDomainOriginEXT,
+  vkCmdDrawMeshTasksEXT,
+  vkCmdDrawMeshTasksIndirectEXT,
+  vkCmdDrawMeshTasksIndirectCountEXT,
   Max,
 };
 
@@ -1248,6 +1251,8 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMaintenance4Properties);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMemoryBudgetPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMemoryPriorityFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMemoryProperties2);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMeshShaderFeaturesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMeshShaderPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMultiviewFeatures);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMultiviewProperties);
@@ -1658,6 +1663,8 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMaintenance4Properties);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMemoryBudgetPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMemoryPriorityFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMemoryProperties2);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMeshShaderFeaturesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMeshShaderPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMultiviewFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMultiviewProperties);
@@ -1872,6 +1879,7 @@ DECLARE_REFLECTION_STRUCT(VkDisplayPlanePropertiesKHR);
 DECLARE_REFLECTION_STRUCT(VkDisplayPropertiesKHR);
 DECLARE_REFLECTION_STRUCT(VkDrawIndexedIndirectCommand);
 DECLARE_REFLECTION_STRUCT(VkDrawIndirectCommand);
+DECLARE_REFLECTION_STRUCT(VkDrawMeshTasksIndirectCommandEXT);
 DECLARE_REFLECTION_STRUCT(VkExtent2D);
 DECLARE_REFLECTION_STRUCT(VkExtent3D);
 DECLARE_REFLECTION_STRUCT(VkExternalMemoryProperties);

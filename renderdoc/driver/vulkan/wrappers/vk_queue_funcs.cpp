@@ -503,7 +503,20 @@ bool WrappedVulkan::PatchIndirectDraw(size_t drawIndex, uint32_t paramStride,
 
   action.drawIndex = (uint32_t)drawIndex;
 
-  if(type == VkIndirectPatchType::DrawIndirect || type == VkIndirectPatchType::DrawIndirectCount)
+  if(type == VkIndirectPatchType::MeshIndirectCount)
+  {
+    if(argptr && argptr + sizeof(VkDrawMeshTasksIndirectCommandEXT) <= argend)
+    {
+      VkDrawMeshTasksIndirectCommandEXT *arg = (VkDrawMeshTasksIndirectCommandEXT *)argptr;
+
+      action.dispatchDimension[0] = arg->groupCountX;
+      action.dispatchDimension[1] = arg->groupCountY;
+      action.dispatchDimension[2] = arg->groupCountZ;
+
+      valid = true;
+    }
+  }
+  else if(type == VkIndirectPatchType::DrawIndirect || type == VkIndirectPatchType::DrawIndirectCount)
   {
     if(argptr && argptr + sizeof(VkDrawIndirectCommand) <= argend)
     {
@@ -623,14 +636,36 @@ void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
       n.action.dispatchDimension[1] = args->y;
       n.action.dispatchDimension[2] = args->z;
     }
+    else if(n.indirectPatch.type == VkIndirectPatchType::MeshIndirect)
+    {
+      VkDrawMeshTasksIndirectCommandEXT unknown = {0};
+      bytebuf argbuf;
+      GetDebugManager()->GetBufferData(GetResID(n.indirectPatch.buf), 0, 0, argbuf);
+      VkDrawMeshTasksIndirectCommandEXT *args = (VkDrawMeshTasksIndirectCommandEXT *)&argbuf[0];
+
+      if(argbuf.size() < sizeof(VkDrawMeshTasksIndirectCommandEXT))
+      {
+        RDCERR("Couldn't fetch arguments buffer for vkCmdDrawMeshTasksIndirectEXT");
+        args = &unknown;
+      }
+
+      n.action.customName =
+          StringFormat::Fmt("vkCmdDrawMeshTasksIndirectEXT(<%u, %u, %u>)", args->groupCountX,
+                            args->groupCountY, args->groupCountZ);
+      n.action.dispatchDimension[0] = args->groupCountX;
+      n.action.dispatchDimension[1] = args->groupCountY;
+      n.action.dispatchDimension[2] = args->groupCountZ;
+    }
     else if(n.indirectPatch.type == VkIndirectPatchType::DrawIndirectByteCount ||
             n.indirectPatch.type == VkIndirectPatchType::DrawIndirect ||
             n.indirectPatch.type == VkIndirectPatchType::DrawIndexedIndirect ||
             n.indirectPatch.type == VkIndirectPatchType::DrawIndirectCount ||
-            n.indirectPatch.type == VkIndirectPatchType::DrawIndexedIndirectCount)
+            n.indirectPatch.type == VkIndirectPatchType::DrawIndexedIndirectCount ||
+            n.indirectPatch.type == VkIndirectPatchType::MeshIndirectCount)
     {
       bool hasCount = (n.indirectPatch.type == VkIndirectPatchType::DrawIndirectCount ||
-                       n.indirectPatch.type == VkIndirectPatchType::DrawIndexedIndirectCount);
+                       n.indirectPatch.type == VkIndirectPatchType::DrawIndexedIndirectCount ||
+                       n.indirectPatch.type == VkIndirectPatchType::MeshIndirectCount);
       bytebuf argbuf;
       GetDebugManager()->GetBufferData(GetResID(n.indirectPatch.buf), 0, 0, argbuf);
 
@@ -809,11 +844,23 @@ void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
 
           name = GetStructuredFile()->chunks[n2.action.events.back().chunkIndex]->name;
 
-          if(valid)
-            n2.action.customName = StringFormat::Fmt("%s[%zu](<%u, %u>)", name.c_str(), j,
-                                                     n2.action.numIndices, n2.action.numInstances);
+          if(n.indirectPatch.type == VkIndirectPatchType::MeshIndirectCount)
+          {
+            if(valid)
+              n2.action.customName = StringFormat::Fmt(
+                  "%s[%zu](<%u, %u, %u>)", name.c_str(), j, n2.action.dispatchDimension[0],
+                  n2.action.dispatchDimension[1], n2.action.dispatchDimension[2]);
+            else
+              n2.action.customName = StringFormat::Fmt("%s[%zu](<?, ?>)", name.c_str(), j);
+          }
           else
-            n2.action.customName = StringFormat::Fmt("%s[%zu](<?, ?>)", name.c_str(), j);
+          {
+            if(valid)
+              n2.action.customName = StringFormat::Fmt("%s[%zu](<%u, %u>)", name.c_str(), j,
+                                                       n2.action.numIndices, n2.action.numInstances);
+            else
+              n2.action.customName = StringFormat::Fmt("%s[%zu](<?, ?>)", name.c_str(), j);
+          }
 
           if(ptr)
             ptr += n.indirectPatch.stride;

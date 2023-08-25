@@ -145,6 +145,14 @@ rdcarray<GPUCounter> VulkanReplay::EnumerateCounters()
     ret.push_back(GPUCounter::GSInvocations);
     ret.push_back(GPUCounter::PSInvocations);
     ret.push_back(GPUCounter::CSInvocations);
+
+    if(m_pDriver->MeshQueries())
+    {
+      if(m_pDriver->TaskShaders())
+        ret.push_back(GPUCounter::TSInvocations);
+      if(m_pDriver->MeshShaders())
+        ret.push_back(GPUCounter::MSInvocations);
+    }
   }
 
   if(m_pDriver->GetPhysicalDevicePerformanceQueryFeatures().performanceCounterQueryPools)
@@ -339,6 +347,20 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
       desc.resultType = CompType::UInt;
       desc.unit = CounterUnit::Absolute;
       break;
+    case GPUCounter::TSInvocations:
+      desc.name = "TS Invocations";
+      desc.description = "Number of times a task shader was invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
+      break;
+    case GPUCounter::MSInvocations:
+      desc.name = "MS Invocations";
+      desc.description = "Number of times a mesh shader was invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
+      break;
     default:
       desc.name = "Unknown";
       desc.description = "Unknown counter ID";
@@ -361,7 +383,7 @@ struct VulkanAMDActionCallback : public VulkanActionCallback
   }
 
   virtual ~VulkanAMDActionCallback() { m_pDriver->SetActionCB(NULL); }
-  void PreDraw(uint32_t eid, VkCommandBuffer cmd) override
+  void PreDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
     m_pEventIds->push_back(eid);
 
@@ -379,7 +401,7 @@ struct VulkanAMDActionCallback : public VulkanActionCallback
     ++*m_pSampleId;
   }
 
-  bool PostDraw(uint32_t eid, VkCommandBuffer cmd) override
+  bool PostDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
     VkCommandBuffer realCmdBuffer = Unwrap(cmd);
 
@@ -400,28 +422,37 @@ struct VulkanAMDActionCallback : public VulkanActionCallback
     }
   }
 
-  void PostRedraw(uint32_t eid, VkCommandBuffer cmd) override {}
+  void PostRedraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override {}
   // we don't need to distinguish, call the Draw functions
-  void PreDispatch(uint32_t eid, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
-  bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) override { return PostDraw(eid, cmd); }
-  void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) override { PostRedraw(eid, cmd); }
+  void PreDispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
+  {
+    PreDraw(eid, flags, cmd);
+  }
+  bool PostDispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
+  {
+    return PostDraw(eid, flags, cmd);
+  }
+  void PostRedispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
+  {
+    PostRedraw(eid, flags, cmd);
+  }
   void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
     if(flags & ActionFlags::PassBoundary)
       return;
-    PreDraw(eid, cmd);
+    PreDraw(eid, flags, cmd);
   }
   bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
     if(flags & ActionFlags::PassBoundary)
       return false;
-    return PostDraw(eid, cmd);
+    return PostDraw(eid, flags, cmd);
   }
   void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
     if(flags & ActionFlags::PassBoundary)
       return;
-    PostRedraw(eid, cmd);
+    PostRedraw(eid, flags, cmd);
   }
 
   void AliasEvent(uint32_t primary, uint32_t alias) override
@@ -562,31 +593,43 @@ struct VulkanKHRCallback : public VulkanActionCallback
     m_pDriver->SetActionCB(this);
   }
   ~VulkanKHRCallback() { m_pDriver->SetActionCB(NULL); }
-  void PreDraw(uint32_t eid, VkCommandBuffer cmd) override
+  void PreDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
     ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_QueryPool, (uint32_t)m_Results.size(), 0);
   }
 
-  bool PostDraw(uint32_t eid, VkCommandBuffer cmd) override
+  bool PostDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
     ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_QueryPool, (uint32_t)m_Results.size());
     m_Results.push_back(eid);
     return false;
   }
 
-  void PostRedraw(uint32_t eid, VkCommandBuffer cmd) override {}
+  void PostRedraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override {}
   // we don't need to distinguish, call the Draw functions
-  void PreDispatch(uint32_t eid, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
-  bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) override { return PostDraw(eid, cmd); }
-  void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) override { PostRedraw(eid, cmd); }
-  void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
+  void PreDispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
+  {
+    PreDraw(eid, flags, cmd);
+  }
+  bool PostDispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
+  {
+    return PostDraw(eid, flags, cmd);
+  }
+  void PostRedispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
+  {
+    PostRedraw(eid, flags, cmd);
+  }
+  void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
+  {
+    PreDraw(eid, flags, cmd);
+  }
   bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
-    return PostDraw(eid, cmd);
+    return PostDraw(eid, flags, cmd);
   }
   void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
-    PostRedraw(eid, cmd);
+    PostRedraw(eid, flags, cmd);
   }
   void AliasEvent(uint32_t primary, uint32_t alias) override
   {
@@ -749,27 +792,36 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersKHR(const rdcarray<GPUCounter
 struct VulkanGPUTimerCallback : public VulkanActionCallback
 {
   VulkanGPUTimerCallback(WrappedVulkan *vk, VulkanReplay *rp, VkQueryPool tsqp, VkQueryPool occqp,
-                         VkQueryPool psqp, VkQueryPool cpsqp)
+                         VkQueryPool msqp, VkQueryPool psqp, VkQueryPool cpsqp)
       : m_pDriver(vk),
         m_pReplay(rp),
         m_TimeStampQueryPool(tsqp),
         m_OcclusionQueryPool(occqp),
+        m_MeshStatsQueryPool(msqp),
         m_PipeStatsQueryPool(psqp),
         m_ComputePipeStatsQueryPool(cpsqp)
   {
     m_pDriver->SetActionCB(this);
   }
   ~VulkanGPUTimerCallback() { m_pDriver->SetActionCB(NULL); }
-  void PreDraw(uint32_t eid, VkCommandBuffer cmd) override
+  void PreDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
     VkQueueFlags cmdType = m_pDriver->GetCommandType();
     if(cmdType & VK_QUEUE_GRAPHICS_BIT)
     {
       if(m_OcclusionQueryPool != VK_NULL_HANDLE)
-        ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionQueryPool, m_GraphicsQueries,
+        ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionQueryPool, m_OcclQueries,
                                     VK_QUERY_CONTROL_PRECISE_BIT);
-      if(m_PipeStatsQueryPool != VK_NULL_HANDLE)
-        ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_PipeStatsQueryPool, m_GraphicsQueries, 0);
+      if(flags & ActionFlags::MeshDispatch)
+      {
+        if(m_MeshStatsQueryPool != VK_NULL_HANDLE)
+          ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_MeshStatsQueryPool, m_MeshQueries, 0);
+      }
+      else
+      {
+        if(m_PipeStatsQueryPool != VK_NULL_HANDLE)
+          ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_PipeStatsQueryPool, m_GraphicsQueries, 0);
+      }
     }
     else if(cmdType & VK_QUEUE_COMPUTE_BIT)
     {
@@ -780,7 +832,7 @@ struct VulkanGPUTimerCallback : public VulkanActionCallback
                                     m_TimeStampQueryPool, (uint32_t)(m_Results.size() * 2 + 0));
   }
 
-  bool PostDraw(uint32_t eid, VkCommandBuffer cmd) override
+  bool PostDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
     ObjDisp(cmd)->CmdWriteTimestamp(Unwrap(cmd), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                                     m_TimeStampQueryPool, (uint32_t)(m_Results.size() * 2 + 1));
@@ -789,10 +841,17 @@ struct VulkanGPUTimerCallback : public VulkanActionCallback
     if(cmdType & VK_QUEUE_GRAPHICS_BIT)
     {
       if(m_OcclusionQueryPool != VK_NULL_HANDLE)
-        ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_OcclusionQueryPool, m_GraphicsQueries);
-      if(m_PipeStatsQueryPool != VK_NULL_HANDLE)
-        ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_PipeStatsQueryPool, m_GraphicsQueries);
-      m_GraphicsQueries++;
+        ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_OcclusionQueryPool, m_OcclQueries++);
+      if(flags & ActionFlags::MeshDispatch)
+      {
+        if(m_MeshStatsQueryPool != VK_NULL_HANDLE)
+          ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_MeshStatsQueryPool, m_MeshQueries++);
+      }
+      else
+      {
+        if(m_PipeStatsQueryPool != VK_NULL_HANDLE)
+          ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_PipeStatsQueryPool, m_GraphicsQueries++);
+      }
     }
     else if(cmdType & VK_QUEUE_COMPUTE_BIT)
     {
@@ -800,32 +859,41 @@ struct VulkanGPUTimerCallback : public VulkanActionCallback
         ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_ComputePipeStatsQueryPool, m_ComputeQueries);
       m_ComputeQueries++;
     }
-    m_Results.push_back({eid, cmdType});
+    m_Results.push_back({eid, cmdType, flags});
     return false;
   }
 
-  void PostRedraw(uint32_t eid, VkCommandBuffer cmd) override {}
+  void PostRedraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override {}
   // we don't need to distinguish, call the Draw functions
-  void PreDispatch(uint32_t eid, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
-  bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) override { return PostDraw(eid, cmd); }
-  void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) override { PostRedraw(eid, cmd); }
+  void PreDispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
+  {
+    PreDraw(eid, flags, cmd);
+  }
+  bool PostDispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
+  {
+    return PostDraw(eid, flags, cmd);
+  }
+  void PostRedispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
+  {
+    PostRedraw(eid, flags, cmd);
+  }
   void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
     if(flags & ActionFlags::PassBoundary)
       return;
-    PreDraw(eid, cmd);
+    PreDraw(eid, flags, cmd);
   }
   bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
     if(flags & ActionFlags::PassBoundary)
       return false;
-    return PostDraw(eid, cmd);
+    return PostDraw(eid, flags, cmd);
   }
   void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
     if(flags & ActionFlags::PassBoundary)
       return;
-    PostRedraw(eid, cmd);
+    PostRedraw(eid, flags, cmd);
   }
   void AliasEvent(uint32_t primary, uint32_t alias) override
   {
@@ -847,9 +915,20 @@ struct VulkanGPUTimerCallback : public VulkanActionCallback
   VulkanReplay *m_pReplay;
   VkQueryPool m_TimeStampQueryPool;
   VkQueryPool m_OcclusionQueryPool;
+  VkQueryPool m_MeshStatsQueryPool;
   VkQueryPool m_PipeStatsQueryPool;
   VkQueryPool m_ComputePipeStatsQueryPool;
-  rdcarray<rdcpair<uint32_t, VkQueueFlags>> m_Results;
+
+  struct Result
+  {
+    uint32_t eid;
+    VkQueueFlags queue;
+    ActionFlags flags;
+  };
+
+  rdcarray<Result> m_Results;
+  uint32_t m_OcclQueries = 0;
+  uint32_t m_MeshQueries = 0;
   uint32_t m_GraphicsQueries = 0;
   uint32_t m_ComputeQueries = 0;
   // events which are the 'same' from being the same command buffer resubmitted
@@ -928,7 +1007,32 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
       VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_EVALUATION_SHADER_INVOCATIONS_BIT |
       VK_QUERY_PIPELINE_STATISTIC_COMPUTE_SHADER_INVOCATIONS_BIT;
 
+  const uint32_t numPipeStats = 11;
+
   VkQueryPoolCreateInfo pipeStatsPoolCreateInfo = {
+      VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, NULL,   0,
+      VK_QUERY_TYPE_PIPELINE_STATISTICS,        maxEID, pipeStatsFlags};
+
+  pipeStatsFlags = VK_QUERY_PIPELINE_STATISTIC_CLIPPING_INVOCATIONS_BIT |
+                   VK_QUERY_PIPELINE_STATISTIC_CLIPPING_PRIMITIVES_BIT |
+                   VK_QUERY_PIPELINE_STATISTIC_FRAGMENT_SHADER_INVOCATIONS_BIT;
+
+  uint32_t numMeshStats = 3;
+
+  const uint32_t taskStatIdx = numMeshStats;
+  if(m_pDriver->TaskShaders())
+  {
+    pipeStatsFlags |= VK_QUERY_PIPELINE_STATISTIC_TASK_SHADER_INVOCATIONS_BIT_EXT;
+    numMeshStats++;
+  }
+  const uint32_t meshStatIdx = numMeshStats;
+  if(m_pDriver->MeshShaders())
+  {
+    pipeStatsFlags |= VK_QUERY_PIPELINE_STATISTIC_MESH_SHADER_INVOCATIONS_BIT_EXT;
+    numMeshStats++;
+  }
+
+  VkQueryPoolCreateInfo meshStatsPoolCreateInfo = {
       VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, NULL,   0,
       VK_QUERY_TYPE_PIPELINE_STATISTICS,        maxEID, pipeStatsFlags};
 
@@ -939,6 +1043,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
 
   bool occlNeeded = false;
   bool statsNeeded = false;
+  bool meshNeeded = false;
 
   for(size_t c = 0; c < vkCounters.size(); c++)
   {
@@ -955,6 +1060,8 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
       case GPUCounter::GSInvocations:
       case GPUCounter::PSInvocations:
       case GPUCounter::CSInvocations: statsNeeded = true; break;
+      case GPUCounter::TSInvocations:
+      case GPUCounter::MSInvocations: meshNeeded = true; break;
       case GPUCounter::SamplesPassed: occlNeeded = true; break;
       default: break;
     }
@@ -971,6 +1078,13 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
   if(availableFeatures.pipelineStatisticsQuery && statsNeeded)
   {
     vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &pipeStatsPoolCreateInfo, NULL, &pipeStatsPool);
+    CheckVkResult(vkr);
+  }
+
+  VkQueryPool meshStatsPool = VK_NULL_HANDLE;
+  if(m_pDriver->MeshQueries() && meshNeeded)
+  {
+    vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &meshStatsPoolCreateInfo, NULL, &meshStatsPool);
     CheckVkResult(vkr);
   }
 
@@ -1000,6 +1114,8 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
     ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), occlusionPool, 0, maxEID);
   if(pipeStatsPool != VK_NULL_HANDLE)
     ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), pipeStatsPool, 0, maxEID);
+  if(meshStatsPool != VK_NULL_HANDLE)
+    ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), meshStatsPool, 0, maxEID);
   if(compPipeStatsPool != VK_NULL_HANDLE)
     ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), compPipeStatsPool, 0, maxEID);
 
@@ -1009,8 +1125,8 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
   if(Vulkan_Debug_SingleSubmitFlushing())
     m_pDriver->SubmitCmds();
 
-  VulkanGPUTimerCallback cb(m_pDriver, this, timeStampPool, occlusionPool, pipeStatsPool,
-                            compPipeStatsPool);
+  VulkanGPUTimerCallback cb(m_pDriver, this, timeStampPool, occlusionPool, meshStatsPool,
+                            pipeStatsPool, compPipeStatsPool);
 
   // replay the events to perform all the queries
   m_pDriver->ReplayLog(0, maxEID, eReplay_Full);
@@ -1029,33 +1145,49 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
   ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), timeStampPool, NULL);
 
   rdcarray<uint64_t> occlusionData;
-  occlusionData.resize(cb.m_GraphicsQueries);
+  occlusionData.resize(cb.m_OcclQueries);
   if(occlusionPool != VK_NULL_HANDLE)
   {
     vkr = VK_SUCCESS;
-    if(cb.m_GraphicsQueries > 0)
-      vkr = ObjDisp(dev)->GetQueryPoolResults(Unwrap(dev), occlusionPool, 0, cb.m_GraphicsQueries,
-                                              sizeof(uint64_t) * cb.m_GraphicsQueries,
-                                              occlusionData.data(), sizeof(uint64_t),
-                                              VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+    if(cb.m_OcclQueries > 0)
+      vkr = ObjDisp(dev)->GetQueryPoolResults(
+          Unwrap(dev), occlusionPool, 0, cb.m_OcclQueries, sizeof(uint64_t) * cb.m_OcclQueries,
+          occlusionData.data(), sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
     CheckVkResult(vkr);
 
     ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), occlusionPool, NULL);
   }
 
   rdcarray<uint64_t> pipeStatsData;
-  pipeStatsData.resize(cb.m_GraphicsQueries * 11);
+
+  pipeStatsData.resize(cb.m_GraphicsQueries * numPipeStats);
   if(pipeStatsPool != VK_NULL_HANDLE)
   {
     vkr = VK_SUCCESS;
     if(cb.m_GraphicsQueries > 0)
       vkr = ObjDisp(dev)->GetQueryPoolResults(Unwrap(dev), pipeStatsPool, 0, cb.m_GraphicsQueries,
-                                              sizeof(uint64_t) * cb.m_GraphicsQueries * 11,
-                                              pipeStatsData.data(), sizeof(uint64_t) * 11,
+                                              sizeof(uint64_t) * cb.m_GraphicsQueries * numPipeStats,
+                                              pipeStatsData.data(), sizeof(uint64_t) * numPipeStats,
                                               VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
     CheckVkResult(vkr);
 
     ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), pipeStatsPool, NULL);
+  }
+
+  rdcarray<uint64_t> meshStatsData;
+
+  meshStatsData.resize(cb.m_MeshQueries * numMeshStats);
+  if(meshStatsPool != VK_NULL_HANDLE)
+  {
+    vkr = VK_SUCCESS;
+    if(cb.m_MeshQueries > 0)
+      vkr = ObjDisp(dev)->GetQueryPoolResults(Unwrap(dev), meshStatsPool, 0, cb.m_MeshQueries,
+                                              sizeof(uint64_t) * cb.m_MeshQueries * numMeshStats,
+                                              meshStatsData.data(), sizeof(uint64_t) * numMeshStats,
+                                              VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+    CheckVkResult(vkr);
+
+    ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), meshStatsPool, NULL);
   }
 
   rdcarray<uint64_t> m_CompPipeStatsData;
@@ -1073,23 +1205,35 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
     ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), compPipeStatsPool, NULL);
   }
 
-  uint32_t graphicsIdx = 0, computeIdx = 0;
+  uint32_t occlIdx = 0, graphicsIdx = 0, meshIdx = 0, computeIdx = 0;
 
   for(size_t i = 0; i < cb.m_Results.size(); i++)
   {
-    uint64_t pipeStats[11] = {};
+    rdcarray<uint64_t> pipeStats;
+    pipeStats.resize(numPipeStats);
+    rdcarray<uint64_t> meshStats;
+    meshStats.resize(numMeshStats);
     uint64_t occl = 0;
 
-    if(cb.m_Results[i].second & VK_QUEUE_GRAPHICS_BIT)
+    if(cb.m_Results[i].queue & VK_QUEUE_GRAPHICS_BIT)
     {
-      if(graphicsIdx < cb.m_GraphicsQueries)
+      if(occlIdx < cb.m_OcclQueries)
       {
-        occl = occlusionData[graphicsIdx];
-        memcpy(pipeStats, &pipeStatsData[graphicsIdx * 11], sizeof(pipeStats));
+        occl = occlusionData[occlIdx++];
       }
-      graphicsIdx++;
+      if(cb.m_Results[i].flags & ActionFlags::MeshDispatch)
+      {
+        if(meshIdx < cb.m_MeshQueries)
+          memcpy(meshStats.data(), &meshStatsData[meshIdx++ * numMeshStats], meshStats.byteSize());
+      }
+      else
+      {
+        if(graphicsIdx < cb.m_GraphicsQueries)
+          memcpy(pipeStats.data(), &pipeStatsData[graphicsIdx++ * numPipeStats],
+                 pipeStats.byteSize());
+      }
     }
-    else if(cb.m_Results[i].second & VK_QUEUE_COMPUTE_BIT)
+    else if(cb.m_Results[i].queue & VK_QUEUE_COMPUTE_BIT)
     {
       if(computeIdx < cb.m_ComputeQueries)
       {
@@ -1102,7 +1246,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
     {
       CounterResult result;
 
-      result.eventId = cb.m_Results[i].first;
+      result.eventId = cb.m_Results[i].eid;
       result.counter = vkCounters[c];
 
       switch(vkCounters[c])
@@ -1115,18 +1259,35 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
                            / (1000.0 * 1000.0 * 1000.0);    // to seconds
         }
         break;
+        case GPUCounter::SamplesPassed: result.value.u64 = occl; break;
         case GPUCounter::InputVerticesRead: result.value.u64 = pipeStats[0]; break;
         case GPUCounter::IAPrimitives: result.value.u64 = pipeStats[1]; break;
-        case GPUCounter::GSPrimitives: result.value.u64 = pipeStats[4]; break;
-        case GPUCounter::RasterizerInvocations: result.value.u64 = pipeStats[5]; break;
-        case GPUCounter::RasterizedPrimitives: result.value.u64 = pipeStats[6]; break;
-        case GPUCounter::SamplesPassed: result.value.u64 = occl; break;
         case GPUCounter::VSInvocations: result.value.u64 = pipeStats[2]; break;
+        case GPUCounter::GSPrimitives: result.value.u64 = pipeStats[4]; break;
         case GPUCounter::TCSInvocations: result.value.u64 = pipeStats[8]; break;
         case GPUCounter::TESInvocations: result.value.u64 = pipeStats[9]; break;
         case GPUCounter::GSInvocations: result.value.u64 = pipeStats[3]; break;
-        case GPUCounter::PSInvocations: result.value.u64 = pipeStats[7]; break;
         case GPUCounter::CSInvocations: result.value.u64 = pipeStats[10]; break;
+        case GPUCounter::RasterizerInvocations:
+          if(cb.m_Results[i].flags & ActionFlags::MeshDispatch)
+            result.value.u64 = meshStats[0];
+          else
+            result.value.u64 = pipeStats[5];
+          break;
+        case GPUCounter::RasterizedPrimitives:
+          if(cb.m_Results[i].flags & ActionFlags::MeshDispatch)
+            result.value.u64 = meshStats[1];
+          else
+            result.value.u64 = pipeStats[6];
+          break;
+        case GPUCounter::PSInvocations:
+          if(cb.m_Results[i].flags & ActionFlags::MeshDispatch)
+            result.value.u64 = meshStats[2];
+          else
+            result.value.u64 = pipeStats[7];
+          break;
+        case GPUCounter::TSInvocations: result.value.u64 = meshStats[taskStatIdx]; break;
+        case GPUCounter::MSInvocations: result.value.u64 = meshStats[meshStatIdx]; break;
         default: break;
       }
       ret.push_back(result);

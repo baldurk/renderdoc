@@ -2794,7 +2794,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
 #define UPDATE_AND_CHECK_STAGE_LIMIT(maxLimit)                                                 \
   if(!error)                                                                                   \
   {                                                                                            \
-    for(uint32_t sbit = 0; sbit < 6; sbit++)                                                   \
+    for(uint32_t sbit = 0; sbit < NumShaderStages; sbit++)                                     \
     {                                                                                          \
       if(newBind.stageFlags & (1U << sbit))                                                    \
       {                                                                                        \

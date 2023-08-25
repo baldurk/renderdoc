@@ -1217,12 +1217,22 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
     // Shader Stages
     VKPipe::Shader *stages[] = {
-        &ret.vertexShader,   &ret.tessControlShader, &ret.tessEvalShader,
-        &ret.geometryShader, &ret.fragmentShader,
+        &ret.vertexShader,
+        &ret.tessControlShader,
+        &ret.tessEvalShader,
+        &ret.geometryShader,
+        &ret.fragmentShader,
+        // compute
+        NULL,
+        &ret.taskShader,
+        &ret.meshShader,
     };
 
     for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
     {
+      if(stages[i] == NULL)
+        continue;
+
       stages[i]->resourceId = rm->GetUnreplacedOriginalID(p.shaders[i].module);
       stages[i]->entryPoint = p.shaders[i].entryPoint;
 
@@ -1591,8 +1601,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.vertexInput.vertexBuffers.clear();
 
     VKPipe::Shader *stages[] = {
-        &ret.vertexShader,   &ret.tessControlShader, &ret.tessEvalShader,
-        &ret.geometryShader, &ret.fragmentShader,
+        &ret.vertexShader,   &ret.tessControlShader, &ret.tessEvalShader, &ret.geometryShader,
+        &ret.fragmentShader, &ret.taskShader,        &ret.meshShader,
     };
 
     for(size_t i = 0; i < ARRAY_COUNT(stages); i++)

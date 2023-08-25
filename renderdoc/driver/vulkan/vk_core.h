@@ -68,6 +68,8 @@ enum class VkIndirectPatchType
   DrawIndirectCount,
   DrawIndexedIndirectCount,
   DrawIndirectByteCount,
+  MeshIndirect,
+  MeshIndirectCount,
 };
 
 enum class EventFlags : uint32_t
@@ -77,6 +79,8 @@ enum class EventFlags : uint32_t
   TessControlRWUsage = 1 << uint32_t(ShaderStage::Tess_Control),
   TessEvalRWUsage = 1 << uint32_t(ShaderStage::Tess_Eval),
   GeometryRWUsage = 1 << uint32_t(ShaderStage::Geometry),
+  TaskRWUsage = 1 << uint32_t(ShaderStage::Task),
+  MeshRWUsage = 1 << uint32_t(ShaderStage::Mesh),
 };
 
 BITMASK_OPERATORS(EventFlags);
@@ -88,7 +92,8 @@ constexpr inline EventFlags PipeStageRWEventFlags(ShaderStage stage)
 
 inline EventFlags PipeRWUsageEventFlags(ResourceUsage usage)
 {
-  if(usage >= ResourceUsage::VS_RWResource && usage <= ResourceUsage::GS_RWResource)
+  if((usage >= ResourceUsage::VS_RWResource && usage <= ResourceUsage::GS_RWResource) ||
+     usage == ResourceUsage::TS_RWResource || usage == ResourceUsage::MS_RWResource)
     return PipeStageRWEventFlags(
         ShaderStage(uint32_t(usage) - uint32_t(ResourceUsage::VS_RWResource)));
   return EventFlags::NoFlags;
@@ -213,14 +218,14 @@ struct VulkanActionCallback
   // and do the real draw by returning true. OR they can do nothing in PreDraw,
   // do the real draw, then in PostDraw return true to apply the modifications
   // which are then undone in PostRedraw.
-  virtual void PreDraw(uint32_t eid, VkCommandBuffer cmd) = 0;
-  virtual bool PostDraw(uint32_t eid, VkCommandBuffer cmd) = 0;
-  virtual void PostRedraw(uint32_t eid, VkCommandBuffer cmd) = 0;
+  virtual void PreDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) = 0;
+  virtual bool PostDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) = 0;
+  virtual void PostRedraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) = 0;
 
   // same principle as above, but for dispatch calls
-  virtual void PreDispatch(uint32_t eid, VkCommandBuffer cmd) = 0;
-  virtual bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) = 0;
-  virtual void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) = 0;
+  virtual void PreDispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) = 0;
+  virtual bool PostDispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) = 0;
+  virtual void PostRedispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) = 0;
 
   // finally, these are for copy/blit/resolve/clear/etc
   virtual void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) = 0;
@@ -468,6 +473,9 @@ private:
   bool m_DynColorWrite = false;
   bool m_DynVertexInput = false;
   bool m_DynAttachmentLoop = false;
+  bool m_MeshQueries = false;
+  bool m_MeshShaders = false;
+  bool m_TaskShaders = false;
 
   PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
 
@@ -1262,6 +1270,9 @@ public:
   bool DynamicColorWrite() const { return m_DynColorWrite; }
   bool DynamicVertexInput() const { return m_DynVertexInput; }
   bool DynamicAttachmentLoop() const { return m_DynAttachmentLoop; }
+  bool MeshQueries() const { return m_MeshQueries; }
+  bool TaskShaders() const { return m_TaskShaders; }
+  bool MeshShaders() const { return m_MeshShaders; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetActionCB(VulkanActionCallback *cb) { m_ActionCallback = cb; }
   void SetSubmitChain(void *submitChain) { m_SubmitChain = submitChain; }
@@ -2775,4 +2786,15 @@ public:
                                  const VkViewportSwizzleNV *pViewportSwizzles);
   void vkCmdSetViewportWScalingEnableNV(VkCommandBuffer commandBuffer,
                                         VkBool32 viewportWScalingEnable);
+
+  // VK_EXT_mesh_shader
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawMeshTasksEXT, VkCommandBuffer commandBuffer,
+                                uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawMeshTasksIndirectEXT, VkCommandBuffer commandBuffer,
+                                VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount,
+                                uint32_t stride);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawMeshTasksIndirectCountEXT,
+                                VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
+                                VkBuffer countBuffer, VkDeviceSize countBufferOffset,
+                                uint32_t maxDrawCount, uint32_t stride);
 };

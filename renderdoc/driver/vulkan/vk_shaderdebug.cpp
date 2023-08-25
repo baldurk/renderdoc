@@ -4110,7 +4110,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  if(!(action->flags & ActionFlags::Drawcall))
+  if(!(action->flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall)))
   {
     RDCLOG("No drawcall selected");
     return new ShaderDebugTrace();

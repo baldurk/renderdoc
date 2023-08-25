@@ -71,6 +71,7 @@ private slots:
   void on_showEmpty_toggled(bool checked);
 
   void on_meshView_clicked();
+  void on_msMeshButton_clicked();
   void on_viAttrs_itemActivated(RDTreeWidgetItem *item, int column);
   void on_viBuffers_itemActivated(RDTreeWidgetItem *item, int column);
   void on_viAttrs_mouseMove(QMouseEvent *event);
@@ -99,6 +100,9 @@ private:
   ICaptureContext &m_Ctx;
   PipelineStateViewer &m_Common;
   ComputeDebugSelector *m_ComputeDebugSelector;
+
+  void setOldMeshPipeFlow();
+  void setNewMeshPipeFlow();
 
   QVariantList makeSampler(const QString &bindset, const QString &slotname,
                            const VKPipe::BindingElement &descriptor);
@@ -170,4 +174,6 @@ private:
 
   // from an combined image to its sampler (since we de-duplicate)
   QMap<RDTreeWidgetItem *, RDTreeWidgetItem *> m_CombinedImageSamplers;
+
+  bool m_MeshPipe = false;
 };

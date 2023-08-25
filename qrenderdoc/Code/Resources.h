@@ -61,6 +61,7 @@
   RESOURCE_DEF(cut, "cut.png")                                                 \
   RESOURCE_DEF(del, "del.png")                                                 \
   RESOURCE_DEF(disconnect, "disconnect.png")                                   \
+  RESOURCE_DEF(draw_vertex, "draw_vertex.png")                                 \
   RESOURCE_DEF(find, "find.png")                                               \
   RESOURCE_DEF(filter, "filter.png")                                           \
   RESOURCE_DEF(filter_reapply, "filter_reapply.png")                           \

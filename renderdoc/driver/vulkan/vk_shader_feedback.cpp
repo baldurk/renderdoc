@@ -623,7 +623,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
   if(Vulkan_PrintfFetch())
   {
     editor.AddVariable(rdcspv::OpVariable(
-        editor.DeclareType(rdcspv::Pointer(uvec3Type, rdcspv::StorageClass::Private)),
+        editor.DeclareType(rdcspv::Pointer(uvec4Type, rdcspv::StorageClass::Private)),
         printfLocationVar, rdcspv::StorageClass::Private));
 
     if(editor.EntryPointAllGlobals())
@@ -720,6 +720,68 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       // the location for compute is easy, it's just the global invocation
       location = fetchOrAddGlobalInput("rdoc_invocation", ShaderBuiltin::DispatchThreadIndex,
                                        rdcspv::BuiltIn::GlobalInvocationId, uvec3Type, true);
+
+      location = locationGather.add(
+          rdcspv::OpVectorShuffle(uvec4Type, editor.MakeId(), location, location, {0, 1, 2, 0}));
+    }
+    else if(stage == ShaderStage::Task)
+    {
+      // the location for task shaders is the same
+      location = fetchOrAddGlobalInput("rdoc_invocation", ShaderBuiltin::DispatchThreadIndex,
+                                       rdcspv::BuiltIn::GlobalInvocationId, uvec3Type, true);
+
+      location = locationGather.add(
+          rdcspv::OpVectorShuffle(uvec4Type, editor.MakeId(), location, location, {0, 1, 2, 0}));
+    }
+    else if(stage == ShaderStage::Mesh)
+    {
+      // the location for mesh shaders is packed a smidge tighter.
+      // we need three 3D locators:
+      //   (optional) task group index
+      //   mesh group index
+      //   local thread index
+      //
+      // the local index has a compile-time known stride so we can use the linear index, which we
+      // can give 16 bits to be very generous (10 bits is a more realistic upper bound)
+      //
+      // similarly the task group index has a known stride so we can use a linear index for it as
+      // well. Giving it 32 bits covers any reasonable use (~26 bits is the max reported at the time
+      // of writing)
+      //
+      // annoyingly this leaves us 48 bits per task group index dimension. That is enough for a
+      // linear ID easily but it does not have a easily known stride (for a task shader it depends
+      // on the OpEmitMeshTasksEXT dimensions). It's not enough for the worst case in each dimension
+      // which some drivers report as [4194304,65535,65535] which requires 22,16,16 bits. Those
+      // drivers don't allow a shader to dispatch that many in all dimensions as the product is
+      // still constrained.
+      //
+      // So instead we've just used 4 uints for the location just for the mesh shader. We still have
+      // to compress things a little so we put the mesh thread in the upper 16-bits with mesh group
+      // z
+      rdcspv::Id meshThread =
+          fetchOrAddGlobalInput("rdoc_meshThread", ShaderBuiltin::GroupFlatIndex,
+                                rdcspv::BuiltIn::LocalInvocationIndex, uint32Type, true);
+      rdcspv::Id meshGroup = fetchOrAddGlobalInput("rdoc_meshGroup", ShaderBuiltin::GroupIndex,
+                                                   rdcspv::BuiltIn::WorkgroupId, uvec3Type, true);
+
+      // TODO read task ID from payload
+      rdcspv::Id taskId = zero;
+
+      rdcspv::Id meshThreadShifted = locationGather.add(rdcspv::OpShiftLeftLogical(
+          uint32Type, editor.MakeId(), meshThread, editor.AddConstantImmediate<uint32_t>(16U)));
+      rdcspv::Id meshGroupX =
+          locationGather.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), meshGroup, {0}));
+      rdcspv::Id meshGroupY =
+          locationGather.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), meshGroup, {1}));
+      rdcspv::Id meshGroupZ =
+          locationGather.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), meshGroup, {2}));
+      meshGroupZ = locationGather.add(rdcspv::OpBitwiseAnd(
+          uint32Type, editor.MakeId(), meshGroupZ, editor.AddConstantImmediate<uint32_t>(0xffff)));
+      meshGroupZ = locationGather.add(
+          rdcspv::OpBitwiseOr(uint32Type, editor.MakeId(), meshGroupZ, meshThreadShifted));
+
+      location = locationGather.add(rdcspv::OpCompositeConstruct(
+          uvec4Type, editor.MakeId(), {meshGroupX, meshGroupY, meshGroupZ, taskId}));
     }
     else if(stage == ShaderStage::Vertex || stage == ShaderStage::Pixel)
     {
@@ -745,7 +807,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
                                                 rdcspv::BuiltIn::InstanceIndex, uint32Type, true);
 
         location = locationGather.add(
-            rdcspv::OpCompositeConstruct(uvec3Type, editor.MakeId(), {vtx, inst, view}));
+            rdcspv::OpCompositeConstruct(uvec4Type, editor.MakeId(), {vtx, inst, view, zero}));
       }
       else if(stage == ShaderStage::Pixel)
       {
@@ -812,7 +874,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
         }
 
         location = locationGather.add(
-            rdcspv::OpCompositeConstruct(uvec3Type, editor.MakeId(), {coord, view, prim}));
+            rdcspv::OpCompositeConstruct(uvec4Type, editor.MakeId(), {coord, view, prim, zero}));
       }
     }
     else if(stage == ShaderStage::Geometry)
@@ -835,13 +897,13 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       }
 
       location = locationGather.add(
-          rdcspv::OpCompositeConstruct(uvec3Type, editor.MakeId(), {prim, view, zero}));
+          rdcspv::OpCompositeConstruct(uvec4Type, editor.MakeId(), {prim, view, zero, zero}));
     }
     else
     {
       RDCWARN("No identifier stored for %s stage", ToStr(stage).c_str());
       location = locationGather.add(
-          rdcspv::OpCompositeConstruct(uvec3Type, editor.MakeId(), {zero, zero, zero}));
+          rdcspv::OpCompositeConstruct(uvec4Type, editor.MakeId(), {zero, zero, zero, zero}));
     }
 
     locationGather.add(rdcspv::OpStore(printfLocationVar, location));
@@ -1226,7 +1288,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
 
           // load the location out of the global where we put it
           rdcspv::Id location =
-              editor.AddOperation(it, rdcspv::OpLoad(uvec3Type, editor.MakeId(), printfLocationVar));
+              editor.AddOperation(it, rdcspv::OpLoad(uvec4Type, editor.MakeId(), printfLocationVar));
           it++;
 
           // extract each component and add it as a new word after the header
@@ -1241,6 +1303,10 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
           packetWords.insert(
               3, editor.AddOperation(
                      it, rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), location, {2})));
+          it++;
+          packetWords.insert(
+              4, editor.AddOperation(
+                     it, rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), location, {3})));
           it++;
 
           rdcspv::Id counterptr;
@@ -1491,7 +1557,8 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  if(action == NULL || !(action->flags & (ActionFlags::Dispatch | ActionFlags::Drawcall)))
+  if(action == NULL ||
+     !(action->flags & (ActionFlags::Dispatch | ActionFlags::MeshDispatch | ActionFlags::Drawcall)))
   {
     // deliberately show no bindings as used for non-draws
     result.valid = true;
@@ -1810,22 +1877,22 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   }
   else
   {
-    bool hasGeom = false;
+    bool hasGeomOrMesh = false;
 
     for(uint32_t i = 0; i < graphicsInfo.stageCount; i++)
     {
       VkPipelineShaderStageCreateInfo &stage =
           (VkPipelineShaderStageCreateInfo &)graphicsInfo.pStages[i];
 
-      if((stage.stage & VK_SHADER_STAGE_GEOMETRY_BIT) != 0)
+      if((stage.stage & (VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_MESH_BIT_EXT)) != 0)
       {
-        hasGeom = true;
+        hasGeomOrMesh = true;
         break;
       }
     }
 
     bool usePrimitiveID =
-        !hasGeom && m_pDriver->GetDeviceEnabledFeatures().geometryShader != VK_FALSE;
+        !hasGeomOrMesh && m_pDriver->GetDeviceEnabledFeatures().geometryShader != VK_FALSE;
 
     bool usesMultiview = state.GetRenderPass() != ResourceId()
                              ? creationInfo.m_RenderPass[state.GetRenderPass()]
@@ -2055,7 +2122,7 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
         uint32_t *location = printfBuf;
 
-        printfBuf += 3;
+        printfBuf += 4;
 
         const PrintfData &fmt = it->second;
 
@@ -2097,6 +2164,15 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
             msg.location.compute.thread[x] = location[x] % threadDimX;
           }
         }
+        else if(stage == ShaderStage::Task)
+        {
+          for(int x = 0; x < 3; x++)
+          {
+            uint32_t threadDimX = sh.refl->dispatchThreadsDimension[x];
+            msg.location.mesh.taskGroup[x] = location[x] / threadDimX;
+            msg.location.mesh.thread[x] = location[x] % threadDimX;
+          }
+        }
         else if(stage == ShaderStage::Vertex)
         {
           msg.location.vertex.vertexIndex = location[0];
@@ -2113,6 +2189,40 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
         {
           msg.location.geometry.primitive = location[0];
           msg.location.geometry.view = location[1];
+        }
+        else if(stage == ShaderStage::Mesh)
+        {
+          for(int x = 0; x < 3; x++)
+            msg.location.mesh.meshGroup[x] = location[x];
+
+          uint32_t meshThread = msg.location.mesh.meshGroup[2] >> 16U;
+          msg.location.mesh.meshGroup[2] &= 0xffffu;
+
+          msg.location.mesh.thread[0] = meshThread % sh.refl->dispatchThreadsDimension[0];
+          msg.location.mesh.thread[1] = (meshThread / sh.refl->dispatchThreadsDimension[0]) %
+                                        sh.refl->dispatchThreadsDimension[1];
+          msg.location.mesh.thread[2] = meshThread / (sh.refl->dispatchThreadsDimension[0] *
+                                                      sh.refl->dispatchThreadsDimension[1]);
+
+          const VulkanCreationInfo::Pipeline::Shader &tasksh =
+              pipeInfo.shaders[(uint32_t)ShaderStage::Task];
+
+          if(tasksh.module == ResourceId())
+          {
+            msg.location.mesh.taskGroup = {ShaderMeshMessageLocation::NotUsed,
+                                           ShaderMeshMessageLocation::NotUsed,
+                                           ShaderMeshMessageLocation::NotUsed};
+          }
+          else
+          {
+            uint32_t taskGroup = location[3];
+
+            msg.location.mesh.taskGroup[0] = taskGroup % tasksh.refl->dispatchThreadsDimension[0];
+            msg.location.mesh.taskGroup[1] = (taskGroup / tasksh.refl->dispatchThreadsDimension[0]) %
+                                             tasksh.refl->dispatchThreadsDimension[1];
+            msg.location.mesh.taskGroup[2] = taskGroup / (tasksh.refl->dispatchThreadsDimension[0] *
+                                                          tasksh.refl->dispatchThreadsDimension[1]);
+          }
         }
         else
         {

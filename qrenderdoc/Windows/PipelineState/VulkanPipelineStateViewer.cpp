@@ -152,27 +152,32 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
   const QIcon &action_hover = Icons::action_hover();
 
   RDLabel *shaderLabels[] = {
-      ui->vsShader, ui->tcsShader, ui->tesShader, ui->gsShader, ui->fsShader, ui->csShader,
+      ui->tsShader,  ui->msShader, ui->vsShader, ui->tcsShader,
+      ui->tesShader, ui->gsShader, ui->fsShader, ui->csShader,
   };
 
   QToolButton *viewButtons[] = {
-      ui->vsShaderViewButton, ui->tcsShaderViewButton, ui->tesShaderViewButton,
-      ui->gsShaderViewButton, ui->fsShaderViewButton,  ui->csShaderViewButton,
+      ui->tsShaderViewButton,  ui->msShaderViewButton,  ui->vsShaderViewButton,
+      ui->tcsShaderViewButton, ui->tesShaderViewButton, ui->gsShaderViewButton,
+      ui->fsShaderViewButton,  ui->csShaderViewButton,
   };
 
   QToolButton *editButtons[] = {
-      ui->vsShaderEditButton, ui->tcsShaderEditButton, ui->tesShaderEditButton,
-      ui->gsShaderEditButton, ui->fsShaderEditButton,  ui->csShaderEditButton,
+      ui->tsShaderEditButton,  ui->msShaderEditButton,  ui->vsShaderEditButton,
+      ui->tcsShaderEditButton, ui->tesShaderEditButton, ui->gsShaderEditButton,
+      ui->fsShaderEditButton,  ui->csShaderEditButton,
   };
 
   QToolButton *saveButtons[] = {
-      ui->vsShaderSaveButton, ui->tcsShaderSaveButton, ui->tesShaderSaveButton,
-      ui->gsShaderSaveButton, ui->fsShaderSaveButton,  ui->csShaderSaveButton,
+      ui->tsShaderSaveButton,  ui->msShaderSaveButton,  ui->vsShaderSaveButton,
+      ui->tcsShaderSaveButton, ui->tesShaderSaveButton, ui->gsShaderSaveButton,
+      ui->fsShaderSaveButton,  ui->csShaderSaveButton,
   };
 
   QToolButton *messageButtons[] = {
-      ui->vsShaderMessagesButton, ui->tcsShaderMessagesButton, ui->tesShaderMessagesButton,
-      ui->gsShaderMessagesButton, ui->fsShaderMessagesButton,  ui->csShaderMessagesButton,
+      ui->tsShaderMessagesButton,  ui->msShaderMessagesButton,  ui->vsShaderMessagesButton,
+      ui->tcsShaderMessagesButton, ui->tesShaderMessagesButton, ui->gsShaderMessagesButton,
+      ui->fsShaderMessagesButton,  ui->csShaderMessagesButton,
   };
 
   QToolButton *viewPredicateBufferButtons[] = {
@@ -181,12 +186,13 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
   };
 
   RDTreeWidget *resources[] = {
-      ui->vsResources, ui->tcsResources, ui->tesResources,
-      ui->gsResources, ui->fsResources,  ui->csResources,
+      ui->tsResources,  ui->msResources, ui->vsResources, ui->tcsResources,
+      ui->tesResources, ui->gsResources, ui->fsResources, ui->csResources,
   };
 
   RDTreeWidget *ubos[] = {
-      ui->vsUBOs, ui->tcsUBOs, ui->tesUBOs, ui->gsUBOs, ui->fsUBOs, ui->csUBOs,
+      ui->tsUBOs,  ui->msUBOs, ui->vsUBOs, ui->tcsUBOs,
+      ui->tesUBOs, ui->gsUBOs, ui->fsUBOs, ui->csUBOs,
   };
 
   // setup FlowLayout for CS shader group, with debugging controls
@@ -440,38 +446,19 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
   ui->stagesTabs->tabBar()->setVisible(false);
 
-  ui->pipeFlow->setStages(
-      {
-          lit("VTX"),
-          lit("VS"),
-          lit("TCS"),
-          lit("TES"),
-          lit("GS"),
-          lit("RS"),
-          lit("FS"),
-          lit("FB"),
-          lit("CS"),
-      },
-      {
-          tr("Vertex Input"),
-          tr("Vertex Shader"),
-          tr("Tess. Control Shader"),
-          tr("Tess. Eval. Shader"),
-          tr("Geometry Shader"),
-          tr("Rasterizer"),
-          tr("Fragment Shader"),
-          tr("Framebuffer Output"),
-          tr("Compute Shader"),
-      });
-
-  ui->pipeFlow->setIsolatedStage(8);    // compute shader isolated
-
+  setOldMeshPipeFlow();
   ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
 
   m_Common.setMeshViewPixmap(ui->meshView);
 
   ui->viAttrs->setFont(Formatter::PreferredFont());
   ui->viBuffers->setFont(Formatter::PreferredFont());
+  ui->tsShader->setFont(Formatter::PreferredFont());
+  ui->tsResources->setFont(Formatter::PreferredFont());
+  ui->tsUBOs->setFont(Formatter::PreferredFont());
+  ui->msShader->setFont(Formatter::PreferredFont());
+  ui->msResources->setFont(Formatter::PreferredFont());
+  ui->msUBOs->setFont(Formatter::PreferredFont());
   ui->vsShader->setFont(Formatter::PreferredFont());
   ui->vsResources->setFont(Formatter::PreferredFont());
   ui->vsUBOs->setFont(Formatter::PreferredFont());
@@ -536,6 +523,7 @@ void VulkanPipelineStateViewer::OnCaptureLoaded()
 
 void VulkanPipelineStateViewer::OnCaptureClosed()
 {
+  setOldMeshPipeFlow();
   ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
 
   clearState();
@@ -872,6 +860,10 @@ const VKPipe::Shader *VulkanPipelineStateViewer::stageForSender(QWidget *widget)
       return &m_Ctx.CurVulkanPipelineState()->fragmentShader;
     if(widget == ui->stagesTabs->widget(8))
       return &m_Ctx.CurVulkanPipelineState()->computeShader;
+    if(widget == ui->stagesTabs->widget(9))
+      return &m_Ctx.CurVulkanPipelineState()->taskShader;
+    if(widget == ui->stagesTabs->widget(10))
+      return &m_Ctx.CurVulkanPipelineState()->meshShader;
 
     widget = widget->parentWidget();
   }
@@ -879,6 +871,62 @@ const VKPipe::Shader *VulkanPipelineStateViewer::stageForSender(QWidget *widget)
   qCritical() << "Unrecognised control calling event handler";
 
   return NULL;
+}
+
+void VulkanPipelineStateViewer::setOldMeshPipeFlow()
+{
+  m_MeshPipe = false;
+
+  ui->pipeFlow->setStages(
+      {
+          lit("VTX"),
+          lit("VS"),
+          lit("TCS"),
+          lit("TES"),
+          lit("GS"),
+          lit("RS"),
+          lit("FS"),
+          lit("FB"),
+          lit("CS"),
+      },
+      {
+          tr("Vertex Input"),
+          tr("Vertex Shader"),
+          tr("Tess. Control Shader"),
+          tr("Tess. Eval. Shader"),
+          tr("Geometry Shader"),
+          tr("Rasterizer"),
+          tr("Fragment Shader"),
+          tr("Framebuffer Output"),
+          tr("Compute Shader"),
+      });
+
+  ui->pipeFlow->setIsolatedStage(8);    // compute shader isolated
+}
+
+void VulkanPipelineStateViewer::setNewMeshPipeFlow()
+{
+  m_MeshPipe = true;
+
+  ui->pipeFlow->setStages(
+      {
+          lit("TS"),
+          lit("MS"),
+          lit("RS"),
+          lit("FS"),
+          lit("FB"),
+          lit("CS"),
+      },
+      {
+          tr("Task Shader"),
+          tr("Mesh Shader"),
+          tr("Rasterizer"),
+          tr("Fragment Shader"),
+          tr("Framebuffer Output"),
+          tr("Compute Shader"),
+      });
+
+  ui->pipeFlow->setIsolatedStage(5);    // compute shader isolated
 }
 
 void VulkanPipelineStateViewer::clearShaderState(RDLabel *shader, RDTreeWidget *resources,
@@ -903,6 +951,8 @@ void VulkanPipelineStateViewer::clearState()
   ui->primRestart->setVisible(false);
   ui->topologyDiagram->setPixmap(QPixmap());
 
+  clearShaderState(ui->tsShader, ui->tsResources, ui->tsUBOs);
+  clearShaderState(ui->msShader, ui->msResources, ui->msUBOs);
   clearShaderState(ui->vsShader, ui->vsResources, ui->vsUBOs);
   clearShaderState(ui->tcsShader, ui->tcsResources, ui->tcsUBOs);
   clearShaderState(ui->tesShader, ui->tesResources, ui->tesUBOs);
@@ -913,20 +963,42 @@ void VulkanPipelineStateViewer::clearState()
   ui->xfbBuffers->clear();
 
   QToolButton *shaderButtons[] = {
-      ui->vsShaderViewButton, ui->tcsShaderViewButton, ui->tesShaderViewButton,
-      ui->gsShaderViewButton, ui->fsShaderViewButton,  ui->csShaderViewButton,
-      ui->vsShaderEditButton, ui->tcsShaderEditButton, ui->tesShaderEditButton,
-      ui->gsShaderEditButton, ui->fsShaderEditButton,  ui->csShaderEditButton,
-      ui->vsShaderSaveButton, ui->tcsShaderSaveButton, ui->tesShaderSaveButton,
-      ui->gsShaderSaveButton, ui->fsShaderSaveButton,  ui->csShaderSaveButton,
+      // view buttons
+      ui->tsShaderViewButton,
+      ui->msShaderViewButton,
+      ui->vsShaderViewButton,
+      ui->tcsShaderViewButton,
+      ui->tesShaderViewButton,
+      ui->gsShaderViewButton,
+      ui->fsShaderViewButton,
+      ui->csShaderViewButton,
+      // edit buttons
+      ui->tsShaderEditButton,
+      ui->msShaderEditButton,
+      ui->vsShaderEditButton,
+      ui->tcsShaderEditButton,
+      ui->tesShaderEditButton,
+      ui->gsShaderEditButton,
+      ui->fsShaderEditButton,
+      ui->csShaderEditButton,
+      // save buttons
+      ui->tsShaderSaveButton,
+      ui->msShaderSaveButton,
+      ui->vsShaderSaveButton,
+      ui->tcsShaderSaveButton,
+      ui->tesShaderSaveButton,
+      ui->gsShaderSaveButton,
+      ui->fsShaderSaveButton,
+      ui->csShaderSaveButton,
   };
 
   for(QToolButton *b : shaderButtons)
     b->setEnabled(false);
 
   QToolButton *messageButtons[] = {
-      ui->vsShaderMessagesButton, ui->tcsShaderMessagesButton, ui->tesShaderMessagesButton,
-      ui->gsShaderMessagesButton, ui->fsShaderMessagesButton,  ui->csShaderMessagesButton,
+      ui->tsShaderMessagesButton,  ui->msShaderMessagesButton,  ui->vsShaderMessagesButton,
+      ui->tcsShaderMessagesButton, ui->tesShaderMessagesButton, ui->gsShaderMessagesButton,
+      ui->fsShaderMessagesButton,  ui->csShaderMessagesButton,
   };
 
   for(QToolButton *b : messageButtons)
@@ -2173,287 +2245,367 @@ void VulkanPipelineStateViewer::setState()
 
   bool usedBindings[128] = {};
 
+  // highlight the appropriate stages in the flowchart
+  if(action == NULL)
+  {
+    setOldMeshPipeFlow();
+    ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
+  }
+  else if(action->flags & ActionFlags::Dispatch)
+  {
+    setOldMeshPipeFlow();
+    ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
+  }
+  else if(action->flags & ActionFlags::MeshDispatch)
+  {
+    setNewMeshPipeFlow();
+    ui->pipeFlow->setStagesEnabled(
+        {state.taskShader.resourceId != ResourceId(), true, true, true, true, false});
+  }
+  else
+  {
+    bool xfbActive = !state.transformFeedback.buffers.isEmpty();
+
+    bool raster = true;
+
+    if(state.rasterizer.rasterizerDiscardEnable)
+    {
+      raster = false;
+    }
+
+    if(state.geometryShader.resourceId == ResourceId() && xfbActive)
+    {
+      ui->pipeFlow->setStageName(4, lit("XFB"), tr("Transform Feedback"));
+    }
+    else
+    {
+      ui->pipeFlow->setStageName(4, lit("GS"), tr("Geometry Shader"));
+    }
+
+    setOldMeshPipeFlow();
+    ui->pipeFlow->setStagesEnabled(
+        {true, true, state.tessControlShader.resourceId != ResourceId(),
+         state.tessEvalShader.resourceId != ResourceId(),
+         state.geometryShader.resourceId != ResourceId() || xfbActive, raster,
+         raster && state.fragmentShader.resourceId != ResourceId(), raster, false});
+  }
+
   ////////////////////////////////////////////////
   // Vertex Input
 
   int vs = 0;
 
-  vs = ui->viAttrs->verticalScrollBar()->value();
-  ui->viAttrs->beginUpdate();
-  ui->viAttrs->clear();
+  if(m_MeshPipe)
   {
-    int i = 0;
-    for(const VKPipe::VertexAttribute &a : state.vertexInput.attributes)
+    setShaderState(state.taskShader, state.graphics, ui->tsShader, ui->tsResources, ui->tsUBOs);
+    setShaderState(state.meshShader, state.graphics, ui->msShader, ui->msResources, ui->msUBOs);
+
+    ui->msTopology->setText(ToQStr(state.meshShader.reflection->outputTopology));
+  }
+  else
+  {
+    vs = ui->viAttrs->verticalScrollBar()->value();
+    ui->viAttrs->beginUpdate();
+    ui->viAttrs->clear();
     {
-      bool usedSlot = false;
-
-      QString name = tr("Attribute %1").arg(i);
-
-      if(state.vertexShader.resourceId != ResourceId())
+      int i = 0;
+      for(const VKPipe::VertexAttribute &a : state.vertexInput.attributes)
       {
-        int attrib = -1;
-        if((int32_t)a.location < state.vertexShader.bindpointMapping.inputAttributes.count())
-          attrib = state.vertexShader.bindpointMapping.inputAttributes[a.location];
+        bool usedSlot = false;
 
-        if(attrib >= 0 && attrib < state.vertexShader.reflection->inputSignature.count())
+        QString name = tr("Attribute %1").arg(i);
+
+        if(state.vertexShader.resourceId != ResourceId())
         {
-          name = state.vertexShader.reflection->inputSignature[attrib].varName;
-          usedSlot = true;
+          int attrib = -1;
+          if((int32_t)a.location < state.vertexShader.bindpointMapping.inputAttributes.count())
+            attrib = state.vertexShader.bindpointMapping.inputAttributes[a.location];
+
+          if(attrib >= 0 && attrib < state.vertexShader.reflection->inputSignature.count())
+          {
+            name = state.vertexShader.reflection->inputSignature[attrib].varName;
+            usedSlot = true;
+          }
         }
+
+        if(showNode(usedSlot, /*filledSlot*/ true))
+        {
+          RDTreeWidgetItem *node = new RDTreeWidgetItem(
+              {i, name, a.location, a.binding, a.format.Name(), a.byteOffset, QString()});
+
+          node->setTag(i);
+
+          usedBindings[a.binding] = true;
+
+          if(!usedSlot)
+            setInactiveRow(node);
+
+          ui->viAttrs->addTopLevelItem(node);
+        }
+
+        i++;
       }
-
-      if(showNode(usedSlot, /*filledSlot*/ true))
-      {
-        RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {i, name, a.location, a.binding, a.format.Name(), a.byteOffset, QString()});
-
-        node->setTag(i);
-
-        usedBindings[a.binding] = true;
-
-        if(!usedSlot)
-          setInactiveRow(node);
-
-        ui->viAttrs->addTopLevelItem(node);
-      }
-
-      i++;
     }
-  }
-  ui->viAttrs->clearSelection();
-  ui->viAttrs->endUpdate();
-  ui->viAttrs->verticalScrollBar()->setValue(vs);
+    ui->viAttrs->clearSelection();
+    ui->viAttrs->endUpdate();
+    ui->viAttrs->verticalScrollBar()->setValue(vs);
 
-  m_BindNodes.clear();
-  m_VBNodes.clear();
-  m_EmptyNodes.clear();
+    m_BindNodes.clear();
+    m_VBNodes.clear();
+    m_EmptyNodes.clear();
 
-  int numCPs = PatchList_Count(state.inputAssembly.topology);
-  if(numCPs > 0)
-  {
-    ui->topology->setText(tr("PatchList (%1 Control Points)").arg(numCPs));
-  }
-  else
-  {
-    ui->topology->setText(ToQStr(state.inputAssembly.topology));
-  }
-
-  m_Common.setTopologyDiagram(ui->topologyDiagram, state.inputAssembly.topology);
-
-  ui->primRestart->setVisible(state.inputAssembly.primitiveRestartEnable);
-
-  vs = ui->viBuffers->verticalScrollBar()->value();
-  ui->viBuffers->beginUpdate();
-  ui->viBuffers->clear();
-
-  bool ibufferUsed = action != NULL && (action->flags & ActionFlags::Indexed);
-
-  if(state.inputAssembly.indexBuffer.resourceId != ResourceId())
-  {
-    if(ibufferUsed || showUnused)
+    int numCPs = PatchList_Count(state.inputAssembly.topology);
+    if(numCPs > 0)
     {
-      uint64_t length = 1;
-
-      if(!ibufferUsed)
-        length = 0;
-
-      BufferDescription *buf = m_Ctx.GetBuffer(state.inputAssembly.indexBuffer.resourceId);
-
-      if(buf)
-        length = buf->length;
-
-      RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {tr("Index"), state.inputAssembly.indexBuffer.resourceId, tr("Index"), lit("-"),
-           (qulonglong)state.inputAssembly.indexBuffer.byteOffset,
-           (qulonglong)state.inputAssembly.indexBuffer.byteStride, (qulonglong)length, QString()});
-
-      QString iformat;
-
-      if(state.inputAssembly.indexBuffer.byteStride == 1)
-        iformat = lit("ubyte");
-      else if(state.inputAssembly.indexBuffer.byteStride == 2)
-        iformat = lit("ushort");
-      else if(state.inputAssembly.indexBuffer.byteStride == 4)
-        iformat = lit("uint");
-
-      iformat +=
-          lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
-
-      node->setTag(QVariant::fromValue(VulkanVBIBTag(
-          state.inputAssembly.indexBuffer.resourceId,
-          state.inputAssembly.indexBuffer.byteOffset +
-              (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0),
-          iformat)));
-
-      if(!ibufferUsed)
-        setInactiveRow(node);
-
-      if(state.inputAssembly.indexBuffer.resourceId == ResourceId())
-      {
-        setEmptyRow(node);
-        m_EmptyNodes.push_back(node);
-      }
-
-      ui->viBuffers->addTopLevelItem(node);
+      ui->topology->setText(tr("PatchList (%1 Control Points)").arg(numCPs));
     }
-  }
-  else
-  {
-    if(ibufferUsed || showEmpty)
+    else
     {
-      RDTreeWidgetItem *node = new RDTreeWidgetItem({tr("Index"), ResourceId(), tr("Index"), lit("-"),
-                                                     lit("-"), lit("-"), lit("-"), QString()});
-
-      QString iformat;
-
-      if(state.inputAssembly.indexBuffer.byteStride == 1)
-        iformat = lit("ubyte");
-      else if(state.inputAssembly.indexBuffer.byteStride == 2)
-        iformat = lit("ushort");
-      else if(state.inputAssembly.indexBuffer.byteStride == 4)
-        iformat = lit("uint");
-
-      iformat +=
-          lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
-
-      node->setTag(QVariant::fromValue(VulkanVBIBTag(
-          state.inputAssembly.indexBuffer.resourceId,
-          state.inputAssembly.indexBuffer.byteOffset +
-              (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0),
-          iformat)));
-
-      setEmptyRow(node);
-      m_EmptyNodes.push_back(node);
-
-      if(!ibufferUsed)
-        setInactiveRow(node);
-
-      ui->viBuffers->addTopLevelItem(node);
+      ui->topology->setText(ToQStr(state.inputAssembly.topology));
     }
-  }
 
-  {
-    int i = 0;
-    for(; i < qMax(state.vertexInput.vertexBuffers.count(), state.vertexInput.bindings.count()); i++)
+    m_Common.setTopologyDiagram(ui->topologyDiagram, state.inputAssembly.topology);
+
+    ui->primRestart->setVisible(state.inputAssembly.primitiveRestartEnable);
+
+    vs = ui->viBuffers->verticalScrollBar()->value();
+    ui->viBuffers->beginUpdate();
+    ui->viBuffers->clear();
+
+    bool ibufferUsed = action != NULL && (action->flags & ActionFlags::Indexed);
+
+    if(state.inputAssembly.indexBuffer.resourceId != ResourceId())
     {
-      const VKPipe::VertexBuffer *vbuff =
-          (i < state.vertexInput.vertexBuffers.count() ? &state.vertexInput.vertexBuffers[i] : NULL);
-      const VKPipe::VertexBinding *bind = NULL;
-
-      for(int b = 0; b < state.vertexInput.bindings.count(); b++)
+      if(ibufferUsed || showUnused)
       {
-        if(state.vertexInput.bindings[b].vertexBufferBinding == (uint32_t)i)
-          bind = &state.vertexInput.bindings[b];
-      }
-
-      bool filledSlot = ((vbuff != NULL && vbuff->resourceId != ResourceId()) || bind != NULL);
-      bool usedSlot = (usedBindings[i]);
-
-      if(showNode(usedSlot, filledSlot))
-      {
-        QString rate = lit("-");
         uint64_t length = 1;
-        uint64_t offset = 0;
-        uint32_t stride = 0;
-        uint32_t divisor = 1;
 
-        if(vbuff != NULL)
-        {
-          offset = vbuff->byteOffset;
-          stride = vbuff->byteStride;
-          length = vbuff->byteSize;
+        if(!ibufferUsed)
+          length = 0;
 
-          BufferDescription *buf = m_Ctx.GetBuffer(vbuff->resourceId);
-          if(buf && length >= ULONG_MAX)
-            length = buf->length;
-        }
+        BufferDescription *buf = m_Ctx.GetBuffer(state.inputAssembly.indexBuffer.resourceId);
 
-        if(bind != NULL)
-        {
-          rate = bind->perInstance ? tr("Instance") : tr("Vertex");
-          if(bind->perInstance)
-            divisor = bind->instanceDivisor;
-        }
-        else
-        {
-          rate += tr("No Binding");
-        }
+        if(buf)
+          length = buf->length;
 
-        RDTreeWidgetItem *node = NULL;
+        RDTreeWidgetItem *node = new RDTreeWidgetItem(
+            {tr("Index"), state.inputAssembly.indexBuffer.resourceId, tr("Index"), lit("-"),
+             (qulonglong)state.inputAssembly.indexBuffer.byteOffset,
+             (qulonglong)state.inputAssembly.indexBuffer.byteStride, (qulonglong)length, QString()});
 
-        if(filledSlot)
-          node = new RDTreeWidgetItem({i, vbuff->resourceId, rate, divisor, (qulonglong)offset,
-                                       stride, (qulonglong)length, QString()});
-        else
-          node = new RDTreeWidgetItem(
-              {i, tr("No Binding"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
+        QString iformat;
+
+        if(state.inputAssembly.indexBuffer.byteStride == 1)
+          iformat = lit("ubyte");
+        else if(state.inputAssembly.indexBuffer.byteStride == 2)
+          iformat = lit("ushort");
+        else if(state.inputAssembly.indexBuffer.byteStride == 4)
+          iformat = lit("uint");
+
+        iformat +=
+            lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
 
         node->setTag(QVariant::fromValue(VulkanVBIBTag(
-            vbuff != NULL ? vbuff->resourceId : ResourceId(), vbuff != NULL ? vbuff->byteOffset : 0,
-            m_Common.GetVBufferFormatString(i))));
+            state.inputAssembly.indexBuffer.resourceId,
+            state.inputAssembly.indexBuffer.byteOffset +
+                (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0),
+            iformat)));
 
-        if(!filledSlot || bind == NULL || vbuff == NULL || vbuff->resourceId == ResourceId())
+        if(!ibufferUsed)
+          setInactiveRow(node);
+
+        if(state.inputAssembly.indexBuffer.resourceId == ResourceId())
         {
           setEmptyRow(node);
           m_EmptyNodes.push_back(node);
         }
 
-        if(!usedSlot)
-          setInactiveRow(node);
-
-        m_VBNodes.push_back(node);
-
         ui->viBuffers->addTopLevelItem(node);
       }
-      else
-      {
-        m_VBNodes.push_back(NULL);
-      }
     }
-
-    for(; i < (int)ARRAY_COUNT(usedBindings); i++)
+    else
     {
-      if(usedBindings[i])
+      if(ibufferUsed || showEmpty)
       {
-        RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {i, tr("No Binding"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({tr("Index"), ResourceId(), tr("Index"), lit("-"), lit("-"),
+                                  lit("-"), lit("-"), QString()});
 
-        node->setTag(QVariant::fromValue(VulkanVBIBTag(ResourceId(), 0)));
+        QString iformat;
+
+        if(state.inputAssembly.indexBuffer.byteStride == 1)
+          iformat = lit("ubyte");
+        else if(state.inputAssembly.indexBuffer.byteStride == 2)
+          iformat = lit("ushort");
+        else if(state.inputAssembly.indexBuffer.byteStride == 4)
+          iformat = lit("uint");
+
+        iformat +=
+            lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
+
+        node->setTag(QVariant::fromValue(VulkanVBIBTag(
+            state.inputAssembly.indexBuffer.resourceId,
+            state.inputAssembly.indexBuffer.byteOffset +
+                (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0),
+            iformat)));
 
         setEmptyRow(node);
         m_EmptyNodes.push_back(node);
 
-        setInactiveRow(node);
+        if(!ibufferUsed)
+          setInactiveRow(node);
 
         ui->viBuffers->addTopLevelItem(node);
-
-        m_VBNodes.push_back(node);
-      }
-      else
-      {
-        m_VBNodes.push_back(NULL);
       }
     }
-  }
-  ui->viBuffers->clearSelection();
-  ui->viBuffers->endUpdate();
-  ui->viBuffers->verticalScrollBar()->setValue(vs);
 
-  setShaderState(state.vertexShader, state.graphics, ui->vsShader, ui->vsResources, ui->vsUBOs);
-  setShaderState(state.geometryShader, state.graphics, ui->gsShader, ui->gsResources, ui->gsUBOs);
-  setShaderState(state.tessControlShader, state.graphics, ui->tcsShader, ui->tcsResources,
-                 ui->tcsUBOs);
-  setShaderState(state.tessEvalShader, state.graphics, ui->tesShader, ui->tesResources, ui->tesUBOs);
+    {
+      int i = 0;
+      for(; i < qMax(state.vertexInput.vertexBuffers.count(), state.vertexInput.bindings.count()); i++)
+      {
+        const VKPipe::VertexBuffer *vbuff =
+            (i < state.vertexInput.vertexBuffers.count() ? &state.vertexInput.vertexBuffers[i]
+                                                         : NULL);
+        const VKPipe::VertexBinding *bind = NULL;
+
+        for(int b = 0; b < state.vertexInput.bindings.count(); b++)
+        {
+          if(state.vertexInput.bindings[b].vertexBufferBinding == (uint32_t)i)
+            bind = &state.vertexInput.bindings[b];
+        }
+
+        bool filledSlot = ((vbuff != NULL && vbuff->resourceId != ResourceId()) || bind != NULL);
+        bool usedSlot = (usedBindings[i]);
+
+        if(showNode(usedSlot, filledSlot))
+        {
+          QString rate = lit("-");
+          uint64_t length = 1;
+          uint64_t offset = 0;
+          uint32_t stride = 0;
+          uint32_t divisor = 1;
+
+          if(vbuff != NULL)
+          {
+            offset = vbuff->byteOffset;
+            stride = vbuff->byteStride;
+            length = vbuff->byteSize;
+
+            BufferDescription *buf = m_Ctx.GetBuffer(vbuff->resourceId);
+            if(buf && length >= ULONG_MAX)
+              length = buf->length;
+          }
+
+          if(bind != NULL)
+          {
+            rate = bind->perInstance ? tr("Instance") : tr("Vertex");
+            if(bind->perInstance)
+              divisor = bind->instanceDivisor;
+          }
+          else
+          {
+            rate += tr("No Binding");
+          }
+
+          RDTreeWidgetItem *node = NULL;
+
+          if(filledSlot)
+            node = new RDTreeWidgetItem({i, vbuff->resourceId, rate, divisor, (qulonglong)offset,
+                                         stride, (qulonglong)length, QString()});
+          else
+            node = new RDTreeWidgetItem(
+                {i, tr("No Binding"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
+
+          node->setTag(QVariant::fromValue(VulkanVBIBTag(
+              vbuff != NULL ? vbuff->resourceId : ResourceId(),
+              vbuff != NULL ? vbuff->byteOffset : 0, m_Common.GetVBufferFormatString(i))));
+
+          if(!filledSlot || bind == NULL || vbuff == NULL || vbuff->resourceId == ResourceId())
+          {
+            setEmptyRow(node);
+            m_EmptyNodes.push_back(node);
+          }
+
+          if(!usedSlot)
+            setInactiveRow(node);
+
+          m_VBNodes.push_back(node);
+
+          ui->viBuffers->addTopLevelItem(node);
+        }
+        else
+        {
+          m_VBNodes.push_back(NULL);
+        }
+      }
+
+      for(; i < (int)ARRAY_COUNT(usedBindings); i++)
+      {
+        if(usedBindings[i])
+        {
+          RDTreeWidgetItem *node = new RDTreeWidgetItem(
+              {i, tr("No Binding"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
+
+          node->setTag(QVariant::fromValue(VulkanVBIBTag(ResourceId(), 0)));
+
+          setEmptyRow(node);
+          m_EmptyNodes.push_back(node);
+
+          setInactiveRow(node);
+
+          ui->viBuffers->addTopLevelItem(node);
+
+          m_VBNodes.push_back(node);
+        }
+        else
+        {
+          m_VBNodes.push_back(NULL);
+        }
+      }
+    }
+    ui->viBuffers->clearSelection();
+    ui->viBuffers->endUpdate();
+    ui->viBuffers->verticalScrollBar()->setValue(vs);
+
+    setShaderState(state.vertexShader, state.graphics, ui->vsShader, ui->vsResources, ui->vsUBOs);
+    setShaderState(state.geometryShader, state.graphics, ui->gsShader, ui->gsResources, ui->gsUBOs);
+    setShaderState(state.tessControlShader, state.graphics, ui->tcsShader, ui->tcsResources,
+                   ui->tcsUBOs);
+    setShaderState(state.tessEvalShader, state.graphics, ui->tesShader, ui->tesResources,
+                   ui->tesUBOs);
+  }
+
   setShaderState(state.fragmentShader, state.graphics, ui->fsShader, ui->fsResources, ui->fsUBOs);
   setShaderState(state.computeShader, state.compute, ui->csShader, ui->csResources, ui->csUBOs);
 
   QToolButton *shaderButtons[] = {
-      ui->vsShaderViewButton, ui->tcsShaderViewButton, ui->tesShaderViewButton,
-      ui->gsShaderViewButton, ui->fsShaderViewButton,  ui->csShaderViewButton,
-      ui->vsShaderEditButton, ui->tcsShaderEditButton, ui->tesShaderEditButton,
-      ui->gsShaderEditButton, ui->fsShaderEditButton,  ui->csShaderEditButton,
-      ui->vsShaderSaveButton, ui->tcsShaderSaveButton, ui->tesShaderSaveButton,
-      ui->gsShaderSaveButton, ui->fsShaderSaveButton,  ui->csShaderSaveButton,
+      // view buttons
+      ui->tsShaderViewButton,
+      ui->msShaderViewButton,
+      ui->vsShaderViewButton,
+      ui->tcsShaderViewButton,
+      ui->tesShaderViewButton,
+      ui->gsShaderViewButton,
+      ui->fsShaderViewButton,
+      ui->csShaderViewButton,
+      // edit buttons
+      ui->tsShaderEditButton,
+      ui->msShaderEditButton,
+      ui->vsShaderEditButton,
+      ui->tcsShaderEditButton,
+      ui->tesShaderEditButton,
+      ui->gsShaderEditButton,
+      ui->fsShaderEditButton,
+      ui->csShaderEditButton,
+      // save buttons
+      ui->tsShaderSaveButton,
+      ui->msShaderSaveButton,
+      ui->vsShaderSaveButton,
+      ui->tcsShaderSaveButton,
+      ui->tesShaderSaveButton,
+      ui->gsShaderSaveButton,
+      ui->fsShaderSaveButton,
+      ui->csShaderSaveButton,
   };
 
   for(QToolButton *b : shaderButtons)
@@ -2475,9 +2627,10 @@ void VulkanPipelineStateViewer::setState()
   QToolButton *messageButtons[] = {
       ui->vsShaderMessagesButton, ui->tcsShaderMessagesButton, ui->tesShaderMessagesButton,
       ui->gsShaderMessagesButton, ui->fsShaderMessagesButton,  ui->csShaderMessagesButton,
+      ui->tsShaderMessagesButton, ui->msShaderMessagesButton,
   };
 
-  int numMessages[6] = {};
+  int numMessages[NumShaderStages] = {};
 
   for(const ShaderMessage &msg : state.shaderMessages)
     numMessages[(uint32_t)msg.stage]++;
@@ -3185,42 +3338,6 @@ void VulkanPipelineStateViewer::setState()
     else
       ui->computeDebugSelector->setToolTip(tr("Invalid dispatch/threadgroup dimensions."));
   }
-
-  // highlight the appropriate stages in the flowchart
-  if(action == NULL)
-  {
-    ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
-  }
-  else if(action->flags & ActionFlags::Dispatch)
-  {
-    ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
-  }
-  else
-  {
-    bool xfbActive = !state.transformFeedback.buffers.isEmpty();
-
-    bool raster = true;
-
-    if(state.rasterizer.rasterizerDiscardEnable)
-    {
-      raster = false;
-    }
-
-    if(state.geometryShader.resourceId == ResourceId() && xfbActive)
-    {
-      ui->pipeFlow->setStageName(4, lit("XFB"), tr("Transform Feedback"));
-    }
-    else
-    {
-      ui->pipeFlow->setStageName(4, lit("GS"), tr("Geometry Shader"));
-    }
-
-    ui->pipeFlow->setStagesEnabled(
-        {true, true, state.tessControlShader.resourceId != ResourceId(),
-         state.tessEvalShader.resourceId != ResourceId(),
-         state.geometryShader.resourceId != ResourceId() || xfbActive, raster,
-         raster && state.fragmentShader.resourceId != ResourceId(), raster, false});
-  }
 }
 
 void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int column)
@@ -3494,7 +3611,26 @@ void VulkanPipelineStateViewer::vertex_leave(QEvent *e)
 
 void VulkanPipelineStateViewer::on_pipeFlow_stageSelected(int index)
 {
-  ui->stagesTabs->setCurrentIndex(index);
+  if(m_MeshPipe)
+  {
+    // remap since TS/MS are the last tabs but appear first in the flow
+    switch(index)
+    {
+      // TS
+      case 0: ui->stagesTabs->setCurrentIndex(9); break;
+      // MS
+      case 1: ui->stagesTabs->setCurrentIndex(10); break;
+      // raster onwards are the same, just skipping VTX,VS,TCS,TES,GS
+      case 2: ui->stagesTabs->setCurrentIndex(5); break;
+      case 3: ui->stagesTabs->setCurrentIndex(6); break;
+      case 4: ui->stagesTabs->setCurrentIndex(7); break;
+      case 5: ui->stagesTabs->setCurrentIndex(8); break;
+    }
+  }
+  else
+  {
+    ui->stagesTabs->setCurrentIndex(index);
+  }
 }
 
 void VulkanPipelineStateViewer::shaderView_clicked()
@@ -4573,6 +4709,12 @@ QString VulkanPipelineStateViewer::GetBufferForFossilize(const SDObject *obj)
         case ShaderStageMask::Compute:
           ret = ReconstructSpecializationData(pipe->computeShader, mapEntries);
           break;
+        case ShaderStageMask::Task:
+          ret = ReconstructSpecializationData(pipe->taskShader, mapEntries);
+          break;
+        case ShaderStageMask::Mesh:
+          ret = ReconstructSpecializationData(pipe->meshShader, mapEntries);
+          break;
         default: break;
       }
     }
@@ -5021,8 +5163,9 @@ void VulkanPipelineStateViewer::exportFOZ(QString dir, ResourceId pso)
 
         // we don't care which reflection we get, as long as the ID matches
         for(const VKPipe::Shader *sh :
-            {&pipe->vertexShader, &pipe->tessControlShader, &pipe->tessEvalShader,
-             &pipe->geometryShader, &pipe->fragmentShader, &pipe->computeShader})
+            {&pipe->taskShader, &pipe->meshShader, &pipe->vertexShader, &pipe->tessControlShader,
+             &pipe->tessEvalShader, &pipe->geometryShader, &pipe->fragmentShader,
+             &pipe->computeShader})
         {
           if(sh->resourceId == id)
             spirv = &sh->reflection->rawBytes;
@@ -5073,7 +5216,7 @@ void VulkanPipelineStateViewer::exportFOZ_clicked()
 
   if(m_Ctx.CurAction()->flags & ActionFlags::Dispatch)
     pso = m_Ctx.CurVulkanPipelineState()->compute.pipelineResourceId;
-  else if(m_Ctx.CurAction()->flags & ActionFlags::Drawcall)
+  else if(m_Ctx.CurAction()->flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall))
     pso = m_Ctx.CurVulkanPipelineState()->graphics.pipelineResourceId;
 
   if(pso == ResourceId())
@@ -5120,53 +5263,90 @@ void VulkanPipelineStateViewer::exportHTML_clicked()
       xml.writeCharacters(sn);
       xml.writeEndElement();
 
-      switch(stage)
+      if(m_MeshPipe)
       {
-        case 0:
-          // VTX
-          xml.writeStartElement(lit("h2"));
-          xml.writeCharacters(tr("Input Assembly"));
-          xml.writeEndElement();
-          exportHTML(xml, m_Ctx.CurVulkanPipelineState()->inputAssembly);
+        switch(stage)
+        {
+          case 0: exportHTML(xml, m_Ctx.CurVulkanPipelineState()->taskShader); break;
+          case 1: exportHTML(xml, m_Ctx.CurVulkanPipelineState()->meshShader); break;
+          case 2:
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->rasterizer);
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->conditionalRendering);
+            break;
+          case 3: exportHTML(xml, m_Ctx.CurVulkanPipelineState()->fragmentShader); break;
+          case 4:
+            // FB
+            xml.writeStartElement(lit("h2"));
+            xml.writeCharacters(tr("Color Blend"));
+            xml.writeEndElement();
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->colorBlend);
 
-          xml.writeStartElement(lit("h2"));
-          xml.writeCharacters(tr("Vertex Input"));
-          xml.writeEndElement();
-          exportHTML(xml, m_Ctx.CurVulkanPipelineState()->vertexInput);
-          break;
-        case 1: exportHTML(xml, m_Ctx.CurVulkanPipelineState()->vertexShader); break;
-        case 2: exportHTML(xml, m_Ctx.CurVulkanPipelineState()->tessControlShader); break;
-        case 3: exportHTML(xml, m_Ctx.CurVulkanPipelineState()->tessEvalShader); break;
-        case 4:
-          exportHTML(xml, m_Ctx.CurVulkanPipelineState()->geometryShader);
-          exportHTML(xml, m_Ctx.CurVulkanPipelineState()->transformFeedback);
-          break;
-        case 5:
-          exportHTML(xml, m_Ctx.CurVulkanPipelineState()->rasterizer);
-          exportHTML(xml, m_Ctx.CurVulkanPipelineState()->conditionalRendering);
-          break;
-        case 6: exportHTML(xml, m_Ctx.CurVulkanPipelineState()->fragmentShader); break;
-        case 7:
-          // FB
-          xml.writeStartElement(lit("h2"));
-          xml.writeCharacters(tr("Color Blend"));
-          xml.writeEndElement();
-          exportHTML(xml, m_Ctx.CurVulkanPipelineState()->colorBlend);
+            xml.writeStartElement(lit("h2"));
+            xml.writeCharacters(tr("Depth Stencil"));
+            xml.writeEndElement();
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->depthStencil);
 
-          xml.writeStartElement(lit("h2"));
-          xml.writeCharacters(tr("Depth Stencil"));
-          xml.writeEndElement();
-          exportHTML(xml, m_Ctx.CurVulkanPipelineState()->depthStencil);
+            xml.writeStartElement(lit("h2"));
+            xml.writeCharacters(tr("Current Pass"));
+            xml.writeEndElement();
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->currentPass);
+            break;
+          case 5:
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->computeShader);
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->conditionalRendering);
+            break;
+        }
+      }
+      else
+      {
+        switch(stage)
+        {
+          case 0:
+            // VTX
+            xml.writeStartElement(lit("h2"));
+            xml.writeCharacters(tr("Input Assembly"));
+            xml.writeEndElement();
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->inputAssembly);
 
-          xml.writeStartElement(lit("h2"));
-          xml.writeCharacters(tr("Current Pass"));
-          xml.writeEndElement();
-          exportHTML(xml, m_Ctx.CurVulkanPipelineState()->currentPass);
-          break;
-        case 8:
-          exportHTML(xml, m_Ctx.CurVulkanPipelineState()->computeShader);
-          exportHTML(xml, m_Ctx.CurVulkanPipelineState()->conditionalRendering);
-          break;
+            xml.writeStartElement(lit("h2"));
+            xml.writeCharacters(tr("Vertex Input"));
+            xml.writeEndElement();
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->vertexInput);
+            break;
+          case 1: exportHTML(xml, m_Ctx.CurVulkanPipelineState()->vertexShader); break;
+          case 2: exportHTML(xml, m_Ctx.CurVulkanPipelineState()->tessControlShader); break;
+          case 3: exportHTML(xml, m_Ctx.CurVulkanPipelineState()->tessEvalShader); break;
+          case 4:
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->geometryShader);
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->transformFeedback);
+            break;
+          case 5:
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->rasterizer);
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->conditionalRendering);
+            break;
+          case 6: exportHTML(xml, m_Ctx.CurVulkanPipelineState()->fragmentShader); break;
+          case 7:
+            // FB
+            xml.writeStartElement(lit("h2"));
+            xml.writeCharacters(tr("Color Blend"));
+            xml.writeEndElement();
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->colorBlend);
+
+            xml.writeStartElement(lit("h2"));
+            xml.writeCharacters(tr("Depth Stencil"));
+            xml.writeEndElement();
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->depthStencil);
+
+            xml.writeStartElement(lit("h2"));
+            xml.writeCharacters(tr("Current Pass"));
+            xml.writeEndElement();
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->currentPass);
+            break;
+          case 8:
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->computeShader);
+            exportHTML(xml, m_Ctx.CurVulkanPipelineState()->conditionalRendering);
+            break;
+        }
       }
 
       xml.writeEndElement();
@@ -5176,6 +5356,13 @@ void VulkanPipelineStateViewer::exportHTML_clicked()
 
     m_Common.endHTMLExport(xmlptr);
   }
+}
+
+void VulkanPipelineStateViewer::on_msMeshButton_clicked()
+{
+  if(!m_Ctx.HasMeshPreview())
+    m_Ctx.ShowMeshPreview();
+  ToolWindowManager::raiseToolWindow(m_Ctx.GetMeshPreview()->Widget());
 }
 
 void VulkanPipelineStateViewer::on_meshView_clicked()

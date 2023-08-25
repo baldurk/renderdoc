@@ -1978,6 +1978,12 @@
     <Image Include="Resources\help%402x.png">
       <Filter>Resources\Files</Filter>
     </Image>
+    <Image Include="Resources\draw_vertex%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\draw_vertex.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="python36.natvis" />

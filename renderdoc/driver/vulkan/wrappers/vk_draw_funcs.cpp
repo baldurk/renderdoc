@@ -54,6 +54,10 @@ VkIndirectPatchData WrappedVulkan::FetchIndirectData(VkIndirectPatchType type,
       dataSize = sizeof(VkDrawIndexedIndirectCommand) + (count - 1) * stride;
       break;
     case VkIndirectPatchType::DrawIndirectByteCount: dataSize = 4; break;
+    case VkIndirectPatchType::MeshIndirect:
+    case VkIndirectPatchType::MeshIndirectCount:
+      dataSize = sizeof(VkDrawMeshTasksIndirectCommandEXT) + (count - 1) * stride;
+      break;
   }
 
   bufInfo.size = AlignUp16(dataSize);
@@ -187,12 +191,12 @@ bool WrappedVulkan::Serialise_vkCmdDraw(SerialiserType &ser, VkCommandBuffer com
         ObjDisp(commandBuffer)
             ->CmdDraw(Unwrap(commandBuffer), vertexCount, instanceCount, firstVertex, firstInstance);
 
-        if(eventId && m_ActionCallback->PostDraw(eventId, commandBuffer))
+        if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::Drawcall, commandBuffer))
         {
           ObjDisp(commandBuffer)
               ->CmdDraw(Unwrap(commandBuffer), vertexCount, instanceCount, firstVertex,
                         firstInstance);
-          m_ActionCallback->PostRedraw(eventId, commandBuffer);
+          m_ActionCallback->PostRedraw(eventId, ActionFlags::Drawcall, commandBuffer);
         }
       }
     }
@@ -277,12 +281,12 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(SerialiserType &ser, VkCommandBuf
             ->CmdDrawIndexed(Unwrap(commandBuffer), indexCount, instanceCount, firstIndex,
                              vertexOffset, firstInstance);
 
-        if(eventId && m_ActionCallback->PostDraw(eventId, commandBuffer))
+        if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::Drawcall, commandBuffer))
         {
           ObjDisp(commandBuffer)
               ->CmdDrawIndexed(Unwrap(commandBuffer), indexCount, instanceCount, firstIndex,
                                vertexOffset, firstInstance);
-          m_ActionCallback->PostRedraw(eventId, commandBuffer);
+          m_ActionCallback->PostRedraw(eventId, ActionFlags::Drawcall, commandBuffer);
         }
       }
     }
@@ -377,11 +381,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
           ObjDisp(commandBuffer)
               ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
 
-          if(eventId && m_ActionCallback->PostDraw(eventId, commandBuffer))
+          if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::Drawcall, commandBuffer))
           {
             ObjDisp(commandBuffer)
                 ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
-            m_ActionCallback->PostRedraw(eventId, commandBuffer);
+            m_ActionCallback->PostRedraw(eventId, ActionFlags::Drawcall, commandBuffer);
           }
         }
       }
@@ -455,12 +459,13 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
                     ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(m_IndirectBuffer.buf), 0, i + 1,
                                       stride);
 
-                if(eventId && m_ActionCallback->PostDraw(eventId, commandBuffer))
+                if(eventId &&
+                   m_ActionCallback->PostDraw(eventId, ActionFlags::Drawcall, commandBuffer))
                 {
                   ObjDisp(commandBuffer)
                       ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(m_IndirectBuffer.buf), 0,
                                         i + 1, stride);
-                  m_ActionCallback->PostRedraw(eventId, commandBuffer);
+                  m_ActionCallback->PostRedraw(eventId, ActionFlags::Drawcall, commandBuffer);
                 }
 
                 // now that we're done, nop out this draw so that the next time around we only draw
@@ -785,12 +790,12 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
           ObjDisp(commandBuffer)
               ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
 
-          if(eventId && m_ActionCallback->PostDraw(eventId, commandBuffer))
+          if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::Drawcall, commandBuffer))
           {
             ObjDisp(commandBuffer)
                 ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count,
                                          stride);
-            m_ActionCallback->PostRedraw(eventId, commandBuffer);
+            m_ActionCallback->PostRedraw(eventId, ActionFlags::Drawcall, commandBuffer);
           }
         }
       }
@@ -834,12 +839,13 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
                     ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, 1,
                                              stride);
 
-                if(eventId && m_ActionCallback->PostDraw(eventId, commandBuffer))
+                if(eventId &&
+                   m_ActionCallback->PostDraw(eventId, ActionFlags::Drawcall, commandBuffer))
                 {
                   ObjDisp(commandBuffer)
                       ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, 1,
                                                stride);
-                  m_ActionCallback->PostRedraw(eventId, commandBuffer);
+                  m_ActionCallback->PostRedraw(eventId, ActionFlags::Drawcall, commandBuffer);
                 }
 
                 offset += stride;
@@ -1150,10 +1156,10 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(SerialiserType &ser, VkCommandBuffer
 
         ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), x, y, z);
 
-        if(eventId && m_ActionCallback->PostDispatch(eventId, commandBuffer))
+        if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::Dispatch, commandBuffer))
         {
           ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), x, y, z);
-          m_ActionCallback->PostRedispatch(eventId, commandBuffer);
+          m_ActionCallback->PostRedispatch(eventId, ActionFlags::Dispatch, commandBuffer);
         }
       }
     }
@@ -1226,10 +1232,10 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(SerialiserType &ser,
 
         ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset);
 
-        if(eventId && m_ActionCallback->PostDispatch(eventId, commandBuffer))
+        if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::Dispatch, commandBuffer))
         {
           ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset);
-          m_ActionCallback->PostRedispatch(eventId, commandBuffer);
+          m_ActionCallback->PostRedispatch(eventId, ActionFlags::Dispatch, commandBuffer);
         }
       }
     }
@@ -2668,12 +2674,12 @@ bool WrappedVulkan::Serialise_vkCmdDispatchBase(SerialiserType &ser, VkCommandBu
             ->CmdDispatchBase(Unwrap(commandBuffer), baseGroupX, baseGroupY, baseGroupZ,
                               groupCountX, groupCountY, groupCountZ);
 
-        if(eventId && m_ActionCallback->PostDispatch(eventId, commandBuffer))
+        if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::Dispatch, commandBuffer))
         {
           ObjDisp(commandBuffer)
               ->CmdDispatchBase(Unwrap(commandBuffer), baseGroupX, baseGroupY, baseGroupZ,
                                 groupCountX, groupCountY, groupCountZ);
-          m_ActionCallback->PostRedispatch(eventId, commandBuffer);
+          m_ActionCallback->PostRedispatch(eventId, ActionFlags::Dispatch, commandBuffer);
         }
       }
     }
@@ -2838,12 +2844,12 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
                   ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(m_IndirectBuffer.buf), 0, i + 1,
                                     stride);
 
-              if(eventId && m_ActionCallback->PostDraw(eventId, commandBuffer))
+              if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::Drawcall, commandBuffer))
               {
                 ObjDisp(commandBuffer)
                     ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(m_IndirectBuffer.buf), 0, i + 1,
                                       stride);
-                m_ActionCallback->PostRedraw(eventId, commandBuffer);
+                m_ActionCallback->PostRedraw(eventId, ActionFlags::Drawcall, commandBuffer);
               }
 
               // now that we're done, nop out this draw so that the next time around we only draw
@@ -3185,12 +3191,12 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
                   ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(m_IndirectBuffer.buf), 0,
                                            i + 1, stride);
 
-              if(eventId && m_ActionCallback->PostDraw(eventId, commandBuffer))
+              if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::Drawcall, commandBuffer))
               {
                 ObjDisp(commandBuffer)
                     ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(m_IndirectBuffer.buf), 0,
                                              i + 1, stride);
-                m_ActionCallback->PostRedraw(eventId, commandBuffer);
+                m_ActionCallback->PostRedraw(eventId, ActionFlags::Drawcall, commandBuffer);
               }
 
               // now that we're done, nop out this draw so that the next time around we only draw
@@ -3463,13 +3469,13 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectByteCountEXT(
                                           Unwrap(counterBuffer), counterBufferOffset, counterOffset,
                                           vertexStride);
 
-        if(eventId && m_ActionCallback->PostDraw(eventId, commandBuffer))
+        if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::Drawcall, commandBuffer))
         {
           ObjDisp(commandBuffer)
               ->CmdDrawIndirectByteCountEXT(Unwrap(commandBuffer), instanceCount, firstInstance,
                                             Unwrap(counterBuffer), counterBufferOffset,
                                             counterOffset, vertexStride);
-          m_ActionCallback->PostRedraw(eventId, commandBuffer);
+          m_ActionCallback->PostRedraw(eventId, ActionFlags::Drawcall, commandBuffer);
         }
       }
     }
@@ -4334,6 +4340,878 @@ void WrappedVulkan::vkCmdResolveImage2(VkCommandBuffer commandBuffer,
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdDrawMeshTasksEXT(SerialiserType &ser,
+                                                    VkCommandBuffer commandBuffer,
+                                                    uint32_t groupCountX, uint32_t groupCountY,
+                                                    uint32_t groupCountZ)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(groupCountX).Important();
+  SERIALISE_ELEMENT(groupCountY).Important();
+  SERIALISE_ELEMENT(groupCountZ).Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::MeshDispatch);
+
+        ObjDisp(commandBuffer)
+            ->CmdDrawMeshTasksEXT(Unwrap(commandBuffer), groupCountX, groupCountY, groupCountZ);
+
+        if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::MeshDispatch, commandBuffer))
+        {
+          ObjDisp(commandBuffer)
+              ->CmdDrawMeshTasksEXT(Unwrap(commandBuffer), groupCountX, groupCountY, groupCountZ);
+          m_ActionCallback->PostRedraw(eventId, ActionFlags::MeshDispatch, commandBuffer);
+        }
+      }
+    }
+    else
+    {
+      ObjDisp(commandBuffer)
+          ->CmdDrawMeshTasksEXT(Unwrap(commandBuffer), groupCountX, groupCountY, groupCountZ);
+
+      {
+        AddEvent();
+
+        ActionDescription action;
+        action.dispatchDimension[0] = groupCountX;
+        action.dispatchDimension[1] = groupCountY;
+        action.dispatchDimension[2] = groupCountZ;
+
+        action.flags |= ActionFlags::MeshDispatch;
+
+        AddAction(action);
+      }
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdDrawMeshTasksEXT(VkCommandBuffer commandBuffer, uint32_t groupCountX,
+                                          uint32_t groupCountY, uint32_t groupCountZ)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdDrawMeshTasksEXT(Unwrap(commandBuffer), groupCountX, groupCountY, groupCountZ));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    ser.SetActionChunk();
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDrawMeshTasksEXT);
+    Serialise_vkCmdDrawMeshTasksEXT(ser, commandBuffer, groupCountX, groupCountY, groupCountZ);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdDrawMeshTasksIndirectEXT(SerialiserType &ser,
+                                                            VkCommandBuffer commandBuffer,
+                                                            VkBuffer buffer, VkDeviceSize offset,
+                                                            uint32_t drawCount, uint32_t stride)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(buffer).Important();
+  SERIALISE_ELEMENT(offset);
+  SERIALISE_ELEMENT(drawCount).Important();
+  SERIALISE_ELEMENT(stride);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  bool multidraw = drawCount > 1;
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    // do execution (possibly partial)
+    if(IsActiveReplaying(m_State))
+    {
+      if(!multidraw)
+      {
+        // for single draws, it's pretty simple
+
+        // account for the fake indirect subcommand before checking if we're in re-record range
+        if(drawCount > 0)
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+
+        if(InRerecordRange(m_LastCmdBufferID))
+        {
+          commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+          uint32_t eventId = HandlePreCallback(commandBuffer);
+
+          ObjDisp(commandBuffer)
+              ->CmdDrawMeshTasksIndirectEXT(Unwrap(commandBuffer), Unwrap(buffer), offset,
+                                            drawCount, stride);
+
+          if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::MeshDispatch, commandBuffer))
+          {
+            ObjDisp(commandBuffer)
+                ->CmdDrawMeshTasksIndirectEXT(Unwrap(commandBuffer), Unwrap(buffer), offset,
+                                              drawCount, stride);
+            m_ActionCallback->PostRedraw(eventId, ActionFlags::MeshDispatch, commandBuffer);
+          }
+        }
+      }
+      else
+      {
+        if(InRerecordRange(m_LastCmdBufferID))
+        {
+          commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+          uint32_t curEID = m_RootEventID;
+
+          if(m_FirstEventID <= 1)
+          {
+            curEID = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID;
+
+            if(m_Partial[Primary].partialParent == m_LastCmdBufferID)
+              curEID += m_Partial[Primary].baseEvent;
+            else if(m_Partial[Secondary].partialParent == m_LastCmdBufferID)
+              curEID += m_Partial[Secondary].baseEvent;
+          }
+
+          ActionUse use(m_CurChunkOffset, 0);
+          auto it = std::lower_bound(m_ActionUses.begin(), m_ActionUses.end(), use);
+
+          if(it == m_ActionUses.end())
+          {
+            RDCERR("Unexpected action not found in uses vector, offset %llu", m_CurChunkOffset);
+          }
+          else
+          {
+            uint32_t baseEventID = it->eventId;
+
+            // when we have a callback, submit every action individually to the callback
+            if(m_ActionCallback)
+            {
+              VkMarkerRegion::Begin(
+                  StringFormat::Fmt("Mesh Drawcall callback replay (drawCount=%u)", drawCount),
+                  commandBuffer);
+
+              // first copy off the buffer segment to our indirect action buffer
+              VkBufferMemoryBarrier bufBarrier = {
+                  VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+                  NULL,
+                  VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+                  VK_ACCESS_TRANSFER_WRITE_BIT,
+                  VK_QUEUE_FAMILY_IGNORED,
+                  VK_QUEUE_FAMILY_IGNORED,
+                  Unwrap(buffer),
+                  offset,
+                  (drawCount > 0 ? stride * (drawCount - 1) : 0) +
+                      sizeof(VkDrawMeshTasksIndirectCommandEXT),
+              };
+
+              DoPipelineBarrier(commandBuffer, 1, &bufBarrier);
+              VkBufferCopy region = {offset, 0, bufBarrier.size};
+              ObjDisp(commandBuffer)
+                  ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(buffer),
+                                  Unwrap(m_IndirectBuffer.buf), 1, &region);
+
+              // wait for the copy to finish
+              bufBarrier.buffer = Unwrap(m_IndirectBuffer.buf);
+              bufBarrier.offset = 0;
+              DoPipelineBarrier(commandBuffer, 1, &bufBarrier);
+
+              bufBarrier.size = sizeof(VkDrawMeshTasksIndirectCommandEXT);
+
+              for(uint32_t i = 0; i < drawCount; i++)
+              {
+                uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::MeshDispatch, i + 1);
+
+                // action up to and including i. The previous draws will be nop'd out
+                ObjDisp(commandBuffer)
+                    ->CmdDrawMeshTasksIndirectEXT(Unwrap(commandBuffer),
+                                                  Unwrap(m_IndirectBuffer.buf), 0, i + 1, stride);
+
+                if(eventId &&
+                   m_ActionCallback->PostDraw(eventId, ActionFlags::MeshDispatch, commandBuffer))
+                {
+                  ObjDisp(commandBuffer)
+                      ->CmdDrawMeshTasksIndirectEXT(Unwrap(commandBuffer),
+                                                    Unwrap(m_IndirectBuffer.buf), 0, i + 1, stride);
+                  m_ActionCallback->PostRedraw(eventId, ActionFlags::MeshDispatch, commandBuffer);
+                }
+
+                // now that we're done, nop out this draw so that the next time around we only draw
+                // the next draw.
+                bufBarrier.srcAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+                bufBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                DoPipelineBarrier(commandBuffer, 1, &bufBarrier);
+                ObjDisp(commandBuffer)
+                    ->CmdFillBuffer(Unwrap(commandBuffer), bufBarrier.buffer, bufBarrier.offset,
+                                    bufBarrier.size, 0);
+                bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                bufBarrier.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+                DoPipelineBarrier(commandBuffer, 1, &bufBarrier);
+
+                bufBarrier.offset += stride;
+              }
+
+              VkMarkerRegion::End(commandBuffer);
+            }
+            // To add the multidraw, we made an event N that is the 'parent' marker, then
+            // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
+            // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
+            // the first sub-draw in that range.
+            else if(m_LastEventID > baseEventID)
+            {
+              uint32_t drawidx = 0;
+
+              if(m_FirstEventID <= 1)
+              {
+                // if we're replaying part-way into a multidraw, we can replay the first part
+                // 'easily'
+                // by just reducing the Count parameter to however many we want to replay. This only
+                // works if we're replaying from the first multidraw to the nth (n less than Count)
+                drawCount = RDCMIN(drawCount, m_LastEventID - baseEventID);
+              }
+              else
+              {
+                // otherwise we do the 'hard' case, draw only one multidraw
+                // note we'll never be asked to do e.g. 3rd-7th of a multidraw. Only ever 0th-nth or
+                // a single draw.
+                //
+                // We also need to draw the same number of draws so that DrawIndex is faithful. In
+                // order to preserve the draw index we write a custom indirect buffer that has zeros
+                // for the parameters of all previous draws.
+                drawidx = (curEID - baseEventID - 1);
+
+                offset += stride * drawidx;
+
+                // ensure the custom buffer is large enough
+                VkDeviceSize bufLength = sizeof(VkDrawMeshTasksIndirectCommandEXT) * (drawidx + 1);
+
+                RDCASSERT(bufLength <= m_IndirectBufferSize, bufLength, m_IndirectBufferSize);
+
+                VkBufferMemoryBarrier bufBarrier = {
+                    VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+                    NULL,
+                    VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+                    VK_ACCESS_TRANSFER_WRITE_BIT,
+                    VK_QUEUE_FAMILY_IGNORED,
+                    VK_QUEUE_FAMILY_IGNORED,
+                    Unwrap(m_IndirectBuffer.buf),
+                    0,
+                    m_IndirectBufferSize,
+                };
+
+                VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                                                      NULL,
+                                                      VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+                ObjDisp(m_IndirectCommandBuffer)
+                    ->BeginCommandBuffer(Unwrap(m_IndirectCommandBuffer), &beginInfo);
+
+                // wait for any previous indirect draws to complete before filling/transferring
+                DoPipelineBarrier(m_IndirectCommandBuffer, 1, &bufBarrier);
+
+                // initialise to 0 so all other draws don't draw anything
+                ObjDisp(m_IndirectCommandBuffer)
+                    ->CmdFillBuffer(Unwrap(m_IndirectCommandBuffer), Unwrap(m_IndirectBuffer.buf),
+                                    0, m_IndirectBufferSize, 0);
+
+                // wait for fill to complete before copy
+                bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                bufBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+                DoPipelineBarrier(m_IndirectCommandBuffer, 1, &bufBarrier);
+
+                // copy over the actual parameter set into the right place
+                VkBufferCopy region = {offset, bufLength - sizeof(VkDrawMeshTasksIndirectCommandEXT),
+                                       sizeof(VkDrawMeshTasksIndirectCommandEXT)};
+                ObjDisp(m_IndirectCommandBuffer)
+                    ->CmdCopyBuffer(Unwrap(m_IndirectCommandBuffer), Unwrap(buffer),
+                                    Unwrap(m_IndirectBuffer.buf), 1, &region);
+
+                // finally wait for copy to complete before drawing from it
+                bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                bufBarrier.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+
+                DoPipelineBarrier(m_IndirectCommandBuffer, 1, &bufBarrier);
+
+                ObjDisp(m_IndirectCommandBuffer)->EndCommandBuffer(Unwrap(m_IndirectCommandBuffer));
+
+                // draw from our custom buffer
+                m_IndirectDraw = true;
+                buffer = m_IndirectBuffer.buf;
+                offset = 0;
+                drawCount = drawidx + 1;
+                stride = sizeof(VkDrawMeshTasksIndirectCommandEXT);
+              }
+
+              {
+                uint32_t eventId =
+                    HandlePreCallback(commandBuffer, ActionFlags::MeshDispatch, drawidx + 1);
+
+                ObjDisp(commandBuffer)
+                    ->CmdDrawMeshTasksIndirectEXT(Unwrap(commandBuffer), Unwrap(buffer), offset,
+                                                  drawCount, stride);
+
+                if(eventId &&
+                   m_ActionCallback->PostDraw(eventId, ActionFlags::MeshDispatch, commandBuffer))
+                {
+                  ObjDisp(commandBuffer)
+                      ->CmdDrawMeshTasksIndirectEXT(Unwrap(commandBuffer), Unwrap(buffer), offset,
+                                                    drawCount, stride);
+                  m_ActionCallback->PostRedraw(eventId, ActionFlags::MeshDispatch, commandBuffer);
+                }
+              }
+            }
+          }
+        }
+
+        // multidraws skip the event ID past the whole thing
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID += drawCount + 1;
+      }
+    }
+    else
+    {
+      VkIndirectPatchData indirectPatch = FetchIndirectData(
+          VkIndirectPatchType::MeshIndirect, commandBuffer, buffer, offset, drawCount, stride);
+
+      ObjDisp(commandBuffer)
+          ->CmdDrawMeshTasksIndirectEXT(Unwrap(commandBuffer), Unwrap(buffer), offset, drawCount,
+                                        stride);
+
+      // add on the size we'll need for an indirect buffer in the worst case.
+      // Note that we'll only ever be partially replaying one draw at a time, so we only need the
+      // worst case.
+      m_IndirectBufferSize = RDCMAX(m_IndirectBufferSize,
+                                    sizeof(VkDrawMeshTasksIndirectCommandEXT) + drawCount * stride);
+
+      rdcstr name = "vkCmdDrawMeshTasksIndirectEXT";
+
+      SDChunk *baseChunk = m_StructuredFile->chunks.back();
+
+      // for 'single' draws, don't do complex multi-draw just inline it
+      if(drawCount == 1)
+      {
+        ActionDescription action;
+
+        AddEvent();
+
+        // add a fake chunk for this individual indirect draw
+        SDChunk *fakeChunk = new SDChunk("Indirect sub-command"_lit);
+        fakeChunk->metadata = baseChunk->metadata;
+        fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
+
+        {
+          StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
+
+          structuriser.Serialise<uint32_t>("drawIndex"_lit, 0U);
+          ResourceId bufid = GetResourceManager()->GetOriginalID(GetResID(buffer));
+          structuriser.Serialise("buffer"_lit, bufid);
+          structuriser.Serialise("offset"_lit, offset);
+          structuriser.Serialise("stride"_lit, stride);
+          structuriser.Serialise("command"_lit, VkDrawMeshTasksIndirectCommandEXT()).Important();
+        }
+
+        m_StructuredFile->chunks.insert(m_StructuredFile->chunks.size() - 1, fakeChunk);
+
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+
+        AddEvent();
+
+        action.customName = name;
+        action.flags = ActionFlags::MeshDispatch | ActionFlags::Indirect;
+
+        AddAction(action);
+
+        VulkanActionTreeNode &actionNode = GetActionStack().back()->children.back();
+
+        actionNode.indirectPatch = indirectPatch;
+
+        actionNode.resourceUsage.push_back(make_rdcpair(
+            GetResID(buffer), EventUsage(actionNode.action.eventId, ResourceUsage::Indirect)));
+
+        return true;
+      }
+
+      ActionDescription action;
+      action.customName = name;
+      action.flags = ActionFlags::MultiAction | ActionFlags::PushMarker;
+
+      if(drawCount == 0)
+      {
+        action.flags = ActionFlags::MeshDispatch | ActionFlags::Indirect;
+        action.customName += "(0)";
+      }
+
+      AddEvent();
+      AddAction(action);
+
+      VulkanActionTreeNode &actionNode = GetActionStack().back()->children.back();
+
+      actionNode.indirectPatch = indirectPatch;
+
+      actionNode.resourceUsage.push_back(make_rdcpair(
+          GetResID(buffer), EventUsage(actionNode.action.eventId, ResourceUsage::Indirect)));
+
+      if(drawCount > 0)
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+
+      for(uint32_t i = 0; i < drawCount; i++)
+      {
+        ActionDescription multi;
+
+        multi.customName = name;
+
+        multi.flags |= ActionFlags::MeshDispatch | ActionFlags::Indirect;
+
+        // add a fake chunk for this individual indirect action
+        SDChunk *fakeChunk = new SDChunk("Indirect sub-command"_lit);
+        fakeChunk->metadata = baseChunk->metadata;
+        fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
+
+        {
+          StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
+
+          structuriser.Serialise<uint32_t>("drawIndex"_lit, 0U);
+          ResourceId bufid = GetResourceManager()->GetOriginalID(GetResID(buffer));
+          structuriser.Serialise("buffer"_lit, bufid);
+          structuriser.Serialise("offset"_lit, offset);
+          structuriser.Serialise("stride"_lit, stride);
+          structuriser.Serialise("command"_lit, VkDrawMeshTasksIndirectCommandEXT()).Important();
+        }
+
+        m_StructuredFile->chunks.push_back(fakeChunk);
+
+        AddEvent();
+        AddAction(multi);
+
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+      }
+
+      if(drawCount > 0)
+      {
+        AddEvent();
+        action.customName = name + " end";
+        action.flags = ActionFlags::PopMarker;
+        AddAction(action);
+      }
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdDrawMeshTasksIndirectEXT(VkCommandBuffer commandBuffer, VkBuffer buffer,
+                                                  VkDeviceSize offset, uint32_t drawCount,
+                                                  uint32_t stride)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdDrawMeshTasksIndirectEXT(Unwrap(commandBuffer), Unwrap(buffer),
+                                                        offset, drawCount, stride));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    ser.SetActionChunk();
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDrawMeshTasksIndirectEXT);
+    Serialise_vkCmdDrawMeshTasksIndirectEXT(ser, commandBuffer, buffer, offset, drawCount, stride);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+
+    record->MarkBufferFrameReferenced(
+        GetRecord(buffer), offset,
+        stride * (drawCount - 1) + sizeof(VkDrawMeshTasksIndirectCommandEXT), eFrameRef_Read);
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdDrawMeshTasksIndirectCountEXT(
+    SerialiserType &ser, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
+    VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(buffer).Important();
+  SERIALISE_ELEMENT(offset);
+  SERIALISE_ELEMENT(countBuffer).Important();
+  SERIALISE_ELEMENT(countBufferOffset);
+  SERIALISE_ELEMENT(maxDrawCount).Important();
+  SERIALISE_ELEMENT(stride);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    // do execution (possibly partial)
+    if(IsActiveReplaying(m_State))
+    {
+      // this count is wrong if we're not re-recording and fetching the actual count below, but it's
+      // impossible without having a particular submission in mind because without a specific
+      // instance we can't know what the actual count was (it could vary between submissions).
+      // Fortunately when we're not in the re-recording command buffer the EID tracking isn't
+      // needed.
+      uint32_t count = maxDrawCount;
+
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        uint32_t curEID = m_RootEventID;
+
+        if(m_FirstEventID <= 1)
+        {
+          curEID = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID;
+
+          if(m_Partial[Primary].partialParent == m_LastCmdBufferID)
+            curEID += m_Partial[Primary].baseEvent;
+          else if(m_Partial[Secondary].partialParent == m_LastCmdBufferID)
+            curEID += m_Partial[Secondary].baseEvent;
+        }
+
+        ActionUse use(m_CurChunkOffset, 0);
+        auto it = std::lower_bound(m_ActionUses.begin(), m_ActionUses.end(), use);
+
+        if(it == m_ActionUses.end() || GetAction(it->eventId) == NULL)
+        {
+          RDCERR("Unexpected action not found in uses vector, offset %llu", m_CurChunkOffset);
+        }
+        else
+        {
+          uint32_t baseEventID = it->eventId;
+
+          // get the number of draws by looking at how many children the parent action has.
+          const rdcarray<ActionDescription> &children = GetAction(it->eventId)->children;
+          count = (uint32_t)children.size();
+
+          // don't count the popmarker child
+          if(!children.empty() && children.back().flags & ActionFlags::PopMarker)
+            count--;
+
+          // when we have a callback, submit every action individually to the callback
+          if(m_ActionCallback)
+          {
+            VkMarkerRegion::Begin(
+                StringFormat::Fmt("Mesh Dispatch callback replay (drawCount=%u)", count),
+                commandBuffer);
+
+            // first copy off the buffer segment to our indirect draw buffer
+            VkBufferMemoryBarrier bufBarrier = {
+                VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+                NULL,
+                VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+                VK_ACCESS_TRANSFER_WRITE_BIT,
+                VK_QUEUE_FAMILY_IGNORED,
+                VK_QUEUE_FAMILY_IGNORED,
+                Unwrap(buffer),
+                offset,
+                (count > 0 ? stride * (count - 1) : 0) + sizeof(VkDrawMeshTasksIndirectCommandEXT),
+            };
+
+            DoPipelineBarrier(commandBuffer, 1, &bufBarrier);
+            VkBufferCopy region = {offset, 0, bufBarrier.size};
+            ObjDisp(commandBuffer)
+                ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(buffer), Unwrap(m_IndirectBuffer.buf),
+                                1, &region);
+
+            // wait for the copy to finish
+            bufBarrier.buffer = Unwrap(m_IndirectBuffer.buf);
+            bufBarrier.offset = 0;
+            DoPipelineBarrier(commandBuffer, 1, &bufBarrier);
+
+            bufBarrier.size = sizeof(VkDrawMeshTasksIndirectCommandEXT);
+
+            for(uint32_t i = 0; i < count; i++)
+            {
+              uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::MeshDispatch, i + 1);
+
+              // action up to and including i. The previous draws will be nop'd out
+              ObjDisp(commandBuffer)
+                  ->CmdDrawMeshTasksIndirectEXT(Unwrap(commandBuffer), Unwrap(m_IndirectBuffer.buf),
+                                                0, i + 1, stride);
+
+              if(eventId &&
+                 m_ActionCallback->PostDraw(eventId, ActionFlags::MeshDispatch, commandBuffer))
+              {
+                ObjDisp(commandBuffer)
+                    ->CmdDrawMeshTasksIndirectEXT(Unwrap(commandBuffer),
+                                                  Unwrap(m_IndirectBuffer.buf), 0, i + 1, stride);
+                m_ActionCallback->PostRedraw(eventId, ActionFlags::MeshDispatch, commandBuffer);
+              }
+
+              // now that we're done, nop out this draw so that the next time around we only draw
+              // the next draw.
+              bufBarrier.srcAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+              bufBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+              DoPipelineBarrier(commandBuffer, 1, &bufBarrier);
+              ObjDisp(commandBuffer)
+                  ->CmdFillBuffer(Unwrap(commandBuffer), bufBarrier.buffer, bufBarrier.offset,
+                                  bufBarrier.size, 0);
+              bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+              bufBarrier.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+              DoPipelineBarrier(commandBuffer, 1, &bufBarrier);
+
+              bufBarrier.offset += stride;
+            }
+
+            VkMarkerRegion::End(commandBuffer);
+          }
+          // To add the multidraw, we made an event N that is the 'parent' marker, then
+          // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
+          // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
+          // the first sub-draw in that range.
+          else if(m_LastEventID > baseEventID)
+          {
+            uint32_t drawidx = 0;
+
+            if(m_FirstEventID <= 1)
+            {
+              // if we're replaying part-way into a multidraw, we can replay the first part
+              // 'easily'
+              // by just reducing the Count parameter to however many we want to replay. This only
+              // works if we're replaying from the first multidraw to the nth (n less than Count)
+              count = RDCMIN(count, m_LastEventID - baseEventID);
+            }
+            else
+            {
+              // otherwise we do the 'hard' case, draw only one multidraw
+              // note we'll never be asked to do e.g. 3rd-7th of a multidraw. Only ever 0th-nth or
+              // a single draw.
+              //
+              // We also need to draw the same number of draws so that DrawIndex is faithful. In
+              // order to preserve the draw index we write a custom indirect buffer that has zeros
+              // for the parameters of all previous draws.
+              drawidx = (curEID - baseEventID - 1);
+
+              offset += stride * drawidx;
+
+              // ensure the custom buffer is large enough
+              VkDeviceSize bufLength = sizeof(VkDrawMeshTasksIndirectCommandEXT) * (drawidx + 1);
+
+              RDCASSERT(bufLength <= m_IndirectBufferSize, bufLength, m_IndirectBufferSize);
+
+              VkBufferMemoryBarrier bufBarrier = {
+                  VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+                  NULL,
+                  VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+                  VK_ACCESS_TRANSFER_WRITE_BIT,
+                  VK_QUEUE_FAMILY_IGNORED,
+                  VK_QUEUE_FAMILY_IGNORED,
+                  Unwrap(m_IndirectBuffer.buf),
+                  0,
+                  m_IndirectBufferSize,
+              };
+
+              VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                                    VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+              ObjDisp(m_IndirectCommandBuffer)
+                  ->BeginCommandBuffer(Unwrap(m_IndirectCommandBuffer), &beginInfo);
+
+              // wait for any previous indirect draws to complete before filling/transferring
+              DoPipelineBarrier(m_IndirectCommandBuffer, 1, &bufBarrier);
+
+              // initialise to 0 so all other draws don't draw anything
+              ObjDisp(m_IndirectCommandBuffer)
+                  ->CmdFillBuffer(Unwrap(m_IndirectCommandBuffer), Unwrap(m_IndirectBuffer.buf), 0,
+                                  m_IndirectBufferSize, 0);
+
+              // wait for fill to complete before copy
+              bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+              bufBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+              DoPipelineBarrier(m_IndirectCommandBuffer, 1, &bufBarrier);
+
+              // copy over the actual parameter set into the right place
+              VkBufferCopy region = {offset, bufLength - sizeof(VkDrawMeshTasksIndirectCommandEXT),
+                                     sizeof(VkDrawMeshTasksIndirectCommandEXT)};
+              ObjDisp(m_IndirectCommandBuffer)
+                  ->CmdCopyBuffer(Unwrap(m_IndirectCommandBuffer), Unwrap(buffer),
+                                  Unwrap(m_IndirectBuffer.buf), 1, &region);
+
+              // finally wait for copy to complete before drawing from it
+              bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+              bufBarrier.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+
+              DoPipelineBarrier(m_IndirectCommandBuffer, 1, &bufBarrier);
+
+              ObjDisp(m_IndirectCommandBuffer)->EndCommandBuffer(Unwrap(m_IndirectCommandBuffer));
+
+              // draw from our custom buffer
+              m_IndirectDraw = true;
+              buffer = m_IndirectBuffer.buf;
+              offset = 0;
+              count = drawidx + 1;
+              stride = sizeof(VkDrawMeshTasksIndirectCommandEXT);
+            }
+
+            {
+              uint32_t eventId =
+                  HandlePreCallback(commandBuffer, ActionFlags::MeshDispatch, drawidx + 1);
+
+              ObjDisp(commandBuffer)
+                  ->CmdDrawMeshTasksIndirectEXT(Unwrap(commandBuffer), Unwrap(buffer), offset,
+                                                count, stride);
+
+              if(eventId &&
+                 m_ActionCallback->PostDraw(eventId, ActionFlags::MeshDispatch, commandBuffer))
+              {
+                ObjDisp(commandBuffer)
+                    ->CmdDrawMeshTasksIndirectEXT(Unwrap(commandBuffer), Unwrap(buffer), offset,
+                                                  count, stride);
+                m_ActionCallback->PostRedraw(eventId, ActionFlags::MeshDispatch, commandBuffer);
+              }
+            }
+          }
+        }
+      }
+
+      // multidraws skip the event ID past the whole thing
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID += count + 1;
+    }
+    else
+    {
+      VkIndirectPatchData indirectPatch =
+          FetchIndirectData(VkIndirectPatchType::MeshIndirectCount, commandBuffer, buffer, offset,
+                            maxDrawCount, stride, countBuffer, countBufferOffset);
+
+      ObjDisp(commandBuffer)
+          ->CmdDrawMeshTasksIndirectCountEXT(Unwrap(commandBuffer), Unwrap(buffer), offset,
+                                             Unwrap(countBuffer), countBufferOffset, maxDrawCount,
+                                             stride);
+
+      // add on the size we'll need for an indirect buffer in the worst case.
+      // Note that we'll only ever be partially replaying one draw at a time, so we only need the
+      // worst case.
+      m_IndirectBufferSize =
+          RDCMAX(m_IndirectBufferSize, sizeof(VkDrawMeshTasksIndirectCommandEXT) +
+                                           (maxDrawCount > 0 ? maxDrawCount - 1 : 0) * stride);
+
+      rdcstr name = "vkCmdDrawMeshTasksIndirectCountEXT";
+
+      SDChunk *baseChunk = m_StructuredFile->chunks.back();
+
+      ActionDescription action;
+      action.customName = name;
+      action.flags = ActionFlags::MultiAction | ActionFlags::PushMarker;
+
+      if(maxDrawCount == 0)
+        action.customName = name + "(0)";
+
+      AddEvent();
+      AddAction(action);
+
+      VulkanActionTreeNode &actionNode = GetActionStack().back()->children.back();
+
+      actionNode.indirectPatch = indirectPatch;
+
+      actionNode.resourceUsage.push_back(make_rdcpair(
+          GetResID(buffer), EventUsage(actionNode.action.eventId, ResourceUsage::Indirect)));
+
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+
+      // only allocate up to one indirect sub-command to avoid pessimistic allocation if
+      // maxDrawCount is very high but the actual action count is low.
+      for(uint32_t i = 0; i < RDCMIN(1U, maxDrawCount); i++)
+      {
+        ActionDescription multi;
+
+        multi.customName = name;
+
+        multi.flags |= ActionFlags::MeshDispatch | ActionFlags::Indirect;
+
+        // add a fake chunk for this individual indirect action
+        SDChunk *fakeChunk = new SDChunk("Indirect sub-command"_lit);
+        fakeChunk->metadata = baseChunk->metadata;
+        fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
+
+        {
+          StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
+
+          structuriser.Serialise<uint32_t>("drawIndex"_lit, 0U);
+          ResourceId bufid = GetResourceManager()->GetOriginalID(GetResID(buffer));
+          structuriser.Serialise("buffer"_lit, bufid);
+          structuriser.Serialise("offset"_lit, offset);
+          structuriser.Serialise("stride"_lit, stride);
+          structuriser.Serialise("command"_lit, VkDrawMeshTasksIndirectCommandEXT()).Important();
+        }
+
+        m_StructuredFile->chunks.push_back(fakeChunk);
+
+        AddEvent();
+        AddAction(multi);
+
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+      }
+
+      AddEvent();
+      action.customName = name + " end";
+      action.flags = ActionFlags::PopMarker;
+      AddAction(action);
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdDrawMeshTasksIndirectCountEXT(VkCommandBuffer commandBuffer, VkBuffer buffer,
+                                                       VkDeviceSize offset, VkBuffer countBuffer,
+                                                       VkDeviceSize countBufferOffset,
+                                                       uint32_t maxDrawCount, uint32_t stride)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdDrawMeshTasksIndirectCountEXT(
+                              Unwrap(commandBuffer), Unwrap(buffer), offset, Unwrap(countBuffer),
+                              countBufferOffset, maxDrawCount, stride));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    ser.SetActionChunk();
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDrawMeshTasksIndirectCountEXT);
+    Serialise_vkCmdDrawMeshTasksIndirectCountEXT(ser, commandBuffer, buffer, offset, countBuffer,
+                                                 countBufferOffset, maxDrawCount, stride);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+
+    record->MarkBufferFrameReferenced(
+        GetRecord(buffer), offset,
+        stride * (maxDrawCount - 1) + sizeof(VkDrawMeshTasksIndirectCommandEXT), eFrameRef_Read);
+    record->MarkBufferFrameReferenced(GetRecord(countBuffer), countBufferOffset, 4, eFrameRef_Read);
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDraw, VkCommandBuffer commandBuffer, uint32_t vertexCount,
                                 uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 
@@ -4434,3 +5312,12 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBlitImage2, VkCommandBuffer commandBu
                                 const VkBlitImageInfo2 *pBlitImageInfo);
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdResolveImage2, VkCommandBuffer commandBuffer,
                                 const VkResolveImageInfo2 *pResolveImageInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawMeshTasksEXT, VkCommandBuffer commandBuffer,
+                                uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawMeshTasksIndirectEXT, VkCommandBuffer commandBuffer,
+                                VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount,
+                                uint32_t stride);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawMeshTasksIndirectCountEXT,
+                                VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
+                                VkBuffer countBuffer, VkDeviceSize countBufferOffset,
+                                uint32_t maxDrawCount, uint32_t stride);
