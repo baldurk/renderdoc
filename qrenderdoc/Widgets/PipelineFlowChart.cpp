@@ -41,7 +41,9 @@ void PipelineFlowChart::setStages(const QStringList &abbrevs, const QStringList 
   m_StageNames = names;
   m_StageAbbrevs = abbrevs;
   m_StageFlows.reserve(m_StageNames.count());
+  m_StageFlows.clear();
   m_StagesEnabled.reserve(m_StageNames.count());
+  m_StagesEnabled.clear();
   for(int i = 0; i < m_StageNames.count(); i++)
   {
     m_StageFlows.push_back(true);
@@ -49,6 +51,7 @@ void PipelineFlowChart::setStages(const QStringList &abbrevs, const QStringList 
   }
 
   update();
+  setSelectedStage(selectedStage());
 }
 
 void PipelineFlowChart::setStageName(int index, const QString &abbrev, const QString &name)
