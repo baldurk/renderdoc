@@ -285,14 +285,12 @@ rdcstr DoStringise(const rdcspv::ExecutionModel &el)
     STRINGISE_ENUM_CLASS(Fragment);
     STRINGISE_ENUM_CLASS(GLCompute);
     STRINGISE_ENUM_CLASS(Kernel);
-    STRINGISE_ENUM_CLASS(TaskNV);
-    STRINGISE_ENUM_CLASS(MeshNV);
-    STRINGISE_ENUM_CLASS(RayGenerationNV);
-    STRINGISE_ENUM_CLASS(IntersectionNV);
-    STRINGISE_ENUM_CLASS(AnyHitNV);
-    STRINGISE_ENUM_CLASS(ClosestHitNV);
-    STRINGISE_ENUM_CLASS(MissNV);
-    STRINGISE_ENUM_CLASS(CallableNV);
+    STRINGISE_ENUM_CLASS(RayGenerationKHR);
+    STRINGISE_ENUM_CLASS(IntersectionKHR);
+    STRINGISE_ENUM_CLASS(AnyHitKHR);
+    STRINGISE_ENUM_CLASS(ClosestHitKHR);
+    STRINGISE_ENUM_CLASS(MissKHR);
+    STRINGISE_ENUM_CLASS(CallableKHR);
     STRINGISE_ENUM_CLASS(TaskEXT);
     STRINGISE_ENUM_CLASS(MeshEXT);
   }
@@ -386,11 +384,11 @@ rdcstr DoStringise(const rdcspv::ExecutionMode &el)
     STRINGISE_ENUM_CLASS(StencilRefUnchangedBackAMD);
     STRINGISE_ENUM_CLASS(StencilRefGreaterBackAMD);
     STRINGISE_ENUM_CLASS(StencilRefLessBackAMD);
-    STRINGISE_ENUM_CLASS(OutputLinesNV);
-    STRINGISE_ENUM_CLASS(OutputPrimitivesNV);
+    STRINGISE_ENUM_CLASS(OutputLinesEXT);
+    STRINGISE_ENUM_CLASS(OutputPrimitivesEXT);
     STRINGISE_ENUM_CLASS(DerivativeGroupQuadsNV);
     STRINGISE_ENUM_CLASS(DerivativeGroupLinearNV);
-    STRINGISE_ENUM_CLASS(OutputTrianglesNV);
+    STRINGISE_ENUM_CLASS(OutputTrianglesEXT);
     STRINGISE_ENUM_CLASS(PixelInterlockOrderedEXT);
     STRINGISE_ENUM_CLASS(PixelInterlockUnorderedEXT);
     STRINGISE_ENUM_CLASS(SampleInterlockOrderedEXT);
@@ -433,12 +431,12 @@ rdcstr DoStringise(const rdcspv::StorageClass &el)
     STRINGISE_ENUM_CLASS(Image);
     STRINGISE_ENUM_CLASS(StorageBuffer);
     STRINGISE_ENUM_CLASS(TileImageEXT);
-    STRINGISE_ENUM_CLASS(CallableDataNV);
-    STRINGISE_ENUM_CLASS(IncomingCallableDataNV);
-    STRINGISE_ENUM_CLASS(RayPayloadNV);
-    STRINGISE_ENUM_CLASS(HitAttributeNV);
-    STRINGISE_ENUM_CLASS(IncomingRayPayloadNV);
-    STRINGISE_ENUM_CLASS(ShaderRecordBufferNV);
+    STRINGISE_ENUM_CLASS(CallableDataKHR);
+    STRINGISE_ENUM_CLASS(IncomingCallableDataKHR);
+    STRINGISE_ENUM_CLASS(RayPayloadKHR);
+    STRINGISE_ENUM_CLASS(HitAttributeKHR);
+    STRINGISE_ENUM_CLASS(IncomingRayPayloadKHR);
+    STRINGISE_ENUM_CLASS(ShaderRecordBufferKHR);
     STRINGISE_ENUM_CLASS(PhysicalStorageBuffer);
     STRINGISE_ENUM_CLASS(HitObjectAttributeNV);
     STRINGISE_ENUM_CLASS(TaskPayloadWorkgroupEXT);
@@ -765,7 +763,7 @@ rdcstr DoStringise(const rdcspv::Decoration &el)
     STRINGISE_ENUM_CLASS(PassthroughNV);
     STRINGISE_ENUM_CLASS(ViewportRelativeNV);
     STRINGISE_ENUM_CLASS(SecondaryViewportRelativeNV);
-    STRINGISE_ENUM_CLASS(PerPrimitiveNV);
+    STRINGISE_ENUM_CLASS(PerPrimitiveEXT);
     STRINGISE_ENUM_CLASS(PerViewNV);
     STRINGISE_ENUM_CLASS(PerTaskNV);
     STRINGISE_ENUM_CLASS(PerVertexKHR);
@@ -899,7 +897,6 @@ rdcstr DoStringise(const rdcspv::BuiltIn &el)
     STRINGISE_ENUM_CLASS(DeviceIndex);
     STRINGISE_ENUM_CLASS(ViewIndex);
     STRINGISE_ENUM_CLASS(ShadingRateKHR);
-    STRINGISE_ENUM_CLASS(BaryCoordNoPerspAMD);
     STRINGISE_ENUM_CLASS(BaryCoordNoPerspCentroidAMD);
     STRINGISE_ENUM_CLASS(BaryCoordNoPerspSampleAMD);
     STRINGISE_ENUM_CLASS(BaryCoordSmoothAMD);
@@ -929,22 +926,22 @@ rdcstr DoStringise(const rdcspv::BuiltIn &el)
     STRINGISE_ENUM_CLASS(PrimitiveLineIndicesEXT);
     STRINGISE_ENUM_CLASS(PrimitiveTriangleIndicesEXT);
     STRINGISE_ENUM_CLASS(CullPrimitiveEXT);
-    STRINGISE_ENUM_CLASS(LaunchIdNV);
-    STRINGISE_ENUM_CLASS(LaunchSizeNV);
-    STRINGISE_ENUM_CLASS(WorldRayOriginNV);
-    STRINGISE_ENUM_CLASS(WorldRayDirectionNV);
-    STRINGISE_ENUM_CLASS(ObjectRayOriginNV);
-    STRINGISE_ENUM_CLASS(ObjectRayDirectionNV);
-    STRINGISE_ENUM_CLASS(RayTminNV);
-    STRINGISE_ENUM_CLASS(RayTmaxNV);
-    STRINGISE_ENUM_CLASS(InstanceCustomIndexNV);
-    STRINGISE_ENUM_CLASS(ObjectToWorldNV);
-    STRINGISE_ENUM_CLASS(WorldToObjectNV);
+    STRINGISE_ENUM_CLASS(LaunchIdKHR);
+    STRINGISE_ENUM_CLASS(LaunchSizeKHR);
+    STRINGISE_ENUM_CLASS(WorldRayOriginKHR);
+    STRINGISE_ENUM_CLASS(WorldRayDirectionKHR);
+    STRINGISE_ENUM_CLASS(ObjectRayOriginKHR);
+    STRINGISE_ENUM_CLASS(ObjectRayDirectionKHR);
+    STRINGISE_ENUM_CLASS(RayTminKHR);
+    STRINGISE_ENUM_CLASS(RayTmaxKHR);
+    STRINGISE_ENUM_CLASS(InstanceCustomIndexKHR);
+    STRINGISE_ENUM_CLASS(ObjectToWorldKHR);
+    STRINGISE_ENUM_CLASS(WorldToObjectKHR);
     STRINGISE_ENUM_CLASS(HitTNV);
-    STRINGISE_ENUM_CLASS(HitKindNV);
+    STRINGISE_ENUM_CLASS(HitKindKHR);
     STRINGISE_ENUM_CLASS(CurrentRayTimeNV);
     STRINGISE_ENUM_CLASS(HitTriangleVertexPositionsKHR);
-    STRINGISE_ENUM_CLASS(IncomingRayFlagsNV);
+    STRINGISE_ENUM_CLASS(IncomingRayFlagsKHR);
     STRINGISE_ENUM_CLASS(RayGeometryIndexKHR);
     STRINGISE_ENUM_CLASS(WarpsPerSMNV);
     STRINGISE_ENUM_CLASS(SMCountNV);
@@ -1124,7 +1121,6 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(ShaderStereoViewNV);
     STRINGISE_ENUM_CLASS(PerViewAttributesNV);
     STRINGISE_ENUM_CLASS(FragmentFullyCoveredEXT);
-    STRINGISE_ENUM_CLASS(MeshShadingNV);
     STRINGISE_ENUM_CLASS(ImageFootprintNV);
     STRINGISE_ENUM_CLASS(MeshShadingEXT);
     STRINGISE_ENUM_CLASS(FragmentBarycentricKHR);
@@ -1144,7 +1140,6 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(UniformTexelBufferArrayNonUniformIndexing);
     STRINGISE_ENUM_CLASS(StorageTexelBufferArrayNonUniformIndexing);
     STRINGISE_ENUM_CLASS(RayTracingPositionFetchKHR);
-    STRINGISE_ENUM_CLASS(RayTracingNV);
     STRINGISE_ENUM_CLASS(RayTracingMotionBlurNV);
     STRINGISE_ENUM_CLASS(VulkanMemoryModel);
     STRINGISE_ENUM_CLASS(VulkanMemoryModelDeviceScope);
@@ -5080,76 +5075,111 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
 
 rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id,Id)> &declName, const std::function<rdcstr(rdcspv::Id)> &idName, const std::function<uint32_t(Id)> &constIntVal)
 {
+  size_t size = it.size();
   rdcstr ret;
   switch(it.opcode())
   {
     case rdcspv::Op::Nop:
     {
       OpNop decoded(it);
-      ret += "Nop(" ")";
+      ret += rdcstr("Nop("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::Undef:
     {
       OpUndef decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "Undef(" ")";
+      ret += rdcstr("Undef("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::SourceContinued:
     {
       OpSourceContinued decoded(it);
-      ret += "SourceContinued(" + ParamToStr(idName, decoded.continuedSource) + ")";
+      ret += rdcstr("SourceContinued("_lit)
+           + ParamToStr(idName, decoded.continuedSource)
+           + ")";
       break;
     }
     case rdcspv::Op::Source:
     {
       OpSource decoded(it);
-      ret += "Source(" + ParamToStr(idName, decoded.sourceLanguage) + ", " + ParamToStr(idName, decoded.version) + ", " + ParamToStr(idName, decoded.file) + ", " + ParamToStr(idName, decoded.source) + ")";
+      ret += rdcstr("Source("_lit)
+           + ParamToStr(idName, decoded.sourceLanguage)
+           + ", "
+           + ParamToStr(idName, decoded.version)
+           + (3 < size ? ", " + ParamToStr(idName, decoded.file) : "")
+           + (4 < size ? ", " + ParamToStr(idName, decoded.source) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::SourceExtension:
     {
       OpSourceExtension decoded(it);
-      ret += "SourceExtension(" + ParamToStr(idName, decoded.extension) + ")";
+      ret += rdcstr("SourceExtension("_lit)
+           + ParamToStr(idName, decoded.extension)
+           + ")";
       break;
     }
     case rdcspv::Op::Name:
     {
       OpName decoded(it);
-      ret += "Name(" + ParamToStr(idName, decoded.target) + ", " + ParamToStr(idName, decoded.name) + ")";
+      ret += rdcstr("Name("_lit)
+           + ParamToStr(idName, decoded.target)
+           + ", "
+           + ParamToStr(idName, decoded.name)
+           + ")";
       break;
     }
     case rdcspv::Op::MemberName:
     {
       OpMemberName decoded(it);
-      ret += "MemberName(" + ParamToStr(idName, decoded.type) + ", " + ParamToStr(idName, decoded.member) + ", " + ParamToStr(idName, decoded.name) + ")";
+      ret += rdcstr("MemberName("_lit)
+           + ParamToStr(idName, decoded.type)
+           + ", "
+           + ParamToStr(idName, decoded.member)
+           + ", "
+           + ParamToStr(idName, decoded.name)
+           + ")";
       break;
     }
     case rdcspv::Op::String:
     {
       OpString decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "String(" + ParamToStr(idName, decoded.string) + ")";
+      ret += rdcstr("String("_lit)
+           + ParamToStr(idName, decoded.string)
+           + ")";
       break;
     }
     case rdcspv::Op::Line:
     {
       OpLine decoded(it);
-      ret += "Line(" + ParamToStr(idName, decoded.file) + ", " + ParamToStr(idName, decoded.line) + ", " + ParamToStr(idName, decoded.column) + ")";
+      ret += rdcstr("Line("_lit)
+           + ParamToStr(idName, decoded.file)
+           + ", "
+           + ParamToStr(idName, decoded.line)
+           + ", "
+           + ParamToStr(idName, decoded.column)
+           + ")";
       break;
     }
     case rdcspv::Op::Extension:
     {
       OpExtension decoded(it);
-      ret += "Extension(" + ParamToStr(idName, decoded.name) + ")";
+      ret += rdcstr("Extension("_lit)
+           + ParamToStr(idName, decoded.name)
+           + ")";
       break;
     }
     case rdcspv::Op::ExtInstImport:
     {
       OpExtInstImport decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "ExtInstImport(" + ParamToStr(idName, decoded.name) + ")";
+      ret += rdcstr("ExtInstImport("_lit)
+           + ParamToStr(idName, decoded.name)
+           + ")";
       break;
     }
     case rdcspv::Op::ExtInst:
@@ -5162,185 +5192,267 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
     case rdcspv::Op::MemoryModel:
     {
       OpMemoryModel decoded(it);
-      ret += "MemoryModel(" + ParamToStr(idName, decoded.addressingModel) + ", " + ParamToStr(idName, decoded.memoryModel) + ")";
+      ret += rdcstr("MemoryModel("_lit)
+           + ParamToStr(idName, decoded.addressingModel)
+           + ", "
+           + ParamToStr(idName, decoded.memoryModel)
+           + ")";
       break;
     }
     case rdcspv::Op::EntryPoint:
     {
       OpEntryPoint decoded(it);
-      ret += "EntryPoint(" + ParamToStr(idName, decoded.executionModel) + ", " + ParamToStr(idName, decoded.entryPoint) + ", " + ParamToStr(idName, decoded.name) + ", " + ParamsToStr(idName, decoded.iface) + ")";
+      ret += rdcstr("EntryPoint("_lit)
+           + ParamToStr(idName, decoded.executionModel)
+           + ", "
+           + ParamToStr(idName, decoded.entryPoint)
+           + ", "
+           + ParamToStr(idName, decoded.name)
+           + ", "
+           + ParamsToStr(idName, decoded.iface)
+           + ")";
       break;
     }
     case rdcspv::Op::ExecutionMode:
     {
       OpExecutionMode decoded(it);
-      ret += "ExecutionMode(" + ParamToStr(idName, decoded.entryPoint) + ", " + ParamToStr(idName, decoded.mode) + ")";
+      ret += rdcstr("ExecutionMode("_lit)
+           + ParamToStr(idName, decoded.entryPoint)
+           + ", "
+           + ParamToStr(idName, decoded.mode)
+           + ")";
       break;
     }
     case rdcspv::Op::Capability:
     {
       OpCapability decoded(it);
-      ret += "Capability(" + ParamToStr(idName, decoded.capability) + ")";
+      ret += rdcstr("Capability("_lit)
+           + ParamToStr(idName, decoded.capability)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeVoid:
     {
       OpTypeVoid decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeVoid(" ")";
+      ret += rdcstr("TypeVoid("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeBool:
     {
       OpTypeBool decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeBool(" ")";
+      ret += rdcstr("TypeBool("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeInt:
     {
       OpTypeInt decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeInt(" + ParamToStr(idName, decoded.width) + ", " + ParamToStr(idName, decoded.signedness) + ")";
+      ret += rdcstr("TypeInt("_lit)
+           + ParamToStr(idName, decoded.width)
+           + ", "
+           + ParamToStr(idName, decoded.signedness)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeFloat:
     {
       OpTypeFloat decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeFloat(" + ParamToStr(idName, decoded.width) + ")";
+      ret += rdcstr("TypeFloat("_lit)
+           + ParamToStr(idName, decoded.width)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeVector:
     {
       OpTypeVector decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeVector(" + ParamToStr(idName, decoded.componentType) + ", " + ParamToStr(idName, decoded.componentCount) + ")";
+      ret += rdcstr("TypeVector("_lit)
+           + ParamToStr(idName, decoded.componentType)
+           + ", "
+           + ParamToStr(idName, decoded.componentCount)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeMatrix:
     {
       OpTypeMatrix decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeMatrix(" + ParamToStr(idName, decoded.columnType) + ", " + ParamToStr(idName, decoded.columnCount) + ")";
+      ret += rdcstr("TypeMatrix("_lit)
+           + ParamToStr(idName, decoded.columnType)
+           + ", "
+           + ParamToStr(idName, decoded.columnCount)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeImage:
     {
       OpTypeImage decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeImage(" + ParamToStr(idName, decoded.sampledType) + ", " + ParamToStr(idName, decoded.dim) + ", " + ParamToStr(idName, decoded.depth) + ", " + ParamToStr(idName, decoded.arrayed) + ", " + ParamToStr(idName, decoded.mS) + ", " + ParamToStr(idName, decoded.sampled) + ", " + ParamToStr(idName, decoded.imageFormat) + ", " + ParamToStr(idName, decoded.accessQualifier) + ")";
+      ret += rdcstr("TypeImage("_lit)
+           + ParamToStr(idName, decoded.sampledType)
+           + ", "
+           + ParamToStr(idName, decoded.dim)
+           + ", "
+           + ParamToStr(idName, decoded.depth)
+           + ", "
+           + ParamToStr(idName, decoded.arrayed)
+           + ", "
+           + ParamToStr(idName, decoded.mS)
+           + ", "
+           + ParamToStr(idName, decoded.sampled)
+           + ", "
+           + ParamToStr(idName, decoded.imageFormat)
+           + (9 < size ? ", " + ParamToStr(idName, decoded.accessQualifier) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::TypeSampler:
     {
       OpTypeSampler decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeSampler(" ")";
+      ret += rdcstr("TypeSampler("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeSampledImage:
     {
       OpTypeSampledImage decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeSampledImage(" + ParamToStr(idName, decoded.imageType) + ")";
+      ret += rdcstr("TypeSampledImage("_lit)
+           + ParamToStr(idName, decoded.imageType)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeArray:
     {
       OpTypeArray decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeArray(" + ParamToStr(idName, decoded.elementType) + ", " + ParamToStr(idName, decoded.length) + ")";
+      ret += rdcstr("TypeArray("_lit)
+           + ParamToStr(idName, decoded.elementType)
+           + ", "
+           + ParamToStr(idName, decoded.length)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeRuntimeArray:
     {
       OpTypeRuntimeArray decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeRuntimeArray(" + ParamToStr(idName, decoded.elementType) + ")";
+      ret += rdcstr("TypeRuntimeArray("_lit)
+           + ParamToStr(idName, decoded.elementType)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeStruct:
     {
       OpTypeStruct decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeStruct(" + ParamsToStr(idName, decoded.members) + ")";
+      ret += rdcstr("TypeStruct("_lit)
+           + ParamsToStr(idName, decoded.members)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeOpaque:
     {
       OpTypeOpaque decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeOpaque(" + ParamToStr(idName, decoded.thenameoftheopaquetype) + ")";
+      ret += rdcstr("TypeOpaque("_lit)
+           + ParamToStr(idName, decoded.thenameoftheopaquetype)
+           + ")";
       break;
     }
     case rdcspv::Op::TypePointer:
     {
       OpTypePointer decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypePointer(" + ParamToStr(idName, decoded.storageClass) + ", " + ParamToStr(idName, decoded.type) + ")";
+      ret += rdcstr("TypePointer("_lit)
+           + ParamToStr(idName, decoded.storageClass)
+           + ", "
+           + ParamToStr(idName, decoded.type)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeFunction:
     {
       OpTypeFunction decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeFunction(" + ParamToStr(idName, decoded.returnType) + ", " + ParamsToStr(idName, decoded.parameters) + ")";
+      ret += rdcstr("TypeFunction("_lit)
+           + ParamToStr(idName, decoded.returnType)
+           + ", "
+           + ParamsToStr(idName, decoded.parameters)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeEvent:
     {
       OpTypeEvent decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeEvent(" ")";
+      ret += rdcstr("TypeEvent("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeDeviceEvent:
     {
       OpTypeDeviceEvent decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeDeviceEvent(" ")";
+      ret += rdcstr("TypeDeviceEvent("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeReserveId:
     {
       OpTypeReserveId decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeReserveId(" ")";
+      ret += rdcstr("TypeReserveId("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeQueue:
     {
       OpTypeQueue decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeQueue(" ")";
+      ret += rdcstr("TypeQueue("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::TypePipe:
     {
       OpTypePipe decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypePipe(" + ParamToStr(idName, decoded.qualifier) + ")";
+      ret += rdcstr("TypePipe("_lit)
+           + ParamToStr(idName, decoded.qualifier)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeForwardPointer:
     {
       OpTypeForwardPointer decoded(it);
-      ret += "TypeForwardPointer(" + ParamToStr(idName, decoded.pointerType) + ", " + ParamToStr(idName, decoded.storageClass) + ")";
+      ret += rdcstr("TypeForwardPointer("_lit)
+           + ParamToStr(idName, decoded.pointerType)
+           + ", "
+           + ParamToStr(idName, decoded.storageClass)
+           + ")";
       break;
     }
     case rdcspv::Op::ConstantTrue:
     {
       OpConstantTrue decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConstantTrue(" ")";
+      ret += rdcstr("ConstantTrue("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::ConstantFalse:
     {
       OpConstantFalse decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConstantFalse(" ")";
+      ret += rdcstr("ConstantFalse("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::Constant:
@@ -5354,35 +5466,46 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
     {
       OpConstantComposite decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConstantComposite(" + ParamsToStr(idName, decoded.constituents) + ")";
+      ret += rdcstr("ConstantComposite("_lit)
+           + ParamsToStr(idName, decoded.constituents)
+           + ")";
       break;
     }
     case rdcspv::Op::ConstantSampler:
     {
       OpConstantSampler decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConstantSampler(" + ParamToStr(idName, decoded.samplerAddressingMode) + ", " + ParamToStr(idName, decoded.param) + ", " + ParamToStr(idName, decoded.samplerFilterMode) + ")";
+      ret += rdcstr("ConstantSampler("_lit)
+           + ParamToStr(idName, decoded.samplerAddressingMode)
+           + ", "
+           + ParamToStr(idName, decoded.param)
+           + ", "
+           + ParamToStr(idName, decoded.samplerFilterMode)
+           + ")";
       break;
     }
     case rdcspv::Op::ConstantNull:
     {
       OpConstantNull decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConstantNull(" ")";
+      ret += rdcstr("ConstantNull("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::SpecConstantTrue:
     {
       OpSpecConstantTrue decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SpecConstantTrue(" ")";
+      ret += rdcstr("SpecConstantTrue("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::SpecConstantFalse:
     {
       OpSpecConstantFalse decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SpecConstantFalse(" ")";
+      ret += rdcstr("SpecConstantFalse("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::SpecConstant:
@@ -5396,7 +5519,9 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
     {
       OpSpecConstantComposite decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SpecConstantComposite(" + ParamsToStr(idName, decoded.constituents) + ")";
+      ret += rdcstr("SpecConstantComposite("_lit)
+           + ParamsToStr(idName, decoded.constituents)
+           + ")";
       break;
     }
     case rdcspv::Op::SpecConstantOp:
@@ -5410,3207 +5535,5519 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
     {
       OpFunction decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "Function(" + ParamToStr(idName, decoded.functionControl) + ", " + ParamToStr(idName, decoded.functionType) + ")";
+      ret += rdcstr("Function("_lit)
+           + ParamToStr(idName, decoded.functionControl)
+           + ", "
+           + ParamToStr(idName, decoded.functionType)
+           + ")";
       break;
     }
     case rdcspv::Op::FunctionParameter:
     {
       OpFunctionParameter decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FunctionParameter(" ")";
+      ret += rdcstr("FunctionParameter("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::FunctionEnd:
     {
       OpFunctionEnd decoded(it);
-      ret += "FunctionEnd(" ")";
+      ret += rdcstr("FunctionEnd("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::FunctionCall:
     {
       OpFunctionCall decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FunctionCall(" + ParamToStr(idName, decoded.function) + ", " + ParamsToStr(idName, decoded.arguments) + ")";
+      ret += rdcstr("FunctionCall("_lit)
+           + ParamToStr(idName, decoded.function)
+           + ", "
+           + ParamsToStr(idName, decoded.arguments)
+           + ")";
       break;
     }
     case rdcspv::Op::Variable:
     {
       OpVariable decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "Variable(" + ParamToStr(idName, decoded.storageClass) + ", " + ParamToStr(idName, decoded.initializer) + ")";
+      ret += rdcstr("Variable("_lit)
+           + ParamToStr(idName, decoded.storageClass)
+           + (4 < size ? ", " + ParamToStr(idName, decoded.initializer) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageTexelPointer:
     {
       OpImageTexelPointer decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageTexelPointer(" + ParamToStr(idName, decoded.image) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.sample) + ")";
+      ret += rdcstr("ImageTexelPointer("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.sample)
+           + ")";
       break;
     }
     case rdcspv::Op::Load:
     {
       OpLoad decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "Load(" + ParamToStr(idName, decoded.pointer) + ", " + ParamToStr(idName, decoded.memoryAccess) + ")";
+      ret += rdcstr("Load("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + (4 < size ? ", " + ParamToStr(idName, decoded.memoryAccess) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::Store:
     {
       OpStore decoded(it);
-      ret += "Store(" + ParamToStr(idName, decoded.pointer) + ", " + ParamToStr(idName, decoded.object) + ", " + ParamToStr(idName, decoded.memoryAccess) + ")";
+      ret += rdcstr("Store("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ParamToStr(idName, decoded.object)
+           + (3 < size ? ", " + ParamToStr(idName, decoded.memoryAccess) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::CopyMemory:
     {
       OpCopyMemory decoded(it);
-      ret += "CopyMemory(" + ParamToStr(idName, decoded.target) + ", " + ParamToStr(idName, decoded.source) + ", " + ParamToStr(idName, decoded.memoryAccess0) + ", " + ParamToStr(idName, decoded.memoryAccess1) + ")";
+      ret += rdcstr("CopyMemory("_lit)
+           + ParamToStr(idName, decoded.target)
+           + ", "
+           + ParamToStr(idName, decoded.source)
+           + (3 < size ? ", " + ParamToStr(idName, decoded.memoryAccess0) : "")
+           + (4 < size ? ", " + ParamToStr(idName, decoded.memoryAccess1) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::CopyMemorySized:
     {
       OpCopyMemorySized decoded(it);
-      ret += "CopyMemorySized(" + ParamToStr(idName, decoded.target) + ", " + ParamToStr(idName, decoded.source) + ", " + ParamToStr(idName, decoded.size) + ", " + ParamToStr(idName, decoded.memoryAccess0) + ", " + ParamToStr(idName, decoded.memoryAccess1) + ")";
+      ret += rdcstr("CopyMemorySized("_lit)
+           + ParamToStr(idName, decoded.target)
+           + ", "
+           + ParamToStr(idName, decoded.source)
+           + ", "
+           + ParamToStr(idName, decoded.size)
+           + (4 < size ? ", " + ParamToStr(idName, decoded.memoryAccess0) : "")
+           + (5 < size ? ", " + ParamToStr(idName, decoded.memoryAccess1) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::AccessChain:
     {
       OpAccessChain decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AccessChain(" + ParamToStr(idName, decoded.base) + ", " + ParamsToStr(idName, decoded.indexes) + ")";
+      ret += rdcstr("AccessChain("_lit)
+           + ParamToStr(idName, decoded.base)
+           + ", "
+           + ParamsToStr(idName, decoded.indexes)
+           + ")";
       break;
     }
     case rdcspv::Op::InBoundsAccessChain:
     {
       OpInBoundsAccessChain decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "InBoundsAccessChain(" + ParamToStr(idName, decoded.base) + ", " + ParamsToStr(idName, decoded.indexes) + ")";
+      ret += rdcstr("InBoundsAccessChain("_lit)
+           + ParamToStr(idName, decoded.base)
+           + ", "
+           + ParamsToStr(idName, decoded.indexes)
+           + ")";
       break;
     }
     case rdcspv::Op::PtrAccessChain:
     {
       OpPtrAccessChain decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "PtrAccessChain(" + ParamToStr(idName, decoded.base) + ", " + ParamToStr(idName, decoded.element) + ", " + ParamsToStr(idName, decoded.indexes) + ")";
+      ret += rdcstr("PtrAccessChain("_lit)
+           + ParamToStr(idName, decoded.base)
+           + ", "
+           + ParamToStr(idName, decoded.element)
+           + ", "
+           + ParamsToStr(idName, decoded.indexes)
+           + ")";
       break;
     }
     case rdcspv::Op::ArrayLength:
     {
       OpArrayLength decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ArrayLength(" + ParamToStr(idName, decoded.structure) + ", " + ParamToStr(idName, decoded.arraymember) + ")";
+      ret += rdcstr("ArrayLength("_lit)
+           + ParamToStr(idName, decoded.structure)
+           + ", "
+           + ParamToStr(idName, decoded.arraymember)
+           + ")";
       break;
     }
     case rdcspv::Op::GenericPtrMemSemantics:
     {
       OpGenericPtrMemSemantics decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GenericPtrMemSemantics(" + ParamToStr(idName, decoded.pointer) + ")";
+      ret += rdcstr("GenericPtrMemSemantics("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ")";
       break;
     }
     case rdcspv::Op::InBoundsPtrAccessChain:
     {
       OpInBoundsPtrAccessChain decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "InBoundsPtrAccessChain(" + ParamToStr(idName, decoded.base) + ", " + ParamToStr(idName, decoded.element) + ", " + ParamsToStr(idName, decoded.indexes) + ")";
+      ret += rdcstr("InBoundsPtrAccessChain("_lit)
+           + ParamToStr(idName, decoded.base)
+           + ", "
+           + ParamToStr(idName, decoded.element)
+           + ", "
+           + ParamsToStr(idName, decoded.indexes)
+           + ")";
       break;
     }
     case rdcspv::Op::Decorate:
     {
       OpDecorate decoded(it);
-      ret += "Decorate(" + ParamToStr(idName, decoded.target) + ", " + ParamToStr(idName, decoded.decoration) + ")";
+      ret += rdcstr("Decorate("_lit)
+           + ParamToStr(idName, decoded.target)
+           + ", "
+           + ParamToStr(idName, decoded.decoration)
+           + ")";
       break;
     }
     case rdcspv::Op::MemberDecorate:
     {
       OpMemberDecorate decoded(it);
-      ret += "MemberDecorate(" + ParamToStr(idName, decoded.structureType) + ", " + ParamToStr(idName, decoded.member) + ", " + ParamToStr(idName, decoded.decoration) + ")";
+      ret += rdcstr("MemberDecorate("_lit)
+           + ParamToStr(idName, decoded.structureType)
+           + ", "
+           + ParamToStr(idName, decoded.member)
+           + ", "
+           + ParamToStr(idName, decoded.decoration)
+           + ")";
       break;
     }
     case rdcspv::Op::DecorationGroup:
     {
       OpDecorationGroup decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "DecorationGroup(" ")";
+      ret += rdcstr("DecorationGroup("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupDecorate:
     {
       OpGroupDecorate decoded(it);
-      ret += "GroupDecorate(" + ParamToStr(idName, decoded.decorationGroup) + ", " + ParamsToStr(idName, decoded.targets) + ")";
+      ret += rdcstr("GroupDecorate("_lit)
+           + ParamToStr(idName, decoded.decorationGroup)
+           + ", "
+           + ParamsToStr(idName, decoded.targets)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupMemberDecorate:
     {
       OpGroupMemberDecorate decoded(it);
-      ret += "GroupMemberDecorate(" + ParamToStr(idName, decoded.decorationGroup) + ", " + ParamsToStr(idName, decoded.targets) + ")";
+      ret += rdcstr("GroupMemberDecorate("_lit)
+           + ParamToStr(idName, decoded.decorationGroup)
+           + ", "
+           + ParamsToStr(idName, decoded.targets)
+           + ")";
       break;
     }
     case rdcspv::Op::VectorExtractDynamic:
     {
       OpVectorExtractDynamic decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "VectorExtractDynamic(" + ParamToStr(idName, decoded.vector) + ", " + ParamToStr(idName, decoded.index) + ")";
+      ret += rdcstr("VectorExtractDynamic("_lit)
+           + ParamToStr(idName, decoded.vector)
+           + ", "
+           + ParamToStr(idName, decoded.index)
+           + ")";
       break;
     }
     case rdcspv::Op::VectorInsertDynamic:
     {
       OpVectorInsertDynamic decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "VectorInsertDynamic(" + ParamToStr(idName, decoded.vector) + ", " + ParamToStr(idName, decoded.component) + ", " + ParamToStr(idName, decoded.index) + ")";
+      ret += rdcstr("VectorInsertDynamic("_lit)
+           + ParamToStr(idName, decoded.vector)
+           + ", "
+           + ParamToStr(idName, decoded.component)
+           + ", "
+           + ParamToStr(idName, decoded.index)
+           + ")";
       break;
     }
     case rdcspv::Op::VectorShuffle:
     {
       OpVectorShuffle decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "VectorShuffle(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamsToStr(idName, decoded.components) + ")";
+      ret += rdcstr("VectorShuffle("_lit)
+           + ParamToStr(idName, decoded.vector1)
+           + ", "
+           + ParamToStr(idName, decoded.vector2)
+           + ", "
+           + ParamsToStr(idName, decoded.components)
+           + ")";
       break;
     }
     case rdcspv::Op::CompositeConstruct:
     {
       OpCompositeConstruct decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "CompositeConstruct(" + ParamsToStr(idName, decoded.constituents) + ")";
+      ret += rdcstr("CompositeConstruct("_lit)
+           + ParamsToStr(idName, decoded.constituents)
+           + ")";
       break;
     }
     case rdcspv::Op::CompositeExtract:
     {
       OpCompositeExtract decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "CompositeExtract(" + ParamToStr(idName, decoded.composite) + ", " + ParamsToStr(idName, decoded.indexes) + ")";
+      ret += rdcstr("CompositeExtract("_lit)
+           + ParamToStr(idName, decoded.composite)
+           + ", "
+           + ParamsToStr(idName, decoded.indexes)
+           + ")";
       break;
     }
     case rdcspv::Op::CompositeInsert:
     {
       OpCompositeInsert decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "CompositeInsert(" + ParamToStr(idName, decoded.object) + ", " + ParamToStr(idName, decoded.composite) + ", " + ParamsToStr(idName, decoded.indexes) + ")";
+      ret += rdcstr("CompositeInsert("_lit)
+           + ParamToStr(idName, decoded.object)
+           + ", "
+           + ParamToStr(idName, decoded.composite)
+           + ", "
+           + ParamsToStr(idName, decoded.indexes)
+           + ")";
       break;
     }
     case rdcspv::Op::CopyObject:
     {
       OpCopyObject decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "CopyObject(" + ParamToStr(idName, decoded.operand) + ")";
+      ret += rdcstr("CopyObject("_lit)
+           + ParamToStr(idName, decoded.operand)
+           + ")";
       break;
     }
     case rdcspv::Op::Transpose:
     {
       OpTranspose decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "Transpose(" + ParamToStr(idName, decoded.matrix) + ")";
+      ret += rdcstr("Transpose("_lit)
+           + ParamToStr(idName, decoded.matrix)
+           + ")";
       break;
     }
     case rdcspv::Op::SampledImage:
     {
       OpSampledImage decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SampledImage(" + ParamToStr(idName, decoded.image) + ", " + ParamToStr(idName, decoded.sampler) + ")";
+      ret += rdcstr("SampledImage("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ", "
+           + ParamToStr(idName, decoded.sampler)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSampleImplicitLod:
     {
       OpImageSampleImplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSampleImplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSampleImplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + (5 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSampleExplicitLod:
     {
       OpImageSampleExplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSampleExplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSampleExplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.imageOperands)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSampleDrefImplicitLod:
     {
       OpImageSampleDrefImplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSampleDrefImplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.dref) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSampleDrefImplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.dref)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSampleDrefExplicitLod:
     {
       OpImageSampleDrefExplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSampleDrefExplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.dref) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSampleDrefExplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.dref)
+           + ", "
+           + ParamToStr(idName, decoded.imageOperands)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSampleProjImplicitLod:
     {
       OpImageSampleProjImplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSampleProjImplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSampleProjImplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + (5 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSampleProjExplicitLod:
     {
       OpImageSampleProjExplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSampleProjExplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSampleProjExplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.imageOperands)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSampleProjDrefImplicitLod:
     {
       OpImageSampleProjDrefImplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSampleProjDrefImplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.dref) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSampleProjDrefImplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.dref)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSampleProjDrefExplicitLod:
     {
       OpImageSampleProjDrefExplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSampleProjDrefExplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.dref) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSampleProjDrefExplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.dref)
+           + ", "
+           + ParamToStr(idName, decoded.imageOperands)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageFetch:
     {
       OpImageFetch decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageFetch(" + ParamToStr(idName, decoded.image) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageFetch("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + (5 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageGather:
     {
       OpImageGather decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageGather(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.component) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageGather("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.component)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageDrefGather:
     {
       OpImageDrefGather decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageDrefGather(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.dref) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageDrefGather("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.dref)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageRead:
     {
       OpImageRead decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageRead(" + ParamToStr(idName, decoded.image) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageRead("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + (5 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageWrite:
     {
       OpImageWrite decoded(it);
-      ret += "ImageWrite(" + ParamToStr(idName, decoded.image) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.texel) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageWrite("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.texel)
+           + (4 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::Image:
     {
       OpImage decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "Image(" + ParamToStr(idName, decoded.sampledImage) + ")";
+      ret += rdcstr("Image("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageQueryFormat:
     {
       OpImageQueryFormat decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageQueryFormat(" + ParamToStr(idName, decoded.image) + ")";
+      ret += rdcstr("ImageQueryFormat("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageQueryOrder:
     {
       OpImageQueryOrder decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageQueryOrder(" + ParamToStr(idName, decoded.image) + ")";
+      ret += rdcstr("ImageQueryOrder("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageQuerySizeLod:
     {
       OpImageQuerySizeLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageQuerySizeLod(" + ParamToStr(idName, decoded.image) + ", " + ParamToStr(idName, decoded.levelofDetail) + ")";
+      ret += rdcstr("ImageQuerySizeLod("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ", "
+           + ParamToStr(idName, decoded.levelofDetail)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageQuerySize:
     {
       OpImageQuerySize decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageQuerySize(" + ParamToStr(idName, decoded.image) + ")";
+      ret += rdcstr("ImageQuerySize("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageQueryLod:
     {
       OpImageQueryLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageQueryLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ")";
+      ret += rdcstr("ImageQueryLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageQueryLevels:
     {
       OpImageQueryLevels decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageQueryLevels(" + ParamToStr(idName, decoded.image) + ")";
+      ret += rdcstr("ImageQueryLevels("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageQuerySamples:
     {
       OpImageQuerySamples decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageQuerySamples(" + ParamToStr(idName, decoded.image) + ")";
+      ret += rdcstr("ImageQuerySamples("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ")";
       break;
     }
     case rdcspv::Op::ConvertFToU:
     {
       OpConvertFToU decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConvertFToU(" + ParamToStr(idName, decoded.floatValue) + ")";
+      ret += rdcstr("ConvertFToU("_lit)
+           + ParamToStr(idName, decoded.floatValue)
+           + ")";
       break;
     }
     case rdcspv::Op::ConvertFToS:
     {
       OpConvertFToS decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConvertFToS(" + ParamToStr(idName, decoded.floatValue) + ")";
+      ret += rdcstr("ConvertFToS("_lit)
+           + ParamToStr(idName, decoded.floatValue)
+           + ")";
       break;
     }
     case rdcspv::Op::ConvertSToF:
     {
       OpConvertSToF decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConvertSToF(" + ParamToStr(idName, decoded.signedValue) + ")";
+      ret += rdcstr("ConvertSToF("_lit)
+           + ParamToStr(idName, decoded.signedValue)
+           + ")";
       break;
     }
     case rdcspv::Op::ConvertUToF:
     {
       OpConvertUToF decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConvertUToF(" + ParamToStr(idName, decoded.unsignedValue) + ")";
+      ret += rdcstr("ConvertUToF("_lit)
+           + ParamToStr(idName, decoded.unsignedValue)
+           + ")";
       break;
     }
     case rdcspv::Op::UConvert:
     {
       OpUConvert decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UConvert(" + ParamToStr(idName, decoded.unsignedValue) + ")";
+      ret += rdcstr("UConvert("_lit)
+           + ParamToStr(idName, decoded.unsignedValue)
+           + ")";
       break;
     }
     case rdcspv::Op::SConvert:
     {
       OpSConvert decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SConvert(" + ParamToStr(idName, decoded.signedValue) + ")";
+      ret += rdcstr("SConvert("_lit)
+           + ParamToStr(idName, decoded.signedValue)
+           + ")";
       break;
     }
     case rdcspv::Op::FConvert:
     {
       OpFConvert decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FConvert(" + ParamToStr(idName, decoded.floatValue) + ")";
+      ret += rdcstr("FConvert("_lit)
+           + ParamToStr(idName, decoded.floatValue)
+           + ")";
       break;
     }
     case rdcspv::Op::QuantizeToF16:
     {
       OpQuantizeToF16 decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "QuantizeToF16(" + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("QuantizeToF16("_lit)
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::ConvertPtrToU:
     {
       OpConvertPtrToU decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConvertPtrToU(" + ParamToStr(idName, decoded.pointer) + ")";
+      ret += rdcstr("ConvertPtrToU("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ")";
       break;
     }
     case rdcspv::Op::SatConvertSToU:
     {
       OpSatConvertSToU decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SatConvertSToU(" + ParamToStr(idName, decoded.signedValue) + ")";
+      ret += rdcstr("SatConvertSToU("_lit)
+           + ParamToStr(idName, decoded.signedValue)
+           + ")";
       break;
     }
     case rdcspv::Op::SatConvertUToS:
     {
       OpSatConvertUToS decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SatConvertUToS(" + ParamToStr(idName, decoded.unsignedValue) + ")";
+      ret += rdcstr("SatConvertUToS("_lit)
+           + ParamToStr(idName, decoded.unsignedValue)
+           + ")";
       break;
     }
     case rdcspv::Op::ConvertUToPtr:
     {
       OpConvertUToPtr decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConvertUToPtr(" + ParamToStr(idName, decoded.integerValue) + ")";
+      ret += rdcstr("ConvertUToPtr("_lit)
+           + ParamToStr(idName, decoded.integerValue)
+           + ")";
       break;
     }
     case rdcspv::Op::PtrCastToGeneric:
     {
       OpPtrCastToGeneric decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "PtrCastToGeneric(" + ParamToStr(idName, decoded.pointer) + ")";
+      ret += rdcstr("PtrCastToGeneric("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ")";
       break;
     }
     case rdcspv::Op::GenericCastToPtr:
     {
       OpGenericCastToPtr decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GenericCastToPtr(" + ParamToStr(idName, decoded.pointer) + ")";
+      ret += rdcstr("GenericCastToPtr("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ")";
       break;
     }
     case rdcspv::Op::GenericCastToPtrExplicit:
     {
       OpGenericCastToPtrExplicit decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GenericCastToPtrExplicit(" + ParamToStr(idName, decoded.pointer) + ", " + ParamToStr(idName, decoded.storage) + ")";
+      ret += rdcstr("GenericCastToPtrExplicit("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ParamToStr(idName, decoded.storage)
+           + ")";
       break;
     }
     case rdcspv::Op::Bitcast:
     {
       OpBitcast decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "Bitcast(" + ParamToStr(idName, decoded.operand) + ")";
+      ret += rdcstr("Bitcast("_lit)
+           + ParamToStr(idName, decoded.operand)
+           + ")";
       break;
     }
     case rdcspv::Op::SNegate:
     {
       OpSNegate decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SNegate(" + ParamToStr(idName, decoded.operand) + ")";
+      ret += rdcstr("SNegate("_lit)
+           + ParamToStr(idName, decoded.operand)
+           + ")";
       break;
     }
     case rdcspv::Op::FNegate:
     {
       OpFNegate decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FNegate(" + ParamToStr(idName, decoded.operand) + ")";
+      ret += rdcstr("FNegate("_lit)
+           + ParamToStr(idName, decoded.operand)
+           + ")";
       break;
     }
     case rdcspv::Op::IAdd:
     {
       OpIAdd decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "IAdd(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("IAdd("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FAdd:
     {
       OpFAdd decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FAdd(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FAdd("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::ISub:
     {
       OpISub decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ISub(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("ISub("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FSub:
     {
       OpFSub decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FSub(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FSub("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::IMul:
     {
       OpIMul decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "IMul(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("IMul("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FMul:
     {
       OpFMul decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FMul(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FMul("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::UDiv:
     {
       OpUDiv decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UDiv(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("UDiv("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::SDiv:
     {
       OpSDiv decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SDiv(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("SDiv("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FDiv:
     {
       OpFDiv decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FDiv(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FDiv("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::UMod:
     {
       OpUMod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UMod(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("UMod("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::SRem:
     {
       OpSRem decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SRem(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("SRem("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::SMod:
     {
       OpSMod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SMod(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("SMod("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FRem:
     {
       OpFRem decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FRem(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FRem("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FMod:
     {
       OpFMod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FMod(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FMod("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::VectorTimesScalar:
     {
       OpVectorTimesScalar decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "VectorTimesScalar(" + ParamToStr(idName, decoded.vector) + ", " + ParamToStr(idName, decoded.scalar) + ")";
+      ret += rdcstr("VectorTimesScalar("_lit)
+           + ParamToStr(idName, decoded.vector)
+           + ", "
+           + ParamToStr(idName, decoded.scalar)
+           + ")";
       break;
     }
     case rdcspv::Op::MatrixTimesScalar:
     {
       OpMatrixTimesScalar decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "MatrixTimesScalar(" + ParamToStr(idName, decoded.matrix) + ", " + ParamToStr(idName, decoded.scalar) + ")";
+      ret += rdcstr("MatrixTimesScalar("_lit)
+           + ParamToStr(idName, decoded.matrix)
+           + ", "
+           + ParamToStr(idName, decoded.scalar)
+           + ")";
       break;
     }
     case rdcspv::Op::VectorTimesMatrix:
     {
       OpVectorTimesMatrix decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "VectorTimesMatrix(" + ParamToStr(idName, decoded.vector) + ", " + ParamToStr(idName, decoded.matrix) + ")";
+      ret += rdcstr("VectorTimesMatrix("_lit)
+           + ParamToStr(idName, decoded.vector)
+           + ", "
+           + ParamToStr(idName, decoded.matrix)
+           + ")";
       break;
     }
     case rdcspv::Op::MatrixTimesVector:
     {
       OpMatrixTimesVector decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "MatrixTimesVector(" + ParamToStr(idName, decoded.matrix) + ", " + ParamToStr(idName, decoded.vector) + ")";
+      ret += rdcstr("MatrixTimesVector("_lit)
+           + ParamToStr(idName, decoded.matrix)
+           + ", "
+           + ParamToStr(idName, decoded.vector)
+           + ")";
       break;
     }
     case rdcspv::Op::MatrixTimesMatrix:
     {
       OpMatrixTimesMatrix decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "MatrixTimesMatrix(" + ParamToStr(idName, decoded.leftMatrix) + ", " + ParamToStr(idName, decoded.rightMatrix) + ")";
+      ret += rdcstr("MatrixTimesMatrix("_lit)
+           + ParamToStr(idName, decoded.leftMatrix)
+           + ", "
+           + ParamToStr(idName, decoded.rightMatrix)
+           + ")";
       break;
     }
     case rdcspv::Op::OuterProduct:
     {
       OpOuterProduct decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "OuterProduct(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ")";
+      ret += rdcstr("OuterProduct("_lit)
+           + ParamToStr(idName, decoded.vector1)
+           + ", "
+           + ParamToStr(idName, decoded.vector2)
+           + ")";
       break;
     }
     case rdcspv::Op::Dot:
     {
       OpDot decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "Dot(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ")";
+      ret += rdcstr("Dot("_lit)
+           + ParamToStr(idName, decoded.vector1)
+           + ", "
+           + ParamToStr(idName, decoded.vector2)
+           + ")";
       break;
     }
     case rdcspv::Op::IAddCarry:
     {
       OpIAddCarry decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "IAddCarry(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("IAddCarry("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::ISubBorrow:
     {
       OpISubBorrow decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ISubBorrow(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("ISubBorrow("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::UMulExtended:
     {
       OpUMulExtended decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UMulExtended(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("UMulExtended("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::SMulExtended:
     {
       OpSMulExtended decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SMulExtended(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("SMulExtended("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::Any:
     {
       OpAny decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "Any(" + ParamToStr(idName, decoded.vector) + ")";
+      ret += rdcstr("Any("_lit)
+           + ParamToStr(idName, decoded.vector)
+           + ")";
       break;
     }
     case rdcspv::Op::All:
     {
       OpAll decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "All(" + ParamToStr(idName, decoded.vector) + ")";
+      ret += rdcstr("All("_lit)
+           + ParamToStr(idName, decoded.vector)
+           + ")";
       break;
     }
     case rdcspv::Op::IsNan:
     {
       OpIsNan decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "IsNan(" + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("IsNan("_lit)
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::IsInf:
     {
       OpIsInf decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "IsInf(" + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("IsInf("_lit)
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::IsFinite:
     {
       OpIsFinite decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "IsFinite(" + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("IsFinite("_lit)
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::IsNormal:
     {
       OpIsNormal decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "IsNormal(" + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("IsNormal("_lit)
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::SignBitSet:
     {
       OpSignBitSet decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SignBitSet(" + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("SignBitSet("_lit)
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::LessOrGreater:
     {
       OpLessOrGreater decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "LessOrGreater(" + ParamToStr(idName, decoded.x) + ", " + ParamToStr(idName, decoded.y) + ")";
+      ret += rdcstr("LessOrGreater("_lit)
+           + ParamToStr(idName, decoded.x)
+           + ", "
+           + ParamToStr(idName, decoded.y)
+           + ")";
       break;
     }
     case rdcspv::Op::Ordered:
     {
       OpOrdered decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "Ordered(" + ParamToStr(idName, decoded.x) + ", " + ParamToStr(idName, decoded.y) + ")";
+      ret += rdcstr("Ordered("_lit)
+           + ParamToStr(idName, decoded.x)
+           + ", "
+           + ParamToStr(idName, decoded.y)
+           + ")";
       break;
     }
     case rdcspv::Op::Unordered:
     {
       OpUnordered decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "Unordered(" + ParamToStr(idName, decoded.x) + ", " + ParamToStr(idName, decoded.y) + ")";
+      ret += rdcstr("Unordered("_lit)
+           + ParamToStr(idName, decoded.x)
+           + ", "
+           + ParamToStr(idName, decoded.y)
+           + ")";
       break;
     }
     case rdcspv::Op::LogicalEqual:
     {
       OpLogicalEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "LogicalEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("LogicalEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::LogicalNotEqual:
     {
       OpLogicalNotEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "LogicalNotEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("LogicalNotEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::LogicalOr:
     {
       OpLogicalOr decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "LogicalOr(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("LogicalOr("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::LogicalAnd:
     {
       OpLogicalAnd decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "LogicalAnd(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("LogicalAnd("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::LogicalNot:
     {
       OpLogicalNot decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "LogicalNot(" + ParamToStr(idName, decoded.operand) + ")";
+      ret += rdcstr("LogicalNot("_lit)
+           + ParamToStr(idName, decoded.operand)
+           + ")";
       break;
     }
     case rdcspv::Op::Select:
     {
       OpSelect decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "Select(" + ParamToStr(idName, decoded.condition) + ", " + ParamToStr(idName, decoded.object1) + ", " + ParamToStr(idName, decoded.object2) + ")";
+      ret += rdcstr("Select("_lit)
+           + ParamToStr(idName, decoded.condition)
+           + ", "
+           + ParamToStr(idName, decoded.object1)
+           + ", "
+           + ParamToStr(idName, decoded.object2)
+           + ")";
       break;
     }
     case rdcspv::Op::IEqual:
     {
       OpIEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "IEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("IEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::INotEqual:
     {
       OpINotEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "INotEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("INotEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::UGreaterThan:
     {
       OpUGreaterThan decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UGreaterThan(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("UGreaterThan("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::SGreaterThan:
     {
       OpSGreaterThan decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SGreaterThan(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("SGreaterThan("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::UGreaterThanEqual:
     {
       OpUGreaterThanEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UGreaterThanEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("UGreaterThanEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::SGreaterThanEqual:
     {
       OpSGreaterThanEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SGreaterThanEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("SGreaterThanEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::ULessThan:
     {
       OpULessThan decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ULessThan(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("ULessThan("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::SLessThan:
     {
       OpSLessThan decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SLessThan(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("SLessThan("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::ULessThanEqual:
     {
       OpULessThanEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ULessThanEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("ULessThanEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::SLessThanEqual:
     {
       OpSLessThanEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SLessThanEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("SLessThanEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FOrdEqual:
     {
       OpFOrdEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FOrdEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FOrdEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FUnordEqual:
     {
       OpFUnordEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FUnordEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FUnordEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FOrdNotEqual:
     {
       OpFOrdNotEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FOrdNotEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FOrdNotEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FUnordNotEqual:
     {
       OpFUnordNotEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FUnordNotEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FUnordNotEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FOrdLessThan:
     {
       OpFOrdLessThan decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FOrdLessThan(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FOrdLessThan("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FUnordLessThan:
     {
       OpFUnordLessThan decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FUnordLessThan(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FUnordLessThan("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FOrdGreaterThan:
     {
       OpFOrdGreaterThan decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FOrdGreaterThan(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FOrdGreaterThan("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FUnordGreaterThan:
     {
       OpFUnordGreaterThan decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FUnordGreaterThan(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FUnordGreaterThan("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FOrdLessThanEqual:
     {
       OpFOrdLessThanEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FOrdLessThanEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FOrdLessThanEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FUnordLessThanEqual:
     {
       OpFUnordLessThanEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FUnordLessThanEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FUnordLessThanEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FOrdGreaterThanEqual:
     {
       OpFOrdGreaterThanEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FOrdGreaterThanEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FOrdGreaterThanEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::FUnordGreaterThanEqual:
     {
       OpFUnordGreaterThanEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FUnordGreaterThanEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("FUnordGreaterThanEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::ShiftRightLogical:
     {
       OpShiftRightLogical decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ShiftRightLogical(" + ParamToStr(idName, decoded.base) + ", " + ParamToStr(idName, decoded.shift) + ")";
+      ret += rdcstr("ShiftRightLogical("_lit)
+           + ParamToStr(idName, decoded.base)
+           + ", "
+           + ParamToStr(idName, decoded.shift)
+           + ")";
       break;
     }
     case rdcspv::Op::ShiftRightArithmetic:
     {
       OpShiftRightArithmetic decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ShiftRightArithmetic(" + ParamToStr(idName, decoded.base) + ", " + ParamToStr(idName, decoded.shift) + ")";
+      ret += rdcstr("ShiftRightArithmetic("_lit)
+           + ParamToStr(idName, decoded.base)
+           + ", "
+           + ParamToStr(idName, decoded.shift)
+           + ")";
       break;
     }
     case rdcspv::Op::ShiftLeftLogical:
     {
       OpShiftLeftLogical decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ShiftLeftLogical(" + ParamToStr(idName, decoded.base) + ", " + ParamToStr(idName, decoded.shift) + ")";
+      ret += rdcstr("ShiftLeftLogical("_lit)
+           + ParamToStr(idName, decoded.base)
+           + ", "
+           + ParamToStr(idName, decoded.shift)
+           + ")";
       break;
     }
     case rdcspv::Op::BitwiseOr:
     {
       OpBitwiseOr decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "BitwiseOr(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("BitwiseOr("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::BitwiseXor:
     {
       OpBitwiseXor decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "BitwiseXor(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("BitwiseXor("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::BitwiseAnd:
     {
       OpBitwiseAnd decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "BitwiseAnd(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("BitwiseAnd("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::Not:
     {
       OpNot decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "Not(" + ParamToStr(idName, decoded.operand) + ")";
+      ret += rdcstr("Not("_lit)
+           + ParamToStr(idName, decoded.operand)
+           + ")";
       break;
     }
     case rdcspv::Op::BitFieldInsert:
     {
       OpBitFieldInsert decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "BitFieldInsert(" + ParamToStr(idName, decoded.base) + ", " + ParamToStr(idName, decoded.insert) + ", " + ParamToStr(idName, decoded.offset) + ", " + ParamToStr(idName, decoded.count) + ")";
+      ret += rdcstr("BitFieldInsert("_lit)
+           + ParamToStr(idName, decoded.base)
+           + ", "
+           + ParamToStr(idName, decoded.insert)
+           + ", "
+           + ParamToStr(idName, decoded.offset)
+           + ", "
+           + ParamToStr(idName, decoded.count)
+           + ")";
       break;
     }
     case rdcspv::Op::BitFieldSExtract:
     {
       OpBitFieldSExtract decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "BitFieldSExtract(" + ParamToStr(idName, decoded.base) + ", " + ParamToStr(idName, decoded.offset) + ", " + ParamToStr(idName, decoded.count) + ")";
+      ret += rdcstr("BitFieldSExtract("_lit)
+           + ParamToStr(idName, decoded.base)
+           + ", "
+           + ParamToStr(idName, decoded.offset)
+           + ", "
+           + ParamToStr(idName, decoded.count)
+           + ")";
       break;
     }
     case rdcspv::Op::BitFieldUExtract:
     {
       OpBitFieldUExtract decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "BitFieldUExtract(" + ParamToStr(idName, decoded.base) + ", " + ParamToStr(idName, decoded.offset) + ", " + ParamToStr(idName, decoded.count) + ")";
+      ret += rdcstr("BitFieldUExtract("_lit)
+           + ParamToStr(idName, decoded.base)
+           + ", "
+           + ParamToStr(idName, decoded.offset)
+           + ", "
+           + ParamToStr(idName, decoded.count)
+           + ")";
       break;
     }
     case rdcspv::Op::BitReverse:
     {
       OpBitReverse decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "BitReverse(" + ParamToStr(idName, decoded.base) + ")";
+      ret += rdcstr("BitReverse("_lit)
+           + ParamToStr(idName, decoded.base)
+           + ")";
       break;
     }
     case rdcspv::Op::BitCount:
     {
       OpBitCount decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "BitCount(" + ParamToStr(idName, decoded.base) + ")";
+      ret += rdcstr("BitCount("_lit)
+           + ParamToStr(idName, decoded.base)
+           + ")";
       break;
     }
     case rdcspv::Op::DPdx:
     {
       OpDPdx decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "DPdx(" + ParamToStr(idName, decoded.p) + ")";
+      ret += rdcstr("DPdx("_lit)
+           + ParamToStr(idName, decoded.p)
+           + ")";
       break;
     }
     case rdcspv::Op::DPdy:
     {
       OpDPdy decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "DPdy(" + ParamToStr(idName, decoded.p) + ")";
+      ret += rdcstr("DPdy("_lit)
+           + ParamToStr(idName, decoded.p)
+           + ")";
       break;
     }
     case rdcspv::Op::Fwidth:
     {
       OpFwidth decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "Fwidth(" + ParamToStr(idName, decoded.p) + ")";
+      ret += rdcstr("Fwidth("_lit)
+           + ParamToStr(idName, decoded.p)
+           + ")";
       break;
     }
     case rdcspv::Op::DPdxFine:
     {
       OpDPdxFine decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "DPdxFine(" + ParamToStr(idName, decoded.p) + ")";
+      ret += rdcstr("DPdxFine("_lit)
+           + ParamToStr(idName, decoded.p)
+           + ")";
       break;
     }
     case rdcspv::Op::DPdyFine:
     {
       OpDPdyFine decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "DPdyFine(" + ParamToStr(idName, decoded.p) + ")";
+      ret += rdcstr("DPdyFine("_lit)
+           + ParamToStr(idName, decoded.p)
+           + ")";
       break;
     }
     case rdcspv::Op::FwidthFine:
     {
       OpFwidthFine decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FwidthFine(" + ParamToStr(idName, decoded.p) + ")";
+      ret += rdcstr("FwidthFine("_lit)
+           + ParamToStr(idName, decoded.p)
+           + ")";
       break;
     }
     case rdcspv::Op::DPdxCoarse:
     {
       OpDPdxCoarse decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "DPdxCoarse(" + ParamToStr(idName, decoded.p) + ")";
+      ret += rdcstr("DPdxCoarse("_lit)
+           + ParamToStr(idName, decoded.p)
+           + ")";
       break;
     }
     case rdcspv::Op::DPdyCoarse:
     {
       OpDPdyCoarse decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "DPdyCoarse(" + ParamToStr(idName, decoded.p) + ")";
+      ret += rdcstr("DPdyCoarse("_lit)
+           + ParamToStr(idName, decoded.p)
+           + ")";
       break;
     }
     case rdcspv::Op::FwidthCoarse:
     {
       OpFwidthCoarse decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FwidthCoarse(" + ParamToStr(idName, decoded.p) + ")";
+      ret += rdcstr("FwidthCoarse("_lit)
+           + ParamToStr(idName, decoded.p)
+           + ")";
       break;
     }
     case rdcspv::Op::EmitVertex:
     {
       OpEmitVertex decoded(it);
-      ret += "EmitVertex(" ")";
+      ret += rdcstr("EmitVertex("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::EndPrimitive:
     {
       OpEndPrimitive decoded(it);
-      ret += "EndPrimitive(" ")";
+      ret += rdcstr("EndPrimitive("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::EmitStreamVertex:
     {
       OpEmitStreamVertex decoded(it);
-      ret += "EmitStreamVertex(" + ParamToStr(idName, decoded.stream) + ")";
+      ret += rdcstr("EmitStreamVertex("_lit)
+           + ParamToStr(idName, decoded.stream)
+           + ")";
       break;
     }
     case rdcspv::Op::EndStreamPrimitive:
     {
       OpEndStreamPrimitive decoded(it);
-      ret += "EndStreamPrimitive(" + ParamToStr(idName, decoded.stream) + ")";
+      ret += rdcstr("EndStreamPrimitive("_lit)
+           + ParamToStr(idName, decoded.stream)
+           + ")";
       break;
     }
     case rdcspv::Op::ControlBarrier:
     {
       OpControlBarrier decoded(it);
-      ret += "ControlBarrier(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ")";
+      ret += rdcstr("ControlBarrier("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ")";
       break;
     }
     case rdcspv::Op::MemoryBarrier:
     {
       OpMemoryBarrier decoded(it);
-      ret += "MemoryBarrier(" + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ")";
+      ret += rdcstr("MemoryBarrier("_lit)
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicLoad:
     {
       OpAtomicLoad decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicLoad(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ")";
+      ret += rdcstr("AtomicLoad("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicStore:
     {
       OpAtomicStore decoded(it);
-      ret += "AtomicStore(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("AtomicStore("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicExchange:
     {
       OpAtomicExchange decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicExchange(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("AtomicExchange("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicCompareExchange:
     {
       OpAtomicCompareExchange decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicCompareExchange(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.equal))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.unequal))) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.comparator) + ")";
+      ret += rdcstr("AtomicCompareExchange("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.equal)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.unequal)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ", "
+           + ParamToStr(idName, decoded.comparator)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicCompareExchangeWeak:
     {
       OpAtomicCompareExchangeWeak decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicCompareExchangeWeak(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.equal))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.unequal))) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.comparator) + ")";
+      ret += rdcstr("AtomicCompareExchangeWeak("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.equal)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.unequal)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ", "
+           + ParamToStr(idName, decoded.comparator)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicIIncrement:
     {
       OpAtomicIIncrement decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicIIncrement(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ")";
+      ret += rdcstr("AtomicIIncrement("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicIDecrement:
     {
       OpAtomicIDecrement decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicIDecrement(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ")";
+      ret += rdcstr("AtomicIDecrement("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicIAdd:
     {
       OpAtomicIAdd decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicIAdd(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("AtomicIAdd("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicISub:
     {
       OpAtomicISub decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicISub(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("AtomicISub("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicSMin:
     {
       OpAtomicSMin decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicSMin(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("AtomicSMin("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicUMin:
     {
       OpAtomicUMin decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicUMin(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("AtomicUMin("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicSMax:
     {
       OpAtomicSMax decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicSMax(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("AtomicSMax("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicUMax:
     {
       OpAtomicUMax decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicUMax(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("AtomicUMax("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicAnd:
     {
       OpAtomicAnd decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicAnd(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("AtomicAnd("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicOr:
     {
       OpAtomicOr decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicOr(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("AtomicOr("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicXor:
     {
       OpAtomicXor decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicXor(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("AtomicXor("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::Phi:
     {
       OpPhi decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "Phi(" + ParamsToStr(idName, decoded.parents) + ")";
+      ret += rdcstr("Phi("_lit)
+           + ParamsToStr(idName, decoded.parents)
+           + ")";
       break;
     }
     case rdcspv::Op::LoopMerge:
     {
       OpLoopMerge decoded(it);
-      ret += "LoopMerge(" + ParamToStr(idName, decoded.mergeBlock) + ", " + ParamToStr(idName, decoded.continueTarget) + ", " + ParamToStr(idName, decoded.loopControl) + ")";
+      ret += rdcstr("LoopMerge("_lit)
+           + ParamToStr(idName, decoded.mergeBlock)
+           + ", "
+           + ParamToStr(idName, decoded.continueTarget)
+           + ", "
+           + ParamToStr(idName, decoded.loopControl)
+           + ")";
       break;
     }
     case rdcspv::Op::SelectionMerge:
     {
       OpSelectionMerge decoded(it);
-      ret += "SelectionMerge(" + ParamToStr(idName, decoded.mergeBlock) + ", " + ParamToStr(idName, decoded.selectionControl) + ")";
+      ret += rdcstr("SelectionMerge("_lit)
+           + ParamToStr(idName, decoded.mergeBlock)
+           + ", "
+           + ParamToStr(idName, decoded.selectionControl)
+           + ")";
       break;
     }
     case rdcspv::Op::Label:
     {
       OpLabel decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "Label(" ")";
+      ret += rdcstr("Label("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::Branch:
     {
       OpBranch decoded(it);
-      ret += "Branch(" + ParamToStr(idName, decoded.targetLabel) + ")";
+      ret += rdcstr("Branch("_lit)
+           + ParamToStr(idName, decoded.targetLabel)
+           + ")";
       break;
     }
     case rdcspv::Op::BranchConditional:
     {
       OpBranchConditional decoded(it);
-      ret += "BranchConditional(" + ParamToStr(idName, decoded.condition) + ", " + ParamToStr(idName, decoded.trueLabel) + ", " + ParamToStr(idName, decoded.falseLabel) + ", " + ParamsToStr(idName, decoded.branchweights) + ")";
+      ret += rdcstr("BranchConditional("_lit)
+           + ParamToStr(idName, decoded.condition)
+           + ", "
+           + ParamToStr(idName, decoded.trueLabel)
+           + ", "
+           + ParamToStr(idName, decoded.falseLabel)
+           + ", "
+           + ParamsToStr(idName, decoded.branchweights)
+           + ")";
       break;
     }
     case rdcspv::Op::Switch:
     {
       OpSwitch decoded(it);
-      ret += "Switch(" + ParamToStr(idName, decoded.selector) + ", " + ParamToStr(idName, decoded.def) + ", " + ParamsToStr(idName, decoded.target) + ")";
+      ret += rdcstr("Switch("_lit)
+           + ParamToStr(idName, decoded.selector)
+           + ", "
+           + ParamToStr(idName, decoded.def)
+           + ", "
+           + ParamsToStr(idName, decoded.target)
+           + ")";
       break;
     }
     case rdcspv::Op::Kill:
     {
       OpKill decoded(it);
-      ret += "Kill(" ")";
+      ret += rdcstr("Kill("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::Return:
     {
       OpReturn decoded(it);
-      ret += "Return(" ")";
+      ret += rdcstr("Return("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::ReturnValue:
     {
       OpReturnValue decoded(it);
-      ret += "ReturnValue(" + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("ReturnValue("_lit)
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::Unreachable:
     {
       OpUnreachable decoded(it);
-      ret += "Unreachable(" ")";
+      ret += rdcstr("Unreachable("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::LifetimeStart:
     {
       OpLifetimeStart decoded(it);
-      ret += "LifetimeStart(" + ParamToStr(idName, decoded.pointer) + ", " + ParamToStr(idName, decoded.size) + ")";
+      ret += rdcstr("LifetimeStart("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ParamToStr(idName, decoded.size)
+           + ")";
       break;
     }
     case rdcspv::Op::LifetimeStop:
     {
       OpLifetimeStop decoded(it);
-      ret += "LifetimeStop(" + ParamToStr(idName, decoded.pointer) + ", " + ParamToStr(idName, decoded.size) + ")";
+      ret += rdcstr("LifetimeStop("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ParamToStr(idName, decoded.size)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupAsyncCopy:
     {
       OpGroupAsyncCopy decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupAsyncCopy(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.destination) + ", " + ParamToStr(idName, decoded.source) + ", " + ParamToStr(idName, decoded.numElements) + ", " + ParamToStr(idName, decoded.stride) + ", " + ParamToStr(idName, decoded.event) + ")";
+      ret += rdcstr("GroupAsyncCopy("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.destination)
+           + ", "
+           + ParamToStr(idName, decoded.source)
+           + ", "
+           + ParamToStr(idName, decoded.numElements)
+           + ", "
+           + ParamToStr(idName, decoded.stride)
+           + ", "
+           + ParamToStr(idName, decoded.event)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupWaitEvents:
     {
       OpGroupWaitEvents decoded(it);
-      ret += "GroupWaitEvents(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.numEvents) + ", " + ParamToStr(idName, decoded.eventsList) + ")";
+      ret += rdcstr("GroupWaitEvents("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.numEvents)
+           + ", "
+           + ParamToStr(idName, decoded.eventsList)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupAll:
     {
       OpGroupAll decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupAll(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.predicate) + ")";
+      ret += rdcstr("GroupAll("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.predicate)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupAny:
     {
       OpGroupAny decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupAny(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.predicate) + ")";
+      ret += rdcstr("GroupAny("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.predicate)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupBroadcast:
     {
       OpGroupBroadcast decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupBroadcast(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.localId) + ")";
+      ret += rdcstr("GroupBroadcast("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ", "
+           + ParamToStr(idName, decoded.localId)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupIAdd:
     {
       OpGroupIAdd decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupIAdd(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupIAdd("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupFAdd:
     {
       OpGroupFAdd decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupFAdd(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupFAdd("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupFMin:
     {
       OpGroupFMin decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupFMin(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupFMin("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupUMin:
     {
       OpGroupUMin decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupUMin(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupUMin("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupSMin:
     {
       OpGroupSMin decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupSMin(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupSMin("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupFMax:
     {
       OpGroupFMax decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupFMax(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupFMax("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupUMax:
     {
       OpGroupUMax decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupUMax(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupUMax("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupSMax:
     {
       OpGroupSMax decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupSMax(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupSMax("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::ReadPipe:
     {
       OpReadPipe decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ReadPipe(" + ParamToStr(idName, decoded.pipe) + ", " + ParamToStr(idName, decoded.pointer) + ", " + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("ReadPipe("_lit)
+           + ParamToStr(idName, decoded.pipe)
+           + ", "
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::WritePipe:
     {
       OpWritePipe decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "WritePipe(" + ParamToStr(idName, decoded.pipe) + ", " + ParamToStr(idName, decoded.pointer) + ", " + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("WritePipe("_lit)
+           + ParamToStr(idName, decoded.pipe)
+           + ", "
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::ReservedReadPipe:
     {
       OpReservedReadPipe decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ReservedReadPipe(" + ParamToStr(idName, decoded.pipe) + ", " + ParamToStr(idName, decoded.reserveId) + ", " + ParamToStr(idName, decoded.index) + ", " + ParamToStr(idName, decoded.pointer) + ", " + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("ReservedReadPipe("_lit)
+           + ParamToStr(idName, decoded.pipe)
+           + ", "
+           + ParamToStr(idName, decoded.reserveId)
+           + ", "
+           + ParamToStr(idName, decoded.index)
+           + ", "
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::ReservedWritePipe:
     {
       OpReservedWritePipe decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ReservedWritePipe(" + ParamToStr(idName, decoded.pipe) + ", " + ParamToStr(idName, decoded.reserveId) + ", " + ParamToStr(idName, decoded.index) + ", " + ParamToStr(idName, decoded.pointer) + ", " + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("ReservedWritePipe("_lit)
+           + ParamToStr(idName, decoded.pipe)
+           + ", "
+           + ParamToStr(idName, decoded.reserveId)
+           + ", "
+           + ParamToStr(idName, decoded.index)
+           + ", "
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::ReserveReadPipePackets:
     {
       OpReserveReadPipePackets decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ReserveReadPipePackets(" + ParamToStr(idName, decoded.pipe) + ", " + ParamToStr(idName, decoded.numPackets) + ", " + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("ReserveReadPipePackets("_lit)
+           + ParamToStr(idName, decoded.pipe)
+           + ", "
+           + ParamToStr(idName, decoded.numPackets)
+           + ", "
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::ReserveWritePipePackets:
     {
       OpReserveWritePipePackets decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ReserveWritePipePackets(" + ParamToStr(idName, decoded.pipe) + ", " + ParamToStr(idName, decoded.numPackets) + ", " + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("ReserveWritePipePackets("_lit)
+           + ParamToStr(idName, decoded.pipe)
+           + ", "
+           + ParamToStr(idName, decoded.numPackets)
+           + ", "
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::CommitReadPipe:
     {
       OpCommitReadPipe decoded(it);
-      ret += "CommitReadPipe(" + ParamToStr(idName, decoded.pipe) + ", " + ParamToStr(idName, decoded.reserveId) + ", " + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("CommitReadPipe("_lit)
+           + ParamToStr(idName, decoded.pipe)
+           + ", "
+           + ParamToStr(idName, decoded.reserveId)
+           + ", "
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::CommitWritePipe:
     {
       OpCommitWritePipe decoded(it);
-      ret += "CommitWritePipe(" + ParamToStr(idName, decoded.pipe) + ", " + ParamToStr(idName, decoded.reserveId) + ", " + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("CommitWritePipe("_lit)
+           + ParamToStr(idName, decoded.pipe)
+           + ", "
+           + ParamToStr(idName, decoded.reserveId)
+           + ", "
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::IsValidReserveId:
     {
       OpIsValidReserveId decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "IsValidReserveId(" + ParamToStr(idName, decoded.reserveId) + ")";
+      ret += rdcstr("IsValidReserveId("_lit)
+           + ParamToStr(idName, decoded.reserveId)
+           + ")";
       break;
     }
     case rdcspv::Op::GetNumPipePackets:
     {
       OpGetNumPipePackets decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GetNumPipePackets(" + ParamToStr(idName, decoded.pipe) + ", " + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("GetNumPipePackets("_lit)
+           + ParamToStr(idName, decoded.pipe)
+           + ", "
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::GetMaxPipePackets:
     {
       OpGetMaxPipePackets decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GetMaxPipePackets(" + ParamToStr(idName, decoded.pipe) + ", " + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("GetMaxPipePackets("_lit)
+           + ParamToStr(idName, decoded.pipe)
+           + ", "
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupReserveReadPipePackets:
     {
       OpGroupReserveReadPipePackets decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupReserveReadPipePackets(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.pipe) + ", " + ParamToStr(idName, decoded.numPackets) + ", " + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("GroupReserveReadPipePackets("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.pipe)
+           + ", "
+           + ParamToStr(idName, decoded.numPackets)
+           + ", "
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupReserveWritePipePackets:
     {
       OpGroupReserveWritePipePackets decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupReserveWritePipePackets(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.pipe) + ", " + ParamToStr(idName, decoded.numPackets) + ", " + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("GroupReserveWritePipePackets("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.pipe)
+           + ", "
+           + ParamToStr(idName, decoded.numPackets)
+           + ", "
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupCommitReadPipe:
     {
       OpGroupCommitReadPipe decoded(it);
-      ret += "GroupCommitReadPipe(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.pipe) + ", " + ParamToStr(idName, decoded.reserveId) + ", " + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("GroupCommitReadPipe("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.pipe)
+           + ", "
+           + ParamToStr(idName, decoded.reserveId)
+           + ", "
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupCommitWritePipe:
     {
       OpGroupCommitWritePipe decoded(it);
-      ret += "GroupCommitWritePipe(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.pipe) + ", " + ParamToStr(idName, decoded.reserveId) + ", " + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("GroupCommitWritePipe("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.pipe)
+           + ", "
+           + ParamToStr(idName, decoded.reserveId)
+           + ", "
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::EnqueueMarker:
     {
       OpEnqueueMarker decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "EnqueueMarker(" + ParamToStr(idName, decoded.queue) + ", " + ParamToStr(idName, decoded.numEvents) + ", " + ParamToStr(idName, decoded.waitEvents) + ", " + ParamToStr(idName, decoded.retEvent) + ")";
+      ret += rdcstr("EnqueueMarker("_lit)
+           + ParamToStr(idName, decoded.queue)
+           + ", "
+           + ParamToStr(idName, decoded.numEvents)
+           + ", "
+           + ParamToStr(idName, decoded.waitEvents)
+           + ", "
+           + ParamToStr(idName, decoded.retEvent)
+           + ")";
       break;
     }
     case rdcspv::Op::EnqueueKernel:
     {
       OpEnqueueKernel decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "EnqueueKernel(" + ParamToStr(idName, decoded.queue) + ", " + ParamToStr(idName, decoded.flags) + ", " + ParamToStr(idName, decoded.nDRange) + ", " + ParamToStr(idName, decoded.numEvents) + ", " + ParamToStr(idName, decoded.waitEvents) + ", " + ParamToStr(idName, decoded.retEvent) + ", " + ParamToStr(idName, decoded.invoke) + ", " + ParamToStr(idName, decoded.param) + ", " + ParamToStr(idName, decoded.paramSize) + ", " + ParamToStr(idName, decoded.paramAlign) + ", " + ParamsToStr(idName, decoded.localSize) + ")";
+      ret += rdcstr("EnqueueKernel("_lit)
+           + ParamToStr(idName, decoded.queue)
+           + ", "
+           + ParamToStr(idName, decoded.flags)
+           + ", "
+           + ParamToStr(idName, decoded.nDRange)
+           + ", "
+           + ParamToStr(idName, decoded.numEvents)
+           + ", "
+           + ParamToStr(idName, decoded.waitEvents)
+           + ", "
+           + ParamToStr(idName, decoded.retEvent)
+           + ", "
+           + ParamToStr(idName, decoded.invoke)
+           + ", "
+           + ParamToStr(idName, decoded.param)
+           + ", "
+           + ParamToStr(idName, decoded.paramSize)
+           + ", "
+           + ParamToStr(idName, decoded.paramAlign)
+           + ", "
+           + ParamsToStr(idName, decoded.localSize)
+           + ")";
       break;
     }
     case rdcspv::Op::GetKernelNDrangeSubGroupCount:
     {
       OpGetKernelNDrangeSubGroupCount decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GetKernelNDrangeSubGroupCount(" + ParamToStr(idName, decoded.nDRange) + ", " + ParamToStr(idName, decoded.invoke) + ", " + ParamToStr(idName, decoded.param) + ", " + ParamToStr(idName, decoded.paramSize) + ", " + ParamToStr(idName, decoded.paramAlign) + ")";
+      ret += rdcstr("GetKernelNDrangeSubGroupCount("_lit)
+           + ParamToStr(idName, decoded.nDRange)
+           + ", "
+           + ParamToStr(idName, decoded.invoke)
+           + ", "
+           + ParamToStr(idName, decoded.param)
+           + ", "
+           + ParamToStr(idName, decoded.paramSize)
+           + ", "
+           + ParamToStr(idName, decoded.paramAlign)
+           + ")";
       break;
     }
     case rdcspv::Op::GetKernelNDrangeMaxSubGroupSize:
     {
       OpGetKernelNDrangeMaxSubGroupSize decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GetKernelNDrangeMaxSubGroupSize(" + ParamToStr(idName, decoded.nDRange) + ", " + ParamToStr(idName, decoded.invoke) + ", " + ParamToStr(idName, decoded.param) + ", " + ParamToStr(idName, decoded.paramSize) + ", " + ParamToStr(idName, decoded.paramAlign) + ")";
+      ret += rdcstr("GetKernelNDrangeMaxSubGroupSize("_lit)
+           + ParamToStr(idName, decoded.nDRange)
+           + ", "
+           + ParamToStr(idName, decoded.invoke)
+           + ", "
+           + ParamToStr(idName, decoded.param)
+           + ", "
+           + ParamToStr(idName, decoded.paramSize)
+           + ", "
+           + ParamToStr(idName, decoded.paramAlign)
+           + ")";
       break;
     }
     case rdcspv::Op::GetKernelWorkGroupSize:
     {
       OpGetKernelWorkGroupSize decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GetKernelWorkGroupSize(" + ParamToStr(idName, decoded.invoke) + ", " + ParamToStr(idName, decoded.param) + ", " + ParamToStr(idName, decoded.paramSize) + ", " + ParamToStr(idName, decoded.paramAlign) + ")";
+      ret += rdcstr("GetKernelWorkGroupSize("_lit)
+           + ParamToStr(idName, decoded.invoke)
+           + ", "
+           + ParamToStr(idName, decoded.param)
+           + ", "
+           + ParamToStr(idName, decoded.paramSize)
+           + ", "
+           + ParamToStr(idName, decoded.paramAlign)
+           + ")";
       break;
     }
     case rdcspv::Op::GetKernelPreferredWorkGroupSizeMultiple:
     {
       OpGetKernelPreferredWorkGroupSizeMultiple decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GetKernelPreferredWorkGroupSizeMultiple(" + ParamToStr(idName, decoded.invoke) + ", " + ParamToStr(idName, decoded.param) + ", " + ParamToStr(idName, decoded.paramSize) + ", " + ParamToStr(idName, decoded.paramAlign) + ")";
+      ret += rdcstr("GetKernelPreferredWorkGroupSizeMultiple("_lit)
+           + ParamToStr(idName, decoded.invoke)
+           + ", "
+           + ParamToStr(idName, decoded.param)
+           + ", "
+           + ParamToStr(idName, decoded.paramSize)
+           + ", "
+           + ParamToStr(idName, decoded.paramAlign)
+           + ")";
       break;
     }
     case rdcspv::Op::RetainEvent:
     {
       OpRetainEvent decoded(it);
-      ret += "RetainEvent(" + ParamToStr(idName, decoded.event) + ")";
+      ret += rdcstr("RetainEvent("_lit)
+           + ParamToStr(idName, decoded.event)
+           + ")";
       break;
     }
     case rdcspv::Op::ReleaseEvent:
     {
       OpReleaseEvent decoded(it);
-      ret += "ReleaseEvent(" + ParamToStr(idName, decoded.event) + ")";
+      ret += rdcstr("ReleaseEvent("_lit)
+           + ParamToStr(idName, decoded.event)
+           + ")";
       break;
     }
     case rdcspv::Op::CreateUserEvent:
     {
       OpCreateUserEvent decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "CreateUserEvent(" ")";
+      ret += rdcstr("CreateUserEvent("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::IsValidEvent:
     {
       OpIsValidEvent decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "IsValidEvent(" + ParamToStr(idName, decoded.event) + ")";
+      ret += rdcstr("IsValidEvent("_lit)
+           + ParamToStr(idName, decoded.event)
+           + ")";
       break;
     }
     case rdcspv::Op::SetUserEventStatus:
     {
       OpSetUserEventStatus decoded(it);
-      ret += "SetUserEventStatus(" + ParamToStr(idName, decoded.event) + ", " + ParamToStr(idName, decoded.status) + ")";
+      ret += rdcstr("SetUserEventStatus("_lit)
+           + ParamToStr(idName, decoded.event)
+           + ", "
+           + ParamToStr(idName, decoded.status)
+           + ")";
       break;
     }
     case rdcspv::Op::CaptureEventProfilingInfo:
     {
       OpCaptureEventProfilingInfo decoded(it);
-      ret += "CaptureEventProfilingInfo(" + ParamToStr(idName, decoded.event) + ", " + ParamToStr(idName, decoded.profilingInfo) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("CaptureEventProfilingInfo("_lit)
+           + ParamToStr(idName, decoded.event)
+           + ", "
+           + ParamToStr(idName, decoded.profilingInfo)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::GetDefaultQueue:
     {
       OpGetDefaultQueue decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GetDefaultQueue(" ")";
+      ret += rdcstr("GetDefaultQueue("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::BuildNDRange:
     {
       OpBuildNDRange decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "BuildNDRange(" + ParamToStr(idName, decoded.globalWorkSize) + ", " + ParamToStr(idName, decoded.localWorkSize) + ", " + ParamToStr(idName, decoded.globalWorkOffset) + ")";
+      ret += rdcstr("BuildNDRange("_lit)
+           + ParamToStr(idName, decoded.globalWorkSize)
+           + ", "
+           + ParamToStr(idName, decoded.localWorkSize)
+           + ", "
+           + ParamToStr(idName, decoded.globalWorkOffset)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSparseSampleImplicitLod:
     {
       OpImageSparseSampleImplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSparseSampleImplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSparseSampleImplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + (5 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSparseSampleExplicitLod:
     {
       OpImageSparseSampleExplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSparseSampleExplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSparseSampleExplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.imageOperands)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSparseSampleDrefImplicitLod:
     {
       OpImageSparseSampleDrefImplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSparseSampleDrefImplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.dref) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSparseSampleDrefImplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.dref)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSparseSampleDrefExplicitLod:
     {
       OpImageSparseSampleDrefExplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSparseSampleDrefExplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.dref) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSparseSampleDrefExplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.dref)
+           + ", "
+           + ParamToStr(idName, decoded.imageOperands)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSparseSampleProjImplicitLod:
     {
       OpImageSparseSampleProjImplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSparseSampleProjImplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSparseSampleProjImplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + (5 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSparseSampleProjExplicitLod:
     {
       OpImageSparseSampleProjExplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSparseSampleProjExplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSparseSampleProjExplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.imageOperands)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSparseSampleProjDrefImplicitLod:
     {
       OpImageSparseSampleProjDrefImplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSparseSampleProjDrefImplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.dref) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSparseSampleProjDrefImplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.dref)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSparseSampleProjDrefExplicitLod:
     {
       OpImageSparseSampleProjDrefExplicitLod decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSparseSampleProjDrefExplicitLod(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.dref) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSparseSampleProjDrefExplicitLod("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.dref)
+           + ", "
+           + ParamToStr(idName, decoded.imageOperands)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSparseFetch:
     {
       OpImageSparseFetch decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSparseFetch(" + ParamToStr(idName, decoded.image) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSparseFetch("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + (5 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSparseGather:
     {
       OpImageSparseGather decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSparseGather(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.component) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSparseGather("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.component)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSparseDrefGather:
     {
       OpImageSparseDrefGather decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSparseDrefGather(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.dref) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSparseDrefGather("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.dref)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSparseTexelsResident:
     {
       OpImageSparseTexelsResident decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSparseTexelsResident(" + ParamToStr(idName, decoded.residentCode) + ")";
+      ret += rdcstr("ImageSparseTexelsResident("_lit)
+           + ParamToStr(idName, decoded.residentCode)
+           + ")";
       break;
     }
     case rdcspv::Op::NoLine:
     {
       OpNoLine decoded(it);
-      ret += "NoLine(" ")";
+      ret += rdcstr("NoLine("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicFlagTestAndSet:
     {
       OpAtomicFlagTestAndSet decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicFlagTestAndSet(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ")";
+      ret += rdcstr("AtomicFlagTestAndSet("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicFlagClear:
     {
       OpAtomicFlagClear decoded(it);
-      ret += "AtomicFlagClear(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ")";
+      ret += rdcstr("AtomicFlagClear("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSparseRead:
     {
       OpImageSparseRead decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSparseRead(" + ParamToStr(idName, decoded.image) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSparseRead("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + (5 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::SizeOf:
     {
       OpSizeOf decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SizeOf(" + ParamToStr(idName, decoded.pointer) + ")";
+      ret += rdcstr("SizeOf("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ")";
       break;
     }
     case rdcspv::Op::TypePipeStorage:
     {
       OpTypePipeStorage decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypePipeStorage(" ")";
+      ret += rdcstr("TypePipeStorage("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::ConstantPipeStorage:
     {
       OpConstantPipeStorage decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConstantPipeStorage(" + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ", " + ParamToStr(idName, decoded.capacity) + ")";
+      ret += rdcstr("ConstantPipeStorage("_lit)
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ", "
+           + ParamToStr(idName, decoded.capacity)
+           + ")";
       break;
     }
     case rdcspv::Op::CreatePipeFromPipeStorage:
     {
       OpCreatePipeFromPipeStorage decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "CreatePipeFromPipeStorage(" + ParamToStr(idName, decoded.pipeStorage) + ")";
+      ret += rdcstr("CreatePipeFromPipeStorage("_lit)
+           + ParamToStr(idName, decoded.pipeStorage)
+           + ")";
       break;
     }
     case rdcspv::Op::GetKernelLocalSizeForSubgroupCount:
     {
       OpGetKernelLocalSizeForSubgroupCount decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GetKernelLocalSizeForSubgroupCount(" + ParamToStr(idName, decoded.subgroupCount) + ", " + ParamToStr(idName, decoded.invoke) + ", " + ParamToStr(idName, decoded.param) + ", " + ParamToStr(idName, decoded.paramSize) + ", " + ParamToStr(idName, decoded.paramAlign) + ")";
+      ret += rdcstr("GetKernelLocalSizeForSubgroupCount("_lit)
+           + ParamToStr(idName, decoded.subgroupCount)
+           + ", "
+           + ParamToStr(idName, decoded.invoke)
+           + ", "
+           + ParamToStr(idName, decoded.param)
+           + ", "
+           + ParamToStr(idName, decoded.paramSize)
+           + ", "
+           + ParamToStr(idName, decoded.paramAlign)
+           + ")";
       break;
     }
     case rdcspv::Op::GetKernelMaxNumSubgroups:
     {
       OpGetKernelMaxNumSubgroups decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GetKernelMaxNumSubgroups(" + ParamToStr(idName, decoded.invoke) + ", " + ParamToStr(idName, decoded.param) + ", " + ParamToStr(idName, decoded.paramSize) + ", " + ParamToStr(idName, decoded.paramAlign) + ")";
+      ret += rdcstr("GetKernelMaxNumSubgroups("_lit)
+           + ParamToStr(idName, decoded.invoke)
+           + ", "
+           + ParamToStr(idName, decoded.param)
+           + ", "
+           + ParamToStr(idName, decoded.paramSize)
+           + ", "
+           + ParamToStr(idName, decoded.paramAlign)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeNamedBarrier:
     {
       OpTypeNamedBarrier decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeNamedBarrier(" ")";
+      ret += rdcstr("TypeNamedBarrier("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::NamedBarrierInitialize:
     {
       OpNamedBarrierInitialize decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "NamedBarrierInitialize(" + ParamToStr(idName, decoded.subgroupCount) + ")";
+      ret += rdcstr("NamedBarrierInitialize("_lit)
+           + ParamToStr(idName, decoded.subgroupCount)
+           + ")";
       break;
     }
     case rdcspv::Op::MemoryNamedBarrier:
     {
       OpMemoryNamedBarrier decoded(it);
-      ret += "MemoryNamedBarrier(" + ParamToStr(idName, decoded.namedBarrier) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ")";
+      ret += rdcstr("MemoryNamedBarrier("_lit)
+           + ParamToStr(idName, decoded.namedBarrier)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ")";
       break;
     }
     case rdcspv::Op::ModuleProcessed:
     {
       OpModuleProcessed decoded(it);
-      ret += "ModuleProcessed(" + ParamToStr(idName, decoded.process) + ")";
+      ret += rdcstr("ModuleProcessed("_lit)
+           + ParamToStr(idName, decoded.process)
+           + ")";
       break;
     }
     case rdcspv::Op::ExecutionModeId:
     {
       OpExecutionModeId decoded(it);
-      ret += "ExecutionModeId(" + ParamToStr(idName, decoded.entryPoint) + ", " + ParamToStr(idName, decoded.mode) + ")";
+      ret += rdcstr("ExecutionModeId("_lit)
+           + ParamToStr(idName, decoded.entryPoint)
+           + ", "
+           + ParamToStr(idName, decoded.mode)
+           + ")";
       break;
     }
     case rdcspv::Op::DecorateId:
     {
       OpDecorateId decoded(it);
-      ret += "DecorateId(" + ParamToStr(idName, decoded.target) + ", " + ParamToStr(idName, decoded.decoration) + ")";
+      ret += rdcstr("DecorateId("_lit)
+           + ParamToStr(idName, decoded.target)
+           + ", "
+           + ParamToStr(idName, decoded.decoration)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformElect:
     {
       OpGroupNonUniformElect decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformElect(" + ToStr(Scope(constIntVal(decoded.execution))) + ")";
+      ret += rdcstr("GroupNonUniformElect("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformAll:
     {
       OpGroupNonUniformAll decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformAll(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.predicate) + ")";
+      ret += rdcstr("GroupNonUniformAll("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.predicate)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformAny:
     {
       OpGroupNonUniformAny decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformAny(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.predicate) + ")";
+      ret += rdcstr("GroupNonUniformAny("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.predicate)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformAllEqual:
     {
       OpGroupNonUniformAllEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformAllEqual(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("GroupNonUniformAllEqual("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformBroadcast:
     {
       OpGroupNonUniformBroadcast decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformBroadcast(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.id) + ")";
+      ret += rdcstr("GroupNonUniformBroadcast("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ", "
+           + ParamToStr(idName, decoded.id)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformBroadcastFirst:
     {
       OpGroupNonUniformBroadcastFirst decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformBroadcastFirst(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("GroupNonUniformBroadcastFirst("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformBallot:
     {
       OpGroupNonUniformBallot decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformBallot(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.predicate) + ")";
+      ret += rdcstr("GroupNonUniformBallot("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.predicate)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformInverseBallot:
     {
       OpGroupNonUniformInverseBallot decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformInverseBallot(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("GroupNonUniformInverseBallot("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformBallotBitExtract:
     {
       OpGroupNonUniformBallotBitExtract decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformBallotBitExtract(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.index) + ")";
+      ret += rdcstr("GroupNonUniformBallotBitExtract("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ", "
+           + ParamToStr(idName, decoded.index)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformBallotBitCount:
     {
       OpGroupNonUniformBallotBitCount decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformBallotBitCount(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("GroupNonUniformBallotBitCount("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformBallotFindLSB:
     {
       OpGroupNonUniformBallotFindLSB decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformBallotFindLSB(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("GroupNonUniformBallotFindLSB("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformBallotFindMSB:
     {
       OpGroupNonUniformBallotFindMSB decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformBallotFindMSB(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("GroupNonUniformBallotFindMSB("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformShuffle:
     {
       OpGroupNonUniformShuffle decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformShuffle(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.id) + ")";
+      ret += rdcstr("GroupNonUniformShuffle("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ", "
+           + ParamToStr(idName, decoded.id)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformShuffleXor:
     {
       OpGroupNonUniformShuffleXor decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformShuffleXor(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.mask) + ")";
+      ret += rdcstr("GroupNonUniformShuffleXor("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ", "
+           + ParamToStr(idName, decoded.mask)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformShuffleUp:
     {
       OpGroupNonUniformShuffleUp decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformShuffleUp(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.delta) + ")";
+      ret += rdcstr("GroupNonUniformShuffleUp("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ", "
+           + ParamToStr(idName, decoded.delta)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformShuffleDown:
     {
       OpGroupNonUniformShuffleDown decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformShuffleDown(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.delta) + ")";
+      ret += rdcstr("GroupNonUniformShuffleDown("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ", "
+           + ParamToStr(idName, decoded.delta)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformIAdd:
     {
       OpGroupNonUniformIAdd decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformIAdd(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformIAdd("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformFAdd:
     {
       OpGroupNonUniformFAdd decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformFAdd(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformFAdd("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformIMul:
     {
       OpGroupNonUniformIMul decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformIMul(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformIMul("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformFMul:
     {
       OpGroupNonUniformFMul decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformFMul(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformFMul("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformSMin:
     {
       OpGroupNonUniformSMin decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformSMin(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformSMin("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformUMin:
     {
       OpGroupNonUniformUMin decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformUMin(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformUMin("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformFMin:
     {
       OpGroupNonUniformFMin decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformFMin(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformFMin("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformSMax:
     {
       OpGroupNonUniformSMax decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformSMax(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformSMax("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformUMax:
     {
       OpGroupNonUniformUMax decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformUMax(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformUMax("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformFMax:
     {
       OpGroupNonUniformFMax decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformFMax(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformFMax("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformBitwiseAnd:
     {
       OpGroupNonUniformBitwiseAnd decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformBitwiseAnd(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformBitwiseAnd("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformBitwiseOr:
     {
       OpGroupNonUniformBitwiseOr decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformBitwiseOr(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformBitwiseOr("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformBitwiseXor:
     {
       OpGroupNonUniformBitwiseXor decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformBitwiseXor(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformBitwiseXor("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformLogicalAnd:
     {
       OpGroupNonUniformLogicalAnd decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformLogicalAnd(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformLogicalAnd("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformLogicalOr:
     {
       OpGroupNonUniformLogicalOr decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformLogicalOr(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformLogicalOr("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformLogicalXor:
     {
       OpGroupNonUniformLogicalXor decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformLogicalXor(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformLogicalXor("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformQuadBroadcast:
     {
       OpGroupNonUniformQuadBroadcast decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformQuadBroadcast(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.index) + ")";
+      ret += rdcstr("GroupNonUniformQuadBroadcast("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ", "
+           + ParamToStr(idName, decoded.index)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformQuadSwap:
     {
       OpGroupNonUniformQuadSwap decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformQuadSwap(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.direction) + ")";
+      ret += rdcstr("GroupNonUniformQuadSwap("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ", "
+           + ParamToStr(idName, decoded.direction)
+           + ")";
       break;
     }
     case rdcspv::Op::CopyLogical:
     {
       OpCopyLogical decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "CopyLogical(" + ParamToStr(idName, decoded.operand) + ")";
+      ret += rdcstr("CopyLogical("_lit)
+           + ParamToStr(idName, decoded.operand)
+           + ")";
       break;
     }
     case rdcspv::Op::PtrEqual:
     {
       OpPtrEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "PtrEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("PtrEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::PtrNotEqual:
     {
       OpPtrNotEqual decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "PtrNotEqual(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("PtrNotEqual("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::PtrDiff:
     {
       OpPtrDiff decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "PtrDiff(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("PtrDiff("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::ColorAttachmentReadEXT:
     {
       OpColorAttachmentReadEXT decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ColorAttachmentReadEXT(" + ParamToStr(idName, decoded.attachment) + ", " + ParamToStr(idName, decoded.sample) + ")";
+      ret += rdcstr("ColorAttachmentReadEXT("_lit)
+           + ParamToStr(idName, decoded.attachment)
+           + (4 < size ? ", " + ParamToStr(idName, decoded.sample) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::DepthAttachmentReadEXT:
     {
       OpDepthAttachmentReadEXT decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "DepthAttachmentReadEXT(" + ParamToStr(idName, decoded.sample) + ")";
+      ret += rdcstr("DepthAttachmentReadEXT("_lit)
+           + (3 < size ? ", " + ParamToStr(idName, decoded.sample) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::StencilAttachmentReadEXT:
     {
       OpStencilAttachmentReadEXT decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "StencilAttachmentReadEXT(" + ParamToStr(idName, decoded.sample) + ")";
+      ret += rdcstr("StencilAttachmentReadEXT("_lit)
+           + (3 < size ? ", " + ParamToStr(idName, decoded.sample) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::TerminateInvocation:
     {
       OpTerminateInvocation decoded(it);
-      ret += "TerminateInvocation(" ")";
+      ret += rdcstr("TerminateInvocation("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupBallotKHR:
     {
       OpSubgroupBallotKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SubgroupBallotKHR(" + ParamToStr(idName, decoded.predicate) + ")";
+      ret += rdcstr("SubgroupBallotKHR("_lit)
+           + ParamToStr(idName, decoded.predicate)
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupFirstInvocationKHR:
     {
       OpSubgroupFirstInvocationKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SubgroupFirstInvocationKHR(" + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("SubgroupFirstInvocationKHR("_lit)
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupAllKHR:
     {
       OpSubgroupAllKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SubgroupAllKHR(" + ParamToStr(idName, decoded.predicate) + ")";
+      ret += rdcstr("SubgroupAllKHR("_lit)
+           + ParamToStr(idName, decoded.predicate)
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupAnyKHR:
     {
       OpSubgroupAnyKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SubgroupAnyKHR(" + ParamToStr(idName, decoded.predicate) + ")";
+      ret += rdcstr("SubgroupAnyKHR("_lit)
+           + ParamToStr(idName, decoded.predicate)
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupAllEqualKHR:
     {
       OpSubgroupAllEqualKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SubgroupAllEqualKHR(" + ParamToStr(idName, decoded.predicate) + ")";
+      ret += rdcstr("SubgroupAllEqualKHR("_lit)
+           + ParamToStr(idName, decoded.predicate)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformRotateKHR:
     {
       OpGroupNonUniformRotateKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformRotateKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.delta) + ", " + ParamToStr(idName, decoded.clusterSize) + ")";
+      ret += rdcstr("GroupNonUniformRotateKHR("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ", "
+           + ParamToStr(idName, decoded.delta)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.clusterSize) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupReadInvocationKHR:
     {
       OpSubgroupReadInvocationKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SubgroupReadInvocationKHR(" + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.index) + ")";
+      ret += rdcstr("SubgroupReadInvocationKHR("_lit)
+           + ParamToStr(idName, decoded.value)
+           + ", "
+           + ParamToStr(idName, decoded.index)
+           + ")";
       break;
     }
     case rdcspv::Op::TraceRayKHR:
     {
       OpTraceRayKHR decoded(it);
-      ret += "TraceRayKHR(" + ParamToStr(idName, decoded.accel) + ", " + ParamToStr(idName, decoded.rayFlags) + ", " + ParamToStr(idName, decoded.cullMask) + ", " + ParamToStr(idName, decoded.sBTOffset) + ", " + ParamToStr(idName, decoded.sBTStride) + ", " + ParamToStr(idName, decoded.missIndex) + ", " + ParamToStr(idName, decoded.rayOrigin) + ", " + ParamToStr(idName, decoded.rayTmin) + ", " + ParamToStr(idName, decoded.rayDirection) + ", " + ParamToStr(idName, decoded.rayTmax) + ", " + ParamToStr(idName, decoded.payload) + ")";
+      ret += rdcstr("TraceRayKHR("_lit)
+           + ParamToStr(idName, decoded.accel)
+           + ", "
+           + ParamToStr(idName, decoded.rayFlags)
+           + ", "
+           + ParamToStr(idName, decoded.cullMask)
+           + ", "
+           + ParamToStr(idName, decoded.sBTOffset)
+           + ", "
+           + ParamToStr(idName, decoded.sBTStride)
+           + ", "
+           + ParamToStr(idName, decoded.missIndex)
+           + ", "
+           + ParamToStr(idName, decoded.rayOrigin)
+           + ", "
+           + ParamToStr(idName, decoded.rayTmin)
+           + ", "
+           + ParamToStr(idName, decoded.rayDirection)
+           + ", "
+           + ParamToStr(idName, decoded.rayTmax)
+           + ", "
+           + ParamToStr(idName, decoded.payload)
+           + ")";
       break;
     }
     case rdcspv::Op::ExecuteCallableKHR:
     {
       OpExecuteCallableKHR decoded(it);
-      ret += "ExecuteCallableKHR(" + ParamToStr(idName, decoded.sBTIndex) + ", " + ParamToStr(idName, decoded.callableData) + ")";
+      ret += rdcstr("ExecuteCallableKHR("_lit)
+           + ParamToStr(idName, decoded.sBTIndex)
+           + ", "
+           + ParamToStr(idName, decoded.callableData)
+           + ")";
       break;
     }
     case rdcspv::Op::ConvertUToAccelerationStructureKHR:
     {
       OpConvertUToAccelerationStructureKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConvertUToAccelerationStructureKHR(" + ParamToStr(idName, decoded.accel) + ")";
+      ret += rdcstr("ConvertUToAccelerationStructureKHR("_lit)
+           + ParamToStr(idName, decoded.accel)
+           + ")";
       break;
     }
     case rdcspv::Op::IgnoreIntersectionKHR:
     {
       OpIgnoreIntersectionKHR decoded(it);
-      ret += "IgnoreIntersectionKHR(" ")";
+      ret += rdcstr("IgnoreIntersectionKHR("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::TerminateRayKHR:
     {
       OpTerminateRayKHR decoded(it);
-      ret += "TerminateRayKHR(" ")";
+      ret += rdcstr("TerminateRayKHR("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::SDot:
     {
       OpSDot decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SDot(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
+      ret += rdcstr("SDot("_lit)
+           + ParamToStr(idName, decoded.vector1)
+           + ", "
+           + ParamToStr(idName, decoded.vector2)
+           + (5 < size ? ", " + ParamToStr(idName, decoded.packedVectorFormat) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::UDot:
     {
       OpUDot decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UDot(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
+      ret += rdcstr("UDot("_lit)
+           + ParamToStr(idName, decoded.vector1)
+           + ", "
+           + ParamToStr(idName, decoded.vector2)
+           + (5 < size ? ", " + ParamToStr(idName, decoded.packedVectorFormat) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::SUDot:
     {
       OpSUDot decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SUDot(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
+      ret += rdcstr("SUDot("_lit)
+           + ParamToStr(idName, decoded.vector1)
+           + ", "
+           + ParamToStr(idName, decoded.vector2)
+           + (5 < size ? ", " + ParamToStr(idName, decoded.packedVectorFormat) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::SDotAccSat:
     {
       OpSDotAccSat decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SDotAccSat(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.accumulator) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
+      ret += rdcstr("SDotAccSat("_lit)
+           + ParamToStr(idName, decoded.vector1)
+           + ", "
+           + ParamToStr(idName, decoded.vector2)
+           + ", "
+           + ParamToStr(idName, decoded.accumulator)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.packedVectorFormat) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::UDotAccSat:
     {
       OpUDotAccSat decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UDotAccSat(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.accumulator) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
+      ret += rdcstr("UDotAccSat("_lit)
+           + ParamToStr(idName, decoded.vector1)
+           + ", "
+           + ParamToStr(idName, decoded.vector2)
+           + ", "
+           + ParamToStr(idName, decoded.accumulator)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.packedVectorFormat) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::SUDotAccSat:
     {
       OpSUDotAccSat decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SUDotAccSat(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.accumulator) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
+      ret += rdcstr("SUDotAccSat("_lit)
+           + ParamToStr(idName, decoded.vector1)
+           + ", "
+           + ParamToStr(idName, decoded.vector2)
+           + ", "
+           + ParamToStr(idName, decoded.accumulator)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.packedVectorFormat) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::TypeRayQueryKHR:
     {
       OpTypeRayQueryKHR decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeRayQueryKHR(" ")";
+      ret += rdcstr("TypeRayQueryKHR("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryInitializeKHR:
     {
       OpRayQueryInitializeKHR decoded(it);
-      ret += "RayQueryInitializeKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.accel) + ", " + ParamToStr(idName, decoded.rayFlags) + ", " + ParamToStr(idName, decoded.cullMask) + ", " + ParamToStr(idName, decoded.rayOrigin) + ", " + ParamToStr(idName, decoded.rayTMin) + ", " + ParamToStr(idName, decoded.rayDirection) + ", " + ParamToStr(idName, decoded.rayTMax) + ")";
+      ret += rdcstr("RayQueryInitializeKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.accel)
+           + ", "
+           + ParamToStr(idName, decoded.rayFlags)
+           + ", "
+           + ParamToStr(idName, decoded.cullMask)
+           + ", "
+           + ParamToStr(idName, decoded.rayOrigin)
+           + ", "
+           + ParamToStr(idName, decoded.rayTMin)
+           + ", "
+           + ParamToStr(idName, decoded.rayDirection)
+           + ", "
+           + ParamToStr(idName, decoded.rayTMax)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryTerminateKHR:
     {
       OpRayQueryTerminateKHR decoded(it);
-      ret += "RayQueryTerminateKHR(" + ParamToStr(idName, decoded.rayQuery) + ")";
+      ret += rdcstr("RayQueryTerminateKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGenerateIntersectionKHR:
     {
       OpRayQueryGenerateIntersectionKHR decoded(it);
-      ret += "RayQueryGenerateIntersectionKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.hitT) + ")";
+      ret += rdcstr("RayQueryGenerateIntersectionKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.hitT)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryConfirmIntersectionKHR:
     {
       OpRayQueryConfirmIntersectionKHR decoded(it);
-      ret += "RayQueryConfirmIntersectionKHR(" + ParamToStr(idName, decoded.rayQuery) + ")";
+      ret += rdcstr("RayQueryConfirmIntersectionKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryProceedKHR:
     {
       OpRayQueryProceedKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryProceedKHR(" + ParamToStr(idName, decoded.rayQuery) + ")";
+      ret += rdcstr("RayQueryProceedKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetIntersectionTypeKHR:
     {
       OpRayQueryGetIntersectionTypeKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetIntersectionTypeKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
+      ret += rdcstr("RayQueryGetIntersectionTypeKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.intersection)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSampleWeightedQCOM:
     {
       OpImageSampleWeightedQCOM decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSampleWeightedQCOM(" + ParamToStr(idName, decoded.texture) + ", " + ParamToStr(idName, decoded.coordinates) + ", " + ParamToStr(idName, decoded.weights) + ")";
+      ret += rdcstr("ImageSampleWeightedQCOM("_lit)
+           + ParamToStr(idName, decoded.texture)
+           + ", "
+           + ParamToStr(idName, decoded.coordinates)
+           + ", "
+           + ParamToStr(idName, decoded.weights)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageBoxFilterQCOM:
     {
       OpImageBoxFilterQCOM decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageBoxFilterQCOM(" + ParamToStr(idName, decoded.texture) + ", " + ParamToStr(idName, decoded.coordinates) + ", " + ParamToStr(idName, decoded.boxSize) + ")";
+      ret += rdcstr("ImageBoxFilterQCOM("_lit)
+           + ParamToStr(idName, decoded.texture)
+           + ", "
+           + ParamToStr(idName, decoded.coordinates)
+           + ", "
+           + ParamToStr(idName, decoded.boxSize)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageBlockMatchSSDQCOM:
     {
       OpImageBlockMatchSSDQCOM decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageBlockMatchSSDQCOM(" + ParamToStr(idName, decoded.target) + ", " + ParamToStr(idName, decoded.targetCoordinates) + ", " + ParamToStr(idName, decoded.reference) + ", " + ParamToStr(idName, decoded.referenceCoordinates) + ", " + ParamToStr(idName, decoded.blockSize) + ")";
+      ret += rdcstr("ImageBlockMatchSSDQCOM("_lit)
+           + ParamToStr(idName, decoded.target)
+           + ", "
+           + ParamToStr(idName, decoded.targetCoordinates)
+           + ", "
+           + ParamToStr(idName, decoded.reference)
+           + ", "
+           + ParamToStr(idName, decoded.referenceCoordinates)
+           + ", "
+           + ParamToStr(idName, decoded.blockSize)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageBlockMatchSADQCOM:
     {
       OpImageBlockMatchSADQCOM decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageBlockMatchSADQCOM(" + ParamToStr(idName, decoded.target) + ", " + ParamToStr(idName, decoded.targetCoordinates) + ", " + ParamToStr(idName, decoded.reference) + ", " + ParamToStr(idName, decoded.referenceCoordinates) + ", " + ParamToStr(idName, decoded.blockSize) + ")";
+      ret += rdcstr("ImageBlockMatchSADQCOM("_lit)
+           + ParamToStr(idName, decoded.target)
+           + ", "
+           + ParamToStr(idName, decoded.targetCoordinates)
+           + ", "
+           + ParamToStr(idName, decoded.reference)
+           + ", "
+           + ParamToStr(idName, decoded.referenceCoordinates)
+           + ", "
+           + ParamToStr(idName, decoded.blockSize)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupIAddNonUniformAMD:
     {
       OpGroupIAddNonUniformAMD decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupIAddNonUniformAMD(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupIAddNonUniformAMD("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupFAddNonUniformAMD:
     {
       OpGroupFAddNonUniformAMD decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupFAddNonUniformAMD(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupFAddNonUniformAMD("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupFMinNonUniformAMD:
     {
       OpGroupFMinNonUniformAMD decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupFMinNonUniformAMD(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupFMinNonUniformAMD("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupUMinNonUniformAMD:
     {
       OpGroupUMinNonUniformAMD decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupUMinNonUniformAMD(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupUMinNonUniformAMD("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupSMinNonUniformAMD:
     {
       OpGroupSMinNonUniformAMD decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupSMinNonUniformAMD(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupSMinNonUniformAMD("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupFMaxNonUniformAMD:
     {
       OpGroupFMaxNonUniformAMD decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupFMaxNonUniformAMD(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupFMaxNonUniformAMD("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupUMaxNonUniformAMD:
     {
       OpGroupUMaxNonUniformAMD decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupUMaxNonUniformAMD(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupUMaxNonUniformAMD("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupSMaxNonUniformAMD:
     {
       OpGroupSMaxNonUniformAMD decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupSMaxNonUniformAMD(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupSMaxNonUniformAMD("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::FragmentMaskFetchAMD:
     {
       OpFragmentMaskFetchAMD decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FragmentMaskFetchAMD(" + ParamToStr(idName, decoded.image) + ", " + ParamToStr(idName, decoded.coordinate) + ")";
+      ret += rdcstr("FragmentMaskFetchAMD("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ")";
       break;
     }
     case rdcspv::Op::FragmentFetchAMD:
     {
       OpFragmentFetchAMD decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "FragmentFetchAMD(" + ParamToStr(idName, decoded.image) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.fragmentIndex) + ")";
+      ret += rdcstr("FragmentFetchAMD("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.fragmentIndex)
+           + ")";
       break;
     }
     case rdcspv::Op::ReadClockKHR:
     {
       OpReadClockKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ReadClockKHR(" + ToStr(Scope(constIntVal(decoded.scope))) + ")";
+      ret += rdcstr("ReadClockKHR("_lit)
+           + ToStr(Scope(constIntVal(decoded.scope)))
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectRecordHitMotionNV:
     {
       OpHitObjectRecordHitMotionNV decoded(it);
-      ret += "HitObjectRecordHitMotionNV(" + ParamToStr(idName, decoded.hitObject) + ", " + ParamToStr(idName, decoded.accelerationStructure) + ", " + ParamToStr(idName, decoded.instanceId) + ", " + ParamToStr(idName, decoded.primitiveId) + ", " + ParamToStr(idName, decoded.geometryIndex) + ", " + ParamToStr(idName, decoded.hitKind) + ", " + ParamToStr(idName, decoded.sBTRecordOffset) + ", " + ParamToStr(idName, decoded.sBTRecordStride) + ", " + ParamToStr(idName, decoded.origin) + ", " + ParamToStr(idName, decoded.tMin) + ", " + ParamToStr(idName, decoded.direction) + ", " + ParamToStr(idName, decoded.tMax) + ", " + ParamToStr(idName, decoded.currentTime) + ", " + ParamToStr(idName, decoded.hitObjectAttributes) + ")";
+      ret += rdcstr("HitObjectRecordHitMotionNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ", "
+           + ParamToStr(idName, decoded.accelerationStructure)
+           + ", "
+           + ParamToStr(idName, decoded.instanceId)
+           + ", "
+           + ParamToStr(idName, decoded.primitiveId)
+           + ", "
+           + ParamToStr(idName, decoded.geometryIndex)
+           + ", "
+           + ParamToStr(idName, decoded.hitKind)
+           + ", "
+           + ParamToStr(idName, decoded.sBTRecordOffset)
+           + ", "
+           + ParamToStr(idName, decoded.sBTRecordStride)
+           + ", "
+           + ParamToStr(idName, decoded.origin)
+           + ", "
+           + ParamToStr(idName, decoded.tMin)
+           + ", "
+           + ParamToStr(idName, decoded.direction)
+           + ", "
+           + ParamToStr(idName, decoded.tMax)
+           + ", "
+           + ParamToStr(idName, decoded.currentTime)
+           + ", "
+           + ParamToStr(idName, decoded.hitObjectAttributes)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectRecordHitWithIndexMotionNV:
     {
       OpHitObjectRecordHitWithIndexMotionNV decoded(it);
-      ret += "HitObjectRecordHitWithIndexMotionNV(" + ParamToStr(idName, decoded.hitObject) + ", " + ParamToStr(idName, decoded.accelerationStructure) + ", " + ParamToStr(idName, decoded.instanceId) + ", " + ParamToStr(idName, decoded.primitiveId) + ", " + ParamToStr(idName, decoded.geometryIndex) + ", " + ParamToStr(idName, decoded.hitKind) + ", " + ParamToStr(idName, decoded.sBTRecordIndex) + ", " + ParamToStr(idName, decoded.origin) + ", " + ParamToStr(idName, decoded.tMin) + ", " + ParamToStr(idName, decoded.direction) + ", " + ParamToStr(idName, decoded.tMax) + ", " + ParamToStr(idName, decoded.currentTime) + ", " + ParamToStr(idName, decoded.hitObjectAttributes) + ")";
+      ret += rdcstr("HitObjectRecordHitWithIndexMotionNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ", "
+           + ParamToStr(idName, decoded.accelerationStructure)
+           + ", "
+           + ParamToStr(idName, decoded.instanceId)
+           + ", "
+           + ParamToStr(idName, decoded.primitiveId)
+           + ", "
+           + ParamToStr(idName, decoded.geometryIndex)
+           + ", "
+           + ParamToStr(idName, decoded.hitKind)
+           + ", "
+           + ParamToStr(idName, decoded.sBTRecordIndex)
+           + ", "
+           + ParamToStr(idName, decoded.origin)
+           + ", "
+           + ParamToStr(idName, decoded.tMin)
+           + ", "
+           + ParamToStr(idName, decoded.direction)
+           + ", "
+           + ParamToStr(idName, decoded.tMax)
+           + ", "
+           + ParamToStr(idName, decoded.currentTime)
+           + ", "
+           + ParamToStr(idName, decoded.hitObjectAttributes)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectRecordMissMotionNV:
     {
       OpHitObjectRecordMissMotionNV decoded(it);
-      ret += "HitObjectRecordMissMotionNV(" + ParamToStr(idName, decoded.hitObject) + ", " + ParamToStr(idName, decoded.sBTIndex) + ", " + ParamToStr(idName, decoded.origin) + ", " + ParamToStr(idName, decoded.tMin) + ", " + ParamToStr(idName, decoded.direction) + ", " + ParamToStr(idName, decoded.tMax) + ", " + ParamToStr(idName, decoded.currentTime) + ")";
+      ret += rdcstr("HitObjectRecordMissMotionNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ", "
+           + ParamToStr(idName, decoded.sBTIndex)
+           + ", "
+           + ParamToStr(idName, decoded.origin)
+           + ", "
+           + ParamToStr(idName, decoded.tMin)
+           + ", "
+           + ParamToStr(idName, decoded.direction)
+           + ", "
+           + ParamToStr(idName, decoded.tMax)
+           + ", "
+           + ParamToStr(idName, decoded.currentTime)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetWorldToObjectNV:
     {
       OpHitObjectGetWorldToObjectNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetWorldToObjectNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetWorldToObjectNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetObjectToWorldNV:
     {
       OpHitObjectGetObjectToWorldNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetObjectToWorldNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetObjectToWorldNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetObjectRayDirectionNV:
     {
       OpHitObjectGetObjectRayDirectionNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetObjectRayDirectionNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetObjectRayDirectionNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetObjectRayOriginNV:
     {
       OpHitObjectGetObjectRayOriginNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetObjectRayOriginNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetObjectRayOriginNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectTraceRayMotionNV:
     {
       OpHitObjectTraceRayMotionNV decoded(it);
-      ret += "HitObjectTraceRayMotionNV(" + ParamToStr(idName, decoded.hitObject) + ", " + ParamToStr(idName, decoded.accelerationStructure) + ", " + ParamToStr(idName, decoded.rayFlags) + ", " + ParamToStr(idName, decoded.cullmask) + ", " + ParamToStr(idName, decoded.sBTRecordOffset) + ", " + ParamToStr(idName, decoded.sBTRecordStride) + ", " + ParamToStr(idName, decoded.missIndex) + ", " + ParamToStr(idName, decoded.origin) + ", " + ParamToStr(idName, decoded.tMin) + ", " + ParamToStr(idName, decoded.direction) + ", " + ParamToStr(idName, decoded.tMax) + ", " + ParamToStr(idName, decoded.time) + ", " + ParamToStr(idName, decoded.payload) + ")";
+      ret += rdcstr("HitObjectTraceRayMotionNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ", "
+           + ParamToStr(idName, decoded.accelerationStructure)
+           + ", "
+           + ParamToStr(idName, decoded.rayFlags)
+           + ", "
+           + ParamToStr(idName, decoded.cullmask)
+           + ", "
+           + ParamToStr(idName, decoded.sBTRecordOffset)
+           + ", "
+           + ParamToStr(idName, decoded.sBTRecordStride)
+           + ", "
+           + ParamToStr(idName, decoded.missIndex)
+           + ", "
+           + ParamToStr(idName, decoded.origin)
+           + ", "
+           + ParamToStr(idName, decoded.tMin)
+           + ", "
+           + ParamToStr(idName, decoded.direction)
+           + ", "
+           + ParamToStr(idName, decoded.tMax)
+           + ", "
+           + ParamToStr(idName, decoded.time)
+           + ", "
+           + ParamToStr(idName, decoded.payload)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetShaderRecordBufferHandleNV:
     {
       OpHitObjectGetShaderRecordBufferHandleNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetShaderRecordBufferHandleNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetShaderRecordBufferHandleNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetShaderBindingTableRecordIndexNV:
     {
       OpHitObjectGetShaderBindingTableRecordIndexNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetShaderBindingTableRecordIndexNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetShaderBindingTableRecordIndexNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectRecordEmptyNV:
     {
       OpHitObjectRecordEmptyNV decoded(it);
-      ret += "HitObjectRecordEmptyNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectRecordEmptyNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectTraceRayNV:
     {
       OpHitObjectTraceRayNV decoded(it);
-      ret += "HitObjectTraceRayNV(" + ParamToStr(idName, decoded.hitObject) + ", " + ParamToStr(idName, decoded.accelerationStructure) + ", " + ParamToStr(idName, decoded.rayFlags) + ", " + ParamToStr(idName, decoded.cullmask) + ", " + ParamToStr(idName, decoded.sBTRecordOffset) + ", " + ParamToStr(idName, decoded.sBTRecordStride) + ", " + ParamToStr(idName, decoded.missIndex) + ", " + ParamToStr(idName, decoded.origin) + ", " + ParamToStr(idName, decoded.tMin) + ", " + ParamToStr(idName, decoded.direction) + ", " + ParamToStr(idName, decoded.tMax) + ", " + ParamToStr(idName, decoded.payload) + ")";
+      ret += rdcstr("HitObjectTraceRayNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ", "
+           + ParamToStr(idName, decoded.accelerationStructure)
+           + ", "
+           + ParamToStr(idName, decoded.rayFlags)
+           + ", "
+           + ParamToStr(idName, decoded.cullmask)
+           + ", "
+           + ParamToStr(idName, decoded.sBTRecordOffset)
+           + ", "
+           + ParamToStr(idName, decoded.sBTRecordStride)
+           + ", "
+           + ParamToStr(idName, decoded.missIndex)
+           + ", "
+           + ParamToStr(idName, decoded.origin)
+           + ", "
+           + ParamToStr(idName, decoded.tMin)
+           + ", "
+           + ParamToStr(idName, decoded.direction)
+           + ", "
+           + ParamToStr(idName, decoded.tMax)
+           + ", "
+           + ParamToStr(idName, decoded.payload)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectRecordHitNV:
     {
       OpHitObjectRecordHitNV decoded(it);
-      ret += "HitObjectRecordHitNV(" + ParamToStr(idName, decoded.hitObject) + ", " + ParamToStr(idName, decoded.accelerationStructure) + ", " + ParamToStr(idName, decoded.instanceId) + ", " + ParamToStr(idName, decoded.primitiveId) + ", " + ParamToStr(idName, decoded.geometryIndex) + ", " + ParamToStr(idName, decoded.hitKind) + ", " + ParamToStr(idName, decoded.sBTRecordOffset) + ", " + ParamToStr(idName, decoded.sBTRecordStride) + ", " + ParamToStr(idName, decoded.origin) + ", " + ParamToStr(idName, decoded.tMin) + ", " + ParamToStr(idName, decoded.direction) + ", " + ParamToStr(idName, decoded.tMax) + ", " + ParamToStr(idName, decoded.hitObjectAttributes) + ")";
+      ret += rdcstr("HitObjectRecordHitNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ", "
+           + ParamToStr(idName, decoded.accelerationStructure)
+           + ", "
+           + ParamToStr(idName, decoded.instanceId)
+           + ", "
+           + ParamToStr(idName, decoded.primitiveId)
+           + ", "
+           + ParamToStr(idName, decoded.geometryIndex)
+           + ", "
+           + ParamToStr(idName, decoded.hitKind)
+           + ", "
+           + ParamToStr(idName, decoded.sBTRecordOffset)
+           + ", "
+           + ParamToStr(idName, decoded.sBTRecordStride)
+           + ", "
+           + ParamToStr(idName, decoded.origin)
+           + ", "
+           + ParamToStr(idName, decoded.tMin)
+           + ", "
+           + ParamToStr(idName, decoded.direction)
+           + ", "
+           + ParamToStr(idName, decoded.tMax)
+           + ", "
+           + ParamToStr(idName, decoded.hitObjectAttributes)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectRecordHitWithIndexNV:
     {
       OpHitObjectRecordHitWithIndexNV decoded(it);
-      ret += "HitObjectRecordHitWithIndexNV(" + ParamToStr(idName, decoded.hitObject) + ", " + ParamToStr(idName, decoded.accelerationStructure) + ", " + ParamToStr(idName, decoded.instanceId) + ", " + ParamToStr(idName, decoded.primitiveId) + ", " + ParamToStr(idName, decoded.geometryIndex) + ", " + ParamToStr(idName, decoded.hitKind) + ", " + ParamToStr(idName, decoded.sBTRecordIndex) + ", " + ParamToStr(idName, decoded.origin) + ", " + ParamToStr(idName, decoded.tMin) + ", " + ParamToStr(idName, decoded.direction) + ", " + ParamToStr(idName, decoded.tMax) + ", " + ParamToStr(idName, decoded.hitObjectAttributes) + ")";
+      ret += rdcstr("HitObjectRecordHitWithIndexNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ", "
+           + ParamToStr(idName, decoded.accelerationStructure)
+           + ", "
+           + ParamToStr(idName, decoded.instanceId)
+           + ", "
+           + ParamToStr(idName, decoded.primitiveId)
+           + ", "
+           + ParamToStr(idName, decoded.geometryIndex)
+           + ", "
+           + ParamToStr(idName, decoded.hitKind)
+           + ", "
+           + ParamToStr(idName, decoded.sBTRecordIndex)
+           + ", "
+           + ParamToStr(idName, decoded.origin)
+           + ", "
+           + ParamToStr(idName, decoded.tMin)
+           + ", "
+           + ParamToStr(idName, decoded.direction)
+           + ", "
+           + ParamToStr(idName, decoded.tMax)
+           + ", "
+           + ParamToStr(idName, decoded.hitObjectAttributes)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectRecordMissNV:
     {
       OpHitObjectRecordMissNV decoded(it);
-      ret += "HitObjectRecordMissNV(" + ParamToStr(idName, decoded.hitObject) + ", " + ParamToStr(idName, decoded.sBTIndex) + ", " + ParamToStr(idName, decoded.origin) + ", " + ParamToStr(idName, decoded.tMin) + ", " + ParamToStr(idName, decoded.direction) + ", " + ParamToStr(idName, decoded.tMax) + ")";
+      ret += rdcstr("HitObjectRecordMissNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ", "
+           + ParamToStr(idName, decoded.sBTIndex)
+           + ", "
+           + ParamToStr(idName, decoded.origin)
+           + ", "
+           + ParamToStr(idName, decoded.tMin)
+           + ", "
+           + ParamToStr(idName, decoded.direction)
+           + ", "
+           + ParamToStr(idName, decoded.tMax)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectExecuteShaderNV:
     {
       OpHitObjectExecuteShaderNV decoded(it);
-      ret += "HitObjectExecuteShaderNV(" + ParamToStr(idName, decoded.hitObject) + ", " + ParamToStr(idName, decoded.payload) + ")";
+      ret += rdcstr("HitObjectExecuteShaderNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ", "
+           + ParamToStr(idName, decoded.payload)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetCurrentTimeNV:
     {
       OpHitObjectGetCurrentTimeNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetCurrentTimeNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetCurrentTimeNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetAttributesNV:
     {
       OpHitObjectGetAttributesNV decoded(it);
-      ret += "HitObjectGetAttributesNV(" + ParamToStr(idName, decoded.hitObject) + ", " + ParamToStr(idName, decoded.hitObjectAttribute) + ")";
+      ret += rdcstr("HitObjectGetAttributesNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ", "
+           + ParamToStr(idName, decoded.hitObjectAttribute)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetHitKindNV:
     {
       OpHitObjectGetHitKindNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetHitKindNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetHitKindNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetPrimitiveIndexNV:
     {
       OpHitObjectGetPrimitiveIndexNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetPrimitiveIndexNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetPrimitiveIndexNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetGeometryIndexNV:
     {
       OpHitObjectGetGeometryIndexNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetGeometryIndexNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetGeometryIndexNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetInstanceIdNV:
     {
       OpHitObjectGetInstanceIdNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetInstanceIdNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetInstanceIdNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetInstanceCustomIndexNV:
     {
       OpHitObjectGetInstanceCustomIndexNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetInstanceCustomIndexNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetInstanceCustomIndexNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetWorldRayDirectionNV:
     {
       OpHitObjectGetWorldRayDirectionNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetWorldRayDirectionNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetWorldRayDirectionNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetWorldRayOriginNV:
     {
       OpHitObjectGetWorldRayOriginNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetWorldRayOriginNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetWorldRayOriginNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetRayTMaxNV:
     {
       OpHitObjectGetRayTMaxNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetRayTMaxNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetRayTMaxNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectGetRayTMinNV:
     {
       OpHitObjectGetRayTMinNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectGetRayTMinNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectGetRayTMinNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectIsEmptyNV:
     {
       OpHitObjectIsEmptyNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectIsEmptyNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectIsEmptyNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectIsHitNV:
     {
       OpHitObjectIsHitNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectIsHitNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectIsHitNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::HitObjectIsMissNV:
     {
       OpHitObjectIsMissNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "HitObjectIsMissNV(" + ParamToStr(idName, decoded.hitObject) + ")";
+      ret += rdcstr("HitObjectIsMissNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + ")";
       break;
     }
     case rdcspv::Op::ReorderThreadWithHitObjectNV:
     {
       OpReorderThreadWithHitObjectNV decoded(it);
-      ret += "ReorderThreadWithHitObjectNV(" + ParamToStr(idName, decoded.hitObject) + ", " + ParamToStr(idName, decoded.hint) + ", " + ParamToStr(idName, decoded.bits) + ")";
+      ret += rdcstr("ReorderThreadWithHitObjectNV("_lit)
+           + ParamToStr(idName, decoded.hitObject)
+           + (2 < size ? ", " + ParamToStr(idName, decoded.hint) : "")
+           + (3 < size ? ", " + ParamToStr(idName, decoded.bits) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::ReorderThreadWithHintNV:
     {
       OpReorderThreadWithHintNV decoded(it);
-      ret += "ReorderThreadWithHintNV(" + ParamToStr(idName, decoded.hint) + ", " + ParamToStr(idName, decoded.bits) + ")";
+      ret += rdcstr("ReorderThreadWithHintNV("_lit)
+           + ParamToStr(idName, decoded.hint)
+           + ", "
+           + ParamToStr(idName, decoded.bits)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeHitObjectNV:
     {
       OpTypeHitObjectNV decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeHitObjectNV(" ")";
+      ret += rdcstr("TypeHitObjectNV("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::ImageSampleFootprintNV:
     {
       OpImageSampleFootprintNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ImageSampleFootprintNV(" + ParamToStr(idName, decoded.sampledImage) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.granularity) + ", " + ParamToStr(idName, decoded.coarse) + ", " + ParamToStr(idName, decoded.imageOperands) + ")";
+      ret += rdcstr("ImageSampleFootprintNV("_lit)
+           + ParamToStr(idName, decoded.sampledImage)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.granularity)
+           + ", "
+           + ParamToStr(idName, decoded.coarse)
+           + (7 < size ? ", " + ParamToStr(idName, decoded.imageOperands) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::EmitMeshTasksEXT:
     {
       OpEmitMeshTasksEXT decoded(it);
-      ret += "EmitMeshTasksEXT(" + ParamToStr(idName, decoded.groupCountX) + ", " + ParamToStr(idName, decoded.groupCountY) + ", " + ParamToStr(idName, decoded.groupCountZ) + ", " + ParamToStr(idName, decoded.payload) + ")";
+      ret += rdcstr("EmitMeshTasksEXT("_lit)
+           + ParamToStr(idName, decoded.groupCountX)
+           + ", "
+           + ParamToStr(idName, decoded.groupCountY)
+           + ", "
+           + ParamToStr(idName, decoded.groupCountZ)
+           + (4 < size ? ", " + ParamToStr(idName, decoded.payload) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::SetMeshOutputsEXT:
     {
       OpSetMeshOutputsEXT decoded(it);
-      ret += "SetMeshOutputsEXT(" + ParamToStr(idName, decoded.vertexCount) + ", " + ParamToStr(idName, decoded.primitiveCount) + ")";
+      ret += rdcstr("SetMeshOutputsEXT("_lit)
+           + ParamToStr(idName, decoded.vertexCount)
+           + ", "
+           + ParamToStr(idName, decoded.primitiveCount)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupNonUniformPartitionNV:
     {
       OpGroupNonUniformPartitionNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupNonUniformPartitionNV(" + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("GroupNonUniformPartitionNV("_lit)
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::WritePackedPrimitiveIndices4x8NV:
     {
       OpWritePackedPrimitiveIndices4x8NV decoded(it);
-      ret += "WritePackedPrimitiveIndices4x8NV(" + ParamToStr(idName, decoded.indexOffset) + ", " + ParamToStr(idName, decoded.packedIndices) + ")";
+      ret += rdcstr("WritePackedPrimitiveIndices4x8NV("_lit)
+           + ParamToStr(idName, decoded.indexOffset)
+           + ", "
+           + ParamToStr(idName, decoded.packedIndices)
+           + ")";
       break;
     }
     case rdcspv::Op::ReportIntersectionNV:
     {
       OpReportIntersectionNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ReportIntersectionNV(" + ParamToStr(idName, decoded.hit) + ", " + ParamToStr(idName, decoded.hitKind) + ")";
+      ret += rdcstr("ReportIntersectionNV("_lit)
+           + ParamToStr(idName, decoded.hit)
+           + ", "
+           + ParamToStr(idName, decoded.hitKind)
+           + ")";
       break;
     }
     case rdcspv::Op::IgnoreIntersectionNV:
     {
       OpIgnoreIntersectionNV decoded(it);
-      ret += "IgnoreIntersectionNV(" ")";
+      ret += rdcstr("IgnoreIntersectionNV("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::TerminateRayNV:
     {
       OpTerminateRayNV decoded(it);
-      ret += "TerminateRayNV(" ")";
+      ret += rdcstr("TerminateRayNV("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::TraceNV:
     {
       OpTraceNV decoded(it);
-      ret += "TraceNV(" + ParamToStr(idName, decoded.accel) + ", " + ParamToStr(idName, decoded.rayFlags) + ", " + ParamToStr(idName, decoded.cullMask) + ", " + ParamToStr(idName, decoded.sBTOffset) + ", " + ParamToStr(idName, decoded.sBTStride) + ", " + ParamToStr(idName, decoded.missIndex) + ", " + ParamToStr(idName, decoded.rayOrigin) + ", " + ParamToStr(idName, decoded.rayTmin) + ", " + ParamToStr(idName, decoded.rayDirection) + ", " + ParamToStr(idName, decoded.rayTmax) + ", " + ParamToStr(idName, decoded.payloadId) + ")";
+      ret += rdcstr("TraceNV("_lit)
+           + ParamToStr(idName, decoded.accel)
+           + ", "
+           + ParamToStr(idName, decoded.rayFlags)
+           + ", "
+           + ParamToStr(idName, decoded.cullMask)
+           + ", "
+           + ParamToStr(idName, decoded.sBTOffset)
+           + ", "
+           + ParamToStr(idName, decoded.sBTStride)
+           + ", "
+           + ParamToStr(idName, decoded.missIndex)
+           + ", "
+           + ParamToStr(idName, decoded.rayOrigin)
+           + ", "
+           + ParamToStr(idName, decoded.rayTmin)
+           + ", "
+           + ParamToStr(idName, decoded.rayDirection)
+           + ", "
+           + ParamToStr(idName, decoded.rayTmax)
+           + ", "
+           + ParamToStr(idName, decoded.payloadId)
+           + ")";
       break;
     }
     case rdcspv::Op::TraceMotionNV:
     {
       OpTraceMotionNV decoded(it);
-      ret += "TraceMotionNV(" + ParamToStr(idName, decoded.accel) + ", " + ParamToStr(idName, decoded.rayFlags) + ", " + ParamToStr(idName, decoded.cullMask) + ", " + ParamToStr(idName, decoded.sBTOffset) + ", " + ParamToStr(idName, decoded.sBTStride) + ", " + ParamToStr(idName, decoded.missIndex) + ", " + ParamToStr(idName, decoded.rayOrigin) + ", " + ParamToStr(idName, decoded.rayTmin) + ", " + ParamToStr(idName, decoded.rayDirection) + ", " + ParamToStr(idName, decoded.rayTmax) + ", " + ParamToStr(idName, decoded.time) + ", " + ParamToStr(idName, decoded.payloadId) + ")";
+      ret += rdcstr("TraceMotionNV("_lit)
+           + ParamToStr(idName, decoded.accel)
+           + ", "
+           + ParamToStr(idName, decoded.rayFlags)
+           + ", "
+           + ParamToStr(idName, decoded.cullMask)
+           + ", "
+           + ParamToStr(idName, decoded.sBTOffset)
+           + ", "
+           + ParamToStr(idName, decoded.sBTStride)
+           + ", "
+           + ParamToStr(idName, decoded.missIndex)
+           + ", "
+           + ParamToStr(idName, decoded.rayOrigin)
+           + ", "
+           + ParamToStr(idName, decoded.rayTmin)
+           + ", "
+           + ParamToStr(idName, decoded.rayDirection)
+           + ", "
+           + ParamToStr(idName, decoded.rayTmax)
+           + ", "
+           + ParamToStr(idName, decoded.time)
+           + ", "
+           + ParamToStr(idName, decoded.payloadId)
+           + ")";
       break;
     }
     case rdcspv::Op::TraceRayMotionNV:
     {
       OpTraceRayMotionNV decoded(it);
-      ret += "TraceRayMotionNV(" + ParamToStr(idName, decoded.accel) + ", " + ParamToStr(idName, decoded.rayFlags) + ", " + ParamToStr(idName, decoded.cullMask) + ", " + ParamToStr(idName, decoded.sBTOffset) + ", " + ParamToStr(idName, decoded.sBTStride) + ", " + ParamToStr(idName, decoded.missIndex) + ", " + ParamToStr(idName, decoded.rayOrigin) + ", " + ParamToStr(idName, decoded.rayTmin) + ", " + ParamToStr(idName, decoded.rayDirection) + ", " + ParamToStr(idName, decoded.rayTmax) + ", " + ParamToStr(idName, decoded.time) + ", " + ParamToStr(idName, decoded.payload) + ")";
+      ret += rdcstr("TraceRayMotionNV("_lit)
+           + ParamToStr(idName, decoded.accel)
+           + ", "
+           + ParamToStr(idName, decoded.rayFlags)
+           + ", "
+           + ParamToStr(idName, decoded.cullMask)
+           + ", "
+           + ParamToStr(idName, decoded.sBTOffset)
+           + ", "
+           + ParamToStr(idName, decoded.sBTStride)
+           + ", "
+           + ParamToStr(idName, decoded.missIndex)
+           + ", "
+           + ParamToStr(idName, decoded.rayOrigin)
+           + ", "
+           + ParamToStr(idName, decoded.rayTmin)
+           + ", "
+           + ParamToStr(idName, decoded.rayDirection)
+           + ", "
+           + ParamToStr(idName, decoded.rayTmax)
+           + ", "
+           + ParamToStr(idName, decoded.time)
+           + ", "
+           + ParamToStr(idName, decoded.payload)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetIntersectionTriangleVertexPositionsKHR:
     {
       OpRayQueryGetIntersectionTriangleVertexPositionsKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetIntersectionTriangleVertexPositionsKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
+      ret += rdcstr("RayQueryGetIntersectionTriangleVertexPositionsKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.intersection)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeAccelerationStructureNV:
     {
       OpTypeAccelerationStructureNV decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeAccelerationStructureNV(" ")";
+      ret += rdcstr("TypeAccelerationStructureNV("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::ExecuteCallableNV:
     {
       OpExecuteCallableNV decoded(it);
-      ret += "ExecuteCallableNV(" + ParamToStr(idName, decoded.sBTIndex) + ", " + ParamToStr(idName, decoded.callableDataId) + ")";
+      ret += rdcstr("ExecuteCallableNV("_lit)
+           + ParamToStr(idName, decoded.sBTIndex)
+           + ", "
+           + ParamToStr(idName, decoded.callableDataId)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeCooperativeMatrixNV:
     {
       OpTypeCooperativeMatrixNV decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeCooperativeMatrixNV(" + ParamToStr(idName, decoded.componentType) + ", " + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.rows) + ", " + ParamToStr(idName, decoded.columns) + ")";
+      ret += rdcstr("TypeCooperativeMatrixNV("_lit)
+           + ParamToStr(idName, decoded.componentType)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.rows)
+           + ", "
+           + ParamToStr(idName, decoded.columns)
+           + ")";
       break;
     }
     case rdcspv::Op::CooperativeMatrixLoadNV:
     {
       OpCooperativeMatrixLoadNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "CooperativeMatrixLoadNV(" + ParamToStr(idName, decoded.pointer) + ", " + ParamToStr(idName, decoded.stride) + ", " + ParamToStr(idName, decoded.columnMajor) + ", " + ParamToStr(idName, decoded.memoryAccess) + ")";
+      ret += rdcstr("CooperativeMatrixLoadNV("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ParamToStr(idName, decoded.stride)
+           + ", "
+           + ParamToStr(idName, decoded.columnMajor)
+           + (6 < size ? ", " + ParamToStr(idName, decoded.memoryAccess) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::CooperativeMatrixStoreNV:
     {
       OpCooperativeMatrixStoreNV decoded(it);
-      ret += "CooperativeMatrixStoreNV(" + ParamToStr(idName, decoded.pointer) + ", " + ParamToStr(idName, decoded.object) + ", " + ParamToStr(idName, decoded.stride) + ", " + ParamToStr(idName, decoded.columnMajor) + ", " + ParamToStr(idName, decoded.memoryAccess) + ")";
+      ret += rdcstr("CooperativeMatrixStoreNV("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ParamToStr(idName, decoded.object)
+           + ", "
+           + ParamToStr(idName, decoded.stride)
+           + ", "
+           + ParamToStr(idName, decoded.columnMajor)
+           + (5 < size ? ", " + ParamToStr(idName, decoded.memoryAccess) : "")
+           + ")";
       break;
     }
     case rdcspv::Op::CooperativeMatrixMulAddNV:
     {
       OpCooperativeMatrixMulAddNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "CooperativeMatrixMulAddNV(" + ParamToStr(idName, decoded.a) + ", " + ParamToStr(idName, decoded.b) + ", " + ParamToStr(idName, decoded.c) + ")";
+      ret += rdcstr("CooperativeMatrixMulAddNV("_lit)
+           + ParamToStr(idName, decoded.a)
+           + ", "
+           + ParamToStr(idName, decoded.b)
+           + ", "
+           + ParamToStr(idName, decoded.c)
+           + ")";
       break;
     }
     case rdcspv::Op::CooperativeMatrixLengthNV:
     {
       OpCooperativeMatrixLengthNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "CooperativeMatrixLengthNV(" + ParamToStr(idName, decoded.type) + ")";
+      ret += rdcstr("CooperativeMatrixLengthNV("_lit)
+           + ParamToStr(idName, decoded.type)
+           + ")";
       break;
     }
     case rdcspv::Op::BeginInvocationInterlockEXT:
     {
       OpBeginInvocationInterlockEXT decoded(it);
-      ret += "BeginInvocationInterlockEXT(" ")";
+      ret += rdcstr("BeginInvocationInterlockEXT("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::EndInvocationInterlockEXT:
     {
       OpEndInvocationInterlockEXT decoded(it);
-      ret += "EndInvocationInterlockEXT(" ")";
+      ret += rdcstr("EndInvocationInterlockEXT("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::DemoteToHelperInvocation:
     {
       OpDemoteToHelperInvocation decoded(it);
-      ret += "DemoteToHelperInvocation(" ")";
+      ret += rdcstr("DemoteToHelperInvocation("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::IsHelperInvocationEXT:
     {
       OpIsHelperInvocationEXT decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "IsHelperInvocationEXT(" ")";
+      ret += rdcstr("IsHelperInvocationEXT("_lit)
+           + ")";
       break;
     }
     case rdcspv::Op::ConvertUToImageNV:
     {
       OpConvertUToImageNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConvertUToImageNV(" + ParamToStr(idName, decoded.operand) + ")";
+      ret += rdcstr("ConvertUToImageNV("_lit)
+           + ParamToStr(idName, decoded.operand)
+           + ")";
       break;
     }
     case rdcspv::Op::ConvertUToSamplerNV:
     {
       OpConvertUToSamplerNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConvertUToSamplerNV(" + ParamToStr(idName, decoded.operand) + ")";
+      ret += rdcstr("ConvertUToSamplerNV("_lit)
+           + ParamToStr(idName, decoded.operand)
+           + ")";
       break;
     }
     case rdcspv::Op::ConvertImageToUNV:
     {
       OpConvertImageToUNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConvertImageToUNV(" + ParamToStr(idName, decoded.operand) + ")";
+      ret += rdcstr("ConvertImageToUNV("_lit)
+           + ParamToStr(idName, decoded.operand)
+           + ")";
       break;
     }
     case rdcspv::Op::ConvertSamplerToUNV:
     {
       OpConvertSamplerToUNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConvertSamplerToUNV(" + ParamToStr(idName, decoded.operand) + ")";
+      ret += rdcstr("ConvertSamplerToUNV("_lit)
+           + ParamToStr(idName, decoded.operand)
+           + ")";
       break;
     }
     case rdcspv::Op::ConvertUToSampledImageNV:
     {
       OpConvertUToSampledImageNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConvertUToSampledImageNV(" + ParamToStr(idName, decoded.operand) + ")";
+      ret += rdcstr("ConvertUToSampledImageNV("_lit)
+           + ParamToStr(idName, decoded.operand)
+           + ")";
       break;
     }
     case rdcspv::Op::ConvertSampledImageToUNV:
     {
       OpConvertSampledImageToUNV decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConvertSampledImageToUNV(" + ParamToStr(idName, decoded.operand) + ")";
+      ret += rdcstr("ConvertSampledImageToUNV("_lit)
+           + ParamToStr(idName, decoded.operand)
+           + ")";
       break;
     }
     case rdcspv::Op::SamplerImageAddressingModeNV:
     {
       OpSamplerImageAddressingModeNV decoded(it);
-      ret += "SamplerImageAddressingModeNV(" + ParamToStr(idName, decoded.bitWidth) + ")";
+      ret += rdcstr("SamplerImageAddressingModeNV("_lit)
+           + ParamToStr(idName, decoded.bitWidth)
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupShuffleINTEL:
     {
       OpSubgroupShuffleINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SubgroupShuffleINTEL(" + ParamToStr(idName, decoded.data) + ", " + ParamToStr(idName, decoded.invocationId) + ")";
+      ret += rdcstr("SubgroupShuffleINTEL("_lit)
+           + ParamToStr(idName, decoded.data)
+           + ", "
+           + ParamToStr(idName, decoded.invocationId)
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupShuffleDownINTEL:
     {
       OpSubgroupShuffleDownINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SubgroupShuffleDownINTEL(" + ParamToStr(idName, decoded.current) + ", " + ParamToStr(idName, decoded.next) + ", " + ParamToStr(idName, decoded.delta) + ")";
+      ret += rdcstr("SubgroupShuffleDownINTEL("_lit)
+           + ParamToStr(idName, decoded.current)
+           + ", "
+           + ParamToStr(idName, decoded.next)
+           + ", "
+           + ParamToStr(idName, decoded.delta)
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupShuffleUpINTEL:
     {
       OpSubgroupShuffleUpINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SubgroupShuffleUpINTEL(" + ParamToStr(idName, decoded.previous) + ", " + ParamToStr(idName, decoded.current) + ", " + ParamToStr(idName, decoded.delta) + ")";
+      ret += rdcstr("SubgroupShuffleUpINTEL("_lit)
+           + ParamToStr(idName, decoded.previous)
+           + ", "
+           + ParamToStr(idName, decoded.current)
+           + ", "
+           + ParamToStr(idName, decoded.delta)
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupShuffleXorINTEL:
     {
       OpSubgroupShuffleXorINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SubgroupShuffleXorINTEL(" + ParamToStr(idName, decoded.data) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("SubgroupShuffleXorINTEL("_lit)
+           + ParamToStr(idName, decoded.data)
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupBlockReadINTEL:
     {
       OpSubgroupBlockReadINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SubgroupBlockReadINTEL(" + ParamToStr(idName, decoded.ptr) + ")";
+      ret += rdcstr("SubgroupBlockReadINTEL("_lit)
+           + ParamToStr(idName, decoded.ptr)
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupBlockWriteINTEL:
     {
       OpSubgroupBlockWriteINTEL decoded(it);
-      ret += "SubgroupBlockWriteINTEL(" + ParamToStr(idName, decoded.ptr) + ", " + ParamToStr(idName, decoded.data) + ")";
+      ret += rdcstr("SubgroupBlockWriteINTEL("_lit)
+           + ParamToStr(idName, decoded.ptr)
+           + ", "
+           + ParamToStr(idName, decoded.data)
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupImageBlockReadINTEL:
     {
       OpSubgroupImageBlockReadINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SubgroupImageBlockReadINTEL(" + ParamToStr(idName, decoded.image) + ", " + ParamToStr(idName, decoded.coordinate) + ")";
+      ret += rdcstr("SubgroupImageBlockReadINTEL("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupImageBlockWriteINTEL:
     {
       OpSubgroupImageBlockWriteINTEL decoded(it);
-      ret += "SubgroupImageBlockWriteINTEL(" + ParamToStr(idName, decoded.image) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.data) + ")";
+      ret += rdcstr("SubgroupImageBlockWriteINTEL("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.data)
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupImageMediaBlockReadINTEL:
     {
       OpSubgroupImageMediaBlockReadINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SubgroupImageMediaBlockReadINTEL(" + ParamToStr(idName, decoded.image) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.width) + ", " + ParamToStr(idName, decoded.height) + ")";
+      ret += rdcstr("SubgroupImageMediaBlockReadINTEL("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.width)
+           + ", "
+           + ParamToStr(idName, decoded.height)
+           + ")";
       break;
     }
     case rdcspv::Op::SubgroupImageMediaBlockWriteINTEL:
     {
       OpSubgroupImageMediaBlockWriteINTEL decoded(it);
-      ret += "SubgroupImageMediaBlockWriteINTEL(" + ParamToStr(idName, decoded.image) + ", " + ParamToStr(idName, decoded.coordinate) + ", " + ParamToStr(idName, decoded.width) + ", " + ParamToStr(idName, decoded.height) + ", " + ParamToStr(idName, decoded.data) + ")";
+      ret += rdcstr("SubgroupImageMediaBlockWriteINTEL("_lit)
+           + ParamToStr(idName, decoded.image)
+           + ", "
+           + ParamToStr(idName, decoded.coordinate)
+           + ", "
+           + ParamToStr(idName, decoded.width)
+           + ", "
+           + ParamToStr(idName, decoded.height)
+           + ", "
+           + ParamToStr(idName, decoded.data)
+           + ")";
       break;
     }
     case rdcspv::Op::UCountLeadingZerosINTEL:
     {
       OpUCountLeadingZerosINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UCountLeadingZerosINTEL(" + ParamToStr(idName, decoded.operand) + ")";
+      ret += rdcstr("UCountLeadingZerosINTEL("_lit)
+           + ParamToStr(idName, decoded.operand)
+           + ")";
       break;
     }
     case rdcspv::Op::UCountTrailingZerosINTEL:
     {
       OpUCountTrailingZerosINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UCountTrailingZerosINTEL(" + ParamToStr(idName, decoded.operand) + ")";
+      ret += rdcstr("UCountTrailingZerosINTEL("_lit)
+           + ParamToStr(idName, decoded.operand)
+           + ")";
       break;
     }
     case rdcspv::Op::AbsISubINTEL:
     {
       OpAbsISubINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AbsISubINTEL(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("AbsISubINTEL("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::AbsUSubINTEL:
     {
       OpAbsUSubINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AbsUSubINTEL(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("AbsUSubINTEL("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::IAddSatINTEL:
     {
       OpIAddSatINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "IAddSatINTEL(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("IAddSatINTEL("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::UAddSatINTEL:
     {
       OpUAddSatINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UAddSatINTEL(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("UAddSatINTEL("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::IAverageINTEL:
     {
       OpIAverageINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "IAverageINTEL(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("IAverageINTEL("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::UAverageINTEL:
     {
       OpUAverageINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UAverageINTEL(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("UAverageINTEL("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::IAverageRoundedINTEL:
     {
       OpIAverageRoundedINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "IAverageRoundedINTEL(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("IAverageRoundedINTEL("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::UAverageRoundedINTEL:
     {
       OpUAverageRoundedINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UAverageRoundedINTEL(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("UAverageRoundedINTEL("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::ISubSatINTEL:
     {
       OpISubSatINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ISubSatINTEL(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("ISubSatINTEL("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::USubSatINTEL:
     {
       OpUSubSatINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "USubSatINTEL(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("USubSatINTEL("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::IMul32x16INTEL:
     {
       OpIMul32x16INTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "IMul32x16INTEL(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("IMul32x16INTEL("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::UMul32x16INTEL:
     {
       OpUMul32x16INTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UMul32x16INTEL(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
+      ret += rdcstr("UMul32x16INTEL("_lit)
+           + ParamToStr(idName, decoded.operand1)
+           + ", "
+           + ParamToStr(idName, decoded.operand2)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicFMinEXT:
     {
       OpAtomicFMinEXT decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicFMinEXT(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("AtomicFMinEXT("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicFMaxEXT:
     {
       OpAtomicFMaxEXT decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicFMaxEXT(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("AtomicFMaxEXT("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::AssumeTrueKHR:
     {
       OpAssumeTrueKHR decoded(it);
-      ret += "AssumeTrueKHR(" + ParamToStr(idName, decoded.condition) + ")";
+      ret += rdcstr("AssumeTrueKHR("_lit)
+           + ParamToStr(idName, decoded.condition)
+           + ")";
       break;
     }
     case rdcspv::Op::ExpectKHR:
     {
       OpExpectKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ExpectKHR(" + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.expectedValue) + ")";
+      ret += rdcstr("ExpectKHR("_lit)
+           + ParamToStr(idName, decoded.value)
+           + ", "
+           + ParamToStr(idName, decoded.expectedValue)
+           + ")";
       break;
     }
     case rdcspv::Op::DecorateString:
     {
       OpDecorateString decoded(it);
-      ret += "DecorateString(" + ParamToStr(idName, decoded.target) + ", " + ParamToStr(idName, decoded.decoration) + ")";
+      ret += rdcstr("DecorateString("_lit)
+           + ParamToStr(idName, decoded.target)
+           + ", "
+           + ParamToStr(idName, decoded.decoration)
+           + ")";
       break;
     }
     case rdcspv::Op::MemberDecorateString:
     {
       OpMemberDecorateString decoded(it);
-      ret += "MemberDecorateString(" + ParamToStr(idName, decoded.structType) + ", " + ParamToStr(idName, decoded.member) + ", " + ParamToStr(idName, decoded.decoration) + ")";
+      ret += rdcstr("MemberDecorateString("_lit)
+           + ParamToStr(idName, decoded.structType)
+           + ", "
+           + ParamToStr(idName, decoded.member)
+           + ", "
+           + ParamToStr(idName, decoded.decoration)
+           + ")";
       break;
     }
     case rdcspv::Op::LoopControlINTEL:
     {
       OpLoopControlINTEL decoded(it);
-      ret += "LoopControlINTEL(" + ParamsToStr(idName, decoded.loopControlParameters) + ")";
+      ret += rdcstr("LoopControlINTEL("_lit)
+           + ParamsToStr(idName, decoded.loopControlParameters)
+           + ")";
       break;
     }
     case rdcspv::Op::ReadPipeBlockingINTEL:
     {
       OpReadPipeBlockingINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ReadPipeBlockingINTEL(" + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("ReadPipeBlockingINTEL("_lit)
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::WritePipeBlockingINTEL:
     {
       OpWritePipeBlockingINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "WritePipeBlockingINTEL(" + ParamToStr(idName, decoded.packetSize) + ", " + ParamToStr(idName, decoded.packetAlignment) + ")";
+      ret += rdcstr("WritePipeBlockingINTEL("_lit)
+           + ParamToStr(idName, decoded.packetSize)
+           + ", "
+           + ParamToStr(idName, decoded.packetAlignment)
+           + ")";
       break;
     }
     case rdcspv::Op::FPGARegINTEL:
     {
       OpFPGARegINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result0) + ", " + idName(decoded.result1) + " = ";
-      ret += "FPGARegINTEL(" + ParamToStr(idName, decoded.result1) + ", " + ParamToStr(idName, decoded.input) + ")";
+      ret += rdcstr("FPGARegINTEL("_lit)
+           + ParamToStr(idName, decoded.result1)
+           + ", "
+           + ParamToStr(idName, decoded.input)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetRayTMinKHR:
     {
       OpRayQueryGetRayTMinKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetRayTMinKHR(" + ParamToStr(idName, decoded.rayQuery) + ")";
+      ret += rdcstr("RayQueryGetRayTMinKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetRayFlagsKHR:
     {
       OpRayQueryGetRayFlagsKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetRayFlagsKHR(" + ParamToStr(idName, decoded.rayQuery) + ")";
+      ret += rdcstr("RayQueryGetRayFlagsKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetIntersectionTKHR:
     {
       OpRayQueryGetIntersectionTKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetIntersectionTKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
+      ret += rdcstr("RayQueryGetIntersectionTKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.intersection)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetIntersectionInstanceCustomIndexKHR:
     {
       OpRayQueryGetIntersectionInstanceCustomIndexKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetIntersectionInstanceCustomIndexKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
+      ret += rdcstr("RayQueryGetIntersectionInstanceCustomIndexKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.intersection)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetIntersectionInstanceIdKHR:
     {
       OpRayQueryGetIntersectionInstanceIdKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetIntersectionInstanceIdKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
+      ret += rdcstr("RayQueryGetIntersectionInstanceIdKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.intersection)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetIntersectionInstanceShaderBindingTableRecordOffsetKHR:
     {
       OpRayQueryGetIntersectionInstanceShaderBindingTableRecordOffsetKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetIntersectionInstanceShaderBindingTableRecordOffsetKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
+      ret += rdcstr("RayQueryGetIntersectionInstanceShaderBindingTableRecordOffsetKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.intersection)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetIntersectionGeometryIndexKHR:
     {
       OpRayQueryGetIntersectionGeometryIndexKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetIntersectionGeometryIndexKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
+      ret += rdcstr("RayQueryGetIntersectionGeometryIndexKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.intersection)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetIntersectionPrimitiveIndexKHR:
     {
       OpRayQueryGetIntersectionPrimitiveIndexKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetIntersectionPrimitiveIndexKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
+      ret += rdcstr("RayQueryGetIntersectionPrimitiveIndexKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.intersection)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetIntersectionBarycentricsKHR:
     {
       OpRayQueryGetIntersectionBarycentricsKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetIntersectionBarycentricsKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
+      ret += rdcstr("RayQueryGetIntersectionBarycentricsKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.intersection)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetIntersectionFrontFaceKHR:
     {
       OpRayQueryGetIntersectionFrontFaceKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetIntersectionFrontFaceKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
+      ret += rdcstr("RayQueryGetIntersectionFrontFaceKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.intersection)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetIntersectionCandidateAABBOpaqueKHR:
     {
       OpRayQueryGetIntersectionCandidateAABBOpaqueKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetIntersectionCandidateAABBOpaqueKHR(" + ParamToStr(idName, decoded.rayQuery) + ")";
+      ret += rdcstr("RayQueryGetIntersectionCandidateAABBOpaqueKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetIntersectionObjectRayDirectionKHR:
     {
       OpRayQueryGetIntersectionObjectRayDirectionKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetIntersectionObjectRayDirectionKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
+      ret += rdcstr("RayQueryGetIntersectionObjectRayDirectionKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.intersection)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetIntersectionObjectRayOriginKHR:
     {
       OpRayQueryGetIntersectionObjectRayOriginKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetIntersectionObjectRayOriginKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
+      ret += rdcstr("RayQueryGetIntersectionObjectRayOriginKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.intersection)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetWorldRayDirectionKHR:
     {
       OpRayQueryGetWorldRayDirectionKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetWorldRayDirectionKHR(" + ParamToStr(idName, decoded.rayQuery) + ")";
+      ret += rdcstr("RayQueryGetWorldRayDirectionKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetWorldRayOriginKHR:
     {
       OpRayQueryGetWorldRayOriginKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetWorldRayOriginKHR(" + ParamToStr(idName, decoded.rayQuery) + ")";
+      ret += rdcstr("RayQueryGetWorldRayOriginKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetIntersectionObjectToWorldKHR:
     {
       OpRayQueryGetIntersectionObjectToWorldKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetIntersectionObjectToWorldKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
+      ret += rdcstr("RayQueryGetIntersectionObjectToWorldKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.intersection)
+           + ")";
       break;
     }
     case rdcspv::Op::RayQueryGetIntersectionWorldToObjectKHR:
     {
       OpRayQueryGetIntersectionWorldToObjectKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "RayQueryGetIntersectionWorldToObjectKHR(" + ParamToStr(idName, decoded.rayQuery) + ", " + ParamToStr(idName, decoded.intersection) + ")";
+      ret += rdcstr("RayQueryGetIntersectionWorldToObjectKHR("_lit)
+           + ParamToStr(idName, decoded.rayQuery)
+           + ", "
+           + ParamToStr(idName, decoded.intersection)
+           + ")";
       break;
     }
     case rdcspv::Op::AtomicFAddEXT:
     {
       OpAtomicFAddEXT decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "AtomicFAddEXT(" + ParamToStr(idName, decoded.pointer) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ", " + ParamToStr(idName, decoded.value) + ")";
+      ret += rdcstr("AtomicFAddEXT("_lit)
+           + ParamToStr(idName, decoded.pointer)
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ", "
+           + ParamToStr(idName, decoded.value)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeBufferSurfaceINTEL:
     {
       OpTypeBufferSurfaceINTEL decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeBufferSurfaceINTEL(" + ParamToStr(idName, decoded.accessQualifier) + ")";
+      ret += rdcstr("TypeBufferSurfaceINTEL("_lit)
+           + ParamToStr(idName, decoded.accessQualifier)
+           + ")";
       break;
     }
     case rdcspv::Op::TypeStructContinuedINTEL:
     {
       OpTypeStructContinuedINTEL decoded(it);
-      ret += "TypeStructContinuedINTEL(" + ParamsToStr(idName, decoded.members) + ")";
+      ret += rdcstr("TypeStructContinuedINTEL("_lit)
+           + ParamsToStr(idName, decoded.members)
+           + ")";
       break;
     }
     case rdcspv::Op::ConstantCompositeContinuedINTEL:
     {
       OpConstantCompositeContinuedINTEL decoded(it);
-      ret += "ConstantCompositeContinuedINTEL(" + ParamsToStr(idName, decoded.constituents) + ")";
+      ret += rdcstr("ConstantCompositeContinuedINTEL("_lit)
+           + ParamsToStr(idName, decoded.constituents)
+           + ")";
       break;
     }
     case rdcspv::Op::SpecConstantCompositeContinuedINTEL:
     {
       OpSpecConstantCompositeContinuedINTEL decoded(it);
-      ret += "SpecConstantCompositeContinuedINTEL(" + ParamsToStr(idName, decoded.constituents) + ")";
+      ret += rdcstr("SpecConstantCompositeContinuedINTEL("_lit)
+           + ParamsToStr(idName, decoded.constituents)
+           + ")";
       break;
     }
     case rdcspv::Op::ConvertFToBF16INTEL:
     {
       OpConvertFToBF16INTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConvertFToBF16INTEL(" + ParamToStr(idName, decoded.floatValue) + ")";
+      ret += rdcstr("ConvertFToBF16INTEL("_lit)
+           + ParamToStr(idName, decoded.floatValue)
+           + ")";
       break;
     }
     case rdcspv::Op::ConvertBF16ToFINTEL:
     {
       OpConvertBF16ToFINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConvertBF16ToFINTEL(" + ParamToStr(idName, decoded.bFloat16Value) + ")";
+      ret += rdcstr("ConvertBF16ToFINTEL("_lit)
+           + ParamToStr(idName, decoded.bFloat16Value)
+           + ")";
       break;
     }
     case rdcspv::Op::ControlBarrierArriveINTEL:
     {
       OpControlBarrierArriveINTEL decoded(it);
-      ret += "ControlBarrierArriveINTEL(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ")";
+      ret += rdcstr("ControlBarrierArriveINTEL("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ")";
       break;
     }
     case rdcspv::Op::ControlBarrierWaitINTEL:
     {
       OpControlBarrierWaitINTEL decoded(it);
-      ret += "ControlBarrierWaitINTEL(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ToStr(Scope(constIntVal(decoded.memory))) + ", " + ToStr(MemorySemantics(constIntVal(decoded.semantics))) + ")";
+      ret += rdcstr("ControlBarrierWaitINTEL("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ToStr(Scope(constIntVal(decoded.memory)))
+           + ", "
+           + ToStr(MemorySemantics(constIntVal(decoded.semantics)))
+           + ")";
       break;
     }
     case rdcspv::Op::GroupIMulKHR:
     {
       OpGroupIMulKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupIMulKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupIMulKHR("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupFMulKHR:
     {
       OpGroupFMulKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupFMulKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupFMulKHR("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupBitwiseAndKHR:
     {
       OpGroupBitwiseAndKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupBitwiseAndKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupBitwiseAndKHR("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupBitwiseOrKHR:
     {
       OpGroupBitwiseOrKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupBitwiseOrKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupBitwiseOrKHR("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupBitwiseXorKHR:
     {
       OpGroupBitwiseXorKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupBitwiseXorKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupBitwiseXorKHR("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupLogicalAndKHR:
     {
       OpGroupLogicalAndKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupLogicalAndKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupLogicalAndKHR("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupLogicalOrKHR:
     {
       OpGroupLogicalOrKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupLogicalOrKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupLogicalOrKHR("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case rdcspv::Op::GroupLogicalXorKHR:
     {
       OpGroupLogicalXorKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "GroupLogicalXorKHR(" + ToStr(Scope(constIntVal(decoded.execution))) + ", " + ParamToStr(idName, decoded.operation) + ", " + ParamToStr(idName, decoded.x) + ")";
+      ret += rdcstr("GroupLogicalXorKHR("_lit)
+           + ToStr(Scope(constIntVal(decoded.execution)))
+           + ", "
+           + ParamToStr(idName, decoded.operation)
+           + ", "
+           + ParamToStr(idName, decoded.x)
+           + ")";
       break;
     }
     case Op::Max: break;

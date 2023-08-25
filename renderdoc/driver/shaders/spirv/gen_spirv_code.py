@@ -314,6 +314,9 @@ for operand_kind in spirv['operand_kinds']:
 
         used = []
 
+        official_suffixes = ['KHR', 'EXT']
+        vendor_suffixes = ['AMD', 'NV', 'INTEL', 'ARM', 'QCOM', 'GOOGLE']
+
         for value in operand_kind['enumerants']:
             value_name = value['enumerant']
             if value_name[0].isdigit():
@@ -321,6 +324,19 @@ for operand_kind in spirv['operand_kinds']:
             decl += '  {} = {},\n'.format(value_name, value['value'])
 
             if value['value'] in used:
+                continue
+
+            wait_for_official = False
+            for off in official_suffixes:
+                for vend in vendor_suffixes:
+                    if value_name[-len(vend):] == vend:
+                        off_name = value_name[:-len(vend)] + off
+
+                        for search in operand_kind['enumerants']:
+                            if search['enumerant'] == off_name and search['value']:
+                                wait_for_official = True
+
+            if wait_for_official:
                 continue
 
             used.append(value['value'])
@@ -959,7 +975,7 @@ for inst in spirv['instructions']:
         elif resultType == -1 and result > 0:
             disassemble += '      ret += idName(decoded.result) + " = ";\n'
 
-        disassemble += '      ret += "{}("'.format(inst['opname'][2:])
+        disassemble += '      ret += rdcstr("{}("_lit)\n'.format(inst['opname'][2:])
 
         disassemble_params = False
 
@@ -1016,17 +1032,19 @@ for inst in spirv['instructions']:
 
                 if i+1 != resultType and i+1 != result:
                     if quantifier == '*':
-                        disassemble += ' + ParamsToStr(idName, decoded.{})'.format(opName)
+                        disassemble += '           + ParamsToStr(idName, decoded.{})\n'.format(opName)
+                    elif quantifier == '?':
+                        disassemble += '           + ({} < size ? ", " + ParamToStr(idName, decoded.{}) : "")\n'.format(all_size, opName)
                     else:
                         if opType == 'IdScope':
-                            disassemble += ' + ToStr(Scope(constIntVal(decoded.{})))'.format(opName)
+                            disassemble += '           + ToStr(Scope(constIntVal(decoded.{})))\n'.format(opName)
                         elif opType == 'IdMemorySemantics':
-                            disassemble += ' + ToStr(MemorySemantics(constIntVal(decoded.{})))'.format(opName)
+                            disassemble += '           + ToStr(MemorySemantics(constIntVal(decoded.{})))\n'.format(opName)
                         else:
-                            disassemble += ' + ParamToStr(idName, decoded.{})'.format(opName)
+                            disassemble += '           + ParamToStr(idName, decoded.{})\n'.format(opName)
 
-                    if i+1 < len(operands):
-                        disassemble += ' + ", "'
+                    if i+1 < len(operands) and ('quantifier' not in operands[i+1] or operands[i+1]['quantifier'] != '?'):
+                        disassemble += '           + ", "\n'
 
                     disassemble_params = True
 
@@ -1097,10 +1115,7 @@ for inst in spirv['instructions']:
         if params != '':
             params = params[0:-2]
 
-        if disassemble_params:
-            disassemble += ' + ")";\n'
-        else:
-            disassemble += ' ")";\n'
+        disassemble += '           + ")";\n'
         disassemble += '      break;\n'
         disassemble += '    }\n'
 
@@ -1276,6 +1291,7 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
 
 rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id,Id)> &declName, const std::function<rdcstr(rdcspv::Id)> &idName, const std::function<uint32_t(Id)> &constIntVal)
 {{
+  size_t size = it.size();
   rdcstr ret;
   switch(it.opcode())
   {{
