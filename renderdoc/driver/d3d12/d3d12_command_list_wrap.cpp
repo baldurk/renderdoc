@@ -3753,6 +3753,37 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
 
             break;
           }
+          case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH:
+          {
+            D3D12_DISPATCH_MESH_ARGUMENTS *args = (D3D12_DISPATCH_MESH_ARGUMENTS *)data;
+            data += sizeof(D3D12_DISPATCH_MESH_ARGUMENTS);
+
+            curAction.dispatchDimension[0] = args->ThreadGroupCountX;
+            curAction.dispatchDimension[1] = args->ThreadGroupCountY;
+            curAction.dispatchDimension[2] = args->ThreadGroupCountZ;
+            curAction.flags |= ActionFlags::MeshDispatch | ActionFlags::Indirect;
+            curAction.customName =
+                StringFormat::Fmt("[%u] arg%u: IndirectDispatchMesh(<%u, %u, %u>)", i, a,
+                                  curAction.dispatchDimension[0], curAction.dispatchDimension[1],
+                                  curAction.dispatchDimension[2]);
+
+            fakeChunk->name = curAction.customName;
+
+            structuriser.Serialise("ArgumentData"_lit, *args).Important();
+
+            // if this is the first action of the indirect, we could have picked up previous
+            // non-indirect events in this action, so the EID will be higher than we expect. Just
+            // assign the action's EID
+            eid = curAction.eventId;
+
+            m_Cmd->AddUsage(state, actions[idx]);
+
+            // advance
+            idx++;
+            eid++;
+
+            break;
+          }
           case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
           {
             size_t argSize = sizeof(uint32_t) * arg.Constant.Num32BitValuesToSet;
@@ -4155,6 +4186,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
           switch(arg.Type)
           {
             case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
+            case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH:
             case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
             case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
             {

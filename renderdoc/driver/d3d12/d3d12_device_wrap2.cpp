@@ -64,6 +64,8 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
 
       if(!DXBC::DXBCContainer::IsHashedContainer(sh.pShaderBytecode, sh.BytecodeLength))
         DXBC::DXBCContainer::HashContainer((void *)sh.pShaderBytecode, sh.BytecodeLength);
+      if(DXBC::DXBCContainer::CheckForDXIL(sh.pShaderBytecode, sh.BytecodeLength))
+        m_UsedDXIL = true;
     }
 
     if(m_pDevice2)
@@ -93,8 +95,8 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
           new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(Descriptor);
 
       D3D12_SHADER_BYTECODE *shaders[] = {
-          &storedDesc->VS, &storedDesc->HS, &storedDesc->DS,
-          &storedDesc->GS, &storedDesc->PS, &storedDesc->CS,
+          &storedDesc->VS, &storedDesc->HS, &storedDesc->DS, &storedDesc->GS,
+          &storedDesc->PS, &storedDesc->CS, &storedDesc->AS, &storedDesc->MS,
       };
 
       AddResource(pPipelineState, ResourceType::PipelineState, "Pipeline State");
@@ -246,7 +248,9 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
            UsesExtensionUAV(expandedDesc.DS, reg, space) ||
            UsesExtensionUAV(expandedDesc.GS, reg, space) ||
            UsesExtensionUAV(expandedDesc.PS, reg, space) ||
-           UsesExtensionUAV(expandedDesc.CS, reg, space))
+           UsesExtensionUAV(expandedDesc.CS, reg, space) ||
+           UsesExtensionUAV(expandedDesc.AS, reg, space) ||
+           UsesExtensionUAV(expandedDesc.MS, reg, space))
         {
           // don't set initparams until we've seen at least one shader actually created using the
           // extensions.
@@ -258,6 +262,17 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
           Serialise_SetShaderExtUAV(ser, m_VendorEXT, reg, space, true);
           vendorChunk = scope.Get();
         }
+      }
+
+      for(const D3D12_SHADER_BYTECODE &sh :
+          {expandedDesc.VS, expandedDesc.HS, expandedDesc.DS, expandedDesc.GS, expandedDesc.PS,
+           expandedDesc.CS, expandedDesc.AS, expandedDesc.MS})
+      {
+        if(sh.BytecodeLength == 0 || sh.pShaderBytecode == NULL)
+          continue;
+
+        if(DXBC::DXBCContainer::CheckForDXIL(sh.pShaderBytecode, sh.BytecodeLength))
+          m_UsedDXIL = true;
       }
 
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreatePipelineState);
@@ -283,8 +298,8 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
           new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(expandedDesc);
 
       D3D12_SHADER_BYTECODE *shaders[] = {
-          &storedDesc->VS, &storedDesc->HS, &storedDesc->DS,
-          &storedDesc->GS, &storedDesc->PS, &storedDesc->CS,
+          &storedDesc->VS, &storedDesc->HS, &storedDesc->DS, &storedDesc->GS,
+          &storedDesc->PS, &storedDesc->CS, &storedDesc->AS, &storedDesc->MS,
       };
 
       for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)

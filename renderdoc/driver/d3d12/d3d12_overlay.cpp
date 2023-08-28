@@ -150,6 +150,7 @@ struct D3D12QuadOverdrawCallback : public D3D12ActionCallback
       pipeDesc.SampleDesc.Quality = 0;
 
       bool dxil =
+          pipeDesc.MS.BytecodeLength > 0 ||
           DXBC::DXBCContainer::CheckForDXIL(pipeDesc.VS.pShaderBytecode, pipeDesc.VS.BytecodeLength);
 
       // dxil is stricter about pipeline signatures matching. On D3D11 there's an error but all
@@ -345,6 +346,8 @@ void D3D12Replay::PatchQuadWritePS(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &pi
     rastFeeding = &pipeDesc.DS;
   if(pipeDesc.GS.BytecodeLength > 0)
     rastFeeding = &pipeDesc.GS;
+  if(pipeDesc.MS.BytecodeLength > 0)
+    rastFeeding = &pipeDesc.MS;
 
   uint32_t hash[4];
   DXBC::DXBCContainer::GetHash(hash, rastFeeding->pShaderBytecode, rastFeeding->BytecodeLength);
@@ -1170,6 +1173,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       pipe->Fill(psoDesc);
 
       bool dxil =
+          psoDesc.MS.BytecodeLength > 0 ||
           DXBC::DXBCContainer::CheckForDXIL(psoDesc.VS.pShaderBytecode, psoDesc.VS.BytecodeLength);
 
       ID3DBlob *ps =
@@ -1259,6 +1263,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       BOOL origFrontCCW = psoDesc.RasterizerState.FrontCounterClockwise;
 
       bool dxil =
+          psoDesc.MS.BytecodeLength > 0 ||
           DXBC::DXBCContainer::CheckForDXIL(psoDesc.VS.pShaderBytecode, psoDesc.VS.BytecodeLength);
 
       ID3DBlob *red = m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::RED, dxil);
@@ -1367,6 +1372,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       pipe->Fill(psoDesc);
 
       bool dxil =
+          psoDesc.MS.BytecodeLength > 0 ||
           DXBC::DXBCContainer::CheckForDXIL(psoDesc.VS.pShaderBytecode, psoDesc.VS.BytecodeLength);
 
       ID3DBlob *ps =
@@ -1522,6 +1528,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       pipe->Fill(psoDesc);
 
       bool dxil =
+          psoDesc.MS.BytecodeLength > 0 ||
           DXBC::DXBCContainer::CheckForDXIL(psoDesc.VS.pShaderBytecode, psoDesc.VS.BytecodeLength);
 
       ID3DBlob *red = m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::RED, dxil);
@@ -1706,7 +1713,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         const ActionDescription *action = m_pDevice->GetAction(events[0]);
 
         // remove any non-drawcalls, like the pass boundary.
-        if(!(action->flags & ActionFlags::Drawcall))
+        if(!(action->flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall)))
           events.erase(0);
         else
           break;
@@ -1758,6 +1765,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       pipeDesc.VS.pShaderBytecode = m_Overlay.MeshVS->GetBufferPointer();
       RDCEraseEl(pipeDesc.HS);
       RDCEraseEl(pipeDesc.DS);
+      RDCEraseEl(pipeDesc.AS);
+      RDCEraseEl(pipeDesc.MS);
       pipeDesc.GS.BytecodeLength = m_Overlay.TriangleSizeGS->GetBufferSize();
       pipeDesc.GS.pShaderBytecode = m_Overlay.TriangleSizeGS->GetBufferPointer();
       pipeDesc.PS.BytecodeLength = m_Overlay.TriangleSizePS->GetBufferSize();
@@ -2231,6 +2240,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       pipe->Fill(psoDesc);
 
       bool dxil =
+          psoDesc.MS.BytecodeLength > 0 ||
           DXBC::DXBCContainer::CheckForDXIL(psoDesc.VS.pShaderBytecode, psoDesc.VS.BytecodeLength);
 
       ID3DBlob *red = m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::RED, dxil);

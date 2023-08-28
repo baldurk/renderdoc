@@ -394,7 +394,9 @@ void D3D12_PrepareReplaySDKVersion(bool untrustedCapture, UINT SDKVersion, byteb
   // similarly, if the system version is enough then the user didn't use a new runtime (or they used
   // what was at the time a new runtime but is now available in the system...), so also abort.
   // That means we'll only do the interception & patching when we think it's really needed.
-  if(SDKVersion <= SystemCoreVersion)
+  // The only exception is if the user has configured a force override, in which case we always use
+  // it.
+  if(SDKVersion <= SystemCoreVersion && D3D12_D3D12CoreDirPath().empty())
     return;
 
   // finally we're at a point where we will hook to force the library we want.

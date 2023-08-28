@@ -28,7 +28,7 @@
 template <>
 rdcstr DoStringise(const D3D12Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1123, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1124, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
   {
@@ -220,6 +220,7 @@ rdcstr DoStringise(const D3D12Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(List_IASetIndexBufferStripCutValue,
                                "ID3D12GraphicsCommandList9::IASetIndexBufferStripCutValue");
     STRINGISE_ENUM_CLASS_NAMED(List_Barrier, "ID3D12GraphicsCommandList7::Barrier");
+    STRINGISE_ENUM_CLASS_NAMED(List_DispatchMesh, "ID3D12GraphicsCommandList6::DispatchMesh");
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
@@ -732,6 +733,7 @@ rdcstr DoStringise(const D3D12_INDIRECT_ARGUMENT_TYPE &el)
     STRINGISE_ENUM(D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW)
     STRINGISE_ENUM(D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW)
     STRINGISE_ENUM(D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW)
+    STRINGISE_ENUM(D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH)
   }
   END_ENUM_STRINGISE();
 }

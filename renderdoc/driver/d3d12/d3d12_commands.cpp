@@ -899,6 +899,9 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
           ser, D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED);
       break;
     case D3D12Chunk::List_Barrier: ret = m_ReplayList->Serialise_Barrier(ser, 0, NULL); break;
+    case D3D12Chunk::List_DispatchMesh:
+      ret = m_ReplayList->Serialise_DispatchMesh(ser, 0, 0, 0);
+      break;
 
     case D3D12Chunk::PushMarker: ret = m_ReplayList->Serialise_BeginEvent(ser, 0, NULL, 0); break;
     case D3D12Chunk::PopMarker: ret = m_ReplayList->Serialise_EndEvent(ser); break;
@@ -1761,6 +1764,7 @@ uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandListX *list, A
 
   switch(type)
   {
+    case ActionFlags::MeshDispatch:
     case ActionFlags::Drawcall:
     {
       m_ActionCallback->PreDraw(eventId, list);
@@ -2076,7 +2080,7 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12ActionTreeNo
 
   uint32_t eid = a.eventId;
 
-  ActionFlags DrawMask = ActionFlags::Drawcall | ActionFlags::Dispatch;
+  ActionFlags DrawMask = ActionFlags::Drawcall | ActionFlags::MeshDispatch | ActionFlags::Dispatch;
   if(!(a.flags & DrawMask))
     return;
 
@@ -2108,11 +2112,22 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12ActionTreeNo
 
     if(pipe && pipe->IsGraphics())
     {
-      D3D12_SHADER_BYTECODE *srcArr[] = {&pipe->graphics->VS, &pipe->graphics->HS,
-                                         &pipe->graphics->DS, &pipe->graphics->GS,
-                                         &pipe->graphics->PS};
-      for(size_t stage = 0; stage < 5; stage++)
+      D3D12_SHADER_BYTECODE *srcArr[] = {
+          &pipe->graphics->VS,
+          &pipe->graphics->HS,
+          &pipe->graphics->DS,
+          &pipe->graphics->GS,
+          &pipe->graphics->PS,
+          // compute
+          NULL,
+          &pipe->graphics->AS,
+          &pipe->graphics->MS,
+      };
+      for(size_t stage = 0; stage < ARRAY_COUNT(srcArr); stage++)
       {
+        if(!srcArr[stage])
+          continue;
+
         WrappedID3D12Shader *sh = (WrappedID3D12Shader *)srcArr[stage]->pShaderBytecode;
 
         if(sh)
@@ -2124,21 +2139,24 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12ActionTreeNo
       actionNode.resourceUsage.push_back(
           make_rdcpair(state.ibuffer.buf, EventUsage(eid, ResourceUsage::IndexBuffer)));
 
-    for(size_t i = 0; i < state.vbuffers.size(); i++)
+    if(a.flags & ActionFlags::Drawcall)
     {
-      if(state.vbuffers[i].buf != ResourceId())
-        actionNode.resourceUsage.push_back(
-            make_rdcpair(state.vbuffers[i].buf, EventUsage(eid, ResourceUsage::VertexBuffer)));
-    }
+      for(size_t i = 0; i < state.vbuffers.size(); i++)
+      {
+        if(state.vbuffers[i].buf != ResourceId())
+          actionNode.resourceUsage.push_back(
+              make_rdcpair(state.vbuffers[i].buf, EventUsage(eid, ResourceUsage::VertexBuffer)));
+      }
 
-    for(size_t i = 0; i < state.streamouts.size(); i++)
-    {
-      if(state.streamouts[i].buf != ResourceId())
-        actionNode.resourceUsage.push_back(
-            make_rdcpair(state.streamouts[i].buf, EventUsage(eid, ResourceUsage::StreamOut)));
-      if(state.streamouts[i].countbuf != ResourceId())
-        actionNode.resourceUsage.push_back(
-            make_rdcpair(state.streamouts[i].countbuf, EventUsage(eid, ResourceUsage::StreamOut)));
+      for(size_t i = 0; i < state.streamouts.size(); i++)
+      {
+        if(state.streamouts[i].buf != ResourceId())
+          actionNode.resourceUsage.push_back(
+              make_rdcpair(state.streamouts[i].buf, EventUsage(eid, ResourceUsage::StreamOut)));
+        if(state.streamouts[i].countbuf != ResourceId())
+          actionNode.resourceUsage.push_back(make_rdcpair(
+              state.streamouts[i].countbuf, EventUsage(eid, ResourceUsage::StreamOut)));
+      }
     }
 
     rdcarray<ResourceId> rts = state.GetRTVIDs();

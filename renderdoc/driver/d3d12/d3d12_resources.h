@@ -641,6 +641,10 @@ public:
         desc.GS = GS()->GetDesc();
       if(PS())
         desc.PS = PS()->GetDesc();
+      if(AS())
+        desc.AS = AS()->GetDesc();
+      if(MS())
+        desc.MS = MS()->GetDesc();
     }
     else
     {
@@ -854,6 +858,8 @@ public:
   ShaderEntry *DS() { return (ShaderEntry *)graphics->DS.pShaderBytecode; }
   ShaderEntry *GS() { return (ShaderEntry *)graphics->GS.pShaderBytecode; }
   ShaderEntry *PS() { return (ShaderEntry *)graphics->PS.pShaderBytecode; }
+  ShaderEntry *AS() { return (ShaderEntry *)graphics->AS.pShaderBytecode; }
+  ShaderEntry *MS() { return (ShaderEntry *)graphics->MS.pShaderBytecode; }
   ShaderEntry *CS() { return (ShaderEntry *)compute->CS.pShaderBytecode; }
   WrappedID3D12PipelineState(ID3D12PipelineState *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
@@ -875,6 +881,8 @@ public:
       ShaderEntry::ReleaseShader(DS());
       ShaderEntry::ReleaseShader(GS());
       ShaderEntry::ReleaseShader(PS());
+      ShaderEntry::ReleaseShader(AS());
+      ShaderEntry::ReleaseShader(MS());
 
       SAFE_DELETE_ARRAY(graphics->InputLayout.pInputElementDescs);
       SAFE_DELETE_ARRAY(graphics->StreamOutput.pSODeclaration);

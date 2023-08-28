@@ -60,6 +60,13 @@ static bool IsShaderParameterVisible(DXBC::ShaderType shaderType,
   if(shaderType == DXBC::ShaderType::Pixel && shaderVisibility == D3D12_SHADER_VISIBILITY_PIXEL)
     return true;
 
+  if(shaderType == DXBC::ShaderType::Amplification &&
+     shaderVisibility == D3D12_SHADER_VISIBILITY_AMPLIFICATION)
+    return true;
+
+  if(shaderType == DXBC::ShaderType::Mesh && shaderVisibility == D3D12_SHADER_VISIBILITY_MESH)
+    return true;
+
   return false;
 }
 

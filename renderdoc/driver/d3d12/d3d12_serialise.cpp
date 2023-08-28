@@ -503,6 +503,13 @@ void DoSerialise(SerialiserType &ser, D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC 
   SERIALISE_MEMBER(DS);
   SERIALISE_MEMBER(HS);
   SERIALISE_MEMBER(GS);
+
+  if(ser.VersionAtLeast(0x11))
+  {
+    SERIALISE_MEMBER(AS);
+    SERIALISE_MEMBER(MS);
+  }
+
   SERIALISE_MEMBER(StreamOutput);
   SERIALISE_MEMBER(BlendState);
   SERIALISE_MEMBER(SampleMask);
@@ -557,6 +564,8 @@ void Deserialise(const D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &el)
   FreeAlignedBuffer((byte *)(el.DS.pShaderBytecode));
   FreeAlignedBuffer((byte *)(el.HS.pShaderBytecode));
   FreeAlignedBuffer((byte *)(el.GS.pShaderBytecode));
+  FreeAlignedBuffer((byte *)(el.AS.pShaderBytecode));
+  FreeAlignedBuffer((byte *)(el.MS.pShaderBytecode));
   FreeAlignedBuffer((byte *)(el.CS.pShaderBytecode));
 }
 
@@ -818,6 +827,7 @@ void DoSerialise(SerialiserType &ser, D3D12_INDIRECT_ARGUMENT_DESC &el)
     case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
     case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
     case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
+    case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH:
     case D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW:
       // nothing to serialise
       break;
@@ -1719,6 +1729,14 @@ void DoSerialise(SerialiserType &ser, D3D12_DISPATCH_ARGUMENTS &el)
 }
 
 template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_DISPATCH_MESH_ARGUMENTS &el)
+{
+  SERIALISE_MEMBER(ThreadGroupCountX).Important();
+  SERIALISE_MEMBER(ThreadGroupCountY).Important();
+  SERIALISE_MEMBER(ThreadGroupCountZ).Important();
+}
+
+template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12ResourceLayout &el)
 {
   RDCCOMPILE_ASSERT(sizeof(el) == sizeof(uint32_t),
@@ -1881,3 +1899,4 @@ INSTANTIATE_SERIALISE_TYPE(D3D12ResourceLayout);
 INSTANTIATE_SERIALISE_TYPE(D3D12_DRAW_ARGUMENTS);
 INSTANTIATE_SERIALISE_TYPE(D3D12_DRAW_INDEXED_ARGUMENTS);
 INSTANTIATE_SERIALISE_TYPE(D3D12_DISPATCH_ARGUMENTS);
+INSTANTIATE_SERIALISE_TYPE(D3D12_DISPATCH_MESH_ARGUMENTS);

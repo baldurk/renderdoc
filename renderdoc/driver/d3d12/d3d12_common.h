@@ -567,6 +567,8 @@ struct D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC
   D3D12_SHADER_BYTECODE DS = {};
   D3D12_SHADER_BYTECODE HS = {};
   D3D12_SHADER_BYTECODE GS = {};
+  D3D12_SHADER_BYTECODE AS = {};
+  D3D12_SHADER_BYTECODE MS = {};
   D3D12_STREAM_OUTPUT_DESC StreamOutput = {};
   D3D12_BLEND_DESC BlendState = {};
   UINT SampleMask = 0;
@@ -630,12 +632,18 @@ public:
     }
   }
 
-  size_t GetStageCount() { return 6; }
+  size_t GetStageCount() { return 8; }
   D3D12_SHADER_BYTECODE &GetStage(size_t i)
   {
     D3D12_SHADER_BYTECODE *stages[] = {
-        &m_GraphicsStreamData.VS, &m_GraphicsStreamData.HS, &m_GraphicsStreamData.DS,
-        &m_GraphicsStreamData.GS, &m_GraphicsStreamData.PS, &m_ComputeStreamData.CS,
+        &m_GraphicsStreamData.VS,
+        &m_GraphicsStreamData.HS,
+        &m_GraphicsStreamData.DS,
+        &m_GraphicsStreamData.GS,
+        &m_GraphicsStreamData.PS,
+        &m_ComputeStreamData.CS,
+        &AS,
+        &MS,
     };
     return *stages[i];
   }
@@ -694,8 +702,15 @@ private:
         // depth-stencil is versioned for separate stencil masks
         sizeof(D3D12_DEPTH_STENCIL_DESC2) + sizeof(void *) +
         // rasterization is versioned for line raster mode
-        sizeof(D3D12_RASTERIZER_DESC2) + sizeof(void *)];
+        sizeof(D3D12_RASTERIZER_DESC2) + sizeof(void *) +
+        // AS ...
+        sizeof(D3D12_SHADER_BYTECODE) + sizeof(void *) +
+        // ... and MS are optional
+        sizeof(D3D12_SHADER_BYTECODE) + sizeof(void *)];
   } m_GraphicsStreamData;
+
+  D3D12_SHADER_BYTECODE AS = {};
+  D3D12_SHADER_BYTECODE MS = {};
 
   size_t m_VariableVersionedDataLength;
 
@@ -885,6 +900,7 @@ DECLARE_REFLECTION_STRUCT(D3D12_WRITEBUFFERIMMEDIATE_PARAMETER);
 DECLARE_REFLECTION_STRUCT(D3D12_DRAW_ARGUMENTS);
 DECLARE_REFLECTION_STRUCT(D3D12_DRAW_INDEXED_ARGUMENTS);
 DECLARE_REFLECTION_STRUCT(D3D12_DISPATCH_ARGUMENTS);
+DECLARE_REFLECTION_STRUCT(D3D12_DISPATCH_MESH_ARGUMENTS);
 DECLARE_REFLECTION_STRUCT(D3D12_RENDER_PASS_BEGINNING_ACCESS_CLEAR_PARAMETERS);
 DECLARE_REFLECTION_STRUCT(D3D12_RENDER_PASS_BEGINNING_ACCESS);
 DECLARE_REFLECTION_STRUCT(D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS);
@@ -1041,5 +1057,6 @@ enum class D3D12Chunk : uint32_t
   List_RSSetDepthBias,
   List_IASetIndexBufferStripCutValue,
   List_Barrier,
+  List_DispatchMesh,
   Max,
 };

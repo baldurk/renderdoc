@@ -634,7 +634,8 @@ void WrappedID3D12Device::ProcessCreatedGraphicsPSO(ID3D12PipelineState *real,
 
     D3D12_SHADER_BYTECODE *shaders[] = {
         &wrapped->graphics->VS, &wrapped->graphics->HS, &wrapped->graphics->DS,
-        &wrapped->graphics->GS, &wrapped->graphics->PS,
+        &wrapped->graphics->GS, &wrapped->graphics->PS, &wrapped->graphics->AS,
+        &wrapped->graphics->MS,
     };
 
     for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
@@ -1799,6 +1800,11 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(SerialiserType &ser,
             wrapped->sig.graphics = false;
             break;
           }
+          case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH:
+          {
+            wrapped->sig.PackedByteSize += sizeof(D3D12_DISPATCH_MESH_ARGUMENTS);
+            break;
+          }
           case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
           {
             wrapped->sig.PackedByteSize +=
@@ -2327,8 +2333,7 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
     if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS7))
       return E_INVALIDARG;
 
-    // don't support mesh shading or sampler feedback
-    opts->MeshShaderTier = D3D12_MESH_SHADER_TIER_NOT_SUPPORTED;
+    // don't support sampler feedback
     opts->SamplerFeedbackTier = D3D12_SAMPLER_FEEDBACK_TIER_NOT_SUPPORTED;
 
     if(dolog)

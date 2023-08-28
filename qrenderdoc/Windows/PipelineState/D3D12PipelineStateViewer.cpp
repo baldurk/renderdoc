@@ -121,45 +121,51 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
   const QIcon &action_hover = Icons::action_hover();
 
   RDLabel *shaderLabels[] = {
-      ui->vsShader, ui->hsShader, ui->dsShader, ui->gsShader, ui->psShader, ui->csShader,
+      ui->vsShader, ui->hsShader, ui->dsShader, ui->gsShader,
+      ui->psShader, ui->csShader, ui->asShader, ui->msShader,
   };
 
   RDLabel *rootsigLabels[] = {
-      ui->vsRootSig, ui->hsRootSig, ui->dsRootSig, ui->gsRootSig, ui->psRootSig, ui->csRootSig,
+      ui->vsRootSig, ui->hsRootSig, ui->dsRootSig, ui->gsRootSig,
+      ui->psRootSig, ui->csRootSig, ui->asRootSig, ui->msRootSig,
   };
 
   QToolButton *viewButtons[] = {
       ui->vsShaderViewButton, ui->hsShaderViewButton, ui->dsShaderViewButton,
       ui->gsShaderViewButton, ui->psShaderViewButton, ui->csShaderViewButton,
+      ui->asShaderViewButton, ui->msShaderViewButton,
   };
 
   QToolButton *editButtons[] = {
       ui->vsShaderEditButton, ui->hsShaderEditButton, ui->dsShaderEditButton,
       ui->gsShaderEditButton, ui->psShaderEditButton, ui->csShaderEditButton,
+      ui->asShaderEditButton, ui->msShaderEditButton,
   };
 
   QToolButton *saveButtons[] = {
       ui->vsShaderSaveButton, ui->hsShaderSaveButton, ui->dsShaderSaveButton,
       ui->gsShaderSaveButton, ui->psShaderSaveButton, ui->csShaderSaveButton,
+      ui->asShaderSaveButton, ui->msShaderSaveButton,
   };
 
   RDTreeWidget *resources[] = {
-      ui->vsResources, ui->hsResources, ui->dsResources,
-      ui->gsResources, ui->psResources, ui->csResources,
+      ui->vsResources, ui->hsResources, ui->dsResources, ui->gsResources,
+      ui->psResources, ui->csResources, ui->asResources, ui->msResources,
   };
 
   RDTreeWidget *uavs[] = {
-      ui->vsUAVs, ui->hsUAVs, ui->dsUAVs, ui->gsUAVs, ui->psUAVs, ui->csUAVs,
+      ui->vsUAVs, ui->hsUAVs, ui->dsUAVs, ui->gsUAVs,
+      ui->psUAVs, ui->csUAVs, ui->asUAVs, ui->msUAVs,
   };
 
   RDTreeWidget *samplers[] = {
-      ui->vsSamplers, ui->hsSamplers, ui->dsSamplers,
-      ui->gsSamplers, ui->psSamplers, ui->csSamplers,
+      ui->vsSamplers, ui->hsSamplers, ui->dsSamplers, ui->gsSamplers,
+      ui->psSamplers, ui->csSamplers, ui->asSamplers, ui->msSamplers,
   };
 
   RDTreeWidget *cbuffers[] = {
-      ui->vsCBuffers, ui->hsCBuffers, ui->dsCBuffers,
-      ui->gsCBuffers, ui->psCBuffers, ui->csCBuffers,
+      ui->vsCBuffers, ui->hsCBuffers, ui->dsCBuffers, ui->gsCBuffers,
+      ui->psCBuffers, ui->csCBuffers, ui->asCBuffers, ui->msCBuffers,
   };
 
   // setup FlowLayout for CS shader group, with debugging controls
@@ -436,39 +442,23 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
   ui->stagesTabs->tabBar()->setVisible(false);
 
-  ui->pipeFlow->setStages(
-      {
-          lit("IA"),
-          lit("VS"),
-          lit("HS"),
-          lit("DS"),
-          lit("GS"),
-          lit("RS"),
-          lit("PS"),
-          lit("OM"),
-          lit("CS"),
-      },
-      {
-          tr("Input Assembler"),
-          tr("Vertex Shader"),
-          tr("Hull Shader"),
-          tr("Domain Shader"),
-          tr("Geometry Shader"),
-          tr("Rasterizer"),
-          tr("Pixel Shader"),
-          tr("Output Merger"),
-          tr("Compute Shader"),
-      });
-
-  ui->pipeFlow->setIsolatedStage(8);    // compute shader isolated
-
-  ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
+  setOldMeshPipeFlow();
 
   m_Common.setMeshViewPixmap(ui->meshView);
 
   ui->iaLayouts->setFont(Formatter::PreferredFont());
   ui->iaBuffers->setFont(Formatter::PreferredFont());
   ui->gsStreamOut->setFont(Formatter::PreferredFont());
+  ui->asShader->setFont(Formatter::PreferredFont());
+  ui->asResources->setFont(Formatter::PreferredFont());
+  ui->asSamplers->setFont(Formatter::PreferredFont());
+  ui->asCBuffers->setFont(Formatter::PreferredFont());
+  ui->asUAVs->setFont(Formatter::PreferredFont());
+  ui->msShader->setFont(Formatter::PreferredFont());
+  ui->msResources->setFont(Formatter::PreferredFont());
+  ui->msSamplers->setFont(Formatter::PreferredFont());
+  ui->msCBuffers->setFont(Formatter::PreferredFont());
+  ui->msUAVs->setFont(Formatter::PreferredFont());
   ui->vsShader->setFont(Formatter::PreferredFont());
   ui->vsResources->setFont(Formatter::PreferredFont());
   ui->vsSamplers->setFont(Formatter::PreferredFont());
@@ -521,7 +511,7 @@ void D3D12PipelineStateViewer::OnCaptureLoaded()
 
 void D3D12PipelineStateViewer::OnCaptureClosed()
 {
-  ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
+  setOldMeshPipeFlow();
 
   clearState();
 }
@@ -935,6 +925,10 @@ const D3D12Pipe::Shader *D3D12PipelineStateViewer::stageForSender(QWidget *widge
       return &m_Ctx.CurD3D12PipelineState()->pixelShader;
     if(widget == ui->stagesTabs->widget(8))
       return &m_Ctx.CurD3D12PipelineState()->computeShader;
+    if(widget == ui->stagesTabs->widget(9))
+      return &m_Ctx.CurD3D12PipelineState()->ampShader;
+    if(widget == ui->stagesTabs->widget(10))
+      return &m_Ctx.CurD3D12PipelineState()->meshShader;
 
     widget = widget->parentWidget();
   }
@@ -942,6 +936,62 @@ const D3D12Pipe::Shader *D3D12PipelineStateViewer::stageForSender(QWidget *widge
   qCritical() << "Unrecognised control calling event handler";
 
   return NULL;
+}
+
+void D3D12PipelineStateViewer::setOldMeshPipeFlow()
+{
+  m_MeshPipe = false;
+
+  ui->pipeFlow->setStages(
+      {
+          lit("IA"),
+          lit("VS"),
+          lit("HS"),
+          lit("DS"),
+          lit("GS"),
+          lit("RS"),
+          lit("PS"),
+          lit("OM"),
+          lit("CS"),
+      },
+      {
+          tr("Input Assembler"),
+          tr("Vertex Shader"),
+          tr("Hull Shader"),
+          tr("Domain Shader"),
+          tr("Geometry Shader"),
+          tr("Rasterizer"),
+          tr("Pixel Shader"),
+          tr("Output Merger"),
+          tr("Compute Shader"),
+      });
+
+  ui->pipeFlow->setIsolatedStage(8);    // compute shader isolated
+}
+
+void D3D12PipelineStateViewer::setNewMeshPipeFlow()
+{
+  m_MeshPipe = true;
+
+  ui->pipeFlow->setStages(
+      {
+          lit("AS"),
+          lit("MS"),
+          lit("RS"),
+          lit("PS"),
+          lit("OM"),
+          lit("CS"),
+      },
+      {
+          tr("Amp. Shader"),
+          tr("Mesh Shader"),
+          tr("Rasterizer"),
+          tr("Pixel Shader"),
+          tr("Output Merger"),
+          tr("Compute Shader"),
+      });
+
+  ui->pipeFlow->setIsolatedStage(5);    // compute shader isolated
 }
 
 void D3D12PipelineStateViewer::clearShaderState(RDLabel *shader, RDLabel *rootSig,
@@ -966,6 +1016,10 @@ void D3D12PipelineStateViewer::clearState()
   ui->topology->setText(QString());
   ui->topologyDiagram->setPixmap(QPixmap());
 
+  clearShaderState(ui->asShader, ui->asRootSig, ui->asResources, ui->asSamplers, ui->asCBuffers,
+                   ui->asUAVs);
+  clearShaderState(ui->msShader, ui->msRootSig, ui->msResources, ui->msSamplers, ui->msCBuffers,
+                   ui->msUAVs);
   clearShaderState(ui->vsShader, ui->vsRootSig, ui->vsResources, ui->vsSamplers, ui->vsCBuffers,
                    ui->vsUAVs);
   clearShaderState(ui->gsShader, ui->gsRootSig, ui->gsResources, ui->gsSamplers, ui->gsCBuffers,
@@ -982,12 +1036,33 @@ void D3D12PipelineStateViewer::clearState()
   ui->gsStreamOut->clear();
 
   QToolButton *shaderButtons[] = {
-      ui->vsShaderViewButton, ui->hsShaderViewButton, ui->dsShaderViewButton,
-      ui->gsShaderViewButton, ui->psShaderViewButton, ui->csShaderViewButton,
-      ui->vsShaderEditButton, ui->hsShaderEditButton, ui->dsShaderEditButton,
-      ui->gsShaderEditButton, ui->psShaderEditButton, ui->csShaderEditButton,
-      ui->vsShaderSaveButton, ui->hsShaderSaveButton, ui->dsShaderSaveButton,
-      ui->gsShaderSaveButton, ui->psShaderSaveButton, ui->csShaderSaveButton,
+      // view buttons
+      ui->asShaderViewButton,
+      ui->msShaderViewButton,
+      ui->vsShaderViewButton,
+      ui->hsShaderViewButton,
+      ui->dsShaderViewButton,
+      ui->gsShaderViewButton,
+      ui->psShaderViewButton,
+      ui->csShaderViewButton,
+      // edit buttons
+      ui->asShaderEditButton,
+      ui->msShaderEditButton,
+      ui->vsShaderEditButton,
+      ui->hsShaderEditButton,
+      ui->dsShaderEditButton,
+      ui->gsShaderEditButton,
+      ui->psShaderEditButton,
+      ui->csShaderEditButton,
+      // save buttons
+      ui->asShaderSaveButton,
+      ui->msShaderSaveButton,
+      ui->vsShaderSaveButton,
+      ui->hsShaderSaveButton,
+      ui->dsShaderSaveButton,
+      ui->gsShaderSaveButton,
+      ui->psShaderSaveButton,
+      ui->csShaderSaveButton,
   };
 
   for(QToolButton *b : shaderButtons)
@@ -1558,6 +1633,53 @@ void D3D12PipelineStateViewer::setState()
   const QPixmap &tick = Pixmaps::tick(this);
   const QPixmap &cross = Pixmaps::cross(this);
 
+  // highlight the appropriate stages in the flowchart
+  if(action == NULL)
+  {
+    setOldMeshPipeFlow();
+    ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
+  }
+  else if(action->flags & ActionFlags::Dispatch)
+  {
+    setOldMeshPipeFlow();
+    ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
+  }
+  else if(action->flags & ActionFlags::MeshDispatch)
+  {
+    setNewMeshPipeFlow();
+    ui->pipeFlow->setStagesEnabled(
+        {state.ampShader.resourceId != ResourceId(), true, true, true, true, false});
+  }
+  else
+  {
+    bool streamOutActive = false;
+
+    for(const D3D12Pipe::StreamOutBind &o : state.streamOut.outputs)
+    {
+      if(o.resourceId != ResourceId())
+      {
+        streamOutActive = true;
+        break;
+      }
+    }
+
+    if(state.geometryShader.resourceId == ResourceId() && streamOutActive)
+    {
+      ui->pipeFlow->setStageName(4, lit("SO"), tr("Stream Out"));
+    }
+    else
+    {
+      ui->pipeFlow->setStageName(4, lit("GS"), tr("Geometry Shader"));
+    }
+
+    setOldMeshPipeFlow();
+    ui->pipeFlow->setStagesEnabled(
+        {true, true, state.hullShader.resourceId != ResourceId(),
+         state.domainShader.resourceId != ResourceId(),
+         state.geometryShader.resourceId != ResourceId() || streamOutActive, true,
+         state.pixelShader.resourceId != ResourceId(), true, false});
+  }
+
   ////////////////////////////////////////////////
   // Vertex Input
 
@@ -1566,208 +1688,272 @@ void D3D12PipelineStateViewer::setState()
   bool usedVBuffers[128] = {};
   uint32_t layoutOffs[128] = {};
 
-  vs = ui->iaLayouts->verticalScrollBar()->value();
-  ui->iaLayouts->beginUpdate();
-  ui->iaLayouts->clear();
+  if(m_MeshPipe)
   {
-    int i = 0;
-    for(const D3D12Pipe::Layout &l : state.inputAssembly.layouts)
+    setShaderState(state.rootElements, state.ampShader, ui->asShader, ui->asRootSig,
+                   ui->asResources, ui->asSamplers, ui->asCBuffers, ui->asUAVs);
+    setShaderState(state.rootElements, state.meshShader, ui->msShader, ui->msRootSig,
+                   ui->msResources, ui->msSamplers, ui->msCBuffers, ui->msUAVs);
+
+    ui->msTopology->setText(ToQStr(state.meshShader.reflection->outputTopology));
+  }
+  else
+  {
+    vs = ui->iaLayouts->verticalScrollBar()->value();
+    ui->iaLayouts->beginUpdate();
+    ui->iaLayouts->clear();
     {
-      QString byteOffs = QString::number(l.byteOffset);
-
-      // D3D12 specific value
-      if(l.byteOffset == ~0U)
+      int i = 0;
+      for(const D3D12Pipe::Layout &l : state.inputAssembly.layouts)
       {
-        byteOffs = lit("APPEND_ALIGNED (%1)").arg(layoutOffs[l.inputSlot]);
-      }
-      else
-      {
-        layoutOffs[l.inputSlot] = l.byteOffset;
-      }
+        QString byteOffs = QString::number(l.byteOffset);
 
-      layoutOffs[l.inputSlot] += l.format.compByteWidth * l.format.compCount;
-
-      bool filledSlot = true;
-      bool usedSlot = false;
-
-      for(int ia = 0; state.vertexShader.reflection &&
-                      ia < state.vertexShader.reflection->inputSignature.count();
-          ia++)
-      {
-        if(!QString(state.vertexShader.reflection->inputSignature[ia].semanticName)
-                .compare(l.semanticName, Qt::CaseInsensitive) &&
-           state.vertexShader.reflection->inputSignature[ia].semanticIndex == l.semanticIndex)
+        // D3D12 specific value
+        if(l.byteOffset == ~0U)
         {
-          usedSlot = true;
-          break;
+          byteOffs = lit("APPEND_ALIGNED (%1)").arg(layoutOffs[l.inputSlot]);
         }
+        else
+        {
+          layoutOffs[l.inputSlot] = l.byteOffset;
+        }
+
+        layoutOffs[l.inputSlot] += l.format.compByteWidth * l.format.compCount;
+
+        bool filledSlot = true;
+        bool usedSlot = false;
+
+        for(int ia = 0; state.vertexShader.reflection &&
+                        ia < state.vertexShader.reflection->inputSignature.count();
+            ia++)
+        {
+          if(!QString(state.vertexShader.reflection->inputSignature[ia].semanticName)
+                  .compare(l.semanticName, Qt::CaseInsensitive) &&
+             state.vertexShader.reflection->inputSignature[ia].semanticIndex == l.semanticIndex)
+          {
+            usedSlot = true;
+            break;
+          }
+        }
+
+        if(showNode(usedSlot, filledSlot))
+        {
+          RDTreeWidgetItem *node = new RDTreeWidgetItem(
+              {i, l.semanticName, l.semanticIndex, l.format.Name(), l.inputSlot, byteOffs,
+               l.perInstance ? lit("PER_INSTANCE") : lit("PER_VERTEX"), l.instanceDataStepRate,
+               QString()});
+
+          node->setTag(i);
+
+          if(usedSlot)
+            usedVBuffers[l.inputSlot] = true;
+
+          if(!usedSlot)
+            setInactiveRow(node);
+
+          ui->iaLayouts->addTopLevelItem(node);
+        }
+
+        i++;
       }
+    }
+    ui->iaLayouts->clearSelection();
+    ui->iaLayouts->endUpdate();
+    ui->iaLayouts->verticalScrollBar()->setValue(vs);
+
+    int numCPs = PatchList_Count(state.inputAssembly.topology);
+    if(numCPs > 0)
+    {
+      ui->topology->setText(tr("PatchList (%1 Control Points)").arg(numCPs));
+    }
+    else
+    {
+      ui->topology->setText(ToQStr(state.inputAssembly.topology));
+    }
+
+    m_Common.setTopologyDiagram(ui->topologyDiagram, state.inputAssembly.topology);
+
+    bool ibufferUsed = action && (action->flags & ActionFlags::Indexed);
+
+    m_VBNodes.clear();
+    m_EmptyNodes.clear();
+
+    vs = ui->iaBuffers->verticalScrollBar()->value();
+    ui->iaBuffers->beginUpdate();
+    ui->iaBuffers->clear();
+
+    if(state.inputAssembly.indexBuffer.resourceId != ResourceId())
+    {
+      if(ibufferUsed || m_ShowUnused)
+      {
+        uint64_t length = state.inputAssembly.indexBuffer.byteSize;
+
+        BufferDescription *buf = m_Ctx.GetBuffer(state.inputAssembly.indexBuffer.resourceId);
+
+        RDTreeWidgetItem *node = new RDTreeWidgetItem(
+            {tr("Index"), state.inputAssembly.indexBuffer.resourceId,
+             (qulonglong)state.inputAssembly.indexBuffer.byteStride,
+             (qulonglong)state.inputAssembly.indexBuffer.byteOffset, (qulonglong)length, QString()});
+
+        QString iformat;
+
+        if(state.inputAssembly.indexBuffer.byteStride == 1)
+          iformat = lit("ubyte");
+        else if(state.inputAssembly.indexBuffer.byteStride == 2)
+          iformat = lit("ushort");
+        else if(state.inputAssembly.indexBuffer.byteStride == 4)
+          iformat = lit("uint");
+
+        iformat +=
+            lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
+
+        uint32_t drawOffset =
+            (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0);
+
+        node->setTag(QVariant::fromValue(
+            D3D12VBIBTag(state.inputAssembly.indexBuffer.resourceId,
+                         state.inputAssembly.indexBuffer.byteOffset + drawOffset,
+                         drawOffset > state.inputAssembly.indexBuffer.byteSize
+                             ? 0
+                             : state.inputAssembly.indexBuffer.byteSize - drawOffset,
+                         iformat)));
+
+        for(const D3D12Pipe::ResourceData &res : m_Ctx.CurD3D12PipelineState()->resourceStates)
+        {
+          if(res.resourceId == state.inputAssembly.indexBuffer.resourceId)
+          {
+            node->setToolTip(tr("Buffer is in the '%1' state").arg(res.states[0].name));
+            break;
+          }
+        }
+
+        if(!ibufferUsed)
+          setInactiveRow(node);
+
+        if(state.inputAssembly.indexBuffer.resourceId == ResourceId())
+        {
+          setEmptyRow(node);
+          m_EmptyNodes.push_back(node);
+        }
+
+        ui->iaBuffers->addTopLevelItem(node);
+      }
+    }
+    else
+    {
+      if(ibufferUsed || m_ShowEmpty)
+      {
+        RDTreeWidgetItem *node = new RDTreeWidgetItem(
+            {tr("Index"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
+
+        QString iformat;
+
+        if(state.inputAssembly.indexBuffer.byteStride == 1)
+          iformat = lit("ubyte");
+        else if(state.inputAssembly.indexBuffer.byteStride == 2)
+          iformat = lit("ushort");
+        else if(state.inputAssembly.indexBuffer.byteStride == 4)
+          iformat = lit("uint");
+
+        iformat +=
+            lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
+
+        uint32_t drawOffset =
+            (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0);
+
+        node->setTag(QVariant::fromValue(
+            D3D12VBIBTag(state.inputAssembly.indexBuffer.resourceId,
+                         state.inputAssembly.indexBuffer.byteOffset + drawOffset,
+                         drawOffset > state.inputAssembly.indexBuffer.byteSize
+                             ? 0
+                             : state.inputAssembly.indexBuffer.byteSize - drawOffset,
+                         iformat)));
+
+        for(const D3D12Pipe::ResourceData &res : m_Ctx.CurD3D12PipelineState()->resourceStates)
+        {
+          if(res.resourceId == state.inputAssembly.indexBuffer.resourceId)
+          {
+            node->setToolTip(tr("Buffer is in the '%1' state").arg(res.states[0].name));
+            break;
+          }
+        }
+
+        setEmptyRow(node);
+        m_EmptyNodes.push_back(node);
+
+        if(!ibufferUsed)
+          setInactiveRow(node);
+
+        ui->iaBuffers->addTopLevelItem(node);
+      }
+    }
+
+    for(int i = 0; i < 128; i++)
+    {
+      if(i >= state.inputAssembly.vertexBuffers.count())
+      {
+        // for vbuffers that are referenced but not bound, make sure we add an empty row
+        if(usedVBuffers[i])
+        {
+          RDTreeWidgetItem *node =
+              new RDTreeWidgetItem({i, tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
+          node->setTag(QVariant::fromValue(D3D12VBIBTag(ResourceId(), 0, 0)));
+
+          setEmptyRow(node);
+          m_EmptyNodes.push_back(node);
+
+          m_VBNodes.push_back(node);
+
+          ui->iaBuffers->addTopLevelItem(node);
+        }
+        else
+        {
+          m_VBNodes.push_back(NULL);
+        }
+
+        continue;
+      }
+
+      const D3D12Pipe::VertexBuffer &v = state.inputAssembly.vertexBuffers[i];
+
+      bool filledSlot = (v.resourceId != ResourceId());
+      bool usedSlot = (usedVBuffers[i]);
 
       if(showNode(usedSlot, filledSlot))
       {
-        RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({i, l.semanticName, l.semanticIndex, l.format.Name(), l.inputSlot,
-                                  byteOffs, l.perInstance ? lit("PER_INSTANCE") : lit("PER_VERTEX"),
-                                  l.instanceDataStepRate, QString()});
+        qulonglong length = v.byteSize;
 
-        node->setTag(i);
+        BufferDescription *buf = m_Ctx.GetBuffer(v.resourceId);
 
-        if(usedSlot)
-          usedVBuffers[l.inputSlot] = true;
+        RDTreeWidgetItem *node = NULL;
+
+        if(filledSlot)
+          node = new RDTreeWidgetItem(
+              {i, v.resourceId, v.byteStride, (qulonglong)v.byteOffset, length, QString()});
+        else
+          node =
+              new RDTreeWidgetItem({i, tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
+
+        node->setTag(QVariant::fromValue(D3D12VBIBTag(v.resourceId, v.byteOffset, v.byteSize,
+                                                      m_Common.GetVBufferFormatString(i))));
+
+        for(const D3D12Pipe::ResourceData &res : m_Ctx.CurD3D12PipelineState()->resourceStates)
+        {
+          if(res.resourceId == v.resourceId)
+          {
+            node->setToolTip(tr("Buffer is in the '%1' state").arg(res.states[0].name));
+            break;
+          }
+        }
+
+        if(!filledSlot)
+        {
+          setEmptyRow(node);
+          m_EmptyNodes.push_back(node);
+        }
 
         if(!usedSlot)
           setInactiveRow(node);
-
-        ui->iaLayouts->addTopLevelItem(node);
-      }
-
-      i++;
-    }
-  }
-  ui->iaLayouts->clearSelection();
-  ui->iaLayouts->endUpdate();
-  ui->iaLayouts->verticalScrollBar()->setValue(vs);
-
-  int numCPs = PatchList_Count(state.inputAssembly.topology);
-  if(numCPs > 0)
-  {
-    ui->topology->setText(tr("PatchList (%1 Control Points)").arg(numCPs));
-  }
-  else
-  {
-    ui->topology->setText(ToQStr(state.inputAssembly.topology));
-  }
-
-  m_Common.setTopologyDiagram(ui->topologyDiagram, state.inputAssembly.topology);
-
-  bool ibufferUsed = action && (action->flags & ActionFlags::Indexed);
-
-  m_VBNodes.clear();
-  m_EmptyNodes.clear();
-
-  vs = ui->iaBuffers->verticalScrollBar()->value();
-  ui->iaBuffers->beginUpdate();
-  ui->iaBuffers->clear();
-
-  if(state.inputAssembly.indexBuffer.resourceId != ResourceId())
-  {
-    if(ibufferUsed || m_ShowUnused)
-    {
-      uint64_t length = state.inputAssembly.indexBuffer.byteSize;
-
-      BufferDescription *buf = m_Ctx.GetBuffer(state.inputAssembly.indexBuffer.resourceId);
-
-      RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {tr("Index"), state.inputAssembly.indexBuffer.resourceId,
-           (qulonglong)state.inputAssembly.indexBuffer.byteStride,
-           (qulonglong)state.inputAssembly.indexBuffer.byteOffset, (qulonglong)length, QString()});
-
-      QString iformat;
-
-      if(state.inputAssembly.indexBuffer.byteStride == 1)
-        iformat = lit("ubyte");
-      else if(state.inputAssembly.indexBuffer.byteStride == 2)
-        iformat = lit("ushort");
-      else if(state.inputAssembly.indexBuffer.byteStride == 4)
-        iformat = lit("uint");
-
-      iformat +=
-          lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
-
-      uint32_t drawOffset =
-          (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0);
-
-      node->setTag(QVariant::fromValue(
-          D3D12VBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                       state.inputAssembly.indexBuffer.byteOffset + drawOffset,
-                       drawOffset > state.inputAssembly.indexBuffer.byteSize
-                           ? 0
-                           : state.inputAssembly.indexBuffer.byteSize - drawOffset,
-                       iformat)));
-
-      for(const D3D12Pipe::ResourceData &res : m_Ctx.CurD3D12PipelineState()->resourceStates)
-      {
-        if(res.resourceId == state.inputAssembly.indexBuffer.resourceId)
-        {
-          node->setToolTip(tr("Buffer is in the '%1' state").arg(res.states[0].name));
-          break;
-        }
-      }
-
-      if(!ibufferUsed)
-        setInactiveRow(node);
-
-      if(state.inputAssembly.indexBuffer.resourceId == ResourceId())
-      {
-        setEmptyRow(node);
-        m_EmptyNodes.push_back(node);
-      }
-
-      ui->iaBuffers->addTopLevelItem(node);
-    }
-  }
-  else
-  {
-    if(ibufferUsed || m_ShowEmpty)
-    {
-      RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {tr("Index"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
-
-      QString iformat;
-
-      if(state.inputAssembly.indexBuffer.byteStride == 1)
-        iformat = lit("ubyte");
-      else if(state.inputAssembly.indexBuffer.byteStride == 2)
-        iformat = lit("ushort");
-      else if(state.inputAssembly.indexBuffer.byteStride == 4)
-        iformat = lit("uint");
-
-      iformat +=
-          lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
-
-      uint32_t drawOffset =
-          (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0);
-
-      node->setTag(QVariant::fromValue(
-          D3D12VBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                       state.inputAssembly.indexBuffer.byteOffset + drawOffset,
-                       drawOffset > state.inputAssembly.indexBuffer.byteSize
-                           ? 0
-                           : state.inputAssembly.indexBuffer.byteSize - drawOffset,
-                       iformat)));
-
-      for(const D3D12Pipe::ResourceData &res : m_Ctx.CurD3D12PipelineState()->resourceStates)
-      {
-        if(res.resourceId == state.inputAssembly.indexBuffer.resourceId)
-        {
-          node->setToolTip(tr("Buffer is in the '%1' state").arg(res.states[0].name));
-          break;
-        }
-      }
-
-      setEmptyRow(node);
-      m_EmptyNodes.push_back(node);
-
-      if(!ibufferUsed)
-        setInactiveRow(node);
-
-      ui->iaBuffers->addTopLevelItem(node);
-    }
-  }
-
-  for(int i = 0; i < 128; i++)
-  {
-    if(i >= state.inputAssembly.vertexBuffers.count())
-    {
-      // for vbuffers that are referenced but not bound, make sure we add an empty row
-      if(usedVBuffers[i])
-      {
-        RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({i, tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
-        node->setTag(QVariant::fromValue(D3D12VBIBTag(ResourceId(), 0, 0)));
-
-        setEmptyRow(node);
-        m_EmptyNodes.push_back(node);
 
         m_VBNodes.push_back(node);
 
@@ -1777,84 +1963,54 @@ void D3D12PipelineStateViewer::setState()
       {
         m_VBNodes.push_back(NULL);
       }
-
-      continue;
     }
+    ui->iaBuffers->clearSelection();
+    ui->iaBuffers->endUpdate();
+    ui->iaBuffers->verticalScrollBar()->setValue(vs);
 
-    const D3D12Pipe::VertexBuffer &v = state.inputAssembly.vertexBuffers[i];
-
-    bool filledSlot = (v.resourceId != ResourceId());
-    bool usedSlot = (usedVBuffers[i]);
-
-    if(showNode(usedSlot, filledSlot))
-    {
-      qulonglong length = v.byteSize;
-
-      BufferDescription *buf = m_Ctx.GetBuffer(v.resourceId);
-
-      RDTreeWidgetItem *node = NULL;
-
-      if(filledSlot)
-        node = new RDTreeWidgetItem(
-            {i, v.resourceId, v.byteStride, (qulonglong)v.byteOffset, length, QString()});
-      else
-        node =
-            new RDTreeWidgetItem({i, tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
-
-      node->setTag(QVariant::fromValue(D3D12VBIBTag(v.resourceId, v.byteOffset, v.byteSize,
-                                                    m_Common.GetVBufferFormatString(i))));
-
-      for(const D3D12Pipe::ResourceData &res : m_Ctx.CurD3D12PipelineState()->resourceStates)
-      {
-        if(res.resourceId == v.resourceId)
-        {
-          node->setToolTip(tr("Buffer is in the '%1' state").arg(res.states[0].name));
-          break;
-        }
-      }
-
-      if(!filledSlot)
-      {
-        setEmptyRow(node);
-        m_EmptyNodes.push_back(node);
-      }
-
-      if(!usedSlot)
-        setInactiveRow(node);
-
-      m_VBNodes.push_back(node);
-
-      ui->iaBuffers->addTopLevelItem(node);
-    }
-    else
-    {
-      m_VBNodes.push_back(NULL);
-    }
+    setShaderState(state.rootElements, state.vertexShader, ui->vsShader, ui->vsRootSig,
+                   ui->vsResources, ui->vsSamplers, ui->vsCBuffers, ui->vsUAVs);
+    setShaderState(state.rootElements, state.geometryShader, ui->gsShader, ui->gsRootSig,
+                   ui->gsResources, ui->gsSamplers, ui->gsCBuffers, ui->gsUAVs);
+    setShaderState(state.rootElements, state.hullShader, ui->hsShader, ui->hsRootSig,
+                   ui->hsResources, ui->hsSamplers, ui->hsCBuffers, ui->hsUAVs);
+    setShaderState(state.rootElements, state.domainShader, ui->dsShader, ui->dsRootSig,
+                   ui->dsResources, ui->dsSamplers, ui->dsCBuffers, ui->dsUAVs);
   }
-  ui->iaBuffers->clearSelection();
-  ui->iaBuffers->endUpdate();
-  ui->iaBuffers->verticalScrollBar()->setValue(vs);
 
-  setShaderState(state.rootElements, state.vertexShader, ui->vsShader, ui->vsRootSig,
-                 ui->vsResources, ui->vsSamplers, ui->vsCBuffers, ui->vsUAVs);
-  setShaderState(state.rootElements, state.geometryShader, ui->gsShader, ui->gsRootSig,
-                 ui->gsResources, ui->gsSamplers, ui->gsCBuffers, ui->gsUAVs);
-  setShaderState(state.rootElements, state.hullShader, ui->hsShader, ui->hsRootSig, ui->hsResources,
-                 ui->hsSamplers, ui->hsCBuffers, ui->hsUAVs);
-  setShaderState(state.rootElements, state.domainShader, ui->dsShader, ui->dsRootSig,
-                 ui->dsResources, ui->dsSamplers, ui->dsCBuffers, ui->dsUAVs);
   setShaderState(state.rootElements, state.pixelShader, ui->psShader, ui->psRootSig,
                  ui->psResources, ui->psSamplers, ui->psCBuffers, ui->psUAVs);
   setShaderState(state.rootElements, state.computeShader, ui->csShader, ui->csRootSig,
                  ui->csResources, ui->csSamplers, ui->csCBuffers, ui->csUAVs);
 
   QToolButton *shaderButtons[] = {
-      ui->vsShaderViewButton, ui->hsShaderViewButton, ui->dsShaderViewButton,
-      ui->gsShaderViewButton, ui->psShaderViewButton, ui->csShaderViewButton,
-      ui->vsShaderEditButton, ui->hsShaderEditButton, ui->dsShaderEditButton,
-      ui->gsShaderEditButton, ui->psShaderEditButton, ui->csShaderEditButton,
-      ui->vsShaderSaveButton, ui->hsShaderSaveButton, ui->dsShaderSaveButton,
-      ui->gsShaderSaveButton, ui->psShaderSaveButton, ui->csShaderSaveButton,
+      // view buttons
+      ui->asShaderViewButton,
+      ui->msShaderViewButton,
+      ui->vsShaderViewButton,
+      ui->hsShaderViewButton,
+      ui->dsShaderViewButton,
+      ui->gsShaderViewButton,
+      ui->psShaderViewButton,
+      ui->csShaderViewButton,
+      // edit buttons
+      ui->asShaderEditButton,
+      ui->msShaderEditButton,
+      ui->vsShaderEditButton,
+      ui->hsShaderEditButton,
+      ui->dsShaderEditButton,
+      ui->gsShaderEditButton,
+      ui->psShaderEditButton,
+      ui->csShaderEditButton,
+      // save buttons
+      ui->asShaderSaveButton,
+      ui->msShaderSaveButton,
+      ui->vsShaderSaveButton,
+      ui->hsShaderSaveButton,
+      ui->dsShaderSaveButton,
+      ui->gsShaderSaveButton,
+      ui->psShaderSaveButton,
+      ui->csShaderSaveButton,
   };
 
   for(QToolButton *b : shaderButtons)
@@ -2193,44 +2349,6 @@ void D3D12PipelineStateViewer::setState()
     else
       ui->computeDebugSelector->setToolTip(tr("Invalid dispatch/threadgroup dimensions."));
   }
-
-  // highlight the appropriate stages in the flowchart
-  if(action == NULL)
-  {
-    ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
-  }
-  else if(action->flags & ActionFlags::Dispatch)
-  {
-    ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
-  }
-  else
-  {
-    bool streamOutActive = false;
-
-    for(const D3D12Pipe::StreamOutBind &o : state.streamOut.outputs)
-    {
-      if(o.resourceId != ResourceId())
-      {
-        streamOutActive = true;
-        break;
-      }
-    }
-
-    if(state.geometryShader.resourceId == ResourceId() && streamOutActive)
-    {
-      ui->pipeFlow->setStageName(4, lit("SO"), tr("Stream Out"));
-    }
-    else
-    {
-      ui->pipeFlow->setStageName(4, lit("GS"), tr("Geometry Shader"));
-    }
-
-    ui->pipeFlow->setStagesEnabled(
-        {true, true, state.hullShader.resourceId != ResourceId(),
-         state.domainShader.resourceId != ResourceId(),
-         state.geometryShader.resourceId != ResourceId() || streamOutActive, true,
-         state.pixelShader.resourceId != ResourceId(), true, false});
-  }
 }
 
 void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int column)
@@ -2530,7 +2648,26 @@ void D3D12PipelineStateViewer::vertex_leave(QEvent *e)
 
 void D3D12PipelineStateViewer::on_pipeFlow_stageSelected(int index)
 {
-  ui->stagesTabs->setCurrentIndex(index);
+  if(m_MeshPipe)
+  {
+    // remap since AS/MS are the last tabs but appear first in the flow
+    switch(index)
+    {
+      // AS
+      case 0: ui->stagesTabs->setCurrentIndex(9); break;
+      // MS
+      case 1: ui->stagesTabs->setCurrentIndex(10); break;
+      // raster onwards are the same, just skipping VTX,VS,HS,DS,GS
+      case 2: ui->stagesTabs->setCurrentIndex(5); break;
+      case 3: ui->stagesTabs->setCurrentIndex(6); break;
+      case 4: ui->stagesTabs->setCurrentIndex(7); break;
+      case 5: ui->stagesTabs->setCurrentIndex(8); break;
+    }
+  }
+  else
+  {
+    ui->stagesTabs->setCurrentIndex(index);
+  }
 }
 
 void D3D12PipelineStateViewer::shaderView_clicked()
@@ -3545,36 +3682,63 @@ void D3D12PipelineStateViewer::on_exportHTML_clicked()
       xml.writeCharacters(sn);
       xml.writeEndElement();
 
-      switch(stage)
+      if(m_MeshPipe)
       {
-        case 0: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->inputAssembly); break;
-        case 1:
-          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->vertexShader,
-                     m_Ctx.CurD3D12PipelineState()->rootElements);
-          break;
-        case 2:
-          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->hullShader,
-                     m_Ctx.CurD3D12PipelineState()->rootElements);
-          break;
-        case 3:
-          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->domainShader,
-                     m_Ctx.CurD3D12PipelineState()->rootElements);
-          break;
-        case 4:
-          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->geometryShader,
-                     m_Ctx.CurD3D12PipelineState()->rootElements);
-          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->streamOut);
-          break;
-        case 5: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->rasterizer); break;
-        case 6:
-          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->pixelShader,
-                     m_Ctx.CurD3D12PipelineState()->rootElements);
-          break;
-        case 7: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->outputMerger); break;
-        case 8:
-          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->computeShader,
-                     m_Ctx.CurD3D12PipelineState()->rootElements);
-          break;
+        switch(stage)
+        {
+          case 0:
+            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->ampShader,
+                       m_Ctx.CurD3D12PipelineState()->rootElements);
+            break;
+          case 1:
+            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->meshShader,
+                       m_Ctx.CurD3D12PipelineState()->rootElements);
+            break;
+          case 2: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->rasterizer); break;
+          case 3:
+            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->pixelShader,
+                       m_Ctx.CurD3D12PipelineState()->rootElements);
+            break;
+          case 4: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->outputMerger); break;
+          case 5:
+            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->computeShader,
+                       m_Ctx.CurD3D12PipelineState()->rootElements);
+            break;
+        }
+      }
+      else
+      {
+        switch(stage)
+        {
+          case 0: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->inputAssembly); break;
+          case 1:
+            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->vertexShader,
+                       m_Ctx.CurD3D12PipelineState()->rootElements);
+            break;
+          case 2:
+            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->hullShader,
+                       m_Ctx.CurD3D12PipelineState()->rootElements);
+            break;
+          case 3:
+            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->domainShader,
+                       m_Ctx.CurD3D12PipelineState()->rootElements);
+            break;
+          case 4:
+            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->geometryShader,
+                       m_Ctx.CurD3D12PipelineState()->rootElements);
+            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->streamOut);
+            break;
+          case 5: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->rasterizer); break;
+          case 6:
+            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->pixelShader,
+                       m_Ctx.CurD3D12PipelineState()->rootElements);
+            break;
+          case 7: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->outputMerger); break;
+          case 8:
+            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->computeShader,
+                       m_Ctx.CurD3D12PipelineState()->rootElements);
+            break;
+        }
       }
 
       xml.writeEndElement();
@@ -3584,6 +3748,13 @@ void D3D12PipelineStateViewer::on_exportHTML_clicked()
 
     m_Common.endHTMLExport(xmlptr);
   }
+}
+
+void D3D12PipelineStateViewer::on_msMeshButton_clicked()
+{
+  if(!m_Ctx.HasMeshPreview())
+    m_Ctx.ShowMeshPreview();
+  ToolWindowManager::raiseToolWindow(m_Ctx.GetMeshPreview()->Widget());
 }
 
 void D3D12PipelineStateViewer::on_meshView_clicked()

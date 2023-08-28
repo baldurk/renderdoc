@@ -54,7 +54,7 @@ struct D3D12InitParams
   UINT SDKVersion = 0;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x10;
+  static const uint64_t CurrentVersion = 0x11;
 
   static bool IsSupportedVersion(uint64_t ver);
 };
@@ -790,6 +790,8 @@ private:
   D3D12_FEATURE_DATA_D3D12_OPTIONS2 m_D3D12Opts2;
   D3D12_FEATURE_DATA_D3D12_OPTIONS3 m_D3D12Opts3;
   D3D12_FEATURE_DATA_D3D12_OPTIONS6 m_D3D12Opts6;
+  D3D12_FEATURE_DATA_D3D12_OPTIONS7 m_D3D12Opts7;
+  D3D12_FEATURE_DATA_D3D12_OPTIONS9 m_D3D12Opts9;
   D3D12_FEATURE_DATA_D3D12_OPTIONS12 m_D3D12Opts12;
   D3D12_FEATURE_DATA_D3D12_OPTIONS14 m_D3D12Opts14;
   D3D12_FEATURE_DATA_D3D12_OPTIONS15 m_D3D12Opts15;
@@ -825,6 +827,8 @@ public:
   const D3D12_FEATURE_DATA_D3D12_OPTIONS2 &GetOpts2() { return m_D3D12Opts2; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS3 &GetOpts3() { return m_D3D12Opts3; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS6 &GetOpts6() { return m_D3D12Opts6; }
+  const D3D12_FEATURE_DATA_D3D12_OPTIONS7 &GetOpts7() { return m_D3D12Opts7; }
+  const D3D12_FEATURE_DATA_D3D12_OPTIONS9 &GetOpts9() { return m_D3D12Opts9; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS12 &GetOpts12() { return m_D3D12Opts12; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS14 &GetOpts14() { return m_D3D12Opts14; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS15 &GetOpts15() { return m_D3D12Opts15; }

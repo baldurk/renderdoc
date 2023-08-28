@@ -399,6 +399,10 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0xF)
     return true;
 
+  // 0x10 -> 0x11 - Expanded PSO desc is serialised with amplification and mesh shader descs
+  if(ver == 0x10)
+    return true;
+
   return false;
 }
 
@@ -865,8 +869,8 @@ ShaderStageMask ConvertVisibility(D3D12_SHADER_VISIBILITY ShaderVisibility)
     case D3D12_SHADER_VISIBILITY_DOMAIN: return ShaderStageMask::Domain;
     case D3D12_SHADER_VISIBILITY_GEOMETRY: return ShaderStageMask::Geometry;
     case D3D12_SHADER_VISIBILITY_PIXEL: return ShaderStageMask::Pixel;
-    case D3D12_SHADER_VISIBILITY_AMPLIFICATION:
-    case D3D12_SHADER_VISIBILITY_MESH:
+    case D3D12_SHADER_VISIBILITY_AMPLIFICATION: return ShaderStageMask::Amplification;
+    case D3D12_SHADER_VISIBILITY_MESH: return ShaderStageMask::Mesh;
     default: RDCERR("Unexpected visibility %u", ShaderVisibility); break;
   }
 
@@ -1263,6 +1267,8 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
   RDCEraseEl(GS);
   RDCEraseEl(PS);
   RDCEraseEl(CS);
+  RDCEraseEl(AS);
+  RDCEraseEl(MS);
   NodeMask = 0;
   RDCEraseEl(CachedPSO);
   Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
@@ -1384,6 +1390,18 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
       case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS:
       {
         CS = ptr->data.shader;
+        ITER_ADV(D3D12_SHADER_BYTECODE);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_AS:
+      {
+        AS = ptr->data.shader;
+        ITER_ADV(D3D12_SHADER_BYTECODE);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS:
+      {
+        MS = ptr->data.shader;
         ITER_ADV(D3D12_SHADER_BYTECODE);
         break;
       }
@@ -1538,26 +1556,6 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
         ITER_ADV(D3D12_VIEW_INSTANCING_DESC);
         break;
       }
-      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_AS:
-      {
-        if(ptr->data.shader.BytecodeLength > 0)
-        {
-          RDCERR("AS passed to D3D12_PIPELINE_STATE_STREAM_DESC but mesh shaders not supported");
-          errored = true;
-        }
-        ITER_ADV(D3D12_SHADER_BYTECODE);
-        break;
-      }
-      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS:
-      {
-        if(ptr->data.shader.BytecodeLength > 0)
-        {
-          RDCERR("MS passed to D3D12_PIPELINE_STATE_STREAM_DESC but mesh shaders not supported");
-          errored = true;
-        }
-        ITER_ADV(D3D12_SHADER_BYTECODE);
-        break;
-      }
       default:
       {
         RDCERR("Unknown subobject type %d", obj->type);
@@ -1606,6 +1604,8 @@ D3D12_PACKED_PIPELINE_STATE_STREAM_DESC &D3D12_PACKED_PIPELINE_STATE_STREAM_DESC
     m_GraphicsStreamData.CachedPSO = expanded.CachedPSO;
     m_GraphicsStreamData.Flags = expanded.Flags;
     m_GraphicsStreamData.ViewInstancing = expanded.ViewInstancing;
+    AS = expanded.AS;
+    MS = expanded.MS;
 
     byte *ptr = m_GraphicsStreamData.VariableVersionedData;
     const byte *start = ptr;
@@ -1730,6 +1730,16 @@ D3D12_PACKED_PIPELINE_STATE_STREAM_DESC &D3D12_PACKED_PIPELINE_STATE_STREAM_DESC
       desc1.StencilWriteMask = expanded.DepthStencilState.FrontFace.StencilWriteMask;
 
       WRITE_VERSIONED_SUBOJBECT(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL1, desc1);
+    }
+
+    if(expanded.AS.BytecodeLength > 0)
+    {
+      WRITE_VERSIONED_SUBOJBECT(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_AS, expanded.AS);
+    }
+
+    if(expanded.MS.BytecodeLength > 0)
+    {
+      WRITE_VERSIONED_SUBOJBECT(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS, expanded.MS);
     }
 
     m_VariableVersionedDataLength = ptr - start;

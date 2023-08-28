@@ -52,6 +52,11 @@ rdcarray<GPUCounter> D3D12Replay::EnumerateCounters()
   ret.push_back(GPUCounter::GSInvocations);
   ret.push_back(GPUCounter::PSInvocations);
   ret.push_back(GPUCounter::CSInvocations);
+  if(m_pDevice->GetOpts9().MeshShaderPipelineStatsSupported)
+  {
+    ret.push_back(GPUCounter::ASInvocations);
+    ret.push_back(GPUCounter::MSInvocations);
+  }
 
   if(m_pAMDCounters)
   {
@@ -188,6 +193,20 @@ CounterDescription D3D12Replay::DescribeCounter(GPUCounter counterID)
     case GPUCounter::CSInvocations:
       desc.name = "CS Invocations";
       desc.description = "Number of times a compute shader was invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
+      break;
+    case GPUCounter::ASInvocations:
+      desc.name = "AS Invocations";
+      desc.description = "Number of times an amplification shader was invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
+      break;
+    case GPUCounter::MSInvocations:
+      desc.name = "MS Invocations";
+      desc.description = "Number of times a mesh shader was invoked.";
       desc.resultByteWidth = 8;
       desc.resultType = CompType::UInt;
       desc.unit = CounterUnit::Absolute;
@@ -399,10 +418,11 @@ rdcarray<CounterResult> D3D12Replay::FetchCountersAMD(const rdcarray<GPUCounter>
 
 struct D3D12GPUTimerCallback : public D3D12ActionCallback
 {
-  D3D12GPUTimerCallback(WrappedID3D12Device *dev, D3D12Replay *rp, ID3D12QueryHeap *tqh,
-                        ID3D12QueryHeap *psqh, ID3D12QueryHeap *oqh)
+  D3D12GPUTimerCallback(WrappedID3D12Device *dev, D3D12Replay *rp, D3D12_QUERY_TYPE pipeQueryType,
+                        ID3D12QueryHeap *tqh, ID3D12QueryHeap *psqh, ID3D12QueryHeap *oqh)
       : m_pDevice(dev),
         m_pReplay(rp),
+        m_PipeQueryType(pipeQueryType),
         m_TimerQueryHeap(tqh),
         m_PipeStatsQueryHeap(psqh),
         m_OcclusionQueryHeap(oqh),
@@ -420,7 +440,7 @@ struct D3D12GPUTimerCallback : public D3D12ActionCallback
     if(cmd->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT)
     {
       cmd->BeginQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, m_NumStatsQueries);
-      cmd->BeginQuery(m_PipeStatsQueryHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS, m_NumStatsQueries);
+      cmd->BeginQuery(m_PipeStatsQueryHeap, m_PipeQueryType, m_NumStatsQueries);
     }
     cmd->EndQuery(m_TimerQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, m_NumTimestampQueries * 2 + 0);
   }
@@ -436,7 +456,7 @@ struct D3D12GPUTimerCallback : public D3D12ActionCallback
     bool direct = (cmd->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT);
     if(direct)
     {
-      cmd->EndQuery(m_PipeStatsQueryHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS, m_NumStatsQueries);
+      cmd->EndQuery(m_PipeStatsQueryHeap, m_PipeQueryType, m_NumStatsQueries);
       cmd->EndQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, m_NumStatsQueries);
 
       m_NumStatsQueries++;
@@ -483,6 +503,7 @@ struct D3D12GPUTimerCallback : public D3D12ActionCallback
 
   WrappedID3D12Device *m_pDevice;
   D3D12Replay *m_pReplay;
+  D3D12_QUERY_TYPE m_PipeQueryType;
   ID3D12QueryHeap *m_TimerQueryHeap;
   ID3D12QueryHeap *m_PipeStatsQueryHeap;
   ID3D12QueryHeap *m_OcclusionQueryHeap;
@@ -556,7 +577,7 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
   D3D12_RESOURCE_DESC bufDesc;
   bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
   bufDesc.Alignment = 0;
-  bufDesc.Width = (sizeof(uint64_t) * 3 + sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS)) * maxEID;
+  bufDesc.Width = (sizeof(uint64_t) * 3 + sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS1)) * maxEID;
   bufDesc.Height = 1;
   bufDesc.DepthOrArraySize = 1;
   bufDesc.MipLevels = 1;
@@ -595,6 +616,17 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
   pipestatsQueryDesc.Count = maxEID;
   pipestatsQueryDesc.NodeMask = 1;
   pipestatsQueryDesc.Type = D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS;
+  D3D12_QUERY_TYPE pipeQueryType = D3D12_QUERY_TYPE_PIPELINE_STATISTICS;
+
+  const bool meshQueries = d3dCounters.contains(GPUCounter::ASInvocations) ||
+                           d3dCounters.contains(GPUCounter::MSInvocations);
+
+  if(meshQueries)
+  {
+    pipestatsQueryDesc.Type = D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS1;
+    pipeQueryType = D3D12_QUERY_TYPE_PIPELINE_STATISTICS1;
+  }
+
   ID3D12QueryHeap *pipestatsQueryHeap = NULL;
   hr = m_pDevice->CreateQueryHeap(&pipestatsQueryDesc, __uuidof(pipestatsQueryHeap),
                                   (void **)&pipestatsQueryHeap);
@@ -632,7 +664,8 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
     return ret;
   }
 
-  D3D12GPUTimerCallback cb(m_pDevice, this, timerQueryHeap, pipestatsQueryHeap, occlusionQueryHeap);
+  D3D12GPUTimerCallback cb(m_pDevice, this, pipeQueryType, timerQueryHeap, pipestatsQueryHeap,
+                           occlusionQueryHeap);
 
   // replay the events to perform all the queries
   m_pDevice->ReplayLog(0, maxEID, eReplay_Full);
@@ -658,10 +691,13 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
 
   bufferOffset += sizeof(uint64_t) * 2 * cb.m_NumTimestampQueries;
 
-  list->ResolveQueryData(pipestatsQueryHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS, 0,
-                         cb.m_NumStatsQueries, readbackBuf, bufferOffset);
+  list->ResolveQueryData(pipestatsQueryHeap, pipeQueryType, 0, cb.m_NumStatsQueries, readbackBuf,
+                         bufferOffset);
 
-  bufferOffset += sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS) * cb.m_NumStatsQueries;
+  if(meshQueries)
+    bufferOffset += sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS1) * cb.m_NumStatsQueries;
+  else
+    bufferOffset += sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS) * cb.m_NumStatsQueries;
 
   list->ResolveQueryData(occlusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, 0, cb.m_NumStatsQueries,
                          readbackBuf, bufferOffset);
@@ -692,7 +728,12 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
   uint64_t *timestamps = (uint64_t *)data;
   data += cb.m_NumTimestampQueries * 2 * sizeof(uint64_t);
   D3D12_QUERY_DATA_PIPELINE_STATISTICS *pipelinestats = (D3D12_QUERY_DATA_PIPELINE_STATISTICS *)data;
-  data += cb.m_NumStatsQueries * sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS);
+  D3D12_QUERY_DATA_PIPELINE_STATISTICS1 *pipelinestats1 =
+      (D3D12_QUERY_DATA_PIPELINE_STATISTICS1 *)data;
+  if(meshQueries)
+    data += cb.m_NumStatsQueries * sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS1);
+  else
+    data += cb.m_NumStatsQueries * sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS);
   uint64_t *occlusion = (uint64_t *)data;
 
   uint64_t freq;
@@ -703,15 +744,25 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
     bool direct = cb.m_Results[i].second;
 
     D3D12_QUERY_DATA_PIPELINE_STATISTICS pipeStats = {};
+    D3D12_QUERY_DATA_PIPELINE_STATISTICS1 pipeStats1 = {};
     uint64_t occl = 0;
 
     // only events on direct lists recorded pipeline stats or occlusion queries
     if(direct)
     {
-      pipeStats = *pipelinestats;
+      if(meshQueries)
+      {
+        pipeStats1 = *pipelinestats1;
+        memcpy(&pipeStats, &pipeStats1, sizeof(pipeStats));
+      }
+      else
+      {
+        pipeStats = *pipelinestats;
+      }
       occl = *occlusion;
 
       pipelinestats++;
+      pipelinestats1++;
       occlusion++;
     }
 
@@ -742,6 +793,8 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
         case GPUCounter::GSInvocations: result.value.u64 = pipeStats.GSInvocations; break;
         case GPUCounter::PSInvocations: result.value.u64 = pipeStats.PSInvocations; break;
         case GPUCounter::CSInvocations: result.value.u64 = pipeStats.CSInvocations; break;
+        case GPUCounter::ASInvocations: result.value.u64 = pipeStats1.ASInvocations; break;
+        case GPUCounter::MSInvocations: result.value.u64 = pipeStats1.MSInvocations; break;
 
         default: break;
       }

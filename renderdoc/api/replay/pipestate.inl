@@ -119,7 +119,9 @@ bool PipeState::IsD3D12Stage(ShaderStage stage) const
     case ShaderStage::Hull:
     case ShaderStage::Geometry:
     case ShaderStage::Pixel:
-    case ShaderStage::Compute: return true;
+    case ShaderStage::Compute:
+    case ShaderStage::Amplification:
+    case ShaderStage::Mesh: return true;
     default: return false;
   }
 }
@@ -187,6 +189,10 @@ const D3D12Pipe::Shader &PipeState::GetD3D12Stage(ShaderStage stage) const
     return m_D3D12->pixelShader;
   if(stage == ShaderStage::Compute)
     return m_D3D12->computeShader;
+  if(stage == ShaderStage::Amplification)
+    return m_D3D12->ampShader;
+  if(stage == ShaderStage::Mesh)
+    return m_D3D12->meshShader;
 
   RENDERDOC_LogMessage(LogType::Error, "PIPE", __FILE__, __LINE__, "Error - invalid stage");
   return m_D3D12->computeShader;
@@ -315,6 +321,8 @@ const ShaderBindpointMapping &PipeState::GetBindpointMapping(ShaderStage stage) 
         case ShaderStage::Geometry: return m_D3D12->geometryShader.bindpointMapping;
         case ShaderStage::Pixel: return m_D3D12->pixelShader.bindpointMapping;
         case ShaderStage::Compute: return m_D3D12->computeShader.bindpointMapping;
+        case ShaderStage::Amplification: return m_D3D12->ampShader.bindpointMapping;
+        case ShaderStage::Mesh: return m_D3D12->meshShader.bindpointMapping;
         default: break;
       }
     }
@@ -380,6 +388,8 @@ const ShaderReflection *PipeState::GetShaderReflection(ShaderStage stage) const
         case ShaderStage::Geometry: return m_D3D12->geometryShader.reflection;
         case ShaderStage::Pixel: return m_D3D12->pixelShader.reflection;
         case ShaderStage::Compute: return m_D3D12->computeShader.reflection;
+        case ShaderStage::Amplification: return m_D3D12->ampShader.reflection;
+        case ShaderStage::Mesh: return m_D3D12->meshShader.reflection;
         default: break;
       }
     }
@@ -502,6 +512,8 @@ ResourceId PipeState::GetShader(ShaderStage stage) const
         case ShaderStage::Geometry: return m_D3D12->geometryShader.resourceId;
         case ShaderStage::Pixel: return m_D3D12->pixelShader.resourceId;
         case ShaderStage::Compute: return m_D3D12->computeShader.resourceId;
+        case ShaderStage::Amplification: return m_D3D12->ampShader.resourceId;
+        case ShaderStage::Mesh: return m_D3D12->meshShader.resourceId;
         default: break;
       }
     }

@@ -1103,7 +1103,8 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
 
   const ActionDescription *action = m_pDevice->GetAction(eventId);
 
-  if(action == NULL || !(action->flags & (ActionFlags::Dispatch | ActionFlags::Drawcall)))
+  if(action == NULL ||
+     !(action->flags & (ActionFlags::Dispatch | ActionFlags::MeshDispatch | ActionFlags::Drawcall)))
   {
     // deliberately show no bindings as used for non-draws
     result.valid = true;
@@ -1207,6 +1208,12 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     dynamicAccessPerStage[4] = AddArraySlots(
         pipe->PS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Pixel], numSlots,
         editedBlob[uint32_t(ShaderStage::Pixel)], pipeDesc.PS, directHeapAccess);
+    dynamicAccessPerStage[6] = AddArraySlots(
+        pipe->AS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Amplification], numSlots,
+        editedBlob[uint32_t(ShaderStage::Amplification)], pipeDesc.AS, directHeapAccess);
+    dynamicAccessPerStage[7] = AddArraySlots(
+        pipe->MS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Mesh], numSlots,
+        editedBlob[uint32_t(ShaderStage::Mesh)], pipeDesc.MS, directHeapAccess);
   }
 
   // if numSlots wasn't increased, none of the resources were arrayed so we have nothing to do.
@@ -1453,6 +1460,10 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
                 visMask = (uint32_t)ShaderStageMask::Geometry;
                 break;
               case D3D12_SHADER_VISIBILITY_PIXEL: visMask = uint32_t(ShaderStageMask::Pixel); break;
+              case D3D12_SHADER_VISIBILITY_AMPLIFICATION:
+                visMask = uint32_t(ShaderStageMask::Amplification);
+                break;
+              case D3D12_SHADER_VISIBILITY_MESH: visMask = uint32_t(ShaderStageMask::Mesh); break;
               default: RDCERR("Unexpected shader visibility %d", p.ShaderVisibility); return true;
             }
 

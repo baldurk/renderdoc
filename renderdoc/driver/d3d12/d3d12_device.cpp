@@ -527,6 +527,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   RDCEraseEl(m_D3D12Opts2);
   RDCEraseEl(m_D3D12Opts3);
   RDCEraseEl(m_D3D12Opts6);
+  RDCEraseEl(m_D3D12Opts7);
+  RDCEraseEl(m_D3D12Opts9);
   RDCEraseEl(m_D3D12Opts12);
   RDCEraseEl(m_D3D12Opts14);
   RDCEraseEl(m_D3D12Opts15);
@@ -597,6 +599,14 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
                                         sizeof(m_D3D12Opts6));
     if(hr != S_OK)
       RDCEraseEl(m_D3D12Opts6);
+    hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &m_D3D12Opts7,
+                                        sizeof(m_D3D12Opts7));
+    if(hr != S_OK)
+      RDCEraseEl(m_D3D12Opts7);
+    hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS9, &m_D3D12Opts9,
+                                        sizeof(m_D3D12Opts9));
+    if(hr != S_OK)
+      RDCEraseEl(m_D3D12Opts9);
     hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS12, &m_D3D12Opts12,
                                         sizeof(m_D3D12Opts12));
     if(hr != S_OK)
@@ -3121,6 +3131,10 @@ HRESULT WrappedID3D12Device::CreatePipeState(D3D12_EXPANDED_PIPELINE_STATE_STREA
     graphicsDesc.BlendState = desc.BlendState;
     graphicsDesc.SampleMask = desc.SampleMask;
 
+    // can't create mesh shaders with old function, so we should not be trying
+    RDCASSERT(desc.AS.BytecodeLength == 0);
+    RDCASSERT(desc.MS.BytecodeLength == 0);
+
     // graphicsDesc.RasterizerState = desc.RasterizerState;
     {
       graphicsDesc.RasterizerState.FillMode = desc.RasterizerState.FillMode;
@@ -4296,6 +4310,7 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::List_RSSetDepthBias:
     case D3D12Chunk::List_IASetIndexBufferStripCutValue:
     case D3D12Chunk::List_Barrier:
+    case D3D12Chunk::List_DispatchMesh:
       RDCERR("Unexpected chunk while processing initialisation: %s", ToStr(context).c_str());
       return false;
 

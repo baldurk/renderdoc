@@ -65,6 +65,7 @@ private slots:
   void on_showEmpty_toggled(bool checked);
   void on_exportHTML_clicked();
   void on_meshView_clicked();
+  void on_msMeshButton_clicked();
   void on_iaLayouts_itemActivated(RDTreeWidgetItem *item, int column);
   void on_iaBuffers_itemActivated(RDTreeWidgetItem *item, int column);
   void on_iaLayouts_mouseMove(QMouseEvent *event);
@@ -87,6 +88,9 @@ private:
   ICaptureContext &m_Ctx;
   PipelineStateViewer &m_Common;
   ComputeDebugSelector *m_ComputeDebugSelector;
+
+  void setOldMeshPipeFlow();
+  void setNewMeshPipeFlow();
 
   void setShaderState(const rdcarray<D3D12Pipe::RootSignatureRange> &rootElements,
                       const D3D12Pipe::Shader &stage, RDLabel *shader, RDLabel *rootSig,
@@ -129,4 +133,6 @@ private:
   QList<RDTreeWidgetItem *> m_VBNodes;
   // list of empty VB nodes that shouldn't be highlighted on hover
   QList<RDTreeWidgetItem *> m_EmptyNodes;
+
+  bool m_MeshPipe = false;
 };
