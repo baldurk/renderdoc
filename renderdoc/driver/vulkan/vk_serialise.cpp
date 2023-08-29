@@ -12074,9 +12074,25 @@ void Deserialise(const VkWriteDescriptorSetAccelerationStructureKHR &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkAccelerationStructureGeometryDataKHR &el)
 {
-  SERIALISE_MEMBER(triangles);
-  SERIALISE_MEMBER(aabbs);
-  SERIALISE_MEMBER(instances);
+  VkStructureType type = el.aabbs.sType;
+  ser.Serialise("type"_lit, type).Hidden();
+
+  switch(type)
+  {
+    case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_AABBS_DATA_KHR:
+      SERIALISE_MEMBER(aabbs);
+      break;
+    case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR:
+      SERIALISE_MEMBER(instances);
+      break;
+    case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR:
+      SERIALISE_MEMBER(triangles);
+      break;
+    default:
+      RDCERR("Invalid structure sType in VkAccelerationStructureGeometryDataKHR union: %u",
+             el.aabbs.sType);
+      break;
+  }
 }
 
 template <typename SerialiserType>
