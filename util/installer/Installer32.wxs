@@ -196,13 +196,9 @@
               <Component Id='android_plugin' Guid='D469744A-7915-46B8-88B4-4B76223EE8CB'>
                 <File Id='APKarm32' Name='org.renderdoc.renderdoccmd.arm32.apk' DiskId='1' Source='dist/Release32/plugins/android/org.renderdoc.renderdoccmd.arm32.apk' KeyPath='yes' />
                 <File Id='APKarm64' Name='org.renderdoc.renderdoccmd.arm64.apk' DiskId='1' Source='dist/Release32/plugins/android/org.renderdoc.renderdoccmd.arm64.apk' />
-                <File Id='aapt' Name='aapt.exe' DiskId='1' Source='dist/Release32/plugins/android/aapt.exe' />
                 <File Id='adb' Name='adb.exe' DiskId='1' Source='dist/Release32/plugins/android/adb.exe' />
                 <File Id='AdbWinApi' Name='AdbWinApi.dll' DiskId='1' Source='dist/Release32/plugins/android/AdbWinApi.dll' />
                 <File Id='AdbWinUsbApi' Name='AdbWinUsbApi.dll' DiskId='1' Source='dist/Release32/plugins/android/AdbWinUsbApi.dll' />
-                <File Id='apksigner' Name='apksigner.jar' DiskId='1' Source='dist/Release32/plugins/android/apksigner.jar' />
-                <File Id='keystore' Name='renderdoc.keystore' DiskId='1' Source='dist/Release32/plugins/android/renderdoc.keystore' />
-                <File Id='zipalign' Name='zipalign.exe' DiskId='1' Source='dist/Release32/plugins/android/zipalign.exe' />
               </Component>
             </Directory>
 

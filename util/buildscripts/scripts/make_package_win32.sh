@@ -78,13 +78,6 @@ else
 	echo "         distributed android SDK due to licensing concerns.";
 fi
 
-# Generate a debug key for signing purposes
-if [ -f "$JAVA_HOME/bin/keytool.exe" ] && [ -d dist/Release64/plugins/android ]; then
-	"$JAVA_HOME/bin/keytool.exe" -genkey -keystore dist/Release64/plugins/android/renderdoc.keystore -storepass android -alias rdocandroidkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=, OU=, O=, L=,  S=, C="
-elif [ -f "$JAVA_HOME/bin/keytool" ] && [ -d dist/Release64/plugins/android ]; then
-	"$JAVA_HOME/bin/keytool" -genkey -keystore dist/Release64/plugins/android/renderdoc.keystore -storepass android -alias rdocandroidkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=, OU=, O=, L=,  S=, C="
-fi
-
 if [ -d dist/Release64/plugins/android ]; then
 	cp -R dist/Release64/plugins/android dist/Release32/plugins/
 fi
