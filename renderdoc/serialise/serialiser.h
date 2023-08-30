@@ -2121,6 +2121,16 @@ struct ScopedDeserialiseArray<SerialiserType, byte *>
     obj = (inValue);                                                                          \
   GET_SERIALISER.Serialise(STRING_LITERAL(#obj), obj)
 
+#define SERIALISE_ELEMENT_ARRAY_LOCAL(obj, inValue, count)                                        \
+  uint64_t CONCAT(dummy_array_count, __LINE__) = 0;                                               \
+  (void)CONCAT(dummy_array_count, __LINE__);                                                      \
+  typename std::remove_cv<typename std::remove_reference<decltype(inValue)>::type>::type obj;     \
+  ScopedDeserialiseArray<decltype(GET_SERIALISER), decltype(obj)> CONCAT(deserialise_, __LINE__)( \
+      GET_SERIALISER, &obj, count);                                                               \
+  if(GET_SERIALISER.IsWriting())                                                                  \
+    obj = (inValue);                                                                              \
+  GET_SERIALISER.Serialise(STRING_LITERAL(#obj), obj, count, SerialiserFlags::AllocateMemory)
+
 // these macros are for use when implementing a DoSerialise function
 #define SERIALISE_MEMBER(obj) ser.Serialise(STRING_LITERAL(#obj), el.obj)
 
