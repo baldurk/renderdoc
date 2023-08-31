@@ -1221,7 +1221,7 @@ RDResult load_dds_from_file(StreamReader *reader, read_dds_data &ret)
      uint64_t(ret.depth) > fileSize || uint64_t(ret.slices) > fileSize ||
      uint64_t(ret.mips) > fileSize || uint64_t(ret.slices) * ret.mips > fileSize ||
      (uint64_t(ret.width) * uint64_t(ret.height) * uint64_t(ret.depth) *
-      RDCMAX(uint64_t(ret.slices), uint64_t(ret.depth))) /
+      RDCMAX(uint64_t(ret.slices), uint64_t(ret.mips))) /
              16 >
          fileSize)
   {
