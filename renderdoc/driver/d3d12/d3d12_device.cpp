@@ -3819,6 +3819,7 @@ void WrappedID3D12Device::CreateInternalResources()
                         __uuidof(ID3D12GraphicsCommandList),
                         (void **)&m_QueueReadbackData.lists[type]);
       InternalRef();
+      m_QueueReadbackData.lists[type]->Close();
     }
   }
 
