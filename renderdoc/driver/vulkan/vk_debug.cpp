@@ -98,7 +98,8 @@ static void create(WrappedVulkan *driver, const char *objName, const int line,
   }
 
   pipeLayoutInfo.pSetLayouts = &setLayout;
-  pipeLayoutInfo.setLayoutCount = 1;
+  if(setLayout != VK_NULL_HANDLE)
+    pipeLayoutInfo.setLayoutCount = 1;
 
   VkResult vkr = driver->vkCreatePipelineLayout(driver->GetDev(), &pipeLayoutInfo, NULL, pipeLayout);
   if(vkr != VK_SUCCESS)
@@ -708,6 +709,28 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
   if(RenderDoc::Inst().IsReplayApp())
   {
+    CREATE_OBJECT(m_DummyPipelineLayout, VK_NULL_HANDLE, 0);
+
+    ConciseGraphicsPipeline dummyPipeInfo = {
+        VK_NULL_HANDLE,
+        m_DummyPipelineLayout,
+        shaderCache->GetBuiltinModule(BuiltinShader::BlitVS),
+        shaderCache->GetBuiltinModule(BuiltinShader::FixedColFS),
+        {},
+        VK_SAMPLE_COUNT_1_BIT,
+        false,    // sampleRateShading
+        false,    // depthEnable
+        false,    // stencilEnable
+        VK_STENCIL_OP_REPLACE,
+        false,    // colourOutput
+        false,    // blendEnable
+        VK_BLEND_FACTOR_ONE,
+        VK_BLEND_FACTOR_ZERO,
+        0x0,    // writeMask
+    };
+
+    CREATE_OBJECT(m_DummyPipeline, dummyPipeInfo);
+
     VkDescriptorPoolSize descPoolTypes[] = {
         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, ARRAY_COUNT(m_DiscardSet)},
     };
@@ -802,6 +825,9 @@ VulkanDebugManager::~VulkanDebugManager()
 
   m_pDriver->vkDestroyPipeline(dev, m_MS2BufferPipe, NULL);
   m_pDriver->vkDestroyPipeline(dev, m_DepthMS2BufferPipe, NULL);
+
+  m_pDriver->vkDestroyPipelineLayout(dev, m_DummyPipelineLayout, NULL);
+  m_pDriver->vkDestroyPipeline(dev, m_DummyPipeline, NULL);
 
   m_pDriver->vkDestroyDescriptorPool(dev, m_DiscardPool, NULL);
   m_pDriver->vkDestroyPipelineLayout(dev, m_DiscardLayout, NULL);

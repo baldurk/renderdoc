@@ -326,6 +326,10 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
     }
     else if(binding == BindInitial)
     {
+      if(vk->GetDriverInfo().NVStaticPipelineRebindStates())
+        ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                      Unwrap(vk->GetDebugManager()->GetDummyPipeline()));
+
       // if we're setting up a partial command buffer, bind all dynamic state we have. This will
       // then get overridden, but we need it in case a pipeline expects to inherit some dynamic
       // state from earlier in the command buffer but there's no pipeline bound yet.

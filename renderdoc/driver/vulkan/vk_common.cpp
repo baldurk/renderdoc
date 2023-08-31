@@ -1057,6 +1057,17 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps,
         RDCLOG("Enabling NV texel fetch workaround - update to a newer driver for fix");
       texelFetchBrokenDriver = true;
     }
+
+    // this isn't exactly when the root problem started happening, but it is when it started
+    // happening in a way that was easy to notice. In this version NV applied a optimisation
+    // to not re-set static pipeline state when a renderpass was begun, which was previously
+    // hiding the issue by conservatively re-setting the state.
+    if(Major() > 532)
+    {
+      if(active)
+        RDCLOG("Enabling NV workaround for static pipeline force-bind to preserve state");
+      nvidiaStaticPipelineRebindStates = true;
+    }
   }
 
   if(driverProps.driverID == VK_DRIVER_ID_AMD_PROPRIETARY ||

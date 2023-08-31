@@ -80,6 +80,7 @@ public:
   VkDeviceMemory GetReadbackMemory() { return m_ReadbackWindow.mem; }
   VkPipelineCache GetPipelineCache() { return m_PipelineCache; }
   VkPipeline GetCustomPipeline() { return m_Custom.TexPipeline; }
+  VkPipeline GetDummyPipeline() { return m_DummyPipeline; }
   VkImage GetCustomTexture() { return m_Custom.TexImg; }
   VkFramebuffer GetCustomFramebuffer() { return m_Custom.TexFB; }
   VkRenderPass GetCustomRenderpass() { return m_Custom.TexRP; }
@@ -144,6 +145,10 @@ private:
   VkImageView m_DummyDepthView = {VK_NULL_HANDLE};
   VkImage m_DummyStencilImage = {VK_NULL_HANDLE};
   VkImageView m_DummyStencilView = {VK_NULL_HANDLE};
+
+  // dummy pipeline
+  VkPipelineLayout m_DummyPipelineLayout;
+  VkPipeline m_DummyPipeline;
 
   // one per depth/stencil output format, per sample count
   VkPipeline m_DepthArray2MSPipe[7][4] = {{VK_NULL_HANDLE}};

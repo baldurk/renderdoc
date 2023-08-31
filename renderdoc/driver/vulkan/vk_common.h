@@ -285,6 +285,13 @@ public:
   // on Intel, occlusion queries are broken unless the shader has some effects. When we don't want
   // it to have visible effects during pixel history we have to insert some manual side-effects
   bool IntelBrokenOcclusionQueries() const { return intelBrokenOcclusionQueries; }
+  // on NV binding a static pipeline does not re-set static state which may have been perturbed by
+  // dynamic state setting, if the previous bound pipeline was identical.
+  // to work around this, whenever we are setting state and we do not have a pipeline to bind, we
+  // bind a dummy pipeline to ensure the pipeline always changes when we are setting dynamic state.
+  // If we do have a pipeline to bind, we should never be perturbing dynamic state in between static
+  // pipeline binds.
+  bool NVStaticPipelineRebindStates() const { return nvidiaStaticPipelineRebindStates; }
 private:
   GPUVendor m_Vendor;
 
@@ -299,6 +306,7 @@ private:
   bool qualcommDrefNon2DCompileCrash = false;
   bool qualcommLineWidthCrash = false;
   bool intelBrokenOcclusionQueries = false;
+  bool nvidiaStaticPipelineRebindStates = false;
 };
 
 enum
