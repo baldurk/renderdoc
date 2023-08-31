@@ -11838,7 +11838,7 @@ void Deserialise(const VkExportMemoryWin32HandleInfoNV &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkImportMemoryWin32HandleInfoKHR &el)
 {
-  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR);
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR);
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER(handleType);
