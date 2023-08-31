@@ -908,7 +908,7 @@ ResultDetails ReplayController::SaveTexture(const TextureSave &saveData, const r
       {
         byte *depthslice = new byte[mipSlicePitch];
         byte *b = data.data() + mipSlicePitch * sliceOffset;
-        memcpy(depthslice, b, slicePitch);
+        memcpy(depthslice, b, mipSlicePitch);
         subdata.push_back(depthslice);
 
         continue;
