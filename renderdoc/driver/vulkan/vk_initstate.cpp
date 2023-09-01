@@ -751,6 +751,18 @@ SparseBinding::SparseBinding(WrappedVulkan *vk, VkImage unwrappedImage,
   VkSparseImageMemoryRequirements reqs[8];
   ObjDisp(device)->GetImageSparseMemoryRequirements(Unwrap(device), unwrappedImage, &numreqs, reqs);
 
+  if(numreqs == 0)
+  {
+    numreqs = 1;
+    reqs[0].formatProperties.aspectMask = VK_IMAGE_ASPECT_NONE;
+    reqs[0].formatProperties.flags = 0;
+    reqs[0].formatProperties.imageGranularity = {mrq.alignment & 0xFFFFFFFFu, 1, 1};
+    reqs[0].imageMipTailFirstLod = 0;
+    reqs[0].imageMipTailOffset = 0;
+    reqs[0].imageMipTailStride = 0;
+    reqs[0].imageMipTailSize = mrq.size;
+  }
+
   // if we have a different number of aspwects, we can't apply this page table
   if(numreqs != tables.size())
   {
