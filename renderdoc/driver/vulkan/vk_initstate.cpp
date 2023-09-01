@@ -756,7 +756,7 @@ SparseBinding::SparseBinding(WrappedVulkan *vk, VkImage unwrappedImage,
     numreqs = 1;
     reqs[0].formatProperties.aspectMask = VK_IMAGE_ASPECT_NONE;
     reqs[0].formatProperties.flags = 0;
-    reqs[0].formatProperties.imageGranularity = {mrq.alignment & 0xFFFFFFFFu, 1, 1};
+    reqs[0].formatProperties.imageGranularity = {uint32_t(mrq.alignment & 0xFFFFFFFFu), 1, 1};
     reqs[0].imageMipTailFirstLod = 0;
     reqs[0].imageMipTailOffset = 0;
     reqs[0].imageMipTailStride = 0;
