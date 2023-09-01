@@ -2152,18 +2152,17 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       GetDebugManager()->PixelHistoryCopyPixel(colourCopyParams, postColSlot, 0);
       postColSlot++;
 
-      GetDebugManager()->PixelHistoryCopyPixel(depthCopyParams, depthSlot, 0);
-      depthSlot++;
+      GetDebugManager()->PixelHistoryCopyPixel(depthCopyParams, depthSlot, 1);
     }
-
-    m_pImmediateContext->OMSetDepthStencilState(m_PixelHistory.StencIncrEqDepthState,
-                                                history[h].fragIndex);
-
-    m_pImmediateContext->ClearDepthStencilView(
-        shaddepthOutputDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, cleardepth, 0);
 
     // fetch shader output value & primitive ID
     {
+      m_pImmediateContext->OMSetDepthStencilState(m_PixelHistory.StencIncrEqDepthState,
+                                                  history[h].fragIndex);
+
+      m_pImmediateContext->ClearDepthStencilView(
+          shaddepthOutputDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, cleardepth, 0);
+
       m_pImmediateContext->OMGetBlendState(&curBS, blendFactor, &curSample);
 
       m_pImmediateContext->OMSetBlendState(NULL, blendFactor, curSample);
@@ -2253,6 +2252,10 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   // offset.
   uint32_t discardedOffset = 0;
 
+  ModificationValue lastKnownGood = {};
+  if(!history.isEmpty())
+    lastKnownGood = history[0].preMod;
+
   for(size_t h = 0; h < history.size(); h++)
   {
     const ActionDescription *action = m_pDevice->GetAction(history[h].eventId);
@@ -2260,47 +2263,56 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
     if(action->flags & ActionFlags::Clear)
       continue;
 
+    // reset discarded offset every event
+    if(h > 0 && history[h].eventId != history[h - 1].eventId)
+    {
+      discardedOffset = 0;
+      lastKnownGood = history[h].preMod;
+    }
+
     // if we're not the last modification in our event, need to fetch post fragment value
+    bool lastMod = true;
     if(h + 1 < history.size() && history[h].eventId == history[h + 1].eventId)
     {
+      lastMod = false;
       // colour
       {
-        byte *data = pixstoreData + sizeof(Vec4f) * pixstoreStride * postColSlot;
+        uint32_t offsettedSlot = (postColSlot - discardedOffset);
+        byte *data = pixstoreData + sizeof(Vec4f) * pixstoreStride * offsettedSlot;
         memcpy(&history[h].postMod.col.uintValue[0], data, sizeof(Vec4f));
       }
 
-      float *depthdata = (float *)(pixstoreDepthData + sizeof(Vec4f) * pixstoreStride * depthSlot);
+      {
+        uint32_t offsettedSlot = (depthSlot - discardedOffset);
+        RDCASSERT(discardedOffset <= depthSlot);
+        // post fragment depth is in slot 1 of the depth
+        float *depthdata = (float *)(pixstoreDepthData +
+                                     sizeof(Vec4f) * pixstoreStride * offsettedSlot + sizeof(Vec4f));
 
-      // this is not exactly the right value when the original depth was D16, it will be slightly
-      // higher precision than the actual value but that's better than not having a value at all,
-      // and allows us to identify fragments within a draw which fail the depth test.
-      if(history[h].preMod.depth >= 0.0f)
-        history[h].postMod.depth = *depthdata;
+        // this is not exactly the right value when the original depth was D16, it will be slightly
+        // higher precision than the actual value but that's better than not having a value at all,
+        // and allows us to identify fragments within a draw which fail the depth test.
+        if(history[h].preMod.depth >= 0.0f)
+          history[h].postMod.depth = *depthdata;
 
-      // we can't retrieve stencil value after each fragment, as we use stencil to identify the
-      // fragment
-      if(history[h].preMod.stencil >= 0)
-        history[h].postMod.stencil = -2;
-      else
-        history[h].postMod.stencil = -1;
+        // we can't retrieve stencil value after each fragment, as we use stencil to identify the
+        // fragment
+        if(history[h].preMod.stencil >= 0)
+          history[h].postMod.stencil = -2;
+        else
+          history[h].postMod.stencil = -1;
+      }
 
       // in each case we only mark as "unknown" when the depth/stencil isn't already known to be
       // unbound
 
       postColSlot++;
-      depthSlot++;
     }
 
     // if we're not the first modification in our event, set our preMod to the previous postMod
     if(h > 0 && history[h].eventId == history[h - 1].eventId)
     {
       history[h].preMod = history[h - 1].postMod;
-    }
-
-    // reset discarded offset every event
-    if(h > 0 && history[h].eventId != history[h - 1].eventId)
-    {
-      discardedOffset = 0;
     }
 
     // fetch shader output value
@@ -2311,13 +2323,14 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       {
         // shader output is always 4 32bit components, so we can copy straight
         uint32_t offsettedSlot = (shadColSlot - discardedOffset);
-        RDCASSERT(discardedOffset * 2 <= shadColSlot);
+        RDCASSERT(discardedOffset <= shadColSlot);
 
         byte *data = shadoutStoreData + sizeof(Vec4f) * pixstoreStride * offsettedSlot;
 
         memcpy(&history[h].shaderOut.col.uintValue[0], data, 4 * sizeof(float));
 
-        // primitive ID is in the next slot after that
+        // primitive ID is in slot 1 and ignores any discards
+        data = shadoutStoreData + sizeof(Vec4f) * pixstoreStride * shadColSlot;
         memcpy(&history[h].primitiveID, data + sizeof(Vec4f), sizeof(uint32_t));
       }
 
@@ -2436,6 +2449,12 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
           RDCEraseEl(history[h].shaderOut);
           history[h].shaderOut.depth = -1.0f;
           history[h].shaderOut.stencil = -1;
+          if(!lastMod)
+            history[h].postMod = lastKnownGood;
+        }
+        else
+        {
+          lastKnownGood = history[h].postMod;
         }
       }
 
