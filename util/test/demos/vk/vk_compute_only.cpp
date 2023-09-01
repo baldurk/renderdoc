@@ -80,17 +80,17 @@ void main()
     }));
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
-        {setLayout},
-        {
-            vkh::PushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(Vec4i)),
-        }));
+        {setLayout}, {
+                         vkh::PushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(Vec4i)),
+                     }));
 
     VkPipeline pipe = createComputePipeline(vkh::ComputePipelineCreateInfo(
         layout, CompileShaderModule(comp, ShaderLang::glsl, ShaderStage::comp, "main")));
 
     AllocatedImage tex(
-        this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT),
+        this,
+        vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     setName(tex.image, "tex");
@@ -98,12 +98,14 @@ void main()
     VkImageView view = createImageView(
         vkh::ImageViewCreateInfo(tex.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT));
 
-    AllocatedBuffer bufin(this, vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                                                VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+    AllocatedBuffer bufin(this,
+                          vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                          VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                           VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
-    AllocatedBuffer bufout(this, vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+    AllocatedBuffer bufout(this,
+                           vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                           VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     setName(bufin.buffer, "bufin");

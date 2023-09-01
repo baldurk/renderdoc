@@ -970,9 +970,8 @@ struct AndroidController : public IDeviceProtocolHandler
         dev.name = Android::GetFriendlyName(d);
         if(!Android::IsSupported(d))
           dev.name += " - (Android 5.x)";
-        dev.portbase =
-            uint16_t(RenderDoc_ForwardPortBase +
-                     RenderDoc::Inst().GetForwardedPortSlot() * RenderDoc_ForwardPortStride);
+        dev.portbase = uint16_t(RenderDoc_ForwardPortBase + RenderDoc::Inst().GetForwardedPortSlot() *
+                                                                RenderDoc_ForwardPortStride);
 
         // silently forward the ports now. These may be refreshed but this will allow us to connect
         Android::adbForwardPorts(dev.portbase, d, 0, 0, true);
@@ -1198,8 +1197,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
   uint32_t ident = RenderDoc_FirstTargetControlPort;
 
   AndroidController::m_Inst.Invoke([this, &result, &ident, packageAndActivity, intentArgs, opts]() {
-    rdcstr packageName =
-        Android::GetPackageName(packageAndActivity);    // Remove leading '/' if any
+    rdcstr packageName = Android::GetPackageName(packageAndActivity);    // Remove leading '/' if any
 
     // adb shell cmd package resolve-activity -c android.intent.category.LAUNCHER com.jake.cube1
     rdcstr activityName = Android::GetActivityName(packageAndActivity);

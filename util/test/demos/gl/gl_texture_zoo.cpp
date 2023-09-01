@@ -752,9 +752,11 @@ void main()
 
 #define TEST_CASE_NAME(texFmt) #texFmt
 
-#define TEST_CASE(texType, texFmt, compCount, byteWidth, dataType)    \
-  {                                                                   \
-    &(#texFmt)[3], texFmt, {texType, compCount, byteWidth, dataType}, \
+#define TEST_CASE(texType, texFmt, compCount, byteWidth, dataType) \
+  {                                                                \
+      &(#texFmt)[3],                                               \
+      texFmt,                                                      \
+      {texType, compCount, byteWidth, dataType},                   \
   }
 
     std::vector<TestCase> test_textures;

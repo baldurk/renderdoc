@@ -45,7 +45,8 @@ RD_TEST(VK_Multi_Present, VulkanGraphicsTest)
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -81,15 +82,16 @@ RD_TEST(VK_Multi_Present, VulkanGraphicsTest)
                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                             VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
     vb[0].upload(red);
-    vb[1] = AllocatedBuffer(
-        this, vkh::BufferCreateInfo(sizeof(green), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                       VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    vb[1] =
+        AllocatedBuffer(this,
+                        vkh::BufferCreateInfo(sizeof(green), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
     vb[1].upload(green);
-    vb[2] = AllocatedBuffer(
-        this, vkh::BufferCreateInfo(sizeof(blue), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                      VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    vb[2] = AllocatedBuffer(this,
+                            vkh::BufferCreateInfo(sizeof(blue), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
     vb[2].upload(blue);
 
     std::vector<VulkanWindow *> windows = {

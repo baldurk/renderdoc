@@ -116,11 +116,12 @@ void UpdateDialog::on_close_clicked()
 
 void UpdateDialog::on_update_clicked()
 {
-  QMessageBox::StandardButton res = RDDialog::question(
-      this, tr("RenderDoc Update"), tr("This will close RenderDoc immediately - if you have any "
-                                       "unsaved work, save it first!\n"
-                                       "Continue?"),
-      QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+  QMessageBox::StandardButton res =
+      RDDialog::question(this, tr("RenderDoc Update"),
+                         tr("This will close RenderDoc immediately - if you have any "
+                            "unsaved work, save it first!\n"
+                            "Continue?"),
+                         QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
 
   if(res == QMessageBox::Yes)
   {
@@ -199,7 +200,6 @@ void UpdateDialog::on_update_clicked()
                      });
 
     QObject::connect(req, &QNetworkReply::finished, [this, req]() {
-
       // don't do anything if we're finished after an error
       if(ui->update->isEnabled())
         return;
@@ -252,7 +252,6 @@ void UpdateDialog::on_update_clicked()
           QStringList() << lit("upgrade") << lit("--path") << appDir.absolutePath(), NULL, true);
 
       exit(0);
-
     });
   }
 }

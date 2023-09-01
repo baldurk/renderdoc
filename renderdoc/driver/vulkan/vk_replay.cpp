@@ -480,7 +480,9 @@ void VulkanReplay::CachePipelineExecutables(ResourceId pipeline)
   VkPipeline pipe = m_pDriver->GetResourceManager()->GetCurrentHandle<VkPipeline>(pipeline);
 
   VkPipelineInfoKHR pipeInfo = {
-      VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR, NULL, Unwrap(pipe),
+      VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR,
+      NULL,
+      Unwrap(pipe),
   };
 
   VkDevice dev = m_pDriver->GetDev();
@@ -508,7 +510,10 @@ void VulkanReplay::CachePipelineExecutables(ResourceId pipeline)
     rdcarray<VkPipelineExecutableInternalRepresentationKHR> &irs = out.representations;
 
     VkPipelineExecutableInfoKHR pipeExecInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR, NULL, Unwrap(pipe), i,
+        VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR,
+        NULL,
+        Unwrap(pipe),
+        i,
     };
 
     // enumerate statistics
@@ -758,7 +763,8 @@ void VulkanReplay::RenderCheckerboard(FloatVector dark, FloatVector light)
       Unwrap(outw.rp),
       Unwrap(outw.fb),
       {{
-           0, 0,
+           0,
+           0,
        },
        {m_DebugWidth, m_DebugHeight}},
       0,
@@ -811,7 +817,8 @@ void VulkanReplay::RenderCheckerboard(FloatVector dark, FloatVector light)
     VkClearAttachment darkCol = {VK_IMAGE_ASPECT_COLOR_BIT, 0, {{{dark.x, dark.y, dark.z, dark.w}}}};
 
     VkClearRect fullRect = {{
-                                {0, 0}, {outw.width, outw.height},
+                                {0, 0},
+                                {outw.width, outw.height},
                             },
                             0,
                             1};
@@ -825,7 +832,8 @@ void VulkanReplay::RenderCheckerboard(FloatVector dark, FloatVector light)
       for(int32_t x = 0; x < (int32_t)outw.width; x += 128)
       {
         VkClearRect square = {{
-                                  {x, y}, {64, 64},
+                                  {x, y},
+                                  {64, 64},
                               },
                               0,
                               1};
@@ -883,7 +891,8 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
         Unwrap(outw.rp),
         Unwrap(outw.fb),
         {{
-             0, 0,
+             0,
+             0,
          },
          {m_DebugWidth, m_DebugHeight}},
         0,
@@ -900,22 +909,26 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 
     VkClearRect rect[4] = {
         {{
-             {tl.x, tl.y}, {1, sz},
+             {tl.x, tl.y},
+             {1, sz},
          },
          0,
          1},
         {{
-             {tl.x + (int32_t)sz, tl.y}, {1, sz + 1},
+             {tl.x + (int32_t)sz, tl.y},
+             {1, sz + 1},
          },
          0,
          1},
         {{
-             {tl.x, tl.y}, {sz, 1},
+             {tl.x, tl.y},
+             {sz, 1},
          },
          0,
          1},
         {{
-             {tl.x, tl.y + (int32_t)sz}, {sz, 1},
+             {tl.x, tl.y + (int32_t)sz},
+             {sz, 1},
          },
          0,
          1},
@@ -1860,11 +1873,13 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
   {
     rdcarray<VKPipe::DescriptorSet> *dsts[] = {
-        &ret.graphics.descriptorSets, &ret.compute.descriptorSets,
+        &ret.graphics.descriptorSets,
+        &ret.compute.descriptorSets,
     };
 
     const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> *srcs[] = {
-        &state.graphics.descSets, &state.compute.descSets,
+        &state.graphics.descSets,
+        &state.compute.descSets,
     };
 
     const VKDynamicShaderFeedback &usage = m_BindlessFeedback.Usage[eventId];
@@ -2446,7 +2461,8 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const S
           Unwrap(m_PixelPick.RP),
           Unwrap(m_PixelPick.FB),
           {{
-               0, 0,
+               0,
+               0,
            },
            {1, 1}},
           1,
@@ -2581,7 +2597,8 @@ bool VulkanReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType 
     // for depth/stencil we need to run the code twice - once to fetch depth and once to fetch
     // stencil - since we can't process float depth and int stencil at the same time
     Vec4f depth[2] = {
-        {0.0f, 0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f},
+        {0.0f, 0.0f, 0.0f, 0.0f},
+        {1.0f, 1.0f, 1.0f, 1.0f},
     };
     Vec4u stencil[2] = {{0, 0, 0, 0}, {1, 1, 1, 1}};
 
@@ -2879,7 +2896,9 @@ bool VulkanReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType 
   DoPipelineBarrier(cmd, 1, &tilebarrier);
 
   VkBufferCopy bufcopy = {
-      0, 0, m_Histogram.m_MinMaxResult.totalsize,
+      0,
+      0,
+      m_Histogram.m_MinMaxResult.totalsize,
   };
 
   vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(m_Histogram.m_MinMaxResult.buf),
@@ -3196,7 +3215,9 @@ bool VulkanReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompTy
   DoPipelineBarrier(cmd, 1, &tilebarrier);
 
   VkBufferCopy bufcopy = {
-      0, 0, m_Histogram.m_HistogramBuf.totalsize,
+      0,
+      0,
+      m_Histogram.m_HistogramBuf.totalsize,
   };
 
   vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(m_Histogram.m_HistogramBuf.buf),
@@ -3437,7 +3458,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     vt->GetImageMemoryRequirements(Unwrap(dev), tmpImage, &mrq);
 
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        mrq.size,
         m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
     };
 
@@ -3557,7 +3580,11 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
           {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
            VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
           {
-              VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, i, 1,
+              VK_IMAGE_ASPECT_COLOR_BIT,
+              0,
+              VK_REMAINING_MIP_LEVELS,
+              i,
+              1,
           },
       };
 
@@ -3588,7 +3615,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
           tmpRP,
           tmpFB[i],
           {{
-               0, 0,
+               0,
+               0,
            },
            {imCreateInfo.extent.width, imCreateInfo.extent.height}},
           1,
@@ -3687,7 +3715,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     vt->GetImageMemoryRequirements(Unwrap(dev), tmpImage, &mrq);
 
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        mrq.size,
         m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
     };
 
@@ -3765,10 +3795,14 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
                            imCreateInfo.format, s.mip);
 
     // buffer size needs to be align to the int for shader writing
-    VkBufferCreateInfo bufInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
-                                  AlignUp(dataSize, 4U), VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                                                             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT};
+    VkBufferCreateInfo bufInfo = {
+        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        NULL,
+        0,
+        AlignUp(dataSize, 4U),
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+    };
 
     vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, NULL, &readbackBuf);
     CheckVkResult(vkr);
@@ -3778,7 +3812,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     vt->GetBufferMemoryRequirements(Unwrap(dev), readbackBuf, &mrq);
 
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        mrq.size,
         m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
     };
     vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &readbackMem);
@@ -3852,7 +3888,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
         0,
         {VK_IMAGE_ASPECT_NONE, s.mip, s.slice, 1},
         {
-            0, 0, 0,
+            0,
+            0,
+            0,
         },
         {RDCMAX(1U, imCreateInfo.extent.width >> s.mip),
          RDCMAX(1U, imCreateInfo.extent.height >> s.mip),
@@ -3932,7 +3970,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     vt->GetBufferMemoryRequirements(Unwrap(dev), readbackBuf, &mrq);
 
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        mrq.size,
         m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
     };
     vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &readbackMem);
@@ -4261,7 +4301,8 @@ ResourceId VulkanReplay::ApplyCustomShader(TextureDisplay &display)
       Unwrap(GetDebugManager()->GetCustomRenderpass()),
       Unwrap(GetDebugManager()->GetCustomFramebuffer()),
       {{
-           0, 0,
+           0,
+           0,
        },
        {RDCMAX(1U, iminfo.extent.width >> display.subresource.mip),
         RDCMAX(1U, iminfo.extent.height >> display.subresource.mip)}},

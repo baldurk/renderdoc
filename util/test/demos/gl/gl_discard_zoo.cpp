@@ -32,7 +32,10 @@ RD_TEST(GL_Discard_Zoo, OpenGLGraphicsTest)
 
   uint32_t greens10_2[300 * 300];
 
-  void SetDebugName(GLuint t, std::string name) { glObjectLabel(GL_TEXTURE, t, -1, name.c_str()); }
+  void SetDebugName(GLuint t, std::string name)
+  {
+    glObjectLabel(GL_TEXTURE, t, -1, name.c_str());
+  }
   void Clear(GLuint t)
   {
     GLenum fmt = GL_NONE;

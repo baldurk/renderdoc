@@ -822,7 +822,9 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
     // see top of this file for current event/fence handling
 
     VkEventCreateInfo evInfo = {
-        VK_STRUCTURE_TYPE_EVENT_CREATE_INFO, NULL, 0,
+        VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,
+        NULL,
+        0,
     };
 
     if(IsActiveReplaying(m_State))
@@ -1347,7 +1349,9 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents2(SerialiserType &ser, VkCommandBuf
       if(commandBuffer != VK_NULL_HANDLE)
       {
         VkEventCreateInfo evInfo = {
-            VK_STRUCTURE_TYPE_EVENT_CREATE_INFO, NULL, 0,
+            VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,
+            NULL,
+            0,
         };
 
         // don't wrap this event

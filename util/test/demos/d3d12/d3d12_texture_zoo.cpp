@@ -643,9 +643,12 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
   (texFmt == viewFmt) ? std::string(#texFmt + 12) \
                       : (std::string(#texFmt + 12) + "->" + (strchr(#viewFmt + 12, '_') + 1))
 
-#define TEST_CASE(texType, texFmt, viewFmt, compCount, byteWidth, dataType)                      \
-  {                                                                                              \
-    TEST_CASE_NAME(texFmt, viewFmt), texFmt, viewFmt, {texType, compCount, byteWidth, dataType}, \
+#define TEST_CASE(texType, texFmt, viewFmt, compCount, byteWidth, dataType) \
+  {                                                                         \
+      TEST_CASE_NAME(texFmt, viewFmt),                                      \
+      texFmt,                                                               \
+      viewFmt,                                                              \
+      {texType, compCount, byteWidth, dataType},                            \
   }
 
     std::vector<TestCase> test_textures;
@@ -1246,7 +1249,9 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
       {
         RSSetViewport(cmd, view);
         D3D12_RECT rect = {
-            (LONG)view.TopLeftX, (LONG)view.TopLeftY, LONG(view.TopLeftX + view.Width),
+            (LONG)view.TopLeftX,
+            (LONG)view.TopLeftY,
+            LONG(view.TopLeftX + view.Width),
             LONG(view.TopLeftY + view.Height),
         };
         RSSetScissorRect(cmd, rect);
@@ -1280,7 +1285,9 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
 
         RSSetViewport(cmd, view);
         D3D12_RECT rect = {
-            (LONG)view.TopLeftX, (LONG)view.TopLeftY, LONG(view.TopLeftX + view.Width),
+            (LONG)view.TopLeftX,
+            (LONG)view.TopLeftY,
+            LONG(view.TopLeftX + view.Width),
             LONG(view.TopLeftY + view.Height),
         };
         rect.left++;

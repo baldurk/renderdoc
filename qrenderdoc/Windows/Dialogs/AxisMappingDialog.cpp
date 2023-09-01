@@ -154,8 +154,7 @@ void AxisMappingDialog::setNewAxisMapping()
       duplicateDirection = zDirection;
     }
 
-    const QStringList directions = {tr("left/right"), tr("up/down"),
-                                    tr("into screen/out of screen")};
+    const QStringList directions = {tr("left/right"), tr("up/down"), tr("into screen/out of screen")};
 
     QString messageText;
     if(allAxesDegenerate)

@@ -296,15 +296,19 @@ DOCUMENT(R"(Get the byte size of a variable type.
 )");
 constexpr uint32_t VarTypeByteSize(VarType type)
 {
-  // temporarily disable clang-format to make this more readable.
-  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
-  // clang-format off
-  return (type == VarType::UByte  || type == VarType::SByte) ? 1
-       : (type == VarType::Half   || type == VarType::UShort || type == VarType::SShort) ? 2
-       : (type == VarType::Float  || type == VarType::UInt   || type == VarType::SInt   || type == VarType::Bool || type == VarType::Enum) ? 4
-       : (type == VarType::Double || type == VarType::ULong  || type == VarType::SLong  || type == VarType::GPUPointer) ? 8
-       : 0;
-  // clang-format on
+  return (type == VarType::UByte || type == VarType::SByte) ? 1
+
+         : (type == VarType::Half || type == VarType::UShort || type == VarType::SShort) ? 2
+
+         : (type == VarType::Float || type == VarType::UInt || type == VarType::SInt ||
+            type == VarType::Bool || type == VarType::Enum)
+             ? 4
+
+         : (type == VarType::Double || type == VarType::ULong || type == VarType::SLong ||
+            type == VarType::GPUPointer)
+             ? 8
+
+             : 0;
 }
 
 DOCUMENT(R"(Represents the component type of a channel in a texture or element in a structure.
@@ -388,20 +392,19 @@ DOCUMENT(R"(Get the component type of a variable type.
 )");
 constexpr CompType VarTypeCompType(VarType type)
 {
-  // temporarily disable clang-format to make this more readable.
-  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
-  // clang-format off
-  return (type == VarType::Double || type == VarType::Float  || type == VarType::Half) ? CompType::Float
+  return (type == VarType::Double || type == VarType::Float || type == VarType::Half)
+             ? CompType::Float
 
-       : (type == VarType::ULong  || type == VarType::UInt   || type == VarType::UShort ||
-          type == VarType::UByte  || type == VarType::Bool   || type == VarType::Enum   ||
-          type == VarType::GPUPointer) ? CompType::UInt
+         : (type == VarType::ULong || type == VarType::UInt || type == VarType::UShort ||
+            type == VarType::UByte || type == VarType::Bool || type == VarType::Enum ||
+            type == VarType::GPUPointer)
+             ? CompType::UInt
 
-       : (type == VarType::SLong  || type == VarType::SInt   ||
-          type == VarType::SShort || type == VarType::SByte) ? CompType::SInt
+         : (type == VarType::SLong || type == VarType::SInt || type == VarType::SShort ||
+            type == VarType::SByte)
+             ? CompType::SInt
 
-       : CompType::Typeless;
-  // clang-format on
+             : CompType::Typeless;
 }
 
 DOCUMENT(R"(A single source component for a destination texture swizzle.
@@ -1731,20 +1734,16 @@ DOCUMENT(R"(Get the GPUVendor for a given PCI Vendor ID.
 )");
 constexpr GPUVendor GPUVendorFromPCIVendor(uint32_t vendorID)
 {
-  // temporarily disable clang-format to make this more readable.
-  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
-  // clang-format off
-  return vendorID == 0x13B5 ? GPUVendor::ARM
-       : vendorID == 0x1002 ? GPUVendor::AMD
-       : vendorID == 0x1010 ? GPUVendor::Imagination
-       : vendorID == 0x8086 ? GPUVendor::Intel
-       : vendorID == 0x10DE ? GPUVendor::nVidia
-       : vendorID == 0x5143 ? GPUVendor::Qualcomm
-       : vendorID == 0x1AE0 ? GPUVendor::Software   // Google Swiftshader
-       : vendorID == 0x1414 ? GPUVendor::Software   // Microsoft WARP
-       : vendorID == 0x144D ? GPUVendor::Samsung    // Xclipse GPU
-       : GPUVendor::Unknown;
-  // clang-format on
+  return vendorID == 0x13B5   ? GPUVendor::ARM
+         : vendorID == 0x1002 ? GPUVendor::AMD
+         : vendorID == 0x1010 ? GPUVendor::Imagination
+         : vendorID == 0x8086 ? GPUVendor::Intel
+         : vendorID == 0x10DE ? GPUVendor::nVidia
+         : vendorID == 0x5143 ? GPUVendor::Qualcomm
+         : vendorID == 0x1AE0 ? GPUVendor::Software    // Google Swiftshader
+         : vendorID == 0x1414 ? GPUVendor::Software    // Microsoft WARP
+         : vendorID == 0x144D ? GPUVendor::Samsung     // Xclipse GPU
+                              : GPUVendor::Unknown;
 }
 
 DOCUMENT(R"(Identifies a Graphics API.
@@ -1948,23 +1947,19 @@ DOCUMENT(R"(Returns the default executable name with no suffix for a given :clas
 )");
 constexpr inline const char *ToolExecutable(KnownShaderTool tool)
 {
-  // temporarily disable clang-format to make this more readable.
-  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
-  // clang-format off
-  return tool == KnownShaderTool::SPIRV_Cross                 ?      "spirv-cross" :
-         tool == KnownShaderTool::SPIRV_Cross_OpenGL          ?      "spirv-cross" :
-         tool == KnownShaderTool::spirv_dis                   ?      "spirv-dis" :
-         tool == KnownShaderTool::spirv_dis_OpenGL            ?      "spirv-dis" :
-         tool == KnownShaderTool::glslangValidatorGLSL        ?      "glslangValidator" :
-         tool == KnownShaderTool::glslangValidatorGLSL_OpenGL ?      "glslangValidator" :
-         tool == KnownShaderTool::glslangValidatorHLSL        ?      "glslangValidator" :
-         tool == KnownShaderTool::spirv_as                    ?      "spirv-as" :
-         tool == KnownShaderTool::spirv_as_OpenGL             ?      "spirv-as" :
-         tool == KnownShaderTool::dxcSPIRV                    ?      "dxc" :
-         tool == KnownShaderTool::dxcDXIL                     ?      "dxc" :
-         tool == KnownShaderTool::fxc                         ?      "fxc" :
-         "";
-  // clang-format on
+  return tool == KnownShaderTool::SPIRV_Cross                   ? "spirv-cross"
+         : tool == KnownShaderTool::SPIRV_Cross_OpenGL          ? "spirv-cross"
+         : tool == KnownShaderTool::spirv_dis                   ? "spirv-dis"
+         : tool == KnownShaderTool::spirv_dis_OpenGL            ? "spirv-dis"
+         : tool == KnownShaderTool::glslangValidatorGLSL        ? "glslangValidator"
+         : tool == KnownShaderTool::glslangValidatorGLSL_OpenGL ? "glslangValidator"
+         : tool == KnownShaderTool::glslangValidatorHLSL        ? "glslangValidator"
+         : tool == KnownShaderTool::spirv_as                    ? "spirv-as"
+         : tool == KnownShaderTool::spirv_as_OpenGL             ? "spirv-as"
+         : tool == KnownShaderTool::dxcSPIRV                    ? "dxc"
+         : tool == KnownShaderTool::dxcDXIL                     ? "dxc"
+         : tool == KnownShaderTool::fxc                         ? "fxc"
+                                                                : "";
 }
 
 DOCUMENT(R"(Returns the expected default input :class:`~renderdoc.ShaderEncoding` that a
@@ -1977,23 +1972,19 @@ tool.
 )");
 constexpr inline ShaderEncoding ToolInput(KnownShaderTool tool)
 {
-  // temporarily disable clang-format to make this more readable.
-  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
-  // clang-format off
-  return tool == KnownShaderTool::SPIRV_Cross                 ?      ShaderEncoding::SPIRV :
-         tool == KnownShaderTool::SPIRV_Cross_OpenGL          ?      ShaderEncoding::OpenGLSPIRV :
-         tool == KnownShaderTool::spirv_dis                   ?      ShaderEncoding::SPIRV :
-         tool == KnownShaderTool::spirv_dis_OpenGL            ?      ShaderEncoding::OpenGLSPIRV :
-         tool == KnownShaderTool::glslangValidatorGLSL        ?      ShaderEncoding::GLSL :
-         tool == KnownShaderTool::glslangValidatorGLSL_OpenGL ?      ShaderEncoding::GLSL :
-         tool == KnownShaderTool::glslangValidatorHLSL        ?      ShaderEncoding::HLSL :
-         tool == KnownShaderTool::spirv_as                    ?      ShaderEncoding::SPIRVAsm :
-         tool == KnownShaderTool::spirv_as_OpenGL             ?      ShaderEncoding::OpenGLSPIRVAsm :
-         tool == KnownShaderTool::dxcSPIRV                    ?      ShaderEncoding::HLSL :
-         tool == KnownShaderTool::dxcDXIL                     ?      ShaderEncoding::HLSL :
-         tool == KnownShaderTool::fxc                         ?      ShaderEncoding::HLSL :
-         ShaderEncoding::Unknown;
-  // clang-format on
+  return tool == KnownShaderTool::SPIRV_Cross                   ? ShaderEncoding::SPIRV
+         : tool == KnownShaderTool::SPIRV_Cross_OpenGL          ? ShaderEncoding::OpenGLSPIRV
+         : tool == KnownShaderTool::spirv_dis                   ? ShaderEncoding::SPIRV
+         : tool == KnownShaderTool::spirv_dis_OpenGL            ? ShaderEncoding::OpenGLSPIRV
+         : tool == KnownShaderTool::glslangValidatorGLSL        ? ShaderEncoding::GLSL
+         : tool == KnownShaderTool::glslangValidatorGLSL_OpenGL ? ShaderEncoding::GLSL
+         : tool == KnownShaderTool::glslangValidatorHLSL        ? ShaderEncoding::HLSL
+         : tool == KnownShaderTool::spirv_as                    ? ShaderEncoding::SPIRVAsm
+         : tool == KnownShaderTool::spirv_as_OpenGL             ? ShaderEncoding::OpenGLSPIRVAsm
+         : tool == KnownShaderTool::dxcSPIRV                    ? ShaderEncoding::HLSL
+         : tool == KnownShaderTool::dxcDXIL                     ? ShaderEncoding::HLSL
+         : tool == KnownShaderTool::fxc                         ? ShaderEncoding::HLSL
+                                                                : ShaderEncoding::Unknown;
 }
 
 DOCUMENT(R"(Returns the expected default output :class:`~renderdoc.ShaderEncoding` that a
@@ -2006,23 +1997,19 @@ tool.
 )");
 constexpr inline ShaderEncoding ToolOutput(KnownShaderTool tool)
 {
-  // temporarily disable clang-format to make this more readable.
-  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
-  // clang-format off
-  return tool == KnownShaderTool::SPIRV_Cross                 ?      ShaderEncoding::GLSL :
-         tool == KnownShaderTool::SPIRV_Cross_OpenGL          ?      ShaderEncoding::GLSL :
-         tool == KnownShaderTool::spirv_dis                   ?      ShaderEncoding::SPIRVAsm :
-         tool == KnownShaderTool::spirv_dis_OpenGL            ?      ShaderEncoding::OpenGLSPIRVAsm :
-         tool == KnownShaderTool::glslangValidatorGLSL        ?      ShaderEncoding::SPIRV :
-         tool == KnownShaderTool::glslangValidatorGLSL_OpenGL ?      ShaderEncoding::OpenGLSPIRV :
-         tool == KnownShaderTool::glslangValidatorHLSL        ?      ShaderEncoding::SPIRV :
-         tool == KnownShaderTool::spirv_as                    ?      ShaderEncoding::SPIRV :
-         tool == KnownShaderTool::spirv_as_OpenGL             ?      ShaderEncoding::OpenGLSPIRV :
-         tool == KnownShaderTool::dxcSPIRV                    ?      ShaderEncoding::SPIRV :
-         tool == KnownShaderTool::dxcDXIL                     ?      ShaderEncoding::DXIL :
-         tool == KnownShaderTool::fxc                         ?      ShaderEncoding::DXBC :
-         ShaderEncoding::Unknown;
-  // clang-format on
+  return tool == KnownShaderTool::SPIRV_Cross                   ? ShaderEncoding::GLSL
+         : tool == KnownShaderTool::SPIRV_Cross_OpenGL          ? ShaderEncoding::GLSL
+         : tool == KnownShaderTool::spirv_dis                   ? ShaderEncoding::SPIRVAsm
+         : tool == KnownShaderTool::spirv_dis_OpenGL            ? ShaderEncoding::OpenGLSPIRVAsm
+         : tool == KnownShaderTool::glslangValidatorGLSL        ? ShaderEncoding::SPIRV
+         : tool == KnownShaderTool::glslangValidatorGLSL_OpenGL ? ShaderEncoding::OpenGLSPIRV
+         : tool == KnownShaderTool::glslangValidatorHLSL        ? ShaderEncoding::SPIRV
+         : tool == KnownShaderTool::spirv_as                    ? ShaderEncoding::SPIRV
+         : tool == KnownShaderTool::spirv_as_OpenGL             ? ShaderEncoding::OpenGLSPIRV
+         : tool == KnownShaderTool::dxcSPIRV                    ? ShaderEncoding::SPIRV
+         : tool == KnownShaderTool::dxcDXIL                     ? ShaderEncoding::DXIL
+         : tool == KnownShaderTool::fxc                         ? ShaderEncoding::DXBC
+                                                                : ShaderEncoding::Unknown;
 }
 
 DOCUMENT(R"(Check whether or not this is a human readable text representation.

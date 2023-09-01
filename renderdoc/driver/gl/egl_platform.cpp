@@ -433,7 +433,9 @@ class EGLPlatform : public GLPlatform
 #define LIBSUFFIX ".so"
 #endif
     const char *libs[] = {
-        "libGLESv3" LIBSUFFIX, "libGLESv2" LIBSUFFIX ".2", "libGLESv2" LIBSUFFIX,
+        "libGLESv3" LIBSUFFIX,
+        "libGLESv2" LIBSUFFIX ".2",
+        "libGLESv2" LIBSUFFIX,
         "libGLESv1_CM" LIBSUFFIX,
     };
 
@@ -479,7 +481,7 @@ bool EGLDispatchTable::PopulateForReplay()
   if(!this->func)                                                                                   \
     this->func = (CONCAT(PFN_egl, func))Process::GetFunctionAddress(handle, "egl" STRINGIZE(func)); \
   if(!this->func && CheckConstParam(isext))                                                         \
-    this->func = (CONCAT(PFN_egl, func)) this->GetProcAddress("egl" STRINGIZE(func));               \
+    this->func = (CONCAT(PFN_egl, func))this->GetProcAddress("egl" STRINGIZE(func));                \
                                                                                                     \
   if(!this->func && !CheckConstParam(isext))                                                        \
   {                                                                                                 \

@@ -340,10 +340,10 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
   rdcstr cbuffers = GetEmbeddedResource(hlsl_cbuffers_h);
   rdcstr texsample = GetEmbeddedResource(hlsl_texsample_h);
 
-  EmbeddedD3DIncluder includer(includeDirs,
-                               {
-                                   {"hlsl_texsample.h", texsample}, {"hlsl_cbuffers.h", cbuffers},
-                               });
+  EmbeddedD3DIncluder includer(includeDirs, {
+                                                {"hlsl_texsample.h", texsample},
+                                                {"hlsl_cbuffers.h", cbuffers},
+                                            });
 
   uint32_t hash = strhash(source);
   hash = strhash(entry, hash);
@@ -877,8 +877,10 @@ ID3DBlob *D3D12ShaderCache::MakeFixedColShader(FixedColVariant variant, bool dxi
   if(!ret)
   {
     const rdcstr embedded[] = {
-        GetEmbeddedResource(fixedcol_0_dxbc), GetEmbeddedResource(fixedcol_1_dxbc),
-        GetEmbeddedResource(fixedcol_2_dxbc), GetEmbeddedResource(fixedcol_3_dxbc),
+        GetEmbeddedResource(fixedcol_0_dxbc),
+        GetEmbeddedResource(fixedcol_1_dxbc),
+        GetEmbeddedResource(fixedcol_2_dxbc),
+        GetEmbeddedResource(fixedcol_3_dxbc),
     };
 
     D3D12ShaderCacheCallbacks.Create((uint32_t)embedded[variant].size(), embedded[variant].data(),

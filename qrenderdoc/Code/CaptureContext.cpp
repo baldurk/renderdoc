@@ -849,9 +849,9 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const ReplayOptions 
   QElapsedTimer loadTimer;
   loadTimer.start();
 
-  ShowProgressDialog(m_MainWindow, tr("Loading Capture: %1").arg(QFileInfo(origFilename).fileName()),
-                     [this]() { return !m_LoadInProgress; },
-                     [this]() { return UpdateLoadProgress(); });
+  ShowProgressDialog(
+      m_MainWindow, tr("Loading Capture: %1").arg(QFileInfo(origFilename).fileName()),
+      [this]() { return !m_LoadInProgress; }, [this]() { return UpdateLoadProgress(); });
 
   if(local)
   {
@@ -1270,8 +1270,9 @@ void CaptureContext::RecompressCapture()
   th->wait(500);
   if(th->isRunning())
   {
-    ShowProgressDialog(m_MainWindow, tr("Recompressing file."), [th]() { return !th->isRunning(); },
-                       [&progress]() { return progress; });
+    ShowProgressDialog(
+        m_MainWindow, tr("Recompressing file."), [th]() { return !th->isRunning(); },
+        [&progress]() { return progress; });
   }
   th->deleteLater();
 
@@ -1477,7 +1478,6 @@ bool CaptureContext::ImportCapture(const CaptureFileFormat &fmt, const rdcstr &i
   float progress = 0.0f;
 
   LambdaThread *th = new LambdaThread([rdcfile, importfile, ext, &progress, &result]() {
-
     ICaptureFile *file = RENDERDOC_OpenCaptureFile();
 
     result = file->OpenFile(importfile, ext.toUtf8().data(),
@@ -1499,8 +1499,9 @@ bool CaptureContext::ImportCapture(const CaptureFileFormat &fmt, const rdcstr &i
   th->wait(500);
   if(th->isRunning())
   {
-    ShowProgressDialog(m_MainWindow, tr("Importing from %1, please wait...").arg(filename),
-                       [th]() { return !th->isRunning(); }, [&progress]() { return progress; });
+    ShowProgressDialog(
+        m_MainWindow, tr("Importing from %1, please wait...").arg(filename),
+        [th]() { return !th->isRunning(); }, [&progress]() { return progress; });
   }
   th->deleteLater();
 
@@ -1564,9 +1565,9 @@ void CaptureContext::ExportCapture(const CaptureFileFormat &fmt, const rdcstr &e
   th->wait(500);
   if(th->isRunning())
   {
-    ShowProgressDialog(m_MainWindow,
-                       tr("Exporting %1 to %2, please wait...").arg(filename).arg(QString(fmt.name)),
-                       [th]() { return !th->isRunning(); }, [&progress]() { return progress; });
+    ShowProgressDialog(
+        m_MainWindow, tr("Exporting %1 to %2, please wait...").arg(filename).arg(QString(fmt.name)),
+        [th]() { return !th->isRunning(); }, [&progress]() { return progress; });
   }
   th->deleteLater();
 
@@ -1974,7 +1975,6 @@ void CaptureContext::LoadEdits(const QString &data)
   auto replaceSaveCallback = [this](ICaptureContext *ctx, IShaderViewer *viewer, ResourceId id,
                                     ShaderStage stage, ShaderEncoding shaderEncoding,
                                     ShaderCompileFlags flags, rdcstr entryFunc, bytebuf shaderBytes) {
-
     ApplyShaderEdit(viewer, id, stage, shaderEncoding, flags, entryFunc, shaderBytes);
   };
 
@@ -1984,14 +1984,14 @@ void CaptureContext::LoadEdits(const QString &data)
 
   for(QVariant e : editors)
   {
-    ShaderViewer *edit =
-        ShaderViewer::LoadEditor(*this, e.toMap(), replaceSaveCallback, replaceRevertCallback,
-                                 [this](ShaderViewer *view, bool closed) {
-                                   SetModification(CaptureModifications::EditedShaders);
-                                   if(closed)
-                                     m_ShaderEditors.removeOne(view);
-                                 },
-                                 m_MainWindow->Widget());
+    ShaderViewer *edit = ShaderViewer::LoadEditor(
+        *this, e.toMap(), replaceSaveCallback, replaceRevertCallback,
+        [this](ShaderViewer *view, bool closed) {
+          SetModification(CaptureModifications::EditedShaders);
+          if(closed)
+            m_ShaderEditors.removeOne(view);
+        },
+        m_MainWindow->Widget());
 
     if(edit)
     {
@@ -2469,10 +2469,9 @@ IShaderViewer *CaptureContext::EditShader(ResourceId id, ShaderStage stage, cons
   if(id != ResourceId())
   {
     auto replaceSaveCallback = [this, saveCallback](
-        ICaptureContext *ctx, IShaderViewer *viewer, ResourceId id, ShaderStage stage,
-        ShaderEncoding shaderEncoding, ShaderCompileFlags flags, rdcstr entryFunc,
-        bytebuf shaderBytes) {
-
+                                   ICaptureContext *ctx, IShaderViewer *viewer, ResourceId id,
+                                   ShaderStage stage, ShaderEncoding shaderEncoding,
+                                   ShaderCompileFlags flags, rdcstr entryFunc, bytebuf shaderBytes) {
       ApplyShaderEdit(viewer, id, stage, shaderEncoding, flags, entryFunc, shaderBytes);
 
       if(saveCallback)
@@ -2487,14 +2486,15 @@ IShaderViewer *CaptureContext::EditShader(ResourceId id, ShaderStage stage, cons
         revertCallback(ctx, view, id);
     };
 
-    viewer = ShaderViewer::EditShader(*this, id, stage, entryPoint, files, knownTool, shaderEncoding,
-                                      flags, replaceSaveCallback, replaceRevertCallback,
-                                      [this](ShaderViewer *view, bool closed) {
-                                        SetModification(CaptureModifications::EditedShaders);
-                                        if(closed)
-                                          m_ShaderEditors.removeOne(view);
-                                      },
-                                      m_MainWindow->Widget());
+    viewer = ShaderViewer::EditShader(
+        *this, id, stage, entryPoint, files, knownTool, shaderEncoding, flags, replaceSaveCallback,
+        replaceRevertCallback,
+        [this](ShaderViewer *view, bool closed) {
+          SetModification(CaptureModifications::EditedShaders);
+          if(closed)
+            m_ShaderEditors.removeOne(view);
+        },
+        m_MainWindow->Widget());
 
     m_ShaderEditors.push_back(viewer);
     SetModification(CaptureModifications::EditedShaders);

@@ -606,7 +606,8 @@ void Reflector::RegisterOp(Iter it)
       {
         debugSources[dbg.result] = sources.size();
         sources.push_back({
-            SourceLanguage::Unknown, strings[dbg.arg<Id>(0)],
+            SourceLanguage::Unknown,
+            strings[dbg.arg<Id>(0)],
             dbg.params.size() > 1 ? strings[dbg.arg<Id>(1)] : rdcstr(),
         });
       }
@@ -2148,7 +2149,6 @@ TEST_CASE("Validate SPIR-V reflection", "[spirv][reflection]")
   ShaderType type = ShaderType::Vulkan;
   auto compiler = [&type](ShaderStage stage, const rdcstr &source, const rdcstr &entryPoint,
                           ShaderReflection &refl, ShaderBindpointMapping &mapping) {
-
     rdcspv::Init();
     RenderDoc::Inst().RegisterShutdownFunction(&rdcspv::Shutdown);
 

@@ -375,14 +375,12 @@ texel.
       case ResourceFormatType::Undefined: break;
       case ResourceFormatType::Regular: return compByteWidth * compCount;
       case ResourceFormatType::BC1:
-      case ResourceFormatType::BC4:
-        return 8;    // 8 bytes for 4x4 block
+      case ResourceFormatType::BC4: return 8;    // 8 bytes for 4x4 block
       case ResourceFormatType::BC2:
       case ResourceFormatType::BC3:
       case ResourceFormatType::BC5:
       case ResourceFormatType::BC6:
-      case ResourceFormatType::BC7:
-        return 16;    // 16 bytes for 4x4 block
+      case ResourceFormatType::BC7: return 16;    // 16 bytes for 4x4 block
       case ResourceFormatType::ETC2: return 8;
       case ResourceFormatType::EAC:
         if(compCount == 1)
@@ -390,9 +388,8 @@ texel.
         else if(compCount == 2)
           return 16;    // two channel RG11 EAC
         else
-          return 16;    // RGBA8 EAC
-      case ResourceFormatType::ASTC:
-        return 16;    // ASTC is always 128 bits per block
+          return 16;                               // RGBA8 EAC
+      case ResourceFormatType::ASTC: return 16;    // ASTC is always 128 bits per block
       case ResourceFormatType::R10G10B10A2:
       case ResourceFormatType::R11G11B10:
       case ResourceFormatType::R9G9B9E5: return 4;
@@ -406,8 +403,7 @@ texel.
       case ResourceFormatType::D32S8:
         return 5;    // we define the size as tightly packed, so 5 bytes.
       case ResourceFormatType::S8:
-      case ResourceFormatType::A8:
-        return 1;
+      case ResourceFormatType::A8: return 1;
       // can't give a sensible answer for YUV formats as the texel varies.
       case ResourceFormatType::YUV8: return compCount;
       case ResourceFormatType::YUV10:

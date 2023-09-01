@@ -102,7 +102,10 @@ static void MakeVaryingsFromShaderReflection(ShaderReflection &refl, rdcarray<co
     if(excludeTrimmedRefl)
     {
       const char *skipComponents[] = {
-          "gl_SkipComponents1", "gl_SkipComponents2", "gl_SkipComponents3", "gl_SkipComponents4",
+          "gl_SkipComponents1",
+          "gl_SkipComponents2",
+          "gl_SkipComponents3",
+          "gl_SkipComponents4",
       };
 
       while(outputComponents > 0)

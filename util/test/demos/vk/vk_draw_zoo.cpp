@@ -120,7 +120,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -180,10 +181,11 @@ void main()
         {Vec3f(0.5f, 0.0f, 0.0f), Vec4f(1.0f, 0.1f, 1.0f, 0.0f), Vec2f(1.0f, 0.0f)},
     };
 
-    AllocatedBuffer vb1(this, vkh::BufferCreateInfo(sizeof(DefaultA2V) * 66000,
-                                                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                        VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    AllocatedBuffer vb1(
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultA2V) * 66000,
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     {
       DefaultA2V *src = (DefaultA2V *)vertData;
@@ -269,16 +271,17 @@ void main()
       instData[14] = Vec4f(0.5f, 0.9f, 0.1f, 0.5f);
     }
 
-    AllocatedBuffer vb2(
-        this, vkh::BufferCreateInfo(sizeof(instData), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                          VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    AllocatedBuffer vb2(this,
+                        vkh::BufferCreateInfo(sizeof(instData), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb2.upload(instData);
 
     AllocatedBuffer ib1(
-        this, vkh::BufferCreateInfo(sizeof(uint32_t) * 100, VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-                                                                VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(uint32_t) * 100,
+                              VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     {
@@ -348,8 +351,9 @@ void main()
                            vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
 
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, mainWindow->scissor,
-                                                         {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f)}),
+      vkCmdBeginRenderPass(cmd,
+                           vkh::RenderPassBeginInfo(renderPass, framebuffer, mainWindow->scissor,
+                                                    {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f)}),
                            VK_SUBPASS_CONTENTS_INLINE);
 
       vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);

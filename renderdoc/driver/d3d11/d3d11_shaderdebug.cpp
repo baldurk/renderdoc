@@ -2448,9 +2448,8 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
     DebugHit *hit = winner;
 
     rdcarray<ShaderVariable> &ins = state.inputs;
-    if(!ins.empty() &&
-       ins.back().name ==
-           dxbc->GetDXBCByteCode()->GetRegisterName(DXBCBytecode::TYPE_INPUT_COVERAGE_MASK, 0))
+    if(!ins.empty() && ins.back().name == dxbc->GetDXBCByteCode()->GetRegisterName(
+                                              DXBCBytecode::TYPE_INPUT_COVERAGE_MASK, 0))
       ins.back().value.u32v[0] = hit->coverage;
 
     state.semantics.coverage = hit->coverage;

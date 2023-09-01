@@ -55,7 +55,7 @@ rdcstr ToStr(const T &el)
   constexpr rdcliteral empty_ret = STRING_LITERAL(#type "(0)");  \
   static_assert(std::is_same<const type &, decltype(el)>::value, \
                 "Type in macro doesn't match el");               \
-  (void)(enumType) el;                                           \
+  (void)(enumType)el;                                            \
   switch(el)                                                     \
   {                                                              \
     default: break;
@@ -89,7 +89,7 @@ rdcstr ToStr(const T &el)
   static_assert(std::is_same<const type &, decltype(el)>::value, \
                 "Type in macro doesn't match el");               \
   uint64_t local = (uint64_t)el;                                 \
-  (void)(enumType) el;                                           \
+  (void)(enumType)el;                                            \
   rdcstr ret;
 
 #define STRINGISE_BITFIELD_VALUE(b) \

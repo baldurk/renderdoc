@@ -145,7 +145,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -265,16 +266,16 @@ void main()
                            vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
 
-      vkh::cmdPipelineBarrier(
-          primary, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
-                                                 VK_ACCESS_TRANSFER_WRITE_BIT, ssbo.buffer)});
+      vkh::cmdPipelineBarrier(primary, {},
+                              {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                                        VK_ACCESS_TRANSFER_WRITE_BIT, ssbo.buffer)});
 
       // clear the buffer so that we can't read any of the data back from outside the command buffer
       vkCmdFillBuffer(primary, ssbo.buffer, 0, ssbo_size, 0);
 
-      vkh::cmdPipelineBarrier(
-          primary, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
-                                                 VK_ACCESS_TRANSFER_WRITE_BIT, ssbo.buffer)});
+      vkh::cmdPipelineBarrier(primary, {},
+                              {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                                        VK_ACCESS_TRANSFER_WRITE_BIT, ssbo.buffer)});
 
       {
         VkCommandBuffer cmd = primary;
@@ -317,13 +318,14 @@ void main()
         popMarker(cmd);
 
         vkh::cmdPipelineBarrier(
-            cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT,
-                                               VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
+            cmd, {},
+            {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT,
+                                      VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
       }
 
-      vkCmdBeginRenderPass(primary, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(),
-                                                             mainWindow->scissor),
-                           VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdBeginRenderPass(
+          primary, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
+          VK_SUBPASS_CONTENTS_INLINE);
 
       {
         VkCommandBuffer cmd = primary;
@@ -463,8 +465,9 @@ void main()
         pushMarker(cmd, "Secondary: Dispatches");
 
         vkh::cmdPipelineBarrier(
-            cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
-                                               VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
+            cmd, {},
+            {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                      VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, comppipe);
         vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, complayout, 0, {descset}, {});
@@ -482,8 +485,9 @@ void main()
         vkCmdDispatch(cmd, 1, 1, 1);
 
         vkh::cmdPipelineBarrier(
-            cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT,
-                                               VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
+            cmd, {},
+            {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT,
+                                      VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
 
         mode = 2;
         vkCmdPushConstants(cmd, complayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &mode);
@@ -494,17 +498,18 @@ void main()
         popMarker(cmd);
 
         vkh::cmdPipelineBarrier(
-            cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT,
-                                               VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
+            cmd, {},
+            {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT,
+                                      VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
       }
 
       vkEndCommandBuffer(dispatch_secondary);
 
       vkCmdExecuteCommands(primary, 1, &dispatch_secondary);
 
-      vkCmdBeginRenderPass(primary, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(),
-                                                             mainWindow->scissor),
-                           VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+      vkCmdBeginRenderPass(
+          primary, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
+          VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
       VkCommandBuffer draw_secondary = GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY);
 
@@ -599,9 +604,10 @@ void main()
         vkCmdEndRenderPass(primary);
 
         // restart the secondary renderpass
-        vkCmdBeginRenderPass(primary, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(),
-                                                               mainWindow->scissor),
-                             VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+        vkCmdBeginRenderPass(
+            primary,
+            vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
+            VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
         VkCommandBuffer count_secondary = GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY);
         cmds.push_back(count_secondary);

@@ -167,7 +167,7 @@ private:
     }
     ~ItemPool()
     {
-      delete[](uint8_t *) items;
+      delete[](uint8_t *)items;
       delete[] freeStack;
     }
     void *Allocate()
@@ -214,12 +214,21 @@ private:
   friend typename FriendMaker<WrapType>::Type;
 };
 
-#define ALLOCATE_WITH_WRAPPED_POOL(...)                       \
-  typedef WrappingPool<__VA_ARGS__> PoolType;                 \
-  static PoolType m_Pool;                                     \
-  void *operator new(size_t sz) { return m_Pool.Allocate(); } \
-  void operator delete(void *p) { m_Pool.Deallocate(p); }     \
-  static bool IsAlloc(const void *p) { return m_Pool.IsAlloc(p); }
+#define ALLOCATE_WITH_WRAPPED_POOL(...)       \
+  typedef WrappingPool<__VA_ARGS__> PoolType; \
+  static PoolType m_Pool;                     \
+  void *operator new(size_t sz)               \
+  {                                           \
+    return m_Pool.Allocate();                 \
+  }                                           \
+  void operator delete(void *p)               \
+  {                                           \
+    m_Pool.Deallocate(p);                     \
+  }                                           \
+  static bool IsAlloc(const void *p)          \
+  {                                           \
+    return m_Pool.IsAlloc(p);                 \
+  }
 #define WRAPPED_POOL_INST(a) \
   a::PoolType a::m_Pool;     \
   DECLARE_STRINGISE_TYPE(a);

@@ -3942,9 +3942,8 @@ bool D3D11Replay::IsTextureSupported(const TextureDescription &tex)
     return false;
   if(tex.dimension == 3 && (supp & D3D11_FORMAT_SUPPORT_TEXTURE3D) == 0)
     return false;
-  if(tex.msSamp > 1 &&
-     (supp &
-      (D3D11_FORMAT_SUPPORT_MULTISAMPLE_LOAD | D3D11_FORMAT_SUPPORT_MULTISAMPLE_RENDERTARGET)) == 0)
+  if(tex.msSamp > 1 && (supp & (D3D11_FORMAT_SUPPORT_MULTISAMPLE_LOAD |
+                                D3D11_FORMAT_SUPPORT_MULTISAMPLE_RENDERTARGET)) == 0)
     return false;
 
   return true;
@@ -4192,16 +4191,16 @@ RDResult D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRepl
           "Capture requires ags to replay, but it's not available or can't be initialised");
     }
 
-    CreateDeviceAndSwapChain = [agsDev](
-        IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
-        CONST D3D_FEATURE_LEVEL *pFeatureLevels, UINT FeatureLevels, UINT SDKVersion,
-        CONST DXGI_SWAP_CHAIN_DESC *pSwapChainDesc, IDXGISwapChain **ppSwapChain,
-        ID3D11Device **ppDevice, D3D_FEATURE_LEVEL *pFeatureLevel,
-        ID3D11DeviceContext **ppImmediateContext) {
-      return agsDev->CreateD3D11(pAdapter, DriverType, Software, Flags, pFeatureLevels,
-                                 FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice,
-                                 pFeatureLevel, ppImmediateContext);
-    };
+    CreateDeviceAndSwapChain =
+        [agsDev](IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
+                 CONST D3D_FEATURE_LEVEL *pFeatureLevels, UINT FeatureLevels, UINT SDKVersion,
+                 CONST DXGI_SWAP_CHAIN_DESC *pSwapChainDesc, IDXGISwapChain **ppSwapChain,
+                 ID3D11Device **ppDevice, D3D_FEATURE_LEVEL *pFeatureLevel,
+                 ID3D11DeviceContext **ppImmediateContext) {
+          return agsDev->CreateD3D11(pAdapter, DriverType, Software, Flags, pFeatureLevels,
+                                     FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain,
+                                     ppDevice, pFeatureLevel, ppImmediateContext);
+        };
   }
   else if(initParams.VendorExtensions != GPUVendor::Unknown)
   {

@@ -211,7 +211,8 @@ float4 main() : SV_Target0
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -228,8 +229,9 @@ float4 main() : SV_Target0
     VkPipeline hlslpipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
@@ -240,14 +242,16 @@ float4 main() : SV_Target0
       data[i] = float(i);
 
     AllocatedBuffer ssbo(
-        this, vkh::BufferCreateInfo(sizeof(data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                                      VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     ssbo.upload(data);
 
-    AllocatedBuffer out_ssbo(this, vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+    AllocatedBuffer out_ssbo(this,
+                             vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                              VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkDescriptorSet descset = allocateDescriptorSet(setlayout);

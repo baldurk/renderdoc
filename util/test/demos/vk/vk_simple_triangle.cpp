@@ -45,7 +45,8 @@ RD_TEST(VK_Simple_Triangle, VulkanGraphicsTest)
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -57,19 +58,22 @@ RD_TEST(VK_Simple_Triangle, VulkanGraphicsTest)
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
 
-    AllocatedImage offimg(this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                     VK_IMAGE_USAGE_TRANSFER_DST_BIT),
+    AllocatedImage offimg(this,
+                          vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                               VK_IMAGE_USAGE_TRANSFER_DST_BIT),
                           VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     AllocatedImage offimgMS(
-        this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT, 1, 1, VK_SAMPLE_COUNT_4_BIT),
+        this,
+        vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R16G16B16A16_SFLOAT,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT, 1, 1, VK_SAMPLE_COUNT_4_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     while(Running())

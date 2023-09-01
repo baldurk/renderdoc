@@ -423,13 +423,25 @@ TEST_CASE("Check LLVM bitreader", "[llvm]")
     // values
     byte bits[] = {
         // dword 1
-        0x96, 0xf0, 0xA5, 0x3C,
+        0x96,
+        0xf0,
+        0xA5,
+        0x3C,
         // padding dword
-        0x00, 0x00, 0x00, 0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
         // padding dword
-        0x00, 0x00, 0x00, 0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
         // padding dword
-        0x00, 0x00, 0x00, 0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
     };
 
     LLVMBC::BitReader b(bits, sizeof(bits));
@@ -603,7 +615,8 @@ TEST_CASE("Check LLVM bitreader", "[llvm]")
       };
 
       uint64_t expected[] = {
-          0, 0,
+          0,
+          0,
           // i_vbr2
           0x0003,
           // i_vbr3
@@ -787,12 +800,16 @@ TEST_CASE("Check LLVM bitreader", "[llvm]")
         // first i_4 value
         0x04,
         // padding for alignment
-        0x00, 0x00, 0x00,
+        0x00,
+        0x00,
+        0x00,
 
         // second two i_4 values
         0xF5,
         // i_24 value
-        0xCA, 0x99, 0x23,
+        0xCA,
+        0x99,
+        0x23,
 
         // no padding - already aligned
 
@@ -857,19 +874,30 @@ TEST_CASE("Check LLVM bitreader", "[llvm]")
         // first vbr_6 length
         0x06,
         // padding for alignment
-        0x00, 0x00, 0x00,
+        0x00,
+        0x00,
+        0x00,
 
         // blob data
-        0xF5, 0x00, 0xCA, 0x40, 0x99, 0x23,
+        0xF5,
+        0x00,
+        0xCA,
+        0x40,
+        0x99,
+        0x23,
 
         // padding for trailing alignment
-        0x00, 0x00,
+        0x00,
+        0x00,
 
         // i_20 dummy to get us to the point where two vbr_6 chunks would be aligned
         // we choose a length of 70, which is 0b10 00110, then vbr_6 encoded it becomes
         // 0b000010 100110 which is 0xA6, over 12 bits. That leaves 4 bits in the upper part of
         // the last byte of the i_20, and the remaining 8 in the next byte
-        0x5B, 0xC2, 0x64, 0x0A,
+        0x5B,
+        0xC2,
+        0x64,
+        0x0A,
     };
 
     LLVMBC::BitReader b(bits, sizeof(bits));

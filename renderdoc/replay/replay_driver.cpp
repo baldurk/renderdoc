@@ -1224,14 +1224,18 @@ bool HighlightCache::FetchHighlightPositions(const MeshDisplay &cfg, FloatVector
 
           // as above, unused since this is adjacency for previous triangle
           /*[3]=*/InterpretVertex(data, numidx - 5, cfg, dataEnd, true, valid),    // 9 in diagram
-          /*[4]=*/InterpretVertex(data, numidx - 4, cfg, dataEnd, true,
-                                  valid),    // 10 in diagram
-          /*[5]=*/InterpretVertex(data, numidx - 3, cfg, dataEnd, true,
-                                  valid),    // 11 in diagram
-          /*[6]=*/InterpretVertex(data, numidx - 2, cfg, dataEnd, true,
-                                  valid),    // 12 in diagram
-          /*[7]=*/InterpretVertex(data, numidx - 1, cfg, dataEnd, true,
-                                  valid),    // 13 in diagram
+
+          /*[4]=*/    // 10 in diagram
+          InterpretVertex(data, numidx - 4, cfg, dataEnd, true, valid),
+
+          /*[5]=*/    // 11 in diagram
+          InterpretVertex(data, numidx - 3, cfg, dataEnd, true, valid),
+
+          /*[6]=*/    // 12 in diagram
+          InterpretVertex(data, numidx - 2, cfg, dataEnd, true, valid),
+
+          /*[7]=*/    // 13 in diagram
+          InterpretVertex(data, numidx - 1, cfg, dataEnd, true, valid),
       };
 
       // these are the triangles on the far right of the MSDN diagram above

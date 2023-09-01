@@ -245,7 +245,8 @@ struct VulkanRenderState
   // shading rate
   VkExtent2D pipelineShadingRate = {1, 1};
   VkFragmentShadingRateCombinerOpKHR shadingRateCombiners[2] = {
-      VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR, VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
+      VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
+      VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
   };
 
   // attachment feedback loop

@@ -209,9 +209,8 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ui->iaLayouts->setHeader(header);
 
-    ui->iaLayouts->setColumns({tr("Slot"), tr("Semantic"), tr("Index"), tr("Format"),
-                               tr("Input Slot"), tr("Offset"), tr("Class"), tr("Step Rate"),
-                               tr("Go")});
+    ui->iaLayouts->setColumns({tr("Slot"), tr("Semantic"), tr("Index"), tr("Format"), tr("Input Slot"),
+                               tr("Offset"), tr("Class"), tr("Step Rate"), tr("Go")});
     header->setColumnStretchHints({1, 4, 2, 3, 2, 2, 1, 1, -1});
 
     ui->iaLayouts->setClearSelectionOnFocusLoss(true);
@@ -339,9 +338,8 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ui->targetOutputs->setHeader(header);
 
-    ui->targetOutputs->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"),
-                                   tr("Height"), tr("Depth"), tr("Array Size"), tr("Format"),
-                                   tr("Go")});
+    ui->targetOutputs->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"),
+                                   tr("Depth"), tr("Array Size"), tr("Format"), tr("Go")});
     header->setColumnStretchHints({2, 4, 2, 1, 1, 1, 1, 3, -1});
 
     ui->targetOutputs->setHoverIconColumn(8, action, action_hover);
@@ -398,12 +396,25 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
 
   ui->pipeFlow->setStages(
       {
-          lit("IA"), lit("VS"), lit("HS"), lit("DS"), lit("GS"), lit("RS"), lit("PS"), lit("OM"),
+          lit("IA"),
+          lit("VS"),
+          lit("HS"),
+          lit("DS"),
+          lit("GS"),
+          lit("RS"),
+          lit("PS"),
+          lit("OM"),
           lit("CS"),
       },
       {
-          tr("Input Assembler"), tr("Vertex Shader"), tr("Hull Shader"), tr("Domain Shader"),
-          tr("Geometry Shader"), tr("Rasterizer"), tr("Pixel Shader"), tr("Output Merger"),
+          tr("Input Assembler"),
+          tr("Vertex Shader"),
+          tr("Hull Shader"),
+          tr("Domain Shader"),
+          tr("Geometry Shader"),
+          tr("Rasterizer"),
+          tr("Pixel Shader"),
+          tr("Output Merger"),
           tr("Compute Shader"),
       });
 
@@ -2546,8 +2557,9 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
     }
 
     m_Common.exportHTMLTable(
-        xml, {tr("Slot"), tr("Semantic Name"), tr("Semantic Index"), tr("Format"), tr("Input Slot"),
-              tr("Byte Offset"), tr("Per Instance"), tr("Instance Data Step Rate")},
+        xml,
+        {tr("Slot"), tr("Semantic Name"), tr("Semantic Index"), tr("Format"), tr("Input Slot"),
+         tr("Byte Offset"), tr("Per Instance"), tr("Instance Data Step Rate")},
         rows);
   }
 
@@ -2670,9 +2682,17 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     m_Common.exportHTMLTable(xml,
                              {
-                                 tr("Slot"), tr("Name"), tr("View Type"), tr("Resource Type"),
-                                 tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
-                                 tr("View Format"), tr("Resource Format"), tr("View Parameters"),
+                                 tr("Slot"),
+                                 tr("Name"),
+                                 tr("View Type"),
+                                 tr("Resource Type"),
+                                 tr("Width"),
+                                 tr("Height"),
+                                 tr("Depth"),
+                                 tr("Array Size"),
+                                 tr("View Format"),
+                                 tr("Resource Format"),
+                                 tr("View Parameters"),
                              },
                              rows);
   }
@@ -2695,9 +2715,17 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     m_Common.exportHTMLTable(xml,
                              {
-                                 tr("Slot"), tr("Name"), tr("View Type"), tr("Resource Type"),
-                                 tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
-                                 tr("View Format"), tr("Resource Format"), tr("View Parameters"),
+                                 tr("Slot"),
+                                 tr("Name"),
+                                 tr("View Type"),
+                                 tr("Resource Type"),
+                                 tr("Width"),
+                                 tr("Height"),
+                                 tr("Depth"),
+                                 tr("Array Size"),
+                                 tr("View Format"),
+                                 tr("Resource Format"),
+                                 tr("View Parameters"),
                              },
                              rows);
   }
@@ -2757,13 +2785,19 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
                       s.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.maxLOD), s.mipLODBias});
     }
 
-    m_Common.exportHTMLTable(
-        xml,
-        {
-            tr("Slot"), tr("Addressing"), tr("Border Colour"), tr("Comparison"), tr("Filter"),
-            tr("Max Anisotropy"), tr("Min LOD"), tr("Max LOD"), tr("Mip Bias"),
-        },
-        rows);
+    m_Common.exportHTMLTable(xml,
+                             {
+                                 tr("Slot"),
+                                 tr("Addressing"),
+                                 tr("Border Colour"),
+                                 tr("Comparison"),
+                                 tr("Filter"),
+                                 tr("Max Anisotropy"),
+                                 tr("Min LOD"),
+                                 tr("Max LOD"),
+                                 tr("Mip Bias"),
+                             },
+                             rows);
   }
 
   {
@@ -2829,7 +2863,9 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     m_Common.exportHTMLTable(xml,
                              {
-                                 tr("Slot"), tr("Interface Name"), tr("Instance Name"),
+                                 tr("Slot"),
+                                 tr("Interface Name"),
+                                 tr("Instance Name"),
                              },
                              rows);
   }
@@ -2885,13 +2921,13 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
     xml.writeEndElement();
 
     m_Common.exportHTMLTable(
-        xml, {tr("Scissor Enable"), tr("Line AA Enable"), tr("Multisample Enable"),
-              tr("Forced Sample Count"), tr("Conservative Raster")},
+        xml,
+        {tr("Scissor Enable"), tr("Line AA Enable"), tr("Multisample Enable"),
+         tr("Forced Sample Count"), tr("Conservative Raster")},
         {rs.state.scissorEnable ? tr("Yes") : tr("No"),
          rs.state.antialiasedLines ? tr("Yes") : tr("No"),
          rs.state.multisampleEnable ? tr("Yes") : tr("No"), rs.state.forcedSampleCount,
-         rs.state.conservativeRasterization != ConservativeRaster::Disabled ? tr("Yes")
-                                                                            : tr("No")});
+         rs.state.conservativeRasterization != ConservativeRaster::Disabled ? tr("Yes") : tr("No")});
 
     xml.writeStartElement(lit("p"));
     xml.writeEndElement();
@@ -2919,8 +2955,9 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
       i++;
     }
 
-    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"),
-                                   tr("Min Depth"), tr("Max Depth"), tr("Enabled")},
+    m_Common.exportHTMLTable(xml,
+                             {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"),
+                              tr("Min Depth"), tr("Max Depth"), tr("Enabled")},
                              rows);
   }
 
@@ -2957,12 +2994,14 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
                               .arg(om.blendState.blendFactor[2], 0, 'f', 2)
                               .arg(om.blendState.blendFactor[3], 0, 'f', 2);
 
-    m_Common.exportHTMLTable(xml, {tr("Independent Blend Enable"), tr("Alpha to Coverage"),
-                                   tr("Sample Mask"), tr("Blend Factor")},
+    m_Common.exportHTMLTable(xml,
+                             {tr("Independent Blend Enable"), tr("Alpha to Coverage"),
+                              tr("Sample Mask"), tr("Blend Factor")},
                              {
                                  om.blendState.independentBlend ? tr("Yes") : tr("No"),
                                  om.blendState.alphaToCoverage ? tr("Yes") : tr("No"),
-                                 Formatter::Format(om.blendState.sampleMask, true), blendFactor,
+                                 Formatter::Format(om.blendState.sampleMask, true),
+                                 blendFactor,
                              });
 
     xml.writeStartElement(lit("h3"));
@@ -2992,15 +3031,21 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
       i++;
     }
 
-    m_Common.exportHTMLTable(
-        xml,
-        {
-            tr("Slot"), tr("Blend Enable"), tr("Logic Enable"), tr("Blend Source"),
-            tr("Blend Destination"), tr("Blend Operation"), tr("Alpha Blend Source"),
-            tr("Alpha Blend Destination"), tr("Alpha Blend Operation"), tr("Logic Operation"),
-            tr("Write Mask"),
-        },
-        rows);
+    m_Common.exportHTMLTable(xml,
+                             {
+                                 tr("Slot"),
+                                 tr("Blend Enable"),
+                                 tr("Logic Enable"),
+                                 tr("Blend Source"),
+                                 tr("Blend Destination"),
+                                 tr("Blend Operation"),
+                                 tr("Alpha Blend Source"),
+                                 tr("Alpha Blend Destination"),
+                                 tr("Alpha Blend Operation"),
+                                 tr("Logic Operation"),
+                                 tr("Write Mask"),
+                             },
+                             rows);
   }
 
   {
@@ -3029,8 +3074,9 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
     xml.writeStartElement(lit("p"));
     xml.writeEndElement();
 
-    m_Common.exportHTMLTable(xml, {tr("Face"), tr("Function"), tr("Pass Operation"),
-                                   tr("Fail Operation"), tr("Depth Fail Operation")},
+    m_Common.exportHTMLTable(xml,
+                             {tr("Face"), tr("Function"), tr("Pass Operation"),
+                              tr("Fail Operation"), tr("Depth Fail Operation")},
                              {
                                  {tr("Front"), ToQStr(om.depthStencilState.frontFace.function),
                                   ToQStr(om.depthStencilState.frontFace.passOperation),
@@ -3060,9 +3106,17 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     m_Common.exportHTMLTable(xml,
                              {
-                                 tr("Slot"), tr("Name"), tr("View Type"), tr("Resource Type"),
-                                 tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
-                                 tr("View Format"), tr("Resource Format"), tr("View Parameters"),
+                                 tr("Slot"),
+                                 tr("Name"),
+                                 tr("View Type"),
+                                 tr("Resource Type"),
+                                 tr("Width"),
+                                 tr("Height"),
+                                 tr("Depth"),
+                                 tr("Array Size"),
+                                 tr("View Format"),
+                                 tr("Resource Format"),
+                                 tr("View Parameters"),
                              },
                              rows);
   }
@@ -3092,9 +3146,17 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     m_Common.exportHTMLTable(xml,
                              {
-                                 tr("Slot"), tr("Name"), tr("View Type"), tr("Resource Type"),
-                                 tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
-                                 tr("View Format"), tr("Resource Format"), tr("View Parameters"),
+                                 tr("Slot"),
+                                 tr("Name"),
+                                 tr("View Type"),
+                                 tr("Resource Type"),
+                                 tr("Width"),
+                                 tr("Height"),
+                                 tr("Depth"),
+                                 tr("Array Size"),
+                                 tr("View Format"),
+                                 tr("Resource Format"),
+                                 tr("View Parameters"),
                              },
                              rows);
   }
@@ -3119,9 +3181,17 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     m_Common.exportHTMLTable(xml,
                              {
-                                 tr("Slot"), tr("Name"), tr("View Type"), tr("Resource Type"),
-                                 tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
-                                 tr("View Format"), tr("Resource Format"), tr("View Parameters"),
+                                 tr("Slot"),
+                                 tr("Name"),
+                                 tr("View Type"),
+                                 tr("Resource Type"),
+                                 tr("Width"),
+                                 tr("Height"),
+                                 tr("Depth"),
+                                 tr("Array Size"),
+                                 tr("View Format"),
+                                 tr("Resource Format"),
+                                 tr("View Parameters"),
                              },
                              rows);
   }

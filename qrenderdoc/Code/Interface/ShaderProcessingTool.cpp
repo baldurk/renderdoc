@@ -163,9 +163,9 @@ static ShaderToolOutput RunTool(const ShaderProcessingTool &tool, QWidget *windo
 
   thread->start();
 
-  ShowProgressDialog(window, QApplication::translate("ShaderProcessingTool",
-                                                     "Please wait - running external tool"),
-                     [thread]() { return !thread->isRunning(); });
+  ShowProgressDialog(
+      window, QApplication::translate("ShaderProcessingTool", "Please wait - running external tool"),
+      [thread]() { return !thread->isRunning(); });
 
   thread->deleteLater();
 

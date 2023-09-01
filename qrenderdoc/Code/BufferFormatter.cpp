@@ -783,8 +783,7 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         // try to pick up common aliases that people might use
         if(packrule == lit("d3dcbuffer") || packrule == lit("cbuffer") || packrule == lit("cb"))
           pack = Packing::D3DCB;
-        else if(packrule == lit("d3duav") || packrule == lit("uav") ||
-                packrule == lit("structured"))
+        else if(packrule == lit("d3duav") || packrule == lit("uav") || packrule == lit("structured"))
           pack = Packing::D3DUAV;
         else if(packrule == lit("std140") || packrule == lit("ubo") || packrule == lit("gl") ||
                 packrule == lit("gles") || packrule == lit("opengl") || packrule == lit("glsl"))
@@ -1007,8 +1006,9 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
           bool matched = MatchBaseTypeDeclaration(baseType, false, tmp);
 
-          if(!matched || (VarTypeCompType(tmp.type.baseType) != CompType::UInt &&
-                          VarTypeCompType(tmp.type.baseType) != CompType::SInt) ||
+          if(!matched ||
+             (VarTypeCompType(tmp.type.baseType) != CompType::UInt &&
+              VarTypeCompType(tmp.type.baseType) != CompType::SInt) ||
              tmp.type.flags != ShaderVariableFlags::NoFlags)
           {
             reportError(tr("Invalid enum base type '%1', must be an integer type.").arg(baseType));
@@ -2338,9 +2338,7 @@ QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
     case ResourceFormatType::BC4:
     case ResourceFormatType::ETC2:
     case ResourceFormatType::EAC:
-    case ResourceFormatType::PVRTC:
-      baseType = lit("[[hex]] int2");
-      break;
+    case ResourceFormatType::PVRTC: baseType = lit("[[hex]] int2"); break;
     // 4x4 byte block, for 128-bit block formats
     case ResourceFormatType::BC2:
     case ResourceFormatType::BC3:
@@ -3260,13 +3258,19 @@ QVariantList GetVariants(ResourceFormat format, const ShaderConstant &var, const
     uint32_t packed = readObj<uint32_t>(data, end, ok);
 
     uint32_t mantissas[] = {
-        (packed >> 0) & 0x3f, (packed >> 11) & 0x3f, (packed >> 22) & 0x1f,
+        (packed >> 0) & 0x3f,
+        (packed >> 11) & 0x3f,
+        (packed >> 22) & 0x1f,
     };
     int32_t exponents[] = {
-        int32_t(packed >> 6) & 0x1f, int32_t(packed >> 17) & 0x1f, int32_t(packed >> 27) & 0x1f,
+        int32_t(packed >> 6) & 0x1f,
+        int32_t(packed >> 17) & 0x1f,
+        int32_t(packed >> 27) & 0x1f,
     };
     static const uint32_t leadbit[] = {
-        0x40, 0x40, 0x20,
+        0x40,
+        0x40,
+        0x20,
     };
 
     for(int i = 0; i < 3; i++)

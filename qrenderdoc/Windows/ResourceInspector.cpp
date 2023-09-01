@@ -294,7 +294,6 @@ void ResourceInspector::Inspect(ResourceId id)
     rdcarray<ShaderEntryPoint> entries = r->GetShaderEntryPoints(id);
 
     GUIInvoke::call(this, [this, entries, usage] {
-
       if(!entries.isEmpty())
       {
         m_Entries = entries;

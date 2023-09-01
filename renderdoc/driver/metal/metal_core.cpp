@@ -405,8 +405,7 @@ bool WrappedMTLDevice::ProcessChunk(ReadSerialiser &ser, MetalChunk chunk)
     case MetalChunk::MTLBlitCommandEncoder_copyIndirectCommandBuffer: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLBlitCommandEncoder_optimizeIndirectCommandBuffer: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLBlitCommandEncoder_sampleCountersInBuffer: METAL_CHUNK_NOT_HANDLED();
-    case MetalChunk::MTLBlitCommandEncoder_resolveCounters:
-      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLBlitCommandEncoder_resolveCounters: METAL_CHUNK_NOT_HANDLED();
 
     // no default to get compile error if a chunk is not handled
     case MetalChunk::Max: break;

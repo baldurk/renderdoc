@@ -210,13 +210,14 @@ struct GLWindowingData
   CGLPixelFormatObj pix;
 };
 
-#define DECL_HOOK_EXPORT(function)                                                                    \
-  __attribute__((used)) static struct                                                                 \
-  {                                                                                                   \
-    const void *replacment;                                                                           \
-    const void *replacee;                                                                             \
-  } _interpose_def_##function __attribute__((section("__DATA,__interpose"))) = {                      \
-      (const void *)(unsigned long)&GL_EXPORT_NAME(function), (const void *)(unsigned long)&function, \
+#define DECL_HOOK_EXPORT(function)                                               \
+  __attribute__((used)) static struct                                            \
+  {                                                                              \
+    const void *replacment;                                                      \
+    const void *replacee;                                                        \
+  } _interpose_def_##function __attribute__((section("__DATA,__interpose"))) = { \
+      (const void *)(unsigned long)&GL_EXPORT_NAME(function),                    \
+      (const void *)(unsigned long)&function,                                    \
   };
 
 #elif ENABLED(RDOC_ANDROID)

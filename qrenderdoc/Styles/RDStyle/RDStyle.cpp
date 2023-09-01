@@ -414,9 +414,8 @@ QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt,
                               (scroll->pageStep * ret.width()) / (range + scroll->pageStep));
 
         slider.setWidth(qMin(slider.width(), sliderSize));
-        slider.moveLeft(ret.left() +
-                        (qreal(scroll->sliderPosition) / qreal(range)) *
-                            (ret.width() - slider.width()));
+        slider.moveLeft(ret.left() + (qreal(scroll->sliderPosition) / qreal(range)) *
+                                         (ret.width() - slider.width()));
       }
       else
       {
@@ -452,9 +451,8 @@ QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt,
                               (scroll->pageStep * ret.height()) / (range + scroll->pageStep));
 
         slider.setHeight(qMin(slider.height(), sliderSize));
-        slider.moveTop(ret.top() +
-                       (qreal(scroll->sliderPosition) / qreal(range)) *
-                           (ret.height() - slider.height()));
+        slider.moveTop(ret.top() + (qreal(scroll->sliderPosition) / qreal(range)) *
+                                       (ret.height() - slider.height()));
       }
       else
       {

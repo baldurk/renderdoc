@@ -197,12 +197,13 @@ private:
     return syshooks.WSACleanup()();
   }
 
-  static BOOL WINAPI Hooked_CreateProcess(
-      const char *entryPoint, std::function<BOOL(DWORD dwCreationFlags, LPVOID pEnvironment,
-                                                 LPPROCESS_INFORMATION lpProcessInformation)>
-                                  realFunc,
-      DWORD dwCreationFlags, bool inject, LPVOID pEnvironment,
-      LPPROCESS_INFORMATION lpProcessInformation)
+  static BOOL WINAPI
+  Hooked_CreateProcess(const char *entryPoint,
+                       std::function<BOOL(DWORD dwCreationFlags, LPVOID pEnvironment,
+                                          LPPROCESS_INFORMATION lpProcessInformation)>
+                           realFunc,
+                       DWORD dwCreationFlags, bool inject, LPVOID pEnvironment,
+                       LPPROCESS_INFORMATION lpProcessInformation)
   {
     bool recursive = syshooks.CheckRecurse();
 
@@ -409,15 +410,15 @@ private:
       __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCSTR lpCurrentDirectory,
       __in LPSTARTUPINFOA lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
   {
-    return Hooked_CreateProcess("CreateProcessA",
-                                [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
-                                  return syshooks.API110CreateProcessA()(
-                                      lpApplicationName, lpCommandLine, lpProcessAttributes,
-                                      lpThreadAttributes, bInheritHandles, flags, env,
-                                      lpCurrentDirectory, lpStartupInfo, pi);
-                                },
-                                dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine),
-                                lpEnvironment, lpProcessInformation);
+    return Hooked_CreateProcess(
+        "CreateProcessA",
+        [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
+          return syshooks.API110CreateProcessA()(
+              lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+              bInheritHandles, flags, env, lpCurrentDirectory, lpStartupInfo, pi);
+        },
+        dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine), lpEnvironment,
+        lpProcessInformation);
   }
 
   static BOOL WINAPI API110CreateProcessW_hook(
@@ -427,15 +428,15 @@ private:
       __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCWSTR lpCurrentDirectory,
       __in LPSTARTUPINFOW lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
   {
-    return Hooked_CreateProcess("CreateProcessW",
-                                [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
-                                  return syshooks.API110CreateProcessW()(
-                                      lpApplicationName, lpCommandLine, lpProcessAttributes,
-                                      lpThreadAttributes, bInheritHandles, flags, env,
-                                      lpCurrentDirectory, lpStartupInfo, pi);
-                                },
-                                dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine),
-                                lpEnvironment, lpProcessInformation);
+    return Hooked_CreateProcess(
+        "CreateProcessW",
+        [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
+          return syshooks.API110CreateProcessW()(
+              lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+              bInheritHandles, flags, env, lpCurrentDirectory, lpStartupInfo, pi);
+        },
+        dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine), lpEnvironment,
+        lpProcessInformation);
   }
 
   static BOOL WINAPI API111CreateProcessA_hook(
@@ -445,15 +446,15 @@ private:
       __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCSTR lpCurrentDirectory,
       __in LPSTARTUPINFOA lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
   {
-    return Hooked_CreateProcess("CreateProcessA",
-                                [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
-                                  return syshooks.API111CreateProcessA()(
-                                      lpApplicationName, lpCommandLine, lpProcessAttributes,
-                                      lpThreadAttributes, bInheritHandles, flags, env,
-                                      lpCurrentDirectory, lpStartupInfo, pi);
-                                },
-                                dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine),
-                                lpEnvironment, lpProcessInformation);
+    return Hooked_CreateProcess(
+        "CreateProcessA",
+        [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
+          return syshooks.API111CreateProcessA()(
+              lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+              bInheritHandles, flags, env, lpCurrentDirectory, lpStartupInfo, pi);
+        },
+        dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine), lpEnvironment,
+        lpProcessInformation);
   }
 
   static BOOL WINAPI API111CreateProcessW_hook(
@@ -463,15 +464,15 @@ private:
       __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCWSTR lpCurrentDirectory,
       __in LPSTARTUPINFOW lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
   {
-    return Hooked_CreateProcess("CreateProcessW",
-                                [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
-                                  return syshooks.API111CreateProcessW()(
-                                      lpApplicationName, lpCommandLine, lpProcessAttributes,
-                                      lpThreadAttributes, bInheritHandles, flags, env,
-                                      lpCurrentDirectory, lpStartupInfo, pi);
-                                },
-                                dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine),
-                                lpEnvironment, lpProcessInformation);
+    return Hooked_CreateProcess(
+        "CreateProcessW",
+        [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
+          return syshooks.API111CreateProcessW()(
+              lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+              bInheritHandles, flags, env, lpCurrentDirectory, lpStartupInfo, pi);
+        },
+        dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine), lpEnvironment,
+        lpProcessInformation);
   }
 
   static BOOL WINAPI API112CreateProcessA_hook(
@@ -481,15 +482,15 @@ private:
       __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCSTR lpCurrentDirectory,
       __in LPSTARTUPINFOA lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
   {
-    return Hooked_CreateProcess("CreateProcessA",
-                                [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
-                                  return syshooks.API112CreateProcessA()(
-                                      lpApplicationName, lpCommandLine, lpProcessAttributes,
-                                      lpThreadAttributes, bInheritHandles, flags, env,
-                                      lpCurrentDirectory, lpStartupInfo, pi);
-                                },
-                                dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine),
-                                lpEnvironment, lpProcessInformation);
+    return Hooked_CreateProcess(
+        "CreateProcessA",
+        [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
+          return syshooks.API112CreateProcessA()(
+              lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+              bInheritHandles, flags, env, lpCurrentDirectory, lpStartupInfo, pi);
+        },
+        dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine), lpEnvironment,
+        lpProcessInformation);
   }
 
   static BOOL WINAPI API112CreateProcessW_hook(
@@ -499,15 +500,15 @@ private:
       __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCWSTR lpCurrentDirectory,
       __in LPSTARTUPINFOW lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
   {
-    return Hooked_CreateProcess("CreateProcessW",
-                                [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
-                                  return syshooks.API112CreateProcessW()(
-                                      lpApplicationName, lpCommandLine, lpProcessAttributes,
-                                      lpThreadAttributes, bInheritHandles, flags, env,
-                                      lpCurrentDirectory, lpStartupInfo, pi);
-                                },
-                                dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine),
-                                lpEnvironment, lpProcessInformation);
+    return Hooked_CreateProcess(
+        "CreateProcessW",
+        [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
+          return syshooks.API112CreateProcessW()(
+              lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+              bInheritHandles, flags, env, lpCurrentDirectory, lpStartupInfo, pi);
+        },
+        dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine), lpEnvironment,
+        lpProcessInformation);
   }
 
   static BOOL WINAPI CreateProcessAsUserA_hook(
@@ -516,15 +517,15 @@ private:
       BOOL bInheritHandles, DWORD dwCreationFlags, LPVOID lpEnvironment, LPCSTR lpCurrentDirectory,
       LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
   {
-    return Hooked_CreateProcess("CreateProcessAsUserA",
-                                [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
-                                  return syshooks.CreateProcessAsUserA()(
-                                      hToken, lpApplicationName, lpCommandLine, lpProcessAttributes,
-                                      lpThreadAttributes, bInheritHandles, flags, env,
-                                      lpCurrentDirectory, lpStartupInfo, pi);
-                                },
-                                dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine),
-                                lpEnvironment, lpProcessInformation);
+    return Hooked_CreateProcess(
+        "CreateProcessAsUserA",
+        [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
+          return syshooks.CreateProcessAsUserA()(
+              hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+              bInheritHandles, flags, env, lpCurrentDirectory, lpStartupInfo, pi);
+        },
+        dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine), lpEnvironment,
+        lpProcessInformation);
   }
 
   static BOOL WINAPI CreateProcessAsUserW_hook(
@@ -533,15 +534,15 @@ private:
       BOOL bInheritHandles, DWORD dwCreationFlags, LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory,
       LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
   {
-    return Hooked_CreateProcess("CreateProcessAsUserW",
-                                [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
-                                  return syshooks.CreateProcessAsUserW()(
-                                      hToken, lpApplicationName, lpCommandLine, lpProcessAttributes,
-                                      lpThreadAttributes, bInheritHandles, flags, env,
-                                      lpCurrentDirectory, lpStartupInfo, pi);
-                                },
-                                dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine),
-                                lpEnvironment, lpProcessInformation);
+    return Hooked_CreateProcess(
+        "CreateProcessAsUserW",
+        [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
+          return syshooks.CreateProcessAsUserW()(
+              hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+              bInheritHandles, flags, env, lpCurrentDirectory, lpStartupInfo, pi);
+        },
+        dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine), lpEnvironment,
+        lpProcessInformation);
   }
 
   static BOOL WINAPI CreateProcessWithLogonW_hook(LPCWSTR lpUsername, LPCWSTR lpDomain,
@@ -569,15 +570,15 @@ private:
       BOOL bInheritHandles, DWORD dwCreationFlags, LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory,
       LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
   {
-    return Hooked_CreateProcess("CreateProcessAsUserW",
-                                [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
-                                  return syshooks.API110CreateProcessAsUserW()(
-                                      hToken, lpApplicationName, lpCommandLine, lpProcessAttributes,
-                                      lpThreadAttributes, bInheritHandles, flags, env,
-                                      lpCurrentDirectory, lpStartupInfo, pi);
-                                },
-                                dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine),
-                                lpEnvironment, lpProcessInformation);
+    return Hooked_CreateProcess(
+        "CreateProcessAsUserW",
+        [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
+          return syshooks.API110CreateProcessAsUserW()(
+              hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+              bInheritHandles, flags, env, lpCurrentDirectory, lpStartupInfo, pi);
+        },
+        dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine), lpEnvironment,
+        lpProcessInformation);
   }
 
   static BOOL WINAPI API111CreateProcessAsUserW_hook(
@@ -586,15 +587,15 @@ private:
       BOOL bInheritHandles, DWORD dwCreationFlags, LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory,
       LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
   {
-    return Hooked_CreateProcess("CreateProcessAsUserW",
-                                [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
-                                  return syshooks.API111CreateProcessAsUserW()(
-                                      hToken, lpApplicationName, lpCommandLine, lpProcessAttributes,
-                                      lpThreadAttributes, bInheritHandles, flags, env,
-                                      lpCurrentDirectory, lpStartupInfo, pi);
-                                },
-                                dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine),
-                                lpEnvironment, lpProcessInformation);
+    return Hooked_CreateProcess(
+        "CreateProcessAsUserW",
+        [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
+          return syshooks.API111CreateProcessAsUserW()(
+              hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+              bInheritHandles, flags, env, lpCurrentDirectory, lpStartupInfo, pi);
+        },
+        dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine), lpEnvironment,
+        lpProcessInformation);
   }
 
   static BOOL WINAPI API112CreateProcessAsUserW_hook(
@@ -603,15 +604,15 @@ private:
       BOOL bInheritHandles, DWORD dwCreationFlags, LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory,
       LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
   {
-    return Hooked_CreateProcess("CreateProcessAsUserW",
-                                [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
-                                  return syshooks.API112CreateProcessAsUserW()(
-                                      hToken, lpApplicationName, lpCommandLine, lpProcessAttributes,
-                                      lpThreadAttributes, bInheritHandles, flags, env,
-                                      lpCurrentDirectory, lpStartupInfo, pi);
-                                },
-                                dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine),
-                                lpEnvironment, lpProcessInformation);
+    return Hooked_CreateProcess(
+        "CreateProcessAsUserW",
+        [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
+          return syshooks.API112CreateProcessAsUserW()(
+              hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+              bInheritHandles, flags, env, lpCurrentDirectory, lpStartupInfo, pi);
+        },
+        dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine), lpEnvironment,
+        lpProcessInformation);
   }
 };
 

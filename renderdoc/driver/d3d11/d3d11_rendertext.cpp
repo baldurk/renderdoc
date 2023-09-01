@@ -34,7 +34,10 @@
 #include "data/hlsl/hlsl_cbuffers.h"
 
 static Vec2f quadPos[] = {
-    Vec2f(0.0f, 0.0f), Vec2f(1.0f, 0.0f), Vec2f(0.0f, 1.0f), Vec2f(1.0f, 1.0f),
+    Vec2f(0.0f, 0.0f),
+    Vec2f(1.0f, 0.0f),
+    Vec2f(0.0f, 1.0f),
+    Vec2f(1.0f, 1.0f),
 };
 
 // see d3d11_debug.cpp D3D11DebugManager::D3D11DebugManager for why we use this helper like this

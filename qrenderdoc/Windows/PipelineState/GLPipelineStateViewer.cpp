@@ -293,8 +293,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ui->xfbBuffers->setHeader(header);
 
-    ui->xfbBuffers->setColumns(
-        {tr("Slot"), tr("Buffer"), tr("Byte Length"), tr("Offset"), tr("Go")});
+    ui->xfbBuffers->setColumns({tr("Slot"), tr("Buffer"), tr("Byte Length"), tr("Offset"), tr("Go")});
     header->setColumnStretchHints({1, 4, 3, 2, -1});
 
     header->setMinimumSectionSize(40);
@@ -323,8 +322,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ui->scissors->setHeader(header);
 
-    ui->scissors->setColumns(
-        {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"), tr("Enabled")});
+    ui->scissors->setColumns({tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"), tr("Enabled")});
     header->setColumnStretchHints({-1, -1, -1, -1, -1, 1});
     header->setMinimumSectionSize(40);
 
@@ -378,13 +376,26 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
 
   ui->pipeFlow->setStages(
       {
-          lit("VTX"), lit("VS"), lit("TCS"), lit("TES"), lit("GS"), lit("RS"), lit("FS"), lit("FB"),
+          lit("VTX"),
+          lit("VS"),
+          lit("TCS"),
+          lit("TES"),
+          lit("GS"),
+          lit("RS"),
+          lit("FS"),
+          lit("FB"),
           lit("CS"),
       },
       {
-          tr("Vertex Input"), tr("Vertex Shader"), tr("Tess. Control Shader"),
-          tr("Tess. Eval. Shader"), tr("Geometry Shader"), tr("Rasterizer"), tr("Fragment Shader"),
-          tr("Framebuffer Output"), tr("Compute Shader"),
+          tr("Vertex Input"),
+          tr("Vertex Shader"),
+          tr("Tess. Control Shader"),
+          tr("Tess. Eval. Shader"),
+          tr("Geometry Shader"),
+          tr("Rasterizer"),
+          tr("Fragment Shader"),
+          tr("Framebuffer Output"),
+          tr("Compute Shader"),
       });
 
   ui->pipeFlow->setIsolatedStage(8);    // compute shader isolated
@@ -949,10 +960,13 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
           filter += QFormatStr(" (%1)").arg(ToQStr(s.filter.filter));
 
         RDTreeWidgetItem *node = new RDTreeWidgetItem({
-            slotname, s.resourceId != ResourceId() ? s.resourceId : r.resourceId, addressing,
-            filter, QFormatStr("%1 - %2")
-                        .arg(s.minLOD == -FLT_MAX ? lit("0") : QString::number(s.minLOD))
-                        .arg(s.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.maxLOD)),
+            slotname,
+            s.resourceId != ResourceId() ? s.resourceId : r.resourceId,
+            addressing,
+            filter,
+            QFormatStr("%1 - %2")
+                .arg(s.minLOD == -FLT_MAX ? lit("0") : QString::number(s.minLOD))
+                .arg(s.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.maxLOD)),
             s.mipLODBias,
         });
 
@@ -1176,12 +1190,10 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
 
     if(showNode(usedSlot, filledSlot))
     {
-      QString binding =
-          readWriteType == GLReadWriteType::Image
-              ? tr("Image")
-              : readWriteType == GLReadWriteType::Atomic
-                    ? tr("Atomic")
-                    : readWriteType == GLReadWriteType::SSBO ? tr("SSBO") : tr("Unknown");
+      QString binding = readWriteType == GLReadWriteType::Image    ? tr("Image")
+                        : readWriteType == GLReadWriteType::Atomic ? tr("Atomic")
+                        : readWriteType == GLReadWriteType::SSBO   ? tr("SSBO")
+                                                                   : tr("Unknown");
 
       QString slotname = QFormatStr("%1: %2").arg(bindPoint).arg(res.name);
       QString dimensions;
@@ -1759,8 +1771,8 @@ void GLPipelineStateViewer::setState()
           else
             indexstring = QString::number(prev);
 
-          RDTreeWidgetItem *node = new RDTreeWidgetItem({indexstring, s1.x, s1.y, s1.width, s1.height,
-                                                         s1.enabled ? tr("True") : tr("False")});
+          RDTreeWidgetItem *node = new RDTreeWidgetItem(
+              {indexstring, s1.x, s1.y, s1.width, s1.height, s1.enabled ? tr("True") : tr("False")});
 
           if(s1.width == 0 || s1.height == 0)
             setEmptyRow(node);
@@ -2243,10 +2255,14 @@ void GLPipelineStateViewer::setState()
   if(state.stencilState.stencilEnable)
   {
     ui->stencils->addTopLevelItem(new RDTreeWidgetItem({
-        tr("Front"), ToQStr(state.stencilState.frontFace.function),
+        tr("Front"),
+        ToQStr(state.stencilState.frontFace.function),
         ToQStr(state.stencilState.frontFace.failOperation),
         ToQStr(state.stencilState.frontFace.depthFailOperation),
-        ToQStr(state.stencilState.frontFace.passOperation), QVariant(), QVariant(), QVariant(),
+        ToQStr(state.stencilState.frontFace.passOperation),
+        QVariant(),
+        QVariant(),
+        QVariant(),
     }));
 
     m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(0), 5,
@@ -2596,8 +2612,9 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Vert
       i++;
     }
 
-    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("Enabled"), tr("Vertex Buffer Slot"),
-                                   tr("Format"), tr("Relative Offset"), tr("Generic Value")},
+    m_Common.exportHTMLTable(xml,
+                             {tr("Slot"), tr("Enabled"), tr("Vertex Buffer Slot"), tr("Format"),
+                              tr("Relative Offset"), tr("Generic Value")},
                              rows);
   }
 
@@ -2630,8 +2647,9 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Vert
       i++;
     }
 
-    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("Buffer"), tr("Stride"), tr("Offset"),
-                                   tr("Instance Divisor"), tr("Byte Length")},
+    m_Common.exportHTMLTable(xml,
+                             {tr("Slot"), tr("Buffer"), tr("Stride"), tr("Offset"),
+                              tr("Instance Divisor"), tr("Byte Length")},
                              rows);
   }
 
@@ -2704,29 +2722,30 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Vert
 
     m_Common.exportHTMLTable(xml,
                              {
-                                 tr("User Clip Plane"), tr("Enabled"),
+                                 tr("User Clip Plane"),
+                                 tr("Enabled"),
                              },
                              clipPlaneRows);
 
     xml.writeStartElement(tr("p"));
     xml.writeEndElement();
 
-    m_Common.exportHTMLTable(
-        xml,
-        {
-            tr("Default Inner Tessellation Level"), tr("Default Outer Tessellation level"),
-        },
-        {
-            QFormatStr("%1, %2")
-                .arg(pipe.vertexProcessing.defaultInnerLevel[0])
-                .arg(pipe.vertexProcessing.defaultInnerLevel[1]),
+    m_Common.exportHTMLTable(xml,
+                             {
+                                 tr("Default Inner Tessellation Level"),
+                                 tr("Default Outer Tessellation level"),
+                             },
+                             {
+                                 QFormatStr("%1, %2")
+                                     .arg(pipe.vertexProcessing.defaultInnerLevel[0])
+                                     .arg(pipe.vertexProcessing.defaultInnerLevel[1]),
 
-            QFormatStr("%1, %2, %3, %4")
-                .arg(pipe.vertexProcessing.defaultOuterLevel[0])
-                .arg(pipe.vertexProcessing.defaultOuterLevel[1])
-                .arg(pipe.vertexProcessing.defaultOuterLevel[2])
-                .arg(pipe.vertexProcessing.defaultOuterLevel[3]),
-        });
+                                 QFormatStr("%1, %2, %3, %4")
+                                     .arg(pipe.vertexProcessing.defaultOuterLevel[0])
+                                     .arg(pipe.vertexProcessing.defaultOuterLevel[1])
+                                     .arg(pipe.vertexProcessing.defaultOuterLevel[2])
+                                     .arg(pipe.vertexProcessing.defaultOuterLevel[3]),
+                             });
   }
 }
 
@@ -3047,12 +3066,10 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
 
       // show if
       {
-        QString binding =
-            readWriteType == GLReadWriteType::Image
-                ? tr("Image")
-                : readWriteType == GLReadWriteType::Atomic
-                      ? tr("Atomic")
-                      : readWriteType == GLReadWriteType::SSBO ? tr("SSBO") : tr("Unknown");
+        QString binding = readWriteType == GLReadWriteType::Image    ? tr("Image")
+                          : readWriteType == GLReadWriteType::Atomic ? tr("Atomic")
+                          : readWriteType == GLReadWriteType::SSBO   ? tr("SSBO")
+                                                                     : tr("Unknown");
 
         QString slotname = QFormatStr("%1: %2").arg(bindPoint).arg(res.name);
         QString name = m_Ctx.GetResourceName(id);
@@ -3130,8 +3147,9 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
     xml.writeEndElement();
 
     m_Common.exportHTMLTable(
-        xml, {tr("Slot"), tr("Name"), tr("Type"), tr("Width"), tr("Height"), tr("Depth"),
-              tr("Array Size"), tr("Format"), tr("First Mip"), tr("Num Mips")},
+        xml,
+        {tr("Slot"), tr("Name"), tr("Type"), tr("Width"), tr("Height"), tr("Depth"),
+         tr("Array Size"), tr("Format"), tr("First Mip"), tr("Num Mips")},
         textureRows);
   }
 
@@ -3167,12 +3185,16 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
     xml.writeCharacters(tr("Read-write resources"));
     xml.writeEndElement();
 
-    m_Common.exportHTMLTable(
-        xml,
-        {
-            tr("Binding"), tr("Resource"), tr("Name"), tr("Dimensions"), tr("Format"), tr("Access"),
-        },
-        readwriteRows);
+    m_Common.exportHTMLTable(xml,
+                             {
+                                 tr("Binding"),
+                                 tr("Resource"),
+                                 tr("Name"),
+                                 tr("Dimensions"),
+                                 tr("Format"),
+                                 tr("Access"),
+                             },
+                             readwriteRows);
   }
 }
 
@@ -3184,9 +3206,8 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Feed
     xml.writeCharacters(tr("States"));
     xml.writeEndElement();
 
-    m_Common.exportHTMLTable(
-        xml, {tr("Active"), tr("Paused")},
-        {xfb.active ? tr("Yes") : tr("No"), xfb.paused ? tr("Yes") : tr("No")});
+    m_Common.exportHTMLTable(xml, {tr("Active"), tr("Paused")},
+                             {xfb.active ? tr("Yes") : tr("No"), xfb.paused ? tr("Yes") : tr("No")});
   }
 
   {
@@ -3242,9 +3263,10 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Rast
     xml.writeEndElement();
 
     m_Common.exportHTMLTable(
-        xml, {tr("Multisample Enable"), tr("Sample Shading"), tr("Sample Mask"),
-              tr("Sample Coverage"), tr("Sample Coverage Invert"), tr("Alpha to Coverage"),
-              tr("Alpha to One"), tr("Min Sample Shading Rate")},
+        xml,
+        {tr("Multisample Enable"), tr("Sample Shading"), tr("Sample Mask"), tr("Sample Coverage"),
+         tr("Sample Coverage Invert"), tr("Alpha to Coverage"), tr("Alpha to One"),
+         tr("Min Sample Shading Rate")},
         {
             rs.state.multisampleEnable ? tr("Yes") : tr("No"),
             rs.state.sampleShading ? tr("Yes") : tr("No"),
@@ -3259,18 +3281,21 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Rast
     xml.writeStartElement(tr("p"));
     xml.writeEndElement();
 
-    m_Common.exportHTMLTable(
-        xml,
-        {
-            tr("Programmable Point Size"), tr("Fixed Point Size"), tr("Line Width"),
-            tr("Point Fade Threshold"), tr("Point Origin Upper Left"),
-        },
-        {
-            rs.state.programmablePointSize ? tr("Yes") : tr("No"),
-            Formatter::Format(rs.state.pointSize), Formatter::Format(rs.state.lineWidth),
-            Formatter::Format(rs.state.pointFadeThreshold),
-            rs.state.pointOriginUpperLeft ? tr("Yes") : tr("No"),
-        });
+    m_Common.exportHTMLTable(xml,
+                             {
+                                 tr("Programmable Point Size"),
+                                 tr("Fixed Point Size"),
+                                 tr("Line Width"),
+                                 tr("Point Fade Threshold"),
+                                 tr("Point Origin Upper Left"),
+                             },
+                             {
+                                 rs.state.programmablePointSize ? tr("Yes") : tr("No"),
+                                 Formatter::Format(rs.state.pointSize),
+                                 Formatter::Format(rs.state.lineWidth),
+                                 Formatter::Format(rs.state.pointFadeThreshold),
+                                 rs.state.pointOriginUpperLeft ? tr("Yes") : tr("No"),
+                             });
 
     xml.writeStartElement(tr("p"));
     xml.writeEndElement();
@@ -3289,7 +3314,10 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Rast
     m_Common.exportHTMLTable(
         xml,
         {
-            tr("Derivatives"), tr("Line Smooth"), tr("Poly Smooth"), tr("Tex Compression"),
+            tr("Derivatives"),
+            tr("Line Smooth"),
+            tr("Poly Smooth"),
+            tr("Tex Compression"),
         },
         {
             ToQStr(pipe.hints.derivatives),
@@ -3314,9 +3342,10 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Rast
       i++;
     }
 
-    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"),
-                                   tr("Min Depth"), tr("Max Depth")},
-                             rows);
+    m_Common.exportHTMLTable(
+        xml,
+        {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"), tr("Min Depth"), tr("Max Depth")},
+        rows);
   }
 
   {
@@ -3355,7 +3384,8 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Fram
 
     m_Common.exportHTMLTable(xml, {tr("Framebuffer SRGB"), tr("Blend Factor")},
                              {
-                                 fb.framebufferSRGB ? tr("Yes") : tr("No"), blendFactor,
+                                 fb.framebufferSRGB ? tr("Yes") : tr("No"),
+                                 blendFactor,
                              });
 
     xml.writeStartElement(tr("h3"));
@@ -3383,15 +3413,21 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Fram
       i++;
     }
 
-    m_Common.exportHTMLTable(
-        xml,
-        {
-            tr("Slot"), tr("Blend Enable"), tr("Blend Source"), tr("Blend Destination"),
-            tr("Blend Operation"), tr("Alpha Blend Source"), tr("Alpha Blend Destination"),
-            tr("Alpha Blend Operation"), tr("Logic Operation Enabled"), tr("Logic Operation"),
-            tr("Write Mask"),
-        },
-        rows);
+    m_Common.exportHTMLTable(xml,
+                             {
+                                 tr("Slot"),
+                                 tr("Blend Enable"),
+                                 tr("Blend Source"),
+                                 tr("Blend Destination"),
+                                 tr("Blend Operation"),
+                                 tr("Alpha Blend Source"),
+                                 tr("Alpha Blend Destination"),
+                                 tr("Alpha Blend Operation"),
+                                 tr("Logic Operation Enabled"),
+                                 tr("Logic Operation"),
+                                 tr("Write Mask"),
+                             },
+                             rows);
   }
 
   {
@@ -3399,18 +3435,18 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Fram
     xml.writeCharacters(tr("Depth State"));
     xml.writeEndElement();
 
-    m_Common.exportHTMLTable(xml, {tr("Depth Test Enable"), tr("Depth Writes Enable"),
-                                   tr("Depth Function"), tr("Depth Bounds")},
-                             {
-                                 pipe.depthState.depthEnable ? tr("Yes") : tr("No"),
-                                 pipe.depthState.depthWrites ? tr("Yes") : tr("No"),
-                                 ToQStr(pipe.depthState.depthFunction),
-                                 pipe.depthState.depthEnable
-                                     ? QFormatStr("%1 - %2")
-                                           .arg(Formatter::Format(pipe.depthState.nearBound))
-                                           .arg(Formatter::Format(pipe.depthState.farBound))
-                                     : tr("Disabled"),
-                             });
+    m_Common.exportHTMLTable(
+        xml,
+        {tr("Depth Test Enable"), tr("Depth Writes Enable"), tr("Depth Function"), tr("Depth Bounds")},
+        {
+            pipe.depthState.depthEnable ? tr("Yes") : tr("No"),
+            pipe.depthState.depthWrites ? tr("Yes") : tr("No"),
+            ToQStr(pipe.depthState.depthFunction),
+            pipe.depthState.depthEnable ? QFormatStr("%1 - %2")
+                                              .arg(Formatter::Format(pipe.depthState.nearBound))
+                                              .arg(Formatter::Format(pipe.depthState.farBound))
+                                        : tr("Disabled"),
+        });
   }
 
   {
@@ -3425,8 +3461,9 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Fram
     xml.writeEndElement();
 
     m_Common.exportHTMLTable(
-        xml, {tr("Face"), tr("Reference"), tr("Value Mask"), tr("Write Mask"), tr("Function"),
-              tr("Pass Operation"), tr("Fail Operation"), tr("Depth Fail Operation")},
+        xml,
+        {tr("Face"), tr("Reference"), tr("Value Mask"), tr("Write Mask"), tr("Function"),
+         tr("Pass Operation"), tr("Fail Operation"), tr("Depth Fail Operation")},
         {
             {tr("Front"), Formatter::Format(pipe.stencilState.frontFace.reference, true),
              Formatter::Format(pipe.stencilState.frontFace.compareMask, true),
@@ -3485,7 +3522,10 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Fram
 
     m_Common.exportHTMLTable(xml,
                              {
-                                 tr("Slot"), tr("Image"), tr("First mip"), tr("First array slice"),
+                                 tr("Slot"),
+                                 tr("Image"),
+                                 tr("First mip"),
+                                 tr("First array slice"),
                              },
                              rows);
 
@@ -3543,7 +3583,10 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Fram
 
     m_Common.exportHTMLTable(xml,
                              {
-                                 tr("Slot"), tr("Image"), tr("First mip"), tr("First array slice"),
+                                 tr("Slot"),
+                                 tr("Image"),
+                                 tr("First mip"),
+                                 tr("First array slice"),
                              },
                              rows);
 

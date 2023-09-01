@@ -59,12 +59,11 @@ RWBuffer<float4> copyout_float : register(u1);
 RWBuffer<uint4> copyout_uint : register(u2);
 RWBuffer<int4> copyout_int : register(u3);
 
-[numthreads(1, 1, 1)] void RENDERDOC_PixelHistoryUnused()
-{
+[numthreads(1, 1, 1)] void RENDERDOC_PixelHistoryUnused() {
   copyout_depth[dst_slot] = float4(-1.0f, -1.0f, 0.0f, 0.0f);
 }
 
-[numthreads(1, 1, 1)] void RENDERDOC_PixelHistoryCopyPixel()
+    [numthreads(1, 1, 1)] void RENDERDOC_PixelHistoryCopyPixel()
 {
   if(multisampled)
   {

@@ -1245,7 +1245,8 @@ bool Program::DecodeOperand(uint32_t *&tokenStream, ToString flags, Operand &ret
   uint32_t indexDim = Oper::IndexDimension.Get(OperandToken0);
 
   OperandIndexType rep[] = {
-      Oper::Index0.Get(OperandToken0), Oper::Index1.Get(OperandToken0),
+      Oper::Index0.Get(OperandToken0),
+      Oper::Index1.Get(OperandToken0),
       Oper::Index2.Get(OperandToken0),
   };
 

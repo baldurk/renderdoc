@@ -886,8 +886,10 @@ void TextureViewer::RT_UpdateVisualRange(IReplayController *r)
     fmt.compCount = 4;
 
   rdcfixedarray<bool, 4> channels = {
-      m_TexDisplay.red ? true : false, m_TexDisplay.green && fmt.compCount > 1,
-      m_TexDisplay.blue && fmt.compCount > 2, m_TexDisplay.alpha && fmt.compCount > 3,
+      m_TexDisplay.red ? true : false,
+      m_TexDisplay.green && fmt.compCount > 1,
+      m_TexDisplay.blue && fmt.compCount > 2,
+      m_TexDisplay.alpha && fmt.compCount > 3,
   };
 
   ResourceId textureId = m_TexDisplay.resourceId;
@@ -3693,7 +3695,6 @@ void TextureViewer::AutoFitRange()
     return;
 
   m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
-
     ResourceId textureId = m_TexDisplay.resourceId;
     Subresource sub = m_TexDisplay.subresource;
     CompType typeCast = m_TexDisplay.typeCast;
@@ -4103,7 +4104,6 @@ void TextureViewer::on_debugPixelContext_clicked()
     }
 
     done = true;
-
   });
 
   QString debugContext = tr("Pixel %1,%2").arg(x).arg(y);

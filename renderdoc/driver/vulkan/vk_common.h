@@ -41,15 +41,28 @@
 #else
 
 // make handles typed even on 32-bit, by relying on C++
-#define VK_DEFINE_NON_DISPATCHABLE_HANDLE(obj)                                 \
-  struct obj                                                                   \
-  {                                                                            \
-    obj() : handle(0) {}                                                       \
-    obj(uint64_t x) : handle(x) {}                                             \
-    bool operator==(const obj &other) const { return handle == other.handle; } \
-    bool operator<(const obj &other) const { return handle < other.handle; }   \
-    bool operator!=(const obj &other) const { return handle != other.handle; } \
-    uint64_t handle;                                                           \
+#define VK_DEFINE_NON_DISPATCHABLE_HANDLE(obj) \
+  struct obj                                   \
+  {                                            \
+    obj() : handle(0)                          \
+    {                                          \
+    }                                          \
+    obj(uint64_t x) : handle(x)                \
+    {                                          \
+    }                                          \
+    bool operator==(const obj &other) const    \
+    {                                          \
+      return handle == other.handle;           \
+    }                                          \
+    bool operator<(const obj &other) const     \
+    {                                          \
+      return handle < other.handle;            \
+    }                                          \
+    bool operator!=(const obj &other) const    \
+    {                                          \
+      return handle != other.handle;           \
+    }                                          \
+    uint64_t handle;                           \
   };
 #define VK_NON_DISPATCHABLE_WRAPPER_STRUCT
 
@@ -511,45 +524,43 @@ FrameRefType GetRefType(DescriptorSlotType descType);
 
 constexpr VkDescriptorType convert(DescriptorSlotType type)
 {
-  // temporarily disable clang-format to make this more readable.
-  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
-  // clang-format off
-  return type == DescriptorSlotType::Unwritten            ? VK_DESCRIPTOR_TYPE_MAX_ENUM
-       : type == DescriptorSlotType::Sampler              ? VK_DESCRIPTOR_TYPE_SAMPLER
-       : type == DescriptorSlotType::CombinedImageSampler ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-       : type == DescriptorSlotType::SampledImage         ? VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE
-       : type == DescriptorSlotType::StorageImage         ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
-       : type == DescriptorSlotType::UniformTexelBuffer   ? VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER
-       : type == DescriptorSlotType::StorageTexelBuffer   ? VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER
-       : type == DescriptorSlotType::UniformBuffer        ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-       : type == DescriptorSlotType::StorageBuffer        ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
-       : type == DescriptorSlotType::UniformBufferDynamic ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
-       : type == DescriptorSlotType::StorageBufferDynamic ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
-       : type == DescriptorSlotType::InputAttachment      ? VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
-       : type == DescriptorSlotType::InlineBlock          ? VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK
-       : VK_DESCRIPTOR_TYPE_MAX_ENUM;
-  // clang-format on
+  return type == DescriptorSlotType::Unwritten ? VK_DESCRIPTOR_TYPE_MAX_ENUM
+         : type == DescriptorSlotType::Sampler ? VK_DESCRIPTOR_TYPE_SAMPLER
+         : type == DescriptorSlotType::CombinedImageSampler
+             ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+         : type == DescriptorSlotType::SampledImage       ? VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE
+         : type == DescriptorSlotType::StorageImage       ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+         : type == DescriptorSlotType::UniformTexelBuffer ? VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER
+         : type == DescriptorSlotType::StorageTexelBuffer ? VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER
+         : type == DescriptorSlotType::UniformBuffer      ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+         : type == DescriptorSlotType::StorageBuffer      ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
+         : type == DescriptorSlotType::UniformBufferDynamic
+             ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
+         : type == DescriptorSlotType::StorageBufferDynamic
+             ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
+         : type == DescriptorSlotType::InputAttachment ? VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
+         : type == DescriptorSlotType::InlineBlock     ? VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK
+                                                       : VK_DESCRIPTOR_TYPE_MAX_ENUM;
 }
 
 constexpr DescriptorSlotType convert(VkDescriptorType type)
 {
-  // temporarily disable clang-format to make this more readable.
-  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
-  // clang-format off
-  return type == VK_DESCRIPTOR_TYPE_SAMPLER                ? DescriptorSlotType::Sampler
-       : type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ? DescriptorSlotType::CombinedImageSampler
-       : type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE          ? DescriptorSlotType::SampledImage
-       : type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE          ? DescriptorSlotType::StorageImage
-       : type == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER   ? DescriptorSlotType::UniformTexelBuffer
-       : type == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER   ? DescriptorSlotType::StorageTexelBuffer
-       : type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER         ? DescriptorSlotType::UniformBuffer
-       : type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER         ? DescriptorSlotType::StorageBuffer
-       : type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ? DescriptorSlotType::UniformBufferDynamic
-       : type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ? DescriptorSlotType::StorageBufferDynamic
-       : type == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT       ? DescriptorSlotType::InputAttachment
-       : type == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK   ? DescriptorSlotType::InlineBlock
-       : DescriptorSlotType::Unwritten;
-  // clang-format on
+  return type == VK_DESCRIPTOR_TYPE_SAMPLER ? DescriptorSlotType::Sampler
+         : type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+             ? DescriptorSlotType::CombinedImageSampler
+         : type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE        ? DescriptorSlotType::SampledImage
+         : type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE        ? DescriptorSlotType::StorageImage
+         : type == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ? DescriptorSlotType::UniformTexelBuffer
+         : type == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER ? DescriptorSlotType::StorageTexelBuffer
+         : type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER       ? DescriptorSlotType::UniformBuffer
+         : type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER       ? DescriptorSlotType::StorageBuffer
+         : type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
+             ? DescriptorSlotType::UniformBufferDynamic
+         : type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
+             ? DescriptorSlotType::StorageBufferDynamic
+         : type == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT     ? DescriptorSlotType::InputAttachment
+         : type == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK ? DescriptorSlotType::InlineBlock
+                                                           : DescriptorSlotType::Unwritten;
 }
 
 enum class DescriptorSlotImageLayout : EnumBaseType

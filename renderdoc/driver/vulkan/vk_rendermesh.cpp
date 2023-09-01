@@ -160,11 +160,17 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
   VkVertexInputAttributeDescription vertAttrs[] = {
       // primary
       {
-          0, 0, primaryFmt, 0,
+          0,
+          0,
+          primaryFmt,
+          0,
       },
       // secondary
       {
-          1, 0, primaryFmt, 0,
+          1,
+          0,
+          primaryFmt,
+          0,
       },
   };
 
@@ -194,7 +200,9 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
   };
 
   VkPipelineInputAssemblyStateCreateInfo ia = {
-      VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, NULL, 0,
+      VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+      NULL,
+      0,
       primary.topology >= Topology::PatchList ? VK_PRIMITIVE_TOPOLOGY_POINT_LIST
                                               : MakeVkPrimitiveTopology(primary.topology),
       false,
@@ -268,7 +276,8 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
       VK_LOGIC_OP_NO_OP,
       1,
       &attState,
-      {1.0f, 1.0f, 1.0f, 1.0f}};
+      {1.0f, 1.0f, 1.0f, 1.0f},
+  };
 
   VkDynamicState dynstates[] = {VK_DYNAMIC_STATE_VIEWPORT};
 
@@ -470,7 +479,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
       Unwrap(outw.rpdepth),
       Unwrap(outw.fbdepth),
       {{
-           0, 0,
+           0,
+           0,
        },
        {m_DebugWidth, m_DebugHeight}},
       0,
@@ -1155,7 +1165,10 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
       cache = GetDebugManager()->CacheMeshDisplayPipelines(m_MeshRender.PipeLayout, helper, helper);
 
       FloatVector vertSprite[4] = {
-          activeVertex, activeVertex, activeVertex, activeVertex,
+          activeVertex,
+          activeVertex,
+          activeVertex,
+          activeVertex,
       };
 
       vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,

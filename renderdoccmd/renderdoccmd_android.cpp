@@ -385,8 +385,7 @@ std::vector<std::string> getRenderdoccmdArgs()
   jmethodID gseid =
       env->GetMethodID(icl, "getStringExtra", "(Ljava/lang/String;)Ljava/lang/String;");
 
-  jstring jsParam1 =
-      (jstring)env->CallObjectMethod(intent, gseid, env->NewStringUTF("renderdoccmd"));
+  jstring jsParam1 = (jstring)env->CallObjectMethod(intent, gseid, env->NewStringUTF("renderdoccmd"));
 
   std::vector<std::string> ret;
   if(jsParam1)    // Check if arg value found

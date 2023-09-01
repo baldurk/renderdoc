@@ -33,8 +33,7 @@ struct OutStruct
 
 RWStructuredBuffer<OutStruct> outBuf : register(u1);
 
-[numthreads(1, 1, 1)] void RENDERDOC_DebugMathOp()
-{
+[numthreads(1, 1, 1)] void RENDERDOC_DebugMathOp() {
   switch(mathOp)
   {
     case DEBUG_SAMPLE_MATH_RCP: outBuf[0].outf[0] = rcp(mathInVal); break;

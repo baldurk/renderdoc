@@ -590,7 +590,8 @@ void main()
     };
 
     VkInputAttachmentAspectReference inputAspectReferences[2] = {
-        {0, 0, VK_IMAGE_ASPECT_COLOR_BIT}, {1, 0, VK_IMAGE_ASPECT_COLOR_BIT},
+        {0, 0, VK_IMAGE_ASPECT_COLOR_BIT},
+        {1, 0, VK_IMAGE_ASPECT_COLOR_BIT},
     };
 
     inputAspects.aspectReferenceCount = 2;
@@ -611,7 +612,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -791,8 +793,9 @@ void main()
     else
     {
       vb = AllocatedBuffer(
-          this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+          this,
+          vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                        VK_BUFFER_USAGE_TRANSFER_DST_BIT),
           VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
     }
 
@@ -1165,12 +1168,14 @@ void main()
     // check that stale views in descriptors don't cause problems if the handle is re-used
 
     VkImageView view1, view2;
-    CHECK_VKR(vkCreateImageView(device, vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D,
-                                                                 VK_FORMAT_R32G32B32A32_SFLOAT),
-                                NULL, &view1));
-    CHECK_VKR(vkCreateImageView(device, vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D,
-                                                                 VK_FORMAT_R32G32B32A32_SFLOAT),
-                                NULL, &view2));
+    CHECK_VKR(vkCreateImageView(
+        device,
+        vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT),
+        NULL, &view1));
+    CHECK_VKR(vkCreateImageView(
+        device,
+        vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT),
+        NULL, &view2));
 
     vkh::updateDescriptorSets(
         device,
@@ -1187,9 +1192,10 @@ void main()
 
     // create view3. Under RD, this is expected to get the same handle as view2 (but a new ID)
     VkImageView view3;
-    CHECK_VKR(vkCreateImageView(device, vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D,
-                                                                 VK_FORMAT_R32G32B32A32_SFLOAT),
-                                NULL, &view3));
+    CHECK_VKR(vkCreateImageView(
+        device,
+        vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT),
+        NULL, &view3));
 
     if(rdoc)
     {
@@ -1408,11 +1414,12 @@ void main()
     CHECK_VKR(vkCreateCommandPool(device, vkh::CommandPoolCreateInfo(), NULL, &cmdPool));
     VkDescriptorPool descPool;
     CHECK_VKR(vkCreateDescriptorPool(
-        device, vkh::DescriptorPoolCreateInfo(128,
-                                              {
-                                                  {VK_DESCRIPTOR_TYPE_SAMPLER, 1024},
-                                              },
-                                              VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
+        device,
+        vkh::DescriptorPoolCreateInfo(128,
+                                      {
+                                          {VK_DESCRIPTOR_TYPE_SAMPLER, 1024},
+                                      },
+                                      VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
         NULL, &descPool));
 
     VkCommandBuffer emptyCmd = VK_NULL_HANDLE;
@@ -1525,9 +1532,9 @@ void main()
         if(KHR_push_descriptor)
           setMarker(cmd, "KHR_push_descriptor");
 
-        vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, fbs[mainWindow->imgIndex],
-                                                           mainWindow->scissor),
-                             VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(
+            cmd, vkh::RenderPassBeginInfo(renderPass, fbs[mainWindow->imgIndex], mainWindow->scissor),
+            VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, refpipe);
 
@@ -1639,9 +1646,9 @@ void main()
                              vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                              vkh::ImageSubresourceRange());
 
-        vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, fbs[mainWindow->imgIndex],
-                                                           mainWindow->scissor),
-                             VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(
+            cmd, vkh::RenderPassBeginInfo(renderPass, fbs[mainWindow->imgIndex], mainWindow->scissor),
+            VK_SUBPASS_CONTENTS_INLINE);
 
         if(!tools.empty())
         {

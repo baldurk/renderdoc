@@ -572,8 +572,8 @@ rdcstr WrappedVulkan::MakeRenderPassOpString(bool store)
           if(atts[dsAttach].storeOp == atts[dsAttach].stencilStoreOp)
             opDesc += "DS=" + ToHumanStr(atts[dsAttach].storeOp);
           else
-            opDesc += "D=" + ToHumanStr(atts[dsAttach].storeOp) + ", S=" +
-                      ToHumanStr(atts[dsAttach].stencilStoreOp);
+            opDesc += "D=" + ToHumanStr(atts[dsAttach].storeOp) +
+                      ", S=" + ToHumanStr(atts[dsAttach].stencilStoreOp);
         }
         else
         {
@@ -581,8 +581,8 @@ rdcstr WrappedVulkan::MakeRenderPassOpString(bool store)
           if(atts[dsAttach].loadOp == atts[dsAttach].stencilLoadOp)
             opDesc += "DS=" + ToHumanStr(atts[dsAttach].loadOp);
           else
-            opDesc += "D=" + ToHumanStr(atts[dsAttach].loadOp) + ", S=" +
-                      ToHumanStr(atts[dsAttach].stencilLoadOp);
+            opDesc += "D=" + ToHumanStr(atts[dsAttach].loadOp) +
+                      ", S=" + ToHumanStr(atts[dsAttach].stencilLoadOp);
         }
       }
     }
@@ -1528,7 +1528,8 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
               info.pColorAttachments = renderstate.dynamicRendering.color.data();
 
               VkRenderingFragmentDensityMapAttachmentInfoEXT fragmentDensity = {
-                  VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_DENSITY_MAP_ATTACHMENT_INFO_EXT, NULL,
+                  VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_DENSITY_MAP_ATTACHMENT_INFO_EXT,
+                  NULL,
                   renderstate.dynamicRendering.fragmentDensityView,
                   renderstate.dynamicRendering.fragmentDensityLayout,
               };
@@ -1554,7 +1555,8 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
               }
 
               VkMultisampledRenderToSingleSampledInfoEXT tileOnlyMSAA = {
-                  VK_STRUCTURE_TYPE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_INFO_EXT, NULL,
+                  VK_STRUCTURE_TYPE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_INFO_EXT,
+                  NULL,
                   renderstate.dynamicRendering.tileOnlyMSAAEnable,
                   renderstate.dynamicRendering.tileOnlyMSAASampleCount,
               };
@@ -3798,9 +3800,7 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(SerialiserType &ser, VkCommandB
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(layout);
-  SERIALISE_ELEMENT_TYPED(VkShaderStageFlagBits, stageFlags)
-      .TypedAs("VkShaderStageFlags"_lit)
-      .Important();
+  SERIALISE_ELEMENT_TYPED(VkShaderStageFlagBits, stageFlags).TypedAs("VkShaderStageFlags"_lit).Important();
   SERIALISE_ELEMENT(start);
   SERIALISE_ELEMENT(length);
   SERIALISE_ELEMENT_ARRAY(values, length).Important();

@@ -75,20 +75,20 @@
   return id<MTLDevice>(GetWrapped(self)->GetDevice());
 }
 
-- (NSUInteger)maxTotalThreadsPerThreadgroup
-    API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(11.0), tvos(14.5))
+- (NSUInteger)maxTotalThreadsPerThreadgroup API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(11.0),
+                                                          tvos(14.5))
 {
   return self.real.maxTotalThreadsPerThreadgroup;
 }
 
-- (BOOL)threadgroupSizeMatchesTileSize
-    API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(11.0), tvos(14.5))
+- (BOOL)threadgroupSizeMatchesTileSize API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(11.0),
+                                                     tvos(14.5))
 {
   return self.real.threadgroupSizeMatchesTileSize;
 }
 
-- (NSUInteger)imageblockSampleLength
-    API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(11.0), tvos(14.5))
+- (NSUInteger)imageblockSampleLength API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(11.0),
+                                                   tvos(14.5))
 {
   return self.real.imageblockSampleLength;
 }
@@ -164,8 +164,8 @@
 }
 
 - (nullable id<MTLIntersectionFunctionTable>)
-newIntersectionFunctionTableWithDescriptor:(MTLIntersectionFunctionTableDescriptor *_Nonnull)descriptor
-                                     stage:(MTLRenderStages)stage
+    newIntersectionFunctionTableWithDescriptor:(MTLIntersectionFunctionTableDescriptor *_Nonnull)descriptor
+                                         stage:(MTLRenderStages)stage
     API_AVAILABLE(macos(12.0), ios(15.0))
 {
   METAL_NOT_HOOKED();
@@ -173,9 +173,9 @@ newIntersectionFunctionTableWithDescriptor:(MTLIntersectionFunctionTableDescript
 }
 
 - (nullable id<MTLRenderPipelineState>)
-newRenderPipelineStateWithAdditionalBinaryFunctions:
-    (nonnull MTLRenderPipelineFunctionsDescriptor *)additionalBinaryFunctions
-                                              error:(__autoreleasing NSError **)error
+    newRenderPipelineStateWithAdditionalBinaryFunctions:
+        (nonnull MTLRenderPipelineFunctionsDescriptor *)additionalBinaryFunctions
+                                                  error:(__autoreleasing NSError **)error
     API_AVAILABLE(macos(12.0), ios(15.0))
 {
   METAL_NOT_HOOKED();

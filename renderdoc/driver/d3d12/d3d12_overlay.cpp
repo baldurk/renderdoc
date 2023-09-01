@@ -1802,7 +1802,9 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
         rs.graphics.rootsig = GetResID(GetDebugManager()->GetMeshRootSig());
         rs.graphics.sigelems = {
-            vertexElem, viewportElem, viewportConstElem,
+            vertexElem,
+            viewportElem,
+            viewportConstElem,
         };
 
         rs.rts = {*(D3D12Descriptor *)rtv.ptr};

@@ -110,8 +110,8 @@
   return self.real.name;
 }
 
-- (NSDictionary<NSString *, MTLFunctionConstant *> *)functionConstantsDictionary
-    API_AVAILABLE(macos(10.12), ios(10.0))
+- (NSDictionary<NSString *, MTLFunctionConstant *> *)
+    functionConstantsDictionary API_AVAILABLE(macos(10.12), ios(10.0))
 {
   return self.real.functionConstantsDictionary;
 }

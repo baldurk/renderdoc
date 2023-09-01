@@ -639,7 +639,9 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
       if(memFlags && (memFlags->flags & VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT))
       {
         VkDeviceMemoryOpaqueCaptureAddressInfo getInfo = {
-            VK_STRUCTURE_TYPE_DEVICE_MEMORY_OPAQUE_CAPTURE_ADDRESS_INFO, NULL, Unwrap(*pMemory),
+            VK_STRUCTURE_TYPE_DEVICE_MEMORY_OPAQUE_CAPTURE_ADDRESS_INFO,
+            NULL,
+            Unwrap(*pMemory),
         };
 
         memoryDeviceAddress.opaqueCaptureAddress =
@@ -1415,7 +1417,9 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
     if(bufInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
     {
       VkBufferDeviceAddressInfo getInfo = {
-          VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, NULL, Unwrap(buffer),
+          VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+          NULL,
+          Unwrap(buffer),
       };
 
       RDCCOMPILE_ASSERT(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO ==
@@ -1755,7 +1759,9 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
       if((pCreateInfo->usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) != 0)
       {
         VkBufferDeviceAddressInfo getInfo = {
-            VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, NULL, Unwrap(*pBuffer),
+            VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+            NULL,
+            Unwrap(*pBuffer),
         };
 
         if(GetExtensions(GetRecord(device)).ext_KHR_buffer_device_address)
@@ -2825,7 +2831,9 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
       if(bufInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
       {
         VkBufferDeviceAddressInfo getInfo = {
-            VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, NULL, Unwrap(bindInfo.buffer),
+            VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+            NULL,
+            Unwrap(bindInfo.buffer),
         };
 
         if(GetExtensions(GetRecord(device)).ext_KHR_buffer_device_address)

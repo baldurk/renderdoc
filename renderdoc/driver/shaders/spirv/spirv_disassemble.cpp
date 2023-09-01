@@ -336,8 +336,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
         case Op::String:
         case Op::Name:
         case Op::MemberName:
-        case Op::ExtInstImport:
-          continue;
+        case Op::ExtInstImport: continue;
 
         // ignore decorations too, we already have these cached
         case Op::Decorate:
@@ -347,8 +346,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
         case Op::MemberDecorateString:
         case Op::DecorationGroup:
         case Op::GroupDecorate:
-        case Op::GroupMemberDecorate:
-          continue;
+        case Op::GroupMemberDecorate: continue;
 
         // suppress almost all types
         case Op::TypeVoid:
@@ -447,9 +445,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
             case VarType::UShort: ret += ToStr(value.u16v[0]); break;
             case VarType::UByte: ret += ToStr(value.u8v[0]); break;
             case VarType::SLong: ret += ToStr(value.s64v[0]); break;
-            case VarType::ULong:
-              ret += ToStr(value.u64v[0]);
-              break;
+            case VarType::ULong: ret += ToStr(value.u64v[0]); break;
             // none of these types are expected, either because they're opaque or (for struct)
             // because ConstantComposite should have been used
             case VarType::Enum:
@@ -1212,9 +1208,9 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           break;
         }
 
-        ////////////////////////////////////////////////////////////////////////////////////////
-        // pretty printing unary instructions
-        ////////////////////////////////////////////////////////////////////////////////////////
+          ////////////////////////////////////////////////////////////////////////////////////////
+          // pretty printing unary instructions
+          ////////////////////////////////////////////////////////////////////////////////////////
 
         case Op::SNegate:
         case Op::FNegate:
@@ -1242,9 +1238,9 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           break;
         }
 
-        ////////////////////////////////////////////////////////////////////////////////////////
-        // pretty printing binary instructions
-        ////////////////////////////////////////////////////////////////////////////////////////
+          ////////////////////////////////////////////////////////////////////////////////////////
+          // pretty printing binary instructions
+          ////////////////////////////////////////////////////////////////////////////////////////
 
         case Op::IAdd:
         case Op::FAdd:

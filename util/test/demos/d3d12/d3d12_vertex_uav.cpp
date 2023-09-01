@@ -81,7 +81,8 @@ v2f main(uint vid : SV_VertexID)
     ID3D12ResourcePtr vb = MakeBuffer().Data(DefaultTri);
 
     ID3D12RootSignaturePtr sig = MakeSig({
-        uavParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0), uavParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 1),
+        uavParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
+        uavParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 1),
     });
 
     // 105202922 is the magic space renderdoc tries to use to avoid collisions

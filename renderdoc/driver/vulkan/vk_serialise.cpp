@@ -171,9 +171,8 @@ DECL_VKFLAG_EXT(VkPresentGravity, EXT);
 // serialise a member as flags - cast to the Bits enum for serialisation so the stringification
 // picks up the bitfield and doesn't treat it as uint32_t. Then we rename the type back to the base
 // flags type so the structured data is as accurate as possible.
-#define SERIALISE_MEMBER_VKFLAGS(flagstype, name)       \
-  SERIALISE_MEMBER_TYPED(CONCAT(flagstype, Bits), name) \
-      .TypedAs(STRING_LITERAL(STRINGIZE(flagstype)))
+#define SERIALISE_MEMBER_VKFLAGS(flagstype, name) \
+  SERIALISE_MEMBER_TYPED(CONCAT(flagstype, Bits), name).TypedAs(STRING_LITERAL(STRINGIZE(flagstype)))
 
 #define SERIALISE_MEMBER_ARRAY_VKFLAGS(flagstype, name, count)       \
   SERIALISE_MEMBER_ARRAY_TYPED(CONCAT(flagstype, Bits), name, count) \
@@ -5287,13 +5286,13 @@ void DoSerialise(SerialiserType &ser, VkDescriptorUpdateTemplateEntry &el)
   SERIALISE_MEMBER(descriptorCount);
   SERIALISE_MEMBER(descriptorType);
 
-// these fields are size_t and should not be serialised as-is. They're not used so we can just
-// serialise them as uint64_t. Unfortunately this wasn't correct initially and they were
-// serialised as-is making a 32-bit/64-bit incompatibility, so for older versions all we can do is
-// continue to serialise them as size_t as it's impossible to know which one was used.
-//
-// On mac we can't compile a size_t serialise, which is good in general but makes this backwards
-// compatibility a bit more annoying. We just assume a 64-bit capture.
+  // these fields are size_t and should not be serialised as-is. They're not used so we can just
+  // serialise them as uint64_t. Unfortunately this wasn't correct initially and they were
+  // serialised as-is making a 32-bit/64-bit incompatibility, so for older versions all we can do is
+  // continue to serialise them as size_t as it's impossible to know which one was used.
+  //
+  // On mac we can't compile a size_t serialise, which is good in general but makes this backwards
+  // compatibility a bit more annoying. We just assume a 64-bit capture.
 
 #if DISABLED(RDOC_APPLE)
   if(ser.VersionAtLeast(0xE))

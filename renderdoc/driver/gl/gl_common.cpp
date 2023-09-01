@@ -1921,36 +1921,24 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
       case eGL_COMPRESSED_RGB_S3TC_DXT1_EXT:
       case eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT: ret.compCount = 3; break;
       case eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
-        ret.compCount = 4;
-        break;
+      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT: ret.compCount = 4; break;
 
       // BC2
       case eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
-        ret.compCount = 4;
-        break;
+      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT: ret.compCount = 4; break;
 
       // BC3
       case eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
-        ret.compCount = 4;
-        break;
+      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: ret.compCount = 4; break;
       // BC4
       case eGL_COMPRESSED_RED_RGTC1:
-      case eGL_COMPRESSED_SIGNED_RED_RGTC1:
-        ret.compCount = 1;
-        break;
+      case eGL_COMPRESSED_SIGNED_RED_RGTC1: ret.compCount = 1; break;
       // BC5
       case eGL_COMPRESSED_RG_RGTC2:
-      case eGL_COMPRESSED_SIGNED_RG_RGTC2:
-        ret.compCount = 2;
-        break;
+      case eGL_COMPRESSED_SIGNED_RG_RGTC2: ret.compCount = 2; break;
       // BC6
       case eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB:
-      case eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB:
-        ret.compCount = 3;
-        break;
+      case eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB: ret.compCount = 3; break;
       // BC7
       case eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB:
       case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB: ret.compCount = 4; break;
@@ -2058,39 +2046,25 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
       case eGL_COMPRESSED_RGB_S3TC_DXT1_EXT:
       case eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
       case eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
-      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
-        ret.type = ResourceFormatType::BC1;
-        break;
+      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT: ret.type = ResourceFormatType::BC1; break;
       // BC2
       case eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
-        ret.type = ResourceFormatType::BC2;
-        break;
+      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT: ret.type = ResourceFormatType::BC2; break;
       // BC3
       case eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
-        ret.type = ResourceFormatType::BC3;
-        break;
+      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: ret.type = ResourceFormatType::BC3; break;
       // BC4
       case eGL_COMPRESSED_RED_RGTC1:
-      case eGL_COMPRESSED_SIGNED_RED_RGTC1:
-        ret.type = ResourceFormatType::BC4;
-        break;
+      case eGL_COMPRESSED_SIGNED_RED_RGTC1: ret.type = ResourceFormatType::BC4; break;
       // BC5
       case eGL_COMPRESSED_RG_RGTC2:
-      case eGL_COMPRESSED_SIGNED_RG_RGTC2:
-        ret.type = ResourceFormatType::BC5;
-        break;
+      case eGL_COMPRESSED_SIGNED_RG_RGTC2: ret.type = ResourceFormatType::BC5; break;
       // BC6
       case eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB:
-      case eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB:
-        ret.type = ResourceFormatType::BC6;
-        break;
+      case eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB: ret.type = ResourceFormatType::BC6; break;
       // BC7
       case eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB:
-      case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB:
-        ret.type = ResourceFormatType::BC7;
-        break;
+      case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB: ret.type = ResourceFormatType::BC7; break;
       // ETC1
       case eGL_ETC1_RGB8_OES:    // handle it as ETC2
       // ETC2
@@ -2106,9 +2080,7 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
       case eGL_COMPRESSED_R11_EAC:
       case eGL_COMPRESSED_SIGNED_R11_EAC:
       case eGL_COMPRESSED_RG11_EAC:
-      case eGL_COMPRESSED_SIGNED_RG11_EAC:
-        ret.type = ResourceFormatType::EAC;
-        break;
+      case eGL_COMPRESSED_SIGNED_RG11_EAC: ret.type = ResourceFormatType::EAC; break;
       // ASTC
       case eGL_COMPRESSED_RGBA_ASTC_4x4_KHR:
       case eGL_COMPRESSED_RGBA_ASTC_5x4_KHR:
@@ -2157,9 +2129,7 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
       case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x5_OES:
       case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5x5_OES:
       case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x5_OES:
-      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x6_OES:
-        ret.type = ResourceFormatType::ASTC;
-        break;
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x6_OES: ret.type = ResourceFormatType::ASTC; break;
       // PVRTC
       case eGL_COMPRESSED_SRGB_PVRTC_2BPPV1_EXT:
       case eGL_COMPRESSED_SRGB_PVRTC_4BPPV1_EXT:

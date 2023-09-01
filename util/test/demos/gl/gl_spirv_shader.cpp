@@ -115,13 +115,25 @@ void main()
 
     uint32_t pixels[] = {
         // row 0
-        0xff0e1f00, 0xfff0b207, 0xff02ff00, 0xff03ff00,
+        0xff0e1f00,
+        0xfff0b207,
+        0xff02ff00,
+        0xff03ff00,
         // row 1
-        0xff090f00, 0xff081eb0, 0xff010005, 0xff905f00,
+        0xff090f00,
+        0xff081eb0,
+        0xff010005,
+        0xff905f00,
         // row 2
-        0xff502f03, 0xff004550, 0xff1020a0, 0xff120000,
+        0xff502f03,
+        0xff004550,
+        0xff1020a0,
+        0xff120000,
         // row 3
-        0xff0d3f00, 0xff6091d0, 0xff304ff0, 0xff800000,
+        0xff0d3f00,
+        0xff6091d0,
+        0xff304ff0,
+        0xff800000,
     };
 
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 4, 4, GL_RGBA, GL_UNSIGNED_BYTE, pixels);

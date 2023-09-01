@@ -427,7 +427,7 @@ struct ExtensionInvoker : ObjectForwarder<IExtensionManager>
   void MenuDisplaying(ContextMenu contextMenu, QMenu *menu, const ExtensionCallbackData &data)
   {
     InvokeVoidFunction(
-        (void (IExtensionManager::*)(ContextMenu, QMenu *, const ExtensionCallbackData &)) &
+        (void(IExtensionManager::*)(ContextMenu, QMenu *, const ExtensionCallbackData &)) &
             IExtensionManager::MenuDisplaying,
         contextMenu, menu, data);
   }
@@ -435,7 +435,7 @@ struct ExtensionInvoker : ObjectForwarder<IExtensionManager>
                       const ExtensionCallbackData &data)
   {
     InvokeVoidFunction(
-        (void (IExtensionManager::*)(PanelMenu, QMenu *, QWidget *, const ExtensionCallbackData &)) &
+        (void(IExtensionManager::*)(PanelMenu, QMenu *, QWidget *, const ExtensionCallbackData &)) &
             IExtensionManager::MenuDisplaying,
         panelMenu, menu, extensionButton, data);
   }
@@ -928,14 +928,15 @@ PythonShell::PythonShell(ICaptureContext &ctx, QWidget *parent)
 
   scriptEditor->colourise(0, -1);
 
-  QObject::connect(scriptEditor, &ScintillaEdit::modified, [this](int type, int, int, int,
-                                                                  const QByteArray &, int, int, int) {
-    if(type & (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT | SC_MOD_BEFOREINSERT | SC_MOD_BEFOREDELETE))
-    {
-      scriptEditor->markerDeleteAll(CURRENT_MARKER);
-      scriptEditor->markerDeleteAll(CURRENT_MARKER + 1);
-    }
-  });
+  QObject::connect(scriptEditor, &ScintillaEdit::modified,
+                   [this](int type, int, int, int, const QByteArray &, int, int, int) {
+                     if(type & (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT | SC_MOD_BEFOREINSERT |
+                                SC_MOD_BEFOREDELETE))
+                     {
+                       scriptEditor->markerDeleteAll(CURRENT_MARKER);
+                       scriptEditor->markerDeleteAll(CURRENT_MARKER + 1);
+                     }
+                   });
 
   QObject::connect(scriptEditor, &ScintillaEdit::charAdded, [this](int ch) {
     if(ch == '.')
@@ -1033,7 +1034,6 @@ void PythonShell::RunScript()
   enableButtons(false);
 
   LambdaThread *thread = new LambdaThread([this, script, context]() {
-
     scriptContext = context;
     context->executeString(lit("script.py"), script);
     scriptContext = NULL;
@@ -1336,7 +1336,8 @@ try:
     help(%1)
 except ImportError:
   help(%1)
-)").arg(ui->helpSearch->text()));
+)")
+                             .arg(ui->helpSearch->text()));
 
   context->Finish();
 }

@@ -127,8 +127,8 @@ static rdcstr MakeRenderPassOpString(bool ending, UINT NumRenderTargets,
           if(pDepthStencil->StencilEndingAccess.Type == pDepthStencil->DepthEndingAccess.Type)
             opDesc += "DS=" + ToHumanStr(pDepthStencil->DepthEndingAccess.Type);
           else
-            opDesc += "D=" + ToHumanStr(pDepthStencil->DepthEndingAccess.Type) + ", S=" +
-                      ToHumanStr(pDepthStencil->StencilEndingAccess.Type);
+            opDesc += "D=" + ToHumanStr(pDepthStencil->DepthEndingAccess.Type) +
+                      ", S=" + ToHumanStr(pDepthStencil->StencilEndingAccess.Type);
         }
         else
         {
@@ -136,8 +136,8 @@ static rdcstr MakeRenderPassOpString(bool ending, UINT NumRenderTargets,
           if(pDepthStencil->StencilBeginningAccess.Type == pDepthStencil->DepthBeginningAccess.Type)
             opDesc += "DS=" + ToHumanStr(pDepthStencil->DepthBeginningAccess.Type);
           else
-            opDesc += "D=" + ToHumanStr(pDepthStencil->DepthBeginningAccess.Type) + ", S=" +
-                      ToHumanStr(pDepthStencil->StencilBeginningAccess.Type);
+            opDesc += "D=" + ToHumanStr(pDepthStencil->DepthBeginningAccess.Type) +
+                      ", S=" + ToHumanStr(pDepthStencil->StencilBeginningAccess.Type);
         }
       }
     }

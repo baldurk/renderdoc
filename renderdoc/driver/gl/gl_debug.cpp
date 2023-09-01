@@ -985,15 +985,40 @@ void GLReplay::InitDebugData()
 
   Vec3f axisFrustum[] = {
       // axis marker vertices
-      Vec3f(0.0f, 0.0f, 0.0f), Vec3f(1.0f, 0.0f, 0.0f), Vec3f(0.0f, 0.0f, 0.0f),
-      Vec3f(0.0f, 1.0f, 0.0f), Vec3f(0.0f, 0.0f, 0.0f), Vec3f(0.0f, 0.0f, 1.0f),
+      Vec3f(0.0f, 0.0f, 0.0f),
+      Vec3f(1.0f, 0.0f, 0.0f),
+      Vec3f(0.0f, 0.0f, 0.0f),
+      Vec3f(0.0f, 1.0f, 0.0f),
+      Vec3f(0.0f, 0.0f, 0.0f),
+      Vec3f(0.0f, 0.0f, 1.0f),
 
       // frustum vertices
-      TLN, TRN, TRN, BRN, BRN, BLN, BLN, TLN,
+      TLN,
+      TRN,
+      TRN,
+      BRN,
+      BRN,
+      BLN,
+      BLN,
+      TLN,
 
-      TLN, TLF, TRN, TRF, BLN, BLF, BRN, BRF,
+      TLN,
+      TLF,
+      TRN,
+      TRF,
+      BLN,
+      BLF,
+      BRN,
+      BRF,
 
-      TLF, TRF, TRF, BRF, BRF, BLF, BLF, TLF,
+      TLF,
+      TRF,
+      TRF,
+      BRF,
+      BRF,
+      BLF,
+      BLF,
+      TLF,
   };
 
   drv.glNamedBufferDataEXT(DebugData.axisFrustumBuffer, sizeof(axisFrustum), axisFrustum,
@@ -1652,7 +1677,10 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subre
     if(IsSIntFormat(texDetails.internalFormat))
     {
       int32_t casted[4] = {
-          (int32_t)pixel[0], (int32_t)pixel[1], (int32_t)pixel[2], (int32_t)pixel[3],
+          (int32_t)pixel[0],
+          (int32_t)pixel[1],
+          (int32_t)pixel[2],
+          (int32_t)pixel[3],
       };
 
       memcpy(pixel, casted, sizeof(casted));
@@ -1660,7 +1688,10 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subre
     else if(IsUIntFormat(texDetails.internalFormat))
     {
       uint32_t casted[4] = {
-          (uint32_t)pixel[0], (uint32_t)pixel[1], (uint32_t)pixel[2], (uint32_t)pixel[3],
+          (uint32_t)pixel[0],
+          (uint32_t)pixel[1],
+          (uint32_t)pixel[2],
+          (uint32_t)pixel[3],
       };
 
       memcpy(pixel, casted, sizeof(casted));
@@ -1709,7 +1740,8 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
     // for depth/stencil we need to run the code twice - once to fetch depth and once to fetch
     // stencil - since we can't process float depth and int stencil at the same time
     Vec4f depth[2] = {
-        {0.0f, 0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f},
+        {0.0f, 0.0f, 0.0f, 0.0f},
+        {1.0f, 1.0f, 1.0f, 1.0f},
     };
     Vec4u stencil[2] = {{0, 0, 0, 0}, {1, 1, 1, 1}};
 

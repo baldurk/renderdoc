@@ -111,10 +111,9 @@ rdcstr GenerateGLSLShader(const rdcstr &shader, ShaderType type, int version, co
   combined += shader;
 
   const char *c_src = combined.c_str();
-  glslang::EShClient client =
-      type == ShaderType::Vulkan ? glslang::EShClientVulkan : type == ShaderType::GLSPIRV
-                                                                  ? glslang::EShClientOpenGL
-                                                                  : glslang::EShClientNone;
+  glslang::EShClient client = type == ShaderType::Vulkan    ? glslang::EShClientVulkan
+                              : type == ShaderType::GLSPIRV ? glslang::EShClientOpenGL
+                                                            : glslang::EShClientNone;
   glslang::EShTargetClientVersion targetversion =
       type == ShaderType::Vulkan ? glslang::EShTargetVulkan_1_0 : glslang::EShTargetOpenGL_450;
   int inputVersion = client != glslang::EShClientNone ? 100 : 0;

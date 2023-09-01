@@ -253,7 +253,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -311,9 +312,10 @@ void main()
     TextureData textures[20] = {};
     uint32_t texidx = 0;
 
-    AllocatedBuffer uploadBuf(this, vkh::BufferCreateInfo(rgba8.width * rgba8.height * 16,
-                                                          VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
-                              VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    AllocatedBuffer uploadBuf(
+        this,
+        vkh::BufferCreateInfo(rgba8.width * rgba8.height * 16, VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     auto make_tex = [&](const char *name, uint32_t subsampling, VkFormat texFmt, VkFormat viewFmt,
                         VkFormat view2Fmt, VkFormat view3Fmt, Vec4i config, void *data, size_t sz,
@@ -391,7 +393,8 @@ void main()
                                  VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT),
             VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
         Vec4i cbdata[2] = {
-            Vec4i(rgba8.width, rgba8.height, horizDownsampleFactor, vertDownsampleFactor), config,
+            Vec4i(rgba8.width, rgba8.height, horizDownsampleFactor, vertDownsampleFactor),
+            config,
         };
 
         t.cb = AllocatedBuffer(
@@ -575,7 +578,8 @@ void main()
 
       const byte *in = yuv8.data();
       byte *out[3] = {
-          triplane8.data(), triplane8.data() + rgba8.width * rgba8.height,
+          triplane8.data(),
+          triplane8.data() + rgba8.width * rgba8.height,
           triplane8.data() + rgba8.width * rgba8.height * 2,
       };
 

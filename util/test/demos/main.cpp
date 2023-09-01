@@ -525,7 +525,10 @@ Usage: %s Test_Name [test_options]
     bool allow[(int)TestAPI::Count] = {};
     bool nofilters = true;
     const char *allow_names[] = {
-        "D3D11", "Vulkan", "OpenGL", "D3D12",
+        "D3D11",
+        "Vulkan",
+        "OpenGL",
+        "D3D12",
     };
 
     char name_filter[256] = {};

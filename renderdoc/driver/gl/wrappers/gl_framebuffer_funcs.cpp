@@ -2132,10 +2132,8 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
                                                      GLint dstX0, GLint dstY0, GLint dstX1,
                                                      GLint dstY1, GLbitfield mask, GLenum filter)
 {
-  SERIALISE_ELEMENT_LOCAL(readFramebuffer, FramebufferRes(GetCtx(), readFramebufferHandle))
-      .Important();
-  SERIALISE_ELEMENT_LOCAL(drawFramebuffer, FramebufferRes(GetCtx(), drawFramebufferHandle))
-      .Important();
+  SERIALISE_ELEMENT_LOCAL(readFramebuffer, FramebufferRes(GetCtx(), readFramebufferHandle)).Important();
+  SERIALISE_ELEMENT_LOCAL(drawFramebuffer, FramebufferRes(GetCtx(), drawFramebufferHandle)).Important();
   SERIALISE_ELEMENT(srcX0);
   SERIALISE_ELEMENT(srcY0);
   SERIALISE_ELEMENT(srcX1);

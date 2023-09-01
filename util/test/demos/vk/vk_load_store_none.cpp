@@ -140,7 +140,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -155,9 +156,13 @@ void main()
         // blendEnable
         VK_FALSE,
         // color*
-        VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD,
+        VK_BLEND_FACTOR_SRC_ALPHA,
+        VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        VK_BLEND_OP_ADD,
         // alpha*
-        VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD,
+        VK_BLEND_FACTOR_SRC_ALPHA,
+        VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        VK_BLEND_OP_ADD,
         // colorWriteMask
         VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
             VK_COLOR_COMPONENT_A_BIT,
@@ -166,8 +171,9 @@ void main()
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
@@ -186,9 +192,10 @@ void main()
                });
 
       // use the original pipeline's RP to clear and store
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(pipeRP, framebuffer, mainWindow->scissor,
-                                                         {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f),
-                                                          vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f)}),
+      vkCmdBeginRenderPass(cmd,
+                           vkh::RenderPassBeginInfo(pipeRP, framebuffer, mainWindow->scissor,
+                                                    {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f),
+                                                     vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f)}),
                            VK_SUBPASS_CONTENTS_INLINE);
 
       // clear a rect in the middle of the preserve attachment to green
@@ -230,9 +237,10 @@ void main()
       VkImage swapimg =
           StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, mainWindow->scissor,
-                                                         {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f),
-                                                          vkh::ClearValue(1.0f, 0.2f, 0.2f, 1.0f)}),
+      vkCmdBeginRenderPass(cmd,
+                           vkh::RenderPassBeginInfo(renderPass, framebuffer, mainWindow->scissor,
+                                                    {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f),
+                                                     vkh::ClearValue(1.0f, 0.2f, 0.2f, 1.0f)}),
                            VK_SUBPASS_CONTENTS_INLINE);
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);

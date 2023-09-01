@@ -250,9 +250,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ui->iaLayouts->setHeader(header);
 
-    ui->iaLayouts->setColumns({tr("Slot"), tr("Semantic"), tr("Index"), tr("Format"),
-                               tr("Input Slot"), tr("Offset"), tr("Class"), tr("Step Rate"),
-                               tr("Go")});
+    ui->iaLayouts->setColumns({tr("Slot"), tr("Semantic"), tr("Index"), tr("Format"), tr("Input Slot"),
+                               tr("Offset"), tr("Class"), tr("Step Rate"), tr("Go")});
     header->setColumnStretchHints({1, 4, 2, 3, 2, 2, 1, 1, -1});
 
     ui->iaLayouts->setClearSelectionOnFocusLoss(true);
@@ -393,9 +392,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ui->targetOutputs->setHeader(header);
 
-    ui->targetOutputs->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"),
-                                   tr("Height"), tr("Depth"), tr("Array Size"), tr("Format"),
-                                   tr("Go")});
+    ui->targetOutputs->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"),
+                                   tr("Depth"), tr("Array Size"), tr("Format"), tr("Go")});
     header->setColumnStretchHints({2, 4, 2, 1, 1, 1, 1, 3, -1});
 
     ui->targetOutputs->setHoverIconColumn(8, action, action_hover);
@@ -440,12 +438,25 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
   ui->pipeFlow->setStages(
       {
-          lit("IA"), lit("VS"), lit("HS"), lit("DS"), lit("GS"), lit("RS"), lit("PS"), lit("OM"),
+          lit("IA"),
+          lit("VS"),
+          lit("HS"),
+          lit("DS"),
+          lit("GS"),
+          lit("RS"),
+          lit("PS"),
+          lit("OM"),
           lit("CS"),
       },
       {
-          tr("Input Assembler"), tr("Vertex Shader"), tr("Hull Shader"), tr("Domain Shader"),
-          tr("Geometry Shader"), tr("Rasterizer"), tr("Pixel Shader"), tr("Output Merger"),
+          tr("Input Assembler"),
+          tr("Vertex Shader"),
+          tr("Hull Shader"),
+          tr("Domain Shader"),
+          tr("Geometry Shader"),
+          tr("Rasterizer"),
+          tr("Pixel Shader"),
+          tr("Output Merger"),
           tr("Compute Shader"),
       });
 
@@ -2087,11 +2098,14 @@ void D3D12PipelineStateViewer::setState()
   if(state.outputMerger.depthStencilState.stencilEnable)
   {
     ui->stencils->addTopLevelItem(new RDTreeWidgetItem({
-        tr("Front"), ToQStr(state.outputMerger.depthStencilState.frontFace.function),
+        tr("Front"),
+        ToQStr(state.outputMerger.depthStencilState.frontFace.function),
         ToQStr(state.outputMerger.depthStencilState.frontFace.failOperation),
         ToQStr(state.outputMerger.depthStencilState.frontFace.depthFailOperation),
-        ToQStr(state.outputMerger.depthStencilState.frontFace.passOperation), QVariant(),
-        QVariant(), QVariant(),
+        ToQStr(state.outputMerger.depthStencilState.frontFace.passOperation),
+        QVariant(),
+        QVariant(),
+        QVariant(),
     }));
 
     m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(0), 5,
@@ -2102,10 +2116,13 @@ void D3D12PipelineStateViewer::setState()
                                      state.outputMerger.depthStencilState.frontFace.reference);
 
     ui->stencils->addTopLevelItem(new RDTreeWidgetItem({
-        tr("Back"), ToQStr(state.outputMerger.depthStencilState.backFace.function),
+        tr("Back"),
+        ToQStr(state.outputMerger.depthStencilState.backFace.function),
         ToQStr(state.outputMerger.depthStencilState.backFace.failOperation),
         ToQStr(state.outputMerger.depthStencilState.backFace.depthFailOperation),
-        ToQStr(state.outputMerger.depthStencilState.backFace.passOperation), QVariant(), QVariant(),
+        ToQStr(state.outputMerger.depthStencilState.backFace.passOperation),
+        QVariant(),
+        QVariant(),
         QVariant(),
     }));
 
@@ -2693,8 +2710,9 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
     }
 
     m_Common.exportHTMLTable(
-        xml, {tr("Slot"), tr("Semantic Name"), tr("Semantic Index"), tr("Format"), tr("Input Slot"),
-              tr("Byte Offset"), tr("Per Instance"), tr("Instance Data Step Rate")},
+        xml,
+        {tr("Slot"), tr("Semantic Name"), tr("Semantic Index"), tr("Format"), tr("Input Slot"),
+         tr("Byte Offset"), tr("Per Instance"), tr("Instance Data Step Rate")},
         rows);
   }
 
@@ -3122,9 +3140,10 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
   xml.writeEndElement();
 
   m_Common.exportHTMLTable(
-      xml, {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("View Type"),
-            tr("Resource Type"), tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
-            tr("View Format"), tr("Resource Format"), tr("View Parameters")},
+      xml,
+      {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("View Type"),
+       tr("Resource Type"), tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
+       tr("View Format"), tr("Resource Format"), tr("View Parameters")},
       rowsRO);
 
   xml.writeStartElement(lit("h3"));
@@ -3132,17 +3151,19 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
   xml.writeEndElement();
 
   m_Common.exportHTMLTable(
-      xml, {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("View Type"),
-            tr("Resource Type"), tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
-            tr("View Format"), tr("Resource Format"), tr("View Parameters")},
+      xml,
+      {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("View Type"),
+       tr("Resource Type"), tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
+       tr("View Format"), tr("Resource Format"), tr("View Parameters")},
       rowsRW);
 
   xml.writeStartElement(lit("h3"));
   xml.writeCharacters(tr("Samplers"));
   xml.writeEndElement();
 
-  m_Common.exportHTMLTable(xml, {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Addressing"),
-                                 tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")},
+  m_Common.exportHTMLTable(xml,
+                           {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Addressing"),
+                            tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")},
                            rowsSampler);
 
   xml.writeStartElement(lit("h3"));
@@ -3202,10 +3223,10 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
       i++;
     }
 
-    m_Common.exportHTMLTable(
-        xml, {tr("Slot"), tr("Buffer"), tr("Offset"), tr("Byte Length"), tr("Counter Buffer"),
-              tr("Counter Offset"), tr("Counter Byte Length")},
-        rows);
+    m_Common.exportHTMLTable(xml,
+                             {tr("Slot"), tr("Buffer"), tr("Offset"), tr("Byte Length"),
+                              tr("Counter Buffer"), tr("Counter Offset"), tr("Counter Byte Length")},
+                             rows);
   }
 }
 
@@ -3224,8 +3245,9 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
     xml.writeEndElement();
 
     m_Common.exportHTMLTable(
-        xml, {tr("Line Rasteriztion"), tr("Forced Sample Count"), tr("Conservative Raster"),
-              tr("Sample Mask")},
+        xml,
+        {tr("Line Rasteriztion"), tr("Forced Sample Count"), tr("Conservative Raster"),
+         tr("Sample Mask")},
         {ToQStr(rs.state.lineRasterMode), rs.state.forcedSampleCount,
          rs.state.conservativeRasterization != ConservativeRaster::Disabled ? tr("Yes") : tr("No"),
          Formatter::Format(rs.sampleMask, true)});
@@ -3255,9 +3277,10 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
       i++;
     }
 
-    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"),
-                                   tr("Min Depth"), tr("Max Depth")},
-                             rows);
+    m_Common.exportHTMLTable(
+        xml,
+        {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"), tr("Min Depth"), tr("Max Depth")},
+        rows);
   }
 
   {
@@ -3292,8 +3315,9 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
                               .arg(om.blendState.blendFactor[2], 0, 'f', 2)
                               .arg(om.blendState.blendFactor[3], 0, 'f', 2);
 
-    m_Common.exportHTMLTable(xml, {tr("Independent Blend Enable"), tr("Alpha to Coverage"),
-                                   tr("Blend Factor"), tr("Multisampling Rate")},
+    m_Common.exportHTMLTable(xml,
+                             {tr("Independent Blend Enable"), tr("Alpha to Coverage"),
+                              tr("Blend Factor"), tr("Multisampling Rate")},
                              {om.blendState.independentBlend ? tr("Yes") : tr("No"),
                               om.blendState.alphaToCoverage ? tr("Yes") : tr("No"), blendFactor,
                               tr("%1x %2 qual").arg(om.multiSampleCount).arg(om.multiSampleQuality)});
@@ -3325,15 +3349,21 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
       i++;
     }
 
-    m_Common.exportHTMLTable(
-        xml,
-        {
-            tr("Slot"), tr("Blend Enable"), tr("Logic Enable"), tr("Blend Source"),
-            tr("Blend Destination"), tr("Blend Operation"), tr("Alpha Blend Source"),
-            tr("Alpha Blend Destination"), tr("Alpha Blend Operation"), tr("Logic Operation"),
-            tr("Write Mask"),
-        },
-        rows);
+    m_Common.exportHTMLTable(xml,
+                             {
+                                 tr("Slot"),
+                                 tr("Blend Enable"),
+                                 tr("Logic Enable"),
+                                 tr("Blend Source"),
+                                 tr("Blend Destination"),
+                                 tr("Blend Operation"),
+                                 tr("Alpha Blend Source"),
+                                 tr("Alpha Blend Destination"),
+                                 tr("Alpha Blend Operation"),
+                                 tr("Logic Operation"),
+                                 tr("Write Mask"),
+                             },
+                             rows);
   }
 
   {
@@ -3344,7 +3374,9 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
     m_Common.exportHTMLTable(
         xml,
         {
-            tr("Depth Test Enable"), tr("Depth Writes Enable"), tr("Depth Function"),
+            tr("Depth Test Enable"),
+            tr("Depth Writes Enable"),
+            tr("Depth Function"),
             tr("Depth Bounds"),
         },
         {
@@ -3369,7 +3401,8 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
       QList<QVariantList> rows;
 
       rows.push_back({
-          tr("Front"), Formatter::Format(om.depthStencilState.frontFace.reference, true),
+          tr("Front"),
+          Formatter::Format(om.depthStencilState.frontFace.reference, true),
           Formatter::Format(om.depthStencilState.frontFace.compareMask, true),
           Formatter::Format(om.depthStencilState.frontFace.writeMask, true),
           ToQStr(om.depthStencilState.frontFace.function),
@@ -3379,7 +3412,8 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
       });
 
       rows.push_back({
-          tr("back"), Formatter::Format(om.depthStencilState.backFace.reference, true),
+          tr("back"),
+          Formatter::Format(om.depthStencilState.backFace.reference, true),
           Formatter::Format(om.depthStencilState.backFace.compareMask, true),
           Formatter::Format(om.depthStencilState.backFace.writeMask, true),
           ToQStr(om.depthStencilState.backFace.function),
@@ -3421,9 +3455,17 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
     m_Common.exportHTMLTable(xml,
                              {
-                                 tr("Slot"), tr("Name"), tr("View Type"), tr("Resource Type"),
-                                 tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
-                                 tr("View Format"), tr("Resource Format"), tr("View Parameters"),
+                                 tr("Slot"),
+                                 tr("Name"),
+                                 tr("View Type"),
+                                 tr("Resource Type"),
+                                 tr("Width"),
+                                 tr("Height"),
+                                 tr("Depth"),
+                                 tr("Array Size"),
+                                 tr("View Format"),
+                                 tr("Resource Format"),
+                                 tr("View Parameters"),
                              },
                              rows);
   }
@@ -3444,9 +3486,16 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
     m_Common.exportHTMLTable(xml,
                              {
-                                 tr("Name"), tr("View Type"), tr("Resource Type"), tr("Width"),
-                                 tr("Height"), tr("Depth"), tr("Array Size"), tr("View Format"),
-                                 tr("Resource Format"), tr("View Parameters"),
+                                 tr("Name"),
+                                 tr("View Type"),
+                                 tr("Resource Type"),
+                                 tr("Width"),
+                                 tr("Height"),
+                                 tr("Depth"),
+                                 tr("Array Size"),
+                                 tr("View Format"),
+                                 tr("Resource Format"),
+                                 tr("View Parameters"),
                              },
                              {exportViewHTML(om.depthTarget, false, NULL, extra)});
   }

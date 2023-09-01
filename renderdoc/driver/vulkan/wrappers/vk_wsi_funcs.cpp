@@ -152,7 +152,9 @@ VkResult WrappedVulkan::vkRegisterDeviceEventEXT(VkDevice device,
         CACHE_THREAD_SERIALISER();
 
         VkFenceCreateInfo createInfo = {
-            VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, NULL, VK_FENCE_CREATE_SIGNALED_BIT,
+            VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            NULL,
+            VK_FENCE_CREATE_SIGNALED_BIT,
         };
 
         SCOPED_SERIALISE_CHUNK(VulkanChunk::vkRegisterDeviceEventEXT);
@@ -196,7 +198,9 @@ VkResult WrappedVulkan::vkRegisterDisplayEventEXT(VkDevice device, VkDisplayKHR 
         CACHE_THREAD_SERIALISER();
 
         VkFenceCreateInfo createInfo = {
-            VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, NULL, VK_FENCE_CREATE_SIGNALED_BIT,
+            VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            NULL,
+            VK_FENCE_CREATE_SIGNALED_BIT,
         };
 
         SCOPED_SERIALISE_CHUNK(VulkanChunk::vkRegisterDisplayEventEXT);
@@ -421,7 +425,9 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
       ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(im), &mrq);
 
       VkMemoryAllocateInfo allocInfo = {
-          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+          NULL,
+          mrq.size,
           GetGPULocalMemoryIndex(mrq.memoryTypeBits),
       };
 

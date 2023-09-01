@@ -100,8 +100,8 @@
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-implementations"
-- (void)insertDebugCaptureBoundary
-    API_DEPRECATED("Use MTLCaptureScope instead", macos(10.11, 10.13), ios(8.0, 11.0))
+- (void)insertDebugCaptureBoundary API_DEPRECATED("Use MTLCaptureScope instead",
+                                                  macos(10.11, 10.13), ios(8.0, 11.0))
 {
   METAL_NOT_HOOKED();
   return [self.real insertDebugCaptureBoundary];

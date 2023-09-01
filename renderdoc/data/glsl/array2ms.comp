@@ -77,7 +77,7 @@ void main()
   int sampleIdx = sampleOffset + int(id.z % numMultiSamples);
 
   uvec4 data =
-      texelFetch(srcArray, ivec3(int(id.x), int(id.y), slice *numMultiSamples + sampleIdx), 0);
+      texelFetch(srcArray, ivec3(int(id.x), int(id.y), slice * numMultiSamples + sampleIdx), 0);
 
   imageStore(dstMS, ivec3(int(id.x), int(id.y), slice), sampleIdx, data);
 }

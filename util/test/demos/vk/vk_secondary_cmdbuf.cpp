@@ -73,7 +73,8 @@ RD_TEST(VK_Secondary_CmdBuf, VulkanGraphicsTest)
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -139,8 +140,9 @@ RD_TEST(VK_Secondary_CmdBuf, VulkanGraphicsTest)
                            vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
 
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, size,
-                                                         {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f)}),
+      vkCmdBeginRenderPass(cmd,
+                           vkh::RenderPassBeginInfo(renderPass, framebuffer, size,
+                                                    {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f)}),
                            VK_SUBPASS_CONTENTS_INLINE);
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe0);

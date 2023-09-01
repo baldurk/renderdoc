@@ -80,7 +80,9 @@ Vec3f ConvertFromR9G9B9E5(uint32_t data)
 {
   // get mantissas
   uint32_t mantissas[] = {
-      ((data >> 0) & 0x1ff), ((data >> 9) & 0x1ff), ((data >> 18) & 0x1ff),
+      ((data >> 0) & 0x1ff),
+      ((data >> 9) & 0x1ff),
+      ((data >> 18) & 0x1ff),
   };
 
   // get shared exponent
@@ -155,10 +157,14 @@ uint32_t ConvertToR9G9B9E5(Vec3f data)
 Vec3f ConvertFromR11G11B10(uint32_t data)
 {
   uint32_t mantissas[3] = {
-      (data >> 0) & 0x3f, (data >> 11) & 0x3f, (data >> 22) & 0x1f,
+      (data >> 0) & 0x3f,
+      (data >> 11) & 0x3f,
+      (data >> 22) & 0x1f,
   };
   int32_t exponents[3] = {
-      int32_t(data >> 6) & 0x1f, int32_t(data >> 17) & 0x1f, int32_t(data >> 27) & 0x1f,
+      int32_t(data >> 6) & 0x1f,
+      int32_t(data >> 17) & 0x1f,
+      int32_t(data >> 27) & 0x1f,
   };
 
   Vec3f ret;
@@ -217,18 +223,26 @@ uint32_t ConvertToR11G11B10(Vec3f data)
 {
   // convert each component to half first
   uint16_t halves[3] = {
-      ConvertToHalf(data.x), ConvertToHalf(data.y), ConvertToHalf(data.z),
+      ConvertToHalf(data.x),
+      ConvertToHalf(data.y),
+      ConvertToHalf(data.z),
   };
 
   // extract mantissas, exponents, signs
   bool signs[3] = {
-      (halves[0] & 0x8000) != 0, (halves[1] & 0x8000) != 0, (halves[2] & 0x8000) != 0,
+      (halves[0] & 0x8000) != 0,
+      (halves[1] & 0x8000) != 0,
+      (halves[2] & 0x8000) != 0,
   };
   uint32_t mantissas[3] = {
-      (halves[0] & 0x03FFU), (halves[1] & 0x03FFU), (halves[2] & 0x03FFU),
+      (halves[0] & 0x03FFU),
+      (halves[1] & 0x03FFU),
+      (halves[2] & 0x03FFU),
   };
   uint32_t exponents[3] = {
-      (halves[0] & 0x7C00U) >> 10, (halves[1] & 0x7C00U) >> 10, (halves[2] & 0x7C00U) >> 10,
+      (halves[0] & 0x7C00U) >> 10,
+      (halves[1] & 0x7C00U) >> 10,
+      (halves[2] & 0x7C00U) >> 10,
   };
 
   // normalise NaN/inf values so we can truncate mantissa without converting NaN to inf
@@ -1388,10 +1402,7 @@ TEST_CASE("Check format conversion", "[format]")
   ((uint32_t((re)&0x1f) << 6) | (uint32_t((ge)&0x1f) << 17) | (uint32_t((be)&0x1f) << 27) | \
    uint32_t((rm)&0x3f) << 0 | uint32_t((gm)&0x3f) << 11 | uint32_t((bm)&0x1f) << 22)
 
-#define TEST11(e, m, f)                               \
-  {                                                   \
-    R11G11B10(e, m, 0, 0, 0, 0), Vec3f(f, 0.0f, 0.0f) \
-  }
+#define TEST11(e, m, f) {R11G11B10(e, m, 0, 0, 0, 0), Vec3f(f, 0.0f, 0.0f)}
 #define TEST10(e, m, f)                               \
   {                                                   \
     R11G11B10(0, 0, 0, 0, e, m), Vec3f(0.0f, 0.0f, f) \
@@ -1493,9 +1504,10 @@ TEST_CASE("Check format conversion", "[format]")
   SECTION("Spot test ConvertToR11G11B10")
   {
 #undef TEST11
-#define TEST11(f, e, m)                                \
-  {                                                    \
-    Vec3f(f, 0.0f, 0.0f), R11G11B10(e, m, 0, 0, 0, 0), \
+#define TEST11(f, e, m)            \
+  {                                \
+      Vec3f(f, 0.0f, 0.0f),        \
+      R11G11B10(e, m, 0, 0, 0, 0), \
   }
 
 #undef TEST10

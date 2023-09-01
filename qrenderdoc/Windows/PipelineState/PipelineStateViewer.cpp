@@ -1122,47 +1122,47 @@ void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId 
     QAction *action = new QAction(label, menu);
     action->setIcon(Icons::page_white_edit());
 
-    QObject::connect(action, &QAction::triggered, [this, pipelineId, shaderId, bindpointMapping,
-                                                   shaderDetails]() {
-      QString entry;
-      QString src;
+    QObject::connect(
+        action, &QAction::triggered, [this, pipelineId, shaderId, bindpointMapping, shaderDetails]() {
+          QString entry;
+          QString src;
 
-      if(shaderDetails->encoding == ShaderEncoding::SPIRV ||
-         shaderDetails->encoding == ShaderEncoding::OpenGLSPIRV)
-      {
-        m_Ctx.Replay().AsyncInvoke([this, pipelineId, shaderId, shaderDetails](IReplayController *r) {
-          rdcstr disasm = r->DisassembleShader(pipelineId, shaderDetails, "");
+          if(shaderDetails->encoding == ShaderEncoding::SPIRV ||
+             shaderDetails->encoding == ShaderEncoding::OpenGLSPIRV)
+          {
+            m_Ctx.Replay().AsyncInvoke(
+                [this, pipelineId, shaderId, shaderDetails](IReplayController *r) {
+                  rdcstr disasm = r->DisassembleShader(pipelineId, shaderDetails, "");
 
-          QString editeddisasm =
-              tr("####          PSEUDOCODE SPIR-V DISASSEMBLY            ###\n") +
-              tr("#### Use a SPIR-V decompiler to get compileable source ###\n\n");
+                  QString editeddisasm =
+                      tr("####          PSEUDOCODE SPIR-V DISASSEMBLY            ###\n") +
+                      tr("#### Use a SPIR-V decompiler to get compileable source ###\n\n");
 
-          editeddisasm += disasm;
+                  editeddisasm += disasm;
 
-          GUIInvoke::call(this, [this, shaderId, shaderDetails, editeddisasm]() {
+                  GUIInvoke::call(this, [this, shaderId, shaderDetails, editeddisasm]() {
+                    rdcstrpairs files;
+                    files.push_back(rdcpair<rdcstr, rdcstr>("pseudocode", editeddisasm));
+
+                    EditShader(shaderId, shaderDetails->stage, shaderDetails->entryPoint,
+                               shaderDetails->debugInfo.compileFlags, KnownShaderTool::Unknown,
+                               ShaderEncoding::Unknown, files);
+                  });
+                });
+          }
+          else if(shaderDetails->encoding == ShaderEncoding::DXBC ||
+                  shaderDetails->encoding == ShaderEncoding::DXIL)
+          {
+            entry = lit("EditedShader%1S").arg(ToQStr(shaderDetails->stage, GraphicsAPI::D3D11)[0]);
+
             rdcstrpairs files;
-            files.push_back(rdcpair<rdcstr, rdcstr>("pseudocode", editeddisasm));
+            files.push_back(rdcpair<rdcstr, rdcstr>(
+                "decompiled_stub.hlsl", GenerateHLSLStub(bindpointMapping, shaderDetails, entry)));
 
-            EditShader(shaderId, shaderDetails->stage, shaderDetails->entryPoint,
-                       shaderDetails->debugInfo.compileFlags, KnownShaderTool::Unknown,
-                       ShaderEncoding::Unknown, files);
-          });
+            EditShader(shaderId, shaderDetails->stage, entry, shaderDetails->debugInfo.compileFlags,
+                       KnownShaderTool::Unknown, ShaderEncoding::HLSL, files);
+          }
         });
-      }
-      else if(shaderDetails->encoding == ShaderEncoding::DXBC ||
-              shaderDetails->encoding == ShaderEncoding::DXIL)
-      {
-        entry = lit("EditedShader%1S").arg(ToQStr(shaderDetails->stage, GraphicsAPI::D3D11)[0]);
-
-        rdcstrpairs files;
-        files.push_back(rdcpair<rdcstr, rdcstr>(
-            "decompiled_stub.hlsl", GenerateHLSLStub(bindpointMapping, shaderDetails, entry)));
-
-        EditShader(shaderId, shaderDetails->stage, entry, shaderDetails->debugInfo.compileFlags,
-                   KnownShaderTool::Unknown, ShaderEncoding::HLSL, files);
-      }
-
-    });
 
     menu->addAction(action);
   }

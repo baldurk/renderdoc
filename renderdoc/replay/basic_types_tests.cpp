@@ -1325,7 +1325,6 @@ TEST_CASE("Test string type", "[basictypes][string]")
   SECTION("Assigning a string to itself")
   {
     auto lambda = [](rdcstr test) {
-
       // create a version without doing self-insertion
       rdcstr test2 = test;
 
@@ -1352,7 +1351,6 @@ TEST_CASE("Test string type", "[basictypes][string]")
   SECTION("Inserting from string into itself")
   {
     auto lambda = [](rdcstr test) {
-
       // create a version without doing self-insertion
       rdcstr test2 = test;
 

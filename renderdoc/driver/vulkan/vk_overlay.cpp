@@ -572,7 +572,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       }
 
       VkMemoryAllocateInfo allocInfo = {
-          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+          NULL,
+          mrq.size,
           m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
       };
 
@@ -2027,7 +2029,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       }
 
       VkClearRect rect = {
-          state.renderArea, 0, 1,
+          state.renderArea,
+          0,
+          1,
       };
 
       vt->CmdClearAttachments(Unwrap(cmd), (uint32_t)atts.size(), &atts[0], 1, &rect);
@@ -2136,7 +2140,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       m_pDriver->vkGetImageMemoryRequirements(m_Device, quadImg, &mrq);
 
       VkMemoryAllocateInfo allocInfo = {
-          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+          NULL,
+          mrq.size,
           m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
       };
 
@@ -2209,7 +2215,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       DoPipelineBarrier(cmd, 1, &quadImBarrier);
 
       VkMemoryBarrier memBarrier = {
-          VK_STRUCTURE_TYPE_MEMORY_BARRIER, NULL, VK_ACCESS_ALL_WRITE_BITS, VK_ACCESS_ALL_READ_BITS,
+          VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+          NULL,
+          VK_ACCESS_ALL_WRITE_BITS,
+          VK_ACCESS_ALL_READ_BITS,
       };
 
       DoPipelineBarrier(cmd, 1, &memBarrier);
@@ -2546,7 +2555,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         };
 
         VkVertexInputAttributeDescription vertAttrs[] = {
-            {0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0}, {1, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0},
+            {0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0},
+            {1, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0},
         };
 
         VkPipelineVertexInputStateCreateInfo vi = {

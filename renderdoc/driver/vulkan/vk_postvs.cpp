@@ -1606,16 +1606,27 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   VkDescriptorSetLayoutBinding newBindings[] = {
       // output buffer
       {
-          0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, NULL,
+          0,
+          VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+          1,
+          VK_SHADER_STAGE_COMPUTE_BIT,
+          NULL,
       },
       // index buffer (if needed)
       {
-          1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, NULL,
+          1,
+          VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+          1,
+          VK_SHADER_STAGE_COMPUTE_BIT,
+          NULL,
       },
       // vertex buffers
       {
-          2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, MeshOutputBufferArraySize,
-          VK_SHADER_STAGE_COMPUTE_BIT, NULL,
+          2,
+          VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+          MeshOutputBufferArraySize,
+          VK_SHADER_STAGE_COMPUTE_BIT,
+          NULL,
       },
   };
   RDCCOMPILE_ASSERT(ARRAY_COUNT(newBindings) == MeshOutputReservedBindings,
@@ -1744,7 +1755,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   uint32_t maxInstance = action->instanceOffset + action->numInstances - 1;
 
   const VkMemoryAllocateFlagsInfo memFlags = {
-      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO, NULL, VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT,
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
+      NULL,
+      VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT,
   };
 
   if(action->flags & ActionFlags::Indexed)
@@ -1904,7 +1917,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     m_pDriver->vkGetBufferMemoryRequirements(dev, uniqIdxBuf, &mrq);
 
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        mrq.size,
         m_pDriver->GetUploadMemoryIndex(mrq.memoryTypeBits),
     };
 
@@ -2215,7 +2230,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
         m_pDriver->vkGetBufferMemoryRequirements(dev, vbuffers[attr].buf, &mrq);
 
         VkMemoryAllocateInfo allocInfo = {
-            VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+            VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            NULL,
+            mrq.size,
             m_pDriver->GetUploadMemoryIndex(mrq.memoryTypeBits),
         };
 
@@ -2490,7 +2507,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
 
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        mrq.size,
         m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
     };
 
@@ -2687,7 +2706,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     meshbufbarrier.size = VK_WHOLE_SIZE;
 
     VkMemoryBarrier globalbarrier = {
-        VK_STRUCTURE_TYPE_MEMORY_BARRIER, NULL,
+        VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+        NULL,
         VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_HOST_WRITE_BIT,
         VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
     };
@@ -2728,7 +2748,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     DoPipelineBarrier(cmd, 1, &meshbufbarrier);
 
     VkBufferCopy bufcopy = {
-        0, 0, bufSize,
+        0,
+        0,
+        bufSize,
     };
 
     // copy to readback buffer
@@ -3172,7 +3194,9 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
 
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        mrq.size,
         m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
     };
 

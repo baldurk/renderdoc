@@ -251,7 +251,7 @@ void SetTLSValue(uint64_t slot, void *value)
     }
 
     if(slot - 1 >= slots->data.size())
-    slots->data.resize((size_t)slot);
+      slots->data.resize((size_t)slot);
   }
 
   slots->data[(size_t)slot - 1] = value;

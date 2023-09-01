@@ -296,11 +296,10 @@ ITERABLE_OPERATORS(LoadProgress);
 inline constexpr float ProgressWeight(LoadProgress section)
 {
   // values must sum to 1.0
-  return section == LoadProgress::DebugManagerInit
-             ? 0.1f
-             : section == LoadProgress::FileInitialRead
-                   ? 0.75f
-                   : section == LoadProgress::FrameEventsRead ? 0.15f : 0.0f;
+  return section == LoadProgress::DebugManagerInit  ? 0.1f
+         : section == LoadProgress::FileInitialRead ? 0.75f
+         : section == LoadProgress::FrameEventsRead ? 0.15f
+                                                    : 0.0f;
 }
 
 enum class CaptureProgress
@@ -331,17 +330,13 @@ ITERABLE_OPERATORS(CaptureProgress);
 inline constexpr float ProgressWeight(CaptureProgress section)
 {
   // values must sum to 1.0
-  return section == CaptureProgress::PrepareInitialStates
-             ? 0.25f
-             : section == CaptureProgress::AddReferencedResources
-                   ? 0.25f
-                   : section == CaptureProgress::FrameCapture
-                         ? 0.15f
-                         : section == CaptureProgress::SerialiseInitialStates
-                               ? 0.25f
-                               : section == CaptureProgress::SerialiseFrameContents
-                                     ? 0.08f
-                                     : section == CaptureProgress::FileWriting ? 0.02f : 0.0f;
+  return section == CaptureProgress::PrepareInitialStates     ? 0.25f
+         : section == CaptureProgress::AddReferencedResources ? 0.25f
+         : section == CaptureProgress::FrameCapture           ? 0.15f
+         : section == CaptureProgress::SerialiseInitialStates ? 0.25f
+         : section == CaptureProgress::SerialiseFrameContents ? 0.08f
+         : section == CaptureProgress::FileWriting            ? 0.02f
+                                                              : 0.0f;
 }
 
 // utility function to fake progress with x going from 0 to infinity, mapping to 0% to 100% in an

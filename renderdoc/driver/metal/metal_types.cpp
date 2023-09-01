@@ -544,7 +544,7 @@ void RenderPassStencilAttachmentDescriptor::CopyTo(MTL::RenderPassStencilAttachm
 RenderPassSampleBufferAttachmentDescriptor::RenderPassSampleBufferAttachmentDescriptor(
     MTL::RenderPassSampleBufferAttachmentDescriptor *objc)
     :    // TODO: when WrappedMTLCounterSampleBuffer exists
-      // sampleBuffer(GetWrapped(objc->sampleBuffer())),
+         // sampleBuffer(GetWrapped(objc->sampleBuffer())),
       startOfVertexSampleIndex(objc->startOfVertexSampleIndex()),
       endOfVertexSampleIndex(objc->endOfVertexSampleIndex()),
       startOfFragmentSampleIndex(objc->startOfFragmentSampleIndex()),

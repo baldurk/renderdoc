@@ -392,9 +392,8 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     // will be N*M long, N adjacent prims of M verts each. M = primSize below
     rdcarray<FloatVector> adjacentPrimVertices;
 
-    D3D11_PRIMITIVE_TOPOLOGY primTopo =
-        D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;    // tri or line list
-    uint32_t primSize = 3;                        // number of verts per primitive
+    D3D11_PRIMITIVE_TOPOLOGY primTopo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;    // tri or line list
+    uint32_t primSize = 3;    // number of verts per primitive
 
     if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_LINELIST ||
        meshtopo == D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ ||
@@ -492,7 +491,10 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
       m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
       FloatVector vertSprite[4] = {
-          activeVertex, activeVertex, activeVertex, activeVertex,
+          activeVertex,
+          activeVertex,
+          activeVertex,
+          activeVertex,
       };
 
       hr = m_pImmediateContext->Map(m_MeshRender.TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0,

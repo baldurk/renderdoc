@@ -100,7 +100,8 @@ RD_TEST(VK_Extended_Dynamic_State, VulkanGraphicsTest)
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, char)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -146,8 +147,9 @@ RD_TEST(VK_Extended_Dynamic_State, VulkanGraphicsTest)
     vb.upload(tris);
 
     AllocatedImage depthimg(
-        this, vkh::ImageCreateInfo(screenWidth, screenHeight, 0, VK_FORMAT_D32_SFLOAT_S8_UINT,
-                                   VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
+        this,
+        vkh::ImageCreateInfo(screenWidth, screenHeight, 0, VK_FORMAT_D32_SFLOAT_S8_UINT,
+                             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView dsvview = createImageView(vkh::ImageViewCreateInfo(
@@ -197,8 +199,9 @@ RD_TEST(VK_Extended_Dynamic_State, VulkanGraphicsTest)
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
 
       vkCmdBeginRenderPass(
-          cmd, vkh::RenderPassBeginInfo(renderPass, fbs[mainWindow->imgIndex], mainWindow->scissor,
-                                        {{}, vkh::ClearValue(0.9f, 0xcc)}),
+          cmd,
+          vkh::RenderPassBeginInfo(renderPass, fbs[mainWindow->imgIndex], mainWindow->scissor,
+                                   {{}, vkh::ClearValue(0.9f, 0xcc)}),
           VK_SUBPASS_CONTENTS_INLINE);
 
       vkCmdSetViewportWithCountEXT(cmd, 1, &mainWindow->viewport);

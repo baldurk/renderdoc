@@ -314,12 +314,13 @@ void CrashDialog::on_send_clicked()
   // confirm if the user REALLY wants to upload their capture
   if(ui->captureUpload->isChecked())
   {
-    QMessageBox::StandardButton result = RDDialog::question(
-        this, tr("Are you sure?"), tr("Uploading your capture file will send it privately to the "
-                                      "RenderDoc server where I can "
-                                      "use it to reproduce your problem.\n\nAre you sure you are "
-                                      "OK with sending the capture "
-                                      "securely to RenderDoc's website?"));
+    QMessageBox::StandardButton result =
+        RDDialog::question(this, tr("Are you sure?"),
+                           tr("Uploading your capture file will send it privately to the "
+                              "RenderDoc server where I can "
+                              "use it to reproduce your problem.\n\nAre you sure you are "
+                              "OK with sending the capture "
+                              "securely to RenderDoc's website?"));
 
     if(result != QMessageBox::Yes)
     {
@@ -498,7 +499,6 @@ void CrashDialog::sendReport()
   });
 
   QObject::connect(m_Request, &QNetworkReply::finished, [this]() {
-
     // don't do anything if we're finished after an error
     if(ui->uploadRetry->isEnabled())
       return;

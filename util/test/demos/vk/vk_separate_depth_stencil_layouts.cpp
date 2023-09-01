@@ -143,29 +143,33 @@ void main()
     };
 
     AllocatedBuffer stencilVB(
-        this, vkh::BufferCreateInfo(sizeof(stencilTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(stencilTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     stencilVB.upload(stencilTri);
 
     AllocatedBuffer depthVB(
-        this, vkh::BufferCreateInfo(sizeof(depthTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                          VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(depthTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     depthVB.upload(depthTri);
 
     AllocatedBuffer inputAttVB(
-        this, vkh::BufferCreateInfo(sizeof(inputAttTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(inputAttTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     inputAttVB.upload(inputAttTri);
 
     AllocatedBuffer colorVB(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     colorVB.upload(colorTri);
@@ -306,10 +310,11 @@ void main()
       CHECK_VKR(vkCreateImageView(
           device, vkh::ImageViewCreateInfo(colorImg.image, VK_IMAGE_VIEW_TYPE_2D, mainWindow->format),
           NULL, &colorView));
-      CHECK_VKR(vkCreateFramebuffer(
-          device, vkh::FramebufferCreateInfo(renderPass, {colorView, depthStencilView},
-                                             mainWindow->scissor.extent),
-          NULL, &frameBuffer));
+      CHECK_VKR(
+          vkCreateFramebuffer(device,
+                              vkh::FramebufferCreateInfo(renderPass, {colorView, depthStencilView},
+                                                         mainWindow->scissor.extent),
+                              NULL, &frameBuffer));
     }
 
     VkPipeline stencilPipe = VK_NULL_HANDLE;
@@ -334,7 +339,8 @@ void main()
       stencilPipeCreateInfo.vertexInputState.vertexBindingDescriptions = {
           vkh::vertexBind(0, DefaultA2V)};
       stencilPipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-          vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+          vkh::vertexAttr(0, 0, DefaultA2V, pos),
+          vkh::vertexAttr(1, 0, DefaultA2V, col),
           vkh::vertexAttr(2, 0, DefaultA2V, uv),
       };
       stencilPipeCreateInfo.stages = {
@@ -361,7 +367,8 @@ void main()
       depthPipeCreateInfo.vertexInputState.vertexBindingDescriptions = {
           vkh::vertexBind(0, DefaultA2V)};
       depthPipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-          vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+          vkh::vertexAttr(0, 0, DefaultA2V, pos),
+          vkh::vertexAttr(1, 0, DefaultA2V, col),
           vkh::vertexAttr(2, 0, DefaultA2V, uv),
       };
       depthPipeCreateInfo.stages = {
@@ -388,7 +395,8 @@ void main()
       inputAttPipeCreateInfo.vertexInputState.vertexBindingDescriptions = {
           vkh::vertexBind(0, DefaultA2V)};
       inputAttPipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-          vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+          vkh::vertexAttr(0, 0, DefaultA2V, pos),
+          vkh::vertexAttr(1, 0, DefaultA2V, col),
           vkh::vertexAttr(2, 0, DefaultA2V, uv),
       };
       inputAttPipeCreateInfo.stages = {
@@ -415,7 +423,8 @@ void main()
       colorPipeCreateInfo.vertexInputState.vertexBindingDescriptions = {
           vkh::vertexBind(0, DefaultA2V)};
       colorPipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-          vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+          vkh::vertexAttr(0, 0, DefaultA2V, pos),
+          vkh::vertexAttr(1, 0, DefaultA2V, col),
           vkh::vertexAttr(2, 0, DefaultA2V, uv),
       };
       colorPipeCreateInfo.stages = {
@@ -455,8 +464,9 @@ void main()
           });
 
       vkCmdBeginRenderPass(
-          cmd, vkh::RenderPassBeginInfo(renderPass, frameBuffer, mainWindow->scissor,
-                                        {vkh::ClearValue(1, 0, 1, 1), vkh::ClearValue(1.0f, 0)}),
+          cmd,
+          vkh::RenderPassBeginInfo(renderPass, frameBuffer, mainWindow->scissor,
+                                   {vkh::ClearValue(1, 0, 1, 1), vkh::ClearValue(1.0f, 0)}),
           VK_SUBPASS_CONTENTS_INLINE);
       vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
       vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);

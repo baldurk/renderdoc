@@ -1256,8 +1256,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetBehaviorHi
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT OutputWidth, /* [annotation] */ _In_ UINT OutputHeight,
     /* [annotation] */ _In_ DXGI_FORMAT OutputFormat, /* [annotation] */ _In_ UINT StreamCount,
-    /* [annotation] */ _In_reads_(StreamCount)
-        const D3D11_VIDEO_PROCESSOR_STREAM_BEHAVIOR_HINT *pStreams,
+    /* [annotation] */ _In_reads_(StreamCount) const D3D11_VIDEO_PROCESSOR_STREAM_BEHAVIOR_HINT *pStreams,
     /* [annotation] */ _Out_ UINT *pBehaviorHints)
 {
   if(!m_pReal1)
@@ -1319,8 +1318,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::DecoderBeginFrame1(
     /* [annotation] */ _In_ ID3D11VideoDecoder *pDecoder,
     /* [annotation] */ _In_ ID3D11VideoDecoderOutputView *pView, UINT ContentKeySize,
     /* [annotation] */ _In_reads_bytes_opt_(ContentKeySize) const void *pContentKey,
-    /* [annotation] */ _In_range_(0, D3D11_4_VIDEO_DECODER_MAX_HISTOGRAM_COMPONENTS)
-        UINT NumComponentHistograms,
+    /* [annotation] */ _In_range_(0, D3D11_4_VIDEO_DECODER_MAX_HISTOGRAM_COMPONENTS) UINT NumComponentHistograms,
     /* [annotation] */ _In_reads_opt_(NumComponentHistograms) const UINT *pHistogramOffsets,
     /* [annotation] */ _In_reads_opt_(NumComponentHistograms) ID3D11Buffer *const *ppHistogramBuffers)
 {

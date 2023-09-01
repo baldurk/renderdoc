@@ -159,13 +159,13 @@ void main()
                   fmt == VK_FORMAT_D24_UNORM_S8_UINT || fmt == VK_FORMAT_D16_UNORM ||
                   fmt == VK_FORMAT_S8_UINT);
 
-    return AllocatedImage(
-        this, vkh::ImageCreateInfo(width, height, 0, fmt,
-                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                                       (depth ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
-                                              : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT),
-                                   1, arraySlices, (VkSampleCountFlagBits)samples),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    return AllocatedImage(this,
+                          vkh::ImageCreateInfo(width, height, 0, fmt,
+                                               VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                                                   (depth ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+                                                          : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT),
+                                               1, arraySlices, (VkSampleCountFlagBits)samples),
+                          VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
   }
 
   void Prepare(int argc, char **argv)
@@ -286,9 +286,9 @@ void main()
     // create depth-stencil image
     AllocatedImage depthimg(
         this,
-        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
-                             depthStencilFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
-                                                     VK_IMAGE_USAGE_TRANSFER_DST_BIT),
+        vkh::ImageCreateInfo(
+            mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0, depthStencilFormat,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView depthview = createImageView(vkh::ImageViewCreateInfo(
@@ -351,9 +351,10 @@ void main()
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedImage msaaimg(
-        this, vkh::ImageCreateInfo(mainWindow->scissor.extent.width,
-                                   mainWindow->scissor.extent.height, 0, mainWindow->format,
-                                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, 1, VK_SAMPLE_COUNT_4_BIT),
+        this,
+        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                             mainWindow->format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, 1,
+                             VK_SAMPLE_COUNT_4_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView msaaRTV = createImageView(
@@ -366,8 +367,9 @@ void main()
     cbufferdata[0] = Vec4f(0.0f, 234.0f, 0.0f, 0.0f);
 
     AllocatedBuffer cb(
-        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                       VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
     cb.upload(cbufferdata);
 
@@ -382,17 +384,21 @@ void main()
     VkFramebuffer fb = createFramebuffer(vkh::FramebufferCreateInfo(
         renderPass, {colview, depthview, ignoreview}, mainWindow->scissor.extent));
 
-    AllocatedImage tex1d(this, vkh::ImageCreateInfo(300, 0, 0, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                    VK_IMAGE_USAGE_TRANSFER_DST_BIT, 3, 5),
+    AllocatedImage tex1d(this,
+                         vkh::ImageCreateInfo(300, 0, 0, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                              VK_IMAGE_USAGE_TRANSFER_DST_BIT, 3, 5),
                          VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
-    AllocatedImage tex3d(this, vkh::ImageCreateInfo(300, 300, 15, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                    VK_IMAGE_USAGE_TRANSFER_DST_BIT, 3),
+    AllocatedImage tex3d(this,
+                         vkh::ImageCreateInfo(300, 300, 15, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                              VK_IMAGE_USAGE_TRANSFER_DST_BIT, 3),
                          VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
-    AllocatedImage tex1dsub(this, vkh::ImageCreateInfo(300, 0, 0, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                       VK_IMAGE_USAGE_TRANSFER_DST_BIT, 3, 5),
+    AllocatedImage tex1dsub(this,
+                            vkh::ImageCreateInfo(300, 0, 0, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                 VK_IMAGE_USAGE_TRANSFER_DST_BIT, 3, 5),
                             VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
-    AllocatedImage tex3dsub(this, vkh::ImageCreateInfo(300, 300, 15, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                       VK_IMAGE_USAGE_TRANSFER_DST_BIT, 3),
+    AllocatedImage tex3dsub(this,
+                            vkh::ImageCreateInfo(300, 300, 15, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                 VK_IMAGE_USAGE_TRANSFER_DST_BIT, 3),
                             VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     setName(tex1d.image, "Tex1D: DiscardAll");

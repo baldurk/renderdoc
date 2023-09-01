@@ -1056,8 +1056,7 @@ DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f)
 
     case DXGI_FORMAT_R16G16_TYPELESS: return DXGI_FORMAT_R16G16_FLOAT;
 
-    case DXGI_FORMAT_R32_TYPELESS:
-      return DXGI_FORMAT_R32_FLOAT;
+    case DXGI_FORMAT_R32_TYPELESS: return DXGI_FORMAT_R32_FLOAT;
 
     // maybe not valid casts?
     case DXGI_FORMAT_R24G8_TYPELESS: return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
@@ -1096,7 +1095,7 @@ DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, CompType typeCast)
 {
   switch(f)
   {
-    // these formats have multiple typed formats - use the hint to decide which to use
+      // these formats have multiple typed formats - use the hint to decide which to use
 
     case DXGI_FORMAT_R8_TYPELESS:
     {
@@ -1329,8 +1328,7 @@ DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT f)
     case DXGI_FORMAT_D32_FLOAT:    // maybe not valid cast?
     case DXGI_FORMAT_R32_FLOAT:
     case DXGI_FORMAT_R32_UINT:
-    case DXGI_FORMAT_R32_SINT:
-      return DXGI_FORMAT_R32_TYPELESS;
+    case DXGI_FORMAT_R32_SINT: return DXGI_FORMAT_R32_TYPELESS;
 
     // maybe not valid casts?
     case DXGI_FORMAT_R24G8_TYPELESS:
@@ -3241,8 +3239,16 @@ TEST_CASE("DXGI formats", "[format][d3d]")
 
     int i = 0;
     for(DXGI_FORMAT f : {
-            DXGI_FORMAT_AYUV, DXGI_FORMAT_Y410, DXGI_FORMAT_Y416, DXGI_FORMAT_NV12, DXGI_FORMAT_P010,
-            DXGI_FORMAT_P016, DXGI_FORMAT_YUY2, DXGI_FORMAT_Y210, DXGI_FORMAT_Y216, DXGI_FORMAT_P208,
+            DXGI_FORMAT_AYUV,
+            DXGI_FORMAT_Y410,
+            DXGI_FORMAT_Y416,
+            DXGI_FORMAT_NV12,
+            DXGI_FORMAT_P010,
+            DXGI_FORMAT_P016,
+            DXGI_FORMAT_YUY2,
+            DXGI_FORMAT_Y210,
+            DXGI_FORMAT_Y216,
+            DXGI_FORMAT_P208,
         })
     {
       if(isUnsupportedFormat(f))

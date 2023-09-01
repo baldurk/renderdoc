@@ -292,7 +292,8 @@ void main()
     };
 
     VkDescriptorBindingFlagsEXT bindFlags[3] = {
-        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT, 0,
+        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT,
+        0,
         VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT,
     };
 
@@ -303,15 +304,21 @@ void main()
         vkh::DescriptorSetLayoutCreateInfo(
             {
                 {
-                    0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, DESC_ARRAY1_SIZE,
+                    0,
+                    VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    DESC_ARRAY1_SIZE,
                     VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
                 },
                 {
-                    1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, DESC_ARRAY1_SIZE,
+                    1,
+                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    DESC_ARRAY1_SIZE,
                     VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
                 },
                 {
-                    2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, DESC_ARRAY2_SIZE,
+                    2,
+                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    DESC_ARRAY2_SIZE,
                     VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
                 },
             })
@@ -333,7 +340,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -346,7 +354,8 @@ void main()
         CompileShaderModule(comp, ShaderLang::glsl, ShaderStage::comp, "main");
 
     VkSpecializationMapEntry specmap[2] = {
-        {1, 0 * sizeof(uint32_t), sizeof(uint32_t)}, {2, 1 * sizeof(uint32_t), sizeof(uint32_t)},
+        {1, 0 * sizeof(uint32_t), sizeof(uint32_t)},
+        {2, 1 * sizeof(uint32_t), sizeof(uint32_t)},
     };
 
     uint32_t specvals[2] = {1337, 1338};
@@ -374,15 +383,17 @@ void main()
         {Vec3f(0.5f, -0.5f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, right), Vec2f(1.0f, 0.0f)},
     };
 
-    AllocatedBuffer vb(this, vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+    AllocatedBuffer vb(this,
+                       vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(tri);
 
     AllocatedImage img(
-        this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+        this,
+        vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     setName(img.image, "Colour Tex");
@@ -403,8 +414,9 @@ void main()
     // create an image with black contents for all the indices we aren't using
 
     AllocatedImage badimg(
-        this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+        this,
+        vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     setName(badimg.image, "Black Tex");
@@ -458,17 +470,19 @@ void main()
 
     {
       CHECK_VKR(vkCreateDescriptorPool(
-          device, vkh::DescriptorPoolCreateInfo(
-                      8,
-                      {
-                          {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, DESC_ARRAY2_SIZE * 10},
-                          {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, DESC_ARRAY1_SIZE * 10},
-                      }),
+          device,
+          vkh::DescriptorPoolCreateInfo(
+              8,
+              {
+                  {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, DESC_ARRAY2_SIZE * 10},
+                  {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, DESC_ARRAY1_SIZE * 10},
+              }),
           NULL, &descpool));
 
       CHECK_VKR(vkAllocateDescriptorSets(
-          device, vkh::DescriptorSetAllocateInfo(
-                      descpool, {setlayout, setlayout, setlayout, setlayout, setlayout}),
+          device,
+          vkh::DescriptorSetAllocateInfo(descpool,
+                                         {setlayout, setlayout, setlayout, setlayout, setlayout}),
           descset));
     }
 
@@ -583,16 +597,17 @@ void main()
       vkCmdFillBuffer(cmd, ssbo.buffer, 0, 1024 * 1024, 0);
 
       vkh::cmdPipelineBarrier(
-          cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
-                                             VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
-                                             ssbo.buffer)});
+          cmd, {},
+          {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                    VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                    ssbo.buffer)});
 
       // read the push constants, transform, pass them through the specified buffer to draw below
       vkCmdDispatch(cmd, 1, 1, 1);
 
-      vkh::cmdPipelineBarrier(
-          cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-                                             ssbo.buffer)});
+      vkh::cmdPipelineBarrier(cmd, {},
+                              {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT,
+                                                        VK_ACCESS_SHADER_READ_BIT, ssbo.buffer)});
 
       vkCmdBeginRenderPass(
           cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),

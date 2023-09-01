@@ -99,19 +99,31 @@ enum class ValueSymtabAbbrev
 AbbrevDefinition ValueSymtabAbbrevDefs[] = {
     // Entry8
     {
-        AbbFixed(3), AbbVBR(8), AbbArray(), AbbFixed(8),
+        AbbFixed(3),
+        AbbVBR(8),
+        AbbArray(),
+        AbbFixed(8),
     },
     // Entry7
     {
-        AbbLiteral(ValueSymtabRecord::ENTRY), AbbVBR(8), AbbArray(), AbbFixed(7),
+        AbbLiteral(ValueSymtabRecord::ENTRY),
+        AbbVBR(8),
+        AbbArray(),
+        AbbFixed(7),
     },
     // Entry6
     {
-        AbbLiteral(ValueSymtabRecord::ENTRY), AbbVBR(8), AbbArray(), AbbChar6(),
+        AbbLiteral(ValueSymtabRecord::ENTRY),
+        AbbVBR(8),
+        AbbArray(),
+        AbbChar6(),
     },
     // BBEntry6
     {
-        AbbLiteral(ValueSymtabRecord::BBENTRY), AbbVBR(8), AbbArray(), AbbChar6(),
+        AbbLiteral(ValueSymtabRecord::BBENTRY),
+        AbbVBR(8),
+        AbbArray(),
+        AbbChar6(),
     },
 };
 
@@ -131,15 +143,20 @@ enum class ConstantsAbbrev
 AbbrevDefinition ConstantsAbbrevDefs[] = {
     // SetType
     {
-        AbbLiteral(ConstantsRecord::SETTYPE), AbbFixedTypes(),
+        AbbLiteral(ConstantsRecord::SETTYPE),
+        AbbFixedTypes(),
     },
     // Integer
     {
-        AbbLiteral(ConstantsRecord::INTEGER), AbbVBR(8),
+        AbbLiteral(ConstantsRecord::INTEGER),
+        AbbVBR(8),
     },
     // EvalCast
     {
-        AbbLiteral(ConstantsRecord::EVAL_CAST), AbbFixed(4), AbbFixedTypes(), AbbVBR(8),
+        AbbLiteral(ConstantsRecord::EVAL_CAST),
+        AbbFixed(4),
+        AbbFixedTypes(),
+        AbbVBR(8),
     },
     // Null
     {
@@ -150,19 +167,27 @@ AbbrevDefinition ConstantsAbbrevDefs[] = {
 AbbrevDefinition ConstantsGlobalAbbrevDefs[] = {
     // Aggregate
     {
-        AbbLiteral(ConstantsRecord::AGGREGATE), AbbArray(), AbbFixedConstants(),
+        AbbLiteral(ConstantsRecord::AGGREGATE),
+        AbbArray(),
+        AbbFixedConstants(),
     },
     // String
     {
-        AbbLiteral(ConstantsRecord::STRING), AbbArray(), AbbFixed(8),
+        AbbLiteral(ConstantsRecord::STRING),
+        AbbArray(),
+        AbbFixed(8),
     },
     // CString7
     {
-        AbbLiteral(ConstantsRecord::CSTRING), AbbArray(), AbbFixed(7),
+        AbbLiteral(ConstantsRecord::CSTRING),
+        AbbArray(),
+        AbbFixed(7),
     },
     // CString6
     {
-        AbbLiteral(ConstantsRecord::CSTRING), AbbArray(), AbbChar6(),
+        AbbLiteral(ConstantsRecord::CSTRING),
+        AbbArray(),
+        AbbChar6(),
     },
 };
 
@@ -181,19 +206,33 @@ enum class FunctionAbbrev
 AbbrevDefinition FunctionAbbrevDefs[] = {
     // Load
     {
-        AbbLiteral(FunctionRecord::INST_LOAD), AbbVBR(6), AbbFixedTypes(), AbbVBR(4), AbbFixed(1),
+        AbbLiteral(FunctionRecord::INST_LOAD),
+        AbbVBR(6),
+        AbbFixedTypes(),
+        AbbVBR(4),
+        AbbFixed(1),
     },
     // BinOp
     {
-        AbbLiteral(FunctionRecord::INST_BINOP), AbbVBR(6), AbbVBR(6), AbbFixed(4),
+        AbbLiteral(FunctionRecord::INST_BINOP),
+        AbbVBR(6),
+        AbbVBR(6),
+        AbbFixed(4),
     },
     // BinOpFlags
     {
-        AbbLiteral(FunctionRecord::INST_BINOP), AbbVBR(6), AbbVBR(6), AbbFixed(4), AbbFixed(7),
+        AbbLiteral(FunctionRecord::INST_BINOP),
+        AbbVBR(6),
+        AbbVBR(6),
+        AbbFixed(4),
+        AbbFixed(7),
     },
     // Cast
     {
-        AbbLiteral(FunctionRecord::INST_CAST), AbbVBR(6), AbbFixedTypes(), AbbFixed(4),
+        AbbLiteral(FunctionRecord::INST_CAST),
+        AbbVBR(6),
+        AbbFixedTypes(),
+        AbbFixed(4),
     },
     // RetVoid
     {
@@ -201,7 +240,8 @@ AbbrevDefinition FunctionAbbrevDefs[] = {
     },
     // RetValue
     {
-        AbbLiteral(FunctionRecord::INST_RET), AbbVBR(6),
+        AbbLiteral(FunctionRecord::INST_RET),
+        AbbVBR(6),
     },
     // Unreachable
     {
@@ -209,7 +249,11 @@ AbbrevDefinition FunctionAbbrevDefs[] = {
     },
     // GEP
     {
-        AbbLiteral(FunctionRecord::INST_GEP), AbbFixed(1), AbbFixedTypes(), AbbArray(), AbbVBR(6),
+        AbbLiteral(FunctionRecord::INST_GEP),
+        AbbFixed(1),
+        AbbFixedTypes(),
+        AbbArray(),
+        AbbVBR(6),
     },
 };
 
@@ -226,27 +270,42 @@ enum class TypeAbbrev
 AbbrevDefinition TypeAbbrevDefs[] = {
     // Pointer
     {
-        AbbLiteral(TypeRecord::POINTER), AbbFixedTypes(), AbbLiteral(0),
+        AbbLiteral(TypeRecord::POINTER),
+        AbbFixedTypes(),
+        AbbLiteral(0),
     },
     // Function
     {
-        AbbLiteral(TypeRecord::FUNCTION), AbbFixed(1), AbbArray(), AbbFixedTypes(),
+        AbbLiteral(TypeRecord::FUNCTION),
+        AbbFixed(1),
+        AbbArray(),
+        AbbFixedTypes(),
     },
     // AnonStruct
     {
-        AbbLiteral(TypeRecord::STRUCT_ANON), AbbFixed(1), AbbArray(), AbbFixedTypes(),
+        AbbLiteral(TypeRecord::STRUCT_ANON),
+        AbbFixed(1),
+        AbbArray(),
+        AbbFixedTypes(),
     },
     // StructName
     {
-        AbbLiteral(TypeRecord::STRUCT_NAME), AbbArray(), AbbChar6(),
+        AbbLiteral(TypeRecord::STRUCT_NAME),
+        AbbArray(),
+        AbbChar6(),
     },
     // NamedStruct
     {
-        AbbLiteral(TypeRecord::STRUCT_NAMED), AbbFixed(1), AbbArray(), AbbFixedTypes(),
+        AbbLiteral(TypeRecord::STRUCT_NAMED),
+        AbbFixed(1),
+        AbbArray(),
+        AbbFixedTypes(),
     },
     // Array
     {
-        AbbLiteral(TypeRecord::ARRAY), AbbVBR(8), AbbFixedTypes(),
+        AbbLiteral(TypeRecord::ARRAY),
+        AbbVBR(8),
+        AbbFixedTypes(),
     },
 };
 
@@ -260,15 +319,24 @@ enum class MetadataAbbrev
 AbbrevDefinition MetadataAbbrevDefs[] = {
     // String
     {
-        AbbLiteral(MetaDataRecord::STRING_OLD), AbbArray(), AbbFixed(8),
+        AbbLiteral(MetaDataRecord::STRING_OLD),
+        AbbArray(),
+        AbbFixed(8),
     },
     // DebugLocation
     {
-        AbbLiteral(MetaDataRecord::LOCATION), AbbFixed(1), AbbVBR(6), AbbVBR(8), AbbVBR(6), AbbVBR(6),
+        AbbLiteral(MetaDataRecord::LOCATION),
+        AbbFixed(1),
+        AbbVBR(6),
+        AbbVBR(8),
+        AbbVBR(6),
+        AbbVBR(6),
     },
     // Name
     {
-        AbbLiteral(MetaDataRecord::NAME), AbbArray(), AbbFixed(8),
+        AbbLiteral(MetaDataRecord::NAME),
+        AbbArray(),
+        AbbFixed(8),
     },
 };
 
@@ -576,9 +644,7 @@ void BitcodeWriter::AutoRecord(uint32_t record, bool param, uint64_t val)
         // these abbrevs are available in all constants blocks
         case ConstantsRecord::SETTYPE: idx = (uint32_t)ConstantsAbbrev::SetType; break;
         case ConstantsRecord::INTEGER: idx = (uint32_t)ConstantsAbbrev::Integer; break;
-        case ConstantsRecord::EVAL_CAST:
-          idx = (uint32_t)ConstantsAbbrev::EvalCast;
-          break;
+        case ConstantsRecord::EVAL_CAST: idx = (uint32_t)ConstantsAbbrev::EvalCast; break;
         // LLVM doesn't seem to use this abbrev?
         // case ConstantsRecord::CONST_NULL: idx = (uint32_t)ConstantsAbbrev::Null; break;
         default: break;

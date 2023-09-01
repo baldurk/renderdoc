@@ -4659,9 +4659,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
             m_Cmd->HandlePreCallback(list, ActionFlags::Clear | ActionFlags::ClearDepthStencil);
         Unwrap(list)->ClearDepthStencilView(Unwrap(DepthStencilView), ClearFlags, Depth, Stencil,
                                             NumRects, pRects);
-        if(eventId &&
-           m_Cmd->m_ActionCallback->PostMisc(
-               eventId, ActionFlags::Clear | ActionFlags::ClearDepthStencil, list))
+        if(eventId && m_Cmd->m_ActionCallback->PostMisc(
+                          eventId, ActionFlags::Clear | ActionFlags::ClearDepthStencil, list))
         {
           Unwrap(list)->ClearDepthStencilView(Unwrap(DepthStencilView), ClearFlags, Depth, Stencil,
                                               NumRects, pRects);
@@ -4766,9 +4765,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
         uint32_t eventId =
             m_Cmd->HandlePreCallback(list, ActionFlags::Clear | ActionFlags::ClearColor);
         Unwrap(list)->ClearRenderTargetView(Unwrap(RenderTargetView), ColorRGBA, NumRects, pRects);
-        if(eventId &&
-           m_Cmd->m_ActionCallback->PostMisc(eventId, ActionFlags::Clear | ActionFlags::ClearColor,
-                                             list))
+        if(eventId && m_Cmd->m_ActionCallback->PostMisc(
+                          eventId, ActionFlags::Clear | ActionFlags::ClearColor, list))
         {
           Unwrap(list)->ClearRenderTargetView(Unwrap(RenderTargetView), ColorRGBA, NumRects, pRects);
           m_Cmd->m_ActionCallback->PostRemisc(eventId, ActionFlags::Clear | ActionFlags::ClearColor,

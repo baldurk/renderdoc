@@ -207,15 +207,15 @@ public:
   template <typename realtype>
   realtype GetLiveHandle(ResourceId origid)
   {
-    return realtype((uint64_t)(
-        (typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetLiveResource(origid)));
+    return realtype((uint64_t)((
+        typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetLiveResource(origid)));
   }
 
   template <typename realtype>
   realtype GetCurrentHandle(ResourceId id)
   {
-    return realtype((uint64_t)(
-        (typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetCurrentResource(id)));
+    return realtype((uint64_t)((
+        typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetCurrentResource(id)));
   }
 
   // handling memory & image layouts

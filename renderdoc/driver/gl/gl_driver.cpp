@@ -1777,9 +1777,7 @@ void WrappedOpenGL::FreeTargetResource(ResourceId id)
 
     switch(resource.Namespace)
     {
-      case eResShader:
-        glDeleteShader(resource.name);
-        break;
+      case eResShader: glDeleteShader(resource.name); break;
       // a compiled shader could have been promoted to a program if it were a glCreateShaderProgramv
       case eResProgram: glDeleteProgram(resource.name); break;
       default: RDCERR("Unexpected resource type to be freed"); break;
@@ -2496,8 +2494,9 @@ bool WrappedOpenGL::EndFrameCapture(DeviceOwnedWindow devWnd)
     {
       ContextData &ctxdata = GetCtxData();
 
-      RenderText(0.0f, 0.0f, StringFormat::Fmt("Failed to capture frame %u: %s",
-                                               m_CapturedFrames.back().frameNumber, reasonString));
+      RenderText(0.0f, 0.0f,
+                 StringFormat::Fmt("Failed to capture frame %u: %s",
+                                   m_CapturedFrames.back().frameNumber, reasonString));
 
       // swallow all errors we might have inadvertantly caused. This is
       // better than letting an error propagate and maybe screw up the

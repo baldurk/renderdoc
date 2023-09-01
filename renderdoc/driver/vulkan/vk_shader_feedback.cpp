@@ -642,8 +642,8 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
     rdcarray<rdcspv::Id> idxs;
 
     auto fetchOrAddGlobalInput = [&editor, &idxs, &refl, &patchData, &locationGather, &newGlobals](
-        const char *name, ShaderBuiltin builtin, rdcspv::BuiltIn spvBuiltin, rdcspv::Id varType,
-        bool integer) {
+                                     const char *name, ShaderBuiltin builtin,
+                                     rdcspv::BuiltIn spvBuiltin, rdcspv::Id varType, bool integer) {
       rdcspv::Id ret;
 
       rdcspv::Id ptrType = editor.DeclareType(rdcspv::Pointer(varType, rdcspv::StorageClass::Input));
@@ -1681,7 +1681,9 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     VkDescriptorSetLayoutBinding newBindings[] = {
         // output buffer
         {
-            0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
+            0,
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            1,
             VkShaderStageFlags(result.compute ? VK_SHADER_STAGE_COMPUTE_BIT
                                               : VK_SHADER_STAGE_ALL_GRAPHICS),
             NULL,

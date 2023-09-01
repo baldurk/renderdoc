@@ -25,7 +25,7 @@
 #pragma once
 
 // Inline the couple of necessary definitions from dia2.h below
-//#include <dia2.h>
+// #include <dia2.h>
 
 // don't need these
 struct IDiaEnumSymbols;

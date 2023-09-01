@@ -56,7 +56,9 @@ float4 main() : SV_Target0
 
     ID3D11Texture2DPtr rt = MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 1024, 1024).RTV().Mips(6);
     ID3D11RenderTargetViewPtr rtv[4] = {
-        MakeRTV(rt).FirstMip(0), MakeRTV(rt).FirstMip(1), MakeRTV(rt).FirstMip(2),
+        MakeRTV(rt).FirstMip(0),
+        MakeRTV(rt).FirstMip(1),
+        MakeRTV(rt).FirstMip(2),
         MakeRTV(rt).FirstMip(3),
     };
 

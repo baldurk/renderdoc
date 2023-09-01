@@ -1,26 +1,26 @@
 /******************************************************************************
-* The MIT License (MIT)
-*
-* Copyright (c) 2019-2023 Baldur Karlsson
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-******************************************************************************/
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2019-2023 Baldur Karlsson
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
 
 #include "d3d11_helpers.h"
 #include "d3d11_test.h"
@@ -548,62 +548,103 @@ void D3D11ViewCreator::SetupDescriptors()
       {
           // &firstMip, &numMips, &firstSlice, &numSlices
           {
-              NULL, NULL, NULL, NULL,
+              NULL,
+              NULL,
+              NULL,
+              NULL,
           },
           {
-              &desc.srv.Texture1D.MostDetailedMip, &desc.srv.Texture1D.MipLevels, NULL, NULL,
+              &desc.srv.Texture1D.MostDetailedMip,
+              &desc.srv.Texture1D.MipLevels,
+              NULL,
+              NULL,
           },
           {
-              &desc.srv.Texture1DArray.MostDetailedMip, &desc.srv.Texture1DArray.MipLevels,
-              &desc.srv.Texture1DArray.FirstArraySlice, &desc.srv.Texture1DArray.ArraySize,
+              &desc.srv.Texture1DArray.MostDetailedMip,
+              &desc.srv.Texture1DArray.MipLevels,
+              &desc.srv.Texture1DArray.FirstArraySlice,
+              &desc.srv.Texture1DArray.ArraySize,
           },
           {
-              &desc.srv.Texture2D.MostDetailedMip, &desc.srv.Texture2D.MipLevels, NULL, NULL,
+              &desc.srv.Texture2D.MostDetailedMip,
+              &desc.srv.Texture2D.MipLevels,
+              NULL,
+              NULL,
           },
           {
-              &desc.srv.Texture2DArray.MostDetailedMip, &desc.srv.Texture2DArray.MipLevels,
-              &desc.srv.Texture2DArray.FirstArraySlice, &desc.srv.Texture2DArray.ArraySize,
+              &desc.srv.Texture2DArray.MostDetailedMip,
+              &desc.srv.Texture2DArray.MipLevels,
+              &desc.srv.Texture2DArray.FirstArraySlice,
+              &desc.srv.Texture2DArray.ArraySize,
           },
           {
-              NULL, NULL, NULL, NULL,
+              NULL,
+              NULL,
+              NULL,
+              NULL,
           },
           {
-              NULL, NULL, &desc.srv.Texture2DMSArray.FirstArraySlice,
+              NULL,
+              NULL,
+              &desc.srv.Texture2DMSArray.FirstArraySlice,
               &desc.srv.Texture2DMSArray.ArraySize,
           },
           {
-              &desc.srv.Texture3D.MostDetailedMip, &desc.srv.Texture2D.MipLevels, NULL, NULL,
+              &desc.srv.Texture3D.MostDetailedMip,
+              &desc.srv.Texture2D.MipLevels,
+              NULL,
+              NULL,
           },
       },
       // RTV
       {
           // &firstMip, &numMips, &firstSlice, &numSlices
           {
-              NULL, NULL, NULL, NULL,
+              NULL,
+              NULL,
+              NULL,
+              NULL,
           },
           {
-              &desc.rtv.Texture1D.MipSlice, NULL, NULL, NULL,
+              &desc.rtv.Texture1D.MipSlice,
+              NULL,
+              NULL,
+              NULL,
           },
           {
-              &desc.rtv.Texture1DArray.MipSlice, NULL, &desc.rtv.Texture1DArray.FirstArraySlice,
+              &desc.rtv.Texture1DArray.MipSlice,
+              NULL,
+              &desc.rtv.Texture1DArray.FirstArraySlice,
               &desc.rtv.Texture1DArray.ArraySize,
           },
           {
-              &desc.rtv.Texture2D.MipSlice, NULL, NULL, NULL,
+              &desc.rtv.Texture2D.MipSlice,
+              NULL,
+              NULL,
+              NULL,
           },
           {
-              &desc.rtv.Texture2DArray.MipSlice, NULL, &desc.rtv.Texture2DArray.FirstArraySlice,
+              &desc.rtv.Texture2DArray.MipSlice,
+              NULL,
+              &desc.rtv.Texture2DArray.FirstArraySlice,
               &desc.rtv.Texture2DArray.ArraySize,
           },
           {
-              NULL, NULL, NULL, NULL,
+              NULL,
+              NULL,
+              NULL,
+              NULL,
           },
           {
-              NULL, NULL, &desc.rtv.Texture2DMSArray.FirstArraySlice,
+              NULL,
+              NULL,
+              &desc.rtv.Texture2DMSArray.FirstArraySlice,
               &desc.rtv.Texture2DMSArray.ArraySize,
           },
           {
-              &desc.rtv.Texture3D.MipSlice, NULL, &desc.rtv.Texture3D.FirstWSlice,
+              &desc.rtv.Texture3D.MipSlice,
+              NULL,
+              &desc.rtv.Texture3D.FirstWSlice,
               &desc.rtv.Texture3D.WSize,
           },
       },
@@ -611,61 +652,103 @@ void D3D11ViewCreator::SetupDescriptors()
       {
           // &firstMip, &numMips, &firstSlice, &numSlices
           {
-              NULL, NULL, NULL, NULL,
+              NULL,
+              NULL,
+              NULL,
+              NULL,
           },
           {
-              &desc.dsv.Texture1D.MipSlice, NULL, NULL, NULL,
+              &desc.dsv.Texture1D.MipSlice,
+              NULL,
+              NULL,
+              NULL,
           },
           {
-              &desc.dsv.Texture1DArray.MipSlice, NULL, &desc.dsv.Texture1DArray.FirstArraySlice,
+              &desc.dsv.Texture1DArray.MipSlice,
+              NULL,
+              &desc.dsv.Texture1DArray.FirstArraySlice,
               &desc.dsv.Texture1DArray.ArraySize,
           },
           {
-              &desc.dsv.Texture2D.MipSlice, NULL, NULL, NULL,
+              &desc.dsv.Texture2D.MipSlice,
+              NULL,
+              NULL,
+              NULL,
           },
           {
-              &desc.dsv.Texture2DArray.MipSlice, NULL, &desc.dsv.Texture2DArray.FirstArraySlice,
+              &desc.dsv.Texture2DArray.MipSlice,
+              NULL,
+              &desc.dsv.Texture2DArray.FirstArraySlice,
               &desc.dsv.Texture2DArray.ArraySize,
           },
           {
-              NULL, NULL, NULL, NULL,
+              NULL,
+              NULL,
+              NULL,
+              NULL,
           },
           {
-              NULL, NULL, &desc.dsv.Texture2DMSArray.FirstArraySlice,
+              NULL,
+              NULL,
+              &desc.dsv.Texture2DMSArray.FirstArraySlice,
               &desc.dsv.Texture2DMSArray.ArraySize,
           },
           {
-              NULL, NULL, NULL, NULL,
+              NULL,
+              NULL,
+              NULL,
+              NULL,
           },
       },
       // UAV
       {
           // &firstMip, &numMips, &firstSlice, &numSlices
           {
-              NULL, NULL, NULL, NULL,
+              NULL,
+              NULL,
+              NULL,
+              NULL,
           },
           {
-              &desc.uav.Texture1D.MipSlice, NULL, NULL, NULL,
+              &desc.uav.Texture1D.MipSlice,
+              NULL,
+              NULL,
+              NULL,
           },
           {
-              &desc.uav.Texture1DArray.MipSlice, NULL, &desc.uav.Texture1DArray.FirstArraySlice,
+              &desc.uav.Texture1DArray.MipSlice,
+              NULL,
+              &desc.uav.Texture1DArray.FirstArraySlice,
               &desc.uav.Texture1DArray.ArraySize,
           },
           {
-              &desc.uav.Texture2D.MipSlice, NULL, NULL, NULL,
+              &desc.uav.Texture2D.MipSlice,
+              NULL,
+              NULL,
+              NULL,
           },
           {
-              &desc.uav.Texture2DArray.MipSlice, NULL, &desc.uav.Texture2DArray.FirstArraySlice,
+              &desc.uav.Texture2DArray.MipSlice,
+              NULL,
+              &desc.uav.Texture2DArray.FirstArraySlice,
               &desc.uav.Texture2DArray.ArraySize,
           },
           {
-              NULL, NULL, NULL, NULL,
+              NULL,
+              NULL,
+              NULL,
+              NULL,
           },
           {
-              NULL, NULL, NULL, NULL,
+              NULL,
+              NULL,
+              NULL,
+              NULL,
           },
           {
-              &desc.uav.Texture3D.MipSlice, NULL, &desc.uav.Texture3D.FirstWSlice,
+              &desc.uav.Texture3D.MipSlice,
+              NULL,
+              &desc.uav.Texture3D.FirstWSlice,
               &desc.uav.Texture3D.WSize,
           },
       },

@@ -852,10 +852,8 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
           /*StencilEnable =*/FALSE,
           /*StencilReadMask =*/D3D11_DEFAULT_STENCIL_READ_MASK,
           /*StencilWriteMask =*/D3D11_DEFAULT_STENCIL_WRITE_MASK,
-          /*FrontFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP,
-                          D3D11_COMPARISON_ALWAYS},
-          /*BackFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP,
-                         D3D11_COMPARISON_ALWAYS},
+          /*FrontFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS},
+          /*BackFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS},
       };
       ID3D11DepthStencilState *ds = NULL;
 
@@ -1093,10 +1091,8 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
               /*StencilEnable =*/FALSE,
               /*StencilReadMask =*/D3D11_DEFAULT_STENCIL_READ_MASK,
               /*StencilWriteMask =*/D3D11_DEFAULT_STENCIL_WRITE_MASK,
-              /*FrontFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP,
-                              D3D11_COMPARISON_ALWAYS},
-              /*BackFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP,
-                             D3D11_COMPARISON_ALWAYS},
+              /*FrontFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS},
+              /*BackFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS},
           };
           ID3D11DepthStencilState *ds = NULL;
 

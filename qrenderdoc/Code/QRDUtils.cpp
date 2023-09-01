@@ -2574,8 +2574,7 @@ class RDProgressDialog : public QProgressDialog
 public:
   RDProgressDialog(const QString &labelText, QWidget *parent)
       // we add 1 so that the progress value never hits maximum until we are actually finished
-      : QProgressDialog(labelText, QString(), 0, maxProgress + 1, parent),
-        m_Label(this)
+      : QProgressDialog(labelText, QString(), 0, maxProgress + 1, parent), m_Label(this)
   {
     setWindowTitle(tr("Please Wait"));
     setWindowFlags(Qt::CustomizeWindowHint | Qt::Dialog | Qt::WindowTitleHint);
@@ -2743,12 +2742,17 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
 #else
   // try to find a way to run the application elevated.
   const QString graphicalSudo[] = {
-      lit("kdesudo"), lit("gksudo"), lit("beesu"),
+      lit("kdesudo"),
+      lit("gksudo"),
+      lit("beesu"),
   };
 
   // if none of the graphical options, then look for sudo and either
   const QString termEmulator[] = {
-      lit("x-terminal-emulator"), lit("gnome-terminal"), lit("konsole"), lit("xterm"),
+      lit("x-terminal-emulator"),
+      lit("gnome-terminal"),
+      lit("konsole"),
+      lit("xterm"),
   };
 
   for(const QString &sudo : graphicalSudo)
@@ -2840,8 +2844,8 @@ void RevealFilenameInExternalFileBrowser(const QString &filePath)
 {
 #if defined(Q_OS_WIN32)
   // on windows we can ask explorer to highlight the exact file.
-  QProcess::startDetached(lit("explorer.exe"), QStringList() << lit("/select,")
-                                                             << QDir::toNativeSeparators(filePath));
+  QProcess::startDetached(lit("explorer.exe"),
+                          QStringList() << lit("/select,") << QDir::toNativeSeparators(filePath));
 #else
   // on all other platforms, we just use QDesktopServices to invoke the external file browser on the
   // directory and hope that's close enough.

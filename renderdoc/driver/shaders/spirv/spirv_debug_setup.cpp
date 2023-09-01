@@ -924,9 +924,9 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
 
       // fill the interface variable
       auto fillInputCallback = [this, isInput, addSource, ret, &sigNames, &rawName, &sourceName](
-          ShaderVariable &var, const Decorations &curDecorations, const DataType &type,
-          uint64_t location, const rdcstr &accessSuffix) {
-
+                                   ShaderVariable &var, const Decorations &curDecorations,
+                                   const DataType &type, uint64_t location,
+                                   const rdcstr &accessSuffix) {
         if(!var.members.empty())
           return;
 
@@ -1095,9 +1095,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
           bindpoint.bind = (int32_t)bind;
 
           auto cbufferCallback = [this, &bindpoint](
-              ShaderVariable &var, const Decorations &curDecorations, const DataType &type,
-              uint64_t offset, const rdcstr &) {
-
+                                     ShaderVariable &var, const Decorations &curDecorations,
+                                     const DataType &type, uint64_t offset, const rdcstr &) {
             if(!var.members.empty())
               return;
 
@@ -2303,7 +2302,6 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
 
     auto readCallback = [this, bind](ShaderVariable &var, const Decorations &dec,
                                      const DataType &type, uint64_t offset, const rdcstr &) {
-
       // ignore any callbacks we get on the way up for structs/arrays, we don't need it we only read
       // or write at primitive level
       if(!var.members.empty())
@@ -2482,8 +2480,8 @@ void Debugger::WriteThroughPointer(ShaderVariable &ptr, const ShaderVariable &va
     bool rowMajor = checkPointerFlags(ptr, PointerFlags::RowMajorMatrix);
 
     auto writeCallback = [this, bind, matrixStride, rowMajor](
-        const ShaderVariable &var, const Decorations &, const DataType &type, uint64_t offset,
-        const rdcstr &) {
+                             const ShaderVariable &var, const Decorations &, const DataType &type,
+                             uint64_t offset, const rdcstr &) {
       if(!var.members.empty())
         return;
 
@@ -3288,7 +3286,9 @@ void Debugger::RegisterOp(Iter it)
           rdcstr name = strings[dbg.arg<Id>(0)];
           uint32_t tag = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
           const rdcstr tagString[3] = {
-              "class ", "struct ", "union ",
+              "class ",
+              "struct ",
+              "union ",
           };
 
           // don't use arg 2 source - assume the parent is in the same file so it's redundant
@@ -3394,7 +3394,8 @@ void Debugger::RegisterOp(Iter it)
         case ShaderDbg::LocalVariable:
         {
           m_DebugInfo.locals[dbg.result] = {
-              strings[dbg.arg<Id>(0)], &m_DebugInfo.scopes[dbg.arg<Id>(5)],
+              strings[dbg.arg<Id>(0)],
+              &m_DebugInfo.scopes[dbg.arg<Id>(5)],
               &m_DebugInfo.types[dbg.arg<Id>(1)],
           };
 

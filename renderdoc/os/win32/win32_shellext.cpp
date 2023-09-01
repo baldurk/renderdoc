@@ -482,8 +482,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
               case ResourceFormatType::BC7:
                 DecompressBlockBC7(compBlockStart, decompressedBlock, NULL);
                 break;
-              default:
-                return E_NOTIMPL;    // other formats
+              default: return E_NOTIMPL;    // other formats
             }
 
             unsigned char *decompPointer = decompressedBlock;
@@ -543,8 +542,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
                     decompImagePointer[(pixelInStride * 4) + 2] = (unsigned char)(blueF * 255);
                   }
                   break;
-                default:
-                  return E_NOTIMPL;    // other formats
+                default: return E_NOTIMPL;    // other formats
               }
               decompImagePointer += decompressedStride;
             }

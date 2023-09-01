@@ -653,7 +653,10 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
       drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
       FloatVector vertSprite[4] = {
-          activeVertex, activeVertex, activeVertex, activeVertex,
+          activeVertex,
+          activeVertex,
+          activeVertex,
+          activeVertex,
       };
 
       drv.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);

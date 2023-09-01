@@ -90,10 +90,13 @@ static const rdcarray<OpcodeType> opcodeOrder = {
     OPCODE_DCL_SAMPLER,
 
     // sorted by space, then register. Types can be intermixed as a result
-    OPCODE_DCL_RESOURCE, OPCODE_DCL_RESOURCE_RAW, OPCODE_DCL_RESOURCE_STRUCTURED,
+    OPCODE_DCL_RESOURCE,
+    OPCODE_DCL_RESOURCE_RAW,
+    OPCODE_DCL_RESOURCE_STRUCTURED,
 
     // sorted by space, then register. Types can be intermixed as a result
-    OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED, OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW,
+    OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED,
+    OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW,
     OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED,
 
     OPCODE_DCL_FUNCTION_BODY,
@@ -103,15 +106,20 @@ static const rdcarray<OpcodeType> opcodeOrder = {
     OPCODE_DCL_INTERFACE,
 
     // these can be mixed in signature order
-    OPCODE_DCL_INPUT_PS, OPCODE_DCL_INPUT_PS_SIV,
+    OPCODE_DCL_INPUT_PS,
+    OPCODE_DCL_INPUT_PS_SIV,
     // last of the input group
     OPCODE_DCL_INPUT_PS_SGV,
 
     // these can in any order
-    OPCODE_DCL_INPUT, OPCODE_DCL_INPUT_SIV, OPCODE_DCL_INPUT_SGV,
+    OPCODE_DCL_INPUT,
+    OPCODE_DCL_INPUT_SIV,
+    OPCODE_DCL_INPUT_SGV,
 
     // similarly in any order
-    OPCODE_DCL_OUTPUT, OPCODE_DCL_OUTPUT_SIV, OPCODE_DCL_OUTPUT_SGV,
+    OPCODE_DCL_OUTPUT,
+    OPCODE_DCL_OUTPUT_SIV,
+    OPCODE_DCL_OUTPUT_SGV,
 
     OPCODE_DCL_TEMPS,
 
@@ -139,7 +147,8 @@ static const rdcarray<OpcodeType> opcodeOrder = {
     OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT,
 
     // these happen in the separate phase declarations
-    OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT, OPCODE_DCL_HS_JOIN_PHASE_INSTANCE_COUNT,
+    OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT,
+    OPCODE_DCL_HS_JOIN_PHASE_INSTANCE_COUNT,
 };
 
 size_t ProgramEditor::GetDeclarationPosition(OpcodeType op)

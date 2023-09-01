@@ -236,11 +236,12 @@ void main()
     };
 
     // create depth-stencil image
-    AllocatedImage depthimg(this, vkh::ImageCreateInfo(mainWindow->scissor.extent.width,
-                                                       mainWindow->scissor.extent.height, 0,
-                                                       VK_FORMAT_D32_SFLOAT_S8_UINT,
-                                                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
-                            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    AllocatedImage depthimg(
+        this,
+        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                             VK_FORMAT_D32_SFLOAT_S8_UINT,
+                             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView dsvview = createImageView(vkh::ImageViewCreateInfo(
         depthimg.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT_S8_UINT, {},
@@ -270,17 +271,15 @@ void main()
           renderPass, {mainWindow->GetView(i), dsvview}, mainWindow->scissor.extent));
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
-        {},
-        {
-            vkh::PushConstantRange(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-                                   sizeof(Vec4f) * 2),
-        }));
+        {}, {
+                vkh::PushConstantRange(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                                       sizeof(Vec4f) * 2),
+            }));
 
     VkPipelineLayout layout2 = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
-        {},
-        {
-            vkh::PushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Vec4f) * 2),
-        }));
+        {}, {
+                vkh::PushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Vec4f) * 2),
+            }));
 
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
@@ -289,7 +288,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -339,7 +339,10 @@ void main()
     VkPipeline xfbpipe = VK_NULL_HANDLE;
 
     VkPipelineRasterizationStateStreamCreateInfoEXT rastInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_STREAM_CREATE_INFO_EXT, NULL, 0, 2,
+        VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_STREAM_CREATE_INFO_EXT,
+        NULL,
+        0,
+        2,
     };
 
     VkBufferUsageFlags xfbUsage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -377,8 +380,9 @@ void main()
     };
 
     AllocatedBuffer cb(
-        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                       VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     cb.upload(cbufferdata);
@@ -397,8 +401,9 @@ void main()
                            vkh::ImageSubresourceRange());
 
       vkCmdBeginRenderPass(
-          cmd, vkh::RenderPassBeginInfo(renderPass, fbs[mainWindow->imgIndex], mainWindow->scissor,
-                                        {{}, vkh::ClearValue(1.0f, 0)}),
+          cmd,
+          vkh::RenderPassBeginInfo(renderPass, fbs[mainWindow->imgIndex], mainWindow->scissor,
+                                   {{}, vkh::ClearValue(1.0f, 0)}),
           VK_SUBPASS_CONTENTS_INLINE);
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
@@ -458,10 +463,14 @@ void main()
       if(xfbpipe != VK_NULL_HANDLE)
       {
         VkBuffer bufs[3] = {
-            xfbBuf.buffer, xfbBuf.buffer, xfbBuf.buffer,
+            xfbBuf.buffer,
+            xfbBuf.buffer,
+            xfbBuf.buffer,
         };
         VkDeviceSize offs[3] = {
-            0, 1024, 2048,
+            0,
+            1024,
+            2048,
         };
 
         vkCmdBindTransformFeedbackBuffersEXT(cmd, 0, 3, bufs, offs, NULL);

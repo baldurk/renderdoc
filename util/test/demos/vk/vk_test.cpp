@@ -1,26 +1,26 @@
 /******************************************************************************
-* The MIT License (MIT)
-*
-* Copyright (c) 2019-2023 Baldur Karlsson
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-******************************************************************************/
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2019-2023 Baldur Karlsson
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
 
 #include "../test_common.h"
 
@@ -649,9 +649,10 @@ bool VulkanGraphicsTest::Init()
   if(debugDevice)
   {
     CHECK_VKR(vkCreateDebugUtilsMessengerEXT(
-        instance, vkh::DebugUtilsMessengerCreateInfoEXT(
-                      &vulkanCallback, NULL, VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT),
+        instance,
+        vkh::DebugUtilsMessengerCreateInfoEXT(&vulkanCallback, NULL,
+                                              VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                                  VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT),
         NULL, &debugUtilsMessenger));
   }
 
@@ -762,7 +763,8 @@ bool VulkanGraphicsTest::Init()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -774,8 +776,9 @@ bool VulkanGraphicsTest::Init()
     DefaultTriPipe = createGraphicsPipeline(pipeCreateInfo);
 
     DefaultTriVB = AllocatedBuffer(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     DefaultTriVB.upload(DefaultTri);
@@ -1246,8 +1249,9 @@ VulkanCommands::VulkanCommands(VulkanGraphicsTest *test)
   m_Test = test;
 
   CHECK_VKR(vkCreateCommandPool(
-      m_Test->device, vkh::CommandPoolCreateInfo(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-                                                 m_Test->queueFamilyIndex),
+      m_Test->device,
+      vkh::CommandPoolCreateInfo(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+                                 m_Test->queueFamilyIndex),
       NULL, &cmdPool));
 }
 
@@ -1506,9 +1510,10 @@ bool VulkanWindow::CreateSwapchain()
   scissor = vkh::Rect2D({0, 0}, {width, height});
 
   CHECK_VKR(vkCreateSwapchainKHR(
-      m_Test->device, vkh::SwapchainCreateInfoKHR(
-                          surface, mode, surfaceFormat, {width, height},
-                          VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT),
+      m_Test->device,
+      vkh::SwapchainCreateInfoKHR(
+          surface, mode, surfaceFormat, {width, height},
+          VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT),
       NULL, &swap));
 
   CHECK_VKR(vkh::getSwapchainImagesKHR(imgs, m_Test->device, swap));

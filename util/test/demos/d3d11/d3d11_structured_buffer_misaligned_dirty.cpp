@@ -86,7 +86,8 @@ float4 main() : SV_Target0
     ID3D11BufferPtr structbuf =
         MakeBuffer().Structured(5 * sizeof(uint32_t)).Data(data).SRV().Mappable();
     ID3D11ShaderResourceViewPtr structbufSRV[2] = {
-        MakeSRV(structbuf), MakeSRV(structbuf).FirstElement(5).NumElements(1),
+        MakeSRV(structbuf),
+        MakeSRV(structbuf).FirstElement(5).NumElements(1),
     };
 
     while(Running())

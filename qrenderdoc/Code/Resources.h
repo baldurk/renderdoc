@@ -122,9 +122,15 @@ public:
   ~Resources();
 
 #undef RESOURCE_DEF
-#define RESOURCE_DEF(name, filename)                               \
-  static const Resource &name() { return resources->name##_data; } \
-  static const Resource &name##_2x() { return resources->name##_2x_data; }
+#define RESOURCE_DEF(name, filename)  \
+  static const Resource &name()       \
+  {                                   \
+    return resources->name##_data;    \
+  }                                   \
+  static const Resource &name##_2x()  \
+  {                                   \
+    return resources->name##_2x_data; \
+  }
   RESOURCE_LIST()
 
 private:
@@ -152,7 +158,10 @@ struct Pixmaps
     else                                           \
       return Resources::name##_2x().pixmap;        \
   }                                                \
-  static const QPixmap &name(QWidget *widget) { return name(widget->devicePixelRatio()); }
+  static const QPixmap &name(QWidget *widget)      \
+  {                                                \
+    return name(widget->devicePixelRatio());       \
+  }
   RESOURCE_LIST()
 };
 
@@ -160,6 +169,9 @@ struct Icons
 {
 #undef RESOURCE_DEF
 #define RESOURCE_DEF(name, filename) \
-  static const QIcon &name() { return Resources::name().icon; }
+  static const QIcon &name()         \
+  {                                  \
+    return Resources::name().icon;   \
+  }
   RESOURCE_LIST()
 };

@@ -278,9 +278,13 @@ static void create(WrappedVulkan *driver, const char *objName, const int line, V
   const VkPipelineColorBlendAttachmentState colAttach = {
       info.blendEnable,
       // colour blending
-      info.srcBlend, info.dstBlend, VK_BLEND_OP_ADD,
+      info.srcBlend,
+      info.dstBlend,
+      VK_BLEND_OP_ADD,
       // alpha blending
-      info.srcBlend, info.dstBlend, VK_BLEND_OP_ADD,
+      info.srcBlend,
+      info.dstBlend,
+      VK_BLEND_OP_ADD,
       // write mask
       info.writeMask,
   };
@@ -536,7 +540,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
     // allocate memory
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, depthmrq.size + mrq.size,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        depthmrq.size + mrq.size,
         driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
     };
 
@@ -566,7 +572,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
         {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
          VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
         {
-            viewAspectMask, 0, 1, 0, 1,
+            viewAspectMask,
+            0,
+            1,
+            0,
+            1,
         },
     };
 
@@ -635,7 +645,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
   };
 
   VkSampleCountFlagBits sampleCounts[] = {
-      VK_SAMPLE_COUNT_2_BIT, VK_SAMPLE_COUNT_4_BIT, VK_SAMPLE_COUNT_8_BIT, VK_SAMPLE_COUNT_16_BIT,
+      VK_SAMPLE_COUNT_2_BIT,
+      VK_SAMPLE_COUNT_4_BIT,
+      VK_SAMPLE_COUNT_8_BIT,
+      VK_SAMPLE_COUNT_16_BIT,
   };
 
   RDCCOMPILE_ASSERT(ARRAY_COUNT(m_DepthArray2MSPipe) == ARRAY_COUNT(formats),
@@ -782,8 +795,16 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
       VkWriteDescriptorSet writes[] = {
           {
-              VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_DiscardSet[i]), 0, 0, 1,
-              VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufInfo, NULL,
+              VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+              NULL,
+              Unwrap(m_DiscardSet[i]),
+              0,
+              0,
+              1,
+              VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+              NULL,
+              &bufInfo,
+              NULL,
           },
       };
 
@@ -938,7 +959,9 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
       m_pDriver->vkFreeMemory(m_Device, m_Custom.TexMem, NULL);
 
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        mrq.size,
         m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
     };
 
@@ -964,7 +987,11 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
       {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
        VK_COMPONENT_SWIZZLE_IDENTITY},
       {
-          VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1,
+          VK_IMAGE_ASPECT_COLOR_BIT,
+          0,
+          1,
+          0,
+          1,
       },
   };
 
@@ -2011,8 +2038,9 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
         baseType = BuiltinShaderBaseType::UInt;
 
       VkAttachmentReference attRef = {
-          0, depth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-                   : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+          0,
+          depth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+                : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
       };
 
       VkAttachmentDescription attDesc = {
@@ -2028,7 +2056,8 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
       };
 
       VkSubpassDescription sub = {
-          0, VK_PIPELINE_BIND_POINT_GRAPHICS,
+          0,
+          VK_PIPELINE_BIND_POINT_GRAPHICS,
       };
 
       if(depth)
@@ -2106,7 +2135,11 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
               {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
                VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
               {
-                  aspectMask, 0, 1, a, 1,
+                  aspectMask,
+                  0,
+                  1,
+                  a,
+                  1,
               },
           };
 
@@ -2170,13 +2203,18 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
     uint32_t pass = 0;
 
     VkImageMemoryBarrier dstimBarrier = {
-        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        NULL,
         VK_ACCESS_ALL_READ_BITS | VK_ACCESS_ALL_WRITE_BITS,
         depth ? (VkAccessFlags)VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
               : (VkAccessFlags)VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        curLayout, depth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-                         : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, Unwrap(image), barrierDiscardRange,
+        curLayout,
+        depth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+              : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
+        Unwrap(image),
+        barrierDiscardRange,
     };
 
     DoPipelineBarrier(cmd, 1, &dstimBarrier);
@@ -2275,7 +2313,9 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
     stage.Unmap();
 
     VkBufferCreateInfo bufInfo = {
-        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
+        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        NULL,
+        0,
         pattern.size() * (PatternBatchWidth / DiscardPatternWidth) *
             (PatternBatchHeight / DiscardPatternHeight),
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -2380,7 +2420,9 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
                   0,
                   {aspectFlags, m, a, 1},
                   {
-                      (int)x, (int)y, (int)z,
+                      (int)x,
+                      (int)y,
+                      (int)z,
                   },
               };
 
@@ -3437,7 +3479,9 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
                           VK_FORMAT_R8G8B8A8_SINT, VK_FORMAT_D16_UNORM};
     VkImageType types[] = {VK_IMAGE_TYPE_1D, VK_IMAGE_TYPE_2D, VK_IMAGE_TYPE_3D, VK_IMAGE_TYPE_2D};
     VkImageViewType viewtypes[] = {
-        VK_IMAGE_VIEW_TYPE_1D_ARRAY, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_VIEW_TYPE_3D,
+        VK_IMAGE_VIEW_TYPE_1D_ARRAY,
+        VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+        VK_IMAGE_VIEW_TYPE_3D,
         VK_IMAGE_VIEW_TYPE_2D_ARRAY,
         driver->GetDeviceEnabledFeatures().imageCubeArray ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY
                                                           : VK_IMAGE_VIEW_TYPE_CUBE,
@@ -3641,7 +3685,11 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
             {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
              VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
             {
-                VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1,
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                0,
+                1,
+                0,
+                1,
             },
         };
 
@@ -3701,7 +3749,9 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     if(DummyBuffer != VK_NULL_HANDLE)
     {
       VkFormat bufViewTypes[] = {
-          VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_UINT, VK_FORMAT_R32G32B32A32_SINT,
+          VK_FORMAT_R32G32B32A32_SFLOAT,
+          VK_FORMAT_R32G32B32A32_UINT,
+          VK_FORMAT_R32G32B32A32_SINT,
       };
       for(size_t i = 0; i < ARRAY_COUNT(bufViewTypes); i++)
       {
@@ -3940,15 +3990,40 @@ void VulkanReplay::MeshRendering::Init(WrappedVulkan *driver, VkDescriptorPool d
 
   Vec4f axisFrustum[] = {
       // axis marker vertices
-      Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f),
-      Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f),
+      Vec4f(0.0f, 0.0f, 0.0f, 1.0f),
+      Vec4f(1.0f, 0.0f, 0.0f, 1.0f),
+      Vec4f(0.0f, 0.0f, 0.0f, 1.0f),
+      Vec4f(0.0f, 1.0f, 0.0f, 1.0f),
+      Vec4f(0.0f, 0.0f, 0.0f, 1.0f),
+      Vec4f(0.0f, 0.0f, 1.0f, 1.0f),
 
       // frustum vertices
-      TLN, TRN, TRN, BRN, BRN, BLN, BLN, TLN,
+      TLN,
+      TRN,
+      TRN,
+      BRN,
+      BRN,
+      BLN,
+      BLN,
+      TLN,
 
-      TLN, TLF, TRN, TRF, BLN, BLF, BRN, BRF,
+      TLN,
+      TLF,
+      TRN,
+      TRF,
+      BLN,
+      BLF,
+      BRN,
+      BRF,
 
-      TLF, TRF, TRF, BRF, BRF, BLF, BLF, TLF,
+      TLF,
+      TRF,
+      TRF,
+      BRF,
+      BRF,
+      BLF,
+      BLF,
+      TLF,
   };
 
   // doesn't need to be ring'd as it's immutable
@@ -4088,7 +4163,9 @@ void VulkanReplay::PixelPicking::Init(WrappedVulkan *driver, VkDescriptorPool de
 
   // allocate readback memory
   VkMemoryAllocateInfo allocInfo = {
-      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+      NULL,
+      mrq.size,
       driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
   };
 
@@ -4108,7 +4185,11 @@ void VulkanReplay::PixelPicking::Init(WrappedVulkan *driver, VkDescriptorPool de
       {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
        VK_COMPONENT_SWIZZLE_IDENTITY},
       {
-          VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1,
+          VK_IMAGE_ASPECT_COLOR_BIT,
+          0,
+          1,
+          0,
+          1,
       },
   };
 
@@ -4186,7 +4267,8 @@ void VulkanReplay::PixelHistory::Init(WrappedVulkan *driver, VkDescriptorPool de
 
   VkResult vkr = VK_SUCCESS;
   VkDescriptorPoolSize descPoolTypes[] = {
-      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 64}, {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32},
+      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 64},
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32},
   };
 
   VkDescriptorPoolCreateInfo descPoolInfo = {
@@ -4409,7 +4491,9 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
 
   // allocate readback memory
   VkMemoryAllocateInfo allocInfo = {
-      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+      NULL,
+      mrq.size,
       driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
   };
 
@@ -4429,7 +4513,11 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
       {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
        VK_COMPONENT_SWIZZLE_IDENTITY},
       {
-          VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1,
+          VK_IMAGE_ASPECT_COLOR_BIT,
+          0,
+          1,
+          0,
+          1,
       },
   };
 
@@ -4458,14 +4546,22 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
 
   VkSubpassDependency deps[2] = {
       {
-          VK_SUBPASS_EXTERNAL, 0, VK_PIPELINE_STAGE_TRANSFER_BIT,
-          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_TRANSFER_READ_BIT,
-          VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0,
+          VK_SUBPASS_EXTERNAL,
+          0,
+          VK_PIPELINE_STAGE_TRANSFER_BIT,
+          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+          VK_ACCESS_TRANSFER_READ_BIT,
+          VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+          0,
       },
       {
-          0, VK_SUBPASS_EXTERNAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-          VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-          VK_ACCESS_TRANSFER_READ_BIT, 0,
+          0,
+          VK_SUBPASS_EXTERNAL,
+          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+          VK_PIPELINE_STAGE_TRANSFER_BIT,
+          VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+          VK_ACCESS_TRANSFER_READ_BIT,
+          0,
       },
   };
 

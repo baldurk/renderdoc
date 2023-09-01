@@ -87,7 +87,10 @@ METALCPP_WRAPPED_PROTOCOLS(DECLARE_OBJC_HELPERS)
 
 #define DECLARE_UNIMPLEMENTED_WRAPPED_CPP_HELPERS(CPPTYPE) \
   class WrappedMTL##CPPTYPE;                               \
-  inline MTL::CPPTYPE *Unwrap(WrappedMTL##CPPTYPE *obj) { return (MTL::CPPTYPE *)obj; }
+  inline MTL::CPPTYPE *Unwrap(WrappedMTL##CPPTYPE *obj)    \
+  {                                                        \
+    return (MTL::CPPTYPE *)obj;                            \
+  }
 METALCPP_UNIMPLEMENTED_WRAPPED_PROTOCOLS(DECLARE_UNIMPLEMENTED_WRAPPED_CPP_HELPERS)
 #undef DECLARE_UNIMPLEMENTED_WRAPPED_CPP_HELPERS
 

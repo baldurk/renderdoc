@@ -186,7 +186,8 @@ OUT main(float3 pos : POSITION, float4 col : COLOR0)
       ID3D12GraphicsCommandList5Ptr cmd5 = cmd;
 
       D3D12_SHADING_RATE_COMBINER combiners[] = {
-          D3D12_SHADING_RATE_COMBINER_MAX, D3D12_SHADING_RATE_COMBINER_MAX,
+          D3D12_SHADING_RATE_COMBINER_MAX,
+          D3D12_SHADING_RATE_COMBINER_MAX,
       };
 
       pushMarker(cmd, "First");

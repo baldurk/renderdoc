@@ -946,8 +946,7 @@ public:
 };
 
 class WrappedID3D11UnorderedAccessView1
-    : public WrappedView1<ID3D11UnorderedAccessView, D3D11_UNORDERED_ACCESS_VIEW_DESC,
-                          ID3D11UnorderedAccessView1>
+    : public WrappedView1<ID3D11UnorderedAccessView, D3D11_UNORDERED_ACCESS_VIEW_DESC, ID3D11UnorderedAccessView1>
 {
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11UnorderedAccessView1);

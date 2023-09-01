@@ -539,9 +539,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilCompareMask(SerialiserType &ser,
                                                          uint32_t compareMask)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask)
-      .TypedAs("VkStencilFaceFlags"_lit)
-      .Important();
+  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask).TypedAs("VkStencilFaceFlags"_lit).Important();
   SERIALISE_ELEMENT(compareMask).Important();
 
   Serialise_DebugMessages(ser);
@@ -607,9 +605,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilWriteMask(SerialiserType &ser,
                                                        uint32_t writeMask)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask)
-      .TypedAs("VkStencilFaceFlags"_lit)
-      .Important();
+  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask).TypedAs("VkStencilFaceFlags"_lit).Important();
   SERIALISE_ELEMENT(writeMask).Important();
 
   Serialise_DebugMessages(ser);
@@ -675,9 +671,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilReference(SerialiserType &ser,
                                                        uint32_t reference)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask)
-      .TypedAs("VkStencilFaceFlags"_lit)
-      .Important();
+  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask).TypedAs("VkStencilFaceFlags"_lit).Important();
   SERIALISE_ELEMENT(reference).Important();
 
   Serialise_DebugMessages(ser);
@@ -742,9 +736,7 @@ bool WrappedVulkan::Serialise_vkCmdSetSampleLocationsEXT(
     const VkSampleLocationsInfoEXT *pSampleLocationsInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_LOCAL(sampleInfo, *pSampleLocationsInfo)
-      .Named("pSampleLocationsInfo"_lit)
-      .Important();
+  SERIALISE_ELEMENT_LOCAL(sampleInfo, *pSampleLocationsInfo).Named("pSampleLocationsInfo"_lit).Important();
 
   Serialise_DebugMessages(ser);
 

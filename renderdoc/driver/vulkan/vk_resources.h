@@ -586,24 +586,27 @@ struct UnwrapHelper
 {
 };
 
-#define UNWRAP_HELPER(vulkantype)                                             \
-  template <>                                                                 \
-  struct UnwrapHelper<vulkantype>                                             \
-  {                                                                           \
-    typedef WrappedVkDispRes ParentType;                                      \
-    enum                                                                      \
-    {                                                                         \
-      DispatchableType = 1                                                    \
-    };                                                                        \
-    typedef CONCAT(Wrapped, vulkantype) Outer;                                \
-    static TypedRealHandle ToTypedHandle(vulkantype real)                     \
-    {                                                                         \
-      TypedRealHandle h;                                                      \
-      h.type = (VkResourceType)Outer::TypeEnum;                               \
-      h.real = RealVkRes((void *)real);                                       \
-      return h;                                                               \
-    }                                                                         \
-    static Outer *FromHandle(vulkantype wrapped) { return (Outer *)wrapped; } \
+#define UNWRAP_HELPER(vulkantype)                         \
+  template <>                                             \
+  struct UnwrapHelper<vulkantype>                         \
+  {                                                       \
+    typedef WrappedVkDispRes ParentType;                  \
+    enum                                                  \
+    {                                                     \
+      DispatchableType = 1                                \
+    };                                                    \
+    typedef CONCAT(Wrapped, vulkantype) Outer;            \
+    static TypedRealHandle ToTypedHandle(vulkantype real) \
+    {                                                     \
+      TypedRealHandle h;                                  \
+      h.type = (VkResourceType)Outer::TypeEnum;           \
+      h.real = RealVkRes((void *)real);                   \
+      return h;                                           \
+    }                                                     \
+    static Outer *FromHandle(vulkantype wrapped)          \
+    {                                                     \
+      return (Outer *)wrapped;                            \
+    }                                                     \
   };
 
 #define UNWRAP_NONDISP_HELPER(vulkantype)                     \

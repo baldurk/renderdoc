@@ -67,26 +67,54 @@ RD_TEST(D3D11_Primitive_Restart, D3D11GraphicsTest)
 
     uint16_t idx[] = {
         // strip 0
-        0, 1, 2, 3, 4, 5, 6, 7,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
 
         // restart
         0xffff,
 
         // strip 1
-        8, 9, 10, 11, 12, 13, 14, 15,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
     };
 
     ID3D11BufferPtr ib = MakeBuffer().Index().Data(idx);
 
     uint16_t idx2[] = {
         // strip 0
-        10, 11, 12, 13, 14, 15, 16, 17,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
 
         // restart
         0xffff,
 
         // strip 1
-        18, 19, 20, 21, 22, 23, 24, 25,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
     };
 
     ID3D11BufferPtr ib2 = MakeBuffer().Index().Data(idx2);

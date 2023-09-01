@@ -311,7 +311,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -476,9 +477,10 @@ void main()
     VkPipeline mspipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedImage submsimg(
-        this, vkh::ImageCreateInfo(mainWindow->scissor.extent.width,
-                                   mainWindow->scissor.extent.height, 0, mainWindow->format,
-                                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, 4, VK_SAMPLE_COUNT_4_BIT),
+        this,
+        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                             mainWindow->format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, 4,
+                             VK_SAMPLE_COUNT_4_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
     setName(submsimg.image, "submsimg");
 
@@ -606,9 +608,10 @@ void main()
 
       {
         setMarker(cmd, "Multisampled: begin renderpass");
-        vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(submsrp, submsfb, mainWindow->scissor,
-                                                           {vkh::ClearValue(0.f, 1.0f, 0.f, 1.0f),
-                                                            vkh::ClearValue(0.f, 0)}),
+        vkCmdBeginRenderPass(cmd,
+                             vkh::RenderPassBeginInfo(
+                                 submsrp, submsfb, mainWindow->scissor,
+                                 {vkh::ClearValue(0.f, 1.0f, 0.f, 1.0f), vkh::ClearValue(0.f, 0)}),
                              VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mspipe);

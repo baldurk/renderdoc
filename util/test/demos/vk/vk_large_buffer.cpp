@@ -44,7 +44,8 @@ RD_TEST(VK_Large_Buffer, VulkanGraphicsTest)
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -64,10 +65,10 @@ RD_TEST(VK_Large_Buffer, VulkanGraphicsTest)
 
     ib.upload(indices);
 
-    AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(128 * 1024 * 1024, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                           VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    AllocatedBuffer vb(this,
+                       vkh::BufferCreateInfo(128 * 1024 * 1024, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     byte *ptr = vb.map();
     if(ptr)
@@ -80,8 +81,9 @@ RD_TEST(VK_Large_Buffer, VulkanGraphicsTest)
     }
     vb.unmap();
 
-    AllocatedImage offimg(this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                     VK_IMAGE_USAGE_TRANSFER_DST_BIT),
+    AllocatedImage offimg(this,
+                          vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                               VK_IMAGE_USAGE_TRANSFER_DST_BIT),
                           VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     while(Running())

@@ -56,7 +56,8 @@ RD_TEST(VK_Int8_IBuffer, VulkanGraphicsTest)
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -99,17 +100,32 @@ RD_TEST(VK_Int8_IBuffer, VulkanGraphicsTest)
 
     uint8_t idx[] = {
         // strip 0
-        0, 1, 2, 3, 4, 5, 6, 7,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
 
         // restart
         0xff,
 
         // strip 1
-        8, 9, 10, 11, 12, 13, 14, 15,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
     };
 
-    AllocatedBuffer ib(this, vkh::BufferCreateInfo(sizeof(idx), VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+    AllocatedBuffer ib(this,
+                       vkh::BufferCreateInfo(sizeof(idx), VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     ib.upload(idx);

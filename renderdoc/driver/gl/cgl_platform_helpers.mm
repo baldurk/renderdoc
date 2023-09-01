@@ -77,14 +77,14 @@ static void IncrementContextLockCount(int contextIndex)
 {
 #if RD_USE_CONTEXT_LOCK_COUNTS
   Atomic::Inc32(s_ContextLocksCount.data() + contextIndex);
-#endif    //#if RD_USE_CONTEXT_LOCK_COUNTS
+#endif    // #if RD_USE_CONTEXT_LOCK_COUNTS
 }
 
 static void DecrementContextLockCount(int contextIndex)
 {
 #if RD_USE_CONTEXT_LOCK_COUNTS
   Atomic::Dec32(s_ContextLocksCount.data() + contextIndex);
-#endif    //#if RD_USE_CONTEXT_LOCK_COUNTS
+#endif    // #if RD_USE_CONTEXT_LOCK_COUNTS
 }
 
 static void LockContext(int contextIndex)
@@ -520,7 +520,7 @@ void NSGL_destroyContext(void *context)
       s_ContextPtrs[contextIndex] = nil;
 #if RD_USE_CONTEXT_LOCK_COUNTS
       RDCASSERT(0 == s_ContextLocksCount[contextIndex]);
-#endif    //#if RD_USE_CONTEXT_LOCK_COUNTS
+#endif    // #if RD_USE_CONTEXT_LOCK_COUNTS
     }
   }
 }

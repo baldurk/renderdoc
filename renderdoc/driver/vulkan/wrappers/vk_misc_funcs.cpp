@@ -2028,9 +2028,7 @@ static ObjData GetObjData(VkObjectType objType, uint64_t object)
     // VkDisplayKHR, VkDisplayModeKHR, and VkValidationCacheEXT are not wrapped
     case VK_OBJECT_TYPE_DISPLAY_KHR:
     case VK_OBJECT_TYPE_DISPLAY_MODE_KHR:
-    case VK_OBJECT_TYPE_VALIDATION_CACHE_EXT:
-      ret.unwrapped = object;
-      break;
+    case VK_OBJECT_TYPE_VALIDATION_CACHE_EXT: ret.unwrapped = object; break;
 
     // debug report callback and messenger are not wrapped in the conventional way
     case VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT:
@@ -2048,9 +2046,7 @@ static ObjData GetObjData(VkObjectType objType, uint64_t object)
     }
 
     // private data slots are not wrapped
-    case VK_OBJECT_TYPE_PRIVATE_DATA_SLOT:
-      ret.unwrapped = object;
-      break;
+    case VK_OBJECT_TYPE_PRIVATE_DATA_SLOT: ret.unwrapped = object; break;
 
     // these objects are not supported
     case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR:

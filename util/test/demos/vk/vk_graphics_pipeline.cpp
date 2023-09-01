@@ -128,12 +128,18 @@ void main()
 
     VkDescriptorSetLayout vsetlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
         {
-            0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,
+            0,
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            1,
+            VK_SHADER_STAGE_VERTEX_BIT,
         },
     }));
     VkDescriptorSetLayout fsetlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
         {
-            0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 16, VK_SHADER_STAGE_FRAGMENT_BIT,
+            0,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            16,
+            VK_SHADER_STAGE_FRAGMENT_BIT,
         },
     }));
 
@@ -178,7 +184,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -264,9 +271,13 @@ void main()
         // blendEnable
         VK_FALSE,
         // color*
-        VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD,
+        VK_BLEND_FACTOR_SRC_ALPHA,
+        VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        VK_BLEND_OP_ADD,
         // alpha*
-        VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD,
+        VK_BLEND_FACTOR_SRC_ALPHA,
+        VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        VK_BLEND_OP_ADD,
         // colorWriteMask
         VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
             VK_COLOR_COMPONENT_A_BIT,
@@ -294,16 +305,18 @@ void main()
     VkPipeline pipe = createGraphicsPipeline(&linkedPipeInfo);
 
     AllocatedImage offimg(
-        this, vkh::ImageCreateInfo(screenWidth, screenHeight, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT),
+        this,
+        vkh::ImageCreateInfo(screenWidth, screenHeight, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView offview = createImageView(vkh::ImageViewCreateInfo(
         offimg.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT));
 
     AllocatedImage depthimg(
-        this, vkh::ImageCreateInfo(screenWidth, screenHeight, 0, VK_FORMAT_D32_SFLOAT_S8_UINT,
-                                   VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
+        this,
+        vkh::ImageCreateInfo(screenWidth, screenHeight, 0, VK_FORMAT_D32_SFLOAT_S8_UINT,
+                             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView dsvview = createImageView(vkh::ImageViewCreateInfo(
@@ -319,12 +332,14 @@ void main()
           renderPass, {mainWindow->GetView(i), offview, dsvview}, mainWindow->scissor.extent));
 
     Vec4f cbufferdata[2] = {
-        Vec4f(-100.0f, -100.0f, 0.0f, 0.0f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f),
+        Vec4f(-100.0f, -100.0f, 0.0f, 0.0f),
+        Vec4f(1.0f, 1.0f, 1.0f, 1.0f),
     };
 
     AllocatedBuffer cb(
-        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                       VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     cb.upload(cbufferdata);
@@ -341,15 +356,17 @@ void main()
     LoadXPM(SmileyTexture, rgba8);
 
     AllocatedImage smiley(
-        this, vkh::ImageCreateInfo(rgba8.width, rgba8.height, 0, VK_FORMAT_R8G8B8A8_UNORM,
-                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+        this,
+        vkh::ImageCreateInfo(rgba8.width, rgba8.height, 0, VK_FORMAT_R8G8B8A8_UNORM,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView smileyview = createImageView(
         vkh::ImageViewCreateInfo(smiley.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM));
 
-    AllocatedBuffer uploadBuf(this, vkh::BufferCreateInfo(rgba8.data.size() * sizeof(uint32_t),
-                                                          VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
+    AllocatedBuffer uploadBuf(this,
+                              vkh::BufferCreateInfo(rgba8.data.size() * sizeof(uint32_t),
+                                                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
                               VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     uploadBuf.upload(rgba8.data.data(), rgba8.data.size() * sizeof(uint32_t));
@@ -376,8 +393,9 @@ void main()
                 });
 
     AllocatedImage badimg(
-        this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+        this,
+        vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     setName(badimg.image, "Black Tex");
@@ -419,8 +437,9 @@ void main()
     }
 
     AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
@@ -433,14 +452,15 @@ void main()
 
       StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
-      vkCmdBeginRenderPass(cmd,
-                           vkh::RenderPassBeginInfo(
-                               renderPass, fbs[mainWindow->imgIndex], mainWindow->scissor,
-                               {
-                                   vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f),
-                                   vkh::ClearValue(0.0f, 0.0f, 0.2f, 1.0f), vkh::ClearValue(1.0f, 0),
-                               }),
-                           VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdBeginRenderPass(
+          cmd,
+          vkh::RenderPassBeginInfo(renderPass, fbs[mainWindow->imgIndex], mainWindow->scissor,
+                                   {
+                                       vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f),
+                                       vkh::ClearValue(0.0f, 0.0f, 0.2f, 1.0f),
+                                       vkh::ClearValue(1.0f, 0),
+                                   }),
+          VK_SUBPASS_CONTENTS_INLINE);
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
       vkCmdPushConstants(cmd, fulllayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4, &idx);

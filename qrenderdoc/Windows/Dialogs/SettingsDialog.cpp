@@ -1030,8 +1030,8 @@ void SettingsDialog::on_editShaderTool_clicked()
   {
     ui->shaderTools->setItem(row, 0, new QTableWidgetItem(tool.name));
     ui->shaderTools->setItem(
-        row, 1, new QTableWidgetItem(
-                    QFormatStr("%1 -> %2").arg(ToQStr(tool.input)).arg(ToQStr(tool.output))));
+        row, 1,
+        new QTableWidgetItem(QFormatStr("%1 -> %2").arg(ToQStr(tool.input)).arg(ToQStr(tool.output))));
     m_Ctx.Config().ShaderProcessors[row] = tool;
     m_Ctx.Config().Save();
   }

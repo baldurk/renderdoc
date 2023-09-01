@@ -758,9 +758,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state,
           case eGL_DOUBLE:
           case eGL_DOUBLE_VEC2:
           case eGL_DOUBLE_VEC3:
-          case eGL_DOUBLE_VEC4:
-            GL.glGetUniformdv(progSrc, srcLocation, dv);
-            break;
+          case eGL_DOUBLE_VEC4: GL.glGetUniformdv(progSrc, srcLocation, dv); break;
 
           // treat all samplers as just an int (since they just store their binding value)
           case eGL_SAMPLER_1D:
@@ -838,9 +836,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state,
           case eGL_INT:
           case eGL_INT_VEC2:
           case eGL_INT_VEC3:
-          case eGL_INT_VEC4:
-            GL.glGetUniformiv(progSrc, srcLocation, iv);
-            break;
+          case eGL_INT_VEC4: GL.glGetUniformiv(progSrc, srcLocation, iv); break;
           // bools are unsigned integers
           case eGL_UNSIGNED_INT:
           case eGL_BOOL:

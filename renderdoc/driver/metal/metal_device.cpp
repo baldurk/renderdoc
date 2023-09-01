@@ -109,8 +109,8 @@ CA::MetalDrawable *hooked_CAMetalLayer_nextDrawable(id self, SEL _cmd)
   RDCASSERTEQUAL(Threading::GetTLSValue(WrappedMTLDevice::g_nextDrawableTLSSlot), 0);
   Threading::SetTLSValue(WrappedMTLDevice::g_nextDrawableTLSSlot, (void *)(uintptr_t) true);
   CA::MetalDrawable *caMtlDrawable =
-      ((CA::MetalDrawable * (*)(id, SEL))WrappedMTLDevice::g_real_CAMetalLayer_nextDrawable)(self,
-                                                                                             _cmd);
+      ((CA::MetalDrawable * (*)(id, SEL)) WrappedMTLDevice::g_real_CAMetalLayer_nextDrawable)(self,
+                                                                                              _cmd);
   device->RegisterDrawableInfo(caMtlDrawable);
   Threading::SetTLSValue(WrappedMTLDevice::g_nextDrawableTLSSlot, (void *)(uintptr_t) false);
   return caMtlDrawable;

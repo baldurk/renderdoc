@@ -201,8 +201,11 @@ VulkanHook VulkanHook::vkhooks;
 // RenderDoc Intercepts, these must all be entry points with a dispatchable object
 // as the first parameter
 
-#define HookDefine1(ret, function, t1, p1) \
-  VKAPI_ATTR ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1) { return CoreDisp(p1)->function(p1); }
+#define HookDefine1(ret, function, t1, p1)                   \
+  VKAPI_ATTR ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1) \
+  {                                                          \
+    return CoreDisp(p1)->function(p1);                       \
+  }
 #define HookDefine2(ret, function, t1, p1, t2, p2)                  \
   VKAPI_ATTR ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2) \
   {                                                                 \
@@ -330,7 +333,8 @@ VK_LAYER_EXPORT VKAPI_ATTR VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumera
       return VK_INCOMPLETE;
 
     const VkLayerProperties layerProperties = {
-        RENDERDOC_VULKAN_LAYER_NAME, VK_API_VERSION_1_0,
+        RENDERDOC_VULKAN_LAYER_NAME,
+        VK_API_VERSION_1_0,
         VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
         "Debugging capture layer for RenderDoc",
     };
@@ -393,12 +397,12 @@ VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties(
 
 // for promoted extensions, we return the function pointer for either name as an alias.
 #undef HookInitPromotedExtension
-#define HookInitPromotedExtension(cond, function, suffix)             \
-  if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||               \
-     !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
-  {                                                                   \
-    if(cond)                                                          \
-      return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);        \
+#define HookInitPromotedExtension(cond, function, suffix)                     \
+  if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||                       \
+             !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
+  {                                                                           \
+    if(cond)                                                                  \
+      return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);                \
   }
 
 // proc addr routines
@@ -486,7 +490,7 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
 
   HookInitVulkanInstanceExts();
 
-// GetInstanceProcAddr must also unconditionally return all device functions
+  // GetInstanceProcAddr must also unconditionally return all device functions
 
 #undef HookInitExtension
 #define HookInitExtension(cond, function)             \
@@ -494,9 +498,9 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
     return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);
 
 #undef HookInitPromotedExtension
-#define HookInitPromotedExtension(cond, function, suffix)             \
-  if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||               \
-     !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
+#define HookInitPromotedExtension(cond, function, suffix)                     \
+  if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||                       \
+             !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
     return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);
 
   HookInitVulkanDevice();
@@ -571,9 +575,9 @@ VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, c
     return NULL;
 
 #undef HookInitPromotedExtension
-#define HookInitPromotedExtension(cond, function, suffix)             \
-  if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||               \
-     !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
+#define HookInitPromotedExtension(cond, function, suffix)                     \
+  if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||                       \
+             !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
     return NULL;
 
   HookInitVulkanInstanceExts();

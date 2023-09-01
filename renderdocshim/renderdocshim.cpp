@@ -46,7 +46,7 @@ typedef void(__cdecl *pINTERNAL_SetDebugLogFile)(const char *logfile);
   } while(0)
 #else
 // define this to something to get logging
-//#define LOGPRINT(txt) OutputDebugStringW(txt)
+// #define LOGPRINT(txt) OutputDebugStringW(txt)
 #define LOGPRINT(txt) \
   do                  \
   {                   \

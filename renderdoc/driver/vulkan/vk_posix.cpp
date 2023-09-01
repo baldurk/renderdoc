@@ -189,7 +189,7 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, rdcarray<rdcstr> &exten
 #elif defined(VK_USE_PLATFORM_METAL_EXT)
               VK_EXT_METAL_SURFACE_EXTENSION_NAME
 #endif
-              );
+      );
 #endif
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -271,7 +271,7 @@ static rdcstr GenerateJSON(const rdcstr &sopath)
   while(idx >= 0)
   {
     json = json.substr(0, idx) + STRINGIZE(RENDERDOC_VERSION_MAJOR) +
-           json.substr(idx + sizeof(majorString) - 1);
+                                           json.substr(idx + sizeof(majorString) - 1);
 
     idx = json.find(majorString);
   }
@@ -282,7 +282,7 @@ static rdcstr GenerateJSON(const rdcstr &sopath)
   while(idx >= 0)
   {
     json = json.substr(0, idx) + STRINGIZE(RENDERDOC_VERSION_MINOR) +
-           json.substr(idx + sizeof(minorString) - 1);
+                                           json.substr(idx + sizeof(minorString) - 1);
 
     idx = json.find(minorString);
   }

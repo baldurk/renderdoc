@@ -181,8 +181,9 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::UpdateTileMappings(
           else
           {
             pageTable.setImageBoxRange(
-                regionStart.Subresource, {regionStart.X * texelShape.x, regionStart.Y * texelShape.y,
-                                          regionStart.Z * texelShape.z},
+                regionStart.Subresource,
+                {regionStart.X * texelShape.x, regionStart.Y * texelShape.y,
+                 regionStart.Z * texelShape.z},
                 {regionSize.Width * texelShape.x, regionSize.Height * texelShape.y,
                  regionSize.Depth * texelShape.z},
                 memId, memoryOffsetInTiles * pageSize, singlePage);

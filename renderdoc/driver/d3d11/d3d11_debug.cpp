@@ -1232,7 +1232,8 @@ void D3D11Replay::MeshRendering::Init(WrappedID3D11Device *device)
   {
     // these elements are just for signature matching sake, so we don't need correct offsets/slots
     D3D11_INPUT_ELEMENT_DESC inputDescSecondary[2] = {
-        {"pos", 0, DXGI_FORMAT_R32G32B32A32_FLOAT}, {"sec", 0, DXGI_FORMAT_R8G8B8A8_UNORM},
+        {"pos", 0, DXGI_FORMAT_R32G32B32A32_FLOAT},
+        {"sec", 0, DXGI_FORMAT_R8G8B8A8_UNORM},
     };
 
     rdcstr meshhlsl = GetEmbeddedResource(mesh_hlsl);

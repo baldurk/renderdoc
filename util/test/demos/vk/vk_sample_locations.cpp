@@ -54,11 +54,12 @@ RD_TEST(VK_Sample_Locations, VulkanGraphicsTest)
 
     // create multi-sampled image
     AllocatedImage msaaimg(
-        this, vkh::ImageCreateInfo(mainWindow->scissor.extent.width,
-                                   mainWindow->scissor.extent.height, 0, mainWindow->format,
-                                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                                       VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                   1, 1, VK_SAMPLE_COUNT_4_BIT),
+        this,
+        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                             mainWindow->format,
+                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                                 VK_IMAGE_USAGE_SAMPLED_BIT,
+                             1, 1, VK_SAMPLE_COUNT_4_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView msview = createImageView(
@@ -95,7 +96,8 @@ RD_TEST(VK_Sample_Locations, VulkanGraphicsTest)
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -119,8 +121,9 @@ RD_TEST(VK_Sample_Locations, VulkanGraphicsTest)
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
@@ -170,10 +173,8 @@ RD_TEST(VK_Sample_Locations, VulkanGraphicsTest)
       float gridDim = sampleProps.sampleLocationCoordinateRange[1];
 
 // rescales from [-8, 8] to [maxGrid[0], maxGrid[1]] in both dimension
-#define SAMPLE_POS(x, y)                                                                     \
-  {                                                                                          \
-    (((x) + 8.0f) / 16.0f) * gridDim + gridBase, (((y) + 8.0f) / 16.0f) * gridDim + gridBase \
-  }
+#define SAMPLE_POS(x, y) \
+  {(((x) + 8.0f) / 16.0f) * gridDim + gridBase, (((y) + 8.0f) / 16.0f) * gridDim + gridBase}
 
       // vertical grid and degenerate
       VkSampleLocationEXT locations1[4] = {

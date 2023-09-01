@@ -331,7 +331,7 @@ void GLHook::RegisterHooks()
 
 #if ENABLED(RDOC_APPLE)
 
-// dlsym is unreliable with interposing, we must fetch the functions directly here at compile-time.
+  // dlsym is unreliable with interposing, we must fetch the functions directly here at compile-time.
 
 #undef APPLE_FUNC
 #define APPLE_FUNC(function) CONCAT(unsupported_real_, function) = &function;

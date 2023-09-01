@@ -1229,19 +1229,40 @@ public:
 
     VkWriteDescriptorSet writeSets[] = {
         {
-            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_DebugData.DescSet),
-            (uint32_t)ShaderDebugBind::Constants, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL,
-            &uniformWriteInfo, NULL,
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            NULL,
+            Unwrap(m_DebugData.DescSet),
+            (uint32_t)ShaderDebugBind::Constants,
+            0,
+            1,
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            NULL,
+            &uniformWriteInfo,
+            NULL,
         },
         {
-            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_DebugData.DescSet),
-            (uint32_t)constParams.dim, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &imageWriteInfo,
-            NULL, NULL,
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            NULL,
+            Unwrap(m_DebugData.DescSet),
+            (uint32_t)constParams.dim,
+            0,
+            1,
+            VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            &imageWriteInfo,
+            NULL,
+            NULL,
         },
         {
-            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_DebugData.DescSet),
-            (uint32_t)ShaderDebugBind::Sampler, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &samplerWriteInfo,
-            NULL, NULL,
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            NULL,
+            Unwrap(m_DebugData.DescSet),
+            (uint32_t)ShaderDebugBind::Sampler,
+            0,
+            1,
+            VK_DESCRIPTOR_TYPE_SAMPLER,
+            &samplerWriteInfo,
+            NULL,
+            NULL,
         },
     };
 
@@ -1409,9 +1430,16 @@ public:
 
     VkWriteDescriptorSet writeSets[] = {
         {
-            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_DebugData.DescSet),
-            (uint32_t)ShaderDebugBind::MathResult, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL,
-            &storageWriteInfo, NULL,
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            NULL,
+            Unwrap(m_DebugData.DescSet),
+            (uint32_t)ShaderDebugBind::MathResult,
+            0,
+            1,
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            NULL,
+            &storageWriteInfo,
+            NULL,
         },
     };
 
@@ -1851,7 +1879,10 @@ private:
     };
 
     const VkPipelineMultisampleStateCreateInfo msaa = {
-        VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, NULL, 0, VK_SAMPLE_COUNT_1_BIT,
+        VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+        NULL,
+        0,
+        VK_SAMPLE_COUNT_1_BIT,
     };
 
     const VkPipelineDepthStencilStateCreateInfo depthStencil = {
@@ -2027,8 +2058,10 @@ private:
     func.add(rdcspv::OpLabel(editor.MakeId()));
 
     rdcspv::Id consts[] = {
-        editor.AddConstantImmediate<uint32_t>(0), editor.AddConstantImmediate<uint32_t>(1),
-        editor.AddConstantImmediate<uint32_t>(2), editor.AddConstantImmediate<uint32_t>(3),
+        editor.AddConstantImmediate<uint32_t>(0),
+        editor.AddConstantImmediate<uint32_t>(1),
+        editor.AddConstantImmediate<uint32_t>(2),
+        editor.AddConstantImmediate<uint32_t>(3),
     };
 
     rdcspv::Id zerof;
@@ -4355,20 +4388,28 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   VkSpecializationMapEntry specMaps[] = {
       {
-          (uint32_t)InputSpecConstant::Address, offsetof(SpecData, bufferAddress), sizeof(uint32_t),
+          (uint32_t)InputSpecConstant::Address,
+          offsetof(SpecData, bufferAddress),
+          sizeof(uint32_t),
       },
       {
-          (uint32_t)InputSpecConstant::ArrayLength, offsetof(SpecData, arrayLength),
+          (uint32_t)InputSpecConstant::ArrayLength,
+          offsetof(SpecData, arrayLength),
           sizeof(SpecData::arrayLength),
       },
       {
-          (uint32_t)InputSpecConstant::DestX, offsetof(SpecData, destX), sizeof(SpecData::destX),
+          (uint32_t)InputSpecConstant::DestX,
+          offsetof(SpecData, destX),
+          sizeof(SpecData::destX),
       },
       {
-          (uint32_t)InputSpecConstant::DestY, offsetof(SpecData, destY), sizeof(SpecData::destY),
+          (uint32_t)InputSpecConstant::DestY,
+          offsetof(SpecData, destY),
+          sizeof(SpecData::destY),
       },
       {
-          (uint32_t)InputSpecConstant::AddressMSB, offsetof(SpecData, bufferAddress) + 4,
+          (uint32_t)InputSpecConstant::AddressMSB,
+          offsetof(SpecData, bufferAddress) + 4,
           sizeof(uint32_t),
       },
   };

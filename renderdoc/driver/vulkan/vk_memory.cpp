@@ -320,7 +320,10 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
     }
 
     VkMemoryAllocateInfo info = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, allocSize * 1024 * 1024, memoryTypeIndex,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        allocSize * 1024 * 1024,
+        memoryTypeIndex,
     };
 
     if(ret.size > info.allocationSize)

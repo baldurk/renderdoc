@@ -1,26 +1,26 @@
 /******************************************************************************
-* The MIT License (MIT)
-*
-* Copyright (c) 2019-2023 Baldur Karlsson
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-******************************************************************************/
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2019-2023 Baldur Karlsson
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
 
 #pragma once
 
@@ -265,8 +265,22 @@ struct DeviceQueueCreateInfo : public VkDeviceQueueCreateInfo
   DeviceQueueCreateInfo(uint32_t queueFamilyIndex, uint32_t queueCount,
                         const std::vector<float> &priorities =
                             {
-                                1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                                1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                1.0f,
+                                1.0f,
+                                1.0f,
+                                1.0f,
+                                1.0f,
+                                1.0f,
+                                1.0f,
+                                1.0f,
+                                1.0f,
+                                1.0f,
+                                1.0f,
+                                1.0f,
+                                1.0f,
+                                1.0f,
+                                1.0f,
+                                1.0f,
                             })
       : VkDeviceQueueCreateInfo()
   {
@@ -598,14 +612,12 @@ struct SamplerCreateInfo : public VkSamplerCreateInfo
 
 struct ImageViewCreateInfo : public VkImageViewCreateInfo
 {
-  ImageViewCreateInfo(VkImage image, VkImageViewType viewType, VkFormat format,
-                      VkComponentMapping components = {VK_COMPONENT_SWIZZLE_IDENTITY,
-                                                       VK_COMPONENT_SWIZZLE_IDENTITY,
-                                                       VK_COMPONENT_SWIZZLE_IDENTITY,
-                                                       VK_COMPONENT_SWIZZLE_IDENTITY},
-                      VkImageSubresourceRange subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0,
-                                                                  VK_REMAINING_MIP_LEVELS, 0,
-                                                                  VK_REMAINING_ARRAY_LAYERS})
+  ImageViewCreateInfo(
+      VkImage image, VkImageViewType viewType, VkFormat format,
+      VkComponentMapping components = {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+                                       VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
+      VkImageSubresourceRange subresourceRange = {
+          VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS})
   {
     sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     pNext = NULL;
@@ -1441,17 +1453,21 @@ struct RenderPassCreator : private VkRenderPassCreateInfo
 
     subpasses.push_back({
         // flags
-        0, VK_PIPELINE_BIND_POINT_GRAPHICS,
+        0,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
         // input attachments
-        (uint32_t)inputAttachments.size(), input,
+        (uint32_t)inputAttachments.size(),
+        input,
         // color attachments
-        (uint32_t)colorAttachments.size(), color,
+        (uint32_t)colorAttachments.size(),
+        color,
         // resolve attachments
         resolve,
         // depth stencil attachment
         depth,
         // preserve attachments
-        0, NULL,
+        0,
+        NULL,
     });
   }
 
@@ -1587,7 +1603,8 @@ struct RenderPassCreator2 : private VkRenderPassCreateInfo2KHR
     }
 
     subpasses.push_back({
-        VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2_KHR, NULL,
+        VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2_KHR,
+        NULL,
         // flags
         0,
         // pipelineBindPoint
@@ -1595,15 +1612,18 @@ struct RenderPassCreator2 : private VkRenderPassCreateInfo2KHR
         // viewMask
         0,
         // input attachments
-        (uint32_t)inputAttachments.size(), input,
+        (uint32_t)inputAttachments.size(),
+        input,
         // color attachments
-        (uint32_t)colorAttachments.size(), color,
+        (uint32_t)colorAttachments.size(),
+        color,
         // resolve attachments
         resolve,
         // depth stencil attachment
         depth,
         // preserve attachments
-        0, NULL,
+        0,
+        NULL,
     });
   }
 

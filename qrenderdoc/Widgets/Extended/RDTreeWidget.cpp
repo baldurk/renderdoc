@@ -320,7 +320,6 @@ void RDTreeWidgetItem::sort(int column, Qt::SortOrder order)
 
   std::stable_sort(m_children.begin(), m_children.end(),
                    [ctx, column, order](const RDTreeWidgetItem *a, const RDTreeWidgetItem *b) {
-
                      if(a->treeWidget()->m_SortComparison)
                        return a->treeWidget()->m_SortComparison(column, order, a, b);
 

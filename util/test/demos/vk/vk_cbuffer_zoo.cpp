@@ -638,7 +638,8 @@ float4 main() : SV_Target0
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -654,7 +655,8 @@ float4 main() : SV_Target0
     memcpy(&data[1], &btrue, sizeof(btrue));
 
     VkSpecializationMapEntry specmap[2] = {
-        {1, 0, sizeof(float)}, {3, 4, sizeof(VkBool32)},
+        {1, 0, sizeof(float)},
+        {3, 4, sizeof(VkBool32)},
     };
 
     VkSpecializationInfo spec = {};
@@ -673,8 +675,9 @@ float4 main() : SV_Target0
     VkPipeline hlslpipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
@@ -691,8 +694,9 @@ float4 main() : SV_Target0
           Vec4f(float(i * 4 + 0), float(i * 4 + 1), float(i * 4 + 2), float(i * 4 + 3));
 
     AllocatedBuffer cb(
-        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                       VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     cb.upload(cbufferdata);
@@ -716,8 +720,9 @@ float4 main() : SV_Target0
     inlinedata.inline_d.b = 120.0f;
 
     AllocatedBuffer inlinecb(
-        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                       VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     {
@@ -767,8 +772,9 @@ float4 main() : SV_Target0
       VkImage swapimg =
           StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, mainWindow->scissor,
-                                                         {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f)}),
+      vkCmdBeginRenderPass(cmd,
+                           vkh::RenderPassBeginInfo(renderPass, framebuffer, mainWindow->scissor,
+                                                    {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f)}),
                            VK_SUBPASS_CONTENTS_INLINE);
 
       vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});

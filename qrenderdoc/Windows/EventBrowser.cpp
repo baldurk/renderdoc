@@ -1422,13 +1422,13 @@ public:
 #define STRINGIZE(a) STRINGIZE2(a)
 #endif
 
-#define MAKE_BUILTIN_FILTER(filter_name)                             \
-  m_BuiltinFilters[lit(STRINGIZE(filter_name))].makeFilter = [this]( \
-      QString name, QString parameters, ParseTrace &trace) {         \
-    return filterFunction_##filter_name(name, parameters, trace);    \
-  };                                                                 \
-  m_BuiltinFilters[lit(STRINGIZE(filter_name))].description =        \
-      filterDescription_##filter_name().trimmed();
+#define MAKE_BUILTIN_FILTER(filter_name)                                               \
+  m_BuiltinFilters[lit(STRINGIZE(filter_name))].makeFilter =                           \
+                       [this](QString name, QString parameters, ParseTrace &trace) {   \
+                         return filterFunction_##filter_name(name, parameters, trace); \
+                       };                                                              \
+  m_BuiltinFilters[lit(STRINGIZE(filter_name))].description =                          \
+                       filterDescription_##filter_name().trimmed();
 
       MAKE_BUILTIN_FILTER(regex);
       MAKE_BUILTIN_FILTER(param);
@@ -1514,15 +1514,13 @@ public:
   {
     if(m_BuiltinFilters.contains(name))
     {
-      qCritical() << "Registering filter function" << QString(name)
-                  << "which is a builtin function.";
+      qCritical() << "Registering filter function" << QString(name) << "which is a builtin function.";
       return false;
     }
 
     if(m_CustomFilters[name].filter != NULL)
     {
-      qCritical() << "Registering filter function" << QString(name)
-                  << "which is already registered.";
+      qCritical() << "Registering filter function" << QString(name) << "which is already registered.";
       return false;
     }
 
@@ -1818,7 +1816,6 @@ searched for as a case-insensitive substring.
         return RichResourceTextFormat(*ctx, SDObject2Variant(o, false))
             .contains(paramValue, Qt::CaseInsensitive);
       }
-
     };
   }
 
@@ -2018,10 +2015,21 @@ and these can be queried with a filter such as <code>$action(flags & Clear|Clear
 
     if(tokens.size() <= 1)
       return {
-          "EID", "actionId", "numIndices",
+          "EID",
+          "actionId",
+          "numIndices",
           // most aliases we don't autocomplete but this one we leave
-          "numVertices", "numInstances", "baseVertex", "indexOffset", "vertexOffset",
-          "instanceOffset", "dispatchX", "dispatchY", "dispatchZ", "dispatchSize", "duration",
+          "numVertices",
+          "numInstances",
+          "baseVertex",
+          "indexOffset",
+          "vertexOffset",
+          "instanceOffset",
+          "dispatchX",
+          "dispatchY",
+          "dispatchZ",
+          "dispatchSize",
+          "duration",
           "flags",
       };
 
@@ -2073,14 +2081,19 @@ and these can be queried with a filter such as <code>$action(flags & Clear|Clear
   }
 
     static const NamedProp namedProps[] = {
-        NAMED_PROP("eventid", action->eventId), NAMED_PROP("eid", action->eventId),
-        NAMED_PROP("actionid", action->actionId), NAMED_PROP("numindices", action->numIndices),
-        NAMED_PROP("numindexes", action->numIndices), NAMED_PROP("numvertices", action->numIndices),
-        NAMED_PROP("numvertexes", action->numIndices), NAMED_PROP("indexcount", action->numIndices),
+        NAMED_PROP("eventid", action->eventId),
+        NAMED_PROP("eid", action->eventId),
+        NAMED_PROP("actionid", action->actionId),
+        NAMED_PROP("numindices", action->numIndices),
+        NAMED_PROP("numindexes", action->numIndices),
+        NAMED_PROP("numvertices", action->numIndices),
+        NAMED_PROP("numvertexes", action->numIndices),
+        NAMED_PROP("indexcount", action->numIndices),
         NAMED_PROP("vertexcount", action->numIndices),
         NAMED_PROP("numinstances", action->numInstances),
         NAMED_PROP("instancecount", action->numInstances),
-        NAMED_PROP("basevertex", action->baseVertex), NAMED_PROP("indexoffset", action->indexOffset),
+        NAMED_PROP("basevertex", action->baseVertex),
+        NAMED_PROP("indexoffset", action->indexOffset),
         NAMED_PROP("vertexoffset", action->vertexOffset),
         NAMED_PROP("instanceoffset", action->instanceOffset),
         NAMED_PROP("dispatchx", action->dispatchDimension[0]),
@@ -2183,7 +2196,10 @@ and these can be queried with a filter such as <code>$action(flags & Clear|Clear
     {
       // deliberately don't allow equality/inequality
       static const QStringList operators = {
-          lit("<"), lit(">"), lit("<="), lit(">="),
+          lit("<"),
+          lit(">"),
+          lit("<="),
+          lit(">="),
       };
 
       int operatorIdx = tokens.size() > 1 ? operators.indexOf(tokens[1].text) : -1;
@@ -2407,13 +2423,15 @@ Otherwise the event is included if it's a dispatch AND if the condition is true.
     };
 
     static const NamedProp namedProps[] = {
-        NAMED_PROP("eventid", action->eventId), NAMED_PROP("eid", action->eventId),
+        NAMED_PROP("eventid", action->eventId),
+        NAMED_PROP("eid", action->eventId),
         NAMED_PROP("actionid", action->actionId),
         NAMED_PROP("dispatchx", action->dispatchDimension[0]),
         NAMED_PROP("dispatchy", action->dispatchDimension[1]),
         NAMED_PROP("dispatchz", action->dispatchDimension[2]),
         NAMED_PROP("x", action->dispatchDimension[0]),
-        NAMED_PROP("y", action->dispatchDimension[1]), NAMED_PROP("z", action->dispatchDimension[2]),
+        NAMED_PROP("y", action->dispatchDimension[1]),
+        NAMED_PROP("z", action->dispatchDimension[2]),
         NAMED_PROP("dispatchsize", action->dispatchDimension[0] * action->dispatchDimension[1] *
                                        action->dispatchDimension[2]),
         NAMED_PROP("size", action->dispatchDimension[0] * action->dispatchDimension[1] *
@@ -2513,7 +2531,10 @@ Otherwise the event is included if it's a dispatch AND if the condition is true.
     {
       // deliberately don't allow equality/inequality
       static const QStringList operators = {
-          lit("<"), lit(">"), lit("<="), lit(">="),
+          lit("<"),
+          lit(">"),
+          lit("<="),
+          lit(">="),
       };
 
       int operatorIdx = tokens.size() > 1 ? operators.indexOf(tokens[1].text) : -1;
@@ -4265,7 +4286,8 @@ strings. These are documented on the left here, but for example
 will include any action that matches "Indexed" as a plain string match, OR
 is an action which renders more than 1000 indices.
 </p>
-)EOD").trimmed());
+)EOD")
+                                                                .trimmed());
                        }
                        else if(f == lit("Literal String"))
                        {
@@ -4285,7 +4307,8 @@ or whitespace, will be case-insensitively matched against the event name. Note t
 this doesn't include all parameters, only those that appear in the name summary.
 For searching arbitrary parameters consider using the <code>$param()</code> function.
 </p>
-)EOD").trimmed());
+)EOD")
+                                                                .trimmed());
                        }
                        else
                        {

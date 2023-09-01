@@ -2782,8 +2782,8 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
   VkBaseInStructure *nextChainTail = infoStruct;
   const VkBaseInStructure *nextInput = (const VkBaseInStructure *)infoStruct->pNext;
 
-// simplified version of UnwrapNextChain which just copies everything. Useful for when we need to
-// shallow duplicate a next chain (e.g. because we'll copy and patch one struct)
+  // simplified version of UnwrapNextChain which just copies everything. Useful for when we need to
+  // shallow duplicate a next chain (e.g. because we'll copy and patch one struct)
 
 #undef COPY_STRUCT_CAPTURE_ONLY
 #define COPY_STRUCT_CAPTURE_ONLY(StructType, StructName)                          \

@@ -246,9 +246,9 @@ struct PixelHistoryShaderCache
     {
       if(m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address)
       {
-        dummybuf.Create(vk, vk->GetDev(), 1024, 1, GPUBuffer::eGPUBufferGPULocal |
-                                                       GPUBuffer::eGPUBufferSSBO |
-                                                       GPUBuffer::eGPUBufferAddressable);
+        dummybuf.Create(vk, vk->GetDev(), 1024, 1,
+                        GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO |
+                            GPUBuffer::eGPUBufferAddressable);
       }
       else
       {
@@ -1313,12 +1313,19 @@ protected:
     if(p.multisampled)
     {
       VkImageMemoryBarrier barrier = {
-          VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+          VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+          NULL,
           VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
               VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT |
               VK_ACCESS_MEMORY_WRITE_BIT,
-          VK_ACCESS_SHADER_READ_BIT, p.srcImageLayout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-          VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, Unwrap(p.srcImage), subresource};
+          VK_ACCESS_SHADER_READ_BIT,
+          p.srcImageLayout,
+          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+          VK_QUEUE_FAMILY_IGNORED,
+          VK_QUEUE_FAMILY_IGNORED,
+          Unwrap(p.srcImage),
+          subresource,
+      };
       SanitiseOldImageLayout(barrier.oldLayout);
       VkDescriptorSet descSet = GetCopyDescriptor(p.srcImage, p.srcImageFormat, baseMip, baseSlice);
 
@@ -1376,12 +1383,19 @@ protected:
       }
 
       VkImageMemoryBarrier barrier = {
-          VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+          VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+          NULL,
           VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
               VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT |
               VK_ACCESS_MEMORY_WRITE_BIT,
-          VK_ACCESS_TRANSFER_READ_BIT, p.srcImageLayout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-          VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, Unwrap(p.srcImage), subresource};
+          VK_ACCESS_TRANSFER_READ_BIT,
+          p.srcImageLayout,
+          VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+          VK_QUEUE_FAMILY_IGNORED,
+          VK_QUEUE_FAMILY_IGNORED,
+          Unwrap(p.srcImage),
+          subresource,
+      };
       SanitiseOldImageLayout(barrier.oldLayout);
       DoPipelineBarrier(cmd, 1, &barrier);
 
@@ -2989,8 +3003,9 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       m_pDriver->ReplayDraw(cmd, *action);
       state.EndRenderPass(cmd);
 
-      CopyImagePixel(cmd, colourCopyParams, (fragsProcessed + f) * sizeof(PerFragmentInfo) +
-                                                offsetof(struct PerFragmentInfo, postMod));
+      CopyImagePixel(cmd, colourCopyParams,
+                     (fragsProcessed + f) * sizeof(PerFragmentInfo) +
+                         offsetof(struct PerFragmentInfo, postMod));
 
       if(depthImage != VK_NULL_HANDLE)
       {
@@ -2998,9 +3013,10 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         depthCopyParams.srcImage = m_CallbackInfo.dsImage;
         depthCopyParams.srcImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         depthCopyParams.srcImageFormat = m_CallbackInfo.dsFormat;
-        CopyImagePixel(cmd, depthCopyParams, (fragsProcessed + f) * sizeof(PerFragmentInfo) +
-                                                 offsetof(struct PerFragmentInfo, postMod) +
-                                                 offsetof(struct PixelHistoryValue, depth));
+        CopyImagePixel(cmd, depthCopyParams,
+                       (fragsProcessed + f) * sizeof(PerFragmentInfo) +
+                           offsetof(struct PerFragmentInfo, postMod) +
+                           offsetof(struct PixelHistoryValue, depth));
       }
     }
 
@@ -3462,7 +3478,9 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
   totalMemorySize = offset + stencilImageMrq.size;
 
   VkMemoryAllocateInfo allocInfo = {
-      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, totalMemorySize,
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+      NULL,
+      totalMemorySize,
       m_pDriver->GetGPULocalMemoryIndex(colorImageMrq.memoryTypeBits),
   };
   vkr = m_pDriver->vkAllocateMemory(m_Device, &allocInfo, NULL, &gpuMem);
@@ -3594,7 +3612,9 @@ bool VulkanDebugManager::PixelHistorySetupPerFragResources(PixelHistoryResources
   VkMemoryRequirements mrq = {};
   m_pDriver->vkGetBufferMemoryRequirements(m_Device, resources.dstBuffer, &mrq);
   VkMemoryAllocateInfo allocInfo = {
-      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+      NULL,
+      mrq.size,
       m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
   };
   vkr = m_pDriver->vkAllocateMemory(m_Device, &allocInfo, NULL, &resources.bufferMemory);

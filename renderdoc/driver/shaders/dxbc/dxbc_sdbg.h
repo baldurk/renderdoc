@@ -60,8 +60,7 @@ namespace DXBC
 // Completely understood
 struct SDBGHeader
 {
-  int32_t
-      version;    // Always 0x00000054 it seems. Probably a version number, might be some other ID
+  int32_t version;    // Always 0x00000054 it seems. Probably a version number, might be some other ID
 
   int32_t compilerSigOffset;    // offset from asciiOffset at the end of this structure.
   int32_t entryFuncOffset;      // offset from asciiOffset at the end of this structure.
@@ -76,9 +75,8 @@ struct SDBGHeader
   CountOffset inputRegisters;    // This lists which bits of which inputs are used - e.g. the
                                  // components in input
                                  // signature elements and cbuffers.
-  CountOffset
-      symbolTable;    // This is a symbol table definitely, also includes 'virtual' symbols to match
-                      // up ASM instructions to lines.
+  CountOffset symbolTable;    // This is a symbol table definitely, also includes 'virtual' symbols
+                              // to match up ASM instructions to lines.
   CountOffset scopes;    // These are scopes - like for structures/functions. Also Globals/Locals
                          // lists of variables
                          // in scope for reference in ASM instructions

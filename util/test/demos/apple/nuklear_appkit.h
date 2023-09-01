@@ -983,8 +983,8 @@ bool nk_appkit_core_initialize(void)
       return event;
     };
 
-    s_state.keyUpMonitor =
-        [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyUp handler:block];
+    s_state.keyUpMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyUp
+                                                                 handler:block];
 
     CreateKeyTables();
 
@@ -1071,8 +1071,9 @@ float nk_appkit_drawing_get_text_width(nk_appkit_window *window, const char *tex
 {
   @autoreleasepool
   {
-    NSString *nsString =
-        [[NSString alloc] initWithBytes:(void *)text length:len encoding:NSASCIIStringEncoding];
+    NSString *nsString = [[NSString alloc] initWithBytes:(void *)text
+                                                  length:len
+                                                encoding:NSASCIIStringEncoding];
     NSMutableDictionary *atts = [[NSMutableDictionary alloc] init];
     [atts setObject:s_state.nsFont forKey:NSFontAttributeName];
     NSSize bounds = [nsString sizeWithAttributes:atts];
@@ -1135,8 +1136,9 @@ void nk_appkit_drawing_text(nk_appkit_window *window, short x, short y, u_int16_
   {
     float H = window->nsImage.size.height;
     float y0 = H - y - s_state.fontHeight;
-    NSString *nsString =
-        [[NSString alloc] initWithBytes:(void *)text length:len encoding:NSASCIIStringEncoding];
+    NSString *nsString = [[NSString alloc] initWithBytes:(void *)text
+                                                  length:len
+                                                encoding:NSASCIIStringEncoding];
     NSMutableDictionary *atts = [[NSMutableDictionary alloc] init];
     [atts setObject:s_state.nsFont forKey:NSFontAttributeName];
     [atts setObject:[NSColor colorWithRed:bgR / 255.0f

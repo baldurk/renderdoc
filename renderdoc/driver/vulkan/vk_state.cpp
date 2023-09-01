@@ -95,8 +95,10 @@ void setupRenderingInfo(const VulkanRenderState::DynamicRendering &dynamicRender
   }
 
   structs->fragmentDensity = {
-      VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_DENSITY_MAP_ATTACHMENT_INFO_EXT, NULL,
-      Unwrap(dynamicRendering.fragmentDensityView), dynamicRendering.fragmentDensityLayout,
+      VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_DENSITY_MAP_ATTACHMENT_INFO_EXT,
+      NULL,
+      Unwrap(dynamicRendering.fragmentDensityView),
+      dynamicRendering.fragmentDensityLayout,
   };
 
   if(dynamicRendering.fragmentDensityView != VK_NULL_HANDLE)
@@ -120,8 +122,10 @@ void setupRenderingInfo(const VulkanRenderState::DynamicRendering &dynamicRender
   }
 
   structs->tileOnlyMSAA = {
-      VK_STRUCTURE_TYPE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_INFO_EXT, NULL,
-      dynamicRendering.tileOnlyMSAAEnable, dynamicRendering.tileOnlyMSAASampleCount,
+      VK_STRUCTURE_TYPE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_INFO_EXT,
+      NULL,
+      dynamicRendering.tileOnlyMSAAEnable,
+      dynamicRendering.tileOnlyMSAASampleCount,
   };
 
   if(dynamicRendering.tileOnlyMSAAEnable)

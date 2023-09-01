@@ -458,7 +458,9 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     vt->GetImageMemoryRequirements(Unwrap(device), Unwrap(dsimg), &mrq);
 
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        mrq.size,
         driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
     };
 
@@ -610,7 +612,9 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     vt->GetImageMemoryRequirements(Unwrap(device), Unwrap(bb), &mrq);
 
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        mrq.size,
         driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
     };
 
@@ -727,7 +731,9 @@ void VulkanReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
   vt->GetBufferMemoryRequirements(Unwrap(device), readbackBuf, &mrq);
 
   VkMemoryAllocateInfo allocInfo = {
-      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+      NULL,
+      mrq.size,
       m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
   };
 
@@ -754,7 +760,9 @@ void VulkanReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
       0,
       {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
       {
-          0, 0, 0,
+          0,
+          0,
+          0,
       },
       {outw.width, outw.height, 1},
   };
@@ -1203,11 +1211,13 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
   VkImageBlit blit = {
       {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
       {
-          {0, 0, 0}, {(int32_t)outw.width, (int32_t)outw.height, 1},
+          {0, 0, 0},
+          {(int32_t)outw.width, (int32_t)outw.height, 1},
       },
       {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
       {
-          {0, 0, 0}, {(int32_t)outw.width, (int32_t)outw.height, 1},
+          {0, 0, 0},
+          {(int32_t)outw.width, (int32_t)outw.height, 1},
       },
   };
 

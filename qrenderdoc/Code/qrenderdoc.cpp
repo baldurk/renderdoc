@@ -633,7 +633,6 @@ int main(int argc, char *argv[])
         QObject::connect(
             &py.ctx(), &PythonContext::exception,
             [&pythonExited](const QString &type, const QString &value, int, QList<QString> frames) {
-
               if(type == lit("SystemExit"))
               {
                 pythonExited = true;

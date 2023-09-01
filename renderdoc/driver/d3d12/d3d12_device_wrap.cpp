@@ -901,9 +901,7 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
     SerialiserType &ser, const D3D12_DESCRIPTOR_HEAP_DESC *pDescriptorHeapDesc, REFIID riid,
     void **ppvHeap)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDescriptorHeapDesc)
-      .Named("pDescriptorHeapDesc"_lit)
-      .Important();
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDescriptorHeapDesc).Named("pDescriptorHeapDesc"_lit).Important();
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
   SERIALISE_ELEMENT_LOCAL(pHeap, ((WrappedID3D12DescriptorHeap *)*ppvHeap)->GetResourceID())
       .TypedAs("ID3D12DescriptorHeap *"_lit);

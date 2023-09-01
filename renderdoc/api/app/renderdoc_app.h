@@ -72,7 +72,8 @@ extern "C" {
 // RenderDoc capture options
 //
 
-typedef enum RENDERDOC_CaptureOption {
+typedef enum RENDERDOC_CaptureOption
+{
   // Allow the application to enable vsync
   //
   // Default - enabled
@@ -246,7 +247,8 @@ typedef uint32_t(RENDERDOC_CC *pRENDERDOC_GetCaptureOptionU32)(RENDERDOC_Capture
 // If the option is invalid, -FLT_MAX is returned
 typedef float(RENDERDOC_CC *pRENDERDOC_GetCaptureOptionF32)(RENDERDOC_CaptureOption opt);
 
-typedef enum RENDERDOC_InputButton {
+typedef enum RENDERDOC_InputButton
+{
   // '0' - '9' matches ASCII values
   eRENDERDOC_Key_0 = 0x30,
   eRENDERDOC_Key_1 = 0x31,
@@ -334,7 +336,8 @@ typedef void(RENDERDOC_CC *pRENDERDOC_SetFocusToggleKeys)(RENDERDOC_InputButton 
 // If keys is NULL or num is 0, captures keys will be disabled
 typedef void(RENDERDOC_CC *pRENDERDOC_SetCaptureKeys)(RENDERDOC_InputButton *keys, int num);
 
-typedef enum RENDERDOC_OverlayBits {
+typedef enum RENDERDOC_OverlayBits
+{
   // This single bit controls whether the overlay is enabled or disabled globally
   eRENDERDOC_Overlay_Enabled = 0x1,
 
@@ -570,7 +573,8 @@ typedef void(RENDERDOC_CC *pRENDERDOC_SetCaptureTitle)(const char *title);
 // Note that this means the API returned can be higher than the one you might have requested.
 // e.g. if you are running against a newer RenderDoc that supports 1.0.1, it will be returned
 // instead of 1.0.0. You can check this with the GetAPIVersion entry point
-typedef enum RENDERDOC_Version {
+typedef enum RENDERDOC_Version
+{
   eRENDERDOC_API_Version_1_0_0 = 10000,    // RENDERDOC_API_1_0_0 = 1 00 00
   eRENDERDOC_API_Version_1_0_1 = 10001,    // RENDERDOC_API_1_0_1 = 1 00 01
   eRENDERDOC_API_Version_1_0_2 = 10002,    // RENDERDOC_API_1_0_2 = 1 00 02

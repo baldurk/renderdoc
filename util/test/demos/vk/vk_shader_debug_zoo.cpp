@@ -274,7 +274,8 @@ layout(location = 0, index = 0) out vec4 Color;
 
 #define inout_type in
 
-)EOSHADER" + v2f + R"EOSHADER(
+)EOSHADER" + v2f +
+                            R"EOSHADER(
 
 vec4 varscope_test(int coord, vec2 inpos_param, vec2 inpos_incr_param)
 {
@@ -656,7 +657,7 @@ void main()
       break;
     }
 )EOSHADER"
-                   R"EOSHADER(
+                            R"EOSHADER(
     case 51:
     {
       Color = fwidthFine(vec4(inpos, inposIncreased));
@@ -1023,7 +1024,7 @@ void main()
       break;
     }
 )EOSHADER"
-                   R"EOSHADER(
+                            R"EOSHADER(
     case 102:
     {
       uint a = zerou + 0x0dadbeef;
@@ -1380,7 +1381,7 @@ void main()
     }
 #endif
 )EOSHADER"
-                   R"EOSHADER(
+                            R"EOSHADER(
     case 153:
     {
       vec3 cubeCoord = vec3(1.0f, -0.3f, 0.9f);
@@ -3791,30 +3792,34 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     Texture rgba8;
     LoadXPM(SmileyTexture, rgba8);
 
-    AllocatedImage queryTest(this, vkh::ImageCreateInfo(183, 347, 0, VK_FORMAT_R8G8B8A8_UNORM,
-                                                        VK_IMAGE_USAGE_SAMPLED_BIT, 4, 3),
+    AllocatedImage queryTest(this,
+                             vkh::ImageCreateInfo(183, 347, 0, VK_FORMAT_R8G8B8A8_UNORM,
+                                                  VK_IMAGE_USAGE_SAMPLED_BIT, 4, 3),
                              VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView queryTestView = createImageView(vkh::ImageViewCreateInfo(
         queryTest.image, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_FORMAT_R8G8B8A8_UNORM));
 
     AllocatedImage queryTestMS(
-        this, vkh::ImageCreateInfo(183, 347, 0, VK_FORMAT_R8G8B8A8_UNORM,
-                                   VK_IMAGE_USAGE_SAMPLED_BIT, 1, 5, VK_SAMPLE_COUNT_4_BIT),
+        this,
+        vkh::ImageCreateInfo(183, 347, 0, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, 1,
+                             5, VK_SAMPLE_COUNT_4_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView queryTestMSView = createImageView(vkh::ImageViewCreateInfo(
         queryTestMS.image, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_FORMAT_R8G8B8A8_UNORM));
 
     AllocatedImage smiley(
-        this, vkh::ImageCreateInfo(rgba8.width, rgba8.height, 0, VK_FORMAT_R8G8B8A8_UNORM,
-                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+        this,
+        vkh::ImageCreateInfo(rgba8.width, rgba8.height, 0, VK_FORMAT_R8G8B8A8_UNORM,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView smileyview = createImageView(
         vkh::ImageViewCreateInfo(smiley.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM));
-    AllocatedBuffer uploadBuf(this, vkh::BufferCreateInfo(rgba8.data.size() * sizeof(uint32_t),
-                                                          VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
+    AllocatedBuffer uploadBuf(this,
+                              vkh::BufferCreateInfo(rgba8.data.size() * sizeof(uint32_t),
+                                                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
                               VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     AllocatedImage shadowimg(this,
@@ -3892,9 +3897,10 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     typeDataBuf.upload(typeData.data(), typeData.size());
 
     AllocatedImage randomcube(
-        this, vkh::ImageCreateInfo(rgba8.width, rgba8.height, 0, VK_FORMAT_R8G8B8A8_UNORM,
-                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 1,
-                                   6, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT),
+        this,
+        vkh::ImageCreateInfo(rgba8.width, rgba8.height, 0, VK_FORMAT_R8G8B8A8_UNORM,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 1, 6,
+                             VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView randomcubeview = createImageView(vkh::ImageViewCreateInfo(
@@ -3971,8 +3977,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     Vec4f cbufferdata[64] = {};
 
     AllocatedBuffer cb(
-        this, vkh::BufferCreateInfo(sizeof(cbufferdata) * 2, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(cbufferdata) * 2, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                           VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     cbufferdata[1] = Vec4f(1.1f, 2.2f, 3.3f, 4.4f);
@@ -4018,37 +4025,43 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     cb.upload(cbufferdata);
 
     AllocatedBuffer texbuffer(
-        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT |
-                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT |
+                                                       VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     texbuffer.upload(cbufferdata);
 
     AllocatedBuffer store_buffer(
-        this, vkh::BufferCreateInfo(1024 * sizeof(Vec4f), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(1024 * sizeof(Vec4f), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                        VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
-    AllocatedBuffer atomic_buffer(this, vkh::BufferCreateInfo(texWidth * texHeight * sizeof(Vec4f),
-                                                              VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-                                  VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    AllocatedBuffer atomic_buffer(
+        this,
+        vkh::BufferCreateInfo(texWidth * texHeight * sizeof(Vec4f),
+                              VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     AllocatedBuffer store_texbuffer(
-        this, vkh::BufferCreateInfo(1024 * sizeof(Vec4f), VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT |
-                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(1024 * sizeof(Vec4f), VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT |
+                                                        VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     AllocatedImage store_image(
-        this, vkh::ImageCreateInfo(128, 128, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT),
+        this,
+        vkh::ImageCreateInfo(128, 128, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
     VkImageView store_view = createImageView(vkh::ImageViewCreateInfo(
         store_image.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT));
 
     AllocatedImage atomic_image(
-        this, vkh::ImageCreateInfo(texWidth, texHeight, 0, VK_FORMAT_R32_UINT,
-                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT),
+        this,
+        vkh::ImageCreateInfo(texWidth, texHeight, 0, VK_FORMAT_R32_UINT,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
     VkImageView atomic_view = createImageView(
         vkh::ImageViewCreateInfo(atomic_image.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32_UINT));
@@ -4072,8 +4085,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     setName(atomic_image.image, "atomic_image");
 
     AllocatedImage storezoo_u2D(
-        this, vkh::ImageCreateInfo(16, 16, 0, VK_FORMAT_R32G32B32A32_UINT,
-                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT),
+        this,
+        vkh::ImageCreateInfo(16, 16, 0, VK_FORMAT_R32G32B32A32_UINT,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
     VkImageView storezoo_u2D_view = createImageView(vkh::ImageViewCreateInfo(
         storezoo_u2D.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_UINT));
@@ -4293,8 +4307,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
                                  {0, sizeof(Vec4f) * 16});
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i), &push);
 
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
-                                                         {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),
+      vkCmdBeginRenderPass(cmd,
+                           vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
+                                                    {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),
                            VK_SUBPASS_CONTENTS_INLINE);
 
       pushMarker(cmd, "GLSL1 tests");
@@ -4314,8 +4329,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, asmpipe);
 
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
-                                                         {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),
+      vkCmdBeginRenderPass(cmd,
+                           vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
+                                                    {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),
                            VK_SUBPASS_CONTENTS_INLINE);
 
       pushMarker(cmd, "ASM tests");
@@ -4364,8 +4380,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, glslpipe2);
 
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
-                                                         {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),
+      vkCmdBeginRenderPass(cmd,
+                           vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
+                                                    {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),
                            VK_SUBPASS_CONTENTS_INLINE);
 
       pushMarker(cmd, "GLSL2 tests");

@@ -53,7 +53,6 @@ CommentView::CommentView(ICaptureContext &ctx, QWidget *parent)
   QObject::connect(
       m_commentsEditor, &ScintillaEdit::modified,
       [this](int type, int position, int length, int, const QByteArray &, int, int, int) {
-
         // if there has been a change, restyle the region around the modification. We can't use just
         // word boundaries so search back to the last whitespace character - this means we will
         // restyle at most a line, likely much less.

@@ -1211,8 +1211,7 @@ bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
     case D3D11Chunk::PostExecuteCommandList:
     case D3D11Chunk::PostFinishCommandListSet:
     case D3D11Chunk::SwapDeviceContextState:
-    case D3D11Chunk::SwapchainPresent:
-      return m_pImmediateContext->ProcessChunk(ser, context);
+    case D3D11Chunk::SwapchainPresent: return m_pImmediateContext->ProcessChunk(ser, context);
 
     // no explicit default so that we have compiler warnings if a chunk isn't explicitly handled.
     case D3D11Chunk::Max: break;
@@ -2317,8 +2316,9 @@ bool WrappedID3D11Device::EndFrameCapture(DeviceOwnedWindow devWnd)
         m_TextRenderer->SetOutputWindow(swapper->GetHWND());
 
         m_TextRenderer->RenderText(
-            0.0f, 0.0f, StringFormat::Fmt("Failed to capture frame %u: %s",
-                                          m_CapturedFrames.back().frameNumber, reasonString));
+            0.0f, 0.0f,
+            StringFormat::Fmt("Failed to capture frame %u: %s", m_CapturedFrames.back().frameNumber,
+                              reasonString));
       }
 
       old.ApplyState(m_pImmediateContext);

@@ -138,8 +138,8 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-implementations"
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-- (id<MTLResource>)rootResource
-    API_DEPRECATED("Use parentTexture or buffer instead", macos(10.11, 10.12), ios(8.0, 10.0))
+- (id<MTLResource>)rootResource API_DEPRECATED("Use parentTexture or buffer instead",
+                                               macos(10.11, 10.12), ios(8.0, 10.0))
 {
   return self.real.rootResource;
 }

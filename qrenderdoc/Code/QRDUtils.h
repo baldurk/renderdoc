@@ -110,7 +110,9 @@ struct Rules
 
     switch(config)
     {
-      case std140: { break;
+      case std140:
+      {
+        break;
       }
       case std430:
       {

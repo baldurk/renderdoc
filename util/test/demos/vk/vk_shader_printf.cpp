@@ -126,7 +126,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -141,16 +142,18 @@ void main()
         layout, CompileShaderModule(common + comp, ShaderLang::glsl, ShaderStage::comp, "main")));
 
     AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
 
     VkDeviceSize ssbo_size = 1024;
 
-    AllocatedBuffer ssbo(this, vkh::BufferCreateInfo(ssbo_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+    AllocatedBuffer ssbo(this,
+                         vkh::BufferCreateInfo(ssbo_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                          VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     setName(ssbo.buffer, "SSBO");
@@ -176,9 +179,9 @@ void main()
                            vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
 
-      vkh::cmdPipelineBarrier(
-          cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
-                                             VK_ACCESS_TRANSFER_WRITE_BIT, ssbo.buffer)});
+      vkh::cmdPipelineBarrier(cmd, {},
+                              {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                                        VK_ACCESS_TRANSFER_WRITE_BIT, ssbo.buffer)});
 
       vkCmdFillBuffer(cmd, ssbo.buffer, 0, ssbo_size, 0);
 

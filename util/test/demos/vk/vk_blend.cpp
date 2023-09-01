@@ -82,10 +82,11 @@ RD_TEST(VK_Blend, VulkanGraphicsTest)
       triangles.push_back(TemplateTriangleBlue[2]);
     }
 
-    AllocatedBuffer vb(this, vkh::BufferCreateInfo(sizeof(DefaultA2V) * 3 * NUM_TRIANGLES_TOTAL,
-                                                   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                       VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    AllocatedBuffer vb(
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultA2V) * 3 * NUM_TRIANGLES_TOTAL,
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(triangles.data(), sizeof(DefaultA2V) * 3 * NUM_TRIANGLES_TOTAL);
 
@@ -131,7 +132,8 @@ RD_TEST(VK_Blend, VulkanGraphicsTest)
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 

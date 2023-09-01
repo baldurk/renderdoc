@@ -71,8 +71,7 @@ cbuffer viewportCBuf : register(b0)
 };
 
 [maxvertexcount(3)] void RENDERDOC_TriangleSizeGS(triangle meshV2F input[3],
-                                                  inout TriangleStream<triSizeV2F> TriStream)
-{
+                                                  inout TriangleStream<triSizeV2F> TriStream) {
   triSizeV2F output;
 
   float2 a = input[0].pos.xy / input[0].pos.w;
@@ -100,14 +99,14 @@ cbuffer viewportCBuf : register(b0)
   TriStream.RestartStrip();
 }
 
-float4 RENDERDOC_TriangleSizePS(triSizeV2F IN) : SV_Target0
+float4 RENDERDOC_TriangleSizePS(triSizeV2F IN)
+    : SV_Target0
 {
   return float4(max(IN.pixarea, 0.001f).xxx, 1.0f);
 }
 
 [maxvertexcount(3)] void RENDERDOC_MeshGS(triangle meshV2F input[3],
-                                          inout TriangleStream<meshV2F> TriStream)
-{
+                                          inout TriangleStream<meshV2F> TriStream) {
   meshV2F output;
 
   float4 faceEdgeA = mul(input[1].pos, InvProj) - mul(input[0].pos, InvProj);
@@ -124,7 +123,8 @@ float4 RENDERDOC_TriangleSizePS(triSizeV2F IN) : SV_Target0
   TriStream.RestartStrip();
 }
 
-float4 RENDERDOC_MeshPS(meshV2F IN) : SV_Target0
+float4 RENDERDOC_MeshPS(meshV2F IN)
+    : SV_Target0
 {
   uint type = MeshDisplayFormat;
 
@@ -306,8 +306,8 @@ void defaultPath(uint threadID)
   }
 }
 
-[numthreads(1024, 1, 1)] void RENDERDOC_MeshPickCS(uint3 tid : SV_DispatchThreadID)
-{
+[numthreads(1024, 1, 1)] void RENDERDOC_MeshPickCS(uint3 tid
+                                                   : SV_DispatchThreadID) {
   if(PickMeshMode == MESH_OTHER)
   {
     defaultPath(tid.x);

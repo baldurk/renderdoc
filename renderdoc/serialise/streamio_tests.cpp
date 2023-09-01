@@ -290,7 +290,6 @@ TEST_CASE("Test stream I/O operations over the network", "[streamio][network]")
     uint64_t vals[10] = {1, 6, 0, 5, 3, 8, 7, 9, 2, 4};
 
     sendThread = Threading::CreateThread([&threadA, sender, &writer, &vals]() {
-
       PerformanceTimer timer;
 
       for(int32_t i = 0; i < 128; i++)

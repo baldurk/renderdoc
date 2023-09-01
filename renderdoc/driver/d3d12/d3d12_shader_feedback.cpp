@@ -843,7 +843,8 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       f->instructions.insert(i++, byteOffset);
       byteOffset->type = i32;
       byteOffset->args = {
-          slotPlusBaseClamped, editor.CreateConstant(2U),
+          slotPlusBaseClamped,
+          editor.CreateConstant(2U),
       };
 
       Instruction *atomicOr = editor.CreateInstruction(atomicBinOp);
@@ -977,7 +978,8 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       f->instructions.insert(i++, byteOffset);
       byteOffset->type = i32;
       byteOffset->args = {
-          slotPlusBase, editor.CreateConstant(2U),
+          slotPlusBase,
+          editor.CreateConstant(2U),
       };
 
       uint32_t feedbackValue = magicFeedbackValue | (1 << (uint32_t)handleKind);

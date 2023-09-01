@@ -277,9 +277,10 @@ float4 main(v2f IN) : SV_Target0
         graphicspso[2] = MakePSO().RootSig(graphicssigs[2]).InputLayout().VS(vsblob[2]).PS(psblob[2]);
 
         computepso[3] = computepso[2];
-        graphicssigs[3] = MakeSig({}, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-                                          D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED |
-                                          D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED,
+        graphicssigs[3] = MakeSig({},
+                                  D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+                                      D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED |
+                                      D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED,
                                   0, NULL);
         graphicspso[3] = MakePSO().RootSig(graphicssigs[3]).InputLayout().VS(vsblob[2]).PS(psblob[3]);
       }

@@ -68,7 +68,9 @@ EnvironmentEditor::EnvironmentEditor(QWidget *parent)
   QObject::connect(ui->appendValue, &QRadioButton::toggled, separatorLambda);
 
   ui->separator->addItems({
-      ToQStr(EnvSep::Platform), ToQStr(EnvSep::SemiColon), ToQStr(EnvSep::Colon),
+      ToQStr(EnvSep::Platform),
+      ToQStr(EnvSep::SemiColon),
+      ToQStr(EnvSep::Colon),
       ToQStr(EnvSep::NoSep),
   });
 

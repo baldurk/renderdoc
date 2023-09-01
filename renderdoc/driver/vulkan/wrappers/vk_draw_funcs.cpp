@@ -2400,10 +2400,9 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
             ->CmdClearDepthStencilImage(Unwrap(commandBuffer), Unwrap(image), imageLayout,
                                         &DepthStencil, rangeCount, pRanges);
 
-        if(eventId &&
-           m_ActionCallback->PostMisc(
-               eventId, ActionFlags(ActionFlags::Clear | ActionFlags::ClearDepthStencil),
-               commandBuffer))
+        if(eventId && m_ActionCallback->PostMisc(
+                          eventId, ActionFlags(ActionFlags::Clear | ActionFlags::ClearDepthStencil),
+                          commandBuffer))
         {
           ObjDisp(commandBuffer)
               ->CmdClearDepthStencilImage(Unwrap(commandBuffer), Unwrap(image), imageLayout,

@@ -139,7 +139,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -151,8 +152,9 @@ void main()
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
@@ -166,12 +168,14 @@ void main()
     for(size_t i = 0; i < numBufs; i++)
     {
       val1bufs.push_back(AllocatedBuffer(
-          this, vkh::BufferCreateInfo(sizeof(Vec4f), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                         VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+          this,
+          vkh::BufferCreateInfo(
+              sizeof(Vec4f), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
           VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU})));
       val2bufs.push_back(AllocatedBuffer(
-          this, vkh::BufferCreateInfo(sizeof(Vec4f), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                         VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+          this,
+          vkh::BufferCreateInfo(
+              sizeof(Vec4f), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
           VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU})));
 
       val1bufs.back().upload(&val1, sizeof(Vec4f));
@@ -282,12 +286,13 @@ void main()
       for(size_t r = 0; r < ringSize; r++)
       {
         CHECK_VKR(vkCreateDescriptorPool(
-            device, vkh::DescriptorPoolCreateInfo(
-                        descriptorCount,
-                        {
-                            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, descriptorCount * 3},
-                            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, descriptorCount * 2},
-                        }),
+            device,
+            vkh::DescriptorPoolCreateInfo(
+                descriptorCount,
+                {
+                    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, descriptorCount * 3},
+                    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, descriptorCount * 2},
+                }),
             NULL, &threadData[t].descPools[r]));
       }
 
@@ -305,7 +310,8 @@ void main()
       // temporary std::vector work that is usually worth it for convenience
 
       VkDescriptorBufferInfo bufs[2] = {
-          vkh::DescriptorBufferInfo(VK_NULL_HANDLE), vkh::DescriptorBufferInfo(VK_NULL_HANDLE),
+          vkh::DescriptorBufferInfo(VK_NULL_HANDLE),
+          vkh::DescriptorBufferInfo(VK_NULL_HANDLE),
       };
 
       VkDescriptorImageInfo imInfo[3] = {
@@ -356,8 +362,9 @@ void main()
         vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
 
         vkCmdBeginRenderPass(
-            cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer[threadIndex], mainWindow->scissor,
-                                          {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)}),
+            cmd,
+            vkh::RenderPassBeginInfo(renderPass, framebuffer[threadIndex], mainWindow->scissor,
+                                     {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)}),
             VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);

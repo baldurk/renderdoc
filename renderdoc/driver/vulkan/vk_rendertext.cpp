@@ -185,7 +185,8 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
       VK_LOGIC_OP_NO_OP,
       1,
       &attState,
-      {1.0f, 1.0f, 1.0f, 1.0f}};
+      {1.0f, 1.0f, 1.0f, 1.0f},
+  };
 
   VkDynamicState dynstates[] = {VK_DYNAMIC_STATE_VIEWPORT};
 
@@ -363,7 +364,9 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
 
       // allocate readback memory
       VkMemoryAllocateInfo allocInfo = {
-          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+          NULL,
+          mrq.size,
           driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
       };
 
@@ -480,7 +483,9 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
         0,
         {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
         {
-            0, 0, 0,
+            0,
+            0,
+            0,
         },
         {FONT_TEX_WIDTH, FONT_TEX_HEIGHT, 1},
     };
@@ -573,7 +578,8 @@ void VulkanTextRenderer::BeginText(const TextPrintState &textstate)
       Unwrap(textstate.rp),
       Unwrap(textstate.fb),
       {{
-           0, 0,
+           0,
+           0,
        },
        {textstate.w, textstate.h}},
       1,

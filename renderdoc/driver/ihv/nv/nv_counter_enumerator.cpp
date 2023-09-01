@@ -44,8 +44,7 @@ struct NVCounterEnumerator::Impl
 public:
   nv::perf::MetricsEvaluator Evaluator;
 
-  nv::perf::CounterConfiguration
-      SelectedConfiguration;    // configImage etc. for the current selection
+  nv::perf::CounterConfiguration SelectedConfiguration;    // configImage etc. for the current selection
   rdcarray<GPUCounter> SelectedExternalIds;
   rdcarray<NVPW_MetricEvalRequest> SelectedEvalRequests;
   size_t SelectedNumPasses;
@@ -420,7 +419,9 @@ bool NVCounterEnumerator::InitializeNvPerf()
 {
   rdcstr pluginsFolder = FileIO::GetAppFolderFilename("plugins/nv");
   const char *paths[] = {
-      pluginsFolder.c_str(), "./plugins/nv", ".",
+      pluginsFolder.c_str(),
+      "./plugins/nv",
+      ".",
   };
   NVPW_SetLibraryLoadPaths_Params params{NVPW_SetLibraryLoadPaths_Params_STRUCT_SIZE};
   params.numPaths = sizeof(paths) / sizeof(paths[0]);
@@ -442,7 +443,7 @@ CounterDescription NVCounterEnumerator::LibraryNotFoundMessage()
 #elif ENABLED(RDOC_LINUX)
       "plugins/nv/libnvperf_grfx_host.so"
 #endif
-      );
+  );
   if(pluginPath.empty())
   {
     pluginPath =

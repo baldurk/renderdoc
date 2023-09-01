@@ -385,8 +385,10 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
         SAFE_RELEASE(so.query);
 
         D3D11_QUERY queryTypes[] = {
-            D3D11_QUERY_SO_STATISTICS_STREAM0, D3D11_QUERY_SO_STATISTICS_STREAM1,
-            D3D11_QUERY_SO_STATISTICS_STREAM2, D3D11_QUERY_SO_STATISTICS_STREAM3,
+            D3D11_QUERY_SO_STATISTICS_STREAM0,
+            D3D11_QUERY_SO_STATISTICS_STREAM1,
+            D3D11_QUERY_SO_STATISTICS_STREAM2,
+            D3D11_QUERY_SO_STATISTICS_STREAM3,
         };
 
         D3D11_QUERY_DESC qdesc;
@@ -694,10 +696,7 @@ bool WrappedID3D11DeviceContext::IsFL11_1()
 
 bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk chunk)
 {
-  SERIALISE_ELEMENT(m_CurContextId)
-      .Named("Context"_lit)
-      .TypedAs("ID3D11DeviceContext *"_lit)
-      .Unimportant();
+  SERIALISE_ELEMENT(m_CurContextId).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit).Unimportant();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -899,9 +898,7 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
       ret = Serialise_SwapDeviceContextState(ser, NULL, NULL);
       break;
 
-    case D3D11Chunk::SwapchainPresent:
-      ret = Serialise_Present(ser, 0, 0);
-      break;
+    case D3D11Chunk::SwapchainPresent: ret = Serialise_Present(ser, 0, 0); break;
 
     // in order to get a warning if we miss a case, we explicitly handle the device creation chunks
     // here. If we actually encounter one it's an error (we shouldn't see these inside the captured

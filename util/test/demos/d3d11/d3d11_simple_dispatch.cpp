@@ -67,10 +67,12 @@ void main()
         MakeTexture(DXGI_FORMAT_R32_UINT, 8, 8).SRV().UAV().RTV(),
     };
     ID3D11ShaderResourceViewPtr srv[2] = {
-        MakeSRV(tex[0]), MakeSRV(tex[1]),
+        MakeSRV(tex[0]),
+        MakeSRV(tex[1]),
     };
     ID3D11UnorderedAccessViewPtr uav[2] = {
-        MakeUAV(tex[0]), MakeUAV(tex[1]),
+        MakeUAV(tex[0]),
+        MakeUAV(tex[1]),
     };
     ID3D11RenderTargetViewPtr texRTV = MakeRTV(tex[0]);
 

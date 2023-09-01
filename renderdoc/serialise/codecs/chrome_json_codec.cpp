@@ -98,7 +98,8 @@ RDResult exportChrome(const rdcstr &filename, const RDCFile &rdc, const SDFile &
 static ConversionRegistration XMLConversionRegistration(
     &exportChrome,
     {
-        "chrome.json", "Chrome profiler JSON",
+        "chrome.json",
+        "Chrome profiler JSON",
         R"(Exports the chunk threadID, timestamp and duration data to a JSON format that can be loaded
 by chrome's profiler at chrome://tracing)",
         false,

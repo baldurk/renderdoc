@@ -2409,8 +2409,9 @@ void ExtractInputsPS(PSInput IN,
   if(depthFunc == D3D12_COMPARISON_FUNC_EQUAL && depthTarget != ResourceId())
   {
     float depthStencilValue[4] = {};
-    PickPixel(depthTarget, x, y, Subresource(rs.dsv.GetDSV().Texture2DArray.MipSlice,
-                                             rs.dsv.GetDSV().Texture2DArray.FirstArraySlice, sample),
+    PickPixel(depthTarget, x, y,
+              Subresource(rs.dsv.GetDSV().Texture2DArray.MipSlice,
+                          rs.dsv.GetDSV().Texture2DArray.FirstArraySlice, sample),
               CompType::Depth, depthStencilValue);
 
     existingDepth = depthStencilValue[0];

@@ -184,7 +184,7 @@ struct RemoteExecution
 #define REMOTE_EXECUTION() RemoteExecution exec(this);
 
 // uncomment the following to print verbose debugging prints for the remote proxy packets
-//#define PROXY_DEBUG(...) RDCDEBUG(__VA_ARGS__)
+// #define PROXY_DEBUG(...) RDCDEBUG(__VA_ARGS__)
 
 #if !defined(PROXY_DEBUG)
 #define PROXY_DEBUG(...) \

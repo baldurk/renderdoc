@@ -513,7 +513,8 @@ public:
     if(DisplayRemoteServerPreview(false, {}).system != WindowingSystem::Unknown)
       previewWindow = &DisplayRemoteServerPreview;
 
-    RENDERDOC_BecomeRemoteServer(conv(host), port, []() { return killSignal; }, previewWindow);
+    RENDERDOC_BecomeRemoteServer(
+        conv(host), port, []() { return killSignal; }, previewWindow);
 
     std::cerr << std::endl << "Cleaning up from replay hosting." << std::endl;
 
@@ -878,7 +879,7 @@ public:
 #if PYTHON_VERSION_MINOR > 0
        && mode != "functional"
 #endif
-       )
+    )
     {
       std::cerr << "Unsupported test frame work '" << mode << "'" << std::endl << std::endl;
       std::cerr << parser.usage() << std::endl;
@@ -1045,10 +1046,12 @@ public:
   {
     parser.set_footer("<capture.rdc>");
     parser.add<std::string>("section", 's', "The embedded section name.");
-    parser.add<std::string>("file", 'f', m_Extract ? "The file to write the section contents to."
-                                                   : "The file to read the section contents from.");
-    parser.add("no-clobber", 'n', m_Extract ? "Don't overwrite the file if it already exists."
-                                            : "Don't overwrite the section if it already exists.");
+    parser.add<std::string>("file", 'f',
+                            m_Extract ? "The file to write the section contents to."
+                                      : "The file to read the section contents from.");
+    parser.add("no-clobber", 'n',
+               m_Extract ? "Don't overwrite the file if it already exists."
+                         : "Don't overwrite the section if it already exists.");
 
     if(!m_Extract)
     {
@@ -1284,8 +1287,7 @@ public:
     parser.add("register", '\0', "Register RenderDoc's vulkan layer");
     parser.add("user", '\0',
                "Install layer registration at user-local level instead of system-wide");
-    parser.add("system", '\0',
-               "Install layer registration system-wide (requires admin privileges)");
+    parser.add("system", '\0', "Install layer registration system-wide (requires admin privileges)");
   }
   virtual const char *Description() { return "Vulkan layer registration needs attention"; }
   virtual bool IsInternalOnly()

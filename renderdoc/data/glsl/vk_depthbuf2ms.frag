@@ -56,7 +56,7 @@ mscopy;
 void main()
 {
   ivec3 srcCoord =
-      ivec3(int(gl_FragCoord.x), int(gl_FragCoord.y), currentSlice *numMultiSamples + gl_SampleID);
+      ivec3(int(gl_FragCoord.x), int(gl_FragCoord.y), currentSlice * numMultiSamples + gl_SampleID);
   uint idx = srcCoord.x + textureWidth * (srcCoord.y + (textureHeight * srcCoord.z));
 
   float depth = 0;

@@ -46,7 +46,7 @@ CustomPaintWidgetInternal::~CustomPaintWidgetInternal()
 
 CustomPaintWidget::CustomPaintWidget(QWidget *parent) : QWidget(parent)
 {
-  m_Tag = QFormatStr("custompaint%1").arg((uintptr_t) this);
+  m_Tag = QFormatStr("custompaint%1").arg((uintptr_t)this);
 
   setAttribute(Qt::WA_OpaquePaintEvent);
 

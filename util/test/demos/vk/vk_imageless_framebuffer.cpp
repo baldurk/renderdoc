@@ -81,7 +81,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -93,8 +94,9 @@ void main()
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
@@ -126,15 +128,19 @@ void main()
         imageInfo.pViewFormats = &mainWindow->format;
 
         VkFramebufferAttachmentsCreateInfoKHR viewsInfo = {
-            VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO_KHR, NULL, 1, &imageInfo,
+            VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO_KHR,
+            NULL,
+            1,
+            &imageInfo,
         };
 
-        CHECK_VKR(vkCreateFramebuffer(
-            device, vkh::FramebufferCreateInfo(mainWindow->rp, {(VkImageView)0x1234},
-                                               mainWindow->scissor.extent, 1,
-                                               VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR)
-                        .next(&viewsInfo),
-            NULL, &fb));
+        CHECK_VKR(
+            vkCreateFramebuffer(device,
+                                vkh::FramebufferCreateInfo(mainWindow->rp, {(VkImageView)0x1234},
+                                                           mainWindow->scissor.extent, 1,
+                                                           VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR)
+                                    .next(&viewsInfo),
+                                NULL, &fb));
       }
 
       VkCommandBuffer cmd = GetCommandBuffer();
@@ -150,7 +156,10 @@ void main()
 
       VkImageView curView = mainWindow->GetView();
       VkRenderPassAttachmentBeginInfoKHR usedView = {
-          VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR, NULL, 1, &curView,
+          VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR,
+          NULL,
+          1,
+          &curView,
       };
 
       vkCmdBeginRenderPass(

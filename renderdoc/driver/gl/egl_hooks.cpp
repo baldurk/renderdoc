@@ -1107,10 +1107,11 @@ void EGLHook::RegisterHooks()
 #endif
 
 // register EGL hooks
-#define EGL_REGISTER(func, isext, replayrequired)                                 \
-  LibraryHooks::RegisterFunctionHook(                                             \
-      "libEGL" LIBSUFFIX, FunctionHook("egl" STRINGIZE(func), (void **)&EGL.func, \
-                                       (void *)&CONCAT(egl, CONCAT(func, _renderdoc_hooked))));
+#define EGL_REGISTER(func, isext, replayrequired)             \
+  LibraryHooks::RegisterFunctionHook(                         \
+      "libEGL" LIBSUFFIX,                                     \
+      FunctionHook("egl" STRINGIZE(func), (void **)&EGL.func, \
+                                   (void *)&CONCAT(egl, CONCAT(func, _renderdoc_hooked))));
   EGL_HOOKED_SYMBOLS(EGL_REGISTER)
 #undef EGL_REGISTER
 }

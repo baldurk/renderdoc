@@ -422,8 +422,9 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
         if(cfg.subresource.sample == ~0U)
           drv.glProgramUniform1i(customProgram, loc, -texDetails.samples);
         else
-          drv.glProgramUniform1i(customProgram, loc, (int)RDCCLAMP(cfg.subresource.sample, 0U,
-                                                                   (uint32_t)texDetails.samples - 1));
+          drv.glProgramUniform1i(
+              customProgram, loc,
+              (int)RDCCLAMP(cfg.subresource.sample, 0U, (uint32_t)texDetails.samples - 1));
       }
 
       loc = drv.glGetUniformLocation(customProgram, "RENDERDOC_TextureType");

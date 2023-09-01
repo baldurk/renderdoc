@@ -86,9 +86,10 @@ public:
     if(obj)
       setPyGlobal(varName, obj);
     else
-      emit exception(lit("RuntimeError"), tr("Failed to set variable '%1' of type '%2'")
-                                              .arg(QString::fromUtf8(varName))
-                                              .arg(QString::fromUtf8(typeName)),
+      emit exception(lit("RuntimeError"),
+                     tr("Failed to set variable '%1' of type '%2'")
+                         .arg(QString::fromUtf8(varName))
+                         .arg(QString::fromUtf8(typeName)),
                      -1, {});
   }
 

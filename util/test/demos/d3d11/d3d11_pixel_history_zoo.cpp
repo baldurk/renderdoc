@@ -261,8 +261,7 @@ RD_TEST(D3D11_Pixel_History_Zoo, D3D11GraphicsTest)
       case DXGI_FORMAT_D32_FLOAT:    // maybe not valid cast?
       case DXGI_FORMAT_R32_FLOAT:
       case DXGI_FORMAT_R32_UINT:
-      case DXGI_FORMAT_R32_SINT:
-        return DXGI_FORMAT_R32_TYPELESS;
+      case DXGI_FORMAT_R32_SINT: return DXGI_FORMAT_R32_TYPELESS;
 
       // maybe not valid casts?
       case DXGI_FORMAT_R24G8_TYPELESS:
@@ -673,8 +672,8 @@ void main()
               break;
           }
 
-          pushMarker("Test RTV: " + dxgiFormatName[f] + " & depth: " +
-                     (df == DXGI_FORMAT_UNKNOWN ? "None" : dxgiFormatName[df]));
+          pushMarker("Test RTV: " + dxgiFormatName[f] +
+                     " & depth: " + (df == DXGI_FORMAT_UNKNOWN ? "None" : dxgiFormatName[df]));
 
           ctx->OMSetRenderTargets(1, &rt.GetInterfacePtr(), dsv);
 

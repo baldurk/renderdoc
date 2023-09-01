@@ -363,10 +363,9 @@ DXBC::Reflection *Program::GuessReflection()
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
 
         desc.name = StringFormat::Fmt("uav%u", idx);
-        desc.type =
-            DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED;    // doesn't seem to be anything that
-                                                             // determines append vs consume vs
-                                                             // rwstructured
+        desc.type = DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED;    // doesn't seem to be anything
+                                                                     // that determines append vs
+                                                                     // consume vs rwstructured
         if(dcl.structured.hasCounter)
           desc.type = DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER;
         desc.space = dcl.space;
@@ -970,8 +969,7 @@ size_t NumOperands(OpcodeType op)
     case OPCODE_GATHER4_C_FEEDBACK:
     case OPCODE_GATHER4_PO_FEEDBACK: return 6;
     case OPCODE_SAMPLE_D_CLAMP_FEEDBACK:
-    case OPCODE_GATHER4_PO_C_FEEDBACK:
-      return 7;
+    case OPCODE_GATHER4_PO_C_FEEDBACK: return 7;
 
     // custom data doesn't have particular operands
     case OPCODE_CUSTOMDATA:

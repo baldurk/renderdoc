@@ -62,7 +62,8 @@ void main()
     ID3DBlobPtr csblob = Compile(compute, "main", "cs_5_0");
 
     ID3D12RootSignaturePtr sig = MakeSig({
-        uavParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0), uavParam(D3D12_SHADER_VISIBILITY_ALL, 0, 1),
+        uavParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
+        uavParam(D3D12_SHADER_VISIBILITY_ALL, 0, 1),
         constParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0, 4),
         tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 2, 1, 3),
     });

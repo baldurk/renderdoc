@@ -759,8 +759,7 @@ static rdcstr ResourceFormatName(const ResourceFormat &fmt)
         else
           return fmt.SRGBCorrected() ? "ETC2_EAC_RGBA8_SRGB" : "ETC2_EAC_RGBA8_UNORM";
       }
-      case ResourceFormatType::ASTC:
-        return fmt.SRGBCorrected() ? "ASTC_SRGB" : "ASTC_UNORM";
+      case ResourceFormatType::ASTC: return fmt.SRGBCorrected() ? "ASTC_SRGB" : "ASTC_UNORM";
       // 10:10:10 A2 is the only format that can have all the usual format types (unorm, snorm,
       // etc). So we break and handle it like any other format below.
       case ResourceFormatType::R10G10B10A2:
@@ -985,9 +984,11 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
                          // specify script path
                          StringFormat::UTF82Wide(scriptPath),
                          // specify native library path
-                         L"--renderdoc", StringFormat::UTF82Wide(libPath),
+                         L"--renderdoc",
+                         StringFormat::UTF82Wide(libPath),
                          // specify python module path
-                         L"--pyrenderdoc", StringFormat::UTF82Wide(modulePath),
+                         L"--pyrenderdoc",
+                         StringFormat::UTF82Wide(modulePath),
                          // force in-process as we can't fork out to python to pass args
                          L"--in-process",
                      });

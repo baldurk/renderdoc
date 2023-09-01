@@ -38,8 +38,8 @@ void InitReplayTables(void *vulkanModule)
 {
   replay = true;
 
-// not all functions will succeed - some need to be fetched through the below
-// InitDeviceReplayTable()
+  // not all functions will succeed - some need to be fetched through the below
+  // InitDeviceReplayTable()
 
 #undef HookInit
 #define HookInit(name) \

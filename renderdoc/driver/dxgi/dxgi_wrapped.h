@@ -127,8 +127,14 @@ public:
 };
 
 #define IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY                          \
-  ULONG STDMETHODCALLTYPE AddRef() { return RefCountDXGIObject::AddRef(); }                \
-  ULONG STDMETHODCALLTYPE Release() { return RefCountDXGIObject::Release(); }              \
+  ULONG STDMETHODCALLTYPE AddRef()                                                         \
+  {                                                                                        \
+    return RefCountDXGIObject::AddRef();                                                   \
+  }                                                                                        \
+  ULONG STDMETHODCALLTYPE Release()                                                        \
+  {                                                                                        \
+    return RefCountDXGIObject::Release();                                                  \
+  }                                                                                        \
   HRESULT STDMETHODCALLTYPE SetPrivateData(REFIID Name, UINT DataSize, const void *pData)  \
   {                                                                                        \
     return RefCountDXGIObject::SetPrivateData(Name, DataSize, pData);                      \

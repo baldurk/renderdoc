@@ -1017,8 +1017,7 @@ RDResult load_dds_from_file(StreamReader *reader, read_dds_data &ret)
     ret.format = DXGIFormat2ResourceFormat(headerDXT10.dxgiFormat);
     if(ret.format.type == ResourceFormatType::Undefined)
     {
-      RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
-                          "Unsupported DXGI_FORMAT %u loaded from DDS",
+      RETURN_ERROR_RESULT(ResultCode::ImageUnsupported, "Unsupported DXGI_FORMAT %u loaded from DDS",
                           uint32_t(headerDXT10.dxgiFormat));
     }
   }
@@ -1117,8 +1116,10 @@ RDResult load_dds_from_file(StreamReader *reader, read_dds_data &ret)
     else
     {
       const uint32_t bits[] = {
-          Bits::CountOnes(header.ddspf.dwRBitMask), Bits::CountOnes(header.ddspf.dwGBitMask),
-          Bits::CountOnes(header.ddspf.dwBBitMask), Bits::CountOnes(header.ddspf.dwABitMask),
+          Bits::CountOnes(header.ddspf.dwRBitMask),
+          Bits::CountOnes(header.ddspf.dwGBitMask),
+          Bits::CountOnes(header.ddspf.dwBBitMask),
+          Bits::CountOnes(header.ddspf.dwABitMask),
       };
       if((bits[1] != 0 && bits[1] != bits[0]) || (bits[2] != 0 && bits[2] != bits[0]) ||
          (bits[3] != 0 && bits[3] != bits[0]))

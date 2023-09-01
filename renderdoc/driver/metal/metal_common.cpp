@@ -1558,7 +1558,8 @@ TEST_CASE("Metal formats", "[format][metal]")
     const uint32_t width = 24, height = 24;
 
     rdcarray<rdcpair<MTL::PixelFormat, rdcarray<uint32_t> > > yuvTests = {
-        {MTL::PixelFormatGBGR422, {24 * 24 * 2}}, {MTL::PixelFormatBGRG422, {24 * 24 * 2}},
+        {MTL::PixelFormatGBGR422, {24 * 24 * 2}},
+        {MTL::PixelFormatBGRG422, {24 * 24 * 2}},
     };
 
     for(rdcpair<MTL::PixelFormat, rdcarray<uint32_t> > yuvTest : yuvTests)

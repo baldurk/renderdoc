@@ -809,20 +809,40 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout;
     inputLayout.reserve(4);
     inputLayout.push_back({
-        "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
-        D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0,
+        "POSITION",
+        0,
+        DXGI_FORMAT_R32G32B32_FLOAT,
+        0,
+        0,
+        D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+        0,
     });
     inputLayout.push_back({
-        "ZERO", 0, DXGI_FORMAT_R32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT,
-        D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0,
+        "ZERO",
+        0,
+        DXGI_FORMAT_R32_FLOAT,
+        0,
+        D3D12_APPEND_ALIGNED_ELEMENT,
+        D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+        0,
     });
     inputLayout.push_back({
-        "ONE", 0, DXGI_FORMAT_R32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT,
-        D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0,
+        "ONE",
+        0,
+        DXGI_FORMAT_R32_FLOAT,
+        0,
+        D3D12_APPEND_ALIGNED_ELEMENT,
+        D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+        0,
     });
     inputLayout.push_back({
-        "NEGONE", 0, DXGI_FORMAT_R32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT,
-        D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0,
+        "NEGONE",
+        0,
+        DXGI_FORMAT_R32_FLOAT,
+        0,
+        D3D12_APPEND_ALIGNED_ELEMENT,
+        D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+        0,
     });
 
     D3D12_STATIC_SAMPLER_DESC staticSamp = {};
@@ -832,19 +852,28 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
 
     D3D12_DESCRIPTOR_RANGE1 multiRanges[3] = {
         {
-            D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 30, 0,
+            D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+            2,
+            30,
+            0,
             D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE |
                 D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE,
             30,
         },
         {
-            D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 3, 32, 0,
+            D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+            3,
+            32,
+            0,
             D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE |
                 D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE,
             D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
         },
         {
-            D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 40, 0,
+            D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+            2,
+            40,
+            0,
             D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE |
                 D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE,
             D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
@@ -862,7 +891,8 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 2, 10),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 100, 5, 20),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 4, 3, 30),
-            multiRangeParam, uavParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 21),
+            multiRangeParam,
+            uavParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 21),
             srvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 20),
         },
         D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 1, &staticSamp);

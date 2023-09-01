@@ -29,7 +29,6 @@
 #include "api/replay/rdcarray.h"
 #include "api/replay/rdcpair.h"
 #include "api/replay/rdcstr.h"
-#include "api/replay/rdcstr.h"
 #include "common/common.h"
 #include "driver/dx/official/d3dcommon.h"
 #include "dxbc_common.h"

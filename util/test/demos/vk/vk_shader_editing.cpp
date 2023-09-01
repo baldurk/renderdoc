@@ -123,7 +123,8 @@ void hlsl_main ()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -156,8 +157,9 @@ void hlsl_main ()
     VkPipeline pipe2 = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
@@ -169,20 +171,21 @@ void hlsl_main ()
         }));
 
     VkPipelineLayout compLayout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
-        {compSetLayout},
-        {
-            vkh::PushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(Vec4i)),
-        }));
+        {compSetLayout}, {
+                             vkh::PushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(Vec4i)),
+                         }));
 
     VkPipeline compPipe1 = createComputePipeline(vkh::ComputePipelineCreateInfo(
         compLayout, CompileShaderModule(comp, ShaderLang::hlsl, ShaderStage::comp, "hlsl_main")));
 
-    AllocatedBuffer bufin(this, vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                                                VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+    AllocatedBuffer bufin(this,
+                          vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                          VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                           VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
-    AllocatedBuffer bufout(this, vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+    AllocatedBuffer bufout(this,
+                           vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                           VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     setName(bufin.buffer, "bufin");
@@ -207,8 +210,9 @@ void hlsl_main ()
       VkImage swapimg =
           StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, mainWindow->scissor,
-                                                         {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f)}),
+      vkCmdBeginRenderPass(cmd,
+                           vkh::RenderPassBeginInfo(renderPass, framebuffer, mainWindow->scissor,
+                                                    {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f)}),
                            VK_SUBPASS_CONTENTS_INLINE);
 
       VkViewport v = mainWindow->viewport;

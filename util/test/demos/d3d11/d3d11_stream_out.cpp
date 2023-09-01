@@ -74,19 +74,38 @@ RD_TEST(D3D11_Stream_Out, D3D11GraphicsTest)
     ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(DefaultTri);
 
     ID3D11BufferPtr so[3] = {
-        MakeBuffer().StreamOut().Vertex().Size(2048), MakeBuffer().StreamOut().Vertex().Size(2048),
+        MakeBuffer().StreamOut().Vertex().Size(2048),
+        MakeBuffer().StreamOut().Vertex().Size(2048),
         MakeBuffer().StreamOut().Vertex().Size(2048),
     };
 
     D3D11_INPUT_ELEMENT_DESC layoutdesc[] = {
         {
-            "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0,
+            "POSITION",
+            0,
+            DXGI_FORMAT_R32G32B32A32_FLOAT,
+            0,
+            0,
+            D3D11_INPUT_PER_VERTEX_DATA,
+            0,
         },
         {
-            "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0,
+            "COLOR",
+            0,
+            DXGI_FORMAT_R32G32B32A32_FLOAT,
+            1,
+            0,
+            D3D11_INPUT_PER_VERTEX_DATA,
+            0,
         },
         {
-            "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0,
+            "TEXCOORD",
+            0,
+            DXGI_FORMAT_R32G32_FLOAT,
+            0,
+            0,
+            D3D11_INPUT_PER_VERTEX_DATA,
+            0,
         },
     };
 

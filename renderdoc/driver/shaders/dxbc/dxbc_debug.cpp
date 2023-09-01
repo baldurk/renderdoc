@@ -88,8 +88,7 @@ VarType OperationType(const DXBCBytecode::OpcodeType &op)
     case OPCODE_SYNC:
     case OPCODE_STORE_UAV_TYPED:
     case OPCODE_STORE_RAW:
-    case OPCODE_STORE_STRUCTURED:
-      return VarType::Float;
+    case OPCODE_STORE_STRUCTURED: return VarType::Float;
 
     // operations that can be either type, also just return float (fixed up later)
     case OPCODE_SAMPLE:
@@ -272,26 +271,22 @@ bool OperationFlushing(const DXBCBytecode::OpcodeType &op)
     case OPCODE_LT:
     case OPCODE_GE:
     case OPCODE_EQ:
-    case OPCODE_NE:
-      return true;
+    case OPCODE_NE: return true;
 
     // can't generate denorms, or denorm inputs are implicitly rounded to 0, so don't bother
     // flushing
     case OPCODE_ITOF:
     case OPCODE_UTOF:
     case OPCODE_FTOI:
-    case OPCODE_FTOU:
-      return false;
+    case OPCODE_FTOU: return false;
 
     // we have to flush this manually since the input is halves encoded in uints
     case OPCODE_F16TOF32:
-    case OPCODE_F32TOF16:
-      return false;
+    case OPCODE_F32TOF16: return false;
 
     // implementation defined if this should flush or not, we choose not.
     case OPCODE_DTOF:
-    case OPCODE_FTOD:
-      return false;
+    case OPCODE_FTOD: return false;
 
     // any I/O or data movement operation that does not manipulate the data, such as using the
     // ld(22.4.6) instruction to access Resource data, or executing mov instruction or conditional
@@ -300,8 +295,7 @@ bool OperationFlushing(const DXBCBytecode::OpcodeType &op)
     case OPCODE_MOV:
     case OPCODE_MOVC:
     case OPCODE_LD:
-    case OPCODE_LD_MS:
-      return false;
+    case OPCODE_LD_MS: return false;
 
     // sample operations flush denorms
     case OPCODE_SAMPLE:
@@ -313,18 +307,15 @@ bool OperationFlushing(const DXBCBytecode::OpcodeType &op)
     case OPCODE_GATHER4:
     case OPCODE_GATHER4_C:
     case OPCODE_GATHER4_PO:
-    case OPCODE_GATHER4_PO_C:
-      return true;
+    case OPCODE_GATHER4_PO_C: return true;
 
     // don't flush eval ops as some inputs may be uint
     case OPCODE_EVAL_CENTROID:
     case OPCODE_EVAL_SAMPLE_INDEX:
-    case OPCODE_EVAL_SNAPPED:
-      return false;
+    case OPCODE_EVAL_SNAPPED: return false;
 
     // don't flush samplepos since an operand is scalar
-    case OPCODE_SAMPLE_POS:
-      return false;
+    case OPCODE_SAMPLE_POS: return false;
 
     // unclear if these flush and it's unlikely denorms will come up, so conservatively flush
     case OPCODE_SAMPLE_INFO:
@@ -334,8 +325,7 @@ bool OperationFlushing(const DXBCBytecode::OpcodeType &op)
     case OPCODE_DERIV_RTX_FINE:
     case OPCODE_DERIV_RTY:
     case OPCODE_DERIV_RTY_COARSE:
-    case OPCODE_DERIV_RTY_FINE:
-      return true;
+    case OPCODE_DERIV_RTY_FINE: return true;
 
     // operations that don't work on floats don't flush
     case OPCODE_RESINFO:
@@ -361,8 +351,7 @@ bool OperationFlushing(const DXBCBytecode::OpcodeType &op)
     case OPCODE_SYNC:
     case OPCODE_STORE_UAV_TYPED:
     case OPCODE_STORE_RAW:
-    case OPCODE_STORE_STRUCTURED:
-      return false;
+    case OPCODE_STORE_STRUCTURED: return false;
 
     // integer operations don't flush
     case OPCODE_AND:
@@ -428,8 +417,7 @@ bool OperationFlushing(const DXBCBytecode::OpcodeType &op)
     case OPCODE_LD_RAW:
     case OPCODE_LD_UAV_TYPED:
     case OPCODE_LD_STRUCTURED:
-    case OPCODE_DTOU:
-      return false;
+    case OPCODE_DTOU: return false;
 
     // doubles do not flush
     case OPCODE_DADD:
@@ -910,7 +898,9 @@ ShaderVariable abs(const ShaderVariable &v, const VarType type)
         r.value.s32v[i] = v.value.s32v[i] > 0 ? v.value.s32v[i] : -v.value.s32v[i];
       break;
     }
-    case VarType::UInt: { break;
+    case VarType::UInt:
+    {
+      break;
     }
     case VarType::Float:
     {
@@ -955,7 +945,9 @@ ShaderVariable neg(const ShaderVariable &v, const VarType type)
         r.value.s32v[i] = -v.value.s32v[i];
       break;
     }
-    case VarType::UInt: { break;
+    case VarType::UInt:
+    {
+      break;
     }
     case VarType::Float:
     {
@@ -1986,8 +1978,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
 
   switch(op.operation)
   {
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Math operations
+      /////////////////////////////////////////////////////////////////////////////////////////////////////
+      // Math operations
 
     case OPCODE_DADD:
     case OPCODE_IADD:
@@ -2297,30 +2289,30 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       break;
     case OPCODE_INEG: SetDst(state, op.operands[0], op, neg(srcOpers[0], optype)); break;
     case OPCODE_IMIN:
-      SetDst(
-          state, op.operands[0], op,
-          ShaderVariable(
-              "", srcOpers[0].value.s32v[0] < srcOpers[1].value.s32v[0] ? srcOpers[0].value.s32v[0]
-                                                                        : srcOpers[1].value.s32v[0],
-              srcOpers[0].value.s32v[1] < srcOpers[1].value.s32v[1] ? srcOpers[0].value.s32v[1]
-                                                                    : srcOpers[1].value.s32v[1],
-              srcOpers[0].value.s32v[2] < srcOpers[1].value.s32v[2] ? srcOpers[0].value.s32v[2]
-                                                                    : srcOpers[1].value.s32v[2],
-              srcOpers[0].value.s32v[3] < srcOpers[1].value.s32v[3] ? srcOpers[0].value.s32v[3]
-                                                                    : srcOpers[1].value.s32v[3]));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable(
+                 "",
+                 srcOpers[0].value.s32v[0] < srcOpers[1].value.s32v[0] ? srcOpers[0].value.s32v[0]
+                                                                       : srcOpers[1].value.s32v[0],
+                 srcOpers[0].value.s32v[1] < srcOpers[1].value.s32v[1] ? srcOpers[0].value.s32v[1]
+                                                                       : srcOpers[1].value.s32v[1],
+                 srcOpers[0].value.s32v[2] < srcOpers[1].value.s32v[2] ? srcOpers[0].value.s32v[2]
+                                                                       : srcOpers[1].value.s32v[2],
+                 srcOpers[0].value.s32v[3] < srcOpers[1].value.s32v[3] ? srcOpers[0].value.s32v[3]
+                                                                       : srcOpers[1].value.s32v[3]));
       break;
     case OPCODE_UMIN:
-      SetDst(
-          state, op.operands[0], op,
-          ShaderVariable(
-              "", srcOpers[0].value.u32v[0] < srcOpers[1].value.u32v[0] ? srcOpers[0].value.u32v[0]
-                                                                        : srcOpers[1].value.u32v[0],
-              srcOpers[0].value.u32v[1] < srcOpers[1].value.u32v[1] ? srcOpers[0].value.u32v[1]
-                                                                    : srcOpers[1].value.u32v[1],
-              srcOpers[0].value.u32v[2] < srcOpers[1].value.u32v[2] ? srcOpers[0].value.u32v[2]
-                                                                    : srcOpers[1].value.u32v[2],
-              srcOpers[0].value.u32v[3] < srcOpers[1].value.u32v[3] ? srcOpers[0].value.u32v[3]
-                                                                    : srcOpers[1].value.u32v[3]));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable(
+                 "",
+                 srcOpers[0].value.u32v[0] < srcOpers[1].value.u32v[0] ? srcOpers[0].value.u32v[0]
+                                                                       : srcOpers[1].value.u32v[0],
+                 srcOpers[0].value.u32v[1] < srcOpers[1].value.u32v[1] ? srcOpers[0].value.u32v[1]
+                                                                       : srcOpers[1].value.u32v[1],
+                 srcOpers[0].value.u32v[2] < srcOpers[1].value.u32v[2] ? srcOpers[0].value.u32v[2]
+                                                                       : srcOpers[1].value.u32v[2],
+                 srcOpers[0].value.u32v[3] < srcOpers[1].value.u32v[3] ? srcOpers[0].value.u32v[3]
+                                                                       : srcOpers[1].value.u32v[3]));
       break;
     case OPCODE_DMIN:
     {
@@ -2346,30 +2338,30 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
                             dxbc_min(srcOpers[0].value.f32v[3], srcOpers[1].value.f32v[3])));
       break;
     case OPCODE_UMAX:
-      SetDst(
-          state, op.operands[0], op,
-          ShaderVariable(
-              "", srcOpers[0].value.u32v[0] >= srcOpers[1].value.u32v[0] ? srcOpers[0].value.u32v[0]
-                                                                         : srcOpers[1].value.u32v[0],
-              srcOpers[0].value.u32v[1] >= srcOpers[1].value.u32v[1] ? srcOpers[0].value.u32v[1]
-                                                                     : srcOpers[1].value.u32v[1],
-              srcOpers[0].value.u32v[2] >= srcOpers[1].value.u32v[2] ? srcOpers[0].value.u32v[2]
-                                                                     : srcOpers[1].value.u32v[2],
-              srcOpers[0].value.u32v[3] >= srcOpers[1].value.u32v[3] ? srcOpers[0].value.u32v[3]
-                                                                     : srcOpers[1].value.u32v[3]));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable(
+                 "",
+                 srcOpers[0].value.u32v[0] >= srcOpers[1].value.u32v[0] ? srcOpers[0].value.u32v[0]
+                                                                        : srcOpers[1].value.u32v[0],
+                 srcOpers[0].value.u32v[1] >= srcOpers[1].value.u32v[1] ? srcOpers[0].value.u32v[1]
+                                                                        : srcOpers[1].value.u32v[1],
+                 srcOpers[0].value.u32v[2] >= srcOpers[1].value.u32v[2] ? srcOpers[0].value.u32v[2]
+                                                                        : srcOpers[1].value.u32v[2],
+                 srcOpers[0].value.u32v[3] >= srcOpers[1].value.u32v[3] ? srcOpers[0].value.u32v[3]
+                                                                        : srcOpers[1].value.u32v[3]));
       break;
     case OPCODE_IMAX:
-      SetDst(
-          state, op.operands[0], op,
-          ShaderVariable(
-              "", srcOpers[0].value.s32v[0] >= srcOpers[1].value.s32v[0] ? srcOpers[0].value.s32v[0]
-                                                                         : srcOpers[1].value.s32v[0],
-              srcOpers[0].value.s32v[1] >= srcOpers[1].value.s32v[1] ? srcOpers[0].value.s32v[1]
-                                                                     : srcOpers[1].value.s32v[1],
-              srcOpers[0].value.s32v[2] >= srcOpers[1].value.s32v[2] ? srcOpers[0].value.s32v[2]
-                                                                     : srcOpers[1].value.s32v[2],
-              srcOpers[0].value.s32v[3] >= srcOpers[1].value.s32v[3] ? srcOpers[0].value.s32v[3]
-                                                                     : srcOpers[1].value.s32v[3]));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable(
+                 "",
+                 srcOpers[0].value.s32v[0] >= srcOpers[1].value.s32v[0] ? srcOpers[0].value.s32v[0]
+                                                                        : srcOpers[1].value.s32v[0],
+                 srcOpers[0].value.s32v[1] >= srcOpers[1].value.s32v[1] ? srcOpers[0].value.s32v[1]
+                                                                        : srcOpers[1].value.s32v[1],
+                 srcOpers[0].value.s32v[2] >= srcOpers[1].value.s32v[2] ? srcOpers[0].value.s32v[2]
+                                                                        : srcOpers[1].value.s32v[2],
+                 srcOpers[0].value.s32v[3] >= srcOpers[1].value.s32v[3] ? srcOpers[0].value.s32v[3]
+                                                                        : srcOpers[1].value.s32v[3]));
       break;
     case OPCODE_DMAX:
     {
@@ -2513,8 +2505,10 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     case OPCODE_ISHL:
     {
       uint32_t shifts[] = {
-          srcOpers[1].value.u32v[0] & 0x1f, srcOpers[1].value.u32v[1] & 0x1f,
-          srcOpers[1].value.u32v[2] & 0x1f, srcOpers[1].value.u32v[3] & 0x1f,
+          srcOpers[1].value.u32v[0] & 0x1f,
+          srcOpers[1].value.u32v[1] & 0x1f,
+          srcOpers[1].value.u32v[2] & 0x1f,
+          srcOpers[1].value.u32v[3] & 0x1f,
       };
 
       // if we were only given a single component, it's the form that shifts all components
@@ -2533,8 +2527,10 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     case OPCODE_USHR:
     {
       uint32_t shifts[] = {
-          srcOpers[1].value.u32v[0] & 0x1f, srcOpers[1].value.u32v[1] & 0x1f,
-          srcOpers[1].value.u32v[2] & 0x1f, srcOpers[1].value.u32v[3] & 0x1f,
+          srcOpers[1].value.u32v[0] & 0x1f,
+          srcOpers[1].value.u32v[1] & 0x1f,
+          srcOpers[1].value.u32v[2] & 0x1f,
+          srcOpers[1].value.u32v[3] & 0x1f,
       };
 
       // if we were only given a single component, it's the form that shifts all components
@@ -2553,8 +2549,10 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     case OPCODE_ISHR:
     {
       uint32_t shifts[] = {
-          srcOpers[1].value.u32v[0] & 0x1f, srcOpers[1].value.u32v[1] & 0x1f,
-          srcOpers[1].value.u32v[2] & 0x1f, srcOpers[1].value.u32v[3] & 0x1f,
+          srcOpers[1].value.u32v[0] & 0x1f,
+          srcOpers[1].value.u32v[1] & 0x1f,
+          srcOpers[1].value.u32v[2] & 0x1f,
+          srcOpers[1].value.u32v[3] & 0x1f,
       };
 
       // if we were only given a single component, it's the form that shifts all components
@@ -2597,9 +2595,9 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
                             ~srcOpers[0].value.u32v[2], ~srcOpers[0].value.u32v[3]));
       break;
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-    // transcendental functions with loose ULP requirements, so we pass them to the GPU to get
-    // more accurate (well, LESS accurate but more representative) answers.
+      /////////////////////////////////////////////////////////////////////////////////////////////////////
+      // transcendental functions with loose ULP requirements, so we pass them to the GPU to get
+      // more accurate (well, LESS accurate but more representative) answers.
 
     case OPCODE_RCP:
     case OPCODE_RSQ:
@@ -2636,8 +2634,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       break;
     }
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Misc
+      /////////////////////////////////////////////////////////////////////////////////////////////////////
+      // Misc
 
     case OPCODE_NOP:
     case OPCODE_CUSTOMDATA:
@@ -2794,8 +2792,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       break;
     }
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Comparison
+      /////////////////////////////////////////////////////////////////////////////////////////////////////
+      // Comparison
 
     case OPCODE_EQ:
       SetDst(state, op.operands[0], op,
@@ -2931,8 +2929,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
                             (srcOpers[0].value.u32v[3] >= srcOpers[1].value.u32v[3] ? ~0u : 0u)));
       break;
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Atomic instructions
+      /////////////////////////////////////////////////////////////////////////////////////////////////////
+      // Atomic instructions
 
     case OPCODE_IMM_ATOMIC_ALLOC:
     {
@@ -3625,7 +3623,10 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           else if(sampleCount == 2)
           {
             static const float pattern_2x[] = {
-                _SMP(4.0f), _SMP(4.0f), _SMP(-4.0f), _SMP(-4.0f),
+                _SMP(4.0f),
+                _SMP(4.0f),
+                _SMP(-4.0f),
+                _SMP(-4.0f),
             };
 
             sample_pattern = &pattern_2x[0];
@@ -4111,8 +4112,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       break;
     }
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Flow control
+      /////////////////////////////////////////////////////////////////////////////////////////////////////
+      // Flow control
 
     case OPCODE_SWITCH:
     {
@@ -5198,11 +5199,11 @@ void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
 
     psInputDefinition += ";\n";
 
-    int firstElem = sig.regChannelMask & 0x1 ? 0 : sig.regChannelMask & 0x2
-                                                       ? 1
-                                                       : sig.regChannelMask & 0x4
-                                                             ? 2
-                                                             : sig.regChannelMask & 0x8 ? 3 : -1;
+    int firstElem = sig.regChannelMask & 0x1   ? 0
+                    : sig.regChannelMask & 0x2 ? 1
+                    : sig.regChannelMask & 0x4 ? 2
+                    : sig.regChannelMask & 0x8 ? 3
+                                               : -1;
 
     // arrays get added all at once (because in the struct data, they are contiguous even if
     // in the input signature they're not).
@@ -5269,11 +5270,11 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
 
       v.name = dxbc->GetDXBCByteCode()->GetRegisterName(DXBCBytecode::TYPE_INPUT, sig.regIndex);
       v.rows = 1;
-      v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
-                                                     ? 3
-                                                     : sig.regChannelMask & 0x2
-                                                           ? 2
-                                                           : sig.regChannelMask & 0x1 ? 1 : 0;
+      v.columns = sig.regChannelMask & 0x8   ? 4
+                  : sig.regChannelMask & 0x4 ? 3
+                  : sig.regChannelMask & 0x2 ? 2
+                  : sig.regChannelMask & 0x1 ? 1
+                                             : 0;
       v.type = sig.varType;
 
       ShaderVariable &dst = state.inputs[sig.regIndex];
@@ -5373,11 +5374,11 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
 
     v.name = dxbc->GetDXBCByteCode()->GetRegisterName(type, sig.regIndex);
     v.rows = 1;
-    v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
-                                                   ? 3
-                                                   : sig.regChannelMask & 0x2
-                                                         ? 2
-                                                         : sig.regChannelMask & 0x1 ? 1 : 0;
+    v.columns = sig.regChannelMask & 0x8   ? 4
+                : sig.regChannelMask & 0x4 ? 3
+                : sig.regChannelMask & 0x2 ? 2
+                : sig.regChannelMask & 0x1 ? 1
+                                           : 0;
     v.type = sig.varType;
 
     ShaderVariable &dst = state.variables[idx];
@@ -5485,12 +5486,20 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
 
   ResList lists[2] = {
       {
-          VarType::ReadOnlyResource, DebugVariableType::ReadOnlyResource, mapping.readOnlyResources,
-          refl.readOnlyResources, "tT", ret->readOnlyResources,
+          VarType::ReadOnlyResource,
+          DebugVariableType::ReadOnlyResource,
+          mapping.readOnlyResources,
+          refl.readOnlyResources,
+          "tT",
+          ret->readOnlyResources,
       },
       {
-          VarType::ReadWriteResource, DebugVariableType::ReadWriteResource,
-          mapping.readWriteResources, refl.readWriteResources, "uU", ret->readWriteResources,
+          VarType::ReadWriteResource,
+          DebugVariableType::ReadWriteResource,
+          mapping.readWriteResources,
+          refl.readWriteResources,
+          "uU",
+          ret->readWriteResources,
       },
   };
 

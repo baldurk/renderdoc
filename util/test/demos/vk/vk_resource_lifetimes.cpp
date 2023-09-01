@@ -98,13 +98,22 @@ void main()
 
     VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
         {
-            0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
+            0,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            1,
+            VK_SHADER_STAGE_FRAGMENT_BIT,
         },
         {
-            1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
+            1,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            1,
+            VK_SHADER_STAGE_FRAGMENT_BIT,
         },
         {
-            2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
+            2,
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            1,
+            VK_SHADER_STAGE_FRAGMENT_BIT,
         },
     }));
 
@@ -117,7 +126,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -129,8 +139,9 @@ void main()
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
@@ -139,23 +150,26 @@ void main()
     LoadXPM(SmileyTexture, rgba8);
 
     AllocatedImage smiley(
-        this, vkh::ImageCreateInfo(rgba8.width, rgba8.height, 0, VK_FORMAT_R8G8B8A8_UNORM,
-                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+        this,
+        vkh::ImageCreateInfo(rgba8.width, rgba8.height, 0, VK_FORMAT_R8G8B8A8_UNORM,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView smileyview = createImageView(
         vkh::ImageViewCreateInfo(smiley.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM));
 
     AllocatedImage badimg(
-        this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R8G8B8A8_UNORM,
-                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+        this,
+        vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R8G8B8A8_UNORM,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView badview = createImageView(
         vkh::ImageViewCreateInfo(badimg.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM));
 
-    AllocatedBuffer uploadBuf(this, vkh::BufferCreateInfo(rgba8.data.size() * sizeof(uint32_t),
-                                                          VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
+    AllocatedBuffer uploadBuf(this,
+                              vkh::BufferCreateInfo(rgba8.data.size() * sizeof(uint32_t),
+                                                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
                               VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     uploadBuf.upload(rgba8.data.data(), rgba8.data.size() * sizeof(uint32_t));
@@ -254,8 +268,9 @@ void main()
       VkImage img = VK_NULL_HANDLE;
 
       vkCreateImage(
-          device, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R8G8B8A8_UNORM,
-                                       VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+          device,
+          vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R8G8B8A8_UNORM,
+                               VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
           NULL, &img);
 
       return img;
@@ -284,13 +299,25 @@ void main()
 
       const uint32_t checker[4 * 4] = {
           // X X O O
-          0xffffffff, 0xffffffff, 0, 0,
+          0xffffffff,
+          0xffffffff,
+          0,
+          0,
           // X X O O
-          0xffffffff, 0xffffffff, 0, 0,
+          0xffffffff,
+          0xffffffff,
+          0,
+          0,
           // O O X X
-          0, 0, 0xffffffff, 0xffffffff,
+          0,
+          0,
+          0xffffffff,
+          0xffffffff,
           // O O X X
-          0, 0, 0xffffffff, 0xffffffff,
+          0,
+          0,
+          0xffffffff,
+          0xffffffff,
       };
 
       uploadBuf.upload(checker);
@@ -309,7 +336,6 @@ void main()
     };
 
     auto TrashImage = [this](VkImage img, VkDeviceMemory mem, VkImageView view) {
-
       vkDestroyImageView(device, view, NULL);
       vkDestroyImage(device, img, NULL);
       vkFreeMemory(device, mem, NULL);
@@ -319,17 +345,18 @@ void main()
 
     {
       CHECK_VKR(vkCreateDescriptorPool(
-          device, vkh::DescriptorPoolCreateInfo(8,
-                                                {
-                                                    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024},
-                                                    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024},
-                                                },
-                                                VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
+          device,
+          vkh::DescriptorPoolCreateInfo(8,
+                                        {
+                                            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024},
+                                            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024},
+                                        },
+                                        VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
           NULL, &descpool));
     }
 
     auto SetupDescSet = [this, setlayout, descpool, smileysampler, checkersampler, smileyview](
-        VkBuffer cb, VkImageView view) {
+                            VkBuffer cb, VkImageView view) {
       VkDescriptorSet descset = VK_NULL_HANDLE;
 
       vkAllocateDescriptorSets(device, vkh::DescriptorSetAllocateInfo(descpool, {setlayout}),
@@ -358,7 +385,6 @@ void main()
     };
 
     auto TrashDescSet = [this, descpool, checkersampler, &badcb, badview](VkDescriptorSet descset) {
-
       // update with bad data
       vkh::updateDescriptorSets(
           device, {

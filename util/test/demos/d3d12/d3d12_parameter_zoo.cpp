@@ -184,7 +184,8 @@ float4 main() : SV_Target0
     D3D12_GPU_DESCRIPTOR_HANDLE descGPUHandle = descHeap->GetGPUDescriptorHandleForHeapStart();
 
     ID3D12DescriptorHeap *heaps[] = {
-        descHeap.GetInterfacePtr(), sampHeap.GetInterfacePtr(),
+        descHeap.GetInterfacePtr(),
+        sampHeap.GetInterfacePtr(),
     };
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};

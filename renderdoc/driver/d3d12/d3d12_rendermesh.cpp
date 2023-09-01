@@ -835,7 +835,10 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
       cache = GetDebugManager()->CacheMeshDisplayPipelines(helper, helper);
 
       FloatVector vertSprite[4] = {
-          activeVertex, activeVertex, activeVertex, activeVertex,
+          activeVertex,
+          activeVertex,
+          activeVertex,
+          activeVertex,
       };
 
       list->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(helper.topology));

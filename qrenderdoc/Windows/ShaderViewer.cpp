@@ -312,13 +312,14 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
     scintilla->setReadOnly(false);
     QObject::connect(scintilla, &ScintillaEdit::keyPressed, this, &ShaderViewer::editable_keyPressed);
 
-    QObject::connect(scintilla, &ScintillaEdit::modified, [this](int type, int, int, int,
-                                                                 const QByteArray &, int, int, int) {
-      if(type & (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT | SC_MOD_BEFOREINSERT | SC_MOD_BEFOREDELETE))
-        m_FindState = FindState();
+    QObject::connect(scintilla, &ScintillaEdit::modified,
+                     [this](int type, int, int, int, const QByteArray &, int, int, int) {
+                       if(type & (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT | SC_MOD_BEFOREINSERT |
+                                  SC_MOD_BEFOREDELETE))
+                         m_FindState = FindState();
 
-      MarkModification();
-    });
+                       MarkModification();
+                     });
 
     m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(QKeySequence::Refresh).toString(), this,
                                             [this](QWidget *) { on_refresh_clicked(); });
@@ -1000,10 +1001,10 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       for(int i = 0; m_BackgroundRunning.available() == 1 && i < 100; i++)
         QThread::msleep(5);
 
-      ShowProgressDialog(this, tr("Debugging %1").arg(debugContext),
-                         [this]() { return m_BackgroundRunning.available() == 0; }, NULL,
-                         [this]() { m_BackgroundRunning.acquire(); });
-
+      ShowProgressDialog(
+          this, tr("Debugging %1").arg(debugContext),
+          [this]() { return m_BackgroundRunning.available() == 0; }, NULL,
+          [this]() { m_BackgroundRunning.acquire(); });
     });
 
     m_CurrentStateIdx = 0;
@@ -1027,7 +1028,10 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
                      &ShaderViewer::accessedResources_contextMenu);
 
     RDTreeWidgetItem *item = new RDTreeWidgetItem({
-        QVariant(), QVariant(), QVariant(), QVariant(),
+        QVariant(),
+        QVariant(),
+        QVariant(),
+        QVariant(),
     });
     item->setEditable(0, true);
     ui->watch->addTopLevelItem(item);
@@ -1777,7 +1781,10 @@ void ShaderViewer::variables_contextMenu(const QPoint &pos)
     QObject::connect(&clearAll, &QAction::triggered, [this] {
       ui->watch->clear();
       RDTreeWidgetItem *item = new RDTreeWidgetItem({
-          QVariant(), QVariant(), QVariant(), QVariant(),
+          QVariant(),
+          QVariant(),
+          QVariant(),
+          QVariant(),
       });
       item->setEditable(0, true);
       ui->watch->addTopLevelItem(item);
@@ -2039,7 +2046,10 @@ void ShaderViewer::on_watch_itemChanged(RDTreeWidgetItem *item, int column)
      !ui->watch->topLevelItem(ui->watch->topLevelItemCount() - 1)->text(0).isEmpty())
   {
     RDTreeWidgetItem *blankItem = new RDTreeWidgetItem({
-        QVariant(), QVariant(), QVariant(), QVariant(),
+        QVariant(),
+        QVariant(),
+        QVariant(),
+        QVariant(),
     });
     blankItem->setEditable(0, true);
     ui->watch->addTopLevelItem(blankItem);
@@ -3652,8 +3662,8 @@ void ShaderViewer::updateDebugState()
           }
         }
 
-        if(isSourceDebugging() ||
-           ui->docking->areaOf(m_CurInstructionScintilla) != ui->docking->areaOf(m_DisassemblyFrame))
+        if(isSourceDebugging() || ui->docking->areaOf(m_CurInstructionScintilla) !=
+                                      ui->docking->areaOf(m_DisassemblyFrame))
           ToolWindowManager::raiseToolWindow(m_CurInstructionScintilla);
 
         int pos = m_CurInstructionScintilla->positionFromLine(lineInfo.lineStart - 1);
@@ -3823,7 +3833,9 @@ void ShaderViewer::updateDebugState()
           QString childName = QFormatStr("%1[%2]").arg(ro.name).arg(a);
           RDTreeWidgetItem *child = new RDTreeWidgetItem({
               QFormatStr("%1[%2]").arg(m_ShaderDetails->readOnlyResources[i].name).arg(a),
-              childName, lit("Resource"), ToQStr(roBind.resources[a].resourceId),
+              childName,
+              lit("Resource"),
+              ToQStr(roBind.resources[a].resourceId),
           });
           child->setTag(
               QVariant::fromValue(VariableTag(DebugVariableType::ReadOnlyResource, childName)));
@@ -3892,7 +3904,9 @@ void ShaderViewer::updateDebugState()
           QString childName = QFormatStr("%1[%2]").arg(rw.name).arg(a);
           RDTreeWidgetItem *child = new RDTreeWidgetItem({
               QFormatStr("%1[%2]").arg(m_ShaderDetails->readWriteResources[i].name).arg(a),
-              childName, lit("RW Resource"), ToQStr(rwBind.resources[a].resourceId),
+              childName,
+              lit("RW Resource"),
+              ToQStr(rwBind.resources[a].resourceId),
           });
           child->setTag(
               QVariant::fromValue(VariableTag(DebugVariableType::ReadWriteResource, childName)));
@@ -3958,8 +3972,10 @@ void ShaderViewer::updateDebugState()
         {
           QString childName = QFormatStr("%1[%2]").arg(s.name).arg(a);
           RDTreeWidgetItem *child = new RDTreeWidgetItem({
-              QFormatStr("%1[%2]").arg(m_ShaderDetails->samplers[i].name).arg(a), childName,
-              lit("Sampler"), samplerRep(bind, a, sampBind.resources[a].resourceId),
+              QFormatStr("%1[%2]").arg(m_ShaderDetails->samplers[i].name).arg(a),
+              childName,
+              lit("Sampler"),
+              samplerRep(bind, a, sampBind.resources[a].resourceId),
           });
           child->setTag(QVariant::fromValue(VariableTag(DebugVariableType::Sampler, childName)));
           node->addChild(child);
@@ -4129,7 +4145,10 @@ bool ShaderViewer::updateWatchVariable(RDTreeWidgetItem *watchItem, const RDTree
       {
         idx = watchItem->childCount();
         RDTreeWidgetItem *item = new RDTreeWidgetItem({
-            name, QVariant(), QVariant(), QVariant(),
+            name,
+            QVariant(),
+            QVariant(),
+            QVariant(),
         });
         VariableTag tag = VariableTag(DebugVariableType::Variable, path);
         tag.state = WatchVarState::Valid;
@@ -4210,7 +4229,10 @@ bool ShaderViewer::updateWatchVariable(RDTreeWidgetItem *watchItem, const RDTree
                dataSize * var.columns);
 
       RDTreeWidgetItem *item = new RDTreeWidgetItem({
-          rowVar.name, QVariant(), QVariant(), QVariant(),
+          rowVar.name,
+          QVariant(),
+          QVariant(),
+          QVariant(),
       });
 
       updateWatchVariable(item, varItem->child(r), path + ".row" + ToStr(r), ~0U, rowVar, regcast);
@@ -4612,7 +4634,9 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
         {
           for(uint32_t a = 0; a < bind.arraySize; a++)
             children.push_back(new RDTreeWidgetItem({
-                QFormatStr("%1[%2]").arg(localName).arg(a), QString(), typeName,
+                QFormatStr("%1[%2]").arg(localName).arg(a),
+                QString(),
+                typeName,
                 samplerRep(bind, a, res.resources[a].resourceId),
             }));
 
@@ -4668,7 +4692,9 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
           uint32_t count = qMin(bind.arraySize, (uint32_t)res.resources.size());
           for(uint32_t a = 0; a < count; a++)
             children.push_back(new RDTreeWidgetItem({
-                QFormatStr("%1[%2]").arg(localName).arg(a), QString(), typeName,
+                QFormatStr("%1[%2]").arg(localName).arg(a),
+                QString(),
+                typeName,
                 ToQStr(res.resources[a].resourceId),
             }));
 
@@ -5229,7 +5255,10 @@ void ShaderViewer::AddWatch(const rdcstr &variable)
     return;
 
   RDTreeWidgetItem *item = new RDTreeWidgetItem({
-      QString(variable), QVariant(), QVariant(), QVariant(),
+      QString(variable),
+      QVariant(),
+      QVariant(),
+      QVariant(),
   });
   item->setEditable(0, true);
   ui->watch->insertTopLevelItem(ui->watch->topLevelItemCount() - 1, item);
@@ -5951,10 +5980,11 @@ bool ShaderViewer::ProcessIncludeDirectives(QString &source, const rdcstrpairs &
 
 void ShaderViewer::on_resetEdits_clicked()
 {
-  QMessageBox::StandardButton res = RDDialog::question(
-      this, tr("Are you sure?"), tr("Are you sure you want to reset all edits and restore the "
-                                    "shader source back to the original?"),
-      QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+  QMessageBox::StandardButton res =
+      RDDialog::question(this, tr("Are you sure?"),
+                         tr("Are you sure you want to reset all edits and restore the "
+                            "shader source back to the original?"),
+                         QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
 
   if(res != QMessageBox::Yes)
     return;

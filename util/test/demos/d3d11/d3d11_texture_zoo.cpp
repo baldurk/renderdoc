@@ -569,9 +569,12 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
   (texFmt == viewFmt) ? std::string(#texFmt + 12) \
                       : (std::string(#texFmt + 12) + "->" + (strchr(#viewFmt + 12, '_') + 1))
 
-#define TEST_CASE(texType, texFmt, viewFmt, compCount, byteWidth, dataType)                      \
-  {                                                                                              \
-    TEST_CASE_NAME(texFmt, viewFmt), texFmt, viewFmt, {texType, compCount, byteWidth, dataType}, \
+#define TEST_CASE(texType, texFmt, viewFmt, compCount, byteWidth, dataType) \
+  {                                                                         \
+      TEST_CASE_NAME(texFmt, viewFmt),                                      \
+      texFmt,                                                               \
+      viewFmt,                                                              \
+      {texType, compCount, byteWidth, dataType},                            \
   }
 
     std::vector<TestCase> test_textures;
@@ -1001,9 +1004,9 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
           else
           {
             ID3D11RenderTargetViewPtr rtv =
-                tex1 ? MakeRTV(tex1).Format(t.fmt.viewFmt).FirstSlice(sl).FirstMip(mp)
-                     : tex2 ? MakeRTV(tex2).Format(t.fmt.viewFmt).FirstSlice(sl).FirstMip(mp)
-                            : MakeRTV(tex3).Format(t.fmt.viewFmt).FirstSlice(sl).FirstMip(mp);
+                tex1   ? MakeRTV(tex1).Format(t.fmt.viewFmt).FirstSlice(sl).FirstMip(mp)
+                : tex2 ? MakeRTV(tex2).Format(t.fmt.viewFmt).FirstSlice(sl).FirstMip(mp)
+                       : MakeRTV(tex3).Format(t.fmt.viewFmt).FirstSlice(sl).FirstMip(mp);
 
             Vec4i params(tex3 ? 0 : sl, mp, flags, tex3 ? sl : 0);
             ctx->UpdateSubresource(mscb, 0, NULL, &params, sizeof(params), sizeof(params));
@@ -1113,7 +1116,9 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
 
         RSSetViewport(view);
         D3D11_RECT rect = {
-            (LONG)view.TopLeftX, (LONG)view.TopLeftY, LONG(view.TopLeftX + view.Width),
+            (LONG)view.TopLeftX,
+            (LONG)view.TopLeftY,
+            LONG(view.TopLeftX + view.Width),
             LONG(view.TopLeftY + view.Height),
         };
         rect.left++;

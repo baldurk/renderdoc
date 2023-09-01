@@ -124,7 +124,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -146,35 +147,38 @@ void main()
     VkImageView storeView[2];
     VkDescriptorSet sets[2];
 
-    AllocatedBuffer outbuf(this, vkh::BufferCreateInfo(2048, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                                                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+    AllocatedBuffer outbuf(this,
+                           vkh::BufferCreateInfo(2048, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                           VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                           VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     setName(outbuf.buffer, "outbuf");
 
     for(int i = 0; i < 2; i++)
     {
-      ssbo[i] =
-          AllocatedBuffer(this, vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+      ssbo[i] = AllocatedBuffer(this,
+                                vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-                          VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
-      ubo[i] =
-          AllocatedBuffer(this, vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                                VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-                          VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+                                VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+      ubo[i] = AllocatedBuffer(this,
+                               vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                               VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                               VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
       sampled[i] = AllocatedImage(
-          this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                     VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT),
+          this,
+          vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                               VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT),
           VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
       sampledView[i] = createImageView(vkh::ImageViewCreateInfo(
           sampled[i].image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT));
 
       storeIm[i] = AllocatedImage(
-          this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT),
+          this,
+          vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT),
           VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
       storeView[i] = createImageView(vkh::ImageViewCreateInfo(

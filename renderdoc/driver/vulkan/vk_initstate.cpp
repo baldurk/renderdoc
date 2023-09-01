@@ -219,9 +219,12 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       bufAlignment = (VkDeviceSize)GetByteSize(1, 1, 1, imageInfo.format, 0);
 
     VkBufferCreateInfo bufInfo = {
-        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0, 0, VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                                                              VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        NULL,
+        0,
+        0,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
     };
 
     VkImage realim = im->real.As<VkImage>();
@@ -378,7 +381,9 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
             0,
             {aspectFlags, (uint32_t)m, (uint32_t)a, 1},
             {
-                0, 0, 0,
+                0,
+                0,
+                0,
             },
             extent,
         };
@@ -710,7 +715,7 @@ SparseBinding::SparseBinding(WrappedVulkan *vk, VkBuffer unwrappedBuffer,
                  //
                  )
           //
-          )
+      )
       {
         // apply the previous bind for one more page
         previousBind.size += mrq.alignment;
@@ -900,7 +905,9 @@ SparseBinding::SparseBinding(WrappedVulkan *vk, VkImage unwrappedImage,
           const Sparse::PageRangeMapping &mapping = table.getSubresource(sub);
 
           Sparse::Coord mipDim = {
-              RDCMAX(1U, texDim.x >> mip), RDCMAX(1U, texDim.y >> mip), RDCMAX(1U, texDim.z >> mip),
+              RDCMAX(1U, texDim.x >> mip),
+              RDCMAX(1U, texDim.y >> mip),
+              RDCMAX(1U, texDim.z >> mip),
           };
 
           Sparse::Coord dim = table.calcSubresourcePageDim(sub);
@@ -1562,7 +1569,10 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
 
           // create a buffer with memory attached, which we will fill with the initial contents
           VkBufferCreateInfo gpuBufInfo = {
-              VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0, ContentsSize,
+              VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+              NULL,
+              0,
+              ContentsSize,
               VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                   VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
           };
@@ -2028,7 +2038,9 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
             0,
             {aspectFlags, m, a, 1},
             {
-                0, 0, 0,
+                0,
+                0,
+                0,
             },
             extent,
         };

@@ -222,7 +222,7 @@ void RemoteManager::refreshHost(RDTreeWidgetItem *node)
 
   // this function looks up the remote connections and for each one open
   // queries it for the API, target (usually executable name) and if any user is already connected
-  LambdaThread *th = new LambdaThread([ this, node, h = host ]() {
+  LambdaThread *th = new LambdaThread([this, node, h = host]() {
     QByteArray username = GetSystemUsername().toUtf8();
 
     // make a mutable copy and check the status

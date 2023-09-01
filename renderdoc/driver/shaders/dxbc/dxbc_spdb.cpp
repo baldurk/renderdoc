@@ -32,7 +32,7 @@
 #include "dxbc_spdb.h"
 
 // uncomment the following to print (very verbose) debugging prints for SPDB processing
-//#define SPDBLOG(...) RDCDEBUG(__VA_ARGS__)
+// #define SPDBLOG(...) RDCDEBUG(__VA_ARGS__)
 
 #ifndef SPDBLOG
 #define SPDBLOG(...) (void)(__VA_ARGS__)

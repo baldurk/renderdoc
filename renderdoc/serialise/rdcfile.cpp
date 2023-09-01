@@ -471,8 +471,7 @@ void RDCFile::Init(StreamReader &reader)
 
       if(reader.AtEnd())
       {
-        SET_ERROR_RESULT(m_Error, ResultCode::FileCorrupted,
-                         "Invalid truncated ASCII data section");
+        SET_ERROR_RESULT(m_Error, ResultCode::FileCorrupted, "Invalid truncated ASCII data section");
         return;
       }
 
@@ -493,8 +492,7 @@ void RDCFile::Init(StreamReader &reader)
 
       if(reader.IsErrored() || reader.AtEnd())
       {
-        SET_ERROR_RESULT(m_Error, ResultCode::FileCorrupted,
-                         "Invalid truncated ASCII data section");
+        SET_ERROR_RESULT(m_Error, ResultCode::FileCorrupted, "Invalid truncated ASCII data section");
         return;
       }
 
@@ -515,8 +513,7 @@ void RDCFile::Init(StreamReader &reader)
 
       if(reader.IsErrored() || reader.AtEnd())
       {
-        SET_ERROR_RESULT(m_Error, ResultCode::FileCorrupted,
-                         "Invalid truncated ASCII data section");
+        SET_ERROR_RESULT(m_Error, ResultCode::FileCorrupted, "Invalid truncated ASCII data section");
         return;
       }
 
@@ -537,8 +534,7 @@ void RDCFile::Init(StreamReader &reader)
 
       if(reader.IsErrored() || reader.AtEnd())
       {
-        SET_ERROR_RESULT(m_Error, ResultCode::FileCorrupted,
-                         "Invalid truncated ASCII data section");
+        SET_ERROR_RESULT(m_Error, ResultCode::FileCorrupted, "Invalid truncated ASCII data section");
         return;
       }
 
@@ -558,8 +554,7 @@ void RDCFile::Init(StreamReader &reader)
 
       if(reader.IsErrored() || reader.AtEnd())
       {
-        SET_ERROR_RESULT(m_Error, ResultCode::FileCorrupted,
-                         "Invalid truncated ASCII data section");
+        SET_ERROR_RESULT(m_Error, ResultCode::FileCorrupted, "Invalid truncated ASCII data section");
         return;
       }
 

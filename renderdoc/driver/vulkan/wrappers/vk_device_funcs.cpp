@@ -3717,8 +3717,10 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       ImageBarrierSequence::SetMaxQueueFamilyIndex(qidx);
 
       VkCommandPoolCreateInfo poolInfo = {
-          VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, NULL,
-          VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, qidx,
+          VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+          NULL,
+          VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+          qidx,
       };
       vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, NULL,
                                                &m_ExternalQueues[qidx].pool);
@@ -4165,8 +4167,10 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       ImageBarrierSequence::SetMaxQueueFamilyIndex(qidx);
 
       VkCommandPoolCreateInfo poolInfo = {
-          VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, NULL,
-          VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, qidx,
+          VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+          NULL,
+          VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+          qidx,
       };
       vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, NULL,
                                                &m_ExternalQueues[qidx].pool);

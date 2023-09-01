@@ -176,15 +176,16 @@ void main()
     descFlags.bindingCount = 1;
     descFlags.pBindingFlags = bindFlags;
 
-    VkDescriptorSetLayout setlayout =
-        createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo(
-                                      {
-                                          {
-                                              0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                              numDescriptorSetsInLayout, VK_SHADER_STAGE_FRAGMENT_BIT,
-                                          },
-                                      })
-                                      .next(&descFlags));
+    VkDescriptorSetLayout setlayout = createDescriptorSetLayout(
+        vkh::DescriptorSetLayoutCreateInfo({
+                                               {
+                                                   0,
+                                                   VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                                   numDescriptorSetsInLayout,
+                                                   VK_SHADER_STAGE_FRAGMENT_BIT,
+                                               },
+                                           })
+            .next(&descFlags));
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
         {
@@ -201,7 +202,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -218,15 +220,17 @@ void main()
         {Vec3f(0.5f, -0.5f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
-    AllocatedBuffer vb(this, vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+    AllocatedBuffer vb(this,
+                       vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(tri);
 
     AllocatedImage img(
-        this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+        this,
+        vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     setName(img.image, "Colour Tex");
@@ -254,11 +258,12 @@ void main()
 
     {
       CHECK_VKR(vkCreateDescriptorPool(
-          device, vkh::DescriptorPoolCreateInfo(numDescriptorSets,
-                                                {
-                                                    {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                                     numDescriptorSets * numDescriptorsPerSet + 100},
-                                                }),
+          device,
+          vkh::DescriptorPoolCreateInfo(
+              numDescriptorSets,
+              {
+                  {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, numDescriptorSets * numDescriptorsPerSet + 100},
+              }),
           NULL, &descpool));
 
       std::vector<VkDescriptorSetLayout> setLayouts(numDescriptorSets, setlayout);
@@ -269,8 +274,10 @@ void main()
       counts.back() = std::min(100U, numDescriptorSetsInLayout);
 
       VkDescriptorSetVariableDescriptorCountAllocateInfoEXT countInfo = {
-          VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT, NULL,
-          numDescriptorSets, counts.data(),
+          VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT,
+          NULL,
+          numDescriptorSets,
+          counts.data(),
       };
 
       VkDescriptorSetAllocateInfo allocInfo = {

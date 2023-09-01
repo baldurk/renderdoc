@@ -868,9 +868,10 @@ bool LiveCapture::saveCapture(Capture *cap, QString path)
 
   if(QString(m_Ctx.GetCaptureFilename()) == path)
   {
-    RDDialog::critical(this, tr("Cannot save"), tr("Can't overwrite currently open capture at %1\n"
-                                                   "Close the capture or save to another location.")
-                                                    .arg(path));
+    RDDialog::critical(this, tr("Cannot save"),
+                       tr("Can't overwrite currently open capture at %1\n"
+                          "Close the capture or save to another location.")
+                           .arg(path));
     return false;
   }
 
@@ -1370,7 +1371,6 @@ void LiveCapture::connectionThreadEntry()
     {
       float progress = msg.capProgress;
       GUIInvoke::call(this, [this, progress]() {
-
         if(progress >= 0.0f && progress < 1.0f)
         {
           ui->progressLabel->setText(tr("Capture in Progress:"));
@@ -1384,7 +1384,6 @@ void LiveCapture::connectionThreadEntry()
           ui->progressLabel->setVisible(false);
           ui->progressBar->setVisible(false);
         }
-
       });
     }
 

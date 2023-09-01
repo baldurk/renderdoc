@@ -42,8 +42,11 @@ ResourceId GetResID(WrappedMTLObject *obj)
   return obj->m_ID;
 }
 
-#define IMPLEMENT_WRAPPED_TYPE_HELPERS(CPPTYPE) \
-  MTL::CPPTYPE *Unwrap(WrappedMTL##CPPTYPE *obj) { return Unwrap<MTL::CPPTYPE *>(obj); }
+#define IMPLEMENT_WRAPPED_TYPE_HELPERS(CPPTYPE)  \
+  MTL::CPPTYPE *Unwrap(WrappedMTL##CPPTYPE *obj) \
+  {                                              \
+    return Unwrap<MTL::CPPTYPE *>(obj);          \
+  }
 METALCPP_WRAPPED_PROTOCOLS(IMPLEMENT_WRAPPED_TYPE_HELPERS)
 #undef IMPLEMENT_WRAPPED_TYPE_HELPERS
 

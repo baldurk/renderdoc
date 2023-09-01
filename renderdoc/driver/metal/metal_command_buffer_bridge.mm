@@ -243,8 +243,8 @@
   return [self.real parallelRenderCommandEncoderWithDescriptor:renderPassDescriptor];
 }
 
-- (nullable id<MTLResourceStateCommandEncoder>)resourceStateCommandEncoder
-    API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(13.0))
+- (nullable id<MTLResourceStateCommandEncoder>)
+    resourceStateCommandEncoder API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(13.0))
 {
   METAL_NOT_HOOKED();
   return [self.real resourceStateCommandEncoder];
@@ -258,8 +258,8 @@
   return [self.real resourceStateCommandEncoderWithDescriptor:resourceStatePassDescriptor];
 }
 
-- (nullable id<MTLAccelerationStructureCommandEncoder>)accelerationStructureCommandEncoder
-    API_AVAILABLE(macos(11.0), ios(14.0))
+- (nullable id<MTLAccelerationStructureCommandEncoder>)
+    accelerationStructureCommandEncoder API_AVAILABLE(macos(11.0), ios(14.0))
 {
   METAL_NOT_HOOKED();
   return [self.real accelerationStructureCommandEncoder];

@@ -1155,7 +1155,8 @@ RDResult exportXMLOnly(const rdcstr &filename, const RDCFile &rdc, const SDFile 
 static ConversionRegistration XMLZIPConversionRegistration(
     &importXMLZ, &exportXMLZ,
     {
-        "zip.xml", "XML+ZIP capture",
+        "zip.xml",
+        "XML+ZIP capture",
         R"(Stores the structured data in an xml tree, with large buffer data stored in indexed blobs in
 similarly named zip file.)",
         true,
@@ -1164,7 +1165,8 @@ similarly named zip file.)",
 static ConversionRegistration XMLOnlyConversionRegistration(
     &exportXMLOnly,
     {
-        "xml", "XML capture",
+        "xml",
+        "XML capture",
         R"(Stores the structured data in an xml tree, with large buffer data omitted - that makes it
 easier to work with but it cannot then be imported.)",
         false,

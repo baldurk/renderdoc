@@ -657,7 +657,6 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
     return;
 
   LambdaThread *th = new LambdaThread([this, exe, workingDir, cmdLine, env, opts, callback]() {
-
     if(isUnshareableDeviceInUse())
     {
       RDDialog::warning(this, tr("RenderDoc is already capturing an app on this device"),
@@ -673,7 +672,6 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
         m_Ctx.Replay().ExecuteAndInject(exe, workingDir, cmdLine, env, capturefile, opts);
 
     GUIInvoke::call(this, [this, exe, ret, callback]() {
-
       if(ret.result.code == ResultCode::JDWPFailure)
       {
         RDDialog::critical(
@@ -733,7 +731,6 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const rdcarray<EnvironmentModific
     ExecuteResult ret = RENDERDOC_InjectIntoProcess(PID, env, capturefile, opts, false);
 
     GUIInvoke::call(this, [this, PID, ret, callback]() {
-
       if(ret.result.code != ResultCode::Succeeded)
       {
         RDDialog::critical(
@@ -1999,7 +1996,7 @@ void MainWindow::setRemoteHost(int hostIdx)
 
     statusText->setText(tr("Checking remote server status..."));
 
-    LambdaThread *th = new LambdaThread([ this, h = host ]() {
+    LambdaThread *th = new LambdaThread([this, h = host]() {
       // make a mutable copy and see if the server is up
       RemoteHost host = h;
       host.CheckStatus();
@@ -2037,7 +2034,6 @@ void MainWindow::setRemoteHost(int hostIdx)
       if(host.Protocol() && host.IsVersionMismatch())
       {
         GUIInvoke::blockcall(this, [this, &host]() {
-
           QMessageBox::StandardButton res =
               RDDialog::question(this, tr("Unsupported version"),
                                  tr("Remote server on %1 has an incompatible version.\n"
@@ -2563,8 +2559,9 @@ void MainWindow::on_action_Resolve_Symbols_triggered()
     finished = true;
   });
 
-  ShowProgressDialog(this, tr("Resolving symbols, please wait..."),
-                     [&finished]() { return finished; }, [&progress]() { return progress; });
+  ShowProgressDialog(
+      this, tr("Resolving symbols, please wait..."), [&finished]() { return finished; },
+      [&progress]() { return progress; });
 
   if(m_Ctx.HasAPIInspector())
     m_Ctx.GetAPIInspector()->Refresh();
@@ -2635,9 +2632,8 @@ void MainWindow::on_action_Start_Replay_Loop_triggered()
   else
   {
     popup.resize(100, 100);
-    popup.setWindowTitle(tr("Looping replay of %1 Displaying %2")
-                             .arg(m_Ctx.GetCaptureFilename())
-                             .arg(tr("nothing")));
+    popup.setWindowTitle(
+        tr("Looping replay of %1 Displaying %2").arg(m_Ctx.GetCaptureFilename()).arg(tr("nothing")));
   }
 
   WindowingData winData = m_Ctx.CreateWindowingData(&popup);
@@ -2881,8 +2877,7 @@ void MainWindow::on_action_Check_for_Updates_triggered()
       }
       case UpdateResult::Latest:
       {
-        RDDialog::information(this, tr("Latest version"),
-                              tr("You are running the latest version."));
+        RDDialog::information(this, tr("Latest version"), tr("You are running the latest version."));
         break;
       }
       case UpdateResult::Upgrade:
@@ -3141,7 +3136,7 @@ void MainWindow::showLaunchError(ResultDetails result)
              " Or if this is a custom build check that all ABIs are built at the same version as "
              "this program."
 #endif
-             );
+          );
       break;
     default:
       message = tr("Error encountered launching RenderDoc remote server: %1.").arg(result.Message());

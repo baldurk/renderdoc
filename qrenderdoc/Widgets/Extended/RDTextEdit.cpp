@@ -126,8 +126,9 @@ void RDTextEdit::enableCompletion()
 
         // if we're in the middle of a word, move to the end of it
         QString text = toPlainText();
-        if(cur.position() > 0 && (text[cur.position() - 1].isLetterOrNumber() ||
-                                  m_WordCharacters.contains(text[cur.position() - 1])) &&
+        if(cur.position() > 0 &&
+           (text[cur.position() - 1].isLetterOrNumber() ||
+            m_WordCharacters.contains(text[cur.position() - 1])) &&
            (text[cur.position()].isLetterOrNumber() ||
             m_WordCharacters.contains(text[cur.position()])))
         {
@@ -200,9 +201,7 @@ void RDTextEdit::keyPressEvent(QKeyEvent *e)
       case Qt::Key_Enter:
       case Qt::Key_Tab:
       case Qt::Key_Backtab:
-      case Qt::Key_Escape:
-        e->ignore();
-        return;
+      case Qt::Key_Escape: e->ignore(); return;
 
       // also the completer doesn't hide itself when the cursor is moved so make sure we do that
       // ourselves

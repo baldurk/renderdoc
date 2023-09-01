@@ -1367,7 +1367,10 @@ ResultDetails ReplayController::SaveTexture(const TextureSave &saveData, const r
         // must be in this order as many viewers don't pay attention to channels and just assume
         // they are in this order
         EXRChannelInfo bgraChannels[4] = {
-            {"A"}, {"B"}, {"G"}, {"R"},
+            {"A"},
+            {"B"},
+            {"G"},
+            {"R"},
         };
 
         exrHeader.num_channels = 4;

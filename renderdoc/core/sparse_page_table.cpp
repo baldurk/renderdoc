@@ -859,7 +859,8 @@ Coord PageTable::calcSubresourcePageDim(uint32_t subresource) const
   const uint32_t mipLevel = subresource % m_MipCount;
 
   const Sparse::Coord mipDim = {
-      RDCMAX(1U, m_TextureDim.x >> mipLevel), RDCMAX(1U, m_TextureDim.y >> mipLevel),
+      RDCMAX(1U, m_TextureDim.x >> mipLevel),
+      RDCMAX(1U, m_TextureDim.y >> mipLevel),
       RDCMAX(1U, m_TextureDim.z >> mipLevel),
   };
 

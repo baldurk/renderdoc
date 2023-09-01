@@ -1529,10 +1529,8 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
             /*StencilEnable =*/FALSE,
             /*StencilReadMask =*/D3D11_DEFAULT_STENCIL_READ_MASK,
             /*StencilWriteMask =*/D3D11_DEFAULT_STENCIL_WRITE_MASK,
-            /*FrontFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP,
-                            D3D11_COMPARISON_ALWAYS},
-            /*BackFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP,
-                           D3D11_COMPARISON_ALWAYS},
+            /*FrontFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS},
+            /*BackFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS},
         };
 
         if(curDS)
@@ -1825,9 +1823,8 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
               break;
           }
 
-          if(!mod.backfaceCulled &&
-             (flags[i] & (TestEnabled_Scissor | TestMustPass_Scissor | TestMustFail_Scissor)) ==
-                 TestEnabled_Scissor)
+          if(!mod.backfaceCulled && (flags[i] & (TestEnabled_Scissor | TestMustPass_Scissor |
+                                                 TestMustFail_Scissor)) == TestEnabled_Scissor)
           {
             do
             {
@@ -2069,10 +2066,12 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
           /*StencilEnable =*/TRUE,
           /*StencilReadMask =*/D3D11_DEFAULT_STENCIL_READ_MASK,
           /*StencilWriteMask =*/D3D11_DEFAULT_STENCIL_WRITE_MASK,
-          /*FrontFace =*/{D3D11_STENCIL_OP_INCR_SAT, D3D11_STENCIL_OP_INCR_SAT,
-                          D3D11_STENCIL_OP_INCR_SAT, D3D11_COMPARISON_GREATER_EQUAL},
-          /*BackFace =*/{D3D11_STENCIL_OP_INCR_SAT, D3D11_STENCIL_OP_INCR_SAT,
-                         D3D11_STENCIL_OP_INCR_SAT, D3D11_COMPARISON_GREATER_EQUAL},
+          /*FrontFace =*/
+          {D3D11_STENCIL_OP_INCR_SAT, D3D11_STENCIL_OP_INCR_SAT, D3D11_STENCIL_OP_INCR_SAT,
+           D3D11_COMPARISON_GREATER_EQUAL},
+          /*BackFace =*/
+          {D3D11_STENCIL_OP_INCR_SAT, D3D11_STENCIL_OP_INCR_SAT, D3D11_STENCIL_OP_INCR_SAT,
+           D3D11_COMPARISON_GREATER_EQUAL},
       };
       if(curDS)
       {

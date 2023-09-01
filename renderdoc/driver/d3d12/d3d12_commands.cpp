@@ -921,9 +921,7 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
 
     case D3D12Chunk::Swapchain_Present: ret = m_pDevice->Serialise_Present(ser, NULL, 0, 0); break;
 
-    case D3D12Chunk::List_ClearState:
-      ret = m_ReplayList->Serialise_ClearState(ser, NULL);
-      break;
+    case D3D12Chunk::List_ClearState: ret = m_ReplayList->Serialise_ClearState(ser, NULL); break;
 
     // in order to get a warning if we miss a case, we explicitly handle the device creation chunks
     // here. If we actually encounter one it's an error (we shouldn't see these inside the captured

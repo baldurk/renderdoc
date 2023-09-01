@@ -719,16 +719,20 @@ bytebuf ProgramEditor::EncodeProgram()
 
     writer.Record(LLVMBC::ModuleRecord::GLOBALVAR,
                   {
-                      typeIndex, uint64_t(((g.flags & GlobalFlags::IsConst) ? 1 : 0) | 0x2 |
-                                          ((uint32_t)g.type->addrSpace << 2)),
-                      g.initialiser ? getValueID(g.initialiser) + 1 : 0, linkageValue,
-                      Log2Floor((uint32_t)g.align) + 1, uint64_t(g.section + 1),
+                      typeIndex,
+                      uint64_t(((g.flags & GlobalFlags::IsConst) ? 1 : 0) | 0x2 |
+                               ((uint32_t)g.type->addrSpace << 2)),
+                      g.initialiser ? getValueID(g.initialiser) + 1 : 0,
+                      linkageValue,
+                      Log2Floor((uint32_t)g.align) + 1,
+                      uint64_t(g.section + 1),
                       // visibility
                       0U,
                       // TLS mode
                       0U,
                       // unnamed addr
-                      unnamedAddr, (g.flags & GlobalFlags::ExternallyInitialised) ? 1U : 0U,
+                      unnamedAddr,
+                      (g.flags & GlobalFlags::ExternallyInitialised) ? 1U : 0U,
                       // DLL storage class
                       0U,
                       // comdat
@@ -783,7 +787,8 @@ bytebuf ProgramEditor::EncodeProgram()
     uint64_t typeIndex = getTypeID(a.type);
 
     writer.Record(LLVMBC::ModuleRecord::ALIAS, {
-                                                   typeIndex, getValueID(a.val),
+                                                   typeIndex,
+                                                   getValueID(a.val),
                                                    // linkage
                                                    0U,
                                                    // visibility
@@ -1407,10 +1412,12 @@ bytebuf ProgramEditor::EncodeProgram()
       // new debug location
       const DebugLocation &loc = m_DebugLocations[inst->debugLoc];
 
-      writer.Record(LLVMBC::FunctionRecord::DEBUG_LOC,
-                    {
-                        loc.line, loc.col, getMetaIDOrNull(loc.scope), getMetaIDOrNull(loc.inlinedAt),
-                    });
+      writer.Record(LLVMBC::FunctionRecord::DEBUG_LOC, {
+                                                           loc.line,
+                                                           loc.col,
+                                                           getMetaIDOrNull(loc.scope),
+                                                           getMetaIDOrNull(loc.inlinedAt),
+                                                       });
 
       debugLoc = inst->debugLoc;
     }

@@ -338,7 +338,8 @@ void main()
       pipeCreateInfo.renderPass = rp;
 
       pipeCreateInfo.stages = {
-          vs, CompileShaderModule(src, ShaderLang::glsl, ShaderStage::frag, "main"),
+          vs,
+          CompileShaderModule(src, ShaderLang::glsl, ShaderStage::frag, "main"),
       };
 
       ret = PSOs[key] = createGraphicsPipeline(pipeCreateInfo);
@@ -688,9 +689,12 @@ void main()
   (texFmt == viewFmt) ? std::string(&(#texFmt)[10]) \
                       : (std::string(&(#texFmt)[10]) + "->" + (strchr(&(#viewFmt)[10], '_') + 1))
 
-#define TEST_CASE(texType, texFmt, viewFmt, compCount, byteWidth, dataType)                      \
-  {                                                                                              \
-    TEST_CASE_NAME(texFmt, viewFmt), texFmt, viewFmt, {texType, compCount, byteWidth, dataType}, \
+#define TEST_CASE(texType, texFmt, viewFmt, compCount, byteWidth, dataType) \
+  {                                                                         \
+      TEST_CASE_NAME(texFmt, viewFmt),                                      \
+      texFmt,                                                               \
+      viewFmt,                                                              \
+      {texType, compCount, byteWidth, dataType},                            \
   }
 
     std::vector<TestCase> test_textures;
@@ -1084,7 +1088,8 @@ void main()
     pipeCreateInfo.layout = layout;
 
     pipeCreateInfo.stages = {
-        vs, vs,
+        vs,
+        vs,
     };
 
     pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
@@ -1134,8 +1139,9 @@ void main()
       vkh::cmdPipelineBarrier(
           cmd, {
                    vkh::ImageMemoryBarrier(
-                       0, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-                              VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                       0,
+                       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                           VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                        t.res.image, vkh::ImageSubresourceRange(aspectMask)),
                });
@@ -1244,7 +1250,9 @@ void main()
         attRef->layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
         pipeCreateInfo.dynamicState.dynamicStates = {
-            VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_STENCIL_REFERENCE,
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR,
+            VK_DYNAMIC_STATE_STENCIL_REFERENCE,
         };
       }
       else
@@ -1261,7 +1269,8 @@ void main()
         attRef->layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         pipeCreateInfo.dynamicState.dynamicStates = {
-            VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR,
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR,
         };
       }
 
@@ -1312,8 +1321,9 @@ void main()
             viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 
           vkCreateImageView(
-              device, vkh::ImageViewCreateInfo(t.res.image, viewType, t.fmt.viewFmt, {},
-                                               vkh::ImageSubresourceRange(aspectMask, mp, 1, sl, 1)),
+              device,
+              vkh::ImageViewCreateInfo(t.res.image, viewType, t.fmt.viewFmt, {},
+                                       vkh::ImageSubresourceRange(aspectMask, mp, 1, sl, 1)),
               NULL, &tempView);
           vkCreateFramebuffer(
               device, vkh::FramebufferCreateInfo(tempRP, {tempView}, scissor.extent), NULL, &tempFB);
@@ -1449,8 +1459,9 @@ void main()
 
     slice_test_3d.dim = 3;
     slice_test_3d.res = AllocatedImage(
-        this, vkh::ImageCreateInfo(64, 64, 64, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                   VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, 2),
+        this,
+        vkh::ImageCreateInfo(64, 64, 64, VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, 2),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
     slice_test_3d.view = createImageView(vkh::ImageViewCreateInfo(
         slice_test_3d.res.image, VK_IMAGE_VIEW_TYPE_3D, VK_FORMAT_R32G32B32A32_SFLOAT));
@@ -1567,8 +1578,9 @@ void main()
       VkImage swapimg =
           StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(rp, framebuffer, mainWindow->scissor,
-                                                         {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f)}),
+      vkCmdBeginRenderPass(cmd,
+                           vkh::RenderPassBeginInfo(rp, framebuffer, mainWindow->scissor,
+                                                    {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f)}),
                            VK_SUBPASS_CONTENTS_INLINE);
 
       VkViewport view = {0.0f, 0.0f, 10.0f, 10.0f, 0.0f, 1.0f};

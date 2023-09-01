@@ -151,13 +151,29 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
     imgRefs.Update(range1, eFrameRef_PartialWrite);
     rdcarray<FrameRefType> expected = {
         // VK_IMAGE_ASPECT_DEPTH_BIT
-        eFrameRef_None, eFrameRef_None, eFrameRef_None, eFrameRef_None, eFrameRef_None,
-        eFrameRef_PartialWrite, eFrameRef_PartialWrite, eFrameRef_None, eFrameRef_None,
-        eFrameRef_None, eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_PartialWrite,
+        eFrameRef_PartialWrite,
+        eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_None,
         // VK_IMAGE_ASPECT_STENCIL_BIT
-        eFrameRef_Read, eFrameRef_Read, eFrameRef_Read, eFrameRef_Read, eFrameRef_Read,
-        eFrameRef_ReadBeforeWrite, eFrameRef_ReadBeforeWrite, eFrameRef_Read, eFrameRef_Read,
-        eFrameRef_Read, eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_ReadBeforeWrite,
+        eFrameRef_ReadBeforeWrite,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_Read,
     };
     CHECK(imgRefs.rangeRefs == expected);
   }
@@ -176,36 +192,89 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
     imgRefs.Update(range1, eFrameRef_PartialWrite);
     rdcarray<FrameRefType> expected = {
         // (Depth, level 0)
-        eFrameRef_None, eFrameRef_Read, eFrameRef_Read, eFrameRef_None, eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_None,
+        eFrameRef_None,
         // (Depth, level 1)
-        eFrameRef_None, eFrameRef_Read, eFrameRef_Read, eFrameRef_None, eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_None,
+        eFrameRef_None,
         // (Depth, level 2)
-        eFrameRef_PartialWrite, eFrameRef_ReadBeforeWrite, eFrameRef_ReadBeforeWrite,
-        eFrameRef_PartialWrite, eFrameRef_PartialWrite,
+        eFrameRef_PartialWrite,
+        eFrameRef_ReadBeforeWrite,
+        eFrameRef_ReadBeforeWrite,
+        eFrameRef_PartialWrite,
+        eFrameRef_PartialWrite,
         // (Depth, level 3)
-        eFrameRef_PartialWrite, eFrameRef_ReadBeforeWrite, eFrameRef_ReadBeforeWrite,
-        eFrameRef_PartialWrite, eFrameRef_PartialWrite,
+        eFrameRef_PartialWrite,
+        eFrameRef_ReadBeforeWrite,
+        eFrameRef_ReadBeforeWrite,
+        eFrameRef_PartialWrite,
+        eFrameRef_PartialWrite,
         // (Depth, level 4)
-        eFrameRef_PartialWrite, eFrameRef_ReadBeforeWrite, eFrameRef_ReadBeforeWrite,
-        eFrameRef_PartialWrite, eFrameRef_PartialWrite,
+        eFrameRef_PartialWrite,
+        eFrameRef_ReadBeforeWrite,
+        eFrameRef_ReadBeforeWrite,
+        eFrameRef_PartialWrite,
+        eFrameRef_PartialWrite,
         // (Depth, level 5)
-        eFrameRef_None, eFrameRef_Read, eFrameRef_Read, eFrameRef_None, eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_None,
+        eFrameRef_None,
         // (Depth, level 6)
-        eFrameRef_None, eFrameRef_Read, eFrameRef_Read, eFrameRef_None, eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_None,
+        eFrameRef_None,
         // (Stencil, level 0)
-        eFrameRef_None, eFrameRef_Read, eFrameRef_Read, eFrameRef_None, eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_None,
+        eFrameRef_None,
         // (Stencil, level 1)
-        eFrameRef_None, eFrameRef_Read, eFrameRef_Read, eFrameRef_None, eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_None,
+        eFrameRef_None,
         // (Stencil, level 2)
-        eFrameRef_None, eFrameRef_Read, eFrameRef_Read, eFrameRef_None, eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_None,
+        eFrameRef_None,
         // (Stencil, level 3)
-        eFrameRef_None, eFrameRef_Read, eFrameRef_Read, eFrameRef_None, eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_None,
+        eFrameRef_None,
         // (Stencil, level 4)
-        eFrameRef_None, eFrameRef_Read, eFrameRef_Read, eFrameRef_None, eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_None,
+        eFrameRef_None,
         // (Stencil, level 5)
-        eFrameRef_None, eFrameRef_Read, eFrameRef_Read, eFrameRef_None, eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_None,
+        eFrameRef_None,
         // (Stencil, level 6)
-        eFrameRef_None, eFrameRef_Read, eFrameRef_Read, eFrameRef_None, eFrameRef_None,
+        eFrameRef_None,
+        eFrameRef_Read,
+        eFrameRef_Read,
+        eFrameRef_None,
+        eFrameRef_None,
 
     };
     CHECK(imgRefs.rangeRefs == expected);

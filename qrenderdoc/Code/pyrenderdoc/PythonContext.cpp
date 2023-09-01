@@ -910,7 +910,7 @@ void PythonContext::executeString(const QString &filename, const QString &source
   {
     PyObject *traceContext = PyDict_New();
 
-    uintptr_t thisint = (uintptr_t) this;
+    uintptr_t thisint = (uintptr_t)this;
     uint64_t thisuint64 = (uint64_t)thisint;
     PyObject *thisobj = PyLong_FromUnsignedLongLong(thisuint64);
 
@@ -1007,9 +1007,10 @@ void PythonContext::setGlobal(const char *varName, const char *typeName, void *o
 
   if(ret != 0)
   {
-    emit exception(lit("RuntimeError"), tr("Failed to set variable '%1' of type '%2'")
-                                            .arg(QString::fromUtf8(varName))
-                                            .arg(QString::fromUtf8(typeName)),
+    emit exception(lit("RuntimeError"),
+                   tr("Failed to set variable '%1' of type '%2'")
+                       .arg(QString::fromUtf8(varName))
+                       .arg(QString::fromUtf8(typeName)),
                    -1, {});
     return;
   }

@@ -2270,8 +2270,7 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   ui->matrixType->addItems({tr("Perspective"), tr("Orthographic")});
 
   ui->axisMappingCombo->addItems({tr("Y-up, left handed"), tr("Y-up, right handed"),
-                                  tr("Z-up, left handed"), tr("Z-up, right handed"),
-                                  tr("Custom...")});
+                                  tr("Z-up, left handed"), tr("Z-up, right handed"), tr("Custom...")});
   ui->axisMappingCombo->setCurrentIndex(0);
 
   // wireframe only available on solid shaded options

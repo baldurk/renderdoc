@@ -124,7 +124,10 @@ void main()
 
     VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
         {
-            0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 64, VK_SHADER_STAGE_FRAGMENT_BIT,
+            0,
+            VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            64,
+            VK_SHADER_STAGE_FRAGMENT_BIT,
         },
     }));
 
@@ -212,11 +215,12 @@ void main()
     vb.upload(VBData);
 
     // create depth-stencil image
-    AllocatedImage depthimg(this, vkh::ImageCreateInfo(mainWindow->scissor.extent.width,
-                                                       mainWindow->scissor.extent.height, 0,
-                                                       VK_FORMAT_D32_SFLOAT_S8_UINT,
-                                                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
-                            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    AllocatedImage depthimg(
+        this,
+        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                             VK_FORMAT_D32_SFLOAT_S8_UINT,
+                             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView dsvview = createImageView(vkh::ImageViewCreateInfo(
         depthimg.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT_S8_UINT, {},
@@ -264,7 +268,8 @@ void main()
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-        vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+        vkh::vertexAttr(0, 0, DefaultA2V, pos),
+        vkh::vertexAttr(1, 0, DefaultA2V, col),
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
@@ -274,7 +279,8 @@ void main()
     };
 
     VkSpecializationMapEntry specmap[2] = {
-        {1, 0 * sizeof(uint32_t), sizeof(uint32_t)}, {2, 1 * sizeof(uint32_t), sizeof(uint32_t)},
+        {1, 0 * sizeof(uint32_t), sizeof(uint32_t)},
+        {2, 1 * sizeof(uint32_t), sizeof(uint32_t)},
     };
 
     uint32_t specvals[2] = {1337, 1338};
@@ -384,16 +390,17 @@ void main()
     };
 
     AllocatedImage msaaimg(
-        this, vkh::ImageCreateInfo(mainWindow->scissor.extent.width,
-                                   mainWindow->scissor.extent.height, 0, mainWindow->format,
-                                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, 1, VK_SAMPLE_COUNT_4_BIT),
+        this,
+        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                             mainWindow->format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, 1,
+                             VK_SAMPLE_COUNT_4_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     AllocatedImage msaadepthimg(
-        this, vkh::ImageCreateInfo(
-                  mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
-                  VK_FORMAT_D32_SFLOAT_S8_UINT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 1, 1,
-                  VK_SAMPLE_COUNT_4_BIT),
+        this,
+        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                             VK_FORMAT_D32_SFLOAT_S8_UINT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                             1, 1, VK_SAMPLE_COUNT_4_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView msaaRTV = createImageView(
@@ -406,9 +413,10 @@ void main()
         msaaRP, {msaaRTV, msaaDSV},
         {mainWindow->scissor.extent.width, mainWindow->scissor.extent.height}));
 
-    AllocatedImage img(this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                  VK_IMAGE_USAGE_SAMPLED_BIT),
-                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    AllocatedImage img(
+        this,
+        vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     setName(img.image, "Colour Tex");
 
@@ -478,12 +486,12 @@ void main()
         vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
         vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
 
-        vkCmdBeginRenderPass(
-            cmd, vkh::RenderPassBeginInfo(
-                     is_msaa ? msaaRP : renderPass, is_msaa ? msaaFB : fbs[mainWindow->imgIndex],
-                     mainWindow->scissor,
-                     {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f), vkh::ClearValue(1.0f, 0)}),
-            VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(cmd,
+                             vkh::RenderPassBeginInfo(
+                                 is_msaa ? msaaRP : renderPass,
+                                 is_msaa ? msaaFB : fbs[mainWindow->imgIndex], mainWindow->scissor,
+                                 {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f), vkh::ClearValue(1.0f, 0)}),
+                             VK_SUBPASS_CONTENTS_INLINE);
 
         // draw the setup triangles
 
@@ -560,9 +568,10 @@ void main()
       vkCmdSetViewport(cmd, 0, 1, &v);
       vkCmdSetScissor(cmd, 0, 1, &s);
 
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(subrp, subfb[0], s,
-                                                         {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)}),
-                           VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdBeginRenderPass(
+          cmd,
+          vkh::RenderPassBeginInfo(subrp, subfb[0], s, {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)}),
+          VK_SUBPASS_CONTENTS_INLINE);
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, whitepipe);
 
@@ -592,9 +601,10 @@ void main()
       vkCmdSetViewport(cmd, 0, 1, &v);
       vkCmdSetScissor(cmd, 0, 1, &s);
 
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(subrp, subfb[1], s,
-                                                         {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)}),
-                           VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdBeginRenderPass(
+          cmd,
+          vkh::RenderPassBeginInfo(subrp, subfb[1], s, {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)}),
+          VK_SUBPASS_CONTENTS_INLINE);
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, whitepipe);
 

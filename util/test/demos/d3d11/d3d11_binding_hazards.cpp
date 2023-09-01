@@ -197,7 +197,8 @@ void main()
       ctx->CSSetShader(cs, NULL, 0);
 
       ID3D11RenderTargetView *RTVs[] = {
-          rtv0, rtv0,
+          rtv0,
+          rtv0,
       };
 
       // can't bind the same RTV to two slots

@@ -61,7 +61,11 @@ void VulkanDebugManager::CopyTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer destB
       {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
        VK_COMPONENT_SWIZZLE_IDENTITY},
       {
-          VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS,
+          VK_IMAGE_ASPECT_COLOR_BIT,
+          0,
+          VK_REMAINING_MIP_LEVELS,
+          0,
+          VK_REMAINING_ARRAY_LAYERS,
       },
   };
 
@@ -152,7 +156,8 @@ void VulkanDebugManager::CopyTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer destB
         const uint32_t maxInvoc = AlignUp(extent.width * extent.height, msDivider) / msDivider;
 
         Vec4u params[2] = {
-            {extent.width, currentSlice, currentSample, bs}, {maxInvoc, dispatchOffset, 0, 0},
+            {extent.width, currentSlice, currentSample, bs},
+            {maxInvoc, dispatchOffset, 0, 0},
         };
 
         ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_BufferMSPipeLayout),
@@ -227,7 +232,11 @@ void VulkanDebugManager::CopyDepthTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer 
       {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO,
        VK_COMPONENT_SWIZZLE_ZERO},
       {
-          VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS,
+          VK_IMAGE_ASPECT_DEPTH_BIT,
+          0,
+          VK_REMAINING_MIP_LEVELS,
+          0,
+          VK_REMAINING_ARRAY_LAYERS,
       },
   };
 
@@ -333,15 +342,17 @@ void VulkanDebugManager::CopyDepthTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer 
     for(uint32_t currentSample = baseSample; currentSample < numSamples + baseSample; currentSample++)
     {
       // for D16 and S8 textures, we need to multisample.
-      const uint32_t msDivider =
-          (fmt == VK_FORMAT_D16_UNORM) ? 2 : (fmt == VK_FORMAT_S8_UINT) ? 4 : 1;
+      const uint32_t msDivider = (fmt == VK_FORMAT_D16_UNORM) ? 2
+                                 : (fmt == VK_FORMAT_S8_UINT) ? 4
+                                                              : 1;
       const uint32_t workGroupDivider = MS_DISPATCH_LOCAL_SIZE * msDivider;
       const uint32_t numWorkGroup =
           AlignUp(extent.width * extent.height, workGroupDivider) / workGroupDivider;
       const uint32_t maxInvoc = AlignUp(extent.width * extent.height, msDivider) / msDivider;
 
       Vec4u params[2] = {
-          {extent.width, currentSlice, currentSample, fmtIndex}, {maxInvoc, dispatchOffset, 0, 0},
+          {extent.width, currentSlice, currentSample, fmtIndex},
+          {maxInvoc, dispatchOffset, 0, 0},
       };
 
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_BufferMSPipeLayout), VK_SHADER_STAGE_ALL,
@@ -398,7 +409,11 @@ void VulkanDebugManager::CopyBufferToTex2DMS(VkCommandBuffer cmd, VkImage destMS
       {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
        VK_COMPONENT_SWIZZLE_IDENTITY},
       {
-          VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS,
+          VK_IMAGE_ASPECT_COLOR_BIT,
+          0,
+          VK_REMAINING_MIP_LEVELS,
+          0,
+          VK_REMAINING_ARRAY_LAYERS,
       },
   };
 
@@ -488,7 +503,8 @@ void VulkanDebugManager::CopyBufferToTex2DMS(VkCommandBuffer cmd, VkImage destMS
         const uint32_t maxInvoc = AlignUp(extent.width * extent.height, msDivider) / msDivider;
 
         Vec4u params[2] = {
-            {extent.width, currentSlice, currentSample, bs}, {maxInvoc, dispatchOffset, 0, 0},
+            {extent.width, currentSlice, currentSample, bs},
+            {maxInvoc, dispatchOffset, 0, 0},
         };
 
         ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_BufferMSPipeLayout),
@@ -592,7 +608,11 @@ void VulkanDebugManager::CopyDepthBufferToTex2DMS(VkCommandBuffer cmd, VkImage d
       {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
        VK_COMPONENT_SWIZZLE_IDENTITY},
       {
-          aspectFlags, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS,
+          aspectFlags,
+          0,
+          VK_REMAINING_MIP_LEVELS,
+          0,
+          VK_REMAINING_ARRAY_LAYERS,
       },
   };
 

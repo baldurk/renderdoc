@@ -862,10 +862,11 @@ void ShaderMessageViewer::refreshMessages()
     if(msg.stage == ShaderStage::Compute)
     {
       node = new RDTreeWidgetItem({
-          QString(), QFormatStr("%1, %2, %3")
-                         .arg(msg.location.compute.workgroup[0])
-                         .arg(msg.location.compute.workgroup[1])
-                         .arg(msg.location.compute.workgroup[2]),
+          QString(),
+          QFormatStr("%1, %2, %3")
+              .arg(msg.location.compute.workgroup[0])
+              .arg(msg.location.compute.workgroup[1])
+              .arg(msg.location.compute.workgroup[2]),
           QFormatStr("%1, %2, %3")
               .arg(msg.location.compute.thread[0])
               .arg(msg.location.compute.thread[1])
@@ -880,9 +881,9 @@ void ShaderMessageViewer::refreshMessages()
       node = new RDTreeWidgetItem({QString(), QString(), location, text});
 
       node->setData(0, debuggableRole, refl && refl->debugInfo.debuggable);
-      node->setData(1, gotoableRole, msg.stage == ShaderStage::Vertex ||
-                                         msg.stage == ShaderStage::Pixel ||
-                                         msg.stage == ShaderStage::Geometry);
+      node->setData(1, gotoableRole,
+                    msg.stage == ShaderStage::Vertex || msg.stage == ShaderStage::Pixel ||
+                        msg.stage == ShaderStage::Geometry);
     }
 
     if(node)

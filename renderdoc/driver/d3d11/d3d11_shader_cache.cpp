@@ -132,10 +132,10 @@ rdcstr D3D11ShaderCache::GetShaderBlob(const char *source, const char *entry,
   rdcstr cbuffers = GetEmbeddedResource(hlsl_cbuffers_h);
   rdcstr texsample = GetEmbeddedResource(hlsl_texsample_h);
 
-  EmbeddedD3DIncluder includer(includeDirs,
-                               {
-                                   {"hlsl_texsample.h", texsample}, {"hlsl_cbuffers.h", cbuffers},
-                               });
+  EmbeddedD3DIncluder includer(includeDirs, {
+                                                {"hlsl_texsample.h", texsample},
+                                                {"hlsl_cbuffers.h", cbuffers},
+                                            });
 
   uint32_t hash = strhash(source);
   hash = strhash(entry, hash);

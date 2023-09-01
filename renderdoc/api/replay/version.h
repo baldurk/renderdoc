@@ -65,13 +65,13 @@ extern "C" const char GitVersionHash[41];
 
 // The friendly name of the distribution that packaged this build
 #if !defined(DISTRIBUTION_NAME)
-//#define DISTRIBUTION_NAME "DistributionName"
+// #define DISTRIBUTION_NAME "DistributionName"
 #endif
 
 // An arbitrary distribution version string. If set, this should include the major and minor
 // version numbers in it.
 #if !defined(DISTRIBUTION_VERSION)
-//#define DISTRIBUTION_VERSION "MAJ.MIN-foo.4b"
+// #define DISTRIBUTION_VERSION "MAJ.MIN-foo.4b"
 #endif
 
 // Set to an URL or email of who produced this build and should be the first point of contact for
@@ -79,7 +79,7 @@ extern "C" const char GitVersionHash[41];
 // If you're distributing builds for the public then do update this to point to your bugtracker or
 // similar.
 #if !defined(DISTRIBUTION_CONTACT)
-//#define DISTRIBUTION_CONTACT "https://distribution.example/packages/renderdoc"
+// #define DISTRIBUTION_CONTACT "https://distribution.example/packages/renderdoc"
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////

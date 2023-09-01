@@ -33,7 +33,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <map>
-//#include "api/app/renderdoc_app.h"
 #include "api/replay/capture_options.h"
 #include "api/replay/control_types.h"
 #include "common/formatting.h"

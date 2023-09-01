@@ -664,11 +664,11 @@ void WGLHook::RegisterHooks()
   LibraryHooks::RegisterLibraryHook("user32.dll", NULL);
 
 // register EGL hooks
-#define WGL_REGISTER(library, func)                                                               \
-  if(CheckConstParam(sizeof(library) > 2))                                                        \
-  {                                                                                               \
-    LibraryHooks::RegisterFunctionHook(library, FunctionHook(STRINGIZE(func), (void **)&WGL.func, \
-                                                             (void *)&CONCAT(func, _hooked)));    \
+#define WGL_REGISTER(library, func)                                                                  \
+  if(CheckConstParam(sizeof(library) > 2))                                                           \
+  {                                                                                                  \
+    LibraryHooks::RegisterFunctionHook(                                                              \
+        library, FunctionHook(STRINGIZE(func), (void **)&WGL.func, (void *)&CONCAT(func, _hooked))); \
   }
   WGL_HOOKED_SYMBOLS(WGL_REGISTER)
 #undef WGL_REGISTER

@@ -513,20 +513,20 @@ bool GLXDispatchTable::PopulateForReplay()
 
   bool symbols_ok = true;
 
-#define LOAD_FUNC(func)                                                                             \
-  if(!this->func)                                                                                   \
-    this->func = (CONCAT(PFN_, func))Process::GetFunctionAddress(handle, STRINGIZE(func));          \
-                                                                                                    \
-  if(!func && this->glXGetProcAddressARB)                                                           \
-    this->func = (CONCAT(PFN_, func)) this->glXGetProcAddressARB((const GLubyte *)STRINGIZE(func)); \
-                                                                                                    \
-  if(!func && this->glXGetProcAddress)                                                              \
-    this->func = (CONCAT(PFN_, func)) this->glXGetProcAddress((const GLubyte *)STRINGIZE(func));    \
-                                                                                                    \
-  if(!func)                                                                                         \
-  {                                                                                                 \
-    symbols_ok = false;                                                                             \
-    RDCWARN("Unable to load '%s'", STRINGIZE(func));                                                \
+#define LOAD_FUNC(func)                                                                            \
+  if(!this->func)                                                                                  \
+    this->func = (CONCAT(PFN_, func))Process::GetFunctionAddress(handle, STRINGIZE(func));         \
+                                                                                                   \
+  if(!func && this->glXGetProcAddressARB)                                                          \
+    this->func = (CONCAT(PFN_, func))this->glXGetProcAddressARB((const GLubyte *)STRINGIZE(func)); \
+                                                                                                   \
+  if(!func && this->glXGetProcAddress)                                                             \
+    this->func = (CONCAT(PFN_, func))this->glXGetProcAddress((const GLubyte *)STRINGIZE(func));    \
+                                                                                                   \
+  if(!func)                                                                                        \
+  {                                                                                                \
+    symbols_ok = false;                                                                            \
+    RDCWARN("Unable to load '%s'", STRINGIZE(func));                                               \
   }
 
   GLX_HOOKED_SYMBOLS(LOAD_FUNC)

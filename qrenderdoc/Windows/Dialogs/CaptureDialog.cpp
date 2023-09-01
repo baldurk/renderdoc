@@ -568,7 +568,6 @@ void CaptureDialog::CheckAndroidSetup(QString &filename)
   ui->androidWarn->setVisible(false);
 
   LambdaThread *scan = new LambdaThread([this, filename]() {
-
     rdcstr host = m_Ctx.Replay().CurrentRemote().Hostname();
     RENDERDOC_CheckAndroidPackage(host, filename, &m_AndroidFlags);
 

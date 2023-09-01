@@ -72,7 +72,10 @@ void VulkanReplay::CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::
       {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
        VK_COMPONENT_SWIZZLE_IDENTITY},
       {
-          VK_IMAGE_ASPECT_COLOR_BIT, 0, RDCMAX(1U, iminfo.mipLevels), 0,
+          VK_IMAGE_ASPECT_COLOR_BIT,
+          0,
+          RDCMAX(1U, iminfo.mipLevels),
+          0,
           RDCMAX(1U, iminfo.arrayLayers),
       },
   };
@@ -150,7 +153,8 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
       Unwrap(outw.rp),
       Unwrap(outw.fb),
       {{
-           0, 0,
+           0,
+           0,
        },
        {m_DebugWidth, m_DebugHeight}},
       0,
