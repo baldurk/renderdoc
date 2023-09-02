@@ -132,12 +132,24 @@ namespace GitIntrospection {
       return !Log.HasLoggedErrors;
     }
     private void GetCommit() {
-      string HEADpath = Repository + ".git\\HEAD";
+      string dotGITpath = Repository + ".git";
+      string refGITpath = dotGITpath;
+      if(File.Exists(dotGITpath)) {
+        string gitData = File.ReadAllText(dotGITpath).Trim();
+        if(gitData.StartsWith("gitdir: ")) {
+          dotGITpath = Repository + gitData.Substring(8).Replace('/', '\\');
+          int index = dotGITpath.IndexOf(".git");
+          if (index >= 0) {
+            refGITpath = dotGITpath.Substring(0, index+4);
+          }
+        }
+      }
+      string HEADpath = dotGITpath + "\\HEAD";
       if(File.Exists(HEADpath)) {
         string HEADref = File.ReadAllText(HEADpath).Trim();
 
         if(HEADref.StartsWith("ref: ")) {
-          string refpath = Repository + ".git\\" + HEADref.Substring(5).Replace('/', '\\');
+          string refpath = refGITpath + "\\" + HEADref.Substring(5).Replace('/', '\\');
           if(File.Exists(refpath))
             Sha1 = File.ReadAllText(refpath).Trim();
         } else {
