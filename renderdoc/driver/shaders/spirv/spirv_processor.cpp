@@ -1506,7 +1506,7 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
       {
         case Op::SNegate: a.s64v[0] = -a.s64v[0]; break;
         case Op::Not: a.u64v[0] = ~a.u64v[0]; break;
-        case Op::LogicalNot: a.u64v[0] = a.u64v[0] ? 1 : 0; break;
+        case Op::LogicalNot: a.u64v[0] = a.u64v[0] ? 0 : 1; break;
         case Op::IAdd:
           if(signedness)
             a.s64v[0] += b.s64v[0];
