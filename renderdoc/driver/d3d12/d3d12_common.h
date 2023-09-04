@@ -687,7 +687,7 @@ private:
 #endif
     // since data must be tightly packed, the final structs that are versioned and may not be
     // supported are pushed in here
-    byte alignas(void *) VariableVersionedData[
+    alignas(void *) byte VariableVersionedData[
         // depth-stencil is versioned for separate stencil masks
         sizeof(D3D12_DEPTH_STENCIL_DESC2) + sizeof(void *) +
         // rasterization is versioned for line raster mode
