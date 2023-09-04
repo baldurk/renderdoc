@@ -1702,8 +1702,8 @@ D3D12_PACKED_PIPELINE_STATE_STREAM_DESC &D3D12_PACKED_PIPELINE_STATE_STREAM_DESC
     // one to ensure we don't fail when the new one isn't supported
     if(expanded.DepthStencilState.StencilEnable &&
        (expanded.DepthStencilState.FrontFace.StencilReadMask !=
-            expanded.DepthStencilState.FrontFace.StencilReadMask ||
-        expanded.DepthStencilState.BackFace.StencilWriteMask !=
+            expanded.DepthStencilState.BackFace.StencilReadMask ||
+        expanded.DepthStencilState.FrontFace.StencilWriteMask !=
             expanded.DepthStencilState.BackFace.StencilWriteMask))
     {
       WRITE_VERSIONED_SUBOJBECT(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL2,
