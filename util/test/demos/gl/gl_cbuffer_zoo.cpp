@@ -342,6 +342,7 @@ uniform uvec2 I;
 uniform uvec3 J;
 uniform uvec4 K;
 uniform ivec4 L;
+uniform float2_struct M[1];
 
 void main()
 {
@@ -355,6 +356,7 @@ void main()
   blah *= vertIn.uv.z;
   if(H < 1 || I.x < 1 || J.x < 1 || K.x < 1) blah *= 0.1f;
   if(L.x > 1) blah *= 0.1f;
+  blah += M[0].x + M[0].y;
   Color = blah + test + vec4(0.1f, 0.0f, 0.0f, 0.0f);
 }
 
@@ -621,6 +623,13 @@ void main()
       location = glGetUniformLocation(program, "L");
       if(location != -1)
         glUniform4i(location, -24000, -25000, -26000, -27000);
+
+      location = glGetUniformLocation(program, "M[0].x");
+      if(location != -1)
+        glUniform1f(location, 28001.0);
+      location = glGetUniformLocation(program, "M[0].y");
+      if(location != -1)
+        glUniform1f(location, -28000.0);
 
       glViewport(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
 
