@@ -428,7 +428,7 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
 
         rdtest.log.success("CBuffer variables are as expected")
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [536.1, 537.0, 538.0, 539.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [537.1, 538.0, 539.0, 540.0])
 
         rdtest.log.success("Picked value is as expected")
 
@@ -577,6 +577,11 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
         var_check.check('J').cols(3).rows(1).value([17000, 18000, 19000])
         var_check.check('K').cols(4).rows(1).value([20000, 21000, 22000, 23000])
         var_check.check('L').cols(4).rows(1).value([-24000, -25000, -26000, -27000])
+        # float2_struct M[1];
+        var_check.check('M').cols(0).rows(0).arraySize(2).members({
+            0: lambda x: x.cols(1).rows(1).value([28001.0]),
+            1: lambda x: x.cols(1).rows(1).value([-28000.0]),
+        })
 
         var_check.done()
 
