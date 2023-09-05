@@ -2176,6 +2176,16 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
 
       GLuint idx = GL.glGetProgramResourceIndex(prog, eGL_UNIFORM, fullname.c_str());
 
+      // if this is an array of size 1 try looking for <array_variable_name>[0].<member_name>
+      if((idx == GL_INVALID_INDEX) && (desc.elements == 1))
+      {
+        rdcstr arrayZeroName = prefix;
+        if(!arrayZeroName.empty() && arrayZeroName.back() == '.')
+          arrayZeroName.pop_back();
+        arrayZeroName += "[0]." + var.name;
+
+        idx = GL.glGetProgramResourceIndex(prog, eGL_UNIFORM, arrayZeroName.c_str());
+      }
       if(idx == GL_INVALID_INDEX)
       {
         // this might not be an error, this might be the corresponding member in an array-of-structs
