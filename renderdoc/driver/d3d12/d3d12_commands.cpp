@@ -1618,16 +1618,14 @@ void BakedCmdListInfo::ShiftForRemoved(uint32_t shiftActionID, uint32_t shiftEID
 
       for(APIEvent &ev : actions[i].action.events)
         ev.eventId -= shiftEID;
+
+      for(size_t u = 0; u < actions[i].resourceUsage.size(); u++)
+        actions[i].resourceUsage[u].second.eventId -= shiftEID;
     }
 
     uint32_t lastEID = actions[idx].action.eventId;
 
     // shift any resource usage for actions after the removed section
-    for(size_t i = 0; i < action->resourceUsage.size(); i++)
-    {
-      if(action->resourceUsage[i].second.eventId >= lastEID)
-        action->resourceUsage[i].second.eventId -= shiftEID;
-    }
 
     // patch any subsequent executes
     for(size_t i = 0; i < executeEvents.size(); i++)

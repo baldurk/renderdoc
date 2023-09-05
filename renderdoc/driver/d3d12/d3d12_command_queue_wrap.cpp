@@ -594,15 +594,15 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
           m_Cmd.m_Events[apievent.eventId] = apievent;
         }
 
-        m_Cmd.m_RootEventID += cmdListInfo.eventCount;
-        m_Cmd.m_RootActionID += cmdListInfo.actionCount;
-
         for(auto it = cmdListInfo.resourceUsage.begin(); it != cmdListInfo.resourceUsage.end(); ++it)
         {
           EventUsage u = it->second;
-          u.eventId += m_Cmd.m_RootEventID - cmdListInfo.curEvents.count();
+          u.eventId += m_Cmd.m_RootEventID;
           m_Cmd.m_ResourceUses[it->first].push_back(u);
         }
+
+        m_Cmd.m_RootEventID += cmdListInfo.eventCount;
+        m_Cmd.m_RootActionID += cmdListInfo.actionCount;
 
         {
           action.customName =
