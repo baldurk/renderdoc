@@ -44,7 +44,7 @@ jobs:
         fetch-depth: 5
     - name: Run clang-format
       run: |
-        . ./util/clang_format_all.sh
+        bash ./util/clang_format_all.sh
         git clean -f
     - name: Check formatting
       run: |
