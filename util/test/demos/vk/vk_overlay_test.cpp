@@ -214,52 +214,139 @@ void main()
 
     vb.upload(VBData);
 
-    // create depth-stencil image
-    AllocatedImage depthimg(
-        this,
-        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
-                             VK_FORMAT_D32_SFLOAT_S8_UINT,
-                             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    std::vector<std::string> supportedFmtNames;
+    std::vector<VkFormat> supportedFmts;
+    {
+      char *possibleFmtNames[] = {"D24_S8", "D32F_S8", "D16_S0", "D24_S0", "D32F_S0"};
+      VkFormat possibleFmts[] = {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT,
+                                 VK_FORMAT_D16_UNORM, VK_FORMAT_X8_D24_UNORM_PACK32,
+                                 VK_FORMAT_D32_SFLOAT};
+      for(int f = 0; f < ARRAY_COUNT(possibleFmts); ++f)
+      {
+        VkFormat fmt = possibleFmts[f];
+        VkResult vkr = VK_SUCCESS;
+        VkImageFormatProperties props;
+        vkr = vkGetPhysicalDeviceImageFormatProperties(
+            phys, fmt, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 0, &props);
+        if(vkr != VK_SUCCESS)
+          continue;
 
-    VkImageView dsvview = createImageView(vkh::ImageViewCreateInfo(
-        depthimg.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT_S8_UINT, {},
-        vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)));
+        supportedFmts.push_back(fmt);
+        supportedFmtNames.push_back(possibleFmtNames[f]);
+      }
+    }
 
-    // create renderpass using the DS image
-    vkh::RenderPassCreator renderPassCreateInfo;
+    std::vector<VkRenderPass> renderPasses;
+    std::vector<VkRenderPass> msaaRPs;
+    for(size_t f = 0; f < supportedFmts.size(); ++f)
+    {
+      VkFormat fmt = supportedFmts[f];
 
-    renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
-        mainWindow->format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-        VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE));
-    renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
-        VK_FORMAT_D32_SFLOAT_S8_UINT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-        VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_SAMPLE_COUNT_1_BIT,
-        VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE));
+      // create renderpass using the DS image
+      vkh::RenderPassCreator renderPassCreateInfo;
 
-    renderPassCreateInfo.addSubpass({VkAttachmentReference({0, VK_IMAGE_LAYOUT_GENERAL})}, 1,
-                                    VK_IMAGE_LAYOUT_GENERAL);
+      renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
+          mainWindow->format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+          VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE));
+      renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
+          fmt, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_ATTACHMENT_LOAD_OP_CLEAR,
+          VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_SAMPLE_COUNT_1_BIT, VK_ATTACHMENT_LOAD_OP_CLEAR,
+          VK_ATTACHMENT_STORE_OP_DONT_CARE));
 
-    VkRenderPass renderPass = createRenderPass(renderPassCreateInfo);
+      renderPassCreateInfo.addSubpass({VkAttachmentReference({0, VK_IMAGE_LAYOUT_GENERAL})}, 1,
+                                      VK_IMAGE_LAYOUT_GENERAL);
 
-    renderPassCreateInfo.attachments[0].samples = VK_SAMPLE_COUNT_4_BIT;
-    renderPassCreateInfo.attachments[1].samples = VK_SAMPLE_COUNT_4_BIT;
+      // create renderpass using the DS image
+      renderPassCreateInfo.attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+      renderPassCreateInfo.attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
+      VkRenderPass renderPass = createRenderPass(renderPassCreateInfo);
+      renderPasses.emplace_back(renderPass);
 
-    VkRenderPass msaaRP = createRenderPass(renderPassCreateInfo);
+      renderPassCreateInfo.attachments[0].samples = VK_SAMPLE_COUNT_4_BIT;
+      renderPassCreateInfo.attachments[1].samples = VK_SAMPLE_COUNT_4_BIT;
+      msaaRPs.emplace_back(createRenderPass(renderPassCreateInfo));
+    }
 
-    renderPassCreateInfo.attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-    renderPassCreateInfo.attachments.pop_back();
-    renderPassCreateInfo.subpasses[0].pDepthStencilAttachment = NULL;
+    std::vector<std::vector<VkFramebuffer>> fmtFBs;
+    std::vector<VkFramebuffer> msaaFBs;
+    for(size_t f = 0; f < supportedFmts.size(); ++f)
+    {
+      VkFormat fmt = supportedFmts[f];
+      {
+        // create depth-stencil images
+        AllocatedImage depthimg(this,
+                                vkh::ImageCreateInfo(mainWindow->scissor.extent.width,
+                                                     mainWindow->scissor.extent.height, 0, fmt,
+                                                     VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
+                                VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
-    VkRenderPass subrp = createRenderPass(renderPassCreateInfo);
+        VkImageAspectFlags aspectBits = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+        if(fmt == VK_FORMAT_D16_UNORM || fmt == VK_FORMAT_X8_D24_UNORM_PACK32 ||
+           fmt == VK_FORMAT_D32_SFLOAT)
+          aspectBits = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-    // create framebuffers using swapchain images and DS image
-    std::vector<VkFramebuffer> fbs;
-    fbs.resize(mainWindow->GetCount());
+        VkImageView dsview(createImageView(vkh::ImageViewCreateInfo(
+            depthimg.image, VK_IMAGE_VIEW_TYPE_2D, fmt, {}, vkh::ImageSubresourceRange(aspectBits))));
 
-    for(size_t i = 0; i < mainWindow->GetCount(); i++)
-      fbs[i] = createFramebuffer(vkh::FramebufferCreateInfo(
-          renderPass, {mainWindow->GetView(i), dsvview}, mainWindow->scissor.extent));
+        // create framebuffers using swapchain images and DS image
+        std::vector<VkFramebuffer> fbs;
+        fbs.resize(mainWindow->GetCount());
+
+        for(size_t i = 0; i < mainWindow->GetCount(); i++)
+          fbs[i] = createFramebuffer(vkh::FramebufferCreateInfo(
+              renderPasses[f], {mainWindow->GetView(i), dsview}, mainWindow->scissor.extent));
+
+        fmtFBs.push_back(fbs);
+      }
+
+      {
+        AllocatedImage msaaimg(
+            this,
+            vkh::ImageCreateInfo(mainWindow->scissor.extent.width,
+                                 mainWindow->scissor.extent.height, 0, mainWindow->format,
+                                 VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, 1, VK_SAMPLE_COUNT_4_BIT),
+            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+        AllocatedImage msaadepthimg(
+            this,
+            vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height,
+                                 0, fmt, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 1, 1,
+                                 VK_SAMPLE_COUNT_4_BIT),
+            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+        VkImageView msaaRTV = createImageView(
+            vkh::ImageViewCreateInfo(msaaimg.image, VK_IMAGE_VIEW_TYPE_2D, mainWindow->format));
+        VkImageAspectFlags aspectBits = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+        if(fmt == VK_FORMAT_D16_UNORM || fmt == VK_FORMAT_X8_D24_UNORM_PACK32 ||
+           fmt == VK_FORMAT_D32_SFLOAT)
+          aspectBits = VK_IMAGE_ASPECT_DEPTH_BIT;
+        VkImageView msaaDSV =
+            createImageView(vkh::ImageViewCreateInfo(msaadepthimg.image, VK_IMAGE_VIEW_TYPE_2D, fmt,
+                                                     {}, vkh::ImageSubresourceRange(aspectBits)));
+
+        VkFramebuffer msaaFB = createFramebuffer(vkh::FramebufferCreateInfo(
+            msaaRPs[f], {msaaRTV, msaaDSV},
+            {mainWindow->scissor.extent.width, mainWindow->scissor.extent.height}));
+        msaaFBs.push_back(msaaFB);
+      }
+    }
+
+    VkRenderPass subrp;
+    {
+      // create renderpass using the DS image
+      vkh::RenderPassCreator renderPassCreateInfo;
+
+      renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
+          mainWindow->format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+          VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE));
+
+      renderPassCreateInfo.addSubpass({VkAttachmentReference({0, VK_IMAGE_LAYOUT_GENERAL})}, 1,
+                                      VK_IMAGE_LAYOUT_GENERAL);
+      renderPassCreateInfo.attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+      renderPassCreateInfo.subpasses[0].pDepthStencilAttachment = NULL;
+      subrp = createRenderPass(renderPassCreateInfo);
+    }
 
     // create PSO
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
@@ -291,65 +378,69 @@ void main()
     spec.dataSize = sizeof(specvals);
     spec.pData = specvals;
 
-    pipeCreateInfo.stages[0].pSpecializationInfo = &spec;
-    pipeCreateInfo.stages[1].pSpecializationInfo = &spec;
+    std::vector<VkPipeline> depthWritePipes;
+    std::vector<VkPipeline> stencilWritePipes;
+    std::vector<VkPipeline> backgroundPipes;
+    std::vector<VkPipeline> sampleMaskPipes;
+    std::vector<VkPipeline> drawPipes;
 
-    pipeCreateInfo.rasterizationState.depthClampEnable = VK_FALSE;
-    pipeCreateInfo.rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+    for(size_t f = 0; f < supportedFmts.size(); ++f)
+    {
+      pipeCreateInfo.stages[0].pSpecializationInfo = &spec;
+      pipeCreateInfo.stages[1].pSpecializationInfo = &spec;
 
-    pipeCreateInfo.depthStencilState.depthTestEnable = VK_TRUE;
-    pipeCreateInfo.depthStencilState.depthWriteEnable = VK_TRUE;
-    pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
-    pipeCreateInfo.depthStencilState.front.compareOp = VK_COMPARE_OP_ALWAYS;
-    pipeCreateInfo.depthStencilState.front.passOp = VK_STENCIL_OP_REPLACE;
-    pipeCreateInfo.depthStencilState.front.reference = 0x55;
-    pipeCreateInfo.depthStencilState.front.compareMask = 0xff;
-    pipeCreateInfo.depthStencilState.front.writeMask = 0xff;
-    pipeCreateInfo.depthStencilState.back = pipeCreateInfo.depthStencilState.front;
+      pipeCreateInfo.rasterizationState.depthClampEnable = VK_FALSE;
+      pipeCreateInfo.rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 
-    pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
-    VkPipeline depthWritePipe[2];
-    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    pipeCreateInfo.renderPass = renderPass;
-    depthWritePipe[0] = createGraphicsPipeline(pipeCreateInfo);
-    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
-    pipeCreateInfo.renderPass = msaaRP;
-    depthWritePipe[1] = createGraphicsPipeline(pipeCreateInfo);
+      pipeCreateInfo.depthStencilState.depthTestEnable = VK_TRUE;
+      pipeCreateInfo.depthStencilState.depthWriteEnable = VK_TRUE;
+      pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
+      pipeCreateInfo.depthStencilState.front.compareOp = VK_COMPARE_OP_ALWAYS;
+      pipeCreateInfo.depthStencilState.front.passOp = VK_STENCIL_OP_REPLACE;
+      pipeCreateInfo.depthStencilState.front.reference = 0x55;
+      pipeCreateInfo.depthStencilState.front.compareMask = 0xff;
+      pipeCreateInfo.depthStencilState.front.writeMask = 0xff;
+      pipeCreateInfo.depthStencilState.back = pipeCreateInfo.depthStencilState.front;
 
-    pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-    pipeCreateInfo.depthStencilState.stencilTestEnable = VK_TRUE;
-    VkPipeline stencilWritePipe[2];
-    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    pipeCreateInfo.renderPass = renderPass;
-    stencilWritePipe[0] = createGraphicsPipeline(pipeCreateInfo);
-    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
-    pipeCreateInfo.renderPass = msaaRP;
-    stencilWritePipe[1] = createGraphicsPipeline(pipeCreateInfo);
+      pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+      pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+      pipeCreateInfo.renderPass = renderPasses[f];
+      depthWritePipes.push_back(createGraphicsPipeline(pipeCreateInfo));
+      pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+      pipeCreateInfo.renderPass = msaaRPs[f];
+      depthWritePipes.push_back(createGraphicsPipeline(pipeCreateInfo));
 
-    pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
-    VkPipeline backgroundPipe[2];
-    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    pipeCreateInfo.renderPass = renderPass;
-    backgroundPipe[0] = createGraphicsPipeline(pipeCreateInfo);
-    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
-    pipeCreateInfo.renderPass = msaaRP;
-    backgroundPipe[1] = createGraphicsPipeline(pipeCreateInfo);
+      pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+      pipeCreateInfo.depthStencilState.stencilTestEnable = VK_TRUE;
+      pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+      pipeCreateInfo.renderPass = renderPasses[f];
+      stencilWritePipes.push_back(createGraphicsPipeline(pipeCreateInfo));
+      pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+      pipeCreateInfo.renderPass = msaaRPs[f];
+      stencilWritePipes.push_back(createGraphicsPipeline(pipeCreateInfo));
 
-    pipeCreateInfo.depthStencilState.stencilTestEnable = VK_TRUE;
-    pipeCreateInfo.depthStencilState.front.compareOp = VK_COMPARE_OP_GREATER;
-    VkPipeline pipe[2];
-    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    pipeCreateInfo.renderPass = renderPass;
-    pipe[0] = createGraphicsPipeline(pipeCreateInfo);
-    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
-    pipeCreateInfo.renderPass = msaaRP;
-    pipe[1] = createGraphicsPipeline(pipeCreateInfo);
+      pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
+      pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+      pipeCreateInfo.renderPass = renderPasses[f];
+      backgroundPipes.push_back(createGraphicsPipeline(pipeCreateInfo));
+      pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+      pipeCreateInfo.renderPass = msaaRPs[f];
+      backgroundPipes.push_back(createGraphicsPipeline(pipeCreateInfo));
 
-    VkPipeline sampleMaskPipe;
-    const uint32_t sampleMask = 0x2;
-    pipeCreateInfo.multisampleState.pSampleMask = &sampleMask;
-    sampleMaskPipe = createGraphicsPipeline(pipeCreateInfo);
-    pipeCreateInfo.multisampleState.pSampleMask = NULL;
+      pipeCreateInfo.depthStencilState.stencilTestEnable = VK_TRUE;
+      pipeCreateInfo.depthStencilState.front.compareOp = VK_COMPARE_OP_GREATER;
+      pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+      pipeCreateInfo.renderPass = renderPasses[f];
+      drawPipes.push_back(createGraphicsPipeline(pipeCreateInfo));
+      pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+      pipeCreateInfo.renderPass = msaaRPs[f];
+      drawPipes.push_back(createGraphicsPipeline(pipeCreateInfo));
+
+      const uint32_t sampleMask = 0x2;
+      pipeCreateInfo.multisampleState.pSampleMask = &sampleMask;
+      sampleMaskPipes.push_back(createGraphicsPipeline(pipeCreateInfo));
+      pipeCreateInfo.multisampleState.pSampleMask = NULL;
+    }
 
     pipeCreateInfo.stages[1] =
         CompileShaderModule(whitepixel, ShaderLang::glsl, ShaderStage::frag, "main");
@@ -362,7 +453,7 @@ void main()
 
     pipeCreateInfo.rasterizationState.rasterizerDiscardEnable = VK_TRUE;
     pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    pipeCreateInfo.renderPass = renderPass;
+    pipeCreateInfo.renderPass = renderPasses[0];
     pipeCreateInfo.stages.pop_back();
     VkPipeline discardPipe = createGraphicsPipeline(pipeCreateInfo);
 
@@ -389,30 +480,6 @@ void main()
             subrp, {subview[1]},
             {mainWindow->scissor.extent.width / 8, mainWindow->scissor.extent.height / 8})),
     };
-
-    AllocatedImage msaaimg(
-        this,
-        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
-                             mainWindow->format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, 1,
-                             VK_SAMPLE_COUNT_4_BIT),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
-
-    AllocatedImage msaadepthimg(
-        this,
-        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
-                             VK_FORMAT_D32_SFLOAT_S8_UINT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                             1, 1, VK_SAMPLE_COUNT_4_BIT),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
-
-    VkImageView msaaRTV = createImageView(
-        vkh::ImageViewCreateInfo(msaaimg.image, VK_IMAGE_VIEW_TYPE_2D, mainWindow->format));
-    VkImageView msaaDSV = createImageView(vkh::ImageViewCreateInfo(
-        msaadepthimg.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT_S8_UINT, {},
-        vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)));
-
-    VkFramebuffer msaaFB = createFramebuffer(vkh::FramebufferCreateInfo(
-        msaaRP, {msaaRTV, msaaDSV},
-        {mainWindow->scissor.extent.width, mainWindow->scissor.extent.height}));
 
     AllocatedImage img(
         this,
@@ -451,11 +518,14 @@ void main()
                                                                VK_IMAGE_LAYOUT_GENERAL, img.image),
                                    });
 
-      vkCmdBeginRenderPass(cmd,
-                           vkh::RenderPassBeginInfo(
-                               renderPass, fbs[mainWindow->imgIndex], mainWindow->scissor,
-                               {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f), vkh::ClearValue(1.0f, 0)}),
-                           VK_SUBPASS_CONTENTS_INLINE);
+      {
+        std::vector<VkFramebuffer> &fbs = fmtFBs[0];
+        vkCmdBeginRenderPass(cmd,
+                             vkh::RenderPassBeginInfo(
+                                 renderPasses[0], fbs[mainWindow->imgIndex], mainWindow->scissor,
+                                 {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f), vkh::ClearValue(1.0f, 0)}),
+                             VK_SUBPASS_CONTENTS_INLINE);
+      }
 
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
       setMarker(cmd, "Discard Test");
@@ -468,84 +538,99 @@ void main()
       VkViewport v;
       VkRect2D s;
 
-      for(bool is_msaa : {false, true})
+      for(size_t f = 0; f < supportedFmts.size(); ++f)
       {
-        v = mainWindow->viewport;
-        v.x += 10.0f;
-        v.y += 10.0f;
-        v.width -= 20.0f;
-        v.height -= 20.0f;
-
-        // if we're using KHR_maintenance1, check that negative viewport height is handled
-        if(KHR_maintenance1)
+        for(bool is_msaa : {false, true})
         {
-          v.y += v.height;
-          v.height = -v.height;
-        }
+          VkFormat fmt = supportedFmts[f];
+          bool hasStencil = false;
+          if(fmt == VK_FORMAT_D24_UNORM_S8_UINT || fmt == VK_FORMAT_D32_SFLOAT_S8_UINT)
+            hasStencil = true;
+          size_t pipeIndex = f * 2 + (is_msaa ? 1 : 0);
+          std::vector<VkFramebuffer> &fbs = fmtFBs[f];
+          v = mainWindow->viewport;
+          v.x += 10.0f;
+          v.y += 10.0f;
+          v.width -= 20.0f;
+          v.height -= 20.0f;
 
-        vkCmdSetViewport(cmd, 0, 1, &v);
-        vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
-        vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
-
-        vkCmdBeginRenderPass(cmd,
-                             vkh::RenderPassBeginInfo(
-                                 is_msaa ? msaaRP : renderPass,
-                                 is_msaa ? msaaFB : fbs[mainWindow->imgIndex], mainWindow->scissor,
-                                 {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f), vkh::ClearValue(1.0f, 0)}),
-                             VK_SUBPASS_CONTENTS_INLINE);
-
-        // draw the setup triangles
-
-        setMarker(cmd, "Setup");
-
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, depthWritePipe[is_msaa ? 1 : 0]);
-        vkCmdDraw(cmd, 3, 1, 0, 0);
-
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, stencilWritePipe[is_msaa ? 1 : 0]);
-        vkCmdDraw(cmd, 3, 1, 3, 0);
-
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, backgroundPipe[is_msaa ? 1 : 0]);
-        vkCmdDraw(cmd, 3, 1, 6, 0);
-
-        // add a marker so we can easily locate this draw
-        setMarker(cmd, is_msaa ? "MSAA Test" : "Normal Test");
-
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe[is_msaa ? 1 : 0]);
-        vkCmdDraw(cmd, 24, 1, 9, 0);
-
-        if(!is_msaa)
-        {
-          setMarker(cmd, "Viewport Test");
-          v = {10.0f, 10.0f, 80.0f, 80.0f, 0.0f, 1.0f};
+          // if we're using KHR_maintenance1, check that negative viewport height is handled
           if(KHR_maintenance1)
           {
             v.y += v.height;
             v.height = -v.height;
           }
-          s = {{24, 24}, {52, 52}};
-          vkCmdSetViewport(cmd, 0, 1, &v);
-          vkCmdSetScissor(cmd, 0, 1, &s);
-          vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, backgroundPipe[0]);
-          vkCmdDraw(cmd, 3, 1, 33, 0);
-        }
 
-        if(is_msaa)
-        {
-          setMarker(cmd, "Sample Mask Test");
-          v = {0.0f, 0.0f, 80.0f, 80.0f, 0.0f, 1.0f};
-          if(KHR_maintenance1)
-          {
-            v.y += v.height;
-            v.height = -v.height;
-          }
-          s = {{0, 0}, {80, 80}};
           vkCmdSetViewport(cmd, 0, 1, &v);
-          vkCmdSetScissor(cmd, 0, 1, &s);
-          vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, sampleMaskPipe);
+          vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
+          vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
+
+          vkCmdBeginRenderPass(
+              cmd,
+              vkh::RenderPassBeginInfo(
+                  is_msaa ? msaaRPs[f] : renderPasses[f],
+                  is_msaa ? msaaFBs[f] : fbs[mainWindow->imgIndex], mainWindow->scissor,
+                  {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f), vkh::ClearValue(1.0f, 0)}),
+              VK_SUBPASS_CONTENTS_INLINE);
+
+          // draw the setup triangles
+          setMarker(cmd, "Setup");
+
+          vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, depthWritePipes[pipeIndex]);
+          vkCmdDraw(cmd, 3, 1, 0, 0);
+
+          if(hasStencil)
+          {
+            // 2: write stencil
+            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, stencilWritePipes[pipeIndex]);
+            vkCmdDraw(cmd, 3, 1, 3, 0);
+          }
+
+          vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, backgroundPipes[pipeIndex]);
           vkCmdDraw(cmd, 3, 1, 6, 0);
-        }
 
-        vkCmdEndRenderPass(cmd);
+          // add a marker so we can easily locate this draw
+          std::string markerName(is_msaa ? "MSAA Test " : "Normal Test ");
+          markerName += supportedFmtNames[f];
+          setMarker(cmd, markerName);
+
+          vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, drawPipes[pipeIndex]);
+          vkCmdDraw(cmd, 24, 1, 9, 0);
+
+          if(!is_msaa)
+          {
+            setMarker(cmd, "Viewport Test " + supportedFmtNames[f]);
+            v = {10.0f, 10.0f, 80.0f, 80.0f, 0.0f, 1.0f};
+            if(KHR_maintenance1)
+            {
+              v.y += v.height;
+              v.height = -v.height;
+            }
+            s = {{24, 24}, {52, 52}};
+            vkCmdSetViewport(cmd, 0, 1, &v);
+            vkCmdSetScissor(cmd, 0, 1, &s);
+            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, backgroundPipes[f * 2 + 0]);
+            vkCmdDraw(cmd, 3, 1, 33, 0);
+          }
+
+          if(is_msaa)
+          {
+            setMarker(cmd, "Sample Mask Test " + supportedFmtNames[f]);
+            v = {0.0f, 0.0f, 80.0f, 80.0f, 0.0f, 1.0f};
+            if(KHR_maintenance1)
+            {
+              v.y += v.height;
+              v.height = -v.height;
+            }
+            s = {{0, 0}, {80, 80}};
+            vkCmdSetViewport(cmd, 0, 1, &v);
+            vkCmdSetScissor(cmd, 0, 1, &s);
+            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, sampleMaskPipes[f]);
+            vkCmdDraw(cmd, 3, 1, 6, 0);
+          }
+
+          vkCmdEndRenderPass(cmd);
+        }
       }
 
       v = mainWindow->viewport;
