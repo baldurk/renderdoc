@@ -363,6 +363,7 @@ void main()
     pipeCreateInfo.rasterizationState.rasterizerDiscardEnable = VK_TRUE;
     pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     pipeCreateInfo.renderPass = renderPass;
+    pipeCreateInfo.stages.pop_back();
     VkPipeline discardPipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedImage subimg(
