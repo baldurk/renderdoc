@@ -298,6 +298,7 @@
     <ClCompile Include="texture_zoo.cpp" />
     <ClCompile Include="vk\vk_blend.cpp" />
     <ClCompile Include="vk\vk_compute_only.cpp" />
+    <ClCompile Include="vk\vk_counters.cpp" />
     <ClCompile Include="vk\vk_custom_border_color.cpp" />
     <ClCompile Include="vk\vk_dedicated_allocation.cpp" />
     <ClCompile Include="vk\vk_descriptor_reuse.cpp" />
