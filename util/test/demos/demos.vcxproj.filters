@@ -682,6 +682,9 @@
     <ClCompile Include="d3d12\d3d12_pixel_history.cpp">
       <Filter>D3D12\demos</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12\d3d12_multi_wait_before_signal.cpp">
+      <Filter>D3D12\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">
@@ -955,5 +958,8 @@
     <ClInclude Include="android\android_window.h">
       <Filter>Android</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\.clang-format" />
   </ItemGroup>
 </Project>
