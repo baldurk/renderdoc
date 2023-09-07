@@ -295,8 +295,9 @@ D3D12BufferCreator &D3D12BufferCreator::InitialState(D3D12_RESOURCE_STATES initi
 D3D12BufferCreator::operator ID3D12ResourcePtr() const
 {
   ID3D12ResourcePtr buf;
-  CHECK_HR(m_Dev->CreateCommittedResource(&m_HeapDesc, D3D12_HEAP_FLAG_NONE, &m_BufDesc, m_InitialState,
-                                          NULL, __uuidof(ID3D12Resource), (void **)&buf));
+  CHECK_HR(m_Dev->CreateCommittedResource(&m_HeapDesc, D3D12_HEAP_FLAG_NONE, &m_BufDesc,
+                                          m_InitialState, NULL, __uuidof(ID3D12Resource),
+                                          (void **)&buf));
 
   if(m_Initdata && m_Test)
     m_Test->SetBufferData(buf, D3D12_RESOURCE_STATE_COMMON, (const byte *)m_Initdata,
@@ -419,9 +420,10 @@ D3D12TextureCreator &D3D12TextureCreator::ClearVal(const D3D12_CLEAR_VALUE &clea
 D3D12TextureCreator::operator ID3D12ResourcePtr() const
 {
   ID3D12ResourcePtr tex;
-  CHECK_HR(m_Dev->CreateCommittedResource(&m_HeapDesc, m_HeapFlags, &m_TexDesc, m_InitialState,
-                                          (m_ClearVal.Format == DXGI_FORMAT_UNKNOWN) ? NULL : &m_ClearVal,
-                                          __uuidof(ID3D12Resource), (void **)&tex));
+  CHECK_HR(m_Dev->CreateCommittedResource(
+      &m_HeapDesc, m_HeapFlags, &m_TexDesc, m_InitialState,
+      (m_ClearVal.Format == DXGI_FORMAT_UNKNOWN) ? NULL : &m_ClearVal, __uuidof(ID3D12Resource),
+      (void **)&tex));
   return tex;
 }
 
