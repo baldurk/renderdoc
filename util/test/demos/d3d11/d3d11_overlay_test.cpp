@@ -120,10 +120,6 @@ float4 main() : SV_Target0
 
     ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(VBData);
 
-    ID3D11Texture2DPtr depthtex =
-        MakeTexture(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, screenWidth, screenHeight).DSV();
-    ID3D11DepthStencilViewPtr dsv = MakeDSV(depthtex);
-
     UINT numQuals = 0;
     dev->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 4, &numQuals);
 
@@ -132,14 +128,34 @@ float4 main() : SV_Target0
         MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, screenWidth, screenHeight)
             .RTV()
             .Multisampled(4, numQuals > 1 ? 1 : 0);
+
     ID3D11RenderTargetViewPtr msaartv = MakeRTV(msaatex);
 
-    dev->CheckMultisampleQualityLevels(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, 4, &numQuals);
-    ID3D11Texture2DPtr msaadepthtex =
-        MakeTexture(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, screenWidth, screenHeight)
-            .DSV()
-            .Multisampled(4, numQuals > 1 ? 1 : 0);
-    ID3D11DepthStencilViewPtr msaadsv = MakeDSV(msaadepthtex);
+    char *fmtNames[] = {"D24_S8", "D32F_S8", "D16_S0", "D32F_S0"};
+    DXGI_FORMAT fmts[] = {DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
+                          DXGI_FORMAT_D16_UNORM, DXGI_FORMAT_D32_FLOAT};
+    const size_t countFmts = ARRAY_COUNT(fmts);
+
+    ID3D11Texture2DPtr depthtexs[countFmts];
+    ID3D11DepthStencilViewPtr dsvs[countFmts];
+    ID3D11Texture2DPtr msaadepthtexs[countFmts];
+    ID3D11DepthStencilViewPtr msaadsvs[countFmts];
+    for(size_t f = 0; f < countFmts; f++)
+    {
+      DXGI_FORMAT fmt = fmts[f];
+
+      ID3D11Texture2DPtr depthtex = MakeTexture(fmt, screenWidth, screenHeight).DSV();
+      ID3D11DepthStencilViewPtr dsv = MakeDSV(depthtex);
+      depthtexs[f] = depthtex;
+      dsvs[f] = dsv;
+
+      dev->CheckMultisampleQualityLevels(fmt, 4, &numQuals);
+      ID3D11Texture2DPtr msaadepthtex =
+          MakeTexture(fmt, screenWidth, screenHeight).DSV().Multisampled(4, numQuals > 1 ? 1 : 0);
+      ID3D11DepthStencilViewPtr msaadsv = MakeDSV(msaadepthtex);
+      msaadepthtexs[f] = msaadepthtex;
+      msaadsvs[f] = msaadsv;
+    }
 
     ID3D11Texture2DPtr subtex =
         MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, screenWidth, screenHeight).RTV().Array(5).Mips(4);
@@ -157,80 +173,93 @@ float4 main() : SV_Target0
       ctx->VSSetShader(vs, NULL, 0);
       ctx->PSSetShader(ps, NULL, 0);
 
-      for(ID3D11RenderTargetViewPtr rtv : {bbRTV, msaartv})
+      for(size_t f = 0; f < countFmts; f++)
       {
-        D3D11_DEPTH_STENCIL_DESC depth = GetDepthState();
-
-        depth.StencilEnable = FALSE;
-        depth.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-        depth.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
-
-        SetDepthState(depth);
-        SetStencilRef(0x55);
-
-        D3D11_RASTERIZER_DESC raster = GetRasterState();
-
-        raster.ScissorEnable = TRUE;
-
-        SetRasterState(raster);
-
-        RSSetViewport(
-            {10.0f, 10.0f, (float)screenWidth - 20.0f, (float)screenHeight - 20.0f, 0.0f, 1.0f});
-        RSSetScissor({0, 0, screenWidth, screenHeight});
-
-        ID3D11DepthStencilViewPtr curDSV = rtv == msaartv ? msaadsv : dsv;
-
-        ctx->OMSetRenderTargets(1, &rtv.GetInterfacePtr(), curDSV);
-
-        ClearRenderTargetView(rtv, {0.2f, 0.2f, 0.2f, 1.0f});
-        ctx->ClearDepthStencilView(curDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
-        // draw the setup triangles
-
-        // 1: write depth
-        depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
-        SetDepthState(depth);
-        ctx->Draw(3, 0);
-
-        // 2: write stencil
-        depth.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-        depth.StencilEnable = TRUE;
-        SetDepthState(depth);
-        ctx->Draw(3, 3);
-
-        // 3: write background
-        depth.StencilEnable = FALSE;
-        SetDepthState(depth);
-        ctx->Draw(3, 6);
-
-        // add a marker so we can easily locate this draw
-        setMarker(rtv == msaartv ? "MSAA Test" : "Normal Test");
-
-        depth.StencilEnable = TRUE;
-        depth.FrontFace.StencilFunc = D3D11_COMPARISON_GREATER;
-        SetDepthState(depth);
-        ctx->Draw(24, 9);
-
-        depth.StencilEnable = FALSE;
-        depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
-        SetDepthState(depth);
-
-        if(rtv == bbRTV)
+        std::string fmtName(fmtNames[f]);
+        DXGI_FORMAT fmt = fmts[f];
+        bool hasStencil = false;
+        if(fmt == DXGI_FORMAT_D24_UNORM_S8_UINT || fmt == DXGI_FORMAT_D32_FLOAT_S8X24_UINT)
+          hasStencil = true;
+        for(ID3D11RenderTargetViewPtr rtv : {bbRTV, msaartv})
         {
-          setMarker("Viewport Test");
-          RSSetViewport({10.0f, 10.0f, 80.0f, 80.0f, 0.0f, 1.0f});
-          RSSetScissor({24, 24, 76, 76});
-          ctx->Draw(3, 33);
-        }
+          D3D11_DEPTH_STENCIL_DESC depth = GetDepthState();
 
-        if(rtv == msaartv)
-        {
-          setMarker("Sample Mask Test");
-          RSSetViewport({0.0f, 0.0f, 80.0f, 80.0f, 0.0f, 1.0f});
-          RSSetScissor({0, 0, 80, 80});
-          ctx->OMSetBlendState(NULL, NULL, 0x2);
+          depth.StencilEnable = FALSE;
+          depth.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+          depth.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+
+          SetDepthState(depth);
+          SetStencilRef(0x55);
+
+          D3D11_RASTERIZER_DESC raster = GetRasterState();
+
+          raster.ScissorEnable = TRUE;
+
+          SetRasterState(raster);
+
+          RSSetViewport(
+              {10.0f, 10.0f, (float)screenWidth - 20.0f, (float)screenHeight - 20.0f, 0.0f, 1.0f});
+          RSSetScissor({0, 0, screenWidth, screenHeight});
+
+          ID3D11DepthStencilViewPtr curDSV = rtv == msaartv ? msaadsvs[f] : dsvs[f];
+
+          ctx->OMSetRenderTargets(1, &rtv.GetInterfacePtr(), curDSV);
+
+          ClearRenderTargetView(rtv, {0.2f, 0.2f, 0.2f, 1.0f});
+          ctx->ClearDepthStencilView(curDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+          // draw the setup triangles
+
+          // 1: write depth
+          depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
+          SetDepthState(depth);
+          ctx->Draw(3, 0);
+
+          // 2: write stencil
+          depth.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+          if(hasStencil)
+          {
+            depth.StencilEnable = TRUE;
+            SetDepthState(depth);
+            ctx->Draw(3, 3);
+          }
+
+          // 3: write background
+          depth.StencilEnable = FALSE;
+          SetDepthState(depth);
           ctx->Draw(3, 6);
-          ctx->OMSetBlendState(NULL, NULL, ~0U);
+
+          // add a marker so we can easily locate this draw
+          std::string markerName(rtv == msaartv ? "MSAA Test " : "Normal Test ");
+          markerName += fmtName;
+          setMarker(markerName);
+
+          depth.StencilEnable = TRUE;
+          depth.FrontFace.StencilFunc = D3D11_COMPARISON_GREATER;
+          SetDepthState(depth);
+          ctx->Draw(24, 9);
+
+          depth.StencilEnable = FALSE;
+          depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
+          SetDepthState(depth);
+
+          if(rtv == bbRTV)
+          {
+            setMarker("Viewport Test " + fmtName);
+            RSSetViewport({10.0f, 10.0f, 80.0f, 80.0f, 0.0f, 1.0f});
+            RSSetScissor({24, 24, 76, 76});
+            ctx->Draw(3, 33);
+          }
+
+          if(rtv == msaartv)
+          {
+            setMarker("Sample Mask Test " + fmtName);
+            RSSetViewport({0.0f, 0.0f, 80.0f, 80.0f, 0.0f, 1.0f});
+            RSSetScissor({0, 0, 80, 80});
+            ctx->OMSetBlendState(NULL, NULL, 0x2);
+            ctx->Draw(3, 6);
+            ctx->OMSetBlendState(NULL, NULL, ~0U);
+          }
         }
       }
 
