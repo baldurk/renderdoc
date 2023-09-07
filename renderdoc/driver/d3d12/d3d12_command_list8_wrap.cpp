@@ -66,7 +66,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetFrontAndBackStencilRef(Ser
     else
     {
       Unwrap8(pCommandList)->OMSetFrontAndBackStencilRef(FrontStencilRef, BackStencilRef);
-      GetCrackedList8()->OMSetFrontAndBackStencilRef(FrontStencilRef, BackStencilRef);
 
       stateUpdate = true;
     }

@@ -62,6 +62,147 @@ ResourceId D3D12RenderState::GetDSVID() const
   return dsv.GetResResourceId();
 }
 
+void D3D12RenderState::ResolvePendingIndirectState(WrappedID3D12Device *device)
+{
+  if(indirectState.argsBuf == NULL)
+    return;
+
+  device->GPUSync();
+
+  D3D12_RANGE range = {0, D3D12CommandData::m_IndirectSize};
+  byte *mapPtr = NULL;
+  device->CheckHRESULT(indirectState.argsBuf->Map(0, &range, (void **)&mapPtr));
+
+  if(device->HasFatalError())
+    return;
+
+  WrappedID3D12CommandSignature *comSig = (WrappedID3D12CommandSignature *)indirectState.comSig;
+
+  {
+    byte *data = mapPtr + indirectState.argsOffs;
+    mapPtr += comSig->sig.ByteStride;
+
+    for(uint32_t argIdx = 0; argIdx < indirectState.argsToProcess; argIdx++)
+    {
+      uint32_t a = argIdx % comSig->sig.arguments.size();
+      const D3D12_INDIRECT_ARGUMENT_DESC &arg = comSig->sig.arguments[a];
+
+      switch(arg.Type)
+      {
+        case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
+        case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
+        case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH: break;
+        case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
+        {
+          size_t argSize = sizeof(uint32_t) * arg.Constant.Num32BitValuesToSet;
+          const uint32_t *data32 = (uint32_t *)data;
+          data += argSize;
+
+          if(comSig->sig.graphics)
+          {
+            graphics.sigelems.resize_for_index(arg.ConstantBufferView.RootParameterIndex);
+            graphics.sigelems[arg.Constant.RootParameterIndex].constants.assign(
+                data32, arg.Constant.Num32BitValuesToSet);
+          }
+          else
+          {
+            compute.sigelems.resize_for_index(arg.ConstantBufferView.RootParameterIndex);
+            compute.sigelems[arg.Constant.RootParameterIndex].constants.assign(
+                data32, arg.Constant.Num32BitValuesToSet);
+          }
+
+          break;
+        }
+        case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
+        {
+          const D3D12_VERTEX_BUFFER_VIEW *vb = (D3D12_VERTEX_BUFFER_VIEW *)data;
+          data += sizeof(D3D12_VERTEX_BUFFER_VIEW);
+
+          ResourceId id;
+          uint64_t offs = 0;
+          D3D12_GPU_VIRTUAL_ADDRESS va = vb->BufferLocation;
+          device->GetResIDFromOrigAddr(va, id, offs);
+
+          ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
+          RDCASSERT(res);
+
+          if(arg.VertexBuffer.Slot >= vbuffers.size())
+            vbuffers.resize(arg.VertexBuffer.Slot + 1);
+
+          vbuffers[arg.VertexBuffer.Slot].buf = GetResID(res);
+          vbuffers[arg.VertexBuffer.Slot].offs = offs;
+          vbuffers[arg.VertexBuffer.Slot].size = vb->SizeInBytes;
+          vbuffers[arg.VertexBuffer.Slot].stride = vb->StrideInBytes;
+
+          break;
+        }
+        case D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW:
+        {
+          const D3D12_INDEX_BUFFER_VIEW *ib = (D3D12_INDEX_BUFFER_VIEW *)data;
+          data += sizeof(D3D12_INDEX_BUFFER_VIEW);
+
+          ResourceId id;
+          uint64_t offs = 0;
+          device->GetResIDFromOrigAddr(ib->BufferLocation, id, offs);
+
+          ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
+          RDCASSERT(res);
+
+          ibuffer.buf = GetResID(res);
+          ibuffer.offs = offs;
+          ibuffer.size = ib->SizeInBytes;
+          ibuffer.bytewidth = ib->Format == DXGI_FORMAT_R32_UINT ? 4 : 2;
+
+          break;
+        }
+        case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
+        case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
+        case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
+        {
+          const D3D12_GPU_VIRTUAL_ADDRESS *addr = (D3D12_GPU_VIRTUAL_ADDRESS *)data;
+          data += sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
+
+          ResourceId id;
+          uint64_t offs = 0;
+          device->GetResIDFromOrigAddr(*addr, id, offs);
+
+          ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
+
+          SignatureElementType t = eRootCBV;
+          if(arg.Type == D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW)
+            t = eRootSRV;
+          if(arg.Type == D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW)
+            t = eRootUAV;
+
+          // ConstantBufferView, ShaderResourceView and UnorderedAccessView all have one member -
+          // RootParameterIndex
+          if(comSig->sig.graphics)
+          {
+            graphics.sigelems.resize_for_index(arg.ConstantBufferView.RootParameterIndex);
+            graphics.sigelems[arg.ConstantBufferView.RootParameterIndex] =
+                D3D12RenderState::SignatureElement(t, GetResID(res), offs);
+          }
+          else
+          {
+            compute.sigelems.resize_for_index(arg.ConstantBufferView.RootParameterIndex);
+            compute.sigelems[arg.ConstantBufferView.RootParameterIndex] =
+                D3D12RenderState::SignatureElement(t, GetResID(res), offs);
+          }
+
+          break;
+        }
+        default: RDCERR("Unexpected argument type! %d", arg.Type); break;
+      }
+    }
+  }
+
+  indirectState.argsBuf->Unmap(0, &range);
+  indirectState.argsBuf = NULL;
+  indirectState.argsOffs = 0;
+  indirectState.comSig = NULL;
+  indirectState.argsToProcess = 0;
+}
+
 void D3D12RenderState::ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsCommandListX *cmd) const
 {
   D3D12_COMMAND_LIST_TYPE type = cmd->GetType();

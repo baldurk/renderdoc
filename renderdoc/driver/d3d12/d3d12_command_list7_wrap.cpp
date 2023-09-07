@@ -172,7 +172,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Barrier(SerialiserType &ser, UI
       if(!filteredUnwrapped.empty())
       {
         Unwrap7(pCommandList)->Barrier((UINT)filteredUnwrapped.size(), filteredUnwrapped.data());
-        GetCrackedList7()->Barrier((UINT)filteredUnwrapped.size(), filteredUnwrapped.data());
       }
     }
 

@@ -36,6 +36,7 @@
 #include "strings/string_utils.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
+#include "d3d12_debug.h"
 #include "d3d12_rendertext.h"
 #include "d3d12_replay.h"
 #include "d3d12_resources.h"
@@ -2452,6 +2453,8 @@ bool WrappedID3D12Device::Serialise_BeginCaptureFrame(SerialiserType &ser)
   if(IsReplayingAndReading() && IsLoading(m_State))
   {
     m_InitialResourceStates = m_ResourceStates;
+
+    GetDebugManager()->PrepareExecuteIndirectPatching(m_OrigGPUAddresses);
   }
 
   std::map<ResourceId, SubresourceStateVector> initialStates;
@@ -3321,7 +3324,7 @@ rdcarray<DebugMessage> WrappedID3D12Device::GetDebugMessages()
     msg.description = rdcstr(message->pDescription);
 
     // during capture add all messages. Otherwise only add this message if it's different to the
-    // last one - due to our replay with real and cracked lists we get many duplicated messages
+    // last one - we can sometimes get duplicated messages
     if(!IsLoading(m_State) || ret.empty() || !(ret.back() == msg))
       ret.push_back(msg);
 
@@ -4578,18 +4581,6 @@ RDResult WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool storeStru
     m_Queue->GetParentAction().children.clear();
 
     SetupActionPointers(m_Actions, GetReplay()->WriteFrameRecord().actionList);
-
-    D3D12CommandData &cmd = *m_Queue->GetCommandData();
-
-    for(auto it = cmd.m_BakedCmdListInfo.begin(); it != cmd.m_BakedCmdListInfo.end(); it++)
-    {
-      for(size_t i = 0; i < it->second.crackedLists.size(); i++)
-        SAFE_RELEASE(it->second.crackedLists[i]);
-      it->second.crackedLists.clear();
-    }
-
-    for(auto it = cmd.m_CrackedAllocators.begin(); it != cmd.m_CrackedAllocators.end(); it++)
-      SAFE_RELEASE(it->second);
   }
 
   {
@@ -4790,6 +4781,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
     cmd.m_RenderState =
         cmd.m_BakedCmdListInfo[cmd.m_Partial[D3D12CommandData::Primary].partialParent].state;
+    cmd.m_RenderState.ResolvePendingIndirectState(this);
 
     if(D3D12_Debug_SingleSubmitFlushing())
     {

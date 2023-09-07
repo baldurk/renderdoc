@@ -535,9 +535,6 @@ WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
 
   SAFE_RELEASE(m_pDownlevel);
 
-  for(size_t i = 0; i < m_Cmd.m_IndirectBuffers.size(); i++)
-    SAFE_RELEASE(m_Cmd.m_IndirectBuffers[i]);
-
   SAFE_RELEASE(m_WrappedCompat.m_pReal);
   SAFE_RELEASE(m_WrappedDebug.m_pReal);
   SAFE_RELEASE(m_WrappedDebug.m_pReal1);
@@ -1115,6 +1112,13 @@ RDResult WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_t st
     m_Cmd.m_LastEventID = ~0U;
   }
 
+  if(IsReplayMode(m_State))
+  {
+    for(size_t i = 0; i < m_Cmd.m_IndirectBuffers.size(); i++)
+      SAFE_RELEASE(m_Cmd.m_IndirectBuffers[i]);
+    m_Cmd.m_IndirectBuffers.clear();
+  }
+
   uint64_t startOffset = ser.GetReader()->GetOffset();
 
   for(;;)
@@ -1631,12 +1635,7 @@ void BakedCmdListInfo::ShiftForRemoved(uint32_t shiftActionID, uint32_t shiftEID
     for(size_t i = 0; i < executeEvents.size(); i++)
     {
       if(executeEvents[i].baseEvent >= lastEID)
-      {
         executeEvents[i].baseEvent -= shiftEID;
-
-        if(executeEvents[i].lastEvent > 0)
-          executeEvents[i].lastEvent -= shiftEID;
-      }
     }
   }
 
@@ -1644,6 +1643,17 @@ void BakedCmdListInfo::ShiftForRemoved(uint32_t shiftActionID, uint32_t shiftEID
   {
     curEvents[i].eventId -= shiftEID;
   }
+}
+
+SubresourceStateVector BakedCmdListInfo::GetState(WrappedID3D12Device *device, ResourceId id)
+{
+  std::map<ResourceId, SubresourceStateVector> data;
+
+  data[id] = device->GetSubresourceStates(id);
+
+  device->GetResourceManager()->ApplyBarriers(barriers, data);
+
+  return data[id];
 }
 
 D3D12CommandData::D3D12CommandData()
@@ -1686,22 +1696,20 @@ void D3D12CommandData::GetIndirectBuffer(size_t size, ID3D12Resource **buf, uint
     indirectDesc.SampleDesc.Quality = 0;
     indirectDesc.Width = RDCMAX(AlignUp((uint64_t)size, 64ULL), m_IndirectSize);
 
-    // create a custom heap that sits in CPU memory and is mappable, but we can
-    // use for indirect args (unlike upload and readback).
     D3D12_HEAP_PROPERTIES heapProps;
-    heapProps.Type = D3D12_HEAP_TYPE_CUSTOM;
-    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
-    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+    heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
     heapProps.CreationNodeMask = 1;
     heapProps.VisibleNodeMask = 1;
 
     ID3D12Resource *argbuf = NULL;
 
     HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &indirectDesc,
-                                                    D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, NULL,
+                                                    D3D12_RESOURCE_STATE_COPY_DEST, NULL,
                                                     __uuidof(ID3D12Resource), (void **)&argbuf);
 
-    SetObjName(argbuf, StringFormat::Fmt("Indirect Arg Buf (%llu bytes)", (uint64_t)size));
+    SetObjName(argbuf, StringFormat::Fmt("Indirect Readback Buf (%llu bytes)", (uint64_t)size));
 
     if(FAILED(hr))
       RDCERR("Failed to create indirect buffer, HRESULT: %s", ToStr(hr).c_str());

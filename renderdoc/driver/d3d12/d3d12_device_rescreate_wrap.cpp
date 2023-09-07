@@ -78,7 +78,7 @@ bool WrappedID3D12Device::Serialise_CreateResource(
     range.end = gpuAddress + desc.Width;
     range.id = pResource;
 
-    m_GPUAddresses.AddTo(range);
+    m_OrigGPUAddresses.AddTo(range);
   }
 
   // check for device requirement

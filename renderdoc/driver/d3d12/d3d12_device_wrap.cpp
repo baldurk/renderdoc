@@ -1756,7 +1756,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(SerialiserType &ser,
       wrapped->sig.arguments.assign(Descriptor.pArgumentDescs, Descriptor.NumArgumentDescs);
 
       wrapped->sig.graphics = true;
-      wrapped->sig.numActions = 0;
+      wrapped->sig.PackedByteSize = 0;
 
       // From MSDN, command signatures are either graphics or compute so just search for dispatches:
       // "A given command signature is either an action or a compute command signature. If a command
@@ -1765,13 +1765,49 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(SerialiserType &ser,
       // signature."
       for(uint32_t i = 0; i < Descriptor.NumArgumentDescs; i++)
       {
-        if(Descriptor.pArgumentDescs[i].Type == D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH)
-          wrapped->sig.graphics = false;
-
-        if(Descriptor.pArgumentDescs[i].Type == D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH ||
-           Descriptor.pArgumentDescs[i].Type == D3D12_INDIRECT_ARGUMENT_TYPE_DRAW ||
-           Descriptor.pArgumentDescs[i].Type == D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED)
-          wrapped->sig.numActions++;
+        switch(Descriptor.pArgumentDescs[i].Type)
+        {
+          case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
+          {
+            wrapped->sig.PackedByteSize += sizeof(D3D12_DRAW_ARGUMENTS);
+            break;
+          }
+          case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
+          {
+            wrapped->sig.PackedByteSize += sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+            break;
+          }
+          case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
+          {
+            wrapped->sig.PackedByteSize += sizeof(D3D12_DISPATCH_ARGUMENTS);
+            wrapped->sig.graphics = false;
+            break;
+          }
+          case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
+          {
+            wrapped->sig.PackedByteSize +=
+                sizeof(uint32_t) * Descriptor.pArgumentDescs[i].Constant.Num32BitValuesToSet;
+            break;
+          }
+          case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
+          {
+            wrapped->sig.PackedByteSize += sizeof(D3D12_VERTEX_BUFFER_VIEW);
+            break;
+          }
+          case D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW:
+          {
+            wrapped->sig.PackedByteSize += sizeof(D3D12_INDEX_BUFFER_VIEW);
+            break;
+          }
+          case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
+          case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
+          case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
+          {
+            wrapped->sig.PackedByteSize += sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
+            break;
+          }
+          default: RDCERR("Unexpected argument type! %d", Descriptor.pArgumentDescs[i].Type); break;
+        }
       }
 
       ret = wrapped;

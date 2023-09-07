@@ -457,8 +457,8 @@ DECLARE_REFLECTION_STRUCT(D3D12RootSignature);
 struct D3D12CommandSignature
 {
   bool graphics = true;
-  UINT numActions = 0;
   UINT ByteStride = 0;
+  UINT PackedByteSize = 0;
   rdcarray<D3D12_INDIRECT_ARGUMENT_DESC> arguments;
 };
 

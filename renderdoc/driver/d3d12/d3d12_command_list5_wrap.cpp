@@ -86,7 +86,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRate(
     else
     {
       Unwrap5(pCommandList)->RSSetShadingRate(baseShadingRate, combiners);
-      GetCrackedList5()->RSSetShadingRate(baseShadingRate, combiners);
 
       stateUpdate = true;
     }
@@ -181,7 +180,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRateImage(Serialise
     else
     {
       Unwrap5(pCommandList)->RSSetShadingRateImage(Unwrap(shadingRateImage));
-      GetCrackedList5()->RSSetShadingRateImage(Unwrap(shadingRateImage));
 
       stateUpdate = true;
     }

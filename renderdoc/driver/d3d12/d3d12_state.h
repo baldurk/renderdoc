@@ -218,4 +218,13 @@ struct D3D12RenderState
 
   D3D12DebugManager *GetDebugManager() const { return m_DebugManager; }
   D3D12DebugManager *m_DebugManager = NULL;
+
+  struct IndirectPendingState
+  {
+    ID3D12Resource *argsBuf = NULL;
+    uint64_t argsOffs = 0;
+    ID3D12CommandSignature *comSig = NULL;
+    uint32_t argsToProcess = 0;
+  } indirectState;
+  void ResolvePendingIndirectState(WrappedID3D12Device *device);
 };

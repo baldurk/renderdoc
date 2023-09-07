@@ -67,7 +67,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetDepthBias(SerialiserType &
     else
     {
       Unwrap9(pCommandList)->RSSetDepthBias(DepthBias, DepthBiasClamp, SlopeScaledDepthBias);
-      GetCrackedList9()->RSSetDepthBias(DepthBias, DepthBiasClamp, SlopeScaledDepthBias);
 
       stateUpdate = true;
     }
@@ -140,7 +139,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBufferStripCutValue(
     else
     {
       Unwrap9(pCommandList)->IASetIndexBufferStripCutValue(IBStripCutValue);
-      GetCrackedList9()->IASetIndexBufferStripCutValue(IBStripCutValue);
 
       stateUpdate = true;
     }

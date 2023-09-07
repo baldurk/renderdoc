@@ -212,17 +212,17 @@ public:
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   D3D12ResourceRecord *GetResourceRecord() { return m_ListRecord; }
   D3D12ResourceRecord *GetCreationRecord() { return m_CreationRecord; }
-  ID3D12GraphicsCommandList *GetCrackedList();
-  ID3D12GraphicsCommandList1 *GetCrackedList1();
-  ID3D12GraphicsCommandList2 *GetCrackedList2();
-  ID3D12GraphicsCommandList3 *GetCrackedList3();
-  ID3D12GraphicsCommandList4 *GetCrackedList4();
-  ID3D12GraphicsCommandList5 *GetCrackedList5();
-  ID3D12GraphicsCommandList6 *GetCrackedList6();
-  ID3D12GraphicsCommandList7 *GetCrackedList7();
-  ID3D12GraphicsCommandList8 *GetCrackedList8();
-  ID3D12GraphicsCommandList9 *GetCrackedList9();
-  ID3D12GraphicsCommandListX *GetWrappedCrackedList();
+
+  void FinaliseExecuteIndirectEvents(BakedCmdListInfo &info, BakedCmdListInfo::ExecuteData &exec);
+  void SaveExecuteIndirectParameters(ID3D12GraphicsCommandListX *list,
+                                     ID3D12CommandSignature *pCommandSignature, UINT MaxCommandCount,
+                                     ID3D12Resource *pArgumentBuffer, UINT64 ArgumentBufferOffset,
+                                     ID3D12Resource *pCountBuffer, UINT64 CountBufferOffset);
+  void ResetAndRecordExecuteIndirectStates(ID3D12GraphicsCommandListX *list, uint32_t baseEventID,
+                                           uint32_t execCount,
+                                           ID3D12CommandSignature *pCommandSignature,
+                                           ID3D12Resource *pArgumentBuffer,
+                                           UINT64 ArgumentBufferOffset, uint32_t argumentsReplayed);
 
   void SetAMDMarkerInterface(IAmdExtD3DCommandListMarker *marker) { m_AMDMarkers = marker; }
   void SetCommandData(D3D12CommandData *cmd) { m_Cmd = cmd; }
@@ -476,11 +476,6 @@ public:
                                 const void *pData, UINT Size);
 
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, EndEvent, );
-
-  void ReserveExecuteIndirect(ID3D12GraphicsCommandList *list,
-                              WrappedID3D12CommandSignature *comSig, UINT maxCount);
-  void PatchExecuteIndirect(BakedCmdListInfo &info, uint32_t executeIndex);
-  void ReplayExecuteIndirect(ID3D12GraphicsCommandList *list);
 
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, ExecuteIndirect,
                                 ID3D12CommandSignature *pCommandSignature, UINT MaxCommandCount,

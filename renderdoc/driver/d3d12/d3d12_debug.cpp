@@ -53,6 +53,32 @@ inline static D3D12_ROOT_PARAMETER1 cbvParam(D3D12_SHADER_VISIBILITY vis, UINT s
   return ret;
 }
 
+inline static D3D12_ROOT_PARAMETER1 srvParam(D3D12_SHADER_VISIBILITY vis, UINT space, UINT reg)
+{
+  D3D12_ROOT_PARAMETER1 ret;
+
+  ret.ShaderVisibility = vis;
+  ret.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+  ret.Descriptor.RegisterSpace = space;
+  ret.Descriptor.ShaderRegister = reg;
+  ret.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+
+  return ret;
+}
+
+inline static D3D12_ROOT_PARAMETER1 uavParam(D3D12_SHADER_VISIBILITY vis, UINT space, UINT reg)
+{
+  D3D12_ROOT_PARAMETER1 ret;
+
+  ret.ShaderVisibility = vis;
+  ret.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+  ret.Descriptor.RegisterSpace = space;
+  ret.Descriptor.ShaderRegister = reg;
+  ret.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+
+  return ret;
+}
+
 inline static D3D12_ROOT_PARAMETER1 constParam(D3D12_SHADER_VISIBILITY vis, UINT space, UINT reg,
                                                UINT num)
 {
@@ -528,11 +554,11 @@ bool D3D12DebugManager::CreateShaderDebugResources()
   range.OffsetInDescriptorsFromTableStart = 0;
   range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 
-  D3D12RootSignatureParameter srvParam;
-  srvParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-  srvParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-  srvParam.ranges.push_back(range);
-  rootSig.Parameters.push_back(srvParam);
+  D3D12RootSignatureParameter srv;
+  srv.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+  srv.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+  srv.ranges.push_back(range);
+  rootSig.Parameters.push_back(srv);
 
   range.NumDescriptors = 2;
   range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
@@ -859,6 +885,132 @@ ID3D12GraphicsCommandListX *D3D12DebugManager::ResetDebugList()
 void D3D12DebugManager::ResetDebugAlloc()
 {
   m_DebugAlloc->Reset();
+}
+
+rdcpair<ID3D12Resource *, UINT64> D3D12DebugManager::PatchExecuteIndirect(
+    ID3D12GraphicsCommandListX *cmd, const D3D12RenderState &state, ID3D12CommandSignature *comSig,
+    ID3D12Resource *argBuf, UINT64 argBufOffset, D3D12_GPU_VIRTUAL_ADDRESS countBufAddr,
+    UINT maxCount)
+{
+  rdcarray<uint32_t> argOffsets;
+
+  WrappedID3D12CommandSignature *wrappedComSig = (WrappedID3D12CommandSignature *)comSig;
+  uint32_t offset = 0;
+  for(const D3D12_INDIRECT_ARGUMENT_DESC &arg : wrappedComSig->sig.arguments)
+  {
+    switch(arg.Type)
+    {
+      case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
+      {
+        offset += sizeof(D3D12_DRAW_ARGUMENTS);
+        break;
+      }
+      case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
+      {
+        offset += sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+        break;
+      }
+      case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
+      {
+        offset += sizeof(D3D12_DISPATCH_ARGUMENTS);
+        break;
+      }
+      case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
+      {
+        offset += sizeof(uint32_t) * arg.Constant.Num32BitValuesToSet;
+        break;
+      }
+      case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
+      {
+        argOffsets.push_back(offset);
+        offset += sizeof(D3D12_VERTEX_BUFFER_VIEW);
+
+        break;
+      }
+      case D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW:
+      {
+        argOffsets.push_back(offset);
+        offset += sizeof(D3D12_INDEX_BUFFER_VIEW);
+        break;
+      }
+      case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
+      case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
+      case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
+      {
+        argOffsets.push_back(offset);
+        offset += sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
+        break;
+      }
+      default: RDCERR("Unexpected argument type! %d", arg.Type); break;
+    }
+  }
+
+  // early out if the command signature doesn't reference anything with addresses
+  if(argOffsets.empty())
+    return {argBuf, argBufOffset};
+
+  // only handle patching 128 address based arguments...
+  RDCASSERT(argOffsets.size() <= 128);
+
+  D3D12MarkerRegion marker(cmd, "Patch execute indirect");
+
+  argOffsets.insert(0, (uint32_t)argOffsets.size());
+  argOffsets.insert(1, m_EIPatchBufferCount);
+  argOffsets.insert(2, wrappedComSig->sig.ByteStride);
+  argOffsets.resize(128 + 3);
+  // argOffsets is now the executepatchdata cbuffer
+
+  const UINT64 argDataSize =
+      wrappedComSig->sig.ByteStride * (maxCount - 1) + wrappedComSig->sig.PackedByteSize;
+
+  if(m_EIPatchScratchOffset + argDataSize > m_EIPatchScratchBuffer->GetDesc().Width)
+    m_EIPatchScratchOffset = 0;
+
+  RDCASSERT(m_EIPatchScratchOffset + argDataSize < m_EIPatchScratchBuffer->GetDesc().Width,
+            wrappedComSig->sig.ByteStride, wrappedComSig->sig.PackedByteSize, maxCount);
+
+  rdcpair<ID3D12Resource *, UINT64> ret = {m_EIPatchScratchBuffer, m_EIPatchScratchOffset};
+
+  D3D12_RESOURCE_BARRIER b = {};
+  b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+  b.Transition.pResource = m_EIPatchScratchBuffer;
+  b.Transition.StateBefore = D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+  b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+
+  cmd->ResourceBarrier(1, &b);
+
+  cmd->CopyBufferRegion(m_EIPatchScratchBuffer, m_EIPatchScratchOffset, argBuf, argBufOffset,
+                        argDataSize);
+
+  b.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+  b.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+  cmd->ResourceBarrier(1, &b);
+
+  cmd->SetPipelineState(m_EIPatchPso);
+  cmd->SetComputeRootSignature(m_EIPatchRootSig);
+  cmd->SetComputeRootConstantBufferView(0, UploadConstants(argOffsets.data(), argOffsets.byteSize()));
+  if(countBufAddr == 0)
+    cmd->SetComputeRootConstantBufferView(1, UploadConstants(&maxCount, sizeof(uint32_t)));
+  else
+    cmd->SetComputeRootConstantBufferView(1, countBufAddr);
+  cmd->SetComputeRoot32BitConstant(2, maxCount, 0);
+  cmd->SetComputeRootShaderResourceView(3, m_EIPatchBufferData->GetGPUVirtualAddress());
+  cmd->SetComputeRootUnorderedAccessView(4, ret.first->GetGPUVirtualAddress() + ret.second);
+  cmd->Dispatch(1, 1, 1);
+
+  b.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+  b.Transition.StateAfter = D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+  cmd->ResourceBarrier(1, &b);
+
+  b.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+  b.UAV.pResource = m_EIPatchScratchBuffer;
+  cmd->ResourceBarrier(1, &b);
+
+  state.ApplyState(m_pDevice, cmd);
+
+  m_EIPatchScratchOffset += wrappedComSig->sig.ByteStride * maxCount;
+
+  return ret;
 }
 
 void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
@@ -1521,6 +1673,131 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetUAVClearHandle(CBVUAVSRVSlot s
   D3D12_CPU_DESCRIPTOR_HANDLE ret = uavClearHeap->GetCPUDescriptorHandleForHeapStart();
   ret.ptr += slot * sizeof(D3D12Descriptor);
   return ret;
+}
+
+void D3D12DebugManager::PrepareExecuteIndirectPatching(const GPUAddressRangeTracker &origAddresses)
+{
+  D3D12ShaderCache *shaderCache = m_pDevice->GetShaderCache();
+
+  shaderCache->SetCaching(true);
+
+  HRESULT hr = S_OK;
+
+  {
+    ID3DBlob *root = shaderCache->MakeRootSig({
+        cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
+        cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 1),
+        constParam(D3D12_SHADER_VISIBILITY_ALL, 0, 2, 1),
+        srvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
+        uavParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
+    });
+
+    RDCASSERT(root);
+
+    hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
+                                        __uuidof(ID3D12RootSignature), (void **)&m_EIPatchRootSig);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create execute indirect patching RootSig! HRESULT: %s", ToStr(hr).c_str());
+    }
+
+    SAFE_RELEASE(root);
+  }
+
+  {
+    rdcstr mischlsl = GetEmbeddedResource(misc_hlsl);
+
+    ID3DBlob *eiPatchCS;
+
+    shaderCache->GetShaderBlob(mischlsl.c_str(), "RENDERDOC_ExecuteIndirectPatchCS",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &eiPatchCS);
+
+    RDCASSERT(eiPatchCS);
+
+    D3D12_COMPUTE_PIPELINE_STATE_DESC compPipeDesc = {};
+    compPipeDesc.pRootSignature = m_EIPatchRootSig;
+    compPipeDesc.CS.BytecodeLength = eiPatchCS->GetBufferSize();
+    compPipeDesc.CS.pShaderBytecode = eiPatchCS->GetBufferPointer();
+
+    hr = m_pDevice->CreateComputePipelineState(&compPipeDesc, __uuidof(ID3D12PipelineState),
+                                               (void **)&m_EIPatchPso);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create m_MeshPickPipe! HRESULT: %s", ToStr(hr).c_str());
+    }
+
+    SAFE_RELEASE(eiPatchCS);
+  }
+
+  shaderCache->SetCaching(false);
+
+  struct buffermapping
+  {
+    uint64_t origBase;
+    uint64_t origEnd;
+    uint64_t newBase;
+    uint64_t pad;
+  };
+  rdcarray<buffermapping> buffers;
+
+  for(const GPUAddressRange &addr : origAddresses.addresses)
+  {
+    buffermapping b = {};
+    b.origBase = addr.start;
+    b.origEnd = addr.end;
+    b.newBase =
+        m_pDevice->GetResourceManager()->GetLiveAs<ID3D12Resource>(addr.id)->GetGPUVirtualAddress();
+    buffers.push_back(b);
+  }
+
+  m_EIPatchBufferCount = (uint32_t)buffers.size();
+
+  if(!buffers.empty())
+  {
+    m_EIPatchBufferData = MakeCBuffer(buffers.byteSize());
+    FillBuffer(m_EIPatchBufferData, 0, buffers.data(), buffers.byteSize());
+  }
+
+  // estimated sizing for scratch buffers:
+  // 65536 maxcount
+  // 128 bytes command signature
+  // = 8MB per EI
+  // 64MB = ring for 8 such executes (or many more smaller)
+  {
+    D3D12_RESOURCE_DESC desc;
+    desc.Alignment = 0;
+    desc.DepthOrArraySize = 1;
+    desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    desc.Format = DXGI_FORMAT_UNKNOWN;
+    desc.Height = 1;
+    desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    desc.MipLevels = 1;
+    desc.SampleDesc.Count = 1;
+    desc.SampleDesc.Quality = 0;
+    desc.Width = 64 * 1024 * 1024;
+
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    hr = m_pDevice->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, NULL,
+        __uuidof(ID3D12Resource), (void **)&m_EIPatchScratchBuffer);
+
+    m_EIPatchScratchBuffer->SetName(L"m_EIPatchScratchBuffer");
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create scratch buffer, HRESULT: %s", ToStr(hr).c_str());
+      return;
+    }
+  }
 }
 
 void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, uint64_t length,

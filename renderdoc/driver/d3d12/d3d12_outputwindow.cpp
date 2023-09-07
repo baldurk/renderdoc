@@ -491,6 +491,7 @@ void D3D12Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
 
     // transition back
     std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
     list->ResourceBarrier(1, &barrier);
 
     list->Close();

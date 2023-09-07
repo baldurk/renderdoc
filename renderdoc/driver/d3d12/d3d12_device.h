@@ -748,7 +748,7 @@ private:
   Threading::CriticalSection m_DynDescLock;
   rdcarray<D3D12Descriptor> m_DynamicDescriptorRefs;
 
-  GPUAddressRangeTracker m_GPUAddresses;
+  GPUAddressRangeTracker m_OrigGPUAddresses;
 
   // used both on capture and replay side to track resource states. Only locked
   // in capture
@@ -910,9 +910,9 @@ public:
     m_DynamicDescriptorRefs.swap(refs);
   }
 
-  void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
+  void GetResIDFromOrigAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
   {
-    m_GPUAddresses.GetResIDFromAddr(addr, id, offs);
+    m_OrigGPUAddresses.GetResIDFromAddr(addr, id, offs);
   }
 
   bool IsCubemap(ResourceId id) { return m_Cubemaps.find(id) != m_Cubemaps.end(); }

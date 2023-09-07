@@ -178,21 +178,19 @@ struct BakedCmdListInfo
   ~BakedCmdListInfo() { SAFE_DELETE(action); }
   void ShiftForRemoved(uint32_t shiftActionID, uint32_t shiftEID, size_t idx);
 
+  SubresourceStateVector GetState(WrappedID3D12Device *device, ResourceId id);
+
   struct ExecuteData
   {
     uint32_t baseEvent = 0;
-    uint32_t lastEvent = 0;
-    bool patched = false;
     ID3D12Resource *argBuf = NULL;
     ID3D12Resource *countBuf = NULL;
     uint64_t argOffs = 0;
     uint64_t countOffs = 0;
     WrappedID3D12CommandSignature *sig = NULL;
     UINT maxCount = 0;
-    UINT realCount = 0;
   };
 
-  rdcarray<ID3D12GraphicsCommandListX *> crackedLists;
   rdcarray<ExecuteData> executeEvents;
 
   rdcarray<APIEvent> curEvents;
@@ -236,8 +234,6 @@ struct D3D12CommandData
   ResourceId m_LastCmdListID;
 
   RDResult m_FailedReplayResult = ResultCode::APIReplayFailed;
-
-  std::map<ResourceId, ID3D12CommandAllocator *> m_CrackedAllocators;
 
   rdcarray<ID3D12Resource *> m_IndirectBuffers;
   static const uint64_t m_IndirectSize = 4 * 1024 * 1024;

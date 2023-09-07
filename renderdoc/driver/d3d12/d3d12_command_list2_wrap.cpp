@@ -59,7 +59,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_WriteBufferImmediate(
     else
     {
       Unwrap2(pCommandList)->WriteBufferImmediate(Count, pParams, pModes);
-      GetCrackedList2()->WriteBufferImmediate(Count, pParams, pModes);
     }
   }
 

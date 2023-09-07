@@ -349,12 +349,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
       // need to unwrap here, as FromPortableHandle unwraps too.
       Unwrap(pCommandList)
           ->OMSetRenderTargets(NumRenderTargets, rtHandles, FALSE, dsvHandle.ptr ? &dsvHandle : NULL);
-      GetCrackedList()->OMSetRenderTargets(NumRenderTargets, rtHandles, FALSE,
-                                           dsvHandle.ptr ? &dsvHandle : NULL);
 
       // Unwrap4(pCommandList)->BeginRenderPass(NumRenderTargets, pRenderTargets, pDepthStencil,
       // Flags);
-      // GetCrackedList4()->BeginRenderPass(NumRenderTargets, pRenderTargets, pDepthStencil, Flags);
 
       m_Cmd->AddEvent();
 
@@ -663,7 +660,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndRenderPass(SerialiserType &s
     else
     {
       // Unwrap4(pCommandList)->EndRenderPass();
-      // GetCrackedList4()->EndRenderPass();
 
       m_Cmd->AddEvent();
 

@@ -79,9 +79,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT(
       Unwrap1(pCommandList)
           ->AtomicCopyBufferUINT(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer), SrcOffset,
                                  Dependencies, deps.data(), pDependentSubresourceRanges);
-      GetCrackedList1()->AtomicCopyBufferUINT(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer),
-                                              SrcOffset, Dependencies, deps.data(),
-                                              pDependentSubresourceRanges);
 
       {
         m_Cmd->AddEvent();
@@ -195,9 +192,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT64(
       Unwrap1(pCommandList)
           ->AtomicCopyBufferUINT64(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer), SrcOffset,
                                    Dependencies, deps.data(), pDependentSubresourceRanges);
-      GetCrackedList1()->AtomicCopyBufferUINT64(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer),
-                                                SrcOffset, Dependencies, deps.data(),
-                                                pDependentSubresourceRanges);
 
       {
         m_Cmd->AddEvent();
@@ -313,7 +307,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetDepthBounds(SerialiserType
     else
     {
       Unwrap1(pCommandList)->OMSetDepthBounds(Min, Max);
-      GetCrackedList1()->OMSetDepthBounds(Min, Max);
 
       stateUpdate = true;
     }
@@ -403,7 +396,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetSamplePositions(
     else
     {
       Unwrap1(pCommandList)->SetSamplePositions(NumSamplesPerPixel, NumPixels, pSamplePositions);
-      GetCrackedList1()->SetSamplePositions(NumSamplesPerPixel, NumPixels, pSamplePositions);
 
       stateUpdate = true;
     }
@@ -483,9 +475,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresourceRegion(
           ->ResolveSubresourceRegion(Unwrap(pDstResource), DstSubresource, DstX, DstY,
                                      Unwrap(pSrcResource), SrcSubresource, pSrcRect, Format,
                                      ResolveMode);
-      GetCrackedList1()->ResolveSubresourceRegion(Unwrap(pDstResource), DstSubresource, DstX, DstY,
-                                                  Unwrap(pSrcResource), SrcSubresource, pSrcRect,
-                                                  Format, ResolveMode);
 
       {
         m_Cmd->AddEvent();
@@ -595,7 +584,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetViewInstanceMask(SerialiserT
     else
     {
       Unwrap1(pCommandList)->SetViewInstanceMask(Mask);
-      GetCrackedList1()->SetViewInstanceMask(Mask);
 
       stateUpdate = true;
     }

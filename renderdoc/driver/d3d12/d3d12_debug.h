@@ -155,6 +155,13 @@ public:
                               DiscardType type, ID3D12Resource *res,
                               const D3D12_DISCARD_REGION *region, D3D12_BARRIER_LAYOUT LayoutAfter);
 
+  rdcpair<ID3D12Resource *, UINT64> PatchExecuteIndirect(ID3D12GraphicsCommandListX *cmd,
+                                                         const D3D12RenderState &state,
+                                                         ID3D12CommandSignature *comSig,
+                                                         ID3D12Resource *argBuf, UINT64 argBufOffset,
+                                                         D3D12_GPU_VIRTUAL_ADDRESS countBufAddr,
+                                                         UINT maxCount);
+
   D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(CBVUAVSRVSlot slot);
   D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(RTVSlot slot);
   D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(DSVSlot slot);
@@ -174,6 +181,7 @@ public:
 
   void PrepareTextureSampling(ID3D12Resource *resource, CompType typeCast, int &resType,
                               BarrierSet &barrierSet);
+  void PrepareExecuteIndirectPatching(const GPUAddressRangeTracker &origAddresses);
 
   MeshDisplayPipelines CacheMeshDisplayPipelines(const MeshFormat &primary,
                                                  const MeshFormat &secondary);
@@ -248,6 +256,14 @@ private:
   ID3D12Resource *m_DiscardConstantsDiscard = NULL;
   ID3D12Resource *m_DiscardConstantsUndefined = NULL;
   ID3D12RootSignature *m_DiscardRootSig = NULL;
+
+  // Execute Indirect patching
+  ID3D12RootSignature *m_EIPatchRootSig = NULL;
+  ID3D12Resource *m_EIPatchBufferData = NULL;
+  uint32_t m_EIPatchBufferCount = 0;
+  ID3D12PipelineState *m_EIPatchPso = NULL;
+  ID3D12Resource *m_EIPatchScratchBuffer = NULL;
+  uint64_t m_EIPatchScratchOffset = 0;
 
   std::map<rdcpair<DXGI_FORMAT, UINT>, ID3D12PipelineState *> m_DiscardPipes;
   std::map<rdcpair<DiscardType, DXGI_FORMAT>, ID3D12Resource *> m_DiscardPatterns;

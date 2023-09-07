@@ -487,46 +487,24 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
       {
         ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(ppCommandLists[i]));
 
-        if(m_Cmd.m_BakedCmdListInfo[cmd].executeEvents.empty() ||
-           m_Cmd.m_BakedCmdListInfo[cmd].executeEvents[0].patched)
+        ID3D12CommandList *list = Unwrap(ppCommandLists[i]);
+        real->ExecuteCommandLists(1, &list);
+        if(D3D12_Debug_SingleSubmitFlushing())
+          m_pDevice->GPUSync();
+
+        BakedCmdListInfo &info = m_Cmd.m_BakedCmdListInfo[cmd];
+
+        if(!info.executeEvents.empty())
         {
-          ID3D12CommandList *list = Unwrap(ppCommandLists[i]);
-          real->ExecuteCommandLists(1, &list);
-          if(D3D12_Debug_SingleSubmitFlushing())
-            m_pDevice->GPUSync();
-        }
-        else
-        {
-          BakedCmdListInfo &info = m_Cmd.m_BakedCmdListInfo[cmd];
+          // ensure all GPU work has finished for readback of arguments
+          m_pDevice->GPUSync();
 
-          // execute the first half of the cracked list
-          ID3D12CommandList *list = Unwrap(info.crackedLists[0]);
-          real->ExecuteCommandLists(1, &list);
+          if(m_pDevice->HasFatalError())
+            return false;
 
-          for(size_t c = 1; c < info.crackedLists.size(); c++)
-          {
-            // ensure all GPU work has finished
-            m_pDevice->GPUSync();
-
-            if(m_pDevice->HasFatalError())
-              return false;
-
-            // readback the patch buffer and perform patching
-            m_ReplayList->PatchExecuteIndirect(info, uint32_t(c - 1));
-
-            if(m_pDevice->HasFatalError())
-              return false;
-
-            // execute next list with this indirect.
-            list = Unwrap(info.crackedLists[c]);
-            real->ExecuteCommandLists(1, &list);
-
-            if(m_pDevice->HasFatalError())
-              return false;
-          }
-
-          if(D3D12_Debug_SingleSubmitFlushing())
-            m_pDevice->GPUSync();
+          // readback the patch buffer and update recorded events
+          for(size_t c = 0; c < info.executeEvents.size(); c++)
+            m_ReplayList->FinaliseExecuteIndirectEvents(info, info.executeEvents[c]);
         }
       }
 
