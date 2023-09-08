@@ -570,26 +570,17 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
                 stride = sizeof(VkDrawIndirectCommand);
               }
 
-              {
-                uint32_t eventId =
-                    HandlePreCallback(commandBuffer, ActionFlags::Drawcall, drawidx + 1);
-
-                ObjDisp(commandBuffer)
-                    ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
-
-                if(eventId && m_ActionCallback->PostDraw(eventId, commandBuffer))
-                {
-                  ObjDisp(commandBuffer)
-                      ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
-                  m_ActionCallback->PostRedraw(eventId, commandBuffer);
-                }
-              }
+              ObjDisp(commandBuffer)
+                  ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
             }
           }
         }
 
         // multidraws skip the event ID past the whole thing
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID += count + 1;
+        if(m_FirstEventID > 1)
+          m_RootEventID += count + 1;
+        else
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID += count + 1;
       }
     }
     else
@@ -954,27 +945,19 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
 
               if(count > 0)
               {
-                uint32_t eventId =
-                    HandlePreCallback(commandBuffer, ActionFlags::Drawcall, drawidx + 1);
-
                 ObjDisp(commandBuffer)
                     ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count,
                                              stride);
-
-                if(eventId && m_ActionCallback->PostDraw(eventId, commandBuffer))
-                {
-                  ObjDisp(commandBuffer)
-                      ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count,
-                                               stride);
-                  m_ActionCallback->PostRedraw(eventId, commandBuffer);
-                }
               }
             }
           }
         }
 
         // multidraws skip the event ID past the whole thing
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID += count + 1;
+        if(m_FirstEventID > 1)
+          m_RootEventID += count + 1;
+        else
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID += count + 1;
       }
     }
     else
@@ -2817,22 +2800,68 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
           // when we have a callback, submit every action individually to the callback
           if(m_ActionCallback)
           {
+            VkMarkerRegion::Begin(
+                StringFormat::Fmt("Drawcall callback replay (drawCount=%u)", count), commandBuffer);
+
+            // first copy off the buffer segment to our indirect draw buffer
+            VkBufferMemoryBarrier bufBarrier = {
+                VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+                NULL,
+                VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+                VK_ACCESS_TRANSFER_WRITE_BIT,
+                VK_QUEUE_FAMILY_IGNORED,
+                VK_QUEUE_FAMILY_IGNORED,
+                Unwrap(buffer),
+                offset,
+                (count > 0 ? stride * (count - 1) : 0) + sizeof(VkDrawIndirectCommand),
+            };
+
+            DoPipelineBarrier(commandBuffer, 1, &bufBarrier);
+            VkBufferCopy region = {offset, 0, bufBarrier.size};
+            ObjDisp(commandBuffer)
+                ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(buffer), Unwrap(m_IndirectBuffer.buf),
+                                1, &region);
+
+            // wait for the copy to finish
+            bufBarrier.buffer = Unwrap(m_IndirectBuffer.buf);
+            bufBarrier.offset = 0;
+            DoPipelineBarrier(commandBuffer, 1, &bufBarrier);
+
+            bufBarrier.size = sizeof(VkDrawIndirectCommand);
+
             for(uint32_t i = 0; i < count; i++)
             {
               uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Drawcall, i + 1);
 
+              // action up to and including i. The previous draws will be nop'd out
               ObjDisp(commandBuffer)
-                  ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, 1, stride);
+                  ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(m_IndirectBuffer.buf), 0, i + 1,
+                                    stride);
 
               if(eventId && m_ActionCallback->PostDraw(eventId, commandBuffer))
               {
                 ObjDisp(commandBuffer)
-                    ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, 1, stride);
+                    ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(m_IndirectBuffer.buf), 0, i + 1,
+                                      stride);
                 m_ActionCallback->PostRedraw(eventId, commandBuffer);
               }
 
-              offset += stride;
+              // now that we're done, nop out this draw so that the next time around we only draw
+              // the next draw.
+              bufBarrier.srcAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+              bufBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+              DoPipelineBarrier(commandBuffer, 1, &bufBarrier);
+              ObjDisp(commandBuffer)
+                  ->CmdFillBuffer(Unwrap(commandBuffer), bufBarrier.buffer, bufBarrier.offset,
+                                  bufBarrier.size, 0);
+              bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+              bufBarrier.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+              DoPipelineBarrier(commandBuffer, 1, &bufBarrier);
+
+              bufBarrier.offset += stride;
             }
+
+            VkMarkerRegion::End(commandBuffer);
           }
           // To add the multidraw, we made an event N that is the 'parent' marker, then
           // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
@@ -2840,8 +2869,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
           // the first sub-draw in that range.
           else if(m_LastEventID > baseEventID)
           {
-            uint32_t drawidx = 0;
-
             if(m_FirstEventID <= 1)
             {
               // if we're replaying part-way into a multidraw, we can replay the first part
@@ -2859,7 +2886,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
               // We also need to draw the same number of draws so that DrawIndex is faithful. In
               // order to preserve the draw index we write a custom indirect buffer that has zeros
               // for the parameters of all previous draws.
-              drawidx = (curEID - baseEventID - 1);
+              uint32_t drawidx = (curEID - baseEventID - 1);
 
               offset += stride * drawidx;
 
@@ -2923,25 +2950,17 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
               stride = sizeof(VkDrawIndirectCommand);
             }
 
-            {
-              uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Drawcall, drawidx + 1);
-
-              ObjDisp(commandBuffer)
-                  ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
-
-              if(eventId && m_ActionCallback->PostDraw(eventId, commandBuffer))
-              {
-                ObjDisp(commandBuffer)
-                    ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
-                m_ActionCallback->PostRedraw(eventId, commandBuffer);
-              }
-            }
+            ObjDisp(commandBuffer)
+                ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
           }
         }
       }
 
       // multidraws skip the event ID past the whole thing
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID += count + 1;
+      if(m_FirstEventID > 1)
+        m_RootEventID += count + 1;
+      else
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID += count + 1;
     }
     else
     {
@@ -3197,8 +3216,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
           // the first sub-draw in that range.
           else if(m_LastEventID > baseEventID)
           {
-            uint32_t drawidx = 0;
-
             if(m_FirstEventID <= 1)
             {
               // if we're replaying part-way into a multidraw, we can replay the first part
@@ -3216,7 +3233,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
               // We also need to draw the same number of draws so that DrawIndex is faithful. In
               // order to preserve the draw index we write a custom indirect buffer that has zeros
               // for the parameters of all previous draws.
-              drawidx = (curEID - baseEventID - 1);
+              uint32_t drawidx = (curEID - baseEventID - 1);
 
               offset += stride * drawidx;
 
@@ -3280,27 +3297,18 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
               stride = sizeof(VkDrawIndexedIndirectCommand);
             }
 
-            {
-              uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Drawcall, drawidx + 1);
-
-              ObjDisp(commandBuffer)
-                  ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count,
-                                           stride);
-
-              if(eventId && m_ActionCallback->PostDraw(eventId, commandBuffer))
-              {
-                ObjDisp(commandBuffer)
-                    ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count,
-                                             stride);
-                m_ActionCallback->PostRedraw(eventId, commandBuffer);
-              }
-            }
+            ObjDisp(commandBuffer)
+                ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count,
+                                         stride);
           }
         }
       }
 
       // multidraws skip the event ID past the whole thing
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID += count + 1;
+      if(m_FirstEventID > 1)
+        m_RootEventID += count + 1;
+      else
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID += count + 1;
     }
     else
     {
