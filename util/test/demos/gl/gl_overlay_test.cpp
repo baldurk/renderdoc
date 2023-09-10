@@ -346,38 +346,38 @@ void main()
 
           glScissor(0, 0, screenWidth, screenHeight);
         }
-
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, fbos[0]);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight,
-                          GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, subfbo);
-        float col2[] = {0.0f, 0.0f, 0.0f, 1.0f};
-        glClearBufferfv(GL_COLOR, 0, col2);
-
-        glDepthFunc(GL_ALWAYS);
-        glDisable(GL_STENCIL_TEST);
-
-        glUseProgram(whiteprogram);
-
-        glViewport(5, 5, GLsizei(screenWidth) / 4 - 10, GLsizei(screenHeight) / 4 - 10);
-        glScissor(0, 0, screenWidth / 4, screenHeight / 4);
-
-        setMarker("Subresources mip 2");
-        glDrawArrays(GL_TRIANGLES, 9, 24);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, subfbo2);
-        glClearBufferfv(GL_COLOR, 0, col2);
-
-        glViewport(2, 2, GLsizei(screenWidth) / 8 - 4, GLsizei(screenHeight) / 8 - 4);
-        glScissor(0, 0, screenWidth / 8, screenHeight / 8);
-
-        setMarker("Subresources mip 3");
-        glDrawArrays(GL_TRIANGLES, 9, 24);
-
-        Present();
       }
+
+      glBindFramebuffer(GL_READ_FRAMEBUFFER, fbos[0]);
+      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+      glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight,
+                        GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+      glBindFramebuffer(GL_FRAMEBUFFER, subfbo);
+      float col2[] = {0.0f, 0.0f, 0.0f, 1.0f};
+      glClearBufferfv(GL_COLOR, 0, col2);
+
+      glDepthFunc(GL_ALWAYS);
+      glDisable(GL_STENCIL_TEST);
+
+      glUseProgram(whiteprogram);
+
+      glViewport(5, 5, GLsizei(screenWidth) / 4 - 10, GLsizei(screenHeight) / 4 - 10);
+      glScissor(0, 0, screenWidth / 4, screenHeight / 4);
+
+      setMarker("Subresources mip 2");
+      glDrawArrays(GL_TRIANGLES, 9, 24);
+
+      glBindFramebuffer(GL_FRAMEBUFFER, subfbo2);
+      glClearBufferfv(GL_COLOR, 0, col2);
+
+      glViewport(2, 2, GLsizei(screenWidth) / 8 - 4, GLsizei(screenHeight) / 8 - 4);
+      glScissor(0, 0, screenWidth / 8, screenHeight / 8);
+
+      setMarker("Subresources mip 3");
+      glDrawArrays(GL_TRIANGLES, 9, 24);
+
+      Present();
     }
 
     return 0;
