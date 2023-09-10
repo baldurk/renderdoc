@@ -398,12 +398,12 @@ class Overlay_Test(rdtest.TestCase):
                         self.check_pixel_value(overlay_id, 200, 79, [3.0, 3.0, 3.0, 1.0], eps=eps)
                         self.check_pixel_value(overlay_id, 200, 93, [1.33, 1.33, 1.33, 1.0], eps=eps)
 
-                    rdtest.log.success("Picked pixels are as expected for {}".format(str(overlay)))
+                    rdtest.log.success("Picked pixels are as expected for {} Format {}".format(str(overlay), fmt))
 
                 if is_msaa:
-                    rdtest.log.success("All MSAA overlays are as expected")
+                    rdtest.log.success("All MSAA overlays are as expected Format {}".format(fmt))
                 else:
-                    rdtest.log.success("All normal overlays are as expected")
+                    rdtest.log.success("All normal overlays are as expected Format {}".format(fmt))
 
             # Check the viewport overlay especially
             view_marker: rd.ActionDescription = self.find_action("Viewport Test " + fmt, base_event)
@@ -520,9 +520,9 @@ class Overlay_Test(rdtest.TestCase):
                     self.check_pixel_value(overlay_id, 200, 270, [43072.0, 43072.0, 43072.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 200, 280, [0.0, 0.0, 0.0, 0.0], eps=eps)
 
-                rdtest.log.success("Picked pixels are as expected for {}".format(str(overlay)))
+                rdtest.log.success("Picked pixels are as expected for {} Format {}".format(str(overlay), fmt))
 
-            rdtest.log.success("Overlays are as expected around viewport/scissor behaviour")
+            rdtest.log.success("Overlays are as expected around viewport/scissor behaviour Format {}".format(fmt))
 
             # Check the sample mask test
             mask_marker: rd.ActionDescription = self.find_action("Sample Mask Test " + fmt, base_event)
@@ -596,7 +596,7 @@ class Overlay_Test(rdtest.TestCase):
                 self.check_pixel_value(depth_tex, 250, 250, [0.95, 0.0, 0.0, 1.0], eps=eps)
                 self.check_pixel_value(depth_tex, 50, 50, [1.0, 0.0, 0.0, 1.0], eps=eps)
 
-            rdtest.log.success("Colour and depth at end are correct")
+            rdtest.log.success("Colour and depth at end are correct Format {}".format(fmt))
 
             # Check clear before pass
             tex.resourceId = col_tex
@@ -640,7 +640,7 @@ class Overlay_Test(rdtest.TestCase):
                 self.check_pixel_value(depth_tex, 250, 250, [0.95, 0.0, 0.0, 1.0], eps=eps)
                 self.check_pixel_value(depth_tex, 50, 50, [1.0, 0.0, 0.0, 1.0], eps=eps)
 
-            rdtest.log.success("Clear before pass colour and depth values as expected")
+            rdtest.log.success("Clear before pass colour and depth values as expected Format {}".format(fmt))
 
             # Check clear before action
             tex.resourceId = col_tex
@@ -684,7 +684,7 @@ class Overlay_Test(rdtest.TestCase):
                 self.check_pixel_value(depth_tex, 250, 250, [1.0, 0.0, 0.0, 1.0], eps=eps)
                 self.check_pixel_value(depth_tex, 50, 50, [1.0, 0.0, 0.0, 1.0], eps=eps)
 
-            rdtest.log.success("Clear before action colour and depth values as expected")
+            rdtest.log.success("Clear before action colour and depth values as expected Format {}".format(fmt))
 
             rdtest.log.success("All overlays as expected for main action Format {}".format(fmt))
 
