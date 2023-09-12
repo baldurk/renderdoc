@@ -1253,6 +1253,12 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
 
     if(*fourcc == FOURCC_RDEF)
     {
+      if(*chunkSize < offsetof(RDEFHeader, unknown))
+      {
+        RDCERR("Invalid RDEF chunk encountered: size %u", *chunkSize);
+        continue;
+      }
+
       const RDEFHeader *h = (const RDEFHeader *)chunkContents;
 
       // for target version 0x500, unknown[0] is FOURCC_RD11.
@@ -1539,18 +1545,36 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
     }
     else if(*fourcc == FOURCC_ILDN)
     {
+      if(*chunkSize < sizeof(ILDNHeader))
+      {
+        RDCERR("Invalid ILDN chunk encountered: size %u", *chunkSize);
+        continue;
+      }
+
       const ILDNHeader *h = (const ILDNHeader *)chunkContents;
 
       m_DebugFileName = rdcstr(h->Name, h->NameLength);
     }
     else if(*fourcc == FOURCC_HASH)
     {
+      if(*chunkSize < sizeof(HASHHeader))
+      {
+        RDCERR("Invalid HASH chunk encountered: size %u", *chunkSize);
+        continue;
+      }
+
       const HASHHeader *h = (const HASHHeader *)chunkContents;
 
       memcpy(m_Hash, h->hashValue, sizeof(h->hashValue));
     }
     else if(*fourcc == FOURCC_SFI0)
     {
+      if(*chunkSize < sizeof(GlobalShaderFlags))
+      {
+        RDCERR("Invalid SFI0 chunk encountered: size %u", *chunkSize);
+        continue;
+      }
+
       m_GlobalFlags = *(const GlobalShaderFlags *)chunkContents;
     }
     else if(*fourcc == FOURCC_RTS0)
@@ -1670,7 +1694,7 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
   {
     uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
-    // uint32_t *chunkSize = (uint32_t *)(fourcc + 1);
+    uint32_t *chunkSize = (uint32_t *)(fourcc + 1);
 
     char *chunkContents = (char *)(fourcc + 2);
 
@@ -1678,6 +1702,12 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
        *fourcc == FOURCC_OSG1 || *fourcc == FOURCC_OSG5 || *fourcc == FOURCC_PCSG ||
        *fourcc == FOURCC_PSG1)
     {
+      if(*chunkSize < sizeof(SIGNHeader))
+      {
+        RDCERR("Invalid SIGN chunk encountered: size %u", *chunkSize);
+        continue;
+      }
+
       SIGNHeader *sign = (SIGNHeader *)chunkContents;
 
       rdcarray<SigParameter> *sig = NULL;
