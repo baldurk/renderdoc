@@ -2715,6 +2715,8 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapper *swapper, UINT SyncInterval, U
 
 void WrappedID3D11Device::CachedObjectsGarbageCollect()
 {
+  SCOPED_LOCK(m_D3DLock);
+
   // 4000 is a fairly arbitrary number, chosen to make sure this garbage
   // collection kicks in as rarely as possible (4000 is a *lot* of unique
   // state objects to have), while still meaning that we'll never

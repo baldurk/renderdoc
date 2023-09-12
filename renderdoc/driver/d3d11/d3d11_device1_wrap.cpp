@@ -132,6 +132,8 @@ HRESULT WrappedID3D11Device::CreateBlendState1(const D3D11_BLEND_DESC1 *pBlendSt
   if(ppBlendState == NULL)
     return m_pDevice1->CreateBlendState1(pBlendStateDesc, NULL);
 
+  CachedObjectsGarbageCollect();
+
   ID3D11BlendState1 *real = NULL;
   HRESULT ret = m_pDevice1->CreateBlendState1(pBlendStateDesc, &real);
 
@@ -153,8 +155,6 @@ HRESULT WrappedID3D11Device::CreateBlendState1(const D3D11_BLEND_DESC1 *pBlendSt
     }
 
     ID3D11BlendState1 *wrapped = new WrappedID3D11BlendState1(real, this);
-
-    CachedObjectsGarbageCollect();
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
@@ -250,6 +250,8 @@ HRESULT WrappedID3D11Device::CreateRasterizerState1(const D3D11_RASTERIZER_DESC1
   if(ppRasterizerState == NULL)
     return m_pDevice1->CreateRasterizerState1(pRasterizerDesc, NULL);
 
+  CachedObjectsGarbageCollect();
+
   ID3D11RasterizerState1 *real = NULL;
   HRESULT ret = m_pDevice1->CreateRasterizerState1(pRasterizerDesc, &real);
 
@@ -271,8 +273,6 @@ HRESULT WrappedID3D11Device::CreateRasterizerState1(const D3D11_RASTERIZER_DESC1
     }
 
     ID3D11RasterizerState1 *wrapped = new WrappedID3D11RasterizerState2(real, this);
-
-    CachedObjectsGarbageCollect();
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());

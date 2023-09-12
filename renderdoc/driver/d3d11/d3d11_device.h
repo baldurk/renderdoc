@@ -592,7 +592,7 @@ private:
   // rarely kick in - only in the case where a lot of unique state objects are
   // created then released and never re-used.
   //
-  // Must be called while m_D3DLock is held.
+  // Internally locks m_D3DLock
   void CachedObjectsGarbageCollect();
 
   std::set<WrappedID3D11DeviceContext *> m_DeferredContexts;

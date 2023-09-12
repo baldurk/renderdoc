@@ -783,6 +783,8 @@ HRESULT WrappedID3D11Device::CreateRasterizerState2(const D3D11_RASTERIZER_DESC2
   if(ppRasterizerState == NULL)
     return m_pDevice3->CreateRasterizerState2(pRasterizerDesc, NULL);
 
+  CachedObjectsGarbageCollect();
+
   ID3D11RasterizerState2 *real = NULL;
   HRESULT ret;
   SERIALISE_TIME_CALL(ret = m_pDevice3->CreateRasterizerState2(pRasterizerDesc, &real));
@@ -805,8 +807,6 @@ HRESULT WrappedID3D11Device::CreateRasterizerState2(const D3D11_RASTERIZER_DESC2
     }
 
     ID3D11RasterizerState2 *wrapped = new WrappedID3D11RasterizerState2(real, this);
-
-    CachedObjectsGarbageCollect();
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());

@@ -2725,6 +2725,8 @@ HRESULT WrappedID3D11Device::CreateBlendState(const D3D11_BLEND_DESC *pBlendStat
   if(ppBlendState == NULL)
     return m_pDevice->CreateBlendState(pBlendStateDesc, NULL);
 
+  CachedObjectsGarbageCollect();
+
   ID3D11BlendState *real = NULL;
   HRESULT ret;
   SERIALISE_TIME_CALL(ret = m_pDevice->CreateBlendState(pBlendStateDesc, &real));
@@ -2748,8 +2750,6 @@ HRESULT WrappedID3D11Device::CreateBlendState(const D3D11_BLEND_DESC *pBlendStat
 
     FlushPendingDead();
     ID3D11BlendState *wrapped = new WrappedID3D11BlendState1(real, this);
-
-    CachedObjectsGarbageCollect();
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
@@ -2840,6 +2840,8 @@ HRESULT WrappedID3D11Device::CreateDepthStencilState(const D3D11_DEPTH_STENCIL_D
   if(ppDepthStencilState == NULL)
     return m_pDevice->CreateDepthStencilState(pDepthStencilDesc, NULL);
 
+  CachedObjectsGarbageCollect();
+
   ID3D11DepthStencilState *real = NULL;
   HRESULT ret;
   SERIALISE_TIME_CALL(ret = m_pDevice->CreateDepthStencilState(pDepthStencilDesc, &real));
@@ -2863,8 +2865,6 @@ HRESULT WrappedID3D11Device::CreateDepthStencilState(const D3D11_DEPTH_STENCIL_D
 
     FlushPendingDead();
     ID3D11DepthStencilState *wrapped = new WrappedID3D11DepthStencilState(real, this);
-
-    CachedObjectsGarbageCollect();
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
@@ -2953,6 +2953,8 @@ HRESULT WrappedID3D11Device::CreateRasterizerState(const D3D11_RASTERIZER_DESC *
   if(ppRasterizerState == NULL)
     return m_pDevice->CreateRasterizerState(pRasterizerDesc, NULL);
 
+  CachedObjectsGarbageCollect();
+
   ID3D11RasterizerState *real = NULL;
   HRESULT ret;
   SERIALISE_TIME_CALL(ret = m_pDevice->CreateRasterizerState(pRasterizerDesc, &real));
@@ -2976,8 +2978,6 @@ HRESULT WrappedID3D11Device::CreateRasterizerState(const D3D11_RASTERIZER_DESC *
 
     FlushPendingDead();
     ID3D11RasterizerState *wrapped = new WrappedID3D11RasterizerState2(real, this);
-
-    CachedObjectsGarbageCollect();
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
@@ -3066,6 +3066,8 @@ HRESULT WrappedID3D11Device::CreateSamplerState(const D3D11_SAMPLER_DESC *pSampl
   if(ppSamplerState == NULL)
     return m_pDevice->CreateSamplerState(pSamplerDesc, NULL);
 
+  CachedObjectsGarbageCollect();
+
   ID3D11SamplerState *real = NULL;
   HRESULT ret;
   SERIALISE_TIME_CALL(ret = m_pDevice->CreateSamplerState(pSamplerDesc, &real));
@@ -3089,8 +3091,6 @@ HRESULT WrappedID3D11Device::CreateSamplerState(const D3D11_SAMPLER_DESC *pSampl
 
     FlushPendingDead();
     ID3D11SamplerState *wrapped = new WrappedID3D11SamplerState(real, this);
-
-    CachedObjectsGarbageCollect();
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
