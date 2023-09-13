@@ -1021,6 +1021,16 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
         // skip validity checks
         continue;
       }
+      else if(push.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+      {
+        // TODO: Support VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR in BindDescriptorSet
+        RDCERR(
+            "Unsupported descriptorType in BindDescriptorSet: "
+            "VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR");
+
+        // skip validity checks
+        continue;
+      }
       else
       {
         VkDescriptorBufferInfo *dst = new VkDescriptorBufferInfo[push.descriptorCount];

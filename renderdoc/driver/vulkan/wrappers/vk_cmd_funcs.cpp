@@ -5380,6 +5380,28 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
       memcpy(inlineData.data() + (*bind)->offset + writeDesc.dstArrayElement, inlineWrite->pData,
              inlineWrite->dataSize);
     }
+    else if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+    {
+      VkWriteDescriptorSetAccelerationStructureKHR *accelerationStructureWrite =
+          (VkWriteDescriptorSetAccelerationStructureKHR *)FindNextStruct(
+              &writeDesc, VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR);
+
+      for(uint32_t d = 0; d < writeDesc.descriptorCount; d++, curIdx++)
+      {
+        // allow consecutive descriptor bind updates. See vkUpdateDescriptorSets for more
+        // explanation
+        if(curIdx >= layoutBinding->descriptorCount)
+        {
+          layoutBinding++;
+          bind++;
+          curIdx = 0;
+        }
+
+        (*bind)[curIdx].SetAccelerationStructure(
+            writeDesc.descriptorType,
+            GetResID(accelerationStructureWrite->pAccelerationStructures[d]));
+      }
+    }
     else
     {
       for(uint32_t d = 0; d < writeDesc.descriptorCount; d++, curIdx++)
@@ -5592,6 +5614,13 @@ void WrappedVulkan::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
       else if(pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
       {
         // nothing to unwrap, the next chain contains the data which we can leave as-is
+      }
+      else if(pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+      {
+        // TODO: Support VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR in vkCmdPushDescriptorSetKHR
+        RDCERR(
+            "Unsupported descriptorType in vkCmdPushDescriptorSetKHR: "
+            "VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR");
       }
       else
       {

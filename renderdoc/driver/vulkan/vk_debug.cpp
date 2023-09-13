@@ -2647,6 +2647,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
       {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1},
       {VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK, 0},
   };
+  // TODO: Support VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR
 
   // array of descriptor types, used for generating lists for binding data. Each unique bitmask
   // will have an offset (see below) pointing into this array where that bitmask's list of

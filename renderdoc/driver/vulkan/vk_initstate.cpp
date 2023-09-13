@@ -1258,6 +1258,38 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
 
           dstInline++;
         }
+        else if(layoutBind.layoutDescType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+        {
+          dstAccelerationStructures->sType =
+              VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+          dstAccelerationStructures->pNext = NULL;
+
+          const uint32_t accelerationStructureCount = layoutBind.descriptorCount;
+          dstAccelerationStructures->accelerationStructureCount = accelerationStructureCount;
+          dstAccelerationStructures->pAccelerationStructures = NULL;
+          VkAccelerationStructureKHR *accelerationStructures =
+              new VkAccelerationStructureKHR[accelerationStructureCount];
+
+          VulkanResourceManager *rm = this->GetResourceManager();
+          for(uint32_t slot = 0; slot < accelerationStructureCount; slot++)
+          {
+            ResourceId resId = slots[slot].resource;
+            RDCASSERT(rm->HasLiveResource(resId));
+
+            accelerationStructures[slot] = rm->GetLiveHandle<VkAccelerationStructureKHR>(resId);
+          }
+          dstAccelerationStructures->pAccelerationStructures = accelerationStructures;
+
+          VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+          write.pNext = dstAccelerationStructures;
+          write.dstSet = set;
+          write.dstBinding = bind;
+          write.descriptorCount = accelerationStructureCount;
+          write.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+
+          writes.push_back(write);
+          dstAccelerationStructures++;
+        }
         // quick check for slots that were completely uninitialised and so don't have valid data
         else if(!NULLDescriptorsAllowed() && descriptorCount == 1 &&
                 slots->resource == ResourceId() && slots->sampler == ResourceId())
