@@ -177,7 +177,7 @@ void main()
     GLuint program = MakeProgram(common + vertex, common + pixel);
     GLuint whiteprogram = MakeProgram(common + vertex, whitepixel);
 
-    char *fmtNames[] = {"D24_S8", "D32F_S8", "D16_S0", "D24_S0", "D32F_S0"};
+    const char *fmtNames[] = {"D24_S8", "D32F_S8", "D16_S0", "D24_S0", "D32F_S0"};
     GLenum fmts[] = {GL_DEPTH24_STENCIL8, GL_DEPTH32F_STENCIL8, GL_DEPTH_COMPONENT16,
                      GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32F};
     const size_t countFmts = ARRAY_COUNT(fmts);
