@@ -148,6 +148,10 @@ if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
     set(SET_SYSTEM_PATH_COMMAND ${CMAKE_COMMAND} -E env PATH=${SHELL_CAPTURED_PATH})
 endif()
 
+if(${CMAKE_VERSION} VERSION_GREATER "3.23")
+    cmake_policy(SET CMP0135 NEW)
+endif()
+
 # Compile our custom SWIG that will do scoped/strong enum classes
 ExternalProject_Add(custom_swig
     # using an URL to a zip directly so we don't clone the history etc
