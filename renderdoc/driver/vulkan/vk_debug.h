@@ -147,8 +147,8 @@ private:
   VkImageView m_DummyStencilView = {VK_NULL_HANDLE};
 
   // dummy pipeline
-  VkPipelineLayout m_DummyPipelineLayout;
-  VkPipeline m_DummyPipeline;
+  VkPipelineLayout m_DummyPipelineLayout = VK_NULL_HANDLE;
+  VkPipeline m_DummyPipeline = VK_NULL_HANDLE;
 
   // one per depth/stencil output format, per sample count
   VkPipeline m_DepthArray2MSPipe[7][4] = {{VK_NULL_HANDLE}};
