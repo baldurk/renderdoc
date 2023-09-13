@@ -22,19 +22,13 @@ Below are specific per-distribution instructions. If you know the required packa
 
 ### Ubuntu
 
-For Ubuntu 14.04 or above you'll need:
+For Ubuntu 18.04 or above you'll need:
 
 ```
-sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev libxcb-keysyms1-dev cmake python3-dev bison autoconf automake libpcre3-dev
+sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev libxcb-keysyms1-dev pkg-config cmake python3-dev bison autoconf automake libpcre3-dev qt5-qmake libqt5svg5-dev libqt5x11extras5-dev
 ```
 
-For the base dependencies. On Ubuntu 18.04 and above Qt is available in the default repositories:
-
-```
-sudo apt-get install qt5-qmake libqt5svg5-dev libqt5x11extras5-dev 
-```
-
-For older versions of Ubuntu they might not include a recent enough Qt version, so you can use [Stephan Binner's ppas](https://launchpad.net/~beineri) to install a more recent version of Qt. At least 5.6.2 is required. If you choose to instead install an [official Qt release](https://download.qt.io/official_releases/qt/) or build Qt from source, add `-DQMAKE_QT5_COMMAND=/path/to/qmake` to your cmake arguments.
+For the dependencies. On Ubuntu versions older than 18.04, the Qt in the default respositories will not be new enough or may be missing. You can use [Stephan Binner's ppas](https://launchpad.net/~beineri) to install a more recent version of Qt. At least 5.6.2 is required. If you choose to instead install an [official Qt release](https://download.qt.io/official_releases/qt/) or build Qt from source, add `-DQMAKE_QT5_COMMAND=/path/to/qmake` to your cmake arguments.
 
 ### Archlinux
 
