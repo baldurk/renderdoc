@@ -1555,6 +1555,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_PUSH_DESCRIPTOR_SPEC_VERSION,
     },
     {
+        VK_KHR_RAY_QUERY_EXTENSION_NAME,
+        VK_KHR_RAY_QUERY_SPEC_VERSION,
+    },
+    {
         VK_KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME,
         VK_KHR_RELAXED_BLOCK_LAYOUT_SPEC_VERSION,
     },
