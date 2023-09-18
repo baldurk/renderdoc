@@ -33,6 +33,10 @@ update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-3.8 380
 update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 500
 update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 500
 
+# Forgot expired root certificate
+sed -i '/^mozilla\/DST_Root_CA_X3.crt$/ s/^/!/' /etc/ca-certificates.conf
+update-ca-certificates
+
 static_build_freedesktop_lib() {
   wget https://xcb.freedesktop.org/dist/$1.tar.gz
   tar -xf $1.tar.gz
