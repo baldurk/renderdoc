@@ -724,8 +724,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
   {
     CREATE_OBJECT(m_DummyPipelineLayout, VK_NULL_HANDLE, 0);
 
+    VkRenderPass SRGBA8RP = VK_NULL_HANDLE;
+
+    CREATE_OBJECT(SRGBA8RP, VK_FORMAT_R8G8B8A8_SRGB);
+
     ConciseGraphicsPipeline dummyPipeInfo = {
-        VK_NULL_HANDLE,
+        SRGBA8RP,
         m_DummyPipelineLayout,
         shaderCache->GetBuiltinModule(BuiltinShader::BlitVS),
         shaderCache->GetBuiltinModule(BuiltinShader::FixedColFS),
@@ -743,6 +747,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
     };
 
     CREATE_OBJECT(m_DummyPipeline, dummyPipeInfo);
+
+    driver->vkDestroyRenderPass(driver->GetDev(), SRGBA8RP, NULL);
 
     VkDescriptorPoolSize descPoolTypes[] = {
         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, ARRAY_COUNT(m_DiscardSet)},
