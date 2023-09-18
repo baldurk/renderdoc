@@ -945,8 +945,13 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
   for(rdcstr py : pythonlibs)
   {
     // patch up the python minor version
-    char *ver = strchr(&py[0], '?');
-    *ver = char('0' + pythonMinorVersion);
+    const int32_t idx = py.find('?');
+    if(idx == -1)
+    {
+      TestPrintMsg(StringFormat::Fmt("Python library pattern missing placeholder: %s\n", py.c_str()));
+      return 1;
+    }
+    py.replace(idx, 1, StringFormat::Fmt("%d", pythonMinorVersion));
 
     handle = Process::LoadModule(py);
     if(handle)
