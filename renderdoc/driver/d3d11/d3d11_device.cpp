@@ -2750,6 +2750,8 @@ void WrappedID3D11Device::CachedObjectsGarbageCollect()
   }
 
   FlushPendingDead();
+
+  m_pImmediateContext->GetReal()->Flush();
 }
 
 void WrappedID3D11Device::AddDeferredContext(WrappedID3D11DeviceContext *defctx)
