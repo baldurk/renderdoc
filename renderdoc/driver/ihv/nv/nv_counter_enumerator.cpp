@@ -466,13 +466,13 @@ CounterDescription NVCounterEnumerator::LibraryNotFoundMessage()
       "href=\"https://developer.nvidia.com/nsight-perf-sdk\">https://developer.nvidia.com/"
       "nsight-perf-sdk</a></li>"
       "<li>extract the SDK contents</li>"
-      "<li>copy the <strong>"
+      "<li>copy "
 #if ENABLED(RDOC_WIN32)
-      "nvperf_grfx_host.dll"
+      "the <strong>nvperf_grfx_host.dll</strong> file "
 #elif ENABLED(RDOC_LINUX)
-      "libnvperf_grfx_host.so"
+      "all the <strong>libnvperf_grfx_host.*</strong> files "
 #endif
-      "</strong> file to:<br/><strong>%s</strong></li>"
+      "to:<br/><strong>%s</strong></li>"
       "<li>reopen this capture</li>"
       "</ol>",
       pluginPath.c_str());
