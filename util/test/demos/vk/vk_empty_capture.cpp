@@ -60,6 +60,7 @@ RD_TEST(VK_Empty_Capture, VulkanGraphicsTest)
       {
         rdoc->StartFrameCapture(NULL, NULL);
         rdoc->EndFrameCapture(NULL, NULL);
+        msleep(1000);
       }
 
       if(curFrame > 50)

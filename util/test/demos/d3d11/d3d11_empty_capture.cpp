@@ -45,6 +45,7 @@ RD_TEST(D3D11_Empty_Capture, D3D11GraphicsTest)
       {
         rdoc->StartFrameCapture(NULL, NULL);
         rdoc->EndFrameCapture(NULL, NULL);
+        msleep(1000);
       }
 
       if(curFrame > 50)

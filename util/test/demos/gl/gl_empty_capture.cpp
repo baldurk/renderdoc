@@ -46,6 +46,7 @@ RD_TEST(GL_Empty_Capture, OpenGLGraphicsTest)
       {
         rdoc->StartFrameCapture(NULL, NULL);
         rdoc->EndFrameCapture(NULL, NULL);
+        msleep(1000);
       }
 
       if(curFrame > 50)
