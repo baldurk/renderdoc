@@ -459,7 +459,8 @@ SparseBinds::SparseBinds(const Sparse::PageTable &table)
         // do simple coalescing. If the previous bind was in the same heap, one tile back, make it
         // cover this tile
         if(page > 0 && binds.back().heap == bind.heap &&
-           binds.back().rangeOffset + binds.back().rangeCount == bind.rangeOffset)
+           (binds.back().rangeOffset + binds.back().rangeCount == bind.rangeOffset ||
+            binds.back().heap == ResourceId()))
         {
           binds.back().regionSize.NumTiles++;
           binds.back().regionSize.Width++;
