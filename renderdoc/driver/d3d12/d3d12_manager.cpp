@@ -1037,3 +1037,32 @@ void GPUAddressRangeTracker::GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, Re
   id = range.id;
   offs = addr - range.start;
 }
+
+void GPUAddressRangeTracker::GetResIDFromAddrAllowOutOfBounds(D3D12_GPU_VIRTUAL_ADDRESS addr,
+                                                              ResourceId &id, UINT64 &offs)
+{
+  id = ResourceId();
+  offs = 0;
+
+  if(addr == 0)
+    return;
+
+  GPUAddressRange range;
+
+  // this should really be a read-write lock
+  {
+    SCOPED_READLOCK(addressLock);
+
+    auto it = std::lower_bound(addresses.begin(), addresses.end(), addr);
+    if(it == addresses.end())
+      return;
+
+    range = *it;
+  }
+
+  if(addr < range.start)
+    return;
+
+  id = range.id;
+  offs = addr - range.start;
+}

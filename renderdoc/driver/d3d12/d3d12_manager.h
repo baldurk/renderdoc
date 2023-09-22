@@ -529,6 +529,7 @@ struct GPUAddressRangeTracker
   void AddTo(const GPUAddressRange &range);
   void RemoveFrom(const GPUAddressRange &range);
   void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs);
+  void GetResIDFromAddrAllowOutOfBounds(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs);
 };
 
 struct MapState

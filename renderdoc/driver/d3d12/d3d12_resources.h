@@ -969,6 +969,12 @@ public:
     m_Addresses.GetResIDFromAddr(addr, id, offs);
   }
 
+  static void GetResIDFromAddrAllowOutOfBounds(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id,
+                                               UINT64 &offs)
+  {
+    m_Addresses.GetResIDFromAddrAllowOutOfBounds(addr, id, offs);
+  }
+
   // overload to just return the id in case the offset isn't needed
   static ResourceId GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr)
   {

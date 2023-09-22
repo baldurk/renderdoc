@@ -334,7 +334,7 @@ void DoSerialise(SerialiserType &ser, D3D12BufferLocation &el)
   UINT64 offs = 0;
 
   if(ser.IsWriting() || ser.IsStructurising())
-    WrappedID3D12Resource::GetResIDFromAddr(el.Location, buffer, offs);
+    WrappedID3D12Resource::GetResIDFromAddrAllowOutOfBounds(el.Location, buffer, offs);
   if(ser.IsStructurising() && rm)
     buffer = rm->GetOriginalID(buffer);
 
