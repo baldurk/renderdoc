@@ -186,8 +186,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Barrier(SerialiserType &ser, UI
           for(UINT b = 0; b < pBarrierGroups[i].NumBarriers; b++)
           {
             if(pBarrierGroups[i].pTextureBarriers[b].pResource)
+            {
+              m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].barriers.newBarriers.push_back(
+                  pBarrierGroups[i].pTextureBarriers[b]);
               m_Cmd->m_BakedCmdListInfo[cmd].barriers.newBarriers.push_back(
                   pBarrierGroups[i].pTextureBarriers[b]);
+            }
           }
         }
       }

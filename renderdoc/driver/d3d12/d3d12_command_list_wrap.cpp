@@ -526,6 +526,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(
         if(pBarriers[i].Type != D3D12_RESOURCE_BARRIER_TYPE_TRANSITION ||
            pBarriers[i].Transition.pResource)
         {
+          m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].barriers.barriers.push_back(pBarriers[i]);
           m_Cmd->m_BakedCmdListInfo[cmd].barriers.barriers.push_back(pBarriers[i]);
         }
       }
