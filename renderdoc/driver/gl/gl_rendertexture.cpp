@@ -503,6 +503,12 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
       (TexDisplayUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(TexDisplayUBOData),
                                                 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
+  if(!ubo)
+  {
+    RDCERR("Map buffer failed %d", drv.glGetError());
+    return false;
+  }
+
   float x = cfg.xOffset;
   float y = cfg.yOffset;
 
@@ -688,6 +694,12 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
   {
     HeatmapData *ptr = (HeatmapData *)drv.glMapBufferRange(
         eGL_UNIFORM_BUFFER, 0, sizeof(HeatmapData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+    if(!ptr)
+    {
+      RDCERR("Map buffer failed %d", drv.glGetError());
+      return false;
+    }
 
     memcpy(ptr, &heatmapData, sizeof(heatmapData));
 

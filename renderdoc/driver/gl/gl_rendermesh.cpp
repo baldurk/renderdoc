@@ -139,6 +139,13 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
 
         uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
                                                      GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+        if(!uboptr)
+        {
+          RDCERR("Map buffer failed %d", drv.glGetError());
+          return;
+        }
+
         *uboptr = uboParams;
         drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
@@ -350,6 +357,12 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
     MeshUBOData *soliddata = (MeshUBOData *)drv.glMapBufferRange(
         eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
+    if(!soliddata)
+    {
+      RDCERR("Map buffer failed %d", drv.glGetError());
+      return;
+    }
+
     soliddata->mvp = ModelViewProj;
     soliddata->pointSpriteSize = Vec2f(0.0f, 0.0f);
     soliddata->homogenousInput = cfg.position.unproject;
@@ -417,6 +430,13 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
 
     uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
                                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+    if(!uboptr)
+    {
+      RDCERR("Map buffer failed %d", drv.glGetError());
+      return;
+    }
+
     *uboptr = uboParams;
     drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
@@ -488,6 +508,13 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
 
     uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
                                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+    if(!uboptr)
+    {
+      RDCERR("Map buffer failed %d", drv.glGetError());
+      return;
+    }
+
     *uboptr = uboParams;
     drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
@@ -507,6 +534,13 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
     uboParams.color = Vec4f(1.0f, 0.0f, 0.0f, 1.0f);
     uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
                                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+    if(!uboptr)
+    {
+      RDCERR("Map buffer failed %d", drv.glGetError());
+      return;
+    }
+
     *uboptr = uboParams;
     drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
@@ -515,6 +549,13 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
     uboParams.color = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
     uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
                                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+    if(!uboptr)
+    {
+      RDCERR("Map buffer failed %d", drv.glGetError());
+      return;
+    }
+
     *uboptr = uboParams;
     drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
     drv.glDrawArrays(eGL_LINES, 2, 2);
@@ -522,6 +563,13 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
     uboParams.color = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
     uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
                                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+    if(!uboptr)
+    {
+      RDCERR("Map buffer failed %d", drv.glGetError());
+      return;
+    }
+
     *uboptr = uboParams;
     drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
     drv.glDrawArrays(eGL_LINES, 4, 2);
@@ -537,6 +585,13 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
 
     uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
                                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+    if(!uboptr)
+    {
+      RDCERR("Map buffer failed %d", drv.glGetError());
+      return;
+    }
+
     *uboptr = uboParams;
     drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
@@ -611,6 +666,13 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
       {
         uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
                                                      GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+        if(!uboptr)
+        {
+          RDCERR("Map buffer failed %d", drv.glGetError());
+          return;
+        }
+
         *uboptr = uboParams;
         drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
@@ -627,6 +689,13 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
       {
         uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
                                                      GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+        if(!uboptr)
+        {
+          RDCERR("Map buffer failed %d", drv.glGetError());
+          return;
+        }
+
         *uboptr = uboParams;
         drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
@@ -649,6 +718,13 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
 
       uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
                                                    GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+      if(!uboptr)
+      {
+        RDCERR("Map buffer failed %d", drv.glGetError());
+        return;
+      }
+
       *uboptr = uboParams;
       drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
@@ -669,6 +745,13 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
 
       uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
                                                    GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+      if(!uboptr)
+      {
+        RDCERR("Map buffer failed %d", drv.glGetError());
+        return;
+      }
+
       *uboptr = uboParams;
       drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 

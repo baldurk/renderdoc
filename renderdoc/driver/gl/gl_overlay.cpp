@@ -905,6 +905,12 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
         eGL_UNIFORM_BUFFER, 0, sizeof(CheckerboardUBOData),
         GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
+    if(!cdata)
+    {
+      RDCERR("Map buffer failed %d", drv.glGetError());
+      return ResourceId();
+    }
+
     cdata->BorderWidth = 3;
     cdata->CheckerSquareDimension = 16.0f;
 
@@ -934,6 +940,12 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
       cdata = (CheckerboardUBOData *)drv.glMapBufferRange(
           eGL_UNIFORM_BUFFER, 0, sizeof(CheckerboardUBOData),
           GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+      if(!cdata)
+      {
+        RDCERR("Map buffer failed %d", drv.glGetError());
+        return ResourceId();
+      }
 
       cdata->BorderWidth = 3;
       cdata->CheckerSquareDimension = 16.0f;
@@ -1465,12 +1477,26 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
     MeshUBOData *uboptr =
         (MeshUBOData *)drv.glMapBufferRange(eGL_COPY_WRITE_BUFFER, 0, sizeof(MeshUBOData),
                                             GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+    if(!uboptr)
+    {
+      RDCERR("Map buffer failed %d", drv.glGetError());
+      return ResourceId();
+    }
+
     *uboptr = uboParams;
     drv.glUnmapBuffer(eGL_COPY_WRITE_BUFFER);
 
     drv.glBindBuffer(eGL_COPY_WRITE_BUFFER, DebugData.UBOs[2]);
     Vec4f *v = (Vec4f *)drv.glMapBufferRange(eGL_COPY_WRITE_BUFFER, 0, sizeof(Vec4f),
                                              GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+    if(!v)
+    {
+      RDCERR("Map buffer failed %d", drv.glGetError());
+      return ResourceId();
+    }
+
     *v = Vec4f(rs.Viewports[0].width, rs.Viewports[0].height);
     drv.glUnmapBuffer(eGL_COPY_WRITE_BUFFER);
 

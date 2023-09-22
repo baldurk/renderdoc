@@ -2643,6 +2643,12 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
       (MeshPickUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshPickUBOData),
                                               GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
+  if(!cdata)
+  {
+    RDCERR("Map buffer failed %d", drv.glGetError());
+    return ~0U;
+  }
+
   cdata->rayPos = rayPos;
   cdata->rayDir = rayDir;
   cdata->use_indices = cfg.position.indexByteStride ? 1U : 0U;
@@ -2841,6 +2847,12 @@ void GLReplay::RenderCheckerboard(FloatVector dark, FloatVector light)
   CheckerboardUBOData *ubo =
       (CheckerboardUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(CheckerboardUBOData),
                                                   GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+  if(!ubo)
+  {
+    RDCERR("Map buffer failed %d", drv.glGetError());
+    return;
+  }
 
   ubo->BorderWidth = 0.0f;
   ubo->RectPosition = Vec2f();
