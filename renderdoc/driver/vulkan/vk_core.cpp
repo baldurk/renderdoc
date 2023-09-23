@@ -1005,6 +1005,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_EXTENDED_DYNAMIC_STATE_2_SPEC_VERSION,
     },
     {
+        VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME, VK_EXT_EXTENDED_DYNAMIC_STATE_3_SPEC_VERSION,
+    },
+    {
         VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME,
         VK_EXT_EXTERNAL_MEMORY_DMA_BUF_SPEC_VERSION,
     },
@@ -3911,6 +3914,77 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkCmdSetAttachmentFeedbackLoopEnableEXT:
       return Serialise_vkCmdSetAttachmentFeedbackLoopEnableEXT(ser, VK_NULL_HANDLE,
                                                                VK_IMAGE_ASPECT_NONE);
+
+    case VulkanChunk::vkCmdSetAlphaToCoverageEnableEXT:
+      return Serialise_vkCmdSetAlphaToCoverageEnableEXT(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetAlphaToOneEnableEXT:
+      return Serialise_vkCmdSetAlphaToOneEnableEXT(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetColorBlendAdvancedEXT:
+      return Serialise_vkCmdSetColorBlendAdvancedEXT(ser, VK_NULL_HANDLE, 0, 0, NULL);
+    case VulkanChunk::vkCmdSetColorBlendEnableEXT:
+      return Serialise_vkCmdSetColorBlendEnableEXT(ser, VK_NULL_HANDLE, 0, 0, NULL);
+    case VulkanChunk::vkCmdSetColorBlendEquationEXT:
+      return Serialise_vkCmdSetColorBlendEquationEXT(ser, VK_NULL_HANDLE, 0, 0, NULL);
+    case VulkanChunk::vkCmdSetColorWriteMaskEXT:
+      return Serialise_vkCmdSetColorWriteMaskEXT(ser, VK_NULL_HANDLE, 0, 0, NULL);
+    case VulkanChunk::vkCmdSetConservativeRasterizationModeEXT:
+      return Serialise_vkCmdSetConservativeRasterizationModeEXT(
+          ser, VK_NULL_HANDLE, VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT);
+    case VulkanChunk::vkCmdSetCoverageModulationModeNV:
+      return Serialise_vkCmdSetCoverageModulationModeNV(ser, VK_NULL_HANDLE,
+                                                        VK_COVERAGE_MODULATION_MODE_MAX_ENUM_NV);
+    case VulkanChunk::vkCmdSetCoverageModulationTableEnableNV:
+      return Serialise_vkCmdSetCoverageModulationTableEnableNV(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetCoverageModulationTableNV:
+      return Serialise_vkCmdSetCoverageModulationTableNV(ser, VK_NULL_HANDLE, 0, NULL);
+    case VulkanChunk::vkCmdSetCoverageReductionModeNV:
+      return Serialise_vkCmdSetCoverageReductionModeNV(ser, VK_NULL_HANDLE,
+                                                       VK_COVERAGE_REDUCTION_MODE_MAX_ENUM_NV);
+    case VulkanChunk::vkCmdSetCoverageToColorEnableNV:
+      return Serialise_vkCmdSetCoverageToColorEnableNV(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetCoverageToColorLocationNV:
+      return Serialise_vkCmdSetCoverageToColorLocationNV(ser, VK_NULL_HANDLE, 0);
+    case VulkanChunk::vkCmdSetDepthClampEnableEXT:
+      return Serialise_vkCmdSetDepthClampEnableEXT(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetDepthClipEnableEXT:
+      return Serialise_vkCmdSetDepthClipEnableEXT(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetDepthClipNegativeOneToOneEXT:
+      return Serialise_vkCmdSetDepthClipNegativeOneToOneEXT(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetExtraPrimitiveOverestimationSizeEXT:
+      return Serialise_vkCmdSetExtraPrimitiveOverestimationSizeEXT(ser, VK_NULL_HANDLE, 0.0f);
+    case VulkanChunk::vkCmdSetLineRasterizationModeEXT:
+      return Serialise_vkCmdSetLineRasterizationModeEXT(ser, VK_NULL_HANDLE,
+                                                        VK_LINE_RASTERIZATION_MODE_MAX_ENUM_EXT);
+    case VulkanChunk::vkCmdSetLineStippleEnableEXT:
+      return Serialise_vkCmdSetLineStippleEnableEXT(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetLogicOpEnableEXT:
+      return Serialise_vkCmdSetLogicOpEnableEXT(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetPolygonModeEXT:
+      return Serialise_vkCmdSetPolygonModeEXT(ser, VK_NULL_HANDLE, VK_POLYGON_MODE_MAX_ENUM);
+    case VulkanChunk::vkCmdSetProvokingVertexModeEXT:
+      return Serialise_vkCmdSetProvokingVertexModeEXT(ser, VK_NULL_HANDLE,
+                                                      VK_PROVOKING_VERTEX_MODE_MAX_ENUM_EXT);
+    case VulkanChunk::vkCmdSetRasterizationSamplesEXT:
+      return Serialise_vkCmdSetRasterizationSamplesEXT(ser, VK_NULL_HANDLE,
+                                                       VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM);
+    case VulkanChunk::vkCmdSetRasterizationStreamEXT:
+      return Serialise_vkCmdSetRasterizationStreamEXT(ser, VK_NULL_HANDLE, 0);
+    case VulkanChunk::vkCmdSetRepresentativeFragmentTestEnableNV:
+      return Serialise_vkCmdSetRepresentativeFragmentTestEnableNV(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetSampleLocationsEnableEXT:
+      return Serialise_vkCmdSetSampleLocationsEnableEXT(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetSampleMaskEXT:
+      return Serialise_vkCmdSetSampleMaskEXT(ser, VK_NULL_HANDLE,
+                                             VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM, NULL);
+    case VulkanChunk::vkCmdSetShadingRateImageEnableNV:
+      return Serialise_vkCmdSetShadingRateImageEnableNV(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetTessellationDomainOriginEXT:
+      return Serialise_vkCmdSetTessellationDomainOriginEXT(ser, VK_NULL_HANDLE,
+                                                           VK_TESSELLATION_DOMAIN_ORIGIN_MAX_ENUM);
+    case VulkanChunk::vkCmdSetViewportSwizzleNV:
+      return Serialise_vkCmdSetViewportSwizzleNV(ser, VK_NULL_HANDLE, 0, 0, NULL);
+    case VulkanChunk::vkCmdSetViewportWScalingEnableNV:
+      return Serialise_vkCmdSetViewportWScalingEnableNV(ser, VK_NULL_HANDLE, VK_FALSE);
 
     // chunks that are reserved but not yet serialised
     case VulkanChunk::vkResetCommandPool:

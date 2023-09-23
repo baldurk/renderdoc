@@ -801,6 +801,43 @@ void WrappedVulkan::vkGetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice
       vulkan12->bufferDeviceAddress = vulkan12->bufferDeviceAddressMultiDevice = VK_FALSE;
     }
   }
+
+  // report features depending on extensions not supported in RenderDoc as not supported
+  VkPhysicalDeviceExtendedDynamicState3FeaturesEXT *dynState3 =
+      (VkPhysicalDeviceExtendedDynamicState3FeaturesEXT *)FindNextStruct(
+          pFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT);
+
+#define DISABLE_EDS3_FEATURE(feature)                                                 \
+  if(dynState3->feature == VK_TRUE)                                                   \
+  {                                                                                   \
+    RDCWARN("Forcibly disabling support for physical device feature '" #feature "'"); \
+    dynState3->feature = VK_FALSE;                                                    \
+  }
+
+  if(dynState3)
+  {
+    // need VK_EXT_blend_operation_advanced
+    DISABLE_EDS3_FEATURE(extendedDynamicState3ColorBlendAdvanced);
+    // need VK_NV_clip_space_w_scaling
+    DISABLE_EDS3_FEATURE(extendedDynamicState3ViewportWScalingEnable);
+    // need VK_NV_viewport_swizzle
+    DISABLE_EDS3_FEATURE(extendedDynamicState3ViewportSwizzle);
+    // need VK_NV_fragment_coverage_to_color
+    DISABLE_EDS3_FEATURE(extendedDynamicState3CoverageToColorEnable);
+    DISABLE_EDS3_FEATURE(extendedDynamicState3CoverageToColorLocation);
+    // need VK_NV_framebuffer_mixed_samples
+    DISABLE_EDS3_FEATURE(extendedDynamicState3CoverageModulationMode);
+    DISABLE_EDS3_FEATURE(extendedDynamicState3CoverageModulationTableEnable);
+    DISABLE_EDS3_FEATURE(extendedDynamicState3CoverageModulationTable);
+    // need VK_NV_coverage_reduction_mode
+    DISABLE_EDS3_FEATURE(extendedDynamicState3CoverageReductionMode);
+    // need VK_NV_representative_fragment_test
+    DISABLE_EDS3_FEATURE(extendedDynamicState3RepresentativeFragmentTestEnable);
+    // VK_NV_shading_rate_image
+    DISABLE_EDS3_FEATURE(extendedDynamicState3ShadingRateImageEnable);
+  }
+
+#undef DISABLE_EDS3_FEATURE
 }
 
 void WrappedVulkan::vkGetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
