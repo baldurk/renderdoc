@@ -104,7 +104,7 @@
 }
 
 // MTLRenderCommandEncoder : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderCommandEncoder.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderCommandEncoder.h
 
 - (void)setRenderPipelineState:(id<MTLRenderPipelineState>)pipelineState
 {
@@ -140,6 +140,52 @@
   METAL_NOT_HOOKED();
   return [self.real setVertexBuffers:buffers offsets:offsets withRange:range];
 }
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_14_0
+- (void)setVertexBuffer:(nullable id<MTLBuffer>)buffer
+                 offset:(NSUInteger)offset
+        attributeStride:(NSUInteger)stride
+                atIndex:(NSUInteger)index API_AVAILABLE(macos(14.0), ios(17.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setVertexBuffer:buffer offset:offset attributeStride:stride atIndex:index];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_14_0
+- (void)setVertexBuffers:(id<MTLBuffer> const __nullable[__nonnull])buffers
+                 offsets:(NSUInteger const[__nonnull])offsets
+        attributeStrides:(NSUInteger const[__nonnull])strides
+               withRange:(NSRange)range API_AVAILABLE(macos(14.0), ios(17.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setVertexBuffers:buffers
+                             offsets:offsets
+                    attributeStrides:strides
+                           withRange:range];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_14_0
+- (void)setVertexBufferOffset:(NSUInteger)offset
+              attributeStride:(NSUInteger)stride
+                      atIndex:(NSUInteger)index API_AVAILABLE(macos(14.0), ios(17.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setVertexBufferOffset:offset attributeStride:stride atIndex:index];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_14_0
+- (void)setVertexBytes:(void const *)bytes
+                length:(NSUInteger)length
+       attributeStride:(NSUInteger)stride
+               atIndex:(NSUInteger)index API_AVAILABLE(macos(14.0), ios(17.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setVertexBytes:bytes length:length attributeStride:stride atIndex:index];
+}
+#endif
 
 - (void)setVertexTexture:(nullable id<MTLTexture>)texture atIndex:(NSUInteger)index
 {

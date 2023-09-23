@@ -66,7 +66,7 @@
 }
 
 // MTLDevice : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLDevice.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLDevice.h
 
 - (NSString *)name
 {
@@ -77,6 +77,13 @@
 {
   return self.real.registryID;
 }
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_14_0
+- (MTLArchitecture *)architecture API_AVAILABLE(macos(14.0), ios(17.0))
+{
+  return self.real.architecture;
+}
+#endif
 
 - (MTLSize)maxThreadsPerThreadgroup API_AVAILABLE(macos(10.11), ios(9.0))
 {
@@ -103,8 +110,7 @@
   return self.real.hasUnifiedMemory;
 }
 
-- (uint64_t)recommendedMaxWorkingSetSize API_AVAILABLE(macos(10.12), macCatalyst(13.0))
-    API_UNAVAILABLE(ios)
+- (uint64_t)recommendedMaxWorkingSetSize API_AVAILABLE(macos(10.12), macCatalyst(13.0), ios(16.0))
 {
   return self.real.recommendedMaxWorkingSetSize;
 }
@@ -648,7 +654,8 @@
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
 - (nullable id<MTLIOFileHandle>)newIOHandleWithURL:(NSURL *)url
                                              error:(NSError **)error
-    API_AVAILABLE(macos(13.0), ios(16.0))
+    API_DEPRECATED_WITH_REPLACEMENT("Use newIOFileHandleWithURL:error: instead", macos(13.0, 14.0),
+                                    ios(16.0, 17.0))
 {
   METAL_NOT_HOOKED();
   return [self.real newIOHandleWithURL:url error:error];
@@ -669,10 +676,32 @@
 - (nullable id<MTLIOFileHandle>)newIOHandleWithURL:(NSURL *)url
                                  compressionMethod:(MTLIOCompressionMethod)compressionMethod
                                              error:(NSError **)error
-    API_AVAILABLE(macos(13.0), ios(16.0))
+    API_DEPRECATED_WITH_REPLACEMENT("Use newIOFileHandleWithURL:compressionMethod:error: instead",
+                                    macos(13.0, 14.0), ios(16.0, 17.0))
 {
   METAL_NOT_HOOKED();
   return [self.real newIOHandleWithURL:url compressionMethod:compressionMethod error:error];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_14_0
+- (nullable id<MTLIOFileHandle>)newIOFileHandleWithURL:(NSURL *)url
+                                                 error:(NSError **)error
+    API_AVAILABLE(macos(14.0), ios(17.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newIOFileHandleWithURL:url error:error];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_14_0
+- (nullable id<MTLIOFileHandle>)newIOFileHandleWithURL:(NSURL *)url
+                                     compressionMethod:(MTLIOCompressionMethod)compressionMethod
+                                                 error:(NSError **)error
+    API_AVAILABLE(macos(14.0), ios(17.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newIOFileHandleWithURL:url compressionMethod:compressionMethod error:error];
 }
 #endif
 
