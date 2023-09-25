@@ -95,6 +95,9 @@
 #elif defined __powerpc__
 #define R_JUMP_SLOT   R_PPC_JMP_SLOT
 #define Elf_Plt_Rel   Elf_Rela
+#elif defined __riscv
+#define R_JUMP_SLOT   R_RISCV_JUMP_SLOT
+#define Elf_Plt_Rel   Elf_Rela
 #elif 0 /* disabled because not tested */ && (defined __sparcv9 || defined __sparc_v9__)
 #define R_JUMP_SLOT   R_SPARC_JMP_SLOT
 #define Elf_Plt_Rel   Elf_Rela
