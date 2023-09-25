@@ -444,6 +444,26 @@ private:
   bool m_ExtendedDynState2 = false;
   bool m_ExtendedDynState2Logic = false;
   bool m_ExtendedDynState2CPs = false;
+  bool m_ExtendedDynState3TesselDomain = false;
+  bool m_ExtendedDynState3DepthClampEnable = false;
+  bool m_ExtendedDynState3PolyMode = false;
+  bool m_ExtendedDynState3RastSamples = false;
+  bool m_ExtendedDynState3SampleMask = false;
+  bool m_ExtendedDynState3AlphaToCover = false;
+  bool m_ExtendedDynState3AlphaToOne = false;
+  bool m_ExtendedDynState3LogicEnable = false;
+  bool m_ExtendedDynState3CBEnable = false;
+  bool m_ExtendedDynState3CBEquation = false;
+  bool m_ExtendedDynState3WriteMask = false;
+  bool m_ExtendedDynState3RastStream = false;
+  bool m_ExtendedDynState3ConservRast = false;
+  bool m_ExtendedDynState3PrimOverest = false;
+  bool m_ExtendedDynState3DepthClip = false;
+  bool m_ExtendedDynState3SampleLoc = false;
+  bool m_ExtendedDynState3ProvokingVert = false;
+  bool m_ExtendedDynState3LineRast = false;
+  bool m_ExtendedDynState3LineStipple = false;
+  bool m_ExtendedDynState3DepthClipNeg = false;
   bool m_FragmentShadingRate = false;
   bool m_DynColorWrite = false;
   bool m_DynVertexInput = false;
@@ -1218,6 +1238,26 @@ public:
   bool ExtendedDynamicState2() const { return m_ExtendedDynState2; }
   bool ExtendedDynamicState2Logic() const { return m_ExtendedDynState2Logic; }
   bool ExtendedDynamicState2CPs() const { return m_ExtendedDynState2CPs; }
+  bool ExtendedDynamicState3TesselDomain() const { return m_ExtendedDynState3TesselDomain; }
+  bool ExtendedDynamicState3DepthClampEnable() const { return m_ExtendedDynState3DepthClampEnable; }
+  bool ExtendedDynamicState3PolyMode() const { return m_ExtendedDynState3PolyMode; }
+  bool ExtendedDynamicState3RastSamples() const { return m_ExtendedDynState3RastSamples; }
+  bool ExtendedDynamicState3SampleMask() const { return m_ExtendedDynState3SampleMask; }
+  bool ExtendedDynamicState3AlphaToCover() const { return m_ExtendedDynState3AlphaToCover; }
+  bool ExtendedDynamicState3AlphaToOne() const { return m_ExtendedDynState3AlphaToOne; }
+  bool ExtendedDynamicState3LogicEnable() const { return m_ExtendedDynState3LogicEnable; }
+  bool ExtendedDynamicState3CBEnable() const { return m_ExtendedDynState3CBEnable; }
+  bool ExtendedDynamicState3CBEquation() const { return m_ExtendedDynState3CBEquation; }
+  bool ExtendedDynamicState3WriteMask() const { return m_ExtendedDynState3WriteMask; }
+  bool ExtendedDynamicState3RastStream() const { return m_ExtendedDynState3RastStream; }
+  bool ExtendedDynamicState3ConservRast() const { return m_ExtendedDynState3ConservRast; }
+  bool ExtendedDynamicState3PrimOverest() const { return m_ExtendedDynState3PrimOverest; }
+  bool ExtendedDynamicState3DepthClip() const { return m_ExtendedDynState3DepthClip; }
+  bool ExtendedDynamicState3SampleLoc() const { return m_ExtendedDynState3SampleLoc; }
+  bool ExtendedDynamicState3ProvokingVert() const { return m_ExtendedDynState3ProvokingVert; }
+  bool ExtendedDynamicState3LineRast() const { return m_ExtendedDynState3LineRast; }
+  bool ExtendedDynamicState3LineStipple() const { return m_ExtendedDynState3LineStipple; }
+  bool ExtendedDynamicState3DepthClipNegative() const { return m_ExtendedDynState3DepthClipNeg; }
   bool FragmentShadingRate() const { return m_FragmentShadingRate; }
   bool DynamicColorWrite() const { return m_DynColorWrite; }
   bool DynamicVertexInput() const { return m_DynVertexInput; }
@@ -2663,4 +2703,76 @@ public:
   // VK_EXT_attachment_feedback_loop_dynamic_state
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetAttachmentFeedbackLoopEnableEXT,
                                 VkCommandBuffer commandBuffer, VkImageAspectFlags aspectMask);
+
+  // VK_EXT_extended_dynamic_state3
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetAlphaToCoverageEnableEXT,
+                                VkCommandBuffer commandBuffer, VkBool32 alphaToCoverageEnable);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetAlphaToOneEnableEXT, VkCommandBuffer commandBuffer,
+                                VkBool32 alphaToOneEnable);
+  void vkCmdSetColorBlendAdvancedEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
+                                     uint32_t attachmentCount,
+                                     const VkColorBlendAdvancedEXT *pColorBlendAdvanced);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetColorBlendEnableEXT, VkCommandBuffer commandBuffer,
+                                uint32_t firstAttachment, uint32_t attachmentCount,
+                                const VkBool32 *pColorBlendEnables);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetColorBlendEquationEXT, VkCommandBuffer commandBuffer,
+                                uint32_t firstAttachment, uint32_t attachmentCount,
+                                const VkColorBlendEquationEXT *pColorBlendEquations);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetColorWriteMaskEXT, VkCommandBuffer commandBuffer,
+                                uint32_t firstAttachment, uint32_t attachmentCount,
+                                const VkColorComponentFlags *pColorWriteMasks);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetConservativeRasterizationModeEXT,
+                                VkCommandBuffer commandBuffer,
+                                VkConservativeRasterizationModeEXT conservativeRasterizationMode);
+  void vkCmdSetCoverageModulationModeNV(VkCommandBuffer commandBuffer,
+                                        VkCoverageModulationModeNV coverageModulationMode);
+  void vkCmdSetCoverageModulationTableEnableNV(VkCommandBuffer commandBuffer,
+                                               VkBool32 coverageModulationTableEnable);
+  void vkCmdSetCoverageModulationTableNV(VkCommandBuffer commandBuffer,
+                                         uint32_t coverageModulationTableCount,
+                                         const float *pCoverageModulationTable);
+  void vkCmdSetCoverageReductionModeNV(VkCommandBuffer commandBuffer,
+                                       VkCoverageReductionModeNV coverageReductionMode);
+  void vkCmdSetCoverageToColorEnableNV(VkCommandBuffer commandBuffer, VkBool32 coverageToColorEnable);
+  void vkCmdSetCoverageToColorLocationNV(VkCommandBuffer commandBuffer,
+                                         uint32_t coverageToColorLocation);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthClampEnableEXT, VkCommandBuffer commandBuffer,
+                                VkBool32 depthClampEnable);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthClipEnableEXT, VkCommandBuffer commandBuffer,
+                                VkBool32 depthClipEnable);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthClipNegativeOneToOneEXT,
+                                VkCommandBuffer commandBuffer, VkBool32 negativeOneToOne);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetExtraPrimitiveOverestimationSizeEXT,
+                                VkCommandBuffer commandBuffer,
+                                float extraPrimitiveOverestimationSize);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLineRasterizationModeEXT, VkCommandBuffer commandBuffer,
+                                VkLineRasterizationModeEXT lineRasterizationMode);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLineStippleEnableEXT, VkCommandBuffer commandBuffer,
+                                VkBool32 stippledLineEnable);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLogicOpEnableEXT, VkCommandBuffer commandBuffer,
+                                VkBool32 logicOpEnable);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetPolygonModeEXT, VkCommandBuffer commandBuffer,
+                                VkPolygonMode polygonMode);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetProvokingVertexModeEXT, VkCommandBuffer commandBuffer,
+                                VkProvokingVertexModeEXT provokingVertexMode);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetRasterizationSamplesEXT, VkCommandBuffer commandBuffer,
+                                VkSampleCountFlagBits rasterizationSamples);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetRasterizationStreamEXT, VkCommandBuffer commandBuffer,
+                                uint32_t rasterizationStream);
+  void vkCmdSetRepresentativeFragmentTestEnableNV(VkCommandBuffer commandBuffer,
+                                                  VkBool32 representativeFragmentTestEnable);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetSampleLocationsEnableEXT,
+                                VkCommandBuffer commandBuffer, VkBool32 sampleLocationsEnable);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetSampleMaskEXT, VkCommandBuffer commandBuffer,
+                                VkSampleCountFlagBits samples, const VkSampleMask *pSampleMask);
+  void vkCmdSetShadingRateImageEnableNV(VkCommandBuffer commandBuffer,
+                                        VkBool32 shadingRateImageEnable);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetTessellationDomainOriginEXT,
+                                VkCommandBuffer commandBuffer,
+                                VkTessellationDomainOrigin domainOrigin);
+  void vkCmdSetViewportSwizzleNV(VkCommandBuffer commandBuffer, uint32_t firstViewport,
+                                 uint32_t viewportCount,
+                                 const VkViewportSwizzleNV *pViewportSwizzles);
+  void vkCmdSetViewportWScalingEnableNV(VkCommandBuffer commandBuffer,
+                                        VkBool32 viewportWScalingEnable);
 };

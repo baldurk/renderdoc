@@ -3112,6 +3112,71 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(sampler2DViewOf3D);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3TessellationDomainOrigin);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3DepthClampEnable);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3PolygonMode);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3RasterizationSamples);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3SampleMask);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3AlphaToCoverageEnable);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3AlphaToOneEnable);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3LogicOpEnable);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3ColorBlendEnable);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3ColorBlendEquation);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3ColorWriteMask);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3RasterizationStream);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3ConservativeRasterizationMode);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3ExtraPrimitiveOverestimationSize);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3DepthClipEnable);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3SampleLocationsEnable);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3ColorBlendAdvanced);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3ProvokingVertexMode);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3LineRasterizationMode);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3LineStippleEnable);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3DepthClipNegativeOneToOne);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3ViewportWScalingEnable);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3ViewportSwizzle);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3CoverageToColorEnable);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3CoverageToColorLocation);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3CoverageModulationMode);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3CoverageModulationTableEnable);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3CoverageModulationTable);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3CoverageReductionMode);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3RepresentativeFragmentTestEnable);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState3ShadingRateImageEnable);
+
+        m_ExtendedDynState3TesselDomain =
+            (ext->extendedDynamicState3TessellationDomainOrigin != VK_FALSE);
+        m_ExtendedDynState3DepthClampEnable =
+            (ext->extendedDynamicState3DepthClampEnable != VK_FALSE);
+        m_ExtendedDynState3PolyMode = (ext->extendedDynamicState3PolygonMode != VK_FALSE);
+        m_ExtendedDynState3RastSamples = (ext->extendedDynamicState3RasterizationSamples != VK_FALSE);
+        m_ExtendedDynState3SampleMask = (ext->extendedDynamicState3SampleMask != VK_FALSE);
+        m_ExtendedDynState3AlphaToCover =
+            (ext->extendedDynamicState3AlphaToCoverageEnable != VK_FALSE);
+        m_ExtendedDynState3AlphaToOne = (ext->extendedDynamicState3AlphaToOneEnable != VK_FALSE);
+        m_ExtendedDynState3LogicEnable = (ext->extendedDynamicState3LogicOpEnable != VK_FALSE);
+        m_ExtendedDynState3CBEnable = (ext->extendedDynamicState3ColorBlendEnable != VK_FALSE);
+        m_ExtendedDynState3CBEquation = (ext->extendedDynamicState3ColorBlendEquation != VK_FALSE);
+        m_ExtendedDynState3WriteMask = (ext->extendedDynamicState3ColorWriteMask != VK_FALSE);
+        m_ExtendedDynState3RastStream = (ext->extendedDynamicState3RasterizationStream != VK_FALSE);
+        m_ExtendedDynState3ConservRast =
+            (ext->extendedDynamicState3ConservativeRasterizationMode != VK_FALSE);
+        m_ExtendedDynState3PrimOverest =
+            (ext->extendedDynamicState3ExtraPrimitiveOverestimationSize != VK_FALSE);
+        m_ExtendedDynState3DepthClip = (ext->extendedDynamicState3DepthClipEnable != VK_FALSE);
+        m_ExtendedDynState3SampleLoc = (ext->extendedDynamicState3SampleLocationsEnable != VK_FALSE);
+        m_ExtendedDynState3ProvokingVert =
+            (ext->extendedDynamicState3ProvokingVertexMode != VK_FALSE);
+        m_ExtendedDynState3LineRast = (ext->extendedDynamicState3LineRasterizationMode != VK_FALSE);
+        m_ExtendedDynState3LineStipple = (ext->extendedDynamicState3LineStippleEnable != VK_FALSE);
+        m_ExtendedDynState3DepthClipNeg =
+            (ext->extendedDynamicState3DepthClipNegativeOneToOne != VK_FALSE);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

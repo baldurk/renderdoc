@@ -3307,6 +3307,107 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
                 renderstate.feedbackAspects |=
                     VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
             }
+            if(!pipeInfo.dynamicStates[VkDynamicAlphaToCoverageEXT])
+            {
+              renderstate.alphaToCoverageEnable = pipeInfo.alphaToCoverageEnable;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicAlphaToOneEXT])
+            {
+              renderstate.alphaToOneEnable = pipeInfo.alphaToOneEnable;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicColorBlendEnableEXT])
+            {
+              renderstate.colorBlendEnable.resize(pipeInfo.attachments.size());
+              for(size_t i = 0; i < renderstate.colorBlendEnable.size(); i++)
+                renderstate.colorBlendEnable[i] = pipeInfo.attachments[i].blendEnable;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicColorBlendEquationEXT])
+            {
+              renderstate.colorBlendEquation.resize(pipeInfo.attachments.size());
+              for(size_t i = 0; i < renderstate.colorBlendEquation.size(); i++)
+              {
+                renderstate.colorBlendEquation[i].srcColorBlendFactor =
+                    pipeInfo.attachments[i].blend.Source;
+                renderstate.colorBlendEquation[i].dstColorBlendFactor =
+                    pipeInfo.attachments[i].blend.Destination;
+                renderstate.colorBlendEquation[i].colorBlendOp =
+                    pipeInfo.attachments[i].blend.Operation;
+                renderstate.colorBlendEquation[i].srcAlphaBlendFactor =
+                    pipeInfo.attachments[i].alphaBlend.Source;
+                renderstate.colorBlendEquation[i].dstAlphaBlendFactor =
+                    pipeInfo.attachments[i].alphaBlend.Destination;
+                renderstate.colorBlendEquation[i].alphaBlendOp =
+                    pipeInfo.attachments[i].alphaBlend.Operation;
+              }
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicColorWriteMaskEXT])
+            {
+              renderstate.colorWriteMask.resize(pipeInfo.attachments.size());
+              for(size_t i = 0; i < renderstate.colorWriteMask.size(); i++)
+              {
+                renderstate.colorWriteMask[i] = (uint32_t)pipeInfo.attachments[i].channelWriteMask;
+              }
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicConservativeRastModeEXT])
+            {
+              renderstate.conservativeRastMode = pipeInfo.conservativeRasterizationMode;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicDepthClampEnableEXT])
+            {
+              renderstate.depthClampEnable = pipeInfo.depthClampEnable;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicDepthClipEnableEXT])
+            {
+              renderstate.depthClipEnable = pipeInfo.depthClipEnable;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicDepthClipNegativeOneEXT])
+            {
+              renderstate.negativeOneToOne = pipeInfo.negativeOneToOne;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicOverstimationSizeEXT])
+            {
+              renderstate.primOverestimationSize = pipeInfo.extraPrimitiveOverestimationSize;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicLineRastModeEXT])
+            {
+              renderstate.lineRasterMode = pipeInfo.lineRasterMode;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicLineStippleEnableEXT])
+            {
+              renderstate.stippledLineEnable = pipeInfo.stippleEnabled;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicLogicOpEnableEXT])
+            {
+              renderstate.logicOpEnable = pipeInfo.logicOpEnable;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicPolygonModeEXT])
+            {
+              renderstate.polygonMode = pipeInfo.polygonMode;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicProvokingVertexModeEXT])
+            {
+              renderstate.provokingVertexMode = pipeInfo.provokingVertex;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicRasterizationSamplesEXT])
+            {
+              renderstate.rastSamples = pipeInfo.rasterizationSamples;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicRasterizationStreamEXT])
+            {
+              renderstate.rasterStream = pipeInfo.rasterizationStream;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicSampleLocationsEnableEXT])
+            {
+              renderstate.sampleLocEnable = pipeInfo.sampleLocations.enabled;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicSampleMaskEXT])
+            {
+              renderstate.sampleMask[0] = pipeInfo.sampleMask;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicTessDomainOriginEXT])
+            {
+              renderstate.domainOrigin = pipeInfo.tessellationDomainOrigin;
+            }
           }
         }
       }
