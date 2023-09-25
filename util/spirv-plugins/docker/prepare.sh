@@ -11,10 +11,10 @@ export PATH=$(pwd)/cmake-3.26.2-linux-x86_64/bin:$PATH
 
 # Update to newer clang and libc++ for spirv-tools...
 
-wget https://github.com/llvm/llvm-project/archive/refs/heads/release/6.x.tar.gz
-tar -zxf 6.x.tar.gz
+wget https://github.com/llvm/llvm-project/archive/refs/heads/release/8.x.tar.gz
+tar -zxf 8.x.tar.gz
 
-cd llvm-project-release-6.x/
+cd llvm-project-release-8.x/
 cd llvm/projects/
 ln -s ../../libcxx
 ln -s ../../libcxxabi
