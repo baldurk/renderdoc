@@ -2848,6 +2848,94 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
                 {
                   vt->CmdSetAttachmentFeedbackLoopEnableEXT(Unwrap(cmd), state.feedbackAspects);
                 }
+                else if(d == VK_DYNAMIC_STATE_ALPHA_TO_COVERAGE_ENABLE_EXT)
+                {
+                  vt->CmdSetAlphaToCoverageEnableEXT(Unwrap(cmd), state.alphaToCoverageEnable);
+                }
+                else if(d == VK_DYNAMIC_STATE_ALPHA_TO_ONE_ENABLE_EXT)
+                {
+                  vt->CmdSetAlphaToOneEnableEXT(Unwrap(cmd), state.alphaToOneEnable);
+                }
+                else if(!state.colorBlendEnable.empty() &&
+                        d == VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT)
+                {
+                  vt->CmdSetColorBlendEnableEXT(Unwrap(cmd), 0,
+                                                (uint32_t)state.colorBlendEnable.size(),
+                                                state.colorBlendEnable.data());
+                }
+                else if(!state.colorBlendEquation.empty() &&
+                        d == VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT)
+                {
+                  vt->CmdSetColorBlendEquationEXT(Unwrap(cmd), 0,
+                                                  (uint32_t)state.colorBlendEquation.size(),
+                                                  state.colorBlendEquation.data());
+                }
+                else if(!state.colorWriteMask.empty() && d == VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT)
+                {
+                  vt->CmdSetColorWriteMaskEXT(Unwrap(cmd), 0, (uint32_t)state.colorWriteMask.size(),
+                                              state.colorWriteMask.data());
+                }
+                else if(d == VK_DYNAMIC_STATE_CONSERVATIVE_RASTERIZATION_MODE_EXT)
+                {
+                  vt->CmdSetConservativeRasterizationModeEXT(Unwrap(cmd), state.conservativeRastMode);
+                }
+                else if(d == VK_DYNAMIC_STATE_DEPTH_CLAMP_ENABLE_EXT)
+                {
+                  vt->CmdSetDepthClampEnableEXT(Unwrap(cmd), state.depthClampEnable);
+                }
+                else if(d == VK_DYNAMIC_STATE_DEPTH_CLIP_ENABLE_EXT)
+                {
+                  vt->CmdSetDepthClipEnableEXT(Unwrap(cmd), state.depthClipEnable);
+                }
+                else if(d == VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT)
+                {
+                  vt->CmdSetDepthClipNegativeOneToOneEXT(Unwrap(cmd), state.negativeOneToOne);
+                }
+                else if(d == VK_DYNAMIC_STATE_EXTRA_PRIMITIVE_OVERESTIMATION_SIZE_EXT)
+                {
+                  vt->CmdSetExtraPrimitiveOverestimationSizeEXT(Unwrap(cmd),
+                                                                state.primOverestimationSize);
+                }
+                else if(d == VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT)
+                {
+                  vt->CmdSetLineRasterizationModeEXT(Unwrap(cmd), state.lineRasterMode);
+                }
+                else if(d == VK_DYNAMIC_STATE_LINE_STIPPLE_ENABLE_EXT)
+                {
+                  vt->CmdSetLineStippleEnableEXT(Unwrap(cmd), state.stippledLineEnable);
+                }
+                else if(d == VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT)
+                {
+                  vt->CmdSetLogicOpEnableEXT(Unwrap(cmd), state.logicOpEnable);
+                }
+                else if(d == VK_DYNAMIC_STATE_POLYGON_MODE_EXT)
+                {
+                  vt->CmdSetPolygonModeEXT(Unwrap(cmd), state.polygonMode);
+                }
+                else if(d == VK_DYNAMIC_STATE_PROVOKING_VERTEX_MODE_EXT)
+                {
+                  vt->CmdSetProvokingVertexModeEXT(Unwrap(cmd), state.provokingVertexMode);
+                }
+                else if(d == VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT)
+                {
+                  vt->CmdSetRasterizationSamplesEXT(Unwrap(cmd), state.rastSamples);
+                }
+                else if(d == VK_DYNAMIC_STATE_RASTERIZATION_STREAM_EXT)
+                {
+                  vt->CmdSetRasterizationStreamEXT(Unwrap(cmd), state.rasterStream);
+                }
+                else if(d == VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_ENABLE_EXT)
+                {
+                  vt->CmdSetSampleLocationsEnableEXT(Unwrap(cmd), state.sampleLocEnable);
+                }
+                else if(d == VK_DYNAMIC_STATE_SAMPLE_MASK_EXT)
+                {
+                  vt->CmdSetSampleMaskEXT(Unwrap(cmd), state.rastSamples, state.sampleMask.data());
+                }
+                else if(d == VK_DYNAMIC_STATE_TESSELLATION_DOMAIN_ORIGIN_EXT)
+                {
+                  vt->CmdSetTessellationDomainOriginEXT(Unwrap(cmd), state.domainOrigin);
+                }
               }
 
               if(fmt.indexByteStride)

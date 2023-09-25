@@ -429,6 +429,110 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
         ObjDisp(cmd)->CmdSetPatchControlPointsEXT(Unwrap(cmd), patchControlPoints);
     }
 
+    if(vk->ExtendedDynamicState3AlphaToCover())
+    {
+      if(dynamicStates[VkDynamicAlphaToCoverageEXT])
+        ObjDisp(cmd)->CmdSetAlphaToCoverageEnableEXT(Unwrap(cmd), alphaToCoverageEnable);
+    }
+    if(vk->ExtendedDynamicState3AlphaToOne())
+    {
+      if(dynamicStates[VkDynamicAlphaToOneEXT])
+        ObjDisp(cmd)->CmdSetAlphaToOneEnableEXT(Unwrap(cmd), alphaToOneEnable);
+    }
+    if(vk->ExtendedDynamicState3CBEnable())
+    {
+      if(!colorBlendEnable.empty() && dynamicStates[VkDynamicColorBlendEnableEXT])
+        ObjDisp(cmd)->CmdSetColorBlendEnableEXT(Unwrap(cmd), 0, (uint32_t)colorBlendEnable.size(),
+                                                colorBlendEnable.data());
+    }
+    if(vk->ExtendedDynamicState3CBEquation())
+    {
+      if(!colorBlendEquation.empty() && dynamicStates[VkDynamicColorBlendEquationEXT])
+        ObjDisp(cmd)->CmdSetColorBlendEquationEXT(
+            Unwrap(cmd), 0, (uint32_t)colorBlendEquation.size(), colorBlendEquation.data());
+    }
+    if(vk->ExtendedDynamicState3WriteMask())
+    {
+      if(!colorWriteMask.empty() && dynamicStates[VkDynamicColorWriteMaskEXT])
+        ObjDisp(cmd)->CmdSetColorWriteMaskEXT(Unwrap(cmd), 0, (uint32_t)colorWriteMask.size(),
+                                              colorWriteMask.data());
+    }
+    if(vk->ExtendedDynamicState3ConservRast())
+    {
+      if(dynamicStates[VkDynamicConservativeRastModeEXT])
+        ObjDisp(cmd)->CmdSetConservativeRasterizationModeEXT(Unwrap(cmd), conservativeRastMode);
+    }
+    if(vk->ExtendedDynamicState3DepthClampEnable())
+    {
+      if(dynamicStates[VkDynamicDepthClampEnableEXT])
+        ObjDisp(cmd)->CmdSetDepthClampEnableEXT(Unwrap(cmd), depthClampEnable);
+    }
+    if(vk->ExtendedDynamicState3DepthClip())
+    {
+      if(dynamicStates[VkDynamicDepthClipEnableEXT])
+        ObjDisp(cmd)->CmdSetDepthClipEnableEXT(Unwrap(cmd), depthClipEnable);
+    }
+    if(vk->ExtendedDynamicState3DepthClipNegative())
+    {
+      if(dynamicStates[VkDynamicDepthClipNegativeOneEXT])
+        ObjDisp(cmd)->CmdSetDepthClipNegativeOneToOneEXT(Unwrap(cmd), negativeOneToOne);
+    }
+    if(vk->ExtendedDynamicState3PrimOverest())
+    {
+      if(dynamicStates[VkDynamicOverstimationSizeEXT])
+        ObjDisp(cmd)->CmdSetExtraPrimitiveOverestimationSizeEXT(Unwrap(cmd), primOverestimationSize);
+    }
+    if(vk->ExtendedDynamicState3LineRast())
+    {
+      if(dynamicStates[VkDynamicLineRastModeEXT])
+        ObjDisp(cmd)->CmdSetLineRasterizationModeEXT(Unwrap(cmd), lineRasterMode);
+    }
+    if(vk->ExtendedDynamicState3LineStipple())
+    {
+      if(dynamicStates[VkDynamicLineStippleEnableEXT])
+        ObjDisp(cmd)->CmdSetLineStippleEnableEXT(Unwrap(cmd), stippledLineEnable);
+    }
+    if(vk->ExtendedDynamicState3LogicEnable())
+    {
+      if(dynamicStates[VkDynamicLogicOpEnableEXT])
+        ObjDisp(cmd)->CmdSetLogicOpEnableEXT(Unwrap(cmd), logicOpEnable);
+    }
+    if(vk->ExtendedDynamicState3PolyMode())
+    {
+      if(dynamicStates[VkDynamicPolygonModeEXT])
+        ObjDisp(cmd)->CmdSetPolygonModeEXT(Unwrap(cmd), polygonMode);
+    }
+    if(vk->ExtendedDynamicState3ProvokingVert())
+    {
+      if(dynamicStates[VkDynamicProvokingVertexModeEXT])
+        ObjDisp(cmd)->CmdSetProvokingVertexModeEXT(Unwrap(cmd), provokingVertexMode);
+    }
+    if(vk->ExtendedDynamicState3RastSamples())
+    {
+      if(dynamicStates[VkDynamicRasterizationSamplesEXT])
+        ObjDisp(cmd)->CmdSetRasterizationSamplesEXT(Unwrap(cmd), rastSamples);
+    }
+    if(vk->ExtendedDynamicState3RastStream())
+    {
+      if(dynamicStates[VkDynamicRasterizationStreamEXT])
+        ObjDisp(cmd)->CmdSetRasterizationStreamEXT(Unwrap(cmd), rasterStream);
+    }
+    if(vk->ExtendedDynamicState3SampleLoc())
+    {
+      if(dynamicStates[VkDynamicSampleLocationsEnableEXT])
+        ObjDisp(cmd)->CmdSetSampleLocationsEnableEXT(Unwrap(cmd), sampleLocEnable);
+    }
+    if(vk->ExtendedDynamicState3SampleMask())
+    {
+      if(dynamicStates[VkDynamicSampleMaskEXT])
+        ObjDisp(cmd)->CmdSetSampleMaskEXT(Unwrap(cmd), rastSamples, sampleMask.data());
+    }
+    if(vk->ExtendedDynamicState3TesselDomain())
+    {
+      if(dynamicStates[VkDynamicTessDomainOriginEXT])
+        ObjDisp(cmd)->CmdSetTessellationDomainOriginEXT(Unwrap(cmd), domainOrigin);
+    }
+
     if(dynamicStates[VkDynamicLineWidth])
       ObjDisp(cmd)->CmdSetLineWidth(Unwrap(cmd), lineWidth);
 

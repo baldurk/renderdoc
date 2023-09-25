@@ -212,6 +212,29 @@ struct VulkanRenderState
   VkBool32 primRestartEnable = VK_FALSE;
   VkBool32 rastDiscardEnable = VK_FALSE;
 
+  // extended dynamic state 3
+  VkBool32 alphaToCoverageEnable = VK_FALSE;
+  VkBool32 alphaToOneEnable = VK_FALSE;
+  rdcarray<VkBool32> colorBlendEnable;
+  rdcarray<VkColorBlendEquationEXT> colorBlendEquation;
+  rdcarray<VkColorComponentFlags> colorWriteMask;
+  VkConservativeRasterizationModeEXT conservativeRastMode =
+      VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT;
+  VkBool32 depthClampEnable = VK_FALSE;
+  VkBool32 depthClipEnable = VK_FALSE;
+  VkBool32 negativeOneToOne = VK_FALSE;
+  float primOverestimationSize = 0.0f;
+  VkLineRasterizationModeEXT lineRasterMode = VK_LINE_RASTERIZATION_MODE_DEFAULT_EXT;
+  VkBool32 stippledLineEnable = VK_FALSE;
+  VkBool32 logicOpEnable = VK_FALSE;
+  VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
+  VkProvokingVertexModeEXT provokingVertexMode = VK_PROVOKING_VERTEX_MODE_FIRST_VERTEX_EXT;
+  VkSampleCountFlagBits rastSamples = VK_SAMPLE_COUNT_1_BIT;
+  uint32_t rasterStream = 0;
+  VkBool32 sampleLocEnable = VK_FALSE;
+  rdcarray<VkSampleMask> sampleMask = {0};
+  VkTessellationDomainOrigin domainOrigin = VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT;
+
   // dynamic vertex input
   rdcarray<VkVertexInputBindingDescription2EXT> vertexBindings;
   rdcarray<VkVertexInputAttributeDescription2EXT> vertexAttributes;

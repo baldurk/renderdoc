@@ -1288,9 +1288,9 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.tessellation.numControlPoints = p.patchControlPoints;
 
     ret.tessellation.domainOriginUpperLeft =
-        p.tessellationDomainOrigin == VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT;
+        state.domainOrigin == VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT;
 
-    ret.transformFeedback.rasterizedStream = p.rasterizationStream;
+    ret.transformFeedback.rasterizedStream = state.rasterStream;
 
     // Transform feedback
     ret.transformFeedback.buffers.resize(state.xfbbuffers.size());
@@ -1364,17 +1364,17 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     }
 
     {
-      ret.viewportScissor.depthNegativeOneToOne = p.negativeOneToOne;
+      ret.viewportScissor.depthNegativeOneToOne = state.negativeOneToOne != VK_FALSE;
     }
 
     // Rasterizer
-    ret.rasterizer.depthClampEnable = p.depthClampEnable;
-    ret.rasterizer.depthClipEnable = p.depthClipEnable;
+    ret.rasterizer.depthClampEnable = state.depthClampEnable != VK_FALSE;
+    ret.rasterizer.depthClipEnable = state.depthClipEnable != VK_FALSE;
     ret.rasterizer.rasterizerDiscardEnable = state.rastDiscardEnable != VK_FALSE;
     ret.rasterizer.frontCCW = state.frontFace == VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
     ret.rasterizer.conservativeRasterization = ConservativeRaster::Disabled;
-    switch(p.conservativeRasterizationMode)
+    switch(state.conservativeRastMode)
     {
       case VK_CONSERVATIVE_RASTERIZATION_MODE_UNDERESTIMATE_EXT:
         ret.rasterizer.conservativeRasterization = ConservativeRaster::Underestimate;
@@ -1420,7 +1420,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     if(m_pDriver->GetDeviceProps().limits.strictLines)
       ret.rasterizer.lineRasterMode = LineRaster::Rectangular;
 
-    switch(p.lineRasterMode)
+    switch(state.lineRasterMode)
     {
       case VK_LINE_RASTERIZATION_MODE_RECTANGULAR_EXT:
         ret.rasterizer.lineRasterMode = LineRaster::Rectangular;
@@ -1434,19 +1434,25 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       default: break;
     }
 
-    ret.rasterizer.lineStippleFactor = state.stippleFactor;
-    ret.rasterizer.lineStipplePattern = state.stipplePattern;
+    ret.rasterizer.lineStippleFactor = 0;    // stippled line disable
+    ret.rasterizer.lineStipplePattern = 0;
 
-    ret.rasterizer.extraPrimitiveOverestimationSize = p.extraPrimitiveOverestimationSize;
+    if(state.stippledLineEnable)
+    {
+      ret.rasterizer.lineStippleFactor = state.stippleFactor;
+      ret.rasterizer.lineStipplePattern = state.stipplePattern;
+    }
 
-    switch(p.polygonMode)
+    ret.rasterizer.extraPrimitiveOverestimationSize = state.primOverestimationSize;
+
+    switch(state.polygonMode)
     {
       case VK_POLYGON_MODE_POINT: ret.rasterizer.fillMode = FillMode::Point; break;
       case VK_POLYGON_MODE_LINE: ret.rasterizer.fillMode = FillMode::Wireframe; break;
       case VK_POLYGON_MODE_FILL: ret.rasterizer.fillMode = FillMode::Solid; break;
       default:
         ret.rasterizer.fillMode = FillMode::Solid;
-        RDCERR("Unexpected value for FillMode %x", p.polygonMode);
+        RDCERR("Unexpected value for FillMode %x", state.polygonMode);
         break;
     }
 
@@ -1463,7 +1469,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     }
 
     ret.rasterizer.provokingVertexFirst =
-        p.provokingVertex == VK_PROVOKING_VERTEX_MODE_FIRST_VERTEX_EXT;
+        state.provokingVertexMode == VK_PROVOKING_VERTEX_MODE_FIRST_VERTEX_EXT;
 
     ret.rasterizer.depthBiasEnable = state.depthBiasEnable != VK_FALSE;
     ret.rasterizer.depthBias = state.bias.depth;
@@ -1472,13 +1478,13 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.rasterizer.lineWidth = state.lineWidth;
 
     // MSAA
-    ret.multisample.rasterSamples = p.rasterizationSamples;
+    ret.multisample.rasterSamples = state.rastSamples;
     ret.multisample.sampleShadingEnable = p.sampleShadingEnable;
     ret.multisample.minSampleShading = p.minSampleShading;
-    ret.multisample.sampleMask = p.sampleMask;
+    ret.multisample.sampleMask = state.sampleMask[0];
 
     ret.multisample.sampleLocations.customLocations.clear();
-    if(p.sampleLocations.enabled)
+    if(state.sampleLocEnable)
     {
       ret.multisample.sampleLocations.gridWidth = state.sampleLocations.gridSize.width;
       ret.multisample.sampleLocations.gridHeight = state.sampleLocations.gridSize.height;
@@ -1490,32 +1496,54 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     }
 
     // Color Blend
-    ret.colorBlend.alphaToCoverageEnable = p.alphaToCoverageEnable;
-    ret.colorBlend.alphaToOneEnable = p.alphaToOneEnable;
+    ret.colorBlend.alphaToCoverageEnable = state.alphaToCoverageEnable != VK_FALSE;
+    ret.colorBlend.alphaToOneEnable = state.alphaToOneEnable != VK_FALSE;
 
-    ret.colorBlend.blends.resize(p.attachments.size());
-    for(size_t i = 0; i < p.attachments.size(); i++)
+    // find size if no static pipeline state
+    size_t numAttach = RDCMAX(state.colorBlendEnable.size(), state.colorBlendEquation.size());
+    numAttach = RDCMAX(numAttach, state.colorWriteEnable.size());
+    numAttach = RDCMAX(numAttach, state.colorWriteMask.size());
+
+    ret.colorBlend.blends.resize(numAttach);
+
+    for(size_t i = 0; i < numAttach; i++)
     {
-      ret.colorBlend.blends[i].enabled = p.attachments[i].blendEnable;
+      ret.colorBlend.blends[i].enabled =
+          (i < state.colorBlendEnable.size()) ? state.colorBlendEnable[i] != VK_FALSE : VK_FALSE;
 
       // due to shared structs, this is slightly duplicated - Vulkan doesn't have separate states
       // for logic operations
-      ret.colorBlend.blends[i].logicOperationEnabled = p.logicOpEnable;
+      ret.colorBlend.blends[i].logicOperationEnabled = state.logicOpEnable != VK_FALSE;
       ret.colorBlend.blends[i].logicOperation = MakeLogicOp(state.logicOp);
 
-      ret.colorBlend.blends[i].colorBlend.source = MakeBlendMultiplier(p.attachments[i].blend.Source);
-      ret.colorBlend.blends[i].colorBlend.destination =
-          MakeBlendMultiplier(p.attachments[i].blend.Destination);
-      ret.colorBlend.blends[i].colorBlend.operation = MakeBlendOp(p.attachments[i].blend.Operation);
+      if(ret.colorBlend.blends[i].enabled && i < state.colorBlendEquation.size())
+      {
+        ret.colorBlend.blends[i].colorBlend.source =
+            MakeBlendMultiplier(state.colorBlendEquation[i].srcColorBlendFactor);
+        ret.colorBlend.blends[i].colorBlend.destination =
+            MakeBlendMultiplier(state.colorBlendEquation[i].dstColorBlendFactor);
+        ret.colorBlend.blends[i].colorBlend.operation =
+            MakeBlendOp(state.colorBlendEquation[i].colorBlendOp);
 
-      ret.colorBlend.blends[i].alphaBlend.source =
-          MakeBlendMultiplier(p.attachments[i].alphaBlend.Source);
-      ret.colorBlend.blends[i].alphaBlend.destination =
-          MakeBlendMultiplier(p.attachments[i].alphaBlend.Destination);
-      ret.colorBlend.blends[i].alphaBlend.operation =
-          MakeBlendOp(p.attachments[i].alphaBlend.Operation);
+        ret.colorBlend.blends[i].alphaBlend.source =
+            MakeBlendMultiplier(state.colorBlendEquation[i].srcAlphaBlendFactor);
+        ret.colorBlend.blends[i].alphaBlend.destination =
+            MakeBlendMultiplier(state.colorBlendEquation[i].dstAlphaBlendFactor);
+        ret.colorBlend.blends[i].alphaBlend.operation =
+            MakeBlendOp(state.colorBlendEquation[i].alphaBlendOp);
+      }
+      else
+      {
+        ret.colorBlend.blends[i].colorBlend.source = MakeBlendMultiplier(VK_BLEND_FACTOR_ZERO);
+        ret.colorBlend.blends[i].colorBlend.destination = MakeBlendMultiplier(VK_BLEND_FACTOR_ZERO);
+        ret.colorBlend.blends[i].colorBlend.operation = MakeBlendOp(VK_BLEND_OP_ADD);
+        ret.colorBlend.blends[i].alphaBlend.source = MakeBlendMultiplier(VK_BLEND_FACTOR_ZERO);
+        ret.colorBlend.blends[i].alphaBlend.destination = MakeBlendMultiplier(VK_BLEND_FACTOR_ZERO);
+        ret.colorBlend.blends[i].alphaBlend.operation = MakeBlendOp(VK_BLEND_OP_ADD);
+      }
 
-      ret.colorBlend.blends[i].writeMask = p.attachments[i].channelWriteMask;
+      ret.colorBlend.blends[i].writeMask =
+          (i < state.colorWriteMask.size()) ? (uint8_t)state.colorWriteMask[i] : 0;
 
       if(i < state.colorWriteEnable.size() && !state.colorWriteEnable[i])
         ret.colorBlend.blends[i].writeMask = 0;

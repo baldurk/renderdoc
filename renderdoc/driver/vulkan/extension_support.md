@@ -50,6 +50,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_display_surface_counter`
 * `VK_EXT_extended_dynamic_state`
 * `VK_EXT_extended_dynamic_state2`
+* `VK_EXT_extended_dynamic_state3`
 * `VK_EXT_external_memory_dma_buf`
 * `VK_EXT_filter_cubic`
 * `VK_EXT_fragment_density_map`
@@ -257,7 +258,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_dynamic_rendering_unused_attachments`
 * `VK_EXT_external_memory_acquire_unmodified`
 * `VK_EXT_external_memory_host`
-* `VK_EXT_extended_dynamic_state3`
 * `VK_EXT_image_sliced_view_of_3d`
 * `VK_EXT_image_compression_control`
 * `VK_EXT_image_compression_control_swapchain`

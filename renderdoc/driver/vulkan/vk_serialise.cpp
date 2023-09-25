@@ -684,6 +684,12 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT,                \
                VkPhysicalDeviceExtendedDynamicState2FeaturesEXT)                                       \
                                                                                                        \
+  /* VK_EXT_extended_dynamic_state3 */                                                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT,                \
+               VkPhysicalDeviceExtendedDynamicState3FeaturesEXT);                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_PROPERTIES_EXT,              \
+               VkPhysicalDeviceExtendedDynamicState3PropertiesEXT)                                     \
+                                                                                                       \
   /* VK_EXT_filter_cubic */                                                                            \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_IMAGE_FORMAT_INFO_EXT,                     \
                VkPhysicalDeviceImageViewImageFormatInfoEXT)                                            \
@@ -1471,10 +1477,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT)                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT)                              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT)             \
-                                                                                                       \
-  /* VK_EXT_extended_dynamic_state3 */                                                                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT)           \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_PROPERTIES_EXT)         \
                                                                                                        \
   /* VK_EXT_headless_surface */                                                                        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT)                                \
@@ -6212,6 +6214,79 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceExtendedDynamicState2Featu
 
 template <>
 void Deserialise(const VkPhysicalDeviceExtendedDynamicState2FeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkColorBlendEquationEXT &el)
+{
+  SERIALISE_MEMBER(srcColorBlendFactor);
+  SERIALISE_MEMBER(dstColorBlendFactor);
+  SERIALISE_MEMBER(colorBlendOp);
+  SERIALISE_MEMBER(srcAlphaBlendFactor);
+  SERIALISE_MEMBER(dstAlphaBlendFactor);
+  SERIALISE_MEMBER(alphaBlendOp);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceExtendedDynamicState3FeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(extendedDynamicState3TessellationDomainOrigin);
+  SERIALISE_MEMBER(extendedDynamicState3DepthClampEnable);
+  SERIALISE_MEMBER(extendedDynamicState3PolygonMode);
+  SERIALISE_MEMBER(extendedDynamicState3RasterizationSamples);
+  SERIALISE_MEMBER(extendedDynamicState3SampleMask);
+  SERIALISE_MEMBER(extendedDynamicState3AlphaToCoverageEnable);
+  SERIALISE_MEMBER(extendedDynamicState3AlphaToOneEnable);
+  SERIALISE_MEMBER(extendedDynamicState3LogicOpEnable);
+  SERIALISE_MEMBER(extendedDynamicState3ColorBlendEnable);
+  SERIALISE_MEMBER(extendedDynamicState3ColorBlendEquation);
+  SERIALISE_MEMBER(extendedDynamicState3ColorWriteMask);
+  SERIALISE_MEMBER(extendedDynamicState3RasterizationStream);
+  SERIALISE_MEMBER(extendedDynamicState3ConservativeRasterizationMode);
+  SERIALISE_MEMBER(extendedDynamicState3ExtraPrimitiveOverestimationSize);
+  SERIALISE_MEMBER(extendedDynamicState3DepthClipEnable);
+  SERIALISE_MEMBER(extendedDynamicState3SampleLocationsEnable);
+  SERIALISE_MEMBER(extendedDynamicState3ColorBlendAdvanced);
+  SERIALISE_MEMBER(extendedDynamicState3ProvokingVertexMode);
+  SERIALISE_MEMBER(extendedDynamicState3LineRasterizationMode);
+  SERIALISE_MEMBER(extendedDynamicState3LineStippleEnable);
+  SERIALISE_MEMBER(extendedDynamicState3DepthClipNegativeOneToOne);
+  SERIALISE_MEMBER(extendedDynamicState3ViewportWScalingEnable);
+  SERIALISE_MEMBER(extendedDynamicState3ViewportSwizzle);
+  SERIALISE_MEMBER(extendedDynamicState3CoverageToColorEnable);
+  SERIALISE_MEMBER(extendedDynamicState3CoverageToColorLocation);
+  SERIALISE_MEMBER(extendedDynamicState3CoverageModulationMode);
+  SERIALISE_MEMBER(extendedDynamicState3CoverageModulationTableEnable);
+  SERIALISE_MEMBER(extendedDynamicState3CoverageModulationTable);
+  SERIALISE_MEMBER(extendedDynamicState3CoverageReductionMode);
+  SERIALISE_MEMBER(extendedDynamicState3RepresentativeFragmentTestEnable);
+  SERIALISE_MEMBER(extendedDynamicState3ShadingRateImageEnable);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceExtendedDynamicState3FeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceExtendedDynamicState3PropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(dynamicPrimitiveTopologyUnrestricted);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceExtendedDynamicState3PropertiesEXT &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -11454,6 +11529,8 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDiscardRectanglePropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDriverProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDynamicRenderingFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicState2FeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicState3FeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicState3PropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicStateFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalBufferInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalFenceInfo);
@@ -11693,6 +11770,7 @@ INSTANTIATE_SERIALISE_TYPE(VkClearColorValue);
 INSTANTIATE_SERIALISE_TYPE(VkClearDepthStencilValue);
 INSTANTIATE_SERIALISE_TYPE(VkClearRect);
 INSTANTIATE_SERIALISE_TYPE(VkClearValue);
+INSTANTIATE_SERIALISE_TYPE(VkColorBlendEquationEXT);
 INSTANTIATE_SERIALISE_TYPE(VkComponentMapping);
 INSTANTIATE_SERIALISE_TYPE(VkConformanceVersion);
 INSTANTIATE_SERIALISE_TYPE(VkDescriptorBufferInfo);
