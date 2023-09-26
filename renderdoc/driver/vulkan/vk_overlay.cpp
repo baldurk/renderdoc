@@ -1805,7 +1805,11 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         if(overlay == DebugOverlay::Depth)
           ds->depthTestEnable = origDepthTest;
         else
+        {
+          ds->front.passOp = ds->front.failOp = ds->front.depthFailOp = VK_STENCIL_OP_KEEP;
+          ds->back.passOp = ds->back.failOp = ds->back.depthFailOp = VK_STENCIL_OP_KEEP;
           ds->stencilTestEnable = origStencilTest;
+        }
         pipeCreateInfo.renderPass = depthRP;
       }
       else
