@@ -561,6 +561,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
     if(Vulkan_Debug_SingleSubmitFlushing())
     {
+      CloseInitStateCmd();
       SubmitCmds();
       FlushQ();
     }
