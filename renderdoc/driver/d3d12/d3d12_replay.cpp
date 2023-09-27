@@ -77,6 +77,11 @@ void D3D12Replay::Shutdown()
 
   FreeLibrary(D3D12Lib);
   D3D12_CleanupReplaySDK();
+
+  // we should have unloaded both modules here by now. If we haven't - we probably leaked some D3D12
+  // objects. This can cause subsequent captures to fail to open.
+  RDCASSERT(GetModuleHandleA("d3d12.dll") == NULL);
+  RDCASSERT(GetModuleHandleA("d3d12core.dll") == NULL);
 }
 
 void D3D12Replay::Initialise(IDXGIFactory1 *factory)

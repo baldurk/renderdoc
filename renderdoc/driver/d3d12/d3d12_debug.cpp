@@ -498,6 +498,11 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_DiscardFloatPS);
   SAFE_RELEASE(m_DiscardIntPS);
 
+  SAFE_RELEASE(m_EIPatchRootSig);
+  SAFE_RELEASE(m_EIPatchBufferData);
+  SAFE_RELEASE(m_EIPatchPso);
+  SAFE_RELEASE(m_EIPatchScratchBuffer);
+
   SAFE_RELEASE(m_DebugAlloc);
   SAFE_RELEASE(m_DebugList);
   SAFE_RELEASE(m_DebugFence);
