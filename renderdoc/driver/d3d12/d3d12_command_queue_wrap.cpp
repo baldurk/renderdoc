@@ -465,6 +465,8 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
   {
     ID3D12CommandQueue *real = Unwrap(pQueue);
 
+    m_pDevice->DataUploadSync();
+
     if(m_PrevQueueId != GetResID(pQueue))
     {
       RDCDEBUG("Previous queue execution was on queue %s, now executing %s, syncing GPU",

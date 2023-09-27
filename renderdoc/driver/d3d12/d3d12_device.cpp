@@ -3926,6 +3926,15 @@ void WrappedID3D12Device::DestroyInternalResources()
   CloseHandle(m_GPUSyncHandle);
 }
 
+void WrappedID3D12Device::DataUploadSync()
+{
+  if(m_CurDataUpload >= 0)
+  {
+    GPUSync();
+    m_CurDataUpload = 0;
+  }
+}
+
 void WrappedID3D12Device::GPUSync(ID3D12CommandQueue *queue, ID3D12Fence *fence)
 {
   m_GPUSyncCounter++;
