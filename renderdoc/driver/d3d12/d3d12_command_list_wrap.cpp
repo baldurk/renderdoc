@@ -3968,7 +3968,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
 
         uint32_t baseEventID = it->eventId;
 
-        if(count > 1)
         {
           // get the number of draws by looking at how many children the parent action has.
           const rdcarray<ActionDescription> &children = m_pDevice->GetAction(it->eventId)->children;
