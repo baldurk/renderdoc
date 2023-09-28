@@ -52,7 +52,7 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used for parsing command line arguments to renderdoccmd.
 
-* `include-bin <https://github.com/Marqin/include-bin>`_ - Copyright 2016 Hubert Jarosz, distributed under the zlib license.
+* `include-bin <https://github.com/Marqin/include-bin>`_ - Copyright 2016 Eveline Jarosz, distributed under the zlib license.
 
   Used to compile in data files embedded into the source on non-Windows platforms.
 
