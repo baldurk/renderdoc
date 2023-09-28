@@ -248,26 +248,28 @@ uint64_t D3D12Replay::MakeOutputWindow(WindowingData window, bool depth)
 
   outw.bbIdx = 0;
 
-  outw.rtv = GetDebugManager()->GetCPUHandle(FIRST_WIN_RTV);
-  outw.rtv.ptr += SIZE_T(m_OutputWindowID) * sizeof(D3D12Descriptor);
+  outw.rtvId = m_OutputWindowIDs.back();
+  m_OutputWindowIDs.pop_back();
 
-  outw.dsv = GetDebugManager()->GetCPUHandle(FIRST_WIN_DSV);
-  outw.dsv.ptr += SIZE_T(m_DSVID) * sizeof(D3D12Descriptor);
+  outw.rtv = GetDebugManager()->GetCPUHandle(RTVSlot(outw.rtvId));
 
   outw.col = NULL;
   outw.colResolve = NULL;
   outw.MakeRTV(depth);
 
+  outw.dsvId = 0;
   outw.depth = NULL;
   if(depth)
   {
+    outw.dsvId = m_DSVIDs.back();
+    m_DSVIDs.pop_back();
+    outw.dsv = GetDebugManager()->GetCPUHandle(DSVSlot(outw.dsvId));
+
     outw.MakeDSV();
-    m_DSVID++;
   }
 
-  uint64_t id = m_OutputWindowID++;
-  m_OutputWindows[id] = outw;
-  return id;
+  m_OutputWindows[outw.rtvId] = outw;
+  return outw.rtvId;
 }
 
 void D3D12Replay::DestroyOutputWindow(uint64_t id)
@@ -277,6 +279,10 @@ void D3D12Replay::DestroyOutputWindow(uint64_t id)
     return;
 
   OutputWindow &outw = it->second;
+
+  m_OutputWindowIDs.push_back(outw.rtvId);
+  if(outw.dsvId != 0)
+    m_DSVIDs.push_back(outw.dsvId);
 
   m_pDevice->FlushLists(true);
 

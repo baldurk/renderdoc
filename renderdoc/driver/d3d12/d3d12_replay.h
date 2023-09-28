@@ -374,6 +374,8 @@ private:
     D3D12_CPU_DESCRIPTOR_HANDLE dsv;
     D3D12_RESOURCE_DESC bbDesc;
 
+    uint64_t rtvId, dsvId;
+
     WrappedID3D12Device *dev;
 
     void MakeRTV(bool multisampled);
@@ -386,8 +388,8 @@ private:
   float m_OutputHeight = 1.0f;
   D3D12_VIEWPORT m_OutputViewport;
 
-  uint64_t m_OutputWindowID = 1;
-  uint64_t m_DSVID = 0;
+  rdcarray<uint64_t> m_OutputWindowIDs;
+  rdcarray<uint64_t> m_DSVIDs;
   uint64_t m_CurrentOutputWindow = 0;
   std::map<uint64_t, OutputWindow> m_OutputWindows;
 

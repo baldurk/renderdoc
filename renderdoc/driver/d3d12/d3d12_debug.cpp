@@ -137,13 +137,15 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   HRESULT hr = S_OK;
 
+  const uint32_t rtvCount = 1024;
+
   D3D12_DESCRIPTOR_HEAP_DESC desc;
   desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
   desc.NodeMask = 1;
-  desc.NumDescriptors = 1024;
+  desc.NumDescriptors = rtvCount;
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
-  RDCCOMPILE_ASSERT(FIRST_WIN_RTV + 256 < 1024, "Increase size of RTV heap");
+  RDCCOMPILE_ASSERT(LAST_WIN_RTV < rtvCount, "Increase size of RTV heap");
 
   hr = m_pDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&rtvHeap);
   m_pDevice->InternalRef();
@@ -155,10 +157,12 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   rm->SetInternalResource(rtvHeap);
 
-  desc.NumDescriptors = 64;
+  const uint32_t dsvCount = 80;
+
+  desc.NumDescriptors = dsvCount;
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 
-  RDCCOMPILE_ASSERT(FIRST_WIN_DSV + 32 < 64, "Increase size of DSV heap");
+  RDCCOMPILE_ASSERT(LAST_WIN_DSV < dsvCount, "Increase size of DSV heap");
 
   hr = m_pDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&dsvHeap);
   m_pDevice->InternalRef();

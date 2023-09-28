@@ -94,6 +94,7 @@ enum RTVSlot
   FIRST_TMP_RTV,
   LAST_TMP_RTV = FIRST_TMP_RTV + 16,
   FIRST_WIN_RTV,
+  LAST_WIN_RTV = FIRST_WIN_RTV + 768,
 };
 
 enum SamplerSlot
@@ -111,6 +112,7 @@ enum DSVSlot
   MSAA_DSV,
   TMP_DSV,
   FIRST_WIN_DSV,
+  LAST_WIN_DSV = FIRST_WIN_DSV + 64,
 };
 
 struct MeshDisplayPipelines

@@ -143,6 +143,11 @@ void D3D12Replay::CreateResources()
 {
   m_DebugManager = new D3D12DebugManager(m_pDevice);
 
+  for(uint64_t i = FIRST_WIN_RTV; i <= LAST_WIN_RTV; i++)
+    m_OutputWindowIDs.insert(0, i);
+  for(uint64_t i = FIRST_WIN_DSV; i <= LAST_WIN_DSV; i++)
+    m_DSVIDs.insert(0, i);
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     CreateSOBuffers();
