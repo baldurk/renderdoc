@@ -5196,6 +5196,7 @@ void WrappedVulkan::AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMes
             case DescriptorSlotType::UniformBufferDynamic:
             case DescriptorSlotType::StorageBuffer:
             case DescriptorSlotType::StorageBufferDynamic:
+            case DescriptorSlotType::AccelerationStructure:
               if(slot.resource != ResourceId())
                 id = slot.resource;
               break;

@@ -527,6 +527,7 @@ enum class DescriptorSlotType : EnumBaseType
   StorageBufferDynamic,
   InputAttachment,
   InlineBlock,
+  AccelerationStructure,
   Count,
 };
 
@@ -550,7 +551,9 @@ constexpr VkDescriptorType convert(DescriptorSlotType type)
              ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
          : type == DescriptorSlotType::InputAttachment ? VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
          : type == DescriptorSlotType::InlineBlock     ? VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK
-                                                       : VK_DESCRIPTOR_TYPE_MAX_ENUM;
+         : type == DescriptorSlotType::AccelerationStructure
+             ? VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR
+             : VK_DESCRIPTOR_TYPE_MAX_ENUM;
 }
 
 constexpr DescriptorSlotType convert(VkDescriptorType type)
@@ -570,7 +573,9 @@ constexpr DescriptorSlotType convert(VkDescriptorType type)
              ? DescriptorSlotType::StorageBufferDynamic
          : type == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT     ? DescriptorSlotType::InputAttachment
          : type == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK ? DescriptorSlotType::InlineBlock
-                                                           : DescriptorSlotType::Unwritten;
+         : type == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR
+             ? DescriptorSlotType::AccelerationStructure
+             : DescriptorSlotType::Unwritten;
 }
 
 enum class DescriptorSlotImageLayout : EnumBaseType
@@ -682,6 +687,7 @@ struct DescriptorSetSlot
   void SetBuffer(VkDescriptorType writeType, const VkDescriptorBufferInfo &bufInfo);
   void SetImage(VkDescriptorType writeType, const VkDescriptorImageInfo &imInfo, bool useSampler);
   void SetTexelBuffer(VkDescriptorType writeType, ResourceId id);
+  void SetAccelerationStructure(VkDescriptorType writeType, ResourceId id);
 
   // 48-bit truncated VK_WHOLE_SIZE
   static const VkDeviceSize WholeSizeRange = 0xFFFFFFFFFFFF;

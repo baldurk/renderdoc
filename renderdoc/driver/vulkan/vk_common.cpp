@@ -1168,7 +1168,8 @@ FrameRefType GetRefType(DescriptorSlotType descType)
     case DescriptorSlotType::UniformBuffer:
     case DescriptorSlotType::UniformBufferDynamic:
     case DescriptorSlotType::InputAttachment:
-    case DescriptorSlotType::InlineBlock: return eFrameRef_Read;
+    case DescriptorSlotType::InlineBlock:
+    case DescriptorSlotType::AccelerationStructure: return eFrameRef_Read;
     case DescriptorSlotType::StorageImage:
     case DescriptorSlotType::StorageTexelBuffer:
     case DescriptorSlotType::StorageBuffer:
@@ -1202,6 +1203,12 @@ void DescriptorSetSlot::SetImage(VkDescriptorType writeType, const VkDescriptorI
 }
 
 void DescriptorSetSlot::SetTexelBuffer(VkDescriptorType writeType, ResourceId id)
+{
+  type = convert(writeType);
+  resource = id;
+}
+
+void DescriptorSetSlot::SetAccelerationStructure(VkDescriptorType writeType, ResourceId id)
 {
   type = convert(writeType);
   resource = id;
@@ -1263,7 +1270,7 @@ void DescriptorSetSlot::AccumulateBindRefs(DescriptorBindRefs &refs, VulkanResou
   RDCCOMPILE_ASSERT(offsetof(DescriptorSetSlot, offset) == 8,
                     "DescriptorSetSlot first uint64_t bitpacking isn't working as expected");
 
-  VkResourceRecord *bufView = NULL, *imgView = NULL, *buffer = NULL;
+  VkResourceRecord *bufView = NULL, *imgView = NULL, *buffer = NULL, *accStructure = NULL;
 
   switch(type)
   {
@@ -1277,6 +1284,9 @@ void DescriptorSetSlot::AccumulateBindRefs(DescriptorBindRefs &refs, VulkanResou
     case DescriptorSlotType::SampledImage:
     case DescriptorSlotType::StorageImage:
     case DescriptorSlotType::InputAttachment: imgView = rm->GetResourceRecord(resource); break;
+    case DescriptorSlotType::AccelerationStructure:
+      accStructure = rm->GetResourceRecord(resource);
+      break;
     default: break;
   }
 
@@ -1311,6 +1321,10 @@ void DescriptorSetSlot::AccumulateBindRefs(DescriptorBindRefs &refs, VulkanResou
       AddMemFrameRef(refs, buffer->baseResource, buffer->memOffset, buffer->memSize, ref);
     if(buffer->storable)
       refs.storableRefs.insert(buffer);
+  }
+  if(accStructure)
+  {
+    AddBindFrameRef(refs, resource, eFrameRef_Read);
   }
 }
 

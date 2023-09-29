@@ -2121,6 +2121,9 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 dstel.type = BindType::InputAttachment;
                 break;
               case DescriptorSlotType::InlineBlock: dstel.type = BindType::ConstantBuffer; break;
+              case DescriptorSlotType::AccelerationStructure:
+                dstel.type = BindType::ReadOnlyResource;
+                break;
               case DescriptorSlotType::Unwritten:
               case DescriptorSlotType::Count: dstel.type = BindType::Unknown; break;
             }
@@ -2288,6 +2291,14 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
               }
 
               destSlots.binds[a].byteSize = srcel.GetRange();
+            }
+            else if(descriptorType == DescriptorSlotType::AccelerationStructure)
+            {
+              if(srcel.resource != ResourceId())
+              {
+                destSlots.binds[a].resourceResourceId = rm->GetOriginalID(srcel.resource);
+                destSlots.binds[a].byteSize = c.m_AccelerationStructure[srcel.resource].size;
+              }
             }
           }
 
