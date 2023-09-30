@@ -182,6 +182,8 @@ class Iter_Test(rdtest.TestCase):
         # TODO, query for some pixel this action actually touched.
         x = int(random.random()*viewport.width + viewport.x)
         y = int(random.random()*viewport.height + viewport.y)
+        x = abs(x)
+        y = abs(y)
 
         target = rd.ResourceId.Null()
 
