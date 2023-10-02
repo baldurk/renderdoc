@@ -689,7 +689,12 @@ void D3D12ResourceManager::ApplyBarriers(BarrierSet &barriers,
   {
     const D3D12_RESOURCE_TRANSITION_BARRIER &trans = barriers.barriers[b].Transition;
     ResourceId id = GetResID(trans.pResource);
-    SubresourceStateVector &st = states[id];
+
+    auto it = states.find(id);
+    if(it == states.end())
+      return;
+
+    SubresourceStateVector &st = it->second;
 
     // skip non-transitions, or begin-halves of transitions
     if(barriers.barriers[b].Type != D3D12_RESOURCE_BARRIER_TYPE_TRANSITION ||
@@ -718,7 +723,12 @@ void D3D12ResourceManager::ApplyBarriers(BarrierSet &barriers,
   {
     const D3D12_TEXTURE_BARRIER &trans = barriers.newBarriers[b];
     ResourceId id = GetResID(trans.pResource);
-    SubresourceStateVector &st = states[id];
+
+    auto it = states.find(id);
+    if(it == states.end())
+      return;
+
+    SubresourceStateVector &st = it->second;
 
     // skip begin-halves of split transitions
     if(trans.SyncBefore == D3D12_BARRIER_SYNC_SPLIT)
