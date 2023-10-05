@@ -1060,43 +1060,91 @@ D3D12PSOCreator::D3D12PSOCreator(ID3D12DevicePtr dev) : m_Dev(dev)
 
 D3D12PSOCreator &D3D12PSOCreator::VS(ID3DBlobPtr blob)
 {
-  GraphicsDesc.VS.pShaderBytecode = blob->GetBufferPointer();
-  GraphicsDesc.VS.BytecodeLength = blob->GetBufferSize();
+  if(blob)
+  {
+    GraphicsDesc.VS.pShaderBytecode = blob->GetBufferPointer();
+    GraphicsDesc.VS.BytecodeLength = blob->GetBufferSize();
+  }
+  else
+  {
+    GraphicsDesc.VS.pShaderBytecode = NULL;
+    GraphicsDesc.VS.BytecodeLength = 0;
+  }
   return *this;
 }
 
 D3D12PSOCreator &D3D12PSOCreator::HS(ID3DBlobPtr blob)
 {
-  GraphicsDesc.HS.pShaderBytecode = blob->GetBufferPointer();
-  GraphicsDesc.HS.BytecodeLength = blob->GetBufferSize();
+  if(blob)
+  {
+    GraphicsDesc.HS.pShaderBytecode = blob->GetBufferPointer();
+    GraphicsDesc.HS.BytecodeLength = blob->GetBufferSize();
+  }
+  else
+  {
+    GraphicsDesc.HS.pShaderBytecode = NULL;
+    GraphicsDesc.HS.BytecodeLength = 0;
+  }
   return *this;
 }
 
 D3D12PSOCreator &D3D12PSOCreator::DS(ID3DBlobPtr blob)
 {
-  GraphicsDesc.DS.pShaderBytecode = blob->GetBufferPointer();
-  GraphicsDesc.DS.BytecodeLength = blob->GetBufferSize();
+  if(blob)
+  {
+    GraphicsDesc.DS.pShaderBytecode = blob->GetBufferPointer();
+    GraphicsDesc.DS.BytecodeLength = blob->GetBufferSize();
+  }
+  else
+  {
+    GraphicsDesc.DS.pShaderBytecode = NULL;
+    GraphicsDesc.DS.BytecodeLength = 0;
+  }
   return *this;
 }
 
 D3D12PSOCreator &D3D12PSOCreator::GS(ID3DBlobPtr blob)
 {
-  GraphicsDesc.GS.pShaderBytecode = blob->GetBufferPointer();
-  GraphicsDesc.GS.BytecodeLength = blob->GetBufferSize();
+  if(blob)
+  {
+    GraphicsDesc.GS.pShaderBytecode = blob->GetBufferPointer();
+    GraphicsDesc.GS.BytecodeLength = blob->GetBufferSize();
+  }
+  else
+  {
+    GraphicsDesc.GS.pShaderBytecode = NULL;
+    GraphicsDesc.GS.BytecodeLength = 0;
+  }
   return *this;
 }
 
 D3D12PSOCreator &D3D12PSOCreator::PS(ID3DBlobPtr blob)
 {
-  GraphicsDesc.PS.pShaderBytecode = blob->GetBufferPointer();
-  GraphicsDesc.PS.BytecodeLength = blob->GetBufferSize();
+  if(blob)
+  {
+    GraphicsDesc.PS.pShaderBytecode = blob->GetBufferPointer();
+    GraphicsDesc.PS.BytecodeLength = blob->GetBufferSize();
+  }
+  else
+  {
+    GraphicsDesc.PS.pShaderBytecode = NULL;
+    GraphicsDesc.PS.BytecodeLength = 0;
+  }
   return *this;
 }
 
 D3D12PSOCreator &D3D12PSOCreator::CS(ID3DBlobPtr blob)
 {
-  ComputeDesc.CS.pShaderBytecode = blob->GetBufferPointer();
-  ComputeDesc.CS.BytecodeLength = blob->GetBufferSize();
+  if(blob)
+  {
+    ComputeDesc.CS.pShaderBytecode = blob->GetBufferPointer();
+    ComputeDesc.CS.BytecodeLength = blob->GetBufferSize();
+  }
+  else
+  {
+    ComputeDesc.CS.pShaderBytecode = NULL;
+    ComputeDesc.CS.BytecodeLength = 0;
+  }
   return *this;
 }
 
