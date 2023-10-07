@@ -42,6 +42,7 @@ DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, CompType hint);
 DXGI_FORMAT GetDepthTypedFormat(DXGI_FORMAT f);
+DXGI_FORMAT GetDepthSRVFormat(DXGI_FORMAT f, UINT planeSlice);
 DXGI_FORMAT GetFloatTypedFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetUnormTypedFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetSnormTypedFormat(DXGI_FORMAT f);

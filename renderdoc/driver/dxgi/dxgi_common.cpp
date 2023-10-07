@@ -661,6 +661,61 @@ DXGI_FORMAT GetDepthTypedFormat(DXGI_FORMAT f)
   return f;
 }
 
+DXGI_FORMAT GetDepthSRVFormat(DXGI_FORMAT f, UINT planeSlice)
+{
+  // The view format rules for planar depth/stencil formats are outlined here:
+  // https://microsoft.github.io/DirectX-Specs/d3d/PlanarDepthStencilDDISpec.html
+  if(planeSlice == 0)
+  {
+    switch(f)
+    {
+      // Depth only, 32 bit float depth
+      case DXGI_FORMAT_D32_FLOAT:
+      case DXGI_FORMAT_R32_FLOAT:
+      case DXGI_FORMAT_R32_TYPELESS: return DXGI_FORMAT_R32_FLOAT;
+
+      // Depth/stencil, 32 bit float depth
+      case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+      case DXGI_FORMAT_R32G8X24_TYPELESS:
+      case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
+      case DXGI_FORMAT_X32_TYPELESS_G8X24_UINT: return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+
+      // Depth/stencil, 24 bit unorm depth
+      case DXGI_FORMAT_D24_UNORM_S8_UINT:
+      case DXGI_FORMAT_R24G8_TYPELESS:
+      case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
+      case DXGI_FORMAT_X24_TYPELESS_G8_UINT: return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+
+      // Depth only, 16 bit unorm depth
+      case DXGI_FORMAT_D16_UNORM:
+      case DXGI_FORMAT_R16_UNORM: return DXGI_FORMAT_R16_UNORM;
+
+      default: break;
+    }
+  }
+  else if(planeSlice == 1)
+  {
+    switch(f)
+    {
+      // Depth/stencil, 8 bit uint stencil
+      case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+      case DXGI_FORMAT_R32G8X24_TYPELESS:
+      case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
+      case DXGI_FORMAT_X32_TYPELESS_G8X24_UINT: return DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
+
+      // Depth/stencil, 8 bit uint stencil
+      case DXGI_FORMAT_D24_UNORM_S8_UINT:
+      case DXGI_FORMAT_R24G8_TYPELESS:
+      case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
+      case DXGI_FORMAT_X24_TYPELESS_G8_UINT: return DXGI_FORMAT_X24_TYPELESS_G8_UINT;
+
+      default: break;
+    }
+  }
+
+  return f;
+}
+
 DXGI_FORMAT GetNonSRGBFormat(DXGI_FORMAT f)
 {
   switch(f)
