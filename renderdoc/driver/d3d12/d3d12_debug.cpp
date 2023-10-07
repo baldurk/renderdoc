@@ -337,6 +337,43 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_DepthArray2MS);
   }
 
+  {
+    ID3DBlob *root = shaderCache->MakeRootSig({
+        cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
+        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 5),
+        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 10),
+    });
+
+    RDCASSERT(root);
+
+    hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
+                                        __uuidof(ID3D12RootSignature),
+                                        (void **)&m_PixelHistoryCopySig);
+    m_pDevice->InternalRef();
+
+    SAFE_RELEASE(root);
+
+    rm->SetInternalResource(m_PixelHistoryCopySig);
+
+    rdcstr hlsl = GetEmbeddedResource(d3d12_pixelhistory_hlsl);
+
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PixelHistoryCopyPixel",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &m_PixelHistoryCopyCS);
+
+    D3D12_COMPUTE_PIPELINE_STATE_DESC pipeDesc = {};
+    pipeDesc.CS.pShaderBytecode = m_PixelHistoryCopyCS->GetBufferPointer();
+    pipeDesc.CS.BytecodeLength = m_PixelHistoryCopyCS->GetBufferSize();
+    pipeDesc.pRootSignature = m_PixelHistoryCopySig;
+    hr = m_pDevice->CreateComputePipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                               (void **)&m_PixelHistoryCopyPso);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create PSO for pixel history HRESULT: %s", ToStr(hr).c_str());
+      return;
+    }
+    m_pDevice->GetResourceManager()->SetInternalResource(m_PixelHistoryCopyPso);
+  }
+
   shaderCache->SetCaching(false);
 
   D3D12_RESOURCE_DESC readbackDesc;
@@ -489,6 +526,10 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_IntArray2MS);
   SAFE_RELEASE(m_FloatArray2MS);
   SAFE_RELEASE(m_DepthArray2MS);
+
+  SAFE_RELEASE(m_PixelHistoryCopyCS);
+  SAFE_RELEASE(m_PixelHistoryCopySig);
+  SAFE_RELEASE(m_PixelHistoryCopyPso);
 
   SAFE_RELEASE(m_ReadbackBuffer);
 

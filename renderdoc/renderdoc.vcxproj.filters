@@ -1084,6 +1084,9 @@
     <None Include="data\hlsl\pixelhistory.hlsl">
       <Filter>Resources\hlsl</Filter>
     </None>
+    <None Include="data\hlsl\d3d12_pixelhistory.hlsl">
+      <Filter>Resources\hlsl</Filter>
+    </None>
     <None Include="data\hlsl\quadoverdraw.hlsl">
       <Filter>Resources\hlsl</Filter>
     </None>
