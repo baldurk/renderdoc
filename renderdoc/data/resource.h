@@ -18,6 +18,7 @@
 #define RESOURCE_texremap_hlsl      111
 #define RESOURCE_fixedcol_hlsl      112
 #define RESOURCE_shaderdebug_hlsl   118
+#define RESOURCE_d3d12_pixelhistory_hlsl  119
 
 #define RESOURCE_fixedcol_0_dxbc    113
 #define RESOURCE_fixedcol_1_dxbc    114

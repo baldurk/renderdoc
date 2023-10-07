@@ -31,7 +31,9 @@
 
 class WrappedID3D12Device;
 class D3D12ResourceManager;
+struct D3D12CopyPixelParams;
 struct D3D12Descriptor;
+struct D3D12PixelHistoryResources;
 
 namespace DXBC
 {
@@ -80,6 +82,14 @@ enum CBVUAVSRVSlot
   FIRST_SHADDEBUG_SRV,
   LAST_SHADDEBUG_SRV = FIRST_SHADDEBUG_SRV + 25,
 
+  FIRST_PIXELHISTORY_SRV,
+  LAST_PIXELHISTORY_SRV = FIRST_PIXELHISTORY_SRV + 10,
+  FIRST_PIXELHISTORY_SCRATCH_SRV,
+  LAST_PIXELHISTORY_SCRATCH_SRV = LAST_PIXELHISTORY_SRV + 10,
+
+  FIRST_PIXELHISTORY_UAV,
+  LAST_PIXELHISTORY_UAV = FIRST_PIXELHISTORY_UAV + 5,
+
   MAX_SRV_SLOT,
 };
 
@@ -91,6 +101,7 @@ enum RTVSlot
   GET_TEX_RTV,
   MSAA_RTV,
   SHADER_DEBUG_RTV,
+  PIXEL_HISTORY_RTV,
   FIRST_TMP_RTV,
   LAST_TMP_RTV = FIRST_TMP_RTV + 16,
   FIRST_WIN_RTV,
@@ -110,6 +121,7 @@ enum DSVSlot
 {
   OVERLAY_DSV,
   MSAA_DSV,
+  PIXEL_HISTORY_DSV,
   TMP_DSV,
   FIRST_WIN_DSV,
   LAST_WIN_DSV = FIRST_WIN_DSV + 64,
@@ -192,6 +204,14 @@ public:
                           ID3D12Resource *srcMS);
   void CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resource *srcArray, UINT selectedSlice);
 
+  void PixelHistoryCopyPixel(ID3D12GraphicsCommandListX *cmd, ID3D12Resource *dstBuffer,
+                             D3D12CopyPixelParams &params, size_t offset);
+
+  bool PixelHistorySetupResources(D3D12PixelHistoryResources &resources,
+                                  WrappedID3D12Resource *targetImage,
+                                  const D3D12_RESOURCE_DESC &desc, uint32_t numEvents);
+  bool PixelHistoryDestroyResources(D3D12PixelHistoryResources &resources);
+
 private:
   bool CreateShaderDebugResources();
 
@@ -229,6 +249,11 @@ private:
   ID3D12Resource *m_ShaderDebugResultBuffer = NULL;
   ID3D12PipelineState *m_TexSamplePso = NULL;
   std::map<uint32_t, ID3D12PipelineState *> m_OffsetTexSamplePso;
+
+  // PixelHistoryCopyPixel
+  ID3D12RootSignature *m_PixelHistoryCopySig = NULL;
+  ID3DBlob *m_PixelHistoryCopyCS = NULL;
+  ID3D12PipelineState *m_PixelHistoryCopyPso = NULL;
 
   // GetBufferData
   static const uint64_t m_ReadbackSize = 16 * 1024 * 1024;

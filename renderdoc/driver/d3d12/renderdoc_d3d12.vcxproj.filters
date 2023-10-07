@@ -227,5 +227,8 @@
     <ClCompile Include="d3d12_device_rescreate_wrap.cpp">
       <Filter>Wrapped</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12_pixelhistory.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

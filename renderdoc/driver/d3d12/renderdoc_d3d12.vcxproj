@@ -136,6 +136,7 @@
     <ClCompile Include="d3d12_msaa_array_conv.cpp" />
     <ClCompile Include="d3d12_outputwindow.cpp" />
     <ClCompile Include="d3d12_overlay.cpp" />
+    <ClCompile Include="d3d12_pixelhistory.cpp" />
     <ClCompile Include="d3d12_postvs.cpp" />
     <ClCompile Include="d3d12_rendermesh.cpp" />
     <ClCompile Include="d3d12_rendertext.cpp" />

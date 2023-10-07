@@ -720,6 +720,7 @@
     <None Include="data\hlsl\mesh.hlsl" />
     <None Include="data\hlsl\multisample.hlsl" />
     <None Include="data\hlsl\pixelhistory.hlsl" />
+    <None Include="data\hlsl\d3d12_pixelhistory.hlsl" />
     <None Include="data\hlsl\quadoverdraw.hlsl" />
     <None Include="data\hlsl\texdisplay.hlsl" />
     <None Include="os\win32\comexport.def" />
