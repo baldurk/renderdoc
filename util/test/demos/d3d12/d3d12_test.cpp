@@ -342,14 +342,14 @@ void D3D12GraphicsTest::PostDeviceCreate()
     D3D12_DESCRIPTOR_HEAP_DESC desc;
     desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     desc.NodeMask = 1;
-    desc.NumDescriptors = 32;
+    desc.NumDescriptors = 128;
     desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
     CHECK_HR(dev->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&m_RTV));
 
     m_RTV->SetName(L"RTV heap");
 
-    desc.NumDescriptors = 1;
+    desc.NumDescriptors = 16;
     desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 
     CHECK_HR(dev->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&m_DSV));
@@ -1027,7 +1027,7 @@ void D3D12GraphicsTest::popMarker(ID3D12GraphicsCommandListPtr cmd)
 }
 
 void D3D12GraphicsTest::blitToSwap(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr src,
-                                   ID3D12ResourcePtr dst)
+                                   ID3D12ResourcePtr dst, DXGI_FORMAT srvFormat)
 {
   D3D12_CPU_DESCRIPTOR_HANDLE rtv = MakeRTV(dst).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
 
@@ -1040,7 +1040,11 @@ void D3D12GraphicsTest::blitToSwap(ID3D12GraphicsCommandListPtr cmd, ID3D12Resou
   idx++;
   idx %= 6;
 
-  D3D12_GPU_DESCRIPTOR_HANDLE handle = MakeSRV(src).CreateGPU(1024 + idx);
+  D3D12_GPU_DESCRIPTOR_HANDLE handle;
+  if(srvFormat == DXGI_FORMAT_UNKNOWN)
+    handle = MakeSRV(src).CreateGPU(1024 + idx);
+  else
+    handle = MakeSRV(src).Format(srvFormat).CreateGPU(1024 + idx);
 
   cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
   cmd->SetGraphicsRootDescriptorTable(0, handle);
