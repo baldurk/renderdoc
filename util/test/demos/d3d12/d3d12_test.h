@@ -151,7 +151,8 @@ struct D3D12GraphicsTest : public GraphicsTest
   void setMarker(ID3D12GraphicsCommandListPtr cmd, const std::string &name);
   void popMarker(ID3D12GraphicsCommandListPtr cmd);
 
-  void blitToSwap(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr src, ID3D12ResourcePtr dst);
+  void blitToSwap(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr src, ID3D12ResourcePtr dst,
+                  DXGI_FORMAT srvFormat = DXGI_FORMAT_UNKNOWN);
 
   void ResourceBarrier(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr res,
                        D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
