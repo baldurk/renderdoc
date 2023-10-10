@@ -180,8 +180,14 @@ public:
   template <typename T>
   Id AddConstantImmediate(T t)
   {
+    return AddConstantImmediate<T>(t, MakeId());
+  }
+
+  template <typename T>
+  Id AddConstantImmediate(T t, rdcspv::Id constantId)
+  {
     Id typeId = DeclareType(scalar<T>());
-    rdcarray<uint32_t> words = {typeId.value(), MakeId().value()};
+    rdcarray<uint32_t> words = {typeId.value(), constantId.value()};
 
     words.resize(words.size() + (sizeof(T) + 3) / 4);
 
