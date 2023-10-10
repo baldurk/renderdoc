@@ -12,6 +12,10 @@
   <application android:debuggable="true" android:label="demos" android:icon="@drawable/icon" android:hasCode="true">
     <activity android:name=".Loader" android:label="RenderDoc" android:exported="true" android:screenOrientation="landscape" android:configChanges="orientation|keyboardHidden">
       <meta-data android:name="android.app.lib_name" android:value="demos"/>
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.CATEGORY_ALTERNATIVE" />
+      </intent-filter>
     </activity>
 
   </application>
