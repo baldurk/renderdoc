@@ -174,6 +174,9 @@ public:
     return it->second;
   }
 
+  rdcpair<Id, Id> AddBuiltinInputLoad(OperationList &ops, ShaderStage stage, BuiltIn builtin,
+                                      Id type);
+
   Id DeclareStructType(const rdcarray<Id> &members);
 
   // helper for AddConstant
@@ -252,6 +255,19 @@ private:
 
   virtual void RegisterOp(Iter iter);
   virtual void UnregisterOp(Iter iter);
+  virtual void PostParse();
+
+  void RegisterBuiltinMembers(rdcspv::Id baseId, const rdcarray<uint32_t> chainSoFar,
+                              const DataType *type);
+
+  struct BuiltinInputData
+  {
+    Id variable;
+    Id type;
+    rdcarray<uint32_t> chain;
+  };
+
+  std::map<BuiltIn, BuiltinInputData> builtinInputs;
 
   std::map<Id, Binding> bindings;
 

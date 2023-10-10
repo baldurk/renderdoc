@@ -403,6 +403,54 @@ Iter Editor::GetEntry(Id id)
   return Iter();
 }
 
+rdcpair<Id, Id> Editor::AddBuiltinInputLoad(OperationList &ops, ShaderStage stage, BuiltIn builtin,
+                                            Id type)
+{
+  BuiltinInputData &data = builtinInputs[builtin];
+
+  Id ptrType = DeclareType(Pointer(type, StorageClass::Input));
+
+  if(data.variable == Id())
+  {
+    const DataType &dataType = dataTypes[type];
+
+    Id var = AddVariable(OpVariable(ptrType, MakeId(), StorageClass::Input));
+    AddDecoration(OpDecorate(var, DecorationParam<Decoration::BuiltIn>(builtin)));
+
+    // Fragment shader inputs that are signed or unsigned integers, integer vectors, or any
+    // double-precision floating-point type must be decorated with Flat.
+    if(dataType.scalar().type != Op::TypeFloat && stage == ShaderStage::Pixel)
+      AddDecoration(OpDecorate(var, Decoration::Flat));
+
+    builtinInputs[builtin] = {var, ptrType, {}};
+
+    return {ops.add(OpLoad(type, MakeId(), var)), var};
+  }
+
+  Id varType = dataTypes[data.type].InnerType();
+
+  Id ret;
+
+  if(data.chain.empty())
+  {
+    ret = ops.add(OpLoad(varType, MakeId(), data.variable));
+  }
+  else
+  {
+    rdcarray<rdcspv::Id> chain;
+    for(uint32_t accessIdx : data.chain)
+      chain.push_back(AddConstantImmediate<uint32_t>(accessIdx));
+    Id subElement = ops.add(OpAccessChain(ptrType, MakeId(), data.variable, chain));
+
+    ret = ops.add(rdcspv::OpLoad(varType, MakeId(), subElement));
+  }
+
+  if(varType != type)
+    ret = ops.add(rdcspv::OpBitcast(type, MakeId(), ret));
+
+  return {ret, Id()};
+}
+
 Id Editor::DeclareStructType(const rdcarray<Id> &members)
 {
   Id typeId = MakeId();
@@ -541,6 +589,42 @@ void Editor::UnregisterOp(Iter it)
       bindings[decorate.target].set = Binding().set;
     if(decorate.decoration == Decoration::Binding)
       bindings[decorate.target].binding = Binding().binding;
+  }
+}
+
+void Editor::RegisterBuiltinMembers(rdcspv::Id baseId, const rdcarray<uint32_t> chainSoFar,
+                                    const DataType *type)
+{
+  uint32_t i = 0;
+  for(const DataType::Child &member : type->children)
+  {
+    if(member.decorations.flags & Decorations::HasBuiltIn)
+    {
+      rdcarray<uint32_t> chain = chainSoFar;
+      chain.push_back(i);
+      builtinInputs[member.decorations.builtIn] = {baseId, member.type, chain};
+    }
+    i++;
+  }
+}
+
+void Editor::PostParse()
+{
+  Processor::PostParse();
+
+  for(const Variable &v : globals)
+  {
+    if(v.storage == StorageClass::Input)
+    {
+      if(decorations[v.id].flags & Decorations::HasBuiltIn)
+      {
+        builtinInputs[decorations[v.id].builtIn] = {v.id, v.type, {}};
+      }
+      else
+      {
+        RegisterBuiltinMembers(v.id, {}, &dataTypes[v.type]);
+      }
+    }
   }
 }
 
