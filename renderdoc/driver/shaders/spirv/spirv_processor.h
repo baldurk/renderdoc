@@ -521,6 +521,15 @@ public:
   const rdcarray<EntryPoint> &GetEntries() { return entries; }
   const rdcarray<Variable> &GetGlobals() { return globals; }
   Id GetIDType(Id id) { return idTypes[id]; }
+  DataType &GetDataType(Id id)
+  {
+    static DataType empty;
+    auto it = dataTypes.find(id);
+    if(it == dataTypes.end())
+      return empty;
+    return it->second;
+  }
+  const Decorations &GetDecorations(Id id) const { return decorations[id]; };
   const rdcarray<uint32_t> &GetSPIRV() const { return m_SPIRV; }
 protected:
   virtual void Parse(const rdcarray<uint32_t> &spirvWords);
