@@ -76,6 +76,7 @@ public:
   Id MakeId();
 
   Id AddOperation(Iter iter, const Operation &op);
+  Iter AddOperations(Iter iter, const OperationList &ops);
 
   // callbacks to allow us to update our internal structures over changes
 

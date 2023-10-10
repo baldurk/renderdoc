@@ -472,6 +472,17 @@ Id Editor::AddOperation(Iter iter, const Operation &op)
   return OpDecoder(iter).result;
 }
 
+Iter Editor::AddOperations(Iter iter, const OperationList &ops)
+{
+  for(const rdcspv::Operation &op : ops)
+  {
+    AddOperation(iter, op);
+    ++iter;
+  }
+
+  return iter;
+}
+
 void Editor::RegisterOp(Iter it)
 {
   Processor::RegisterOp(it);

@@ -975,13 +975,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       ++it;
 
     if(funcId == entryID)
-    {
-      for(const rdcspv::Operation &op : locationGather)
-      {
-        editor.AddOperation(it, op);
-        ++it;
-      }
-    }
+      editor.AddOperations(it, locationGather);
 
     // now patch accesses in the function body
     for(; it; ++it)
