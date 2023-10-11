@@ -499,6 +499,13 @@ void Processor::Parse(const rdcarray<uint32_t> &spirvWords)
 
 void Processor::PreParse(uint32_t maxId)
 {
+  UpdateMaxID(maxId);
+
+  m_DeferMemberDecorations = true;
+}
+
+void Processor::UpdateMaxID(uint32_t maxId)
+{
   decorations.resize(maxId);
   idOffsets.resize(maxId);
   idTypes.resize(maxId);
@@ -806,13 +813,35 @@ void Processor::RegisterOp(Iter it)
   {
     OpMemberDecorate decoded(it);
 
-    m_MemberDecorations.push_back({decoded.structureType, decoded.member, decoded.decoration});
+    if(m_DeferMemberDecorations)
+    {
+      m_MemberDecorations.push_back({decoded.structureType, decoded.member, decoded.decoration});
+    }
+    else
+    {
+      if(decoded.member < dataTypes[decoded.structureType].children.size())
+        dataTypes[decoded.structureType].children[decoded.member].decorations.Register(
+            decoded.decoration);
+      else
+        RDCERR("Non-deferred member decoration referenced invalid type member");
+    }
   }
   else if(opdata.op == Op::MemberDecorateString)
   {
     OpMemberDecorateString decoded(it);
 
-    m_MemberDecorations.push_back({decoded.structType, decoded.member, decoded.decoration});
+    if(m_DeferMemberDecorations)
+    {
+      m_MemberDecorations.push_back({decoded.structType, decoded.member, decoded.decoration});
+    }
+    else
+    {
+      if(decoded.member < dataTypes[decoded.structType].children.size())
+        dataTypes[decoded.structType].children[decoded.member].decorations.Register(
+            decoded.decoration);
+      else
+        RDCERR("Non-deferred member decoration referenced invalid type member");
+    }
   }
   else if(opdata.op == Op::DecorationGroup || opdata.op == Op::GroupDecorate ||
           opdata.op == Op::GroupMemberDecorate)
@@ -961,6 +990,7 @@ void Processor::PostParse()
       dataTypes[dec.id].children[dec.member].decorations.Register(dec.dec);
 
   m_MemberDecorations.clear();
+  m_DeferMemberDecorations = false;
 }
 
 Iter Processor::GetID(Id id)

@@ -186,7 +186,7 @@ Id Editor::MakeId()
 {
   uint32_t ret = m_SPIRV[3];
   m_SPIRV[3]++;
-  Processor::PreParse(m_SPIRV[3]);
+  Processor::UpdateMaxID(m_SPIRV[3]);
   return Id::fromWord(ret);
 }
 

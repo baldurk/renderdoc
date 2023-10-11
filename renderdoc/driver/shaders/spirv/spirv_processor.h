@@ -536,6 +536,8 @@ protected:
 
   rdcarray<uint32_t> m_SPIRV;
 
+  void UpdateMaxID(uint32_t maxId);
+
   // before parsing - e.g. to prepare any arrays that are max-id sized
   virtual void PreParse(uint32_t maxId);
   // even though we only need UnregisterOp when editing, we declare it here for ease of organisation
@@ -607,6 +609,7 @@ private:
   };
 
   rdcarray<DeferredMemberDecoration> m_MemberDecorations;
+  bool m_DeferMemberDecorations = false;
 };
 
 };    // namespace rdcspv
