@@ -70,6 +70,16 @@ void Daemonise()
 {
 }
 
+// every 15 minutes we fade briefly to avoid burn-in
+const float splashFadePeriod = 45 * 60.0f;
+
+float curtime()
+{
+  timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return float(ts.tv_sec) + float(ts.tv_nsec & 0xffffffff) / 1000000000.0f;
+}
+
 void DisplayGenericSplash()
 {
   ANDROID_LOG("Trying to splash");
@@ -113,6 +123,7 @@ void DisplayGenericSplash()
   GPA_GET(glLinkProgram);
   GPA_GET(glGetUniformLocation);
   GPA_GET(glUniform2f);
+  GPA_GET(glUniform1f);
   GPA_GET(glUseProgram);
   GPA_GET(glVertexAttribPointer);
   GPA_GET(glEnableVertexAttribArray);
@@ -197,6 +208,7 @@ float logo(in vec2 uv)
 }
 
 uniform vec2 iResolution;
+uniform float fFade;
 
 void main()
 {
@@ -211,7 +223,7 @@ void main()
   float smoothdist = smoothstep(0.0, edgeWidth, clamp(logo(uv), 0.0, 1.0));
 
   // the green is #3bb779
-  gl_FragColor = mix(vec4(1.0), vec4(0.2314, 0.7176, 0.4745, 1.0), smoothdist);
+  gl_FragColor = mix(vec4(1.0), vec4(0.2314, 0.7176, 0.4745, 1.0), smoothdist)*fFade;
 }
 )";
 
@@ -260,6 +272,23 @@ void main()
             GLuint loc = glGetUniformLocation(prog, "iResolution");
             glUniform2f(loc, float(ANativeWindow_getWidth(previewWindow)),
                         float(ANativeWindow_getHeight(previewWindow)));
+
+            // loop every 15 minutes, with the fade at the end of the period
+            float x = splashFadePeriod - fmod(curtime(), splashFadePeriod);
+
+            // multiply by 4 so the fade happens over a little more than a second instead of
+            // 6.28 seconds.
+            x = float(x) * 4.0f;
+
+            // do one cos loop and finish
+            if(x >= M_PI * 2.0f)
+              x = M_PI * 2.0f;
+
+            float fade = cosf(x);
+
+            // set the fade
+            loc = glGetUniformLocation(prog, "fFade");
+            glUniform1f(loc, fade);
 
             // fullscreen triangle
             float verts[] = {
@@ -480,8 +509,19 @@ void android_main(struct android_app *state)
   // Used to poll the events in the main loop
   int events;
   android_poll_source *source;
+  float lastSplash = curtime();
   do
   {
+    // if we're near the end of the splash period force splashes at 30Hz
+    if(splashFadePeriod - fmod(curtime(), splashFadePeriod) < 10.0f)
+    {
+      if(curtime() - lastSplash > 1.0f / 30.0f)
+      {
+        DisplayGenericSplash();
+        lastSplash = curtime();
+      }
+    }
+
     if(ALooper_pollAll(1, nullptr, &events, (void **)&source) >= 0)
     {
       if(source != NULL)
