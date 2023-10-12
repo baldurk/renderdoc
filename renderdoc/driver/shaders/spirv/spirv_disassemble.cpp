@@ -355,13 +355,15 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
         case Op::TypeFloat:
         case Op::TypeVector:
         case Op::TypeMatrix:
-        case Op::TypePointer:
-        case Op::TypeArray:
         case Op::TypeImage:
         case Op::TypeSampler:
         case Op::TypeSampledImage:
+        case Op::TypeArray:
+        case Op::TypeRuntimeArray:
+        case Op::TypePointer:
         case Op::TypeFunction:
-        case Op::TypeRuntimeArray: continue;
+        case Op::TypeRayQueryKHR:
+        case Op::TypeAccelerationStructureNV: continue;
 
         case Op::TypeForwardPointer:
         {

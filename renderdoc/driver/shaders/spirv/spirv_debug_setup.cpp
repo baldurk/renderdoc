@@ -436,6 +436,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       "SPV_EXT_shader_image_int64",
       "SPV_GOOGLE_user_type",
       "SPV_KHR_physical_storage_buffer",
+      "SPV_KHR_ray_query",
   };
 
   // whitelist supported extensions
@@ -633,9 +634,16 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
         break;
       }
 
-      // raytracing
+      // raytracing - ray query
       case Capability::RayQueryKHR:
       case Capability::RayTraversalPrimitiveCullingKHR:
+      {
+        // TODO: Add support for debugging ray query shaders
+        supported = false;
+        break;
+      }
+
+      // raytracing
       case Capability::RayTracingKHR:
       case Capability::RayCullMaskKHR:
       case Capability::RayTracingOpacityMicromapEXT:
@@ -3087,6 +3095,13 @@ uint32_t Debugger::WalkVariable(
     case DataType::SampledImageType:
     case DataType::UnknownType:
     {
+      RDCERR("Unexpected variable type %d", type.type);
+      return numLocations;
+    }
+    case DataType::RayQueryType:
+    case DataType::AccelerationStructureType:
+    {
+      // TODO: Add support for debugging ray query shaders
       RDCERR("Unexpected variable type %d", type.type);
       return numLocations;
     }

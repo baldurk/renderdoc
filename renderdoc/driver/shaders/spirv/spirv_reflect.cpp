@@ -850,6 +850,14 @@ void Reflector::PostParse()
         type.name = StringFormat::Fmt("Sampled%s",
                                       dataTypes[sampledImageTypes[type.id].baseId].name.c_str());
       }
+      else if(type.type == DataType::RayQueryType)
+      {
+        type.name = StringFormat::Fmt("rayQuery%u", type.id.value());
+      }
+      else if(type.type == DataType::AccelerationStructureType)
+      {
+        type.name = StringFormat::Fmt("accelerationStructure%u", type.id.value());
+      }
     }
   }
 
@@ -1323,6 +1331,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       RDCASSERT(dataTypes[global.type].pointerType.storage == global.storage);
 
       const DataType *varType = &dataTypes[dataTypes[global.type].InnerType()];
+      RDCASSERT(varType->type != DataType::UnknownType);
 
       // if the outer type is an array, get the length and peel it off.
       bool isArray = false;
@@ -1425,7 +1434,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
           samplers.push_back(shaderrespair(bindmap, res));
         }
-        else
+        else if(varType->type == DataType::ImageType || varType->type == DataType::SampledImageType)
         {
           Id imageTypeId = varType->id;
 
@@ -1462,6 +1471,16 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
             roresources.push_back(shaderrespair(bindmap, res));
           else
             rwresources.push_back(shaderrespair(bindmap, res));
+        }
+        else if(varType->type == DataType::AccelerationStructureType)
+        {
+          res.resType = TextureType::Unknown;
+          res.isTexture = false;
+          res.isReadOnly = true;
+
+          res.variableType.baseType = VarType::ReadOnlyResource;
+
+          roresources.push_back(shaderrespair(bindmap, res));
         }
       }
       else

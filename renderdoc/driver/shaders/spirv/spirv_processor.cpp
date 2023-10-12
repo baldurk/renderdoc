@@ -851,6 +851,17 @@ void Processor::RegisterOp(Iter it)
         RDCERR("Non-deferred member decoration referenced invalid type member");
     }
   }
+  else if(opdata.op == Op::TypeRayQueryKHR)
+  {
+    OpTypeRayQueryKHR decoded(it);
+    dataTypes[opdata.result] = DataType(decoded.result, DataType::RayQueryType);
+  }
+  else if(opdata.op == Op::TypeAccelerationStructureKHR ||
+          opdata.op == Op::TypeAccelerationStructureNV)
+  {
+    OpTypeAccelerationStructureNV decoded(it);
+    dataTypes[opdata.result] = DataType(decoded.result, DataType::AccelerationStructureType);
+  }
   else if(opdata.op == Op::DecorationGroup || opdata.op == Op::GroupDecorate ||
           opdata.op == Op::GroupMemberDecorate)
   {
@@ -926,7 +937,9 @@ void Processor::UnregisterOp(Iter it)
   else if(opdata.op == Op::TypeVoid || opdata.op == Op::TypeBool || opdata.op == Op::TypeInt ||
           opdata.op == Op::TypeFloat || opdata.op == Op::TypeVector ||
           opdata.op == Op::TypeMatrix || opdata.op == Op::TypeStruct || opdata.op == Op::TypeArray ||
-          opdata.op == Op::TypePointer || opdata.op == Op::TypeRuntimeArray)
+          opdata.op == Op::TypePointer || opdata.op == Op::TypeRuntimeArray ||
+          opdata.op == Op::TypeRayQueryKHR || opdata.op == Op::TypeAccelerationStructureKHR ||
+          opdata.op == Op::TypeAccelerationStructureNV)
   {
     dataTypes[opdata.result] = DataType();
   }
