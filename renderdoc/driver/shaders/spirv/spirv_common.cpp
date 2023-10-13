@@ -178,6 +178,7 @@ ShaderBuiltin MakeShaderBuiltin(ShaderStage stage, const rdcspv::BuiltIn el)
     case rdcspv::BuiltIn::SubgroupLtMask: return ShaderBuiltin::SubgroupLessMask;
     case rdcspv::BuiltIn::DeviceIndex: return ShaderBuiltin::DeviceIndex;
     case rdcspv::BuiltIn::FullyCoveredEXT: return ShaderBuiltin::IsFullyCovered;
+    case rdcspv::BuiltIn::BaryCoordKHR: return ShaderBuiltin::Barycentrics;
     case rdcspv::BuiltIn::FragSizeEXT: return ShaderBuiltin::FragAreaSize;
     case rdcspv::BuiltIn::FragInvocationCountEXT: return ShaderBuiltin::FragInvocationCount;
     default: break;
