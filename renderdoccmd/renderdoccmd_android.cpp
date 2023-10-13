@@ -28,6 +28,7 @@
 #include <GLES2/gl2ext.h>
 #include <dlfcn.h>
 #include <locale.h>
+#include <math.h>
 #include <string.h>
 #include <unistd.h>
 #include <string>
