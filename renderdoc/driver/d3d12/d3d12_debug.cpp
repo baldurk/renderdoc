@@ -2645,6 +2645,35 @@ void D3D12Replay::PixelPicking::Release()
   SAFE_RELEASE(Texture);
 }
 
+void D3D12Replay::PixelHistory::Init(WrappedID3D12Device *device, D3D12DebugManager *debug)
+{
+  D3D12ShaderCache *shaderCache = device->GetShaderCache();
+
+  shaderCache->SetCaching(true);
+
+  rdcstr hlsl = GetEmbeddedResource(d3d12_pixelhistory_hlsl);
+
+  shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PrimitiveIDPS",
+                             D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &PrimitiveIDPS);
+  shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PrimitiveIDPS",
+                             D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_6_0", &PrimitiveIDPSDxil);
+
+  shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PixelHistoryFixedColPS",
+                             D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &FixedColorPS);
+  shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PixelHistoryFixedColPS",
+                             D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_6_0", &FixedColorPSDxil);
+
+  shaderCache->SetCaching(false);
+}
+
+void D3D12Replay::PixelHistory::Release()
+{
+  SAFE_RELEASE(PrimitiveIDPS);
+  SAFE_RELEASE(PrimitiveIDPSDxil);
+  SAFE_RELEASE(FixedColorPS);
+  SAFE_RELEASE(FixedColorPSDxil);
+}
+
 void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugManager *debug)
 {
   HRESULT hr = S_OK;
