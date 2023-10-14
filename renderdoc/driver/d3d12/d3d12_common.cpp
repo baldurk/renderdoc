@@ -849,6 +849,12 @@ UINT GetNumSubresources(ID3D12Device *dev, const D3D12_RESOURCE_DESC *desc)
   return 1;
 }
 
+UINT D3D12CalcSubresource(UINT MipSlice, UINT ArraySlice, UINT PlaneSlice, UINT MipLevels,
+                          UINT ArraySize)
+{
+  return MipSlice + (ArraySlice * MipLevels) + (PlaneSlice * MipLevels * ArraySize);
+}
+
 ShaderStageMask ConvertVisibility(D3D12_SHADER_VISIBILITY ShaderVisibility)
 {
   switch(ShaderVisibility)

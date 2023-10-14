@@ -467,6 +467,18 @@ private:
     ID3D12Resource *Texture = NULL;
   } m_PixelPick;
 
+  struct PixelHistory
+  {
+    void Init(WrappedID3D12Device *device, D3D12DebugManager *debug);
+    void Release();
+
+    ID3DBlob *PrimitiveIDPS = NULL;
+    ID3DBlob *PrimitiveIDPSDxil = NULL;
+
+    ID3DBlob *FixedColorPS = NULL;
+    ID3DBlob *FixedColorPSDxil = NULL;
+  } m_PixelHistory;
+
   struct HistogramMinMax
   {
     void Init(WrappedID3D12Device *device, D3D12DebugManager *debug);

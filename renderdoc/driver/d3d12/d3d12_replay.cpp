@@ -160,6 +160,7 @@ void D3D12Replay::CreateResources()
     m_Overlay.Init(m_pDevice, m_DebugManager);
     m_VertexPick.Init(m_pDevice, m_DebugManager);
     m_PixelPick.Init(m_pDevice, m_DebugManager);
+    m_PixelHistory.Init(m_pDevice, m_DebugManager);
     m_Histogram.Init(m_pDevice, m_DebugManager);
 
     if(!m_Proxy && D3D12_HardwareCounters())
@@ -214,6 +215,7 @@ void D3D12Replay::DestroyResources()
   m_Overlay.Release();
   m_VertexPick.Release();
   m_PixelPick.Release();
+  m_PixelHistory.Release();
   m_Histogram.Release();
 
   SAFE_RELEASE(m_BindlessFeedback.FeedbackBuffer);

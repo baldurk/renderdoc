@@ -240,6 +240,9 @@ inline UINT GetNumSubresources(ID3D12Device *dev, const D3D12_RESOURCE_DESC1 *de
   return GetNumSubresources(dev, &desc0);
 }
 
+UINT D3D12CalcSubresource(UINT MipSlice, UINT ArraySlice, UINT PlaneSlice, UINT MipLevels,
+                          UINT ArraySize);
+
 class WrappedID3D12Device;
 
 template <typename RealType>

@@ -63,6 +63,31 @@ struct D3D12PixelHistoryResources
   D3D12Descriptor *dsDescriptor;
 };
 
+struct D3D12PixelHistoryCallbackInfo
+{
+  // Original image for which pixel history is requested.
+  WrappedID3D12Resource *targetImage;
+  D3D12_RESOURCE_DESC targetDesc;
+
+  // Information about the location of the pixel for which history was requested.
+  Subresource targetSubresource;
+  CompType compType;
+  uint32_t x;
+  uint32_t y;
+  uint32_t sampleMask;
+
+  // Image used to get per fragment data.
+  ID3D12Resource *colorImage;
+  D3D12Descriptor *colorDescriptor;
+
+  // Image used to get stencil counts.
+  ID3D12Resource *dsImage;
+  D3D12Descriptor *dsDescriptor;
+
+  // Buffer used to copy colour and depth information
+  ID3D12Resource *dstBuffer;
+};
+
 struct D3D12PixelHistoryValue
 {
   // Max size is 4 component with 8 byte component width
@@ -245,6 +270,249 @@ void D3D12DebugManager::PixelHistoryCopyPixel(ID3D12GraphicsCommandListX *cmd,
   state = prevState;
   state.ApplyState(m_pDevice, cmd);
 }
+
+// D3D12PixelHistoryShaderCache manages temporary shaders created for pixel history.
+struct D3D12PixelHistoryShaderCache
+{
+  D3D12PixelHistoryShaderCache(WrappedID3D12Device *device, ID3DBlob *PersistentPrimIDPS,
+                               ID3DBlob *PersistentPrimIDPSDxil, ID3DBlob *FixedColorPS,
+                               ID3DBlob *FixedColorPSDxil)
+      : m_pDevice(device),
+        m_PrimIDPS(PersistentPrimIDPS),
+        m_PrimIDPSDxil(PersistentPrimIDPSDxil),
+        m_FixedColorPS(FixedColorPS),
+        m_FixedColorPSDxil(FixedColorPSDxil)
+  {
+  }
+
+  ~D3D12PixelHistoryShaderCache() {}
+
+  // Returns a fragment shader that outputs a fixed color
+  ID3DBlob *GetFixedColorShader(bool dxil) { return dxil ? m_FixedColorPSDxil : m_FixedColorPS; }
+
+  // Returns a fragment shader that outputs primitive ID
+  ID3DBlob *GetPrimitiveIdShader(bool dxil) { return dxil ? m_PrimIDPSDxil : m_PrimIDPS; }
+
+  // TODO: This class should also manage any shader replacements needed during pixel history
+
+private:
+  WrappedID3D12Device *m_pDevice;
+
+  ID3DBlob *m_PrimIDPS;
+  ID3DBlob *m_PrimIDPSDxil;
+  ID3DBlob *m_FixedColorPS;
+  ID3DBlob *m_FixedColorPSDxil;
+};
+
+// D3D12PixelHistoryCallback is a generic D3D12ActionCallback that can be used
+// for pixel history replays.
+struct D3D12PixelHistoryCallback : public D3D12ActionCallback
+{
+  D3D12PixelHistoryCallback(WrappedID3D12Device *device, D3D12PixelHistoryShaderCache *shaderCache,
+                            const D3D12PixelHistoryCallbackInfo &callbackInfo,
+                            ID3D12QueryHeap *occlusionQueryHeap)
+      : m_pDevice(device),
+        m_ShaderCache(shaderCache),
+        m_CallbackInfo(callbackInfo),
+        m_OcclusionQueryHeap(occlusionQueryHeap)
+  {
+    m_pDevice->GetQueue()->GetCommandData()->m_ActionCallback = this;
+  }
+
+  virtual ~D3D12PixelHistoryCallback()
+  {
+    m_pDevice->GetQueue()->GetCommandData()->m_ActionCallback = NULL;
+  }
+
+protected:
+  // Update the given scissor to just the pixel for which pixel history was requested.
+  void ScissorToPixel(const D3D12_VIEWPORT &view, D3D12_RECT &scissor)
+  {
+    float fx = (float)m_CallbackInfo.x;
+    float fy = (float)m_CallbackInfo.y;
+    float y_start = view.TopLeftY;
+    float y_end = view.TopLeftY + view.Height;
+    if(view.Height < 0)
+    {
+      // Handle negative viewport which was added in Agility SDK 1.602.0
+      y_start = view.TopLeftY + view.Height;
+      y_end = view.TopLeftY;
+    }
+
+    if(fx < view.TopLeftX || fy < y_start || fx >= view.TopLeftX + view.Width || fy >= y_end)
+    {
+      scissor.left = scissor.top = scissor.right = scissor.bottom = 0;
+    }
+    else
+    {
+      scissor.left = m_CallbackInfo.x;
+      scissor.top = m_CallbackInfo.y;
+      scissor.right = scissor.left + 1;
+      scissor.bottom = scissor.top + 1;
+    }
+  }
+
+  // Intersects the originalScissor and newScissor and writes intersection to the newScissor.
+  // newScissor always covers a single pixel, so if originalScissor does not touch that pixel
+  // returns an empty scissor.
+  void IntersectScissors(const D3D12_RECT &originalScissor, D3D12_RECT &newScissor)
+  {
+    RDCASSERT(newScissor.right == newScissor.left + 1);
+    RDCASSERT(newScissor.bottom == newScissor.top + 1);
+    if(originalScissor.left > newScissor.left || originalScissor.right < newScissor.right ||
+       originalScissor.top > newScissor.top || originalScissor.bottom < newScissor.bottom)
+    {
+      // Scissor does not touch our target pixel, make it empty
+      newScissor.left = newScissor.top = newScissor.right = newScissor.bottom = 0;
+    }
+  }
+
+  // ModifyPSOForStencilIncrement modifies the provided pipeDesc, by disabling depth test
+  // and write, stencil is set to always pass and increment, scissor is set to scissor around
+  // the target pixel, and all color modifications are disabled.
+  // Optionally disables other tests like culling, depth bounds.
+  void ModifyPSOForStencilIncrement(uint32_t eid, D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &pipeDesc,
+                                    bool disableTests)
+  {
+    pipeDesc.DepthStencilState.DepthEnable = FALSE;
+    pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+
+    if(disableTests)
+    {
+      pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+      pipeDesc.RasterizerState.DepthClipEnable = FALSE;
+      pipeDesc.DepthStencilState.DepthBoundsTestEnable = FALSE;
+    }
+
+    // TODO: Get from callbackinfo/pixelhistoryresources?
+    pipeDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+
+    // TODO: If the original depth buffer doesn't have stencil, this will not work as expected.
+    // We will need to detect that and switch to a DSV with a stencil for some pixel history passes.
+
+    // Set up the stencil state.
+    {
+      pipeDesc.DepthStencilState.StencilEnable = TRUE;
+      pipeDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+      pipeDesc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_INCR_SAT;
+      pipeDesc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_INCR_SAT;
+      pipeDesc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_INCR_SAT;
+      pipeDesc.DepthStencilState.FrontFace.StencilReadMask = 0xff;
+      pipeDesc.DepthStencilState.FrontFace.StencilWriteMask = 0xff;
+      pipeDesc.DepthStencilState.BackFace = pipeDesc.DepthStencilState.FrontFace;
+      // Stencil ref is set separately from the PSO
+    }
+
+    // Narrow on the specific pixel and sample.
+    {
+      pipeDesc.SampleMask = m_CallbackInfo.sampleMask;
+    }
+
+    // Turn off all color modifications.
+    {
+      for(uint32_t i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+        pipeDesc.BlendState.RenderTarget[i].RenderTargetWriteMask = 0;
+    }
+  }
+
+  void CopyImagePixel(ID3D12GraphicsCommandListX *cmd, D3D12CopyPixelParams &p, size_t offset)
+  {
+    uint32_t baseMip = m_CallbackInfo.targetSubresource.mip;
+    uint32_t baseSlice = m_CallbackInfo.targetSubresource.slice;
+
+    // The images that are created specifically for evaluating pixel history are
+    // already based on the target mip/slice
+    if(p.srcImage == m_CallbackInfo.colorImage || p.srcImage == m_CallbackInfo.dsImage)
+    {
+      // TODO: Is this always true when we call CopyImagePixel? Also need to test this case with MSAA
+      baseMip = 0;
+      baseSlice = 0;
+    }
+
+    // For pipeline barriers.
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = p.srcImage;
+    barrier.Transition.StateBefore = p.srcImageState;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    barrier.Transition.Subresource =
+        D3D12CalcSubresource(baseMip, baseSlice, p.planeSlice, m_CallbackInfo.targetDesc.MipLevels,
+                             m_CallbackInfo.targetDesc.DepthOrArraySize);
+
+    // Multi-sampled images can't call CopyTextureRegion for a single sample, so instead
+    // copy using a compute shader into a staging image first
+    if(p.multisampled)
+    {
+      // TODO: Is a resource transition needed here?
+      m_pDevice->GetDebugManager()->PixelHistoryCopyPixel(cmd, m_CallbackInfo.dstBuffer, p, offset);
+    }
+    else
+    {
+      cmd->ResourceBarrier(1, &barrier);
+
+      D3D12_TEXTURE_COPY_LOCATION dst = {}, src = {};
+
+      src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+      src.pResource = p.srcImage;
+      src.SubresourceIndex = barrier.Transition.Subresource;
+
+      // Copy into a buffer, but treat the footprint as the same format as the target image
+      uint32_t elementSize = GetByteSize(0, 0, 0, p.copyFormat, 0);
+
+      dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+      dst.pResource = m_CallbackInfo.dstBuffer;
+      dst.PlacedFootprint.Offset = 0;
+      dst.PlacedFootprint.Footprint.Width =
+          (UINT)m_CallbackInfo.dstBuffer->GetDesc().Width / elementSize;
+      dst.PlacedFootprint.Footprint.Height = 1;
+      dst.PlacedFootprint.Footprint.Depth = 1;
+      dst.PlacedFootprint.Footprint.Format = p.copyFormat;
+      dst.PlacedFootprint.Footprint.RowPitch = (UINT)m_CallbackInfo.dstBuffer->GetDesc().Width;
+
+      D3D12_BOX srcBox = {};
+      srcBox.left = p.x;
+      srcBox.top = p.y;
+      srcBox.right = srcBox.left + 1;
+      srcBox.bottom = srcBox.top + 1;
+      srcBox.front = 0;
+      srcBox.back = 1;
+
+      // We need to apply the offset here (measured in number of elements) rather than using
+      // PlacedFootprint.Offset (measured in bytes) because the latter must be a multiple of 512
+      RDCASSERT((offset % elementSize) == 0);
+      cmd->CopyTextureRegion(&dst, (UINT)(offset / elementSize), 0, 0, &src, &srcBox);
+
+      std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+      cmd->ResourceBarrier(1, &barrier);
+    }
+  }
+
+  // Returns the render target index that corresponds to the target image for pixel history.
+  uint32_t GetPixelHistoryRenderTargetIndex(const D3D12RenderState &renderstate)
+  {
+    ResourceId targetId = GetResID(m_CallbackInfo.targetImage);
+    if(renderstate.dsv.GetResResourceId() == targetId)
+      return 0;
+
+    uint32_t targetIndex = 0;
+    for(uint32_t i = 0; i < renderstate.rts.size(); i++)
+    {
+      ResourceId id = renderstate.rts[i].GetResResourceId();
+      if(id == targetId)
+      {
+        targetIndex = i;
+        break;
+      }
+    }
+
+    return targetIndex;
+  }
+
+  WrappedID3D12Device *m_pDevice;
+  D3D12PixelHistoryShaderCache *m_ShaderCache;
+  D3D12PixelHistoryCallbackInfo m_CallbackInfo;
+  ID3D12QueryHeap *m_OcclusionQueryHeap;
+};
 
 bool D3D12DebugManager::PixelHistorySetupResources(D3D12PixelHistoryResources &resources,
                                                    WrappedID3D12Resource *targetImage,
