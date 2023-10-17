@@ -137,6 +137,8 @@ public:
     return Data(data.data()).Size(UINT(data.size() * sizeof(T)));
   }
 
+  D3D12BufferCreator &InitialState(D3D12_RESOURCE_STATES initialState);
+
   operator ID3D12ResourcePtr() const;
 
 private:
@@ -146,6 +148,7 @@ private:
   D3D12_RESOURCE_DESC m_BufDesc;
   D3D12_HEAP_PROPERTIES m_HeapDesc;
   const void *m_Initdata = NULL;
+  D3D12_RESOURCE_STATES m_InitialState;
 };
 
 class D3D12TextureCreator
@@ -169,6 +172,7 @@ public:
   D3D12TextureCreator &Shared();
 
   D3D12TextureCreator &InitialState(D3D12_RESOURCE_STATES state);
+  D3D12TextureCreator &ClearVal(const D3D12_CLEAR_VALUE &clearVal);
 
   operator ID3D12ResourcePtr() const;
 
@@ -179,6 +183,7 @@ protected:
   D3D12_RESOURCE_DESC m_TexDesc;
   D3D12_HEAP_PROPERTIES m_HeapDesc;
   D3D12_HEAP_FLAGS m_HeapFlags = D3D12_HEAP_FLAG_NONE;
+  D3D12_CLEAR_VALUE m_ClearVal;
 };
 
 class D3D12ViewCreator

@@ -250,6 +250,8 @@ D3D12BufferCreator::D3D12BufferCreator(ID3D12DevicePtr dev, D3D12GraphicsTest *t
   m_HeapDesc.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
   m_HeapDesc.CreationNodeMask = 1;
   m_HeapDesc.VisibleNodeMask = 1;
+
+  m_InitialState = D3D12_RESOURCE_STATE_COMMON;
 }
 
 D3D12BufferCreator &D3D12BufferCreator::UAV()
@@ -261,12 +263,14 @@ D3D12BufferCreator &D3D12BufferCreator::UAV()
 D3D12BufferCreator &D3D12BufferCreator::Upload()
 {
   m_HeapDesc.Type = D3D12_HEAP_TYPE_UPLOAD;
+  m_InitialState = D3D12_RESOURCE_STATE_GENERIC_READ;
   return *this;
 }
 
 D3D12BufferCreator &D3D12BufferCreator::Readback()
 {
   m_HeapDesc.Type = D3D12_HEAP_TYPE_READBACK;
+  m_InitialState = D3D12_RESOURCE_STATE_COPY_DEST;
   return *this;
 }
 
@@ -282,17 +286,16 @@ D3D12BufferCreator &D3D12BufferCreator::Size(UINT size)
   return *this;
 }
 
+D3D12BufferCreator &D3D12BufferCreator::InitialState(D3D12_RESOURCE_STATES initialState)
+{
+  m_InitialState = initialState;
+  return *this;
+}
+
 D3D12BufferCreator::operator ID3D12ResourcePtr() const
 {
-  D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON;
-
-  if(m_HeapDesc.Type == D3D12_HEAP_TYPE_UPLOAD)
-    initialState = D3D12_RESOURCE_STATE_GENERIC_READ;
-  else if(m_HeapDesc.Type == D3D12_HEAP_TYPE_READBACK)
-    initialState = D3D12_RESOURCE_STATE_COPY_DEST;
-
   ID3D12ResourcePtr buf;
-  CHECK_HR(m_Dev->CreateCommittedResource(&m_HeapDesc, D3D12_HEAP_FLAG_NONE, &m_BufDesc, initialState,
+  CHECK_HR(m_Dev->CreateCommittedResource(&m_HeapDesc, D3D12_HEAP_FLAG_NONE, &m_BufDesc, m_InitialState,
                                           NULL, __uuidof(ID3D12Resource), (void **)&buf));
 
   if(m_Initdata && m_Test)
@@ -329,6 +332,8 @@ D3D12TextureCreator::D3D12TextureCreator(ID3D12DevicePtr dev, DXGI_FORMAT format
   m_HeapDesc.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
   m_HeapDesc.CreationNodeMask = 1;
   m_HeapDesc.VisibleNodeMask = 1;
+
+  m_ClearVal.Format = DXGI_FORMAT_UNKNOWN;
 }
 
 D3D12TextureCreator &D3D12TextureCreator::Mips(UINT mips)
@@ -405,11 +410,18 @@ D3D12TextureCreator &D3D12TextureCreator::InitialState(D3D12_RESOURCE_STATES sta
   return *this;
 }
 
+D3D12TextureCreator &D3D12TextureCreator::ClearVal(const D3D12_CLEAR_VALUE &clearVal)
+{
+  m_ClearVal = clearVal;
+  return *this;
+}
+
 D3D12TextureCreator::operator ID3D12ResourcePtr() const
 {
   ID3D12ResourcePtr tex;
   CHECK_HR(m_Dev->CreateCommittedResource(&m_HeapDesc, m_HeapFlags, &m_TexDesc, m_InitialState,
-                                          NULL, __uuidof(ID3D12Resource), (void **)&tex));
+                                          (m_ClearVal.Format == DXGI_FORMAT_UNKNOWN) ? NULL : &m_ClearVal,
+                                          __uuidof(ID3D12Resource), (void **)&tex));
   return tex;
 }
 
