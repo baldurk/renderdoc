@@ -2122,7 +2122,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 break;
               case DescriptorSlotType::InlineBlock: dstel.type = BindType::ConstantBuffer; break;
               case DescriptorSlotType::AccelerationStructure:
-                dstel.type = BindType::ReadOnlyResource;
+                dstel.type = BindType::AccelerationStructure;
                 break;
               case DescriptorSlotType::Unwritten:
               case DescriptorSlotType::Count: dstel.type = BindType::Unknown; break;

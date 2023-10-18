@@ -716,6 +716,7 @@ rdcstr DoStringise(const BindType &el)
     STRINGISE_ENUM_CLASS_NAMED(ReadOnlyResource, "Resource");
     STRINGISE_ENUM_CLASS_NAMED(ReadWriteResource, "RW Resource");
     STRINGISE_ENUM_CLASS_NAMED(InputAttachment, "Input");
+    STRINGISE_ENUM_CLASS_NAMED(AccelerationStructure, "Acceleration Structure");
   }
   END_ENUM_STRINGISE();
 }

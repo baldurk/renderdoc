@@ -818,6 +818,10 @@ DOCUMENT(R"(The type of a shader resource bind.
 .. data:: InputAttachment
 
   An input attachment for reading from the target currently being written.
+
+.. data:: AccelerationStructure
+
+  A top-level acceleration structure (read-only in shaders).
 )");
 enum class BindType : uint32_t
 {
@@ -834,6 +838,7 @@ enum class BindType : uint32_t
   ReadOnlyResource,
   ReadWriteResource,
   InputAttachment,
+  AccelerationStructure,
 };
 
 DECLARE_REFLECTION_ENUM(BindType);

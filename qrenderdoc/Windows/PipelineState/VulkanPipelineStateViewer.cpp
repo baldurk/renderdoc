@@ -1586,6 +1586,28 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
             setInactiveRow(node);
         }
       }
+      else if(bindType == BindType::AccelerationStructure)
+      {
+        const uint64_t &byteSize = descriptorBind->byteSize;
+        QString content = byteSize ? QFormatStr("%1 bytes").arg(byteSize) : lit("-");
+
+        node = new RDTreeWidgetItem({
+            QString(),
+            setname,
+            slotname,
+            ToQStr(bindType),
+            descriptorBind ? descriptorBind->resourceResourceId : ResourceId(),
+            content,
+            QString(),
+            QString(),
+        });
+
+        if(!filledSlot)
+          setEmptyRow(node);
+
+        if(!dynamicUsed)
+          setInactiveRow(node);
+      }
       else
       {
         if(descriptorBind == NULL || descriptorBind->resourceResourceId == ResourceId())
