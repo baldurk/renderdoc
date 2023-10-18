@@ -739,7 +739,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
         false,    // depthEnable
         false,    // stencilEnable
         VK_STENCIL_OP_REPLACE,
-        false,    // colourOutput
+        true,     // colourOutput
         false,    // blendEnable
         VK_BLEND_FACTOR_ONE,
         VK_BLEND_FACTOR_ZERO,
