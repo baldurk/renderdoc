@@ -60,6 +60,17 @@ On windows cmake you need to specify the 'generator' type to the cmake invocatio
 cmake -DBUILD_ANDROID=On -DANDROID_ABI=armeabi-v7a -G "MSYS Makefiles" ..
 ```
 
+If using developing with multiple Android ABIs, naming your build folders as follows will allow renderdoc to find the right version to install automatically:
+
+| ABI         | Folder Name         |
+|-------------|---------------------|
+| armeabi-v7a | build-android-arm32 |
+| arm64-v8a   | build-android-arm64 |
+| x86\*       | build-android-x86   |
+| x86_64\*    | build-android-x64   |
+
+\* Not officially supported
+
 ### Note:
 
 With GLES programs on Android, the built-in hooking method doesn't always work. If you have trouble with crashes or problems capturing GLES programs, try enabling building with [interceptor-lib](../../renderdoc/3rdparty/interceptor-lib/README.md). **WARNING**: Building this requires a hefty dependency.
