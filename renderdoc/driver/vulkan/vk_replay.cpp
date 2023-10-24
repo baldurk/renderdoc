@@ -1866,11 +1866,6 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       const VkOffset2D &o = state.fragmentDensityMapOffsets[i];
       ret.currentPass.renderpass.fragmentDensityOffsets[i] = Offset(o.x, o.y);
     }
-
-    ret.currentPass.renderArea.x = state.renderArea.offset.x;
-    ret.currentPass.renderArea.y = state.renderArea.offset.y;
-    ret.currentPass.renderArea.width = state.renderArea.extent.width;
-    ret.currentPass.renderArea.height = state.renderArea.extent.height;
   }
   else
   {
@@ -1889,6 +1884,14 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
     ret.currentPass.framebuffer.resourceId = ResourceId();
     ret.currentPass.framebuffer.attachments.clear();
+  }
+
+  if(state.GetRenderPass() != ResourceId() || (state.dynamicRendering.active))
+  {
+    ret.currentPass.renderArea.x = state.renderArea.offset.x;
+    ret.currentPass.renderArea.y = state.renderArea.offset.y;
+    ret.currentPass.renderArea.width = state.renderArea.extent.width;
+    ret.currentPass.renderArea.height = state.renderArea.extent.height;
   }
 
   ret.currentPass.colorFeedbackAllowed = (state.feedbackAspects & VK_IMAGE_ASPECT_COLOR_BIT) != 0;
