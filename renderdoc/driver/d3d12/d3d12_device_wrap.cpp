@@ -911,6 +911,7 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
   if(IsReplayingAndReading())
   {
     D3D12_DESCRIPTOR_HEAP_DESC PatchedDesc = Descriptor;
+    bool patched = false;
 
     // inflate the heap so we can insert our own descriptors at the end
     // while patching, because DX12 has a stupid limitation to not be able
@@ -919,15 +920,30 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
     {
       if(m_D3D12Opts.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_3 ||
          PatchedDesc.NumDescriptors + 16 <= 1000000)
+      {
         PatchedDesc.NumDescriptors += 16;
+        patched = true;
+      }
       else
+      {
         RDCERR(
             "RenderDoc needs extra descriptors for patching during analysis,"
             "but heap is already at binding tier limit");
+      }
     }
 
     ID3D12DescriptorHeap *ret = NULL;
     HRESULT hr = m_pDevice->CreateDescriptorHeap(&PatchedDesc, guid, (void **)&ret);
+
+    if(patched && FAILED(hr))
+    {
+      RDCERR(
+          "RenderDoc needs extra descriptors for patching during analysis,"
+          "but heap failed to expand any further even at tier 3");
+      PatchedDesc.NumDescriptors = Descriptor.NumDescriptors;
+
+      hr = m_pDevice->CreateDescriptorHeap(&PatchedDesc, guid, (void **)&ret);
+    }
 
     if(FAILED(hr))
     {
