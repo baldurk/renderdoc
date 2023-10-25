@@ -712,7 +712,17 @@ void ReplayOutput::DisplayContext()
       m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizeDraw ||
       m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizePass) &&
      m_OverlayResourceId != ResourceId())
+  {
     disp.resourceId = m_OverlayResourceId;
+    disp.typeCast = CompType::Typeless;
+    disp.red = disp.green = disp.blue = disp.alpha = true;
+    disp.rawOutput = false;
+    disp.customShaderId = ResourceId();
+    disp.hdrMultiplier = -1.0f;
+    disp.rangeMin = 0.0f;
+    disp.rangeMax = 1.0f;
+    disp.linearDisplayAsGamma = false;
+  }
 
   const float contextZoom = 8.0f;
 
