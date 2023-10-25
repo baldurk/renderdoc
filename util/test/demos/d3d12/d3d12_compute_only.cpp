@@ -143,6 +143,8 @@ void main()
 
     GPUSync();
 
+    msleep(1000);
+
     return 0;
   }
 };

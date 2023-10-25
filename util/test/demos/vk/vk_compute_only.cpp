@@ -182,6 +182,8 @@ void main()
     if(rdoc)
       rdoc->EndFrameCapture(NULL, NULL);
 
+    msleep(1000);
+
     return 0;
   }
 };
