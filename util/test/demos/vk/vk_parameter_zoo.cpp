@@ -262,15 +262,18 @@ void main()
 
   void Prepare(int argc, char **argv)
   {
+    optDevExts.push_back(VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME);
     optDevExts.push_back(VK_EXT_TOOLING_INFO_EXTENSION_NAME);
-    optDevExts.push_back(VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME);
-    optDevExts.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
     optDevExts.push_back(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME);
-    optDevExts.push_back(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
     optDevExts.push_back(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME);
-    optDevExts.push_back(VK_KHR_MULTIVIEW_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
     optDevExts.push_back(VK_KHR_MAINTENANCE2_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_MULTIVIEW_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
     optDevExts.push_back(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 
     VulkanGraphicsTest::Prepare(argc, argv);
 
@@ -337,6 +340,28 @@ void main()
       sync2Features.synchronization2 = VK_TRUE;
       sync2Features.pNext = (void *)devInfoNext;
       devInfoNext = &sync2Features;
+    }
+
+    static VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT gpl = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT,
+    };
+
+    if(hasExt(VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME))
+    {
+      gpl.graphicsPipelineLibrary = VK_TRUE;
+      gpl.pNext = (void *)devInfoNext;
+      devInfoNext = &gpl;
+    }
+
+    static VkPhysicalDeviceDynamicRenderingFeaturesKHR dyn = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
+    };
+
+    if(hasExt(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME))
+    {
+      dyn.dynamicRendering = VK_TRUE;
+      dyn.pNext = (void *)devInfoNext;
+      devInfoNext = &dyn;
     }
   }
 
@@ -1430,6 +1455,64 @@ void main()
 
     vkDestroyCommandPool(device, cmdPool, NULL);
     vkDestroyDescriptorPool(device, descPool, NULL);
+
+    if(hasExt(VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME) &&
+       hasExt(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME))
+    {
+      // create a vertex-input pipeline, with dynamic rendering enabled, and pass garbage in the
+      // dynamic rendering struct. Specify the vertex-pipeline flag *after* the dynamic rendering
+      // struct to force two-pass processing
+
+      VkGraphicsPipelineLibraryCreateInfoEXT libInfo = {};
+      libInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT;
+      libInfo.flags = VK_GRAPHICS_PIPELINE_LIBRARY_VERTEX_INPUT_INTERFACE_BIT_EXT;
+
+      // none of this should be used
+      VkPipelineRenderingCreateInfoKHR dynInfo = {};
+      dynInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
+      dynInfo.viewMask = 0x12345678;
+      dynInfo.depthAttachmentFormat = VK_FORMAT_BC1_RGB_SRGB_BLOCK;
+      dynInfo.stencilAttachmentFormat = VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK;
+      dynInfo.pColorAttachmentFormats = (VkFormat *)0x1234;
+      dynInfo.colorAttachmentCount = 1234;
+
+      vkh::GraphicsPipelineCreateInfo libCreateInfo;
+
+      libCreateInfo.layout = layout;
+
+      libCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
+      libCreateInfo.vertexInputState.vertexAttributeDescriptions = {
+          vkh::vertexAttr(0, 0, DefaultA2V, pos),
+          vkh::vertexAttr(1, 0, DefaultA2V, col),
+          vkh::vertexAttr(2, 0, DefaultA2V, uv),
+      };
+
+      libCreateInfo.pNext = &dynInfo;
+      dynInfo.pNext = &libInfo;
+
+      createGraphicsPipeline(libCreateInfo);
+
+      // for a pre-raster or fragment shader pipeline the viewmask is used, but not the formats still
+      dynInfo.viewMask = 1;
+
+      libInfo.flags = VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT;
+
+      libCreateInfo.vertexInputState.vertexBindingDescriptions.clear();
+      libCreateInfo.vertexInputState.vertexAttributeDescriptions.clear();
+
+      libCreateInfo.stages = {
+          CompileShaderModule(VKDefaultVertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+      };
+
+      createGraphicsPipeline(libCreateInfo);
+
+      libInfo.flags = VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT;
+      libCreateInfo.stages = {
+          CompileShaderModule(VKDefaultPixel, ShaderLang::glsl, ShaderStage::frag, "main"),
+      };
+
+      createGraphicsPipeline(libCreateInfo);
+    }
 
     while(Running())
     {

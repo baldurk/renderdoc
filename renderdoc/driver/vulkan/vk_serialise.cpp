@@ -3472,6 +3472,12 @@ void Deserialise(const VkImageMemoryBarrier &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkGraphicsPipelineCreateInfo &el)
 {
+  NextChainFlags nextChainFlags;
+  if(ser.IsWriting())
+    PreprocessNextChain((const VkBaseInStructure *)el.pNext, nextChainFlags);
+
+  ser.SetStructArg((uint64_t)(uintptr_t)&nextChainFlags);
+
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
@@ -8843,8 +8849,19 @@ void DoSerialise(SerialiserType &ser, VkPipelineRenderingCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER(viewMask);
-  SERIALISE_MEMBER(colorAttachmentCount);
-  SERIALISE_MEMBER_ARRAY(pColorAttachmentFormats, colorAttachmentCount);
+
+  NextChainFlags *nextChainFlags = (NextChainFlags *)(uintptr_t)ser.GetStructArg();
+
+  if(nextChainFlags && nextChainFlags->dynRenderingFormatsValid)
+  {
+    SERIALISE_MEMBER(colorAttachmentCount);
+    SERIALISE_MEMBER_ARRAY(pColorAttachmentFormats, colorAttachmentCount);
+  }
+  else
+  {
+    SERIALISE_MEMBER_EMPTY(colorAttachmentCount);
+    SERIALISE_MEMBER_ARRAY_EMPTY(pColorAttachmentFormats);
+  }
   SERIALISE_MEMBER(depthAttachmentFormat);
   SERIALISE_MEMBER(stencilAttachmentFormat);
 }

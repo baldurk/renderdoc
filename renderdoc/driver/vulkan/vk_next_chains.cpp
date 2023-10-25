@@ -1607,11 +1607,36 @@ size_t GetNextPatchSize(const void *pNext)
   return memSize;
 }
 
+void PreprocessNextChain(const VkBaseInStructure *nextInput, NextChainFlags &nextChainFlags)
+{
+  while(nextInput)
+  {
+    switch(nextInput->sType)
+    {
+      case VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT:
+      {
+        const VkGraphicsPipelineLibraryCreateInfoEXT *libCreateInfo =
+            (const VkGraphicsPipelineLibraryCreateInfoEXT *)nextInput;
+        nextChainFlags.dynRenderingFormatsValid =
+            (libCreateInfo->flags &
+             VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT) != 0;
+        break;
+      }
+      default: break;
+    }
+
+    nextInput = nextInput->pNext;
+  }
+}
+
 void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
                      VkBaseInStructure *infoStruct)
 {
   if(!infoStruct)
     return;
+
+  NextChainFlags nextChainFlags;
+  PreprocessNextChain(infoStruct, nextChainFlags);
 
   // during capture, this walks the pNext chain and either copies structs that can be passed
   // straight through, or copies and modifies any with vulkan objects that need to be unwrapped.
@@ -2287,8 +2312,11 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
         *out = *in;
 
         out->pColorAttachmentFormats = outFormats;
-        for(uint32_t i = 0; i < in->colorAttachmentCount; i++)
-          outFormats[i] = in->pColorAttachmentFormats[i];
+        if(nextChainFlags.dynRenderingFormatsValid)
+        {
+          for(uint32_t i = 0; i < in->colorAttachmentCount; i++)
+            outFormats[i] = in->pColorAttachmentFormats[i];
+        }
 
         break;
       }

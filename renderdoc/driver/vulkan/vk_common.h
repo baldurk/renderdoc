@@ -337,7 +337,17 @@ enum VkFlagWithNoBits
   FlagWithNoBits_Dummy_Bit = 1,
 };
 
+// global per-chain flags to use in a double-pass processing
+struct NextChainFlags
+{
+  // VkPipelineRenderingCreateInfoKHR provides a list of formats which is normally valid except if
+  // we're creating a pipeline library without the fragment output interface. We need to detect that
+  // first before processing it
+  bool dynRenderingFormatsValid = true;
+};
+
 size_t GetNextPatchSize(const void *next);
+void PreprocessNextChain(const VkBaseInStructure *nextInput, NextChainFlags &nextChainFlags);
 void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
                      VkBaseInStructure *infoStruct);
 void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInStructure *infoStruct);
