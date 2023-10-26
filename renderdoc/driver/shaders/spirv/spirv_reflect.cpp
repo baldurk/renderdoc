@@ -1081,6 +1081,12 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       if(IsStrippableBuiltin(decorations[global.id].builtIn) && !used)
         continue;
 
+      // move to the inner struct if this is an array of structs - e.g. for arrayed shader outputs
+      const DataType *structType = &baseType;
+      if(structType->type == DataType::ArrayType &&
+         dataTypes[structType->InnerType()].type == DataType::StructType)
+        structType = &dataTypes[structType->InnerType()];
+
       // if this is a struct variable then either all members must be builtins, or none of them, as
       // per the SPIR-V Decoration rules:
       //
@@ -1091,13 +1097,13 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       // Some old compilers might generate gl_PerVertex with unused variables having no decoration,
       // so to handle this case we treat a struct with any builtin members as if all are builtin -
       // which is still legal.
-      if(baseType.type == DataType::StructType)
+      if(structType->type == DataType::StructType)
       {
         // look to see if this struct contains a builtin member
         bool hasBuiltins = false;
-        for(size_t i = 0; i < baseType.children.size(); i++)
+        for(size_t i = 0; i < structType->children.size(); i++)
         {
-          hasBuiltins = (baseType.children[i].decorations.builtIn != BuiltIn::Invalid);
+          hasBuiltins = (structType->children[i].decorations.builtIn != BuiltIn::Invalid);
           if(hasBuiltins)
             break;
         }
@@ -1110,21 +1116,21 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
           size_t oldSigSize = sigarray.size();
 
-          for(uint32_t i = 0; i < (uint32_t)baseType.children.size(); i++)
+          for(uint32_t i = 0; i < (uint32_t)structType->children.size(); i++)
           {
             // skip this member if it's in a builtin struct but has no builtin decoration
-            if(baseType.children[i].decorations.builtIn == BuiltIn::Invalid)
+            if(structType->children[i].decorations.builtIn == BuiltIn::Invalid)
               continue;
 
             // skip this member if it's unused and of a type that is commonly included 'by accident'
-            if(IsStrippableBuiltin(baseType.children[i].decorations.builtIn) &&
+            if(IsStrippableBuiltin(structType->children[i].decorations.builtIn) &&
                usedchildren.find(i) == usedchildren.end())
               continue;
 
             rdcstr childname = name;
 
-            if(!baseType.children[i].name.empty())
-              childname += "." + baseType.children[i].name;
+            if(!structType->children[i].name.empty())
+              childname += "." + structType->children[i].name;
             else
               childname += StringFormat::Fmt("._child%zu", i);
 
@@ -1132,9 +1138,9 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
             patch.accessChain = {i};
 
             uint32_t dummy = 0;
-            AddSignatureParameter(isInput, stage, global.id, baseType.id, dummy, patch, childname,
-                                  dataTypes[baseType.children[i].type],
-                                  baseType.children[i].decorations, sigarray, patchData, specInfo);
+            AddSignatureParameter(isInput, stage, global.id, structType->id, dummy, patch,
+                                  childname, dataTypes[structType->children[i].type],
+                                  structType->children[i].decorations, sigarray, patchData, specInfo);
           }
 
           // apply stream decoration from a parent struct into newly-added members
