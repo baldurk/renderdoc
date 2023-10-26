@@ -41,7 +41,7 @@
     <bool>false</bool>
    </attribute>
   </widget>
-  <widget class="RDTableView" name="vsinData">
+  <widget class="RDTableView" name="inTable">
    <property name="geometry">
     <rect>
      <x>60</x>
@@ -78,7 +78,7 @@
     <bool>false</bool>
    </attribute>
   </widget>
-  <widget class="RDTableView" name="vsoutData">
+  <widget class="RDTableView" name="out1Table">
    <property name="geometry">
     <rect>
      <x>280</x>
@@ -130,7 +130,7 @@
    <property name="documentMode">
     <bool>true</bool>
    </property>
-   <widget class="QWidget" name="vsinTab">
+   <widget class="QWidget" name="inTab">
     <attribute name="title">
      <string>VS In</string>
     </attribute>
@@ -681,7 +681,7 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="vsoutTab">
+   <widget class="QWidget" name="out1Tab">
     <attribute name="title">
      <string>VS Out</string>
     </attribute>
@@ -703,7 +703,7 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
      </property>
     </layout>
    </widget>
-   <widget class="QWidget" name="gsoutTab">
+   <widget class="QWidget" name="out2Tab">
     <attribute name="title">
      <string>GS/DS Out</string>
     </attribute>
@@ -726,7 +726,7 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
     </layout>
    </widget>
   </widget>
-  <widget class="RDTableView" name="gsoutData">
+  <widget class="RDTableView" name="out2Table">
    <property name="geometry">
     <rect>
      <x>500</x>

@@ -133,6 +133,14 @@ DOCUMENT(R"(Specifies the panel to add a menu item into.
 
   Adds the item to the context menu for GS/Tess output in the mesh previewing :class:`BufferViewer`.
 
+.. data:: MeshPreview_TaskOutVertex
+
+  Adds the item to the context menu for task shader output in the mesh previewing :class:`BufferViewer`.
+
+.. data:: MeshPreview_MeshOutVertex
+
+  Adds the item to the context menu for mesh shader output in the mesh previewing :class:`BufferViewer`.
+
 .. data:: TextureViewer_Thumbnail
 
   Adds the item to the context menu for all thumbnails in the :class:`TextureViewer`.
@@ -153,6 +161,8 @@ enum class ContextMenu
   MeshPreview_VSInVertex,
   MeshPreview_VSOutVertex,
   MeshPreview_GSOutVertex,
+  MeshPreview_TaskOutVertex,
+  MeshPreview_MeshOutVertex,
   TextureViewer_Thumbnail,
   TextureViewer_InputThumbnail,
   TextureViewer_OutputThumbnail,

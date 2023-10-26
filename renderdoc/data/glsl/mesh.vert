@@ -42,6 +42,69 @@ IO_LOCATION(1) in SECONDARY_TYPE vsin_secondary;
 IO_LOCATION(0) out vec4 vsout_secondary;
 IO_LOCATION(1) out vec4 vsout_norm;
 
+#ifdef VULKAN
+
+uint getMeshletCountAt(uint m)
+{
+  uint vecIdx = m / 4;
+
+  if((m % 4) == 0)
+    return meshlet.data[vecIdx].x;
+  else if((m % 4) == 1)
+    return meshlet.data[vecIdx].y;
+  else if((m % 4) == 2)
+    return meshlet.data[vecIdx].z;
+  else if((m % 4) == 3)
+    return meshlet.data[vecIdx].w;
+}
+
+vec4 getMeshletColor()
+{
+  uint searchIdx = VERTEX_ID;
+
+  // array of prefix summed counts accessible via getMeshletCountAt [x, x+y, x+y+z, ...] we do a
+  // binary search to find which meshlet this index corresponds to
+
+  uint first = 0, last = meshlet.meshletCount - 1;
+  uint count = last - first;
+
+  while(count > 0)
+  {
+    uint halfrange = count / 2;
+    uint mid = first + halfrange;
+
+    if(searchIdx < getMeshletCountAt(mid))
+    {
+      count = halfrange;
+    }
+    else
+    {
+      first = mid + 1;
+      count -= halfrange + 1;
+    }
+  }
+
+  uint meshletIndex = first;
+
+  if(VERTEX_ID < getMeshletCountAt(meshletIndex))
+  {
+    meshletIndex += meshlet.meshletOffset;
+    meshletIndex %= 48;
+    uvec4 meshletColor = Mesh.meshletColours[meshletIndex / 4];
+    if((meshletIndex % 4) == 0)
+      return unpackUnorm4x8(meshletColor.x);
+    else if((meshletIndex % 4) == 1)
+      return unpackUnorm4x8(meshletColor.y);
+    else if((meshletIndex % 4) == 2)
+      return unpackUnorm4x8(meshletColor.z);
+    else if((meshletIndex % 4) == 3)
+      return unpackUnorm4x8(meshletColor.w);
+  }
+
+  return vec4(0, 0, 0, 1);
+}
+#endif
+
 void main(void)
 {
   vec2 psprite[4] =
@@ -65,6 +128,9 @@ void main(void)
   vsout_norm = vec4(0, 0, 1, 1);
 
 #ifdef VULKAN
+  if(Mesh.displayFormat == MESHDISPLAY_MESHLET)
+    vsout_secondary = getMeshletColor();
+
   // GL->VK conventions
   gl_Position.y = -gl_Position.y;
   if(Mesh.flipY == 1)

@@ -275,6 +275,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
             cbvParam(D3D12_SHADER_VISIBILITY_GEOMETRY, 0, 0),
             // 'push constant' CBV
             constParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0, 4),
+            // meshlet sizes SRV
+            srvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),
         },
         D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
@@ -306,6 +308,41 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
                                {}, "gs_5_0", &m_MeshGS);
     shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
                                {}, "ps_5_0", &m_MeshPS);
+  }
+
+  {
+    D3D12_RESOURCE_DESC meshletSizeBuf = {};
+    meshletSizeBuf.Alignment = 0;
+    meshletSizeBuf.DepthOrArraySize = 1;
+    meshletSizeBuf.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    meshletSizeBuf.Flags = D3D12_RESOURCE_FLAG_NONE;
+    meshletSizeBuf.Format = DXGI_FORMAT_UNKNOWN;
+    meshletSizeBuf.Height = 1;
+    meshletSizeBuf.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    meshletSizeBuf.MipLevels = 1;
+    meshletSizeBuf.SampleDesc.Count = 1;
+    meshletSizeBuf.SampleDesc.Quality = 0;
+    meshletSizeBuf.Width = sizeof(uint32_t) * (4 + MAX_NUM_MESHLETS);
+
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &meshletSizeBuf,
+                                            D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+                                            __uuidof(ID3D12Resource), (void **)&m_MeshletBuf);
+    m_pDevice->InternalRef();
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create meshlet size buffer, HRESULT: %s", ToStr(hr).c_str());
+    }
+
+    if(m_MeshletBuf)
+      m_MeshletBuf->SetName(L"m_MeshletBuf");
   }
 
   {
@@ -508,6 +545,7 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_MeshGS);
   SAFE_RELEASE(m_MeshPS);
   SAFE_RELEASE(m_MeshRootSig);
+  SAFE_RELEASE(m_MeshletBuf);
 
   SAFE_RELEASE(m_ShaderDebugRootSig);
   SAFE_RELEASE(m_MathIntrinsicsPso);
@@ -921,6 +959,39 @@ D3D12_GPU_VIRTUAL_ADDRESS D3D12DebugManager::UploadConstants(const void *data, s
   m_RingConstantOffset += size;
   m_RingConstantOffset =
       AlignUp(m_RingConstantOffset, (UINT64)D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+
+  return ret;
+}
+
+D3D12_GPU_VIRTUAL_ADDRESS D3D12DebugManager::UploadMeshletSizes(uint32_t meshletIndexOffset,
+                                                                const rdcarray<MeshletSize> &sizes)
+{
+  D3D12_GPU_VIRTUAL_ADDRESS ret = m_MeshletBuf->GetGPUVirtualAddress();
+
+  if(sizes.empty())
+    return ret;
+
+  rdcarray<uint32_t> data;
+  data.resize(sizes.size());
+  uint32_t prefixCount = meshletIndexOffset;
+  for(size_t i = 0; i < data.size(); i++)
+  {
+    prefixCount += sizes[i].numVertices;
+    data[i] = prefixCount;
+  }
+
+  if(m_CurMeshletOffset + data.byteSize() > m_MeshletBuf->GetDesc().Width)
+    m_CurMeshletOffset = 0;
+
+  ret += m_CurMeshletOffset;
+
+  // passing the unwrapped object here is immaterial as all we do is Map/Unmap, but it means we can
+  // call this function while capturing without worrying about serialising the map or deadlocking.
+  FillBuffer(Unwrap(m_MeshletBuf), (size_t)m_CurMeshletOffset, data.data(), data.byteSize());
+
+  m_CurMeshletOffset += data.byteSize();
+  m_CurMeshletOffset =
+      AlignUp(m_CurMeshletOffset, (UINT64)D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
   return ret;
 }

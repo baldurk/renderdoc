@@ -46,7 +46,7 @@ void main(void)
 {
   int type = Mesh.displayFormat;
 
-  if(type == MESHDISPLAY_SECONDARY)
+  if(type == MESHDISPLAY_SECONDARY || type == MESHDISPLAY_MESHLET)
   {
     color_out = vec4(SECONDARY_NAME.xyz, 1);
   }

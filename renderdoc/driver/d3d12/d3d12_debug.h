@@ -156,6 +156,8 @@ public:
   ID3D12Resource *MakeCBuffer(UINT64 size);
   void FillBuffer(ID3D12Resource *buf, size_t offset, const void *data, size_t size);
   D3D12_GPU_VIRTUAL_ADDRESS UploadConstants(const void *data, size_t size);
+  D3D12_GPU_VIRTUAL_ADDRESS UploadMeshletSizes(uint32_t meshletIndexOffset,
+                                               const rdcarray<MeshletSize> &sizes);
 
   ID3D12RootSignature *GetMeshRootSig() { return m_MeshRootSig; }
   ID3D12RootSignature *GetShaderDebugRootSig() { return m_ShaderDebugRootSig; }
@@ -243,6 +245,9 @@ private:
   ID3DBlob *m_MeshPS = NULL;
   ID3D12RootSignature *m_MeshRootSig = NULL;
   std::map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
+
+  ID3D12Resource *m_MeshletBuf = NULL;
+  UINT64 m_CurMeshletOffset = 0;
 
   // Shader debugging resources
   ID3D12RootSignature *m_ShaderDebugRootSig = NULL;

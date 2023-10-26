@@ -37,6 +37,79 @@ struct meshA2V
   float4 secondary : sec;
 };
 
+StructuredBuffer<uint4> meshletSizesBuf : register(t0);
+
+float4 unpackUnorm4x8(uint value)
+{
+  uint4 shifted = uint4(value & 0xff, (value >> 8) & 0xff, (value >> 16) & 0xff, value >> 24);
+  return float4(shifted) / 255.0;
+}
+
+uint getMeshletCountAt(uint m)
+{
+  uint vecIdx = m / 4;
+
+  uint count = 0;
+  if((m % 4) == 0)
+    count = meshletSizesBuf[vecIdx].x;
+  else if((m % 4) == 1)
+    count = meshletSizesBuf[vecIdx].y;
+  else if((m % 4) == 2)
+    count = meshletSizesBuf[vecIdx].z;
+  else if((m % 4) == 3)
+    count = meshletSizesBuf[vecIdx].w;
+
+  return count;
+}
+
+float4 getMeshletColor(uint vid)
+{
+  uint searchIdx = vid;
+
+  // array of prefix summed counts accessible via getMeshletCountAt [x, x+y, x+y+z, ...] we do a
+  // binary search to find which meshlet this index corresponds to
+
+  uint first = 0, last = meshletCount - 1;
+  uint count = last - first;
+
+  while(count > 0)
+  {
+    uint halfrange = count / 2;
+    uint mid = first + halfrange;
+
+    if(searchIdx < getMeshletCountAt(mid))
+    {
+      count = halfrange;
+    }
+    else
+    {
+      first = mid + 1;
+      count -= halfrange + 1;
+    }
+  }
+
+  uint meshletIndex = first;
+
+  float4 col = float4(0, 0, 0, 1);
+
+  if(vid < getMeshletCountAt(meshletIndex))
+  {
+    meshletIndex += meshletOffset;
+    meshletIndex %= 48;
+    uint4 meshletColor = meshletColours[meshletIndex / 4];
+    if((meshletIndex % 4) == 0)
+      col = unpackUnorm4x8(meshletColor.x);
+    else if((meshletIndex % 4) == 1)
+      col = unpackUnorm4x8(meshletColor.y);
+    else if((meshletIndex % 4) == 2)
+      col = unpackUnorm4x8(meshletColor.z);
+    else if((meshletIndex % 4) == 3)
+      col = unpackUnorm4x8(meshletColor.w);
+  }
+
+  return col;
+}
+
 meshV2F RENDERDOC_MeshVS(meshA2V IN, uint vid : SV_VertexID)
 {
   meshV2F OUT = (meshV2F)0;
@@ -55,6 +128,9 @@ meshV2F RENDERDOC_MeshVS(meshA2V IN, uint vid : SV_VertexID)
   OUT.pos.xy += SpriteSize.xy * 0.01f * psprite[vid % 4] * OUT.pos.w;
   OUT.norm = float3(0, 0, 1);
   OUT.secondary = IN.secondary;
+
+  if(vertMeshDisplayFormat == MESHDISPLAY_MESHLET)
+    OUT.secondary = getMeshletColor(vid);
 
   return OUT;
 }
@@ -128,7 +204,7 @@ float4 RENDERDOC_MeshPS(meshV2F IN)
 {
   uint type = MeshDisplayFormat;
 
-  if(type == MESHDISPLAY_SECONDARY)
+  if(type == MESHDISPLAY_SECONDARY || type == MESHDISPLAY_MESHLET)
     return float4(IN.secondary.xyz, 1);
   else if(type == MESHDISPLAY_SECONDARY_ALPHA)
     return float4(IN.secondary.www, 1);

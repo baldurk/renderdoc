@@ -267,6 +267,12 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
       m_pImmediateContext->IASetPrimitiveTopology(topo);
 
       pixelData.MeshDisplayFormat = (int)cfg.solidShadeMode;
+      if(cfg.solidShadeMode == SolidShade::Meshlet)
+      {
+        RDCERR("D3D11 does not support mesh rendering");
+        pixelData.MeshDisplayFormat = (int)SolidShade::Solid;
+      }
+
       if(cfg.solidShadeMode == SolidShade::Secondary && cfg.second.showAlpha)
         pixelData.MeshDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
 

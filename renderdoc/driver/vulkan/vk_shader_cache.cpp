@@ -301,7 +301,7 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
                              GenerateGLSLShader(source, ShaderType::Vulkan, 430, defines), blob);
 
           // if we missed the inputHash, make a copy there too.
-          if(m_CacheShaders)
+          if(m_CacheShaders && blob)
           {
             m_ShaderCache[inputHash] = new rdcarray<uint32_t>(*blob);
             m_ShaderCacheDirty = true;

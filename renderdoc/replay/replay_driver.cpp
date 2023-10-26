@@ -1345,6 +1345,17 @@ const Vec4f colorRamp[22] = {
     Vec4f(1.000000f, 0.878431f, 1.000000f, 1.0f), Vec4f(1.000000f, 1.000000f, 1.000000f, 1.0f),
 };
 
+// unique colors generated from https://mokole.com/palette.html
+const uint32_t uniqueColors[48] = {
+    0xff00008b, 0xff32cd32, 0xff8fbc8f, 0xff8b008b, 0xffb03060, 0xffd2b48c, 0xff9932cc, 0xffff0000,
+    0xffff8c00, 0xffffd700, 0xff00ff00, 0xff00ff7f, 0xff4169e1, 0xffe9967a, 0xffdc143c, 0xff00ffff,
+    0xff00bfff, 0xff0000ff, 0xffa020f0, 0xffadff2f, 0xffff6347, 0xffda70d6, 0xffff00ff, 0xfff0e68c,
+    0xffffff54, 0xff6495ed, 0xffdda0dd, 0xff90ee90, 0xff87ceeb, 0xffff1493, 0xff7fffd4, 0xffff69b4,
+    0xff808080, 0xffc0c0c0, 0xff2f4f4f, 0xff556b2f, 0xff8b4513, 0xff6b8e23, 0xff2e8b57, 0xff8b0000,
+    0xff483d8b, 0xff008000, 0xffb8860b, 0xff008b8b, 0xff4682b4, 0xffd2691e, 0xff9acd32, 0xffcd5c5c,
+
+};
+
 bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t rowPitch, bool invert)
 {
   static const rdcliteral patterns[] = {

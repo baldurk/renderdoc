@@ -682,6 +682,7 @@ private:
     void Destroy(WrappedVulkan *driver);
 
     GPUBuffer UBO;
+    GPUBuffer MeshletSSBO;
     GPUBuffer BBoxVB;
     GPUBuffer AxisFrustumVB;
 

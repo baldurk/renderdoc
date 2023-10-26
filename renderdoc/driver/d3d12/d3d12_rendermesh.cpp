@@ -275,6 +275,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
   vertexData.ModelViewProj = projMat.Mul(camMat.Mul(axisMapMat));
   vertexData.SpriteSize = Vec2f();
   vertexData.homogenousInput = cfg.position.unproject;
+  vertexData.vertMeshDisplayFormat = MESHDISPLAY_SOLID;
 
   MeshPixelCBuffer pixelData;
 
@@ -305,8 +306,15 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
   }
 
+  memcpy(&vertexData.meshletColours[0].x, uniqueColors, sizeof(uniqueColors));
+  RDCCOMPILE_ASSERT(sizeof(vertexData.meshletColours) == sizeof(uniqueColors),
+                    "Unique colors array is wrongly sized");
+
   D3D12_GPU_VIRTUAL_ADDRESS vsCB =
       GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData));
+
+  D3D12_GPU_VIRTUAL_ADDRESS meshletBuf = GetDebugManager()->UploadMeshletSizes(
+      cfg.position.meshletIndexOffset, cfg.position.meshletSizes);
 
   if(!secondaryDraws.empty())
   {
@@ -329,6 +337,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
           list->SetGraphicsRootSignature(rootSig);
           list->SetGraphicsRootConstantBufferView(0, vsCB);
           list->SetGraphicsRootConstantBufferView(1, vsCB);    // geometry - dummy fill
+          list->SetGraphicsRootShaderResourceView(3, meshletBuf);
         }
 
         pixelData.MeshColour.x = fmt.meshColor.x;
@@ -460,6 +469,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
           pipe = cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth];
         break;
       case SolidShade::Secondary: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Secondary]; break;
+      case SolidShade::Meshlet: pipe = cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth]; break;
     }
 
     pixelData.MeshDisplayFormat = (int)cfg.solidShadeMode;
@@ -470,7 +480,20 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     list->SetPipelineState(pipe);
     list->SetGraphicsRootSignature(cache.rootsig);
 
-    list->SetGraphicsRootConstantBufferView(0, vsCB);
+    size_t numMeshlets = RDCMIN(cfg.position.meshletSizes.size(), (size_t)MAX_NUM_MESHLETS);
+
+    if(cfg.solidShadeMode == SolidShade::Meshlet)
+    {
+      vertexData.meshletCount = (uint32_t)numMeshlets;
+      vertexData.meshletOffset = (uint32_t)cfg.position.meshletOffset;
+
+      vertexData.vertMeshDisplayFormat = MESHDISPLAY_MESHLET;
+    }
+
+    D3D12_GPU_VIRTUAL_ADDRESS vsCBSolid =
+        GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData));
+
+    list->SetGraphicsRootConstantBufferView(0, vsCBSolid);
 
     if(solidShadeMode == SolidShade::Lit)
     {
@@ -484,6 +507,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     {
       list->SetGraphicsRootConstantBufferView(1, vsCB);    // dummy fill for geometry
     }
+    list->SetGraphicsRootShaderResourceView(3, meshletBuf);
 
     Vec4f colour(0.8f, 0.8f, 0.0f, 1.0f);
     list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
@@ -530,6 +554,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
     list->SetGraphicsRootConstantBufferView(0, vsCB);
     list->SetGraphicsRootConstantBufferView(1, vsCB);
+    list->SetGraphicsRootShaderResourceView(3, meshletBuf);
 
     pixelData.MeshColour.x = cfg.position.meshColor.x;
     pixelData.MeshColour.y = cfg.position.meshColor.y;
@@ -625,6 +650,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
     list->SetGraphicsRootConstantBufferView(0, vsCB);
     list->SetGraphicsRootConstantBufferView(1, vsCB);
+    list->SetGraphicsRootShaderResourceView(3, meshletBuf);
 
     list->DrawInstanced(24, 1, 0, 0);
   }
@@ -652,6 +678,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
     list->SetGraphicsRootConstantBufferView(0, vsCB);
     list->SetGraphicsRootConstantBufferView(1, vsCB);
+    list->SetGraphicsRootShaderResourceView(3, meshletBuf);
 
     pixelData.MeshColour = Vec3f(1.0f, 0.0f, 0.0f);
     list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
@@ -706,6 +733,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
     list->SetGraphicsRootConstantBufferView(0, vsCB);
     list->SetGraphicsRootConstantBufferView(1, vsCB);
+    list->SetGraphicsRootShaderResourceView(3, meshletBuf);
 
     list->DrawInstanced(24, 1, 0, 0);
   }
@@ -776,6 +804,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
       list->SetGraphicsRootConstantBufferView(
           0, GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData)));
+      list->SetGraphicsRootShaderResourceView(3, meshletBuf);
 
       list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_Solid]);
 

@@ -3989,13 +3989,19 @@ void VulkanReplay::OverlayRendering::Destroy(WrappedVulkan *driver)
 
 void VulkanReplay::MeshRendering::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool)
 {
-  CREATE_OBJECT(DescSetLayout,
-                {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL}});
+  CREATE_OBJECT(
+      DescSetLayout,
+      {
+          {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL},
+          {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_VERTEX_BIT, NULL},
+      });
 
   CREATE_OBJECT(PipeLayout, DescSetLayout, 0);
   CREATE_OBJECT(DescSet, descriptorPool, DescSetLayout);
 
   UBO.Create(driver, driver->GetDev(), sizeof(MeshUBOData), 16, 0);
+  MeshletSSBO.Create(driver, driver->GetDev(), sizeof(uint32_t) * (4 + MAX_NUM_MESHLETS), 16,
+                     GPUBuffer::eGPUBufferSSBO);
   BBoxVB.Create(driver, driver->GetDev(), sizeof(Vec4f) * 128, 16, GPUBuffer::eGPUBufferVBuffer);
 
   Vec4f TLN = Vec4f(-1.0f, 1.0f, 0.0f, 1.0f);    // TopLeftNear, etc...
@@ -4057,13 +4063,17 @@ void VulkanReplay::MeshRendering::Init(WrappedVulkan *driver, VkDescriptorPool d
 
   AxisFrustumVB.Unmap();
 
-  VkDescriptorBufferInfo meshrender = {};
+  VkDescriptorBufferInfo meshubo = {};
+  VkDescriptorBufferInfo meshssbo = {};
 
-  UBO.FillDescriptor(meshrender);
+  UBO.FillDescriptor(meshubo);
+  MeshletSSBO.FillDescriptor(meshssbo);
 
   VkWriteDescriptorSet writes[] = {
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(DescSet), 0, 0, 1,
-       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, NULL, &meshrender, NULL},
+       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, NULL, &meshubo, NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(DescSet), 1, 0, 1,
+       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, NULL, &meshssbo, NULL},
   };
 
   VkDevice dev = driver->GetDev();
@@ -4078,6 +4088,7 @@ void VulkanReplay::MeshRendering::Destroy(WrappedVulkan *driver)
 
   UBO.Destroy();
   BBoxVB.Destroy();
+  MeshletSSBO.Destroy();
   AxisFrustumVB.Destroy();
 
   driver->vkDestroyDescriptorSetLayout(driver->GetDev(), DescSetLayout, NULL);

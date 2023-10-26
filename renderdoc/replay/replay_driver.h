@@ -352,6 +352,7 @@ struct HighlightCache
 };
 
 extern const Vec4f colorRamp[22];
+extern const uint32_t uniqueColors[48];
 
 enum class DiscardType : int
 {
