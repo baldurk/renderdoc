@@ -16,7 +16,7 @@ parser.add_argument('-t', '--test_include', default=".*",
 parser.add_argument('-x', '--test_exclude', default="",
                     help="The tests to exclude, as a regexp filter", type=str)
 parser.add_argument('--in-process',
-                    help="Lists the tests available to run", action="store_true")
+                    help="Run test code in the same process as test runner", action="store_true")
 parser.add_argument('--slow-tests',
                     help="Run potentially slow tests", action="store_true")
 parser.add_argument('--data', default=os.path.join(script_dir, "data"),

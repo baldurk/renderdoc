@@ -432,6 +432,7 @@ if(ANDROID)
     endif()
 
     add_custom_command(OUTPUT ${APK_FILE} APPEND
+                       COMMAND ${CMAKE_COMMAND} -E remove ${APK_FILE} # Don't package any existing artifact into the new one
                        COMMAND ${BUILD_TOOLS}/aapt package -f -m -S res -J src -M AndroidManifest.xml -I ${ANDROID_JAR}
                        COMMAND ${JAVA_BIN}/javac -d ./obj -source 1.7 -target 1.7 -bootclasspath ${RT_JAR} -classpath "${CLASS_PATH}" -sourcepath src src/renderdoc/org/demos/*.java
                        COMMAND ${DEX_COMMAND}
