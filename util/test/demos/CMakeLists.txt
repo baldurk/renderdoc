@@ -52,6 +52,20 @@ if(BUILD_ANDROID)
 
     message(STATUS "Using Android NDK found in ${ANDROID_NDK_ROOT_PATH}")
 
+    # Extract the NDK major version
+    set(ANDROID_NDK_VERSION "0.0.0")
+    if(EXISTS "${ANDROID_NDK_ROOT_PATH}/source.properties")
+        file(STRINGS "${ANDROID_NDK_ROOT_PATH}/source.properties" __ndk_props)
+        foreach(__line ${__ndk_props})
+            string(FIND "${__line}" "Pkg.Revision = " __ndk_rev_found)
+            if(__ndk_rev_found EQUAL "0")
+                string(SUBSTRING "${__line}" 15 -1 ANDROID_NDK_VERSION)
+                message(STATUS "Android NDK version detected as ${ANDROID_NDK_VERSION}")
+                break()
+            endif()
+        endforeach()
+    endif()
+
     set(CMAKE_TOOLCHAIN_FILE
         "${ANDROID_NDK_ROOT_PATH}/build/cmake/android.toolchain.cmake"
         CACHE STRING
@@ -61,7 +75,7 @@ if(BUILD_ANDROID)
     if(NOT ANDROID_PLATFORM)
         set(ANDROID_PLATFORM "android-21")
     endif()
-    
+
     # default to libc++_static as the other options can cause crashes
     if(NOT ANDROID_STL)
         set(ANDROID_STL "c++_static")
@@ -73,8 +87,14 @@ if(BUILD_ANDROID)
     # Default to arm64 if nothing is specified on the command line.
     # Options are {armeabi-v7a,arm64-v8a}
     set(ANDROID_ABI "arm64-v8a" CACHE STRING "The Android ABI to build for")
-    
+
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DANDROID=1")
+
+    # The version of fmt used will not build due to std::char_traits support of non-std types being
+    # deprecated in the version of LLVM used by NDK v26
+    if(NOT "${ANDROID_NDK_VERSION}" VERSION_LESS "26.0.0")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+    endif()
 endif()
 
 set(PROJECT demos)
