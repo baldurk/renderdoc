@@ -47,12 +47,21 @@ Page up and Page down will move vertically 'up' and 'down' relative to the camer
 Mesh Preview
 ------------
 
-In the 3D Mesh preview, you have the option to display the mesh with some solid shading modes, not just as a wireframe mesh. When solid shading you can toggle the wireframe on and off.
+In the 3D Mesh preview, you have the option to display the mesh with some colored visualisations, not just as a wireframe mesh. When using one of the visualisations, you can toggle the wireframe on and off.
 
 * Solid Color simply displays a solid color for each triangle.
 * Flat Shaded will perform basic flat lighting calculations based on triangle normals to give a better idea of the topology of the mesh.
 * Secondary will display the selected secondary mesh element.
 * Meshlet is only relevant when using mesh shaders, and will colourise each meshlet with a different colour.
+* Exploded will display a shaded mesh where vertex colors are a function of the vertex index (SV_VertexID or gl_VertexID). This means adjacent primitives that do not share the exact same vertices can be more easily seen by a hard break in coloring. Additionally, a slider allows displacing vertices along an explosion direction by an amount based on the vertex index, which also helps better visualise shared or disjoint vertices and can also help in visualising other mesh problems (e.g. hidden or duplicate vertices/primitives).
+
+.. figure:: ../imgs/Screenshots/ExploderBadShoes.png
+
+	Exploded: Visualising a mesh with no vertex sharing.
+
+.. figure:: ../imgs/Screenshots/ExploderGoodShoes.png
+
+	Exploded: Visualising a mesh with widely shared vertices.
 
 To select which element will be displayed as secondary, simply right click on the column you would like to use. This can be done on the input and output separately, and 4-component columns have the option to either show RGB as color, or alpha as grayscale.
 

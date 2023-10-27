@@ -118,7 +118,7 @@ class Mesh_Zoo():
 
         rdtest.log.success("Base rendering is as expected")
 
-        self.cfg.solidShadeMode = rd.SolidShade.Secondary
+        self.cfg.visualisationMode = rd.Visualisation.Secondary
         self.cfg.wireframeDraw = False
 
         # allow for blending with white for the frustum
@@ -244,7 +244,7 @@ class Mesh_Zoo():
 
         rdtest.log.success("Rendering of float2 color secondary in instance 1 is as expected")
 
-        self.cfg.solidShadeMode = rd.SolidShade.NoSolid
+        self.cfg.visualisationMode = rd.Visualisation.NoSolid
         self.cfg.showAllInstances = True
 
         self.cache_output()
@@ -370,10 +370,10 @@ class Mesh_Zoo():
         rdtest.log.success("Point picking is as expected")
 
         self.cfg.highlightVert = rd.MeshDisplay.NoHighlight
-        self.cfg.solidShadeMode = rd.SolidShade.Solid
+        self.cfg.visualisationMode = rd.Visualisation.Solid
 
         self.cache_output()
-        self.cfg.solidShadeMode = rd.SolidShade.Lit
+        self.cfg.visualisationMode = rd.Visualisation.Lit
         self.cache_output()
 
         rdtest.log.success("Point solid and lit rendering works as expected")
@@ -381,7 +381,7 @@ class Mesh_Zoo():
         self.controller.SetFrameEvent(self.find_action("Lines").next.eventId, False)
 
         self.cache_output()
-        self.cfg.solidShadeMode = rd.SolidShade.Lit
+        self.cfg.visualisationMode = rd.Visualisation.Lit
         self.cache_output()
 
         rdtest.log.success("Lines solid and lit rendering works as expected")

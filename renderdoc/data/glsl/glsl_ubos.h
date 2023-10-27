@@ -35,12 +35,19 @@ BINDING(0) uniform MeshUBOData
   mat4 mvp;
   mat4 invProj;
   vec4 color;
+
   int displayFormat;
   uint homogenousInput;
   vec2 pointSpriteSize;
+
   uint rawoutput;
   uint flipY;
-  vec2 padding;
+  float vtxExploderSNorm;
+  float exploderScale;
+
+  vec3 exploderCentre;
+  float padding;
+
   uvec4 meshletColours[12];
 }
 INST_NAME(Mesh);

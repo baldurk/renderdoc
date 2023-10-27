@@ -184,7 +184,7 @@ More details can be found on the :doc:`../window/mesh_viewer` page.
 
 Mesh Viewer allows you to inspect the geometry data as it passes through the pipeline. Both raw data in a grid view and 3D inspection is possible. The tabs in the preview window allow you to choose at which part of the pipeline you'd like to visualise the data.
 
-By default the preview shows a wireframe rendering of the mesh, but you can choose solid shading options. This can either be simple shading or use a secondary attribute as color. Right clicking on any column allows you to choose the secondary attribute for rendering.
+By default the preview shows a wireframe rendering of the mesh, but you can choose different visualisations. This can either be simple shading, a vertex exploder utility, or using a secondary attribute as color. Right clicking on any column allows you to choose the secondary attribute for rendering.
 
 You can also select which attribute is the position, in case either the auto-detection failed or you want to visualise another attribute like texture co-ordinates in 3D space.
 

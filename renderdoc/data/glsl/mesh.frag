@@ -60,6 +60,12 @@ void main(void)
 
     color_out = vec4(Mesh.color.xyz * abs(dot(lightDir, NORM_NAME.xyz)), 1);
   }
+  else if(type == MESHDISPLAY_EXPLODE)
+  {
+    vec3 lightDir = normalize(vec3(0, -0.3f, -1));
+
+    color_out = vec4(SECONDARY_NAME.xyz * abs(dot(lightDir, NORM_NAME.xyz)), 1);
+  }
   else    // if(type == MESHDISPLAY_SOLID)
   {
     color_out = vec4(Mesh.color.xyz, 1);
