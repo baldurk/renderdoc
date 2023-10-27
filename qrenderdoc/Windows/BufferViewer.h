@@ -128,8 +128,11 @@ private slots:
   void on_showPadding_toggled(bool checked);
   void on_resourceDetails_clicked();
   void on_highlightVerts_toggled(bool checked);
+  void on_vtxExploderSlider_valueChanged(int value);
+  void on_exploderReset_clicked();
+  void on_exploderScale_valueChanged(double value);
   void on_wireframeRender_toggled(bool checked);
-  void on_solidShading_currentIndexChanged(int index);
+  void on_visualisation_currentIndexChanged(int index);
   void on_drawRange_currentIndexChanged(int index);
   void on_controlType_currentIndexChanged(int index);
   void on_camSpeed_valueChanged(double value);

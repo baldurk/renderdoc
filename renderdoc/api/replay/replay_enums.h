@@ -2895,7 +2895,7 @@ constexpr inline ResourceUsage RWResUsage(ShaderStage stage)
   return RWResUsage(uint32_t(stage));
 }
 
-DOCUMENT(R"(What kind of solid shading to use when rendering a mesh.
+DOCUMENT(R"(What kind of visualisation to use when rendering a mesh.
 
 .. data:: NoSolid
 
@@ -2913,22 +2913,27 @@ DOCUMENT(R"(What kind of solid shading to use when rendering a mesh.
 
   The mesh should be rendered using the secondary element as color.
 
+.. data:: Explode
+
+  The mesh should be rendered with vertices displaced and coloured by vertex ID.
+
 .. data:: Meshlet
 
   The mesh should be rendered colorising each meshlet differently.
 
 )");
-enum class SolidShade : uint32_t
+enum class Visualisation : uint32_t
 {
   NoSolid = 0,
   Solid,
   Lit,
   Secondary,
+  Explode,
   Meshlet,
   Count,
 };
 
-DECLARE_REFLECTION_ENUM(SolidShade);
+DECLARE_REFLECTION_ENUM(Visualisation);
 
 DOCUMENT(R"(The fill mode for polygons.
 

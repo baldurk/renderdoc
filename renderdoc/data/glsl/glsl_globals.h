@@ -172,14 +172,15 @@ vec3 CalcCubeCoord(vec2 uv, int face)
 
 #endif
 
-// first few match SolidShade enum
+// first few match Visualisation enum
 #define MESHDISPLAY_SOLID 0x1
 #define MESHDISPLAY_FACELIT 0x2
 #define MESHDISPLAY_SECONDARY 0x3
-#define MESHDISPLAY_MESHLET 0x4
+#define MESHDISPLAY_EXPLODE 0x4
+#define MESHDISPLAY_MESHLET 0x5
 
 // extra values below
-#define MESHDISPLAY_SECONDARY_ALPHA 0x5
+#define MESHDISPLAY_SECONDARY_ALPHA 0x6
 
 #define MAX_NUM_MESHLETS (512 * 1024)
 

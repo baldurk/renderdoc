@@ -33,6 +33,19 @@
 
 #include "data/hlsl/hlsl_cbuffers.h"
 
+static uint32_t VisModeToMeshDisplayFormat(const MeshDisplay &cfg)
+{
+  switch(cfg.visualisationMode)
+  {
+    default: return (uint32_t)cfg.visualisationMode;
+    case Visualisation::Secondary:
+      return cfg.second.showAlpha ? MESHDISPLAY_SECONDARY_ALPHA : MESHDISPLAY_SECONDARY;
+    case Visualisation::Meshlet:
+      RDCERR("D3D11 does not support meshlet rendering");
+      return MESHDISPLAY_SOLID;
+  }
+}
+
 void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondaryDraws,
                              const MeshDisplay &cfg)
 {
@@ -58,6 +71,12 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
   vertexData.ModelViewProj = projMat.Mul(camMat.Mul(axisMapMat));
   vertexData.SpriteSize = Vec2f();
   vertexData.homogenousInput = cfg.position.unproject;
+  vertexData.vtxExploderSNorm = cfg.vtxExploderSliderSNorm;
+  vertexData.exploderCentre =
+      Vec3f((cfg.minBounds.x + cfg.maxBounds.x) * 0.5f, (cfg.minBounds.y + cfg.maxBounds.y) * 0.5f,
+            (cfg.minBounds.z + cfg.maxBounds.z) * 0.5f);
+  vertexData.exploderScale =
+      (cfg.visualisationMode == Visualisation::Explode) ? cfg.exploderScale : 0.0f;
 
   Vec4f col(0.0f, 0.0f, 0.0f, 1.0f);
   ID3D11Buffer *psCBuf = GetDebugManager()->MakeCBuffer(&col, sizeof(col));
@@ -260,27 +279,21 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
       m_pImmediateContext->IASetIndexBuffer(NULL, DXGI_FORMAT_UNKNOWN, NULL);
 
     // draw solid shaded mode
-    if(cfg.solidShadeMode != SolidShade::NoSolid && cfg.position.topology < Topology::PatchList_1CPs)
+    if(cfg.visualisationMode != Visualisation::NoSolid &&
+       cfg.position.topology < Topology::PatchList_1CPs)
     {
       m_pImmediateContext->RSSetState(m_General.RasterState);
 
       m_pImmediateContext->IASetPrimitiveTopology(topo);
 
-      pixelData.MeshDisplayFormat = (int)cfg.solidShadeMode;
-      if(cfg.solidShadeMode == SolidShade::Meshlet)
-      {
-        RDCERR("D3D11 does not support mesh rendering");
-        pixelData.MeshDisplayFormat = (int)SolidShade::Solid;
-      }
-
-      if(cfg.solidShadeMode == SolidShade::Secondary && cfg.second.showAlpha)
-        pixelData.MeshDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
+      pixelData.MeshDisplayFormat = VisModeToMeshDisplayFormat(cfg);
 
       pixelData.MeshColour = Vec3f(0.8f, 0.8f, 0.0f);
       GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(pixelData));
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuf);
 
-      if(cfg.solidShadeMode == SolidShade::Lit)
+      if(cfg.visualisationMode == Visualisation::Lit ||
+         cfg.visualisationMode == Visualisation::Explode)
       {
         MeshGeometryCBuffer geomData;
 
@@ -298,12 +311,13 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
       else
         m_pImmediateContext->Draw(cfg.position.numIndices, 0);
 
-      if(cfg.solidShadeMode == SolidShade::Lit)
+      if(cfg.visualisationMode == Visualisation::Lit ||
+         cfg.visualisationMode == Visualisation::Explode)
         m_pImmediateContext->GSSetShader(NULL, NULL, 0);
     }
 
     // draw wireframe mode
-    if(cfg.solidShadeMode == SolidShade::NoSolid || cfg.wireframeDraw ||
+    if(cfg.visualisationMode == Visualisation::NoSolid || cfg.wireframeDraw ||
        cfg.position.topology >= Topology::PatchList_1CPs)
     {
       m_pImmediateContext->RSSetState(m_MeshRender.WireframeRasterState);
@@ -335,6 +349,8 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
   // set up state for drawing helpers
   {
     vertexData.ModelViewProj = projMat.Mul(camMat.Mul(axisMapMat));
+    vertexData.vtxExploderSNorm = 0.0f;
+    vertexData.exploderScale = 0.0f;
     GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(vertexData));
 
     m_pImmediateContext->RSSetState(m_MeshRender.SolidRasterState);

@@ -33,6 +33,16 @@
 #define OPENGL 1
 #include "data/glsl/glsl_ubos_cpp.h"
 
+static int VisModeToMeshDisplayFormat(const MeshDisplay &cfg)
+{
+  switch(cfg.visualisationMode)
+  {
+    default: return (int)cfg.visualisationMode;
+    case Visualisation::Secondary:
+      return cfg.second.showAlpha ? MESHDISPLAY_SECONDARY_ALPHA : MESHDISPLAY_SECONDARY;
+  }
+}
+
 void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondaryDraws,
                           const MeshDisplay &cfg)
 {
@@ -113,6 +123,12 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
   uboParams.mvp = ModelViewProj;
   uboParams.homogenousInput = cfg.position.unproject;
   uboParams.pointSpriteSize = Vec2f(0.0f, 0.0f);
+  uboParams.vtxExploderSNorm = cfg.vtxExploderSliderSNorm;
+  uboParams.exploderScale =
+      (cfg.visualisationMode == Visualisation::Explode) ? cfg.exploderScale : 0.0f;
+  uboParams.exploderCentre =
+      Vec3f((cfg.minBounds.x + cfg.maxBounds.x) * 0.5f, (cfg.minBounds.y + cfg.maxBounds.y) * 0.5f,
+            (cfg.minBounds.z + cfg.maxBounds.z) * 0.5f);
 
   if(!secondaryDraws.empty())
   {
@@ -333,13 +349,15 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
   drv.glEnable(eGL_DEPTH_TEST);
 
   // solid render
-  if(cfg.solidShadeMode != SolidShade::NoSolid && topo != eGL_PATCHES)
+  if(cfg.visualisationMode != Visualisation::NoSolid && topo != eGL_PATCHES)
   {
     drv.glDepthFunc(eGL_LESS);
 
     GLuint solidProg = prog;
 
-    if(cfg.solidShadeMode == SolidShade::Lit && DebugData.meshgsProg[0])
+    if((cfg.visualisationMode == Visualisation::Lit ||
+        cfg.visualisationMode == Visualisation::Explode) &&
+       DebugData.meshgsProg[0])
     {
       // pick program with GS for per-face lighting
       solidProg = DebugData.meshgsProg[progidx];
@@ -363,18 +381,11 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
       return;
     }
 
-    soliddata->mvp = ModelViewProj;
-    soliddata->pointSpriteSize = Vec2f(0.0f, 0.0f);
-    soliddata->homogenousInput = cfg.position.unproject;
+    uboParams.color = Vec4f(0.8f, 0.8f, 0.0f, 1.0f);
+    uboParams.displayFormat = VisModeToMeshDisplayFormat(cfg);
+    *soliddata = uboParams;
 
-    soliddata->color = Vec4f(0.8f, 0.8f, 0.0f, 1.0f);
-
-    uint32_t OutputDisplayFormat = (uint32_t)cfg.solidShadeMode;
-    if(cfg.solidShadeMode == SolidShade::Secondary && cfg.second.showAlpha)
-      OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
-    soliddata->displayFormat = OutputDisplayFormat;
-
-    if(cfg.solidShadeMode == SolidShade::Lit)
+    if(cfg.visualisationMode == Visualisation::Lit || cfg.visualisationMode == Visualisation::Explode)
       soliddata->invProj = projMat.Inverse();
 
     drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
@@ -417,13 +428,13 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
 
   drv.glDepthFunc(eGL_ALWAYS);
 
+  uboParams.displayFormat = MESHDISPLAY_SOLID;
+
   // wireframe render
-  if(cfg.solidShadeMode == SolidShade::NoSolid || cfg.wireframeDraw || topo == eGL_PATCHES)
+  if(cfg.visualisationMode == Visualisation::NoSolid || cfg.wireframeDraw || topo == eGL_PATCHES)
   {
     uboParams.color = Vec4f(cfg.position.meshColor.x, cfg.position.meshColor.y,
                             cfg.position.meshColor.z, cfg.position.meshColor.w);
-
-    uboParams.displayFormat = MESHDISPLAY_SOLID;
 
     if(!IsGLES)
       drv.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
@@ -468,6 +479,10 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
 
   // helpers always use basic float-input program
   drv.glUseProgram(DebugData.meshProg[0]);
+
+  uboParams.vtxExploderSNorm = 0.0f;
+  uboParams.exploderScale = 0.0f;
+  uboParams.exploderCentre = Vec3f();
 
   if(cfg.showBBox)
   {

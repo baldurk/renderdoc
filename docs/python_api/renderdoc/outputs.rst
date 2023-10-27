@@ -61,7 +61,7 @@ Mesh View
 .. autoclass:: MeshFormat
   :members:
 
-.. autoclass:: SolidShade
+.. autoclass:: Visualisation
   :members:
 
 .. autoclass:: Camera

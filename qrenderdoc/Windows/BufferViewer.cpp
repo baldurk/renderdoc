@@ -2402,6 +2402,7 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   memset(&m_Config, 0, sizeof(m_Config));
   m_Config.type = MeshDataStage::VSIn;
   m_Config.wireframeDraw = true;
+  m_Config.exploderScale = 1.0f;
 
   ui->outputTabs->setCurrentIndex(0);
   m_CurStage = MeshDataStage::VSIn;
@@ -2537,10 +2538,11 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
 
   configureDrawRange();
 
-  ui->solidShading->clear();
-  ui->solidShading->addItems({tr("None"), tr("Solid Colour"), tr("Flat Shaded"), tr("Secondary")});
-  ui->solidShading->adjustSize();
-  ui->solidShading->setCurrentIndex(0);
+  ui->visualisation->clear();
+  ui->visualisation->addItems(
+      {tr("None"), tr("Solid Colour"), tr("Flat Shaded"), tr("Secondary"), tr("Exploded")});
+  ui->visualisation->adjustSize();
+  ui->visualisation->setCurrentIndex(0);
 
   ui->matrixType->addItems({tr("Perspective"), tr("Orthographic")});
 
@@ -2843,7 +2845,7 @@ void BufferViewer::SetupMeshView()
     BufferItemModel *model = (BufferItemModel *)m_CurView->model();
 
     model->setPosColumn(-1);
-    model->setSecondaryColumn(-1, m_Config.solidShadeMode == SolidShade::Secondary, false);
+    model->setSecondaryColumn(-1, m_Config.visualisationMode == Visualisation::Secondary, false);
 
     UI_ConfigureFormats();
     on_resetCamera_clicked();
@@ -2863,8 +2865,8 @@ void BufferViewer::SetupMeshView()
   QObject::connect(m_SelectSecondColumn, &QAction::triggered, [this]() {
     BufferItemModel *model = (BufferItemModel *)m_CurView->model();
 
-    model->setSecondaryColumn(m_ContextColumn, m_Config.solidShadeMode == SolidShade::Secondary,
-                              false);
+    model->setSecondaryColumn(m_ContextColumn,
+                              m_Config.visualisationMode == Visualisation::Secondary, false);
 
     UI_ConfigureFormats();
     UpdateCurrentMeshConfig();
@@ -2873,8 +2875,8 @@ void BufferViewer::SetupMeshView()
   QObject::connect(m_SelectSecondAlphaColumn, &QAction::triggered, [this]() {
     BufferItemModel *model = (BufferItemModel *)m_CurView->model();
 
-    model->setSecondaryColumn(m_ContextColumn, m_Config.solidShadeMode == SolidShade::Secondary,
-                              true);
+    model->setSecondaryColumn(m_ContextColumn,
+                              m_Config.visualisationMode == Visualisation::Secondary, true);
     UI_ConfigureFormats();
     UpdateCurrentMeshConfig();
     INVOKE_MEMFN(RT_UpdateAndDisplay);
@@ -3674,7 +3676,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       // similarly for secondary columns
       if(m_ModelIn->secondaryColumn() == -1 ||
          bufdata->highlightNames[1] != bufdata->inConfig.columnName(m_ModelIn->secondaryColumn()))
-        m_ModelIn->setSecondaryColumn(-1, m_Config.solidShadeMode == SolidShade::Secondary, false);
+        m_ModelIn->setSecondaryColumn(-1, m_Config.visualisationMode == Visualisation::Secondary,
+                                      false);
 
       // and as above for VS Out / GS Out
       if(m_ModelOut1->posColumn() == -1 ||
@@ -3682,14 +3685,16 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
         m_ModelOut1->setPosColumn(-1);
       if(m_ModelOut1->secondaryColumn() == -1 ||
          bufdata->highlightNames[3] != bufdata->out1Config.columnName(m_ModelOut1->secondaryColumn()))
-        m_ModelOut1->setSecondaryColumn(-1, m_Config.solidShadeMode == SolidShade::Secondary, false);
+        m_ModelOut1->setSecondaryColumn(-1, m_Config.visualisationMode == Visualisation::Secondary,
+                                        false);
 
       if(m_ModelOut2->posColumn() == -1 ||
          bufdata->highlightNames[4] != bufdata->out2Config.columnName(m_ModelOut2->posColumn()))
         m_ModelOut2->setPosColumn(-1);
       if(m_ModelOut2->secondaryColumn() == -1 ||
          bufdata->highlightNames[5] != bufdata->out2Config.columnName(m_ModelOut2->secondaryColumn()))
-        m_ModelOut2->setSecondaryColumn(-1, m_Config.solidShadeMode == SolidShade::Secondary, false);
+        m_ModelOut2->setSecondaryColumn(-1, m_Config.visualisationMode == Visualisation::Secondary,
+                                        false);
 
       EnableCameraGuessControls();
 
@@ -5306,9 +5311,9 @@ void BufferViewer::updateLabelsAndLayout()
         ui->outputTabs->setTabText(0, tr("Mesh Input"));
         ui->outputTabs->setTabText(1, tr("Mesh Out"));
 
-        if(ui->solidShading->itemText(ui->solidShading->count() - 1) != tr("Meshlet"))
-          ui->solidShading->addItem(tr("Meshlet"));
-        ui->solidShading->adjustSize();
+        if(ui->visualisation->itemText(ui->visualisation->count() - 1) != tr("Meshlet"))
+          ui->visualisation->addItem(tr("Meshlet"));
+        ui->visualisation->adjustSize();
       }
       else
       {
@@ -5334,9 +5339,9 @@ void BufferViewer::updateLabelsAndLayout()
         ui->outputTabs->setTabText(1, tr("VS Out"));
         ui->outputTabs->setTabText(2, tr("GS/DS Out"));
 
-        if(ui->solidShading->itemText(ui->solidShading->count() - 1) == tr("Meshlet"))
-          ui->solidShading->removeItem(ui->solidShading->count() - 1);
-        ui->solidShading->adjustSize();
+        if(ui->visualisation->itemText(ui->visualisation->count() - 1) == tr("Meshlet"))
+          ui->visualisation->removeItem(ui->visualisation->count() - 1);
+        ui->visualisation->adjustSize();
       }
     }
     else
@@ -5363,9 +5368,9 @@ void BufferViewer::updateLabelsAndLayout()
       ui->outputTabs->setTabText(1, tr("VS Out"));
       ui->outputTabs->setTabText(2, tr("GS/DS Out"));
 
-      if(ui->solidShading->itemText(ui->solidShading->count() - 1) == tr("Meshlet"))
-        ui->solidShading->removeItem(ui->solidShading->count() - 1);
-      ui->solidShading->adjustSize();
+      if(ui->visualisation->itemText(ui->visualisation->count() - 1) == tr("Meshlet"))
+        ui->visualisation->removeItem(ui->visualisation->count() - 1);
+      ui->visualisation->adjustSize();
     }
   }
   else
@@ -6678,7 +6683,7 @@ void BufferViewer::UpdateHighlightVerts()
 {
   m_Config.highlightVert = ~0U;
 
-  if(!ui->highlightVerts->isChecked())
+  if(ui->highlightVerts->isHidden() || !ui->highlightVerts->isChecked())
     return;
 
   RDTableView *table = currentTable();
@@ -6777,6 +6782,25 @@ void BufferViewer::on_highlightVerts_toggled(bool checked)
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
+void BufferViewer::on_vtxExploderSlider_valueChanged(int value)
+{
+  m_Config.vtxExploderSliderSNorm = (float)value / 100.0f;
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+}
+
+void BufferViewer::on_exploderReset_clicked()
+{
+  ui->vtxExploderSlider->setSliderPosition(0);
+}
+
+void BufferViewer::on_exploderScale_valueChanged(double value)
+{
+  m_Config.exploderScale = (float)value;
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+}
+
 void BufferViewer::on_wireframeRender_toggled(bool checked)
 {
   m_Config.wireframeDraw = checked;
@@ -6784,7 +6808,7 @@ void BufferViewer::on_wireframeRender_toggled(bool checked)
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
-void BufferViewer::on_solidShading_currentIndexChanged(int index)
+void BufferViewer::on_visualisation_currentIndexChanged(int index)
 {
   ui->wireframeRender->setEnabled(index > 0);
 
@@ -6794,16 +6818,31 @@ void BufferViewer::on_solidShading_currentIndexChanged(int index)
     m_Config.wireframeDraw = true;
   }
 
-  m_Config.solidShadeMode = (SolidShade)qMax(0, index);
+  bool explodeHidden = (index != (int)Visualisation::Explode);
+  ui->vtxExploderLabel->setHidden(explodeHidden);
+  ui->vtxExploderSlider->setHidden(explodeHidden);
+  ui->exploderReset->setHidden(explodeHidden);
+  ui->exploderScaleLabel->setHidden(explodeHidden);
+  ui->exploderScale->setHidden(explodeHidden);
+  // Because the vertex/prim highlights draw from a new, temporary vertex buffer,
+  // those vertex IDs (which determine the explode displacement) won't necessarily
+  // match the original mesh's IDs and exploded vertices.  Because of this, it seems
+  // cleanest to just avoid drawing the highlighted vert/prim with the explode
+  // visualisation (while also getting back a little room on the toolbar used by
+  // the extra exploder controls).
+  ui->highlightVerts->setHidden(!explodeHidden);
+  UpdateHighlightVerts();
+
+  m_Config.visualisationMode = (Visualisation)qMax(0, index);
 
   m_ModelIn->setSecondaryColumn(m_ModelIn->secondaryColumn(),
-                                m_Config.solidShadeMode == SolidShade::Secondary,
+                                m_Config.visualisationMode == Visualisation::Secondary,
                                 m_ModelIn->secondaryAlpha());
   m_ModelOut1->setSecondaryColumn(m_ModelOut1->secondaryColumn(),
-                                  m_Config.solidShadeMode == SolidShade::Secondary,
+                                  m_Config.visualisationMode == Visualisation::Secondary,
                                   m_ModelOut1->secondaryAlpha());
   m_ModelOut2->setSecondaryColumn(m_ModelOut2->secondaryColumn(),
-                                  m_Config.solidShadeMode == SolidShade::Secondary,
+                                  m_Config.visualisationMode == Visualisation::Secondary,
                                   m_ModelOut2->secondaryAlpha());
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);

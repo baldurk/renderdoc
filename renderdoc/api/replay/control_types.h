@@ -309,10 +309,15 @@ struct MeshDisplay
   DOCUMENT("``True`` if the bounding box around the mesh should be rendered.");
   bool showBBox = false;
 
-  DOCUMENT("The :class:`solid shading mode <SolidShade>` to use when rendering the current mesh.");
-  SolidShade solidShadeMode = SolidShade::NoSolid;
+  DOCUMENT(
+      "The :class:`visualisation mode <Visualisation>` to use when rendering the current mesh.");
+  Visualisation visualisationMode = Visualisation::NoSolid;
   DOCUMENT("``True`` if the wireframe of the mesh should be rendered as well as solid shading.");
   bool wireframeDraw = true;
+  DOCUMENT("Displace/explode vertices to help visualise vertex reuse vs disjointedness.");
+  float vtxExploderSliderSNorm = 0.0f;
+  DOCUMENT("Scales the exploded vertex displacement.");
+  float exploderScale = 1.0f;
 
   static const uint32_t NoHighlight = ~0U;
 };

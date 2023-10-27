@@ -37,6 +37,70 @@ struct meshA2V
   float4 secondary : sec;
 };
 
+// This function is mostly duplicated between 'mesh.hlsl' and 'mesh.vert'.
+// Without a convenient shared common source, changes to one should be
+// reflected in the other.
+void vtxExploder(in uint vtxID, inout float3 pos, inout float3 secondary)
+{
+  if(exploderScale > 0.0f)
+  {
+    float nonLinearVtxExplodeScale =
+        4.0f * exploderScale * vtxExploderSNorm * vtxExploderSNorm * vtxExploderSNorm;
+
+    // A vertex might be coincident with our 'exploderCentre' so that, when normalized,
+    // can give us INFs/NaNs that, even if multiplied by a zero 'exploderScale', can
+    // leave us with bad numbers (as seems to be the case with glsl/vulkan, but not hlsl).
+    // Still, we should make this case safe for when we have a non-zero 'exploderScale' -
+    float3 offset = pos - exploderCentre;
+    float offsetDistSquared = dot(offset, offset);
+    float3 safeExplodeDir = offset * rsqrt(max(offsetDistSquared, FLT_EPSILON));
+
+    float displacement =
+        nonLinearVtxExplodeScale * ((float((vtxID >> 1u) & 0xfu) / 15.0f) * 1.5f - 0.5f);
+    pos += (safeExplodeDir * displacement);
+
+    // For the exploder visualisation, colour verts based on vertex ID, which we
+    // store in secondary.
+    //
+    // Interpolate a colour gradient from 0.0 to 1.0 and back to 0.0 for vertex IDs
+    // 0 to 16 to 32 respectively -
+    // 1 - |          .`.
+    //     |        .`   `.
+    //     |      .`   |   `.
+    // 0.5-|    .`           `.
+    //     |  .`       |       `.     .
+    //     |.`                   `. .`
+    // 0.0-+-----------+-----------+---  vtx IDs
+    //     0           16          32
+
+    float vtxIDMod32Div16 = (float)(vtxID % 32u) / 16.0f;              // 0: 0.0  16: 1.0  31: 1.94
+    float descending = floor(vtxIDMod32Div16);                         // 0..15: 0.0  16..31: 1.0
+    float gradientVal = abs(vtxIDMod32Div16 - (2.0f * descending));    // 0.0..1.0
+
+    // Use a hopefully fairly intuitive temperature gradient scheme to help visualise
+    // contiguous/nearby sequences of vertices, which should also show up breaks in
+    // colour where verts aren't shared between adjacent primitives.
+    const float3 gradientColours[5] = {
+        float3(0.004f, 0.002f, 0.025f),    // 0.0..0.25:  Dark blue
+        float3(0.305f, 0.001f, 0.337f),    // 0.25..0.5:  Purple
+        float3(0.665f, 0.033f, 0.133f),    // 0.5..0.75:  Purple orange
+        float3(1.000f, 0.468f, 0.000f),    // 0.75..1.0:  Orange
+        float3(1.000f, 1.000f, 1.000f)     // 1.0:  White
+    };
+
+    uint gradientSectionStartIdx = (uint)(gradientVal * 4.0f);
+    uint gradientSectionEndIdx = min(gradientSectionStartIdx + 1u, 4u);
+    float3 gradSectionStartCol = gradientColours[gradientSectionStartIdx];
+    float3 gradSectionEndCol = gradientColours[gradientSectionEndIdx];
+
+    float sectionLerp = gradientVal - (float)gradientSectionStartIdx * 0.25f;
+    float3 gradCol = lerp(gradientColours[gradientSectionStartIdx],
+                          gradientColours[gradientSectionEndIdx], sectionLerp);
+
+    secondary = gradCol;
+  }
+}
+
 StructuredBuffer<uint4> meshletSizesBuf : register(t0);
 
 float4 unpackUnorm4x8(uint value)
@@ -118,6 +182,7 @@ meshV2F RENDERDOC_MeshVS(meshA2V IN, uint vid : SV_VertexID)
                        float2(1.0f, 1.0f)};
 
   float4 pos = IN.pos;
+  vtxExploder(vid, pos.xyz, IN.secondary.xyz);
 
   if(homogenousInput == 0u)
   {
@@ -213,6 +278,12 @@ float4 RENDERDOC_MeshPS(meshV2F IN)
     float3 lightDir = normalize(float3(0, -0.3f, -1));
 
     return float4(MeshColour.xyz * abs(dot(lightDir, IN.norm)), 1);
+  }
+  else if(type == MESHDISPLAY_EXPLODE)
+  {
+    float3 lightDir = normalize(float3(0, -0.3f, -1));
+
+    return float4(IN.secondary.xyz * abs(dot(lightDir, IN.norm)), 1);
   }
   else    // if(type == MESHDISPLAY_SOLID)
     return float4(MeshColour.xyz, 1);

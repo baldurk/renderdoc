@@ -37,6 +37,9 @@
 
 namespace Constants
 {
+static const int SliderHandleHalfWidth = 4;
+static const int SliderGrooveHeight = 4;
+
 static const int ButtonMargin = 6;
 static const int ButtonBorder = 1;
 
@@ -469,6 +472,32 @@ QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt,
     }
 
     return opt->rect;
+  }
+  else if(cc == QStyle::CC_Slider)
+  {
+    QRect ret = opt->rect;
+    ret.adjust(1, 1, -1, -1);
+    if(sc == QStyle::SC_SliderGroove)
+    {
+      int toGrooveHeightHalfReduction = (ret.height() - Constants::SliderGrooveHeight) / 2;
+      ret.adjust(Constants::SliderHandleHalfWidth, toGrooveHeightHalfReduction,
+                 -Constants::SliderHandleHalfWidth, -toGrooveHeightHalfReduction);
+    }
+    else if(sc == QStyle::SC_SliderHandle)
+    {
+      const QAbstractSlider *slider = qobject_cast<const QAbstractSlider *>(widget);
+      int sliderMin = slider->minimum();
+      int sliderMax = slider->maximum();
+      int sliderPos = slider->sliderPosition();
+      qreal posUNorm = (qreal)(sliderPos - sliderMin) / (qreal)(sliderMax - sliderMin);
+      int grooveLeft = ret.left() + Constants::SliderHandleHalfWidth;
+      int grooveRight = ret.right() - Constants::SliderHandleHalfWidth;
+      int grooveWidth = grooveRight - grooveLeft;
+      int sliderX = (int)(posUNorm * (qreal)grooveWidth) + grooveLeft;
+      ret.setLeft(sliderX - Constants::SliderHandleHalfWidth);
+      ret.setRight(sliderX + Constants::SliderHandleHalfWidth);
+    }
+    return ret;
   }
   else if(cc == QStyle::CC_ComboBox)
   {
@@ -1115,6 +1144,19 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
     }
 
     p->restore();
+
+    return;
+  }
+  else if(control == QStyle::CC_Slider)
+  {
+    QRect grooveRect = subControlRect(control, opt, QStyle::SC_SliderGroove, widget);
+    p->drawLine(QLine(grooveRect.x(), grooveRect.y() + grooveRect.height() / 2, grooveRect.right(),
+                      grooveRect.y() + grooveRect.height() / 2));
+
+    QRect handleRect = subControlRect(control, opt, QStyle::SC_SliderHandle, widget);
+    QBrush handleBrush = (m_Scheme == Light) ? opt->palette.brush(QPalette::Dark)
+                                             : opt->palette.brush(QPalette::Text);
+    p->fillRect(handleRect, handleBrush);
 
     return;
   }

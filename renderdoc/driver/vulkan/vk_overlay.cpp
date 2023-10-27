@@ -2732,7 +2732,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         data->displayFormat = 0;
         data->rawoutput = 1;
         data->flipY = 0;
-        data->padding = Vec2f();
+        data->vtxExploderSNorm = 0.0f;
+        data->exploderScale = 0.0f;
+        data->exploderCentre = Vec3f();
         m_MeshRender.UBO.Unmap();
 
         uint32_t viewOffs = 0;
