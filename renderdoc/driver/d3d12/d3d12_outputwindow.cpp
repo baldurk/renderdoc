@@ -395,7 +395,8 @@ void D3D12Replay::SetOutputWindowDimensions(uint64_t id, int32_t w, int32_t h)
   outw.height = h;
 
   outw.MakeRTV(false);
-  outw.MakeDSV();
+  if(outw.depth)
+    outw.MakeDSV();
 
   outw.bbIdx = 0;
 }
