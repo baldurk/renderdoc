@@ -269,11 +269,12 @@ struct CachedHookData
        !_stricmp(modName, "gdi32.dll") || !_stricmp(modName, "gdi32full.dll") ||
        !_stricmp(modName, "windows.storage.dll") || !_stricmp(modName, "nvoglv32.dll") ||
        !_stricmp(modName, "nvoglv64.dll") || !_stricmp(modName, "vulkan-1.dll") ||
-       !_stricmp(modName, "atio6axx.dll") || !_stricmp(modName, "nvcuda.dll") ||
-       strstr(lowername, "cudart") == lowername || strstr(lowername, "msvcr") == lowername ||
-       strstr(lowername, "msvcp") == lowername || strstr(lowername, "nv-vk") == lowername ||
-       strstr(lowername, "amdvlk") == lowername || strstr(lowername, "igvk") == lowername ||
-       strstr(lowername, "nvopencl") == lowername || strstr(lowername, "nvapi") == lowername)
+       !_stricmp(modName, "atio6axx.dll") || !_stricmp(modName, "atioglxx.dll") ||
+       !_stricmp(modName, "nvcuda.dll") || strstr(lowername, "cudart") == lowername ||
+       strstr(lowername, "msvcr") == lowername || strstr(lowername, "msvcp") == lowername ||
+       strstr(lowername, "nv-vk") == lowername || strstr(lowername, "amdvlk") == lowername ||
+       strstr(lowername, "igvk") == lowername || strstr(lowername, "nvopencl") == lowername ||
+       strstr(lowername, "nvapi") == lowername)
       return;
 
     if(ignores.find(lowername) != ignores.end())
