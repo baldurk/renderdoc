@@ -60,10 +60,12 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
         #     images 49 & 59 in bind 1 should be used for the first fixed index
         #     image 4 in bind 1 should be used for the global access from a function with no dynamic/patched parameters
         #   - images 381 & 386 in bind 2 should be used for the second fixed index
+        #   - image 1 in bind 3 should be used
         bind_info = {
             0: { 'dynamicallyUsedCount': 1, 'used': [15] },
             1: { 'dynamicallyUsedCount': 6, 'used': [4, 19, 20, 21, 49, 59] },
             2: { 'dynamicallyUsedCount': 2, 'used': [381, 386] },
+            3: { 'dynamicallyUsedCount': 1, 'used': [1] },
         }
 
         if len(vkpipe.graphics.descriptorSets) != 1:
@@ -91,7 +93,7 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
 
         pipe = self.controller.GetPipelineState()
         ro = pipe.GetReadOnlyResources(rd.ShaderStage.Pixel, False)
-        self.check_eq(len(ro), 2)
+        self.check_eq(len(ro), 3)
         self.check_eq(ro[0].dynamicallyUsedCount, 6)
         self.check_eq(ro[0].firstIndex, 0)
         self.check_eq(len(ro[0].resources), 128)
@@ -101,7 +103,7 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
         self.check(not ro[0].resources[18].dynamicallyUsed)
         self.check(ro[0].resources[19].dynamicallyUsed)
         ro = pipe.GetReadOnlyResources(rd.ShaderStage.Pixel, True)
-        self.check_eq(len(ro), 2)
+        self.check_eq(len(ro), 3)
         self.check_eq(ro[0].dynamicallyUsedCount, 6)
         self.check_eq(ro[0].firstIndex, 4)
         self.check_eq(len(ro[0].resources), 56)
