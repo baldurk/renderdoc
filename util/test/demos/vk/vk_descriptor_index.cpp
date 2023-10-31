@@ -38,11 +38,14 @@
 
 #endif
 
+#define DESC_ARRAY3_SIZE 3
+
 #define BUFIDX 15
 #define INDEX3 4
 #define INDEX1 49
 #define INDEX2 381
 #define NONUNIFORMIDX 20
+#define TEX3_INDEX 1
 
 RD_TEST(VK_Descriptor_Indexing, VulkanGraphicsTest)
 {
@@ -93,6 +96,7 @@ layout(push_constant) uniform PushData
   uint bufidx;
   uint idx1;
   uint idx2;
+  uint idx3;
 } push;
 
 struct tex_ref
@@ -123,8 +127,11 @@ void main()
   outbuf[push.bufidx].outrefs[3].binding = 2;
   outbuf[push.bufidx].outrefs[3].idx = push.idx2+5;
 
+  outbuf[push.bufidx].outrefs[4].binding = 3;
+  outbuf[push.bufidx].outrefs[4].idx = push.idx3;
+
   // terminator
-  outbuf[push.bufidx].outrefs[4].binding = 100;
+  outbuf[push.bufidx].outrefs[5].binding = 100;
 }
 
 )EOSHADER";
@@ -152,6 +159,7 @@ layout(binding = 0, std430) buffer inbuftype {
 
 layout(binding = 1) uniform sampler2D tex1[)EOSHADER" STRINGIZE(DESC_ARRAY1_SIZE) R"EOSHADER(];
 layout(binding = 2) uniform sampler2D tex2[];
+layout(binding = 3) uniform sampler2D tex3[)EOSHADER" STRINGIZE(DESC_ARRAY3_SIZE) R"EOSHADER(];
 
 void add_color(sampler2D tex)
 {
@@ -220,8 +228,10 @@ void main()
       // function call with array parameters
       if(t.binding < 2)
         dispatch_indirect_color(0, tex1, tex1, 5.0f, t);
-      else
+      else if(t.binding < 3)
         add_color(tex2[t.idx]);
+      else
+        add_color(tex3[t.idx]);
     }
   }
 }
@@ -269,6 +279,9 @@ void main()
     else if(!descIndexing.shaderSampledImageArrayNonUniformIndexing)
       Avail =
           "Descriptor indexing feature 'shaderSampledImageArrayNonUniformIndexing' not available";
+    else if(!descIndexing.descriptorBindingVariableDescriptorCount)
+      Avail =
+          "Descriptor indexing feature 'descriptorBindingVariableDescriptorCount' not available";
 
     static VkPhysicalDeviceDescriptorIndexingFeaturesEXT descIndexingEnable = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT,
@@ -277,6 +290,7 @@ void main()
     descIndexingEnable.descriptorBindingPartiallyBound = VK_TRUE;
     descIndexingEnable.runtimeDescriptorArray = VK_TRUE;
     descIndexingEnable.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    descIndexingEnable.descriptorBindingVariableDescriptorCount = VK_TRUE;
 
     devInfoNext = &descIndexingEnable;
   }
@@ -291,13 +305,14 @@ void main()
         VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT,
     };
 
-    VkDescriptorBindingFlagsEXT bindFlags[3] = {
+    VkDescriptorBindingFlagsEXT bindFlags[4] = {
         VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT,
         0,
         VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT,
+        VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT,
     };
 
-    descFlags.bindingCount = 3;
+    descFlags.bindingCount = ARRAYSIZE(bindFlags);
     descFlags.pBindingFlags = bindFlags;
 
     VkDescriptorSetLayout setlayout = createDescriptorSetLayout(
@@ -319,6 +334,12 @@ void main()
                     2,
                     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     DESC_ARRAY2_SIZE,
+                    VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
+                },
+                {
+                    3,
+                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    UINT32_MAX,
                     VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
                 },
             })
@@ -479,11 +500,26 @@ void main()
               }),
           NULL, &descpool));
 
-      CHECK_VKR(vkAllocateDescriptorSets(
-          device,
-          vkh::DescriptorSetAllocateInfo(descpool,
-                                         {setlayout, setlayout, setlayout, setlayout, setlayout}),
-          descset));
+      const static uint32_t numDescriptorSets = ARRAYSIZE(descset);
+      std::vector<VkDescriptorSetLayout> setLayouts(numDescriptorSets, setlayout);
+      std::vector<uint32_t> counts(numDescriptorSets, DESC_ARRAY3_SIZE);
+
+      VkDescriptorSetVariableDescriptorCountAllocateInfoEXT countInfo = {
+          VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT,
+          NULL,
+          numDescriptorSets,
+          counts.data(),
+      };
+
+      VkDescriptorSetAllocateInfo allocInfo = {
+          VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+          &countInfo,
+          descpool,
+          numDescriptorSets,
+          setLayouts.data(),
+      };
+
+      CHECK_VKR(vkAllocateDescriptorSets(device, &allocInfo, descset));
     }
 
     VkSampler sampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_LINEAR));
@@ -514,6 +550,12 @@ void main()
       up.dstBinding = 2;
       up.dstArrayElement = 20;
       up.descriptorCount = DESC_ARRAY2_SIZE - 20;
+
+      ups.push_back(up);
+
+      up.dstBinding = 3;
+      up.dstArrayElement = 0;
+      up.descriptorCount = DESC_ARRAY3_SIZE;
 
       ups.push_back(up);
     }
@@ -566,6 +608,11 @@ void main()
                 {
                     vkh::DescriptorImageInfo(imgview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler),
                 }),
+            vkh::WriteDescriptorSet(
+                descset[0], 3, TEX3_INDEX, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                {
+                    vkh::DescriptorImageInfo(imgview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler),
+                }),
         });
 
     while(Running())
@@ -586,13 +633,14 @@ void main()
       vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, layout, 0, 1, &descset[0], 0,
                               NULL);
 
-      Vec4i idx = {BUFIDX, INDEX1, INDEX2, 0};
+      Vec4i idx = {BUFIDX, INDEX1, INDEX2, TEX3_INDEX};
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT, 0,
                          sizeof(Vec4i), &idx);
 
       static_assert(BUFIDX < DESC_ARRAY1_SIZE, "Buffer index is out of bounds");
       static_assert(INDEX1 < DESC_ARRAY1_SIZE, "Index 1 is out of bounds");
       static_assert(INDEX2 < DESC_ARRAY2_SIZE, "Index 2 is out of bounds");
+      static_assert(TEX3_INDEX < DESC_ARRAY3_SIZE, "Index 3 is out of bounds");
 
       vkCmdFillBuffer(cmd, ssbo.buffer, 0, 1024 * 1024, 0);
 
