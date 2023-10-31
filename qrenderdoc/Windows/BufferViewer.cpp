@@ -515,6 +515,7 @@ struct BufferConfiguration
 
   rdcarray<TaskGroupSize> taskSizes;
   rdcarray<uint32_t> meshletVertexPrefixCounts;
+  uint32_t taskOrMeshletOffset = 0;
   uint64_t perPrimitiveOffset = 0;
   uint32_t perPrimitiveStride = 0;
   Topology topology = Topology::TriangleList;
@@ -562,6 +563,7 @@ struct BufferConfiguration
     baseVertex = o.baseVertex;
     meshletVertexPrefixCounts = o.meshletVertexPrefixCounts;
     taskSizes = o.taskSizes;
+    taskOrMeshletOffset = o.taskOrMeshletOffset;
     perPrimitiveOffset = o.perPrimitiveOffset;
     perPrimitiveStride = o.perPrimitiveStride;
     topology = o.topology;
@@ -1185,7 +1187,9 @@ public:
 
               size_t meshletIdx = it - config.meshletVertexPrefixCounts.begin();
 
-              return QFormatStr("%1[%2]").arg(meshletIdx).arg(row + config.pagingOffset - *it);
+              return QFormatStr("%1[%2]")
+                  .arg(meshletIdx + config.taskOrMeshletOffset)
+                  .arg(row + config.pagingOffset - *it);
             }
             else
             {
@@ -1950,9 +1954,6 @@ static void RT_FetchMeshPipeData(IReplayController *r, ICaptureContext &ctx, Pop
 
   data->out1Config.statusString = data->postOut1.status;
 
-  data->out2Config.numRows = data->postOut2.numIndices;
-  data->out2Config.unclampedNumRows = 0;
-
   if(data->out2Config.indices)
     data->out2Config.indices->deref();
   if(data->out2Config.displayIndices)
@@ -1965,6 +1966,9 @@ static void RT_FetchMeshPipeData(IReplayController *r, ICaptureContext &ctx, Pop
     data->out2Config.meshletVertexPrefixCounts.push_back(count);
     count += meshletSize.numIndices;
   }
+
+  data->out2Config.numRows = numIndices;
+  data->out2Config.unclampedNumRows = 0;
 
   data->out2Config.topology = data->postOut2.topology;
   data->out2Config.perPrimitiveOffset = data->postOut2.perPrimitiveOffset;
@@ -2431,6 +2435,15 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   m_DebugVert = new QAction(tr("&Debug this Vertex"), this);
   m_DebugVert->setIcon(Icons::wrench());
 
+  m_FilterMesh = new QAction(tr("&Filter to this Meshlet"), this);
+  m_FilterMesh->setIcon(Icons::filter());
+
+  m_RemoveFilter = new QAction(tr("&Remove Filter"), this);
+  m_RemoveFilter->setIcon(Icons::arrow_undo());
+
+  m_GotoTask = new QAction(tr("&Go to task"), this);
+  m_GotoTask->setIcon(Icons::arrow_join());
+
   ui->exportDrop->setMenu(m_ExportMenu);
 
   QObject::connect(m_ExportMenu, &QMenu::aboutToShow, this, &BufferViewer::updateExportActionNames);
@@ -2440,6 +2453,39 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   QObject::connect(m_ExportBytes, &QAction::triggered,
                    [this] { exportData(BufferExport(BufferExport::RawBytes)); });
   QObject::connect(m_DebugVert, &QAction::triggered, this, &BufferViewer::debugVertex);
+  QObject::connect(m_RemoveFilter, &QAction::triggered,
+                   [this]() { SetMeshFilter(MeshFilter::None); });
+  QObject::connect(m_FilterMesh, &QAction::triggered, [this]() {
+    QModelIndex idx = m_CurView->selectionModel()->currentIndex();
+
+    if(!idx.isValid())
+      return;
+
+    uint32_t taskIndex = 0, meshletIndex = 0;
+    GetIndicesForMeshRow((uint32_t)idx.row(), taskIndex, meshletIndex);
+
+    SetMeshFilter(MeshFilter::Mesh, taskIndex, meshletIndex);
+  });
+  QObject::connect(m_GotoTask, &QAction::triggered, [this]() {
+    // if there's a filter then by definition only one task is visible, just scroll to it
+    if(m_CurMeshFilter != MeshFilter::None)
+    {
+      ShowMeshData(MeshDataStage::TaskOut);
+      ScrollToRow(0, MeshDataStage::TaskOut);
+      return;
+    }
+
+    QModelIndex idx = m_CurView->selectionModel()->currentIndex();
+
+    if(!idx.isValid())
+      return;
+
+    uint32_t taskIndex = 0, meshletIndex = 0;
+    GetIndicesForMeshRow((uint32_t)idx.row(), taskIndex, meshletIndex);
+
+    ShowMeshData(MeshDataStage::TaskOut);
+    ScrollToRow((int)taskIndex, MeshDataStage::TaskOut);
+  });
 
   QObject::connect(ui->exportDrop, &QToolButton::clicked,
                    [this] { exportData(BufferExport(BufferExport::CSV)); });
@@ -2577,6 +2623,36 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   m_Ctx.AddCaptureViewer(this);
 }
 
+void BufferViewer::GetIndicesForMeshRow(uint32_t row, uint32_t &taskIndex, uint32_t &meshletIdx)
+{
+  const BufferConfiguration &config2 = m_ModelOut2->getConfig();
+
+  auto it = std::upper_bound(config2.meshletVertexPrefixCounts.begin(),
+                             config2.meshletVertexPrefixCounts.end(), row);
+
+  if(it != config2.meshletVertexPrefixCounts.begin())
+    it--;
+
+  meshletIdx = uint32_t(it - config2.meshletVertexPrefixCounts.begin());
+
+  const BufferConfiguration &config1 = m_ModelOut1->getConfig();
+
+  taskIndex = 0;
+
+  uint32_t meshletCounter = 0;
+  for(taskIndex = 0; taskIndex < meshletIdx && taskIndex < config1.taskSizes.size(); taskIndex++)
+  {
+    meshletCounter += config1.taskSizes[taskIndex].x * config1.taskSizes[taskIndex].y *
+                      config1.taskSizes[taskIndex].z;
+
+    if(meshletIdx < meshletCounter)
+      break;
+  }
+
+  taskIndex += config1.taskOrMeshletOffset;
+  meshletIdx += config2.taskOrMeshletOffset;
+}
+
 void BufferViewer::SetupRawView()
 {
   ui->formatSpecifier->setVisible(true);
@@ -2591,6 +2667,9 @@ void BufferViewer::SetupRawView()
   ui->viewLabel->setVisible(false);
   ui->viewIndex->setVisible(false);
   ui->dockarea->setVisible(false);
+
+  ui->meshFilterLabel->setVisible(false);
+  ui->resetMeshFilterButton->setVisible(false);
 
   ui->inTable->setFrameShape(QFrame::NoFrame);
 
@@ -2691,6 +2770,9 @@ void BufferViewer::SetupMeshView()
   byteRangeStart->setVisible(false);
   ui->byteRangeLengthLabel->setVisible(false);
   byteRangeLength->setVisible(false);
+
+  ui->meshFilterLabel->setVisible(false);
+  ui->resetMeshFilterButton->setVisible(false);
 
   ui->fixedVars->setVisible(false);
   ui->showPadding->setVisible(false);
@@ -2870,15 +2952,23 @@ void BufferViewer::fixedVars_contextMenu(const QPoint &pos)
   QAction collapseAll(tr("C&ollapse All"), this);
   QAction copy(tr("&Copy"), this);
   QAction showPadding(tr("&Show Padding"), this);
+  QAction removeFilter(tr("&Remove Filter"), this);
+  QAction filterTask(tr("&Filter to this Task"), this);
+  QAction gotoMesh(tr("&Go to meshes"), this);
 
   expandAll.setIcon(Icons::arrow_out());
   collapseAll.setIcon(Icons::arrow_in());
   copy.setIcon(Icons::copy());
-  showPadding.setIcon(Icons::align());
+  removeFilter.setIcon(Icons::arrow_undo());
+  filterTask.setIcon(Icons::filter());
+  gotoMesh.setIcon(Icons::arrow_join());
   showPadding.setCheckable(true);
   showPadding.setChecked(ui->showPadding->isChecked());
 
   expandAll.setEnabled(item && item->childCount() > 0);
+  removeFilter.setEnabled(item && m_CurMeshFilter != MeshFilter::None);
+  filterTask.setEnabled(item);
+  gotoMesh.setEnabled(item);
   collapseAll.setEnabled(expandAll.isEnabled());
 
   contextMenu.addAction(&expandAll);
@@ -2887,13 +2977,62 @@ void BufferViewer::fixedVars_contextMenu(const QPoint &pos)
 
   contextMenu.addSeparator();
 
-  if(!m_MeshView)
+  int idx = ui->fixedVars->indexOfTopLevelItem(item);
+
+  if(m_MeshView)
+  {
+    contextMenu.addAction(&removeFilter);
+    contextMenu.addAction(&filterTask);
+    contextMenu.addAction(&gotoMesh);
+
+    // if we're already filtering to a task, don't offer to filter any more. However if we're
+    // filtered to a mesh allow 'broadening' the filter back to the task
+    filterTask.setEnabled(m_CurMeshFilter != MeshFilter::TaskGroup);
+
+    const BufferConfiguration &config1 = m_ModelOut1->getConfig();
+    if(config1.taskSizes[idx].x * config1.taskSizes[idx].y * config1.taskSizes[idx].z == 0)
+      gotoMesh.setEnabled(false);
+
+    // if there's a filter don't enable goto mesh as normally we just scroll to the first mesh - it
+    // would be redundant and potentially annoying to be able to and doesn't do anything useful
+    if(m_CurMeshFilter != MeshFilter::None)
+      gotoMesh.setEnabled(false);
+  }
+  else
+  {
     contextMenu.addAction(&showPadding);
+  }
 
   contextMenu.addSeparator();
 
   contextMenu.addAction(m_ExportCSV);
   contextMenu.addAction(m_ExportBytes);
+
+  QObject::connect(&removeFilter, &QAction::triggered,
+                   [this, idx]() { SetMeshFilter(MeshFilter::None); });
+  QObject::connect(&filterTask, &QAction::triggered, [this, idx]() {
+    // if there's no filter, select this task. If we were mesh filtering, filter back to all meshes
+    // under the current task (don't use idx there, since it will just be 0)
+    if(m_CurMeshFilter == MeshFilter::None)
+      SetMeshFilter(MeshFilter::TaskGroup, idx);
+    else
+      SetMeshFilter(MeshFilter::TaskGroup, m_FilteredTaskGroup);
+  });
+  QObject::connect(&gotoMesh, &QAction::triggered, [this, idx]() {
+    const BufferConfiguration &config1 = m_ModelOut1->getConfig();
+
+    uint32_t meshletIndex = 0;
+    for(int i = 0; i < idx && i < config1.taskSizes.count(); i++)
+    {
+      meshletIndex += config1.taskSizes[i].x * config1.taskSizes[i].y * config1.taskSizes[i].z;
+    }
+
+    const BufferConfiguration &config2 = m_ModelOut2->getConfig();
+    uint32_t vertexOffset = config2.meshletVertexPrefixCounts[meshletIndex];
+
+    ShowMeshData(MeshDataStage::MeshOut);
+    ScrollToRow((int)vertexOffset, MeshDataStage::MeshOut);
+  });
 
   QObject::connect(&expandAll, &QAction::triggered,
                    [this, item]() { ui->fixedVars->expandAllItems(item); });
@@ -2918,6 +3057,35 @@ void BufferViewer::stageRowMenu(MeshDataStage stage, QMenu *menu, const QPoint &
   menu->clear();
 
   menu->setToolTipsVisible(true);
+
+  QModelIndex idx = m_CurView->selectionModel()->currentIndex();
+
+  const ActionDescription *action = m_Ctx.CurAction();
+
+  if(action && (action->flags & ActionFlags::MeshDispatch))
+  {
+    if(stage == MeshDataStage::GSOut)
+    {
+      const BufferConfiguration &config = m_ModelOut2->getConfig();
+
+      auto it = std::upper_bound(config.meshletVertexPrefixCounts.begin(),
+                                 config.meshletVertexPrefixCounts.end(), (uint32_t)idx.row());
+
+      if(it != config.meshletVertexPrefixCounts.begin())
+        it--;
+
+      size_t meshletIdx = it - config.meshletVertexPrefixCounts.begin();
+
+      m_RemoveFilter->setEnabled(m_CurMeshFilter != MeshFilter::None);
+
+      menu->addAction(m_RemoveFilter);
+      menu->addAction(m_FilterMesh);
+      menu->addAction(m_GotoTask);
+      menu->addSeparator();
+
+      m_GotoTask->setEnabled(m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Task));
+    }
+  }
 
   if(m_MeshView && stage != MeshDataStage::GSOut)
   {
@@ -2969,8 +3137,6 @@ void BufferViewer::stageRowMenu(MeshDataStage stage, QMenu *menu, const QPoint &
     contextMenu = ContextMenu::MeshPreview_TaskOutVertex;
   else if(stage == MeshDataStage::MeshOut)
     contextMenu = ContextMenu::MeshPreview_MeshOutVertex;
-
-  QModelIndex idx = m_CurView->selectionModel()->currentIndex();
 
   ExtensionCallbackData callbackdata = {make_pyarg("stage", (uint32_t)stage)};
 
@@ -3042,6 +3208,12 @@ void BufferViewer::FillScrolls(PopulateBufferData *bufdata)
   bufdata->inVert = ui->inTable->indexAt(QPoint(0, 0)).row();
   bufdata->out1Vert = ui->out1Table->indexAt(QPoint(0, 0)).row();
   bufdata->out2Vert = ui->out2Table->indexAt(QPoint(0, 0)).row();
+
+  if(bufdata->meshDispatch)
+  {
+    bufdata->out1Horiz = ui->fixedVars->horizontalScrollBar()->value();
+    bufdata->out1Vert = ui->fixedVars->indexOfTopLevelItem(ui->fixedVars->itemAt(QPoint(0, 0)));
+  }
 }
 
 void BufferViewer::OnEventChanged(uint32_t eventId)
@@ -3259,6 +3431,86 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       {
         bufdata->postOut1 = r->GetPostVSData(0, bufdata->inConfig.curView, MeshDataStage::TaskOut);
         bufdata->postOut2 = r->GetPostVSData(0, bufdata->inConfig.curView, MeshDataStage::MeshOut);
+
+        // apply mesh/task filtering to mesh data here, which will also propagate to preview
+        if(m_FilteredMeshGroup != ~0U)
+        {
+          bufdata->out1Config.taskOrMeshletOffset = m_FilteredTaskGroup;
+
+          // find this meshlet's offset in the index buffer and filter to only it
+          uint32_t indexCount = 0, vertexCount = 0;
+          for(uint32_t i = 0; i <= m_FilteredMeshGroup && i < bufdata->postOut2.meshletSizes.size();
+              i++)
+          {
+            MeshletSize meshletSize = bufdata->postOut2.meshletSizes[i];
+            uint32_t numIndices = meshletSize.numIndices;
+            if(i == m_FilteredMeshGroup)
+            {
+              bufdata->postOut2.meshletIndexOffset = vertexCount;
+              bufdata->postOut2.meshletOffset = m_FilteredMeshGroup;
+              bufdata->out2Config.taskOrMeshletOffset = m_FilteredMeshGroup;
+              bufdata->postOut2.numIndices = numIndices;
+              bufdata->postOut2.meshletSizes = {meshletSize};
+              bufdata->postOut2.indexByteOffset += indexCount * bufdata->postOut2.indexByteStride;
+            }
+            indexCount += numIndices;
+            vertexCount += meshletSize.numVertices;
+          }
+        }
+        else if(m_FilteredTaskGroup != ~0U)
+        {
+          bufdata->out1Config.taskOrMeshletOffset = m_FilteredTaskGroup;
+
+          // find the relevant task and which mesh indices it corresponds to
+          uint32_t meshletCounter = 0;
+          for(uint32_t taskIndex = 0;
+              taskIndex <= m_FilteredTaskGroup && taskIndex < bufdata->postOut1.taskSizes.size();
+              taskIndex++)
+          {
+            uint32_t numMeshesInTask = bufdata->postOut1.taskSizes[taskIndex].x *
+                                       bufdata->postOut1.taskSizes[taskIndex].y *
+                                       bufdata->postOut1.taskSizes[taskIndex].z;
+
+            // once we've found the desired task, filter our view to only its meshes
+            if(taskIndex == m_FilteredTaskGroup)
+            {
+              bufdata->postOut2.numIndices = 0;
+
+              rdcarray<MeshletSize> meshletSizes;
+              meshletSizes.reserve(numMeshesInTask);
+
+              uint32_t indexCount = 0, vertexCount = 0;
+              for(uint32_t i = 0;
+                  i < meshletCounter + numMeshesInTask && i < bufdata->postOut2.meshletSizes.size();
+                  i++)
+              {
+                uint32_t indicesInMeshlet = bufdata->postOut2.meshletSizes[i].numIndices;
+
+                if(i >= meshletCounter)
+                {
+                  bufdata->postOut2.numIndices += indicesInMeshlet;
+                  meshletSizes.push_back(bufdata->postOut2.meshletSizes[i]);
+                }
+
+                if(i == meshletCounter)
+                {
+                  bufdata->postOut2.meshletIndexOffset = vertexCount;
+                  bufdata->postOut2.meshletOffset = meshletCounter;
+                  bufdata->out2Config.taskOrMeshletOffset = meshletCounter;
+                  bufdata->postOut2.indexByteOffset += indexCount * bufdata->postOut2.indexByteStride;
+                }
+                indexCount += indicesInMeshlet;
+                vertexCount += bufdata->postOut2.meshletSizes[i].numVertices;
+              }
+
+              bufdata->postOut2.meshletSizes = meshletSizes;
+
+              break;
+            }
+
+            meshletCounter += numMeshesInTask;
+          }
+        }
 
         RT_FetchMeshPipeData(r, m_Ctx, bufdata);
       }
@@ -3499,20 +3751,25 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
               {
                 TaskGroupSize size = bufdata->out1Config.taskSizes[i];
 
-                RDTreeWidgetItem *n = new RDTreeWidgetItem(
-                    {QFormatStr("%1, %2, %3").arg(x).arg(y).arg(z),
-                     QFormatStr("Dispatched [%1, %2, %3]").arg(size.x).arg(size.y).arg(size.z),
-                     lit("Task Group")});
+                RDTreeWidgetItem *n = NULL;
 
-                if(!bufdata->out1Config.columns.empty())
+                if(m_CurMeshFilter == MeshFilter::None || m_FilteredTaskGroup == i)
+                {
+                  n = new RDTreeWidgetItem(
+                      {QFormatStr("%1, %2, %3").arg(x).arg(y).arg(z),
+                       QFormatStr("Dispatched [%1, %2, %3]").arg(size.x).arg(size.y).arg(size.z),
+                       lit("Task Group")});
+
+                  ui->fixedVars->addTopLevelItem(n);
+                }
+
+                if(n && !bufdata->out1Config.columns.empty())
                 {
                   UI_AddTaskPayloads(n, i * bufdata->out1Config.buffers[0]->stride,
                                      bufdata->out1Config.columns, bufdata->out1Config.buffers[0]);
                 }
 
                 i++;
-
-                ui->fixedVars->addTopLevelItem(n);
               }
             }
           }
@@ -3530,6 +3787,12 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
                                         0);
         else
           ui->fixedVars->applyExpansion(state, 0);
+
+        if(bufdata->out1Vert >= 0 && bufdata->out1Vert < ui->fixedVars->topLevelItemCount())
+        {
+          ScrollToRow(bufdata->out1Vert, MeshDataStage::TaskOut);
+          ui->fixedVars->horizontalScrollBar()->setValue(bufdata->out1Horiz);
+        }
       }
 
       if(!m_MeshView)
@@ -4795,6 +5058,13 @@ void BufferViewer::ViewTexture(ResourceId id, const Subresource &sub, const rdcs
 
 void BufferViewer::ScrollToRow(int32_t row, MeshDataStage stage)
 {
+  if(m_MeshView && stage == MeshDataStage::TaskOut)
+  {
+    ui->fixedVars->scrollToItem(ui->fixedVars->topLevelItem(row));
+    ui->fixedVars->setSelectedItem(ui->fixedVars->topLevelItem(row));
+    return;
+  }
+
   ScrollToRow(tableForStage(stage), row);
 
   if(m_MeshView)
@@ -4972,6 +5242,11 @@ void BufferViewer::updateLabelsAndLayout()
         m_Containers[1]->layout()->addWidget(ui->out2Table);
         m_Containers[2]->layout()->addWidget(ui->inTable);
 
+        ui->instanceLabel->setVisible(false);
+        ui->instance->setVisible(false);
+        ui->meshFilterLabel->setVisible(true);
+        ui->resetMeshFilterButton->setVisible(true);
+
         ui->fixedVars->setVisible(true);
         ui->out1Table->setVisible(false);
         m_Containers[2]->setWindowTitle(tr("Mesh Input"));
@@ -4993,6 +5268,11 @@ void BufferViewer::updateLabelsAndLayout()
         m_Containers[0]->layout()->addWidget(ui->fixedVars);
         m_Containers[1]->layout()->addWidget(ui->out1Table);
         m_Containers[2]->layout()->addWidget(ui->out2Table);
+
+        ui->instanceLabel->setVisible(true);
+        ui->instance->setVisible(true);
+        ui->meshFilterLabel->setVisible(false);
+        ui->resetMeshFilterButton->setVisible(false);
 
         ui->fixedVars->setVisible(false);
         ui->out1Table->setVisible(true);
@@ -5017,6 +5297,11 @@ void BufferViewer::updateLabelsAndLayout()
       m_Containers[0]->layout()->addWidget(ui->fixedVars);
       m_Containers[1]->layout()->addWidget(ui->out1Table);
       m_Containers[2]->layout()->addWidget(ui->out2Table);
+
+      ui->instanceLabel->setVisible(true);
+      ui->instance->setVisible(true);
+      ui->meshFilterLabel->setVisible(false);
+      ui->resetMeshFilterButton->setVisible(false);
 
       ui->fixedVars->setVisible(false);
       ui->out1Table->setVisible(true);
@@ -5267,6 +5552,7 @@ void BufferViewer::Reset()
   ClearModels();
 
   updateLabelsAndLayout();
+  SetMeshFilter(MeshFilter::None);
 
   ui->fixedVars->clear();
 
@@ -5621,6 +5907,11 @@ void BufferViewer::on_setFormat_toggled(bool checked)
             reflection->resourceId, reflection->constantBlocks[m_CBufferSlot.slot].variables),
         reflection->resourceId, reflection->constantBlocks[m_CBufferSlot.slot].name,
         reflection->constantBlocks[m_CBufferSlot.slot].variables, 0));
+}
+
+void BufferViewer::on_resetMeshFilterButton_clicked()
+{
+  SetMeshFilter(MeshFilter::None);
 }
 
 void BufferViewer::processFormat(const QString &format)
@@ -6487,6 +6778,115 @@ void BufferViewer::on_instance_valueChanged(int value)
 void BufferViewer::on_viewIndex_valueChanged(int value)
 {
   m_Config.curView = value;
+  OnEventChanged(m_Ctx.CurEvent());
+}
+
+void BufferViewer::SetMeshFilter(MeshFilter filter, uint32_t taskGroup, uint32_t meshGroup)
+{
+  // calculate new scrolls manually to keep the same logical item selected
+  m_Scrolls = new PopulateBufferData;
+  FillScrolls(m_Scrolls);
+
+  {
+    const BufferConfiguration &config1 = m_ModelOut1->getConfig();
+    const BufferConfiguration &config2 = m_ModelOut2->getConfig();
+
+    // baseTaskRow is the first row in the mesh view for the start of the task with no mesh filter,
+    // and baseMeshRow is the offset to the filtered mesh (if relevant). They could be identical
+    const uint32_t prevBaseTaskRow = m_TaskFilterRowOffset;
+    const uint32_t prevBaseMeshRow = m_MeshFilterRowOffset;
+
+    // if we're filtering directly to a task from none, we also have the prefix count we just have
+    // to determine the base mesh
+    uint32_t taskBaseMesh = 0;
+    for(uint32_t i = 0; i < taskGroup && i < config1.taskSizes.size(); i++)
+      taskBaseMesh += config1.taskSizes[i].x * config1.taskSizes[i].y * config1.taskSizes[i].z;
+
+    uint32_t newBaseTaskRow = 0, newBaseMeshRow = 0;
+    if(filter == MeshFilter::None || config2.meshletVertexPrefixCounts.empty())
+    {
+      // if the new filter is none, then our new base row for both is 0
+      newBaseTaskRow = newBaseMeshRow = 0;
+    }
+    else if(m_CurMeshFilter == MeshFilter::None && filter == MeshFilter::Mesh)
+    {
+      newBaseTaskRow = config2.meshletVertexPrefixCounts[taskBaseMesh];
+      newBaseMeshRow = config2.meshletVertexPrefixCounts[meshGroup];
+    }
+    else if(m_CurMeshFilter == MeshFilter::None && filter == MeshFilter::TaskGroup)
+    {
+      newBaseTaskRow = newBaseMeshRow = config2.meshletVertexPrefixCounts[taskBaseMesh];
+    }
+    else if(m_CurMeshFilter == MeshFilter::TaskGroup && filter == MeshFilter::Mesh)
+    {
+      // the first complex case - if we're already filtered to a task and now we're filtering to a
+      // mesh, we only have prefix counts relatively so look it up
+      newBaseTaskRow = prevBaseTaskRow;
+      newBaseMeshRow = prevBaseTaskRow + config2.meshletVertexPrefixCounts[meshGroup - taskBaseMesh];
+    }
+    else if(m_CurMeshFilter == MeshFilter::Mesh && filter == MeshFilter::TaskGroup)
+    {
+      // the second complex case - if we're already filtered to a *mesh* and now we're filtering
+      // back to the task, we undo the previous per-mesh filter
+      newBaseTaskRow = newBaseMeshRow = prevBaseTaskRow;
+
+      // only support filtering within the same group, not arbitrarily from one mesh in one task
+      // group to a different task group
+      Q_ASSERT(m_FilteredTaskGroup == taskGroup);
+    }
+
+    const uint32_t prevBaseRow = prevBaseMeshRow;
+    const uint32_t newBaseRow = newBaseMeshRow;
+
+    // when going to/from no filter, we just rebase by the base row and set the task row that we know directly
+    if(m_CurMeshFilter == MeshFilter::None)
+    {
+      m_Scrolls->out1Vert = 0;
+      m_Scrolls->out2Vert -= newBaseRow;
+    }
+    else if(filter == MeshFilter::None)
+    {
+      m_Scrolls->out1Vert = config1.taskOrMeshletOffset;
+      m_Scrolls->out2Vert += prevBaseRow;
+    }
+
+    // otherwise changing between task and mesh filter, we rebase based on the difference between
+    // the number of meshes shown. The task filter doesn't have to change
+    else if(m_CurMeshFilter == MeshFilter::TaskGroup && filter == MeshFilter::Mesh)
+    {
+      m_Scrolls->out1Vert = 0;
+      m_Scrolls->out2Vert -= (newBaseRow - prevBaseRow);
+    }
+    else if(m_CurMeshFilter == MeshFilter::Mesh && filter == MeshFilter::TaskGroup)
+    {
+      m_Scrolls->out1Vert = 0;
+      m_Scrolls->out2Vert += (prevBaseRow - newBaseRow);
+    }
+
+    m_TaskFilterRowOffset = newBaseTaskRow;
+    m_MeshFilterRowOffset = newBaseMeshRow;
+  }
+
+  m_CurMeshFilter = filter;
+  m_FilteredTaskGroup = taskGroup;
+  m_FilteredMeshGroup = meshGroup;
+
+  switch(m_CurMeshFilter)
+  {
+    case MeshFilter::None:
+      ui->meshFilterLabel->setText(tr("Current Range filter: None"));
+      ui->resetMeshFilterButton->setEnabled(false);
+      break;
+    case MeshFilter::TaskGroup:
+      ui->meshFilterLabel->setText(tr("Current Range filter: Single Task Group"));
+      ui->resetMeshFilterButton->setEnabled(true);
+      break;
+    case MeshFilter::Mesh:
+      ui->meshFilterLabel->setText(tr("Current Range filter: Single Meshlet"));
+      ui->resetMeshFilterButton->setEnabled(true);
+      break;
+  }
+
   OnEventChanged(m_Ctx.CurEvent());
 }
 

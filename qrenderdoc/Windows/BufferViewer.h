@@ -141,6 +141,7 @@ private slots:
   void on_axisMappingCombo_currentIndexChanged(int index);
   void on_axisMappingButton_clicked();
   void on_setFormat_toggled(bool checked);
+  void on_resetMeshFilterButton_clicked();
 
   // manual slots
   void render_mouseMove(QMouseEvent *e);
@@ -210,6 +211,8 @@ private:
 
   void FillScrolls(PopulateBufferData *bufdata);
 
+  void GetIndicesForMeshRow(uint32_t row, uint32_t &taskIndex, uint32_t &meshletIndex);
+
   void UI_ResetArcball();
 
   // data from raw buffer view
@@ -263,6 +266,17 @@ private:
   // (mesh out) and [2] being in
   QWidget *m_Containers[3] = {};
 
+  enum class MeshFilter
+  {
+    None,
+    TaskGroup,
+    Mesh,
+  };
+
+  MeshFilter m_CurMeshFilter = MeshFilter::None;
+  uint32_t m_FilteredTaskGroup = ~0U, m_FilteredMeshGroup = ~0U;
+  uint32_t m_TaskFilterRowOffset = 0, m_MeshFilterRowOffset = 0;
+
   PopulateBufferData *m_Scrolls = NULL;
 
   QPoint m_Scroll[4];
@@ -306,6 +320,9 @@ private:
   QAction *m_ExportCSV = NULL;
   QAction *m_ExportBytes = NULL;
   QAction *m_DebugVert = NULL;
+  QAction *m_FilterMesh = NULL;
+  QAction *m_RemoveFilter = NULL;
+  QAction *m_GotoTask = NULL;
 
   RDSpinBox64 *byteRangeStart = NULL;
   RDSpinBox64 *byteRangeLength = NULL;
@@ -321,6 +338,8 @@ private:
 
   void SetupMeshView();
   void SetupRawView();
+
+  void SetMeshFilter(MeshFilter filter, uint32_t taskGroup = ~0U, uint32_t meshGroup = ~0U);
 
   void stageRowMenu(MeshDataStage stage, QMenu *menu, const QPoint &pos);
   void meshHeaderMenu(MeshDataStage stage, const QPoint &pos);

@@ -989,6 +989,24 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
      </widget>
     </item>
     <item>
+     <widget class="QLabel" name="meshFilterLabel">
+      <property name="text">
+       <string>Current Range filter: None</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QToolButton" name="resetMeshFilterButton">
+      <property name="icon">
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/arrow_undo.png</normaloff>:/arrow_undo.png</iconset>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="Line" name="byteRangeLine">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
