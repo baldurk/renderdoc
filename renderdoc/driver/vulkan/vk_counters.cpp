@@ -690,6 +690,8 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersKHR(const rdcarray<GPUCounter
       sizeof(VkPerformanceCounterResultKHR) * perfResults.size(), &perfResults[0],
       sizeof(VkPerformanceCounterResultKHR) * counters.size(), VK_QUERY_RESULT_WAIT_BIT);
   CheckVkResult(vkr);
+  m_pDriver->SubmitCmds();
+  m_pDriver->FlushQ();
 
   ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), queryPool, NULL);
 
@@ -1021,6 +1023,8 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
       sizeof(uint64_t) * timeStampData.size(), &timeStampData[0], sizeof(uint64_t),
       VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
   CheckVkResult(vkr);
+  m_pDriver->SubmitCmds();
+  m_pDriver->FlushQ();
 
   ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), timeStampPool, NULL);
 
