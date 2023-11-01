@@ -2030,28 +2030,35 @@ rdcstr Constant::toString(bool withType) const
   }
   else if(type->type == Type::Array)
   {
-    ret += "[";
-    for(size_t i = 0; i < members->size(); i++)
+    if(!members && !str.empty())
     {
-      if(i > 0)
-        ret += ", ";
-
-      if(Literal *l = cast<Literal>(members->at(i)))
-      {
-        if(withType)
-          ret += type->inner->toString() + " ";
-
-        ShaderValue v;
-        v.u64v[0] = l->literal;
-
-        shaderValAppendToString(type->inner, v, 0, ret);
-      }
-      else
-      {
-        ret += members->at(i)->toString(withType);
-      }
+      ret += "c" + escapeString(str);
     }
-    ret += "]";
+    else
+    {
+      ret += "[";
+      for(size_t i = 0; i < members->size(); i++)
+      {
+        if(i > 0)
+          ret += ", ";
+
+        if(Literal *l = cast<Literal>(members->at(i)))
+        {
+          if(withType)
+            ret += type->inner->toString() + " ";
+
+          ShaderValue v;
+          v.u64v[0] = l->literal;
+
+          shaderValAppendToString(type->inner, v, 0, ret);
+        }
+        else
+        {
+          ret += members->at(i)->toString(withType);
+        }
+      }
+      ret += "]";
+    }
   }
   else if(type->type == Type::Struct)
   {
