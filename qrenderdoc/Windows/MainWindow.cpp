@@ -3101,7 +3101,20 @@ bool MainWindow::LoadLayout(int layout)
     if(!success)
       return false;
 
-    return restoreState(state);
+    if(restoreState(state))
+    {
+      // Close any windows which have now become orphaned
+      foreach(QWidget *toolWindow, ui->toolWindowManager->toolWindows())
+      {
+        if(ui->toolWindowManager->areaOf(toolWindow) == NULL)
+        {
+          qInfo() << "Manually closing orphaned window " << toolWindow->objectName();
+          ui->toolWindowManager->forceCloseToolWindow(toolWindow);
+        }
+      }
+      return true;
+    }
+    return false;
   }
 
   qInfo() << "Couldn't load layout from " << path << " " << f.errorString();
