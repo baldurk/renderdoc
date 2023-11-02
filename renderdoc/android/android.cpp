@@ -269,7 +269,14 @@ int GetCurrentPID(const rdcstr &deviceID, const rdcstr &processName)
   return 0;
 }
 
-bool CheckAndroidServerVersion(const rdcstr &deviceID, ABI abi)
+enum class AndroidVersionCheckResult
+{
+  Correct,
+  WrongVersion,
+  NotInstalled,
+};
+
+AndroidVersionCheckResult CheckAndroidServerVersion(const rdcstr &deviceID, ABI abi)
 {
   // assume all servers are updated at the same rate. Only check first ABI's version
   rdcstr packageName = GetRenderDocPackageForABI(abi);
@@ -277,7 +284,10 @@ bool CheckAndroidServerVersion(const rdcstr &deviceID, ABI abi)
 
   rdcstr dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
   if(dump.empty())
-    RDCERR("Unable to pm dump %s", packageName.c_str());
+  {
+    RDCWARN("Unable to pm dump %s", packageName.c_str());
+    return AndroidVersionCheckResult::NotInstalled;
+  }
 
   rdcstr versionCode = GetFirstMatchingLine(dump, "versionCode=").trimmed();
   rdcstr versionName = GetFirstMatchingLine(dump, "versionName=").trimmed();
@@ -293,7 +303,7 @@ bool CheckAndroidServerVersion(const rdcstr &deviceID, ABI abi)
   }
   else
   {
-    RDCERR("Unable to determine versionCode for: %s", packageName.c_str());
+    RDCWARN("Unable to determine versionCode for: %s", packageName.c_str());
   }
 
   if(versionName != "")
@@ -302,8 +312,11 @@ bool CheckAndroidServerVersion(const rdcstr &deviceID, ABI abi)
   }
   else
   {
-    RDCERR("Unable to determine versionName for: %s", packageName.c_str());
+    RDCWARN("Unable to determine versionName for: %s", packageName.c_str());
   }
+
+  if(versionCode.empty() && versionName.empty())
+    return AndroidVersionCheckResult::NotInstalled;
 
   // Compare the server's versionCode and versionName with the host's for compatibility
   rdcstr hostVersionCode =
@@ -315,13 +328,13 @@ bool CheckAndroidServerVersion(const rdcstr &deviceID, ABI abi)
   {
     RDCLOG("Installed server version (%s:%s) is compatible", versionCode.c_str(),
            versionName.c_str());
-    return true;
+    return AndroidVersionCheckResult::Correct;
   }
 
   RDCWARN("RenderDoc server versionCode:versionName (%s:%s) is incompatible with host (%s:%s)",
           versionCode.c_str(), versionName.c_str(), hostVersionCode.c_str(), hostVersionName.c_str());
 
-  return false;
+  return AndroidVersionCheckResult::WrongVersion;
 }
 
 Process::ProcessResult ListPackages(const rdcstr &deviceID, const rdcstr &parameters)
@@ -425,6 +438,11 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
 #endif
   }
 
+  // install the best ABI first, so that for arm64 only devices we can know by the time we go to
+  // install arm32 whether arm64 installed correctly
+  if(abis.size() == 2)
+    std::swap(abis[0], abis[1]);
+
   for(ABI abi : abis)
   {
     apk = apksFolder;
@@ -455,20 +473,45 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
       adbInstall = adbExecCommand(deviceID, "install -r -g \"" + apk + "\"");
     }
 
+    // if adb produces this message we can be reasonably sure this is a 32-bit version that failed
+    // to install on a 64-bit only device. However we need to account for the possibility that adb
+    // might not produce this error even if that's the problem, so we still handle that below as well.
+    if(adbInstall.strStderror.contains("INSTALL_FAILED_NO_MATCHING_ABIS") &&
+       abi == ABI::armeabi_v7a && abis.contains(ABI::arm64_v8a))
+    {
+      RDCWARN(
+          "ARM32 package failed to install on ARM64 device with no matching ABIs error. Assuming "
+          "64-bit only ARM device and ignoring.");
+      continue;
+    }
+
     RDCLOG("Installed package '%s', checking for success...", apk.c_str());
 
-    bool success = CheckAndroidServerVersion(deviceID, abi);
+    AndroidVersionCheckResult check = CheckAndroidServerVersion(deviceID, abi);
 
-    if(!success)
+    if(check != AndroidVersionCheckResult::Correct)
     {
       RDCLOG("Failed to install APK. stdout: %s, stderr: %s",
              adbInstall.strStdout.trimmed().c_str(), adbInstall.strStderror.trimmed().c_str());
       RDCLOG("Retrying...");
       adbExecCommand(deviceID, "install -r \"" + apk + "\"");
 
-      success = CheckAndroidServerVersion(deviceID, abi);
+      check = CheckAndroidServerVersion(deviceID, abi);
 
-      if(success)
+      // if the apk came back as not installed (rather than wrong version code)
+      // AND it's arm32 in an arm64 environment
+      // AND the previous install (the arm64 install) succeeded
+      // AND we're on Android 12
+      // then we assume that this device is 64-bit only and doesn't support arm32 at all,
+      // so we ignore the problem
+      if(check == AndroidVersionCheckResult::NotInstalled && abi == ABI::armeabi_v7a &&
+         abis.contains(ABI::arm64_v8a) && result == ResultCode::Succeeded && apiVersion >= 31)
+      {
+        RDCWARN(
+            "ARM32 package failed to install but ARM64 package succeeded. Assuming 64-bit only ARM "
+            "device and ignoring.");
+      }
+      else if(check == AndroidVersionCheckResult::Correct)
       {
         // if it succeeded this time, then it was the permission grant that failed
         result = ResultCode::AndroidGrantPermissionsFailed;
@@ -1051,8 +1094,36 @@ struct AndroidController : public IDeviceProtocolHandler
         return;
       }
 
-      // assume all servers are updated at the same rate. Only check first ABI's version
-      if(packages.size() != abis.size() || !Android::CheckAndroidServerVersion(deviceID, abis[0]))
+      rdcstr api =
+          Android::adbExecCommand(deviceID, "shell getprop ro.build.version.sdk").strStdout.trimmed();
+
+      int apiVersion = atoi(api.c_str());
+
+      // To account for awkward 64-bit only devices, sometimes need to check ABIs independently. If
+      // ARM32 is *missing completely* and ARM64 is present and on the right version, we allow that
+      // case on Android 12+ assuming it's a 64-bit only device. Since our installer should always
+      // update both packages in lockstep we don't expect 64-bit to be installed only if we could
+      // have installed 32-bit.
+
+      // the installed version is OK if...
+      bool installedOK =
+          // ...we have exactly the right number of packages installed and the best ABI is on the
+          // right version. This covers normal 64-bit devices and also covers the 32-bit only case
+          // trivially.
+          (packages.size() == abis.size() &&
+           Android::CheckAndroidServerVersion(deviceID, abis.back()) ==
+               Android::AndroidVersionCheckResult::Correct)
+          // OR
+          ||
+          // ...we're a 64-bit capable device on Android 12+ and only 64-bit is installed and up
+          // to date, 32-bit is not installed at all
+          (abis.contains(Android::ABI::arm64_v8a) && apiVersion >= 31 &&
+           Android::CheckAndroidServerVersion(deviceID, Android::ABI::arm64_v8a) ==
+               Android::AndroidVersionCheckResult::Correct &&
+           Android::CheckAndroidServerVersion(deviceID, Android::ABI::armeabi_v7a) ==
+               Android::AndroidVersionCheckResult::NotInstalled);
+
+      if(!installedOK)
       {
         // if there was any existing package, remove it
         if(!packages.empty())
