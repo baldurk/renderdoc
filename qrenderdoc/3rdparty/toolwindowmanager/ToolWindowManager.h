@@ -250,6 +250,12 @@ public:
   static void raiseToolWindow(QWidget *toolWindow);
 
   /*!
+   * Force close a window, to be used when a toolWindow has become orphaned
+   * (no valid parent)
+   */
+  void forceCloseToolWindow(QWidget *toolWindow);
+
+  /*!
    * \brief saveState
    */
   QVariantMap saveState();
