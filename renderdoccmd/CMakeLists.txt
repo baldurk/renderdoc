@@ -50,9 +50,14 @@ elseif(ENABLE_GGP)
 elseif(UNIX)
     list(APPEND sources renderdoccmd_linux.cpp)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set_property(SOURCE renderdoccmd_linux.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-shadow")
-endif()
+    if(FreeBSD)
+        list(APPEND libraries PRIVATE -L/usr/local/lib)
+        list(APPEND includes /usr/local/include)
+    endif()
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        set_property(SOURCE renderdoccmd_linux.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-shadow")
+    endif()
 
     if(ENABLE_XLIB)
         list(APPEND libraries PRIVATE -lX11)

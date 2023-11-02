@@ -38,7 +38,11 @@
 
 Threading::CriticalSection libLock;
 
+#ifdef __linux__
 RDOC_EXTERN_CONFIG(bool, Linux_Debug_PtraceLogging);
+#else
+#define Linux_Debug_PtraceLogging() false
+#endif
 
 static std::map<rdcstr, rdcarray<FunctionLoadCallback>> libraryCallbacks;
 static rdcarray<rdcstr> libraryHooks;
@@ -116,6 +120,7 @@ int direct_setenv(const char *name, const char *value, int overwrite);
 // The other variants all forward to one of those - the 'l' cases unroll the va_args first before
 // calling onwards
 
+#ifndef __FreeBSD__    // TODO: environ bug
 #define GET_EXECL_PARAMS(has_e)           \
   va_list args;                           \
   va_start(args, arg);                    \
@@ -194,6 +199,7 @@ __attribute__((visibility("default"))) int execvp(const char *pathname, char *co
 
   return execvpe(pathname, argv, environ);
 }
+#endif    // __FreeBSD__
 
 __attribute__((visibility("default"))) int execve(const char *pathname, char *const argv[],
                                                   char *const envp[])
