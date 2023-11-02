@@ -3072,6 +3072,7 @@ bool MainWindow::restoreState(QVariantMap &state)
 
 bool MainWindow::SaveLayout(int layout)
 {
+  qInfo() << "SaveLayout " << layout;
   QString path = GetLayoutPath(layout);
 
   QVariantMap state = saveState();
@@ -3087,6 +3088,7 @@ bool MainWindow::SaveLayout(int layout)
 
 bool MainWindow::LoadLayout(int layout)
 {
+  qInfo() << "LoadLayout " << layout;
   QString path = GetLayoutPath(layout);
 
   QFile f(path);
