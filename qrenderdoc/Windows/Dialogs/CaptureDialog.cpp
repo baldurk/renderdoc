@@ -471,7 +471,7 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
         bool needReg = RENDERDOC_NeedVulkanLayerRegistration(NULL);
         ui->vulkanLayerWarn->setVisible(needReg);
 
-#if !defined(Q_OS_LINUX)
+#if !defined(Q_OS_LINUX) || defined(Q_OS_FREEBSD)
         // can't alert the user on linux because the command might still be running - there's
         // seemingly no portable way to wait for the command to finish.
         if(needReg)
@@ -490,7 +490,7 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
       {
 // linux sometimes can't run GUI apps as root, so we have to run renderdoccmd. Check that it's
 // installed, error if not, then invoke it.
-#if defined(Q_OS_LINUX)
+#if defined(Q_OS_LINUX) || defined(Q_OS_FREEBSD)
         QDir binDir = QFileInfo(qApp->applicationFilePath()).absoluteDir();
 
         QString cmd = lit("renderdoccmd");

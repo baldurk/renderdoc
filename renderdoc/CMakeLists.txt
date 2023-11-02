@@ -59,6 +59,15 @@ elseif(UNIX)
         PRIVATE -ldl
         PRIVATE -lrt)
 
+    if(FreeBSD)
+        list(APPEND RDOC_LIBRARIES
+            PRIVATE -L/usr/local/lib
+            PRIVATE -liconv
+            PRIVATE -lexecinfo
+            PRIVATE -lutil
+        )
+    endif()
+
     if(ENABLE_XLIB)
         find_package(X11 REQUIRED)
 
@@ -321,6 +330,23 @@ elseif(ENABLE_GGP)
         os/posix/ggp/ggp_threading.cpp
         os/posix/ggp/ggp_hook.cpp
         os/posix/ggp/ggp_network.cpp
+        3rdparty/plthook/plthook.h
+        3rdparty/plthook/plthook_elf.c
+        os/posix/posix_network.h
+        os/posix/posix_network.cpp
+        os/posix/posix_process.cpp
+        os/posix/posix_stringio.cpp
+        os/posix/posix_threading.cpp
+        os/posix/posix_specific.h)
+elseif(FreeBSD)
+    list(APPEND sources
+        data/embedded_files.h
+        os/posix/linux/linux_stringio.cpp
+        os/posix/linux/linux_callstack.cpp
+        os/posix/linux/linux_threading.cpp
+        os/posix/freebsd/freebsd_process.cpp
+        os/posix/linux/linux_hook.cpp
+        os/posix/linux/linux_network.cpp
         3rdparty/plthook/plthook.h
         3rdparty/plthook/plthook_elf.c
         os/posix/posix_network.h

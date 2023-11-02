@@ -24,7 +24,9 @@
 
 #include "os/os_specific.h"
 
+#ifdef __linux__
 #include <sys/prctl.h>
+#endif
 #include <time.h>
 #include <unistd.h>
 
@@ -42,5 +44,7 @@ uint64_t Timing::GetTick()
 
 void Threading::SetCurrentThreadName(const rdcstr &name)
 {
+#ifdef __linux__
   prctl(PR_SET_NAME, (unsigned long)name.c_str(), 0, 0, 0);
+#endif
 }

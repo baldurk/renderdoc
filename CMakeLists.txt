@@ -9,6 +9,10 @@ if(APPLE)
   SET(CMAKE_XCODE_SCHEME_ENABLE_GPU_FRAME_CAPTURE_MODE "Disabled")
 endif()
 
+if("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "FreeBSD")
+  set(FreeBSD YES)
+endif()
+
 # Configure some stuff that needs to be set really early
 if(BUILD_ANDROID)
     if(NOT DEFINED ENV{JAVA_HOME})

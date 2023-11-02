@@ -84,6 +84,9 @@ void GLResourceManager::MarkFBOAttachmentsReferenced(ResourceId fboid, GLResourc
 {
   FBOCache *cache = m_FBOAttachmentsCache[fboid];
 
+  if(!record)
+    return;
+
   if(!cache)
   {
     cache = m_FBOAttachmentsCache[fboid] = new FBOCache;

@@ -79,7 +79,7 @@ enum
   Key_F = 33,
   Key_W = 17,
   Key_R = 19,
-#elif defined(Q_OS_LINUX)
+#elif defined(Q_OS_LINUX) || defined(Q_OS_FREEBSD)
   Key_A = 30 + 8,
   Key_S = 31 + 8,
   Key_D = 32 + 8,
@@ -111,7 +111,7 @@ enum
   Key_F = quint32('F'),
   Key_W = quint32('W'),
   Key_R = quint32('R'),
-#elif defined(Q_OS_LINUX)
+#elif defined(Q_OS_LINUX) || defined(Q_OS_FREEBSD)
   Key_A = quint32('a'),
   Key_S = quint32('s'),
   Key_D = quint32('d'),
