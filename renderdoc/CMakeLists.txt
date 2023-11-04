@@ -59,7 +59,7 @@ elseif(UNIX)
         PRIVATE -ldl
         PRIVATE -lrt)
 
-    if(FreeBSD)
+    if(FREEBSD)
         list(APPEND RDOC_LIBRARIES
             PRIVATE -L/usr/local/lib
             PRIVATE -liconv
@@ -338,15 +338,15 @@ elseif(ENABLE_GGP)
         os/posix/posix_stringio.cpp
         os/posix/posix_threading.cpp
         os/posix/posix_specific.h)
-elseif(FreeBSD)
+elseif(FREEBSD)
     list(APPEND sources
         data/embedded_files.h
-        os/posix/linux/linux_stringio.cpp
-        os/posix/linux/linux_callstack.cpp
-        os/posix/linux/linux_threading.cpp
-        os/posix/freebsd/freebsd_process.cpp
-        os/posix/linux/linux_hook.cpp
-        os/posix/linux/linux_network.cpp
+        os/posix/bsd/bsd_stringio.cpp
+        os/posix/bsd/bsd_callstack.cpp
+        os/posix/bsd/bsd_threading.cpp
+        os/posix/bsd/bsd_process.cpp
+        os/posix/bsd/bsd_hook.cpp
+        os/posix/bsd/bsd_network.cpp
         3rdparty/plthook/plthook.h
         3rdparty/plthook/plthook_elf.c
         os/posix/posix_network.h

@@ -20,7 +20,6 @@
   actual site failure. So the debugger stops on the CHECK() or REQUIRE()
   call instead of inside AssertionHandler::complete()
 * https://github.com/baldurk/renderdoc/commit/4232736fc21fc6a13a4de6997a5ae106598b225f
-* Add FreeBSD support with correct debugger handling
 */
 #ifndef TWOBLUECUBES_SINGLE_INCLUDE_CATCH_HPP_INCLUDED
 #define TWOBLUECUBES_SINGLE_INCLUDE_CATCH_HPP_INCLUDED
@@ -2725,7 +2724,7 @@ namespace Catch {
         #define CATCH_TRAP()  __asm__(".inst 0xde01")
     #endif
 
-#elif defined(CATCH_PLATFORM_LINUX) || defined(__FreeBSD__)
+#elif defined(CATCH_PLATFORM_LINUX)
     // If we can use inline assembler, do it because this allows us to break
     // directly at the location of the failing check instead of breaking inside
     // raise() called from it, i.e. one stack frame below.
@@ -10429,7 +10428,7 @@ namespace Catch {
 // end catch_debug_console.cpp
 // start catch_debugger.cpp
 
-#if defined(CATCH_PLATFORM_MAC) || defined(CATCH_PLATFORM_IPHONE) || defined(__FreeBSD__)
+#if defined(CATCH_PLATFORM_MAC) || defined(CATCH_PLATFORM_IPHONE)
 
 #  include <cassert>
 #  include <sys/types.h>
@@ -10441,13 +10440,10 @@ namespace Catch {
     // These headers will only compile with AppleClang (XCode)
     // For other compilers (Clang, GCC, ... ) we need to exclude them
 #  include <sys/sysctl.h>
-#elif defined(__FreeBSD__)
-#  include <sys/user.h>
-#  include <sys/sysctl.h>
 #endif
 
     namespace Catch {
-        #if defined(__apple_build_version__) || defined(__FreeBSD__)
+        #ifdef __apple_build_version__
         // The following function is taken directly from the following technical note:
         // https://developer.apple.com/library/archive/qa/qa1361/_index.html
 
@@ -10458,12 +10454,10 @@ namespace Catch {
             struct kinfo_proc   info;
             std::size_t         size;
 
-            #ifndef __FreeBSD__
             // Initialize the flags so that, if sysctl fails for some bizarre
             // reason, we get a predictable result.
 
             info.kp_proc.p_flag = 0;
-            #endif
 
             // Initialize mib, which tells sysctl the info we want, in this case
             // we're looking for information about a specific process ID.
@@ -10483,11 +10477,7 @@ namespace Catch {
 
             // We're being debugged if the P_TRACED flag is set.
 
-            #ifdef __FreeBSD__
-            return ( (info.ki_flag & P_TRACED) != 0 );
-            #else
             return ( (info.kp_proc.p_flag & P_TRACED) != 0 );
-            #endif
         }
         #else
         bool isDebuggerActive() {

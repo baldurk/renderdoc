@@ -37,7 +37,7 @@
 #include <QStyledItemDelegate>
 #include "Code/Interface/QRDInterface.h"
 
-#if !defined(RELEASE)
+#if !defined(RELEASE) && !defined(__FreeBSD__)
 #define ENABLE_UNIT_TESTS 1
 #else
 #define ENABLE_UNIT_TESTS 0

@@ -23,24 +23,22 @@
  ******************************************************************************/
 
 #include "os/os_specific.h"
+#include "os/posix/posix_network.h"
 
-#include <sys/prctl.h>
-#include <time.h>
-#include <unistd.h>
-
-double Timing::GetTickFrequency()
+namespace Network
 {
-  return 1000000.0;
+void SocketPostSend()
+{
+  // only needed for awful hack on Android
 }
 
-uint64_t Timing::GetTick()
+uint32_t Socket::GetRemoteIP() const
 {
-  timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-  return uint64_t(ts.tv_sec) * 1000000000ULL + uint32_t(ts.tv_nsec & 0xffffffff);
+  return GetIPFromTCPSocket((int)socket);
 }
 
-void Threading::SetCurrentThreadName(const rdcstr &name)
+Socket *CreateServerSocket(const rdcstr &bindaddr, uint16_t port, int queuesize)
 {
-  prctl(PR_SET_NAME, (unsigned long)name.c_str(), 0, 0, 0);
+  return CreateTCPServerSocket(bindaddr, port, queuesize);
 }
+};

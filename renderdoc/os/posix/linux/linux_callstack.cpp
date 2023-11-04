@@ -66,11 +66,11 @@ private:
   {
     void *addrs_ptr[ARRAY_COUNT(addrs)];
 
-    size_t ret = backtrace(addrs_ptr, ARRAY_COUNT(addrs));
+    int ret = backtrace(addrs_ptr, ARRAY_COUNT(addrs));
 
     numLevels = 0;
     if(ret > 0)
-      numLevels = ret;
+      numLevels = (size_t)ret;
 
     int offs = 0;
     // if we want to trim levels of the stack, we can do that here
