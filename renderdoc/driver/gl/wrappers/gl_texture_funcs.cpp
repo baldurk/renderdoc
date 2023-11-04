@@ -2763,6 +2763,14 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(SerialiserType &ser, GLuint te
     GLint align = 1;
     GL.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
 
+    PixelUnpackState unpack;
+    if(pixels)
+    {
+      unpack.Fetch(true);
+      ResetPixelUnpackState(true, 1);
+      RDCASSERT(!unpackbuf);
+    }
+
     if(IsLoading(m_State) && m_CurEventID == 0)
     {
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
@@ -2775,6 +2783,8 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(SerialiserType &ser, GLuint te
     if(unpackbuf)
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+    if(pixels)
+      unpack.Apply(false);
 
     if(IsLoading(m_State) && m_CurEventID > 0)
       m_ResourceUses[GetResourceManager()->GetResID(texture)].push_back(
@@ -3004,6 +3014,14 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(SerialiserType &ser, GLuint te
     GLint align = 1;
     GL.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
 
+    PixelUnpackState unpack;
+    if(pixels)
+    {
+      unpack.Fetch(true);
+      ResetPixelUnpackState(true, 1);
+      RDCASSERT(!unpackbuf);
+    }
+
     if(IsLoading(m_State) && m_CurEventID == 0)
     {
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
@@ -3038,6 +3056,8 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(SerialiserType &ser, GLuint te
     if(unpackbuf)
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+    if(pixels)
+      unpack.Apply(false);
 
     if(IsLoading(m_State) && m_CurEventID > 0)
       m_ResourceUses[GetResourceManager()->GetResID(texture)].push_back(
@@ -3271,6 +3291,14 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(SerialiserType &ser, GLuint te
     GLint align = 1;
     GL.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
 
+    PixelUnpackState unpack;
+    if(pixels)
+    {
+      unpack.Fetch(true);
+      ResetPixelUnpackState(true, 1);
+      RDCASSERT(!unpackbuf);
+    }
+
     if(IsLoading(m_State) && m_CurEventID == 0)
     {
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
@@ -3283,6 +3311,8 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(SerialiserType &ser, GLuint te
     if(unpackbuf)
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+    if(pixels)
+      unpack.Apply(false);
 
     if(IsLoading(m_State) && m_CurEventID > 0)
       m_ResourceUses[GetResourceManager()->GetResID(texture)].push_back(
@@ -3526,12 +3556,22 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage1DEXT(SerialiserType &ser,
       GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
     }
 
+    PixelUnpackState unpack;
+    if(pixels)
+    {
+      unpack.Fetch(true);
+      ResetPixelUnpackState(true, 1);
+      RDCASSERT(!unpackbuf);
+    }
+
     GL.glCompressedTextureImage1DEXT(texture.name, target, level, internalformat, width, border,
                                      imageSize, databuf);
 
     if(unpackbuf)
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+    if(pixels)
+      unpack.Apply(false);
 
     if(IsLoading(m_State) && m_CurEventID > 0)
       m_ResourceUses[GetResourceManager()->GetResID(texture)].push_back(
@@ -3860,6 +3900,14 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(SerialiserType &ser,
     GLint align = 1;
     GL.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
 
+    PixelUnpackState unpack;
+    if(pixels)
+    {
+      unpack.Fetch(true);
+      ResetPixelUnpackState(true, 1);
+      RDCASSERT(!unpackbuf);
+    }
+
     if(IsLoading(m_State) && m_CurEventID == 0)
     {
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
@@ -3894,6 +3942,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(SerialiserType &ser,
     if(unpackbuf)
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+    if(pixels)
+      unpack.Apply(false);
 
     if(IsLoading(m_State) && m_CurEventID > 0)
       m_ResourceUses[GetResourceManager()->GetResID(texture)].push_back(
@@ -4132,6 +4182,14 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(SerialiserType &ser,
     GLint align = 1;
     GL.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
 
+    PixelUnpackState unpack;
+    if(pixels)
+    {
+      unpack.Fetch(true);
+      ResetPixelUnpackState(true, 1);
+      RDCASSERT(!unpackbuf);
+    }
+
     if(IsLoading(m_State) && m_CurEventID == 0)
     {
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
@@ -4144,6 +4202,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(SerialiserType &ser,
     if(unpackbuf)
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+    if(pixels)
+      unpack.Apply(false);
 
     if(IsLoading(m_State) && m_CurEventID > 0)
       m_ResourceUses[GetResourceManager()->GetResID(texture)].push_back(
