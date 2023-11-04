@@ -50,7 +50,7 @@ elseif(ENABLE_GGP)
 elseif(UNIX)
     list(APPEND sources renderdoccmd_linux.cpp)
 
-    if(FreeBSD)
+    if(FREEBSD)
         list(APPEND libraries PRIVATE -L/usr/local/lib)
         list(APPEND includes /usr/local/include)
     endif()

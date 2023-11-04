@@ -38,8 +38,6 @@
 
 Threading::CriticalSection libLock;
 
-RDOC_EXTERN_CONFIG(bool, Linux_Debug_PtraceLogging);
-
 static std::map<rdcstr, rdcarray<FunctionLoadCallback>> libraryCallbacks;
 static rdcarray<rdcstr> libraryHooks;
 static rdcarray<FunctionHook> functionHooks;
@@ -116,6 +114,10 @@ int direct_setenv(const char *name, const char *value, int overwrite);
 // The other variants all forward to one of those - the 'l' cases unroll the va_args first before
 // calling onwards
 
+#if 1    // TODO: environ bug
+char **GetCurrentEnvironment();
+#define environ GetCurrentEnvironment()
+
 #define GET_EXECL_PARAMS(has_e)           \
   va_list args;                           \
   va_start(args, arg);                    \
@@ -143,66 +145,27 @@ __attribute__((visibility("default"))) int execl(const char *pathname, const cha
 {
   GET_EXECL_PARAMS(false);
 
-  if(Linux_Debug_PtraceLogging())
-    RDCLOG("execl(%s)", pathname);
-
   return execve(pathname, arglist.data(), environ);
-}
-
-__attribute__((visibility("default"))) int execlp(const char *pathname, const char *arg, ...)
-{
-  GET_EXECL_PARAMS(false);
-
-  if(Linux_Debug_PtraceLogging())
-    RDCLOG("execlp(%s)", pathname);
-
-  return execvpe(pathname, arglist.data(), environ);
 }
 
 __attribute__((visibility("default"))) int execle(const char *pathname, const char *arg, ...)
 {
   GET_EXECL_PARAMS(true);
 
-  if(Linux_Debug_PtraceLogging())
-    RDCLOG("execle(%s)", pathname);
-
   return execve(pathname, arglist.data(), envp);
-}
-
-__attribute__((visibility("default"))) int execlpe(const char *pathname, const char *arg, ...)
-{
-  GET_EXECL_PARAMS(true);
-
-  if(Linux_Debug_PtraceLogging())
-    RDCLOG("execlpe(%s)", pathname);
-
-  return execvpe(pathname, arglist.data(), envp);
 }
 
 __attribute__((visibility("default"))) int execv(const char *pathname, char *const argv[])
 {
-  if(Linux_Debug_PtraceLogging())
-    RDCLOG("execv(%s)", pathname);
-
   return execve(pathname, argv, environ);
 }
-
-__attribute__((visibility("default"))) int execvp(const char *pathname, char *const argv[])
-{
-  if(Linux_Debug_PtraceLogging())
-    RDCLOG("execvp(%s)", pathname);
-
-  return execvpe(pathname, argv, environ);
-}
+#endif
 
 __attribute__((visibility("default"))) int execve(const char *pathname, char *const argv[],
                                                   char *const envp[])
 {
   if(!realexecve)
   {
-    if(Linux_Debug_PtraceLogging())
-      RDCLOG("unhooked early execve(%s)", pathname);
-
     EXECVEPROC passthru = (EXECVEPROC)dlsym(RTLD_NEXT, "execve");
     return passthru(pathname, argv, envp);
   }
@@ -217,15 +180,9 @@ __attribute__((visibility("default"))) int execve(const char *pathname, char *co
   // vars that were kept around after initialisation
   if(!RenderDoc::Inst().GetCaptureOptions().hookIntoChildren)
   {
-    if(Linux_Debug_PtraceLogging())
-      RDCLOG("unhooked execve(%s)", pathname);
-
     GetUnhookedEnvp(envp, envpStr, modifiedEnv);
     return realexecve(pathname, argv, modifiedEnv.data());
   }
-
-  if(Linux_Debug_PtraceLogging())
-    RDCLOG("hooked execve(%s)", pathname);
 
   GetHookedEnvp(envp, envpStr, modifiedEnv);
   return realexecve(pathname, argv, modifiedEnv.data());
@@ -236,9 +193,6 @@ __attribute__((visibility("default"))) int execvpe(const char *pathname, char *c
 {
   if(!realexecvpe)
   {
-    if(Linux_Debug_PtraceLogging())
-      RDCLOG("unhooked early execvpe(%s)", pathname);
-
     EXECVPEPROC passthru = (EXECVPEPROC)dlsym(RTLD_NEXT, "execvpe");
     return passthru(pathname, argv, envp);
   }
@@ -253,15 +207,9 @@ __attribute__((visibility("default"))) int execvpe(const char *pathname, char *c
   // vars that were kept around after initialisation
   if(!RenderDoc::Inst().GetCaptureOptions().hookIntoChildren)
   {
-    if(Linux_Debug_PtraceLogging())
-      RDCLOG("unhooked execvpe(%s)", pathname);
-
     GetUnhookedEnvp(envp, envpStr, modifiedEnv);
     return realexecvpe(pathname, argv, modifiedEnv.data());
   }
-
-  if(Linux_Debug_PtraceLogging())
-    RDCLOG("hooked execvpe(%s)", pathname);
 
   GetHookedEnvp(envp, envpStr, modifiedEnv);
   return realexecvpe(pathname, argv, modifiedEnv.data());
@@ -289,18 +237,12 @@ __attribute__((visibility("default"))) pid_t fork()
     // envp because it was probably fetched before the fork - see the exec hooks for where we patch
     // that part.
 
-    if(Linux_Debug_PtraceLogging())
-      RDCLOG("non-hooked fork()");
-
     pid_t ret = realfork();
     if(ret == 0)
       direct_setenv(RENDERDOC_VULKAN_LAYER_VAR, "", true);
 
     return ret;
   }
-
-  if(Linux_Debug_PtraceLogging())
-    RDCLOG("hooked fork()");
 
   // fork in a captured application. Need to get the child ident and register it
 
@@ -311,9 +253,6 @@ __attribute__((visibility("default"))) pid_t fork()
 
   if(ret == 0)
   {
-    if(Linux_Debug_PtraceLogging())
-      RDCLOG("hooked fork() in child %d", getpid());
-
     StopAtMainInChild();
   }
   else if(ret > 0)
@@ -321,18 +260,10 @@ __attribute__((visibility("default"))) pid_t fork()
     // restore environment variables
     ResetHookingEnvVars();
 
-    if(Linux_Debug_PtraceLogging())
-      RDCLOG("hooked fork() in parent, child is %d", ret);
-
     bool exitWithNoExec = false;
     bool stopped = StopChildAtMain(ret, &exitWithNoExec);
 
-    if(exitWithNoExec)
-    {
-      if(Linux_Debug_PtraceLogging())
-        RDCLOG("hooked fork() child %d exited gracefully while waiting for exec(). Ignoring", ret);
-    }
-    else if(stopped)
+    if(!exitWithNoExec && stopped)
     {
       int ident = GetIdentPort(ret);
 
@@ -381,9 +312,6 @@ __attribute__((visibility("default"))) pid_t fork()
       RenderDoc::Inst().AddChildThread((uint32_t)ret, handle);
     }
   }
-
-  if(Linux_Debug_PtraceLogging())
-    RDCLOG("Returning from fork");
 
   return ret;
 }

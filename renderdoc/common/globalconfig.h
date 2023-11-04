@@ -226,8 +226,8 @@ enum
 // this strips them completely
 #define STRIP_DEBUG_LOGS OPTION_OFF
 
-// disable unit tests on android
-#if ENABLED(RDOC_ANDROID)
+// disable unit tests on android and *BSD
+#if ENABLED(RDOC_ANDROID) || defined(__FreeBSD__)
 
 #define ENABLE_UNIT_TESTS OPTION_OFF
 

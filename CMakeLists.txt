@@ -10,7 +10,7 @@ if(APPLE)
 endif()
 
 if("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "FreeBSD")
-  set(FreeBSD YES)
+  set(FREEBSD YES)
 endif()
 
 # Configure some stuff that needs to be set really early

@@ -24,8 +24,11 @@
 
 #include <dlfcn.h>    // for dlsym
 #include <stdlib.h>
-#include <sys/sysctl.h>
+// clang-format off
+// sys/types.h needs to be included before sys/sysctl.h
 #include <sys/types.h>
+#include <sys/sysctl.h>
+// clang-format on
 #include <sys/user.h>
 #include <unistd.h>
 #include "common/common.h"
