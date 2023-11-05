@@ -121,6 +121,36 @@ struct D3D12PipelineReplacements
   ID3D12PipelineState *originalShaderStencil;
 };
 
+enum D3D12PixelHistoryTests : uint32_t
+{
+  TestEnabled_DepthClipping = 1 << 0,
+  TestEnabled_Culling = 1 << 1,
+  TestEnabled_Scissor = 1 << 2,    // Scissor test always enabled with D3D12
+  TestEnabled_SampleMask = 1 << 3,
+  TestEnabled_DepthBounds = 1 << 4,
+  TestEnabled_StencilTesting = 1 << 5,
+  TestEnabled_DepthTesting = 1 << 6,
+  TestEnabled_FragmentDiscard = 1 << 7,
+
+  Blending_Enabled = 1 << 8,
+  UnboundFragmentShader = 1 << 9,
+  TestMustFail_Scissor = 1 << 11,
+  TestMustPass_Scissor = 1 << 12,
+  TestMustFail_DepthTesting = 1 << 13,
+  TestMustFail_StencilTesting = 1 << 14,
+  TestMustFail_SampleMask = 1 << 15,
+
+  DepthTest_Shift = 29,
+  DepthTest_Always = 0U << DepthTest_Shift,
+  DepthTest_Never = 1U << DepthTest_Shift,
+  DepthTest_Equal = 2U << DepthTest_Shift,
+  DepthTest_NotEqual = 3U << DepthTest_Shift,
+  DepthTest_Less = 4U << DepthTest_Shift,
+  DepthTest_LessEqual = 5U << DepthTest_Shift,
+  DepthTest_Greater = 6U << DepthTest_Shift,
+  DepthTest_GreaterEqual = 7U << DepthTest_Shift,
+};
+
 namespace
 {
 
@@ -1106,6 +1136,613 @@ private:
   std::map<uint32_t, size_t> m_EventIndices;
   std::map<uint32_t, DXGI_FORMAT> m_DepthFormats;
 };
+
+// TestsFailedCallback replays draws to figure out which tests failed, such as
+// depth test, stencil test, etc.
+struct D3D12TestsFailedCallback : public D3D12PixelHistoryCallback
+{
+  D3D12TestsFailedCallback(WrappedID3D12Device *device, D3D12PixelHistoryShaderCache *shaderCache,
+                           const D3D12PixelHistoryCallbackInfo &callbackInfo,
+                           ID3D12QueryHeap *occlusionQueryHeap, rdcarray<uint32_t> events)
+      : D3D12PixelHistoryCallback(device, shaderCache, callbackInfo, occlusionQueryHeap),
+        m_Events(events)
+  {
+  }
+
+  ~D3D12TestsFailedCallback()
+  {
+    for(auto it = m_PipeCache.begin(); it != m_PipeCache.end(); ++it)
+    {
+      SAFE_RELEASE(it->second);
+    }
+  }
+
+  void PreDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd)
+  {
+    if(!m_Events.contains(eid))
+      return;
+
+    D3D12RenderState pipeState = m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState();
+
+    uint32_t eventFlags = CalculateEventFlags(pipeState);
+    m_EventFlags[eid] = eventFlags;
+
+    // TODO: figure out if the shader has early fragments tests turned on,
+    // based on the currently bound fragment shader.
+    bool earlyFragmentTests = false;
+    m_HasEarlyFragments[eid] = earlyFragmentTests;
+
+    ReplayDrawWithTests(cmd, eid, eventFlags, pipeState, GetPixelHistoryRenderTargetIndex(pipeState));
+    pipeState.ApplyState(m_pDevice, cmd);
+  }
+
+  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) { return false; }
+  void AliasEvent(uint32_t primary, uint32_t alias) {}
+
+  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) {}
+
+  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) {}
+  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) { return false; }
+  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) {}
+  void PreMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) {}
+  bool PostMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) { return false; }
+  void PostRemisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) {}
+
+  void PreCloseCommandList(ID3D12GraphicsCommandListX *cmd) {}
+
+  bool HasEventFlags(uint32_t eventId) { return m_EventFlags.find(eventId) != m_EventFlags.end(); }
+  uint32_t GetEventFlags(uint32_t eventId)
+  {
+    auto it = m_EventFlags.find(eventId);
+    if(it == m_EventFlags.end())
+      RDCERR("Can't find event flags for event %u", eventId);
+    return it->second;
+  }
+
+  void FetchOcclusionResults()
+  {
+    if(m_OcclusionQueries.size() == 0)
+      return;
+
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    D3D12_RESOURCE_DESC bufDesc;
+    bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    bufDesc.Alignment = 0;
+    bufDesc.Width = sizeof(uint64_t) * m_OcclusionQueries.size();
+    bufDesc.Height = 1;
+    bufDesc.DepthOrArraySize = 1;
+    bufDesc.MipLevels = 1;
+    bufDesc.Format = DXGI_FORMAT_UNKNOWN;
+    bufDesc.SampleDesc.Count = 1;
+    bufDesc.SampleDesc.Quality = 0;
+    bufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    bufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+    ID3D12Resource *readbackBuf = NULL;
+    HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
+                                                    D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+                                                    __uuidof(ID3D12Resource), (void **)&readbackBuf);
+    m_pDevice->CheckHRESULT(hr);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create query readback buffer HRESULT: %s", ToStr(hr).c_str());
+      return;
+    }
+
+    ID3D12GraphicsCommandListX *list = m_pDevice->GetNewList();
+    if(!list)
+      return;
+
+    list->ResolveQueryData(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, 0,
+                           (UINT)m_OcclusionQueries.size(), readbackBuf, 0);
+
+    list->Close();
+
+    m_pDevice->ExecuteLists();
+    m_pDevice->FlushLists();
+
+    D3D12_RANGE range;
+    range.Begin = 0;
+    range.End = (SIZE_T)bufDesc.Width;
+
+    uint64_t *data;
+    hr = readbackBuf->Map(0, &range, (void **)&data);
+    m_pDevice->CheckHRESULT(hr);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to map query heap data HRESULT: %s", ToStr(hr).c_str());
+      SAFE_RELEASE(readbackBuf);
+      return;
+    }
+
+    m_OcclusionResults.resize(m_OcclusionQueries.size());
+    for(size_t i = 0; i < m_OcclusionResults.size(); ++i)
+      m_OcclusionResults[i] = data[i];
+
+    readbackBuf->Unmap(0, NULL);
+    SAFE_RELEASE(readbackBuf);
+  }
+
+  uint64_t GetOcclusionResult(uint32_t eventId, uint32_t test) const
+  {
+    auto it = m_OcclusionQueries.find(rdcpair<uint32_t, uint32_t>(eventId, test));
+    if(it == m_OcclusionQueries.end())
+      RDCERR("Can't locate occlusion query for event id %u and test flags %u", eventId, test);
+    if(it->second >= m_OcclusionResults.size())
+      RDCERR(
+          "Event %u, occlusion index is %u, and the total # of occlusion "
+          "query data %zu",
+          eventId, it->second, m_OcclusionResults.size());
+    return m_OcclusionResults[it->second];
+  }
+
+  bool HasEarlyFragments(uint32_t eventId) const
+  {
+    auto it = m_HasEarlyFragments.find(eventId);
+    RDCASSERT(it != m_HasEarlyFragments.end());
+    return it->second;
+  }
+
+private:
+  uint32_t CalculateEventFlags(const D3D12RenderState &pipeState)
+  {
+    uint32_t flags = 0;
+
+    WrappedID3D12PipelineState *origPSO =
+        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(pipeState.pipe);
+    if(origPSO == NULL)
+    {
+      RDCERR("Failed to retrieve original PSO for pixel history.");
+      return flags;
+    }
+
+    D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
+    origPSO->Fill(pipeDesc);
+
+    // Culling
+    {
+      if(pipeDesc.RasterizerState.DepthClipEnable)
+        flags |= TestEnabled_DepthClipping;
+
+      if(pipeDesc.RasterizerState.CullMode != D3D12_CULL_MODE_NONE)
+        flags |= TestEnabled_Culling;
+    }
+
+    // Depth and Stencil tests
+    if(pipeState.dsv.GetResResourceId() != ResourceId())
+    {
+      if(pipeDesc.DepthStencilState.DepthBoundsTestEnable)
+        flags |= TestEnabled_DepthBounds;
+
+      if(pipeDesc.DepthStencilState.DepthEnable)
+      {
+        if(pipeDesc.DepthStencilState.DepthFunc != D3D12_COMPARISON_FUNC_ALWAYS)
+          flags |= TestEnabled_DepthTesting;
+        if(pipeDesc.DepthStencilState.DepthFunc == D3D12_COMPARISON_FUNC_NEVER)
+          flags |= TestMustFail_DepthTesting;
+
+        if(pipeDesc.DepthStencilState.DepthFunc == D3D12_COMPARISON_FUNC_NEVER)
+          flags |= DepthTest_Never;
+        if(pipeDesc.DepthStencilState.DepthFunc == D3D12_COMPARISON_FUNC_LESS)
+          flags |= DepthTest_Less;
+        if(pipeDesc.DepthStencilState.DepthFunc == D3D12_COMPARISON_FUNC_EQUAL)
+          flags |= DepthTest_Equal;
+        if(pipeDesc.DepthStencilState.DepthFunc == D3D12_COMPARISON_FUNC_LESS_EQUAL)
+          flags |= DepthTest_LessEqual;
+        if(pipeDesc.DepthStencilState.DepthFunc == D3D12_COMPARISON_FUNC_GREATER)
+          flags |= DepthTest_Greater;
+        if(pipeDesc.DepthStencilState.DepthFunc == D3D12_COMPARISON_FUNC_NOT_EQUAL)
+          flags |= DepthTest_NotEqual;
+        if(pipeDesc.DepthStencilState.DepthFunc == D3D12_COMPARISON_FUNC_GREATER_EQUAL)
+          flags |= DepthTest_GreaterEqual;
+        if(pipeDesc.DepthStencilState.DepthFunc == D3D12_COMPARISON_FUNC_ALWAYS)
+          flags |= DepthTest_Always;
+      }
+      else
+      {
+        flags |= DepthTest_Always;
+      }
+
+      if(pipeDesc.DepthStencilState.StencilEnable)
+      {
+        if(pipeDesc.DepthStencilState.FrontFace.StencilFunc != D3D12_COMPARISON_FUNC_ALWAYS ||
+           pipeDesc.DepthStencilState.BackFace.StencilFunc != D3D12_COMPARISON_FUNC_ALWAYS)
+          flags |= TestEnabled_StencilTesting;
+
+        if(pipeDesc.DepthStencilState.FrontFace.StencilFunc == D3D12_COMPARISON_FUNC_NEVER &&
+           pipeDesc.DepthStencilState.BackFace.StencilFunc == D3D12_COMPARISON_FUNC_NEVER)
+          flags |= TestMustFail_StencilTesting;
+        else if(pipeDesc.DepthStencilState.FrontFace.StencilFunc == D3D12_COMPARISON_FUNC_NEVER &&
+                pipeDesc.RasterizerState.CullMode == D3D12_CULL_MODE_BACK)
+          flags |= TestMustFail_StencilTesting;
+        else if(pipeDesc.RasterizerState.CullMode == D3D12_CULL_MODE_FRONT &&
+                pipeDesc.DepthStencilState.BackFace.StencilFunc == D3D12_COMPARISON_FUNC_NEVER)
+          flags |= TestMustFail_StencilTesting;
+      }
+    }
+
+    // Scissor
+    {
+      // Scissor is always enabled in D3D12
+      flags |= TestEnabled_Scissor;
+
+      bool inRegion = false;
+      bool inAllRegions = true;
+      // Do we even need to know viewport here?
+      const D3D12_RECT *pScissors = pipeState.scissors.data();
+      size_t scissorCount = pipeState.scissors.size();
+
+      for(size_t i = 0; i < scissorCount; ++i)
+      {
+        if((int32_t)m_CallbackInfo.x >= pScissors[i].left &&
+           (int32_t)m_CallbackInfo.y >= pScissors[i].top &&
+           (int32_t)m_CallbackInfo.x < pScissors[i].right &&
+           (int32_t)m_CallbackInfo.y < pScissors[i].bottom)
+          inRegion = true;
+        else
+          inAllRegions = false;
+      }
+
+      if(!inRegion)
+        flags |= TestMustFail_Scissor;
+      if(inAllRegions)
+        flags |= TestMustPass_Scissor;
+    }
+
+    // Blending
+    {
+      if(pipeDesc.BlendState.IndependentBlendEnable)
+      {
+        for(size_t i = 0; i < pipeState.rts.size(); ++i)
+        {
+          if(pipeDesc.BlendState.RenderTarget[i].BlendEnable)
+          {
+            flags |= Blending_Enabled;
+            break;
+          }
+        }
+      }
+      else
+      {
+        // Might not have render targets if rasterization is disabled
+        if(pipeState.rts.size() > 0 && pipeDesc.BlendState.RenderTarget[0].BlendEnable)
+          flags |= Blending_Enabled;
+      }
+    }
+
+    // TODO: Is there a better test for this?
+    if(pipeDesc.PS.pShaderBytecode == NULL)
+      flags |= UnboundFragmentShader;
+
+    // Samples
+    {
+      // TODO: figure out if we always need to check this.
+      flags |= TestEnabled_SampleMask;
+
+      if((pipeDesc.SampleMask & m_CallbackInfo.sampleMask) == 0)
+        flags |= TestMustFail_SampleMask;
+    }
+
+    // TODO: is shader discard always possible when PS is bound?
+    if(pipeDesc.PS.BytecodeLength > 0 && pipeDesc.PS.pShaderBytecode != NULL)
+      flags |= TestEnabled_FragmentDiscard;
+
+    return flags;
+  }
+
+  // Flags to create a pipeline for tests, can be combined to control how
+  // a pipeline is created.
+  enum
+  {
+    PipelineCreationFlags_DisableCulling = 1 << 0,
+    PipelineCreationFlags_DisableDepthTest = 1 << 1,
+    PipelineCreationFlags_DisableStencilTest = 1 << 2,
+    PipelineCreationFlags_DisableDepthBoundsTest = 1 << 3,
+    PipelineCreationFlags_DisableDepthClipping = 1 << 4,
+    PipelineCreationFlags_FixedColorShader = 1 << 5,
+    PipelineCreationFlags_IntersectOriginalScissor = 1 << 6,
+  };
+
+  void ReplayDrawWithTests(ID3D12GraphicsCommandListX *cmd, uint32_t eid, uint32_t eventFlags,
+                           D3D12RenderState pipeState, uint32_t outputIndex)
+  {
+    // TODO: Handle shader side effects?
+
+    rdcarray<D3D12_RECT> prevScissors = pipeState.scissors;
+    for(uint32_t i = 0; i < pipeState.views.size(); i++)
+      ScissorToPixel(pipeState.views[i], pipeState.scissors[i]);
+    pipeState.ApplyState(m_pDevice, cmd);
+
+    if(eventFlags & TestEnabled_Culling)
+    {
+      uint32_t pipeFlags =
+          PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_DisableDepthClipping |
+          PipelineCreationFlags_DisableDepthBoundsTest | PipelineCreationFlags_DisableStencilTest |
+          PipelineCreationFlags_FixedColorShader;
+      ID3D12PipelineState *pso = CreatePipeline(pipeState, pipeFlags, outputIndex);
+      D3D12MarkerRegion::Set(cmd, StringFormat::Fmt("Test culling on %u", eid));
+      ReplayDraw(cmd, pipeState, pso, eid, TestEnabled_Culling);
+    }
+
+    if(eventFlags & TestEnabled_DepthClipping)
+    {
+      uint32_t pipeFlags =
+          PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_DisableDepthBoundsTest |
+          PipelineCreationFlags_DisableStencilTest | PipelineCreationFlags_FixedColorShader;
+      ID3D12PipelineState *pso = CreatePipeline(pipeState, pipeFlags, outputIndex);
+      D3D12MarkerRegion::Set(cmd, StringFormat::Fmt("Test depth clipping on %u", eid));
+      ReplayDraw(cmd, pipeState, pso, eid, TestEnabled_DepthClipping);
+    }
+
+    // Scissor is always enabled on D3D12 but we still check some ensured pass/fail cases
+
+    // If scissor must fail, we're done
+    if(eventFlags & TestMustFail_Scissor)
+      return;
+
+    // If scissor must pass, we can skip this test
+    if((eventFlags & TestMustPass_Scissor) == 0)
+    {
+      uint32_t pipeFlags =
+          PipelineCreationFlags_IntersectOriginalScissor | PipelineCreationFlags_DisableDepthTest |
+          PipelineCreationFlags_DisableDepthBoundsTest | PipelineCreationFlags_DisableStencilTest |
+          PipelineCreationFlags_FixedColorShader;
+      ID3D12PipelineState *pso = CreatePipeline(pipeState, pipeFlags, outputIndex);
+      // This will change the scissor for the later tests, but since those
+      // tests happen later in the pipeline, it does not matter.
+      for(uint32_t i = 0; i < pipeState.views.size(); i++)
+        IntersectScissors(prevScissors[i], pipeState.scissors[i]);
+      D3D12MarkerRegion::Set(cmd, StringFormat::Fmt("Test scissor on %u", eid));
+      ReplayDraw(cmd, pipeState, pso, eid, TestEnabled_Scissor);
+    }
+
+    // Sample mask
+    if(eventFlags & TestMustFail_SampleMask)
+      return;
+
+    if(eventFlags & TestEnabled_SampleMask)
+    {
+      uint32_t pipeFlags =
+          PipelineCreationFlags_DisableDepthBoundsTest | PipelineCreationFlags_DisableStencilTest |
+          PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_FixedColorShader;
+      ID3D12PipelineState *pso = CreatePipeline(pipeState, pipeFlags, outputIndex);
+      D3D12MarkerRegion::Set(cmd, StringFormat::Fmt("Test sample mask on %u", eid));
+      ReplayDraw(cmd, pipeState, pso, eid, TestEnabled_SampleMask);
+    }
+
+    // Depth bounds
+    if(eventFlags & TestEnabled_DepthBounds)
+    {
+      uint32_t pipeFlags = PipelineCreationFlags_DisableStencilTest |
+                           PipelineCreationFlags_DisableDepthTest |
+                           PipelineCreationFlags_FixedColorShader;
+      ID3D12PipelineState *pso = CreatePipeline(pipeState, pipeFlags, outputIndex);
+      D3D12MarkerRegion::Set(cmd, StringFormat::Fmt("Test depth bounds on %u", eid));
+      ReplayDraw(cmd, pipeState, pso, eid, TestEnabled_DepthBounds);
+    }
+
+    // Stencil test
+    if(eventFlags & TestMustFail_StencilTesting)
+      return;
+
+    if(eventFlags & TestEnabled_StencilTesting)
+    {
+      uint32_t pipeFlags =
+          PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_FixedColorShader;
+      ID3D12PipelineState *pso = CreatePipeline(pipeState, pipeFlags, outputIndex);
+      D3D12MarkerRegion::Set(cmd, StringFormat::Fmt("Test stencil on %u", eid));
+      ReplayDraw(cmd, pipeState, pso, eid, TestEnabled_StencilTesting);
+    }
+
+    // Depth test
+    if(eventFlags & TestMustFail_DepthTesting)
+      return;
+
+    if(eventFlags & TestEnabled_DepthTesting)
+    {
+      // Previous test might have modified the stencil state, which could cause this event to fail.
+      uint32_t pipeFlags =
+          PipelineCreationFlags_DisableStencilTest | PipelineCreationFlags_FixedColorShader;
+
+      ID3D12PipelineState *pso = CreatePipeline(pipeState, pipeFlags, outputIndex);
+      D3D12MarkerRegion::Set(cmd, StringFormat::Fmt("Test depth on %u", eid));
+      ReplayDraw(cmd, pipeState, pso, eid, TestEnabled_DepthTesting);
+    }
+
+    // Shader discard
+    if(eventFlags & TestEnabled_FragmentDiscard)
+    {
+      // With early fragment tests, sample counting (occlusion query) will be
+      // done before the shader executes.
+      // TODO: remove early fragment tests if it is ON.
+      uint32_t pipeFlags = PipelineCreationFlags_DisableDepthBoundsTest |
+                           PipelineCreationFlags_DisableStencilTest |
+                           PipelineCreationFlags_DisableDepthTest;
+      ID3D12PipelineState *pso = CreatePipeline(pipeState, pipeFlags, outputIndex);
+      D3D12MarkerRegion::Set(cmd, StringFormat::Fmt("Test shader discard on %u", eid));
+      ReplayDraw(cmd, pipeState, pso, eid, TestEnabled_FragmentDiscard);
+    }
+  }
+
+  // Creates a pipeline that is based on the given pipeline and the given
+  // pipeline flags. Modifies the base pipeline according to the flags, and
+  // leaves the original pipeline behavior if a flag is not set.
+  ID3D12PipelineState *CreatePipeline(D3D12RenderState baseState, uint32_t pipeCreateFlags,
+                                      uint32_t outputIndex)
+  {
+    rdcpair<ResourceId, uint32_t> pipeKey(baseState.pipe, pipeCreateFlags);
+    auto it = m_PipeCache.find(pipeKey);
+    // Check if we processed this pipeline before.
+    if(it != m_PipeCache.end())
+      return it->second;
+
+    WrappedID3D12PipelineState *origPSO =
+        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(baseState.pipe);
+    if(origPSO == NULL)
+    {
+      RDCERR("Failed to retrieve original PSO for pixel history.");
+      return NULL;
+    }
+
+    D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
+    origPSO->Fill(pipeDesc);
+
+    // Only interested in a single sample.
+    pipeDesc.SampleMask = m_CallbackInfo.sampleMask;
+
+    // We are going to replay a draw multiple times, don't want to modify the
+    // depth value, not to influence later tests.
+    pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+
+    if(pipeCreateFlags & PipelineCreationFlags_DisableCulling)
+      pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+    if(pipeCreateFlags & PipelineCreationFlags_DisableDepthTest)
+      pipeDesc.DepthStencilState.DepthEnable = FALSE;
+    if(pipeCreateFlags & PipelineCreationFlags_DisableStencilTest)
+      pipeDesc.DepthStencilState.StencilEnable = FALSE;
+    if(pipeCreateFlags & PipelineCreationFlags_DisableDepthBoundsTest)
+      pipeDesc.DepthStencilState.DepthBoundsTestEnable = FALSE;
+    if(pipeCreateFlags & PipelineCreationFlags_DisableDepthClipping)
+      pipeDesc.RasterizerState.DepthClipEnable = FALSE;
+
+    if(pipeCreateFlags & PipelineCreationFlags_FixedColorShader)
+    {
+      bool dxil =
+          DXBC::DXBCContainer::CheckForDXIL(pipeDesc.VS.pShaderBytecode, pipeDesc.VS.BytecodeLength);
+
+      ID3DBlob *FixedColorPS = m_ShaderCache->GetFixedColorShader(dxil);
+      pipeDesc.PS.pShaderBytecode = FixedColorPS->GetBufferPointer();
+      pipeDesc.PS.BytecodeLength = FixedColorPS->GetBufferSize();
+    }
+
+    ID3D12PipelineState *pso = NULL;
+    HRESULT hr = m_pDevice->CreatePipeState(pipeDesc, &pso);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create PSO for pixel history.");
+      return NULL;
+    }
+
+    m_PipeCache.insert(std::make_pair(pipeKey, pso));
+    return pso;
+  }
+
+  void ReplayDraw(ID3D12GraphicsCommandListX *cmd, D3D12RenderState pipeState,
+                  ID3D12PipelineState *pso, int eventId, uint32_t test)
+  {
+    pipeState.pipe = GetResID(pso);
+    pipeState.ApplyState(m_pDevice, cmd);
+
+    uint32_t index = (uint32_t)m_OcclusionQueries.size();
+    if(m_OcclusionQueries.find(rdcpair<uint32_t, uint32_t>(eventId, test)) != m_OcclusionQueries.end())
+      RDCERR("A query already exist for event id %u and test %u", eventId, test);
+    m_OcclusionQueries.insert(std::make_pair(rdcpair<uint32_t, uint32_t>(eventId, test), index));
+
+    cmd->BeginQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, index);
+    ::ReplayDraw(cmd, *m_pDevice->GetAction(eventId));
+
+    cmd->EndQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, index);
+  }
+
+  rdcarray<uint32_t> m_Events;
+  // Key is event ID, value is the flags for that event.
+  std::map<uint32_t, uint32_t> m_EventFlags;
+  // Key is a pair <Base pipeline, pipeline flags>
+  std::map<rdcpair<ResourceId, uint32_t>, ID3D12PipelineState *> m_PipeCache;
+  // Key: pair <event ID, test>
+  // value: the index where occlusion query is in m_OcclusionResults
+  std::map<rdcpair<uint32_t, uint32_t>, uint32_t> m_OcclusionQueries;
+  std::map<uint32_t, bool> m_HasEarlyFragments;
+  rdcarray<uint64_t> m_OcclusionResults;
+};
+
+void D3D12UpdateTestsFailed(const D3D12TestsFailedCallback *tfCb, uint32_t eventId,
+                            uint32_t eventFlags, PixelModification &mod)
+{
+  bool earlyFragmentTests = tfCb->HasEarlyFragments(eventId);
+
+  if(eventFlags & TestEnabled_Culling)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_Culling);
+    mod.backfaceCulled = (occlData == 0);
+  }
+  if(mod.backfaceCulled)
+    return;
+
+  if(eventFlags & TestEnabled_DepthClipping)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_DepthClipping);
+    mod.depthClipped = (occlData == 0);
+  }
+  if(mod.depthClipped)
+    return;
+
+  if((eventFlags & (TestEnabled_Scissor | TestMustPass_Scissor | TestMustFail_Scissor)) ==
+     TestEnabled_Scissor)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_Scissor);
+    mod.scissorClipped = (occlData == 0);
+  }
+  if(mod.scissorClipped)
+    return;
+
+  // TODO: Exclusive Scissor Test if NV extension is turned on?
+
+  if((eventFlags & (TestEnabled_SampleMask | TestMustFail_SampleMask)) == TestEnabled_SampleMask)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_SampleMask);
+    mod.sampleMasked = (occlData == 0);
+  }
+  if(mod.sampleMasked)
+    return;
+
+  // Shader discard with default fragment tests order.
+  if((eventFlags & TestEnabled_FragmentDiscard) && !earlyFragmentTests)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_FragmentDiscard);
+    mod.shaderDiscarded = (occlData == 0);
+    if(mod.shaderDiscarded)
+      return;
+  }
+
+  if(eventFlags & TestEnabled_DepthBounds)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_DepthBounds);
+    mod.depthBoundsFailed = (occlData == 0);
+  }
+  if(mod.depthBoundsFailed)
+    return;
+
+  if((eventFlags & (TestEnabled_StencilTesting | TestMustFail_StencilTesting)) ==
+     TestEnabled_StencilTesting)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_StencilTesting);
+    mod.stencilTestFailed = (occlData == 0);
+  }
+  if(mod.stencilTestFailed)
+    return;
+
+  if((eventFlags & (TestEnabled_DepthTesting | TestMustFail_DepthTesting)) == TestEnabled_DepthTesting)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_DepthTesting);
+    mod.depthTestFailed = (occlData == 0);
+  }
+  if(mod.depthTestFailed)
+    return;
+
+  // Shader discard with early fragment tests order.
+  if((eventFlags & TestEnabled_FragmentDiscard) && earlyFragmentTests)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_FragmentDiscard);
+    mod.shaderDiscarded = (occlData == 0);
+  }
+}
 
 bool D3D12DebugManager::PixelHistorySetupResources(D3D12PixelHistoryResources &resources,
                                                    WrappedID3D12Resource *targetImage,
