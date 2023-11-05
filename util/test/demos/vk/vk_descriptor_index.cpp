@@ -312,7 +312,7 @@ void main()
         VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT,
     };
 
-    descFlags.bindingCount = ARRAYSIZE(bindFlags);
+    descFlags.bindingCount = ARRAY_COUNT(bindFlags);
     descFlags.pBindingFlags = bindFlags;
 
     VkDescriptorSetLayout setlayout = createDescriptorSetLayout(
@@ -500,7 +500,7 @@ void main()
               }),
           NULL, &descpool));
 
-      const static uint32_t numDescriptorSets = ARRAYSIZE(descset);
+      const static uint32_t numDescriptorSets = ARRAY_COUNT(descset);
       std::vector<VkDescriptorSetLayout> setLayouts(numDescriptorSets, setlayout);
       std::vector<uint32_t> counts(numDescriptorSets, DESC_ARRAY3_SIZE);
 
