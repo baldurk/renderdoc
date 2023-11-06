@@ -1393,24 +1393,39 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       {
         if(varType->type != DataType::StructType)
         {
-          // global loose variable - add to $Globals block
-          RDCASSERT(varType->type == DataType::ScalarType || varType->type == DataType::VectorType ||
-                    varType->type == DataType::MatrixType || varType->type == DataType::ArrayType);
-          RDCASSERT(sourceAPI == GraphicsAPI::OpenGL);
-
-          ShaderConstant constant;
-
-          MakeConstantBlockVariable(constant, pointerTypes, effectiveStorage, *varType,
-                                    strings[global.id], decorations[global.id], specInfo);
-
-          if(isArray)
-            constant.type.elements = arraySize;
+          if(taskPayload)
+          {
+            if(!patchData.invalidTaskPayload)
+            {
+              RDCWARN(
+                  "Unhandled case - non-struct task payload. Most likely DXC bug as only one task "
+                  "payload variable allowed per entry point.");
+              taskPayloadBlock.name = "invalid";
+              taskPayloadBlock.bufferBacked = false;
+              patchData.invalidTaskPayload = true;
+            }
+          }
           else
-            constant.type.elements = 0;
+          {
+            // global loose variable - add to $Globals block
+            RDCASSERT(varType->type == DataType::ScalarType || varType->type == DataType::VectorType ||
+                      varType->type == DataType::MatrixType || varType->type == DataType::ArrayType);
+            RDCASSERT(sourceAPI == GraphicsAPI::OpenGL);
 
-          constant.byteOffset = decorations[global.id].location;
+            ShaderConstant constant;
 
-          globalsblock.variables.push_back(constant);
+            MakeConstantBlockVariable(constant, pointerTypes, effectiveStorage, *varType,
+                                      strings[global.id], decorations[global.id], specInfo);
+
+            if(isArray)
+              constant.type.elements = arraySize;
+            else
+              constant.type.elements = 0;
+
+            constant.byteOffset = decorations[global.id].location;
+
+            globalsblock.variables.push_back(constant);
+          }
         }
         else if(taskPayload)
         {
