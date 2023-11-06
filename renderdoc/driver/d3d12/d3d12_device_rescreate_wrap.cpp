@@ -75,7 +75,20 @@ bool WrappedID3D12Device::Serialise_CreateResource(
   {
     GPUAddressRange range;
     range.start = gpuAddress;
-    range.end = gpuAddress + desc.Width;
+    range.realEnd = gpuAddress + desc.Width;
+
+    // if this is placed, the OOB end is all the way to the end of the heap, from where we're
+    // placed, allowing accesses past the buffer but still in bounds of the heap.
+    if(pHeap)
+    {
+      const UINT64 heapSize = pHeap->GetDesc().SizeInBytes;
+      range.oobEnd = gpuAddress + (heapSize - HeapOffset);
+    }
+    else
+    {
+      range.oobEnd = range.realEnd;
+    }
+
     range.id = pResource;
 
     m_OrigGPUAddresses.AddTo(range);
@@ -232,7 +245,7 @@ bool WrappedID3D12Device::Serialise_CreateResource(
   SetObjName(ret, StringFormat::Fmt("%s Resource %s %s", ResourceTypeName,
                                     ToStr(desc.Dimension).c_str(), ToStr(pResource).c_str()));
 
-  ret = new WrappedID3D12Resource(ret, this);
+  ret = new WrappedID3D12Resource(ret, pHeap, HeapOffset, this);
 
   switch(chunkType)
   {
@@ -422,9 +435,7 @@ HRESULT WrappedID3D12Device::CreateResource(
 
   UINT NumSubresources = GetNumSubresources(m_pDevice, &desc);
 
-  WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(realRes, this);
-
-  wrapped->SetHeap(pHeap);
+  WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(realRes, pHeap, HeapOffset, this);
 
   if(IsCaptureMode(m_State))
   {

@@ -504,7 +504,7 @@ class WrappedID3D12Resource;
 
 struct GPUAddressRange
 {
-  D3D12_GPU_VIRTUAL_ADDRESS start, end;
+  D3D12_GPU_VIRTUAL_ADDRESS start, realEnd, oobEnd;
   ResourceId id;
 
   bool operator<(const D3D12_GPU_VIRTUAL_ADDRESS &o) const

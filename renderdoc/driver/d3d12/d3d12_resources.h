@@ -953,11 +953,6 @@ public:
     return this->GetResourceID();
   }
 
-  void SetHeap(ID3D12Heap *heap)
-  {
-    m_Heap = (WrappedID3D12Heap *)heap;
-    SAFE_ADDREF(m_Heap);
-  }
   static void RefBuffers(D3D12ResourceManager *rm);
   static void GetMappableIDs(D3D12ResourceManager *rm, const std::unordered_set<ResourceId> &refdIDs,
                              std::unordered_set<ResourceId> &mappableIDs);
@@ -991,11 +986,15 @@ public:
     TypeEnum = Resource_Resource,
   };
 
-  WrappedID3D12Resource(ID3D12Resource *real, WrappedID3D12Device *device)
+  WrappedID3D12Resource(ID3D12Resource *real, ID3D12Heap *heap, UINT64 HeapOffset,
+                        WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
     if(IsReplayMode(device->GetState()))
       device->AddReplayResource(GetResourceID(), this);
+
+    m_Heap = (WrappedID3D12Heap *)heap;
+    SAFE_ADDREF(m_Heap);
 
     // assuming only valid for buffers
     if(m_pReal->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
@@ -1004,7 +1003,20 @@ public:
 
       GPUAddressRange range;
       range.start = addr;
-      range.end = addr + m_pReal->GetDesc().Width;
+      range.realEnd = addr + m_pReal->GetDesc().Width;
+
+      // if this is placed, the OOB end is all the way to the end of the heap, from where we're
+      // placed, allowing accesses past the buffer but still in bounds of the heap.
+      if(heap)
+      {
+        const UINT64 heapSize = heap->GetDesc().SizeInBytes;
+        range.oobEnd = addr + (heapSize - HeapOffset);
+      }
+      else
+      {
+        range.oobEnd = range.realEnd;
+      }
+
       range.id = GetResourceID();
 
       m_Addresses.AddTo(range);

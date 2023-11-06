@@ -1796,7 +1796,7 @@ void D3D12DebugManager::PrepareExecuteIndirectPatching(const GPUAddressRangeTrac
   {
     buffermapping b = {};
     b.origBase = addr.start;
-    b.origEnd = addr.end;
+    b.origEnd = addr.realEnd;
     b.newBase =
         m_pDevice->GetResourceManager()->GetLiveAs<ID3D12Resource>(addr.id)->GetGPUVirtualAddress();
     buffers.push_back(b);

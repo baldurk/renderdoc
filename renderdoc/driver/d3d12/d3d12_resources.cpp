@@ -166,7 +166,7 @@ WrappedID3D12Resource::~WrappedID3D12Resource()
   {
     GPUAddressRange range;
     range.start = m_pReal->GetGPUVirtualAddress();
-    range.end = m_pReal->GetGPUVirtualAddress() + m_pReal->GetDesc().Width;
+    // realEnd and oobEnd are not used for removing, just start + id
     range.id = GetResourceID();
 
     m_Addresses.RemoveFrom(range);

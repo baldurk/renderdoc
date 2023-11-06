@@ -1677,7 +1677,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
     }
     else
     {
-      WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(fakeBB, this);
+      WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(fakeBB, NULL, 0, this);
       fakeBB = wrapped;
 
       fakeBB->SetName(L"Swap Chain Buffer");
@@ -1719,7 +1719,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
   }
   else
   {
-    pRes = new WrappedID3D12Resource((ID3D12Resource *)realSurface, this);
+    pRes = new WrappedID3D12Resource((ID3D12Resource *)realSurface, NULL, 0, this);
 
     ResourceId id = GetResID(pRes);
 

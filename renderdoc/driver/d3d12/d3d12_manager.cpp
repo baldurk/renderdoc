@@ -1041,7 +1041,7 @@ void GPUAddressRangeTracker::GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, Re
     range = *it;
   }
 
-  if(addr < range.start || addr >= range.end)
+  if(addr < range.start || addr >= range.realEnd)
     return;
 
   id = range.id;
@@ -1071,6 +1071,11 @@ void GPUAddressRangeTracker::GetResIDFromAddrAllowOutOfBounds(D3D12_GPU_VIRTUAL_
   }
 
   if(addr < range.start)
+    return;
+
+  // still enforce the OOB end on ranges - which is the remaining range in the backing store.
+  // Otherwise we could end up passing through invalid addresses stored in stale descriptors
+  if(addr >= range.oobEnd)
     return;
 
   id = range.id;
