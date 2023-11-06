@@ -433,6 +433,7 @@ float4 mainPS(in float4 pos : SV_POSITION) : SV_Target0
         rootConstants[0] = 1;    // myBufferIdx
         cmd->SetGraphicsRoot32BitConstants(0, 1, &rootConstants[0], 0);
         cmd->DrawInstanced(3, 1, 3, 0);
+        setMarker(cmd, "Last draw");    // Help locate this draw through 'find_action' in python test
 
         ResourceBarrier(cmd, bbTex[texIdx], D3D12_RESOURCE_STATE_RENDER_TARGET,
                         D3D12_RESOURCE_STATE_PRESENT);
