@@ -89,12 +89,6 @@ if(BUILD_ANDROID)
     set(ANDROID_ABI "arm64-v8a" CACHE STRING "The Android ABI to build for")
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DANDROID=1")
-
-    # The version of fmt used will not build due to std::char_traits support of non-std types being
-    # deprecated in the version of LLVM used by NDK v26
-    if(NOT "${ANDROID_NDK_VERSION}" VERSION_LESS "26.0.0")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
-    endif()
 endif()
 
 set(PROJECT demos)
@@ -311,6 +305,12 @@ if(APPLE)
 elseif(BUILD_ANDROID)
     target_compile_definitions(demos PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR=1)
     list(APPEND LIBS PRIVATE -llog -landroid -lEGL)
+
+    # The version of fmt used will not build due to std::char_traits support of non-std types being
+    # deprecated in the version of LLVM used by NDK v26
+    if(NOT "${ANDROID_NDK_VERSION}" VERSION_LESS "26.0.0")
+        target_compile_options(demos PRIVATE -Wno-deprecated-declarations)
+    endif()
 elseif(UNIX)
     target_compile_definitions(demos PRIVATE -DVK_USE_PLATFORM_XCB_KHR=1)
     set(LIBS -lX11 -lxcb -lX11-xcb)
