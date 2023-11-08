@@ -1231,7 +1231,7 @@ Only happens if the capture is not in the recent files list.</string>
           <item row="0" column="0">
            <widget class="QLabel" name="label_24">
             <property name="toolTip">
-             <string>The location of the Android SDK, used to locate tools for controlling Android devices.</string>
+             <string>The location of the root of the Android SDK. This path should contain folders such as build-tools and platform-tools.</string>
             </property>
             <property name="text">
              <string>Android SDK root path</string>
@@ -1241,14 +1241,14 @@ Only happens if the capture is not in the recent files list.</string>
           <item row="1" column="0">
            <widget class="QLineEdit" name="Android_SDKPath">
             <property name="toolTip">
-             <string>The location of adb.exe, used to control Android devices.</string>
+             <string>The location of the root of the Android SDK. This path should contain folders such as build-tools and platform-tools.</string>
             </property>
            </widget>
           </item>
           <item row="1" column="1">
            <widget class="QPushButton" name="browseAndroidSDKPath">
             <property name="toolTip">
-             <string>The location of adb.exe, used to control Android devices.</string>
+             <string>The location of the root of the Android SDK. This path should contain folders such as build-tools and platform-tools.</string>
             </property>
             <property name="text">
              <string>Browse</string>
@@ -1257,16 +1257,26 @@ Only happens if the capture is not in the recent files list.</string>
           </item>
           <item row="2" column="0">
            <widget class="QLabel" name="label_7">
+            <property name="toolTip">
+             <string>The location of the root of the Java JDK. This path should contain folders such as bin and lib.</string>
+            </property>
             <property name="text">
              <string>Java JDK path</string>
             </property>
            </widget>
           </item>
           <item row="3" column="0">
-           <widget class="QLineEdit" name="Android_JDKPath"/>
+           <widget class="QLineEdit" name="Android_JDKPath">
+            <property name="toolTip">
+             <string>The location of the root of the Java JDK. This path should contain folders such as bin and lib.</string>
+            </property>
+           </widget>
           </item>
           <item row="3" column="1">
            <widget class="QPushButton" name="browseJDKPath">
+            <property name="toolTip">
+             <string>The location of the root of the Java JDK. This path should contain folders such as bin and lib.</string>
+            </property>
             <property name="text">
              <string>Browse</string>
             </property>
