@@ -1480,6 +1480,11 @@ VkResult WrappedVulkan::vkCreateDescriptorUpdateTemplate(
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pDescriptorUpdateTemplate);
       record->AddChunk(chunk);
 
+      if(unwrapped.templateType == VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS_KHR)
+        record->AddParent(GetRecord(pCreateInfo->pipelineLayout));
+      else if(unwrapped.templateType == VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET)
+        record->AddParent(GetRecord(pCreateInfo->descriptorSetLayout));
+
       record->descTemplateInfo = new DescUpdateTemplate();
       record->descTemplateInfo->Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
     }
