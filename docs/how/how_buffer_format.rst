@@ -162,13 +162,13 @@ The buffer format supports annotations on declarations to specify special proper
 Struct definitions support the following annotations:
 
 * ``[[size(number)]]`` or ``[[byte_size(number)]]`` - Forces the struct to be padded up to a given size even if the contents don't require it.
-* ``[[single]]`` or ``[fixed]]`` - Forces the struct to be considered as a fixed SoA definition, even if in context the buffer viewer may default to AoS. See the below section for more details. Structs with this annotation **may not** be declared as a variable, and should instead be the implicit final struct in a definition.
+* ``[[single]]`` or ``[[fixed]]`` - Forces the struct to be considered as a fixed SoA definition, even if in context the buffer viewer may default to AoS. See the below section for more details. Structs with this annotation **may not** be declared as a variable, and should instead be the implicit final struct in a definition.
 
 Variable declarations support the following annotations:
 
 * ``[[offset(number)]]`` or ``[[byte_offset(number)]]`` - Forces this member to be at a given offset **relative to its parent**. This cannot place the member any earlier than it would have according to tight packing with the current packing rules.
 * ``[[pad]]`` or ``[[padding]]`` - Mark this member as padding, such that structure layout is calculated accounting for it but it is not displayed visibly.
-* ``[[single]]`` or ``[fixed]]`` - Forces this variable to be considered as a fixed SoA definition, even if in context the buffer viewer may default to AoS. See :ref:`the below section <aos-soa>` for more details. This must be a global variable, and it must be the only global variable in the format definition.
+* ``[[single]]`` or ``[[fixed]]`` - Forces this variable to be considered as a fixed SoA definition, even if in context the buffer viewer may default to AoS. See :ref:`the below section <aos-soa>` for more details. This must be a global variable, and it must be the only global variable in the format definition.
 * ``[[row_major]]`` or ``[[col_major]]`` - Declares the memory order for a matrix.
 * ``[[rgb]]`` - Will color the background of any repeated data by interpreting its contents as RGB color.
 * ``[[hex]]`` or ``[[hexadecimal]]`` - Will show integer data as hexadecimal.
@@ -209,7 +209,7 @@ In the opposite direction, normally a loose collection of variables without any 
     float c;
   };
 
-However if the desire is to display this as a single fixed element where the fixed tree view is more appropriate, the structure or an variable of it can be annotated as ``[single]]`` or ``[[fixed]]``.
+However if the desire is to display this as a single fixed element where the fixed tree view is more appropriate, the structure or an variable of it can be annotated as ``[[single]]`` or ``[[fixed]]``.
 
 .. code:: c++
 
