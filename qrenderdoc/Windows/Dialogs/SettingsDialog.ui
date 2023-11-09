@@ -287,6 +287,23 @@ e.g. 1000 * 10 = 1e4</string>
            </widget>
           </item>
           <item row="10" column="0">
+           <widget class="QLabel" name="label_4">
+            <property name="toolTip">
+             <string>Formatting mode to use for fields marked as a byte offset or a byte size</string>
+            </property>
+            <property name="text">
+             <string>Offset or size fields format mode</string>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="1">
+            <widget class="QComboBox" name="Formatter_OffsetSizeDisplayMode">
+              <property name="toolTip">
+                <string>Auto: decimal by default and hexadecimal if above a certain threshold, Decimal: always use decimal, Hexadecimal: always use hexadecimal.</string>
+              </property>
+            </widget>
+          </item>
+          <item row="11" column="0">
            <widget class="QLabel" name="label_5">
             <property name="toolTip">
              <string>Changes the directory where capture files are saved after being created, until saved manually or deleted.
@@ -298,7 +315,7 @@ Defaults to %TEMP%.</string>
             </property>
            </widget>
           </item>
-          <item row="11" column="0">
+          <item row="12" column="0">
            <widget class="QLineEdit" name="tempDirectory">
             <property name="toolTip">
              <string>Changes the directory where capture files are saved after being created, until saved manually or deleted.
@@ -307,7 +324,7 @@ Defaults to %TEMP%.</string>
             </property>
            </widget>
           </item>
-          <item row="11" column="1">
+          <item row="12" column="1">
            <widget class="QPushButton" name="browseTempCaptureDirectory">
             <property name="toolTip">
              <string>Changes the directory where capture files are saved after being created, until saved manually or deleted.
@@ -319,7 +336,7 @@ Defaults to %TEMP%.</string>
             </property>
            </widget>
           </item>
-          <item row="12" column="0">
+          <item row="13" column="0">
            <widget class="QLabel" name="label_6">
             <property name="toolTip">
              <string>Changes the default directory for the save dialog when saving capture files.
@@ -331,7 +348,7 @@ Defaults to blank, which follows system default behaviour.</string>
             </property>
            </widget>
           </item>
-          <item row="13" column="0">
+          <item row="14" column="0">
            <widget class="QLineEdit" name="saveDirectory">
             <property name="toolTip">
              <string>Changes the default directory for the save dialog when saving capture files.
@@ -340,7 +357,7 @@ Defaults to blank, which follows system default behaviour.</string>
             </property>
            </widget>
           </item>
-          <item row="13" column="1">
+          <item row="14" column="1">
            <widget class="QPushButton" name="browseSaveCaptureDirectory">
             <property name="toolTip">
              <string>Changes the default directory for the save dialog when saving capture files.
@@ -352,7 +369,7 @@ Defaults to blank, which follows system default behaviour.</string>
             </property>
            </widget>
           </item>
-          <item row="14" column="0">
+          <item row="15" column="0">
            <widget class="QLabel" name="globalHookLabel">
             <property name="toolTip">
              <string>Enables functionality on the capture application window that will insert RenderDoc automatically
@@ -367,7 +384,7 @@ Since this is a global system hook it must be used carefully and only when neces
             </property>
            </widget>
           </item>
-          <item row="14" column="1">
+          <item row="15" column="1">
            <widget class="QCheckBox" name="AllowGlobalHook">
             <property name="toolTip">
              <string>Enables functionality on the capture application window that will insert RenderDoc automatically
@@ -382,7 +399,7 @@ Since this is a global system hook it must be used carefully and only when neces
             </property>
            </widget>
           </item>
-          <item row="15" column="0">
+          <item row="16" column="0">
            <widget class="QLabel" name="injectProcLabel">
             <property name="toolTip">
              <string>Enables the ability to inject into processes on windows.
@@ -396,7 +413,7 @@ program should be launched through RenderDoc via the Launch Process panel.</stri
             </property>
            </widget>
           </item>
-          <item row="15" column="1">
+          <item row="16" column="1">
            <widget class="QCheckBox" name="AllowProcessInject">
             <property name="toolTip">
              <string>Enables the ability to inject into processes on windows.
@@ -410,7 +427,7 @@ program should be launched through RenderDoc via the Launch Process panel.</stri
             </property>
            </widget>
           </item>
-          <item row="16" column="0">
+          <item row="17" column="0">
            <widget class="QLabel" name="label_8">
             <property name="toolTip">
              <string>Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for new versions.</string>
@@ -420,7 +437,7 @@ program should be launched through RenderDoc via the Launch Process panel.</stri
             </property>
            </widget>
           </item>
-          <item row="16" column="1">
+          <item row="17" column="1">
            <widget class="QCheckBox" name="CheckUpdate_AllowChecks">
             <property name="toolTip">
              <string>Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for new versions.</string>
@@ -430,7 +447,7 @@ program should be launched through RenderDoc via the Launch Process panel.</stri
             </property>
            </widget>
           </item>
-          <item row="17" column="0">
+          <item row="18" column="0">
            <widget class="QLabel" name="label_10">
             <property name="toolTip">
              <string>If a capture is marked as being created on a significantly different system (different OS or platform)
@@ -443,7 +460,7 @@ This option overrides that and will always replay locally if the local context i
             </property>
            </widget>
           </item>
-          <item row="17" column="1">
+          <item row="18" column="1">
            <widget class="QCheckBox" name="AlwaysReplayLocally">
             <property name="toolTip">
              <string>If a capture is marked as being created on a significantly different system (different OS or platform)
@@ -456,7 +473,7 @@ This option overrides that and will always replay locally if the local context i
             </property>
            </widget>
           </item>
-          <item row="18" column="1">
+          <item row="19" column="1">
            <spacer name="verticalSpacer">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
