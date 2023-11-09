@@ -909,8 +909,8 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
     MapData = (byte *)state->cpuReadPtr + MapOffset;
   }
 
-  SERIALISE_ELEMENT(MapOffset);
-  SERIALISE_ELEMENT(MapSize);
+  SERIALISE_ELEMENT(MapOffset).OffsetOrSize();
+  SERIALISE_ELEMENT(MapSize).OffsetOrSize();
 
   bool directStream = true;
 
@@ -1384,7 +1384,7 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(buffer).Important();
   SERIALISE_ELEMENT(memory).Important();
-  SERIALISE_ELEMENT(memoryOffset);
+  SERIALISE_ELEMENT(memoryOffset).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1509,7 +1509,7 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(image).Important();
   SERIALISE_ELEMENT(memory).Important();
-  SERIALISE_ELEMENT(memoryOffset);
+  SERIALISE_ELEMENT(memoryOffset).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 

@@ -3710,9 +3710,9 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers2(
   SERIALISE_ELEMENT(firstBinding).Important();
   SERIALISE_ELEMENT(bindingCount);
   SERIALISE_ELEMENT_ARRAY(pBuffers, bindingCount).Important();
-  SERIALISE_ELEMENT_ARRAY(pOffsets, bindingCount);
-  SERIALISE_ELEMENT_ARRAY(pSizes, bindingCount);
-  SERIALISE_ELEMENT_ARRAY(pStrides, bindingCount);
+  SERIALISE_ELEMENT_ARRAY(pOffsets, bindingCount).OffsetOrSize();
+  SERIALISE_ELEMENT_ARRAY(pSizes, bindingCount).OffsetOrSize();
+  SERIALISE_ELEMENT_ARRAY(pStrides, bindingCount).OffsetOrSize();
 
   Serialise_DebugMessages(ser);
 
@@ -3817,7 +3817,7 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(buffer).Important();
-  SERIALISE_ELEMENT(offset);
+  SERIALISE_ELEMENT(offset).OffsetOrSize();
   SERIALISE_ELEMENT(indexType).Important();
 
   Serialise_DebugMessages(ser);
@@ -4463,8 +4463,8 @@ bool WrappedVulkan::Serialise_vkCmdCopyQueryPoolResults(
   SERIALISE_ELEMENT(firstQuery);
   SERIALISE_ELEMENT(queryCount);
   SERIALISE_ELEMENT(destBuffer).Important();
-  SERIALISE_ELEMENT(destOffset);
-  SERIALISE_ELEMENT(destStride);
+  SERIALISE_ELEMENT(destOffset).OffsetOrSize();
+  SERIALISE_ELEMENT(destStride).OffsetOrSize();
   SERIALISE_ELEMENT_TYPED(VkQueryResultFlagBits, flags).TypedAs("VkQueryResultFlags"_lit);
 
   Serialise_DebugMessages(ser);
@@ -5949,7 +5949,7 @@ bool WrappedVulkan::Serialise_vkCmdWriteBufferMarkerAMD(SerialiserType &ser,
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(pipelineStage);
   SERIALISE_ELEMENT(dstBuffer).Important();
-  SERIALISE_ELEMENT(dstOffset);
+  SERIALISE_ELEMENT(dstOffset).OffsetOrSize();
   SERIALISE_ELEMENT(marker).Important();
 
   Serialise_DebugMessages(ser);
@@ -6016,7 +6016,7 @@ bool WrappedVulkan::Serialise_vkCmdWriteBufferMarker2AMD(SerialiserType &ser,
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits2, stage).TypedAs("VkPipelineStageFlags2"_lit);
   SERIALISE_ELEMENT(dstBuffer).Important();
-  SERIALISE_ELEMENT(dstOffset);
+  SERIALISE_ELEMENT(dstOffset).OffsetOrSize();
   SERIALISE_ELEMENT(marker).Important();
 
   Serialise_DebugMessages(ser);
@@ -6340,8 +6340,8 @@ bool WrappedVulkan::Serialise_vkCmdBindTransformFeedbackBuffersEXT(
   SERIALISE_ELEMENT(firstBinding).Important();
   SERIALISE_ELEMENT(bindingCount);
   SERIALISE_ELEMENT_ARRAY(pBuffers, bindingCount).Important();
-  SERIALISE_ELEMENT_ARRAY(pOffsets, bindingCount);
-  SERIALISE_ELEMENT_ARRAY(pSizes, bindingCount);
+  SERIALISE_ELEMENT_ARRAY(pOffsets, bindingCount).OffsetOrSize();
+  SERIALISE_ELEMENT_ARRAY(pSizes, bindingCount).OffsetOrSize();
 
   Serialise_DebugMessages(ser);
 
@@ -6440,7 +6440,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginTransformFeedbackEXT(
   SERIALISE_ELEMENT(firstBuffer).Important();
   SERIALISE_ELEMENT(bufferCount).Important();
   SERIALISE_ELEMENT_ARRAY(pCounterBuffers, bufferCount);
-  SERIALISE_ELEMENT_ARRAY(pCounterBufferOffsets, bufferCount);
+  SERIALISE_ELEMENT_ARRAY(pCounterBufferOffsets, bufferCount).OffsetOrSize();
 
   Serialise_DebugMessages(ser);
 
@@ -6535,7 +6535,7 @@ bool WrappedVulkan::Serialise_vkCmdEndTransformFeedbackEXT(
   SERIALISE_ELEMENT(firstBuffer).Important();
   SERIALISE_ELEMENT(bufferCount).Important();
   SERIALISE_ELEMENT_ARRAY(pCounterBuffers, bufferCount);
-  SERIALISE_ELEMENT_ARRAY(pCounterBufferOffsets, bufferCount);
+  SERIALISE_ELEMENT_ARRAY(pCounterBufferOffsets, bufferCount).OffsetOrSize();
 
   Serialise_DebugMessages(ser);
 
