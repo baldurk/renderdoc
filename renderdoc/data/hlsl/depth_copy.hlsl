@@ -26,7 +26,7 @@ Texture2D<float2> srcDepth : register(t0);
 
 void RENDERDOC_DepthCopyPS(float4 pos : SV_Position, out float depth : SV_Depth)
 {
-  int2 srcCoord = int2(int(pos.x), int(pos.y));
+  int2 srcCoord = int2(pos.xy);
   depth = srcDepth.Load(int3(srcCoord, 0)).r;
 }
 
@@ -37,6 +37,6 @@ void RENDERDOC_DepthCopyMSPS(float4 pos
                              : SV_SampleIndex, out float depth
                              : SV_Depth)
 {
-  int2 srcCoord = int2(int(pos.x), int(pos.y));
+  int2 srcCoord = int2(pos.xy);
   depth = srcDepthMS.Load(srcCoord, sample).r;
 }
