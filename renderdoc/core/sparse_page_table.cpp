@@ -913,7 +913,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, Sparse::Page &el)
 {
   SERIALISE_MEMBER(memory);
-  SERIALISE_MEMBER(offset);
+  SERIALISE_MEMBER(offset).OffsetOrSize();
 }
 
 template <typename SerialiserType>
@@ -927,9 +927,9 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, Sparse::MipTail &el)
 {
   SERIALISE_MEMBER(firstMip);
-  SERIALISE_MEMBER(byteOffset);
-  SERIALISE_MEMBER(byteStride);
-  SERIALISE_MEMBER(totalPackedByteSize);
+  SERIALISE_MEMBER(byteOffset).OffsetOrSize();
+  SERIALISE_MEMBER(byteStride).OffsetOrSize();
+  SERIALISE_MEMBER(totalPackedByteSize).OffsetOrSize();
   SERIALISE_MEMBER(mappings);
 }
 
@@ -939,7 +939,7 @@ void DoSerialise(SerialiserType &ser, Sparse::PageTable &el)
   SERIALISE_MEMBER(m_TextureDim);
   SERIALISE_MEMBER(m_MipCount);
   SERIALISE_MEMBER(m_ArraySize);
-  SERIALISE_MEMBER(m_PageByteSize);
+  SERIALISE_MEMBER(m_PageByteSize).OffsetOrSize();
   SERIALISE_MEMBER(m_PageTexelSize);
   SERIALISE_MEMBER(m_Subresources);
   SERIALISE_MEMBER(m_MipTail);
