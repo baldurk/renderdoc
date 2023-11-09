@@ -737,7 +737,7 @@ void DoSerialise(SerialiserType &ser, D3D11_INPUT_ELEMENT_DESC &el)
   SERIALISE_MEMBER(SemanticIndex).Important();
   SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(InputSlot);
-  SERIALISE_MEMBER(AlignedByteOffset);
+  SERIALISE_MEMBER(AlignedByteOffset).OffsetOrSize();
   SERIALISE_MEMBER(InputSlotClass);
   SERIALISE_MEMBER(InstanceDataStepRate);
 }

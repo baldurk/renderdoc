@@ -448,8 +448,8 @@ bool WrappedID3D11DeviceContext::Serialise_IASetVertexBuffers(SerialiserType &se
   SERIALISE_ELEMENT(StartSlot).Important();
   SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppVertexBuffers, NumBuffers).Important();
-  SERIALISE_ELEMENT_ARRAY(pStrides, NumBuffers);
-  SERIALISE_ELEMENT_ARRAY(pOffsets, NumBuffers);
+  SERIALISE_ELEMENT_ARRAY(pStrides, NumBuffers).OffsetOrSize();
+  SERIALISE_ELEMENT_ARRAY(pOffsets, NumBuffers).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -523,7 +523,7 @@ bool WrappedID3D11DeviceContext::Serialise_IASetIndexBuffer(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(pIndexBuffer).Important();
   SERIALISE_ELEMENT(Format);
-  SERIALISE_ELEMENT(Offset);
+  SERIALISE_ELEMENT(Offset).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2184,7 +2184,7 @@ bool WrappedID3D11DeviceContext::Serialise_SOSetTargets(SerialiserType &ser, UIN
 {
   SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppSOTargets, NumBuffers).Important();
-  SERIALISE_ELEMENT_ARRAY(pOffsets, NumBuffers);
+  SERIALISE_ELEMENT_ARRAY(pOffsets, NumBuffers).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4268,7 +4268,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(Serialis
                                                                         UINT AlignedByteOffsetForArgs)
 {
   SERIALISE_ELEMENT(pBufferForArgs).Important();
-  SERIALISE_ELEMENT(AlignedByteOffsetForArgs);
+  SERIALISE_ELEMENT(AlignedByteOffsetForArgs).OffsetOrSize();
 
   Serialise_DebugMessages(GET_SERIALISER);
 
@@ -4403,7 +4403,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(SerialiserType 
                                                                  UINT AlignedByteOffsetForArgs)
 {
   SERIALISE_ELEMENT(pBufferForArgs).Important();
-  SERIALISE_ELEMENT(AlignedByteOffsetForArgs);
+  SERIALISE_ELEMENT(AlignedByteOffsetForArgs).OffsetOrSize();
 
   Serialise_DebugMessages(GET_SERIALISER);
 
@@ -5115,7 +5115,7 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(SerialiserType &ser,
                                                             UINT AlignedByteOffsetForArgs)
 {
   SERIALISE_ELEMENT(pBufferForArgs).Important();
-  SERIALISE_ELEMENT(AlignedByteOffsetForArgs);
+  SERIALISE_ELEMENT(AlignedByteOffsetForArgs).OffsetOrSize();
 
   Serialise_DebugMessages(GET_SERIALISER);
 
@@ -6263,7 +6263,7 @@ bool WrappedID3D11DeviceContext::Serialise_CopyStructureCount(SerialiserType &se
                                                               ID3D11UnorderedAccessView *pSrcView)
 {
   SERIALISE_ELEMENT(pDstBuffer).Important();
-  SERIALISE_ELEMENT(DstAlignedByteOffset);
+  SERIALISE_ELEMENT(DstAlignedByteOffset).OffsetOrSize();
   SERIALISE_ELEMENT(pSrcView).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -7931,8 +7931,8 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(SerialiserType &ser, ID3D11Reso
     SERIALISE_ELEMENT(intercept.MapType).Named("MapType"_lit);
     SERIALISE_ELEMENT_TYPED(D3D11_MAP_FLAG, intercept.MapFlags).Named("MapFlags"_lit);
 
-    SERIALISE_ELEMENT(diffStart).Named("Byte offset to start of written data"_lit);
-    SERIALISE_ELEMENT(diffEnd).Named("Byte offset to end of written data"_lit);
+    SERIALISE_ELEMENT(diffStart).Named("Byte offset to start of written data"_lit).OffsetOrSize();
+    SERIALISE_ELEMENT(diffEnd).Named("Byte offset to end of written data"_lit).OffsetOrSize();
 
     SERIALISE_ELEMENT_ARRAY(MapWrittenData, len).Important();
 

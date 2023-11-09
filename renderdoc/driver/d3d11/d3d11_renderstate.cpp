@@ -1263,11 +1263,11 @@ void DoSerialise(SerialiserType &ser, D3D11RenderState::InputAssembler &el)
   SERIALISE_MEMBER(Layout);
   SERIALISE_MEMBER(Topo);
   SERIALISE_MEMBER(VBs);
-  SERIALISE_MEMBER(Strides);
-  SERIALISE_MEMBER(Offsets);
+  SERIALISE_MEMBER(Strides).OffsetOrSize();
+  SERIALISE_MEMBER(Offsets).OffsetOrSize();
   SERIALISE_MEMBER(IndexBuffer);
   SERIALISE_MEMBER(IndexFormat);
-  SERIALISE_MEMBER(IndexOffset);
+  SERIALISE_MEMBER(IndexOffset).OffsetOrSize();
 }
 
 template <class SerialiserType>
@@ -1287,7 +1287,7 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11RenderState::StreamOut &el)
 {
   SERIALISE_MEMBER(Buffers);
-  SERIALISE_MEMBER(Offsets);
+  SERIALISE_MEMBER(Offsets).OffsetOrSize();
 }
 
 template <class SerialiserType>

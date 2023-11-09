@@ -1315,7 +1315,7 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
   SERIALISE_ELEMENT_ARRAY(pInputElementDescs, NumElements).Important();
   SERIALISE_ELEMENT(NumElements);
   SERIALISE_ELEMENT_ARRAY(pShaderBytecodeWithInputSignature, BytecodeLength_);
-  SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
+  SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_)).OffsetOrSize();
   SERIALISE_ELEMENT_LOCAL(pInputLayout, GetIDForDeviceChild(*ppInputLayout))
       .TypedAs("ID3D11InputLayout *"_lit);
 
@@ -1693,7 +1693,7 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
   SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
   SERIALISE_ELEMENT_ARRAY(pSODeclaration, NumEntries).Important();
   SERIALISE_ELEMENT(NumEntries);
-  SERIALISE_ELEMENT_ARRAY(pBufferStrides, NumStrides);
+  SERIALISE_ELEMENT_ARRAY(pBufferStrides, NumStrides).OffsetOrSize();
   SERIALISE_ELEMENT(NumStrides);
   SERIALISE_ELEMENT(RasterizedStream);
   SERIALISE_ELEMENT(pClassLinkage);
