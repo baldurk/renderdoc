@@ -282,7 +282,7 @@ set(sources
     3rdparty/zstd/zstdmt_compress.h
     3rdparty/stb/stb_image.h
     3rdparty/stb/stb_image_write.h
-    3rdparty/stb/stb_image_resize.h
+    3rdparty/stb/stb_image_resize2.h
     3rdparty/stb/stb_impl.c
     3rdparty/stb/stb_truetype.h
     3rdparty/tinyexr/tinyexr.cpp
@@ -417,6 +417,12 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR APPLE)
 
         set_property(SOURCE strings/utf8printf.cpp
             APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unknown-warning -Wno-format-truncation")
+
+    	# stb_image requires these flags to enable ARM SIMD (NEON) for arm32
+        if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm" AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+            set_source_files_properties(3rdparty/stb/stb_impl.c
+                PROPERTIES COMPILE_FLAGS "-mfpu=neon-vfpv4 -mfp16-format=ieee")
+        endif()
     endif()
 
     # Need to add -Wno-unknown-warning-option since only newer clang versions have
@@ -438,6 +444,12 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR APPLE)
         # We are deliberately testing self-assign here
         set_source_files_properties(replay/basic_types_tests.cpp
             PROPERTIES COMPILE_FLAGS "-Wno-unknown-warning-option -Wno-self-assign-overloaded")
+
+        # stb_image requires these flags to enable ARM SIMD (NEON) for arm32
+        if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm" AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+            set_source_files_properties(3rdparty/stb/stb_impl.c
+                        PROPERTIES COMPILE_FLAGS "-mfpu=neon-vfpv4")
+        endif()
     endif()
 endif()
 
