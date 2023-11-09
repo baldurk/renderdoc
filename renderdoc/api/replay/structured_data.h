@@ -164,6 +164,11 @@ DOCUMENT(R"(Bitfield flags that could be applied to a type.
 
   Indicates that some children are marked as hidden. This can be important for cases where the
   number of children is important.
+
+.. data:: OffsetOrSize
+
+  Special flag to indicate that this type will be used as a byte offset or byte size, which is used to 
+  control the formatting mode when the value is displayed in the UI.
 )");
 enum class SDTypeFlags : uint32_t
 {
@@ -177,6 +182,7 @@ enum class SDTypeFlags : uint32_t
   Important = 0x40,
   ImportantChildren = 0x80,
   HiddenChildren = 0x100,
+  OffsetOrSize = 0x200,
 };
 
 BITMASK_OPERATORS(SDTypeFlags);

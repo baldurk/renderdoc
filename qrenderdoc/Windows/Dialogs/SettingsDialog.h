@@ -116,6 +116,7 @@ private slots:
 
   // manual slots
   void formatter_valueChanged(int value);
+  void on_Formatter_OffsetSizeDisplayMode_currentIndexChanged(int index);
 
   void on_analyticsDescribeLabel_linkActivated(const QString &link);
 
@@ -128,5 +129,6 @@ private:
   ReplayOptionsSelector *m_ReplayOptions;
 
   ICaptureContext &m_Ctx;
+  bool m_NeedRefresh = false;
   bool m_Init = false;
 };

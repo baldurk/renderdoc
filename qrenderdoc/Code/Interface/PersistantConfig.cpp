@@ -44,6 +44,18 @@ rdcstr DoStringise(const TimeUnit &el)
   END_ENUM_STRINGISE();
 }
 
+template <>
+rdcstr DoStringise(const OffsetSizeDisplayMode &el)
+{
+  BEGIN_ENUM_STRINGISE(OffsetSizeDisplayMode)
+  {
+    STRINGISE_ENUM_CLASS(Auto);
+    STRINGISE_ENUM_CLASS(Decimal);
+    STRINGISE_ENUM_CLASS(Hexadecimal);
+  }
+  END_ENUM_STRINGISE();
+}
+
 #define JSON_ID "rdocConfigData"
 #define JSON_VER 1
 

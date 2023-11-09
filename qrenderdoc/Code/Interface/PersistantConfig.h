@@ -373,6 +373,16 @@ DECLARE_REFLECTION_STRUCT(BugReport);
   CONFIG_SETTING_VAL(public, int, int, Formatter_PosExp, 7)                                        \
                                                                                                    \
   DOCUMENT(                                                                                        \
+      "The formatting mode to use for values marked as Offsets or Sizes.\n"                        \
+      "\n"                                                                                         \
+      "E.g. Auto: decimal by default and hexadecimal if above a certain threshold, "               \
+      "Decimal: always use decimal, Hexadecimal: always use hexadecimal."                          \
+      "\n"                                                                                         \
+      "Defaults to ``Auto``.");                                                                    \
+  CONFIG_SETTING_VAL(public, int, OffsetSizeDisplayMode, Formatter_OffsetSizeDisplayMode,          \
+                     OffsetSizeDisplayMode::Auto)                                                  \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
       "The global scale to apply to fonts in the application, expressed as a float.\n"             \
       "\n"                                                                                         \
       "Defaults to ``1.0`` which means 100%.");                                                    \
@@ -528,6 +538,30 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                                    \
   DOCUMENT("");                                                                                    \
   CONFIG_SETTING(private, QVariantList, rdcarray<RemoteHost>, RemoteHostList)
+
+DOCUMENT(R"(The formatting mode used when displaying fields marked as Offsets or Sizes.
+
+.. data:: Auto
+
+  The data is displayed as decimal values by default and hexadecimal if above a certain threshold.
+
+.. data:: Decimal
+
+  The data is displayed as decimal values.
+
+.. data:: Hexadecimal
+
+  The data is displayed as hexadecimal values.
+)");
+enum class OffsetSizeDisplayMode : int
+{
+  Auto = 0,
+  Decimal,
+  Hexadecimal,
+  Count,
+};
+
+DECLARE_REFLECTION_ENUM(OffsetSizeDisplayMode);
 
 DOCUMENT(R"(The unit that GPU durations are displayed in.
 

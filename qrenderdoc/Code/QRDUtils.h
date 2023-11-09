@@ -368,13 +368,18 @@ void RegisterMetatypeConversions();
 
 struct Formatter
 {
+  enum FormatterFlags
+  {
+    NoFlags = 0x0,
+    OffsetSize = 0x1,
+  };
   static void setParams(const PersistantConfig &config);
   static void setPalette(QPalette palette);
   static void shutdown();
 
   static QString Format(double f, bool hex = false);
   static QString Format(rdhalf f, bool hex = false) { return Format((float)f, hex); }
-  static QString HumanFormat(uint64_t u);
+  static QString HumanFormat(uint64_t u, FormatterFlags flags);
   static QString Format(uint64_t u, bool hex = false)
   {
     return QFormatStr("%1").arg(u, hex ? 16 : 0, hex ? 16 : 10, QLatin1Char('0')).toUpper();
@@ -432,6 +437,7 @@ private:
   static float m_FontBaseSize, m_FixedFontBaseSize;
   static QString m_DefaultFontFamily, m_DefaultMonoFontFamily;
   static QColor m_DarkChecker, m_LightChecker;
+  static OffsetSizeDisplayMode m_OffsetSizeDisplayMode;
 };
 
 bool SaveToJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, uint32_t magicVersion);

@@ -13,6 +13,9 @@ Config
 
 .. autoclass:: qrenderdoc.TimeUnit
   :members:
+
+.. autoclass:: qrenderdoc.OffsetSizeDisplayMode
+  :members:
   
 .. autofunction:: qrenderdoc.ConfigFilePath
 .. autofunction:: qrenderdoc.UnitSuffix
