@@ -487,7 +487,7 @@ void WrappedOpenGL::glDispatchComputeGroupSizeARB(GLuint num_groups_x, GLuint nu
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(SerialiserType &ser, GLintptr indirect)
 {
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important();
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important().OffsetOrSize();
 
   Serialise_DebugMessages(ser);
 
@@ -1206,7 +1206,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(SerialiserType &ser, GLenum m
                                                    const void *indirect)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important();
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important().OffsetOrSize();
 
   Serialise_DebugMessages(ser);
 
@@ -1518,7 +1518,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(SerialiserType &ser, GLenum
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(type);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important();
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important().OffsetOrSize();
 
   Serialise_DebugMessages(ser);
 
@@ -2680,9 +2680,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
                                                         GLsizei stride)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important();
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important().OffsetOrSize();
   SERIALISE_ELEMENT(drawcount).Important();
-  SERIALISE_ELEMENT(stride);
+  SERIALISE_ELEMENT(stride).OffsetOrSize();
 
   Serialise_DebugMessages(ser);
 
@@ -2901,9 +2901,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(type);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important();
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important().OffsetOrSize();
   SERIALISE_ELEMENT(drawcount).Important();
-  SERIALISE_ELEMENT(stride);
+  SERIALISE_ELEMENT(stride).OffsetOrSize();
 
   Serialise_DebugMessages(ser);
 
@@ -3131,10 +3131,10 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
                                                              GLsizei maxdrawcount, GLsizei stride)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important();
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important().OffsetOrSize();
   SERIALISE_ELEMENT_LOCAL(drawcount, (uint64_t)drawcountPtr).Important();
   SERIALISE_ELEMENT(maxdrawcount).Important();
-  SERIALISE_ELEMENT(stride);
+  SERIALISE_ELEMENT(stride).OffsetOrSize();
 
   Serialise_DebugMessages(ser);
 
@@ -3364,10 +3364,10 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(type);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important();
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important().OffsetOrSize();
   SERIALISE_ELEMENT_LOCAL(drawcount, (uint64_t)drawcountPtr).Important();
   SERIALISE_ELEMENT(maxdrawcount).Important();
-  SERIALISE_ELEMENT(stride);
+  SERIALISE_ELEMENT(stride).OffsetOrSize();
 
   Serialise_DebugMessages(ser);
 
@@ -4281,8 +4281,8 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferSubDataEXT(SerialiserType &ser, 
 {
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
   SERIALISE_ELEMENT(internalformat);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
-  SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr).OffsetOrSize();
+  SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr).OffsetOrSize();
   SERIALISE_ELEMENT(format).Important();
   SERIALISE_ELEMENT(type).Important();
 
