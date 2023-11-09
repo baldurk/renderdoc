@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?> 
+<?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
   <Type Name="rdcinflexiblestr">
     <DisplayString>{(char*)pointer,s}</DisplayString>
@@ -66,58 +66,70 @@
       </ArrayItems>
     </Expand>
   </Type>
- <Type Name="rdcpair&lt;*&gt;">
-  <DisplayString>{{ {first}, {second} }}</DisplayString>
-  <Expand>
-   <Item Name="first" ExcludeView="simple">first</Item>
-   <Item Name="second" ExcludeView="simple">second</Item>
-  </Expand>
- </Type>
- <Type Name="SDType">
-  <DisplayString>{name}</DisplayString>
-  <Expand>
-   <Item Name="name">name</Item>
-   <Item Name="basetype">basetype</Item>
-   <Item Name="byteSize">byteSize</Item>
-   <Item Name="flags">flags</Item>
-  </Expand>
- </Type>
- <Type Name="SDObject">
-  <DisplayString Condition="type.flags &amp; SDTypeFlags::HasCustomString">{name} = {data.str}</DisplayString>
-  <DisplayString Condition="type.basetype == SDBasic::String">{name} = {data.str}</DisplayString>
-  <DisplayString Condition="type.basetype == SDBasic::UnsignedInteger">{name} = {data.basic.u}</DisplayString>
-  <DisplayString Condition="type.basetype == SDBasic::SignedInteger">{name} = {data.basic.i}</DisplayString>
-  <DisplayString Condition="type.basetype == SDBasic::Float">{name} = {data.basic.d}</DisplayString>
-  <DisplayString Condition="type.basetype == SDBasic::Boolean">{name} = {data.basic.b}</DisplayString>
-  <DisplayString Condition="type.basetype == SDBasic::Character">{name} = {data.basic.c}</DisplayString>
-  <DisplayString Condition="type.basetype == SDBasic::Resource">{name} = {data.basic.id}</DisplayString>
-  <DisplayString Condition="type.basetype == SDBasic::Array">{name} = {type.name}[]</DisplayString>
-  <DisplayString>SDObject: {type.name} {name}</DisplayString>
-  <Expand>
-   <Item Condition="type.basetype == SDBasic::Array" Name="[size]" ExcludeView="simple">data.children.usedCount</Item>
-   <ArrayItems Condition="type.basetype == SDBasic::Array || type.basetype == SDBasic::Struct">
-    <Size>data.children.usedCount</Size>
-    <ValuePointer>data.children.elems</ValuePointer>
-   </ArrayItems>
-   <Item Condition="type.basetype != SDBasic::Array &amp;&amp; type.basetype != SDBasic::Struct" Name="type">type</Item>
-   <Item Condition="type.basetype != SDBasic::Array &amp;&amp; type.basetype != SDBasic::Struct" Name="name">name</Item>
-   <Item Condition="type.basetype != SDBasic::Array &amp;&amp; type.basetype != SDBasic::Struct" Name="data">data</Item>
-  </Expand>
- </Type>
- <Type Name="SDChunk">
-  <DisplayString>SDChunk: {name} ({metadata.chunkID})</DisplayString>
-  <Expand>
-   <Item Name="metadata" ExcludeView="simple">metadata</Item>
-   <Item Name="[size]" ExcludeView="simple">data.children.usedCount</Item>
-   <ArrayItems>
-    <Size>data.children.usedCount</Size>
-    <ValuePointer>data.children.elems</ValuePointer>
-   </ArrayItems>
-  </Expand>
- </Type>
- <Type Name="D3D12ResourceLayout">
+  <Type Name="rdcpair&lt;*&gt;">
+    <DisplayString>{{ {first}, {second} }}</DisplayString>
+    <Expand>
+      <Item Name="first" ExcludeView="simple">first</Item>
+      <Item Name="second" ExcludeView="simple">second</Item>
+    </Expand>
+  </Type>
+  <Type Name="SDType">
+    <DisplayString>{name}</DisplayString>
+    <Expand>
+      <Item Name="name">name</Item>
+      <Item Name="basetype">basetype</Item>
+      <Item Name="byteSize">byteSize</Item>
+      <Item Name="flags">flags</Item>
+    </Expand>
+  </Type>
+  <Type Name="SDObject">
+    <DisplayString Condition="type.flags &amp; SDTypeFlags::HasCustomString">{name} = {data.str}</DisplayString>
+    <DisplayString Condition="type.basetype == SDBasic::String">{name} = {data.str}</DisplayString>
+    <DisplayString Condition="type.basetype == SDBasic::UnsignedInteger">{name} = {data.basic.u}</DisplayString>
+    <DisplayString Condition="type.basetype == SDBasic::SignedInteger">{name} = {data.basic.i}</DisplayString>
+    <DisplayString Condition="type.basetype == SDBasic::Float">{name} = {data.basic.d}</DisplayString>
+    <DisplayString Condition="type.basetype == SDBasic::Boolean">{name} = {data.basic.b}</DisplayString>
+    <DisplayString Condition="type.basetype == SDBasic::Character">{name} = {data.basic.c}</DisplayString>
+    <DisplayString Condition="type.basetype == SDBasic::Resource">{name} = {data.basic.id}</DisplayString>
+    <DisplayString Condition="type.basetype == SDBasic::Array">{name} = {type.name}[]</DisplayString>
+    <DisplayString>SDObject: {type.name} {name}</DisplayString>
+    <Expand>
+      <Item Condition="type.basetype == SDBasic::Array" Name="[size]" ExcludeView="simple">data.children.usedCount</Item>
+      <ArrayItems Condition="type.basetype == SDBasic::Array || type.basetype == SDBasic::Struct">
+        <Size>data.children.usedCount</Size>
+        <ValuePointer>data.children.elems</ValuePointer>
+      </ArrayItems>
+      <Item Condition="type.basetype != SDBasic::Array &amp;&amp; type.basetype != SDBasic::Struct" Name="type">type</Item>
+      <Item Condition="type.basetype != SDBasic::Array &amp;&amp; type.basetype != SDBasic::Struct" Name="name">name</Item>
+      <Item Condition="type.basetype != SDBasic::Array &amp;&amp; type.basetype != SDBasic::Struct" Name="data">data</Item>
+    </Expand>
+  </Type>
+  <Type Name="SDChunk">
+    <DisplayString>SDChunk: {name} ({metadata.chunkID})</DisplayString>
+    <Expand>
+      <Item Name="metadata" ExcludeView="simple">metadata</Item>
+      <Item Name="[size]" ExcludeView="simple">data.children.usedCount</Item>
+      <ArrayItems>
+        <Size>data.children.usedCount</Size>
+        <ValuePointer>data.children.elems</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="D3D12ResourceLayout">
     <DisplayString Condition="value == D3D12_BARRIER_LAYOUT_UNDEFINED">{D3D12_BARRIER_LAYOUT_UNDEFINED}</DisplayString>
     <DisplayString Condition="value &amp; 0x80000000U">{D3D12_BARRIER_LAYOUT(value &amp; 0x7fffffffU)}</DisplayString>
     <DisplayString>{D3D12_RESOURCE_STATES(value)}</DisplayString>
- </Type>
+  </Type>
+  <Type Name="DXIL::Value" Inheritable="false">
+    <Expand>
+      <ExpandedItem Condition="valKind==1">*(DXIL::Literal *)this</ExpandedItem>
+      <ExpandedItem Condition="valKind==2">*(DXIL::Alias *)this</ExpandedItem>
+      <ExpandedItem Condition="valKind==3">*(DXIL::Constant *)this</ExpandedItem>
+      <ExpandedItem Condition="valKind==4">*(DXIL::GlobalVar *)this</ExpandedItem>
+      <ExpandedItem Condition="valKind==5">*(DXIL::Metadata *)this</ExpandedItem>
+      <ExpandedItem Condition="valKind==6">*(DXIL::Instruction *)this</ExpandedItem>
+      <ExpandedItem Condition="valKind==7">*(DXIL::Function *)this</ExpandedItem>
+      <ExpandedItem Condition="valKind==8">*(DXIL::Block *)this</ExpandedItem>
+    </Expand>
+  </Type>
 </AutoVisualizer>

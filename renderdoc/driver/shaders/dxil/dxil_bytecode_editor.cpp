@@ -84,7 +84,7 @@ ProgramEditor::ProgramEditor(const DXBC::DXBCContainer *container, bytebuf &outB
   // potential cycles that llvm puts in :(
 
   LLVMOrderAccumulator accum;
-  accum.processGlobals(this);
+  accum.processGlobals(this, false);
 
   for(size_t idx = accum.firstConst; idx < accum.firstConst + accum.numConsts; idx++)
     m_Constants.push_back((Constant *)cast<const Constant>(accum.values[idx]));
@@ -102,8 +102,44 @@ ProgramEditor::ProgramEditor(const DXBC::DXBCContainer *container, bytebuf &outB
 
 ProgramEditor::~ProgramEditor()
 {
+  LLVMOrderAccumulator accum;
+  accum.processGlobals(this, true);
+
+  // delete any functions that aren't referenced by call instructions
+  rdcarray<const Function *> keep;
+  for(Function *f : m_Functions)
+  {
+    accum.processFunction(f);
+    accum.exitFunction();
+  }
+
+  RDCCOMPILE_ASSERT(Value::VisitedID < Value::UnvisitedID && Value::UnvisitedID < Value::NoID,
+                    "ID constants should be ordered");
+
+  m_Functions.removeIf(
+      [&keep](Function *f) { return f->instructions.empty() && f->id >= Value::UnvisitedID; });
+
+  // delete any globals that aren't referenced
+  m_GlobalVars.removeIf([&accum](GlobalVar *var) { return var->id >= Value::UnvisitedID; });
+
+  m_ValueSymtabOrder.removeIf([this](Value *v) {
+    if(v->kind() == ValueKind::Function && !m_Functions.contains(cast<Function>(v)))
+      return true;
+
+    if(v->kind() == ValueKind::GlobalVar && !m_GlobalVars.contains(cast<GlobalVar>(v)))
+      return true;
+
+    return false;
+  });
+
   // replace the DXIL bytecode in the container with
   DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, DXBC::FOURCC_DXIL, EncodeProgram());
+
+  // strip ILDB because it's valid code (with debug info) and who knows what might use it
+  DXBC::DXBCContainer::StripChunk(m_OutBlob, DXBC::FOURCC_ILDB);
+
+  // also strip STAT because it might have stale reflection info
+  DXBC::DXBCContainer::StripChunk(m_OutBlob, DXBC::FOURCC_STAT);
 
 #if ENABLED(RDOC_DEVEL) && 1
   // on debug builds, run through dxil for "validation" if it's available.
@@ -205,6 +241,36 @@ Type *ProgramEditor::CreateNewType()
   return m_Types.back();
 }
 
+const AttributeSet *ProgramEditor::GetAttributeSet(Attribute desiredAttrs)
+{
+  for(const AttributeSet *attrs : m_AttributeSets)
+    if(attrs && attrs->functionSlot && attrs->functionSlot->params == desiredAttrs)
+      return attrs;
+
+  m_AttributeGroups.push_back(alloc.alloc<AttributeGroup>());
+  m_AttributeGroups.back()->slotIndex = AttributeGroup::FunctionSlot;
+  m_AttributeGroups.back()->params = desiredAttrs;
+
+  m_AttributeSets.push_back(alloc.alloc<AttributeSet>());
+  m_AttributeSets.back()->functionSlot = m_AttributeGroups.back();
+  m_AttributeSets.back()->orderedGroups = {m_AttributeGroups.size() - 1};
+
+  return m_AttributeSets.back();
+}
+
+Type *ProgramEditor::CreateScalarType(Type::ScalarKind scalarType, uint32_t bitWidth)
+{
+  for(size_t i = 0; i < m_Types.size(); i++)
+    if(m_Types[i]->scalarType == scalarType && m_Types[i]->bitWidth == bitWidth)
+      return m_Types[i];
+
+  Type *t = CreateNewType();
+  t->type = Type::Scalar;
+  t->scalarType = scalarType;
+  t->bitWidth = bitWidth;
+  return t;
+}
+
 Type *ProgramEditor::CreateNamedStructType(const rdcstr &name, rdcarray<const Type *> members)
 {
   for(size_t i = 0; i < m_Types.size(); i++)
@@ -221,15 +287,15 @@ Type *ProgramEditor::CreateNamedStructType(const rdcstr &name, rdcarray<const Ty
   return structType;
 }
 
-DXIL::Type *ProgramEditor::CreateFunctionType(const Type *ret, rdcarray<const Type *> params)
+DXIL::Type *ProgramEditor::CreateFunctionType(const Type *retType, rdcarray<const Type *> params)
 {
   for(Type *type : m_Types)
-    if(type->type == Type::Function && type->inner == ret && type->members == params)
+    if(type->type == Type::Function && type->inner == retType && type->members == params)
       return type;
 
   Type *funcType = CreateNewType();
   funcType->type = Type::Function;
-  funcType->inner = ret;
+  funcType->inner = retType;
   funcType->members = params;
   return funcType;
 }
@@ -254,6 +320,47 @@ Function *ProgramEditor::GetFunctionByName(const rdcstr &name)
       return m_Functions[i];
 
   return NULL;
+}
+
+Function *ProgramEditor::GetFunctionByPrefix(const rdcstr &name)
+{
+  for(size_t i = 0; i < m_Functions.size(); i++)
+    if(m_Functions[i]->name.beginsWith(name))
+      return m_Functions[i];
+
+  return NULL;
+}
+
+Function *ProgramEditor::DeclareFunction(const rdcstr &name, const Type *retType,
+                                         rdcarray<const Type *> params, Attribute desiredAttrs)
+{
+  Function *ret = GetFunctionByName(name);
+
+  if(!ret)
+  {
+    const Type *funcType = CreateFunctionType(retType, params);
+
+    Function functionDef;
+    functionDef.name = name;
+    functionDef.type = funcType;
+    functionDef.external = true;
+    functionDef.attrs = GetAttributeSet(desiredAttrs);
+
+    ret = DeclareFunction(functionDef);
+  }
+
+  return ret;
+}
+
+Block *ProgramEditor::CreateBlock()
+{
+  if(m_LabelType == NULL)
+  {
+    Type *label = CreateNewType();
+    label->type = Type::Label;
+    m_LabelType = label;
+  }
+  return new(alloc) Block(m_LabelType);
 }
 
 Metadata *ProgramEditor::GetMetadataByName(const rdcstr &name)
@@ -360,6 +467,11 @@ NamedMetadata *ProgramEditor::CreateNamedMetadata(const rdcstr &name)
   return m_NamedMeta.back();
 }
 
+Literal *ProgramEditor::CreateLiteral(uint64_t val)
+{
+  return new(alloc) Literal(val);
+}
+
 Constant *ProgramEditor::CreateConstant(const Constant &c)
 {
   // for scalars, check for an existing constant
@@ -391,6 +503,32 @@ Constant *ProgramEditor::CreateConstant(const Type *type, const rdcarray<Value *
   return ret;
 }
 
+Constant *ProgramEditor::CreateConstantGEP(const Type *resultType,
+                                           const rdcarray<Value *> &pointerAndIdxs)
+{
+  Constant *ret = new(alloc) Constant;
+  ret->op = Operation::GetElementPtr;
+  ret->type = resultType;
+  ret->setCompound(alloc, pointerAndIdxs);
+  return ret;
+}
+
+Constant *ProgramEditor::CreateUndef(const Type *t)
+{
+  Constant c;
+  c.type = t;
+  c.setUndef(true);
+  return CreateConstant(c);
+}
+
+Constant *ProgramEditor::CreateNULL(const Type *t)
+{
+  Constant c;
+  c.type = t;
+  c.setNULL(true);
+  return CreateConstant(c);
+}
+
 Instruction *ProgramEditor::CreateInstruction(Operation op)
 {
   Instruction *ret = new(alloc) Instruction;
@@ -405,7 +543,27 @@ Instruction *ProgramEditor::CreateInstruction(const Function *f)
   return ret;
 }
 
-#define getAttribID(a) uint64_t(a - m_AttributeSets.begin())
+Instruction *ProgramEditor::CreateInstruction(Operation op, const Type *retType,
+                                              const rdcarray<Value *> &args)
+{
+  Instruction *ret = new(alloc) Instruction;
+  ret->op = op;
+  ret->type = retType;
+  ret->args = args;
+  return ret;
+}
+
+Instruction *ProgramEditor::CreateInstruction(const Function *f, DXOp op,
+                                              const rdcarray<Value *> &args)
+{
+  Instruction *ret = CreateInstruction(f);
+  ret->type = f->type->inner;
+  ret->args = args;
+  ret->args.insert(0, CreateConstant((uint32_t)op));
+  return ret;
+}
+
+#define getAttribID(a) uint64_t(m_AttributeSets.indexOf((AttributeSet *)a))
 #define getTypeID(t) uint64_t(t->id)
 #define getMetaID(m) uint64_t(m->id)
 #define getValueID(v) uint64_t(v->id)
@@ -420,7 +578,7 @@ bytebuf ProgramEditor::EncodeProgram()
   LLVMBC::BitcodeWriter::Config cfg = {};
 
   LLVMOrderAccumulator accum;
-  accum.processGlobals(this);
+  accum.processGlobals(this, false);
 
   const rdcarray<const Value *> &values = accum.values;
   const rdcarray<const Metadata *> &metadata = accum.metadata;
@@ -478,18 +636,18 @@ bytebuf ProgramEditor::EncodeProgram()
 
     for(size_t i = 0; i < m_AttributeGroups.size(); i++)
     {
-      if(m_AttributeGroups[i].slotIndex != AttributeGroup::InvalidSlot)
+      if(m_AttributeGroups[i] && m_AttributeGroups[i]->slotIndex != AttributeGroup::InvalidSlot)
       {
-        const AttributeGroup &group = m_AttributeGroups[i];
+        const AttributeGroup *group = m_AttributeGroups[i];
 
         vals.clear();
         vals.push_back(i);
-        vals.push_back(group.slotIndex);
+        vals.push_back(group->slotIndex);
 
         // decompose params bitfield into bits
-        if(group.params != Attribute::None)
+        if(group->params != Attribute::None)
         {
-          uint64_t params = (uint64_t)group.params;
+          uint64_t params = (uint64_t)group->params;
           for(uint64_t p = 0; p < 64; p++)
           {
             if((params & (1ULL << p)) != 0)
@@ -500,28 +658,28 @@ bytebuf ProgramEditor::EncodeProgram()
                 {
                   vals.push_back(1);
                   vals.push_back(p);
-                  vals.push_back(group.align);
+                  vals.push_back(group->align);
                   break;
                 }
                 case Attribute::StackAlignment:
                 {
                   vals.push_back(1);
                   vals.push_back(p);
-                  vals.push_back(group.stackAlign);
+                  vals.push_back(group->stackAlign);
                   break;
                 }
                 case Attribute::Dereferenceable:
                 {
                   vals.push_back(1);
                   vals.push_back(p);
-                  vals.push_back(group.derefBytes);
+                  vals.push_back(group->derefBytes);
                   break;
                 }
                 case Attribute::DereferenceableOrNull:
                 {
                   vals.push_back(1);
                   vals.push_back(p);
-                  vals.push_back(group.derefOrNullBytes);
+                  vals.push_back(group->derefOrNullBytes);
                   break;
                 }
                 default:
@@ -535,9 +693,9 @@ bytebuf ProgramEditor::EncodeProgram()
           }
         }
 
-        if(!group.strs.empty())
+        if(!group->strs.empty())
         {
-          for(const rdcpair<rdcstr, rdcstr> &strAttr : group.strs)
+          for(const rdcpair<rdcstr, rdcstr> &strAttr : group->strs)
           {
             if(strAttr.second.empty())
               vals.push_back(3);
@@ -565,7 +723,7 @@ bytebuf ProgramEditor::EncodeProgram()
     writer.BeginBlock(LLVMBC::KnownBlock::PARAMATTR_BLOCK);
 
     for(size_t i = 0; i < m_AttributeSets.size(); i++)
-      writer.Record(LLVMBC::ParamAttrRecord::ENTRY, m_AttributeSets[i].orderedGroups);
+      writer.Record(LLVMBC::ParamAttrRecord::ENTRY, m_AttributeSets[i]->orderedGroups);
 
     writer.EndBlock();
   }
@@ -1620,19 +1778,112 @@ void ProgramEditor::RegisterUAV(DXILResourceType type, uint32_t space, uint32_t 
   // patch SFI0 here for non-CS non-PS shaders
   if(m_Type != DXBC::ShaderType::Compute && m_Type != DXBC::ShaderType::Pixel)
   {
-    // cheekily cast away const since this returns the blob in-place
-    DXBC::GlobalShaderFlags *flags =
-        (DXBC::GlobalShaderFlags *)DXBC::DXBCContainer::FindChunk(m_OutBlob, DXBC::FOURCC_SFI0, sz);
-
-    // this *should* always be present, so we can just add our flag
-    if(flags)
-      (*flags) |= DXBC::GlobalShaderFlags::UAVsEveryStage;
-    else
-      RDCWARN("Feature flags chunk not present");
+    PatchGlobalShaderFlags(
+        [](DXBC::GlobalShaderFlags &flags) { flags |= DXBC::GlobalShaderFlags::UAVsEveryStage; });
   }
 
   // strip the root signature, we shouldn't need it and it may no longer match and fail validation
   DXBC::DXBCContainer::StripChunk(m_OutBlob, DXBC::FOURCC_RTS0);
+}
+
+void ProgramEditor::SetNumThreads(uint32_t dim[3])
+{
+  size_t sz = 0;
+  const byte *psv0 = DXBC::DXBCContainer::FindChunk(m_OutBlob, DXBC::FOURCC_PSV0, sz);
+
+  if(psv0)
+  {
+    bytebuf psv0blob(psv0, sz);
+
+    byte *begin = psv0blob.data();
+    byte *end = begin + sz;
+
+    byte *cur = begin;
+
+    uint32_t *headerSize = (uint32_t *)cur;
+    cur += sizeof(uint32_t);
+    if(cur >= end)
+      return;
+
+    // from definitions in dxc
+    const uint32_t headerSizeVer0 = 6 * sizeof(uint32_t);
+    const uint32_t headerSizeVer1 = sizeof(uint16_t) + 10 * sizeof(uint8_t);
+    const uint32_t headerSizeVer2 = 3 * sizeof(uint32_t);
+
+    if(*headerSize >= headerSizeVer2)
+    {
+      cur += headerSizeVer0;
+      cur += headerSizeVer1;
+      memcpy(cur, dim, sizeof(uint32_t) * 3);
+    }
+
+    DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, DXBC::FOURCC_PSV0, psv0blob);
+  }
+}
+
+void ProgramEditor::SetASPayloadSize(uint32_t payloadSize)
+{
+  size_t sz = 0;
+  const byte *psv0 = DXBC::DXBCContainer::FindChunk(m_OutBlob, DXBC::FOURCC_PSV0, sz);
+
+  if(psv0)
+  {
+    bytebuf psv0blob(psv0, sz);
+
+    byte *begin = psv0blob.data();
+    byte *end = begin + sz;
+
+    byte *cur = begin;
+
+    cur += sizeof(uint32_t);
+    if(cur >= end)
+      return;
+
+    // the AS info with the payload size is immediately at the start of the header
+    memcpy(cur, &payloadSize, sizeof(uint32_t));
+
+    DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, DXBC::FOURCC_PSV0, psv0blob);
+  }
+}
+
+void ProgramEditor::SetMSPayloadSize(uint32_t payloadSize)
+{
+  size_t sz = 0;
+  const byte *psv0 = DXBC::DXBCContainer::FindChunk(m_OutBlob, DXBC::FOURCC_PSV0, sz);
+
+  if(psv0)
+  {
+    bytebuf psv0blob(psv0, sz);
+
+    byte *begin = psv0blob.data();
+    byte *end = begin + sz;
+
+    byte *cur = begin;
+
+    cur += sizeof(uint32_t);
+    if(cur >= end)
+      return;
+
+    // the MS info is immediately at the start of the header
+    // the first two uint32s are groupshared related, then comes the payload size
+    memcpy(cur + sizeof(uint32_t) * 2, &payloadSize, sizeof(uint32_t));
+
+    DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, DXBC::FOURCC_PSV0, psv0blob);
+  }
+}
+
+void ProgramEditor::PatchGlobalShaderFlags(std::function<void(DXBC::GlobalShaderFlags &)> patcher)
+{
+  size_t sz = 0;
+  // cheekily cast away const since this returns the blob in-place
+  DXBC::GlobalShaderFlags *flags =
+      (DXBC::GlobalShaderFlags *)DXBC::DXBCContainer::FindChunk(m_OutBlob, DXBC::FOURCC_SFI0, sz);
+
+  // this *should* always be present, so we can just add our flag
+  if(flags)
+    patcher(*flags);
+  else
+    RDCWARN("Feature flags chunk not present");
 }
 
 void ProgramEditor::EncodeConstants(LLVMBC::BitcodeWriter &writer,

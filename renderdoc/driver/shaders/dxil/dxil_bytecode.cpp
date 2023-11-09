@@ -490,7 +490,7 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
           RDCASSERTMSG("Linkage is non-default and not internal", rootchild.ops[3] == 0,
                        rootchild.ops[3]);
         if(rootchild.ops[4] > 0 && rootchild.ops[4] - 1 < m_AttributeSets.size())
-          f->attrs = &m_AttributeSets[(size_t)rootchild.ops[4] - 1];
+          f->attrs = m_AttributeSets[(size_t)rootchild.ops[4] - 1];
 
         f->align = rootchild.ops[5];
 
@@ -565,10 +565,10 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
             continue;
           }
 
-          AttributeGroup group;
+          AttributeGroup *group = alloc.alloc<AttributeGroup>();
 
           size_t id = (size_t)attrgroup.ops[0];
-          group.slotIndex = (uint32_t)attrgroup.ops[1];
+          group->slotIndex = (uint32_t)attrgroup.ops[1];
 
           for(size_t i = 2; i < attrgroup.ops.size(); i++)
           {
@@ -576,7 +576,7 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
             {
               case 0:
               {
-                group.params |= Attribute(1ULL << (attrgroup.ops[i + 1]));
+                group->params |= Attribute(1ULL << (attrgroup.ops[i + 1]));
                 i++;
                 break;
               }
@@ -584,13 +584,13 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
               {
                 uint64_t param = attrgroup.ops[i + 2];
                 Attribute attr = Attribute(1ULL << attrgroup.ops[i + 1]);
-                group.params |= attr;
+                group->params |= attr;
                 switch(attr)
                 {
-                  case Attribute::Alignment: group.align = param; break;
-                  case Attribute::StackAlignment: group.stackAlign = param; break;
-                  case Attribute::Dereferenceable: group.derefBytes = param; break;
-                  case Attribute::DereferenceableOrNull: group.derefOrNullBytes = param; break;
+                  case Attribute::Alignment: group->align = param; break;
+                  case Attribute::StackAlignment: group->stackAlign = param; break;
+                  case Attribute::Dereferenceable: group->derefBytes = param; break;
+                  case Attribute::DereferenceableOrNull: group->derefOrNullBytes = param; break;
                   default: RDCERR("Unexpected attribute %llu with parameter", attr);
                 }
                 i += 2;
@@ -614,7 +614,7 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
                   i += a.size() + 1;
                 }
 
-                group.strs.push_back({a, b});
+                group->strs.push_back({a, b});
                 break;
               }
             }
@@ -640,24 +640,24 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
             continue;
           }
 
-          AttributeSet attrs;
+          AttributeSet *attrs = alloc.alloc<AttributeSet>();
 
-          attrs.orderedGroups = paramattr.ops;
+          attrs->orderedGroups = paramattr.ops;
 
           for(uint64_t g : paramattr.ops)
           {
             if(g < m_AttributeGroups.size())
             {
-              const AttributeGroup &group = m_AttributeGroups[(size_t)g];
-              if(group.slotIndex == AttributeGroup::FunctionSlot)
+              const AttributeGroup *group = m_AttributeGroups[(size_t)g];
+              if(group->slotIndex == AttributeGroup::FunctionSlot)
               {
-                RDCASSERT(attrs.functionSlot == NULL);
-                attrs.functionSlot = &group;
+                RDCASSERT(attrs->functionSlot == NULL);
+                attrs->functionSlot = group;
               }
               else
               {
-                attrs.groupSlots.resize_for_index(group.slotIndex);
-                attrs.groupSlots[group.slotIndex] = &m_AttributeGroups[(size_t)g];
+                attrs->groupSlots.resize_for_index(group->slotIndex);
+                attrs->groupSlots[group->slotIndex] = group;
               }
             }
             else
@@ -1249,7 +1249,7 @@ Program::Program(const byte *bytes, size_t length) : alloc(32 * 1024)
               inst->type = funcCall->type->inner;
               inst->opFlags() = flags;
               if(paramAttrs > 0)
-                inst->extra(alloc).paramAttrs = &m_AttributeSets[paramAttrs - 1];
+                inst->extra(alloc).paramAttrs = m_AttributeSets[paramAttrs - 1];
 
               if(funcCallType)
               {
@@ -2298,28 +2298,26 @@ Metadata::~Metadata()
   SAFE_DELETE(debugLoc);
 }
 
-static const uint32_t unvisitedValueId = Value::NoID - 0x1;
-static const uint32_t visitedValueId = Value::NoID - 0x2;
 static const uint16_t unvisitedTypeId = 0xffff;
 
 void LLVMOrderAccumulator::reset(GlobalVar *g)
 {
-  g->id = unvisitedValueId;
+  g->id = Value::UnvisitedID;
   reset((Constant *)g->initialiser);
 }
 
 void LLVMOrderAccumulator::reset(Alias *a)
 {
-  a->id = unvisitedValueId;
+  a->id = Value::UnvisitedID;
   reset(a->val);
 }
 
 void LLVMOrderAccumulator::reset(Constant *c)
 {
-  if(!c || c->id == unvisitedValueId)
+  if(!c || c->id == Value::UnvisitedID)
     return;
 
-  c->id = unvisitedValueId;
+  c->id = Value::UnvisitedID;
   c->refCount = 0;
   if(c->isCast())
   {
@@ -2334,14 +2332,14 @@ void LLVMOrderAccumulator::reset(Constant *c)
 
 void LLVMOrderAccumulator::reset(Block *b)
 {
-  b->id = unvisitedValueId;
+  b->id = Value::UnvisitedID;
 }
 
 void LLVMOrderAccumulator::reset(Metadata *m)
 {
-  if(!m || m->id == unvisitedValueId)
+  if(!m || m->id == Value::UnvisitedID)
     return;
-  m->id = unvisitedValueId;
+  m->id = Value::UnvisitedID;
 
   reset(m->value);
 
@@ -2351,10 +2349,10 @@ void LLVMOrderAccumulator::reset(Metadata *m)
 
 void LLVMOrderAccumulator::reset(Instruction *i)
 {
-  if(!i || i->id == unvisitedValueId)
+  if(!i || i->id == Value::UnvisitedID)
     return;
 
-  i->id = unvisitedValueId;
+  i->id = Value::UnvisitedID;
 
   for(Value *a : i->args)
     reset(a);
@@ -2365,7 +2363,7 @@ void LLVMOrderAccumulator::reset(Instruction *i)
 
 void LLVMOrderAccumulator::reset(Function *f)
 {
-  f->id = unvisitedValueId;
+  f->id = Value::UnvisitedID;
   for(Instruction *i : f->args)
     reset(i);
   for(Instruction *i : f->instructions)
@@ -2394,7 +2392,7 @@ void LLVMOrderAccumulator::reset(Value *v)
     reset(a);
 }
 
-void LLVMOrderAccumulator::processGlobals(Program *prog)
+void LLVMOrderAccumulator::processGlobals(Program *prog, bool doLiveChecking)
 {
   // reset all IDs, so we know if we're encountering a new value/metadata or not when walking
   for(Type *t : prog->m_Types)
@@ -2407,6 +2405,8 @@ void LLVMOrderAccumulator::processGlobals(Program *prog)
     reset(m);
   for(Function *f : prog->m_Functions)
     reset(f);
+
+  liveChecking = doLiveChecking;
 
   // just for extra fun, the search order for types for printing, and types enumerated while getting
   // values is slightly different! yay yay yay!
@@ -2454,29 +2454,35 @@ void LLVMOrderAccumulator::processGlobals(Program *prog)
     accumulateTypePrintOrder(visited, meta);
   }
 
-  for(const GlobalVar *g : prog->m_GlobalVars)
-    accumulate(g);
-
-  for(const Function *f : prog->m_Functions)
+  if(!liveChecking)
   {
-    accumulate(f);
-    assignTypeId(prog->GetPointerType(f->type, Type::PointerAddrSpace::Default));
-  }
+    for(const GlobalVar *g : prog->m_GlobalVars)
+      accumulate(g);
 
-  for(const Alias *a : prog->m_Aliases)
-    accumulate(a);
+    for(const Function *f : prog->m_Functions)
+    {
+      accumulate(f);
+      assignTypeId(prog->GetPointerType(f->type, Type::PointerAddrSpace::Default));
+    }
+
+    for(const Alias *a : prog->m_Aliases)
+      accumulate(a);
+  }
 
   firstConst = values.size();
 
-  for(const GlobalVar *g : prog->m_GlobalVars)
-    if(g->initialiser)
-      accumulate(g->initialiser);
+  if(!liveChecking)
+  {
+    for(const GlobalVar *g : prog->m_GlobalVars)
+      if(g->initialiser)
+        accumulate(g->initialiser);
 
-  for(const Alias *a : prog->m_Aliases)
-    accumulate(a->val);
+    for(const Alias *a : prog->m_Aliases)
+      accumulate(a->val);
 
-  for(const Value *v : prog->m_ValueSymtabOrder)
-    accumulate(v);
+    for(const Value *v : prog->m_ValueSymtabOrder)
+      accumulate(v);
+  }
 
   assignTypeId(prog->m_MetaType);
 
@@ -2513,7 +2519,10 @@ void LLVMOrderAccumulator::processGlobals(Program *prog)
   }
 
   numConsts = values.size() - firstConst;
-  sortConsts = !prog->m_Uselists;
+  // don't skip constants when doing live checking, because then constants won't be contiguous as
+  // globals referenced later will be pulled into values later. When skipping globals we only care
+  // if they are seen at all (and given a value id)
+  sortConsts = !prog->m_Uselists && !liveChecking;
 
   if(sortConsts)
   {
@@ -2557,6 +2566,7 @@ void LLVMOrderAccumulator::processFunction(Function *f)
   {
     for(size_t a = 0; a < inst->args.size(); a++)
       accumulate(cast<Constant>(inst->args[a]));
+    accumulate(inst->getFuncCall());
   }
 
   numFuncConsts = values.size() - firstFuncConst;
@@ -2608,7 +2618,7 @@ void LLVMOrderAccumulator::processFunction(Function *f)
       accumulate(inst->getAttachedMeta()[m].second);
 
     for(size_t a = 0; a < inst->args.size(); a++)
-      if(inst->args[a]->kind() == ValueKind::Constant)
+      if(inst->args[a]->kind() == ValueKind::Constant || liveChecking)
         accumulate(inst->args[a]);
 
     if(inst->type->isVoid())
@@ -2724,7 +2734,7 @@ void LLVMOrderAccumulator::assignTypeId(const Constant *c)
 void LLVMOrderAccumulator::accumulate(const Value *v)
 {
   Value *value = (Value *)v;
-  if(!v || v->id != unvisitedValueId)
+  if(!v || v->id != Value::UnvisitedID)
   {
     Constant *c = cast<Constant>(value);
     if(c)
@@ -2736,7 +2746,7 @@ void LLVMOrderAccumulator::accumulate(const Value *v)
 
   assignTypeId(value->type);
 
-  value->id = visitedValueId;
+  value->id = Value::VisitedID;
 
   if(Constant *c = cast<Constant>(value))
   {
@@ -2759,11 +2769,11 @@ void LLVMOrderAccumulator::accumulate(const Value *v)
 
 void LLVMOrderAccumulator::accumulate(const Metadata *m)
 {
-  if(!m || m->id != unvisitedValueId)
+  if(!m || m->id != Value::UnvisitedID)
     return;
 
   Metadata *meta = (Metadata *)m;
-  meta->id = visitedValueId;
+  meta->id = Value::VisitedID;
 
   for(const Metadata *c : m->children)
     if(c)

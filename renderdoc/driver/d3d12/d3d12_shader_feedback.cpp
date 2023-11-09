@@ -210,7 +210,12 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
 
   ProgramEditor editor(dxbc, editedBlob);
 
-  const Type *handleType = editor.CreateNamedStructType("dx.types.Handle", {});
+  const Type *i32 = editor.GetInt32Type();
+  const Type *i8 = editor.GetInt8Type();
+  const Type *i1 = editor.GetBoolType();
+
+  const Type *handleType = editor.CreateNamedStructType(
+      "dx.types.Handle", {editor.CreatePointerType(i8, Type::PointerAddrSpace::Default)});
   const Function *createHandle = editor.GetFunctionByName("dx.op.createHandle");
   const Function *createHandleFromBinding =
       editor.GetFunctionByName("dx.op.createHandleFromBinding");
@@ -225,129 +230,27 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
      (isShaderModel6_6OrAbove && !createHandleFromHeap && !createHandleFromBinding))
     return false;
 
-  const Type *i32 = editor.GetInt32Type();
-  const Type *i8 = editor.GetInt8Type();
-  const Type *i1 = editor.GetBoolType();
-
   // Create createHandleFromBinding we'll need to create the feedback UAV
   if(!createHandleFromBinding && isShaderModel6_6OrAbove)
   {
     const Type *resBindType = editor.CreateNamedStructType("dx.types.ResBind", {i32, i32, i32, i8});
-    const Type *funcType = editor.CreateFunctionType(handleType, {i32, resBindType, i32, i1});
-
-    Function createHandleBaseFunction;
-    createHandleBaseFunction.name = "dx.op.createHandleFromBinding";
-    createHandleBaseFunction.type = funcType;
-    createHandleBaseFunction.external = true;
-
-    for(const AttributeSet &attrs : editor.GetAttributeSets())
-    {
-      if(attrs.functionSlot && attrs.functionSlot->params == Attribute::NoUnwind)
-      {
-        createHandleBaseFunction.attrs = &attrs;
-        break;
-      }
-    }
-
-    if(!createHandleBaseFunction.attrs)
-      RDCWARN("Couldn't find existing nounwind attr set");
-    createHandleFromBinding = editor.DeclareFunction(createHandleBaseFunction);
+    createHandleFromBinding = editor.DeclareFunction("dx.op.createHandleFromBinding", handleType,
+                                                     {i32, resBindType, i32, i1},
+                                                     Attribute::NoUnwind | Attribute::ReadNone);
   }
 
   // get the functions we'll need
-  Function *atomicBinOp = editor.GetFunctionByName("dx.op.atomicBinOp.i32");
-  if(!atomicBinOp)
-  {
-    const Type *funcType = editor.CreateFunctionType(i32, {i32, handleType, i32, i32, i32, i32, i32});
-
-    Function atomicFunc;
-    atomicFunc.name = "dx.op.atomicBinOp.i32";
-    atomicFunc.type = funcType;
-    atomicFunc.external = true;
-
-    for(const AttributeSet &attrs : editor.GetAttributeSets())
-    {
-      if(attrs.functionSlot && attrs.functionSlot->params == Attribute::NoUnwind)
-      {
-        atomicFunc.attrs = &attrs;
-        break;
-      }
-    }
-
-    if(!atomicFunc.attrs)
-      RDCWARN("Couldn't find existing nounwind attr set");
-    // should we add a set here? or assume the attrs don't matter because this is a builtin function
-    // anyway?
-
-    atomicBinOp = editor.DeclareFunction(atomicFunc);
-  }
-
-  const Function *binOp = editor.GetFunctionByName("dx.op.binary.i32");
-  if(!binOp)
-  {
-    const Type *funcType = editor.CreateFunctionType(i32, {i32, i32, i32});
-
-    Function binopFunc;
-    binopFunc.name = "dx.op.binary.i32";
-    binopFunc.type = funcType;
-    binopFunc.external = true;
-
-    for(const AttributeSet &attrs : editor.GetAttributeSets())
-    {
-      if(attrs.functionSlot &&
-         attrs.functionSlot->params == (Attribute::NoUnwind | Attribute::ReadNone))
-      {
-        binopFunc.attrs = &attrs;
-        break;
-      }
-    }
-
-    // we haven't implemented adding attribute sets since their encoding is obtuse, so if we can't
-    // get the 'real' binop attributes try to get the next most conservative one
-    if(!binopFunc.attrs)
-    {
-      for(const AttributeSet &attrs : editor.GetAttributeSets())
-      {
-        if(attrs.functionSlot &&
-           attrs.functionSlot->params == (Attribute::NoUnwind | Attribute::ReadOnly))
-        {
-          binopFunc.attrs = &attrs;
-          break;
-        }
-      }
-    }
-
-    if(!binopFunc.attrs)
-    {
-      for(const AttributeSet &attrs : editor.GetAttributeSets())
-      {
-        if(attrs.functionSlot && attrs.functionSlot->params == Attribute::NoUnwind)
-        {
-          binopFunc.attrs = &attrs;
-          break;
-        }
-      }
-    }
-
-    if(!binopFunc.attrs)
-      RDCWARN("Couldn't find existing nounwind readnone attr set");
-
-    // should we add a set here? or assume the attrs don't matter because this is a builtin function
-    // anyway?
-
-    binOp = editor.DeclareFunction(binopFunc);
-  }
+  const Function *atomicBinOp = editor.DeclareFunction("dx.op.atomicBinOp.i32", i32,
+                                                       {i32, handleType, i32, i32, i32, i32, i32},
+                                                       Attribute::NoUnwind | Attribute::ReadNone);
+  const Function *binOp = editor.DeclareFunction("dx.op.binary.i32", i32, {i32, i32, i32},
+                                                 Attribute::NoUnwind | Attribute::ReadNone);
 
   // while we're iterating through the metadata to add our UAV, we'll also note the shader-local
   // register IDs of each SRV/UAV with slots, and record the base slot in this array for easy access
   // later when annotating dx.op.createHandle calls. We also need to know the base register because
   // the index dxc provides is register-relative
   rdcarray<rdcpair<uint32_t, int32_t>> srvBaseSlots, uavBaseSlots;
-
-  // when we add metadata we do it in reverse order since it's unclear if we're supposed to have
-  // forward references (LLVM seems to handle it, but not emit it, so it's very much a grey area)
-  // we do this by recreating any nodes that we modify (or their parents recursively up to the named
-  // metadata)
 
   // declare the resource, this happens purely in metadata but we need to store the slot
   uint32_t regSlot = 0;
@@ -603,22 +506,19 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
   if(createHandle)
   {
     RDCASSERT(!isShaderModel6_6OrAbove);
-    handle = editor.CreateInstruction(createHandle);
-    handle->type = handleType;
-    handle->args = {
-        // dx.op.createHandle opcode
-        editor.CreateConstant(57U),
-        // kind = UAV
-        editor.CreateConstant((uint8_t)HandleKind::UAV),
-        // ID/slot
-        editor.CreateConstant(regSlot),
-        // array index
-        editor.CreateConstant(0U),
-        // non-uniform
-        editor.CreateConstant(false),
-    };
-
-    f->instructions.insert(startInst++, handle);
+    handle = editor.InsertInstruction(
+        f, startInst++,
+        editor.CreateInstruction(createHandle, DXOp::createHandle,
+                                 {
+                                     // kind = UAV
+                                     editor.CreateConstant((uint8_t)HandleKind::UAV),
+                                     // ID/slot
+                                     editor.CreateConstant(regSlot),
+                                     // array index
+                                     editor.CreateConstant(0U),
+                                     // non-uniform
+                                     editor.CreateConstant(false),
+                                 }));
   }
   else if(createHandleFromBinding)
   {
@@ -636,74 +536,56 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
                                                editor.CreateConstant((uint8_t)HandleKind::UAV),
                                            });
 
-    Instruction *handleCreate = editor.CreateInstruction(createHandleFromBinding);
-    handleCreate->type = handleType;
-    handleCreate->args = {
-        // dx.op.createHandleFromBinding opcode
-        editor.CreateConstant(217U),
-        // resBind
-        resBindConstant,
-        // ID/slot
-        editor.CreateConstant(0U),
-        // non-uniform
-        editor.CreateConstant(false),
-    };
+    Instruction *handleCreate = editor.InsertInstruction(
+        f, startInst++,
+        editor.CreateInstruction(createHandleFromBinding, DXOp::createHandleFromBinding,
+                                 {
+                                     // resBind
+                                     resBindConstant,
+                                     // ID/slot
+                                     editor.CreateConstant(0U),
+                                     // non-uniform
+                                     editor.CreateConstant(false),
+                                 }));
 
-    f->instructions.insert(startInst++, handleCreate);
-
-    // Annotate handle
-    handle = editor.CreateInstruction(editor.GetFunctionByName("dx.op.annotateHandle"));
-    handle->type = handleType;
-    handle->args = {
-        // dx.op.annotateHandle opcode
-        editor.CreateConstant(216U),
-        // Resource handle
-        handleCreate,
-        // Resource properties
-        editor.CreateConstant(
-            editor.CreateNamedStructType("dx.types.ResourceProperties", {}),
+    handle = editor.InsertInstruction(
+        f, startInst++,
+        editor.CreateInstruction(
+            annotateHandle, DXOp::annotateHandle,
             {
-                // IsUav : (1 << 12)
-                editor.CreateConstant(uint32_t((1 << 12) | (uint32_t)ResourceKind::RawBuffer)),
-                //
-                editor.CreateConstant(0U),
-            }),
-    };
-
-    f->instructions.insert(startInst++, handle);
+                // Resource handle
+                handleCreate,
+                // Resource properties
+                editor.CreateConstant(
+                    editor.CreateNamedStructType("dx.types.ResourceProperties", {}),
+                    {
+                        // IsUav : (1 << 12)
+                        editor.CreateConstant(uint32_t((1 << 12) | (uint32_t)ResourceKind::RawBuffer)),
+                        //
+                        editor.CreateConstant(0U),
+                    }),
+            }));
   }
 
-  Constant *undefi32;
-  {
-    Constant c;
-    c.type = i32;
-    c.setUndef(true);
-    undefi32 = editor.CreateConstant(c);
-  }
+  Constant *undefi32 = editor.CreateUndef(i32);
 
   // insert an OR to offset 0, just to indicate validity
-  {
-    Instruction *inst = editor.CreateInstruction(atomicBinOp);
-    inst->type = i32;
-    inst->args = {
-        // dx.op.atomicBinOp.i32 opcode
-        editor.CreateConstant(78U),
-        // feedback UAV handle
-        handle,
-        // operation OR
-        editor.CreateConstant(2U),
-        // offset
-        editor.CreateConstant(0U),
-        // offset 2
-        undefi32,
-        // offset 3
-        undefi32,
-        // value
-        editor.CreateConstant(magicFeedbackValue),
-    };
-
-    f->instructions.insert(startInst++, inst);
-  }
+  editor.InsertInstruction(f, startInst++,
+                           editor.CreateInstruction(atomicBinOp, DXOp::atomicBinOp,
+                                                    {
+                                                        // feedback UAV handle
+                                                        handle,
+                                                        // operation OR
+                                                        editor.CreateConstant(2U),
+                                                        // offset
+                                                        editor.CreateConstant(0U),
+                                                        // offset 2
+                                                        undefi32,
+                                                        // offset 3
+                                                        undefi32,
+                                                        // value
+                                                        editor.CreateConstant(magicFeedbackValue),
+                                                    }));
 
   for(size_t i = startInst; i < f->instructions.size(); i++)
   {
@@ -800,72 +682,64 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       if(slotInfo.first == 0)
         continue;
 
-      Instruction op;
-      op.op = Operation::Sub;
-
       // idx0Based = idx - baseReg
-      Instruction *idx0Based = editor.CreateInstruction(Operation::Sub);
-      f->instructions.insert(i++, idx0Based);
-      idx0Based->type = i32;
-      idx0Based->args = {
-          // idx to the createHandle op
-          idxArg,
-          // register that this is relative to
-          editor.CreateConstant((uint32_t)slotInfo.second),
-      };
+      Instruction *idx0Based = editor.InsertInstruction(
+          f, i++,
+          editor.CreateInstruction(Operation::Sub, i32,
+                                   {
+                                       // idx to the createHandle op
+                                       idxArg,
+                                       // register that this is relative to
+                                       editor.CreateConstant((uint32_t)slotInfo.second),
+                                   }));
 
       // slotPlusBase = idx0Based + slot
-      Instruction *slotPlusBase = editor.CreateInstruction(Operation::Add);
-      f->instructions.insert(i++, slotPlusBase);
-      slotPlusBase->type = i32;
-      slotPlusBase->args = {
-          // idx to the createHandle op
-          idx0Based,
-          // base slot
-          editor.CreateConstant(slotInfo.first),
-      };
+      Instruction *slotPlusBase = editor.InsertInstruction(
+          f, i++,
+          editor.CreateInstruction(Operation::Add, i32,
+                                   {
+                                       // idx to the createHandle op
+                                       idx0Based,
+                                       // base slot
+                                       editor.CreateConstant(slotInfo.first),
+                                   }));
 
       // slotPlusBaseClamped = min(slotPlusBase, maxSlot)
-      Instruction *slotPlusBaseClamped = editor.CreateInstruction(binOp);
-      f->instructions.insert(i++, slotPlusBaseClamped);
-      slotPlusBaseClamped->type = i32;
-      slotPlusBaseClamped->args = {
-          // dx.op.binOp.i32 UMin opcode
-          editor.CreateConstant(40U),
-          // slotPlusBase
-          slotPlusBase,
-          // max slot
-          editor.CreateConstant(maxSlot),
-      };
+      Instruction *slotPlusBaseClamped =
+          editor.InsertInstruction(f, i++,
+                                   editor.CreateInstruction(binOp, DXOp::UMin,
+                                                            {
+                                                                // slotPlusBase
+                                                                slotPlusBase,
+                                                                // max slot
+                                                                editor.CreateConstant(maxSlot),
+                                                            }));
 
       // byteOffset = slotPlusBaseClamped << 2
-      Instruction *byteOffset = editor.CreateInstruction(Operation::ShiftLeft);
-      f->instructions.insert(i++, byteOffset);
-      byteOffset->type = i32;
-      byteOffset->args = {
-          slotPlusBaseClamped,
-          editor.CreateConstant(2U),
-      };
+      Instruction *byteOffset =
+          editor.InsertInstruction(f, i++,
+                                   editor.CreateInstruction(Operation::ShiftLeft, i32,
+                                                            {
+                                                                slotPlusBaseClamped,
+                                                                editor.CreateConstant(2U),
+                                                            }));
 
-      Instruction *atomicOr = editor.CreateInstruction(atomicBinOp);
-      f->instructions.insert(i++, atomicOr);
-      atomicOr->args = {
-          // dx.op.atomicBinOp.i32 opcode
-          editor.CreateConstant(78U),
-          // feedback UAV handle
-          handle,
-          // operation OR
-          editor.CreateConstant(2U),
-          // offset
-          byteOffset,
-          // offset 2
-          undefi32,
-          // offset 3
-          undefi32,
-          // value
-          editor.CreateConstant(magicFeedbackValue),
-      };
-      atomicOr->type = i32;
+      editor.InsertInstruction(f, i++,
+                               editor.CreateInstruction(atomicBinOp, DXOp::atomicBinOp,
+                                                        {
+                                                            // feedback UAV handle
+                                                            handle,
+                                                            // operation OR
+                                                            editor.CreateConstant(2U),
+                                                            // offset
+                                                            byteOffset,
+                                                            // offset 2
+                                                            undefi32,
+                                                            // offset 3
+                                                            undefi32,
+                                                            // value
+                                                            editor.CreateConstant(magicFeedbackValue),
+                                                        }));
     }
     else if(inst.op == Operation::Call && createHandleFromHeap &&
             inst.getFuncCall()->name == createHandleFromHeap->name)
@@ -963,45 +837,53 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       Instruction op;
 
       // slotPlusBase = idx0Based + slot
-      Instruction *slotPlusBase = editor.CreateInstruction(Operation::Add);
-      f->instructions.insert(i++, slotPlusBase);
-      slotPlusBase->type = i32;
-      slotPlusBase->args = {
-          // idx to the createHandleFromHeap op
-          idxArg,
-          // base slot
-          editor.CreateConstant(it->second.Slot()),
-      };
+      Instruction *slotPlusBase = editor.InsertInstruction(
+          f, i++,
+          editor.CreateInstruction(Operation::Add, i32,
+                                   {
+                                       // idx to the createHandleFromHeap op
+                                       idxArg,
+                                       // base slot
+                                       editor.CreateConstant(it->second.Slot()),
+                                   }));
+
+      // slotPlusBaseClamped = min(slotPlusBase, maxSlot)
+      Instruction *slotPlusBaseClamped =
+          editor.InsertInstruction(f, i++,
+                                   editor.CreateInstruction(binOp, DXOp::UMin,
+                                                            {
+                                                                // slotPlusBase
+                                                                slotPlusBase,
+                                                                // max slot
+                                                                editor.CreateConstant(maxSlot),
+                                                            }));
 
       // byteOffset = slotPlusBase << 2
-      Instruction *byteOffset = editor.CreateInstruction(Operation::ShiftLeft);
-      f->instructions.insert(i++, byteOffset);
-      byteOffset->type = i32;
-      byteOffset->args = {
-          slotPlusBase,
-          editor.CreateConstant(2U),
-      };
+      Instruction *byteOffset =
+          editor.InsertInstruction(f, i++,
+                                   editor.CreateInstruction(Operation::ShiftLeft, i32,
+                                                            {
+                                                                slotPlusBaseClamped,
+                                                                editor.CreateConstant(2U),
+                                                            }));
 
       uint32_t feedbackValue = magicFeedbackValue | (1 << (uint32_t)handleKind);
-      Instruction *atomicOr = editor.CreateInstruction(atomicBinOp);
-      f->instructions.insert(i++, atomicOr);
-      atomicOr->args = {
-          // dx.op.atomicBinOp.i32 opcode
-          editor.CreateConstant(78U),
-          // feedback UAV handle
-          handle,
-          // operation OR
-          editor.CreateConstant(2U),
-          // offset
-          byteOffset,
-          // offset 2
-          undefi32,
-          // offset 3
-          undefi32,
-          // value
-          editor.CreateConstant(feedbackValue),
-      };
-      atomicOr->type = i32;
+      editor.InsertInstruction(f, i++,
+                               editor.CreateInstruction(atomicBinOp, DXOp::atomicBinOp,
+                                                        {
+                                                            // feedback UAV handle
+                                                            handle,
+                                                            // operation OR
+                                                            editor.CreateConstant(2U),
+                                                            // offset
+                                                            byteOffset,
+                                                            // offset 2
+                                                            undefi32,
+                                                            // offset 3
+                                                            undefi32,
+                                                            // value
+                                                            editor.CreateConstant(feedbackValue),
+                                                        }));
     }
   }
 
@@ -1120,14 +1002,12 @@ static bool AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
   {
     if(AnnotateDXILShader(shad->GetDXBC(), space, slots, numSlots, editedBlob))
     {
-      // strip ILDB because it's valid code (with debug info) and who knows what might use it
-      DXBC::DXBCContainer::StripChunk(editedBlob, DXBC::FOURCC_ILDB);
-
       if(!D3D12_Debug_FeedbackDumpDirPath().empty())
       {
         bytebuf orig = shad->GetDXBC()->GetShaderBlob();
 
         DXBC::DXBCContainer::StripChunk(orig, DXBC::FOURCC_ILDB);
+        DXBC::DXBCContainer::StripChunk(orig, DXBC::FOURCC_STAT);
 
         FileIO::WriteAll(D3D12_Debug_FeedbackDumpDirPath() + "/before_dxil_" +
                              ToStr(shad->GetDetails().stage).c_str() + ".dxbc",

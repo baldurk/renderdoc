@@ -344,7 +344,7 @@ void Program::MakeDisassemblyString()
   }
 
   LLVMOrderAccumulator accum;
-  accum.processGlobals(this);
+  accum.processGlobals(this, false);
 
   bool printedTypes = false;
 
@@ -463,13 +463,16 @@ void Program::MakeDisassemblyString()
   rdcarray<const AttributeGroup *> funcAttrGroups;
   for(size_t i = 0; i < m_AttributeGroups.size(); i++)
   {
-    if(m_AttributeGroups[i].slotIndex != AttributeGroup::FunctionSlot)
+    if(!m_AttributeGroups[i])
       continue;
 
-    if(funcAttrGroups.contains(&m_AttributeGroups[i]))
+    if(m_AttributeGroups[i]->slotIndex != AttributeGroup::FunctionSlot)
       continue;
 
-    funcAttrGroups.push_back(&m_AttributeGroups[i]);
+    if(funcAttrGroups.contains(m_AttributeGroups[i]))
+      continue;
+
+    funcAttrGroups.push_back(m_AttributeGroups[i]);
   }
 
   for(size_t i = 0; i < m_Functions.size(); i++)

@@ -30,6 +30,7 @@
 namespace DXBC
 {
 class DXBCContainer;
+enum class GlobalShaderFlags : int64_t;
 };
 
 namespace LLVMBC
@@ -74,15 +75,22 @@ public:
   using Program::GetInt8Type;
   using Program::GetPointerType;
 
-  const rdcarray<AttributeSet> &GetAttributeSets() { return m_AttributeSets; }
+  int32_t GetKind(const rdcstr &kind) { return m_Kinds.indexOf(kind); }
+
   const rdcarray<Type *> &GetTypes() const { return m_Types; }
+  const AttributeSet *GetAttributeSet(Attribute desiredAttrs);
+  Type *CreateScalarType(Type::ScalarKind scalarType, uint32_t bitWidth);
   Type *CreateNamedStructType(const rdcstr &name, rdcarray<const Type *> members);
-  Type *CreateFunctionType(const Type *ret, rdcarray<const Type *> params);
+  Type *CreateFunctionType(const Type *retType, rdcarray<const Type *> params);
   Type *CreatePointerType(const Type *inner, Type::PointerAddrSpace addrSpace);
   Function *GetFunctionByName(const rdcstr &name);
+  Function *GetFunctionByPrefix(const rdcstr &name);
   Metadata *GetMetadataByName(const rdcstr &name);
 
+  Function *DeclareFunction(const rdcstr &name, const Type *retType, rdcarray<const Type *> params,
+                            Attribute desiredAttrs);
   Function *DeclareFunction(const Function &f);
+  Block *CreateBlock();
   Metadata *CreateMetadata();
   Metadata *CreateConstantMetadata(Constant *val);
   Metadata *CreateConstantMetadata(uint32_t val);
@@ -92,20 +100,46 @@ public:
   Metadata *CreateConstantMetadata(const rdcstr &str);
   NamedMetadata *CreateNamedMetadata(const rdcstr &name);
 
+  Literal *CreateLiteral(uint64_t val);
+
   // I think constants have to be unique, so this will return an existing constant (for simple cases
   // like integers or NULL) if it exists
   Constant *CreateConstant(const Constant &c);
   Constant *CreateConstant(const Type *t, const rdcarray<Value *> &members);
+  Constant *CreateConstantGEP(const Type *resultType, const rdcarray<Value *> &pointerAndIdxs);
+  Constant *CreateUndef(const Type *t);
+  Constant *CreateNULL(const Type *t);
 
   Constant *CreateConstant(uint32_t u) { return CreateConstant(Constant(m_Int32Type, u)); }
   Constant *CreateConstant(uint8_t u) { return CreateConstant(Constant(m_Int8Type, u)); }
   Constant *CreateConstant(bool b) { return CreateConstant(Constant(m_BoolType, b)); }
   Instruction *CreateInstruction(Operation op);
+  Instruction *CreateInstruction(Operation op, const Type *retType, const rdcarray<Value *> &args);
   Instruction *CreateInstruction(const Function *f);
+  Instruction *CreateInstruction(const Function *f, DXOp op, const rdcarray<Value *> &args);
+  Instruction::ExtraInstructionInfo &GetInstructionExtras(Instruction *inst)
+  {
+    return inst->extra(alloc);
+  }
+
+  Instruction *AddInstruction(Function *f, Instruction *i)
+  {
+    f->instructions.push_back(i);
+    return i;
+  }
+
+  Instruction *InsertInstruction(Function *f, size_t idx, Instruction *i)
+  {
+    f->instructions.insert(idx, i);
+    return i;
+  }
 
   void RegisterUAV(DXILResourceType type, uint32_t space, uint32_t regBase, uint32_t regEnd,
                    ResourceKind kind);
-
+  void SetNumThreads(uint32_t dim[3]);
+  void SetASPayloadSize(uint32_t payloadSize);
+  void SetMSPayloadSize(uint32_t payloadSize);
+  void PatchGlobalShaderFlags(std::function<void(DXBC::GlobalShaderFlags &)> patcher);
 private:
   bytebuf &m_OutBlob;
 

@@ -307,6 +307,28 @@ enum class Operation : uint8_t
   AtomicUMin,
 };
 
+// added as needed, since names in docs/LLVM don't match neatly so there's no pre-made list
+enum class DXOp : uint32_t
+{
+  UMin = 40,
+  createHandle = 57,
+  atomicBinOp = 78,
+  barrier = 80,
+  groupId = 94,
+  threadIdInGroup = 95,
+  flattenedThreadIdInGroup = 96,
+  rawBufferLoad = 139,
+  rawBufferStore = 140,
+  setMeshOutputCounts = 168,
+  emitIndices = 169,
+  getMeshPayload = 170,
+  storeVertexOutput = 171,
+  storePrimitiveOutput = 172,
+  dispatchMesh = 173,
+  annotateHandle = 216,
+  createHandleFromBinding = 217,
+};
+
 inline Operation DecodeBinOp(const Type *type, uint64_t opcode)
 {
   bool isFloatOp = (type->scalarType == Type::Float);
@@ -431,6 +453,9 @@ struct Value
   // this ID is very close but different to the number displayed in disassembly. This ID is only
   // used internally for encoding
   static constexpr uint32_t NoID = 0x00ffffff;
+  // these IDs are used during enumeration to count values which we have or haven't seen before
+  static constexpr uint32_t UnvisitedID = 0x00fffffe;
+  static constexpr uint32_t VisitedID = 0x00fffffd;
   uint32_t id : 24;
 
   rdcstr toString(bool withType = false) const;
@@ -1167,8 +1192,8 @@ protected:
   const Type *m_MetaType = NULL;
   const Type *m_LabelType = NULL;
 
-  rdcarray<AttributeGroup> m_AttributeGroups;
-  rdcarray<AttributeSet> m_AttributeSets;
+  rdcarray<AttributeGroup *> m_AttributeGroups;
+  rdcarray<AttributeSet *> m_AttributeSets;
 
   rdcarray<NamedMetadata *> m_NamedMeta;
 
@@ -1203,7 +1228,7 @@ public:
   size_t firstConst;
   size_t numConsts;
 
-  void processGlobals(Program *p);
+  void processGlobals(Program *p, bool doLiveChecking);
 
   size_t firstFuncConst;
   size_t numFuncConsts;
@@ -1214,6 +1239,7 @@ public:
 private:
   size_t functionWaterMark;
   bool sortConsts = true;
+  bool liveChecking = false;
 
   void reset(GlobalVar *g);
   void reset(Alias *a);
