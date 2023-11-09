@@ -34,9 +34,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT(
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(pDstBuffer).Important();
-  SERIALISE_ELEMENT(DstOffset);
+  SERIALISE_ELEMENT(DstOffset).OffsetOrSize();
   SERIALISE_ELEMENT(pSrcBuffer).Important();
-  SERIALISE_ELEMENT(SrcOffset);
+  SERIALISE_ELEMENT(SrcOffset).OffsetOrSize();
   SERIALISE_ELEMENT(Dependencies);
   SERIALISE_ELEMENT_ARRAY(ppDependentResources, Dependencies);
   SERIALISE_ELEMENT_ARRAY(pDependentSubresourceRanges, Dependencies);
@@ -147,9 +147,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT64(
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(pDstBuffer).Important();
-  SERIALISE_ELEMENT(DstOffset);
+  SERIALISE_ELEMENT(DstOffset).OffsetOrSize();
   SERIALISE_ELEMENT(pSrcBuffer).Important();
-  SERIALISE_ELEMENT(SrcOffset);
+  SERIALISE_ELEMENT(SrcOffset).OffsetOrSize();
   SERIALISE_ELEMENT(Dependencies);
   SERIALISE_ELEMENT_ARRAY(ppDependentResources, Dependencies);
   SERIALISE_ELEMENT_ARRAY(pDependentSubresourceRanges, Dependencies);

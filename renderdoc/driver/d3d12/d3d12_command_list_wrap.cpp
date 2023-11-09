@@ -3959,9 +3959,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
   SERIALISE_ELEMENT(pCommandSignature).Important();
   SERIALISE_ELEMENT(MaxCommandCount).Important();
   SERIALISE_ELEMENT(pArgumentBuffer).Important();
-  SERIALISE_ELEMENT(ArgumentBufferOffset);
+  SERIALISE_ELEMENT(ArgumentBufferOffset).OffsetOrSize();
   SERIALISE_ELEMENT(pCountBuffer);
-  SERIALISE_ELEMENT(CountBufferOffset);
+  SERIALISE_ELEMENT(CountBufferOffset).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4776,10 +4776,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(SerialiserType
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(pDstBuffer).Important();
-  SERIALISE_ELEMENT(DstOffset);
+  SERIALISE_ELEMENT(DstOffset).OffsetOrSize();
   SERIALISE_ELEMENT(pSrcBuffer).Important();
-  SERIALISE_ELEMENT(SrcOffset);
-  SERIALISE_ELEMENT(NumBytes);
+  SERIALISE_ELEMENT(SrcOffset).OffsetOrSize();
+  SERIALISE_ELEMENT(NumBytes).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -5183,7 +5183,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTiles(
   SERIALISE_ELEMENT_LOCAL(TileRegionStartCoordinate, *pTileRegionStartCoordinate);
   SERIALISE_ELEMENT_LOCAL(TileRegionSize, *pTileRegionSize);
   SERIALISE_ELEMENT(pBuffer).Important();
-  SERIALISE_ELEMENT(BufferStartOffsetInBytes);
+  SERIALISE_ELEMENT(BufferStartOffsetInBytes).OffsetOrSize();
   SERIALISE_ELEMENT(Flags);
 
   SERIALISE_CHECK_READ_ERRORS();
