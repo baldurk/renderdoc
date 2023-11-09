@@ -282,7 +282,7 @@ set(sources
     3rdparty/zstd/zstdmt_compress.h
     3rdparty/stb/stb_image.h
     3rdparty/stb/stb_image_write.h
-    3rdparty/stb/stb_image_resize.h
+    3rdparty/stb/stb_image_resize2.h
     3rdparty/stb/stb_impl.c
     3rdparty/stb/stb_truetype.h
     3rdparty/tinyexr/tinyexr.cpp

@@ -294,7 +294,7 @@
     <ClInclude Include="3rdparty\plthook\plthook.h">
       <Filter>3rdparty\plthook</Filter>
     </ClInclude>
-    <ClInclude Include="3rdparty\stb\stb_image_resize.h">
+    <ClInclude Include="3rdparty\stb\stb_image_resize2.h">
       <Filter>3rdparty\stb</Filter>
     </ClInclude>
     <ClInclude Include="api\replay\version.h">

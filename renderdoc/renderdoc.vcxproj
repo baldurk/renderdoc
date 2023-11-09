@@ -140,7 +140,7 @@
     <ClInclude Include="3rdparty\pugixml\pugiconfig.hpp" />
     <ClInclude Include="3rdparty\pugixml\pugixml.hpp" />
     <ClInclude Include="3rdparty\stb\stb_image.h" />
-    <ClInclude Include="3rdparty\stb\stb_image_resize.h" />
+    <ClInclude Include="3rdparty\stb\stb_image_resize2.h" />
     <ClInclude Include="3rdparty\stb\stb_image_write.h" />
     <ClInclude Include="3rdparty\stb\stb_truetype.h" />
     <ClInclude Include="3rdparty\superluminal\PerformanceAPI_capi.h" />
