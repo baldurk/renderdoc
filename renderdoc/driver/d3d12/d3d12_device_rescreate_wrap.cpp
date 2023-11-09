@@ -666,7 +666,7 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
     void **ppvResource)
 {
   SERIALISE_ELEMENT(pHeap).Important();
-  SERIALISE_ELEMENT(HeapOffset);
+  SERIALISE_ELEMENT(HeapOffset).OffsetOrSize();
   SERIALISE_ELEMENT_LOCAL(desc, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT(InitialState);
   SERIALISE_ELEMENT_OPT(pOptimizedClearValue);
@@ -1222,7 +1222,7 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource1(
     void **ppvResource)
 {
   SERIALISE_ELEMENT(pHeap).Important();
-  SERIALISE_ELEMENT(HeapOffset);
+  SERIALISE_ELEMENT(HeapOffset).OffsetOrSize();
   SERIALISE_ELEMENT_LOCAL(desc, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT(InitialState);
   SERIALISE_ELEMENT_OPT(pOptimizedClearValue);
@@ -1318,7 +1318,7 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource2(
     UINT32 NumCastableFormats, const DXGI_FORMAT *pCastableFormats, REFIID riid, void **ppvResource)
 {
   SERIALISE_ELEMENT(pHeap).Important();
-  SERIALISE_ELEMENT(HeapOffset);
+  SERIALISE_ELEMENT(HeapOffset).OffsetOrSize();
   SERIALISE_ELEMENT_LOCAL(desc, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT(InitialLayout);
   SERIALISE_ELEMENT_OPT(pOptimizedClearValue);
