@@ -42,6 +42,6 @@ uniform PRECISION sampler2DMS srcDepth;
 
 void main()
 {
-  ivec2 srcCoord = ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y));
+  ivec2 srcCoord = ivec2(gl_FragCoord.xy);
   gl_FragDepth = texelFetch(srcDepth, srcCoord, gl_SampleID).x;
 }
