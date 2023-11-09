@@ -38,7 +38,8 @@
 #include "maths/formatpacking.h"
 #include "maths/half_convert.h"
 #include "serialise/rdcfile.h"
-#include "stb/stb_image_resize.h"
+
+#include "stb/stb_image_resize2.h"
 
 // {5D6BF029-A6BA-417A-8523-120492B1DCE3}
 static const GUID CLSID_RDCThumbnailProvider = {0x5d6bf029,
@@ -625,7 +626,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       byte *resizedpixels = (byte *)malloc(3 * bi.bV5Width * bi.bV5Height);
 
       stbir_resize_uint8_srgb(thumbpixels, thumbwidth, thumbheight, 0, resizedpixels, bi.bV5Width,
-                              bi.bV5Height, 0, 3, -1, 0);
+                              bi.bV5Height, 0, STBIR_RGB);
 
       free(thumbpixels);
 

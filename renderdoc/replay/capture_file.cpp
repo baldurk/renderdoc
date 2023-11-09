@@ -29,7 +29,7 @@
 #include "serialise/rdcfile.h"
 #include "serialise/serialiser.h"
 #include "stb/stb_image.h"
-#include "stb/stb_image_resize.h"
+#include "stb/stb_image_resize2.h"
 #include "stb/stb_image_write.h"
 
 static void writeToBytebuf(void *context, void *data, int size)
@@ -624,7 +624,7 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
         byte *resizedpixels = (byte *)malloc(3 * clampedWidth * clampedHeight);
 
         stbir_resize_uint8_srgb(thumbpixels, thumbwidth, thumbheight, 0, resizedpixels,
-                                clampedWidth, clampedHeight, 0, 3, -1, 0);
+                                clampedWidth, clampedHeight, 0, STBIR_RGB);
 
         free(allocatedBuffer);
 
