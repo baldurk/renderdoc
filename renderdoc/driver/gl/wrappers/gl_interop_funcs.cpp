@@ -1307,9 +1307,9 @@ bool WrappedOpenGL::Serialise_glNamedBufferStorageMemEXT(SerialiserType &ser, GL
                                                          GLuint64 offset)
 {
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
-  SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizeptr);
+  SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizeptr).OffsetOrSize();
   SERIALISE_ELEMENT_LOCAL(memory, ExtMemRes(GetCtx(), memoryHandle));
-  SERIALISE_ELEMENT(offset);
+  SERIALISE_ELEMENT(offset).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1423,7 +1423,7 @@ bool WrappedOpenGL::Serialise_glTextureStorageMem1DEXT(SerialiserType &ser, GLui
   SERIALISE_ELEMENT(internalFormat);
   SERIALISE_ELEMENT(width);
   SERIALISE_ELEMENT_LOCAL(memory, ExtMemRes(GetCtx(), memoryHandle));
-  SERIALISE_ELEMENT(offset);
+  SERIALISE_ELEMENT(offset).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1532,7 +1532,7 @@ bool WrappedOpenGL::Serialise_glTextureStorageMem2DEXT(SerialiserType &ser, GLui
   SERIALISE_ELEMENT(width);
   SERIALISE_ELEMENT(height);
   SERIALISE_ELEMENT_LOCAL(memory, ExtMemRes(GetCtx(), memoryHandle));
-  SERIALISE_ELEMENT(offset);
+  SERIALISE_ELEMENT(offset).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1646,7 +1646,7 @@ bool WrappedOpenGL::Serialise_glTextureStorageMem2DMultisampleEXT(
   SERIALISE_ELEMENT(height);
   SERIALISE_ELEMENT_TYPED(bool, fixedSampleLocations);
   SERIALISE_ELEMENT_LOCAL(memory, ExtMemRes(GetCtx(), memoryHandle));
-  SERIALISE_ELEMENT(offset);
+  SERIALISE_ELEMENT(offset).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1771,7 +1771,7 @@ bool WrappedOpenGL::Serialise_glTextureStorageMem3DEXT(SerialiserType &ser, GLui
   SERIALISE_ELEMENT(height);
   SERIALISE_ELEMENT(depth);
   SERIALISE_ELEMENT_LOCAL(memory, ExtMemRes(GetCtx(), memoryHandle));
-  SERIALISE_ELEMENT(offset);
+  SERIALISE_ELEMENT(offset).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1885,7 +1885,7 @@ bool WrappedOpenGL::Serialise_glTextureStorageMem3DMultisampleEXT(
   SERIALISE_ELEMENT(depth);
   SERIALISE_ELEMENT_TYPED(bool, fixedSampleLocations);
   SERIALISE_ELEMENT_LOCAL(memory, ExtMemRes(GetCtx(), memoryHandle));
-  SERIALISE_ELEMENT(offset);
+  SERIALISE_ELEMENT(offset).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 

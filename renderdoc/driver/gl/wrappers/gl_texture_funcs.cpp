@@ -5498,7 +5498,7 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(SerialiserType &ser, GLuint
   else
   {
     UnpackOffset = (uint64_t)pixels;
-    SERIALISE_ELEMENT(UnpackOffset);
+    SERIALISE_ELEMENT(UnpackOffset).OffsetOrSize();
   }
 
   SAFE_DELETE_ARRAY(unpackedPixels);
@@ -5731,7 +5731,7 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(SerialiserType &ser, GLuint
   else
   {
     UnpackOffset = (uint64_t)pixels;
-    SERIALISE_ELEMENT(UnpackOffset);
+    SERIALISE_ELEMENT(UnpackOffset).OffsetOrSize();
   }
 
   SAFE_DELETE_ARRAY(unpackedPixels);
@@ -5972,7 +5972,7 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(SerialiserType &ser, GLuint
   else
   {
     UnpackOffset = (uint64_t)pixels;
-    SERIALISE_ELEMENT(UnpackOffset);
+    SERIALISE_ELEMENT(UnpackOffset).OffsetOrSize();
   }
 
   SAFE_DELETE_ARRAY(unpackedPixels);
@@ -6213,7 +6213,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(SerialiserType &s
   else
   {
     UnpackOffset = (uint64_t)pixels;
-    SERIALISE_ELEMENT(UnpackOffset);
+    SERIALISE_ELEMENT(UnpackOffset).OffsetOrSize();
   }
 
   SAFE_DELETE_ARRAY(unpackedPixels);
@@ -6436,7 +6436,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(SerialiserType &s
   else
   {
     UnpackOffset = (uint64_t)pixels;
-    SERIALISE_ELEMENT(UnpackOffset);
+    SERIALISE_ELEMENT(UnpackOffset).OffsetOrSize();
   }
 
   SAFE_DELETE_ARRAY(unpackedPixels);
@@ -6677,7 +6677,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(
   else
   {
     UnpackOffset = (uint64_t)pixels;
-    SERIALISE_ELEMENT(UnpackOffset);
+    SERIALISE_ELEMENT(UnpackOffset).OffsetOrSize();
   }
 
   SAFE_DELETE_ARRAY(unpackedPixels);
@@ -6890,8 +6890,8 @@ bool WrappedOpenGL::Serialise_glTextureBufferRangeEXT(SerialiserType &ser, GLuin
   HIDE_ARB_DSA_TARGET();
   SERIALISE_ELEMENT(internalformat);
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
-  SERIALISE_ELEMENT_LOCAL(offs, (uint64_t)offsetPtr);
-  SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr);
+  SERIALISE_ELEMENT_LOCAL(offs, (uint64_t)offsetPtr).OffsetOrSize();
+  SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 

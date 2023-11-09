@@ -958,9 +958,9 @@ bool WrappedOpenGL::Serialise_glNamedBufferSubDataEXT(SerialiserType &ser, GLuin
                                                       const void *data)
 {
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr).OffsetOrSize();
 
-  SERIALISE_ELEMENT_LOCAL(bytesize, (uint64_t)size);
+  SERIALISE_ELEMENT_LOCAL(bytesize, (uint64_t)size).OffsetOrSize();
   SERIALISE_ELEMENT_ARRAY(data, bytesize).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1099,9 +1099,9 @@ bool WrappedOpenGL::Serialise_glNamedCopyBufferSubDataEXT(SerialiserType &ser,
 {
   SERIALISE_ELEMENT_LOCAL(readBuffer, BufferRes(GetCtx(), readBufferHandle)).Important();
   SERIALISE_ELEMENT_LOCAL(writeBuffer, BufferRes(GetCtx(), writeBufferHandle)).Important();
-  SERIALISE_ELEMENT_LOCAL(readOffset, (uint64_t)readOffsetPtr);
-  SERIALISE_ELEMENT_LOCAL(writeOffset, (uint64_t)writeOffsetPtr);
-  SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr);
+  SERIALISE_ELEMENT_LOCAL(readOffset, (uint64_t)readOffsetPtr).OffsetOrSize();
+  SERIALISE_ELEMENT_LOCAL(writeOffset, (uint64_t)writeOffsetPtr).OffsetOrSize();
+  SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1432,8 +1432,8 @@ bool WrappedOpenGL::Serialise_glBindBufferRange(SerialiserType &ser, GLenum targ
   SERIALISE_ELEMENT(target).Important();
   SERIALISE_ELEMENT(index).Important();
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
-  SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr).OffsetOrSize();
+  SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1784,8 +1784,8 @@ bool WrappedOpenGL::Serialise_glBindBuffersRange(SerialiserType &ser, GLenum tar
   SERIALISE_ELEMENT(first).Important();
   SERIALISE_ELEMENT(count);
   SERIALISE_ELEMENT(buffers).Important();
-  SERIALISE_ELEMENT(offsets);
-  SERIALISE_ELEMENT(sizes);
+  SERIALISE_ELEMENT(offsets).OffsetOrSize();
+  SERIALISE_ELEMENT(sizes).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2052,8 +2052,8 @@ bool WrappedOpenGL::Serialise_glInvalidateBufferSubData(SerialiserType &ser, GLu
                                                         GLintptr offsetPtr, GLsizeiptr lengthPtr)
 {
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
-  SERIALISE_ELEMENT_LOCAL(length, (uint64_t)lengthPtr);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr).OffsetOrSize();
+  SERIALISE_ELEMENT_LOCAL(length, (uint64_t)lengthPtr).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2599,8 +2599,8 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(SerialiserType &ser, GLuint 
     record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), bufferHandle));
 
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)record->Map.offset);
-  SERIALISE_ELEMENT_LOCAL(length, (uint64_t)record->Map.length);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)record->Map.offset).OffsetOrSize();
+  SERIALISE_ELEMENT_LOCAL(length, (uint64_t)record->Map.length).OffsetOrSize();
 
   uint64_t diffStart = 0;
   uint64_t diffEnd = (size_t)length;
@@ -2854,8 +2854,8 @@ bool WrappedOpenGL::Serialise_glFlushMappedNamedBufferRangeEXT(SerialiserType &s
   // see above glMapNamedBufferRangeEXT for high-level explanation of how mapping is handled
 
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
-  SERIALISE_ELEMENT_LOCAL(length, (uint64_t)lengthPtr);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr).OffsetOrSize();
+  SERIALISE_ELEMENT_LOCAL(length, (uint64_t)lengthPtr).OffsetOrSize();
 
   GLResourceRecord *record = NULL;
 
@@ -3306,8 +3306,8 @@ bool WrappedOpenGL::Serialise_glTransformFeedbackBufferRange(SerialiserType &ser
   SERIALISE_ELEMENT_LOCAL(xfb, FeedbackRes(GetCtx(), xfbHandle));
   SERIALISE_ELEMENT(index);
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
-  SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr).OffsetOrSize();
+  SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -3538,11 +3538,11 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribOffsetEXT(
   SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
   SERIALISE_ELEMENT(index);
-  SERIALISE_ELEMENT(size);
+  SERIALISE_ELEMENT(size).OffsetOrSize();
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_TYPED(bool, normalized);
-  SERIALISE_ELEMENT(stride);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
+  SERIALISE_ELEMENT(stride).OffsetOrSize();
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -3668,10 +3668,10 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribIOffsetEXT(SerialiserType
   SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
   SERIALISE_ELEMENT(index);
-  SERIALISE_ELEMENT(size);
+  SERIALISE_ELEMENT(size).OffsetOrSize();
   SERIALISE_ELEMENT(type);
-  SERIALISE_ELEMENT(stride);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
+  SERIALISE_ELEMENT(stride).OffsetOrSize();
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -3796,10 +3796,10 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribLOffsetEXT(SerialiserType
   SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
   SERIALISE_ELEMENT(index);
-  SERIALISE_ELEMENT(size);
+  SERIALISE_ELEMENT(size).OffsetOrSize();
   SERIALISE_ELEMENT(type);
-  SERIALISE_ELEMENT(stride);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
+  SERIALISE_ELEMENT(stride).OffsetOrSize();
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4007,10 +4007,10 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribFormatEXT(SerialiserType 
 {
   SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
   SERIALISE_ELEMENT(attribindex);
-  SERIALISE_ELEMENT(size);
+  SERIALISE_ELEMENT(size).OffsetOrSize();
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_TYPED(bool, normalized);
-  SERIALISE_ELEMENT(relativeoffset);
+  SERIALISE_ELEMENT(relativeoffset).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4100,9 +4100,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribIFormatEXT(SerialiserType
 {
   SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
   SERIALISE_ELEMENT(attribindex);
-  SERIALISE_ELEMENT(size);
+  SERIALISE_ELEMENT(size).OffsetOrSize();
   SERIALISE_ELEMENT(type);
-  SERIALISE_ELEMENT(relativeoffset);
+  SERIALISE_ELEMENT(relativeoffset).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4189,9 +4189,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribLFormatEXT(SerialiserType
 {
   SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
   SERIALISE_ELEMENT(attribindex);
-  SERIALISE_ELEMENT(size);
+  SERIALISE_ELEMENT(size).OffsetOrSize();
   SERIALISE_ELEMENT(type);
-  SERIALISE_ELEMENT(relativeoffset);
+  SERIALISE_ELEMENT(relativeoffset).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4797,8 +4797,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayBindVertexBufferEXT(SerialiserType &s
   SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle)).Important();
   SERIALISE_ELEMENT(bindingindex).Important();
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
-  SERIALISE_ELEMENT(stride);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr).OffsetOrSize();
+  SERIALISE_ELEMENT(stride).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4922,8 +4922,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBuffers(SerialiserType &ser, GL
   SERIALISE_ELEMENT(first).Important();
   SERIALISE_ELEMENT(count);
   SERIALISE_ELEMENT(buffers).Important();
-  SERIALISE_ELEMENT(offsets);
-  SERIALISE_ELEMENT_ARRAY(strides, count);
+  SERIALISE_ELEMENT(offsets).OffsetOrSize();
+  SERIALISE_ELEMENT_ARRAY(strides, count).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 

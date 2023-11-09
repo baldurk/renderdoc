@@ -582,7 +582,7 @@ bool WrappedOpenGL::Serialise_glGetQueryBufferObjectui64v(SerialiserType &ser, G
   SERIALISE_ELEMENT_LOCAL(readQuery, QueryRes(GetCtx(), id)).Important();
   SERIALISE_ELEMENT_LOCAL(writeBuffer, BufferRes(GetCtx(), buffer)).Important();
   SERIALISE_ELEMENT(pname);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offset_);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offset_).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -665,7 +665,7 @@ bool WrappedOpenGL::Serialise_glGetQueryBufferObjectuiv(SerialiserType &ser, GLu
   SERIALISE_ELEMENT_LOCAL(readQuery, QueryRes(GetCtx(), id)).Important();
   SERIALISE_ELEMENT_LOCAL(writeBuffer, BufferRes(GetCtx(), buffer)).Important();
   SERIALISE_ELEMENT(pname);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offset_);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offset_).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -748,7 +748,7 @@ bool WrappedOpenGL::Serialise_glGetQueryBufferObjecti64v(SerialiserType &ser, GL
   SERIALISE_ELEMENT_LOCAL(readQuery, QueryRes(GetCtx(), id)).Important();
   SERIALISE_ELEMENT_LOCAL(writeBuffer, BufferRes(GetCtx(), buffer)).Important();
   SERIALISE_ELEMENT(pname);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offset_);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offset_).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -830,7 +830,7 @@ bool WrappedOpenGL::Serialise_glGetQueryBufferObjectiv(SerialiserType &ser, GLui
   SERIALISE_ELEMENT_LOCAL(readQuery, QueryRes(GetCtx(), id)).Important();
   SERIALISE_ELEMENT_LOCAL(writeBuffer, BufferRes(GetCtx(), buffer)).Important();
   SERIALISE_ELEMENT(pname);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offset_);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offset_).OffsetOrSize();
 
   SERIALISE_CHECK_READ_ERRORS();
 
