@@ -115,6 +115,15 @@ struct D3D12EventInfo
   uint8_t padding1[8];
 };
 
+struct D3D12PerFragmentInfo
+{
+  // primitive ID is copied from a R32G32B32A32 texture.
+  int32_t primitiveID;
+  uint32_t padding[3];
+  D3D12PixelHistoryValue shaderOut;
+  D3D12PixelHistoryValue postMod;
+};
+
 struct D3D12PipelineReplacements
 {
   ID3D12PipelineState *fixedShaderStencil;
@@ -1743,6 +1752,377 @@ void D3D12UpdateTestsFailed(const D3D12TestsFailedCallback *tfCb, uint32_t event
     mod.shaderDiscarded = (occlData == 0);
   }
 }
+
+// Callback used to get information for each fragment that touched a pixel
+struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
+{
+  D3D12PixelHistoryPerFragmentCallback(WrappedID3D12Device *device,
+                                       D3D12PixelHistoryShaderCache *shaderCache,
+                                       const D3D12PixelHistoryCallbackInfo &callbackInfo,
+                                       const std::map<uint32_t, uint32_t> &eventFragments,
+                                       const std::map<uint32_t, ModificationValue> &eventPremods)
+      : D3D12PixelHistoryCallback(device, shaderCache, callbackInfo, NULL),
+        m_EventFragments(eventFragments),
+        m_EventPremods(eventPremods)
+  {
+  }
+
+  ~D3D12PixelHistoryPerFragmentCallback()
+  {
+    for(ID3D12PipelineState *pso : m_PSOsToDestroy)
+      SAFE_RELEASE(pso);
+  }
+
+  struct PerFragmentPipelines
+  {
+    // Disable all tests, use the new render pass to render into a separate
+    // attachment, and use fragment shader that outputs primitive ID.
+    ID3D12PipelineState *primitiveIdPipe;
+    // Turn off blending.
+    ID3D12PipelineState *shaderOutPipe;
+    // Enable blending to get post event values.
+    ID3D12PipelineState *postModPipe;
+  };
+
+  void PreDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd)
+  {
+    if(m_EventFragments.find(eid) == m_EventFragments.end())
+      return;
+
+    D3D12RenderState prevState = m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState();
+    D3D12RenderState &state = m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState();
+
+    uint32_t numFragmentsInEvent = m_EventFragments[eid];
+
+    // TODO: Do we need to test for stencil format here too, or does this check catch planar depth/stencil?
+    uint32_t renderTargetIndex = 0;
+    if(IsDepthFormat(m_CallbackInfo.targetDesc.Format))
+    {
+      // Going to add another render target
+      renderTargetIndex = (uint32_t)state.rts.size();
+    }
+    else
+    {
+      for(uint32_t i = 0; i < state.rts.size(); ++i)
+      {
+        ResourceId img = state.rts[i].GetResResourceId();
+        if(img == GetResID(m_CallbackInfo.targetImage))
+        {
+          renderTargetIndex = i;
+          break;
+        }
+      }
+    }
+
+    WrappedID3D12PipelineState *origPSO =
+        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(state.pipe);
+    if(origPSO == NULL)
+    {
+      RDCERR("Failed to retrieve original PSO for pixel history.");
+      return;
+    }
+
+    D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC origPipeDesc;
+    origPSO->Fill(origPipeDesc);
+
+    PerFragmentPipelines pipes = CreatePerFragmentPipelines(state, eid, 0, renderTargetIndex);
+
+    for(uint32_t i = 0; i < state.views.size(); i++)
+    {
+      ScissorToPixel(state.views[i], state.scissors[i]);
+
+      // Set scissor to the whole pixel quad
+      state.scissors[i].left &= ~0x1;
+      state.scissors[i].top &= ~0x1;
+      state.scissors[i].right = state.scissors[i].left + 2;
+      state.scissors[i].bottom = state.scissors[i].top + 2;
+    }
+
+    ID3D12PipelineState *psosIter[2];
+    psosIter[0] = pipes.primitiveIdPipe;
+    psosIter[1] = pipes.shaderOutPipe;
+
+    D3D12CopyPixelParams colorCopyParams = {};
+    colorCopyParams.srcImage = m_CallbackInfo.colorImage;
+    colorCopyParams.srcImageFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    colorCopyParams.copyFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    colorCopyParams.srcImageState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    colorCopyParams.multisampled = m_CallbackInfo.targetDesc.SampleDesc.Count > 1;
+    colorCopyParams.x = m_CallbackInfo.x;
+    colorCopyParams.y = m_CallbackInfo.y;
+    colorCopyParams.sample = m_CallbackInfo.targetSubresource.sample;
+    colorCopyParams.mip = m_CallbackInfo.targetSubresource.mip;
+    colorCopyParams.arraySlice = m_CallbackInfo.targetSubresource.slice;
+    colorCopyParams.scratchBuffer = true;
+
+    bool depthEnabled = origPipeDesc.DepthStencilState.DepthEnable != FALSE;
+
+    D3D12MarkerRegion::Set(
+        cmd, StringFormat::Fmt("Event %u has %u fragments", eid, numFragmentsInEvent));
+
+    // Get primitive ID and shader output value for each fragment.
+    for(uint32_t f = 0; f < numFragmentsInEvent; f++)
+    {
+      for(uint32_t i = 0; i < 2; i++)
+      {
+        uint32_t storeOffset = (fragsProcessed + f) * sizeof(D3D12PerFragmentInfo);
+
+        D3D12MarkerRegion region(
+            cmd,
+            StringFormat::Fmt("Getting %s for %u", i == 0 ? "primitive ID" : "shader output", eid));
+
+        if(psosIter[i] == NULL)
+        {
+          // Without one of the pipelines (e.g. if there was a geometry shader in use and we can't
+          // read primitive ID in the fragment shader) we can't continue.
+          // Technically we can if the geometry shader outs a primitive ID, but that is unlikely.
+          D3D12MarkerRegion::Set(cmd, "Can't get primitive ID with geometry shader in use");
+
+          D3D12_WRITEBUFFERIMMEDIATE_PARAMETER param = {};
+          param.Dest = m_CallbackInfo.dstBuffer->GetGPUVirtualAddress() + storeOffset;
+          param.Value = ~0U;
+          cmd->WriteBufferImmediate(1, &param, NULL);
+          continue;
+        }
+
+        // TODO: Are there any barriers needed here before/after clearing DSV?
+
+        cmd->ClearDepthStencilView(m_pDevice->GetDebugManager()->GetCPUHandle(PIXEL_HISTORY_DSV),
+                                   D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 1,
+                                   &state.scissors[0]);
+
+        state.rts[0] = *m_CallbackInfo.colorDescriptor;
+        state.dsv = *m_CallbackInfo.dsDescriptor;
+        state.pipe = GetResID(psosIter[i]);
+
+        // Update stencil reference to the current fragment index, so that we
+        // get values for a single fragment only.
+        state.stencilRefFront = f;
+        state.stencilRefBack = f;
+        state.ApplyState(m_pDevice, cmd);
+
+        const ActionDescription *action = m_pDevice->GetAction(eid);
+        ::ReplayDraw(cmd, *action);
+
+        if(i == 1)
+        {
+          storeOffset += offsetof(struct D3D12PerFragmentInfo, shaderOut);
+          if(depthEnabled)
+          {
+            D3D12CopyPixelParams depthCopyParams = colorCopyParams;
+            depthCopyParams.srcImage = m_CallbackInfo.dsImage;
+            depthCopyParams.srcImageFormat =
+                GetDepthSRVFormat(m_CallbackInfo.dsImage->GetDesc().Format, 0);
+            depthCopyParams.copyFormat = DXGI_FORMAT_R32_TYPELESS;
+            depthCopyParams.srcImageState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+            depthCopyParams.planeSlice = 0;
+            depthCopyParams.depthcopy = true;
+            CopyImagePixel(cmd, depthCopyParams,
+                           storeOffset + offsetof(struct D3D12PixelHistoryValue, depth));
+          }
+        }
+        CopyImagePixel(cmd, colorCopyParams, storeOffset);
+      }
+    }
+
+    const ModificationValue &premod = m_EventPremods[eid];
+    // For every fragment except the last one, retrieve post-modification value.
+    for(uint32_t f = 0; f < numFragmentsInEvent - 1; ++f)
+    {
+      D3D12MarkerRegion region(cmd,
+                               StringFormat::Fmt("Getting postmod for fragment %u in %u", f, eid));
+
+      // Get post-modification value, use the original framebuffer attachment.
+      state.pipe = GetResID(pipes.postModPipe);
+
+      // Have to reset stencil
+      D3D12_CLEAR_FLAGS clearFlags =
+          (f == 0 ? D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL : D3D12_CLEAR_FLAG_STENCIL);
+      cmd->ClearDepthStencilView(m_pDevice->GetDebugManager()->GetCPUHandle(PIXEL_HISTORY_DSV),
+                                 clearFlags, premod.depth, 0, 1, &state.scissors[0]);
+
+      if(f == 0)
+      {
+        // Before starting the draw, initialize the pixel to the premodification value
+        // for this event, for both color and depth. Depth was handled above already.
+        cmd->ClearRenderTargetView(m_pDevice->GetDebugManager()->GetCPUHandle(PIXEL_HISTORY_RTV),
+                                   premod.col.floatValue.data(), 1, &state.scissors[0]);
+
+        // TODO: Does anything different need to happen here if the target resource is depth/stencil?
+      }
+
+      state.stencilRefFront = f;
+      state.stencilRefBack = f;
+      state.ApplyState(m_pDevice, cmd);
+
+      const ActionDescription *action = m_pDevice->GetAction(eid);
+      ::ReplayDraw(cmd, *action);
+
+      CopyImagePixel(cmd, colorCopyParams,
+                     (fragsProcessed + f) * sizeof(D3D12PerFragmentInfo) +
+                         offsetof(struct D3D12PerFragmentInfo, postMod));
+
+      if(prevState.dsv.GetResResourceId() != ResourceId())
+      {
+        D3D12CopyPixelParams depthCopyParams = colorCopyParams;
+        depthCopyParams.srcImage = m_CallbackInfo.dsImage;
+        depthCopyParams.srcImageFormat =
+            GetDepthSRVFormat(m_CallbackInfo.dsImage->GetDesc().Format, 0);
+        depthCopyParams.copyFormat = DXGI_FORMAT_R32_TYPELESS;
+        depthCopyParams.srcImageState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+        depthCopyParams.depthcopy = true;
+        CopyImagePixel(cmd, depthCopyParams,
+                       (fragsProcessed + f) * sizeof(D3D12PerFragmentInfo) +
+                           offsetof(struct D3D12PerFragmentInfo, postMod) +
+                           offsetof(struct D3D12PixelHistoryValue, depth));
+      }
+    }
+
+    m_EventIndices[eid] = fragsProcessed;
+    fragsProcessed += numFragmentsInEvent;
+
+    state = prevState;
+    state.ApplyState(m_pDevice, cmd);
+  }
+  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) { return false; }
+  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) {}
+
+  // CreatePerFragmentPipelines for getting per fragment information.
+  PerFragmentPipelines CreatePerFragmentPipelines(const D3D12RenderState &state, uint32_t eid,
+                                                  uint32_t fragmentIndex, uint32_t colorOutputIndex)
+  {
+    PerFragmentPipelines pipes = {};
+
+    WrappedID3D12PipelineState *origPSO =
+        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(state.pipe);
+    if(origPSO == NULL)
+    {
+      RDCERR("Failed to retrieve original PSO for pixel history.");
+      return pipes;
+    }
+
+    D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
+    origPSO->Fill(pipeDesc);
+
+    // TODO: We provide our own render target here, but some of the PSOs use the original shader,
+    // which may write to a different number of channels (such as a R11G11B10 render target).
+    // This results in a D3D12 debug layer warning, but shouldn't be hazardous in practice since
+    // we restrict what we read from based on the source RT target. But maybe there's a way to
+    // gather the right data and avoid  the debug layer warning.
+    pipeDesc.RTVFormats.NumRenderTargets = 1;
+    pipeDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    pipeDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+    // TODO: Do we want to get the widest DSV format, or get it from callbackinfo/pixelhistoryresources?
+
+    // Modify the stencil state, so that only one fragment passes.
+    {
+      pipeDesc.DepthStencilState.StencilEnable = TRUE;
+      pipeDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+      pipeDesc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_INCR_SAT;
+      pipeDesc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_INCR_SAT;
+      pipeDesc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_INCR_SAT;
+      pipeDesc.DepthStencilState.FrontFace.StencilReadMask = 0xff;
+      pipeDesc.DepthStencilState.FrontFace.StencilWriteMask = 0xff;
+      pipeDesc.DepthStencilState.BackFace = pipeDesc.DepthStencilState.FrontFace;
+    }
+
+    // TODO: The original pixel shader may have side effects such as UAV writes. The Vulkan impl
+    // removes side effects with shader patching but D3D12 does not support that yet.
+
+    HRESULT hr = m_pDevice->CreatePipeState(pipeDesc, &pipes.postModPipe);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create PSO for pixel history.");
+      return pipes;
+    }
+
+    m_PSOsToDestroy.push_back(pipes.postModPipe);
+
+    for(uint32_t i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+    {
+      pipeDesc.BlendState.RenderTarget[i].BlendEnable = FALSE;
+      pipeDesc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+    }
+
+    {
+      pipeDesc.DepthStencilState.DepthBoundsTestEnable = FALSE;
+      pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+      pipeDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+    }
+
+    hr = m_pDevice->CreatePipeState(pipeDesc, &pipes.shaderOutPipe);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create PSO for pixel history.");
+      return pipes;
+    }
+
+    m_PSOsToDestroy.push_back(pipes.shaderOutPipe);
+
+    {
+      pipeDesc.DepthStencilState.DepthEnable = FALSE;
+      pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+    }
+
+    if(pipeDesc.GS.pShaderBytecode != NULL || pipeDesc.GS.BytecodeLength > 0)
+    {
+      RDCWARN("Can't get primitive ID at event %u due to geometry shader usage", eid);
+    }
+    else
+    {
+      bool dxil =
+          DXBC::DXBCContainer::CheckForDXIL(pipeDesc.VS.pShaderBytecode, pipeDesc.VS.BytecodeLength);
+
+      // TODO: This shader outputs to SV_Target0, will we need to modify the
+      // shader (or patch it) if the target image isn't RT0?
+      ID3DBlob *PrimIDPS = m_ShaderCache->GetPrimitiveIdShader(dxil);
+      pipeDesc.PS.pShaderBytecode = PrimIDPS->GetBufferPointer();
+      pipeDesc.PS.BytecodeLength = PrimIDPS->GetBufferSize();
+
+      hr = m_pDevice->CreatePipeState(pipeDesc, &pipes.primitiveIdPipe);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create PSO for pixel history.");
+        return pipes;
+      }
+
+      m_PSOsToDestroy.push_back(pipes.primitiveIdPipe);
+    }
+
+    return pipes;
+  }
+
+  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) {}
+  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) { return false; }
+  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) {}
+
+  void PreMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) {}
+  bool PostMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) { return false; }
+  void PostRemisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) {}
+
+  void PreCloseCommandList(ID3D12GraphicsCommandListX *cmd) {}
+  void AliasEvent(uint32_t primary, uint32_t alias) {}
+
+  uint32_t GetEventOffset(uint32_t eid)
+  {
+    auto it = m_EventIndices.find(eid);
+    RDCASSERT(it != m_EventIndices.end());
+    return it->second;
+  }
+
+private:
+  // For each event, specifies where the occlusion query results start
+  std::map<uint32_t, uint32_t> m_EventIndices;
+  // Number of fragments for each event
+  std::map<uint32_t, uint32_t> m_EventFragments;
+  // Pre-modification values for events to initialize attachments to,
+  // so that we can get blended post-modification values.
+  std::map<uint32_t, ModificationValue> m_EventPremods;
+  // Number of fragments processed so far
+  uint32_t fragsProcessed = 0;
+
+  rdcarray<ID3D12PipelineState *> m_PSOsToDestroy;
+};
 
 bool D3D12DebugManager::PixelHistorySetupResources(D3D12PixelHistoryResources &resources,
                                                    WrappedID3D12Resource *targetImage,
