@@ -162,7 +162,7 @@ The buffer format supports annotations on declarations to specify special proper
 Struct definitions support the following annotations:
 
 * ``[[size(number)]]`` or ``[[byte_size(number)]]`` - Forces the struct to be padded up to a given size even if the contents don't require it.
-* ``[[single]]`` or ``[[fixed]]`` - Forces the struct to be considered as a fixed SoA definition, even if in context the buffer viewer may default to AoS. See the below section for more details. Structs with this annotation **may not** be declared as a variable, and should instead be the implicit final struct in a definition.
+* ``[[single]]`` or ``[[fixed]]`` - Forces the struct to be considered as a fixed SoA definition, even if in context the buffer viewer may default to AoS. See :ref:`the below section <aos-soa>` for more details. Structs with this annotation **may not** be declared as a variable, and should instead be the implicit final struct in a definition.
 
 Variable declarations support the following annotations:
 
