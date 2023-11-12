@@ -86,9 +86,13 @@ BufferFormatSpecifier::BufferFormatSpecifier(QWidget *parent)
 
   QColor base = formatText->palette().color(QPalette::Base);
 
-  QColor col = QColor::fromHslF(0.0f, 1.0f, qBound(0.1, base.lightnessF(), 0.9));
+  QColor backCol = QColor::fromHslF(0.0f, 1.0f, qBound(0.1, base.lightnessF(), 0.9));
+  QColor foreCol = contrastingColor(backCol, QColor(0, 0, 0));
 
-  formatText->styleSetBack(ERROR_STYLE, SCINTILLA_COLOUR(col.red(), col.green(), col.blue()));
+  formatText->styleSetBack(ERROR_STYLE,
+                           SCINTILLA_COLOUR(backCol.red(), backCol.green(), backCol.blue()));
+  formatText->styleSetFore(ERROR_STYLE,
+                           SCINTILLA_COLOUR(foreCol.red(), foreCol.green(), foreCol.blue()));
 
   ConfigureSyntax(formatText, SCLEX_BUFFER);
 
