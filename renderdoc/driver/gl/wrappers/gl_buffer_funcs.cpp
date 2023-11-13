@@ -2728,7 +2728,12 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
         // case we have to ensure we handle this otherwise it won't be captureable.
         if(IsActiveCapturing(m_State))
         {
-          if(record->Map.persistent)
+          if((record->Map.access & GL_MAP_WRITE_BIT) == 0)
+          {
+            RDCASSERT(record->Map.persistent);
+            RDCDEBUG("Read-only persistent map-unmap detected, ignoring.");
+          }
+          else if(record->Map.persistent)
           {
             // serialise the write to the buffer
             USE_SCRATCH_SERIALISER();
