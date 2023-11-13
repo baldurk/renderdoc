@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include "driver/dxgi/dxgi_common.h"
+#include "driver/shaders/dxil/dxil_bytecode_editor.h"
 #include "replay/replay_driver.h"
 #include "strings/string_utils.h"
 #include "d3d12_command_list.h"
@@ -44,6 +45,620 @@ struct ScopedOOMHandle12
   ~ScopedOOMHandle12() { m_pDevice->HandleOOM(false); }
   WrappedID3D12Device *m_pDevice;
 };
+
+enum PayloadCopyDir
+{
+  BufferToPayload,
+  PayloadToBuffer,
+};
+
+static rdcstr makeBufferLoadStoreSuffix(const DXIL::Type *type)
+{
+  return StringFormat::Fmt("%c%u", type->scalarType == DXIL::Type::Float ? 'f' : 'i', type->bitWidth);
+}
+
+static void PayloadBufferCopy(PayloadCopyDir dir, DXIL::ProgramEditor &editor, DXIL::Function *f,
+                              size_t &curInst, DXIL::Instruction *baseOffset,
+                              DXIL::Instruction *handle, const DXIL::Type *memberType,
+                              uint32_t &uavByteOffset, const rdcarray<DXIL::Value *> &gepChain)
+{
+  using namespace DXIL;
+
+  if(memberType->type == Type::Scalar)
+  {
+    const Type *i32 = editor.GetInt32Type();
+    const Type *i8 = editor.GetInt8Type();
+    const Type *voidType = editor.GetVoidType();
+    const Type *handleType = editor.CreateNamedStructType(
+        "dx.types.Handle", {editor.CreatePointerType(i8, Type::PointerAddrSpace::Default)});
+    makeBufferLoadStoreSuffix(memberType);
+
+    const uint32_t alignment = RDCMAX(4U, memberType->bitWidth / 8);
+    Constant *align = editor.CreateConstant(alignment);
+
+    Constant *payloadGep = editor.CreateConstantGEP(
+        editor.GetPointerType(memberType, gepChain[0]->type->addrSpace), gepChain);
+
+    Instruction *offset = editor.CreateInstruction(
+        Operation::Add, i32, {baseOffset, editor.CreateConstant(uavByteOffset)});
+    offset->opFlags() = offset->opFlags() | InstructionFlags::NoSignedWrap;
+
+    rdcstr suffix = makeBufferLoadStoreSuffix(memberType);
+
+    if(dir == BufferToPayload)
+    {
+      const Type *resRet = editor.CreateNamedStructType(
+          "dx.types.ResRet." + suffix, {memberType, memberType, memberType, memberType, i32});
+      const Function *loadBuf = editor.DeclareFunction("dx.op.rawBufferLoad." + suffix, resRet,
+                                                       {i32, handleType, i32, i32, i8, i32},
+                                                       Attribute::NoUnwind | Attribute::ReadOnly);
+
+      editor.InsertInstruction(f, curInst++, offset);
+
+      Instruction *srcRet = editor.InsertInstruction(
+          f, curInst++,
+          editor.CreateInstruction(loadBuf, DXOp::rawBufferLoad,
+                                   {handle, offset, editor.CreateUndef(i32),
+                                    editor.CreateConstant((uint8_t)0x1), align}));
+
+      Instruction *src = editor.InsertInstruction(
+          f, curInst++,
+          editor.CreateInstruction(Operation::ExtractVal, i32, {srcRet, editor.CreateLiteral(0)}));
+
+      Instruction *store = editor.CreateInstruction(Operation::Store);
+
+      store->type = voidType;
+      store->align = (Log2Floor(alignment) + 1) & 0xff;
+      store->args = {payloadGep, src};
+
+      editor.InsertInstruction(f, curInst++, store);
+    }
+    else if(dir == PayloadToBuffer)
+    {
+      Instruction *load = editor.CreateInstruction(Operation::Load);
+
+      load->type = memberType;
+      load->align = (Log2Floor(alignment) + 1) & 0xff;
+      load->args = {payloadGep};
+
+      editor.InsertInstruction(f, curInst++, load);
+
+      editor.InsertInstruction(f, curInst++, offset);
+
+      const Function *storeBuf = editor.DeclareFunction(
+          "dx.op.rawBufferStore." + suffix, voidType,
+          {i32, handleType, i32, i32, memberType, memberType, memberType, memberType, i8, i32},
+          Attribute::NoUnwind);
+
+      editor.InsertInstruction(
+          f, curInst++,
+          editor.CreateInstruction(
+              storeBuf, DXOp::rawBufferStore,
+              {handle, offset, editor.CreateUndef(i32), load, editor.CreateUndef(memberType),
+               editor.CreateUndef(memberType), editor.CreateUndef(memberType),
+               editor.CreateConstant((uint8_t)0x1), align}));
+    }
+
+    uavByteOffset += memberType->bitWidth / 8U;
+  }
+  else if(memberType->type == Type::Array)
+  {
+    rdcarray<Value *> elemGepChain = gepChain;
+    elemGepChain.push_back(NULL);
+    for(uint32_t i = 0; i < memberType->elemCount; i++)
+    {
+      elemGepChain.back() = editor.CreateConstant(i);
+      PayloadBufferCopy(dir, editor, f, curInst, baseOffset, handle, memberType->inner,
+                        uavByteOffset, elemGepChain);
+    }
+  }
+  else if(memberType->type == Type::Struct)
+  {
+    rdcarray<Value *> elemGepChain = gepChain;
+    elemGepChain.push_back(NULL);
+    for(uint32_t i = 0; i < memberType->members.size(); i++)
+    {
+      elemGepChain.back() = editor.CreateConstant(i);
+      PayloadBufferCopy(dir, editor, f, curInst, baseOffset, handle, memberType->members[i],
+                        uavByteOffset, elemGepChain);
+    }
+  }
+  else
+  {
+    // shouldn't see functions, pointers, metadata or labels
+    // also (for DXIL) shouldn't see vectors
+    RDCERR("Unexpected element type in payload struct");
+  }
+}
+
+static void AddDXILAmpShaderPayloadStores(const DXBC::DXBCContainer *dxbc, uint32_t space,
+                                          const rdcfixedarray<uint32_t, 3> &dispatchDim,
+                                          uint32_t &payloadSize, bytebuf &editedBlob)
+{
+  using namespace DXIL;
+
+  ProgramEditor editor(dxbc, editedBlob);
+
+  bool isShaderModel6_6OrAbove =
+      dxbc->m_Version.Major > 6 || (dxbc->m_Version.Major == 6 && dxbc->m_Version.Minor >= 6);
+
+  const Type *i32 = editor.GetInt32Type();
+  const Type *i8 = editor.GetInt8Type();
+  const Type *i1 = editor.GetBoolType();
+  const Type *voidType = editor.GetVoidType();
+
+  const Type *handleType = editor.CreateNamedStructType(
+      "dx.types.Handle", {editor.CreatePointerType(i8, Type::PointerAddrSpace::Default)});
+
+  // this function is named differently based on the payload struct name, so search by prefix, we
+  // expect the actual type to be the same as we're just modifying the payload in place
+  const Function *dispatchMesh = editor.GetFunctionByPrefix("dx.op.dispatchMesh");
+
+  const Function *createHandle = NULL;
+  const Function *createHandleFromBinding = NULL;
+  const Function *annotateHandle = NULL;
+
+  // reading from a binding uses a different function in SM6.6+
+  if(isShaderModel6_6OrAbove)
+  {
+    const Type *resBindType = editor.CreateNamedStructType("dx.types.ResBind", {i32, i32, i32, i8});
+    createHandleFromBinding = editor.DeclareFunction("dx.op.createHandleFromBinding", handleType,
+                                                     {i32, resBindType, i32, i1},
+                                                     Attribute::NoUnwind | Attribute::ReadNone);
+
+    const Type *resourcePropertiesType =
+        editor.CreateNamedStructType("dx.types.ResourceProperties", {i32, i32});
+    annotateHandle = editor.DeclareFunction("dx.op.annotateHandle", handleType,
+                                            {i32, handleType, resourcePropertiesType},
+                                            Attribute::NoUnwind | Attribute::ReadNone);
+  }
+  else if(!createHandle && !isShaderModel6_6OrAbove)
+  {
+    createHandle = editor.DeclareFunction("dx.op.createHandle", handleType, {i32, i8, i32, i32, i1},
+                                          Attribute::NoUnwind | Attribute::ReadOnly);
+  }
+
+  const Function *barrier = editor.DeclareFunction("dx.op.barrier", voidType, {i32, i32},
+                                                   Attribute::NoUnwind | Attribute::NoDuplicate);
+  const Function *flattenedThreadIdInGroup = editor.DeclareFunction(
+      "dx.op.flattenedThreadIdInGroup.i32", i32, {i32}, Attribute::NoUnwind | Attribute::ReadNone);
+  const Function *groupId = editor.DeclareFunction("dx.op.groupId.i32", i32, {i32, i32},
+                                                   Attribute::NoUnwind | Attribute::ReadNone);
+  const Function *rawBufferStore = editor.DeclareFunction(
+      "dx.op.rawBufferStore.i32", voidType,
+      {i32, handleType, i32, i32, i32, i32, i32, i32, i8, i32}, Attribute::NoUnwind);
+
+  // declare the resource, this happens purely in metadata but we need to store the slot
+  uint32_t regSlot = 0;
+  Metadata *reslist = NULL;
+  {
+    const Type *rw = editor.CreateNamedStructType("struct.RWByteAddressBuffer", {i32});
+    const Type *rwptr = editor.CreatePointerType(rw, Type::PointerAddrSpace::Default);
+
+    Metadata *resources = editor.CreateNamedMetadata("dx.resources");
+    if(resources->children.empty())
+      resources->children.push_back(editor.CreateMetadata());
+
+    reslist = resources->children[0];
+
+    if(reslist->children.empty())
+      reslist->children.resize(4);
+
+    Metadata *uavs = reslist->children[1];
+    // if there isn't a UAV list, create an empty one so we can add our own
+    if(!uavs)
+      uavs = reslist->children[1] = editor.CreateMetadata();
+
+    for(size_t i = 0; i < uavs->children.size(); i++)
+    {
+      // each UAV child should have a fixed format, [0] is the reg ID and I think this should always
+      // be == the index
+      const Metadata *uav = uavs->children[i];
+      const Constant *slot = cast<Constant>(uav->children[(size_t)ResField::ID]->value);
+
+      if(!slot)
+      {
+        RDCWARN("Unexpected non-constant slot ID in UAV");
+        continue;
+      }
+
+      RDCASSERT(slot->getU32() == i);
+
+      uint32_t id = slot->getU32();
+      regSlot = RDCMAX(id + 1, regSlot);
+    }
+
+    Constant rwundef;
+    rwundef.type = rwptr;
+    rwundef.setUndef(true);
+
+    // create the new UAV record
+    Metadata *uav = editor.CreateMetadata();
+    uav->children = {
+        editor.CreateConstantMetadata(regSlot),
+        editor.CreateConstantMetadata(editor.CreateConstant(rwundef)),
+        editor.CreateConstantMetadata(""),
+        editor.CreateConstantMetadata(space),
+        editor.CreateConstantMetadata(1U),                                   // reg base
+        editor.CreateConstantMetadata(1U),                                   // reg count
+        editor.CreateConstantMetadata(uint32_t(ResourceKind::RawBuffer)),    // shape
+        editor.CreateConstantMetadata(false),                                // globally coherent
+        editor.CreateConstantMetadata(false),                                // hidden counter
+        editor.CreateConstantMetadata(false),                                // raster order
+        NULL,                                                                // UAV tags
+    };
+
+    uavs->children.push_back(uav);
+  }
+
+  payloadSize = 0;
+
+  rdcstr entryName;
+  // add the entry point tags
+  {
+    Metadata *entryPoints = editor.GetMetadataByName("dx.entryPoints");
+
+    if(!entryPoints)
+    {
+      RDCERR("Couldn't find entry point list");
+      return;
+    }
+
+    // TODO select the entry point for multiple entry points? RT only for now
+    Metadata *entry = entryPoints->children[0];
+
+    entryName = entry->children[1]->str;
+
+    Metadata *taglist = entry->children[4];
+    if(!taglist)
+      taglist = entry->children[4] = editor.CreateMetadata();
+
+    // find existing shader flags tag, if there is one
+    Metadata *shaderFlagsTag = NULL;
+    Metadata *shaderFlagsData = NULL;
+    Metadata *ampData = NULL;
+    size_t flagsIndex = 0;
+    for(size_t t = 0; taglist && t < taglist->children.size(); t += 2)
+    {
+      RDCASSERT(taglist->children[t]->isConstant);
+      if(cast<Constant>(taglist->children[t]->value)->getU32() ==
+         (uint32_t)ShaderEntryTag::ShaderFlags)
+      {
+        shaderFlagsTag = taglist->children[t];
+        shaderFlagsData = taglist->children[t + 1];
+        flagsIndex = t + 1;
+      }
+      else if(cast<Constant>(taglist->children[t]->value)->getU32() ==
+              (uint32_t)ShaderEntryTag::Amplification)
+      {
+        ampData = taglist->children[t + 1];
+      }
+    }
+
+    uint32_t shaderFlagsValue =
+        shaderFlagsData ? cast<Constant>(shaderFlagsData->value)->getU32() : 0U;
+
+    // raw and structured buffers
+    shaderFlagsValue |= 0x10;
+
+    // UAVs on non-PS/CS stages
+    shaderFlagsValue |= 0x10000;
+
+    // (re-)create shader flags tag
+    Type *i64 = editor.CreateScalarType(Type::Int, 64);
+    shaderFlagsData =
+        editor.CreateConstantMetadata(editor.CreateConstant(Constant(i64, shaderFlagsValue)));
+
+    // if we didn't have a shader tags entry at all, create the metadata node for the shader flags
+    // tag
+    if(!shaderFlagsTag)
+      shaderFlagsTag = editor.CreateConstantMetadata((uint32_t)ShaderEntryTag::ShaderFlags);
+
+    // if we had a tag already, we can just re-use that tag node and replace the data node.
+    // Otherwise we need to add both, and we insert them first
+    if(flagsIndex)
+    {
+      taglist->children[flagsIndex] = shaderFlagsData;
+    }
+    else
+    {
+      taglist->children.insert(0, shaderFlagsTag);
+      taglist->children.insert(1, shaderFlagsData);
+    }
+
+    // set reslist and taglist in case they were null before
+    entry->children[3] = reslist;
+    entry->children[4] = taglist;
+
+    // get payload size from amplification tags
+    payloadSize = cast<Constant>(ampData->children[1]->value)->getU32();
+  }
+
+  // get the editor to patch PSV0 with our extra UAV
+  editor.RegisterUAV(DXILResourceType::ByteAddressUAV, space, 1, 1, ResourceKind::RawBuffer);
+
+  Function *f = editor.GetFunctionByName(entryName);
+
+  if(!f)
+  {
+    RDCERR("Couldn't find entry point function '%s'", entryName.c_str());
+    return;
+  }
+
+  // find the dispatchMesh call, and from there the global groupshared variable that's the payload
+  GlobalVar *payloadVariable = NULL;
+  Type *payloadType = NULL;
+  for(size_t i = 0; i < f->instructions.size(); i++)
+  {
+    const Instruction &inst = *f->instructions[i];
+
+    if(inst.op == Operation::Call && inst.getFuncCall()->name == dispatchMesh->name)
+    {
+      if(inst.args.size() != 5)
+      {
+        RDCERR("Unexpected number of arguments to dispatchMesh");
+        continue;
+      }
+      payloadVariable = cast<GlobalVar>(inst.args[4]);
+      if(!payloadVariable)
+      {
+        RDCERR("Unexpected non-variable payload argument to dispatchMesh");
+        continue;
+      }
+
+      payloadType = (Type *)payloadVariable->type;
+
+      RDCASSERT(payloadType->type == Type::Pointer);
+      payloadType = (Type *)payloadType->inner;
+
+      break;
+    }
+  }
+
+  // don't need to patch the payload type here because it's not going to be used for anything
+  RDCASSERT(payloadType && payloadType->type == Type::Struct);
+
+  // create our handle first thing
+  Constant *annotateConstant = NULL;
+  Instruction *handle = NULL;
+  size_t prelimInst = 0;
+  if(createHandle)
+  {
+    RDCASSERT(!isShaderModel6_6OrAbove);
+    handle = editor.InsertInstruction(
+        f, prelimInst++,
+        editor.CreateInstruction(createHandle, DXOp::createHandle,
+                                 {
+                                     // kind = UAV
+                                     editor.CreateConstant((uint8_t)HandleKind::UAV),
+                                     // ID/slot
+                                     editor.CreateConstant(regSlot),
+                                     // register
+                                     editor.CreateConstant(1U),
+                                     // non-uniform
+                                     editor.CreateConstant(false),
+                                 }));
+  }
+  else if(createHandleFromBinding)
+  {
+    RDCASSERT(isShaderModel6_6OrAbove);
+    const Type *resBindType = editor.CreateNamedStructType("dx.types.ResBind", {});
+    Constant *resBindConstant =
+        editor.CreateConstant(resBindType, {
+                                               // Lower id bound
+                                               editor.CreateConstant(1U),
+                                               // Upper id bound
+                                               editor.CreateConstant(1U),
+                                               // Space ID
+                                               editor.CreateConstant(space),
+                                               // kind = UAV
+                                               editor.CreateConstant((uint8_t)HandleKind::UAV),
+                                           });
+
+    Instruction *unannotatedHandle = editor.InsertInstruction(
+        f, prelimInst++,
+        editor.CreateInstruction(createHandleFromBinding, DXOp::createHandleFromBinding,
+                                 {
+                                     // resBind
+                                     resBindConstant,
+                                     // ID/slot
+                                     editor.CreateConstant(1U),
+                                     // non-uniform
+                                     editor.CreateConstant(false),
+                                 }));
+
+    annotateConstant = editor.CreateConstant(
+        editor.CreateNamedStructType("dx.types.ResourceProperties", {}),
+        {
+            // IsUav : (1 << 12)
+            editor.CreateConstant(uint32_t((1 << 12) | (uint32_t)ResourceKind::RawBuffer)),
+            //
+            editor.CreateConstant(0U),
+        });
+
+    handle = editor.InsertInstruction(f, prelimInst++,
+                                      editor.CreateInstruction(annotateHandle, DXOp::annotateHandle,
+                                                               {
+                                                                   // Resource handle
+                                                                   unannotatedHandle,
+                                                                   // Resource properties
+                                                                   annotateConstant,
+                                                               }));
+  }
+
+  RDCASSERT(handle);
+
+  // now calculate our offset
+  Constant *i32_0 = editor.CreateConstant(0U);
+  Constant *i32_1 = editor.CreateConstant(1U);
+  Constant *i32_2 = editor.CreateConstant(2U);
+
+  Instruction *baseOffset = NULL;
+
+  Instruction *groupX = NULL, *groupY = NULL, *groupZ = NULL;
+
+  {
+    // get our output location from group ID
+    groupX = editor.InsertInstruction(f, prelimInst++,
+                                      editor.CreateInstruction(groupId, DXOp::groupId, {i32_0}));
+    groupY = editor.InsertInstruction(f, prelimInst++,
+                                      editor.CreateInstruction(groupId, DXOp::groupId, {i32_1}));
+    groupZ = editor.InsertInstruction(f, prelimInst++,
+                                      editor.CreateInstruction(groupId, DXOp::groupId, {i32_2}));
+  }
+
+  // get the flat thread ID for comparisons
+  Instruction *flatId = editor.InsertInstruction(
+      f, prelimInst++,
+      editor.CreateInstruction(flattenedThreadIdInGroup, DXOp::flattenedThreadIdInGroup, {}));
+
+  Value *dimX = editor.CreateConstant(dispatchDim[0]);
+  Value *dimY = editor.CreateConstant(dispatchDim[1]);
+
+  {
+    Instruction *dimXY = editor.InsertInstruction(
+        f, prelimInst++, editor.CreateInstruction(Operation::Mul, i32, {dimX, dimY}));
+
+    // linearise to slot based on the number of dispatches
+    Instruction *groupYMul = editor.InsertInstruction(
+        f, prelimInst++, editor.CreateInstruction(Operation::Mul, i32, {groupY, dimX}));
+    Instruction *groupZMul = editor.InsertInstruction(
+        f, prelimInst++, editor.CreateInstruction(Operation::Mul, i32, {groupZ, dimXY}));
+    Instruction *groupYZAdd = editor.InsertInstruction(
+        f, prelimInst++, editor.CreateInstruction(Operation::Add, i32, {groupYMul, groupZMul}));
+    Instruction *flatIndex = editor.InsertInstruction(
+        f, prelimInst++, editor.CreateInstruction(Operation::Add, i32, {groupX, groupYZAdd}));
+
+    baseOffset = editor.InsertInstruction(
+        f, prelimInst++,
+        editor.CreateInstruction(Operation::Mul, i32,
+                                 {flatIndex, editor.CreateConstant(payloadSize + 16)}));
+  }
+
+  size_t curBlock = 0;
+  for(size_t i = 0; i < f->instructions.size(); i++)
+  {
+    const Instruction &inst = *f->instructions[i];
+    if(inst.op == Operation::Branch || inst.op == Operation::Unreachable ||
+       inst.op == Operation::Switch || inst.op == Operation::Ret)
+    {
+      curBlock++;
+    }
+
+    if(inst.op == Operation::Call && inst.getFuncCall()->name == dispatchMesh->name)
+    {
+      Instruction *threadIsZero = editor.InsertInstruction(
+          f, i++, editor.CreateInstruction(Operation::IEqual, i1, {flatId, i32_0}));
+
+      // we are currently in one block X that looks like:
+      //
+      //   ...X...
+      //   ...X...
+      //   ...X...
+      //   ...X...
+      //   dispatchMesh
+      //   ret
+      //
+      // we want to split this into:
+      //
+      //   ...X...
+      //   ...X...
+      //   ...X...
+      //   ...X...
+      //   %a = cmp threadId
+      //   br %a, block Y, block Z
+      //
+      // Y:
+      //   <actual buffer writing here>
+      //   br block Z
+      //
+      // Z:
+      //   dispatchMesh
+      //   ret
+      //
+      // so we create two new blocks (Y and Z) and insert them after the current block
+      Block *trueBlock = editor.CreateBlock();
+      Block *falseBlock = editor.CreateBlock();
+      f->blocks.insert(curBlock + 1, trueBlock);
+      f->blocks.insert(curBlock + 2, falseBlock);
+
+      editor.InsertInstruction(f, i++,
+                               editor.CreateInstruction(Operation::Branch, voidType,
+                                                        {trueBlock, falseBlock, threadIsZero}));
+
+      curBlock++;
+
+      // true block
+
+      editor.InsertInstruction(
+          f, i++,
+          editor.CreateInstruction(barrier, DXOp::barrier,
+                                   {
+                                       // barrier & TGSM sync
+                                       editor.CreateConstant(uint32_t(0x1 | 0x8)),
+                                   }));
+
+      // write the dimensions
+      Instruction *xOffset = baseOffset;
+
+      Constant *align = editor.CreateConstant((uint32_t)4U);
+
+      editor.InsertInstruction(
+          f, i++,
+          editor.CreateInstruction(
+              rawBufferStore, DXOp::rawBufferStore,
+              {handle, xOffset, editor.CreateUndef(i32), inst.args[1], editor.CreateUndef(i32),
+               editor.CreateUndef(i32), editor.CreateUndef(i32),
+               editor.CreateConstant((uint8_t)0x1), align}));
+      Instruction *yOffset = editor.InsertInstruction(
+          f, i++,
+          editor.CreateInstruction(Operation::Add, i32,
+                                   {baseOffset, editor.CreateConstant((uint32_t)4U)}));
+
+      editor.InsertInstruction(
+          f, i++,
+          editor.CreateInstruction(
+              rawBufferStore, DXOp::rawBufferStore,
+              {handle, yOffset, editor.CreateUndef(i32), inst.args[2], editor.CreateUndef(i32),
+               editor.CreateUndef(i32), editor.CreateUndef(i32),
+               editor.CreateConstant((uint8_t)0x1), align}));
+      Instruction *zOffset = editor.InsertInstruction(
+          f, i++,
+          editor.CreateInstruction(Operation::Add, i32,
+                                   {baseOffset, editor.CreateConstant((uint32_t)8U)}));
+
+      editor.InsertInstruction(
+          f, i++,
+          editor.CreateInstruction(
+              rawBufferStore, DXOp::rawBufferStore,
+              {handle, zOffset, editor.CreateUndef(i32), inst.args[3], editor.CreateUndef(i32),
+               editor.CreateUndef(i32), editor.CreateUndef(i32),
+               editor.CreateConstant((uint8_t)0x1), align}));
+
+      // write the payload contents
+      uint32_t uavByteOffset = 16;
+      for(uint32_t m = 0; m < payloadType->members.size(); m++)
+      {
+        PayloadBufferCopy(PayloadToBuffer, editor, f, i, baseOffset, handle, payloadType->members[m],
+                          uavByteOffset, {payloadVariable, i32_0, editor.CreateConstant(m)});
+      }
+
+      editor.InsertInstruction(f, i++,
+                               editor.CreateInstruction(Operation::Branch, voidType, {falseBlock}));
+
+      curBlock++;
+
+      // false/merge block
+
+      // the dispatchMesh we found is here. Patch the dimensions arguments to be zero. Then we'll
+      // proceed in the loop to look at the ret which doesn't need patched
+      RDCASSERT(f->instructions[i] == &inst);
+      f->instructions[i]->args[1] = i32_0;
+      f->instructions[i]->args[2] = i32_0;
+      f->instructions[i]->args[3] = i32_0;
+    }
+  }
+}
 
 bool D3D12Replay::CreateSOBuffers()
 {
@@ -163,6 +778,9 @@ bool D3D12Replay::CreateSOBuffers()
 
 void D3D12Replay::ClearPostVSCache()
 {
+  // temporary to avoid a warning
+  (void)&AddDXILAmpShaderPayloadStores;
+
   for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
   {
     SAFE_RELEASE(it->second.vsout.buf);
