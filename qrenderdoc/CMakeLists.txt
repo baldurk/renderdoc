@@ -227,7 +227,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_
         "QMAKE_CXXFLAGS+=-Wno-comma\n")
 endif()
 
-if(ENABLE_WAYLAND)
+if(ENABLE_UNSUPPORTED_EXPERIMENTAL_POSSIBLY_BROKEN_WAYLAND)
     message(WARNING "!!!! Using the Wayland Qt platform in qrenderdoc is NOT SUPPORTED !!!!")
     file(APPEND
         ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri

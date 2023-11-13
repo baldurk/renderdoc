@@ -120,7 +120,7 @@ elseif(UNIX)
         add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
     endif()
 
-    if(ENABLE_WAYLAND)
+    if(ENABLE_UNSUPPORTED_EXPERIMENTAL_POSSIBLY_BROKEN_WAYLAND)
         add_definitions(-DVK_USE_PLATFORM_WAYLAND_KHR)
     endif()
     

@@ -91,7 +91,7 @@ elseif(UNIX)
             PRIVATE -l${XCB_LIBRARIES})
     endif()
 
-    if(ENABLE_WAYLAND)
+    if(ENABLE_UNSUPPORTED_EXPERIMENTAL_POSSIBLY_BROKEN_WAYLAND)
         pkg_check_modules(PKG_WAYLAND QUIET wayland-client)
 
         list(APPEND RDOC_INCLUDES
