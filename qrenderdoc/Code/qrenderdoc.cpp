@@ -198,6 +198,20 @@ int main(int argc, char *argv[])
   if(IsRunningAsAdmin())
     qInfo() << "Running as administrator";
 
+#if defined(RENDERDOC_PLATFORM_LINUX) && !defined(RENDERDOC_WINDOWING_WAYLAND)
+  bool envChanged = false;
+  {
+    const char *qpa_plat = getenv("QT_QPA_PLATFORM");
+    // if not set or empty, force non-wayland to help go through backwards compatibility path on wayland.
+    char env_set[] = "QT_QPA_PLATFORM=xcb\0";
+    if(!qpa_plat || qpa_plat[0] == 0)
+    {
+      putenv(env_set);
+      envChanged = true;
+    }
+  }
+#endif
+
   QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
   QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
@@ -568,6 +582,11 @@ int main(int argc, char *argv[])
 
       RENDERDOC_InitialiseReplay(env, coreargs);
     }
+
+#if defined(RENDERDOC_PLATFORM_LINUX) && !defined(RENDERDOC_WINDOWING_WAYLAND)
+    if(envChanged)
+      unsetenv("QT_QPA_PLATFORM");
+#endif
 
     if(!crashReportPath.isEmpty())
     {
