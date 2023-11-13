@@ -184,6 +184,10 @@ void main()
     ActivateContext(mainWindow, NULL);
     ActivateContext(mainWindow, mainContext, true);
 
+    GLuint mapPersTest = MakeBuffer();
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, mapPersTest);
+    glBufferStorage(GL_SHADER_STORAGE_BUFFER, 1024, 0, GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT);
+
     while(Running())
     {
       // trash the texture pack/unpack state
@@ -197,6 +201,10 @@ void main()
       glPixelStorei(GL_PACK_SKIP_PIXELS, 9734);
       glPixelStorei(GL_PACK_SKIP_ROWS, 33);
       glPixelStorei(GL_PACK_ALIGNMENT, 8);
+
+      glBindBuffer(GL_SHADER_STORAGE_BUFFER, mapPersTest);
+      glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, 1024, GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT);
+      glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
       for(int i = 0; i < 100; i++)
         glGetError();
