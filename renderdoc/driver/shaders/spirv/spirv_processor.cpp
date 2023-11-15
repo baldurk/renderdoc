@@ -215,6 +215,14 @@ void Decorations::Register(const DecorationAndParamData &decoration)
   {
     flags = Flags(flags | ColMajor);
   }
+  else if(decoration == Decoration::Restrict)
+  {
+    flags = Flags(flags | Restrict);
+  }
+  else if(decoration == Decoration::Aliased)
+  {
+    flags = Flags(flags | Aliased);
+  }
   else if(decoration == Decoration::Location)
   {
     RDCASSERT(!(flags & HasArrayStride));

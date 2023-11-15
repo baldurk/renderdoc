@@ -151,8 +151,11 @@ class VulkanAPIWrapper : public rdcspv::DebugAPIWrapper
 
 public:
   VulkanAPIWrapper(WrappedVulkan *vk, VulkanCreationInfo &creation, VkShaderStageFlagBits stage,
-                   uint32_t eid)
-      : m_DebugData(vk->GetReplay()->GetShaderDebugData()), m_Creation(creation), m_EventID(eid)
+                   uint32_t eid, ResourceId shadId)
+      : m_DebugData(vk->GetReplay()->GetShaderDebugData()),
+        m_Creation(creation),
+        m_EventID(eid),
+        m_ShaderID(shadId)
   {
     m_pDriver = vk;
 
@@ -355,6 +358,8 @@ public:
     m_pDriver->AddDebugMessage(c, sv, src, d);
   }
 
+  virtual ResourceId GetShaderID() override { return m_ShaderID; }
+
   virtual uint64_t GetBufferLength(BindpointIndex bind) override
   {
     return PopulateBuffer(bind).size();
@@ -376,6 +381,22 @@ public:
 
     if(offset + byteSize <= data.size())
       memcpy(data.data() + (size_t)offset, src, (size_t)byteSize);
+  }
+
+  virtual void ReadAddress(uint64_t address, uint64_t byteSize, void *dst) override
+  {
+    size_t offset;
+    const bytebuf &data = PopulateBuffer(address, offset);
+    if(offset + byteSize <= data.size())
+      memcpy(dst, data.data() + offset, (size_t)byteSize);
+  }
+
+  virtual void WriteAddress(uint64_t address, uint64_t byteSize, const void *src) override
+  {
+    size_t offset;
+    bytebuf &data = PopulateBuffer(address, offset);
+    if(offset + byteSize <= data.size())
+      memcpy(data.data() + offset, src, (size_t)byteSize);
   }
 
   virtual bool ReadTexel(BindpointIndex imageBind, const ShaderVariable &coord, uint32_t sample,
@@ -1553,6 +1574,7 @@ private:
 
   bool m_ResourcesDirty = false;
   uint32_t m_EventID;
+  ResourceId m_ShaderID;
 
   std::map<ResourceId, VkImageView> m_SampleViews;
 
@@ -1647,6 +1669,69 @@ private:
     }
 
     return elemData[index.arrayIndex];
+  }
+
+  bytebuf &PopulateBuffer(uint64_t address, size_t &offs)
+  {
+    // pick a non-overlapping bind namespace for direct pointer access
+    BindpointIndex bind = pointerBind;
+    uint64_t base;
+    uint64_t end;
+    ResourceId id;
+    bool valid = false;
+    if(m_Creation.m_BufferAddresses.empty())
+    {
+      bind.arrayIndex = 0;
+      auto insertIt = bufferCache.insert(std::make_pair(bind, bytebuf()));
+      m_pDriver->AddDebugMessage(
+          MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+          StringFormat::Fmt("pointer access detected but no address-capable buffers allocated."));
+      return insertIt.first->second;
+    }
+    else
+    {
+      auto it = m_Creation.m_BufferAddresses.lower_bound(address);
+      // lower_bound puts us at the same or next item. Since we want the buffer that contains
+      // this address, we go to the previous iter unless we're already on the first or
+      // it's an exact match
+      if(address != it->first && it != m_Creation.m_BufferAddresses.begin())
+        it--;
+      // use the index in the map as a unique buffer identifier that's not 64-bit
+      bind.arrayIndex = uint32_t(it - m_Creation.m_BufferAddresses.begin());
+      {
+        base = it->first;
+        id = it->second;
+        end = base + m_Creation.m_Buffer[id].size;
+        if(base <= address && address < end)
+        {
+          offs = (size_t)(address - base);
+          valid = true;
+        }
+      }
+    }
+    if(!valid)
+    {
+      m_pDriver->AddDebugMessage(
+          MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+          StringFormat::Fmt("out of bounds pointer access of address %#18llx detected.Closest "
+                            "buffer is address range %#18llx -> %#18llx (%s)",
+                            address, base, end, ToStr(id).c_str()));
+    }
+    auto insertIt = bufferCache.insert(std::make_pair(bind, bytebuf()));
+    bytebuf &data = insertIt.first->second;
+    if(insertIt.second && valid)
+    {
+      // if the resources might be dirty from side-effects from the action, replay back to right
+      // before it.
+      if(m_ResourcesDirty)
+      {
+        VkMarkerRegion region("un-dirtying resources");
+        m_pDriver->ReplayLog(0, m_EventID, eReplay_WithoutDraw);
+        m_ResourcesDirty = false;
+      }
+      m_pDriver->GetDebugManager()->GetBufferData(id, 0, 0, data);
+    }
+    return data;
   }
 
   bytebuf &PopulateBuffer(BindpointIndex bind)
@@ -3899,8 +3984,8 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
 
   shadRefl.PopulateDisassembly(shader.spirv);
 
-  VulkanAPIWrapper *apiWrapper =
-      new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_VERTEX_BIT, eventId);
+  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_VERTEX_BIT,
+                                                      eventId, shadRefl.refl->resourceId);
 
   // clamp the view index to the number of multiviews, just to be sure
   size_t numViews;
@@ -4152,8 +4237,8 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   shadRefl.PopulateDisassembly(shader.spirv);
 
-  VulkanAPIWrapper *apiWrapper =
-      new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_FRAGMENT_BIT, eventId);
+  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_FRAGMENT_BIT,
+                                                      eventId, shadRefl.refl->resourceId);
 
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
   builtins[ShaderBuiltin::DeviceIndex] = ShaderVariable(rdcstr(), 0U, 0U, 0U, 0U);
@@ -4846,8 +4931,8 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId,
 
   shadRefl.PopulateDisassembly(shader.spirv);
 
-  VulkanAPIWrapper *apiWrapper =
-      new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_COMPUTE_BIT, eventId);
+  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_COMPUTE_BIT,
+                                                      eventId, shadRefl.refl->resourceId);
 
   uint32_t threadDim[3];
   threadDim[0] = shadRefl.refl->dispatchThreadsDimension[0];

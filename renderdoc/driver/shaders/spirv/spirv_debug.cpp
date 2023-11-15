@@ -78,6 +78,7 @@ inline uint64_t CountOnes(uint64_t value)
 namespace rdcspv
 {
 const BindpointIndex DebugAPIWrapper::invalidBind = BindpointIndex(-12345, -12345, ~0U);
+const BindpointIndex DebugAPIWrapper::pointerBind = BindpointIndex(-12345, -67890, ~0U);
 
 ThreadState::ThreadState(uint32_t workgroupIdx, Debugger &debug, const GlobalState &globalState)
     : debugger(debug), global(globalState)
@@ -256,6 +257,8 @@ void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
     // if var is a pointer we update the underlying storage and generate at least one change,
     // plus any additional ones for other pointers.
     Id ptrid = debugger.GetPointerBaseId(var);
+    if(ptrid == Id())
+      ptrid = pointer;
 
     // only track local writes when we don't have debug info, so we can track variables first
     // becoming alive
@@ -265,7 +268,7 @@ void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
 
     ShaderVariableChange basechange;
 
-    if(debugger.IsOpaquePointer(ids[ptrid]))
+    if(debugger.IsOpaquePointer(ids[ptrid]) || debugger.IsPhysicalPointer(ids[ptrid]))
     {
       // if this is a write to a SSBO pointer, don't record any alias changes, just record a no-op
       // change to this pointer
@@ -355,7 +358,7 @@ void ThreadState::SetDst(Id id, const ShaderVariable &val)
   auto it = std::lower_bound(live.begin(), live.end(), id);
   live.insert(it - live.begin(), id);
 
-  if(val.type == VarType::GPUPointer)
+  if(val.type == VarType::GPUPointer && !debugger.IsPhysicalPointer(val))
   {
     Id ptrId = debugger.GetPointerBaseId(val);
     if(ptrId != Id() && ptrId != id)
@@ -392,7 +395,8 @@ void ThreadState::ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray
 
     m_State->changes.push_back({debugger.GetPointerValue(ids[id])});
 
-    if(ids[id].type == VarType::GPUPointer && !debugger.IsOpaquePointer(ids[id]))
+    if(ids[id].type == VarType::GPUPointer && !debugger.IsOpaquePointer(ids[id]) &&
+       !debugger.IsPhysicalPointer(ids[id]))
     {
       Id ptrId = debugger.GetPointerBaseId(ids[id]);
       pointersForId[ptrId].removeOne(id);
@@ -699,7 +703,28 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       SetDst(chain.result, debugger.MakeCompositePointer(
                                ids[chain.base], debugger.GetPointerBaseId(ids[chain.base]), indices));
+      break;
+    }
+    case Op::PtrAccessChain:
+    case Op::InBoundsPtrAccessChain:
+    {
+      OpPtrAccessChain chain(it);
 
+      rdcarray<uint32_t> indices;
+      // evaluate the indices
+      indices.reserve(chain.indexes.size());
+      for(Id id : chain.indexes)
+        indices.push_back(uintComp(GetSrc(id), 0));
+
+      ShaderVariable base = ids[chain.base];
+      PointerVal val = base.GetPointer();
+      int32_t element = intComp(GetSrc(chain.element), 0);
+      // adjust the address by the element. We should have the array stride since the base pointer
+      // must point into an array and we can't go outside it.
+      base.SetTypedPointer(val.pointer + element * debugger.GetPointerArrayStride(base), val.shader,
+                           val.pointerTypeID);
+      SetDst(chain.result,
+             debugger.MakeCompositePointer(base, debugger.GetPointerBaseId(base), indices));
       break;
     }
     case Op::ArrayLength:
@@ -707,6 +732,9 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       OpArrayLength len(it);
 
       ShaderVariable structPointer = GetSrc(len.structure);
+
+      // "Structure must be a logical pointer..." which is opaqaue in RD terminolgoy
+      RDCASSERT(debugger.IsOpaquePointer(structPointer));
 
       // get the pointer base offset (should be zero for any binding but could be non-zero for a
       // buffer_device_address pointer)
@@ -758,6 +786,24 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         setUintComp(var, 0, isEqual ? 0 : 1);
 
       SetDst(equal.result, var);
+      break;
+    }
+    // physical storage pointers
+    case Op::ConvertPtrToU:
+    {
+      OpConvertPtrToU convert(it);
+      ShaderVariable ptr = GetSrc(convert.pointer);
+      const DataType &resultType = debugger.GetType(convert.resultType);
+      ptr.type = resultType.scalar().Type();
+      SetDst(convert.result, ptr);
+      break;
+    }
+    case Op::ConvertUToPtr:
+    {
+      OpConvertUToPtr convert(it);
+      ShaderVariable ptr = GetSrc(convert.integerValue);
+      const DataType &type = debugger.GetType(convert.resultType);
+      SetDst(convert.result, debugger.MakeTypedPointer(ptr.value.u64v[0], type));
       break;
     }
 
@@ -1280,7 +1326,12 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       const DataType &type = debugger.GetType(cast.resultType);
       ShaderVariable var = GetSrc(cast.operand);
 
-      if((type.type == DataType::ScalarType && var.columns == 1) || type.vector().count == var.columns)
+      if(type.type == DataType::PointerType)
+      {
+        var = debugger.MakeTypedPointer(var.value.u64v[0], type);
+      }
+      else if((type.type == DataType::ScalarType && var.columns == 1) ||
+              type.vector().count == var.columns)
       {
         // if the column count is unchanged, just change the underlying type
         var.type = type.scalar().Type();
@@ -3577,16 +3628,11 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       break;
     }
 
-    // TODO physical storage pointers
-    case Op::ConvertPtrToU:
-    case Op::ConvertUToPtr:
-    case Op::PtrAccessChain:
-    case Op::InBoundsPtrAccessChain:
     case Op::PtrDiff:
     {
       RDCERR(
-          "Physical storage pointers not supported. SPIR-V should have been rejected by "
-          "capability!");
+          "Variable pointers are not supported, PtrDiff must only be used with variable pointers, "
+          "not physical pointers");
 
       ShaderVariable var("", 0U, 0U, 0U, 0U);
       var.columns = 1;
