@@ -560,6 +560,8 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString toStrFlags
     str = "oMask";
   else if(type == TYPE_OUTPUT_STENCIL_REF)
     str = "oStencilRef";
+  else if(type == TYPE_INNER_COVERAGE)
+    str = "vInnerCoverage";
   else
   {
     RDCERR("Unsupported system value semantic %d", type);
