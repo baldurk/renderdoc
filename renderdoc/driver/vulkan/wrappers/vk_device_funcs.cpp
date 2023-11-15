@@ -4159,7 +4159,8 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       VkPhysicalDeviceProperties physProps;
       ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), &physProps);
 
-      record->instDevInfo->vulkanVersion = physProps.apiVersion;
+      record->instDevInfo->vulkanVersion =
+          RDCMIN(physProps.apiVersion, GetRecord(m_Instance)->instDevInfo->vulkanVersion);
 
 #undef CheckExt
 #define CheckExt(name, ver) \
