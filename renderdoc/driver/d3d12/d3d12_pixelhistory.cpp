@@ -2124,6 +2124,213 @@ private:
   rdcarray<ID3D12PipelineState *> m_PSOsToDestroy;
 };
 
+// Callback used to determine the shader discard status for each fragment, where
+// an event has multiple fragments with some being discarded in a fragment shader.
+struct D3D12PixelHistoryDiscardedFragmentsCallback : D3D12PixelHistoryCallback
+{
+  // Key is event ID and value is a list of primitive IDs
+  std::map<uint32_t, rdcarray<int32_t>> m_Events;
+  D3D12PixelHistoryDiscardedFragmentsCallback(WrappedID3D12Device *device,
+                                              D3D12PixelHistoryShaderCache *shaderCache,
+                                              const D3D12PixelHistoryCallbackInfo &callbackInfo,
+                                              std::map<uint32_t, rdcarray<int32_t>> events,
+                                              ID3D12QueryHeap *occlusionQueryHeap)
+      : D3D12PixelHistoryCallback(device, shaderCache, callbackInfo, occlusionQueryHeap),
+        m_Events(events)
+  {
+  }
+
+  ~D3D12PixelHistoryDiscardedFragmentsCallback()
+  {
+    for(ID3D12PipelineState *pso : m_PSOsToDestroy)
+      SAFE_RELEASE(pso);
+  }
+
+  void PreDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd)
+  {
+    if(m_Events.find(eid) == m_Events.end())
+      return;
+
+    const rdcarray<int32_t> &primIds = m_Events[eid];
+
+    D3D12RenderState &state = m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState();
+    D3D12RenderState prevState = state;
+
+    // Create a pipeline with a scissor and colorWriteMask = 0, and disable all tests.
+    ID3D12PipelineState *newPso = CreateDiscardedFragmentPipeline(state, eid);
+
+    for(uint32_t i = 0; i < state.views.size(); i++)
+      ScissorToPixel(state.views[i], state.scissors[i]);
+
+    Topology topo = MakePrimitiveTopology(state.topo);
+    state.pipe = GetResID(newPso);
+    state.ApplyState(m_pDevice, cmd);
+
+    for(uint32_t i = 0; i < primIds.size(); i++)
+    {
+      uint32_t queryId = (uint32_t)m_OcclusionQueries.size();
+      cmd->BeginQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, queryId);
+
+      uint32_t primId = primIds[i];
+      ActionDescription action = *m_pDevice->GetAction(eid);
+      action.numIndices = RENDERDOC_NumVerticesPerPrimitive(topo);
+      action.indexOffset += RENDERDOC_VertexOffset(topo, primId);
+      action.vertexOffset += RENDERDOC_VertexOffset(topo, primId);
+
+      // TODO once pixel history distinguishes between instances, draw only the instance
+      // for this fragment.
+      // TODO replay with a dummy index buffer so that all primitives other than the target
+      // one are degenerate - that way the vertex index etc is still the same as it should be.
+      ::ReplayDraw(cmd, action);
+      cmd->EndQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, queryId);
+
+      m_OcclusionQueries[make_rdcpair<uint32_t, uint32_t>(eid, primId)] = queryId;
+    }
+
+    state = prevState;
+    state.ApplyState(m_pDevice, cmd);
+  }
+
+  void FetchOcclusionResults()
+  {
+    if(m_OcclusionQueries.size() == 0)
+      return;
+
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    D3D12_RESOURCE_DESC bufDesc;
+    bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    bufDesc.Alignment = 0;
+    bufDesc.Width = sizeof(uint64_t) * m_OcclusionQueries.size();
+    bufDesc.Height = 1;
+    bufDesc.DepthOrArraySize = 1;
+    bufDesc.MipLevels = 1;
+    bufDesc.Format = DXGI_FORMAT_UNKNOWN;
+    bufDesc.SampleDesc.Count = 1;
+    bufDesc.SampleDesc.Quality = 0;
+    bufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    bufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+    ID3D12Resource *readbackBuf = NULL;
+    HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
+                                                    D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+                                                    __uuidof(ID3D12Resource), (void **)&readbackBuf);
+    m_pDevice->CheckHRESULT(hr);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create query readback buffer HRESULT: %s", ToStr(hr).c_str());
+      return;
+    }
+
+    ID3D12GraphicsCommandListX *list = m_pDevice->GetNewList();
+    if(!list)
+      return;
+
+    list->ResolveQueryData(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, 0,
+                           (UINT)m_OcclusionQueries.size(), readbackBuf, 0);
+
+    list->Close();
+
+    m_pDevice->ExecuteLists();
+    m_pDevice->FlushLists();
+
+    D3D12_RANGE range;
+    range.Begin = 0;
+    range.End = (SIZE_T)bufDesc.Width;
+
+    uint64_t *data;
+    hr = readbackBuf->Map(0, &range, (void **)&data);
+    m_pDevice->CheckHRESULT(hr);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to map query heap data HRESULT: %s", ToStr(hr).c_str());
+      SAFE_RELEASE(readbackBuf);
+      return;
+    }
+
+    m_OcclusionResults.resize(m_OcclusionQueries.size());
+    for(size_t i = 0; i < m_OcclusionResults.size(); ++i)
+      m_OcclusionResults[i] = data[i];
+
+    readbackBuf->Unmap(0, NULL);
+    SAFE_RELEASE(readbackBuf);
+  }
+
+  uint64_t GetOcclusionResult(uint32_t eventId, uint32_t test) const
+  {
+    auto it = m_OcclusionQueries.find(rdcpair<uint32_t, uint32_t>(eventId, test));
+    if(it == m_OcclusionQueries.end())
+      RDCERR("Can't locate occlusion query for event id %u and test flags %u", eventId, test);
+    if(it->second >= m_OcclusionResults.size())
+      RDCERR(
+          "Event %u, occlusion index is %u, and the total # of occlusion "
+          "query data %zu",
+          eventId, it->second, m_OcclusionResults.size());
+    return m_OcclusionResults[it->second];
+  }
+
+  bool PrimitiveDiscarded(uint32_t eid, uint32_t primId)
+  {
+    auto it = m_OcclusionQueries.find(make_rdcpair<uint32_t, uint32_t>(eid, primId));
+    if(it == m_OcclusionQueries.end())
+      return false;
+    return m_OcclusionResults[it->second] == 0;
+  }
+
+  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) { return false; }
+  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) {}
+
+  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) {}
+  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) { return false; }
+  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) {}
+
+  void PreMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) {}
+  bool PostMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) { return false; }
+  void PostRemisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) {}
+
+  void PreCloseCommandList(ID3D12GraphicsCommandListX *cmd) {}
+  void AliasEvent(uint32_t primary, uint32_t alias) {}
+
+private:
+  ID3D12PipelineState *CreateDiscardedFragmentPipeline(const D3D12RenderState &state, uint32_t eid)
+  {
+    WrappedID3D12PipelineState *origPSO =
+        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(state.pipe);
+    if(origPSO == NULL)
+    {
+      RDCERR("Failed to retrieve original PSO for pixel history.");
+      return NULL;
+    }
+
+    D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
+    origPSO->Fill(pipeDesc);
+
+    ModifyPSOForStencilIncrement(eid, pipeDesc, true);
+    pipeDesc.DepthStencilState.StencilEnable = FALSE;
+
+    ID3D12PipelineState *pso = NULL;
+    HRESULT hr = m_pDevice->CreatePipeState(pipeDesc, &pso);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create PSO for pixel history.");
+      return NULL;
+    }
+
+    m_PSOsToDestroy.push_back(pso);
+    return pso;
+  }
+
+  std::map<rdcpair<uint32_t, uint32_t>, uint32_t> m_OcclusionQueries;
+  rdcarray<uint64_t> m_OcclusionResults;
+
+  rdcarray<ID3D12PipelineState *> m_PSOsToDestroy;
+};
+
 bool D3D12DebugManager::PixelHistorySetupResources(D3D12PixelHistoryResources &resources,
                                                    WrappedID3D12Resource *targetImage,
                                                    const D3D12_RESOURCE_DESC &desc,
