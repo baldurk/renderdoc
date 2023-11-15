@@ -1430,6 +1430,7 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
         bufInfo.gpuAddress = ObjDisp(device)->GetBufferDeviceAddress(Unwrap(device), &getInfo);
       else if(GetExtensions(GetRecord(device)).ext_EXT_buffer_device_address)
         bufInfo.gpuAddress = ObjDisp(device)->GetBufferDeviceAddressEXT(Unwrap(device), &getInfo);
+      m_CreationInfo.m_BufferAddresses[bufInfo.gpuAddress] = GetResID(buffer);
     }
 
     m_CreationInfo.m_Memory[GetResID(memory)].BindMemory(memoryOffset, mrq.size,
@@ -2840,6 +2841,7 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
           bufInfo.gpuAddress = ObjDisp(device)->GetBufferDeviceAddress(Unwrap(device), &getInfo);
         else if(GetExtensions(GetRecord(device)).ext_EXT_buffer_device_address)
           bufInfo.gpuAddress = ObjDisp(device)->GetBufferDeviceAddressEXT(Unwrap(device), &getInfo);
+        m_CreationInfo.m_BufferAddresses[bufInfo.gpuAddress] = GetResID(bindInfo.buffer);
       }
 
       // the memory is immediately dirty because we don't use dirty tracking, it's too expensive to

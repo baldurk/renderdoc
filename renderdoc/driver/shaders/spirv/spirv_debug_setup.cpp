@@ -46,6 +46,7 @@ enum class PointerFlags
   RowMajorMatrix = 0x1,
   SSBO = 0x2,
   GlobalArrayBinding = 0x4,
+  DereferencedPhysical = 0x8,
 };
 
 BITMASK_OPERATORS(PointerFlags);
@@ -174,6 +175,17 @@ void setBufferTypeId(ShaderVariable &var, rdcspv::Id id)
 rdcspv::Id getBufferTypeId(const ShaderVariable &var)
 {
   return rdcspv::Id::fromWord((uint32_t)var.value.u64v[8]);
+}
+
+// slot 9 is the array stride. Can't be shared with matrix stride (slot 5) in the case of matrix arrays.
+void setArrayStride(ShaderVariable &var, uint32_t stride)
+{
+  var.value.u64v[9] = stride;
+}
+
+uint32_t getArrayStride(const ShaderVariable &var)
+{
+  return (uint32_t)var.value.u64v[9];
 }
 
 static ShaderVariable *pointerIfMutable(const ShaderVariable &var)
@@ -415,6 +427,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       "SPV_EXT_fragment_invocation_density",
       "SPV_KHR_no_integer_wrap_decoration",
       "SPV_KHR_float_controls",
+      "SPV_EXT_physical_storage_buffer",
       "SPV_KHR_shader_clock",
       "SPV_EXT_demote_to_helper_invocation",
       "SPV_KHR_non_semantic_info",
@@ -422,6 +435,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       "SPV_KHR_terminate_invocation",
       "SPV_EXT_shader_image_int64",
       "SPV_GOOGLE_user_type",
+      "SPV_KHR_physical_storage_buffer",
   };
 
   // whitelist supported extensions
@@ -538,6 +552,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::BitInstructions:
       case Capability::UniformDecoration:
       case Capability::SignedZeroInfNanPreserve:
+      case Capability::PhysicalStorageBufferAddresses:
       {
         supported = true;
         break;
@@ -557,9 +572,6 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       }
 
       // we plan to support these but needs additional testing/proving
-
-      // physical pointers
-      case Capability::PhysicalStorageBufferAddresses:
 
       // MSAA custom interpolation
       case Capability::InterpolationFunction:
@@ -1107,6 +1119,10 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
             {
               this->apiWrapper->ReadBufferValue(bindpoint, offset, VarByteSize(var),
                                                 var.value.u8v.data());
+
+              if(type.type == DataType::PointerType)
+                var.SetTypedPointer(var.value.u64v[0], this->apiWrapper->GetShaderID(),
+                                    idToPointerType[type.InnerType()]);
             }
             else
             {
@@ -2023,6 +2039,24 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
   return ret;
 }
 
+ShaderVariable Debugger::MakeTypedPointer(uint64_t value, const DataType &type) const
+{
+  rdcspv::Id typeId = type.InnerType();
+  ShaderVariable var;
+  var.rows = var.columns = 1;
+  var.type = VarType::GPUPointer;
+  var.SetTypedPointer(value, apiWrapper ? apiWrapper->GetShaderID() : ResourceId(),
+                      idToPointerType[typeId]);
+
+  const Decorations &dec = decorations[type.id];
+  if(dec.flags & Decorations::HasArrayStride)
+  {
+    uint32_t arrayStride = dec.arrayStride;
+    setArrayStride(var, arrayStride);
+  }
+  return var;
+}
+
 ShaderVariable Debugger::MakePointerVariable(Id id, const ShaderVariable *v, uint8_t scalar0,
                                              uint8_t scalar1) const
 {
@@ -2042,12 +2076,16 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
 {
   const ShaderVariable *leaf = &base;
 
-  // if the base is a plain value, we just start walking down the chain. If the base is a pointer
-  // though, we want to step down the chain in the underlying storage, so dereference first.
-  if(base.type == VarType::GPUPointer)
-    leaf = getPointer(base);
-
+  bool physicalPointer = IsPhysicalPointer(base);
   bool isArray = false;
+
+  if(!physicalPointer)
+  {
+    // if the base is a plain value, we just start walking down the chain. If the base is a pointer
+    // though, we want to step down the chain in the underlying storage, so dereference first.
+    if(base.type == VarType::GPUPointer)
+      leaf = getPointer(base);
+  }
 
   // if this is an arrayed opaque binding, the first index is a 'virtual' array index into the
   // binding.
@@ -2061,18 +2099,41 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
     isArray = true;
   }
 
-  if(leaf->type == VarType::ReadWriteResource && checkPointerFlags(*leaf, PointerFlags::SSBO))
+  if((leaf->type == VarType::ReadWriteResource && checkPointerFlags(*leaf, PointerFlags::SSBO)) ||
+     physicalPointer)
   {
-    ShaderVariable ret = MakePointerVariable(id, leaf);
+    ShaderVariable ret;
+    uint64_t byteOffset = 0;
+    const DataType *type = NULL;
 
-    uint64_t byteOffset = getByteOffset(base);
+    if(physicalPointer)
+    {
+      // work purely with the pointer itself. All we're going to do effectively is move the address
+      // and set the sub-type pointed to so that we know how to dereference it later
+      ret = *leaf;
+      // if this hasn't been dereferenced yet we should have a valid pointer type ID for a physical
+      // pointer, which we can then use to get the base ID (and there will be no buffer type ID
+      // below). If not, we rely on the buffer type ID.
+      if(!checkPointerFlags(ret, PointerFlags::DereferencedPhysical))
+      {
+        rdcspv::Id typeId = pointerTypeToId[ret.GetPointer().pointerTypeID];
+        RDCASSERT(typeId != rdcspv::Id());
+        type = &dataTypes[typeId];
+      }
+    }
+    else
+    {
+      ret = MakePointerVariable(id, leaf);
+
+      byteOffset = getByteOffset(base);
+      type = &dataTypes[idTypes[id]];
+
+      RDCASSERT(type->type == DataType::PointerType);
+      type = &dataTypes[type->InnerType()];
+    }
+
     setMatrixStride(ret, getMatrixStride(base));
     setPointerFlags(ret, getPointerFlags(base));
-
-    const DataType *type = &dataTypes[idTypes[id]];
-
-    RDCASSERT(type->type == DataType::PointerType);
-    type = &dataTypes[type->InnerType()];
 
     rdcspv::Id typeId = getBufferTypeId(base);
 
@@ -2095,6 +2156,8 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
 
     Decorations curDecorations = decorations[type->id];
 
+    uint32_t arrayStride = 0;
+
     while(i < indices.size() &&
           (type->type == DataType::ArrayType || type->type == DataType::StructType))
     {
@@ -2105,7 +2168,8 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
         RDCASSERT(dec.flags & Decorations::HasArrayStride);
 
         // offset increases by index * arrayStride
-        byteOffset += indices[i] * dec.arrayStride;
+        arrayStride = dec.arrayStride;
+        byteOffset += indices[i] * arrayStride;
 
         // new type is the inner type
         type = &dataTypes[type->InnerType()];
@@ -2125,14 +2189,6 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
       }
       i++;
     }
-
-    if(curDecorations.flags & Decorations::HasMatrixStride)
-      setMatrixStride(ret, curDecorations.matrixStride);
-
-    if(curDecorations.flags & Decorations::RowMajor)
-      enablePointerFlags(ret, PointerFlags::RowMajorMatrix);
-    else if(curDecorations.flags & Decorations::ColMajor)
-      disablePointerFlags(ret, PointerFlags::RowMajorMatrix);
 
     size_t remaining = indices.size() - i;
     if(remaining == 2)
@@ -2186,9 +2242,39 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
       }
     }
 
-    setBufferTypeId(ret, type->id);
-    setByteOffset(ret, byteOffset);
+    if(curDecorations.flags & Decorations::HasMatrixStride)
+      setMatrixStride(ret, curDecorations.matrixStride);
 
+    if(curDecorations.flags & Decorations::RowMajor)
+      enablePointerFlags(ret, PointerFlags::RowMajorMatrix);
+    else if(curDecorations.flags & Decorations::ColMajor)
+      disablePointerFlags(ret, PointerFlags::RowMajorMatrix);
+
+    setBufferTypeId(ret, type->id);
+    setArrayStride(ret, arrayStride);
+    if(physicalPointer)
+    {
+      PointerVal ptrval = ret.GetPointer();
+      // we use the opaque type ID to ensure we don't accidentally leak the wrong type ID.
+      // we check where the pointer is dereferenced to use the physical address instead of the inner
+      // binding
+      ret.SetTypedPointer(ptrval.pointer + byteOffset, ptrval.shader, OpaquePointerTypeID);
+    }
+    else
+    {
+      setByteOffset(ret, byteOffset);
+    }
+    // this flag is only used for physical pointers, to indicate that it's been dereferenced and
+    // the pointer type should be fetched from our ID above and it returned as a plain value, rather
+    // than showing the pointer 'natively'. This is because we may not have a pointer type to
+    // reference if e.g. the only pointer type registered is struct foo { } and we've dereferenced
+    // into inner struct bar { }
+    //
+    // effectively physical pointers currently decay into opaque pointers after any access chain
+    // (but opaque that still uses an address, not that uses a global pointer inner value as in
+    // other opaque pointers)
+    if(physicalPointer)
+      enablePointerFlags(ret, PointerFlags::DereferencedPhysical);
     return ret;
   }
 
@@ -2265,6 +2351,11 @@ ShaderVariable Debugger::GetPointerValue(const ShaderVariable &ptr) const
     ret.SetBinding(bind.bindset, bind.bind, getBindArrayIndex(ptr));
     return ret;
   }
+  // physical pointers which haven't been dereferenced are returned as-is, they're ready for display
+  else if(IsPhysicalPointer(ptr) && !checkPointerFlags(ptr, PointerFlags::DereferencedPhysical))
+  {
+    return ptr;
+  }
 
   // every other kind of pointer displays as its contents
   return ReadFromPointer(ptr);
@@ -2275,35 +2366,72 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
   if(ptr.type != VarType::GPUPointer)
     return ptr;
 
-  const ShaderVariable *inner = getPointer(ptr);
-
   ShaderVariable ret;
-
-  if(inner->type == VarType::ReadWriteResource && checkPointerFlags(*inner, PointerFlags::SSBO))
+  // values for setting up pointer reads, either from a physical pointer or from an opaque pointer
+  rdcspv::Id typeId;
+  Decorations parentDecorations;
+  uint64_t baseAddress;
+  BindpointIndex bind;
+  uint64_t byteOffset = 0;
+  std::function<void(uint64_t offset, uint64_t size, void *dst)> pointerReadCallback;
+  if(IsPhysicalPointer(ptr))
   {
-    rdcspv::Id typeId = getBufferTypeId(ptr);
-    uint64_t byteOffset = getByteOffset(ptr);
-
-    BindpointIndex bind = inner->GetBinding();
-    bind.arrayIndex = getBindArrayIndex(ptr);
-
-    uint32_t varMatrixStride = getMatrixStride(ptr);
-
-    Decorations parentDecorations;
-    if(checkPointerFlags(ptr, PointerFlags::RowMajorMatrix))
-      parentDecorations.flags = Decorations::RowMajor;
+    if(checkPointerFlags(ptr, PointerFlags::DereferencedPhysical))
+      typeId = getBufferTypeId(ptr);
     else
-      parentDecorations.flags = Decorations::ColMajor;
+      typeId = pointerTypeToId[ptr.GetPointer().pointerTypeID];
+
+    RDCASSERT(typeId != rdcspv::Id());
+
+    parentDecorations = decorations[typeId];
+    uint32_t varMatrixStride = getMatrixStride(ptr);
 
     if(varMatrixStride != 0)
     {
+      if(checkPointerFlags(ptr, PointerFlags::RowMajorMatrix))
+        parentDecorations.flags = Decorations::RowMajor;
+      else
+        parentDecorations.flags = Decorations::ColMajor;
       parentDecorations.flags =
           Decorations::Flags(parentDecorations.flags | Decorations::HasMatrixStride);
       parentDecorations.matrixStride = varMatrixStride;
     }
+    baseAddress = ptr.GetPointer().pointer;
+    pointerReadCallback = [this, baseAddress](uint64_t offset, uint64_t size, void *dst) {
+      apiWrapper->ReadAddress(baseAddress + offset, size, dst);
+    };
+  }
+  else
+  {
+    const ShaderVariable *inner = getPointer(ptr);
+    if(inner->type == VarType::ReadWriteResource && checkPointerFlags(*inner, PointerFlags::SSBO))
+    {
+      typeId = getBufferTypeId(ptr);
+      byteOffset = getByteOffset(ptr);
+      bind = inner->GetBinding();
+      bind.arrayIndex = getBindArrayIndex(ptr);
+      uint32_t varMatrixStride = getMatrixStride(ptr);
+      if(varMatrixStride != 0)
+      {
+        if(checkPointerFlags(ptr, PointerFlags::RowMajorMatrix))
+          parentDecorations.flags = Decorations::RowMajor;
+        else
+          parentDecorations.flags = Decorations::ColMajor;
+        parentDecorations.flags =
+            Decorations::Flags(parentDecorations.flags | Decorations::HasMatrixStride);
+        parentDecorations.matrixStride = varMatrixStride;
+      }
+      pointerReadCallback = [this, bind](uint64_t offset, uint64_t size, void *dst) {
+        apiWrapper->ReadBufferValue(bind, offset, size, dst);
+      };
+    }
+  }
 
-    auto readCallback = [this, bind](ShaderVariable &var, const Decorations &dec,
-                                     const DataType &type, uint64_t offset, const rdcstr &) {
+  if(pointerReadCallback)
+  {
+    auto readCallback = [this, pointerReadCallback](ShaderVariable &var, const Decorations &dec,
+                                                    const DataType &type, uint64_t offset,
+                                                    const rdcstr &) {
       // ignore any callbacks we get on the way up for structs/arrays, we don't need it we only read
       // or write at primitive level
       if(!var.members.empty())
@@ -2320,9 +2448,8 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
         {
           for(uint8_t r = 0; r < var.rows; r++)
           {
-            apiWrapper->ReadBufferValue(bind, offset + r * matrixStride,
-                                        VarTypeByteSize(var.type) * var.columns,
-                                        VarElemPointer(var, r * var.columns));
+            pointerReadCallback(offset + r * matrixStride, VarTypeByteSize(var.type) * var.columns,
+                                VarElemPointer(var, r * var.columns));
           }
         }
         else
@@ -2333,9 +2460,8 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
           // read column-wise
           for(uint8_t c = 0; c < var.columns; c++)
           {
-            apiWrapper->ReadBufferValue(bind, offset + c * matrixStride,
-                                        VarTypeByteSize(var.type) * var.rows,
-                                        VarElemPointer(tmp, c * var.rows));
+            pointerReadCallback(offset + c * matrixStride, VarTypeByteSize(var.type) * var.rows,
+                                VarElemPointer(tmp, c * var.rows));
           }
 
           // transpose into our row major storage
@@ -2349,21 +2475,36 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
         if(!rowMajor)
         {
           // we can read a vector at a time if the matrix is column major
-          apiWrapper->ReadBufferValue(bind, offset, VarTypeByteSize(var.type) * var.columns,
-                                      VarElemPointer(var, 0));
+          pointerReadCallback(offset, VarTypeByteSize(var.type) * var.columns,
+                              VarElemPointer(var, 0));
         }
         else
         {
           for(uint8_t c = 0; c < var.columns; c++)
           {
-            apiWrapper->ReadBufferValue(bind, offset + c * matrixStride, VarTypeByteSize(var.type),
-                                        VarElemPointer(var, c));
+            pointerReadCallback(offset + c * matrixStride, VarTypeByteSize(var.type),
+                                VarElemPointer(var, c));
           }
         }
       }
-      else if(type.type == DataType::ScalarType)
+      else if(type.type == DataType::ScalarType || type.type == DataType::PointerType)
       {
-        apiWrapper->ReadBufferValue(bind, offset, VarTypeByteSize(var.type), VarElemPointer(var, 0));
+        pointerReadCallback(offset, VarTypeByteSize(var.type), VarElemPointer(var, 0));
+        if(type.type == DataType::PointerType)
+        {
+          auto it = idToPointerType.find(type.InnerType());
+          if(it != idToPointerType.end())
+          {
+            var.SetTypedPointer(var.value.u64v[0], this->apiWrapper->GetShaderID(), it->second);
+          }
+          else
+          {
+            var.SetTypedPointer(var.value.u64v[0], ResourceId(), OpaquePointerTypeID);
+            enablePointerFlags(var, PointerFlags::DereferencedPhysical);
+            setMatrixStride(var, matrixStride);
+            setBufferTypeId(var, type.InnerType());
+          }
+        }
       }
     };
 
@@ -2374,13 +2515,18 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
     return ret;
   }
 
+  // this is the case of 'reading' from a pointer where the data is entirely contained within the
+  // inner pointed variable. Either opaque sampler/image etc which is just the binding, or a
+  // cbuffer pointer which was already evaluated
+  const ShaderVariable *inner = getPointer(ptr);
+
   ret = *inner;
   ret.name = ptr.name;
 
   if(inner->type == VarType::ReadOnlyResource || inner->type == VarType::ReadWriteResource ||
      inner->type == VarType::Sampler)
   {
-    BindpointIndex bind = ret.GetBinding();
+    bind = ret.GetBinding();
 
     ret.SetBinding(bind.bindset, bind.bind, getBindArrayIndex(ptr));
   }
@@ -2441,19 +2587,37 @@ Id Debugger::GetPointerBaseId(const ShaderVariable &ptr) const
   return getBaseId(ptr);
 }
 
+uint32_t Debugger::GetPointerArrayStride(const ShaderVariable &ptr) const
+{
+  RDCASSERT(ptr.type == VarType::GPUPointer);
+  return getArrayStride(ptr);
+}
+
 bool Debugger::IsOpaquePointer(const ShaderVariable &ptr) const
 {
   if(ptr.type != VarType::GPUPointer)
     return false;
 
-  PointerVal val = ptr.GetPointer();
-
-  if(val.pointerTypeID != OpaquePointerTypeID)
+  if(IsPhysicalPointer(ptr))
     return false;
 
   const ShaderVariable *inner = getPointer(ptr);
   return inner->type == VarType::ReadOnlyResource || inner->type == VarType::Sampler ||
          inner->type == VarType::ReadWriteResource;
+}
+
+bool Debugger::IsPhysicalPointer(const ShaderVariable &ptr) const
+{
+  if(ptr.type == VarType::GPUPointer)
+  {
+    // non-dereferenced physical pointer
+    if(ptr.GetPointer().pointerTypeID != OpaquePointerTypeID)
+      return true;
+    // dereferenced physical pointer
+    if(checkPointerFlags(ptr, PointerFlags::DereferencedPhysical))
+      return true;
+  }
+  return false;
 }
 
 bool Debugger::ArePointersAndEqual(const ShaderVariable &a, const ShaderVariable &b) const
@@ -2468,24 +2632,77 @@ bool Debugger::ArePointersAndEqual(const ShaderVariable &a, const ShaderVariable
 
 void Debugger::WriteThroughPointer(ShaderVariable &ptr, const ShaderVariable &val)
 {
-  ShaderVariable *storage = getPointer(ptr);
+  // values for setting up pointer reads, either from a physical pointer or from an opaque pointer
+  rdcspv::Id typeId;
+  Decorations parentDecorations;
+  uint64_t baseAddress;
+  BindpointIndex bind;
+  uint64_t byteOffset = 0;
+  std::function<void(uint64_t offset, uint64_t size, const void *src)> pointerWriteCallback;
 
-  if(storage->type == VarType::ReadWriteResource)
+  if(IsPhysicalPointer(ptr))
   {
-    rdcspv::Id typeId = getBufferTypeId(ptr);
-    uint64_t byteOffset = getByteOffset(ptr);
+    if(checkPointerFlags(ptr, PointerFlags::DereferencedPhysical))
+      typeId = getBufferTypeId(ptr);
+    else
+      typeId = pointerTypeToId[ptr.GetPointer().pointerTypeID];
 
-    BindpointIndex bind = storage->GetBinding();
+    RDCASSERT(typeId != rdcspv::Id());
+    parentDecorations = decorations[typeId];
+    uint32_t varMatrixStride = getMatrixStride(ptr);
+    if(varMatrixStride != 0)
+    {
+      if(checkPointerFlags(ptr, PointerFlags::RowMajorMatrix))
+        parentDecorations.flags = Decorations::RowMajor;
+      else
+        parentDecorations.flags = Decorations::ColMajor;
+      parentDecorations.flags =
+          Decorations::Flags(parentDecorations.flags | Decorations::HasMatrixStride);
+      parentDecorations.matrixStride = varMatrixStride;
+    }
+    baseAddress = ptr.GetPointer().pointer;
+    pointerWriteCallback = [this, baseAddress](uint64_t offset, uint64_t size, const void *src) {
+      apiWrapper->WriteAddress(baseAddress + offset, size, src);
+    };
+  }
+  else
+  {
+    const ShaderVariable *inner = getPointer(ptr);
+    if(inner->type == VarType::ReadWriteResource && checkPointerFlags(*inner, PointerFlags::SSBO))
+    {
+      typeId = getBufferTypeId(ptr);
+      byteOffset = getByteOffset(ptr);
+      bind = inner->GetBinding();
+      bind.arrayIndex = getBindArrayIndex(ptr);
+      uint32_t varMatrixStride = getMatrixStride(ptr);
+      if(varMatrixStride != 0)
+      {
+        if(checkPointerFlags(ptr, PointerFlags::RowMajorMatrix))
+          parentDecorations.flags = Decorations::RowMajor;
+        else
+          parentDecorations.flags = Decorations::ColMajor;
+        parentDecorations.flags =
+            Decorations::Flags(parentDecorations.flags | Decorations::HasMatrixStride);
+        parentDecorations.matrixStride = varMatrixStride;
+      }
+      pointerWriteCallback = [this, bind](uint64_t offset, uint64_t size, const void *src) {
+        apiWrapper->WriteBufferValue(bind, offset, size, src);
+      };
+    }
+  }
 
-    bind.arrayIndex = getBindArrayIndex(ptr);
-    uint32_t matrixStride = getMatrixStride(ptr);
-    bool rowMajor = checkPointerFlags(ptr, PointerFlags::RowMajorMatrix);
-
-    auto writeCallback = [this, bind, matrixStride, rowMajor](
-                             const ShaderVariable &var, const Decorations &, const DataType &type,
-                             uint64_t offset, const rdcstr &) {
+  if(pointerWriteCallback)
+  {
+    auto writeCallback = [pointerWriteCallback](const ShaderVariable &var, const Decorations &dec,
+                                                const DataType &type, uint64_t offset,
+                                                const rdcstr &) {
+      // ignore any callbacks we get on the way up for structs/arrays, we don't need it we only
+      // read or write at primitive level
       if(!var.members.empty())
         return;
+
+      bool rowMajor = (dec.flags & Decorations::RowMajor) != 0;
+      uint32_t matrixStride = dec.matrixStride;
 
       if(type.type == DataType::MatrixType)
       {
@@ -2495,9 +2712,8 @@ void Debugger::WriteThroughPointer(ShaderVariable &ptr, const ShaderVariable &va
         {
           for(uint8_t r = 0; r < var.rows; r++)
           {
-            apiWrapper->WriteBufferValue(bind, offset + r * matrixStride,
-                                         VarTypeByteSize(var.type) * var.columns,
-                                         VarElemPointer(var, r * var.columns));
+            pointerWriteCallback(offset + r * matrixStride, VarTypeByteSize(var.type) * var.columns,
+                                 VarElemPointer(var, r * var.columns));
           }
         }
         else
@@ -2510,12 +2726,11 @@ void Debugger::WriteThroughPointer(ShaderVariable &ptr, const ShaderVariable &va
             for(uint8_t c = 0; c < var.columns; c++)
               copyComp(tmp, c * var.rows + r, var, r * var.columns + c);
 
-          // read column-wise
+          // write column-wise
           for(uint8_t c = 0; c < var.columns; c++)
           {
-            apiWrapper->WriteBufferValue(bind, offset + c * matrixStride,
-                                         VarTypeByteSize(var.type) * var.rows,
-                                         VarElemPointer(tmp, c * var.rows));
+            pointerWriteCallback(offset + c * matrixStride, VarTypeByteSize(var.type) * var.rows,
+                                 VarElemPointer(tmp, c * var.rows));
           }
         }
       }
@@ -2524,27 +2739,29 @@ void Debugger::WriteThroughPointer(ShaderVariable &ptr, const ShaderVariable &va
         if(!rowMajor)
         {
           // we can write a vector at a time if the matrix is column major
-          apiWrapper->WriteBufferValue(bind, offset, VarTypeByteSize(var.type) * var.columns,
-                                       VarElemPointer(var, 0));
+          pointerWriteCallback(offset, VarTypeByteSize(var.type) * var.columns,
+                               VarElemPointer(var, 0));
         }
         else
         {
           for(uint8_t c = 0; c < var.columns; c++)
-            apiWrapper->WriteBufferValue(bind, offset + c * matrixStride, VarTypeByteSize(var.type),
-                                         VarElemPointer(var, c));
+            pointerWriteCallback(offset + c * matrixStride, VarTypeByteSize(var.type),
+                                 VarElemPointer(var, c));
         }
       }
-      else if(type.type == DataType::ScalarType)
+      else if(type.type == DataType::ScalarType || type.type == DataType::PointerType)
       {
-        apiWrapper->WriteBufferValue(bind, offset, VarTypeByteSize(var.type), VarElemPointer(var, 0));
+        pointerWriteCallback(offset, VarTypeByteSize(var.type), VarElemPointer(var, 0));
       }
     };
 
-    WalkVariable<const ShaderVariable, false>(Decorations(), dataTypes[typeId], byteOffset, val,
+    WalkVariable<const ShaderVariable, false>(parentDecorations, dataTypes[typeId], byteOffset, val,
                                               rdcstr(), writeCallback);
 
     return;
   }
+
+  ShaderVariable *storage = getPointer(ptr);
 
   // we don't support pointers to scalars since our 'unit' of pointer is a ShaderVariable, so check
   // if we have scalar indices to apply:
@@ -2838,6 +3055,18 @@ uint32_t Debugger::WalkVariable(
       break;
     }
     case DataType::PointerType:
+    {
+      RDCASSERT((dataTypes[type.id].pointerType.storage == StorageClass::PhysicalStorageBuffer) ||
+                (dataTypes[type.id].pointerType.storage == StorageClass::PhysicalStorageBufferEXT));
+      if(outVar)
+      {
+        outVar->type = VarType::GPUPointer;
+        outVar->rows = 1;
+        outVar->columns = 1;
+      }
+      numLocations = 1;
+      break;
+    }
     case DataType::ImageType:
     case DataType::SamplerType:
     case DataType::SampledImageType:
@@ -3081,6 +3310,19 @@ void Debugger::PreParse(uint32_t maxId)
 void Debugger::PostParse()
 {
   Processor::PostParse();
+
+  // declare pointerTypes for all declared physical pointer types. This will match the reflection
+  for(auto it = dataTypes.begin(); it != dataTypes.end(); ++it)
+  {
+    if(it->second.type == DataType::PointerType &&
+       it->second.pointerType.storage == rdcspv::StorageClass::PhysicalStorageBuffer)
+    {
+      idToPointerType.insert(std::make_pair(it->second.InnerType(), (uint16_t)idToPointerType.size()));
+    }
+  }
+  pointerTypeToId.resize(idToPointerType.size());
+  for(auto it = idToPointerType.begin(); it != idToPointerType.end(); ++it)
+    pointerTypeToId[it->second] = it->first;
 
   for(const MemberName &mem : memberNames)
     dataTypes[mem.id].children[mem.member].name = mem.name;

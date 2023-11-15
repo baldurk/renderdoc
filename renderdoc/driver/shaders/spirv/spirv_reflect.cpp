@@ -1125,12 +1125,24 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   // specialisation constant gathering
   ConstantBlock specblock;
 
+  // declare pointerTypes for all declared physical pointer types first. This allows the debugger
+  // to easily match pointer types itself
+  for(auto it = dataTypes.begin(); it != dataTypes.end(); ++it)
+  {
+    if(it->second.type == DataType::PointerType &&
+       it->second.pointerType.storage == rdcspv::StorageClass::PhysicalStorageBuffer)
+    {
+      pointerTypes.insert(std::make_pair(it->second.InnerType(), (uint16_t)pointerTypes.size()));
+    }
+  }
+
   for(const Variable &global : globals)
   {
     if(global.storage == StorageClass::Input || global.storage == StorageClass::Output)
     {
       // variable type must be a pointer of the same storage class
       RDCASSERT(dataTypes[global.type].type == DataType::PointerType);
+      RDCASSERT(dataTypes[global.type].pointerType.storage == global.storage);
       const DataType &baseType = dataTypes[dataTypes[global.type].InnerType()];
 
       const bool isInput = (global.storage == StorageClass::Input);

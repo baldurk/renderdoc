@@ -52,11 +52,16 @@ public:
   virtual ~DebugAPIWrapper() {}
   virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d) = 0;
 
+  virtual ResourceId GetShaderID() = 0;
+
   virtual uint64_t GetBufferLength(BindpointIndex bind) = 0;
 
   virtual void ReadBufferValue(BindpointIndex bind, uint64_t offset, uint64_t byteSize, void *dst) = 0;
   virtual void WriteBufferValue(BindpointIndex bind, uint64_t offset, uint64_t byteSize,
                                 const void *src) = 0;
+
+  virtual void ReadAddress(uint64_t address, uint64_t byteSize, void *dst) = 0;
+  virtual void WriteAddress(uint64_t address, uint64_t byteSize, const void *src) = 0;
 
   virtual bool ReadTexel(BindpointIndex imageBind, const ShaderVariable &coord, uint32_t sample,
                          ShaderVariable &output) = 0;
@@ -78,6 +83,7 @@ public:
   };
 
   static const BindpointIndex invalidBind;
+  static const BindpointIndex pointerBind;
 
   virtual bool CalculateSampleGather(ThreadState &lane, Op opcode, TextureType texType,
                                      BindpointIndex imageBind, BindpointIndex samplerBind,
@@ -383,8 +389,12 @@ public:
   DebugAPIWrapper::TextureType GetTextureType(const ShaderVariable &img) const;
   ShaderVariable MakePointerVariable(Id id, const ShaderVariable *v, uint8_t scalar0 = 0xff,
                                      uint8_t scalar1 = 0xff) const;
+  ShaderVariable MakeTypedPointer(uint64_t value, const DataType &type) const;
   Id GetPointerBaseId(const ShaderVariable &v) const;
+  uint32_t GetPointerArrayStride(const ShaderVariable &ptr) const;
   bool IsOpaquePointer(const ShaderVariable &v) const;
+  bool IsPhysicalPointer(const ShaderVariable &v) const;
+
   bool ArePointersAndEqual(const ShaderVariable &a, const ShaderVariable &b) const;
   void WriteThroughPointer(ShaderVariable &ptr, const ShaderVariable &val);
   ShaderVariable MakeCompositePointer(const ShaderVariable &base, Id id, rdcarray<uint32_t> &indices);
@@ -452,6 +462,9 @@ private:
   rdcarray<InstructionSourceInfo> m_InstInfo;
 
   SparseIdMap<uint32_t> labelInstruction;
+
+  SparseIdMap<uint16_t> idToPointerType;
+  rdcarray<rdcspv::Id> pointerTypeToId;
 
   // the live mutable global variables, to initialise a stack frame's live list
   rdcarray<Id> liveGlobals;
