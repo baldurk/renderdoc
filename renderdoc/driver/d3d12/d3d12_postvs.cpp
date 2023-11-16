@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include "driver/dxgi/dxgi_common.h"
+#include "replay/replay_driver.h"
 #include "strings/string_utils.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
@@ -734,47 +735,12 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
     for(uint64_t i = 1; numPosComponents == 4 && i < numPrims; i++)
     {
-      //////////////////////////////////////////////////////////////////////////////////
-      // derive near/far, assuming a standard perspective matrix
-      //
-      // the transformation from from pre-projection {Z,W} to post-projection {Z,W}
-      // is linear. So we can say Zpost = Zpre*m + c . Here we assume Wpre = 1
-      // and we know Wpost = Zpre from the perspective matrix.
-      // we can then see from the perspective matrix that
-      // m = F/(F-N)
-      // c = -(F*N)/(F-N)
-      //
-      // with re-arranging and substitution, we then get:
-      // N = -c/m
-      // F = c/(1-m)
-      //
-      // so if we can derive m and c then we can determine N and F. We can do this with
-      // two points, and we pick them reasonably distinct on z to reduce floating-point
-      // error
-
       Vec4f *pos = (Vec4f *)(byteData + i * stride);
 
-      if(fabs(pos->w - pos0->w) > 0.01f && fabs(pos->z - pos0->z) > 0.01f)
-      {
-        Vec2f A(pos0->w, pos0->z);
-        Vec2f B(pos->w, pos->z);
+      DeriveNearFar(*pos, *pos0, nearp, farp, found);
 
-        float m = (B.y - A.y) / (B.x - A.x);
-        float c = B.y - B.x * m;
-
-        if(m == 1.0f || c == 0.0f)
-          continue;
-
-        if(-c / m <= 0.000001f)
-          continue;
-
-        nearp = -c / m;
-        farp = c / (1 - m);
-
-        found = true;
-
+      if(found)
         break;
-      }
     }
 
     // if we didn't find anything, all z's and w's were identical.
@@ -1324,47 +1290,12 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
     for(UINT64 i = 1; numPosComponents == 4 && i < numVerts; i++)
     {
-      //////////////////////////////////////////////////////////////////////////////////
-      // derive near/far, assuming a standard perspective matrix
-      //
-      // the transformation from from pre-projection {Z,W} to post-projection {Z,W}
-      // is linear. So we can say Zpost = Zpre*m + c . Here we assume Wpre = 1
-      // and we know Wpost = Zpre from the perspective matrix.
-      // we can then see from the perspective matrix that
-      // m = F/(F-N)
-      // c = -(F*N)/(F-N)
-      //
-      // with re-arranging and substitution, we then get:
-      // N = -c/m
-      // F = c/(1-m)
-      //
-      // so if we can derive m and c then we can determine N and F. We can do this with
-      // two points, and we pick them reasonably distinct on z to reduce floating-point
-      // error
-
       Vec4f *pos = (Vec4f *)(byteData + i * stride);
 
-      if(fabs(pos->w - pos0->w) > 0.01f && fabs(pos->z - pos0->z) > 0.01f)
-      {
-        Vec2f A(pos0->w, pos0->z);
-        Vec2f B(pos->w, pos->z);
+      DeriveNearFar(*pos, *pos0, nearp, farp, found);
 
-        float m = (B.y - A.y) / (B.x - A.x);
-        float c = B.y - B.x * m;
-
-        if(m == 1.0f || c == 0.0f)
-          continue;
-
-        if(-c / m <= 0.000001f)
-          continue;
-
-        nearp = -c / m;
-        farp = c / (1 - m);
-
-        found = true;
-
+      if(found)
         break;
-      }
     }
 
     // if we didn't find anything, all z's and w's were identical.

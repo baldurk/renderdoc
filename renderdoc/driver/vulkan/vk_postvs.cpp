@@ -28,6 +28,7 @@
 #include "core/settings.h"
 #include "driver/shaders/spirv/spirv_editor.h"
 #include "driver/shaders/spirv/spirv_op_helpers.h"
+#include "replay/replay_driver.h"
 #include "vk_core.h"
 #include "vk_debug.h"
 #include "vk_replay.h"
@@ -2811,50 +2812,14 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   // and position is the first value
 
   for(uint32_t i = 1;
-      refl->outputSignature[0].systemValue == ShaderBuiltin::Position && i < numVerts; i++)
+      refl->outputSignature[0].systemValue == ShaderBuiltin::Position && !found && i < numVerts; i++)
   {
-    //////////////////////////////////////////////////////////////////////////////////
-    // derive near/far, assuming a standard perspective matrix
-    //
-    // the transformation from from pre-projection {Z,W} to post-projection {Z,W}
-    // is linear. So we can say Zpost = Zpre*m + c . Here we assume Wpre = 1
-    // and we know Wpost = Zpre from the perspective matrix.
-    // we can then see from the perspective matrix that
-    // m = F/(F-N)
-    // c = -(F*N)/(F-N)
-    //
-    // with re-arranging and substitution, we then get:
-    // N = -c/m
-    // F = c/(1-m)
-    //
-    // so if we can derive m and c then we can determine N and F. We can do this with
-    // two points, and we pick them reasonably distinct on z to reduce floating-point
-    // error
-
     Vec4f *pos = (Vec4f *)(byteData + i * bufStride);
 
-    // skip invalid vertices (w=0)
-    if(pos->w != 0.0f && fabs(pos->w - pos0->w) > 0.01f && fabs(pos->z - pos0->z) > 0.01f)
-    {
-      Vec2f A(pos0->w, pos0->z);
-      Vec2f B(pos->w, pos->z);
+    DeriveNearFar(*pos, *pos0, nearp, farp, found);
 
-      float m = (B.y - A.y) / (B.x - A.x);
-      float c = B.y - B.x * m;
-
-      if(m == 1.0f || c == 0.0f)
-        continue;
-
-      if(-c / m <= 0.000001f)
-        continue;
-
-      nearp = -c / m;
-      farp = c / (1 - m);
-
-      found = true;
-
+    if(found)
       break;
-    }
   }
 
   // if we didn't find anything, all z's and w's were identical.
@@ -3408,50 +3373,10 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     if(readbackoffset == 0)
       memcpy(&pos0, data.data(), sizeof(pos0));
 
-    for(uint32_t i = 0; i < data.size() / xfbStride; i++)
+    for(uint32_t i = 0; !found && i < data.size() / xfbStride; i++)
     {
-      //////////////////////////////////////////////////////////////////////////////////
-      // derive near/far, assuming a standard perspective matrix
-      //
-      // the transformation from from pre-projection {Z,W} to post-projection {Z,W}
-      // is linear. So we can say Zpost = Zpre*m + c . Here we assume Wpre = 1
-      // and we know Wpost = Zpre from the perspective matrix.
-      // we can then see from the perspective matrix that
-      // m = F/(F-N)
-      // c = -(F*N)/(F-N)
-      //
-      // with re-arranging and substitution, we then get:
-      // N = -c/m
-      // F = c/(1-m)
-      //
-      // so if we can derive m and c then we can determine N and F. We can do this with
-      // two points, and we pick them reasonably distinct on z to reduce floating-point
-      // error
-
       Vec4f *pos = (Vec4f *)(data.data() + xfbStride * i);
-
-      // skip invalid vertices (w=0)
-      if(pos->w != 0.0f && fabs(pos->w - pos0.w) > 0.01f && fabs(pos->z - pos0.z) > 0.01f)
-      {
-        Vec2f A(pos0.w, pos0.z);
-        Vec2f B(pos->w, pos->z);
-
-        float m = (B.y - A.y) / (B.x - A.x);
-        float c = B.y - B.x * m;
-
-        if(m == 1.0f || c == 0.0f)
-          continue;
-
-        if(-c / m <= 0.000001f)
-          continue;
-
-        nearp = -c / m;
-        farp = c / (1 - m);
-
-        found = true;
-
-        break;
-      }
+      DeriveNearFar(*pos, pos0, nearp, farp, found);
     }
 
     if(found)

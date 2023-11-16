@@ -369,3 +369,5 @@ static constexpr uint32_t DiscardPatternHeight = 8;
 // returns a pattern to fill the texture with
 bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t rowPitch = 1,
                           bool invert = false);
+
+void DeriveNearFar(Vec4f pos, Vec4f pos0, float &nearp, float &farp, bool &found);

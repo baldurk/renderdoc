@@ -23,6 +23,8 @@
  ******************************************************************************/
 
 #include "replay_driver.h"
+#include <float.h>
+#include <math.h>
 #include "compressonator/CMP_Core.h"
 #include "maths/formatpacking.h"
 #include "maths/half_convert.h"
@@ -1801,4 +1803,46 @@ bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t 
   }
 
   return ret;
+}
+
+void DeriveNearFar(Vec4f pos, Vec4f pos0, float &nearp, float &farp, bool &found)
+{
+  //////////////////////////////////////////////////////////////////////////////////
+  // derive near/far, assuming a standard perspective matrix
+  //
+  // the transformation from from pre-projection {Z,W} to post-projection {Z,W}
+  // is linear. So we can say Zpost = Zpre*m + c . Here we assume Wpre = 1
+  // and we know Wpost = Zpre from the perspective matrix.
+  // we can then see from the perspective matrix that
+  // m = F/(F-N)
+  // c = -(F*N)/(F-N)
+  //
+  // with re-arranging and substitution, we then get:
+  // N = -c/m
+  // F = c/(1-m)
+  //
+  // so if we can derive m and c then we can determine N and F. We can do this with
+  // two points, and we pick them reasonably distinct on z to reduce floating-point
+  // error
+
+  // skip invalid vertices (w=0)
+  if(pos.w != 0.0f && fabsf(pos.w - pos0.w) > 0.01f && fabsf(pos.z - pos0.z) > 0.01f)
+  {
+    Vec2f A(pos0.w, pos0.z);
+    Vec2f B(pos.w, pos.z);
+
+    float m = (B.y - A.y) / (B.x - A.x);
+    float c = B.y - B.x * m;
+
+    if(m == 1.0f || c == 0.0f)
+      return;
+
+    if(-c / m <= 0.000001f)
+      return;
+
+    nearp = -c / m;
+    farp = c / (1 - m);
+
+    found = true;
+  }
 }
