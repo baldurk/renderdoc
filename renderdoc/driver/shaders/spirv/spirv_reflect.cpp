@@ -468,6 +468,21 @@ StructSizes CalculateStructProps(uint32_t emptyStructSize, const ShaderConstant 
   return ret;
 }
 
+void CalculateScalarLayout(uint32_t offset, rdcarray<ShaderConstant> &consts)
+{
+  for(size_t i = 0; i < consts.size(); i++)
+  {
+    consts[i].byteOffset = offset;
+
+    CalculateScalarLayout(offset, consts[i].type.members);
+
+    StructSizes sizes = CalculateStructProps(1, consts[i]);
+    if(consts[i].type.elements > 1)
+      consts[i].type.arrayByteStride = sizes.scalarSize / consts[i].type.elements;
+    offset += sizes.scalarSize;
+  }
+}
+
 namespace rdcspv
 {
 Reflector::Reflector()
@@ -857,7 +872,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   }
 
   // pick up execution mode size
-  if(stage == ShaderStage::Compute)
+  if(stage == ShaderStage::Compute || stage == ShaderStage::Task || stage == ShaderStage::Mesh)
   {
     const EntryPoint &e = *entry;
 
@@ -1082,6 +1097,9 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   // $Globals gathering - for GL global values
   ConstantBlock globalsblock;
 
+  // for mesh shaders, the task-mesh communication payload
+  ConstantBlock taskPayloadBlock;
+
   // specialisation constant gathering
   ConstantBlock specblock;
 
@@ -1222,7 +1240,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
             global.storage == StorageClass::UniformConstant ||
             global.storage == StorageClass::AtomicCounter ||
             global.storage == StorageClass::StorageBuffer ||
-            global.storage == StorageClass::PushConstant)
+            global.storage == StorageClass::PushConstant ||
+            global.storage == StorageClass::TaskPayloadWorkgroupEXT)
     {
       // variable type must be a pointer of the same storage class
       RDCASSERT(dataTypes[global.type].type == DataType::PointerType);
@@ -1250,6 +1269,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
                         (decorations[varType->id].flags & Decorations::BufferBlock);
       const bool pushConst = (global.storage == StorageClass::PushConstant);
       const bool atomicCounter = (global.storage == StorageClass::AtomicCounter);
+      const bool taskPayload = (global.storage == StorageClass::TaskPayloadWorkgroupEXT);
 
       rdcspv::StorageClass effectiveStorage = global.storage;
       if(ssbo)
@@ -1392,6 +1412,18 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
           globalsblock.variables.push_back(constant);
         }
+        else if(taskPayload)
+        {
+          taskPayloadBlock.name = strings[global.id];
+          if(taskPayloadBlock.name.empty())
+            taskPayloadBlock.name = StringFormat::Fmt("payload%u", global.id.value());
+          taskPayloadBlock.bufferBacked = false;
+
+          MakeConstantBlockVariables(effectiveStorage, *varType, 0, 0, taskPayloadBlock.variables,
+                                     pointerTypes, specInfo);
+
+          CalculateScalarLayout(0, taskPayloadBlock.variables);
+        }
         else
         {
           // on Vulkan should never have elements that have no binding declared but are used, unless
@@ -1513,6 +1545,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     cblocks.push_back(cblockpair(bindmap, globalsblock));
   }
 
+  reflection.taskPayload = taskPayloadBlock;
+
   // look for execution modes that affect the reflection and apply them
   {
     const EntryPoint &e = *entry;
@@ -1534,7 +1568,14 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       }
     }
 
-    patchData.outTopo = e.executionModes.outTopo;
+    reflection.outputTopology = e.executionModes.outTopo;
+
+    if(e.executionModes.others.contains(rdcspv::ExecutionMode::OutputPoints))
+      reflection.outputTopology = Topology::PointList;
+    else if(e.executionModes.others.contains(rdcspv::ExecutionMode::OutputLinesEXT))
+      reflection.outputTopology = Topology::LineList;
+    else if(e.executionModes.others.contains(rdcspv::ExecutionMode::OutputTrianglesEXT))
+      reflection.outputTopology = Topology::TriangleList;
   }
 
   for(auto it = extSets.begin(); it != extSets.end(); it++)

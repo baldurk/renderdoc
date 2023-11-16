@@ -2990,7 +2990,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   uint32_t primitiveMultiplier = 1;
 
   // transform feedback expands strips to lists
-  switch(pipeInfo.shaders[stageIndex].patchData->outTopo)
+  switch(lastRefl->outputTopology)
   {
     case Topology::PointList: ret.gsout.topo = VK_PRIMITIVE_TOPOLOGY_POINT_LIST; break;
     case Topology::LineList:
@@ -2999,8 +2999,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
       primitiveMultiplier = 2;
       break;
     default:
-      RDCERR("Unexpected output topology %s",
-             ToStr(pipeInfo.shaders[stageIndex].patchData->outTopo).c_str());
+      RDCERR("Unexpected output topology %s", ToStr(lastRefl->outputTopology).c_str());
       DELIBERATE_FALLTHROUGH();
     case Topology::TriangleList:
     case Topology::TriangleStrip:
