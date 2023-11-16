@@ -1474,6 +1474,21 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
   }
 }
 
+struct OutSigLocation
+{
+  uint32_t offset;
+  uint32_t stride;
+};
+
+struct OutMeshletLayout
+{
+  rdcarray<OutSigLocation> sigLocations;
+  uint32_t meshletByteSize;
+  uint32_t indexCountPerPrim;
+  uint32_t vertArrayLength;
+  uint32_t primArrayLength;
+};
+
 static void LayOutStorageStruct(rdcspv::Editor &editor, const rdcarray<SpecConstant> &specInfo,
                                 rdcspv::SparseIdMap<rdcspv::Id> &outputTypeReplacements,
                                 const rdcspv::DataType &type, rdcspv::Id &structType,
@@ -2136,11 +2151,653 @@ static void ConvertToFixedTaskFeeder(const rdcarray<SpecConstant> &specInfo,
   }
 }
 
+static void AddMeshShaderOutputStores(const ShaderReflection &refl,
+                                      const rdcarray<SpecConstant> &specInfo,
+                                      const SPIRVPatchData &patchData, const rdcstr &entryName,
+                                      uint32_t outSpecConstant, rdcarray<uint32_t> &modSpirv,
+                                      bool readTaskOffset, OutMeshletLayout &layout)
+{
+  rdcspv::Editor editor(modSpirv);
+
+  editor.Prepare();
+
+  rdcspv::Id baseAddrId;
+  rdcspv::Id outSlotAddr;
+  rdcspv::Id boolType = editor.DeclareType(rdcspv::scalar<bool>());
+  rdcspv::Id uint32Type = editor.DeclareType(rdcspv::scalar<uint32_t>());
+  rdcspv::Id uint32PayloadPtrType =
+      editor.DeclareType(rdcspv::Pointer(uint32Type, rdcspv::StorageClass::TaskPayloadWorkgroupEXT));
+  rdcspv::Id uvec2Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 2));
+  rdcspv::Id uvec3Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 3));
+  rdcspv::Id uvec2PtrType =
+      editor.DeclareType(rdcspv::Pointer(uvec2Type, rdcspv::StorageClass::PhysicalStorageBuffer));
+  rdcspv::Id uint64Type = editor.DeclareType(rdcspv::scalar<uint64_t>());
+
+  rdcspv::Id zeroU32 = editor.AddConstantImmediate<uint32_t>(0);
+  rdcspv::Id oneU32 = editor.AddConstantImmediate<uint32_t>(1);
+  rdcspv::Id zeroU64 = editor.AddConstantImmediate<uint64_t>(0);
+  rdcspv::Id sixteenU64 = editor.AddConstantImmediate<uint64_t>(16);
+
+  {
+    rdcspv::Id uint64ptrtype =
+        editor.DeclareType(rdcspv::Pointer(uint64Type, rdcspv::StorageClass::Private));
+
+    outSlotAddr = editor.AddVariable(
+        rdcspv::OpVariable(uint64ptrtype, editor.MakeId(), rdcspv::StorageClass::Private));
+    editor.SetName(outSlotAddr, "outSlot");
+  }
+
+  // set up BDA if it's not already used
+  {
+    editor.AddExtension("SPV_KHR_physical_storage_buffer");
+
+    rdcspv::Iter it = editor.Begin(rdcspv::Section::MemoryModel);
+    rdcspv::OpMemoryModel model(it);
+    model.addressingModel = rdcspv::AddressingModel::PhysicalStorageBuffer64;
+    it = model;
+
+    editor.AddCapability(rdcspv::Capability::PhysicalStorageBufferAddresses);
+    editor.AddCapability(rdcspv::Capability::Int64);
+
+    baseAddrId = editor.AddSpecConstantImmediate<uint64_t>(0U, outSpecConstant);
+    editor.SetName(baseAddrId, "baseAddr");
+  }
+
+  rdcarray<rdcspv::Id> newGlobals;
+
+  newGlobals.push_back(outSlotAddr);
+
+  rdcspv::Id indextype;
+  uint32_t indexCount = 3;
+  for(const SigParameter &sig : refl.outputSignature)
+  {
+    if(sig.systemValue == ShaderBuiltin::OutputIndices)
+    {
+      indexCount = sig.compCount;
+      indextype = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), sig.compCount));
+    }
+  }
+
+  rdcspv::Id entryID;
+
+  for(const rdcspv::EntryPoint &entry : editor.GetEntries())
+  {
+    if(entry.name == entryName && entry.executionModel == rdcspv::ExecutionModel::MeshEXT)
+      entryID = entry.id;
+  }
+
+  RDCASSERT(entryID);
+
+  rdcspv::Id payloadId;
+  rdcspv::Id payloadStructId;
+  uint32_t taskOffsetIndex = 0;
+
+  if(readTaskOffset)
+  {
+    rdcspv::Iter it = editor.GetEntry(entryID);
+
+    RDCASSERT(it.opcode() == rdcspv::Op::EntryPoint);
+
+    rdcspv::OpEntryPoint entry(it);
+
+    for(rdcspv::Id id : entry.iface)
+    {
+      const rdcspv::DataType &type = editor.GetDataType(editor.GetIDType(id));
+
+      if(type.type == rdcspv::DataType::PointerType &&
+         type.pointerType.storage == rdcspv::StorageClass::TaskPayloadWorkgroupEXT)
+      {
+        payloadId = id;
+        payloadStructId = type.InnerType();
+        break;
+      }
+    }
+
+    // append the uint offset to the payload struct type. This should not interfere with any other
+    // definitions used anywhere else
+    if(payloadId != rdcspv::Id())
+    {
+      it = editor.GetID(payloadStructId);
+
+      rdcspv::OpTypeStruct structType(it);
+      taskOffsetIndex = (uint32_t)structType.members.size();
+      structType.members.push_back(uint32Type);
+
+      // this is a bit of a hack, we use AddOperation to ensure the struct is in the same order
+      // rather than AddType which adds it at the end of the types
+      editor.Remove(it);
+      editor.AddOperation(it, structType);
+      editor.PostModify(it);
+    }
+    else
+    {
+      // if there was no payload, create our own with just the offset
+      payloadStructId = editor.AddType(rdcspv::OpTypeStruct(editor.MakeId(), {uint32Type}));
+
+      rdcspv::Id taskPtrType = editor.DeclareType(
+          rdcspv::Pointer(payloadStructId, rdcspv::StorageClass::TaskPayloadWorkgroupEXT));
+
+      payloadId = editor.AddVariable(rdcspv::OpVariable(
+          taskPtrType, editor.MakeId(), rdcspv::StorageClass::TaskPayloadWorkgroupEXT));
+
+      newGlobals.push_back(payloadId);
+    }
+  }
+
+  uint32_t primOutByteCount = 0;
+  uint32_t vertOutByteCount = 0;
+
+  struct OutputGlobal
+  {
+    uint32_t offset;
+    bool perPrim;
+    bool indices;
+    uint32_t arrayStride;
+  };
+  rdcspv::SparseIdMap<OutputGlobal> outputGlobals;
+  rdcspv::SparseIdMap<rdcspv::Id> outputTypeReplacements;
+
+  // iterate over all output variables and assign locations in the output data stream, as well as
+  // creating correctly typed structures (with offsets) and a BDA pointer type to use instead
+  // whenever any of these variables are referenced.
+  for(const rdcspv::Variable &var : editor.GetGlobals())
+  {
+    if(var.storage != rdcspv::StorageClass::Output)
+      continue;
+
+    const rdcspv::Decorations &d = editor.GetDecorations(var.id);
+    // global variables are all pointers
+    const rdcspv::DataType &pointerType = editor.GetDataType(editor.GetIDType(var.id));
+    RDCASSERT(pointerType.type == rdcspv::DataType::PointerType);
+
+    // in mesh shaders, all output vairables are arrays
+    const rdcspv::DataType &arrayType = editor.GetDataType(pointerType.InnerType());
+
+    RDCASSERT(arrayType.type == rdcspv::DataType::ArrayType);
+    const rdcspv::DataType &type = editor.GetDataType(arrayType.InnerType());
+
+    uint32_t arrayLength = editor.EvaluateConstant(arrayType.length, specInfo).value.u32v[0];
+
+    rdcspv::Id arrayInnerType = arrayType.InnerType();
+
+    uint32_t byteSize = 1;
+    uint32_t stride = 1;
+
+    if(type.type == rdcspv::DataType::StructType)
+    {
+      LayOutStorageStruct(editor, specInfo, outputTypeReplacements, type, arrayInnerType, byteSize);
+
+      stride = byteSize;
+
+      byteSize *= arrayLength;
+
+      uint32_t offset = 0;
+      bool perPrim = false;
+
+      if(d.others.contains(rdcspv::Decoration::PerPrimitiveEXT))
+      {
+        primOutByteCount = AlignUp16(primOutByteCount);
+        offset = primOutByteCount;
+        perPrim = true;
+        primOutByteCount += byteSize;
+      }
+      else
+      {
+        vertOutByteCount = AlignUp16(vertOutByteCount);
+        offset = vertOutByteCount;
+        perPrim = false;
+        vertOutByteCount += byteSize;
+      }
+
+      outputGlobals[var.id] = {
+          offset,
+          perPrim,
+          false,
+          stride,
+      };
+    }
+    else
+    {
+      // loose variable
+      const uint32_t scalarAlign = VarTypeByteSize(type.scalar().Type());
+      byteSize = scalarAlign;
+      if(type.type == rdcspv::DataType::VectorType)
+        byteSize = scalarAlign * type.vector().count;
+
+      stride = byteSize;
+
+      uint32_t offset = 0;
+      bool perPrim = false;
+      bool indices = false;
+
+      if(d.builtIn == rdcspv::BuiltIn::PrimitivePointIndicesEXT ||
+         d.builtIn == rdcspv::BuiltIn::PrimitiveLineIndicesEXT ||
+         d.builtIn == rdcspv::BuiltIn::PrimitiveTriangleIndicesEXT)
+      {
+        indices = true;
+      }
+      else if(d.others.contains(rdcspv::Decoration::PerPrimitiveEXT))
+      {
+        primOutByteCount = AlignUp(primOutByteCount, scalarAlign);
+        offset = primOutByteCount;
+        perPrim = true;
+        primOutByteCount += byteSize * arrayLength;
+      }
+      else
+      {
+        vertOutByteCount = AlignUp(vertOutByteCount, scalarAlign);
+        offset = vertOutByteCount;
+        perPrim = false;
+        vertOutByteCount += byteSize * arrayLength;
+      }
+
+      outputGlobals[var.id] = {
+          offset,
+          perPrim,
+          indices,
+          stride,
+      };
+    }
+
+    // redeclare the array so we can decorate it with a stride
+    rdcspv::Id stridedArrayType =
+        editor.AddType(rdcspv::OpTypeArray(editor.MakeId(), arrayInnerType, arrayType.length));
+    editor.SetName(stridedArrayType, StringFormat::Fmt("stridedArray%d", arrayType.id.value()));
+
+    editor.AddDecoration(rdcspv::OpDecorate(
+        stridedArrayType, rdcspv::DecorationParam<rdcspv::Decoration::ArrayStride>(stride)));
+
+    outputTypeReplacements[arrayType.id] = stridedArrayType;
+  }
+
+  // for every output pointer type, declare an equivalent BDA pointer type
+  for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Types),
+                   end = editor.End(rdcspv::Section::Types);
+      it < end; ++it)
+  {
+    if(it.opcode() == rdcspv::Op::TypePointer)
+    {
+      rdcspv::OpTypePointer ptr(it);
+
+      if(ptr.storageClass == rdcspv::StorageClass::Output)
+      {
+        rdcspv::Id inner = ptr.type;
+        auto replace = outputTypeReplacements.find(ptr.type);
+        if(replace != outputTypeReplacements.end())
+          inner = replace->second;
+
+        if(editor.GetDataType(inner).scalar().type == rdcspv::Op::TypeBool)
+          inner = editor.GetType(rdcspv::scalar<uint32_t>());
+
+        outputTypeReplacements[ptr.result] =
+            editor.DeclareType(rdcspv::Pointer(inner, rdcspv::StorageClass::PhysicalStorageBuffer));
+      }
+    }
+  }
+
+  primOutByteCount = AlignUp16(primOutByteCount);
+  vertOutByteCount = AlignUp16(vertOutByteCount);
+
+  for(auto &it : outputGlobals)
+  {
+    // prim/vert counts
+    it.second.offset += 32;
+
+    // indices
+    if(!it.second.indices)
+      it.second.offset +=
+          AlignUp16(patchData.maxPrimitives * indexCount * (uint32_t)sizeof(uint32_t));
+
+    // per-vertex data
+    if(it.second.perPrim)
+    {
+      it.second.offset += vertOutByteCount;
+    }
+  }
+
+  layout.sigLocations.resize(refl.outputSignature.size());
+  for(size_t i = 0; i < refl.outputSignature.size(); i++)
+  {
+    const SigParameter &sig = refl.outputSignature[i];
+    const SPIRVInterfaceAccess &iface = patchData.outputs[i];
+
+    auto glob = outputGlobals.find(iface.ID);
+
+    if(glob == outputGlobals.end())
+    {
+      RDCERR("Couldn't find global for out signature '%s' (location %u)", sig.varName.c_str(),
+             sig.regIndex);
+      continue;
+    }
+
+    layout.sigLocations[i].offset = glob->second.offset;
+    layout.sigLocations[i].stride = glob->second.arrayStride;
+
+    rdcspv::DataType *type = &editor.GetDataType(editor.GetIDType(iface.ID));
+    RDCASSERT(type->type == rdcspv::DataType::PointerType);
+
+    type = &editor.GetDataType(type->InnerType());
+    RDCASSERT(type->type == rdcspv::DataType::ArrayType);
+
+    rdcspv::Id laidStruct = outputTypeReplacements[type->id];
+    RDCASSERT(laidStruct != rdcspv::Id());
+
+    type = &editor.GetDataType(laidStruct);
+    RDCASSERT(type->type == rdcspv::DataType::ArrayType);
+
+    // the access chain should always start with a 0 for the array for outputs, this will be
+    // effectively skipped below
+    rdcarray<uint32_t> memberChain = iface.accessChain;
+    while(!memberChain.empty())
+    {
+      uint32_t memberIdx = memberChain.takeAt(0);
+
+      if(type->type == rdcspv::DataType::ArrayType)
+      {
+        const rdcspv::Decorations &typeDec = editor.GetDecorations(type->id);
+        RDCASSERT(typeDec.flags & rdcspv::Decorations::HasArrayStride);
+        layout.sigLocations[i].offset += typeDec.arrayStride * memberIdx;
+        type = &editor.GetDataType(type->InnerType());
+        continue;
+      }
+
+      if(memberIdx >= type->children.size())
+      {
+        RDCERR(
+            "Encountered unexpected child list at type %u looking for member %u for "
+            "signature '%s' (location %u)",
+            type->id.value(), memberIdx, sig.varName.c_str(), sig.regIndex);
+        break;
+      }
+
+      RDCASSERT(type->children[memberIdx].decorations.flags & rdcspv::Decorations::HasOffset);
+      layout.sigLocations[i].offset += type->children[memberIdx].decorations.offset;
+      type = &editor.GetDataType(type->children[memberIdx].type);
+    }
+  }
+
+  layout.primArrayLength = patchData.maxPrimitives;
+  layout.vertArrayLength = patchData.maxVertices;
+  layout.indexCountPerPrim = indexCount;
+  layout.meshletByteSize =
+      // real and fake meshlet size (prim/vert count)
+      32 +
+      // indices
+      (uint32_t)AlignUp16(patchData.maxPrimitives * indexCount * sizeof(uint32_t)) +
+      // per-vertex data
+      vertOutByteCount +
+      // per-primitive data
+      primOutByteCount;
+
+  // calculate base address for our meshlet's data
+  {
+    rdcspv::OperationList locationCalculate;
+
+    {
+      rdcspv::Id uint3Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 3));
+      rdcspv::Id groupIdx, dispatchSize, newGlobal;
+
+      rdctie(groupIdx, newGlobal) = editor.AddBuiltinInputLoad(
+          locationCalculate, ShaderStage::Mesh, rdcspv::BuiltIn::WorkgroupId, uint3Type);
+      if(newGlobal != rdcspv::Id())
+        newGlobals.push_back(newGlobal);
+      rdctie(dispatchSize, newGlobal) = editor.AddBuiltinInputLoad(
+          locationCalculate, ShaderStage::Mesh, rdcspv::BuiltIn::NumWorkgroups, uint3Type);
+      if(newGlobal != rdcspv::Id())
+        newGlobals.push_back(newGlobal);
+
+      // x + y * xsize + z * xsize * ysize
+
+      rdcspv::Id xsize = locationCalculate.add(
+          rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), dispatchSize, {0}));
+      rdcspv::Id ysize = locationCalculate.add(
+          rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), dispatchSize, {1}));
+
+      rdcspv::Id xflat = locationCalculate.add(
+          rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), groupIdx, {0}));
+      rdcspv::Id yflat = locationCalculate.add(
+          rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), groupIdx, {1}));
+      rdcspv::Id zflat = locationCalculate.add(
+          rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), groupIdx, {2}));
+
+      rdcspv::Id xysize =
+          locationCalculate.add(rdcspv::OpIMul(uint32Type, editor.MakeId(), xsize, ysize));
+
+      yflat = locationCalculate.add(rdcspv::OpIMul(uint32Type, editor.MakeId(), yflat, xsize));
+      zflat = locationCalculate.add(rdcspv::OpIMul(uint32Type, editor.MakeId(), zflat, xysize));
+
+      rdcspv::Id flatIndex =
+          locationCalculate.add(rdcspv::OpIAdd(uint32Type, editor.MakeId(), xflat, yflat));
+      flatIndex =
+          locationCalculate.add(rdcspv::OpIAdd(uint32Type, editor.MakeId(), flatIndex, zflat));
+
+      rdcspv::Id total_stride = editor.AddConstantImmediate<uint64_t>(layout.meshletByteSize);
+
+      rdcspv::Id idx64 =
+          locationCalculate.add(rdcspv::OpUConvert(uint64Type, editor.MakeId(), flatIndex));
+
+      if(readTaskOffset)
+      {
+        rdcspv::Id taskOffsetPtr = locationCalculate.add(
+            rdcspv::OpAccessChain(uint32PayloadPtrType, editor.MakeId(), payloadId,
+                                  {editor.AddConstantImmediate<uint32_t>(taskOffsetIndex)}));
+        rdcspv::Id taskOffset =
+            locationCalculate.add(rdcspv::OpLoad(uint32Type, editor.MakeId(), taskOffsetPtr));
+        taskOffset =
+            locationCalculate.add(rdcspv::OpUConvert(uint64Type, editor.MakeId(), taskOffset));
+        idx64 = locationCalculate.add(rdcspv::OpIAdd(uint64Type, editor.MakeId(), idx64, taskOffset));
+      }
+
+      rdcspv::Id offset =
+          locationCalculate.add(rdcspv::OpIMul(uint64Type, editor.MakeId(), total_stride, idx64));
+
+      rdcspv::Id addr =
+          locationCalculate.add(rdcspv::OpIAdd(uint64Type, editor.MakeId(), baseAddrId, offset));
+
+      locationCalculate.add(rdcspv::OpStore(outSlotAddr, addr));
+    }
+
+    rdcspv::Iter it = editor.GetID(entryID);
+    RDCASSERT(it.opcode() == rdcspv::Op::Function);
+    ++it;
+
+    // continue to the first label so we can insert things at the start of the entry point
+    for(; it; ++it)
+    {
+      if(it.opcode() == rdcspv::Op::Label)
+      {
+        ++it;
+        break;
+      }
+    }
+
+    // skip past any local variables
+    while(it.opcode() == rdcspv::Op::Variable)
+      ++it;
+
+    editor.AddOperations(it, locationCalculate);
+  }
+
+  // ensure the variable is declared
+  {
+    rdcspv::OperationList ops;
+    rdcspv::Id threadIndex, newGlobal;
+    rdctie(threadIndex, newGlobal) = editor.AddBuiltinInputLoad(
+        ops, ShaderStage::Mesh, rdcspv::BuiltIn::LocalInvocationIndex, uint32Type);
+    if(newGlobal != rdcspv::Id())
+      newGlobals.push_back(newGlobal);
+  }
+
+  // add the globals we registered
+  {
+    rdcspv::Iter it = editor.GetEntry(entryID);
+
+    RDCASSERT(it.opcode() == rdcspv::Op::EntryPoint);
+
+    rdcspv::OpEntryPoint entry(it);
+
+    editor.Remove(it);
+
+    entry.iface.append(newGlobals);
+
+    editor.AddOperation(it, entry);
+  }
+
+  // take every store or access chain to an output pointer and patch it
+  // also look for OpSetMeshOutputsEXT which will be called precisely once, and patch it to store
+  // the values to our data (and emit 0/0)
+  for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Functions);
+      it < editor.End(rdcspv::Section::Functions); ++it)
+  {
+    if(it.opcode() == rdcspv::Op::SetMeshOutputsEXT)
+    {
+      rdcspv::OpSetMeshOutputsEXT setOuts(it);
+
+      rdcspv::OperationList ops;
+
+      rdcspv::Id threadIndex, newGlobal;
+      rdctie(threadIndex, newGlobal) = editor.AddBuiltinInputLoad(
+          ops, ShaderStage::Mesh, rdcspv::BuiltIn::LocalInvocationIndex, uint32Type);
+
+      rdcspv::Id threadIndexIsZero =
+          ops.add(rdcspv::OpIEqual(boolType, editor.MakeId(), threadIndex, zeroU32));
+
+      // to avoid messing up phi nodes in the application where this is called, we do this
+      // branchless by either writing to offset 0 (for threadIndex == 0) or offset 16 (for
+      // threadIndex > 0). Then we can ignore the second one
+      rdcspv::Id byteOffset = ops.add(
+          rdcspv::OpSelect(uint64Type, editor.MakeId(), threadIndexIsZero, zeroU64, sixteenU64));
+
+      rdcspv::Id baseAddr = ops.add(rdcspv::OpLoad(uint64Type, editor.MakeId(), outSlotAddr));
+
+      rdcspv::Id sizeAddr =
+          ops.add(rdcspv::OpIAdd(uint64Type, editor.MakeId(), baseAddr, byteOffset));
+      rdcspv::Id ptr = ops.add(rdcspv::OpConvertUToPtr(uvec2PtrType, editor.MakeId(), sizeAddr));
+
+      rdcspv::MemoryAccessAndParamDatas memoryAccess;
+      memoryAccess.setAligned(sizeof(uint32_t));
+
+      rdcspv::Id vals = ops.add(rdcspv::OpCompositeConstruct(
+          uvec2Type, editor.MakeId(), {setOuts.vertexCount, setOuts.primitiveCount}));
+      ops.add(rdcspv::OpStore(ptr, vals, memoryAccess));
+
+      it = editor.AddOperations(it, ops);
+
+      setOuts.primitiveCount = zeroU32;
+      setOuts.vertexCount = zeroU32;
+
+      editor.PreModify(it);
+      it = setOuts;
+      editor.PostModify(it);
+
+      continue;
+    }
+
+    rdcspv::Id ptr;
+
+    if(it.opcode() == rdcspv::Op::Store)
+    {
+      rdcspv::OpStore store(it);
+      ptr = store.pointer;
+    }
+    else if(it.opcode() == rdcspv::Op::AccessChain || it.opcode() == rdcspv::Op::InBoundsAccessChain)
+    {
+      rdcspv::OpAccessChain chain(it);
+      chain.op = it.opcode();
+      ptr = chain.base;
+
+      const rdcspv::DataType &ptrDataType = editor.GetDataType(chain.resultType);
+
+      // any access chains that produce an output pointer should instead produce a BDA ptr
+      if(ptrDataType.pointerType.storage == rdcspv::StorageClass::Output)
+      {
+        chain.resultType = outputTypeReplacements[chain.resultType];
+
+        editor.PreModify(it);
+        it = chain;
+        editor.PostModify(it);
+      }
+    }
+
+    auto glob = outputGlobals.find(ptr);
+    if(glob != outputGlobals.end())
+    {
+      rdcspv::Id baseAddr =
+          editor.AddOperation(it, rdcspv::OpLoad(uint64Type, editor.MakeId(), outSlotAddr));
+      ++it;
+      rdcspv::Id offsettedAddr = editor.AddOperation(
+          it, rdcspv::OpIAdd(uint64Type, editor.MakeId(), baseAddr,
+                             editor.AddConstantDeferred<uint64_t>(glob->second.offset)));
+      ++it;
+      ptr = editor.AddOperation(
+          it, rdcspv::OpConvertUToPtr(outputTypeReplacements[editor.GetIDType(ptr)],
+                                      editor.MakeId(), offsettedAddr));
+      ++it;
+
+      if(it.opcode() == rdcspv::Op::Store)
+      {
+        rdcspv::OpStore store(it);
+        store.pointer = ptr;
+
+        editor.PreModify(it);
+        it = store;
+        editor.PostModify(it);
+      }
+      else if(it.opcode() == rdcspv::Op::AccessChain || it.opcode() == rdcspv::Op::InBoundsAccessChain)
+      {
+        rdcspv::OpAccessChain chain(it);
+        chain.op = it.opcode();
+        chain.base = ptr;
+
+        editor.PreModify(it);
+        it = chain;
+        editor.PostModify(it);
+      }
+    }
+
+    if(it.opcode() == rdcspv::Op::Store)
+    {
+      rdcspv::OpStore store(it);
+
+      const rdcspv::DataType &ptrDataType = editor.GetDataType(editor.GetIDType(ptr));
+
+      // any OpStores to BDA pointers should have suitable alignment defined. Note that this store
+      // may not be one we patched above so we do this independently (though in many cases, it will
+      // be the one we patched above).
+      if(ptrDataType.pointerType.storage == rdcspv::StorageClass::PhysicalStorageBuffer)
+      {
+        if(editor.GetDataType(editor.GetIDType(store.object)).scalar().type == rdcspv::Op::TypeBool)
+        {
+          store.object = editor.AddOperation(
+              it, rdcspv::OpSelect(uint32Type, editor.MakeId(), store.object, oneU32, zeroU32));
+          ++it;
+        }
+
+        if(!(store.memoryAccess.flags & rdcspv::MemoryAccess::Aligned))
+        {
+          const rdcspv::DataType &pointeeDataType = editor.GetDataType(ptrDataType.InnerType());
+
+          // for structs, we align them to 16 bytes, scalar/vector types are aligned to the scalar size
+          if(pointeeDataType.scalar().type == rdcspv::Op::Max)
+            store.memoryAccess.setAligned(16);
+          else
+            store.memoryAccess.setAligned(VarTypeByteSize(pointeeDataType.scalar().Type()));
+
+          // remove and re-add as this may be larger than before
+          editor.Remove(it);
+          editor.AddOperation(it, store);
+        }
+      }
+    }
+  }
+}
+
 void VulkanReplay::ClearPostVSCache()
 {
   // temporary to avoid a warning
   (void)&AddTaskShaderPayloadStores;
   (void)&ConvertToFixedTaskFeeder;
+  (void)&AddMeshShaderOutputStores;
 
   VkDevice dev = m_Device;
 
