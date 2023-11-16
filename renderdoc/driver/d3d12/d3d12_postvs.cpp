@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include <algorithm>
+#include "core/settings.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/shaders/dxil/dxil_bytecode_editor.h"
 #include "replay/replay_driver.h"
@@ -33,6 +34,9 @@
 #include "d3d12_device.h"
 #include "d3d12_replay.h"
 #include "d3d12_shader_cache.h"
+
+RDOC_CONFIG(rdcstr, D3D12_Debug_PostVSDumpDirPath, "",
+            "Path to dump post mesh shader patched DXIL files.");
 
 struct ScopedOOMHandle12
 {
@@ -2019,11 +2023,6 @@ bool D3D12Replay::CreateSOBuffers()
 
 void D3D12Replay::ClearPostVSCache()
 {
-  // temporary to avoid a warning
-  (void)&AddDXILAmpShaderPayloadStores;
-  (void)&ConvertToFixedDXILAmpFeeder;
-  (void)&AddDXILMeshShaderOutputStores;
-
   for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
   {
     SAFE_RELEASE(it->second.vsout.buf);
@@ -2033,6 +2032,651 @@ void D3D12Replay::ClearPostVSCache()
   }
 
   m_PostVSData.clear();
+}
+
+void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
+{
+  D3D12PostVSData &ret = m_PostVSData[eventId];
+
+  const ActionDescription *action = m_pDevice->GetAction(eventId);
+
+  uint32_t totalNumMeshlets =
+      action->dispatchDimension[0] * action->dispatchDimension[1] * action->dispatchDimension[2];
+
+  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+
+  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
+  WrappedID3D12PipelineState *pipe =
+      (WrappedID3D12PipelineState *)rm->GetCurrentAs<ID3D12PipelineState>(rs.pipe);
+  D3D12RootSignature modsig;
+
+  // set defaults so that we don't try to fetch this output again if something goes wrong and the
+  // same event is selected again
+  {
+    ret.meshout.buf = NULL;
+    ret.meshout.instStride = 0;
+    ret.meshout.vertStride = 0;
+    ret.meshout.nearPlane = 0.0f;
+    ret.meshout.farPlane = 0.0f;
+    ret.meshout.useIndices = false;
+    ret.meshout.hasPosOut = false;
+    ret.meshout.idxBuf = NULL;
+
+    ret.meshout.topo = pipe->MS()->GetDetails().outputTopology;
+    ret.ampout = ret.meshout;
+  }
+
+#if ENABLED(RDOC_DEVEL)
+  m_pDevice->GetShaderCache()->LoadDXC();
+#endif
+
+  D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
+  pipe->Fill(pipeDesc);
+
+  ID3D12RootSignature *rootsig = rm->GetCurrentAs<ID3D12RootSignature>(rs.graphics.rootsig);
+
+  if(!rootsig)
+  {
+    ret.ampout.status = ret.meshout.status = "No root signature bound at draw";
+    return;
+  }
+
+  modsig = ((WrappedID3D12RootSignature *)rootsig)->sig;
+
+  uint32_t space = modsig.maxSpaceIndex;
+
+  // add root UAV elements
+  {
+    modsig.Parameters.push_back(D3D12RootSignatureParameter());
+    D3D12RootSignatureParameter &param = modsig.Parameters.back();
+    param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+    param.ShaderVisibility = D3D12_SHADER_VISIBILITY_MESH;
+    param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE;
+    param.Descriptor.RegisterSpace = space;
+    param.Descriptor.ShaderRegister = 0;
+  }
+
+  if(pipeDesc.AS.BytecodeLength > 0)
+  {
+    modsig.Parameters.push_back(D3D12RootSignatureParameter());
+    D3D12RootSignatureParameter &param = modsig.Parameters.back();
+    param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+    param.ShaderVisibility = D3D12_SHADER_VISIBILITY_AMPLIFICATION;
+    param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE;
+    param.Descriptor.RegisterSpace = space;
+    param.Descriptor.ShaderRegister = 1;
+  }
+
+  ID3D12RootSignature *annotatedSig = NULL;
+
+  {
+    ID3DBlob *root = m_pDevice->GetShaderCache()->MakeRootSig(modsig);
+    HRESULT hr =
+        m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
+                                       __uuidof(ID3D12RootSignature), (void **)&annotatedSig);
+
+    if(annotatedSig == NULL || FAILED(hr))
+    {
+      ret.ampout.status = ret.meshout.status = StringFormat::Fmt(
+          "Couldn't create mesh-fetch modified root signature: HRESULT: %s", ToStr(hr).c_str());
+      RDCERR("%s", ret.meshout.status.c_str());
+      return;
+    }
+  }
+
+  pipeDesc.pRootSignature = annotatedSig;
+
+  HRESULT hr = S_OK;
+
+  ID3D12Resource *meshBuffer = NULL;
+  ID3D12Resource *ampBuffer = NULL;
+
+  uint64_t ampBufSize = 0;
+  uint32_t payloadSize = 0;
+
+  rdcarray<D3D12PostVSData::InstData> ampDispatchSizes;
+  const uint32_t totalNumAmpGroups = totalNumMeshlets;
+
+  bytebuf ampFetchDXIL;
+  bytebuf ampFeederDXIL;
+
+  if(pipeDesc.AS.BytecodeLength > 0)
+  {
+    AddDXILAmpShaderPayloadStores(pipe->AS()->GetDXBC(), space, action->dispatchDimension,
+                                  payloadSize, ampFetchDXIL);
+
+    // strip the root signature, we shouldn't need it and it may no longer match and fail validation
+    DXBC::DXBCContainer::StripChunk(ampFetchDXIL, DXBC::FOURCC_RTS0);
+
+    if(!D3D12_Debug_PostVSDumpDirPath().empty())
+    {
+      bytebuf orig = pipe->AS()->GetDXBC()->GetShaderBlob();
+
+      DXBC::DXBCContainer::StripChunk(orig, DXBC::FOURCC_ILDB);
+      DXBC::DXBCContainer::StripChunk(orig, DXBC::FOURCC_STAT);
+
+      FileIO::WriteAll(D3D12_Debug_PostVSDumpDirPath() + "/debug_postts_before.dxbc", orig);
+    }
+
+    if(!D3D12_Debug_PostVSDumpDirPath().empty())
+    {
+      FileIO::WriteAll(D3D12_Debug_PostVSDumpDirPath() + "/debug_postts_after.dxbc", ampFetchDXIL);
+    }
+
+    // now that we know the stride, create buffer of sufficient size for the worst case (maximum
+    // generation) of the meshlets
+    ampBufSize = (payloadSize + sizeof(Vec4u)) * totalNumAmpGroups + sizeof(Vec4u);
+
+    {
+      D3D12_RESOURCE_DESC desc = {};
+      desc.Alignment = 0;
+      desc.DepthOrArraySize = 1;
+      desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+      desc.Format = DXGI_FORMAT_UNKNOWN;
+      desc.Height = 1;
+      desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+      desc.MipLevels = 1;
+      desc.SampleDesc.Count = 1;
+      desc.SampleDesc.Quality = 0;
+      desc.Width = ampBufSize;
+
+      D3D12_HEAP_PROPERTIES heapProps;
+      heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+      heapProps.CreationNodeMask = 1;
+      heapProps.VisibleNodeMask = 1;
+
+      hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc,
+                                              D3D12_RESOURCE_STATE_COMMON, NULL,
+                                              __uuidof(ID3D12Resource), (void **)&ampBuffer);
+
+      if(ampBuffer == NULL || FAILED(hr))
+      {
+        SAFE_RELEASE(annotatedSig);
+        ret.ampout.status = ret.meshout.status = StringFormat::Fmt(
+            "Couldn't create amplification output buffer: HRESULT: %s", ToStr(hr).c_str());
+        RDCERR("%s", ret.meshout.status.c_str());
+        return;
+      }
+
+      ampBuffer->SetName(L"Amp. output");
+    }
+
+    pipeDesc.AS.pShaderBytecode = ampFetchDXIL.data();
+    pipeDesc.AS.BytecodeLength = ampFetchDXIL.size();
+
+    ID3D12PipelineState *ampOutPipe = NULL;
+    hr = m_pDevice->CreatePipeState(pipeDesc, &ampOutPipe);
+    if(ampOutPipe == NULL || FAILED(hr))
+    {
+      SAFE_RELEASE(annotatedSig);
+      SAFE_RELEASE(ampBuffer);
+      ret.ampout.status = ret.meshout.status =
+          StringFormat::Fmt("Couldn't create amplification output pipeline: %s", ToStr(hr).c_str());
+      RDCERR("%s", ret.meshout.status.c_str());
+      return;
+    }
+
+    D3D12RenderState prev = rs;
+
+    rs.pipe = GetResID(ampOutPipe);
+    rs.graphics.rootsig = GetResID(annotatedSig);
+
+    // we don't use the mesh buffer root parameter, so just fill it in with the same buffer
+    {
+      size_t idx = modsig.Parameters.size() - 2;
+      rs.graphics.sigelems.resize(modsig.Parameters.size());
+      rs.graphics.sigelems[idx] =
+          D3D12RenderState::SignatureElement(eRootUAV, GetResID(ampBuffer), 0);
+      idx++;
+      rs.graphics.sigelems[idx] =
+          D3D12RenderState::SignatureElement(eRootUAV, GetResID(ampBuffer), 0);
+    }
+
+    m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+
+    m_pDevice->ExecuteLists();
+    m_pDevice->FlushLists();
+
+    SAFE_RELEASE(ampOutPipe);
+
+    rs = prev;
+
+    totalNumMeshlets = 0;
+    bytebuf ampBufContents;
+    GetDebugManager()->GetBufferData(ampBuffer, 0, ampBufSize, ampBufContents);
+    ampBufContents.resize(ampBufSize);
+
+    const byte *ampData = ampBufContents.data();
+    const byte *ampDataBegin = ampData;
+
+    rdcarray<D3D12_WRITEBUFFERIMMEDIATE_PARAMETER> writes;
+
+    for(uint32_t ampGroup = 0; ampGroup < totalNumAmpGroups; ampGroup++)
+    {
+      Vec4u meshDispatchSize = *(Vec4u *)ampData;
+      RDCASSERT(meshDispatchSize.y <= 0xffff);
+      RDCASSERT(meshDispatchSize.z <= 0xffff);
+
+      // while we're going, we record writes into the real buffer with the cumulative sizes. This
+      // should in theory be better than updating it via a buffer copy since the count should be
+      // much smaller than the payload
+      writes.push_back(
+          {ampBuffer->GetGPUVirtualAddress() + ampData - ampDataBegin + offsetof(Vec4u, w),
+           totalNumMeshlets});
+
+      totalNumMeshlets += meshDispatchSize.x * meshDispatchSize.y * meshDispatchSize.z;
+
+      D3D12PostVSData::InstData i;
+      i.ampDispatchSizeX = meshDispatchSize.x;
+      i.ampDispatchSizeYZ.y = meshDispatchSize.y & 0xffff;
+      i.ampDispatchSizeYZ.z = meshDispatchSize.z & 0xffff;
+      ampDispatchSizes.push_back(i);
+
+      ampData += sizeof(Vec4u) + payloadSize;
+    }
+
+    ID3D12GraphicsCommandListX *list = m_pDevice->GetNewList();
+
+    list->WriteBufferImmediate(writes.count(), writes.data(), NULL);
+    list->Close();
+
+    m_pDevice->ExecuteLists();
+    m_pDevice->FlushLists();
+
+    ConvertToFixedDXILAmpFeeder(pipe->AS()->GetDXBC(), space, action->dispatchDimension,
+                                ampFeederDXIL);
+
+    // strip the root signature, we shouldn't need it and it may no longer match and fail validation
+    DXBC::DXBCContainer::StripChunk(ampFeederDXIL, DXBC::FOURCC_RTS0);
+
+    if(!D3D12_Debug_PostVSDumpDirPath().empty())
+      FileIO::WriteAll(D3D12_Debug_PostVSDumpDirPath() + "/debug_postts_feeder.dxbc", ampFeederDXIL);
+  }
+
+  OutDXILMeshletLayout layout;
+
+  bytebuf meshOutputDXIL;
+
+  AddDXILMeshShaderOutputStores(pipe->MS()->GetDXBC(), space, ampBuffer != NULL,
+                                action->dispatchDimension, layout, meshOutputDXIL);
+
+  {
+    // strip the root signature, we shouldn't need it and it may no longer match and fail validation
+    DXBC::DXBCContainer::StripChunk(meshOutputDXIL, DXBC::FOURCC_RTS0);
+
+    if(!D3D12_Debug_PostVSDumpDirPath().empty())
+    {
+      bytebuf orig = pipe->MS()->GetDXBC()->GetShaderBlob();
+
+      DXBC::DXBCContainer::StripChunk(orig, DXBC::FOURCC_ILDB);
+      DXBC::DXBCContainer::StripChunk(orig, DXBC::FOURCC_STAT);
+
+      FileIO::WriteAll(D3D12_Debug_PostVSDumpDirPath() + "/debug_postms_before.dxbc", orig);
+    }
+
+    if(!D3D12_Debug_PostVSDumpDirPath().empty())
+    {
+      FileIO::WriteAll(D3D12_Debug_PostVSDumpDirPath() + "/debug_postms_after.dxbc", meshOutputDXIL);
+    }
+  }
+
+  if(totalNumMeshlets > 0)
+  {
+    // now that we know the stride, create buffer of sufficient size for the worst case (maximum
+    // generation) of the meshlets
+
+    {
+      D3D12_RESOURCE_DESC desc = {};
+      desc.Alignment = 0;
+      desc.DepthOrArraySize = 1;
+      desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+      desc.Format = DXGI_FORMAT_UNKNOWN;
+      desc.Height = 1;
+      desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+      desc.MipLevels = 1;
+      desc.SampleDesc.Count = 1;
+      desc.SampleDesc.Quality = 0;
+      desc.Width = layout.meshletByteSize * totalNumMeshlets;
+
+      D3D12_HEAP_PROPERTIES heapProps;
+      heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+      heapProps.CreationNodeMask = 1;
+      heapProps.VisibleNodeMask = 1;
+
+      hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc,
+                                              D3D12_RESOURCE_STATE_COMMON, NULL,
+                                              __uuidof(ID3D12Resource), (void **)&meshBuffer);
+
+      if(meshBuffer == NULL || FAILED(hr))
+      {
+        SAFE_RELEASE(annotatedSig);
+        SAFE_RELEASE(ampBuffer);
+        ret.meshout.status =
+            StringFormat::Fmt("Couldn't create mesh output buffer: HRESULT: %s", ToStr(hr).c_str());
+        RDCERR("%s", ret.meshout.status.c_str());
+        return;
+      }
+
+      meshBuffer->SetName(L"Mesh output");
+    }
+
+    if(ampFeederDXIL.empty())
+    {
+      pipeDesc.AS.pShaderBytecode = NULL;
+      pipeDesc.AS.BytecodeLength = 0;
+    }
+    else
+    {
+      pipeDesc.AS.pShaderBytecode = ampFeederDXIL.data();
+      pipeDesc.AS.BytecodeLength = ampFeederDXIL.size();
+    }
+
+    pipeDesc.MS.pShaderBytecode = meshOutputDXIL.data();
+    pipeDesc.MS.BytecodeLength = meshOutputDXIL.size();
+
+    ID3D12PipelineState *meshOutPipe = NULL;
+    hr = m_pDevice->CreatePipeState(pipeDesc, &meshOutPipe);
+    if(meshOutPipe == NULL || FAILED(hr))
+    {
+      SAFE_RELEASE(annotatedSig);
+      SAFE_RELEASE(ampBuffer);
+      SAFE_RELEASE(meshBuffer);
+      ret.meshout.status =
+          StringFormat::Fmt("Couldn't create mesh output pipeline: %s", ToStr(hr).c_str());
+      RDCERR("%s", ret.meshout.status.c_str());
+      return;
+    }
+
+    D3D12RenderState prev = rs;
+    rs.pipe = GetResID(meshOutPipe);
+    rs.graphics.rootsig = GetResID(annotatedSig);
+    if(pipeDesc.AS.BytecodeLength > 0)
+    {
+      size_t idx = modsig.Parameters.size() - 2;
+      rs.graphics.sigelems.resize(modsig.Parameters.size());
+      rs.graphics.sigelems[idx] =
+          D3D12RenderState::SignatureElement(eRootUAV, GetResID(meshBuffer), 0);
+      idx++;
+      rs.graphics.sigelems[idx] =
+          D3D12RenderState::SignatureElement(eRootUAV, GetResID(ampBuffer), 0);
+    }
+    else
+    {
+      size_t idx = modsig.Parameters.size() - 1;
+      rs.graphics.sigelems.resize(modsig.Parameters.size());
+      rs.graphics.sigelems[idx] =
+          D3D12RenderState::SignatureElement(eRootUAV, GetResID(meshBuffer), 0);
+    }
+
+    m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+
+    m_pDevice->ExecuteLists();
+    m_pDevice->FlushLists();
+
+    rs = prev;
+
+    SAFE_RELEASE(meshOutPipe);
+  }
+  SAFE_RELEASE(annotatedSig);
+
+  rdcarray<D3D12PostVSData::InstData> meshletOffsets;
+
+  uint32_t baseIndex = 0;
+
+  rdcarray<uint32_t> rebasedIndices;
+  bytebuf compactedVertices;
+
+  float nearp = 0.1f;
+  float farp = 100.0f;
+
+  uint32_t totalVerts = 0, totalPrims = 0;
+
+  if(totalNumMeshlets > 0)
+  {
+    bytebuf meshBufferContents;
+    GetDebugManager()->GetBufferData(meshBuffer, 0, 0, meshBufferContents);
+
+    if(meshBufferContents.empty())
+    {
+      SAFE_RELEASE(ampBuffer);
+      SAFE_RELEASE(meshBuffer);
+
+      ret.meshout.status = "Couldn't read back mesh output data from GPU";
+      return;
+    }
+
+    const byte *meshletData = meshBufferContents.data();
+
+    // do a super quick sum of the number of verts and prims
+    for(uint32_t m = 0; m < totalNumMeshlets; m++)
+    {
+      Vec4u *counts = (Vec4u *)(meshletData + m * layout.meshletByteSize);
+      totalVerts += counts->x;
+      totalPrims += counts->y;
+    }
+
+    if(totalPrims == 0)
+    {
+      SAFE_RELEASE(ampBuffer);
+      SAFE_RELEASE(meshBuffer);
+
+      ret.meshout.status = "No mesh output data generated by GPU";
+      return;
+    }
+
+    // now we compact the data.
+    // Arrays are already written interleaved, we just have to omit the empty space from
+    // smaller-than-max meshlets.
+    // We also rebase indices so they can be used as a contiguous index buffer
+
+    rebasedIndices.reserve(totalPrims * layout.indexCountPerPrim);
+    compactedVertices.resize(totalVerts * layout.vertStride + totalPrims * layout.primStride);
+
+    byte *vertData = compactedVertices.begin();
+    byte *primData = vertData + totalVerts * layout.vertStride;
+
+    // calculate near/far as we're going
+    bool found = false;
+    Vec4f pos0;
+
+    for(uint32_t meshlet = 0; meshlet < totalNumMeshlets; meshlet++)
+    {
+      Vec4u *counts = (Vec4u *)meshletData;
+      const uint32_t numVerts = counts->x;
+      const uint32_t numPrims = counts->y;
+
+      const uint32_t padding = counts->z;
+      const uint32_t padding2 = counts->w;
+      RDCASSERTEQUAL(padding, 0);
+      RDCASSERTEQUAL(padding2, 0);
+
+      if(numVerts > layout.vertArrayLength)
+      {
+        SAFE_RELEASE(ampBuffer);
+        SAFE_RELEASE(meshBuffer);
+
+        RDCERR("Meshlet returned invalid vertex count %u with declared max %u", numVerts,
+               layout.vertArrayLength);
+        ret.meshout.status = "Got corrupted mesh output data from GPU";
+        return;
+      }
+
+      if(numPrims > layout.primArrayLength)
+      {
+        SAFE_RELEASE(ampBuffer);
+        SAFE_RELEASE(meshBuffer);
+
+        RDCERR("Meshlet returned invalid primitive count %u with declared max %u", numPrims,
+               layout.primArrayLength);
+        ret.meshout.status = "Got corrupted mesh output data from GPU";
+        return;
+      }
+
+      meshletOffsets.push_back({numPrims * layout.indexCountPerPrim, numVerts});
+
+      uint32_t *indices = (uint32_t *)(counts + 2);
+
+      for(uint32_t p = 0; p < numPrims; p++)
+      {
+        for(uint32_t idx = 0; idx < layout.indexCountPerPrim; idx++)
+          rebasedIndices.push_back(indices[p * layout.indexCountPerPrim + idx] + baseIndex);
+      }
+
+      byte *perVertData =
+          (byte *)(indices + AlignUp4(layout.indexCountPerPrim * layout.primArrayLength));
+
+      memcpy(vertData, perVertData, layout.vertStride * numVerts);
+
+      byte *perPrimData = (byte *)(perVertData + layout.vertStride * layout.vertArrayLength);
+
+      if(layout.primStride > 0)
+        memcpy(primData, perPrimData, layout.primStride * numPrims);
+
+      if(!found)
+      {
+        pos0 = *(Vec4f *)vertData;
+
+        for(uint32_t v = 0; !found && v < numVerts; v++)
+        {
+          Vec4f *pos = (Vec4f *)(vertData + layout.vertStride * v);
+          DeriveNearFar(*pos, pos0, nearp, farp, found);
+        }
+      }
+
+      baseIndex += numVerts;
+      meshletData += layout.meshletByteSize;
+      vertData += layout.vertStride * numVerts;
+      primData += layout.primStride * numPrims;
+    }
+
+    RDCASSERT(vertData == compactedVertices.begin() + totalVerts * layout.vertStride);
+    RDCASSERT(primData == compactedVertices.end());
+
+    // if we didn't find any near/far plane, all z's and w's were identical.
+    // If the z is positive and w greater for the first element then we detect this projection as
+    // reversed z with infinite far plane
+    if(!found && pos0.z > 0.0f && pos0.w > pos0.z)
+    {
+      nearp = pos0.z;
+      farp = FLT_MAX;
+    }
+  }
+
+  SAFE_RELEASE(meshBuffer);
+
+  // fill out m_PostVS.Data
+  if(layout.indexCountPerPrim == 3)
+    ret.meshout.topo = Topology::TriangleList;
+  else if(layout.indexCountPerPrim == 2)
+    ret.meshout.topo = Topology::LineList;
+  else if(layout.indexCountPerPrim == 1)
+    ret.meshout.topo = Topology::PointList;
+
+  if(totalNumMeshlets > 0)
+  {
+    D3D12_RESOURCE_DESC desc = {};
+    desc.Alignment = 0;
+    desc.DepthOrArraySize = 1;
+    desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    desc.Format = DXGI_FORMAT_UNKNOWN;
+    desc.Height = 1;
+    desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    desc.MipLevels = 1;
+    desc.SampleDesc.Count = 1;
+    desc.SampleDesc.Quality = 0;
+    desc.Width = AlignUp16(compactedVertices.byteSize()) + rebasedIndices.byteSize();
+
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc,
+                                            D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+                                            __uuidof(ID3D12Resource), (void **)&meshBuffer);
+
+    if(meshBuffer == NULL || FAILED(hr))
+    {
+      SAFE_RELEASE(annotatedSig);
+      ret.meshout.status =
+          StringFormat::Fmt("Couldn't create mesh output storage: HRESULT: %s", ToStr(hr).c_str());
+      RDCERR("%s", ret.meshout.status.c_str());
+      return;
+    }
+
+    meshBuffer->SetName(L"Baked mesh output + indices1");
+
+    byte *uploadData = NULL;
+    hr = meshBuffer->Map(0, NULL, (void **)&uploadData);
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(ampBuffer);
+      SAFE_RELEASE(meshBuffer);
+      ret.meshout.status = "Couldn't upload mesh output data to GPU";
+      return;
+    }
+
+    memcpy(uploadData, compactedVertices.data(), compactedVertices.byteSize());
+    memcpy(uploadData + AlignUp16(compactedVertices.byteSize()), rebasedIndices.data(),
+           rebasedIndices.byteSize());
+
+    meshBuffer->Unmap(0, NULL);
+  }
+
+  ret.ampout.buf = ampBuffer;
+
+  if(pipeDesc.AS.BytecodeLength == 0)
+    ret.ampout.status = "No amplification shader bound";
+
+  ret.ampout.vertStride = payloadSize + sizeof(Vec4u);
+  ret.ampout.nearPlane = 0.0f;
+  ret.ampout.farPlane = 1.0f;
+
+  ret.ampout.primStride = 0;
+  ret.ampout.primOffset = 0;
+
+  ret.ampout.useIndices = false;
+  ret.ampout.numVerts = totalNumAmpGroups;
+  ret.ampout.instData = ampDispatchSizes;
+
+  ret.ampout.instStride = 0;
+
+  ret.ampout.idxBuf = NULL;
+  ret.ampout.idxOffset = 0;
+  ret.ampout.idxFmt = DXGI_FORMAT_UNKNOWN;
+
+  ret.ampout.hasPosOut = false;
+
+  ret.meshout.buf = meshBuffer;
+
+  ret.meshout.vertStride = layout.vertStride;
+  ret.meshout.nearPlane = nearp;
+  ret.meshout.farPlane = farp;
+
+  ret.meshout.primStride = layout.primStride;
+  ret.meshout.primOffset = layout.primStride * totalVerts;
+
+  ret.meshout.useIndices = true;
+  ret.meshout.numVerts = totalPrims * layout.indexCountPerPrim;
+  ret.meshout.instData = meshletOffsets;
+
+  ret.meshout.instStride = 0;
+
+  ret.meshout.idxBuf = meshBuffer;
+  ret.meshout.idxOffset = AlignUp16(compactedVertices.byteSize());
+  ret.meshout.idxFmt = DXGI_FORMAT_R32_UINT;
+
+  ret.meshout.hasPosOut = true;
 }
 
 void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
@@ -2072,6 +2716,12 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC psoDesc;
   origPSO->Fill(psoDesc);
 
+  if(psoDesc.MS.BytecodeLength > 0)
+  {
+    InitPostMSBuffers(eventId);
+    return;
+  }
+
   if(psoDesc.VS.BytecodeLength == 0)
   {
     ret.gsout.status = ret.vsout.status = "No vertex shader in pipeline";
@@ -2082,7 +2732,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
   D3D_PRIMITIVE_TOPOLOGY topo = rs.topo;
 
-  ret.vsout.topo = topo;
+  ret.vsout.topo = MakePrimitiveTopology(topo);
 
   const ActionDescription *action = m_pDevice->GetAction(eventId);
 
@@ -2636,7 +3286,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
     ret.vsout.hasPosOut = posidx >= 0;
 
-    ret.vsout.topo = topo;
+    ret.vsout.topo = MakePrimitiveTopology(topo);
   }
   else
   {
@@ -2650,7 +3300,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     ret.vsout.hasPosOut = false;
     ret.vsout.idxBuf = NULL;
 
-    ret.vsout.topo = topo;
+    ret.vsout.topo = MakePrimitiveTopology(topo);
   }
 
   if(lastShader)
@@ -3183,17 +3833,17 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
     topo = lastShader->GetOutputTopology();
 
-    ret.gsout.topo = topo;
-
     // streamout expands strips unfortunately
     if(topo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP)
-      ret.gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+      topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     else if(topo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP)
-      ret.gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+      topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
     else if(topo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ)
-      ret.gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
+      topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
     else if(topo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ)
-      ret.gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
+      topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
+
+    ret.gsout.topo = MakePrimitiveTopology(topo);
 
     ret.gsout.numVerts = (uint32_t)numVerts;
 
@@ -3294,7 +3944,7 @@ MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint
     ret.indexResourceId = ResourceId();
     ret.indexByteStride = 0;
   }
-  ret.indexByteOffset = 0;
+  ret.indexByteOffset = s.idxOffset;
   ret.baseVertex = 0;
 
   if(s.buf != NULL)
@@ -3318,14 +3968,42 @@ MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint
 
   ret.showAlpha = false;
 
-  ret.topology = MakePrimitiveTopology(s.topo);
+  ret.topology = s.topo;
   ret.numIndices = s.numVerts;
 
   ret.unproject = s.hasPosOut;
   ret.nearPlane = s.nearPlane;
   ret.farPlane = s.farPlane;
 
-  if(instID < s.instData.size())
+  const ActionDescription *action = m_pDevice->GetAction(eventId);
+
+  if(action && (action->flags & ActionFlags::MeshDispatch))
+  {
+    ret.perPrimitiveStride = s.primStride;
+    ret.perPrimitiveOffset = s.primOffset;
+
+    if(stage == MeshDataStage::MeshOut)
+    {
+      ret.meshletSizes.resize(s.instData.size());
+      for(size_t i = 0; i < s.instData.size(); i++)
+        ret.meshletSizes[i] = {s.instData[i].numIndices, s.instData[i].numVerts};
+    }
+    else
+    {
+      // the buffer we're returning has the size vector. As long as the user respects our stride,
+      // offsetting the start will do the trick
+      ret.vertexByteOffset = sizeof(Vec4u);
+
+      ret.taskSizes.resize(s.instData.size());
+      for(size_t i = 0; i < s.instData.size(); i++)
+        ret.taskSizes[i] = {
+            s.instData[i].ampDispatchSizeX,
+            s.instData[i].ampDispatchSizeYZ.y,
+            s.instData[i].ampDispatchSizeYZ.z,
+        };
+    }
+  }
+  else if(instID < s.instData.size())
   {
     D3D12PostVSData::InstData inst = s.instData[instID];
 

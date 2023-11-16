@@ -168,6 +168,7 @@ public:
   void FlipOutputWindow(uint64_t id);
 
   void InitPostVSBuffers(uint32_t eventId);
+  void InitPostMSBuffers(uint32_t eventId);
   void InitPostVSBuffers(const rdcarray<uint32_t> &passEvents);
 
   // indicates that EID alias is the same as eventId
@@ -305,14 +306,27 @@ private:
   {
     struct InstData
     {
-      uint32_t numVerts = 0;
-      uint64_t bufOffset = 0;
+      union
+      {
+        uint64_t bufOffset;
+        uint32_t numIndices;
+        uint32_t ampDispatchSizeX;
+      };
+      union
+      {
+        uint32_t numVerts;
+        struct
+        {
+          uint16_t y;
+          uint16_t z;
+        } ampDispatchSizeYZ;
+      };
     };
 
     struct StageData
     {
       ID3D12Resource *buf = NULL;
-      D3D_PRIMITIVE_TOPOLOGY topo = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+      Topology topo = Topology::Unknown;
 
       uint32_t vertStride = 0;
 
@@ -320,11 +334,16 @@ private:
       uint32_t numVerts = 0;
       uint32_t instStride = 0;
 
-      // complex case - expansion per instance
+      // complex case - expansion per instance,
+      // also used for meshlet offsets and sizes
       rdcarray<InstData> instData;
+
+      uint32_t primStride = 0;
+      uint64_t primOffset = 0;
 
       bool useIndices = false;
       ID3D12Resource *idxBuf = NULL;
+      uint64_t idxOffset = 0;
       DXGI_FORMAT idxFmt = DXGI_FORMAT_UNKNOWN;
 
       bool hasPosOut = false;
