@@ -550,7 +550,8 @@
   DeclExt(EXT_provoking_vertex);                       \
   DeclExt(EXT_attachment_feedback_loop_dynamic_state); \
   DeclExt(EXT_extended_dynamic_state3);                \
-  DeclExt(EXT_mesh_shader);
+  DeclExt(EXT_mesh_shader);                            \
+  DeclExt(EXT_scalar_block_layout);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -671,7 +672,8 @@
   CheckExt(EXT_provoking_vertex, VKXX);                       \
   CheckExt(EXT_attachment_feedback_loop_dynamic_state, VKXX); \
   CheckExt(EXT_extended_dynamic_state3, VKXX);                \
-  CheckExt(EXT_mesh_shader, VKXX);
+  CheckExt(EXT_mesh_shader, VKXX);                            \
+  CheckExt(EXT_scalar_block_layout, VK12);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \

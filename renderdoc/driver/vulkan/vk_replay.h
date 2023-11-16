@@ -158,15 +158,28 @@ struct VulkanPostVSData
 {
   struct InstData
   {
-    uint32_t numVerts = 0;
-    uint32_t bufOffset = 0;
+    union
+    {
+      uint32_t bufOffset;
+      uint32_t numIndices;
+      uint32_t taskDispatchSizeX;
+    };
+    union
+    {
+      uint32_t numVerts;
+      struct
+      {
+        uint16_t y;
+        uint16_t z;
+      } taskDispatchSizeYZ;
+    };
   };
 
   struct StageData
   {
     VkBuffer buf;
     VkDeviceMemory bufmem;
-    VkPrimitiveTopology topo;
+    Topology topo;
 
     int32_t baseVertex;
 
@@ -174,13 +187,18 @@ struct VulkanPostVSData
     uint32_t vertStride;
     uint32_t instStride;
 
-    // complex case - expansion per instance
+    // complex case - expansion per instance,
+    // also used for meshlet offsets and sizes
     rdcarray<InstData> instData;
+
+    uint32_t primStride = 0;
+    uint64_t primOffset = 0;
 
     uint32_t numViews;
 
     bool useIndices;
     VkBuffer idxbuf;
+    uint64_t idxOffset = 0;
     VkDeviceMemory idxbufmem;
     VkIndexType idxFmt;
 
