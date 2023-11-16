@@ -365,6 +365,8 @@ struct Reflection
 
   CBuffer Interfaces;
 
+  CBufferVariableType TaskPayload;
+
   std::map<rdcstr, CBufferVariableType> ResourceBinds;
 
   rdcarray<SigParameter> InputSig;

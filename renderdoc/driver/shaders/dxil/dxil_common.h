@@ -56,6 +56,8 @@ enum class ComponentType
   UNormF64,
 };
 
+VarType VarTypeForComponentType(ComponentType compType);
+
 enum class ResourceKind
 {
   Unknown = 0,
@@ -88,6 +90,8 @@ enum class ShaderEntryTag
   Domain = 2,
   Hull = 3,
   Compute = 4,
+  Mesh = 9,
+  Amplification = 10,
 };
 
 enum class ResField

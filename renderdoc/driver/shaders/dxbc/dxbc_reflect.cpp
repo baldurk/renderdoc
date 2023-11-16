@@ -352,80 +352,89 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
   }
   refl->rawBytes = dxbc->GetShaderBlob();
 
-  refl->dispatchThreadsDimension[0] = dxbc->GetReflection()->DispatchThreadsDimension[0];
-  refl->dispatchThreadsDimension[1] = dxbc->GetReflection()->DispatchThreadsDimension[1];
-  refl->dispatchThreadsDimension[2] = dxbc->GetReflection()->DispatchThreadsDimension[2];
+  const DXBC::Reflection *dxbcRefl = dxbc->GetReflection();
 
-  refl->inputSignature = dxbc->GetReflection()->InputSig;
-  refl->outputSignature = dxbc->GetReflection()->OutputSig;
+  refl->dispatchThreadsDimension[0] = dxbcRefl->DispatchThreadsDimension[0];
+  refl->dispatchThreadsDimension[1] = dxbcRefl->DispatchThreadsDimension[1];
+  refl->dispatchThreadsDimension[2] = dxbcRefl->DispatchThreadsDimension[2];
+
+  refl->inputSignature = dxbcRefl->InputSig;
+  refl->outputSignature = dxbcRefl->OutputSig;
 
   mapping->inputAttributes.resize(D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
   for(int s = 0; s < D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; s++)
     mapping->inputAttributes[s] = s;
 
-  mapping->constantBlocks.resize(dxbc->GetReflection()->CBuffers.size());
-  refl->constantBlocks.resize(dxbc->GetReflection()->CBuffers.size());
-  for(size_t i = 0; i < dxbc->GetReflection()->CBuffers.size(); i++)
+  mapping->constantBlocks.resize(dxbcRefl->CBuffers.size());
+  refl->constantBlocks.resize(dxbcRefl->CBuffers.size());
+  for(size_t i = 0; i < dxbcRefl->CBuffers.size(); i++)
   {
     ConstantBlock &cb = refl->constantBlocks[i];
 
-    cb.name = dxbc->GetReflection()->CBuffers[i].name;
+    cb.name = dxbcRefl->CBuffers[i].name;
     cb.bufferBacked = true;
-    cb.byteSize = dxbc->GetReflection()->CBuffers[i].descriptor.byteSize;
+    cb.byteSize = dxbcRefl->CBuffers[i].descriptor.byteSize;
     cb.bindPoint = (int32_t)i;
 
     Bindpoint map;
-    map.arraySize = dxbc->GetReflection()->CBuffers[i].bindCount;
-    map.bindset = dxbc->GetReflection()->CBuffers[i].space;
-    map.bind = dxbc->GetReflection()->CBuffers[i].reg;
+    map.arraySize = dxbcRefl->CBuffers[i].bindCount;
+    map.bindset = dxbcRefl->CBuffers[i].space;
+    map.bind = dxbcRefl->CBuffers[i].reg;
     map.used = true;
 
     mapping->constantBlocks[i] = map;
 
-    cb.variables.reserve(dxbc->GetReflection()->CBuffers[i].variables.size());
-    for(size_t v = 0; v < dxbc->GetReflection()->CBuffers[i].variables.size(); v++)
+    cb.variables.reserve(dxbcRefl->CBuffers[i].variables.size());
+    for(size_t v = 0; v < dxbcRefl->CBuffers[i].variables.size(); v++)
     {
-      cb.variables.push_back(
-          MakeConstantBufferVariable(true, dxbc->GetReflection()->CBuffers[i].variables[v]));
+      cb.variables.push_back(MakeConstantBufferVariable(true, dxbcRefl->CBuffers[i].variables[v]));
     }
 
     FixupEmptyStructs(cb.variables);
   }
 
-  mapping->samplers.resize(dxbc->GetReflection()->Samplers.size());
-  refl->samplers.resize(dxbc->GetReflection()->Samplers.size());
-  for(size_t i = 0; i < dxbc->GetReflection()->Samplers.size(); i++)
+  mapping->samplers.resize(dxbcRefl->Samplers.size());
+  refl->samplers.resize(dxbcRefl->Samplers.size());
+  for(size_t i = 0; i < dxbcRefl->Samplers.size(); i++)
   {
     ShaderSampler &s = refl->samplers[i];
 
-    s.name = dxbc->GetReflection()->Samplers[i].name;
+    s.name = dxbcRefl->Samplers[i].name;
     s.bindPoint = (int32_t)i;
 
     Bindpoint map;
     map.arraySize = 1;
-    map.bindset = dxbc->GetReflection()->Samplers[i].space;
-    map.bind = dxbc->GetReflection()->Samplers[i].reg;
+    map.bindset = dxbcRefl->Samplers[i].space;
+    map.bind = dxbcRefl->Samplers[i].reg;
     map.used = true;
 
     mapping->samplers[i] = map;
   }
 
-  mapping->readOnlyResources.resize(dxbc->GetReflection()->SRVs.size());
-  refl->readOnlyResources.resize(dxbc->GetReflection()->SRVs.size());
-  MakeResourceList(true, dxbc, dxbc->GetReflection()->SRVs, mapping->readOnlyResources,
-                   refl->readOnlyResources);
+  mapping->readOnlyResources.resize(dxbcRefl->SRVs.size());
+  refl->readOnlyResources.resize(dxbcRefl->SRVs.size());
+  MakeResourceList(true, dxbc, dxbcRefl->SRVs, mapping->readOnlyResources, refl->readOnlyResources);
 
-  mapping->readWriteResources.resize(dxbc->GetReflection()->UAVs.size());
-  refl->readWriteResources.resize(dxbc->GetReflection()->UAVs.size());
-  MakeResourceList(false, dxbc, dxbc->GetReflection()->UAVs, mapping->readWriteResources,
+  mapping->readWriteResources.resize(dxbcRefl->UAVs.size());
+  refl->readWriteResources.resize(dxbcRefl->UAVs.size());
+  MakeResourceList(false, dxbc, dxbcRefl->UAVs, mapping->readWriteResources,
                    refl->readWriteResources);
 
   uint32_t numInterfaces = 0;
-  for(size_t i = 0; i < dxbc->GetReflection()->Interfaces.variables.size(); i++)
-    numInterfaces = RDCMAX(dxbc->GetReflection()->Interfaces.variables[i].offset + 1, numInterfaces);
+  for(size_t i = 0; i < dxbcRefl->Interfaces.variables.size(); i++)
+    numInterfaces = RDCMAX(dxbcRefl->Interfaces.variables[i].offset + 1, numInterfaces);
 
   refl->interfaces.resize(numInterfaces);
-  for(size_t i = 0; i < dxbc->GetReflection()->Interfaces.variables.size(); i++)
-    refl->interfaces[dxbc->GetReflection()->Interfaces.variables[i].offset] =
-        dxbc->GetReflection()->Interfaces.variables[i].name;
+  for(size_t i = 0; i < dxbcRefl->Interfaces.variables.size(); i++)
+    refl->interfaces[dxbcRefl->Interfaces.variables[i].offset] =
+        dxbcRefl->Interfaces.variables[i].name;
+
+  refl->taskPayload.bufferBacked = false;
+  refl->taskPayload.name = dxbcRefl->TaskPayload.name;
+  refl->taskPayload.variables.reserve(dxbcRefl->TaskPayload.members.size());
+  for(size_t v = 0; v < dxbcRefl->TaskPayload.members.size(); v++)
+  {
+    refl->taskPayload.variables.push_back(
+        MakeConstantBufferVariable(false, dxbcRefl->TaskPayload.members[v]));
+  }
 }

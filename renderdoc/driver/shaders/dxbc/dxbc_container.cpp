@@ -1714,7 +1714,7 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
 
       bool input = false;
       bool output = false;
-      bool patch = false;
+      bool patchOrPerPrim = false;
 
       if(*fourcc == FOURCC_ISGN || *fourcc == FOURCC_ISG1)
       {
@@ -1729,10 +1729,15 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
       if(*fourcc == FOURCC_PCSG || *fourcc == FOURCC_PSG1)
       {
         sig = &m_Reflection->PatchConstantSig;
-        patch = true;
+
+        // for mesh shaders put everything in the output signature
+        if(m_Type == DXBC::ShaderType::Mesh)
+          sig = &m_Reflection->OutputSig;
+
+        patchOrPerPrim = true;
       }
 
-      RDCASSERT(sig && sig->empty());
+      RDCASSERT(sig && (sig->empty() || m_Type == DXBC::ShaderType::Mesh));
 
       SIGNElement *el0 = (SIGNElement *)(sign + 1);
       SIGNElement7 *el7 = (SIGNElement7 *)el0;
@@ -1790,6 +1795,10 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
         desc.systemValue = GetSystemValue(el->systemType);
         desc.compCount = (desc.regChannelMask & 0x1 ? 1 : 0) + (desc.regChannelMask & 0x2 ? 1 : 0) +
                          (desc.regChannelMask & 0x4 ? 1 : 0) + (desc.regChannelMask & 0x8 ? 1 : 0);
+
+        // this is the per-primitive signature for mesh shaders
+        if(m_Type == DXBC::ShaderType::Mesh && patchOrPerPrim)
+          desc.perPrimitiveRate = true;
 
         RDCASSERT(m_Type != DXBC::ShaderType::Max);
 
@@ -1898,9 +1907,22 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
     }
   }
 
+  // sort per-primitive outputs to the end
+  if(m_Type == DXBC::ShaderType::Mesh)
+  {
+    std::stable_sort(m_Reflection->OutputSig.begin(), m_Reflection->OutputSig.end(),
+                     [](const SigParameter &a, const SigParameter &b) {
+                       return a.perPrimitiveRate < b.perPrimitiveRate;
+                     });
+  }
+
   // make sure to fetch the dispatch threads dimension from disassembly
   if(m_Type == DXBC::ShaderType::Compute && m_DXBCByteCode)
     m_DXBCByteCode->FetchComputeProperties(m_Reflection);
+  if((m_Type == DXBC::ShaderType::Compute || m_Type == DXBC::ShaderType::Amplification ||
+      m_Type == DXBC::ShaderType::Mesh) &&
+     m_DXILByteCode)
+    m_DXILByteCode->FetchComputeProperties(m_Reflection);
 
   // initialise debug chunks last
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)

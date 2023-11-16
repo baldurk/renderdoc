@@ -57,124 +57,6 @@ T getival(const Metadata *m)
   return T();
 }
 
-void Program::FetchComputeProperties(DXBC::Reflection *reflection)
-{
-  for(size_t i = 0; i < m_Functions.size(); i++)
-  {
-    const Function &f = *m_Functions[i];
-
-    if(f.name.beginsWith("dx.op.threadId"))
-    {
-      SigParameter param;
-      param.systemValue = ShaderBuiltin::DispatchThreadIndex;
-      param.compCount = 3;
-      param.regChannelMask = param.channelUsedMask = 0x7;
-      param.semanticIdxName = param.semanticName = "threadId";
-      reflection->InputSig.push_back(param);
-    }
-    else if(f.name.beginsWith("dx.op.groupId"))
-    {
-      SigParameter param;
-      param.systemValue = ShaderBuiltin::GroupIndex;
-      param.compCount = 3;
-      param.regChannelMask = param.channelUsedMask = 0x7;
-      param.semanticIdxName = param.semanticName = "groupID";
-      reflection->InputSig.push_back(param);
-    }
-    else if(f.name.beginsWith("dx.op.threadIdInGroup"))
-    {
-      SigParameter param;
-      param.systemValue = ShaderBuiltin::GroupThreadIndex;
-      param.compCount = 3;
-      param.regChannelMask = param.channelUsedMask = 0x7;
-      param.semanticIdxName = param.semanticName = "threadIdInGroup";
-      reflection->InputSig.push_back(param);
-    }
-    else if(f.name.beginsWith("dx.op.flattenedThreadIdInGroup"))
-    {
-      SigParameter param;
-      param.systemValue = ShaderBuiltin::GroupFlatIndex;
-      param.compCount = 1;
-      param.regChannelMask = param.channelUsedMask = 0x1;
-      param.semanticIdxName = param.semanticName = "flattenedThreadIdInGroup";
-      reflection->InputSig.push_back(param);
-    }
-  }
-
-  for(size_t i = 0; i < m_NamedMeta.size(); i++)
-  {
-    const NamedMetadata &m = *m_NamedMeta[i];
-    if(m.name == "dx.entryPoints")
-    {
-      // expect only one child for this, DX doesn't support multiple entry points for compute
-      // shaders
-      RDCASSERTEQUAL(m.children.size(), 1);
-      Metadata &entry = *m.children[0];
-      RDCASSERTEQUAL(entry.children.size(), 5);
-      Metadata &tags = *entry.children[4];
-
-      for(size_t t = 0; t < tags.children.size(); t += 2)
-      {
-        RDCASSERT(tags.children[t]->isConstant);
-        if(getival<ShaderEntryTag>(tags.children[t]) == ShaderEntryTag::Compute)
-        {
-          Metadata &threadDim = *tags.children[t + 1];
-          RDCASSERTEQUAL(threadDim.children.size(), 3);
-          reflection->DispatchThreadsDimension[0] = getival<uint32_t>(threadDim.children[0]);
-          reflection->DispatchThreadsDimension[1] = getival<uint32_t>(threadDim.children[1]);
-          reflection->DispatchThreadsDimension[2] = getival<uint32_t>(threadDim.children[2]);
-          return;
-        }
-      }
-
-      break;
-    }
-  }
-
-  RDCERR("Couldn't find thread dimension tag in shader");
-
-  reflection->DispatchThreadsDimension[0] = 1;
-  reflection->DispatchThreadsDimension[1] = 1;
-  reflection->DispatchThreadsDimension[2] = 1;
-}
-
-D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology()
-{
-  if(m_Type != DXBC::ShaderType::Geometry && m_Type != DXBC::ShaderType::Domain)
-    return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-  for(size_t i = 0; i < m_NamedMeta.size(); i++)
-  {
-    const NamedMetadata &m = *m_NamedMeta[i];
-    if(m.name == "dx.entryPoints")
-    {
-      // expect only one child for this, DX doesn't support multiple entry points for compute
-      // shaders
-      RDCASSERTEQUAL(m.children.size(), 1);
-      Metadata &entry = *m.children[0];
-      RDCASSERTEQUAL(entry.children.size(), 5);
-      Metadata &tags = *entry.children[4];
-
-      for(size_t t = 0; t < tags.children.size(); t += 2)
-      {
-        RDCASSERT(tags.children[t]->isConstant);
-        if(getival<ShaderEntryTag>(tags.children[t]) == ShaderEntryTag::Geometry)
-        {
-          Metadata &geomData = *tags.children[t + 1];
-          RDCASSERTEQUAL(geomData.children.size(), 5);
-          return getival<D3D_PRIMITIVE_TOPOLOGY>(geomData.children[3]);
-        }
-      }
-
-      break;
-    }
-  }
-
-  RDCERR("Couldn't find topology tag in shader");
-
-  return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-}
-
 struct DXMeta
 {
   struct
@@ -348,6 +230,285 @@ struct TypeInfo
   }
 };
 
+static DXBC::CBufferVariableType MakePayloadType(const TypeInfo &typeInfo, const Type *t)
+{
+  using namespace DXBC;
+
+  CBufferVariableType ret = {};
+
+  ret.elements = 1;
+
+  if(t->type == Type::Scalar || t->type == Type::Vector)
+  {
+    ret.rows = ret.cols = 1;
+    if(t->type == Type::Vector)
+      ret.cols = t->elemCount;
+    ret.bytesize = (t->bitWidth / 8) * ret.cols;
+    ret.varClass = CLASS_SCALAR;
+
+    if(t->scalarType == Type::Float)
+    {
+      if(t->bitWidth > 32)
+        ret.varType = VarType::Double;
+      else if(t->bitWidth == 16)
+        ret.varType = VarType::Half;
+      else
+        ret.varType = VarType::Float;
+    }
+    else
+    {
+      // can't distinguish int/uint here, default to signed
+      if(t->bitWidth > 32)
+        ret.varType = VarType::SLong;
+      else if(t->bitWidth == 32)
+        ret.varType = VarType::SInt;
+      else if(t->bitWidth == 16)
+        ret.varType = VarType::SShort;
+      else if(t->bitWidth == 8)
+        ret.varType = VarType::SByte;
+      else if(t->bitWidth == 1)
+        ret.varType = VarType::Bool;
+    }
+
+    ret.name = ToStr(ret.varType);
+    if(t->type == Type::Vector)
+      ret.name += ToStr(ret.cols);
+  }
+  else if(t->type == Type::Array)
+  {
+    ret = MakePayloadType(typeInfo, t->inner);
+    ret.elements *= RDCMAX(1U, t->elemCount);
+    ret.bytesize += (ret.elements - 1) * ret.bytesize;
+  }
+  else if(t->type == Type::Struct)
+  {
+    ret.name = t->name;
+    ret.varType = VarType::Unknown;
+    ret.varClass = CLASS_STRUCT;
+
+    auto it = typeInfo.structData.find(t);
+
+    char structPrefix[] = "struct.";
+    if(ret.name.beginsWith(structPrefix))
+      ret.name.erase(0, sizeof(structPrefix) - 1);
+
+    char classPrefix[] = "class.";
+    if(ret.name.beginsWith(classPrefix))
+      ret.name.erase(0, sizeof(classPrefix) - 1);
+
+    for(size_t i = 0; i < t->members.size(); i++)
+    {
+      ret.members.push_back({});
+      ret.members.back().type = MakePayloadType(typeInfo, t->members[i]);
+
+      if(it != typeInfo.structData.end())
+        ret.members.back().name = it->second.members[i].name;
+      else
+        ret.members.back().name = StringFormat::Fmt("member%zu", i);
+
+      ret.bytesize += ret.members.back().type.bytesize;
+    }
+  }
+  else
+  {
+    RDCERR("Unexpected type %u iterating cbuffer variable type %s", t->type, t->name.c_str());
+  }
+  return ret;
+}
+
+void Program::FetchComputeProperties(DXBC::Reflection *reflection)
+{
+  DXMeta dx(m_NamedMeta);
+
+  TypeInfo typeInfo(dx.typeAnnotations);
+
+  for(size_t i = 0; i < m_Functions.size(); i++)
+  {
+    const Function &f = *m_Functions[i];
+
+    if(f.name.beginsWith("dx.op.threadId"))
+    {
+      SigParameter param;
+      param.systemValue = ShaderBuiltin::DispatchThreadIndex;
+      param.compCount = 3;
+      param.regChannelMask = param.channelUsedMask = 0x7;
+      param.semanticIdxName = param.semanticName = "threadId";
+      reflection->InputSig.push_back(param);
+    }
+    else if(f.name.beginsWith("dx.op.groupId"))
+    {
+      SigParameter param;
+      param.systemValue = ShaderBuiltin::GroupIndex;
+      param.compCount = 3;
+      param.regChannelMask = param.channelUsedMask = 0x7;
+      param.semanticIdxName = param.semanticName = "groupID";
+      reflection->InputSig.push_back(param);
+    }
+    else if(f.name.beginsWith("dx.op.threadIdInGroup"))
+    {
+      SigParameter param;
+      param.systemValue = ShaderBuiltin::GroupThreadIndex;
+      param.compCount = 3;
+      param.regChannelMask = param.channelUsedMask = 0x7;
+      param.semanticIdxName = param.semanticName = "threadIdInGroup";
+      reflection->InputSig.push_back(param);
+    }
+    else if(f.name.beginsWith("dx.op.flattenedThreadIdInGroup"))
+    {
+      SigParameter param;
+      param.systemValue = ShaderBuiltin::GroupFlatIndex;
+      param.compCount = 1;
+      param.regChannelMask = param.channelUsedMask = 0x1;
+      param.semanticIdxName = param.semanticName = "flattenedThreadIdInGroup";
+      reflection->InputSig.push_back(param);
+    }
+
+    if(m_Type == DXBC::ShaderType::Amplification)
+    {
+      for(const Instruction *in : f.instructions)
+      {
+        const Instruction &inst = *in;
+
+        if(inst.op == Operation::Call && inst.getFuncCall()->name.beginsWith("dx.op.dispatchMesh"))
+        {
+          if(inst.args.size() != 5)
+          {
+            RDCERR("Unexpected number of arguments to dispatchMesh");
+            continue;
+          }
+          GlobalVar *payloadVariable = cast<GlobalVar>(inst.args[4]);
+          if(!payloadVariable)
+          {
+            RDCERR("Unexpected non-variable payload argument to dispatchMesh");
+            continue;
+          }
+
+          Type *payloadType = (Type *)payloadVariable->type;
+
+          RDCASSERT(payloadType->type == Type::Pointer);
+          payloadType = (Type *)payloadType->inner;
+
+          reflection->TaskPayload = MakePayloadType(typeInfo, payloadType);
+
+          break;
+        }
+      }
+    }
+  }
+
+  for(size_t i = 0; i < m_NamedMeta.size(); i++)
+  {
+    const NamedMetadata &m = *m_NamedMeta[i];
+    if(m.name == "dx.entryPoints")
+    {
+      // expect only one child for this, DX doesn't support multiple entry points for compute
+      // shaders
+      RDCASSERTEQUAL(m.children.size(), 1);
+      Metadata &entry = *m.children[0];
+      RDCASSERTEQUAL(entry.children.size(), 5);
+      Metadata &tags = *entry.children[4];
+
+      for(size_t t = 0; t < tags.children.size(); t += 2)
+      {
+        RDCASSERT(tags.children[t]->isConstant);
+        ShaderEntryTag shaderTypeTag = getival<ShaderEntryTag>(tags.children[t]);
+        if(shaderTypeTag == ShaderEntryTag::Compute)
+        {
+          Metadata &threadDim = *tags.children[t + 1];
+          RDCASSERTEQUAL(threadDim.children.size(), 3);
+          reflection->DispatchThreadsDimension[0] = getival<uint32_t>(threadDim.children[0]);
+          reflection->DispatchThreadsDimension[1] = getival<uint32_t>(threadDim.children[1]);
+          reflection->DispatchThreadsDimension[2] = getival<uint32_t>(threadDim.children[2]);
+          return;
+        }
+        else if(shaderTypeTag == ShaderEntryTag::Amplification)
+        {
+          Metadata &ampData = *tags.children[t + 1];
+          Metadata &threadDim = *ampData.children[0];
+          RDCASSERTEQUAL(threadDim.children.size(), 3);
+          reflection->DispatchThreadsDimension[0] = getival<uint32_t>(threadDim.children[0]);
+          reflection->DispatchThreadsDimension[1] = getival<uint32_t>(threadDim.children[1]);
+          reflection->DispatchThreadsDimension[2] = getival<uint32_t>(threadDim.children[2]);
+          return;
+        }
+        else if(shaderTypeTag == ShaderEntryTag::Mesh)
+        {
+          Metadata &meshData = *tags.children[t + 1];
+          Metadata &threadDim = *meshData.children[0];
+          RDCASSERTEQUAL(threadDim.children.size(), 3);
+          reflection->DispatchThreadsDimension[0] = getival<uint32_t>(threadDim.children[0]);
+          reflection->DispatchThreadsDimension[1] = getival<uint32_t>(threadDim.children[1]);
+          reflection->DispatchThreadsDimension[2] = getival<uint32_t>(threadDim.children[2]);
+          return;
+        }
+      }
+
+      break;
+    }
+  }
+
+  RDCERR("Couldn't find thread dimension tag in shader");
+
+  reflection->DispatchThreadsDimension[0] = 1;
+  reflection->DispatchThreadsDimension[1] = 1;
+  reflection->DispatchThreadsDimension[2] = 1;
+}
+
+D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology()
+{
+  if(m_Type != DXBC::ShaderType::Geometry && m_Type != DXBC::ShaderType::Domain &&
+     m_Type != DXBC::ShaderType::Mesh)
+    return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+  for(size_t i = 0; i < m_NamedMeta.size(); i++)
+  {
+    const NamedMetadata &m = *m_NamedMeta[i];
+    if(m.name == "dx.entryPoints")
+    {
+      // expect only one child for this, DX doesn't support multiple entry points for compute
+      // shaders
+      RDCASSERTEQUAL(m.children.size(), 1);
+      Metadata &entry = *m.children[0];
+      RDCASSERTEQUAL(entry.children.size(), 5);
+      Metadata &tags = *entry.children[4];
+
+      for(size_t t = 0; t < tags.children.size(); t += 2)
+      {
+        RDCASSERT(tags.children[t]->isConstant);
+        if(getival<ShaderEntryTag>(tags.children[t]) == ShaderEntryTag::Geometry)
+        {
+          Metadata &geomData = *tags.children[t + 1];
+          RDCASSERTEQUAL(geomData.children.size(), 5);
+          return getival<D3D_PRIMITIVE_TOPOLOGY>(geomData.children[3]);
+        }
+        else if(getival<ShaderEntryTag>(tags.children[t]) == ShaderEntryTag::Domain)
+        {
+          Metadata &domainData = *tags.children[t + 1];
+          RDCASSERTEQUAL(domainData.children.size(), 2);
+          // 1 for isoline, 2 for tri and 3 for quad (which outputs tris)
+          return getival<uint32_t>(domainData.children[0]) == 1
+                     ? D3D_PRIMITIVE_TOPOLOGY_LINELIST
+                     : D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        }
+        else if(getival<ShaderEntryTag>(tags.children[t]) == ShaderEntryTag::Mesh)
+        {
+          Metadata &meshData = *tags.children[t + 1];
+          RDCASSERTEQUAL(meshData.children.size(), 5);
+          // 1 for lines, 2 for tris
+          return getival<uint32_t>(meshData.children[3]) == 1 ? D3D_PRIMITIVE_TOPOLOGY_LINELIST
+                                                              : D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        }
+      }
+
+      break;
+    }
+  }
+
+  RDCERR("Couldn't find topology tag in shader");
+
+  return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+}
+
 // a struct is empty if it has no members, or all members are empty structs
 static bool IsEmptyStruct(const Type *t)
 {
@@ -367,6 +528,54 @@ static bool IsEmptyStruct(const Type *t)
 
   // no members are non-empty => all members are empty => this is empty
   return true;
+}
+
+VarType VarTypeForComponentType(ComponentType compType)
+{
+  VarType varType;
+  switch(compType)
+  {
+    default:
+    case ComponentType::Invalid:
+      varType = VarType::Unknown;
+      RDCERR("Unexpected type in cbuffer annotations");
+      break;
+    case ComponentType::I1: varType = VarType::Bool; break;
+    case ComponentType::I16: varType = VarType::SShort; break;
+    case ComponentType::U16: varType = VarType::UShort; break;
+    case ComponentType::I32: varType = VarType::SInt; break;
+    case ComponentType::U32: varType = VarType::UInt; break;
+    case ComponentType::I64: varType = VarType::SLong; break;
+    case ComponentType::U64: varType = VarType::ULong; break;
+    case ComponentType::F16: varType = VarType::Half; break;
+    case ComponentType::F32: varType = VarType::Float; break;
+    case ComponentType::F64: varType = VarType::Double; break;
+    case ComponentType::SNormF16:
+      varType = VarType::Half;
+      RDCERR("Unexpected type in cbuffer annotations");
+      break;
+    case ComponentType::UNormF16:
+      varType = VarType::Half;
+      RDCERR("Unexpected type in cbuffer annotations");
+      break;
+    case ComponentType::SNormF32:
+      varType = VarType::Float;
+      RDCERR("Unexpected type in cbuffer annotations");
+      break;
+    case ComponentType::UNormF32:
+      varType = VarType::Float;
+      RDCERR("Unexpected type in cbuffer annotations");
+      break;
+    case ComponentType::SNormF64:
+      varType = VarType::Double;
+      RDCERR("Unexpected type in cbuffer annotations");
+      break;
+    case ComponentType::UNormF64:
+      varType = VarType::Double;
+      RDCERR("Unexpected type in cbuffer annotations");
+      break;
+  }
+  return varType;
 }
 
 static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInfo, const Type *t)
@@ -508,44 +717,16 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
       switch(it->second.members[i].type)
       {
         case ComponentType::Invalid:
-          var.type.varType = VarType::Unknown;
-          RDCERR("Unexpected type in cbuffer annotations");
-          break;
-        case ComponentType::I1: var.type.varType = VarType::Bool; break;
-        case ComponentType::I16: var.type.varType = VarType::SShort; break;
-        case ComponentType::U16: var.type.varType = VarType::UShort; break;
-        case ComponentType::I32: var.type.varType = VarType::SInt; break;
-        case ComponentType::U32: var.type.varType = VarType::UInt; break;
-        case ComponentType::I64: var.type.varType = VarType::SLong; break;
-        case ComponentType::U64: var.type.varType = VarType::ULong; break;
-        case ComponentType::F16: var.type.varType = VarType::Half; break;
-        case ComponentType::F32: var.type.varType = VarType::Float; break;
-        case ComponentType::F64: var.type.varType = VarType::Double; break;
         case ComponentType::SNormF16:
-          var.type.varType = VarType::Half;
-          RDCERR("Unexpected type in cbuffer annotations");
-          break;
         case ComponentType::UNormF16:
-          var.type.varType = VarType::Half;
-          RDCERR("Unexpected type in cbuffer annotations");
-          break;
         case ComponentType::SNormF32:
-          var.type.varType = VarType::Float;
-          RDCERR("Unexpected type in cbuffer annotations");
-          break;
         case ComponentType::UNormF32:
-          var.type.varType = VarType::Float;
-          RDCERR("Unexpected type in cbuffer annotations");
-          break;
         case ComponentType::SNormF64:
-          var.type.varType = VarType::Double;
-          RDCERR("Unexpected type in cbuffer annotations");
-          break;
-        case ComponentType::UNormF64:
-          var.type.varType = VarType::Double;
-          RDCERR("Unexpected type in cbuffer annotations");
-          break;
+        case ComponentType::UNormF64: RDCERR("Unexpected type in cbuffer annotations"); break;
+        default: break;
       }
+
+      var.type.varType = VarTypeForComponentType(it->second.members[i].type);
     }
 
     if(it->second.members[i].flags & TypeInfo::MemberData::Matrix)
