@@ -1835,10 +1835,312 @@ static void AddTaskShaderPayloadStores(const rdcarray<SpecConstant> &specInfo,
   }
 }
 
+static void ConvertToFixedTaskFeeder(const rdcarray<SpecConstant> &specInfo,
+                                     const rdcstr &entryName, uint32_t inSpecConstant,
+                                     uint32_t payloadSize, rdcarray<uint32_t> &modSpirv)
+{
+  rdcspv::Editor editor(modSpirv);
+
+  editor.Prepare();
+
+  // remove all debug names that exist currently as they may name instructions we're going to remove
+  for(rdcspv::Iter it = editor.Begin(rdcspv::Section::DebugNames),
+                   end2 = editor.End(rdcspv::Section::DebugNames);
+      it < end2; ++it)
+  {
+    editor.Remove(it);
+  }
+
+  rdcspv::Id uint32Type = editor.DeclareType(rdcspv::scalar<uint32_t>());
+  rdcspv::Id uvec4Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 4));
+  rdcspv::Id uvec4PtrType =
+      editor.DeclareType(rdcspv::Pointer(uvec4Type, rdcspv::StorageClass::PhysicalStorageBuffer));
+  rdcspv::Id uint64Type = editor.DeclareType(rdcspv::scalar<uint64_t>());
+
+  rdcspv::Id baseAddrId;
+
+  // set up BDA if it's not already used
+  {
+    editor.AddExtension("SPV_KHR_physical_storage_buffer");
+
+    rdcspv::Iter it = editor.Begin(rdcspv::Section::MemoryModel);
+    rdcspv::OpMemoryModel model(it);
+    model.addressingModel = rdcspv::AddressingModel::PhysicalStorageBuffer64;
+    it = model;
+
+    editor.AddCapability(rdcspv::Capability::PhysicalStorageBufferAddresses);
+    editor.AddCapability(rdcspv::Capability::Int64);
+
+    baseAddrId = editor.AddSpecConstantImmediate<uint64_t>(0U, inSpecConstant);
+    editor.SetName(baseAddrId, "baseAddr");
+  }
+
+  rdcarray<rdcspv::Id> newGlobals;
+
+  rdcspv::Id entryID;
+
+  for(const rdcspv::EntryPoint &entry : editor.GetEntries())
+  {
+    if(entry.name == entryName && entry.executionModel == rdcspv::ExecutionModel::TaskEXT)
+      entryID = entry.id;
+  }
+
+  RDCASSERT(entryID);
+
+  rdcspv::Id payloadId;
+  rdcspv::Id payloadTaskStructType;
+  rdcspv::Id payloadBlockStructType;
+  uint32_t taskOffsetIndex = 0;
+
+  rdcspv::Id func;
+
+  {
+    rdcspv::Iter it = editor.GetEntry(entryID);
+
+    RDCASSERT(it.opcode() == rdcspv::Op::EntryPoint);
+
+    rdcspv::OpEntryPoint entry(it);
+
+    func = entry.entryPoint;
+
+    for(rdcspv::Id id : entry.iface)
+    {
+      const rdcspv::DataType &type = editor.GetDataType(editor.GetIDType(id));
+
+      if(type.type == rdcspv::DataType::PointerType &&
+         type.pointerType.storage == rdcspv::StorageClass::TaskPayloadWorkgroupEXT)
+      {
+        payloadId = id;
+
+        payloadBlockStructType = payloadTaskStructType = type.InnerType();
+
+        // append the uint offset to the payload struct type. This should not interfere with any
+        // other definitions used anywhere else
+        {
+          it = editor.GetID(payloadTaskStructType);
+
+          rdcspv::OpTypeStruct structType(it);
+          taskOffsetIndex = (uint32_t)structType.members.size();
+          structType.members.push_back(uint32Type);
+
+          // this is a bit of a hack, we use AddOperation to ensure the struct is in the same order
+          // rather than AddType which adds it at the end of the types
+          editor.Remove(it);
+          editor.AddOperation(it, structType);
+          editor.PostModify(it);
+        }
+
+        uint32_t byteSize = 0;
+        rdcspv::SparseIdMap<rdcspv::Id> outputTypeReplacements;
+        LayOutStorageStruct(editor, specInfo, outputTypeReplacements,
+                            editor.GetDataType(payloadBlockStructType), payloadBlockStructType,
+                            byteSize);
+
+        break;
+      }
+    }
+  }
+
+  // if there was no payload, create our own with just the offset
+  if(payloadSize == 0)
+  {
+    payloadTaskStructType = editor.AddType(rdcspv::OpTypeStruct(editor.MakeId(), {uint32Type}));
+    payloadBlockStructType = editor.AddType(rdcspv::OpTypeStruct(editor.MakeId(), {uint32Type}));
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        payloadBlockStructType, 0, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(0)));
+
+    rdcspv::Id taskPtrType = editor.DeclareType(
+        rdcspv::Pointer(payloadTaskStructType, rdcspv::StorageClass::TaskPayloadWorkgroupEXT));
+
+    payloadId = editor.AddVariable(rdcspv::OpVariable(
+        taskPtrType, editor.MakeId(), rdcspv::StorageClass::TaskPayloadWorkgroupEXT));
+
+    newGlobals.push_back(payloadId);
+  }
+
+  rdcspv::Id payloadBDAPtrType = editor.DeclareType(
+      rdcspv::Pointer(payloadBlockStructType, rdcspv::StorageClass::PhysicalStorageBuffer));
+
+  // find the group size execution mode and remove it, we'll insert our own that's 1,1,1.
+  // we remove this in case it's an ExecutionModeId, in which case it would need to expand to be a
+  // plain ExecutionMode
+  for(rdcspv::Iter it = editor.Begin(rdcspv::Section::ExecutionMode),
+                   end = editor.End(rdcspv::Section::ExecutionMode);
+      it < end; ++it)
+  {
+    // this can also handle ExecutionModeId and we don't care about the difference
+    rdcspv::OpExecutionMode execMode(it);
+
+    if(execMode.entryPoint == entryID && (execMode.mode == rdcspv::ExecutionMode::LocalSize ||
+                                          execMode.mode == rdcspv::ExecutionMode::LocalSizeId))
+    {
+      editor.Remove(it);
+      break;
+    }
+  }
+
+  // Add our own localsize execution mode
+  editor.AddExecutionMode(rdcspv::OpExecutionMode(
+      entryID, rdcspv::ExecutionModeParam<rdcspv::ExecutionMode::LocalSize>(1, 1, 1)));
+
+  rdcspv::Id sixteenU64 = editor.AddConstantImmediate<uint64_t>(16);
+
+  rdcspv::OperationList ops;
+
+  rdcspv::MemoryAccessAndParamDatas memoryAccess;
+  memoryAccess.setAligned(sizeof(uint32_t));
+
+  // create our new function to read the payload, count, and offset, and emit mesh tasks for it
+  {
+    rdcspv::Id uint3Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 3));
+    rdcspv::Id groupIdx, dispatchSize, newGlobal;
+
+    rdctie(groupIdx, newGlobal) =
+        editor.AddBuiltinInputLoad(ops, ShaderStage::Mesh, rdcspv::BuiltIn::WorkgroupId, uint3Type);
+    if(newGlobal != rdcspv::Id())
+      newGlobals.push_back(newGlobal);
+    rdctie(dispatchSize, newGlobal) = editor.AddBuiltinInputLoad(
+        ops, ShaderStage::Mesh, rdcspv::BuiltIn::NumWorkgroups, uint3Type);
+    if(newGlobal != rdcspv::Id())
+      newGlobals.push_back(newGlobal);
+
+    // x + y * xsize + z * xsize * ysize
+
+    rdcspv::Id xsize =
+        ops.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), dispatchSize, {0}));
+    rdcspv::Id ysize =
+        ops.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), dispatchSize, {1}));
+
+    rdcspv::Id xflat =
+        ops.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), groupIdx, {0}));
+    rdcspv::Id yflat =
+        ops.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), groupIdx, {1}));
+    rdcspv::Id zflat =
+        ops.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), groupIdx, {2}));
+
+    rdcspv::Id xysize = ops.add(rdcspv::OpIMul(uint32Type, editor.MakeId(), xsize, ysize));
+
+    yflat = ops.add(rdcspv::OpIMul(uint32Type, editor.MakeId(), yflat, xsize));
+    zflat = ops.add(rdcspv::OpIMul(uint32Type, editor.MakeId(), zflat, xysize));
+
+    rdcspv::Id flatIndex = ops.add(rdcspv::OpIAdd(uint32Type, editor.MakeId(), xflat, yflat));
+    flatIndex = ops.add(rdcspv::OpIAdd(uint32Type, editor.MakeId(), flatIndex, zflat));
+
+    rdcspv::Id total_stride = editor.AddConstantImmediate<uint64_t>(payloadSize + sizeof(Vec4u));
+
+    rdcspv::Id idx64 = ops.add(rdcspv::OpUConvert(uint64Type, editor.MakeId(), flatIndex));
+
+    rdcspv::Id offset = ops.add(rdcspv::OpIMul(uint64Type, editor.MakeId(), total_stride, idx64));
+
+    rdcspv::Id addr = ops.add(rdcspv::OpIAdd(uint64Type, editor.MakeId(), baseAddrId, offset));
+
+    rdcspv::Id ptr = ops.add(rdcspv::OpConvertUToPtr(uvec4PtrType, editor.MakeId(), addr));
+
+    rdcspv::Id sizeOffset = ops.add(rdcspv::OpLoad(uvec4Type, editor.MakeId(), ptr, memoryAccess));
+
+    rdcspv::Id meshDispatchSizeX =
+        ops.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), sizeOffset, {0}));
+    rdcspv::Id meshDispatchSizeY =
+        ops.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), sizeOffset, {1}));
+    rdcspv::Id meshDispatchSizeZ =
+        ops.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), sizeOffset, {2}));
+    offset = ops.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), sizeOffset, {3}));
+
+    rdcspv::Id patchedPayload;
+    if(payloadSize)
+    {
+      rdcspv::Id payloadAddr = ops.add(rdcspv::OpIAdd(uint64Type, editor.MakeId(), addr, sixteenU64));
+
+      ptr = ops.add(rdcspv::OpConvertUToPtr(payloadBDAPtrType, editor.MakeId(), payloadAddr));
+
+      rdcspv::Id payloadStruct =
+          ops.add(rdcspv::OpLoad(payloadBlockStructType, editor.MakeId(), ptr, memoryAccess));
+      rdcspv::Id logicalledPayload =
+          ops.add(rdcspv::OpCopyLogical(payloadTaskStructType, editor.MakeId(), payloadStruct));
+      patchedPayload = ops.add(rdcspv::OpCompositeInsert(
+          payloadTaskStructType, editor.MakeId(), offset, logicalledPayload, {taskOffsetIndex}));
+    }
+    else
+    {
+      patchedPayload =
+          ops.add(rdcspv::OpCompositeConstruct(payloadTaskStructType, editor.MakeId(), {offset}));
+    }
+    ops.add(rdcspv::OpStore(payloadId, patchedPayload));
+    ops.add(rdcspv::OpEmitMeshTasksEXT(meshDispatchSizeX, meshDispatchSizeY, meshDispatchSizeZ,
+                                       payloadId));
+  }
+
+  {
+    rdcspv::Iter it = editor.GetID(func);
+    RDCASSERT(it.opcode() == rdcspv::Op::Function);
+    ++it;
+
+    // continue to the first label so we can remove and replace the function
+    for(; it; ++it)
+    {
+      if(it.opcode() == rdcspv::Op::Label)
+      {
+        ++it;
+        break;
+      }
+    }
+
+    // erase the rest of the function
+    while(it.opcode() != rdcspv::Op::FunctionEnd)
+    {
+      editor.Remove(it);
+      ++it;
+    }
+
+    it = editor.AddOperations(it, ops);
+  }
+
+  // remove all decorations that no longer refer to valid IDs (e.g. instructions in functions we deleted).
+  for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Annotations),
+                   end2 = editor.End(rdcspv::Section::Annotations);
+      it < end2; ++it)
+  {
+    if(it.opcode() == rdcspv::Op::Decorate)
+    {
+      rdcspv::OpDecorate dec(it);
+
+      if(!editor.GetID(dec.target))
+      {
+        editor.Remove(it);
+      }
+    }
+    if(it.opcode() == rdcspv::Op::DecorateId)
+    {
+      rdcspv::OpDecorateId dec(it);
+
+      if(!editor.GetID(dec.target))
+      {
+        editor.Remove(it);
+      }
+    }
+  }
+
+  // add the globals we registered
+  {
+    rdcspv::Iter it = editor.GetEntry(entryID);
+
+    RDCASSERT(it.opcode() == rdcspv::Op::EntryPoint);
+
+    rdcspv::OpEntryPoint entry(it);
+
+    editor.Remove(it);
+
+    entry.iface.append(newGlobals);
+
+    editor.AddOperation(it, entry);
+  }
+}
+
 void VulkanReplay::ClearPostVSCache()
 {
   // temporary to avoid a warning
   (void)&AddTaskShaderPayloadStores;
+  (void)&ConvertToFixedTaskFeeder;
 
   VkDevice dev = m_Device;
 
