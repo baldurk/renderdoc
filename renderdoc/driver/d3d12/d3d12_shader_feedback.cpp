@@ -637,7 +637,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
           RDCERR("Unexpected non-constant argument to createHandleFromBinding");
           continue;
         }
-        if(resBindArg->getMembers().size() != 4 && !resBindArg->isNULL())
+        if(!resBindArg->isNULL() && resBindArg->getMembers().size() != 4)
         {
           RDCERR("Unexpected number of members to resBind");
           continue;
