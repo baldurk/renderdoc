@@ -3008,8 +3008,7 @@ void BufferViewer::fixedVars_contextMenu(const QPoint &pos)
   contextMenu.addAction(m_ExportCSV);
   contextMenu.addAction(m_ExportBytes);
 
-  QObject::connect(&removeFilter, &QAction::triggered,
-                   [this, idx]() { SetMeshFilter(MeshFilter::None); });
+  QObject::connect(&removeFilter, &QAction::triggered, [this]() { SetMeshFilter(MeshFilter::None); });
   QObject::connect(&filterTask, &QAction::triggered, [this, idx]() {
     // if there's no filter, select this task. If we were mesh filtering, filter back to all meshes
     // under the current task (don't use idx there, since it will just be 0)
@@ -3419,7 +3418,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
   QPointer<BufferViewer> me(this);
 
-  m_Ctx.Replay().AsyncInvoke([this, me, action, bufdata](IReplayController *r) {
+  m_Ctx.Replay().AsyncInvoke([this, me, bufdata](IReplayController *r) {
     if(!me)
       return;
 
