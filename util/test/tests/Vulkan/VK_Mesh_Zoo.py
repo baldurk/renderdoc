@@ -24,25 +24,25 @@ class VK_Mesh_Zoo(rdtest.TestCase):
                 0: {
                     'vtx': 0,
                     'idx': 0,
-                    'gl_PerVertex_var.gl_Position': [0.8, 0.8, 0.0, 1.0],
+                    'gl_Position': [0.8, 0.8, 0.0, 1.0],
                     'uv1': [0.5, 0.5],
                 },
                 1: {
                     'vtx': 1,
                     'idx': 1,
-                    'gl_PerVertex_var.gl_Position': [0.8, 0.9, 0.0, 1.0],
+                    'gl_Position': [0.8, 0.9, 0.0, 1.0],
                     'uv1': [0.6, 0.6],
                 },
                 2: {
                     'vtx': 2,
                     'idx': 2,
-                    'gl_PerVertex_var.gl_Position': [0.9, 0.8, 0.0, 1.0],
+                    'gl_Position': [0.9, 0.8, 0.0, 1.0],
                     'uv1': [0.7, 0.7],
                 },
                 3: {
                     'vtx': 3,
                     'idx': 3,
-                    'gl_PerVertex_var.gl_Position': [0.9, 0.9, 0.0, 1.0],
+                    'gl_Position': [0.9, 0.9, 0.0, 1.0],
                     'uv1': [0.8, 0.8],
                 },
             }

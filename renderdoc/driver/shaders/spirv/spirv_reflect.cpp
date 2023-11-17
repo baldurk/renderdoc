@@ -30,6 +30,24 @@
 #include "spirv_editor.h"
 #include "spirv_op_helpers.h"
 
+void StripCommonGLPrefixes(rdcstr &name)
+{
+  // remove certain common prefixes that generate only useless noise from GLSL. This is mostly
+  // irrelevant for the majority of cases but is primarily relevant for single-component outputs
+  // like gl_PointSize or gl_CullPrimitiveEXT
+  const rdcstr prefixesToRemove[] = {
+      "gl_PerVertex.",           "gl_PerVertex_var.",     "gl_MeshVerticesEXT.",
+      "gl_MeshVerticesEXT_var.", "gl_MeshPrimitivesEXT.", "gl_MeshPrimitivesEXT_var.",
+  };
+
+  for(const rdcstr &prefix : prefixesToRemove)
+  {
+    int offs = name.find(prefix);
+    if(offs == 0)
+      name.erase(0, prefix.length());
+  }
+}
+
 void FillSpecConstantVariables(ResourceId shader, const SPIRVPatchData &patchData,
                                const rdcarray<ShaderConstant> &invars,
                                rdcarray<ShaderVariable> &outvars,
@@ -2210,21 +2228,7 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
 
     if(isArray)
       n += StringFormat::Fmt("[%u]", a);
-
-    // remove certain common prefixes that generate only useless noise from GLSL. This is mostly
-    // irrelevant for the majority of cases but is primarily relevant for single-component outputs
-    // like gl_PointSize or gl_CullPrimitiveEXT
-    const rdcstr prefixesToRemove[] = {
-        "gl_PerVertex.",           "gl_PerVertex_var.",     "gl_MeshVerticesEXT.",
-        "gl_MeshVerticesEXT_var.", "gl_MeshPrimitivesEXT.", "gl_MeshPrimitivesEXT_var.",
-    };
-
-    for(const rdcstr &prefix : prefixesToRemove)
-    {
-      int offs = n.find(prefix);
-      if(offs == 0)
-        n.erase(0, prefix.length());
-    }
+    StripCommonGLPrefixes(n);
 
     sig.varName = n;
 

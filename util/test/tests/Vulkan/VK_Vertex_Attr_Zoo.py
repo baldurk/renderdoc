@@ -93,14 +93,14 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
         vsout_ref = copy.deepcopy(out_ref)
         gsout_ref = out_ref
 
-        vsout_ref[0]['gl_PerVertex_var.gl_Position'] = [-0.5, 0.5, 0.0, 1.0]
-        gsout_ref[0]['gl_PerVertex_var.gl_Position'] = [0.5, -0.5, 0.4, 1.2]
+        vsout_ref[0]['gl_Position'] = [-0.5, 0.5, 0.0, 1.0]
+        gsout_ref[0]['gl_Position'] = [0.5, -0.5, 0.4, 1.2]
 
-        vsout_ref[1]['gl_PerVertex_var.gl_Position'] = [0.0, -0.5, 0.0, 1.0]
-        gsout_ref[1]['gl_PerVertex_var.gl_Position'] = [-0.5, 0.0, 0.4, 1.2]
+        vsout_ref[1]['gl_Position'] = [0.0, -0.5, 0.0, 1.0]
+        gsout_ref[1]['gl_Position'] = [-0.5, 0.0, 0.4, 1.2]
 
-        vsout_ref[2]['gl_PerVertex_var.gl_Position'] = [0.5, 0.5, 0.0, 1.0]
-        gsout_ref[2]['gl_PerVertex_var.gl_Position'] = [0.5, 0.5, 0.4, 1.2]
+        vsout_ref[2]['gl_Position'] = [0.5, 0.5, 0.0, 1.0]
+        gsout_ref[2]['gl_Position'] = [0.5, 0.5, 0.4, 1.2]
 
         self.check_mesh_data(in_ref, self.get_vsin(action))
         rdtest.log.success("Vertex input data is as expected")

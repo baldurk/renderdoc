@@ -42,7 +42,7 @@ class VK_Large_Buffer(rdtest.TestCase):
             0: {
                 'vtx': 0,
                 'idx': 0,
-                'gl_PerVertex_var.gl_Position': [-0.5, 0.5, 0.0, 1.0],
+                'gl_Position': [-0.5, 0.5, 0.0, 1.0],
                 'vertOut.pos': [-0.5, 0.5, 0.0, 1.0],
                 'vertOut.col': [0.0, 1.0, 0.0, 1.0],
                 'vertOut.uv': [0.0, 0.0, 0.0, 1.0],
@@ -50,7 +50,7 @@ class VK_Large_Buffer(rdtest.TestCase):
             1: {
                 'vtx': 1,
                 'idx': 1000000,
-                'gl_PerVertex_var.gl_Position': [0.0, -0.5, 0.0, 1.0],
+                'gl_Position': [0.0, -0.5, 0.0, 1.0],
                 'vertOut.pos': [0.0, -0.5, 0.0, 1.0],
                 'vertOut.col': [0.0, 1.0, 0.0, 1.0],
                 'vertOut.uv': [0.0, 1.0, 0.0, 1.0],
@@ -58,7 +58,7 @@ class VK_Large_Buffer(rdtest.TestCase):
             2: {
                 'vtx': 2,
                 'idx': 2345678,
-                'gl_PerVertex_var.gl_Position': [0.5, 0.5, 0.0, 1.0],
+                'gl_Position': [0.5, 0.5, 0.0, 1.0],
                 'vertOut.pos': [0.5, 0.5, 0.0, 1.0],
                 'vertOut.col': [0.0, 1.0, 0.0, 1.0],
                 'vertOut.uv': [1.0, 0.0, 0.0, 1.0],

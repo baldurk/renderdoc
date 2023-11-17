@@ -157,6 +157,8 @@ private:
 
 };    // namespace rdcspv
 
+void StripCommonGLPrefixes(rdcstr &name);
+
 void FillSpecConstantVariables(ResourceId shader, const SPIRVPatchData &patchData,
                                const rdcarray<ShaderConstant> &invars,
                                rdcarray<ShaderVariable> &outvars,

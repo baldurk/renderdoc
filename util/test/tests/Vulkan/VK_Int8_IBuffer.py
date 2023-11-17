@@ -26,14 +26,14 @@ class VK_Int8_IBuffer(rdtest.TestCase):
             0: {
                 'vtx': 0,
                 'idx': 0,
-                'gl_PerVertex_var.gl_Position': [-0.8, -0.2, 0.0, 1.0],
+                'gl_Position': [-0.8, -0.2, 0.0, 1.0],
                 'vertOut.col': [0.0, 1.0, 0.0, 1.0],
                 'vertOut.uv': [0.0, 0.0, 0.0, 1.0],
             },
             4: {
                 'vtx': 4,
                 'idx': 4,
-                'gl_PerVertex_var.gl_Position': [0.0, -0.2, 0.0, 1.0],
+                'gl_Position': [0.0, -0.2, 0.0, 1.0],
                 'vertOut.col': [0.0, 1.0, 0.0, 1.0],
                 'vertOut.uv': [0.0, 0.0, 0.0, 1.0],
             },
@@ -43,7 +43,7 @@ class VK_Int8_IBuffer(rdtest.TestCase):
             9: {
                 'vtx': 9,
                 'idx': 8,
-                'gl_PerVertex_var.gl_Position': [-0.8, 0.7, 0.0, 1.0],
+                'gl_Position': [-0.8, 0.7, 0.0, 1.0],
                 'vertOut.col': [0.0, 0.0, 1.0, 1.0],
                 'vertOut.uv': [0.0, 0.0, 0.0, 1.0],
             },

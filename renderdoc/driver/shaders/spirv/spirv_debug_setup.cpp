@@ -966,6 +966,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
           sourceVar.columns = var.columns;
           sourceVar.signatureIndex = sigNames.indexOf(debugVarName);
 
+          StripCommonGLPrefixes(sourceVar.name);
+
           for(uint32_t x = 0; x < uint32_t(var.rows) * var.columns; x++)
             sourceVar.variables.push_back(DebugVariableReference(
                 isInput ? DebugVariableType::Input : DebugVariableType::Variable, debugVarName, x));
