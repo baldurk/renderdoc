@@ -802,6 +802,20 @@ void WrappedVulkan::vkGetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice
     }
   }
 
+  // we don't want to report support for mesh shaders + multiview
+  VkPhysicalDeviceMeshShaderFeaturesEXT *mesh =
+      (VkPhysicalDeviceMeshShaderFeaturesEXT *)FindNextStruct(
+          pFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT);
+
+  if(mesh)
+  {
+    if(mesh->multiviewMeshShader)
+    {
+      RDCWARN("Disabling support for multiview + mesh shaders");
+      mesh->multiviewMeshShader = VK_FALSE;
+    }
+  }
+
   // report features depending on extensions not supported in RenderDoc as not supported
   VkPhysicalDeviceExtendedDynamicState3FeaturesEXT *dynState3 =
       (VkPhysicalDeviceExtendedDynamicState3FeaturesEXT *)FindNextStruct(
