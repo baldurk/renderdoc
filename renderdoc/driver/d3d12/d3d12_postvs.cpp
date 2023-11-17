@@ -2248,7 +2248,7 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
     totalNumMeshlets = 0;
     bytebuf ampBufContents;
     GetDebugManager()->GetBufferData(ampBuffer, 0, ampBufSize, ampBufContents);
-    ampBufContents.resize(ampBufSize);
+    ampBufContents.resize((size_t)ampBufSize);
 
     const byte *ampData = ampBufContents.data();
     const byte *ampDataBegin = ampData;
