@@ -361,6 +361,28 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
   refl->inputSignature = dxbcRefl->InputSig;
   refl->outputSignature = dxbcRefl->OutputSig;
 
+  switch(dxbc->GetOutputTopology())
+  {
+    case D3D_PRIMITIVE_TOPOLOGY_POINTLIST: refl->outputTopology = Topology::PointList; break;
+    case D3D_PRIMITIVE_TOPOLOGY_LINELIST: refl->outputTopology = Topology::LineList; break;
+    case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP: refl->outputTopology = Topology::LineStrip; break;
+    case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST: refl->outputTopology = Topology::TriangleList; break;
+    case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP:
+      refl->outputTopology = Topology::TriangleStrip;
+      break;
+    case D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ: refl->outputTopology = Topology::LineList_Adj; break;
+    case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ:
+      refl->outputTopology = Topology::LineStrip_Adj;
+      break;
+    case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
+      refl->outputTopology = Topology::TriangleList_Adj;
+      break;
+    case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ:
+      refl->outputTopology = Topology::TriangleStrip_Adj;
+      break;
+    default: refl->outputTopology = Topology::Unknown; break;
+  }
+
   mapping->inputAttributes.resize(D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
   for(int s = 0; s < D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; s++)
     mapping->inputAttributes[s] = s;
