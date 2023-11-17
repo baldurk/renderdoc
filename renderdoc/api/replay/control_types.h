@@ -42,6 +42,7 @@ struct TaskGroupSize
   DOCUMENT("The size in the z dimension.");
   uint32_t z;
 
+  DOCUMENT("");
   bool operator==(const TaskGroupSize &o) const { return x == o.x && y == o.y && z == o.z; }
   bool operator<(const TaskGroupSize &o) const
   {
@@ -68,6 +69,7 @@ of indices.
 )");
   uint32_t numVertices;
 
+  DOCUMENT("");
   bool operator==(const MeshletSize &o) const
   {
     return numIndices == o.numIndices && numVertices == o.numVertices;
