@@ -4495,10 +4495,6 @@ DOCUMENT(R"(A set of flags for ``ShaderStage`` stages
 
   The flag for :data:`ShaderStage.Compute`.
 
-.. data:: Compute
-
-  The flag for :data:`ShaderStage.Compute`.
-
 .. data:: Task
 
   The flag for :data:`ShaderStage.Task`.
