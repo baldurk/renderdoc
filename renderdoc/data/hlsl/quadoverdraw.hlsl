@@ -49,7 +49,10 @@ Texture2DArray<uint> overdrawSRV : register(t0);
   // (* For more details, see:
   // "Shader Amortization using Pixel Quad Message Passing", Eric Penner, GPU Pro 2.)
   uint2 p = uint2(vpos.xy) & 1;
-  int2 sign = p ? -1 : 1;
+  int2 sign;
+  sign.x = p.x ? -1 : 1;
+  sign.y = p.y ? -1 : 1;
+
   uint c1 = c0 + sign.x * ddx_fine(c0);
   uint c2 = c0 + sign.y * ddy_fine(c0);
   uint c3 = c2 + sign.x * ddx_fine(c2);
