@@ -3301,6 +3301,7 @@ void VulkanReplay::GeneralMisc::Init(WrappedVulkan *driver, VkDescriptorPool des
       {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 64},
       {VK_DESCRIPTOR_TYPE_SAMPLER, 64},
       {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32},
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 32},
   };
 
   VkDescriptorPoolCreateInfo descPoolInfo = {
