@@ -459,22 +459,44 @@ void D3D12Replay::PatchQuadWritePS(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &pi
 
       RDCASSERT(quadPSsigs->children.size() > 0);
 
-      // just repoint input signature list to rast out sig
-      quadPSsigs->children[0] = (Metadata *)rastOutSig;
+      // create new input signature list
+      Metadata *newInSig = quadPSsigs->children[0] = editor.CreateMetadata();
 
       uint32_t posID = ~0U;
 
       // process signature to get string table & index table for semantics
       for(size_t i = 0; i < rastOutSig->children.size(); i++)
       {
-        const Metadata *sigEl = rastOutSig->children[i];
+        const Metadata *inSigEl = rastOutSig->children[i];
+
+        Metadata *outSigEl = editor.CreateMetadata();
+        newInSig->children.push_back(outSigEl);
+
+        outSigEl->children = {
+            editor.CreateConstantMetadata(cast<Constant>(inSigEl->children[0]->value)->getU32()),
+            editor.CreateConstantMetadata(inSigEl->children[1]->str),
+            editor.CreateConstantMetadata(
+                (uint8_t)cast<Constant>(inSigEl->children[2]->value)->getU32()),
+            editor.CreateConstantMetadata(
+                (uint8_t)cast<Constant>(inSigEl->children[3]->value)->getU32()),
+            editor.CreateMetadata(),
+            editor.CreateConstantMetadata(
+                (uint8_t)cast<Constant>(inSigEl->children[5]->value)->getU32()),
+            editor.CreateConstantMetadata(cast<Constant>(inSigEl->children[6]->value)->getU32()),
+            editor.CreateConstantMetadata(
+                (uint8_t)cast<Constant>(inSigEl->children[7]->value)->getU32()),
+            editor.CreateConstantMetadata(cast<Constant>(inSigEl->children[8]->value)->getU32()),
+            editor.CreateConstantMetadata(
+                (uint8_t)cast<Constant>(inSigEl->children[9]->value)->getU32()),
+            editor.CreateMetadata(),
+        };
 
         // only append non-system values to the string table
-        uint32_t systemValue = cast<Constant>(sigEl->children[3]->value)->getU32();
+        uint32_t systemValue = cast<Constant>(inSigEl->children[3]->value)->getU32();
         if(systemValue == 0)
         {
           stringTableOffsets.push_back((uint32_t)stringTable.size());
-          stringTable.append(sigEl->children[1]->str);
+          stringTable.append(inSigEl->children[1]->str);
           stringTable.push_back('\0');
         }
         else
@@ -483,17 +505,28 @@ void D3D12Replay::PatchQuadWritePS(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &pi
 
           // SV_Position is 3
           if(systemValue == 3)
-            posID = cast<Constant>(sigEl->children[0]->value)->getU32();
+            posID = cast<Constant>(inSigEl->children[0]->value)->getU32();
         }
 
         rdcarray<uint32_t> semIndexValues;
 
         // semantic indices
-        if(const Metadata *semIdxs = sigEl->children[4])
+        if(const Metadata *semIdxs = inSigEl->children[4])
         {
           // the semantic index node is a list of constants
           for(size_t sidx = 0; sidx < semIdxs->children.size(); sidx++)
+          {
             semIndexValues.push_back(cast<Constant>(semIdxs->children[sidx]->value)->getU32());
+            outSigEl->children[4]->children.push_back(
+                editor.CreateConstantMetadata(semIndexValues.back()));
+          }
+        }
+
+        if(const Metadata *props = inSigEl->children[10])
+        {
+          for(size_t sidx = 0; sidx < props->children.size(); sidx++)
+            outSigEl->children[10]->children.push_back(editor.CreateConstantMetadata(
+                cast<Constant>(props->children[sidx]->value)->getU32()));
         }
 
         size_t tableOffset = ~0U;

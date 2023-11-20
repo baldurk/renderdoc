@@ -7,6 +7,9 @@ class Overlay_Test(rdtest.TestCase):
     internal = True
 
     def check_capture(self, base_event=0):
+        if base_event != 0:
+            rdtest.log.print("Checking overlays from base event {}".format(base_event))
+
         out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
         self.check(out is not None)
@@ -17,22 +20,24 @@ class Overlay_Test(rdtest.TestCase):
 
         # Check the actual output is as expected first.
         for fmt in fmts:
-            marker_name = "Normal Test " + fmt;
+            marker_name = "Normal Test " + fmt
             test_marker: rd.ActionDescription = self.find_action(marker_name, base_event)
             if test_marker == None:
                 rdtest.log.print("Skipping format {} marker {} not found".format(fmt, marker_name))
-                continue;
-            rdtest.log.print("Checking format {}".format(fmt))
+                continue
+            rdtest.log.begin_section("Checking format {}".format(fmt))
             has_stencil = fmt.endswith("_S8")
             for is_msaa in [False, True]:
                 if is_msaa:
-                    marker_name = "MSAA Test ";
+                    marker_name = "MSAA Test "
                 else:
-                    marker_name = "Normal Test ";
-                marker_name += fmt;
+                    marker_name = "Normal Test "
+                marker_name += fmt
                 test_marker: rd.ActionDescription = self.find_action(marker_name, base_event)
 
                 self.controller.SetFrameEvent(test_marker.next.eventId, True)
+
+                rdtest.log.print("Checking overlays at event {}: {}".format(test_marker.next.eventId, marker_name))
 
                 pipe: rd.PipeState = self.controller.GetPipelineState()
 
@@ -688,6 +693,10 @@ class Overlay_Test(rdtest.TestCase):
 
             rdtest.log.success("All overlays as expected for main action Format {}".format(fmt))
 
+            rdtest.log.end_section("Checking format {}".format(fmt))
+
+        rdtest.log.begin_section("Checking mip/slice rendering")
+
         # Now test overlays on a render-to-slice/mip case
         for mip in [2, 3]:
             sub_marker: rd.ActionDescription = self.find_action("Subresources mip {}".format(mip), base_event)
@@ -804,5 +813,7 @@ class Overlay_Test(rdtest.TestCase):
                         self.check_pixel_value(overlay_id, 50 >> shift, 45 >> shift, [30.359375, 30.359375, 30.359375, 1.0], sub=sub)
 
                 rdtest.log.success("Picked values are correct for mip {} overlay {}".format(sub.mip, str(overlay)))
+
+        rdtest.log.end_section("Checking mip/slice rendering")
 
         out.Shutdown()
