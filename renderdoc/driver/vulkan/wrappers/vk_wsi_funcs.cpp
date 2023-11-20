@@ -712,6 +712,9 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(VkDevice device,
   if(surfCap.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
     createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
+  // remove deferred allocation flag so we can process images immediately
+  createInfo.flags &= ~VK_SWAPCHAIN_CREATE_DEFERRED_MEMORY_ALLOCATION_BIT_EXT;
+
   createInfo.surface = Unwrap(createInfo.surface);
   createInfo.oldSwapchain = Unwrap(createInfo.oldSwapchain);
 
