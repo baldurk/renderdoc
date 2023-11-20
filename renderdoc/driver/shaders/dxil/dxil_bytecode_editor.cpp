@@ -425,7 +425,7 @@ Metadata *ProgramEditor::CreateConstantMetadata(uint8_t val)
   Metadata *m = CreateMetadata();
   m->isConstant = true;
   m->type = m_Int8Type;
-  m->value = CreateConstant(Constant(m_Int32Type, val));
+  m->value = CreateConstant(Constant(m_Int8Type, val));
   return m;
 }
 
