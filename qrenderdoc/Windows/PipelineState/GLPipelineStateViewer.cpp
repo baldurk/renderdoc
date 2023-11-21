@@ -1098,15 +1098,21 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
       }
 
       if(length == byteSize)
-        sizestr = tr("%1 Variables, %2 bytes").arg(numvars).arg(length);
+        sizestr = tr("%1 Variables, %2 bytes")
+                      .arg(numvars)
+                      .arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
       else
-        sizestr =
-            tr("%1 Variables, %2 bytes needed, %3 provided").arg(numvars).arg(byteSize).arg(length);
+        sizestr = tr("%1 Variables, %2 bytes needed, %3 provided")
+                      .arg(numvars)
+                      .arg(Formatter::HumanFormat(byteSize, Formatter::OffsetSize))
+                      .arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
 
       if(length < byteSize)
         filledSlot = false;
 
-      byterange = QFormatStr("%1 - %2").arg(offset).arg(offset + length);
+      byterange = QFormatStr("%1 - %2")
+                      .arg(Formatter::HumanFormat(offset, Formatter::OffsetSize))
+                      .arg(Formatter::HumanFormat(offset + length, Formatter::OffsetSize));
 
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({slotname, b.resourceId, byterange, sizestr, QString()});
@@ -1410,9 +1416,15 @@ void GLPipelineStateViewer::setState()
         else if(a.floatCast)
           format += tr(" Cast to float");
 
-        RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({i, a.enabled ? tr("Enabled") : tr("Disabled"), name, format,
-                                  a.vertexBufferSlot, a.byteOffset, QString()});
+        RDTreeWidgetItem *node = new RDTreeWidgetItem({
+            i,
+            a.enabled ? tr("Enabled") : tr("Disabled"),
+            name,
+            format,
+            a.vertexBufferSlot,
+            Formatter::HumanFormat(a.byteOffset, Formatter::OffsetSize),
+            QString(),
+        });
 
         node->setTag(i);
 
@@ -1483,9 +1495,15 @@ void GLPipelineStateViewer::setState()
       if(buf)
         length = buf->length;
 
-      RDTreeWidgetItem *node = new RDTreeWidgetItem({tr("Element"), state.vertexInput.indexBuffer,
-                                                     state.vertexInput.indexByteStride, 0, 0,
-                                                     (qulonglong)length, QString()});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({
+          tr("Element"),
+          state.vertexInput.indexBuffer,
+          Formatter::HumanFormat(state.vertexInput.indexByteStride, Formatter::OffsetSize),
+          0,
+          0,
+          Formatter::HumanFormat(length, Formatter::OffsetSize),
+          QString(),
+      });
 
       QString iformat;
       if(action)
@@ -1568,9 +1586,15 @@ void GLPipelineStateViewer::setState()
       if(buf)
         length = buf->length;
 
-      RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({i, v.resourceId, v.byteStride, (qulonglong)offset,
-                                v.instanceDivisor, (qulonglong)length, QString()});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({
+          i,
+          v.resourceId,
+          Formatter::HumanFormat(v.byteStride, Formatter::OffsetSize),
+          Formatter::HumanFormat(offset, Formatter::OffsetSize),
+          v.instanceDivisor,
+          Formatter::HumanFormat(length, Formatter::OffsetSize),
+          QString(),
+      });
 
       node->setTag(QVariant::fromValue(
           GLVBIBTag(v.resourceId, v.byteOffset, m_Common.GetVBufferFormatString(i))));
@@ -1653,9 +1677,13 @@ void GLPipelineStateViewer::setState()
         if(buf)
           length = buf->length;
 
-        RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({i, state.transformFeedback.bufferResourceId[i], length,
-                                  (qulonglong)state.transformFeedback.byteOffset[i], QString()});
+        RDTreeWidgetItem *node = new RDTreeWidgetItem({
+            i,
+            state.transformFeedback.bufferResourceId[i],
+            Formatter::HumanFormat(length, Formatter::OffsetSize),
+            Formatter::HumanFormat(state.transformFeedback.byteOffset[i], Formatter::OffsetSize),
+            QString(),
+        });
 
         node->setTag(QVariant::fromValue(state.transformFeedback.bufferResourceId[i]));
 

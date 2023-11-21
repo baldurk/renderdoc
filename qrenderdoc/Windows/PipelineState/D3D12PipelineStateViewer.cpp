@@ -1569,10 +1569,14 @@ void D3D12PipelineStateViewer::setShaderState(
             }
             QString sizestr;
             if(bytesize == (uint32_t)length)
-              sizestr = tr("%1 Variables, %2 bytes").arg(numvars).arg(length);
+              sizestr = tr("%1 Variables, %2 bytes")
+                            .arg(numvars)
+                            .arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
             else
-              sizestr =
-                  tr("%1 Variables, %2 bytes needed, %3 provided").arg(numvars).arg(bytesize).arg(length);
+              sizestr = tr("%1 Variables, %2 bytes needed, %3 provided")
+                            .arg(numvars)
+                            .arg(Formatter::HumanFormat(bytesize, Formatter::OffsetSize))
+                            .arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
 
             if(length < bytesize)
               filledSlot = false;
@@ -1580,9 +1584,17 @@ void D3D12PipelineStateViewer::setShaderState(
             QString spaceStr = QString::number(rootElements[i].registerSpace);
             if(directHeapAccess)
               spaceStr = tr("");
-            RDTreeWidgetItem *node = new RDTreeWidgetItem(
-                {rootel, spaceStr, regname, b.resourceId,
-                 QFormatStr("%1 - %2").arg(offset).arg(offset + bytesize), sizestr, QString()});
+            RDTreeWidgetItem *node = new RDTreeWidgetItem({
+                rootel,
+                spaceStr,
+                regname,
+                b.resourceId,
+                QFormatStr("%1 - %2")
+                    .arg(Formatter::HumanFormat(offset, Formatter::OffsetSize))
+                    .arg(Formatter::HumanFormat(offset + bytesize, Formatter::OffsetSize)),
+                sizestr,
+                QString(),
+            });
 
             node->setTag(cbuftag);
 
@@ -1709,7 +1721,7 @@ void D3D12PipelineStateViewer::setState()
       int i = 0;
       for(const D3D12Pipe::Layout &l : state.inputAssembly.layouts)
       {
-        QString byteOffs = QString::number(l.byteOffset);
+        QString byteOffs = Formatter::HumanFormat(l.byteOffset, Formatter::OffsetSize);
 
         // D3D12 specific value
         if(l.byteOffset == ~0U)
@@ -2046,9 +2058,15 @@ void D3D12PipelineStateViewer::setState()
 
       BufferDescription *buf = m_Ctx.GetBuffer(s.resourceId);
 
-      RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {i, s.resourceId, (qulonglong)s.byteOffset, length, s.writtenCountResourceId,
-           (qulonglong)s.writtenCountByteOffset, QString()});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({
+          i,
+          s.resourceId,
+          Formatter::HumanFormat(s.byteOffset, Formatter::OffsetSize),
+          Formatter::HumanFormat(length, Formatter::OffsetSize),
+          s.writtenCountResourceId,
+          Formatter::HumanFormat(s.writtenCountByteOffset, Formatter::OffsetSize),
+          QString(),
+      });
 
       node->setTag(QVariant::fromValue(s.resourceId));
 

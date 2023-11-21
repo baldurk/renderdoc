@@ -1198,15 +1198,22 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, RD
 
       QString sizestr;
       if(bytesize == (uint32_t)length)
-        sizestr = tr("%1 Variables, %2 bytes").arg(numvars).arg(length);
+        sizestr = tr("%1 Variables, %2 bytes")
+                      .arg(numvars)
+                      .arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
       else
-        sizestr =
-            tr("%1 Variables, %2 bytes needed, %3 provided").arg(numvars).arg(bytesize).arg(length);
+        sizestr = tr("%1 Variables, %2 bytes needed, %3 provided")
+                      .arg(numvars)
+                      .arg(Formatter::HumanFormat(bytesize, Formatter::OffsetSize))
+                      .arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
 
       if(length < bytesize)
         filledSlot = false;
 
-      QString vecrange = QFormatStr("%1 - %2").arg(b.vecOffset).arg(b.vecOffset + b.vecCount);
+      QString vecrange =
+          QFormatStr("%1 - %2")
+              .arg(Formatter::HumanFormat(b.vecOffset, Formatter::OffsetSize))
+              .arg(Formatter::HumanFormat(b.vecOffset + b.vecCount, Formatter::OffsetSize));
 
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({slotname, b.resourceId, vecrange, sizestr, QString()});
@@ -1379,7 +1386,7 @@ void D3D11PipelineStateViewer::setState()
     int i = 0;
     for(const D3D11Pipe::Layout &l : state.inputAssembly.layouts)
     {
-      QString byteOffs = QString::number(l.byteOffset);
+      QString byteOffs = Formatter::HumanFormat(l.byteOffset, Formatter::OffsetSize);
 
       // D3D11 specific value
       if(l.byteOffset == ~0U)
@@ -1466,10 +1473,14 @@ void D3D11PipelineStateViewer::setState()
       if(buf)
         length = buf->length;
 
-      RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {tr("Index"), state.inputAssembly.indexBuffer.resourceId,
-           state.inputAssembly.indexBuffer.byteStride, state.inputAssembly.indexBuffer.byteOffset,
-           (qulonglong)length, QString()});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({
+          tr("Index"),
+          state.inputAssembly.indexBuffer.resourceId,
+          Formatter::HumanFormat(state.inputAssembly.indexBuffer.byteStride, Formatter::OffsetSize),
+          Formatter::HumanFormat(state.inputAssembly.indexBuffer.byteOffset, Formatter::OffsetSize),
+          Formatter::HumanFormat(length, Formatter::OffsetSize),
+          QString(),
+      });
 
       QString iformat;
 
@@ -1554,7 +1565,14 @@ void D3D11PipelineStateViewer::setState()
       RDTreeWidgetItem *node = NULL;
 
       if(filledSlot)
-        node = new RDTreeWidgetItem({i, v.resourceId, v.byteStride, v.byteOffset, length, QString()});
+        node = new RDTreeWidgetItem({
+            i,
+            v.resourceId,
+            Formatter::HumanFormat(v.byteStride, Formatter::OffsetSize),
+            Formatter::HumanFormat(v.byteOffset, Formatter::OffsetSize),
+            Formatter::HumanFormat(length, Formatter::OffsetSize),
+            QString(),
+        });
       else
         node =
             new RDTreeWidgetItem({i, tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
@@ -1673,8 +1691,13 @@ void D3D11PipelineStateViewer::setState()
       if(buf)
         length = buf->length;
 
-      RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({i, s.resourceId, length, s.byteOffset, QString()});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({
+          i,
+          s.resourceId,
+          Formatter::HumanFormat(length, Formatter::OffsetSize),
+          Formatter::HumanFormat(s.byteOffset, Formatter::OffsetSize),
+          QString(),
+      });
 
       node->setTag(QVariant::fromValue(s.resourceId));
 
