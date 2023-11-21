@@ -778,9 +778,9 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
   if(view.byteOffset > 0 || view.byteSize < buf->length)
   {
     text += tr("The view covers bytes %1-%2.\nThe buffer is %3 bytes in length.\n")
-                .arg(view.byteOffset)
-                .arg(view.byteOffset + view.byteSize)
-                .arg(buf->length);
+                .arg(Formatter::HumanFormat(view.byteOffset, Formatter::OffsetSize))
+                .arg(Formatter::HumanFormat(view.byteOffset + view.byteSize, Formatter::OffsetSize))
+                .arg(Formatter::HumanFormat(buf->length, Formatter::OffsetSize));
   }
   else if(stageBitsIncluded)
   {
@@ -824,14 +824,17 @@ QString VulkanPipelineStateViewer::formatByteRange(const BufferDescription *buf,
   else if(descriptorBind->byteSize == UINT64_MAX)
   {
     return QFormatStr("%1 - %2 (VK_WHOLE_SIZE)")
-        .arg(descriptorBind->byteOffset)
-        .arg(descriptorBind->byteOffset + (buf->length - descriptorBind->byteOffset));
+        .arg(Formatter::HumanFormat(descriptorBind->byteOffset, Formatter::OffsetSize))
+        .arg(Formatter::HumanFormat(
+            descriptorBind->byteOffset + (buf->length - descriptorBind->byteOffset),
+            Formatter::OffsetSize));
   }
   else
   {
     return QFormatStr("%1 - %2")
-        .arg(descriptorBind->byteOffset)
-        .arg(descriptorBind->byteOffset + descriptorBind->byteSize);
+        .arg(Formatter::HumanFormat(descriptorBind->byteOffset, Formatter::OffsetSize))
+        .arg(Formatter::HumanFormat(descriptorBind->byteOffset + descriptorBind->byteSize,
+                                    Formatter::OffsetSize));
   }
 }
 
@@ -1517,7 +1520,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
               slotname,
               ToQStr(bindType),
               descriptorBind ? descriptorBind->resourceResourceId : ResourceId(),
-              tr("%1 bytes").arg(len),
+              tr("%1 bytes").arg(Formatter::HumanFormat(len, Formatter::OffsetSize)),
               QFormatStr("Viewing bytes %1").arg(formatByteRange(buf, descriptorBind)),
               QString(),
           });
@@ -1948,22 +1951,29 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
 
         if(descriptorBind && descriptorBind->inlineBlock)
         {
-          vecrange = QFormatStr("%1 - %2 bytes")
-                         .arg(descriptorBind->byteOffset)
-                         .arg(descriptorBind->byteOffset + descriptorBind->byteSize);
+          vecrange =
+              QFormatStr("%1 - %2 bytes")
+                  .arg(Formatter::HumanFormat(descriptorBind->byteOffset, Formatter::OffsetSize))
+                  .arg(Formatter::HumanFormat(descriptorBind->byteOffset + descriptorBind->byteSize,
+                                              Formatter::OffsetSize));
         }
         else if(!cblock->compileConstants)
         {
           vecrange = QFormatStr("%1 - %2 bytes")
-                         .arg(stage.pushConstantRangeByteOffset)
-                         .arg(stage.pushConstantRangeByteOffset + stage.pushConstantRangeByteSize);
+                         .arg(Formatter::HumanFormat(stage.pushConstantRangeByteOffset,
+                                                     Formatter::OffsetSize))
+                         .arg(Formatter::HumanFormat(
+                             stage.pushConstantRangeByteOffset + stage.pushConstantRangeByteSize,
+                             Formatter::OffsetSize));
 
           if(stage.pushConstantRangeByteOffset + stage.pushConstantRangeByteSize >
              m_Ctx.CurVulkanPipelineState()->pushconsts.size())
           {
             filledSlot = false;
             vecrange +=
-                tr(", only %1 bytes pushed").arg(m_Ctx.CurVulkanPipelineState()->pushconsts.size());
+                tr(", only %1 bytes pushed")
+                    .arg(Formatter::HumanFormat(m_Ctx.CurVulkanPipelineState()->pushconsts.size(),
+                                                Formatter::OffsetSize));
           }
         }
       }
@@ -1972,14 +1982,18 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
         if(descriptorBind && descriptorBind->inlineBlock)
         {
           name = tr("Inline block");
-          vecrange = tr("%1 bytes").arg(length);
+          vecrange = tr("%1 bytes").arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
         }
 
         if(length == byteSize)
-          sizestr = tr("%1 Variables, %2 bytes").arg(numvars).arg(length);
+          sizestr = tr("%1 Variables, %2 bytes")
+                        .arg(numvars)
+                        .arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
         else
-          sizestr =
-              tr("%1 Variables, %2 bytes needed, %3 provided").arg(numvars).arg(byteSize).arg(length);
+          sizestr = tr("%1 Variables, %2 bytes needed, %3 provided")
+                        .arg(numvars)
+                        .arg(Formatter::HumanFormat(byteSize, Formatter::OffsetSize))
+                        .arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
 
         if(length < byteSize)
           filledSlot = false;
@@ -2664,9 +2678,16 @@ void VulkanPipelineStateViewer::setState()
       if(buf && length == UINT64_MAX)
         length = buf->length - s.byteOffset;
 
-      RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {i, s.active ? tr("Active") : tr("Inactive"), s.bufferResourceId, (qulonglong)s.byteOffset,
-           length, s.counterBufferResourceId, (qulonglong)s.counterBufferOffset, QString()});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({
+          i,
+          s.active ? tr("Active") : tr("Inactive"),
+          s.bufferResourceId,
+          Formatter::HumanFormat(s.byteOffset, Formatter::OffsetSize),
+          Formatter::HumanFormat(length, Formatter::OffsetSize),
+          s.counterBufferResourceId,
+          Formatter::HumanFormat(s.counterBufferOffset, Formatter::OffsetSize),
+          QString(),
+      });
 
       node->setTag(QVariant::fromValue(
           VulkanBufferTag(false, ~0U, ResourceFormat(), s.bufferResourceId, s.byteOffset, length)));
