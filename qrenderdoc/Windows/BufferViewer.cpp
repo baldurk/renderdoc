@@ -3808,7 +3808,9 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       if(!m_MeshView)
       {
         m_RepeatedOffset->setText(
-            tr("Starting at: %1 bytes").arg(m_ByteOffset + bufdata->inConfig.repeatOffset));
+            tr("Starting at: %1 bytes")
+                .arg(Formatter::HumanFormat(m_ByteOffset + bufdata->inConfig.repeatOffset,
+                                            Formatter::OffsetSize)));
 
         {
           rdcarray<ShaderVariable> vars;
@@ -4021,8 +4023,12 @@ void BufferViewer::UI_FixedAddMatrixRows(RDTreeWidgetItem *n, const ShaderConsta
       {
         uint32_t size = c.type.matrixByteStride - vecSize;
 
-        RDTreeWidgetItem *pad = new RDTreeWidgetItem(
-            {tr(""), QFormatStr("%1 bytes").arg(size), QString(), tr("Padding")});
+        RDTreeWidgetItem *pad = new RDTreeWidgetItem({
+            tr(""),
+            QFormatStr("%1 bytes").arg(Formatter::HumanFormat(size, Formatter::OffsetSize)),
+            QString(),
+            tr("Padding"),
+        });
 
         pad->setItalic(true);
         pad->setTag(QVariant::fromValue(FixedVarTag(size)));
@@ -4035,8 +4041,12 @@ void BufferViewer::UI_FixedAddMatrixRows(RDTreeWidgetItem *n, const ShaderConsta
     {
       uint32_t size = c.type.matrixByteStride - vecSize;
 
-      RDTreeWidgetItem *pad = new RDTreeWidgetItem(
-          {tr(""), QFormatStr("%1 bytes each column").arg(size), QString(), tr("Padding")});
+      RDTreeWidgetItem *pad = new RDTreeWidgetItem({
+          tr(""),
+          QFormatStr("%1 bytes each column").arg(Formatter::HumanFormat(size, Formatter::OffsetSize)),
+          QString(),
+          tr("Padding"),
+      });
 
       pad->setItalic(true);
       pad->setTag(QVariant::fromValue(FixedVarTag(size)));
@@ -4148,8 +4158,12 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
     {
       uint32_t size = c.byteOffset - offset;
 
-      RDTreeWidgetItem *pad = new RDTreeWidgetItem(
-          {QString(), QFormatStr("%1 bytes").arg(size), QString(), tr("Padding")});
+      RDTreeWidgetItem *pad = new RDTreeWidgetItem({
+          QString(),
+          QFormatStr("%1 bytes").arg(Formatter::HumanFormat(size, Formatter::OffsetSize)),
+          QString(),
+          tr("Padding"),
+      });
 
       pad->setItalic(true);
       pad->setTag(QVariant::fromValue(FixedVarTag(size)));
@@ -4159,8 +4173,7 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
       offset = c.byteOffset;
     }
 
-    QVariant offsetStr;
-    offsetStr = baseOffset + c.byteOffset;
+    QVariant offsetStr = Formatter::HumanFormat(baseOffset + c.byteOffset, Formatter::OffsetSize);
 
     if(c.bitFieldSize != 0)
     {
@@ -4192,8 +4205,12 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
       {
         const uint32_t elOffset = baseOffset + c.byteOffset + c.type.arrayByteStride * e;
 
-        RDTreeWidgetItem *el = new RDTreeWidgetItem(
-            {v.members[e].name, VarString(v.members[e], c), elOffset, TypeString(v.members[e], c)});
+        RDTreeWidgetItem *el = new RDTreeWidgetItem({
+            v.members[e].name,
+            VarString(v.members[e], c),
+            Formatter::HumanFormat(elOffset, Formatter::OffsetSize),
+            TypeString(v.members[e], c),
+        });
 
         el->setTag(QVariant::fromValue(FixedVarTag(v.members[e].name, elOffset)));
 
@@ -4221,8 +4238,12 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
         {
           uint32_t size = c.type.arrayByteStride - elSize;
 
-          RDTreeWidgetItem *pad = new RDTreeWidgetItem(
-              {QString(), QFormatStr("%1 bytes").arg(size), QString(), tr("Padding")});
+          RDTreeWidgetItem *pad = new RDTreeWidgetItem({
+              QString(),
+              QFormatStr("%1 bytes").arg(Formatter::HumanFormat(size, Formatter::OffsetSize)),
+              QString(),
+              tr("Padding"),
+          });
 
           pad->setItalic(true);
           pad->setTag(QVariant::fromValue(FixedVarTag(size)));
@@ -5114,7 +5135,8 @@ bool BufferViewer::eventFilter(QObject *watched, QEvent *event)
 
         if(tag.valid && tag.padding)
         {
-          tooltip = tr("%1 bytes of padding. Packing rules in effect:\n\n").arg(tag.byteSize);
+          tooltip = tr("%1 bytes of padding. Packing rules in effect:\n\n")
+                        .arg(Formatter::HumanFormat(tag.byteSize, Formatter::OffsetSize));
 
           if(pack == Packing::D3DCB)
             tooltip += tr("Standard D3D constant buffer packing.\n\n");
@@ -5153,10 +5175,13 @@ bool BufferViewer::eventFilter(QObject *watched, QEvent *event)
         }
         else if(tag.valid && !tag.padding)
         {
-          tooltip = tr("Variable %1 is at byte offset %2").arg(tag.name).arg(tag.byteOffset);
+          tooltip = tr("Variable %1 is at byte offset %2")
+                        .arg(tag.name)
+                        .arg(Formatter::HumanFormat(tag.byteOffset, Formatter::OffsetSize));
 
           if(!IsCBufferView())
-            tooltip += tr(", not including overall base byte offset %1 in buffer").arg(m_ByteOffset);
+            tooltip += tr(", not including overall base byte offset %1 in buffer")
+                           .arg(Formatter::HumanFormat(m_ByteOffset, Formatter::OffsetSize));
 
           tooltip += lit(".");
 
@@ -5197,18 +5222,22 @@ bool BufferViewer::eventFilter(QObject *watched, QEvent *event)
 
         QString tooltip;
 
-        tooltip = tr("%1 at overall byte offset %2").arg(c.name).arg(stride * row + c.byteOffset);
-        tooltip += tr(", not including overall base byte offset %1 in buffer").arg(m_ByteOffset);
+        tooltip =
+            tr("%1 at overall byte offset %2")
+                .arg(c.name)
+                .arg(Formatter::HumanFormat(stride * row + c.byteOffset, Formatter::OffsetSize));
+        tooltip += tr(", not including overall base byte offset %1 in buffer")
+                       .arg(Formatter::HumanFormat(m_ByteOffset, Formatter::OffsetSize));
 
         tooltip += lit(".\n\n");
 
         tooltip +=
             tr("Row %1 begins at offset %2 (stride of %3 bytes)\n%4 is at offset %5 in each row.")
                 .arg(row)
-                .arg(stride * row)
-                .arg(stride)
+                .arg(Formatter::HumanFormat(stride * row, Formatter::OffsetSize))
+                .arg(Formatter::HumanFormat(stride, Formatter::OffsetSize))
                 .arg(c.name)
-                .arg(c.byteOffset);
+                .arg(Formatter::HumanFormat(c.byteOffset, Formatter::OffsetSize));
 
         QPoint pos = QCursor::pos();
         pos.setX(pos.x() + 10);
