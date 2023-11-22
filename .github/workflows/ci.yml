@@ -296,12 +296,20 @@ jobs:
         fetch-depth: 5
     - name: Install Homebrew dependencies
       run: |
+        sudo rm /usr/local/bin/2to3-3.11 || true
+        sudo rm /usr/local/bin/idle3.11 || true
+        sudo rm /usr/local/bin/pydoc3.11 || true
+        sudo rm /usr/local/bin/python3.11 || true
+        sudo rm /usr/local/bin/python3.11-config || true
+        sudo rm /usr/local/bin/2to3 || true
+        sudo rm /usr/local/bin/idle3 || true
+        sudo rm /usr/local/bin/pydoc3 || true
+        sudo rm /usr/local/bin/python3 || true
+        sudo rm /usr/local/bin/python3-config || true
         brew update || true
         brew upgrade aom
         brew unlink python
         brew link --overwrite --force python
-        brew unlink python@3.10
-        brew link --overwrite --force python@3.10
         brew unlink python@3.11
         brew link --overwrite --force python@3.11
         brew install --overwrite lftp automake pcre qt5
