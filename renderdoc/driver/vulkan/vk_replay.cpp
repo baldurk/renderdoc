@@ -1198,12 +1198,12 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     }
 
     ret.vertexInput.bindings.resize(state.vertexBindings.size());
-    for(size_t i = 0; i < state.vertexBindings.size(); i++)
+    for(const VkVertexInputBindingDescription2EXT &b : state.vertexBindings)
     {
-      ret.vertexInput.bindings[i].vertexBufferBinding = state.vertexBindings[i].binding;
-      ret.vertexInput.bindings[i].perInstance =
-          state.vertexBindings[i].inputRate == VK_VERTEX_INPUT_RATE_INSTANCE;
-      ret.vertexInput.bindings[i].instanceDivisor = state.vertexBindings[i].divisor;
+      ret.vertexInput.bindings.resize_for_index(b.binding);
+      ret.vertexInput.bindings[b.binding].vertexBufferBinding = b.binding;
+      ret.vertexInput.bindings[b.binding].perInstance = b.inputRate == VK_VERTEX_INPUT_RATE_INSTANCE;
+      ret.vertexInput.bindings[b.binding].instanceDivisor = b.divisor;
     }
 
     ret.vertexInput.vertexBuffers.resize(state.vbuffers.size());
