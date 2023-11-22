@@ -11733,27 +11733,58 @@ void DoSerialise(SerialiserType &ser, VkAccelerationStructureBuildGeometryInfoKH
   SERIALISE_MEMBER(dstAccelerationStructure);
   SERIALISE_MEMBER(geometryCount);
 
-  // flatten the indirect array into single pGeometries-like list.  Only one of ppGeometries or
-  // pGeometries can be NULL
-  VkAccelerationStructureGeometryKHR *pGeometries =
-      (VkAccelerationStructureGeometryKHR *)el.pGeometries;
-  if(ser.IsWriting() && el.ppGeometries)
+  // Serialization of `pGeometries` and `ppGeometries` arrays:
+
+  // Save which array is in use
+  bool use_ppGeometries = (el.ppGeometries != NULL);
+  ser.Serialise("use_ppGeometries"_lit, use_ppGeometries).Hidden();
+
+  if(use_ppGeometries)
   {
-    pGeometries = new VkAccelerationStructureGeometryKHR[el.geometryCount];
-    for(uint32_t i = 0; i < el.geometryCount; ++i)
+    rdcarray<VkAccelerationStructureGeometryKHR> pGeometriesTemp;
+
+    if(ser.IsWriting())
     {
-      pGeometries[i] = *(el.ppGeometries[i]);
+      RDCASSERT(el.ppGeometries && (el.pGeometries == NULL));
+      pGeometriesTemp.resize(el.geometryCount);
+
+      for(uint32_t i = 0; i < el.geometryCount; ++i)
+      {
+        pGeometriesTemp[i] = *el.ppGeometries[i];
+      }
+      el.pGeometries = pGeometriesTemp.data();
+    }
+
+    SERIALISE_MEMBER_ARRAY_EMPTY(pGeometries);
+
+    // Special case of the `SERIALISE_MEMBER_ARRAY` macro
+    ser.Serialise("ppGeometries"_lit, el.pGeometries, el.geometryCount,
+                  SerialiserFlags::AllocateMemory);
+
+    if(ser.IsWriting())
+    {
+      // Return `pGeometries` in original state
+      el.pGeometries = NULL;
+    }
+    else
+    {
+      // Ensure that we will not use the `ppGeometries` array
+      el.ppGeometries = NULL;
     }
   }
-
-  ser.Serialise("pGeometries"_lit, pGeometries, el.geometryCount, SerialiserFlags::AllocateMemory);
-
-  if(ser.IsWriting() && el.ppGeometries)
-    delete[] pGeometries;
-  if(ser.IsReading())
+  else
   {
-    el.pGeometries = pGeometries;
-    el.ppGeometries = NULL;
+    if(ser.IsWriting())
+    {
+      RDCASSERT(el.pGeometries && (el.ppGeometries == NULL));
+    }
+
+    SERIALISE_MEMBER_ARRAY(pGeometries, geometryCount);
+
+    // Special case of the `SERIALISE_MEMBER_ARRAY_EMPTY` macro
+    VkAccelerationStructureGeometryKHR *dummy = NULL;
+    uint64_t dummycount = 0;
+    ser.Serialise("ppGeometries"_lit, dummy, dummycount, SerialiserFlags::AllocateMemory);
   }
 
   SERIALISE_MEMBER(scratchData);
@@ -11764,7 +11795,6 @@ void Deserialise(const VkAccelerationStructureBuildGeometryInfoKHR &el)
 {
   DeserialiseNext(el.pNext);
   delete[] el.pGeometries;
-  delete[] el.ppGeometries;
 }
 
 template <typename SerialiserType>
