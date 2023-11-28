@@ -106,6 +106,7 @@ MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipelines(const MeshForm
   pipeDesc.pRootSignature = m_MeshRootSig;
   pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
   pipeDesc.RasterizerState.AntialiasedLineEnable = TRUE;
+  pipeDesc.RasterizerState.MultisampleEnable = TRUE;
   pipeDesc.SampleMask = 0xFFFFFFFF;
   pipeDesc.SampleDesc.Count = D3D12_MSAA_SAMPLECOUNT;
   pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
