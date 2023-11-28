@@ -17,7 +17,7 @@ if [ "$PLATFORM" == "win64" ]; then
 elif [ "$PLATFORM" == "win32" ]; then
 	GENERATOR="Visual Studio 15 2017";
 else
-	export CC=clang CXX=clang++ CFLAGS="-fPIC -fvisibility=hidden -stdlib=libc++" LDFLAGS="-nostdlib++ -Wl,--start-group /usr/lib/libc++.a /usr/lib/libc++abi.a -lpthread"
+	export CC=clang CXX=clang++ CFLAGS="-fPIC -fvisibility=hidden -stdlib=libc++" LDFLAGS="-nostdlib++ -Wl,--start-group /usr/lib/libc++.a /usr/lib/libc++fs.a /usr/lib/libc++abi.a -lpthread"
 	export CXXFLAGS="${CFLAGS}"
 
 	export PATH=$(pwd)/cmake-3.26.2-linux-x86_64/bin:$PATH
@@ -48,7 +48,7 @@ popd # SPIRV-Cross
 pushd glslang
 
 	# Update external sources
-	python update_glslang_sources.py
+	python3 update_glslang_sources.py
 
 	# Now build
 	mkdir build
