@@ -471,7 +471,7 @@ void main()
         {10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, VK_SHADER_STAGE_VERTEX_BIT},
     }));
 
-    VkDescriptorSetLayoutCreateInfo refsetlayoutcreateinfo = vkh::DescriptorSetLayoutCreateInfo({
+    vkh::DescriptorSetLayoutCreateInfo refsetlayoutcreateinfo = vkh::DescriptorSetLayoutCreateInfo({
         {0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT},
         {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT},
         {2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_VERTEX_BIT},
@@ -484,8 +484,8 @@ void main()
         {9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_VERTEX_BIT},
     });
 
-    VkDescriptorSetLayout refsetlayout = createDescriptorSetLayout(&refsetlayoutcreateinfo);
-    VkDescriptorSetLayout refsetlayout_copy = createDescriptorSetLayout(&refsetlayoutcreateinfo);
+    VkDescriptorSetLayout refsetlayout = createDescriptorSetLayout(refsetlayoutcreateinfo);
+    VkDescriptorSetLayout refsetlayout_copy = createDescriptorSetLayout(refsetlayoutcreateinfo);
 
     VkSampler invalidSampler = (VkSampler)0x1234;
     VkSampler validSampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_LINEAR));
