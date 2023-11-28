@@ -6879,7 +6879,10 @@ void BufferViewer::SetMeshFilter(MeshFilter filter, uint32_t taskGroup, uint32_t
       ui->resetMeshFilterButton->setEnabled(false);
       break;
     case MeshFilter::TaskGroup:
-      ui->meshFilterLabel->setText(tr("Current Range filter: Single Task Group"));
+      if(IsD3D(m_Ctx.APIProps().pipelineType))
+        ui->meshFilterLabel->setText(tr("Current Range filter: Single Amplification Threadgroup"));
+      else
+        ui->meshFilterLabel->setText(tr("Current Range filter: Single Task"));
       ui->resetMeshFilterButton->setEnabled(true);
       break;
     case MeshFilter::Mesh:

@@ -997,6 +997,9 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
     </item>
     <item>
      <widget class="QToolButton" name="resetMeshFilterButton">
+      <property name="toolTip">
+       <string>Reset the filter showing only a subset of meshlets</string>
+      </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
         <normaloff>:/arrow_undo.png</normaloff>:/arrow_undo.png</iconset>
