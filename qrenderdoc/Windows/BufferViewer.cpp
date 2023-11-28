@@ -2985,12 +2985,13 @@ void BufferViewer::fixedVars_contextMenu(const QPoint &pos)
     contextMenu.addAction(&filterTask);
     contextMenu.addAction(&gotoMesh);
 
+    const BufferConfiguration &config1 = m_ModelOut1->getConfig();
+
     // if we're already filtering to a task, don't offer to filter any more. However if we're
     // filtered to a mesh allow 'broadening' the filter back to the task
     // also don't allow filtering at all if there is no task shader bound
     filterTask.setEnabled(!config1.taskSizes.empty() && m_CurMeshFilter != MeshFilter::TaskGroup);
 
-    const BufferConfiguration &config1 = m_ModelOut1->getConfig();
     if(config1.taskSizes.empty() ||
        config1.taskSizes[idx].x * config1.taskSizes[idx].y * config1.taskSizes[idx].z == 0)
       gotoMesh.setEnabled(false);
