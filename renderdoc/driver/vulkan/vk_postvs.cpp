@@ -2920,6 +2920,10 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
   for(const VkSpecializationMapEntry &specConst : taskSpecEntries)
     bufSpecConstant = RDCMAX(bufSpecConstant, specConst.constantID + 1);
 
+  // forcibly set input assembly state to NULL, as AMD's driver still processes this and may crash
+  // if the contents are not sensible. Since this does nothing otherwise we don't make it conditional
+  pipeCreateInfo.pInputAssemblyState = NULL;
+
   // use the load RP if an RP is specified
   if(pipeCreateInfo.renderPass != VK_NULL_HANDLE)
     pipeCreateInfo.renderPass =
