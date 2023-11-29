@@ -4997,7 +4997,7 @@ void WrappedVulkan::AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMes
   }
   else if(action.flags & ActionFlags::Drawcall)
   {
-    shaderStages = {0, 1, 2, 3, 4, 5};
+    shaderStages = {0, 1, 2, 3, 4};
   }
   else if(action.flags & ActionFlags::MeshDispatch)
   {
