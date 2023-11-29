@@ -3492,8 +3492,21 @@ void DoSerialise(SerialiserType &ser, VkGraphicsPipelineCreateInfo &el)
     hasTess |= (el.pStages[i].stage & (VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT |
                                        VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT)) != 0;
 
-  SERIALISE_MEMBER_OPT(pVertexInputState);
-  SERIALISE_MEMBER_OPT(pInputAssemblyState);
+  bool hasMesh = false;
+  for(uint32_t i = 0; i < el.stageCount; i++)
+    hasMesh |= (el.pStages[i].stage & VK_SHADER_STAGE_MESH_BIT_EXT) != 0;
+
+  // if we have mesh shaders, fixed function vertex input is ignored and may be garbage
+  if(hasMesh)
+  {
+    SERIALISE_MEMBER_OPT_EMPTY(pVertexInputState);
+    SERIALISE_MEMBER_OPT_EMPTY(pInputAssemblyState);
+  }
+  else
+  {
+    SERIALISE_MEMBER_OPT(pVertexInputState);
+    SERIALISE_MEMBER_OPT(pInputAssemblyState);
+  }
 
   // if we don't have tessellation shaders, pTessellationState is ignored and may be garbage
   if(hasTess)
