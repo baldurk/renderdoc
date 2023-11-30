@@ -52,6 +52,7 @@ In the 3D Mesh preview, you have the option to display the mesh with some solid 
 * Solid Color simply displays a solid color for each triangle.
 * Flat Shaded will perform basic flat lighting calculations based on triangle normals to give a better idea of the topology of the mesh.
 * Secondary will display the selected secondary mesh element.
+* Meshlet is only relevant when using mesh shaders, and will colourise each meshlet with a different colour.
 
 To select which element will be displayed as secondary, simply right click on the column you would like to use. This can be done on the input and output separately, and 4-component columns have the option to either show RGB as color, or alpha as grayscale.
 
