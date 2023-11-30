@@ -1139,7 +1139,11 @@ void D3D11Replay::OverlayRendering::Init(WrappedID3D11Device *device)
     rdcstr hlsl = GetEmbeddedResource(depth_copy_hlsl);
 
     DepthCopyPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DepthCopyPS", "ps_5_0");
+    DepthCopyArrayPS =
+        shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DepthCopyArrayPS", "ps_5_0");
     DepthCopyMSPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DepthCopyMSPS", "ps_5_0");
+    DepthCopyMSArrayPS =
+        shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DepthCopyMSArrayPS", "ps_5_0");
   }
   {
     D3D11_BLEND_DESC blendDesc = {};
@@ -1179,7 +1183,9 @@ void D3D11Replay::OverlayRendering::Release()
   SAFE_RELEASE(TriangleSizeGS);
   SAFE_RELEASE(TriangleSizePS);
   SAFE_RELEASE(DepthCopyPS);
+  SAFE_RELEASE(DepthCopyArrayPS);
   SAFE_RELEASE(DepthCopyMSPS);
+  SAFE_RELEASE(DepthCopyMSArrayPS);
 
   SAFE_RELEASE(DepthResolveDS);
   SAFE_RELEASE(DepthBlendRTMaskZero);

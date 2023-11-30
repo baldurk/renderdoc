@@ -1406,6 +1406,9 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
           D3D11_TEXTURE2D_DESC dsTexDesc;
           renderDepth->GetDesc(&dsTexDesc);
           dsTexDesc.Format = dsNewFmt;
+          // only need depth stencil, other bind flags may be invalid with the typed format
+          dsTexDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+          dsTexDesc.MiscFlags = 0;
           hr = m_pDevice->CreateTexture2D(&dsTexDesc, NULL, &renderDepthStencil);
           if(FAILED(hr))
           {
@@ -1446,7 +1449,16 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
           copyDesc.DepthEnable = TRUE;
           copyDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
           copyDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
-          copyDesc.StencilEnable = FALSE;
+          // Clear the stencil to zero during the copy
+          copyDesc.StencilEnable = TRUE;
+          copyDesc.StencilReadMask = 0x0;
+          copyDesc.StencilWriteMask = 0xff;
+          copyDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_ZERO;
+          copyDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_ZERO;
+          copyDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_ZERO;
+          copyDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+          copyDesc.BackFace = copyDesc.FrontFace;
+
           SAFE_RELEASE(os);
           hr = m_pDevice->CreateDepthStencilState(&copyDesc, &os);
           if(FAILED(hr))
@@ -1471,10 +1483,30 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
           m_pImmediateContext->GSSetShader(NULL, NULL, 0);
 
           m_pImmediateContext->PSSetShaderResources(0, 1, &depthSRV);
+          if(srvDesc.ArraySize > 1)
+          {
+            uint32_t viewIndex[4] = {};
+            if(srvDesc.SampleDesc.Count > 1)
+              viewIndex[0] = dsViewDesc.Texture2DMSArray.FirstArraySlice;
+            else
+              viewIndex[0] = dsViewDesc.Texture2DArray.FirstArraySlice;
+            ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(viewIndex, sizeof(viewIndex));
+            m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
+          }
           if(srvDesc.SampleDesc.Count > 1)
-            m_pImmediateContext->PSSetShader(m_Overlay.DepthCopyMSPS, NULL, 0);
+          {
+            if(srvDesc.ArraySize > 1)
+              m_pImmediateContext->PSSetShader(m_Overlay.DepthCopyMSArrayPS, NULL, 0);
+            else
+              m_pImmediateContext->PSSetShader(m_Overlay.DepthCopyMSPS, NULL, 0);
+          }
           else
-            m_pImmediateContext->PSSetShader(m_Overlay.DepthCopyPS, NULL, 0);
+          {
+            if(srvDesc.ArraySize > 1)
+              m_pImmediateContext->PSSetShader(m_Overlay.DepthCopyArrayPS, NULL, 0);
+            else
+              m_pImmediateContext->PSSetShader(m_Overlay.DepthCopyPS, NULL, 0);
+          }
 
           m_pImmediateContext->RSSetState(m_General.RasterState);
 

@@ -426,7 +426,9 @@ private:
     ID3D11PixelShader *QOResolvePS = NULL;
     ID3D11PixelShader *TriangleSizePS = NULL;
     ID3D11PixelShader *DepthCopyPS = NULL;
+    ID3D11PixelShader *DepthCopyArrayPS = NULL;
     ID3D11PixelShader *DepthCopyMSPS = NULL;
+    ID3D11PixelShader *DepthCopyMSArrayPS = NULL;
     ID3D11GeometryShader *TriangleSizeGS = NULL;
     ID3D11BlendState *DepthBlendRTMaskZero = NULL;
     ID3D11DepthStencilState *DepthResolveDS = NULL;
