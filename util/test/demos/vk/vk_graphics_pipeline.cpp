@@ -224,7 +224,6 @@ void main()
     info = pipeCreateInfo;
     info->pTessellationState = NULL;
     info->pViewportState = NULL;
-    info->pRasterizationState = NULL;
     info->pMultisampleState = NULL;
     libList[1] = createGraphicsPipeline(info);
 
@@ -258,6 +257,7 @@ void main()
     info = pipeCreateInfo;
     info->pVertexInputState = NULL;
     info->pInputAssemblyState = NULL;
+    info->pRasterizationState = NULL;
     info->pTessellationState = NULL;
     info->pViewportState = NULL;
     info->pDepthStencilState = NULL;
