@@ -1484,6 +1484,8 @@ void main()
 
       vkh::GraphicsPipelineCreateInfo libCreateInfo;
 
+      libCreateInfo.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
+
       libCreateInfo.layout = layout;
 
       libCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
