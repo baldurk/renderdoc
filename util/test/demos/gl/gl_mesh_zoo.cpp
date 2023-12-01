@@ -84,6 +84,7 @@ void main()
 
   gl_Position = verts[gl_VertexID%3];
   col = vec4(0, 1, 1, 1);
+  col2 = vec2(0.5, 0.5);
 
   basevtx = gl_BaseVertex;
   baseinst = gl_BaseInstance;
