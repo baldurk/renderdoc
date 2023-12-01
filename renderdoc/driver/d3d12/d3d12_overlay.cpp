@@ -2137,9 +2137,11 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       HRESULT hr;
       DXGI_FORMAT dsFmt = dsViewDesc.Format;
       // the depth overlay uses stencil buffer as a mask for the passing pixels
+      DXGI_FORMAT dsNewFmt = dsFmt;
+      size_t fmtIndex = ARRAY_COUNT(m_Overlay.DepthCopyPipe);
+      size_t sampleIndex = Log2Floor(overlayTexDesc.SampleDesc.Count);
       if(useDepthWriteStencilPass)
       {
-        DXGI_FORMAT dsNewFmt = dsFmt;
         if(dsFmt == DXGI_FORMAT_D32_FLOAT_S8X24_UINT)
           dsNewFmt = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
         else if(dsFmt == DXGI_FORMAT_D24_UNORM_S8_UINT)
@@ -2153,18 +2155,36 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
         RDCASSERT((dsNewFmt == DXGI_FORMAT_D24_UNORM_S8_UINT) ||
                   (dsNewFmt == DXGI_FORMAT_D32_FLOAT_S8X24_UINT));
-        size_t fmtIndex = (dsNewFmt == DXGI_FORMAT_D24_UNORM_S8_UINT) ? 0 : 1;
-        size_t sampleIndex = Log2Floor(overlayTexDesc.SampleDesc.Count);
+        fmtIndex = (dsNewFmt == DXGI_FORMAT_D24_UNORM_S8_UINT) ? 0 : 1;
         if(m_Overlay.DepthResolvePipe[fmtIndex][sampleIndex] == NULL)
         {
           RDCERR("Unhandled depth resolve format : %s", ToStr(dsNewFmt).c_str());
-          return m_Overlay.resourceId;
+          useDepthWriteStencilPass = false;
         }
+
         if(m_Overlay.DepthCopyPipe[fmtIndex][sampleIndex] == NULL)
         {
           RDCERR("Unhandled depth copy format : %s", ToStr(dsNewFmt).c_str());
-          return m_Overlay.resourceId;
+          useDepthWriteStencilPass = false;
         }
+
+        // Currently depth-copy is only supported for Texture2D and Texture2DMS
+        if(dsFmt != dsNewFmt)
+        {
+          if(depthTexDesc.DepthOrArraySize > 1)
+            useDepthWriteStencilPass = false;
+          if((dsViewDesc.ViewDimension != D3D12_DSV_DIMENSION_TEXTURE2D) &&
+             (dsViewDesc.ViewDimension != D3D12_DSV_DIMENSION_TEXTURE2DMS))
+            useDepthWriteStencilPass = false;
+        }
+        if(!useDepthWriteStencilPass)
+        {
+          RDCWARN("Depth overlay using fallback method instead of stencil mask");
+          dsNewFmt = dsFmt;
+        }
+      }
+      if(useDepthWriteStencilPass)
+      {
         // copy depth over to a new depth-stencil buffer
         if(dsFmt != dsNewFmt)
         {
@@ -2459,8 +2479,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
         RDCASSERT((dsFmt == DXGI_FORMAT_D24_UNORM_S8_UINT) ||
                   (dsFmt == DXGI_FORMAT_D32_FLOAT_S8X24_UINT));
-        size_t fmtIndex = (dsFmt == DXGI_FORMAT_D24_UNORM_S8_UINT) ? 0 : 1;
-        size_t sampleIndex = Log2Floor(overlayTexDesc.SampleDesc.Count);
+        fmtIndex = (dsFmt == DXGI_FORMAT_D24_UNORM_S8_UINT) ? 0 : 1;
 
         list->SetPipelineState(m_Overlay.DepthResolvePipe[fmtIndex][sampleIndex]);
         list->SetGraphicsRootSignature(m_Overlay.DepthCopyResolveRootSig);
