@@ -1676,7 +1676,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           if(m_Overlay.m_DepthResolvePipeline[fmtIndex][sampleIndex] == 0)
           {
             RDCERR("Unhandled depth resolve format : %s", ToStr(dsNewFmt).c_str());
-            return ResourceId();
+            useDepthWriteStencilPass = false;
           }
           if(dsNewFmt != dsFmt)
           {
@@ -1684,8 +1684,20 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
             if(m_Overlay.m_DepthCopyPipeline[fmtIndex][sampleIndex] == 0)
             {
               RDCERR("Unhandled depth copy format : %s", ToStr(dsNewFmt).c_str());
-              return ResourceId();
+              useDepthWriteStencilPass = false;
+              needDepthCopyToDepthStencil = false;
             }
+          }
+          // Currently depth-copy is only supported for Texture2D and Texture2DMS
+          if(dsFmt != dsNewFmt)
+          {
+            if(depthImageInfo.type != VK_IMAGE_TYPE_2D)
+              useDepthWriteStencilPass = false;
+          }
+          if(!useDepthWriteStencilPass)
+          {
+            RDCWARN("Depth overlay using fallback method instead of stencil mask");
+            dsNewFmt = dsFmt;
           }
         }
 
