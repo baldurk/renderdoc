@@ -2800,7 +2800,7 @@ void BufferViewer::SetupMeshView()
   ui->dockarea->addToolWindow(
       m_Containers[0], ToolWindowManager::AreaReference(
                            ToolWindowManager::TopOf, ui->dockarea->areaOf(ui->outputTabs), 0.5f));
-  ui->dockarea->setToolWindowProperties(ui->inTable, ToolWindowManager::HideCloseButton);
+  ui->dockarea->setToolWindowProperties(m_Containers[0], ToolWindowManager::HideCloseButton);
 
   ui->out1Table->setFrameShape(QFrame::NoFrame);
   ui->dockarea->addToolWindow(
@@ -2812,7 +2812,7 @@ void BufferViewer::SetupMeshView()
   ui->dockarea->addToolWindow(
       m_Containers[2], ToolWindowManager::AreaReference(
                            ToolWindowManager::AddTo, ui->dockarea->areaOf(m_Containers[1]), 0.5f));
-  ui->dockarea->setToolWindowProperties(ui->out2Table, ToolWindowManager::HideCloseButton);
+  ui->dockarea->setToolWindowProperties(m_Containers[2], ToolWindowManager::HideCloseButton);
 
   ToolWindowManager::raiseToolWindow(m_Containers[1]);
 
