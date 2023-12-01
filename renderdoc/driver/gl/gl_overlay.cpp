@@ -1012,6 +1012,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
 
     GLuint depthCopy = 0, stencilCopy = 0;
     bool useBlitFramebuffer = true;
+    bool useDepthStencilMask = (overlay == DebugOverlay::Depth) && (curDepth != 0);
 
     // create matching depth for existing FBO
     if(curDepth != 0)
@@ -1062,8 +1063,16 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
 
         if(oldFmt != fmt)
         {
-          useBlitFramebuffer = false;
-          curStencil = curDepth;
+          if(DebugData.overlayTexSlices > 1)
+          {
+            useDepthStencilMask = false;
+            RDCWARN("Depth overlay using fallback method instead of stencil mask");
+          }
+          else
+          {
+            useBlitFramebuffer = false;
+            curStencil = curDepth;
+          }
         }
       }
 
@@ -1331,7 +1340,6 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
     if(!IsGLES && !rs.Enabled[GLRenderState::eEnabled_DepthClamp])
       drv.glDisable(eGL_DEPTH_CLAMP);
 
-    bool useDepthStencilMask = (overlay == DebugOverlay::Depth) && (curDepth != 0);
     if(useDepthStencilMask)
     {
       drv.glStencilMask(0xff);
