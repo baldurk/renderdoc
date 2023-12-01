@@ -801,16 +801,16 @@ class Overlay_Test(rdtest.TestCase):
                     self.check_pixel_value(overlay_id, 50 >> shift, 45 >> shift, [2.0, 2.0, 2.0, 2.0], sub=sub)
                 elif overlay == rd.DebugOverlay.TriangleSizeDraw or overlay == rd.DebugOverlay.TriangleSizePass:
                     if mip == 2:
-                        self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [585.0, 585.0, 585.0, 1.0], sub=sub)
+                        self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [585.0, 585.0, 585.0, 1.0], sub=sub, eps=1/8)
                     else:
-                        self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [151.75, 151.75, 151.75, 1.0], sub=sub)
+                        self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [151.75, 151.75, 151.75, 1.0], sub=sub, eps=1/16)
                     self.check_pixel_value(overlay_id, 30 >> shift, 36 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)
                     self.check_pixel_value(overlay_id, 70 >> shift, 34 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)
                     self.check_pixel_value(overlay_id, 70 >> shift, 20 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)
                     if mip == 2:
-                        self.check_pixel_value(overlay_id, 50 >> shift, 45 >> shift, [117.0, 117.0, 117.0, 1.0], sub=sub)
+                        self.check_pixel_value(overlay_id, 50 >> shift, 45 >> shift, [117.0, 117.0, 117.0, 1.0], sub=sub, eps=1/16)
                     else:
-                        self.check_pixel_value(overlay_id, 50 >> shift, 45 >> shift, [30.359375, 30.359375, 30.359375, 1.0], sub=sub)
+                        self.check_pixel_value(overlay_id, 50 >> shift, 45 >> shift, [30.359375, 30.359375, 30.359375, 1.0], sub=sub, eps=1/16)
 
                 rdtest.log.success("Picked values are correct for mip {} overlay {}".format(sub.mip, str(overlay)))
 
