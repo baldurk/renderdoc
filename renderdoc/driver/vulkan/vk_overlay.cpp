@@ -2122,9 +2122,22 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
       if(useDepthWriteStencilPass)
+      {
+        // override stencil dynamic state
+        state.front.compare = 0xff;
+        state.front.write = 0xff;
+        state.front.ref = 0x1;
+        state.front.failOp = VK_STENCIL_OP_KEEP;
+        state.front.passOp = VK_STENCIL_OP_REPLACE;
+        state.front.depthFailOp = VK_STENCIL_OP_KEEP;
+        state.front.compare = VK_COMPARE_OP_ALWAYS;
+        state.back = state.front;
         state.graphics.pipeline = GetResID(depthWriteStencilPipe);
+      }
       else
+      {
         state.graphics.pipeline = GetResID(passpipe);
+      }
 
       if(depthRP != VK_NULL_HANDLE)
       {
