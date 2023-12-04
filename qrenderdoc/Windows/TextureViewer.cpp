@@ -3836,7 +3836,7 @@ void TextureViewer::on_mipLevel_currentIndexChanged(int index)
 
   TextureDescription &tex = *texptr;
 
-  uint32_t prevSlice = m_TexDisplay.subresource.slice;
+  uint32_t prevSlice = m_TexDisplay.subresource.slice << (int)m_TexDisplay.subresource.mip;
 
   if(tex.mips > 1)
   {
