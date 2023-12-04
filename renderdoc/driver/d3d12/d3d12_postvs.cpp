@@ -1792,14 +1792,30 @@ static void AddDXILMeshShaderOutputStores(const DXBC::DXBCContainer *dxbc, uint3
 
       OutDXILSigLocation &loc = layout.sigLocations[firstPrimOutput + sigId];
 
-      // col is i8, so multiply as i8 then zext to i32 with the rest
-      Instruction *colByteOffset = editor.InsertInstruction(
-          f, i++,
-          editor.CreateInstruction(Operation::Mul, i8,
-                                   {col, editor.CreateConstant(uint8_t(loc.scalarElemSize))}));
+      Instruction *colByteOffset = NULL;
 
-      colByteOffset =
-          editor.InsertInstruction(f, i++, editor.CreateInstruction(Operation::ZExt, i32, {col}));
+      // col is i8, but DXIL doesn't support i8 as values (sigh...). So if that value is a constant
+      // (currently must be true) then we re-create it as u32. We handle the case where it's not a
+      // constant in future perhaps
+      Constant *colConst = cast<Constant>(col);
+      if(colConst)
+      {
+        colByteOffset = editor.InsertInstruction(
+            f, i++,
+            editor.CreateInstruction(Operation::Mul, i32,
+                                     {editor.CreateConstant(colConst->getU32()),
+                                      editor.CreateConstant(loc.scalarElemSize)}));
+      }
+      else
+      {
+        colByteOffset = editor.InsertInstruction(
+            f, i++,
+            editor.CreateInstruction(Operation::Mul, i8,
+                                     {col, editor.CreateConstant(uint8_t(loc.scalarElemSize))}));
+
+        colByteOffset =
+            editor.InsertInstruction(f, i++, editor.CreateInstruction(Operation::ZExt, i32, {col}));
+      }
 
       Instruction *elemByteOffset = colByteOffset;
 
