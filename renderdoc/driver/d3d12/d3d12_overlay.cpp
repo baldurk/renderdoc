@@ -2323,6 +2323,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         psoDesc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
         psoDesc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
         psoDesc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+        psoDesc.DepthStencilState.FrontFace.StencilReadMask = 0xff;
+        psoDesc.DepthStencilState.FrontFace.StencilWriteMask = 0xff;
         psoDesc.DepthStencilState.BackFace = psoDesc.DepthStencilState.FrontFace;
       }
       else
