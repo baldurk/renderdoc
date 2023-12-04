@@ -1695,7 +1695,10 @@ void D3D12PipelineStateViewer::setState()
     setShaderState(state.rootElements, state.meshShader, ui->msShader, ui->msRootSig,
                    ui->msResources, ui->msSamplers, ui->msCBuffers, ui->msUAVs);
 
-    ui->msTopology->setText(ToQStr(state.meshShader.reflection->outputTopology));
+    if(state.meshShader.reflection)
+      ui->msTopology->setText(ToQStr(state.meshShader.reflection->outputTopology));
+    else
+      ui->msTopology->setText(QString());
   }
   else
   {

@@ -2300,7 +2300,10 @@ void VulkanPipelineStateViewer::setState()
     setShaderState(state.taskShader, state.graphics, ui->tsShader, ui->tsResources, ui->tsUBOs);
     setShaderState(state.meshShader, state.graphics, ui->msShader, ui->msResources, ui->msUBOs);
 
-    ui->msTopology->setText(ToQStr(state.meshShader.reflection->outputTopology));
+    if(state.meshShader.reflection)
+      ui->msTopology->setText(ToQStr(state.meshShader.reflection->outputTopology));
+    else
+      ui->msTopology->setText(QString());
   }
   else
   {
