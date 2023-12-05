@@ -2272,7 +2272,7 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
       // framebuffer that only targets that aspect.
       if(discardRange.aspectMask == VK_IMAGE_ASPECT_DEPTH_BIT)
       {
-        if(!passdata.pso[1])
+        if(passdata.pso[1] == VK_NULL_HANDLE)
         {
           RDCERR("Don't have depth-only pipeline for masking out stencil discard");
           return;
@@ -2283,7 +2283,7 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
       }
       else
       {
-        if(!passdata.pso[2])
+        if(passdata.pso[2] == VK_NULL_HANDLE)
         {
           RDCERR("Don't have stencil-only pipeline for masking out depth discard");
           return;
