@@ -2252,10 +2252,20 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
           D3D12RenderState::SignatureElement(eRootUAV, GetResID(ampBuffer), 0);
     }
 
-    m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+    ID3D12GraphicsCommandListX *list = GetDebugManager()->ResetDebugList();
 
-    m_pDevice->ExecuteLists();
-    m_pDevice->FlushLists();
+    rs.ApplyState(m_pDevice, list);
+
+    list->DispatchMesh(action->dispatchDimension[0], action->dispatchDimension[1],
+                       action->dispatchDimension[2]);
+
+    list->Close();
+
+    ID3D12CommandList *l = list;
+    m_pDevice->GetQueue()->ExecuteCommandLists(1, &l);
+    m_pDevice->GPUSync();
+
+    GetDebugManager()->ResetDebugAlloc();
 
     SAFE_RELEASE(ampOutPipe);
 
@@ -2295,13 +2305,15 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
       ampData += sizeof(Vec4u) + payloadSize;
     }
 
-    ID3D12GraphicsCommandListX *list = m_pDevice->GetNewList();
+    list = GetDebugManager()->ResetDebugList();
 
     list->WriteBufferImmediate(writes.count(), writes.data(), NULL);
     list->Close();
 
-    m_pDevice->ExecuteLists();
-    m_pDevice->FlushLists();
+    m_pDevice->GetQueue()->ExecuteCommandLists(1, &l);
+    m_pDevice->GPUSync();
+
+    GetDebugManager()->ResetDebugAlloc();
 
     ConvertToFixedDXILAmpFeeder(pipe->AS()->GetDXBC(), space, action->dispatchDimension,
                                 ampFeederDXIL);
@@ -2431,10 +2443,20 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
           D3D12RenderState::SignatureElement(eRootUAV, GetResID(meshBuffer), 0);
     }
 
-    m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+    ID3D12GraphicsCommandListX *list = GetDebugManager()->ResetDebugList();
 
-    m_pDevice->ExecuteLists();
-    m_pDevice->FlushLists();
+    rs.ApplyState(m_pDevice, list);
+
+    list->DispatchMesh(action->dispatchDimension[0], action->dispatchDimension[1],
+                       action->dispatchDimension[2]);
+
+    list->Close();
+
+    ID3D12CommandList *l = list;
+    m_pDevice->GetQueue()->ExecuteCommandLists(1, &l);
+    m_pDevice->GPUSync();
+
+    GetDebugManager()->ResetDebugAlloc();
 
     rs = prev;
 
