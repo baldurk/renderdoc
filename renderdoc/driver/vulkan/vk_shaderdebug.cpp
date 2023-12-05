@@ -1385,13 +1385,23 @@ public:
       m_pDriver->FlushQ();
     }
 
-    float *ret = (float *)m_DebugData.ReadbackBuffer.Map(NULL, 0);
-    if(!ret)
+    float *retf = (float *)m_DebugData.ReadbackBuffer.Map(NULL, 0);
+    if(!retf)
       return false;
 
-    // convert float results, we did all sampling at 32-bit precision
+    uint32_t *retu = (uint32_t *)retf;
+    int32_t *reti = (int32_t *)retf;
+
+    // convert full precision results, we did all sampling at 32-bit precision
     for(uint8_t c = 0; c < 4; c++)
-      setFloatComp(output, c, ret[c]);
+    {
+      if(VarTypeCompType(output.type) == CompType::Float)
+        setFloatComp(output, c, retf[c]);
+      else if(VarTypeCompType(output.type) == CompType::SInt)
+        setIntComp(output, c, reti[c]);
+      else
+        setUintComp(output, c, retu[c]);
+    }
 
     m_DebugData.ReadbackBuffer.Unmap();
 
