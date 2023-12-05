@@ -184,7 +184,7 @@ private:
 
   struct DiscardPassData
   {
-    VkPipeline pso = VK_NULL_HANDLE;
+    VkPipeline pso[3] = {};
     VkRenderPass rp = VK_NULL_HANDLE;
   };
 

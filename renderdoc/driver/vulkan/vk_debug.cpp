@@ -908,7 +908,8 @@ VulkanDebugManager::~VulkanDebugManager()
 
   for(auto it = m_DiscardPipes.begin(); it != m_DiscardPipes.end(); it++)
   {
-    m_pDriver->vkDestroyPipeline(dev, it->second.pso, NULL);
+    for(size_t i = 0; i < ARRAY_COUNT(it->second.pso); i++)
+      m_pDriver->vkDestroyPipeline(dev, it->second.pso[i], NULL);
     m_pDriver->vkDestroyRenderPass(dev, it->second.rp, NULL);
   }
 
@@ -2070,7 +2071,7 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
     DiscardPassData &passdata = m_DiscardPipes[key];
 
     // create and cache a pipeline and RP that writes to this format and sample count
-    if(passdata.pso == VK_NULL_HANDLE)
+    if(passdata.pso[0] == VK_NULL_HANDLE)
     {
       BuiltinShaderBaseType baseType = BuiltinShaderBaseType::Float;
 
@@ -2138,10 +2139,26 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
           0xf,    // writeMask
       };
 
-      CREATE_OBJECT(passdata.pso, pipeInfo);
+      CREATE_OBJECT(passdata.pso[0], pipeInfo);
+
+      if(depth)
+      {
+        // depth-only, no stencil
+        pipeInfo.stencilEnable = false;
+        pipeInfo.stencilOperations = StencilMode::KEEP;
+
+        CREATE_OBJECT(passdata.pso[1], pipeInfo);
+
+        // stencil-only, no depth
+        pipeInfo.depthEnable = false;
+        pipeInfo.stencilEnable = true;
+        pipeInfo.stencilOperations = StencilMode::REPLACE;
+
+        CREATE_OBJECT(passdata.pso[2], pipeInfo);
+      }
     }
 
-    if(passdata.pso == VK_NULL_HANDLE)
+    if(passdata.pso[0] == VK_NULL_HANDLE)
       return;
 
     DiscardImgData &imgdata = m_DiscardImages[GetResID(image)];
@@ -2149,76 +2166,60 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
     // create and cache views and framebuffers for every slice in this image
     if(imgdata.fbs.empty())
     {
-      VkImageAspectFlags aspectMask = imAspects;
-
-      for(int pass = 0; pass < 3; pass++)
+      for(uint32_t a = 0; a < imInfo.arrayLayers; a++)
       {
-        // only depth/stencil images need multiple sets of views to mask out one aspect or the other
-        if(pass > 0)
-        {
-          if(imAspects != (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
-            break;
+        VkImageViewCreateInfo viewInfo = {
+            VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            NULL,
+            0,
+            image,
+            VK_IMAGE_VIEW_TYPE_2D,
+            imInfo.format,
+            {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+             VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
+            {
+                imAspects,
+                0,
+                1,
+                a,
+                1,
+            },
+        };
 
-          if(pass == 1)
-            aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-          else if(pass == 2)
-            aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-        }
+        VkImageView view;
+        VkResult vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &view);
+        CheckVkResult(vkr);
+        NameVulkanObject(view, StringFormat::Fmt("FillWithDiscardPattern view %s",
+                                                 ToStr(GetResID(image)).c_str()));
 
-        for(uint32_t a = 0; a < imInfo.arrayLayers; a++)
-        {
-          VkImageViewCreateInfo viewInfo = {
-              VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-              NULL,
-              0,
-              image,
-              VK_IMAGE_VIEW_TYPE_2D,
-              imInfo.format,
-              {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-               VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
-              {
-                  aspectMask,
-                  0,
-                  1,
-                  a,
-                  1,
-              },
-          };
+        imgdata.views.push_back(view);
 
-          VkImageView view;
-          VkResult vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &view);
-          CheckVkResult(vkr);
-          NameVulkanObject(view, StringFormat::Fmt("FillWithDiscardPattern view %s",
-                                                   ToStr(GetResID(image)).c_str()));
+        // create framebuffer
+        VkFramebufferCreateInfo fbinfo = {
+            VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            NULL,
+            0,
+            passdata.rp,
+            1,
+            &view,
+            imInfo.extent.width,
+            imInfo.extent.height,
+            1,
+        };
 
-          imgdata.views.push_back(view);
+        VkFramebuffer fb;
+        vkr = driver->vkCreateFramebuffer(driver->GetDev(), &fbinfo, NULL, &fb);
+        CheckVkResult(vkr);
 
-          // create framebuffer
-          VkFramebufferCreateInfo fbinfo = {
-              VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-              NULL,
-              0,
-              passdata.rp,
-              1,
-              &view,
-              imInfo.extent.width,
-              imInfo.extent.height,
-              1,
-          };
-
-          VkFramebuffer fb;
-          vkr = driver->vkCreateFramebuffer(driver->GetDev(), &fbinfo, NULL, &fb);
-          CheckVkResult(vkr);
-
-          imgdata.fbs.push_back(fb);
-        }
+        imgdata.fbs.push_back(fb);
       }
     }
 
     if(imgdata.fbs.empty())
       return;
 
-    ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(passdata.pso));
+    ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                  Unwrap(passdata.pso[0]));
     ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         Unwrap(m_DiscardLayout), 0, 1,
                                         UnwrapPtr(m_DiscardSet[(size_t)type]), 0, NULL);
@@ -2264,22 +2265,39 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
     ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_DiscardLayout), VK_SHADER_STAGE_ALL, 0, 4,
                                    &pass);
 
-    uint32_t offset = 0;
     if(imAspects != discardRange.aspectMask &&
        imAspects == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
     {
       // if we're only discarding one of depth or stencil in a depth/stencil image, pick a
       // framebuffer that only targets that aspect.
       if(discardRange.aspectMask == VK_IMAGE_ASPECT_DEPTH_BIT)
-        offset = imInfo.arrayLayers;
+      {
+        if(!passdata.pso[1])
+        {
+          RDCERR("Don't have depth-only pipeline for masking out stencil discard");
+          return;
+        }
+
+        ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                      Unwrap(passdata.pso[1]));
+      }
       else
-        offset = imInfo.arrayLayers * 2;
+      {
+        if(!passdata.pso[2])
+        {
+          RDCERR("Don't have stencil-only pipeline for masking out depth discard");
+          return;
+        }
+
+        ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                      Unwrap(passdata.pso[2]));
+      }
     }
 
     for(uint32_t slice = discardRange.baseArrayLayer;
         slice < discardRange.baseArrayLayer + discardRange.layerCount; slice++)
     {
-      rpbegin.framebuffer = Unwrap(imgdata.fbs[slice + offset]);
+      rpbegin.framebuffer = Unwrap(imgdata.fbs[slice]);
       ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
       if(depth && discardRange.aspectMask != VK_IMAGE_ASPECT_DEPTH_BIT)
@@ -2310,7 +2328,8 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
 
     dstimBarrier.oldLayout = dstimBarrier.newLayout;
     dstimBarrier.newLayout = curLayout;
-    dstimBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dstimBarrier.srcAccessMask = depth ? (VkAccessFlags)VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+                                       : (VkAccessFlags)VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dstimBarrier.dstAccessMask = VK_ACCESS_ALL_WRITE_BITS | VK_ACCESS_ALL_READ_BITS;
 
     DoPipelineBarrier(cmd, 1, &dstimBarrier);
