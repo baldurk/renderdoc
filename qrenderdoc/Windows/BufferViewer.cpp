@@ -2660,6 +2660,10 @@ void BufferViewer::SetupRawView()
   ui->out1Table->setVisible(false);
   ui->out2Table->setVisible(false);
 
+  m_Containers[0]->setVisible(false);
+  m_Containers[1]->setVisible(false);
+  m_Containers[2]->setVisible(false);
+
   // hide buttons we don't want in the toolbar
   ui->syncViews->setVisible(false);
   ui->instanceLabel->setVisible(false);
