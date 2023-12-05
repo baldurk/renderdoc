@@ -4528,7 +4528,8 @@ RDResult WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool storeStru
       else
       {
         extra +=
-            "\n\nMore debugging information may be available by enabling API validation on replay";
+            "\n\nMore debugging information may be available by enabling API validation on replay "
+            "via `File` -> `Open Capture with Options`";
       }
 
       if(HasFatalError())

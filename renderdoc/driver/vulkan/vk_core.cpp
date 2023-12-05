@@ -2933,7 +2933,8 @@ RDResult WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructured
       else
       {
         extra +=
-            "\n\nMore debugging information may be available by enabling API validation on replay";
+            "\n\nMore debugging information may be available by enabling API validation on replay "
+            "via `File` -> `Open Capture with Options`";
       }
 
       SAFE_DELETE(sink);
@@ -3204,7 +3205,8 @@ RDResult WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEv
       else
       {
         extra +=
-            "\n\nMore debugging information may be available by enabling API validation on replay";
+            "\n\nMore debugging information may be available by enabling API validation on replay "
+            "via `File` -> `Open Capture with Options`";
       }
 
       m_FailedReplayResult.message = rdcstr(m_FailedReplayResult.message) + extra;

@@ -1182,7 +1182,7 @@ RDResult WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_t st
       {
         extra +=
             "\n\nMore debugging information may be available by enabling API validation on "
-            "replay";
+            "replay via `File` -> `Open Capture with Options`";
       }
 
       if(m_pDevice->HasFatalError())
