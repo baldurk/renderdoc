@@ -3604,6 +3604,10 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       else
       {
         buf->storage = r->GetTextureData(m_BufferID, m_TexSub);
+
+        // recalculate total size for this subresource based on the data returned
+        if(!buf->storage.empty())
+          m_ObjectByteSize = buf->storage.size();
       }
 
       uint32_t repeatedDataAvailable = uint32_t(buf->size() - fixedLength);
@@ -5055,7 +5059,12 @@ void BufferViewer::ViewTexture(ResourceId id, const Subresource &sub, const rdcs
 
   TextureDescription *tex = m_Ctx.GetTexture(id);
   if(tex)
+  {
     m_ObjectByteSize = tex->byteSize;
+
+    if(m_TexSub.sample == ~0U)
+      m_TexSub.sample = tex->msSamp - 1;
+  }
 
   m_PagingByteOffset = 0;
 
@@ -6065,6 +6074,46 @@ void BufferViewer::processFormat(const QString &format)
 
     byteRangeStart->setValue(m_ByteOffset);
     byteRangeLength->setValue(m_ByteSize);
+
+    if(!m_IsBuffer)
+    {
+      byteRangeStart->setVisible(false);
+
+      TextureDescription *tex = m_Ctx.GetTexture(m_BufferID);
+      if(tex)
+      {
+        if(tex->arraysize == 1 && tex->mips == 1 && tex->msSamp == 1 && tex->depth == 1)
+        {
+          ui->byteRangeStartLabel->setVisible(false);
+        }
+        else
+        {
+          QString text;
+
+          if(tex->arraysize > 1 || tex->depth > 1)
+            text = tr("Slice %1").arg(m_TexSub.slice);
+
+          if(tex->mips > 1)
+          {
+            if(!text.isEmpty())
+              text += lit(", ");
+            text += tr("Mip %1").arg(m_TexSub.mip);
+          }
+
+          if(tex->msSamp > 1)
+          {
+            if(!text.isEmpty())
+              text += lit(", ");
+            text += tr("Sample %1").arg(m_TexSub.sample);
+          }
+
+          text += lit(". ");
+
+          ui->byteRangeStartLabel->setText(text);
+        }
+      }
+      byteRangeLength->setEnabled(false);
+    }
   }
 
   ui->formatSpecifier->setErrors(parsed.errors);
