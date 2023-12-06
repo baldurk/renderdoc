@@ -3968,13 +3968,13 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
   RDCCOMPILE_ASSERT(ARRAY_COUNT(m_CheckerF16Pipeline) == ARRAY_COUNT(m_QuadResolvePipeline),
                     "Arrays are mismatched in size!");
 
-  uint32_t supportedSampleCounts = driver->GetDeviceProps().limits.framebufferColorSampleCounts;
+  uint32_t supportedColorSampleCounts = driver->GetDeviceProps().limits.framebufferColorSampleCounts;
 
   for(size_t i = 0; i < ARRAY_COUNT(m_CheckerF16Pipeline); i++)
   {
     VkSampleCountFlagBits samples = VkSampleCountFlagBits(1 << i);
 
-    if((supportedSampleCounts & (uint32_t)samples) == 0)
+    if((supportedColorSampleCounts & (uint32_t)samples) == 0)
       continue;
 
     VkRenderPass RGBA16MSRP = VK_NULL_HANDLE;
@@ -4010,6 +4010,10 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
 
     driver->vkDestroyRenderPass(driver->GetDev(), RGBA16MSRP, NULL);
   }
+  RDCASSERTEQUAL((uint32_t)driver->GetDeviceProps().limits.framebufferColorSampleCounts,
+                 samplesHandled);
+
+  uint32_t supportedDepthSampleCounts = driver->GetDeviceProps().limits.framebufferDepthSampleCounts;
 
   samplesHandled = 0;
   {
@@ -4080,21 +4084,28 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
         NULL,    // dependencies
     };
 
-    RDCCOMPILE_ASSERT(ARRAY_COUNT(m_DepthResolvePipeline) == ARRAY_COUNT(m_DepthResolvePipeline),
+    RDCCOMPILE_ASSERT(ARRAY_COUNT(m_DepthCopyPipeline) == ARRAY_COUNT(m_DepthResolvePipeline),
                       "m_DepthCopyPipeline size must match m_DepthResolvePipeline");
 
     if(DepthCopyPipeInfo.fragment != VK_NULL_HANDLE)
     {
       for(size_t f = 0; f < ARRAY_COUNT(m_DepthCopyPipeline); ++f)
       {
+        for(size_t i = 0; i < ARRAY_COUNT(m_DepthCopyPipeline[f]); ++i)
+          m_DepthCopyPipeline[f][i] = VK_NULL_HANDLE;
+
         VkFormat fmt = (f == 0) ? VK_FORMAT_D24_UNORM_S8_UINT : VK_FORMAT_D32_SFLOAT_S8_UINT;
+        VkImageFormatProperties props;
+        if(driver->vkGetPhysicalDeviceImageFormatProperties(
+               driver->GetPhysDev(), fmt, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
+               VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 0, &props) != VK_SUCCESS)
+          continue;
+
         attDescs[1].format = fmt;
         for(size_t i = 0; i < ARRAY_COUNT(m_DepthCopyPipeline[f]); ++i)
         {
-          m_DepthCopyPipeline[f][i] = VK_NULL_HANDLE;
           VkSampleCountFlagBits samples = VkSampleCountFlagBits(1 << i);
-
-          if((supportedSampleCounts & (uint32_t)samples) == 0)
+          if((supportedDepthSampleCounts & (uint32_t)samples) == 0)
             continue;
 
           VkRenderPass depthMSRP = VK_NULL_HANDLE;
@@ -4125,7 +4136,7 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
       }
     }
   }
-  RDCASSERTEQUAL((uint32_t)driver->GetDeviceProps().limits.framebufferColorSampleCounts,
+  RDCASSERTEQUAL((uint32_t)driver->GetDeviceProps().limits.framebufferDepthSampleCounts,
                  samplesHandled);
 
   samplesHandled = 0;
@@ -4208,14 +4219,21 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     {
       for(size_t f = 0; f < ARRAY_COUNT(m_DepthResolvePipeline); ++f)
       {
+        for(size_t i = 0; i < ARRAY_COUNT(m_DepthResolvePipeline[f]); ++i)
+          m_DepthResolvePipeline[f][i] = VK_NULL_HANDLE;
+
         VkFormat fmt = (f == 0) ? VK_FORMAT_D24_UNORM_S8_UINT : VK_FORMAT_D32_SFLOAT_S8_UINT;
+        VkImageFormatProperties props;
+        if(driver->vkGetPhysicalDeviceImageFormatProperties(
+               driver->GetPhysDev(), fmt, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
+               VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 0, &props) != VK_SUCCESS)
+          continue;
+
         attDescs[1].format = fmt;
         for(size_t i = 0; i < ARRAY_COUNT(m_DepthResolvePipeline[f]); ++i)
         {
-          m_DepthResolvePipeline[f][i] = VK_NULL_HANDLE;
           VkSampleCountFlagBits samples = VkSampleCountFlagBits(1 << i);
-
-          if((supportedSampleCounts & (uint32_t)samples) == 0)
+          if((supportedDepthSampleCounts & (uint32_t)samples) == 0)
             continue;
 
           VkRenderPass rgba16MSRP = VK_NULL_HANDLE;
@@ -4242,7 +4260,7 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     }
   }
 
-  RDCASSERTEQUAL((uint32_t)driver->GetDeviceProps().limits.framebufferColorSampleCounts,
+  RDCASSERTEQUAL((uint32_t)driver->GetDeviceProps().limits.framebufferDepthSampleCounts,
                  samplesHandled);
 
   m_DefaultDepthStencilFormat = VK_FORMAT_UNDEFINED;
