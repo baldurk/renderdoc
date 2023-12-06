@@ -4432,9 +4432,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawMeshTasksIndirectEXT(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(buffer).Important();
-  SERIALISE_ELEMENT(offset);
+  SERIALISE_ELEMENT(offset).OffsetOrSize();
   SERIALISE_ELEMENT(drawCount).Important();
-  SERIALISE_ELEMENT(stride);
+  SERIALISE_ELEMENT(stride).OffsetOrSize();
 
   Serialise_DebugMessages(ser);
 
@@ -4855,11 +4855,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawMeshTasksIndirectCountEXT(
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(buffer).Important();
-  SERIALISE_ELEMENT(offset);
+  SERIALISE_ELEMENT(offset).OffsetOrSize();
   SERIALISE_ELEMENT(countBuffer).Important();
-  SERIALISE_ELEMENT(countBufferOffset);
+  SERIALISE_ELEMENT(countBufferOffset).OffsetOrSize();
   SERIALISE_ELEMENT(maxDrawCount).Important();
-  SERIALISE_ELEMENT(stride);
+  SERIALISE_ELEMENT(stride).OffsetOrSize();
 
   Serialise_DebugMessages(ser);
 
