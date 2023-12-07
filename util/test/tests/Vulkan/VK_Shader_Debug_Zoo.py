@@ -57,6 +57,28 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                     rdtest.log.success("Test {} in sub-section {} matched as expected".format(test, child))
             rdtest.log.end_section(test_name)
 
+            test_name = "Disassembly Tests"
+            rdtest.log.begin_section(test_name)
+
+            action = self.find_action("ASM tests")
+            self.controller.SetFrameEvent(action.children[0].eventId, False)
+            pipe: rd.PipeState = self.controller.GetPipelineState()
+            refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
+            disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, "")
+            # Test for some expected strings in the disassembly
+            expectedStrings = []
+            # OpSwitch disassembly of 32-bit and 64-bit literals
+            expectedStrings.append("case 305419896:")
+            expectedStrings.append("case 4063516280:")
+            expectedStrings.append("case 1311768465173141112:")
+            expectedStrings.append("case 17452669529668998776:")
+            for exp in expectedStrings:
+                if exp not in disasm:
+                    failed = True
+                    rdtest.log.error("Failed to find `{}` in disassembly".format(exp))
+
+            rdtest.log.end_section(test_name)
+
         if failed:
             raise rdtest.TestFailureException("Some tests were not as expected")
 
