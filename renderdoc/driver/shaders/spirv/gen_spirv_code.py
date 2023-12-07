@@ -450,12 +450,7 @@ rdcstr DoStringise(const rdcspv::{name} &el)
           operand_kind['kind'] == 'LiteralSpecConstantOpInteger'):
         operand_kind['size'] = None
     elif (operand_kind['kind'] == 'PairLiteralIntegerIdRef'):
-        operand_kind['size'] = 2
-        operand_kind['def_name'] = name[0].lower() + name[1:]
-        operand_kind['def_value'] = '{0, Id()}'
-        operand_kind['type'] = name
-        operand_kind['push_words'] = lambda name: 'words.push_back((uint32_t){0}.first); words.push_back({0}.second.value());'.format(name)
-        ops_header.write('struct {} {{ uint32_t first; Id second; }};\n\n'.format(name))
+        operand_kind['size'] = None
     elif (operand_kind['kind'] == 'PairIdRefLiteralInteger'):
         operand_kind['size'] = 2
         operand_kind['def_name'] = name[0].lower() + name[1:]
@@ -484,16 +479,6 @@ inline PairIdRefIdRef DecodeParam(const ConstIter &it, uint32_t &word)
   if(word >= it.size()) return {};
   
   PairIdRefIdRef ret = { Id::fromWord(it.word(word)), Id::fromWord(it.word(word+1)) };
-  word += 2;
-  return ret;
-}
-
-template<>
-inline PairLiteralIntegerIdRef DecodeParam(const ConstIter &it, uint32_t &word)
-{
-  if(word >= it.size()) return {};
-  
-  PairLiteralIntegerIdRef ret = { it.word(word), Id::fromWord(it.word(word+1)) };
   word += 2;
   return ret;
 }
@@ -833,11 +818,6 @@ inline uint16_t OptionalWordCount(const Id &val)
 inline uint16_t OptionalWordCount(const PairIdRefLiteralInteger &val)
 {
   return val.first != Id() ? 2 : 0;
-}
-
-inline uint16_t OptionalWordCount(const PairLiteralIntegerIdRef &val)
-{
-  return val.second != Id() ? 2 : 0;
 }
 
 inline uint16_t OptionalWordCount(const PairIdRefIdRef &val)
@@ -1196,8 +1176,6 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const Id &el)
 template<>
 rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcstr &el);
 template<>
-rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairLiteralIntegerIdRef &el);
-template<>
 rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdRefLiteralInteger &el);
 template<>
 rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdRefIdRef &el);
@@ -1217,6 +1195,8 @@ inline rdcstr ParamsToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const
   ret += "}}";
   return ret;
 }}
+
+extern bool ManualForEachID(const ConstIter &it, const std::function<void(Id,bool)> &callback);
 
 struct OpDecoder
 {{
@@ -1258,12 +1238,6 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcstr 
 }}
 
 template<>
-rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairLiteralIntegerIdRef &el)
-{{
-  return StringFormat::Fmt("[%u, %s]", el.first, idName(el.second).c_str());
-}}
-
-template<>
 rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdRefLiteralInteger &el)
 {{
   return StringFormat::Fmt("[%s, %u]", idName(el.first).c_str(), el.second);
@@ -1279,6 +1253,8 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdR
 
 void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)> &callback)
 {{
+  if (rdcspv::ManualForEachID(it, callback))
+    return;
   size_t size = it.size();
   uint32_t word = 0;
   (void)word;

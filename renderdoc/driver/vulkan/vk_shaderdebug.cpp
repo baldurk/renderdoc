@@ -2103,7 +2103,7 @@ private:
     rdcspv::Id breakLabel = editor.MakeId();
     rdcspv::Id defaultLabel = editor.MakeId();
 
-    rdcarray<rdcspv::PairLiteralIntegerIdRef> targets;
+    rdcarray<rdcspv::SwitchPairU32LiteralId> targets;
 
     rdcspv::OperationList cases;
 
@@ -2209,7 +2209,7 @@ private:
     }
 
     func.add(rdcspv::OpSelectionMerge(breakLabel, rdcspv::SelectionControl::None));
-    func.add(rdcspv::OpSwitch(opParam, defaultLabel, targets));
+    func.add(rdcspv::OpSwitch32(opParam, defaultLabel, targets));
 
     func.append(cases);
 
@@ -2544,7 +2544,7 @@ private:
     switchVal = func.add(rdcspv::OpIAdd(u32, editor.MakeId(), switchVal, dim));
 
     // switch on the combined operation and image type value
-    rdcarray<rdcspv::PairLiteralIntegerIdRef> targets;
+    rdcarray<rdcspv::SwitchPairU32LiteralId> targets;
 
     rdcspv::OperationList cases;
 
@@ -2925,7 +2925,7 @@ private:
     }
 
     func.add(rdcspv::OpSelectionMerge(breakLabel, rdcspv::SelectionControl::None));
-    func.add(rdcspv::OpSwitch(switchVal, defaultLabel, targets));
+    func.add(rdcspv::OpSwitch32(switchVal, defaultLabel, targets));
 
     func.append(cases);
 

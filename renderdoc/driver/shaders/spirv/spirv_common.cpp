@@ -192,3 +192,22 @@ ShaderBuiltin MakeShaderBuiltin(ShaderStage stage, const rdcspv::BuiltIn el)
 
   return ShaderBuiltin::Undefined;
 }
+
+namespace rdcspv
+{
+
+bool ManualForEachID(const ConstIter &it, const std::function<void(Id, bool)> &callback)
+{
+  switch(it.opcode())
+  {
+    case rdcspv::Op::Switch:
+      // Include just the selector
+      callback(Id::fromWord(it.word(1)), false);
+      return true;
+    default:
+      // unhandled
+      return false;
+  }
+}
+
+};    // namespace rdcspv
