@@ -3011,6 +3011,9 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       break;
     }
 
+    case Op::Unreachable:
+      RDCERR("Op::Unreachable reached, terminating debugging!");
+      DELIBERATE_FALLTHROUGH();
     case Op::TerminateInvocation:
     case Op::Kill:
     {
@@ -3806,7 +3809,6 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::DecorationGroup:
     case Op::GroupDecorate:
     case Op::GroupMemberDecorate:
-    case Op::Unreachable:
     case Op::DecorateString:
     case Op::MemberDecorateString:
     case Op::DecorateId:
