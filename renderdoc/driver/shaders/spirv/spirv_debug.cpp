@@ -2848,18 +2848,38 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     }
     case Op::Switch:
     {
-      OpSwitch switch_(it);
+      OpSwitch32 switch32(it);
+      // selector and default are common beteen 32-bit and 64-bit versions of OpSwitch
+      Id selectorId = switch32.selector;
+      Id targetLabel = switch32.def;
 
-      ShaderVariable selector = GetSrc(switch_.selector);
-
-      Id targetLabel = switch_.def;
-
-      for(const PairLiteralIntegerIdRef &case_ : switch_.target)
+      ShaderVariable selector = GetSrc(selectorId);
+      bool longLiterals = ((selector.type == VarType::SLong) || (selector.type == VarType::ULong));
+      if(!longLiterals)
       {
-        if(uintComp(selector, 0) == case_.first)
+        const uint32_t selectorVal = uintComp(selector, 0);
+        for(size_t i = 0; i < switch32.targets.size(); ++i)
         {
-          targetLabel = case_.second;
-          break;
+          SwitchPairU32LiteralId target = switch32.targets[i];
+          if(selectorVal == target.literal)
+          {
+            targetLabel = target.target;
+            break;
+          }
+        }
+      }
+      else
+      {
+        OpSwitch64 switch64(it);
+        const uint64_t selectorVal = selector.value.u64v[0];
+        for(size_t i = 0; i < switch64.targets.size(); ++i)
+        {
+          SwitchPairU64LiteralId target = switch64.targets[i];
+          if(selectorVal == target.literal)
+          {
+            targetLabel = target.target;
+            break;
+          }
         }
       }
 

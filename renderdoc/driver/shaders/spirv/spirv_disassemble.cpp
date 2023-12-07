@@ -52,7 +52,7 @@ struct StructuredCFG
   rdcspv::Id continueTarget;
 
   // only valid for switches
-  rdcarray<rdcspv::PairLiteralIntegerIdRef> caseTargets;
+  rdcarray<rdcspv::SwitchPairU64LiteralId> caseTargets;
   rdcspv::Id defaultTarget;
 };
 
@@ -713,13 +713,36 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           {
             cfg.type = StructuredCFG::Switch;
 
-            OpSwitch decodedswitch(it);
+            OpSwitch32 switch32(it);
+            // selector and default are common beteen 32-bit and 64-bit versions of OpSwitch
+            Id selector = switch32.selector;
+            cfg.defaultTarget = switch32.def;
 
-            cfg.caseTargets = decodedswitch.target;
-            cfg.defaultTarget = decodedswitch.def;
+            const DataType &type = dataTypes[idTypes[selector]];
+            RDCASSERT(type.type == DataType::ScalarType);
+            const uint32_t selectorWidth = type.scalar().width;
+
+            const bool longLiterals = (selectorWidth == 64);
+            if(!longLiterals)
+            {
+              for(size_t i = 0; i < switch32.targets.size(); ++i)
+              {
+                SwitchPairU32LiteralId target = switch32.targets[i];
+                cfg.caseTargets.push_back({target.literal, target.target});
+              }
+            }
+            else
+            {
+              OpSwitch64 switch64(it);
+              for(size_t i = 0; i < switch64.targets.size(); ++i)
+              {
+                SwitchPairU64LiteralId target = switch64.targets[i];
+                cfg.caseTargets.push_back({target.literal, target.target});
+              }
+            }
 
             ret += indent;
-            ret += StringFormat::Fmt("switch(%s) {\n", idName(decodedswitch.selector).c_str());
+            ret += StringFormat::Fmt("switch(%s) {\n", idName(selector).c_str());
             lineNum++;
 
             // add another level - each case label will be un-intended.
@@ -926,13 +949,13 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
 
           if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::Switch)
           {
-            for(const PairLiteralIntegerIdRef &caseTarget : cfgStack.back().caseTargets)
+            for(const SwitchPairU64LiteralId &caseTarget : cfgStack.back().caseTargets)
             {
-              if(caseTarget.second == decoded.result)
+              if(caseTarget.target == decoded.result)
               {
                 // if this is the current switch's default: then print it
                 ret += indent.substr(0, indent.size() - 2);
-                ret += StringFormat::Fmt("case %u:\n", caseTarget.first);
+                ret += StringFormat::Fmt("case %llu:\n", caseTarget.literal);
                 lineNum++;
                 break;
               }
@@ -1002,13 +1025,13 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
               }
 
               // if we're falling through to the next case, print a comment
-              for(const PairLiteralIntegerIdRef &caseTarget : cfgStack.back().caseTargets)
+              for(const SwitchPairU64LiteralId &caseTarget : cfgStack.back().caseTargets)
               {
-                if(caseTarget.second == decoded.targetLabel)
+                if(caseTarget.target == decoded.targetLabel)
                 {
                   ret += indent;
-                  ret +=
-                      StringFormat::Fmt("// deliberate fallthrough to case %u\n", caseTarget.first);
+                  ret += StringFormat::Fmt("// deliberate fallthrough to case %llu\n",
+                                           caseTarget.literal);
                   lineNum++;
                   break;
                 }
@@ -1067,11 +1090,11 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           {
             bool printed = false;
 
-            for(const PairLiteralIntegerIdRef &caseTarget : lastLoopSwitch->caseTargets)
+            for(const SwitchPairU64LiteralId &caseTarget : lastLoopSwitch->caseTargets)
             {
-              if(caseTarget.second == decoded.targetLabel)
+              if(caseTarget.target == decoded.targetLabel)
               {
-                ret += StringFormat::Fmt("goto case %u;\n", caseTarget.first);
+                ret += StringFormat::Fmt("goto case %llu;\n", caseTarget.literal);
                 lineNum++;
                 printed = true;
                 break;

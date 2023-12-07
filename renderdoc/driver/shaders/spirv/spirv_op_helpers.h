@@ -140,8 +140,6 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const rdcstr &str)
   }
 }
 
-struct PairLiteralIntegerIdRef { uint32_t first; Id second; };
-
 struct PairIdRefLiteralInteger { Id first; uint32_t second; };
 
 struct PairIdRefIdRef { Id first, second; };
@@ -153,16 +151,6 @@ inline PairIdRefIdRef DecodeParam(const ConstIter &it, uint32_t &word)
   if(word >= it.size()) return {};
   
   PairIdRefIdRef ret = { Id::fromWord(it.word(word)), Id::fromWord(it.word(word+1)) };
-  word += 2;
-  return ret;
-}
-
-template<>
-inline PairLiteralIntegerIdRef DecodeParam(const ConstIter &it, uint32_t &word)
-{
-  if(word >= it.size()) return {};
-  
-  PairLiteralIntegerIdRef ret = { it.word(word), Id::fromWord(it.word(word+1)) };
   word += 2;
   return ret;
 }
@@ -2478,11 +2466,6 @@ inline uint16_t OptionalWordCount(const Id &val)
 inline uint16_t OptionalWordCount(const PairIdRefLiteralInteger &val)
 {
   return val.first != Id() ? 2 : 0;
-}
-
-inline uint16_t OptionalWordCount(const PairLiteralIntegerIdRef &val)
-{
-  return val.second != Id() ? 2 : 0;
 }
 
 inline uint16_t OptionalWordCount(const PairIdRefIdRef &val)
@@ -8994,46 +8977,7 @@ struct OpBranchConditional
   rdcarray<uint32_t> branchweights;
 };
 
-struct OpSwitch
-{
-  OpSwitch(const ConstIter &it)
-  {
-    uint32_t word = 0;(void)word;
-    this->op = OpCode;
-    this->wordCount = (uint16_t)it.size();
-    this->selector = Id::fromWord(it.word(1));
-    this->def = Id::fromWord(it.word(2));
-    word = 3;
-    this->target = MultiParam<PairLiteralIntegerIdRef>(it, word);
-  }
-  OpSwitch(Id selector, Id def, const rdcarray<PairLiteralIntegerIdRef> &target = {})
-      : op(Op::Switch)
-      , wordCount(MinWordSize + MultiWordCount(target))
-  {
-    this->selector = selector;
-    this->def = def;
-    this->target = target;
-  }
-  operator Operation() const
-  {
-    rdcarray<uint32_t> words;
-    words.push_back(selector.value());
-    words.push_back(def.value());
-    for(size_t i=0; i < target.size(); i++)
-    {
-      words.push_back((uint32_t)target[i].first); words.push_back(target[i].second.value());
-    }
-    return Operation(OpCode, words);
-  }
-
-  static constexpr Op OpCode = Op::Switch;
-  static constexpr uint16_t MinWordSize = 3U;
-  Op op;
-  uint16_t wordCount;
-  Id selector;
-  Id def;
-  rdcarray<PairLiteralIntegerIdRef> target;
-};
+struct OpSwitch; // has operands with variable sizes
 
 struct OpKill
 {
@@ -17718,8 +17662,6 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const Id &el)
 template<>
 rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcstr &el);
 template<>
-rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairLiteralIntegerIdRef &el);
-template<>
 rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdRefLiteralInteger &el);
 template<>
 rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdRefIdRef &el);
@@ -17744,6 +17686,8 @@ inline rdcstr ParamsToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const
   ret += "}";
   return ret;
 }
+
+extern bool ManualForEachID(const ConstIter &it, const std::function<void(Id,bool)> &callback);
 
 struct OpDecoder
 {

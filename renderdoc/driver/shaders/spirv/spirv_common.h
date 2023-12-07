@@ -328,6 +328,115 @@ struct OpShaderDbg : public OpExtInstGeneric<rdcspv::ShaderDbg>
   OpShaderDbg(const ConstIter &it) : OpExtInstGeneric(it) {}
 };
 
+template <typename T>
+struct SwitchPairLiteralId
+{
+  T literal;
+  Id target;
+};
+
+typedef SwitchPairLiteralId<uint32_t> SwitchPairU32LiteralId;
+typedef SwitchPairLiteralId<uint64_t> SwitchPairU64LiteralId;
+
+// helpers for OpSwitch 32-bit and 64-bit versions in the style of the auto-generated helpers
+struct OpSwitch32
+{
+  OpSwitch32(const ConstIter &it)
+  {
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->selector = Id::fromWord(it.word(1));
+    this->def = Id::fromWord(it.word(2));
+    uint32_t word = 3;
+    while(word < it.size())
+    {
+      uint32_t literal(it.word(word));
+      word += 1;
+      rdcspv::Id target(Id::fromWord(it.word(word)));
+      word += 1;
+      this->targets.push_back({literal, target});
+    }
+  }
+  OpSwitch32(Id selector, Id def, const rdcarray<SwitchPairLiteralId<uint32_t>> &targets)
+      : op(Op::Switch)
+  {
+    this->wordCount = MinWordSize + 2 * (uint16_t)targets.count();
+    this->selector = selector;
+    this->def = def;
+    this->targets = targets;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(selector.value());
+    words.push_back(def.value());
+    for(size_t i = 0; i < targets.size(); i++)
+    {
+      words.push_back(targets[i].literal);
+      words.push_back(targets[i].target.value());
+    }
+    return rdcspv::Operation(Op::Switch, words);
+  }
+
+  static constexpr Op OpCode = Op::Switch;
+  static constexpr uint16_t MinWordSize = 3U;
+  Op op;
+  uint16_t wordCount;
+  Id selector;
+  Id def;
+  rdcarray<SwitchPairU32LiteralId> targets;
+};
+
+struct OpSwitch64
+{
+  OpSwitch64(const ConstIter &it)
+  {
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->selector = Id::fromWord(it.word(1));
+    this->def = Id::fromWord(it.word(2));
+    uint32_t word = 3;
+    while(word < it.size())
+    {
+      uint64_t literal(*(uint64_t *)(it.words() + word));
+      word += 2;
+      rdcspv::Id target(Id::fromWord(it.word(word)));
+      word += 1;
+      this->targets.push_back({literal, target});
+    }
+  }
+  OpSwitch64(Id selector, Id def, const rdcarray<SwitchPairU64LiteralId> &targets) : op(Op::Switch)
+  {
+    this->wordCount = MinWordSize + 3 * (uint16_t)targets.count();
+    this->selector = selector;
+    this->def = def;
+    this->targets = targets;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(selector.value());
+    words.push_back(def.value());
+    for(size_t i = 0; i < targets.size(); i++)
+    {
+      uint32_t *literal = (uint32_t *)&(targets[i].literal);
+      words.push_back(literal[0]);
+      words.push_back(literal[1]);
+      words.push_back(targets[i].target.value());
+    }
+    return rdcspv::Operation(Op::Switch, words);
+  }
+
+  static constexpr Op OpCode = Op::Switch;
+  static constexpr uint16_t MinWordSize = 3U;
+
+  Op op;
+  uint16_t wordCount;
+  Id selector;
+  Id def;
+  rdcarray<SwitchPairU64LiteralId> targets;
+};
+
 };    // namespace rdcspv
 
 static const uint32_t SpecializationConstantBindSet = 1234567;

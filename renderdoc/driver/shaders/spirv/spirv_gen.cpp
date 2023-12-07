@@ -1809,12 +1809,6 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcstr 
 }
 
 template<>
-rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairLiteralIntegerIdRef &el)
-{
-  return StringFormat::Fmt("[%u, %s]", el.first, idName(el.second).c_str());
-}
-
-template<>
 rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdRefLiteralInteger &el)
 {
   return StringFormat::Fmt("[%s, %u]", idName(el.first).c_str(), el.second);
@@ -2151,6 +2145,8 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv:
 
 void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)> &callback)
 {
+  if (rdcspv::ManualForEachID(it, callback))
+    return;
   size_t size = it.size();
   uint32_t word = 0;
   (void)word;
@@ -3338,8 +3334,6 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::Switch:
-      callback(Id::fromWord(it.word(1)), false);
-      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::Kill:
       break;
@@ -7518,14 +7512,8 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
     }
     case rdcspv::Op::Switch:
     {
-      OpSwitch decoded(it);
-      ret += rdcstr("Switch("_lit)
-           + ParamToStr(idName, decoded.selector)
-           + ", "
-           + ParamToStr(idName, decoded.def)
-           + ", "
-           + ParamsToStr(idName, decoded.target)
-           + ")";
+      OpDecoder decoded(it);
+      ret += "Switch(...)";
       break;
     }
     case rdcspv::Op::Kill:
