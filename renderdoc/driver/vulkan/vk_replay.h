@@ -202,6 +202,8 @@ struct VulkanPostVSData
     VkDeviceMemory idxbufmem;
     VkIndexType idxFmt;
 
+    rdcfixedarray<uint32_t, 3> dispatchSize;
+
     bool hasPosOut;
     bool flipY;
 

@@ -2056,8 +2056,7 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
 
   const ActionDescription *action = m_pDevice->GetAction(eventId);
 
-  uint32_t totalNumMeshlets =
-      action->dispatchDimension[0] * action->dispatchDimension[1] * action->dispatchDimension[2];
+  rdcfixedarray<uint32_t, 3> dispatchSize = action->dispatchDimension;
 
   D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
@@ -2066,6 +2065,50 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
   WrappedID3D12PipelineState *pipe =
       (WrappedID3D12PipelineState *)rm->GetCurrentAs<ID3D12PipelineState>(rs.pipe);
   D3D12RootSignature modsig;
+
+  // for indirect dispatches, fetch up to date dispatch sizes in case they're non-deterministic
+  if(action->flags & ActionFlags::Indirect)
+  {
+    uint32_t chunkIdx = action->events.back().chunkIndex;
+    uint32_t parentIdx = action->parent->events.back().chunkIndex;
+    const SDFile *file = m_pDevice->GetStructuredFile();
+
+    if(chunkIdx < file->chunks.size() && parentIdx < file->chunks.size())
+    {
+      const SDChunk *chunk = file->chunks[chunkIdx];
+      const SDChunk *parentChunk = file->chunks[parentIdx];
+
+      uint32_t cmdIdx = chunk->FindChild("CommandIndex")->AsUInt32();
+      uint32_t argIdx = chunk->FindChild("ArgumentIndex")->AsUInt32();
+
+      WrappedID3D12CommandSignature *comSig = rm->GetLiveAs<WrappedID3D12CommandSignature>(
+          parentChunk->FindChild("pCommandSignature")->AsResourceId());
+      ID3D12Resource *argBuf =
+          rm->GetLiveAs<ID3D12Resource>(parentChunk->FindChild("pArgumentBuffer")->AsResourceId());
+      uint64_t argOffs = parentChunk->FindChild("ArgumentBufferOffset")->AsUInt64();
+
+      argOffs += cmdIdx * comSig->sig.ByteStride;
+
+      for(uint32_t i = 0; i < argIdx; i++)
+        argOffs += ArgumentTypeByteSize(comSig->sig.arguments[i]);
+
+      bytebuf dispatchArgs;
+      GetDebugManager()->GetBufferData(argBuf, argOffs, sizeof(D3D12_DISPATCH_MESH_ARGUMENTS),
+                                       dispatchArgs);
+
+      if(dispatchArgs.size() >= sizeof(D3D12_DISPATCH_MESH_ARGUMENTS))
+      {
+        D3D12_DISPATCH_MESH_ARGUMENTS *meshArgs =
+            (D3D12_DISPATCH_MESH_ARGUMENTS *)dispatchArgs.data();
+
+        dispatchSize[0] = meshArgs->ThreadGroupCountX;
+        dispatchSize[1] = meshArgs->ThreadGroupCountY;
+        dispatchSize[2] = meshArgs->ThreadGroupCountZ;
+      }
+    }
+  }
+
+  uint32_t totalNumMeshlets = dispatchSize[0] * dispatchSize[1] * dispatchSize[2];
 
   // set defaults so that we don't try to fetch this output again if something goes wrong and the
   // same event is selected again
@@ -2159,8 +2202,8 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
 
   if(pipeDesc.AS.BytecodeLength > 0)
   {
-    AddDXILAmpShaderPayloadStores(pipe->AS()->GetDXBC(), space, action->dispatchDimension,
-                                  payloadSize, ampFetchDXIL);
+    AddDXILAmpShaderPayloadStores(pipe->AS()->GetDXBC(), space, dispatchSize, payloadSize,
+                                  ampFetchDXIL);
 
     // strip the root signature, we shouldn't need it and it may no longer match and fail validation
     DXBC::DXBCContainer::StripChunk(ampFetchDXIL, DXBC::FOURCC_RTS0);
@@ -2256,8 +2299,7 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
 
     rs.ApplyState(m_pDevice, list);
 
-    list->DispatchMesh(action->dispatchDimension[0], action->dispatchDimension[1],
-                       action->dispatchDimension[2]);
+    list->DispatchMesh(dispatchSize[0], dispatchSize[1], dispatchSize[2]);
 
     list->Close();
 
@@ -2315,8 +2357,7 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
 
     GetDebugManager()->ResetDebugAlloc();
 
-    ConvertToFixedDXILAmpFeeder(pipe->AS()->GetDXBC(), space, action->dispatchDimension,
-                                ampFeederDXIL);
+    ConvertToFixedDXILAmpFeeder(pipe->AS()->GetDXBC(), space, dispatchSize, ampFeederDXIL);
 
     // strip the root signature, we shouldn't need it and it may no longer match and fail validation
     DXBC::DXBCContainer::StripChunk(ampFeederDXIL, DXBC::FOURCC_RTS0);
@@ -2329,8 +2370,8 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
 
   bytebuf meshOutputDXIL;
 
-  AddDXILMeshShaderOutputStores(pipe->MS()->GetDXBC(), space, ampBuffer != NULL,
-                                action->dispatchDimension, layout, meshOutputDXIL);
+  AddDXILMeshShaderOutputStores(pipe->MS()->GetDXBC(), space, ampBuffer != NULL, dispatchSize,
+                                layout, meshOutputDXIL);
 
   {
     // strip the root signature, we shouldn't need it and it may no longer match and fail validation
@@ -2447,8 +2488,7 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
 
     rs.ApplyState(m_pDevice, list);
 
-    list->DispatchMesh(action->dispatchDimension[0], action->dispatchDimension[1],
-                       action->dispatchDimension[2]);
+    list->DispatchMesh(dispatchSize[0], dispatchSize[1], dispatchSize[2]);
 
     list->Close();
 
@@ -2695,6 +2735,8 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
 
   ret.ampout.hasPosOut = false;
 
+  ret.ampout.dispatchSize = dispatchSize;
+
   ret.meshout.buf = meshBuffer;
 
   ret.meshout.vertStride = layout.vertStride;
@@ -2707,6 +2749,8 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
   ret.meshout.useIndices = true;
   ret.meshout.numVerts = totalPrims * layout.indexCountPerPrim;
   ret.meshout.instData = meshletOffsets;
+
+  ret.meshout.dispatchSize = dispatchSize;
 
   ret.meshout.instStride = 0;
 
@@ -4019,6 +4063,8 @@ MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint
   {
     ret.perPrimitiveStride = s.primStride;
     ret.perPrimitiveOffset = s.primOffset;
+
+    ret.dispatchSize = s.dispatchSize;
 
     if(stage == MeshDataStage::MeshOut)
     {

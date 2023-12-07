@@ -2813,10 +2813,44 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
 {
   VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
 
-  const ActionDescription *action = m_pDriver->GetAction(eventId);
+  ActionDescription action = *m_pDriver->GetAction(eventId);
+
+  // for indirect dispatches, fetch up to date dispatch sizes in case they're non-deterministic
+  if(action.flags & ActionFlags::Indirect)
+  {
+    uint32_t chunkIdx = action.events.back().chunkIndex;
+
+    const SDFile *file = GetStructuredFile();
+
+    // it doesn't matter if this is an indirect sub command or an inlined 1-draw non-indirect count,
+    // either way the 'offset' is valid - either from the start, or updated for this particular draw
+    // when we originally patched (and fortunately that part doesn't change).
+    if(chunkIdx < file->chunks.size())
+    {
+      const SDChunk *chunk = file->chunks[chunkIdx];
+
+      ResourceId buf = chunk->FindChild("buffer")->AsResourceId();
+      uint64_t offs = chunk->FindChild("offset")->AsUInt64();
+
+      buf = GetResourceManager()->GetLiveID(buf);
+
+      bytebuf dispatchArgs;
+      GetBufferData(buf, offs, sizeof(VkDrawMeshTasksIndirectCommandEXT), dispatchArgs);
+
+      if(dispatchArgs.size() >= sizeof(VkDrawMeshTasksIndirectCommandEXT))
+      {
+        VkDrawMeshTasksIndirectCommandEXT *meshArgs =
+            (VkDrawMeshTasksIndirectCommandEXT *)dispatchArgs.data();
+
+        action.dispatchDimension[0] = meshArgs->groupCountX;
+        action.dispatchDimension[1] = meshArgs->groupCountY;
+        action.dispatchDimension[2] = meshArgs->groupCountZ;
+      }
+    }
+  }
 
   uint32_t totalNumMeshlets =
-      action->dispatchDimension[0] * action->dispatchDimension[1] * action->dispatchDimension[2];
+      action.dispatchDimension[0] * action.dispatchDimension[1] * action.dispatchDimension[2];
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[state.graphics.pipeline];
 
@@ -3180,7 +3214,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     modifiedstate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics,
                                                false);
 
-    m_pDriver->ReplayDraw(cmd, *action);
+    m_pDriver->ReplayDraw(cmd, action);
 
     modifiedstate.EndRenderPass(cmd);
 
@@ -3580,7 +3614,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     modifiedstate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics,
                                                false);
 
-    m_pDriver->ReplayDraw(cmd, *action);
+    m_pDriver->ReplayDraw(cmd, action);
 
     modifiedstate.EndRenderPass(cmd);
 
@@ -3963,6 +3997,8 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
   // TODO handle multiple views
   ret.taskout.numViews = 1;
 
+  ret.taskout.dispatchSize = action.dispatchDimension;
+
   ret.taskout.vertStride = taskPayloadSize + sizeof(Vec4u);
   ret.taskout.nearPlane = 0.0f;
   ret.taskout.farPlane = 1.0f;
@@ -3991,6 +4027,8 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
 
   // TODO handle multiple views
   ret.meshout.numViews = 1;
+
+  ret.meshout.dispatchSize = action.dispatchDimension;
 
   ret.meshout.vertStride = totalVertStride;
   ret.meshout.nearPlane = nearp;
@@ -6181,6 +6219,8 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uin
   {
     ret.perPrimitiveStride = s.primStride;
     ret.perPrimitiveOffset = s.primOffset;
+
+    ret.dispatchSize = s.dispatchSize;
 
     if(stage == MeshDataStage::MeshOut)
     {

@@ -125,6 +125,8 @@ BlendMultiplier MakeBlendMultiplier(D3D12_BLEND blend, bool alpha);
 BlendOperation MakeBlendOp(D3D12_BLEND_OP op);
 StencilOperation MakeStencilOp(D3D12_STENCIL_OP op);
 
+uint32_t ArgumentTypeByteSize(const D3D12_INDIRECT_ARGUMENT_DESC &arg);
+
 // wrapper around D3D12_RESOURCE_STATES and D3D12_BARRIER_LAYOUT to handle resources that could be
 // in either and varying support
 struct D3D12ResourceLayout

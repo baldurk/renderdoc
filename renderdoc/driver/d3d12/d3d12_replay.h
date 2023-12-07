@@ -346,6 +346,8 @@ private:
       uint64_t idxOffset = 0;
       DXGI_FORMAT idxFmt = DXGI_FORMAT_UNKNOWN;
 
+      rdcfixedarray<uint32_t, 3> dispatchSize;
+
       bool hasPosOut = false;
 
       float nearPlane = 0.0f;

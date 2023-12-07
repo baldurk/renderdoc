@@ -513,6 +513,7 @@ struct BufferConfiguration
   BufferData *indices = NULL;
   int32_t baseVertex = 0;
 
+  rdcfixedarray<uint32_t, 3> dispatchSize;
   rdcarray<TaskGroupSize> taskSizes;
   rdcarray<uint32_t> meshletVertexPrefixCounts;
   uint32_t taskOrMeshletOffset = 0;
@@ -562,6 +563,7 @@ struct BufferConfiguration
 
     baseVertex = o.baseVertex;
     meshletVertexPrefixCounts = o.meshletVertexPrefixCounts;
+    dispatchSize = o.dispatchSize;
     taskSizes = o.taskSizes;
     taskOrMeshletOffset = o.taskOrMeshletOffset;
     perPrimitiveOffset = o.perPrimitiveOffset;
@@ -595,6 +597,7 @@ struct BufferConfiguration
       b->deref();
 
     meshletVertexPrefixCounts.clear();
+    dispatchSize = {};
     taskSizes.clear();
 
     buffers.clear();
@@ -1938,6 +1941,7 @@ static void RT_FetchMeshPipeData(IReplayController *r, ICaptureContext &ctx, Pop
     data->out1Config.displayIndices->deref();
   data->out1Config.displayIndices = NULL;
 
+  data->out1Config.dispatchSize = data->postOut1.dispatchSize;
   data->out1Config.taskSizes = data->postOut1.taskSizes;
 
   if(data->postOut1.vertexResourceId != ResourceId())
@@ -3753,11 +3757,11 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
           const ActionDescription *action = m_Ctx.CurAction();
 
           uint32_t i = 0;
-          for(uint32_t x = 0; x < action->dispatchDimension[0]; x++)
+          for(uint32_t x = 0; x < bufdata->out1Config.dispatchSize[0]; x++)
           {
-            for(uint32_t y = 0; y < action->dispatchDimension[1]; y++)
+            for(uint32_t y = 0; y < bufdata->out1Config.dispatchSize[1]; y++)
             {
-              for(uint32_t z = 0; z < action->dispatchDimension[2]; z++)
+              for(uint32_t z = 0; z < bufdata->out1Config.dispatchSize[2]; z++)
               {
                 TaskGroupSize size = bufdata->out1Config.taskSizes[i];
 

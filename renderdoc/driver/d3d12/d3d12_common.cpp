@@ -770,6 +770,28 @@ StencilOperation MakeStencilOp(D3D12_STENCIL_OP op)
   return StencilOperation::Keep;
 }
 
+uint32_t ArgumentTypeByteSize(const D3D12_INDIRECT_ARGUMENT_DESC &arg)
+{
+  switch(arg.Type)
+  {
+    case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW: return sizeof(D3D12_DRAW_ARGUMENTS);
+    case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED: return sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+    case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH: return sizeof(D3D12_DISPATCH_ARGUMENTS);
+    case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH: return sizeof(D3D12_DISPATCH_MESH_ARGUMENTS);
+    case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
+      return sizeof(uint32_t) * arg.Constant.Num32BitValuesToSet;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW: return sizeof(D3D12_VERTEX_BUFFER_VIEW);
+    case D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW: return sizeof(D3D12_INDEX_BUFFER_VIEW);
+    case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
+    case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
+    case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
+      return sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
+    default: RDCERR("Unexpected argument type! %d", arg.Type); break;
+  }
+
+  return 0;
+}
+
 UINT GetResourceNumMipLevels(const D3D12_RESOURCE_DESC *desc)
 {
   switch(desc->Dimension)

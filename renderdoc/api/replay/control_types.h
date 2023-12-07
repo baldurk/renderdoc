@@ -125,6 +125,19 @@ the number of vertices).
 )");
   rdcarray<MeshletSize> meshletSizes;
 
+  DOCUMENT(R"(The size of the dispatch that launched a meshlet based draw.
+
+Only valid for the task stage if task shaders are used.
+
+.. note::
+  This is present because the dispatch size at the time of the mesh output fetch may not match the
+  :data:`ActionDescription.dispatchDimension` due to non-determinism in the capture. Being present
+  here allows the replay to process the mesh output validly in itself without seeing a mismatch.
+
+:type: Tuple[int,int,int]
+)");
+  rdcfixedarray<uint32_t, 3> dispatchSize;
+
   DOCUMENT(R"(The size of each task group's dispatch, for a meshlet based draw.
 
 Each group of a task shader within a dispatch can itself fill out a payload and dispatch a number

@@ -819,6 +819,7 @@ void DoSerialise(SerialiserType &ser, MeshFormat &el)
   SERIALISE_MEMBER(vertexByteStride);
   SERIALISE_MEMBER(vertexByteSize);
   SERIALISE_MEMBER(meshletSizes);
+  SERIALISE_MEMBER(dispatchSize);
   SERIALISE_MEMBER(taskSizes);
   SERIALISE_MEMBER(meshletIndexOffset);
   SERIALISE_MEMBER(perPrimitiveOffset);
@@ -835,7 +836,7 @@ void DoSerialise(SerialiserType &ser, MeshFormat &el)
   SERIALISE_MEMBER(showAlpha);
   SERIALISE_MEMBER(status);
 
-  SIZE_CHECK(224);
+  SIZE_CHECK(240);
 }
 
 template <typename SerialiserType>
