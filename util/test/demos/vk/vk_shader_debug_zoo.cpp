@@ -2834,6 +2834,33 @@ OpBranch %_bottomlabel
 
 )EOTEST",
     });
+
+    // test switch for different integer types
+    std::vector<std::string> intTypes = {"int", "uint"};
+    std::vector<std::string> caseLiterals = {"0x12345678", "0xF2345678"};
+    if(features.shaderInt64)
+    {
+      intTypes.push_back("i64");
+      intTypes.push_back("u64");
+      caseLiterals.push_back("0x1234567812345678");
+      caseLiterals.push_back("0xF234567812345678");
+    }
+    for(size_t i = 0; i < intTypes.size(); ++i)
+    {
+      append_tests({fmt::format(
+          "%_test_switch_{0} = OpIAdd %{0} %{0}_0 %{0}_{1}\n"
+          "OpSelectionMerge %_break_{0} None\n"
+          "OpSwitch %_test_switch_{0} %_default_{0} 2 %_case_{0}_2 {1} %_case_{0}_{1}\n"
+          "%_case_{0}_2 = OpLabel\n"
+          "OpUnreachable\n"
+          "%_case_{0}_{1} = OpLabel\n"
+          "%_out_{0} = OpIAdd %{0} %{0}_0 %{0}_7\n"
+          "OpBranch %_break_{0}\n"
+          "%_default_{0} = OpLabel\n"
+          "OpUnreachable\n"
+          "%_break_{0} = OpLabel\n",
+          intTypes[i], caseLiterals[i])});
+    }
   }
 
   std::string make_pixel_asm()
@@ -2848,6 +2875,8 @@ OpBranch %_bottomlabel
     std::set<float> float_constants = {0.0f, 1.0f, 2.0f, 3.0f, 4.0f};
     std::set<int32_t> int_constants = {7};
     std::set<uint32_t> uint_constants;
+    std::set<int64_t> i64_constants;
+    std::set<uint64_t> u64_constants;
 
     std::string cases;
 
@@ -2943,7 +2972,7 @@ OpBranch %_bottomlabel
         offs = test.find("%int_", offs);
       }
 
-      // find any int constants referenced
+      // find any uint constants referenced
       offs = test.find("%uint_");
       while(offs != std::string::npos)
       {
@@ -2971,6 +3000,66 @@ OpBranch %_bottomlabel
         }
 
         offs = test.find("%uint_", offs);
+      }
+
+      // find any i64 constants referenced
+      offs = test.find("%i64_");
+      while(offs != std::string::npos)
+      {
+        offs += 5;    // past %i64_
+
+        // we generate dynamic and negative versions of all constants, skip to the first digit
+        offs = test.find_first_of("0123456789", offs);
+
+        // handle hex prefix
+        int base = 10;
+        if(test[offs] == '0' && test[offs + 1] == 'x')
+        {
+          base = 16;
+          offs += 2;
+        }
+
+        int64_t val = std::strtoll(&test[offs], NULL, base);
+        i64_constants.insert(val);
+
+        // if it's a hex constant we'll name it in decimal, rename
+        if(base == 16)
+        {
+          size_t end = test.find_first_of("\n\t ", offs);
+          test.replace(offs - 2, end - offs + 2, fmt::format("{}", val));
+        }
+
+        offs = test.find("%i64_", offs);
+      }
+
+      // find any u64 constants referenced
+      offs = test.find("%u64_");
+      while(offs != std::string::npos)
+      {
+        offs += 5;    // past %u64_
+
+        // we generate dynamic and negative versions of all constants, skip to the first digit
+        offs = test.find_first_of("0123456789", offs);
+
+        // handle hex prefix
+        int base = 10;
+        if(test[offs] == '0' && test[offs + 1] == 'x')
+        {
+          base = 16;
+          offs += 2;
+        }
+
+        uint64_t val = std::strtoull(&test[offs], NULL, base);
+        u64_constants.insert(val);
+
+        // if it's a hex constant we'll name it in decimal, rename
+        if(base == 16)
+        {
+          size_t end = test.find_first_of("\n\t ", offs);
+          test.replace(offs - 2, end - offs + 2, fmt::format("{}", val));
+        }
+
+        offs = test.find("%u64_", offs);
       }
 
       // add the test itself now
@@ -3080,6 +3169,22 @@ OpBranch %_bottomlabel
         else if(test.find("%_out_uint4_") != std::string::npos)
         {
           cases += fmt::format("%Color_{0} = OpConvertUToF %float4 %_out_uint4_{0}\n", i);
+        }
+        else if(test.find("%_out_i64_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertSToF %float %_out_i64_{0}\n"
+              "%Color_{0} = OpCompositeConstruct %float4 %_f_{0} %_f_{0} %_f_{0} "
+              "%_f_{0}\n",
+              i);
+        }
+        else if(test.find("%_out_u64_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertUToF %float %_out_u64_{0}\n"
+              "%Color_{0} = OpCompositeConstruct %float4 %_f_{0} %_f_{0} %_f_{0} "
+              "%_f_{0}\n",
+              i);
         }
         else if(test.find("; no_out") != std::string::npos)
         {
@@ -3226,6 +3331,31 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       typesConstants += fmt::format("%uint_{0} = OpConstant %uint {0}\n", u);
 
     typesConstants += "\n";
+
+    if(features.shaderInt64)
+    {
+      for(int64_t i : i64_constants)
+      {
+        typesConstants += fmt::format("%i64_{0} = OpConstant %i64 {0}\n", i);
+        typesConstants += fmt::format("%i64_neg{0} = OpConstant %i64 -{0}\n", i);
+      }
+
+      typesConstants += "\n";
+
+      for(uint64_t u : u64_constants)
+      {
+        typesConstants += fmt::format("%u64_{0} = OpConstant %u64 {0}\n", u);
+      }
+
+      typesConstants += "\n";
+    }
+    else
+    {
+      if(!i64_constants.empty())
+        TEST_FATAL("Test using i64 constants without shaderInt64 capability");
+      if(!u64_constants.empty())
+        TEST_FATAL("Test using u64 constants without shaderInt64 capability");
+    }
 
     for(size_t i = 0; i < 32; i++)
       typesConstants += fmt::format("%randf_{} = OpConstant %float {:.3}\n", i, RANDF(0.0f, 1.0f));
