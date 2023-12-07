@@ -43,7 +43,7 @@ namespace GCNISA
 static const rdcstr amdspv_name = "amdspv.exe";
 static const rdcstr virtualcontext_name = "VirtualContext.exe";
 #else
-static const rdcstr amdspv_name = "amdspv.sh";
+static const rdcstr amdspv_name = "amdspv";
 static const rdcstr virtualcontext_name = "VirtualContext";
 #endif
 
