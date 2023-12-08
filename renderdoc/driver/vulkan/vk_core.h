@@ -368,7 +368,6 @@ private:
   std::set<rdcpair<ResourceId, VkResourceRecord *>> m_CapDescriptors;
 
   VkResourceRecord *m_FrameCaptureRecord;
-  Chunk *m_HeaderChunk;
 
   // we record the command buffer records so we can insert them
   // individually, that means even if they were recorded locklessly

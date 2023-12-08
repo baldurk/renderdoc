@@ -155,8 +155,6 @@ WrappedVulkan::WrappedVulkan()
   m_QueueFamilyIdx = 0;
   m_DbgReportCallback = VK_NULL_HANDLE;
 
-  m_HeaderChunk = NULL;
-
   if(!RenderDoc::Inst().IsReplayApp())
   {
     m_FrameCaptureRecord = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
@@ -2547,15 +2545,16 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
       Serialise_CaptureScope(ser);
     }
 
+    Chunk *headerChunk = NULL;
     {
       WriteSerialiser &captureBeginSer = GetThreadSerialiser();
       ScopedChunk scope(captureBeginSer, SystemChunk::CaptureBegin);
 
       Serialise_BeginCaptureFrame(captureBeginSer);
 
-      m_HeaderChunk = scope.Get();
+      headerChunk = scope.Get();
     }
-    m_HeaderChunk->Write(ser);
+    headerChunk->Write(ser);
 
     // don't need to lock access to m_CmdBufferRecords as we are no longer
     // in capframe (the transition is thread-protected) so nothing will be
@@ -2617,9 +2616,6 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
          double(captureSectionSize) / (1024.0 * 1024.0), m_CaptureTimer.GetMilliseconds() / 1000.0);
 
   RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
-
-  m_HeaderChunk->Delete();
-  m_HeaderChunk = NULL;
 
   m_State = CaptureState::BackgroundCapturing;
 
@@ -2684,9 +2680,6 @@ bool WrappedVulkan::DiscardFrameCapture(DeviceOwnedWindow devWnd)
   }
 
   Atomic::Inc32(&m_ReuseEnabled);
-
-  m_HeaderChunk->Delete();
-  m_HeaderChunk = NULL;
 
   // delete cmd buffers now - had to keep them alive until after serialiser flush.
   for(size_t i = 0; i < m_CmdBufferRecords.size(); i++)
