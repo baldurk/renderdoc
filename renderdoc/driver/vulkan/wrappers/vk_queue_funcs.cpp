@@ -1102,6 +1102,10 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
     {
       (*it)->AddResourceReferences(GetResourceManager());
       GetResourceManager()->MergeReferencedMemory((*it)->cmdInfo->memFrameRefs);
+    }
+
+    for(auto it = cmdsWithReferences.begin(); it != cmdsWithReferences.end(); ++it)
+    {
       UpdateImageStates((*it)->cmdInfo->imageStates);
     }
 
