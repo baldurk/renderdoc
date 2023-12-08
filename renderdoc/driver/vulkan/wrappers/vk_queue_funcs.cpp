@@ -916,7 +916,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
 
   std::set<rdcpair<ResourceId, VkResourceRecord *>> capDescriptors;
   std::set<rdcpair<ResourceId, VkResourceRecord *>> descriptorSets;
-  std::set<VkResourceRecord *> cmdsWithReferences;
+  rdcarray<VkResourceRecord *> cmdsWithReferences;
 
   // pull in any copy sources, conservatively
   if(capframe)
@@ -965,7 +965,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
       // record->bakedCommands->AddResourceReferences(GetResourceManager());
       // GetResourceManager()->MergeReferencedMemory(record->bakedCommands->cmdInfo->memFrameRefs);
       // UpdateImageStates(record->bakedCommands->cmdInfo->imageStates);
-      cmdsWithReferences.insert(record->bakedCommands);
+      cmdsWithReferences.push_back(record->bakedCommands);
       record->bakedCommands->AddReferencedIDs(refdIDs);
 
       // ref the parent command buffer's alloc record, this will pull in the cmd buffer pool
@@ -983,7 +983,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
         // bakedSubcmds->AddResourceReferences(GetResourceManager());
         // GetResourceManager()->MergeReferencedMemory(bakedSubcmds->cmdInfo->memFrameRefs);
         // UpdateImageStates(bakedSubcmds->cmdInfo->imageStates);
-        cmdsWithReferences.insert(bakedSubcmds);
+        cmdsWithReferences.push_back(bakedSubcmds);
 
         bakedSubcmds->AddReferencedIDs(refdIDs);
         GetResourceManager()->MarkResourceFrameReferenced(
