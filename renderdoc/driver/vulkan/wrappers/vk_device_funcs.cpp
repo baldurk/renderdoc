@@ -590,57 +590,58 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   VkInstanceCreateInfo modifiedCreateInfo;
   modifiedCreateInfo = *pCreateInfo;
 
-  if(!internalInstance)
+  // Android is a bad platform with a bad loader that it custom wrote, and implicit layers get added
+  // to the create info's layer list even if they weren't specified, so it's impossible to tell if
+  // it's an application making a mistake or the platform messing up. Disable this protection on Android
+#if DISABLED(RDOC_ANDROID)
+  for(uint32_t i = 0; i < modifiedCreateInfo.enabledLayerCount; i++)
   {
-    for(uint32_t i = 0; i < modifiedCreateInfo.enabledLayerCount; i++)
+    if(rdcstr(modifiedCreateInfo.ppEnabledLayerNames[i]) == RENDERDOC_VULKAN_LAYER_NAME)
     {
-      if(rdcstr(modifiedCreateInfo.ppEnabledLayerNames[i]) == RENDERDOC_VULKAN_LAYER_NAME)
+      // see if any debug report callbacks were passed in the pNext chain
+      VkDebugReportCallbackCreateInfoEXT *report =
+          (VkDebugReportCallbackCreateInfoEXT *)pCreateInfo->pNext;
+
+      rdcstr msg =
+          "RenderDoc's layer should NEVER be activated manually. Do not include it in "
+          "vkCreateInstance's instance layers.";
+
+      RDCERR("%s", msg.c_str());
+
+      while(report)
       {
-        // see if any debug report callbacks were passed in the pNext chain
-        VkDebugReportCallbackCreateInfoEXT *report =
-            (VkDebugReportCallbackCreateInfoEXT *)pCreateInfo->pNext;
+        if(report->sType == VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT)
+          report->pfnCallback(VK_DEBUG_REPORT_ERROR_BIT_EXT, VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT,
+                              0, 1, 1, "RDOC", msg.c_str(), report->pUserData);
 
-        rdcstr msg =
-            "RenderDoc's layer should NEVER be activated manually. Do not include it in "
-            "vkCreateInstance's instance layers.";
-
-        RDCERR("%s", msg.c_str());
-
-        while(report)
-        {
-          if(report->sType == VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT)
-            report->pfnCallback(VK_DEBUG_REPORT_ERROR_BIT_EXT,
-                                VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT, 0, 1, 1, "RDOC",
-                                msg.c_str(), report->pUserData);
-
-          report = (VkDebugReportCallbackCreateInfoEXT *)report->pNext;
-        }
-
-        // or debug utils callbacks
-        VkDebugUtilsMessengerCreateInfoEXT *messenger =
-            (VkDebugUtilsMessengerCreateInfoEXT *)pCreateInfo->pNext;
-
-        VkDebugUtilsMessengerCallbackDataEXT messengerData = {};
-
-        messengerData.messageIdNumber = 1;
-        messengerData.pMessageIdName = NULL;
-        messengerData.pMessage = msg.c_str();
-        messengerData.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CALLBACK_DATA_EXT;
-
-        while(messenger)
-        {
-          if(messenger->sType == VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT)
-            messenger->pfnUserCallback(VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-                                       VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-                                       &messengerData, messenger->pUserData);
-
-          messenger = (VkDebugUtilsMessengerCreateInfoEXT *)messenger->pNext;
-        }
-
-        return VK_ERROR_INITIALIZATION_FAILED;
+        report = (VkDebugReportCallbackCreateInfoEXT *)report->pNext;
       }
+
+      // or debug utils callbacks
+      VkDebugUtilsMessengerCreateInfoEXT *messenger =
+          (VkDebugUtilsMessengerCreateInfoEXT *)pCreateInfo->pNext;
+
+      VkDebugUtilsMessengerCallbackDataEXT messengerData = {};
+
+      messengerData.messageIdNumber = 1;
+      messengerData.pMessageIdName = NULL;
+      messengerData.pMessage = msg.c_str();
+      messengerData.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CALLBACK_DATA_EXT;
+
+      while(messenger)
+      {
+        if(messenger->sType == VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT)
+          messenger->pfnUserCallback(VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+                                     VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT, &messengerData,
+                                     messenger->pUserData);
+
+        messenger = (VkDebugUtilsMessengerCreateInfoEXT *)messenger->pNext;
+      }
+
+      return VK_ERROR_INITIALIZATION_FAILED;
     }
   }
+#endif
 
   for(uint32_t i = 0; i < modifiedCreateInfo.enabledExtensionCount; i++)
   {
