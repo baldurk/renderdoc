@@ -2238,10 +2238,16 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
   {
     auto it = m_OcclusionQueries.find(rdcpair<uint32_t, uint32_t>(eventId, test));
     if(it == m_OcclusionQueries.end())
+    {
       RDCERR("Can't locate occlusion query for event id %u and test flags %u", eventId, test);
+      return 0;
+    }
     if(it->second >= m_OcclusionResults.size())
+    {
       RDCERR("Event %u, occlusion index is %u, and the total # of occlusion query data %zu",
              eventId, it->second, m_OcclusionResults.size());
+      return 0;
+    }
     return m_OcclusionResults[it->second];
   }
 
@@ -3822,7 +3828,8 @@ void UpdateTestsFailed(const TestsFailedCallback *tfCb, uint32_t eventId, uint32
     return;
 
   // Shader discard with default fragment tests order.
-  if(!earlyFragmentTests)
+  if(!earlyFragmentTests &&
+     (eventFlags & (TestMustFail_DepthTesting | TestMustFail_StencilTesting)) == 0)
   {
     uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_FragmentDiscard);
     mod.shaderDiscarded = (occlData == 0);
@@ -3838,6 +3845,9 @@ void UpdateTestsFailed(const TestsFailedCallback *tfCb, uint32_t eventId, uint32
   if(mod.depthBoundsFailed)
     return;
 
+  if(eventFlags & TestMustFail_StencilTesting)
+    return;
+
   if((eventFlags & (TestEnabled_StencilTesting | TestMustFail_StencilTesting)) ==
      TestEnabled_StencilTesting)
   {
@@ -3845,6 +3855,9 @@ void UpdateTestsFailed(const TestsFailedCallback *tfCb, uint32_t eventId, uint32
     mod.stencilTestFailed = (occlData == 0);
   }
   if(mod.stencilTestFailed)
+    return;
+
+  if(eventFlags & TestMustFail_DepthTesting)
     return;
 
   if((eventFlags & (TestEnabled_DepthTesting | TestMustFail_DepthTesting)) == TestEnabled_DepthTesting)
@@ -4044,6 +4057,8 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
           mod.backfaceCulled = true;
         if(flags & TestMustFail_DepthTesting)
           mod.depthTestFailed = true;
+        if(flags & TestMustFail_StencilTesting)
+          mod.stencilTestFailed = true;
         if(flags & TestMustFail_Scissor)
           mod.scissorClipped = true;
         if(flags & TestMustFail_SampleMask)
