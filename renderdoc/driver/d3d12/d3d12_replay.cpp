@@ -48,6 +48,8 @@
 RDOC_CONFIG(bool, D3D12_HardwareCounters, true,
             "Enable support for IHV-specific hardware counters on D3D12.");
 
+RDOC_CONFIG(bool, D3D12_PixelHistory, false, "BETA: Enable D3D12 pixel history support.");
+
 // this is global so we can free it even after D3D12Replay is destroyed
 static HMODULE D3D12Lib = NULL;
 
@@ -301,6 +303,7 @@ APIProperties D3D12Replay::GetAPIProperties()
       (m_DriverInfo.vendor == GPUVendor::AMD || m_DriverInfo.vendor == GPUVendor::Samsung) &&
       m_RGP != NULL && m_RGP->DriverSupportsInterop();
   ret.shaderDebugging = true;
+  ret.pixelHistory = D3D12_PixelHistory();
 
   return ret;
 }
@@ -4307,13 +4310,6 @@ ResourceId D3D12Replay::ApplyCustomShader(TextureDisplay &display)
 }
 
 #pragma region not yet implemented
-
-rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> events,
-                                                      ResourceId target, uint32_t x, uint32_t y,
-                                                      const Subresource &sub, CompType typeCast)
-{
-  return {};
-}
 
 ResourceId D3D12Replay::CreateProxyTexture(const TextureDescription &templateTex)
 {
