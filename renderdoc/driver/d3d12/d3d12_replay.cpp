@@ -65,6 +65,8 @@ D3D12Replay::D3D12Replay(WrappedID3D12Device *d)
 
 void D3D12Replay::Shutdown()
 {
+  bool apiValidation = m_pDevice->GetReplayOptions().apiValidation;
+
   for(size_t i = 0; i < m_ProxyResources.size(); i++)
     m_ProxyResources[i]->Release();
   m_ProxyResources.clear();
@@ -80,8 +82,12 @@ void D3D12Replay::Shutdown()
 
   // we should have unloaded both modules here by now. If we haven't - we probably leaked some D3D12
   // objects. This can cause subsequent captures to fail to open.
-  RDCASSERT(GetModuleHandleA("d3d12.dll") == NULL);
-  RDCASSERT(GetModuleHandleA("d3d12core.dll") == NULL);
+  // Unless API validation is enabled, as the validation layers don't refcount the DLL properly
+  if(!apiValidation)
+  {
+    RDCASSERT(GetModuleHandleA("d3d12.dll") == NULL);
+    RDCASSERT(GetModuleHandleA("d3d12core.dll") == NULL);
+  }
 }
 
 void D3D12Replay::Initialise(IDXGIFactory1 *factory)
