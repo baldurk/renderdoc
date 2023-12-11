@@ -49,6 +49,7 @@ class Overlay_Test(rdtest.TestCase):
 
                 # Background around the outside
                 self.check_pixel_value(col_tex, 0.1, 0.1, [0.2, 0.2, 0.2, 1.0])
+                self.check_pixel_value(col_tex, 0.15, 0.2, [0.2, 0.2, 0.2, 1.0])
                 self.check_pixel_value(col_tex, 0.8, 0.1, [0.2, 0.2, 0.2, 1.0])
                 self.check_pixel_value(col_tex, 0.5, 0.95, [0.2, 0.2, 0.2, 1.0])
 
@@ -167,6 +168,13 @@ class Overlay_Test(rdtest.TestCase):
                             self.check_pixel_value(overlay_id, 325, y, [200.0/255.0, 1.0, 0.0, 1.0], eps=eps)
                             self.check_pixel_value(overlay_id, 340, y, [200.0/255.0, 1.0, 0.0, 1.0], eps=eps)
                     elif overlay == rd.DebugOverlay.Depth:
+                        # Background around the outside should not be changed by the overlay
+                        self.check_pixel_value(overlay_id, 35, 35, [0.0, 0.0, 0.0, 0.0])
+                        self.check_pixel_value(overlay_id, 40, 30, [0.0, 0.0, 0.0, 0.0])
+                        self.check_pixel_value(overlay_id, 320, 35, [0.0, 0.0, 0.0, 0.0])
+                        self.check_pixel_value(overlay_id, 200, 285, [0.0, 0.0, 0.0, 0.0])
+
+
                         self.check_pixel_value(overlay_id, 150, 90, [0.0, 1.0, 0.0, 1.0], eps=eps)
                         self.check_pixel_value(overlay_id, 150, 130, [0.0, 1.0, 0.0, 1.0], eps=eps)
                         # Intersection with lesser depth - depth fail
