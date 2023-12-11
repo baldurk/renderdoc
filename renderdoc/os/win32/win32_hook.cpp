@@ -272,8 +272,9 @@ struct CachedHookData
        !_stricmp(modName, "atio6axx.dll") || !_stricmp(modName, "atioglxx.dll") ||
        !_stricmp(modName, "nvcuda.dll") || strstr(lowername, "cudart") == lowername ||
        strstr(lowername, "msvcr") == lowername || strstr(lowername, "msvcp") == lowername ||
-       strstr(lowername, "nv-vk") == lowername || strstr(lowername, "igvk") == lowername ||
-       strstr(lowername, "nvopencl") == lowername || strstr(lowername, "nvapi") == lowername)
+       strstr(lowername, "nv-vk") == lowername || strstr(lowername, "amdvlk") == lowername ||
+       strstr(lowername, "igvk") == lowername || strstr(lowername, "nvopencl") == lowername ||
+       strstr(lowername, "nvapi") == lowername)
       return;
 
     if(ignores.find(lowername) != ignores.end())
