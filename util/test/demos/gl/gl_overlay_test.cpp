@@ -319,6 +319,14 @@ void main()
           float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
           glClearBufferfv(GL_COLOR, 0, col);
           glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0);
+
+          if(hasStencil)
+          {
+            glScissor(32, GLsizei(screenHeight) - 32, 6, 6);
+            glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 1);
+            glScissor(0, 0, screenWidth, screenHeight);
+          }
+
           glUseProgram(program);
 
           // 1: write depth
