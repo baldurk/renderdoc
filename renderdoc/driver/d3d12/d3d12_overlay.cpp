@@ -2459,6 +2459,16 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         rs.pipe = GetResID(greenPSO);
       }
 
+      if(useDepthWriteStencilPass)
+      {
+        list = m_pDevice->GetNewList();
+        if(!list)
+          return ResourceId();
+        list->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, NULL);
+        list->Close();
+        list = NULL;
+      }
+
       m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
       rs = prev;
