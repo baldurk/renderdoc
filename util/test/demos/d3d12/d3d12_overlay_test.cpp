@@ -416,6 +416,14 @@ PixOut main(v2f IN)
             ClearDepthStencilView(cmd, is_msaa ? msaadsvs[f] : dsvs[f],
                                   D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0);
 
+            D3D12_RECT stencilClearRect;
+            stencilClearRect.left = 32;
+            stencilClearRect.right = 38;
+            stencilClearRect.top = 32;
+            stencilClearRect.bottom = 38;
+            cmd->ClearDepthStencilView(m_DSV->GetCPUDescriptorHandleForHeapStart(),
+                                       D3D12_CLEAR_FLAG_STENCIL, 0.0f, 1, 1, &stencilClearRect);
+
             cmd->OMSetStencilRef(0x55);
 
             // draw the setup triangles
