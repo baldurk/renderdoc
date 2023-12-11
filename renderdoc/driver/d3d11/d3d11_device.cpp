@@ -330,6 +330,11 @@ WrappedID3D11Device::~WrappedID3D11Device()
     RDCASSERT(WrappedID3D11Texture3D1::m_TextureList.empty());
   }
 
+  WrappedID3D11Buffer::m_BufferList.clear();
+  WrappedID3D11Texture1D::m_TextureList.clear();
+  WrappedID3D11Texture2D1::m_TextureList.clear();
+  WrappedID3D11Texture3D1::m_TextureList.clear();
+
   SAFE_DELETE(m_Replay);
 
   SAFE_RELEASE(m_ReplayNVAPI);
