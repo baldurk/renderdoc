@@ -3908,6 +3908,7 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
   CREATE_OBJECT(m_TriSizeDescSetLayout,
                 {
                     {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL},
+                    {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, NULL},
                     {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL},
                 });
 
@@ -3933,6 +3934,8 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
   m_CheckerUBO.Create(driver, driver->GetDev(), 128, 10, 0);
   RDCCOMPILE_ASSERT(sizeof(CheckerboardUBOData) <= 128, "checkerboard UBO size");
 
+  m_DummyMeshletSSBO.Create(driver, driver->GetDev(), sizeof(Vec4f) * 2, 1,
+                            GPUBuffer::eGPUBufferSSBO);
   m_TriSizeUBO.Create(driver, driver->GetDev(), sizeof(Vec4f), 4096, 0);
 
   ConciseGraphicsPipeline pipeInfo = {
@@ -4262,10 +4265,15 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     RDCERR("Overlay failed to find default depth stencil format");
   }
 
+  VkDescriptorBufferInfo meshssbo = {};
+  m_DummyMeshletSSBO.FillDescriptor(meshssbo);
+
   VkDescriptorBufferInfo checkerboard = {};
   m_CheckerUBO.FillDescriptor(checkerboard);
 
   VkWriteDescriptorSet writes[] = {
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_TriSizeDescSet), 1, 0, 1,
+       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &meshssbo, NULL},
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_CheckerDescSet), 0, 0, 1,
        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, NULL, &checkerboard, NULL},
   };

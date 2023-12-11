@@ -680,6 +680,7 @@ private:
     VkPipelineLayout m_DepthResolvePipeLayout = VK_NULL_HANDLE;
     VkPipeline m_DepthResolvePipeline[2][5];
 
+    GPUBuffer m_DummyMeshletSSBO;
     GPUBuffer m_TriSizeUBO;
     VkDescriptorSetLayout m_TriSizeDescSetLayout = VK_NULL_HANDLE;
     VkDescriptorSet m_TriSizeDescSet = VK_NULL_HANDLE;
