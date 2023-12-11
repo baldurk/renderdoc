@@ -37,8 +37,9 @@
 
 namespace Constants
 {
-static const int SliderHandleHalfWidth = 4;
+static const int SliderHandleHalfWidth = 5;
 static const int SliderGrooveHeight = 4;
+static const qreal SliderHandleCornerRadius = 4.0f;
 
 static const int ButtonMargin = 6;
 static const int ButtonBorder = 1;
@@ -47,7 +48,7 @@ static const int HighlightBorder = 2;
 
 static const int CheckWidth = 14;
 static const int CheckHeight = 14;
-static float CheckCornerSize = 2.0f;
+static const float CheckCornerSize = 2.0f;
 static const int CheckMargin = 3;
 
 static const int GroupHMargin = 8;
@@ -480,8 +481,10 @@ QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt,
     if(sc == QStyle::SC_SliderGroove)
     {
       int toGrooveHeightHalfReduction = (ret.height() - Constants::SliderGrooveHeight) / 2;
-      ret.adjust(Constants::SliderHandleHalfWidth, toGrooveHeightHalfReduction,
-                 -Constants::SliderHandleHalfWidth, -toGrooveHeightHalfReduction);
+      // QSlider code handles only moving the handle up to where it abutts the groove in either
+      // direction, reducing it here breaks that calculation. We'll do it visually when actually
+      // painting
+      ret.adjust(0, toGrooveHeightHalfReduction, 0, -toGrooveHeightHalfReduction);
     }
     else if(sc == QStyle::SC_SliderHandle)
     {
@@ -494,7 +497,10 @@ QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt,
       int grooveRight = ret.right() - Constants::SliderHandleHalfWidth;
       int grooveWidth = grooveRight - grooveLeft;
       int sliderX = (int)(posUNorm * (qreal)grooveWidth) + grooveLeft;
-      ret.setLeft(sliderX - Constants::SliderHandleHalfWidth);
+      // since sizes are inclusive, x-w to x+w results in 2w+1 width (w pixels either side + the x
+      // pixel itself), so we make this favour the right side so it's w-1 pixels to the left, the x
+      // pixel and then w pixels to the right, for a total of 2w
+      ret.setLeft(sliderX - Constants::SliderHandleHalfWidth + 1);
       ret.setRight(sliderX + Constants::SliderHandleHalfWidth);
     }
     return ret;
@@ -1150,13 +1156,23 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
   else if(control == QStyle::CC_Slider)
   {
     QRect grooveRect = subControlRect(control, opt, QStyle::SC_SliderGroove, widget);
-    p->drawLine(QLine(grooveRect.x(), grooveRect.y() + grooveRect.height() / 2, grooveRect.right(),
+    p->drawLine(QLine(grooveRect.x() + Constants::SliderHandleHalfWidth + 1,
+                      grooveRect.y() + grooveRect.height() / 2,
+                      grooveRect.right() - Constants::SliderHandleHalfWidth,
                       grooveRect.y() + grooveRect.height() / 2));
+
+    p->save();
+    p->setRenderHint(QPainter::Antialiasing);
 
     QRect handleRect = subControlRect(control, opt, QStyle::SC_SliderHandle, widget);
     QBrush handleBrush = (m_Scheme == Light) ? opt->palette.brush(QPalette::Dark)
                                              : opt->palette.brush(QPalette::Text);
-    p->fillRect(handleRect, handleBrush);
+    QPainterPath path;
+    path.addRoundedRect(handleRect, Constants::SliderHandleCornerRadius,
+                        Constants::SliderHandleCornerRadius);
+    p->fillPath(path, handleBrush);
+
+    p->restore();
 
     return;
   }

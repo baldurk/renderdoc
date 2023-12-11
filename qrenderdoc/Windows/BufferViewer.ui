@@ -400,41 +400,23 @@
            </item>
            <item>
             <widget class="QSlider" name="vtxExploderSlider">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
              <property name="sizePolicy">
               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
-             <property name="baseSize">
+             <property name="minimumSize">
               <size>
                <width>90</width>
-               <height>30</height>
+               <height>0</height>
               </size>
-             </property>
-             <property name="mouseTracking">
-              <bool>true</bool>
              </property>
              <property name="focusPolicy">
               <enum>Qt::StrongFocus</enum>
              </property>
-             <property name="contextMenuPolicy">
-              <enum>Qt::NoContextMenu</enum>
-             </property>
              <property name="toolTip">
               <string>Explode vertices</string>
-             </property>
-             <property name="accessibleName">
-              <string>slider name</string>
-             </property>
-             <property name="accessibleDescription">
-              <string>slider description</string>
-             </property>
-             <property name="autoFillBackground">
-              <bool>true</bool>
              </property>
              <property name="minimum">
               <number>-100</number>
@@ -447,18 +429,6 @@
              </property>
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="invertedAppearance">
-              <bool>false</bool>
-             </property>
-             <property name="invertedControls">
-              <bool>false</bool>
-             </property>
-             <property name="tickPosition">
-              <enum>QSlider::NoTicks</enum>
-             </property>
-             <property name="tickInterval">
-              <number>20</number>
              </property>
             </widget>
            </item>
