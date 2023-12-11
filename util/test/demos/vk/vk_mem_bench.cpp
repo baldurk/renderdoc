@@ -405,7 +405,7 @@ RD_TEST(VK_Mem_Bench, VulkanGraphicsTest)
     }
 
     if(bench)
-      refData = new byte[refDataSize];
+      refData = new byte[(uint32_t)refDataSize];
 
     AllocatedBuffer readback;
 
@@ -425,13 +425,13 @@ RD_TEST(VK_Mem_Bench, VulkanGraphicsTest)
                                VkDeviceSize size) {
       if(blockSize == 0)
       {
-        FindDiffRange_shipping::FindDiffRange(data, refData, size, dummyStart, dummyEnd);
+        FindDiffRange_shipping::FindDiffRange(data, refData, (size_t)size, dummyStart, dummyEnd);
         return;
       }
 
       for(VkDeviceSize i = 0; i < size; i += blockSize)
       {
-        size_t chunkSize = std::min(blockSize, size - i);
+        size_t chunkSize = (size_t)std::min(blockSize, size - i);
         if(streamMemcpy)
           stream_memcpy(scratch, data + i, chunkSize);
         else
@@ -614,7 +614,7 @@ RD_TEST(VK_Mem_Bench, VulkanGraphicsTest)
 #endif
           TEST_LOG("-------- %s on %s", physProperties.deviceName, OSName);
 
-          memcpy(a.data, refData, a.size);
+          memcpy(a.data, refData, (size_t)a.size);
         }
 
         double bestSpeed = 0.0;
