@@ -1175,20 +1175,6 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         renderDepth, dsViewDesc.Format == DXGI_FORMAT_UNKNOWN ? NULL : &dsViewDesc, dsv);
   }
 
-  D3D12_DEPTH_STENCIL_DESC dsDesc;
-
-  dsDesc.BackFace.StencilFailOp = dsDesc.BackFace.StencilPassOp =
-      dsDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-  dsDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-  dsDesc.FrontFace.StencilFailOp = dsDesc.FrontFace.StencilPassOp =
-      dsDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-  dsDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-  dsDesc.DepthEnable = TRUE;
-  dsDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-  dsDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-  dsDesc.StencilEnable = FALSE;
-  dsDesc.StencilReadMask = dsDesc.StencilWriteMask = 0xff;
-
   WrappedID3D12PipelineState *pipe = NULL;
 
   if(rs.pipe != ResourceId())
