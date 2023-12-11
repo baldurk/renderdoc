@@ -232,6 +232,20 @@ void main()
         {Vec3f(-1.3f, 1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(0.0f, -1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(1.3f, 1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        // fullscreen quad used with scissor to set stencil
+        // -1,-1 - +1,-1
+        //   |     /
+        // -1,+1
+        {Vec3f(-1.0f, -1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(+1.0f, -1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-1.0f, +1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
+        //      +1,-1
+        //    /    |
+        // -1,+1 - +1,+1
+        {Vec3f(+1.0f, -1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(+1.0f, +1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-1.0f, +1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
     };
 
     // negate y if we're using negative viewport height
@@ -413,6 +427,7 @@ void main()
 
     std::vector<VkPipeline> depthWritePipes;
     std::vector<VkPipeline> stencilWritePipes;
+    std::vector<VkPipeline> stencilClearPipes;
     std::vector<VkPipeline> backgroundPipes;
     std::vector<VkPipeline> depthWritePixelShaderPipes;
     std::vector<VkPipeline> sampleMaskPipes;
@@ -459,6 +474,17 @@ void main()
       pipeCreateInfo.renderPass = msaaRPs[f];
       stencilWritePipes.push_back(createGraphicsPipeline(pipeCreateInfo));
 
+      pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+      pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+      pipeCreateInfo.depthStencilState.front.reference = 0x1;
+      pipeCreateInfo.renderPass = renderPasses[f];
+      stencilClearPipes.push_back(createGraphicsPipeline(pipeCreateInfo));
+      pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+      pipeCreateInfo.renderPass = msaaRPs[f];
+      stencilClearPipes.push_back(createGraphicsPipeline(pipeCreateInfo));
+      pipeCreateInfo.depthStencilState.front.reference = 0x55;
+
+      pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
       pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
       pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
       pipeCreateInfo.renderPass = renderPasses[f];
@@ -624,6 +650,19 @@ void main()
 
           // draw the setup triangles
           setMarker(cmd, "Setup");
+          if(hasStencil)
+          {
+            VkRect2D scissor = {};
+            scissor.offset.x = 32;
+            scissor.offset.y = 32;
+            scissor.extent.width = 6;
+            scissor.extent.height = 6;
+
+            vkCmdSetScissor(cmd, 0, 1, &scissor);
+            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, stencilClearPipes[pipeIndex]);
+            vkCmdDraw(cmd, 6, 1, 36, 0);
+            vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
+          }
 
           vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, depthWritePipes[pipeIndex]);
           vkCmdDraw(cmd, 3, 1, 0, 0);
