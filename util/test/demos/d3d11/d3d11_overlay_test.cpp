@@ -150,6 +150,20 @@ PixOut main(v2f IN)
         {Vec3f(-1.3f, -1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(0.0f, 1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(1.3f, -1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        // fullscreen quad used with scissor to set stencil
+        // -1,-1 - +1,-1
+        //   |     /
+        // -1,+1
+        {Vec3f(-1.0f, -1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-1.0f, +1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(+1.0f, -1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
+        //      +1,-1
+        //    /    |
+        // -1,+1 - +1,+1
+        {Vec3f(+1.0f, -1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-1.0f, +1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(+1.0f, +1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
     };
 
     ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(VBData);
@@ -241,6 +255,18 @@ PixOut main(v2f IN)
 
           ClearRenderTargetView(rtv, {0.2f, 0.2f, 0.2f, 1.0f});
           ctx->ClearDepthStencilView(curDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+          if(hasStencil)
+          {
+            SetStencilRef(0x1);
+            depth.StencilEnable = TRUE;
+            SetDepthState(depth);
+            RSSetScissor({32, 32, 38, 38});
+            ctx->Draw(6, 36);
+            RSSetScissor({0, 0, screenWidth, screenHeight});
+            SetStencilRef(0x55);
+            depth.StencilEnable = FALSE;
+          }
 
           // draw the setup triangles
 
