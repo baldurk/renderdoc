@@ -1313,8 +1313,8 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       float clearColour[] = {0.0f, 0.0f, 0.0f, 0.0f};
       m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
 
-      ID3D11Buffer *prevCB[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
-      m_pImmediateContext->PSGetConstantBuffers(0, 1, prevCB);
+      ID3D11Buffer *prevCB = NULL;
+      m_pImmediateContext->PSGetConstantBuffers(0, 1, &prevCB);
       ID3D11PixelShader *prevPS = NULL;
       ID3D11ClassInstance *prevClassInstances[D3D11_SHADER_MAX_INTERFACES] = {0};
       UINT prevNumClassInstances = 0;
@@ -1526,9 +1526,10 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         }
       }
 
-      m_pImmediateContext->PSSetConstantBuffers(0, 1, prevCB);
+      m_pImmediateContext->PSSetConstantBuffers(0, 1, &prevCB);
       m_pImmediateContext->PSSetShader(prevPS, prevClassInstances, prevNumClassInstances);
       m_pImmediateContext->RSSetState(prevrs);
+      SAFE_RELEASE(prevCB);
 
       d = dsDesc;
       d.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
