@@ -1566,32 +1566,36 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
   }
   else if(overlay == DebugOverlay::Depth || overlay == DebugOverlay::Stencil)
   {
-    VkImage dsImage = VK_NULL_HANDLE;
-    VkDeviceMemory dsImageMem = VK_NULL_HANDLE;
+    VkImage dsTempImage = VK_NULL_HANDLE;
+    VkDeviceMemory dsTempImageMem = VK_NULL_HANDLE;
+    VkImage dsDepthImage = VK_NULL_HANDLE;
 
     float highlightCol[] = {0.0f, 0.0f, 0.0f, 0.0f};
 
-    VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                                    NULL,
-                                    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                                    VK_ACCESS_TRANSFER_WRITE_BIT,
-                                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                    VK_QUEUE_FAMILY_IGNORED,
-                                    VK_QUEUE_FAMILY_IGNORED,
-                                    Unwrap(m_Overlay.Image),
-                                    subRange};
+    {
+      VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                      NULL,
+                                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                      VK_ACCESS_TRANSFER_WRITE_BIT,
+                                      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                      VK_QUEUE_FAMILY_IGNORED,
+                                      VK_QUEUE_FAMILY_IGNORED,
+                                      Unwrap(m_Overlay.Image),
+                                      subRange};
 
-    DoPipelineBarrier(cmd, 1, &barrier);
+      DoPipelineBarrier(cmd, 1, &barrier);
 
-    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                           (VkClearColorValue *)highlightCol, 1, &subRange);
+      vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image),
+                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                             (VkClearColorValue *)highlightCol, 1, &subRange);
 
-    std::swap(barrier.oldLayout, barrier.newLayout);
-    std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
-    barrier.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+      std::swap(barrier.oldLayout, barrier.newLayout);
+      std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
+      barrier.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
 
-    DoPipelineBarrier(cmd, 1, &barrier);
+      DoPipelineBarrier(cmd, 1, &barrier);
+    }
 
     if(!pipeInfo.rasterizerDiscardEnable)
     {
@@ -1654,6 +1658,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         ResourceId depthIm = depthViewInfo.image;
         VulkanCreationInfo::Image &depthImageInfo = createinfo.m_Image[depthIm];
+        dsDepthImage = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(depthIm);
 
         dsFmt = depthImageInfo.format;
         VkFormat dsNewFmt = dsFmt;
@@ -1756,12 +1761,11 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
               VK_IMAGE_ASPECT_DEPTH_BIT, sub.mip, 1, sub.slice, sub.numSlices,
           };
 
-          VkImage dsRealImage = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(depthIm);
           VkImageViewCreateInfo dsViewInfo = {
               VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
               NULL,
               0,
-              dsRealImage,
+              dsDepthImage,
               VK_IMAGE_VIEW_TYPE_2D,
               dsFmt,
               {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -1811,13 +1815,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
               VK_IMAGE_LAYOUT_UNDEFINED,
           };
 
-          vkr = m_pDriver->vkCreateImage(m_Device, &dsNewImInfo, NULL, &dsImage);
+          vkr = m_pDriver->vkCreateImage(m_Device, &dsNewImInfo, NULL, &dsTempImage);
           CheckVkResult(vkr);
 
-          NameVulkanObject(dsImage, "Overlay Depth+Stencil Image");
+          NameVulkanObject(dsTempImage, "Overlay Depth+Stencil Image");
 
           VkMemoryRequirements mrq = {0};
-          m_pDriver->vkGetImageMemoryRequirements(m_Device, dsImage, &mrq);
+          m_pDriver->vkGetImageMemoryRequirements(m_Device, dsTempImage, &mrq);
 
           VkMemoryAllocateInfo allocInfo = {
               VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -1826,13 +1830,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
               m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
           };
 
-          vkr = m_pDriver->vkAllocateMemory(m_Device, &allocInfo, NULL, &dsImageMem);
+          vkr = m_pDriver->vkAllocateMemory(m_Device, &allocInfo, NULL, &dsTempImageMem);
           CheckVkResult(vkr);
 
           if(vkr != VK_SUCCESS)
             return ResourceId();
 
-          vkr = m_pDriver->vkBindImageMemory(m_Device, dsImage, dsImageMem, 0);
+          vkr = m_pDriver->vkBindImageMemory(m_Device, dsTempImage, dsTempImageMem, 0);
           CheckVkResult(vkr);
 
           cmd = m_pDriver->GetNextCmd();
@@ -1849,7 +1853,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
               m_pDriver->GetImageTransitionInfo());
 
           // transition new depth buffer to depth write state
-          m_pDriver->FindImageState(GetResID(dsImage))
+          m_pDriver->FindImageState(GetResID(dsTempImage))
               ->InlineTransition(cmd, m_pDriver->m_QueueFamilyIdx, VK_IMAGE_LAYOUT_GENERAL, 0,
                                  VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                                  m_pDriver->GetImageTransitionInfo());
@@ -1870,7 +1874,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
               VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
               NULL,
               0,
-              dsImage,
+              dsTempImage,
               VK_IMAGE_VIEW_TYPE_2D,
               dsNewFmt,
               {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -1880,6 +1884,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
           vkr = m_pDriver->vkCreateImageView(m_Device, &dsViewInfo, NULL, &dsView);
           CheckVkResult(vkr);
+          dsDepthImage = dsTempImage;
         }
 
         VkImageView views[] = {
@@ -2162,6 +2167,55 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       else
         state.stencilTestEnable = origStencilTest;
 
+      if(useDepthWriteStencilPass)
+      {
+        cmd = m_pDriver->GetNextCmd();
+        if(cmd == VK_NULL_HANDLE)
+          return ResourceId();
+
+        vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+        CheckVkResult(vkr);
+
+        VkImageSubresourceRange sSubRange = {
+            VK_IMAGE_ASPECT_STENCIL_BIT, sub.mip, 1, sub.slice, sub.numSlices,
+        };
+        VkImageSubresourceRange dsSubRange = sSubRange;
+        dsSubRange.aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        VkClearDepthStencilValue depthStencilClear = {};
+        depthStencilClear.depth = 0.0f;
+        depthStencilClear.stencil = 0;
+
+        {
+          VkImageLayout startLayout = m_pDriver->GetDebugManager()->GetImageLayout(
+              GetResID(dsDepthImage), (VkImageAspectFlagBits)dsSubRange.aspectMask,
+              dsSubRange.baseMipLevel, dsSubRange.baseArrayLayer);
+
+          VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                          NULL,
+                                          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                          VK_ACCESS_TRANSFER_WRITE_BIT,
+                                          startLayout,
+                                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                          VK_QUEUE_FAMILY_IGNORED,
+                                          VK_QUEUE_FAMILY_IGNORED,
+                                          Unwrap(dsDepthImage),
+                                          dsSubRange};
+          DoPipelineBarrier(cmd, 1, &barrier);
+
+          vt->CmdClearDepthStencilImage(Unwrap(cmd), Unwrap(dsDepthImage),
+                                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &depthStencilClear, 1,
+                                        &sSubRange);
+          std::swap(barrier.oldLayout, barrier.newLayout);
+          std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
+          DoPipelineBarrier(cmd, 1, &barrier);
+        }
+
+        vkr = vt->EndCommandBuffer(Unwrap(cmd));
+        CheckVkResult(vkr);
+        cmd = VK_NULL_HANDLE;
+      }
+
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
       if(useDepthWriteStencilPass)
@@ -2225,8 +2279,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       m_pDriver->vkDestroyPipeline(m_Device, passpipe, NULL);
       m_pDriver->vkDestroyShaderModule(m_Device, passmod, NULL);
       m_pDriver->vkDestroyPipeline(m_Device, depthWriteStencilPipe, NULL);
-      m_pDriver->vkDestroyImage(m_Device, dsImage, NULL);
-      m_pDriver->vkFreeMemory(m_Device, dsImageMem, NULL);
+      m_pDriver->vkDestroyImage(m_Device, dsTempImage, NULL);
+      m_pDriver->vkFreeMemory(m_Device, dsTempImageMem, NULL);
 
       if(depthRP != VK_NULL_HANDLE)
       {
