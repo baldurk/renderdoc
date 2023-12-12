@@ -48,7 +48,7 @@
 RDOC_CONFIG(bool, D3D12_HardwareCounters, true,
             "Enable support for IHV-specific hardware counters on D3D12.");
 
-RDOC_CONFIG(bool, D3D12_PixelHistory, false, "BETA: Enable D3D12 pixel history support.");
+RDOC_DEBUG_CONFIG(bool, D3D12_PixelHistory, false, "BETA: Enable D3D12 pixel history support.");
 
 // this is global so we can free it even after D3D12Replay is destroyed
 static HMODULE D3D12Lib = NULL;
