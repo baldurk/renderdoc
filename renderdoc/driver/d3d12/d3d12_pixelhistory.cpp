@@ -831,7 +831,7 @@ private:
     ModifyPSOForStencilIncrement(eid, pipeDesc, true);
 
     bool dxil =
-        DXBC::DXBCContainer::CheckForDXIL(pipeDesc.VS.pShaderBytecode, pipeDesc.VS.BytecodeLength);
+        DXBC::DXBCContainer::CheckForDXIL(pipeDesc.PS.pShaderBytecode, pipeDesc.PS.BytecodeLength);
 
     ID3DBlob *psBlob =
         m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::HIGHLIGHT, dxil);
@@ -1146,7 +1146,7 @@ private:
     D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC desc;
     origPSO->Fill(desc);
 
-    bool dxil = DXBC::DXBCContainer::CheckForDXIL(desc.VS.pShaderBytecode, desc.VS.BytecodeLength);
+    bool dxil = DXBC::DXBCContainer::CheckForDXIL(desc.PS.pShaderBytecode, desc.PS.BytecodeLength);
     ID3DBlob *psBlob =
         m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::HIGHLIGHT, dxil);
     if(psBlob == NULL)
@@ -1684,7 +1684,7 @@ private:
     if(pipeCreateFlags & PipelineCreationFlags_FixedColorShader)
     {
       bool dxil =
-          DXBC::DXBCContainer::CheckForDXIL(pipeDesc.VS.pShaderBytecode, pipeDesc.VS.BytecodeLength);
+          DXBC::DXBCContainer::CheckForDXIL(pipeDesc.PS.pShaderBytecode, pipeDesc.PS.BytecodeLength);
 
       ID3DBlob *FixedColorPS = m_ShaderCache->GetFixedColorShader(dxil);
       pipeDesc.PS.pShaderBytecode = FixedColorPS->GetBufferPointer();
@@ -2132,7 +2132,7 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
     else
     {
       bool dxil =
-          DXBC::DXBCContainer::CheckForDXIL(pipeDesc.VS.pShaderBytecode, pipeDesc.VS.BytecodeLength);
+          DXBC::DXBCContainer::CheckForDXIL(pipeDesc.PS.pShaderBytecode, pipeDesc.PS.BytecodeLength);
 
       // TODO: This shader outputs to SV_Target0, will we need to modify the
       // shader (or patch it) if the target image isn't RT0?
