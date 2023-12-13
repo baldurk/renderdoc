@@ -1078,6 +1078,9 @@ private:
 
       // TODO: What about D16? Still copy as 32 bit?
       DXGI_FORMAT depthFormat = m_SavedState.dsv.GetDSV().Format;
+      // Descriptors with unknown type are valid and indicate to use the resource's format
+      if(depthFormat == DXGI_FORMAT_UNKNOWN)
+        depthFormat = depthImage->GetDesc().Format;
 
       D3D12CopyPixelParams depthCopyParams = targetCopyParams;
       depthCopyParams.srcImage = depthImage;
