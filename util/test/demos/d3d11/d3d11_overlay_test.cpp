@@ -71,6 +71,34 @@ PixOut main(v2f IN)
 
 )EOSHADER";
 
+  std::string discardPixel = R"EOSHADER(
+
+struct v2f
+{
+	float4 pos : SV_POSITION;
+	float4 col : COLOR0;
+	float2 uv : TEXCOORD0;
+};
+
+struct PixOut
+{
+	float4 colour : SV_Target0;
+};
+
+PixOut main(v2f IN)
+{
+  PixOut OUT;
+	OUT.colour  = IN.col;
+  if ((IN.pos.x > 327.0) && (IN.pos.x < 339.0) &&
+      (IN.pos.y > 38.0) && (IN.pos.y < 48.0))
+	{
+    discard;
+	}
+  return OUT;
+}
+
+)EOSHADER";
+
   int main()
   {
     // initialise, create window, create device, etc
@@ -86,6 +114,7 @@ PixOut main(v2f IN)
     ID3D11PixelShaderPtr ps = CreatePS(psblob);
     ID3D11PixelShaderPtr whiteps = CreatePS(Compile(whitePixel, "main", "ps_4_0"));
     ID3D11PixelShaderPtr depthwriteps = CreatePS(Compile(depthWritePixel, "main", "ps_4_0"));
+    ID3D11PixelShaderPtr discardps = CreatePS(Compile(discardPixel, "main", "ps_4_0"));
 
     const DefaultA2V VBData[] = {
         // this triangle occludes in depth
@@ -164,6 +193,11 @@ PixOut main(v2f IN)
         {Vec3f(+1.0f, -1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(-1.0f, +1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(+1.0f, +1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
+
+        // discard rectangle
+        {Vec3f(0.6f, +0.7f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.7f, +0.9f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.8f, +0.7f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
     ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(VBData);
@@ -299,6 +333,11 @@ PixOut main(v2f IN)
           SetDepthState(depth);
           ctx->PSSetShader(depthwriteps, NULL, 0);
           ctx->Draw(24, 9);
+
+          markerName = "Discard " + markerName;
+          setMarker(markerName);
+          ctx->PSSetShader(discardps, NULL, 0);
+          ctx->Draw(3, 42);
           ctx->PSSetShader(ps, NULL, 0);
 
           depth.StencilEnable = FALSE;
