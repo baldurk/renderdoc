@@ -108,6 +108,25 @@ void main()
 
 )EOSHADER";
 
+  std::string discardpixel = R"EOSHADER(
+
+in v2f vertIn;
+
+layout(location = 0, index = 0) out vec4 Color;
+
+void main()
+{
+	Color = vertIn.col;
+
+	if ((gl_FragCoord.x > 327.0) && (gl_FragCoord.x < 339.0) &&
+      (gl_FragCoord.y > 252.0) && (gl_FragCoord.y < 262.0))
+	{
+    discard;
+  }
+}
+
+)EOSHADER";
+
   int main()
   {
     // initialise, create window, create context, etc
@@ -182,6 +201,11 @@ void main()
         {Vec3f(-1.3f, -1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(0.0f, 1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(1.3f, -1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        // discard rectangle
+        {Vec3f(0.6f, +0.7f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.7f, +0.9f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.8f, +0.7f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
     GLuint vb = MakeBuffer();
@@ -200,6 +224,7 @@ void main()
     GLuint program = MakeProgram(common + vertex, common + pixel);
     GLuint whiteprogram = MakeProgram(common + vertex, whitepixel);
     GLuint fragdepthprogram = MakeProgram(common + vertex, common + fragdepthpixel);
+    GLuint discardprogram = MakeProgram(common + vertex, common + discardpixel);
 
     const char *fmtNames[] = {"D24_S8", "D32F_S8", "D16_S0", "D24_S0", "D32F_S0"};
     GLenum fmts[] = {GL_DEPTH24_STENCIL8, GL_DEPTH32F_STENCIL8, GL_DEPTH_COMPONENT16,
@@ -354,6 +379,11 @@ void main()
           glStencilFunc(GL_GREATER, 0x55, 0xff);
           glUseProgram(fragdepthprogram);
           glDrawArrays(GL_TRIANGLES, 9, 24);
+
+          markerName = "Discard " + markerName;
+          setMarker(markerName);
+          glUseProgram(discardprogram);
+          glDrawArrays(GL_TRIANGLES, 36, 3);
           glUseProgram(program);
 
           if(!is_msaa)

@@ -110,6 +110,34 @@ PixOut main(v2f IN)
 	else
 	{
 		OUT.depth = IN.pos.z;
+  }
+  return OUT;
+}
+
+)EOSHADER";
+
+  std::string discardPixel = R"EOSHADER(
+
+struct v2f
+{
+	float4 col : COLOR0;
+	float2 uv : TEXCOORD0;
+	float4 pos : SV_POSITION;
+};
+
+struct PixOut
+{
+	float4 colour : SV_Target0;
+};
+
+PixOut main(v2f IN)
+{
+  PixOut OUT;
+	OUT.colour  = IN.col;
+  if ((IN.pos.x > 327.0) && (IN.pos.x < 339.0) &&
+      (IN.pos.y > 38.0) && (IN.pos.y < 48.0))
+	{
+    discard;
 	}
   return OUT;
 }
@@ -126,6 +154,7 @@ PixOut main(v2f IN)
     ID3DBlobPtr psblob[3] = {};
     ID3DBlobPtr whitepsblob[3] = {};
     ID3DBlobPtr depthwritepsblob[3] = {};
+    ID3DBlobPtr discardpsblob[3] = {};
 
     {
       int i = 0;
@@ -138,6 +167,7 @@ PixOut main(v2f IN)
         psblob[i] = Compile(vertexEndPosPixel, "main", "ps" + profile);
         whitepsblob[i] = Compile(whitePixel, "main", "ps" + profile);
         depthwritepsblob[i] = Compile(depthWritePixel, "main", "ps" + profile);
+        discardpsblob[i] = Compile(discardPixel, "main", "ps" + profile);
         i++;
       }
     }
@@ -205,6 +235,11 @@ PixOut main(v2f IN)
         {Vec3f(-1.3f, -1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(0.0f, 1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(1.3f, -1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        // discard rectangle
+        {Vec3f(0.6f, +0.7f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.7f, +0.9f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.8f, +0.7f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
     ID3D12ResourcePtr vb = MakeBuffer().Data(VBData);
@@ -228,6 +263,7 @@ PixOut main(v2f IN)
     ID3D12PipelineStatePtr backgroundPipe[3][countFmts][2];
     ID3D12PipelineStatePtr pipe[3][countFmts][2];
     ID3D12PipelineStatePtr depthWritePixelShaderPipe[3][countFmts][2];
+    ID3D12PipelineStatePtr discardPixelShaderPipe[3][countFmts][2];
     ID3D12PipelineStatePtr whitepipe[3];
     ID3D12PipelineStatePtr sampleMaskPipe[3][countFmts];
 
@@ -306,6 +342,12 @@ PixOut main(v2f IN)
         depthWritePixelShaderPipe[i][f][0] = creator;
         creator.GraphicsDesc.SampleDesc = yesMSAA;
         depthWritePixelShaderPipe[i][f][1] = creator;
+
+        creator.PS(discardpsblob[i]);
+        creator.GraphicsDesc.SampleDesc = noMSAA;
+        discardPixelShaderPipe[i][f][0] = creator;
+        creator.GraphicsDesc.SampleDesc = yesMSAA;
+        discardPixelShaderPipe[i][f][1] = creator;
 
         creator.PS(psblob[i]);
         creator.GraphicsDesc.SampleDesc = yesMSAA;
@@ -446,6 +488,11 @@ PixOut main(v2f IN)
 
             cmd->SetPipelineState(depthWritePixelShaderPipe[pass][f][is_msaa ? 1 : 0]);
             cmd->DrawInstanced(24, 1, 9, 0);
+
+            markerName = "Discard " + markerName;
+            setMarker(cmd, markerName);
+            cmd->SetPipelineState(discardPixelShaderPipe[pass][f][is_msaa ? 1 : 0]);
+            cmd->DrawInstanced(3, 1, 36, 0);
             cmd->SetPipelineState(pipe[pass][f][is_msaa ? 1 : 0]);
 
             if(!is_msaa)

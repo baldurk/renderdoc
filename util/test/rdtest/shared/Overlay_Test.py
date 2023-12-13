@@ -421,6 +421,16 @@ class Overlay_Test(rdtest.TestCase):
                 else:
                     rdtest.log.success("All normal overlays are as expected Format {}".format(fmt))
 
+            # Shader with discard
+            test_marker: rd.ActionDescription = self.find_action("Discard " + marker_name, base_event)
+            self.controller.SetFrameEvent(test_marker.next.eventId, True)
+            pipe: rd.PipeState = self.controller.GetPipelineState()
+            tex.overlay = rd.DebugOverlay.Depth
+            out.SetTextureDisplay(tex)
+            out.Display()
+            overlay_id: rd.ResourceId = out.GetDebugOverlayTexID()
+            self.check_pixel_value(overlay_id, 330, 40, [0.0, 1.0, 0.0, 1.0], eps=eps)
+
             # Check the viewport overlay especially
             view_marker: rd.ActionDescription = self.find_action("Viewport Test " + fmt, base_event)
 

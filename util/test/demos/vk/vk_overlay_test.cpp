@@ -146,6 +146,36 @@ void main()
 
 )EOSHADER";
 
+  std::string discardPixel = R"EOSHADER(
+
+layout(location = 0) in v2f vertIn;
+
+layout(location = 0, index = 0) out vec4 Color;
+
+layout(constant_id = 2) const int spec_canary = 0;
+
+layout(binding = 0) uniform texture2D tex[64];
+
+void main()
+{
+  if(vertIn.uv.z > 100.0f)
+  {
+    Color += texelFetch(tex[uint(vertIn.uv.z) % 50], ivec2(vertIn.uv.xy * vec2(4,4)), 0) * 0.001f;
+  }
+
+	Color = vertIn.col;
+
+	if ((gl_FragCoord.x > 327.0) && (gl_FragCoord.x < 339.0) &&
+      (gl_FragCoord.y > 38.0) && (gl_FragCoord.y < 48.0))
+	{
+    discard;
+	}
+
+  if(spec_canary != 1338) { Color = vec4(1.0, 0.0, 0.0, 1.0); return; }
+}
+
+)EOSHADER";
+
   int main()
   {
     optDevExts.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
@@ -246,6 +276,11 @@ void main()
         {Vec3f(+1.0f, -1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(+1.0f, +1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(-1.0f, +1.0f, 0.99f), Vec4f(0.2f, 0.2f, 0.2f, 1.0f), Vec2f(0.0f, 0.0f)},
+
+        // discard rectangle
+        {Vec3f(0.6f, -0.7f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.7f, -0.9f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.8f, -0.7f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
     // negate y if we're using negative viewport height
@@ -430,6 +465,7 @@ void main()
     std::vector<VkPipeline> stencilClearPipes;
     std::vector<VkPipeline> backgroundPipes;
     std::vector<VkPipeline> depthWritePixelShaderPipes;
+    std::vector<VkPipeline> discardPixelShaderPipes;
     std::vector<VkPipeline> sampleMaskPipes;
     std::vector<VkPipeline> drawPipes;
 
@@ -437,6 +473,8 @@ void main()
         CompileShaderModule(common + pixel, ShaderLang::glsl, ShaderStage::frag, "main");
     VkPipelineShaderStageCreateInfo depthWriteFragShader =
         CompileShaderModule(common + depthWritePixel, ShaderLang::glsl, ShaderStage::frag, "main");
+    VkPipelineShaderStageCreateInfo discardFragShader =
+        CompileShaderModule(common + discardPixel, ShaderLang::glsl, ShaderStage::frag, "main");
 
     for(size_t f = 0; f < supportedFmts.size(); ++f)
     {
@@ -515,6 +553,15 @@ void main()
       pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
       pipeCreateInfo.renderPass = msaaRPs[f];
       depthWritePixelShaderPipes.push_back(createGraphicsPipeline(pipeCreateInfo));
+
+      pipeCreateInfo.stages[1] = discardFragShader;
+      pipeCreateInfo.stages[1].pSpecializationInfo = &spec;
+      pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+      pipeCreateInfo.renderPass = renderPasses[f];
+      discardPixelShaderPipes.push_back(createGraphicsPipeline(pipeCreateInfo));
+      pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+      pipeCreateInfo.renderPass = msaaRPs[f];
+      discardPixelShaderPipes.push_back(createGraphicsPipeline(pipeCreateInfo));
     }
 
     pipeCreateInfo.stages[1] =
@@ -685,6 +732,11 @@ void main()
           vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             depthWritePixelShaderPipes[pipeIndex]);
           vkCmdDraw(cmd, 24, 1, 9, 0);
+
+          markerName = "Discard " + markerName;
+          setMarker(cmd, markerName);
+          vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, discardPixelShaderPipes[pipeIndex]);
+          vkCmdDraw(cmd, 3, 1, 42, 0);
           vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, drawPipes[pipeIndex]);
 
           if(!is_msaa)
