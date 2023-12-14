@@ -827,11 +827,10 @@ protected:
     memcpy(stages.data(), pipeCreateInfo.pStages, stages.byteSize());
 
     EventFlags eventFlags = m_pDriver->GetEventFlags(eid);
-    VkShaderModule replacementShaders[5] = {};
+    VkShaderModule replacementShaders[NumShaderStages] = {};
 
     // Clean shaders
-    uint32_t numberOfStages = 5;
-    for(size_t i = 0; i < numberOfStages; i++)
+    for(size_t i = 0; i < NumShaderStages; i++)
     {
       if((eventFlags & PipeStageRWEventFlags(StageFromIndex(i))) != EventFlags::NoFlags)
         replacementShaders[i] = m_ShaderCache->GetShaderWithoutSideEffects(
@@ -2434,11 +2433,10 @@ private:
     const VulkanCreationInfo::Pipeline &p =
         m_pDriver->GetDebugManager()->GetPipelineInfo(basePipeline);
     EventFlags eventShaderFlags = m_pDriver->GetEventFlags(eid);
-    uint32_t numberOfStages = 5;
     rdcarray<VkShaderModule> replacementShaders;
-    replacementShaders.resize(numberOfStages);
+    replacementShaders.resize(NumShaderStages);
     // Replace fragment shader because it might have early fragments
-    for(size_t i = 0; i < numberOfStages; i++)
+    for(size_t i = 0; i < replacementShaders.size(); i++)
     {
       if(p.shaders[i].module == ResourceId())
         continue;
@@ -3104,11 +3102,10 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     memcpy(stages.data(), pipeCreateInfo.pStages, stages.byteSize());
 
     EventFlags eventFlags = m_pDriver->GetEventFlags(eid);
-    VkShaderModule replacementShaders[5] = {};
+    VkShaderModule replacementShaders[NumShaderStages] = {};
 
     // Clean shaders
-    uint32_t numberOfStages = 5;
-    for(size_t i = 0; i < numberOfStages; i++)
+    for(size_t i = 0; i < NumShaderStages; i++)
     {
       if((eventFlags & PipeStageRWEventFlags(StageFromIndex(i))) != EventFlags::NoFlags)
         replacementShaders[i] = m_ShaderCache->GetShaderWithoutSideEffects(
@@ -3199,12 +3196,18 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     stageCI.module = m_ShaderCache->GetPrimitiveIdShader(colorOutputIndex);
     stageCI.pName = "main";
     bool gsFound = false;
+    bool meshFound = false;
     bool fsFound = false;
     for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
     {
       if(stages[i].stage == VK_SHADER_STAGE_GEOMETRY_BIT)
       {
         gsFound = true;
+        break;
+      }
+      if(stages[i].stage == VK_SHADER_STAGE_MESH_BIT_EXT)
+      {
+        meshFound = true;
         break;
       }
       if(stages[i].stage == VK_SHADER_STAGE_FRAGMENT_BIT)
@@ -3220,7 +3223,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       pipeCreateInfo.pStages = stages.data();
     }
 
-    if(!gsFound)
+    if(!gsFound && !meshFound)
     {
       vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
                                                  &pipeCreateInfo, NULL, &pipes.primitiveIdPipe);
