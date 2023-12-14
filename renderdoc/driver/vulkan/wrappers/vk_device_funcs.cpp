@@ -2604,7 +2604,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(primitiveTopologyListRestart);
         CHECK_PHYS_EXT_FEATURE(primitiveTopologyPatchListRestart);
 
-        m_ListRestart = ext->primitiveTopologyListRestart;
+        m_ListRestart = ext->primitiveTopologyListRestart != VK_FALSE;
       }
       END_PHYS_EXT_CHECK();
 
