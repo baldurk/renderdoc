@@ -1274,6 +1274,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       ID3D11DepthStencilView *dsNewView = NULL;
 
       D3D11_DEPTH_STENCIL_DESC d = dsDesc;
+      bool useDepthWriteStencilPass = false;
 
       if(overlay == DebugOverlay::Depth)
       {
@@ -1320,6 +1321,21 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       UINT prevNumClassInstances = 0;
       m_pImmediateContext->PSGetShader(&prevPS, prevClassInstances, &prevNumClassInstances);
 
+      if(overlay == DebugOverlay::Depth)
+      {
+        WrappedShader *wrappedPS =
+            (WrappedShader *)(WrappedID3D11Shader<ID3D11PixelShader> *)(prevPS);
+        if(wrappedPS)
+        {
+          ShaderReflection &reflection = wrappedPS->GetDetails();
+          for(SigParameter &output : reflection.outputSignature)
+          {
+            if(output.systemValue == ShaderBuiltin::DepthOutput)
+              useDepthWriteStencilPass = true;
+          }
+        }
+      }
+
       {
         float failColour[] = {1.0f, 0.0f, 0.0f, 1.0f};
         ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(failColour, sizeof(failColour));
@@ -1336,7 +1352,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
       // if buffer was depth only then check if current depth target supports stencil
-      if(overlay == DebugOverlay::Depth)
+      if(useDepthWriteStencilPass)
       {
         DXGI_FORMAT dsCurFmt = dsViewDesc.Format;
         DXGI_FORMAT dsNewFmt = dsCurFmt;
@@ -1534,10 +1550,9 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       d = dsDesc;
       d.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
       d.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
-      if(overlay == DebugOverlay::Depth)
+      if(useDepthWriteStencilPass)
       {
         // Write stencil 0x1 for depth passing pixels
-        d.DepthFunc = cur.DepthFunc;
         d.StencilEnable = TRUE;
         d.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
         d.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
@@ -1545,6 +1560,10 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         d.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
         d.BackFace = d.FrontFace;
         stencilRef = 1;
+      }
+      if(overlay == DebugOverlay::Depth)
+      {
+        d.DepthFunc = cur.DepthFunc;
       }
       else if(overlay == DebugOverlay::Stencil)
       {
@@ -1562,7 +1581,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
       m_pImmediateContext->OMSetDepthStencilState(os, stencilRef);
 
-      if(overlay == DebugOverlay::Depth)
+      if(useDepthWriteStencilPass)
       {
         m_pImmediateContext->ClearDepthStencilView(dsView, D3D11_CLEAR_STENCIL, 0.0f, 0x0);
         m_pImmediateContext->OMSetBlendState(m_Overlay.DepthBlendRTMaskZero, NULL, 0xffffffff);
@@ -1579,7 +1598,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
       m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
-      if(overlay == DebugOverlay::Depth)
+      if(useDepthWriteStencilPass)
       {
         // Resolve stencil = 0x1 pixels to green
         m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
