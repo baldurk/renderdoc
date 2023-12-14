@@ -403,17 +403,20 @@ void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11Resource 
         if(desc.CPUAccessFlags & D3D11_CPU_ACCESS_WRITE)
         {
           D3D11_MAPPED_SUBRESOURCE mapped = {};
-          HRESULT hr = m_pImmediateContext->Map(res, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+          D3D11_MAP mapping =
+              (desc.Usage == D3D11_USAGE_DYNAMIC) ? D3D11_MAP_WRITE_DISCARD : D3D11_MAP_WRITE;
+          HRESULT hr = m_pImmediateContext->Map(res, 0, mapping, 0, &mapped);
           m_pDevice->CheckHRESULT(hr);
 
           if(SUCCEEDED(hr))
           {
             byte *dst = (byte *)mapped.pData;
             dst += pRect[r].left;
-            for(size_t i = 0; i < size; i++)
+            size_t copyStride = sizeof(uint32_t);
+            for(size_t i = 0; i < size; i += copyStride)
             {
               memcpy(dst, &value, RDCMIN(sizeof(uint32_t), size - i));
-              dst += sizeof(uint32_t);
+              dst += copyStride;
             }
 
             m_pImmediateContext->Unmap(res, 0);
