@@ -1510,12 +1510,17 @@ static void LayOutStorageStruct(rdcspv::Editor &editor, const rdcarray<SpecConst
     if(childType.type == rdcspv::DataType::ArrayType)
       memberTypeId = childType.InnerType();
 
-    if(childType.type == rdcspv::DataType::StructType ||
-       (childType.type == rdcspv::DataType::ArrayType &&
-        editor.GetDataType(childType.InnerType()).type == rdcspv::DataType::StructType))
+    if(childType.type == rdcspv::DataType::StructType)
     {
       offset = AlignUp16(offset);
       LayOutStorageStruct(editor, specInfo, outputTypeReplacements, childType, memberTypeId, size);
+    }
+    else if(childType.type == rdcspv::DataType::ArrayType &&
+            editor.GetDataType(childType.InnerType()).type == rdcspv::DataType::StructType)
+    {
+      offset = AlignUp16(offset);
+      LayOutStorageStruct(editor, specInfo, outputTypeReplacements,
+                          editor.GetDataType(childType.InnerType()), memberTypeId, size);
     }
     else if(childType.type == rdcspv::DataType::ArrayType)
     {

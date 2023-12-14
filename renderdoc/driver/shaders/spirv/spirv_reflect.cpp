@@ -432,10 +432,10 @@ StructSizes CalculateStructProps(uint32_t emptyStructSize, const ShaderConstant 
     if(matSize > 1)
       ret.extendedAlign = ret.baseAlign = c.type.matrixByteStride;
 
-    ret.scalarSize = ret.scalarAlign * RDCMAX(c.type.rows, (uint8_t)1) *
-                     RDCMAX(c.type.columns, (uint8_t)1) * RDCMAX(c.type.elements, 1U);
-    ret.baseSize = ret.baseAlign * matSize * RDCMAX(c.type.elements, 1U);
-    ret.extendedSize = ret.extendedAlign * matSize * RDCMAX(c.type.elements, 1U);
+    ret.scalarSize =
+        ret.scalarAlign * RDCMAX(c.type.rows, (uint8_t)1) * RDCMAX(c.type.columns, (uint8_t)1);
+    ret.baseSize = ret.baseAlign * matSize;
+    ret.extendedSize = ret.extendedAlign * matSize;
   }
   else
   {
@@ -482,6 +482,10 @@ StructSizes CalculateStructProps(uint32_t emptyStructSize, const ShaderConstant 
       ret.extendedAlign = AlignUp16(emptyStructSize);
     }
   }
+
+  ret.scalarSize *= RDCMAX(c.type.elements, 1U);
+  ret.baseSize *= RDCMAX(c.type.elements, 1U);
+  ret.extendedSize *= RDCMAX(c.type.elements, 1U);
 
   return ret;
 }
@@ -1874,6 +1878,10 @@ void Reflector::MakeConstantBlockVariables(rdcspv::StorageClass storage, const D
       emptyStructSize = 1;
     else if(capabilities.find(rdcspv::Capability::StoragePushConstant16) != capabilities.end())
       emptyStructSize = 2;
+  }
+  else if(storage == rdcspv::StorageClass::TaskPayloadWorkgroupEXT)
+  {
+    return;
   }
 
   for(size_t i = 0; i < cblock.size(); i++)
