@@ -100,8 +100,12 @@ RD_TEST(D3D11_Discard_Zoo, D3D11GraphicsTest)
     ID3D11BufferPtr rtvbuf = MakeBuffer().Size(1024).RTV();
     ID3D11BufferPtr srvbuf = MakeBuffer().Size(1024).SRV();
     ID3D11BufferPtr buf = MakeBuffer().Size(1024).Vertex();
+    ID3D11BufferPtr stagingBuf = MakeBuffer().Size(1022).Staging();
+    ID3D11BufferPtr dynamicBuf = MakeBuffer().Size(1026).Vertex().Mappable();
 
     SetDebugName(buf, "Buffer");
+    SetDebugName(dynamicBuf, "Buffer Staging");
+    SetDebugName(stagingBuf, "Buffer Dynamic");
     SetDebugName(srvbuf, "BufferSRV");
     SetDebugName(rtvbuf, "BufferRTV");
 
@@ -129,6 +133,8 @@ RD_TEST(D3D11_Discard_Zoo, D3D11GraphicsTest)
         ctx->UpdateSubresource(rtvbuf, 0, NULL, empty, 1024, 1024);
         ctx->UpdateSubresource(srvbuf, 0, NULL, empty, 1024, 1024);
         ctx->UpdateSubresource(buf, 0, NULL, empty, 1024, 1024);
+        ctx->UpdateSubresource(stagingBuf, 0, NULL, empty, 1024, 1024);
+        ctx->UpdateSubresource(dynamicBuf, 0, NULL, empty, 1024, 1024);
 
         ID3D11RenderTargetViewPtr rt;
 
@@ -269,6 +275,8 @@ RD_TEST(D3D11_Discard_Zoo, D3D11GraphicsTest)
 
       // discard the buffer
       ctx1->DiscardResource(buf);
+      ctx1->DiscardResource(stagingBuf);
+      ctx1->DiscardResource(dynamicBuf);
 
       // discard the whole SRV buffer (can't discard a rect)
       DiscardView<ID3D11ShaderResourceViewPtr>(
