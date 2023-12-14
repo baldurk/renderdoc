@@ -1033,7 +1033,8 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
     }
 
     // skip past any local variables
-    while(it.opcode() == rdcspv::Op::Variable)
+    while(it.opcode() == rdcspv::Op::Variable || it.opcode() == rdcspv::Op::Line ||
+          it.opcode() == rdcspv::Op::NoLine)
       ++it;
 
     if(funcId == entryID)

@@ -1750,7 +1750,8 @@ static void AddTaskShaderPayloadStores(const rdcarray<SpecConstant> &specInfo,
     }
 
     // skip past any local variables
-    while(it.opcode() == rdcspv::Op::Variable)
+    while(it.opcode() == rdcspv::Op::Variable || it.opcode() == rdcspv::Op::Line ||
+          it.opcode() == rdcspv::Op::NoLine)
       ++it;
 
     editor.AddOperations(it, locationCalculate);
@@ -2610,7 +2611,8 @@ static void AddMeshShaderOutputStores(const ShaderReflection &refl,
     }
 
     // skip past any local variables
-    while(it.opcode() == rdcspv::Op::Variable)
+    while(it.opcode() == rdcspv::Op::Variable || it.opcode() == rdcspv::Op::Line ||
+          it.opcode() == rdcspv::Op::NoLine)
       ++it;
 
     editor.AddOperations(it, locationCalculate);

@@ -456,7 +456,8 @@ private:
             }
 
             // skip past any local variables
-            while(it.opcode() == rdcspv::Op::Variable)
+            while(it.opcode() == rdcspv::Op::Variable || it.opcode() == rdcspv::Op::Line ||
+                  it.opcode() == rdcspv::Op::NoLine)
               ++it;
 
             rdcspv::Id structPtr = editor.AddOperation(
