@@ -475,6 +475,7 @@ private:
   bool m_MeshQueries = false;
   bool m_MeshShaders = false;
   bool m_TaskShaders = false;
+  bool m_ListRestart = false;
 
   PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
 
@@ -1272,6 +1273,7 @@ public:
   bool MeshQueries() const { return m_MeshQueries; }
   bool TaskShaders() const { return m_TaskShaders; }
   bool MeshShaders() const { return m_MeshShaders; }
+  bool ListRestart() const { return m_ListRestart; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetActionCB(VulkanActionCallback *cb) { m_ActionCallback = cb; }
   void SetSubmitChain(void *submitChain) { m_SubmitChain = submitChain; }

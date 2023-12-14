@@ -220,6 +220,10 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
 
   ia.primitiveRestartEnable = primary.allowRestart;
 
+  if((primary.topology == Topology::LineList || primary.topology == Topology::TriangleList) &&
+     !m_pDriver->ListRestart())
+    ia.primitiveRestartEnable = false;
+
   VkRect2D scissor = {{0, 0}, {16384, 16384}};
 
   VkPipelineViewportStateCreateInfo vp = {
@@ -432,7 +436,8 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
   stages[2].stage = VK_SHADER_STAGE_GEOMETRY_BIT;
   pipeInfo.stageCount = 3;
 
-  if(stages[2].module != VK_NULL_HANDLE && ia.topology != VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+  if(stages[2].module != VK_NULL_HANDLE && ia.topology != VK_PRIMITIVE_TOPOLOGY_POINT_LIST &&
+     ia.topology != VK_PRIMITIVE_TOPOLOGY_LINE_LIST)
   {
     vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL,
                                       &cache.pipes[VKMeshDisplayPipelines::ePipe_Lit]);
