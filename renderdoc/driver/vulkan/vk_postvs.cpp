@@ -3100,7 +3100,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
       // register address as specialisation constant
 
       // ensure we're 64-bit aligned first
-      meshSpecData.resize(AlignUp(meshSpecData.size(), (size_t)8));
+      taskSpecData.resize(AlignUp(taskSpecData.size(), (size_t)8));
 
       VkBufferDeviceAddressInfo getAddressInfo = {
           VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -3111,7 +3111,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
       taskDataAddress = m_pDriver->vkGetBufferDeviceAddress(dev, &getAddressInfo);
 
       VkSpecializationMapEntry entry;
-      entry.offset = (uint32_t)meshSpecData.size();
+      entry.offset = (uint32_t)taskSpecData.size();
       entry.constantID = bufSpecConstant + 1;
       entry.size = sizeof(uint64_t);
       taskSpecEntries.push_back(entry);
