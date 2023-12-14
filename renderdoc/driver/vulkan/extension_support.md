@@ -215,6 +215,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_NV_external_memory`
 * `VK_NV_fragment_shader_barycentric`
 * `VK_NV_geometry_shader_passthrough`
+* `VK_NV_linear_color_attachment`
 * `VK_NV_sample_mask_override_coverage`
 * `VK_NV_shader_image_footprint`
 * `VK_NV_shader_subgroup_partitioned`
@@ -333,7 +334,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_NV_fragment_shading_rate_enums`
 * `VK_NV_framebuffer_mixed_samples`
 * `VK_NV_inherited_viewport_scissor`
-* `VK_NV_linear_color_attachment`
 * `VK_NV_low_latency`
 * `VK_NV_memory_decompression`
 * `VK_NV_mesh_shader`
