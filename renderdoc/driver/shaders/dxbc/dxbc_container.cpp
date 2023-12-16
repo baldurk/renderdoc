@@ -470,6 +470,9 @@ D3D_PRIMITIVE_TOPOLOGY DXBCContainer::GetOutputTopology(const void *ByteCode, si
 
   const byte *data = (const byte *)ByteCode;    // just for convenience
 
+  if(ByteCode == NULL || ByteCodeLength == 0)
+    return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
   if(header->fourcc != FOURCC_DXBC)
     return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
@@ -776,7 +779,7 @@ const byte *DXBCContainer::FindChunk(const bytebuf &ByteCode, uint32_t fourcc, s
 
 void DXBCContainer::GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength)
 {
-  if(BytecodeLength < sizeof(FileHeader))
+  if(BytecodeLength < sizeof(FileHeader) || ByteCode == NULL)
   {
     memset(hash, 0, sizeof(uint32_t) * 4);
     return;
@@ -816,7 +819,7 @@ void DXBCContainer::GetHash(uint32_t hash[4], const void *ByteCode, size_t Bytec
 
 bool DXBCContainer::IsHashedContainer(const void *ByteCode, size_t BytecodeLength)
 {
-  if(BytecodeLength < sizeof(FileHeader))
+  if(BytecodeLength < sizeof(FileHeader) || ByteCode == NULL)
     return false;
 
   const FileHeader *header = (const FileHeader *)ByteCode;
@@ -836,7 +839,7 @@ bool DXBCContainer::IsHashedContainer(const void *ByteCode, size_t BytecodeLengt
 
 bool DXBCContainer::HashContainer(void *ByteCode, size_t BytecodeLength)
 {
-  if(BytecodeLength < sizeof(FileHeader))
+  if(BytecodeLength < sizeof(FileHeader) || ByteCode == NULL)
     return false;
 
   FileHeader *header = (FileHeader *)ByteCode;
@@ -943,6 +946,9 @@ bool DXBCContainer::UsesExtensionUAV(uint32_t slot, uint32_t space, const void *
 
   const byte *data = (const byte *)ByteCode;    // just for convenience
 
+  if(ByteCode == NULL || BytecodeLength == 0)
+    return false;
+
   if(header->fourcc != FOURCC_DXBC)
     return false;
 
@@ -978,6 +984,9 @@ bool DXBCContainer::CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLengt
 
   char *data = (char *)ByteCode;    // just for convenience
 
+  if(ByteCode == NULL || ByteCodeLength == 0)
+    return false;
+
   if(header->fourcc != FOURCC_DXBC)
     return false;
 
@@ -1002,6 +1011,9 @@ bool DXBCContainer::CheckForDXIL(const void *ByteCode, size_t ByteCodeLength)
   FileHeader *header = (FileHeader *)ByteCode;
 
   char *data = (char *)ByteCode;    // just for convenience
+
+  if(ByteCode == NULL || ByteCodeLength == 0)
+    return false;
 
   if(header->fourcc != FOURCC_DXBC)
     return false;
@@ -1028,6 +1040,9 @@ rdcstr DXBCContainer::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLe
   FileHeader *header = (FileHeader *)ByteCode;
 
   char *data = (char *)ByteCode;    // just for convenience
+
+  if(ByteCode == NULL || ByteCodeLength == 0)
+    return debugPath;
 
   if(header->fourcc != FOURCC_DXBC)
     return debugPath;
