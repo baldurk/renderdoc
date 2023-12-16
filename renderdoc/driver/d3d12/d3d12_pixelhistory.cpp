@@ -511,6 +511,15 @@ protected:
     }
   }
 
+  bool IsPSOUsingDXIL(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &pipeDesc)
+  {
+    // Check early stages first, for both VS and MS, but use PS as a fallback. If any shader stage
+    // uses DXIL, they all need to use DXIL.
+    return DXBC::DXBCContainer::CheckForDXIL(pipeDesc.VS.pShaderBytecode, pipeDesc.VS.BytecodeLength) ||
+           DXBC::DXBCContainer::CheckForDXIL(pipeDesc.MS.pShaderBytecode, pipeDesc.MS.BytecodeLength) ||
+           DXBC::DXBCContainer::CheckForDXIL(pipeDesc.PS.pShaderBytecode, pipeDesc.PS.BytecodeLength);
+  }
+
   // ModifyPSOForStencilIncrement modifies the provided pipeDesc, by disabling depth test
   // and write, stencil is set to always pass and increment, scissor is set to scissor around
   // the target pixel, and all color modifications are disabled.
@@ -830,8 +839,7 @@ private:
 
     ModifyPSOForStencilIncrement(eid, pipeDesc, true);
 
-    bool dxil =
-        DXBC::DXBCContainer::CheckForDXIL(pipeDesc.PS.pShaderBytecode, pipeDesc.PS.BytecodeLength);
+    bool dxil = IsPSOUsingDXIL(pipeDesc);
 
     ID3DBlob *psBlob =
         m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::HIGHLIGHT, dxil);
@@ -1146,7 +1154,7 @@ private:
     D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC desc;
     origPSO->Fill(desc);
 
-    bool dxil = DXBC::DXBCContainer::CheckForDXIL(desc.PS.pShaderBytecode, desc.PS.BytecodeLength);
+    bool dxil = IsPSOUsingDXIL(desc);
     ID3DBlob *psBlob =
         m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::HIGHLIGHT, dxil);
     if(psBlob == NULL)
@@ -1683,8 +1691,7 @@ private:
 
     if(pipeCreateFlags & PipelineCreationFlags_FixedColorShader)
     {
-      bool dxil =
-          DXBC::DXBCContainer::CheckForDXIL(pipeDesc.PS.pShaderBytecode, pipeDesc.PS.BytecodeLength);
+      bool dxil = IsPSOUsingDXIL(pipeDesc);
 
       ID3DBlob *FixedColorPS = m_ShaderCache->GetFixedColorShader(dxil);
       pipeDesc.PS.pShaderBytecode = FixedColorPS->GetBufferPointer();
@@ -2131,8 +2138,7 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
     }
     else
     {
-      bool dxil =
-          DXBC::DXBCContainer::CheckForDXIL(pipeDesc.PS.pShaderBytecode, pipeDesc.PS.BytecodeLength);
+      bool dxil = IsPSOUsingDXIL(pipeDesc);
 
       // TODO: This shader outputs to SV_Target0, will we need to modify the
       // shader (or patch it) if the target image isn't RT0?
