@@ -573,25 +573,50 @@ protected:
       baseSlice = 0;
     }
 
-    // For pipeline barriers.
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Transition.pResource = p.srcImage;
-    barrier.Transition.StateBefore = p.srcImageState;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-    barrier.Transition.Subresource =
-        D3D12CalcSubresource(baseMip, baseSlice, p.planeSlice, m_CallbackInfo.targetDesc.MipLevels,
-                             m_CallbackInfo.targetDesc.DepthOrArraySize);
-
     // Multi-sampled images can't call CopyTextureRegion for a single sample, so instead
     // copy using a compute shader into a staging image first
     if(p.multisampled)
     {
-      // TODO: Is a resource transition needed here?
+      // For pipeline barriers.
+      D3D12_RESOURCE_BARRIER barriers[2];
+      barriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      barriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      barriers[0].Transition.pResource = p.srcImage;
+      barriers[0].Transition.StateBefore = p.srcImageState;
+      barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+      barriers[0].Transition.Subresource =
+          D3D12CalcSubresource(baseMip, baseSlice, p.planeSlice, m_CallbackInfo.targetDesc.MipLevels,
+                               m_CallbackInfo.targetDesc.DepthOrArraySize);
+
+      D3D12_RESOURCE_BARRIER dstBarrier = {};
+      barriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      barriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      barriers[1].Transition.pResource = m_CallbackInfo.dstBuffer;
+      barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+      barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+      barriers[1].Transition.Subresource = 0;
+
+      cmd->ResourceBarrier(2, barriers);
+
       m_pDevice->GetDebugManager()->PixelHistoryCopyPixel(cmd, m_CallbackInfo.dstBuffer, p, offset);
+
+      std::swap(barriers[0].Transition.StateBefore, barriers[0].Transition.StateAfter);
+      std::swap(barriers[1].Transition.StateBefore, barriers[1].Transition.StateAfter);
+      cmd->ResourceBarrier(2, barriers);
     }
     else
     {
+      // For pipeline barriers.
+      D3D12_RESOURCE_BARRIER barrier = {};
+      barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      barrier.Transition.pResource = p.srcImage;
+      barrier.Transition.StateBefore = p.srcImageState;
+      barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+      barrier.Transition.Subresource =
+          D3D12CalcSubresource(baseMip, baseSlice, p.planeSlice, m_CallbackInfo.targetDesc.MipLevels,
+                               m_CallbackInfo.targetDesc.DepthOrArraySize);
+
       cmd->ResourceBarrier(1, &barrier);
 
       D3D12_TEXTURE_COPY_LOCATION dst = {}, src = {};
@@ -981,6 +1006,7 @@ struct D3D12ColorAndStencilCallback : public D3D12PixelHistoryCallback
 
     size_t storeOffset =
         m_EventIndices.size() * sizeof(D3D12EventInfo) + offsetof(struct D3D12EventInfo, premod);
+    m_SavedState = m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState();
     CopyPixel(eid, cmd, storeOffset);
   }
   bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd)
