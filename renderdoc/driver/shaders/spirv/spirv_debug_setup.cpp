@@ -2357,7 +2357,7 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
           for(uint8_t c = 0; c < var.columns; c++)
           {
             apiWrapper->ReadBufferValue(bind, offset + c * matrixStride, VarTypeByteSize(var.type),
-                                        VarElemPointer(var, VarTypeByteSize(var.type) * c));
+                                        VarElemPointer(var, c));
           }
         }
       }
