@@ -54,6 +54,7 @@ RD_TEST(VK_KHR_Buffer_Address, VulkanGraphicsTest)
 
 #extension GL_EXT_buffer_reference : require
 #extension GL_EXT_scalar_block_layout : require
+#extension GL_EXT_buffer_reference_uvec2 : require
 
 struct v2f
 {
@@ -81,7 +82,8 @@ layout(buffer_reference, scalar, buffer_reference_align = 16) buffer DrawData {
 };
 
 layout(push_constant) uniform PushData {
-  DrawData data_ptr;
+  uvec2 data_ptr;
+  DrawData drawdata;
 } push;
 
 )EOSHADER";
@@ -92,7 +94,7 @@ layout(location = 0) out v2f vertOut;
 
 void main()
 {
-  DrawData draw = push.data_ptr;
+  DrawData draw = DrawData(push.data_ptr);
   DefaultA2V vert = draw.tri.verts[gl_VertexIndex];
 
 	gl_Position = vertOut.pos = vec4(vert.pos*vec3(draw.scale,1) + vec3(draw.offset, 0), 1);
@@ -110,7 +112,7 @@ layout(location = 0, index = 0) out vec4 Color;
 
 void main()
 {
-  DrawData draw = push.data_ptr;
+  DrawData draw = push.drawdata;
 
 	Color = vertIn.col * draw.tint;
 }
@@ -149,7 +151,7 @@ void main()
       return 3;
 
     VkPipelineLayout layout = createPipelineLayout(
-        vkh::PipelineLayoutCreateInfo({}, {vkh::PushConstantRange(VK_SHADER_STAGE_ALL, 0, 8)}));
+        vkh::PipelineLayoutCreateInfo({}, {vkh::PushConstantRange(VK_SHADER_STAGE_ALL, 0, 16)}));
 
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
@@ -298,20 +300,26 @@ void main()
       DrawData *bindptr = drawsgpu;
       drawscpu[0].scale.x = (abs(sinf(time)) + 0.1f) * 0.5f;
       drawscpu[0].scale.y = 0.5f;
+      setMarker(cmd, "Draw 1");
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 0, 8, &bindptr);
+      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 8, 8, &bindptr);
       vkCmdDraw(cmd, 3, 1, 0, 0);
 
       bindptr++;
       drawscpu[1].scale.x = 0.5f;
       drawscpu[1].scale.y = (abs(cosf(time)) + 0.1f) * 0.5f;
+      setMarker(cmd, "Draw 2");
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 0, 8, &bindptr);
+      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 8, 8, &bindptr);
       vkCmdDraw(cmd, 3, 1, 0, 0);
 
       bindptr++;
       drawscpu[2].scale = Vec2f(0.5f, 0.5f);
       drawscpu[2].tint = Vec4f(cosf(time) * 0.5f + 0.5f, sinf(time) * 0.5f + 0.5f,
                                cosf(time + 3.14f) * 0.5f + 0.5f, 1.0f);
+      setMarker(cmd, "Draw 3");
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 0, 8, &bindptr);
+      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 8, 8, &bindptr);
       vkCmdDraw(cmd, 3, 1, 0, 0);
 
       vkCmdEndRenderPass(cmd);
