@@ -1548,6 +1548,20 @@ void main()
       Color = varscope_test(flatLocalCoord, inpos, inposIncreased);
       break;
     }
+    case 176:
+    {
+      ivec2 coord = ivec2(zeroi + 20, zeroi + 20);
+      Color = texelFetch(sampledImages[cbuf.uniformIndex+1], coord, 0);
+      mat4 mat;
+      // force out of bounds matrix lookup to make sure it doesn't crash
+      float temp = mat[int(Color.r)+70][int(Color.g)+80];
+      if (int(temp/(temp+10000.0)) == 1)
+      {
+        Color.r = Color.r;
+      }
+      Color += vec4(1.0, 1.0, 1.0, 1.0);
+      break;
+    }
     default: break;
   }
 }
