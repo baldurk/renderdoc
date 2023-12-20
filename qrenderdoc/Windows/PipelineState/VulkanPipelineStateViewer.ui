@@ -3822,7 +3822,7 @@
              <item>
               <widget class="QToolButton" name="csShaderSaveButton">
                <property name="toolTip">
-                <string>Save Shader DXBC</string>
+                <string>Save Shader SPIR-V</string>
                </property>
                <property name="text">
                 <string>Save</string>
