@@ -989,6 +989,7 @@ struct D3D12ColorAndStencilCallback : public D3D12PixelHistoryCallback
 
     size_t storeOffset =
         m_EventIndices.size() * sizeof(D3D12EventInfo) + offsetof(struct D3D12EventInfo, premod);
+    m_SavedState = m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState();
     CopyPixel(eid, cmd, storeOffset);
   }
   bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd)
@@ -1959,6 +1960,7 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
                                    D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 1,
                                    &state.scissors[0]);
 
+        state.rts.resize(1);
         state.rts[0] = *m_CallbackInfo.colorDescriptor;
         state.dsv = *m_CallbackInfo.dsDescriptor;
         state.pipe = GetResID(psosIter[i]);
