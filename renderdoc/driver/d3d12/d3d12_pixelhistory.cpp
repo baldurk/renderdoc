@@ -1073,6 +1073,20 @@ private:
 
     CopyImagePixel(cmd, targetCopyParams, offset);
 
+    if(IsDepthAndStencilFormat(m_CallbackInfo.targetDesc.Format))
+    {
+      D3D12CopyPixelParams stencilCopyParams = targetCopyParams;
+      stencilCopyParams.srcImageFormat =
+          GetDepthSRVFormat(m_CallbackInfo.targetImage->GetDesc().Format, 1);
+      stencilCopyParams.copyFormat = DXGI_FORMAT_R8_TYPELESS;
+      stencilCopyParams.planeSlice = 1;
+      stencilCopyParams.srcImageState =
+          m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL
+              ? D3D12_RESOURCE_STATE_DEPTH_READ
+              : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+      CopyImagePixel(cmd, stencilCopyParams, offset + sizeof(float));
+    }
+
     // If the target image is a depth/stencil view, we already copied the value above.
     if(IsDepthFormat(m_CallbackInfo.targetDesc.Format))
       return;
