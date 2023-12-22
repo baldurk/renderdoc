@@ -1,1 +1,1 @@
-VulkanMemoryAllocator from https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator at v2.1.0
+VulkanMemoryAllocator from https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator at v3.0.1

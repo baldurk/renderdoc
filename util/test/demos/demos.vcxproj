@@ -361,7 +361,10 @@
     <ClCompile Include="vk\vk_video_textures.cpp" />
     <ClCompile Include="vk\vk_vs_max_desc_set.cpp" />
     <ClCompile Include="vk\vk_simple_triangle.cpp" />
-    <ClCompile Include="vk\vk_test.cpp" />
+    <ClCompile Include="vk\vk_test.cpp">
+      <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Development|x64'">4100;4054;4055;4189;4324</DisableSpecificWarnings>
+      <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4100;4054;4055;4189;4324</DisableSpecificWarnings>
+    </ClCompile>
     <ClCompile Include="3rdparty\volk\volk.c" />
     <ClCompile Include="win32\win32_platform.cpp" />
     <ClCompile Include="win32\win32_window.cpp" />
