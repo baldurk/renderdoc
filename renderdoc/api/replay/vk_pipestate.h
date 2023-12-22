@@ -1114,6 +1114,13 @@ If the list is empty, fdm_offset is disabled and rendering is as normal.
 )");
   rdcarray<Offset> fragmentDensityOffsets;
 
+  DOCUMENT(R"(If VK_QCOM_multiview_per_view_viewports is enabled, contains whether multiple viewports
+are allowed to be passed in a single view.
+
+If only a single viewport is present in any view, multiviewPerViewViewports is set to false;
+)");
+  bool multiviewPerViewViewports;
+
   DOCUMENT(R"(If VK_EXT_multisampled_render_to_single_sampled is enabled, contains the number of
 samples used to render this subpass.
 

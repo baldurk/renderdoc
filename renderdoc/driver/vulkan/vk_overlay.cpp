@@ -1277,7 +1277,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
         VkViewport viewport = state.views[0];
-        vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
+        vt->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)state.views.size(), &viewport);
 
         uint32_t uboOffs = 0;
 
@@ -1347,7 +1347,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           viewport.width = scissor.z;
           viewport.height = scissor.w;
 
-          vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
+          vt->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)state.views.size(), &viewport);
           vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     Unwrap(m_Overlay.m_CheckerPipeLayout), 0, 1,
                                     UnwrapPtr(m_Overlay.m_CheckerDescSet), 1, &uboOffs);

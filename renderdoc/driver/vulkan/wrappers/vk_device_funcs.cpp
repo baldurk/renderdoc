@@ -1917,6 +1917,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCLOG("Enabling VK_KHR_performance_query");
     }
 
+    bool multiviewperviewviewports = false;
+    if(supportedExtensions.find(VK_QCOM_MULTIVIEW_PER_VIEW_VIEWPORTS_EXTENSION_NAME) !=
+       supportedExtensions.end())
+    {
+      multiviewperviewviewports = true;
+      Extensions.push_back(VK_QCOM_MULTIVIEW_PER_VIEW_VIEWPORTS_EXTENSION_NAME);
+      RDCLOG("Enabling VK_QCOM_multiview_per_view_viewports");
+    }
+
     VkDevice device;
 
     rdcarray<VkQueueFamilyProperties> queueProps;
@@ -2503,6 +2512,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_OFFSET_FEATURES_QCOM);
       {
         CHECK_PHYS_EXT_FEATURE(fragmentDensityMapOffset);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(
+          VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM,
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_VIEWPORTS_FEATURES_QCOM);
+      {
+        CHECK_PHYS_EXT_FEATURE(multiviewPerViewViewports);
       }
       END_PHYS_EXT_CHECK();
 
@@ -3561,6 +3578,35 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
     }
 
+    VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM mvpvvFeature = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_VIEWPORTS_FEATURES_QCOM};
+
+    if(multiviewperviewviewports)
+    {
+      VkPhysicalDeviceFeatures2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+      availBase.pNext = &mvpvvFeature;
+      ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2(Unwrap(physicalDevice), &availBase);
+
+      VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM *existing =
+          (VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM *)FindNextStruct(
+              &createInfo,
+              VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_VIEWPORTS_FEATURES_QCOM);
+
+      if(existing)
+      {
+        // feature is already present
+        existing->multiviewPerViewViewports = VK_TRUE;
+      }
+      else
+      {
+        // otherwise, add our own, and push it onto the pNext array
+        mvpvvFeature.multiviewPerViewViewports = VK_TRUE;
+
+        mvpvvFeature.pNext = (void *)createInfo.pNext;
+        createInfo.pNext = &mvpvvFeature;
+      }
+    }
+
     VkPhysicalDeviceScalarBlockLayoutFeaturesEXT scalarBlockEXTFeatures = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES_EXT,
     };
@@ -4283,6 +4329,10 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       (VkPhysicalDeviceBufferDeviceAddressFeatures *)FindNextStruct(
           &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES);
 
+  VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM *multiviewPerViewViewportsFeatures =
+      (VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM *)FindNextStruct(
+          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_VIEWPORTS_FEATURES_QCOM);
+
   // we must turn on bufferDeviceAddressCaptureReplay. We verified that this feature was available
   // before we whitelisted the extension/feature
   if(enabledFeaturesVK12 && enabledFeaturesVK12->bufferDeviceAddress)
@@ -4293,6 +4343,9 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
   if(bufferAddressFeaturesEXT)
     bufferAddressFeaturesEXT->bufferDeviceAddressCaptureReplay = VK_TRUE;
+
+  if(multiviewPerViewViewportsFeatures)
+    multiviewPerViewViewportsFeatures->multiviewPerViewViewports = VK_TRUE;
 
   // check features that we care about at capture time
 

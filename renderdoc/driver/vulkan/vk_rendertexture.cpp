@@ -575,13 +575,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
     vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                               Unwrap(m_TexRender.PipeLayout), 0, 1, UnwrapPtr(descset), 2, offsets);
 
-    VkViewport viewport = {(float)rpbegin.renderArea.offset.x,
-                           (float)rpbegin.renderArea.offset.y,
-                           (float)rpbegin.renderArea.extent.width,
-                           (float)rpbegin.renderArea.extent.height,
-                           0.0f,
-                           1.0f};
-    vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
+    VulkanRenderState &state = m_pDriver->m_RenderState;
+    vt->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)state.views.size(), state.views.data());
 
     vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
 
