@@ -391,8 +391,12 @@ void main()
     VkPipeline backgroundPipe = createGraphicsPipeline(pipeCreateInfo);
 
     pipeCreateInfo.stages = {vertexShader};
+    pipeCreateInfo.depthStencilState.stencilTestEnable = VK_TRUE;
+    pipeCreateInfo.depthStencilState.front.reference = 0x33;
     VkPipeline noFsPipe = createGraphicsPipeline(pipeCreateInfo);
     pipeCreateInfo.stages = {vertexShader, fragmentShader};
+    pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
+    pipeCreateInfo.depthStencilState.front.reference = 0x55;
 
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_TRUE;
     pipeCreateInfo.depthStencilState.front.compareOp = VK_COMPARE_OP_GREATER;
