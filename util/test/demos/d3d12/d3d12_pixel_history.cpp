@@ -457,6 +457,7 @@ float4 main(v2f vertIn, uint primId : SV_PrimitiveID, uint sampleId : SV_SampleI
       depthState.StencilEnable = FALSE;
       pass.backgroundPipe = baselinePSO;
 
+      depthState.StencilEnable = TRUE;
       pass.noPsPipe = baselinePSO.PS(NULL);
 
       depthState.StencilEnable = TRUE;
@@ -564,8 +565,10 @@ float4 main(v2f vertIn, uint primId : SV_PrimitiveID, uint sampleId : SV_SampleI
         cmd->DrawInstanced(3, 1, 0, 0);
 
         setMarker(cmd, "Unbound Fragment Shader");
+        cmd->OMSetStencilRef(0x33);
         cmd->SetPipelineState(pass.noPsPipe);
         cmd->DrawInstanced(3, 1, 3, 0);
+        cmd->OMSetStencilRef(0x55);
 
         setMarker(cmd, "Stencil Write");
         cmd->SetPipelineState(pass.stencilWritePipe);
