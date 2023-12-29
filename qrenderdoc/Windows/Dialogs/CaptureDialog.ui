@@ -530,6 +530,16 @@
        </widget>
       </item>
       <item>
+       <widget class="QCheckBox" name="DebugOutputMute">
+        <property name="toolTip">
+         <string>When enabled, will mute API debugging output when the API validation mode option is enabled.</string>
+        </property>
+        <property name="text">
+         <string>Debug Output Mute</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QFrame" name="SoftMemoryLimitFrame">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Fixed" vsizetype="Preferred">

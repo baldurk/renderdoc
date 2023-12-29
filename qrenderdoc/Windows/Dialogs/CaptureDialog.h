@@ -104,6 +104,8 @@ private slots:
 
   void on_CaptureCallstacks_toggled(bool checked);
 
+  void on_APIValidation_toggled(bool checked);
+
   // manual slots
   void vulkanLayerWarn_mouseClick();
   void androidWarn_mouseClick();

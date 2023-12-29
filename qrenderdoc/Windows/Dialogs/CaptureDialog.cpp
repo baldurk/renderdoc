@@ -284,6 +284,19 @@ void CaptureDialog::on_CaptureCallstacks_toggled(bool checked)
   }
 }
 
+void CaptureDialog::on_APIValidation_toggled(bool checked)
+{
+  if(ui->APIValidation->isChecked())
+  {
+    ui->DebugOutputMute->setEnabled(true);
+  }
+  else
+  {
+    ui->DebugOutputMute->setChecked(true); // mute debug if API validation is disabled
+    ui->DebugOutputMute->setEnabled(false);
+  }
+}
+
 void CaptureDialog::on_processFilter_textChanged(const QString &filter)
 {
   QSortFilterProxyModel *model = (QSortFilterProxyModel *)ui->processList->model();
@@ -928,11 +941,13 @@ void CaptureDialog::SetSettings(CaptureSettings settings)
   ui->CaptureAllCmdLists->setChecked(settings.options.captureAllCmdLists);
   ui->DelayForDebugger->setValue(settings.options.delayForDebugger);
   ui->VerifyBufferAccess->setChecked(settings.options.verifyBufferAccess);
+  ui->DebugOutputMute->setChecked(settings.options.debugOutputMute);
   ui->AutoStart->setChecked(settings.autoStart);
   ui->SoftMemoryLimit->setValue(settings.options.softMemoryLimit);
 
   // force flush this state
   on_CaptureCallstacks_toggled(ui->CaptureCallstacks->isChecked());
+  on_APIValidation_toggled(ui->DebugOutputMute->isChecked());
 
   if(settings.numQueuedFrames > 0)
   {
@@ -977,6 +992,7 @@ CaptureSettings CaptureDialog::Settings()
   ret.options.captureAllCmdLists = ui->CaptureAllCmdLists->isChecked();
   ret.options.delayForDebugger = (uint32_t)ui->DelayForDebugger->value();
   ret.options.verifyBufferAccess = ui->VerifyBufferAccess->isChecked();
+  ret.options.debugOutputMute = ui->DebugOutputMute->isChecked();
   ret.options.softMemoryLimit = (uint32_t)ui->SoftMemoryLimit->value();
 
   if(ui->queueFrameCap->isChecked())
