@@ -271,29 +271,23 @@ void CaptureDialog::SetInjectMode(bool inject)
   }
 }
 
-void CaptureDialog::on_CaptureCallstacks_toggled(bool checked)
+void CaptureDialog::on_CaptureCallstacks_toggled(const bool checked)
 {
-  if(ui->CaptureCallstacks->isChecked())
-  {
-    ui->CaptureCallstacksOnlyActions->setEnabled(true);
-  }
-  else
+  ui->CaptureCallstacksOnlyActions->setEnabled(checked);
+
+  if(!checked)
   {
     ui->CaptureCallstacksOnlyActions->setChecked(false);
-    ui->CaptureCallstacksOnlyActions->setEnabled(false);
   }
 }
 
-void CaptureDialog::on_APIValidation_toggled(bool checked)
+void CaptureDialog::on_APIValidation_toggled(const bool checked)
 {
-  if(ui->APIValidation->isChecked())
-  {
-    ui->DebugOutputMute->setEnabled(true);
-  }
-  else
+  ui->DebugOutputMute->setEnabled(checked);
+
+  if(!checked)
   {
     ui->DebugOutputMute->setChecked(true); // mute debug if API validation is disabled
-    ui->DebugOutputMute->setEnabled(false);
   }
 }
 
