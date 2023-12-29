@@ -947,7 +947,7 @@ void CaptureDialog::SetSettings(CaptureSettings settings)
 
   // force flush this state
   on_CaptureCallstacks_toggled(ui->CaptureCallstacks->isChecked());
-  on_APIValidation_toggled(ui->DebugOutputMute->isChecked());
+  on_APIValidation_toggled(ui->APIValidation->isChecked());
 
   if(settings.numQueuedFrames > 0)
   {
