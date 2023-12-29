@@ -14,15 +14,18 @@ def scissor_clipped(x): return x.scissorClipped
 def stencil_test_failed(x): return x.stencilTestFailed
 def shader_discarded(x): return x.shaderDiscarded
 
-def get_shader_out_color(x): return x.shaderOut.col.floatValue
+def get_shader_out_color(x): return value_selector(x.shaderOut.col)
 def get_shader_out_depth(x): return x.shaderOut.depth
 
-def get_pre_mod_color(x): return x.preMod.col.floatValue
+def get_pre_mod_color(x): return value_selector(x.preMod.col)
 def get_pre_mod_depth(x): return x.preMod.depth
 
-def get_post_mod_color(x): return x.postMod.col.floatValue
+def get_post_mod_color(x): return value_selector(x.postMod.col)
 def get_post_mod_depth(x): return x.postMod.depth
+def get_post_mod_stencil(x): return x.postMod.stencil
+def unknown_post_mod_stencil(x): return x.postMod.stencil == -1 or x.postMod.stencil == -2
 
+def unknown_stencil(x): return x == -1 or x == -2
 def primitive_id(x): return x.primitiveID
 def unboundPS(x): return x.unboundPS
 
@@ -93,6 +96,18 @@ class D3D12_Pixel_History(rdtest.TestCase):
         depth_test_eid = self.find_action("Depth Test", begin_renderpass_eid).next.eventId
         depth_bounds_prep_eid = self.find_action("Depth Bounds Prep", begin_renderpass_eid).next.eventId
         depth_bounds_clip_eid = self.find_action("Depth Bounds Clip", begin_renderpass_eid).next.eventId
+
+        # For pixel 110, 100, inside the red triangle with stencil value 0x55
+        x, y = 110, 100
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, begin_renderpass_eid], [passed, True]],
+            [[event_id, unbound_fs_eid], [passed, True], [unboundPS, True], [primitive_id, 0], [get_post_mod_stencil, 0x33]],
+            [[event_id, stencil_write_eid], [passed, True], [primitive_id, 0], [get_post_mod_stencil, 0x55]],
+        ]
+        self.check_events(events, modifs, False)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
 
         # For pixel 190, 149 inside the red triangle
         x, y = 190, 149
@@ -227,7 +242,7 @@ class D3D12_Pixel_History(rdtest.TestCase):
             [[event_id, background_eid], [passed, True]],
             [[event_id, depth_test_eid], [primitive_id, 0], [depth_test_failed, True],
              [get_shader_out_color, (1.0, 1.0, 1.0, 2.75)], [get_shader_out_depth, 0.97], [get_post_mod_color, (1.0, 0.0, 1.0, 1.0)],
-             [get_post_mod_depth, 0.95]],
+             [get_post_mod_depth, 0.95], [unknown_post_mod_stencil, True]],
             [[event_id, depth_test_eid], [primitive_id, 1], [depth_test_failed, False],
              [get_shader_out_color, (1.0, 1.0, 0.0, 2.75)], [get_shader_out_depth, 0.20], [get_post_mod_color, (1.0, 1.0, 0.0, 1.0)],
              [get_post_mod_depth, 0.20]],
@@ -407,6 +422,8 @@ class D3D12_Pixel_History(rdtest.TestCase):
         if tex_details.mips > 1:
             sub.mip = rt.firstMip
 
+        stencil_write_eid = self.find_action("Stencil Write", begin_renderpass_eid).next.eventId
+        unbound_fs_eid = self.find_action("Unbound Fragment Shader", begin_renderpass_eid).next.eventId
         background_eid = self.find_action("Background", begin_renderpass_eid).next.eventId
         test_eid = self.find_action("Test Begin", begin_renderpass_eid).next.eventId
 
@@ -418,6 +435,17 @@ class D3D12_Pixel_History(rdtest.TestCase):
             [[event_id, background_eid], [passed, True], [primitive_id, 0], [get_pre_mod_depth, 1.0], [get_post_mod_depth, 0.95]],
             [[event_id, test_eid], [passed, True], [depth_test_failed, False], [primitive_id, 0], [get_shader_out_depth, 0.5], [get_post_mod_depth, 0.5]],
             [[event_id, test_eid], [passed, False], [depth_test_failed, True], [primitive_id, 1], [get_shader_out_depth, 0.6], [get_post_mod_depth, 0.5]],
+        ]
+        self.check_events(events, modifs, False)
+
+        # For pixel 110, 100, inside the red triangle with stencil value 0x55
+        x, y = 110, 100
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, begin_renderpass_eid], [passed, True]],
+            [[event_id, unbound_fs_eid], [passed, True], [unboundPS, True], [primitive_id, 0], [get_post_mod_stencil, 0x33]],
+            [[event_id, stencil_write_eid], [passed, True], [primitive_id, 0], [get_post_mod_stencil, 0x55]],
         ]
         self.check_events(events, modifs, False)
 
@@ -444,6 +472,14 @@ class D3D12_Pixel_History(rdtest.TestCase):
             a = get_post_mod_color(modifs[i])
             b = get_pre_mod_color(modifs[i + 1])
 
+            # A fragment event : postMod.stencil should be unknown
+            if modifs[i].eventId == modifs[i+1].eventId:
+                if not unknown_stencil(modifs[i].postMod.stencil):
+                    raise rdtest.TestFailureException(
+                    "postmod stencil at {} primitive {}: {} is not unknown".format(modifs[i].eventId,
+                                                                              modifs[i].primitiveID,
+                                                                              modifs[i].postMod.stencil))
+
             if self.is_depth:
                 a = (modifs[i].postMod.depth, modifs[i].postMod.stencil)
                 b = (modifs[i + 1].preMod.depth, modifs[i + 1].preMod.stencil)
@@ -466,6 +502,10 @@ class D3D12_Pixel_History(rdtest.TestCase):
                 if self.is_depth:
                     a = (modifs[i].preMod.depth, modifs[i].preMod.stencil)
                     b = (modifs[i].postMod.depth, modifs[i].postMod.stencil)
+
+                if a[1] == -2 or b[2] == -2:
+                    a = (a[0], -2)
+                    b = (b[0], -2)
 
                 if not rdtest.value_compare(a, b):
                     raise rdtest.TestFailureException(
