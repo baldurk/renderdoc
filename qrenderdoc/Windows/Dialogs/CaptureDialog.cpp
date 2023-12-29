@@ -287,7 +287,8 @@ void CaptureDialog::on_APIValidation_toggled(const bool checked)
 
   if(!checked)
   {
-    ui->DebugOutputMute->setChecked(true); // mute debug if API validation is disabled
+    // mute debug if API validation is disabled
+    ui->DebugOutputMute->setChecked(true);
   }
 }
 
