@@ -596,8 +596,27 @@ protected:
     // copy using a compute shader into a staging image first
     if(p.multisampled)
     {
-      // TODO: Is a resource transition needed here?
+      // For pipeline barriers.
+      D3D12_RESOURCE_BARRIER barriers[2] = {};
+      barriers[0] = barrier;
+      barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+      // Validation will complain if we don't transition all subresources for an SRV.
+      barriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+      barriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      barriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      barriers[1].Transition.pResource = m_CallbackInfo.dstBuffer;
+      barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+      barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+      barriers[1].Transition.Subresource = 0;
+
+      cmd->ResourceBarrier(2, barriers);
+
       m_pDevice->GetDebugManager()->PixelHistoryCopyPixel(cmd, m_CallbackInfo.dstBuffer, p, offset);
+
+      std::swap(barriers[0].Transition.StateBefore, barriers[0].Transition.StateAfter);
+      std::swap(barriers[1].Transition.StateBefore, barriers[1].Transition.StateAfter);
+      cmd->ResourceBarrier(2, barriers);
     }
     else
     {
