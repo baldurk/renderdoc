@@ -40,7 +40,7 @@ Texture2DArray<float> copyin_depth : register(t0);
 Texture2DArray<uint> copyin_stencil : register(t1);
 
 Texture2DMSArray<float> copyin_depth_ms : register(t2);
-Texture2DMSArray<uint> copyin_stencil_ms : register(t3);
+Texture2DMSArray<uint2> copyin_stencil_ms : register(t3);
 
 Texture2DArray<float4> copyin_float : register(t4);
 Texture2DMSArray<float4> copyin_float_ms : register(t5);
@@ -70,7 +70,7 @@ RWBuffer<int> copyout_int : register(u4);
     }
     else if(copy_stencil)
     {
-      uint val = copyin_stencil_ms.sample[src_coord.z][uint3(src_coord.xy, src_coord.w)];
+      uint val = copyin_stencil_ms.sample[src_coord.z][uint3(src_coord.xy, src_coord.w)].g;
       copyout_stencil[dst_slot] = val;
     }
     else
