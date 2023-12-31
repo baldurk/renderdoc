@@ -2986,6 +2986,7 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
           else
             history[h].postMod.depth =
                 GetDepthValue(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, fragInfo[offset].postMod);
+          history[h].postMod.stencil = -2;
         }
         // If it is not the first fragment for the event, set the preMod to the
         // postMod of the previous fragment.
