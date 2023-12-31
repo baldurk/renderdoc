@@ -1087,6 +1087,7 @@ private:
                                            ? D3D12_RESOURCE_STATE_DEPTH_READ
                                            : D3D12_RESOURCE_STATE_DEPTH_WRITE;
       targetCopyParams.srcImageFormat = GetDepthSRVFormat(m_CallbackInfo.targetDesc.Format, 0);
+      targetCopyParams.depthcopy = true;
       targetCopyParams.copyFormat = DXGI_FORMAT_R32_TYPELESS;
       offset += offsetof(struct D3D12PixelHistoryValue, depth);
     }
