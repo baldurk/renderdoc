@@ -3,6 +3,7 @@ import rdtest
 from typing import List
 
 class GL_Pixel_History(rdtest.TestCase):
+    slow_test = True
     demos_test_name = 'GL_Pixel_History'
     demos_frame_cap = 10
 
