@@ -1280,6 +1280,19 @@ struct D3D12TestsFailedCallback : public D3D12PixelHistoryCallback
     uint32_t eventFlags = CalculateEventFlags(pipeState);
     m_EventFlags[eid] = eventFlags;
 
+    WrappedID3D12PipelineState *origPSO =
+        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(pipeState.pipe);
+    if(origPSO == NULL)
+      RDCERR("Failed to retrieve original PSO for pixel history.");
+
+    D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
+    origPSO->Fill(pipeDesc);
+
+    if(pipeDesc.DepthStencilState.DepthBoundsTestEnable)
+      m_EventDepthBounds[eid] = {pipeState.depthBoundsMin, pipeState.depthBoundsMax};
+    else
+      m_EventDepthBounds[eid] = {};
+
     // TODO: figure out if the shader has early fragments tests turned on,
     // based on the currently bound fragment shader.
     bool earlyFragmentTests = false;
@@ -1308,6 +1321,13 @@ struct D3D12TestsFailedCallback : public D3D12PixelHistoryCallback
   {
     auto it = m_EventFlags.find(eventId);
     if(it == m_EventFlags.end())
+      RDCERR("Can't find event flags for event %u", eventId);
+    return it->second;
+  }
+  rdcpair<float, float> GetEventDepthBounds(uint32_t eventId)
+  {
+    auto it = m_EventDepthBounds.find(eventId);
+    if(it == m_EventDepthBounds.end())
       RDCERR("Can't find event flags for event %u", eventId);
     return it->second;
   }
@@ -1765,6 +1785,7 @@ private:
   rdcarray<uint32_t> m_Events;
   // Key is event ID, value is the flags for that event.
   std::map<uint32_t, uint32_t> m_EventFlags;
+  std::map<uint32_t, rdcpair<float, float>> m_EventDepthBounds;
   // Key is a pair <Base pipeline, pipeline flags>
   std::map<rdcpair<ResourceId, uint32_t>, ID3D12PipelineState *> m_PipeCache;
   // Key: pair <event ID, test>
@@ -3056,6 +3077,13 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
 
         if(!passed)
           history[h].depthTestFailed = true;
+
+        rdcpair<float, float> depthBounds = tfCb->GetEventDepthBounds(history[h].eventId);
+
+        if((history[h].preMod.depth < depthBounds.first ||
+            history[h].preMod.depth > depthBounds.second) &&
+           depthBounds.second > depthBounds.first)
+          history[h].depthBoundsFailed = true;
       }
     }
   }
