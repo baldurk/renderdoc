@@ -251,7 +251,7 @@ class D3D12_Pixel_History(rdtest.TestCase):
             [[event_id, depth_test_eid], [primitive_id, 3], [depth_test_failed, False],
              [get_shader_out_color, (0.0, 0.0, 1.0, 2.75)], [get_shader_out_depth, 0.10], [get_post_mod_color, (0.0, 0.0, 1.0, 1.0)],
              [get_post_mod_depth, 0.10]],
-            [[event_id, depth_test_eid], [primitive_id, 4], [depth_test_failed, False],
+            [[event_id, depth_test_eid], [primitive_id, 4], [depth_test_failed, False], [depth_bounds_failed, True],
              [get_shader_out_color, (1.0, 1.0, 1.0, 2.75)], [get_shader_out_depth, 0.05], [get_post_mod_color, (0.0, 0.0, 1.0, 1.0)],
              [get_post_mod_depth, 0.10]],
         ]
