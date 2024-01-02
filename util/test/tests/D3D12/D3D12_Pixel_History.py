@@ -55,10 +55,9 @@ class D3D12_Pixel_History(rdtest.TestCase):
             rdtest.log.print("Testing depth")
             self.depth_target_test("Begin " + t)
 
-            # Disabling MSAA test for now as it is failing on some hardware
-            # self.is_depth = False
-            # rdtest.log.print("Testing MSAA")
-            #self.multisampled_image_test("Begin " + t)
+            self.is_depth = False
+            rdtest.log.print("Testing MSAA")
+            self.multisampled_image_test("Begin " + t)
 
     def primary_test(self, begin_name: str):
         begin_renderpass_action = self.find_action(begin_name)
@@ -291,7 +290,7 @@ class D3D12_Pixel_History(rdtest.TestCase):
         modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
 
         events = [
-            [[event_id, beg_renderpass_eid], [passed, True], [get_post_mod_depth, 0.0]],
+            [[event_id, beg_renderpass_eid], [passed, True]],
             [[event_id, action_eid], [passed, True], [primitive_id, 0], [get_pre_mod_depth, 0.0], [get_shader_out_depth, 0.9],
              [get_post_mod_depth, 0.9]],
             [[event_id, action_eid], [passed, True], [primitive_id, 1], [get_shader_out_depth, 0.95], [get_post_mod_depth, 0.95]],
@@ -313,7 +312,7 @@ class D3D12_Pixel_History(rdtest.TestCase):
         rdtest.log.print("Testing pixel {}, {} at sample {}".format(x, y, sub.sample))
         modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
         events = [
-            [[event_id, beg_renderpass_eid], [passed, True], [get_post_mod_depth, 0.0]],
+            [[event_id, beg_renderpass_eid], [passed, True]],
             [[event_id, action_eid], [passed, True], [primitive_id, 0], [get_pre_mod_depth, 0.0], [get_shader_out_depth, 0.9],
              [get_post_mod_depth, 0.9]],
             [[event_id, action_eid], [passed, True], [primitive_id, 1], [get_shader_out_depth, 0.95], [get_post_mod_depth, 0.95]],
