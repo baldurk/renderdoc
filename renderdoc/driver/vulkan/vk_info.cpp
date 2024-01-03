@@ -318,6 +318,7 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
   dynamicCount = 0;
   inlineCount = 0;
   inlineByteSize = 0;
+  accelerationStructuresCount = 0;
 
   const VkMutableDescriptorTypeCreateInfoEXT *mutableInfo =
       (const VkMutableDescriptorTypeCreateInfoEXT *)FindNextStruct(
@@ -382,6 +383,11 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
     {
       inlineCount++;
       inlineByteSize = AlignUp4(inlineByteSize + bindings[b].descriptorCount);
+    }
+
+    if(type == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+    {
+      accelerationStructuresCount++;
     }
 
     if((type == VK_DESCRIPTOR_TYPE_SAMPLER || type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
@@ -569,6 +575,18 @@ bool IsValid(bool allowNULLDescriptors, const VkWriteDescriptorSet &write, uint3
 {
   if(write.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
     return true;
+  if(write.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+  {
+    VkWriteDescriptorSetAccelerationStructureKHR *accelerationStructureWrite =
+        (VkWriteDescriptorSetAccelerationStructureKHR *)write.pNext;
+
+    if(write.descriptorCount != accelerationStructureWrite->accelerationStructureCount)
+      return false;
+
+    return allowNULLDescriptors
+               ? true
+               : accelerationStructureWrite->pAccelerationStructures != VK_NULL_HANDLE;
+  }
 
   // this makes assumptions that only hold within the context of Serialise_InitialState below,
   // specifically that if pTexelBufferView/pBufferInfo is set then we are using them. In the general
@@ -742,6 +760,9 @@ bool CreateDescriptorWritesForSlotData(WrappedVulkan *vk, rdcarray<VkWriteDescri
         writes.back().pBufferInfo = writeBuffer;
         break;
       }
+      case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+        // acceleration structures should not be handled in this function
+        break;
       default:
       {
         RDCERR("Unexpected descriptor type %d", descType);
@@ -2466,6 +2487,13 @@ void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreation
       inlineByteSize += entry.descriptorCount;
       inlineByteSize = AlignUp4(inlineByteSize);
     }
+    else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+    {
+      // TODO: Support VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR in vkUpdateDescriptorSetWithTemplate
+      RDCERR(
+          "Unsupported descriptorType in vkUpdateDescriptorSetWithTemplate: "
+          "VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR");
+    }
     else
     {
       entrySize = sizeof(VkDescriptorBufferInfo);
@@ -2574,6 +2602,13 @@ void DescUpdateTemplate::Apply(const void *pData, DescUpdateTemplateApplication 
 
       write.pNext = &inlineWrite;
       write.descriptorCount = entry.descriptorCount;
+    }
+    else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+    {
+      // TODO: Support VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR in vkUpdateDescriptorSetWithTemplate
+      RDCERR(
+          "Unsupported descriptorType in vkUpdateDescriptorSetWithTemplate: "
+          "VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR");
     }
     else
     {

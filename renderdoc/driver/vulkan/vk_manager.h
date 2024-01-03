@@ -121,6 +121,7 @@ struct VkInitialContents
   VkWriteDescriptorSetInlineUniformBlock *inlineInfo;
   byte *inlineData;
   size_t inlineByteSize;
+  VkWriteDescriptorSetAccelerationStructureKHR *accelerationStructuresWrites;
   uint32_t numDescriptors;
 
   // for plain resources, we store the resource type and memory allocation details of the contents

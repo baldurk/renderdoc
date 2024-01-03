@@ -122,6 +122,8 @@ struct DescSetLayout
   uint32_t inlineCount;
   uint32_t inlineByteSize;
 
+  uint32_t accelerationStructuresCount;
+
   // the cummulative stageFlags for all bindings in this layout
   VkShaderStageFlags anyStageFlags;
 

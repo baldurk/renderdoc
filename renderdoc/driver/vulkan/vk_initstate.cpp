@@ -571,6 +571,11 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
     return true;
   }
+  else if(type == eResAccelerationStructureKHR)
+  {
+    // Currently no action is need for AccelerationStructureKHR
+    return true;
+  }
   else
   {
     RDCERR("Unhandled resource type %d", type);
@@ -1192,6 +1197,12 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
         memcpy(initialContents.inlineData, InlineData.data(), InlineData.size());
       }
 
+      if(layout.accelerationStructuresCount > 0)
+      {
+        initialContents.accelerationStructuresWrites =
+            new VkWriteDescriptorSetAccelerationStructureKHR[layout.accelerationStructuresCount];
+      }
+
       RDCCOMPILE_ASSERT(sizeof(VkDescriptorBufferInfo) >= sizeof(VkDescriptorImageInfo),
                         "Descriptor structs sizes are unexpected, ensure largest size is used");
 
@@ -1199,6 +1210,8 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
 
       VkDescriptorBufferInfo *writeScratch = initialContents.descriptorInfo;
       VkWriteDescriptorSetInlineUniformBlock *dstInline = initialContents.inlineInfo;
+      VkWriteDescriptorSetAccelerationStructureKHR *dstAccelerationStructures =
+          initialContents.accelerationStructuresWrites;
       DescriptorSetSlot *srcBindings = Bindings;
       byte *srcInlineData = initialContents.inlineData;
 
@@ -1250,9 +1263,9 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
           VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
           write.pNext = dstInline;
           write.dstSet = set;
-          write.descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
           write.dstBinding = bind;
           write.descriptorCount = inlineSize;
+          write.descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
 
           writes.push_back(write);
 
@@ -1669,6 +1682,11 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
       }
     }
   }
+  else if(type == eResAccelerationStructureKHR)
+  {
+    // Currently no action is need for AccelerationStructureKHR
+    return true;
+  }
   else
   {
     RDCERR("Unhandled resource type %s", ToStr(type).c_str());
@@ -1782,8 +1800,18 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       {
         uint32_t idx = writes[i].dstArrayElement + d;
 
-        if(writes[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
-           writes[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
+        if(writes[i].descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+        {
+          VkWriteDescriptorSetAccelerationStructureKHR *accelerationStructureWrites =
+              (VkWriteDescriptorSetAccelerationStructureKHR *)FindNextStruct(
+                  &writes[i], VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR);
+
+          bind[idx].SetAccelerationStructure(
+              writes[i].descriptorType,
+              GetResID(accelerationStructureWrites->pAccelerationStructures[d]));
+        }
+        else if(writes[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
+                writes[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
         {
           bind[idx].SetTexelBuffer(writes[i].descriptorType, GetResID(writes[i].pTexelBufferView[d]));
         }
