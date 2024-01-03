@@ -717,8 +717,6 @@ bool VulkanGraphicsTest::Init()
   }
 
   VmaVulkanFunctions funcs = {
-      vkGetInstanceProcAddr,
-      vkGetDeviceProcAddr,
       vkGetPhysicalDeviceProperties,
       vkGetPhysicalDeviceMemoryProperties,
       vkAllocateMemory,
@@ -735,15 +733,14 @@ bool VulkanGraphicsTest::Init()
       vkDestroyBuffer,
       vkCreateImage,
       vkDestroyImage,
-      vkCmdCopyBuffer,
       vkGetBufferMemoryRequirements2KHR,
       vkGetImageMemoryRequirements2KHR,
   };
 
   VmaAllocatorCreateInfo allocInfo = {};
-  allocInfo.instance = instance;
   allocInfo.physicalDevice = phys;
   allocInfo.device = device;
+  allocInfo.frameInUseCount = 4;
   allocInfo.pVulkanFunctions = &funcs;
   if(hasExt(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME) && vmaDedicated)
     allocInfo.flags |= VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
