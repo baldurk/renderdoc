@@ -902,6 +902,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         else if(m_pDriver->GetDeviceEnabledFeatures().fillModeNonSolid)
         {
           rs->polygonMode = VK_POLYGON_MODE_LINE;
+          state.polygonMode = rs->polygonMode;
         }
         else if(prevstate.primitiveTopology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST ||
                 prevstate.primitiveTopology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP ||
