@@ -158,6 +158,16 @@ struct Vec4u
   uint32_t x, y, z, w;
 };
 
+struct Vec2u
+{
+  Vec2u(uint32_t X = 0, uint32_t Y = 0)
+  {
+    x = X;
+    y = Y;
+  }
+  uint32_t x, y;
+};
+
 struct DefaultA2V
 {
   Vec3f pos;
