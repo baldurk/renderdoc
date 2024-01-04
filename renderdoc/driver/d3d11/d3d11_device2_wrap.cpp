@@ -74,9 +74,10 @@ void WrappedID3D11Device::GetResourceTiling(
   if(m_pDevice2 == NULL)
     return;
 
-  m_pDevice2->GetResourceTiling(pTiledResource, pNumTilesForEntireResource, pPackedMipDesc,
-                                pStandardTileShapeForNonPackedMips, pNumSubresourceTilings,
-                                FirstSubresourceTilingToGet, pSubresourceTilingsForNonPackedMips);
+  m_pDevice2->GetResourceTiling(UnwrapResource(pTiledResource), pNumTilesForEntireResource,
+                                pPackedMipDesc, pStandardTileShapeForNonPackedMips,
+                                pNumSubresourceTilings, FirstSubresourceTilingToGet,
+                                pSubresourceTilingsForNonPackedMips);
 }
 
 HRESULT WrappedID3D11Device::CheckMultisampleQualityLevels1(DXGI_FORMAT Format, UINT SampleCount,
