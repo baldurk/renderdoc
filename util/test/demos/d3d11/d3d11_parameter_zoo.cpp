@@ -60,6 +60,41 @@ RD_TEST(D3D11_Parameter_Zoo, D3D11GraphicsTest)
 
     ctx1->SwapDeviceContextState(ctxstate_off, NULL);
 
+    if(dev2)
+    {
+      // Test GetResourceTiling returns correct parameters for wrapped textures
+      D3D11_TEXTURE2D_DESC texDesc = {};
+      texDesc.Width = 8;
+      texDesc.Height = 8;
+      texDesc.MipLevels = 1;
+      texDesc.ArraySize = 1;
+      texDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+      texDesc.SampleDesc.Count = 1;
+      texDesc.SampleDesc.Quality = 0;
+      texDesc.Usage = D3D11_USAGE_DEFAULT;
+      texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+      texDesc.CPUAccessFlags = 0;
+      texDesc.MiscFlags = D3D11_RESOURCE_MISC_TILED;
+
+      ID3D11Texture2DPtr tiledTexture;
+      CHECK_HR(dev2->CreateTexture2D(&texDesc, NULL, &tiledTexture));
+
+      uint32_t numTiles;
+      D3D11_PACKED_MIP_DESC packed;
+      D3D11_TILE_SHAPE tileShape;
+      uint32_t numSubTiles = 1;
+      uint32_t firstSubTile = 0;
+      D3D11_SUBRESOURCE_TILING subTiling;
+      dev2->GetResourceTiling(tiledTexture, &numTiles, &packed, &tileShape, &numSubTiles,
+                              firstSubTile, &subTiling);
+      if(tileShape.WidthInTexels == 0)
+        TEST_FATAL("WidthInTexels is zero");
+      if(tileShape.HeightInTexels == 0)
+        TEST_FATAL("HeightInTexels is zero");
+      if(tileShape.DepthInTexels == 0)
+        TEST_FATAL("DepthInTexels is zero");
+    }
+
     while(Running())
     {
       ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
