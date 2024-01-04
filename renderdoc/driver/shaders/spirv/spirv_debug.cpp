@@ -1297,16 +1297,17 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
           srcByteCount = 1;
 
         uint32_t dstByteCount = type.scalar().width / 8;
+        uint32_t dstColumns = (type.type == DataType::ScalarType) ? 1 : type.vector().count;
 
         // must be identical bit count
-        RDCASSERT(dstByteCount * type.vector().count == srcByteCount * var.columns);
+        RDCASSERT(dstByteCount * dstColumns == srcByteCount * var.columns);
 
         // because this is a bitcast, we leave var.value entirely alone. There is the same number of
         // bytes so the union handles it. E.g. uv[0], uv[1] being bitcast to a single 64-bit
         // corresponds exactly to the LSB and MSB of u64v[0]
 
         var.type = type.scalar().Type();
-        var.columns = type.vector().count & 0xff;
+        var.columns = dstColumns & 0xff;
       }
 
       SetDst(cast.result, var);
