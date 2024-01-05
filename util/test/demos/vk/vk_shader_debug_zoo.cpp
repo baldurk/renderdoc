@@ -2550,6 +2550,72 @@ void main()
         "%_out_float = OpBitcast %float %_result\n",
     });
 
+    // Bitcast vector <-> scalar
+    if(float16Int8Features.shaderInt8 && features.shaderInt16)
+    {
+      append_tests({
+          // u8[2] -> u16
+          "%_result = OpCompositeConstruct %u8v2 %u8_8 %u8_9\n"
+          "%_out_u16 = OpBitcast %u16 %_result\n",
+          // u8[4] -> u32
+          "%_result = OpCompositeConstruct %u8v4 %u8_4 %u8_5 %u8_6 %u8_7\n"
+          "%_out_uint = OpBitcast %uint %_result\n",
+          // u16[2] -> u32
+          "%_result = OpCompositeConstruct %u16v2 %u16_4 %u16_5\n"
+          "%_out_uint = OpBitcast %uint %_result\n",
+          // u16 -> u8[2]
+          "%_out_u8v2 = OpBitcast %u8v2 %u16_1234\n ",
+          // u32 -> u8[4]
+          "%_out_u8v4 = OpBitcast %u8v4 %uint_1234\n ",
+          // u32 -> u16[2]
+          "%_out_u16v2 = OpBitcast %u16v2 %uint_12345\n",
+      });
+    }
+
+    if(features.shaderInt16 && features.shaderInt64)
+    {
+      append_tests({
+          // u16[4] -> u64
+          "%_result = OpCompositeConstruct %u16v4 %u16_0 %u16_1 %u16_2 %u16_3\n"
+          "%_out_u64 = OpBitcast %u64 %_result\n",
+          // u64 -> u16[4]
+          "%_out_u16v4 = OpBitcast %u16v4 %u64_1234\n",
+      });
+    }
+
+    if(features.shaderInt64)
+    {
+      append_tests({
+          // u32[2] -> u64
+          "%_result = OpCompositeConstruct %uint2 %uint_0 %uint_1\n"
+          "%_out_u64 = OpBitcast %u64 %_result\n",
+          // u64 -> u32[2]
+          "%_out_uint2 = OpBitcast %uint2 %u64_1234\n",
+      });
+    }
+
+    if(float16Int8Features.shaderFloat16)
+    {
+      append_tests({
+          // f16[2] -> f32
+          "%_result = OpCompositeConstruct %half2 %half_0_25 %half_0_5\n"
+          "%_out_float = OpBitcast %float %_result\n",
+          // f32 -> f16[2]
+          "%_out_half2 = OpBitcast %half2 %float_1_1125\n",
+      });
+    }
+
+    if(features.shaderFloat64)
+    {
+      append_tests({
+          // f32[2] -> f64
+          "%_result = OpCompositeConstruct %float2 %float_0_5 %float_0_25\n"
+          "%_out_double = OpBitcast %double %_result\n",
+          // f64 -> f32[2]
+          "%_out_float2 = OpBitcast %float2 %double_1024_25\n",
+      });
+    }
+
     // test ExtInst NMin/NMax/NClamp
     append_tests({
         "%_x = OpExtInst %float %glsl450 NMin %nan %oneVal\n"
@@ -2891,6 +2957,8 @@ OpBranch %_bottomlabel
     std::set<uint32_t> uint_constants;
     std::set<int64_t> i64_constants;
     std::set<uint64_t> u64_constants;
+    std::set<uint8_t> u8_constants;
+    std::set<uint16_t> u16_constants;
 
     std::string cases;
 
@@ -2954,6 +3022,66 @@ OpBranch %_bottomlabel
 
           offs = test.find(prefix, offs);
         }
+      }
+
+      // find any u8 constants referenced
+      offs = test.find("%u8_");
+      while(offs != std::string::npos)
+      {
+        offs += 4;    // past %u8_
+
+        // we generate dynamic and negative versions of all constants, skip to the first digit
+        offs = test.find_first_of("0123456789", offs);
+
+        // handle hex prefix
+        int base = 10;
+        if(test[offs] == '0' && test[offs + 1] == 'x')
+        {
+          base = 16;
+          offs += 2;
+        }
+
+        uint8_t val = (uint8_t)std::strtoul(&test[offs], NULL, base);
+        u8_constants.insert(val);
+
+        // if it's a hex constant we'll name it in decimal, rename
+        if(base == 16)
+        {
+          size_t end = test.find_first_of("\n\t ", offs);
+          test.replace(offs - 2, end - offs + 2, fmt::format("{}", val));
+        }
+
+        offs = test.find("%u8_", offs);
+      }
+
+      // find any u16 constants referenced
+      offs = test.find("%u16_");
+      while(offs != std::string::npos)
+      {
+        offs += 5;    // past %u16_
+
+        // we generate dynamic and negative versions of all constants, skip to the first digit
+        offs = test.find_first_of("0123456789", offs);
+
+        // handle hex prefix
+        int base = 10;
+        if(test[offs] == '0' && test[offs + 1] == 'x')
+        {
+          base = 16;
+          offs += 2;
+        }
+
+        uint16_t val = (uint16_t)std::strtoul(&test[offs], NULL, base);
+        u16_constants.insert(val);
+
+        // if it's a hex constant we'll name it in decimal, rename
+        if(base == 16)
+        {
+          size_t end = test.find_first_of("\n\t ", offs);
+          test.replace(offs - 2, end - offs + 2, fmt::format("{}", val));
+        }
+
+        offs = test.find("%u16_", offs);
       }
 
       // find any int constants referenced
@@ -3200,6 +3328,42 @@ OpBranch %_bottomlabel
               "%_f_{0}\n",
               i);
         }
+        else if(test.find("%_out_u8v2_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertUToF %float2 %_out_u8v2_{0}\n"
+              "%Color_{0} = OpVectorShuffle %float4 %_f_{0} %_f_{0} 0 1 0 1\n",
+              i);
+        }
+        else if(test.find("%_out_u8v4_") != std::string::npos)
+        {
+          cases += fmt::format("%Color_{0} = OpConvertUToF %float4 %_out_u8v4_{0}\n", i);
+        }
+        else if(test.find("%_out_u16_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertUToF %float %_out_u16_{0}\n"
+              "%Color_{0} = OpCompositeConstruct %float4 %_f_{0} %_f_{0} %_f_{0} %_f_{0}\n",
+              i);
+        }
+        else if(test.find("%_out_u16v2_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertUToF %float2 %_out_u16v2_{0}\n"
+              "%Color_{0} = OpVectorShuffle %float4 %_f_{0} %_f_{0} 0 1 0 1\n",
+              i);
+        }
+        else if(test.find("%_out_u16v4_") != std::string::npos)
+        {
+          cases += fmt::format("%Color_{0} = OpConvertUToF %float4 %_out_u16v4_{0}\n", i);
+        }
+        else if(test.find("%_out_half2_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpFConvert %float2 %_out_half2_{0}\n"
+              "%Color_{0} = OpVectorShuffle %float4 %_f_{0} %_f_{0} 0 1 0 1\n",
+              i);
+        }
         else if(test.find("; no_out") != std::string::npos)
         {
           store_out = false;
@@ -3235,7 +3399,9 @@ OpBranch %_bottomlabel
 
     if(float16Int8Features.shaderFloat16)
     {
-      typesConstants += "%half = OpTypeFloat 16\n";
+      typesConstants +=
+          "%half = OpTypeFloat 16\n"
+          "%half2 = OpTypeVector %half 2\n";
       capabilities += "OpCapability Float16\n";
     }
 
@@ -3244,7 +3410,9 @@ OpBranch %_bottomlabel
     {
       typesConstants +=
           "%i8 = OpTypeInt 8 1\n"
-          "%u8 = OpTypeInt 8 0\n";
+          "%u8 = OpTypeInt 8 0\n"
+          "%u8v2 = OpTypeVector %u8 2\n"
+          "%u8v4 = OpTypeVector %u8 4\n";
       capabilities += "OpCapability Int8\n";
     }
 
@@ -3262,7 +3430,9 @@ OpBranch %_bottomlabel
     {
       typesConstants +=
           "%i16 = OpTypeInt 16 1\n"
-          "%u16 = OpTypeInt 16 0\n";
+          "%u16 = OpTypeInt 16 0\n"
+          "%u16v2 = OpTypeVector %u16 2\n"
+          "%u16v4 = OpTypeVector %u16 4\n";
       capabilities += "OpCapability Int16\n";
     }
 
@@ -3324,6 +3494,12 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       typesConstants += fmt::format("%float_{} = OpConstant %float {}\n", name, f);
       typesConstants += fmt::format("%float_neg{} = OpConstant %float -{}\n", name, f);
 
+      if(float16Int8Features.shaderFloat16)
+      {
+        typesConstants += fmt::format("%half_{} = OpConstant %half {}\n", name, f);
+        typesConstants += fmt::format("%half_neg{} = OpConstant %half -{}\n", name, f);
+      }
+
       if(features.shaderFloat64)
       {
         typesConstants += fmt::format("%double_{} = OpConstant %double {}\n", name, f);
@@ -3332,6 +3508,20 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     }
 
     typesConstants += "\n";
+
+    if(float16Int8Features.shaderInt8)
+    {
+      typesConstants += "\n";
+      for(uint8_t u : u8_constants)
+        typesConstants += fmt::format("%u8_{0} = OpConstant %u8 {0}\n", u);
+    }
+
+    if(features.shaderInt16)
+    {
+      typesConstants += "\n";
+      for(uint16_t u : u16_constants)
+        typesConstants += fmt::format("%u16_{0} = OpConstant %u16 {0}\n", u);
+    }
 
     for(int32_t i : int_constants)
     {
