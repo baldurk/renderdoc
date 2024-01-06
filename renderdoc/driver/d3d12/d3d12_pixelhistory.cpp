@@ -234,6 +234,13 @@ bool IsDepthFormat(D3D12_RESOURCE_DESC desc, CompType typeCast)
   return false;
 }
 
+DXGI_FORMAT GetDepthCopyFormat(DXGI_FORMAT format)
+{
+  if(format == DXGI_FORMAT_D16_UNORM)
+    return DXGI_FORMAT_R16_TYPELESS;
+  return DXGI_FORMAT_R32_TYPELESS;
+}
+
 void ReplayDraw(ID3D12GraphicsCommandListX *cmd, const ActionDescription &action)
 {
   // TODO: Once this is fully supported for indirect draws, this should be moved to WrappedID3D12Device
@@ -1088,7 +1095,7 @@ private:
                                            : D3D12_RESOURCE_STATE_DEPTH_WRITE;
       targetCopyParams.srcImageFormat = GetDepthSRVFormat(m_CallbackInfo.targetDesc.Format, 0);
       targetCopyParams.depthcopy = true;
-      targetCopyParams.copyFormat = DXGI_FORMAT_R32_TYPELESS;
+      targetCopyParams.copyFormat = GetDepthCopyFormat(m_CallbackInfo.targetDesc.Format);
       offset += offsetof(struct D3D12PixelHistoryValue, depth);
     }
 
@@ -1119,7 +1126,6 @@ private:
       WrappedID3D12Resource *depthImage =
           m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Resource>(resId);
 
-      // TODO: What about D16? Still copy as 32 bit?
       DXGI_FORMAT depthFormat = m_SavedState.dsv.GetDSV().Format;
       // Descriptors with unknown type are valid and indicate to use the resource's format
       if(depthFormat == DXGI_FORMAT_UNKNOWN)
@@ -1127,8 +1133,8 @@ private:
 
       D3D12CopyPixelParams depthCopyParams = targetCopyParams;
       depthCopyParams.srcImage = depthImage;
-      depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthImage->GetDesc().Format, 0);
-      depthCopyParams.copyFormat = DXGI_FORMAT_R32_TYPELESS;
+      depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthFormat, 0);
+      depthCopyParams.copyFormat = GetDepthCopyFormat(depthFormat);
       depthCopyParams.depthcopy = true;
       depthCopyParams.srcImageState = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH
                                           ? D3D12_RESOURCE_STATE_DEPTH_READ
@@ -1137,7 +1143,7 @@ private:
 
       if(IsDepthAndStencilFormat(depthFormat))
       {
-        depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthImage->GetDesc().Format, 1);
+        depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthFormat, 1);
         depthCopyParams.copyFormat = DXGI_FORMAT_R8_TYPELESS;
         depthCopyParams.planeSlice = 1;
         depthCopyParams.srcImageState =
@@ -2034,11 +2040,12 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
           storeOffset += offsetof(struct D3D12PerFragmentInfo, shaderOut);
           if(depthEnabled)
           {
+            DXGI_FORMAT depthFormat = m_CallbackInfo.dsImage->GetDesc().Format;
+
             D3D12CopyPixelParams depthCopyParams = colorCopyParams;
             depthCopyParams.srcImage = m_CallbackInfo.dsImage;
-            depthCopyParams.srcImageFormat =
-                GetDepthSRVFormat(m_CallbackInfo.dsImage->GetDesc().Format, 0);
-            depthCopyParams.copyFormat = DXGI_FORMAT_R32_TYPELESS;
+            depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthFormat, 0);
+            depthCopyParams.copyFormat = GetDepthCopyFormat(depthFormat);
             depthCopyParams.srcImageState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
             depthCopyParams.planeSlice = 0;
             depthCopyParams.depthcopy = true;
@@ -2089,11 +2096,12 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
 
       if(prevState.dsv.GetResResourceId() != ResourceId())
       {
+        DXGI_FORMAT depthFormat = m_CallbackInfo.dsImage->GetDesc().Format;
+
         D3D12CopyPixelParams depthCopyParams = colorCopyParams;
         depthCopyParams.srcImage = m_CallbackInfo.dsImage;
-        depthCopyParams.srcImageFormat =
-            GetDepthSRVFormat(m_CallbackInfo.dsImage->GetDesc().Format, 0);
-        depthCopyParams.copyFormat = DXGI_FORMAT_R32_TYPELESS;
+        depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthFormat, 0);
+        depthCopyParams.copyFormat = GetDepthCopyFormat(depthFormat);
         depthCopyParams.srcImageState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
         depthCopyParams.depthcopy = true;
         CopyImagePixel(cmd, depthCopyParams,
