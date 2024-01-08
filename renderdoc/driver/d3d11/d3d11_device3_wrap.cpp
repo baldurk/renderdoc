@@ -125,6 +125,10 @@ HRESULT WrappedID3D11Device::CreateTexture2D1(const D3D11_TEXTURE2D_DESC1 *pDesc
   if(m_pDevice3 == NULL)
     return E_NOINTERFACE;
 
+  // Tiled resources are not supported
+  if(pDesc1 && pDesc1->MiscFlags & D3D11_RESOURCE_MISC_TILED)
+    return DXGI_ERROR_UNSUPPORTED;
+
   // validation, returns S_FALSE for valid params, or an error code
   if(ppTexture2D == NULL)
     return m_pDevice3->CreateTexture2D1(pDesc1, pInitialData, NULL);
