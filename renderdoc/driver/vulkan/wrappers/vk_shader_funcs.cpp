@@ -517,8 +517,10 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
               DerivedResource(device, shadId);
               DerivedResource(pipe, shadId);
 
-              const char *names[] = {" vertex shader", " tess control shader", " tess eval shader",
-                                     " geometry shader", " fragment shader"};
+              const char *names[] = {" vertex shader",    " tess control shader",
+                                     " tess eval shader", " geometry shader",
+                                     " fragment shader",  NULL,
+                                     " task shader",      " mesh shader"};
 
               if(shadName)
                 GetReplay()->GetResourceDesc(shadId).SetCustomName(shadName->pObjectName);
