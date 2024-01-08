@@ -276,6 +276,12 @@ enum class AndroidVersionCheckResult
   NotInstalled,
 };
 
+enum class AndroidInstallPermissionCheckResult
+{
+  Correct,
+  NotQueryable,
+};
+
 AndroidVersionCheckResult CheckAndroidServerVersion(const rdcstr &deviceID, ABI abi)
 {
   // assume all servers are updated at the same rate. Only check first ABI's version
@@ -335,6 +341,49 @@ AndroidVersionCheckResult CheckAndroidServerVersion(const rdcstr &deviceID, ABI 
           versionCode.c_str(), versionName.c_str(), hostVersionCode.c_str(), hostVersionName.c_str());
 
   return AndroidVersionCheckResult::WrongVersion;
+}
+
+Process::ProcessResult InstallAPK(const rdcstr &deviceID, const rdcstr &apk, int apiVersion)
+{
+  Process::ProcessResult adbInstall;
+  if(apiVersion >= 30)
+  {
+    adbInstall = adbExecCommand(deviceID, "install -r -g --force-queryable \"" + apk + "\"");
+  }
+  else
+  {
+    adbInstall = adbExecCommand(deviceID, "install -r -g \"" + apk + "\"");
+  }
+
+  return adbInstall;
+}
+
+AndroidInstallPermissionCheckResult CheckAndroidServerInstallPermissions(const rdcstr &deviceID,
+                                                                         rdcstr packageName,
+                                                                         int apiVersion)
+{
+  // Permissions check only applicable to API > 30
+  if(apiVersion < 30)
+  {
+    return AndroidInstallPermissionCheckResult::Correct;
+  }
+  // Command to check that the Android Server is queryable by other APKs (API>30)
+  // for RenderDoc layer discovery.
+  Process::ProcessResult adbCheck =
+      adbExecCommand(deviceID,
+                     "shell \"dumpsys package queries | sed -n '/forceQueryable/,/queries via "
+                     "package name/p' | grep " +
+                         packageName + "\"",
+                     ".", true);
+
+  // Check the output of 'grep' - no output means no match
+  if(adbCheck.strStdout.empty())
+  {
+    RDCERR("Failed to install with 'force queryable' permissions.");
+    return AndroidInstallPermissionCheckResult::NotQueryable;
+  }
+
+  return AndroidInstallPermissionCheckResult::Correct;
 }
 
 Process::ProcessResult ListPackages(const rdcstr &deviceID, const rdcstr &parameters)
@@ -463,15 +512,7 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
 
     int apiVersion = atoi(api.c_str());
 
-    Process::ProcessResult adbInstall;
-    if(apiVersion >= 30)
-    {
-      adbInstall = adbExecCommand(deviceID, "install -r -g --force-queryable \"" + apk + "\"");
-    }
-    else
-    {
-      adbInstall = adbExecCommand(deviceID, "install -r -g \"" + apk + "\"");
-    }
+    Process::ProcessResult adbInstall = InstallAPK(deviceID, apk, apiVersion);
 
     // if adb produces this message we can be reasonably sure this is a 32-bit version that failed
     // to install on a 64-bit only device. However we need to account for the possibility that adb
@@ -487,16 +528,19 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
 
     RDCLOG("Installed package '%s', checking for success...", apk.c_str());
 
-    AndroidVersionCheckResult check = CheckAndroidServerVersion(deviceID, abi);
+    AndroidVersionCheckResult versionCheck = CheckAndroidServerVersion(deviceID, abi);
+    AndroidInstallPermissionCheckResult permissionsCheck =
+        CheckAndroidServerInstallPermissions(deviceID, GetRenderDocPackageForABI(abi), apiVersion);
 
-    if(check != AndroidVersionCheckResult::Correct)
+    if((versionCheck != AndroidVersionCheckResult::Correct) ||
+       (permissionsCheck != AndroidInstallPermissionCheckResult::Correct))
     {
       RDCLOG("Failed to install APK. stdout: %s, stderr: %s",
              adbInstall.strStdout.trimmed().c_str(), adbInstall.strStderror.trimmed().c_str());
       RDCLOG("Retrying...");
-      adbExecCommand(deviceID, "install -r \"" + apk + "\"");
+      InstallAPK(deviceID, apk, apiVersion);
 
-      check = CheckAndroidServerVersion(deviceID, abi);
+      versionCheck = CheckAndroidServerVersion(deviceID, abi);
 
       // if the apk came back as not installed (rather than wrong version code)
       // AND it's arm32 in an arm64 environment
@@ -504,14 +548,14 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
       // AND we're on Android 12
       // then we assume that this device is 64-bit only and doesn't support arm32 at all,
       // so we ignore the problem
-      if(check == AndroidVersionCheckResult::NotInstalled && abi == ABI::armeabi_v7a &&
+      if(versionCheck == AndroidVersionCheckResult::NotInstalled && abi == ABI::armeabi_v7a &&
          abis.contains(ABI::arm64_v8a) && result == ResultCode::Succeeded && apiVersion >= 31)
       {
         RDCWARN(
             "ARM32 package failed to install but ARM64 package succeeded. Assuming 64-bit only ARM "
             "device and ignoring.");
       }
-      else if(check == AndroidVersionCheckResult::Correct)
+      else if(versionCheck == AndroidVersionCheckResult::Correct)
       {
         // if it succeeded this time, then it was the permission grant that failed
         result = ResultCode::AndroidGrantPermissionsFailed;
@@ -521,6 +565,14 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
         // otherwise something went wrong with verifying. If the install failed completely we'll
         // return AndroidAPKInstallFailed below, otherwise return a code indicating we couldn't
         // verify the install properly.
+        result = ResultCode::AndroidAPKVerifyFailed;
+      }
+
+      permissionsCheck =
+          CheckAndroidServerInstallPermissions(deviceID, GetRenderDocPackageForABI(abi), apiVersion);
+      if(permissionsCheck != AndroidInstallPermissionCheckResult::Correct)
+      {
+        RDCWARN("Failed to verify APK installation permissions after retry.");
         result = ResultCode::AndroidAPKVerifyFailed;
       }
     }
