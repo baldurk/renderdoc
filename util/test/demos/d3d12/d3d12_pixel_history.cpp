@@ -213,6 +213,10 @@ float4 main(v2f vertIn, uint primId : SV_PrimitiveID, uint sampleId : SV_SampleI
         {Vec3f(0.6f, 0.3f, 0.3f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(0.7f, 0.5f, 0.5f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(0.8f, 0.3f, 0.7f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        // D16 triangle
+        {Vec3f(-0.7f, 0.5f, 0.33f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-0.6f, 0.3f, 0.33f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-0.8f, 0.3f, 0.33f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
     ID3D12ResourcePtr vb = MakeBuffer().Data(VBData);
@@ -223,6 +227,7 @@ float4 main(v2f vertIn, uint primId : SV_PrimitiveID, uint sampleId : SV_SampleI
     const DXGI_FORMAT renderSurfaceFormat = DXGI_FORMAT_R8G8B8A8_TYPELESS;
     const DXGI_FORMAT renderViewFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
     const DXGI_FORMAT depthFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    const DXGI_FORMAT depth16Format = DXGI_FORMAT_D16_UNORM;
 
     struct PassResources
     {
@@ -233,6 +238,8 @@ float4 main(v2f vertIn, uint primId : SV_PrimitiveID, uint sampleId : SV_SampleI
       D3D12_CPU_DESCRIPTOR_HANDLE mainRTV;
       ID3D12ResourcePtr mainDS;
       D3D12_CPU_DESCRIPTOR_HANDLE mainDSV;
+      ID3D12ResourcePtr main16DS;
+      D3D12_CPU_DESCRIPTOR_HANDLE main16DSV;
 
       ID3D12ResourcePtr mipArrayRT;
       D3D12_CPU_DESCRIPTOR_HANDLE mipArraySubRTV;
@@ -261,6 +268,7 @@ float4 main(v2f vertIn, uint primId : SV_PrimitiveID, uint sampleId : SV_SampleI
       ID3D12PipelineStatePtr depthBoundsPipe;
       ID3D12PipelineStatePtr whitePipe;
       ID3D12PipelineStatePtr msaaPipe;
+      ID3D12PipelineStatePtr depth16Pipe;
     };
 
     struct DepthBoundsTestStream
@@ -324,6 +332,10 @@ float4 main(v2f vertIn, uint primId : SV_PrimitiveID, uint sampleId : SV_SampleI
       pass.mainDS = MakeTexture(depthFormat, screenWidth, screenHeight).DSV();
       pass.mainDS->SetName((L"mainDS" + nameSuffix[i]).c_str());
       pass.mainDSV = MakeDSV(pass.mainDS).Format(depthFormat).CreateCPU(dsvIndex++);
+
+      pass.main16DS = MakeTexture(depth16Format, screenWidth, screenHeight).DSV();
+      pass.main16DS->SetName((L"main16DS" + nameSuffix[i]).c_str());
+      pass.main16DSV = MakeDSV(pass.main16DS).Format(depth16Format).CreateCPU(dsvIndex++);
 
       pass.mipArrayRT =
           MakeTexture(renderSurfaceFormat, screenWidth, screenHeight).RTV().Mips(4).Array(5);
@@ -457,6 +469,10 @@ float4 main(v2f vertIn, uint primId : SV_PrimitiveID, uint sampleId : SV_SampleI
       depthState.StencilEnable = FALSE;
       pass.backgroundPipe = baselinePSO;
 
+      depthState.StencilEnable = FALSE;
+      pass.depth16Pipe = baselinePSO.DSV(DXGI_FORMAT_D16_UNORM);
+      baselinePSO.DSV(depthFormat);
+
       depthState.StencilEnable = TRUE;
       pass.noPsPipe = baselinePSO.PS(NULL);
 
@@ -526,6 +542,8 @@ float4 main(v2f vertIn, uint primId : SV_PrimitiveID, uint sampleId : SV_SampleI
 
         pushMarker(cmd, pass.markerName);
 
+        ResourceBarrier(cmd, pass.main16DS, D3D12_RESOURCE_STATE_COMMON,
+                        D3D12_RESOURCE_STATE_DEPTH_WRITE);
         ResourceBarrier(cmd, pass.mainDS, D3D12_RESOURCE_STATE_COMMON,
                         D3D12_RESOURCE_STATE_DEPTH_WRITE);
         ResourceBarrier(cmd, pass.mainRT, D3D12_RESOURCE_STATE_COMMON,
@@ -637,6 +655,15 @@ float4 main(v2f vertIn, uint primId : SV_PrimitiveID, uint sampleId : SV_SampleI
         cmd->OMSetDepthBounds(0.15f, 1.0f);
         cmd->DrawInstanced(6 * 3, 1, 45, 0);
 
+        cmd->OMSetRenderTargets(1, &pass.mainRTV, FALSE, &pass.main16DSV);
+        setMarker(cmd, "Clear Depth 16-bit");
+        cmd->ClearDepthStencilView(pass.main16DSV, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, NULL);
+        setMarker(cmd, "Depth 16-bit Test");
+        cmd->SetPipelineState(pass.depth16Pipe);
+        cmd->DrawInstanced(3, 1, 69, 0);
+
+        ResourceBarrier(cmd, pass.main16DS, D3D12_RESOURCE_STATE_DEPTH_WRITE,
+                        D3D12_RESOURCE_STATE_COMMON);
         {
           pushMarker(cmd, "Begin MSAA");
 
