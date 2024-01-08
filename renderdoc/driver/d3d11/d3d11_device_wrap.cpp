@@ -172,6 +172,11 @@ HRESULT WrappedID3D11Device::CreateBuffer(const D3D11_BUFFER_DESC *pDesc,
                                           const D3D11_SUBRESOURCE_DATA *pInitialData,
                                           ID3D11Buffer **ppBuffer)
 {
+  // Tiled resources are not supported
+  if(pDesc && ((pDesc->MiscFlags & D3D11_RESOURCE_MISC_TILED) ||
+               (pDesc->MiscFlags & D3D11_RESOURCE_MISC_TILE_POOL)))
+    return DXGI_ERROR_UNSUPPORTED;
+
   // validation, returns S_FALSE for valid params, or an error code
   if(ppBuffer == NULL)
     return m_pDevice->CreateBuffer(pDesc, pInitialData, NULL);
@@ -599,6 +604,10 @@ HRESULT WrappedID3D11Device::CreateTexture2D(const D3D11_TEXTURE2D_DESC *pDesc,
                                              const D3D11_SUBRESOURCE_DATA *pInitialData,
                                              ID3D11Texture2D **ppTexture2D)
 {
+  // Tiled resources are not supported
+  if(pDesc && pDesc->MiscFlags & D3D11_RESOURCE_MISC_TILED)
+    return DXGI_ERROR_UNSUPPORTED;
+
   // validation, returns S_FALSE for valid params, or an error code
   if(ppTexture2D == NULL)
     return m_pDevice->CreateTexture2D(pDesc, pInitialData, NULL);
@@ -3997,21 +4006,36 @@ HRESULT WrappedID3D11Device::CheckCounter(const D3D11_COUNTER_DESC *pDesc, D3D11
 HRESULT WrappedID3D11Device::CheckFeatureSupport(D3D11_FEATURE Feature, void *pFeatureSupportData,
                                                  UINT FeatureSupportDataSize)
 {
-  if(Feature == D3D11_FEATURE_D3D11_OPTIONS2)
+  if((Feature == D3D11_FEATURE_D3D11_OPTIONS1) || (Feature == D3D11_FEATURE_D3D11_OPTIONS2))
   {
     HRESULT hr = m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
 
     if(SUCCEEDED(hr))
     {
-      D3D11_FEATURE_DATA_D3D11_OPTIONS2 *opts =
-          (D3D11_FEATURE_DATA_D3D11_OPTIONS2 *)pFeatureSupportData;
-      if(FeatureSupportDataSize != sizeof(D3D11_FEATURE_DATA_D3D11_OPTIONS2))
-        return E_INVALIDARG;
+      if(Feature == D3D11_FEATURE_D3D11_OPTIONS1)
+      {
+        D3D11_FEATURE_DATA_D3D11_OPTIONS1 *opts =
+            (D3D11_FEATURE_DATA_D3D11_OPTIONS1 *)pFeatureSupportData;
+        if(FeatureSupportDataSize != sizeof(D3D11_FEATURE_DATA_D3D11_OPTIONS1))
+          return E_INVALIDARG;
 
-      // don't support tiled resources
-      opts->TiledResourcesTier = D3D11_TILED_RESOURCES_NOT_SUPPORTED;
+        // don't support tiled resources
+        opts->TiledResourcesTier = D3D11_TILED_RESOURCES_NOT_SUPPORTED;
 
-      return S_OK;
+        return S_OK;
+      }
+      else
+      {
+        D3D11_FEATURE_DATA_D3D11_OPTIONS2 *opts =
+            (D3D11_FEATURE_DATA_D3D11_OPTIONS2 *)pFeatureSupportData;
+        if(FeatureSupportDataSize != sizeof(D3D11_FEATURE_DATA_D3D11_OPTIONS2))
+          return E_INVALIDARG;
+
+        // don't support tiled resources
+        opts->TiledResourcesTier = D3D11_TILED_RESOURCES_NOT_SUPPORTED;
+
+        return S_OK;
+      }
     }
 
     return hr;
