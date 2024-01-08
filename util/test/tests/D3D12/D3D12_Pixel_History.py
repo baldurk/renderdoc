@@ -93,6 +93,7 @@ class D3D12_Pixel_History(rdtest.TestCase):
         dynamic_stencil_ref_eid = self.find_action("Dynamic Stencil Ref", begin_renderpass_eid).next.eventId
         dynamic_stencil_mask_eid = self.find_action("Dynamic Stencil Mask", begin_renderpass_eid).next.eventId
         depth_test_eid = self.find_action("Depth Test", begin_renderpass_eid).next.eventId
+        depth_16bit_test_eid = self.find_action("Depth 16-bit Test", begin_renderpass_eid).next.eventId
         depth_bounds_prep_eid = self.find_action("Depth Bounds Prep", begin_renderpass_eid).next.eventId
         depth_bounds_clip_eid = self.find_action("Depth Bounds Clip", begin_renderpass_eid).next.eventId
 
@@ -254,6 +255,21 @@ class D3D12_Pixel_History(rdtest.TestCase):
             [[event_id, depth_test_eid], [primitive_id, 4], [depth_test_failed, False], [depth_bounds_failed, True],
              [get_shader_out_color, (1.0, 1.0, 1.0, 2.75)], [get_shader_out_depth, 0.05], [get_post_mod_color, (0.0, 0.0, 1.0, 1.0)],
              [get_post_mod_depth, 0.10]],
+        ]
+        self.check_events(events, modifs, False)
+        self.check_pixel_value(tex, x, y, get_post_mod_color(modifs[-1]), sub=sub, cast=rt.typeCast)
+
+        # For pixel 70, 100 inside the yellow triangle rendered with 16-bit depth
+        rdtest.log.print("Testing 16-bit depth format")
+        self.controller.SetFrameEvent(depth_16bit_test_eid, True)
+        x, y = 70, 100
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, begin_renderpass_eid], [passed, True]],
+            [[event_id, depth_16bit_test_eid], [primitive_id, 0], [depth_test_failed, False],
+             [get_shader_out_color, (1.0, 1.0, 0.0, 2.75)], [get_shader_out_depth, 0.33], [get_post_mod_color, (1.0, 1.0, 0.0, 1.0)],
+             [get_post_mod_depth, 0.33]],
         ]
         self.check_events(events, modifs, False)
         self.check_pixel_value(tex, x, y, get_post_mod_color(modifs[-1]), sub=sub, cast=rt.typeCast)
@@ -424,6 +440,8 @@ class D3D12_Pixel_History(rdtest.TestCase):
         stencil_write_eid = self.find_action("Stencil Write", begin_renderpass_eid).next.eventId
         unbound_fs_eid = self.find_action("Unbound Fragment Shader", begin_renderpass_eid).next.eventId
         background_eid = self.find_action("Background", begin_renderpass_eid).next.eventId
+        clear_depth_16bit_eid = self.find_action("Clear Depth 16-bit", begin_renderpass_eid).next.eventId
+        depth_16bit_test_eid = self.find_action("Depth 16-bit Test", begin_renderpass_eid).next.eventId
         test_eid = self.find_action("Test Begin", begin_renderpass_eid).next.eventId
 
         x, y = 200, 190
@@ -445,6 +463,32 @@ class D3D12_Pixel_History(rdtest.TestCase):
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, unbound_fs_eid], [passed, True], [unboundPS, True], [primitive_id, 0], [get_post_mod_stencil, 0x33]],
             [[event_id, stencil_write_eid], [passed, True], [primitive_id, 0], [get_post_mod_stencil, 0x55]],
+        ]
+        self.check_events(events, modifs, False)
+
+        # For pixel 70, 100 inside the yellow triangle rendered with 16-bit depth
+        rdtest.log.print("Testing 16-bit depth format")
+        self.controller.SetFrameEvent(depth_16bit_test_eid, True)
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+
+        rt: rd.BoundResource = pipe.GetDepthTarget()
+
+        tex = rt.resourceId
+        tex_details = self.get_texture(tex)
+
+        sub = rd.Subresource()
+        if tex_details.arraysize > 1:
+            sub.slice = rt.firstSlice
+        if tex_details.mips > 1:
+            sub.mip = rt.firstMip
+
+        x, y = 70, 100
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, clear_depth_16bit_eid], [passed, True]],
+            [[event_id, depth_16bit_test_eid], [passed, True], [primitive_id, 0], [depth_test_failed, False],
+             [get_shader_out_depth, 0.33], [get_post_mod_depth, 0.33]],
         ]
         self.check_events(events, modifs, False)
 
