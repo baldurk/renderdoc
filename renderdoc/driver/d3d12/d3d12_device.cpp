@@ -2617,6 +2617,435 @@ void WrappedID3D12Device::StartFrameCapture(DeviceOwnedWindow devWnd)
   GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Read);
 }
 
+// Returns true if the chunk is a 'signal' and fills in the fence resource ID and wait value.
+static bool peekSignal(const Chunk &chunk, uint64_t &fenceResIDOut, UINT64 &valOut)
+{
+  if(chunk.GetChunkType<D3D12Chunk>() != D3D12Chunk::Queue_Signal)
+    return false;
+
+  // I suspect I'm missing something but it doesn't seem like we can read out and retrieve
+  // the fence signal value with -
+  //     WrappedID3D12CommandQueue::Serialise_Signal(readSerialiser, &pFence, val);
+  // since it doesn't take a reference or pointer to the 'UINT64 Value' to fill in for the
+  // caller.  We also don't need a full-on 'ID3D12Fence'; just the ResourceId is sufficient.
+  //
+  // Maybe we should but we don't strictly need to go through ALL the serialising machinery
+  // since we're only interested in peeking at the fence resource ID and the value.
+
+  const byte *pChunkDat = chunk.GetData();
+  fenceResIDOut = *reinterpret_cast<const uint64_t *>(pChunkDat + 40);
+  valOut = *reinterpret_cast<const uint64_t *>(pChunkDat + 48);
+  return true;
+}
+
+// Returns true if the chunk is a 'wait' and fills in the fence resource ID and wait value.
+static bool peekWait(const Chunk &chunk, uint64_t &fenceResIDOut, UINT64 &valOut)
+{
+  if(chunk.GetChunkType<D3D12Chunk>() != D3D12Chunk::Queue_Wait)
+    return false;
+
+  const byte *pChunkDat = chunk.GetData();
+  fenceResIDOut = *reinterpret_cast<const uint64_t *>(pChunkDat + 40);
+  valOut = *reinterpret_cast<const uint64_t *>(pChunkDat + 48);
+  return true;
+}
+
+// Returns true if the chunk is a 'ExecuteCommandLists'.
+static bool peekExecuteCommandLists(const Chunk &chunk)
+{
+  return chunk.GetChunkType<D3D12Chunk>() == D3D12Chunk::Queue_ExecuteCommandLists;
+}
+
+typedef std::map<int64_t, Chunk *> RecordList;
+typedef std::pair<RecordList::const_iterator, RecordList::const_iterator>
+    RecordRange;    // Advance/consume the 'first' until 'second'/end
+typedef std::map<uint64_t, UINT64> FenceResIDVals;    // Resource ID to signalled value mapping
+struct SerialiseQueueContext
+{
+  RecordList recordChunks;
+  RecordRange recordRangeToConsume;    // Begin & end iterators into the above 'recordChunks'
+                                       // which we update as we serialise/consume
+  rdcarray<RecordList> commandLists;
+  size_t numConsumedCLs;
+};
+struct SerialiseQueuesContext
+{
+  rdcarray<SerialiseQueueContext> queues;
+  FenceResIDVals currentFenceVals;    // Updated as we consume 'signal' events/records.
+  int64_t minQueueEventID = std::numeric_limits<int64_t>::max();
+  int64_t maxQueueEventID = std::numeric_limits<int64_t>::min();
+};
+
+static bool allQueuesDone(const SerialiseQueuesContext &ctxt)
+{
+  for(const SerialiseQueueContext &qCtxt : ctxt.queues)
+  {
+    if(qCtxt.recordRangeToConsume.first != qCtxt.recordRangeToConsume.second)
+    {
+      // Still have some unconsumed records
+      return false;
+    }
+  }
+  return true;
+}
+
+static void serialiseFrameCapRecordsUpTo(int64_t eventID, RecordRange &frameCapRangeToConsume,
+                                         rdcarray<const Chunk *> &serialisedChunksInOut)
+{
+  while(frameCapRangeToConsume.first != frameCapRangeToConsume.second &&
+        frameCapRangeToConsume.first->first < eventID)
+  {
+    serialisedChunksInOut.push_back(frameCapRangeToConsume.first->second);
+    frameCapRangeToConsume.first++;
+  }
+}
+
+// Returns true if we managed to process/consume some (or all) of the remaining
+// work/records for the specific queue, otherwise false, which is when the queue
+// is stuck waiting for an unsignalled fence or there's no more to consume.
+static bool tryToConsume(uint32_t queueIdx, SerialiseQueuesContext &queuesContext,
+                         RecordRange &frameCapRangeToConsume,
+                         rdcarray<const Chunk *> &serialisedChunksInOut)
+{
+  SerialiseQueueContext &qCtxt = queuesContext.queues[queueIdx];
+  if(qCtxt.recordRangeToConsume.first == qCtxt.recordRangeToConsume.second)
+    return false;    // Nothing remaining for this queue.
+
+  const size_t previousNumChunks = serialisedChunksInOut.size();
+  do
+  {
+    const Chunk &chunk = *(qCtxt.recordRangeToConsume.first->second);
+
+    uint64_t fenceResID;
+    UINT64 fenceVal;
+    if(peekSignal(chunk, fenceResID, fenceVal))
+    {
+      queuesContext.currentFenceVals[fenceResID] = fenceVal;
+      serialisedChunksInOut.push_back(&chunk);
+    }
+    else if(peekWait(chunk, fenceResID, fenceVal))
+    {
+      FenceResIDVals::const_iterator curFenceValIt = queuesContext.currentFenceVals.find(fenceResID);
+
+      // If the fence isn't found then it is one that's never seen to be signalled
+      // in this capture, so we have to assume it starts off in a signalled state
+      // and can be consumed/serialised straight away.
+      // Or if we've seen the referenced fence get signalled with a sufficient value
+      // then we can consume
+      if(curFenceValIt == queuesContext.currentFenceVals.cend() || curFenceValIt->second >= fenceVal)
+      {
+        serialisedChunksInOut.push_back(&chunk);
+      }
+      else    // The queue is stuck waiting for the fence to be signalled.
+      {
+        // And we can't proceed any further.
+        break;
+      }
+    }
+    else if(peekExecuteCommandLists(chunk))
+    {
+      // Need to pull in the RecordList chunks corresponding to each of the command lists
+      // referenced by this ExecuteCommandLists.
+
+      RDCASSERT(!qCtxt.commandLists.empty());
+
+      // This queue's 'commandLists[i]' can be consumed in order, while their RecordList
+      // event IDs are less than the event ID of this 'execute command lists'.
+      int64_t execCmdListsEventID = qCtxt.recordRangeToConsume.first->first;
+
+      const size_t numCommandLists = qCtxt.commandLists.size();
+      while(qCtxt.numConsumedCLs < numCommandLists)
+      {
+        const RecordList &commandListRecords = qCtxt.commandLists[qCtxt.numConsumedCLs];
+        RDCASSERT(!commandListRecords.empty());    // Should at least have a 'close'.
+        int64_t listFirstEventID = commandListRecords.cbegin()->first;
+
+        if(listFirstEventID < execCmdListsEventID)
+        {
+          // Last record in list is also expected to be ordered before the queue command's event ID.
+          RDCASSERT(commandListRecords.crbegin()->first < execCmdListsEventID);
+
+          // Consume/serialise all this list's records
+          RDCASSERT(serialisedChunksInOut.capacity() >=
+                    (serialisedChunksInOut.size() +
+                     commandListRecords.size()));    // We reserved with sufficient capacity at start.
+          for(RecordList::const_reference record : commandListRecords)
+          {
+            // ... taking care to interleave any 'frameCapRangeToConsume' that fit in here
+            int64_t nextListEventID = record.first;
+            serialiseFrameCapRecordsUpTo(nextListEventID, frameCapRangeToConsume,
+                                         serialisedChunksInOut);
+
+            // Add this command list record
+            serialisedChunksInOut.push_back(record.second);
+          }
+          ++qCtxt.numConsumedCLs;
+        }
+        else
+        {
+          // The event IDs for this command list's records imply the list corresponds to
+          // a later execute command and we can also stop iterating over any further
+          // RecordLists, which we can assume also has greater event IDs too.
+          break;
+        }
+      }
+
+      // And there may also be some 'frameCapRangeToConsume' records to squeeze
+      // in here, after the command list and before the 'executeCLs' command -
+      int64_t executeCLsEventID = qCtxt.recordRangeToConsume.first->first;
+      serialiseFrameCapRecordsUpTo(executeCLsEventID, frameCapRangeToConsume, serialisedChunksInOut);
+
+      serialisedChunksInOut.push_back(&chunk);
+    }
+    else
+    {
+      // It's a UpdateTileMappings, CopyTileMappings, Begin/EndEvent, SetMarker, or similar
+      // and all of which can be trivially consumed.
+      serialisedChunksInOut.push_back(&chunk);
+    }
+
+    qCtxt.recordRangeToConsume.first++;
+  } while(qCtxt.recordRangeToConsume.first != qCtxt.recordRangeToConsume.second);
+
+  // Sanity check that if we've consumed all queue commands then we shouldn't have
+  // any remaining command lists
+  RDCASSERT(qCtxt.recordRangeToConsume.first != qCtxt.recordRangeToConsume.second ||
+            qCtxt.numConsumedCLs == qCtxt.commandLists.size());
+
+  return serialisedChunksInOut.size() > previousNumChunks;
+}
+
+static void standardSerialise(const SerialiseQueuesContext &queuesContext,
+                              const RecordList &frameCaptureRecords,
+                              rdcarray<const Chunk *> &serialisedChunksOut)
+{
+  RDCASSERT(serialisedChunksOut.empty());
+
+  RecordList tempRecordList;
+  for(const SerialiseQueueContext &qCtxt : queuesContext.queues)
+  {
+    for(const RecordList &commandList : qCtxt.commandLists)
+    {
+      tempRecordList.insert(commandList.cbegin(), commandList.cend());
+    }
+    tempRecordList.insert(qCtxt.recordChunks.cbegin(), qCtxt.recordChunks.cend());
+  }
+
+  tempRecordList.insert(frameCaptureRecords.cbegin(), frameCaptureRecords.cend());
+
+  RDCDEBUG("Flushing %u chunks to file serialiser from context record",
+           (uint32_t)tempRecordList.size());
+
+  RDCASSERT(serialisedChunksOut.capacity() >=
+            tempRecordList.size());    // We should have 'reserved' previously
+  for(RecordList::const_reference eventIDAndChunkRecord : tempRecordList)
+  {
+    serialisedChunksOut.push_back(eventIDAndChunkRecord.second);
+  }
+}
+
+// We're trying to conservatively emulate a fence signal done outside the scope
+// of this capture, so we want to only signal fences that are blocking any
+// current queue 'waits', and only for fence waits that aren't satisfied by
+// any other queue fence signals.
+//
+// Returns true if we found and emulated a suitable fence signal.
+static bool tryUnblockingHiddenSignal(SerialiseQueuesContext &queuesContext)
+{
+  // Find a currently stuck 'fence wait'.
+  const size_t numQueues = queuesContext.queues.size();
+  for(size_t qIdx = 0; qIdx < numQueues; ++qIdx)
+  {
+    const SerialiseQueueContext &qCtxt = queuesContext.queues[qIdx];
+
+    if(qCtxt.recordRangeToConsume.first != qCtxt.recordRangeToConsume.second)
+    {
+      const Chunk &chunk = *(qCtxt.recordRangeToConsume.first->second);
+
+      uint64_t stuckFenceResID;
+      UINT64 stuckFenceVal;
+      if(peekWait(chunk, stuckFenceResID, stuckFenceVal))
+      {
+        // 'qIdx' is stuck waiting on 'fenceResID' to be >= 'fenceVal'.
+        // Now see if any OTHER queues would signal this exact value.
+        bool foundExactSignal = false;
+        for(size_t otherQIdx = 0;
+            !foundExactSignal && (otherQIdx != qIdx) && (otherQIdx < numQueues); ++otherQIdx)
+        {
+          const SerialiseQueueContext &otherQCtxt = queuesContext.queues[otherQIdx];
+
+          for(RecordList::const_iterator otherQRecordIt = otherQCtxt.recordRangeToConsume.first;
+              otherQRecordIt != otherQCtxt.recordRangeToConsume.second; ++otherQRecordIt)
+          {
+            uint64_t candidateFenceResID;
+            UINT64 candidateFenceVal;
+            if(peekSignal(chunk, candidateFenceResID, candidateFenceVal) &&
+               candidateFenceResID == stuckFenceResID && candidateFenceVal == stuckFenceVal)
+            {
+              // Looks like somewhere else intends to signal this particular stuck fence,
+              // so we don't want to emulate signalling this stuck fence.
+              foundExactSignal = true;
+              break;
+            }
+          }
+        }
+
+        if(!foundExactSignal)
+        {
+          // This stuck fence wait really does look like it's only unblocked by a
+          // signal from outside our capture, so let's emulate the signal -
+          queuesContext.currentFenceVals[stuckFenceResID] = stuckFenceVal;
+          return true;
+        }
+        // Otherwise let's leave this 'stuck wait' to be released by the candidate
+        // 'signal' seen from another queue.
+      }
+    }
+  }
+
+  // Failed to find any stuck waits that have no sign of being signalled from
+  // another queue.
+  return false;
+}
+
+static void fenceAwareSerialise(const rdcarray<WrappedID3D12CommandQueue *> &queues,
+                                D3D12ResourceRecord &frameCaptureRecord,
+                                rdcarray<const Chunk *> &serialisedChunksOut)
+{
+  RDCASSERT(serialisedChunksOut.empty());
+
+  // Bookkeeping to track progress on each queue
+  const size_t numQueues = queues.size();
+  SerialiseQueuesContext queuesContext;
+  size_t serialisedChunksCapacity = 0;
+  queuesContext.queues.resize(numQueues);
+  for(size_t queueIdx = 0; queueIdx < numQueues; ++queueIdx)
+  {
+    WrappedID3D12CommandQueue *q = queues[queueIdx];
+    SerialiseQueueContext &qCtxt = queuesContext.queues[queueIdx];
+
+    q->GetResourceRecord()->Insert(qCtxt.recordChunks);
+    qCtxt.recordRangeToConsume = RecordRange(qCtxt.recordChunks.cbegin(), qCtxt.recordChunks.cend());
+    serialisedChunksCapacity += qCtxt.recordChunks.size();
+
+    const rdcarray<D3D12ResourceRecord *> &cmdListRecords = q->GetCmdLists();
+    const size_t numCommandLists = cmdListRecords.size();
+    qCtxt.commandLists.resize(numCommandLists);
+    for(size_t cmdListIdx = 0; cmdListIdx < numCommandLists; ++cmdListIdx)
+    {
+      cmdListRecords[cmdListIdx]->Insert(qCtxt.commandLists[cmdListIdx]);
+      serialisedChunksCapacity += qCtxt.commandLists[cmdListIdx].size();
+    }
+    qCtxt.numConsumedCLs = 0;
+
+    // Walk the queue commands, initialising the tracking of all fences that
+    // are seen to be signalled.  An initial value of 0 works as a conservative
+    // choice when not knowing its value prior to capture).
+    for(RecordList::const_iterator it = qCtxt.recordRangeToConsume.first;
+        it != qCtxt.recordRangeToConsume.second; ++it)
+    {
+      const Chunk *chunk = it->second;
+      uint64_t fenceResID;
+      UINT64 fenceVal;
+      if(peekSignal(*chunk, fenceResID, fenceVal))
+      {
+        queuesContext.currentFenceVals.insert_or_assign(fenceResID, 0);
+      }
+
+      // Update the full range of event IDs of all queue chunks so that we can prepend
+      // and append all remaining 'frameCaptureRecord' chunks (after also potentially
+      // interleaving some into the serialised queues chunks).
+      //
+      // I'm not actually aware of what type of frameCaptureRecords (if any) go before
+      // all queue serialisation records, so it may be unnecessary to concern
+      // ourselves with handling prepending any such chunks but we certainly do expect
+      // to APPEND some remaining frameCaptureRecords like -
+      //   D3D12Chunk::Swapchain_Present
+      //   SystemChunk::CaptureEnd
+      int64_t eventID = it->first;
+      queuesContext.minQueueEventID = std::min(queuesContext.minQueueEventID, eventID);
+      queuesContext.maxQueueEventID = std::max(queuesContext.maxQueueEventID, eventID);
+    }
+  }
+
+  // We also have chunks/events captured in 'frameCaptureRecord', which don't
+  // come directly from the queue and command list commands; they relate to
+  // things like device resource/view creation, swapchain present, and 'CaptureEnd'
+  // records.
+  // These also need to be serialised and interleaved into the relevant order,
+  // as we consume/serialise the queue records.
+  RecordList tempFrameCaptureRecords;
+  frameCaptureRecord.Insert(tempFrameCaptureRecords);
+  RecordRange frameCapRangeToConsume(tempFrameCaptureRecords.cbegin(),
+                                     tempFrameCaptureRecords.cend());
+  serialisedChunksCapacity += tempFrameCaptureRecords.size();
+
+  serialisedChunksOut.reserve(serialisedChunksCapacity);
+
+  // First, any frameCaptureRecords that come before the main queue events -
+  RDCASSERT(!tempFrameCaptureRecords.empty());    // We always have at least a 'CaptureEnd', right?
+  serialiseFrameCapRecordsUpTo(queuesContext.minQueueEventID, frameCapRangeToConsume,
+                               serialisedChunksOut);
+
+  // Now the main queue commands
+  uint32_t currentQueueIdx = 0;    // It shouldn't matter which queue we start with
+  uint32_t idleQueueCount = 0;
+  while(!allQueuesDone(queuesContext))
+  {
+    bool progressed =
+        tryToConsume(currentQueueIdx, queuesContext, frameCapRangeToConsume, serialisedChunksOut);
+    if(progressed)
+    {
+      idleQueueCount = 0;
+    }
+    else
+    {
+      ++idleQueueCount;
+      if(idleQueueCount == numQueues)
+      {
+        // Oh dear.  All queues seem to be unable to progress.
+        // That must mean at least one of the fences on which we wait must have
+        // started off with (or been set to) a suitably signalled value OUTSIDE
+        // the visiblity of our capture.
+        //
+        // We could revert to the old fence-oblivious serialisation but we may be
+        // able to proceed by emulating a signal of one of the blocked fence waits.
+        if(tryUnblockingHiddenSignal(queuesContext))
+        {
+          // We expect to be able to now proceed (at least a little further).
+          idleQueueCount = 0;
+        }
+        else    // We failed to find a suitable hidden 'fence signal' to emulate
+        {
+          break;    // so we'll just fall back to do 'standardSerialise'
+        }
+      }
+    }
+
+    // Advance to next queue
+    ++currentQueueIdx;
+    if(currentQueueIdx == numQueues)
+      currentQueueIdx = 0;
+  }
+
+  if(idleQueueCount == numQueues)
+  {
+    // Blocked queue(s) problem when serialising.  Revert to old, basic serialisation.
+    serialisedChunksOut.clear();
+    standardSerialise(queuesContext, tempFrameCaptureRecords, serialisedChunksOut);
+  }
+  else    // We've consumed all work for all queues
+  {
+    // Finally, add any remaining 'frameCapRangeToConsume' -
+    while(frameCapRangeToConsume.first != frameCapRangeToConsume.second)
+    {
+      RDCASSERT(frameCapRangeToConsume.first->first > queuesContext.maxQueueEventID);
+      serialisedChunksOut.push_back(frameCapRangeToConsume.first->second);
+      frameCapRangeToConsume.first++;
+    }
+  }
+}
+
 bool WrappedID3D12Device::EndFrameCapture(DeviceOwnedWindow devWnd)
 {
   if(!IsActiveCapturing(m_State))
@@ -2879,46 +3308,16 @@ bool WrappedID3D12Device::EndFrameCapture(DeviceOwnedWindow devWnd)
     // in capframe (the transition is thread-protected) so nothing will be
     // pushed to the vector
 
-    std::map<int64_t, Chunk *> recordlist;
+    rdcarray<const Chunk *> serialisedChunks;
+    fenceAwareSerialise(queues, *m_FrameCaptureRecord, serialisedChunks);
 
-    for(auto it = queues.begin(); it != queues.end(); ++it)
-    {
-      WrappedID3D12CommandQueue *q = *it;
-
-      const rdcarray<D3D12ResourceRecord *> &cmdListRecords = q->GetCmdLists();
-
-      RDCDEBUG("Flushing %u command list records from queue %s", (uint32_t)cmdListRecords.size(),
-               ToStr(q->GetResourceID()).c_str());
-
-      for(size_t i = 0; i < cmdListRecords.size(); i++)
-      {
-        uint32_t prevSize = (uint32_t)recordlist.size();
-        cmdListRecords[i]->Insert(recordlist);
-
-        // prevent complaints in release that prevSize is unused
-        (void)prevSize;
-
-        RDCDEBUG("Adding %u chunks to file serialiser from command list %s",
-                 (uint32_t)recordlist.size() - prevSize,
-                 ToStr(cmdListRecords[i]->GetResourceID()).c_str());
-      }
-
-      q->GetResourceRecord()->Insert(recordlist);
-    }
-
-    m_FrameCaptureRecord->Insert(recordlist);
-
-    RDCDEBUG("Flushing %u chunks to file serialiser from context record",
-             (uint32_t)recordlist.size());
-
-    float num = float(recordlist.size());
+    float num = float(serialisedChunks.size());
     float idx = 0.0f;
-
-    for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
+    for(const Chunk *chunk : serialisedChunks)
     {
       RenderDoc::Inst().SetProgress(CaptureProgress::SerialiseFrameContents, idx / num);
       idx += 1.0f;
-      it->second->Write(ser);
+      chunk->Write(ser);
     }
 
     RDCDEBUG("Done");

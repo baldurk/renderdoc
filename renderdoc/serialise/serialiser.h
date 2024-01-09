@@ -1806,7 +1806,7 @@ public:
   }
 
   template <typename ChunkType>
-  ChunkType GetChunkType()
+  ChunkType GetChunkType() const
   {
     return (ChunkType)m_ChunkType;
   }
@@ -1842,7 +1842,7 @@ public:
     return ret;
   }
 
-  void Write(Serialiser<SerialiserMode::Writing> &ser)
+  void Write(Serialiser<SerialiserMode::Writing> &ser) const
   {
     ser.GetWriter()->Write((const void *)m_Data, (size_t)m_Length);
   }
