@@ -323,11 +323,11 @@ public:
   }
 
   template <typename... ConstructArgs>
-  void emplace_back(ConstructArgs... args)
+  void emplace_back(ConstructArgs &&...args)
   {
     const size_t lastIdx = size();
     reserve(size() + 1);
-    new(elems + lastIdx) T(std::forward<ConstructArgs...>(args)...);
+    new(elems + lastIdx) T(std::forward<ConstructArgs>(args)...);
     setUsedCount(usedCount + 1);
   }
 
