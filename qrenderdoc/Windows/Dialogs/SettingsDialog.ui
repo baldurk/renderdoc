@@ -287,7 +287,7 @@ e.g. 1000 * 10 = 1e4</string>
            </widget>
           </item>
           <item row="10" column="0">
-           <widget class="QLabel" name="label_4">
+           <widget class="QLabel" name="label_41">
             <property name="toolTip">
              <string>Formatting mode to use for fields marked as a byte offset or a byte size</string>
             </property>
