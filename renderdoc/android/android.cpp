@@ -367,17 +367,14 @@ AndroidInstallPermissionCheckResult CheckAndroidServerInstallPermissions(const r
   {
     return AndroidInstallPermissionCheckResult::Correct;
   }
-  // Command to check that the Android Server is queryable by other APKs (API>30)
-  // for RenderDoc layer discovery.
+  // Command to check that the Android Server is queryable by other APKs (API>=30)
   Process::ProcessResult adbCheck =
-      adbExecCommand(deviceID,
-                     "shell \"dumpsys package queries | sed -n '/forceQueryable/,/queries via "
-                     "package name/p' | grep " +
-                         packageName + "\"",
-                     ".", true);
-
-  // Check the output of 'grep' - no output means no match
-  if(adbCheck.strStdout.empty())
+      adbExecCommand(deviceID, "shell dumpsys package queries " + packageName, ".", true);
+  // parse command output
+  int32_t sectionStart = adbCheck.strStdout.find("forceQueryable");
+  int32_t sectionEnd = adbCheck.strStdout.find("queries via package name", sectionStart);
+  int32_t isPackageQueryable = adbCheck.strStdout.find(packageName, sectionStart, sectionEnd);
+  if(isPackageQueryable == -1)
   {
     RDCERR("Failed to install with 'force queryable' permissions.");
     return AndroidInstallPermissionCheckResult::NotQueryable;
