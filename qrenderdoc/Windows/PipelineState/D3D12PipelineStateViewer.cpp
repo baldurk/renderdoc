@@ -1648,13 +1648,18 @@ void D3D12PipelineStateViewer::setState()
   // highlight the appropriate stages in the flowchart
   if(action == NULL)
   {
-    setOldMeshPipeFlow();
-    ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
+    QList<bool> allOn;
+    for(int i = 0; i < ui->pipeFlow->stageNames().count(); i++)
+      allOn.append(true);
+    ui->pipeFlow->setStagesEnabled(allOn);
   }
   else if(action->flags & ActionFlags::Dispatch)
   {
-    setOldMeshPipeFlow();
-    ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
+    QList<bool> computeOnly;
+    for(int i = 0; i < ui->pipeFlow->stageNames().count(); i++)
+      computeOnly.append(false);
+    computeOnly.back() = true;
+    ui->pipeFlow->setStagesEnabled(computeOnly);
   }
   else if(action->flags & ActionFlags::MeshDispatch)
   {
