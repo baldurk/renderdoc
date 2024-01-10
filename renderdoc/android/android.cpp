@@ -525,23 +525,14 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
 
     RDCLOG("Installed package '%s', checking for success...", apk.c_str());
 
-    bool retryNeeded;
     AndroidVersionCheckResult versionCheck = CheckAndroidServerVersion(deviceID, abi);
-    retryNeeded = (versionCheck != AndroidVersionCheckResult::Correct);
 
-    if(!retryNeeded)
-    {
-      AndroidInstallPermissionCheckResult permissionsCheck =
-          CheckAndroidServerInstallPermissions(deviceID, GetRenderDocPackageForABI(abi), apiVersion);
-      retryNeeded = (permissionsCheck != AndroidInstallPermissionCheckResult::Correct);
-    }
-
-    if(retryNeeded)
+    if(versionCheck != AndroidVersionCheckResult::Correct)
     {
       RDCLOG("Failed to install APK. stdout: %s, stderr: %s",
              adbInstall.strStdout.trimmed().c_str(), adbInstall.strStderror.trimmed().c_str());
       RDCLOG("Retrying...");
-      InstallAPK(deviceID, apk, apiVersion);
+      adbExecCommand(deviceID, "install -r \"" + apk + "\"");
 
       versionCheck = CheckAndroidServerVersion(deviceID, abi);
 
@@ -570,13 +561,26 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
         // verify the install properly.
         result = ResultCode::AndroidAPKVerifyFailed;
       }
+    }
 
+    // Only verify permissions if we are otherwise happy with the installation
+    if(result != ResultCode::AndroidAPKVerifyFailed)
+    {
       AndroidInstallPermissionCheckResult permissionsCheck =
           CheckAndroidServerInstallPermissions(deviceID, GetRenderDocPackageForABI(abi), apiVersion);
       if(permissionsCheck != AndroidInstallPermissionCheckResult::Correct)
       {
-        RDCWARN("Failed to verify APK installation permissions after retry.");
-        result = ResultCode::AndroidAPKVerifyFailed;
+        RDCWARN("Failed to verify APK installation permissions. Retrying...");
+        // Some devices will only grant permissions with a second installation attempt
+        InstallAPK(deviceID, apk, apiVersion);
+        // Check permission and version again - version was correct last time so should ok here
+        if((CheckAndroidServerVersion(deviceID, abi) != AndroidVersionCheckResult::Correct) ||
+           (CheckAndroidServerInstallPermissions(deviceID, GetRenderDocPackageForABI(abi), apiVersion) !=
+            AndroidInstallPermissionCheckResult::Correct))
+        {
+          RDCWARN("Failed to verify APK installation");
+          result = ResultCode::AndroidAPKVerifyFailed;
+        }
       }
     }
   }
