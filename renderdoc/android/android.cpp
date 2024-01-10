@@ -362,7 +362,7 @@ AndroidInstallPermissionCheckResult CheckAndroidServerInstallPermissions(const r
                                                                          rdcstr packageName,
                                                                          int apiVersion)
 {
-  // Permissions check only applicable to API > 30
+  // Permissions check only applicable to API >= 30
   if(apiVersion < 30)
   {
     return AndroidInstallPermissionCheckResult::Correct;
@@ -528,12 +528,18 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
 
     RDCLOG("Installed package '%s', checking for success...", apk.c_str());
 
+    bool retryNeeded;
     AndroidVersionCheckResult versionCheck = CheckAndroidServerVersion(deviceID, abi);
-    AndroidInstallPermissionCheckResult permissionsCheck =
-        CheckAndroidServerInstallPermissions(deviceID, GetRenderDocPackageForABI(abi), apiVersion);
+    retryNeeded = (versionCheck != AndroidVersionCheckResult::Correct);
 
-    if((versionCheck != AndroidVersionCheckResult::Correct) ||
-       (permissionsCheck != AndroidInstallPermissionCheckResult::Correct))
+    if(!retryNeeded)
+    {
+      AndroidInstallPermissionCheckResult permissionsCheck =
+          CheckAndroidServerInstallPermissions(deviceID, GetRenderDocPackageForABI(abi), apiVersion);
+      retryNeeded = (permissionsCheck != AndroidInstallPermissionCheckResult::Correct);
+    }
+
+    if(retryNeeded)
     {
       RDCLOG("Failed to install APK. stdout: %s, stderr: %s",
              adbInstall.strStdout.trimmed().c_str(), adbInstall.strStderror.trimmed().c_str());
@@ -568,7 +574,7 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
         result = ResultCode::AndroidAPKVerifyFailed;
       }
 
-      permissionsCheck =
+      AndroidInstallPermissionCheckResult permissionsCheck =
           CheckAndroidServerInstallPermissions(deviceID, GetRenderDocPackageForABI(abi), apiVersion);
       if(permissionsCheck != AndroidInstallPermissionCheckResult::Correct)
       {
