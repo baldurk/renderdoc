@@ -1917,15 +1917,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCLOG("Enabling VK_KHR_performance_query");
     }
 
-    bool multiviewperviewviewports = false;
-    if(supportedExtensions.find(VK_QCOM_MULTIVIEW_PER_VIEW_VIEWPORTS_EXTENSION_NAME) !=
-       supportedExtensions.end())
-    {
-      multiviewperviewviewports = true;
-      Extensions.push_back(VK_QCOM_MULTIVIEW_PER_VIEW_VIEWPORTS_EXTENSION_NAME);
-      RDCLOG("Enabling VK_QCOM_multiview_per_view_viewports");
-    }
-
     VkDevice device;
 
     rdcarray<VkQueueFamilyProperties> queueProps;
@@ -3575,35 +3566,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       else
       {
         Extensions.removeOne(VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME);
-      }
-    }
-
-    VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM mvpvvFeature = {
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_VIEWPORTS_FEATURES_QCOM};
-
-    if(multiviewperviewviewports)
-    {
-      VkPhysicalDeviceFeatures2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
-      availBase.pNext = &mvpvvFeature;
-      ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2(Unwrap(physicalDevice), &availBase);
-
-      VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM *existing =
-          (VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM *)FindNextStruct(
-              &createInfo,
-              VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_VIEWPORTS_FEATURES_QCOM);
-
-      if(existing)
-      {
-        // feature is already present
-        existing->multiviewPerViewViewports = VK_TRUE;
-      }
-      else
-      {
-        // otherwise, add our own, and push it onto the pNext array
-        mvpvvFeature.multiviewPerViewViewports = VK_TRUE;
-
-        mvpvvFeature.pNext = (void *)createInfo.pNext;
-        createInfo.pNext = &mvpvvFeature;
       }
     }
 
