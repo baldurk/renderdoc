@@ -2120,6 +2120,21 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       ID3D12Resource *renderDepthStencil = NULL;
       bool useDepthWriteStencilPass = (overlay == DebugOverlay::Depth) && renderDepth;
 
+      if(useDepthWriteStencilPass)
+      {
+        useDepthWriteStencilPass = false;
+        WrappedID3D12PipelineState::ShaderEntry *wrappedPS = pipe->PS();
+        if(wrappedPS)
+        {
+          ShaderReflection &reflection = pipe->PS()->GetDetails();
+          for(SigParameter &output : reflection.outputSignature)
+          {
+            if(output.systemValue == ShaderBuiltin::DepthOutput)
+              useDepthWriteStencilPass = true;
+          }
+        }
+      }
+
       HRESULT hr;
       DXGI_FORMAT dsFmt = dsViewDesc.Format;
       // the depth overlay uses stencil buffer as a mask for the passing pixels
