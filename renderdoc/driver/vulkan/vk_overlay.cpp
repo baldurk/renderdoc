@@ -1644,6 +1644,24 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         if(overlay == DebugOverlay::Depth)
           useDepthWriteStencilPass = true;
 
+        if(useDepthWriteStencilPass)
+        {
+          useDepthWriteStencilPass = false;
+          const VulkanCreationInfo::Pipeline::Shader &ps = pipeInfo.shaders[4];
+          if(ps.module != ResourceId())
+          {
+            ShaderReflection *reflection = ps.refl;
+            if(reflection)
+            {
+              for(SigParameter &output : reflection->outputSignature)
+              {
+                if(output.systemValue == ShaderBuiltin::DepthOutput)
+                  useDepthWriteStencilPass = true;
+              }
+            }
+          }
+        }
+
         VkAttachmentDescription attDescs[] = {
             {0, overlayFormat, VK_SAMPLE_COUNT_1_BIT, VK_ATTACHMENT_LOAD_OP_LOAD,
              VK_ATTACHMENT_STORE_OP_STORE, VK_ATTACHMENT_LOAD_OP_DONT_CARE,
