@@ -866,6 +866,13 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
 
     Shader &shad = shaders[stageIndex];
 
+    VkPipelineShaderStageRequiredSubgroupSizeCreateInfo *subgroupSize =
+        (VkPipelineShaderStageRequiredSubgroupSizeCreateInfo *)FindNextStruct(
+            &pCreateInfo->pStages[i],
+            VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO);
+    if(subgroupSize)
+      shad.requiredSubgroupSize = subgroupSize->requiredSubgroupSize;
+
     shad.module = shadid;
     shad.entryPoint = pCreateInfo->pStages[i].pName;
     shad.stage = ShaderStage(stageIndex);
@@ -1469,6 +1476,13 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
   {
     ResourceId shadid = GetResID(pCreateInfo->stage.module);
     Shader &shad = shaders[5];    // 5 is the compute shader's index (VS, TCS, TES, GS, FS, CS)
+
+    VkPipelineShaderStageRequiredSubgroupSizeCreateInfo *subgroupSize =
+        (VkPipelineShaderStageRequiredSubgroupSizeCreateInfo *)FindNextStruct(
+            &pCreateInfo->stage,
+            VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO);
+    if(subgroupSize)
+      shad.requiredSubgroupSize = subgroupSize->requiredSubgroupSize;
 
     shad.module = shadid;
     shad.entryPoint = pCreateInfo->stage.pName;

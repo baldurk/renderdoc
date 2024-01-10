@@ -569,6 +569,8 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   uint32_t stageCount = 0;
   uint32_t dataOffset = 0;
 
+  static VkPipelineShaderStageRequiredSubgroupSizeCreateInfo reqSubgroupSize[NumShaderStages] = {};
+
   // reserve space for spec constants
   for(uint32_t i = 0; i < NumShaderStages; i++)
   {
@@ -580,6 +582,14 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
       stages[stageCount].pName = pipeInfo.shaders[i].entryPoint.c_str();
       stages[stageCount].pNext = NULL;
       stages[stageCount].pSpecializationInfo = NULL;
+
+      if(pipeInfo.shaders[i].requiredSubgroupSize != 0)
+      {
+        reqSubgroupSize[i].sType =
+            VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO;
+        reqSubgroupSize[i].requiredSubgroupSize = pipeInfo.shaders[i].requiredSubgroupSize;
+        stages[stageCount].pNext = &reqSubgroupSize[i];
+      }
 
       if(!pipeInfo.shaders[i].specialization.empty())
       {
@@ -1067,6 +1077,16 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
 
     specInfo.dataSize = specdata.size() * sizeof(uint64_t);
     specInfo.pData = specdata.data();
+  }
+
+  static VkPipelineShaderStageRequiredSubgroupSizeCreateInfo reqSubgroupSize = {
+      VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO,
+  };
+
+  if(pipeInfo.shaders[i].requiredSubgroupSize != 0)
+  {
+    reqSubgroupSize.requiredSubgroupSize = pipeInfo.shaders[i].requiredSubgroupSize;
+    stage.pNext = &reqSubgroupSize;
   }
 
   VkComputePipelineCreateInfo ret = {

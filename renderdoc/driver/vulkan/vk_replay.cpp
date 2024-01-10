@@ -1123,6 +1123,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         }
       }
 
+      stage.requiredSubgroupSize = p.shaders[i].requiredSubgroupSize;
+
       stage.specializationData.clear();
 
       // set up the defaults
@@ -1255,6 +1257,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       }
 
       stages[i]->specializationData.clear();
+
+      stages[i]->requiredSubgroupSize = p.shaders[i].requiredSubgroupSize;
 
       // set up the defaults
       if(p.shaders[i].mapping && p.shaders[i].refl)

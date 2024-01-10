@@ -342,15 +342,17 @@ struct VulkanCreationInfo
     // VkPipelineShaderStageCreateInfo
     struct Shader
     {
-      Shader() : refl(NULL), mapping(NULL), patchData(NULL) {}
       ResourceId module;
-      ShaderStage stage;
+      ShaderStage stage = ShaderStage::Count;
       rdcstr entryPoint;
-      ShaderReflection *refl;
-      ShaderBindpointMapping *mapping;
-      SPIRVPatchData *patchData;
+      ShaderReflection *refl = NULL;
+      ShaderBindpointMapping *mapping = NULL;
+      SPIRVPatchData *patchData = NULL;
 
       rdcarray<SpecConstant> specialization;
+
+      // VkPipelineShaderStageRequiredSubgroupSizeCreateInfo
+      uint32_t requiredSubgroupSize = 0;
     };
     Shader shaders[NumShaderStages];
 

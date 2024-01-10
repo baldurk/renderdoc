@@ -2058,6 +2058,9 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
       shText += lit(" - ") + QFileInfo(dbg.files[entryFile].filename).fileName();
   }
 
+  if(stage.requiredSubgroupSize != 0)
+    shText += tr(" (Subgroup size %1)").arg(stage.requiredSubgroupSize);
+
   shader->setText(shText);
 
   int vs = 0;

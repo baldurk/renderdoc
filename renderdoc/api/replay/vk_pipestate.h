@@ -611,6 +611,9 @@ struct Shader
   DOCUMENT("The number of bytes in the push constant data that is visible to this shader.");
   uint32_t pushConstantRangeByteSize = 0;
 
+  DOCUMENT("The required subgroup size specified for this shader at pipeline creation time.");
+  uint32_t requiredSubgroupSize = 0;
+
   DOCUMENT(R"(The provided specialization constant data. Shader constants store the byte offset into
 this buffer as their byteOffset. This data includes the applied specialization constants over the
 top of the default values, so it is safe to read any constant from here and get the correct current
