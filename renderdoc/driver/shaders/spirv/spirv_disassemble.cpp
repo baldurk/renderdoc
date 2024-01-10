@@ -1462,6 +1462,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           break;
         }
         case Op::AccessChain:
+        case Op::InBoundsAccessChain:
         {
           OpAccessChain decoded(it);
           ret += indent;
