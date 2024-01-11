@@ -1466,6 +1466,7 @@ protected:
           }
         }
       }
+      return 0;
     }
 
     const VulkanCreationInfo::RenderPass &rpInfo =
