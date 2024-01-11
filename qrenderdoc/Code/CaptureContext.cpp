@@ -2217,7 +2217,7 @@ IEventBrowser *CaptureContext::GetEventBrowser()
 
   m_EventBrowser = new EventBrowser(*this, m_MainWindow);
   m_EventBrowser->setObjectName(lit("eventBrowser"));
-  setupDockWindow(m_EventBrowser);
+  setupDockWindow(m_EventBrowser, true);
 
   return m_EventBrowser;
 }
@@ -2229,7 +2229,7 @@ IAPIInspector *CaptureContext::GetAPIInspector()
 
   m_APIInspector = new APIInspector(*this, m_MainWindow);
   m_APIInspector->setObjectName(lit("apiInspector"));
-  setupDockWindow(m_APIInspector);
+  setupDockWindow(m_APIInspector, true);
 
   return m_APIInspector;
 }
@@ -2241,7 +2241,7 @@ ITextureViewer *CaptureContext::GetTextureViewer()
 
   m_TextureViewer = new TextureViewer(*this, m_MainWindow);
   m_TextureViewer->setObjectName(lit("textureViewer"));
-  setupDockWindow(m_TextureViewer);
+  setupDockWindow(m_TextureViewer, true);
 
   return m_TextureViewer;
 }
@@ -2253,7 +2253,7 @@ IBufferViewer *CaptureContext::GetMeshPreview()
 
   m_MeshPreview = new BufferViewer(*this, true, m_MainWindow);
   m_MeshPreview->setObjectName(lit("meshPreview"));
-  setupDockWindow(m_MeshPreview);
+  setupDockWindow(m_MeshPreview, true);
 
   return m_MeshPreview;
 }
@@ -2265,7 +2265,7 @@ IPipelineStateViewer *CaptureContext::GetPipelineViewer()
 
   m_PipelineViewer = new PipelineStateViewer(*this, m_MainWindow);
   m_PipelineViewer->setObjectName(lit("pipelineViewer"));
-  setupDockWindow(m_PipelineViewer);
+  setupDockWindow(m_PipelineViewer, true);
 
   return m_PipelineViewer;
 }
@@ -2300,7 +2300,7 @@ IDebugMessageView *CaptureContext::GetDebugMessageView()
 
   m_DebugMessageView = new DebugMessageView(*this, m_MainWindow);
   m_DebugMessageView->setObjectName(lit("debugMessageView"));
-  setupDockWindow(m_DebugMessageView);
+  setupDockWindow(m_DebugMessageView, true);
 
   return m_DebugMessageView;
 }
@@ -2312,7 +2312,7 @@ IDiagnosticLogView *CaptureContext::GetDiagnosticLogView()
 
   m_DiagnosticLogView = new LogView(*this, m_MainWindow);
   m_DiagnosticLogView->setObjectName(lit("diagnosticLogView"));
-  setupDockWindow(m_DiagnosticLogView);
+  setupDockWindow(m_DiagnosticLogView, true);
 
   return m_DiagnosticLogView;
 }
@@ -2324,7 +2324,7 @@ ICommentView *CaptureContext::GetCommentView()
 
   m_CommentView = new CommentView(*this, m_MainWindow);
   m_CommentView->setObjectName(lit("commentView"));
-  setupDockWindow(m_CommentView);
+  setupDockWindow(m_CommentView, true);
 
   return m_CommentView;
 }
@@ -2336,7 +2336,7 @@ IPerformanceCounterViewer *CaptureContext::GetPerformanceCounterViewer()
 
   m_PerformanceCounterViewer = new PerformanceCounterViewer(*this, m_MainWindow);
   m_PerformanceCounterViewer->setObjectName(lit("performanceCounterViewer"));
-  setupDockWindow(m_PerformanceCounterViewer);
+  setupDockWindow(m_PerformanceCounterViewer, true);
 
   return m_PerformanceCounterViewer;
 }
@@ -2348,7 +2348,7 @@ IStatisticsViewer *CaptureContext::GetStatisticsViewer()
 
   m_StatisticsViewer = new StatisticsViewer(*this, m_MainWindow);
   m_StatisticsViewer->setObjectName(lit("statisticsViewer"));
-  setupDockWindow(m_StatisticsViewer);
+  setupDockWindow(m_StatisticsViewer, true);
 
   return m_StatisticsViewer;
 }
@@ -2360,7 +2360,7 @@ ITimelineBar *CaptureContext::GetTimelineBar()
 
   m_TimelineBar = new TimelineBar(*this, m_MainWindow);
   m_TimelineBar->setObjectName(lit("timelineBar"));
-  setupDockWindow(m_TimelineBar);
+  setupDockWindow(m_TimelineBar, true);
 
   return m_TimelineBar;
 }
@@ -2372,7 +2372,7 @@ IPythonShell *CaptureContext::GetPythonShell()
 
   m_PythonShell = new PythonShell(*this, m_MainWindow);
   m_PythonShell->setObjectName(lit("pythonShell"));
-  setupDockWindow(m_PythonShell);
+  setupDockWindow(m_PythonShell, true);
 
   return m_PythonShell;
 }
@@ -2384,7 +2384,7 @@ IResourceInspector *CaptureContext::GetResourceInspector()
 
   m_ResourceInspector = new ResourceInspector(*this, m_MainWindow);
   m_ResourceInspector->setObjectName(lit("resourceInspector"));
-  setupDockWindow(m_ResourceInspector);
+  setupDockWindow(m_ResourceInspector, true);
 
   return m_ResourceInspector;
 }
@@ -2717,9 +2717,11 @@ void CaptureContext::BuiltinWindowClosed(QWidget *window)
     qCritical() << "Unrecognised window being closed: " << window;
 }
 
-void CaptureContext::setupDockWindow(QWidget *shad)
+void CaptureContext::setupDockWindow(QWidget *shad, bool hide)
 {
   shad->setWindowIcon(*m_Icon);
+  if(hide)
+    shad->hide();
 }
 
 void CaptureContext::RaiseDockWindow(QWidget *dockWindow)
@@ -2735,7 +2737,7 @@ void CaptureContext::AddDockWindow(QWidget *newWindow, DockReference ref, QWidge
     qCritical() << "Unexpected NULL newWindow in AddDockWindow";
     return;
   }
-  setupDockWindow(newWindow);
+  setupDockWindow(newWindow, false);
 
   if(ref == DockReference::MainToolArea)
   {

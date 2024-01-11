@@ -358,7 +358,7 @@ private:
     return NULL;
   }
 
-  void setupDockWindow(QWidget *shad);
+  void setupDockWindow(QWidget *shad, bool hide);
   const rdcarray<ActionDescription> *m_Actions;
   rdcarray<ActionDescription> m_EmptyActions;
 
