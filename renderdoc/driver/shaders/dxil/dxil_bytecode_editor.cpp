@@ -1764,10 +1764,16 @@ void ProgramEditor::RegisterUAV(DXILResourceType type, uint32_t space, uint32_t 
     }
     else
     {
+      // from definitions in dxc
+      const uint32_t headerSizeVer0 = 6 * sizeof(uint32_t);
+      const uint32_t headerSizeVer1 = headerSizeVer0 + sizeof(uint16_t) + 10 * sizeof(uint8_t);
+      const uint32_t headerSizeVer2 = headerSizeVer1 + 3 * sizeof(uint32_t);
+
       // If there is no resource in the chunk we also need to insert the size of a resource bind
       *numResources = 1;
       size_t insertOffset = cur - begin;
-      uint32_t resourceBindSize = sizeof(ResourceBind1);
+      uint32_t resourceBindSize =
+          *headerSize == headerSizeVer2 ? sizeof(ResourceBind1) : sizeof(ResourceBind0);
       psv0blob.insert(insertOffset, (byte *)&resourceBindSize, sizeof(resourceBindSize));
       psv0blob.insert(insertOffset + sizeof(resourceBindSize), (byte *)&bind, resourceBindSize);
     }
@@ -1807,8 +1813,8 @@ void ProgramEditor::SetNumThreads(uint32_t dim[3])
 
     // from definitions in dxc
     const uint32_t headerSizeVer0 = 6 * sizeof(uint32_t);
-    const uint32_t headerSizeVer1 = sizeof(uint16_t) + 10 * sizeof(uint8_t);
-    const uint32_t headerSizeVer2 = 3 * sizeof(uint32_t);
+    const uint32_t headerSizeVer1 = headerSizeVer0 + sizeof(uint16_t) + 10 * sizeof(uint8_t);
+    const uint32_t headerSizeVer2 = headerSizeVer1 + 3 * sizeof(uint32_t);
 
     if(*headerSize >= headerSizeVer2)
     {

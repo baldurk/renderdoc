@@ -1098,8 +1098,9 @@ static void ConvertToFixedDXILAmpFeeder(const DXBC::DXBCContainer *dxbc, uint32_
   editor.AddInstruction(f, editor.CreateInstruction(Operation::Ret, voidType, {}));
 }
 
-static void AddDXILMeshShaderOutputStores(const DXBC::DXBCContainer *dxbc, uint32_t space,
-                                          bool readAmpOffset, rdcfixedarray<uint32_t, 3> dispatchDim,
+static void AddDXILMeshShaderOutputStores(uint32_t ampPayloadSize, const DXBC::DXBCContainer *dxbc,
+                                          uint32_t space, bool readAmpOffset,
+                                          rdcfixedarray<uint32_t, 3> dispatchDim,
                                           OutDXILMeshletLayout &layout, bytebuf &editedBlob)
 {
   using namespace DXIL;
@@ -1306,6 +1307,15 @@ static void AddDXILMeshShaderOutputStores(const DXBC::DXBCContainer *dxbc, uint3
       uint32_t payloadSize = cast<Constant>(meshData->children[4]->value)->getU32();
       // DXIL payload can't be empty, so if the previous size was non-zero we had one previously
       hadPayload = payloadSize != 0;
+
+      // if the amplification shader declares a payload, but mesh shader doesn't, we need to be sure
+      // we match them in size for validation
+      if(!hadPayload && ampPayloadSize != 0)
+        payloadSize = ampPayloadSize;
+
+      // if the mesh shader did have a payload, these sizes should match!
+      RDCASSERTEQUAL(payloadSize, ampPayloadSize);
+
       payloadSize += 16;
       meshData->children[4] = editor.CreateConstantMetadata(payloadSize);
       editor.SetMSPayloadSize(payloadSize);
@@ -1332,22 +1342,48 @@ static void AddDXILMeshShaderOutputStores(const DXBC::DXBCContainer *dxbc, uint3
   Type *payloadType = NULL;
   if(hadPayload)
   {
-    // if we had a payload, seek the dx.op.getMeshPayload to find its type
-    for(size_t i = 0; i < f->instructions.size(); i++)
+    if(getMeshPayload)
     {
-      const Instruction &inst = *f->instructions[i];
-
-      if(inst.op == Operation::Call && inst.getFuncCall()->name == getMeshPayload->name)
+      // if we had a payload and it was loaded, seek the dx.op.getMeshPayload to find its type
+      for(size_t i = 0; i < f->instructions.size(); i++)
       {
-        payloadType = (Type *)inst.type;
+        const Instruction &inst = *f->instructions[i];
 
-        RDCASSERT(payloadType->type == Type::Pointer);
-        payloadType = (Type *)payloadType->inner;
+        if(inst.op == Operation::Call && inst.getFuncCall()->name == getMeshPayload->name)
+        {
+          payloadType = (Type *)inst.type;
 
-        payloadType->members.append({i32, i32, i32, i32});
+          RDCASSERT(payloadType->type == Type::Pointer);
+          payloadType = (Type *)payloadType->inner;
 
-        break;
+          payloadType->members.append({i32, i32, i32, i32});
+
+          break;
+        }
       }
+    }
+    else
+    {
+      // if we had a payload declared but it wasn't ever fetched, there will be no function or type.
+      // We create a synthetic type of the right size then patch it
+
+      rdcarray<const Type *> members;
+      for(uint32_t i = 0; i < ampPayloadSize / sizeof(uint32_t); i++)
+        members.push_back(i32);
+
+      // unclear if HLSL allows non-4byte aligned types
+      RDCASSERT((ampPayloadSize % sizeof(uint32_t)) == 0);
+
+      members.append({i32, i32, i32, i32});
+
+      // no payload before. We get to make up our own!
+      payloadType = editor.CreateNamedStructType("struct.payload_t", members);
+
+      const Type *payloadPtrType =
+          editor.CreatePointerType(payloadType, Type::PointerAddrSpace::Default);
+
+      getMeshPayload = editor.DeclareFunction("dx.op.getMeshPayload.struct.payload_t", payloadPtrType,
+                                              {i32}, Attribute::NoUnwind | Attribute::ReadOnly);
     }
   }
   else if(readAmpOffset)
@@ -1359,7 +1395,7 @@ static void AddDXILMeshShaderOutputStores(const DXBC::DXBCContainer *dxbc, uint3
         editor.CreatePointerType(payloadType, Type::PointerAddrSpace::Default);
 
     getMeshPayload = editor.DeclareFunction("dx.op.getMeshPayload.struct.payload_t", payloadPtrType,
-                                            {}, Attribute::NoUnwind | Attribute::ReadOnly);
+                                            {i32}, Attribute::NoUnwind | Attribute::ReadOnly);
   }
 
   if(readAmpOffset)
@@ -2370,8 +2406,8 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
 
   bytebuf meshOutputDXIL;
 
-  AddDXILMeshShaderOutputStores(pipe->MS()->GetDXBC(), space, ampBuffer != NULL, dispatchSize,
-                                layout, meshOutputDXIL);
+  AddDXILMeshShaderOutputStores(payloadSize, pipe->MS()->GetDXBC(), space, ampBuffer != NULL,
+                                dispatchSize, layout, meshOutputDXIL);
 
   {
     // strip the root signature, we shouldn't need it and it may no longer match and fail validation
