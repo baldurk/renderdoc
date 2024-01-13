@@ -1060,6 +1060,12 @@ uint32_t Process::LaunchProcess(const rdcstr &app, const rdcstr &workingDir, con
   {
     if(!internal)
       RDCWARN("Couldn't launch process '%s'", appPath.c_str());
+
+    if(hChildStdError_Rd != NULL)
+      CloseHandle(hChildStdError_Rd);
+    if(hChildStdOutput_Rd != NULL)
+      CloseHandle(hChildStdOutput_Rd);
+
     return 0;
   }
 

@@ -1247,7 +1247,10 @@ RENDERDOC_CreateRemoteServerConnection(const rdcstr &URL, IRemoteServer **rend)
   }
 
   if(rend == NULL)
+  {
+    SAFE_DELETE(sock);
     return RDResult(ResultCode::Succeeded);
+  }
 
   if(protocol)
     *rend = protocol->CreateRemoteServer(sock, deviceID);
