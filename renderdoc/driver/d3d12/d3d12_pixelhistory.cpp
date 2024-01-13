@@ -642,16 +642,19 @@ protected:
 
       // Copy into a buffer, but treat the footprint as the same format as the target image
       uint32_t elementSize = GetByteSize(0, 0, 0, p.copyFormat, 0);
+      // Use Offset to get to the nearest 16KB
+      UINT64 footprintOffset = (offset >> 14) << 14;
+      UINT64 offsetRemaider = offset - footprintOffset;
+      UINT dstX = (UINT)(offsetRemaider / elementSize);
 
       dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
       dst.pResource = m_CallbackInfo.dstBuffer;
-      dst.PlacedFootprint.Offset = 0;
-      dst.PlacedFootprint.Footprint.Width =
-          (UINT)m_CallbackInfo.dstBuffer->GetDesc().Width / elementSize;
+      dst.PlacedFootprint.Offset = footprintOffset;
+      dst.PlacedFootprint.Footprint.Width = dstX + 1;
       dst.PlacedFootprint.Footprint.Height = 1;
       dst.PlacedFootprint.Footprint.Depth = 1;
       dst.PlacedFootprint.Footprint.Format = p.copyFormat;
-      dst.PlacedFootprint.Footprint.RowPitch = (UINT)m_CallbackInfo.dstBuffer->GetDesc().Width;
+      dst.PlacedFootprint.Footprint.RowPitch = dst.PlacedFootprint.Footprint.Width * elementSize;
 
       D3D12_BOX srcBox = {};
       srcBox.left = p.x;
@@ -661,10 +664,8 @@ protected:
       srcBox.front = 0;
       srcBox.back = 1;
 
-      // We need to apply the offset here (measured in number of elements) rather than using
-      // PlacedFootprint.Offset (measured in bytes) because the latter must be a multiple of 512
       RDCASSERT((offset % elementSize) == 0);
-      cmd->CopyTextureRegion(&dst, (UINT)(offset / elementSize), 0, 0, &src, &srcBox);
+      cmd->CopyTextureRegion(&dst, dstX, 0, 0, &src, &srcBox);
 
       std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
       cmd->ResourceBarrier(1, &barrier);
