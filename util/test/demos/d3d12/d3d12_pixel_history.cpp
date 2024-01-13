@@ -217,6 +217,14 @@ float4 main(v2f vertIn, uint primId : SV_PrimitiveID, uint sampleId : SV_SampleI
         {Vec3f(-0.7f, 0.5f, 0.33f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(-0.6f, 0.3f, 0.33f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(-0.8f, 0.3f, 0.33f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        // 1000 draws of 1 triangle
+        {Vec3f(-0.7f, 0.0f, 0.33f), Vec4f(0.5f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-0.8f, 0.2f, 0.33f), Vec4f(0.5f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.6f, 0.2f, 0.33f), Vec4f(0.5f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        // 1000 instances of 1 triangle
+        {Vec3f(-0.7f, 0.6f, 0.33f), Vec4f(1.0f, 0.5f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-0.8f, 0.8f, 0.33f), Vec4f(1.0f, 0.5f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.6f, 0.8f, 0.33f), Vec4f(1.0f, 0.5f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
     };
 
     ID3D12ResourcePtr vb = MakeBuffer().Data(VBData);
@@ -607,6 +615,17 @@ float4 main(v2f vertIn, uint primId : SV_PrimitiveID, uint sampleId : SV_SampleI
         setMarker(cmd, "Depth Bounds Clip");
         cmd->OMSetDepthBounds(0.4f, 0.6f);
         cmd->DrawInstanced(3, 1, 66, 0);
+
+        pushMarker(cmd, "Stress Test");
+        pushMarker(cmd, "Lots of Drawcalls");
+        setMarker(cmd, "1000 Draws");
+        cmd->SetPipelineState(pass.depthWritePipe);
+        for(int d = 0; d < 1000; ++d)
+          cmd->DrawInstanced(3, 1, 72, 0);
+        popMarker(cmd);
+        setMarker(cmd, "1000 Instances");
+        cmd->DrawInstanced(3, 1000, 75, 0);
+        popMarker(cmd);
 
         // Add a marker so we can easily locate this draw
         setMarker(cmd, "Test Begin");
