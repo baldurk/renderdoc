@@ -426,20 +426,25 @@ void D3D12DebugManager::PixelHistoryCopyPixel(ID3D12GraphicsCommandListX *cmd,
 struct D3D12PixelHistoryShaderCache
 {
   D3D12PixelHistoryShaderCache(WrappedID3D12Device *device, ID3DBlob *PersistentPrimIDPS,
-                               ID3DBlob *PersistentPrimIDPSDxil, ID3DBlob *FixedColorPS,
-                               ID3DBlob *FixedColorPSDxil)
-      : m_pDevice(device),
-        m_PrimIDPS(PersistentPrimIDPS),
-        m_PrimIDPSDxil(PersistentPrimIDPSDxil),
-        m_FixedColorPS(FixedColorPS),
-        m_FixedColorPSDxil(FixedColorPSDxil)
+                               ID3DBlob *PersistentPrimIDPSDxil,
+                               ID3DBlob *FixedColorPS[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT],
+                               ID3DBlob *FixedColorPSDxil[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT])
+      : m_pDevice(device), m_PrimIDPS(PersistentPrimIDPS), m_PrimIDPSDxil(PersistentPrimIDPSDxil)
   {
+    for(int i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+    {
+      m_FixedColorPS[i] = FixedColorPS[i];
+      m_FixedColorPSDxil[i] = FixedColorPSDxil[i];
+    }
   }
 
   ~D3D12PixelHistoryShaderCache() {}
 
   // Returns a fragment shader that outputs a fixed color
-  ID3DBlob *GetFixedColorShader(bool dxil) { return dxil ? m_FixedColorPSDxil : m_FixedColorPS; }
+  ID3DBlob *GetFixedColorShader(bool dxil, int outputIndex)
+  {
+    return dxil ? m_FixedColorPSDxil[outputIndex] : m_FixedColorPS[outputIndex];
+  }
 
   // Returns a fragment shader that outputs primitive ID
   ID3DBlob *GetPrimitiveIdShader(bool dxil) { return dxil ? m_PrimIDPSDxil : m_PrimIDPS; }
@@ -451,8 +456,8 @@ private:
 
   ID3DBlob *m_PrimIDPS;
   ID3DBlob *m_PrimIDPSDxil;
-  ID3DBlob *m_FixedColorPS;
-  ID3DBlob *m_FixedColorPSDxil;
+  ID3DBlob *m_FixedColorPS[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
+  ID3DBlob *m_FixedColorPSDxil[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
 };
 
 // D3D12PixelHistoryCallback is a generic D3D12ActionCallback that can be used
@@ -724,8 +729,7 @@ struct D3D12OcclusionCallback : public D3D12PixelHistoryCallback
 
     pipeState.rts.clear();
     pipeState.dsv = *m_CallbackInfo.dsDescriptor;
-    ID3D12PipelineState *pso =
-        GetPixelOcclusionPipeline(eid, pipeState, GetPixelHistoryRenderTargetIndex(pipeState));
+    ID3D12PipelineState *pso = GetPixelOcclusionPipeline(eid, pipeState);
 
     pipeState.pipe = GetResID(pso);
     // set the scissor
@@ -843,11 +847,8 @@ struct D3D12OcclusionCallback : public D3D12PixelHistoryCallback
   }
 
 private:
-  ID3D12PipelineState *GetPixelOcclusionPipeline(uint32_t eid, D3D12RenderState &state,
-                                                 uint32_t outputIndex)
+  ID3D12PipelineState *GetPixelOcclusionPipeline(uint32_t eid, D3D12RenderState &state)
   {
-    // TODO: outputIndex is unused. Either we need to select a fixed color shader that writes to the
-    // preferred RT, or use RenderTargetWriteMask in the blend desc to mask out unrelated RTs
     auto it = m_PipeCache.find(state.pipe);
     if(it != m_PipeCache.end())
       return it->second;
@@ -1754,7 +1755,7 @@ private:
     {
       bool dxil = IsPSOUsingDXIL(pipeDesc);
 
-      ID3DBlob *FixedColorPS = m_ShaderCache->GetFixedColorShader(dxil);
+      ID3DBlob *FixedColorPS = m_ShaderCache->GetFixedColorShader(dxil, outputIndex);
       pipeDesc.PS.pShaderBytecode = FixedColorPS->GetBufferPointer();
       pipeDesc.PS.BytecodeLength = FixedColorPS->GetBufferSize();
     }
@@ -1928,8 +1929,8 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
     uint32_t renderTargetIndex = 0;
     if(IsDepthFormat(m_CallbackInfo.targetDesc.Format))
     {
-      // Going to add another render target
-      renderTargetIndex = (uint32_t)state.rts.size();
+      // Color target not needed
+      renderTargetIndex = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT;
     }
     else
     {
@@ -1990,6 +1991,8 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
     D3D12MarkerRegion::Set(
         cmd, StringFormat::Fmt("Event %u has %u fragments", eid, numFragmentsInEvent));
 
+    rdcarray<D3D12Descriptor> origRts = state.rts;
+
     // Get primitive ID and shader output value for each fragment.
     for(uint32_t f = 0; f < numFragmentsInEvent; f++)
     {
@@ -1997,9 +2000,11 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
       {
         uint32_t storeOffset = (fragsProcessed + f) * sizeof(D3D12PerFragmentInfo);
 
+        bool isPrimPass = (i == 0);
+
         D3D12MarkerRegion region(
-            cmd,
-            StringFormat::Fmt("Getting %s for %u", i == 0 ? "primitive ID" : "shader output", eid));
+            cmd, StringFormat::Fmt("Getting %s for %u",
+                                   isPrimPass ? "primitive ID" : "shader output", eid));
 
         if(psosIter[i] == NULL)
         {
@@ -2021,8 +2026,15 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
                                    D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 1,
                                    &state.scissors[0]);
 
-        state.rts.resize(1);
-        state.rts[0] = *m_CallbackInfo.colorDescriptor;
+        if(isPrimPass)
+        {
+          state.rts.resize(1);
+          state.rts[0] = *m_CallbackInfo.colorDescriptor;
+        }
+        else if(renderTargetIndex != D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
+        {
+          state.rts[renderTargetIndex] = *m_CallbackInfo.colorDescriptor;
+        }
         state.dsv = *m_CallbackInfo.dsDescriptor;
         state.pipe = GetResID(psosIter[i]);
 
@@ -2035,7 +2047,7 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
         const ActionDescription *action = m_pDevice->GetAction(eid);
         ::ReplayDraw(cmd, *action);
 
-        if(i == 1)
+        if(!isPrimPass)
         {
           storeOffset += offsetof(struct D3D12PerFragmentInfo, shaderOut);
           if(depthEnabled)
@@ -2054,8 +2066,19 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
           }
         }
         CopyImagePixel(cmd, colorCopyParams, storeOffset);
+
+        // restore the original render targets as subsequent steps will use them
+        state.rts = origRts;
       }
     }
+
+    if(renderTargetIndex != D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
+    {
+      state.rts[renderTargetIndex] = *m_CallbackInfo.colorDescriptor;
+    }
+
+    // Get post-modification value, use the original framebuffer attachment.
+    state.pipe = GetResID(pipes.postModPipe);
 
     const ModificationValue &premod = m_EventPremods[eid];
     // For every fragment except the last one, retrieve post-modification value.
@@ -2063,9 +2086,6 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
     {
       D3D12MarkerRegion region(cmd,
                                StringFormat::Fmt("Getting postmod for fragment %u in %u", f, eid));
-
-      // Get post-modification value, use the original framebuffer attachment.
-      state.pipe = GetResID(pipes.postModPipe);
 
       // Have to reset stencil
       D3D12_CLEAR_FLAGS clearFlags =
@@ -2137,13 +2157,37 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
     D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
     origPSO->Fill(pipeDesc);
 
-    // TODO: We provide our own render target here, but some of the PSOs use the original shader,
-    // which may write to a different number of channels (such as a R11G11B10 render target).
-    // This results in a D3D12 debug layer warning, but shouldn't be hazardous in practice since
-    // we restrict what we read from based on the source RT target. But maybe there's a way to
-    // gather the right data and avoid  the debug layer warning.
-    pipeDesc.RTVFormats.NumRenderTargets = 1;
-    pipeDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    if(colorOutputIndex != D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
+    {
+      // TODO: We provide our own render target here, but some of the PSOs use the original shader,
+      // which may write to a different number of channels (such as a R11G11B10 render target).
+      // This results in a D3D12 debug layer warning, but shouldn't be hazardous in practice since
+      // we restrict what we read from based on the source RT target. But maybe there's a way to
+      // gather the right data and avoid  the debug layer warning.
+      DXGI_FORMAT colorFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
+      // For this pass, we will be binding the color target for capturing the shader output to the
+      //  slot in question. The others can be left intact.
+      RDCASSERT(colorOutputIndex < pipeDesc.RTVFormats.NumRenderTargets);
+      pipeDesc.RTVFormats.RTFormats[colorOutputIndex] = colorFormat;
+
+      // In order to have different write masks per render target, we need to switch to independent
+      //  blend if not already in use.
+      if(!pipeDesc.BlendState.IndependentBlendEnable)
+      {
+        pipeDesc.BlendState.IndependentBlendEnable = TRUE;
+        for(uint32_t i = 1; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+          pipeDesc.BlendState.RenderTarget[i] = pipeDesc.BlendState.RenderTarget[0];
+      }
+
+      // Mask out writes to targets which aren't the pixel history color target
+      for(uint32_t i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+      {
+        pipeDesc.BlendState.RenderTarget[i].BlendEnable = FALSE;
+        if(i != colorOutputIndex)
+          pipeDesc.BlendState.RenderTarget[i].RenderTargetWriteMask = 0;
+      }
+    }
+
     pipeDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
     // TODO: Do we want to get the widest DSV format, or get it from callbackinfo/pixelhistoryresources?
 
@@ -2171,10 +2215,15 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
 
     m_PSOsToDestroy.push_back(pipes.postModPipe);
 
+    // Other targets were already disabled for the post mod pass, now force enable the
+    //  pixel history color target
+    if(colorOutputIndex != D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
+      pipeDesc.BlendState.RenderTarget[colorOutputIndex].RenderTargetWriteMask =
+          D3D12_COLOR_WRITE_ENABLE_ALL;
+
     for(uint32_t i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
     {
       pipeDesc.BlendState.RenderTarget[i].BlendEnable = FALSE;
-      pipeDesc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
     }
 
     {
@@ -2203,10 +2252,17 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
     }
     else
     {
+      // Regardless of which RT is the one in question for history, we write the
+      //  primitive ID to RT0.
+      pipeDesc.RTVFormats.NumRenderTargets = 1;
+      pipeDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+      for(int i = 1; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+        pipeDesc.RTVFormats.RTFormats[i] = DXGI_FORMAT_UNKNOWN;
+      pipeDesc.BlendState.IndependentBlendEnable = FALSE;
+      pipeDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
       bool dxil = IsPSOUsingDXIL(pipeDesc);
 
-      // TODO: This shader outputs to SV_Target0, will we need to modify the
-      // shader (or patch it) if the target image isn't RT0?
       ID3DBlob *PrimIDPS = m_ShaderCache->GetPrimitiveIdShader(dxil);
       pipeDesc.PS.pShaderBytecode = PrimIDPS->GetBufferPointer();
       pipeDesc.PS.BytecodeLength = PrimIDPS->GetBufferSize();

@@ -2916,10 +2916,14 @@ void D3D12Replay::PixelHistory::Init(WrappedID3D12Device *device, D3D12DebugMana
   shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PrimitiveIDPS",
                              D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_6_0", &PrimitiveIDPSDxil);
 
-  shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PixelHistoryFixedColPS",
-                             D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &FixedColorPS);
-  shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PixelHistoryFixedColPS",
-                             D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_6_0", &FixedColorPSDxil);
+  for(int i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+  {
+    rdcstr hlsl_variant = "#define RT " + ToStr(i) + "\n" + hlsl;
+    shaderCache->GetShaderBlob(hlsl_variant.c_str(), "RENDERDOC_PixelHistoryFixedColPS",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &FixedColorPS[i]);
+    shaderCache->GetShaderBlob(hlsl_variant.c_str(), "RENDERDOC_PixelHistoryFixedColPS",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_6_0", &FixedColorPSDxil[i]);
+  }
 
   shaderCache->SetCaching(false);
 }
@@ -2928,8 +2932,10 @@ void D3D12Replay::PixelHistory::Release()
 {
   SAFE_RELEASE(PrimitiveIDPS);
   SAFE_RELEASE(PrimitiveIDPSDxil);
-  SAFE_RELEASE(FixedColorPS);
-  SAFE_RELEASE(FixedColorPSDxil);
+  for(int i = 0; i < ARRAY_COUNT(FixedColorPS); ++i)
+    SAFE_RELEASE(FixedColorPS[i]);
+  for(int i = 0; i < ARRAY_COUNT(FixedColorPSDxil); ++i)
+    SAFE_RELEASE(FixedColorPSDxil[i]);
 }
 
 void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugManager *debug)
