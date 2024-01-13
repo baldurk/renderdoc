@@ -148,24 +148,35 @@ float4 RENDERDOC_PrimitiveIDPS(uint prim : SV_PrimitiveID) : SV_Target0
   return asfloat(prim).xxxx;
 }
 
-struct MultipleOutput
+struct SelectedOutput
 {
-  float4 col0 : SV_Target0;
-  float4 col1 : SV_Target1;
-  float4 col2 : SV_Target2;
-  float4 col3 : SV_Target3;
-  float4 col4 : SV_Target4;
-  float4 col5 : SV_Target5;
-  float4 col6 : SV_Target6;
-  float4 col7 : SV_Target7;
+#if RT == 0
+  float4 col : SV_Target0;
+#elif RT == 1
+  float4 col : SV_Target1;
+#elif RT == 2
+  float4 col : SV_Target2;
+#elif RT == 3
+  float4 col : SV_Target3;
+#elif RT == 4
+  float4 col : SV_Target4;
+#elif RT == 5
+  float4 col : SV_Target5;
+#elif RT == 6
+  float4 col : SV_Target6;
+#elif RT == 7
+  float4 col : SV_Target7;
+#else
+  float4 col;
+#endif
 };
 
-MultipleOutput RENDERDOC_PixelHistoryFixedColPS()
+SelectedOutput RENDERDOC_PixelHistoryFixedColPS()
 {
-  MultipleOutput OUT = (MultipleOutput)0;
+  SelectedOutput OUT = (SelectedOutput)0;
 
   float4 color = float4(0.1f, 0.2f, 0.3f, 0.4f);
-  OUT.col0 = OUT.col1 = OUT.col2 = OUT.col3 = OUT.col4 = OUT.col5 = OUT.col6 = OUT.col7 = color;
+  OUT.col = color;
 
   return OUT;
 }
