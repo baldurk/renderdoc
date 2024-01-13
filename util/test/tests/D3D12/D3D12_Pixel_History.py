@@ -96,6 +96,7 @@ class D3D12_Pixel_History(rdtest.TestCase):
         depth_16bit_test_eid = self.find_action("Depth 16-bit Test", begin_renderpass_eid).next.eventId
         depth_bounds_prep_eid = self.find_action("Depth Bounds Prep", begin_renderpass_eid).next.eventId
         depth_bounds_clip_eid = self.find_action("Depth Bounds Clip", begin_renderpass_eid).next.eventId
+        one_thousand_instances_action = self.find_action("1000 Instances", begin_renderpass_eid)
 
         # For pixel 110, 100, inside the red triangle with stencil value 0x55
         x, y = 110, 100
@@ -273,6 +274,28 @@ class D3D12_Pixel_History(rdtest.TestCase):
         ]
         self.check_events(events, modifs, False)
         self.check_pixel_value(tex, x, y, get_post_mod_color(modifs[-1]), sub=sub, cast=rt.typeCast)
+
+        # For pixel 60, 130 inside the light green triangle which is 1000 draws of 1 instance of 1 triangle 
+        rdtest.log.print("Testing Lots of Drawcalls")
+        self.controller.SetFrameEvent(one_thousand_instances_action.eventId, True)
+        x, y = 60, 130
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        self.check_pixel_value(tex, x, y, get_post_mod_color(modifs[-1]), sub=sub, cast=rt.typeCast)
+        countEvents = 1 + 1000
+        self.check(len(modifs) == countEvents, "Expected {} events, got {}".format(countEvents, len(modifs)))
+        self.check_modifs_consistent(modifs)
+
+        # For pixel 60, 50 inside the orange triangle which is 1 draws of 1000 instances of 1 triangle 
+        rdtest.log.print("Testing Lots of Instances")
+        self.controller.SetFrameEvent(one_thousand_instances_action.next.eventId, True)
+        x, y = 60, 50
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        self.check_pixel_value(tex, x, y, get_post_mod_color(modifs[-1]), sub=sub, cast=rt.typeCast)
+        countEvents = 1 + 255
+        self.check(len(modifs) == countEvents, "Expected {} events, got {}".format(countEvents, len(modifs)))
+        self.check_modifs_consistent(modifs)
 
     def multisampled_image_test(self, pass_name: str):
         begin_pass_action = self.find_action(pass_name)
