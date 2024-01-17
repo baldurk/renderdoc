@@ -3052,15 +3052,17 @@ struct PSHit
   Vec4f pos;
   uint32_t prim;
   uint32_t sample;
+  uint32_t view;
   uint32_t valid;
   float ddxDerivCheck;
+  uint32_t padding[3];
   // PSInput base, ddx, ....
 };
 
 static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structStride,
                                  VulkanCreationInfo::ShaderModuleReflection &shadRefl,
                                  const uint32_t paramAlign, StorageMode storageMode,
-                                 bool usePrimitiveID, bool useSampleID)
+                                 bool usePrimitiveID, bool useSampleID, bool useViewIndex)
 {
   rdcspv::Editor editor(fragspv);
 
@@ -3182,7 +3184,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     rdcspv::Id base;
     rdcspv::Id type;
     uint32_t member = ~0U;
-  } fragCoord, primitiveID, sampleIndex;
+  } fragCoord, primitiveID, sampleIndex, viewIndex;
 
   // look to see which ones are already provided
   for(size_t i = 0; i < shadRefl.refl->inputSignature.size(); i++)
@@ -3206,6 +3208,14 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     else if(param.systemValue == ShaderBuiltin::MSAASampleIndex)
     {
       access = &sampleIndex;
+
+      access->type = VarTypeCompType(param.varType) == CompType::SInt
+                         ? editor.DeclareType(rdcspv::scalar<int32_t>())
+                         : editor.DeclareType(rdcspv::scalar<uint32_t>());
+    }
+    else if(param.systemValue == ShaderBuiltin::MultiViewIndex)
+    {
+      access = &viewIndex;
 
       access->type = VarTypeCompType(param.varType) == CompType::SInt
                          ? editor.DeclareType(rdcspv::scalar<int32_t>())
@@ -3274,6 +3284,23 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     addedInputs.push_back(sampleIndex.base);
 
     editor.AddCapability(rdcspv::Capability::SampleRateShading);
+  }
+
+  if(viewIndex.base == rdcspv::Id() && useViewIndex)
+  {
+    rdcspv::Id type = editor.DeclareType(rdcspv::scalar<uint32_t>());
+    rdcspv::Id ptrType = editor.DeclareType(rdcspv::Pointer(type, rdcspv::StorageClass::Input));
+
+    viewIndex.base =
+        editor.AddVariable(rdcspv::OpVariable(ptrType, editor.MakeId(), rdcspv::StorageClass::Input));
+    viewIndex.type = type;
+
+    editor.AddDecoration(rdcspv::OpDecorate(
+        viewIndex.base,
+        rdcspv::DecorationParam<rdcspv::Decoration::BuiltIn>(rdcspv::BuiltIn::ViewIndex)));
+    editor.AddDecoration(rdcspv::OpDecorate(viewIndex.base, rdcspv::Decoration::Flat));
+
+    addedInputs.push_back(viewIndex.base);
   }
 
   rdcspv::Id PSInput;
@@ -3381,10 +3408,13 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       uint32Type,
       // uint sample;
       uint32Type,
+      // uint view;
+      uint32Type,
       // uint valid;
       uint32Type,
       // float ddxDerivCheck;
       floatType,
+      // <uint3 padding>
 
       // IN
       PSInput,
@@ -3423,6 +3453,12 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
     editor.AddDecoration(rdcspv::OpMemberDecorate(
         PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
+    editor.SetMemberName(PSHit, member, "view");
+    offs += sizeof(uint32_t);
+    member++;
+
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
     editor.SetMemberName(PSHit, member, "valid");
     offs += sizeof(uint32_t);
     member++;
@@ -3432,6 +3468,9 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     editor.SetMemberName(PSHit, member, "ddxDerivCheck");
     offs += sizeof(uint32_t);
     member++;
+
+    // <uint3 padding>
+    offs += sizeof(uint32_t) * 3;
 
     RDCASSERT((offs % sizeof(Vec4f)) == 0);
     RDCASSERT((structStride % sizeof(Vec4f)) == 0);
@@ -3471,14 +3510,14 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
   editor.AddDecoration(rdcspv::OpDecorate(
       PSHitRTArray, rdcspv::DecorationParam<rdcspv::Decoration::ArrayStride>(structStride * 5 +
-                                                                             sizeof(Vec4f) * 2)));
+                                                                             sizeof(Vec4f) * 3)));
 
   rdcspv::Id bufBase = editor.DeclareStructType({
       // uint hit_count;
       uint32Type,
-      // uint test;
+      // uint total_count;
       uint32Type,
-      // <uint3 padding>
+      // <uint2 padding>
 
       //  PSHit hits[];
       PSHitRTArray,
@@ -3553,6 +3592,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     // add the extension
     editor.AddExtension(storageMode == KHR_bda ? "SPV_KHR_physical_storage_buffer"
                                                : "SPV_EXT_physical_storage_buffer");
+    if(useViewIndex)
+      editor.AddExtension("SPV_KHR_multiview");
 
     // change the memory model to physical storage buffer 64
     rdcspv::Iter it = editor.Begin(rdcspv::Section::MemoryModel);
@@ -3878,12 +3919,44 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
           ops.add(rdcspv::OpAccessChain(uint32BufPtr, editor.MakeId(), hit, {getUIntConst(2)}));
       ops.add(rdcspv::OpStore(storePtr, loaded, alignedAccess));
 
+      if(viewIndex.base != rdcspv::Id())
+      {
+        if(viewIndex.member == ~0U)
+        {
+          loaded = ops.add(rdcspv::OpLoad(viewIndex.type, editor.MakeId(), viewIndex.base));
+        }
+        else
+        {
+          rdcspv::Id inPtrType =
+              editor.DeclareType(rdcspv::Pointer(viewIndex.type, rdcspv::StorageClass::Input));
+
+          rdcspv::Id viewidxptr =
+              ops.add(rdcspv::OpAccessChain(inPtrType, editor.MakeId(), viewIndex.base,
+                                            {editor.AddConstantImmediate(viewIndex.member)}));
+          loaded = ops.add(rdcspv::OpLoad(viewIndex.type, editor.MakeId(), viewidxptr));
+        }
+
+        // if it was loaded as signed int by the shader and not as unsigned by us, bitcast to
+        // unsigned.
+        if(viewIndex.type != uint32Type)
+          loaded = ops.add(rdcspv::OpBitcast(uint32Type, editor.MakeId(), loaded));
+      }
+      else
+      {
+        // explicitly store 0
+        loaded = getUIntConst(0);
+      }
+
       storePtr =
           ops.add(rdcspv::OpAccessChain(uint32BufPtr, editor.MakeId(), hit, {getUIntConst(3)}));
+      ops.add(rdcspv::OpStore(storePtr, loaded, alignedAccess));
+
+      storePtr =
+          ops.add(rdcspv::OpAccessChain(uint32BufPtr, editor.MakeId(), hit, {getUIntConst(4)}));
       ops.add(rdcspv::OpStore(storePtr, editor.AddConstantImmediate(validMagicNumber), alignedAccess));
 
       // store ddx(gl_FragCoord.x) to check that derivatives are working
-      storePtr = ops.add(rdcspv::OpAccessChain(floatBufPtr, editor.MakeId(), hit, {getUIntConst(4)}));
+      storePtr = ops.add(rdcspv::OpAccessChain(floatBufPtr, editor.MakeId(), hit, {getUIntConst(5)}));
       rdcspv::Id fragCoord_ddx_x =
           ops.add(rdcspv::OpCompositeExtract(floatType, editor.MakeId(), fragCoord_ddx, {0}));
       ops.add(rdcspv::OpStore(storePtr, fragCoord_ddx_x, alignedAccess));
@@ -3892,11 +3965,11 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
         rdcspv::Id inputPtrType = editor.DeclareType(rdcspv::Pointer(PSInput, bufferClass));
 
         rdcspv::Id outputPtrs[Variant_Count] = {
-            ops.add(rdcspv::OpAccessChain(inputPtrType, editor.MakeId(), hit, {getUIntConst(5)})),
             ops.add(rdcspv::OpAccessChain(inputPtrType, editor.MakeId(), hit, {getUIntConst(6)})),
             ops.add(rdcspv::OpAccessChain(inputPtrType, editor.MakeId(), hit, {getUIntConst(7)})),
             ops.add(rdcspv::OpAccessChain(inputPtrType, editor.MakeId(), hit, {getUIntConst(8)})),
             ops.add(rdcspv::OpAccessChain(inputPtrType, editor.MakeId(), hit, {getUIntConst(9)})),
+            ops.add(rdcspv::OpAccessChain(inputPtrType, editor.MakeId(), hit, {getUIntConst(10)})),
         };
 
         for(size_t i = 0; i < values.size(); i++)
@@ -4296,6 +4369,73 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     RDCLOG("useSampleID is %u because of bare capability", useSampleID);
   }
 
+  bool useViewIndex = (slice == ~0U) ? false : true;
+  if(useViewIndex)
+  {
+    ResourceId rp = state.GetRenderPass();
+    if(rp != ResourceId())
+    {
+      const VulkanCreationInfo::RenderPass &rpInfo =
+          m_pDriver->GetDebugManager()->GetRenderPassInfo(rp);
+      for(auto it = rpInfo.subpasses.begin(); it != rpInfo.subpasses.end(); ++it)
+      {
+        if(it->multiviews.isEmpty())
+        {
+          if(Vulkan_Debug_ShaderDebugLogging())
+            RDCLOG(
+                "Disabling useViewIndex because at least one subpass does not have multiple views");
+          useViewIndex = false;
+          break;
+        }
+      }
+    }
+    else
+    {
+      useViewIndex = pipe.viewMask != 0;
+      if(!useViewIndex)
+        if(Vulkan_Debug_ShaderDebugLogging())
+          RDCLOG("Disabling useViewIndex because viewMask is zero");
+    }
+  }
+  else
+  {
+    if(Vulkan_Debug_ShaderDebugLogging())
+      RDCLOG("Disabling useViewIndex from input slice %u", slice);
+  }
+  uint32_t viewIndex = ~0U;
+  if(useViewIndex)
+  {
+    // Need to convert the input slice into a viewIndex using the first colour attachment imageView
+    ResourceId rp = state.GetRenderPass();
+    ResourceId viewId;
+    const int colorAttachIndex = 0;
+    if(rp != ResourceId())
+    {
+      const VulkanCreationInfo::RenderPass &rpInfo =
+          m_pDriver->GetDebugManager()->GetRenderPassInfo(rp);
+      const int fbIndex = rpInfo.subpasses[state.subpass].colorAttachments[colorAttachIndex];
+      viewId = state.GetFramebufferAttachments()[fbIndex];
+    }
+    else
+    {
+      viewId = GetResID(state.dynamicRendering.color[colorAttachIndex].imageView);
+    }
+    if(viewId != ResourceId())
+    {
+      const VkImageSubresourceRange &range = c.m_ImageView[viewId].range;
+      if((slice >= range.baseArrayLayer) && (slice < range.baseArrayLayer + range.layerCount))
+        viewIndex = slice - range.baseArrayLayer;
+    }
+    if(viewIndex == ~0U)
+    {
+      useViewIndex = false;
+      if(Vulkan_Debug_ShaderDebugLogging())
+        RDCLOG("Disabling useViewIndex could not map input slice to a viewIndex %u", slice);
+    }
+
+    builtins[ShaderBuiltin::MultiViewIndex] = ShaderVariable(rdcstr(), viewIndex, 0U, 0U, 0U);
+  }
+
   StorageMode storageMode = Binding;
 
   if(m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address)
@@ -4345,7 +4485,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   uint32_t structStride = 0;
   CreatePSInputFetcher(fragspv, structStride, shadRefl, paramAlign, storageMode, usePrimitiveID,
-                       useSampleID);
+                       useSampleID, useViewIndex);
 
   if(!Vulkan_Debug_PSDebugDumpDirPath().empty())
     FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath() + "/debug_psinput_after.spv", fragspv);
@@ -4480,8 +4620,8 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   }
 
   // create fragment shader with modified code
-  VkShaderModuleCreateInfo moduleCreateInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
 
+  VkShaderModuleCreateInfo moduleCreateInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
   VkSpecializationMapEntry specMaps[] = {
       {
           (uint32_t)InputSpecConstant::Address,
@@ -4713,6 +4853,13 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     {
       RDCWARN("Hit %u doesn't have valid derivatives", i);
       continue;
+    }
+
+    // if we're looking for a specific view, ignore hits from the wrong view
+    if(useViewIndex)
+    {
+      if(hit->view != viewIndex)
+        continue;
     }
 
     // see if this hit is a closer match than the previous winner.
