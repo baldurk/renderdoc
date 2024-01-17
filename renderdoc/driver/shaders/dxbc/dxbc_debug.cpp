@@ -5198,6 +5198,11 @@ void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
       }
     }
 
+    if(sig.semanticIndex != 0)
+    {
+      psInputDefinition += ToStr(sig.semanticIndex);
+    }
+
     psInputDefinition += ";\n";
 
     int firstElem = sig.regChannelMask & 0x1   ? 0
