@@ -659,6 +659,8 @@ void PixelHistoryView::updateWindowTitle()
   if(tex->msSamp > 1)
     title += tr(" @ Sample %1").arg(m_Display.subresource.sample);
 
+  if(tex->arraysize > 0)
+    title += tr(" @ Slice %1").arg(m_Display.subresource.slice);
   setWindowTitle(title);
 }
 
