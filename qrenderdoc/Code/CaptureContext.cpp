@@ -2620,9 +2620,9 @@ IBufferViewer *CaptureContext::ViewConstantBuffer(ShaderStage stage, uint32_t sl
 }
 
 IPixelHistoryView *CaptureContext::ViewPixelHistory(ResourceId texID, uint32_t x, uint32_t y,
-                                                    const TextureDisplay &display)
+                                                    uint32_t view, const TextureDisplay &display)
 {
-  return new PixelHistoryView(*this, texID, QPoint(x, y), display, m_MainWindow);
+  return new PixelHistoryView(*this, texID, QPoint(x, y), view, display, m_MainWindow);
 }
 
 QWidget *CaptureContext::CreateBuiltinWindow(const rdcstr &objectName)

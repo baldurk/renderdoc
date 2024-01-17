@@ -593,7 +593,7 @@ private:
   }
 };
 
-PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint point,
+PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint point, uint32_t view,
                                    const TextureDisplay &display, QWidget *parent)
     : QFrame(parent), ui(new Ui::PixelHistoryView), m_Ctx(ctx)
 {
@@ -604,6 +604,7 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
   m_Pixel = point;
   m_Display = display;
   m_ID = id;
+  m_View = view;
 
   updateWindowTitle();
 
@@ -752,6 +753,7 @@ void PixelHistoryView::startDebug(EventTag tag)
     DebugPixelInputs inputs;
     inputs.sample = m_Display.subresource.sample;
     inputs.primitive = tag.primitive;
+    inputs.view = m_View;
     trace = r->DebugPixel((uint32_t)m_Pixel.x(), (uint32_t)m_Pixel.y(), inputs);
 
     if(trace->debugger == NULL)

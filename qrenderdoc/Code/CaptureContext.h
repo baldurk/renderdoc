@@ -269,7 +269,7 @@ public:
                                      const rdcstr &format = "") override;
 
   IBufferViewer *ViewConstantBuffer(ShaderStage stage, uint32_t slot, uint32_t idx) override;
-  IPixelHistoryView *ViewPixelHistory(ResourceId texID, uint32_t x, uint32_t y,
+  IPixelHistoryView *ViewPixelHistory(ResourceId texID, uint32_t x, uint32_t y, uint32_t view,
                                       const TextureDisplay &display) override;
 
   QWidget *CreateBuiltinWindow(const rdcstr &objectName) override;

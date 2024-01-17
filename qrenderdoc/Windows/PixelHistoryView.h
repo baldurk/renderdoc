@@ -40,7 +40,7 @@ class PixelHistoryView : public QFrame, public IPixelHistoryView, public ICaptur
   Q_OBJECT
 
 public:
-  explicit PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint point,
+  explicit PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint point, uint32_t view,
                             const TextureDisplay &display, QWidget *parent = 0);
   ~PixelHistoryView();
 
@@ -74,6 +74,7 @@ private:
   ResourceId m_ID;
   TextureDisplay m_Display;
   QPoint m_Pixel;
+  uint32_t m_View;
   PixelHistoryItemModel *m_Model;
   bool m_ShowFailures = true;
   void startDebug(EventTag tag);
