@@ -4098,7 +4098,8 @@ void TextureViewer::on_debugPixelContext_clicked()
   ShaderDebugTrace *trace = NULL;
 
   m_Ctx.Replay().AsyncInvoke([this, &trace, &done, x, y](IReplayController *r) {
-    trace = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.subresource.sample, ~0U);
+    trace = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.subresource.sample, ~0U,
+                          m_TexDisplay.subresource.slice, ~0U);
 
     if(trace->debugger == NULL)
     {

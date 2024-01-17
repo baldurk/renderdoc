@@ -747,8 +747,8 @@ void PixelHistoryView::startDebug(EventTag tag)
   ShaderDebugTrace *trace = NULL;
 
   m_Ctx.Replay().AsyncInvoke([this, &trace, &done, tag](IReplayController *r) {
-    trace = r->DebugPixel((uint32_t)m_Pixel.x(), (uint32_t)m_Pixel.y(),
-                          m_Display.subresource.sample, tag.primitive);
+    trace = r->DebugPixel((uint32_t)m_Pixel.x(), (uint32_t)m_Pixel.y(), m_Display.subresource.sample,
+                          tag.primitive, m_Display.subresource.slice, ~0U);
 
     if(trace->debugger == NULL)
     {

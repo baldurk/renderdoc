@@ -30,7 +30,10 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                     y = 4 * child + 1
 
                     # Debug the shader
-                    trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, rd.ReplayController.NoPreference,
+                    trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, 
+                                                                            rd.ReplayController.NoPreference,
+                                                                            rd.ReplayController.NoPreference,
+                                                                            rd.ReplayController.NoPreference,
                                                                             rd.ReplayController.NoPreference)
 
                     if trace.debugger is None:

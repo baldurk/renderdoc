@@ -32,6 +32,8 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
             trace: rd.ShaderDebugTrace = self.controller.DebugPixel(int(pipe.GetViewport(0).width / 2.0),
                                                                     int(pipe.GetViewport(0).height / 2.0),
                                                                     rd.ReplayController.NoPreference,
+                                                                    rd.ReplayController.NoPreference,
+                                                                    rd.ReplayController.NoPreference,
                                                                     rd.ReplayController.NoPreference)
 
             debugVars = dict()

@@ -970,12 +970,14 @@ bucket when the pixel values are divided between ``minval`` and ``maxval``.
 :param int sample: The multi-sampled sample. Ignored if non-multisampled texture.
 :param int primitive: Debug the pixel from this primitive if there's ambiguity. If set to
   :data:`NoPreference` then a random fragment writing to the given co-ordinate is debugged.
+:param int slice: Debug the pixel writing to this slice for layered or multiview rendering, ignored if set to :data:`NoPreference`.
+:param int instid: Not currently supported.
 :return: The resulting trace resulting from debugging. Destroy with
   :meth:`FreeTrace`.
 :rtype: ShaderDebugTrace
 )");
-  virtual ShaderDebugTrace *DebugPixel(uint32_t x, uint32_t y, uint32_t sample,
-                                       uint32_t primitive) = 0;
+  virtual ShaderDebugTrace *DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive,
+                                       uint32_t slice, uint32_t instid) = 0;
 
   DOCUMENT(R"(Retrieve a debugging trace from running a compute thread.
 

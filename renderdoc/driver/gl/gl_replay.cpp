@@ -3795,7 +3795,7 @@ ShaderDebugTrace *GLReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint3
 }
 
 ShaderDebugTrace *GLReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                                       uint32_t primitive)
+                                       uint32_t primitive, uint32_t slice, uint32_t instid)
 {
   GLNOTIMP("DebugPixel");
   return new ShaderDebugTrace();

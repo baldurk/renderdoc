@@ -48,7 +48,10 @@ class D3D12_Vertex_UAV(rdtest.TestCase):
                     continue
 
                 # Debug the shader
-                trace = self.controller.DebugPixel(50, 50, rd.ReplayController.NoPreference,
+                trace = self.controller.DebugPixel(50, 50, 
+                                                   rd.ReplayController.NoPreference,
+                                                   rd.ReplayController.NoPreference,
+                                                   rd.ReplayController.NoPreference,
                                                    rd.ReplayController.NoPreference)
                 if trace.debugger is None:
                     raise rdtest.TestFailureException("Pixel shader at {} could not be debugged.".format(name))

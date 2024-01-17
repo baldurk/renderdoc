@@ -342,8 +342,8 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
           trace = r->DebugVertex(msg.location.vertex.vertexIndex, msg.location.vertex.instance,
                                  msg.location.vertex.vertexIndex, msg.location.vertex.view);
         else if(msg.stage == ShaderStage::Pixel)
-          trace = r->DebugPixel(msg.location.pixel.x, msg.location.pixel.y,
-                                msg.location.pixel.sample, msg.location.pixel.primitive);
+          trace = r->DebugPixel(msg.location.pixel.x, msg.location.pixel.y, msg.location.pixel.sample,
+                                msg.location.pixel.primitive, msg.location.pixel.view, ~0U);
 
         if(trace && trace->debugger == NULL)
         {

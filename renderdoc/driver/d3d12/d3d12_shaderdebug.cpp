@@ -1892,7 +1892,7 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
 }
 
 ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                                          uint32_t primitive)
+                                          uint32_t primitive, uint32_t slice, uint32_t instid)
 {
   using namespace DXBC;
   using namespace DXBCBytecode;
