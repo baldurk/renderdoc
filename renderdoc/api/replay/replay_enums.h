@@ -481,7 +481,7 @@ DOCUMENT(R"(A texture addressing mode in a single direction (U,V or W).
   The texture is clamped such that texture co-ordinates outside the range of ``[0.0, 1.0]`` are set
   to the border color specified in the sampler.
 )");
-enum class AddressMode : uint32_t
+enum class AddressMode : uint8_t
 {
   Wrap,
   Repeat = Wrap,
@@ -517,7 +517,7 @@ DOCUMENT(R"(The color model conversion that a YCbCr sampler uses to convert from
 
   The conversion uses the BT.2020 color model conversion.
 )");
-enum class YcbcrConversion
+enum class YcbcrConversion : uint8_t
 {
   Raw,
   RangeOnly,
@@ -539,7 +539,7 @@ DOCUMENT(R"(Specifies the range of encoded values and their interpretation.
   A head and foot are reserved in the encoded values, and the remaining values are expanded
   according to "narrow range" rules.
 )");
-enum class YcbcrRange
+enum class YcbcrRange : uint8_t
 {
   ITUFull,
   ITUNarrow,
@@ -558,7 +558,7 @@ DOCUMENT(R"(Determines where in the pixel downsampled chrome samples are positio
   The chrome samples are positioned half way between each even luma sample and the next highest odd
   luma sample.
 )");
-enum class ChromaSampleLocation
+enum class ChromaSampleLocation : uint8_t
 {
   CositedEven,
   Midpoint,
@@ -744,7 +744,7 @@ DOCUMENT(R"(The dimensionality of a texture binding.
 
   A Cubemap texture array.
 )");
-enum class TextureType : uint16_t
+enum class TextureType : uint8_t
 {
   Unknown,
   First = Unknown,
@@ -837,6 +837,65 @@ enum class BindType : uint32_t
 };
 
 DECLARE_REFLECTION_ENUM(BindType);
+
+DOCUMENT(R"(The type of a descriptor.
+
+.. data:: Unknown
+
+  An unknown or uninitialised type of descriptor.
+
+.. data:: ConstantBuffer
+
+  A constant or uniform buffer.
+
+.. data:: Sampler
+
+  A separate sampler object.
+
+.. data:: ImageSampler
+
+  A combined image and sampler object.
+
+.. data:: Image
+
+  An image that can only be sampled from.
+
+.. data:: Buffer
+
+  A buffer that can only be read from, with data read literally in a shader via raw or structured
+  access.
+
+.. data:: TypedBuffer
+
+  A typed buffer that can only be read from, interpreting each element via a format decode.
+
+.. data:: ReadWriteImage
+
+  An image that can be read from and written to arbitrarily.
+
+.. data:: ReadWriteTypedBuffer
+
+  A typed/texture buffer that can be read from and written to arbitrarily.
+
+.. data:: ReadWriteBuffer
+
+  A buffer that can be read from and written to arbitrarily.
+)");
+enum class DescriptorType : uint8_t
+{
+  Unknown = 0,
+  ConstantBuffer,
+  Sampler,
+  ImageSampler,
+  Image,
+  Buffer,
+  TypedBuffer,
+  ReadWriteImage,
+  ReadWriteTypedBuffer,
+  ReadWriteBuffer,
+};
+
+DECLARE_REFLECTION_ENUM(DescriptorType);
 
 DOCUMENT3(R"(Annotates a particular built-in input or output from a shader with a special meaning to
 the hardware or API.
@@ -3149,7 +3208,7 @@ between mips).
 
   This sampler is using anisotropic filtering.
 )");
-enum class FilterMode : uint32_t
+enum class FilterMode : uint8_t
 {
   NoFilter,
   Point,
@@ -3185,7 +3244,7 @@ DOCUMENT(R"(The function used to process the returned value after interpolation.
 
   Texels that were weight to 0 during interpolation are not included in the max function.
 )");
-enum class FilterFunction : uint32_t
+enum class FilterFunction : uint8_t
 {
   Normal,
   Comparison,
@@ -3230,7 +3289,7 @@ DOCUMENT(R"(A comparison function to return a ``bool`` result from two inputs ``
   ``A != B``
 
 )");
-enum class CompareFunction : uint32_t
+enum class CompareFunction : uint8_t
 {
   Never,
   AlwaysTrue,
@@ -4453,6 +4512,54 @@ enum class D3DBufferViewFlags : uint8_t
 
 BITMASK_OPERATORS(D3DBufferViewFlags);
 DECLARE_REFLECTION_ENUM(D3DBufferViewFlags);
+
+DOCUMENT(R"(A set of flags for descriptor properties.
+
+.. data:: NoFlags
+
+  The buffer will not be used for any of the uses below.
+
+.. data:: Raw
+
+  On D3D, a buffer is used as a raw (byte-addressed) buffer.
+
+.. data:: Append
+
+  On D3D, a buffer is used as a append/consume view.
+
+.. data:: Counter
+
+  On D3D, a buffer is used with a structured buffer with associated hidden counter.
+
+.. data:: ReadOnlyAccess
+
+  On GL, a storage image or buffer is bound with read-only access.
+
+.. data:: WriteOnlyAccess
+
+  On GL, a storage image or buffer is bound with write-only access.
+
+.. data:: InlineData
+
+  This descriptor isn't backed by an explicit buffer in the API (though a resource may be provided
+  for data query purposes during replay), but instead by some virtual or in-line data. For example
+  in-line constants set directly, or compile/creation time constants.
+
+  The exact nature can be determined by the shader reflection data.
+)");
+enum class DescriptorFlags : uint8_t
+{
+  NoFlags = 0x0,
+  RawBuffer = 0x1,
+  AppendBuffer = 0x2,
+  CounterBuffer = 0x4,
+  ReadOnlyAccess = 0x8,
+  WriteOnlyAccess = 0x10,
+  InlineData = 0x20,
+};
+
+BITMASK_OPERATORS(DescriptorFlags);
+DECLARE_REFLECTION_ENUM(DescriptorFlags);
 
 DOCUMENT(R"(A set of flags describing how this texture may be used
 

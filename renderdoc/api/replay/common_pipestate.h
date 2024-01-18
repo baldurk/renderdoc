@@ -395,6 +395,357 @@ struct BoundVBuffer
 
 DECLARE_REFLECTION_STRUCT(BoundVBuffer);
 
+DOCUMENT(R"(The contents of a descriptor. Not all contents will be valid depending on API and
+descriptor type, others will be set to sensible defaults.
+
+For sampler descriptors, the sampler-specific data can be queried separately and returned as
+:class:`SamplerDescriptor` for sampler types.
+)");
+struct Descriptor
+{
+  DOCUMENT("");
+  Descriptor() = default;
+  Descriptor(const Descriptor &) = default;
+  Descriptor &operator=(const Descriptor &) = default;
+
+  bool operator==(const Descriptor &o) const
+  {
+    return type == o.type && flags == o.flags && format == o.format && resource == o.resource &&
+           secondary == o.secondary && view == o.view && byteOffset == o.byteOffset &&
+           byteSize == o.byteSize && counterByteOffset == o.counterByteOffset &&
+           bufferStructCount == o.bufferStructCount && elementByteSize == o.elementByteSize &&
+           firstSlice == o.firstSlice && numSlices == o.numSlices && firstMip == o.firstMip &&
+           numMips == o.numMips && swizzle == o.swizzle && textureType == o.textureType;
+  }
+  bool operator<(const Descriptor &o) const
+  {
+    if(type != o.type)
+      return type < o.type;
+    if(flags != o.flags)
+      return flags < o.flags;
+    if(format != o.format)
+      return format < o.format;
+    if(resource != o.resource)
+      return resource < o.resource;
+    if(secondary != o.secondary)
+      return secondary < o.secondary;
+    if(view != o.view)
+      return view < o.view;
+    if(byteOffset != o.byteOffset)
+      return byteOffset < o.byteOffset;
+    if(byteSize != o.byteSize)
+      return byteSize < o.byteSize;
+    if(counterByteOffset != o.counterByteOffset)
+      return counterByteOffset < o.counterByteOffset;
+    if(bufferStructCount != o.bufferStructCount)
+      return bufferStructCount < o.bufferStructCount;
+    if(elementByteSize != o.elementByteSize)
+      return elementByteSize < o.elementByteSize;
+    if(firstSlice != o.firstSlice)
+      return firstSlice < o.firstSlice;
+    if(numSlices != o.numSlices)
+      return numSlices < o.numSlices;
+    if(firstMip != o.firstMip)
+      return firstMip < o.firstMip;
+    if(numMips != o.numMips)
+      return numMips < o.numMips;
+    if(!(swizzle == o.swizzle))
+      return swizzle < o.swizzle;
+    if(textureType != o.textureType)
+      return textureType < o.textureType;
+    return false;
+  }
+
+  DOCUMENT(R"(The type of this descriptor as a general category.
+
+:type: DescriptorType
+)");
+  DescriptorType type = DescriptorType::Unknown;
+
+  DOCUMENT(R"(The flags for additional API-specific and generally non-semantically impactful
+properties.
+
+:type: DescriptorFlags
+)");
+  DescriptorFlags flags = DescriptorFlags::NoFlags;
+
+  DOCUMENT(R"(The format cast that the view uses, for typed buffer and image descriptors.
+
+:type: ResourceFormat
+)");
+  ResourceFormat format;
+
+  DOCUMENT(R"(The primary bound resource at this descriptor, either a buffer or an image resource.
+
+Note that sampler descriptors will not be listed here, see :data:`secondary`.
+
+:type: ResourceId
+)");
+  ResourceId resource;
+
+  DOCUMENT(R"(The secondary bound resource at this descriptor.
+
+For any descriptor containing a sampler, this will be the sampler. For buffer descriptors with an
+associated counter buffer this will be the counter buffer.
+
+:type: ResourceId
+)");
+  ResourceId secondary;
+
+  DOCUMENT(R"(The view object used to create this descriptor, which formats or subsets the
+bound resource referenced by :data:`resource`.
+
+:type: ResourceId
+)");
+  ResourceId view;
+
+  DOCUMENT(R"(For any kind of buffer descriptor, the base byte offset within the resource where the
+referenced range by the descriptor begins.
+
+:type: int
+)");
+  uint64_t byteOffset = 0;
+
+  DOCUMENT(R"(For any kind of buffer descriptor, the number of bytes in the range covered by the
+descriptor.
+
+:type: int
+)");
+  uint64_t byteSize = 0;
+
+  DOCUMENT(R"(The byte offset in :data:`secondary` where the counter is stored, for buffer
+descriptors with a secondary counter.
+
+:type: int
+)");
+  uint32_t counterByteOffset = 0;
+
+  DOCUMENT(R"(If the view has a hidden counter, this stores the current value of the counter.
+
+:type: int
+)");
+  uint32_t bufferStructCount = 0;
+
+  DOCUMENT(R"(The byte size of a single element in the view. Either the byte size of
+:data:`viewFormat`, or the structured buffer element size, as appropriate.
+
+:type: int
+)");
+  uint32_t elementByteSize = 0;
+
+  DOCUMENT(R"(The clamp applied to the minimum LOD by the resource view, separate and in addition to
+any clamp by a sampler used.
+
+:type: float
+)");
+  float minLODClamp = 0.0f;
+
+  DOCUMENT(R"(For texture descriptors, the first slice in a 3D or array texture which is visible
+to the descriptor
+
+:type: int
+)");
+  uint16_t firstSlice = 0;
+  DOCUMENT(R"(For texture descriptors, the number of slices in a 3D or array texture which are visible
+to the descriptor
+
+:type: int
+)");
+  uint16_t numSlices = 1;
+
+  DOCUMENT(R"(For texture descriptors, the first mip in the texture which is visible to the
+descriptor
+
+:type: int
+)");
+  uint8_t firstMip = 0;
+
+  DOCUMENT(R"(For texture descriptors, the number of mips in the texture which are visible to the
+descriptor
+
+:type: int
+)");
+  uint8_t numMips = 1;
+
+  DOCUMENT(R"(The swizzle applied to texture descriptors.
+
+:type: TextureSwizzle4
+)");
+  TextureSwizzle4 swizzle;
+
+  DOCUMENT(R"(The specific type of a texture descriptor.
+
+:type: TextureType
+)");
+  TextureType textureType = TextureType::Unknown;
+};
+
+DECLARE_REFLECTION_STRUCT(Descriptor);
+
+DOCUMENT(R"(The contents of a sampler descriptor. Not all contents will be valid depending on API
+and capabilities, others will be set to sensible defaults.
+
+For normal descriptors, the resource data should be queried and returned in :class:`Descriptor`.
+)");
+struct SamplerDescriptor
+{
+  DOCUMENT("");
+  SamplerDescriptor() = default;
+  SamplerDescriptor(const SamplerDescriptor &) = default;
+  SamplerDescriptor &operator=(const SamplerDescriptor &) = default;
+
+  bool operator==(const SamplerDescriptor &o) const
+  {
+    return type == o.type && object == o.object && addressU == o.addressU && addressV == o.addressV &&
+           addressW == o.addressW && compareFunction == o.compareFunction && filter == o.filter &&
+           maxAnisotropy == o.maxAnisotropy && maxLOD == o.maxLOD && minLOD == o.minLOD &&
+           mipBias == o.mipBias && borderColorValue.uintValue == o.borderColorValue.uintValue &&
+           borderColorType == o.borderColorType && srgbBorder == o.srgbBorder &&
+           seamlessCubemaps == o.seamlessCubemaps && unnormalized == o.unnormalized;
+  }
+  bool operator<(const SamplerDescriptor &o) const
+  {
+    if(!(type == o.type))
+      return type < o.type;
+    if(!(object == o.object))
+      return object < o.object;
+    if(!(addressU == o.addressU))
+      return addressU < o.addressU;
+    if(!(addressV == o.addressV))
+      return addressV < o.addressV;
+    if(!(addressW == o.addressW))
+      return addressW < o.addressW;
+    if(!(compareFunction == o.compareFunction))
+      return compareFunction < o.compareFunction;
+    if(!(filter == o.filter))
+      return filter < o.filter;
+    if(!(maxAnisotropy == o.maxAnisotropy))
+      return maxAnisotropy < o.maxAnisotropy;
+    if(!(maxLOD == o.maxLOD))
+      return maxLOD < o.maxLOD;
+    if(!(minLOD == o.minLOD))
+      return minLOD < o.minLOD;
+    if(!(mipBias == o.mipBias))
+      return mipBias < o.mipBias;
+    if(!(borderColorValue.uintValue == o.borderColorValue.uintValue))
+      return borderColorValue.uintValue < o.borderColorValue.uintValue;
+    if(!(borderColorType == o.borderColorType))
+      return borderColorType < o.borderColorType;
+    if(!(srgbBorder == o.srgbBorder))
+      return srgbBorder < o.srgbBorder;
+    if(!(seamlessCubemaps == o.seamlessCubemaps))
+      return seamlessCubemaps < o.seamlessCubemaps;
+    if(!(unnormalized == o.unnormalized))
+      return unnormalized < o.unnormalized;
+    return false;
+  }
+
+  DOCUMENT(R"(For APIs where samplers are an explicit object, the :class:`ResourceId` of the sampler
+itself
+
+:type: ResourceId
+)");
+  ResourceId object;
+
+  DOCUMENT(R"(The type of this descriptor as a general category.
+
+If this is not set to :data:`DescriptorType.Sampler` or :data:`DescriptorType.ImageSampler` the rest
+of the contents of this structure are not valid as the descriptor is not a sampler descriptor.
+
+:type: DescriptorType
+)");
+  DescriptorType type = DescriptorType::Unknown;
+
+  DOCUMENT("The :class:`AddressMode` in the U direction.");
+  AddressMode addressU = AddressMode::Wrap;
+  DOCUMENT("The :class:`AddressMode` in the V direction.");
+  AddressMode addressV = AddressMode::Wrap;
+  DOCUMENT("The :class:`AddressMode` in the W direction.");
+  AddressMode addressW = AddressMode::Wrap;
+  DOCUMENT("The :class:`CompareFunction` for comparison samplers.");
+  CompareFunction compareFunction = CompareFunction::AlwaysTrue;
+
+  DOCUMENT(R"(The filtering mode.
+
+:type: TextureFilter
+)");
+  TextureFilter filter;
+  DOCUMENT("``True`` if the border colour is swizzled with an sRGB formatted image.");
+  bool srgbBorder = false;
+  DOCUMENT("``True`` if this sampler is seamless across cubemap boundaries (the default).");
+  bool seamlessCubemaps = true;
+  DOCUMENT("``True`` if unnormalized co-ordinates are used in this sampler.");
+  bool unnormalized = false;
+
+  DOCUMENT("The maximum anisotropic filtering level to use.");
+  float maxAnisotropy = 0;
+  DOCUMENT("The maximum mip level that can be used.");
+  float maxLOD = 0.0f;
+  DOCUMENT("The minimum mip level that can be used.");
+  float minLOD = 0.0f;
+  DOCUMENT("A bias to apply to the calculated mip level before sampling.");
+  float mipBias = 0.0f;
+
+  DOCUMENT(R"(The RGBA border color value. Typically the float tuple inside will be used,
+but the exact component type can be checked with :data:`borderColorType`.
+
+:type: PixelValue
+)");
+  PixelValue borderColorValue = {};
+  DOCUMENT(R"(The RGBA border color type. This determines how the data in
+:data:`borderColorValue` will be interpreted.
+
+:type: CompType
+)");
+  CompType borderColorType = CompType::Float;
+  DOCUMENT(R"(The swizzle applied. Primarily for ycbcr samplers applied before
+conversion but for non-ycbcr samplers can be used for implementations that require sampler swizzle
+information for border colors.
+
+:type: TextureSwizzle4
+)");
+  TextureSwizzle4 swizzle;
+
+  DOCUMENT("For ycbcr samplers - the :class:`YcbcrConversion` used for conversion.");
+  YcbcrConversion ycbcrModel;
+  DOCUMENT("For ycbcr samplers - the :class:`YcbcrRange` used for conversion.");
+  YcbcrRange ycbcrRange;
+  DOCUMENT("For ycbcr samplers - the :class:`ChromaSampleLocation` X-axis chroma offset.");
+  ChromaSampleLocation xChromaOffset;
+  DOCUMENT("For ycbcr samplers - the :class:`ChromaSampleLocation` Y-axis chroma offset.");
+  ChromaSampleLocation yChromaOffset;
+  DOCUMENT("For ycbcr samplers - the :class:`FilterMode` describing the chroma filtering mode.");
+  FilterMode chromaFilter;
+  DOCUMENT("For ycbcr samplers - ``True`` if explicit reconstruction is force enabled.");
+  bool forceExplicitReconstruction = false;
+
+  DOCUMENT(R"(``True`` if this sampler was initialised at creation time for a pipeline or
+descriptor layout, the method being API specific. If so this sampler is not dynamic and was not
+explicitly set and may have no real descriptor storage.
+
+:type: bool
+)");
+  bool creationTimeConstant = false;
+
+  DOCUMENT(R"(The :class:`ResourceId` of the ycbcr conversion object associated with
+this sampler.
+)");
+  ResourceId ycbcrSampler;
+
+  DOCUMENT(R"(Check if the border color is used in this D3D11 sampler.
+
+:return: ``True`` if the border color is used, ``False`` otherwise.
+:rtype: bool
+)");
+  bool UseBorder() const
+  {
+    return addressU == AddressMode::ClampBorder || addressV == AddressMode::ClampBorder ||
+           addressW == AddressMode::ClampBorder;
+  }
+};
+
+DECLARE_REFLECTION_STRUCT(SamplerDescriptor);
+
 DOCUMENT("Information about a single constant buffer binding.");
 struct BoundCBuffer
 {

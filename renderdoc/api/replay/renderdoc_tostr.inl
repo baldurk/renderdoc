@@ -721,6 +721,24 @@ rdcstr DoStringise(const BindType &el)
 }
 
 template <>
+rdcstr DoStringise(const DescriptorType &el)
+{
+  BEGIN_ENUM_STRINGISE(DescriptorType)
+  {
+    STRINGISE_ENUM_CLASS_NAMED(Unknown, "Unknown");
+    STRINGISE_ENUM_CLASS_NAMED(ConstantBuffer, "Constant Buffer");
+    STRINGISE_ENUM_CLASS_NAMED(Sampler, "Sampler");
+    STRINGISE_ENUM_CLASS_NAMED(ImageSampler, "Image&Sampler");
+    STRINGISE_ENUM_CLASS_NAMED(Image, "Image");
+    STRINGISE_ENUM_CLASS_NAMED(TypedBuffer, "TypedBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(ReadWriteImage, "RW Image");
+    STRINGISE_ENUM_CLASS_NAMED(ReadWriteTypedBuffer, "RW TypedBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(ReadWriteBuffer, "RW Buffer");
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const MessageSource &el)
 {
   BEGIN_ENUM_STRINGISE(MessageSource)
@@ -1115,6 +1133,23 @@ rdcstr DoStringise(const D3DBufferViewFlags &el)
     STRINGISE_BITFIELD_CLASS_BIT(Raw);
     STRINGISE_BITFIELD_CLASS_BIT(Append);
     STRINGISE_BITFIELD_CLASS_BIT(Counter);
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <>
+rdcstr DoStringise(const DescriptorFlags &el)
+{
+  BEGIN_BITFIELD_STRINGISE(DescriptorFlags);
+  {
+    STRINGISE_BITFIELD_CLASS_VALUE_NAMED(NoFlags, "");
+
+    STRINGISE_BITFIELD_CLASS_BIT(RawBuffer);
+    STRINGISE_BITFIELD_CLASS_BIT(AppendBuffer);
+    STRINGISE_BITFIELD_CLASS_BIT(CounterBuffer);
+    STRINGISE_BITFIELD_CLASS_BIT(ReadOnlyAccess);
+    STRINGISE_BITFIELD_CLASS_BIT(WriteOnlyAccess);
+    STRINGISE_BITFIELD_CLASS_BIT(InlineData);
   }
   END_BITFIELD_STRINGISE();
 }
