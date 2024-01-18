@@ -319,6 +319,7 @@
     <ClCompile Include="vk\vk_mesh_zoo.cpp" />
     <ClCompile Include="vk\vk_multi_entry.cpp" />
     <ClCompile Include="vk\vk_multi_present.cpp" />
+    <ClCompile Include="vk\vk_multi_view.cpp" />
     <ClCompile Include="vk\vk_parameter_zoo.cpp" />
     <ClCompile Include="vk\vk_imageless_framebuffer.cpp" />
     <ClCompile Include="vk\vk_image_layouts.cpp" />
