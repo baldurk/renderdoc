@@ -135,6 +135,7 @@ set(VULKAN_SRC
         vk/vk_multi_entry.cpp
         vk/vk_multi_present.cpp
         vk/vk_multi_thread_windows.cpp
+        vk/vk_multi_view.cpp
         vk/vk_overlay_test.cpp
         vk/vk_parameter_zoo.cpp
         vk/vk_pixel_history.cpp
