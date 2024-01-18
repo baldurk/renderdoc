@@ -97,6 +97,9 @@ rdcstr DoStringise(const ReplayProxyPacket &el)
 
     STRINGISE_ENUM_NAMED(eReplayProxy_ContinueDebug, "ContinueDebug");
     STRINGISE_ENUM_NAMED(eReplayProxy_FreeDebugger, "FreeDebugger");
+
+    STRINGISE_ENUM_NAMED(eReplayProxy_GetDescriptors, "GetDescriptors");
+    STRINGISE_ENUM_NAMED(eReplayProxy_GetSamplerDescriptors, "GetSamplerDescriptors");
   }
   END_ENUM_STRINGISE();
 }
@@ -1837,6 +1840,73 @@ void ReplayProxy::SavePipelineState(uint32_t eventId)
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
+rdcarray<Descriptor> ReplayProxy::Proxied_GetDescriptors(ParamSerialiser &paramser,
+                                                         ReturnSerialiser &retser,
+                                                         ResourceId descriptorStore,
+                                                         const rdcarray<DescriptorRange> &ranges)
+{
+  const ReplayProxyPacket expectedPacket = eReplayProxy_GetDescriptors;
+  ReplayProxyPacket packet = eReplayProxy_GetDescriptors;
+  rdcarray<Descriptor> ret;
+
+  {
+    BEGIN_PARAMS();
+    SERIALISE_ELEMENT(descriptorStore);
+    SERIALISE_ELEMENT(ranges);
+    END_PARAMS();
+  }
+
+  {
+    REMOTE_EXECUTION();
+    if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
+      ret = m_Remote->GetDescriptors(descriptorStore, ranges);
+  }
+
+  SERIALISE_RETURN(ret);
+
+  return ret;
+}
+
+rdcarray<Descriptor> ReplayProxy::GetDescriptors(ResourceId descriptorStore,
+                                                 const rdcarray<DescriptorRange> &ranges)
+{
+  PROXY_FUNCTION(GetDescriptors, descriptorStore, ranges);
+}
+
+template <typename ParamSerialiser, typename ReturnSerialiser>
+rdcarray<SamplerDescriptor> ReplayProxy::Proxied_GetSamplerDescriptors(
+    ParamSerialiser &paramser, ReturnSerialiser &retser, ResourceId descriptorStore,
+    const rdcarray<DescriptorRange> &ranges)
+{
+  const ReplayProxyPacket expectedPacket = eReplayProxy_GetSamplerDescriptors;
+  ReplayProxyPacket packet = eReplayProxy_GetSamplerDescriptors;
+  rdcarray<SamplerDescriptor> ret;
+
+  {
+    BEGIN_PARAMS();
+    SERIALISE_ELEMENT(descriptorStore);
+    SERIALISE_ELEMENT(ranges);
+    END_PARAMS();
+  }
+
+  {
+    REMOTE_EXECUTION();
+    if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
+      ret = m_Remote->GetSamplerDescriptors(descriptorStore, ranges);
+  }
+
+  SERIALISE_RETURN(ret);
+
+  return ret;
+}
+
+rdcarray<SamplerDescriptor> ReplayProxy::GetSamplerDescriptors(ResourceId descriptorStore,
+                                                               const rdcarray<DescriptorRange> &ranges)
+{
+  PROXY_FUNCTION(GetSamplerDescriptors, descriptorStore, ranges);
+}
+
+template <typename ParamSerialiser, typename ReturnSerialiser>
 void ReplayProxy::Proxied_ReplayLog(ParamSerialiser &paramser, ReturnSerialiser &retser,
                                     uint32_t endEventID, ReplayLogType replayType)
 {
@@ -2906,6 +2976,8 @@ bool ReplayProxy::Tick(int type)
       break;
     }
     case eReplayProxy_SavePipelineState: SavePipelineState(0); break;
+    case eReplayProxy_GetDescriptors: GetDescriptors(ResourceId(), {}); break;
+    case eReplayProxy_GetSamplerDescriptors: GetSamplerDescriptors(ResourceId(), {}); break;
     case eReplayProxy_GetUsage: GetUsage(ResourceId()); break;
     case eReplayProxy_GetLiveID: GetLiveID(ResourceId()); break;
     case eReplayProxy_GetFrameRecord: GetFrameRecord(); break;

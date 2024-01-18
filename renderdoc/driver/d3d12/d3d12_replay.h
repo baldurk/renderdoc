@@ -138,6 +138,10 @@ public:
     m_D3D12PipelineState = d3d12;
   }
   void SavePipelineState(uint32_t eventId);
+  rdcarray<Descriptor> GetDescriptors(ResourceId descriptorStore,
+                                      const rdcarray<DescriptorRange> &ranges);
+  rdcarray<SamplerDescriptor> GetSamplerDescriptors(ResourceId descriptorStore,
+                                                    const rdcarray<DescriptorRange> &ranges);
   void FreeTargetResource(ResourceId id);
   void FreeCustomShader(ResourceId id);
 

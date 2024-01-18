@@ -630,6 +630,40 @@ It is an :class:`AlphaMapping` that controls what behaviour to use.
 
 DECLARE_REFLECTION_STRUCT(TextureSave);
 
+DOCUMENT("A range of sized descriptors.");
+struct DescriptorRange
+{
+  DOCUMENT("");
+  DescriptorRange() = default;
+  DescriptorRange(const DescriptorRange &) = default;
+  DescriptorRange &operator=(const DescriptorRange &) = default;
+
+  DOCUMENT("The offset in the descriptor storage where the descriptor range starts.");
+  uint32_t offset = 0;
+  DOCUMENT("The size of each descriptor in the range.");
+  uint32_t descriptorSize = 1;
+  DOCUMENT("The number of descriptors in this range.");
+  uint32_t count = 1;
+
+  DOCUMENT("");
+  bool operator==(const DescriptorRange &o) const
+  {
+    return offset == o.offset && descriptorSize == o.descriptorSize && count == o.count;
+  }
+  bool operator<(const DescriptorRange &o) const
+  {
+    if(!(offset == o.offset))
+      return offset < o.offset;
+    if(!(descriptorSize == o.descriptorSize))
+      return descriptorSize < o.descriptorSize;
+    if(!(count == o.count))
+      return count < o.count;
+    return false;
+  }
+};
+
+DECLARE_REFLECTION_STRUCT(DescriptorRange);
+
 // dependent structs for TargetControlMessage
 DOCUMENT("Information about the a new capture created by the target.");
 struct NewCaptureData

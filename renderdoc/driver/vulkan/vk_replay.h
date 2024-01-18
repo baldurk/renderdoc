@@ -349,6 +349,10 @@ public:
     m_VulkanPipelineState = vk;
   }
   void SavePipelineState(uint32_t eventId);
+  rdcarray<Descriptor> GetDescriptors(ResourceId descriptorStore,
+                                      const rdcarray<DescriptorRange> &ranges);
+  rdcarray<SamplerDescriptor> GetSamplerDescriptors(ResourceId descriptorStore,
+                                                    const rdcarray<DescriptorRange> &ranges);
   void FreeTargetResource(ResourceId id);
 
   RDResult ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);

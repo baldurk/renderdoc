@@ -105,6 +105,9 @@ enum ReplayProxyPacket
   eReplayProxy_FreeDebugger,
 
   eReplayProxy_FatalErrorCheck,
+
+  eReplayProxy_GetDescriptors,
+  eReplayProxy_GetSamplerDescriptors,
 };
 
 DECLARE_REFLECTION_ENUM(ReplayProxyPacket);
@@ -478,6 +481,10 @@ public:
 
   IMPLEMENT_FUNCTION_PROXIED(void, SavePipelineState, uint32_t eventId);
   IMPLEMENT_FUNCTION_PROXIED(void, ReplayLog, uint32_t endEventID, ReplayLogType replayType);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<Descriptor>, GetDescriptors, ResourceId descriptorStore,
+                             const rdcarray<DescriptorRange> &ranges);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<SamplerDescriptor>, GetSamplerDescriptors,
+                             ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<uint32_t>, GetPassEvents, uint32_t eventId);
 

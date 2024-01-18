@@ -566,6 +566,28 @@ capture's API.
 )");
   virtual const PipeState &GetPipelineState() = 0;
 
+  DOCUMENT(R"(Retrieve the contents of a number of descriptors in a descriptor store. Multiple
+ranges within the store can be queried at once, and are returned in a contiguous array.
+
+:param ResourceId descriptorStore: The descriptor store to be queried from.
+:param List[DescriptorRange] ranges: The descriptor ranges to query.
+:return: The contents of the descriptors specified.
+:rtype: List[Descriptor]
+)");
+  virtual rdcarray<Descriptor> GetDescriptors(ResourceId descriptorStore,
+                                              const rdcarray<DescriptorRange> &ranges) = 0;
+
+  DOCUMENT(R"(Retrieve the contents of a number of sampler descriptors in a descriptor store.
+Multiple ranges within the store can be queried at once, and are returned in a contiguous array.
+
+:param ResourceId descriptorStore: The descriptor store to be queried from.
+:param List[DescriptorRange] ranges: The descriptor ranges to query.
+:return: The contents of the descriptors specified.
+:rtype: List[SamplerDescriptor]
+)");
+  virtual rdcarray<SamplerDescriptor> GetSamplerDescriptors(
+      ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges) = 0;
+
   DOCUMENT(R"(Retrieve the list of possible disassembly targets for :meth:`DisassembleShader`. The
 values are implementation dependent but will always include a default target first which is the
 native disassembly of the shader. Further options may be available for additional diassembly views

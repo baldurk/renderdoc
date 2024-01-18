@@ -1055,6 +1055,16 @@ void DoSerialise(SerialiserType &ser, ColorBlend &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, DescriptorRange &el)
+{
+  SERIALISE_MEMBER(offset);
+  SERIALISE_MEMBER(descriptorSize);
+  SERIALISE_MEMBER(count);
+
+  SIZE_CHECK(12);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, Descriptor &el)
 {
   SERIALISE_MEMBER(type);
@@ -2542,6 +2552,7 @@ INSTANTIATE_SERIALISE_TYPE(CounterValue)
 INSTANTIATE_SERIALISE_TYPE(GPUDevice)
 INSTANTIATE_SERIALISE_TYPE(ReplayOptions)
 INSTANTIATE_SERIALISE_TYPE(DebugPixelInputs)
+INSTANTIATE_SERIALISE_TYPE(DescriptorRange)
 INSTANTIATE_SERIALISE_TYPE(Descriptor)
 INSTANTIATE_SERIALISE_TYPE(SamplerDescriptor)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::Layout)

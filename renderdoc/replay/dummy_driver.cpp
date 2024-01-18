@@ -143,6 +143,28 @@ void DummyDriver::SavePipelineState(uint32_t eventId)
 {
 }
 
+rdcarray<Descriptor> DummyDriver::GetDescriptors(ResourceId descriptorStore,
+                                                 const rdcarray<DescriptorRange> &ranges)
+{
+  size_t count = 0;
+  for(const DescriptorRange &r : ranges)
+    count += r.count;
+  rdcarray<Descriptor> ret;
+  ret.resize(count);
+  return ret;
+}
+
+rdcarray<SamplerDescriptor> DummyDriver::GetSamplerDescriptors(ResourceId descriptorStore,
+                                                               const rdcarray<DescriptorRange> &ranges)
+{
+  size_t count = 0;
+  for(const DescriptorRange &r : ranges)
+    count += r.count;
+  rdcarray<SamplerDescriptor> ret;
+  ret.resize(count);
+  return ret;
+}
+
 FrameRecord DummyDriver::GetFrameRecord()
 {
   return m_FrameRecord;

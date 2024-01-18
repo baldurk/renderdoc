@@ -1664,6 +1664,28 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
   ret.predication.isPassing = rs->PredicationWouldPass();
 }
 
+rdcarray<Descriptor> D3D11Replay::GetDescriptors(ResourceId descriptorStore,
+                                                 const rdcarray<DescriptorRange> &ranges)
+{
+  size_t count = 0;
+  for(const DescriptorRange &r : ranges)
+    count += r.count;
+  rdcarray<Descriptor> ret;
+  ret.resize(count);
+  return ret;
+}
+
+rdcarray<SamplerDescriptor> D3D11Replay::GetSamplerDescriptors(ResourceId descriptorStore,
+                                                               const rdcarray<DescriptorRange> &ranges)
+{
+  size_t count = 0;
+  for(const DescriptorRange &r : ranges)
+    count += r.count;
+  rdcarray<SamplerDescriptor> ret;
+  ret.resize(count);
+  return ret;
+}
+
 RDResult D3D11Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   return m_pDevice->ReadLogInitialisation(rdc, storeStructuredBuffers);

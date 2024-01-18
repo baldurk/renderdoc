@@ -2364,6 +2364,28 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   }
 }
 
+rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
+                                                  const rdcarray<DescriptorRange> &ranges)
+{
+  size_t count = 0;
+  for(const DescriptorRange &r : ranges)
+    count += r.count;
+  rdcarray<Descriptor> ret;
+  ret.resize(count);
+  return ret;
+}
+
+rdcarray<SamplerDescriptor> VulkanReplay::GetSamplerDescriptors(ResourceId descriptorStore,
+                                                                const rdcarray<DescriptorRange> &ranges)
+{
+  size_t count = 0;
+  for(const DescriptorRange &r : ranges)
+    count += r.count;
+  rdcarray<SamplerDescriptor> ret;
+  ret.resize(count);
+  return ret;
+}
+
 void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, ShaderStage stage,
                                         rdcstr entryPoint, uint32_t cbufSlot,
                                         rdcarray<ShaderVariable> &outvars, const bytebuf &data)

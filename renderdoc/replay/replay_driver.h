@@ -162,6 +162,11 @@ public:
                                  GLPipe::State *gl, VKPipe::State *vk) = 0;
   virtual void SavePipelineState(uint32_t eventId) = 0;
 
+  virtual rdcarray<Descriptor> GetDescriptors(ResourceId descriptorStore,
+                                              const rdcarray<DescriptorRange> &ranges) = 0;
+  virtual rdcarray<SamplerDescriptor> GetSamplerDescriptors(
+      ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges) = 0;
+
   virtual FrameRecord GetFrameRecord() = 0;
 
   virtual RDResult ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers) = 0;

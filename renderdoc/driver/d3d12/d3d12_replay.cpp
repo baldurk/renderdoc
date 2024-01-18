@@ -2068,6 +2068,28 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
   }
 }
 
+rdcarray<Descriptor> D3D12Replay::GetDescriptors(ResourceId descriptorStore,
+                                                 const rdcarray<DescriptorRange> &ranges)
+{
+  size_t count = 0;
+  for(const DescriptorRange &r : ranges)
+    count += r.count;
+  rdcarray<Descriptor> ret;
+  ret.resize(count);
+  return ret;
+}
+
+rdcarray<SamplerDescriptor> D3D12Replay::GetSamplerDescriptors(ResourceId descriptorStore,
+                                                               const rdcarray<DescriptorRange> &ranges)
+{
+  size_t count = 0;
+  for(const DescriptorRange &r : ranges)
+    count += r.count;
+  rdcarray<SamplerDescriptor> ret;
+  ret.resize(count);
+  return ret;
+}
+
 void D3D12Replay::RenderHighlightBox(float w, float h, float scale)
 {
   OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];

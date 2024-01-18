@@ -123,6 +123,22 @@ const PipeState &ReplayController::GetPipelineState()
   return m_PipeState;
 }
 
+rdcarray<Descriptor> ReplayController::GetDescriptors(ResourceId descriptorStore,
+                                                      const rdcarray<DescriptorRange> &ranges)
+{
+  CHECK_REPLAY_THREAD();
+
+  return m_pDevice->GetDescriptors(m_pDevice->GetLiveID(descriptorStore), ranges);
+}
+
+rdcarray<SamplerDescriptor> ReplayController::GetSamplerDescriptors(
+    ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges)
+{
+  CHECK_REPLAY_THREAD();
+
+  return m_pDevice->GetSamplerDescriptors(m_pDevice->GetLiveID(descriptorStore), ranges);
+}
+
 rdcarray<rdcstr> ReplayController::GetDisassemblyTargets(bool withPipeline)
 {
   CHECK_REPLAY_THREAD();
