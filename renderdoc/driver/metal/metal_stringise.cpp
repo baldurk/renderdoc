@@ -31,7 +31,7 @@
 template <>
 rdcstr DoStringise(const MetalChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)MetalChunk::Max == 1231, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)MetalChunk::Max == 1265, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(MetalChunk)
   {
@@ -391,6 +391,74 @@ rdcstr DoStringise(const MetalChunk &el)
                                "MTLComputeCommandEncoder::setComputePipelineState");
     STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_endEncoding,
                                "MTLComputeCommandEncoder::endEncoding");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setBuffer,
+                               "MTLComputeCommandEncoder::setBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setBuffer_stride,
+                               "MTLComputeCommandEncoder::setBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setBuffers,
+                               "MTLComputeCommandEncoder::setBuffers");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setBuffers_stride,
+                               "MTLComputeCommandEncoder::setBuffers");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setBufferOffset,
+                               "MTLComputeCommandEncoder::setBuffersOffset");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setBufferOffset_stride,
+                               "MTLComputeCommandEncoder::setBuffersOffset");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setBytes,
+                               "MTLComputeCommandEncoder::setBytes");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setBytes_stride,
+                               "MTLComputeCommandEncoder::setBytes");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setSamplerState,
+                               "MTLComputeCommandEncoder::setSamplerState");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setSamplerState_lodclamp,
+                               "MTLComputeCommandEncoder::setSamplerState");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setSamplerStates,
+                               "MTLComputeCommandEncoder::setSamplerStates");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setSamplerStates_lodclamp,
+                               "MTLComputeCommandEncoder::setSamplerStates");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setTexture,
+                               "MTLComputeCommandEncoder::setTexture");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setTextures,
+                               "MTLComputeCommandEncoder::setTextures");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setThreadgroupMemoryLength,
+                               "MTLComputeCommandEncoder::setThreadgroupsMemoryLength");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setVisibleFunctionTable,
+                               "MTLComputeCommandEncoder::setVisibleFunctionTable");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setVisibleFunctionTables,
+                               "MTLComputeCommandEncoder::setVisibleFunctionTables");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setIntersectionFunctionTable,
+                               "MTLComputeCommandEncoder::setIntersectionFunctionTable");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setIntersectionFunctionTables,
+                               "MTLComputeCommandEncoder::setIntersectionFunctionTables");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setAccelerationStructure,
+                               "MTLComputeCommandEncoder::setAccelerationStructure");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_useResource,
+                               "MTLComputeCommandEncoder::useResource");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_useResources,
+                               "MTLComputeCommandEncoder::useResources");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_useHeap,
+                               "MTLComputeCommandEncoder::useHeap");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_useHeaps,
+                               "MTLComputeCommandEncoder::useHeaps");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setImageblockWidth,
+                               "MTLComputeCommandEncoder::setImageblockWidth");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setStageInRegion,
+                               "MTLComputeCommandEncoder::setStageInRegion");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setStageInRegionWithIndirectBuffer,
+                               "MTLComputeCommandEncoder::setStageInRegionWithIndirectBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_memoryBarrierWithScope,
+                               "MTLComputeCommandEncoder::memoryBarrierWithScope");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_memoryBarrierWithResources,
+                               "MTLComputeCommandEncoder::memoryBarrierWithResources");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_executeCommandsInBuffer,
+                               "MTLComputeCommandEncoder::executeCommandsInBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_executeCommandsInBuffer_indirect,
+                               "MTLComputeCommandEncoder::executeCommandsInBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_updateFence,
+                               "MTLComputeCommandEncoder::updateFence");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_waitForFence,
+                               "MTLComputeCommandEncoder::waitForFence");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_sampleCountersInBuffer,
+                               "MTLComputeCommandEncoder::sampleCountersInBuffer");
     STRINGISE_ENUM_CLASS_NAMED(MTLBuffer_setPurgeableState, "MTLBuffer::setPurgeableState");
     STRINGISE_ENUM_CLASS_NAMED(MTLBuffer_makeAliasable, "MTLBuffer::makeAliasable");
     STRINGISE_ENUM_CLASS_NAMED(MTLBuffer_contents, "MTLBuffer::contents");
