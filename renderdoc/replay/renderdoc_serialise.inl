@@ -1710,6 +1710,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 {
   SERIALISE_MEMBER(pipelineResourceId);
   SERIALISE_MEMBER(rootSignatureResourceId);
+  SERIALISE_MEMBER(descriptorHeaps);
   SERIALISE_MEMBER(rootElements);
 
   SERIALISE_MEMBER(inputAssembly);
@@ -1731,7 +1732,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 
   SERIALISE_MEMBER(resourceStates);
 
-  SIZE_CHECK(1680);
+  SIZE_CHECK(1704);
 }
 
 #pragma endregion D3D12 pipeline state

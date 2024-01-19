@@ -680,6 +680,26 @@ D3DBufferViewFlags MakeBufferFlags(D3D12_BUFFER_UAV_FLAGS flags)
   return ret;
 }
 
+DescriptorFlags MakeDescriptorFlags(D3D12_BUFFER_SRV_FLAGS flags)
+{
+  DescriptorFlags ret = DescriptorFlags::NoFlags;
+
+  if(flags & D3D12_BUFFER_SRV_FLAG_RAW)
+    ret |= DescriptorFlags::RawBuffer;
+
+  return ret;
+}
+
+DescriptorFlags MakeDescriptorFlags(D3D12_BUFFER_UAV_FLAGS flags)
+{
+  DescriptorFlags ret = DescriptorFlags::NoFlags;
+
+  if(flags & D3D12_BUFFER_UAV_FLAG_RAW)
+    ret |= DescriptorFlags::RawBuffer;
+
+  return ret;
+}
+
 LogicOperation MakeLogicOp(D3D12_LOGIC_OP op)
 {
   switch(op)

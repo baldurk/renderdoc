@@ -932,6 +932,12 @@ struct State
   DOCUMENT("The :class:`ResourceId` of the root signature object.");
   ResourceId rootSignatureResourceId;
 
+  DOCUMENT(R"(The descriptor heaps currently bound.
+    
+:type: List[ResourceId]
+)");
+  rdcarray<ResourceId> descriptorHeaps;
+
   DOCUMENT(R"(The root signature, as a range per element.
     
 :type: List[D3D12RootSignatureRange]

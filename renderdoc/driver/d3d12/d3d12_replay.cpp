@@ -1029,6 +1029,264 @@ void D3D12Replay::FillSampler(D3D12Pipe::Sampler &samp, const D3D12_SAMPLER_DESC
   samp.mipLODBias = sampDesc.MipLODBias;
 }
 
+void D3D12Replay::FillDescriptor(Descriptor &dst, const D3D12Descriptor *src)
+{
+  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
+  if(src->GetType() == D3D12DescriptorType::Sampler || src->GetType() == D3D12DescriptorType::CBV)
+  {
+    return;
+  }
+
+  if(src->GetHeap()->HasValidDescriptorCache(src->GetHeapIndex()))
+  {
+    src->GetHeap()->GetFromDescriptorCache(src->GetHeapIndex(), dst);
+    return;
+  }
+
+  dst.resource = rm->GetOriginalID(src->GetResResourceId());
+
+  if(dst.resource == ResourceId())
+  {
+    src->GetHeap()->GetFromDescriptorCache(src->GetHeapIndex(), dst);
+    return;
+  }
+
+  D3D12_RESOURCE_DESC res;
+
+  {
+    ID3D12Resource *r = rm->GetCurrentAs<ID3D12Resource>(src->GetResResourceId());
+    res = r->GetDesc();
+  }
+
+  {
+    DXGI_FORMAT fmt = DXGI_FORMAT_UNKNOWN;
+
+    uint64_t firstElement = UINT64_MAX;
+    uint32_t numElements = UINT32_MAX;
+
+    if(src->GetType() == D3D12DescriptorType::SRV)
+    {
+      D3D12_SHADER_RESOURCE_VIEW_DESC srv = src->GetSRV();
+
+      if(srv.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
+        srv = MakeSRVDesc(res);
+
+      if(srv.ViewDimension == D3D12_SRV_DIMENSION_BUFFER)
+        dst.type = DescriptorType::TypedBuffer;
+      else
+        dst.type = DescriptorType::Image;
+
+      fmt = srv.Format;
+
+      dst.textureType = MakeTextureDim(srv.ViewDimension);
+
+      dst.swizzle.red =
+          (TextureSwizzle)D3D12_DECODE_SHADER_4_COMPONENT_MAPPING(0, srv.Shader4ComponentMapping);
+      dst.swizzle.green =
+          (TextureSwizzle)D3D12_DECODE_SHADER_4_COMPONENT_MAPPING(1, srv.Shader4ComponentMapping);
+      dst.swizzle.blue =
+          (TextureSwizzle)D3D12_DECODE_SHADER_4_COMPONENT_MAPPING(2, srv.Shader4ComponentMapping);
+      dst.swizzle.alpha =
+          (TextureSwizzle)D3D12_DECODE_SHADER_4_COMPONENT_MAPPING(3, srv.Shader4ComponentMapping);
+
+      if(srv.ViewDimension == D3D12_SRV_DIMENSION_BUFFER)
+      {
+        firstElement = srv.Buffer.FirstElement;
+        numElements = srv.Buffer.NumElements;
+
+        dst.flags = MakeDescriptorFlags(srv.Buffer.Flags);
+        if(srv.Buffer.StructureByteStride > 0)
+        {
+          dst.elementByteSize = srv.Buffer.StructureByteStride;
+          dst.type = DescriptorType::Buffer;
+        }
+      }
+      else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE1D)
+      {
+        dst.firstMip = srv.Texture1D.MostDetailedMip & 0xff;
+        dst.numMips = srv.Texture1D.MipLevels & 0xff;
+        dst.minLODClamp = srv.Texture1D.ResourceMinLODClamp;
+      }
+      else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE1DARRAY)
+      {
+        dst.numSlices = srv.Texture1DArray.ArraySize & 0xffff;
+        dst.firstSlice = srv.Texture1DArray.FirstArraySlice & 0xffff;
+        dst.firstMip = srv.Texture1DArray.MostDetailedMip & 0xff;
+        dst.numMips = srv.Texture1DArray.MipLevels & 0xff;
+        dst.minLODClamp = srv.Texture1DArray.ResourceMinLODClamp;
+      }
+      else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2D)
+      {
+        dst.firstMip = srv.Texture2D.MostDetailedMip & 0xff;
+        dst.numMips = srv.Texture2D.MipLevels & 0xff;
+        dst.minLODClamp = srv.Texture2D.ResourceMinLODClamp;
+      }
+      else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DARRAY)
+      {
+        dst.numSlices = srv.Texture2DArray.ArraySize & 0xffff;
+        dst.firstSlice = srv.Texture2DArray.FirstArraySlice & 0xffff;
+        dst.firstMip = srv.Texture2DArray.MostDetailedMip & 0xff;
+        dst.numMips = srv.Texture2DArray.MipLevels & 0xff;
+        dst.minLODClamp = srv.Texture2DArray.ResourceMinLODClamp;
+      }
+      else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMS)
+      {
+      }
+      else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY)
+      {
+        dst.numSlices = srv.Texture2DMSArray.ArraySize & 0xffff;
+        dst.firstSlice = srv.Texture2DMSArray.FirstArraySlice & 0xffff;
+      }
+      else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE3D)
+      {
+        dst.firstMip = srv.Texture3D.MostDetailedMip & 0xff;
+        dst.numMips = srv.Texture3D.MipLevels & 0xff;
+        dst.minLODClamp = srv.Texture3D.ResourceMinLODClamp;
+      }
+      else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURECUBE)
+      {
+        dst.numSlices = 6;
+        dst.firstMip = srv.TextureCube.MostDetailedMip & 0xff;
+        dst.numMips = srv.TextureCube.MipLevels & 0xff;
+        dst.minLODClamp = srv.TextureCube.ResourceMinLODClamp;
+      }
+      else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURECUBEARRAY)
+      {
+        dst.numSlices = (srv.TextureCubeArray.NumCubes * 6) & 0xffff;
+        dst.firstSlice = srv.TextureCubeArray.First2DArrayFace & 0xffff;
+        dst.firstMip = srv.TextureCubeArray.MostDetailedMip & 0xff;
+        dst.numMips = srv.TextureCubeArray.MipLevels & 0xff;
+        dst.minLODClamp = srv.TextureCube.ResourceMinLODClamp;
+      }
+    }
+    else if(src->GetType() == D3D12DescriptorType::UAV)
+    {
+      D3D12_UNORDERED_ACCESS_VIEW_DESC uav = src->GetUAV();
+
+      if(uav.ViewDimension == D3D12_UAV_DIMENSION_UNKNOWN)
+        uav = MakeUAVDesc(res);
+
+      if(uav.ViewDimension == D3D12_UAV_DIMENSION_BUFFER)
+        dst.type = uav.Format != DXGI_FORMAT_UNKNOWN ? DescriptorType::ReadWriteTypedBuffer
+                                                     : DescriptorType::ReadWriteBuffer;
+      else
+        dst.type = DescriptorType::ReadWriteImage;
+
+      fmt = uav.Format;
+
+      dst.secondary = rm->GetOriginalID(src->GetCounterResourceId());
+
+      dst.textureType = MakeTextureDim(uav.ViewDimension);
+
+      if(uav.ViewDimension == D3D12_UAV_DIMENSION_BUFFER)
+      {
+        firstElement = uav.Buffer.FirstElement;
+        numElements = uav.Buffer.NumElements;
+
+        dst.flags = MakeDescriptorFlags(uav.Buffer.Flags);
+        if(uav.Buffer.StructureByteStride > 0)
+          dst.elementByteSize = uav.Buffer.StructureByteStride;
+
+        dst.counterByteOffset = uav.Buffer.CounterOffsetInBytes & 0xffffffff;
+        RDCASSERT(uav.Buffer.CounterOffsetInBytes < 0xffffffff);
+
+        if(dst.secondary != ResourceId())
+        {
+          bytebuf counterVal;
+          GetDebugManager()->GetBufferData(
+              rm->GetCurrentAs<ID3D12Resource>(src->GetCounterResourceId()),
+              uav.Buffer.CounterOffsetInBytes, 4, counterVal);
+          uint32_t *val = (uint32_t *)&counterVal[0];
+          dst.bufferStructCount = *val;
+        }
+      }
+      else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE1D)
+      {
+        dst.firstMip = uav.Texture1D.MipSlice & 0xff;
+      }
+      else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE1DARRAY)
+      {
+        dst.numSlices = uav.Texture1DArray.ArraySize & 0xffff;
+        dst.firstSlice = uav.Texture1DArray.FirstArraySlice & 0xffff;
+        dst.firstMip = uav.Texture1DArray.MipSlice & 0xff;
+      }
+      else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2D)
+      {
+        dst.firstMip = uav.Texture2D.MipSlice & 0xff;
+      }
+      else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2DARRAY)
+      {
+        dst.numSlices = uav.Texture2DArray.ArraySize & 0xffff;
+        dst.firstSlice = uav.Texture2DArray.FirstArraySlice & 0xffff;
+        dst.firstMip = uav.Texture2DArray.MipSlice & 0xff;
+      }
+      else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2DMS)
+      {
+      }
+      else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2DMSARRAY)
+      {
+        dst.numSlices = uav.Texture2DMSArray.ArraySize & 0xffff;
+        dst.firstSlice = uav.Texture2DMSArray.FirstArraySlice & 0xffff;
+      }
+      else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE3D)
+      {
+        dst.numSlices = uav.Texture3D.WSize & 0xffff;
+        dst.firstSlice = uav.Texture3D.FirstWSlice & 0xffff;
+        dst.firstMip = uav.Texture3D.MipSlice & 0xff;
+      }
+    }
+
+    if(fmt == DXGI_FORMAT_UNKNOWN)
+      fmt = res.Format;
+
+    if(dst.elementByteSize == 0)
+      dst.elementByteSize = fmt == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, fmt, 0);
+
+    // decode elements into byte offsets
+    if(firstElement != UINT64_MAX)
+    {
+      dst.byteOffset = firstElement * dst.elementByteSize;
+      dst.byteSize = numElements * dst.elementByteSize;
+    }
+
+    if(res.MipLevels == 0 && res.Dimension != D3D12_RESOURCE_DIMENSION_BUFFER)
+      res.MipLevels = (uint16_t)CalcNumMips(
+          (uint32_t)res.Width, res.Height,
+          res.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D ? res.DepthOrArraySize : 1);
+    dst.numMips = RDCMIN(dst.numMips, uint8_t(res.MipLevels & 0xff));
+    dst.numSlices = RDCMIN(dst.numSlices, res.DepthOrArraySize);
+
+    dst.format = MakeResourceFormat(fmt);
+  }
+
+  src->GetHeap()->SetToDescriptorCache(src->GetHeapIndex(), dst);
+}
+
+void D3D12Replay::FillSamplerDescriptor(SamplerDescriptor &dst, const D3D12_SAMPLER_DESC2 &src)
+{
+  dst.type = DescriptorType::Sampler;
+
+  dst.addressU = MakeAddressMode(src.AddressU);
+  dst.addressV = MakeAddressMode(src.AddressV);
+  dst.addressW = MakeAddressMode(src.AddressW);
+
+  dst.borderColorValue.uintValue = src.UintBorderColor;
+  dst.borderColorType =
+      ((src.Flags & D3D12_SAMPLER_FLAG_UINT_BORDER_COLOR) != 0 ? CompType::UInt : CompType::Float);
+
+  dst.unnormalized = (src.Flags & D3D12_SAMPLER_FLAG_NON_NORMALIZED_COORDINATES) != 0;
+
+  dst.compareFunction = MakeCompareFunc(src.ComparisonFunc);
+  dst.filter = MakeFilter(src.Filter);
+  dst.maxAnisotropy = 0;
+  if(dst.filter.minify == FilterMode::Anisotropic)
+    dst.maxAnisotropy = (float)src.MaxAnisotropy;
+  dst.maxLOD = src.MaxLOD;
+  dst.minLOD = src.MinLOD;
+  dst.mipBias = src.MipLODBias;
+}
+
 ShaderStageMask ToShaderStageMask(D3D12_SHADER_VISIBILITY vis)
 {
   switch(vis)
@@ -1818,6 +2076,10 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
     }
   }
 
+  state.descriptorHeaps.clear();
+  for(ResourceId id : rs.heaps)
+    state.descriptorHeaps.push_back(rm->GetOriginalID(id));
+
   if(pipe && pipe->IsGraphics())
   {
     /////////////////////////////////////////////////
@@ -2071,22 +2333,97 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
 rdcarray<Descriptor> D3D12Replay::GetDescriptors(ResourceId descriptorStore,
                                                  const rdcarray<DescriptorRange> &ranges)
 {
+  if(descriptorStore == ResourceId())
+    return {};
+
   size_t count = 0;
   for(const DescriptorRange &r : ranges)
     count += r.count;
   rdcarray<Descriptor> ret;
   ret.resize(count);
+
+  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
+  WrappedID3D12DescriptorHeap *heap =
+      (WrappedID3D12DescriptorHeap *)rm->GetCurrentAs<ID3D12DescriptorHeap>(descriptorStore);
+
+  size_t dst = 0;
+  for(const DescriptorRange &r : ranges)
+  {
+    D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
+    D3D12Descriptor *end = desc + heap->GetNumDescriptors();
+
+    desc += r.offset;
+
+    for(uint32_t i = 0; i < r.count; i++)
+    {
+      if(desc >= end)
+      {
+        // silently drop out of bounds descriptor reads
+      }
+      else if(desc->GetType() == D3D12DescriptorType::CBV)
+      {
+        const D3D12_CONSTANT_BUFFER_VIEW_DESC &cbv = desc->GetCBV();
+        WrappedID3D12Resource::GetResIDFromAddr(cbv.BufferLocation, ret[dst].resource,
+                                                ret[dst].byteOffset);
+
+        ret[dst].resource = rm->GetOriginalID(ret[dst].resource);
+        ret[dst].byteSize = cbv.SizeInBytes;
+      }
+      else if(desc->GetType() != D3D12DescriptorType::Sampler)
+      {
+        D3D12Pipe::View view;
+        FillDescriptor(ret[dst], desc);
+      }
+      dst++;
+      desc++;
+    }
+  }
+
   return ret;
 }
 
 rdcarray<SamplerDescriptor> D3D12Replay::GetSamplerDescriptors(ResourceId descriptorStore,
                                                                const rdcarray<DescriptorRange> &ranges)
 {
+  if(descriptorStore == ResourceId())
+    return {};
+
   size_t count = 0;
   for(const DescriptorRange &r : ranges)
     count += r.count;
   rdcarray<SamplerDescriptor> ret;
   ret.resize(count);
+
+  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
+  WrappedID3D12DescriptorHeap *heap =
+      (WrappedID3D12DescriptorHeap *)rm->GetCurrentAs<ID3D12DescriptorHeap>(descriptorStore);
+
+  size_t dst = 0;
+  for(const DescriptorRange &r : ranges)
+  {
+    D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
+    D3D12Descriptor *end = desc + heap->GetNumDescriptors();
+
+    desc += r.offset;
+
+    for(uint32_t i = 0; i < r.count; i++)
+    {
+      if(desc >= end)
+      {
+        // silently drop out of bounds descriptor reads
+      }
+      else if(desc->GetType() == D3D12DescriptorType::Sampler)
+      {
+        const D3D12_SAMPLER_DESC2 &sampDesc = desc->GetSampler();
+        FillSamplerDescriptor(ret[dst], sampDesc);
+      }
+      dst++;
+      desc++;
+    }
+  }
+
   return ret;
 }
 
