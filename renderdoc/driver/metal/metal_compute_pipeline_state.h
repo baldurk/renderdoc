@@ -23,20 +23,3 @@
 ******************************************************************************/
 
 #pragma once
-
-#include "metal_common.h"
-#include "metal_device.h"
-#include "metal_resources.h"
-
-class WrappedMTLComputeCommandEncoder : public WrappedMTLObject
-{
-public:
-  WrappedMTLComputeCommandEncoder(MTL::ComputeCommandEncoder *realMTLComputeCommandEncoder,
-                                  ResourceId objId, WrappedMTLDevice *wrappedMtlDevice);
-
-  void SetCommandBuffer(WrappedMTLCommandBuffer *commandBuffer) { m_CommandBuffer = commandBuffer; }
-  DECLARE_FUNCTION_SERIALISED(void, setComputePipelineState,
-                              WrappedMTLComputePipelineState *pipelineState);
-private:
-  WrappedMTLCommandBuffer *m_CommandBuffer;
-};

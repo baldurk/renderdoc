@@ -47,6 +47,7 @@ const uint32_t MAX_RENDER_PASS_SAMPLE_BUFFER_ATTACHMENTS = 4;
   FUNC(Function);                        \
   FUNC(Library);                         \
   FUNC(RenderPipelineState);             \
+  FUNC(ComputePipelineState);            \
   FUNC(Texture);                         \
   FUNC(RenderCommandEncoder);            \
   FUNC(BlitCommandEncoder);              \

@@ -223,6 +223,7 @@ enum class MetalChunk : uint32_t
   MTLRenderCommandEncoder_memoryBarrierWithScope,
   MTLRenderCommandEncoder_memoryBarrierWithResources,
   MTLRenderCommandEncoder_sampleCountersInBuffer,
+  MTLComputeCommandEncoder_setComputePipelineState,
   MTLBuffer_setPurgeableState,
   MTLBuffer_makeAliasable,
   MTLBuffer_contents,
