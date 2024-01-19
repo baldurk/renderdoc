@@ -23,3 +23,19 @@
 ******************************************************************************/
 
 #pragma once
+
+#include "metal_common.h"
+
+class WrappedMTLComputePipelineState : public WrappedMTLObject
+{
+public:
+  WrappedMTLComputePipelineState(MTL::ComputePipelineState *realMTLComputePipelineState,
+                                 ResourceId objId, WrappedMTLDevice *wrappedMtlDevice);
+
+  enum
+  {
+    TypeEnum = eResComputePipelineState
+  };
+
+private:
+};

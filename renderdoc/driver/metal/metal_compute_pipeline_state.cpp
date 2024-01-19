@@ -22,3 +22,14 @@
 * THE SOFTWARE.
 ******************************************************************************/
 
+#include "metal_compute_pipeline_state.h"
+#include "metal_device.h"
+
+WrappedMTLComputePipelineState::WrappedMTLComputePipelineState(
+    MTL::ComputePipelineState *realMTLComputePipelineState, ResourceId objId,
+    WrappedMTLDevice *wrappedMtlDevice)
+    : WrappedMTLObject(realMTLComputePipelineState, objId, wrappedMtlDevice,
+                       wrappedMtlDevice->GetStateRef())
+{
+  AllocateObjCBridge(this);
+}
