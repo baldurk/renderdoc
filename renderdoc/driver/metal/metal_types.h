@@ -288,7 +288,7 @@ struct BufferLayoutDescriptor
   NS::UInteger stepRate = 0;
 };
 
-// MTLAttributeDescriptor : based on the interface defined in
+// MTLStageInputOutputDescriptor : based on the interface defined in
 // Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLStageInputOutputDescriptor.h
 struct StageInputOutputDescriptor
 {

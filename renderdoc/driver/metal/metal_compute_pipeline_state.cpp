@@ -27,9 +27,9 @@
 
 WrappedMTLComputePipelineState::WrappedMTLComputePipelineState(
     MTL::ComputePipelineState *realMTLComputePipelineState, ResourceId objId,
-    WrappedMTLDevice *wrappedMtlDevice)
-    : WrappedMTLObject(realMTLComputePipelineState, objId, wrappedMtlDevice,
-                       wrappedMtlDevice->GetStateRef())
+    WrappedMTLDevice *wrappedMTLDevice)
+    : WrappedMTLObject(realMTLComputePipelineState, objId, wrappedMTLDevice,
+                       wrappedMTLDevice->GetStateRef())
 {
   AllocateObjCBridge(this);
 }
