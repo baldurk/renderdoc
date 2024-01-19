@@ -152,6 +152,27 @@ static bool ValidData(MTL::RenderPassSampleBufferAttachmentDescriptor *descripto
   return true;
 }
 
+static bool ValidData(MTL::ComputePassSampleBufferAttachmentDescriptor *descriptor)
+{
+  if(!descriptor->sampleBuffer())
+    return false;
+  return true;
+}
+
+static bool ValidData(MTL::AttributeDescriptor *descriptor)
+{
+  if(descriptor->format() == MTL::AttributeFormatInvalid)
+    return false;
+  return true;
+}
+
+static bool ValidData(MTL::BufferLayoutDescriptor *descriptor)
+{
+  if(descriptor->stride() == 0)
+    return false;
+  return true;
+}
+
 template <typename MTL_TYPE>
 static void GetWrappedNSArray(rdcarray<typename UnwrapHelper<MTL_TYPE>::Outer *> &to, NS::Array *from)
 {
@@ -322,6 +343,45 @@ void VertexDescriptor::CopyTo(MTL::VertexDescriptor *objc)
 {
   COPYTOOBJCARRAY(VertexBufferLayoutDescriptor, layouts);
   COPYTOOBJCARRAY(VertexAttributeDescriptor, attributes);
+}
+
+AttributeDescriptor::AttributeDescriptor(MTL::AttributeDescriptor *objc)
+      : bufferIndex(objc->bufferIndex()), offset(objc->offset()), format(objc->format())
+{
+}
+
+void AttributeDescriptor::CopyTo(MTL::AttributeDescriptor *objc)
+{
+  objc->setBufferIndex(bufferIndex);
+  objc->setOffset(offset);
+  objc->setFormat(format);
+}
+
+BufferLayoutDescriptor::BufferLayoutDescriptor(MTL::BufferLayoutDescriptor *objc)
+    : stride(objc->stride()), stepFunction(objc->stepFunction()), stepRate(objc->stepRate())
+{
+}
+
+void BufferLayoutDescriptor::CopyTo(MTL::BufferLayoutDescriptor *objc)
+{
+  objc->setStride(stride);
+  objc->setStepFunction(stepFunction);
+  objc->setStepRate(stepRate);
+}
+
+StageInputOutputDescriptor::StageInputOutputDescriptor(MTL::StageInputOutputDescriptor *objc)
+    : indexBufferIndex(objc->indexBufferIndex()), indexType(objc->indexType())
+{
+  GETOBJCARRAY(AttributeDescriptor, MAX_COMPUTE_PASS_BUFFER_ATTACHMENTS, attributes, ValidData);
+  GETOBJCARRAY(BufferLayoutDescriptor, MAX_COMPUTE_PASS_BUFFER_ATTACHMENTS, layouts, ValidData);
+}
+
+void StageInputOutputDescriptor::CopyTo(MTL::StageInputOutputDescriptor *objc)
+{
+  COPYTOOBJCARRAY(AttributeDescriptor, attributes);
+  COPYTOOBJCARRAY(BufferLayoutDescriptor, layouts);
+  objc->setIndexBufferIndex(indexBufferIndex);
+  objc->setIndexType(indexType);
 }
 
 LinkedFunctions::LinkedFunctions(MTL::LinkedFunctions *objc)
@@ -611,6 +671,34 @@ RenderPassDescriptor::operator MTL::RenderPassDescriptor *()
   // TODO: when WrappedRasterizationRateMap exists
   // objc->setRasterizationRateMap(Unwrap(rasterizationRateMap));
   COPYTOOBJCARRAY(RenderPassSampleBufferAttachmentDescriptor, sampleBufferAttachments);
+  return objc;
+}
+
+ComputePassSampleBufferAttachmentDescriptor::ComputePassSampleBufferAttachmentDescriptor(MTL::ComputePassSampleBufferAttachmentDescriptor *objc)
+    : startOfEncoderSampleIndex(objc->endOfEncoderSampleIndex()), endOfEncoderSampleIndex(objc->endOfEncoderSampleIndex())
+{
+}
+
+void ComputePassSampleBufferAttachmentDescriptor::CopyTo(MTL::ComputePassSampleBufferAttachmentDescriptor *objc)
+{
+  // TODO: when WrappedMTLCounterSampleBuffer exists
+  // objc->setSampleBuffer(Unwrap(sampleBuffer));
+  objc->setStartOfEncoderSampleIndex(startOfEncoderSampleIndex);
+  objc->setEndOfEncoderSampleIndex(endOfEncoderSampleIndex);
+}
+
+ComputePassDescriptor::ComputePassDescriptor(MTL::ComputePassDescriptor *objc)
+    : dispatchType(objc->dispatchType())
+{
+  GETOBJCARRAY(ComputePassSampleBufferAttachmentDescriptor,
+               MAX_COMPUTE_PASS_SAMPLE_BUFFER_ATTACHMENTS, sampleBufferAttachments, ValidData);
+}
+
+ComputePassDescriptor::operator MTL::ComputePassDescriptor *()
+{
+  MTL::ComputePassDescriptor *objc = MTL::ComputePassDescriptor::alloc()->init();
+  COPYTOOBJCARRAY(ComputePassSampleBufferAttachmentDescriptor, sampleBufferAttachments);
+  objc->setDispatchType(dispatchType);
   return objc;
 }
 

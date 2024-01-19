@@ -33,6 +33,8 @@ const uint32_t MAX_RENDER_PASS_COLOR_ATTACHMENTS = 8;
 const uint32_t MAX_RENDER_PASS_BUFFER_ATTACHMENTS = 31;
 const uint32_t MAX_VERTEX_SHADER_ATTRIBUTES = 31;
 const uint32_t MAX_RENDER_PASS_SAMPLE_BUFFER_ATTACHMENTS = 4;
+const uint32_t MAX_COMPUTE_PASS_SAMPLE_BUFFER_ATTACHMENTS = 4;
+const uint32_t MAX_COMPUTE_PASS_BUFFER_ATTACHMENTS = 31;
 
 // Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLCounters.h
 #ifndef MTLCounterDontSample
@@ -482,6 +484,7 @@ struct ComputePassSampleBufferAttachmentDescriptor
 {
   ComputePassSampleBufferAttachmentDescriptor() = default;
   ComputePassSampleBufferAttachmentDescriptor(MTL::ComputePassSampleBufferAttachmentDescriptor *objc);
+  void CopyTo(MTL::ComputePassSampleBufferAttachmentDescriptor *objc);
   // TODO: when WrappedMTLCounterSampleBuffer exists
   // MTLCounterSampleBuffer *sampleBuffer = NULL;
   NS::UInteger startOfEncoderSampleIndex = MTLCounterDontSample;

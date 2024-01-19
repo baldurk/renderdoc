@@ -187,6 +187,14 @@
   return id<MTLBlitCommandEncoder>(GetWrapped(self)->blitCommandEncoder());
 }
 
+- (nullable id<MTLBlitCommandEncoder>)blitCommandEncoderWithDescriptor:
+    (MTLBlitPassDescriptor *)blitPassDescriptor API_AVAILABLE(macos(11.0), ios(14.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real blitCommandEncoderWithDescriptor:blitPassDescriptor];
+}
+
+
 - (nullable id<MTLRenderCommandEncoder>)renderCommandEncoderWithDescriptor:
     (MTLRenderPassDescriptor *)renderPassDescriptor
 {
@@ -201,13 +209,6 @@
   RDMTL::ComputePassDescriptor rdDescriptor((MTL::ComputePassDescriptor *)computePassDescriptor);
   return id<MTLComputeCommandEncoder>(
       GetWrapped(self)->computeCommandEncoderWithDescriptor(rdDescriptor));
-}
-
-- (nullable id<MTLBlitCommandEncoder>)blitCommandEncoderWithDescriptor:
-    (MTLBlitPassDescriptor *)blitPassDescriptor API_AVAILABLE(macos(11.0), ios(14.0))
-{
-  METAL_NOT_HOOKED();
-  return [self.real blitCommandEncoderWithDescriptor:blitPassDescriptor];
 }
 
 - (nullable id<MTLComputeCommandEncoder>)computeCommandEncoder
