@@ -130,11 +130,10 @@
   return [self.real newVisibleFunctionTableWithDescriptor:descriptor];
 }
 
-- (id<MTLIntersectionFunctionTable>)newIntsectionFunctionTableWithDescriptor:(MTLIntersectionFunctionTableDescriptor *_Nonnull)descriptor API_AVAILABLE(macos(11.0), ios(14.0))
+- (id<MTLIntersectionFunctionTable>)newIntersectionFunctionTableWithDescriptor:(MTLIntersectionFunctionTableDescriptor *_Nonnull)descriptor API_AVAILABLE(macos(11.0), ios(14.0))
 {
   METAL_NOT_HOOKED();
   return [self.real newIntersectionFunctionTableWithDescriptor:descriptor];
-}
 }
 
 @end
