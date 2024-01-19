@@ -435,4 +435,6 @@
                                withBarrier:barrier];
 }
 
+@synthesize dispatchType;
+
 @end
