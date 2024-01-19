@@ -198,8 +198,9 @@
 - (nullable id<MTLComputeCommandEncoder>)computeCommandEncoderWithDescriptor:
     (MTLComputePassDescriptor *)computePassDescriptor API_AVAILABLE(macos(11.0), ios(14.0))
 {
-  METAL_NOT_HOOKED();
-  return [self.real computeCommandEncoderWithDescriptor:computePassDescriptor];
+  RDMTL::ComputePassDescriptor rdDescriptor((MTL::ComputePassDescriptor *)computePassDescriptor);
+  return id<MTLComputeCommandEncoder>(
+      GetWrapped(self)->computeCommandEncoderWithDescriptor(rdDescriptor));
 }
 
 - (nullable id<MTLBlitCommandEncoder>)blitCommandEncoderWithDescriptor:

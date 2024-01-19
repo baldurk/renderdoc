@@ -148,6 +148,20 @@ WrappedMTLRenderCommandEncoder *WrappedMTLCommandBuffer::renderCommandEncoderWit
   return wrappedMTLRenderCommandEncoder;
 }
 
+WrappedMTLComputeCommandEncoder *WrappedMTLCommandBuffer::computeCommandEncoderWithDescriptor(
+    RDMTL::ComputePassDescriptor &descriptor)
+{
+  MTL::ComputeCommandEncoder *realMTLComputeCommandEncoder;
+  MTL::ComputePassDescriptor *mtlDescriptor(descriptor);
+  SERIALISE_TIME_CALL(realMTLComputeCommandEncoder =
+                          Unwrap(this)->computeCommandEncoder(mtlDescriptor));
+  mtlDescriptor->release();
+  WrappedMTLComputeCommandEncoder *wrappedMtlComputeCommandEncoder;
+  ResourceId id = GetResourceManager()->WrapResource(realMTLComputeCommandEncoder,
+                                                     wrappedMtlComputeCommandEncoder);
+  wrappedMtlComputeCommandEncoder
+}
+
 template <typename SerialiserType>
 bool WrappedMTLCommandBuffer::Serialise_presentDrawable(SerialiserType &ser,
                                                         WrappedMTLTexture *presentedImage)

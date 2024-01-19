@@ -49,7 +49,8 @@ const uint32_t MAX_RENDER_PASS_SAMPLE_BUFFER_ATTACHMENTS = 4;
   FUNC(RenderPipelineState);             \
   FUNC(Texture);                         \
   FUNC(RenderCommandEncoder);            \
-  FUNC(BlitCommandEncoder);
+  FUNC(BlitCommandEncoder);              \
+  FUNC(ComputeCommandEncoder);
 
 // These serialise overloads will fetch the ID during capture, serialise the ID
 // directly as-if it were the original type, then on replay load up the resource if available.
@@ -434,6 +435,29 @@ struct RenderPassDescriptor
   rdcarray<RenderPassSampleBufferAttachmentDescriptor> sampleBufferAttachments;
 };
 
+// MTLComputePassSampleBufferAttachmentDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLComputePass.h
+struct ComputePassSampleBufferAttachmentDescriptor
+{
+  ComputePassSampleBufferAttachmentDescriptor() = default;
+  ComputePassSampleBufferAttachmentDescriptor(MTL:ComputePassSampleBufferAttachmentDescriptor *objc);
+  // TODO: when WrappedMTLCounterSampleBuffer exists
+  // MTLCounterSampleBuffer *sampleBuffer = NULL;
+  NS::UInteger startOfEncoderSampleIndex = MTLCounterDontSample;
+  NS::UInteger endOfEncoderSampleIndex = MTLCounterDontSample;
+};
+
+// MTLComputePassDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLComputePass.h
+struct ComputePassDescriptor
+{
+  ComputePassDescriptor() = default;
+  ComputePassDescriptor(MTL::ComputePassDescriptor *objc);
+  explicit operator MTL::ComputePassDescriptor *();
+  rdcarray<ComputePassSampleBufferAttachmentDescriptor> sampleBufferAttachments;
+  MTL::DispatchType dispatchType;
+};
+
 }    // namespace RDMTL
 
 template <>
@@ -468,3 +492,5 @@ RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassDepthAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassStencilAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassSampleBufferAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(ComputePassSampleBufferAttachmentDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(ComputePassDescriptor);
