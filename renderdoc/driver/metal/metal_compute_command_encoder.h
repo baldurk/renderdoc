@@ -37,6 +37,7 @@ public:
   void SetCommandBuffer(WrappedMTLCommandBuffer *commandBuffer) { m_CommandBuffer = commandBuffer; }
   DECLARE_FUNCTION_SERIALISED(void, setComputePipelineState,
                               WrappedMTLComputePipelineState *pipelineState);
+  DECLARE_FUNCTION_SERIALISED(void, endEncoding);
 
   enum
   {

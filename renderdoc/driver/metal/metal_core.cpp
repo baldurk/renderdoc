@@ -354,6 +354,8 @@ bool WrappedMTLDevice::ProcessChunk(ReadSerialiser &ser, MetalChunk chunk)
 
     case MetalChunk::MTLComputeCommandEncoder_setComputePipelineState:
       return m_DummyComputeCommandEncoder->Serialise_setComputePipelineState(ser, NULL);
+    case MetalChunk::MTLComputeCommandEncoder_endEncoding:
+      return m_DummyComputeCommandEncoder->Serialise_endEncoding();
 
     case MetalChunk::MTLBuffer_setPurgeableState: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLBuffer_makeAliasable: METAL_CHUNK_NOT_HANDLED();

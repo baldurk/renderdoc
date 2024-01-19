@@ -31,7 +31,7 @@
 template <>
 rdcstr DoStringise(const MetalChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)MetalChunk::Max == 1230, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)MetalChunk::Max == 1231, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(MetalChunk)
   {
@@ -389,6 +389,8 @@ rdcstr DoStringise(const MetalChunk &el)
                                "MTLRenderCommandEncoder::sampleCountersInBuffer");
     STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setComputePipelineState,
                                "MTLComputeCommandEncoder::setComputePipelineState");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_endEncoding,
+                               "MTLComputeCommandEncoder::endEncoding");
     STRINGISE_ENUM_CLASS_NAMED(MTLBuffer_setPurgeableState, "MTLBuffer::setPurgeableState");
     STRINGISE_ENUM_CLASS_NAMED(MTLBuffer_makeAliasable, "MTLBuffer::makeAliasable");
     STRINGISE_ENUM_CLASS_NAMED(MTLBuffer_contents, "MTLBuffer::contents");

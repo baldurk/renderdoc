@@ -77,5 +77,42 @@ void WrappedMTLComputeCommandEncoder::setComputePipelineState(WrappedMTLComputeP
   }
 }
 
+template <typename SerialiserType>
+bool WrappedMTLComputeCommandEncoder::Serialise_endEncoding(SerialiserType &ser)
+{
+  SERIALISE_ELEMENT_LOCAL(ComputeCommandEncoder, this);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  // TODO: implement RD MTL replay
+  if(IsReplayingAndReading())
+  {
+  }
+  return true;
+}
+
+void WrappedMTLComputeCommandEncoder::endEncoding()
+{
+  SERIALISE_TIME_CALL(Unwrap(this)->endEncoding());
+
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLComputeCommandEncoder_endEncoding);
+      Serialise_endEncoding(ser);
+      chunk = scope.Get();
+    }
+    MetalResourceRecord *bufferRecord = GetRecord(m_CommandBuffer);
+    bufferRecord->AddChunk(chunk);
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+  }
+}
+
+INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLComputeCommandEncoder, void, endEncoding);
 INSTANTIATE_FUNCTION_SERIALISED(WrappedMTLComputeCommandEncoder, void, setComputePipelineState,
                                 WrappedMTLComputePipelineState *pipelineState);
