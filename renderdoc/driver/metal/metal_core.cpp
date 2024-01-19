@@ -30,6 +30,7 @@
 #include "metal_device.h"
 #include "metal_library.h"
 #include "metal_render_command_encoder.h"
+#include "metal_compute_command_encoder.h"
 #include "metal_replay.h"
 #include "metal_texture.h"
 
@@ -355,7 +356,7 @@ bool WrappedMTLDevice::ProcessChunk(ReadSerialiser &ser, MetalChunk chunk)
     case MetalChunk::MTLComputeCommandEncoder_setComputePipelineState:
       return m_DummyComputeCommandEncoder->Serialise_setComputePipelineState(ser, NULL);
     case MetalChunk::MTLComputeCommandEncoder_endEncoding:
-      return m_DummyComputeCommandEncoder->Serialise_endEncoding();
+      return m_DummyComputeCommandEncoder->Serialise_endEncoding(ser);
     case MetalChunk::MTLComputeCommandEncoder_setBuffer: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLComputeCommandEncoder_setBuffer_stride: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLComputeCommandEncoder_setBuffers: METAL_CHUNK_NOT_HANDLED();

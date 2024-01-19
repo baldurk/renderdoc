@@ -119,12 +119,38 @@
   return [self.real setBuffer:buffer offset:offset atIndex:index];
 }
 
+- (void)setBuffer:(id<MTLBuffer>)buffer
+           offset:(NSUInteger)offset
+  attributeStride:(NSUInteger)stride
+          atIndex:(NSUInteger)index
+    API_AVAILABLE(macos(14.0), macCatalyst(17.0), ios(17.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setBuffer:buffer
+                       offset:offset
+              attributeStride:stride
+                      atIndex:index];
+}
+
 - (void)setBuffers:(const id<MTLBuffer> __nullable[__nonnull])buffers
            offsets:(const NSUInteger[__nonnull])offsets
          withRange:(NSRange)range
 {
   METAL_NOT_HOOKED();
   return [self.real setBuffers:buffers offsets:offsets withRange:range];
+}
+
+- (void)setBuffers:(const id<MTLBuffer> __nullable[__nonnull])buffers
+           offsets:(const NSUInteger[__nonnull])offsets
+  attributeStrides:(const NSUInteger [__nonnull])strides
+         withRange:(NSRange)range
+    API_AVAILABLE(macos(14.0), macCatalyst(17.0), ios(17.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setBuffers:buffers
+                       offsets:offsets
+              attributeStrides:strides
+                     withRange:range];
 }
 
 - (void)setBufferOffset:(NSUInteger)offset
@@ -134,12 +160,36 @@
   return [self.real setBufferOffset:offset atIndex:index];
 }
 
+- (void)setBufferOffset:(NSUInteger)offset
+        attributeStride:(NSUInteger)stride
+                atIndex:(NSUInteger)index
+    API_AVAILABLE(macos(14.0), macCatalyst(17.0), ios(17.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setBufferOffset:offset
+                    attributeStride:stride
+                            atIndex:index];
+}
+
 - (void)setBytes:(const void *)bytes
           length:(NSUInteger)length
          atIndex:(NSUInteger)index API_AVAILABLE(macos(10.11), ios(8.3))
 {
   METAL_NOT_HOOKED();
   return [self.real setBytes:bytes length:length atIndex:index];
+}
+
+- (void)setBytes:(const void *)bytes
+          length:(NSUInteger)length
+ attributeStride:(NSUInteger)stride
+         atIndex:(NSUInteger)index
+    API_AVAILABLE(macos(14.0), macCatalyst(17.0), ios(17.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setBytes:bytes
+                      length:length
+             attributeStride:stride
+                     atIndex:index];
 }
 
 - (void)setSamplerState:(nullable id<MTLSamplerState>)sampler
@@ -178,6 +228,211 @@
                         lodMinClamps:lodMinClamps
                         lodMaxClamps:lodMaxClamps
                            withRange:range];
+}
+
+- (void)setTexture:(id<MTLTexture>)texture
+           atIndex:(NSUInteger)index
+{
+  METAL_NOT_HOOKED();
+  return [self.real setTexture:texture atIndex:index];
+}
+
+- (void)setTextures:(const id<MTLTexture> __nullable[__nonnull])textures
+          withRange:(NSRange)range
+{
+  METAL_NOT_HOOKED();
+  return [self.real setTextures:textures withRange:range];
+}
+
+- (void)setThreadgroupMemoryLength:(NSUInteger)length
+                           atIndex:(NSUInteger)index
+{
+  METAL_NOT_HOOKED();
+  return [self.real setThreadgroupMemoryLength:length atIndex: index];
+}
+
+- (void)setVisibleFunctionTable:(id<MTLVisibleFunctionTable>)visibleFunctionTable
+                  atBufferIndex:(NSUInteger)bufferIndex
+    API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(14.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setVisibleFunctionTable:visibleFunctionTable
+                              atBufferIndex:bufferIndex];
+}
+
+- (void)setVisibleFunctionTables:(const id<MTLVisibleFunctionTable> __nullable[__nonnull])visibleFunctionTables
+                 withBufferRange:(NSRange)range
+    API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(14.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setVisibleFunctionTables:visibleFunctionTables
+                             withBufferRange:range];
+}
+
+- (void)setIntersectionFunctionTable:(id<MTLIntersectionFunctionTable>)intersectionFunctionTable
+                       atBufferIndex:(NSUInteger)bufferIndex
+    API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(14.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setIntersectionFunctionTable:intersectionFunctionTable
+                                   atBufferIndex:bufferIndex];
+}
+
+- (void)setIntersectionFunctionTables:(const id<MTLIntersectionFunctionTable> __nullable[__nonnull])intersectionFunctionTable
+                      withBufferRange:(NSRange)range
+    API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(14.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setIntersectionFunctionTables:intersectionFunctionTable
+                                  withBufferRange:range];
+}
+
+- (void)setAccelerationStructure:(id<MTLAccelerationStructure>)accelerationStructure
+                   atBufferIndex:(NSUInteger)bufferIndex
+    API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(14.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setAccelerationStructure:accelerationStructure
+                               atBufferIndex:bufferIndex];
+}
+
+- (void)dispatchThreadgroups:(MTLSize)threadgroupsPerGrid
+       threadsPerThreadgroup:(MTLSize)threadsPerThreadgroup
+{
+  METAL_NOT_HOOKED();
+  return [self.real dispatchThreadgroups:threadgroupsPerGrid
+                   threadsPerThreadgroup:threadsPerThreadgroup];
+}
+
+- (void)dispatchThreads:(MTLSize)threadsPerGrid
+  threadsPerThreadgroup:(MTLSize)threadsPerThreadgroup
+    API_AVAILABLE(macos(10.13), macCatalyst(13.1), ios(11.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real dispatchThreads:threadsPerGrid
+              threadsPerThreadgroup:threadsPerThreadgroup];
+}
+
+- (void)dispatchThreadgroupsWithIndirectBuffer:(id<MTLBuffer>)indirectBuffer
+                          indirectBufferOffset:(NSUInteger)indirectBufferOffset
+                         threadsPerThreadgroup:(MTLSize)threadsPerThreadgroup
+    API_AVAILABLE(macos(10.11), macCatalyst(13.1), ios(9.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real dispatchThreadgroupsWithIndirectBuffer:indirectBuffer
+                                      indirectBufferOffset:indirectBufferOffset
+                                     threadsPerThreadgroup:threadsPerThreadgroup];
+}
+
+- (void)useResource:(id<MTLResource>)resource
+              usage:(MTLResourceUsage)usage
+    API_AVAILABLE(macos(10.13), macCatalyst(13.1), ios(11.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real useResource:resource usage:usage];
+}
+
+- (void)useResources:(const id<MTLResource> __nonnull[__nonnull])resources
+               count:(NSUInteger)count
+               usage:(MTLResourceUsage)usage
+    API_AVAILABLE(macos(10.13), macCatalyst(13.1), ios(11.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real useResources:resources
+                           count:count
+                           usage:usage];
+}
+
+- (void)useHeap:(id<MTLHeap>)heap API_AVAILABLE(macos(10.13), macCatalyst(13.2), ios(11.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real useHeap:heap];
+}
+
+- (void)useHeaps:(const id<MTLHeap> __nonnull[__nonnull])heaps
+           count:(NSUInteger)count
+    API_AVAILABLE(macos(10.13), macCatalyst(13.1), ios(11.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real useHeaps:heaps count:count];
+}
+
+- (void)setImageblockWidth:(NSUInteger)width
+                    height:(NSUInteger)height
+    API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(11.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setImageblockWidth:width height:height];
+}
+
+- (void)setStageInRegion:(MTLRegion)region API_AVAILABLE(macos(10.12), macCatalyst(13.1), ios(10.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setStageInRegion:region];
+}
+
+- (void)setStageInRegionWithIndirectBuffer:(id<MTLBuffer>)indirectBuffer
+                      indirectBufferOffset:(NSUInteger)indirectBufferOffset
+    API_AVAILABLE(macos(10.14), macCatalyst(13.1), ios(12.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setStageInRegionWithIndirectBuffer:indirectBuffer
+                                  indirectBufferOffset:indirectBufferOffset];
+}
+
+- (void)memoryBarrierWithScope:(MTLBarrierScope)scope API_AVAILABLE(macos(10.14), macCatalyst(13.1), ios(12.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real memoryBarrierWithScope:scope];
+}
+
+- (void)memoryBarrierWithResources:(const id<MTLResource> __nonnull[__nonnull])resources
+                             count:(NSUInteger)count
+    API_AVAILABLE(macos(10.14), macCatalyst(13.1), ios(12.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real memoryBarrierWithResources:resources count:count];
+}
+
+- (void)executeCommandsInBuffer:(id<MTLIndirectCommandBuffer>)indirectCommandBuffer
+                      withRange:(NSRange)range
+    API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(13.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real executeCommandsInBuffer:indirectCommandBuffer withRange:range];
+}
+
+- (void)executeCommandsInBuffer:(id<MTLIndirectCommandBuffer>)indirectCommandBuffer
+                 indirectBuffer:(id<MTLBuffer>)indirectRangeBuffer
+           indirectBufferOffset:(NSUInteger)indirectBufferOffset
+    API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(13.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real executeCommandsInBuffer:indirectCommandBuffer
+                             indirectBuffer:indirectRangeBuffer
+                       indirectBufferOffset:indirectBufferOffset];
+}
+
+- (void)updateFence:(id<MTLFence>)fence API_AVAILABLE(macos(10.13), macCatalyst(13.1), ios(10.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real updateFence:fence];
+}
+
+- (void)waitForFence:(id<MTLFence>)fence API_AVAILABLE(macos(10.13), macCatalyst(13.1), ios(10.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real waitForFence:fence];
+}
+
+- (void)sampleCountersInBuffer:(id<MTLCounterSampleBuffer>)sampleBuffer
+                 atSampleIndex:(NSUInteger)sampleIndex
+    withBarrier:(BOOL)barrier API_AVAILABLE(macos(10.15), ios(14.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real sampleCountersInBuffer:sampleBuffer
+                             atSampleIndex:sampleIndex
+                               withBarrier:barrier];
 }
 
 @end
