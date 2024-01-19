@@ -194,7 +194,6 @@
   return [self.real blitCommandEncoderWithDescriptor:blitPassDescriptor];
 }
 
-
 - (nullable id<MTLRenderCommandEncoder>)renderCommandEncoderWithDescriptor:
     (MTLRenderPassDescriptor *)renderPassDescriptor
 {

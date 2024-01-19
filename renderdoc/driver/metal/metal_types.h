@@ -274,7 +274,7 @@ struct VertexDescriptor
 struct AttributeDescriptor
 {
   AttributeDescriptor() = default;
-  AttributeDescriptor(MTL::AttributeDescriptor * objc);
+  AttributeDescriptor(MTL::AttributeDescriptor *objc);
   void CopyTo(MTL::AttributeDescriptor *objc);
   NS::UInteger bufferIndex = 0;
   NS::UInteger offset = 0;

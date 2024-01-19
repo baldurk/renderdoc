@@ -1,26 +1,26 @@
 /******************************************************************************
-* The MIT License (MIT)
-*
-* Copyright (c) 2022-2023 Baldur Karlsson
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-******************************************************************************/
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2022-2023 Baldur Karlsson
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
 
 #include "metal_compute_command_encoder.h"
 #include "metal_types_bridge.h"
@@ -111,25 +111,19 @@
   GetWrapped(self)->setComputePipelineState(GetWrapped(pipelineState));
 }
 
-- (void)setBuffer:(nullable id<MTLBuffer>)buffer
-           offset:(NSUInteger)offset
-          atIndex:(NSUInteger)index
+- (void)setBuffer:(nullable id<MTLBuffer>)buffer offset:(NSUInteger)offset atIndex:(NSUInteger)index
 {
   METAL_NOT_HOOKED();
   return [self.real setBuffer:buffer offset:offset atIndex:index];
 }
 
 - (void)setBuffer:(id<MTLBuffer>)buffer
-           offset:(NSUInteger)offset
-  attributeStride:(NSUInteger)stride
-          atIndex:(NSUInteger)index
-    API_AVAILABLE(macos(14.0), macCatalyst(17.0), ios(17.0))
+             offset:(NSUInteger)offset
+    attributeStride:(NSUInteger)stride
+            atIndex:(NSUInteger)index API_AVAILABLE(macos(14.0), macCatalyst(17.0), ios(17.0))
 {
   METAL_NOT_HOOKED();
-  return [self.real setBuffer:buffer
-                       offset:offset
-              attributeStride:stride
-                      atIndex:index];
+  return [self.real setBuffer:buffer offset:offset attributeStride:stride atIndex:index];
 }
 
 - (void)setBuffers:(const id<MTLBuffer> __nullable[__nonnull])buffers
@@ -141,20 +135,15 @@
 }
 
 - (void)setBuffers:(const id<MTLBuffer> __nullable[__nonnull])buffers
-           offsets:(const NSUInteger[__nonnull])offsets
-  attributeStrides:(const NSUInteger [__nonnull])strides
-         withRange:(NSRange)range
-    API_AVAILABLE(macos(14.0), macCatalyst(17.0), ios(17.0))
+             offsets:(const NSUInteger[__nonnull])offsets
+    attributeStrides:(const NSUInteger[__nonnull])strides
+           withRange:(NSRange)range API_AVAILABLE(macos(14.0), macCatalyst(17.0), ios(17.0))
 {
   METAL_NOT_HOOKED();
-  return [self.real setBuffers:buffers
-                       offsets:offsets
-              attributeStrides:strides
-                     withRange:range];
+  return [self.real setBuffers:buffers offsets:offsets attributeStrides:strides withRange:range];
 }
 
-- (void)setBufferOffset:(NSUInteger)offset
-                atIndex:(NSUInteger)index
+- (void)setBufferOffset:(NSUInteger)offset atIndex:(NSUInteger)index
 {
   METAL_NOT_HOOKED();
   return [self.real setBufferOffset:offset atIndex:index];
@@ -162,13 +151,10 @@
 
 - (void)setBufferOffset:(NSUInteger)offset
         attributeStride:(NSUInteger)stride
-                atIndex:(NSUInteger)index
-    API_AVAILABLE(macos(14.0), macCatalyst(17.0), ios(17.0))
+                atIndex:(NSUInteger)index API_AVAILABLE(macos(14.0), macCatalyst(17.0), ios(17.0))
 {
   METAL_NOT_HOOKED();
-  return [self.real setBufferOffset:offset
-                    attributeStride:stride
-                            atIndex:index];
+  return [self.real setBufferOffset:offset attributeStride:stride atIndex:index];
 }
 
 - (void)setBytes:(const void *)bytes
@@ -180,20 +166,15 @@
 }
 
 - (void)setBytes:(const void *)bytes
-          length:(NSUInteger)length
- attributeStride:(NSUInteger)stride
-         atIndex:(NSUInteger)index
-    API_AVAILABLE(macos(14.0), macCatalyst(17.0), ios(17.0))
+             length:(NSUInteger)length
+    attributeStride:(NSUInteger)stride
+            atIndex:(NSUInteger)index API_AVAILABLE(macos(14.0), macCatalyst(17.0), ios(17.0))
 {
   METAL_NOT_HOOKED();
-  return [self.real setBytes:bytes
-                      length:length
-             attributeStride:stride
-                     atIndex:index];
+  return [self.real setBytes:bytes length:length attributeStride:stride atIndex:index];
 }
 
-- (void)setSamplerState:(nullable id<MTLSamplerState>)sampler
-                atIndex:(NSUInteger)index
+- (void)setSamplerState:(nullable id<MTLSamplerState>)sampler atIndex:(NSUInteger)index
 {
   METAL_NOT_HOOKED();
   return [self.real setSamplerState:sampler atIndex:index];
@@ -206,9 +187,9 @@
 {
   METAL_NOT_HOOKED();
   return [self.real setSamplerState:sampler
-                        lodMinClamp: lodMinClamp
-                        lodMaxClamp: lodMaxClamp
-                            atIndex: index];
+                        lodMinClamp:lodMinClamp
+                        lodMaxClamp:lodMaxClamp
+                            atIndex:index];
 }
 
 - (void)setSamplerStates:(const id<MTLSamplerState> __nullable[__nonnull])samplers
@@ -230,25 +211,22 @@
                            withRange:range];
 }
 
-- (void)setTexture:(id<MTLTexture>)texture
-           atIndex:(NSUInteger)index
+- (void)setTexture:(id<MTLTexture>)texture atIndex:(NSUInteger)index
 {
   METAL_NOT_HOOKED();
   return [self.real setTexture:texture atIndex:index];
 }
 
-- (void)setTextures:(const id<MTLTexture> __nullable[__nonnull])textures
-          withRange:(NSRange)range
+- (void)setTextures:(const id<MTLTexture> __nullable[__nonnull])textures withRange:(NSRange)range
 {
   METAL_NOT_HOOKED();
   return [self.real setTextures:textures withRange:range];
 }
 
-- (void)setThreadgroupMemoryLength:(NSUInteger)length
-                           atIndex:(NSUInteger)index
+- (void)setThreadgroupMemoryLength:(NSUInteger)length atIndex:(NSUInteger)index
 {
   METAL_NOT_HOOKED();
-  return [self.real setThreadgroupMemoryLength:length atIndex: index];
+  return [self.real setThreadgroupMemoryLength:length atIndex:index];
 }
 
 - (void)setVisibleFunctionTable:(id<MTLVisibleFunctionTable>)visibleFunctionTable
@@ -256,17 +234,16 @@
     API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(14.0))
 {
   METAL_NOT_HOOKED();
-  return [self.real setVisibleFunctionTable:visibleFunctionTable
-                              atBufferIndex:bufferIndex];
+  return [self.real setVisibleFunctionTable:visibleFunctionTable atBufferIndex:bufferIndex];
 }
 
-- (void)setVisibleFunctionTables:(const id<MTLVisibleFunctionTable> __nullable[__nonnull])visibleFunctionTables
+- (void)setVisibleFunctionTables:
+            (const id<MTLVisibleFunctionTable> __nullable[__nonnull])visibleFunctionTables
                  withBufferRange:(NSRange)range
     API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(14.0))
 {
   METAL_NOT_HOOKED();
-  return [self.real setVisibleFunctionTables:visibleFunctionTables
-                             withBufferRange:range];
+  return [self.real setVisibleFunctionTables:visibleFunctionTables withBufferRange:range];
 }
 
 - (void)setIntersectionFunctionTable:(id<MTLIntersectionFunctionTable>)intersectionFunctionTable
@@ -278,13 +255,13 @@
                                    atBufferIndex:bufferIndex];
 }
 
-- (void)setIntersectionFunctionTables:(const id<MTLIntersectionFunctionTable> __nullable[__nonnull])intersectionFunctionTable
+- (void)setIntersectionFunctionTables:
+            (const id<MTLIntersectionFunctionTable> __nullable[__nonnull])intersectionFunctionTable
                       withBufferRange:(NSRange)range
     API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(14.0))
 {
   METAL_NOT_HOOKED();
-  return [self.real setIntersectionFunctionTables:intersectionFunctionTable
-                                  withBufferRange:range];
+  return [self.real setIntersectionFunctionTables:intersectionFunctionTable withBufferRange:range];
 }
 
 - (void)setAccelerationStructure:(id<MTLAccelerationStructure>)accelerationStructure
@@ -292,8 +269,7 @@
     API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(14.0))
 {
   METAL_NOT_HOOKED();
-  return [self.real setAccelerationStructure:accelerationStructure
-                               atBufferIndex:bufferIndex];
+  return [self.real setAccelerationStructure:accelerationStructure atBufferIndex:bufferIndex];
 }
 
 - (void)dispatchThreadgroups:(MTLSize)threadgroupsPerGrid
@@ -305,12 +281,11 @@
 }
 
 - (void)dispatchThreads:(MTLSize)threadsPerGrid
-  threadsPerThreadgroup:(MTLSize)threadsPerThreadgroup
+    threadsPerThreadgroup:(MTLSize)threadsPerThreadgroup
     API_AVAILABLE(macos(10.13), macCatalyst(13.1), ios(11.0))
 {
   METAL_NOT_HOOKED();
-  return [self.real dispatchThreads:threadsPerGrid
-              threadsPerThreadgroup:threadsPerThreadgroup];
+  return [self.real dispatchThreads:threadsPerGrid threadsPerThreadgroup:threadsPerThreadgroup];
 }
 
 - (void)dispatchThreadgroupsWithIndirectBuffer:(id<MTLBuffer>)indirectBuffer
@@ -325,8 +300,7 @@
 }
 
 - (void)useResource:(id<MTLResource>)resource
-              usage:(MTLResourceUsage)usage
-    API_AVAILABLE(macos(10.13), macCatalyst(13.1), ios(11.0))
+              usage:(MTLResourceUsage)usage API_AVAILABLE(macos(10.13), macCatalyst(13.1), ios(11.0))
 {
   METAL_NOT_HOOKED();
   return [self.real useResource:resource usage:usage];
@@ -338,9 +312,7 @@
     API_AVAILABLE(macos(10.13), macCatalyst(13.1), ios(11.0))
 {
   METAL_NOT_HOOKED();
-  return [self.real useResources:resources
-                           count:count
-                           usage:usage];
+  return [self.real useResources:resources count:count usage:usage];
 }
 
 - (void)useHeap:(id<MTLHeap>)heap API_AVAILABLE(macos(10.13), macCatalyst(13.2), ios(11.0))
@@ -350,8 +322,7 @@
 }
 
 - (void)useHeaps:(const id<MTLHeap> __nonnull[__nonnull])heaps
-           count:(NSUInteger)count
-    API_AVAILABLE(macos(10.13), macCatalyst(13.1), ios(11.0))
+           count:(NSUInteger)count API_AVAILABLE(macos(10.13), macCatalyst(13.1), ios(11.0))
 {
   METAL_NOT_HOOKED();
   return [self.real useHeaps:heaps count:count];
@@ -380,7 +351,8 @@
                                   indirectBufferOffset:indirectBufferOffset];
 }
 
-- (void)memoryBarrierWithScope:(MTLBarrierScope)scope API_AVAILABLE(macos(10.14), macCatalyst(13.1), ios(12.0))
+- (void)memoryBarrierWithScope:(MTLBarrierScope)scope
+    API_AVAILABLE(macos(10.14), macCatalyst(13.1), ios(12.0))
 {
   METAL_NOT_HOOKED();
   return [self.real memoryBarrierWithScope:scope];
@@ -427,7 +399,7 @@
 
 - (void)sampleCountersInBuffer:(id<MTLCounterSampleBuffer>)sampleBuffer
                  atSampleIndex:(NSUInteger)sampleIndex
-    withBarrier:(BOOL)barrier API_AVAILABLE(macos(10.15), ios(14.0))
+                   withBarrier:(BOOL)barrier API_AVAILABLE(macos(10.15), ios(14.0))
 {
   METAL_NOT_HOOKED();
   return [self.real sampleCountersInBuffer:sampleBuffer

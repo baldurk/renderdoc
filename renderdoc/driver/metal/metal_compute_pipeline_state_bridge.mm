@@ -1,26 +1,26 @@
 /******************************************************************************
-* The MIT License (MIT)
-*
-* Copyright (c) 2022-2023 Baldur Karlsson
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-******************************************************************************/
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2022-2023 Baldur Karlsson
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
 
 #include "metal_compute_pipeline_state.h"
 #include "metal_types_bridge.h"
@@ -85,8 +85,8 @@
   return self.real.threadExecutionWidth;
 }
 
-- (NSUInteger)staticThreadgroupMemoryLength API_AVAILABLE(macos(10.13), macCatalyst(13.1), ios(11.0),
-                                                          tvos(11.0))
+- (NSUInteger)staticThreadgroupMemoryLength API_AVAILABLE(macos(10.13), macCatalyst(13.1),
+                                                          ios(11.0), tvos(11.0))
 {
   return self.real.staticThreadgroupMemoryLength;
 }
@@ -103,34 +103,39 @@
   return self.real.supportIndirectCommandBuffers;
 }
 
-- (NSUInteger)imageblockMemoryLengthForDimensions:(MTLSize)imageblockDimensions API_AVAILABLE(macos(11.0), ios(11.0))
+- (NSUInteger)imageblockMemoryLengthForDimensions:(MTLSize)imageblockDimensions
+    API_AVAILABLE(macos(11.0), ios(11.0))
 {
   METAL_NOT_HOOKED();
   return [self.real imageblockMemoryLengthForDimensions:imageblockDimensions];
 }
 
-- (nullable id<MTLFunctionHandle>)functionHandleWithFunction:(id<MTLFunction>)function API_AVAILABLE(macos(11.0), ios(14.0))
+- (nullable id<MTLFunctionHandle>)functionHandleWithFunction:(id<MTLFunction>)function
+    API_AVAILABLE(macos(11.0), ios(14.0))
 {
   METAL_NOT_HOOKED();
   return [self.real functionHandleWithFunction:function];
 }
 
-- (id<MTLComputePipelineState>)newComputePipelineStateWithAdditionalBinaryFunctions:(NSArray<id<MTLFunction>> * _Nonnull)functions
-                                                                              error:(__autoreleasing NSError **)error
+- (id<MTLComputePipelineState>)
+    newComputePipelineStateWithAdditionalBinaryFunctions:(NSArray<id<MTLFunction>> *_Nonnull)functions
+                                                   error:(__autoreleasing NSError **)error
     API_AVAILABLE(macos(11.0), ios(14.0))
 {
   METAL_NOT_HOOKED();
-  return [self.real newComputePipelineStateWithAdditionalBinaryFunctions:functions
-                                                                   error:error];
+  return [self.real newComputePipelineStateWithAdditionalBinaryFunctions:functions error:error];
 }
 
-- (id<MTLVisibleFunctionTable>)newVisibleFunctionTableWithDescriptor:(MTLVisibleFunctionTableDescriptor *_Nonnull)descriptor API_AVAILABLE(macos(11.0), ios(14.0))
+- (id<MTLVisibleFunctionTable>)newVisibleFunctionTableWithDescriptor:
+    (MTLVisibleFunctionTableDescriptor *_Nonnull)descriptor API_AVAILABLE(macos(11.0), ios(14.0))
 {
   METAL_NOT_HOOKED();
   return [self.real newVisibleFunctionTableWithDescriptor:descriptor];
 }
 
-- (id<MTLIntersectionFunctionTable>)newIntersectionFunctionTableWithDescriptor:(MTLIntersectionFunctionTableDescriptor *_Nonnull)descriptor API_AVAILABLE(macos(11.0), ios(14.0))
+- (id<MTLIntersectionFunctionTable>)newIntersectionFunctionTableWithDescriptor:
+    (MTLIntersectionFunctionTableDescriptor *_Nonnull)descriptor
+    API_AVAILABLE(macos(11.0), ios(14.0))
 {
   METAL_NOT_HOOKED();
   return [self.real newIntersectionFunctionTableWithDescriptor:descriptor];

@@ -27,10 +27,10 @@
 #include "metal_blit_command_encoder.h"
 #include "metal_buffer.h"
 #include "metal_command_buffer.h"
+#include "metal_compute_command_encoder.h"
 #include "metal_device.h"
 #include "metal_library.h"
 #include "metal_render_command_encoder.h"
-#include "metal_compute_command_encoder.h"
 #include "metal_replay.h"
 #include "metal_texture.h"
 
@@ -374,8 +374,10 @@ bool WrappedMTLDevice::ProcessChunk(ReadSerialiser &ser, MetalChunk chunk)
     case MetalChunk::MTLComputeCommandEncoder_setThreadgroupMemoryLength: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLComputeCommandEncoder_setVisibleFunctionTable: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLComputeCommandEncoder_setVisibleFunctionTables: METAL_CHUNK_NOT_HANDLED();
-    case MetalChunk::MTLComputeCommandEncoder_setIntersectionFunctionTable: METAL_CHUNK_NOT_HANDLED();
-    case MetalChunk::MTLComputeCommandEncoder_setIntersectionFunctionTables: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLComputeCommandEncoder_setIntersectionFunctionTable:
+      METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLComputeCommandEncoder_setIntersectionFunctionTables:
+      METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLComputeCommandEncoder_setAccelerationStructure: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLComputeCommandEncoder_useResource: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLComputeCommandEncoder_useResources: METAL_CHUNK_NOT_HANDLED();
@@ -383,11 +385,13 @@ bool WrappedMTLDevice::ProcessChunk(ReadSerialiser &ser, MetalChunk chunk)
     case MetalChunk::MTLComputeCommandEncoder_useHeaps: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLComputeCommandEncoder_setImageblockWidth: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLComputeCommandEncoder_setStageInRegion: METAL_CHUNK_NOT_HANDLED();
-    case MetalChunk::MTLComputeCommandEncoder_setStageInRegionWithIndirectBuffer: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLComputeCommandEncoder_setStageInRegionWithIndirectBuffer:
+      METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLComputeCommandEncoder_memoryBarrierWithScope: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLComputeCommandEncoder_memoryBarrierWithResources: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLComputeCommandEncoder_executeCommandsInBuffer: METAL_CHUNK_NOT_HANDLED();
-    case MetalChunk::MTLComputeCommandEncoder_executeCommandsInBuffer_indirect: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLComputeCommandEncoder_executeCommandsInBuffer_indirect:
+      METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLComputeCommandEncoder_updateFence: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLComputeCommandEncoder_waitForFence: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLComputeCommandEncoder_sampleCountersInBuffer: METAL_CHUNK_NOT_HANDLED();

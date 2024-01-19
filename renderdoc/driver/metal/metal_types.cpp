@@ -27,14 +27,14 @@
 #include "metal_buffer.h"
 #include "metal_command_buffer.h"
 #include "metal_command_queue.h"
+#include "metal_compute_command_encoder.h"
+#include "metal_compute_pipeline_state.h"
 #include "metal_device.h"
 #include "metal_function.h"
 #include "metal_library.h"
 #include "metal_manager.h"
 #include "metal_render_command_encoder.h"
 #include "metal_render_pipeline_state.h"
-#include "metal_compute_command_encoder.h"
-#include "metal_compute_pipeline_state.h"
 #include "metal_resources.h"
 #include "metal_texture.h"
 
@@ -346,7 +346,7 @@ void VertexDescriptor::CopyTo(MTL::VertexDescriptor *objc)
 }
 
 AttributeDescriptor::AttributeDescriptor(MTL::AttributeDescriptor *objc)
-      : bufferIndex(objc->bufferIndex()), offset(objc->offset()), format(objc->format())
+    : bufferIndex(objc->bufferIndex()), offset(objc->offset()), format(objc->format())
 {
 }
 
@@ -674,12 +674,15 @@ RenderPassDescriptor::operator MTL::RenderPassDescriptor *()
   return objc;
 }
 
-ComputePassSampleBufferAttachmentDescriptor::ComputePassSampleBufferAttachmentDescriptor(MTL::ComputePassSampleBufferAttachmentDescriptor *objc)
-    : startOfEncoderSampleIndex(objc->endOfEncoderSampleIndex()), endOfEncoderSampleIndex(objc->endOfEncoderSampleIndex())
+ComputePassSampleBufferAttachmentDescriptor::ComputePassSampleBufferAttachmentDescriptor(
+    MTL::ComputePassSampleBufferAttachmentDescriptor *objc)
+    : startOfEncoderSampleIndex(objc->endOfEncoderSampleIndex()),
+      endOfEncoderSampleIndex(objc->endOfEncoderSampleIndex())
 {
 }
 
-void ComputePassSampleBufferAttachmentDescriptor::CopyTo(MTL::ComputePassSampleBufferAttachmentDescriptor *objc)
+void ComputePassSampleBufferAttachmentDescriptor::CopyTo(
+    MTL::ComputePassSampleBufferAttachmentDescriptor *objc)
 {
   // TODO: when WrappedMTLCounterSampleBuffer exists
   // objc->setSampleBuffer(Unwrap(sampleBuffer));
