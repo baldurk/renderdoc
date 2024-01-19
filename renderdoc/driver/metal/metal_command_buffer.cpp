@@ -26,6 +26,7 @@
 #include "metal_blit_command_encoder.h"
 #include "metal_device.h"
 #include "metal_render_command_encoder.h"
+#include "metal_compute_command_encoder.h"
 #include "metal_resources.h"
 #include "metal_texture.h"
 
