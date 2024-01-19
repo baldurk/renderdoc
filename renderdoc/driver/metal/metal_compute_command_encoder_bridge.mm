@@ -117,6 +117,7 @@
   return [self.real setBuffer:buffer offset:offset atIndex:index];
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_14_0
 - (void)setBuffer:(id<MTLBuffer>)buffer
              offset:(NSUInteger)offset
     attributeStride:(NSUInteger)stride
@@ -125,6 +126,7 @@
   METAL_NOT_HOOKED();
   return [self.real setBuffer:buffer offset:offset attributeStride:stride atIndex:index];
 }
+#endif
 
 - (void)setBuffers:(const id<MTLBuffer> __nullable[__nonnull])buffers
            offsets:(const NSUInteger[__nonnull])offsets
@@ -134,6 +136,7 @@
   return [self.real setBuffers:buffers offsets:offsets withRange:range];
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_14_0
 - (void)setBuffers:(const id<MTLBuffer> __nullable[__nonnull])buffers
              offsets:(const NSUInteger[__nonnull])offsets
     attributeStrides:(const NSUInteger[__nonnull])strides
@@ -142,6 +145,7 @@
   METAL_NOT_HOOKED();
   return [self.real setBuffers:buffers offsets:offsets attributeStrides:strides withRange:range];
 }
+#endif
 
 - (void)setBufferOffset:(NSUInteger)offset atIndex:(NSUInteger)index
 {
@@ -149,6 +153,7 @@
   return [self.real setBufferOffset:offset atIndex:index];
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_14_0
 - (void)setBufferOffset:(NSUInteger)offset
         attributeStride:(NSUInteger)stride
                 atIndex:(NSUInteger)index API_AVAILABLE(macos(14.0), macCatalyst(17.0), ios(17.0))
@@ -156,6 +161,7 @@
   METAL_NOT_HOOKED();
   return [self.real setBufferOffset:offset attributeStride:stride atIndex:index];
 }
+#endif
 
 - (void)setBytes:(const void *)bytes
           length:(NSUInteger)length
@@ -165,6 +171,7 @@
   return [self.real setBytes:bytes length:length atIndex:index];
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_14_0
 - (void)setBytes:(const void *)bytes
              length:(NSUInteger)length
     attributeStride:(NSUInteger)stride
@@ -173,6 +180,7 @@
   METAL_NOT_HOOKED();
   return [self.real setBytes:bytes length:length attributeStride:stride atIndex:index];
 }
+#endif
 
 - (void)setSamplerState:(nullable id<MTLSamplerState>)sampler atIndex:(NSUInteger)index
 {
