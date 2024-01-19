@@ -159,7 +159,7 @@ WrappedMTLComputeCommandEncoder *WrappedMTLCommandBuffer::computeCommandEncoderW
   WrappedMTLComputeCommandEncoder *wrappedMtlComputeCommandEncoder;
   ResourceId id = GetResourceManager()->WrapResource(realMTLComputeCommandEncoder,
                                                      wrappedMtlComputeCommandEncoder);
-  wrappedMtlComputeCommandEncoder
+  return wrappedMtlComputeCommandEncoder;
 }
 
 template <typename SerialiserType>

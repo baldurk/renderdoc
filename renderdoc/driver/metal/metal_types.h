@@ -264,6 +264,43 @@ struct VertexDescriptor
   rdcarray<VertexAttributeDescriptor> attributes;
 };
 
+// MTLAttributeDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLStageInputOutputDescriptor.h
+struct AttributeDescriptor
+{
+  AttributeDescriptor() = default;
+  AttributeDescriptor(MTL::AttributeDescriptor * objc);
+  void CopyTo(MTL::AttributeDescriptor *objc);
+  NS::UInteger bufferIndex = 0;
+  NS::UInteger offset = 0;
+  MTL::AttributeFormat format = MTL::AttributeFormatInvalid;
+};
+
+// MTLBufferLayoutDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLStageInputOutputDescriptor.h
+struct BufferLayoutDescriptor
+{
+  BufferLayoutDescriptor() = default;
+  BufferLayoutDescriptor(MTL::BufferLayoutDescriptor *objc);
+  void CopyTo(MTL::BufferLayoutDescriptor *objc);
+  NS::UInteger stride = 0;
+  MTL::StepFunction stepFunction = MTL::StepFunctionConstant;
+  NS::UInteger stepRate = 0;
+};
+
+// MTLAttributeDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLStageInputOutputDescriptor.h
+struct StageInputOutputDescriptor
+{
+  StageInputOutputDescriptor() = default;
+  StageInputOutputDescriptor(MTL::StageInputOutputDescriptor *objc);
+  void CopyTo(MTL::StageInputOutputDescriptor *objc);
+  rdcarray<AttributeDescriptor> attributes;
+  rdcarray<BufferLayoutDescriptor> layouts;
+  NS::UInteger indexBufferIndex = 0;
+  MTL::IndexType indexType = MTL::IndexType::IndexTypeUInt16;
+};
+
 // Helper struct for holding MTLLinkedFunctions::groups data
 // NSDictionary<NSString*, NSArray<id<MTLFunction>>*> *groups;
 struct FunctionGroup
@@ -441,11 +478,26 @@ struct RenderPassDescriptor
 struct ComputePassSampleBufferAttachmentDescriptor
 {
   ComputePassSampleBufferAttachmentDescriptor() = default;
-  ComputePassSampleBufferAttachmentDescriptor(MTL:ComputePassSampleBufferAttachmentDescriptor *objc);
+  ComputePassSampleBufferAttachmentDescriptor(MTL::ComputePassSampleBufferAttachmentDescriptor *objc);
   // TODO: when WrappedMTLCounterSampleBuffer exists
   // MTLCounterSampleBuffer *sampleBuffer = NULL;
   NS::UInteger startOfEncoderSampleIndex = MTLCounterDontSample;
   NS::UInteger endOfEncoderSampleIndex = MTLCounterDontSample;
+};
+
+// MTLComputePipelineDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLComputePipeline.h
+struct ComputePipelineDescriptor
+{
+  ComputePipelineDescriptor() = default;
+  ComputePipelineDescriptor(MTL::ComputePipelineDescriptor *objc);
+  explicit operator MTL::ComputePipelineDescriptor *();
+  rdcstr label;
+  WrappedMTLFunction *computeFunction = NULL;
+  bool threadGroupSizeIsMultipleOfThreadExecution = false;
+  NS::UInteger maxTotalThreadsPerThreadgroup = 1;
+  NS::UInteger maxCallStackDepth = 1;
+  StageInputOutputDescriptor stageInputDescriptor;
 };
 
 // MTLComputePassDescriptor : based on the interface defined in
@@ -484,6 +536,9 @@ RDMTL_DECLARE_REFLECTION_STRUCT(PipelineBufferDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(VertexAttributeDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(VertexBufferLayoutDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(VertexDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(AttributeDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(BufferLayoutDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(StageInputOutputDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(FunctionGroup);
 RDMTL_DECLARE_REFLECTION_STRUCT(LinkedFunctions);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPipelineDescriptor);
@@ -493,5 +548,6 @@ RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassDepthAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassStencilAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassSampleBufferAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(ComputePipelineDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(ComputePassSampleBufferAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(ComputePassDescriptor);

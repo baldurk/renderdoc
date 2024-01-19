@@ -69,7 +69,7 @@ void WrappedMTLComputeCommandEncoder::setComputePipelineState(WrappedMTLComputeP
     }
     MetalResourceRecord *bufferRecord = GetRecord(m_CommandBuffer);
     bufferRecord->AddChunk(chunk);
-    bufferRecord->MarkResourceFrameReferenced(GetResID(pipelineState), eFrameRef_Read)
+    bufferRecord->MarkResourceFrameReferenced(GetResID(pipelineState), eFrameRef_Read);
   }
   else
   {

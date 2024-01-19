@@ -31,7 +31,7 @@
 template <>
 rdcstr DoStringise(const MetalChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)MetalChunk::Max == 1229, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)MetalChunk::Max == 1230, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(MetalChunk)
   {
@@ -387,6 +387,8 @@ rdcstr DoStringise(const MetalChunk &el)
                                "MTLRenderCommandEncoder::memoryBarrierWithResources");
     STRINGISE_ENUM_CLASS_NAMED(MTLRenderCommandEncoder_sampleCountersInBuffer,
                                "MTLRenderCommandEncoder::sampleCountersInBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(MTLComputeCommandEncoder_setComputePipelineState,
+                               "MTLComputeCommandEncoder::setComputePipelineState");
     STRINGISE_ENUM_CLASS_NAMED(MTLBuffer_setPurgeableState, "MTLBuffer::setPurgeableState");
     STRINGISE_ENUM_CLASS_NAMED(MTLBuffer_makeAliasable, "MTLBuffer::makeAliasable");
     STRINGISE_ENUM_CLASS_NAMED(MTLBuffer_contents, "MTLBuffer::contents");
@@ -1139,7 +1141,7 @@ rdcstr DoStringise(const MTL::IndexType &el)
 template <>
 rdcstr DoStringise(const MetalResourceType &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)MetalResourceType::eResMax == 11, "MetalResourceType changed");
+  RDCCOMPILE_ASSERT((uint32_t)MetalResourceType::eResMax == 13, "MetalResourceType changed");
   BEGIN_ENUM_STRINGISE(MetalResourceType);
   {
     STRINGISE_ENUM(eResUnknown);
@@ -1150,8 +1152,10 @@ rdcstr DoStringise(const MetalResourceType &el)
     STRINGISE_ENUM(eResLibrary);
     STRINGISE_ENUM(eResFunction);
     STRINGISE_ENUM(eResRenderPipelineState);
+    STRINGISE_ENUM(eResComputePipelineState);
     STRINGISE_ENUM(eResTexture);
     STRINGISE_ENUM(eResRenderCommandEncoder);
+    STRINGISE_ENUM(eResComputeCommandEncoder);
     STRINGISE_ENUM(eResBlitCommandEncoder);
   }
   END_ENUM_STRINGISE();

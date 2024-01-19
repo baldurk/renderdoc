@@ -42,6 +42,7 @@ public:
   {
     TypeEnum = eResComputeCommandEncoder
   };
+
 private:
   WrappedMTLCommandBuffer *m_CommandBuffer;
 };

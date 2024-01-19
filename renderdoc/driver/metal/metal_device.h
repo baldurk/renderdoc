@@ -72,6 +72,10 @@ public:
                                           newRenderPipelineStateWithDescriptor,
                                           RDMTL::RenderPipelineDescriptor &descriptor,
                                           NS::Error **error);
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLComputePipelineState *,
+                                          newRenderPipelineStateWithDescriptor,
+                                          RDMTL::ComputePipelineDescriptor &descriptor,
+                                          NS::Error **error);
   WrappedMTLTexture *newTextureWithDescriptor(RDMTL::TextureDescriptor &descriptor,
                                               IOSurfaceRef iosurface, NS::UInteger plane);
   DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLTexture *, newTextureWithDescriptor,
@@ -203,6 +207,7 @@ private:
   WrappedMTLLibrary *m_DummyReplayLibrary = NULL;
   WrappedMTLRenderCommandEncoder *m_DummyReplayRenderCommandEncoder = NULL;
   WrappedMTLBlitCommandEncoder *m_DummyReplayBlitCommandEncoder = NULL;
+  WrappedMTLComputeCommandEncoder *m_DummyComputeCommandEncoder = NULL;
 
   MetalReplay *m_Replay = NULL;
 

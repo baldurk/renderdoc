@@ -352,6 +352,9 @@ bool WrappedMTLDevice::ProcessChunk(ReadSerialiser &ser, MetalChunk chunk)
     case MetalChunk::MTLRenderCommandEncoder_memoryBarrierWithResources: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLRenderCommandEncoder_sampleCountersInBuffer: METAL_CHUNK_NOT_HANDLED();
 
+    case MetalChunk::MTLComputeCommandEncoder_setComputePipelineState:
+      return m_DummyComputeCommandEncoder->Serialise_setComputePipelineState(ser, NULL);
+
     case MetalChunk::MTLBuffer_setPurgeableState: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLBuffer_makeAliasable: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLBuffer_contents: METAL_CHUNK_NOT_HANDLED();

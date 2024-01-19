@@ -175,7 +175,7 @@
 {
   METAL_NOT_HOOKED();
   return [self.real setSamplerStates:samplers
-                        lodMinClamps:lodMinClamps 
+                        lodMinClamps:lodMinClamps
                         lodMaxClamps:lodMaxClamps
                            withRange:range];
 }
