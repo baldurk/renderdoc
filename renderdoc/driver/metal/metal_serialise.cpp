@@ -227,6 +227,31 @@ void DoSerialise(SerialiserType &ser, RDMTL::VertexDescriptor &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::AttributeDescriptor &el)
+{
+  SERIALISE_MEMBER(bufferIndex);
+  SERIALISE_MEMBER(offset);
+  SERIALISE_MEMBER(format);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::BufferLayoutDescriptor &el)
+{
+  SERIALISE_MEMBER(stride);
+  SERIALISE_MEMBER(stepFunction);
+  SERIALISE_MEMBER(stepRate);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::StageInputOutputDescriptor &el)
+{
+  SERIALISE_MEMBER(attributes);
+  SERIALISE_MEMBER(layouts);
+  SERIALISE_MEMBER(indexBufferIndex);
+  SERIALISE_MEMBER(indexType);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, RDMTL::FunctionGroup &el)
 {
   SERIALISE_MEMBER(callsite);
@@ -353,6 +378,33 @@ void DoSerialise(SerialiserType &ser, RDMTL::RenderPassDescriptor &el)
   SERIALISE_MEMBER(sampleBufferAttachments);
 };
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::ComputePassSampleBufferAttachmentDescriptor &el)
+{
+  // TODO: when WrappedCounterSampleBuffer exists
+  // SERIALISE_MEMBER(sampleBuffer);
+  SERIALISE_MEMBER(startOfEncoderSampleIndex);
+  SERIALISE_MEMBER(endOfEncoderSampleIndex);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::ComputePipelineDescriptor &el)
+{
+  SERIALISE_MEMBER(label);
+  SERIALISE_MEMBER(computeFunction);
+  SERIALISE_MEMBER(threadGroupSizeIsMultipleOfThreadExecution);
+  SERIALISE_MEMBER(maxTotalThreadsPerThreadgroup);
+  SERIALISE_MEMBER(maxCallStackDepth);
+  SERIALISE_MEMBER(stageInputDescriptor);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::ComputePassDescriptor &el)
+{
+  SERIALISE_MEMBER(sampleBufferAttachments);
+  SERIALISE_MEMBER(dispatchType);
+}
+
 INSTANTIATE_SERIALISE_TYPE(NS::String *);
 INSTANTIATE_SERIALISE_TYPE(NS::Range)
 INSTANTIATE_SERIALISE_TYPE(MTL::TextureSwizzleChannels);
@@ -368,6 +420,9 @@ INSTANTIATE_SERIALISE_TYPE(RDMTL::PipelineBufferDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::VertexAttributeDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::VertexBufferLayoutDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::VertexDescriptor);
+INSTANTIATE_SERIALISE_TYPE(RDMTL::AttributeDescriptor);
+INSTANTIATE_SERIALISE_TYPE(RDMTL::BufferLayoutDescriptor);
+INSTANTIATE_SERIALISE_TYPE(RDMTL::StageInputOutputDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::FunctionGroup);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::LinkedFunctions);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPipelineDescriptor);
@@ -376,3 +431,6 @@ INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassColorAttachmentDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassDepthAttachmentDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassStencilAttachmentDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassDescriptor);
+INSTANTIATE_SERIALISE_TYPE(RDMTL::ComputePassSampleBufferAttachmentDescriptor);
+INSTANTIATE_SERIALISE_TYPE(RDMTL::ComputePipelineDescriptor);
+INSTANTIATE_SERIALISE_TYPE(RDMTL::ComputePassDescriptor);

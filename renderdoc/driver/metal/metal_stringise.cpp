@@ -1137,6 +1137,96 @@ rdcstr DoStringise(const MTL::IndexType &el)
 }
 
 template <>
+rdcstr DoStringise(const MTL::AttributeFormat &el)
+{
+  BEGIN_ENUM_STRINGISE(MTL::AttributeFormat)
+  {
+    MTL_STRINGISE_ENUM(AttributeFormatInvalid);
+    MTL_STRINGISE_ENUM(AttributeFormatUChar2);
+    MTL_STRINGISE_ENUM(AttributeFormatUChar3);
+    MTL_STRINGISE_ENUM(AttributeFormatUChar4);
+    MTL_STRINGISE_ENUM(AttributeFormatChar2);
+    MTL_STRINGISE_ENUM(AttributeFormatChar3);
+    MTL_STRINGISE_ENUM(AttributeFormatChar4);
+    MTL_STRINGISE_ENUM(AttributeFormatUChar2Normalized);
+    MTL_STRINGISE_ENUM(AttributeFormatUChar3Normalized);
+    MTL_STRINGISE_ENUM(AttributeFormatUChar4Normalized);
+    MTL_STRINGISE_ENUM(AttributeFormatChar2Normalized);
+    MTL_STRINGISE_ENUM(AttributeFormatChar3Normalized);
+    MTL_STRINGISE_ENUM(AttributeFormatChar4Normalized);
+    MTL_STRINGISE_ENUM(AttributeFormatUShort2);
+    MTL_STRINGISE_ENUM(AttributeFormatUShort3);
+    MTL_STRINGISE_ENUM(AttributeFormatUShort4);
+    MTL_STRINGISE_ENUM(AttributeFormatShort2);
+    MTL_STRINGISE_ENUM(AttributeFormatShort3);
+    MTL_STRINGISE_ENUM(AttributeFormatShort4);
+    MTL_STRINGISE_ENUM(AttributeFormatUShort2Normalized);
+    MTL_STRINGISE_ENUM(AttributeFormatUShort3Normalized);
+    MTL_STRINGISE_ENUM(AttributeFormatUShort4Normalized);
+    MTL_STRINGISE_ENUM(AttributeFormatShort2Normalized);
+    MTL_STRINGISE_ENUM(AttributeFormatShort3Normalized);
+    MTL_STRINGISE_ENUM(AttributeFormatShort4Normalized);
+    MTL_STRINGISE_ENUM(AttributeFormatHalf2);
+    MTL_STRINGISE_ENUM(AttributeFormatHalf3);
+    MTL_STRINGISE_ENUM(AttributeFormatHalf4);
+    MTL_STRINGISE_ENUM(AttributeFormatFloat);
+    MTL_STRINGISE_ENUM(AttributeFormatFloat2);
+    MTL_STRINGISE_ENUM(AttributeFormatFloat3);
+    MTL_STRINGISE_ENUM(AttributeFormatFloat4);
+    MTL_STRINGISE_ENUM(AttributeFormatInt);
+    MTL_STRINGISE_ENUM(AttributeFormatInt2);
+    MTL_STRINGISE_ENUM(AttributeFormatInt3);
+    MTL_STRINGISE_ENUM(AttributeFormatInt4);
+    MTL_STRINGISE_ENUM(AttributeFormatUInt);
+    MTL_STRINGISE_ENUM(AttributeFormatUInt2);
+    MTL_STRINGISE_ENUM(AttributeFormatUInt3);
+    MTL_STRINGISE_ENUM(AttributeFormatUInt4);
+    MTL_STRINGISE_ENUM(AttributeFormatInt1010102Normalized);
+    MTL_STRINGISE_ENUM(AttributeFormatUInt1010102Normalized);
+    MTL_STRINGISE_ENUM(AttributeFormatUChar4Normalized_BGRA);
+    MTL_STRINGISE_ENUM(AttributeFormatUChar);
+    MTL_STRINGISE_ENUM(AttributeFormatChar);
+    MTL_STRINGISE_ENUM(AttributeFormatUCharNormalized);
+    MTL_STRINGISE_ENUM(AttributeFormatCharNormalized);
+    MTL_STRINGISE_ENUM(AttributeFormatUShort);
+    MTL_STRINGISE_ENUM(AttributeFormatShort);
+    MTL_STRINGISE_ENUM(AttributeFormatUShortNormalized);
+    MTL_STRINGISE_ENUM(AttributeFormatShortNormalized);
+    MTL_STRINGISE_ENUM(AttributeFormatHalf);
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
+rdcstr DoStringise(const MTL::StepFunction &el)
+{
+  BEGIN_ENUM_STRINGISE(MTL::StepFunction)
+  {
+    MTL_STRINGISE_ENUM(StepFunctionConstant);
+    MTL_STRINGISE_ENUM(StepFunctionPerVertex);
+    MTL_STRINGISE_ENUM(StepFunctionPerInstance);
+    MTL_STRINGISE_ENUM(StepFunctionPerPatch);
+    MTL_STRINGISE_ENUM(StepFunctionPerPatchControlPoint);
+    MTL_STRINGISE_ENUM(StepFunctionThreadPositionInGridX);
+    MTL_STRINGISE_ENUM(StepFunctionThreadPositionInGridY);
+    MTL_STRINGISE_ENUM(StepFunctionThreadPositionInGridXIndexed);
+    MTL_STRINGISE_ENUM(StepFunctionThreadPositionInGridYIndexed);
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
+rdcstr DoStringise(const MTL::DispatchType &el)
+{
+  BEGIN_ENUM_STRINGISE(MTL::DispatchType)
+  {
+    MTL_STRINGISE_ENUM(DispatchTypeSerial);
+    MTL_STRINGISE_ENUM(DispatchTypeConcurrent);
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
 rdcstr DoStringise(const MetalResourceType &el)
 {
   RDCCOMPILE_ASSERT((uint32_t)MetalResourceType::eResMax == 11, "MetalResourceType changed");
