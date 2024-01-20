@@ -378,6 +378,15 @@ void DoSerialise(SerialiserType &ser, RDMTL::RenderPassDescriptor &el)
   SERIALISE_MEMBER(sampleBufferAttachments);
 };
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::ComputePassSampleBufferAttachmentDescriptor &el)
+{
+  // TODO: when WrappedCounterSampleBuffer exists
+  // SERIALISE_MEMBER(sampleBuffer);
+  SERIALISE_MEMBER(startOfEncoderSampleIndex);
+  SERIALISE_MEMBER(endOfEncoderSampleIndex);
+}
+
 INSTANTIATE_SERIALISE_TYPE(NS::String *);
 INSTANTIATE_SERIALISE_TYPE(NS::Range)
 INSTANTIATE_SERIALISE_TYPE(MTL::TextureSwizzleChannels);
@@ -404,3 +413,4 @@ INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassColorAttachmentDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassDepthAttachmentDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassStencilAttachmentDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassDescriptor);
+INSTANTIATE_SERIALISE_TYPE(RDMTL::ComputePassSampleBufferAttachmentDescriptor);

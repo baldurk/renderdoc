@@ -474,6 +474,19 @@ struct RenderPassDescriptor
   rdcarray<RenderPassSampleBufferAttachmentDescriptor> sampleBufferAttachments;
 };
 
+// MTLComputePassSampleBufferAttachmentDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLComputePass.h
+struct ComputePassSampleBufferAttachmentDescriptor
+{
+  ComputePassSampleBufferAttachmentDescriptor() = default;
+  ComputePassSampleBufferAttachmentDescriptor(MTL::ComputePassSampleBufferAttachmentDescriptor *objc);
+  void CopyTo(MTL::ComputePassSampleBufferAttachmentDescriptor *objc);
+  // TODO: when WrappedMTLCounterSampleBuffer exists
+  // MTLCounterSampleBuffer *sampleBuffer = NULL;
+  NS::UInteger startOfEncoderSampleIndex = MTLCounterDontSample;
+  NS::UInteger endOfEncoderSampleIndex = MTLCounterDontSample;
+};
+
 }    // namespace RDMTL
 
 template <>
@@ -511,3 +524,4 @@ RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassDepthAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassStencilAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassSampleBufferAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(ComputePassSampleBufferAttachmentDescriptor);
