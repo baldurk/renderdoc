@@ -665,4 +665,20 @@ RenderPassDescriptor::operator MTL::RenderPassDescriptor *()
   return objc;
 }
 
+ComputePassSampleBufferAttachmentDescriptor::ComputePassSampleBufferAttachmentDescriptor(
+    MTL::ComputePassSampleBufferAttachmentDescriptor *objc)
+    : startOfEncoderSampleIndex(objc->startOfEncoderSampleIndex()),
+      endOfEncoderSampleIndex(objc->endOfEncoderSampleIndex())
+{
+}
+
+void ComputePassSampleBufferAttachmentDescriptor::CopyTo(
+    MTL::ComputePassSampleBufferAttachmentDescriptor *objc)
+{
+  // TODO: when WrappedMTLCounterSampleBuffer exists
+  // objc->setSampleBuffer(Unwrap(sampleBuffer));
+  objc->setStartOfEncoderSampleIndex(startOfEncoderSampleIndex);
+  objc->setEndOfEncoderSampleIndex(endOfEncoderSampleIndex);
+}
+
 }    // namespace RDMTL
