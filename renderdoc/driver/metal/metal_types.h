@@ -487,6 +487,31 @@ struct ComputePassSampleBufferAttachmentDescriptor
   NS::UInteger endOfEncoderSampleIndex = MTLCounterDontSample;
 };
 
+// MTLComputePipelineDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLComputePipeline.h
+struct ComputePipelineDescriptor
+{
+  ComputePipelineDescriptor() = default;
+  ComputePipelineDescriptor(MTL::ComputePipelineDescriptor *objc);
+  explicit operator MTL::ComputePipelineDescriptor *();
+  rdcstr label;
+  WrappedMTLFunction *computeFunction = NULL;
+  bool threadGroupSizeIsMultipleOfThreadExecution = false;
+  NS::UInteger maxTotalThreadsPerThreadgroup = 0;
+  NS::UInteger maxCallStackDepth = 1;
+  StageInputOutputDescriptor stageInputDescriptor;
+  rdcarray<RDMTL::PipelineBufferDescriptor> buffers;
+  bool supportIndirectCommandBuffers = false;
+  // TODO: when WrappedMTLDynamicLibrary exists
+  // rdcarray<WrappedMTLDynamicLibrary*> preloadedLibraries;
+  // Deprecated
+  // rdcarray<WrappedMTLDynamicLibrary*> insertLibraries;
+  RDMTL::LinkedFunctions linkedFunctions;
+  bool supportAddingBinaryFunctions = false;
+  // TODO: when WrappedMTLBinaryArchive exists
+  // rdcarray<WrappedMTLBinaryArchive*> binaryArchives;
+};
+
 }    // namespace RDMTL
 
 template <>
@@ -525,3 +550,4 @@ RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassStencilAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassSampleBufferAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(ComputePassSampleBufferAttachmentDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(ComputePipelineDescriptor);

@@ -681,4 +681,54 @@ void ComputePassSampleBufferAttachmentDescriptor::CopyTo(
   objc->setEndOfEncoderSampleIndex(endOfEncoderSampleIndex);
 }
 
+ComputePipelineDescriptor::ComputePipelineDescriptor(MTL::ComputePipelineDescriptor *objc)
+    : computeFunction(GetWrapped(objc->computeFunction())),
+      threadGroupSizeIsMultipleOfThreadExecution(
+          objc->threadGroupSizeIsMultipleOfThreadExecutionWidth()),
+      maxTotalThreadsPerThreadgroup(objc->maxTotalThreadsPerThreadgroup()),
+      maxCallStackDepth(objc->maxCallStackDepth()),
+      stageInputDescriptor(objc->stageInputDescriptor()),
+      supportIndirectCommandBuffers(objc->supportIndirectCommandBuffers()),
+      linkedFunctions(objc->linkedFunctions()),
+      supportAddingBinaryFunctions(objc->supportAddingBinaryFunctions())
+{
+  if(objc->label())
+    label.assign(objc->label()->utf8String());
+  GETOBJCARRAY(PipelineBufferDescriptor, MAX_COMPUTE_PASS_BUFFER_ATTACHMENTS, buffers, ValidData);
+  // TODO: when WrappedMTLDynamicLibrary exists
+  // GETWRAPPEDNSARRAY(DynamicLibrary, preloadedLibraries)
+  // Deprecated
+  // GETWRAPPEDNSARRAY(DynamicLibrary, insertLibraries)
+  // GETWRAPPEDNSARRAY(DynamicLibrary, linkedFunctions)
+  // TODO: when WrappedMTLBinaryArchive exists
+  // GETWRAPPEDNSARRAY(BinaryArchive, binaryArchives);
+}
+
+ComputePipelineDescriptor::operator MTL::ComputePipelineDescriptor *()
+{
+  MTL::ComputePipelineDescriptor *objc = MTL::ComputePipelineDescriptor::alloc()->init();
+  if(label.length() > 0)
+  {
+    objc->setLabel(NS::String::string(label.data(), NS::UTF8StringEncoding));
+  }
+  objc->setComputeFunction(Unwrap(computeFunction));
+  objc->setThreadGroupSizeIsMultipleOfThreadExecutionWidth(threadGroupSizeIsMultipleOfThreadExecution);
+  objc->setMaxTotalThreadsPerThreadgroup(maxTotalThreadsPerThreadgroup);
+  objc->setMaxCallStackDepth(maxCallStackDepth);
+  stageInputDescriptor.CopyTo(objc->stageInputDescriptor());
+  objc->setSupportIndirectCommandBuffers(supportIndirectCommandBuffers);
+  linkedFunctions.CopyTo(objc->linkedFunctions());
+  objc->setSupportAddingBinaryFunctions(supportAddingBinaryFunctions);
+  COPYTOOBJCARRAY(PipelineBufferDescriptor, buffers);
+  // TODO: when WrappedMTLDynamicLibrary exists
+  // objc->setPreloadedLibraries(CreateUnwrappedNSArray<MTL::DynamicLibrary *>(preloadedLibraries));
+  // Deprecated
+  // objc->setInsertLibraries(CreateUnwrappedNSArray<MTL::DynamicLibrary *>(insertLibraries));
+  // objc->setLinkedFunctions(CreateUnwrappedNSArray<MTL::DynamicLibrary *>(linkedFunctions));
+  // TODO: when WrappedMTLBinaryArchive exists
+  // objc->setBinaryArchives(CreateUnwrappedNSArray<MTL::BinaryArchive *>(binaryArchives));
+  // GETWRAPPEDNSARRAY(BinaryArchive, binaryArchives);
+  return objc;
+}
+
 }    // namespace RDMTL
