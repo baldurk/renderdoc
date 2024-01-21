@@ -387,6 +387,27 @@ void DoSerialise(SerialiserType &ser, RDMTL::ComputePassSampleBufferAttachmentDe
   SERIALISE_MEMBER(endOfEncoderSampleIndex);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::ComputePipelineDescriptor &el)
+{
+  SERIALISE_MEMBER(label);
+  SERIALISE_MEMBER(computeFunction);
+  SERIALISE_MEMBER(threadGroupSizeIsMultipleOfThreadExecution);
+  SERIALISE_MEMBER(maxTotalThreadsPerThreadgroup);
+  SERIALISE_MEMBER(maxCallStackDepth);
+  SERIALISE_MEMBER(stageInputDescriptor);
+  SERIALISE_MEMBER(buffers);
+  SERIALISE_MEMBER(supportIndirectCommandBuffers);
+  // TODO: when WrappedMTLDynamicLibrary exists
+  // SERIALISE_MEMBER(preloadedLibraries);
+  // Deprecated
+  // SERIALISE_MEMBER(insertLibraries);
+  SERIALISE_MEMBER(linkedFunctions);
+  SERIALISE_MEMBER(supportAddingBinaryFunctions);
+  // TODO: when WrappedMTLBinaryArchive exists
+  // SERIALISE_MEMBER(binaryArchives);
+}
+
 INSTANTIATE_SERIALISE_TYPE(NS::String *);
 INSTANTIATE_SERIALISE_TYPE(NS::Range)
 INSTANTIATE_SERIALISE_TYPE(MTL::TextureSwizzleChannels);
@@ -414,3 +435,4 @@ INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassDepthAttachmentDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassStencilAttachmentDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::ComputePassSampleBufferAttachmentDescriptor);
+INSTANTIATE_SERIALISE_TYPE(RDMTL::ComputePipelineDescriptor);
