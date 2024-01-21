@@ -150,6 +150,20 @@ static bool ValidData(MTL::RenderPassSampleBufferAttachmentDescriptor *descripto
   return true;
 }
 
+static bool ValidData(MTL::AttributeDescriptor *descriptor)
+{
+  if(descriptor->format() == MTL::AttributeFormatInvalid)
+    return false;
+  return true;
+}
+
+static bool ValidData(MTL::BufferLayoutDescriptor *descriptor)
+{
+  if(descriptor->stride() == 0)
+    return false;
+  return true;
+}
+
 template <typename MTL_TYPE>
 static void GetWrappedNSArray(rdcarray<typename UnwrapHelper<MTL_TYPE>::Outer *> &to, NS::Array *from)
 {
@@ -344,6 +358,21 @@ void BufferLayoutDescriptor::CopyTo(MTL::BufferLayoutDescriptor *objc)
   objc->setStride(stride);
   objc->setStepFunction(stepFunction);
   objc->setStepRate(stepRate);
+}
+
+StageInputOutputDescriptor::StageInputOutputDescriptor(MTL::StageInputOutputDescriptor *objc)
+    : indexBufferIndex(objc->indexBufferIndex()), indexType(objc->indexType())
+{
+  GETOBJCARRAY(AttributeDescriptor, MAX_COMPUTE_PASS_BUFFER_ATTACHMENTS, attributes, ValidData);
+  GETOBJCARRAY(BufferLayoutDescriptor, MAX_COMPUTE_PASS_BUFFER_ATTACHMENTS, layouts, ValidData);
+}
+
+void StageInputOutputDescriptor::CopyTo(MTL::StageInputOutputDescriptor *objc)
+{
+  COPYTOOBJCARRAY(AttributeDescriptor, attributes);
+  COPYTOOBJCARRAY(BufferLayoutDescriptor, layouts);
+  objc->setIndexBufferIndex(indexBufferIndex);
+  objc->setIndexType(indexType);
 }
 
 LinkedFunctions::LinkedFunctions(MTL::LinkedFunctions *objc)

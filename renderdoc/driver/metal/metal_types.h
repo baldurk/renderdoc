@@ -33,6 +33,7 @@ const uint32_t MAX_RENDER_PASS_COLOR_ATTACHMENTS = 8;
 const uint32_t MAX_RENDER_PASS_BUFFER_ATTACHMENTS = 31;
 const uint32_t MAX_VERTEX_SHADER_ATTRIBUTES = 31;
 const uint32_t MAX_RENDER_PASS_SAMPLE_BUFFER_ATTACHMENTS = 4;
+const uint32_t MAX_COMPUTE_PASS_BUFFER_ATTACHMENTS = 31;
 
 // Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLCounters.h
 #ifndef MTLCounterDontSample
@@ -288,6 +289,19 @@ struct BufferLayoutDescriptor
   NS::UInteger stepRate = 0;
 };
 
+// MTLStageInputOutputDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLStageInputOutputDescriptor.h
+struct StageInputOutputDescriptor
+{
+  StageInputOutputDescriptor() = default;
+  StageInputOutputDescriptor(MTL::StageInputOutputDescriptor *objc);
+  void CopyTo(MTL::StageInputOutputDescriptor *objc);
+  rdcarray<AttributeDescriptor> attributes;
+  rdcarray<BufferLayoutDescriptor> layouts;
+  NS::UInteger indexBufferIndex = 0;
+  MTL::IndexType indexType = MTL::IndexType::IndexTypeUInt16;
+};
+
 // Helper struct for holding MTLLinkedFunctions::groups data
 // NSDictionary<NSString*, NSArray<id<MTLFunction>>*> *groups;
 struct FunctionGroup
@@ -487,6 +501,7 @@ RDMTL_DECLARE_REFLECTION_STRUCT(VertexBufferLayoutDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(VertexDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(AttributeDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(BufferLayoutDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(StageInputOutputDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(FunctionGroup);
 RDMTL_DECLARE_REFLECTION_STRUCT(LinkedFunctions);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPipelineDescriptor);
