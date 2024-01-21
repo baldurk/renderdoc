@@ -1219,6 +1219,17 @@ rdcstr DoStringise(const MTL::StepFunction &el)
 }
 
 template <>
+rdcstr DoStringise(const MTL::DispatchType &el)
+{
+  BEGIN_ENUM_STRINGISE(MTL::DispatchType)
+  {
+    MTL_STRINGISE_ENUM(DispatchTypeSerial);
+    MTL_STRINGISE_ENUM(DispatchTypeConcurrent);
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
 rdcstr DoStringise(const MetalResourceType &el)
 {
   RDCCOMPILE_ASSERT((uint32_t)MetalResourceType::eResMax == 11, "MetalResourceType changed");

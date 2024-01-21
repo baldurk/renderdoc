@@ -34,6 +34,7 @@ const uint32_t MAX_RENDER_PASS_BUFFER_ATTACHMENTS = 31;
 const uint32_t MAX_VERTEX_SHADER_ATTRIBUTES = 31;
 const uint32_t MAX_RENDER_PASS_SAMPLE_BUFFER_ATTACHMENTS = 4;
 const uint32_t MAX_COMPUTE_PASS_BUFFER_ATTACHMENTS = 31;
+const uint32_t MAX_COMPUTE_PASS_SAMPLE_BUFFER_ATTACHMENTS = 4;
 
 // Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLCounters.h
 #ifndef MTLCounterDontSample
@@ -166,6 +167,7 @@ MTL_DECLARE_REFLECTION_TYPE(CullMode);
 MTL_DECLARE_REFLECTION_TYPE(IndexType);
 MTL_DECLARE_REFLECTION_TYPE(StepFunction);
 MTL_DECLARE_REFLECTION_TYPE(AttributeFormat);
+MTL_DECLARE_REFLECTION_TYPE(DispatchType);
 
 template <>
 inline rdcliteral TypeName<NS::Range>()
@@ -512,6 +514,17 @@ struct ComputePipelineDescriptor
   // rdcarray<WrappedMTLBinaryArchive*> binaryArchives;
 };
 
+// MTLComputePassDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLComputePass.h
+struct ComputePassDescriptor
+{
+  ComputePassDescriptor() = default;
+  ComputePassDescriptor(MTL::ComputePassDescriptor *objc);
+  explicit operator MTL::ComputePassDescriptor *();
+  rdcarray<ComputePassSampleBufferAttachmentDescriptor> sampleBufferAttachments;
+  MTL::DispatchType dispatchType = MTL::DispatchTypeSerial;
+};
+
 }    // namespace RDMTL
 
 template <>
@@ -551,3 +564,4 @@ RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassSampleBufferAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(ComputePassSampleBufferAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(ComputePipelineDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(ComputePassDescriptor);
