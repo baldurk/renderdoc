@@ -49,12 +49,21 @@ fi;
 if ! valid_clang_format; then
 	SCRIPTDIR=$(dirname $(readlink -f $0));
 	# If we didn't find one, fall back to repo-included binary. Check it can run
-	if "${SCRIPTDIR}"/clangformat/clang-format-15.0.exe --version 2>&1 | grep -q 15.0.7;
-	then
-		CLANG_FORMAT="${SCRIPTDIR}"/clangformat/clang-format-15.0.exe
-	elif "${SCRIPTDIR}"/clangformat/clang-format-15.0 --version 2>&1 | grep -q 15.0.7;
-	then
-		CLANG_FORMAT="${SCRIPTDIR}"/clangformat/clang-format-15.0
+	if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+	  if "${SCRIPTDIR}"/clangformat/clang-format-15.0 --version 2>&1 | grep -q 15.0.7;
+      then
+        CLANG_FORMAT="${SCRIPTDIR}"/clangformat/clang-format-15.0
+    fi
+	elif [[ "$OSTYPE" == "darwin"* ]]; then
+    if "${SCRIPTDIR}"/clangformat/clang-format-15.0-mac --version 2>&1 | grep -q 15.0.7;
+      then
+        CLANG_FORMAT="${SCRIPTDIR}"/clangformat/clang-format-15.0-mac
+    fi
+	else
+	  if "${SCRIPTDIR}"/clangformat/clang-format-15.0.exe --version 2>&1 | grep -q 15.0.7;
+    	then
+	      CLANG_FORMAT="${SCRIPTDIR}"/clangformat/clang-format-15.0.exe
+	  fi
 	fi
 fi
 
@@ -64,7 +73,7 @@ if ! valid_clang_format; then
 	echo "variance between versions that can happen. You can install it as"
 	echo "'clang-format-$CLANG_FORMAT_VERSION' so that it doesn't interfere with any other"
 	echo "versions you might have installed, and this script will find it there"
-	echo "The repository includes a windows and linux x64 binary version, but it failed to run."
+	echo "The repository includes a windows and linux x64 binary version and a mac arm binary version, but it failed to run."
 	exit 1;
 fi;
 
