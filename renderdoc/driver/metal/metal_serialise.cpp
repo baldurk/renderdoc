@@ -227,6 +227,14 @@ void DoSerialise(SerialiserType &ser, RDMTL::VertexDescriptor &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::AttributeDescriptor &el)
+{
+  SERIALISE_MEMBER(bufferIndex);
+  SERIALISE_MEMBER(offset);
+  SERIALISE_MEMBER(format);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, RDMTL::FunctionGroup &el)
 {
   SERIALISE_MEMBER(callsite);
@@ -368,6 +376,7 @@ INSTANTIATE_SERIALISE_TYPE(RDMTL::PipelineBufferDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::VertexAttributeDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::VertexBufferLayoutDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::VertexDescriptor);
+INSTANTIATE_SERIALISE_TYPE(RDMTL::AttributeDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::FunctionGroup);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::LinkedFunctions);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPipelineDescriptor);
