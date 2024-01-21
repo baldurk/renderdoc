@@ -322,6 +322,18 @@ void VertexDescriptor::CopyTo(MTL::VertexDescriptor *objc)
   COPYTOOBJCARRAY(VertexAttributeDescriptor, attributes);
 }
 
+AttributeDescriptor::AttributeDescriptor(MTL::AttributeDescriptor *objc)
+    : bufferIndex(objc->bufferIndex()), offset(objc->offset()), format(objc->format())
+{
+}
+
+void AttributeDescriptor::CopyTo(MTL::AttributeDescriptor *objc)
+{
+  objc->setBufferIndex(bufferIndex);
+  objc->setOffset(offset);
+  objc->setFormat(format);
+}
+
 LinkedFunctions::LinkedFunctions(MTL::LinkedFunctions *objc)
 {
   GETWRAPPEDNSARRAY(Function, functions);
