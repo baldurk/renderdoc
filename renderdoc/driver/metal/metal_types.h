@@ -163,6 +163,7 @@ MTL_DECLARE_REFLECTION_TYPE(DepthClipMode);
 MTL_DECLARE_REFLECTION_TYPE(TriangleFillMode);
 MTL_DECLARE_REFLECTION_TYPE(CullMode);
 MTL_DECLARE_REFLECTION_TYPE(IndexType);
+MTL_DECLARE_REFLECTION_TYPE(StepFunction);
 MTL_DECLARE_REFLECTION_TYPE(AttributeFormat);
 
 template <>
@@ -273,6 +274,18 @@ struct AttributeDescriptor
   NS::UInteger bufferIndex = 0;
   NS::UInteger offset = 0;
   MTL::AttributeFormat format = MTL::AttributeFormatInvalid;
+};
+
+// MTLBufferLayoutDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLStageInputOutputDescriptor.h
+struct BufferLayoutDescriptor
+{
+  BufferLayoutDescriptor() = default;
+  BufferLayoutDescriptor(MTL::BufferLayoutDescriptor *objc);
+  void CopyTo(MTL::BufferLayoutDescriptor *objc);
+  NS::UInteger stride = 0;
+  MTL::StepFunction stepFunction = MTL::StepFunctionConstant;
+  NS::UInteger stepRate = 0;
 };
 
 // Helper struct for holding MTLLinkedFunctions::groups data
@@ -473,6 +486,7 @@ RDMTL_DECLARE_REFLECTION_STRUCT(VertexAttributeDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(VertexBufferLayoutDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(VertexDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(AttributeDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(BufferLayoutDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(FunctionGroup);
 RDMTL_DECLARE_REFLECTION_STRUCT(LinkedFunctions);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPipelineDescriptor);

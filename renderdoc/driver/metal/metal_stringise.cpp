@@ -1201,6 +1201,24 @@ rdcstr DoStringise(const MTL::AttributeFormat &el)
 }
 
 template <>
+rdcstr DoStringise(const MTL::StepFunction &el)
+{
+  BEGIN_ENUM_STRINGISE(MTL::StepFunction)
+  {
+    MTL_STRINGISE_ENUM(StepFunctionConstant);
+    MTL_STRINGISE_ENUM(StepFunctionPerVertex);
+    MTL_STRINGISE_ENUM(StepFunctionPerInstance);
+    MTL_STRINGISE_ENUM(StepFunctionPerPatch);
+    MTL_STRINGISE_ENUM(StepFunctionPerPatchControlPoint);
+    MTL_STRINGISE_ENUM(StepFunctionThreadPositionInGridX);
+    MTL_STRINGISE_ENUM(StepFunctionThreadPositionInGridY);
+    MTL_STRINGISE_ENUM(StepFunctionThreadPositionInGridXIndexed);
+    MTL_STRINGISE_ENUM(StepFunctionThreadPositionInGridYIndexed);
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
 rdcstr DoStringise(const MetalResourceType &el)
 {
   RDCCOMPILE_ASSERT((uint32_t)MetalResourceType::eResMax == 11, "MetalResourceType changed");
