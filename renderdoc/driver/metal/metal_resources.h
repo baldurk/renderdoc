@@ -42,6 +42,7 @@ enum MetalResourceType
   eResLibrary,
   eResFunction,
   eResRenderPipelineState,
+  eResComputePipelineState,
   eResTexture,
   eResRenderCommandEncoder,
   eResBlitCommandEncoder,

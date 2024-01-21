@@ -25,6 +25,7 @@
 #include "metal_device.h"
 #include "metal_buffer.h"
 #include "metal_command_queue.h"
+#include "metal_compute_pipeline_state.h"
 #include "metal_function.h"
 #include "metal_library.h"
 #include "metal_manager.h"
@@ -472,6 +473,205 @@ WrappedMTLRenderPipelineState *WrappedMTLDevice::newRenderPipelineStateWithDescr
 }
 
 template <typename SerialiserType>
+bool WrappedMTLDevice::Serialise_newComputePipelineStateWithDescriptor(
+    SerialiserType &ser, WrappedMTLComputePipelineState *pipelineState,
+    RDMTL::ComputePipelineDescriptor &descriptor, MTL::PipelineOption options,
+    MTL::AutoreleasedComputePipelineReflection *reflection, NS::Error **error)
+{
+  SERIALISE_ELEMENT_LOCAL(ComputePipelineState, GetResID(pipelineState))
+      .TypedAs("MTLComputePipelineState"_lit);
+  SERIALISE_ELEMENT(descriptor);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  // TODO: implement RD MTL replay
+  if(IsReplayingAndReading())
+  {
+    ResourceId liveID;
+
+    MTL::ComputePipelineDescriptor *mtlDescriptor(descriptor);
+    MTL::ComputePipelineState *realMTLComputePipelineState =
+        Unwrap(this)->newComputePipelineState(mtlDescriptor, options, reflection, error);
+    mtlDescriptor->release();
+    WrappedMTLComputePipelineState *wrappedMTLComputePipelineState;
+    liveID = GetResourceManager()->WrapResource(realMTLComputePipelineState,
+                                                wrappedMTLComputePipelineState);
+    GetResourceManager()->AddLiveResource(ComputePipelineState, wrappedMTLComputePipelineState);
+    AddResource(ComputePipelineState, ResourceType::PipelineState, "Pipeline State");
+    DerivedResource(this, ComputePipelineState);
+  }
+  return true;
+}
+
+WrappedMTLComputePipelineState *WrappedMTLDevice::newComputePipelineStateWithDescriptor(
+    RDMTL::ComputePipelineDescriptor &descriptor, MTL::PipelineOption options,
+    MTL::AutoreleasedComputePipelineReflection *reflection, NS::Error **error)
+{
+  MTL::ComputePipelineDescriptor *realDescriptor(descriptor);
+  MTL::ComputePipelineState *realMTLComputePipelineState;
+  SERIALISE_TIME_CALL(realMTLComputePipelineState = Unwrap(this)->newComputePipelineState(
+                          realDescriptor, options, reflection, error));
+  realDescriptor->release();
+
+  WrappedMTLComputePipelineState *wrappedMTLComputePipelineState;
+  ResourceId id = GetResourceManager()->WrapResource(realMTLComputePipelineState,
+                                                     wrappedMTLComputePipelineState);
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLDevice_newComputePipelineStateWithDescriptor);
+      Serialise_newComputePipelineStateWithDescriptor(ser, wrappedMTLComputePipelineState,
+                                                      descriptor, options, reflection, error);
+      chunk = scope.Get();
+    }
+
+    MetalResourceRecord *record =
+        GetResourceManager()->AddResourceRecord(wrappedMTLComputePipelineState);
+    record->AddChunk(chunk);
+    if(descriptor.computeFunction)
+    {
+      record->AddParent(GetRecord(descriptor.computeFunction));
+    }
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+    //     GetResourceManager()->AddLiveResource(id, *wrappedMTLComputePipelineState);
+  }
+  return wrappedMTLComputePipelineState;
+}
+
+template <typename SerialiserType>
+bool WrappedMTLDevice::Serialise_newComputePipelineStateWithFunction(
+    SerialiserType &ser, WrappedMTLComputePipelineState *pipelineState,
+    MTL::Function *computeFunction, NS::Error **error)
+{
+  SERIALISE_ELEMENT_LOCAL(ComputePipelineState, GetResID(pipelineState))
+      .TypedAs("MTLComputePipelineState"_lit);
+  // TODO: WrappedMTLFunction
+  // SERIALISE_ELEMENT(computeFunction);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  // TODO: implement RD MTL replay
+  if(IsReplayingAndReading())
+  {
+    ResourceId liveID;
+
+    MTL::ComputePipelineState *realMTLComputePipelineState =
+        Unwrap(this)->newComputePipelineState(computeFunction, error);
+    WrappedMTLComputePipelineState *wrappedMTLComputePipelineState;
+    liveID = GetResourceManager()->WrapResource(realMTLComputePipelineState,
+                                                wrappedMTLComputePipelineState);
+    GetResourceManager()->AddLiveResource(ComputePipelineState, wrappedMTLComputePipelineState);
+    AddResource(ComputePipelineState, ResourceType::PipelineState, "Pipeline State");
+    DerivedResource(this, ComputePipelineState);
+  }
+  return true;
+}
+
+WrappedMTLComputePipelineState *WrappedMTLDevice::newComputePipelineStateWithFunction(
+    MTL::Function *computeFunction, NS::Error **error)
+{
+  MTL::ComputePipelineState *realMTLComputePipelineState;
+  SERIALISE_TIME_CALL(realMTLComputePipelineState =
+                          Unwrap(this)->newComputePipelineState(computeFunction, error));
+
+  WrappedMTLComputePipelineState *wrappedMTLComputePipelineState;
+  ResourceId id = GetResourceManager()->WrapResource(realMTLComputePipelineState,
+                                                     wrappedMTLComputePipelineState);
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLDevice_newComputePipelineStateWithFunction);
+      Serialise_newComputePipelineStateWithFunction(ser, wrappedMTLComputePipelineState,
+                                                    computeFunction, error);
+      chunk = scope.Get();
+    }
+
+    MetalResourceRecord *record =
+        GetResourceManager()->AddResourceRecord(wrappedMTLComputePipelineState);
+    record->AddChunk(chunk);
+    // TODO: Record MTLFunction, maybe WrappedMTLFunction?
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+    //     GetResourceManager()->AddLiveResource(id, *wrappedMTLComputePipelineState);
+  }
+  return wrappedMTLComputePipelineState;
+}
+
+template <typename SerialiserType>
+bool WrappedMTLDevice::Serialise_newComputePipelineStateWithFunctionOptions(
+    SerialiserType &ser, WrappedMTLComputePipelineState *pipelineState,
+    MTL::Function *computeFunction, MTL::PipelineOption options,
+    MTL::AutoreleasedComputePipelineReflection *reflection, NS::Error **error)
+{
+  SERIALISE_ELEMENT_LOCAL(ComputePipelineState, GetResID(pipelineState))
+      .TypedAs("MTLComputePipelineState"_lit);
+  // TODO: WrappedMTLFunction
+  // SERIALISE_ELEMENT(computeFunction);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  // TODO: implement RD MTL replay
+  if(IsReplayingAndReading())
+  {
+    ResourceId liveID;
+
+    MTL::ComputePipelineState *realMTLComputePipelineState =
+        Unwrap(this)->newComputePipelineState(computeFunction, options, reflection, error);
+    WrappedMTLComputePipelineState *wrappedMTLComputePipelineState;
+    liveID = GetResourceManager()->WrapResource(realMTLComputePipelineState,
+                                                wrappedMTLComputePipelineState);
+    GetResourceManager()->AddLiveResource(ComputePipelineState, wrappedMTLComputePipelineState);
+    AddResource(ComputePipelineState, ResourceType::PipelineState, "Pipeline State");
+    DerivedResource(this, ComputePipelineState);
+  }
+  return true;
+}
+
+WrappedMTLComputePipelineState *WrappedMTLDevice::newComputePipelineStateWithFunctionOptions(
+    MTL::Function *computeFunction, MTL::PipelineOption options,
+    MTL::AutoreleasedComputePipelineReflection *reflection, NS::Error **error)
+{
+  MTL::ComputePipelineState *realMTLComputePipelineState;
+  SERIALISE_TIME_CALL(realMTLComputePipelineState = Unwrap(this)->newComputePipelineState(
+                          computeFunction, options, reflection, error));
+
+  WrappedMTLComputePipelineState *wrappedMTLComputePipelineState;
+  ResourceId id = GetResourceManager()->WrapResource(realMTLComputePipelineState,
+                                                     wrappedMTLComputePipelineState);
+  if(IsCaptureMode(m_State))
+  {
+    Chunk *chunk = NULL;
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(MetalChunk::MTLDevice_newComputePipelineStateWithFunction_options);
+      Serialise_newComputePipelineStateWithFunctionOptions(
+          ser, wrappedMTLComputePipelineState, computeFunction, options, reflection, error);
+      chunk = scope.Get();
+    }
+
+    MetalResourceRecord *record =
+        GetResourceManager()->AddResourceRecord(wrappedMTLComputePipelineState);
+    record->AddChunk(chunk);
+    // TODO: Record MTLFunction, maybe WrappedMTLFunction?
+  }
+  else
+  {
+    // TODO: implement RD MTL replay
+    //     GetResourceManager()->AddLiveResource(id, *wrappedMTLComputePipelineState);
+  }
+  return wrappedMTLComputePipelineState;
+}
+
+template <typename SerialiserType>
 bool WrappedMTLDevice::Serialise_newTextureWithDescriptor(SerialiserType &ser,
                                                           WrappedMTLTexture *texture,
                                                           RDMTL::TextureDescriptor &descriptor)
@@ -760,6 +960,24 @@ INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLDevice,
                                             WrappedMTLRenderPipelineState *renderPipelineState,
                                             newRenderPipelineStateWithDescriptor,
                                             RDMTL::RenderPipelineDescriptor &descriptor,
+                                            NS::Error **error);
+INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLDevice,
+                                            WrappedMTLComputePipelineState *computePipelineState,
+                                            newComputePipelineStateWithDescriptor,
+                                            RDMTL::ComputePipelineDescriptor &descriptor,
+                                            MTL::PipelineOption options,
+                                            MTL::AutoreleasedComputePipelineReflection *reflection,
+                                            NS::Error **error);
+INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLDevice,
+                                            WrappedMTLComputePipelineState *computePipelineState,
+                                            newComputePipelineStateWithFunction,
+                                            MTL::Function *computeFunction, NS::Error **error);
+INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLDevice,
+                                            WrappedMTLComputePipelineState *computePipelineState,
+                                            newComputePipelineStateWithFunctionOptions,
+                                            MTL::Function *computeFunction,
+                                            MTL::PipelineOption options,
+                                            MTL::AutoreleasedComputePipelineReflection *reflection,
                                             NS::Error **error);
 INSTANTIATE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLDevice, WrappedMTLTexture *,
                                             newTextureWithDescriptor,
