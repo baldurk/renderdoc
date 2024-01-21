@@ -334,6 +334,18 @@ void AttributeDescriptor::CopyTo(MTL::AttributeDescriptor *objc)
   objc->setFormat(format);
 }
 
+BufferLayoutDescriptor::BufferLayoutDescriptor(MTL::BufferLayoutDescriptor *objc)
+    : stride(objc->stride()), stepFunction(objc->stepFunction()), stepRate(objc->stepRate())
+{
+}
+
+void BufferLayoutDescriptor::CopyTo(MTL::BufferLayoutDescriptor *objc)
+{
+  objc->setStride(stride);
+  objc->setStepFunction(stepFunction);
+  objc->setStepRate(stepRate);
+}
+
 LinkedFunctions::LinkedFunctions(MTL::LinkedFunctions *objc)
 {
   GETWRAPPEDNSARRAY(Function, functions);
