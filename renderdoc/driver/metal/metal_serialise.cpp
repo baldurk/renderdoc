@@ -408,6 +408,13 @@ void DoSerialise(SerialiserType &ser, RDMTL::ComputePipelineDescriptor &el)
   // SERIALISE_MEMBER(binaryArchives);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RDMTL::ComputePassDescriptor &el)
+{
+  SERIALISE_MEMBER(sampleBufferAttachments);
+  SERIALISE_MEMBER(dispatchType);
+}
+
 INSTANTIATE_SERIALISE_TYPE(NS::String *);
 INSTANTIATE_SERIALISE_TYPE(NS::Range)
 INSTANTIATE_SERIALISE_TYPE(MTL::TextureSwizzleChannels);
@@ -436,3 +443,4 @@ INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassStencilAttachmentDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::RenderPassDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::ComputePassSampleBufferAttachmentDescriptor);
 INSTANTIATE_SERIALISE_TYPE(RDMTL::ComputePipelineDescriptor);
+INSTANTIATE_SERIALISE_TYPE(RDMTL::ComputePassDescriptor);

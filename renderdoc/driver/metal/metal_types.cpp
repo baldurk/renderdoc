@@ -164,6 +164,13 @@ static bool ValidData(MTL::BufferLayoutDescriptor *descriptor)
   return true;
 }
 
+static bool ValidData(MTL::ComputePassSampleBufferAttachmentDescriptor *descriptor)
+{
+  if(!descriptor->sampleBuffer())
+    return false;
+  return true;
+}
+
 template <typename MTL_TYPE>
 static void GetWrappedNSArray(rdcarray<typename UnwrapHelper<MTL_TYPE>::Outer *> &to, NS::Array *from)
 {
@@ -728,6 +735,21 @@ ComputePipelineDescriptor::operator MTL::ComputePipelineDescriptor *()
   // TODO: when WrappedMTLBinaryArchive exists
   // objc->setBinaryArchives(CreateUnwrappedNSArray<MTL::BinaryArchive *>(binaryArchives));
   // GETWRAPPEDNSARRAY(BinaryArchive, binaryArchives);
+  return objc;
+}
+
+ComputePassDescriptor::ComputePassDescriptor(MTL::ComputePassDescriptor *objc)
+    : dispatchType(objc->dispatchType())
+{
+  GETOBJCARRAY(ComputePassSampleBufferAttachmentDescriptor,
+               MAX_COMPUTE_PASS_SAMPLE_BUFFER_ATTACHMENTS, sampleBufferAttachments, ValidData);
+}
+
+ComputePassDescriptor::operator MTL::ComputePassDescriptor *()
+{
+  MTL::ComputePassDescriptor *objc = MTL::ComputePassDescriptor::alloc()->init();
+  COPYTOOBJCARRAY(ComputePassSampleBufferAttachmentDescriptor, sampleBufferAttachments);
+  objc->setDispatchType(dispatchType);
   return objc;
 }
 
