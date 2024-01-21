@@ -72,6 +72,20 @@ public:
                                           newRenderPipelineStateWithDescriptor,
                                           RDMTL::RenderPipelineDescriptor &descriptor,
                                           NS::Error **error);
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLComputePipelineState *,
+                                          newComputePipelineStateWithDescriptor,
+                                          RDMTL::ComputePipelineDescriptor &descriptor,
+                                          MTL::PipelineOption options,
+                                          MTL::AutoreleasedComputePipelineReflection *reflection,
+                                          NS::Error **error);
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLComputePipelineState *,
+                                          newComputePipelineStateWithFunction,
+                                          MTL::Function *computeFunction, NS::Error **error);
+  DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLComputePipelineState *,
+                                          newComputePipelineStateWithFunctionOptions,
+                                          MTL::Function *computeFunction, MTL::PipelineOption options,
+                                          MTL::AutoreleasedComputePipelineReflection *reflection,
+                                          NS::Error **error);
   WrappedMTLTexture *newTextureWithDescriptor(RDMTL::TextureDescriptor &descriptor,
                                               IOSurfaceRef iosurface, NS::UInteger plane);
   DECLARE_FUNCTION_WITH_RETURN_SERIALISED(WrappedMTLTexture *, newTextureWithDescriptor,

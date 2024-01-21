@@ -1229,7 +1229,7 @@ rdcstr DoStringise(const MTL::DispatchType &el)
 template <>
 rdcstr DoStringise(const MetalResourceType &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)MetalResourceType::eResMax == 11, "MetalResourceType changed");
+  RDCCOMPILE_ASSERT((uint32_t)MetalResourceType::eResMax == 12, "MetalResourceType changed");
   BEGIN_ENUM_STRINGISE(MetalResourceType);
   {
     STRINGISE_ENUM(eResUnknown);
@@ -1240,6 +1240,7 @@ rdcstr DoStringise(const MetalResourceType &el)
     STRINGISE_ENUM(eResLibrary);
     STRINGISE_ENUM(eResFunction);
     STRINGISE_ENUM(eResRenderPipelineState);
+    STRINGISE_ENUM(eResComputePipelineState);
     STRINGISE_ENUM(eResTexture);
     STRINGISE_ENUM(eResRenderCommandEncoder);
     STRINGISE_ENUM(eResBlitCommandEncoder);

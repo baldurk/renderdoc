@@ -117,10 +117,17 @@ bool WrappedMTLDevice::ProcessChunk(ReadSerialiser &ser, MetalChunk chunk)
     }
     case MetalChunk::MTLDevice_newRenderPipelineStateWithDescriptor_options:
       METAL_CHUNK_NOT_HANDLED();
-    case MetalChunk::MTLDevice_newComputePipelineStateWithFunction: METAL_CHUNK_NOT_HANDLED();
+    case MetalChunk::MTLDevice_newComputePipelineStateWithFunction:
+      return Serialise_newComputePipelineStateWithFunction(ser, NULL, NULL, NULL);
     case MetalChunk::MTLDevice_newComputePipelineStateWithFunction_options:
-      METAL_CHUNK_NOT_HANDLED();
-    case MetalChunk::MTLDevice_newComputePipelineStateWithDescriptor: METAL_CHUNK_NOT_HANDLED();
+      return Serialise_newComputePipelineStateWithFunctionOptions(
+          ser, NULL, NULL, MTL::PipelineOptionNone, NULL, NULL);
+    case MetalChunk::MTLDevice_newComputePipelineStateWithDescriptor:
+    {
+      RDMTL::ComputePipelineDescriptor descriptor;
+      return Serialise_newComputePipelineStateWithDescriptor(ser, NULL, descriptor,
+                                                             MTL::PipelineOptionNone, NULL, NULL);
+    }
     case MetalChunk::MTLDevice_newFence: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLDevice_newRenderPipelineStateWithTileDescriptor: METAL_CHUNK_NOT_HANDLED();
     case MetalChunk::MTLDevice_newArgumentEncoderWithArguments: METAL_CHUNK_NOT_HANDLED();
