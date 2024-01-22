@@ -2570,6 +2570,9 @@ void VulkanDebugManager::InitReadbackBuffer(VkDeviceSize sz)
     m_ReadbackWindow.Create(m_pDriver, dev, AlignUp(sz, (VkDeviceSize)4096), 1,
                             GPUBuffer::eGPUBufferReadback);
 
+    m_pDriver->GetResourceManager()->SetInternalResource(GetResID(m_ReadbackWindow.buf));
+    m_pDriver->GetResourceManager()->SetInternalResource(GetResID(m_ReadbackWindow.mem));
+
     RDCLOG("Allocating readback window of %llu bytes", m_ReadbackWindow.sz);
 
     VkResult vkr = ObjDisp(dev)->MapMemory(Unwrap(dev), Unwrap(m_ReadbackWindow.mem), 0,
