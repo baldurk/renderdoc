@@ -2206,10 +2206,12 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
   ID3D12RootSignature *annotatedSig = NULL;
 
   {
-    ID3DBlob *root = m_pDevice->GetShaderCache()->MakeRootSig(modsig);
+    ID3DBlob *blob = m_pDevice->GetShaderCache()->MakeRootSig(modsig);
     HRESULT hr =
-        m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
+        m_pDevice->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(),
                                        __uuidof(ID3D12RootSignature), (void **)&annotatedSig);
+
+    SAFE_RELEASE(blob);
 
     if(annotatedSig == NULL || FAILED(hr))
     {

@@ -1336,9 +1336,12 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
 
     if(annotatedSig == NULL || FAILED(hr))
     {
+      SAFE_RELEASE(root);
       RDCERR("Couldn't create feedback modified root signature: %s", ToStr(hr).c_str());
       return false;
     }
+
+    SAFE_RELEASE(root);
   }
 
   ID3D12PipelineState *annotatedPipe = NULL;
