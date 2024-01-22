@@ -606,9 +606,6 @@ static pid_t RunProcess(rdcstr appName, rdcstr workDir, const rdcstr &cmdLine, c
     childPid = fork();
     if(childPid == 0)
     {
-      if(pauseAtMain)
-        StopAtMainInChild();
-
       FileIO::ReleaseFDAfterFork();
       if(stdoutPipe)
       {

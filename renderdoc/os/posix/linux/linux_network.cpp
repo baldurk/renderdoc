@@ -24,6 +24,7 @@
 
 #include "os/os_specific.h"
 #include "os/posix/posix_network.h"
+void StopAtMainInChild();
 
 namespace Network
 {
@@ -39,6 +40,8 @@ uint32_t Socket::GetRemoteIP() const
 
 Socket *CreateServerSocket(const rdcstr &bindaddr, uint16_t port, int queuesize)
 {
-  return CreateTCPServerSocket(bindaddr, port, queuesize);
+  Socket *s = CreateTCPServerSocket(bindaddr, port, queuesize);
+  StopAtMainInChild();
+  return s;
 }
 };

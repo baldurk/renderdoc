@@ -313,8 +313,6 @@ __attribute__((visibility("default"))) pid_t fork()
   {
     if(Linux_Debug_PtraceLogging())
       RDCLOG("hooked fork() in child %d", getpid());
-
-    StopAtMainInChild();
   }
   else if(ret > 0)
   {
