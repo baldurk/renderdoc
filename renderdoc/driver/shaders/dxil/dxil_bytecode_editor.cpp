@@ -1818,7 +1818,6 @@ void ProgramEditor::SetNumThreads(uint32_t dim[3])
 
     if(*headerSize >= headerSizeVer2)
     {
-      cur += headerSizeVer0;
       cur += headerSizeVer1;
       memcpy(cur, dim, sizeof(uint32_t) * 3);
     }
