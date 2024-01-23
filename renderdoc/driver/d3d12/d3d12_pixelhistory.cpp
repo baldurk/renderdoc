@@ -81,12 +81,15 @@
  * We slot the per-fragment data correctly accounting for the fragments that were discarded.
  */
 
+#include "core/settings.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "maths/formatpacking.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_debug.h"
 #include "d3d12_replay.h"
 #include "d3d12_shader_cache.h"
+
+RDOC_EXTERN_CONFIG(bool, D3D12_PixelHistory);
 
 struct D3D12CopyPixelParams
 {
@@ -2717,6 +2720,9 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
                                                       const Subresource &sub, CompType typeCast)
 {
   rdcarray<PixelModification> history;
+
+  if(!D3D12_PixelHistory())
+    return history;
 
   if(events.empty())
     return history;
