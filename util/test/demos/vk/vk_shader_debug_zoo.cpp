@@ -4569,8 +4569,8 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
                                                         VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
-    VkBuffer bda_data_buffer;
-    VkDeviceMemory bda_deviceMem;
+    VkBuffer bda_data_buffer = VK_NULL_HANDLE;
+    VkDeviceMemory bda_deviceMem = VK_NULL_HANDLE;
     byte *bda_base_gpuptr = NULL;
     if(bda)
     {
