@@ -1918,7 +1918,7 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
         for(uint32_t j = 0; j < sign->numElems; j++)
         {
           SigParameter &b = (*sig)[j];
-          if(i != j && a.semanticName == b.semanticName)
+          if(i != j && a.semanticName == b.semanticName || a.semanticIndex != 0)
           {
             a.needSemanticIndex = true;
             break;
