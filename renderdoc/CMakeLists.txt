@@ -419,7 +419,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR APPLE)
             APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unknown-warning -Wno-format-truncation")
 
     	# stb_image requires these flags to enable ARM SIMD (NEON) for arm32
-        if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm" AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+        if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm" AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64" AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
             set_source_files_properties(3rdparty/stb/stb_impl.c
                 PROPERTIES COMPILE_FLAGS "-mfpu=neon-vfpv4 -mfp16-format=ieee")
         endif()
@@ -446,7 +446,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR APPLE)
             PROPERTIES COMPILE_FLAGS "-Wno-unknown-warning-option -Wno-self-assign-overloaded")
 
         # stb_image requires these flags to enable ARM SIMD (NEON) for arm32
-        if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm" AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+        if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm" AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64" AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
             set_source_files_properties(3rdparty/stb/stb_impl.c
                         PROPERTIES COMPILE_FLAGS "-mfpu=neon-vfpv4")
         endif()
