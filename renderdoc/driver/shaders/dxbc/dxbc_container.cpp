@@ -751,6 +751,9 @@ void DXBCContainer::ReplaceChunk(bytebuf &ByteCode, uint32_t fourcc, const byte 
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
     chunkOffsets[chunkIdx] += sizeof(uint32_t);
 
+  ByteCode.append((byte *)&fourcc, sizeof(fourcc));
+  uint32_t chunkSize = (uint32_t)size;
+  ByteCode.append((byte *)&chunkSize, sizeof(chunkSize));
   ByteCode.append(replacement, size);
 
   header->numChunks++;
