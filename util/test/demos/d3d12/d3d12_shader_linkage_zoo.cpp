@@ -208,6 +208,17 @@ float4 main(v2f IN) : SV_Target0
     psos.push_back(BuildPSO(sig, {{false, VarType::UInt, 4, 0, "TEXCOORD0", false}}));
     psos.push_back(BuildPSO(sig, {{true, VarType::UInt, 4, 0, "TEXCOORD0", true}}));
 
+    // test semantics with indices that don't start from 0
+    psos.push_back(BuildPSO(sig, {{false, VarType::Float, 1, 0, "TEXCOORD1", true}}));
+    psos.push_back(BuildPSO(sig, {{true, VarType::Float, 1, 0, "TEXCOORD1", true}}));
+    psos.push_back(BuildPSO(sig, {{false, VarType::UInt, 1, 0, "TEXCOORD1", true}}));
+    psos.push_back(BuildPSO(sig, {{false, VarType::UInt, 4, 0, "TEXCOORD1", true}}));
+
+    psos.push_back(BuildPSO(sig, {{false, VarType::Float, 1, 0, "TEXCOORD2", true}}));
+    psos.push_back(BuildPSO(sig, {{true, VarType::Float, 1, 0, "TEXCOORD2", true}}));
+    psos.push_back(BuildPSO(sig, {{false, VarType::UInt, 1, 0, "TEXCOORD2", true}}));
+    psos.push_back(BuildPSO(sig, {{false, VarType::UInt, 4, 0, "TEXCOORD2", true}}));
+
     // A single semantic with various array sizes
     psos.push_back(BuildPSO(sig, {{false, VarType::Float, 1, 1, "TEXCOORD0", true}}));
     psos.push_back(BuildPSO(sig, {{false, VarType::Float, 1, 2, "TEXCOORD0", true}}));

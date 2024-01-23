@@ -13,11 +13,11 @@ class D3D12_Shader_Linkage_Zoo(rdtest.TestCase):
 
         failed = False
 
-        test_marker: rd.ActionDescription = self.find_action("action")
+        test_marker: rd.ActionDescription = self.find_action("draw")
         while test_marker is not None:
             action = test_marker.next
             event_name = test_marker.customName
-            test_marker: rd.ActionDescription = self.find_action("action", action.eventId)
+            test_marker: rd.ActionDescription = self.find_action("draw", action.eventId)
 
             self.controller.SetFrameEvent(action.eventId, False)
             pipe: rd.PipeState = self.controller.GetPipelineState()
