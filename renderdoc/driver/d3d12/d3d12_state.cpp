@@ -245,7 +245,8 @@ void D3D12RenderState::ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsComman
       }
 
       // safe to set this - if the pipeline has view instancing disabled, it will do nothing
-      if(dev->GetOpts3().ViewInstancingTier != D3D12_VIEW_INSTANCING_TIER_NOT_SUPPORTED)
+      if(dev->GetOpts3().ViewInstancingTier != D3D12_VIEW_INSTANCING_TIER_NOT_SUPPORTED &&
+         viewInstMask != 0)
         cmd->SetViewInstanceMask(viewInstMask);
     }
 
