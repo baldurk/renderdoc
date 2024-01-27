@@ -235,7 +235,7 @@ if(APPLE)
         apple/apple_window.cpp
         apple/apple_window.h)
     add_executable(demos ${SRC} ${VULKAN_SRC})
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wno-deprecated-declarations")
 elseif(BUILD_ANDROID)
     string(REPLACE "\\" "/" GLUE_SOURCE "${ANDROID_NDK_ROOT_PATH}/sources/android/native_app_glue/android_native_app_glue.c")
     include_directories(${ANDROID_NDK_ROOT_PATH}/sources/android/native_app_glue)
