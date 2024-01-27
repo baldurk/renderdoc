@@ -465,6 +465,8 @@ typedef struct nk_appkit_window
   id delegate;
   NSView *nsView;
   NSImage *nsImage;
+  NSAutoreleasePool *nsPool;
+  NSSize size;
   bool shouldClose;
   char mouseButtons[3];
   char keys[nk_appkit_key_last + 1];
@@ -635,7 +637,8 @@ static void InputKey(nk_appkit_window *window, int key, int action)
 
 - (void)drawRect:(NSRect)dirtyRect
 {
-  [window->nsImage drawInRect:dirtyRect];
+  if(window->nsImage != nil)
+    [window->nsImage drawInRect:dirtyRect];
 }
 
 - (void)mouseDown:(NSEvent *)event
@@ -927,6 +930,7 @@ void nk_appkit_window_delete(nk_appkit_window *window)
     [window->nsWindow close];
     window->nsWindow = nil;
   }
+  window->nsPool = nil;
 
   free(window);
   s_state.window = NULL;
@@ -973,7 +977,7 @@ bool nk_appkit_core_initialize(void)
   {
     [NSApplication sharedApplication];
 
-    s_state.nsAppDelegate = [[nk_appkit_ApplicationDelegate alloc] init];
+    s_state.nsAppDelegate = [nk_appkit_ApplicationDelegate new];
     [NSApp setDelegate:s_state.nsAppDelegate];
 
     NSEvent * (^block)(NSEvent *) = ^NSEvent *(NSEvent *event)
@@ -1035,17 +1039,19 @@ nk_appkit_window *nk_appkit_window_create(int width, int height, const char *tit
   [NSApp activateIgnoringOtherApps:YES];
   [window->nsWindow makeKeyAndOrderFront:nil];
 
-  window->nsImage = [[NSImage alloc] initWithSize:NSMakeSize(width, height)];
+  window->size = NSMakeSize(width, height);
+  window->nsImage = [[NSImage alloc] initWithSize:window->size];
 
   return (nk_appkit_window *)window;
 }
 
 void nk_appkit_drawing_begin(nk_appkit_window *window, u_int8_t r, u_int8_t g, u_int8_t b, u_int8_t a)
 {
+  window->nsPool = [[NSAutoreleasePool alloc] init];
   [NSGraphicsContext saveGraphicsState];
   [window->nsImage lockFocus];
   [[NSColor colorWithRed:r / 255.0f green:g / 255.0f blue:b / 255.0f alpha:a / 255.0f] setFill];
-  NSRectFill(NSMakeRect(0, 0, window->nsImage.size.width, window->nsImage.size.height));
+  NSRectFill(NSMakeRect(0, 0, window->size.width, window->size.height));
 }
 
 void nk_appkit_drawing_end(nk_appkit_window *window)
@@ -1053,6 +1059,7 @@ void nk_appkit_drawing_end(nk_appkit_window *window)
   [window->nsImage unlockFocus];
   [window->nsView setNeedsDisplay:TRUE];
   [NSGraphicsContext restoreGraphicsState];
+  [window->nsPool drain];
 }
 
 float nk_appkit_drawing_set_font(nk_appkit_window *window, const char *name, float size)
@@ -1061,8 +1068,10 @@ float nk_appkit_drawing_set_font(nk_appkit_window *window, const char *name, flo
   {
     s_state.nsFont = [NSFont fontWithName:[NSString stringWithUTF8String:name] size:size];
     [s_state.nsFont retain];
-    float height = [[[NSLayoutManager alloc] init] defaultLineHeightForFont:s_state.nsFont];
+    NSLayoutManager *nsLayoutManager = [NSLayoutManager new];
+    float height = [nsLayoutManager defaultLineHeightForFont:s_state.nsFont];
     s_state.fontHeight = height + 1;
+    [nsLayoutManager autorelease];
     return s_state.fontHeight;
   }
 }
@@ -1074,10 +1083,12 @@ float nk_appkit_drawing_get_text_width(nk_appkit_window *window, const char *tex
     NSString *nsString = [[NSString alloc] initWithBytes:(void *)text
                                                   length:len
                                                 encoding:NSASCIIStringEncoding];
-    NSMutableDictionary *atts = [[NSMutableDictionary alloc] init];
+    NSMutableDictionary *atts = [NSMutableDictionary new];
     [atts setObject:s_state.nsFont forKey:NSFontAttributeName];
     NSSize bounds = [nsString sizeWithAttributes:atts];
     float width = floor(bounds.width);
+    [atts autorelease];
+    [nsString autorelease];
     return width;
   }
 }
@@ -1089,7 +1100,7 @@ void nk_appkit_drawing_filled_rect(nk_appkit_window *window, short x, short y, u
   @autoreleasepool
   {
     [[NSColor colorWithRed:r / 255.0f green:g / 255.0f blue:b / 255.0f alpha:a / 255.0f] setFill];
-    float H = window->nsImage.size.height;
+    float H = window->size.height;
     float y0 = H - y - h;
     NSBezierPath *path = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(x, y0, w, h)
                                                          xRadius:rounding
@@ -1105,7 +1116,7 @@ void nk_appkit_drawing_rect(nk_appkit_window *window, short x, short y, u_int16_
   @autoreleasepool
   {
     [[NSColor colorWithRed:r / 255.0f green:g / 255.0f blue:b / 255.0f alpha:a / 255.0f] setStroke];
-    float H = window->nsImage.size.height;
+    float H = window->size.height;
     float y0 = H - y - h;
     NSBezierPath *path = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(x, y0, w, h)
                                                          xRadius:rounding
@@ -1121,7 +1132,7 @@ void nk_appkit_drawing_scissor(nk_appkit_window *window, short x, short y, u_int
   {
     [NSGraphicsContext restoreGraphicsState];
     [NSGraphicsContext saveGraphicsState];
-    float H = window->nsImage.size.height;
+    float H = window->size.height;
     float y0 = H - y - h;
     NSRectClip(NSMakeRect(x, y0, w, h));
   }
@@ -1134,12 +1145,12 @@ void nk_appkit_drawing_text(nk_appkit_window *window, short x, short y, u_int16_
 {
   @autoreleasepool
   {
-    float H = window->nsImage.size.height;
+    float H = window->size.height;
     float y0 = H - y - s_state.fontHeight;
     NSString *nsString = [[NSString alloc] initWithBytes:(void *)text
                                                   length:len
                                                 encoding:NSASCIIStringEncoding];
-    NSMutableDictionary *atts = [[NSMutableDictionary alloc] init];
+    NSMutableDictionary *atts = [NSMutableDictionary new];
     [atts setObject:s_state.nsFont forKey:NSFontAttributeName];
     [atts setObject:[NSColor colorWithRed:bgR / 255.0f
                                     green:bgG / 255.0f
@@ -1152,6 +1163,8 @@ void nk_appkit_drawing_text(nk_appkit_window *window, short x, short y, u_int16_
                                     alpha:fgA / 255.0f]
              forKey:NSForegroundColorAttributeName];
     [nsString drawAtPoint:NSMakePoint(x, y0) withAttributes:atts];
+    [atts autorelease];
+    [nsString autorelease];
   }
 }
 #endif    // #ifdef NK_APPKIT_OBJC_IMPLEMENTATION
