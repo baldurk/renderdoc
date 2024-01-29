@@ -94,7 +94,7 @@ extern "C" const char GitVersionHash[41];
 // upstream and should not be modified downstream. You can set DISTRIBUTION_VERSION to include any
 // arbitrary release marker or package version you wish.
 #define RENDERDOC_VERSION_MAJOR 1
-#define RENDERDOC_VERSION_MINOR 31
+#define RENDERDOC_VERSION_MINOR 32
 
 #define RDOC_INTERNAL_VERSION_STRINGIZE2(a) #a
 #define RDOC_INTERNAL_VERSION_STRINGIZE(a) RDOC_INTERNAL_VERSION_STRINGIZE2(a)
