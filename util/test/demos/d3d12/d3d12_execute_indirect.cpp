@@ -269,7 +269,7 @@ void main(uint3 gid : SV_GroupID)
     ID3D12CommandSignaturePtr patchArgSig =
         MakeCommandSig(patchsig, {vbArg(0), cbvArg(0), srvArg(1), uavArg(2), drawArg()});
 
-    struct
+    struct PatchArgs
     {
       D3D12_VERTEX_BUFFER_VIEW vb;
       D3D12_GPU_VIRTUAL_ADDRESS cbv;
@@ -322,6 +322,16 @@ void main(uint3 gid : SV_GroupID)
     ID3D12PipelineStatePtr comppso = MakePSO().RootSig(compsig).CS(csblob);
 
     ID3D12ResourcePtr customvbargs = MakeBuffer().Size(1024 * 1024 * 4);
+    const uint32_t countDrawsInFullBuffer = 3;
+    ID3D12ResourcePtr fullargsDrawBuf =
+        MakeBuffer().Size(countDrawsInFullBuffer * sizeof(D3D12_INDIRECT_ARGUMENT_DESC));
+
+    PatchArgs fullargsStateDraw[countDrawsInFullBuffer];
+    for(uint32_t i = 0; i < countDrawsInFullBuffer; ++i)
+      fullargsStateDraw[i] = patchargs;
+
+    ID3D12ResourcePtr fullargsStateDrawBuf =
+        MakeBuffer().Upload().Size(countDrawsInFullBuffer * sizeof(patchargs)).Data(fullargsStateDraw);
 
     ID3D12RootSignaturePtr plainsig = MakeSig({});
     ID3D12PipelineStatePtr plainpso =
@@ -445,6 +455,42 @@ void main(uint3 gid : SV_GroupID)
 
         cmd->ExecuteIndirect(plainArgSig, 8, customvbargs, 4096 * (sizeof(Vec4f)) + sizeof(Vec4u),
                              NULL, 0);
+      }
+      popMarker(cmd);
+
+      pushMarker(cmd, "Full Arg Buffer: Pure Draw");
+      {
+        cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        D3D12_VERTEX_BUFFER_VIEW view;
+        view.BufferLocation = customvbargs->GetGPUVirtualAddress() + 4096 * (sizeof(Vec4f)) + 256;
+        view.StrideInBytes = sizeof(A2V);
+        view.SizeInBytes = sizeof(A2V) * 1120;
+        cmd->IASetVertexBuffers(0, 1, &view);
+
+        cmd->SetPipelineState(plainpso);
+        cmd->SetGraphicsRootSignature(plainsig);
+
+        RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
+        RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
+
+        OMSetRenderTargets(cmd, {rtv}, {});
+
+        cmd->ExecuteIndirect(plainArgSig, countDrawsInFullBuffer, fullargsDrawBuf, 0, NULL, 0);
+      }
+      popMarker(cmd);
+
+      pushMarker(cmd, "Full Arg Buffer: State + Draw");
+      {
+        cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        cmd->SetPipelineState(patchpso);
+        cmd->SetGraphicsRootSignature(patchsig);
+
+        RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
+        RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
+
+        OMSetRenderTargets(cmd, {rtv}, {});
+        cmd->ExecuteIndirect(patchArgSig, countDrawsInFullBuffer, fullargsStateDrawBuf, 0, NULL, 0);
       }
       popMarker(cmd);
 

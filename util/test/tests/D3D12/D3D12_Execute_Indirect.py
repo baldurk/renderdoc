@@ -172,4 +172,28 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                     raise rdtest.TestFailureException(
                         "Detected an exploded polygon with {} selected".format(action.GetName(sdfile)))
 
-            rdtest.log.success("Pass {} of unordered draw was correct")
+            rdtest.log.success(f"Pass {passNum} of unordered draw was correct")
+
+        # This does not draw anything but its argument buffer is fully used with no spare bytes
+        # Iterate over every draw and check the replay has valid output target
+        action = self.find_action("Full Arg Buffer")
+        action = self.find_action("IndirectDraw", action.eventId)
+        for drawNum in range(3):
+            self.controller.SetFrameEvent(action.eventId + drawNum, False)
+            pipe = self.controller.GetPipelineState()
+            if len(pipe.GetOutputTargets()) != 1:
+                raise rdtest.TestFailureException(
+                    f"With event {action.eventId + drawNum} selected we should have one output target but there is {len(pipe.GetOutputTargets())}")
+        rdtest.log.success("Fully used argument buffer with multiple draws replayed")
+
+        # This does not draw anything but its argument buffer is fully used with no spare bytes
+        # Iterate over every draw and check the replay has valid output target
+        action = self.find_action("Full Arg Buffer: State + Draw")
+        action = self.find_action("IndirectDraw", action.eventId)
+        for drawNum in range(3):
+            self.controller.SetFrameEvent(action.eventId + drawNum, False)
+            pipe = self.controller.GetPipelineState()
+            if len(pipe.GetOutputTargets()) != 1:
+                raise rdtest.TestFailureException(
+                    f"With event {action.eventId + drawNum} selected we should have one output target but there is {len(pipe.GetOutputTargets())}")
+        rdtest.log.success("Fully used argument buffer with multiple states + draws replayed")
