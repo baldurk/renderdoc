@@ -125,7 +125,6 @@ void D3D12RenderState::ResolvePendingIndirectState(WrappedID3D12Device *device)
           device->GetResIDFromOrigAddr(va, id, offs);
 
           ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
-          RDCASSERT(res);
 
           if(arg.VertexBuffer.Slot >= vbuffers.size())
             vbuffers.resize(arg.VertexBuffer.Slot + 1);
@@ -147,7 +146,6 @@ void D3D12RenderState::ResolvePendingIndirectState(WrappedID3D12Device *device)
           device->GetResIDFromOrigAddr(ib->BufferLocation, id, offs);
 
           ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
-          RDCASSERT(res);
 
           ibuffer.buf = GetResID(res);
           ibuffer.offs = offs;
