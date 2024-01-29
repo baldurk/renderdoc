@@ -3536,14 +3536,15 @@ void WrappedID3D12GraphicsCommandList::ResetAndRecordExecuteIndirectStates(
     else
     {
       state.indirectState.argsToProcess = argumentsReplayed % numArgsPerExec + numArgsPerExec;
-      BytesToRead += comSig->sig.ByteStride;
-    }
+      if(argumentsReplayed % numArgsPerExec != 0)
+        BytesToRead += comSig->sig.ByteStride;
 
-    // skip all but the last executes we care about
-    while(argumentsReplayed > state.indirectState.argsToProcess)
-    {
-      ArgumentBufferOffset += comSig->sig.ByteStride;
-      argumentsReplayed -= numArgsPerExec;
+      // skip all but the last executes we care about
+      while(argumentsReplayed > state.indirectState.argsToProcess)
+      {
+        ArgumentBufferOffset += comSig->sig.ByteStride;
+        argumentsReplayed -= numArgsPerExec;
+      }
     }
 
     Unwrap(list)->CopyBufferRegion(Unwrap(buf), offs, Unwrap(pArgumentBuffer), ArgumentBufferOffset,
