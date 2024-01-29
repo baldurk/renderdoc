@@ -2763,6 +2763,10 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
     return history;
   }
 
+  // If the resource desc format is typeless, replace it with a typed format
+  if(IsTypelessFormat(resDesc.Format))
+    resDesc.Format = GetTypedFormat(resDesc.Format, typeCast);
+
   // TODO: perhaps should allocate most resources after D3D12OcclusionCallback, since we will
   // get a smaller subset of events that passed the occlusion query.
   D3D12PixelHistoryResources resources = {};
@@ -2789,14 +2793,6 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
   callbackInfo.colorDescriptor = resources.colorDescriptor;
   callbackInfo.dsImage = resources.dsImage;
   callbackInfo.dsDescriptor = resources.dsDescriptor;
-
-  // If the resource desc format is typeless, replace it with a typed format
-  if(IsTypelessFormat(callbackInfo.targetDesc.Format))
-  {
-    ResourceFormat fmt = MakeResourceFormat(callbackInfo.targetDesc.Format);
-    fmt.compType = typeCast;
-    callbackInfo.targetDesc.Format = MakeDXGIFormat(fmt);
-  }
 
   callbackInfo.dstBuffer = resources.dstBuffer;
 
@@ -2911,7 +2907,8 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
   std::map<uint32_t, uint32_t> eventsWithFrags;
   std::map<uint32_t, ModificationValue> eventPremods;
   ResourceFormat fmt = MakeResourceFormat(callbackInfo.targetDesc.Format);
-  fmt.compType = typeCast;
+  if(typeCast != CompType::Typeless)
+    fmt.compType = typeCast;
 
   for(size_t h = 0; h < history.size();)
   {
