@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+  <Rule Name="python_sheet"
+        DisplayName="Python Configuration"
+        PageTemplate="generic"
+        Description="Configuring where the python install is obtained from"
+        xmlns="http://schemas.microsoft.com/build/2009/properties">
+    
+    <Rule.Categories>
+      <Category Name="Build" DisplayName="Build" />
+    </Rule.Categories>
+    
+    <Rule.DataSource>
+      <DataSource Persistence="UserFile" HasConfigurationCondition="true" />
+    </Rule.DataSource>
+
+		<StringProperty Name="VSPythonOverridePath" DisplayName="Custom Python Path" Description="Path to a custom python install. Requires python headers, lib, dll, and standard library zip." Category="Build" IncludeInCommandLine="false">
+			<StringProperty.ValueEditors>
+				<ValueEditor EditorType="DefaultStringPropertyEditor" DisplayName="&lt;Edit...&gt;"/>
+				<ValueEditor EditorType="DefaultFolderPropertyEditor" DisplayName="&lt;Browse...&gt;"/>
+			</StringProperty.ValueEditors>
+		</StringProperty>
+	</Rule>
+</ProjectSchemaDefinitions>
+
