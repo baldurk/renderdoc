@@ -657,7 +657,9 @@ protected:
       dst.PlacedFootprint.Footprint.Height = 1;
       dst.PlacedFootprint.Footprint.Depth = 1;
       dst.PlacedFootprint.Footprint.Format = p.copyFormat;
-      dst.PlacedFootprint.Footprint.RowPitch = dst.PlacedFootprint.Footprint.Width * elementSize;
+      dst.PlacedFootprint.Footprint.RowPitch =
+          AlignUp(dst.PlacedFootprint.Footprint.Width * elementSize,
+                  (uint32_t)D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 
       D3D12_BOX srcBox = {};
       srcBox.left = p.x;
