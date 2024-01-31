@@ -1123,6 +1123,10 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
           {
             valueID = instIndexID;
           }
+          else if(builtin == ShaderBuiltin::MultiViewIndex)
+          {
+            valueID = viewID;
+          }
           else if(builtin == ShaderBuiltin::ViewportIndex)
           {
             valueID = viewID;

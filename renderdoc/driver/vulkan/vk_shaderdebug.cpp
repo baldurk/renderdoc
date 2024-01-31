@@ -4013,6 +4013,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
     builtins[ShaderBuiltin::VertexIndex] = ShaderVariable(rdcstr(), vertid + vertOffset, 0U, 0U, 0U);
   builtins[ShaderBuiltin::InstanceIndex] = ShaderVariable(rdcstr(), instid + instOffset, 0U, 0U, 0U);
   builtins[ShaderBuiltin::ViewportIndex] = ShaderVariable(rdcstr(), view, 0U, 0U, 0U);
+  builtins[ShaderBuiltin::MultiViewIndex] = ShaderVariable(rdcstr(), view, 0U, 0U, 0U);
 
   rdcarray<ShaderVariable> &locations = apiWrapper->location_inputs;
   for(const VkVertexInputAttributeDescription2EXT &attr : state.vertexAttributes)
