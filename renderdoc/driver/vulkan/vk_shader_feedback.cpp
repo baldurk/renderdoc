@@ -791,7 +791,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       // invalid and we just set 0. Valid for both Vertex and Pixel shaders
       if(editor.HasCapability(rdcspv::Capability::MultiView))
       {
-        view = fetchOrAddGlobalInput("rdoc_viewIndex", ShaderBuiltin::ViewportIndex,
+        view = fetchOrAddGlobalInput("rdoc_viewIndex", ShaderBuiltin::MultiViewIndex,
                                      rdcspv::BuiltIn::ViewIndex, uint32Type, true);
       }
       else
@@ -888,7 +888,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       // invalid and we just set 0. Valid for both Vertex and Pixel shaders
       if(editor.HasCapability(rdcspv::Capability::MultiView))
       {
-        view = fetchOrAddGlobalInput("rdoc_viewIndex", ShaderBuiltin::ViewportIndex,
+        view = fetchOrAddGlobalInput("rdoc_viewIndex", ShaderBuiltin::MultiViewIndex,
                                      rdcspv::BuiltIn::ViewIndex, uint32Type, true);
       }
       else
