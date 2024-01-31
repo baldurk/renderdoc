@@ -257,7 +257,7 @@
         </font>
        </property>
        <property name="text">
-        <string>Copyright &amp;copy; Baldur Karlsson 2023</string>
+        <string>Copyright &amp;copy; Baldur Karlsson 2024</string>
        </property>
        <property name="textFormat">
         <enum>Qt::RichText</enum>
