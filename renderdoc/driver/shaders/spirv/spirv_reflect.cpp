@@ -300,8 +300,8 @@ static bool IsStrippableBuiltin(rdcspv::BuiltIn builtin, bool perPrimitive)
 {
   if(perPrimitive &&
      (builtin == rdcspv::BuiltIn::PrimitiveId || builtin == rdcspv::BuiltIn::Layer ||
-      builtin == rdcspv::BuiltIn::ViewportIndex || builtin == rdcspv::BuiltIn::CullPrimitiveEXT ||
-      builtin == rdcspv::BuiltIn::ShadingRateKHR))
+      builtin == rdcspv::BuiltIn::ViewIndex || builtin == rdcspv::BuiltIn::ViewportIndex ||
+      builtin == rdcspv::BuiltIn::CullPrimitiveEXT || builtin == rdcspv::BuiltIn::ShadingRateKHR))
     return true;
 
   return builtin == rdcspv::BuiltIn::PointSize || builtin == rdcspv::BuiltIn::ClipDistance ||

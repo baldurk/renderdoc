@@ -2278,6 +2278,8 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
           sig.systemValue = ShaderBuiltin::GSInstanceIndex;
         if(IS_BUILTIN("gl_Layer"))
           sig.systemValue = ShaderBuiltin::RTIndex;
+        if(IS_BUILTIN("gl_ViewIndex"))
+          sig.systemValue = ShaderBuiltin::MultiViewIndex;
         if(IS_BUILTIN("gl_ViewportIndex"))
           sig.systemValue = ShaderBuiltin::ViewportIndex;
 

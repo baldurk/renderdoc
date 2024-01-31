@@ -1653,6 +1653,7 @@ QString D3DSemanticString(const SigParameter &sig)
       lit("SV_Barycentrics"),
       lit("SV_CullPrimitive"),
       lit("out indices"),
+      lit("Unsupported (multiview index)"),
   };
 
   static_assert(arraydim<ShaderBuiltin>() == ARRAY_COUNT(sysValues),

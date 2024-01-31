@@ -693,6 +693,7 @@ rdcstr DoStringise(const ShaderBuiltin &el)
     STRINGISE_ENUM_CLASS_NAMED(Barycentrics, "Barycentrics");
     STRINGISE_ENUM_CLASS_NAMED(CullPrimitive, "Cull Primitive Output");
     STRINGISE_ENUM_CLASS_NAMED(OutputIndices, "Output Indices");
+    STRINGISE_ENUM_CLASS_NAMED(MultiViewIndex, "Multiview Index");
   }
   END_ENUM_STRINGISE();
 }

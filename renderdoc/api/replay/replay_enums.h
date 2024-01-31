@@ -1109,6 +1109,11 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
 .. data:: OutputIndices
 
   An output containing the indices for a meshlet.
+
+.. data:: MultiViewIndex
+
+  The view being rendered to in multiview rendering. Only valid when multiview rendering is enabled.
+
 )");
 enum class ShaderBuiltin : uint32_t
 {
@@ -1166,6 +1171,7 @@ enum class ShaderBuiltin : uint32_t
   Barycentrics,
   CullPrimitive,
   OutputIndices,
+  MultiViewIndex,
   Count,
 };
 
