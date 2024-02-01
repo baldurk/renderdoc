@@ -665,7 +665,7 @@ void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
       text += tr("The texture has %1 array slices, the view covers slices %2-%3.\n")
                   .arg(tex->arraysize)
                   .arg(res.firstSlice)
-                  .arg(res.firstSlice + res.numSlices);
+                  .arg(res.firstSlice + res.numSlices - 1);
 
     viewdetails = true;
   }

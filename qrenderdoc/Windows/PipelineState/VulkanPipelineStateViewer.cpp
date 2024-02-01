@@ -690,7 +690,7 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
         text += tr("The texture has %1 array slices, the view covers slices %2-%3.\n")
                     .arg(tex->arraysize)
                     .arg(view.firstSlice)
-                    .arg(view.firstSlice + view.numSlices);
+                    .arg(view.firstSlice + view.numSlices - 1);
 
       viewdetails = true;
     }
@@ -705,7 +705,7 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
         text += tr("The texture has %1 3D slices, the view covers slices %2-%3.\n")
                     .arg(tex->depth)
                     .arg(view.firstSlice)
-                    .arg(view.firstSlice + view.numSlices);
+                    .arg(view.firstSlice + view.numSlices - 1);
 
       viewdetails = true;
     }
