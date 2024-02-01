@@ -4355,6 +4355,11 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(graphicsInfo, state.graphics.pipeline);
 
+  // use the load RP if an RP is specified
+  if(graphicsInfo.renderPass != VK_NULL_HANDLE)
+    graphicsInfo.renderPass =
+        c.m_RenderPass[GetResID(graphicsInfo.renderPass)].loadRPs[graphicsInfo.subpass];
+
   // struct size is PSHit header plus 5x structStride = base, ddxcoarse, ddycoarse, ddxfine, ddyfine
   uint32_t structSize = sizeof(PSHit) + structStride * 5;
 
