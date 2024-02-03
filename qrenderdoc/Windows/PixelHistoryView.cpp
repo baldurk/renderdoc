@@ -302,7 +302,12 @@ public:
           {
             const PixelModification &mod = getMod(index);
             if(mod.unboundPS)
-              return tr("No Pixel\nShader\nBound");
+            {
+              if(!m_IsDepth)
+                return tr("No Pixel\nShader\nBound\n\n");
+              else
+                return tr("No Pixel Shader Bound\n\n") + modString(mod.shaderOut);
+            }
             if(mod.directShaderWrite)
               return tr("Tex Before\n\n") + modString(mod.preMod);
             return tr("Shader Out\n\n") + modString(mod.shaderOut);
