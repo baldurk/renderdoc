@@ -4272,6 +4272,9 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
         uint32_t offset = perFragmentCB.GetEventOffset(eid) + f - discardOffset;
         FillInColor(shaderOutFormat, bp[offset].shaderOut, history[h].shaderOut);
         history[h].shaderOut.depth = bp[offset].shaderOut.depth.fdepth;
+        // Zero out elements the shader didn't write to.
+        for(int i = fmt.compCount; i < 4; i++)
+          history[h].shaderOut.col.floatValue[i] = 0.0f;
 
         if((h < history.size() - 1) && (history[h].eventId == history[h + 1].eventId))
         {
