@@ -305,7 +305,7 @@ public:
               return tr("No Pixel\nShader\nBound");
             if(mod.directShaderWrite)
               return tr("Tex Before\n\n") + modString(mod.preMod);
-            return tr("Shader Out\n\n") + modString(mod.shaderOut, 4);
+            return tr("Shader Out\n\n") + modString(mod.shaderOut);
           }
         }
 
@@ -514,7 +514,7 @@ private:
                                   (int)(255.0f * b + 0.5f)));
   }
 
-  QString modString(const ModificationValue &val, int forceComps = 0) const
+  QString modString(const ModificationValue &val) const
   {
     QString s;
 
@@ -522,9 +522,6 @@ private:
       return tr("Unavailable");
 
     int numComps = (int)(m_Tex->format.compCount);
-
-    if(forceComps > 0)
-      numComps = forceComps;
 
     static const QString colourLetterPrefix[] = {lit("R: "), lit("G: "), lit("B: "), lit("A: ")};
 
