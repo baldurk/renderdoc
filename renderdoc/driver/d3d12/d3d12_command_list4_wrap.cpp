@@ -742,8 +742,88 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
     _In_reads_opt_(NumPostbuildInfoDescs)
         const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC *pPostbuildInfoDescs)
 {
-  // TODO AMD
-  RDCERR("BuildRaytracingAccelerationStructure called but raytracing is not supported!");
+  SERIALISE_TIME_CALL(m_pList4->BuildRaytracingAccelerationStructure(pDesc, NumPostbuildInfoDescs,
+                                                                     pPostbuildInfoDescs));
+
+  if(IsCaptureMode(m_State))
+  {
+    // Acceleration structure (AS) are created on buffer created with Acceleration structure init
+    // state which helps them differentiate between non-Acceleration structure buffers (non-ASB).
+
+    // AS creation at recording can happen at any offset, given offset + its size is less than the
+    // resource size. It can also be recorded for overwriting on same or another command list,
+    // invalidating occupying previous acceleration structure(s) in order of command list execution.
+    // It can also be updated but there are many update constraints around it.
+
+    CACHE_THREAD_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_BuildRaytracingAccelerationStructure);
+
+    D3D12ResourceManager *resManager = m_pDevice->GetResourceManager();
+    ResourceId asbWrappedResourceId;
+    D3D12BufferOffset asbWrappedResourceBufferOffset;
+
+    WrappedID3D12Resource::GetResIDFromAddr(pDesc->DestAccelerationStructureData,
+                                            asbWrappedResourceId, asbWrappedResourceBufferOffset);
+
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO preBldInfo;
+    m_pDevice->GetRaytracingAccelerationStructurePrebuildInfo(&pDesc->Inputs, &preBldInfo);
+
+    auto PostBldExecute = [resManager, asbWrappedResourceId, asbWrappedResourceBufferOffset,
+                           preBldInfo]() -> bool {
+      bool success = false;
+      D3D12AccelerationStructure *accStructAtOffset = NULL;
+
+      WrappedID3D12Resource *asbWrappedResource =
+          resManager->GetCurrentAs<WrappedID3D12Resource>(asbWrappedResourceId);
+
+      // See if acc already exist at the given offset
+      bool accStructExistAtOffset = asbWrappedResource->GetAccStructIfExist(
+          asbWrappedResourceBufferOffset, &accStructAtOffset);
+
+      bool createAccStruct = false;
+
+      if(accStructExistAtOffset)
+      {
+        if(accStructAtOffset && accStructAtOffset->Size() != preBldInfo.ResultDataMaxSizeInBytes)
+        {
+          asbWrappedResource->DeleteAccStructAtOffset(asbWrappedResourceBufferOffset);
+          createAccStruct = true;
+        }
+      }
+      else
+      {
+        createAccStruct = true;
+      }
+
+      if(createAccStruct)
+      {
+        // CreateAccStruct also deletes any previous overlapping ASs on the ASB
+        if(asbWrappedResource->CreateAccStruct(asbWrappedResourceBufferOffset, preBldInfo,
+                                               &accStructAtOffset))
+        {
+          success = true;
+          D3D12ResourceRecord *record =
+              resManager->AddResourceRecord(accStructAtOffset->GetResourceID());
+          record->type = Resource_AccelerationStructure;
+          record->Length = 0;
+          accStructAtOffset->SetResourceRecord(record);
+          resManager->MarkDirtyResource(accStructAtOffset->GetResourceID());
+
+          record->AddParent(
+              resManager->GetResourceRecord(accStructAtOffset->GetBackingBufferResourceId()));
+        }
+        else
+        {
+          RDCERR("Unable to create acceleration structure");
+          success = false;
+        }
+      }
+
+      return success;
+    };
+
+    EnqueueAccStructPostBuild(PostBldExecute);
+  }
 }
 
 template <typename SerialiserType>

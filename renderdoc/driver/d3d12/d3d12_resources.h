@@ -928,15 +928,20 @@ public:
   virtual ~WrappedID3D12QueryHeap() { Shutdown(); }
 };
 
+class D3D12AccelerationStructure;
+
 class WrappedID3D12Resource
     : public WrappedDeviceChild12<ID3D12Resource, ID3D12Resource1, ID3D12Resource2>
 {
   static GPUAddressRangeTracker m_Addresses;
 
   WriteSerialiser &GetThreadSerialiser();
+  size_t DeleteOverlappingAccStructsInRangeAtOffset(D3D12BufferOffset bufferOffset);
 
   WrappedID3D12Heap *m_Heap = NULL;
 
+  Threading::CriticalSection m_accStructResourcesCS;
+  rdcflatmap<D3D12BufferOffset, D3D12AccelerationStructure *> m_accelerationStructMap;
   bool m_isAccelerationStructureResource = false;
 
 public:
@@ -962,6 +967,15 @@ public:
       return m_Heap->GetResourceID();
     return this->GetResourceID();
   }
+
+  bool CreateAccStruct(D3D12BufferOffset bufferOffset,
+                       const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO &preBldInfo,
+                       D3D12AccelerationStructure **accStruct);
+
+  bool GetAccStructIfExist(D3D12BufferOffset bufferOffset,
+                           D3D12AccelerationStructure **accStruct = NULL);
+
+  bool DeleteAccStructAtOffset(D3D12BufferOffset bufferOffset);
 
   bool IsAccelerationStructureResource() const { return m_isAccelerationStructureResource; }
   void MarkAsAccelerationStructureResource() { m_isAccelerationStructureResource = true; }
@@ -1281,9 +1295,12 @@ public:
 
   ~D3D12AccelerationStructure();
 
+  uint64_t Size() const { return m_preBldInfo.ResultDataMaxSizeInBytes; }
+  ResourceId GetBackingBufferResourceId() const { return m_asbWrappedResource->GetResourceID(); }
+
 private:
-  WrappedID3D12Resource *m_bufferRes;
-  D3D12BufferOffset m_bufferOffset;
+  WrappedID3D12Resource *m_asbWrappedResource;
+  D3D12BufferOffset m_asbWrappedResourceBufferOffset;
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO m_preBldInfo;
 };
 

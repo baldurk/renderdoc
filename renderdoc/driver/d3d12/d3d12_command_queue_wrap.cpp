@@ -738,6 +738,17 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
   if(!SkipRealExecute)
   {
     SERIALISE_TIME_CALL(m_pReal->ExecuteCommandLists(NumCommandLists, unwrapped));
+
+    for(UINT i = 0; i < NumCommandLists; i++)
+    {
+      WrappedID3D12GraphicsCommandList *wrapped =
+          (WrappedID3D12GraphicsCommandList *)(ppCommandLists[i]);
+
+      if(!wrapped->ExecuteAccStructPostBuilds())
+      {
+        RDCERR("Unable to execute post build for acc struct");
+      }
+    }
   }
 
   if(IsCaptureMode(m_State))

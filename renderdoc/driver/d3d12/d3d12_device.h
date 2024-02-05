@@ -848,6 +848,15 @@ public:
   WriteSerialiser &GetThreadSerialiser();
 
   ID3D12Device *GetReal() { return m_pDevice; }
+  ID3D12Device1 *GetReal1() const { return m_pDevice1; }
+  ID3D12Device2 *GetReal2() const { return m_pDevice2; }
+  ID3D12Device3 *GetReal3() const { return m_pDevice3; }
+  ID3D12Device4 *GetReal4() const { return m_pDevice4; }
+  ID3D12Device5 *GetReal5() const { return m_pDevice5; }
+  ID3D12Device6 *GetReal6() const { return m_pDevice6; }
+  ID3D12Device7 *GetReal7() const { return m_pDevice7; }
+  ID3D12Device8 *GetReal8() const { return m_pDevice8; }
+  ID3D12Device9 *GetReal9() const { return m_pDevice9; }
   static rdcstr GetChunkName(uint32_t idx);
   D3D12ResourceManager *GetResourceManager() { return m_ResourceManager; }
   D3D12ShaderCache *GetShaderCache() { return m_ShaderCache; }

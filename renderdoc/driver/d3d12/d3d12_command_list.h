@@ -191,6 +191,8 @@ private:
 
   static rdcstr GetChunkName(uint32_t idx);
   D3D12ResourceManager *GetResourceManager() { return m_pDevice->GetResourceManager(); }
+
+  rdcarray<std::function<bool()>> m_accStructPostBuildQueueFunc;
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12GraphicsCommandList);
 
@@ -236,6 +238,24 @@ public:
                         bool fakeCreationReset);
 
   bool ValidateRootGPUVA(D3D12_GPU_VIRTUAL_ADDRESS buffer);
+
+  void EnqueueAccStructPostBuild(const std::function<bool()> &postBldExec)
+  {
+    m_accStructPostBuildQueueFunc.push_back(postBldExec);
+  }
+
+  bool ExecuteAccStructPostBuilds()
+  {
+    bool success = true;
+
+    for(std::function<bool()> &func : m_accStructPostBuildQueueFunc)
+    {
+      success &= func();
+    }
+
+    m_accStructPostBuildQueueFunc.clear();
+    return success;
+  }
 
   //////////////////////////////
   // implement IUnknown
