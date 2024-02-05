@@ -313,6 +313,23 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::WriteToSubresource(UINT DstSubr
   return ret;
 }
 
+WRAPPED_POOL_INST(D3D12AccelerationStructure);
+
+D3D12AccelerationStructure::D3D12AccelerationStructure(
+    WrappedID3D12Device *wrappedDevice, WrappedID3D12Resource *bufferRes,
+    D3D12BufferOffset bufferOffset,
+    const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO &preBldInfo)
+    : WrappedDeviceChild12(NULL, wrappedDevice),
+      m_bufferRes(bufferRes),
+      m_bufferOffset(bufferOffset),
+      m_preBldInfo(preBldInfo)
+{
+}
+
+D3D12AccelerationStructure::~D3D12AccelerationStructure()
+{
+  Shutdown();
+}
 void WrappedID3D12Resource::RefBuffers(D3D12ResourceManager *rm)
 {
   // only buffers go into m_Addresses

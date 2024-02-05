@@ -50,6 +50,7 @@ enum D3D12ResourceType
   Resource_PipelineLibrary,
   Resource_ProtectedResourceSession,
   Resource_ShaderCacheSession,
+  Resource_AccelerationStructure,
   Resource_StateObject
 };
 
@@ -741,66 +742,49 @@ struct D3D12InitialContents
     MapDirect,
     // for created initial states we always have an identical resource
     ForceCopy,
+    // for handling acceleration structures
+    AccelerationStructure
   };
-  D3D12InitialContents(D3D12Descriptor *d, uint32_t n)
-      : tag(Copy),
-        resourceType(Resource_DescriptorHeap),
-        descriptors(d),
-        numDescriptors(n),
-        resource(NULL),
-        srcData(NULL),
-        dataSize(0),
-        sparseTable(NULL),
-        sparseBinds(NULL)
+  D3D12InitialContents(D3D12Descriptor *d, uint32_t n) : D3D12InitialContents()
   {
+    tag = Copy;
+    resourceType = Resource_DescriptorHeap;
+    descriptors = d;
+    numDescriptors = n;
   }
-  D3D12InitialContents(ID3D12DescriptorHeap *r)
-      : tag(Copy),
-        resourceType(Resource_DescriptorHeap),
-        descriptors(NULL),
-        numDescriptors(0),
-        resource(r),
-        srcData(NULL),
-        dataSize(0),
-        sparseTable(NULL),
-        sparseBinds(NULL)
+  D3D12InitialContents(ID3D12DescriptorHeap *r) : D3D12InitialContents()
   {
+    tag = Copy;
+    resourceType = Resource_DescriptorHeap;
+    resource = r;
   }
-  D3D12InitialContents(ID3D12Resource *r)
-      : tag(Copy),
-        resourceType(Resource_Resource),
-        descriptors(NULL),
-        numDescriptors(0),
-        resource(r),
-        srcData(NULL),
-        dataSize(0),
-        sparseTable(NULL),
-        sparseBinds(NULL)
+  D3D12InitialContents(ID3D12Resource *r) : D3D12InitialContents()
   {
+    tag = Copy;
+    resourceType = Resource_Resource;
+    resource = r;
   }
-  D3D12InitialContents(byte *data, size_t size)
-      : tag(MapDirect),
-        resourceType(Resource_Resource),
-        descriptors(NULL),
-        numDescriptors(0),
-        resource(NULL),
-        srcData(data),
-        dataSize(size),
-        sparseTable(NULL),
-        sparseBinds(NULL)
+  D3D12InitialContents(byte *data, size_t size) : D3D12InitialContents()
   {
+    tag = MapDirect;
+    resourceType = Resource_Resource;
+    srcData = data;
+    dataSize = size;
   }
-  D3D12InitialContents(Tag tg, D3D12ResourceType type)
-      : tag(tg),
-        resourceType(type),
-        descriptors(NULL),
-        numDescriptors(0),
-        resource(NULL),
-        srcData(NULL),
-        dataSize(0),
-        sparseTable(NULL),
-        sparseBinds(NULL)
+  D3D12InitialContents(Tag tg, D3D12ResourceType type) : D3D12InitialContents()
   {
+    tag = tg;
+    resourceType = type;
+  }
+  D3D12InitialContents(Tag tg, ID3D12Resource *r) : D3D12InitialContents()
+  {
+    tag = tg;
+    if(r)
+    {
+      r->AddRef();
+    }
+    resourceType = Resource_Resource;
+    resource = r;
   }
   D3D12InitialContents()
       : tag(Copy),
@@ -814,6 +798,7 @@ struct D3D12InitialContents
         sparseBinds(NULL)
   {
   }
+
   template <typename Configuration>
   void Free(ResourceManager<Configuration> *rm)
   {

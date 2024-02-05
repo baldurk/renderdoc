@@ -271,7 +271,15 @@ bool WrappedID3D12Device::Serialise_CreateResource(
   if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
   {
     type = ResourceType::Buffer;
-    prefix = "Buffer";
+    if(InitialLayout.ToStates() == D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE)
+    {
+      prefix = "Acceleration Structure";
+      ((WrappedID3D12Resource *)ret)->MarkAsAccelerationStructureResource();
+    }
+    else
+    {
+      prefix = "Buffer";
+    }
   }
   else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D)
   {
@@ -529,8 +537,16 @@ HRESULT WrappedID3D12Device::CreateResource(
     record->Length = 0;
     wrapped->SetResourceRecord(record);
 
-    record->m_MapsCount = NumSubresources;
-    record->m_Maps = new D3D12ResourceRecord::MapData[record->m_MapsCount];
+    if(desc0.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER &&
+       InitialLayout.ToStates() == D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE)
+    {
+      wrapped->MarkAsAccelerationStructureResource();
+    }
+    else
+    {
+      record->m_MapsCount = NumSubresources;
+      record->m_Maps = new D3D12ResourceRecord::MapData[record->m_MapsCount];
+    }
 
     if(chunkType == D3D12Chunk::Device_CreateReservedResource ||
        chunkType == D3D12Chunk::Device_CreateReservedResource1 ||

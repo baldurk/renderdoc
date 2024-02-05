@@ -70,6 +70,13 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
     if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
+      if(r->IsAccelerationStructureResource())
+      {
+        initContents = D3D12InitialContents(D3D12InitialContents::AccelerationStructure, r);
+        SetInitialContents(GetResID(r), initContents);
+        return true;
+      }
+
       D3D12_HEAP_PROPERTIES heapProps = {};
 
       if(sparseTable == NULL)
@@ -395,6 +402,11 @@ uint64_t D3D12ResourceManager::GetSize_InitialState(ResourceId id, const D3D12In
   }
   else if(data.resourceType == Resource_Resource)
   {
+    if(data.tag == D3D12InitialContents::AccelerationStructure)
+    {
+      return WriteSerialiser::GetChunkAlignment();
+    }
+
     ID3D12Resource *buf = (ID3D12Resource *)data.resource;
 
     uint64_t ret = WriteSerialiser::GetChunkAlignment() + 64;
@@ -979,6 +991,15 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
 
     ID3D12Resource *res = ((ID3D12Resource *)live);
 
+    WrappedID3D12Resource *wrappedResource = (WrappedID3D12Resource *)res;
+
+    if(wrappedResource->IsAccelerationStructureResource())
+    {
+      SetInitialContents(id, D3D12InitialContents(D3D12InitialContents::AccelerationStructure,
+                                                  (ID3D12Resource *)NULL));
+      return;
+    }
+
     D3D12_RESOURCE_DESC resDesc = res->GetDesc();
 
     D3D12_HEAP_PROPERTIES heapProps = {};
@@ -1075,6 +1096,11 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
   }
   else if(type == Resource_Resource)
   {
+    if(data.tag == D3D12InitialContents::AccelerationStructure)
+    {
+      return;
+    }
+
     ResourceId id = GetResID(live);
 
     if(IsActiveReplaying(m_State) && m_Device->IsReadOnlyResource(id))

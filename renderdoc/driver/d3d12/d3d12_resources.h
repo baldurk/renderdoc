@@ -937,6 +937,8 @@ class WrappedID3D12Resource
 
   WrappedID3D12Heap *m_Heap = NULL;
 
+  bool m_isAccelerationStructureResource = false;
+
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Resource, false);
 
@@ -960,6 +962,9 @@ public:
       return m_Heap->GetResourceID();
     return this->GetResourceID();
   }
+
+  bool IsAccelerationStructureResource() const { return m_isAccelerationStructureResource; }
+  void MarkAsAccelerationStructureResource() { m_isAccelerationStructureResource = true; }
 
   static void RefBuffers(D3D12ResourceManager *rm);
   static void GetMappableIDs(D3D12ResourceManager *rm, const std::unordered_set<ResourceId> &refdIDs,
@@ -1262,6 +1267,24 @@ public:
   {
     return m_pReal->GetDesc();
   }
+};
+
+// class to represent acceleration structure i.e. BLAS/TLAS
+class D3D12AccelerationStructure : public WrappedDeviceChild12<ID3D12DeviceChild>
+{
+public:
+  ALLOCATE_WITH_WRAPPED_POOL(D3D12AccelerationStructure);
+
+  D3D12AccelerationStructure(WrappedID3D12Device *wrappedDevice, WrappedID3D12Resource *bufferRes,
+                             D3D12BufferOffset bufferOffset,
+                             const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO &preBldInfo);
+
+  ~D3D12AccelerationStructure();
+
+private:
+  WrappedID3D12Resource *m_bufferRes;
+  D3D12BufferOffset m_bufferOffset;
+  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO m_preBldInfo;
 };
 
 #define ALL_D3D12_TYPES                             \
