@@ -4047,6 +4047,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
                   MaxCommandCount);
           for(uint32_t i = 0; i < count; i++)
           {
+            m_Cmd->m_IndirectData.commandSig = pCommandSignature;
+            m_Cmd->m_IndirectData.argsBuffer = patched.first;
+            m_Cmd->m_IndirectData.argsOffset = patched.second;
+
             uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::Drawcall,
                                                         (i + 1) * comSig->sig.arguments.count());
 
@@ -4060,6 +4064,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
                                             patched.second, NULL, 0);
               m_Cmd->m_ActionCallback->PostRedraw(eventId, list);
             }
+
+            m_Cmd->m_IndirectData.commandSig = NULL;
+            m_Cmd->m_IndirectData.argsBuffer = NULL;
+            m_Cmd->m_IndirectData.argsOffset = 0;
 
             patched.second += comSig->sig.ByteStride;
           }
