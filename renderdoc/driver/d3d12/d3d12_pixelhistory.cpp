@@ -2262,7 +2262,11 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
       pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
     }
 
-    if(pipeDesc.GS.pShaderBytecode != NULL || pipeDesc.GS.BytecodeLength > 0)
+    if(pipeDesc.MS.pShaderBytecode != NULL || pipeDesc.MS.BytecodeLength > 0)
+    {
+      RDCWARN("Can't get primitive ID at event %u due to mesh shader usage", eid);
+    }
+    else if(pipeDesc.GS.pShaderBytecode != NULL || pipeDesc.GS.BytecodeLength > 0)
     {
       RDCWARN("Can't get primitive ID at event %u due to geometry shader usage", eid);
     }
