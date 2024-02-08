@@ -4839,3 +4839,24 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     ExecuteLists();
   }
 }
+
+void WrappedID3D12Device::ReplayDraw(ID3D12GraphicsCommandListX *cmd, const ActionDescription &action)
+{
+  if(action.drawIndex == 0)
+  {
+    if(action.flags & ActionFlags::Indexed)
+      cmd->DrawIndexedInstanced(action.numIndices, action.numInstances, action.indexOffset,
+                                action.baseVertex, action.instanceOffset);
+    else
+      cmd->DrawInstanced(action.numIndices, action.numInstances, action.vertexOffset,
+                         action.instanceOffset);
+  }
+  else
+  {
+    // TODO: support replay of draws not in callback
+    D3D12CommandData *cmdData = m_Queue->GetCommandData();
+    RDCASSERT(cmdData->m_IndirectData.commandSig != NULL);
+    cmd->ExecuteIndirect(cmdData->m_IndirectData.commandSig, 1, cmdData->m_IndirectData.argsBuffer,
+                         cmdData->m_IndirectData.argsOffset, NULL, 0);
+  }
+}

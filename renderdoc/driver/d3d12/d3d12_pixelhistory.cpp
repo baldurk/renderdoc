@@ -244,25 +244,6 @@ DXGI_FORMAT GetDepthCopyFormat(DXGI_FORMAT format)
   return DXGI_FORMAT_R32_TYPELESS;
 }
 
-void ReplayDraw(ID3D12GraphicsCommandListX *cmd, const ActionDescription &action)
-{
-  // TODO: Once this is fully supported for indirect draws, this should be moved to WrappedID3D12Device
-  if(action.drawIndex == 0)
-  {
-    if(action.flags & ActionFlags::Indexed)
-      cmd->DrawIndexedInstanced(action.numIndices, action.numInstances, action.indexOffset,
-                                action.baseVertex, action.instanceOffset);
-    else
-      cmd->DrawInstanced(action.numIndices, action.numInstances, action.vertexOffset,
-                         action.instanceOffset);
-  }
-  else
-  {
-    // TODO: Support replay of single indirect draws
-    RDCERR("Indirect draws are NYI with ReplayDraw");
-  }
-}
-
 }
 
 // Helper function to copy a single pixel out of a source texture, which will handle any texture
@@ -1180,7 +1161,7 @@ private:
     }
 
     const ActionDescription *action = m_pDevice->GetAction(eventId);
-    ::ReplayDraw(cmd, *action);
+    m_pDevice->ReplayDraw(cmd, *action);
   }
 
   // GetPipelineReplacements creates pipeline replacements that disable all tests,
@@ -1790,7 +1771,7 @@ private:
     m_OcclusionQueries.insert(std::make_pair(rdcpair<uint32_t, uint32_t>(eventId, test), index));
 
     cmd->BeginQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, index);
-    ::ReplayDraw(cmd, *m_pDevice->GetAction(eventId));
+    m_pDevice->ReplayDraw(cmd, *m_pDevice->GetAction(eventId));
 
     cmd->EndQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, index);
   }
@@ -2051,7 +2032,7 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
         state.ApplyState(m_pDevice, cmd);
 
         const ActionDescription *action = m_pDevice->GetAction(eid);
-        ::ReplayDraw(cmd, *action);
+        m_pDevice->ReplayDraw(cmd, *action);
 
         if(!isPrimPass)
         {
@@ -2114,7 +2095,7 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
       state.ApplyState(m_pDevice, cmd);
 
       const ActionDescription *action = m_pDevice->GetAction(eid);
-      ::ReplayDraw(cmd, *action);
+      m_pDevice->ReplayDraw(cmd, *action);
 
       CopyImagePixel(cmd, colorCopyParams,
                      (fragsProcessed + f) * sizeof(D3D12PerFragmentInfo) +
@@ -2375,7 +2356,7 @@ struct D3D12PixelHistoryDiscardedFragmentsCallback : D3D12PixelHistoryCallback
       // for this fragment.
       // TODO replay with a dummy index buffer so that all primitives other than the target
       // one are degenerate - that way the vertex index etc is still the same as it should be.
-      ::ReplayDraw(cmd, action);
+      m_pDevice->ReplayDraw(cmd, action);
       cmd->EndQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, queryId);
 
       m_OcclusionQueries[make_rdcpair<uint32_t, uint32_t>(eid, primId)] = queryId;

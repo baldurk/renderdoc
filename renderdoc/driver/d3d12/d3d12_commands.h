@@ -358,6 +358,13 @@ struct D3D12CommandData
 
   rdcarray<D3D12ActionTreeNode *> m_RootActionStack;
 
+  struct IndirectReplayData
+  {
+    ID3D12CommandSignature *commandSig = NULL;
+    ID3D12Resource *argsBuffer = NULL;
+    UINT64 argsOffset = 0;
+  } m_IndirectData;
+
   rdcarray<D3D12ActionTreeNode *> &GetActionStack()
   {
     if(m_LastCmdListID != ResourceId())

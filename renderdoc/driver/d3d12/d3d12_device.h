@@ -1004,6 +1004,7 @@ public:
 
   RDResult ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
+  void ReplayDraw(ID3D12GraphicsCommandListX *cmd, const ActionDescription &action);
 
   void SetStructuredExport(uint64_t sectionVersion)
   {
