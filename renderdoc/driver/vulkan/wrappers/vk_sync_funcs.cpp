@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <limits.h>
 #include "../vk_core.h"
 #include "../vk_debug.h"
 
