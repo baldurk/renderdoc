@@ -2046,6 +2046,10 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
                                                 VkImageSubresourceRange discardRange,
                                                 VkRect2D discardRect)
 {
+  // State tracking will not be accurate during loading
+  if(IsLoading(m_pDriver->m_State))
+    return;
+
   VkDevice dev = m_Device;
   const VkDevDispatchTable *vt = ObjDisp(dev);
   const VulkanCreationInfo::Image &imInfo = GetImageInfo(GetResID(image));
