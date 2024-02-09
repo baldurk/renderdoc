@@ -4291,10 +4291,6 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       (VkPhysicalDeviceBufferDeviceAddressFeatures *)FindNextStruct(
           &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES);
 
-  VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM *multiviewPerViewViewportsFeatures =
-      (VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM *)FindNextStruct(
-          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_VIEWPORTS_FEATURES_QCOM);
-
   // we must turn on bufferDeviceAddressCaptureReplay. We verified that this feature was available
   // before we whitelisted the extension/feature
   if(enabledFeaturesVK12 && enabledFeaturesVK12->bufferDeviceAddress)
@@ -4305,9 +4301,6 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
   if(bufferAddressFeaturesEXT)
     bufferAddressFeaturesEXT->bufferDeviceAddressCaptureReplay = VK_TRUE;
-
-  if(multiviewPerViewViewportsFeatures)
-    multiviewPerViewViewportsFeatures->multiviewPerViewViewports = VK_TRUE;
 
   // check features that we care about at capture time
 
