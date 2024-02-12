@@ -7017,7 +7017,8 @@ void BufferViewer::SetMeshFilter(MeshFilter filter, uint32_t taskGroup, uint32_t
       break;
   }
 
-  OnEventChanged(m_Ctx.CurEvent());
+  if(m_Ctx.IsCaptureLoaded())
+    OnEventChanged(m_Ctx.CurEvent());
 }
 
 void BufferViewer::on_rowOffset_valueChanged(int value)

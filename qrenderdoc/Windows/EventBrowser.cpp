@@ -1166,6 +1166,9 @@ private:
     if(eid == 0)
       return tr("Capture Start");
 
+    if(eid >= m_Actions.size())
+      return QVariant();
+
     const ActionDescription *action = m_Actions[eid];
 
     QString name;
@@ -1199,7 +1202,16 @@ private:
       {
         const APIEvent &e = *eidit;
 
-        const SDChunk *chunk = m_Ctx.GetStructuredFile().chunks[e.chunkIndex];
+        const StructuredChunkList &chunks = m_Ctx.GetStructuredFile().chunks;
+
+        if(e.chunkIndex >= chunks.size())
+          return QVariant();
+
+        const SDChunk *chunk = chunks[e.chunkIndex];
+
+        if(chunk == NULL)
+          return QVariant();
+
         name = chunk->name;
 
         // don't display any "ClassName::" prefix. We keep it for the API inspector which is more
@@ -5618,11 +5630,17 @@ APIEvent EventBrowser::GetAPIEventForEID(uint32_t eid)
 
 const ActionDescription *EventBrowser::GetActionForEID(uint32_t eid)
 {
+  if(!m_Ctx.IsCaptureLoaded())
+    return NULL;
+
   return m_Model->GetActionForEID(eid);
 }
 
 rdcstr EventBrowser::GetEventName(uint32_t eid)
 {
+  if(!m_Ctx.IsCaptureLoaded())
+    return rdcstr();
+
   return m_Model->GetEventName(eid);
 }
 
