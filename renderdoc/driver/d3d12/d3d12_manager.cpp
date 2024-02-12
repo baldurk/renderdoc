@@ -692,7 +692,7 @@ void D3D12ResourceManager::ApplyBarriers(BarrierSet &barriers,
 
     auto it = states.find(id);
     if(it == states.end())
-      return;
+      continue;
 
     SubresourceStateVector &st = it->second;
 
@@ -726,7 +726,7 @@ void D3D12ResourceManager::ApplyBarriers(BarrierSet &barriers,
 
     auto it = states.find(id);
     if(it == states.end())
-      return;
+      continue;
 
     SubresourceStateVector &st = it->second;
 

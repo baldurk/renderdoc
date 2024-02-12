@@ -698,6 +698,30 @@ protected:
     return targetIndex;
   }
 
+  D3D12_RESOURCE_STATES GetImageState(ID3D12Resource *target, uint32_t planeSlice,
+                                      D3D12_RESOURCE_STATES fallback)
+  {
+    RDCASSERTMSG("This function is not meant for use with the non-capture resources.",
+                 target != m_CallbackInfo.colorImage && target != m_CallbackInfo.dsImage);
+
+    D3D12CommandData &cmdData = *m_pDevice->GetQueue()->GetCommandData();
+    SubresourceStateVector targetStates =
+        cmdData.m_BakedCmdListInfo[cmdData.m_LastCmdListID].GetState(m_pDevice, GetResID(target));
+
+    uint32_t baseMip = m_CallbackInfo.targetSubresource.mip;
+    uint32_t baseSlice = m_CallbackInfo.targetSubresource.slice;
+
+    uint32_t subresource =
+        D3D12CalcSubresource(baseMip, baseSlice, planeSlice, m_CallbackInfo.targetDesc.MipLevels,
+                             m_CallbackInfo.targetDesc.DepthOrArraySize);
+
+    if(targetStates.size() > subresource && targetStates[subresource].IsStates())
+    {
+      return targetStates[subresource].ToStates();
+    }
+    return fallback;
+  }
+
   WrappedID3D12Device *m_pDevice;
   D3D12PixelHistoryShaderCache *m_ShaderCache;
   D3D12PixelHistoryCallbackInfo m_CallbackInfo;
@@ -1093,18 +1117,20 @@ private:
     targetCopyParams.sample = m_CallbackInfo.targetSubresource.sample;
     targetCopyParams.mip = m_CallbackInfo.targetSubresource.mip;
     targetCopyParams.arraySlice = m_CallbackInfo.targetSubresource.slice;
-    targetCopyParams.srcImageState = D3D12_RESOURCE_STATE_RENDER_TARGET;
     targetCopyParams.multisampled = (m_CallbackInfo.targetDesc.SampleDesc.Count != 1);
+    D3D12_RESOURCE_STATES fallback = D3D12_RESOURCE_STATE_RENDER_TARGET;
     if(IsDepthFormat(m_CallbackInfo.targetDesc, m_CallbackInfo.compType))
     {
-      targetCopyParams.srcImageState = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH
-                                           ? D3D12_RESOURCE_STATE_DEPTH_READ
-                                           : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+      fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH
+                     ? D3D12_RESOURCE_STATE_DEPTH_READ
+                     : D3D12_RESOURCE_STATE_DEPTH_WRITE;
       targetCopyParams.srcImageFormat = GetDepthSRVFormat(m_CallbackInfo.targetDesc.Format, 0);
       targetCopyParams.depthcopy = true;
       targetCopyParams.copyFormat = GetDepthCopyFormat(m_CallbackInfo.targetDesc.Format);
       offset += offsetof(struct D3D12PixelHistoryValue, depth);
     }
+    targetCopyParams.srcImageState =
+        GetImageState(m_CallbackInfo.targetImage, targetCopyParams.planeSlice, fallback);
 
     CopyImagePixel(cmd, targetCopyParams, offset);
 
@@ -1115,10 +1141,11 @@ private:
           GetDepthSRVFormat(m_CallbackInfo.targetImage->GetDesc().Format, 1);
       stencilCopyParams.copyFormat = DXGI_FORMAT_R8_TYPELESS;
       stencilCopyParams.planeSlice = 1;
+      fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL
+                     ? D3D12_RESOURCE_STATE_DEPTH_READ
+                     : D3D12_RESOURCE_STATE_DEPTH_WRITE;
       stencilCopyParams.srcImageState =
-          m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL
-              ? D3D12_RESOURCE_STATE_DEPTH_READ
-              : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+          GetImageState(m_CallbackInfo.targetImage, stencilCopyParams.planeSlice, fallback);
       CopyImagePixel(cmd, stencilCopyParams, offset + sizeof(float));
     }
 
@@ -1143,9 +1170,10 @@ private:
       depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthFormat, 0);
       depthCopyParams.copyFormat = GetDepthCopyFormat(depthFormat);
       depthCopyParams.depthcopy = true;
-      depthCopyParams.srcImageState = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH
-                                          ? D3D12_RESOURCE_STATE_DEPTH_READ
-                                          : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+      fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH
+                     ? D3D12_RESOURCE_STATE_DEPTH_READ
+                     : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+      depthCopyParams.srcImageState = GetImageState(depthImage, depthCopyParams.planeSlice, fallback);
       CopyImagePixel(cmd, depthCopyParams, offset + offsetof(struct D3D12PixelHistoryValue, depth));
 
       if(IsDepthAndStencilFormat(depthFormat))
@@ -1153,10 +1181,11 @@ private:
         depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthFormat, 1);
         depthCopyParams.copyFormat = DXGI_FORMAT_R8_TYPELESS;
         depthCopyParams.planeSlice = 1;
+        fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL
+                       ? D3D12_RESOURCE_STATE_DEPTH_READ
+                       : D3D12_RESOURCE_STATE_DEPTH_WRITE;
         depthCopyParams.srcImageState =
-            m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL
-                ? D3D12_RESOURCE_STATE_DEPTH_READ
-                : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+            GetImageState(depthImage, depthCopyParams.planeSlice, fallback);
         CopyImagePixel(cmd, depthCopyParams,
                        offset + offsetof(struct D3D12PixelHistoryValue, stencil));
       }
