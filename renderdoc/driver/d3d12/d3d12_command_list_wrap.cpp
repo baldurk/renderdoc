@@ -5098,8 +5098,15 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
         ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::Resolve);
         Unwrap(list)->ResolveSubresource(Unwrap(pDstResource), DstSubresource, Unwrap(pSrcResource),
                                          SrcSubresource, Format);
+        if(eventId && m_Cmd->m_ActionCallback->PostMisc(eventId, ActionFlags::Resolve, list))
+        {
+          Unwrap(list)->ResolveSubresource(Unwrap(pDstResource), DstSubresource,
+                                           Unwrap(pSrcResource), SrcSubresource, Format);
+          m_Cmd->m_ActionCallback->PostRemisc(eventId, ActionFlags::Resolve, list);
+        }
       }
     }
     else
