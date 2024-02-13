@@ -2426,9 +2426,18 @@ public:
 
   VkResult vkGetPhysicalDeviceCalibrateableTimeDomainsEXT(VkPhysicalDevice physicalDevice,
                                                           uint32_t *pTimeDomainCount,
-                                                          VkTimeDomainEXT *pTimeDomains);
+                                                          VkTimeDomainKHR *pTimeDomains);
   VkResult vkGetCalibratedTimestampsEXT(VkDevice device, uint32_t timestampCount,
-                                        const VkCalibratedTimestampInfoEXT *pTimestampInfos,
+                                        const VkCalibratedTimestampInfoKHR *pTimestampInfos,
+                                        uint64_t *pTimestamps, uint64_t *pMaxDeviation);
+
+  // VK_KHR_calibrated_timestamps (straight promotion)
+
+  VkResult vkGetPhysicalDeviceCalibrateableTimeDomainsKHR(VkPhysicalDevice physicalDevice,
+                                                          uint32_t *pTimeDomainCount,
+                                                          VkTimeDomainKHR *pTimeDomains);
+  VkResult vkGetCalibratedTimestampsKHR(VkDevice device, uint32_t timestampCount,
+                                        const VkCalibratedTimestampInfoKHR *pTimestampInfos,
                                         uint64_t *pTimestamps, uint64_t *pMaxDeviation);
 
   // VK_EXT_host_query_reset
@@ -2492,6 +2501,11 @@ public:
   // VK_EXT_line_rasterization
 
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLineStippleEXT, VkCommandBuffer commandBuffer,
+                                uint32_t lineStippleFactor, uint16_t lineStipplePattern);
+
+  // VK_KHR_line_rasterization
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLineStippleKHR, VkCommandBuffer commandBuffer,
                                 uint32_t lineStippleFactor, uint16_t lineStipplePattern);
 
   // VK_GOOGLE_display_timing
@@ -2758,7 +2772,7 @@ public:
                                 VkCommandBuffer commandBuffer,
                                 float extraPrimitiveOverestimationSize);
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLineRasterizationModeEXT, VkCommandBuffer commandBuffer,
-                                VkLineRasterizationModeEXT lineRasterizationMode);
+                                VkLineRasterizationModeKHR lineRasterizationMode);
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLineStippleEnableEXT, VkCommandBuffer commandBuffer,
                                 VkBool32 stippledLineEnable);
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLogicOpEnableEXT, VkCommandBuffer commandBuffer,

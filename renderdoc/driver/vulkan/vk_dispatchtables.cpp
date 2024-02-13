@@ -101,6 +101,15 @@ void InitInstanceExtensionTables(VkInstance instance, InstanceDeviceInfo *info)
       table->CONCAT(func, suffix) = table->func;      \
   }
 
+#undef HookInitExtensionEXTtoKHR
+#define HookInitExtensionEXTtoKHR(func)                    \
+  {                                                        \
+    if(table->CONCAT(func, EXT) == NULL)                   \
+      table->CONCAT(func, EXT) = table->CONCAT(func, KHR); \
+    if(table->CONCAT(func, KHR) == NULL)                   \
+      table->CONCAT(func, KHR) = table->CONCAT(func, EXT); \
+  }
+
   DeclExts();
 
   CheckInstanceExts();
@@ -140,6 +149,15 @@ void InitDeviceExtensionTables(VkDevice device, InstanceDeviceInfo *info)
       table->func = table->CONCAT(func, suffix);      \
     if(table->CONCAT(func, suffix) == NULL)           \
       table->CONCAT(func, suffix) = table->func;      \
+  }
+
+#undef HookInitExtensionEXTtoKHR
+#define HookInitExtensionEXTtoKHR(func)                    \
+  {                                                        \
+    if(table->CONCAT(func, EXT) == NULL)                   \
+      table->CONCAT(func, EXT) = table->CONCAT(func, KHR); \
+    if(table->CONCAT(func, KHR) == NULL)                   \
+      table->CONCAT(func, KHR) = table->CONCAT(func, EXT); \
   }
 
   DeclExts();

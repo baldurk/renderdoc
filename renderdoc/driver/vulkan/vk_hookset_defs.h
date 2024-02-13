@@ -551,7 +551,10 @@
   DeclExt(EXT_attachment_feedback_loop_dynamic_state); \
   DeclExt(EXT_extended_dynamic_state3);                \
   DeclExt(EXT_mesh_shader);                            \
-  DeclExt(EXT_scalar_block_layout);
+  DeclExt(EXT_scalar_block_layout);                    \
+  DeclExt(KHR_vertex_attribute_divisor);               \
+  DeclExt(KHR_line_rasterization);                     \
+  DeclExt(KHR_calibrated_timestamps);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -586,7 +589,8 @@
   CheckExt(KHR_wayland_surface, VKXX);                 \
   CheckExt(KHR_performance_query, VKXX);               \
   CheckExt(KHR_fragment_shading_rate, VKXX);           \
-  CheckExt(EXT_acquire_drm_display, VKXX);
+  CheckExt(EXT_acquire_drm_display, VKXX);             \
+  CheckExt(KHR_calibrated_timestamps, VKXX);
 
 #define CheckDeviceExts()                                     \
   CheckExt(EXT_debug_marker, VKXX);                           \
@@ -617,7 +621,6 @@
   CheckExt(EXT_conservative_rasterization, VKXX);             \
   CheckExt(EXT_global_priority, VKXX);                        \
   CheckExt(AMD_buffer_marker, VKXX);                          \
-  CheckExt(EXT_vertex_attribute_divisor, VKXX);               \
   CheckExt(EXT_sampler_filter_minmax, VK12);                  \
   CheckExt(KHR_sampler_ycbcr_conversion, VK11);               \
   CheckExt(KHR_device_group, VK11);                           \
@@ -673,7 +676,10 @@
   CheckExt(EXT_attachment_feedback_loop_dynamic_state, VKXX); \
   CheckExt(EXT_extended_dynamic_state3, VKXX);                \
   CheckExt(EXT_mesh_shader, VKXX);                            \
-  CheckExt(EXT_scalar_block_layout, VK12);
+  CheckExt(EXT_scalar_block_layout, VK12);                    \
+  CheckExt(KHR_vertex_attribute_divisor, VKXX);               \
+  CheckExt(KHR_line_rasterization, VKXX);                     \
+  CheckExt(KHR_calibrated_timestamps, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -722,6 +728,7 @@
   HookInitExtension(KHR_fragment_shading_rate, GetPhysicalDeviceFragmentShadingRatesKHR);            \
   HookInitExtension(EXT_acquire_drm_display, AcquireDrmDisplayEXT);                                  \
   HookInitExtension(EXT_acquire_drm_display, GetDrmDisplayEXT);                                      \
+  HookInitExtension(KHR_calibrated_timestamps, GetPhysicalDeviceCalibrateableTimeDomainsKHR);        \
   HookInitExtension_PhysDev_Win32();                                                                 \
   HookInitExtension_PhysDev_Linux();                                                                 \
   HookInitExtension_PhysDev_GGP();                                                                   \
@@ -788,6 +795,7 @@
   HookInitExtension(KHR_performance_query, GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR);   \
   HookInitPromotedExtension(EXT_tooling_info, GetPhysicalDeviceToolProperties, EXT);                 \
   HookInitExtension(KHR_fragment_shading_rate, GetPhysicalDeviceFragmentShadingRatesKHR);            \
+  HookInitExtension(KHR_calibrated_timestamps, GetPhysicalDeviceCalibrateableTimeDomainsKHR);        \
   HookInitExtension_Instance_Win32();                                                                \
   HookInitExtension_Instance_Linux();                                                                \
   HookInitExtension_Instance_GGP();                                                                  \
@@ -971,6 +979,9 @@
   HookInitExtension(EXT_mesh_shader, CmdDrawMeshTasksEXT);                                         \
   HookInitExtension(EXT_mesh_shader, CmdDrawMeshTasksIndirectEXT);                                 \
   HookInitExtension(EXT_mesh_shader, CmdDrawMeshTasksIndirectCountEXT);                            \
+  HookInitExtension(KHR_calibrated_timestamps, GetCalibratedTimestampsKHR);                        \
+  HookInitExtension(KHR_line_rasterization, CmdSetLineStippleKHR);                                 \
+  HookInitExtensionEXTtoKHR(CmdSetLineStipple);                                                    \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
   HookInitExtension_Device_GGP();                                                                  \
@@ -1537,9 +1548,9 @@
               firstDiscardRectangle, uint32_t, discardRectangleCount, const VkRect2D *,              \
               pDiscardRectangles);                                                                   \
   HookDefine3(VkResult, vkGetPhysicalDeviceCalibrateableTimeDomainsEXT, VkPhysicalDevice,            \
-              physicalDevice, uint32_t *, pTimeDomainCount, VkTimeDomainEXT *, pTimeDomains);        \
+              physicalDevice, uint32_t *, pTimeDomainCount, VkTimeDomainKHR *, pTimeDomains);        \
   HookDefine5(VkResult, vkGetCalibratedTimestampsEXT, VkDevice, device, uint32_t, timestampCount,    \
-              const VkCalibratedTimestampInfoEXT *, pTimestampInfos, uint64_t *, pTimestamps,        \
+              const VkCalibratedTimestampInfoKHR *, pTimestampInfos, uint64_t *, pTimestamps,        \
               uint64_t *, pMaxDeviation);                                                            \
   HookDefine4(void, vkResetQueryPool, VkDevice, device, VkQueryPool, queryPool, uint32_t,            \
               firstQuery, uint32_t, queryCount);                                                     \
@@ -1772,6 +1783,13 @@
   HookDefine7(void, vkCmdDrawMeshTasksIndirectCountEXT, VkCommandBuffer, commandBuffer, VkBuffer,    \
               buffer, VkDeviceSize, offset, VkBuffer, countBuffer, VkDeviceSize,                     \
               countBufferOffset, uint32_t, maxDrawCount, uint32_t, stride);                          \
+  HookDefine3(VkResult, vkGetPhysicalDeviceCalibrateableTimeDomainsKHR, VkPhysicalDevice,            \
+              physicalDevice, uint32_t *, pTimeDomainCount, VkTimeDomainKHR *, pTimeDomains);        \
+  HookDefine5(VkResult, vkGetCalibratedTimestampsKHR, VkDevice, device, uint32_t, timestampCount,    \
+              const VkCalibratedTimestampInfoKHR *, pTimestampInfos, uint64_t *, pTimestamps,        \
+              uint64_t *, pMaxDeviation);                                                            \
+  HookDefine3(void, vkCmdSetLineStippleKHR, VkCommandBuffer, commandBuffer, uint32_t,                \
+              lineStippleFactor, uint16_t, lineStipplePattern);                                      \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \

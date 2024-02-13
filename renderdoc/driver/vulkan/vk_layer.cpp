@@ -405,6 +405,9 @@ VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties(
       return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);                \
   }
 
+#undef HookInitExtensionEXTtoKHR
+#define HookInitExtensionEXTtoKHR(func) (void)0;
+
 // proc addr routines
 
 VK_LAYER_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
@@ -514,6 +517,9 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
              !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
     return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);
 
+#undef HookInitExtensionEXTtoKHR
+#define HookInitExtensionEXTtoKHR(func) (void)0;
+
   HookInitVulkanDevice();
 
   HookInitVulkanDeviceExts();
@@ -591,6 +597,9 @@ VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, c
   if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||                       \
              !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
     return NULL;
+
+#undef HookInitExtensionEXTtoKHR
+#define HookInitExtensionEXTtoKHR(func) (void)0;
 
   HookInitVulkanInstanceExts();
   HookInitVulkanDeviceExts();

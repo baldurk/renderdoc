@@ -224,7 +224,7 @@ struct VulkanRenderState
   VkBool32 depthClipEnable = VK_FALSE;
   VkBool32 negativeOneToOne = VK_FALSE;
   float primOverestimationSize = 0.0f;
-  VkLineRasterizationModeEXT lineRasterMode = VK_LINE_RASTERIZATION_MODE_DEFAULT_EXT;
+  VkLineRasterizationModeKHR lineRasterMode = VK_LINE_RASTERIZATION_MODE_DEFAULT_KHR;
   VkBool32 stippledLineEnable = VK_FALSE;
   VkBool32 logicOpEnable = VK_FALSE;
   VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;

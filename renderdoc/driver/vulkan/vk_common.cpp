@@ -899,7 +899,9 @@ rdcstr HumanDriverName(VkDriverId driverId)
     case VK_DRIVER_ID_MESA_VENUS: return "Mesa Venus";
     case VK_DRIVER_ID_MESA_DOZEN: return "Mesa Dozen";
     case VK_DRIVER_ID_MESA_NVK: return "Mesa NVK";
-    default: break;
+    case VK_DRIVER_ID_IMAGINATION_OPEN_SOURCE_MESA: return "Imagination Open-source";
+    case VK_DRIVER_ID_MESA_AGXV: return "Mesa AGXV";
+    case VK_DRIVER_ID_MAX_ENUM: break;
   }
 
   return "";

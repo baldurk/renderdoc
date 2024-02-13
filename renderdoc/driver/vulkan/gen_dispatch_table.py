@@ -176,8 +176,7 @@ def ext_sort(ext):
 
 for ext in sorted(registry.findall('extensions/extension'), key=ext_sort):
     # Only process vulkan extensions
-    if 'supported' in ext.attrib and 'vulkan' in ext.attrib['supported'].split(','):
-
+    if 'supported' in ext.attrib and 'vulkan' in ext.attrib['supported'].split(',') and '_video_' not in ext.attrib['name']:
         process_feature(ext, ext.attrib['name'])
 
 inst_commands = inst_commands.strip()

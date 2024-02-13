@@ -53,7 +53,7 @@ enum VulkanDynamicStateIndex
   VkDynamicExclusiveScissorNV,
   VkDynamicExclusiveScissorEnableNV,
   VkDynamicShadingRateKHR,
-  VkDynamicLineStippleEXT,
+  VkDynamicLineStippleKHR,
   VkDynamicCullMode,
   VkDynamicFrontFace,
   VkDynamicPrimitiveTopology,
@@ -414,8 +414,8 @@ struct VulkanCreationInfo
     VkConservativeRasterizationModeEXT conservativeRasterizationMode;
     float extraPrimitiveOverestimationSize;
 
-    // VkPipelineRasterizationLineStateCreateInfoEXT
-    VkLineRasterizationModeEXT lineRasterMode;
+    // VkPipelineRasterizationLineStateCreateInfoKHR
+    VkLineRasterizationModeKHR lineRasterMode;
     bool stippleEnabled;
     uint32_t stippleFactor;
     uint16_t stipplePattern;

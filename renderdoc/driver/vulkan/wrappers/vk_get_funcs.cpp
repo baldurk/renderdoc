@@ -995,7 +995,7 @@ void WrappedVulkan::vkGetPhysicalDeviceMultisamplePropertiesEXT(
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceCalibrateableTimeDomainsEXT(
-    VkPhysicalDevice physicalDevice, uint32_t *pTimeDomainCount, VkTimeDomainEXT *pTimeDomains)
+    VkPhysicalDevice physicalDevice, uint32_t *pTimeDomainCount, VkTimeDomainKHR *pTimeDomains)
 {
   return ObjDisp(physicalDevice)
       ->GetPhysicalDeviceCalibrateableTimeDomainsEXT(Unwrap(physicalDevice), pTimeDomainCount,
@@ -1003,10 +1003,26 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceCalibrateableTimeDomainsEXT(
 }
 
 VkResult WrappedVulkan::vkGetCalibratedTimestampsEXT(VkDevice device, uint32_t timestampCount,
-                                                     const VkCalibratedTimestampInfoEXT *pTimestampInfos,
+                                                     const VkCalibratedTimestampInfoKHR *pTimestampInfos,
                                                      uint64_t *pTimestamps, uint64_t *pMaxDeviation)
 {
   return ObjDisp(device)->GetCalibratedTimestampsEXT(Unwrap(device), timestampCount,
+                                                     pTimestampInfos, pTimestamps, pMaxDeviation);
+}
+
+VkResult WrappedVulkan::vkGetPhysicalDeviceCalibrateableTimeDomainsKHR(
+    VkPhysicalDevice physicalDevice, uint32_t *pTimeDomainCount, VkTimeDomainKHR *pTimeDomains)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceCalibrateableTimeDomainsKHR(Unwrap(physicalDevice), pTimeDomainCount,
+                                                     pTimeDomains);
+}
+
+VkResult WrappedVulkan::vkGetCalibratedTimestampsKHR(VkDevice device, uint32_t timestampCount,
+                                                     const VkCalibratedTimestampInfoKHR *pTimestampInfos,
+                                                     uint64_t *pTimestamps, uint64_t *pMaxDeviation)
+{
+  return ObjDisp(device)->GetCalibratedTimestampsKHR(Unwrap(device), timestampCount,
                                                      pTimestampInfos, pTimestamps, pMaxDeviation);
 }
 

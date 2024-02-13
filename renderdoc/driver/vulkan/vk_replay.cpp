@@ -1429,20 +1429,20 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
     ret.rasterizer.lineRasterMode = LineRaster::Default;
 
-    // "VK_LINE_RASTERIZATION_MODE_DEFAULT_EXT is equivalent to
-    // VK_LINE_RASTERIZATION_MODE_RECTANGULAR_EXT if VkPhysicalDeviceLimits::strictLines is VK_TRUE"
+    // "VK_LINE_RASTERIZATION_MODE_DEFAULT_HKR is equivalent to
+    // VK_LINE_RASTERIZATION_MODE_RECTANGULAR_KHR if VkPhysicalDeviceLimits::strictLines is VK_TRUE"
     if(m_pDriver->GetDeviceProps().limits.strictLines)
       ret.rasterizer.lineRasterMode = LineRaster::Rectangular;
 
     switch(state.lineRasterMode)
     {
-      case VK_LINE_RASTERIZATION_MODE_RECTANGULAR_EXT:
+      case VK_LINE_RASTERIZATION_MODE_RECTANGULAR_KHR:
         ret.rasterizer.lineRasterMode = LineRaster::Rectangular;
         break;
-      case VK_LINE_RASTERIZATION_MODE_BRESENHAM_EXT:
+      case VK_LINE_RASTERIZATION_MODE_BRESENHAM_KHR:
         ret.rasterizer.lineRasterMode = LineRaster::Bresenham;
         break;
-      case VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH_EXT:
+      case VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH_KHR:
         ret.rasterizer.lineRasterMode = LineRaster::RectangularSmooth;
         break;
       default: break;

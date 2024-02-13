@@ -1333,6 +1333,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_BUFFER_DEVICE_ADDRESS_SPEC_VERSION,
     },
     {
+        VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
+        VK_KHR_CALIBRATED_TIMESTAMPS_SPEC_VERSION,
+    },
+    {
         VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME,
         VK_KHR_COPY_COMMANDS_2_SPEC_VERSION,
     },
@@ -1483,6 +1487,18 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_INCREMENTAL_PRESENT_SPEC_VERSION,
     },
     {
+        VK_KHR_INDEX_TYPE_UINT8_EXTENSION_NAME,
+        VK_KHR_INDEX_TYPE_UINT8_SPEC_VERSION,
+    },
+    {
+        VK_KHR_LINE_RASTERIZATION_EXTENSION_NAME,
+        VK_KHR_LINE_RASTERIZATION_SPEC_VERSION,
+    },
+    {
+        VK_KHR_LOAD_STORE_OP_NONE_EXTENSION_NAME,
+        VK_KHR_LOAD_STORE_OP_NONE_SPEC_VERSION,
+    },
+    {
         VK_KHR_MAINTENANCE_1_EXTENSION_NAME,
         VK_KHR_MAINTENANCE_1_SPEC_VERSION,
     },
@@ -1625,6 +1641,10 @@ static const VkExtensionProperties supportedExtensions[] = {
     {
         VK_KHR_VARIABLE_POINTERS_EXTENSION_NAME,
         VK_KHR_VARIABLE_POINTERS_SPEC_VERSION,
+    },
+    {
+        VK_KHR_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME,
+        VK_KHR_VERTEX_ATTRIBUTE_DIVISOR_SPEC_VERSION,
     },
     {
         VK_KHR_VULKAN_MEMORY_MODEL_EXTENSION_NAME,
@@ -3813,8 +3833,8 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     }
     case VulkanChunk::vkResetQueryPool:
       return Serialise_vkResetQueryPool(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
-    case VulkanChunk::vkCmdSetLineStippleEXT:
-      return Serialise_vkCmdSetLineStippleEXT(ser, VK_NULL_HANDLE, 0, 0);
+    case VulkanChunk::vkCmdSetLineStippleKHR:
+      return Serialise_vkCmdSetLineStippleKHR(ser, VK_NULL_HANDLE, 0, 0);
     case VulkanChunk::ImageRefs:
     {
       SCOPED_LOCK(m_ImageStatesLock);
@@ -3945,7 +3965,7 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdSetExtraPrimitiveOverestimationSizeEXT(ser, VK_NULL_HANDLE, 0.0f);
     case VulkanChunk::vkCmdSetLineRasterizationModeEXT:
       return Serialise_vkCmdSetLineRasterizationModeEXT(ser, VK_NULL_HANDLE,
-                                                        VK_LINE_RASTERIZATION_MODE_MAX_ENUM_EXT);
+                                                        VK_LINE_RASTERIZATION_MODE_MAX_ENUM_KHR);
     case VulkanChunk::vkCmdSetLineStippleEnableEXT:
       return Serialise_vkCmdSetLineStippleEnableEXT(ser, VK_NULL_HANDLE, VK_FALSE);
     case VulkanChunk::vkCmdSetLogicOpEnableEXT:

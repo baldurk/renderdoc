@@ -649,12 +649,13 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
                                                                  : VK_VERTEX_INPUT_RATE_VERTEX;
   }
 
-  static VkPipelineVertexInputDivisorStateCreateInfoEXT vertexDivisor = {
-      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT,
+  static VkPipelineVertexInputDivisorStateCreateInfoKHR vertexDivisor = {
+      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_KHR,
   };
-  static VkVertexInputBindingDivisorDescriptionEXT vibindDivisors[128] = {};
+  static VkVertexInputBindingDivisorDescriptionKHR vibindDivisors[128] = {};
 
-  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_vertex_attribute_divisor)
+  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_vertex_attribute_divisor ||
+     m_pDriver->GetExtensions(GetRecord(m_Device)).ext_KHR_vertex_attribute_divisor)
   {
     vertexDivisor.pVertexBindingDivisors = vibindDivisors;
     vertexDivisor.vertexBindingDivisorCount = 0;

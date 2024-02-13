@@ -37,7 +37,7 @@ static rdcstr ToHumanStr(const VkAttachmentLoadOp &el)
     case VK_ATTACHMENT_LOAD_OP_LOAD: return "Load";
     case VK_ATTACHMENT_LOAD_OP_CLEAR: return "Clear";
     case VK_ATTACHMENT_LOAD_OP_DONT_CARE: return "Don't Care";
-    case VK_ATTACHMENT_LOAD_OP_NONE_EXT: return "None";
+    case VK_ATTACHMENT_LOAD_OP_NONE_KHR: return "None";
   }
   END_ENUM_STRINGISE();
 }
@@ -2076,7 +2076,7 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
       if(renderArea_covers_entire_framebuffer && framebuffer_reference_entire_attachment)
       {
         if(rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_LOAD &&
-           rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+           rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
         {
           refType = eFrameRef_CompleteWrite;
         }
@@ -2735,7 +2735,7 @@ void WrappedVulkan::vkCmdBeginRenderPass2(VkCommandBuffer commandBuffer,
       if(renderArea_covers_entire_framebuffer && framebuffer_reference_entire_attachment)
       {
         if(rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_LOAD &&
-           rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+           rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
         {
           refType = eFrameRef_CompleteWrite;
         }
@@ -3186,7 +3186,7 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
               renderstate.shadingRateCombiners[0] = pipeInfo.shadingRateCombiners[0];
               renderstate.shadingRateCombiners[1] = pipeInfo.shadingRateCombiners[1];
             }
-            if(!pipeInfo.dynamicStates[VkDynamicLineStippleEXT])
+            if(!pipeInfo.dynamicStates[VkDynamicLineStippleKHR])
             {
               renderstate.stippleFactor = pipeInfo.stippleFactor;
               renderstate.stipplePattern = pipeInfo.stipplePattern;
@@ -3843,7 +3843,7 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(SerialiserType &ser,
 
           if(indexType == VK_INDEX_TYPE_UINT32)
             renderstate.ibuffer.bytewidth = 4;
-          else if(indexType == VK_INDEX_TYPE_UINT8_EXT)
+          else if(indexType == VK_INDEX_TYPE_UINT8_KHR)
             renderstate.ibuffer.bytewidth = 1;
           else
             renderstate.ibuffer.bytewidth = 2;
@@ -3855,7 +3855,7 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(SerialiserType &ser,
       // track while reading, as we need to bind current topology & index byte width in AddAction
       if(indexType == VK_INDEX_TYPE_UINT32)
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 4;
-      else if(indexType == VK_INDEX_TYPE_UINT8_EXT)
+      else if(indexType == VK_INDEX_TYPE_UINT8_KHR)
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 1;
       else
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 2;
@@ -7340,7 +7340,7 @@ void WrappedVulkan::vkCmdBeginRendering(VkCommandBuffer commandBuffer,
          pRenderingInfo->renderArea.extent.height == imInfo.extent.height)
       {
         // if we're either clearing or discarding, this can be considered completely written
-        if(att->loadOp != VK_ATTACHMENT_LOAD_OP_LOAD && att->loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        if(att->loadOp != VK_ATTACHMENT_LOAD_OP_LOAD && att->loadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
         {
           refType = eFrameRef_CompleteWrite;
         }

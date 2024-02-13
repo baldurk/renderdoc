@@ -910,7 +910,7 @@ protected:
         dyn.color[i].resolveMode = VK_RESOLVE_MODE_NONE;
         dyn.color[i].resolveImageView = VK_NULL_HANDLE;
 
-        if(dyn.color[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        if(dyn.color[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
           dyn.color[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         if(dyn.color[i].storeOp != VK_ATTACHMENT_STORE_OP_NONE)
           dyn.color[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1001,12 +1001,12 @@ protected:
       descs[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
       descs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
       descs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-      if(rpInfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_NONE_EXT)
-        descs[i].loadOp = VK_ATTACHMENT_LOAD_OP_NONE_EXT;
+      if(rpInfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_NONE_KHR)
+        descs[i].loadOp = VK_ATTACHMENT_LOAD_OP_NONE_KHR;
       if(rpInfo.attachments[i].storeOp == VK_ATTACHMENT_STORE_OP_NONE)
         descs[i].storeOp = VK_ATTACHMENT_STORE_OP_NONE;
-      if(rpInfo.attachments[i].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_NONE_EXT)
-        descs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_NONE_EXT;
+      if(rpInfo.attachments[i].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_NONE_KHR)
+        descs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_NONE_KHR;
       if(rpInfo.attachments[i].stencilStoreOp == VK_ATTACHMENT_STORE_OP_NONE)
         descs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_NONE;
 

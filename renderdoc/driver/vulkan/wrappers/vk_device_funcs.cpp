@@ -1974,7 +1974,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         // We don't care about sparse binding - it's just treated as a requirement.
         enum class SearchType
         {
-          Failed,
+          Other,
           Universal,
           GraphicsTransfer,
           ComputeTransfer,
@@ -2000,16 +2000,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
             break;
           case VK_QUEUE_TRANSFER_BIT: search = SearchType::TransferOnly; break;
           default:
-            search = SearchType::Failed;
-            RDCERR("Unexpected set of flags: %s",
-                   ToStr(VkQueueFlagBits(origprops[origQIndex].queueFlags & mask)).c_str());
+            search = SearchType::Other;
+            // video queue, NV optical flow, some type of queue we don't handle
             break;
         }
 
         bool needSparse = (origprops[origQIndex].queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) != 0;
         VkExtent3D needGranularity = origprops[origQIndex].minImageTransferGranularity;
 
-        while(search != SearchType::Failed)
+        while(search != SearchType::Other)
         {
           bool found = false;
 
@@ -2027,7 +2026,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
             switch(search)
             {
-              case SearchType::Failed: break;
+              case SearchType::Other: break;
               case SearchType::Universal:
                 if((queueProps[replayQIndex].queueFlags & mask) ==
                    (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT))
@@ -2081,8 +2080,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           // no such queue family found, fall back to the next type of queue to search for
           switch(search)
           {
-            case SearchType::Failed: break;
-            case SearchType::Universal: search = SearchType::Failed; break;
+            case SearchType::Other: break;
+            case SearchType::Universal: search = SearchType::Other; break;
             case SearchType::GraphicsTransfer:
             case SearchType::ComputeTransfer:
             case SearchType::GraphicsOrComputeTransfer:
@@ -2558,8 +2557,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceVertexAttributeDivisorFeaturesKHR,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_KHR);
       {
         CHECK_PHYS_EXT_FEATURE(vertexAttributeInstanceRateDivisor);
         CHECK_PHYS_EXT_FEATURE(vertexAttributeInstanceRateZeroDivisor);
@@ -2750,8 +2749,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceIndexTypeUint8FeaturesEXT,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceIndexTypeUint8FeaturesKHR,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_KHR);
       {
         CHECK_PHYS_EXT_FEATURE(indexTypeUint8);
       }

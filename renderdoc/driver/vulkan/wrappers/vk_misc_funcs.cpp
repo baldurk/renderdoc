@@ -1104,9 +1104,9 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
         // without doing a clear or a DONT_CARE load.
         for(uint32_t i = 0; i < CreateInfo.attachmentCount; i++)
         {
-          if(att[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+          if(att[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
             att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-          if(att[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+          if(att[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
             att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         }
 
@@ -1210,9 +1210,9 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
       for(uint32_t i = 0; i < info.attachmentCount; i++)
       {
         atts[i] = info.pAttachments[i];
-        if(atts[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        if(atts[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
           atts[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        if(atts[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        if(atts[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
           atts[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
       }
 
@@ -1364,9 +1364,9 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass2(SerialiserType &ser, VkDevice 
         // without doing a clear or a DONT_CARE load.
         for(uint32_t i = 0; i < CreateInfo.attachmentCount; i++)
         {
-          if(att[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+          if(att[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
             att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-          if(att[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+          if(att[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
             att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         }
 
@@ -1472,9 +1472,9 @@ VkResult WrappedVulkan::vkCreateRenderPass2(VkDevice device,
       for(uint32_t i = 0; i < info.attachmentCount; i++)
       {
         atts[i] = info.pAttachments[i];
-        if(atts[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        if(atts[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
           atts[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        if(atts[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        if(atts[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
           atts[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
       }
 
@@ -2054,6 +2054,8 @@ static ObjData GetObjData(VkObjectType objType, uint64_t object)
     case VK_OBJECT_TYPE_PERFORMANCE_CONFIGURATION_INTEL:
     case VK_OBJECT_TYPE_DEFERRED_OPERATION_KHR:
     case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NV:
+    case VK_OBJECT_TYPE_CUDA_MODULE_NV:
+    case VK_OBJECT_TYPE_CUDA_FUNCTION_NV:
     case VK_OBJECT_TYPE_CU_MODULE_NVX:
     case VK_OBJECT_TYPE_CU_FUNCTION_NVX:
     case VK_OBJECT_TYPE_BUFFER_COLLECTION_FUCHSIA:
@@ -2123,6 +2125,10 @@ static ObjData GetObjData(VkDebugReportObjectTypeEXT objType, uint64_t object)
     castType = VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR;
   else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV_EXT)
     castType = VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV;
+  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_CUDA_MODULE_NV_EXT)
+    castType = VK_OBJECT_TYPE_CUDA_MODULE_NV;
+  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_CUDA_FUNCTION_NV_EXT)
+    castType = VK_OBJECT_TYPE_CUDA_FUNCTION_NV;
   else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_CU_MODULE_NVX_EXT)
     castType = VK_OBJECT_TYPE_CU_MODULE_NVX;
   else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_CU_FUNCTION_NVX_EXT)
