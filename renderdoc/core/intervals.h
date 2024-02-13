@@ -162,7 +162,7 @@ template <typename T>
 struct Intervals
 {
 public:
-  using MapType = rdcflatmap<uint64_t, T, 0>;
+  using MapType = rdcsortedflatmap<uint64_t, T>;
 
   typedef IntervalRef<T, MapType, typename MapType::iterator> interval;
   typedef IntervalsIter<T, MapType, typename MapType::iterator, interval> iterator;
