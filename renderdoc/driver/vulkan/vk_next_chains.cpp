@@ -798,7 +798,17 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   UNWRAP_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR, VkSemaphoreGetFdInfoKHR,   \
                              UnwrapInPlace(out->semaphore));                                         \
   UNWRAP_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, VkSwapchainCreateInfoKHR,  \
-                             UnwrapInPlace(out->surface), UnwrapInPlace(out->oldSwapchain));
+                             UnwrapInPlace(out->surface), UnwrapInPlace(out->oldSwapchain));         \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO_KHR,                                \
+              VkBufferUsageFlags2CreateInfoKHR);                                                     \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO_KHR,                             \
+              VkPipelineCreateFlags2CreateInfoKHR);                                                  \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES_KHR,                          \
+              VkPhysicalDeviceMaintenance5FeaturesKHR);                                              \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_PROPERTIES_KHR,                        \
+              VkPhysicalDeviceMaintenance5PropertiesKHR);                                            \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_SUBRESOURCE_2_KHR, VkImageSubresource2KHR);                    \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SUBRESOURCE_LAYOUT_2_KHR, VkSubresourceLayout2KHR);
 
 // define cases for structs we don't handle at all - only the body of the case needs to be defined
 // per-function.
@@ -844,7 +854,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_IMAGE_CREATE_INFO_FUCHSIA:                       \
   case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_PROPERTIES_FUCHSIA:                              \
   case VK_STRUCTURE_TYPE_BUFFER_CONSTRAINTS_INFO_FUCHSIA:                                   \
-  case VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO_KHR:                              \
   case VK_STRUCTURE_TYPE_CHECKPOINT_DATA_2_NV:                                              \
   case VK_STRUCTURE_TYPE_CHECKPOINT_DATA_NV:                                                \
   case VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDER_PASS_TRANSFORM_INFO_QCOM:        \
@@ -878,7 +887,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_DEVICE_DIAGNOSTICS_CONFIG_CREATE_INFO_NV:                          \
   case VK_STRUCTURE_TYPE_DEVICE_FAULT_COUNTS_EXT:                                           \
   case VK_STRUCTURE_TYPE_DEVICE_FAULT_INFO_EXT:                                             \
-  case VK_STRUCTURE_TYPE_DEVICE_IMAGE_SUBRESOURCE_INFO_KHR:                                 \
   case VK_STRUCTURE_TYPE_DEVICE_MEMORY_REPORT_CALLBACK_DATA_EXT:                            \
   case VK_STRUCTURE_TYPE_DEVICE_QUEUE_SHADER_CORE_CONTROL_CREATE_INFO_ARM:                  \
   case VK_STRUCTURE_TYPE_DIRECT_DRIVER_LOADING_INFO_LUNARG:                                 \
@@ -917,7 +925,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT:                    \
   case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT:                          \
   case VK_STRUCTURE_TYPE_IMAGE_FORMAT_CONSTRAINTS_INFO_FUCHSIA:                             \
-  case VK_STRUCTURE_TYPE_IMAGE_SUBRESOURCE_2_EXT:                                           \
   case VK_STRUCTURE_TYPE_IMAGE_TO_MEMORY_COPY_EXT:                                          \
   case VK_STRUCTURE_TYPE_IMAGE_VIEW_ADDRESS_PROPERTIES_NVX:                                 \
   case VK_STRUCTURE_TYPE_IMAGE_VIEW_CAPTURE_DESCRIPTOR_DATA_INFO_EXT:                       \
@@ -1031,8 +1038,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LEGACY_VERTEX_ATTRIBUTES_FEATURES_EXT:             \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LEGACY_VERTEX_ATTRIBUTES_PROPERTIES_EXT:           \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINEAR_COLOR_ATTACHMENT_FEATURES_NV:               \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES_KHR:                        \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_PROPERTIES_KHR:                      \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_FEATURES_KHR:                        \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_PROPERTIES_KHR:                      \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAP_MEMORY_PLACED_FEATURES_EXT:                    \
@@ -1106,7 +1111,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_MODULATION_STATE_CREATE_INFO_NV:                 \
   case VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_REDUCTION_STATE_CREATE_INFO_NV:                  \
   case VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_TO_COLOR_STATE_CREATE_INFO_NV:                   \
-  case VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO_KHR:                           \
   case VK_STRUCTURE_TYPE_PIPELINE_FRAGMENT_SHADING_RATE_ENUM_STATE_CREATE_INFO_NV:          \
   case VK_STRUCTURE_TYPE_PIPELINE_INDIRECT_DEVICE_ADDRESS_INFO_NV:                          \
   case VK_STRUCTURE_TYPE_PIPELINE_PROPERTIES_IDENTIFIER_EXT:                                \
@@ -1139,7 +1143,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_RENDER_PASS_STRIPE_SUBMIT_INFO_ARM:                                \
   case VK_STRUCTURE_TYPE_RENDER_PASS_SUBPASS_FEEDBACK_CREATE_INFO_EXT:                      \
   case VK_STRUCTURE_TYPE_RENDER_PASS_TRANSFORM_BEGIN_INFO_QCOM:                             \
-  case VK_STRUCTURE_TYPE_RENDERING_AREA_INFO_KHR:                                           \
   case VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO_KHR:                            \
   case VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO_KHR:                         \
   case VK_STRUCTURE_TYPE_SAMPLER_BLOCK_MATCH_WINDOW_CREATE_INFO_QCOM:                       \
@@ -1156,7 +1159,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_STREAM_DESCRIPTOR_SURFACE_CREATE_INFO_GGP:                         \
   case VK_STRUCTURE_TYPE_SUBPASS_SHADING_PIPELINE_CREATE_INFO_HUAWEI:                       \
   case VK_STRUCTURE_TYPE_SUBRESOURCE_HOST_MEMCPY_SIZE_EXT:                                  \
-  case VK_STRUCTURE_TYPE_SUBRESOURCE_LAYOUT_2_EXT:                                          \
   case VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_PRESENT_BARRIER_NV:                           \
   case VK_STRUCTURE_TYPE_SWAPCHAIN_LATENCY_CREATE_INFO_NV:                                  \
   case VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_BARRIER_CREATE_INFO_NV:                          \
@@ -1694,6 +1696,23 @@ size_t GetNextPatchSize(const void *pNext)
         VkWriteDescriptorSetAccelerationStructureKHR *info =
             (VkWriteDescriptorSetAccelerationStructureKHR *)next;
         memSize += info->accelerationStructureCount * sizeof(VkAccelerationStructureKHR);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_DEVICE_IMAGE_SUBRESOURCE_INFO_KHR:
+      {
+        memSize += sizeof(VkDeviceImageSubresourceInfoKHR);
+
+        VkDeviceImageSubresourceInfoKHR *info = (VkDeviceImageSubresourceInfoKHR *)next;
+        memSize += GetNextPatchSize(info->pCreateInfo);
+        memSize += GetNextPatchSize(info->pSubresource);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_RENDERING_AREA_INFO_KHR:
+      {
+        memSize += sizeof(VkRenderingAreaInfoKHR);
+
+        VkRenderingAreaInfoKHR *info = (VkRenderingAreaInfoKHR *)next;
+        memSize += info->colorAttachmentCount * sizeof(VkFormat);
         break;
       }
 
@@ -2962,6 +2981,46 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
 
         break;
       }
+      case VK_STRUCTURE_TYPE_DEVICE_IMAGE_SUBRESOURCE_INFO_KHR:
+      {
+        const VkDeviceImageSubresourceInfoKHR *in =
+            (const VkDeviceImageSubresourceInfoKHR *)nextInput;
+        VkDeviceImageSubresourceInfoKHR *out = (VkDeviceImageSubresourceInfoKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        out->sType = VK_STRUCTURE_TYPE_DEVICE_IMAGE_SUBRESOURCE_INFO_KHR;
+        out->pNext = in->pNext;
+
+        out->pCreateInfo = AllocStructCopy(tempMem, in->pCreateInfo);
+        UnwrapNextChain(state, "VkImageCreateInfo", tempMem, (VkBaseInStructure *)out->pCreateInfo);
+
+        out->pSubresource = AllocStructCopy(tempMem, in->pSubresource);
+        UnwrapNextChain(state, "VkImageSubresource2KHR", tempMem,
+                        (VkBaseInStructure *)out->pSubresource);
+
+        break;
+      }
+      case VK_STRUCTURE_TYPE_RENDERING_AREA_INFO_KHR:
+      {
+        const VkRenderingAreaInfoKHR *in = (const VkRenderingAreaInfoKHR *)nextInput;
+        VkRenderingAreaInfoKHR *out = (VkRenderingAreaInfoKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        VkFormat *outFormats = (VkFormat *)tempMem;
+        tempMem += sizeof(VkFormat) * in->colorAttachmentCount;
+
+        *out = *in;
+
+        out->pColorAttachmentFormats = outFormats;
+        for(uint32_t i = 0; i < in->colorAttachmentCount; i++)
+          outFormats[i] = in->pColorAttachmentFormats[i];
+
+        break;
+      }
 
 // Android External Buffer Memory Extension
 #if ENABLED(RDOC_ANDROID)
@@ -3280,6 +3339,13 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
       case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR:
         CopyNextChainedStruct(sizeof(VkWriteDescriptorSetAccelerationStructureKHR), tempMem,
                               nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_DEVICE_IMAGE_SUBRESOURCE_INFO_KHR:
+        CopyNextChainedStruct(sizeof(VkDeviceImageSubresourceInfoKHR), tempMem, nextInput,
+                              nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_RENDERING_AREA_INFO_KHR:
+        CopyNextChainedStruct(sizeof(VkRenderingAreaInfoKHR), tempMem, nextInput, nextChainTail);
         break;
 
 // Android External Buffer Memory Extension

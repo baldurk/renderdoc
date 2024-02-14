@@ -1332,6 +1332,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.inputAssembly.indexBuffer.resourceId = rm->GetOriginalID(state.ibuffer.buf);
     ret.inputAssembly.indexBuffer.byteOffset = state.ibuffer.offs;
     ret.inputAssembly.indexBuffer.byteStride = state.ibuffer.bytewidth;
+    ret.inputAssembly.indexBuffer.byteSize = state.ibuffer.size;
     ret.inputAssembly.primitiveRestartEnable = state.primRestartEnable != VK_FALSE;
     ret.inputAssembly.topology =
         MakePrimitiveTopology(state.primitiveTopology, state.patchControlPoints);

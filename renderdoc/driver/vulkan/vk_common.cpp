@@ -248,7 +248,7 @@ void GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, u
   else
     allocInfo.memoryTypeIndex = driver->GetUploadMemoryIndex(mrq.memoryTypeBits);
 
-  bool useBufferAddressKHR = driver->GetExtensions(NULL).ext_KHR_buffer_device_address;
+  bool useBufferAddressKHR = driver->GetExtensions(NULL).ext_KHR_buffer_device_address != 0;
 
   VkMemoryAllocateFlagsInfo memFlags = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO};
   if(useBufferAddressKHR && (flags & eGPUBufferAddressable))
@@ -931,7 +931,7 @@ rdcstr HumanDriverName(VkDriverId driverId)
   return "";
 }
 
-BASIC_TYPE_SERIALISE_STRINGIFY(VkPackedVersion, (uint32_t &)el, SDBasic::UnsignedInteger, 4);
+BASIC_TYPE_SERIALISE_STRINGIFY(VkPackedVersion, el.version, SDBasic::UnsignedInteger, 4);
 
 INSTANTIATE_SERIALISE_TYPE(VkPackedVersion);
 

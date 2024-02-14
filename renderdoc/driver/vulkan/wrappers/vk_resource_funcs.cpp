@@ -1709,16 +1709,6 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
   {
     VkBuffer buf = VK_NULL_HANDLE;
 
-    VkBufferUsageFlags origusage = CreateInfo.usage;
-
-    // ensure we can always readback from buffers
-    CreateInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-    // we only need to add TRANSFER_DST_BIT for dedicated buffers, but there's not a reliable way to
-    // know if a buffer will be dedicated-allocation or not. We assume that TRANSFER_DST is
-    // effectively free as a usage bit for all sensible implementations so we just add it here.
-    CreateInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
     // remap the queue family indices
     if(CreateInfo.sharingMode == VK_SHARING_MODE_CONCURRENT)
     {
@@ -1727,11 +1717,22 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
         queueFamiles[q] = m_QueueRemapping[queueFamiles[q]][0].family;
     }
 
+    VkBufferUsageFlags2KHR origusage = GetBufferUsageFlags(&CreateInfo);
+
+    VkBufferUsageFlags2KHR augmented_usage = origusage;
+
+    // ensure we can always readback from buffers
+    augmented_usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+    // we only need to add TRANSFER_DST_BIT for dedicated buffers, but there's not a reliable way to
+    // know if a buffer will be dedicated-allocation or not. We assume that TRANSFER_DST is
+    // effectively free as a usage bit for all sensible implementations so we just add it here.
+    augmented_usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
     VkBufferCreateInfo patched = CreateInfo;
-
     byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));
-
     UnwrapNextChain(m_State, "VkBufferCreateInfo", tempMem, (VkBaseInStructure *)&patched);
+    SetBufferUsageFlags(&patched, augmented_usage);
 
     VkResult ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &patched, NULL, &buf);
 
@@ -1741,7 +1742,7 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
       APIProps.SparseResources = true;
     }
 
-    CreateInfo.usage = origusage;
+    SetBufferUsageFlags(&CreateInfo, origusage);
 
     if(ret != VK_SUCCESS)
     {
@@ -1770,37 +1771,44 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
 {
   VkBufferCreateInfo adjusted_info = *pCreateInfo;
 
+  byte *tempMem = GetTempMemory(GetNextPatchSize(adjusted_info.pNext));
+  UnwrapNextChain(m_State, "VkBufferCreateInfo", tempMem, (VkBaseInStructure *)&adjusted_info);
+
+  VkBufferUsageFlags2KHR origusage = GetBufferUsageFlags(&adjusted_info);
+
+  VkBufferUsageFlags2KHR usage = origusage;
+
   // if you change any properties here, ensure you also update
   // vkGetDeviceBufferMemoryRequirementsKHR
 
   // TEMP HACK: Until we define a portable fake hardware, need to match the requirements for usage
   // on replay, so that the memory requirements are the same
-  adjusted_info.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+  usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
   // we only need to add TRANSFER_DST_BIT for dedicated buffers, but there's not a reliable way to
   // know if a buffer will be dedicated-allocation or not. We assume that TRANSFER_DST is
   // effectively free as a usage bit for all sensible implementations so we just add it here.
-  adjusted_info.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+  usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
   if(IsCaptureMode(m_State))
   {
     // If we're using this buffer for AS storage we need to enable BDA
-    if(adjusted_info.usage & VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR)
-      adjusted_info.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    if(usage & VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR)
+      usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
     // If we're using this buffer for device addresses, ensure we force on capture replay bit.
     // We ensured the physical device can support this feature before whitelisting the extension.
-    if(adjusted_info.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+    if(usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
       adjusted_info.flags |= VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
   }
 
-  byte *tempMem = GetTempMemory(GetNextPatchSize(adjusted_info.pNext));
-
-  UnwrapNextChain(m_State, "VkBufferCreateInfo", tempMem, (VkBaseInStructure *)&adjusted_info);
+  SetBufferUsageFlags(&adjusted_info, usage);
 
   VkResult ret;
   SERIALISE_TIME_CALL(
       ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &adjusted_info, NULL, pBuffer));
+
+  SetBufferUsageFlags(&adjusted_info, origusage);
 
   if(ret == VK_SUCCESS)
   {
@@ -1824,7 +1832,7 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
       // if we're using VK_[KHR|EXT]_buffer_device_address, we fetch the device address that's been
       // allocated and insert it into the next chain and patch the flags so that it replays
       // naturally.
-      if((pCreateInfo->usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) != 0)
+      if((origusage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) != 0)
       {
         VkBufferDeviceAddressInfo getInfo = {
             VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -1885,8 +1893,8 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
 
       record->AddChunk(chunk);
 
-      record->storable = (pCreateInfo->usage & (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                                VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)) != 0;
+      record->storable = (origusage & (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                       VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)) != 0;
 
       bool isSparse = (pCreateInfo->flags & (VK_BUFFER_CREATE_SPARSE_BINDING_BIT |
                                              VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT)) != 0;

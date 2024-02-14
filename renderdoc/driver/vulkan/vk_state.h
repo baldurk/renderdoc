@@ -179,6 +179,7 @@ struct VulkanRenderState
   {
     ResourceId buf;
     VkDeviceSize offs = 0;
+    VkDeviceSize size = VK_WHOLE_SIZE;
     int bytewidth = 0;
   } ibuffer;
 

@@ -73,6 +73,8 @@
 #define VkAccessFlagBits2 VkAccessFlagBits2_VkFlags64_typedef
 #define VkPipelineStageFlagBits2 VkPipelineStageFlagBits2_VkFlags64_typedef
 #define VkFormatFeatureFlagBits2 VkFormatFeatureFlagBits2_VkFlags64_typedef
+#define VkBufferUsageFlagBits2KHR VkBufferUsageFlagBits2KHR_VkFlags64_typedef
+#define VkPipelineCreateFlagBits2KHR VkPipelineCreateFlagBits2KHR_VkFlags64_typedef
 
 #include "core/core.h"
 #include "core/resource_manager.h"
@@ -84,6 +86,8 @@
 #undef VkAccessFlagBits2
 #undef VkPipelineStageFlagBits2
 #undef VkFormatFeatureFlagBits2
+#undef VkBufferUsageFlagBits2KHR
+#undef VkPipelineCreateFlagBits2KHR
 
 #undef Bool
 #undef None
@@ -128,6 +132,14 @@ int SampleCount(VkSampleCountFlagBits countFlag);
 int SampleIndex(VkSampleCountFlagBits countFlag);
 int StageIndex(VkShaderStageFlagBits stageFlag);
 VkShaderStageFlags ShaderMaskFromIndex(size_t index);
+
+// VK_KHR_maintenance5 helpers
+VkPipelineCreateFlags2KHR GetPipelineCreateFlags(const VkGraphicsPipelineCreateInfo *info);
+VkPipelineCreateFlags2KHR GetPipelineCreateFlags(const VkComputePipelineCreateInfo *info);
+VkBufferUsageFlags2KHR GetBufferUsageFlags(const VkBufferCreateInfo *info);
+void SetPipelineCreateFlags(VkGraphicsPipelineCreateInfo *info, VkPipelineCreateFlags2KHR flags);
+void SetPipelineCreateFlags(VkComputePipelineCreateInfo *info, VkPipelineCreateFlags2KHR flags);
+void SetBufferUsageFlags(VkBufferCreateInfo *info, VkBufferUsageFlags2KHR flags);
 
 struct PackedWindowHandle
 {
@@ -1087,6 +1099,7 @@ enum class VulkanChunk : uint32_t
   vkCmdTraceRaysIndirectKHR,
   vkCmdTraceRaysKHR,
   vkCreateRayTracingPipelinesKHR,
+  vkCmdBindIndexBuffer2KHR,
   Max,
 };
 
@@ -1581,6 +1594,14 @@ DECLARE_REFLECTION_STRUCT(VkVertexInputBindingDescription2EXT);
 DECLARE_REFLECTION_STRUCT(VkWriteDescriptorSet);
 DECLARE_REFLECTION_STRUCT(VkWriteDescriptorSetAccelerationStructureKHR);
 DECLARE_REFLECTION_STRUCT(VkWriteDescriptorSetInlineUniformBlock);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMaintenance5FeaturesKHR);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMaintenance5PropertiesKHR);
+DECLARE_REFLECTION_STRUCT(VkRenderingAreaInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkDeviceImageSubresourceInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkPipelineCreateFlags2CreateInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkBufferUsageFlags2CreateInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkImageSubresource2KHR);
+DECLARE_REFLECTION_STRUCT(VkSubresourceLayout2KHR);
 
 DECLARE_DESERIALISE_TYPE(VkAccelerationStructureBuildGeometryInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkAccelerationStructureBuildSizesInfoKHR);
@@ -2018,6 +2039,14 @@ DECLARE_DESERIALISE_TYPE(VkVertexInputBindingDescription2EXT);
 DECLARE_DESERIALISE_TYPE(VkWriteDescriptorSet);
 DECLARE_DESERIALISE_TYPE(VkWriteDescriptorSetAccelerationStructureKHR);
 DECLARE_DESERIALISE_TYPE(VkWriteDescriptorSetInlineUniformBlock);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMaintenance5FeaturesKHR);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMaintenance5PropertiesKHR);
+DECLARE_DESERIALISE_TYPE(VkRenderingAreaInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkDeviceImageSubresourceInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkPipelineCreateFlags2CreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkBufferUsageFlags2CreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkImageSubresource2KHR);
+DECLARE_DESERIALISE_TYPE(VkSubresourceLayout2KHR);
 
 // plain structs with no next chain
 DECLARE_REFLECTION_STRUCT(VkAabbPositionsKHR);
@@ -2106,6 +2135,7 @@ DECLARE_REFLECTION_STRUCT(VkVertexInputBindingDescription);
 DECLARE_REFLECTION_STRUCT(VkVertexInputBindingDivisorDescriptionEXT);
 DECLARE_REFLECTION_STRUCT(VkViewport);
 DECLARE_REFLECTION_STRUCT(VkXYColorEXT);
+DECLARE_REFLECTION_STRUCT(VkSubresourceLayout);
 
 // rdcarray serialisation is generic but the stringification is not
 DECLARE_STRINGISE_TYPE(rdcarray<VkAccelerationStructureBuildRangeInfoKHR>);
@@ -2193,6 +2223,14 @@ enum VkPipelineStageFlagBits2 : uint64_t
 };
 
 enum VkFormatFeatureFlagBits2 : uint64_t
+{
+};
+
+enum VkBufferUsageFlagBits2KHR : uint64_t
+{
+};
+
+enum VkPipelineCreateFlagBits2KHR : uint64_t
 {
 };
 
@@ -2353,6 +2391,8 @@ DECLARE_REFLECTION_ENUM(VkValidationCheckEXT);
 DECLARE_REFLECTION_ENUM(VkValidationFeatureDisableEXT);
 DECLARE_REFLECTION_ENUM(VkValidationFeatureEnableEXT);
 DECLARE_REFLECTION_ENUM(VkVertexInputRate);
+DECLARE_REFLECTION_ENUM(VkBufferUsageFlagBits2KHR);
+DECLARE_REFLECTION_ENUM(VkPipelineCreateFlagBits2KHR);
 
 // win32 only enums
 #ifdef VK_USE_PLATFORM_WIN32_KHR

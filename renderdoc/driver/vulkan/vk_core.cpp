@@ -37,6 +37,8 @@
 
 #include "stb/stb_image_write.h"
 
+#include <assert.h>
+
 RDOC_EXTERN_CONFIG(bool, Replay_Debug_PrintChunkTimings);
 
 RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_VerboseCommandRecording);
@@ -1537,6 +1539,10 @@ static const VkExtensionProperties supportedExtensions[] = {
     {
         VK_KHR_MAINTENANCE_4_EXTENSION_NAME,
         VK_KHR_MAINTENANCE_4_SPEC_VERSION,
+    },
+    {
+        VK_KHR_MAINTENANCE_5_EXTENSION_NAME,
+        VK_KHR_MAINTENANCE_5_SPEC_VERSION,
     },
     {
         VK_KHR_MULTIVIEW_EXTENSION_NAME,
@@ -4159,6 +4165,10 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCreateRayTracingPipelinesKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
                                                       VK_NULL_HANDLE, 0, NULL, NULL, NULL);
 
+    case VulkanChunk::vkCmdBindIndexBuffer2KHR:
+      return Serialise_vkCmdBindIndexBuffer2KHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0,
+                                                VK_INDEX_TYPE_MAX_ENUM);
+
     // chunks that are reserved but not yet serialised
     case VulkanChunk::vkResetCommandPool:
     case VulkanChunk::vkCreateDepthTargetView:
@@ -5821,6 +5831,86 @@ void WrappedVulkan::ReplayDraw(VkCommandBuffer cmd, const ActionDescription &act
                                     action.drawIndex + 1, (uint32_t)params.size());
 
     VkMarkerRegion::End(cmd);
+  }
+}
+
+VkPipelineCreateFlags2KHR WrappedVulkan::GetPipelineCreateFlags(const VkGraphicsPipelineCreateInfo *info)
+{
+  const VkPipelineCreateFlags2CreateInfoKHR *flags2 =
+      (const VkPipelineCreateFlags2CreateInfoKHR *)FindNextStruct(
+          info, VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO_KHR);
+  if(flags2)
+    return flags2->flags;
+
+  return info->flags;
+}
+
+VkPipelineCreateFlags2KHR WrappedVulkan::GetPipelineCreateFlags(const VkComputePipelineCreateInfo *info)
+{
+  const VkPipelineCreateFlags2CreateInfoKHR *flags2 =
+      (const VkPipelineCreateFlags2CreateInfoKHR *)FindNextStruct(
+          info, VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO_KHR);
+  if(flags2)
+    return flags2->flags;
+
+  return info->flags;
+}
+
+VkBufferUsageFlags2KHR WrappedVulkan::GetBufferUsageFlags(const VkBufferCreateInfo *info)
+{
+  const VkBufferUsageFlags2CreateInfoKHR *usage2 =
+      (const VkBufferUsageFlags2CreateInfoKHR *)FindNextStruct(
+          info, VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO_KHR);
+  if(usage2)
+    return usage2->usage;
+
+  return info->usage;
+}
+
+void WrappedVulkan::SetPipelineCreateFlags(VkGraphicsPipelineCreateInfo *info,
+                                           VkPipelineCreateFlags2KHR flags)
+{
+  VkPipelineCreateFlags2CreateInfoKHR *flags2 = (VkPipelineCreateFlags2CreateInfoKHR *)FindNextStruct(
+      info, VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO_KHR);
+  if(flags2)
+  {
+    flags2->flags = flags;
+  }
+  else
+  {
+    assert(flags <= VK_PIPELINE_CREATE_FLAG_BITS_MAX_ENUM);
+    info->flags = (VkPipelineCreateFlags)flags;
+  }
+}
+
+void WrappedVulkan::SetPipelineCreateFlags(VkComputePipelineCreateInfo *info,
+                                           VkPipelineCreateFlags2KHR flags)
+{
+  VkPipelineCreateFlags2CreateInfoKHR *flags2 = (VkPipelineCreateFlags2CreateInfoKHR *)FindNextStruct(
+      info, VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO_KHR);
+  if(flags2)
+  {
+    flags2->flags = flags;
+  }
+  else
+  {
+    assert(flags <= VK_PIPELINE_CREATE_FLAG_BITS_MAX_ENUM);
+    info->flags = (VkPipelineCreateFlags)flags;
+  }
+}
+
+void WrappedVulkan::SetBufferUsageFlags(VkBufferCreateInfo *info, VkBufferUsageFlags2KHR flags)
+{
+  VkBufferUsageFlags2CreateInfoKHR *usage2 = (VkBufferUsageFlags2CreateInfoKHR *)FindNextStruct(
+      info, VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO_KHR);
+  if(usage2)
+  {
+    usage2->usage = flags;
+  }
+  else
+  {
+    assert(flags <= VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM);
+    info->usage = (VkBufferUsageFlags)flags;
   }
 }
 

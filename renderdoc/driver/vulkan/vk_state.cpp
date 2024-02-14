@@ -138,7 +138,6 @@ void setupRenderingInfo(const VulkanRenderState::DynamicRendering &dynamicRender
 
 VulkanRenderState::VulkanRenderState()
 {
-  RDCEraseEl(ibuffer);
 }
 
 void VulkanRenderState::BeginRenderPassAndApplyState(WrappedVulkan *vk, VkCommandBuffer cmd,
@@ -697,9 +696,17 @@ void VulkanRenderState::BindDynamicState(WrappedVulkan *vk, VkCommandBuffer cmd)
     else if(ibuffer.bytewidth == 1)
       type = VK_INDEX_TYPE_UINT8_KHR;
 
-    ObjDisp(cmd)->CmdBindIndexBuffer(
-        Unwrap(cmd), Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkBuffer>(ibuffer.buf)),
-        ibuffer.offs, type);
+    VkBuffer idxBufferUnwrapped =
+        Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkBuffer>(ibuffer.buf));
+    if(ibuffer.size == VK_WHOLE_SIZE)
+    {
+      ObjDisp(cmd)->CmdBindIndexBuffer(Unwrap(cmd), idxBufferUnwrapped, ibuffer.offs, type);
+    }
+    else
+    {
+      ObjDisp(cmd)->CmdBindIndexBuffer2KHR(Unwrap(cmd), idxBufferUnwrapped, ibuffer.offs,
+                                           ibuffer.size, type);
+    }
   }
 
   if((vk->DynamicVertexInput() || vk->ShaderObject()) && dynamicStates[VkDynamicVertexInputEXT])
