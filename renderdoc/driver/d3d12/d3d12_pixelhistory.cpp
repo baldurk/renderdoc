@@ -89,8 +89,6 @@
 #include "d3d12_replay.h"
 #include "d3d12_shader_cache.h"
 
-RDOC_EXTERN_CONFIG(bool, D3D12_PixelHistory);
-
 struct D3D12CopyPixelParams
 {
   // The image being copied from
@@ -2736,9 +2734,6 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
                                                       const Subresource &sub, CompType typeCast)
 {
   rdcarray<PixelModification> history;
-
-  if(!D3D12_PixelHistory())
-    return history;
 
   if(events.empty())
     return history;
