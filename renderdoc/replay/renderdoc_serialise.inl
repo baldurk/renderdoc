@@ -2058,9 +2058,10 @@ void DoSerialise(SerialiserType &ser, VKPipe::IndexBuffer &el)
 {
   SERIALISE_MEMBER(resourceId);
   SERIALISE_MEMBER(byteOffset);
+  SERIALISE_MEMBER(byteSize);
   SERIALISE_MEMBER(byteStride);
 
-  SIZE_CHECK(24);
+  SIZE_CHECK(32);
 }
 
 template <typename SerialiserType>
@@ -2070,7 +2071,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::InputAssembly &el)
   SERIALISE_MEMBER(indexBuffer);
   SERIALISE_MEMBER(topology);
 
-  SIZE_CHECK(40);
+  SIZE_CHECK(48);
 }
 
 template <typename SerialiserType>
@@ -2409,7 +2410,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
   SERIALISE_MEMBER(conditionalRendering);
 
-  SIZE_CHECK(2712);
+  SIZE_CHECK(2720);
 }
 
 #pragma endregion Vulkan pipeline state

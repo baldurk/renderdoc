@@ -2411,7 +2411,7 @@ void VulkanPipelineStateViewer::setState()
         BufferDescription *buf = m_Ctx.GetBuffer(state.inputAssembly.indexBuffer.resourceId);
 
         if(buf)
-          length = buf->length;
+          length = qMin(buf->length, state.inputAssembly.indexBuffer.byteSize);
 
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
             {tr("Index"), state.inputAssembly.indexBuffer.resourceId, tr("Index"), lit("-"),
@@ -3802,7 +3802,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     if(ib)
     {
       name = m_Ctx.GetResourceName(ia.indexBuffer.resourceId);
-      length = ib->length;
+      length = qMin(ib->length, ia.indexBuffer.byteSize);
     }
 
     QString ifmt = lit("UNKNOWN");
