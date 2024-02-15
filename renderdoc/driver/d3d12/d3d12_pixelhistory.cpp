@@ -2566,6 +2566,7 @@ bool D3D12DebugManager::PixelHistorySetupResources(D3D12PixelHistoryResources &r
   imageDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
   imageDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
   imageDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+  imageDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
   hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &imageDesc,
                                           D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
