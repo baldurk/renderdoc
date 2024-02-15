@@ -171,7 +171,7 @@ struct D3D12EventInfo
   uint8_t dsWithoutShaderDiscard[8];
   uint8_t padding[8];
   uint8_t dsWithShaderDiscard[8];
-  uint8_t padding1[8];
+  uint8_t padding1[24];
 };
 
 struct D3D12PerFragmentInfo
@@ -626,8 +626,8 @@ protected:
       uint32_t elementSize = GetByteSize(0, 0, 0, p.copyFormat, 0);
       // Use Offset to get to the nearest 16KB
       UINT64 footprintOffset = (offset >> 14) << 14;
-      UINT64 offsetRemaider = offset - footprintOffset;
-      UINT dstX = (UINT)(offsetRemaider / elementSize);
+      UINT64 offsetRemainder = offset - footprintOffset;
+      UINT dstX = (UINT)(offsetRemainder / elementSize);
 
       dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
       dst.pResource = m_CallbackInfo.dstBuffer;
@@ -648,8 +648,11 @@ protected:
       srcBox.front = 0;
       srcBox.back = 1;
 
-      RDCASSERT((offset % elementSize) == 0);
-      cmd->CopyTextureRegion(&dst, dstX, 0, 0, &src, &srcBox);
+      if(offsetRemainder % elementSize == 0)
+        cmd->CopyTextureRegion(&dst, dstX, 0, 0, &src, &srcBox);
+      else
+        RDCERR("OffsetRemainder %zu is not a multiple of elementSize %u", offsetRemainder,
+               elementSize);
 
       std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
       cmd->ResourceBarrier(1, &barrier);
@@ -3026,6 +3029,22 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
                                                       const Subresource &sub, CompType typeCast)
 {
   rdcarray<PixelModification> history;
+
+  RDCCOMPILE_ASSERT(sizeof(D3D12EventInfo) % 16 == 0, "D3D12EventInfo not multiple of 16-bytes");
+  RDCCOMPILE_ASSERT(sizeof(D3D12EventInfo) % 12 == 0, "D3D12EventInfo not multiple of 12-bytes");
+
+  RDCCOMPILE_ASSERT(offsetof(D3D12EventInfo, premod) % 16 == 0,
+                    "D3D12EventInfo::premod not aligned to 16-bytes");
+  RDCCOMPILE_ASSERT(offsetof(D3D12EventInfo, premod) % 12 == 0,
+                    "D3D12EventInfo::premod not aligned to 12-bytes");
+  RDCCOMPILE_ASSERT(offsetof(D3D12EventInfo, postmod) % 16 == 0,
+                    "D3D12EventInfo::postmod not aligned to 16-bytes");
+  RDCCOMPILE_ASSERT(offsetof(D3D12EventInfo, postmod) % 12 == 0,
+                    "D3D12EventInfo::postmod not aligned to 12-bytes");
+  RDCCOMPILE_ASSERT(offsetof(D3D12EventInfo, dsWithoutShaderDiscard) % 16 == 0,
+                    "D3D12EventInfo::dsWithoutShaderDiscard not aligned to 16-bytes");
+  RDCCOMPILE_ASSERT(offsetof(D3D12EventInfo, dsWithShaderDiscard) % 16 == 0,
+                    "D3D12EventInfo::dsWithShaderDiscard not aligned to 16-bytes");
 
   if(events.empty())
     return history;
