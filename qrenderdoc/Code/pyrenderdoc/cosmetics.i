@@ -1,4 +1,3 @@
-
 %feature("python:tp_str") ResultDetails "result_str";
 %feature("python:tp_repr") ResultDetails "result_str";
 
@@ -18,7 +17,7 @@ PyObject *__lt__(PyObject *other)
   void *resptr = NULL;
   ResourceId *id = NULL;
 
-  if(other && other != Py_None)
+  if(other && !Py_IsNone(other))
   {
     int res = SWIG_ConvertPtr(other, &resptr, SWIGTYPE_p_ResourceId, 0);
     if (!SWIG_IsOK(res)) {
@@ -125,7 +124,7 @@ PyObject *__eq__(PyObject *other)
   void *resptr = NULL;
   Class *id = NULL;
 
-  if(other && other != Py_None)
+  if(other && !Py_IsNone(other))
   {
     int res = SWIG_ConvertPtr(other, &resptr, SWIGTYPE_p_##Class, 0);
     if (!SWIG_IsOK(res)) {
@@ -148,7 +147,7 @@ PyObject *__ne__(PyObject *other)
   void *resptr = NULL;
   Class *id = NULL;
 
-  if(other && other != Py_None)
+  if(other && !Py_IsNone(other))
   {
     int res = SWIG_ConvertPtr(other, &resptr, SWIGTYPE_p_##Class, 0);
     if (!SWIG_IsOK(res)) {

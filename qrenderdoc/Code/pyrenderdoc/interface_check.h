@@ -208,7 +208,7 @@ inline bool check_interface(rdcstr &log, swig_type_info **swig_types, size_t num
               }
 
               // if it's a callable it's a method, ignore it
-              if(!PyCallable_Check(value) && !PyType_IsSubtype(value->ob_type, &PyStaticMethod_Type))
+              if(!PyCallable_Check(value) && !PyType_IsSubtype(Py_TYPE(value), &PyStaticMethod_Type))
               {
                 // some hardcoded exclusions that we allow to break the naming scheme
                 if(typeName == "KnownShaderTool")

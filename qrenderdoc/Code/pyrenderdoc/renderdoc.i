@@ -20,6 +20,10 @@
 #define DOCUMENT3(text1, text2, text3) %feature("docstring") text1 text2 text3
 #define DOCUMENT4(text1, text2, text3, text4) %feature("docstring") text1 text2 text3 text4
 
+%header %{
+#include "3rdparty/pythoncapi_compat.h"
+%}
+
 // include header for typed enums (hopefully using PEP435 enums)
 %include <enums.swg>
 
@@ -470,9 +474,9 @@ extern "C" PyObject *RENDERDOC_DumpObject(PyObject *obj)
   void *resptr = NULL;
 
   // for basic types, return the repr directly
-  if(obj == Py_True ||
-     obj == Py_False ||
-     obj == Py_None ||
+  if(Py_IsTrue(obj) ||
+     Py_IsFalse(obj) ||
+     Py_IsNone(obj) ||
      PyObject_IsInstance(obj, (PyObject*)&PyFloat_Type) ||
      PyObject_IsInstance(obj, (PyObject*)&PyLong_Type) ||
      PyObject_IsInstance(obj, (PyObject*)&PyBytes_Type) ||
