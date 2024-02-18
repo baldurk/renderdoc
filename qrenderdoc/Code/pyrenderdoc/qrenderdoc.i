@@ -1,3 +1,4 @@
+
 %module(docstring="This is the API to QRenderDoc's high-level UI panels and functionality.") qrenderdoc
 
 %feature("autodoc", "0");
@@ -7,6 +8,10 @@
 #define DOCUMENT2(text1, text2) %feature("docstring") text1 text2
 #define DOCUMENT3(text1, text2, text3) %feature("docstring") text1 text2 text3
 #define DOCUMENT4(text1, text2, text3, text4) %feature("docstring") text1 text2 text3 text4
+
+%header %{
+#include "3rdparty/pythoncapi_compat.h"
+%}
 
 %begin %{
 #undef slots
@@ -51,11 +56,11 @@ TEMPLATE_FIXEDARRAY_DECLARE(rdcfixedarray);
 %}
 
 %typemap(in) QWidget * {
-  if($input == Py_None)
+  if(Py_IsNone($input))
     $1 = NULL;
   else
     $1 = QWidgetFromPy($input);
-  if($input && $input != Py_None && !$1)
+  if($input && !Py_IsNone($input) && !$1)
   {
     SWIG_exception_fail(SWIG_TypeError, "in method '$symname' QWidget expected for argument $argnum of type '$1_basetype'");
   }
@@ -125,7 +130,7 @@ TEMPLATE_FIXEDARRAY_DECLARE(rdcfixedarray);
 
     result = new PythonCaptureViewer(self);
     resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_ICaptureViewer, SWIG_BUILTIN_INIT | 0);
-    return resultobj == Py_None ? -1 : 0;
+    return Py_IsNone(resultobj) ? -1 : 0;
   }
 
   SWIGINTERN PyObject *capviewer_deinit(PyObject *self, PyObject *args)

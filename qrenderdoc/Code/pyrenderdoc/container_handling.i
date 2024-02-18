@@ -273,8 +273,7 @@ PyObject *selfconcat_##unique_name(PyObject *self, PyObject *vals)
   if(ret)
   {
     Py_DECREF(ret);
-    Py_INCREF(self);
-    return self;
+    return Py_NewRef(self);
   }
 
   return NULL;
@@ -292,8 +291,7 @@ PyObject *selfrepeat_##unique_name(PyObject *self, Py_ssize_t count)
   if(ret)
   {
     Py_DECREF(ret);
-    Py_INCREF(self);
-    return self;
+    return Py_NewRef(self);
   }
 
   return NULL;

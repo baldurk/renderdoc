@@ -399,6 +399,10 @@ HEADERS += 3rdparty/toolwindowmanager/ToolWindowManager.h \
 SOURCES += 3rdparty/flowlayout/FlowLayout.cpp
 HEADERS += 3rdparty/flowlayout/FlowLayout.h
 
+# Add pythoncapi-compat
+
+HEADERS += 3rdparty/pythoncapi_compat.h
+
 # Add Scintilla last as it has extra search paths
 
 # Needed for building

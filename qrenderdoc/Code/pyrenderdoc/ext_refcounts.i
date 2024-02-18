@@ -38,7 +38,7 @@ static int typeName##_init(PyObject *self, PyObject *args)
 
   PyObject *resultobj = SWIG_NewPointerObj((void *)result, SWIGTYPE_p_##typeName, SWIG_BUILTIN_INIT);
 
-  if(resultobj == Py_None)
+  if(Py_IsNone(resultobj))
   {
     delete result;
     return -1;
