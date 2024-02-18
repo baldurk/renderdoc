@@ -258,6 +258,13 @@ void PythonContext::GlobalInit()
   PyImport_AppendInittab("renderdoc", &PyInit_renderdoc);
   PyImport_AppendInittab("qrenderdoc", &PyInit_qrenderdoc);
 
+#if PY_VERSION_HEX > 0x030B0000
+  PyConfig config;
+  PyConfig_InitPythonConfig(&config);
+  config.configure_c_stdio = 0;
+  config.parse_argv = 0;
+#endif
+
 #if defined(STATIC_QRENDERDOC)
   // add the location where our libs will be for statically-linked python installs
   {
@@ -267,17 +274,31 @@ void PythonContext::GlobalInit()
 
     pylibs.toWCharArray(python_home);
 
+#if PY_VERSION_HEX > 0x030B0000
+    config.home = python_home;
+#else
     Py_SetPythonHome(python_home);
+#endif
   }
 #endif
 
+#if PY_VERSION_HEX > 0x030B0000
+  config.program_name = program_name;
+
+  config.use_environment = 0;
+
+  Py_InitializeFromConfig(&config);
+#else
   Py_SetProgramName(program_name);
 
   Py_IgnoreEnvironmentFlag = 1;
 
   Py_Initialize();
+#endif
 
+#if PY_VERSION_HEX < 0x03090000
   PyEval_InitThreads();
+#endif
 
   OutputRedirectorType.tp_name = "renderdoc_output_redirector";
   OutputRedirectorType.tp_basicsize = sizeof(OutputRedirector);

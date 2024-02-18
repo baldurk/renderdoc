@@ -470,9 +470,9 @@ extern "C" PyObject *RENDERDOC_DumpObject(PyObject *obj)
   void *resptr = NULL;
 
   // for basic types, return the repr directly
-  if(obj == (PyObject *)&_Py_TrueStruct ||
-     obj == (PyObject *)&_Py_FalseStruct ||
-     PyObject_IsInstance(obj, (PyObject*)&_PyNone_Type) ||
+  if(obj == Py_True ||
+     obj == Py_False ||
+     obj == Py_None ||
      PyObject_IsInstance(obj, (PyObject*)&PyFloat_Type) ||
      PyObject_IsInstance(obj, (PyObject*)&PyLong_Type) ||
      PyObject_IsInstance(obj, (PyObject*)&PyBytes_Type) ||
