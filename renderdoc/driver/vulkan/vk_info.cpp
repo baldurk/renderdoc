@@ -438,7 +438,33 @@ void DescSetLayout::CreateBindingsArray(BindingStorage &bindingStorage, uint32_t
     if(inlineByteSize == 0)
     {
       for(size_t i = 0; i < bindings.size(); i++)
+      {
         bindingStorage.binds[i] = bindingStorage.elems.data() + bindings[i].elemOffset;
+
+        if(bindings[i].immutableSampler)
+        {
+          for(uint32_t a = 0; a < bindings[i].descriptorCount; a++)
+          {
+            // set immutable samplers here so it's always present in the descriptor and we don't
+            // have to do a per-descriptor lookup of immutable samplers later
+            bindingStorage.binds[i][a].sampler = bindings[i].immutableSampler[a];
+
+            // immutable samplers cannot be used with mutable descriptors, so if we have immutable
+            // samplers set the type from the layout. That way even if the descriptor is never
+            // written we still process immutable samplers properly.
+            bindingStorage.binds[i][a].type = convert(bindings[i].layoutDescType);
+          }
+        }
+
+        // set the type for dynamic descriptors so we always know which descriptors consume dynamic
+        // offsets, even if they are unwritten.
+        if(bindings[i].layoutDescType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
+           bindings[i].layoutDescType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+        {
+          for(uint32_t a = 0; a < bindings[i].descriptorCount; a++)
+            bindingStorage.binds[i][a].type = convert(bindings[i].layoutDescType);
+        }
+      }
 
       bindingStorage.inlineBytes.clear();
     }
@@ -455,6 +481,10 @@ void DescSetLayout::CreateBindingsArray(BindingStorage &bindingStorage, uint32_t
           bindingStorage.binds[i]->offset = inlineOffset;
           bindingStorage.binds[i]->range = bindings[i].descriptorCount;
           inlineOffset = AlignUp4(inlineOffset + bindings[i].descriptorCount);
+
+          // update range with variable allocation here
+          if(bindings[i].variableSize)
+            bindingStorage.binds[i]->range = variableAllocSize;
         }
       }
 

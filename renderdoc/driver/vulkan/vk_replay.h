@@ -493,6 +493,8 @@ private:
   bool FetchShaderFeedback(uint32_t eventId);
   void ClearFeedbackCache();
 
+  void FillBindingElement(VKPipe::BindingElement &dstel, const DescriptorSetSlot &srcel);
+
   void PatchReservedDescriptors(const VulkanStatePipeline &pipe, VkDescriptorPool &descpool,
                                 rdcarray<VkDescriptorSetLayout> &setLayouts,
                                 rdcarray<VkDescriptorSet> &descSets,

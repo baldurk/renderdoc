@@ -2009,15 +2009,13 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
           curBind.bind = (uint32_t)b;
 
-          uint32_t descriptorCount = layoutBind.descriptorCount;
-
-          if(layoutBind.variableSize)
-            descriptorCount = m_pDriver->m_DescriptorSetState[sourceSet].data.variableDescriptorCount;
-
-          destSlots.descriptorCount = descriptorCount;
+          destSlots.descriptorCount = layoutBind.descriptorCount;
 
           if(layoutBind.layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
             destSlots.descriptorCount = 1;
+          else if(layoutBind.variableSize)
+            destSlots.descriptorCount =
+                m_pDriver->m_DescriptorSetState[sourceSet].data.variableDescriptorCount;
 
           destSlots.stageFlags = (ShaderStageMask)layoutBind.stageFlags;
 
@@ -2087,211 +2085,16 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 destSlots.firstUsedIndex = a;
             }
 
-            DescriptorSlotType descriptorType = srcel.type;
-
-            // immutable samplers cannot be used with mutable descriptors, so if we have immutable
-            // samplers set the type from the layout. That way even if the descriptor is never
-            // written we still process immutable samplers properly.
             if(layoutBind.immutableSampler)
-              descriptorType = convert(layoutBind.layoutDescType);
+              dstel.immutableSampler = true;
 
-            switch(descriptorType)
+            FillBindingElement(dstel, srcel);
+
+            if(srcel.type == DescriptorSlotType::StorageBufferDynamic ||
+               srcel.type == DescriptorSlotType::UniformBufferDynamic)
             {
-              case DescriptorSlotType::Sampler: dstel.type = BindType::Sampler; break;
-              case DescriptorSlotType::CombinedImageSampler:
-                dstel.type = BindType::ImageSampler;
-                break;
-              case DescriptorSlotType::SampledImage: dstel.type = BindType::ReadOnlyImage; break;
-              case DescriptorSlotType::StorageImage: dstel.type = BindType::ReadWriteImage; break;
-              case DescriptorSlotType::UniformTexelBuffer:
-                dstel.type = BindType::ReadOnlyTBuffer;
-                break;
-              case DescriptorSlotType::StorageTexelBuffer:
-                dstel.type = BindType::ReadWriteTBuffer;
-                break;
-              case DescriptorSlotType::UniformBuffer: dstel.type = BindType::ConstantBuffer; break;
-              case DescriptorSlotType::StorageBuffer: dstel.type = BindType::ReadWriteBuffer; break;
-              case DescriptorSlotType::UniformBufferDynamic:
-                dstel.type = BindType::ConstantBuffer;
-                break;
-              case DescriptorSlotType::StorageBufferDynamic:
-                dstel.type = BindType::ReadWriteBuffer;
-                break;
-              case DescriptorSlotType::InputAttachment:
-                dstel.type = BindType::InputAttachment;
-                break;
-              case DescriptorSlotType::InlineBlock: dstel.type = BindType::ConstantBuffer; break;
-              case DescriptorSlotType::AccelerationStructure:
-                dstel.type = BindType::ReadWriteBuffer;
-                break;
-              case DescriptorSlotType::Unwritten:
-              case DescriptorSlotType::Count: dstel.type = BindType::Unknown; break;
-            }
-
-            // first handle the sampler separately because it might be in a combined descriptor
-            if(descriptorType == DescriptorSlotType::Sampler ||
-               descriptorType == DescriptorSlotType::CombinedImageSampler)
-            {
-              if(layoutBind.immutableSampler)
-              {
-                destSlots.binds[a].samplerResourceId = layoutBind.immutableSampler[a];
-                destSlots.binds[a].immutableSampler = true;
-              }
-              else if(srcel.sampler != ResourceId())
-              {
-                destSlots.binds[a].samplerResourceId = srcel.sampler;
-              }
-
-              if(destSlots.binds[a].samplerResourceId != ResourceId())
-              {
-                VKPipe::BindingElement &el = destSlots.binds[a];
-                const VulkanCreationInfo::Sampler &sampl = c.m_Sampler[el.samplerResourceId];
-
-                ResourceId liveId = el.samplerResourceId;
-
-                el.samplerResourceId = rm->GetOriginalID(el.samplerResourceId);
-
-                // sampler info
-                el.filter = MakeFilter(sampl.minFilter, sampl.magFilter, sampl.mipmapMode,
-                                       sampl.maxAnisotropy >= 1.0f, sampl.compareEnable,
-                                       sampl.reductionMode);
-                el.addressU = MakeAddressMode(sampl.address[0]);
-                el.addressV = MakeAddressMode(sampl.address[1]);
-                el.addressW = MakeAddressMode(sampl.address[2]);
-                el.mipBias = sampl.mipLodBias;
-                el.maxAnisotropy = sampl.maxAnisotropy;
-                el.compareFunction = MakeCompareFunc(sampl.compareOp);
-                el.minLOD = sampl.minLod;
-                el.maxLOD = sampl.maxLod;
-                MakeBorderColor(sampl.borderColor, el.borderColorValue.floatValue);
-                el.borderColorType = CompType::Float;
-                el.unnormalized = sampl.unnormalizedCoordinates;
-                el.seamless = sampl.seamless;
-
-                if(sampl.ycbcr != ResourceId())
-                {
-                  const VulkanCreationInfo::YCbCrSampler &ycbcr = c.m_YCbCrSampler[sampl.ycbcr];
-                  el.ycbcrSampler = rm->GetOriginalID(sampl.ycbcr);
-
-                  el.ycbcrModel = ycbcr.ycbcrModel;
-                  el.ycbcrRange = ycbcr.ycbcrRange;
-                  Convert(el.samplerSwizzle, ycbcr.componentMapping);
-                  el.xChromaOffset = ycbcr.xChromaOffset;
-                  el.yChromaOffset = ycbcr.yChromaOffset;
-                  el.chromaFilter = ycbcr.chromaFilter;
-                  el.forceExplicitReconstruction = ycbcr.forceExplicitReconstruction;
-                }
-                else
-                {
-                  Convert(el.samplerSwizzle, sampl.componentMapping);
-                  el.srgbBorder = sampl.srgbBorder;
-                }
-
-                if(sampl.customBorder)
-                {
-                  if(sampl.borderColor == VK_BORDER_COLOR_INT_CUSTOM_EXT)
-                  {
-                    el.borderColorValue.uintValue = sampl.customBorderColor.uint32;
-                    el.borderColorType = CompType::UInt;
-                  }
-                  else
-                  {
-                    el.borderColorValue.floatValue = sampl.customBorderColor.float32;
-                  }
-                }
-              }
-            }
-
-            // now look at the 'base' type. Sampler is excluded from these ifs
-            if(descriptorType == DescriptorSlotType::SampledImage ||
-               descriptorType == DescriptorSlotType::CombinedImageSampler ||
-               descriptorType == DescriptorSlotType::InputAttachment ||
-               descriptorType == DescriptorSlotType::StorageImage)
-            {
-              ResourceId viewid = srcel.resource;
-
-              if(viewid != ResourceId())
-              {
-                destSlots.binds[a].viewResourceId = rm->GetOriginalID(viewid);
-                destSlots.binds[a].resourceResourceId =
-                    rm->GetOriginalID(c.m_ImageView[viewid].image);
-                destSlots.binds[a].viewFormat = MakeResourceFormat(c.m_ImageView[viewid].format);
-
-                Convert(destSlots.binds[a].swizzle, c.m_ImageView[viewid].componentMapping);
-                destSlots.binds[a].firstMip = c.m_ImageView[viewid].range.baseMipLevel;
-                destSlots.binds[a].firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
-                destSlots.binds[a].numMips = c.m_ImageView[viewid].range.levelCount;
-                destSlots.binds[a].numSlices = c.m_ImageView[viewid].range.layerCount;
-
-                if(c.m_ImageView[viewid].viewType == VK_IMAGE_VIEW_TYPE_3D)
-                  destSlots.binds[a].firstSlice = destSlots.binds[a].numSlices = 0;
-
-                // temporary hack, store image layout enum in byteOffset as it's not used for images
-                destSlots.binds[a].byteOffset = convert(srcel.imageLayout);
-
-                destSlots.binds[a].minLOD = c.m_ImageView[viewid].minLOD;
-              }
-              else
-              {
-                destSlots.binds[a].viewResourceId = ResourceId();
-                destSlots.binds[a].resourceResourceId = ResourceId();
-                destSlots.binds[a].firstMip = 0;
-                destSlots.binds[a].firstSlice = 0;
-                destSlots.binds[a].numMips = 1;
-                destSlots.binds[a].numSlices = 1;
-                destSlots.binds[a].minLOD = 0.0f;
-              }
-            }
-            else if(descriptorType == DescriptorSlotType::UniformTexelBuffer ||
-                    descriptorType == DescriptorSlotType::StorageTexelBuffer)
-            {
-              ResourceId viewid = srcel.resource;
-
-              if(viewid != ResourceId())
-              {
-                destSlots.binds[a].viewResourceId = rm->GetOriginalID(viewid);
-                destSlots.binds[a].resourceResourceId =
-                    rm->GetOriginalID(c.m_BufferView[viewid].buffer);
-                destSlots.binds[a].byteOffset = c.m_BufferView[viewid].offset;
-                destSlots.binds[a].viewFormat = MakeResourceFormat(c.m_BufferView[viewid].format);
-                destSlots.binds[a].byteSize = c.m_BufferView[viewid].size;
-              }
-              else
-              {
-                destSlots.binds[a].viewResourceId = ResourceId();
-                destSlots.binds[a].resourceResourceId = ResourceId();
-                destSlots.binds[a].byteOffset = 0;
-                destSlots.binds[a].byteSize = 0;
-              }
-            }
-            else if(descriptorType == DescriptorSlotType::InlineBlock)
-            {
-              destSlots.binds[a].viewResourceId = ResourceId();
-              destSlots.binds[a].resourceResourceId = ResourceId();
-              destSlots.binds[a].inlineBlock = true;
-              destSlots.binds[a].byteOffset = srcel.offset;
-              destSlots.binds[a].byteSize = descriptorCount;
-            }
-            else if(descriptorType == DescriptorSlotType::StorageBuffer ||
-                    descriptorType == DescriptorSlotType::StorageBufferDynamic ||
-                    descriptorType == DescriptorSlotType::UniformBuffer ||
-                    descriptorType == DescriptorSlotType::UniformBufferDynamic ||
-                    descriptorType == DescriptorSlotType::AccelerationStructure)
-            {
-              destSlots.binds[a].viewResourceId = ResourceId();
-
-              if(srcel.resource != ResourceId())
-                destSlots.binds[a].resourceResourceId = rm->GetOriginalID(srcel.resource);
-
-              destSlots.binds[a].byteOffset = srcel.offset;
-              if(descriptorType == DescriptorSlotType::StorageBufferDynamic ||
-                 descriptorType == DescriptorSlotType::UniformBufferDynamic)
-              {
-                destSlots.binds[a].byteOffset += *srcOffset;
-                srcOffset++;
-              }
-
-              destSlots.binds[a].byteSize = srcel.GetRange();
+              dstel.byteOffset += *srcOffset;
+              srcOffset++;
             }
           }
 
@@ -2364,6 +2167,181 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   }
 }
 
+void VulkanReplay::FillBindingElement(VKPipe::BindingElement &dstel, const DescriptorSetSlot &srcel)
+{
+  DescriptorSlotType descriptorType = srcel.type;
+
+  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
+  VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
+
+  switch(descriptorType)
+  {
+    case DescriptorSlotType::Sampler: dstel.type = BindType::Sampler; break;
+    case DescriptorSlotType::CombinedImageSampler: dstel.type = BindType::ImageSampler; break;
+    case DescriptorSlotType::SampledImage: dstel.type = BindType::ReadOnlyImage; break;
+    case DescriptorSlotType::StorageImage: dstel.type = BindType::ReadWriteImage; break;
+    case DescriptorSlotType::UniformTexelBuffer: dstel.type = BindType::ReadOnlyTBuffer; break;
+    case DescriptorSlotType::StorageTexelBuffer: dstel.type = BindType::ReadWriteTBuffer; break;
+    case DescriptorSlotType::UniformBuffer: dstel.type = BindType::ConstantBuffer; break;
+    case DescriptorSlotType::StorageBuffer:
+    case DescriptorSlotType::AccelerationStructure: dstel.type = BindType::ReadWriteBuffer; break;
+    case DescriptorSlotType::UniformBufferDynamic: dstel.type = BindType::ConstantBuffer; break;
+    case DescriptorSlotType::StorageBufferDynamic: dstel.type = BindType::ReadWriteBuffer; break;
+    case DescriptorSlotType::InputAttachment: dstel.type = BindType::InputAttachment; break;
+    case DescriptorSlotType::InlineBlock: dstel.type = BindType::ConstantBuffer; break;
+    case DescriptorSlotType::Unwritten:
+    case DescriptorSlotType::Count: dstel.type = BindType::Unknown; break;
+  }
+
+  // first handle the sampler separately because it might be in a combined descriptor
+  if(descriptorType == DescriptorSlotType::Sampler ||
+     descriptorType == DescriptorSlotType::CombinedImageSampler)
+  {
+    if(srcel.sampler != ResourceId())
+    {
+      dstel.samplerResourceId = srcel.sampler;
+
+      const VulkanCreationInfo::Sampler &sampl = c.m_Sampler[dstel.samplerResourceId];
+
+      ResourceId liveId = dstel.samplerResourceId;
+
+      dstel.samplerResourceId = rm->GetOriginalID(dstel.samplerResourceId);
+
+      // sampler info
+      dstel.filter =
+          MakeFilter(sampl.minFilter, sampl.magFilter, sampl.mipmapMode,
+                     sampl.maxAnisotropy >= 1.0f, sampl.compareEnable, sampl.reductionMode);
+      dstel.addressU = MakeAddressMode(sampl.address[0]);
+      dstel.addressV = MakeAddressMode(sampl.address[1]);
+      dstel.addressW = MakeAddressMode(sampl.address[2]);
+      dstel.mipBias = sampl.mipLodBias;
+      dstel.maxAnisotropy = sampl.maxAnisotropy;
+      dstel.compareFunction = MakeCompareFunc(sampl.compareOp);
+      dstel.minLOD = sampl.minLod;
+      dstel.maxLOD = sampl.maxLod;
+      MakeBorderColor(sampl.borderColor, dstel.borderColorValue.floatValue);
+      dstel.borderColorType = CompType::Float;
+      dstel.unnormalized = sampl.unnormalizedCoordinates;
+      dstel.seamless = sampl.seamless;
+
+      if(sampl.ycbcr != ResourceId())
+      {
+        const VulkanCreationInfo::YCbCrSampler &ycbcr = c.m_YCbCrSampler[sampl.ycbcr];
+        dstel.ycbcrSampler = rm->GetOriginalID(sampl.ycbcr);
+
+        dstel.ycbcrModel = ycbcr.ycbcrModel;
+        dstel.ycbcrRange = ycbcr.ycbcrRange;
+        Convert(dstel.samplerSwizzle, ycbcr.componentMapping);
+        dstel.xChromaOffset = ycbcr.xChromaOffset;
+        dstel.yChromaOffset = ycbcr.yChromaOffset;
+        dstel.chromaFilter = ycbcr.chromaFilter;
+        dstel.forceExplicitReconstruction = ycbcr.forceExplicitReconstruction;
+      }
+      else
+      {
+        Convert(dstel.samplerSwizzle, sampl.componentMapping);
+        dstel.srgbBorder = sampl.srgbBorder;
+      }
+
+      if(sampl.customBorder)
+      {
+        if(sampl.borderColor == VK_BORDER_COLOR_INT_CUSTOM_EXT)
+        {
+          dstel.borderColorValue.uintValue = sampl.customBorderColor.uint32;
+          dstel.borderColorType = CompType::UInt;
+        }
+        else
+        {
+          dstel.borderColorValue.floatValue = sampl.customBorderColor.float32;
+        }
+      }
+    }
+  }
+
+  // now look at the 'base' type. Sampler is excluded from these ifs
+  if(descriptorType == DescriptorSlotType::SampledImage ||
+     descriptorType == DescriptorSlotType::CombinedImageSampler ||
+     descriptorType == DescriptorSlotType::InputAttachment ||
+     descriptorType == DescriptorSlotType::StorageImage)
+  {
+    ResourceId viewid = srcel.resource;
+
+    if(viewid != ResourceId())
+    {
+      dstel.viewResourceId = rm->GetOriginalID(viewid);
+      dstel.resourceResourceId = rm->GetOriginalID(c.m_ImageView[viewid].image);
+      dstel.viewFormat = MakeResourceFormat(c.m_ImageView[viewid].format);
+
+      Convert(dstel.swizzle, c.m_ImageView[viewid].componentMapping);
+      dstel.firstMip = c.m_ImageView[viewid].range.baseMipLevel;
+      dstel.firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
+      dstel.numMips = c.m_ImageView[viewid].range.levelCount;
+      dstel.numSlices = c.m_ImageView[viewid].range.layerCount;
+
+      if(c.m_ImageView[viewid].viewType == VK_IMAGE_VIEW_TYPE_3D)
+        dstel.firstSlice = dstel.numSlices = 0;
+
+      // temporary hack, store image layout enum in byteOffset as it's not used for images
+      dstel.byteOffset = convert(srcel.imageLayout);
+
+      dstel.minLOD = c.m_ImageView[viewid].minLOD;
+    }
+    else
+    {
+      dstel.viewResourceId = ResourceId();
+      dstel.resourceResourceId = ResourceId();
+      dstel.firstMip = 0;
+      dstel.firstSlice = 0;
+      dstel.numMips = 1;
+      dstel.numSlices = 1;
+      dstel.minLOD = 0.0f;
+    }
+  }
+  else if(descriptorType == DescriptorSlotType::UniformTexelBuffer ||
+          descriptorType == DescriptorSlotType::StorageTexelBuffer)
+  {
+    ResourceId viewid = srcel.resource;
+
+    if(viewid != ResourceId())
+    {
+      dstel.viewResourceId = rm->GetOriginalID(viewid);
+      dstel.resourceResourceId = rm->GetOriginalID(c.m_BufferView[viewid].buffer);
+      dstel.byteOffset = c.m_BufferView[viewid].offset;
+      dstel.viewFormat = MakeResourceFormat(c.m_BufferView[viewid].format);
+      dstel.byteSize = c.m_BufferView[viewid].size;
+    }
+    else
+    {
+      dstel.viewResourceId = ResourceId();
+      dstel.resourceResourceId = ResourceId();
+      dstel.byteOffset = 0;
+      dstel.byteSize = 0;
+    }
+  }
+  else if(descriptorType == DescriptorSlotType::InlineBlock)
+  {
+    dstel.viewResourceId = ResourceId();
+    dstel.resourceResourceId = ResourceId();
+    dstel.inlineBlock = true;
+    dstel.byteOffset = srcel.offset;
+    dstel.byteSize = srcel.range;
+  }
+  else if(descriptorType == DescriptorSlotType::StorageBuffer ||
+          descriptorType == DescriptorSlotType::StorageBufferDynamic ||
+          descriptorType == DescriptorSlotType::UniformBuffer ||
+          descriptorType == DescriptorSlotType::UniformBufferDynamic ||
+          descriptorType == DescriptorSlotType::AccelerationStructure)
+  {
+    dstel.viewResourceId = ResourceId();
+
+    if(srcel.resource != ResourceId())
+      dstel.resourceResourceId = rm->GetOriginalID(srcel.resource);
+
+    dstel.byteOffset = srcel.offset;
+    dstel.byteSize = srcel.GetRange();
+  }
+}
+
 rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
                                                   const rdcarray<DescriptorRange> &ranges)
 {
@@ -2372,6 +2350,23 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
     count += r.count;
   rdcarray<Descriptor> ret;
   ret.resize(count);
+
+  const WrappedVulkan::DescriptorSetInfo &set = m_pDriver->m_DescriptorSetState[descriptorStore];
+
+  size_t dst = 0;
+  for(const DescriptorRange &r : ranges)
+  {
+    DescriptorSetSlot *desc = set.data.binds[0];
+
+    desc += r.offset;
+
+    for(uint32_t i = 0; i < r.count; i++)
+    {
+      dst++;
+      desc++;
+    }
+  }
+
   return ret;
 }
 
@@ -2383,6 +2378,23 @@ rdcarray<SamplerDescriptor> VulkanReplay::GetSamplerDescriptors(ResourceId descr
     count += r.count;
   rdcarray<SamplerDescriptor> ret;
   ret.resize(count);
+
+  const WrappedVulkan::DescriptorSetInfo &set = m_pDriver->m_DescriptorSetState[descriptorStore];
+
+  size_t dst = 0;
+  for(const DescriptorRange &r : ranges)
+  {
+    DescriptorSetSlot *desc = set.data.binds[0];
+
+    desc += r.offset;
+
+    for(uint32_t i = 0; i < r.count; i++)
+    {
+      dst++;
+      desc++;
+    }
+  }
+
   return ret;
 }
 
