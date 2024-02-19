@@ -324,7 +324,7 @@ public:
         }
       }
 
-      if(role == Qt::BackgroundRole && (m_IsDepth || m_IsFloat))
+      if(role == Qt::BackgroundRole)
       {
         // pre mod color
         if(col == 2)
@@ -487,9 +487,27 @@ private:
 
     float rangesize = (m_Display.rangeMax - m_Display.rangeMin);
 
-    float r = val.col.floatValue[0];
-    float g = val.col.floatValue[1];
-    float b = val.col.floatValue[2];
+    float r = 0.0f;
+    float g = 0.0f;
+    float b = 0.0f;
+    if(m_IsFloat)
+    {
+      r = val.col.floatValue[0];
+      g = val.col.floatValue[1];
+      b = val.col.floatValue[2];
+    }
+    else if(m_IsUint)
+    {
+      r = val.col.uintValue[0];
+      g = val.col.uintValue[1];
+      b = val.col.uintValue[2];
+    }
+    else if(m_IsSint)
+    {
+      r = val.col.intValue[0];
+      g = val.col.intValue[1];
+      b = val.col.intValue[2];
+    }
 
     if(!m_Display.red)
       r = 0.0f;
