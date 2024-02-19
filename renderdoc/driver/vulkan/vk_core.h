@@ -742,6 +742,13 @@ private:
     uint32_t actionCount;            // similar to above
   };
 
+  uint64_t m_FakePushSetID = 0;
+  VkDescriptorSet MakeFakePushDescSet()
+  {
+    m_FakePushSetID += 0x10;
+    return (VkDescriptorSet)m_FakePushSetID;
+  }
+
   // on replay, the current command buffer for the last chunk we
   // handled.
   ResourceId m_LastCmdBufferID;

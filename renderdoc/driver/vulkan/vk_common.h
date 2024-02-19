@@ -742,6 +742,8 @@ struct BindingStorage
   rdcarray<DescriptorSetSlot *> binds;
   uint32_t variableDescriptorCount;
 
+  size_t totalDescriptorCount() const { return elems.size(); }
+
   void clear()
   {
     inlineBytes.clear();

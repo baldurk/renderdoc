@@ -1987,17 +1987,9 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
         ResourceId layoutId = m_pDriver->m_DescriptorSetState[sourceSet].layout;
 
-        // push descriptors don't have a real descriptor set backing them
-        if(c.m_DescSetLayout[layoutId].flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR)
-        {
-          destSet.descriptorSetResourceId = ResourceId();
-          destSet.pushDescriptor = true;
-        }
-        else
-        {
-          destSet.descriptorSetResourceId = rm->GetOriginalID(sourceSet);
-          destSet.pushDescriptor = false;
-        }
+        destSet.descriptorSetResourceId = rm->GetOriginalID(sourceSet);
+        destSet.pushDescriptor = (c.m_DescSetLayout[layoutId].flags &
+                                  VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR);
 
         destSet.layoutResourceId = rm->GetOriginalID(layoutId);
         destSet.bindings.resize(m_pDriver->m_DescriptorSetState[sourceSet].data.binds.size());
@@ -2203,8 +2195,6 @@ void VulkanReplay::FillBindingElement(VKPipe::BindingElement &dstel, const Descr
 
       const VulkanCreationInfo::Sampler &sampl = c.m_Sampler[dstel.samplerResourceId];
 
-      ResourceId liveId = dstel.samplerResourceId;
-
       dstel.samplerResourceId = rm->GetOriginalID(dstel.samplerResourceId);
 
       // sampler info
@@ -2342,9 +2332,202 @@ void VulkanReplay::FillBindingElement(VKPipe::BindingElement &dstel, const Descr
   }
 }
 
+void VulkanReplay::FillSamplerDescriptor(SamplerDescriptor &dstel, const DescriptorSetSlot &srcel)
+{
+  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
+  VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
+
+  if(srcel.type == DescriptorSlotType::Sampler)
+    dstel.type = DescriptorType::Sampler;
+  else if(srcel.type == DescriptorSlotType::CombinedImageSampler)
+    dstel.type = DescriptorType::ImageSampler;
+  else
+    return;
+
+  if(srcel.sampler == ResourceId())
+    return;
+
+  const VulkanCreationInfo::Sampler &sampl = c.m_Sampler[srcel.sampler];
+
+  dstel.object = rm->GetOriginalID(srcel.sampler);
+
+  // sampler info
+  dstel.filter = MakeFilter(sampl.minFilter, sampl.magFilter, sampl.mipmapMode,
+                            sampl.maxAnisotropy >= 1.0f, sampl.compareEnable, sampl.reductionMode);
+  dstel.addressU = MakeAddressMode(sampl.address[0]);
+  dstel.addressV = MakeAddressMode(sampl.address[1]);
+  dstel.addressW = MakeAddressMode(sampl.address[2]);
+  dstel.mipBias = sampl.mipLodBias;
+  dstel.maxAnisotropy = sampl.maxAnisotropy;
+  dstel.compareFunction = MakeCompareFunc(sampl.compareOp);
+  dstel.minLOD = sampl.minLod;
+  dstel.maxLOD = sampl.maxLod;
+  MakeBorderColor(sampl.borderColor, dstel.borderColorValue.floatValue);
+  dstel.borderColorType = CompType::Float;
+  dstel.unnormalized = sampl.unnormalizedCoordinates;
+  dstel.seamlessCubemaps = sampl.seamless;
+
+  if(sampl.ycbcr != ResourceId())
+  {
+    const VulkanCreationInfo::YCbCrSampler &ycbcr = c.m_YCbCrSampler[sampl.ycbcr];
+    dstel.ycbcrSampler = rm->GetOriginalID(sampl.ycbcr);
+
+    dstel.ycbcrModel = ycbcr.ycbcrModel;
+    dstel.ycbcrRange = ycbcr.ycbcrRange;
+    Convert(dstel.swizzle, ycbcr.componentMapping);
+    dstel.xChromaOffset = ycbcr.xChromaOffset;
+    dstel.yChromaOffset = ycbcr.yChromaOffset;
+    dstel.chromaFilter = ycbcr.chromaFilter;
+    dstel.forceExplicitReconstruction = ycbcr.forceExplicitReconstruction;
+  }
+  else
+  {
+    Convert(dstel.swizzle, sampl.componentMapping);
+    dstel.srgbBorder = sampl.srgbBorder;
+  }
+
+  if(sampl.customBorder)
+  {
+    if(sampl.borderColor == VK_BORDER_COLOR_INT_CUSTOM_EXT)
+    {
+      dstel.borderColorValue.uintValue = sampl.customBorderColor.uint32;
+      dstel.borderColorType = CompType::UInt;
+    }
+    else
+    {
+      dstel.borderColorValue.floatValue = sampl.customBorderColor.float32;
+    }
+  }
+}
+
+void VulkanReplay::FillDescriptor(Descriptor &dstel, const DescriptorSetSlot &srcel)
+{
+  DescriptorSlotType descriptorType = srcel.type;
+
+  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
+  VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
+
+  switch(descriptorType)
+  {
+    case DescriptorSlotType::Sampler: dstel.type = DescriptorType::Sampler; break;
+    case DescriptorSlotType::CombinedImageSampler: dstel.type = DescriptorType::ImageSampler; break;
+    case DescriptorSlotType::SampledImage: dstel.type = DescriptorType::Image; break;
+    case DescriptorSlotType::StorageImage: dstel.type = DescriptorType::ReadWriteImage; break;
+    case DescriptorSlotType::UniformTexelBuffer: dstel.type = DescriptorType::TypedBuffer; break;
+    case DescriptorSlotType::StorageTexelBuffer:
+      dstel.type = DescriptorType::ReadWriteTypedBuffer;
+      break;
+    case DescriptorSlotType::UniformBuffer: dstel.type = DescriptorType::ConstantBuffer; break;
+    case DescriptorSlotType::StorageBuffer: dstel.type = DescriptorType::ReadWriteBuffer; break;
+    case DescriptorSlotType::UniformBufferDynamic:
+      dstel.type = DescriptorType::ConstantBuffer;
+      break;
+    case DescriptorSlotType::StorageBufferDynamic:
+      dstel.type = DescriptorType::ReadWriteBuffer;
+      break;
+    case DescriptorSlotType::AccelerationStructure:
+      dstel.type = DescriptorType::ReadWriteBuffer;
+      break;
+    case DescriptorSlotType::InputAttachment: dstel.type = DescriptorType::Image; break;
+    case DescriptorSlotType::InlineBlock: dstel.type = DescriptorType::ConstantBuffer; break;
+    case DescriptorSlotType::Unwritten:
+    case DescriptorSlotType::Count: dstel.type = DescriptorType::Unknown; break;
+  }
+
+  // now look at the 'base' type. Sampler is excluded from these ifs
+  if(descriptorType == DescriptorSlotType::SampledImage ||
+     descriptorType == DescriptorSlotType::CombinedImageSampler ||
+     descriptorType == DescriptorSlotType::InputAttachment ||
+     descriptorType == DescriptorSlotType::StorageImage)
+  {
+    ResourceId viewid = srcel.resource;
+
+    if(descriptorType == DescriptorSlotType::CombinedImageSampler)
+    {
+      dstel.secondary = rm->GetOriginalID(srcel.sampler);
+    }
+
+    if(viewid != ResourceId())
+    {
+      dstel.view = rm->GetOriginalID(viewid);
+      dstel.resource = rm->GetOriginalID(c.m_ImageView[viewid].image);
+      dstel.format = MakeResourceFormat(c.m_ImageView[viewid].format);
+
+      Convert(dstel.swizzle, c.m_ImageView[viewid].componentMapping);
+      dstel.firstMip = c.m_ImageView[viewid].range.baseMipLevel & 0xff;
+      dstel.firstSlice = c.m_ImageView[viewid].range.baseArrayLayer & 0xffff;
+      dstel.numMips = c.m_ImageView[viewid].range.levelCount & 0xff;
+      dstel.numSlices = c.m_ImageView[viewid].range.layerCount & 0xffff;
+
+      if(c.m_ImageView[viewid].viewType == VK_IMAGE_VIEW_TYPE_3D)
+        dstel.firstSlice = dstel.numSlices = 0;
+
+      // temporary hack, store image layout enum in byteOffset as it's not used for images
+      dstel.byteOffset = convert(srcel.imageLayout);
+
+      dstel.minLODClamp = c.m_ImageView[viewid].minLOD;
+    }
+    else
+    {
+      dstel.view = ResourceId();
+      dstel.resource = ResourceId();
+      dstel.firstMip = 0;
+      dstel.firstSlice = 0;
+      dstel.numMips = 1;
+      dstel.numSlices = 1;
+      dstel.minLODClamp = 0.0f;
+    }
+  }
+  else if(descriptorType == DescriptorSlotType::UniformTexelBuffer ||
+          descriptorType == DescriptorSlotType::StorageTexelBuffer)
+  {
+    ResourceId viewid = srcel.resource;
+
+    if(viewid != ResourceId())
+    {
+      dstel.view = rm->GetOriginalID(viewid);
+      dstel.resource = rm->GetOriginalID(c.m_BufferView[viewid].buffer);
+      dstel.byteOffset = c.m_BufferView[viewid].offset;
+      dstel.format = MakeResourceFormat(c.m_BufferView[viewid].format);
+      dstel.byteSize = c.m_BufferView[viewid].size;
+    }
+    else
+    {
+      dstel.view = ResourceId();
+      dstel.resource = ResourceId();
+      dstel.byteOffset = 0;
+      dstel.byteSize = 0;
+    }
+  }
+  else if(descriptorType == DescriptorSlotType::InlineBlock)
+  {
+    dstel.view = ResourceId();
+    dstel.resource = ResourceId();
+    dstel.byteOffset = srcel.offset;
+    dstel.byteSize = srcel.range;
+  }
+  else if(descriptorType == DescriptorSlotType::StorageBuffer ||
+          descriptorType == DescriptorSlotType::StorageBufferDynamic ||
+          descriptorType == DescriptorSlotType::UniformBuffer ||
+          descriptorType == DescriptorSlotType::UniformBufferDynamic ||
+          descriptorType == DescriptorSlotType::AccelerationStructure)
+  {
+    dstel.view = ResourceId();
+
+    if(srcel.resource != ResourceId())
+      dstel.resource = rm->GetOriginalID(srcel.resource);
+
+    dstel.byteOffset = srcel.offset;
+    dstel.byteSize = srcel.GetRange();
+  }
+}
+
 rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
                                                   const rdcarray<DescriptorRange> &ranges)
 {
+  if(descriptorStore == ResourceId())
+    return {};
+
   size_t count = 0;
   for(const DescriptorRange &r : ranges)
     count += r.count;
@@ -2356,12 +2539,22 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
   size_t dst = 0;
   for(const DescriptorRange &r : ranges)
   {
-    DescriptorSetSlot *desc = set.data.binds[0];
+    const DescriptorSetSlot *desc = set.data.binds[0];
+    const DescriptorSetSlot *end = desc + set.data.totalDescriptorCount();
 
     desc += r.offset;
 
     for(uint32_t i = 0; i < r.count; i++)
     {
+      if(desc >= end)
+      {
+        // silently drop out of bounds descriptor reads
+      }
+      else if(desc->type != DescriptorSlotType::Sampler)
+      {
+        FillDescriptor(ret[dst], *desc);
+      }
+
       dst++;
       desc++;
     }
@@ -2373,6 +2566,9 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
 rdcarray<SamplerDescriptor> VulkanReplay::GetSamplerDescriptors(ResourceId descriptorStore,
                                                                 const rdcarray<DescriptorRange> &ranges)
 {
+  if(descriptorStore == ResourceId())
+    return {};
+
   size_t count = 0;
   for(const DescriptorRange &r : ranges)
     count += r.count;
@@ -2384,12 +2580,23 @@ rdcarray<SamplerDescriptor> VulkanReplay::GetSamplerDescriptors(ResourceId descr
   size_t dst = 0;
   for(const DescriptorRange &r : ranges)
   {
-    DescriptorSetSlot *desc = set.data.binds[0];
+    const DescriptorSetSlot *desc = set.data.binds[0];
+    const DescriptorSetSlot *end = desc + set.data.totalDescriptorCount();
 
     desc += r.offset;
 
     for(uint32_t i = 0; i < r.count; i++)
     {
+      if(desc >= end)
+      {
+        // silently drop out of bounds descriptor reads
+      }
+      else if(desc->type == DescriptorSlotType::Sampler ||
+              desc->type == DescriptorSlotType::CombinedImageSampler)
+      {
+        FillSamplerDescriptor(ret[dst], *desc);
+      }
+
       dst++;
       desc++;
     }

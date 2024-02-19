@@ -494,6 +494,8 @@ private:
   void ClearFeedbackCache();
 
   void FillBindingElement(VKPipe::BindingElement &dstel, const DescriptorSetSlot &srcel);
+  void FillDescriptor(Descriptor &dstel, const DescriptorSetSlot &srcel);
+  void FillSamplerDescriptor(SamplerDescriptor &dstel, const DescriptorSetSlot &srcel);
 
   void PatchReservedDescriptors(const VulkanStatePipeline &pipe, VkDescriptorPool &descpool,
                                 rdcarray<VkDescriptorSetLayout> &setLayouts,
