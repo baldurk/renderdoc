@@ -599,6 +599,7 @@ enum class DescriptorSlotImageLayout : EnumBaseType
   FragmentDensity,
   FragmentShadingRate,
   FeedbackLoop,
+  DynamicLocalRead,
 
   Count,
 };
@@ -630,6 +631,7 @@ constexpr VkImageLayout convert(DescriptorSlotImageLayout layout)
        : layout == DescriptorSlotImageLayout::FragmentDensity        ? VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT
        : layout == DescriptorSlotImageLayout::FragmentShadingRate    ? VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR
        : layout == DescriptorSlotImageLayout::FeedbackLoop           ? VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT
+       : layout == DescriptorSlotImageLayout::DynamicLocalRead       ? VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR
        : VK_IMAGE_LAYOUT_MAX_ENUM;
   // clang-format on
 }
@@ -661,6 +663,7 @@ constexpr DescriptorSlotImageLayout convert(VkImageLayout layout)
        : layout == VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT             ? DescriptorSlotImageLayout::FragmentDensity
        : layout == VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR ? DescriptorSlotImageLayout::FragmentShadingRate
        : layout == VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT         ? DescriptorSlotImageLayout::FeedbackLoop
+       : layout == VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR                     ? DescriptorSlotImageLayout::DynamicLocalRead
        : DescriptorSlotImageLayout::Count;
   // clang-format on
 }
