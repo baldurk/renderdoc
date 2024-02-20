@@ -1435,6 +1435,10 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::State &el)
   SERIALISE_MEMBER(pixelShader);
   SERIALISE_MEMBER(computeShader);
 
+  SERIALISE_MEMBER(descriptorStore);
+  SERIALISE_MEMBER(descriptorCount);
+  SERIALISE_MEMBER(descriptorByteSize);
+
   SERIALISE_MEMBER(streamOut);
 
   SERIALISE_MEMBER(rasterizer);
@@ -1442,7 +1446,7 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::State &el)
 
   SERIALISE_MEMBER(predication);
 
-  SIZE_CHECK(2088);
+  SIZE_CHECK(2104);
 }
 
 #pragma endregion D3D11 pipeline state
@@ -2026,6 +2030,10 @@ void DoSerialise(SerialiserType &ser, GLPipe::State &el)
   SERIALISE_MEMBER(shaderStorageBuffers);
   SERIALISE_MEMBER(images);
 
+  SERIALISE_MEMBER(descriptorStore);
+  SERIALISE_MEMBER(descriptorCount);
+  SERIALISE_MEMBER(descriptorByteSize);
+
   SERIALISE_MEMBER(transformFeedback);
 
   SERIALISE_MEMBER(rasterizer);
@@ -2036,7 +2044,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::State &el)
 
   SERIALISE_MEMBER(hints);
 
-  SIZE_CHECK(1952);
+  SIZE_CHECK(1968);
 }
 
 #pragma endregion OpenGL pipeline state

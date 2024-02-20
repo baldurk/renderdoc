@@ -848,6 +848,10 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
   ContextPair &ctx = drv.GetCtx();
 
+  pipe.descriptorStore = m_pDriver->m_DescriptorsID;
+  pipe.descriptorCount = EncodeGLDescriptorIndex({GLDescriptorMapping::Count, 0});
+  pipe.descriptorByteSize = 1;
+
   GLuint vao = 0;
   drv.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&vao);
   pipe.vertexInput.vertexArrayObject = rm->GetOriginalID(rm->GetResID(VertexArrayRes(ctx, vao)));
@@ -2131,10 +2135,244 @@ rdcarray<Descriptor> GLReplay::GetDescriptors(ResourceId descriptorStore,
     return ret;
   }
 
+  MakeCurrentReplayContext(&m_ReplayCtx);
+  WrappedOpenGL &drv = *m_pDriver;
+  GLResourceManager *rm = m_pDriver->GetResourceManager();
+
+  ContextPair &ctx = drv.GetCtx();
+
+  GLRenderState rs;
+  rs.FetchState(&drv);
+
   size_t count = 0;
   for(const DescriptorRange &r : ranges)
     count += r.count;
   ret.resize(count);
+
+  size_t dst = 0;
+  for(const DescriptorRange &r : ranges)
+  {
+    uint32_t descriptorId = r.offset;
+
+    for(uint32_t i = 0; i < r.count; i++, dst++, descriptorId++)
+    {
+      GLDescriptorLocation idx = DecodeGLDescriptorIndex(descriptorId);
+
+      if(idx.type == GLDescriptorMapping::Invalid)
+      {
+      }
+      else if(idx.type == GLDescriptorMapping::BareUniforms)
+      {
+        // not feasible to emulate backing store for bare uniforms. We could synthesise our own byte
+        // layout and query uniform values into a buffer but... let's not.
+        ret[dst].type = DescriptorType::ConstantBuffer;
+        ret[dst].byteSize = 16 * 1024;
+      }
+      else if(idx.type == GLDescriptorMapping::UniformBinding)
+      {
+        ret[dst].type = DescriptorType::ConstantBuffer;
+        if(rs.UniformBinding[idx.idx].res.name != 0)
+        {
+          ret[dst].resource = rm->GetOriginalID(rm->GetResID(rs.UniformBinding[idx.idx].res));
+          ret[dst].byteOffset = rs.UniformBinding[idx.idx].start;
+          ret[dst].byteSize = rs.UniformBinding[idx.idx].size;
+        }
+      }
+      else if(idx.type == GLDescriptorMapping::AtomicCounter)
+      {
+        ret[dst].type = DescriptorType::ReadWriteBuffer;
+        if(rs.AtomicCounter[idx.idx].res.name != 0)
+        {
+          ret[dst].resource = rm->GetOriginalID(rm->GetResID(rs.AtomicCounter[idx.idx].res));
+          ret[dst].byteOffset = rs.AtomicCounter[idx.idx].start;
+          ret[dst].byteSize = rs.AtomicCounter[idx.idx].size;
+        }
+      }
+      else if(idx.type == GLDescriptorMapping::ShaderStorage)
+      {
+        ret[dst].type = DescriptorType::ReadWriteBuffer;
+        if(rs.ShaderStorage[idx.idx].res.name != 0)
+        {
+          ret[dst].resource = rm->GetOriginalID(rm->GetResID(rs.ShaderStorage[idx.idx].res));
+          ret[dst].byteOffset = rs.ShaderStorage[idx.idx].start;
+          ret[dst].byteSize = rs.ShaderStorage[idx.idx].size;
+        }
+      }
+      else if(idx.type == GLDescriptorMapping::Images)
+      {
+        ret[dst].type = DescriptorType::ReadWriteImage;
+        if(rs.Images[idx.idx].res.name != 0)
+        {
+          ResourceId id = rm->GetResID(rs.Images[idx.idx].res);
+          ret[dst].resource = rm->GetOriginalID(id);
+          ret[dst].firstMip = rs.Images[idx.idx].level & 0xff;
+          ret[dst].numMips = 1;
+          ret[dst].firstSlice = rs.Images[idx.idx].layer & 0xffff;
+          if(rs.Images[idx.idx].access == eGL_READ_ONLY)
+          {
+            ret[dst].flags = DescriptorFlags::ReadOnlyAccess;
+          }
+          else if(rs.Images[idx.idx].access == eGL_WRITE_ONLY)
+          {
+            ret[dst].flags = DescriptorFlags::WriteOnlyAccess;
+          }
+          ret[dst].format = MakeResourceFormat(eGL_TEXTURE_2D, rs.Images[idx.idx].format);
+
+          CacheTexture(id);
+
+          ret[dst].textureType = m_CachedTextures[id].type;
+          if(ret[dst].textureType == TextureType::Texture3D)
+            ret[dst].numSlices = rs.Images[idx.idx].layered
+                                     ? (m_CachedTextures[id].depth >> ret[dst].firstMip) & 0xffff
+                                     : 1;
+          else
+            ret[dst].numSlices =
+                rs.Images[idx.idx].layered ? m_CachedTextures[id].arraysize & 0xffff : 1;
+
+          if(ret[dst].textureType == TextureType::Buffer)
+            ret[dst].type = DescriptorType::ReadWriteTypedBuffer;
+        }
+      }
+      else
+      {
+        ret[dst].type = DescriptorType::ImageSampler;
+        if(idx.type == GLDescriptorMapping::TexBuffer)
+          ret[dst].type = DescriptorType::TypedBuffer;
+
+        drv.glActiveTexture(GLenum(eGL_TEXTURE0 + idx.idx));
+
+        GLuint tex = 0;
+        GLenum target = eGL_NONE;
+
+        if(idx.type == GLDescriptorMapping::TexCubeArray && !HasExt[ARB_texture_cube_map_array])
+        {
+          tex = 0;
+          target = eGL_TEXTURE_CUBE_MAP_ARRAY;
+        }
+        else
+        {
+          switch(idx.type)
+          {
+            case GLDescriptorMapping::Tex1D:
+              target = eGL_TEXTURE_1D;
+              ret[dst].textureType = TextureType::Texture1D;
+              break;
+            case GLDescriptorMapping::Tex2D:
+              target = eGL_TEXTURE_2D;
+              ret[dst].textureType = TextureType::Texture2D;
+              break;
+            case GLDescriptorMapping::Tex3D:
+              target = eGL_TEXTURE_3D;
+              ret[dst].textureType = TextureType::Texture3D;
+              break;
+            case GLDescriptorMapping::Tex1DArray:
+              target = eGL_TEXTURE_1D_ARRAY;
+              ret[dst].textureType = TextureType::Texture1DArray;
+              break;
+            case GLDescriptorMapping::Tex2DArray:
+              target = eGL_TEXTURE_2D_ARRAY;
+              ret[dst].textureType = TextureType::Texture2DArray;
+              break;
+            case GLDescriptorMapping::TexCubeArray:
+              target = eGL_TEXTURE_CUBE_MAP_ARRAY;
+              ret[dst].textureType = TextureType::TextureCubeArray;
+              break;
+            case GLDescriptorMapping::TexRect:
+              target = eGL_TEXTURE_RECTANGLE;
+              ret[dst].textureType = TextureType::TextureRect;
+              break;
+            case GLDescriptorMapping::TexBuffer:
+              target = eGL_TEXTURE_BUFFER;
+              ret[dst].textureType = TextureType::Buffer;
+              break;
+            case GLDescriptorMapping::TexCube:
+              target = eGL_TEXTURE_CUBE_MAP;
+              ret[dst].textureType = TextureType::TextureCube;
+              break;
+            case GLDescriptorMapping::Tex2DMS:
+              target = eGL_TEXTURE_2D_MULTISAMPLE;
+              ret[dst].textureType = TextureType::Texture2DMS;
+              break;
+            case GLDescriptorMapping::Tex2DMSArray:
+              target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+              ret[dst].textureType = TextureType::Texture2DMSArray;
+              break;
+            case GLDescriptorMapping::AtomicCounter:
+            case GLDescriptorMapping::ShaderStorage:
+            case GLDescriptorMapping::BareUniforms:
+            case GLDescriptorMapping::UniformBinding:
+            case GLDescriptorMapping::Images:
+            case GLDescriptorMapping::Invalid:
+            case GLDescriptorMapping::Count: target = eGL_NONE; break;
+          }
+        }
+
+        if(target == eGL_NONE)
+          continue;
+
+        GLenum binding = TextureBinding(target);
+
+        drv.glGetIntegerv(binding, (GLint *)&tex);
+
+        if(tex == 0)
+          continue;
+
+        GLint firstMip = 0, numMips = 1;
+
+        if(target != eGL_TEXTURE_BUFFER)
+        {
+          drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_BASE_LEVEL, &firstMip);
+          drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_MAX_LEVEL, &numMips);
+
+          numMips = numMips - firstMip + 1;
+        }
+
+        ResourceId id = rm->GetResID(TextureRes(ctx, tex));
+        ret[dst].resource = rm->GetOriginalID(id);
+        ret[dst].firstMip = firstMip & 0xff;
+        ret[dst].numMips = numMips & 0xff;
+
+        GLenum levelQueryType =
+            target == eGL_TEXTURE_CUBE_MAP ? eGL_TEXTURE_CUBE_MAP_POSITIVE_X : target;
+        GLenum fmt = eGL_NONE;
+        drv.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
+        ret[dst].format = MakeResourceFormat(target, fmt);
+        if(IsDepthStencilFormat(fmt))
+        {
+          GLint depthMode = eGL_DEPTH_COMPONENT;
+
+          if(HasExt[ARB_stencil_texturing])
+            drv.glGetTextureParameterivEXT(tex, target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &depthMode);
+
+          ret[dst].format = ResourceFormat();
+          ret[dst].format.type = ResourceFormatType::Regular;
+          ret[dst].format.compByteWidth = 1;
+          ret[dst].format.compCount = 1;
+          if(depthMode == eGL_DEPTH_COMPONENT)
+            ret[dst].format.compType = CompType::Depth;
+          else if(depthMode == eGL_STENCIL_INDEX)
+            ret[dst].format.compType = CompType::UInt;
+        }
+
+        GLenum swizzles[4] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
+        if(target != eGL_TEXTURE_BUFFER &&
+           (HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle]))
+          GetTextureSwizzle(tex, target, swizzles);
+
+        ret[dst].swizzle.red = MakeSwizzle(swizzles[0]);
+        ret[dst].swizzle.green = MakeSwizzle(swizzles[1]);
+        ret[dst].swizzle.blue = MakeSwizzle(swizzles[2]);
+        ret[dst].swizzle.alpha = MakeSwizzle(swizzles[3]);
+
+        GLuint samp = 0;
+        if(HasExt[ARB_sampler_objects])
+          drv.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&samp);
+
+        ret[dst].secondary = rm->GetOriginalID(rm->GetResID(SamplerRes(ctx, samp)));
+      }
+    }
+  }
+
   return ret;
 }
 
@@ -2149,10 +2387,190 @@ rdcarray<SamplerDescriptor> GLReplay::GetSamplerDescriptors(ResourceId descripto
     return ret;
   }
 
+  MakeCurrentReplayContext(&m_ReplayCtx);
+  WrappedOpenGL &drv = *m_pDriver;
+  GLResourceManager *rm = m_pDriver->GetResourceManager();
+
+  ContextPair &ctx = drv.GetCtx();
+
   size_t count = 0;
   for(const DescriptorRange &r : ranges)
     count += r.count;
   ret.resize(count);
+
+  size_t dst = 0;
+  for(const DescriptorRange &r : ranges)
+  {
+    uint32_t descriptorId = r.offset;
+
+    for(uint32_t i = 0; i < r.count; i++, dst++, descriptorId++)
+    {
+      GLDescriptorLocation idx = DecodeGLDescriptorIndex(descriptorId);
+
+      if(idx.type == GLDescriptorMapping::Invalid || idx.type == GLDescriptorMapping::Images ||
+         idx.type == GLDescriptorMapping::AtomicCounter ||
+         idx.type == GLDescriptorMapping::ShaderStorage ||
+         idx.type == GLDescriptorMapping::UniformBinding)
+        continue;
+
+      drv.glActiveTexture(GLenum(eGL_TEXTURE0 + idx.idx));
+
+      GLuint tex = 0;
+      GLenum target = eGL_NONE;
+
+      if(idx.type == GLDescriptorMapping::TexCubeArray && !HasExt[ARB_texture_cube_map_array])
+      {
+        tex = 0;
+        target = eGL_TEXTURE_CUBE_MAP_ARRAY;
+      }
+      else
+      {
+        switch(idx.type)
+        {
+          case GLDescriptorMapping::Tex1D: target = eGL_TEXTURE_1D; break;
+          case GLDescriptorMapping::Tex2D: target = eGL_TEXTURE_2D; break;
+          case GLDescriptorMapping::Tex3D: target = eGL_TEXTURE_3D; break;
+          case GLDescriptorMapping::Tex1DArray: target = eGL_TEXTURE_1D_ARRAY; break;
+          case GLDescriptorMapping::Tex2DArray: target = eGL_TEXTURE_2D_ARRAY; break;
+          case GLDescriptorMapping::TexCubeArray: target = eGL_TEXTURE_CUBE_MAP_ARRAY; break;
+          case GLDescriptorMapping::TexRect: target = eGL_TEXTURE_RECTANGLE; break;
+          case GLDescriptorMapping::TexBuffer: target = eGL_TEXTURE_BUFFER; break;
+          case GLDescriptorMapping::TexCube: target = eGL_TEXTURE_CUBE_MAP; break;
+          case GLDescriptorMapping::Tex2DMS: target = eGL_TEXTURE_2D_MULTISAMPLE; break;
+          case GLDescriptorMapping::Tex2DMSArray: target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY; break;
+          case GLDescriptorMapping::AtomicCounter:
+          case GLDescriptorMapping::ShaderStorage:
+          case GLDescriptorMapping::BareUniforms:
+          case GLDescriptorMapping::UniformBinding:
+          case GLDescriptorMapping::Images:
+          case GLDescriptorMapping::Invalid:
+          case GLDescriptorMapping::Count: target = eGL_NONE; break;
+        }
+      }
+
+      if(target == eGL_NONE)
+        continue;
+
+      GLenum binding = TextureBinding(target);
+
+      GLuint samp = 0;
+      if(HasExt[ARB_sampler_objects])
+        drv.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&samp);
+
+      drv.glGetIntegerv(binding, (GLint *)&tex);
+
+      if(samp == 0 && tex == 0)
+        continue;
+
+      ret[dst].object = rm->GetOriginalID(rm->GetResID(SamplerRes(ctx, samp)));
+
+      // GL has separate sampler objects but they don't exist as separate sampler descriptors
+      ret[dst].type = DescriptorType::ImageSampler;
+
+      if(samp != 0)
+        drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_BORDER_COLOR,
+                                    ret[dst].borderColorValue.floatValue.data());
+      else
+        drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_BORDER_COLOR,
+                                       ret[dst].borderColorValue.floatValue.data());
+
+      ret[dst].borderColorType = CompType::Float;
+
+      GLint v;
+      v = 0;
+      if(samp != 0)
+        drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_S, &v);
+      else
+        drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_WRAP_S, &v);
+      ret[dst].addressU = MakeAddressMode((GLenum)v);
+
+      v = 0;
+      if(samp != 0)
+        drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_T, &v);
+      else
+        drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_WRAP_T, &v);
+      ret[dst].addressV = MakeAddressMode((GLenum)v);
+
+      v = 0;
+      if(samp != 0)
+        drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_R, &v);
+      else
+        drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_WRAP_R, &v);
+      ret[dst].addressW = MakeAddressMode((GLenum)v);
+
+      // GLES 3 is always seamless
+      if(IsGLES && GLCoreVersion > 30)
+      {
+        ret[dst].seamlessCubemaps = true;
+      }
+      else if(!IsGLES)
+      {
+        // on GLES 2 this is always going to be false, GL has a toggle
+        ret[dst].seamlessCubemaps = drv.glIsEnabled(eGL_TEXTURE_CUBE_MAP_SEAMLESS) != GL_FALSE;
+      }
+
+      v = 0;
+      if(samp != 0)
+        drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_COMPARE_FUNC, &v);
+      else
+        drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_COMPARE_FUNC, &v);
+      ret[dst].compareFunction = MakeCompareFunc((GLenum)v);
+
+      GLint minf = 0;
+      GLint magf = 0;
+      if(samp != 0)
+        drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_MIN_FILTER, &minf);
+      else
+        drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_MIN_FILTER, &minf);
+
+      if(samp != 0)
+        drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_MAG_FILTER, &magf);
+      else
+        drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_MAG_FILTER, &magf);
+
+      if(HasExt[ARB_texture_filter_anisotropic])
+      {
+        if(samp != 0)
+          drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_ANISOTROPY, &ret[dst].maxAnisotropy);
+        else
+          drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_MAX_ANISOTROPY,
+                                         &ret[dst].maxAnisotropy);
+      }
+      else
+      {
+        ret[dst].maxAnisotropy = 0.0f;
+      }
+
+      ret[dst].filter = MakeFilter((GLenum)minf, (GLenum)magf, ret[dst].maxAnisotropy);
+
+      v = 0;
+      if(samp != 0)
+        drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_COMPARE_MODE, &v);
+      else
+        drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_COMPARE_MODE, &v);
+      ret[dst].filter.filter = (GLenum)v == eGL_COMPARE_REF_TO_TEXTURE ? FilterFunction::Comparison
+                                                                       : FilterFunction::Normal;
+
+      if(samp != 0)
+        drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_LOD, &ret[dst].maxLOD);
+      else
+        drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_MAX_LOD, &ret[dst].maxLOD);
+
+      if(samp != 0)
+        drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_MIN_LOD, &ret[dst].minLOD);
+      else
+        drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_MIN_LOD, &ret[dst].minLOD);
+
+      if(!IsGLES)
+      {
+        if(samp != 0)
+          drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_LOD_BIAS, &ret[dst].mipBias);
+        else
+          drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_LOD_BIAS, &ret[dst].mipBias);
+      }
+    }
+  }
+
   return ret;
 }
 

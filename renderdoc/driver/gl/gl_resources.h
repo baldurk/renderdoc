@@ -61,7 +61,7 @@ GLenum GetViewCastedFormat(GLenum internalFormat, CompType typeCast);
 bool IsCubeFace(GLenum target);
 GLint CubeTargetIndex(GLenum face);
 GLenum TextureBinding(GLenum target);
-GLenum TextureTarget(GLenum target);
+GLenum TextureTarget(GLenum binding);
 bool IsProxyTarget(GLenum target);
 
 GLenum BufferBinding(GLenum target);

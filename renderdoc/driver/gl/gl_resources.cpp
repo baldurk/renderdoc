@@ -2052,9 +2052,9 @@ GLint CubeTargetIndex(GLenum face)
   return 0;
 }
 
-GLenum TextureTarget(GLenum target)
+GLenum TextureTarget(GLenum binding)
 {
-  switch(target)
+  switch(binding)
   {
     case eGL_TEXTURE_BINDING_1D: return eGL_TEXTURE_1D;
     case eGL_TEXTURE_BINDING_1D_ARRAY: return eGL_TEXTURE_1D_ARRAY;
@@ -2076,7 +2076,7 @@ GLenum TextureTarget(GLenum target)
     default: break;
   }
 
-  return target;
+  return binding;
 }
 
 bool IsProxyTarget(GLenum target)

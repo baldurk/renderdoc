@@ -913,6 +913,24 @@ struct State
 )");
   rdcarray<ImageLoadStore> images;
 
+  DOCUMENT(R"(The virtual descriptor storage.
+
+:type: ResourceId
+)");
+  ResourceId descriptorStore;
+
+  DOCUMENT(R"(The number of descriptors in the virtual descriptor storage.
+
+:type: int
+)");
+  uint32_t descriptorCount;
+
+  DOCUMENT(R"(The byte size of a descriptor in the virtual descriptor storage.
+
+:type: int
+)");
+  uint32_t descriptorByteSize;
+
   DOCUMENT(R"(The transform feedback stage.
 
 :type: GLFeedback

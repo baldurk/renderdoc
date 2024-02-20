@@ -68,6 +68,72 @@ struct PixelUnpackState : public PixelStorageState
 void ResetPixelPackState(bool compressed, GLint alignment);
 void ResetPixelUnpackState(bool compressed, GLint alignment);
 
+// mapping of 'index in descriptor store' to fixed bindings, linearly in GLRenderState members
+enum class GLDescriptorMapping : uint32_t
+{
+  Tex1D = 0,
+  Tex2D = Tex1D + 128,
+  Tex3D = Tex2D + 128,
+  Tex1DArray = Tex3D + 128,
+  Tex2DArray = Tex1DArray + 128,
+  TexCubeArray = Tex2DArray + 128,
+  TexRect = TexCubeArray + 128,
+  TexBuffer = TexRect + 128,
+  TexCube = TexBuffer + 128,
+  Tex2DMS = TexCube + 128,
+  Tex2DMSArray = Tex2DMS + 128,
+  Images = Tex2DMSArray + 128,
+  AtomicCounter = Images + 8,
+  ShaderStorage = AtomicCounter + 8,
+  UniformBinding = ShaderStorage + 96,
+  BareUniforms = UniformBinding + 84,
+  Count = BareUniforms + 6,
+  Invalid = ~0U,
+};
+
+struct GLDescriptorLocation
+{
+  GLDescriptorMapping type;
+  uint32_t idx;
+};
+
+inline GLDescriptorLocation DecodeGLDescriptorIndex(uint32_t idx)
+{
+  if(idx >= (uint32_t)GLDescriptorMapping::Count)
+    return {GLDescriptorMapping::Invalid, 0};
+
+    // go in reverse order to handle each case with a >=
+#define HANDLE_TYPE(type)                                      \
+  else if(idx >= (uint32_t)GLDescriptorMapping::type) return { \
+      GLDescriptorMapping::type,                               \
+      idx - (uint32_t)GLDescriptorMapping::type,               \
+  }
+  HANDLE_TYPE(BareUniforms);
+  HANDLE_TYPE(UniformBinding);
+  HANDLE_TYPE(ShaderStorage);
+  HANDLE_TYPE(AtomicCounter);
+  HANDLE_TYPE(Images);
+  HANDLE_TYPE(Tex2DMSArray);
+  HANDLE_TYPE(Tex2DMS);
+  HANDLE_TYPE(TexCube);
+  HANDLE_TYPE(TexBuffer);
+  HANDLE_TYPE(TexRect);
+  HANDLE_TYPE(TexCubeArray);
+  HANDLE_TYPE(Tex2DArray);
+  HANDLE_TYPE(Tex1DArray);
+  HANDLE_TYPE(Tex3D);
+  HANDLE_TYPE(Tex2D);
+  HANDLE_TYPE(Tex1D);
+#undef HANDLE_TYPE
+
+  return {GLDescriptorMapping::Invalid, 0};
+}
+
+inline uint32_t EncodeGLDescriptorIndex(const GLDescriptorLocation &idx)
+{
+  return (uint32_t)idx.type + idx.idx;
+}
+
 struct GLRenderState
 {
   GLRenderState();
