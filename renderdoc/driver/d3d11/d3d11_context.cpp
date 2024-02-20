@@ -69,6 +69,12 @@ HRESULT STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::QueryInterface(REFII
 extern uint32_t NullCBOffsets[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 extern uint32_t NullCBCounts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 
+D3DDescriptorStore::D3DDescriptorStore(WrappedID3D11Device *device)
+{
+  m_ID = ResourceIDGen::GetNewUniqueID();
+  device->GetResourceManager()->AddCurrentResource(GetResourceID(), this);
+}
+
 WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *realDevice,
                                                        ID3D11DeviceContext *context)
     : m_pDevice(realDevice),
@@ -138,10 +144,16 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   if(RenderDoc::Inst().IsReplayApp())
   {
     m_State = CaptureState::LoadingReplaying;
+
+    m_DescriptorStore = new D3DDescriptorStore(m_pDevice);
+    m_pDevice->GetResourceManager()->AddLiveResource(m_DescriptorStore->GetResourceID(),
+                                                     m_DescriptorStore);
   }
   else
   {
     m_State = CaptureState::BackgroundCapturing;
+
+    m_DescriptorStore = NULL;
   }
 
   // create a temporary and grab its resource ID
@@ -210,8 +222,6 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
       m_SuccessfulCapture = false;
     }
   }
-
-  ReplayFakeContext(ResourceId());
 }
 
 WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
@@ -221,6 +231,12 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
 
   if(m_pRealContext && GetType() != D3D11_DEVICE_CONTEXT_IMMEDIATE)
     m_pDevice->RemoveDeferredContext(this);
+
+  // if this context is being destroyed by the resource manager the descriptor store may already be
+  // "removed"
+  if(m_DescriptorStore && GetResourceManager()->HasLiveResource(m_DescriptorStore->GetResourceID()))
+    GetResourceManager()->EraseLiveResource(m_DescriptorStore->GetResourceID());
+  SAFE_DELETE(m_DescriptorStore);
 
   SAFE_DELETE(m_FrameReader);
 
@@ -1215,11 +1231,6 @@ const APIEvent &WrappedID3D11DeviceContext::GetEvent(uint32_t eventId) const
     idx++;
 
   return m_Events[RDCMIN(idx, m_Events.size() - 1)];
-}
-
-void WrappedID3D11DeviceContext::ReplayFakeContext(ResourceId id)
-{
-  m_FakeContext = id;
 }
 
 RDResult WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32_t startEventID,

@@ -962,7 +962,7 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
 
       GetResourceManager()->AddLiveResource(pHeap, ret);
 
-      AddResource(pHeap, ResourceType::ShaderBinding, "Descriptor Heap");
+      AddResource(pHeap, ResourceType::DescriptorStore, "Descriptor Heap");
     }
   }
 

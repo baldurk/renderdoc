@@ -1667,10 +1667,17 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
 rdcarray<Descriptor> D3D11Replay::GetDescriptors(ResourceId descriptorStore,
                                                  const rdcarray<DescriptorRange> &ranges)
 {
+  rdcarray<Descriptor> ret;
+
+  if(descriptorStore != m_pImmediateContext->GetDescriptorsID())
+  {
+    RDCERR("Descriptors query for invalid descriptor store on fixed bindings API (D3D11)");
+    return ret;
+  }
+
   size_t count = 0;
   for(const DescriptorRange &r : ranges)
     count += r.count;
-  rdcarray<Descriptor> ret;
   ret.resize(count);
   return ret;
 }
@@ -1678,10 +1685,17 @@ rdcarray<Descriptor> D3D11Replay::GetDescriptors(ResourceId descriptorStore,
 rdcarray<SamplerDescriptor> D3D11Replay::GetSamplerDescriptors(ResourceId descriptorStore,
                                                                const rdcarray<DescriptorRange> &ranges)
 {
+  rdcarray<SamplerDescriptor> ret;
+
+  if(descriptorStore != m_pImmediateContext->GetDescriptorsID())
+  {
+    RDCERR("Descriptors query for invalid descriptor store on fixed bindings API (D3D11)");
+    return ret;
+  }
+
   size_t count = 0;
   for(const DescriptorRange &r : ranges)
     count += r.count;
-  rdcarray<SamplerDescriptor> ret;
   ret.resize(count);
   return ret;
 }

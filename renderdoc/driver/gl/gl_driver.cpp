@@ -695,6 +695,16 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
     m_DeviceRecord = m_ContextRecord = NULL;
 
     ResourceIDGen::SetReplayResourceIDs();
+
+    m_DescriptorsID = GetResourceManager()->RegisterResource(
+        GLResource(NULL, eResSpecial, eSpecialResDescriptorStorage));
+
+    GetResourceManager()->AddLiveResource(
+        m_DescriptorsID, GLResource(NULL, eResSpecial, eSpecialResDescriptorStorage));
+
+    AddResource(m_DescriptorsID, ResourceType::DescriptorStore, "");
+    GetReplay()->GetResourceDesc(m_DescriptorsID).SetCustomName("Context Bindings");
+    GetReplay()->GetResourceDesc(m_DescriptorsID).initialisationChunks.clear();
   }
 
   rdcspv::Init();

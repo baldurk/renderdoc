@@ -662,6 +662,14 @@ API-specific concepts.
 
   A structure used to carry implementation-defined spatial partitioning data and related
   information, used to accelerate geometry intersection queries (e.g. for ray tracing).
+
+.. data:: DescriptorStore
+
+  A descriptor store, either driver or application managed. For example a Vulkan descriptor set or
+  a D3D12 descriptor heap.
+
+  APIs without an explicit concept of descriptor storage will have virtual objects corresponding to
+  temporary bindings.
 )");
 enum class ResourceType : uint32_t
 {
@@ -690,6 +698,8 @@ enum class ResourceType : uint32_t
   Pool,
 
   AccelerationStructure,
+
+  DescriptorStore,
 };
 
 DECLARE_REFLECTION_ENUM(ResourceType);

@@ -2123,10 +2123,17 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 rdcarray<Descriptor> GLReplay::GetDescriptors(ResourceId descriptorStore,
                                               const rdcarray<DescriptorRange> &ranges)
 {
+  rdcarray<Descriptor> ret;
+
+  if(descriptorStore != m_pDriver->m_DescriptorsID)
+  {
+    RDCERR("Descriptors query for invalid descriptor store on fixed bindings API (OpenGL)");
+    return ret;
+  }
+
   size_t count = 0;
   for(const DescriptorRange &r : ranges)
     count += r.count;
-  rdcarray<Descriptor> ret;
   ret.resize(count);
   return ret;
 }
@@ -2134,10 +2141,17 @@ rdcarray<Descriptor> GLReplay::GetDescriptors(ResourceId descriptorStore,
 rdcarray<SamplerDescriptor> GLReplay::GetSamplerDescriptors(ResourceId descriptorStore,
                                                             const rdcarray<DescriptorRange> &ranges)
 {
+  rdcarray<SamplerDescriptor> ret;
+
+  if(descriptorStore != m_pDriver->m_DescriptorsID)
+  {
+    RDCERR("Descriptors query for invalid descriptor store on fixed bindings API (OpenGL)");
+    return ret;
+  }
+
   size_t count = 0;
   for(const DescriptorRange &r : ranges)
     count += r.count;
-  rdcarray<SamplerDescriptor> ret;
   ret.resize(count);
   return ret;
 }

@@ -502,7 +502,7 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
                                                                    variableDescriptorAlloc);
     }
 
-    AddResource(DescriptorSet, ResourceType::ShaderBinding, "Descriptor Set");
+    AddResource(DescriptorSet, ResourceType::DescriptorStore, "Descriptor Set");
     DerivedResource(device, DescriptorSet);
     DerivedResource(AllocateInfo.pSetLayouts[0], DescriptorSet);
     DerivedResource(AllocateInfo.descriptorPool, DescriptorSet);

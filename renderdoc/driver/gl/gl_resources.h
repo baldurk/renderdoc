@@ -93,6 +93,7 @@ enum GLSpecialResource
 {
   eSpecialResDevice = 0,
   eSpecialResContext = 0,
+  eSpecialResDescriptorStorage = 0,
 };
 
 enum NullInitialiser

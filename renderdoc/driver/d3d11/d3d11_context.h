@@ -93,6 +93,36 @@ enum CaptureFailReason
   CaptureFailed_UncappedCmdlist,
 };
 
+// a fake device child to be able to register a resource without needing a wrapper
+struct D3DDescriptorStore : public ID3D11DeviceChild
+{
+private:
+  ResourceId m_ID;
+
+public:
+  D3DDescriptorStore(WrappedID3D11Device *device);
+  virtual ~D3DDescriptorStore() {}
+
+  ResourceId GetResourceID() { return m_ID; }
+
+  ULONG STDMETHODCALLTYPE AddRef() { return 1; }
+  ULONG STDMETHODCALLTYPE Release() { return 1; }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) { return E_NOTIMPL; }
+  void STDMETHODCALLTYPE GetDevice(ID3D11Device **ppDevice) {}
+  HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID guid, UINT *pDataSize, void *pData)
+  {
+    return E_NOTIMPL;
+  }
+  HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID guid, UINT DataSize, const void *pData)
+  {
+    return E_NOTIMPL;
+  }
+  HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFGUID guid, const IUnknown *pData)
+  {
+    return E_NOTIMPL;
+  }
+};
+
 class WrappedID3D11DeviceContext : public ID3D11DeviceContext4
 {
 private:
@@ -145,6 +175,7 @@ private:
   std::set<rdcstr> m_StringDB;
 
   ResourceId m_CurContextId;
+  D3DDescriptorStore *m_DescriptorStore;
 
   StreamReader *m_FrameReader = NULL;
 
@@ -167,8 +198,6 @@ private:
 
     RenderDoc::Inst().AddActiveDriver(RDCDriver::D3D11, false);
   }
-
-  ResourceId m_FakeContext;
 
   bool m_DoStateVerify;
   D3D11RenderState *m_CurrentPipelineState;
@@ -266,6 +295,11 @@ public:
 
   void VerifyState();
 
+  ResourceId GetDescriptorsID()
+  {
+    return m_DescriptorStore ? m_DescriptorStore->GetResourceID() : ResourceId();
+  }
+
   void BeginFrame();
   void EndFrame();
 
@@ -300,7 +334,6 @@ public:
   bool IsFL11_1();
 
   bool ProcessChunk(ReadSerialiser &ser, D3D11Chunk chunk);
-  void ReplayFakeContext(ResourceId id);
   RDResult ReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
   void SetFrameReader(StreamReader *reader) { m_FrameReader = reader; }
   void MarkResourceReferenced(ResourceId id, FrameRefType refType);

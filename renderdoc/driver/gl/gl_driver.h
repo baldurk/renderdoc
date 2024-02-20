@@ -220,6 +220,8 @@ private:
   ResourceId m_ContextResourceID;
   GLResourceRecord *m_ContextRecord;
 
+  ResourceId m_DescriptorsID;
+
   GLResourceManager *m_ResourceManager;
 
   uint64_t m_TimeBase = 0;
