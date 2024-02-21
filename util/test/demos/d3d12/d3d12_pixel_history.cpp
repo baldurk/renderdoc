@@ -541,21 +541,14 @@ float4 main(v2f vertIn, uint primId : SV_PrimitiveID, uint sampleId : SV_SampleI
 
     while(Running())
     {
-      ID3D12GraphicsCommandList1Ptr cmd = GetCommandBuffer();
-      Reset(cmd);
-
       for(int i = 0; i < numPasses; ++i)
       {
         PassResources &pass = passes[i];
 
+        ID3D12GraphicsCommandList1Ptr cmd = GetCommandBuffer();
+        Reset(cmd);
         pushMarker(cmd, pass.markerName);
 
-        ResourceBarrier(cmd, pass.main16DS, D3D12_RESOURCE_STATE_COMMON,
-                        D3D12_RESOURCE_STATE_DEPTH_WRITE);
-        ResourceBarrier(cmd, pass.mainDS, D3D12_RESOURCE_STATE_COMMON,
-                        D3D12_RESOURCE_STATE_DEPTH_WRITE);
-        ResourceBarrier(cmd, pass.mainRT, D3D12_RESOURCE_STATE_COMMON,
-                        D3D12_RESOURCE_STATE_RENDER_TARGET);
         cmd->OMSetStencilRef(0x55);
 
         D3D12_VIEWPORT v;
@@ -760,8 +753,25 @@ float4 main(v2f vertIn, uint primId : SV_PrimitiveID, uint sampleId : SV_SampleI
                         D3D12_RESOURCE_STATE_COMMON);
 
         popMarker(cmd);
+        cmd->Close();
+        {
+          ID3D12GraphicsCommandList1Ptr barrierCmd = GetCommandBuffer();
+          Reset(barrierCmd);
+          ResourceBarrier(barrierCmd, pass.main16DS, D3D12_RESOURCE_STATE_COMMON,
+                          D3D12_RESOURCE_STATE_DEPTH_WRITE);
+          ResourceBarrier(barrierCmd, pass.mainDS, D3D12_RESOURCE_STATE_COMMON,
+                          D3D12_RESOURCE_STATE_DEPTH_WRITE);
+          ResourceBarrier(barrierCmd, pass.mainRT, D3D12_RESOURCE_STATE_COMMON,
+                          D3D12_RESOURCE_STATE_RENDER_TARGET);
+          barrierCmd->Close();
+          Submit({barrierCmd});
+        }
+
+        Submit({cmd});
       }
 
+      ID3D12GraphicsCommandList1Ptr cmd = GetCommandBuffer();
+      Reset(cmd);
       // Now blit the main render targets to the back buffer
       ID3D12ResourcePtr bb = StartUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
       for(int i = 0; i < numPasses; ++i)
