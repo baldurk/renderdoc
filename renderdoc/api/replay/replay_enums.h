@@ -907,6 +907,38 @@ enum class DescriptorType : uint8_t
 
 DECLARE_REFLECTION_ENUM(DescriptorType);
 
+DOCUMENT("Checks if a descriptor type corresponds to a constant buffer in shader reflection.");
+constexpr bool IsConstantBufferDescriptor(DescriptorType type)
+{
+  return type == DescriptorType::ConstantBuffer;
+}
+
+DOCUMENT(R"(Checks if a descriptor type corresponds to a sampler in shader reflection. Only dedicated
+sampler types are sampler descriptors, combined image/samplers are reported only as read only
+resources.
+)");
+constexpr bool IsSamplerDescriptor(DescriptorType type)
+{
+  return type == DescriptorType::Sampler;
+}
+
+DOCUMENT(R"(Checks if a descriptor type corresponds to a read only resource in shader reflection.
+Combined image/samplers are reported as read only resources.
+)");
+constexpr bool IsReadOnlyDescriptor(DescriptorType type)
+{
+  return type == DescriptorType::ImageSampler || type == DescriptorType::Image ||
+         type == DescriptorType::TypedBuffer;
+}
+
+DOCUMENT(R"(Checks if a descriptor type corresponds to a read write resource in shader reflection.
+)");
+constexpr bool IsReadWriteDescriptor(DescriptorType type)
+{
+  return type == DescriptorType::ReadWriteBuffer || type == DescriptorType::ReadWriteImage ||
+         type == DescriptorType::ReadWriteTypedBuffer;
+}
+
 DOCUMENT3(R"(Annotates a particular built-in input or output from a shader with a special meaning to
 the hardware or API.
 
@@ -2472,7 +2504,7 @@ DOCUMENT(R"(The stage in a pipeline where a shader runs
 
   The mesh shader.
 )");
-enum class ShaderStage : uint32_t
+enum class ShaderStage : uint8_t
 {
   Vertex = 0,
   First = Vertex,

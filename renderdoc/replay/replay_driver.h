@@ -166,6 +166,7 @@ public:
                                               const rdcarray<DescriptorRange> &ranges) = 0;
   virtual rdcarray<SamplerDescriptor> GetSamplerDescriptors(
       ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges) = 0;
+  virtual rdcarray<DescriptorAccess> GetDescriptorAccess() = 0;
 
   virtual FrameRecord GetFrameRecord() = 0;
 

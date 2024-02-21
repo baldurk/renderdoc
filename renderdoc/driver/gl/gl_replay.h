@@ -164,6 +164,7 @@ public:
                                       const rdcarray<DescriptorRange> &ranges);
   rdcarray<SamplerDescriptor> GetSamplerDescriptors(ResourceId descriptorStore,
                                                     const rdcarray<DescriptorRange> &ranges);
+  rdcarray<DescriptorAccess> GetDescriptorAccess();
   void FreeTargetResource(ResourceId id);
 
   RDResult ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);

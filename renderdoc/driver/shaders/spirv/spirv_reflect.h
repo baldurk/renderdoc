@@ -29,7 +29,7 @@
 #include "spirv_processor.h"
 
 enum class GraphicsAPI : uint32_t;
-enum class ShaderStage : uint32_t;
+enum class ShaderStage : uint8_t;
 enum class ShaderBuiltin : uint32_t;
 struct ShaderReflection;
 struct ShaderBindpointMapping;

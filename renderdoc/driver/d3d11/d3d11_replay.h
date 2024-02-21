@@ -186,6 +186,7 @@ public:
                                       const rdcarray<DescriptorRange> &ranges);
   rdcarray<SamplerDescriptor> GetSamplerDescriptors(ResourceId descriptorStore,
                                                     const rdcarray<DescriptorRange> &ranges);
+  rdcarray<DescriptorAccess> GetDescriptorAccess();
   void FreeTargetResource(ResourceId id);
   void FreeCustomShader(ResourceId id);
 

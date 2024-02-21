@@ -108,6 +108,7 @@ enum ReplayProxyPacket
 
   eReplayProxy_GetDescriptors,
   eReplayProxy_GetSamplerDescriptors,
+  eReplayProxy_GetDescriptorAccess,
 };
 
 DECLARE_REFLECTION_ENUM(ReplayProxyPacket);
@@ -485,6 +486,7 @@ public:
                              const rdcarray<DescriptorRange> &ranges);
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<SamplerDescriptor>, GetSamplerDescriptors,
                              ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<DescriptorAccess>, GetDescriptorAccess);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<uint32_t>, GetPassEvents, uint32_t eventId);
 

@@ -165,6 +165,11 @@ rdcarray<SamplerDescriptor> DummyDriver::GetSamplerDescriptors(ResourceId descri
   return ret;
 }
 
+rdcarray<DescriptorAccess> DummyDriver::GetDescriptorAccess()
+{
+  return {};
+}
+
 FrameRecord DummyDriver::GetFrameRecord()
 {
   return m_FrameRecord;

@@ -2605,6 +2605,11 @@ rdcarray<SamplerDescriptor> VulkanReplay::GetSamplerDescriptors(ResourceId descr
   return ret;
 }
 
+rdcarray<DescriptorAccess> VulkanReplay::GetDescriptorAccess()
+{
+  return {};
+}
+
 void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, ShaderStage stage,
                                         rdcstr entryPoint, uint32_t cbufSlot,
                                         rdcarray<ShaderVariable> &outvars, const bytebuf &data)

@@ -279,6 +279,7 @@ public:
     ret.resize(count);
     return ret;
   }
+  rdcarray<DescriptorAccess> GetDescriptorAccess() { return {}; }
   DriverInformation GetDriverInfo()
   {
     DriverInformation ret = {};

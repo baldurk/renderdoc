@@ -2427,6 +2427,11 @@ rdcarray<SamplerDescriptor> D3D12Replay::GetSamplerDescriptors(ResourceId descri
   return ret;
 }
 
+rdcarray<DescriptorAccess> D3D12Replay::GetDescriptorAccess()
+{
+  return {};
+}
+
 void D3D12Replay::RenderHighlightBox(float w, float h, float scale)
 {
   OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];

@@ -588,6 +588,13 @@ Multiple ranges within the store can be queried at once, and are returned in a c
   virtual rdcarray<SamplerDescriptor> GetSamplerDescriptors(
       ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges) = 0;
 
+  DOCUMENT(R"(Retrieve the descriptor accesses that happened at the current event.
+
+:return: The descriptor accesses.
+:rtype: List[DescriptorAccess]
+)");
+  virtual rdcarray<DescriptorAccess> GetDescriptorAccess() = 0;
+
   DOCUMENT(R"(Retrieve the list of possible disassembly targets for :meth:`DisassembleShader`. The
 values are implementation dependent but will always include a default target first which is the
 native disassembly of the shader. Further options may be available for additional diassembly views

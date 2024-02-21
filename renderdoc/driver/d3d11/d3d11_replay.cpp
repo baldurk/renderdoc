@@ -1982,6 +1982,11 @@ rdcarray<SamplerDescriptor> D3D11Replay::GetSamplerDescriptors(ResourceId descri
   return ret;
 }
 
+rdcarray<DescriptorAccess> D3D11Replay::GetDescriptorAccess()
+{
+  return {};
+}
+
 RDResult D3D11Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   return m_pDevice->ReadLogInitialisation(rdc, storeStructuredBuffers);

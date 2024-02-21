@@ -154,6 +154,7 @@ public:
                                       const rdcarray<DescriptorRange> &ranges);
   rdcarray<SamplerDescriptor> GetSamplerDescriptors(ResourceId descriptorStore,
                                                     const rdcarray<DescriptorRange> &ranges);
+  rdcarray<DescriptorAccess> GetDescriptorAccess();
 
   rdcarray<rdcstr> GetDisassemblyTargets(bool withPipeline);
   rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const rdcstr &target);

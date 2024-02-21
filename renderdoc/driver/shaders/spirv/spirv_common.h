@@ -453,7 +453,7 @@ struct SpecConstant
 
 DECLARE_STRINGISE_TYPE(rdcspv::Id);
 
-enum class ShaderStage : uint32_t;
+enum class ShaderStage : uint8_t;
 enum class ShaderBuiltin : uint32_t;
 
 ShaderStage MakeShaderStage(rdcspv::ExecutionModel model);

@@ -2574,6 +2574,11 @@ rdcarray<SamplerDescriptor> GLReplay::GetSamplerDescriptors(ResourceId descripto
   return ret;
 }
 
+rdcarray<DescriptorAccess> GLReplay::GetDescriptorAccess()
+{
+  return {};
+}
+
 void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool bufferBacked,
                                           rdcstr prefix, const rdcarray<ShaderConstant> &variables,
                                           rdcarray<ShaderVariable> &outvars,

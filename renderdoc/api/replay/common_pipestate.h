@@ -25,6 +25,7 @@
 #pragma once
 
 #include "apidefs.h"
+#include "data_types.h"
 #include "rdcarray.h"
 #include "shader_types.h"
 #include "stringise.h"
@@ -745,6 +746,108 @@ this sampler.
 };
 
 DECLARE_REFLECTION_STRUCT(SamplerDescriptor);
+
+DOCUMENT(R"(The details of a single accessed descriptor as fetched by a shader and which descriptor
+in the descriptor store was fetched.
+
+This may be a somewhat conservative access, reported as possible but not actually executed on the
+GPU itself.
+
+.. data:: NoShaderBinding
+
+  No shader binding corresponds to this descriptor access, it happened directly without going
+  through any kind of binding.
+)");
+struct DescriptorAccess
+{
+  DOCUMENT("");
+  DescriptorAccess() = default;
+  DescriptorAccess(const DescriptorAccess &) = default;
+  DescriptorAccess &operator=(const DescriptorAccess &) = default;
+
+  bool operator==(const DescriptorAccess &o) const
+  {
+    return stage == o.stage && type == o.type && index == o.index &&
+           arrayElement == o.arrayElement && descriptorStore == o.descriptorStore &&
+           byteOffset == o.byteOffset && byteSize == o.byteSize;
+  }
+  bool operator<(const DescriptorAccess &o) const
+  {
+    if(stage != o.stage)
+      return stage < o.stage;
+    if(type != o.type)
+      return type < o.type;
+    if(index != o.index)
+      return index < o.index;
+    if(arrayElement != o.arrayElement)
+      return arrayElement < o.arrayElement;
+    if(descriptorStore != o.descriptorStore)
+      return descriptorStore < o.descriptorStore;
+    if(byteOffset != o.byteOffset)
+      return byteOffset < o.byteOffset;
+    if(byteSize != o.byteSize)
+      return byteSize < o.byteSize;
+    return false;
+  }
+
+  DOCUMENT(R"(The shader stage that this descriptor access came from.
+
+:type: ShaderStage
+)");
+  ShaderStage stage = ShaderStage::Count;
+  DOCUMENT(R"(The type of the descriptor being accessed.
+
+:type: DescriptorType
+)");
+  DescriptorType type = DescriptorType::Unknown;
+
+  DOCUMENT(R"(The index within the shader's reflection list corresponding to :data:`type` of the
+accessing resource.
+
+If this value is set to :data:`NoShaderBinding` then the shader synthesised a direct access into
+descriptor storage without passing through a declared binding.
+
+:type: int
+)");
+  uint16_t index = 0;
+
+  static const uint16_t NoShaderBinding = 0xFFFF;
+
+  DOCUMENT(R"(For an arrayed resource declared in a shader, the array element used.
+
+:type: int
+)");
+  uint32_t arrayElement = 0;
+
+  DOCUMENT(R"(The backing storage of the descriptor.
+
+:type: ResourceId
+)");
+  ResourceId descriptorStore;
+  DOCUMENT(R"(The offset in bytes to the descriptor in the descriptor store.
+
+:type: int
+)");
+  uint32_t byteOffset = 0;
+  DOCUMENT(R"(The size in bytes of the descriptor.
+
+:type: int
+)");
+  uint32_t byteSize = 0;
+
+  DOCUMENT(R"(For informational purposes, some descriptors that are declared in the shader
+interface but are provably unused may still be reported as descriptor accesses. This flag will be
+set to ``True`` to indicate that the descriptor was definitely not used.
+
+This flag only states that a descriptor is definitely unused on all paths. If set to ``False`` this
+does not necessarily guarantee that the descriptor was accessed on the GPU during execution.
+
+:type: bool
+)");
+  bool staticallyUnused = false;
+};
+
+DECLARE_REFLECTION_STRUCT(DescriptorAccess);
 
 DOCUMENT("Information about a single constant buffer binding.");
 struct BoundCBuffer

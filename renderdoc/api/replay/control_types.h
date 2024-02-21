@@ -27,6 +27,7 @@
 
 #include <functional>
 #include "apidefs.h"
+#include "common_pipestate.h"
 #include "data_types.h"
 #include "rdcarray.h"
 #include "replay_enums.h"
@@ -637,6 +638,12 @@ struct DescriptorRange
   DescriptorRange() = default;
   DescriptorRange(const DescriptorRange &) = default;
   DescriptorRange &operator=(const DescriptorRange &) = default;
+
+  DescriptorRange(const DescriptorAccess &access)
+  {
+    offset = access.byteOffset;
+    descriptorSize = access.byteSize;
+  }
 
   DOCUMENT("The offset in the descriptor storage where the descriptor range starts.");
   uint32_t offset = 0;
