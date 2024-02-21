@@ -3010,14 +3010,19 @@ void FillInColor(ResourceFormat fmt, const D3D12PixelHistoryValue &value, Modifi
 void ConvertAndFillInColor(ResourceFormat srcFmt, ResourceFormat outFmt,
                            const D3D12PixelHistoryValue &value, ModificationValue &mod)
 {
-  FloatVector v4 = DecodeFormattedComponents(srcFmt, value.color);
-
-  // To properly handle some cases of component bounds, roundtrip through encoding again
-  uint8_t tempColor[32];
-  EncodeFormattedComponents(outFmt, v4, (byte *)tempColor);
-  v4 = DecodeFormattedComponents(outFmt, tempColor);
-
-  memcpy(mod.col.floatValue.data(), &v4, sizeof(v4));
+  if((outFmt.compType == CompType::UInt) || (outFmt.compType == CompType::SInt))
+  {
+    PixelHistoryDecode(srcFmt, value.color, mod.col);
+  }
+  else
+  {
+    FloatVector v4 = DecodeFormattedComponents(srcFmt, value.color);
+    // To properly handle some cases of component bounds, roundtrip through encoding again
+    uint8_t tempColor[32];
+    EncodeFormattedComponents(outFmt, v4, (byte *)tempColor);
+    v4 = DecodeFormattedComponents(outFmt, tempColor);
+    memcpy(mod.col.floatValue.data(), &v4, sizeof(v4));
+  }
 }
 
 float GetDepthValue(DXGI_FORMAT depthFormat, const D3D12PixelHistoryValue &value)
