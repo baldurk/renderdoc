@@ -677,30 +677,6 @@ protected:
     return targetIndex;
   }
 
-  D3D12_RESOURCE_STATES GetImageState(ID3D12Resource *target, uint32_t planeSlice,
-                                      D3D12_RESOURCE_STATES fallback)
-  {
-    RDCASSERTMSG("This function is not meant for use with the non-capture resources.",
-                 target != m_CallbackInfo.colorImage && target != m_CallbackInfo.dsImage);
-
-    D3D12CommandData &cmdData = *m_pDevice->GetQueue()->GetCommandData();
-    SubresourceStateVector targetStates =
-        cmdData.m_BakedCmdListInfo[cmdData.m_LastCmdListID].GetState(m_pDevice, GetResID(target));
-
-    uint32_t baseMip = m_CallbackInfo.targetSubresource.mip;
-    uint32_t baseSlice = m_CallbackInfo.targetSubresource.slice;
-
-    uint32_t subresource =
-        D3D12CalcSubresource(baseMip, baseSlice, planeSlice, m_CallbackInfo.targetDesc.MipLevels,
-                             m_CallbackInfo.targetDesc.DepthOrArraySize);
-
-    if(targetStates.size() > subresource && targetStates[subresource].IsStates())
-    {
-      return targetStates[subresource].ToStates();
-    }
-    return fallback;
-  }
-
   WrappedID3D12Device *m_pDevice;
   D3D12PixelHistoryShaderCache *m_ShaderCache;
   D3D12PixelHistoryCallbackInfo m_CallbackInfo;
@@ -916,8 +892,11 @@ struct D3D12ColorAndStencilCallback : public D3D12PixelHistoryCallback
 {
   D3D12ColorAndStencilCallback(WrappedID3D12Device *device, D3D12PixelHistoryShaderCache *shaderCache,
                                const D3D12PixelHistoryCallbackInfo &callbackInfo,
-                               const rdcarray<uint32_t> &events)
-      : D3D12PixelHistoryCallback(device, shaderCache, callbackInfo, NULL), m_Events(events)
+                               const rdcarray<uint32_t> &events,
+                               std::map<uint32_t, D3D12_RESOURCE_STATES> resourceStates)
+      : D3D12PixelHistoryCallback(device, shaderCache, callbackInfo, NULL),
+        m_Events(events),
+        m_ResourceStates(resourceStates)
   {
   }
 
@@ -1097,7 +1076,10 @@ private:
     targetCopyParams.mip = m_CallbackInfo.targetSubresource.mip;
     targetCopyParams.arraySlice = m_CallbackInfo.targetSubresource.slice;
     targetCopyParams.multisampled = (m_CallbackInfo.targetDesc.SampleDesc.Count != 1);
+    D3D12_RESOURCE_STATES nonRtFallback = m_ResourceStates[eid];
+    bool rtOutput = (nonRtFallback == D3D12_RESOURCE_STATE_RENDER_TARGET);
     D3D12_RESOURCE_STATES fallback = D3D12_RESOURCE_STATE_RENDER_TARGET;
+
     if(IsDepthFormat(m_CallbackInfo.targetDesc, m_CallbackInfo.compType))
     {
       fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH
@@ -1108,8 +1090,7 @@ private:
       targetCopyParams.copyFormat = GetDepthCopyFormat(m_CallbackInfo.targetDesc.Format);
       offset += offsetof(struct D3D12PixelHistoryValue, depth);
     }
-    targetCopyParams.srcImageState =
-        GetImageState(m_CallbackInfo.targetImage, targetCopyParams.planeSlice, fallback);
+    targetCopyParams.srcImageState = rtOutput ? fallback : nonRtFallback;
 
     CopyImagePixel(cmd, targetCopyParams, offset);
 
@@ -1123,8 +1104,7 @@ private:
       fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL
                      ? D3D12_RESOURCE_STATE_DEPTH_READ
                      : D3D12_RESOURCE_STATE_DEPTH_WRITE;
-      stencilCopyParams.srcImageState =
-          GetImageState(m_CallbackInfo.targetImage, stencilCopyParams.planeSlice, fallback);
+      stencilCopyParams.srcImageState = rtOutput ? fallback : nonRtFallback;
       CopyImagePixel(cmd, stencilCopyParams, offset + sizeof(float));
     }
 
@@ -1152,7 +1132,7 @@ private:
       fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH
                      ? D3D12_RESOURCE_STATE_DEPTH_READ
                      : D3D12_RESOURCE_STATE_DEPTH_WRITE;
-      depthCopyParams.srcImageState = GetImageState(depthImage, depthCopyParams.planeSlice, fallback);
+      depthCopyParams.srcImageState = rtOutput ? fallback : nonRtFallback;
       CopyImagePixel(cmd, depthCopyParams, offset + offsetof(struct D3D12PixelHistoryValue, depth));
 
       if(IsDepthAndStencilFormat(depthFormat))
@@ -1163,8 +1143,7 @@ private:
         fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL
                        ? D3D12_RESOURCE_STATE_DEPTH_READ
                        : D3D12_RESOURCE_STATE_DEPTH_WRITE;
-        depthCopyParams.srcImageState =
-            GetImageState(depthImage, depthCopyParams.planeSlice, fallback);
+        depthCopyParams.srcImageState = rtOutput ? fallback : nonRtFallback;
         CopyImagePixel(cmd, depthCopyParams,
                        offset + offsetof(struct D3D12PixelHistoryValue, stencil));
       }
@@ -1266,6 +1245,7 @@ private:
   D3D12RenderState m_SavedState;
   std::map<ResourceId, D3D12PipelineReplacements> m_PipeCache;
   rdcarray<uint32_t> m_Events;
+  std::map<uint32_t, D3D12_RESOURCE_STATES> m_ResourceStates;
   // Key is event ID, and value is an index of where the event data is stored.
   std::map<uint32_t, size_t> m_EventIndices;
   std::map<uint32_t, DXGI_FORMAT> m_DepthFormats;
@@ -2682,12 +2662,25 @@ bool CreateOcclusionPool(WrappedID3D12Device *device, uint32_t poolSize, ID3D12Q
   return true;
 }
 
+bool IsUavWrite(ResourceUsage usage)
+{
+  return (usage >= ResourceUsage::VS_RWResource && usage <= ResourceUsage::CS_RWResource);
+}
+
+bool IsResolveWrite(ResourceUsage usage)
+{
+  return (usage == ResourceUsage::Resolve || usage == ResourceUsage::ResolveDst);
+}
+
+bool IsCopyWrite(ResourceUsage usage)
+{
+  return (usage == ResourceUsage::CopyDst || usage == ResourceUsage::Copy ||
+          usage == ResourceUsage::GenMips);
+}
+
 bool IsDirectWrite(ResourceUsage usage)
 {
-  return ((usage >= ResourceUsage::VS_RWResource && usage <= ResourceUsage::CS_RWResource) ||
-          usage == ResourceUsage::CopyDst || usage == ResourceUsage::Copy ||
-          usage == ResourceUsage::Resolve || usage == ResourceUsage::ResolveDst ||
-          usage == ResourceUsage::GenMips);
+  return IsUavWrite(usage) || IsResolveWrite(usage) || IsCopyWrite(usage);
 }
 
 // NOTE: This function is quite similar to formatpacking.cpp::DecodeFormattedComponents,
@@ -3118,10 +3111,21 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
   // to determine if these draws failed for some reason (for ex., depth test).
   rdcarray<uint32_t> modEvents;
   rdcarray<uint32_t> drawEvents;
+  std::map<uint32_t, D3D12_RESOURCE_STATES> resourceStates;
   for(size_t ev = 0; ev < events.size(); ev++)
   {
-    bool clear = (events[ev].usage == ResourceUsage::Clear);
+    ResourceUsage usage = events[ev].usage;
+    bool clear = (usage == ResourceUsage::Clear);
     bool directWrite = IsDirectWrite(events[ev].usage);
+
+    D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    if(IsUavWrite(usage))
+      resourceState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    else if(IsResolveWrite(usage))
+      resourceState = D3D12_RESOURCE_STATE_RESOLVE_DEST;
+    else if(IsCopyWrite(usage))
+      resourceState = D3D12_RESOURCE_STATE_COPY_DEST;
+    resourceStates[events[ev].eventId] = resourceState;
 
     if(directWrite || clear)
     {
@@ -3140,7 +3144,7 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
     }
   }
 
-  D3D12ColorAndStencilCallback cb(m_pDevice, shaderCache, callbackInfo, modEvents);
+  D3D12ColorAndStencilCallback cb(m_pDevice, shaderCache, callbackInfo, modEvents, resourceStates);
   {
     D3D12MarkerRegion colorStencilRegion(m_pDevice->GetQueue()->GetReal(),
                                          "D3D12ColorAndStencilCallback");
