@@ -565,7 +565,10 @@ protected:
   void CopyImagePixel(ID3D12GraphicsCommandListX *cmd, D3D12CopyPixelParams &p, size_t offset)
   {
     uint32_t baseMip = m_CallbackInfo.targetSubresource.mip;
+    bool copy3d = m_CallbackInfo.targetDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D;
     uint32_t baseSlice = m_CallbackInfo.targetSubresource.slice;
+    uint32_t arraySize = m_CallbackInfo.targetDesc.DepthOrArraySize;
+    uint32_t depthIndex = 0;
 
     // The images that are created specifically for evaluating pixel history are
     // already based on the target mip/slice
@@ -574,6 +577,13 @@ protected:
       // TODO: Is this always true when we call CopyImagePixel? Also need to test this case with MSAA
       baseMip = 0;
       baseSlice = 0;
+      copy3d = false;
+    }
+    else if(copy3d)
+    {
+      baseSlice = 0;
+      arraySize = 1;
+      depthIndex = m_CallbackInfo.targetSubresource.slice;
     }
 
     // For pipeline barriers.
@@ -582,9 +592,8 @@ protected:
     barrier.Transition.pResource = p.srcImage;
     barrier.Transition.StateBefore = p.srcImageState;
     barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-    barrier.Transition.Subresource =
-        D3D12CalcSubresource(baseMip, baseSlice, p.planeSlice, m_CallbackInfo.targetDesc.MipLevels,
-                             m_CallbackInfo.targetDesc.DepthOrArraySize);
+    barrier.Transition.Subresource = D3D12CalcSubresource(
+        baseMip, baseSlice, p.planeSlice, m_CallbackInfo.targetDesc.MipLevels, arraySize);
 
     // Multi-sampled images can't call CopyTextureRegion for a single sample, so instead
     // copy using a compute shader into a staging image first
@@ -645,8 +654,8 @@ protected:
       srcBox.top = p.y;
       srcBox.right = srcBox.left + 1;
       srcBox.bottom = srcBox.top + 1;
-      srcBox.front = 0;
-      srcBox.back = 1;
+      srcBox.front = depthIndex;
+      srcBox.back = srcBox.front + 1;
 
       if(offsetRemainder % elementSize == 0)
         cmd->CopyTextureRegion(&dst, dstX, 0, 0, &src, &srcBox);
