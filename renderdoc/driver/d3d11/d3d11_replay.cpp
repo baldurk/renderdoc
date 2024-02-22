@@ -1984,7 +1984,23 @@ rdcarray<SamplerDescriptor> D3D11Replay::GetSamplerDescriptors(ResourceId descri
 
 rdcarray<DescriptorAccess> D3D11Replay::GetDescriptorAccess()
 {
-  return {};
+  D3D11RenderState *rs = m_pDevice->GetImmediateContext()->GetCurrentPipelineState();
+
+  rdcarray<DescriptorAccess> ret;
+
+  const D3D11RenderState::Shader *srcArr[] = {&rs->VS, &rs->HS, &rs->DS, &rs->GS, &rs->PS, &rs->CS};
+
+  for(size_t stage = 0; stage < ARRAY_COUNT(srcArr); stage++)
+  {
+    const D3D11RenderState::Shader &src = *srcArr[stage];
+
+    WrappedShader *shad = (WrappedShader *)(WrappedID3D11Shader<ID3D11VertexShader> *)src.Object;
+
+    if(shad)
+      ret.append(shad->GetDescriptorAccess());
+  }
+
+  return ret;
 }
 
 RDResult D3D11Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
