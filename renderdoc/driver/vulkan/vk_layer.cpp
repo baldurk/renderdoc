@@ -46,7 +46,7 @@ extern "C" const rdcstr VulkanLayerJSONBasename;
 #undef VK_LAYER_EXPORT
 #define VK_LAYER_EXPORT extern "C" __declspec(dllexport)
 
-#elif ENABLED(RDOC_LINUX) || ENABLED(RDOC_ANDROID)
+#elif ENABLED(RDOC_LINUX) || ENABLED(RDOC_ANDROID) || ENABLED(RDOC_APPLE)
 
 #undef VK_LAYER_EXPORT
 #define VK_LAYER_EXPORT __attribute__((visibility("default")))
