@@ -1264,7 +1264,7 @@ size_t GetNextPatchSize(const void *pNext)
 
         VkCommandBufferInheritanceRenderingInfo *info =
             (VkCommandBufferInheritanceRenderingInfo *)next;
-        memSize += info->colorAttachmentCount * sizeof(VkCommandBufferInheritanceRenderingInfo);
+        memSize += info->colorAttachmentCount * sizeof(VkFormat);
         break;
       }
       case VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO:
@@ -1314,7 +1314,7 @@ size_t GetNextPatchSize(const void *pNext)
 
         VkDependencyInfo *info = (VkDependencyInfo *)next;
 
-        memSize += info->memoryBarrierCount * sizeof(VkBufferMemoryBarrier2);
+        memSize += info->memoryBarrierCount * sizeof(VkMemoryBarrier2);
         for(uint32_t i = 0; i < info->memoryBarrierCount; i++)
           memSize += GetNextPatchSize(info->pMemoryBarriers[i].pNext);
 
@@ -1476,7 +1476,7 @@ size_t GetNextPatchSize(const void *pNext)
         memSize += sizeof(VkPipelineLibraryCreateInfoKHR);
 
         VkPipelineLibraryCreateInfoKHR *info = (VkPipelineLibraryCreateInfoKHR *)next;
-        memSize += info->libraryCount * sizeof(VkPipelineLibraryCreateInfoKHR);
+        memSize += info->libraryCount * sizeof(VkPipeline);
         break;
       }
       case VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO:
@@ -1484,7 +1484,7 @@ size_t GetNextPatchSize(const void *pNext)
         memSize += sizeof(VkPipelineRenderingCreateInfo);
 
         VkPipelineRenderingCreateInfo *info = (VkPipelineRenderingCreateInfo *)next;
-        memSize += info->colorAttachmentCount * sizeof(VkPipelineRenderingCreateInfo);
+        memSize += info->colorAttachmentCount * sizeof(VkFormat);
         break;
       }
       case VK_STRUCTURE_TYPE_PRESENT_INFO_KHR:
