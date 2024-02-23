@@ -68,10 +68,10 @@ struct QueueReadbackData
   byte *readbackMapped = NULL;
   uint64_t readbackSize = 0;
 
-  static const uint32_t NumCommandTypes = 7;
-
-  ID3D12GraphicsCommandList *lists[NumCommandTypes] = {};
-  ID3D12CommandAllocator *allocs[NumCommandTypes] = {};
+  ID3D12CommandQueue *unwrappedQueue = NULL;
+  ID3D12GraphicsCommandList *list = NULL;
+  ID3D12CommandAllocator *alloc = NULL;
+  ID3D12Fence *fence = NULL;
 
   void Resize(uint64_t size);
 

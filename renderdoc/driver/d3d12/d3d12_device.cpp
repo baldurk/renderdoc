@@ -3825,18 +3825,26 @@ void WrappedID3D12Device::CreateInternalResources()
     m_QueueReadbackData.Resize(4 * 1024 * 1024);
     InternalRef();
 
-    for(D3D12_COMMAND_LIST_TYPE type :
-        {D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_TYPE_COMPUTE,
-         D3D12_COMMAND_LIST_TYPE_COPY})
     {
-      CreateCommandAllocator(type, __uuidof(ID3D12CommandAllocator),
-                             (void **)&m_QueueReadbackData.allocs[type]);
+      D3D12_COMMAND_QUEUE_DESC desc = {};
+      desc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+      // make this queue as unwrapped so that it doesn't get included in captures
+      GetReal()->CreateCommandQueue(&desc, __uuidof(ID3D12CommandQueue),
+                                    (void **)&m_QueueReadbackData.unwrappedQueue);
       InternalRef();
-      CreateCommandList(0, type, m_QueueReadbackData.allocs[type], NULL,
-                        __uuidof(ID3D12GraphicsCommandList),
-                        (void **)&m_QueueReadbackData.lists[type]);
+      m_QueueReadbackData.unwrappedQueue->SetName(L"m_QueueReadbackData.queue");
+      CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, __uuidof(ID3D12CommandAllocator),
+                             (void **)&m_QueueReadbackData.alloc);
+      m_QueueReadbackData.alloc->SetName(L"m_QueueReadbackData.alloc");
       InternalRef();
-      m_QueueReadbackData.lists[type]->Close();
+      CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, m_QueueReadbackData.alloc, NULL,
+                        __uuidof(ID3D12GraphicsCommandList), (void **)&m_QueueReadbackData.list);
+      InternalRef();
+      m_QueueReadbackData.list->Close();
+      CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence),
+                  (void **)&m_QueueReadbackData.fence);
+      m_QueueReadbackData.fence->SetName(L"m_QueueReadbackData.fence");
+      InternalRef();
     }
   }
 
@@ -3844,6 +3852,7 @@ void WrappedID3D12Device::CreateInternalResources()
                          (void **)&m_Alloc);
   InternalRef();
   CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
+  m_GPUSyncFence->SetName(L"m_GPUSyncFence");
   InternalRef();
   m_GPUSyncHandle = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 
@@ -3929,10 +3938,10 @@ void WrappedID3D12Device::DestroyInternalResources()
     SAFE_RELEASE(m_DataUploadList[i]);
   SAFE_RELEASE(m_DataUploadAlloc);
 
-  for(size_t i = 0; i < ARRAY_COUNT(m_QueueReadbackData.allocs); i++)
-    SAFE_RELEASE(m_QueueReadbackData.allocs[i]);
-  for(size_t i = 0; i < ARRAY_COUNT(m_QueueReadbackData.lists); i++)
-    SAFE_RELEASE(m_QueueReadbackData.lists[i]);
+  SAFE_RELEASE(m_QueueReadbackData.unwrappedQueue);
+  SAFE_RELEASE(m_QueueReadbackData.alloc);
+  SAFE_RELEASE(m_QueueReadbackData.list);
+  SAFE_RELEASE(m_QueueReadbackData.fence);
   m_QueueReadbackData.Resize(0);
 
   SAFE_RELEASE(m_Alloc);
