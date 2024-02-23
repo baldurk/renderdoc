@@ -82,8 +82,16 @@ struct D3D11PostVSData
       return vsout;
     else if(type == MeshDataStage::GSOut)
       return gsout;
-    else
-      RDCERR("Unexpected mesh data stage!");
+
+    if(type == MeshDataStage::Count)
+    {
+      if(gsout.buf)
+        return gsout;
+
+      return vsout;
+    }
+
+    RDCERR("Unexpected mesh data stage!");
 
     return vsin;
   }

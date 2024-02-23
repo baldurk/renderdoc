@@ -366,8 +366,22 @@ private:
         return ampout;
       else if(type == MeshDataStage::MeshOut)
         return meshout;
-      else
-        RDCERR("Unexpected mesh data stage!");
+
+      if(type == MeshDataStage::Count)
+      {
+        if(gsout.buf)
+          return gsout;
+
+        if(vsout.buf)
+          return vsout;
+
+        if(meshout.buf)
+          return meshout;
+
+        return vsout;
+      }
+
+      RDCERR("Unexpected mesh data stage!");
 
       return vsout;
     }

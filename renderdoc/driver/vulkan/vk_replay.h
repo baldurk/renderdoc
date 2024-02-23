@@ -231,8 +231,22 @@ struct VulkanPostVSData
       return taskout;
     else if(type == MeshDataStage::MeshOut)
       return meshout;
-    else
-      RDCERR("Unexpected mesh data stage!");
+
+    if(type == MeshDataStage::Count)
+    {
+      if(gsout.buf != VK_NULL_HANDLE)
+        return gsout;
+
+      if(vsout.buf != VK_NULL_HANDLE)
+        return vsout;
+
+      if(meshout.buf != VK_NULL_HANDLE)
+        return meshout;
+
+      return vsout;
+    }
+
+    RDCERR("Unexpected mesh data stage!");
 
     return vsout;
   }

@@ -595,23 +595,26 @@ rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t x, uint32_t y)
       maxInst = RDCMAX(1U, action->numInstances);
     }
 
-    // used for post-VS output, calculate the offset of the element we're using as position,
-    // relative to 0
-    MeshFormat fmt =
-        m_pDevice->GetPostVSBuffers(action->eventId, m_RenderData.meshDisplay.curInstance,
-                                    m_RenderData.meshDisplay.curView, m_RenderData.meshDisplay.type);
+    rdcarray<uint32_t> instIDs;
+    instIDs.reserve(maxInst - firstInst + 1);
+    for(uint32_t inst = firstInst; inst < maxInst; inst++)
+      instIDs.push_back(inst);
+    instIDs.push_back(m_RenderData.meshDisplay.curInstance);
 
+    rdcarray<MeshFormat> fmts = m_pDevice->GetBatchPostVSBuffers(
+        action->eventId, instIDs, m_RenderData.meshDisplay.curView, m_RenderData.meshDisplay.type);
     m_pController->FatalErrorCheck();
 
-    uint64_t elemOffset = cfg.position.vertexByteOffset - fmt.vertexByteOffset;
+    // used for post-VS output, calculate the offset of the element we're using as position,
+    // relative to 0
+    // the last element in fmts corresponds to curInstance
+    const uint64_t elemOffset = cfg.position.vertexByteOffset - fmts.back().vertexByteOffset;
+    fmts.pop_back();
 
-    for(uint32_t inst = firstInst; inst < maxInst; inst++)
+    uint32_t inst = firstInst;
+    for(MeshFormat &fmt : fmts)
     {
       // find the start of this buffer, and apply the element offset, then pick in that instance
-      fmt = m_pDevice->GetPostVSBuffers(action->eventId, inst, m_RenderData.meshDisplay.curView,
-                                        m_RenderData.meshDisplay.type);
-      m_pController->FatalErrorCheck();
-
       if(fmt.vertexResourceId != ResourceId())
         cfg.position.vertexByteOffset = fmt.vertexByteOffset + elemOffset;
 
@@ -619,9 +622,9 @@ rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t x, uint32_t y)
       m_pController->FatalErrorCheck();
 
       if(vert != ~0U)
-      {
         return make_rdcpair(vert, inst);
-      }
+
+      inst++;
     }
 
     return errorReturn;
@@ -1072,33 +1075,21 @@ void ReplayOutput::DisplayMesh()
 
       if(d)
       {
+        rdcarray<uint32_t> instIDs;
+        instIDs.reserve(RDCMAX(1U, d->numInstances));
         for(uint32_t inst = 0; inst < RDCMAX(1U, d->numInstances); inst++)
-        {
-          // get the 'most final' stage
-          MeshFormat fmt = m_pDevice->GetPostVSBuffers(
-              passEvents[i], inst, m_RenderData.meshDisplay.curView, MeshDataStage::GSOut);
-          m_pController->FatalErrorCheck();
-          if(fmt.vertexResourceId == ResourceId())
-          {
-            fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, m_RenderData.meshDisplay.curView,
-                                              MeshDataStage::VSOut);
-            m_pController->FatalErrorCheck();
-          }
-          if(fmt.vertexResourceId == ResourceId())
-          {
-            fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, m_RenderData.meshDisplay.curView,
-                                              MeshDataStage::MeshOut);
-            m_pController->FatalErrorCheck();
-          }
+          instIDs.push_back(inst);
 
-          fmt.meshColor = passDraws;
-
-          // if unproject is marked, this output had a 'real' system position output
-          if(fmt.unproject)
-            secondaryDraws.push_back(fmt);
-        }
+        // pass MeshDataStage::Count to get the 'most final' stage
+        secondaryDraws.append(m_pDevice->GetBatchPostVSBuffers(
+            passEvents[i], instIDs, m_RenderData.meshDisplay.curView, MeshDataStage::Count));
+        m_pController->FatalErrorCheck();
       }
     }
+
+    // all secondary draws so far are previous pass elements
+    for(MeshFormat &fmt : secondaryDraws)
+      fmt.meshColor = passDraws;
 
     // action previous instances in the current action
     if(action->flags & ActionFlags::Instanced)
@@ -1109,26 +1100,28 @@ void ReplayOutput::DisplayMesh()
       if(m_RenderData.meshDisplay.showAllInstances)
         maxInst = RDCMAX(1U, action->numInstances);
 
-      for(uint32_t inst = 0; inst < maxInst; inst++)
+      if(maxInst > 0)
       {
-        // get the 'most final' stage
-        MeshFormat fmt = m_pDevice->GetPostVSBuffers(
-            action->eventId, inst, m_RenderData.meshDisplay.curView, MeshDataStage::GSOut);
+        rdcarray<uint32_t> instIDs;
+        instIDs.reserve(maxInst);
+        for(uint32_t inst = 0; inst < maxInst; inst++)
+          instIDs.push_back(inst);
+
+        size_t prevInstancesStart = secondaryDraws.size();
+
+        // pass MeshDataStage::Count to get the 'most final' stage
+        secondaryDraws.append(m_pDevice->GetBatchPostVSBuffers(
+            action->eventId, instIDs, m_RenderData.meshDisplay.curView, MeshDataStage::Count));
         m_pController->FatalErrorCheck();
-        if(fmt.vertexResourceId == ResourceId())
-        {
-          fmt = m_pDevice->GetPostVSBuffers(action->eventId, inst, m_RenderData.meshDisplay.curView,
-                                            MeshDataStage::VSOut);
-          m_pController->FatalErrorCheck();
-        }
 
-        fmt.meshColor = otherInstances;
-
-        // if unproject is marked, this output had a 'real' system position output
-        if(fmt.unproject)
-          secondaryDraws.push_back(fmt);
+        // set the colour for other instances
+        for(size_t i = prevInstancesStart; i < secondaryDraws.size(); i++)
+          secondaryDraws[i].meshColor = otherInstances;
       }
     }
+
+    // only if unproject is marked did this output have a 'real' system position output
+    secondaryDraws.removeIf([](const MeshFormat &fmt) { return fmt.unproject == false; });
   }
 
   mesh.position.meshColor = drawItself;
