@@ -876,9 +876,9 @@ void VulkanRenderState::BindDescriptorSetsWithoutPipeline(WrappedVulkan *vk, VkC
               break;
 
             const DescSetLayout &iDescLayout =
-                vk->GetDebugManager()->GetDescSetLayout(iPipeLayout.descSetLayouts[i]);
+                vk->GetDebugManager()->GetDescSetLayout(iPipeLayout.descSetLayouts[j]);
             const DescSetLayout &refDescLayout =
-                vk->GetDebugManager()->GetDescSetLayout(refPipeLayout.descSetLayouts[i]);
+                vk->GetDebugManager()->GetDescSetLayout(refPipeLayout.descSetLayouts[j]);
 
             if(iPipeLayout.descSetLayouts[j] != refPipeLayout.descSetLayouts[j] &&
                !iDescLayout.isCompatible(refDescLayout))
