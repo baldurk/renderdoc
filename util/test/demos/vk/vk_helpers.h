@@ -1477,6 +1477,12 @@ struct RenderPassCreator : private VkRenderPassCreateInfo
     return (const VkRenderPassCreateInfo *)this;
   }
 
+  RenderPassCreator &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
+
 private:
   void bake()
   {
