@@ -3463,13 +3463,14 @@ bool WrappedID3D12Device::Serialise_SetName(SerialiserType &ser, ID3D12DeviceChi
 
 void WrappedID3D12Device::SetName(ID3D12DeviceChild *pResource, const char *Name)
 {
-  // don't allow naming device contexts or command lists so we know this chunk
-  // is always on a pre-capture chunk.
-  if(IsCaptureMode(m_State) && !WrappedID3D12GraphicsCommandList::IsAlloc(pResource) &&
-     !WrappedID3D12CommandQueue::IsAlloc(pResource))
+  if(IsCaptureMode(m_State))
   {
     D3D12ResourceRecord *record = GetRecord(pResource);
 
+    if(WrappedID3D12CommandQueue::IsAlloc(pResource))
+      record = ((WrappedID3D12CommandQueue *)pResource)->GetCreationRecord();
+    if(WrappedID3D12GraphicsCommandList::IsAlloc(pResource))
+      record = ((WrappedID3D12GraphicsCommandList *)pResource)->GetCreationRecord();
     if(record == NULL)
       record = m_DeviceRecord;
 
@@ -3479,23 +3480,25 @@ void WrappedID3D12Device::SetName(ID3D12DeviceChild *pResource, const char *Name
 
       Serialise_SetName(ser, pResource, Name);
 
-      // don't serialise many SetName chunks to the
-      // object record, but we can't afford to drop any.
-      record->LockChunks();
-      while(record->HasChunks())
+      // don't serialise many SetName chunks to the object record, but we can't afford to drop any.
+      if(record != m_DeviceRecord)
       {
-        Chunk *end = record->GetLastChunk();
-
-        if(end->GetChunkType<D3D12Chunk>() == D3D12Chunk::SetName)
+        record->LockChunks();
+        while(record->HasChunks())
         {
-          end->Delete();
-          record->PopChunk();
-          continue;
-        }
+          Chunk *end = record->GetLastChunk();
 
-        break;
+          if(end->GetChunkType<D3D12Chunk>() == D3D12Chunk::SetName)
+          {
+            end->Delete();
+            record->PopChunk();
+            continue;
+          }
+
+          break;
+        }
+        record->UnlockChunks();
       }
-      record->UnlockChunks();
 
       record->AddChunk(scope.Get());
     }
