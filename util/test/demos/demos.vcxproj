@@ -446,36 +446,82 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-  <ItemGroup>
-    <Content Include="$(WindowsSdkDir_10)\Redist\D3D\x64\d3dcompiler_47.dll" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x64\d3dcompiler_47.dll') AND '$(Platform)'=='x64'">
-      <Link>d3dcompiler_47.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content>
-    <Content Include="$(WindowsSdkDir_10)\Redist\D3D\x86\d3dcompiler_47.dll" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x86\d3dcompiler_47.dll') AND '$(Platform)'=='Win32'">
-      <Link>d3dcompiler_47.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content>
-    <Content Include="$(WindowsSdkDir_10)\Redist\D3D\x64\dxcompiler.dll" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x64\dxcompiler.dll') AND '$(Platform)'=='x64'">
-      <Link>dxcompiler.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content>
-    <Content Include="$(WindowsSdkDir_10)\Redist\D3D\x86\dxcompiler.dll" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x86\dxcompiler.dll') AND '$(Platform)'=='Win32'">
-      <Link>dxcompiler.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content>
-    <Content Include="$(WindowsSdkDir_10)\Redist\D3D\x64\dxil.dll" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x64\dxil.dll') AND '$(Platform)'=='x64'">
-      <Link>dxil.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content>
-    <Content Include="$(WindowsSdkDir_10)\Redist\D3D\x86\dxil.dll" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x86\dxil.dll') AND '$(Platform)'=='Win32'">
-      <Link>dxil.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content>
-  </ItemGroup>
+  
+  <!-- try to find the latest dxcompiler.dll, as the redist folder isn't reliably  -->
+  <UsingTask TaskName="GetDXCDLL" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <DXCPath ParameterType="System.String" Required="False" Output="True" />
+      <DebugOut ParameterType="System.String" Required="False" Output="True" />
+      <BitnessFolder ParameterType="System.String" Required="True" Output="False" />
+      <SDKPath ParameterType="System.String" Required="True" Output="False" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Class" Language="cs">
+using System;
+using System.Diagnostics;
+using System.Linq;
+using System.Runtime.CompilerServices;
+
+namespace DXCEnumerateAndCheck {
+  public class GetDXCDLL : Microsoft.Build.Utilities.Task {
+    public override bool Execute() {
+      if(BitnessFolder == "Win32") BitnessFolder = "x86";
+
+      string[] sdkPathsCheck = SDKPath.Split(';');
+
+      foreach(string sdkPathCheck in sdkPathsCheck)
+      {
+        try
+        {
+          string[] dirs = System.IO.Directory.GetDirectories(sdkPathCheck, "10.*");
+          // sort and reverse so we try from latest to oldest
+          System.Array.Sort(dirs);
+          System.Array.Reverse(dirs);
+
+          // look for the latest dxc.exe available that works
+          foreach(string path in dirs)
+          {
+            string dxcCheck = System.IO.Path.Combine(path, BitnessFolder, "dxcompiler.dll");
+            if(System.IO.File.Exists(dxcCheck))
+            {
+              DXCPath = System.IO.Path.Combine(path, BitnessFolder);
+              return true;
+            }
+          }
+        }
+        catch(Exception ex)
+        {
+          // try next SDK path
+        }
+      }
+
+      // always succeed even if we don't find dxc
+      return true;
+    }
+
+    [Microsoft.Build.Framework.Required] public string BitnessFolder { get; set; }
+    [Microsoft.Build.Framework.Required] public string SDKPath { get; set; }
+    [Microsoft.Build.Framework.Output] public string DXCPath { get; set; }
+    [Microsoft.Build.Framework.Output] public string DebugOut { get; set; }
+  }
+}
+      </Code>
+    </Task>
+  </UsingTask>
+  <PropertyGroup>
+    <DXCDLLSourceLocation>$(WindowsSdkDir_10)\Redist\D3D\$(BitnessFolder)</DXCDLLSourceLocation>
+  </PropertyGroup>
+  <Target Name="CopyFiles" AfterTargets="Build">
+    <GetDXCDLL BitnessFolder="$(Platform)" SDKPath="$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v10.0@InstallationFolder)bin;$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Microsoft SDKs\Windows\v10.0@InstallationFolder)bin" ContinueOnError="WarnAndContinue">
+      <Output TaskParameter="DXCPath" PropertyName="DXCDLLFolder" />
+      <Output TaskParameter="DebugOut" PropertyName="DebugOutDXC" />
+    </GetDXCDLL>
+    <Message Condition="$(DXCDLLFolder.Length) &gt; 0" Importance="high" Text="Using DXC/D3DCompiler dlls from $(DXCDLLFolder)." />
+    <PropertyGroup Condition="$(DXCDLLFolder.Length) &gt; 0">
+      <DXCDLLSourceLocation>$(DXCDLLFolder)</DXCDLLSourceLocation>
+    </PropertyGroup>
+    <Copy SourceFiles="$(DXCDLLSourceLocation)\d3dcompiler_47.dll" DestinationFolder="$(SolutionDir)" Condition="$([System.IO.File]::GetLastWriteTime('$(DXCDLLSourceLocation)\d3dcompiler_47.dll').Ticks) &gt; $([System.IO.File]::GetLastWriteTime('$(SolutionDir)\d3dcompiler_47.dll').Ticks)" />
+    <Copy SourceFiles="$(DXCDLLSourceLocation)\dxcompiler.dll" DestinationFolder="$(SolutionDir)" Condition="$([System.IO.File]::GetLastWriteTime('$(DXCDLLSourceLocation)\dxcompiler.dll').Ticks) &gt; $([System.IO.File]::GetLastWriteTime('$(SolutionDir)\dxcompiler.dll').Ticks)" />
+    <Copy SourceFiles="$(DXCDLLSourceLocation)\dxil.dll" DestinationFolder="$(SolutionDir)" Condition="$([System.IO.File]::GetLastWriteTime('$(DXCDLLSourceLocation)\dxil.dll').Ticks) &gt; $([System.IO.File]::GetLastWriteTime('$(SolutionDir)\dxil.dll').Ticks)" />
+  </Target>
 </Project>
