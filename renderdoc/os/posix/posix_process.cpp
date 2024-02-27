@@ -415,7 +415,7 @@ void ApplyEnvironmentModifications(rdcarray<EnvironmentModification> &modificati
   {
     EnvironmentModification &m = modifications[i];
 
-    rdcstr value = currentEnv[m.name.c_str()];
+    rdcstr &value = currentEnv[m.name.c_str()];
 
     ApplySingleEnvMod(m, value);
 
