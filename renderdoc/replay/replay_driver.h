@@ -210,7 +210,8 @@ public:
   virtual rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger) = 0;
   virtual void FreeDebugger(ShaderDebugger *debugger) = 0;
 
-  virtual ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+  virtual ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol,
+                                   Subresource textureSubresource, DebugOverlay overlay,
                                    uint32_t eventId, const rdcarray<uint32_t> &passEvents) = 0;
 
   virtual bool IsRenderOutput(ResourceId id) = 0;

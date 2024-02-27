@@ -1001,7 +1001,8 @@ RenderOutputSubresource D3D12Replay::GetRenderOutputSubresource(ResourceId id)
   return RenderOutputSubresource(~0U, ~0U, 0);
 }
 
-ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol,
+                                      Subresource textureSubresource, DebugOverlay overlay,
                                       uint32_t eventId, const rdcarray<uint32_t> &passEvents)
 {
   ID3D12Resource *resource = NULL;

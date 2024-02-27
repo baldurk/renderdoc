@@ -244,8 +244,9 @@ public:
   uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
                       uint32_t x, uint32_t y);
 
-  ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
-                           uint32_t eventId, const rdcarray<uint32_t> &passEvents);
+  ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, Subresource textureSubresource,
+                           DebugOverlay overlay, uint32_t eventId,
+                           const rdcarray<uint32_t> &passEvents);
 
   void SetCustomShaderIncludes(const rdcarray<rdcstr> &directories);
   void BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,

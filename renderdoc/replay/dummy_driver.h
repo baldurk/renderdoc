@@ -108,8 +108,9 @@ public:
   rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger);
   void FreeDebugger(ShaderDebugger *debugger);
 
-  ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
-                           uint32_t eventId, const rdcarray<uint32_t> &passEvents);
+  ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, Subresource textureSubresource,
+                           DebugOverlay overlay, uint32_t eventId,
+                           const rdcarray<uint32_t> &passEvents);
 
   bool IsRenderOutput(ResourceId id);
 

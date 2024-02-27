@@ -293,7 +293,8 @@ void ReplayOutput::RefreshOverlay()
       FloatVector f = m_RenderData.texDisplay.backgroundColor;
 
       m_OverlayResourceId =
-          m_pDevice->RenderOverlay(id, f, m_RenderData.texDisplay.overlay, m_EventID, passEvents);
+          m_pDevice->RenderOverlay(id, f, m_RenderData.texDisplay.subresource,
+                                   m_RenderData.texDisplay.overlay, m_EventID, passEvents);
       m_pController->FatalErrorCheck();
       m_OverlayDirty = false;
     }

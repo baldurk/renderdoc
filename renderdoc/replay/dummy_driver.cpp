@@ -279,7 +279,8 @@ void DummyDriver::FreeDebugger(ShaderDebugger *debugger)
 {
 }
 
-ResourceId DummyDriver::RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+ResourceId DummyDriver::RenderOverlay(ResourceId texid, FloatVector clearCol,
+                                      Subresource textureSubresource, DebugOverlay overlay,
                                       uint32_t eventId, const rdcarray<uint32_t> &passEvents)
 {
   return ResourceId();

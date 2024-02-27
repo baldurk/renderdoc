@@ -446,7 +446,8 @@ RenderOutputSubresource VulkanReplay::GetRenderOutputSubresource(ResourceId id)
   return RenderOutputSubresource(~0U, ~0U, 0);
 }
 
-ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol,
+                                       Subresource textureSubresource, DebugOverlay overlay,
                                        uint32_t eventId, const rdcarray<uint32_t> &passEvents)
 {
   const VkDevDispatchTable *vt = ObjDisp(m_Device);
@@ -1276,7 +1277,15 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         };
         vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-        VkViewport viewport = state.views[0];
+        VkViewport viewport;
+        if(textureSubresource.slice < state.views.size())
+        {
+          viewport = state.views[textureSubresource.slice];
+        }
+        else
+        {
+          viewport = state.views[0];
+        }
         vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 
         uint32_t uboOffs = 0;
@@ -1319,9 +1328,19 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         if(!state.scissors.empty())
         {
-          Vec4f scissor((float)state.scissors[0].offset.x, (float)state.scissors[0].offset.y,
-                        (float)state.scissors[0].extent.width,
-                        (float)state.scissors[0].extent.height);
+          Vec4f scissor;
+          if(textureSubresource.slice < state.scissors.size())
+          {
+            scissor = {(float)state.scissors[textureSubresource.slice].offset.x,
+                       (float)state.scissors[textureSubresource.slice].offset.y,
+                       (float)state.scissors[textureSubresource.slice].extent.width,
+                       (float)state.scissors[textureSubresource.slice].extent.height};
+          }
+          else
+          {
+            scissor = {(float)state.scissors[0].offset.x, (float)state.scissors[0].offset.y,
+                       (float)state.scissors[0].extent.width, (float)state.scissors[0].extent.height};
+          }
 
           ubo = (CheckerboardUBOData *)m_Overlay.m_CheckerUBO.Map(&uboOffs);
           if(!ubo)

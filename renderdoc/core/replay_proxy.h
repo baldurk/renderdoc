@@ -508,7 +508,7 @@ public:
                              uint32_t viewID, MeshDataStage stage);
 
   IMPLEMENT_FUNCTION_PROXIED(ResourceId, RenderOverlay, ResourceId texid, FloatVector clearCol,
-                             DebugOverlay overlay, uint32_t eventId,
+                             Subresource textureSubresource, DebugOverlay overlay, uint32_t eventId,
                              const rdcarray<uint32_t> &passEvents);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderEntryPoint>, GetShaderEntryPoints, ResourceId shader);

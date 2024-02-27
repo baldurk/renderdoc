@@ -111,7 +111,8 @@ RenderOutputSubresource D3D11Replay::GetRenderOutputSubresource(ResourceId id)
   return RenderOutputSubresource(~0U, ~0U, 0);
 }
 
-ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol,
+                                      Subresource textureSubresource, DebugOverlay overlay,
                                       uint32_t eventId, const rdcarray<uint32_t> &passEvents)
 {
   TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, CompType::Float, false);

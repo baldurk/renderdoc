@@ -357,7 +357,8 @@ void GLReplay::BindFramebufferTexture(RenderOutputSubresource &sub, GLenum texBi
   }
 }
 
-ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol,
+                                   Subresource textureSubresource, DebugOverlay overlay,
                                    uint32_t eventId, const rdcarray<uint32_t> &passEvents)
 {
   WrappedOpenGL &drv = *m_pDriver;
