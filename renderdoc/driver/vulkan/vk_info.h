@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -53,7 +53,7 @@ enum VulkanDynamicStateIndex
   VkDynamicExclusiveScissorNV,
   VkDynamicExclusiveScissorEnableNV,
   VkDynamicShadingRateKHR,
-  VkDynamicLineStippleEXT,
+  VkDynamicLineStippleKHR,
   VkDynamicCullMode,
   VkDynamicFrontFace,
   VkDynamicPrimitiveTopology,
@@ -342,15 +342,17 @@ struct VulkanCreationInfo
     // VkPipelineShaderStageCreateInfo
     struct Shader
     {
-      Shader() : refl(NULL), mapping(NULL), patchData(NULL) {}
       ResourceId module;
-      ShaderStage stage;
+      ShaderStage stage = ShaderStage::Count;
       rdcstr entryPoint;
-      ShaderReflection *refl;
-      ShaderBindpointMapping *mapping;
-      SPIRVPatchData *patchData;
+      ShaderReflection *refl = NULL;
+      ShaderBindpointMapping *mapping = NULL;
+      SPIRVPatchData *patchData = NULL;
 
       rdcarray<SpecConstant> specialization;
+
+      // VkPipelineShaderStageRequiredSubgroupSizeCreateInfo
+      uint32_t requiredSubgroupSize = 0;
     };
     Shader shaders[NumShaderStages];
 
@@ -412,8 +414,8 @@ struct VulkanCreationInfo
     VkConservativeRasterizationModeEXT conservativeRasterizationMode;
     float extraPrimitiveOverestimationSize;
 
-    // VkPipelineRasterizationLineStateCreateInfoEXT
-    VkLineRasterizationModeEXT lineRasterMode;
+    // VkPipelineRasterizationLineStateCreateInfoKHR
+    VkLineRasterizationModeKHR lineRasterMode;
     bool stippleEnabled;
     uint32_t stippleFactor;
     uint16_t stipplePattern;
@@ -624,6 +626,7 @@ struct VulkanCreationInfo
     VkMemoryRequirements mrq;
   };
   std::unordered_map<ResourceId, Buffer> m_Buffer;
+  rdcsortedflatmap<uint64_t, ResourceId> m_BufferAddresses;
 
   struct BufferView
   {
@@ -786,6 +789,18 @@ struct VulkanCreationInfo
   };
   std::unordered_map<ResourceId, QueryPool> m_QueryPool;
 
+  struct AccelerationStructure
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkAccelerationStructureCreateInfoKHR *pCreateInfo);
+
+    ResourceId buffer;
+    uint64_t offset;
+    uint64_t size;
+    VkAccelerationStructureTypeKHR type;
+  };
+  std::unordered_map<ResourceId, AccelerationStructure> m_AccelerationStructure;
+
   std::unordered_map<ResourceId, rdcstr> m_Names;
   std::unordered_map<ResourceId, SwapchainInfo> m_SwapChain;
   std::unordered_map<ResourceId, DescSetLayout> m_DescSetLayout;
@@ -810,6 +825,7 @@ struct VulkanCreationInfo
     m_ImageView.erase(id);
     m_ShaderModule.erase(id);
     m_DescSetPool.erase(id);
+    m_AccelerationStructure.erase(id);
     m_Names.erase(id);
     m_SwapChain.erase(id);
     m_DescSetLayout.erase(id);

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -3463,13 +3463,14 @@ bool WrappedID3D12Device::Serialise_SetName(SerialiserType &ser, ID3D12DeviceChi
 
 void WrappedID3D12Device::SetName(ID3D12DeviceChild *pResource, const char *Name)
 {
-  // don't allow naming device contexts or command lists so we know this chunk
-  // is always on a pre-capture chunk.
-  if(IsCaptureMode(m_State) && !WrappedID3D12GraphicsCommandList::IsAlloc(pResource) &&
-     !WrappedID3D12CommandQueue::IsAlloc(pResource))
+  if(IsCaptureMode(m_State))
   {
     D3D12ResourceRecord *record = GetRecord(pResource);
 
+    if(WrappedID3D12CommandQueue::IsAlloc(pResource))
+      record = ((WrappedID3D12CommandQueue *)pResource)->GetCreationRecord();
+    if(WrappedID3D12GraphicsCommandList::IsAlloc(pResource))
+      record = ((WrappedID3D12GraphicsCommandList *)pResource)->GetCreationRecord();
     if(record == NULL)
       record = m_DeviceRecord;
 
@@ -3479,23 +3480,25 @@ void WrappedID3D12Device::SetName(ID3D12DeviceChild *pResource, const char *Name
 
       Serialise_SetName(ser, pResource, Name);
 
-      // don't serialise many SetName chunks to the
-      // object record, but we can't afford to drop any.
-      record->LockChunks();
-      while(record->HasChunks())
+      // don't serialise many SetName chunks to the object record, but we can't afford to drop any.
+      if(record != m_DeviceRecord)
       {
-        Chunk *end = record->GetLastChunk();
-
-        if(end->GetChunkType<D3D12Chunk>() == D3D12Chunk::SetName)
+        record->LockChunks();
+        while(record->HasChunks())
         {
-          end->Delete();
-          record->PopChunk();
-          continue;
-        }
+          Chunk *end = record->GetLastChunk();
 
-        break;
+          if(end->GetChunkType<D3D12Chunk>() == D3D12Chunk::SetName)
+          {
+            end->Delete();
+            record->PopChunk();
+            continue;
+          }
+
+          break;
+        }
+        record->UnlockChunks();
       }
-      record->UnlockChunks();
 
       record->AddChunk(scope.Get());
     }
@@ -3825,18 +3828,26 @@ void WrappedID3D12Device::CreateInternalResources()
     m_QueueReadbackData.Resize(4 * 1024 * 1024);
     InternalRef();
 
-    for(D3D12_COMMAND_LIST_TYPE type :
-        {D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_TYPE_COMPUTE,
-         D3D12_COMMAND_LIST_TYPE_COPY})
     {
-      CreateCommandAllocator(type, __uuidof(ID3D12CommandAllocator),
-                             (void **)&m_QueueReadbackData.allocs[type]);
+      D3D12_COMMAND_QUEUE_DESC desc = {};
+      desc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+      // make this queue as unwrapped so that it doesn't get included in captures
+      GetReal()->CreateCommandQueue(&desc, __uuidof(ID3D12CommandQueue),
+                                    (void **)&m_QueueReadbackData.unwrappedQueue);
       InternalRef();
-      CreateCommandList(0, type, m_QueueReadbackData.allocs[type], NULL,
-                        __uuidof(ID3D12GraphicsCommandList),
-                        (void **)&m_QueueReadbackData.lists[type]);
+      m_QueueReadbackData.unwrappedQueue->SetName(L"m_QueueReadbackData.queue");
+      CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, __uuidof(ID3D12CommandAllocator),
+                             (void **)&m_QueueReadbackData.alloc);
+      m_QueueReadbackData.alloc->SetName(L"m_QueueReadbackData.alloc");
       InternalRef();
-      m_QueueReadbackData.lists[type]->Close();
+      CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, m_QueueReadbackData.alloc, NULL,
+                        __uuidof(ID3D12GraphicsCommandList), (void **)&m_QueueReadbackData.list);
+      InternalRef();
+      m_QueueReadbackData.list->Close();
+      CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence),
+                  (void **)&m_QueueReadbackData.fence);
+      m_QueueReadbackData.fence->SetName(L"m_QueueReadbackData.fence");
+      InternalRef();
     }
   }
 
@@ -3844,6 +3855,7 @@ void WrappedID3D12Device::CreateInternalResources()
                          (void **)&m_Alloc);
   InternalRef();
   CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
+  m_GPUSyncFence->SetName(L"m_GPUSyncFence");
   InternalRef();
   m_GPUSyncHandle = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 
@@ -3929,10 +3941,10 @@ void WrappedID3D12Device::DestroyInternalResources()
     SAFE_RELEASE(m_DataUploadList[i]);
   SAFE_RELEASE(m_DataUploadAlloc);
 
-  for(size_t i = 0; i < ARRAY_COUNT(m_QueueReadbackData.allocs); i++)
-    SAFE_RELEASE(m_QueueReadbackData.allocs[i]);
-  for(size_t i = 0; i < ARRAY_COUNT(m_QueueReadbackData.lists); i++)
-    SAFE_RELEASE(m_QueueReadbackData.lists[i]);
+  SAFE_RELEASE(m_QueueReadbackData.unwrappedQueue);
+  SAFE_RELEASE(m_QueueReadbackData.alloc);
+  SAFE_RELEASE(m_QueueReadbackData.list);
+  SAFE_RELEASE(m_QueueReadbackData.fence);
   m_QueueReadbackData.Resize(0);
 
   SAFE_RELEASE(m_Alloc);
@@ -4837,5 +4849,29 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     CheckHRESULT(list->Close());
 
     ExecuteLists();
+  }
+}
+
+void WrappedID3D12Device::ReplayDraw(ID3D12GraphicsCommandListX *cmd, const ActionDescription &action)
+{
+  if(action.drawIndex == 0)
+  {
+    if(action.flags & ActionFlags::MeshDispatch)
+      cmd->DispatchMesh(action.dispatchDimension[0], action.dispatchDimension[1],
+                        action.dispatchDimension[2]);
+    else if(action.flags & ActionFlags::Indexed)
+      cmd->DrawIndexedInstanced(action.numIndices, action.numInstances, action.indexOffset,
+                                action.baseVertex, action.instanceOffset);
+    else
+      cmd->DrawInstanced(action.numIndices, action.numInstances, action.vertexOffset,
+                         action.instanceOffset);
+  }
+  else
+  {
+    // TODO: support replay of draws not in callback
+    D3D12CommandData *cmdData = m_Queue->GetCommandData();
+    RDCASSERT(cmdData->m_IndirectData.commandSig != NULL);
+    cmd->ExecuteIndirect(cmdData->m_IndirectData.commandSig, 1, cmdData->m_IndirectData.argsBuffer,
+                         cmdData->m_IndirectData.argsOffset, NULL, 0);
   }
 }

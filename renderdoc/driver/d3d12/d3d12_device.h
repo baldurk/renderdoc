@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -68,10 +68,10 @@ struct QueueReadbackData
   byte *readbackMapped = NULL;
   uint64_t readbackSize = 0;
 
-  static const uint32_t NumCommandTypes = 7;
-
-  ID3D12GraphicsCommandList *lists[NumCommandTypes] = {};
-  ID3D12CommandAllocator *allocs[NumCommandTypes] = {};
+  ID3D12CommandQueue *unwrappedQueue = NULL;
+  ID3D12GraphicsCommandList *list = NULL;
+  ID3D12CommandAllocator *alloc = NULL;
+  ID3D12Fence *fence = NULL;
 
   void Resize(uint64_t size);
 
@@ -1004,6 +1004,7 @@ public:
 
   RDResult ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
+  void ReplayDraw(ID3D12GraphicsCommandListX *cmd, const ActionDescription &action);
 
   void SetStructuredExport(uint64_t sectionVersion)
   {

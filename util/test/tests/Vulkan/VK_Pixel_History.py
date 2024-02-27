@@ -16,9 +16,11 @@ def shader_out_col(x): return value_selector(x.shaderOut.col)
 def shader_out_depth(x): return x.shaderOut.depth
 def pre_mod_col(x): return value_selector(x.preMod.col)
 def post_mod_col(x): return value_selector(x.postMod.col)
-def shader_out_depth(x): return x.shaderOut.depth
 def pre_mod_depth(x): return x.preMod.depth
 def post_mod_depth(x): return x.postMod.depth
+def post_mod_stencil(x): return x.postMod.stencil
+def unknown_post_mod_stencil(x): return x.postMod.stencil == -1 or x.postMod.stencil == -2
+def unknown_stencil(x): return x == -1 or x == -2
 def primitive_id(x): return x.primitiveID
 def unboundPS(x): return x.unboundPS
 
@@ -73,6 +75,18 @@ class VK_Pixel_History(rdtest.TestCase):
         depth_test_eid = self.find_action("Depth Test").next.eventId
         depth_bounds_prep_eid = self.find_action("Depth Bounds Prep").next.eventId
         depth_bounds_clip_eid = self.find_action("Depth Bounds Clip").next.eventId
+
+        # For pixel 110, 100, inside the red triangle with stencil value 0x55
+        x, y = 110, 100
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, begin_renderpass_eid], [passed, True]],
+            [[event_id, unbound_fs_eid], [passed, True], [unboundPS, True], [primitive_id, 0], [post_mod_stencil, 0x33]],
+            [[event_id, stencil_write_eid], [passed, True], [primitive_id, 0], [post_mod_stencil, 0x55]],
+        ]
+        self.check_events(events, modifs, False)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
 
         # For pixel 190, 149 inside the red triangle
         x, y = 190, 149
@@ -206,7 +220,7 @@ class VK_Pixel_History(rdtest.TestCase):
             [[event_id, background_eid], [passed, True]],
             [[event_id, depth_test_eid], [primitive_id, 0], [depth_test_failed, True],
              [shader_out_col, (1.0, 1.0, 1.0, 2.75)], [shader_out_depth, 0.97], [post_mod_col, (1.0, 0.0, 1.0, 1.0)],
-             [post_mod_depth, 0.95]],
+             [post_mod_depth, 0.95], [unknown_post_mod_stencil, True]],
             [[event_id, depth_test_eid], [primitive_id, 1], [depth_test_failed, False],
              [shader_out_col, (1.0, 1.0, 0.0, 2.75)], [shader_out_depth, 0.20], [post_mod_col, (1.0, 1.0, 0.0, 1.0)],
              [post_mod_depth, 0.20]],
@@ -401,6 +415,14 @@ class VK_Pixel_History(rdtest.TestCase):
         for i in range(len(modifs) - 1):
             a = value_selector(modifs[i].postMod.col)
             b = value_selector(modifs[i + 1].preMod.col)
+
+            # A fragment event : postMod.stencil should be unknown
+            if modifs[i].eventId == modifs[i+1].eventId:
+                if not unknown_stencil(modifs[i].postMod.stencil):
+                    raise rdtest.TestFailureException(
+                    "postmod stencil at {} primitive {}: {} is not unknown".format(modifs[i].eventId,
+                                                                              modifs[i].primitiveID,
+                                                                              modifs[i].postMod.stencil))
 
             if self.is_depth:
                 a = (modifs[i].postMod.depth, modifs[i].postMod.stencil)

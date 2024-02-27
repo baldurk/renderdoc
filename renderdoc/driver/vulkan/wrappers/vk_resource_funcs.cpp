@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1430,6 +1430,7 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
         bufInfo.gpuAddress = ObjDisp(device)->GetBufferDeviceAddress(Unwrap(device), &getInfo);
       else if(GetExtensions(GetRecord(device)).ext_EXT_buffer_device_address)
         bufInfo.gpuAddress = ObjDisp(device)->GetBufferDeviceAddressEXT(Unwrap(device), &getInfo);
+      m_CreationInfo.m_BufferAddresses[bufInfo.gpuAddress] = GetResID(buffer);
     }
 
     m_CreationInfo.m_Memory[GetResID(memory)].BindMemory(memoryOffset, mrq.size,
@@ -2840,6 +2841,7 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
           bufInfo.gpuAddress = ObjDisp(device)->GetBufferDeviceAddress(Unwrap(device), &getInfo);
         else if(GetExtensions(GetRecord(device)).ext_EXT_buffer_device_address)
           bufInfo.gpuAddress = ObjDisp(device)->GetBufferDeviceAddressEXT(Unwrap(device), &getInfo);
+        m_CreationInfo.m_BufferAddresses[bufInfo.gpuAddress] = GetResID(bindInfo.buffer);
       }
 
       // the memory is immediately dirty because we don't use dirty tracking, it's too expensive to
@@ -3121,6 +3123,123 @@ void WrappedVulkan::vkSetDeviceMemoryPriorityEXT(VkDevice device, VkDeviceMemory
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCreateAccelerationStructureKHR(
+    SerialiserType &ser, VkDevice device, const VkAccelerationStructureCreateInfoKHR *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkAccelerationStructureKHR *pAccelerationStructure)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
+  SERIALISE_ELEMENT_OPT(pAllocator);
+  SERIALISE_ELEMENT_LOCAL(AccelerationStructure, GetResID(*pAccelerationStructure))
+      .TypedAs("VkAccelerationStructureKHR"_lit);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    VkAccelerationStructureCreateInfoKHR unwrappedInfo = CreateInfo;
+    unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
+
+    VkAccelerationStructureKHR acc = VK_NULL_HANDLE;
+    VkResult ret =
+        ObjDisp(device)->CreateAccelerationStructureKHR(Unwrap(device), &CreateInfo, NULL, &acc);
+
+    if(ret != VK_SUCCESS)
+    {
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Error creating acceleration structure, VkResult: %s", ToStr(ret).c_str());
+      return false;
+    }
+    else
+    {
+      ResourceId live;
+
+      if(GetResourceManager()->HasWrapper(ToTypedHandle(acc)))
+      {
+        live = GetResourceManager()->GetNonDispWrapper(acc)->id;
+
+        // destroy this instance of the duplicate, as we must have matching create/destroy
+        // calls and there won't be a wrapped resource hanging around to destroy this one.
+        ObjDisp(device)->DestroyAccelerationStructureKHR(Unwrap(device), acc, NULL);
+
+        // whenever the new ID is requested, return the old ID, via replacements.
+        GetResourceManager()->ReplaceResource(AccelerationStructure,
+                                              GetResourceManager()->GetOriginalID(live));
+      }
+      else
+      {
+        live = GetResourceManager()->WrapResource(Unwrap(device), acc);
+        GetResourceManager()->AddLiveResource(AccelerationStructure, acc);
+
+        m_CreationInfo.m_AccelerationStructure[live].Init(GetResourceManager(), m_CreationInfo,
+                                                          &CreateInfo);
+      }
+    }
+
+    AddResource(AccelerationStructure, ResourceType::AccelerationStructure, "AccelerationStructure");
+    DerivedResource(device, AccelerationStructure);
+    DerivedResource(CreateInfo.buffer, AccelerationStructure);
+  }
+
+  return true;
+}
+
+VkResult WrappedVulkan::vkCreateAccelerationStructureKHR(
+    VkDevice device, const VkAccelerationStructureCreateInfoKHR *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkAccelerationStructureKHR *pAccelerationStructure)
+{
+  VkAccelerationStructureCreateInfoKHR unwrappedInfo = *pCreateInfo;
+  unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateAccelerationStructureKHR(
+                          Unwrap(device), &unwrappedInfo, pAllocator, pAccelerationStructure));
+
+  if(ret == VK_SUCCESS)
+  {
+    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pAccelerationStructure);
+
+    if(IsCaptureMode(m_State))
+    {
+      Chunk *chunk = NULL;
+
+      {
+        CACHE_THREAD_SERIALISER();
+
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateAccelerationStructureKHR);
+        Serialise_vkCreateAccelerationStructureKHR(ser, device, pCreateInfo, NULL,
+                                                   pAccelerationStructure);
+
+        chunk = scope.Get();
+      }
+
+      VkResourceRecord *bufferRecord = GetRecord(pCreateInfo->buffer);
+
+      VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pAccelerationStructure);
+      record->AddChunk(chunk);
+      record->AddParent(bufferRecord);
+
+      // store the base resource
+      record->baseResource = bufferRecord->GetResourceID();
+      record->baseResourceMem = bufferRecord->baseResource;
+      record->dedicated = bufferRecord->dedicated;
+      record->resInfo = bufferRecord->resInfo;
+      record->storable = bufferRecord->storable;
+      record->memOffset = bufferRecord->memOffset + pCreateInfo->offset;
+      record->memSize = pCreateInfo->size;
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(id, *pAccelerationStructure);
+
+      m_CreationInfo.m_AccelerationStructure[id].Init(GetResourceManager(), m_CreationInfo,
+                                                      pCreateInfo);
+    }
+  }
+
+  return ret;
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkAllocateMemory, VkDevice device,
                                 const VkMemoryAllocateInfo *pAllocateInfo,
                                 const VkAllocationCallbacks *pAllocator, VkDeviceMemory *pMemory);
@@ -3160,3 +3279,8 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkBindImageMemory2, VkDevice device,
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkSetDeviceMemoryPriorityEXT, VkDevice device,
                                 VkDeviceMemory memory, float priority);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateAccelerationStructureKHR, VkDevice device,
+                                const VkAccelerationStructureCreateInfoKHR *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator,
+                                VkAccelerationStructureKHR *pAccelerationStructure);

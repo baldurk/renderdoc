@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -302,10 +302,15 @@ public:
           {
             const PixelModification &mod = getMod(index);
             if(mod.unboundPS)
-              return tr("No Pixel\nShader\nBound");
+            {
+              if(!m_IsDepth)
+                return tr("No Pixel\nShader\nBound\n\n");
+              else
+                return tr("No Pixel Shader Bound\n\n") + modString(mod.shaderOut);
+            }
             if(mod.directShaderWrite)
               return tr("Tex Before\n\n") + modString(mod.preMod);
-            return tr("Shader Out\n\n") + modString(mod.shaderOut, 4);
+            return tr("Shader Out\n\n") + modString(mod.shaderOut);
           }
         }
 
@@ -514,7 +519,7 @@ private:
                                   (int)(255.0f * b + 0.5f)));
   }
 
-  QString modString(const ModificationValue &val, int forceComps = 0) const
+  QString modString(const ModificationValue &val) const
   {
     QString s;
 
@@ -522,9 +527,6 @@ private:
       return tr("Unavailable");
 
     int numComps = (int)(m_Tex->format.compCount);
-
-    if(forceComps > 0)
-      numComps = forceComps;
 
     static const QString colourLetterPrefix[] = {lit("R: "), lit("G: "), lit("B: "), lit("A: ")};
 
@@ -659,6 +661,8 @@ void PixelHistoryView::updateWindowTitle()
   if(tex->msSamp > 1)
     title += tr(" @ Sample %1").arg(m_Display.subresource.sample);
 
+  if(tex->arraysize > 0)
+    title += tr(" @ Slice %1").arg(m_Display.subresource.slice);
   setWindowTitle(title);
 }
 

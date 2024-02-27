@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Baldur Karlsson
+ * Copyright (c) 2022-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,8 @@ const uint32_t MAX_RENDER_PASS_COLOR_ATTACHMENTS = 8;
 const uint32_t MAX_RENDER_PASS_BUFFER_ATTACHMENTS = 31;
 const uint32_t MAX_VERTEX_SHADER_ATTRIBUTES = 31;
 const uint32_t MAX_RENDER_PASS_SAMPLE_BUFFER_ATTACHMENTS = 4;
+const uint32_t MAX_COMPUTE_PASS_BUFFER_ATTACHMENTS = 31;
+const uint32_t MAX_COMPUTE_PASS_SAMPLE_BUFFER_ATTACHMENTS = 4;
 
 // Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLCounters.h
 #ifndef MTLCounterDontSample
@@ -163,6 +165,9 @@ MTL_DECLARE_REFLECTION_TYPE(DepthClipMode);
 MTL_DECLARE_REFLECTION_TYPE(TriangleFillMode);
 MTL_DECLARE_REFLECTION_TYPE(CullMode);
 MTL_DECLARE_REFLECTION_TYPE(IndexType);
+MTL_DECLARE_REFLECTION_TYPE(StepFunction);
+MTL_DECLARE_REFLECTION_TYPE(AttributeFormat);
+MTL_DECLARE_REFLECTION_TYPE(DispatchType);
 
 template <>
 inline rdcliteral TypeName<NS::Range>()
@@ -260,6 +265,43 @@ struct VertexDescriptor
   void CopyTo(MTL::VertexDescriptor *objc);
   rdcarray<VertexBufferLayoutDescriptor> layouts;
   rdcarray<VertexAttributeDescriptor> attributes;
+};
+
+// MTLAttributeDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLStageInputOutputDescriptor.h
+struct AttributeDescriptor
+{
+  AttributeDescriptor() = default;
+  AttributeDescriptor(MTL::AttributeDescriptor *objc);
+  void CopyTo(MTL::AttributeDescriptor *objc);
+  NS::UInteger bufferIndex = 0;
+  NS::UInteger offset = 0;
+  MTL::AttributeFormat format = MTL::AttributeFormatInvalid;
+};
+
+// MTLBufferLayoutDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLStageInputOutputDescriptor.h
+struct BufferLayoutDescriptor
+{
+  BufferLayoutDescriptor() = default;
+  BufferLayoutDescriptor(MTL::BufferLayoutDescriptor *objc);
+  void CopyTo(MTL::BufferLayoutDescriptor *objc);
+  NS::UInteger stride = 0;
+  MTL::StepFunction stepFunction = MTL::StepFunctionConstant;
+  NS::UInteger stepRate = 0;
+};
+
+// MTLStageInputOutputDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLStageInputOutputDescriptor.h
+struct StageInputOutputDescriptor
+{
+  StageInputOutputDescriptor() = default;
+  StageInputOutputDescriptor(MTL::StageInputOutputDescriptor *objc);
+  void CopyTo(MTL::StageInputOutputDescriptor *objc);
+  rdcarray<AttributeDescriptor> attributes;
+  rdcarray<BufferLayoutDescriptor> layouts;
+  NS::UInteger indexBufferIndex = 0;
+  MTL::IndexType indexType = MTL::IndexType::IndexTypeUInt16;
 };
 
 // Helper struct for holding MTLLinkedFunctions::groups data
@@ -434,6 +476,55 @@ struct RenderPassDescriptor
   rdcarray<RenderPassSampleBufferAttachmentDescriptor> sampleBufferAttachments;
 };
 
+// MTLComputePassSampleBufferAttachmentDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLComputePass.h
+struct ComputePassSampleBufferAttachmentDescriptor
+{
+  ComputePassSampleBufferAttachmentDescriptor() = default;
+  ComputePassSampleBufferAttachmentDescriptor(MTL::ComputePassSampleBufferAttachmentDescriptor *objc);
+  void CopyTo(MTL::ComputePassSampleBufferAttachmentDescriptor *objc);
+  // TODO: when WrappedMTLCounterSampleBuffer exists
+  // MTLCounterSampleBuffer *sampleBuffer = NULL;
+  NS::UInteger startOfEncoderSampleIndex = MTLCounterDontSample;
+  NS::UInteger endOfEncoderSampleIndex = MTLCounterDontSample;
+};
+
+// MTLComputePipelineDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLComputePipeline.h
+struct ComputePipelineDescriptor
+{
+  ComputePipelineDescriptor() = default;
+  ComputePipelineDescriptor(MTL::ComputePipelineDescriptor *objc);
+  explicit operator MTL::ComputePipelineDescriptor *();
+  rdcstr label;
+  WrappedMTLFunction *computeFunction = NULL;
+  bool threadGroupSizeIsMultipleOfThreadExecution = false;
+  NS::UInteger maxTotalThreadsPerThreadgroup = 0;
+  NS::UInteger maxCallStackDepth = 1;
+  StageInputOutputDescriptor stageInputDescriptor;
+  rdcarray<RDMTL::PipelineBufferDescriptor> buffers;
+  bool supportIndirectCommandBuffers = false;
+  // TODO: when WrappedMTLDynamicLibrary exists
+  // rdcarray<WrappedMTLDynamicLibrary*> preloadedLibraries;
+  // Deprecated
+  // rdcarray<WrappedMTLDynamicLibrary*> insertLibraries;
+  RDMTL::LinkedFunctions linkedFunctions;
+  bool supportAddingBinaryFunctions = false;
+  // TODO: when WrappedMTLBinaryArchive exists
+  // rdcarray<WrappedMTLBinaryArchive*> binaryArchives;
+};
+
+// MTLComputePassDescriptor : based on the interface defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLComputePass.h
+struct ComputePassDescriptor
+{
+  ComputePassDescriptor() = default;
+  ComputePassDescriptor(MTL::ComputePassDescriptor *objc);
+  explicit operator MTL::ComputePassDescriptor *();
+  rdcarray<ComputePassSampleBufferAttachmentDescriptor> sampleBufferAttachments;
+  MTL::DispatchType dispatchType = MTL::DispatchTypeSerial;
+};
+
 }    // namespace RDMTL
 
 template <>
@@ -459,6 +550,9 @@ RDMTL_DECLARE_REFLECTION_STRUCT(PipelineBufferDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(VertexAttributeDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(VertexBufferLayoutDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(VertexDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(AttributeDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(BufferLayoutDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(StageInputOutputDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(FunctionGroup);
 RDMTL_DECLARE_REFLECTION_STRUCT(LinkedFunctions);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPipelineDescriptor);
@@ -468,3 +562,6 @@ RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassDepthAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassStencilAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassSampleBufferAttachmentDescriptor);
 RDMTL_DECLARE_REFLECTION_STRUCT(RenderPassDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(ComputePassSampleBufferAttachmentDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(ComputePipelineDescriptor);
+RDMTL_DECLARE_REFLECTION_STRUCT(ComputePassDescriptor);

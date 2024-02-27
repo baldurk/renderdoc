@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2020-2023 Baldur Karlsson
+ * Copyright (c) 2020-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
 /******************************************************************************
  * Generated from Khronos's vk.xml:
  *
- * Copyright 2015-2023 The Khronos Group Inc.
+ * Copyright 2015-2024 The Khronos Group Inc.
  *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  * *
@@ -136,10 +136,6 @@ struct VkInstDispatchTable
   PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR GetPhysicalDeviceWin32PresentationSupportKHR;
 #endif // VK_USE_PLATFORM_WIN32_KHR
 
-  // VK_KHR_video_queue
-  PFN_vkGetPhysicalDeviceVideoCapabilitiesKHR GetPhysicalDeviceVideoCapabilitiesKHR;
-  PFN_vkGetPhysicalDeviceVideoFormatPropertiesKHR GetPhysicalDeviceVideoFormatPropertiesKHR;
-
   // VK_KHR_get_physical_device_properties2
   PFN_vkGetPhysicalDeviceFeatures2KHR GetPhysicalDeviceFeatures2KHR;
   PFN_vkGetPhysicalDeviceProperties2KHR GetPhysicalDeviceProperties2KHR;
@@ -178,10 +174,11 @@ struct VkInstDispatchTable
   // VK_KHR_fragment_shading_rate
   PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR GetPhysicalDeviceFragmentShadingRatesKHR;
 
-  // VK_KHR_video_encode_queue
-#ifdef VK_ENABLE_BETA_EXTENSIONS
-  PFN_vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR GetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR;
-#endif // VK_ENABLE_BETA_EXTENSIONS
+  // VK_KHR_cooperative_matrix
+  PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR GetPhysicalDeviceCooperativeMatrixPropertiesKHR;
+
+  // VK_KHR_calibrated_timestamps
+  PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsKHR GetPhysicalDeviceCalibrateableTimeDomainsKHR;
 
   // VK_EXT_debug_report
   PFN_vkCreateDebugReportCallbackEXT CreateDebugReportCallbackEXT;
@@ -496,21 +493,6 @@ struct VkDevDispatchTable
   // VK_KHR_display_swapchain
   PFN_vkCreateSharedSwapchainsKHR CreateSharedSwapchainsKHR;
 
-  // VK_KHR_video_queue
-  PFN_vkCreateVideoSessionKHR CreateVideoSessionKHR;
-  PFN_vkDestroyVideoSessionKHR DestroyVideoSessionKHR;
-  PFN_vkGetVideoSessionMemoryRequirementsKHR GetVideoSessionMemoryRequirementsKHR;
-  PFN_vkBindVideoSessionMemoryKHR BindVideoSessionMemoryKHR;
-  PFN_vkCreateVideoSessionParametersKHR CreateVideoSessionParametersKHR;
-  PFN_vkUpdateVideoSessionParametersKHR UpdateVideoSessionParametersKHR;
-  PFN_vkDestroyVideoSessionParametersKHR DestroyVideoSessionParametersKHR;
-  PFN_vkCmdBeginVideoCodingKHR CmdBeginVideoCodingKHR;
-  PFN_vkCmdEndVideoCodingKHR CmdEndVideoCodingKHR;
-  PFN_vkCmdControlVideoCodingKHR CmdControlVideoCodingKHR;
-
-  // VK_KHR_video_decode_queue
-  PFN_vkCmdDecodeVideoKHR CmdDecodeVideoKHR;
-
   // VK_KHR_dynamic_rendering
   PFN_vkCmdBeginRenderingKHR CmdBeginRenderingKHR;
   PFN_vkCmdEndRenderingKHR CmdEndRenderingKHR;
@@ -621,6 +603,10 @@ struct VkDevDispatchTable
   // VK_KHR_fragment_shading_rate
   PFN_vkCmdSetFragmentShadingRateKHR CmdSetFragmentShadingRateKHR;
 
+  // VK_KHR_dynamic_rendering_local_read
+  PFN_vkCmdSetRenderingAttachmentLocationsKHR CmdSetRenderingAttachmentLocationsKHR;
+  PFN_vkCmdSetRenderingInputAttachmentIndicesKHR CmdSetRenderingInputAttachmentIndicesKHR;
+
   // VK_KHR_present_wait
   PFN_vkWaitForPresentKHR WaitForPresentKHR;
 
@@ -644,12 +630,6 @@ struct VkDevDispatchTable
   // VK_KHR_map_memory2
   PFN_vkMapMemory2KHR MapMemory2KHR;
   PFN_vkUnmapMemory2KHR UnmapMemory2KHR;
-
-  // VK_KHR_video_encode_queue
-#ifdef VK_ENABLE_BETA_EXTENSIONS
-  PFN_vkGetEncodedVideoSessionParametersKHR GetEncodedVideoSessionParametersKHR;
-  PFN_vkCmdEncodeVideoKHR CmdEncodeVideoKHR;
-#endif // VK_ENABLE_BETA_EXTENSIONS
 
   // VK_KHR_synchronization2
   PFN_vkCmdSetEvent2KHR CmdSetEvent2KHR;
@@ -685,6 +665,26 @@ struct VkDevDispatchTable
   PFN_vkGetDeviceBufferMemoryRequirementsKHR GetDeviceBufferMemoryRequirementsKHR;
   PFN_vkGetDeviceImageMemoryRequirementsKHR GetDeviceImageMemoryRequirementsKHR;
   PFN_vkGetDeviceImageSparseMemoryRequirementsKHR GetDeviceImageSparseMemoryRequirementsKHR;
+
+  // VK_KHR_maintenance5
+  PFN_vkCmdBindIndexBuffer2KHR CmdBindIndexBuffer2KHR;
+  PFN_vkGetRenderingAreaGranularityKHR GetRenderingAreaGranularityKHR;
+  PFN_vkGetDeviceImageSubresourceLayoutKHR GetDeviceImageSubresourceLayoutKHR;
+  PFN_vkGetImageSubresourceLayout2KHR GetImageSubresourceLayout2KHR;
+
+  // VK_KHR_line_rasterization
+  PFN_vkCmdSetLineStippleKHR CmdSetLineStippleKHR;
+
+  // VK_KHR_calibrated_timestamps
+  PFN_vkGetCalibratedTimestampsKHR GetCalibratedTimestampsKHR;
+
+  // VK_KHR_maintenance6
+  PFN_vkCmdBindDescriptorSets2KHR CmdBindDescriptorSets2KHR;
+  PFN_vkCmdPushConstants2KHR CmdPushConstants2KHR;
+  PFN_vkCmdPushDescriptorSet2KHR CmdPushDescriptorSet2KHR;
+  PFN_vkCmdPushDescriptorSetWithTemplate2KHR CmdPushDescriptorSetWithTemplate2KHR;
+  PFN_vkCmdSetDescriptorBufferOffsets2EXT CmdSetDescriptorBufferOffsets2EXT;
+  PFN_vkCmdBindDescriptorBufferEmbeddedSamplers2EXT CmdBindDescriptorBufferEmbeddedSamplers2EXT;
 
   // VK_EXT_debug_marker
   PFN_vkDebugMarkerSetObjectTagEXT DebugMarkerSetObjectTagEXT;
@@ -764,6 +764,17 @@ struct VkDevDispatchTable
   PFN_vkGetAndroidHardwareBufferPropertiesANDROID GetAndroidHardwareBufferPropertiesANDROID;
   PFN_vkGetMemoryAndroidHardwareBufferANDROID GetMemoryAndroidHardwareBufferANDROID;
 #endif // VK_USE_PLATFORM_ANDROID_KHR
+
+  // VK_AMDX_shader_enqueue
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+  PFN_vkCreateExecutionGraphPipelinesAMDX CreateExecutionGraphPipelinesAMDX;
+  PFN_vkGetExecutionGraphPipelineScratchSizeAMDX GetExecutionGraphPipelineScratchSizeAMDX;
+  PFN_vkGetExecutionGraphPipelineNodeIndexAMDX GetExecutionGraphPipelineNodeIndexAMDX;
+  PFN_vkCmdInitializeGraphScratchMemoryAMDX CmdInitializeGraphScratchMemoryAMDX;
+  PFN_vkCmdDispatchGraphAMDX CmdDispatchGraphAMDX;
+  PFN_vkCmdDispatchGraphIndirectAMDX CmdDispatchGraphIndirectAMDX;
+  PFN_vkCmdDispatchGraphIndirectCountAMDX CmdDispatchGraphIndirectCountAMDX;
+#endif // VK_ENABLE_BETA_EXTENSIONS
 
   // VK_EXT_sample_locations
   PFN_vkCmdSetSampleLocationsEXT CmdSetSampleLocationsEXT;
@@ -862,6 +873,13 @@ struct VkDevDispatchTable
   PFN_vkCmdSetStencilTestEnableEXT CmdSetStencilTestEnableEXT;
   PFN_vkCmdSetStencilOpEXT CmdSetStencilOpEXT;
 
+  // VK_EXT_host_image_copy
+  PFN_vkCopyMemoryToImageEXT CopyMemoryToImageEXT;
+  PFN_vkCopyImageToMemoryEXT CopyImageToMemoryEXT;
+  PFN_vkCopyImageToImageEXT CopyImageToImageEXT;
+  PFN_vkTransitionImageLayoutEXT TransitionImageLayoutEXT;
+  PFN_vkGetImageSubresourceLayout2EXT GetImageSubresourceLayout2EXT;
+
   // VK_EXT_swapchain_maintenance1
   PFN_vkReleaseSwapchainImagesEXT ReleaseSwapchainImagesEXT;
 
@@ -873,11 +891,22 @@ struct VkDevDispatchTable
   PFN_vkCreateIndirectCommandsLayoutNV CreateIndirectCommandsLayoutNV;
   PFN_vkDestroyIndirectCommandsLayoutNV DestroyIndirectCommandsLayoutNV;
 
+  // VK_EXT_depth_bias_control
+  PFN_vkCmdSetDepthBias2EXT CmdSetDepthBias2EXT;
+
   // VK_EXT_private_data
   PFN_vkCreatePrivateDataSlotEXT CreatePrivateDataSlotEXT;
   PFN_vkDestroyPrivateDataSlotEXT DestroyPrivateDataSlotEXT;
   PFN_vkSetPrivateDataEXT SetPrivateDataEXT;
   PFN_vkGetPrivateDataEXT GetPrivateDataEXT;
+
+  // VK_NV_cuda_kernel_launch
+  PFN_vkCreateCudaModuleNV CreateCudaModuleNV;
+  PFN_vkGetCudaModuleCacheNV GetCudaModuleCacheNV;
+  PFN_vkCreateCudaFunctionNV CreateCudaFunctionNV;
+  PFN_vkDestroyCudaModuleNV DestroyCudaModuleNV;
+  PFN_vkDestroyCudaFunctionNV DestroyCudaFunctionNV;
+  PFN_vkCmdCudaLaunchKernelNV CmdCudaLaunchKernelNV;
 
   // VK_EXT_metal_objects
 #ifdef VK_USE_PLATFORM_METAL_EXT
@@ -904,9 +933,6 @@ struct VkDevDispatchTable
   PFN_vkCmdDrawMeshTasksEXT CmdDrawMeshTasksEXT;
   PFN_vkCmdDrawMeshTasksIndirectEXT CmdDrawMeshTasksIndirectEXT;
   PFN_vkCmdDrawMeshTasksIndirectCountEXT CmdDrawMeshTasksIndirectCountEXT;
-
-  // VK_EXT_image_compression_control
-  PFN_vkGetImageSubresourceLayout2EXT GetImageSubresourceLayout2EXT;
 
   // VK_EXT_device_fault
   PFN_vkGetDeviceFaultInfoEXT GetDeviceFaultInfoEXT;
@@ -997,8 +1023,12 @@ struct VkDevDispatchTable
   PFN_vkCmdDecompressMemoryNV CmdDecompressMemoryNV;
   PFN_vkCmdDecompressMemoryIndirectCountNV CmdDecompressMemoryIndirectCountNV;
 
+  // VK_NV_device_generated_commands_compute
+  PFN_vkGetPipelineIndirectMemoryRequirementsNV GetPipelineIndirectMemoryRequirementsNV;
+  PFN_vkCmdUpdatePipelineIndirectBufferNV CmdUpdatePipelineIndirectBufferNV;
+  PFN_vkGetPipelineIndirectDeviceAddressNV GetPipelineIndirectDeviceAddressNV;
+
   // VK_EXT_extended_dynamic_state3
-  PFN_vkCmdSetTessellationDomainOriginEXT CmdSetTessellationDomainOriginEXT;
   PFN_vkCmdSetDepthClampEnableEXT CmdSetDepthClampEnableEXT;
   PFN_vkCmdSetPolygonModeEXT CmdSetPolygonModeEXT;
   PFN_vkCmdSetRasterizationSamplesEXT CmdSetRasterizationSamplesEXT;
@@ -1009,6 +1039,7 @@ struct VkDevDispatchTable
   PFN_vkCmdSetColorBlendEnableEXT CmdSetColorBlendEnableEXT;
   PFN_vkCmdSetColorBlendEquationEXT CmdSetColorBlendEquationEXT;
   PFN_vkCmdSetColorWriteMaskEXT CmdSetColorWriteMaskEXT;
+  PFN_vkCmdSetTessellationDomainOriginEXT CmdSetTessellationDomainOriginEXT;
   PFN_vkCmdSetRasterizationStreamEXT CmdSetRasterizationStreamEXT;
   PFN_vkCmdSetConservativeRasterizationModeEXT CmdSetConservativeRasterizationModeEXT;
   PFN_vkCmdSetExtraPrimitiveOverestimationSizeEXT CmdSetExtraPrimitiveOverestimationSizeEXT;
@@ -1049,6 +1080,13 @@ struct VkDevDispatchTable
   // VK_QCOM_tile_properties
   PFN_vkGetFramebufferTilePropertiesQCOM GetFramebufferTilePropertiesQCOM;
   PFN_vkGetDynamicRenderingTilePropertiesQCOM GetDynamicRenderingTilePropertiesQCOM;
+
+  // VK_NV_low_latency2
+  PFN_vkSetLatencySleepModeNV SetLatencySleepModeNV;
+  PFN_vkLatencySleepNV LatencySleepNV;
+  PFN_vkSetLatencyMarkerNV SetLatencyMarkerNV;
+  PFN_vkGetLatencyTimingsNV GetLatencyTimingsNV;
+  PFN_vkQueueNotifyOutOfBandNV QueueNotifyOutOfBandNV;
 
   // VK_EXT_attachment_feedback_loop_dynamic_state
   PFN_vkCmdSetAttachmentFeedbackLoopEnableEXT CmdSetAttachmentFeedbackLoopEnableEXT;

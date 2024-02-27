@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -1092,18 +1092,20 @@ void ReplayProxy::InitPostVSBuffers(const rdcarray<uint32_t> &events)
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
-MeshFormat ReplayProxy::Proxied_GetPostVSBuffers(ParamSerialiser &paramser, ReturnSerialiser &retser,
-                                                 uint32_t eventId, uint32_t instID, uint32_t viewID,
-                                                 MeshDataStage stage)
+rdcarray<MeshFormat> ReplayProxy::Proxied_GetBatchPostVSBuffers(ParamSerialiser &paramser,
+                                                                ReturnSerialiser &retser,
+                                                                uint32_t eventId,
+                                                                const rdcarray<uint32_t> &instIDs,
+                                                                uint32_t viewID, MeshDataStage stage)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_GetPostVS;
   ReplayProxyPacket packet = eReplayProxy_GetPostVS;
-  MeshFormat ret = {};
+  rdcarray<MeshFormat> ret = {};
 
   {
     BEGIN_PARAMS();
     SERIALISE_ELEMENT(eventId);
-    SERIALISE_ELEMENT(instID);
+    SERIALISE_ELEMENT(instIDs);
     SERIALISE_ELEMENT(viewID);
     SERIALISE_ELEMENT(stage);
     END_PARAMS();
@@ -1112,7 +1114,7 @@ MeshFormat ReplayProxy::Proxied_GetPostVSBuffers(ParamSerialiser &paramser, Retu
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      ret = m_Remote->GetPostVSBuffers(eventId, instID, viewID, stage);
+      ret = m_Remote->GetBatchPostVSBuffers(eventId, instIDs, viewID, stage);
   }
 
   SERIALISE_RETURN(ret);
@@ -1120,10 +1122,11 @@ MeshFormat ReplayProxy::Proxied_GetPostVSBuffers(ParamSerialiser &paramser, Retu
   return ret;
 }
 
-MeshFormat ReplayProxy::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID,
-                                         MeshDataStage stage)
+rdcarray<MeshFormat> ReplayProxy::GetBatchPostVSBuffers(uint32_t eventId,
+                                                        const rdcarray<uint32_t> &instIDs,
+                                                        uint32_t viewID, MeshDataStage stage)
 {
-  PROXY_FUNCTION(GetPostVSBuffers, eventId, instID, viewID, stage);
+  PROXY_FUNCTION(GetBatchPostVSBuffers, eventId, instIDs, viewID, stage);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -2935,7 +2938,7 @@ bool ReplayProxy::Tick(int type)
       InitPostVSBuffers(dummy);
       break;
     }
-    case eReplayProxy_GetPostVS: GetPostVSBuffers(0, 0, 0, MeshDataStage::VSIn); break;
+    case eReplayProxy_GetPostVS: GetBatchPostVSBuffers(0, {}, 0, MeshDataStage::VSIn); break;
     case eReplayProxy_BuildTargetShader:
     {
       rdcstr entry;

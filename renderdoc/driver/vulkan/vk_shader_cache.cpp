@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -569,6 +569,8 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   uint32_t stageCount = 0;
   uint32_t dataOffset = 0;
 
+  static VkPipelineShaderStageRequiredSubgroupSizeCreateInfo reqSubgroupSize[NumShaderStages] = {};
+
   // reserve space for spec constants
   for(uint32_t i = 0; i < NumShaderStages; i++)
   {
@@ -580,6 +582,14 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
       stages[stageCount].pName = pipeInfo.shaders[i].entryPoint.c_str();
       stages[stageCount].pNext = NULL;
       stages[stageCount].pSpecializationInfo = NULL;
+
+      if(pipeInfo.shaders[i].requiredSubgroupSize != 0)
+      {
+        reqSubgroupSize[i].sType =
+            VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO;
+        reqSubgroupSize[i].requiredSubgroupSize = pipeInfo.shaders[i].requiredSubgroupSize;
+        stages[stageCount].pNext = &reqSubgroupSize[i];
+      }
 
       if(!pipeInfo.shaders[i].specialization.empty())
       {
@@ -639,12 +649,13 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
                                                                  : VK_VERTEX_INPUT_RATE_VERTEX;
   }
 
-  static VkPipelineVertexInputDivisorStateCreateInfoEXT vertexDivisor = {
-      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT,
+  static VkPipelineVertexInputDivisorStateCreateInfoKHR vertexDivisor = {
+      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_KHR,
   };
-  static VkVertexInputBindingDivisorDescriptionEXT vibindDivisors[128] = {};
+  static VkVertexInputBindingDivisorDescriptionKHR vibindDivisors[128] = {};
 
-  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_vertex_attribute_divisor)
+  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_vertex_attribute_divisor ||
+     m_pDriver->GetExtensions(GetRecord(m_Device)).ext_KHR_vertex_attribute_divisor)
   {
     vertexDivisor.pVertexBindingDivisors = vibindDivisors;
     vertexDivisor.vertexBindingDivisorCount = 0;
@@ -1067,6 +1078,16 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
 
     specInfo.dataSize = specdata.size() * sizeof(uint64_t);
     specInfo.pData = specdata.data();
+  }
+
+  static VkPipelineShaderStageRequiredSubgroupSizeCreateInfo reqSubgroupSize = {
+      VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO,
+  };
+
+  if(pipeInfo.shaders[i].requiredSubgroupSize != 0)
+  {
+    reqSubgroupSize.requiredSubgroupSize = pipeInfo.shaders[i].requiredSubgroupSize;
+    stage.pNext = &reqSubgroupSize;
   }
 
   VkComputePipelineCreateInfo ret = {

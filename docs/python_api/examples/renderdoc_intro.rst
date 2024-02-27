@@ -14,7 +14,13 @@ For this section we assume you have built a copy of RenderDoc and have the modul
 
 .. note::
 
-  You must use exactly the same version of python to load the module as was used to build it. On Windows the version of python that comes with the repository and is used by default is python 3.6. This can be overridden at build time by setting the environment variable `RENDERDOC_PYTHON_PREFIX32` or `RENDERDOC_PYTHON_PREFIX64` to the path of a compatible python install. NOTE that the embedded zip distribution doesn't come with python38.lib which is necessary, so you must regenerate it or get it from the installed python. The installed python folder doesn't come with a python38.zip standard library bundle which you'd need to create or get from the embedded zip distribution.
+  You must use exactly the same version of python to load the module as was used to build it.
+
+  On windows by default RenderDoc builds against python 3.6 which is what it's distributed with.
+  
+  This can be overridden by setting an overridden path under the ``Python Configuration`` section in the properties of the ``qrenderdoc`` project and ``pyrenderdoc_module`` project. It must point to a python installation.
+  
+  RenderDoc requires pythonXY.lib, include files such as include/Python.h, as well as a .zip of the standard library. If you installed python with an installer you have the first two, and can generate the standard library zip by zipping the contents of the Lib folder. If you downloaded the embeddable zip distribution you will only have the standard library zip, you need to obtain the include files and ``.lib`` file separately.
 
 Once you have the module, either place the module within your python's default library search path, or else insert the location of the python module into the path in your script. You can either set the ``PYTHONPATH`` environment variable or do it at the start of your script:
 

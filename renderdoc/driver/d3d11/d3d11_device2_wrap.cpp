@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -74,9 +74,10 @@ void WrappedID3D11Device::GetResourceTiling(
   if(m_pDevice2 == NULL)
     return;
 
-  m_pDevice2->GetResourceTiling(pTiledResource, pNumTilesForEntireResource, pPackedMipDesc,
-                                pStandardTileShapeForNonPackedMips, pNumSubresourceTilings,
-                                FirstSubresourceTilingToGet, pSubresourceTilingsForNonPackedMips);
+  m_pDevice2->GetResourceTiling(UnwrapResource(pTiledResource), pNumTilesForEntireResource,
+                                pPackedMipDesc, pStandardTileShapeForNonPackedMips,
+                                pNumSubresourceTilings, FirstSubresourceTilingToGet,
+                                pSubresourceTilingsForNonPackedMips);
 }
 
 HRESULT WrappedID3D11Device::CheckMultisampleQualityLevels1(DXGI_FORMAT Format, UINT SampleCount,

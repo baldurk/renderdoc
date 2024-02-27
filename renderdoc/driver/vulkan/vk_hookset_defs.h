@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -551,7 +551,13 @@
   DeclExt(EXT_attachment_feedback_loop_dynamic_state); \
   DeclExt(EXT_extended_dynamic_state3);                \
   DeclExt(EXT_mesh_shader);                            \
-  DeclExt(EXT_scalar_block_layout);
+  DeclExt(EXT_scalar_block_layout);                    \
+  DeclExt(KHR_vertex_attribute_divisor);               \
+  DeclExt(KHR_line_rasterization);                     \
+  DeclExt(KHR_calibrated_timestamps);                  \
+  DeclExt(KHR_deferred_host_operations);               \
+  DeclExt(KHR_acceleration_structure);                 \
+  DeclExt(KHR_ray_query);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -586,7 +592,8 @@
   CheckExt(KHR_wayland_surface, VKXX);                 \
   CheckExt(KHR_performance_query, VKXX);               \
   CheckExt(KHR_fragment_shading_rate, VKXX);           \
-  CheckExt(EXT_acquire_drm_display, VKXX);
+  CheckExt(EXT_acquire_drm_display, VKXX);             \
+  CheckExt(KHR_calibrated_timestamps, VKXX);
 
 #define CheckDeviceExts()                                     \
   CheckExt(EXT_debug_marker, VKXX);                           \
@@ -617,7 +624,6 @@
   CheckExt(EXT_conservative_rasterization, VKXX);             \
   CheckExt(EXT_global_priority, VKXX);                        \
   CheckExt(AMD_buffer_marker, VKXX);                          \
-  CheckExt(EXT_vertex_attribute_divisor, VKXX);               \
   CheckExt(EXT_sampler_filter_minmax, VK12);                  \
   CheckExt(KHR_sampler_ycbcr_conversion, VK11);               \
   CheckExt(KHR_device_group, VK11);                           \
@@ -673,7 +679,13 @@
   CheckExt(EXT_attachment_feedback_loop_dynamic_state, VKXX); \
   CheckExt(EXT_extended_dynamic_state3, VKXX);                \
   CheckExt(EXT_mesh_shader, VKXX);                            \
-  CheckExt(EXT_scalar_block_layout, VK12);
+  CheckExt(EXT_scalar_block_layout, VK12);                    \
+  CheckExt(KHR_vertex_attribute_divisor, VKXX);               \
+  CheckExt(KHR_line_rasterization, VKXX);                     \
+  CheckExt(KHR_calibrated_timestamps, VKXX);                  \
+  CheckExt(KHR_deferred_host_operations, VKXX);               \
+  CheckExt(KHR_acceleration_structure, VKXX);                 \
+  CheckExt(KHR_ray_query, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -722,6 +734,7 @@
   HookInitExtension(KHR_fragment_shading_rate, GetPhysicalDeviceFragmentShadingRatesKHR);            \
   HookInitExtension(EXT_acquire_drm_display, AcquireDrmDisplayEXT);                                  \
   HookInitExtension(EXT_acquire_drm_display, GetDrmDisplayEXT);                                      \
+  HookInitExtension(KHR_calibrated_timestamps, GetPhysicalDeviceCalibrateableTimeDomainsKHR);        \
   HookInitExtension_PhysDev_Win32();                                                                 \
   HookInitExtension_PhysDev_Linux();                                                                 \
   HookInitExtension_PhysDev_GGP();                                                                   \
@@ -788,6 +801,7 @@
   HookInitExtension(KHR_performance_query, GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR);   \
   HookInitPromotedExtension(EXT_tooling_info, GetPhysicalDeviceToolProperties, EXT);                 \
   HookInitExtension(KHR_fragment_shading_rate, GetPhysicalDeviceFragmentShadingRatesKHR);            \
+  HookInitExtension(KHR_calibrated_timestamps, GetPhysicalDeviceCalibrateableTimeDomainsKHR);        \
   HookInitExtension_Instance_Win32();                                                                \
   HookInitExtension_Instance_Linux();                                                                \
   HookInitExtension_Instance_GGP();                                                                  \
@@ -971,6 +985,30 @@
   HookInitExtension(EXT_mesh_shader, CmdDrawMeshTasksEXT);                                         \
   HookInitExtension(EXT_mesh_shader, CmdDrawMeshTasksIndirectEXT);                                 \
   HookInitExtension(EXT_mesh_shader, CmdDrawMeshTasksIndirectCountEXT);                            \
+  HookInitExtension(KHR_calibrated_timestamps, GetCalibratedTimestampsKHR);                        \
+  HookInitExtension(KHR_line_rasterization, CmdSetLineStippleKHR);                                 \
+  HookInitExtensionEXTtoKHR(CmdSetLineStipple);                                                    \
+  HookInitExtension(KHR_deferred_host_operations, CreateDeferredOperationKHR);                     \
+  HookInitExtension(KHR_deferred_host_operations, DeferredOperationJoinKHR);                       \
+  HookInitExtension(KHR_deferred_host_operations, DestroyDeferredOperationKHR);                    \
+  HookInitExtension(KHR_deferred_host_operations, GetDeferredOperationMaxConcurrencyKHR);          \
+  HookInitExtension(KHR_deferred_host_operations, GetDeferredOperationResultKHR);                  \
+  HookInitExtension(KHR_acceleration_structure, BuildAccelerationStructuresKHR);                   \
+  HookInitExtension(KHR_acceleration_structure, CmdBuildAccelerationStructuresIndirectKHR);        \
+  HookInitExtension(KHR_acceleration_structure, CmdBuildAccelerationStructuresKHR);                \
+  HookInitExtension(KHR_acceleration_structure, CmdCopyAccelerationStructureKHR);                  \
+  HookInitExtension(KHR_acceleration_structure, CmdCopyAccelerationStructureToMemoryKHR);          \
+  HookInitExtension(KHR_acceleration_structure, CmdCopyMemoryToAccelerationStructureKHR);          \
+  HookInitExtension(KHR_acceleration_structure, CmdWriteAccelerationStructuresPropertiesKHR);      \
+  HookInitExtension(KHR_acceleration_structure, CopyAccelerationStructureKHR);                     \
+  HookInitExtension(KHR_acceleration_structure, CopyAccelerationStructureToMemoryKHR);             \
+  HookInitExtension(KHR_acceleration_structure, CopyMemoryToAccelerationStructureKHR);             \
+  HookInitExtension(KHR_acceleration_structure, CreateAccelerationStructureKHR);                   \
+  HookInitExtension(KHR_acceleration_structure, DestroyAccelerationStructureKHR);                  \
+  HookInitExtension(KHR_acceleration_structure, GetAccelerationStructureBuildSizesKHR);            \
+  HookInitExtension(KHR_acceleration_structure, GetAccelerationStructureDeviceAddressKHR);         \
+  HookInitExtension(KHR_acceleration_structure, GetDeviceAccelerationStructureCompatibilityKHR);   \
+  HookInitExtension(KHR_acceleration_structure, WriteAccelerationStructuresPropertiesKHR);         \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
   HookInitExtension_Device_GGP();                                                                  \
@@ -1537,9 +1575,9 @@
               firstDiscardRectangle, uint32_t, discardRectangleCount, const VkRect2D *,              \
               pDiscardRectangles);                                                                   \
   HookDefine3(VkResult, vkGetPhysicalDeviceCalibrateableTimeDomainsEXT, VkPhysicalDevice,            \
-              physicalDevice, uint32_t *, pTimeDomainCount, VkTimeDomainEXT *, pTimeDomains);        \
+              physicalDevice, uint32_t *, pTimeDomainCount, VkTimeDomainKHR *, pTimeDomains);        \
   HookDefine5(VkResult, vkGetCalibratedTimestampsEXT, VkDevice, device, uint32_t, timestampCount,    \
-              const VkCalibratedTimestampInfoEXT *, pTimestampInfos, uint64_t *, pTimestamps,        \
+              const VkCalibratedTimestampInfoKHR *, pTimestampInfos, uint64_t *, pTimestamps,        \
               uint64_t *, pMaxDeviation);                                                            \
   HookDefine4(void, vkResetQueryPool, VkDevice, device, VkQueryPool, queryPool, uint32_t,            \
               firstQuery, uint32_t, queryCount);                                                     \
@@ -1772,6 +1810,72 @@
   HookDefine7(void, vkCmdDrawMeshTasksIndirectCountEXT, VkCommandBuffer, commandBuffer, VkBuffer,    \
               buffer, VkDeviceSize, offset, VkBuffer, countBuffer, VkDeviceSize,                     \
               countBufferOffset, uint32_t, maxDrawCount, uint32_t, stride);                          \
+  HookDefine3(VkResult, vkGetPhysicalDeviceCalibrateableTimeDomainsKHR, VkPhysicalDevice,            \
+              physicalDevice, uint32_t *, pTimeDomainCount, VkTimeDomainKHR *, pTimeDomains);        \
+  HookDefine5(VkResult, vkGetCalibratedTimestampsKHR, VkDevice, device, uint32_t, timestampCount,    \
+              const VkCalibratedTimestampInfoKHR *, pTimestampInfos, uint64_t *, pTimestamps,        \
+              uint64_t *, pMaxDeviation);                                                            \
+  HookDefine3(void, vkCmdSetLineStippleKHR, VkCommandBuffer, commandBuffer, uint32_t,                \
+              lineStippleFactor, uint16_t, lineStipplePattern);                                      \
+  HookDefine3(VkResult, vkCreateDeferredOperationKHR, VkDevice, device,                              \
+              const VkAllocationCallbacks *, pAllocator, VkDeferredOperationKHR *,                   \
+              pDeferredOperation);                                                                   \
+  HookDefine2(VkResult, vkDeferredOperationJoinKHR, VkDevice, device, VkDeferredOperationKHR,        \
+              operation);                                                                            \
+  HookDefine3(void, vkDestroyDeferredOperationKHR, VkDevice, device, VkDeferredOperationKHR,         \
+              operation, const VkAllocationCallbacks *, pAllocator);                                 \
+  HookDefine2(uint32_t, vkGetDeferredOperationMaxConcurrencyKHR, VkDevice, device,                   \
+              VkDeferredOperationKHR, operation);                                                    \
+  HookDefine2(VkResult, vkGetDeferredOperationResultKHR, VkDevice, device, VkDeferredOperationKHR,   \
+              operation);                                                                            \
+  HookDefine5(VkResult, vkBuildAccelerationStructuresKHR, VkDevice, device,                          \
+              VkDeferredOperationKHR, deferredOperation, uint32_t, infoCount,                        \
+              const VkAccelerationStructureBuildGeometryInfoKHR *, pInfos,                           \
+              const VkAccelerationStructureBuildRangeInfoKHR *const *, ppBuildRangeInfos);           \
+  HookDefine6(void, vkCmdBuildAccelerationStructuresIndirectKHR, VkCommandBuffer, commandBuffer,     \
+              uint32_t, infoCount, const VkAccelerationStructureBuildGeometryInfoKHR *, pInfos,      \
+              const VkDeviceAddress *, pIndirectDeviceAddresses, const uint32_t *,                   \
+              pIndirectStrides, const uint32_t *const *, ppMaxPrimitiveCounts);                      \
+  HookDefine4(void, vkCmdBuildAccelerationStructuresKHR, VkCommandBuffer, commandBuffer, uint32_t,   \
+              infoCount, const VkAccelerationStructureBuildGeometryInfoKHR *, pInfos,                \
+              const VkAccelerationStructureBuildRangeInfoKHR *const *, ppBuildRangeInfos);           \
+  HookDefine2(void, vkCmdCopyAccelerationStructureKHR, VkCommandBuffer, commandBuffer,               \
+              const VkCopyAccelerationStructureInfoKHR *, pInfo);                                    \
+  HookDefine2(void, vkCmdCopyAccelerationStructureToMemoryKHR, VkCommandBuffer, commandBuffer,       \
+              const VkCopyAccelerationStructureToMemoryInfoKHR *, pInfo);                            \
+  HookDefine2(void, vkCmdCopyMemoryToAccelerationStructureKHR, VkCommandBuffer, commandBuffer,       \
+              const VkCopyMemoryToAccelerationStructureInfoKHR *, pInfo);                            \
+  HookDefine6(void, vkCmdWriteAccelerationStructuresPropertiesKHR, VkCommandBuffer, commandBuffer,   \
+              uint32_t, accelerationStructureCount, const VkAccelerationStructureKHR *,              \
+              pAccelerationStructures, VkQueryType, queryType, VkQueryPool, queryPool, uint32_t,     \
+              firstQuery);                                                                           \
+  HookDefine3(VkResult, vkCopyAccelerationStructureKHR, VkDevice, device, VkDeferredOperationKHR,    \
+              deferredOperation, const VkCopyAccelerationStructureInfoKHR *, pInfo);                 \
+  HookDefine3(VkResult, vkCopyAccelerationStructureToMemoryKHR, VkDevice, device,                    \
+              VkDeferredOperationKHR, deferredOperation,                                             \
+              const VkCopyAccelerationStructureToMemoryInfoKHR *, pInfo);                            \
+  HookDefine3(VkResult, vkCopyMemoryToAccelerationStructureKHR, VkDevice, device,                    \
+              VkDeferredOperationKHR, deferredOperation,                                             \
+              const VkCopyMemoryToAccelerationStructureInfoKHR *, pInfo);                            \
+  HookDefine4(VkResult, vkCreateAccelerationStructureKHR, VkDevice, device,                          \
+              const VkAccelerationStructureCreateInfoKHR *, pCreateInfo,                             \
+              const VkAllocationCallbacks *, pAllocator, VkAccelerationStructureKHR *,               \
+              pAccelerationStructure);                                                               \
+  HookDefine3(void, vkDestroyAccelerationStructureKHR, VkDevice, device, VkAccelerationStructureKHR, \
+              accelerationStructure, const VkAllocationCallbacks *, pAllocator);                     \
+  HookDefine5(void, vkGetAccelerationStructureBuildSizesKHR, VkDevice, device,                       \
+              VkAccelerationStructureBuildTypeKHR, buildType,                                        \
+              const VkAccelerationStructureBuildGeometryInfoKHR *, pBuildInfo, const uint32_t *,     \
+              pMaxPrimitiveCounts, VkAccelerationStructureBuildSizesInfoKHR *, pSizeInfo);           \
+  HookDefine2(VkDeviceAddress, vkGetAccelerationStructureDeviceAddressKHR, VkDevice, device,         \
+              const VkAccelerationStructureDeviceAddressInfoKHR *, pInfo);                           \
+  HookDefine3(void, vkGetDeviceAccelerationStructureCompatibilityKHR, VkDevice, device,              \
+              const VkAccelerationStructureVersionInfoKHR *, pVersionInfo,                           \
+              VkAccelerationStructureCompatibilityKHR *, pCompatibility);                            \
+  HookDefine7(VkResult, vkWriteAccelerationStructuresPropertiesKHR, VkDevice, device, uint32_t,      \
+              accelerationStructureCount, const VkAccelerationStructureKHR *,                        \
+              pAccelerationStructures, VkQueryType, queryType, size_t, dataSize, void *, pData,      \
+              size_t, stride);                                                                       \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \

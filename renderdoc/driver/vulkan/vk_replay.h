@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -231,8 +231,22 @@ struct VulkanPostVSData
       return taskout;
     else if(type == MeshDataStage::MeshOut)
       return meshout;
-    else
-      RDCERR("Unexpected mesh data stage!");
+
+    if(type == MeshDataStage::Count)
+    {
+      if(gsout.buf != VK_NULL_HANDLE)
+        return gsout;
+
+      if(vsout.buf != VK_NULL_HANDLE)
+        return vsout;
+
+      if(meshout.buf != VK_NULL_HANDLE)
+        return meshout;
+
+      return vsout;
+    }
+
+    RDCERR("Unexpected mesh data stage!");
 
     return vsout;
   }

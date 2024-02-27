@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1012,8 +1012,23 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol,
     GLenum copyQueryEnum = texQueryEnum;
 
     GLuint depthCopy = 0, stencilCopy = 0;
-    bool useBlitFramebuffer = true;
     bool useDepthStencilMask = (overlay == DebugOverlay::Depth) && (curDepth != 0);
+
+    if(useDepthStencilMask)
+    {
+      useDepthStencilMask = false;
+      PerStageReflections stages;
+      m_pDriver->FillReflectionArray(rs.Program, stages);
+      const ShaderReflection *reflection = stages.refls[(uint32_t)ShaderStage::Fragment];
+      if(reflection)
+      {
+        for(const SigParameter &output : reflection->outputSignature)
+        {
+          if(output.systemValue == ShaderBuiltin::DepthOutput)
+            useDepthStencilMask = true;
+        }
+      }
+    }
 
     // create matching depth for existing FBO
     if(curDepth != 0)
@@ -1052,8 +1067,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol,
         else if(depth == 0 && stencil == 8)
           fmt = eGL_STENCIL_INDEX8;
       }
-      // For depth overlay : need a stencil buffer
-      if(overlay == DebugOverlay::Depth)
+      // Need a stencil buffer for the depth overlay stencil mask method
+      if(useDepthStencilMask)
       {
         GLenum oldFmt = fmt;
         if((oldFmt == eGL_DEPTH_COMPONENT16) || (oldFmt == eGL_DEPTH_COMPONENT24) ||
@@ -1067,11 +1082,11 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol,
           if(DebugData.overlayTexSlices > 1)
           {
             useDepthStencilMask = false;
+            fmt = oldFmt;
             RDCWARN("Depth overlay using fallback method instead of stencil mask");
           }
           else
           {
-            useBlitFramebuffer = false;
             curStencil = curDepth;
           }
         }
@@ -1272,6 +1287,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol,
                                  stencilCopy, sub.mip);
     }
 
+    bool useBlitFramebuffer = !useDepthStencilMask;
     if(useBlitFramebuffer)
     {
       // get latest depth/stencil from read FBO (existing FBO) into draw FBO (overlay FBO)

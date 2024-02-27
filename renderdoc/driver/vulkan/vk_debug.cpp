@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1798,6 +1798,14 @@ const VulkanCreationInfo::PipelineLayout &VulkanDebugManager::GetPipelineLayoutI
   return it->second;
 }
 
+const VulkanCreationInfo::AccelerationStructure &VulkanDebugManager::GetAccelerationStructureInfo(
+    ResourceId as) const
+{
+  auto it = m_pDriver->m_CreationInfo.m_AccelerationStructure.find(as);
+  RDCASSERT(it != m_pDriver->m_CreationInfo.m_AccelerationStructure.end());
+  return it->second;
+}
+
 const DescSetLayout &VulkanDebugManager::GetDescSetLayout(ResourceId dsl) const
 {
   auto it = m_pDriver->m_CreationInfo.m_DescSetLayout.find(dsl);
@@ -2046,6 +2054,10 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
                                                 VkImageSubresourceRange discardRange,
                                                 VkRect2D discardRect)
 {
+  // State tracking will not be accurate during loading
+  if(IsLoading(m_pDriver->m_State))
+    return;
+
   VkDevice dev = m_Device;
   const VkDevDispatchTable *vt = ObjDisp(dev);
   const VulkanCreationInfo::Image &imInfo = GetImageInfo(GetResID(image));
@@ -2569,6 +2581,9 @@ void VulkanDebugManager::InitReadbackBuffer(VkDeviceSize sz)
     VkDevice dev = m_pDriver->GetDev();
     m_ReadbackWindow.Create(m_pDriver, dev, AlignUp(sz, (VkDeviceSize)4096), 1,
                             GPUBuffer::eGPUBufferReadback);
+
+    m_pDriver->GetResourceManager()->SetInternalResource(GetResID(m_ReadbackWindow.buf));
+    m_pDriver->GetResourceManager()->SetInternalResource(GetResID(m_ReadbackWindow.mem));
 
     RDCLOG("Allocating readback window of %llu bytes", m_ReadbackWindow.sz);
 

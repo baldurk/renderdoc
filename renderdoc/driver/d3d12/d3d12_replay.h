@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -367,8 +367,22 @@ private:
         return ampout;
       else if(type == MeshDataStage::MeshOut)
         return meshout;
-      else
-        RDCERR("Unexpected mesh data stage!");
+
+      if(type == MeshDataStage::Count)
+      {
+        if(gsout.buf)
+          return gsout;
+
+        if(vsout.buf)
+          return vsout;
+
+        if(meshout.buf)
+          return meshout;
+
+        return vsout;
+      }
+
+      RDCERR("Unexpected mesh data stage!");
 
       return vsout;
     }
@@ -504,8 +518,8 @@ private:
     ID3DBlob *PrimitiveIDPS = NULL;
     ID3DBlob *PrimitiveIDPSDxil = NULL;
 
-    ID3DBlob *FixedColorPS = NULL;
-    ID3DBlob *FixedColorPSDxil = NULL;
+    ID3DBlob *FixedColorPS[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT] = {NULL};
+    ID3DBlob *FixedColorPSDxil[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT] = {NULL};
   } m_PixelHistory;
 
   struct HistogramMinMax

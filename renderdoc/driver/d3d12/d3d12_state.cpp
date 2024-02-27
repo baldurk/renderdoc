@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -125,7 +125,6 @@ void D3D12RenderState::ResolvePendingIndirectState(WrappedID3D12Device *device)
           device->GetResIDFromOrigAddr(va, id, offs);
 
           ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
-          RDCASSERT(res);
 
           if(arg.VertexBuffer.Slot >= vbuffers.size())
             vbuffers.resize(arg.VertexBuffer.Slot + 1);
@@ -147,7 +146,6 @@ void D3D12RenderState::ResolvePendingIndirectState(WrappedID3D12Device *device)
           device->GetResIDFromOrigAddr(ib->BufferLocation, id, offs);
 
           ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
-          RDCASSERT(res);
 
           ibuffer.buf = GetResID(res);
           ibuffer.offs = offs;
@@ -245,7 +243,8 @@ void D3D12RenderState::ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsComman
       }
 
       // safe to set this - if the pipeline has view instancing disabled, it will do nothing
-      if(dev->GetOpts3().ViewInstancingTier != D3D12_VIEW_INSTANCING_TIER_NOT_SUPPORTED)
+      if(dev->GetOpts3().ViewInstancingTier != D3D12_VIEW_INSTANCING_TIER_NOT_SUPPORTED &&
+         viewInstMask != 0)
         cmd->SetViewInstanceMask(viewInstMask);
     }
 

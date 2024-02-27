@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -2426,9 +2426,18 @@ public:
 
   VkResult vkGetPhysicalDeviceCalibrateableTimeDomainsEXT(VkPhysicalDevice physicalDevice,
                                                           uint32_t *pTimeDomainCount,
-                                                          VkTimeDomainEXT *pTimeDomains);
+                                                          VkTimeDomainKHR *pTimeDomains);
   VkResult vkGetCalibratedTimestampsEXT(VkDevice device, uint32_t timestampCount,
-                                        const VkCalibratedTimestampInfoEXT *pTimestampInfos,
+                                        const VkCalibratedTimestampInfoKHR *pTimestampInfos,
+                                        uint64_t *pTimestamps, uint64_t *pMaxDeviation);
+
+  // VK_KHR_calibrated_timestamps (straight promotion)
+
+  VkResult vkGetPhysicalDeviceCalibrateableTimeDomainsKHR(VkPhysicalDevice physicalDevice,
+                                                          uint32_t *pTimeDomainCount,
+                                                          VkTimeDomainKHR *pTimeDomains);
+  VkResult vkGetCalibratedTimestampsKHR(VkDevice device, uint32_t timestampCount,
+                                        const VkCalibratedTimestampInfoKHR *pTimestampInfos,
                                         uint64_t *pTimestamps, uint64_t *pMaxDeviation);
 
   // VK_EXT_host_query_reset
@@ -2492,6 +2501,11 @@ public:
   // VK_EXT_line_rasterization
 
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLineStippleEXT, VkCommandBuffer commandBuffer,
+                                uint32_t lineStippleFactor, uint16_t lineStipplePattern);
+
+  // VK_KHR_line_rasterization
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLineStippleKHR, VkCommandBuffer commandBuffer,
                                 uint32_t lineStippleFactor, uint16_t lineStipplePattern);
 
   // VK_GOOGLE_display_timing
@@ -2758,7 +2772,7 @@ public:
                                 VkCommandBuffer commandBuffer,
                                 float extraPrimitiveOverestimationSize);
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLineRasterizationModeEXT, VkCommandBuffer commandBuffer,
-                                VkLineRasterizationModeEXT lineRasterizationMode);
+                                VkLineRasterizationModeKHR lineRasterizationMode);
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLineStippleEnableEXT, VkCommandBuffer commandBuffer,
                                 VkBool32 stippledLineEnable);
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLogicOpEnableEXT, VkCommandBuffer commandBuffer,
@@ -2798,4 +2812,70 @@ public:
                                 VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
                                 VkBuffer countBuffer, VkDeviceSize countBufferOffset,
                                 uint32_t maxDrawCount, uint32_t stride);
+
+  // VK_KHR_deferred_host_operations
+  VkResult vkCreateDeferredOperationKHR(VkDevice device, const VkAllocationCallbacks *pAllocator,
+                                        VkDeferredOperationKHR *pDeferredOperation);
+  VkResult vkDeferredOperationJoinKHR(VkDevice device, VkDeferredOperationKHR operation);
+  void vkDestroyDeferredOperationKHR(VkDevice device, VkDeferredOperationKHR operation,
+                                     const VkAllocationCallbacks *pAllocator);
+  uint32_t vkGetDeferredOperationMaxConcurrencyKHR(VkDevice device, VkDeferredOperationKHR operation);
+  VkResult vkGetDeferredOperationResultKHR(VkDevice device, VkDeferredOperationKHR operation);
+
+  // VK_KHR_acceleration_structure
+  VkResult vkBuildAccelerationStructuresKHR(
+      VkDevice device, VkDeferredOperationKHR deferredOperation, uint32_t infoCount,
+      const VkAccelerationStructureBuildGeometryInfoKHR *pInfos,
+      const VkAccelerationStructureBuildRangeInfoKHR *const *ppBuildRangeInfos);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBuildAccelerationStructuresIndirectKHR,
+                                VkCommandBuffer commandBuffer, uint32_t infoCount,
+                                const VkAccelerationStructureBuildGeometryInfoKHR *pInfos,
+                                const VkDeviceAddress *pIndirectDeviceAddresses,
+                                const uint32_t *pIndirectStrides,
+                                const uint32_t *const *ppMaxPrimitiveCounts);
+  IMPLEMENT_FUNCTION_SERIALISED(
+      void, vkCmdBuildAccelerationStructuresKHR, VkCommandBuffer commandBuffer, uint32_t infoCount,
+      const VkAccelerationStructureBuildGeometryInfoKHR *pInfos,
+      const VkAccelerationStructureBuildRangeInfoKHR *const *ppBuildRangeInfos);
+  VkResult vkCopyAccelerationStructureKHR(VkDevice device, VkDeferredOperationKHR deferredOperation,
+                                          const VkCopyAccelerationStructureInfoKHR *pInfo);
+  VkResult vkCopyAccelerationStructureToMemoryKHR(
+      VkDevice device, VkDeferredOperationKHR deferredOperation,
+      const VkCopyAccelerationStructureToMemoryInfoKHR *pInfo);
+  VkResult vkCopyMemoryToAccelerationStructureKHR(
+      VkDevice device, VkDeferredOperationKHR deferredOperation,
+      const VkCopyMemoryToAccelerationStructureInfoKHR *pInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyAccelerationStructureKHR,
+                                VkCommandBuffer commandBuffer,
+                                const VkCopyAccelerationStructureInfoKHR *pInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyAccelerationStructureToMemoryKHR,
+                                VkCommandBuffer commandBuffer,
+                                const VkCopyAccelerationStructureToMemoryInfoKHR *pInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyMemoryToAccelerationStructureKHR,
+                                VkCommandBuffer commandBuffer,
+                                const VkCopyMemoryToAccelerationStructureInfoKHR *pInfo);
+  void vkCmdWriteAccelerationStructuresPropertiesKHR(
+      VkCommandBuffer commandBuffer, uint32_t accelerationStructureCount,
+      const VkAccelerationStructureKHR *pAccelerationStructures, VkQueryType queryType,
+      VkQueryPool queryPool, uint32_t firstQuery);
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateAccelerationStructureKHR, VkDevice device,
+                                const VkAccelerationStructureCreateInfoKHR *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator,
+                                VkAccelerationStructureKHR *pAccelerationStructure);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyAccelerationStructureKHR, VkDevice device,
+                                VkAccelerationStructureKHR accelerationStructure,
+                                const VkAllocationCallbacks *pAllocator);
+  void vkGetAccelerationStructureBuildSizesKHR(
+      VkDevice device, VkAccelerationStructureBuildTypeKHR buildType,
+      const VkAccelerationStructureBuildGeometryInfoKHR *pBuildInfo,
+      const uint32_t *pMaxPrimitiveCounts, VkAccelerationStructureBuildSizesInfoKHR *pSizeInfo);
+  VkDeviceAddress vkGetAccelerationStructureDeviceAddressKHR(
+      VkDevice device, const VkAccelerationStructureDeviceAddressInfoKHR *pInfo);
+  void vkGetDeviceAccelerationStructureCompatibilityKHR(
+      VkDevice device, const VkAccelerationStructureVersionInfoKHR *pVersionInfo,
+      VkAccelerationStructureCompatibilityKHR *pCompatibility);
+  VkResult vkWriteAccelerationStructuresPropertiesKHR(
+      VkDevice device, uint32_t accelerationStructureCount,
+      const VkAccelerationStructureKHR *pAccelerationStructures, VkQueryType queryType,
+      size_t dataSize, void *pData, size_t stride);
 };

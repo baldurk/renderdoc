@@ -14,7 +14,13 @@ It is also possible to build the ``renderdoc`` module standalone which can be lo
 
     Due to Android being inherently an unstable and unreliable platform, using the python scripting on Android devices is not recommended or supported. It may work, but you'll be on your own with any problems encountered as they are too likely to be caused by problems on Android.
 
-You must use exactly the same version of python to load the module as was used to build it. On Windows the version of python that comes with the repository and is used by default is python 3.6. This can be overridden at build time by setting the environment variable `RENDERDOC_PYTHON_PREFIX32` or `RENDERDOC_PYTHON_PREFIX64` to the path of a compatible python install. NOTE that the embedded zip distribution doesn't come with python38.lib which is necessary, so you must regenerate it or get it from the installed python. The installed python folder doesn't come with a python38.zip standard library bundle which you'd need to create or get from the embedded zip distribution.
+You must use exactly the same version of python to load the module as was used to build it.
+
+On windows by default RenderDoc builds against python 3.6 which is what it's distributed with.
+
+This can be overridden by setting an overridden path under the ``Python Configuration`` section in the properties of the ``qrenderdoc`` project and ``pyrenderdoc_module`` project. It must point to a python installation.
+
+RenderDoc requires pythonXY.lib, include files such as include/Python.h, as well as a .zip of the standard library. If you installed python with an installer you have the first two, and can generate the standard library zip by zipping the contents of the Lib folder. If you downloaded the embeddable zip distribution you will only have the standard library zip, you need to obtain the include files and ``.lib`` file separately.
 
 .. note::
 

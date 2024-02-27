@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -94,7 +94,7 @@ extern "C" const char GitVersionHash[41];
 // upstream and should not be modified downstream. You can set DISTRIBUTION_VERSION to include any
 // arbitrary release marker or package version you wish.
 #define RENDERDOC_VERSION_MAJOR 1
-#define RENDERDOC_VERSION_MINOR 31
+#define RENDERDOC_VERSION_MINOR 32
 
 #define RDOC_INTERNAL_VERSION_STRINGIZE2(a) #a
 #define RDOC_INTERNAL_VERSION_STRINGIZE(a) RDOC_INTERNAL_VERSION_STRINGIZE2(a)

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2021-2023 Baldur Karlsson
+ * Copyright (c) 2021-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1336,9 +1336,12 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
 
     if(annotatedSig == NULL || FAILED(hr))
     {
+      SAFE_RELEASE(root);
       RDCERR("Couldn't create feedback modified root signature: %s", ToStr(hr).c_str());
       return false;
     }
+
+    SAFE_RELEASE(root);
   }
 
   ID3D12PipelineState *annotatedPipe = NULL;

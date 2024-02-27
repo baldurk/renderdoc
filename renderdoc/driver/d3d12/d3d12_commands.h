@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -357,6 +357,13 @@ struct D3D12CommandData
   D3D12ActionTreeNode m_ParentAction;
 
   rdcarray<D3D12ActionTreeNode *> m_RootActionStack;
+
+  struct IndirectReplayData
+  {
+    ID3D12CommandSignature *commandSig = NULL;
+    ID3D12Resource *argsBuffer = NULL;
+    UINT64 argsOffset = 0;
+  } m_IndirectData;
 
   rdcarray<D3D12ActionTreeNode *> &GetActionStack()
   {

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -872,7 +872,7 @@ void WrappedVulkan::vkCmdSetDiscardRectangleEXT(VkCommandBuffer commandBuffer,
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetLineStippleEXT(SerialiserType &ser,
+bool WrappedVulkan::Serialise_vkCmdSetLineStippleKHR(SerialiserType &ser,
                                                      VkCommandBuffer commandBuffer,
                                                      uint32_t lineStippleFactor,
                                                      uint16_t lineStipplePattern)
@@ -907,22 +907,26 @@ bool WrappedVulkan::Serialise_vkCmdSetLineStippleEXT(SerialiserType &ser,
       }
     }
 
+    // this could be the EXT function, we handle either one in our dispatch tables and assign to the
+    // other since it's a straight promotion. This allows us to share implementation between the two
     if(commandBuffer != VK_NULL_HANDLE)
       ObjDisp(commandBuffer)
-          ->CmdSetLineStippleEXT(Unwrap(commandBuffer), lineStippleFactor, lineStipplePattern);
+          ->CmdSetLineStippleKHR(Unwrap(commandBuffer), lineStippleFactor, lineStipplePattern);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetLineStippleEXT(VkCommandBuffer commandBuffer,
+void WrappedVulkan::vkCmdSetLineStippleKHR(VkCommandBuffer commandBuffer,
                                            uint32_t lineStippleFactor, uint16_t lineStipplePattern)
 {
   SCOPED_DBG_SINK();
 
+  // this could be the EXT function, we handle either one in our dispatch tables and assign to the
+  // other since it's a straight promotion. This allows us to share implementation between the two
   SERIALISE_TIME_CALL(
       ObjDisp(commandBuffer)
-          ->CmdSetLineStippleEXT(Unwrap(commandBuffer), lineStippleFactor, lineStipplePattern));
+          ->CmdSetLineStippleKHR(Unwrap(commandBuffer), lineStippleFactor, lineStipplePattern));
 
   if(IsCaptureMode(m_State))
   {
@@ -930,11 +934,20 @@ void WrappedVulkan::vkCmdSetLineStippleEXT(VkCommandBuffer commandBuffer,
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetLineStippleEXT);
-    Serialise_vkCmdSetLineStippleEXT(ser, commandBuffer, lineStippleFactor, lineStipplePattern);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetLineStippleKHR);
+    Serialise_vkCmdSetLineStippleKHR(ser, commandBuffer, lineStippleFactor, lineStipplePattern);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
+}
+
+// we can forward this straight on regardless, as our handling of dispatch tables means if only the
+// EXT is available it will go through to the EXT from the driver, and we would rather merge the
+// EXT/KHR paths and silently promote than keep them separate and maintain two paths.
+void WrappedVulkan::vkCmdSetLineStippleEXT(VkCommandBuffer commandBuffer,
+                                           uint32_t lineStippleFactor, uint16_t lineStipplePattern)
+{
+  return vkCmdSetLineStippleKHR(commandBuffer, lineStippleFactor, lineStipplePattern);
 }
 
 template <typename SerialiserType>
@@ -2702,7 +2715,7 @@ void WrappedVulkan::vkCmdSetExtraPrimitiveOverestimationSizeEXT(VkCommandBuffer 
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCmdSetLineRasterizationModeEXT(
     SerialiserType &ser, VkCommandBuffer commandBuffer,
-    VkLineRasterizationModeEXT lineRasterizationMode)
+    VkLineRasterizationModeKHR lineRasterizationMode)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(lineRasterizationMode).Important();
@@ -2740,7 +2753,7 @@ bool WrappedVulkan::Serialise_vkCmdSetLineRasterizationModeEXT(
 }
 
 void WrappedVulkan::vkCmdSetLineRasterizationModeEXT(VkCommandBuffer commandBuffer,
-                                                     VkLineRasterizationModeEXT lineRasterizationMode)
+                                                     VkLineRasterizationModeKHR lineRasterizationMode)
 {
   SCOPED_DBG_SINK();
 
@@ -3372,7 +3385,7 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDiscardRectangleEXT, VkCommandBuff
                                 uint32_t firstDiscardRectangle, uint32_t discardRectangleCount,
                                 const VkRect2D *pDiscardRectangles);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetLineStippleEXT, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetLineStippleKHR, VkCommandBuffer commandBuffer,
                                 uint32_t lineStippleFactor, uint16_t lineStipplePattern);
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetCullMode, VkCommandBuffer commandBuffer,
@@ -3454,7 +3467,7 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetExtraPrimitiveOverestimationSizeEX
                                 VkCommandBuffer commandBuffer,
                                 float extraPrimitiveOverestimationSize);
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetLineRasterizationModeEXT, VkCommandBuffer commandBuffer,
-                                VkLineRasterizationModeEXT lineRasterizationMode);
+                                VkLineRasterizationModeKHR lineRasterizationMode);
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetLineStippleEnableEXT, VkCommandBuffer commandBuffer,
                                 VkBool32 stippledLineEnable);
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetLogicOpEnableEXT, VkCommandBuffer commandBuffer,

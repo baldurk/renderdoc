@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -7017,7 +7017,8 @@ void BufferViewer::SetMeshFilter(MeshFilter filter, uint32_t taskGroup, uint32_t
       break;
   }
 
-  OnEventChanged(m_Ctx.CurEvent());
+  if(m_Ctx.IsCaptureLoaded())
+    OnEventChanged(m_Ctx.CurEvent());
 }
 
 void BufferViewer::on_rowOffset_valueChanged(int value)

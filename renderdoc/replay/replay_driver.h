@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -177,6 +177,20 @@ public:
 
   virtual MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID,
                                       MeshDataStage stage) = 0;
+
+  // this is a helper/batch query for the above, that's only necessary because Android is a shit
+  // platform and its proxying has significant per-call overhead. This is overridden in the proxy,
+  // but otherwise will call to this default implementation
+  virtual rdcarray<MeshFormat> GetBatchPostVSBuffers(uint32_t eventId,
+                                                     const rdcarray<uint32_t> &instIDs,
+                                                     uint32_t viewID, MeshDataStage stage)
+  {
+    rdcarray<MeshFormat> ret;
+    ret.reserve(instIDs.size());
+    for(uint32_t instID : instIDs)
+      ret.push_back(GetPostVSBuffers(eventId, instID, viewID, stage));
+    return ret;
+  }
 
   virtual void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData) = 0;
   virtual void GetTextureData(ResourceId tex, const Subresource &sub,

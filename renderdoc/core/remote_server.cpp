@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -1247,7 +1247,10 @@ RENDERDOC_CreateRemoteServerConnection(const rdcstr &URL, IRemoteServer **rend)
   }
 
   if(rend == NULL)
+  {
+    SAFE_DELETE(sock);
     return RDResult(ResultCode::Succeeded);
+  }
 
   if(protocol)
     *rend = protocol->CreateRemoteServer(sock, deviceID);

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -327,7 +327,7 @@ public:
   {
     const size_t lastIdx = size();
     reserve(size() + 1);
-    new(elems + lastIdx) T(std::forward<ConstructArgs...>(args)...);
+    new(elems + lastIdx) T(std::forward<ConstructArgs>(args)...);
     setUsedCount(usedCount + 1);
   }
 

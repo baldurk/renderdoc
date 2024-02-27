@@ -128,6 +128,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_KHR_android_surface`
 * `VK_KHR_bind_memory2`
 * `VK_KHR_buffer_device_address`
+* `VK_KHR_calibrated_timestamps`
 * `VK_KHR_copy_commands2`
 * `VK_KHR_create_renderpass2`
 * `VK_KHR_dedicated_allocation`
@@ -163,6 +164,9 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_KHR_image_format_list`
 * `VK_KHR_imageless_framebuffer`
 * `VK_KHR_incremental_present`
+* `VK_KHR_index_type_uint8`
+* `VK_KHR_line_rasterization`
+* `VK_KHR_load_store_op_none`
 * `VK_KHR_maintenance1`
 * `VK_KHR_maintenance2`
 * `VK_KHR_maintenance3`
@@ -199,6 +203,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_KHR_timeline_semaphore`
 * `VK_KHR_uniform_buffer_standard_layout`
 * `VK_KHR_variable_pointers`
+* `VK_KHR_vertex_attribute_divisor`
 * `VK_KHR_vulkan_memory_model`
 * `VK_KHR_wayland_surface`
 * `VK_KHR_win32_keyed_mutex`
@@ -228,7 +233,16 @@ KHR extensions will definitely be implemented at some point, though KHR extensio
 
 ## KHR Extensions
 
+* `VK_KHR_cooperative_matrix`
+* `VK_KHR_dynamic_rendering_local_read`
+* `VK_KHR_maintenance5`
+* `VK_KHR_maintenance6`
 * `VK_KHR_map_memory2`
+* `VK_KHR_shader_expect_assume`
+* `VK_KHR_shader_float_controls2`
+* `VK_KHR_shader_maximal_reconvergence`
+* `VK_KHR_shader_quad_control`
+* `VK_KHR_shader_subgroup_rotate`
 
 ## KHR Portability
 
@@ -251,6 +265,7 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 ## EXT Extensions
 
 * `VK_EXT_blend_operation_advanced`
+* `VK_EXT_depth_bias_control`
 * `VK_EXT_descriptor_buffer`
 * `VK_EXT_device_address_binding_report`
 * `VK_EXT_device_fault`
@@ -258,19 +273,22 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_dynamic_rendering_unused_attachments`
 * `VK_EXT_external_memory_acquire_unmodified`
 * `VK_EXT_external_memory_host`
-* `VK_EXT_image_sliced_view_of_3d`
-* `VK_EXT_image_compression_control`
+* `VK_EXT_host_image_copy`
 * `VK_EXT_image_compression_control_swapchain`
+* `VK_EXT_image_compression_control`
 * `VK_EXT_image_drm_format_modifier`
+* `VK_EXT_image_sliced_view_of_3d`
+* `VK_EXT_layer_settings`
 * `VK_EXT_legacy_dithering`
 * `VK_EXT_mesh_shader`
 * `VK_EXT_metal_objects`
 * `VK_EXT_multi_draw`
+* `VK_EXT_nested_command_buffer`
 * `VK_EXT_opacity_micromap`
 * `VK_EXT_physical_device_drm`
 * `VK_EXT_pipeline_library_group_handles`
-* `VK_EXT_pipeline_protected_access`
 * `VK_EXT_pipeline_properties`
+* `VK_EXT_pipeline_protected_access`
 * `VK_EXT_pipeline_robustness`
 * `VK_EXT_rasterization_order_attachment_access`
 * `VK_EXT_shader_module_identifier`
@@ -280,9 +298,15 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 
 ## Platform/IHV Extensions
 
+### Android
+
+* `VK_ANDROID_external_format_resolve`
+
 ### ARM
 
 * `VK_ARM_rasterization_order_attachment_access`
+* `VK_ARM_render_pass_striped`
+* `VK_ARM_scheduling_controls`
 * `VK_ARM_shader_core_builtins`
 * `VK_ARM_shader_core_properties`
 
@@ -310,10 +334,18 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_HUAWEI_subpass_shading`
 * `VK_HUAWEI_invocation_mask`
 
+### Imagination
+
+* `VK_IMG_relaxed_line_rasterization`
+
 ### Intel
 
 * `VK_INTEL_shader_integer_functions2`
 * `VK_INTEL_performance_query`
+
+### Microsoft
+
+* `VK_MSFT_layered_driver`
 
 ### NV
 
@@ -322,11 +354,15 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_NV_copy_memory_indirect`
 * `VK_NV_corner_sampled_image`
 * `VK_NV_coverage_reduction_mode`
+* `VK_NV_cuda_kernel_launch`
 * `VK_NV_dedicated_allocation_image_aliasing`
+* `VK_NV_descriptor_pool_overallocation`
 * `VK_NV_device_diagnostic_checkpoints`
 * `VK_NV_device_diagnostics_config`
+* `VK_NV_device_generated_commands_compute`
 * `VK_NV_device_generated_commands`
 * `VK_NV_displacement_micromap`
+* `VK_NV_extended_sparse_address_space`
 * `VK_NV_external_memory_rdma`
 * `VK_NV_fill_rectangle`
 * `VK_NV_fragment_coverage_to_color`
@@ -335,9 +371,11 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_NV_inherited_viewport_scissor`
 * `VK_NV_linear_color_attachment`
 * `VK_NV_low_latency`
+* `VK_NV_low_latency2`
 * `VK_NV_memory_decompression`
 * `VK_NV_mesh_shader`
 * `VK_NV_optical_flow`
+* `VK_NV_per_stage_descriptor_set`
 * `VK_NV_present_barrier`
 * `VK_NV_ray_tracing_invocation_reorder`
 * `VK_NV_ray_tracing_motion_blur`
@@ -349,15 +387,19 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 
 ### Qualcomm
 
-* `VK_QCOM_multiview_per_view_render_areas`
+* `VK_QCOM_filter_cubic_clamp`
+* `VK_QCOM_filter_cubic_weights`
 * `VK_QCOM_fragment_density_map_offset`
 * `VK_QCOM_image_processing`
+* `VK_QCOM_image_processing2`
+* `VK_QCOM_multiview_per_view_render_areas`
 * `VK_QCOM_multiview_per_view_viewports`
 * `VK_QCOM_render_pass_shader_resolve`
 * `VK_QCOM_render_pass_store_ops`
 * `VK_QCOM_render_pass_transform`
 * `VK_QCOM_rotated_copy_commands`
 * `VK_QCOM_tile_properties`
+* `VK_QCOM_ycbcr_degamma`
 
 ### Samsung
 
@@ -388,18 +430,24 @@ These are expected to never be implemented in their current form.
 
 ### Vulkan Video extensions
 
-* `VK_KHR_video_queue`
-* `VK_KHR_video_decode_queue`
+* `VK_KHR_video_decode_av1`
 * `VK_KHR_video_decode_h264`
 * `VK_KHR_video_decode_h265`
+* `VK_KHR_video_decode_queue`
+* `VK_KHR_video_encode_h264`
+* `VK_KHR_video_encode_h265`
+* `VK_KHR_video_maintenance1`
+* `VK_KHR_video_queue`
 
-### System extensions
+### System/Other tool extensions
 
+* `VK_EXT_frame_boundary`
 * `VK_LUNARG_direct_driver_loading`
 
 ### Deprecated / experimental / IHV
 
 * `VK_AMD_draw_indirect_count`
+* `VK_AMDX_shader_enqueue`
 * `VK_KHR_video_encode_queue`
 * `VK_EXT_video_encode_h264`
 * `VK_EXT_video_encode_h265`

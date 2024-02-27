@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -696,7 +696,13 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
           {
             SubresourceContents = mapped.pData;
             RowPitch = mapped.RowPitch;
-            ContentsLength = RowPitch * numRows;
+
+            const uint32_t rowLength = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
+
+            RDCASSERT(RowPitch >= rowLength);
+
+            ContentsLength = RowPitch * (RDCMAX(1U, numRows) - 1);
+            ContentsLength += rowLength;
           }
         }
 
@@ -878,8 +884,16 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
           SubresourceContents = mapped.pData;
           RowPitch = mapped.RowPitch;
           DepthPitch = mapped.DepthPitch;
+
+          const uint32_t numSlices = RDCMAX(1U, desc.Depth >> mip);
+          const uint32_t rowLength = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
+
+          RDCASSERT(RowPitch >= rowLength);
           RDCASSERT(DepthPitch >= RowPitch * numRows);
-          ContentsLength = DepthPitch * RDCMAX(1U, desc.Depth >> mip);
+
+          ContentsLength = DepthPitch * (RDCMAX(1U, numSlices) - 1);
+          ContentsLength += RowPitch * (RDCMAX(1U, numRows) - 1);
+          ContentsLength += rowLength;
         }
       }
 

@@ -26,7 +26,11 @@
      uses the Lib/ folder with all the loose uncompiled library source).
      It will need to be generated manually or obtained from the embeddable zip.
      As a result we use the existance of the .lib, .h and .zip as a key to
-     ensure we only use -->
+     ensure we only use a valid install -->
+
+<!-- We want to keep supporting the old environment variable path for compatibility
+     but encourage users to use the new property page method. So we check for that first
+     to determine PythonOverride, and only fall back to env vars if it's not set. -->
 
 <!-- MSBuild doesn't implement a simple loop so just do this by hand by
      taking advantage of MSBuild evaluating these in-order.
@@ -38,9 +42,19 @@
 
 <!-- first define the override prefix we're searching against -->
 <PropertyGroup>
-	<PythonOverride Condition="'$(Platform)'=='Win32'">$(RENDERDOC_PYTHON_PREFIX32)</PythonOverride>
-	<PythonOverride Condition="'$(Platform)'=='x64'">$(RENDERDOC_PYTHON_PREFIX64)</PythonOverride>
+	<PythonOverride>$(VSPythonOverridePath)</PythonOverride>
+	<PythonOverride Condition="'$(VSPythonOverridePath)'=='' AND '$(Platform)'=='Win32'">$(RENDERDOC_PYTHON_PREFIX32)</PythonOverride>
+	<PythonOverride Condition="'$(VSPythonOverridePath)'=='' AND '$(Platform)'=='x64'">$(RENDERDOC_PYTHON_PREFIX64)</PythonOverride>
 </PropertyGroup>
+
+<PropertyGroup><PythonMajorMinorTest>312</PythonMajorMinorTest></PropertyGroup>
+<PropertyGroup Condition="'$(CustomPythonUsed)'=='0' AND Exists('$(PythonOverride)\include\Python.h') AND Exists('$(PythonOverride)\python$(PythonMajorMinorTest).zip') AND (Exists('$(PythonOverride)\python$(PythonMajorMinorTest).lib') OR Exists('$(PythonOverride)\libs\python$(PythonMajorMinorTest).lib'))"><CustomPythonUsed>$(PythonMajorMinorTest)</CustomPythonUsed></PropertyGroup>
+
+<PropertyGroup><PythonMajorMinorTest>311</PythonMajorMinorTest></PropertyGroup>
+<PropertyGroup Condition="'$(CustomPythonUsed)'=='0' AND Exists('$(PythonOverride)\include\Python.h') AND Exists('$(PythonOverride)\python$(PythonMajorMinorTest).zip') AND (Exists('$(PythonOverride)\python$(PythonMajorMinorTest).lib') OR Exists('$(PythonOverride)\libs\python$(PythonMajorMinorTest).lib'))"><CustomPythonUsed>$(PythonMajorMinorTest)</CustomPythonUsed></PropertyGroup>
+
+<PropertyGroup><PythonMajorMinorTest>310</PythonMajorMinorTest></PropertyGroup>
+<PropertyGroup Condition="'$(CustomPythonUsed)'=='0' AND Exists('$(PythonOverride)\include\Python.h') AND Exists('$(PythonOverride)\python$(PythonMajorMinorTest).zip') AND (Exists('$(PythonOverride)\python$(PythonMajorMinorTest).lib') OR Exists('$(PythonOverride)\libs\python$(PythonMajorMinorTest).lib'))"><CustomPythonUsed>$(PythonMajorMinorTest)</CustomPythonUsed></PropertyGroup>
 
 <PropertyGroup><PythonMajorMinorTest>39</PythonMajorMinorTest></PropertyGroup>
 <PropertyGroup Condition="'$(CustomPythonUsed)'=='0' AND Exists('$(PythonOverride)\include\Python.h') AND Exists('$(PythonOverride)\python$(PythonMajorMinorTest).zip') AND (Exists('$(PythonOverride)\python$(PythonMajorMinorTest).lib') OR Exists('$(PythonOverride)\libs\python$(PythonMajorMinorTest).lib'))"><CustomPythonUsed>$(PythonMajorMinorTest)</CustomPythonUsed></PropertyGroup>
@@ -79,6 +93,11 @@
 
 <Target Name="PythonOverridden" AfterTargets="Build" Condition="'$(CustomPythonUsed)'!='0'">
 	<Message Importance="high" Text="Built against python from $(PythonOverride)" />
+</Target>
+
+<Target Name="PythonFailedOverridden" AfterTargets="Build" Condition="'$(CustomPythonUsed)'=='0' AND $(PythonOverride)!=''">
+	<Message Importance="high" Text="** Could not use python version $(PythonOverride) due to missing requirements." />
+	<Message Importance="high" Text="** Check for $(PythonOverride)\include\Python.h, $(PythonOverride)\pythonMAJMIN.zip, and either $(PythonOverride)\pythonMAJMIN.lib or $(PythonOverride)\libs\pythonMAJMIN.lib" />
 </Target>
 
 </Project>

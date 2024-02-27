@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -504,8 +504,14 @@ public:
 
   IMPLEMENT_FUNCTION_PROXIED(void, InitPostVSBuffers, uint32_t eventId);
   IMPLEMENT_FUNCTION_PROXIED(void, InitPostVSBuffers, const rdcarray<uint32_t> &passEvents);
-  IMPLEMENT_FUNCTION_PROXIED(MeshFormat, GetPostVSBuffers, uint32_t eventId, uint32_t instID,
-                             uint32_t viewID, MeshDataStage stage);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<MeshFormat>, GetBatchPostVSBuffers, uint32_t eventId,
+                             const rdcarray<uint32_t> &instIDs, uint32_t viewID, MeshDataStage stage);
+
+  // if this gets called individually, just forward to the batch implementation for simplicity
+  MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID, MeshDataStage stage)
+  {
+    return GetBatchPostVSBuffers(eventId, {instID}, viewID, stage)[0];
+  }
 
   IMPLEMENT_FUNCTION_PROXIED(ResourceId, RenderOverlay, ResourceId texid, FloatVector clearCol,
                              Subresource textureSubresource, DebugOverlay overlay, uint32_t eventId,

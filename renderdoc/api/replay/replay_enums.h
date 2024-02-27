@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -657,6 +657,11 @@ API-specific concepts.
 
   An object which pools together other objects in an opaque way, either for runtime allocation and
   deallocation, or for caching purposes.
+
+.. data:: AccelerationStructure
+
+  A structure used to carry implementation-defined spatial partitioning data and related
+  information, used to accelerate geometry intersection queries (e.g. for ray tracing).
 )");
 enum class ResourceType : uint32_t
 {
@@ -683,6 +688,8 @@ enum class ResourceType : uint32_t
   Query,
   Sync,
   Pool,
+
+  AccelerationStructure,
 };
 
 DECLARE_REFLECTION_ENUM(ResourceType);
@@ -1109,6 +1116,11 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
 .. data:: OutputIndices
 
   An output containing the indices for a meshlet.
+
+.. data:: MultiViewIndex
+
+  An input specifying the view being rendered to in multiview rendering. Only valid when multiview rendering is enabled.
+
 )");
 enum class ShaderBuiltin : uint32_t
 {
@@ -1166,6 +1178,7 @@ enum class ShaderBuiltin : uint32_t
   Barycentrics,
   CullPrimitive,
   OutputIndices,
+  MultiViewIndex,
   Count,
 };
 

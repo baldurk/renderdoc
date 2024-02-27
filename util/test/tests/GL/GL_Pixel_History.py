@@ -3,6 +3,7 @@ import rdtest
 from typing import List
 
 class GL_Pixel_History(rdtest.TestCase):
+    slow_test = True
     demos_test_name = 'GL_Pixel_History'
     demos_frame_cap = 10
 
@@ -16,7 +17,7 @@ class GL_Pixel_History(rdtest.TestCase):
             if action is None:
                 break
 
-            rdtest.log.success(f'Test {action.eventId} started.')
+            rdtest.log.success(f'Testing Event {action.eventId} started.')
             self.controller.SetFrameEvent(action.eventId, True)
 
             pipe: rd.PipeState = self.controller.GetPipelineState()
@@ -25,7 +26,7 @@ class GL_Pixel_History(rdtest.TestCase):
             sub = rd.Subresource()
 
             texDescription : rd.TextureDescription = self.get_texture(tex)
-            print(f"format: {texDescription.format.Name()}")
+            rdtest.log.print("Testing format {}".format(texDescription.format.Name()))
 
             if texDescription.format.type == rd.ResourceFormatType.R5G5B5A1 or texDescription.format.type == rd.ResourceFormatType.R5G6B5:
                 eps = 1.0 / 32.0 
@@ -38,9 +39,8 @@ class GL_Pixel_History(rdtest.TestCase):
             else:
                 eps = 2.0 / 16384.0
 
-            
-
             x, y = 190, 149
+            rdtest.log.print("Testing pixel {}, {}".format(x, y))
             events = [glclear.eventId, action.eventId]
             modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
             self.check_events(events, modifs, False)
@@ -48,29 +48,22 @@ class GL_Pixel_History(rdtest.TestCase):
             self.check_shader_out_with_postmod(modifs[-1].shaderOut.col.floatValue, modifs[-1].postMod.col.floatValue, texDescription.format.compCount, eps)
 
             x, y = 328, 199
+            rdtest.log.print("Testing pixel {}, {}".format(x, y))
             events = [glclear.eventId]
             modifs: List[rd.pixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
             self.check_events(events, modifs, False)
             self.check_pixel_value(tex, x, y, modifs[-1].postMod.col.floatValue, sub=sub, cast=rt.typeCast, eps=eps)
 
-            rdtest.log.success('Test {} completed.'.format(action.eventId))
-
+            rdtest.log.success('Testing Event {} completed.'.format(action.eventId))
 
     def check_events(self, events, modifs, hasSecondary):
         eventMatchingModifs = modifs[(-1 * len(events)):]
-        print(f"Events: {events}, Modifs: {modifs}, EventMatchingModifs: {eventMatchingModifs}")
 
         # modifications can show results from previous colour passes which we don't care about for now, so we only check the last relevant modifs
         for i in range(len(eventMatchingModifs)):
             self.check(eventMatchingModifs[i].eventId == events[i], f"Expected event with id {events[i]}, but got {eventMatchingModifs[i].eventId}")
 
-
-
     def check_shader_out_with_postmod(self, shaderOut, postMod, compCount: int, eps: float):
-        print(f"shaderOut: {shaderOut}, posMod: {postMod}")
-
-        diff = 0
-
         for i in range(compCount):
             if not rdtest.value_compare(shaderOut[i], postMod[i], eps=eps):
                 raise rdtest.TestFailureException(f"shaderOut and postMod differ by {shaderOut[i] - postMod[i]}")

@@ -102,6 +102,14 @@ Examples:
 
 ---------------
 
+  | :guilabel:`Offset or size fields format mode` Default: ``Auto``
+
+Any fields which are displayed in the UI that represent byte offsets or sizes can be configured to display as either decimal, hexadecimal, or automatic.
+
+In the default automatic mode the fields will be shown as decimal for small values up to a given threshold, and as hexadecimal for larger values. With this option they can be instead forced to always display as one or the other.
+
+---------------
+
   | :guilabel:`Directory for temporary capture files` Default: ``%TEMP%``
 
 This allows you to choose where on disk temporary capture files are stored between when the capture is made, and when it is either discarded or saved to a permanent location on disk.

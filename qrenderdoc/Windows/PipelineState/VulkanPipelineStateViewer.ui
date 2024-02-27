@@ -3673,7 +3673,7 @@
                  <bool>false</bool>
                 </property>
                 <property name="selectionMode">
-                 <enum>QAbstractItemView::NoSelection</enum>
+                 <enum>QAbstractItemView::SingleSelection</enum>
                 </property>
                 <property name="indentation">
                  <number>0</number>
@@ -3822,7 +3822,7 @@
              <item>
               <widget class="QToolButton" name="csShaderSaveButton">
                <property name="toolTip">
-                <string>Save Shader DXBC</string>
+                <string>Save Shader SPIR-V</string>
                </property>
                <property name="text">
                 <string>Save</string>

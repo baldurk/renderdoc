@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -910,7 +910,7 @@ protected:
         dyn.color[i].resolveMode = VK_RESOLVE_MODE_NONE;
         dyn.color[i].resolveImageView = VK_NULL_HANDLE;
 
-        if(dyn.color[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        if(dyn.color[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
           dyn.color[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         if(dyn.color[i].storeOp != VK_ATTACHMENT_STORE_OP_NONE)
           dyn.color[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1001,12 +1001,12 @@ protected:
       descs[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
       descs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
       descs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-      if(rpInfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_NONE_EXT)
-        descs[i].loadOp = VK_ATTACHMENT_LOAD_OP_NONE_EXT;
+      if(rpInfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_NONE_KHR)
+        descs[i].loadOp = VK_ATTACHMENT_LOAD_OP_NONE_KHR;
       if(rpInfo.attachments[i].storeOp == VK_ATTACHMENT_STORE_OP_NONE)
         descs[i].storeOp = VK_ATTACHMENT_STORE_OP_NONE;
-      if(rpInfo.attachments[i].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_NONE_EXT)
-        descs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_NONE_EXT;
+      if(rpInfo.attachments[i].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_NONE_KHR)
+        descs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_NONE_KHR;
       if(rpInfo.attachments[i].stencilStoreOp == VK_ATTACHMENT_STORE_OP_NONE)
         descs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_NONE;
 
@@ -1466,6 +1466,7 @@ protected:
           }
         }
       }
+      return 0;
     }
 
     const VulkanCreationInfo::RenderPass &rpInfo =
@@ -4271,6 +4272,9 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
         uint32_t offset = perFragmentCB.GetEventOffset(eid) + f - discardOffset;
         FillInColor(shaderOutFormat, bp[offset].shaderOut, history[h].shaderOut);
         history[h].shaderOut.depth = bp[offset].shaderOut.depth.fdepth;
+        // Zero out elements the shader didn't write to.
+        for(int i = fmt.compCount; i < 4; i++)
+          history[h].shaderOut.col.floatValue[i] = 0.0f;
 
         if((h < history.size() - 1) && (history[h].eventId == history[h + 1].eventId))
         {

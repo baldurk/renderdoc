@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2020-2023 Baldur Karlsson
+ * Copyright (c) 2020-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -221,6 +221,17 @@ float4 main(v2f IN) : SV_Target0
     tests.push_back(BuildTestCase({{false, VarType::UInt, 4, 0, "TEXCOORD0", true}}));
     tests.push_back(BuildTestCase({{false, VarType::UInt, 4, 0, "TEXCOORD0", false}}));
     tests.push_back(BuildTestCase({{true, VarType::UInt, 4, 0, "TEXCOORD0", true}}));
+
+    // test semantics with indices that don't start from 0
+    tests.push_back(BuildTestCase({{false, VarType::Float, 1, 0, "TEXCOORD1", true}}));
+    tests.push_back(BuildTestCase({{true, VarType::Float, 1, 0, "TEXCOORD1", true}}));
+    tests.push_back(BuildTestCase({{false, VarType::UInt, 1, 0, "TEXCOORD1", true}}));
+    tests.push_back(BuildTestCase({{false, VarType::UInt, 4, 0, "TEXCOORD1", true}}));
+
+    tests.push_back(BuildTestCase({{false, VarType::Float, 1, 0, "TEXCOORD2", true}}));
+    tests.push_back(BuildTestCase({{true, VarType::Float, 1, 0, "TEXCOORD2", true}}));
+    tests.push_back(BuildTestCase({{false, VarType::UInt, 1, 0, "TEXCOORD2", true}}));
+    tests.push_back(BuildTestCase({{false, VarType::UInt, 4, 0, "TEXCOORD2", true}}));
 
     // A single semantic with various array sizes
     tests.push_back(BuildTestCase({{false, VarType::Float, 1, 1, "TEXCOORD0", true}}));

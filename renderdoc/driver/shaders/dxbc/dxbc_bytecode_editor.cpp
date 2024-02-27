@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2021-2023 Baldur Karlsson
+ * Copyright (c) 2021-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -56,9 +56,12 @@ ProgramEditor::ProgramEditor(const DXBC::DXBCContainer *container, bytebuf &outB
 ProgramEditor::~ProgramEditor()
 {
   rdcarray<uint32_t> encoded = EncodeProgram();
-  // only one of these fourcc's will be present, so we just try to replace both
-  DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, MAKE_FOURCC('S', 'H', 'E', 'X'), encoded);
-  DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, MAKE_FOURCC('S', 'H', 'D', 'R'), encoded);
+  // only one of these fourcc's will be present
+  size_t dummy = 0;
+  if(DXBC::DXBCContainer::FindChunk(m_OutBlob, DXBC::FOURCC_SHEX, dummy))
+    DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, MAKE_FOURCC('S', 'H', 'E', 'X'), encoded);
+  if(DXBC::DXBCContainer::FindChunk(m_OutBlob, DXBC::FOURCC_SHDR, dummy))
+    DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, MAKE_FOURCC('S', 'H', 'D', 'R'), encoded);
 }
 
 /*

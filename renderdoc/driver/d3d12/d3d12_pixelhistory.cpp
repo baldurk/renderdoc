@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Baldur Karlsson
+ * Copyright (c) 2023-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -81,6 +81,7 @@
  * We slot the per-fragment data correctly accounting for the fragments that were discarded.
  */
 
+#include "core/settings.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "maths/formatpacking.h"
 #include "d3d12_command_queue.h"
@@ -234,23 +235,11 @@ bool IsDepthFormat(D3D12_RESOURCE_DESC desc, CompType typeCast)
   return false;
 }
 
-void ReplayDraw(ID3D12GraphicsCommandListX *cmd, const ActionDescription &action)
+DXGI_FORMAT GetDepthCopyFormat(DXGI_FORMAT format)
 {
-  // TODO: Once this is fully supported for indirect draws, this should be moved to WrappedID3D12Device
-  if(action.drawIndex == 0)
-  {
-    if(action.flags & ActionFlags::Indexed)
-      cmd->DrawIndexedInstanced(action.numIndices, action.numInstances, action.indexOffset,
-                                action.baseVertex, action.instanceOffset);
-    else
-      cmd->DrawInstanced(action.numIndices, action.numInstances, action.vertexOffset,
-                         action.instanceOffset);
-  }
-  else
-  {
-    // TODO: Support replay of single indirect draws
-    RDCERR("Indirect draws are NYI with ReplayDraw");
-  }
+  if(format == DXGI_FORMAT_D16_UNORM)
+    return DXGI_FORMAT_R16_TYPELESS;
+  return DXGI_FORMAT_R32_TYPELESS;
 }
 
 }
@@ -419,20 +408,25 @@ void D3D12DebugManager::PixelHistoryCopyPixel(ID3D12GraphicsCommandListX *cmd,
 struct D3D12PixelHistoryShaderCache
 {
   D3D12PixelHistoryShaderCache(WrappedID3D12Device *device, ID3DBlob *PersistentPrimIDPS,
-                               ID3DBlob *PersistentPrimIDPSDxil, ID3DBlob *FixedColorPS,
-                               ID3DBlob *FixedColorPSDxil)
-      : m_pDevice(device),
-        m_PrimIDPS(PersistentPrimIDPS),
-        m_PrimIDPSDxil(PersistentPrimIDPSDxil),
-        m_FixedColorPS(FixedColorPS),
-        m_FixedColorPSDxil(FixedColorPSDxil)
+                               ID3DBlob *PersistentPrimIDPSDxil,
+                               ID3DBlob *FixedColorPS[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT],
+                               ID3DBlob *FixedColorPSDxil[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT])
+      : m_pDevice(device), m_PrimIDPS(PersistentPrimIDPS), m_PrimIDPSDxil(PersistentPrimIDPSDxil)
   {
+    for(int i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+    {
+      m_FixedColorPS[i] = FixedColorPS[i];
+      m_FixedColorPSDxil[i] = FixedColorPSDxil[i];
+    }
   }
 
   ~D3D12PixelHistoryShaderCache() {}
 
   // Returns a fragment shader that outputs a fixed color
-  ID3DBlob *GetFixedColorShader(bool dxil) { return dxil ? m_FixedColorPSDxil : m_FixedColorPS; }
+  ID3DBlob *GetFixedColorShader(bool dxil, int outputIndex)
+  {
+    return dxil ? m_FixedColorPSDxil[outputIndex] : m_FixedColorPS[outputIndex];
+  }
 
   // Returns a fragment shader that outputs primitive ID
   ID3DBlob *GetPrimitiveIdShader(bool dxil) { return dxil ? m_PrimIDPSDxil : m_PrimIDPS; }
@@ -444,8 +438,8 @@ private:
 
   ID3DBlob *m_PrimIDPS;
   ID3DBlob *m_PrimIDPSDxil;
-  ID3DBlob *m_FixedColorPS;
-  ID3DBlob *m_FixedColorPSDxil;
+  ID3DBlob *m_FixedColorPS[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
+  ID3DBlob *m_FixedColorPSDxil[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
 };
 
 // D3D12PixelHistoryCallback is a generic D3D12ActionCallback that can be used
@@ -509,6 +503,15 @@ protected:
       // Scissor does not touch our target pixel, make it empty
       newScissor.left = newScissor.top = newScissor.right = newScissor.bottom = 0;
     }
+  }
+
+  bool IsPSOUsingDXIL(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &pipeDesc)
+  {
+    // Check early stages first, for both VS and MS, but use PS as a fallback. If any shader stage
+    // uses DXIL, they all need to use DXIL.
+    return DXBC::DXBCContainer::CheckForDXIL(pipeDesc.VS.pShaderBytecode, pipeDesc.VS.BytecodeLength) ||
+           DXBC::DXBCContainer::CheckForDXIL(pipeDesc.MS.pShaderBytecode, pipeDesc.MS.BytecodeLength) ||
+           DXBC::DXBCContainer::CheckForDXIL(pipeDesc.PS.pShaderBytecode, pipeDesc.PS.BytecodeLength);
   }
 
   // ModifyPSOForStencilIncrement modifies the provided pipeDesc, by disabling depth test
@@ -587,8 +590,27 @@ protected:
     // copy using a compute shader into a staging image first
     if(p.multisampled)
     {
-      // TODO: Is a resource transition needed here?
+      // For pipeline barriers.
+      D3D12_RESOURCE_BARRIER barriers[2] = {};
+      barriers[0] = barrier;
+      barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+      // Validation will complain if we don't transition all subresources for an SRV.
+      barriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+      barriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      barriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      barriers[1].Transition.pResource = m_CallbackInfo.dstBuffer;
+      barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+      barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+      barriers[1].Transition.Subresource = 0;
+
+      cmd->ResourceBarrier(2, barriers);
+
       m_pDevice->GetDebugManager()->PixelHistoryCopyPixel(cmd, m_CallbackInfo.dstBuffer, p, offset);
+
+      std::swap(barriers[0].Transition.StateBefore, barriers[0].Transition.StateAfter);
+      std::swap(barriers[1].Transition.StateBefore, barriers[1].Transition.StateAfter);
+      cmd->ResourceBarrier(2, barriers);
     }
     else
     {
@@ -602,16 +624,21 @@ protected:
 
       // Copy into a buffer, but treat the footprint as the same format as the target image
       uint32_t elementSize = GetByteSize(0, 0, 0, p.copyFormat, 0);
+      // Use Offset to get to the nearest 16KB
+      UINT64 footprintOffset = (offset >> 14) << 14;
+      UINT64 offsetRemaider = offset - footprintOffset;
+      UINT dstX = (UINT)(offsetRemaider / elementSize);
 
       dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
       dst.pResource = m_CallbackInfo.dstBuffer;
-      dst.PlacedFootprint.Offset = 0;
-      dst.PlacedFootprint.Footprint.Width =
-          (UINT)m_CallbackInfo.dstBuffer->GetDesc().Width / elementSize;
+      dst.PlacedFootprint.Offset = footprintOffset;
+      dst.PlacedFootprint.Footprint.Width = dstX + 1;
       dst.PlacedFootprint.Footprint.Height = 1;
       dst.PlacedFootprint.Footprint.Depth = 1;
       dst.PlacedFootprint.Footprint.Format = p.copyFormat;
-      dst.PlacedFootprint.Footprint.RowPitch = (UINT)m_CallbackInfo.dstBuffer->GetDesc().Width;
+      dst.PlacedFootprint.Footprint.RowPitch =
+          AlignUp(dst.PlacedFootprint.Footprint.Width * elementSize,
+                  (uint32_t)D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 
       D3D12_BOX srcBox = {};
       srcBox.left = p.x;
@@ -621,10 +648,8 @@ protected:
       srcBox.front = 0;
       srcBox.back = 1;
 
-      // We need to apply the offset here (measured in number of elements) rather than using
-      // PlacedFootprint.Offset (measured in bytes) because the latter must be a multiple of 512
       RDCASSERT((offset % elementSize) == 0);
-      cmd->CopyTextureRegion(&dst, (UINT)(offset / elementSize), 0, 0, &src, &srcBox);
+      cmd->CopyTextureRegion(&dst, dstX, 0, 0, &src, &srcBox);
 
       std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
       cmd->ResourceBarrier(1, &barrier);
@@ -650,6 +675,30 @@ protected:
     }
 
     return targetIndex;
+  }
+
+  D3D12_RESOURCE_STATES GetImageState(ID3D12Resource *target, uint32_t planeSlice,
+                                      D3D12_RESOURCE_STATES fallback)
+  {
+    RDCASSERTMSG("This function is not meant for use with the non-capture resources.",
+                 target != m_CallbackInfo.colorImage && target != m_CallbackInfo.dsImage);
+
+    D3D12CommandData &cmdData = *m_pDevice->GetQueue()->GetCommandData();
+    SubresourceStateVector targetStates =
+        cmdData.m_BakedCmdListInfo[cmdData.m_LastCmdListID].GetState(m_pDevice, GetResID(target));
+
+    uint32_t baseMip = m_CallbackInfo.targetSubresource.mip;
+    uint32_t baseSlice = m_CallbackInfo.targetSubresource.slice;
+
+    uint32_t subresource =
+        D3D12CalcSubresource(baseMip, baseSlice, planeSlice, m_CallbackInfo.targetDesc.MipLevels,
+                             m_CallbackInfo.targetDesc.DepthOrArraySize);
+
+    if(targetStates.size() > subresource && targetStates[subresource].IsStates())
+    {
+      return targetStates[subresource].ToStates();
+    }
+    return fallback;
   }
 
   WrappedID3D12Device *m_pDevice;
@@ -689,8 +738,7 @@ struct D3D12OcclusionCallback : public D3D12PixelHistoryCallback
 
     pipeState.rts.clear();
     pipeState.dsv = *m_CallbackInfo.dsDescriptor;
-    ID3D12PipelineState *pso =
-        GetPixelOcclusionPipeline(eid, pipeState, GetPixelHistoryRenderTargetIndex(pipeState));
+    ID3D12PipelineState *pso = GetPixelOcclusionPipeline(eid, pipeState);
 
     pipeState.pipe = GetResID(pso);
     // set the scissor
@@ -808,11 +856,8 @@ struct D3D12OcclusionCallback : public D3D12PixelHistoryCallback
   }
 
 private:
-  ID3D12PipelineState *GetPixelOcclusionPipeline(uint32_t eid, D3D12RenderState &state,
-                                                 uint32_t outputIndex)
+  ID3D12PipelineState *GetPixelOcclusionPipeline(uint32_t eid, D3D12RenderState &state)
   {
-    // TODO: outputIndex is unused. Either we need to select a fixed color shader that writes to the
-    // preferred RT, or use RenderTargetWriteMask in the blend desc to mask out unrelated RTs
     auto it = m_PipeCache.find(state.pipe);
     if(it != m_PipeCache.end())
       return it->second;
@@ -830,8 +875,7 @@ private:
 
     ModifyPSOForStencilIncrement(eid, pipeDesc, true);
 
-    bool dxil =
-        DXBC::DXBCContainer::CheckForDXIL(pipeDesc.PS.pShaderBytecode, pipeDesc.PS.BytecodeLength);
+    bool dxil = IsPSOUsingDXIL(pipeDesc);
 
     ID3DBlob *psBlob =
         m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::HIGHLIGHT, dxil);
@@ -981,6 +1025,7 @@ struct D3D12ColorAndStencilCallback : public D3D12PixelHistoryCallback
 
     size_t storeOffset =
         m_EventIndices.size() * sizeof(D3D12EventInfo) + offsetof(struct D3D12EventInfo, premod);
+    m_SavedState = m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState();
     CopyPixel(eid, cmd, storeOffset);
   }
   bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd)
@@ -1051,19 +1096,37 @@ private:
     targetCopyParams.sample = m_CallbackInfo.targetSubresource.sample;
     targetCopyParams.mip = m_CallbackInfo.targetSubresource.mip;
     targetCopyParams.arraySlice = m_CallbackInfo.targetSubresource.slice;
-    targetCopyParams.srcImageState = D3D12_RESOURCE_STATE_RENDER_TARGET;
     targetCopyParams.multisampled = (m_CallbackInfo.targetDesc.SampleDesc.Count != 1);
+    D3D12_RESOURCE_STATES fallback = D3D12_RESOURCE_STATE_RENDER_TARGET;
     if(IsDepthFormat(m_CallbackInfo.targetDesc, m_CallbackInfo.compType))
     {
-      targetCopyParams.srcImageState = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH
-                                           ? D3D12_RESOURCE_STATE_DEPTH_READ
-                                           : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+      fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH
+                     ? D3D12_RESOURCE_STATE_DEPTH_READ
+                     : D3D12_RESOURCE_STATE_DEPTH_WRITE;
       targetCopyParams.srcImageFormat = GetDepthSRVFormat(m_CallbackInfo.targetDesc.Format, 0);
-      targetCopyParams.copyFormat = DXGI_FORMAT_R32_TYPELESS;
+      targetCopyParams.depthcopy = true;
+      targetCopyParams.copyFormat = GetDepthCopyFormat(m_CallbackInfo.targetDesc.Format);
       offset += offsetof(struct D3D12PixelHistoryValue, depth);
     }
+    targetCopyParams.srcImageState =
+        GetImageState(m_CallbackInfo.targetImage, targetCopyParams.planeSlice, fallback);
 
     CopyImagePixel(cmd, targetCopyParams, offset);
+
+    if(IsDepthAndStencilFormat(m_CallbackInfo.targetDesc.Format))
+    {
+      D3D12CopyPixelParams stencilCopyParams = targetCopyParams;
+      stencilCopyParams.srcImageFormat =
+          GetDepthSRVFormat(m_CallbackInfo.targetImage->GetDesc().Format, 1);
+      stencilCopyParams.copyFormat = DXGI_FORMAT_R8_TYPELESS;
+      stencilCopyParams.planeSlice = 1;
+      fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL
+                     ? D3D12_RESOURCE_STATE_DEPTH_READ
+                     : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+      stencilCopyParams.srcImageState =
+          GetImageState(m_CallbackInfo.targetImage, stencilCopyParams.planeSlice, fallback);
+      CopyImagePixel(cmd, stencilCopyParams, offset + sizeof(float));
+    }
 
     // If the target image is a depth/stencil view, we already copied the value above.
     if(IsDepthFormat(m_CallbackInfo.targetDesc.Format))
@@ -1076,7 +1139,6 @@ private:
       WrappedID3D12Resource *depthImage =
           m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Resource>(resId);
 
-      // TODO: What about D16? Still copy as 32 bit?
       DXGI_FORMAT depthFormat = m_SavedState.dsv.GetDSV().Format;
       // Descriptors with unknown type are valid and indicate to use the resource's format
       if(depthFormat == DXGI_FORMAT_UNKNOWN)
@@ -1084,23 +1146,25 @@ private:
 
       D3D12CopyPixelParams depthCopyParams = targetCopyParams;
       depthCopyParams.srcImage = depthImage;
-      depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthImage->GetDesc().Format, 0);
-      depthCopyParams.copyFormat = DXGI_FORMAT_R32_TYPELESS;
+      depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthFormat, 0);
+      depthCopyParams.copyFormat = GetDepthCopyFormat(depthFormat);
       depthCopyParams.depthcopy = true;
-      depthCopyParams.srcImageState = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH
-                                          ? D3D12_RESOURCE_STATE_DEPTH_READ
-                                          : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+      fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH
+                     ? D3D12_RESOURCE_STATE_DEPTH_READ
+                     : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+      depthCopyParams.srcImageState = GetImageState(depthImage, depthCopyParams.planeSlice, fallback);
       CopyImagePixel(cmd, depthCopyParams, offset + offsetof(struct D3D12PixelHistoryValue, depth));
 
       if(IsDepthAndStencilFormat(depthFormat))
       {
-        depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthImage->GetDesc().Format, 1);
+        depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthFormat, 1);
         depthCopyParams.copyFormat = DXGI_FORMAT_R8_TYPELESS;
         depthCopyParams.planeSlice = 1;
+        fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL
+                       ? D3D12_RESOURCE_STATE_DEPTH_READ
+                       : D3D12_RESOURCE_STATE_DEPTH_WRITE;
         depthCopyParams.srcImageState =
-            m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL
-                ? D3D12_RESOURCE_STATE_DEPTH_READ
-                : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+            GetImageState(depthImage, depthCopyParams.planeSlice, fallback);
         CopyImagePixel(cmd, depthCopyParams,
                        offset + offsetof(struct D3D12PixelHistoryValue, stencil));
       }
@@ -1124,7 +1188,7 @@ private:
     }
 
     const ActionDescription *action = m_pDevice->GetAction(eventId);
-    ::ReplayDraw(cmd, *action);
+    m_pDevice->ReplayDraw(cmd, *action);
   }
 
   // GetPipelineReplacements creates pipeline replacements that disable all tests,
@@ -1146,7 +1210,7 @@ private:
     D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC desc;
     origPSO->Fill(desc);
 
-    bool dxil = DXBC::DXBCContainer::CheckForDXIL(desc.PS.pShaderBytecode, desc.PS.BytecodeLength);
+    bool dxil = IsPSOUsingDXIL(desc);
     ID3DBlob *psBlob =
         m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::HIGHLIGHT, dxil);
     if(psBlob == NULL)
@@ -1237,6 +1301,19 @@ struct D3D12TestsFailedCallback : public D3D12PixelHistoryCallback
     uint32_t eventFlags = CalculateEventFlags(pipeState);
     m_EventFlags[eid] = eventFlags;
 
+    WrappedID3D12PipelineState *origPSO =
+        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(pipeState.pipe);
+    if(origPSO == NULL)
+      RDCERR("Failed to retrieve original PSO for pixel history.");
+
+    D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
+    origPSO->Fill(pipeDesc);
+
+    if(pipeDesc.DepthStencilState.DepthBoundsTestEnable)
+      m_EventDepthBounds[eid] = {pipeState.depthBoundsMin, pipeState.depthBoundsMax};
+    else
+      m_EventDepthBounds[eid] = {};
+
     // TODO: figure out if the shader has early fragments tests turned on,
     // based on the currently bound fragment shader.
     bool earlyFragmentTests = false;
@@ -1265,6 +1342,13 @@ struct D3D12TestsFailedCallback : public D3D12PixelHistoryCallback
   {
     auto it = m_EventFlags.find(eventId);
     if(it == m_EventFlags.end())
+      RDCERR("Can't find event flags for event %u", eventId);
+    return it->second;
+  }
+  rdcpair<float, float> GetEventDepthBounds(uint32_t eventId)
+  {
+    auto it = m_EventDepthBounds.find(eventId);
+    if(it == m_EventDepthBounds.end())
       RDCERR("Can't find event flags for event %u", eventId);
     return it->second;
   }
@@ -1683,10 +1767,9 @@ private:
 
     if(pipeCreateFlags & PipelineCreationFlags_FixedColorShader)
     {
-      bool dxil =
-          DXBC::DXBCContainer::CheckForDXIL(pipeDesc.PS.pShaderBytecode, pipeDesc.PS.BytecodeLength);
+      bool dxil = IsPSOUsingDXIL(pipeDesc);
 
-      ID3DBlob *FixedColorPS = m_ShaderCache->GetFixedColorShader(dxil);
+      ID3DBlob *FixedColorPS = m_ShaderCache->GetFixedColorShader(dxil, outputIndex);
       pipeDesc.PS.pShaderBytecode = FixedColorPS->GetBufferPointer();
       pipeDesc.PS.BytecodeLength = FixedColorPS->GetBufferSize();
     }
@@ -1715,7 +1798,7 @@ private:
     m_OcclusionQueries.insert(std::make_pair(rdcpair<uint32_t, uint32_t>(eventId, test), index));
 
     cmd->BeginQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, index);
-    ::ReplayDraw(cmd, *m_pDevice->GetAction(eventId));
+    m_pDevice->ReplayDraw(cmd, *m_pDevice->GetAction(eventId));
 
     cmd->EndQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, index);
   }
@@ -1723,6 +1806,7 @@ private:
   rdcarray<uint32_t> m_Events;
   // Key is event ID, value is the flags for that event.
   std::map<uint32_t, uint32_t> m_EventFlags;
+  std::map<uint32_t, rdcpair<float, float>> m_EventDepthBounds;
   // Key is a pair <Base pipeline, pipeline flags>
   std::map<rdcpair<ResourceId, uint32_t>, ID3D12PipelineState *> m_PipeCache;
   // Key: pair <event ID, test>
@@ -1859,8 +1943,8 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
     uint32_t renderTargetIndex = 0;
     if(IsDepthFormat(m_CallbackInfo.targetDesc.Format))
     {
-      // Going to add another render target
-      renderTargetIndex = (uint32_t)state.rts.size();
+      // Color target not needed
+      renderTargetIndex = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT;
     }
     else
     {
@@ -1921,6 +2005,8 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
     D3D12MarkerRegion::Set(
         cmd, StringFormat::Fmt("Event %u has %u fragments", eid, numFragmentsInEvent));
 
+    rdcarray<D3D12Descriptor> origRts = state.rts;
+
     // Get primitive ID and shader output value for each fragment.
     for(uint32_t f = 0; f < numFragmentsInEvent; f++)
     {
@@ -1928,9 +2014,11 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
       {
         uint32_t storeOffset = (fragsProcessed + f) * sizeof(D3D12PerFragmentInfo);
 
+        bool isPrimPass = (i == 0);
+
         D3D12MarkerRegion region(
-            cmd,
-            StringFormat::Fmt("Getting %s for %u", i == 0 ? "primitive ID" : "shader output", eid));
+            cmd, StringFormat::Fmt("Getting %s for %u",
+                                   isPrimPass ? "primitive ID" : "shader output", eid));
 
         if(psosIter[i] == NULL)
         {
@@ -1952,7 +2040,15 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
                                    D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 1,
                                    &state.scissors[0]);
 
-        state.rts[0] = *m_CallbackInfo.colorDescriptor;
+        if(isPrimPass)
+        {
+          state.rts.resize(1);
+          state.rts[0] = *m_CallbackInfo.colorDescriptor;
+        }
+        else if(renderTargetIndex != D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
+        {
+          state.rts[renderTargetIndex] = *m_CallbackInfo.colorDescriptor;
+        }
         state.dsv = *m_CallbackInfo.dsDescriptor;
         state.pipe = GetResID(psosIter[i]);
 
@@ -1963,18 +2059,19 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
         state.ApplyState(m_pDevice, cmd);
 
         const ActionDescription *action = m_pDevice->GetAction(eid);
-        ::ReplayDraw(cmd, *action);
+        m_pDevice->ReplayDraw(cmd, *action);
 
-        if(i == 1)
+        if(!isPrimPass)
         {
           storeOffset += offsetof(struct D3D12PerFragmentInfo, shaderOut);
           if(depthEnabled)
           {
+            DXGI_FORMAT depthFormat = m_CallbackInfo.dsImage->GetDesc().Format;
+
             D3D12CopyPixelParams depthCopyParams = colorCopyParams;
             depthCopyParams.srcImage = m_CallbackInfo.dsImage;
-            depthCopyParams.srcImageFormat =
-                GetDepthSRVFormat(m_CallbackInfo.dsImage->GetDesc().Format, 0);
-            depthCopyParams.copyFormat = DXGI_FORMAT_R32_TYPELESS;
+            depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthFormat, 0);
+            depthCopyParams.copyFormat = GetDepthCopyFormat(depthFormat);
             depthCopyParams.srcImageState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
             depthCopyParams.planeSlice = 0;
             depthCopyParams.depthcopy = true;
@@ -1983,8 +2080,19 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
           }
         }
         CopyImagePixel(cmd, colorCopyParams, storeOffset);
+
+        // restore the original render targets as subsequent steps will use them
+        state.rts = origRts;
       }
     }
+
+    if(renderTargetIndex != D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
+    {
+      state.rts[renderTargetIndex] = *m_CallbackInfo.colorDescriptor;
+    }
+
+    // Get post-modification value, use the original framebuffer attachment.
+    state.pipe = GetResID(pipes.postModPipe);
 
     const ModificationValue &premod = m_EventPremods[eid];
     // For every fragment except the last one, retrieve post-modification value.
@@ -1992,9 +2100,6 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
     {
       D3D12MarkerRegion region(cmd,
                                StringFormat::Fmt("Getting postmod for fragment %u in %u", f, eid));
-
-      // Get post-modification value, use the original framebuffer attachment.
-      state.pipe = GetResID(pipes.postModPipe);
 
       // Have to reset stencil
       D3D12_CLEAR_FLAGS clearFlags =
@@ -2017,7 +2122,7 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
       state.ApplyState(m_pDevice, cmd);
 
       const ActionDescription *action = m_pDevice->GetAction(eid);
-      ::ReplayDraw(cmd, *action);
+      m_pDevice->ReplayDraw(cmd, *action);
 
       CopyImagePixel(cmd, colorCopyParams,
                      (fragsProcessed + f) * sizeof(D3D12PerFragmentInfo) +
@@ -2025,11 +2130,12 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
 
       if(prevState.dsv.GetResResourceId() != ResourceId())
       {
+        DXGI_FORMAT depthFormat = m_CallbackInfo.dsImage->GetDesc().Format;
+
         D3D12CopyPixelParams depthCopyParams = colorCopyParams;
         depthCopyParams.srcImage = m_CallbackInfo.dsImage;
-        depthCopyParams.srcImageFormat =
-            GetDepthSRVFormat(m_CallbackInfo.dsImage->GetDesc().Format, 0);
-        depthCopyParams.copyFormat = DXGI_FORMAT_R32_TYPELESS;
+        depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthFormat, 0);
+        depthCopyParams.copyFormat = GetDepthCopyFormat(depthFormat);
         depthCopyParams.srcImageState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
         depthCopyParams.depthcopy = true;
         CopyImagePixel(cmd, depthCopyParams,
@@ -2065,13 +2171,37 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
     D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
     origPSO->Fill(pipeDesc);
 
-    // TODO: We provide our own render target here, but some of the PSOs use the original shader,
-    // which may write to a different number of channels (such as a R11G11B10 render target).
-    // This results in a D3D12 debug layer warning, but shouldn't be hazardous in practice since
-    // we restrict what we read from based on the source RT target. But maybe there's a way to
-    // gather the right data and avoid  the debug layer warning.
-    pipeDesc.RTVFormats.NumRenderTargets = 1;
-    pipeDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    if(colorOutputIndex != D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
+    {
+      // TODO: We provide our own render target here, but some of the PSOs use the original shader,
+      // which may write to a different number of channels (such as a R11G11B10 render target).
+      // This results in a D3D12 debug layer warning, but shouldn't be hazardous in practice since
+      // we restrict what we read from based on the source RT target. But maybe there's a way to
+      // gather the right data and avoid  the debug layer warning.
+      DXGI_FORMAT colorFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
+      // For this pass, we will be binding the color target for capturing the shader output to the
+      //  slot in question. The others can be left intact.
+      RDCASSERT(colorOutputIndex < pipeDesc.RTVFormats.NumRenderTargets);
+      pipeDesc.RTVFormats.RTFormats[colorOutputIndex] = colorFormat;
+
+      // In order to have different write masks per render target, we need to switch to independent
+      //  blend if not already in use.
+      if(!pipeDesc.BlendState.IndependentBlendEnable)
+      {
+        pipeDesc.BlendState.IndependentBlendEnable = TRUE;
+        for(uint32_t i = 1; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+          pipeDesc.BlendState.RenderTarget[i] = pipeDesc.BlendState.RenderTarget[0];
+      }
+
+      // Mask out writes to targets which aren't the pixel history color target
+      for(uint32_t i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+      {
+        pipeDesc.BlendState.RenderTarget[i].BlendEnable = FALSE;
+        if(i != colorOutputIndex)
+          pipeDesc.BlendState.RenderTarget[i].RenderTargetWriteMask = 0;
+      }
+    }
+
     pipeDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
     // TODO: Do we want to get the widest DSV format, or get it from callbackinfo/pixelhistoryresources?
 
@@ -2099,10 +2229,15 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
 
     m_PSOsToDestroy.push_back(pipes.postModPipe);
 
+    // Other targets were already disabled for the post mod pass, now force enable the
+    //  pixel history color target
+    if(colorOutputIndex != D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
+      pipeDesc.BlendState.RenderTarget[colorOutputIndex].RenderTargetWriteMask =
+          D3D12_COLOR_WRITE_ENABLE_ALL;
+
     for(uint32_t i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
     {
       pipeDesc.BlendState.RenderTarget[i].BlendEnable = FALSE;
-      pipeDesc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
     }
 
     {
@@ -2125,17 +2260,27 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
       pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
     }
 
-    if(pipeDesc.GS.pShaderBytecode != NULL || pipeDesc.GS.BytecodeLength > 0)
+    if(pipeDesc.MS.pShaderBytecode != NULL || pipeDesc.MS.BytecodeLength > 0)
+    {
+      RDCWARN("Can't get primitive ID at event %u due to mesh shader usage", eid);
+    }
+    else if(pipeDesc.GS.pShaderBytecode != NULL || pipeDesc.GS.BytecodeLength > 0)
     {
       RDCWARN("Can't get primitive ID at event %u due to geometry shader usage", eid);
     }
     else
     {
-      bool dxil =
-          DXBC::DXBCContainer::CheckForDXIL(pipeDesc.PS.pShaderBytecode, pipeDesc.PS.BytecodeLength);
+      // Regardless of which RT is the one in question for history, we write the
+      //  primitive ID to RT0.
+      pipeDesc.RTVFormats.NumRenderTargets = 1;
+      pipeDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+      for(int i = 1; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+        pipeDesc.RTVFormats.RTFormats[i] = DXGI_FORMAT_UNKNOWN;
+      pipeDesc.BlendState.IndependentBlendEnable = FALSE;
+      pipeDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-      // TODO: This shader outputs to SV_Target0, will we need to modify the
-      // shader (or patch it) if the target image isn't RT0?
+      bool dxil = IsPSOUsingDXIL(pipeDesc);
+
       ID3DBlob *PrimIDPS = m_ShaderCache->GetPrimitiveIdShader(dxil);
       pipeDesc.PS.pShaderBytecode = PrimIDPS->GetBufferPointer();
       pipeDesc.PS.BytecodeLength = PrimIDPS->GetBufferSize();
@@ -2242,7 +2387,7 @@ struct D3D12PixelHistoryDiscardedFragmentsCallback : D3D12PixelHistoryCallback
       // for this fragment.
       // TODO replay with a dummy index buffer so that all primitives other than the target
       // one are degenerate - that way the vertex index etc is still the same as it should be.
-      ::ReplayDraw(cmd, action);
+      m_pDevice->ReplayDraw(cmd, action);
       cmd->EndQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, queryId);
 
       m_OcclusionQueries[make_rdcpair<uint32_t, uint32_t>(eid, primId)] = queryId;
@@ -2545,16 +2690,315 @@ bool IsDirectWrite(ResourceUsage usage)
           usage == ResourceUsage::GenMips);
 }
 
-void FillInColor(ResourceFormat fmt, const D3D12PixelHistoryValue &value, ModificationValue &mod)
+// NOTE: This function is quite similar to formatpacking.cpp::DecodeFormattedComponents,
+//  but it doesn't convert everything to a float since the pixel history viewer will expect
+//  them to be in the target's format.
+void PixelHistoryDecode(const ResourceFormat &fmt, const byte *data, PixelValue &out)
 {
-  FloatVector v4 = DecodeFormattedComponents(fmt, value.color);
-  memcpy(mod.col.floatValue.data(), &v4, sizeof(v4));
+  if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt || fmt.compCount == 4)
+    out.floatValue[3] = 0.0f;
+
+  if(fmt.type == ResourceFormatType::R10G10B10A2)
+  {
+    if(fmt.compType == CompType::SNorm)
+    {
+      Vec4f v = ConvertFromR10G10B10A2SNorm(*(const uint32_t *)data);
+      out.floatValue[0] = v.x;
+      out.floatValue[1] = v.y;
+      out.floatValue[2] = v.z;
+      out.floatValue[3] = v.w;
+    }
+    else if(fmt.compType == CompType::UNorm)
+    {
+      Vec4f v = ConvertFromR10G10B10A2(*(const uint32_t *)data);
+      out.floatValue[0] = v.x;
+      out.floatValue[1] = v.y;
+      out.floatValue[2] = v.z;
+      out.floatValue[3] = v.w;
+    }
+    else if(fmt.compType == CompType::UInt)
+    {
+      Vec4u v = ConvertFromR10G10B10A2UInt(*(const uint32_t *)data);
+      out.uintValue[0] = v.x;
+      out.uintValue[1] = v.y;
+      out.uintValue[2] = v.z;
+      out.uintValue[3] = v.w;
+    }
+
+    // the different types are a union so we can ignore format and just treat it as a data swap
+    if(fmt.BGRAOrder())
+      std::swap(out.uintValue[0], out.uintValue[2]);
+  }
+  else if(fmt.type == ResourceFormatType::R11G11B10)
+  {
+    Vec3f v = ConvertFromR11G11B10(*(const uint32_t *)data);
+    out.floatValue[0] = v.x;
+    out.floatValue[1] = v.y;
+    out.floatValue[2] = v.z;
+  }
+  else if(fmt.type == ResourceFormatType::R5G5B5A1)
+  {
+    Vec4f v = ConvertFromB5G5R5A1(*(const uint16_t *)data);
+    out.floatValue[0] = v.x;
+    out.floatValue[1] = v.y;
+    out.floatValue[2] = v.z;
+    out.floatValue[3] = v.w;
+
+    // conversely we *expect* BGRA order for this format and the above conversion implicitly flips
+    // when bit-unpacking. So if the format wasn't BGRA order, flip it back
+    if(!fmt.BGRAOrder())
+      std::swap(out.floatValue[0], out.floatValue[2]);
+  }
+  else if(fmt.type == ResourceFormatType::R5G6B5)
+  {
+    Vec3f v = ConvertFromB5G6R5(*(const uint16_t *)data);
+    out.floatValue[0] = v.x;
+    out.floatValue[1] = v.y;
+    out.floatValue[2] = v.z;
+
+    // conversely we *expect* BGRA order for this format and the above conversion implicitly flips
+    // when bit-unpacking. So if the format wasn't BGRA order, flip it back
+    if(!fmt.BGRAOrder())
+      std::swap(out.floatValue[0], out.floatValue[2]);
+  }
+  else if(fmt.type == ResourceFormatType::R4G4B4A4)
+  {
+    Vec4f v = ConvertFromB4G4R4A4(*(const uint16_t *)data);
+    out.floatValue[0] = v.x;
+    out.floatValue[1] = v.y;
+    out.floatValue[2] = v.z;
+    out.floatValue[3] = v.w;
+
+    // conversely we *expect* BGRA order for this format and the above conversion implicitly flips
+    // when bit-unpacking. So if the format wasn't BGRA order, flip it back
+    if(!fmt.BGRAOrder())
+      std::swap(out.floatValue[0], out.floatValue[2]);
+  }
+  else if(fmt.type == ResourceFormatType::R4G4)
+  {
+    Vec4f v = ConvertFromR4G4(*(const uint8_t *)data);
+    out.floatValue[0] = v.x;
+    out.floatValue[1] = v.y;
+  }
+  else if(fmt.type == ResourceFormatType::R9G9B9E5)
+  {
+    Vec3f v = ConvertFromR9G9B9E5(*(const uint32_t *)data);
+    out.floatValue[0] = v.x;
+    out.floatValue[1] = v.y;
+    out.floatValue[2] = v.z;
+  }
+  else if(fmt.type == ResourceFormatType::D16S8)
+  {
+    uint32_t val = *(const uint32_t *)data;
+    out.floatValue[0] = float(val & 0x00ffff) / 65535.0f;
+    out.floatValue[1] = float((val & 0xff0000) >> 16) / 255.0f;
+    out.floatValue[2] = 0.0f;
+  }
+  else if(fmt.type == ResourceFormatType::D24S8)
+  {
+    uint32_t val = *(const uint32_t *)data;
+    out.floatValue[0] = float(val & 0x00ffffff) / 16777215.0f;
+    out.floatValue[1] = float((val & 0xff000000) >> 24) / 255.0f;
+    out.floatValue[2] = 0.0f;
+  }
+  else if(fmt.type == ResourceFormatType::D32S8)
+  {
+    struct ds
+    {
+      float f;
+      uint32_t s;
+    } val;
+    val = *(const ds *)data;
+    out.floatValue[0] = val.f;
+    out.floatValue[1] = float(val.s) / 255.0f;
+    out.floatValue[2] = 0.0f;
+  }
+  else if(fmt.type == ResourceFormatType::Regular || fmt.type == ResourceFormatType::A8 ||
+          fmt.type == ResourceFormatType::S8)
+  {
+    CompType compType = fmt.compType;
+    for(size_t c = 0; c < fmt.compCount; c++)
+    {
+      // alpha is never interpreted as sRGB
+      if(compType == CompType::UNormSRGB && c == 3)
+        compType = CompType::UNorm;
+
+      if(fmt.compByteWidth == 8)
+      {
+        // we just downcast
+        const uint64_t *u64 = (const uint64_t *)data;
+        const int64_t *i64 = (const int64_t *)data;
+
+        if(compType == CompType::Float)
+        {
+          out.floatValue[c] = float(*(const double *)u64);
+        }
+        else if(compType == CompType::UInt)
+        {
+          out.uintValue[c] = uint32_t(*u64);
+        }
+        else if(compType == CompType::UScaled)
+        {
+          out.floatValue[c] = float(*u64);
+        }
+        else if(compType == CompType::SInt)
+        {
+          out.intValue[c] = int32_t(*i64);
+        }
+        else if(compType == CompType::SScaled)
+        {
+          out.floatValue[c] = float(*i64);
+        }
+      }
+      else if(fmt.compByteWidth == 4)
+      {
+        const uint32_t *u32 = (const uint32_t *)data;
+        const int32_t *i32 = (const int32_t *)data;
+
+        if(compType == CompType::Float || compType == CompType::Depth)
+        {
+          out.floatValue[c] = *(const float *)u32;
+        }
+        else if(compType == CompType::UInt)
+        {
+          out.uintValue[c] = uint32_t(*u32);
+        }
+        else if(compType == CompType::UScaled)
+        {
+          out.floatValue[c] = float(*u32);
+        }
+        else if(compType == CompType::SInt)
+        {
+          out.intValue[c] = int32_t(*i32);
+        }
+        else if(compType == CompType::SScaled)
+        {
+          out.floatValue[c] = float(*i32);
+        }
+      }
+      else if(fmt.compByteWidth == 3 && compType == CompType::Depth)
+      {
+        // 24-bit depth is a weird edge case we need to assemble it by hand
+        const uint8_t *u8 = (const uint8_t *)data;
+
+        uint32_t depth = 0;
+        depth |= uint32_t(u8[0]);
+        depth |= uint32_t(u8[1]) << 8;
+        depth |= uint32_t(u8[2]) << 16;
+
+        out.floatValue[c] = float(depth) / float(16777215.0f);
+      }
+      else if(fmt.compByteWidth == 2)
+      {
+        const uint16_t *u16 = (const uint16_t *)data;
+        const int16_t *i16 = (const int16_t *)data;
+
+        if(compType == CompType::Float)
+        {
+          out.floatValue[c] = ConvertFromHalf(*u16);
+        }
+        else if(compType == CompType::UInt)
+        {
+          out.uintValue[c] = uint32_t(*u16);
+        }
+        else if(compType == CompType::UScaled)
+        {
+          out.floatValue[c] = float(*u16);
+        }
+        else if(compType == CompType::SInt)
+        {
+          out.intValue[c] = int32_t(*i16);
+        }
+        else if(compType == CompType::SScaled)
+        {
+          out.floatValue[c] = float(*i16);
+        }
+        // 16-bit depth is UNORM
+        else if(compType == CompType::UNorm || compType == CompType::Depth)
+        {
+          out.floatValue[c] = float(*u16) / 65535.0f;
+        }
+        else if(compType == CompType::SNorm)
+        {
+          float f = -1.0f;
+
+          if(*i16 == -32768)
+            f = -1.0f;
+          else
+            f = ((float)*i16) / 32767.0f;
+
+          out.floatValue[c] = f;
+        }
+      }
+      else if(fmt.compByteWidth == 1)
+      {
+        const uint8_t *u8 = (const uint8_t *)data;
+        const int8_t *i8 = (const int8_t *)data;
+
+        if(compType == CompType::UInt)
+        {
+          out.uintValue[c] = uint32_t(*u8);
+        }
+        else if(compType == CompType::UScaled)
+        {
+          out.floatValue[c] = float(*u8);
+        }
+        else if(compType == CompType::SInt)
+        {
+          out.intValue[c] = int32_t(*i8);
+        }
+        else if(compType == CompType::SScaled)
+        {
+          out.floatValue[c] = float(*i8);
+        }
+        else if(compType == CompType::UNormSRGB)
+        {
+          out.floatValue[c] = ConvertFromSRGB8(*u8);
+        }
+        else if(compType == CompType::UNorm)
+        {
+          out.floatValue[c] = float(*u8) / 255.0f;
+        }
+        else if(compType == CompType::SNorm)
+        {
+          float f = -1.0f;
+
+          if(*i8 == -128)
+            f = -1.0f;
+          else
+            f = ((float)*i8) / 127.0f;
+
+          out.floatValue[c] = f;
+        }
+      }
+      else
+      {
+        RDCERR("Unexpected format to convert from %u %u", fmt.compByteWidth, compType);
+      }
+
+      data += fmt.compByteWidth;
+    }
+
+    if(fmt.type == ResourceFormatType::A8)
+    {
+      out.floatValue[2] = out.floatValue[0];
+      out.floatValue[0] = 0.0f;
+    }
+    else if(fmt.type == ResourceFormatType::S8)
+    {
+      out.uintValue[1] = out.uintValue[0];
+      out.uintValue[0] = 0;
+    }
+
+    // the different types are a union so we can ignore format and just treat it as a data swap
+    if(fmt.BGRAOrder())
+      std::swap(out.uintValue[0], out.uintValue[2]);
+  }
 }
 
-void FillInColor(ResourceFormat fmt, const byte *pValue, ModificationValue &mod)
+void FillInColor(ResourceFormat fmt, const D3D12PixelHistoryValue &value, ModificationValue &mod)
 {
-  FloatVector v4 = DecodeFormattedComponents(fmt, pValue);
-  memcpy(mod.col.floatValue.data(), &v4, sizeof(v4));
+  PixelHistoryDecode(fmt, value.color, mod.col);
 }
 
 void ConvertAndFillInColor(ResourceFormat srcFmt, ResourceFormat outFmt,
@@ -2629,6 +3073,10 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
     return history;
   }
 
+  // If the resource desc format is typeless, replace it with a typed format
+  if(IsTypelessFormat(resDesc.Format))
+    resDesc.Format = GetTypedFormat(resDesc.Format, typeCast);
+
   // TODO: perhaps should allocate most resources after D3D12OcclusionCallback, since we will
   // get a smaller subset of events that passed the occlusion query.
   D3D12PixelHistoryResources resources = {};
@@ -2655,14 +3103,6 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
   callbackInfo.colorDescriptor = resources.colorDescriptor;
   callbackInfo.dsImage = resources.dsImage;
   callbackInfo.dsDescriptor = resources.dsDescriptor;
-
-  // If the resource desc format is typeless, replace it with a typed format
-  if(IsTypelessFormat(callbackInfo.targetDesc.Format))
-  {
-    ResourceFormat fmt = MakeResourceFormat(callbackInfo.targetDesc.Format);
-    fmt.compType = typeCast;
-    callbackInfo.targetDesc.Format = MakeDXGIFormat(fmt);
-  }
 
   callbackInfo.dstBuffer = resources.dstBuffer;
 
@@ -2777,7 +3217,8 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
   std::map<uint32_t, uint32_t> eventsWithFrags;
   std::map<uint32_t, ModificationValue> eventPremods;
   ResourceFormat fmt = MakeResourceFormat(callbackInfo.targetDesc.Format);
-  fmt.compType = typeCast;
+  if(typeCast != CompType::Typeless)
+    fmt.compType = typeCast;
 
   for(size_t h = 0; h < history.size();)
   {
@@ -2964,6 +3405,7 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
           else
             history[h].postMod.depth =
                 GetDepthValue(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, fragInfo[offset].postMod);
+          history[h].postMod.stencil = -2;
         }
         // If it is not the first fragment for the event, set the preMod to the
         // postMod of the previous fragment.
@@ -3013,6 +3455,13 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
 
         if(!passed)
           history[h].depthTestFailed = true;
+
+        rdcpair<float, float> depthBounds = tfCb->GetEventDepthBounds(history[h].eventId);
+
+        if((history[h].preMod.depth < depthBounds.first ||
+            history[h].preMod.depth > depthBounds.second) &&
+           depthBounds.second > depthBounds.first)
+          history[h].depthBoundsFailed = true;
       }
     }
   }

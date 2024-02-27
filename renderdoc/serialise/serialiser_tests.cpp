@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1015,6 +1015,184 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
 
   delete buf;
 };
+
+TEST_CASE("Read/write container of container types", "[serialiser][structured]")
+{
+  StreamWriter *buf = new StreamWriter(StreamWriter::DefaultScratchSize);
+
+  {
+    WriteSerialiser ser(buf, Ownership::Nothing);
+
+    {
+      SCOPED_SERIALISE_CHUNK(5);
+
+      rdcarray<rdcarray<int>> v;
+
+      v.push_back({1, 2, 3});
+      v.push_back({4, 5});
+      v.push_back({6, 7, 8, 9});
+
+      SERIALISE_ELEMENT(v);
+    }
+
+    CHECK(buf->GetOffset() <= 128);
+
+    REQUIRE_FALSE(ser.IsErrored());
+  }
+
+  {
+    ReadSerialiser ser(new StreamReader(buf->GetData(), buf->GetOffset()), Ownership::Stream);
+
+    uint32_t chunkID = ser.ReadChunk<uint32_t>();
+
+    CHECK(chunkID == 5);
+
+    rdcarray<rdcarray<int>> v;
+
+    SERIALISE_ELEMENT(v);
+
+    ser.EndChunk();
+
+    REQUIRE_FALSE(ser.IsErrored());
+
+    CHECK(ser.GetReader()->AtEnd());
+
+    REQUIRE(v.size() == 3);
+    REQUIRE(v[0].size() == 3);
+    REQUIRE(v[1].size() == 2);
+    REQUIRE(v[2].size() == 4);
+
+    CHECK(v[0][0] == 1);
+    CHECK(v[0][1] == 2);
+    CHECK(v[0][2] == 3);
+    CHECK(v[1][0] == 4);
+    CHECK(v[1][1] == 5);
+    CHECK(v[2][0] == 6);
+    CHECK(v[2][1] == 7);
+    CHECK(v[2][2] == 8);
+    CHECK(v[2][3] == 9);
+  }
+
+  {
+    ReadSerialiser ser(new StreamReader(buf->GetData(), buf->GetOffset()), Ownership::Stream);
+
+    ser.ConfigureStructuredExport([](uint32_t) -> rdcstr { return "TestChunk"; }, true, 0, 1.0);
+
+    ser.ReadChunk<uint32_t>();
+    {
+      rdcarray<rdcarray<int32_t>> v;
+
+      SERIALISE_ELEMENT(v);
+    }
+    ser.EndChunk();
+
+    REQUIRE_FALSE(ser.IsErrored());
+
+    CHECK(ser.GetReader()->AtEnd());
+
+    const SDFile &structData = ser.GetStructuredFile();
+
+    CHECK(structData.chunks.size() == 1);
+    CHECK(structData.buffers.size() == 0);
+
+    REQUIRE(structData.chunks[0]);
+
+    const SDChunk &chunk = *structData.chunks[0];
+
+    CHECK(chunk.NumChildren() == 1);
+
+    for(const SDObject *o : chunk)
+      REQUIRE(o);
+
+    int childIdx = 0;
+
+    {
+      const SDObject &o = *chunk.GetChild(childIdx++);
+
+      CHECK(o.name == "v");
+      CHECK(o.type.basetype == SDBasic::Array);
+      CHECK(o.type.byteSize == 3);
+      CHECK(o.type.flags == SDTypeFlags::NoFlags);
+      CHECK(o.NumChildren() == 3);
+
+      // v[0]
+      {
+        const SDObject *child = o.GetChild(0);
+        CHECK(child->name == "$el");
+        CHECK(child->type.basetype == SDBasic::Array);
+        CHECK(child->type.byteSize == 3);
+
+        for(size_t i = 0; i < child->NumChildren(); ++i)
+        {
+          const SDObject *grandChild = child->GetChild(i);
+
+          CHECK(grandChild->type.basetype == SDBasic::SignedInteger);
+          CHECK(grandChild->type.byteSize == 4);
+        }
+
+        CHECK(child->GetChild(0)->data.basic.i == 1);
+        CHECK(child->GetChild(1)->data.basic.i == 2);
+        CHECK(child->GetChild(2)->data.basic.i == 3);
+      }
+
+      // v[1]
+      {
+        const SDObject *child = o.GetChild(1);
+        CHECK(child->name == "$el");
+        CHECK(child->type.basetype == SDBasic::Array);
+        CHECK(child->type.byteSize == 2);
+
+        for(size_t i = 0; i < child->NumChildren(); ++i)
+        {
+          const SDObject *grandChild = child->GetChild(i);
+
+          CHECK(grandChild->type.basetype == SDBasic::SignedInteger);
+          CHECK(grandChild->type.byteSize == 4);
+        }
+
+        CHECK(child->GetChild(0)->data.basic.i == 4);
+        CHECK(child->GetChild(1)->data.basic.i == 5);
+      }
+
+      // v[2]
+      {
+        const SDObject *child = o.GetChild(2);
+        CHECK(child->name == "$el");
+        CHECK(child->type.basetype == SDBasic::Array);
+        CHECK(child->type.byteSize == 4);
+
+        for(size_t i = 0; i < child->NumChildren(); ++i)
+        {
+          const SDObject *grandChild = child->GetChild(i);
+
+          CHECK(grandChild->type.basetype == SDBasic::SignedInteger);
+          CHECK(grandChild->type.byteSize == 4);
+        }
+
+        CHECK(child->GetChild(0)->data.basic.i == 6);
+        CHECK(child->GetChild(1)->data.basic.i == 7);
+        CHECK(child->GetChild(2)->data.basic.i == 8);
+        CHECK(child->GetChild(3)->data.basic.i == 9);
+      }
+    }
+
+    StreamWriter *rewriteBuf = new StreamWriter(StreamWriter::DefaultScratchSize);
+
+    {
+      WriteSerialiser rewrite(rewriteBuf, Ownership::Nothing);
+
+      rewrite.WriteStructuredFile(structData, NULL);
+    }
+
+    // must be bitwise identical to the original serialised data.
+    REQUIRE(rewriteBuf->GetOffset() == buf->GetOffset());
+    CHECK_FALSE(memcmp(rewriteBuf->GetData(), buf->GetData(), (size_t)rewriteBuf->GetOffset()));
+
+    delete rewriteBuf;
+  }
+
+  delete buf;
+}
 
 struct struct1
 {

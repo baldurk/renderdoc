@@ -59,6 +59,14 @@ class D3D11_Pixel_History_Zoo(rdtest.TestCase):
                                                                                   modifs[i + 1].eventId,
                                                                                   value_selector(modifs[i].preMod.col)))
 
+                # A fragment event : postMod.stencil should be unknown
+                if modifs[i].eventId == modifs[i+1].eventId:
+                    if modifs[i].postMod.stencil != -1 and modifs[i].postMod.stencil != -2:
+                        raise rdtest.TestFailureException(
+                        "postmod stencil at {} primitive {}: {} is not unknown".format(modifs[i].eventId,
+                                                                                  modifs[i].primitiveID,
+                                                                                  modifs[i].postMod.stencil))
+
                 if self.get_action(modifs[i].eventId).flags & rd.ActionFlags.Drawcall:
                     if not rdtest.value_compare(value_selector(modifs[i].shaderOut.col), shader_out):
                         raise rdtest.TestFailureException(

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -184,6 +184,7 @@ DESTROY_IMPL(VkCommandPool, DestroyCommandPool)
 DESTROY_IMPL(VkQueryPool, DestroyQueryPool)
 DESTROY_IMPL(VkDescriptorUpdateTemplate, DestroyDescriptorUpdateTemplate)
 DESTROY_IMPL(VkSamplerYcbcrConversion, DestroySamplerYcbcrConversion)
+DESTROY_IMPL(VkAccelerationStructureKHR, DestroyAccelerationStructureKHR)
 
 #undef DESTROY_IMPL
 
@@ -566,6 +567,13 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
       VkSamplerYcbcrConversion real = nondisp->real.As<VkSamplerYcbcrConversion>();
       GetResourceManager()->ReleaseWrappedResource(VkSamplerYcbcrConversion(handle));
       vt->DestroySamplerYcbcrConversion(Unwrap(dev), real, NULL);
+      break;
+    }
+    case eResAccelerationStructureKHR:
+    {
+      VkAccelerationStructureKHR real = nondisp->real.As<VkAccelerationStructureKHR>();
+      GetResourceManager()->ReleaseWrappedResource(VkAccelerationStructureKHR(handle));
+      vt->DestroyAccelerationStructureKHR(Unwrap(dev), real, NULL);
       break;
     }
   }
@@ -1104,9 +1112,9 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
         // without doing a clear or a DONT_CARE load.
         for(uint32_t i = 0; i < CreateInfo.attachmentCount; i++)
         {
-          if(att[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+          if(att[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
             att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-          if(att[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+          if(att[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
             att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         }
 
@@ -1210,9 +1218,9 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
       for(uint32_t i = 0; i < info.attachmentCount; i++)
       {
         atts[i] = info.pAttachments[i];
-        if(atts[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        if(atts[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
           atts[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        if(atts[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        if(atts[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
           atts[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
       }
 
@@ -1364,9 +1372,9 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass2(SerialiserType &ser, VkDevice 
         // without doing a clear or a DONT_CARE load.
         for(uint32_t i = 0; i < CreateInfo.attachmentCount; i++)
         {
-          if(att[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+          if(att[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
             att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-          if(att[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+          if(att[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
             att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         }
 
@@ -1472,9 +1480,9 @@ VkResult WrappedVulkan::vkCreateRenderPass2(VkDevice device,
       for(uint32_t i = 0; i < info.attachmentCount; i++)
       {
         atts[i] = info.pAttachments[i];
-        if(atts[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        if(atts[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
           atts[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        if(atts[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        if(atts[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_KHR)
           atts[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
       }
 
@@ -2016,6 +2024,9 @@ static ObjData GetObjData(VkObjectType objType, uint64_t object)
     case VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION:
       ret.record = GetRecord((VkSamplerYcbcrConversion)object);
       break;
+    case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR:
+      ret.record = GetRecord((VkAccelerationStructureKHR)object);
+      break;
 
     /////////////////////////////
     // special cases
@@ -2045,15 +2056,16 @@ static ObjData GetObjData(VkObjectType objType, uint64_t object)
       break;
     }
 
-    // private data slots are not wrapped
-    case VK_OBJECT_TYPE_PRIVATE_DATA_SLOT: ret.unwrapped = object; break;
+    // private data slots and deferred host operations are not wrapped
+    case VK_OBJECT_TYPE_PRIVATE_DATA_SLOT:
+    case VK_OBJECT_TYPE_DEFERRED_OPERATION_KHR: ret.unwrapped = object; break;
 
     // these objects are not supported
-    case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR:
     case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV:
     case VK_OBJECT_TYPE_PERFORMANCE_CONFIGURATION_INTEL:
-    case VK_OBJECT_TYPE_DEFERRED_OPERATION_KHR:
     case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NV:
+    case VK_OBJECT_TYPE_CUDA_MODULE_NV:
+    case VK_OBJECT_TYPE_CUDA_FUNCTION_NV:
     case VK_OBJECT_TYPE_CU_MODULE_NVX:
     case VK_OBJECT_TYPE_CU_FUNCTION_NVX:
     case VK_OBJECT_TYPE_BUFFER_COLLECTION_FUCHSIA:
@@ -2123,6 +2135,10 @@ static ObjData GetObjData(VkDebugReportObjectTypeEXT objType, uint64_t object)
     castType = VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR;
   else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV_EXT)
     castType = VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV;
+  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_CUDA_MODULE_NV_EXT)
+    castType = VK_OBJECT_TYPE_CUDA_MODULE_NV;
+  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_CUDA_FUNCTION_NV_EXT)
+    castType = VK_OBJECT_TYPE_CUDA_FUNCTION_NV;
   else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_CU_MODULE_NVX_EXT)
     castType = VK_OBJECT_TYPE_CU_MODULE_NVX;
   else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_CU_FUNCTION_NVX_EXT)
@@ -2270,6 +2286,9 @@ bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(
           break;
         case eResSamplerConversion:
           type = VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION_EXT;
+          break;
+        case eResAccelerationStructureKHR:
+          type = VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR_EXT;
           break;
       }
 
@@ -2460,6 +2479,7 @@ bool WrappedVulkan::Serialise_vkSetDebugUtilsObjectNameEXT(
         case eResSurface: type = VK_OBJECT_TYPE_SURFACE_KHR; break;
         case eResDescUpdateTemplate: type = VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE; break;
         case eResSamplerConversion: type = VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION; break;
+        case eResAccelerationStructureKHR: type = VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR; break;
       }
 
       if(ObjDisp(m_Device)->SetDebugUtilsObjectNameEXT && type != VK_OBJECT_TYPE_UNKNOWN &&
@@ -2622,6 +2642,26 @@ void WrappedVulkan::vkGetPrivateData(VkDevice device, VkObjectType objectType, u
 
   return ObjDisp(device)->GetPrivateData(Unwrap(device), objectType, objdata.unwrapped,
                                          privateDataSlot, pData);
+}
+
+// deferred host operations are not supported, host operations are always captured non-deferred,
+// so these wrapped functions are just pass-throughs
+VkResult WrappedVulkan::vkCreateDeferredOperationKHR(VkDevice device,
+                                                     const VkAllocationCallbacks *pAllocator,
+                                                     VkDeferredOperationKHR *pDeferredOperation)
+{
+  return ObjDisp(device)->CreateDeferredOperationKHR(Unwrap(device), pAllocator, pDeferredOperation);
+}
+
+VkResult WrappedVulkan::vkDeferredOperationJoinKHR(VkDevice device, VkDeferredOperationKHR operation)
+{
+  return ObjDisp(device)->DeferredOperationJoinKHR(Unwrap(device), operation);
+}
+
+void WrappedVulkan::vkDestroyDeferredOperationKHR(VkDevice device, VkDeferredOperationKHR operation,
+                                                  const VkAllocationCallbacks *pAllocator)
+{
+  return ObjDisp(device)->DestroyDeferredOperationKHR(Unwrap(device), operation, pAllocator);
 }
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSampler, VkDevice device,

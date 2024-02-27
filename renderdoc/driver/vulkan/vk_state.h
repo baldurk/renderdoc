@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -224,7 +224,7 @@ struct VulkanRenderState
   VkBool32 depthClipEnable = VK_FALSE;
   VkBool32 negativeOneToOne = VK_FALSE;
   float primOverestimationSize = 0.0f;
-  VkLineRasterizationModeEXT lineRasterMode = VK_LINE_RASTERIZATION_MODE_DEFAULT_EXT;
+  VkLineRasterizationModeKHR lineRasterMode = VK_LINE_RASTERIZATION_MODE_DEFAULT_KHR;
   VkBool32 stippledLineEnable = VK_FALSE;
   VkBool32 logicOpEnable = VK_FALSE;
   VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;

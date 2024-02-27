@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -114,6 +114,7 @@ public:
   const VulkanCreationInfo::Framebuffer &GetFramebufferInfo(ResourceId fb) const;
   const VulkanCreationInfo::RenderPass &GetRenderPassInfo(ResourceId rp) const;
   const VulkanCreationInfo::PipelineLayout &GetPipelineLayoutInfo(ResourceId pp) const;
+  const VulkanCreationInfo::AccelerationStructure &GetAccelerationStructureInfo(ResourceId as) const;
   const DescSetLayout &GetDescSetLayout(ResourceId dsl) const;
   const WrappedVulkan::DescriptorSetInfo &GetDescSetInfo(ResourceId ds) const;
 

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -60,6 +60,72 @@ RD_TEST(D3D11_Parameter_Zoo, D3D11GraphicsTest)
 
     ctx1->SwapDeviceContextState(ctxstate_off, NULL);
 
+    std::string features1_tiled_resources("Features1: D3D11_TILED_RESOURCES_SUPPORTED");
+    std::string features2_tiled_resources("Features2: D3D11_TILED_RESOURCES_SUPPORTED");
+    std::string create_tiled_buffer("CreateTiledBuffer: Passed");
+    std::string create_tile_pool_buffer("CreateTile_PoolBuffer: Passed");
+    std::string create_tiled_texture2D("CreateTiledTexture2D: Passed");
+    std::string create_tiled_texture2D1("CreateTiledTexture2D1: Passed");
+    if(dev2)
+    {
+      D3D11_FEATURE_DATA_D3D11_OPTIONS1 features1;
+      CHECK_HR(dev2->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS1, &features1, sizeof(features1)));
+      if(features1.TiledResourcesTier == D3D11_TILED_RESOURCES_NOT_SUPPORTED)
+        features1_tiled_resources = "Features1: D3D11_TILED_RESOURCES_NOT_SUPPORTED";
+
+      D3D11_FEATURE_DATA_D3D11_OPTIONS2 features2;
+      CHECK_HR(dev2->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS2, &features2, sizeof(features2)));
+      if(features2.TiledResourcesTier == D3D11_TILED_RESOURCES_NOT_SUPPORTED)
+        features2_tiled_resources = "Features2: D3D11_TILED_RESOURCES_NOT_SUPPORTED";
+
+      // Check trying to create tiled resources fails
+      D3D11_BUFFER_DESC bufDesc = {};
+      bufDesc.ByteWidth = 1024;
+      bufDesc.Usage = D3D11_USAGE_DEFAULT;
+      bufDesc.StructureByteStride = 1;
+      bufDesc.CPUAccessFlags = 0;
+      bufDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+      bufDesc.MiscFlags = D3D11_RESOURCE_MISC_TILED;
+      if(FAILED(dev2->CreateBuffer(&bufDesc, NULL, NULL)))
+        create_tiled_buffer = "CreateTiledBuffer: Failed";
+
+      bufDesc.MiscFlags = D3D11_RESOURCE_MISC_TILE_POOL;
+      if(FAILED(dev2->CreateBuffer(&bufDesc, NULL, NULL)))
+        create_tile_pool_buffer = "CreateTile_PoolBuffer: Failed";
+
+      D3D11_TEXTURE2D_DESC texDesc = {};
+      texDesc.Width = 8;
+      texDesc.Height = 8;
+      texDesc.MipLevels = 1;
+      texDesc.ArraySize = 1;
+      texDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+      texDesc.SampleDesc.Count = 1;
+      texDesc.SampleDesc.Quality = 0;
+      texDesc.Usage = D3D11_USAGE_DEFAULT;
+      texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+      texDesc.CPUAccessFlags = 0;
+      texDesc.MiscFlags = D3D11_RESOURCE_MISC_TILED;
+      if(FAILED(dev2->CreateTexture2D(&texDesc, NULL, NULL)))
+        create_tiled_texture2D = "CreateTiledTexture2D: Failed";
+    }
+    if(dev3)
+    {
+      D3D11_TEXTURE2D_DESC1 texDesc = {};
+      texDesc.Width = 8;
+      texDesc.Height = 8;
+      texDesc.MipLevels = 1;
+      texDesc.ArraySize = 1;
+      texDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+      texDesc.SampleDesc.Count = 1;
+      texDesc.SampleDesc.Quality = 0;
+      texDesc.Usage = D3D11_USAGE_DEFAULT;
+      texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+      texDesc.CPUAccessFlags = 0;
+      texDesc.MiscFlags = D3D11_RESOURCE_MISC_TILED;
+      if(FAILED(dev3->CreateTexture2D1(&texDesc, NULL, NULL)))
+        create_tiled_texture2D1 = "CreateTiledTexture2D1: Failed";
+    }
+
     while(Running())
     {
       ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
@@ -98,6 +164,13 @@ RD_TEST(D3D11_Parameter_Zoo, D3D11GraphicsTest)
       ctx->OMSetRenderTargets(1, &bbRTV.GetInterfacePtr(), NULL);
 
       ctx->Draw(3, 0);
+
+      setMarker(features1_tiled_resources);
+      setMarker(features2_tiled_resources);
+      setMarker(create_tiled_buffer);
+      setMarker(create_tile_pool_buffer);
+      setMarker(create_tiled_texture2D);
+      setMarker(create_tiled_texture2D1);
 
       Present();
 

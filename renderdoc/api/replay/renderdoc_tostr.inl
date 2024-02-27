@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2017-2023 Baldur Karlsson
+ * Copyright (c) 2017-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -693,6 +693,7 @@ rdcstr DoStringise(const ShaderBuiltin &el)
     STRINGISE_ENUM_CLASS_NAMED(Barycentrics, "Barycentrics");
     STRINGISE_ENUM_CLASS_NAMED(CullPrimitive, "Cull Primitive Output");
     STRINGISE_ENUM_CLASS_NAMED(OutputIndices, "Output Indices");
+    STRINGISE_ENUM_CLASS_NAMED(MultiViewIndex, "Multiview Index");
   }
   END_ENUM_STRINGISE();
 }

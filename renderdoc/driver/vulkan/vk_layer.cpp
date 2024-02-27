@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -405,6 +405,9 @@ VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties(
       return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);                \
   }
 
+#undef HookInitExtensionEXTtoKHR
+#define HookInitExtensionEXTtoKHR(func) (void)0;
+
 // proc addr routines
 
 VK_LAYER_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
@@ -437,9 +440,8 @@ VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char *pName)
     HookInitVulkanInstanceExts();
   }
 
-  if(GetDeviceDispatchTable(device)->GetDeviceProcAddr == NULL)
-    return NULL;
-  return GetDeviceDispatchTable(device)->GetDeviceProcAddr(Unwrap(device), pName);
+  // unknown or not-enabled functions must return NULL
+  return NULL;
 }
 
 VK_LAYER_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
@@ -448,12 +450,21 @@ VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, c
 VK_LAYER_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *pName)
 {
+  // if name is NULL undefined is returned, let's return NULL
+  if(pName == NULL)
+    return NULL;
+
+  // a NULL instance can return vkGetInstanceProcAddr or a global function, handle that here
+
   if(!strcmp("vkGetInstanceProcAddr", pName))
     return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr;
   if(!strcmp("vkEnumerateInstanceExtensionProperties", pName))
     return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties;
   if(!strcmp("vk_layerGetPhysicalDeviceProcAddr", pName))
     return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr;
+
+  // don't implement vkEnumerateInstanceLayerProperties or vkEnumerateInstanceVersion, the loader
+  // will do that
 
   HookInit(CreateInstance);
 
@@ -470,6 +481,9 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
     return (PFN_vkVoidFunction)&hooked_vkCreateDevice;
   if(!strcmp("vkDestroyDevice", pName))
     return (PFN_vkVoidFunction)&hooked_vkDestroyDevice;
+
+  // we should only return a function pointer for functions that are either from a supported core
+  // version, an enabled instance extension or an _available_ device extension
 
   HookInitVulkanInstance();
 
@@ -503,22 +517,26 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
              !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
     return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);
 
+#undef HookInitExtensionEXTtoKHR
+#define HookInitExtensionEXTtoKHR(func) (void)0;
+
   HookInitVulkanDevice();
 
   HookInitVulkanDeviceExts();
 
   HookInitVulkanInstanceExts_PhysDev();
 
-  if(GetInstanceDispatchTable(instance)->GetInstanceProcAddr == NULL)
-    return NULL;
-  return GetInstanceDispatchTable(instance)->GetInstanceProcAddr(Unwrap(instance), pName);
+  // all other functions must return NULL so that GIPA can be used with NULL checks sensibly for
+  // missing functionality
+
+  return NULL;
 }
 
 VK_LAYER_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, const char *pName)
 {
   // GetPhysicalDeviceProcAddr acts like GetInstanceProcAddr but it returns NULL for any functions
-  // which aren't physical device functions
+  // which are known but aren't physical device functions
   if(!strcmp("vkGetInstanceProcAddr", pName))
     return NULL;
   if(!strcmp("vk_layerGetPhysicalDeviceProcAddr", pName))
@@ -580,6 +598,9 @@ VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, c
              !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
     return NULL;
 
+#undef HookInitExtensionEXTtoKHR
+#define HookInitExtensionEXTtoKHR(func) (void)0;
+
   HookInitVulkanInstanceExts();
   HookInitVulkanDeviceExts();
 
@@ -589,14 +610,14 @@ VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, c
   if(GetInstanceDispatchTable(instance)->GetInstanceProcAddr == NULL)
     return NULL;
 
-  PFN_vkGetInstanceProcAddr GPDA =
+  PFN_vkGetInstanceProcAddr GPDPA =
       (PFN_vkGetInstanceProcAddr)GetInstanceDispatchTable(instance)->GetInstanceProcAddr(
           Unwrap(instance), "vk_layerGetPhysicalDeviceProcAddr");
 
-  if(GPDA == NULL)
+  if(GPDPA == NULL)
     return NULL;
 
-  return GPDA(Unwrap(instance), pName);
+  return GPDPA(Unwrap(instance), pName);
 }
 
 // layer interface negotation (new interface)

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -517,8 +517,10 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
               DerivedResource(device, shadId);
               DerivedResource(pipe, shadId);
 
-              const char *names[] = {" vertex shader", " tess control shader", " tess eval shader",
-                                     " geometry shader", " fragment shader"};
+              const char *names[] = {" vertex shader",    " tess control shader",
+                                     " tess eval shader", " geometry shader",
+                                     " fragment shader",  NULL,
+                                     " task shader",      " mesh shader"};
 
               if(shadName)
                 GetReplay()->GetResourceDesc(shadId).SetCustomName(shadName->pObjectName);

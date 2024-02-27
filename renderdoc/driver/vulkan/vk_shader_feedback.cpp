@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -791,7 +791,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       // invalid and we just set 0. Valid for both Vertex and Pixel shaders
       if(editor.HasCapability(rdcspv::Capability::MultiView))
       {
-        view = fetchOrAddGlobalInput("rdoc_viewIndex", ShaderBuiltin::ViewportIndex,
+        view = fetchOrAddGlobalInput("rdoc_viewIndex", ShaderBuiltin::MultiViewIndex,
                                      rdcspv::BuiltIn::ViewIndex, uint32Type, true);
       }
       else
@@ -888,7 +888,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       // invalid and we just set 0. Valid for both Vertex and Pixel shaders
       if(editor.HasCapability(rdcspv::Capability::MultiView))
       {
-        view = fetchOrAddGlobalInput("rdoc_viewIndex", ShaderBuiltin::ViewportIndex,
+        view = fetchOrAddGlobalInput("rdoc_viewIndex", ShaderBuiltin::MultiViewIndex,
                                      rdcspv::BuiltIn::ViewIndex, uint32Type, true);
       }
       else

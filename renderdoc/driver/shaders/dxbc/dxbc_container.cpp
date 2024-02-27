@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -470,6 +470,9 @@ D3D_PRIMITIVE_TOPOLOGY DXBCContainer::GetOutputTopology(const void *ByteCode, si
 
   const byte *data = (const byte *)ByteCode;    // just for convenience
 
+  if(ByteCode == NULL || ByteCodeLength == 0)
+    return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
   if(header->fourcc != FOURCC_DXBC)
     return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
@@ -740,6 +743,23 @@ void DXBCContainer::ReplaceChunk(bytebuf &ByteCode, uint32_t fourcc, const byte 
       return;
     }
   }
+
+  uint32_t newOffs = uint32_t(ByteCode.size() + sizeof(uint32_t));
+  ByteCode.insert(sizeof(FileHeader) + header->numChunks * sizeof(uint32_t), (byte *)&newOffs,
+                  sizeof(newOffs));
+
+  for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
+    chunkOffsets[chunkIdx] += sizeof(uint32_t);
+
+  ByteCode.append((byte *)&fourcc, sizeof(fourcc));
+  uint32_t chunkSize = (uint32_t)size;
+  ByteCode.append((byte *)&chunkSize, sizeof(chunkSize));
+  ByteCode.append(replacement, size);
+
+  header->numChunks++;
+  header->fileLength = (uint32_t)ByteCode.size();
+
+  HashContainer(ByteCode.data(), ByteCode.size());
 }
 
 const byte *DXBCContainer::FindChunk(const bytebuf &ByteCode, uint32_t fourcc, size_t &size)
@@ -776,7 +796,7 @@ const byte *DXBCContainer::FindChunk(const bytebuf &ByteCode, uint32_t fourcc, s
 
 void DXBCContainer::GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength)
 {
-  if(BytecodeLength < sizeof(FileHeader))
+  if(BytecodeLength < sizeof(FileHeader) || ByteCode == NULL)
   {
     memset(hash, 0, sizeof(uint32_t) * 4);
     return;
@@ -816,7 +836,7 @@ void DXBCContainer::GetHash(uint32_t hash[4], const void *ByteCode, size_t Bytec
 
 bool DXBCContainer::IsHashedContainer(const void *ByteCode, size_t BytecodeLength)
 {
-  if(BytecodeLength < sizeof(FileHeader))
+  if(BytecodeLength < sizeof(FileHeader) || ByteCode == NULL)
     return false;
 
   const FileHeader *header = (const FileHeader *)ByteCode;
@@ -836,7 +856,7 @@ bool DXBCContainer::IsHashedContainer(const void *ByteCode, size_t BytecodeLengt
 
 bool DXBCContainer::HashContainer(void *ByteCode, size_t BytecodeLength)
 {
-  if(BytecodeLength < sizeof(FileHeader))
+  if(BytecodeLength < sizeof(FileHeader) || ByteCode == NULL)
     return false;
 
   FileHeader *header = (FileHeader *)ByteCode;
@@ -943,6 +963,9 @@ bool DXBCContainer::UsesExtensionUAV(uint32_t slot, uint32_t space, const void *
 
   const byte *data = (const byte *)ByteCode;    // just for convenience
 
+  if(ByteCode == NULL || BytecodeLength == 0)
+    return false;
+
   if(header->fourcc != FOURCC_DXBC)
     return false;
 
@@ -978,6 +1001,9 @@ bool DXBCContainer::CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLengt
 
   char *data = (char *)ByteCode;    // just for convenience
 
+  if(ByteCode == NULL || ByteCodeLength == 0)
+    return false;
+
   if(header->fourcc != FOURCC_DXBC)
     return false;
 
@@ -1002,6 +1028,9 @@ bool DXBCContainer::CheckForDXIL(const void *ByteCode, size_t ByteCodeLength)
   FileHeader *header = (FileHeader *)ByteCode;
 
   char *data = (char *)ByteCode;    // just for convenience
+
+  if(ByteCode == NULL || ByteCodeLength == 0)
+    return false;
 
   if(header->fourcc != FOURCC_DXBC)
     return false;
@@ -1028,6 +1057,9 @@ rdcstr DXBCContainer::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLe
   FileHeader *header = (FileHeader *)ByteCode;
 
   char *data = (char *)ByteCode;    // just for convenience
+
+  if(ByteCode == NULL || ByteCodeLength == 0)
+    return debugPath;
 
   if(header->fourcc != FOURCC_DXBC)
     return debugPath;
@@ -1886,7 +1918,7 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
         for(uint32_t j = 0; j < sign->numElems; j++)
         {
           SigParameter &b = (*sig)[j];
-          if(i != j && a.semanticName == b.semanticName)
+          if(i != j && a.semanticName == b.semanticName || a.semanticIndex != 0)
           {
             a.needSemanticIndex = true;
             break;

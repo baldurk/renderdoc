@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1123,6 +1123,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         }
       }
 
+      stage.requiredSubgroupSize = p.shaders[i].requiredSubgroupSize;
+
       stage.specializationData.clear();
 
       // set up the defaults
@@ -1255,6 +1257,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       }
 
       stages[i]->specializationData.clear();
+
+      stages[i]->requiredSubgroupSize = p.shaders[i].requiredSubgroupSize;
 
       // set up the defaults
       if(p.shaders[i].mapping && p.shaders[i].refl)
@@ -1425,20 +1429,20 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
     ret.rasterizer.lineRasterMode = LineRaster::Default;
 
-    // "VK_LINE_RASTERIZATION_MODE_DEFAULT_EXT is equivalent to
-    // VK_LINE_RASTERIZATION_MODE_RECTANGULAR_EXT if VkPhysicalDeviceLimits::strictLines is VK_TRUE"
+    // "VK_LINE_RASTERIZATION_MODE_DEFAULT_HKR is equivalent to
+    // VK_LINE_RASTERIZATION_MODE_RECTANGULAR_KHR if VkPhysicalDeviceLimits::strictLines is VK_TRUE"
     if(m_pDriver->GetDeviceProps().limits.strictLines)
       ret.rasterizer.lineRasterMode = LineRaster::Rectangular;
 
     switch(state.lineRasterMode)
     {
-      case VK_LINE_RASTERIZATION_MODE_RECTANGULAR_EXT:
+      case VK_LINE_RASTERIZATION_MODE_RECTANGULAR_KHR:
         ret.rasterizer.lineRasterMode = LineRaster::Rectangular;
         break;
-      case VK_LINE_RASTERIZATION_MODE_BRESENHAM_EXT:
+      case VK_LINE_RASTERIZATION_MODE_BRESENHAM_KHR:
         ret.rasterizer.lineRasterMode = LineRaster::Bresenham;
         break;
-      case VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH_EXT:
+      case VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH_KHR:
         ret.rasterizer.lineRasterMode = LineRaster::RectangularSmooth;
         break;
       default: break;

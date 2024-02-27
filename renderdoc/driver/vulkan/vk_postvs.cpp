@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1122,6 +1122,10 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
           else if(builtin == ShaderBuiltin::InstanceIndex)
           {
             valueID = instIndexID;
+          }
+          else if(builtin == ShaderBuiltin::MultiViewIndex)
+          {
+            valueID = viewID;
           }
           else if(builtin == ShaderBuiltin::ViewportIndex)
           {
@@ -4159,11 +4163,6 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     }
   }
 
-  VkGraphicsPipelineCreateInfo pipeCreateInfo;
-
-  // get pipeline create info
-  m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, state.graphics.pipeline);
-
   VkDescriptorSetLayoutBinding newBindings[] = {
       // output buffer
       {
@@ -4341,16 +4340,15 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
     // if there are no active bindings assume the vertex shader is generating its own data
     // and don't clamp the indices
-    if(pipeCreateInfo.pVertexInputState->vertexBindingDescriptionCount == 0)
+    if(state.vertexBindings.empty())
       maxIdx = ~0U;
 
-    for(uint32_t b = 0; b < pipeCreateInfo.pVertexInputState->vertexBindingDescriptionCount; b++)
+    for(uint32_t vb = 0; vb < state.vertexBindings.size(); vb++)
     {
-      const VkVertexInputBindingDescription &input =
-          pipeCreateInfo.pVertexInputState->pVertexBindingDescriptions[b];
       // only vertex inputs (not instance inputs) count
-      if(input.inputRate == VK_VERTEX_INPUT_RATE_VERTEX)
+      if(state.vertexBindings[vb].inputRate == VK_VERTEX_INPUT_RATE_VERTEX)
       {
+        uint32_t b = state.vertexBindings[vb].binding;
         if(b >= state.vbuffers.size())
           continue;
 
@@ -4363,8 +4361,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
         // the end of the buffer. The maximum valid index at all is the one that reads
         // off the end of ALL buffers (so we max it with any other maxindex value
         // calculated).
-        if(input.stride > 0)
-          maxIdx = RDCMAX(maxIdx, uint32_t((bufsize - offs) / input.stride));
+        if(state.vbuffers[b].stride > 0)
+          maxIdx = RDCMAX(maxIdx, uint32_t((bufsize - offs) / state.vbuffers[b].stride));
       }
     }
 
@@ -4612,6 +4610,11 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
   bytebuf specData;
   rdcarray<VkSpecializationMapEntry> specEntries;
+
+  VkGraphicsPipelineCreateInfo pipeCreateInfo;
+
+  // get pipeline create info
+  m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, state.graphics.pipeline);
 
   // copy over specialization info
   for(uint32_t s = 0; s < pipeCreateInfo.stageCount; s++)
@@ -5431,7 +5434,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     if(idxsize == 4)
       type = VK_INDEX_TYPE_UINT32;
     else if(idxsize == 1)
-      type = VK_INDEX_TYPE_UINT8_EXT;
+      type = VK_INDEX_TYPE_UINT8_KHR;
 
     ret.vsout.idxbuf = rebasedIdxBuf;
     ret.vsout.idxbufmem = rebasedIdxBufMem;
@@ -6180,7 +6183,7 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uin
     ret.indexResourceId = GetResID(s.idxbuf);
     if(s.idxFmt == VK_INDEX_TYPE_UINT32)
       ret.indexByteStride = 4;
-    else if(s.idxFmt == VK_INDEX_TYPE_UINT8_EXT)
+    else if(s.idxFmt == VK_INDEX_TYPE_UINT8_KHR)
       ret.indexByteStride = 1;
     else
       ret.indexByteStride = 2;

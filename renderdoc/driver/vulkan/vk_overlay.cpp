@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -903,6 +903,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol,
         else if(m_pDriver->GetDeviceEnabledFeatures().fillModeNonSolid)
         {
           rs->polygonMode = VK_POLYGON_MODE_LINE;
+          state.polygonMode = rs->polygonMode;
         }
         else if(prevstate.primitiveTopology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST ||
                 prevstate.primitiveTopology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP ||
@@ -1661,6 +1662,24 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol,
       {
         if(overlay == DebugOverlay::Depth)
           useDepthWriteStencilPass = true;
+
+        if(useDepthWriteStencilPass)
+        {
+          useDepthWriteStencilPass = false;
+          const VulkanCreationInfo::Pipeline::Shader &ps = pipeInfo.shaders[4];
+          if(ps.module != ResourceId())
+          {
+            ShaderReflection *reflection = ps.refl;
+            if(reflection)
+            {
+              for(SigParameter &output : reflection->outputSignature)
+              {
+                if(output.systemValue == ShaderBuiltin::DepthOutput)
+                  useDepthWriteStencilPass = true;
+              }
+            }
+          }
+        }
 
         VkAttachmentDescription attDescs[] = {
             {0, overlayFormat, VK_SAMPLE_COUNT_1_BIT, VK_ATTACHMENT_LOAD_OP_LOAD,
@@ -3357,7 +3376,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol,
                 if(fmt.indexByteStride == 4)
                   idxtype = VK_INDEX_TYPE_UINT32;
                 else if(fmt.indexByteStride == 1)
-                  idxtype = VK_INDEX_TYPE_UINT8_EXT;
+                  idxtype = VK_INDEX_TYPE_UINT8_KHR;
 
                 if(fmt.indexResourceId != ResourceId())
                 {

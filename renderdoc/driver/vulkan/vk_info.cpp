@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -57,7 +57,7 @@ VkDynamicState ConvertDynamicState(VulkanDynamicStateIndex idx)
     case VkDynamicExclusiveScissorNV: return VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV;
     case VkDynamicExclusiveScissorEnableNV: return VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_ENABLE_NV;
     case VkDynamicShadingRateKHR: return VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR;
-    case VkDynamicLineStippleEXT: return VK_DYNAMIC_STATE_LINE_STIPPLE_EXT;
+    case VkDynamicLineStippleKHR: return VK_DYNAMIC_STATE_LINE_STIPPLE_KHR;
     case VkDynamicCullMode: return VK_DYNAMIC_STATE_CULL_MODE;
     case VkDynamicFrontFace: return VK_DYNAMIC_STATE_FRONT_FACE;
     case VkDynamicPrimitiveTopology: return VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY;
@@ -150,7 +150,7 @@ VulkanDynamicStateIndex ConvertDynamicState(VkDynamicState state)
     case VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV: return VkDynamicExclusiveScissorNV;
     case VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_ENABLE_NV: return VkDynamicExclusiveScissorEnableNV;
     case VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR: return VkDynamicShadingRateKHR;
-    case VK_DYNAMIC_STATE_LINE_STIPPLE_EXT: return VkDynamicLineStippleEXT;
+    case VK_DYNAMIC_STATE_LINE_STIPPLE_KHR: return VkDynamicLineStippleKHR;
     case VK_DYNAMIC_STATE_CULL_MODE: return VkDynamicCullMode;
     case VK_DYNAMIC_STATE_FRONT_FACE: return VkDynamicFrontFace;
     case VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY: return VkDynamicPrimitiveTopology;
@@ -249,7 +249,7 @@ static VkGraphicsPipelineLibraryFlagsEXT DynamicStateValidState(VkDynamicState s
     case VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV: return vert;
     case VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_ENABLE_NV: return vert;
     case VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR: return vert | frag;
-    case VK_DYNAMIC_STATE_LINE_STIPPLE_EXT: return vert;
+    case VK_DYNAMIC_STATE_LINE_STIPPLE_KHR: return vert;
     case VK_DYNAMIC_STATE_CULL_MODE: return vert;
     case VK_DYNAMIC_STATE_FRONT_FACE: return vert;
     case VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY: return vinput;
@@ -866,6 +866,13 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
 
     Shader &shad = shaders[stageIndex];
 
+    VkPipelineShaderStageRequiredSubgroupSizeCreateInfo *subgroupSize =
+        (VkPipelineShaderStageRequiredSubgroupSizeCreateInfo *)FindNextStruct(
+            &pCreateInfo->pStages[i],
+            VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO);
+    if(subgroupSize)
+      shad.requiredSubgroupSize = subgroupSize->requiredSubgroupSize;
+
     shad.module = shadid;
     shad.entryPoint = pCreateInfo->pStages[i].pName;
     shad.stage = ShaderStage(stageIndex);
@@ -915,15 +922,15 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
     }
 
     // if there's a divisors struct, apply them now
-    const VkPipelineVertexInputDivisorStateCreateInfoEXT *divisors =
-        (const VkPipelineVertexInputDivisorStateCreateInfoEXT *)FindNextStruct(
+    const VkPipelineVertexInputDivisorStateCreateInfoKHR *divisors =
+        (const VkPipelineVertexInputDivisorStateCreateInfoKHR *)FindNextStruct(
             pCreateInfo->pVertexInputState,
-            VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT);
+            VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_KHR);
     if(divisors)
     {
       for(uint32_t b = 0; b < divisors->vertexBindingDivisorCount; b++)
       {
-        const VkVertexInputBindingDivisorDescriptionEXT &div = divisors->pVertexBindingDivisors[b];
+        const VkVertexInputBindingDivisorDescriptionKHR &div = divisors->pVertexBindingDivisors[b];
 
         if(div.binding < vertexBindings.size())
           vertexBindings[div.binding].instanceDivisor = div.divisor;
@@ -1082,15 +1089,15 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
     extraPrimitiveOverestimationSize = conservRast->extraPrimitiveOverestimationSize;
   }
 
-  // VkPipelineRasterizationLineStateCreateInfoEXT
-  lineRasterMode = VK_LINE_RASTERIZATION_MODE_DEFAULT_EXT;
+  // VkPipelineRasterizationLineStateCreateInfoKHR
+  lineRasterMode = VK_LINE_RASTERIZATION_MODE_DEFAULT_KHR;
   stippleEnabled = false;
   stippleFactor = stipplePattern = 0;
 
-  const VkPipelineRasterizationLineStateCreateInfoEXT *lineRasterState =
-      (const VkPipelineRasterizationLineStateCreateInfoEXT *)FindNextStruct(
+  const VkPipelineRasterizationLineStateCreateInfoKHR *lineRasterState =
+      (const VkPipelineRasterizationLineStateCreateInfoKHR *)FindNextStruct(
           pCreateInfo->pRasterizationState,
-          VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_LINE_STATE_CREATE_INFO_EXT);
+          VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_LINE_STATE_CREATE_INFO_KHR);
   if(lineRasterState)
   {
     lineRasterMode = lineRasterState->lineRasterizationMode;
@@ -1469,6 +1476,13 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
   {
     ResourceId shadid = GetResID(pCreateInfo->stage.module);
     Shader &shad = shaders[5];    // 5 is the compute shader's index (VS, TCS, TES, GS, FS, CS)
+
+    VkPipelineShaderStageRequiredSubgroupSizeCreateInfo *subgroupSize =
+        (VkPipelineShaderStageRequiredSubgroupSizeCreateInfo *)FindNextStruct(
+            &pCreateInfo->stage,
+            VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO);
+    if(subgroupSize)
+      shad.requiredSubgroupSize = subgroupSize->requiredSubgroupSize;
 
     shad.module = shadid;
     shad.entryPoint = pCreateInfo->stage.pName;
@@ -2391,6 +2405,16 @@ void VulkanCreationInfo::DescSetPool::CreateOverflow(VkDevice device,
   resourceMan->AddLiveResource(poolid, pool);
 
   overflow.push_back(pool);
+}
+
+void VulkanCreationInfo::AccelerationStructure::Init(
+    VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+    const VkAccelerationStructureCreateInfoKHR *pCreateInfo)
+{
+  buffer = GetResID(pCreateInfo->buffer);
+  offset = pCreateInfo->offset;
+  size = pCreateInfo->size;
+  type = pCreateInfo->type;
 }
 
 void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,

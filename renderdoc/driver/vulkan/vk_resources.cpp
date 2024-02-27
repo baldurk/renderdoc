@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -55,6 +55,7 @@ WRAPPED_POOL_INST(WrappedVkSwapchainKHR)
 WRAPPED_POOL_INST(WrappedVkSurfaceKHR)
 WRAPPED_POOL_INST(WrappedVkDescriptorUpdateTemplate)
 WRAPPED_POOL_INST(WrappedVkSamplerYcbcrConversion)
+WRAPPED_POOL_INST(WrappedVkAccelerationStructureKHR)
 
 byte VkResourceRecord::markerValue[32] = {
     0xaa, 0xbb, 0xcc, 0xdd, 0x88, 0x77, 0x66, 0x55, 0x01, 0x23, 0x45, 0x67, 0x98, 0x76, 0x54, 0x32,
@@ -141,6 +142,8 @@ VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
     return eResDescUpdateTemplate;
   if(WrappedVkSamplerYcbcrConversion::IsAlloc(ptr))
     return eResSamplerConversion;
+  if(WrappedVkAccelerationStructureKHR::IsAlloc(ptr))
+    return eResAccelerationStructureKHR;
 
   RDCERR("Unknown type for ptr 0x%p", ptr);
 
@@ -2003,7 +2006,8 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_EAC_R11_UNORM_BLOCK:
     case VK_FORMAT_EAC_R11_SNORM_BLOCK:
     case VK_FORMAT_R10X6_UNORM_PACK16:
-    case VK_FORMAT_R12X4_UNORM_PACK16: ret.compCount = 1; break;
+    case VK_FORMAT_R12X4_UNORM_PACK16:
+    case VK_FORMAT_A8_UNORM_KHR: ret.compCount = 1; break;
     case VK_FORMAT_R4G4_UNORM_PACK8:
     case VK_FORMAT_R8G8_UNORM:
     case VK_FORMAT_R8G8_SNORM:
@@ -2170,7 +2174,8 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_A2B10G10R10_UINT_PACK32:
     case VK_FORMAT_A2B10G10R10_SINT_PACK32:
     case VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16:
-    case VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16: ret.compCount = 4; break;
+    case VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16:
+    case VK_FORMAT_A1B5G5R5_UNORM_PACK16_KHR: ret.compCount = 4; break;
     case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
     case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
     case VK_FORMAT_ASTC_5x4_UNORM_BLOCK:
@@ -2233,6 +2238,8 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_A4B4G4R4_UNORM_PACK16:
     case VK_FORMAT_R5G6B5_UNORM_PACK16:
     case VK_FORMAT_R5G5B5A1_UNORM_PACK16:
+    case VK_FORMAT_A1B5G5R5_UNORM_PACK16_KHR:
+    case VK_FORMAT_A8_UNORM_KHR:
     case VK_FORMAT_R8_UNORM:
     case VK_FORMAT_R8G8_UNORM:
     case VK_FORMAT_R8G8B8_UNORM:
@@ -2529,7 +2536,8 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_B8G8R8A8_SSCALED:
     case VK_FORMAT_B8G8R8A8_UINT:
     case VK_FORMAT_B8G8R8A8_SINT:
-    case VK_FORMAT_B8G8R8A8_SRGB: ret.compByteWidth = 1; break;
+    case VK_FORMAT_B8G8R8A8_SRGB:
+    case VK_FORMAT_A8_UNORM_KHR: ret.compByteWidth = 1; break;
     case VK_FORMAT_R16_UNORM:
     case VK_FORMAT_R16_SNORM:
     case VK_FORMAT_R16_USCALED:
@@ -2595,6 +2603,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_R5G5B5A1_UNORM_PACK16:
     case VK_FORMAT_B5G5R5A1_UNORM_PACK16:
     case VK_FORMAT_A1R5G5B5_UNORM_PACK16:
+    case VK_FORMAT_A1B5G5R5_UNORM_PACK16_KHR:
     case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
     case VK_FORMAT_A2R10G10B10_UNORM_PACK32:
     case VK_FORMAT_A2B10G10R10_SNORM_PACK32:

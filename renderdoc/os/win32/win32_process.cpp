@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -1060,6 +1060,12 @@ uint32_t Process::LaunchProcess(const rdcstr &app, const rdcstr &workingDir, con
   {
     if(!internal)
       RDCWARN("Couldn't launch process '%s'", appPath.c_str());
+
+    if(hChildStdError_Rd != NULL)
+      CloseHandle(hChildStdError_Rd);
+    if(hChildStdOutput_Rd != NULL)
+      CloseHandle(hChildStdOutput_Rd);
+
     return 0;
   }
 

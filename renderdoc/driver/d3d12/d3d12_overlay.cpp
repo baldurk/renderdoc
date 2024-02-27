@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -2120,6 +2120,21 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol,
     {
       ID3D12Resource *renderDepthStencil = NULL;
       bool useDepthWriteStencilPass = (overlay == DebugOverlay::Depth) && renderDepth;
+
+      if(useDepthWriteStencilPass)
+      {
+        useDepthWriteStencilPass = false;
+        WrappedID3D12PipelineState::ShaderEntry *wrappedPS = pipe->PS();
+        if(wrappedPS)
+        {
+          ShaderReflection &reflection = pipe->PS()->GetDetails();
+          for(SigParameter &output : reflection.outputSignature)
+          {
+            if(output.systemValue == ShaderBuiltin::DepthOutput)
+              useDepthWriteStencilPass = true;
+          }
+        }
+      }
 
       HRESULT hr;
       DXGI_FORMAT dsFmt = dsViewDesc.Format;

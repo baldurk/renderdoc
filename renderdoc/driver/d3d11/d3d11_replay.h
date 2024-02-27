@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -82,8 +82,16 @@ struct D3D11PostVSData
       return vsout;
     else if(type == MeshDataStage::GSOut)
       return gsout;
-    else
-      RDCERR("Unexpected mesh data stage!");
+
+    if(type == MeshDataStage::Count)
+    {
+      if(gsout.buf)
+        return gsout;
+
+      return vsout;
+    }
+
+    RDCERR("Unexpected mesh data stage!");
 
     return vsin;
   }

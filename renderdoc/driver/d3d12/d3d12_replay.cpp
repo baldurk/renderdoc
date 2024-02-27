@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -47,8 +47,6 @@
 
 RDOC_CONFIG(bool, D3D12_HardwareCounters, true,
             "Enable support for IHV-specific hardware counters on D3D12.");
-
-RDOC_DEBUG_CONFIG(bool, D3D12_PixelHistory, false, "BETA: Enable D3D12 pixel history support.");
 
 // this is global so we can free it even after D3D12Replay is destroyed
 static HMODULE D3D12Lib = NULL;
@@ -309,7 +307,7 @@ APIProperties D3D12Replay::GetAPIProperties()
       (m_DriverInfo.vendor == GPUVendor::AMD || m_DriverInfo.vendor == GPUVendor::Samsung) &&
       m_RGP != NULL && m_RGP->DriverSupportsInterop();
   ret.shaderDebugging = true;
-  ret.pixelHistory = D3D12_PixelHistory();
+  ret.pixelHistory = true;
 
   return ret;
 }

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -2243,10 +2243,23 @@ TEST_CASE("Test flatmap type", "[basictypes][flatmap]")
     CHECK(test.find(5)->second == "foo");
   };
 
+  SECTION("empty_map")
+  {
+    rdcflatmap<uint32_t, uint32_t> unsorted;
+    CHECK(unsorted.begin() == unsorted.end());
+    CHECK(unsorted.find(0) == unsorted.end());
+
+    rdcflatmap<uint32_t, uint32_t, 0> sorted;
+    CHECK(sorted.begin() == sorted.end());
+    CHECK(sorted.find(0) == sorted.end());
+  }
+}
+
+TEST_CASE("Test sorted flatmap type", "[basictypes][sortedflatmap]")
+{
   SECTION("upper_bound")
   {
-    // set SortThreshold to 0 to force sorted semantics always
-    rdcflatmap<uint32_t, rdcstr, 0> test;
+    rdcsortedflatmap<uint32_t, rdcstr> test;
 
     test[5] = "foo";
     test[7] = "bar";
@@ -2292,17 +2305,9 @@ TEST_CASE("Test flatmap type", "[basictypes][flatmap]")
 
   SECTION("empty_map")
   {
-    rdcflatmap<uint32_t, uint32_t> unsorted;
-    CHECK(unsorted.begin() == unsorted.end());
-    CHECK(unsorted.find(0) == unsorted.end());
-    CHECK(unsorted.lower_bound(1) == 0);
-    CHECK(unsorted.upper_bound(2) == 0);
-
-    rdcflatmap<uint32_t, uint32_t, 0> sorted;
-    CHECK(sorted.begin() == sorted.end());
-    CHECK(sorted.find(0) == sorted.end());
-    CHECK(sorted.lower_bound(1) == 0);
-    CHECK(sorted.upper_bound(2) == 0);
+    rdcsortedflatmap<uint32_t, uint32_t> sortedflatmap;
+    CHECK(sortedflatmap.lower_bound(1) == 0);
+    CHECK(sortedflatmap.upper_bound(2) == 0);
   }
 };
 

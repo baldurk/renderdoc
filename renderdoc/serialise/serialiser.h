@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1407,6 +1407,71 @@ public:
     SerialiseValue(type, byteSize, (char *&)el);
   }
 
+  template <typename U>
+  void SerialiseArrayValue(SDBasic type, rdcarray<U> &el)
+  {
+    uint64_t size = (uint64_t)el.size();
+    {
+      m_InternalElement++;
+      DoSerialise(*this, size);
+      m_InternalElement--;
+    }
+
+    if(IsReading())
+    {
+      VerifyArraySize(size);
+    }
+
+    if(ExportStructure())
+    {
+      SDObject &current = *m_StructureStack.back();
+
+      current.type.basetype = SDBasic::Array;
+      current.type.byteSize = size;
+
+      current.ReserveChildren((size_t)size);
+
+      if(IsReading())
+        el.resize((size_t)size);
+
+      if(m_LazyThreshold > 0 && size > m_LazyThreshold)
+      {
+        PushInternal();
+
+        for(size_t i = 0; i < (size_t)size; i++)
+          SerialiseDispatch<Serialiser, U>::Do(*this, el[i]);
+
+        PopInternal();
+
+        current.SetLazyArray(size, el.data(), MakeLazySerialiser<U>());
+      }
+      else
+      {
+        for(size_t i = 0; i < (size_t)size; i++)
+        {
+          SDObject &obj = *current.AddAndOwnChild(new SDObject("$el"_lit, TypeName<U>()));
+          m_StructureStack.push_back(&obj);
+
+          // default to struct. This will be overwritten if appropriate
+          obj.type.basetype = SDBasic::Struct;
+          obj.type.byteSize = sizeof(U);
+
+          SerialiseDispatch<Serialiser, U>::Do(*this, el[i]);
+
+          m_StructureStack.pop_back();
+        }
+      }
+    }
+    else
+    {
+      if(IsReading())
+        el.resize((size_t)size);
+
+      for(size_t i = 0; i < (size_t)size; i++)
+        SerialiseDispatch<Serialiser, U>::Do(*this, el[i]);
+    }
+  }
+
   // constructors only available by the derived classes for each serialiser type
 protected:
   Serialiser(StreamWriter *writer, Ownership own);
@@ -1598,6 +1663,7 @@ public:
 
 #define BASIC_TYPE_SERIALISE(typeName, member, type, byteSize) \
   DECLARE_STRINGISE_TYPE(typeName)                             \
+  DECLARE_STRINGISE_TYPE(rdcarray<typeName>)                   \
   template <class SerialiserType>                              \
   void DoSerialise(SerialiserType &ser, typeName &el)          \
   {                                                            \
@@ -1670,6 +1736,12 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, rdcinflexiblestr &el)
 {
   ser.SerialiseValue(SDBasic::String, 0, el);
+}
+
+template <class SerialiserType, typename U>
+void DoSerialise(SerialiserType &ser, rdcarray<U> &el)
+{
+  ser.SerialiseArrayValue(SDBasic::Array, el);
 }
 
 DECLARE_STRINGISE_TYPE(SDObject *);

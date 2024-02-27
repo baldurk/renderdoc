@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Baldur Karlsson
+ * Copyright (c) 2022-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -144,6 +144,27 @@ static bool ValidData(MTL::RenderPassColorAttachmentDescriptor *descriptor)
 }
 
 static bool ValidData(MTL::RenderPassSampleBufferAttachmentDescriptor *descriptor)
+{
+  if(!descriptor->sampleBuffer())
+    return false;
+  return true;
+}
+
+static bool ValidData(MTL::AttributeDescriptor *descriptor)
+{
+  if(descriptor->format() == MTL::AttributeFormatInvalid)
+    return false;
+  return true;
+}
+
+static bool ValidData(MTL::BufferLayoutDescriptor *descriptor)
+{
+  if(descriptor->stride() == 0)
+    return false;
+  return true;
+}
+
+static bool ValidData(MTL::ComputePassSampleBufferAttachmentDescriptor *descriptor)
 {
   if(!descriptor->sampleBuffer())
     return false;
@@ -320,6 +341,45 @@ void VertexDescriptor::CopyTo(MTL::VertexDescriptor *objc)
 {
   COPYTOOBJCARRAY(VertexBufferLayoutDescriptor, layouts);
   COPYTOOBJCARRAY(VertexAttributeDescriptor, attributes);
+}
+
+AttributeDescriptor::AttributeDescriptor(MTL::AttributeDescriptor *objc)
+    : bufferIndex(objc->bufferIndex()), offset(objc->offset()), format(objc->format())
+{
+}
+
+void AttributeDescriptor::CopyTo(MTL::AttributeDescriptor *objc)
+{
+  objc->setBufferIndex(bufferIndex);
+  objc->setOffset(offset);
+  objc->setFormat(format);
+}
+
+BufferLayoutDescriptor::BufferLayoutDescriptor(MTL::BufferLayoutDescriptor *objc)
+    : stride(objc->stride()), stepFunction(objc->stepFunction()), stepRate(objc->stepRate())
+{
+}
+
+void BufferLayoutDescriptor::CopyTo(MTL::BufferLayoutDescriptor *objc)
+{
+  objc->setStride(stride);
+  objc->setStepFunction(stepFunction);
+  objc->setStepRate(stepRate);
+}
+
+StageInputOutputDescriptor::StageInputOutputDescriptor(MTL::StageInputOutputDescriptor *objc)
+    : indexBufferIndex(objc->indexBufferIndex()), indexType(objc->indexType())
+{
+  GETOBJCARRAY(AttributeDescriptor, MAX_COMPUTE_PASS_BUFFER_ATTACHMENTS, attributes, ValidData);
+  GETOBJCARRAY(BufferLayoutDescriptor, MAX_COMPUTE_PASS_BUFFER_ATTACHMENTS, layouts, ValidData);
+}
+
+void StageInputOutputDescriptor::CopyTo(MTL::StageInputOutputDescriptor *objc)
+{
+  COPYTOOBJCARRAY(AttributeDescriptor, attributes);
+  COPYTOOBJCARRAY(BufferLayoutDescriptor, layouts);
+  objc->setIndexBufferIndex(indexBufferIndex);
+  objc->setIndexType(indexType);
 }
 
 LinkedFunctions::LinkedFunctions(MTL::LinkedFunctions *objc)
@@ -609,6 +669,87 @@ RenderPassDescriptor::operator MTL::RenderPassDescriptor *()
   // TODO: when WrappedRasterizationRateMap exists
   // objc->setRasterizationRateMap(Unwrap(rasterizationRateMap));
   COPYTOOBJCARRAY(RenderPassSampleBufferAttachmentDescriptor, sampleBufferAttachments);
+  return objc;
+}
+
+ComputePassSampleBufferAttachmentDescriptor::ComputePassSampleBufferAttachmentDescriptor(
+    MTL::ComputePassSampleBufferAttachmentDescriptor *objc)
+    : startOfEncoderSampleIndex(objc->startOfEncoderSampleIndex()),
+      endOfEncoderSampleIndex(objc->endOfEncoderSampleIndex())
+{
+}
+
+void ComputePassSampleBufferAttachmentDescriptor::CopyTo(
+    MTL::ComputePassSampleBufferAttachmentDescriptor *objc)
+{
+  // TODO: when WrappedMTLCounterSampleBuffer exists
+  // objc->setSampleBuffer(Unwrap(sampleBuffer));
+  objc->setStartOfEncoderSampleIndex(startOfEncoderSampleIndex);
+  objc->setEndOfEncoderSampleIndex(endOfEncoderSampleIndex);
+}
+
+ComputePipelineDescriptor::ComputePipelineDescriptor(MTL::ComputePipelineDescriptor *objc)
+    : computeFunction(GetWrapped(objc->computeFunction())),
+      threadGroupSizeIsMultipleOfThreadExecution(
+          objc->threadGroupSizeIsMultipleOfThreadExecutionWidth()),
+      maxTotalThreadsPerThreadgroup(objc->maxTotalThreadsPerThreadgroup()),
+      maxCallStackDepth(objc->maxCallStackDepth()),
+      stageInputDescriptor(objc->stageInputDescriptor()),
+      supportIndirectCommandBuffers(objc->supportIndirectCommandBuffers()),
+      linkedFunctions(objc->linkedFunctions()),
+      supportAddingBinaryFunctions(objc->supportAddingBinaryFunctions())
+{
+  if(objc->label())
+    label.assign(objc->label()->utf8String());
+  GETOBJCARRAY(PipelineBufferDescriptor, MAX_COMPUTE_PASS_BUFFER_ATTACHMENTS, buffers, ValidData);
+  // TODO: when WrappedMTLDynamicLibrary exists
+  // GETWRAPPEDNSARRAY(DynamicLibrary, preloadedLibraries)
+  // Deprecated
+  // GETWRAPPEDNSARRAY(DynamicLibrary, insertLibraries)
+  // GETWRAPPEDNSARRAY(DynamicLibrary, linkedFunctions)
+  // TODO: when WrappedMTLBinaryArchive exists
+  // GETWRAPPEDNSARRAY(BinaryArchive, binaryArchives);
+}
+
+ComputePipelineDescriptor::operator MTL::ComputePipelineDescriptor *()
+{
+  MTL::ComputePipelineDescriptor *objc = MTL::ComputePipelineDescriptor::alloc()->init();
+  if(label.length() > 0)
+  {
+    objc->setLabel(NS::String::string(label.data(), NS::UTF8StringEncoding));
+  }
+  objc->setComputeFunction(Unwrap(computeFunction));
+  objc->setThreadGroupSizeIsMultipleOfThreadExecutionWidth(threadGroupSizeIsMultipleOfThreadExecution);
+  objc->setMaxTotalThreadsPerThreadgroup(maxTotalThreadsPerThreadgroup);
+  objc->setMaxCallStackDepth(maxCallStackDepth);
+  stageInputDescriptor.CopyTo(objc->stageInputDescriptor());
+  objc->setSupportIndirectCommandBuffers(supportIndirectCommandBuffers);
+  linkedFunctions.CopyTo(objc->linkedFunctions());
+  objc->setSupportAddingBinaryFunctions(supportAddingBinaryFunctions);
+  COPYTOOBJCARRAY(PipelineBufferDescriptor, buffers);
+  // TODO: when WrappedMTLDynamicLibrary exists
+  // objc->setPreloadedLibraries(CreateUnwrappedNSArray<MTL::DynamicLibrary *>(preloadedLibraries));
+  // Deprecated
+  // objc->setInsertLibraries(CreateUnwrappedNSArray<MTL::DynamicLibrary *>(insertLibraries));
+  // objc->setLinkedFunctions(CreateUnwrappedNSArray<MTL::DynamicLibrary *>(linkedFunctions));
+  // TODO: when WrappedMTLBinaryArchive exists
+  // objc->setBinaryArchives(CreateUnwrappedNSArray<MTL::BinaryArchive *>(binaryArchives));
+  // GETWRAPPEDNSARRAY(BinaryArchive, binaryArchives);
+  return objc;
+}
+
+ComputePassDescriptor::ComputePassDescriptor(MTL::ComputePassDescriptor *objc)
+    : dispatchType(objc->dispatchType())
+{
+  GETOBJCARRAY(ComputePassSampleBufferAttachmentDescriptor,
+               MAX_COMPUTE_PASS_SAMPLE_BUFFER_ATTACHMENTS, sampleBufferAttachments, ValidData);
+}
+
+ComputePassDescriptor::operator MTL::ComputePassDescriptor *()
+{
+  MTL::ComputePassDescriptor *objc = MTL::ComputePassDescriptor::alloc()->init();
+  COPYTOOBJCARRAY(ComputePassSampleBufferAttachmentDescriptor, sampleBufferAttachments);
+  objc->setDispatchType(dispatchType);
   return objc;
 }
 

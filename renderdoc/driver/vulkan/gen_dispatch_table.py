@@ -26,7 +26,7 @@ f.write('''
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2020-2023 Baldur Karlsson
+ * Copyright (c) 2020-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -176,8 +176,7 @@ def ext_sort(ext):
 
 for ext in sorted(registry.findall('extensions/extension'), key=ext_sort):
     # Only process vulkan extensions
-    if 'supported' in ext.attrib and 'vulkan' in ext.attrib['supported'].split(','):
-
+    if 'supported' in ext.attrib and 'vulkan' in ext.attrib['supported'].split(',') and '_video_' not in ext.attrib['name']:
         process_feature(ext, ext.attrib['name'])
 
 inst_commands = inst_commands.strip()

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -995,7 +995,7 @@ void WrappedVulkan::vkGetPhysicalDeviceMultisamplePropertiesEXT(
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceCalibrateableTimeDomainsEXT(
-    VkPhysicalDevice physicalDevice, uint32_t *pTimeDomainCount, VkTimeDomainEXT *pTimeDomains)
+    VkPhysicalDevice physicalDevice, uint32_t *pTimeDomainCount, VkTimeDomainKHR *pTimeDomains)
 {
   return ObjDisp(physicalDevice)
       ->GetPhysicalDeviceCalibrateableTimeDomainsEXT(Unwrap(physicalDevice), pTimeDomainCount,
@@ -1003,10 +1003,26 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceCalibrateableTimeDomainsEXT(
 }
 
 VkResult WrappedVulkan::vkGetCalibratedTimestampsEXT(VkDevice device, uint32_t timestampCount,
-                                                     const VkCalibratedTimestampInfoEXT *pTimestampInfos,
+                                                     const VkCalibratedTimestampInfoKHR *pTimestampInfos,
                                                      uint64_t *pTimestamps, uint64_t *pMaxDeviation)
 {
   return ObjDisp(device)->GetCalibratedTimestampsEXT(Unwrap(device), timestampCount,
+                                                     pTimestampInfos, pTimestamps, pMaxDeviation);
+}
+
+VkResult WrappedVulkan::vkGetPhysicalDeviceCalibrateableTimeDomainsKHR(
+    VkPhysicalDevice physicalDevice, uint32_t *pTimeDomainCount, VkTimeDomainKHR *pTimeDomains)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceCalibrateableTimeDomainsKHR(Unwrap(physicalDevice), pTimeDomainCount,
+                                                     pTimeDomains);
+}
+
+VkResult WrappedVulkan::vkGetCalibratedTimestampsKHR(VkDevice device, uint32_t timestampCount,
+                                                     const VkCalibratedTimestampInfoKHR *pTimestampInfos,
+                                                     uint64_t *pTimestamps, uint64_t *pMaxDeviation)
+{
+  return ObjDisp(device)->GetCalibratedTimestampsKHR(Unwrap(device), timestampCount,
                                                      pTimestampInfos, pTimestamps, pMaxDeviation);
 }
 
@@ -1154,4 +1170,44 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceFragmentShadingRatesKHR(
   return ObjDisp(physicalDevice)
       ->GetPhysicalDeviceFragmentShadingRatesKHR(Unwrap(physicalDevice), pFragmentShadingRateCount,
                                                  pFragmentShadingRates);
+}
+
+uint32_t WrappedVulkan::vkGetDeferredOperationMaxConcurrencyKHR(VkDevice device,
+                                                                VkDeferredOperationKHR operation)
+{
+  return ObjDisp(device)->GetDeferredOperationMaxConcurrencyKHR(Unwrap(device), operation);
+}
+
+VkResult WrappedVulkan::vkGetDeferredOperationResultKHR(VkDevice device,
+                                                        VkDeferredOperationKHR operation)
+{
+  return ObjDisp(device)->GetDeferredOperationResultKHR(Unwrap(device), operation);
+}
+
+void WrappedVulkan::vkGetAccelerationStructureBuildSizesKHR(
+    VkDevice device, VkAccelerationStructureBuildTypeKHR buildType,
+    const VkAccelerationStructureBuildGeometryInfoKHR *pBuildInfo,
+    const uint32_t *pMaxPrimitiveCounts, VkAccelerationStructureBuildSizesInfoKHR *pSizeInfo)
+{
+  VkAccelerationStructureBuildGeometryInfoKHR unwrapped = *pBuildInfo;
+  unwrapped.srcAccelerationStructure = Unwrap(unwrapped.srcAccelerationStructure);
+  unwrapped.dstAccelerationStructure = Unwrap(unwrapped.dstAccelerationStructure);
+
+  ObjDisp(device)->GetAccelerationStructureBuildSizesKHR(Unwrap(device), buildType, pBuildInfo,
+                                                         pMaxPrimitiveCounts, pSizeInfo);
+}
+
+VkDeviceAddress WrappedVulkan::vkGetAccelerationStructureDeviceAddressKHR(
+    VkDevice device, const VkAccelerationStructureDeviceAddressInfoKHR *pInfo)
+{
+  VkAccelerationStructureDeviceAddressInfoKHR info = *pInfo;
+  info.accelerationStructure = Unwrap(info.accelerationStructure);
+  return ObjDisp(device)->GetAccelerationStructureDeviceAddressKHR(Unwrap(device), &info);
+}
+
+void WrappedVulkan::vkGetDeviceAccelerationStructureCompatibilityKHR(
+    VkDevice device, const VkAccelerationStructureVersionInfoKHR *pVersionInfo,
+    VkAccelerationStructureCompatibilityKHR *pCompatibility)
+{
+  *pCompatibility = VK_ACCELERATION_STRUCTURE_COMPATIBILITY_INCOMPATIBLE_KHR;
 }

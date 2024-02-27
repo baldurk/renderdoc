@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -662,7 +662,7 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
       text += tr("The texture has %1 array slices, the view covers slices %2-%3.\n")
                   .arg(tex->arraysize)
                   .arg(res.firstSlice)
-                  .arg(res.firstSlice + res.numSlices);
+                  .arg(res.firstSlice + res.numSlices - 1);
 
     viewdetails = true;
   }
@@ -1648,13 +1648,18 @@ void D3D12PipelineStateViewer::setState()
   // highlight the appropriate stages in the flowchart
   if(action == NULL)
   {
-    setOldMeshPipeFlow();
-    ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
+    QList<bool> allOn;
+    for(int i = 0; i < ui->pipeFlow->stageNames().count(); i++)
+      allOn.append(true);
+    ui->pipeFlow->setStagesEnabled(allOn);
   }
   else if(action->flags & ActionFlags::Dispatch)
   {
-    setOldMeshPipeFlow();
-    ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
+    QList<bool> computeOnly;
+    for(int i = 0; i < ui->pipeFlow->stageNames().count(); i++)
+      computeOnly.append(false);
+    computeOnly.back() = true;
+    ui->pipeFlow->setStagesEnabled(computeOnly);
   }
   else if(action->flags & ActionFlags::MeshDispatch)
   {

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -101,6 +101,15 @@ void InitInstanceExtensionTables(VkInstance instance, InstanceDeviceInfo *info)
       table->CONCAT(func, suffix) = table->func;      \
   }
 
+#undef HookInitExtensionEXTtoKHR
+#define HookInitExtensionEXTtoKHR(func)                    \
+  {                                                        \
+    if(table->CONCAT(func, EXT) == NULL)                   \
+      table->CONCAT(func, EXT) = table->CONCAT(func, KHR); \
+    if(table->CONCAT(func, KHR) == NULL)                   \
+      table->CONCAT(func, KHR) = table->CONCAT(func, EXT); \
+  }
+
   DeclExts();
 
   CheckInstanceExts();
@@ -140,6 +149,15 @@ void InitDeviceExtensionTables(VkDevice device, InstanceDeviceInfo *info)
       table->func = table->CONCAT(func, suffix);      \
     if(table->CONCAT(func, suffix) == NULL)           \
       table->CONCAT(func, suffix) = table->func;      \
+  }
+
+#undef HookInitExtensionEXTtoKHR
+#define HookInitExtensionEXTtoKHR(func)                    \
+  {                                                        \
+    if(table->CONCAT(func, EXT) == NULL)                   \
+      table->CONCAT(func, EXT) = table->CONCAT(func, KHR); \
+    if(table->CONCAT(func, KHR) == NULL)                   \
+      table->CONCAT(func, KHR) = table->CONCAT(func, EXT); \
   }
 
   DeclExts();

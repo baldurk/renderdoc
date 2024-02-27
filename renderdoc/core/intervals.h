@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -162,7 +162,7 @@ template <typename T>
 struct Intervals
 {
 public:
-  using MapType = rdcflatmap<uint64_t, T, 0>;
+  using MapType = rdcsortedflatmap<uint64_t, T>;
 
   typedef IntervalRef<T, MapType, typename MapType::iterator> interval;
   typedef IntervalsIter<T, MapType, typename MapType::iterator, interval> iterator;

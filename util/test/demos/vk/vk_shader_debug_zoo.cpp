@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2023 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,6 +37,20 @@ RD_TEST(VK_Shader_Debug_Zoo, VulkanGraphicsTest)
     float one;
     float negone;
     Vec2f uv;
+  };
+
+  struct PushData
+  {
+    Vec4i push;
+    Vec2u bda_uvec2;
+    uint32_t bda_hi;
+    uint32_t bda_lo;
+    uint64_t bda_u64;
+  };
+
+  struct BDA_Data
+  {
+    float f32[8];
   };
 
   std::string v2f =
@@ -1548,6 +1562,20 @@ void main()
       Color = varscope_test(flatLocalCoord, inpos, inposIncreased);
       break;
     }
+    case 176:
+    {
+      ivec2 coord = ivec2(zeroi + 20, zeroi + 20);
+      Color = texelFetch(sampledImages[cbuf.uniformIndex+1], coord, 0);
+      mat4 mat;
+      // force out of bounds matrix lookup to make sure it doesn't crash
+      float temp = mat[int(Color.r)+70][int(Color.g)+80];
+      if (int(temp/(temp+10000.0)) == 1)
+      {
+        Color.r = Color.r;
+      }
+      Color += vec4(1.0, 1.0, 1.0, 1.0);
+      break;
+    }
     default: break;
   }
 }
@@ -2536,6 +2564,72 @@ void main()
         "%_out_float = OpBitcast %float %_result\n",
     });
 
+    // Bitcast vector <-> scalar
+    if(float16Int8Features.shaderInt8 && features.shaderInt16)
+    {
+      append_tests({
+          // u8[2] -> u16
+          "%_result = OpCompositeConstruct %u8v2 %u8_8 %u8_9\n"
+          "%_out_u16 = OpBitcast %u16 %_result\n",
+          // u8[4] -> u32
+          "%_result = OpCompositeConstruct %u8v4 %u8_4 %u8_5 %u8_6 %u8_7\n"
+          "%_out_uint = OpBitcast %uint %_result\n",
+          // u16[2] -> u32
+          "%_result = OpCompositeConstruct %u16v2 %u16_4 %u16_5\n"
+          "%_out_uint = OpBitcast %uint %_result\n",
+          // u16 -> u8[2]
+          "%_out_u8v2 = OpBitcast %u8v2 %u16_1234\n ",
+          // u32 -> u8[4]
+          "%_out_u8v4 = OpBitcast %u8v4 %uint_1234\n ",
+          // u32 -> u16[2]
+          "%_out_u16v2 = OpBitcast %u16v2 %uint_12345\n",
+      });
+    }
+
+    if(features.shaderInt16 && features.shaderInt64)
+    {
+      append_tests({
+          // u16[4] -> u64
+          "%_result = OpCompositeConstruct %u16v4 %u16_0 %u16_1 %u16_2 %u16_3\n"
+          "%_out_u64 = OpBitcast %u64 %_result\n",
+          // u64 -> u16[4]
+          "%_out_u16v4 = OpBitcast %u16v4 %u64_1234\n",
+      });
+    }
+
+    if(features.shaderInt64)
+    {
+      append_tests({
+          // u32[2] -> u64
+          "%_result = OpCompositeConstruct %uint2 %uint_0 %uint_1\n"
+          "%_out_u64 = OpBitcast %u64 %_result\n",
+          // u64 -> u32[2]
+          "%_out_uint2 = OpBitcast %uint2 %u64_1234\n",
+      });
+    }
+
+    if(float16Int8Features.shaderFloat16)
+    {
+      append_tests({
+          // f16[2] -> f32
+          "%_result = OpCompositeConstruct %half2 %half_0_25 %half_0_5\n"
+          "%_out_float = OpBitcast %float %_result\n",
+          // f32 -> f16[2]
+          "%_out_half2 = OpBitcast %half2 %float_1_1125\n",
+      });
+    }
+
+    if(features.shaderFloat64)
+    {
+      append_tests({
+          // f32[2] -> f64
+          "%_result = OpCompositeConstruct %float2 %float_0_5 %float_0_25\n"
+          "%_out_double = OpBitcast %double %_result\n",
+          // f64 -> f32[2]
+          "%_out_float2 = OpBitcast %float2 %double_1024_25\n",
+      });
+    }
+
     // test ExtInst NMin/NMax/NClamp
     append_tests({
         "%_x = OpExtInst %float %glsl450 NMin %nan %oneVal\n"
@@ -2861,6 +2955,91 @@ OpBranch %_bottomlabel
           "%_break_{0} = OpLabel\n",
           intTypes[i], caseLiterals[i])});
     }
+
+    // test buffer device address
+    if(bdaFeatures.bufferDeviceAddress)
+    {
+      // bitcast uint2 address to pointer
+      append_tests({
+          R"EOTEST(
+%_ptr_addr_bda_data_struct = OpAccessChain %ptr_PushConstant_uint2 %push_data %int_1
+%_addr_bda_data_struct = OpLoad %uint2 %_ptr_addr_bda_data_struct
+%_ptr_bda_data_struct = OpBitcast %ptr_PhysicalStorageBuffer_bda_data_struct %_addr_bda_data_struct
+%_ptr_first = OpAccessChain %ptr_PhysicalStorageBuffer_bda_data_struct_first %_ptr_bda_data_struct %int_0
+%_out_float4 = OpLoad %float4 %_ptr_first Aligned 16
+)EOTEST",
+          // OpPtrAccessChain : float[] : ArrayStride 4
+          R"EOTEST(
+%_ptr_addr_bda_data_struct = OpAccessChain %ptr_PushConstant_uint2 %push_data %int_1
+%_addr_bda_data_struct = OpLoad %uint2 %_ptr_addr_bda_data_struct
+%_ptr_bda_data_struct = OpBitcast %ptr_PhysicalStorageBuffer_bda_data_struct_f32_4 %_addr_bda_data_struct
+%_ptr_f32 = OpPtrAccessChain %ptr_PhysicalStorageBuffer_f32 %_ptr_bda_data_struct %int_dyn_1
+%_out_float = OpLoad %float %_ptr_f32 Aligned 16
+)EOTEST",
+          // OpPtrAccessChain : float[] : ArrayStride 8
+          R"EOTEST(
+%_ptr_addr_bda_data_struct = OpAccessChain %ptr_PushConstant_uint2 %push_data %int_1
+%_addr_bda_data_struct = OpLoad %uint2 %_ptr_addr_bda_data_struct
+%_ptr_bda_data_struct = OpBitcast %ptr_PhysicalStorageBuffer_bda_data_struct_f32_8 %_addr_bda_data_struct
+%_ptr_f32 = OpPtrAccessChain %ptr_PhysicalStorageBuffer_f32 %_ptr_bda_data_struct %int_dyn_1
+%_out_float = OpLoad %float %_ptr_f32 Aligned 16
+)EOTEST",
+          // OpPtrAccessChain : float[] : ArrayStride 12
+          R"EOTEST(
+%_ptr_addr_bda_data_struct = OpAccessChain %ptr_PushConstant_uint2 %push_data %int_1
+%_addr_bda_data_struct = OpLoad %uint2 %_ptr_addr_bda_data_struct
+%_ptr_bda_data_struct = OpBitcast %ptr_PhysicalStorageBuffer_bda_data_struct_f32_12 %_addr_bda_data_struct
+%_ptr_f32 = OpPtrAccessChain %ptr_PhysicalStorageBuffer_f32 %_ptr_bda_data_struct %int_dyn_1
+%_out_float = OpLoad %float %_ptr_f32 Aligned 16
+)EOTEST",
+      });
+      if(features.shaderInt64)
+      {
+        append_tests({
+            // Convert u64 address to pointer
+            R"EOTEST(
+%_ptr_addr_bda_data_struct = OpAccessChain %ptr_PushConstant_u64 %push_data %int_4
+%_addr_bda_data_struct = OpLoad %u64 %_ptr_addr_bda_data_struct
+%_ptr_bda_data_struct = OpConvertUToPtr %ptr_PhysicalStorageBuffer_bda_data_struct %_addr_bda_data_struct
+%_ptr_first = OpAccessChain %ptr_PhysicalStorageBuffer_bda_data_struct_first %_ptr_bda_data_struct %int_1
+%_out_float4 = OpLoad %float4 %_ptr_first Aligned 16
+)EOTEST",
+            // Convert u64 address to pointer back to u64 address
+            R"EOTEST(
+%_ptr_addr_bda_data_struct = OpAccessChain %ptr_PushConstant_u64 %push_data %int_4
+%_addr = OpLoad %u64 %_ptr_addr_bda_data_struct
+%_addr_bda_data_struct = OpIAdd %u64 %_addr %u64_dyn_8
+%_ptr_bda_data_struct = OpConvertUToPtr %ptr_PhysicalStorageBuffer_bda_data_struct %_addr_bda_data_struct 
+%_out_u64 = OpConvertPtrToU %u64 %_ptr_bda_data_struct
+)EOTEST",
+            // arithmetic on u64 address then convert u64 address to pointer
+            R"EOTEST(
+%_ptr_addr_bda_data_struct = OpAccessChain %ptr_PushConstant_u64 %push_data %int_4
+%_addr = OpLoad %u64 %_ptr_addr_bda_data_struct
+%_addr2 = OpIAdd %u64 %_addr %u64_dyn_1023
+%_addr3 = OpISub %u64 %_addr2 %u64_dyn_1023
+%_addr_bda_data_struct = OpIAdd %u64 %_addr3 %u64_dyn_16
+%_ptr_bda_data_struct = OpConvertUToPtr %ptr_PhysicalStorageBuffer_bda_data_struct %_addr_bda_data_struct
+%_ptr_first = OpInBoundsAccessChain %ptr_PhysicalStorageBuffer_bda_data_struct_first %_ptr_bda_data_struct %int_0
+%_out_float4 = OpLoad %float4 %_ptr_first Aligned 16
+)EOTEST",
+            // form u64 address by arithmetic from two u32 values
+            R"EOTEST(
+%_ptr_addr_bda_data_struct_hi = OpAccessChain %ptr_PushConstant_uint %push_data %int_2
+%_addr_bda_data_struct_hi = OpLoad %uint %_ptr_addr_bda_data_struct_hi
+%_ptr_addr_bda_data_struct_lo = OpAccessChain %ptr_PushConstant_uint %push_data %int_3
+%_addr_bda_data_struct_lo = OpLoad %uint %_ptr_addr_bda_data_struct_lo
+%_addr_u64_hi = OpUConvert %u64 %_addr_bda_data_struct_hi 
+%_addr_u64_lo = OpUConvert %u64 %_addr_bda_data_struct_lo 
+%_addr_u64 = OpShiftLeftLogical %u64 %_addr_u64_hi %uint_32
+%_addr_bda_data_struct = OpIAdd %u64 %_addr_u64 %_addr_u64_lo
+%_ptr_bda_data_struct = OpConvertUToPtr %ptr_PhysicalStorageBuffer_bda_data_struct %_addr_bda_data_struct
+%_ptr_first = OpAccessChain %ptr_PhysicalStorageBuffer_bda_data_struct_first %_ptr_bda_data_struct %int_0
+%_out_float4 = OpLoad %float4 %_ptr_first Aligned 16
+)EOTEST",
+        });
+      }
+    }
   }
 
   std::string make_pixel_asm()
@@ -2877,6 +3056,8 @@ OpBranch %_bottomlabel
     std::set<uint32_t> uint_constants;
     std::set<int64_t> i64_constants;
     std::set<uint64_t> u64_constants;
+    std::set<uint8_t> u8_constants;
+    std::set<uint16_t> u16_constants;
 
     std::string cases;
 
@@ -2942,6 +3123,66 @@ OpBranch %_bottomlabel
         }
       }
 
+      // find any u8 constants referenced
+      offs = test.find("%u8_");
+      while(offs != std::string::npos)
+      {
+        offs += 4;    // past %u8_
+
+        // we generate dynamic and negative versions of all constants, skip to the first digit
+        offs = test.find_first_of("0123456789", offs);
+
+        // handle hex prefix
+        int base = 10;
+        if(test[offs] == '0' && test[offs + 1] == 'x')
+        {
+          base = 16;
+          offs += 2;
+        }
+
+        uint8_t val = (uint8_t)std::strtoul(&test[offs], NULL, base);
+        u8_constants.insert(val);
+
+        // if it's a hex constant we'll name it in decimal, rename
+        if(base == 16)
+        {
+          size_t end = test.find_first_of("\n\t ", offs);
+          test.replace(offs - 2, end - offs + 2, fmt::format("{}", val));
+        }
+
+        offs = test.find("%u8_", offs);
+      }
+
+      // find any u16 constants referenced
+      offs = test.find("%u16_");
+      while(offs != std::string::npos)
+      {
+        offs += 5;    // past %u16_
+
+        // we generate dynamic and negative versions of all constants, skip to the first digit
+        offs = test.find_first_of("0123456789", offs);
+
+        // handle hex prefix
+        int base = 10;
+        if(test[offs] == '0' && test[offs + 1] == 'x')
+        {
+          base = 16;
+          offs += 2;
+        }
+
+        uint16_t val = (uint16_t)std::strtoul(&test[offs], NULL, base);
+        u16_constants.insert(val);
+
+        // if it's a hex constant we'll name it in decimal, rename
+        if(base == 16)
+        {
+          size_t end = test.find_first_of("\n\t ", offs);
+          test.replace(offs - 2, end - offs + 2, fmt::format("{}", val));
+        }
+
+        offs = test.find("%u16_", offs);
+      }
+
       // find any int constants referenced
       offs = test.find("%int_");
       while(offs != std::string::npos)
@@ -2959,7 +3200,7 @@ OpBranch %_bottomlabel
           offs += 2;
         }
 
-        int32_t val = std::strtol(&test[offs], NULL, base);
+        int32_t val = (int32_t)std::strtol(&test[offs], NULL, base);
         int_constants.insert(val);
 
         // if it's a hex constant we'll name it in decimal, rename
@@ -2989,7 +3230,7 @@ OpBranch %_bottomlabel
           offs += 2;
         }
 
-        uint32_t val = std::strtoul(&test[offs], NULL, base);
+        uint32_t val = (uint32_t)std::strtoul(&test[offs], NULL, base);
         uint_constants.insert(val);
 
         // if it's a hex constant we'll name it in decimal, rename
@@ -3186,6 +3427,42 @@ OpBranch %_bottomlabel
               "%_f_{0}\n",
               i);
         }
+        else if(test.find("%_out_u8v2_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertUToF %float2 %_out_u8v2_{0}\n"
+              "%Color_{0} = OpVectorShuffle %float4 %_f_{0} %_f_{0} 0 1 0 1\n",
+              i);
+        }
+        else if(test.find("%_out_u8v4_") != std::string::npos)
+        {
+          cases += fmt::format("%Color_{0} = OpConvertUToF %float4 %_out_u8v4_{0}\n", i);
+        }
+        else if(test.find("%_out_u16_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertUToF %float %_out_u16_{0}\n"
+              "%Color_{0} = OpCompositeConstruct %float4 %_f_{0} %_f_{0} %_f_{0} %_f_{0}\n",
+              i);
+        }
+        else if(test.find("%_out_u16v2_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertUToF %float2 %_out_u16v2_{0}\n"
+              "%Color_{0} = OpVectorShuffle %float4 %_f_{0} %_f_{0} 0 1 0 1\n",
+              i);
+        }
+        else if(test.find("%_out_u16v4_") != std::string::npos)
+        {
+          cases += fmt::format("%Color_{0} = OpConvertUToF %float4 %_out_u16v4_{0}\n", i);
+        }
+        else if(test.find("%_out_half2_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpFConvert %float2 %_out_half2_{0}\n"
+              "%Color_{0} = OpVectorShuffle %float4 %_f_{0} %_f_{0} 0 1 0 1\n",
+              i);
+        }
         else if(test.find("; no_out") != std::string::npos)
         {
           store_out = false;
@@ -3221,7 +3498,9 @@ OpBranch %_bottomlabel
 
     if(float16Int8Features.shaderFloat16)
     {
-      typesConstants += "%half = OpTypeFloat 16\n";
+      typesConstants +=
+          "%half = OpTypeFloat 16\n"
+          "%half2 = OpTypeVector %half 2\n";
       capabilities += "OpCapability Float16\n";
     }
 
@@ -3230,7 +3509,9 @@ OpBranch %_bottomlabel
     {
       typesConstants +=
           "%i8 = OpTypeInt 8 1\n"
-          "%u8 = OpTypeInt 8 0\n";
+          "%u8 = OpTypeInt 8 0\n"
+          "%u8v2 = OpTypeVector %u8 2\n"
+          "%u8v4 = OpTypeVector %u8 4\n";
       capabilities += "OpCapability Int8\n";
     }
 
@@ -3248,8 +3529,62 @@ OpBranch %_bottomlabel
     {
       typesConstants +=
           "%i16 = OpTypeInt 16 1\n"
-          "%u16 = OpTypeInt 16 0\n";
+          "%u16 = OpTypeInt 16 0\n"
+          "%u16v2 = OpTypeVector %u16 2\n"
+          "%u16v4 = OpTypeVector %u16 4\n";
       capabilities += "OpCapability Int16\n";
+    }
+
+    if(bdaFeatures.bufferDeviceAddress)
+    {
+      capabilities += "OpCapability PhysicalStorageBufferAddresses\n";
+      spv_extensions += R"EOSHADER(
+               OpExtension "SPV_KHR_physical_storage_buffer"
+)EOSHADER";
+
+      typesConstants += "%pushdata_struct = OpTypeStruct %int4 %uint2 %uint %uint";
+      if(features.shaderInt64)
+        typesConstants += " %u64\n";
+      else
+        typesConstants += " %uint2\n";
+
+      typesConstants += R"EOSHADER(
+%ptr_PushConstant_pushdata_struct = OpTypePointer PushConstant %pushdata_struct
+%push_data = OpVariable %ptr_PushConstant_pushdata_struct PushConstant
+
+%ptr_PushConstant_uint = OpTypePointer PushConstant %uint
+%ptr_PushConstant_uint2 = OpTypePointer PushConstant %uint2
+ )EOSHADER";
+
+      if(features.shaderInt64)
+        typesConstants += "%ptr_PushConstant_u64 = OpTypePointer PushConstant %u64\n";
+
+      typesConstants += "%bda_data_struct = OpTypeStruct %float4 %float4";
+
+      typesConstants += R"EOSHADER(
+%ptr_PhysicalStorageBuffer_bda_data_struct = OpTypePointer PhysicalStorageBuffer %bda_data_struct
+%ptr_PhysicalStorageBuffer_bda_data_struct_first = OpTypePointer PhysicalStorageBuffer %float4
+%ptr_PhysicalStorageBuffer_bda_data_struct_f32_4 = OpTypePointer PhysicalStorageBuffer %float
+%ptr_PhysicalStorageBuffer_bda_data_struct_f32_8 = OpTypePointer PhysicalStorageBuffer %float
+%ptr_PhysicalStorageBuffer_bda_data_struct_f32_12 = OpTypePointer PhysicalStorageBuffer %float
+%ptr_PhysicalStorageBuffer_f32 = OpTypePointer PhysicalStorageBuffer %float
+ )EOSHADER";
+
+      decorations += R"EOSHADER(
+OpDecorate %ptr_PhysicalStorageBuffer_bda_data_struct_f32_4 ArrayStride 4
+OpDecorate %ptr_PhysicalStorageBuffer_bda_data_struct_f32_8 ArrayStride 8
+OpDecorate %ptr_PhysicalStorageBuffer_bda_data_struct_f32_12 ArrayStride 12
+OpDecorate %pushdata_struct Block
+OpMemberDecorate %pushdata_struct 0 Offset 16       ; int4 data
+OpMemberDecorate %pushdata_struct 1 Offset 32       ; uint2 bda_uvec2 
+OpMemberDecorate %pushdata_struct 2 Offset 40       ; uint bda_hi
+OpMemberDecorate %pushdata_struct 3 Offset 44       ; uint bda_lo
+OpMemberDecorate %pushdata_struct 4 Offset 48       ; uint64_t bda_u64
+
+OpDecorate %bda_data_struct Block
+OpMemberDecorate %bda_data_struct 0 Offset 0        ; float f32[0..3]
+OpMemberDecorate %bda_data_struct 1 Offset 16       ; float f32[4..7]
+)EOSHADER";
     }
 
     std::string cbuffer =
@@ -3310,6 +3645,12 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       typesConstants += fmt::format("%float_{} = OpConstant %float {}\n", name, f);
       typesConstants += fmt::format("%float_neg{} = OpConstant %float -{}\n", name, f);
 
+      if(float16Int8Features.shaderFloat16)
+      {
+        typesConstants += fmt::format("%half_{} = OpConstant %half {}\n", name, f);
+        typesConstants += fmt::format("%half_neg{} = OpConstant %half -{}\n", name, f);
+      }
+
       if(features.shaderFloat64)
       {
         typesConstants += fmt::format("%double_{} = OpConstant %double {}\n", name, f);
@@ -3318,6 +3659,20 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     }
 
     typesConstants += "\n";
+
+    if(float16Int8Features.shaderInt8)
+    {
+      typesConstants += "\n";
+      for(uint8_t u : u8_constants)
+        typesConstants += fmt::format("%u8_{0} = OpConstant %u8 {0}\n", u);
+    }
+
+    if(features.shaderInt16)
+    {
+      typesConstants += "\n";
+      for(uint16_t u : u16_constants)
+        typesConstants += fmt::format("%u16_{0} = OpConstant %u16 {0}\n", u);
+    }
 
     for(int32_t i : int_constants)
     {
@@ -3378,9 +3733,13 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
 )EOSHADER";
 
+    std::string memory_model =
+        (bdaFeatures.bufferDeviceAddress) ? "PhysicalStorageBuffer64" : "Logical";
     std::string ret = capabilities + spv_extensions + extinstimport +
                       R"EOSHADER(
-               OpMemoryModel Logical GLSL450
+               OpMemoryModel )EOSHADER" +
+                      memory_model + " GLSL450\n" +
+                      R"EOSHADER(
                OpEntryPoint Fragment %main "main" %flatData %linearData %Color %gl_FragCoord
 )EOSHADER" + executionmodes +
                       spv_debug + decorations + typesConstants + functions +
@@ -3435,6 +3794,13 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     if(features.shaderFloat64)
       ret += "%zerof64 = OpFConvert %double %zerof\n";
 
+    if(features.shaderInt64)
+    {
+      ret +=
+          "%_temp = OpCompositeConstruct %uint2 %zerou %zerou\n"
+          "%zerou64 = OpBitcast %u64 %_temp\n";
+    }
+
     // generate dynamic versions of the constants
     for(float f : float_constants)
     {
@@ -3464,6 +3830,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     for(uint32_t u : uint_constants)
       ret += fmt::format("%uint_dyn_{0} = OpIAdd %uint %zerou %uint_{0}\n", u);
+
+    for(uint64_t u : u64_constants)
+      ret += fmt::format("%u64_dyn_{0} = OpIAdd %u64 %zerou64 %u64_{0}\n", u);
 
     ret += "\n";
 
@@ -3513,6 +3882,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
   VkPhysicalDeviceFloat16Int8FeaturesKHR float16Int8Features = {
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES_KHR,
   };
+  VkPhysicalDeviceBufferDeviceAddressFeaturesEXT bdaFeatures = {
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR,
+  };
 
   void Prepare(int argc, char **argv)
   {
@@ -3529,6 +3901,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     // dependencies of VK_KHR_8bit_storage
     optDevExts.push_back(VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME);
+
+    // add BDA extension
+    optDevExts.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
 
     // we require this to pixel shader debug anyway, so we might as well require it for all tests.
     features.fragmentStoresAndAtomics = VK_TRUE;
@@ -3549,6 +3924,8 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
                                     VK_KHR_8BIT_STORAGE_EXTENSION_NAME) != devExts.end();
     const bool float16int8 = std::find(devExts.begin(), devExts.end(),
                                        VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME) != devExts.end();
+    const bool bda = std::find(devExts.begin(), devExts.end(),
+                               VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) != devExts.end();
 
     vk_version = 0x10;
 
@@ -3654,6 +4031,13 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       float16Int8Features.pNext = (void *)devInfoNext;
       devInfoNext = &float16Int8Features;
     }
+
+    if(bda)
+    {
+      getPhysFeatures2(&bdaFeatures);
+      bdaFeatures.pNext = (void *)devInfoNext;
+      devInfoNext = &bdaFeatures;
+    }
   }
 
   int main()
@@ -3672,6 +4056,8 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
                                     VK_KHR_8BIT_STORAGE_EXTENSION_NAME) != devExts.end();
     const bool float16int8 = std::find(devExts.begin(), devExts.end(),
                                        VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME) != devExts.end();
+    const bool bda = std::find(devExts.begin(), devExts.end(),
+                               VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) != devExts.end();
 
     if(storage16)
       TEST_LOG("Running tests on 16-bit storage");
@@ -3681,6 +4067,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     if(float16int8)
       TEST_LOG("Running tests on half and int8 arithmetic");
+
+    if(bda)
+      TEST_LOG("Running tests on buffer device address");
 
     if(features.shaderFloat64)
       TEST_LOG("Running tests on doubles");
@@ -3828,7 +4217,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
         setLayouts, {
-                        vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i)),
+                        vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(PushData)),
                     }));
 
     // calculate number of tests, wrapping each row at 256
@@ -4180,6 +4569,59 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
                                                         VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
+    VkBuffer bda_data_buffer = VK_NULL_HANDLE;
+    VkDeviceMemory bda_deviceMem = VK_NULL_HANDLE;
+    byte *bda_base_gpuptr = NULL;
+    if(bda)
+    {
+      vkh::BufferCreateInfo bda_buffer_info(sizeof(BDA_Data),
+                                            VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR);
+      VkMemoryAllocateInfo memAllocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+      VkMemoryAllocateFlagsInfo memAllocFlags = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO};
+
+      memAllocFlags.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
+      memAllocInfo.pNext = &memAllocFlags;
+
+      const VkPhysicalDeviceMemoryProperties *memProps = NULL;
+      vmaGetMemoryProperties(allocator, &memProps);
+
+      vkCreateBuffer(device, bda_buffer_info, NULL, &bda_data_buffer);
+
+      VkMemoryRequirements mrq;
+      vkGetBufferMemoryRequirements(device, bda_data_buffer, &mrq);
+      memAllocInfo.allocationSize = mrq.size;
+      for(uint32_t i = 0; i < memProps->memoryTypeCount; i++)
+      {
+        if((mrq.memoryTypeBits & (1u << i)) &&
+           (memProps->memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+        {
+          memAllocInfo.memoryTypeIndex = i;
+          break;
+        }
+      }
+      vkAllocateMemory(device, &memAllocInfo, NULL, &bda_deviceMem);
+      vkBindBufferMemory(device, bda_data_buffer, bda_deviceMem, 0);
+
+      VkBufferDeviceAddressInfoKHR bda_info = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR};
+      bda_info.buffer = bda_data_buffer;
+
+      VkDeviceAddress bda_Addr = vkGetBufferDeviceAddressKHR(device, &bda_info);
+      bda_base_gpuptr = (byte *)bda_Addr;    // not a valid cpu pointer
+
+      byte *bda_base_cpuptr = NULL;
+      vkMapMemory(device, bda_deviceMem, 0, mrq.size, 0, (void **)&bda_base_cpuptr);
+
+      BDA_Data *bda_data_cpu = (BDA_Data *)bda_base_cpuptr;
+      bda_data_cpu->f32[0] = 0.1f;
+      bda_data_cpu->f32[1] = 0.2f;
+      bda_data_cpu->f32[2] = 0.3f;
+      bda_data_cpu->f32[3] = 0.8f;
+      bda_data_cpu->f32[4] = 0.3f;
+      bda_data_cpu->f32[5] = 0.2f;
+      bda_data_cpu->f32[6] = 0.1f;
+      bda_data_cpu->f32[7] = 0.9f;
+    }
+
     AllocatedImage store_image(
         this,
         vkh::ImageCreateInfo(128, 128, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -4423,7 +4865,14 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       vkCmdSetScissor(cmd, 0, 1, &s);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
 
-      Vec4i push = Vec4i(101, 103, 107, 109);
+      BDA_Data *bda_gpuptr = (BDA_Data *)bda_base_gpuptr;
+
+      PushData pushData;
+      pushData.push = Vec4i(101, 103, 107, 109);
+      pushData.bda_uvec2 = *(Vec2u *)(&bda_gpuptr);
+      pushData.bda_hi = (uint64_t)bda_gpuptr >> 32;
+      pushData.bda_lo = (uint64_t)bda_gpuptr & 0xFFFFFFFF;
+      pushData.bda_u64 = *(uint64_t *)(&bda_gpuptr);
 
       std::vector<VkDescriptorSet> descSets = {descset0};
 
@@ -4435,7 +4884,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
       vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, descSets,
                                  {0, sizeof(Vec4f) * 16});
-      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i), &push);
+      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(PushData), &pushData);
 
       vkCmdBeginRenderPass(cmd,
                            vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
@@ -4538,7 +4987,14 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
       Present();
     }
+    CHECK_VKR(vkDeviceWaitIdle(device));
 
+    if(bda)
+    {
+      vkDestroyBuffer(device, bda_data_buffer, NULL);
+      vkUnmapMemory(device, bda_deviceMem);
+      vkFreeMemory(device, bda_deviceMem, NULL);
+    }
     return 0;
   }
 };
