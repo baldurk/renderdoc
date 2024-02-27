@@ -243,7 +243,10 @@ class Iter_Test(rdtest.TestCase):
 
             pipe: rd.PipeState = self.controller.GetPipelineState()
 
-            trace = self.controller.DebugPixel(x, y, 0, lastmod.primitiveID)
+            inputs = rd.DebugPixelInputs()
+            inputs.sample = 0
+            inputs.primitive = lastmod.primitiveID;
+            trace = self.controller.DebugPixel(x, y, inputs)
 
             if trace.debugger is None:
                 self.controller.FreeTrace(trace)

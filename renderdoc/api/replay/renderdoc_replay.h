@@ -967,15 +967,16 @@ bucket when the pixel values are divided between ``minval`` and ``maxval``.
 
 :param int x: The x co-ordinate.
 :param int y: The y co-ordinate.
-:param int sample: The multi-sampled sample. Ignored if non-multisampled texture.
-:param int primitive: Debug the pixel from this primitive if there's ambiguity. If set to
+:param DebugPixelInputs inputs: Specific properties to select which fragment to debug e.g.
+  sample: The multi-sampled sample. Ignored if non-multisampled texture.
+  primitive: Debug the pixel from this primitive if there's ambiguity. If set to
   :data:`NoPreference` then a random fragment writing to the given co-ordinate is debugged.
-:return: The resulting trace resulting from debugging. Destroy with
-  :meth:`FreeTrace`.
+  view: Debug the fragment writing to this view for layered or multiview rendering, 
+  ignored if set to :data:`NoPreference`.
+:return: The resulting trace resulting from debugging. Destroy with :meth:`FreeTrace`.
 :rtype: ShaderDebugTrace
 )");
-  virtual ShaderDebugTrace *DebugPixel(uint32_t x, uint32_t y, uint32_t sample,
-                                       uint32_t primitive) = 0;
+  virtual ShaderDebugTrace *DebugPixel(uint32_t x, uint32_t y, const DebugPixelInputs &inputs) = 0;
 
   DOCUMENT(R"(Retrieve a debugging trace from running a compute thread.
 

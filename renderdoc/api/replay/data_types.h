@@ -2235,3 +2235,23 @@ struct Thumbnail
 };
 
 DECLARE_REFLECTION_STRUCT(Thumbnail);
+
+DOCUMENT(
+    "Contains the properties used to select which fragment to debug, used as an input to "
+    "DebugPixel.");
+struct DebugPixelInputs
+{
+  DOCUMENT("");
+  DebugPixelInputs() : sample(~0U), primitive(~0U), view(~0U) {}
+  DebugPixelInputs(const DebugPixelInputs &) = default;
+  DebugPixelInputs &operator=(const DebugPixelInputs &) = default;
+
+  DOCUMENT("The multi-sampled sample.");
+  uint32_t sample;
+  DOCUMENT("The primitive index.");
+  uint32_t primitive;
+  DOCUMENT("The layered or multiview rendering view index.");
+  uint32_t view;
+};
+
+DECLARE_REFLECTION_STRUCT(DebugPixelInputs);

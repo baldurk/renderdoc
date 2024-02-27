@@ -33,8 +33,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
             # Loop over every test
             for test in range(action.numInstances):
                 # Debug the shader
-                trace: rd.ShaderDebugTrace = self.controller.DebugPixel(4 * test, 0, rd.ReplayController.NoPreference,
-                                                                        rd.ReplayController.NoPreference)
+                trace: rd.ShaderDebugTrace = self.controller.DebugPixel(4 * test, 0, rd.DebugPixelInputs())
 
                 cycles, variables = self.process_trace(trace)
 
@@ -65,8 +64,9 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
         pipe: rd.PipeState = self.controller.GetPipelineState()
         for test in range(4):
             # Debug the shader
-            trace: rd.ShaderDebugTrace = self.controller.DebugPixel(4, 4, test,
-                                                                    rd.ReplayController.NoPreference)
+            inputs = rd.DebugPixelInputs()
+            inputs.sample = test
+            trace: rd.ShaderDebugTrace = self.controller.DebugPixel(4, 4, inputs)
 
             # Validate that the correct sample index was debugged
             sampRegister = self.find_input_source_var(trace, rd.ShaderBuiltin.MSAASampleIndex)
@@ -113,7 +113,9 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
         rdtest.log.success("VertexSample VS was debugged correctly")
 
         # Debug the pixel shader
-        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(51, 51, 0, rd.ReplayController.NoPreference)
+        inputs = rd.DebugPixelInputs()
+        inputs.sample = 0
+        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(51, 51, inputs)
 
         cycles, variables = self.process_trace(trace)
 
@@ -157,7 +159,9 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
         rdtest.log.success("Banned signature VS was debugged correctly")
 
         # Debug the pixel shader
-        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(64, 64, 0, rd.ReplayController.NoPreference)
+        inputs = rd.DebugPixelInputs()
+        inputs.sample = 0
+        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(64, 64, inputs)
 
         cycles, variables = self.process_trace(trace)
 

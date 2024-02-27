@@ -1619,14 +1619,13 @@ ShaderDebugTrace *ReplayController::DebugVertex(uint32_t vertid, uint32_t instid
   return ret;
 }
 
-ShaderDebugTrace *ReplayController::DebugPixel(uint32_t x, uint32_t y, uint32_t sample,
-                                               uint32_t primitive)
+ShaderDebugTrace *ReplayController::DebugPixel(uint32_t x, uint32_t y, const DebugPixelInputs &inputs)
 {
   CHECK_REPLAY_THREAD();
 
   RENDERDOC_PROFILEFUNCTION();
 
-  ShaderDebugTrace *ret = m_pDevice->DebugPixel(m_EventID, x, y, sample, primitive);
+  ShaderDebugTrace *ret = m_pDevice->DebugPixel(m_EventID, x, y, inputs);
   FatalErrorCheck();
 
   SetFrameEvent(m_EventID, true);

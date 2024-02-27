@@ -23,8 +23,7 @@ class VK_KHR_Buffer_Address(rdtest.TestCase):
                 raise rdtest.TestFailureException("Test {} shader can not be debugged".format(test_name))
 
             # Debug the pixel shader
-            trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, rd.ReplayController.NoPreference,
-                                                                        rd.ReplayController.NoPreference)
+            trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, rd.DebugPixelInputs())
             if trace.debugger is None:
                 self.controller.FreeTrace(trace)
                 raise rdtest.TestFailureException("Test {} did not debug at all".format(test_name))

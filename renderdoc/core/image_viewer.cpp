@@ -318,8 +318,8 @@ public:
   {
     return new ShaderDebugTrace();
   }
-  ShaderDebugTrace *DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                               uint32_t primitive)
+  ShaderDebugTrace *DebugPixel(uint32_t eventId, uint32_t x, uint32_t y,
+                               const DebugPixelInputs &inputs)
   {
     return new ShaderDebugTrace();
   }

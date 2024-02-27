@@ -122,8 +122,7 @@ class Buffer_Truncation(rdtest.TestCase):
             # Debug the shader
             trace: rd.ShaderDebugTrace = self.controller.DebugPixel(int(pipe.GetViewport(0).width/2),
                                                                     int(pipe.GetViewport(0).height/2),
-                                                                    rd.ReplayController.NoPreference,
-                                                                    rd.ReplayController.NoPreference)
+                                                                    rd.DebugPixelInputs())
 
             if trace.debugger is None:
                 self.controller.FreeTrace(trace)

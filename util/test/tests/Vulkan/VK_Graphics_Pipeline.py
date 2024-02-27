@@ -138,7 +138,10 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
             raise rdtest.TestFailureException(
                 "History for drawcall output is wrong: {}".format(history[1].shaderOut.col.floatValue))
 
-        trace = self.controller.DebugPixel(200, 150, 0, 0)
+        inputs = rd.DebugPixelInputs()
+        inputs.sample = 0
+        inputs.primitive = 0
+        trace = self.controller.DebugPixel(200, 150, inputs)
 
         if trace.debugger is None:
             raise rdtest.TestFailureException("No pixel debug result")
