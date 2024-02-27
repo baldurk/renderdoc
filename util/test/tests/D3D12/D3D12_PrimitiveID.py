@@ -14,7 +14,9 @@ class D3D12_PrimitiveID(rdtest.TestCase):
             rdtest.log.print("Skipping undebuggable shader at {}.".format(action.eventId))
             return
 
-        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, rd.ReplayController.NoPreference, prim)
+        inputs = rd.DebugPixleInputs()
+        inputs.primitive = prim
+        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, inputs)
 
         cycles, variables = self.process_trace(trace)
 

@@ -4176,7 +4176,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
 }
 
 ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y,
-                                           uint32_t sample, uint32_t primitive)
+                                           const DebugPixelInputs &inputs)
 {
   if(!GetAPIProperties().shaderDebugging)
   {
@@ -4193,11 +4193,15 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   VkDevice dev = m_pDriver->GetDev();
   VkResult vkr = VK_SUCCESS;
 
+  uint32_t sample = inputs.sample;
+  uint32_t primitive = inputs.primitive;
+  uint32_t view = inputs.view;
+
   const VulkanRenderState &state = m_pDriver->GetRenderState();
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
-  rdcstr regionName = StringFormat::Fmt("DebugPixel @ %u of (%u,%u) sample %u primitive %u",
-                                        eventId, x, y, sample, primitive);
+  rdcstr regionName = StringFormat::Fmt("DebugPixel @ %u of (%u,%u) sample %u primitive %u view %u",
+                                        eventId, x, y, sample, primitive, view);
 
   VkMarkerRegion region(regionName);
 

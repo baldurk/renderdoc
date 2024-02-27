@@ -22,8 +22,7 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
         rdtest.log.begin_section("General tests")
         for test in range(action.numInstances):
             # Debug the shader
-            trace: rd.ShaderDebugTrace = self.controller.DebugPixel(4 * test, 0, rd.ReplayController.NoPreference,
-                                                                    rd.ReplayController.NoPreference)
+            trace: rd.ShaderDebugTrace = self.controller.DebugPixel(4 * test, 0, rd.DebugPixelInputs())
 
             cycles, variables = self.process_trace(trace)
 
@@ -52,8 +51,7 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         # Debug the shader
-        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(0, 4, rd.ReplayController.NoPreference,
-                                                                rd.ReplayController.NoPreference)
+        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(0, 4, rd.DebugPixelInputs())
 
         cycles, variables = self.process_trace(trace)
 
@@ -79,8 +77,9 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
         pipe: rd.PipeState = self.controller.GetPipelineState()
         for test in range(4):
             # Debug the shader
-            trace: rd.ShaderDebugTrace = self.controller.DebugPixel(4, 4, test,
-                                                                    rd.ReplayController.NoPreference)
+            inputs = rd.DebugPixelInputs()
+            inputs.sample = test
+            trace: rd.ShaderDebugTrace = self.controller.DebugPixel(4, 4, inputs)
 
             # Validate that the correct sample index was debugged
             sampRegister = self.find_input_source_var(trace, rd.ShaderBuiltin.MSAASampleIndex)

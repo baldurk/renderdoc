@@ -203,7 +203,7 @@ public:
   rdcarray<PixelModification> PixelHistory(ResourceId target, uint32_t x, uint32_t y,
                                            const Subresource &sub, CompType typeCast);
   ShaderDebugTrace *DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t view);
-  ShaderDebugTrace *DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive);
+  ShaderDebugTrace *DebugPixel(uint32_t x, uint32_t y, const DebugPixelInputs &inputs);
   ShaderDebugTrace *DebugThread(const rdcfixedarray<uint32_t, 3> &groupid,
                                 const rdcfixedarray<uint32_t, 3> &threadid);
   rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger);

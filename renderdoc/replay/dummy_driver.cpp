@@ -257,8 +257,8 @@ ShaderDebugTrace *DummyDriver::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   return new ShaderDebugTrace;
 }
 
-ShaderDebugTrace *DummyDriver::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                                          uint32_t primitive)
+ShaderDebugTrace *DummyDriver::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y,
+                                          const DebugPixelInputs &inputs)
 {
   return new ShaderDebugTrace;
 }

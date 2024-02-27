@@ -14,8 +14,7 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
             return
 
         # Debug the shader
-        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, rd.ReplayController.NoPreference,
-                                                                rd.ReplayController.NoPreference)
+        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, rd.DebugPixelInputs())
 
         cycles, variables = self.process_trace(trace)
 

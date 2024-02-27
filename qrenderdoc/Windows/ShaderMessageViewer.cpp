@@ -337,13 +337,22 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
 
       m_Ctx.Replay().AsyncInvoke([&trace, &done, msg](IReplayController *r) {
         if(msg.stage == ShaderStage::Compute)
+        {
           trace = r->DebugThread(msg.location.compute.workgroup, msg.location.compute.thread);
+        }
         else if(msg.stage == ShaderStage::Vertex)
+        {
           trace = r->DebugVertex(msg.location.vertex.vertexIndex, msg.location.vertex.instance,
                                  msg.location.vertex.vertexIndex, msg.location.vertex.view);
+        }
         else if(msg.stage == ShaderStage::Pixel)
-          trace = r->DebugPixel(msg.location.pixel.x, msg.location.pixel.y,
-                                msg.location.pixel.sample, msg.location.pixel.primitive);
+        {
+          DebugPixelInputs inputs;
+          inputs.sample = msg.location.pixel.sample;
+          inputs.primitive = msg.location.pixel.primitive;
+          inputs.view = msg.location.pixel.view;
+          trace = r->DebugPixel(msg.location.pixel.x, msg.location.pixel.y, inputs);
+        }
 
         if(trace && trace->debugger == NULL)
         {
