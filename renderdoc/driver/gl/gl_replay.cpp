@@ -1193,6 +1193,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
     ResortBindings(refls[i], mappings[i]);
   }
 
+  pipe.textureCompleteness.clear();
+
   for(size_t s = 0; s < NumShaderStages; s++)
   {
     if(!refls[s])
@@ -1258,6 +1260,62 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       access.byteOffset =
           EncodeGLDescriptorIndex({descType, (uint32_t)mapping.readOnlyResources[i].bind});
       m_Access.push_back(access);
+
+      // checking texture completeness is a pretty expensive operation since it requires a lot of
+      // queries against the driver's texture properties.
+      // We assume that if a texture and sampler are complete at any point, even if their
+      // properties change mid-frame they will stay complete. Similarly if they are _incomplete_
+      // they will stay incomplete. Thus we can cache the results for a given pair, which if
+      // samplers don't change (or are only ever used consistently with the same texture) amounts
+      // to one entry per texture.
+      // Note that textures can't change target, so we don't need to icnlude the target in the key
+      drv.glActiveTexture(GLenum(eGL_TEXTURE0 + mapping.readOnlyResources[i].bind));
+
+      GLenum binding = eGL_NONE;
+      switch(refls[s]->readOnlyResources[i].resType)
+      {
+        case TextureType::Unknown: binding = eGL_NONE; break;
+        case TextureType::Buffer: binding = eGL_TEXTURE_BINDING_BUFFER; break;
+        case TextureType::Texture1D: binding = eGL_TEXTURE_BINDING_1D; break;
+        case TextureType::Texture1DArray: binding = eGL_TEXTURE_BINDING_1D_ARRAY; break;
+        case TextureType::Texture2D: binding = eGL_TEXTURE_BINDING_2D; break;
+        case TextureType::TextureRect: binding = eGL_TEXTURE_BINDING_RECTANGLE; break;
+        case TextureType::Texture2DArray: binding = eGL_TEXTURE_BINDING_2D_ARRAY; break;
+        case TextureType::Texture2DMS: binding = eGL_TEXTURE_BINDING_2D_MULTISAMPLE; break;
+        case TextureType::Texture2DMSArray:
+          binding = eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY;
+          break;
+        case TextureType::Texture3D: binding = eGL_TEXTURE_BINDING_3D; break;
+        case TextureType::TextureCube: binding = eGL_TEXTURE_BINDING_CUBE_MAP; break;
+        case TextureType::TextureCubeArray: binding = eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY; break;
+        case TextureType::Count: RDCERR("Invalid shader resource type"); break;
+      }
+
+      GLuint tex = 0;
+
+      if(descType == GLDescriptorMapping::TexCubeArray && !HasExt[ARB_texture_cube_map_array])
+        tex = 0;
+      else
+        drv.glGetIntegerv(binding, (GLint *)&tex);
+
+      GLuint samp = 0;
+      if(HasExt[ARB_sampler_objects])
+        drv.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&samp);
+
+      CompleteCacheKey complete = {tex, samp};
+
+      auto it = m_CompleteCache.find(complete);
+      if(it == m_CompleteCache.end())
+        it = m_CompleteCache.insert(
+            it,
+            std::make_pair(complete, GetTextureCompleteStatus(TextureTarget(binding), tex, samp)));
+      if(!it->second.empty())
+      {
+        GLPipe::TextureCompleteness completeness;
+        completeness.descriptorByteOffset = access.byteOffset;
+        completeness.completeStatus = it->second;
+        pipe.textureCompleteness.push_back(completeness);
+      }
     }
 
     RDCASSERT(mapping.readWriteResources.size() < 0xffff, mapping.readWriteResources.size());
@@ -1290,6 +1348,120 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       access.byteOffset =
           EncodeGLDescriptorIndex({descType, (uint32_t)mapping.readWriteResources[i].bind});
       m_Access.push_back(access);
+    }
+  }
+
+  {
+    // search for conflicts by looking at all stages
+    for(uint32_t unit = 0; unit < (uint32_t)numTexUnits; unit++)
+    {
+      rdcstr typeConflict;
+      GLenum binding = eGL_NONE;
+      GLenum target = eGL_NONE;
+      TextureType resType = TextureType::Unknown;
+      rdcstr firstBindName;
+
+      rdcarray<uint32_t> descriptorsReferenced;
+
+      for(const DescriptorAccess &access : m_Access)
+      {
+        // only look at read-only descriptors, these are the texture units that can clash
+        if(!IsReadOnlyDescriptor(access.type))
+          continue;
+
+        ShaderReflection *refl = refls[(uint32_t)access.stage];
+        if(refl == NULL)
+        {
+          RDCERR("Unexpected NULL reflection on %s shader with a descriptor access",
+                 ToStr(access.stage).c_str());
+          continue;
+        }
+
+        uint32_t accessedUnit = DecodeGLDescriptorIndex(access.byteOffset).idx;
+
+        // accessed the same unit, check its binding
+        if(accessedUnit == unit)
+        {
+          if(!descriptorsReferenced.contains(access.byteOffset))
+            descriptorsReferenced.push_back(access.byteOffset);
+
+          const ShaderResource &res = refl->readOnlyResources[access.index];
+          GLenum t = eGL_NONE;
+
+          switch(res.resType)
+          {
+            case TextureType::Unknown: target = eGL_NONE; break;
+            case TextureType::Buffer: target = eGL_TEXTURE_BUFFER; break;
+            case TextureType::Texture1D: target = eGL_TEXTURE_1D; break;
+            case TextureType::Texture1DArray: target = eGL_TEXTURE_1D_ARRAY; break;
+            case TextureType::Texture2D: target = eGL_TEXTURE_2D; break;
+            case TextureType::TextureRect: target = eGL_TEXTURE_RECTANGLE; break;
+            case TextureType::Texture2DArray: target = eGL_TEXTURE_2D_ARRAY; break;
+            case TextureType::Texture2DMS: target = eGL_TEXTURE_2D_MULTISAMPLE; break;
+            case TextureType::Texture2DMSArray: target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY; break;
+            case TextureType::Texture3D: target = eGL_TEXTURE_3D; break;
+            case TextureType::TextureCube: target = eGL_TEXTURE_CUBE_MAP; break;
+            case TextureType::TextureCubeArray: target = eGL_TEXTURE_CUBE_MAP_ARRAY; break;
+            case TextureType::Count: RDCERR("Invalid shader resource type"); break;
+          }
+
+          if(target != eGL_NONE)
+            t = TextureBinding(target);
+
+          if(binding == eGL_NONE)
+          {
+            binding = t;
+            firstBindName = res.name;
+            resType = res.resType;
+          }
+          else if(binding == t)
+          {
+            // two uniforms with the same type pointing to the same slot is fine
+            binding = t;
+          }
+          else if(binding != t)
+          {
+            RDCERR("Two uniforms pointing to texture unit %d with types %s and %s", unit,
+                   ToStr(binding).c_str(), ToStr(t).c_str());
+
+            if(typeConflict.empty())
+            {
+              typeConflict = StringFormat::Fmt("First binding found '%s' is %s",
+                                               firstBindName.c_str(), ToStr(resType).c_str());
+            }
+
+            typeConflict +=
+                StringFormat::Fmt(", '%s' is %s", res.name.c_str(), ToStr(res.resType).c_str());
+          }
+        }
+      }
+
+      // if we found a type conflict, add an entry for all descriptors
+      if(!typeConflict.empty())
+      {
+        for(uint32_t descriptor : descriptorsReferenced)
+        {
+          bool found = false;
+          for(GLPipe::TextureCompleteness &completeness : pipe.textureCompleteness)
+          {
+            if(completeness.descriptorByteOffset == descriptor)
+            {
+              // don't worry about overwriting, the descriptor byte offset is unique to the unit so
+              // we should only set this at most once
+              completeness.typeConflict = typeConflict;
+              found = true;
+            }
+          }
+
+          if(!found)
+          {
+            GLPipe::TextureCompleteness completeness;
+            completeness.descriptorByteOffset = descriptor;
+            completeness.typeConflict = typeConflict;
+            pipe.textureCompleteness.push_back(completeness);
+          }
+        }
+      }
     }
   }
 

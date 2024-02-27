@@ -329,6 +329,42 @@ in conflict and their types.
   rdcstr typeConflict;
 };
 
+DOCUMENT("Describes the a texture completeness issue of a descriptor.");
+struct TextureCompleteness
+{
+  DOCUMENT("");
+  TextureCompleteness() = default;
+  TextureCompleteness(const TextureCompleteness &) = default;
+  TextureCompleteness &operator=(const TextureCompleteness &) = default;
+
+  bool operator==(const TextureCompleteness &o) const
+  {
+    return descriptorByteOffset == o.descriptorByteOffset && completeStatus == o.completeStatus;
+  }
+  bool operator<(const TextureCompleteness &o) const
+  {
+    return descriptorByteOffset < o.descriptorByteOffset;
+  }
+
+  DOCUMENT(R"(The byte offset in the GL descriptor storage of the problematic descriptor
+)");
+  uint64_t descriptorByteOffset = 0;
+
+  DOCUMENT(R"(The details of the texture's (in)completeness. If this string is empty, the texture is
+complete. Otherwise it contains an explanation of why the texture is believed to be incomplete.
+)");
+  rdcstr completeStatus;
+
+  DOCUMENT(R"(The details of any type conflict on this binding. This can happen if
+multiple uniforms are pointing to the same binding but with different types. In this case it is
+impossible to disambiguate which binding was used.
+
+If this string is empty, no conflict is present. Otherwise it contains the bindings which are
+in conflict and their types.
+)");
+  rdcstr typeConflict;
+};
+
 DOCUMENT("Describes the sampler properties of a texture.");
 struct Sampler
 {
@@ -931,6 +967,12 @@ struct State
 )");
   uint32_t descriptorByteSize;
 
+  DOCUMENT(R"(Texture completeness issues of descriptors in the descriptor store.
+
+:type: GLTextureCompleteness
+)");
+  rdcarray<TextureCompleteness> textureCompleteness;
+
   DOCUMENT(R"(The transform feedback stage.
 
 :type: GLFeedback
@@ -977,6 +1019,7 @@ DECLARE_REFLECTION_STRUCT(GLPipe::Shader);
 DECLARE_REFLECTION_STRUCT(GLPipe::FixedVertexProcessing);
 DECLARE_REFLECTION_STRUCT(GLPipe::Texture);
 DECLARE_REFLECTION_STRUCT(GLPipe::Sampler);
+DECLARE_REFLECTION_STRUCT(GLPipe::TextureCompleteness);
 DECLARE_REFLECTION_STRUCT(GLPipe::Buffer);
 DECLARE_REFLECTION_STRUCT(GLPipe::ImageLoadStore);
 DECLARE_REFLECTION_STRUCT(GLPipe::Feedback);

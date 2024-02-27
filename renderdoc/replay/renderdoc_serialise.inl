@@ -1843,6 +1843,16 @@ void DoSerialise(SerialiserType &ser, GLPipe::Texture &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, GLPipe::TextureCompleteness &el)
+{
+  SERIALISE_MEMBER(descriptorByteOffset);
+  SERIALISE_MEMBER(completeStatus);
+  SERIALISE_MEMBER(typeConflict);
+
+  SIZE_CHECK(56);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, GLPipe::Sampler &el)
 {
   SERIALISE_MEMBER(resourceId);
@@ -2048,6 +2058,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::State &el)
   SERIALISE_MEMBER(descriptorStore);
   SERIALISE_MEMBER(descriptorCount);
   SERIALISE_MEMBER(descriptorByteSize);
+  SERIALISE_MEMBER(textureCompleteness);
 
   SERIALISE_MEMBER(transformFeedback);
 
@@ -2059,7 +2070,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::State &el)
 
   SERIALISE_MEMBER(hints);
 
-  SIZE_CHECK(1968);
+  SIZE_CHECK(1992);
 }
 
 #pragma endregion OpenGL pipeline state

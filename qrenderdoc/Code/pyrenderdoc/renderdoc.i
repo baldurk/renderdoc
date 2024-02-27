@@ -450,6 +450,7 @@ TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, Sampler)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, Texture)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, VertexBuffer)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, VertexAttribute)
+TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, TextureCompleteness)
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // declare a function for passing external objects into python
