@@ -327,7 +327,7 @@ public:
   {
     const size_t lastIdx = size();
     reserve(size() + 1);
-    new(elems + lastIdx) T(std::forward<ConstructArgs...>(args)...);
+    new(elems + lastIdx) T(std::forward<ConstructArgs>(args)...);
     setUsedCount(usedCount + 1);
   }
 

@@ -2407,6 +2407,16 @@ void VulkanCreationInfo::DescSetPool::CreateOverflow(VkDevice device,
   overflow.push_back(pool);
 }
 
+void VulkanCreationInfo::AccelerationStructure::Init(
+    VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+    const VkAccelerationStructureCreateInfoKHR *pCreateInfo)
+{
+  buffer = GetResID(pCreateInfo->buffer);
+  offset = pCreateInfo->offset;
+  size = pCreateInfo->size;
+  type = pCreateInfo->type;
+}
+
 void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
                               const VkDescriptorUpdateTemplateCreateInfo *pCreateInfo)
 {

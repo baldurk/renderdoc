@@ -1798,6 +1798,14 @@ const VulkanCreationInfo::PipelineLayout &VulkanDebugManager::GetPipelineLayoutI
   return it->second;
 }
 
+const VulkanCreationInfo::AccelerationStructure &VulkanDebugManager::GetAccelerationStructureInfo(
+    ResourceId as) const
+{
+  auto it = m_pDriver->m_CreationInfo.m_AccelerationStructure.find(as);
+  RDCASSERT(it != m_pDriver->m_CreationInfo.m_AccelerationStructure.end());
+  return it->second;
+}
+
 const DescSetLayout &VulkanDebugManager::GetDescSetLayout(ResourceId dsl) const
 {
   auto it = m_pDriver->m_CreationInfo.m_DescSetLayout.find(dsl);

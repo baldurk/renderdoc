@@ -167,6 +167,10 @@ DECL_VKFLAG_EXT(VkGraphicsPipelineLibrary, EXT);
 DECL_VKFLAG(VkRendering);
 DECL_VKFLAG_EXT(VkPresentScaling, EXT);
 DECL_VKFLAG_EXT(VkPresentGravity, EXT);
+DECL_VKFLAG_EXT(VkAccelerationStructureCreate, KHR);
+DECL_VKFLAG_EXT(VkBuildAccelerationStructure, KHR);
+DECL_VKFLAG_EXT(VkGeometry, KHR);
+DECL_VKFLAG_EXT(VkGeometryInstance, KHR);
 
 // serialise a member as flags - cast to the Bits enum for serialisation so the stringification
 // picks up the bitfield and doesn't treat it as uint32_t. Then we rename the type back to the base
@@ -967,6 +971,38 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,                               \
                VkPhysicalDevice16BitStorageFeatures)                                                   \
                                                                                                        \
+  /* VK_KHR_acceleration_structure */                                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,                       \
+               VkAccelerationStructureBuildGeometryInfoKHR)                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR,                          \
+               VkAccelerationStructureBuildSizesInfoKHR)                                               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,                               \
+               VkAccelerationStructureCreateInfoKHR)                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,                       \
+               VkAccelerationStructureDeviceAddressInfoKHR)                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_AABBS_DATA_KHR,                       \
+               VkAccelerationStructureGeometryAabbsDataKHR)                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,                   \
+               VkAccelerationStructureGeometryInstancesDataKHR)                                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,                                  \
+               VkAccelerationStructureGeometryKHR)                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,                   \
+               VkAccelerationStructureGeometryTrianglesDataKHR)                                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_VERSION_INFO_KHR,                              \
+               VkAccelerationStructureVersionInfoKHR)                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_INFO_KHR,                                 \
+               VkCopyAccelerationStructureInfoKHR)                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_TO_MEMORY_INFO_KHR,                       \
+               VkCopyAccelerationStructureToMemoryInfoKHR)                                             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COPY_MEMORY_TO_ACCELERATION_STRUCTURE_INFO_KHR,                       \
+               VkCopyMemoryToAccelerationStructureInfoKHR)                                             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR,                  \
+               VkPhysicalDeviceAccelerationStructureFeaturesKHR)                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR,                \
+               VkPhysicalDeviceAccelerationStructurePropertiesKHR)                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,                      \
+               VkWriteDescriptorSetAccelerationStructureKHR)                                           \
+                                                                                                       \
   /* VK_KHR_bind_memory2 */                                                                            \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO, VkBindBufferMemoryInfo)                      \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO, VkBindImageMemoryInfo)                        \
@@ -1259,6 +1295,10 @@ SERIALISE_VK_HANDLES();
   /* VK_KHR_push_descriptor */                                                                         \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES_KHR,                       \
                VkPhysicalDevicePushDescriptorPropertiesKHR)                                            \
+                                                                                                       \
+  /* VK_KHR_ray_query */                                                                               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR,                               \
+               VkPhysicalDeviceRayQueryFeaturesKHR)                                                    \
                                                                                                        \
   /* VK_KHR_sampler_ycbcr_conversion */                                                                \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO,                                 \
@@ -1659,23 +1699,6 @@ SERIALISE_VK_HANDLES();
   /* VK_INTEL_shader_integer_functions2 */                                                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_FUNCTIONS_2_FEATURES_INTEL)       \
                                                                                                        \
-  /* VK_KHR_acceleration_structure */                                                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR)                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR)                     \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR)                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR)                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_AABBS_DATA_KHR)                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR)              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR)                             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR)              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_VERSION_INFO_KHR)                         \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_INFO_KHR)                            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_TO_MEMORY_INFO_KHR)                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COPY_MEMORY_TO_ACCELERATION_STRUCTURE_INFO_KHR)                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR)             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR)           \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR)                 \
-                                                                                                       \
   /* VK_KHR_cooperative_matrix */                                                                      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COOPERATIVE_MATRIX_PROPERTIES_KHR)                               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COOPERATIVE_MATRIX_PROPERTIES_KHR)               \
@@ -1723,9 +1746,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_KHR_ray_tracing_position_fetch */                                                              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_POSITION_FETCH_FEATURES_KHR)         \
-                                                                                                       \
-  /* VK_KHR_ray_query */                                                                               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR)                          \
                                                                                                        \
   /* VK_KHR_shader_expect_assume */                                                                    \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_EXPECT_ASSUME_FEATURES_KHR)               \
@@ -11649,8 +11669,8 @@ void DoSerialise(SerialiserType &ser, VkQueryPoolPerformanceCreateInfoKHR &el)
 template <>
 void Deserialise(const VkQueryPoolPerformanceCreateInfoKHR &el)
 {
-  delete[] el.pCounterIndices;
   DeserialiseNext(el.pNext);
+  delete[] el.pCounterIndices;
 }
 
 template <typename SerialiserType>
@@ -11684,7 +11704,416 @@ void Deserialise(const VkPerformanceQuerySubmitInfoKHR &el)
   DeserialiseNext(el.pNext);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAabbPositionsKHR &el)
+{
+  SERIALISE_MEMBER(minX);
+  SERIALISE_MEMBER(minY);
+  SERIALISE_MEMBER(minZ);
+  SERIALISE_MEMBER(maxX);
+  SERIALISE_MEMBER(maxY);
+  SERIALISE_MEMBER(maxZ);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAccelerationStructureBuildGeometryInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(type).Important();
+  SERIALISE_MEMBER_VKFLAGS(VkBuildAccelerationStructureFlagsKHR, flags);
+  SERIALISE_MEMBER(mode);
+  SERIALISE_MEMBER(srcAccelerationStructure);
+  SERIALISE_MEMBER(dstAccelerationStructure);
+  SERIALISE_MEMBER(geometryCount);
+
+  // flatten the indirect array into single pGeometries-like list.  Only one of ppGeometries or
+  // pGeometries can be NULL
+  VkAccelerationStructureGeometryKHR *pGeometries =
+      (VkAccelerationStructureGeometryKHR *)el.pGeometries;
+  if(ser.IsWriting() && el.ppGeometries)
+  {
+    pGeometries = new VkAccelerationStructureGeometryKHR[el.geometryCount];
+    for(uint32_t i = 0; i < el.geometryCount; ++i)
+    {
+      pGeometries[i] = *(el.ppGeometries[i]);
+    }
+  }
+
+  ser.Serialise("pGeometries"_lit, pGeometries, el.geometryCount, SerialiserFlags::AllocateMemory);
+
+  if(ser.IsWriting() && el.ppGeometries)
+    delete[] pGeometries;
+  if(ser.IsReading())
+  {
+    el.pGeometries = pGeometries;
+    el.ppGeometries = NULL;
+  }
+
+  SERIALISE_MEMBER(scratchData);
+}
+
+template <>
+void Deserialise(const VkAccelerationStructureBuildGeometryInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pGeometries;
+  delete[] el.ppGeometries;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAccelerationStructureBuildRangeInfoKHR &el)
+{
+  SERIALISE_MEMBER(primitiveCount).Important();
+  SERIALISE_MEMBER(primitiveOffset).OffsetOrSize();
+  SERIALISE_MEMBER(firstVertex);
+  SERIALISE_MEMBER(transformOffset).OffsetOrSize();
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAccelerationStructureBuildSizesInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(accelerationStructureSize).OffsetOrSize();
+  SERIALISE_MEMBER(updateScratchSize).OffsetOrSize();
+  SERIALISE_MEMBER(buildScratchSize).OffsetOrSize();
+}
+
+template <>
+void Deserialise(const VkAccelerationStructureBuildSizesInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAccelerationStructureCreateInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkAccelerationStructureCreateFlagsKHR, createFlags);
+  SERIALISE_MEMBER(buffer);
+  SERIALISE_MEMBER(offset).OffsetOrSize();
+  SERIALISE_MEMBER(size).OffsetOrSize();
+  SERIALISE_MEMBER(type);
+  SERIALISE_MEMBER(deviceAddress);
+}
+
+template <>
+void Deserialise(const VkAccelerationStructureCreateInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAccelerationStructureDeviceAddressInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(accelerationStructure);
+}
+
+template <>
+void Deserialise(const VkAccelerationStructureDeviceAddressInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAccelerationStructureGeometryAabbsDataKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_AABBS_DATA_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(data);
+  SERIALISE_MEMBER(stride).OffsetOrSize();
+}
+
+template <>
+void Deserialise(const VkAccelerationStructureGeometryAabbsDataKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAccelerationStructureGeometryInstancesDataKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(arrayOfPointers);
+  SERIALISE_MEMBER(data);
+}
+
+template <>
+void Deserialise(const VkAccelerationStructureGeometryInstancesDataKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAccelerationStructureGeometryKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(geometryType).Important();
+  SERIALISE_MEMBER(geometry);
+  SERIALISE_MEMBER_VKFLAGS(VkGeometryFlagsKHR, flags);
+}
+
+template <>
+void Deserialise(const VkAccelerationStructureGeometryKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAccelerationStructureGeometryTrianglesDataKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(vertexFormat);
+  SERIALISE_MEMBER(vertexData);
+  SERIALISE_MEMBER(vertexStride).OffsetOrSize();
+  SERIALISE_MEMBER(maxVertex);
+  SERIALISE_MEMBER(indexType);
+  SERIALISE_MEMBER(indexData);
+  SERIALISE_MEMBER(transformData);
+}
+
+template <>
+void Deserialise(const VkAccelerationStructureGeometryTrianglesDataKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAccelerationStructureInstanceKHR &el)
+{
+  SERIALISE_MEMBER(transform);
+
+  uint32_t instanceCustomIndex = el.instanceCustomIndex & 0xffffff;
+  ser.Serialise("instanceCustomIndex"_lit, instanceCustomIndex);
+  if(ser.IsReading())
+    el.instanceCustomIndex = instanceCustomIndex & 0xff;
+
+  uint32_t mask = el.mask & 0xff;
+  ser.Serialise("mask"_lit, mask);
+  if(ser.IsReading())
+    el.mask = mask & 0xff;
+
+  uint32_t instanceShaderBindingTableRecordOffset =
+      el.instanceShaderBindingTableRecordOffset & 0xffffff;
+  ser.Serialise("instanceShaderBindingTableRecordOffset"_lit, instanceShaderBindingTableRecordOffset)
+      .OffsetOrSize();
+  if(ser.IsReading())
+    el.instanceShaderBindingTableRecordOffset = instanceShaderBindingTableRecordOffset & 0xff;
+
+  uint32_t flags = el.flags & 0xff;
+  ser.Serialise("flags"_lit, flags);
+  if(ser.IsReading())
+    el.flags = flags & 0xff;
+
+  SERIALISE_MEMBER(accelerationStructureReference);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAccelerationStructureVersionInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_VERSION_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  ser.Serialise("pVersionData"_lit, el.pVersionData, 2 * VK_UUID_SIZE,
+                SerialiserFlags::AllocateMemory);
+}
+
+template <>
+void Deserialise(const VkAccelerationStructureVersionInfoKHR &el)
+{
+  delete[] el.pVersionData;
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkCopyAccelerationStructureInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(src);
+  SERIALISE_MEMBER(dst);
+  SERIALISE_MEMBER(mode);
+}
+
+template <>
+void Deserialise(const VkCopyAccelerationStructureInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkCopyAccelerationStructureToMemoryInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_TO_MEMORY_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(src);
+  SERIALISE_MEMBER(dst);
+  SERIALISE_MEMBER(mode);
+}
+
+template <>
+void Deserialise(const VkCopyAccelerationStructureToMemoryInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkCopyMemoryToAccelerationStructureInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_COPY_MEMORY_TO_ACCELERATION_STRUCTURE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(src);
+  SERIALISE_MEMBER(dst);
+  SERIALISE_MEMBER(mode);
+}
+
+template <>
+void Deserialise(const VkCopyMemoryToAccelerationStructureInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkTransformMatrixKHR &el)
+{
+  float *data = &el.matrix[0][0];
+  ser.Serialise("matrix"_lit, data, 3 * 4 * sizeof(float), SerialiserFlags::NoFlags);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceAccelerationStructureFeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(accelerationStructure);
+  SERIALISE_MEMBER(accelerationStructureCaptureReplay);
+  SERIALISE_MEMBER(accelerationStructureIndirectBuild);
+  SERIALISE_MEMBER(accelerationStructureHostCommands);
+  SERIALISE_MEMBER(descriptorBindingAccelerationStructureUpdateAfterBind);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceAccelerationStructureFeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceAccelerationStructurePropertiesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(maxGeometryCount);
+  SERIALISE_MEMBER(maxInstanceCount);
+  SERIALISE_MEMBER(maxPrimitiveCount);
+  SERIALISE_MEMBER(maxPerStageDescriptorAccelerationStructures);
+  SERIALISE_MEMBER(maxPerStageDescriptorUpdateAfterBindAccelerationStructures);
+  SERIALISE_MEMBER(maxDescriptorSetAccelerationStructures);
+  SERIALISE_MEMBER(maxDescriptorSetUpdateAfterBindAccelerationStructures);
+  SERIALISE_MEMBER(minAccelerationStructureScratchOffsetAlignment).OffsetOrSize();
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceAccelerationStructurePropertiesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkWriteDescriptorSetAccelerationStructureKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(accelerationStructureCount).Important();
+  SERIALISE_MEMBER_ARRAY(pAccelerationStructures, accelerationStructureCount);
+}
+
+template <>
+void Deserialise(const VkWriteDescriptorSetAccelerationStructureKHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pAccelerationStructures;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAccelerationStructureGeometryDataKHR &el)
+{
+  SERIALISE_MEMBER(triangles);
+  SERIALISE_MEMBER(aabbs);
+  SERIALISE_MEMBER(instances);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDeviceOrHostAddressConstKHR &el)
+{
+  // VkDeviceOrHostAddressConstKHR is a union where the deviceAddress is guaranteed to be 64bit,
+  // so no need to explicitly serialise hostAddress
+  SERIALISE_MEMBER(deviceAddress);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDeviceOrHostAddressKHR &el)
+{
+  SERIALISE_MEMBER(deviceAddress);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceRayQueryFeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(rayQuery);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceRayQueryFeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
 // pNext structs - always have deserialise for the next chain
+INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureBuildGeometryInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureBuildSizesInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureCreateInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureDeviceAddressInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureGeometryAabbsDataKHR);
+INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureGeometryInstancesDataKHR);
+INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureGeometryKHR);
+INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureGeometryTrianglesDataKHR);
+INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureVersionInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkAcquireNextImageInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkAcquireProfilingLockInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkApplicationInfo);
@@ -11721,11 +12150,14 @@ INSTANTIATE_SERIALISE_TYPE(VkCommandBufferSubmitInfo);
 INSTANTIATE_SERIALISE_TYPE(VkCommandPoolCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkComputePipelineCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkConditionalRenderingBeginInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkCopyAccelerationStructureInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkCopyAccelerationStructureToMemoryInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkCopyBufferInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkCopyBufferToImageInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkCopyDescriptorSet);
 INSTANTIATE_SERIALISE_TYPE(VkCopyImageInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkCopyImageToBufferInfo2);
+INSTANTIATE_SERIALISE_TYPE(VkCopyMemoryToAccelerationStructureInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkDebugMarkerMarkerInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkDebugMarkerObjectNameInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkDebugMarkerObjectTagInfoEXT);
@@ -11842,6 +12274,8 @@ INSTANTIATE_SERIALISE_TYPE(VkPerformanceQuerySubmitInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice16BitStorageFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice4444FormatsFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice8BitStorageFeatures);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceAccelerationStructureFeaturesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceAccelerationStructurePropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceASTCDecodeFeaturesEXT)
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT);
@@ -11932,6 +12366,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProtectedMemoryFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProtectedMemoryProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePushDescriptorPropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRayQueryFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRGBA10X6FormatsFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRobustness2FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRobustness2PropertiesEXT);
@@ -12097,8 +12532,13 @@ INSTANTIATE_SERIALISE_TYPE(VkValidationFlagsEXT);
 INSTANTIATE_SERIALISE_TYPE(VkVertexInputAttributeDescription2EXT);
 INSTANTIATE_SERIALISE_TYPE(VkVertexInputBindingDescription2EXT);
 INSTANTIATE_SERIALISE_TYPE(VkWriteDescriptorSet);
+INSTANTIATE_SERIALISE_TYPE(VkWriteDescriptorSetAccelerationStructureKHR);
 
 // plain structs with no next chain
+INSTANTIATE_SERIALISE_TYPE(VkAabbPositionsKHR);
+INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureBuildRangeInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureGeometryDataKHR);
+INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureInstanceKHR);
 INSTANTIATE_SERIALISE_TYPE(VkAllocationCallbacks);
 INSTANTIATE_SERIALISE_TYPE(VkAttachmentDescription);
 INSTANTIATE_SERIALISE_TYPE(VkAttachmentReference);
@@ -12117,6 +12557,8 @@ INSTANTIATE_SERIALISE_TYPE(VkDescriptorImageInfo);
 INSTANTIATE_SERIALISE_TYPE(VkDescriptorPoolSize);
 INSTANTIATE_SERIALISE_TYPE(VkDescriptorSetLayoutBinding);
 INSTANTIATE_SERIALISE_TYPE(VkDescriptorUpdateTemplateEntry);
+INSTANTIATE_SERIALISE_TYPE(VkDeviceOrHostAddressConstKHR);
+INSTANTIATE_SERIALISE_TYPE(VkDeviceOrHostAddressKHR);
 INSTANTIATE_SERIALISE_TYPE(VkDispatchIndirectCommand);
 INSTANTIATE_SERIALISE_TYPE(VkDisplayModeParametersKHR);
 INSTANTIATE_SERIALISE_TYPE(VkDisplayModePropertiesKHR);
@@ -12171,6 +12613,7 @@ INSTANTIATE_SERIALISE_TYPE(VkSubpassDependency);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassDescription);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceCapabilitiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceFormatKHR);
+INSTANTIATE_SERIALISE_TYPE(VkTransformMatrixKHR);
 INSTANTIATE_SERIALISE_TYPE(VkVertexInputAttributeDescription);
 INSTANTIATE_SERIALISE_TYPE(VkVertexInputBindingDescription);
 INSTANTIATE_SERIALISE_TYPE(VkVertexInputBindingDivisorDescriptionEXT);

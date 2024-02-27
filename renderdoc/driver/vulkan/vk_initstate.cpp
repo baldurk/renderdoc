@@ -626,6 +626,7 @@ static rdcliteral NameOfType(VkResourceType type)
     case eResDeviceMemory: return "VkDeviceMemory"_lit;
     case eResBuffer: return "VkBuffer"_lit;
     case eResImage: return "VkImage"_lit;
+    case eResAccelerationStructureKHR: return "VkAccelerationStructureKHR"_lit;
     default: break;
   }
   return "VkResource"_lit;
@@ -1693,7 +1694,7 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool)
 
     GetResourceManager()->SetInitialContents(id, VkInitialContents(type, tag));
   }
-  else if(type == eResDeviceMemory || type == eResBuffer)
+  else if(type == eResDeviceMemory || type == eResBuffer || type == eResAccelerationStructureKHR)
   {
     // ignore, it was probably dirty but not referenced in the frame
   }

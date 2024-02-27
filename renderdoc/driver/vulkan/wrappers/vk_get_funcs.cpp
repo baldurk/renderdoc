@@ -1171,3 +1171,43 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceFragmentShadingRatesKHR(
       ->GetPhysicalDeviceFragmentShadingRatesKHR(Unwrap(physicalDevice), pFragmentShadingRateCount,
                                                  pFragmentShadingRates);
 }
+
+uint32_t WrappedVulkan::vkGetDeferredOperationMaxConcurrencyKHR(VkDevice device,
+                                                                VkDeferredOperationKHR operation)
+{
+  return ObjDisp(device)->GetDeferredOperationMaxConcurrencyKHR(Unwrap(device), operation);
+}
+
+VkResult WrappedVulkan::vkGetDeferredOperationResultKHR(VkDevice device,
+                                                        VkDeferredOperationKHR operation)
+{
+  return ObjDisp(device)->GetDeferredOperationResultKHR(Unwrap(device), operation);
+}
+
+void WrappedVulkan::vkGetAccelerationStructureBuildSizesKHR(
+    VkDevice device, VkAccelerationStructureBuildTypeKHR buildType,
+    const VkAccelerationStructureBuildGeometryInfoKHR *pBuildInfo,
+    const uint32_t *pMaxPrimitiveCounts, VkAccelerationStructureBuildSizesInfoKHR *pSizeInfo)
+{
+  VkAccelerationStructureBuildGeometryInfoKHR unwrapped = *pBuildInfo;
+  unwrapped.srcAccelerationStructure = Unwrap(unwrapped.srcAccelerationStructure);
+  unwrapped.dstAccelerationStructure = Unwrap(unwrapped.dstAccelerationStructure);
+
+  ObjDisp(device)->GetAccelerationStructureBuildSizesKHR(Unwrap(device), buildType, pBuildInfo,
+                                                         pMaxPrimitiveCounts, pSizeInfo);
+}
+
+VkDeviceAddress WrappedVulkan::vkGetAccelerationStructureDeviceAddressKHR(
+    VkDevice device, const VkAccelerationStructureDeviceAddressInfoKHR *pInfo)
+{
+  VkAccelerationStructureDeviceAddressInfoKHR info = *pInfo;
+  info.accelerationStructure = Unwrap(info.accelerationStructure);
+  return ObjDisp(device)->GetAccelerationStructureDeviceAddressKHR(Unwrap(device), &info);
+}
+
+void WrappedVulkan::vkGetDeviceAccelerationStructureCompatibilityKHR(
+    VkDevice device, const VkAccelerationStructureVersionInfoKHR *pVersionInfo,
+    VkAccelerationStructureCompatibilityKHR *pCompatibility)
+{
+  *pCompatibility = VK_ACCELERATION_STRUCTURE_COMPATIBILITY_INCOMPATIBLE_KHR;
+}

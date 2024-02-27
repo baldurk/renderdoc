@@ -657,6 +657,11 @@ API-specific concepts.
 
   An object which pools together other objects in an opaque way, either for runtime allocation and
   deallocation, or for caching purposes.
+
+.. data:: AccelerationStructure
+
+  A structure used to carry implementation-defined spatial partitioning data and related
+  information, used to accelerate geometry intersection queries (e.g. for ray tracing).
 )");
 enum class ResourceType : uint32_t
 {
@@ -683,6 +688,8 @@ enum class ResourceType : uint32_t
   Query,
   Sync,
   Pool,
+
+  AccelerationStructure,
 };
 
 DECLARE_REFLECTION_ENUM(ResourceType);
