@@ -497,6 +497,8 @@ private:
 
   GLPipe::State *m_GLPipelineState = NULL;
 
+  rdcarray<DescriptorAccess> m_Access;
+
   FrameRecord m_FrameRecord;
 
   DriverInformation m_DriverInfo;

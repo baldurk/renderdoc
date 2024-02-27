@@ -852,6 +852,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
   pipe.descriptorCount = EncodeGLDescriptorIndex({GLDescriptorMapping::Count, 0});
   pipe.descriptorByteSize = 1;
 
+  m_Access.clear();
+
   GLuint vao = 0;
   drv.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&vao);
   pipe.vertexInput.vertexArrayObject = rm->GetOriginalID(rm->GetResID(VertexArrayRes(ctx, vao)));
@@ -1189,6 +1191,106 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       continue;
 
     ResortBindings(refls[i], mappings[i]);
+  }
+
+  for(size_t s = 0; s < NumShaderStages; s++)
+  {
+    if(!refls[s])
+      continue;
+
+    DescriptorAccess access;
+    access.descriptorStore = m_pDriver->m_DescriptorsID;
+    access.stage = refls[s]->stage;
+    access.byteSize = 1;
+
+    const ShaderBindpointMapping &mapping = stages[s]->bindpointMapping;
+
+    m_Access.reserve(m_Access.size() + mapping.constantBlocks.size() +
+                     mapping.readOnlyResources.size() + mapping.readWriteResources.size());
+
+    RDCASSERT(mapping.constantBlocks.size() < 0xffff, mapping.constantBlocks.size());
+    for(uint16_t i = 0; i < mapping.constantBlocks.size(); i++)
+    {
+      int32_t bindset = mapping.constantBlocks[i].bindset;
+      int32_t bind = mapping.constantBlocks[i].bind;
+
+      access.staticallyUnused = !mapping.constantBlocks[i].used;
+      access.type = DescriptorType::ConstantBuffer;
+      access.index = i;
+      if(bindset < 0)
+        access.byteOffset = EncodeGLDescriptorIndex({GLDescriptorMapping::BareUniforms, (uint32_t)s});
+      else
+        access.byteOffset =
+            EncodeGLDescriptorIndex({GLDescriptorMapping::UniformBinding, (uint32_t)bind});
+      m_Access.push_back(access);
+    }
+
+    RDCASSERT(mapping.readOnlyResources.size() < 0xffff, mapping.readOnlyResources.size());
+    for(uint16_t i = 0; i < mapping.readOnlyResources.size(); i++)
+    {
+      access.staticallyUnused = !mapping.readOnlyResources[i].used;
+
+      GLDescriptorMapping descType = GLDescriptorMapping::Tex2D;
+
+      switch(refls[s]->readOnlyResources[i].resType)
+      {
+        case TextureType::Buffer: descType = GLDescriptorMapping::TexBuffer; break;
+        case TextureType::Texture1D: descType = GLDescriptorMapping::Tex1D; break;
+        case TextureType::Texture1DArray: descType = GLDescriptorMapping::Tex1DArray; break;
+        case TextureType::Texture2D: descType = GLDescriptorMapping::Tex2D; break;
+        case TextureType::TextureRect: descType = GLDescriptorMapping::TexRect; break;
+        case TextureType::Texture2DArray: descType = GLDescriptorMapping::Tex2DArray; break;
+        case TextureType::Texture2DMS: descType = GLDescriptorMapping::Tex2DMS; break;
+        case TextureType::Texture2DMSArray: descType = GLDescriptorMapping::Tex2DMSArray; break;
+        case TextureType::Texture3D: descType = GLDescriptorMapping::Tex3D; break;
+        case TextureType::TextureCube: descType = GLDescriptorMapping::TexCube; break;
+        case TextureType::TextureCubeArray: descType = GLDescriptorMapping::TexCubeArray; break;
+        case TextureType::Unknown:
+        case TextureType::Count:
+          RDCERR("Invalid resource type on binding %s", refls[s]->readOnlyResources[i].name.c_str());
+          break;
+      }
+
+      access.type = DescriptorType::ImageSampler;
+      if(descType == GLDescriptorMapping::TexBuffer)
+        access.type = DescriptorType::TypedBuffer;
+      access.index = i;
+      access.byteOffset =
+          EncodeGLDescriptorIndex({descType, (uint32_t)mapping.readOnlyResources[i].bind});
+      m_Access.push_back(access);
+    }
+
+    RDCASSERT(mapping.readWriteResources.size() < 0xffff, mapping.readWriteResources.size());
+    for(uint16_t i = 0; i < mapping.readWriteResources.size(); i++)
+    {
+      access.staticallyUnused = !mapping.readWriteResources[i].used;
+
+      GLDescriptorMapping descType = GLDescriptorMapping::Images;
+
+      if(refls[s]->readWriteResources[i].isTexture)
+      {
+        access.type = DescriptorType::ReadWriteImage;
+        if(refls[s]->readWriteResources[i].resType == TextureType::Buffer)
+          access.type = DescriptorType::ReadWriteTypedBuffer;
+      }
+      else
+      {
+        access.type = DescriptorType::ReadWriteBuffer;
+        descType = GLDescriptorMapping::ShaderStorage;
+
+        if(refls[s]->readWriteResources[i].variableType.rows == 1 &&
+           refls[s]->readWriteResources[i].variableType.columns == 1 &&
+           refls[s]->readWriteResources[i].variableType.baseType == VarType::UInt)
+        {
+          descType = GLDescriptorMapping::AtomicCounter;
+        }
+      }
+
+      access.index = i;
+      access.byteOffset =
+          EncodeGLDescriptorIndex({descType, (uint32_t)mapping.readWriteResources[i].bind});
+      m_Access.push_back(access);
+    }
   }
 
   RDCEraseEl(pipe.transformFeedback);
@@ -2173,9 +2275,13 @@ rdcarray<Descriptor> GLReplay::GetDescriptors(ResourceId descriptorStore,
         ret[dst].type = DescriptorType::ConstantBuffer;
         if(rs.UniformBinding[idx.idx].res.name != 0)
         {
-          ret[dst].resource = rm->GetOriginalID(rm->GetResID(rs.UniformBinding[idx.idx].res));
+          ResourceId id = rm->GetResID(rs.UniformBinding[idx.idx].res);
+          ret[dst].resource = rm->GetOriginalID(id);
           ret[dst].byteOffset = rs.UniformBinding[idx.idx].start;
           ret[dst].byteSize = rs.UniformBinding[idx.idx].size;
+
+          if(ret[dst].byteSize == 0)
+            ret[dst].byteSize = m_pDriver->m_Buffers[id].size;
         }
       }
       else if(idx.type == GLDescriptorMapping::AtomicCounter)
@@ -2183,9 +2289,13 @@ rdcarray<Descriptor> GLReplay::GetDescriptors(ResourceId descriptorStore,
         ret[dst].type = DescriptorType::ReadWriteBuffer;
         if(rs.AtomicCounter[idx.idx].res.name != 0)
         {
-          ret[dst].resource = rm->GetOriginalID(rm->GetResID(rs.AtomicCounter[idx.idx].res));
+          ResourceId id = rm->GetResID(rs.AtomicCounter[idx.idx].res);
+          ret[dst].resource = rm->GetOriginalID(id);
           ret[dst].byteOffset = rs.AtomicCounter[idx.idx].start;
           ret[dst].byteSize = rs.AtomicCounter[idx.idx].size;
+
+          if(ret[dst].byteSize == 0)
+            ret[dst].byteSize = m_pDriver->m_Buffers[id].size;
         }
       }
       else if(idx.type == GLDescriptorMapping::ShaderStorage)
@@ -2193,9 +2303,13 @@ rdcarray<Descriptor> GLReplay::GetDescriptors(ResourceId descriptorStore,
         ret[dst].type = DescriptorType::ReadWriteBuffer;
         if(rs.ShaderStorage[idx.idx].res.name != 0)
         {
-          ret[dst].resource = rm->GetOriginalID(rm->GetResID(rs.ShaderStorage[idx.idx].res));
+          ResourceId id = rm->GetResID(rs.ShaderStorage[idx.idx].res);
+          ret[dst].resource = rm->GetOriginalID(id);
           ret[dst].byteOffset = rs.ShaderStorage[idx.idx].start;
           ret[dst].byteSize = rs.ShaderStorage[idx.idx].size;
+
+          if(ret[dst].byteSize == 0)
+            ret[dst].byteSize = m_pDriver->m_Buffers[id].size;
         }
       }
       else if(idx.type == GLDescriptorMapping::Images)
@@ -2576,7 +2690,7 @@ rdcarray<SamplerDescriptor> GLReplay::GetSamplerDescriptors(ResourceId descripto
 
 rdcarray<DescriptorAccess> GLReplay::GetDescriptorAccess()
 {
-  return {};
+  return m_Access;
 }
 
 void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool bufferBacked,
