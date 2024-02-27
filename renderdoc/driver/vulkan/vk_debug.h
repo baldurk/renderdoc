@@ -114,6 +114,7 @@ public:
   const VulkanCreationInfo::Framebuffer &GetFramebufferInfo(ResourceId fb) const;
   const VulkanCreationInfo::RenderPass &GetRenderPassInfo(ResourceId rp) const;
   const VulkanCreationInfo::PipelineLayout &GetPipelineLayoutInfo(ResourceId pp) const;
+  const VulkanCreationInfo::AccelerationStructure &GetAccelerationStructureInfo(ResourceId as) const;
   const DescSetLayout &GetDescSetLayout(ResourceId dsl) const;
   const WrappedVulkan::DescriptorSetInfo &GetDescSetInfo(ResourceId ds) const;
 

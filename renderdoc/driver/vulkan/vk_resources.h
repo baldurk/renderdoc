@@ -75,6 +75,7 @@ enum VkResourceType
   eResSurface,
   eResDescUpdateTemplate,
   eResSamplerConversion,
+  eResAccelerationStructureKHR,
 };
 
 DECLARE_REFLECTION_ENUM(VkResourceType);
@@ -559,6 +560,19 @@ struct WrappedVkSamplerYcbcrConversion : WrappedVkNonDispRes
     TypeEnum = eResSamplerConversion,
   };
 };
+struct WrappedVkAccelerationStructureKHR : WrappedVkNonDispRes
+{
+  WrappedVkAccelerationStructureKHR(VkAccelerationStructureKHR obj, ResourceId objId)
+      : WrappedVkNonDispRes(obj, objId)
+  {
+  }
+  typedef VkAccelerationStructureKHR InnerType;
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkAccelerationStructureKHR);
+  enum
+  {
+    TypeEnum = eResAccelerationStructureKHR,
+  };
+};
 
 // VkDisplayKHR and VkDisplayModeKHR are both UNWRAPPED because there's no need to wrap them.
 // The only thing we need to wrap VkSurfaceKHR for is to get back the window from it later.
@@ -661,6 +675,7 @@ UNWRAP_NONDISP_HELPER(VkSwapchainKHR)
 UNWRAP_NONDISP_HELPER(VkSurfaceKHR)
 UNWRAP_NONDISP_HELPER(VkDescriptorUpdateTemplate)
 UNWRAP_NONDISP_HELPER(VkSamplerYcbcrConversion)
+UNWRAP_NONDISP_HELPER(VkAccelerationStructureKHR)
 
 // VkDisplayKHR and VkDisplayModeKHR are both UNWRAPPED because there's no need to wrap them.
 // The only thing we need to wrap VkSurfaceKHR for is to get back the window from it later.
