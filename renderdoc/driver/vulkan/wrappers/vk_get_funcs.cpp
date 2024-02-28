@@ -957,17 +957,17 @@ void WrappedVulkan::vkGetDeviceGroupPeerMemoryFeatures(VkDevice device, uint32_t
 
 VkResult WrappedVulkan::vkCreateValidationCacheEXT(VkDevice device,
                                                    const VkValidationCacheCreateInfoEXT *pCreateInfo,
-                                                   const VkAllocationCallbacks *pAllocator,
+                                                   const VkAllocationCallbacks *,
                                                    VkValidationCacheEXT *pValidationCache)
 {
-  return ObjDisp(device)->CreateValidationCacheEXT(Unwrap(device), pCreateInfo, pAllocator,
+  return ObjDisp(device)->CreateValidationCacheEXT(Unwrap(device), pCreateInfo, NULL,
                                                    pValidationCache);
 }
 
 void WrappedVulkan::vkDestroyValidationCacheEXT(VkDevice device, VkValidationCacheEXT validationCache,
-                                                const VkAllocationCallbacks *pAllocator)
+                                                const VkAllocationCallbacks *)
 {
-  return ObjDisp(device)->DestroyValidationCacheEXT(Unwrap(device), validationCache, pAllocator);
+  return ObjDisp(device)->DestroyValidationCacheEXT(Unwrap(device), validationCache, NULL);
 }
 
 VkResult WrappedVulkan::vkMergeValidationCachesEXT(VkDevice device, VkValidationCacheEXT dstCache,

@@ -27,13 +27,13 @@
 
 VkResult WrappedVulkan::vkCreateStreamDescriptorSurfaceGGP(
     const VkInstance instance, const VkStreamDescriptorSurfaceCreateInfoGGP *pCreateInfo,
-    const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface)
+    const VkAllocationCallbacks *, VkSurfaceKHR *pSurface)
 {
   // should not come in here at all on replay
   RDCASSERT(IsCaptureMode(m_State));
 
   VkResult ret = ObjDisp(instance)->CreateStreamDescriptorSurfaceGGP(Unwrap(instance), pCreateInfo,
-                                                                     pAllocator, pSurface);
+                                                                     NULL, pSurface);
 
   if(ret == VK_SUCCESS)
   {

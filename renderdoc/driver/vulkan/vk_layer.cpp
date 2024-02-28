@@ -271,20 +271,19 @@ DefineHooks();
 // to create and destroy the core WrappedVulkan object
 
 VKAPI_ATTR VkResult VKAPI_CALL hooked_vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo,
-                                                       const VkAllocationCallbacks *pAllocator,
+                                                       const VkAllocationCallbacks *,
                                                        VkInstance *pInstance)
 {
   KeepLayerAlive();
 
   WrappedVulkan *core = new WrappedVulkan();
-  return core->vkCreateInstance(pCreateInfo, pAllocator, pInstance);
+  return core->vkCreateInstance(pCreateInfo, NULL, pInstance);
 }
 
-VKAPI_ATTR void VKAPI_CALL hooked_vkDestroyInstance(VkInstance instance,
-                                                    const VkAllocationCallbacks *pAllocator)
+VKAPI_ATTR void VKAPI_CALL hooked_vkDestroyInstance(VkInstance instance, const VkAllocationCallbacks *)
 {
   WrappedVulkan *core = CoreDisp(instance);
-  core->vkDestroyInstance(instance, pAllocator);
+  core->vkDestroyInstance(instance, NULL);
   delete core;
 }
 

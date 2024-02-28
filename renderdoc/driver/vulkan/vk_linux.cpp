@@ -44,14 +44,13 @@ void UseXcbConnection(xcb_connection_t *conn);
 
 VkResult WrappedVulkan::vkCreateXcbSurfaceKHR(VkInstance instance,
                                               const VkXcbSurfaceCreateInfoKHR *pCreateInfo,
-                                              const VkAllocationCallbacks *pAllocator,
-                                              VkSurfaceKHR *pSurface)
+                                              const VkAllocationCallbacks *, VkSurfaceKHR *pSurface)
 {
   // should not come in here at all on replay
   RDCASSERT(IsCaptureMode(m_State));
 
   VkResult ret =
-      ObjDisp(instance)->CreateXcbSurfaceKHR(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
+      ObjDisp(instance)->CreateXcbSurfaceKHR(Unwrap(instance), pCreateInfo, NULL, pSurface);
 
   if(ret == VK_SUCCESS)
   {
@@ -86,14 +85,14 @@ VkBool32 WrappedVulkan::vkGetPhysicalDeviceWaylandPresentationSupportKHR(
 
 VkResult WrappedVulkan::vkCreateWaylandSurfaceKHR(VkInstance instance,
                                                   const VkWaylandSurfaceCreateInfoKHR *pCreateInfo,
-                                                  const VkAllocationCallbacks *pAllocator,
+                                                  const VkAllocationCallbacks *,
                                                   VkSurfaceKHR *pSurface)
 {
   // should not come in here at all on replay
   RDCASSERT(IsCaptureMode(m_State));
 
-  VkResult ret = ObjDisp(instance)->CreateWaylandSurfaceKHR(Unwrap(instance), pCreateInfo,
-                                                            pAllocator, pSurface);
+  VkResult ret =
+      ObjDisp(instance)->CreateWaylandSurfaceKHR(Unwrap(instance), pCreateInfo, NULL, pSurface);
 
   if(ret == VK_SUCCESS)
   {
@@ -129,14 +128,13 @@ void UseXlibDisplay(Display *dpy);
 
 VkResult WrappedVulkan::vkCreateXlibSurfaceKHR(VkInstance instance,
                                                const VkXlibSurfaceCreateInfoKHR *pCreateInfo,
-                                               const VkAllocationCallbacks *pAllocator,
-                                               VkSurfaceKHR *pSurface)
+                                               const VkAllocationCallbacks *, VkSurfaceKHR *pSurface)
 {
   // should not come in here at all on replay
   RDCASSERT(IsCaptureMode(m_State));
 
   VkResult ret =
-      ObjDisp(instance)->CreateXlibSurfaceKHR(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
+      ObjDisp(instance)->CreateXlibSurfaceKHR(Unwrap(instance), pCreateInfo, NULL, pSurface);
 
   if(ret == VK_SUCCESS)
   {

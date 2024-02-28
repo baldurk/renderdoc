@@ -155,17 +155,17 @@ static void MakeSubpassLoadRP(RPCreateInfo &info, const RPCreateInfo *origInfo, 
 // releasing the underlying object. Otherwise after releasing the vulkan object
 // that same handle could be returned by create on another thread, and we
 // could end up trying to re-wrap it.
-#define DESTROY_IMPL(type, func)                                                                   \
-  void WrappedVulkan::vk##func(VkDevice device, type obj, const VkAllocationCallbacks *pAllocator) \
-  {                                                                                                \
-    if(obj == VK_NULL_HANDLE)                                                                      \
-      return;                                                                                      \
-    type unwrappedObj = Unwrap(obj);                                                               \
-    m_ForcedReferences.removeOne(GetRecord(obj));                                                  \
-    if(IsReplayMode(m_State))                                                                      \
-      m_CreationInfo.erase(GetResID(obj));                                                         \
-    GetResourceManager()->ReleaseWrappedResource(obj, true);                                       \
-    ObjDisp(device)->func(Unwrap(device), unwrappedObj, pAllocator);                               \
+#define DESTROY_IMPL(type, func)                                                         \
+  void WrappedVulkan::vk##func(VkDevice device, type obj, const VkAllocationCallbacks *) \
+  {                                                                                      \
+    if(obj == VK_NULL_HANDLE)                                                            \
+      return;                                                                            \
+    type unwrappedObj = Unwrap(obj);                                                     \
+    m_ForcedReferences.removeOne(GetRecord(obj));                                        \
+    if(IsReplayMode(m_State))                                                            \
+      m_CreationInfo.erase(GetResID(obj));                                               \
+    GetResourceManager()->ReleaseWrappedResource(obj, true);                             \
+    ObjDisp(device)->func(Unwrap(device), unwrappedObj, NULL);                           \
   }
 
 DESTROY_IMPL(VkBufferView, DestroyBufferView)
@@ -189,7 +189,7 @@ DESTROY_IMPL(VkAccelerationStructureKHR, DestroyAccelerationStructureKHR)
 #undef DESTROY_IMPL
 
 void WrappedVulkan::vkDestroyFramebuffer(VkDevice device, VkFramebuffer obj,
-                                         const VkAllocationCallbacks *pAllocator)
+                                         const VkAllocationCallbacks *)
 {
   if(obj == VK_NULL_HANDLE)
     return;
@@ -200,18 +200,18 @@ void WrappedVulkan::vkDestroyFramebuffer(VkDevice device, VkFramebuffer obj,
 
     for(VkFramebuffer loadfb : rpinfo.loadFBs)
     {
-      ObjDisp(device)->DestroyFramebuffer(Unwrap(device), Unwrap(loadfb), pAllocator);
+      ObjDisp(device)->DestroyFramebuffer(Unwrap(device), Unwrap(loadfb), NULL);
       GetResourceManager()->ReleaseWrappedResource(loadfb, true);
     }
 
     m_CreationInfo.erase(GetResID(obj));
   }
   GetResourceManager()->ReleaseWrappedResource(obj, true);
-  ObjDisp(device)->DestroyFramebuffer(Unwrap(device), unwrappedObj, pAllocator);
+  ObjDisp(device)->DestroyFramebuffer(Unwrap(device), unwrappedObj, NULL);
 }
 
 void WrappedVulkan::vkDestroyRenderPass(VkDevice device, VkRenderPass obj,
-                                        const VkAllocationCallbacks *pAllocator)
+                                        const VkAllocationCallbacks *)
 {
   if(obj == VK_NULL_HANDLE)
     return;
@@ -222,18 +222,17 @@ void WrappedVulkan::vkDestroyRenderPass(VkDevice device, VkRenderPass obj,
 
     for(VkRenderPass loadrp : rpinfo.loadRPs)
     {
-      ObjDisp(device)->DestroyRenderPass(Unwrap(device), Unwrap(loadrp), pAllocator);
+      ObjDisp(device)->DestroyRenderPass(Unwrap(device), Unwrap(loadrp), NULL);
       GetResourceManager()->ReleaseWrappedResource(loadrp, true);
     }
 
     m_CreationInfo.erase(GetResID(obj));
   }
   GetResourceManager()->ReleaseWrappedResource(obj, true);
-  ObjDisp(device)->DestroyRenderPass(Unwrap(device), unwrappedObj, pAllocator);
+  ObjDisp(device)->DestroyRenderPass(Unwrap(device), unwrappedObj, NULL);
 }
 
-void WrappedVulkan::vkDestroyBuffer(VkDevice device, VkBuffer buffer,
-                                    const VkAllocationCallbacks *pAllocator)
+void WrappedVulkan::vkDestroyBuffer(VkDevice device, VkBuffer buffer, const VkAllocationCallbacks *)
 {
   if(buffer == VK_NULL_HANDLE)
     return;
@@ -244,8 +243,6 @@ void WrappedVulkan::vkDestroyBuffer(VkDevice device, VkBuffer buffer,
     SCOPED_READLOCK(m_CapTransitionLock);
     if(IsActiveCapturing(m_State) && m_DeviceAddressResources.IDs.contains(GetResID(buffer)))
     {
-      // we can't hold onto the user callback so we'll be freeing with NULL.
-      RDCASSERT(pAllocator == NULL);
       m_DeviceAddressResources.DeadBuffers.push_back(buffer);
       return;
     }
@@ -272,12 +269,12 @@ void WrappedVulkan::vkDestroyBuffer(VkDevice device, VkBuffer buffer,
 
   GetResourceManager()->ReleaseWrappedResource(buffer, true);
 
-  ObjDisp(device)->DestroyBuffer(Unwrap(device), unwrappedObj, pAllocator);
+  ObjDisp(device)->DestroyBuffer(Unwrap(device), unwrappedObj, NULL);
 }
 
 // needs to be separate because it releases internal resources
 void WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj,
-                                          const VkAllocationCallbacks *pAllocator)
+                                          const VkAllocationCallbacks *)
 {
   if(obj == VK_NULL_HANDLE)
     return;
@@ -316,12 +313,11 @@ void WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj,
 
   VkSwapchainKHR unwrappedObj = Unwrap(obj);
   GetResourceManager()->ReleaseWrappedResource(obj, true);
-  ObjDisp(device)->DestroySwapchainKHR(Unwrap(device), unwrappedObj, pAllocator);
+  ObjDisp(device)->DestroySwapchainKHR(Unwrap(device), unwrappedObj, NULL);
 }
 
 // needs to be separate so we don't erase from m_ImageLayouts in other destroy functions
-void WrappedVulkan::vkDestroyImage(VkDevice device, VkImage obj,
-                                   const VkAllocationCallbacks *pAllocator)
+void WrappedVulkan::vkDestroyImage(VkDevice device, VkImage obj, const VkAllocationCallbacks *)
 {
   if(obj == VK_NULL_HANDLE)
     return;
@@ -331,7 +327,7 @@ void WrappedVulkan::vkDestroyImage(VkDevice device, VkImage obj,
 
   EraseImageState(GetResID(obj));
 
-  return ObjDisp(device)->DestroyImage(Unwrap(device), unwrappedObj, pAllocator);
+  return ObjDisp(device)->DestroyImage(Unwrap(device), unwrappedObj, NULL);
 }
 
 // needs to be separate since it's dispatchable
@@ -652,7 +648,7 @@ bool WrappedVulkan::Serialise_vkCreateSampler(SerialiserType &ser, VkDevice devi
 }
 
 VkResult WrappedVulkan::vkCreateSampler(VkDevice device, const VkSamplerCreateInfo *pCreateInfo,
-                                        const VkAllocationCallbacks *pAllocator, VkSampler *pSampler)
+                                        const VkAllocationCallbacks *, VkSampler *pSampler)
 {
   VkSamplerCreateInfo info_adjusted = *pCreateInfo;
 
@@ -666,7 +662,7 @@ VkResult WrappedVulkan::vkCreateSampler(VkDevice device, const VkSamplerCreateIn
 
   VkResult ret;
   SERIALISE_TIME_CALL(
-      ret = ObjDisp(device)->CreateSampler(Unwrap(device), &info_adjusted, pAllocator, pSampler));
+      ret = ObjDisp(device)->CreateSampler(Unwrap(device), &info_adjusted, NULL, pSampler));
 
   if(ret == VK_SUCCESS)
   {
@@ -863,7 +859,7 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(SerialiserType &ser, VkDevice 
 
 VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
                                             const VkFramebufferCreateInfo *pCreateInfo,
-                                            const VkAllocationCallbacks *pAllocator,
+                                            const VkAllocationCallbacks *,
                                             VkFramebuffer *pFramebuffer)
 {
   byte *tempMem = GetTempMemory(GetNextPatchSize(pCreateInfo));
@@ -893,8 +889,8 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
   }
 
   VkResult ret;
-  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), unwrappedInfo,
-                                                               pAllocator, pFramebuffer));
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), unwrappedInfo, NULL, pFramebuffer));
 
   if(ret == VK_SUCCESS)
   {
@@ -1171,12 +1167,11 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
 }
 
 VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCreateInfo *pCreateInfo,
-                                           const VkAllocationCallbacks *pAllocator,
-                                           VkRenderPass *pRenderPass)
+                                           const VkAllocationCallbacks *, VkRenderPass *pRenderPass)
 {
   VkResult ret;
-  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), pCreateInfo,
-                                                              pAllocator, pRenderPass));
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), pCreateInfo, NULL, pRenderPass));
 
   if(ret == VK_SUCCESS)
   {
@@ -1433,12 +1428,11 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass2(SerialiserType &ser, VkDevice 
 
 VkResult WrappedVulkan::vkCreateRenderPass2(VkDevice device,
                                             const VkRenderPassCreateInfo2 *pCreateInfo,
-                                            const VkAllocationCallbacks *pAllocator,
-                                            VkRenderPass *pRenderPass)
+                                            const VkAllocationCallbacks *, VkRenderPass *pRenderPass)
 {
   VkResult ret;
-  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateRenderPass2(Unwrap(device), pCreateInfo,
-                                                               pAllocator, pRenderPass));
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->CreateRenderPass2(Unwrap(device), pCreateInfo, NULL, pRenderPass));
 
   if(ret == VK_SUCCESS)
   {
@@ -1619,12 +1613,11 @@ bool WrappedVulkan::Serialise_vkCreateQueryPool(SerialiserType &ser, VkDevice de
 }
 
 VkResult WrappedVulkan::vkCreateQueryPool(VkDevice device, const VkQueryPoolCreateInfo *pCreateInfo,
-                                          const VkAllocationCallbacks *pAllocator,
-                                          VkQueryPool *pQueryPool)
+                                          const VkAllocationCallbacks *, VkQueryPool *pQueryPool)
 {
   VkResult ret;
   SERIALISE_TIME_CALL(
-      ret = ObjDisp(device)->CreateQueryPool(Unwrap(device), pCreateInfo, pAllocator, pQueryPool));
+      ret = ObjDisp(device)->CreateQueryPool(Unwrap(device), pCreateInfo, NULL, pQueryPool));
 
   if(ret == VK_SUCCESS)
   {
@@ -1766,11 +1759,11 @@ bool WrappedVulkan::Serialise_vkCreateSamplerYcbcrConversion(
 
 VkResult WrappedVulkan::vkCreateSamplerYcbcrConversion(
     VkDevice device, const VkSamplerYcbcrConversionCreateInfo *pCreateInfo,
-    const VkAllocationCallbacks *pAllocator, VkSamplerYcbcrConversion *pYcbcrConversion)
+    const VkAllocationCallbacks *, VkSamplerYcbcrConversion *pYcbcrConversion)
 {
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateSamplerYcbcrConversion(
-                          Unwrap(device), pCreateInfo, pAllocator, pYcbcrConversion));
+                          Unwrap(device), pCreateInfo, NULL, pYcbcrConversion));
 
   if(ret == VK_SUCCESS)
   {
@@ -1895,7 +1888,7 @@ VkBool32 VKAPI_PTR UserDebugUtilsCallback(VkDebugUtilsMessageSeverityFlagBitsEXT
 
 VkResult WrappedVulkan::vkCreateDebugReportCallbackEXT(
     VkInstance instance, const VkDebugReportCallbackCreateInfoEXT *pCreateInfo,
-    const VkAllocationCallbacks *pAllocator, VkDebugReportCallbackEXT *pCallback)
+    const VkAllocationCallbacks *, VkDebugReportCallbackEXT *pCallback)
 {
   // we create an interception object here so that we can dynamically check the state of API
   // messages being muted, since it's quite likely that the application will initialise Vulkan (and
@@ -1910,7 +1903,7 @@ VkResult WrappedVulkan::vkCreateDebugReportCallbackEXT(
   wrappedCreateInfo.pUserData = user;
 
   VkResult vkr = ObjDisp(instance)->CreateDebugReportCallbackEXT(
-      Unwrap(instance), &wrappedCreateInfo, pAllocator, &user->realObject);
+      Unwrap(instance), &wrappedCreateInfo, NULL, &user->realObject);
 
   if(vkr != VK_SUCCESS)
   {
@@ -1931,7 +1924,7 @@ VkResult WrappedVulkan::vkCreateDebugReportCallbackEXT(
 
 void WrappedVulkan::vkDestroyDebugReportCallbackEXT(VkInstance instance,
                                                     VkDebugReportCallbackEXT callback,
-                                                    const VkAllocationCallbacks *pAllocator)
+                                                    const VkAllocationCallbacks *)
 {
   if(callback == VK_NULL_HANDLE)
     return;
@@ -1939,7 +1932,7 @@ void WrappedVulkan::vkDestroyDebugReportCallbackEXT(VkInstance instance,
   UserDebugReportCallbackData *user =
       (UserDebugReportCallbackData *)(uintptr_t)NON_DISP_TO_UINT64(callback);
 
-  ObjDisp(instance)->DestroyDebugReportCallbackEXT(Unwrap(instance), user->realObject, pAllocator);
+  ObjDisp(instance)->DestroyDebugReportCallbackEXT(Unwrap(instance), user->realObject, NULL);
 
   {
     SCOPED_LOCK(m_CallbacksLock);
@@ -2341,7 +2334,7 @@ VkResult WrappedVulkan::vkDebugMarkerSetObjectNameEXT(VkDevice device,
 
 VkResult WrappedVulkan::vkCreateDebugUtilsMessengerEXT(
     VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-    const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pMessenger)
+    const VkAllocationCallbacks *, VkDebugUtilsMessengerEXT *pMessenger)
 {
   // we create an interception object here so that we can dynamically check the state of API
   // messages being muted, since it's quite likely that the application will initialise Vulkan (and
@@ -2355,7 +2348,7 @@ VkResult WrappedVulkan::vkCreateDebugUtilsMessengerEXT(
   wrappedCreateInfo.pUserData = user;
 
   VkResult vkr = ObjDisp(instance)->CreateDebugUtilsMessengerEXT(
-      Unwrap(instance), &wrappedCreateInfo, pAllocator, &user->realObject);
+      Unwrap(instance), &wrappedCreateInfo, NULL, &user->realObject);
 
   if(vkr != VK_SUCCESS)
   {
@@ -2376,7 +2369,7 @@ VkResult WrappedVulkan::vkCreateDebugUtilsMessengerEXT(
 
 void WrappedVulkan::vkDestroyDebugUtilsMessengerEXT(VkInstance instance,
                                                     VkDebugUtilsMessengerEXT messenger,
-                                                    const VkAllocationCallbacks *pAllocator)
+                                                    const VkAllocationCallbacks *)
 {
   if(messenger == VK_NULL_HANDLE)
     return;
@@ -2384,7 +2377,7 @@ void WrappedVulkan::vkDestroyDebugUtilsMessengerEXT(VkInstance instance,
   UserDebugUtilsCallbackData *user =
       (UserDebugUtilsCallbackData *)(uintptr_t)NON_DISP_TO_UINT64(messenger);
 
-  ObjDisp(instance)->DestroyDebugUtilsMessengerEXT(Unwrap(instance), user->realObject, pAllocator);
+  ObjDisp(instance)->DestroyDebugUtilsMessengerEXT(Unwrap(instance), user->realObject, NULL);
 
   {
     SCOPED_LOCK(m_CallbacksLock);
@@ -2611,18 +2604,17 @@ void WrappedVulkan::vkReleaseProfilingLockKHR(VkDevice device)
 
 VkResult WrappedVulkan::vkCreatePrivateDataSlot(VkDevice device,
                                                 const VkPrivateDataSlotCreateInfo *pCreateInfo,
-                                                const VkAllocationCallbacks *pAllocator,
+                                                const VkAllocationCallbacks *,
                                                 VkPrivateDataSlot *pPrivateDataSlot)
 {
   // don't even wrap the slot, keep it unwrapped since we don't care about it
-  return ObjDisp(device)->CreatePrivateDataSlot(Unwrap(device), pCreateInfo, pAllocator,
-                                                pPrivateDataSlot);
+  return ObjDisp(device)->CreatePrivateDataSlot(Unwrap(device), pCreateInfo, NULL, pPrivateDataSlot);
 }
 
 void WrappedVulkan::vkDestroyPrivateDataSlot(VkDevice device, VkPrivateDataSlot privateDataSlot,
-                                             const VkAllocationCallbacks *pAllocator)
+                                             const VkAllocationCallbacks *)
 {
-  return ObjDisp(device)->DestroyPrivateDataSlot(Unwrap(device), privateDataSlot, pAllocator);
+  return ObjDisp(device)->DestroyPrivateDataSlot(Unwrap(device), privateDataSlot, NULL);
 }
 
 VkResult WrappedVulkan::vkSetPrivateData(VkDevice device, VkObjectType objectType,
@@ -2646,11 +2638,10 @@ void WrappedVulkan::vkGetPrivateData(VkDevice device, VkObjectType objectType, u
 
 // deferred host operations are not supported, host operations are always captured non-deferred,
 // so these wrapped functions are just pass-throughs
-VkResult WrappedVulkan::vkCreateDeferredOperationKHR(VkDevice device,
-                                                     const VkAllocationCallbacks *pAllocator,
+VkResult WrappedVulkan::vkCreateDeferredOperationKHR(VkDevice device, const VkAllocationCallbacks *,
                                                      VkDeferredOperationKHR *pDeferredOperation)
 {
-  return ObjDisp(device)->CreateDeferredOperationKHR(Unwrap(device), pAllocator, pDeferredOperation);
+  return ObjDisp(device)->CreateDeferredOperationKHR(Unwrap(device), NULL, pDeferredOperation);
 }
 
 VkResult WrappedVulkan::vkDeferredOperationJoinKHR(VkDevice device, VkDeferredOperationKHR operation)
@@ -2659,30 +2650,30 @@ VkResult WrappedVulkan::vkDeferredOperationJoinKHR(VkDevice device, VkDeferredOp
 }
 
 void WrappedVulkan::vkDestroyDeferredOperationKHR(VkDevice device, VkDeferredOperationKHR operation,
-                                                  const VkAllocationCallbacks *pAllocator)
+                                                  const VkAllocationCallbacks *)
 {
-  return ObjDisp(device)->DestroyDeferredOperationKHR(Unwrap(device), operation, pAllocator);
+  return ObjDisp(device)->DestroyDeferredOperationKHR(Unwrap(device), operation, NULL);
 }
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSampler, VkDevice device,
                                 const VkSamplerCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkSampler *pSampler);
+                                const VkAllocationCallbacks *, VkSampler *pSampler);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateFramebuffer, VkDevice device,
                                 const VkFramebufferCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkFramebuffer *pFramebuffer);
+                                const VkAllocationCallbacks *, VkFramebuffer *pFramebuffer);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateRenderPass, VkDevice device,
                                 const VkRenderPassCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkRenderPass *pRenderPass);
+                                const VkAllocationCallbacks *, VkRenderPass *pRenderPass);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateRenderPass2, VkDevice device,
                                 const VkRenderPassCreateInfo2 *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkRenderPass *pRenderPass);
+                                const VkAllocationCallbacks *, VkRenderPass *pRenderPass);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateQueryPool, VkDevice device,
                                 const VkQueryPoolCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkQueryPool *pQueryPool);
+                                const VkAllocationCallbacks *, VkQueryPool *pQueryPool);
 
 INSTANTIATE_FUNCTION_SERIALISED(void, SetShaderDebugPath, VkShaderModule ShaderObject,
                                 rdcstr DebugPath);
@@ -2695,7 +2686,7 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkSetDebugUtilsObjectNameEXT, VkDevice
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSamplerYcbcrConversion, VkDevice device,
                                 const VkSamplerYcbcrConversionCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator,
+                                const VkAllocationCallbacks *,
                                 VkSamplerYcbcrConversion *pYcbcrConversion);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkResetQueryPool, VkDevice device, VkQueryPool queryPool,

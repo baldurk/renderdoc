@@ -553,8 +553,7 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
 }
 
 VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo,
-                                         const VkAllocationCallbacks *pAllocator,
-                                         VkInstance *pInstance)
+                                         const VkAllocationCallbacks *, VkInstance *pInstance)
 {
   RDCASSERT(pCreateInfo);
 
@@ -809,7 +808,7 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   // if we forced on API validation, it's also available
   m_LayersEnabled[VkCheckLayer_unique_objects] |= RenderDoc::Inst().GetCaptureOptions().apiValidation;
 
-  VkResult ret = createFunc(&modifiedCreateInfo, pAllocator, pInstance);
+  VkResult ret = createFunc(&modifiedCreateInfo, NULL, pInstance);
 
   m_Instance = *pInstance;
 
@@ -1072,7 +1071,7 @@ void WrappedVulkan::Shutdown()
     vit->DestroyInstance(inst, NULL);
 }
 
-void WrappedVulkan::vkDestroyInstance(VkInstance instance, const VkAllocationCallbacks *pAllocator)
+void WrappedVulkan::vkDestroyInstance(VkInstance instance, const VkAllocationCallbacks *)
 {
   if(instance == VK_NULL_HANDLE)
     return;
@@ -4072,7 +4071,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
 VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
                                        const VkDeviceCreateInfo *pCreateInfo,
-                                       const VkAllocationCallbacks *pAllocator, VkDevice *pDevice)
+                                       const VkAllocationCallbacks *, VkDevice *pDevice)
 {
   VkDeviceCreateInfo createInfo = *pCreateInfo;
 
@@ -4303,7 +4302,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     m_SeparateDepthStencil |= (separateDepthStencilFeatures->separateDepthStencilLayouts != VK_FALSE);
 
   VkResult ret;
-  SERIALISE_TIME_CALL(ret = createFunc(Unwrap(physicalDevice), &createInfo, pAllocator, pDevice));
+  SERIALISE_TIME_CALL(ret = createFunc(Unwrap(physicalDevice), &createInfo, NULL, pDevice));
 
   if(ret == VK_SUCCESS)
   {
@@ -4531,7 +4530,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   return ret;
 }
 
-void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks *pAllocator)
+void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks *)
 {
   if(device == VK_NULL_HANDLE)
     return;
@@ -4628,7 +4627,7 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks
   // should be deleted by now.
   // If there were any leaks, we will leak them ourselves in vkDestroyInstance
   // rather than try to delete API objects after the device has gone
-  ObjDisp(m_Device)->DestroyDevice(Unwrap(m_Device), pAllocator);
+  ObjDisp(m_Device)->DestroyDevice(Unwrap(m_Device), NULL);
   GetResourceManager()->ReleaseWrappedResource(m_Device);
   m_Device = VK_NULL_HANDLE;
   m_PhysicalDevice = VK_NULL_HANDLE;
@@ -4672,6 +4671,6 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkEnumeratePhysicalDevices, VkInstance
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateDevice, VkPhysicalDevice physicalDevice,
                                 const VkDeviceCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkDevice *pDevice);
+                                const VkAllocationCallbacks *, VkDevice *pDevice);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkDeviceWaitIdle, VkDevice device);

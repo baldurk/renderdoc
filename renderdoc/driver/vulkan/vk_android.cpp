@@ -28,14 +28,14 @@
 
 VkResult WrappedVulkan::vkCreateAndroidSurfaceKHR(VkInstance instance,
                                                   const VkAndroidSurfaceCreateInfoKHR *pCreateInfo,
-                                                  const VkAllocationCallbacks *pAllocator,
+                                                  const VkAllocationCallbacks *,
                                                   VkSurfaceKHR *pSurface)
 {
   // should not come in here at all on replay
   RDCASSERT(IsCaptureMode(m_State));
 
-  VkResult ret = ObjDisp(instance)->CreateAndroidSurfaceKHR(Unwrap(instance), pCreateInfo,
-                                                            pAllocator, pSurface);
+  VkResult ret =
+      ObjDisp(instance)->CreateAndroidSurfaceKHR(Unwrap(instance), pCreateInfo, NULL, pSurface);
 
   if(ret == VK_SUCCESS)
   {

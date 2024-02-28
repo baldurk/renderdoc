@@ -131,14 +131,13 @@ VkResult WrappedVulkan::vkGetSwapchainCounterEXT(VkDevice device, VkSwapchainKHR
 
 VkResult WrappedVulkan::vkRegisterDeviceEventEXT(VkDevice device,
                                                  const VkDeviceEventInfoEXT *pDeviceEventInfo,
-                                                 const VkAllocationCallbacks *pAllocator,
-                                                 VkFence *pFence)
+                                                 const VkAllocationCallbacks *, VkFence *pFence)
 {
   // for now we emulate this on replay as just a regular fence create, since we don't faithfully
   // replay sync events anyway.
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->RegisterDeviceEventEXT(
-                          Unwrap(device), pDeviceEventInfo, pAllocator, pFence));
+                          Unwrap(device), pDeviceEventInfo, NULL, pFence));
 
   if(ret == VK_SUCCESS)
   {
@@ -177,14 +176,13 @@ VkResult WrappedVulkan::vkRegisterDeviceEventEXT(VkDevice device,
 
 VkResult WrappedVulkan::vkRegisterDisplayEventEXT(VkDevice device, VkDisplayKHR display,
                                                   const VkDisplayEventInfoEXT *pDisplayEventInfo,
-                                                  const VkAllocationCallbacks *pAllocator,
-                                                  VkFence *pFence)
+                                                  const VkAllocationCallbacks *, VkFence *pFence)
 {
   // for now we emulate this on replay as just a regular fence create, since we don't faithfully
   // replay sync events anyway.
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->RegisterDisplayEventEXT(
-                          Unwrap(device), display, pDisplayEventInfo, pAllocator, pFence));
+                          Unwrap(device), display, pDisplayEventInfo, NULL, pFence));
 
   if(ret == VK_SUCCESS)
   {
@@ -693,7 +691,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
 
 VkResult WrappedVulkan::vkCreateSwapchainKHR(VkDevice device,
                                              const VkSwapchainCreateInfoKHR *pCreateInfo,
-                                             const VkAllocationCallbacks *pAllocator,
+                                             const VkAllocationCallbacks *,
                                              VkSwapchainKHR *pSwapChain)
 {
   VkSwapchainCreateInfoKHR createInfo = *pCreateInfo;
@@ -718,8 +716,7 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(VkDevice device,
   createInfo.surface = Unwrap(createInfo.surface);
   createInfo.oldSwapchain = Unwrap(createInfo.oldSwapchain);
 
-  VkResult ret =
-      ObjDisp(device)->CreateSwapchainKHR(Unwrap(device), &createInfo, pAllocator, pSwapChain);
+  VkResult ret = ObjDisp(device)->CreateSwapchainKHR(Unwrap(device), &createInfo, NULL, pSwapChain);
 
   if(ret == VK_SUCCESS)
     WrapAndProcessCreatedSwapchain(device, pCreateInfo, pSwapChain);
@@ -1175,7 +1172,7 @@ void WrappedVulkan::HandlePresent(VkQueue queue, const VkPresentInfoKHR *pPresen
 // creation functions are in vk_<platform>.cpp
 
 void WrappedVulkan::vkDestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surface,
-                                        const VkAllocationCallbacks *pAllocator)
+                                        const VkAllocationCallbacks *)
 {
   if(surface == VK_NULL_HANDLE)
     return;
@@ -1199,7 +1196,7 @@ void WrappedVulkan::vkDestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surfac
   VkSurfaceKHR unwrappedObj = wrapper->real.As<VkSurfaceKHR>();
 
   GetResourceManager()->ReleaseWrappedResource(surface, true);
-  ObjDisp(instance)->DestroySurfaceKHR(Unwrap(instance), unwrappedObj, pAllocator);
+  ObjDisp(instance)->DestroySurfaceKHR(Unwrap(instance), unwrappedObj, NULL);
 }
 
 // VK_KHR_display and VK_KHR_display_swapchain. These have no library or include dependencies so
@@ -1245,12 +1242,11 @@ VkResult WrappedVulkan::vkGetDisplayModePropertiesKHR(VkPhysicalDevice physicalD
 
 VkResult WrappedVulkan::vkCreateDisplayModeKHR(VkPhysicalDevice physicalDevice, VkDisplayKHR display,
                                                const VkDisplayModeCreateInfoKHR *pCreateInfo,
-                                               const VkAllocationCallbacks *pAllocator,
-                                               VkDisplayModeKHR *pMode)
+                                               const VkAllocationCallbacks *, VkDisplayModeKHR *pMode)
 {
   // we don't wrap the resulting mode since there's no data we need for it
   return ObjDisp(physicalDevice)
-      ->CreateDisplayModeKHR(Unwrap(physicalDevice), display, pCreateInfo, pAllocator, pMode);
+      ->CreateDisplayModeKHR(Unwrap(physicalDevice), display, pCreateInfo, NULL, pMode);
 }
 
 VkResult WrappedVulkan::vkGetDisplayPlaneCapabilitiesKHR(VkPhysicalDevice physicalDevice,
@@ -1264,14 +1260,14 @@ VkResult WrappedVulkan::vkGetDisplayPlaneCapabilitiesKHR(VkPhysicalDevice physic
 
 VkResult WrappedVulkan::vkCreateDisplayPlaneSurfaceKHR(VkInstance instance,
                                                        const VkDisplaySurfaceCreateInfoKHR *pCreateInfo,
-                                                       const VkAllocationCallbacks *pAllocator,
+                                                       const VkAllocationCallbacks *,
                                                        VkSurfaceKHR *pSurface)
 {
   // should not come in here at all on replay
   RDCASSERT(IsCaptureMode(m_State));
 
-  VkResult ret = ObjDisp(instance)->CreateDisplayPlaneSurfaceKHR(Unwrap(instance), pCreateInfo,
-                                                                 pAllocator, pSurface);
+  VkResult ret =
+      ObjDisp(instance)->CreateDisplayPlaneSurfaceKHR(Unwrap(instance), pCreateInfo, NULL, pSurface);
 
   if(ret == VK_SUCCESS)
   {
@@ -1297,7 +1293,7 @@ VkResult WrappedVulkan::vkCreateDisplayPlaneSurfaceKHR(VkInstance instance,
 
 VkResult WrappedVulkan::vkCreateSharedSwapchainsKHR(VkDevice device, uint32_t swapchainCount,
                                                     const VkSwapchainCreateInfoKHR *pCreateInfos,
-                                                    const VkAllocationCallbacks *pAllocator,
+                                                    const VkAllocationCallbacks *,
                                                     VkSwapchainKHR *pSwapchains)
 {
   VkSwapchainCreateInfoKHR *unwrapped = GetTempArray<VkSwapchainCreateInfoKHR>(swapchainCount);
@@ -1311,7 +1307,7 @@ VkResult WrappedVulkan::vkCreateSharedSwapchainsKHR(VkDevice device, uint32_t sw
   }
 
   VkResult ret = ObjDisp(device)->CreateSharedSwapchainsKHR(Unwrap(device), swapchainCount,
-                                                            unwrapped, pAllocator, pSwapchains);
+                                                            unwrapped, NULL, pSwapchains);
 
   if(ret == VK_SUCCESS)
   {
@@ -1442,14 +1438,14 @@ VkResult WrappedVulkan::vkGetSwapchainStatusKHR(VkDevice device, VkSwapchainKHR 
 
 VkResult WrappedVulkan::vkCreateHeadlessSurfaceEXT(VkInstance instance,
                                                    const VkHeadlessSurfaceCreateInfoEXT *pCreateInfo,
-                                                   const VkAllocationCallbacks *pAllocator,
+                                                   const VkAllocationCallbacks *,
                                                    VkSurfaceKHR *pSurface)
 {
   // should not come in here at all on replay
   RDCASSERT(IsCaptureMode(m_State));
 
-  VkResult ret = ObjDisp(instance)->CreateHeadlessSurfaceEXT(Unwrap(instance), pCreateInfo,
-                                                             pAllocator, pSurface);
+  VkResult ret =
+      ObjDisp(instance)->CreateHeadlessSurfaceEXT(Unwrap(instance), pCreateInfo, NULL, pSurface);
 
   if(ret == VK_SUCCESS)
   {
@@ -1487,14 +1483,13 @@ VkResult WrappedVulkan::vkReleaseSwapchainImagesEXT(VkDevice device,
 #ifdef VK_USE_PLATFORM_WIN32_KHR
 VkResult WrappedVulkan::vkCreateWin32SurfaceKHR(VkInstance instance,
                                                 const VkWin32SurfaceCreateInfoKHR *pCreateInfo,
-                                                const VkAllocationCallbacks *pAllocator,
-                                                VkSurfaceKHR *pSurface)
+                                                const VkAllocationCallbacks *, VkSurfaceKHR *pSurface)
 {
   // should not come in here at all on replay
   RDCASSERT(IsCaptureMode(m_State));
 
   VkResult ret =
-      ObjDisp(instance)->CreateWin32SurfaceKHR(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
+      ObjDisp(instance)->CreateWin32SurfaceKHR(Unwrap(instance), pCreateInfo, NULL, pSurface);
 
   if(ret == VK_SUCCESS)
   {
@@ -1520,7 +1515,7 @@ VkBool32 WrappedVulkan::vkGetPhysicalDeviceWin32PresentationSupportKHR(VkPhysica
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSwapchainKHR, VkDevice device,
                                 const VkSwapchainCreateInfoKHR *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkSwapchainKHR *pSwapchain);
+                                const VkAllocationCallbacks *, VkSwapchainKHR *pSwapchain);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkGetSwapchainImagesKHR, VkDevice device,
                                 VkSwapchainKHR swapchain, uint32_t *pSwapchainImageCount,

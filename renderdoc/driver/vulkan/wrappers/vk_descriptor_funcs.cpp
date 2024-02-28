@@ -222,12 +222,12 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorPool(SerialiserType &ser, VkDevi
 
 VkResult WrappedVulkan::vkCreateDescriptorPool(VkDevice device,
                                                const VkDescriptorPoolCreateInfo *pCreateInfo,
-                                               const VkAllocationCallbacks *pAllocator,
+                                               const VkAllocationCallbacks *,
                                                VkDescriptorPool *pDescriptorPool)
 {
   VkResult ret;
-  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateDescriptorPool(Unwrap(device), pCreateInfo,
-                                                                  pAllocator, pDescriptorPool));
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateDescriptorPool(Unwrap(device), pCreateInfo, NULL,
+                                                                  pDescriptorPool));
 
   if(ret == VK_SUCCESS)
   {
@@ -348,13 +348,13 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
 
 VkResult WrappedVulkan::vkCreateDescriptorSetLayout(VkDevice device,
                                                     const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
-                                                    const VkAllocationCallbacks *pAllocator,
+                                                    const VkAllocationCallbacks *,
                                                     VkDescriptorSetLayout *pSetLayout)
 {
   VkDescriptorSetLayoutCreateInfo unwrapped = UnwrapInfo(pCreateInfo);
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateDescriptorSetLayout(Unwrap(device), &unwrapped,
-                                                                       pAllocator, pSetLayout));
+                                                                       NULL, pSetLayout));
 
   if(ret == VK_SUCCESS)
   {
@@ -1452,12 +1452,12 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorUpdateTemplate(
 
 VkResult WrappedVulkan::vkCreateDescriptorUpdateTemplate(
     VkDevice device, const VkDescriptorUpdateTemplateCreateInfo *pCreateInfo,
-    const VkAllocationCallbacks *pAllocator, VkDescriptorUpdateTemplate *pDescriptorUpdateTemplate)
+    const VkAllocationCallbacks *, VkDescriptorUpdateTemplate *pDescriptorUpdateTemplate)
 {
   VkDescriptorUpdateTemplateCreateInfo unwrapped = UnwrapInfo(pCreateInfo);
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateDescriptorUpdateTemplate(
-                          Unwrap(device), &unwrapped, pAllocator, pDescriptorUpdateTemplate));
+                          Unwrap(device), &unwrapped, NULL, pDescriptorUpdateTemplate));
 
   if(ret == VK_SUCCESS)
   {
@@ -1732,13 +1732,11 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateDescriptorSetLayout, VkDevice device,
                                 const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator,
-                                VkDescriptorSetLayout *pSetLayout);
+                                const VkAllocationCallbacks *, VkDescriptorSetLayout *pSetLayout);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateDescriptorPool, VkDevice device,
                                 const VkDescriptorPoolCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator,
-                                VkDescriptorPool *pDescriptorPool);
+                                const VkAllocationCallbacks *, VkDescriptorPool *pDescriptorPool);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkAllocateDescriptorSets, VkDevice device,
                                 const VkDescriptorSetAllocateInfo *pAllocateInfo,
@@ -1752,7 +1750,7 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkUpdateDescriptorSets, VkDevice device,
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateDescriptorUpdateTemplate, VkDevice device,
                                 const VkDescriptorUpdateTemplateCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator,
+                                const VkAllocationCallbacks *,
                                 VkDescriptorUpdateTemplate *pDescriptorUpdateTemplate);
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkUpdateDescriptorSetWithTemplate, VkDevice device,

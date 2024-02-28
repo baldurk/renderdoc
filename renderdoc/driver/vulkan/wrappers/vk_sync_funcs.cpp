@@ -141,7 +141,7 @@ bool WrappedVulkan::Serialise_vkCreateFence(SerialiserType &ser, VkDevice device
 }
 
 VkResult WrappedVulkan::vkCreateFence(VkDevice device, const VkFenceCreateInfo *pCreateInfo,
-                                      const VkAllocationCallbacks *pAllocator, VkFence *pFence)
+                                      const VkAllocationCallbacks *, VkFence *pFence)
 {
   VkFenceCreateInfo info = *pCreateInfo;
 
@@ -150,7 +150,7 @@ VkResult WrappedVulkan::vkCreateFence(VkDevice device, const VkFenceCreateInfo *
   UnwrapNextChain(m_State, "VkFenceCreateInfo", tempMem, (VkBaseInStructure *)&info);
 
   VkResult ret;
-  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateFence(Unwrap(device), &info, pAllocator, pFence));
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateFence(Unwrap(device), &info, NULL, pFence));
 
   if(ret == VK_SUCCESS)
   {
@@ -369,11 +369,10 @@ bool WrappedVulkan::Serialise_vkCreateEvent(SerialiserType &ser, VkDevice device
 }
 
 VkResult WrappedVulkan::vkCreateEvent(VkDevice device, const VkEventCreateInfo *pCreateInfo,
-                                      const VkAllocationCallbacks *pAllocator, VkEvent *pEvent)
+                                      const VkAllocationCallbacks *, VkEvent *pEvent)
 {
   VkResult ret;
-  SERIALISE_TIME_CALL(
-      ret = ObjDisp(device)->CreateEvent(Unwrap(device), pCreateInfo, pAllocator, pEvent));
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateEvent(Unwrap(device), pCreateInfo, NULL, pEvent));
 
   if(ret == VK_SUCCESS)
   {
@@ -596,8 +595,7 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(SerialiserType &ser, VkDevice de
 }
 
 VkResult WrappedVulkan::vkCreateSemaphore(VkDevice device, const VkSemaphoreCreateInfo *pCreateInfo,
-                                          const VkAllocationCallbacks *pAllocator,
-                                          VkSemaphore *pSemaphore)
+                                          const VkAllocationCallbacks *, VkSemaphore *pSemaphore)
 {
   VkSemaphoreCreateInfo info = *pCreateInfo;
 
@@ -606,8 +604,7 @@ VkResult WrappedVulkan::vkCreateSemaphore(VkDevice device, const VkSemaphoreCrea
   UnwrapNextChain(m_State, "VkSemaphoreCreateInfo", tempMem, (VkBaseInStructure *)&info);
 
   VkResult ret;
-  SERIALISE_TIME_CALL(
-      ret = ObjDisp(device)->CreateSemaphore(Unwrap(device), &info, pAllocator, pSemaphore));
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateSemaphore(Unwrap(device), &info, NULL, pSemaphore));
 
   if(ret == VK_SUCCESS)
   {
@@ -1504,8 +1501,8 @@ VkResult WrappedVulkan::vkGetFenceWin32HandleKHR(
 #endif
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateFence, VkDevice device,
-                                const VkFenceCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkFence *pFence);
+                                const VkFenceCreateInfo *pCreateInfo, const VkAllocationCallbacks *,
+                                VkFence *pFence);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkGetFenceStatus, VkDevice device, VkFence fence);
 
@@ -1516,8 +1513,8 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkWaitForFences, VkDevice device, uint
                                 const VkFence *pFences, VkBool32 waitAll, uint64_t timeout);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateEvent, VkDevice device,
-                                const VkEventCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkEvent *pEvent);
+                                const VkEventCreateInfo *pCreateInfo, const VkAllocationCallbacks *,
+                                VkEvent *pEvent);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkSetEvent, VkDevice device, VkEvent event);
 
@@ -1527,7 +1524,7 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkGetEventStatus, VkDevice device, VkE
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSemaphore, VkDevice device,
                                 const VkSemaphoreCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkSemaphore *pSemaphore);
+                                const VkAllocationCallbacks *, VkSemaphore *pSemaphore);
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetEvent, VkCommandBuffer commandBuffer, VkEvent event,
                                 VkPipelineStageFlags stageMask);

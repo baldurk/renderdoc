@@ -170,13 +170,13 @@ bool WrappedVulkan::Serialise_vkCreatePipelineLayout(SerialiserType &ser, VkDevi
 
 VkResult WrappedVulkan::vkCreatePipelineLayout(VkDevice device,
                                                const VkPipelineLayoutCreateInfo *pCreateInfo,
-                                               const VkAllocationCallbacks *pAllocator,
+                                               const VkAllocationCallbacks *,
                                                VkPipelineLayout *pPipelineLayout)
 {
   VkPipelineLayoutCreateInfo unwrapped = UnwrapInfo(pCreateInfo);
   VkResult ret;
-  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreatePipelineLayout(Unwrap(device), &unwrapped,
-                                                                  pAllocator, pPipelineLayout));
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreatePipelineLayout(Unwrap(device), &unwrapped, NULL,
+                                                                  pPipelineLayout));
 
   if(ret == VK_SUCCESS)
   {
@@ -291,12 +291,12 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(SerialiserType &ser, VkDevice
 
 VkResult WrappedVulkan::vkCreateShaderModule(VkDevice device,
                                              const VkShaderModuleCreateInfo *pCreateInfo,
-                                             const VkAllocationCallbacks *pAllocator,
+                                             const VkAllocationCallbacks *,
                                              VkShaderModule *pShaderModule)
 {
   VkResult ret;
-  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateShaderModule(Unwrap(device), pCreateInfo,
-                                                                pAllocator, pShaderModule));
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->CreateShaderModule(Unwrap(device), pCreateInfo, NULL, pShaderModule));
 
   if(ret == VK_SUCCESS)
   {
@@ -371,7 +371,7 @@ bool WrappedVulkan::Serialise_vkCreatePipelineCache(SerialiserType &ser, VkDevic
 
 VkResult WrappedVulkan::vkCreatePipelineCache(VkDevice device,
                                               const VkPipelineCacheCreateInfo *pCreateInfo,
-                                              const VkAllocationCallbacks *pAllocator,
+                                              const VkAllocationCallbacks *,
                                               VkPipelineCache *pPipelineCache)
 {
   // pretend the user didn't provide any cache data
@@ -388,8 +388,8 @@ VkResult WrappedVulkan::vkCreatePipelineCache(VkDevice device,
   }
 
   VkResult ret;
-  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreatePipelineCache(Unwrap(device), &createInfo,
-                                                                 pAllocator, pPipelineCache));
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreatePipelineCache(Unwrap(device), &createInfo, NULL,
+                                                                 pPipelineCache));
 
   if(ret == VK_SUCCESS)
   {
@@ -601,7 +601,7 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
 VkResult WrappedVulkan::vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
                                                   uint32_t count,
                                                   const VkGraphicsPipelineCreateInfo *pCreateInfos,
-                                                  const VkAllocationCallbacks *pAllocator,
+                                                  const VkAllocationCallbacks *,
                                                   VkPipeline *pPipelines)
 {
   VkGraphicsPipelineCreateInfo *unwrapped = UnwrapInfos(m_State, pCreateInfos, count);
@@ -611,9 +611,8 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(VkDevice device, VkPipelineCac
   for(uint32_t i = 0; i < count; i++)
     pPipelines[i] = VK_NULL_HANDLE;
 
-  SERIALISE_TIME_CALL(
-      ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache), count,
-                                                     unwrapped, pAllocator, pPipelines));
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateGraphicsPipelines(
+                          Unwrap(device), Unwrap(pipelineCache), count, unwrapped, NULL, pPipelines));
 
   if(ret == VK_SUCCESS || ret == VK_PIPELINE_COMPILE_REQUIRED)
   {
@@ -854,13 +853,13 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
 VkResult WrappedVulkan::vkCreateComputePipelines(VkDevice device, VkPipelineCache pipelineCache,
                                                  uint32_t count,
                                                  const VkComputePipelineCreateInfo *pCreateInfos,
-                                                 const VkAllocationCallbacks *pAllocator,
+                                                 const VkAllocationCallbacks *,
                                                  VkPipeline *pPipelines)
 {
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateComputePipelines(
                           Unwrap(device), Unwrap(pipelineCache), count,
-                          UnwrapInfos(m_State, pCreateInfos, count), pAllocator, pPipelines));
+                          UnwrapInfos(m_State, pCreateInfos, count), NULL, pPipelines));
 
   if(ret == VK_SUCCESS)
   {
@@ -944,25 +943,22 @@ VkResult WrappedVulkan::vkCreateComputePipelines(VkDevice device, VkPipelineCach
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreatePipelineLayout, VkDevice device,
                                 const VkPipelineLayoutCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator,
-                                VkPipelineLayout *pPipelineLayout);
+                                const VkAllocationCallbacks *, VkPipelineLayout *pPipelineLayout);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateShaderModule, VkDevice device,
                                 const VkShaderModuleCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator,
-                                VkShaderModule *pShaderModule);
+                                const VkAllocationCallbacks *, VkShaderModule *pShaderModule);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreatePipelineCache, VkDevice device,
                                 const VkPipelineCacheCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator,
-                                VkPipelineCache *pPipelineCache);
+                                const VkAllocationCallbacks *, VkPipelineCache *pPipelineCache);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateGraphicsPipelines, VkDevice device,
                                 VkPipelineCache pipelineCache, uint32_t createInfoCount,
                                 const VkGraphicsPipelineCreateInfo *pCreateInfos,
-                                const VkAllocationCallbacks *pAllocator, VkPipeline *pPipelines);
+                                const VkAllocationCallbacks *, VkPipeline *pPipelines);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateComputePipelines, VkDevice device,
                                 VkPipelineCache pipelineCache, uint32_t createInfoCount,
                                 const VkComputePipelineCreateInfo *pCreateInfos,
-                                const VkAllocationCallbacks *pAllocator, VkPipeline *pPipelines);
+                                const VkAllocationCallbacks *, VkPipeline *pPipelines);

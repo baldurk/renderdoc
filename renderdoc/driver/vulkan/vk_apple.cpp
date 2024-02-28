@@ -35,14 +35,13 @@ void getMetalLayerSize(void *layerHandle, int &width, int &height);
 
 VkResult WrappedVulkan::vkCreateMacOSSurfaceMVK(VkInstance instance,
                                                 const VkMacOSSurfaceCreateInfoMVK *pCreateInfo,
-                                                const VkAllocationCallbacks *pAllocator,
-                                                VkSurfaceKHR *pSurface)
+                                                const VkAllocationCallbacks *, VkSurfaceKHR *pSurface)
 {
   // should not come in here at all on replay
   RDCASSERT(IsCaptureMode(m_State));
 
   VkResult ret =
-      ObjDisp(instance)->CreateMacOSSurfaceMVK(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
+      ObjDisp(instance)->CreateMacOSSurfaceMVK(Unwrap(instance), pCreateInfo, NULL, pSurface);
 
   if(ret == VK_SUCCESS)
   {
@@ -62,14 +61,13 @@ VkResult WrappedVulkan::vkCreateMacOSSurfaceMVK(VkInstance instance,
 
 VkResult WrappedVulkan::vkCreateMetalSurfaceEXT(VkInstance instance,
                                                 const VkMetalSurfaceCreateInfoEXT *pCreateInfo,
-                                                const VkAllocationCallbacks *pAllocator,
-                                                VkSurfaceKHR *pSurface)
+                                                const VkAllocationCallbacks *, VkSurfaceKHR *pSurface)
 {
   // should not come in here at all on replay
   RDCASSERT(IsCaptureMode(m_State));
 
   VkResult ret =
-      ObjDisp(instance)->CreateMetalSurfaceEXT(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
+      ObjDisp(instance)->CreateMetalSurfaceEXT(Unwrap(instance), pCreateInfo, NULL, pSurface);
 
   if(ret == VK_SUCCESS)
   {

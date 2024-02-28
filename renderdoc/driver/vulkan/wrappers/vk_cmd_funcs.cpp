@@ -815,12 +815,11 @@ bool WrappedVulkan::Serialise_vkCreateCommandPool(SerialiserType &ser, VkDevice 
 
 VkResult WrappedVulkan::vkCreateCommandPool(VkDevice device,
                                             const VkCommandPoolCreateInfo *pCreateInfo,
-                                            const VkAllocationCallbacks *pAllocator,
-                                            VkCommandPool *pCmdPool)
+                                            const VkAllocationCallbacks *, VkCommandPool *pCmdPool)
 {
   VkResult ret;
   SERIALISE_TIME_CALL(
-      ret = ObjDisp(device)->CreateCommandPool(Unwrap(device), pCreateInfo, pAllocator, pCmdPool));
+      ret = ObjDisp(device)->CreateCommandPool(Unwrap(device), pCreateInfo, NULL, pCmdPool));
 
   if(ret == VK_SUCCESS)
   {
@@ -7958,7 +7957,7 @@ VkResult WrappedVulkan::vkWriteAccelerationStructuresPropertiesKHR(
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool, VkDevice device,
                                 const VkCommandPoolCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkCommandPool *pCommandPool);
+                                const VkAllocationCallbacks *, VkCommandPool *pCommandPool);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkAllocateCommandBuffers, VkDevice device,
                                 const VkCommandBufferAllocateInfo *pAllocateInfo,
