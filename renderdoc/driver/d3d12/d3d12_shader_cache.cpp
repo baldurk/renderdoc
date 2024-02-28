@@ -293,6 +293,129 @@ struct D3D12BlobShaderCallbacks
   const byte *GetData(ID3DBlob *blob) const { return (const byte *)blob->GetBufferPointer(); }
 } D3D12ShaderCacheCallbacks;
 
+class EmbeddedID3DIncludeHandler : public IDxcIncludeHandler
+{
+public:
+  EmbeddedID3DIncludeHandler(IDxcLibrary *dxcLib, const rdcarray<rdcstr> &includeDirs,
+                             const rdcarray<rdcpair<rdcstr, IDxcBlob *>> fixedFileBlobs)
+      : m_dxcLibrary(dxcLib)
+  {
+    m_includeDirs = includeDirs;
+    m_fixedFileBlobs = fixedFileBlobs;
+
+    if(m_dxcLibrary)
+    {
+      IDxcIncludeHandler *includeHandler = NULL;
+      HRESULT res = m_dxcLibrary->CreateIncludeHandler(&includeHandler);
+
+      if(SUCCEEDED(res))
+        m_defaultHandler = includeHandler;
+    }
+  }
+
+  virtual ~EmbeddedID3DIncludeHandler() { SAFE_RELEASE(m_defaultHandler); }
+  HRESULT STDMETHODCALLTYPE LoadSource(
+      _In_z_ LPCWSTR pFilename,    // Candidate filename.
+      _COM_Outptr_result_maybenull_ IDxcBlob *
+          *ppIncludeSource    // Resultant source object for included file, nullptr if not found.
+  )
+  {
+    IDxcBlob *dxcBlob = NULL;
+
+    rdcstr filename = StringFormat::Wide2UTF8(pFilename);
+    rdcstr fileNameWithoutRelSep = filename;
+
+    if(FileIO::IsRelativePath(filename))
+    {
+      size_t index = filename.find_first_of("./");
+      fileNameWithoutRelSep = filename.substr(index + 2);
+    }
+
+    for(const rdcpair<rdcstr, IDxcBlob *> &f : m_fixedFileBlobs)
+    {
+      if(filename == f.first || fileNameWithoutRelSep == f.first)
+      {
+        dxcBlob = f.second;
+        break;
+      }
+    }
+
+    if(!dxcBlob && FileIO::IsRelativePath(filename))
+    {
+      rdcstr absFilePath = fileNameWithoutRelSep;
+      for(const rdcstr &dir : m_includeDirs)
+      {
+        absFilePath = dir + absFilePath;
+        rdcstr source;
+        if(FileIO::exists(absFilePath) && FileIO::ReadAll(absFilePath, source) && m_dxcLibrary)
+        {
+          IDxcBlobEncoding *encodedBlob = NULL;
+          HRESULT res = m_dxcLibrary->CreateBlobWithEncodingFromPinned(
+              source.c_str(), (UINT32)source.size(), CP_UTF8, &encodedBlob);
+
+          if(!SUCCEEDED(res))
+          {
+            RDCERR("Unable to creata Blob");
+          }
+          else
+          {
+            dxcBlob = encodedBlob;
+          }
+
+          break;
+        }
+      }
+    }
+
+    if(dxcBlob)
+    {
+      *ppIncludeSource = dxcBlob;
+      return S_OK;
+    }
+
+    if(!dxcBlob && m_defaultHandler)
+    {
+      return m_defaultHandler->LoadSource(pFilename, ppIncludeSource);
+    }
+
+    return E_FAIL;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE QueryInterface(
+      /* [in] */ REFIID riid,
+      /* [iid_is][out] */ _COM_Outptr_ void __RPC_FAR *__RPC_FAR *ppvObject)
+  {
+    if(m_defaultHandler)
+    {
+      return m_defaultHandler->QueryInterface(riid, ppvObject);
+    }
+
+    return E_FAIL;
+  }
+
+  virtual ULONG STDMETHODCALLTYPE AddRef(void)
+  {
+    if(m_defaultHandler)
+      return m_defaultHandler->AddRef();
+
+    return 0;
+  }
+
+  virtual ULONG STDMETHODCALLTYPE Release(void)
+  {
+    if(m_defaultHandler)
+      return m_defaultHandler->Release();
+
+    return 0;
+  }
+
+private:
+  rdcarray<rdcstr> m_includeDirs;
+  rdcarray<rdcpair<rdcstr, IDxcBlob *>> m_fixedFileBlobs;
+  IDxcLibrary *m_dxcLibrary;
+  IDxcIncludeHandler *m_defaultHandler;
+};
+
 D3D12ShaderCache::D3D12ShaderCache(WrappedID3D12Device *device)
 {
   bool success = LoadShaderCache("d3dshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion,
@@ -339,11 +462,6 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
 {
   rdcstr cbuffers = GetEmbeddedResource(hlsl_cbuffers_h);
   rdcstr texsample = GetEmbeddedResource(hlsl_texsample_h);
-
-  EmbeddedD3DIncluder includer(includeDirs, {
-                                                {"hlsl_texsample.h", texsample},
-                                                {"hlsl_cbuffers.h", cbuffers},
-                                            });
 
   uint32_t hash = strhash(source);
   hash = strhash(entry, hash);
@@ -419,14 +537,41 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
         return "Couldn't create DXC blob";
       }
 
-      rdcarray<const wchar_t *> args;
-      rdcarray<rdcwstr> argStorage;
+      IDxcBlobEncoding *texSampleBlob = NULL;
+      hr = library->CreateBlobWithEncodingFromPinned(texsample.c_str(), (UINT)texsample.size(),
+                                                     CP_UTF8, &texSampleBlob);
+
+      if(FAILED(hr))
+      {
+        SAFE_RELEASE(library);
+        SAFE_RELEASE(compiler);
+        SAFE_RELEASE(sourceBlob);
+        SAFE_RELEASE(texSampleBlob);
+        return "Couldn't create DXC blob";
+      }
+
+      IDxcBlobEncoding *cBufferBlob = NULL;
+      hr = library->CreateBlobWithEncodingFromPinned(cbuffers.c_str(), (UINT)cbuffers.size(),
+                                                     CP_UTF8, &cBufferBlob);
+
+      if(FAILED(hr))
+      {
+        SAFE_RELEASE(library);
+        SAFE_RELEASE(compiler);
+        SAFE_RELEASE(sourceBlob);
+        SAFE_RELEASE(texSampleBlob);
+        SAFE_RELEASE(cBufferBlob);
+        return "Couldn't create DXC blob";
+      }
+
+      EmbeddedID3DIncludeHandler includeHandler(
+          library, includeDirs,
+          {{"hlsl_texsample.h", texSampleBlob}, {"hlsl_cbuffers.h", cBufferBlob}});
 
       IDxcOperationResult *result = NULL;
-      hr = compiler->Compile(sourceBlob, StringFormat::UTF82Wide(entry).c_str(),
-                             StringFormat::UTF82Wide(entry).c_str(),
-                             StringFormat::UTF82Wide(profile).c_str(), args.data(),
-                             (UINT)args.size(), NULL, 0, NULL, &result);
+      hr = compiler->Compile(sourceBlob, NULL, StringFormat::UTF82Wide(entry).c_str(),
+                             StringFormat::UTF82Wide(profile).c_str(), NULL, (UINT)0, NULL, 0,
+                             &includeHandler, &result);
 
       SAFE_RELEASE(sourceBlob);
 
@@ -476,6 +621,11 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
   }
   else
   {
+    EmbeddedD3DIncluder includer(includeDirs, {
+                                                  {"hlsl_texsample.h", texsample},
+                                                  {"hlsl_cbuffers.h", cbuffers},
+                                              });
+
     HMODULE d3dcompiler = GetD3DCompiler();
 
     if(d3dcompiler == NULL)
