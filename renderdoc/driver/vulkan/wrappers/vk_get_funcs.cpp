@@ -920,12 +920,14 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDeviceGroups(
   uint32_t physicalDevicesNumber = 0;
   vkEnumeratePhysicalDevices(instance, &physicalDevicesNumber, NULL);
 
-  // Return number of available device groups.
+  // vkEnumeratePhysicalDeviceGroups - Return number of available physical device groups.
   if(pPhysicalDeviceGroupProperties == NULL)
   {
     *pPhysicalDeviceGroupCount = physicalDevicesNumber;
     return VK_SUCCESS;
   }
+
+  // vkEnumeratePhysicalDeviceGroups - Query properties of available physical device groups.
 
   // Number of physical device groups to query.
   *pPhysicalDeviceGroupCount = RDCMIN(*pPhysicalDeviceGroupCount, physicalDevicesNumber);
