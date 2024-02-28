@@ -241,16 +241,22 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
 
     CHECK(var == rdcstr("test_value;test_value:test_value"));
 
-    mod.value = "prepend";
+    mod.value = "prepend1";
     mod.sep = EnvSep::SemiColon;
     mod.mod = EnvMod::Prepend;
+
+    Process::RegisterEnvironmentModification(mod);
+
+    mod.value = "prepend2";
+    mod.sep = EnvSep::SemiColon;
+    mod.mod = EnvMod::Append;
 
     Process::RegisterEnvironmentModification(mod);
     Process::ApplyEnvironmentModification();
 
     var = Process::GetEnvVariable("__renderdoc__unit_test_var");
 
-    CHECK(var == rdcstr("prepend;test_value;test_value:test_value"));
+    CHECK(var == rdcstr("prepend1;test_value;test_value:test_value;prepend2"));
 
     mod.value = "reset";
     mod.sep = EnvSep::SemiColon;
