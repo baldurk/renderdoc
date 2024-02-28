@@ -1093,6 +1093,11 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
   }
 }
 
+void VulkanRenderState::SetDynamicStatesFromPipeline(WrappedVulkan *vk)
+{
+  dynamicStates = vk->GetDebugManager()->GetPipelineInfo(graphics.pipeline).dynamicStates;
+}
+
 void VulkanRenderState::SetFramebuffer(WrappedVulkan *vk, ResourceId fb,
                                        const VkRenderPassAttachmentBeginInfo *attachmentsInfo)
 {

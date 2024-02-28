@@ -1528,6 +1528,8 @@ struct VulkanOcclusionCallback : public VulkanPixelHistoryCallback
     pipestate.front.ref = 0;
     pipestate.back = pipestate.front;
     pipestate.graphics.pipeline = GetResID(pipe);
+    // ensure the render state sets any dynamic state the pipeline needs
+    pipestate.SetDynamicStatesFromPipeline(m_pDriver);
     ReplayDrawWithQuery(cmd, eid);
 
     m_pDriver->GetCmdRenderState() = prevState;
@@ -1701,6 +1703,8 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       pipestate.front.compare = pipestate.front.write = 0xff;
       pipestate.front.ref = 0;
       pipestate.back = pipestate.front;
+      // ensure the render state sets any dynamic state the pipeline needs
+      pipestate.SetDynamicStatesFromPipeline(m_pDriver);
       ReplayDraw(cmd, eid, true);
 
       VkCopyPixelParams params = {};
@@ -1719,6 +1723,8 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       // Replay the draw with the original fragment shader to get the actual number
       // of fragments, accounting for potential shader discard.
       pipestate.graphics.pipeline = GetResID(replacements.originalShaderStencil);
+      // ensure the render state sets any dynamic state the pipeline needs
+      pipestate.SetDynamicStatesFromPipeline(m_pDriver);
       ReplayDraw(cmd, eid, true);
 
       CopyImagePixel(cmd, params, storeOffset + offsetof(struct EventInfo, dsWithShaderDiscard));
@@ -2648,6 +2654,8 @@ private:
   void ReplayDraw(VkCommandBuffer cmd, VkPipeline pipe, int eventId, uint32_t test)
   {
     m_pDriver->GetCmdRenderState().graphics.pipeline = GetResID(pipe);
+    // ensure the render state sets any dynamic state the pipeline needs
+    m_pDriver->GetCmdRenderState().SetDynamicStatesFromPipeline(m_pDriver);
     m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
                                                 false);
 
@@ -2874,6 +2882,8 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         DoPipelineBarrier(cmd, 1, &barrier);
 
         m_pDriver->GetCmdRenderState().graphics.pipeline = GetResID(pipesIter[i]);
+        // ensure the render state sets any dynamic state the pipeline needs
+        m_pDriver->GetCmdRenderState().SetDynamicStatesFromPipeline(m_pDriver);
 
         m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(
             m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
@@ -2969,6 +2979,8 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
       // Get post-modification value, use the original framebuffer attachment.
       state.graphics.pipeline = GetResID(pipes.postModPipe);
+      // ensure the render state sets any dynamic state the pipeline needs
+      state.SetDynamicStatesFromPipeline(m_pDriver);
       state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
       // Have to reset stencil.
       VkClearAttachment att = {};
@@ -3316,6 +3328,8 @@ struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
     for(uint32_t i = 0; i < state.views.size(); i++)
       ScissorToPixel(state.views[i], state.scissors[i]);
     state.graphics.pipeline = GetResID(newPipe);
+    // ensure the render state sets any dynamic state the pipeline needs
+    state.SetDynamicStatesFromPipeline(m_pDriver);
     const VulkanCreationInfo::Pipeline &p =
         m_pDriver->GetDebugManager()->GetPipelineInfo(state.graphics.pipeline);
     Topology topo = MakePrimitiveTopology(state.primitiveTopology, p.patchControlPoints);

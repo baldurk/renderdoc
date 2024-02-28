@@ -76,7 +76,7 @@ struct VulkanRenderState
   // a static pipeline then set some dynamic state. If we want to push and pop state at that point
   // (say for a discard pattern) we need to restore the dynamic state even if it's "invalid" for the
   // pipeline, as the application presumably then binds a dynamic pipeline afterwards before drawing
-  bool dynamicStates[VkDynamicCount] = {};
+  rdcfixedarray<bool, VkDynamicCount> dynamicStates = {};
 
   rdcarray<VkViewport> views;
   rdcarray<VkRect2D> scissors;
@@ -125,6 +125,11 @@ struct VulkanRenderState
 
   uint32_t subpass = 0;
   VkSubpassContents subpassContents;
+
+  // helper function - if the pipeline has been changed, this forces all dynamic state to be bound
+  // that the pipeline needs (and no other dynamic state). Helpful if the state is mutated just
+  // before a draw, before replaying that draw
+  void SetDynamicStatesFromPipeline(WrappedVulkan *m_pDriver);
 
   // framebuffer accessors - to allow for imageless framebuffers and prevent accidentally changing
   // only the framebuffer without updating the attachments
