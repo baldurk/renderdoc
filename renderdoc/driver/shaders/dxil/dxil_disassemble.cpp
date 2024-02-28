@@ -1047,6 +1047,7 @@ void Program::MakeDisassemblyString()
                 break;
               default: break;
             }
+            break;
           }
           case Operation::LoadAtomic:
           {
