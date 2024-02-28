@@ -2510,6 +2510,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_VIEWPORTS_FEATURES_QCOM);
       {
         CHECK_PHYS_EXT_FEATURE(multiviewPerViewViewports);
+        m_MultiViewPerViewViewports = ext->multiviewPerViewViewports != VK_FALSE;
       }
       END_PHYS_EXT_CHECK();
 

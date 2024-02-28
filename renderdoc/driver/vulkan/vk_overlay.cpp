@@ -1279,7 +1279,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol,
         vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
         VkViewport viewport;
-        if(textureSubresource.slice < state.views.size())
+        if(m_pDriver->m_MultiViewPerViewViewports && textureSubresource.slice < state.views.size())
         {
           viewport = state.views[textureSubresource.slice];
         }
@@ -1330,7 +1330,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol,
         if(!state.scissors.empty())
         {
           Vec4f scissor;
-          if(textureSubresource.slice < state.scissors.size())
+          if(m_pDriver->m_MultiViewPerViewViewports &&
+             textureSubresource.slice < state.scissors.size())
           {
             scissor = {(float)state.scissors[textureSubresource.slice].offset.x,
                        (float)state.scissors[textureSubresource.slice].offset.y,

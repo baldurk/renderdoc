@@ -476,6 +476,7 @@ private:
   bool m_MeshShaders = false;
   bool m_TaskShaders = false;
   bool m_ListRestart = false;
+  bool m_MultiViewPerViewViewports = false;
 
   PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
 
