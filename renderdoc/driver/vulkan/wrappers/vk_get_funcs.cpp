@@ -914,27 +914,28 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDeviceGroups(
 {
   // We ignore the 'real' physical device groups, and report one group per physical device.
   // We use our internal enumerate function to make sure we handle wrapping the objects.
+  RDCASSERT(pPhysicalDeviceGroupCount);
+
+  // Total number of available physical device groups.
   uint32_t physicalDevicesNumber = 0;
   vkEnumeratePhysicalDevices(instance, &physicalDevicesNumber, NULL);
 
   // Return number of available device groups.
   if(pPhysicalDeviceGroupProperties == NULL)
   {
-    if(pPhysicalDeviceGroupCount)
-    {
-      *pPhysicalDeviceGroupCount = physicalDevicesNumber;
-    }
+    *pPhysicalDeviceGroupCount = physicalDevicesNumber;
     return VK_SUCCESS;
   }
 
-  uint32_t physicalDeviceGroupCount = pPhysicalDeviceGroupCount ? *pPhysicalDeviceGroupCount : 0;
+  // Number of physical device groups to query.
+  *pPhysicalDeviceGroupCount = RDCMIN(*pPhysicalDeviceGroupCount, physicalDevicesNumber);
 
   rdcarray<VkPhysicalDevice> physicalDevices;
-  physicalDevices.resize(physicalDeviceGroupCount);
-  vkEnumeratePhysicalDevices(instance, &physicalDeviceGroupCount, physicalDevices.data());
+  physicalDevices.resize(*pPhysicalDeviceGroupCount);
+  vkEnumeratePhysicalDevices(instance, pPhysicalDeviceGroupCount, physicalDevices.data());
 
   // List one group per device.
-  for(uint32_t i = 0; i < physicalDeviceGroupCount; i++)
+  for(uint32_t i = 0; i < *pPhysicalDeviceGroupCount; i++)
   {
     RDCEraseEl(pPhysicalDeviceGroupProperties[i]);
     pPhysicalDeviceGroupProperties[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES;
@@ -943,7 +944,7 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDeviceGroups(
     pPhysicalDeviceGroupProperties[i].subsetAllocation = VK_FALSE;
   }
 
-  if(physicalDeviceGroupCount < physicalDevicesNumber)
+  if(*pPhysicalDeviceGroupCount < physicalDevicesNumber)
     return VK_INCOMPLETE;
 
   return VK_SUCCESS;
