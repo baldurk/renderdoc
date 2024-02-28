@@ -52,6 +52,9 @@ bool WrappedVulkan::Serialise_vkCmdSetViewport(SerialiserType &ser, VkCommandBuf
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicViewport] = true;
+
           if(renderstate.views.size() < firstViewport + viewportCount)
             renderstate.views.resize(firstViewport + viewportCount);
 
@@ -121,6 +124,9 @@ bool WrappedVulkan::Serialise_vkCmdSetViewportWithCount(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicViewportCount] = true;
+
           renderstate.views.assign(pViewports, viewportCount);
         }
       }
@@ -184,6 +190,9 @@ bool WrappedVulkan::Serialise_vkCmdSetScissor(SerialiserType &ser, VkCommandBuff
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicScissor] = true;
+
           if(renderstate.scissors.size() < firstScissor + scissorCount)
             renderstate.scissors.resize(firstScissor + scissorCount);
 
@@ -252,6 +261,9 @@ bool WrappedVulkan::Serialise_vkCmdSetScissorWithCount(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicScissorCount] = true;
+
           renderstate.scissors.assign(pScissors, scissorCount);
         }
       }
@@ -311,7 +323,10 @@ bool WrappedVulkan::Serialise_vkCmdSetLineWidth(SerialiserType &ser, VkCommandBu
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
         {
-          GetCmdRenderState().lineWidth = lineWidth;
+          VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicLineWidth] = true;
+          renderstate.lineWidth = lineWidth;
         }
       }
       else
@@ -372,6 +387,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBias(SerialiserType &ser, VkCommandBu
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicDepthBias] = true;
+
           renderstate.bias.depth = depthBias;
           renderstate.bias.biasclamp = depthBiasClamp;
           renderstate.bias.slope = slopeScaledDepthBias;
@@ -437,6 +455,9 @@ bool WrappedVulkan::Serialise_vkCmdSetBlendConstants(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicBlendConstants] = true;
+
           memcpy(renderstate.blendConst, blendConst, sizeof(renderstate.blendConst));
         }
       }
@@ -496,6 +517,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBounds(SerialiserType &ser, VkCommand
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicDepthBounds] = true;
+
           renderstate.mindepth = minDepthBounds;
           renderstate.maxdepth = maxDepthBounds;
         }
@@ -560,6 +584,9 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilCompareMask(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicStencilCompareMask] = true;
+
           if(faceMask & VK_STENCIL_FACE_FRONT_BIT)
             renderstate.front.compare = compareMask;
           if(faceMask & VK_STENCIL_FACE_BACK_BIT)
@@ -626,6 +653,9 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilWriteMask(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicStencilWriteMask] = true;
+
           if(faceMask & VK_STENCIL_FACE_FRONT_BIT)
             renderstate.front.write = writeMask;
           if(faceMask & VK_STENCIL_FACE_BACK_BIT)
@@ -692,6 +722,9 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilReference(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicStencilReference] = true;
+
           if(faceMask & VK_STENCIL_FACE_FRONT_BIT)
             renderstate.front.ref = reference;
           if(faceMask & VK_STENCIL_FACE_BACK_BIT)
@@ -756,6 +789,9 @@ bool WrappedVulkan::Serialise_vkCmdSetSampleLocationsEXT(
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicSampleLocationsEXT] = true;
+
           renderstate.sampleLocations.locations.assign(sampleInfo.pSampleLocations,
                                                        sampleInfo.sampleLocationsCount);
           renderstate.sampleLocations.gridSize = sampleInfo.sampleLocationGridSize;
@@ -824,6 +860,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDiscardRectangleEXT(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicDiscardRectangleEXT] = true;
+
           if(renderstate.discardRectangles.size() < firstDiscardRectangle + discardRectangleCount)
             renderstate.discardRectangles.resize(firstDiscardRectangle + discardRectangleCount);
 
@@ -897,6 +936,9 @@ bool WrappedVulkan::Serialise_vkCmdSetLineStippleKHR(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicLineStippleKHR] = true;
+
           renderstate.stippleFactor = lineStippleFactor;
           renderstate.stipplePattern = lineStipplePattern;
         }
@@ -973,6 +1015,9 @@ bool WrappedVulkan::Serialise_vkCmdSetCullMode(SerialiserType &ser, VkCommandBuf
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicCullMode] = true;
+
           renderstate.cullMode = cullMode;
         }
       }
@@ -1031,6 +1076,9 @@ bool WrappedVulkan::Serialise_vkCmdSetFrontFace(SerialiserType &ser, VkCommandBu
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicFrontFace] = true;
+
           renderstate.frontFace = frontFace;
         }
       }
@@ -1090,6 +1138,9 @@ bool WrappedVulkan::Serialise_vkCmdSetPrimitiveTopology(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicPrimitiveTopology] = true;
+
           renderstate.primitiveTopology = primitiveTopology;
         }
       }
@@ -1155,6 +1206,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthTestEnable(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicDepthTestEnable] = true;
+
           renderstate.depthTestEnable = depthTestEnable;
         }
       }
@@ -1215,6 +1269,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthWriteEnable(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicDepthWriteEnable] = true;
+
           renderstate.depthWriteEnable = depthWriteEnable;
         }
       }
@@ -1275,6 +1332,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthCompareOp(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicDepthCompareOp] = true;
+
           renderstate.depthCompareOp = depthCompareOp;
         }
       }
@@ -1335,6 +1395,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBoundsTestEnable(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicDepthBoundsTestEnable] = true;
+
           renderstate.depthBoundsTestEnable = depthBoundsTestEnable;
         }
       }
@@ -1396,6 +1459,9 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilTestEnable(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicStencilTestEnable] = true;
+
           renderstate.stencilTestEnable = stencilTestEnable;
         }
       }
@@ -1462,6 +1528,9 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilOp(SerialiserType &ser, VkCommandBu
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicStencilOp] = true;
+
           if(faceMask & VK_STENCIL_FACE_FRONT_BIT)
           {
             renderstate.front.failOp = failOp;
@@ -1541,6 +1610,9 @@ bool WrappedVulkan::Serialise_vkCmdSetColorWriteEnableEXT(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicColorWriteEXT] = true;
+
           renderstate.colorWriteEnable.assign(pColorWriteEnables, attachmentCount);
         }
       }
@@ -1605,6 +1677,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBiasEnable(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicDepthBiasEnable] = true;
+
           renderstate.depthBiasEnable = depthBiasEnable;
         }
       }
@@ -1664,6 +1739,9 @@ bool WrappedVulkan::Serialise_vkCmdSetLogicOpEXT(SerialiserType &ser, VkCommandB
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicLogicOpEXT] = true;
+
           renderstate.logicOp = logicOp;
         }
       }
@@ -1723,6 +1801,9 @@ bool WrappedVulkan::Serialise_vkCmdSetPatchControlPointsEXT(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicControlPointsEXT] = true;
+
           renderstate.patchControlPoints = patchControlPoints;
         }
       }
@@ -1784,6 +1865,9 @@ bool WrappedVulkan::Serialise_vkCmdSetPrimitiveRestartEnable(SerialiserType &ser
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicPrimRestart] = true;
+
           renderstate.primRestartEnable = primitiveRestartEnable;
         }
       }
@@ -1846,6 +1930,9 @@ bool WrappedVulkan::Serialise_vkCmdSetRasterizerDiscardEnable(SerialiserType &se
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicRastDiscard] = true;
+
           renderstate.rastDiscardEnable = rasterizerDiscardEnable;
         }
       }
@@ -1910,6 +1997,9 @@ bool WrappedVulkan::Serialise_vkCmdSetFragmentShadingRateKHR(
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicShadingRateKHR] = true;
+
           renderstate.pipelineShadingRate = *pFragmentSize;
           renderstate.shadingRateCombiners[0] = combinerOps[0];
           renderstate.shadingRateCombiners[1] = combinerOps[1];
@@ -1976,6 +2066,9 @@ bool WrappedVulkan::Serialise_vkCmdSetAttachmentFeedbackLoopEnableEXT(Serialiser
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicAttachmentFeedbackLoopEnableEXT] = true;
+
           renderstate.feedbackAspects = aspectMask;
         }
       }
@@ -2037,6 +2130,9 @@ bool WrappedVulkan::Serialise_vkCmdSetAlphaToCoverageEnableEXT(SerialiserType &s
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicAlphaToCoverageEXT] = true;
+
           renderstate.alphaToCoverageEnable = alphaToCoverageEnable;
         }
       }
@@ -2099,6 +2195,9 @@ bool WrappedVulkan::Serialise_vkCmdSetAlphaToOneEnableEXT(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicAlphaToOneEXT] = true;
+
           renderstate.alphaToOneEnable = alphaToOneEnable;
         }
       }
@@ -2171,6 +2270,9 @@ bool WrappedVulkan::Serialise_vkCmdSetColorBlendEnableEXT(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicColorBlendEnableEXT] = true;
+
           if(renderstate.colorBlendEnable.size() < firstAttachment + attachmentCount)
             renderstate.colorBlendEnable.resize(firstAttachment + attachmentCount);
 
@@ -2243,6 +2345,9 @@ bool WrappedVulkan::Serialise_vkCmdSetColorBlendEquationEXT(
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicColorBlendEquationEXT] = true;
+
           if(renderstate.colorBlendEquation.size() < firstAttachment + attachmentCount)
             renderstate.colorBlendEquation.resize(firstAttachment + attachmentCount);
 
@@ -2317,6 +2422,9 @@ bool WrappedVulkan::Serialise_vkCmdSetColorWriteMaskEXT(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicColorWriteMaskEXT] = true;
+
           if(renderstate.colorWriteMask.size() < firstAttachment + attachmentCount)
             renderstate.colorWriteMask.resize(firstAttachment + attachmentCount);
 
@@ -2387,6 +2495,9 @@ bool WrappedVulkan::Serialise_vkCmdSetConservativeRasterizationModeEXT(
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicConservativeRastModeEXT] = true;
+
           renderstate.conservativeRastMode = conservativeRasterizationMode;
         }
       }
@@ -2489,6 +2600,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthClampEnableEXT(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicDepthClampEnableEXT] = true;
+
           renderstate.depthClampEnable = depthClampEnable;
         }
       }
@@ -2550,6 +2664,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthClipEnableEXT(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicDepthClipEnableEXT] = true;
+
           renderstate.depthClipEnable = depthClipEnable;
         }
       }
@@ -2610,6 +2727,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthClipNegativeOneToOneEXT(SerialiserTyp
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicDepthClipNegativeOneEXT] = true;
+
           renderstate.negativeOneToOne = negativeOneToOne;
         }
       }
@@ -2671,6 +2791,9 @@ bool WrappedVulkan::Serialise_vkCmdSetExtraPrimitiveOverestimationSizeEXT(
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicOverstimationSizeEXT] = true;
+
           renderstate.primOverestimationSize = extraPrimitiveOverestimationSize;
         }
       }
@@ -2736,6 +2859,9 @@ bool WrappedVulkan::Serialise_vkCmdSetLineRasterizationModeEXT(
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicLineRastModeEXT] = true;
+
           renderstate.lineRasterMode = lineRasterizationMode;
         }
       }
@@ -2798,6 +2924,9 @@ bool WrappedVulkan::Serialise_vkCmdSetLineStippleEnableEXT(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicLineStippleEnableEXT] = true;
+
           renderstate.stippledLineEnable = stippledLineEnable;
         }
       }
@@ -2859,6 +2988,9 @@ bool WrappedVulkan::Serialise_vkCmdSetLogicOpEnableEXT(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicLogicOpEnableEXT] = true;
+
           renderstate.logicOpEnable = logicOpEnable;
         }
       }
@@ -2919,6 +3051,9 @@ bool WrappedVulkan::Serialise_vkCmdSetPolygonModeEXT(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicPolygonModeEXT] = true;
+
           renderstate.polygonMode = polygonMode;
         }
       }
@@ -2978,6 +3113,9 @@ bool WrappedVulkan::Serialise_vkCmdSetProvokingVertexModeEXT(
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicProvokingVertexModeEXT] = true;
+
           renderstate.provokingVertexMode = provokingVertexMode;
         }
       }
@@ -3038,6 +3176,9 @@ bool WrappedVulkan::Serialise_vkCmdSetRasterizationSamplesEXT(
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicRasterizationSamplesEXT] = true;
+
           renderstate.rastSamples = rasterizationSamples;
         }
       }
@@ -3099,6 +3240,9 @@ bool WrappedVulkan::Serialise_vkCmdSetRasterizationStreamEXT(SerialiserType &ser
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicRasterizationStreamEXT] = true;
+
           renderstate.rasterStream = rasterizationStream;
         }
       }
@@ -3166,6 +3310,9 @@ bool WrappedVulkan::Serialise_vkCmdSetSampleLocationsEnableEXT(SerialiserType &s
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicSampleLocationsEnableEXT] = true;
+
           renderstate.sampleLocEnable = sampleLocationsEnable;
         }
       }
@@ -3230,6 +3377,9 @@ bool WrappedVulkan::Serialise_vkCmdSetSampleMaskEXT(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicSampleMaskEXT] = true;
+
           renderstate.rastSamples = samples;
           renderstate.sampleMask.assign(pSampleMask, ((samples - 1) / 32) + 1);
         }
@@ -3298,6 +3448,9 @@ bool WrappedVulkan::Serialise_vkCmdSetTessellationDomainOriginEXT(
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicTessDomainOriginEXT] = true;
+
           renderstate.domainOrigin = domainOrigin;
         }
       }

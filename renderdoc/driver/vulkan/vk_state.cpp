@@ -298,8 +298,6 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
 
   if(binding == BindGraphics || binding == BindInitial)
   {
-    bool dynamicStates[VkDynamicCount] = {};
-
     if(graphics.pipeline != ResourceId())
     {
       VkPipeline pipe = vk->GetResourceManager()->GetCurrentHandle<VkPipeline>(graphics.pipeline);
@@ -324,24 +322,12 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
         ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags,
                                        pushRanges[i].offset, pushRanges[i].size,
                                        pushconsts + pushRanges[i].offset);
-
-      for(size_t i = 0; i < VkDynamicCount; i++)
-        dynamicStates[i] = pipeinfo.dynamicStates[i];
     }
     else if(binding == BindInitial)
     {
       if(vk->GetDriverInfo().NVStaticPipelineRebindStates())
         ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                                       Unwrap(vk->GetDebugManager()->GetDummyPipeline()));
-
-      // if we're setting up a partial command buffer, bind all dynamic state we have. This will
-      // then get overridden, but we need it in case a pipeline expects to inherit some dynamic
-      // state from earlier in the command buffer but there's no pipeline bound yet.
-      for(size_t i = 0; i < VkDynamicCount; i++)
-        dynamicStates[i] = true;
-
-      if(vk->GetDriverInfo().QualcommLineWidthDynamicStateCrash())
-        dynamicStates[VkDynamicLineWidth] = false;
 
       if(pushLayout != ResourceId())
       {
@@ -533,7 +519,7 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
         ObjDisp(cmd)->CmdSetTessellationDomainOriginEXT(Unwrap(cmd), domainOrigin);
     }
 
-    if(dynamicStates[VkDynamicLineWidth])
+    if(dynamicStates[VkDynamicLineWidth] && !vk->GetDriverInfo().QualcommLineWidthDynamicStateCrash())
       ObjDisp(cmd)->CmdSetLineWidth(Unwrap(cmd), lineWidth);
 
     if(dynamicStates[VkDynamicDepthBias])

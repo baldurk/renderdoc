@@ -3115,6 +3115,10 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
 
             const VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[liveid];
 
+            // any static state from the pipeline invalidates any dynamic state previously bound
+            for(uint32_t i = 0; i < VkDynamicCount; i++)
+              renderstate.dynamicStates[i] &= pipeInfo.dynamicStates[i];
+
             if(!pipeInfo.dynamicStates[VkDynamicViewport] &&
                !pipeInfo.dynamicStates[VkDynamicViewportCount])
             {
@@ -3746,6 +3750,8 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers2(
             // so stride was filled out then, we leave it as-is.
             if(pStrides)
             {
+              renderstate.dynamicStates[VkDynamicVertexInputBindingStride] = true;
+
               renderstate.vbuffers[firstBinding + i].stride = pStrides[i];
 
               // if we have dynamic vertex input data, update the strides. If we don't have any
@@ -6897,6 +6903,8 @@ bool WrappedVulkan::Serialise_vkCmdSetVertexInputEXT(
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicStates[VkDynamicVertexInputEXT] = true;
 
           renderstate.vertexBindings.assign(pVertexBindingDescriptions,
                                             vertexBindingDescriptionCount);

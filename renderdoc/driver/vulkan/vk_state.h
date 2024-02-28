@@ -71,7 +71,13 @@ struct VulkanRenderState
 
   void EndConditionalRendering(VkCommandBuffer cmd);
 
-  // dynamic state
+  // dynamic state - this mask tracks which dynamic states have been set, since we can't rely on the
+  // bound pipeline to know which ones to re-bind if we're reapplying state. It's possible to bind
+  // a static pipeline then set some dynamic state. If we want to push and pop state at that point
+  // (say for a discard pattern) we need to restore the dynamic state even if it's "invalid" for the
+  // pipeline, as the application presumably then binds a dynamic pipeline afterwards before drawing
+  bool dynamicStates[VkDynamicCount] = {};
+
   rdcarray<VkViewport> views;
   rdcarray<VkRect2D> scissors;
   float lineWidth = 1.0f;
