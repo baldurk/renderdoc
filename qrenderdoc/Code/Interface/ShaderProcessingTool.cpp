@@ -290,7 +290,7 @@ ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
     if(arg.left(13) == lit("{hlsl_stage2}"))
       arg.replace(0, 13, hlsl_stage2[int(shaderDetails->stage)]);
     if(arg.left(12) == lit("{full_stage}"))
-      arg.replace(0, 12, full_stage[int(stage)]);
+      arg.replace(0, 12, full_stage[int(shaderDetails->stage)]);
     if(arg.left(11) == lit("{spirv_ver}"))
       arg.replace(0, 11, spirvVer);
     if(arg.left(12) == lit("{vulkan_ver}"))
