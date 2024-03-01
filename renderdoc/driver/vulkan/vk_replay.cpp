@@ -4383,6 +4383,7 @@ rdcarray<ShaderSourcePrefix> VulkanReplay::GetCustomShaderSourcePrefixes()
   // right binding and helper definitions
   return {
       {ShaderEncoding::HLSL, HLSL_CUSTOM_PREFIX},
+      {ShaderEncoding::Slang, HLSL_CUSTOM_PREFIX},
   };
 }
 

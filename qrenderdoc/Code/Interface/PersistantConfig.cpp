@@ -724,6 +724,11 @@ rdcstr ShaderProcessingTool::DefaultArguments() const
     return "-T {hlsl_stage2}_6_0 -E {entry_point}";
   else if(tool == KnownShaderTool::fxc)
     return "/T {hlsl_stage2}_5_0 /E {entry_point}";
+  else if(tool == KnownShaderTool::slangSPIRV)
+    return "-lang slang -target spirv -emit-spirv-directly -g2 -entry {entry_point} -stage "
+           "{full_stage}";
+  else if(tool == KnownShaderTool::slangDXIL)
+    return "-lang slang -target dxil -g2 -entry {entry_point} -stage {full_stage}";
 
   return args;
 }
@@ -747,6 +752,8 @@ rdcstr ShaderProcessingTool::IOArguments() const
     return "-Fo {output_file} {input_file}";
   else if(tool == KnownShaderTool::fxc)
     return "/Fo {output_file} {input_file}";
+  else if(tool == KnownShaderTool::slangSPIRV || tool == KnownShaderTool::slangDXIL)
+    return "-o {output_file} {input_file}";
 
   return rdcstr();
 }

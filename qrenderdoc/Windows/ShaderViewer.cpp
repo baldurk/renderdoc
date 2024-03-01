@@ -1394,8 +1394,10 @@ void ShaderViewer::OnEventChanged(uint32_t eventId)
 ScintillaEdit *ShaderViewer::AddFileScintilla(const QString &name, const QString &text,
                                               ShaderEncoding encoding)
 {
-  ScintillaEdit *scintilla = MakeEditor(lit("scintilla") + name, text,
-                                        encoding == ShaderEncoding::HLSL ? SCLEX_HLSL : SCLEX_GLSL);
+  ScintillaEdit *scintilla =
+      MakeEditor(lit("scintilla") + name, text,
+                 encoding == ShaderEncoding::HLSL || encoding == ShaderEncoding::Slang ? SCLEX_HLSL
+                                                                                       : SCLEX_GLSL);
   scintilla->setReadOnly(true);
   scintilla->setWindowTitle(name);
   ((QWidget *)scintilla)->setProperty("name", name);
@@ -5379,7 +5381,7 @@ vec2 RD_SelectedRange();
 
 )");
   }
-  else if(encoding == ShaderEncoding::HLSL)
+  else if(encoding == ShaderEncoding::HLSL || encoding == ShaderEncoding::Slang)
   {
     text = lit(R"(
 /////////////////////////////////////
@@ -5441,7 +5443,7 @@ void ShaderViewer::snippet_samplers()
 {
   ShaderEncoding encoding = currentEncoding();
 
-  if(encoding == ShaderEncoding::HLSL)
+  if(encoding == ShaderEncoding::HLSL || encoding == ShaderEncoding::Slang)
   {
     insertSnippet(lit(R"(
 /////////////////////////////////////
@@ -5484,7 +5486,7 @@ void ShaderViewer::snippet_resources()
   ShaderEncoding encoding = currentEncoding();
   GraphicsAPI api = m_Ctx.APIProps().localRenderer;
 
-  if(encoding == ShaderEncoding::HLSL)
+  if(encoding == ShaderEncoding::HLSL || encoding == ShaderEncoding::Slang)
   {
     insertSnippet(lit(R"(
 /////////////////////////////////////
@@ -6048,7 +6050,8 @@ void ShaderViewer::on_refresh_clicked()
 
     QString source = files[0].second;
 
-    if(encoding == ShaderEncoding::HLSL || encoding == ShaderEncoding::GLSL)
+    if(encoding == ShaderEncoding::HLSL || encoding == ShaderEncoding::Slang ||
+       encoding == ShaderEncoding::GLSL)
     {
       bool success = ProcessIncludeDirectives(source, files);
       if(!success)

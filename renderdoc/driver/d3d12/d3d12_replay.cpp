@@ -4184,6 +4184,7 @@ rdcarray<ShaderSourcePrefix> D3D12Replay::GetCustomShaderSourcePrefixes()
 {
   return {
       {ShaderEncoding::HLSL, HLSL_CUSTOM_PREFIX},
+      {ShaderEncoding::Slang, HLSL_CUSTOM_PREFIX},
   };
 }
 

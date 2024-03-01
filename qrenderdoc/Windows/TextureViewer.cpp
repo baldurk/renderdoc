@@ -93,6 +93,7 @@ static QMap<QString, ShaderEncoding> encodingExtensions = {
     {lit("frag"), ShaderEncoding::GLSL},
     {lit("spvasm"), ShaderEncoding::SPIRVAsm},
     {lit("spvasm"), ShaderEncoding::OpenGLSPIRVAsm},
+    {lit("slang"), ShaderEncoding::Slang},
 };
 
 Q_DECLARE_METATYPE(Following);
@@ -4586,7 +4587,7 @@ void TextureViewer::on_customCreate_clicked()
 
   QString src;
 
-  if(enc == ShaderEncoding::HLSL)
+  if(enc == ShaderEncoding::HLSL || enc == ShaderEncoding::Slang)
   {
     src =
         lit("float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0) : SV_Target0\n"

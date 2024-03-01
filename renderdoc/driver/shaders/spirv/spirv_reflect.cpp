@@ -954,7 +954,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       case SourceLanguage::ESSL:
       case SourceLanguage::GLSL: reflection.debugInfo.encoding = ShaderEncoding::GLSL; break;
       case SourceLanguage::HLSL: reflection.debugInfo.encoding = ShaderEncoding::HLSL; break;
-      case SourceLanguage::Slang: reflection.debugInfo.encoding = ShaderEncoding::HLSL; break;
+      case SourceLanguage::Slang: reflection.debugInfo.encoding = ShaderEncoding::Slang; break;
       case SourceLanguage::OpenCL_C:
       case SourceLanguage::OpenCL_CPP:
       case SourceLanguage::CPP_for_OpenCL:
@@ -990,6 +990,9 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
                                           : KnownShaderTool::spirv_as;
       break;
     case Generator::spiregg: reflection.debugInfo.compiler = KnownShaderTool::dxcSPIRV; break;
+    case Generator::SlangCompiler:
+      reflection.debugInfo.compiler = KnownShaderTool::slangSPIRV;
+      break;
     default: reflection.debugInfo.compiler = KnownShaderTool::Unknown; break;
   }
 

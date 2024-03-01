@@ -33,6 +33,11 @@ static const QString glsl_stage4[arraydim<ShaderStage>()] = {
     lit("frag"), lit("comp"), lit("task"), lit("mesh"),
 };
 
+static const QString full_stage[arraydim<ShaderStage>()] = {
+    lit("vertex"), lit("hull"),    lit("domain"),        lit("geometry"),
+    lit("pixel"),  lit("compute"), lit("amplification"), lit("mesh"),
+};
+
 static const QString hlsl_stage2[arraydim<ShaderStage>()] = {
     lit("vs"), lit("hs"), lit("ds"), lit("gs"), lit("ps"), lit("cs"), lit("as"), lit("ms"),
 };
@@ -284,6 +289,8 @@ ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
       arg.replace(0, 13, glsl_stage4[int(shaderDetails->stage)]);
     if(arg.left(13) == lit("{hlsl_stage2}"))
       arg.replace(0, 13, hlsl_stage2[int(shaderDetails->stage)]);
+    if(arg.left(12) == lit("{full_stage}"))
+      arg.replace(0, 12, full_stage[int(stage)]);
     if(arg.left(11) == lit("{spirv_ver}"))
       arg.replace(0, 11, spirvVer);
     if(arg.left(12) == lit("{vulkan_ver}"))
@@ -342,6 +349,8 @@ ShaderToolOutput ShaderProcessingTool::CompileShader(QWidget *window, rdcstr sou
       arg.replace(0, 13, glsl_stage4[int(stage)]);
     if(arg.left(13) == lit("{hlsl_stage2}"))
       arg.replace(0, 13, hlsl_stage2[int(stage)]);
+    if(arg.left(12) == lit("{full_stage}"))
+      arg.replace(0, 12, full_stage[int(stage)]);
     if(arg.left(11) == lit("{spirv_ver}"))
       arg.replace(0, 11, spirvVer);
     if(arg.left(12) == lit("{vulkan_ver}"))

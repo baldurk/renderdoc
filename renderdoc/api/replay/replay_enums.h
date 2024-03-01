@@ -1862,6 +1862,10 @@ DOCUMENT(R"(Identifies a shader encoding used to pass shader code to an API.
   DXIL binary shader, used by D3D12. Note that although the container is still DXBC format this is
   used to distinguish from :data:`DXBC` for compiler I/O matching.
 
+.. data:: Slang
+
+  Slang in string format, used by the slang compiler for compilation to multiple backend formats.
+
 )");
 enum class ShaderEncoding : uint32_t
 {
@@ -1875,6 +1879,7 @@ enum class ShaderEncoding : uint32_t
   DXIL,
   OpenGLSPIRV,
   OpenGLSPIRVAsm,
+  Slang,
   Count,
 };
 
@@ -1944,6 +1949,14 @@ DOCUMENT(R"(Identifies a particular known tool used for shader processing.
 
   fxc Shader Compiler with DXBC output.
 
+.. data:: slangSPIRV
+
+  `Slang Shader Compiler <https://github.com/shader-slang/slang>`_ with Vulkan SPIR-V output.
+
+.. data:: slangDXIL
+
+  `Slang Shader Compiler <https://github.com/shader-slang/slang>`_ with DXIL output.
+
 )");
 enum class KnownShaderTool : uint32_t
 {
@@ -1961,6 +1974,8 @@ enum class KnownShaderTool : uint32_t
   SPIRV_Cross_OpenGL,
   spirv_as_OpenGL,
   spirv_dis_OpenGL,
+  slangSPIRV,
+  slangDXIL,
   Count,
 };
 
@@ -1991,6 +2006,8 @@ constexpr inline const char *ToolExecutable(KnownShaderTool tool)
          : tool == KnownShaderTool::dxcSPIRV                    ? "dxc"
          : tool == KnownShaderTool::dxcDXIL                     ? "dxc"
          : tool == KnownShaderTool::fxc                         ? "fxc"
+         : tool == KnownShaderTool::slangSPIRV                  ? "slangc"
+         : tool == KnownShaderTool::slangDXIL                   ? "slangc"
                                                                 : "";
 }
 
@@ -2016,6 +2033,8 @@ constexpr inline ShaderEncoding ToolInput(KnownShaderTool tool)
          : tool == KnownShaderTool::dxcSPIRV                    ? ShaderEncoding::HLSL
          : tool == KnownShaderTool::dxcDXIL                     ? ShaderEncoding::HLSL
          : tool == KnownShaderTool::fxc                         ? ShaderEncoding::HLSL
+         : tool == KnownShaderTool::slangSPIRV                  ? ShaderEncoding::Slang
+         : tool == KnownShaderTool::slangDXIL                   ? ShaderEncoding::Slang
                                                                 : ShaderEncoding::Unknown;
 }
 
@@ -2041,6 +2060,8 @@ constexpr inline ShaderEncoding ToolOutput(KnownShaderTool tool)
          : tool == KnownShaderTool::dxcSPIRV                    ? ShaderEncoding::SPIRV
          : tool == KnownShaderTool::dxcDXIL                     ? ShaderEncoding::DXIL
          : tool == KnownShaderTool::fxc                         ? ShaderEncoding::DXBC
+         : tool == KnownShaderTool::slangSPIRV                  ? ShaderEncoding::SPIRV
+         : tool == KnownShaderTool::slangDXIL                   ? ShaderEncoding::DXIL
                                                                 : ShaderEncoding::Unknown;
 }
 
@@ -2053,7 +2074,8 @@ DOCUMENT(R"(Check whether or not this is a human readable text representation.
 constexpr inline bool IsTextRepresentation(ShaderEncoding encoding)
 {
   return encoding == ShaderEncoding::HLSL || encoding == ShaderEncoding::GLSL ||
-         encoding == ShaderEncoding::SPIRVAsm || encoding == ShaderEncoding::OpenGLSPIRVAsm;
+         encoding == ShaderEncoding::SPIRVAsm || encoding == ShaderEncoding::OpenGLSPIRVAsm ||
+         encoding == ShaderEncoding::Slang;
 }
 
 DOCUMENT(R"(A primitive topology used for processing vertex data.
