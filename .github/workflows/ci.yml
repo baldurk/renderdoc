@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: true
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 100
     - name: Check commit messages
@@ -130,7 +130,7 @@ jobs:
         curl https://renderdoc.org/qrenderdoc_3rdparty.zip -O
         7z x qrenderdoc_3rdparty.zip
     - name: Set up Visual Studio tools
-      uses: microsoft/setup-msbuild@v1.1
+      uses: microsoft/setup-msbuild@v2
     - name: Building solution
       run: msbuild.exe renderdoc.sln "/m" "/p:Configuration=${{ matrix.configuration }}" "/p:Platform=${{ matrix.platform }}" "/p:PlatformToolset=${{ matrix.toolset }}"
       shell: powershell
