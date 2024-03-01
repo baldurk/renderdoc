@@ -2343,34 +2343,6 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
 #include "data/glsl_shaders.h"
 #include "glslang_compile.h"
 
-#if 1
-
-TEST_CASE("DO NOT COMMIT - convenience test", "[spirv]")
-{
-  // this test loads a file from disk and passes it through DXBC::DXBCContainer. Useful for when you
-  // are iterating on a shader and don't want to have to load a whole capture.
-  rdcarray<uint32_t> spirv;
-  FileIO::ReadAll("T:/tmp/a.spv", spirv);
-
-  rdcspv::Reflector spv;
-  spv.Parse(spirv);
-
-  rdcstr entryPoint = spv.EntryPoints()[0].name;
-  ShaderStage stage = spv.EntryPoints()[0].stage;
-
-  ShaderReflection refl;
-  ShaderBindpointMapping mapping;
-  SPIRVPatchData patchData;
-  spv.MakeReflection(GraphicsAPI::Vulkan, stage, entryPoint, {}, refl, mapping, patchData);
-
-  std::map<size_t, uint32_t> instructionLines;
-  rdcstr disasm = spv.Disassemble(entryPoint, instructionLines);
-
-  RDCLOG("%s", disasm.c_str());
-}
-
-#endif
-
 TEST_CASE("Validate SPIR-V reflection", "[spirv][reflection]")
 {
   ShaderType type = ShaderType::Vulkan;
