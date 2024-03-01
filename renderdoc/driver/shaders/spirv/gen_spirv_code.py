@@ -30,9 +30,9 @@ with open(pathname + 'extinst.nonsemantic.shader.debuginfo.100.grammar.json', mo
 registry = ET.parse(pathname + 'spir-v.xml').getroot()
 
 # open the file for write
-header = open(pathname + 'spirv_gen.h', mode='w', newline = nl)
-ops_header = open(pathname + 'spirv_op_helpers.h', mode='w', newline = nl)
-cpp = open(pathname + 'spirv_gen.cpp', mode='w', newline = nl)
+header = open(pathname + 'spirv_gen.h', mode='w', newline = nl, encoding = "utf-8")
+ops_header = open(pathname + 'spirv_op_helpers.h', mode='w', newline = nl, encoding = "utf-8")
+cpp = open(pathname + 'spirv_gen.cpp', mode='w', newline = nl, encoding = "utf-8")
 
 ###############################################################################
 ##

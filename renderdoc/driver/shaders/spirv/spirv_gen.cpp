@@ -12364,7 +12364,7 @@ rdcstr DoStringise(const rdcspv::Generator &el)
     STRINGISE_ENUM_CLASS_NAMED(Taichi, "Taichi from Taichi Graphics - Contact Rendong Liang rendongliang@taichi.graphics, Repo https://github.com/taichi-dev/taichi");
     STRINGISE_ENUM_CLASS_NAMED(HeroCCompiler, "Hero C Compiler from heroseh - https://github.com/heroseh/hcc");
     STRINGISE_ENUM_CLASS_NAMED(SparkSL, "SparkSL from Meta - Contact Dunfan Lu, dunfanlu@meta.com, https://sparkar.facebook.com/ar-studio/learn/sparksl/sparksl-overview");
-    STRINGISE_ENUM_CLASS_NAMED(NazaraShaderLangCompiler, "Nazara ShaderLang Compiler from SirLynix - Contact Jérôme Leclercq, https://github.com/NazaraEngine/ShaderLang");
+    STRINGISE_ENUM_CLASS_NAMED(NazaraShaderLangCompiler, "Nazara ShaderLang Compiler from SirLynix - Contact JÃ©rÃ´me Leclercq, https://github.com/NazaraEngine/ShaderLang");
     STRINGISE_ENUM_CLASS_NAMED(SlangCompiler, "Slang Compiler from NVIDIA - Contact Theresa Foley, tfoley@nvidia.com, https://github.com/shader-slang/slang/");
     STRINGISE_ENUM_CLASS_NAMED(ZigCompiler, "Zig Compiler from Zig Software Foundation - Contact Robin Voetter, https://github.com/Snektron");
   }
