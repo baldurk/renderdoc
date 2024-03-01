@@ -83,7 +83,6 @@ namespace rdcspv
 {
 struct SourceFile
 {
-  SourceLanguage lang;
   rdcstr name;
   rdcstr contents;
 };
@@ -134,6 +133,7 @@ private:
 
   rdcstr cmdline;
   DenseIdMap<rdcstr> strings;
+  SourceLanguage sourceLanguage = SourceLanguage::Unknown;
   rdcarray<SourceFile> sources;
   SparseIdMap<size_t> debugSources;
   SparseIdMap<size_t> compUnitToFileIndex;
