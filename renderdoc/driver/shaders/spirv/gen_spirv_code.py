@@ -369,10 +369,18 @@ rdcstr DoStringise(const rdcspv::{name} &el)
     elif operand_kind['category'] == 'BitEnum':
         operand_kind['size'] = 1
         operand_kind['def_name'] = name[0].lower() + name[1:]
-        operand_kind['def_value'] = name + '::None'
         operand_kind['type'] = name
 
         used = []
+            
+        none = [v['enumerant'] for v in operand_kind['enumerants'] if 'None' in v['enumerant']]
+
+        if len(none) > 0:
+            none = none[0]
+        else:
+            none = 'NoDefValueAvailable'
+
+        operand_kind['def_value'] = name + '::' + none
 
         decl = ''
         stringise = ''
@@ -384,8 +392,8 @@ rdcstr DoStringise(const rdcspv::{name} &el)
 
             used.append(value['value'])
 
-            if value['enumerant'] == 'None':
-                stringise += '    STRINGISE_BITFIELD_CLASS_VALUE(None);\n\n'
+            if value['enumerant'] == none:
+                stringise += '    STRINGISE_BITFIELD_CLASS_VALUE({});\n\n'.format(none)
             else:
                 stringise += '    STRINGISE_BITFIELD_CLASS_BIT({});\n'.format(value['enumerant'])
 
@@ -438,6 +446,11 @@ rdcstr DoStringise(const rdcspv::{name} &el)
         operand_kind['def_name'] = 'num'
         operand_kind['def_value'] = '0'
         operand_kind['type'] = 'uint32_t'
+    elif (operand_kind['kind'] == 'LiteralFloat'):
+        operand_kind['size'] = 1
+        operand_kind['def_name'] = 'flt'
+        operand_kind['def_value'] = '0.0f'
+        operand_kind['type'] = 'float'
     elif (operand_kind['kind'] == 'LiteralString'):
         operand_kind['size'] = -1000000
         operand_kind['type'] = 'rdcstr'
@@ -504,6 +517,10 @@ for operand_kind in spirv['operand_kinds']:
     if not operand_kind['has_params']:
         if operand_kind['category'] == 'ValueEnum':
             ops_header.write('inline uint16_t OptionalWordCount(const {0} val) {{ return val != {0}::Invalid ? 1 : 0; }}\n\n'.format(name))
+        elif operand_kind['category'] == 'BitEnum':
+            none = [v['enumerant'] for v in operand_kind['enumerants'] if 'None' in v['enumerant']]
+            if len(none) > 0:
+                ops_header.write('inline uint16_t OptionalWordCount(const {0} val) {{ return val != {0}::{1} ? 1 : 0; }}\n\n'.format(name, none[0]))
         continue
 
     values = ''

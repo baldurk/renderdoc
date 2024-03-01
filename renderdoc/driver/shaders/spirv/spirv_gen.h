@@ -25,7 +25,7 @@
 /******************************************************************************
  * Generated from Khronos SPIR-V machine-readable JSON grammar.
  *
- * Copyright (c) 2014-2020 The Khronos Group Inc.
+ * Copyright (c) 2014-2024 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and/or associated documentation files (the "Materials"),
@@ -127,6 +127,9 @@ enum class Generator : uint32_t
   Taichi = 36,
   HeroCCompiler = 37,
   SparkSL = 38,
+  NazaraShaderLangCompiler = 39,
+  SlangCompiler = 40,
+  ZigCompiler = 41,
 };
 
 enum class ImageOperands : uint32_t
@@ -166,8 +169,11 @@ enum class FPFastMathMode : uint32_t
   NSZ = 0x0004,
   AllowRecip = 0x0008,
   Fast = 0x0010,
+  AllowContract = 0x10000,
   AllowContractFastINTEL = 0x10000,
+  AllowReassoc = 0x20000,
   AllowReassocINTEL = 0x20000,
+  AllowTransform = 0x40000,
   Max,
   Invalid = ~0U,
 };
@@ -327,6 +333,10 @@ enum class SourceLanguage : uint32_t
   CPP_for_OpenCL = 6,
   SYCL = 7,
   HERO_C = 8,
+  NZSL = 9,
+  WGSL = 10,
+  Slang = 11,
+  Zig = 12,
   Max,
   Invalid = ~0U,
 };
@@ -434,12 +444,19 @@ enum class ExecutionMode : uint32_t
   RoundingModeRTZ = 4463,
   EarlyAndLateFragmentTestsAMD = 5017,
   StencilRefReplacingEXT = 5027,
+  CoalescingAMDX = 5069,
+  MaxNodeRecursionAMDX = 5071,
+  StaticNumWorkgroupsAMDX = 5072,
+  ShaderIndexAMDX = 5073,
+  MaxNumWorkgroupsAMDX = 5077,
   StencilRefUnchangedFrontAMD = 5079,
   StencilRefGreaterFrontAMD = 5080,
   StencilRefLessFrontAMD = 5081,
   StencilRefUnchangedBackAMD = 5082,
   StencilRefGreaterBackAMD = 5083,
   StencilRefLessBackAMD = 5084,
+  QuadDerivativesKHR = 5088,
+  RequireFullQuadsKHR = 5089,
   OutputLinesNV = 5269,
   OutputLinesEXT = 5269,
   OutputPrimitivesNV = 5270,
@@ -464,9 +481,14 @@ enum class ExecutionMode : uint32_t
   NoGlobalOffsetINTEL = 5895,
   NumSIMDWorkitemsINTEL = 5896,
   SchedulerTargetFmaxMhzINTEL = 5903,
+  MaximallyReconvergesKHR = 6023,
+  FPFastMathDefault = 6028,
   StreamingInterfaceINTEL = 6154,
   RegisterMapInterfaceINTEL = 6160,
   NamedBarrierCountINTEL = 6417,
+  MaximumRegistersINTEL = 6461,
+  MaximumRegistersIdINTEL = 6462,
+  NamedMaximumRegistersINTEL = 6463,
   Max,
   Invalid = ~0U,
 };
@@ -487,6 +509,8 @@ enum class StorageClass : uint32_t
   Image = 11,
   StorageBuffer = 12,
   TileImageEXT = 4172,
+  NodePayloadAMDX = 5068,
+  NodeOutputPayloadAMDX = 5076,
   CallableDataNV = 5328,
   CallableDataKHR = 5328,
   IncomingCallableDataNV = 5329,
@@ -636,6 +660,8 @@ enum class ImageChannelDataType : uint32_t
   Float = 14,
   UnormInt24 = 15,
   UnormInt101010_2 = 16,
+  UnsignedIntRaw10EXT = 19,
+  UnsignedIntRaw12EXT = 20,
   Max,
   Invalid = ~0U,
 };
@@ -708,6 +734,16 @@ enum class AccessQualifier : uint32_t
   Invalid = ~0U,
 };
 
+enum class HostAccessQualifier : uint32_t
+{
+  NoneINTEL = 0,
+  ReadINTEL = 1,
+  WriteINTEL = 2,
+  ReadWriteINTEL = 3,
+  Max,
+  Invalid = ~0U,
+};
+
 enum class FunctionParameterAttribute : uint32_t
 {
   Zext = 0,
@@ -776,7 +812,12 @@ enum class Decoration : uint32_t
   NoUnsignedWrap = 4470,
   WeightTextureQCOM = 4487,
   BlockMatchTextureQCOM = 4488,
+  BlockMatchSamplerQCOM = 4499,
   ExplicitInterpAMD = 4999,
+  NodeSharesPayloadLimitsWithAMDX = 5019,
+  NodeMaxPayloadsAMDX = 5020,
+  TrackFinishWritingAMDX = 5078,
+  PayloadNodeNameAMDX = 5091,
   OverrideCoverageNV = 5248,
   PassthroughNV = 5250,
   ViewportRelativeNV = 5252,
@@ -826,6 +867,9 @@ enum class Decoration : uint32_t
   MergeINTEL = 5834,
   BankBitsINTEL = 5835,
   ForcePow2DepthINTEL = 5836,
+  StridesizeINTEL = 5883,
+  WordsizeINTEL = 5884,
+  TrueDualPortINTEL = 5885,
   BurstCoalesceINTEL = 5899,
   CacheSizeINTEL = 5900,
   DontStaticallyCoalesceINTEL = 5901,
@@ -844,6 +888,8 @@ enum class Decoration : uint32_t
   SingleElementVectorINTEL = 6085,
   VectorComputeCallableFunctionINTEL = 6087,
   MediaBlockIOINTEL = 6140,
+  StallFreeINTEL = 6151,
+  FPMaxErrorDecorationINTEL = 6170,
   LatencyControlLabelINTEL = 6172,
   LatencyControlConstraintINTEL = 6173,
   ConduitKernelArgumentINTEL = 6175,
@@ -855,6 +901,11 @@ enum class Decoration : uint32_t
   MMHostInterfaceMaxBurstINTEL = 6181,
   MMHostInterfaceWaitRequestINTEL = 6182,
   StableKernelArgumentINTEL = 6183,
+  HostAccessINTEL = 6188,
+  InitModeINTEL = 6190,
+  ImplementInRegisterMapINTEL = 6191,
+  CacheControlLoadINTEL = 6442,
+  CacheControlStoreINTEL = 6443,
   Max,
   Invalid = ~0U,
 };
@@ -932,6 +983,8 @@ enum class BuiltIn : uint32_t
   BaryCoordSmoothSampleAMD = 4997,
   BaryCoordPullModelAMD = 4998,
   FragStencilRefEXT = 5014,
+  CoalescedInputCountAMDX = 5021,
+  ShaderIndexAMDX = 5073,
   ViewportMaskNV = 5253,
   SecondaryPositionNV = 5257,
   SecondaryViewportMaskNV = 5258,
@@ -985,6 +1038,8 @@ enum class BuiltIn : uint32_t
   HitKindKHR = 5333,
   CurrentRayTimeNV = 5334,
   HitTriangleVertexPositionsKHR = 5335,
+  HitMicroTriangleVertexPositionsNV = 5337,
+  HitMicroTriangleVertexBarycentricsNV = 5344,
   IncomingRayFlagsNV = 5351,
   IncomingRayFlagsKHR = 5351,
   RayGeometryIndexKHR = 5352,
@@ -992,6 +1047,8 @@ enum class BuiltIn : uint32_t
   SMCountNV = 5375,
   WarpIDNV = 5376,
   SMIDNV = 5377,
+  HitKindFrontFacingMicroTriangleNV = 5405,
+  HitKindBackFacingMicroTriangleNV = 5406,
   CullMaskKHR = 6021,
   Max,
   Invalid = ~0U,
@@ -1143,6 +1200,7 @@ enum class Capability : uint32_t
   TextureSampleWeightedQCOM = 4484,
   TextureBoxFilterQCOM = 4485,
   TextureBlockMatchQCOM = 4486,
+  TextureBlockMatch2QCOM = 4498,
   Float16ImageAMD = 5008,
   ImageGatherBiasLodAMD = 5009,
   FragmentMaskAMD = 5010,
@@ -1150,6 +1208,8 @@ enum class Capability : uint32_t
   ImageReadWriteLodAMD = 5015,
   Int64ImageEXT = 5016,
   ShaderClockKHR = 5055,
+  ShaderEnqueueAMDX = 5067,
+  QuadControlKHR = 5087,
   SampleMaskOverrideCoverageNV = 5249,
   GeometryShaderPassthroughNV = 5251,
   ShaderViewportIndexLayerEXT = 5254,
@@ -1209,10 +1269,13 @@ enum class Capability : uint32_t
   FragmentShaderPixelInterlockEXT = 5378,
   DemoteToHelperInvocation = 5379,
   DemoteToHelperInvocationEXT = 5379,
+  DisplacementMicromapNV = 5380,
   RayTracingOpacityMicromapEXT = 5381,
   ShaderInvocationReorderNV = 5383,
   BindlessTextureNV = 5390,
   RayQueryPositionFetchKHR = 5391,
+  AtomicFloat16VectorNV = 5404,
+  RayTracingDisplacementMicromapNV = 5409,
   SubgroupShuffleINTEL = 5568,
   SubgroupBufferBlockIOINTEL = 5569,
   SubgroupImageBlockIOINTEL = 5570,
@@ -1264,20 +1327,29 @@ enum class Capability : uint32_t
   DotProduct = 6019,
   DotProductKHR = 6019,
   RayCullMaskKHR = 6020,
+  CooperativeMatrixKHR = 6022,
   BitInstructions = 6025,
   GroupNonUniformRotateKHR = 6026,
+  FloatControls2 = 6029,
   AtomicFloat32AddEXT = 6033,
   AtomicFloat64AddEXT = 6034,
-  LongConstantCompositeINTEL = 6089,
+  LongCompositesINTEL = 6089,
   OptNoneINTEL = 6094,
   AtomicFloat16AddEXT = 6095,
   DebugInfoModuleINTEL = 6114,
   BFloat16ConversionINTEL = 6115,
   SplitBarrierINTEL = 6141,
+  FPGAClusterAttributesV2INTEL = 6150,
   FPGAKernelAttributesv2INTEL = 6161,
+  FPMaxErrorINTEL = 6169,
   FPGALatencyControlINTEL = 6171,
   FPGAArgumentInterfacesINTEL = 6174,
+  GlobalVariableHostAccessINTEL = 6187,
+  GlobalVariableFPGADecorationsINTEL = 6189,
   GroupUniformArithmeticKHR = 6400,
+  MaskedGatherScatterINTEL = 6427,
+  CacheControlsINTEL = 6441,
+  RegisterLimitsINTEL = 6460,
   Max,
   Invalid = ~0U,
 };
@@ -1311,6 +1383,73 @@ enum class PackedVectorFormat : uint32_t
 {
   PackedVectorFormat4x8Bit = 0,
   PackedVectorFormat4x8BitKHR = 0,
+  Max,
+  Invalid = ~0U,
+};
+
+enum class CooperativeMatrixOperands : uint32_t
+{
+  NoneKHR = 0x0000,
+  MatrixASignedComponentsKHR = 0x0001,
+  MatrixBSignedComponentsKHR = 0x0002,
+  MatrixCSignedComponentsKHR = 0x0004,
+  MatrixResultSignedComponentsKHR = 0x0008,
+  SaturatingAccumulationKHR = 0x0010,
+  Max,
+  Invalid = ~0U,
+};
+
+BITMASK_OPERATORS(CooperativeMatrixOperands);
+
+enum class CooperativeMatrixLayout : uint32_t
+{
+  RowMajorKHR = 0,
+  ColumnMajorKHR = 1,
+  Max,
+  Invalid = ~0U,
+};
+
+enum class CooperativeMatrixUse : uint32_t
+{
+  MatrixAKHR = 0,
+  MatrixBKHR = 1,
+  MatrixAccumulatorKHR = 2,
+  Max,
+  Invalid = ~0U,
+};
+
+enum class InitializationModeQualifier : uint32_t
+{
+  InitOnDeviceReprogramINTEL = 0,
+  InitOnDeviceResetINTEL = 1,
+  Max,
+  Invalid = ~0U,
+};
+
+enum class LoadCacheControl : uint32_t
+{
+  UncachedINTEL = 0,
+  CachedINTEL = 1,
+  StreamingINTEL = 2,
+  InvalidateAfterReadINTEL = 3,
+  ConstCachedINTEL = 4,
+  Max,
+  Invalid = ~0U,
+};
+
+enum class StoreCacheControl : uint32_t
+{
+  UncachedINTEL = 0,
+  WriteThroughINTEL = 1,
+  WriteBackINTEL = 2,
+  StreamingINTEL = 3,
+  Max,
+  Invalid = ~0U,
+};
+
+enum class NamedMaximumNumberOfRegisters : uint32_t
+{
+  AutoINTEL = 0,
   Max,
   Invalid = ~0U,
 };
@@ -1525,11 +1664,31 @@ struct LocalSizeHintIdParams
   Id zsizehint;
 };
 
+struct StaticNumWorkgroupsAMDXParams
+{
+  Id xsize;
+  Id ysize;
+  Id zsize;
+};
+
+struct MaxNumWorkgroupsAMDXParams
+{
+  Id xsize;
+  Id ysize;
+  Id zsize;
+};
+
 struct MaxWorkgroupSizeINTELParams
 {
   uint32_t max_x_size;
   uint32_t max_y_size;
   uint32_t max_z_size;
+};
+
+struct FPFastMathDefaultParams
+{
+  Id targetType;
+  Id fastMathMode;
 };
 
 struct ExecutionModeAndParamData
@@ -1553,6 +1712,10 @@ struct ExecutionModeAndParamData
     uint32_t signedZeroInfNanPreserve;
     uint32_t roundingModeRTE;
     uint32_t roundingModeRTZ;
+    Id maxNodeRecursionAMDX;
+    StaticNumWorkgroupsAMDXParams staticNumWorkgroupsAMDX;
+    Id shaderIndexAMDX;
+    MaxNumWorkgroupsAMDXParams maxNumWorkgroupsAMDX;
     uint32_t outputPrimitivesNV;
     uint32_t outputPrimitivesEXT;
     uint32_t sharedLocalMemorySizeINTEL;
@@ -1564,9 +1727,13 @@ struct ExecutionModeAndParamData
     uint32_t maxWorkDimINTEL;
     uint32_t numSIMDWorkitemsINTEL;
     uint32_t schedulerTargetFmaxMhzINTEL;
+    FPFastMathDefaultParams fPFastMathDefault;
     uint32_t streamingInterfaceINTEL;
     uint32_t registerMapInterfaceINTEL;
     uint32_t namedBarrierCountINTEL;
+    uint32_t maximumRegistersINTEL;
+    Id maximumRegistersIdINTEL;
+    NamedMaximumNumberOfRegisters namedMaximumRegistersINTEL;
   };
   
   operator ExecutionMode() const { return value; }
@@ -1604,6 +1771,18 @@ struct LatencyControlConstraintINTELParams
   uint32_t relativeCycle;
 };
 
+struct CacheControlLoadINTELParams
+{
+  uint32_t cacheLevel;
+  LoadCacheControl cacheControl;
+};
+
+struct CacheControlStoreINTELParams
+{
+  uint32_t cacheLevel;
+  StoreCacheControl cacheControl;
+};
+
 struct DecorationAndParamData
 {
   DecorationAndParamData(Decoration v = Decoration::Invalid) : value(v) {}
@@ -1632,6 +1811,8 @@ struct DecorationAndParamData
     uint32_t maxByteOffset;
     Id alignmentId;
     Id maxByteOffsetId;
+    Id nodeSharesPayloadLimitsWithAMDX;
+    Id nodeMaxPayloadsAMDX;
     uint32_t secondaryViewportRelativeNV;
     uint32_t sIMTCallINTEL;
     uint32_t funcParamIOKindINTEL;
@@ -1646,6 +1827,8 @@ struct DecorationAndParamData
     uint32_t maxReplicatesINTEL;
     uint32_t bankBitsINTEL;
     uint32_t forcePow2DepthINTEL;
+    uint32_t stridesizeINTEL;
+    uint32_t wordsizeINTEL;
     uint32_t cacheSizeINTEL;
     uint32_t prefetchINTEL;
     MathOpDSPModeINTELParams mathOpDSPModeINTEL;
@@ -1657,6 +1840,7 @@ struct DecorationAndParamData
     uint32_t bufferLocationINTEL;
     uint32_t iOPipeStorageINTEL;
     FunctionFloatingPointModeINTELParams functionFloatingPointModeINTEL;
+    float fPMaxErrorDecorationINTEL;
     uint32_t latencyControlLabelINTEL;
     LatencyControlConstraintINTELParams latencyControlConstraintINTEL;
     uint32_t mMHostInterfaceAddressWidthINTEL;
@@ -1665,6 +1849,10 @@ struct DecorationAndParamData
     AccessQualifier mMHostInterfaceReadWriteModeINTEL;
     uint32_t mMHostInterfaceMaxBurstINTEL;
     uint32_t mMHostInterfaceWaitRequestINTEL;
+    InitializationModeQualifier initModeINTEL;
+    uint32_t implementInRegisterMapINTEL;
+    CacheControlLoadINTELParams cacheControlLoadINTEL;
+    CacheControlStoreINTELParams cacheControlStoreINTEL;
   };
   
   operator Decoration() const { return value; }
@@ -2045,6 +2233,11 @@ enum class Op : uint16_t
   UDotAccSatKHR = 4454,
   SUDotAccSat = 4455,
   SUDotAccSatKHR = 4455,
+  TypeCooperativeMatrixKHR = 4456,
+  CooperativeMatrixLoadKHR = 4457,
+  CooperativeMatrixStoreKHR = 4458,
+  CooperativeMatrixMulAddKHR = 4459,
+  CooperativeMatrixLengthKHR = 4460,
   TypeRayQueryKHR = 4472,
   RayQueryInitializeKHR = 4473,
   RayQueryTerminateKHR = 4474,
@@ -2056,6 +2249,10 @@ enum class Op : uint16_t
   ImageBoxFilterQCOM = 4481,
   ImageBlockMatchSSDQCOM = 4482,
   ImageBlockMatchSADQCOM = 4483,
+  ImageBlockMatchWindowSSDQCOM = 4500,
+  ImageBlockMatchWindowSADQCOM = 4501,
+  ImageBlockMatchGatherSSDQCOM = 4502,
+  ImageBlockMatchGatherSADQCOM = 4503,
   GroupIAddNonUniformAMD = 5000,
   GroupFAddNonUniformAMD = 5001,
   GroupFMinNonUniformAMD = 5002,
@@ -2067,6 +2264,11 @@ enum class Op : uint16_t
   FragmentMaskFetchAMD = 5011,
   FragmentFetchAMD = 5012,
   ReadClockKHR = 5056,
+  FinalizeNodePayloadsAMDX = 5075,
+  FinishWritingNodePayloadAMDX = 5078,
+  InitializeNodePayloadsAMDX = 5090,
+  GroupNonUniformQuadAllKHR = 5110,
+  GroupNonUniformQuadAnyKHR = 5111,
   HitObjectRecordHitMotionNV = 5249,
   HitObjectRecordHitWithIndexMotionNV = 5250,
   HitObjectRecordMissMotionNV = 5251,
@@ -2105,6 +2307,8 @@ enum class Op : uint16_t
   SetMeshOutputsEXT = 5295,
   GroupNonUniformPartitionNV = 5296,
   WritePackedPrimitiveIndices4x8NV = 5299,
+  FetchMicroTriangleVertexPositionNV = 5300,
+  FetchMicroTriangleVertexBarycentricNV = 5301,
   ReportIntersectionNV = 5334,
   ReportIntersectionKHR = 5334,
   IgnoreIntersectionNV = 5335,
@@ -2191,6 +2395,7 @@ enum class Op : uint16_t
   TypeStructContinuedINTEL = 6090,
   ConstantCompositeContinuedINTEL = 6091,
   SpecConstantCompositeContinuedINTEL = 6092,
+  CompositeConstructContinuedINTEL = 6096,
   ConvertFToBF16INTEL = 6116,
   ConvertBF16ToFINTEL = 6117,
   ControlBarrierArriveINTEL = 6142,
@@ -2203,6 +2408,8 @@ enum class Op : uint16_t
   GroupLogicalAndKHR = 6406,
   GroupLogicalOrKHR = 6407,
   GroupLogicalXorKHR = 6408,
+  MaskedGatherINTEL = 6428,
+  MaskedScatterINTEL = 6429,
 
   Max,
 };
@@ -2381,6 +2588,7 @@ DECLARE_STRINGISE_TYPE(rdcspv::FPOperationMode);
 DECLARE_STRINGISE_TYPE(rdcspv::OverflowModes);
 DECLARE_STRINGISE_TYPE(rdcspv::LinkageType);
 DECLARE_STRINGISE_TYPE(rdcspv::AccessQualifier);
+DECLARE_STRINGISE_TYPE(rdcspv::HostAccessQualifier);
 DECLARE_STRINGISE_TYPE(rdcspv::FunctionParameterAttribute);
 DECLARE_STRINGISE_TYPE(rdcspv::Decoration);
 DECLARE_STRINGISE_TYPE(rdcspv::BuiltIn);
@@ -2392,3 +2600,10 @@ DECLARE_STRINGISE_TYPE(rdcspv::RayQueryIntersection);
 DECLARE_STRINGISE_TYPE(rdcspv::RayQueryCommittedIntersectionType);
 DECLARE_STRINGISE_TYPE(rdcspv::RayQueryCandidateIntersectionType);
 DECLARE_STRINGISE_TYPE(rdcspv::PackedVectorFormat);
+DECLARE_STRINGISE_TYPE(rdcspv::CooperativeMatrixOperands);
+DECLARE_STRINGISE_TYPE(rdcspv::CooperativeMatrixLayout);
+DECLARE_STRINGISE_TYPE(rdcspv::CooperativeMatrixUse);
+DECLARE_STRINGISE_TYPE(rdcspv::InitializationModeQualifier);
+DECLARE_STRINGISE_TYPE(rdcspv::LoadCacheControl);
+DECLARE_STRINGISE_TYPE(rdcspv::StoreCacheControl);
+DECLARE_STRINGISE_TYPE(rdcspv::NamedMaximumNumberOfRegisters);

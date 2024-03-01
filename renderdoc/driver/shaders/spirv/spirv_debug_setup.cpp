@@ -721,7 +721,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::FPGABufferLocationINTEL:
       case Capability::USMStorageClassesINTEL:
       case Capability::IOPipesINTEL:
-      case Capability::LongConstantCompositeINTEL:
+      case Capability::LongCompositesINTEL:
       case Capability::DebugInfoModuleINTEL:
       case Capability::BindlessTextureNV:
       case Capability::MemoryAccessAliasingINTEL:
@@ -743,6 +743,21 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::FPGAKernelAttributesv2INTEL:
       case Capability::FPGALatencyControlINTEL:
       case Capability::FPGAArgumentInterfacesINTEL:
+      case Capability::TextureBlockMatch2QCOM:
+      case Capability::ShaderEnqueueAMDX:
+      case Capability::QuadControlKHR:
+      case Capability::DisplacementMicromapNV:
+      case Capability::AtomicFloat16VectorNV:
+      case Capability::RayTracingDisplacementMicromapNV:
+      case Capability::CooperativeMatrixKHR:
+      case Capability::FloatControls2:
+      case Capability::FPGAClusterAttributesV2INTEL:
+      case Capability::FPMaxErrorINTEL:
+      case Capability::GlobalVariableFPGADecorationsINTEL:
+      case Capability::MaskedGatherScatterINTEL:
+      case Capability::CacheControlsINTEL:
+      case Capability::RegisterLimitsINTEL:
+      case Capability::GlobalVariableHostAccessINTEL:
       case Capability::Max:
       case Capability::Invalid:
       {

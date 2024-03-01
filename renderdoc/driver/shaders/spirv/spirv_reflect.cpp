@@ -954,6 +954,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       case SourceLanguage::ESSL:
       case SourceLanguage::GLSL: reflection.debugInfo.encoding = ShaderEncoding::GLSL; break;
       case SourceLanguage::HLSL: reflection.debugInfo.encoding = ShaderEncoding::HLSL; break;
+      case SourceLanguage::Slang: reflection.debugInfo.encoding = ShaderEncoding::HLSL; break;
       case SourceLanguage::OpenCL_C:
       case SourceLanguage::OpenCL_CPP:
       case SourceLanguage::CPP_for_OpenCL:
@@ -961,6 +962,9 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       case SourceLanguage::Invalid:
       case SourceLanguage::SYCL:
       case SourceLanguage::HERO_C:
+      case SourceLanguage::NZSL:
+      case SourceLanguage::WGSL:
+      case SourceLanguage::Zig:
       case SourceLanguage::Max: break;
     }
 
@@ -2308,6 +2312,34 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
 #include "catch/catch.hpp"
 #include "data/glsl_shaders.h"
 #include "glslang_compile.h"
+
+#if 1
+
+TEST_CASE("DO NOT COMMIT - convenience test", "[spirv]")
+{
+  // this test loads a file from disk and passes it through DXBC::DXBCContainer. Useful for when you
+  // are iterating on a shader and don't want to have to load a whole capture.
+  rdcarray<uint32_t> spirv;
+  FileIO::ReadAll("T:/tmp/a.spv", spirv);
+
+  rdcspv::Reflector spv;
+  spv.Parse(spirv);
+
+  rdcstr entryPoint = spv.EntryPoints()[0].name;
+  ShaderStage stage = spv.EntryPoints()[0].stage;
+
+  ShaderReflection refl;
+  ShaderBindpointMapping mapping;
+  SPIRVPatchData patchData;
+  spv.MakeReflection(GraphicsAPI::Vulkan, stage, entryPoint, {}, refl, mapping, patchData);
+
+  std::map<size_t, uint32_t> instructionLines;
+  rdcstr disasm = spv.Disassemble(entryPoint, instructionLines);
+
+  RDCLOG("%s", disasm.c_str());
+}
+
+#endif
 
 TEST_CASE("Validate SPIR-V reflection", "[spirv][reflection]")
 {

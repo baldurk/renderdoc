@@ -3796,6 +3796,25 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::RayQueryGetIntersectionTriangleVertexPositionsKHR:
     case Op::ConvertBF16ToFINTEL:
     case Op::ConvertFToBF16INTEL:
+    case Op::TypeCooperativeMatrixKHR:
+    case Op::CooperativeMatrixLoadKHR:
+    case Op::CooperativeMatrixStoreKHR:
+    case Op::CooperativeMatrixMulAddKHR:
+    case Op::CooperativeMatrixLengthKHR:
+    case Op::ImageBlockMatchWindowSSDQCOM:
+    case Op::ImageBlockMatchWindowSADQCOM:
+    case Op::ImageBlockMatchGatherSSDQCOM:
+    case Op::ImageBlockMatchGatherSADQCOM:
+    case Op::FinalizeNodePayloadsAMDX:
+    case Op::FinishWritingNodePayloadAMDX:
+    case Op::InitializeNodePayloadsAMDX:
+    case Op::GroupNonUniformQuadAllKHR:
+    case Op::GroupNonUniformQuadAnyKHR:
+    case Op::FetchMicroTriangleVertexBarycentricNV:
+    case Op::FetchMicroTriangleVertexPositionNV:
+    case Op::CompositeConstructContinuedINTEL:
+    case Op::MaskedGatherINTEL:
+    case Op::MaskedScatterINTEL:
     {
       RDCERR("Unsupported extension opcode used %s", ToStr(opdata.op).c_str());
 
