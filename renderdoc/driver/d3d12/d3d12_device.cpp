@@ -3117,7 +3117,7 @@ void WrappedID3D12Device::UploadBLASBufferAddresses()
   addressBufferResDesc.MipLevels = 1;
   addressBufferResDesc.SampleDesc.Count = 1;
   addressBufferResDesc.SampleDesc.Quality = 0;
-  addressBufferResDesc.Width = requiredSize;
+  addressBufferResDesc.Width = RDCMAX(8ULL, requiredSize);
 
   D3D12_HEAP_PROPERTIES heapProps;
   heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;

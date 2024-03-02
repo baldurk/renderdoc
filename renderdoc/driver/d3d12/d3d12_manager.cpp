@@ -835,6 +835,8 @@ void D3D12RaytracingResourceAndUtilHandler::InitReplayBlasPatchingResources()
         if(!SUCCEEDED(result))
           RDCERR("Unable to create pipeline for patching the BLAS");
       }
+
+      SAFE_RELEASE(rootSig);
     }
   }
   else

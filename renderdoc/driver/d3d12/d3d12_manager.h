@@ -1053,6 +1053,8 @@ public:
     SAFE_RELEASE(m_cmdAlloc);
     SAFE_RELEASE(m_cmdQueue);
     SAFE_RELEASE(m_gpuFence);
+    SAFE_RELEASE(m_accStructPatchInfo.m_rootSignature);
+    SAFE_RELEASE(m_accStructPatchInfo.m_pipeline);
   }
 
   void InitInternalResources();
