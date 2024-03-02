@@ -71,6 +71,9 @@ bool WrappedID3D12Device::Serialise_CreateResource(
   // don't create resources non-resident
   HeapFlags &= ~D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT;
 
+  // don't create displayable heaps (?!)
+  HeapFlags &= ~D3D12_HEAP_FLAG_ALLOW_DISPLAY;
+
   if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER && gpuAddress != 0)
   {
     GPUAddressRange range;

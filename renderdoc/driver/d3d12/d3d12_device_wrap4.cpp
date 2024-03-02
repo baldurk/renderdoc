@@ -249,6 +249,9 @@ bool WrappedID3D12Device::Serialise_CreateHeap1(SerialiserType &ser, const D3D12
     // don't create resources non-resident
     Descriptor.Flags &= ~D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT;
 
+    // don't create displayable heaps (?!)
+    Descriptor.Flags &= ~D3D12_HEAP_FLAG_ALLOW_DISPLAY;
+
     // don't replay with a protected session
     HRESULT hr = E_NOINTERFACE;
     if(m_pDevice4)
