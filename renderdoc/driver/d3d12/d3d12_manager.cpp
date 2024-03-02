@@ -1473,11 +1473,29 @@ void D3D12ResourceManager::SerialiseResourceStates(
 
       for(size_t m = 0; m < States.size(); m++)
       {
-        const D3D12ResourceLayout srcState = states[liveid][m];
-        const D3D12ResourceLayout dstState = States[m];
+        D3D12ResourceLayout srcState = states[liveid][m];
+        D3D12ResourceLayout dstState = States[m];
+
+        // because of some extreme ugliness on the D3D12 side, resources can be created in new
+        // layouts without the new barriers actually being supported. If that's the case, we just
+        // pretend they're in old COMMON to avoid doing the new barrier
+        if(!m_Device->GetOpts12().EnhancedBarriersSupported && srcState.IsLayout())
+        {
+          RDCASSERT(srcState.ToLayout() == D3D12_BARRIER_LAYOUT_COMMON, srcState.ToLayout());
+          srcState = D3D12ResourceLayout::FromStates(D3D12_RESOURCE_STATE_COMMON);
+        }
+
+        if(!m_Device->GetOpts12().EnhancedBarriersSupported && dstState.IsLayout())
+        {
+          RDCASSERT(dstState.ToLayout() == D3D12_BARRIER_LAYOUT_COMMON, dstState.ToLayout());
+          dstState = D3D12ResourceLayout::FromStates(D3D12_RESOURCE_STATE_COMMON);
+        }
+
         if(srcState != dstState)
+        {
           AddStateResetBarrier(srcState, dstState, (ID3D12Resource *)GetCurrentResource(liveid),
                                (UINT)m, barriers);
+        }
       }
     }
 
