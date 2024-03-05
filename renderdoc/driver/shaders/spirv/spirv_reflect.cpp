@@ -684,6 +684,8 @@ void Reflector::RegisterOp(Iter it)
       {
         LineColumnInfo &info = debugFuncToLocation[dbg.result];
 
+        debugFuncName[dbg.result] = strings[dbg.arg<Id>(0)];
+
         // check this source file exists - we won't have registered it if there was no source code
         auto srcit = debugSources.find(dbg.arg<Id>(2));
         if(srcit != debugSources.end())
@@ -1029,10 +1031,15 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   reflection.debugInfo.compileFlags.flags.push_back(
       {"@spirver", StringFormat::Fmt("spirv%d.%d", m_MajorVersion, m_MinorVersion)});
 
+  reflection.debugInfo.entrySourceName = entryPoint;
+
   {
     auto it = funcToDebugFunc.find(entry->id);
     if(it != funcToDebugFunc.end())
     {
+      rdcstr debugEntryName = debugFuncName[it->second];
+      if(!debugEntryName.empty())
+        reflection.debugInfo.entrySourceName = debugEntryName;
       reflection.debugInfo.entryLocation = debugFuncToLocation[it->second];
       if(debugFuncToCmdLine.find(it->second) != debugFuncToCmdLine.end())
         reflection.debugInfo.compileFlags.flags = {{"@cmdline", debugFuncToCmdLine[it->second]}};

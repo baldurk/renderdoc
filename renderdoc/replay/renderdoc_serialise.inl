@@ -275,7 +275,7 @@ void DoSerialise(SerialiserType &ser, ShaderDebugInfo &el)
   SERIALISE_MEMBER(sourceDebugInformation);
   SERIALISE_MEMBER(debugStatus);
 
-  SIZE_CHECK(112);
+  SIZE_CHECK(136);
 }
 
 template <typename SerialiserType>
@@ -310,7 +310,7 @@ void DoSerialise(SerialiserType &ser, ShaderReflection &el)
 
   SERIALISE_MEMBER(taskPayload);
 
-  SIZE_CHECK(456);
+  SIZE_CHECK(480);
 }
 
 template <typename SerialiserType>

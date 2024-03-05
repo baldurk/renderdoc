@@ -1440,6 +1440,13 @@ The first entry in the list is always the file where the entry point is.
 )");
   rdcarray<ShaderSourceFile> files;
 
+  DOCUMENT(R"(The name of the entry point in the source code, not necessarily the same as the
+entry point name exported to the API.
+
+:type: str
+)");
+  rdcstr entrySourceName;
+
   DOCUMENT(R"(The source location of the first executable line or the entry point.
 
 .. note::

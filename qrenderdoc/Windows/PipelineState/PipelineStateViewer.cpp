@@ -1026,7 +1026,7 @@ IShaderViewer *PipelineStateViewer::EditOriginalShaderSource(ResourceId id,
     files.push_back(make_rdcpair(s.filename, s.contents));
   }
 
-  return EditShader(id, shaderDetails->stage, shaderDetails->entryPoint,
+  return EditShader(id, shaderDetails->stage, shaderDetails->debugInfo.entrySourceName,
                     shaderDetails->debugInfo.compileFlags, shaderDetails->debugInfo.compiler,
                     shaderDetails->debugInfo.encoding, files);
 }

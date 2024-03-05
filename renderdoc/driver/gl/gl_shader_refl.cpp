@@ -1228,7 +1228,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
                           const FixedFunctionVertexOutputs &outputUsage)
 {
   refl.stage = MakeShaderStage(shadType);
-  refl.entryPoint = "main";
+  refl.debugInfo.entrySourceName = refl.entryPoint = "main";
   refl.encoding = ShaderEncoding::GLSL;
   refl.debugInfo.compiler = KnownShaderTool::Unknown;
   refl.debugInfo.encoding = ShaderEncoding::GLSL;

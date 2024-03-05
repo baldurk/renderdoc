@@ -285,11 +285,11 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
       break;
   }
 
-  refl->entryPoint = "main";
+  refl->debugInfo.entrySourceName = refl->entryPoint = "main";
 
   if(dxbc->GetDebugInfo())
   {
-    refl->entryPoint = dxbc->GetDebugInfo()->GetEntryFunction();
+    refl->debugInfo.entrySourceName = refl->entryPoint = dxbc->GetDebugInfo()->GetEntryFunction();
 
     refl->debugInfo.encoding = ShaderEncoding::HLSL;
 

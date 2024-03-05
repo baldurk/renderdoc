@@ -140,6 +140,7 @@ private:
   SparseIdMap<size_t> debugFuncToBaseFile;
   SparseIdMap<rdcstr> debugFuncToCmdLine;
   SparseIdMap<LineColumnInfo> debugFuncToLocation;
+  SparseIdMap<rdcstr> debugFuncName;
   SparseIdMap<Id> funcToDebugFunc;
 
   Id curBlock;
