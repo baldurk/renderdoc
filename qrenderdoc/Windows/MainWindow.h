@@ -175,6 +175,7 @@ private slots:
   void on_action_Manage_Remote_Servers_triggered();
   void on_action_Settings_triggered();
   void on_action_View_Documentation_triggered();
+  void on_action_Diagnostic_Log_triggered() { showDiagnosticLogView(); }
   void on_action_Source_on_GitHub_triggered();
   void on_action_Build_Release_Downloads_triggered();
   void on_action_Show_Tips_triggered();
