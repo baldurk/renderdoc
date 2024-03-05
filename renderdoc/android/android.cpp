@@ -440,6 +440,11 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
     paths.push_back(customPath);
   }
 
+  // install the best ABI first, so that for arm64 only devices we can know by the time we go to
+  // install arm32 whether arm64 installed correctly
+  if(abis.size() == 2)
+    std::swap(abis[0], abis[1]);
+
   rdcstr suff = GetPlainABIName(abis[0]);
 
   paths.push_back(libDir + "/plugins/android/");                                  // Windows install
@@ -484,11 +489,6 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
 #endif
   }
 
-  // install the best ABI first, so that for arm64 only devices we can know by the time we go to
-  // install arm32 whether arm64 installed correctly
-  if(abis.size() == 2)
-    std::swap(abis[0], abis[1]);
-
   for(ABI abi : abis)
   {
     apk = apksFolder;
@@ -500,9 +500,12 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
     apk += GetRenderDocPackageForABI(abi) + ".apk";
 
     if(!FileIO::exists(apk))
+    {
       RDCWARN(
           "%s missing - ensure you build all ABIs your device can support for full compatibility",
           apk.c_str());
+      continue;
+    }
 
     rdcstr api =
         Android::adbExecCommand(deviceID, "shell getprop ro.build.version.sdk").strStdout.trimmed();
