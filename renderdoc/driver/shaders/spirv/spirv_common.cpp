@@ -185,6 +185,7 @@ ShaderBuiltin MakeShaderBuiltin(ShaderStage stage, const rdcspv::BuiltIn el)
     case rdcspv::BuiltIn::PrimitiveLineIndicesEXT: return ShaderBuiltin::OutputIndices;
     case rdcspv::BuiltIn::PrimitiveTriangleIndicesEXT: return ShaderBuiltin::OutputIndices;
     case rdcspv::BuiltIn::CullPrimitiveEXT: return ShaderBuiltin::CullPrimitive;
+    case rdcspv::BuiltIn::ShadingRateKHR: return ShaderBuiltin::PackedFragRate;
     default: break;
   }
 
