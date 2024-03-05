@@ -1968,6 +1968,13 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
       if(rs.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL)
         state.outputMerger.stencilReadOnly = true;
     }
+    else
+    {
+      state.outputMerger.depthTarget = D3D12Pipe::View(0);
+
+      state.outputMerger.depthReadOnly = false;
+      state.outputMerger.stencilReadOnly = false;
+    }
 
     state.outputMerger.blendState.blendFactor = rs.blendFactor;
 
