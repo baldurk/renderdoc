@@ -623,10 +623,10 @@ void Reflector::RegisterOp(Iter it)
 
     sourceLanguage = source.sourceLanguage;
 
+    rdcstr name = strings[source.file];
     // don't add empty source statements as actual files
-    if(!source.source.empty())
+    if(!name.empty() || !source.source.empty())
     {
-      rdcstr name = strings[source.file];
       if(name.empty())
         name = "unnamed_shader";
 
@@ -666,7 +666,7 @@ void Reflector::RegisterOp(Iter it)
         rdcstr source = dbg.params.size() > 1 ? strings[dbg.arg<Id>(1)] : rdcstr();
 
         // don't add empty source statements as actual files
-        if(!source.empty())
+        if(!name.empty() || !source.empty())
         {
           debugSources[dbg.result] = sources.size();
           sources.push_back({name, source});
