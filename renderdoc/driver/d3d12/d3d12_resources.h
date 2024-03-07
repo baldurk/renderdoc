@@ -634,6 +634,9 @@ public:
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC *graphics = NULL;
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC *compute = NULL;
 
+  rdcarray<DescriptorAccess> staticDescriptorAccess;
+  bool m_AccessProcessed = false;
+
   void Fill(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &desc)
   {
     if(graphics)
@@ -861,14 +864,14 @@ public:
     TypeEnum = Resource_PipelineState,
   };
 
-  ShaderEntry *VS() { return (ShaderEntry *)graphics->VS.pShaderBytecode; }
-  ShaderEntry *HS() { return (ShaderEntry *)graphics->HS.pShaderBytecode; }
-  ShaderEntry *DS() { return (ShaderEntry *)graphics->DS.pShaderBytecode; }
-  ShaderEntry *GS() { return (ShaderEntry *)graphics->GS.pShaderBytecode; }
-  ShaderEntry *PS() { return (ShaderEntry *)graphics->PS.pShaderBytecode; }
-  ShaderEntry *AS() { return (ShaderEntry *)graphics->AS.pShaderBytecode; }
-  ShaderEntry *MS() { return (ShaderEntry *)graphics->MS.pShaderBytecode; }
-  ShaderEntry *CS() { return (ShaderEntry *)compute->CS.pShaderBytecode; }
+  ShaderEntry *VS() { return graphics ? (ShaderEntry *)graphics->VS.pShaderBytecode : NULL; }
+  ShaderEntry *HS() { return graphics ? (ShaderEntry *)graphics->HS.pShaderBytecode : NULL; }
+  ShaderEntry *DS() { return graphics ? (ShaderEntry *)graphics->DS.pShaderBytecode : NULL; }
+  ShaderEntry *GS() { return graphics ? (ShaderEntry *)graphics->GS.pShaderBytecode : NULL; }
+  ShaderEntry *PS() { return graphics ? (ShaderEntry *)graphics->PS.pShaderBytecode : NULL; }
+  ShaderEntry *AS() { return graphics ? (ShaderEntry *)graphics->AS.pShaderBytecode : NULL; }
+  ShaderEntry *MS() { return graphics ? (ShaderEntry *)graphics->MS.pShaderBytecode : NULL; }
+  ShaderEntry *CS() { return compute ? (ShaderEntry *)compute->CS.pShaderBytecode : NULL; }
   WrappedID3D12PipelineState(ID3D12PipelineState *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
@@ -907,6 +910,8 @@ public:
       SAFE_DELETE(compute);
     }
   }
+
+  void ProcessDescriptorAccess();
 
   //////////////////////////////
   // implement ID3D12PipelineState

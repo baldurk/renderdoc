@@ -2429,7 +2429,57 @@ rdcarray<SamplerDescriptor> D3D12Replay::GetSamplerDescriptors(ResourceId descri
 
 rdcarray<DescriptorAccess> D3D12Replay::GetDescriptorAccess()
 {
-  return {};
+  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+
+  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
+  WrappedID3D12PipelineState *pipe = NULL;
+
+  if(rs.pipe != ResourceId())
+    pipe = rm->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+
+  rdcarray<DescriptorAccess> ret;
+
+  if(pipe)
+  {
+    pipe->ProcessDescriptorAccess();
+
+    ret = pipe->staticDescriptorAccess;
+
+    WrappedID3D12DescriptorHeap *resourceHeap = NULL;
+    WrappedID3D12DescriptorHeap *samplerHeap = NULL;
+    for(ResourceId id : rs.heaps)
+    {
+      WrappedID3D12DescriptorHeap *heap =
+          (WrappedID3D12DescriptorHeap *)rm->GetCurrentAs<ID3D12DescriptorHeap>(id);
+      D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
+      if(desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
+        resourceHeap = heap;
+      else
+        samplerHeap = heap;
+    }
+
+    for(DescriptorAccess &access : ret)
+    {
+      if(access.type == DescriptorType::Sampler)
+        access.descriptorStore =
+            samplerHeap ? rm->GetOriginalID(samplerHeap->GetResourceID()) : ResourceId();
+      else
+        access.descriptorStore =
+            resourceHeap ? rm->GetOriginalID(resourceHeap->GetResourceID()) : ResourceId();
+
+      uint32_t rootIndex = (uint32_t)access.byteSize;
+      access.byteSize = 1;
+
+      // apply the per-parameter offset into the heap here
+      if(pipe->IsGraphics())
+        access.byteOffset += (uint32_t)rs.graphics.sigelems[rootIndex].offset;
+      else
+        access.byteOffset += (uint32_t)rs.compute.sigelems[rootIndex].offset;
+    }
+  }
+
+  return ret;
 }
 
 void D3D12Replay::RenderHighlightBox(float w, float h, float scale)
