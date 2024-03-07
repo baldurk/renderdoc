@@ -212,3 +212,4 @@ The following list highlights notable open source contributions. Many other peop
 * Steve Karolewics - Implemented DXBC shader debugging support for D3D12.
 * Aliya Pazylbekova - Implemented pixel history support for Vulkan.
 * Orson Baines, Zi Ming He, John Kattukudiyil, Ting Cai, Tony Tascioglu - Implemented pixel history support for OpenGL.
+* Steve Karolewics, Jovan Ristic - Implemented pixel history support for D3D12.
