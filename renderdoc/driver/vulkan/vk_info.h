@@ -275,8 +275,13 @@ struct VulkanCreationInfo
 
       // VkPipelineShaderStageRequiredSubgroupSizeCreateInfo
       uint32_t requiredSubgroupSize = 0;
+
+      void ProcessStaticDescriptorAccess(rdcarray<DescriptorAccess> &staticDescriptorAccess,
+                                         rdcarray<const DescSetLayout *> setLayoutInfos) const;
     };
     Shader shaders[NumShaderStages];
+
+    rdcarray<DescriptorAccess> staticDescriptorAccess;
 
     // VkPipelineVertexInputStateCreateInfo
     struct VertBinding

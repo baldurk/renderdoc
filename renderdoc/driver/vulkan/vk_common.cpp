@@ -566,6 +566,8 @@ VkShaderStageFlags ShaderMaskFromIndex(size_t index)
       VK_SHADER_STAGE_MESH_BIT_EXT,
   };
 
+  RDCCOMPILE_ASSERT(ARRAY_COUNT(mask) == NumShaderStages, "Array is out of date");
+
   if(index < ARRAY_COUNT(mask))
     return mask[index];
 

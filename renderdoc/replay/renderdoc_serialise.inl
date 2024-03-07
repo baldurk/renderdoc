@@ -222,6 +222,7 @@ void DoSerialise(SerialiserType &ser, ShaderResource &el)
   SERIALISE_MEMBER(variableType);
   SERIALISE_MEMBER(bindPoint);
   SERIALISE_MEMBER(isTexture);
+  SERIALISE_MEMBER(hasSampler);
   SERIALISE_MEMBER(isReadOnly);
 
   SIZE_CHECK(112);

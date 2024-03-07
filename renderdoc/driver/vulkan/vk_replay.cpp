@@ -2607,7 +2607,46 @@ rdcarray<SamplerDescriptor> VulkanReplay::GetSamplerDescriptors(ResourceId descr
 
 rdcarray<DescriptorAccess> VulkanReplay::GetDescriptorAccess()
 {
-  return {};
+  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
+
+  const VulkanRenderState &state = m_pDriver->m_RenderState;
+
+  rdcarray<DescriptorAccess> ret;
+
+  if(state.graphics.pipeline != ResourceId())
+    ret.append(m_pDriver->m_CreationInfo.m_Pipeline[state.graphics.pipeline].staticDescriptorAccess);
+
+  if(state.compute.pipeline != ResourceId())
+    ret.append(m_pDriver->m_CreationInfo.m_Pipeline[state.compute.pipeline].staticDescriptorAccess);
+
+  for(DescriptorAccess &access : ret)
+  {
+    uint32_t bindset = (uint32_t)access.byteSize;
+    access.byteSize = 1;
+    if(bindset == PushConstantBindSet || bindset == SpecializationConstantBindSet)
+    {
+      // TODO
+    }
+    else
+    {
+      const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descSets =
+          access.stage == ShaderStage::Compute ? state.compute.descSets : state.graphics.descSets;
+
+      if(bindset >= descSets.size())
+      {
+        RDCERR("Unbound descriptor set referenced in static usage");
+      }
+      else
+      {
+        access.descriptorStore = rm->GetOriginalID(descSets[bindset].descSet);
+      }
+    }
+
+    if(access.descriptorStore == ResourceId())
+      access = DescriptorAccess();
+  }
+
+  return ret;
 }
 
 void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, ShaderStage stage,

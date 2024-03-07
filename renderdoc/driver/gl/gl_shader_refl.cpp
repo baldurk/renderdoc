@@ -1757,6 +1757,8 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       continue;
     }
 
+    res.hasSampler = res.isReadOnly;
+
     char *namebuf = new char[values[1] + 1];
     GL.glGetProgramResourceName(sepProg, eGL_UNIFORM, u, values[1], NULL, namebuf);
     namebuf[values[1]] = 0;

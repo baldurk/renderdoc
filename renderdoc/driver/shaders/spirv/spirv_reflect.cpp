@@ -1437,7 +1437,10 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
           Id imageTypeId = varType->id;
 
           if(varType->type == DataType::SampledImageType)
+          {
             imageTypeId = sampledImageTypes[varType->id].baseId;
+            res.hasSampler = true;
+          }
 
           const Image &imageType = imageTypes[imageTypeId];
 
