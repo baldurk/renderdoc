@@ -241,6 +241,7 @@ void WrappedVulkan::vkDestroyBuffer(VkDevice device, VkBuffer buffer, const VkAl
   // opaque capture address isn't re-used before the capture completes
   {
     SCOPED_READLOCK(m_CapTransitionLock);
+    SCOPED_LOCK(m_DeviceAddressResourcesLock);
     if(IsActiveCapturing(m_State) && m_DeviceAddressResources.IDs.contains(GetResID(buffer)))
     {
       m_DeviceAddressResources.DeadBuffers.push_back(buffer);

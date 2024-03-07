@@ -854,6 +854,7 @@ private:
     rdcarray<VkBuffer> DeadBuffers;
     rdcarray<ResourceId> IDs;
   } m_DeviceAddressResources;
+  Threading::CriticalSection m_DeviceAddressResourcesLock;
 
   // holds the current list of coherent mapped memory. Locked against concurrent use
   rdcarray<VkResourceRecord *> m_CoherentMaps;

@@ -657,7 +657,7 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
         memFlags->flags |= VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
 
         {
-          SCOPED_READLOCK(m_CapTransitionLock);
+          SCOPED_LOCK(m_DeviceAddressResourcesLock);
           m_DeviceAddressResources.IDs.push_back(record->GetResourceID());
         }
       }
@@ -772,6 +772,7 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory, const V
     // opaque capture address isn't re-used before the capture completes
     {
       SCOPED_READLOCK(m_CapTransitionLock);
+      SCOPED_LOCK(m_DeviceAddressResourcesLock);
       if(IsActiveCapturing(m_State) && m_DeviceAddressResources.IDs.contains(GetResID(memory)))
       {
         m_DeviceAddressResources.DeadMemories.push_back(memory);
@@ -1798,7 +1799,7 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
         AddForcedReference(record);
 
         {
-          SCOPED_READLOCK(m_CapTransitionLock);
+          SCOPED_LOCK(m_DeviceAddressResourcesLock);
           m_DeviceAddressResources.IDs.push_back(record->GetResourceID());
         }
       }

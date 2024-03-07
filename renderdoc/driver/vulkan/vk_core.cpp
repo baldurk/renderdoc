@@ -2312,8 +2312,11 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
       }
     }
 
-    DeadMemories.swap(m_DeviceAddressResources.DeadMemories);
-    DeadBuffers.swap(m_DeviceAddressResources.DeadBuffers);
+    {
+      SCOPED_LOCK(m_DeviceAddressResourcesLock);
+      DeadMemories.swap(m_DeviceAddressResources.DeadMemories);
+      DeadBuffers.swap(m_DeviceAddressResources.DeadBuffers);
+    }
   }
 
   for(VkDeviceMemory m : DeadMemories)
