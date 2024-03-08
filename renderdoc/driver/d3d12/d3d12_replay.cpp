@@ -2344,8 +2344,111 @@ rdcarray<Descriptor> D3D12Replay::GetDescriptors(ResourceId descriptorStore,
 
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
-  WrappedID3D12DescriptorHeap *heap =
-      (WrappedID3D12DescriptorHeap *)rm->GetCurrentAs<ID3D12DescriptorHeap>(descriptorStore);
+  ID3D12DeviceChild *res = rm->GetCurrentAs<ID3D12DeviceChild>(descriptorStore);
+
+  if(WrappedID3D12PipelineState::IsAlloc(res))
+  {
+    const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+
+    WrappedID3D12PipelineState *pipe = (WrappedID3D12PipelineState *)res;
+
+    // root constants
+    size_t dst = 0;
+    for(const DescriptorRange &r : ranges)
+    {
+      uint32_t rootIndex = r.offset;
+
+      for(uint32_t i = 0; i < r.count; i++, rootIndex++, dst++)
+      {
+        const rdcarray<D3D12RenderState::SignatureElement> &rootElems =
+            pipe->IsGraphics() ? rs.graphics.sigelems : rs.compute.sigelems;
+
+        // either the application didn't set some root elements properly, or we're at an event where
+        // the bindings aren't valid
+        if(rootIndex >= rootElems.size())
+          continue;
+
+        const D3D12RenderState::SignatureElement &rootEl = rootElems[rootIndex];
+
+        Descriptor &d = ret[dst];
+
+        if(rootEl.type == eRootConst)
+        {
+          d.type = DescriptorType::ConstantBuffer;
+          d.flags = DescriptorFlags::InlineData;
+          d.view = ResourceId();
+          // we pretend that the pipeline has all root constants appended together as its blob of
+          // data, so calculate local 'offset' into the root constants
+          d.resource = rm->GetOriginalID(descriptorStore);
+
+          d.byteOffset = 0;
+          for(uint32_t root = 0; root < rootIndex; root++)
+            if(rootElems[root].type == eRootConst)
+              d.byteOffset += rootElems[root].constants.byteSize();
+          d.byteSize = rootEl.constants.byteSize();
+        }
+        else if(rootEl.type == eRootCBV)
+        {
+          d.type = DescriptorType::ConstantBuffer;
+
+          ID3D12Resource *buf = rm->GetCurrentAs<ID3D12Resource>(rootEl.id);
+
+          d.resource = rm->GetOriginalID(rootEl.id);
+          d.byteOffset = rootEl.offset;
+          if(buf)
+            d.byteSize = uint32_t(buf->GetDesc().Width - d.byteOffset);
+          else
+            d.byteSize = 0;
+        }
+        else if(rootEl.type == eRootSRV)
+        {
+          d.type = DescriptorType::Buffer;
+
+          ID3D12Resource *buf = rm->GetCurrentAs<ID3D12Resource>(rootEl.id);
+
+          // parameters from resource/view
+          d.resource = rm->GetOriginalID(rootEl.id);
+          d.textureType = TextureType::Buffer;
+          d.format = MakeResourceFormat(DXGI_FORMAT_R32_UINT);
+
+          d.elementByteSize = sizeof(uint32_t);
+          d.byteOffset = rootEl.offset;
+          if(buf)
+            d.byteSize = uint32_t(buf->GetDesc().Width - rootEl.offset);
+          else
+            d.byteSize = 0;
+        }
+        else if(rootEl.type == eRootUAV)
+        {
+          d.type = DescriptorType::ReadWriteBuffer;
+
+          ID3D12Resource *buf = rm->GetCurrentAs<ID3D12Resource>(rootEl.id);
+
+          // parameters from resource/view
+          d.resource = rm->GetOriginalID(rootEl.id);
+          d.textureType = TextureType::Buffer;
+          d.format = MakeResourceFormat(DXGI_FORMAT_R32_UINT);
+
+          d.elementByteSize = sizeof(uint32_t);
+          d.byteOffset = rootEl.offset;
+          if(buf)
+            d.byteSize = uint32_t(buf->GetDesc().Width - rootEl.offset);
+          else
+            d.byteSize = 0;
+        }
+      }
+    }
+
+    return ret;
+  }
+
+  if(!WrappedID3D12DescriptorHeap::IsAlloc(res))
+  {
+    RDCERR("Invalid/unrecognised descriptor store %s", ToStr(descriptorStore).c_str());
+    return ret;
+  }
+
+  WrappedID3D12DescriptorHeap *heap = (WrappedID3D12DescriptorHeap *)res;
 
   size_t dst = 0;
   for(const DescriptorRange &r : ranges)
@@ -2397,8 +2500,21 @@ rdcarray<SamplerDescriptor> D3D12Replay::GetSamplerDescriptors(ResourceId descri
 
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
-  WrappedID3D12DescriptorHeap *heap =
-      (WrappedID3D12DescriptorHeap *)rm->GetCurrentAs<ID3D12DescriptorHeap>(descriptorStore);
+  ID3D12DeviceChild *res = rm->GetCurrentAs<ID3D12DeviceChild>(descriptorStore);
+
+  if(WrappedID3D12PipelineState::IsAlloc(res))
+  {
+    // root constants, not sampler data
+    return ret;
+  }
+
+  if(!WrappedID3D12DescriptorHeap::IsAlloc(res))
+  {
+    RDCERR("Invalid/unrecognised descriptor store %s", ToStr(descriptorStore).c_str());
+    return ret;
+  }
+
+  WrappedID3D12DescriptorHeap *heap = (WrappedID3D12DescriptorHeap *)res;
 
   size_t dst = 0;
   for(const DescriptorRange &r : ranges)
@@ -2469,13 +2585,26 @@ rdcarray<DescriptorAccess> D3D12Replay::GetDescriptorAccess()
             resourceHeap ? rm->GetOriginalID(resourceHeap->GetResourceID()) : ResourceId();
 
       uint32_t rootIndex = (uint32_t)access.byteSize;
+      const D3D12RenderState::SignatureElement &rootEl =
+          pipe->IsGraphics() ? rs.graphics.sigelems[rootIndex] : rs.compute.sigelems[rootIndex];
       access.byteSize = 1;
 
-      // apply the per-parameter offset into the heap here
-      if(pipe->IsGraphics())
-        access.byteOffset += (uint32_t)rs.graphics.sigelems[rootIndex].offset;
+      // this indicates a root parameter
+      if(access.byteOffset == ~0U)
+      {
+        // root constants and descriptors specify the pipeline as the descriptor storage. The choice here is
+        // somewhat arbitrary (we could use the command buffer, or the root signature), we just need
+        // to be able to distinguish it in GetDescriptors and GetBufferData. Since we don't have
+        // other types of virtual constants to handle we can use the pipeline state directly
+        access.descriptorStore = rm->GetOriginalID(pipe->GetResourceID());
+        access.byteOffset = rootIndex;
+        access.byteSize = 1;
+      }
       else
-        access.byteOffset += (uint32_t)rs.compute.sigelems[rootIndex].offset;
+      {
+        // apply the per-parameter offset into the heap here
+        access.byteOffset += (uint32_t)rootEl.offset;
+      }
     }
   }
 
@@ -3685,8 +3814,46 @@ bool D3D12Replay::NeedRemapForFetch(const ResourceFormat &format)
   return false;
 }
 
-void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, bytebuf &retData)
+void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, bytebuf &ret)
 {
+  ID3D12DeviceChild *res = m_pDevice->GetResourceManager()->GetCurrentResource(buff);
+  if(WrappedID3D12PipelineState::IsAlloc(res))
+  {
+    const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+
+    WrappedID3D12PipelineState *pipe = (WrappedID3D12PipelineState *)res;
+
+    const rdcarray<D3D12RenderState::SignatureElement> &rootElems =
+        pipe->IsGraphics() ? rs.graphics.sigelems : rs.compute.sigelems;
+
+    bytebuf inlineData;
+
+    for(uint32_t i = 0; i < rootElems.size(); i++)
+      if(rootElems[i].type == eRootConst)
+        inlineData.append((byte *)rootElems[i].constants.data(), rootElems[i].constants.byteSize());
+
+    if(offset >= inlineData.size())
+      return;
+
+    if(length == 0 || length > inlineData.size())
+      length = inlineData.size() - offset;
+
+    if(offset + length > inlineData.size())
+    {
+      RDCWARN(
+          "Attempting to read off the end of current push constants (%llu %llu). Will be clamped "
+          "(%llu)",
+          offset, length, inlineData.size());
+      length = RDCMIN(length, inlineData.size() - offset);
+    }
+
+    ret.resize((size_t)length);
+
+    memcpy(ret.data(), inlineData.data() + offset, ret.size());
+
+    return;
+  }
+
   auto it = m_pDevice->GetResourceList().find(buff);
 
   if(it == m_pDevice->GetResourceList().end() || it->second == NULL)
@@ -3707,7 +3874,7 @@ void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t lengt
 
   RDCASSERT(buffer);
 
-  GetDebugManager()->GetBufferData(buffer, offset, length, retData);
+  GetDebugManager()->GetBufferData(buffer, offset, length, ret);
 }
 
 void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, ShaderStage stage,

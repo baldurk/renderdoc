@@ -674,6 +674,27 @@ rdcpair<uint32_t, uint32_t> FindMatchingRootParameter(const D3D12RootSignature *
     if(param.ShaderVisibility != visibility && param.ShaderVisibility != D3D12_SHADER_VISIBILITY_ALL)
       continue;
 
+    // identify root parameters
+    if((
+           // root constants
+           (param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS &&
+            rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV) ||
+           // root CBV
+           (param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV &&
+            rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV) ||
+           // root SRV
+           (param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV &&
+            rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV) ||
+           // root UAV
+           (param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV &&
+            rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)) &&
+       // and matching space/binding
+       param.Descriptor.RegisterSpace == space && param.Descriptor.ShaderRegister == bind)
+    {
+      // offset is unused since it's just the root parameter, so we indicate that with the offset
+      return {root, ~0U};
+    }
+
     uint32_t descOffset = 0;
     for(const D3D12_DESCRIPTOR_RANGE1 &range : param.ranges)
     {
