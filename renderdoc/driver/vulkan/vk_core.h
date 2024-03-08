@@ -752,6 +752,8 @@ private:
   // on replay, the current command buffer for the last chunk we
   // handled.
   ResourceId m_LastCmdBufferID;
+  // the command buffer that last updated the push constants
+  ResourceId m_PushCommandBuffer;
 
   // this is a list of uint64_t file offset -> uint32_t EIDs of where each
   // action is used. E.g. the action at offset 873954 is EID 50. If a
@@ -1379,6 +1381,7 @@ public:
   uint32_t FindCommandQueueFamily(ResourceId cmdId);
   void InsertCommandQueueFamily(ResourceId cmdId, uint32_t queueFamilyIndex);
   VkQueueFlags GetCommandType(ResourceId cmdId);
+  ResourceId GetPushConstantCommandBuffer() { return m_PushCommandBuffer; }
   VkQueueFlags GetCommandType() { return GetCommandType(m_LastCmdBufferID); }
   LockedImageStateRef FindImageState(ResourceId id);
   LockedConstImageStateRef FindConstImageState(ResourceId id);

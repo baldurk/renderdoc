@@ -3925,6 +3925,8 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(SerialiserType &ser, VkCommandB
 
           renderstate.pushConstSize = RDCMAX(renderstate.pushConstSize, start + length);
           renderstate.pushLayout = GetResID(layout);
+
+          m_PushCommandBuffer = m_LastCmdBufferID;
         }
       }
     }

@@ -281,6 +281,10 @@ struct VulkanCreationInfo
     };
     Shader shaders[NumShaderStages];
 
+    // this is the total size of the 'virtualised' specialisation data, where all constants are stored
+    // 64-bit aligned and with an offset equal to their ID. In other words this is big enough for the max ID
+    uint32_t virtualSpecialisationByteSize = 0;
+
     rdcarray<DescriptorAccess> staticDescriptorAccess;
 
     // VkPipelineVertexInputStateCreateInfo

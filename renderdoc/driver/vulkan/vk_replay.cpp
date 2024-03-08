@@ -965,9 +965,99 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
     m_pDriver->SubmitCmds();
 }
 
-void VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData)
+void VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &ret)
 {
-  GetDebugManager()->GetBufferData(buff, offset, len, retData);
+  bytebuf inlineData;
+  bool useInlineData = false;
+
+  // specialisation constants 'descriptor' stored in a pipeline
+  auto pipe = m_pDriver->m_CreationInfo.m_Pipeline.find(buff);
+  if(pipe != m_pDriver->m_CreationInfo.m_Pipeline.end())
+  {
+    const VulkanCreationInfo::Pipeline &p = pipe->second;
+
+    for(size_t i = 0; i < NumShaderStages; i++)
+    {
+      // set up the defaults
+      if(p.shaders[i].mapping && p.shaders[i].refl)
+      {
+        for(size_t cb = 0; cb < p.shaders[i].mapping->constantBlocks.size(); cb++)
+        {
+          if(p.shaders[i].mapping->constantBlocks[cb].bindset == SpecializationConstantBindSet)
+          {
+            for(const ShaderConstant &sc : p.shaders[i].refl->constantBlocks[cb].variables)
+            {
+              inlineData.resize_for_index(sc.byteOffset + sizeof(uint64_t));
+              memcpy(inlineData.data() + sc.byteOffset, &sc.defaultValue, sizeof(uint64_t));
+            }
+            break;
+          }
+        }
+      }
+
+      // apply any specializations
+      for(const SpecConstant &s : p.shaders[i].specialization)
+      {
+        int32_t idx = p.shaders[i].patchData->specIDs.indexOf(s.specID);
+
+        if(idx == -1)
+        {
+          RDCWARN("Couldn't find offset for spec ID %u", s.specID);
+          continue;
+        }
+
+        size_t offs = idx * sizeof(uint64_t);
+
+        inlineData.resize_for_index(offs + sizeof(uint64_t));
+        memcpy(inlineData.data() + offs, &s.value, s.dataSize);
+      }
+    }
+
+    useInlineData = true;
+  }
+
+  // push constants 'descriptor' stored in a command buffer
+  if(WrappedVkCommandBuffer::IsAlloc(GetResourceManager()->GetCurrentResource(buff)))
+  {
+    inlineData.assign(m_pDriver->m_RenderState.pushconsts, m_pDriver->m_RenderState.pushConstSize);
+    useInlineData = true;
+  }
+
+  // inline uniform data inside a descriptor set
+  auto descit = m_pDriver->m_DescriptorSetState.find(buff);
+  if(descit != m_pDriver->m_DescriptorSetState.end())
+  {
+    const WrappedVulkan::DescriptorSetInfo &set = descit->second;
+
+    inlineData = set.data.inlineBytes;
+    useInlineData = true;
+  }
+
+  if(useInlineData)
+  {
+    if(offset >= inlineData.size())
+      return;
+
+    if(len == 0 || len > inlineData.size())
+      len = inlineData.size() - offset;
+
+    if(offset + len > inlineData.size())
+    {
+      RDCWARN(
+          "Attempting to read off the end of current push constants (%llu %llu). Will be clamped "
+          "(%llu)",
+          offset, len, inlineData.size());
+      len = RDCMIN(len, inlineData.size() - offset);
+    }
+
+    ret.resize((size_t)len);
+
+    memcpy(ret.data(), inlineData.data() + offset, ret.size());
+
+    return;
+  }
+
+  GetDebugManager()->GetBufferData(buff, offset, len, ret);
 }
 
 void VulkanReplay::FileChanged()
@@ -2505,6 +2595,7 @@ void VulkanReplay::FillDescriptor(Descriptor &dstel, const DescriptorSetSlot &sr
     dstel.resource = ResourceId();
     dstel.byteOffset = srcel.offset;
     dstel.byteSize = srcel.range;
+    dstel.flags = DescriptorFlags::InlineData;
   }
   else if(descriptorType == DescriptorSlotType::StorageBuffer ||
           descriptorType == DescriptorSlotType::StorageBufferDynamic ||
@@ -2534,7 +2625,60 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
   rdcarray<Descriptor> ret;
   ret.resize(count);
 
-  const WrappedVulkan::DescriptorSetInfo &set = m_pDriver->m_DescriptorSetState[descriptorStore];
+  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
+
+  // specialisation constants 'descriptor' stored in a pipeline
+  auto pipe = m_pDriver->m_CreationInfo.m_Pipeline.find(descriptorStore);
+  if(pipe != m_pDriver->m_CreationInfo.m_Pipeline.end())
+  {
+    // should only be one descriptor referred here, but just munge them all to be the same
+    for(Descriptor &d : ret)
+    {
+      d.type = DescriptorType::ConstantBuffer;
+      d.flags = DescriptorFlags::InlineData;
+      d.view = ResourceId();
+      d.resource = rm->GetOriginalID(descriptorStore);
+      // specialisation constants implicitly always view the whole data, the shader reflection
+      // offsets are absolute (by specialisation ID)
+      d.byteOffset = 0;
+      d.byteSize = pipe->second.virtualSpecialisationByteSize;
+    }
+
+    return ret;
+  }
+
+  // push constants 'descriptor' stored in a command buffer
+  if(WrappedVkCommandBuffer::IsAlloc(rm->GetCurrentResource(descriptorStore)))
+  {
+    const VulkanRenderState &state = m_pDriver->m_RenderState;
+
+    // should only be one descriptor referred here, but just munge them all to be the same
+    for(Descriptor &d : ret)
+    {
+      d.type = DescriptorType::ConstantBuffer;
+      d.flags = DescriptorFlags::InlineData;
+      d.view = ResourceId();
+      d.resource = rm->GetOriginalID(descriptorStore);
+      // push constants also implicitly always view the whole data, since the ranges specified in
+      // the pipeline must match offsets declared in the shader
+      d.byteOffset = 0;
+      // we don't verify that the current command buffer is the one being requested - since push
+      // constants are not valid outside of the current event. We just pretend that all push
+      // constants are the same and mutable
+      d.byteSize = state.pushConstSize;
+    }
+
+    return ret;
+  }
+
+  auto descit = m_pDriver->m_DescriptorSetState.find(descriptorStore);
+  if(descit == m_pDriver->m_DescriptorSetState.end())
+  {
+    RDCERR("Invalid/unrecognised descriptor store %s", ToStr(descriptorStore).c_str());
+    return ret;
+  }
+
+  const WrappedVulkan::DescriptorSetInfo &set = descit->second;
 
   size_t dst = 0;
   for(const DescriptorRange &r : ranges)
@@ -2542,7 +2686,7 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
     const DescriptorSetSlot *desc = set.data.binds[0];
     const DescriptorSetSlot *end = desc + set.data.totalDescriptorCount();
 
-    desc += r.offset;
+    desc += (r.offset - set.data.inlineBytes.size());
 
     for(uint32_t i = 0; i < r.count; i++)
     {
@@ -2553,6 +2697,12 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
       else if(desc->type != DescriptorSlotType::Sampler)
       {
         FillDescriptor(ret[dst], *desc);
+
+        if(ret[dst].flags & DescriptorFlags::InlineData)
+        {
+          // inline data stored in the descriptor set
+          ret[dst].resource = rm->GetOriginalID(descriptorStore);
+        }
       }
 
       dst++;
@@ -2575,7 +2725,29 @@ rdcarray<SamplerDescriptor> VulkanReplay::GetSamplerDescriptors(ResourceId descr
   rdcarray<SamplerDescriptor> ret;
   ret.resize(count);
 
-  const WrappedVulkan::DescriptorSetInfo &set = m_pDriver->m_DescriptorSetState[descriptorStore];
+  // specialisation constants 'descriptor' stored in a pipeline
+  if(m_pDriver->m_CreationInfo.m_Pipeline.find(descriptorStore) !=
+     m_pDriver->m_CreationInfo.m_Pipeline.end())
+  {
+    // not sampler data
+    return ret;
+  }
+
+  // push constants 'descriptor' stored in a command buffer
+  if(WrappedVkCommandBuffer::IsAlloc(GetResourceManager()->GetCurrentResource(descriptorStore)))
+  {
+    // not sampler data
+    return ret;
+  }
+
+  auto descit = m_pDriver->m_DescriptorSetState.find(descriptorStore);
+  if(descit == m_pDriver->m_DescriptorSetState.end())
+  {
+    RDCERR("Invalid/unrecognised descriptor store %s", ToStr(descriptorStore).c_str());
+    return ret;
+  }
+
+  const WrappedVulkan::DescriptorSetInfo &set = descit->second;
 
   size_t dst = 0;
   for(const DescriptorRange &r : ranges)
@@ -2623,9 +2795,17 @@ rdcarray<DescriptorAccess> VulkanReplay::GetDescriptorAccess()
   {
     uint32_t bindset = (uint32_t)access.byteSize;
     access.byteSize = 1;
-    if(bindset == PushConstantBindSet || bindset == SpecializationConstantBindSet)
+    if(bindset == PushConstantBindSet)
     {
-      // TODO
+      // push constants are stored as a virtual descriptor in the command buffer which references
+      // itself for storage
+      access.descriptorStore = m_pDriver->GetPushConstantCommandBuffer();
+    }
+    else if(bindset == SpecializationConstantBindSet)
+    {
+      // push constants are stored as a virtual descriptor in the pipeline, the same way
+      access.descriptorStore = rm->GetOriginalID(
+          access.stage == ShaderStage::Compute ? state.compute.pipeline : state.graphics.pipeline);
     }
     else
     {

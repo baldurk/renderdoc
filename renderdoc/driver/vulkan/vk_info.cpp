@@ -861,7 +861,8 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
     else
     {
       access.byteSize = bind.bindset;
-      access.byteOffset = setLayoutInfos[bind.bindset]->bindings[bind.bind].elemOffset;
+      access.byteOffset = setLayoutInfos[bind.bindset]->bindings[bind.bind].elemOffset +
+                          setLayoutInfos[bind.bindset]->inlineByteSize;
       staticDescriptorAccess.push_back(access);
     }
   }
@@ -1028,6 +1029,9 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
         memcpy(&spec.value, data + maps[s].offset, maps[s].size);
         spec.dataSize = maps[s].size;
         shad.specialization.push_back(spec);
+
+        virtualSpecialisationByteSize =
+            RDCMAX(virtualSpecialisationByteSize, uint32_t((spec.specID + 1) * sizeof(uint64_t)));
       }
     }
 
@@ -1645,6 +1649,9 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
         memcpy(&spec.value, data + maps[s].offset, maps[s].size);
         spec.dataSize = maps[s].size;
         shad.specialization.push_back(spec);
+
+        virtualSpecialisationByteSize =
+            RDCMAX(virtualSpecialisationByteSize, uint32_t((spec.specID + 1) * sizeof(uint64_t)));
       }
     }
 
