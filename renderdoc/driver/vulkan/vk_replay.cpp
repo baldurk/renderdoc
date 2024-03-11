@@ -2516,6 +2516,10 @@ void VulkanReplay::FillSamplerDescriptor(SamplerDescriptor &dstel, const Descrip
   dstel.unnormalized = sampl.unnormalizedCoordinates;
   dstel.seamlessCubemaps = sampl.seamless;
 
+  // immutable samplers set the offset to non-zero so that we can check it here without knowing what
+  // layout this descriptor binding came from
+  dstel.creationTimeConstant = srcel.offset != 0;
+
   if(sampl.ycbcr != ResourceId())
   {
     const VulkanCreationInfo::YCbCrSampler &ycbcr = c.m_YCbCrSampler[sampl.ycbcr];

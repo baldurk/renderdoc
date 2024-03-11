@@ -619,43 +619,7 @@ D3D12Descriptor D3D12DebugAPIWrapper::FindDescriptor(DXBCBytecode::OperandType t
       {
         if(samp.RegisterSpace == slot.registerSpace && samp.ShaderRegister == slot.shaderRegister)
         {
-          D3D12_SAMPLER_DESC2 desc;
-
-          desc.Filter = samp.Filter;
-          desc.AddressU = samp.AddressU;
-          desc.AddressV = samp.AddressV;
-          desc.AddressW = samp.AddressW;
-          desc.MipLODBias = samp.MipLODBias;
-          desc.MaxAnisotropy = samp.MaxAnisotropy;
-          desc.ComparisonFunc = samp.ComparisonFunc;
-          switch(samp.BorderColor)
-          {
-            default:
-            case D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK:
-              desc.FloatBorderColor[0] = desc.FloatBorderColor[1] = desc.FloatBorderColor[2] =
-                  desc.FloatBorderColor[3] = 0.0f;
-              break;
-            case D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK:
-              desc.FloatBorderColor[0] = desc.FloatBorderColor[1] = desc.FloatBorderColor[2] = 0.0f;
-              desc.FloatBorderColor[3] = 1.0f;
-              break;
-            case D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE:
-              desc.FloatBorderColor[0] = desc.FloatBorderColor[1] = desc.FloatBorderColor[2] =
-                  desc.FloatBorderColor[3] = 1.0f;
-              break;
-            case D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK_UINT:
-              desc.UintBorderColor[0] = desc.UintBorderColor[1] = desc.UintBorderColor[2] = 0;
-              desc.UintBorderColor[3] = 1;
-              break;
-            case D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE_UINT:
-              desc.UintBorderColor[0] = desc.UintBorderColor[1] = desc.UintBorderColor[2] =
-                  desc.UintBorderColor[3] = 1;
-              break;
-          }
-          desc.MinLOD = samp.MinLOD;
-          desc.MaxLOD = samp.MaxLOD;
-          desc.Flags = samp.Flags;
-
+          D3D12_SAMPLER_DESC2 desc = ConvertStaticSampler(samp);
           descriptor.Init(&desc);
           return descriptor;
         }

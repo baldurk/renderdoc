@@ -713,6 +713,21 @@ rdcpair<uint32_t, uint32_t> FindMatchingRootParameter(const D3D12RootSignature *
     }
   }
 
+  // if not found above, and looking for samplers, look at static samplers next
+  if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
+  {
+    // indicate that we're looking up static samplers
+    uint32_t numRoots = (uint32_t)sig->Parameters.size();
+    for(uint32_t samp = 0; samp < sig->StaticSamplers.size(); samp++)
+    {
+      if(sig->StaticSamplers[samp].RegisterSpace == space &&
+         sig->StaticSamplers[samp].ShaderRegister == bind)
+      {
+        return {numRoots, samp};
+      }
+    }
+  }
+
   return {~0U, 0};
 }
 

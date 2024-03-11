@@ -716,6 +716,9 @@ struct DescriptorSetSlot
 
   // used for buffers and inline blocks. We could steal some bits here if we needed them since 48
   // bits would be plenty for a long time.
+  //
+  // Immutable samplers set this to 1 to indicate for replay purposes that the sampler came from an
+  // immutable binding when looking purely at the descriptor without knowing its layout
   VkDeviceSize offset;
 
   // resource IDs are kept separate rather than overlapping/union'ing with other types. This

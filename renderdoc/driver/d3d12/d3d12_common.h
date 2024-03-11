@@ -233,6 +233,7 @@ struct BarrierSet
 
 D3D12_DEPTH_STENCIL_DESC2 Upconvert(const D3D12_DEPTH_STENCIL_DESC1 &desc);
 D3D12_RASTERIZER_DESC2 Upconvert(const D3D12_RASTERIZER_DESC &desc);
+D3D12_SAMPLER_DESC2 ConvertStaticSampler(const D3D12_STATIC_SAMPLER_DESC1 &samp);
 
 ShaderStageMask ConvertVisibility(D3D12_SHADER_VISIBILITY ShaderVisibility);
 UINT GetNumSubresources(ID3D12Device *dev, const D3D12_RESOURCE_DESC *desc);

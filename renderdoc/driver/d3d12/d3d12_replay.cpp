@@ -2346,6 +2346,12 @@ rdcarray<Descriptor> D3D12Replay::GetDescriptors(ResourceId descriptorStore,
 
   ID3D12DeviceChild *res = rm->GetCurrentAs<ID3D12DeviceChild>(descriptorStore);
 
+  if(WrappedID3D12RootSignature::IsAlloc(res))
+  {
+    // root signature descriptor storage is for static samplers
+    return ret;
+  }
+
   if(WrappedID3D12PipelineState::IsAlloc(res))
   {
     const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
@@ -2502,6 +2508,32 @@ rdcarray<SamplerDescriptor> D3D12Replay::GetSamplerDescriptors(ResourceId descri
 
   ID3D12DeviceChild *res = rm->GetCurrentAs<ID3D12DeviceChild>(descriptorStore);
 
+  if(WrappedID3D12RootSignature::IsAlloc(res))
+  {
+    WrappedID3D12RootSignature *sig = (WrappedID3D12RootSignature *)res;
+    size_t dst = 0;
+    for(const DescriptorRange &r : ranges)
+    {
+      uint32_t staticIdx = r.offset;
+
+      for(uint32_t i = 0; i < r.count; i++)
+      {
+        if(staticIdx >= sig->sig.StaticSamplers.size())
+        {
+          // silently drop out of bounds descriptor reads
+        }
+        else
+        {
+          FillSamplerDescriptor(ret[dst], ConvertStaticSampler(sig->sig.StaticSamplers[staticIdx]));
+          ret[dst].creationTimeConstant = true;
+        }
+        dst++;
+        staticIdx++;
+      }
+    }
+    return ret;
+  }
+
   if(WrappedID3D12PipelineState::IsAlloc(res))
   {
     // root constants, not sampler data
@@ -2577,6 +2609,20 @@ rdcarray<DescriptorAccess> D3D12Replay::GetDescriptorAccess()
 
     for(DescriptorAccess &access : ret)
     {
+      const D3D12RenderState::RootSignature &rootSig = pipe->IsGraphics() ? rs.graphics : rs.compute;
+
+      uint32_t rootIndex = (uint32_t)access.byteSize;
+      access.byteSize = 1;
+
+      // access off the end of the root signature list indicates a static sampler. We virtualise
+      // this as root signature descriptor storage
+      if(access.type == DescriptorType::Sampler && rootIndex >= rootSig.sigelems.size())
+      {
+        access.descriptorStore = rm->GetOriginalID(rootSig.rootsig);
+        // the access byteOffset is the index of the static sampler
+        continue;
+      }
+
       if(access.type == DescriptorType::Sampler)
         access.descriptorStore =
             samplerHeap ? rm->GetOriginalID(samplerHeap->GetResourceID()) : ResourceId();
@@ -2584,10 +2630,7 @@ rdcarray<DescriptorAccess> D3D12Replay::GetDescriptorAccess()
         access.descriptorStore =
             resourceHeap ? rm->GetOriginalID(resourceHeap->GetResourceID()) : ResourceId();
 
-      uint32_t rootIndex = (uint32_t)access.byteSize;
-      const D3D12RenderState::SignatureElement &rootEl =
-          pipe->IsGraphics() ? rs.graphics.sigelems[rootIndex] : rs.compute.sigelems[rootIndex];
-      access.byteSize = 1;
+      const D3D12RenderState::SignatureElement &rootEl = rootSig.sigelems[rootIndex];
 
       // this indicates a root parameter
       if(access.byteOffset == ~0U)
@@ -2598,7 +2641,6 @@ rdcarray<DescriptorAccess> D3D12Replay::GetDescriptorAccess()
         // other types of virtual constants to handle we can use the pipeline state directly
         access.descriptorStore = rm->GetOriginalID(pipe->GetResourceID());
         access.byteOffset = rootIndex;
-        access.byteSize = 1;
       }
       else
       {

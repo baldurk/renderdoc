@@ -453,6 +453,8 @@ void DescSetLayout::CreateBindingsArray(BindingStorage &bindingStorage, uint32_t
             // samplers set the type from the layout. That way even if the descriptor is never
             // written we still process immutable samplers properly.
             bindingStorage.binds[i][a].type = convert(bindings[i].layoutDescType);
+
+            bindingStorage.binds[i][a].offset = 1;
           }
         }
 
