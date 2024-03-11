@@ -907,36 +907,107 @@ enum class DescriptorType : uint8_t
 
 DECLARE_REFLECTION_ENUM(DescriptorType);
 
-DOCUMENT("Checks if a descriptor type corresponds to a constant buffer in shader reflection.");
-constexpr bool IsConstantBufferDescriptor(DescriptorType type)
+DOCUMENT(R"(The category of a descriptor, corresponding to the interfaces in :class:`ShaderReflection`.
+
+.. data:: Unknown
+
+  An unknown or uninitialised type of descriptor.
+
+.. data:: ConstantBlock
+
+  A constant block.
+
+.. data:: Sampler
+
+  A sampler object.
+
+.. data:: ReadOnlyResource
+
+  A read-only resource.
+
+.. data:: ReadWriteResource
+
+  A read-write resource.
+)");
+enum class DescriptorCategory : uint8_t
 {
-  return type == DescriptorType::ConstantBuffer;
+  Unknown = 0,
+  ConstantBlock,
+  Sampler,
+  ReadOnlyResource,
+  ReadWriteResource,
+};
+
+DECLARE_REFLECTION_ENUM(DescriptorCategory);
+
+DOCUMENT(R"(Get the shader interface category for a given type of descriptor.
+
+:param DescriptorType type: The type of descriptor
+:return: The descriptor category.
+:rtype: DescriptorCategory
+)");
+constexpr DescriptorCategory CategoryForDescriptorType(DescriptorType type)
+{
+  return type == DescriptorType::ConstantBuffer ? DescriptorCategory::ConstantBlock
+
+         : type == DescriptorType::Sampler ? DescriptorCategory::Sampler
+
+         : (type == DescriptorType::ImageSampler || type == DescriptorType::Image ||
+            type == DescriptorType::TypedBuffer || type == DescriptorType::Buffer)
+             ? DescriptorCategory::ReadOnlyResource
+
+         : (type == DescriptorType::ReadWriteBuffer || type == DescriptorType::ReadWriteImage ||
+            type == DescriptorType::ReadWriteTypedBuffer)
+             ? DescriptorCategory::ReadWriteResource
+
+             : DescriptorCategory::Unknown;
+}
+
+DOCUMENT(R"(Checks if a descriptor type corresponds to a constant block in shader reflection.
+
+:param DescriptorType type: The type of descriptor
+:return: ``True`` if the descriptor type is a constant block descriptor.
+:rtype: bool
+)");
+constexpr bool IsConstantBlockDescriptor(DescriptorType type)
+{
+  return CategoryForDescriptorType(type) == DescriptorCategory::ConstantBlock;
 }
 
 DOCUMENT(R"(Checks if a descriptor type corresponds to a sampler in shader reflection. Only dedicated
 sampler types are sampler descriptors, combined image/samplers are reported only as read only
 resources.
+
+:param DescriptorType type: The type of descriptor
+:return: ``True`` if the descriptor type is a sampler descriptor.
+:rtype: bool
 )");
 constexpr bool IsSamplerDescriptor(DescriptorType type)
 {
-  return type == DescriptorType::Sampler;
+  return CategoryForDescriptorType(type) == DescriptorCategory::Sampler;
 }
 
 DOCUMENT(R"(Checks if a descriptor type corresponds to a read only resource in shader reflection.
 Combined image/samplers are reported as read only resources.
+
+:param DescriptorType type: The type of descriptor
+:return: ``True`` if the descriptor type is a read-only resource descriptor.
+:rtype: bool
 )");
 constexpr bool IsReadOnlyDescriptor(DescriptorType type)
 {
-  return type == DescriptorType::ImageSampler || type == DescriptorType::Image ||
-         type == DescriptorType::TypedBuffer;
+  return CategoryForDescriptorType(type) == DescriptorCategory::ReadOnlyResource;
 }
 
 DOCUMENT(R"(Checks if a descriptor type corresponds to a read write resource in shader reflection.
+
+:param DescriptorType type: The type of descriptor
+:return: ``True`` if the descriptor type is a read-write resource descriptor.
+:rtype: bool
 )");
 constexpr bool IsReadWriteDescriptor(DescriptorType type)
 {
-  return type == DescriptorType::ReadWriteBuffer || type == DescriptorType::ReadWriteImage ||
-         type == DescriptorType::ReadWriteTypedBuffer;
+  return CategoryForDescriptorType(type) == DescriptorCategory::ReadWriteResource;
 }
 
 DOCUMENT3(R"(Annotates a particular built-in input or output from a shader with a special meaning to

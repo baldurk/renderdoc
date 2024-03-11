@@ -1909,7 +1909,8 @@ rdcarray<SamplerDescriptor> ReplayProxy::GetSamplerDescriptors(ResourceId descri
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 rdcarray<DescriptorAccess> ReplayProxy::Proxied_GetDescriptorAccess(ParamSerialiser &paramser,
-                                                                    ReturnSerialiser &retser)
+                                                                    ReturnSerialiser &retser,
+                                                                    uint32_t eventId)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_GetDescriptorAccess;
   ReplayProxyPacket packet = eReplayProxy_GetDescriptorAccess;
@@ -1917,13 +1918,14 @@ rdcarray<DescriptorAccess> ReplayProxy::Proxied_GetDescriptorAccess(ParamSeriali
 
   {
     BEGIN_PARAMS();
+    SERIALISE_ELEMENT(eventId);
     END_PARAMS();
   }
 
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      ret = m_Remote->GetDescriptorAccess();
+      ret = m_Remote->GetDescriptorAccess(eventId);
   }
 
   SERIALISE_RETURN(ret);
@@ -1931,9 +1933,9 @@ rdcarray<DescriptorAccess> ReplayProxy::Proxied_GetDescriptorAccess(ParamSeriali
   return ret;
 }
 
-rdcarray<DescriptorAccess> ReplayProxy::GetDescriptorAccess()
+rdcarray<DescriptorAccess> ReplayProxy::GetDescriptorAccess(uint32_t eventId)
 {
-  PROXY_FUNCTION(GetDescriptorAccess);
+  PROXY_FUNCTION(GetDescriptorAccess, eventId);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -3008,7 +3010,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_SavePipelineState: SavePipelineState(0); break;
     case eReplayProxy_GetDescriptors: GetDescriptors(ResourceId(), {}); break;
     case eReplayProxy_GetSamplerDescriptors: GetSamplerDescriptors(ResourceId(), {}); break;
-    case eReplayProxy_GetDescriptorAccess: GetDescriptorAccess(); break;
+    case eReplayProxy_GetDescriptorAccess: GetDescriptorAccess(0); break;
     case eReplayProxy_GetUsage: GetUsage(ResourceId()); break;
     case eReplayProxy_GetLiveID: GetLiveID(ResourceId()); break;
     case eReplayProxy_GetFrameRecord: GetFrameRecord(); break;

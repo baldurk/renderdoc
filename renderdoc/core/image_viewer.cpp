@@ -279,7 +279,7 @@ public:
     ret.resize(count);
     return ret;
   }
-  rdcarray<DescriptorAccess> GetDescriptorAccess() { return {}; }
+  rdcarray<DescriptorAccess> GetDescriptorAccess(uint32_t eventId) { return {}; }
   DriverInformation GetDriverInfo()
   {
     DriverInformation ret = {};

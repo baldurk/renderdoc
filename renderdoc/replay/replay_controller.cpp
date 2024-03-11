@@ -135,7 +135,7 @@ rdcarray<DescriptorAccess> ReplayController::GetDescriptorAccess()
 {
   CHECK_REPLAY_THREAD();
 
-  return m_pDevice->GetDescriptorAccess();
+  return m_pDevice->GetDescriptorAccess(m_EventID);
 }
 
 rdcarray<SamplerDescriptor> ReplayController::GetSamplerDescriptors(

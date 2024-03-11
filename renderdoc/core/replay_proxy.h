@@ -486,7 +486,7 @@ public:
                              const rdcarray<DescriptorRange> &ranges);
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<SamplerDescriptor>, GetSamplerDescriptors,
                              ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges);
-  IMPLEMENT_FUNCTION_PROXIED(rdcarray<DescriptorAccess>, GetDescriptorAccess);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<DescriptorAccess>, GetDescriptorAccess, uint32_t eventId);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<uint32_t>, GetPassEvents, uint32_t eventId);
 

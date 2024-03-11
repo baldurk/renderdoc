@@ -1982,7 +1982,7 @@ rdcarray<SamplerDescriptor> D3D11Replay::GetSamplerDescriptors(ResourceId descri
   return ret;
 }
 
-rdcarray<DescriptorAccess> D3D11Replay::GetDescriptorAccess()
+rdcarray<DescriptorAccess> D3D11Replay::GetDescriptorAccess(uint32_t eventId)
 {
   D3D11RenderState *rs = m_pDevice->GetImmediateContext()->GetCurrentPipelineState();
 

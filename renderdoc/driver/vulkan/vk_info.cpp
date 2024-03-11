@@ -1634,6 +1634,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 
     shad.module = shadid;
     shad.entryPoint = pCreateInfo->stage.pName;
+    shad.stage = ShaderStage::Compute;
 
     ShaderModuleReflectionKey key(ShaderStage::Compute, shad.entryPoint, ResourceId());
 

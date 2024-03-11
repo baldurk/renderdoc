@@ -64,7 +64,7 @@ public:
                                       const rdcarray<DescriptorRange> &ranges);
   rdcarray<SamplerDescriptor> GetSamplerDescriptors(ResourceId descriptorStore,
                                                     const rdcarray<DescriptorRange> &ranges);
-  rdcarray<DescriptorAccess> GetDescriptorAccess();
+  rdcarray<DescriptorAccess> GetDescriptorAccess(uint32_t eventId);
 
   FrameRecord GetFrameRecord();
 

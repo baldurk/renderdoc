@@ -165,7 +165,7 @@ rdcarray<SamplerDescriptor> DummyDriver::GetSamplerDescriptors(ResourceId descri
   return ret;
 }
 
-rdcarray<DescriptorAccess> DummyDriver::GetDescriptorAccess()
+rdcarray<DescriptorAccess> DummyDriver::GetDescriptorAccess(uint32_t eventId)
 {
   return {};
 }

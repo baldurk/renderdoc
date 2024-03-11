@@ -739,6 +739,20 @@ rdcstr DoStringise(const DescriptorType &el)
 }
 
 template <>
+rdcstr DoStringise(const DescriptorCategory &el)
+{
+  BEGIN_ENUM_STRINGISE(DescriptorCategory)
+  {
+    STRINGISE_ENUM_CLASS_NAMED(Unknown, "Unknown");
+    STRINGISE_ENUM_CLASS_NAMED(ConstantBlock, "Constant Block");
+    STRINGISE_ENUM_CLASS_NAMED(Sampler, "Sampler");
+    STRINGISE_ENUM_CLASS_NAMED(ReadOnlyResource, "Read-only Resource");
+    STRINGISE_ENUM_CLASS_NAMED(ReadWriteResource, "Read-write Resource");
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const MessageSource &el)
 {
   BEGIN_ENUM_STRINGISE(MessageSource)

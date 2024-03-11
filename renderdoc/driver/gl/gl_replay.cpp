@@ -2860,7 +2860,7 @@ rdcarray<SamplerDescriptor> GLReplay::GetSamplerDescriptors(ResourceId descripto
   return ret;
 }
 
-rdcarray<DescriptorAccess> GLReplay::GetDescriptorAccess()
+rdcarray<DescriptorAccess> GLReplay::GetDescriptorAccess(uint32_t eventId)
 {
   return m_Access;
 }
