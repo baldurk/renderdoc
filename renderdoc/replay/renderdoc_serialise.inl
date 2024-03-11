@@ -2139,6 +2139,15 @@ void DoSerialise(SerialiserType &ser, VKPipe::DescriptorBinding &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VKPipe::DynamicOffset &el)
+{
+  SERIALISE_MEMBER(descriptorByteOffset);
+  SERIALISE_MEMBER(dynamicBufferByteOffset);
+
+  SIZE_CHECK(16);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VKPipe::DescriptorSet &el)
 {
   SERIALISE_MEMBER(layoutResourceId);
@@ -2149,7 +2158,9 @@ void DoSerialise(SerialiserType &ser, VKPipe::DescriptorSet &el)
 
   SERIALISE_MEMBER(inlineData);
 
-  SIZE_CHECK(72);
+  SERIALISE_MEMBER(dynamicOffsets);
+
+  SIZE_CHECK(96);
 }
 
 template <typename SerialiserType>

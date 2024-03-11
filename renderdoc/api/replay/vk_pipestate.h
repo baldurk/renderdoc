@@ -314,6 +314,39 @@ If :data:`descriptorCount` is 1 then this list has only one element and the bind
   rdcarray<BindingElement> binds;
 };
 
+DOCUMENT("A dynamic offset applied to a single descriptor access.");
+struct DynamicOffset
+{
+  DOCUMENT("");
+  DynamicOffset() = default;
+  DynamicOffset(const DynamicOffset &) = default;
+  DynamicOffset &operator=(const DynamicOffset &) = default;
+
+  bool operator==(const DynamicOffset &o) const
+  {
+    return descriptorByteOffset == o.descriptorByteOffset &&
+           dynamicBufferByteOffset == o.dynamicBufferByteOffset;
+  }
+  bool operator<(const DynamicOffset &o) const
+  {
+    if(!(descriptorByteOffset == o.descriptorByteOffset))
+      return descriptorByteOffset < o.descriptorByteOffset;
+    if(!(dynamicBufferByteOffset == o.dynamicBufferByteOffset))
+      return dynamicBufferByteOffset < o.dynamicBufferByteOffset;
+    return false;
+  }
+  DOCUMENT(R"(The offset in bytes to the descriptor in the storage.
+
+:type: int
+)");
+  uint64_t descriptorByteOffset = 0;
+  DOCUMENT(R"(The dynamic offset to apply to the buffer in bytes.
+
+:type: int
+)");
+  uint64_t dynamicBufferByteOffset = 0;
+};
+
 DOCUMENT("The contents of a descriptor set.");
 struct DescriptorSet
 {
@@ -363,6 +396,16 @@ offset and size into this buffer.
 :type: bytes
 )");
   bytebuf inlineData;
+
+  DOCUMENT(R"(A list of dynamic offsets to be applied to specific bindings, on top of the contents
+of their descriptors.
+
+.. note::
+  The returned values from :meth:`PipeState.GetConstantBuffer` already have these offsets applied.
+
+:type: List[VKDynamicOffset]
+)");
+  rdcarray<DynamicOffset> dynamicOffsets;
 };
 
 DOCUMENT("Describes the object and descriptor set bindings of a Vulkan pipeline object.");
@@ -1477,6 +1520,7 @@ struct State
 
 DECLARE_REFLECTION_STRUCT(VKPipe::BindingElement);
 DECLARE_REFLECTION_STRUCT(VKPipe::DescriptorBinding);
+DECLARE_REFLECTION_STRUCT(VKPipe::DynamicOffset);
 DECLARE_REFLECTION_STRUCT(VKPipe::DescriptorSet);
 DECLARE_REFLECTION_STRUCT(VKPipe::Pipeline);
 DECLARE_REFLECTION_STRUCT(VKPipe::IndexBuffer);

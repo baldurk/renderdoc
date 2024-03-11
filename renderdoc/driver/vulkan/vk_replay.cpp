@@ -2006,6 +2006,65 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   ret.graphics.descriptorSets.resize(state.graphics.descSets.size());
   ret.compute.descriptorSets.resize(state.compute.descSets.size());
 
+  // store dynamic offsets
+  {
+    rdcarray<VKPipe::DescriptorSet> *dsts[] = {
+        &ret.graphics.descriptorSets,
+        &ret.compute.descriptorSets,
+    };
+
+    const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> *srcs[] = {
+        &state.graphics.descSets,
+        &state.compute.descSets,
+    };
+
+    for(size_t p = 0; p < ARRAY_COUNT(srcs); p++)
+    {
+      for(size_t i = 0; i < srcs[p]->size(); i++)
+      {
+        const VulkanStatePipeline::DescriptorAndOffsets &srcData = srcs[p]->at(i);
+        ResourceId sourceSet = srcData.descSet;
+        const uint32_t *srcOffset = srcData.offsets.begin();
+        VKPipe::DescriptorSet &destSet = dsts[p]->at(i);
+
+        destSet.dynamicOffsets.clear();
+
+        if(sourceSet == ResourceId())
+          continue;
+
+        destSet.dynamicOffsets.reserve(srcData.offsets.size());
+
+        VKPipe::DynamicOffset dynOffset;
+
+        const WrappedVulkan::DescriptorSetInfo &descSetState =
+            m_pDriver->m_DescriptorSetState[sourceSet];
+        const DescriptorSetSlot *first = descSetState.data.binds[0];
+        for(size_t b = 0; b < descSetState.data.binds.size(); b++)
+        {
+          const DescSetLayout::Binding &layoutBind =
+              c.m_DescSetLayout[descSetState.layout].bindings[b];
+
+          if(layoutBind.layoutDescType != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC &&
+             layoutBind.layoutDescType != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+            continue;
+
+          uint64_t descriptorByteOffset = descSetState.data.binds[b] - first;
+
+          // inline UBOs aren't dynamic and variable size can't be used with dynamic buffers, so the
+          // count is what it is at definition time
+          for(uint32_t a = 0; a < layoutBind.descriptorCount; a++)
+          {
+            dynOffset.descriptorByteOffset = descriptorByteOffset + a;
+            dynOffset.dynamicBufferByteOffset = *srcOffset;
+            srcOffset++;
+
+            destSet.dynamicOffsets.push_back(dynOffset);
+          }
+        }
+      }
+    }
+  }
+
   {
     rdcarray<VKPipe::DescriptorSet> *dsts[] = {
         &ret.graphics.descriptorSets,
