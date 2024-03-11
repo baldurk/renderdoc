@@ -1465,6 +1465,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
           res.isTexture = res.resType != TextureType::Buffer;
           res.isReadOnly = imageType.sampled != 2 || imageType.dim == rdcspv::Dim::SubpassData;
+          res.isInputAttachment = imageType.dim == rdcspv::Dim::SubpassData;
 
           res.variableType.baseType = imageType.retType.Type();
 

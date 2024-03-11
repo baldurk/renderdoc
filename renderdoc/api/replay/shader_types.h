@@ -1243,7 +1243,7 @@ struct ShaderResource
   {
     return resType == o.resType && name == o.name && variableType == o.variableType &&
            bindPoint == o.bindPoint && isTexture == o.isTexture && hasSampler == o.hasSampler &&
-           isReadOnly == o.isReadOnly;
+           isInputAttachment == o.isInputAttachment && isReadOnly == o.isReadOnly;
   }
   bool operator<(const ShaderResource &o) const
   {
@@ -1259,6 +1259,8 @@ struct ShaderResource
       return isTexture < o.isTexture;
     if(!(hasSampler == o.hasSampler))
       return hasSampler < o.hasSampler;
+    if(!(isInputAttachment == o.isInputAttachment))
+      return isInputAttachment < o.isInputAttachment;
     if(!(isReadOnly == o.isReadOnly))
       return isReadOnly < o.isReadOnly;
     return false;
@@ -1285,6 +1287,8 @@ struct ShaderResource
   bool isTexture;
   DOCUMENT("``True`` if this texture resource has a sampler as well.");
   bool hasSampler = false;
+  DOCUMENT("``True`` if this texture resource is a subpass input attachment.");
+  bool isInputAttachment = false;
   DOCUMENT(R"(``True`` if this resource is available to the shader for reading only, otherwise it is
 able to be read from and written to arbitrarily.
 )");
