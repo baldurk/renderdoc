@@ -284,17 +284,12 @@ ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
         arg = lit("main");
     }
 
-    // allow substring matches from the left, to enable e.g. {hlsl_stage2}_6_0
-    if(arg.left(13) == lit("{glsl_stage4}"))
-      arg.replace(0, 13, glsl_stage4[int(shaderDetails->stage)]);
-    if(arg.left(13) == lit("{hlsl_stage2}"))
-      arg.replace(0, 13, hlsl_stage2[int(shaderDetails->stage)]);
-    if(arg.left(12) == lit("{full_stage}"))
-      arg.replace(0, 12, full_stage[int(shaderDetails->stage)]);
-    if(arg.left(11) == lit("{spirv_ver}"))
-      arg.replace(0, 11, spirvVer);
-    if(arg.left(12) == lit("{vulkan_ver}"))
-      arg.replace(0, 12, vulkanVerForSpirVer(spirvVer));
+    // substring replacements to enable e.g. {hlsl_stage2}_6_0 and ={vulkan_ver}
+    arg.replace(lit("{glsl_stage4}"), glsl_stage4[int(shaderDetails->stage)]);
+    arg.replace(lit("{hlsl_stage2}"), hlsl_stage2[int(shaderDetails->stage)]);
+    arg.replace(lit("{full_stage}"), full_stage[int(shaderDetails->stage)]);
+    arg.replace(lit("{spirv_ver}"), spirvVer);
+    arg.replace(lit("{vulkan_ver}"), vulkanVerForSpirVer(spirvVer));
   }
 
   QFile binHandle(input_file);
@@ -344,17 +339,12 @@ ShaderToolOutput ShaderProcessingTool::CompileShader(QWidget *window, rdcstr sou
     if(arg == lit("{entry_point}"))
       arg = entryPoint;
 
-    // allow substring matches from the left, to enable e.g. {hlsl_stage2}_6_0
-    if(arg.left(13) == lit("{glsl_stage4}"))
-      arg.replace(0, 13, glsl_stage4[int(stage)]);
-    if(arg.left(13) == lit("{hlsl_stage2}"))
-      arg.replace(0, 13, hlsl_stage2[int(stage)]);
-    if(arg.left(12) == lit("{full_stage}"))
-      arg.replace(0, 12, full_stage[int(stage)]);
-    if(arg.left(11) == lit("{spirv_ver}"))
-      arg.replace(0, 11, spirvVer);
-    if(arg.left(12) == lit("{vulkan_ver}"))
-      arg.replace(0, 12, vulkanVerForSpirVer(spirvVer));
+    // substring replacements to enable e.g. {hlsl_stage2}_6_0 and ={vulkan_ver}
+    arg.replace(lit("{glsl_stage4}"), glsl_stage4[int(stage)]);
+    arg.replace(lit("{hlsl_stage2}"), hlsl_stage2[int(stage)]);
+    arg.replace(lit("{full_stage}"), full_stage[int(stage)]);
+    arg.replace(lit("{spirv_ver}"), spirvVer);
+    arg.replace(lit("{vulkan_ver}"), vulkanVerForSpirVer(spirvVer));
   }
 
   QFile binHandle(input_file);
