@@ -3013,6 +3013,28 @@ void ConvertAndFillInColor(ResourceFormat srcFmt, ResourceFormat outFmt,
   if((outFmt.compType == CompType::UInt) || (outFmt.compType == CompType::SInt))
   {
     PixelHistoryDecode(srcFmt, value.color, mod.col);
+    // Clamp values based on format
+    if(outFmt.compType == CompType::UInt)
+    {
+      uint32_t limits[4] = {
+          255,
+          UINT16_MAX,
+          0,
+          UINT32_MAX,
+      };
+      int limit_idx = outFmt.compByteWidth - 1;
+      for(size_t c = 0; c < outFmt.compCount; c++)
+        mod.col.uintValue[c] = RDCMIN(limits[limit_idx], mod.col.uintValue[c]);
+    }
+    else
+    {
+      int32_t limits[8] = {
+          INT8_MIN, INT8_MAX, INT16_MIN, INT16_MAX, 0, 0, INT32_MIN, INT32_MAX,
+      };
+      int limit_idx = 2 * (outFmt.compByteWidth - 1);
+      for(size_t c = 0; c < outFmt.compCount; c++)
+        mod.col.intValue[c] = RDCCLAMP(mod.col.intValue[c], limits[limit_idx], limits[limit_idx + 1]);
+    }
   }
   else
   {
