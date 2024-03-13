@@ -1235,6 +1235,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_TEXEL_BUFFER_ALIGNMENT_SPEC_VERSION,
     },
     {
+        VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME,
+        VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_SPEC_VERSION,
+    },
+    {
         VK_EXT_TOOLING_INFO_EXTENSION_NAME,
         VK_EXT_TOOLING_INFO_SPEC_VERSION,
     },
