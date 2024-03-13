@@ -417,6 +417,8 @@ private:
                         std::function<void(ShaderVarType &, const Decorations &, const DataType &,
                                            uint64_t, const rdcstr &)>
                             callback) const;
+  void SetStructArrayNames(ShaderVariable &c, const DataType *typeWalk,
+                           const rdcarray<SpecConstant> &specInfo);
 
   void MakeSignatureNames(const rdcarray<SPIRVInterfaceAccess> &sigList, rdcarray<rdcstr> &sigNames);
 

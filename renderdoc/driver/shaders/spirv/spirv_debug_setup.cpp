@@ -796,6 +796,36 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
   debugStatus.trim();
 }
 
+void Debugger::SetStructArrayNames(ShaderVariable &c, const DataType *typeWalk,
+                                   const rdcarray<SpecConstant> &specInfo)
+{
+  if(typeWalk->type == DataType::StructType)
+  {
+    RDCASSERTEQUAL(c.members.size(), typeWalk->children.size());
+    for(size_t i = 0; i < c.members.size(); ++i)
+    {
+      const DataType::Child &child = typeWalk->children[i];
+      const DataType *childType = &dataTypes[child.type];
+      if(!child.name.empty())
+        c.members[i].name = child.name;
+      else
+        c.members[i].name = StringFormat::Fmt("_child%d", i);
+
+      SetStructArrayNames(c.members[i], childType, specInfo);
+    }
+  }
+  else if(typeWalk->type == DataType::ArrayType)
+  {
+    uint32_t arraySize = EvaluateConstant(typeWalk->length, specInfo).value.u32v[0];
+    const DataType *childType = &dataTypes[typeWalk->InnerType()];
+    for(size_t i = 0; i < arraySize; ++i)
+    {
+      c.members[i].name = StringFormat::Fmt("[%u]", i);
+      SetStructArrayNames(c.members[i], childType, specInfo);
+    }
+  }
+}
+
 ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage shaderStage,
                                        const rdcstr &entryPoint,
                                        const rdcarray<SpecConstant> &specInfo,
@@ -866,6 +896,15 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
   active.nextInstruction = instructionOffsets.indexOf(functions[entryId].begin);
 
   active.ids.resize(idOffsets.size());
+
+  // array names and struct member names are not set when constants are created
+  for(auto it = constants.begin(); it != constants.end(); ++it)
+  {
+    Constant &c = it->second;
+
+    const DataType *typeWalk = &dataTypes[c.type];
+    SetStructArrayNames(c.value, typeWalk, specInfo);
+  }
 
   // evaluate all constants
   for(auto it = constants.begin(); it != constants.end(); it++)
