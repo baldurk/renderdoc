@@ -72,6 +72,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_load_store_op_none`
 * `VK_EXT_memory_budget`
 * `VK_EXT_memory_priority`
+* `VK_EXT_mesh_shader`
 * `VK_EXT_metal_surface`
 * `VK_EXT_multisampled_render_to_single_sampled`
 * `VK_EXT_mutable_descriptor_type`
@@ -86,6 +87,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_private_data`
 * `VK_EXT_provoking_vertex`
 * `VK_EXT_queue_family_foreign`
+* `VK_EXT_rasterization_order_attachment_access`
 * `VK_EXT_rgba10x6_formats`
 * `VK_EXT_robustness2`
 * `VK_EXT_sample_locations`
@@ -120,6 +122,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_GOOGLE_decorate_string`
 * `VK_GOOGLE_display_timing`
 * `VK_GOOGLE_hlsl_functionality1`
+* `VK_GOOGLE_surfaceless_query`
 * `VK_GOOGLE_user_type`
 * `VK_IMG_filter_cubic`
 * `VK_IMG_format_pvrtc`
@@ -225,6 +228,9 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_NV_shader_subgroup_partitioned`
 * `VK_NV_viewport_array2`
 * `VK_NV_win32_keyed_mutex`
+* `VK_QCOM_fragment_density_map_offset`
+* `VK_QCOM_render_pass_shader_resolve`
+* `VK_QCOM_render_pass_store_ops`
 * `VK_VALVE_mutable_descriptor_type`
 
 # Unsupported
@@ -280,7 +286,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_image_sliced_view_of_3d`
 * `VK_EXT_layer_settings`
 * `VK_EXT_legacy_dithering`
-* `VK_EXT_mesh_shader`
 * `VK_EXT_metal_objects`
 * `VK_EXT_multi_draw`
 * `VK_EXT_nested_command_buffer`
@@ -290,7 +295,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_pipeline_properties`
 * `VK_EXT_pipeline_protected_access`
 * `VK_EXT_pipeline_robustness`
-* `VK_EXT_rasterization_order_attachment_access`
 * `VK_EXT_shader_module_identifier`
 * `VK_EXT_shader_object`
 * `VK_EXT_shader_tile_image`
@@ -323,10 +327,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_FUCHSIA_external_memory`
 * `VK_FUCHSIA_external_semaphore`
 * `VK_FUCHSIA_buffer_collection`
-
-### Google
-
-* `VK_GOOGLE_surfaceless_query`
 
 ### Huawei
 
@@ -389,13 +389,10 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 
 * `VK_QCOM_filter_cubic_clamp`
 * `VK_QCOM_filter_cubic_weights`
-* `VK_QCOM_fragment_density_map_offset`
 * `VK_QCOM_image_processing`
 * `VK_QCOM_image_processing2`
 * `VK_QCOM_multiview_per_view_render_areas`
 * `VK_QCOM_multiview_per_view_viewports`
-* `VK_QCOM_render_pass_shader_resolve`
-* `VK_QCOM_render_pass_store_ops`
 * `VK_QCOM_render_pass_transform`
 * `VK_QCOM_rotated_copy_commands`
 * `VK_QCOM_tile_properties`
