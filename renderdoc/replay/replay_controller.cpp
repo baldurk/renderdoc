@@ -138,6 +138,14 @@ rdcarray<DescriptorAccess> ReplayController::GetDescriptorAccess()
   return m_pDevice->GetDescriptorAccess(m_EventID);
 }
 
+rdcarray<DescriptorLogicalLocation> ReplayController::GetDescriptorLocations(
+    ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges)
+{
+  CHECK_REPLAY_THREAD();
+
+  return m_pDevice->GetDescriptorLocations(m_pDevice->GetLiveID(descriptorStore), ranges);
+}
+
 rdcarray<SamplerDescriptor> ReplayController::GetSamplerDescriptors(
     ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges)
 {

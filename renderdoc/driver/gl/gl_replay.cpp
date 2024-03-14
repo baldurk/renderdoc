@@ -2865,6 +2865,116 @@ rdcarray<DescriptorAccess> GLReplay::GetDescriptorAccess(uint32_t eventId)
   return m_Access;
 }
 
+rdcarray<DescriptorLogicalLocation> GLReplay::GetDescriptorLocations(
+    ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges)
+{
+  rdcarray<DescriptorLogicalLocation> ret;
+
+  if(descriptorStore != m_pDriver->m_DescriptorsID)
+  {
+    RDCERR("Descriptors query for invalid descriptor store on fixed bindings API (OpenGL)");
+    return ret;
+  }
+
+  size_t count = 0;
+  for(const DescriptorRange &r : ranges)
+    count += r.count;
+  ret.resize(count);
+
+  size_t dst = 0;
+  for(const DescriptorRange &r : ranges)
+  {
+    uint32_t descriptorByteOffset = r.offset;
+
+    for(uint32_t i = 0; i < r.count; i++, dst++, descriptorByteOffset++)
+    {
+      DescriptorLogicalLocation &dstLoc = ret[dst];
+      GLDescriptorLocation srcLoc = DecodeGLDescriptorIndex(descriptorByteOffset);
+
+      const char *prefix = "Unknown";
+      dstLoc.stageMask = ShaderStageMask::All;
+      switch(srcLoc.type)
+      {
+        case GLDescriptorMapping::BareUniforms:
+          prefix = "Uniforms";
+          dstLoc.category = DescriptorCategory::ConstantBlock;
+          break;
+        case GLDescriptorMapping::UniformBinding:
+          prefix = "UBO";
+          dstLoc.category = DescriptorCategory::ConstantBlock;
+          break;
+        case GLDescriptorMapping::Tex1D:
+          prefix = "Tex1D";
+          dstLoc.category = DescriptorCategory::ReadOnlyResource;
+          break;
+        case GLDescriptorMapping::Tex2D:
+          prefix = "Tex2D";
+          dstLoc.category = DescriptorCategory::ReadOnlyResource;
+          break;
+        case GLDescriptorMapping::Tex3D:
+          prefix = "Tex3D";
+          dstLoc.category = DescriptorCategory::ReadOnlyResource;
+          break;
+        case GLDescriptorMapping::Tex1DArray:
+          prefix = "Tex1DArray";
+          dstLoc.category = DescriptorCategory::ReadOnlyResource;
+          break;
+        case GLDescriptorMapping::Tex2DArray:
+          prefix = "Tex2DArray";
+          dstLoc.category = DescriptorCategory::ReadOnlyResource;
+          break;
+        case GLDescriptorMapping::TexCubeArray:
+          prefix = "TexCubeArray";
+          dstLoc.category = DescriptorCategory::ReadOnlyResource;
+          break;
+        case GLDescriptorMapping::TexRect:
+          prefix = "TexRect";
+          dstLoc.category = DescriptorCategory::ReadOnlyResource;
+          break;
+        case GLDescriptorMapping::TexBuffer:
+          prefix = "TexBuffer";
+          dstLoc.category = DescriptorCategory::ReadOnlyResource;
+          break;
+        case GLDescriptorMapping::TexCube:
+          prefix = "TexCube";
+          dstLoc.category = DescriptorCategory::ReadOnlyResource;
+          break;
+        case GLDescriptorMapping::Tex2DMS:
+          prefix = "Tex2DMS";
+          dstLoc.category = DescriptorCategory::ReadOnlyResource;
+          break;
+        case GLDescriptorMapping::Tex2DMSArray:
+          prefix = "Tex2DMSArray";
+          dstLoc.category = DescriptorCategory::ReadOnlyResource;
+          break;
+        case GLDescriptorMapping::Images:
+          prefix = "Image";
+          dstLoc.category = DescriptorCategory::ReadWriteResource;
+          break;
+        case GLDescriptorMapping::AtomicCounter:
+          prefix = "Atomic";
+          dstLoc.category = DescriptorCategory::ReadWriteResource;
+          break;
+        case GLDescriptorMapping::ShaderStorage:
+          prefix = "SSBO";
+          dstLoc.category = DescriptorCategory::ReadWriteResource;
+          break;
+        case GLDescriptorMapping::Count:
+        case GLDescriptorMapping::Invalid: dstLoc.category = DescriptorCategory::Unknown; break;
+      }
+      dstLoc.fixedBindNumber = srcLoc.idx;
+
+      if(srcLoc.type == GLDescriptorMapping::BareUniforms)
+        dstLoc.logicalBindName =
+            StringFormat::Fmt("%s %s", prefix, ToStr(ShaderStage(srcLoc.idx)).c_str());
+      else
+        dstLoc.logicalBindName = StringFormat::Fmt("%s %u", prefix, srcLoc.idx);
+    }
+  }
+
+  return ret;
+}
+
 void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool bufferBacked,
                                           rdcstr prefix, const rdcarray<ShaderConstant> &variables,
                                           rdcarray<ShaderVariable> &outvars,

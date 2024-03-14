@@ -595,6 +595,16 @@ Multiple ranges within the store can be queried at once, and are returned in a c
 )");
   virtual rdcarray<DescriptorAccess> GetDescriptorAccess() = 0;
 
+  DOCUMENT(R"(Retrieve the logical locations for descriptors in a given descriptor store.
+
+:param ResourceId descriptorStore: The descriptor store to be queried from.
+:param List[DescriptorRange] ranges: The descriptor ranges to query.
+:return: The descriptor logical locations.
+:rtype: List[DescriptorLogicalLocation]
+)");
+  virtual rdcarray<DescriptorLogicalLocation> GetDescriptorLocations(
+      ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges) = 0;
+
   DOCUMENT(R"(Retrieve the list of possible disassembly targets for :meth:`DisassembleShader`. The
 values are implementation dependent but will always include a default target first which is the
 native disassembly of the shader. Further options may be available for additional diassembly views

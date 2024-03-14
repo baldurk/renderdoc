@@ -170,6 +170,12 @@ rdcarray<DescriptorAccess> DummyDriver::GetDescriptorAccess(uint32_t eventId)
   return {};
 }
 
+rdcarray<DescriptorLogicalLocation> DummyDriver::GetDescriptorLocations(
+    ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges)
+{
+  return {};
+}
+
 FrameRecord DummyDriver::GetFrameRecord()
 {
   return m_FrameRecord;

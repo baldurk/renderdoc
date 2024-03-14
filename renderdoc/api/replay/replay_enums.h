@@ -4771,7 +4771,7 @@ DOCUMENT(R"(A set of flags for ``ShaderStage`` stages
 
   A shorthand version with flags set for all stages together.
 )");
-enum class ShaderStageMask : uint32_t
+enum class ShaderStageMask : uint16_t
 {
   Unknown = 0,
   Vertex = 1 << uint32_t(ShaderStage::Vertex),

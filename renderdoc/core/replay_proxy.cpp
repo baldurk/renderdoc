@@ -101,6 +101,7 @@ rdcstr DoStringise(const ReplayProxyPacket &el)
     STRINGISE_ENUM_NAMED(eReplayProxy_GetDescriptors, "GetDescriptors");
     STRINGISE_ENUM_NAMED(eReplayProxy_GetSamplerDescriptors, "GetSamplerDescriptors");
     STRINGISE_ENUM_NAMED(eReplayProxy_GetDescriptorAccess, "GetDescriptorAccess");
+    STRINGISE_ENUM_NAMED(eReplayProxy_GetDescriptorLocations, "GetDescriptorLocations");
   }
   END_ENUM_STRINGISE();
 }
@@ -1939,6 +1940,39 @@ rdcarray<DescriptorAccess> ReplayProxy::GetDescriptorAccess(uint32_t eventId)
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
+rdcarray<DescriptorLogicalLocation> ReplayProxy::Proxied_GetDescriptorLocations(
+    ParamSerialiser &paramser, ReturnSerialiser &retser, ResourceId descriptorStore,
+    const rdcarray<DescriptorRange> &ranges)
+{
+  const ReplayProxyPacket expectedPacket = eReplayProxy_GetDescriptorLocations;
+  ReplayProxyPacket packet = eReplayProxy_GetDescriptorLocations;
+  rdcarray<DescriptorLogicalLocation> ret;
+
+  {
+    BEGIN_PARAMS();
+    SERIALISE_ELEMENT(descriptorStore);
+    SERIALISE_ELEMENT(ranges);
+    END_PARAMS();
+  }
+
+  {
+    REMOTE_EXECUTION();
+    if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
+      ret = m_Remote->GetDescriptorLocations(descriptorStore, ranges);
+  }
+
+  SERIALISE_RETURN(ret);
+
+  return ret;
+}
+
+rdcarray<DescriptorLogicalLocation> ReplayProxy::GetDescriptorLocations(
+    ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges)
+{
+  PROXY_FUNCTION(GetDescriptorLocations, descriptorStore, ranges);
+}
+
+template <typename ParamSerialiser, typename ReturnSerialiser>
 void ReplayProxy::Proxied_ReplayLog(ParamSerialiser &paramser, ReturnSerialiser &retser,
                                     uint32_t endEventID, ReplayLogType replayType)
 {
@@ -3011,6 +3045,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_GetDescriptors: GetDescriptors(ResourceId(), {}); break;
     case eReplayProxy_GetSamplerDescriptors: GetSamplerDescriptors(ResourceId(), {}); break;
     case eReplayProxy_GetDescriptorAccess: GetDescriptorAccess(0); break;
+    case eReplayProxy_GetDescriptorLocations: GetDescriptorLocations(ResourceId(), {}); break;
     case eReplayProxy_GetUsage: GetUsage(ResourceId()); break;
     case eReplayProxy_GetLiveID: GetLiveID(ResourceId()); break;
     case eReplayProxy_GetFrameRecord: GetFrameRecord(); break;

@@ -3007,6 +3007,128 @@ rdcarray<DescriptorAccess> VulkanReplay::GetDescriptorAccess(uint32_t eventId)
   return ret;
 }
 
+rdcarray<DescriptorLogicalLocation> VulkanReplay::GetDescriptorLocations(
+    ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges)
+{
+  rdcarray<DescriptorLogicalLocation> ret;
+
+  size_t count = 0;
+  for(const DescriptorRange &r : ranges)
+    count += r.count;
+  ret.resize(count);
+
+  // specialisation constants 'descriptor' stored in a pipeline
+  auto pipe = m_pDriver->m_CreationInfo.m_Pipeline.find(descriptorStore);
+  if(pipe != m_pDriver->m_CreationInfo.m_Pipeline.end())
+  {
+    // should only be one descriptor referred here, but just munge them all to be the same
+    for(DescriptorLogicalLocation &d : ret)
+    {
+      d.category = DescriptorCategory::ConstantBlock;
+      d.fixedBindNumber = ~0U - 2;
+      d.logicalBindName = "Specialization";
+    }
+
+    return ret;
+  }
+
+  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
+
+  // push constants 'descriptor' stored in a command buffer
+  if(WrappedVkCommandBuffer::IsAlloc(rm->GetCurrentResource(descriptorStore)))
+  {
+    // should only be one descriptor referred here, but just munge them all to be the same
+    for(DescriptorLogicalLocation &d : ret)
+    {
+      d.category = DescriptorCategory::ConstantBlock;
+      d.fixedBindNumber = ~0U - 1;
+      d.logicalBindName = "Push constants";
+    }
+
+    return ret;
+  }
+
+  auto descit = m_pDriver->m_DescriptorSetState.find(descriptorStore);
+  if(descit == m_pDriver->m_DescriptorSetState.end())
+  {
+    RDCERR("Invalid/unrecognised descriptor store %s", ToStr(descriptorStore).c_str());
+    return ret;
+  }
+
+  const WrappedVulkan::DescriptorSetInfo &descState = descit->second;
+  uint32_t varDescCount = descState.data.variableDescriptorCount;
+
+  const DescSetLayout &descLayout = m_pDriver->m_CreationInfo.m_DescSetLayout[descState.layout];
+
+  size_t dst = 0;
+  for(const DescriptorRange &r : ranges)
+  {
+    uint32_t descriptorOffset = r.offset;
+
+    const DescSetLayout::Binding *bind = descLayout.bindings.data();
+    const DescSetLayout::Binding *firstBind = bind;
+    const DescSetLayout::Binding *lastBind = bind + descLayout.bindings.size();
+
+    for(uint32_t i = 0; i < r.count; i++, dst++, descriptorOffset++)
+    {
+      while(bind < lastBind &&
+            descLayout.inlineByteSize + bind->elemOffset + bind->GetDescriptorCount(varDescCount) <=
+                descriptorOffset)
+        bind++;
+
+      if(bind >= lastBind)
+      {
+        RDCERR("Ran off end of descriptor layout looking for matching offset");
+        break;
+      }
+
+      DescriptorLogicalLocation &d = ret[dst];
+
+      const DescriptorSetSlot *slot = descState.data.binds[0] + descriptorOffset;
+
+      switch(slot->type)
+      {
+        case DescriptorSlotType::Sampler: d.category = DescriptorCategory::Sampler; break;
+        case DescriptorSlotType::UniformBuffer:
+        case DescriptorSlotType::InlineBlock:
+        case DescriptorSlotType::UniformBufferDynamic:
+        case DescriptorSlotType::SampledImage:
+        case DescriptorSlotType::CombinedImageSampler:
+        case DescriptorSlotType::UniformTexelBuffer:
+        case DescriptorSlotType::InputAttachment:
+        case DescriptorSlotType::AccelerationStructure:
+          d.category = DescriptorCategory::ReadOnlyResource;
+          break;
+        case DescriptorSlotType::StorageBuffer:
+        case DescriptorSlotType::StorageBufferDynamic:
+        case DescriptorSlotType::StorageImage:
+        case DescriptorSlotType::StorageTexelBuffer:
+          d.category = DescriptorCategory::ReadWriteResource;
+          break;
+        case DescriptorSlotType::Unwritten:
+        case DescriptorSlotType::Count: d.category = DescriptorCategory::Unknown; break;
+      }
+
+      if(bind->stageFlags == VK_SHADER_STAGE_ALL)
+        d.stageMask = ShaderStageMask::All;
+      else
+        d.stageMask = (ShaderStageMask)bind->stageFlags;
+      // we only have one bind number, for simplicity, so we put the bind here and omit the array
+      // element entirely. Users that want to decode this are expected to either be aware of arrays
+      // and determine that contiguous identical bind numbers are arrays, or display with the
+      // logical name string below
+      d.fixedBindNumber = uint32_t(bind - firstBind);
+      if(bind->descriptorCount > 1 && bind->layoutDescType != VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+        d.logicalBindName = StringFormat::Fmt("%zu[%u]", size_t(bind - firstBind),
+                                              descriptorOffset - bind->elemOffset);
+      else
+        d.logicalBindName = StringFormat::Fmt("%zu", size_t(bind - firstBind));
+    }
+  }
+
+  return ret;
+}
+
 void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, ShaderStage stage,
                                         rdcstr entryPoint, uint32_t cbufSlot,
                                         rdcarray<ShaderVariable> &outvars, const bytebuf &data)

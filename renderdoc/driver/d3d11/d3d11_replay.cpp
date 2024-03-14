@@ -2003,6 +2003,64 @@ rdcarray<DescriptorAccess> D3D11Replay::GetDescriptorAccess(uint32_t eventId)
   return ret;
 }
 
+rdcarray<DescriptorLogicalLocation> D3D11Replay::GetDescriptorLocations(
+    ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges)
+{
+  rdcarray<DescriptorLogicalLocation> ret;
+
+  if(descriptorStore != m_pImmediateContext->GetDescriptorsID())
+  {
+    RDCERR("Descriptors query for invalid descriptor store on fixed bindings API (D3D11)");
+    return ret;
+  }
+
+  size_t count = 0;
+  for(const DescriptorRange &r : ranges)
+    count += r.count;
+  ret.resize(count);
+
+  size_t dst = 0;
+  for(const DescriptorRange &r : ranges)
+  {
+    uint32_t descriptorByteOffset = r.offset;
+
+    for(uint32_t i = 0; i < r.count; i++, dst++, descriptorByteOffset++)
+    {
+      DescriptorLogicalLocation &dstLoc = ret[dst];
+      D3D11DescriptorLocation srcLoc = DecodeD3D11DescriptorIndex(descriptorByteOffset);
+
+      dstLoc.stageMask = MaskForStage(srcLoc.stage);
+      char typePrefix = '?';
+      switch(srcLoc.type)
+      {
+        case D3D11DescriptorMapping::CBs:
+          typePrefix = 'b';
+          dstLoc.category = DescriptorCategory::ConstantBlock;
+          break;
+        case D3D11DescriptorMapping::Samplers:
+          typePrefix = 's';
+          dstLoc.category = DescriptorCategory::Sampler;
+          break;
+        case D3D11DescriptorMapping::SRVs:
+          typePrefix = 't';
+          dstLoc.category = DescriptorCategory::ReadOnlyResource;
+          break;
+        case D3D11DescriptorMapping::UAVs:
+          typePrefix = 'u';
+          dstLoc.category = DescriptorCategory::ReadWriteResource;
+          break;
+        case D3D11DescriptorMapping::Count:
+        case D3D11DescriptorMapping::Invalid: dstLoc.category = DescriptorCategory::Unknown; break;
+      }
+      dstLoc.fixedBindNumber = srcLoc.idx;
+
+      dstLoc.logicalBindName = StringFormat::Fmt("%c%u", typePrefix, srcLoc.idx);
+    }
+  }
+
+  return ret;
+}
+
 RDResult D3D11Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   return m_pDevice->ReadLogInitialisation(rdc, storeStructuredBuffers);

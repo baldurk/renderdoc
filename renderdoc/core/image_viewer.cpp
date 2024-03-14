@@ -280,6 +280,11 @@ public:
     return ret;
   }
   rdcarray<DescriptorAccess> GetDescriptorAccess(uint32_t eventId) { return {}; }
+  rdcarray<DescriptorLogicalLocation> GetDescriptorLocations(ResourceId descriptorStore,
+                                                             const rdcarray<DescriptorRange> &ranges)
+  {
+    return {};
+  }
   DriverInformation GetDriverInfo()
   {
     DriverInformation ret = {};

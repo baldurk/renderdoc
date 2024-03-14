@@ -109,6 +109,13 @@ struct DescSetLayout
     VkShaderStageFlags stageFlags : 31;
     uint32_t variableSize : 1;
     ResourceId *immutableSampler;
+
+    inline uint32_t GetDescriptorCount(uint32_t varDescriptorSize) const
+    {
+      if(variableSize)
+        return varDescriptorSize;
+      return descriptorCount;
+    }
   };
   rdcarray<Binding> bindings;
 

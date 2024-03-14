@@ -2810,6 +2810,129 @@ rdcarray<DescriptorAccess> D3D12Replay::GetDescriptorAccess(uint32_t eventId)
   return ret;
 }
 
+rdcarray<DescriptorLogicalLocation> D3D12Replay::GetDescriptorLocations(
+    ResourceId descriptorStore, const rdcarray<DescriptorRange> &ranges)
+{
+  rdcarray<DescriptorLogicalLocation> ret;
+
+  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
+  ID3D12DeviceChild *res = rm->GetCurrentAs<ID3D12DeviceChild>(descriptorStore);
+
+  size_t count = 0;
+  for(const DescriptorRange &r : ranges)
+    count += r.count;
+  ret.resize(count);
+
+  // for sort keys we have the top 32-bits be the lower 32-bits of the store ResourceID, or 1 or 2
+  // for static samplers and root constants. Then the lower 32-bits are an index
+
+  if(WrappedID3D12RootSignature::IsAlloc(res))
+  {
+    WrappedID3D12RootSignature *sig = (WrappedID3D12RootSignature *)res;
+    size_t dst = 0;
+    for(const DescriptorRange &r : ranges)
+    {
+      uint32_t staticIdx = r.offset;
+
+      for(uint32_t i = 0; i < r.count; i++)
+      {
+        if(staticIdx >= sig->sig.StaticSamplers.size())
+        {
+          // silently drop out of bounds descriptor reads
+        }
+        else
+        {
+          ret[dst].fixedBindNumber = ~0U - 2048 + staticIdx;
+          ret[dst].stageMask = ToShaderStageMask(sig->sig.StaticSamplers[staticIdx].ShaderVisibility);
+          ret[dst].category = DescriptorCategory::Sampler;
+          ret[dst].logicalBindName = StringFormat::Fmt("Static #%u", staticIdx);
+        }
+
+        dst++;
+        staticIdx++;
+      }
+    }
+    return ret;
+  }
+
+  if(WrappedID3D12PipelineState::IsAlloc(res))
+  {
+    WrappedID3D12PipelineState *pipe = (WrappedID3D12PipelineState *)res;
+
+    WrappedID3D12RootSignature *sig =
+        (WrappedID3D12RootSignature *)(pipe->IsGraphics() ? pipe->graphics->pRootSignature
+                                                          : pipe->compute->pRootSignature);
+
+    // root constants
+    size_t dst = 0;
+    for(const DescriptorRange &r : ranges)
+    {
+      uint32_t rootIndex = r.offset;
+
+      for(uint32_t i = 0; i < r.count; i++, rootIndex++, dst++)
+      {
+        const D3D12RootSignatureParameter &param = sig->sig.Parameters[rootIndex];
+
+        DescriptorLogicalLocation &l = ret[dst];
+
+        l.fixedBindNumber = ~0U - 2048 - 64 + rootIndex;
+        l.stageMask = ToShaderStageMask(param.ShaderVisibility);
+
+        if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
+        {
+          l.category = DescriptorCategory::ConstantBlock;
+          l.logicalBindName = StringFormat::Fmt("Consts #", rootIndex);
+        }
+        else if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV)
+        {
+          l.category = DescriptorCategory::ConstantBlock;
+          l.logicalBindName = StringFormat::Fmt("Root CB #", rootIndex);
+        }
+        else if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV)
+        {
+          l.category = DescriptorCategory::ReadOnlyResource;
+          l.logicalBindName = StringFormat::Fmt("Root SRV #", rootIndex);
+        }
+        else if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)
+        {
+          l.category = DescriptorCategory::ReadWriteResource;
+          l.logicalBindName = StringFormat::Fmt("Root UAV #", rootIndex);
+        }
+      }
+    }
+
+    return ret;
+  }
+
+  if(!WrappedID3D12DescriptorHeap::IsAlloc(res))
+  {
+    RDCERR("Invalid/unrecognised descriptor store %s", ToStr(descriptorStore).c_str());
+    return ret;
+  }
+
+  WrappedID3D12DescriptorHeap *heap = (WrappedID3D12DescriptorHeap *)res;
+  const bool sampler = (heap->GetDesc().Type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+  size_t dst = 0;
+  for(const DescriptorRange &r : ranges)
+  {
+    uint32_t descriptorId = r.offset;
+
+    for(uint32_t i = 0; i < r.count; i++, dst++, descriptorId++)
+    {
+      // can't set anything except the "bind number" which we just set as the offset.
+      ret[dst].fixedBindNumber = descriptorId;
+      if(sampler)
+        ret[dst].logicalBindName = StringFormat::Fmt("SamplerDescriptorHeap[%u]", descriptorId);
+      else
+        ret[dst].logicalBindName = StringFormat::Fmt("ResourceDescriptorHeap[%u]", descriptorId);
+    }
+  }
+
+  return ret;
+}
+
 void D3D12Replay::RenderHighlightBox(float w, float h, float scale)
 {
   OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];

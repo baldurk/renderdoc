@@ -1139,6 +1139,17 @@ void DoSerialise(SerialiserType &ser, DescriptorAccess &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, DescriptorLogicalLocation &el)
+{
+  SERIALISE_MEMBER(stageMask);
+  SERIALISE_MEMBER(category);
+  SERIALISE_MEMBER(fixedBindNumber);
+  SERIALISE_MEMBER(logicalBindName);
+
+  SIZE_CHECK(16);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, StencilFace &el)
 {
   SERIALISE_MEMBER(failOperation);
@@ -2604,6 +2615,7 @@ INSTANTIATE_SERIALISE_TYPE(DescriptorRange)
 INSTANTIATE_SERIALISE_TYPE(Descriptor)
 INSTANTIATE_SERIALISE_TYPE(SamplerDescriptor)
 INSTANTIATE_SERIALISE_TYPE(DescriptorAccess)
+INSTANTIATE_SERIALISE_TYPE(DescriptorLogicalLocation)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::Layout)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::InputAssembly)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::View)
