@@ -181,7 +181,9 @@ private:
   VkSwapchainKHR swap = VK_NULL_HANDLE;
   std::vector<VkImage> imgs;
   std::vector<VkImageView> imgviews;
-  VkSemaphore renderStartSemaphore = VK_NULL_HANDLE, renderEndSemaphore = VK_NULL_HANDLE;
+  uint32_t semIdx = 0;
+  VkSemaphore renderStartSemaphore[4] = {};
+  VkSemaphore renderEndSemaphore[4] = {};
   std::vector<VkFramebuffer> fbs;
 
   GraphicsWindow *m_Win;

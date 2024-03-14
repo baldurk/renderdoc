@@ -1363,13 +1363,16 @@ VulkanWindow::VulkanWindow(VulkanGraphicsTest *test, GraphicsWindow *win)
   {
     std::lock_guard<std::mutex> lock(m_Test->mutex);
 
-    CHECK_VKR(
-        vkCreateSemaphore(m_Test->device, vkh::SemaphoreCreateInfo(), NULL, &renderStartSemaphore));
-    CHECK_VKR(
-        vkCreateSemaphore(m_Test->device, vkh::SemaphoreCreateInfo(), NULL, &renderEndSemaphore));
+    for(size_t i = 0; i < ARRAY_COUNT(renderStartSemaphore); i++)
+    {
+      CHECK_VKR(vkCreateSemaphore(m_Test->device, vkh::SemaphoreCreateInfo(), NULL,
+                                  &renderStartSemaphore[i]));
+      CHECK_VKR(vkCreateSemaphore(m_Test->device, vkh::SemaphoreCreateInfo(), NULL,
+                                  &renderEndSemaphore[i]));
 
-    test->setName(renderStartSemaphore, title + " renderStartSemaphore");
-    test->setName(renderEndSemaphore, title + " renderEndSemaphore");
+      test->setName(renderStartSemaphore[i], title + " renderStartSemaphore" + std::to_string(i));
+      test->setName(renderEndSemaphore[i], title + " renderEndSemaphore" + std::to_string(i));
+    }
 
 #if defined(WIN32)
     VkWin32SurfaceCreateInfoKHR createInfo;
@@ -1423,8 +1426,11 @@ VulkanWindow::~VulkanWindow()
   DestroySwapchain();
 
   {
-    vkDestroySemaphore(m_Test->device, renderStartSemaphore, NULL);
-    vkDestroySemaphore(m_Test->device, renderEndSemaphore, NULL);
+    for(size_t i = 0; i < ARRAY_COUNT(renderStartSemaphore); i++)
+    {
+      vkDestroySemaphore(m_Test->device, renderStartSemaphore[i], NULL);
+      vkDestroySemaphore(m_Test->device, renderEndSemaphore[i], NULL);
+    }
 
     if(surface)
       vkDestroySurfaceKHR(m_Test->instance, surface, NULL);
@@ -1530,6 +1536,9 @@ bool VulkanWindow::CreateSwapchain()
     rp = m_Test->createRenderPass(renderPassCreateInfo);
   }
 
+  TEST_ASSERT(imgs.size() <= ARRAY_COUNT(renderStartSemaphore),
+              "Expected to have one semaphore set per image");
+
   imgviews.resize(imgs.size());
   for(size_t i = 0; i < imgs.size(); i++)
   {
@@ -1549,15 +1558,17 @@ void VulkanWindow::Acquire()
   if(swap == VK_NULL_HANDLE)
     return;
 
-  VkResult vkr = vkAcquireNextImageKHR(m_Test->device, swap, UINT64_MAX, renderStartSemaphore,
-                                       VK_NULL_HANDLE, &imgIndex);
+  semIdx = (semIdx + 1) % ARRAY_COUNT(renderStartSemaphore);
+
+  VkResult vkr = vkAcquireNextImageKHR(m_Test->device, swap, UINT64_MAX,
+                                       renderStartSemaphore[semIdx], VK_NULL_HANDLE, &imgIndex);
 
   if(vkr == VK_SUBOPTIMAL_KHR || vkr == VK_ERROR_OUT_OF_DATE_KHR)
   {
     DestroySwapchain();
     CreateSwapchain();
 
-    vkr = vkAcquireNextImageKHR(m_Test->device, swap, UINT64_MAX, renderStartSemaphore,
+    vkr = vkAcquireNextImageKHR(m_Test->device, swap, UINT64_MAX, renderStartSemaphore[semIdx],
                                 VK_NULL_HANDLE, &imgIndex);
   }
 }
@@ -1568,9 +1579,9 @@ void VulkanWindow::Submit(int index, int totalSubmits, const std::vector<VkComma
   VkSemaphore signal = VK_NULL_HANDLE, wait = VK_NULL_HANDLE;
 
   if(index == 0)
-    wait = renderStartSemaphore;
+    wait = renderStartSemaphore[semIdx];
   if(index == totalSubmits - 1)
-    signal = renderEndSemaphore;
+    signal = renderEndSemaphore[semIdx];
 
   VulkanCommands::Submit(cmds, seccmds, q, wait, signal);
 }
@@ -1589,7 +1600,7 @@ void VulkanWindow::MultiPresent(VkQueue queue, std::vector<VulkanWindow *> windo
 
     swaps.push_back(it->swap);
     idxs.push_back(it->imgIndex);
-    waitSems.push_back(it->renderEndSemaphore);
+    waitSems.push_back(it->renderEndSemaphore[it->semIdx]);
     vkrs.push_back(VK_SUCCESS);
   }
 
@@ -1621,7 +1632,8 @@ void VulkanWindow::Present(VkQueue queue)
   if(swap == VK_NULL_HANDLE)
     return;
 
-  VkResult vkr = vkQueuePresentKHR(queue, vkh::PresentInfoKHR(swap, imgIndex, &renderEndSemaphore));
+  VkResult vkr =
+      vkQueuePresentKHR(queue, vkh::PresentInfoKHR(swap, imgIndex, &renderEndSemaphore[semIdx]));
 
   PostPresent(vkr);
 }
