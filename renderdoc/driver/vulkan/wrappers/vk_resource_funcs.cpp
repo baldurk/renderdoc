@@ -1730,11 +1730,15 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
 
   // If we're using this buffer for device addresses, ensure we force on capture replay bit.
   // We ensured the physical device can support this feature before whitelisting the extension.
-  if(IsCaptureMode(m_State) && (adjusted_info.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT))
+  if(IsCaptureMode(m_State) &&
+     ((adjusted_info.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) ||
+      (adjusted_info.usage & VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR) ||
+      (adjusted_info.usage & VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR)))
+  {
     adjusted_info.flags |= VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
+  }
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(adjusted_info.pNext));
-
   UnwrapNextChain(m_State, "VkBufferCreateInfo", tempMem, (VkBaseInStructure *)&adjusted_info);
 
   VkResult ret;
@@ -3194,6 +3198,13 @@ VkResult WrappedVulkan::vkCreateAccelerationStructureKHR(
 {
   VkAccelerationStructureCreateInfoKHR unwrappedInfo = UnwrapInfo(pCreateInfo);
   RDCASSERT(unwrappedInfo.buffer != VK_NULL_HANDLE);
+
+  // Use capture-replay for acceleration structure handles.
+  if(IsCaptureMode(m_State))
+  {
+    unwrappedInfo.createFlags |=
+        VK_ACCELERATION_STRUCTURE_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR;
+  }
 
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateAccelerationStructureKHR(
