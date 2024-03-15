@@ -190,6 +190,15 @@ VkBindImageMemoryInfo *WrappedVulkan::UnwrapInfos(CaptureState state,
   return ret;
 }
 
+template <>
+VkAccelerationStructureCreateInfoKHR WrappedVulkan::UnwrapInfo(
+    const VkAccelerationStructureCreateInfoKHR *copyDesc)
+{
+  VkAccelerationStructureCreateInfoKHR ret = *copyDesc;
+  ret.buffer = Unwrap(ret.buffer);
+  return ret;
+}
+
 bool WrappedVulkan::CheckMemoryRequirements(const char *resourceName, ResourceId memId,
                                             VkDeviceSize memoryOffset,
                                             const VkMemoryRequirements &mrq, bool external,
@@ -3134,46 +3143,44 @@ bool WrappedVulkan::Serialise_vkCreateAccelerationStructureKHR(
 
   if(IsReplayingAndReading())
   {
-    VkAccelerationStructureCreateInfoKHR unwrappedInfo = CreateInfo;
-    unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
+    VkAccelerationStructureKHR acceleration_structure = VK_NULL_HANDLE;
+    VkAccelerationStructureCreateInfoKHR unwrappedInfo = UnwrapInfo(&CreateInfo);
 
-    VkAccelerationStructureKHR acc = VK_NULL_HANDLE;
-    VkResult ret =
-        ObjDisp(device)->CreateAccelerationStructureKHR(Unwrap(device), &CreateInfo, NULL, &acc);
+    VkResult ret = ObjDisp(device)->CreateAccelerationStructureKHR(Unwrap(device), &unwrappedInfo,
+                                                                   NULL, &acceleration_structure);
 
     if(ret != VK_SUCCESS)
     {
       SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
-                       "Error creating acceleration structure, VkResult: %s", ToStr(ret).c_str());
+                       "Failed creating acceleration structure, VkResult: %s", ToStr(ret).c_str());
       return false;
+    }
+
+    ResourceId live;
+
+    if(GetResourceManager()->HasWrapper(ToTypedHandle(acceleration_structure)))
+    {
+      live = GetResourceManager()->GetNonDispWrapper(acceleration_structure)->id;
+
+      // destroy this instance of the duplicate, as we must have matching create/destroy
+      // calls and there won't be a wrapped resource hanging around to destroy this one.
+      ObjDisp(device)->DestroyAccelerationStructureKHR(Unwrap(device), acceleration_structure, NULL);
+
+      // whenever the new ID is requested, return the old ID, via replacements.
+      GetResourceManager()->ReplaceResource(AccelerationStructure,
+                                            GetResourceManager()->GetOriginalID(live));
     }
     else
     {
-      ResourceId live;
+      live = GetResourceManager()->WrapResource(Unwrap(device), acceleration_structure);
+      GetResourceManager()->AddLiveResource(AccelerationStructure, acceleration_structure);
 
-      if(GetResourceManager()->HasWrapper(ToTypedHandle(acc)))
-      {
-        live = GetResourceManager()->GetNonDispWrapper(acc)->id;
-
-        // destroy this instance of the duplicate, as we must have matching create/destroy
-        // calls and there won't be a wrapped resource hanging around to destroy this one.
-        ObjDisp(device)->DestroyAccelerationStructureKHR(Unwrap(device), acc, NULL);
-
-        // whenever the new ID is requested, return the old ID, via replacements.
-        GetResourceManager()->ReplaceResource(AccelerationStructure,
-                                              GetResourceManager()->GetOriginalID(live));
-      }
-      else
-      {
-        live = GetResourceManager()->WrapResource(Unwrap(device), acc);
-        GetResourceManager()->AddLiveResource(AccelerationStructure, acc);
-
-        m_CreationInfo.m_AccelerationStructure[live].Init(GetResourceManager(), m_CreationInfo,
-                                                          &CreateInfo);
-      }
+      m_CreationInfo.m_AccelerationStructure[live].Init(GetResourceManager(), m_CreationInfo,
+                                                        &CreateInfo);
     }
 
-    AddResource(AccelerationStructure, ResourceType::AccelerationStructure, "AccelerationStructure");
+    AddResource(AccelerationStructure, ResourceType::AccelerationStructure,
+                "Acceleration Structure");
     DerivedResource(device, AccelerationStructure);
     DerivedResource(CreateInfo.buffer, AccelerationStructure);
   }
@@ -3185,8 +3192,9 @@ VkResult WrappedVulkan::vkCreateAccelerationStructureKHR(
     VkDevice device, const VkAccelerationStructureCreateInfoKHR *pCreateInfo,
     const VkAllocationCallbacks *, VkAccelerationStructureKHR *pAccelerationStructure)
 {
-  VkAccelerationStructureCreateInfoKHR unwrappedInfo = *pCreateInfo;
-  unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
+  VkAccelerationStructureCreateInfoKHR unwrappedInfo = UnwrapInfo(pCreateInfo);
+  RDCASSERT(unwrappedInfo.buffer != VK_NULL_HANDLE);
+
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateAccelerationStructureKHR(
                           Unwrap(device), &unwrappedInfo, NULL, pAccelerationStructure));
@@ -3209,20 +3217,20 @@ VkResult WrappedVulkan::vkCreateAccelerationStructureKHR(
         chunk = scope.Get();
       }
 
-      VkResourceRecord *bufferRecord = GetRecord(pCreateInfo->buffer);
-
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pAccelerationStructure);
+
       record->AddChunk(chunk);
-      record->AddParent(bufferRecord);
+      record->memSize = pCreateInfo->size;
 
       // store the base resource
+      VkResourceRecord *bufferRecord = GetRecord(pCreateInfo->buffer);
+      record->AddParent(bufferRecord);
       record->baseResource = bufferRecord->GetResourceID();
       record->baseResourceMem = bufferRecord->baseResource;
       record->dedicated = bufferRecord->dedicated;
       record->resInfo = bufferRecord->resInfo;
       record->storable = bufferRecord->storable;
       record->memOffset = bufferRecord->memOffset + pCreateInfo->offset;
-      record->memSize = pCreateInfo->size;
     }
     else
     {
