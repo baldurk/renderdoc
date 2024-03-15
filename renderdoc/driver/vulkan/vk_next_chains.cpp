@@ -98,8 +98,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkAccelerationStructureGeometryKHR);                                                   \
   COPY_STRUCT(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,                  \
               VkAccelerationStructureGeometryTrianglesDataKHR);                                      \
-  COPY_STRUCT(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_VERSION_INFO_KHR,                             \
-              VkAccelerationStructureVersionInfoKHR);                                                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_ACQUIRE_PROFILING_LOCK_INFO_KHR, VkAcquireProfilingLockInfoKHR);     \
   COPY_STRUCT(VK_STRUCTURE_TYPE_APPLICATION_INFO, VkApplicationInfo);                                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2, VkAttachmentDescription2);                 \
@@ -1249,6 +1247,15 @@ size_t GetNextPatchSize(const void *pNext)
       PROCESS_SIMPLE_STRUCTS();
 
       // complex structs to handle - require multiple allocations
+      case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_VERSION_INFO_KHR:
+      {
+        memSize += sizeof(VkAccelerationStructureVersionInfoKHR);
+
+        // size of `pVersionData` is constant
+        constexpr decltype(memSize) pVersionDataSize = 2 * VK_UUID_SIZE * sizeof(uint8_t);
+        memSize += pVersionDataSize;
+        break;
+      }
       case VK_STRUCTURE_TYPE_BIND_SPARSE_INFO:
       {
         memSize += sizeof(VkBindSparseInfo);
@@ -1881,6 +1888,18 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
       PROCESS_SIMPLE_STRUCTS();
 
       // complex structs to handle - require multiple allocations
+      case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_VERSION_INFO_KHR:
+      {
+        VkAccelerationStructureVersionInfoKHR *out = (VkAccelerationStructureVersionInfoKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        // size of `pVersionData` is constant
+        constexpr uint8_t pVersionDataSize = 2 * VK_UUID_SIZE * sizeof(uint8_t);
+        tempMem += pVersionDataSize;
+        break;
+      }
       case VK_STRUCTURE_TYPE_BIND_SPARSE_INFO:
       {
         const VkBindSparseInfo *in = (const VkBindSparseInfo *)nextInput;
@@ -3047,6 +3066,10 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
       PROCESS_SIMPLE_STRUCTS();
 
       // complex structs to handle - require multiple allocations
+      case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_VERSION_INFO_KHR:
+        CopyNextChainedStruct(sizeof(VkAccelerationStructureVersionInfoKHR), tempMem, nextInput,
+                              nextChainTail);
+        break;
       case VK_STRUCTURE_TYPE_BIND_SPARSE_INFO:
         CopyNextChainedStruct(sizeof(VkBindSparseInfo), tempMem, nextInput, nextChainTail);
         break;
