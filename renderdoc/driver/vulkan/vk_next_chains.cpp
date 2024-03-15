@@ -677,10 +677,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SWAPCHAIN_COUNTER_CREATE_INFO_EXT,                      \
                            VkSwapchainCounterCreateInfoEXT);                                         \
   COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_VALIDATION_FLAGS_EXT, VkValidationFlagsEXT);            \
-  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,                    \
-                VkAccelerationStructureBuildGeometryInfoKHR,                                         \
-                UnwrapInPlace(out->srcAccelerationStructure),                                        \
-                UnwrapInPlace(out->dstAccelerationStructure));                                       \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,                            \
                 VkAccelerationStructureCreateInfoKHR, UnwrapInPlace(out->buffer));                   \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,                    \
@@ -1247,6 +1243,25 @@ size_t GetNextPatchSize(const void *pNext)
       PROCESS_SIMPLE_STRUCTS();
 
       // complex structs to handle - require multiple allocations
+      case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR:
+      {
+        memSize += sizeof(VkAccelerationStructureBuildGeometryInfoKHR);
+
+        VkAccelerationStructureBuildGeometryInfoKHR *info =
+            (VkAccelerationStructureBuildGeometryInfoKHR *)next;
+
+        if(info->pGeometries != NULL)
+        {
+          memSize += info->geometryCount * sizeof(VkAccelerationStructureGeometryKHR);
+        }
+        // TODO: Probably unnecessary?
+        else if(info->ppGeometries != NULL)
+        {
+          memSize += info->geometryCount * sizeof(VkAccelerationStructureGeometryKHR *);
+        }
+
+        break;
+      }
       case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_VERSION_INFO_KHR:
       {
         memSize += sizeof(VkAccelerationStructureVersionInfoKHR);
@@ -1888,6 +1903,59 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
       PROCESS_SIMPLE_STRUCTS();
 
       // complex structs to handle - require multiple allocations
+      case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR:
+      {
+        const VkAccelerationStructureBuildGeometryInfoKHR *in =
+            (const VkAccelerationStructureBuildGeometryInfoKHR *)nextInput;
+        VkAccelerationStructureBuildGeometryInfoKHR *out =
+            (VkAccelerationStructureBuildGeometryInfoKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        if(in->pGeometries)
+        {
+          // allocate unwrapped array
+          VkAccelerationStructureGeometryKHR *out_pGeometries =
+              (VkAccelerationStructureGeometryKHR *)tempMem;
+          tempMem += sizeof(VkAccelerationStructureGeometryKHR) * in->geometryCount;
+
+          *out = *in;
+
+          out->pGeometries = out_pGeometries;
+
+          for(uint32_t i = 0; i < in->geometryCount; i++)
+          {
+            out_pGeometries[i] = in->pGeometries[i];
+            UnwrapNextChain(state, "VkAccelerationStructureGeometryKHR", tempMem,
+                            (VkBaseInStructure *)&out_pGeometries[i]);
+          }
+        }
+        // TODO: Probably unnecessary?
+        else if(in->ppGeometries)
+        {
+          // allocate unwrapped array
+          const VkAccelerationStructureGeometryKHR **out_ppGeometries =
+              (const VkAccelerationStructureGeometryKHR **)tempMem;
+          tempMem += sizeof(VkAccelerationStructureGeometryKHR *) * in->geometryCount;
+
+          *out = *in;
+
+          out->ppGeometries = out_ppGeometries;
+
+          for(uint32_t i = 0; i < in->geometryCount; i++)
+          {
+            out_ppGeometries[i] = in->ppGeometries[i];
+            UnwrapNextChain(state, "VkAccelerationStructureGeometryKHR", tempMem,
+                            (VkBaseInStructure *)out_ppGeometries[i]);
+          }
+        }
+
+        UnwrapInPlace(out->srcAccelerationStructure);
+        UnwrapInPlace(out->dstAccelerationStructure);
+
+        break;
+      }
       case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_VERSION_INFO_KHR:
       {
         VkAccelerationStructureVersionInfoKHR *out = (VkAccelerationStructureVersionInfoKHR *)tempMem;
@@ -3066,6 +3134,10 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
       PROCESS_SIMPLE_STRUCTS();
 
       // complex structs to handle - require multiple allocations
+      case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR:
+        CopyNextChainedStruct(sizeof(VkAccelerationStructureBuildGeometryInfoKHR), tempMem,
+                              nextInput, nextChainTail);
+        break;
       case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_VERSION_INFO_KHR:
         CopyNextChainedStruct(sizeof(VkAccelerationStructureVersionInfoKHR), tempMem, nextInput,
                               nextChainTail);
