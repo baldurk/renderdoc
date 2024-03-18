@@ -514,7 +514,8 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
     // if adb produces this message we can be reasonably sure this is a 32-bit version that failed
     // to install on a 64-bit only device. However we need to account for the possibility that adb
     // might not produce this error even if that's the problem, so we still handle that below as well.
-    if(adbInstall.strStderror.contains("INSTALL_FAILED_NO_MATCHING_ABIS") &&
+    if((adbInstall.strStderror.contains("INSTALL_FAILED_NO_MATCHING_ABIS") ||
+        adbInstall.strStdout.contains("INSTALL_FAILED_NO_MATCHING_ABIS")) &&
        abi == ABI::armeabi_v7a && abis.contains(ABI::arm64_v8a))
     {
       RDCWARN(
@@ -548,6 +549,7 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
         RDCWARN(
             "ARM32 package failed to install but ARM64 package succeeded. Assuming 64-bit only ARM "
             "device and ignoring.");
+        continue;
       }
       else if(versionCheck == AndroidVersionCheckResult::Correct)
       {
