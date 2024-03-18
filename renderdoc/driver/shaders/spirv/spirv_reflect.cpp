@@ -1407,6 +1407,10 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         bindmap.bindset = 0;
         bindmap.bind = GetBinding(decorations[global.id].binding);
 
+        res.fixedBindSetOrSpace = 0;
+        res.fixedBindNumber = GetBinding(decorations[global.id].binding);
+        res.bindArraySize = isArray ? arraySize : 1;
+
         rwresources.push_back(shaderrespair(bindmap, res));
       }
       else if(varType->IsOpaqueType())
@@ -1423,6 +1427,10 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         res.name = strings[global.id];
         if(res.name.empty())
           res.name = StringFormat::Fmt("res%u", global.id.value());
+
+        res.fixedBindSetOrSpace = bindmap.bindset;
+        res.fixedBindNumber = bindmap.bind;
+        res.bindArraySize = isArray ? arraySize : 1;
 
         if(varType->type == DataType::SamplerType)
         {
@@ -1544,6 +1552,10 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
               res.name = StringFormat::Fmt("ssbo%u", global.id.value());
             res.resType = TextureType::Buffer;
 
+            res.fixedBindNumber = bindmap.bind;
+            res.fixedBindSetOrSpace = bindmap.bindset;
+            res.bindArraySize = isArray ? arraySize : 1;
+
             res.variableType.columns = 0;
             res.variableType.rows = 0;
             res.variableType.baseType = VarType::Float;
@@ -1563,6 +1575,10 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
               cblock.name = StringFormat::Fmt("uniforms%u", global.id.value());
             cblock.bufferBacked = !pushConst;
             cblock.inlineDataBytes = pushConst;
+
+            cblock.fixedBindNumber = bindmap.bind;
+            cblock.fixedBindSetOrSpace = bindmap.bindset;
+            cblock.bindArraySize = isArray ? arraySize : 1;
 
             MakeConstantBlockVariables(effectiveStorage, *varType, 0, 0, cblock.variables,
                                        pointerTypes, specInfo);
@@ -1616,6 +1632,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     specblock.inlineDataBytes = true;
     specblock.compileConstants = true;
     specblock.byteSize = 0;
+    // set the binding number to some huge value to try to sort it to the end
+    specblock.fixedBindNumber = 0x8000000;
 
     Bindpoint bindmap;
 
@@ -1636,6 +1654,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     globalsblock.inlineDataBytes = false;
     globalsblock.byteSize = (uint32_t)globalsblock.variables.size();
     globalsblock.bindPoint = (int)cblocks.size();
+    // set the binding number to some huge value to try to sort it to the end
+    globalsblock.fixedBindNumber = 0x8000001;
 
     Bindpoint bindmap;
     bindmap.bindset = 0;

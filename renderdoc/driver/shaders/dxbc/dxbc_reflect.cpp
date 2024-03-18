@@ -252,6 +252,10 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
 
     res.bindPoint = (int32_t)i;
 
+    res.fixedBindNumber = r.reg;
+    res.fixedBindSetOrSpace = r.space;
+    res.bindArraySize = r.bindCount == 0 ? ~0U : r.bindCount;
+
     Bindpoint map;
     map.arraySize = r.bindCount == 0 ? ~0U : r.bindCount;
     map.bindset = r.space;
@@ -398,6 +402,10 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
     cb.byteSize = dxbcRefl->CBuffers[i].descriptor.byteSize;
     cb.bindPoint = (int32_t)i;
 
+    cb.fixedBindNumber = dxbcRefl->CBuffers[i].reg;
+    cb.fixedBindSetOrSpace = dxbcRefl->CBuffers[i].space;
+    cb.bindArraySize = dxbcRefl->CBuffers[i].bindCount;
+
     Bindpoint map;
     map.arraySize = dxbcRefl->CBuffers[i].bindCount;
     map.bindset = dxbcRefl->CBuffers[i].space;
@@ -423,6 +431,10 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
 
     s.name = dxbcRefl->Samplers[i].name;
     s.bindPoint = (int32_t)i;
+
+    s.fixedBindNumber = dxbcRefl->Samplers[i].reg;
+    s.fixedBindSetOrSpace = dxbcRefl->Samplers[i].space;
+    s.bindArraySize = dxbcRefl->Samplers[i].bindCount;
 
     Bindpoint map;
     map.arraySize = 1;

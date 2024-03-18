@@ -1143,6 +1143,7 @@ struct ConstantBlock
   bool operator==(const ConstantBlock &o) const
   {
     return name == o.name && variables == o.variables && bindPoint == o.bindPoint &&
+           fixedBindSetOrSpace == o.fixedBindSetOrSpace && bufferBacked == o.bufferBacked &&
            byteSize == o.byteSize && bufferBacked == o.bufferBacked &&
            inlineDataBytes == o.inlineDataBytes && compileConstants == o.compileConstants;
   }
@@ -1150,10 +1151,12 @@ struct ConstantBlock
   {
     if(!(name == o.name))
       return name < o.name;
-    if(!(variables == o.variables))
-      return variables < o.variables;
     if(!(bindPoint == o.bindPoint))
       return bindPoint < o.bindPoint;
+    if(!(fixedBindNumber == o.fixedBindNumber))
+      return fixedBindNumber < o.fixedBindNumber;
+    if(!(fixedBindSetOrSpace == o.fixedBindSetOrSpace))
+      return fixedBindSetOrSpace < o.fixedBindSetOrSpace;
     if(!(byteSize == o.byteSize))
       return byteSize < o.byteSize;
     if(!(bufferBacked == o.bufferBacked))
@@ -1162,6 +1165,8 @@ struct ConstantBlock
       return inlineDataBytes < o.inlineDataBytes;
     if(!(compileConstants == o.compileConstants))
       return compileConstants < o.compileConstants;
+    if(!(variables == o.variables))
+      return variables < o.variables;
     return false;
   }
   DOCUMENT("The name of this constant block, may be empty on some APIs.");
@@ -1175,6 +1180,48 @@ struct ConstantBlock
 :data:`ShaderBindpointMapping.constantBlocks` list.
 )");
   int32_t bindPoint = 0;
+
+  DOCUMENT(R"(The fixed binding number for this binding. The interpretation of this is API-specific
+and it is provided purely for informational purposes and has no bearing on how data is accessed or
+described. Similarly some bindings don't have a fixed bind number and the value here should not be
+relied on.
+
+For OpenGL only, this value is not used as bindings are dynamic and cannot be determined by the
+shader reflection. Bindings must be determined only by the descriptor mapped to.
+
+Generally speaking sorting by this number will give a reasonable ordering by binding if it exists.
+
+.. note::
+  Because this number is API-specific, there is no guarantee that it will be unique across all
+  resources, though generally it will be unique within all binds of the same type. It should be used
+  only within contexts that can interpret it API-specifically, or else for purely
+  informational/non-semantic purposes like sorting.
+
+:type: int
+)");
+  uint32_t fixedBindNumber = 0;
+
+  DOCUMENT(R"(The fixed binding set or space for this binding. This is API-specific, on Vulkan this
+gives the set and on D3D12 this gives the register space.
+It is provided purely for informational purposes and has no bearing on how data is accessed or
+described.
+
+Generally speaking sorting by this number before :data:`fixedBindNumber` will give a reasonable
+ordering by binding if it exists.
+
+:type: int
+)");
+  uint32_t fixedBindSetOrSpace = 0;
+
+  DOCUMENT(R"(If this binding is natively arrayed, how large is the array size. If not arrayed, this
+will be set to 1.
+
+This value may be set to a very large number if the array is unbounded in the shader.
+
+:type: int
+)");
+  uint32_t bindArraySize = 1;
+
   DOCUMENT("The total number of bytes consumed by all of the constants contained in this block.");
   uint32_t byteSize = 0;
   DOCUMENT(R"(``True`` if the contents are stored in a buffer of memory. If not then they are set by
@@ -1222,6 +1269,47 @@ struct ShaderSampler
 :data:`ShaderBindpointMapping.samplers` list.
 )");
   int32_t bindPoint;
+
+  DOCUMENT(R"(The fixed binding number for this binding. The interpretation of this is API-specific
+and it is provided purely for informational purposes and has no bearing on how data is accessed or
+described. Similarly some bindings don't have a fixed bind number and the value here should not be
+relied on.
+
+For OpenGL only, this value is not used as bindings are dynamic and cannot be determined by the
+shader reflection. Bindings must be determined only by the descriptor mapped to.
+
+Generally speaking sorting by this number will give a reasonable ordering by binding if it exists.
+
+.. note::
+  Because this number is API-specific, there is no guarantee that it will be unique across all
+  resources, though generally it will be unique within all binds of the same type. It should be used
+  only within contexts that can interpret it API-specifically, or else for purely
+  informational/non-semantic purposes like sorting.
+
+:type: int
+)");
+  uint32_t fixedBindNumber = 0;
+
+  DOCUMENT(R"(The fixed binding set or space for this binding. This is API-specific, on Vulkan this
+gives the set and on D3D12 this gives the register space.
+It is provided purely for informational purposes and has no bearing on how data is accessed or
+described.
+
+Generally speaking sorting by this number before :data:`fixedBindNumber` will give a reasonable
+ordering by binding if it exists.
+
+:type: int
+)");
+  uint32_t fixedBindSetOrSpace = 0;
+
+  DOCUMENT(R"(If this binding is natively arrayed, how large is the array size. If not arrayed, this
+will be set to 1.
+
+This value may be set to a very large number if the array is unbounded in the shader.
+
+:type: int
+)");
+  uint32_t bindArraySize = 1;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderSampler);
@@ -1242,6 +1330,7 @@ struct ShaderResource
   bool operator==(const ShaderResource &o) const
   {
     return resType == o.resType && name == o.name && variableType == o.variableType &&
+           fixedBindNumber == o.fixedBindNumber && fixedBindSetOrSpace == o.fixedBindSetOrSpace &&
            bindPoint == o.bindPoint && isTexture == o.isTexture && hasSampler == o.hasSampler &&
            isInputAttachment == o.isInputAttachment && isReadOnly == o.isReadOnly;
   }
@@ -1253,8 +1342,8 @@ struct ShaderResource
       return name < o.name;
     if(!(variableType == o.variableType))
       return variableType < o.variableType;
-    if(!(bindPoint == o.bindPoint))
-      return bindPoint < o.bindPoint;
+    if(!(fixedBindSetOrSpace == o.fixedBindSetOrSpace))
+      return fixedBindSetOrSpace < o.fixedBindSetOrSpace;
     if(!(isTexture == o.isTexture))
       return isTexture < o.isTexture;
     if(!(hasSampler == o.hasSampler))
@@ -1282,6 +1371,47 @@ struct ShaderResource
 :data:`ShaderBindpointMapping.readWriteResources` list as appropriate (see :data:`isReadOnly`).
 )");
   int32_t bindPoint;
+
+  DOCUMENT(R"(The fixed binding number for this binding. The interpretation of this is API-specific
+and it is provided purely for informational purposes and has no bearing on how data is accessed or
+described. Similarly some bindings don't have a fixed bind number and the value here should not be
+relied on.
+
+For OpenGL only, this value is not used as bindings are dynamic and cannot be determined by the
+shader reflection. Bindings must be determined only by the descriptor mapped to.
+
+Generally speaking sorting by this number will give a reasonable ordering by binding if it exists.
+
+.. note::
+  Because this number is API-specific, there is no guarantee that it will be unique across all
+  resources, though generally it will be unique within all binds of the same type. It should be used
+  only within contexts that can interpret it API-specifically, or else for purely
+  informational/non-semantic purposes like sorting.
+
+:type: int
+)");
+  uint32_t fixedBindNumber = 0;
+
+  DOCUMENT(R"(The fixed binding set or space for this binding. This is API-specific, on Vulkan this
+gives the set and on D3D12 this gives the register space.
+It is provided purely for informational purposes and has no bearing on how data is accessed or
+described.
+
+Generally speaking sorting by this number before :data:`fixedBindNumber` will give a reasonable
+ordering by binding if it exists.
+
+:type: int
+)");
+  uint32_t fixedBindSetOrSpace = 0;
+
+  DOCUMENT(R"(If this binding is natively arrayed, how large is the array size. If not arrayed, this
+will be set to 1.
+
+This value may be set to a very large number if the array is unbounded in the shader.
+
+:type: int
+)");
+  uint32_t bindArraySize = 1;
 
   DOCUMENT("``True`` if this resource is a texture, otherwise it is a buffer.");
   bool isTexture;

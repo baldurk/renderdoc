@@ -198,11 +198,14 @@ void DoSerialise(SerialiserType &ser, ConstantBlock &el)
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(variables);
   SERIALISE_MEMBER(bindPoint);
+  SERIALISE_MEMBER(fixedBindNumber);
+  SERIALISE_MEMBER(fixedBindSetOrSpace);
+  SERIALISE_MEMBER(bindArraySize);
   SERIALISE_MEMBER(byteSize);
   SERIALISE_MEMBER(bufferBacked);
   SERIALISE_MEMBER(compileConstants);
 
-  SIZE_CHECK(64);
+  SIZE_CHECK(72);
 }
 
 template <typename SerialiserType>
@@ -210,8 +213,11 @@ void DoSerialise(SerialiserType &ser, ShaderSampler &el)
 {
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(bindPoint);
+  SERIALISE_MEMBER(fixedBindNumber);
+  SERIALISE_MEMBER(fixedBindSetOrSpace);
+  SERIALISE_MEMBER(bindArraySize);
 
-  SIZE_CHECK(32);
+  SIZE_CHECK(40);
 }
 
 template <typename SerialiserType>
@@ -221,12 +227,15 @@ void DoSerialise(SerialiserType &ser, ShaderResource &el)
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(variableType);
   SERIALISE_MEMBER(bindPoint);
+  SERIALISE_MEMBER(fixedBindNumber);
+  SERIALISE_MEMBER(fixedBindSetOrSpace);
+  SERIALISE_MEMBER(bindArraySize);
   SERIALISE_MEMBER(isTexture);
   SERIALISE_MEMBER(hasSampler);
   SERIALISE_MEMBER(isInputAttachment);
   SERIALISE_MEMBER(isReadOnly);
 
-  SIZE_CHECK(112);
+  SIZE_CHECK(128);
 }
 
 template <typename SerialiserType>
@@ -312,7 +321,7 @@ void DoSerialise(SerialiserType &ser, ShaderReflection &el)
 
   SERIALISE_MEMBER(taskPayload);
 
-  SIZE_CHECK(480);
+  SIZE_CHECK(488);
 }
 
 template <typename SerialiserType>
