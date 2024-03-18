@@ -30,7 +30,7 @@ class D3D12_Overlay_Test(rdtest.Overlay_Test):
             pipe: rd.PipeState = self.controller.GetPipelineState()
 
             tex = rd.TextureDisplay()
-            tex.resourceId = pipe.GetOutputTargets()[0].resourceId
+            tex.resourceId = pipe.GetOutputTargets()[0].resource
 
             for overlay in rd.DebugOverlay:
                 if overlay == rd.DebugOverlay.NoOverlay:

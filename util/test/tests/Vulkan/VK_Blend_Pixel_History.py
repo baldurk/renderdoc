@@ -45,9 +45,9 @@ class VK_Blend_Pixel_History(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        rt: rd.BoundResource = pipe.GetOutputTargets()[0]
+        rt = pipe.GetOutputTargets()[0]
 
-        tex = rt.resourceId
+        tex = rt.resource
         tex_details = self.get_texture(tex)
 
         sub = rd.Subresource()
@@ -65,7 +65,7 @@ class VK_Blend_Pixel_History(rdtest.TestCase):
         # Pixel inside of all of the triangles
         x, y = 200, 150
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         self.check_modifs_consistent(modifs)
         red_modifs = [m for m in modifs if m.eventId >= red_eid and m.eventId < red_last_eid]
         green_modifs = [m for m in modifs if m.eventId == green_eid]

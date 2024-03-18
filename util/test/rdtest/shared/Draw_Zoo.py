@@ -55,7 +55,7 @@ class Draw_Zoo(rdtest.TestCase):
                     vsout_pos_name = sig.semanticName
                 break
 
-        out_tex = self.pipe.GetOutputTargets()[0].resourceId
+        out_tex = self.pipe.GetOutputTargets()[0].resource
 
         vsin_ref = {}
         restarts = []

@@ -18,7 +18,7 @@ class D3D11_Parameter_Zoo(rdtest.TestCase):
 
         tex = rd.TextureDisplay()
         tex.overlay = rd.DebugOverlay.Drawcall
-        tex.resourceId = pipe.GetOutputTargets()[0].resourceId
+        tex.resourceId = pipe.GetOutputTargets()[0].resource
 
         out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
                                                             rd.ReplayOutputType.Texture)

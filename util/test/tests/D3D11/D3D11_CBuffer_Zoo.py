@@ -15,13 +15,13 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         stage = rd.ShaderStage.Pixel
-        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 0, 0)
+        cbuf = pipe.GetConstantBlock(stage, 0, 0).descriptor
 
         var_check = rdtest.ConstantBufferChecker(
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage), stage,
                                                        pipe.GetShaderEntryPoint(stage), 0,
-                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
+                                                       cbuf.resource, cbuf.byteOffset, cbuf.byteSize))
 
         self.check_cbuffer(var_check)
 
@@ -76,7 +76,7 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
 
             self.controller.FreeTrace(trace)
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [536.1, 537.0, 538.0, 539.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [536.1, 537.0, 538.0, 539.0])
 
         rdtest.log.success("Picked value is as expected")
 

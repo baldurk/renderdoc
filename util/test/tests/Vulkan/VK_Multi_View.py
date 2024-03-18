@@ -35,7 +35,7 @@ class VK_Multi_View(rdtest.TestCase):
                 debugged = self.evaluate_source_var(output, variables)
                 slice = view + 1
                 sub = rd.Subresource(0, slice, 0)
-                self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, x, y, debugged.value.f32v[0:4], sub=sub)
+                self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4], sub=sub)
                 self.controller.FreeTrace(trace)
 
                 inst = 0

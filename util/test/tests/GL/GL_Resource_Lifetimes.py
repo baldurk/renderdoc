@@ -11,21 +11,30 @@ class GL_Resource_Lifetimes(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, True)
 
-        mapping: rd.ShaderBindpointMapping = self.controller.GetPipelineState().GetBindpointMapping(rd.ShaderStage.Vertex)
-        self.check(mapping.readWriteResources[0].bind == 3)
+        pipe = self.controller.GetPipelineState()
 
-        mapping: rd.ShaderBindpointMapping = self.controller.GetPipelineState().GetBindpointMapping(rd.ShaderStage.Pixel)
-        self.check(mapping.readWriteResources[0].bind == 3)
+        rw = pipe.GetReadWriteResources(rd.ShaderStage.Vertex)
+        location = self.controller.GetDescriptorLocations(rw[0].access.descriptorStore, [rd.DescriptorRange(rw[0].access)])[0]
+        self.check_eq(location.fixedBindNumber, 3)
+
+        rw = pipe.GetReadWriteResources(rd.ShaderStage.Pixel)
+        location = self.controller.GetDescriptorLocations(rw[0].access.descriptorStore, [rd.DescriptorRange(rw[0].access)])[0]
+        self.check_eq(location.fixedBindNumber, 3)
 
         action: rd.ActionDescription = self.find_action("glDraw", action.eventId+1)
 
         self.controller.SetFrameEvent(action.eventId, True)
 
-        mapping: rd.ShaderBindpointMapping = self.controller.GetPipelineState().GetBindpointMapping(rd.ShaderStage.Vertex)
-        self.check(mapping.readWriteResources[0].bind == 3)
+        pipe = self.controller.GetPipelineState()
 
-        mapping: rd.ShaderBindpointMapping = self.controller.GetPipelineState().GetBindpointMapping(rd.ShaderStage.Pixel)
-        self.check(mapping.readWriteResources[0].bind == 3)
+        rw = pipe.GetReadWriteResources(rd.ShaderStage.Vertex)
+        location = self.controller.GetDescriptorLocations(rw[0].access.descriptorStore, [rd.DescriptorRange(rw[0].access)])[0]
+        self.check_eq(location.fixedBindNumber, 3)
+
+        rw = pipe.GetReadWriteResources(rd.ShaderStage.Pixel)
+        location = self.controller.GetDescriptorLocations(rw[0].access.descriptorStore, [rd.DescriptorRange(rw[0].access)])[0]
+        self.check_eq(location.fixedBindNumber, 3)
+
 
         last_action: rd.ActionDescription = self.get_last_action()
 

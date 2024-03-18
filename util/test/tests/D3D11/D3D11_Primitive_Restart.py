@@ -65,7 +65,7 @@ class D3D11_Primitive_Restart(rdtest.TestCase):
         self.check_mesh_data(postvs_ref, postvs_data)
 
         # Check that the rendered mesh is as expected
-        out = pipe.GetOutputTargets()[0].resourceId
+        out = pipe.GetOutputTargets()[0].resource
         for x in [x*0.01 for x in range(1, 100)]:
             self.check_pixel_value(out, x, 0.1, [0.2, 0.2, 0.2, 1.0])
             self.check_pixel_value(out, x, 0.5, [0.2, 0.2, 0.2, 1.0])

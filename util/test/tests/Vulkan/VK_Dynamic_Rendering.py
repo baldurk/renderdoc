@@ -10,7 +10,7 @@ class VK_Dynamic_Rendering(rdtest.TestCase):
         out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
                                                             rd.ReplayOutputType.Texture)
 
-        for cmdLevel in [0,1]:
+        for cmdLevel in [0, 1]:
             action = self.find_action("Draw {}".format(cmdLevel)).next
 
             self.check(action is not None)
@@ -54,38 +54,29 @@ class VK_Dynamic_Rendering(rdtest.TestCase):
 
             rdtest.log.success('Triangle is as expected')
 
-            pipe: rd.VKState = self.controller.GetVulkanPipelineState()
+            pipe = self.controller.GetPipelineState()
+            vkpipe = self.controller.GetVulkanPipelineState()
 
-            if len(pipe.graphics.descriptorSets) != 1:
-                raise rdtest.TestFailureException("Wrong number of sets is bound: {}, not 1"
-                                                  .format(len(pipe.graphics.descriptorSets)))
+            access = pipe.GetDescriptorAccess()
 
-            desc_set: rd.VKDescriptorSet = pipe.graphics.descriptorSets[0]
+            # only expect two accesses, the buffer we actually use and the push constants
+            if len(access) != 2:
+                raise rdtest.TestFailureException("Only expected two descriptor accesses, but saw {}".format(
+                    len(access)))
 
-            if len(desc_set.bindings) != 1:
-                raise rdtest.TestFailureException("Wrong number of bindings: {}, not 1"
-                                                  .format(len(desc_set.bindings)))
+            if not (rd.DescriptorType.ReadWriteBuffer, 0, 17) in [(a.type, a.index, a.arrayElement) for a in access]:
+                raise rdtest.TestFailureException(
+                    f"Graphics bind 0[17] isn't the accessed RW buffer descriptor {str(rd.DumpObject(access))}")
 
-            binding = desc_set.bindings[0]
-            if binding.dynamicallyUsedCount != 1:
-                raise rdtest.TestFailureException("Bind doesn't have the right used count. {} is not the expected count of {}"
-                                                  .format(binding.dynamicallyUsedCount, 1))
-
-            for idx, el in enumerate(binding.binds):
-                expected_used = idx == 17
-                actually_used = el.dynamicallyUsed
-
-                if expected_used and not actually_used:
-                    raise rdtest.TestFailureException("Bind {} element {} expected to be used, but isn't.".format(bind, idx))
-
-                if not expected_used and actually_used:
-                    raise rdtest.TestFailureException("Bind {} element {} expected to be unused, but is.".format(bind, idx))
+            if len(vkpipe.graphics.descriptorSets) != 1:
+                raise rdtest.TestFailureException("Wrong number of sets is bound: {}, not 1".format(
+                    len(vkpipe.graphics.descriptorSets)))
 
             rdtest.log.success("Dynamic usage is as expected")
 
             tex = rd.TextureDisplay()
             tex.overlay = rd.DebugOverlay.Drawcall
-            tex.resourceId = pipe.currentPass.framebuffer.attachments[0].imageResourceId
+            tex.resourceId = vkpipe.currentPass.framebuffer.attachments[0].resource
 
             out.SetTextureDisplay(tex)
 
@@ -93,10 +84,10 @@ class VK_Dynamic_Rendering(rdtest.TestCase):
 
             overlay_id = out.GetDebugOverlayTexID()
 
-            x = int(pipe.viewportScissor.viewportScissors[0].vp.width/2)
-            y = int(pipe.viewportScissor.viewportScissors[0].vp.height/2)
+            x = int(vkpipe.viewportScissor.viewportScissors[0].vp.width / 2)
+            y = int(vkpipe.viewportScissor.viewportScissors[0].vp.height / 2)
 
             self.check_pixel_value(overlay_id, x, y, [0.8, 0.1, 0.8, 1.0], eps=1.0 / 256.0)
-            self.check_pixel_value(overlay_id, x//10, y//10, [0.0, 0.0, 0.0, 0.5], eps=1.0 / 256.0)
+            self.check_pixel_value(overlay_id, x // 10, y // 10, [0.0, 0.0, 0.0, 0.5], eps=1.0 / 256.0)
 
         out.Shutdown()

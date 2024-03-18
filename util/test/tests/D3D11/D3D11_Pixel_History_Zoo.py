@@ -30,11 +30,11 @@ class D3D11_Pixel_History_Zoo(rdtest.TestCase):
 
             pipe: rd.PipeState = self.controller.GetPipelineState()
 
-            rt: rd.BoundResource = pipe.GetOutputTargets()[0]
+            rt = pipe.GetOutputTargets()[0]
 
             vp: rd.Viewport = pipe.GetViewport(0)
 
-            tex = rt.resourceId
+            tex = rt.resource
             x, y = (int(vp.width / 2), int(vp.height / 2))
 
             tex_details = self.get_texture(tex)
@@ -45,7 +45,7 @@ class D3D11_Pixel_History_Zoo(rdtest.TestCase):
             if tex_details.mips > 1:
                 sub.mip = rt.firstMip
 
-            modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+            modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
 
             # Should be at least two modifications in every test - clear and action
             self.check(len(modifs) >= 2)
@@ -76,7 +76,7 @@ class D3D11_Pixel_History_Zoo(rdtest.TestCase):
             rdtest.log.success("shader output and premod/postmod is consistent")
 
             # The current pixel value should match the last postMod
-            self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+            self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
             # Also the red channel should be zero, as it indicates errors
             self.check(float(value_selector(modifs[-1].postMod.col)[0]) == 0.0)

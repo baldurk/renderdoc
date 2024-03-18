@@ -33,12 +33,12 @@ class VK_Spec_Constants(rdtest.TestCase):
                 raise rdtest.TestFailureException("CBuffer variable is array of {}, not {}".format(array_len, num_colors+1))
 
             if num_colors > 0:
-                cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(rd.ShaderStage.Pixel, 0, 0)
+                cbuf = pipe.GetConstantBlock(rd.ShaderStage.Pixel, 0, 0).descriptor
 
                 cb_vars = self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                                      pipe.GetShader(rd.ShaderStage.Pixel), rd.ShaderStage.Pixel,
                                                                      pipe.GetShaderEntryPoint(rd.ShaderStage.Pixel), 0,
-                                                                     cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize)
+                                                                     cbuf.resource, cbuf.byteOffset, cbuf.byteSize)
 
                 self.check(len(cb_vars) == 1)
 
@@ -56,12 +56,12 @@ class VK_Spec_Constants(rdtest.TestCase):
 
                 rdtest.log.success("Draw with {} colors uniform buffer is as expected".format(num_colors))
 
-            cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(rd.ShaderStage.Pixel, 1, 0)
+            cbuf = pipe.GetConstantBlock(rd.ShaderStage.Pixel, 1, 0).descriptor
 
             cb_vars = self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                                  pipe.GetShader(rd.ShaderStage.Pixel), rd.ShaderStage.Pixel,
                                                                  pipe.GetShaderEntryPoint(rd.ShaderStage.Pixel), 1,
-                                                                 cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize)
+                                                                 cbuf.resource, cbuf.byteOffset, cbuf.byteSize)
 
             self.check(len(cb_vars) == 3)
 
@@ -137,7 +137,7 @@ class VK_Spec_Constants(rdtest.TestCase):
                 expected[col] += 1.0
 
             # Sample the centre of the viewport
-            self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, int(view.x) + int(view.width / 2), int(view.height / 2), expected)
+            self.check_pixel_value(pipe.GetOutputTargets()[0].resource, int(view.x) + int(view.width / 2), int(view.height / 2), expected)
 
             rdtest.log.success("Draw with {} colors picked value is as expected".format(num_colors))
 

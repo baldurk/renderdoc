@@ -454,7 +454,7 @@ class TestCase:
 
         # if no output is specified, check the current colour output at this action
         if out is None:
-            out = pipe.GetOutputTargets()[0].resourceId
+            out = pipe.GetOutputTargets()[0].resource
 
         tex_details = self.get_texture(out)
 

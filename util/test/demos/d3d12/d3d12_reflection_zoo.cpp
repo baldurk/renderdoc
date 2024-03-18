@@ -310,15 +310,13 @@ float4 main(float4 pos : SV_Position) : SV_Target0
 
       setMarker(cmd, "DXBC");
       cmd->SetPipelineState(dxbc);
-      // don't have to actually draw anything, saves us from needing to bind any descriptors. We
-      // can still check the reflection
-      cmd->DrawInstanced(0, 0, 0, 0);
+      cmd->DrawInstanced(3, 1, 0, 0);
 
       if(m_DXILSupport)
       {
         setMarker(cmd, "DXIL");
         cmd->SetPipelineState(dxil);
-        cmd->DrawInstanced(0, 0, 0, 0);
+        cmd->DrawInstanced(3, 1, 0, 0);
       }
 
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);

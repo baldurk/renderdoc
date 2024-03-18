@@ -16,7 +16,7 @@ class VK_Overlay_Test(rdtest.Overlay_Test):
         pipe = self.controller.GetPipelineState()
 
         tex = rd.TextureDisplay()
-        tex.resourceId = pipe.GetOutputTargets()[0].resourceId
+        tex.resourceId = pipe.GetOutputTargets()[0].resource
 
         tex.overlay = rd.DebugOverlay.ClearBeforeDraw
         out.SetTextureDisplay(tex)
@@ -49,7 +49,7 @@ class VK_Overlay_Test(rdtest.Overlay_Test):
         pipe = self.controller.GetPipelineState()
 
         tex = rd.TextureDisplay()
-        tex.resourceId = pipe.GetOutputTargets()[0].resourceId
+        tex.resourceId = pipe.GetOutputTargets()[0].resource
 
         for overlay in rd.DebugOverlay:
             if overlay == rd.DebugOverlay.NoOverlay:

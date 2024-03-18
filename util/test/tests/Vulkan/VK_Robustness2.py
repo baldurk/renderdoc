@@ -77,15 +77,14 @@ class VK_Robustness2(rdtest.TestCase):
 
         pipe = self.controller.GetPipelineState()
         refl = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
-        mapping = pipe.GetBindpointMapping(rd.ShaderStage.Fragment)
 
         for i, cb in enumerate(refl.constantBlocks):
-            cbuf = pipe.GetConstantBuffer(rd.ShaderStage.Fragment, i, 0)
+            cbuf = pipe.GetConstantBlock(rd.ShaderStage.Fragment, i, 0).descriptor
 
             var_check = rdtest.ConstantBufferChecker(
                 self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                            pipe.GetShader(rd.ShaderStage.Fragment), rd.ShaderStage.Fragment, refl.entryPoint, i,
-                                                           cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
+                                                           cbuf.resource, cbuf.byteOffset, cbuf.byteSize))
 
             if cb.bufferBacked:
                 var_check.check('data').type(rd.VarType.Float).rows(1).cols(4).value([0.0, 0.0, 0.0, 0.0])
@@ -98,4 +97,4 @@ class VK_Robustness2(rdtest.TestCase):
                 var_check.check('coord').type(rd.VarType.SInt).rows(1).cols(4).value(val)
 
             rdtest.log.success('CBuffer {} at bindpoint {}.{}[0] contains the correct contents'
-                               .format(cb.name, mapping.constantBlocks[i].bindset, mapping.constantBlocks[i].bind))
+                               .format(cb.name, cb.fixedBindSetOrSpace, cb.fixedBindNumber))

@@ -13,7 +13,7 @@ class D3D11_Untyped_Backbuffer_Descriptor(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.25, 0.5, [1.0, 1.0, 1.0, 1.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.25, 0.5, [1.0, 1.0, 1.0, 1.0])
 
         rdtest.log.success("Picked value for first action is as expected")
 
@@ -24,6 +24,6 @@ class D3D11_Untyped_Backbuffer_Descriptor(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.75, 0.5, [1.0, 1.0, 1.0, 1.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.75, 0.5, [1.0, 1.0, 1.0, 1.0])
 
         rdtest.log.success("Picked value for second action is as expected")

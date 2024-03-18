@@ -66,16 +66,15 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
         self.check(len(fsrefl.readOnlyResources) == 1)
         self.check(fsrefl.readOnlyResources[0].name == "smiley")
 
-        vkpipe = self.controller.GetVulkanPipelineState()
+        access = pipe.GetDescriptorAccess()
 
-        binding = vkpipe.graphics.descriptorSets[1].bindings[0]
+        # only expect 4 accesses, the texture we actually read, spec constant, push constants, and VS UBO
+        if len(access) != 4:
+            raise rdtest.TestFailureException("Only expected 4 descriptor accesses, but saw {}".format(len(access)))
 
-        if binding.dynamicallyUsedCount != 1:
-            raise rdtest.TestFailureException("Bind 0 doesn't have the right used count {}"
-                                              .format(binding.dynamicallyUsedCount))
-
-        if not binding.binds[13].dynamicallyUsed:
-            raise rdtest.TestFailureException("Graphics bind 0[13] isn't dynamically used")
+        if not (rd.DescriptorType.ImageSampler, 0, 13) in [(a.type, a.index, a.arrayElement) for a in access]:
+            raise rdtest.TestFailureException(
+                f"Graphics bind 0[15] isn't the accessed descriptor {str(rd.DumpObject(access))}")
 
         trace = self.controller.DebugVertex(0, 0, 0, 0)
 
@@ -99,8 +98,8 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
 
                 if len(expect) != value.columns:
                     raise rdtest.TestFailureException(
-                        "Vertex output {} has different size ({} values) to expectation ({} values)"
-                            .format(name, action.eventId, value.columns, len(expect)))
+                        "Vertex output {} has different size ({} values) to expectation ({} values)".format(
+                            name, action.eventId, value.columns, len(expect)))
 
                 compType = rd.VarTypeCompType(value.type)
                 if compType == rd.CompType.UInt:
@@ -113,17 +112,17 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
                 is_eq, diff_amt = rdtest.value_compare_diff(expect, debugged, eps=5.0E-06)
                 if not is_eq:
                     rdtest.log.error(
-                        "Debugged vertex output value {}: {} difference. {} doesn't exactly match postvs output {}".format(
-                            name, action.eventId, diff_amt, debugged, expect))
+                        "Debugged vertex output value {}: {} difference. {} doesn't exactly match postvs output {}".
+                        format(name, action.eventId, diff_amt, debugged, expect))
 
                 outputs = outputs + 1
 
-        rdtest.log.success('Successfully debugged vertex in {} cycles, {}/{} outputs match'
-                           .format(cycles, outputs, len(vsrefl.outputSignature)))
+        rdtest.log.success('Successfully debugged vertex in {} cycles, {}/{} outputs match'.format(
+            cycles, outputs, len(vsrefl.outputSignature)))
 
         self.controller.FreeTrace(trace)
 
-        history = self.controller.PixelHistory(pipe.GetOutputTargets()[0].resourceId, 200, 150, rd.Subresource(0, 0, 0),
+        history = self.controller.PixelHistory(pipe.GetOutputTargets()[0].resource, 200, 150, rd.Subresource(0, 0, 0),
                                                rd.CompType.Typeless)
 
         # should be a clear then a draw
@@ -134,9 +133,9 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
         self.check(self.find_action('', history[1].eventId).eventId == action.eventId)
         self.check(history[1].Passed())
 
-        if not rdtest.value_compare(history[1].shaderOut.col.floatValue, tri_col, eps=1.0/256.0):
-            raise rdtest.TestFailureException(
-                "History for drawcall output is wrong: {}".format(history[1].shaderOut.col.floatValue))
+        if not rdtest.value_compare(history[1].shaderOut.col.floatValue, tri_col, eps=1.0 / 256.0):
+            raise rdtest.TestFailureException("History for drawcall output is wrong: {}".format(
+                history[1].shaderOut.col.floatValue))
 
         inputs = rd.DebugPixelInputs()
         inputs.sample = 0
@@ -170,7 +169,7 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
         out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
         tex = rd.TextureDisplay()
-        tex.resourceId = pipe.GetOutputTargets()[0].resourceId
+        tex.resourceId = pipe.GetOutputTargets()[0].resource
 
         tex.overlay = rd.DebugOverlay.TriangleSizeDraw
         out.SetTextureDisplay(tex)
@@ -187,11 +186,8 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
 
         source = vsrefl.debugInfo.files[0].contents.replace('#if 0', '#if 1')
 
-        newShader = self.controller.BuildTargetShader(vsrefl.entryPoint,
-                                                      rd.ShaderEncoding.GLSL,
-                                                      bytes(source, 'UTF-8'),
-                                                      rd.ShaderCompileFlags(),
-                                                      rd.ShaderStage.Vertex)
+        newShader = self.controller.BuildTargetShader(vsrefl.entryPoint, rd.ShaderEncoding.GLSL, bytes(source, 'UTF-8'),
+                                                      rd.ShaderCompileFlags(), rd.ShaderStage.Vertex)
 
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))

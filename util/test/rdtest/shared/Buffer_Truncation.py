@@ -101,7 +101,7 @@ class Buffer_Truncation(rdtest.TestCase):
 
         stage = rd.ShaderStage.Pixel
 
-        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 0, 0)
+        cbuf = pipe.GetConstantBlock(stage, 0, 0).descriptor
 
         if self.find_action('NoCBufferRange') == None:
             self.check(cbuf.byteSize == 256)
@@ -109,7 +109,7 @@ class Buffer_Truncation(rdtest.TestCase):
         variables = self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                                pipe.GetShader(stage), stage,
                                                                pipe.GetShaderEntryPoint(stage), 0,
-                                                               cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize)
+                                                               cbuf.resource, cbuf.byteOffset, cbuf.byteSize)
 
         outcol: rd.ShaderVariable = variables[1]
 

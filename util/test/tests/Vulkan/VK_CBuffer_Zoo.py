@@ -24,42 +24,42 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
 
         self.check('GLSL' in disasm)
 
-        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 0, 0)
+        cbuf = pipe.GetConstantBlock(stage, 0, 0).descriptor
 
         var_check = rdtest.ConstantBufferChecker(
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage), stage,
                                                        pipe.GetShaderEntryPoint(stage), 0,
-                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
+                                                       cbuf.resource, cbuf.byteOffset, cbuf.byteSize))
 
         self.check_glsl_cbuffer(var_check)
 
         rdtest.log.success("GLSL CBuffer variables are as expected")
 
-        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 1, 0)
+        cbuf = pipe.GetConstantBlock(stage, 1, 0).descriptor
 
         inline_check = rdtest.ConstantBufferChecker(
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage), stage,
                                                        pipe.GetShaderEntryPoint(stage), 1,
-                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
+                                                       cbuf.resource, cbuf.byteOffset, cbuf.byteSize))
 
         self.check_inline_cbuffer(inline_check)
 
         rdtest.log.success("GLSL Inline uniform variables are as expected")
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [536.1, 537.0, 538.0, 539.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [536.1, 537.0, 538.0, 539.0])
 
         rdtest.log.success("GLSL picked value is as expected")
 
         # Check the specialization constants
-        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 2, 0)
+        cbuf = pipe.GetConstantBlock(stage, 2, 0).descriptor
 
         var_check = rdtest.ConstantBufferChecker(
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage), stage,
                                                        pipe.GetShaderEntryPoint(stage), 2,
-                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
+                                                       cbuf.resource, cbuf.byteOffset, cbuf.byteSize))
 
         # int A;
         # Default value 10, untouched
@@ -92,31 +92,31 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
 
         self.check('HLSL' in disasm)
 
-        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 0, 0)
+        cbuf = pipe.GetConstantBlock(stage, 0, 0).descriptor
 
         var_check = rdtest.ConstantBufferChecker(
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage), stage,
                                                        pipe.GetShaderEntryPoint(stage), 0,
-                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
+                                                       cbuf.resource, cbuf.byteOffset, cbuf.byteSize))
 
         self.check_hlsl_cbuffer(var_check)
 
         rdtest.log.success("HLSL CBuffer variables are as expected")
 
-        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 1, 0)
+        cbuf = pipe.GetConstantBlock(stage, 1, 0).descriptor
 
         inline_check = rdtest.ConstantBufferChecker(
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage), stage,
                                                        pipe.GetShaderEntryPoint(stage), 1,
-                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
+                                                       cbuf.resource, cbuf.byteOffset, cbuf.byteSize))
 
         self.check_inline_cbuffer(inline_check)
 
         rdtest.log.success("HLSL Inline uniform variables are as expected")
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [536.1, 537.0, 538.0, 539.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [536.1, 537.0, 538.0, 539.0])
 
         rdtest.log.success("HLSL picked value is as expected")
 

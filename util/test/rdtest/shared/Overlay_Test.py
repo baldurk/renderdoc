@@ -41,7 +41,7 @@ class Overlay_Test(rdtest.TestCase):
 
                 pipe: rd.PipeState = self.controller.GetPipelineState()
 
-                col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resourceId
+                col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
 
                 tex = rd.TextureDisplay()
                 tex.resourceId = col_tex
@@ -438,7 +438,7 @@ class Overlay_Test(rdtest.TestCase):
 
             pipe: rd.PipeState = self.controller.GetPipelineState()
 
-            col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resourceId
+            col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
 
             for overlay in rd.DebugOverlay:
                 if overlay == rd.DebugOverlay.NoOverlay:
@@ -555,7 +555,7 @@ class Overlay_Test(rdtest.TestCase):
 
             self.controller.SetFrameEvent(mask_marker.next.eventId, True)
 
-            col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resourceId
+            col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
 
             # Check just highlight drawcall to make sure it renders on sample 0
             tex.resourceId = col_tex
@@ -585,9 +585,9 @@ class Overlay_Test(rdtest.TestCase):
             # Now check clear-before-X by hand, for colour and for depth
             self.controller.SetFrameEvent(test_marker.next.eventId, True)
 
-            col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resourceId
+            col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
 
-            depth_tex: rd.ResourceId = pipe.GetDepthTarget().resourceId
+            depth_tex = pipe.GetDepthTarget().resource
 
             eps = 1.0/256.0
 
@@ -726,7 +726,7 @@ class Overlay_Test(rdtest.TestCase):
 
             pipe: rd.PipeState = self.controller.GetPipelineState()
 
-            col_tex = pipe.GetOutputTargets()[0].resourceId
+            col_tex = pipe.GetOutputTargets()[0].resource
             sub = rd.Subresource(pipe.GetOutputTargets()[0].firstMip, pipe.GetOutputTargets()[0].firstSlice, 0)
 
             for overlay in rd.DebugOverlay:

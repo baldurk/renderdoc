@@ -40,7 +40,7 @@ class D3D12_Shader_Linkage_Zoo(rdtest.TestCase):
             debugged = self.evaluate_source_var(output, variables)
 
             try:
-                self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 200, 150, debugged.value.f32v[0:4])
+                self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 200, 150, debugged.value.f32v[0:4])
             except rdtest.TestFailureException as ex:
                 failed = True
                 rdtest.log.error("Test {} did not match. {}".format(event_name, str(ex)))

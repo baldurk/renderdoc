@@ -17,7 +17,7 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
             depth = pipe.GetDepthTarget()
             vp = pipe.GetViewport(0)
 
-            id = pipe.GetOutputTargets()[0].resourceId
+            id = pipe.GetOutputTargets()[0].resource
 
             mn, mx = self.controller.GetMinMax(id, rd.Subresource(), rd.CompType.Typeless)
 
@@ -38,16 +38,16 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
 
             rdtest.log.success('Color Renderbuffer at action {} is working as expected'.format(action.eventId))
 
-            if depth.resourceId != rd.ResourceId():
-                val = self.controller.PickPixel(depth.resourceId, int(0.5 * vp.width), int(0.5 * vp.height),
+            if depth.resource != rd.ResourceId():
+                val = self.controller.PickPixel(depth.resource, int(0.5 * vp.width), int(0.5 * vp.height),
                                                 rd.Subresource(), rd.CompType.Typeless)
 
                 if not rdtest.value_compare(val.floatValue[0], 0.75):
                     raise rdtest.TestFailureException(
                         "Picked value {} in triangle for depth doesn't match expectation".format(val))
 
-                mn, mx = self.controller.GetMinMax(depth.resourceId, rd.Subresource(), rd.CompType.Typeless)
-                hist = self.controller.GetHistogram(depth.resourceId, rd.Subresource(),
+                mn, mx = self.controller.GetMinMax(depth.resource, rd.Subresource(), rd.CompType.Typeless)
+                hist = self.controller.GetHistogram(depth.resource, rd.Subresource(),
                                                     rd.CompType.Typeless, 0.75, 0.9, (True, False, False, False))
 
                 if not rdtest.value_compare(mn.floatValue[0], 0.75):

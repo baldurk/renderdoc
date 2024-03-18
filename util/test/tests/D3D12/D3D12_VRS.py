@@ -9,7 +9,7 @@ class D3D12_VRS(rdtest.TestCase):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         v = pipe.GetViewport(0)
-        tex = pipe.GetOutputTargets()[0].resourceId
+        tex = pipe.GetOutputTargets()[0].resource
 
         # Ensure we check even-based quads
         x = int(v.x) - int(v.x % 2)

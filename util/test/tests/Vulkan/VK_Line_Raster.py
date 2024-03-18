@@ -36,7 +36,7 @@ class VK_Line_Raster(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        self.tex = pipe.GetOutputTargets()[0].resourceId
+        self.tex = pipe.GetOutputTargets()[0].resource
 
         texdetails = self.get_texture(self.tex)
 

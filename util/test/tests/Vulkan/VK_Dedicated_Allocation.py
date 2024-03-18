@@ -45,11 +45,11 @@ class VK_Dedicated_Allocation(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 155, 195, [1.0, 0.0, 0.09, 1.0], eps=1.0/255.0)
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 190, 195, [0.0, 1.0, 0.09, 1.0], eps=1.0/255.0)
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 255, 195, [1.0, 0.0, 0.09, 1.0], eps=1.0/255.0)
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 230, 150, [0.723, 1.0, 1.0, 1.0], eps=1.0/255.0)
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 155, 195, [1.0, 0.0, 0.09, 1.0], eps=1.0/255.0)
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 190, 195, [0.0, 1.0, 0.09, 1.0], eps=1.0/255.0)
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 255, 195, [1.0, 0.0, 0.09, 1.0], eps=1.0/255.0)
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 230, 150, [0.723, 1.0, 1.0, 1.0], eps=1.0/255.0)
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 190, 80, [0.2, 0.2, 0.2, 1.0], eps=1.0/255.0)
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 200, 80, [0.723, 1.0, 1.0, 1.0], eps=1.0/255.0)
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 210, 80, [0.2, 0.2, 0.2, 1.0], eps=1.0/255.0)
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 190, 80, [0.2, 0.2, 0.2, 1.0], eps=1.0/255.0)
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 200, 80, [0.723, 1.0, 1.0, 1.0], eps=1.0/255.0)
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 210, 80, [0.2, 0.2, 0.2, 1.0], eps=1.0/255.0)

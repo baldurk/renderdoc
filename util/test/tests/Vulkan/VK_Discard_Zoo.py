@@ -143,7 +143,7 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        tex_id = pipe.GetOutputTargets()[0].resourceId
+        tex_id = pipe.GetOutputTargets()[0].resource
 
         self.check_pixel_value(tex_id, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
         self.controller.SetFrameEvent(action.next.eventId, True)

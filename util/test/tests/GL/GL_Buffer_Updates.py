@@ -15,7 +15,7 @@ class GL_Buffer_Updates(rdtest.TestCase):
 
             if action.flags & rd.ActionFlags.Drawcall:
                 pipe = self.controller.GetPipelineState()
-                tex = self.controller.GetPipelineState().GetOutputTargets()[0].resourceId
+                tex = self.controller.GetPipelineState().GetOutputTargets()[0].resource
 
                 view: rd.Viewport = self.controller.GetPipelineState().GetViewport(0)
 

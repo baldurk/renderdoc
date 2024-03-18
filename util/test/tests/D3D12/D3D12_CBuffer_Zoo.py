@@ -51,7 +51,6 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
         stage = rd.ShaderStage.Pixel
 
         refl: rd.ShaderReflection = pipe.GetShaderReflection(stage)
-        mapping: rd.ShaderBindpointMapping = pipe.GetBindpointMapping(stage)
 
         # Make sure we have three constant buffers - b7 normal, b1 root constants, and space9999999:b0
         binds = [
@@ -60,40 +59,39 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
             (999999999, 0),
         ]
 
-        if len(refl.constantBlocks) != len(mapping.constantBlocks) or len(refl.constantBlocks) != len(binds):
+        if len(refl.constantBlocks) != len(binds):
             raise rdtest.TestFailureException(
-                "Expected {}} constant buffers, only got {} {}".format(len(binds), len(refl.constantBlocks),
-                                                                       len(refl.constantBlocks)))
+                "Expected {} constant buffers, only got {}".format(len(binds), len(refl.constantBlocks)))
 
         for b in range(0, len(binds)):
-            if binds[b][0] != mapping.constantBlocks[b].bindset or binds[b][1] != mapping.constantBlocks[b].bind:
+            if binds[b][0] != refl.constantBlocks[b].fixedBindSetOrSpace or binds[b][1] != refl.constantBlocks[b].fixedBindNumber:
                 raise rdtest.TestFailureException(
-                    "Unexpected cb[{}] mapping: set {} bind {}".format(b, mapping.constantBlocks[b].bindset,
-                                                                       mapping.constantBlocks[b].bind))
+                    "Unexpected cb[{}] mapping: space {} bind {}".format(b, refl.constantBlocks[b].fixedBindSetOrSpace,
+                                                                         refl.constantBlocks[b].fixedBindNumber))
 
-        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 0, 0)
+        cbuf = pipe.GetConstantBlock(stage, 0, 0).descriptor
 
         var_check = rdtest.ConstantBufferChecker(
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage), stage,
                                                        pipe.GetShaderEntryPoint(stage), 0,
-                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
+                                                       cbuf.resource, cbuf.byteOffset, cbuf.byteSize))
 
-        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 1, 0)
+        cbuf = pipe.GetConstantBlock(stage, 1, 0).descriptor
 
         root_check = rdtest.ConstantBufferChecker(
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage), stage,
                                                        pipe.GetShaderEntryPoint(stage), 1,
-                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
+                                                       cbuf.resource, cbuf.byteOffset, cbuf.byteSize))
 
-        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 2, 0)
+        cbuf = pipe.GetConstantBlock(stage, 2, 0).descriptor
 
         huge_check = rdtest.ConstantBufferChecker(
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage), stage,
                                                        pipe.GetShaderEntryPoint(stage), 2,
-                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
+                                                       cbuf.resource, cbuf.byteOffset, cbuf.byteSize))
 
         self.check_cbuffers(var_check, root_check, huge_check)
 
@@ -152,7 +150,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
             self.controller.FreeTrace(trace)
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [536.1, 537.0, 538.0, 539.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [536.1, 537.0, 538.0, 539.0])
 
         rdtest.log.success("Picked value is as expected")
 

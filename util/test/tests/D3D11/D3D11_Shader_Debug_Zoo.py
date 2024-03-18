@@ -31,7 +31,7 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
             debugged = self.evaluate_source_var(output, variables)
 
             try:
-                self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4 * test, 0, debugged.value.f32v[0:4])
+                self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 4 * test, 0, debugged.value.f32v[0:4])
             except rdtest.TestFailureException as ex:
                 if test in undefined_tests:
                     rdtest.log.comment("Undefined test {} did not match. {}".format(test, str(ex)))
@@ -60,8 +60,8 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
         debugged = self.evaluate_source_var(output, variables)
 
         try:
-            self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0, 4, debugged.value.f32v[0:4])
-            self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0, 4, [9.0, 66.0, 4.0, 18.0])
+            self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0, 4, debugged.value.f32v[0:4])
+            self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0, 4, [9.0, 66.0, 4.0, 18.0])
         except rdtest.TestFailureException as ex:
             raise rdtest.TestFailureException("Flow test did not match. {}".format(str(ex)))
         finally:
@@ -95,7 +95,7 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
 
             # Validate the debug output result
             try:
-                self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4, 4, debugged.value.f32v[0:4], sub=rd.Subresource(0, 0, test))
+                self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 4, 4, debugged.value.f32v[0:4], sub=rd.Subresource(0, 0, test))
             except rdtest.TestFailureException as ex:
                 failed = True
                 rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))

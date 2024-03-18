@@ -82,7 +82,7 @@ class GL_Separable_Geometry_Shaders(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        rt = pipe.GetOutputTargets()[0].resourceId
+        rt = pipe.GetOutputTargets()[0].resource
         self.check_pixel_value(rt, 0.5, 0.1, [1.0, 0.0, 0.0, 1.0])
         self.check_pixel_value(rt, 0.75, 0.5, [0.0, 1.0, 0.0, 1.0])
         self.check_pixel_value(rt, 0.25, 0.5, [1.0, 0.0, 1.0, 0.0])

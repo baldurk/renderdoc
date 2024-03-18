@@ -24,7 +24,7 @@ class VK_Shader_Editing(rdtest.TestCase):
         fsrefl2: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
         vsrefl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
-        tex: rd.ResourceId = pipe.GetOutputTargets()[0].resourceId
+        tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
 
         # Both triangles should be green
         self.check_pixel_value(tex, 0.25, 0.5, [0.0, 1.0, 0.0, 1.0])

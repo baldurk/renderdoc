@@ -21,8 +21,8 @@ class GL_Pixel_History(rdtest.TestCase):
             self.controller.SetFrameEvent(action.eventId, True)
 
             pipe: rd.PipeState = self.controller.GetPipelineState()
-            rt: rd.BoundResource = pipe.GetOutputTargets()[0]
-            tex: rd.ResourceId = rt.resourceId
+            rt = pipe.GetOutputTargets()[0]
+            tex: rd.ResourceId = rt.resource
             sub = rd.Subresource()
 
             texDescription : rd.TextureDescription = self.get_texture(tex)
@@ -42,17 +42,17 @@ class GL_Pixel_History(rdtest.TestCase):
             x, y = 190, 149
             rdtest.log.print("Testing pixel {}, {}".format(x, y))
             events = [glclear.eventId, action.eventId]
-            modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+            modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
             self.check_events(events, modifs, False)
-            self.check_pixel_value(tex, x, y, modifs[-1].postMod.col.floatValue, sub=sub, cast=rt.typeCast, eps=eps)
+            self.check_pixel_value(tex, x, y, modifs[-1].postMod.col.floatValue, sub=sub, cast=rt.format.compType, eps=eps)
             self.check_shader_out_with_postmod(modifs[-1].shaderOut.col.floatValue, modifs[-1].postMod.col.floatValue, texDescription.format.compCount, eps)
 
             x, y = 328, 199
             rdtest.log.print("Testing pixel {}, {}".format(x, y))
             events = [glclear.eventId]
-            modifs: List[rd.pixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+            modifs: List[rd.pixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
             self.check_events(events, modifs, False)
-            self.check_pixel_value(tex, x, y, modifs[-1].postMod.col.floatValue, sub=sub, cast=rt.typeCast, eps=eps)
+            self.check_pixel_value(tex, x, y, modifs[-1].postMod.col.floatValue, sub=sub, cast=rt.format.compType, eps=eps)
 
             rdtest.log.success('Testing Event {} completed.'.format(action.eventId))
 

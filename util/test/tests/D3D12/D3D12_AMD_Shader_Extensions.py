@@ -14,7 +14,7 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
                 self.controller.SetFrameEvent(action.next.eventId, False)
 
                 pipe = self.controller.GetPipelineState()
-                tex = pipe.GetOutputTargets()[0].resourceId
+                tex = pipe.GetOutputTargets()[0].resource
                 vp = pipe.GetViewport(0)
 
                 # Should have barycentrics showing the closest vertex for each pixel in the triangle

@@ -22,7 +22,7 @@ class GL_Depth_Bounds(rdtest.TestCase):
 
         pipe = self.controller.GetPipelineState()
 
-        tex: rd.ResourceId = pipe.GetOutputTargets()[0].resourceId
+        tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
 
         self.check_pixel_value(tex, 200, 200, [0.0, 1.0, 0.0, 1.0])
         self.check_pixel_value(tex, 200, 100, [0.0, 1.0, 0.0, 1.0])

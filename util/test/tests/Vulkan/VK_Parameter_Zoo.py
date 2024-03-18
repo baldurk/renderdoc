@@ -16,7 +16,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
 
         # Readback reported extension support
         descriptor_update_template = self.find_action("KHR_descriptor_update_template") is not None
@@ -36,16 +36,37 @@ class VK_Parameter_Zoo(rdtest.TestCase):
             res_names[res.resourceId] = res.name
 
         expected_binds = [
-            {'sampname': 'refsamp'},
-            {'resname': 'refcombinedimg', 'sampname': 'refcombinedsamp'},
-            {'resname': 'refsampled'},
-            {'resname': 'refstorage'},
-            {'resname': 'refunitexel'},
-            {'resname': 'refstoretexel'},
-            {'resname': 'refunibuf'},
-            {'resname': 'refstorebuf'},
-            {'resname': 'refunibufdyn'},
-            {'resname': 'refstorebufdyn'},
+            {
+                'sampname': 'refsamp'
+            },
+            {
+                'resname': 'refcombinedimg',
+                'sampname': 'refcombinedsamp'
+            },
+            {
+                'resname': 'refsampled'
+            },
+            {
+                'resname': 'refstorage'
+            },
+            {
+                'resname': 'refunitexel'
+            },
+            {
+                'resname': 'refstoretexel'
+            },
+            {
+                'resname': 'refunibuf'
+            },
+            {
+                'resname': 'refstorebuf'
+            },
+            {
+                'resname': 'refunibufdyn'
+            },
+            {
+                'resname': 'refstorebufdyn'
+            },
         ]
 
         setidx = 0
@@ -53,16 +74,26 @@ class VK_Parameter_Zoo(rdtest.TestCase):
             descset: rd.VKDescriptorSet
 
             if setidx == 2 and not descset.pushDescriptor:
-                raise rdtest.TestFailureException("Expected set {} to be a push set",
-                                                  setidx)
+                raise rdtest.TestFailureException("Expected set {} to be a push set", setidx)
 
             if setidx != 2 and descset.pushDescriptor:
-                raise rdtest.TestFailureException("Expected set {} to be a non-push set",
-                                                  setidx)
+                raise rdtest.TestFailureException("Expected set {} to be a non-push set", setidx)
 
-            for bindidx in range(len(descset.bindings)):
-                sampname = res_names.get(descset.bindings[bindidx].binds[0].samplerResourceId, '!' + str(setidx))
-                resname = res_names.get(descset.bindings[bindidx].binds[0].resourceResourceId, '!' + str(setidx))
+            range: rd.DescriptorRange = rd.DescriptorRange()
+            range.offset = 0
+            # push descriptors don't include dynamic descriptors so don't fetch those
+            range.count = len([
+                e for e in expected_binds
+                if ('sampname' in e or not descset.pushDescriptor or 'dyn' not in e['resname'])
+            ])
+            range.descriptorSize = 1
+
+            descs = self.controller.GetDescriptors(descset.descriptorSetResourceId, [range])
+            samps = self.controller.GetSamplerDescriptors(descset.descriptorSetResourceId, [range])
+
+            for bindidx, (desc, samp) in enumerate(zip(descs, samps)):
+                sampname = res_names.get(samp.object, '!' + str(setidx))
+                resname = res_names.get(desc.resource, '!' + str(setidx))
 
                 expected_samp = expected_binds[bindidx].get('sampname', '!') + str(setidx)
                 expected_res = expected_binds[bindidx].get('resname', '!') + str(setidx)
@@ -95,9 +126,21 @@ class VK_Parameter_Zoo(rdtest.TestCase):
             if not descset.pushDescriptor:
                 raise rdtest.TestFailureException("Expected set 2 to be a push set")
 
-            for bindidx in range(len(descset.bindings)):
-                sampname = res_names.get(descset.bindings[bindidx].binds[0].samplerResourceId, '!' + str(setidx))
-                resname = res_names.get(descset.bindings[bindidx].binds[0].resourceResourceId, '!' + str(setidx))
+            range: rd.DescriptorRange = rd.DescriptorRange()
+            range.offset = 0
+            # push descriptors don't include dynamic descriptors so don't fetch those
+            range.count = len([
+                e for e in expected_binds
+                if ('sampname' in e or not descset.pushDescriptor or 'dyn' not in e['resname'])
+            ])
+            range.descriptorSize = 1
+
+            descs = self.controller.GetDescriptors(descset.descriptorSetResourceId, [range])
+            samps = self.controller.GetSamplerDescriptors(descset.descriptorSetResourceId, [range])
+
+            for bindidx, (desc, samp) in enumerate(zip(descs, samps)):
+                sampname = res_names.get(samp.object, '!' + str(setidx))
+                resname = res_names.get(desc.resource, '!' + str(setidx))
 
                 expected_samp = expected_binds[bindidx].get('sampname', '!') + str(setidx)
                 expected_res = expected_binds[bindidx].get('resname', '!') + str(setidx)
@@ -131,21 +174,18 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
+        pipe = self.controller.GetPipelineState()
+
+        ro = pipe.GetReadOnlyResources(rd.ShaderStage.Vertex)
+        access = pipe.GetDescriptorAccess()
+
+        self.check_eq(len(ro), 1)
+
+        if not (rd.DescriptorType.Image, 0, 1) in [(a.type, a.index, a.arrayElement) for a in access]:
+            raise rdtest.TestFailureException(
+                f"Graphics bind 0[1] isn't the accessed descriptor {str(rd.DumpObject(access))}")
+
         vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
-
-        desc_set: rd.VKDescriptorSet = vkpipe.graphics.descriptorSets[0]
-
-        self.check(len(desc_set.bindings) == 11)
-
-        binding = desc_set.bindings[10]
-
-        self.check(binding.dynamicallyUsedCount == 1)
-        self.check(len(binding.binds) == 4)
-        self.check(not binding.binds[0].dynamicallyUsed)
-        self.check(binding.binds[1].dynamicallyUsed)
-        self.check(not binding.binds[2].dynamicallyUsed)
-        self.check(not binding.binds[3].dynamicallyUsed)
-
         self.check(len(vkpipe.viewportScissor.viewportScissors) == 0)
 
         postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
@@ -154,12 +194,12 @@ class VK_Parameter_Zoo(rdtest.TestCase):
             0: {
                 'vtx': 0,
                 'idx': 0,
-                '_Position': [-1.0,  1.0, 0.0, 1.0],
+                '_Position': [-1.0, 1.0, 0.0, 1.0],
             },
             1: {
                 'vtx': 1,
                 'idx': 1,
-                '_Position': [ 1.0,  1.0, 0.0, 1.0],
+                '_Position': [1.0, 1.0, 0.0, 1.0],
             },
             2: {
                 'vtx': 2,
@@ -169,7 +209,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
             3: {
                 'vtx': 3,
                 'idx': 3,
-                '_Position': [ 1.0, -1.0, 0.0, 1.0],
+                '_Position': [1.0, -1.0, 0.0, 1.0],
             },
         }
 
@@ -185,17 +225,18 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        pipe = self.controller.GetPipelineState()
 
-        desc_set: rd.VKDescriptorSet = vkpipe.graphics.descriptorSets[0]
+        ro = pipe.GetReadOnlyResources(rd.ShaderStage.Fragment)
 
-        if desc_set.bindings[0].binds[0].filter.minify != rd.FilterMode.Linear:
-            raise rdtest.TestFailureException(
-                "Expected linear sampler at binding slot 0 in immutable action")
+        if len(ro) != 1:
+            raise rdtest.TestFailureException("Expected only one resource to be used")
 
-        if self.get_resource(desc_set.bindings[0].binds[0].samplerResourceId).name != "validSampler":
-            raise rdtest.TestFailureException(
-                "Expected validSampler to be at binding slot 0 in immutable action")
+        if ro[0].sampler.filter.minify != rd.FilterMode.Linear:
+            raise rdtest.TestFailureException("Expected linear sampler at binding slot 0 in immutable action")
+
+        if self.get_resource(ro[0].descriptor.secondary).name != "validSampler":
+            raise rdtest.TestFailureException("Expected validSampler to be at binding slot 0 in immutable action")
 
         rdtest.log.success("Immutable Draw is as expected")
 
@@ -203,19 +244,18 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         # Check for resource leaks
         if len(sdfile.chunks) > 500:
-            raise rdtest.TestFailureException(
-                "Too many chunks found: {}".format(len(sdfile.chunks)))
+            raise rdtest.TestFailureException("Too many chunks found: {}".format(len(sdfile.chunks)))
 
         action = self.find_action("before_empty")
-        action = self.get_action(action.eventId+1)
+        action = self.get_action(action.eventId + 1)
         self.check("vkQueueSubmit" in action.GetName(sdfile))
         a = action.GetName(sdfile)
-        action = self.get_action(action.eventId+1)
+        action = self.get_action(action.eventId + 1)
         self.check("vkQueueSubmit" in action.GetName(sdfile))
         self.check("No Command Buffers" in action.GetName(sdfile))
         self.check(a != action.GetName(sdfile))
 
-        action = self.get_action(action.eventId+1)
+        action = self.get_action(action.eventId + 1)
         if "after_empty" not in action.GetName(sdfile):
             self.check("vkQueueSubmit2" in action.GetName(sdfile))
             a = action.GetName(sdfile)

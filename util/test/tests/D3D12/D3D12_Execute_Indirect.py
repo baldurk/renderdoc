@@ -68,9 +68,9 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
             ro = pipe.GetReadOnlyResources(rd.ShaderStage.Vertex)
             rw = pipe.GetReadWriteResources(rd.ShaderStage.Vertex)
             self.check(vbs[0].resourceId != rd.ResourceId())
-            self.check(ro[0].resources[0].resourceId != rd.ResourceId())
-            self.check(rw[0].resources[0].resourceId != rd.ResourceId())
-            self.check(pipe.GetConstantBuffer(rd.ShaderStage.Vertex, 0, 0).resourceId != rd.ResourceId())
+            self.check(ro[0].descriptor.resource != rd.ResourceId())
+            self.check(rw[0].descriptor.resource != rd.ResourceId())
+            self.check(pipe.GetConstantBlock(rd.ShaderStage.Vertex, 0, 0).descriptor.resource != rd.ResourceId())
 
         action = self.find_action("Post draw")
         self.controller.SetFrameEvent(action.eventId, False)
@@ -85,9 +85,9 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
         ro = pipe.GetReadOnlyResources(rd.ShaderStage.Vertex)
         rw = pipe.GetReadWriteResources(rd.ShaderStage.Vertex)
         self.check(len(vbs) == 0 or vbs[0].resourceId == rd.ResourceId())
-        self.check(len(ro) == 0 or ro[0].resources[0].resourceId == rd.ResourceId())
-        self.check(len(rw) == 0 or rw[0].resources[0].resourceId == rd.ResourceId())
-        self.check(pipe.GetConstantBuffer(rd.ShaderStage.Vertex, 0, 0).resourceId == rd.ResourceId())
+        self.check(len(ro) == 0 or ro[0].descriptor.resource == rd.ResourceId())
+        self.check(len(rw) == 0 or rw[0].descriptor.resource == rd.ResourceId())
+        self.check(pipe.GetConstantBlock(rd.ShaderStage.Vertex, 0, 0).descriptor.resource == rd.ResourceId())
 
         rdtest.log.success("State is reset after execute")
 
@@ -101,7 +101,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
             for y in range(30):
                 for x in range(12):
                     idx = z*30*12+y*12+x
-                    value = struct.unpack_from('4f', self.controller.GetBufferData(rw[0].resources[0].resourceId, 16*idx, 16))
+                    value = struct.unpack_from('4f', self.controller.GetBufferData(rw[0].descriptor.resource, 16*idx, 16))
                     expect = [float(x), float(y), float(z), float(idx)]
 
                     if not rdtest.value_compare(expect, value):
@@ -141,7 +141,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                 self.controller.SetFrameEvent(action.eventId + drawNum, False)
 
                 pipe = self.controller.GetPipelineState()
-                out = pipe.GetOutputTargets()[0].resourceId
+                out = pipe.GetOutputTargets()[0].resource
 
                 count = 0
                 draws = []

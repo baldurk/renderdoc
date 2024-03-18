@@ -77,7 +77,7 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
                     continue
                 in_ref[idx]['In' + key] = ref[idx][key]
 
-            in_ref[idx]['InUInt2'] = ref[idx]['UInt'] + ref[idx]['UInt1'] + ref[idx]['UInt2']
+            in_ref[idx]['InUInt'] = ref[idx]['UInt'] + ref[idx]['UInt1'] + ref[idx]['UInt2']
 
         # Copy the ref values and prepend 'Out'
         out_ref = {}
@@ -120,7 +120,7 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
 
         rdtest.log.success("Triangle picked value is as expected")
 

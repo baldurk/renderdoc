@@ -61,7 +61,7 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
 
         rdtest.log.success("vertex output is as expected")
 
-        tex = pipe.GetOutputTargets()[0].resourceId
+        tex = pipe.GetOutputTargets()[0].resource
 
         texdetails = self.get_texture(tex)
 

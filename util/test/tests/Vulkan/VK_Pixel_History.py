@@ -50,9 +50,9 @@ class VK_Pixel_History(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        rt: rd.BoundResource = pipe.GetOutputTargets()[0]
+        rt = pipe.GetOutputTargets()[0]
 
-        tex = rt.resourceId
+        tex = rt.resource
         tex_details = self.get_texture(tex)
 
         sub = rd.Subresource()
@@ -79,19 +79,19 @@ class VK_Pixel_History(rdtest.TestCase):
         # For pixel 110, 100, inside the red triangle with stencil value 0x55
         x, y = 110, 100
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, unbound_fs_eid], [passed, True], [unboundPS, True], [primitive_id, 0], [post_mod_stencil, 0x33]],
             [[event_id, stencil_write_eid], [passed, True], [primitive_id, 0], [post_mod_stencil, 0x55]],
         ]
         self.check_events(events, modifs, False)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
         # For pixel 190, 149 inside the red triangle
         x, y = 190, 149
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, unbound_fs_eid], [passed, True], [unboundPS, True], [primitive_id, 0]],
@@ -100,11 +100,11 @@ class VK_Pixel_History(rdtest.TestCase):
             [[event_id, test_eid], [stencil_test_failed, True]],
         ]
         self.check_events(events, modifs, False)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
         x, y = 190, 150
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, depth_write_eid], [passed, True]],
@@ -113,88 +113,88 @@ class VK_Pixel_History(rdtest.TestCase):
             [[event_id, test_eid], [depth_test_failed, True]],
         ]
         self.check_events(events, modifs, False)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
         x, y = 200, 50
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, background_eid], [passed, True]],
             [[event_id, test_eid], [passed, True], [primitive_id, 7]],
         ]
         self.check_events(events, modifs, False)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
         x, y = 150, 250
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, background_eid], [shader_discarded, True]],
         ]
         self.check_events(events, modifs, False)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
         x, y = 330, 145
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, test_eid], [passed, True], [primitive_id, 3], [shader_out_col, (0.0, 0.0, 0.0, 2.75)]],
         ]
         self.check_events(events, modifs, False)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
         x, y = 340, 145
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, test_eid], [passed, False], [depth_clipped, True]],
         ]
         self.check_events(events, modifs, False)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
         x, y = 330, 105
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, depth_bounds_prep_eid], [passed, True], [primitive_id, 0], [shader_out_col, (1.0, 0.0, 0.0, 2.75)]],
             [[event_id, depth_bounds_clip_eid], [passed, True], [primitive_id, 0], [shader_out_col, (0.0, 1.0, 0.0, 2.75)]],
         ]
         self.check_events(events, modifs, False)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
         x, y = 320, 105
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, depth_bounds_prep_eid], [passed, True], [primitive_id, 0], [shader_out_col, (1.0, 0.0, 0.0, 2.75)]],
             [[event_id, depth_bounds_clip_eid], [passed, False], [depth_bounds_failed, True]],
         ]
         self.check_events(events, modifs, False)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
         x, y = 345, 105
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, depth_bounds_prep_eid], [passed, True], [primitive_id, 0], [shader_out_col, (1.0, 0.0, 0.0, 2.75)]],
             [[event_id, depth_bounds_clip_eid], [passed, False], [depth_bounds_failed, True]],
         ]
         self.check_events(events, modifs, False)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
         rdtest.log.print("Testing dynamic state pipelines")
         self.controller.SetFrameEvent(dynamic_stencil_mask_eid, True)
 
         x, y = 100, 250
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, background_eid], [passed, True]],
@@ -207,14 +207,14 @@ class VK_Pixel_History(rdtest.TestCase):
              [post_mod_col, (0.0, 1.0, 1.0, 1.0)]],
         ]
         self.check_events(events, modifs, False)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
         rdtest.log.print("Testing depth test for per fragment reporting")
         self.controller.SetFrameEvent(depth_test_eid, True)
 
         x, y = 275, 260
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, background_eid], [passed, True]],
@@ -235,7 +235,7 @@ class VK_Pixel_History(rdtest.TestCase):
              [post_mod_depth, 0.10]],
         ]
         self.check_events(events, modifs, False)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
     def multisampled_image_test(self):
         test_marker: rd.ActionDescription = self.find_action("Multisampled: test")
@@ -243,13 +243,13 @@ class VK_Pixel_History(rdtest.TestCase):
         self.controller.SetFrameEvent(action_eid, True)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
-        rt: rd.BoundResource = pipe.GetOutputTargets()[0]
+        rt = pipe.GetOutputTargets()[0]
 
         if self.is_depth:
-            rt: rd.BoundResource = pipe.GetDepthTarget()
+            rt = pipe.GetDepthTarget()
 
         sub = rd.Subresource()
-        tex = rt.resourceId
+        tex = rt.resource
         tex_details = self.get_texture(tex)
         if tex_details.arraysize > 1:
             sub.slice = rt.firstSlice
@@ -259,7 +259,7 @@ class VK_Pixel_History(rdtest.TestCase):
         x, y = 140, 130
         sub.sample = 1
         rdtest.log.print("Testing pixel {}, {} at sample {}".format(x, y, sub.sample))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
 
         events = [
             [[event_id, beg_renderpass_eid], [passed, True], [post_mod_depth, 0.0]],
@@ -276,13 +276,13 @@ class VK_Pixel_History(rdtest.TestCase):
         self.check_events(events, modifs, True)
 
         if self.is_depth:
-            self.check_pixel_value(tex, x, y, [modifs[-1].postMod.depth, float(modifs[-1].postMod.stencil)/255.0, 0.0, 1.0], sub=sub, cast=rt.typeCast)
+            self.check_pixel_value(tex, x, y, [modifs[-1].postMod.depth, float(modifs[-1].postMod.stencil)/255.0, 0.0, 1.0], sub=sub, cast=rt.format.compType)
         else:
-            self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+            self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
         sub.sample = 2
         rdtest.log.print("Testing pixel {}, {} at sample {}".format(x, y, sub.sample))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, beg_renderpass_eid], [passed, True], [post_mod_depth, 0.0]],
             [[event_id, action_eid], [passed, True], [primitive_id, 0], [pre_mod_depth, 0.0], [shader_out_depth, 0.9],
@@ -300,18 +300,18 @@ class VK_Pixel_History(rdtest.TestCase):
         if self.is_depth:
             self.check_pixel_value(tex, x, y,
                                    [modifs[-1].postMod.depth, float(modifs[-1].postMod.stencil) / 255.0, 0.0, 1.0],
-                                   sub=sub, cast=rt.typeCast)
+                                   sub=sub, cast=rt.format.compType)
         else:
-            self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+            self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
     def secondary_cmd_test(self):
         secondary_marker: rd.ActionDescription = self.find_action("Secondary: red and blue")
         self.controller.SetFrameEvent(secondary_marker.next.eventId, True)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
-        rt: rd.BoundResource = pipe.GetOutputTargets()[0]
+        rt = pipe.GetOutputTargets()[0]
         sub = rd.Subresource()
-        tex = rt.resourceId
+        tex = rt.resource
         tex_details = self.get_texture(tex)
         if tex_details.arraysize > 1:
             sub.slice = rt.firstSlice
@@ -326,19 +326,19 @@ class VK_Pixel_History(rdtest.TestCase):
         # Test culling
         x, y = 70, 40
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, sec_beg_renderpass_eid], [passed, True], [post_mod_col, (0.0, 1.0, 0.0, 1.0)]],
             [[event_id, background_eid], [passed, True], [pre_mod_col, (0.0, 1.0, 0.0, 1.0)]],
             [[event_id, culled_eid], [passed, False], [culled, True]],
         ]
         self.check_events(events, modifs, True)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
         # Blue triangle
         x, y = 40, 40
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, sec_beg_renderpass_eid], [passed, True], [post_mod_col, (0.0, 1.0, 0.0, 1.0)]],
             # This is the first event in the command buffer, should have pre-mod
@@ -347,18 +347,18 @@ class VK_Pixel_History(rdtest.TestCase):
             [[event_id, sec_red_and_blue], [passed, True], [post_mod_col, (0.0, 0.0, 1.0, 1.0)]],
         ]
         self.check_events(events, modifs, True)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
         # Didn't get post mod for background_eid
         self.controller.SetFrameEvent(background_eid, True)
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, sec_beg_renderpass_eid]],
             # The only event, should have both pre and post mod.
             [[event_id, background_eid], [passed, True], [pre_mod_col, (0.0, 1.0, 0.0, 1.0)], [post_mod_col, (1.0, 0.0, 1.0, 1.0)]],
         ]
         self.check_events(events, modifs, True)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.format.compType)
 
     def depth_target_test(self):
         test_marker: rd.ActionDescription = self.find_action("Test Begin")
@@ -366,9 +366,9 @@ class VK_Pixel_History(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        rt: rd.BoundResource = pipe.GetDepthTarget()
+        rt = pipe.GetDepthTarget()
 
-        tex = rt.resourceId
+        tex = rt.resource
         tex_details = self.get_texture(tex)
 
         sub = rd.Subresource()
@@ -383,7 +383,7 @@ class VK_Pixel_History(rdtest.TestCase):
 
         x, y = 200, 190
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
             [[event_id, begin_renderpass_eid], [passed, True], [post_mod_depth, 1.0]],
             [[event_id, background_eid], [passed, True], [primitive_id, 0], [pre_mod_depth, 1.0], [post_mod_depth, 0.95]],

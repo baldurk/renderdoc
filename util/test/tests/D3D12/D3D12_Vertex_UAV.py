@@ -25,7 +25,7 @@ class D3D12_Vertex_UAV(rdtest.TestCase):
                 pipe: rd.PipeState = self.controller.GetPipelineState()
 
                 tex = rd.TextureDisplay()
-                tex.resourceId = pipe.GetOutputTargets()[0].resourceId
+                tex.resourceId = pipe.GetOutputTargets()[0].resource
 
                 tex.overlay = rd.DebugOverlay.QuadOverdrawPass
                 out.SetTextureDisplay(tex)

@@ -57,20 +57,21 @@ class Texture_Zoo():
         image_view = (test_mode != Texture_Zoo.TEST_CAPTURE)
 
         if image_view:
-            bound_res: rd.BoundResource = pipe.GetOutputTargets()[0]
+            desc = pipe.GetOutputTargets()[0]
         else:
-            bound_res: rd.BoundResource = pipe.GetReadOnlyResources(rd.ShaderStage.Pixel)[0].resources[0]
+            desc = pipe.GetReadOnlyResources(rd.ShaderStage.Pixel)[0].descriptor
+
+        tex_id = desc.resource
 
         texs = self.controller.GetTextures()
         for t in texs:
             self.textures[t.resourceId] = t
 
-        tex_id: rd.ResourceId = bound_res.resourceId
         tex: rd.TextureDescription = self.textures[tex_id]
 
-        testCompType: rd.CompType = tex.format.compType
-        if bound_res.typeCast != rd.CompType.Typeless:
-            testCompType = bound_res.typeCast
+        testCompType = desc.format.compType
+        if testCompType == rd.CompType.Typeless:
+            testCompType = tex.format.compType
 
         pickCompType = testCompType
 
@@ -366,13 +367,13 @@ class Texture_Zoo():
                                         x, y, sl, mp, sm, name, fmt_name, picked, expected))
 
         if not image_view:
-            output_tex = pipe.GetOutputTargets()[0].resourceId
+            output_tex = pipe.GetOutputTargets()[0].resource
 
             # in the test captures pick the output texture, it should be identical to the
             # (0,0) pixel in slice 0, mip 0, sample 0
             view: rd.Viewport = pipe.GetViewport(0)
 
-            val: rd.PixelValue = self.pick(pipe.GetOutputTargets()[0].resourceId, int(view.x + view.width / 2),
+            val: rd.PixelValue = self.pick(pipe.GetOutputTargets()[0].resource, int(view.x + view.width / 2),
                                            int(view.y + view.height / 2), rd.Subresource(), rd.CompType.Typeless)
 
             picked = list(val.floatValue)
@@ -555,7 +556,7 @@ class Texture_Zoo():
 
                         pipe = self.controller.GetPipelineState()
 
-                        tex_id = pipe.GetReadOnlyResources(rd.ShaderStage.Pixel)[0].resources[0].resourceId
+                        tex_id = pipe.GetReadOnlyResources(rd.ShaderStage.Pixel)[0].descriptor.resource
 
                         for mip in [0, 1]:
                             for sl in [16, 17, 18]:

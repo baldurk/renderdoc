@@ -15,7 +15,7 @@ class VK_Indirect(rdtest.TestCase):
 
         tex = rd.TextureDisplay()
         tex.overlay = rd.DebugOverlay.Drawcall
-        tex.resourceId = pipe.GetOutputTargets()[0].resourceId
+        tex.resourceId = pipe.GetOutputTargets()[0].resource
 
         self.out.SetTextureDisplay(tex)
 
@@ -160,8 +160,8 @@ class VK_Indirect(rdtest.TestCase):
 
             pipe: rd.PipeState = self.controller.GetPipelineState()
 
-            ssbo: rd.BoundResource = pipe.GetReadWriteResources(rd.ShaderStage.Compute)[0].resources[0]
-            data: bytes = self.controller.GetBufferData(ssbo.resourceId, 0, 0)
+            ssbo = pipe.GetReadWriteResources(rd.ShaderStage.Compute)[0].descriptor
+            data: bytes = self.controller.GetBufferData(ssbo.resource, 0, 0)
 
             rdtest.log.print("Got {} bytes of uints".format(len(data)))
 

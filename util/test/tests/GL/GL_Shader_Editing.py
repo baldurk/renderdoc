@@ -32,7 +32,7 @@ class GL_Shader_Editing(rdtest.TestCase):
         # Work at the last action, where the uniforms have been trashed
         self.controller.SetFrameEvent(self.get_last_action().eventId, False)
 
-        tex: rd.ResourceId = pipe.GetOutputTargets()[0].resourceId
+        tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
 
         # On upper row: Left triangle is fully green, right triangle is half-green
         # On lower row: Left triangle is fully green

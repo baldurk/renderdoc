@@ -75,6 +75,6 @@ class VK_SPIRV_13_Shaders(rdtest.TestCase):
 
         rdtest.log.success("vertex output is as expected")
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
 
         rdtest.log.success("picked value is as expected")

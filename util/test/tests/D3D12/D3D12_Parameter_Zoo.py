@@ -18,7 +18,7 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
 
         rdtest.log.success("Captured loaded with color as expected")
 
@@ -54,7 +54,7 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
 
         tex = rd.TextureDisplay()
         tex.overlay = rd.DebugOverlay.Drawcall
-        tex.resourceId = pipe.GetOutputTargets()[0].resourceId
+        tex.resourceId = pipe.GetOutputTargets()[0].resource
 
         out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
                                                             rd.ReplayOutputType.Texture)

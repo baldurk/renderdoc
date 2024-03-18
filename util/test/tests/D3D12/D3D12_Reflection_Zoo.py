@@ -52,7 +52,6 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
         stage = rd.ShaderStage.Pixel
 
         refl: rd.ShaderReflection = pipe.GetShaderReflection(stage)
-        mapping: rd.ShaderBindpointMapping = pipe.GetBindpointMapping(stage)
 
         # Check we have the source and it is unmangled
         debugInfo: rd.ShaderDebugInfo = refl.debugInfo
@@ -61,10 +60,17 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
 
         self.check('Iñtërnâtiônàližætiøn' in debugInfo.files[0].contents)
 
-        def checker(resType: rd.TextureType, varType: rd.VarType, col: int, register: int, typeName: str, *,
-                    isTexture: bool = True, regCount: int = 1, structVarCheck=None):
+        def checker(textureType: rd.TextureType,
+                    varType: rd.VarType,
+                    col: int,
+                    register: int,
+                    typeName: str,
+                    *,
+                    isTexture: bool = True,
+                    regCount: int = 1,
+                    structVarCheck=None):
             return {
-                'resType': resType,
+                'textureType': textureType,
                 'isTexture': isTexture,
                 'register': register,
                 'regCount': regCount,
@@ -102,115 +108,181 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
             return
 
         ro_db = {
-            'tex1d': checker(rd.TextureType.Texture1D, rd.VarType.Float, 4, 0, 'float4'),
-            'tex2d': checker(rd.TextureType.Texture2D, rd.VarType.Float, 4, 1, 'float4'),
-            'tex3d': checker(rd.TextureType.Texture3D, rd.VarType.Float, 4, 2, 'float4'),
-            'tex1darray': checker(rd.TextureType.Texture1DArray, rd.VarType.Float, 4, 3, 'float4'),
-            'tex2darray': checker(rd.TextureType.Texture2DArray, rd.VarType.Float, 4, 4, 'float4'),
-            'texcube': checker(rd.TextureType.TextureCube, rd.VarType.Float, 4, 5, 'float4'),
-            'texcubearray': checker(rd.TextureType.TextureCubeArray, rd.VarType.Float, 4, 6, 'float4'),
-            'tex2dms': checker(rd.TextureType.Texture2DMS, rd.VarType.Float, 4, 7, 'float4'),
-            'tex2dmsarray': checker(rd.TextureType.Texture2DMSArray, rd.VarType.Float, 4, 8, 'float4'),
-            
-            'tex2d_f1': checker(rd.TextureType.Texture2D, rd.VarType.Float, 1, 10, 'float'),
-            'tex2d_f2': checker(rd.TextureType.Texture2D, rd.VarType.Float, 2, 11, 'float2'),
-            'tex2d_f3': checker(rd.TextureType.Texture2D, rd.VarType.Float, 3, 12, 'float3'),
-            'tex2d_u2': checker(rd.TextureType.Texture2D, rd.VarType.UInt, 2, 13, 'uint2'),
-            'tex2d_u3': checker(rd.TextureType.Texture2D, rd.VarType.UInt, 3, 14, 'uint3'),
-            'tex2d_i2': checker(rd.TextureType.Texture2D, rd.VarType.SInt, 2, 15, 'int2'),
-            'tex2d_i3': checker(rd.TextureType.Texture2D, rd.VarType.SInt, 3, 16, 'int3'),
-
-            'msaa_flt2_4x': checker(rd.TextureType.Texture2DMS, rd.VarType.Float, 2, 17, 'float2'),
-            'msaa_flt3_2x': checker(rd.TextureType.Texture2DMS, rd.VarType.Float, 3, 18, 'float3'),
-            'msaa_flt4_8x': checker(rd.TextureType.Texture2DMS, rd.VarType.Float, 4, 19, 'float4'),
-
-            'buf_f1': checker(rd.TextureType.Buffer, rd.VarType.Float, 1, 20, 'float', isTexture=False),
-            'buf_f2': checker(rd.TextureType.Buffer, rd.VarType.Float, 2, 21, 'float2', isTexture=False),
-            'buf_f3': checker(rd.TextureType.Buffer, rd.VarType.Float, 3, 22, 'float3', isTexture=False),
-            'buf_f4': checker(rd.TextureType.Buffer, rd.VarType.Float, 4, 23, 'float4', isTexture=False),
-            'buf_u2': checker(rd.TextureType.Buffer, rd.VarType.UInt, 2, 24, 'uint2', isTexture=False),
-            'buf_i3': checker(rd.TextureType.Buffer, rd.VarType.SInt, 3, 25, 'int3', isTexture=False),
-
-            'bytebuf': checker(rd.TextureType.Buffer, rd.VarType.UByte, 1, 30, 'byte', isTexture=False),
-
-            'strbuf': checker(rd.TextureType.Buffer, rd.VarType.Unknown, 0, 40, 'buf_struct', isTexture=False, structVarCheck=buf_struct_check),
-            'strbuf_f2': checker(rd.TextureType.Buffer, rd.VarType.Float, 2, 41, 'float2', isTexture=False),
-
-            'tex2dArray': checker(rd.TextureType.Texture2DArray, rd.VarType.Float, 1, 50, 'float', regCount=4),
+            'tex1d':
+                checker(rd.TextureType.Texture1D, rd.VarType.Float, 4, 0, 'float4'),
+            'tex2d':
+                checker(rd.TextureType.Texture2D, rd.VarType.Float, 4, 1, 'float4'),
+            'tex3d':
+                checker(rd.TextureType.Texture3D, rd.VarType.Float, 4, 2, 'float4'),
+            'tex1darray':
+                checker(rd.TextureType.Texture1DArray, rd.VarType.Float, 4, 3, 'float4'),
+            'tex2darray':
+                checker(rd.TextureType.Texture2DArray, rd.VarType.Float, 4, 4, 'float4'),
+            'texcube':
+                checker(rd.TextureType.TextureCube, rd.VarType.Float, 4, 5, 'float4'),
+            'texcubearray':
+                checker(rd.TextureType.TextureCubeArray, rd.VarType.Float, 4, 6, 'float4'),
+            'tex2dms':
+                checker(rd.TextureType.Texture2DMS, rd.VarType.Float, 4, 7, 'float4'),
+            'tex2dmsarray':
+                checker(rd.TextureType.Texture2DMSArray, rd.VarType.Float, 4, 8, 'float4'),
+            'tex2d_f1':
+                checker(rd.TextureType.Texture2D, rd.VarType.Float, 1, 10, 'float'),
+            'tex2d_f2':
+                checker(rd.TextureType.Texture2D, rd.VarType.Float, 2, 11, 'float2'),
+            'tex2d_f3':
+                checker(rd.TextureType.Texture2D, rd.VarType.Float, 3, 12, 'float3'),
+            'tex2d_u2':
+                checker(rd.TextureType.Texture2D, rd.VarType.UInt, 2, 13, 'uint2'),
+            'tex2d_u3':
+                checker(rd.TextureType.Texture2D, rd.VarType.UInt, 3, 14, 'uint3'),
+            'tex2d_i2':
+                checker(rd.TextureType.Texture2D, rd.VarType.SInt, 2, 15, 'int2'),
+            'tex2d_i3':
+                checker(rd.TextureType.Texture2D, rd.VarType.SInt, 3, 16, 'int3'),
+            'msaa_flt2_4x':
+                checker(rd.TextureType.Texture2DMS, rd.VarType.Float, 2, 17, 'float2'),
+            'msaa_flt3_2x':
+                checker(rd.TextureType.Texture2DMS, rd.VarType.Float, 3, 18, 'float3'),
+            'msaa_flt4_8x':
+                checker(rd.TextureType.Texture2DMS, rd.VarType.Float, 4, 19, 'float4'),
+            'buf_f1':
+                checker(rd.TextureType.Buffer, rd.VarType.Float, 1, 20, 'float', isTexture=False),
+            'buf_f2':
+                checker(rd.TextureType.Buffer, rd.VarType.Float, 2, 21, 'float2', isTexture=False),
+            'buf_f3':
+                checker(rd.TextureType.Buffer, rd.VarType.Float, 3, 22, 'float3', isTexture=False),
+            'buf_f4':
+                checker(rd.TextureType.Buffer, rd.VarType.Float, 4, 23, 'float4', isTexture=False),
+            'buf_u2':
+                checker(rd.TextureType.Buffer, rd.VarType.UInt, 2, 24, 'uint2', isTexture=False),
+            'buf_i3':
+                checker(rd.TextureType.Buffer, rd.VarType.SInt, 3, 25, 'int3', isTexture=False),
+            'bytebuf':
+                checker(rd.TextureType.Buffer, rd.VarType.UByte, 1, 30, 'byte', isTexture=False),
+            'strbuf':
+                checker(rd.TextureType.Buffer,
+                        rd.VarType.Unknown,
+                        0,
+                        40,
+                        'buf_struct',
+                        isTexture=False,
+                        structVarCheck=buf_struct_check),
+            'strbuf_f2':
+                checker(rd.TextureType.Buffer, rd.VarType.Float, 2, 41, 'float2', isTexture=False),
+            'tex2dArray':
+                checker(rd.TextureType.Texture2DArray, rd.VarType.Float, 1, 50, 'float', regCount=4),
         }
 
         rw_db = {
-            'rwtex1d': checker(rd.TextureType.Texture1D, rd.VarType.Float, 4, 0, 'float4'),
-            'rwtex2d': checker(rd.TextureType.Texture2D, rd.VarType.Float, 4, 1, 'float4'),
-            'rwtex3d': checker(rd.TextureType.Texture3D, rd.VarType.Float, 4, 2, 'float4'),
-            'rwtex1darray': checker(rd.TextureType.Texture1DArray, rd.VarType.Float, 4, 3, 'float4'),
-            'rwtex2darray': checker(rd.TextureType.Texture2DArray, rd.VarType.Float, 4, 4, 'float4'),
-            
-            'rwtex2d_f1': checker(rd.TextureType.Texture2D, rd.VarType.Float, 1, 10, 'float'),
-            'rwtex2d_f2': checker(rd.TextureType.Texture2D, rd.VarType.Float, 2, 11, 'float2'),
-            'rwtex2d_f3': checker(rd.TextureType.Texture2D, rd.VarType.Float, 3, 12, 'float3'),
-            'rwtex2d_u2': checker(rd.TextureType.Texture2D, rd.VarType.UInt, 2, 13, 'uint2'),
-            'rwtex2d_u3': checker(rd.TextureType.Texture2D, rd.VarType.UInt, 3, 14, 'uint3'),
-            'rwtex2d_i2': checker(rd.TextureType.Texture2D, rd.VarType.SInt, 2, 15, 'int2'),
-            'rwtex2d_i3': checker(rd.TextureType.Texture2D, rd.VarType.SInt, 3, 16, 'int3'),
-
-            'rwbuf_f1': checker(rd.TextureType.Buffer, rd.VarType.Float, 1, 20, 'float', isTexture=False),
-            'rwbuf_f2': checker(rd.TextureType.Buffer, rd.VarType.Float, 2, 21, 'float2', isTexture=False),
-            'rwbuf_f3': checker(rd.TextureType.Buffer, rd.VarType.Float, 3, 22, 'float3', isTexture=False),
-            'rwbuf_f4': checker(rd.TextureType.Buffer, rd.VarType.Float, 4, 23, 'float4', isTexture=False),
-            'rwbuf_u2': checker(rd.TextureType.Buffer, rd.VarType.UInt, 2, 24, 'uint2', isTexture=False),
-            'rwbuf_i3': checker(rd.TextureType.Buffer, rd.VarType.SInt, 3, 25, 'int3', isTexture=False),
-
-            'rov': checker(rd.TextureType.Texture2D, rd.VarType.Float, 4, 30, 'float4'),
-
-            'rwbytebuf': checker(rd.TextureType.Buffer, rd.VarType.UByte, 1, 40, 'byte', isTexture=False),
-
-            'rwstrbuf': checker(rd.TextureType.Buffer, rd.VarType.Unknown, 0, 50, 'buf_struct', isTexture=False, structVarCheck=buf_struct_check),
-            'rwcounter': checker(rd.TextureType.Buffer, rd.VarType.Unknown, 0, 51, 'buf_struct', isTexture=False, structVarCheck=buf_struct_check),
-            'rwappend': checker(rd.TextureType.Buffer, rd.VarType.Unknown, 0, 52, 'buf_struct', isTexture=False, structVarCheck=buf_struct_check),
-            'rwconsume': checker(rd.TextureType.Buffer, rd.VarType.Unknown, 0, 53, 'buf_struct', isTexture=False, structVarCheck=buf_struct_check),
-            'rwstrbuf_f2': checker(rd.TextureType.Buffer, rd.VarType.Float, 2, 54, 'float2', isTexture=False),
+            'rwtex1d':
+                checker(rd.TextureType.Texture1D, rd.VarType.Float, 4, 0, 'float4'),
+            'rwtex2d':
+                checker(rd.TextureType.Texture2D, rd.VarType.Float, 4, 1, 'float4'),
+            'rwtex3d':
+                checker(rd.TextureType.Texture3D, rd.VarType.Float, 4, 2, 'float4'),
+            'rwtex1darray':
+                checker(rd.TextureType.Texture1DArray, rd.VarType.Float, 4, 3, 'float4'),
+            'rwtex2darray':
+                checker(rd.TextureType.Texture2DArray, rd.VarType.Float, 4, 4, 'float4'),
+            'rwtex2d_f1':
+                checker(rd.TextureType.Texture2D, rd.VarType.Float, 1, 10, 'float'),
+            'rwtex2d_f2':
+                checker(rd.TextureType.Texture2D, rd.VarType.Float, 2, 11, 'float2'),
+            'rwtex2d_f3':
+                checker(rd.TextureType.Texture2D, rd.VarType.Float, 3, 12, 'float3'),
+            'rwtex2d_u2':
+                checker(rd.TextureType.Texture2D, rd.VarType.UInt, 2, 13, 'uint2'),
+            'rwtex2d_u3':
+                checker(rd.TextureType.Texture2D, rd.VarType.UInt, 3, 14, 'uint3'),
+            'rwtex2d_i2':
+                checker(rd.TextureType.Texture2D, rd.VarType.SInt, 2, 15, 'int2'),
+            'rwtex2d_i3':
+                checker(rd.TextureType.Texture2D, rd.VarType.SInt, 3, 16, 'int3'),
+            'rwbuf_f1':
+                checker(rd.TextureType.Buffer, rd.VarType.Float, 1, 20, 'float', isTexture=False),
+            'rwbuf_f2':
+                checker(rd.TextureType.Buffer, rd.VarType.Float, 2, 21, 'float2', isTexture=False),
+            'rwbuf_f3':
+                checker(rd.TextureType.Buffer, rd.VarType.Float, 3, 22, 'float3', isTexture=False),
+            'rwbuf_f4':
+                checker(rd.TextureType.Buffer, rd.VarType.Float, 4, 23, 'float4', isTexture=False),
+            'rwbuf_u2':
+                checker(rd.TextureType.Buffer, rd.VarType.UInt, 2, 24, 'uint2', isTexture=False),
+            'rwbuf_i3':
+                checker(rd.TextureType.Buffer, rd.VarType.SInt, 3, 25, 'int3', isTexture=False),
+            'rov':
+                checker(rd.TextureType.Texture2D, rd.VarType.Float, 4, 30, 'float4'),
+            'rwbytebuf':
+                checker(rd.TextureType.Buffer, rd.VarType.UByte, 1, 40, 'byte', isTexture=False),
+            'rwstrbuf':
+                checker(rd.TextureType.Buffer,
+                        rd.VarType.Unknown,
+                        0,
+                        50,
+                        'buf_struct',
+                        isTexture=False,
+                        structVarCheck=buf_struct_check),
+            'rwcounter':
+                checker(rd.TextureType.Buffer,
+                        rd.VarType.Unknown,
+                        0,
+                        51,
+                        'buf_struct',
+                        isTexture=False,
+                        structVarCheck=buf_struct_check),
+            'rwappend':
+                checker(rd.TextureType.Buffer,
+                        rd.VarType.Unknown,
+                        0,
+                        52,
+                        'buf_struct',
+                        isTexture=False,
+                        structVarCheck=buf_struct_check),
+            'rwconsume':
+                checker(rd.TextureType.Buffer,
+                        rd.VarType.Unknown,
+                        0,
+                        53,
+                        'buf_struct',
+                        isTexture=False,
+                        structVarCheck=buf_struct_check),
+            'rwstrbuf_f2':
+                checker(rd.TextureType.Buffer, rd.VarType.Float, 2, 54, 'float2', isTexture=False),
         }
 
         # ROVs are optional, if it wasn't found then ignore that
         if '#define ROV 0' in debugInfo.files[0].contents:
             del rw_db['rov']
 
-        for s in refl.samplers:
-            s: rd.ShaderSampler
+        access = [(a.type, a.index) for a in self.controller.GetDescriptorAccess()]
 
-            self.check(0 <= s.bindPoint < len(mapping.samplers))
-
-            bind: rd.Bindpoint = mapping.samplers[s.bindPoint]
-
-            self.check(bind.bindset == 0)
-            self.check(bind.used)
-            self.check(bind.arraySize == 1)
+        for idx, s in enumerate(refl.samplers):
+            self.check(s.fixedBindSetOrSpace == 0)
+            self.check((rd.DescriptorType.Sampler, idx) in access)
+            self.check(s.bindArraySize == 1)
 
             if s.name == 's1':
-                self.check(bind.bind == 5)
+                self.check(s.fixedBindNumber == 5)
             elif s.name == 's2':
-                self.check(bind.bind == 8)
+                self.check(s.fixedBindNumber == 8)
             else:
                 raise rdtest.TestFailureException('Unrecognised sampler {}'.format(s.name))
 
-        for res_list, map_list, res_db, res_readonly in [
-            (refl.readOnlyResources, mapping.readOnlyResources, ro_db, True),
-            (refl.readWriteResources, mapping.readWriteResources, rw_db, False)]:
-            for res in res_list:
+        for res_list, res_db, res_readonly in [(refl.readOnlyResources, ro_db, True),
+                                               (refl.readWriteResources, rw_db, False)]:
+            for idx, res in enumerate(res_list):
                 res: rd.ShaderResource
-                self.check(0 <= res.bindPoint < len(map_list))
-
-                bind: rd.Bindpoint = map_list[res.bindPoint]
 
                 self.check(res.isReadOnly == res_readonly)
-                self.check(bind.bindset == 0)
-                self.check(bind.used)
+                self.check(res.fixedBindSetOrSpace == 0)
+
+                self.check((res.descriptorType, idx) in access, f"{res.name} - ({str(res.descriptorType)}, {idx})")
 
                 if res.name in res_db:
                     check = res_db[res.name]
 
-                    self.check(res.resType == check['resType'])
+                    self.check(res.textureType == check['textureType'])
                     self.check(res.isTexture == check['isTexture'])
 
                     if check['structVarCheck']:
@@ -220,8 +292,8 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
                         self.check(res.variableType.name == check['typeName'])
                         self.check(res.variableType.columns == check['columns'])
 
-                    self.check(bind.bind == check['register'])
-                    self.check(bind.arraySize == check['regCount'])
+                    self.check(res.fixedBindNumber == check['register'])
+                    self.check(res.bindArraySize == check['regCount'])
                 else:
                     raise rdtest.TestFailureException('Unrecognised read-only resource {}'.format(res.name))
 

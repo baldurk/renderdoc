@@ -39,7 +39,7 @@ class VK_Postponed(rdtest.TestCase):
         self.controller.SetFrameEvent(action.eventId, True)
 
         pipe = self.controller.GetPipelineState()
-        tex_details = self.get_texture(pipe.GetOutputTargets()[0].resourceId)
+        tex_details = self.get_texture(pipe.GetOutputTargets()[0].resource)
 
         # Green triangles in each quadrant
         w = int(tex_details.width / 2)

@@ -65,7 +65,7 @@ class VK_Sample_Locations(rdtest.TestCase):
         # Grab the multisampled image's ID here
         save_data = rd.TextureSave()
         curpass: rd.VKCurrentPass = pipe.currentPass
-        save_data.resourceId = curpass.framebuffer.attachments[curpass.renderpass.colorAttachments[0]].imageResourceId
+        save_data.resourceId = curpass.framebuffer.attachments[curpass.renderpass.colorAttachments[0]].resource
         save_data.destType = rd.FileType.PNG
         save_data.sample.mapToArray = False
 

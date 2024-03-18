@@ -13,9 +13,9 @@ class GL_Unshared_Context(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        texs: List[rd.BoundResourceArray] = pipe.GetReadOnlyResources(rd.ShaderStage.Fragment)
+        texs = pipe.GetReadOnlyResources(rd.ShaderStage.Fragment)
         
-        id = texs[0].resources[0].resourceId
+        id = texs[0].descriptor.resource
 
         #sample 4 corners and middle
         magic_value: rd.PixelValue = [1.0, 0.5, 0.25, 1.0]

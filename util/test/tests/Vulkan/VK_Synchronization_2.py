@@ -88,6 +88,6 @@ class VK_Synchronization_2(rdtest.TestCase):
             elif res.name == "Image:Undefined":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL":
                     raise rdtest.TestFailureException("Undefined image is in {} layout".format(img.layouts[0].name))
-            elif img.resourceId == pipe.currentPass.framebuffer.attachments[0].imageResourceId:
+            elif img.resourceId == pipe.currentPass.framebuffer.attachments[0].resource:
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_GENERAL":
                     raise rdtest.TestFailureException("Rendered swapchain image is in {} layout".format(img.layouts[0].name))

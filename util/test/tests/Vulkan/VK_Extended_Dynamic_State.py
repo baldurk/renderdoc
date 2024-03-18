@@ -80,14 +80,14 @@ class VK_Extended_Dynamic_State(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 100, 200, [0.0, 1.0, 0.0, 1.0])
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 300, 200, [0.0, 0.0, 1.0, 1.0])
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 200, 100, [0.2, 0.2, 0.2, 1.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 100, 200, [0.0, 1.0, 0.0, 1.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 300, 200, [0.0, 0.0, 1.0, 1.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 200, 100, [0.2, 0.2, 0.2, 1.0])
 
-        self.check_pixel_value(pipe.GetDepthTarget().resourceId, 100, 200, [0.4, 205.0/255.0, 0.0, 1.0])
-        self.check_pixel_value(pipe.GetDepthTarget().resourceId, 300, 200, [0.6, 205.0/255.0, 0.0, 1.0])
-        self.check_pixel_value(pipe.GetDepthTarget().resourceId, 200, 100, [0.9, 204.0/255.0, 0.0, 1.0])
-        self.check_pixel_value(pipe.GetDepthTarget().resourceId, 200, 200, [0.4, 206.0/255.0, 0.0, 1.0])
+        self.check_pixel_value(pipe.GetDepthTarget().resource, 100, 200, [0.4, 205.0/255.0, 0.0, 1.0])
+        self.check_pixel_value(pipe.GetDepthTarget().resource, 300, 200, [0.6, 205.0/255.0, 0.0, 1.0])
+        self.check_pixel_value(pipe.GetDepthTarget().resource, 200, 100, [0.9, 204.0/255.0, 0.0, 1.0])
+        self.check_pixel_value(pipe.GetDepthTarget().resource, 200, 200, [0.4, 206.0/255.0, 0.0, 1.0])
 
         rdtest.log.success("Triangles are as expected")
 
