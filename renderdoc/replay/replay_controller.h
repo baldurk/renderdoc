@@ -154,7 +154,7 @@ public:
                                       const rdcarray<DescriptorRange> &ranges);
   rdcarray<SamplerDescriptor> GetSamplerDescriptors(ResourceId descriptorStore,
                                                     const rdcarray<DescriptorRange> &ranges);
-  rdcarray<DescriptorAccess> GetDescriptorAccess();
+  const rdcarray<DescriptorAccess> &GetDescriptorAccess();
   rdcarray<DescriptorLogicalLocation> GetDescriptorLocations(ResourceId descriptorStore,
                                                              const rdcarray<DescriptorRange> &ranges);
 

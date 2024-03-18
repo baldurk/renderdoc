@@ -131,11 +131,11 @@ rdcarray<Descriptor> ReplayController::GetDescriptors(ResourceId descriptorStore
   return m_pDevice->GetDescriptors(m_pDevice->GetLiveID(descriptorStore), ranges);
 }
 
-rdcarray<DescriptorAccess> ReplayController::GetDescriptorAccess()
+const rdcarray<DescriptorAccess> &ReplayController::GetDescriptorAccess()
 {
   CHECK_REPLAY_THREAD();
 
-  return m_pDevice->GetDescriptorAccess(m_EventID);
+  return m_PipeState.GetDescriptorAccess();
 }
 
 rdcarray<DescriptorLogicalLocation> ReplayController::GetDescriptorLocations(
@@ -2257,4 +2257,51 @@ void ReplayController::FetchPipelineState(uint32_t eventId)
     m_PipeState.SetState(&m_GLPipelineState);
   else if(m_APIProps.pipelineType == GraphicsAPI::Vulkan)
     m_PipeState.SetState(&m_VulkanPipelineState);
+
+  rdcarray<DescriptorAccess> access = m_pDevice->GetDescriptorAccess(eventId);
+  rdcarray<Descriptor> descs;
+  rdcarray<SamplerDescriptor> samps;
+  descs.reserve(access.size());
+  samps.reserve(access.size());
+
+  // we could collate ranges by descriptor store, but in practice we don't expect descriptors to be
+  // scattered across multiple stores. So to keep the code simple for now we do a linear sweep
+  ResourceId store;
+  rdcarray<DescriptorRange> ranges;
+
+  for(const DescriptorAccess &acc : access)
+  {
+    if(acc.descriptorStore != store)
+    {
+      if(store != ResourceId())
+      {
+        descs.append(m_pDevice->GetDescriptors(store, ranges));
+        samps.append(m_pDevice->GetSamplerDescriptors(store, ranges));
+      }
+
+      store = m_pDevice->GetLiveID(acc.descriptorStore);
+      ranges.clear();
+    }
+
+    // if the last range is contiguous with this access, append this access as a new range to query
+    if(!ranges.empty() && ranges.back().descriptorSize == acc.byteSize &&
+       ranges.back().offset + ranges.back().descriptorSize == acc.byteOffset)
+    {
+      ranges.back().count++;
+      continue;
+    }
+
+    DescriptorRange range;
+    range.offset = acc.byteOffset;
+    range.descriptorSize = acc.byteSize;
+    ranges.push_back(range);
+  }
+
+  if(store != ResourceId())
+  {
+    descs.append(m_pDevice->GetDescriptors(store, ranges));
+    samps.append(m_pDevice->GetSamplerDescriptors(store, ranges));
+  }
+
+  m_PipeState.SetDescriptorAccess(std::move(access), std::move(descs), std::move(samps));
 }

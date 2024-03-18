@@ -77,6 +77,14 @@ public:
     m_GL = NULL;
     m_Vulkan = vk;
   }
+
+  void SetDescriptorAccess(rdcarray<DescriptorAccess> &&descriptorAccess,
+                           rdcarray<Descriptor> &&descriptors, rdcarray<SamplerDescriptor> &&samplers)
+  {
+    m_Access = descriptorAccess;
+    m_Descriptors = descriptors;
+    m_SamplerDescriptors = samplers;
+  }
 #endif
 
   DOCUMENT(R"(Determines whether or not a capture is currently loaded.
@@ -381,6 +389,71 @@ For some APIs that don't distinguish by entry point, this may be empty.
 )");
   rdcarray<BoundResourceArray> GetReadWriteResources(ShaderStage stage, bool onlyUsed = false) const;
 
+  DOCUMENT(R"(Retrieves the current list of descriptor accesses, as cached from a call to
+:meth:`ReplayController.GetDescriptorAccess`. The return value is identical, this is here for
+convenience of access.
+
+:return: The descriptor accesses.
+:rtype: List[DescriptorAccess]
+)");
+  const rdcarray<DescriptorAccess> &GetDescriptorAccess() const { return m_Access; }
+
+  DOCUMENT(R"(Retrieves all descriptor information for all descriptors accessed at the current event.
+
+:param bool onlyUsed: Omit descriptors bound or declared but not accessed.
+:return: All descriptors accessed at the current event.
+:rtype: List[UsedDescriptor]
+)");
+  rdcarray<UsedDescriptor> GetAllUsedDescriptors(bool onlyUsed = false) const;
+
+  DOCUMENT(R"(Retrieves the constant block at a given binding.
+
+:param ShaderStage stage: The shader stage to fetch from.
+:param int index: The index in the shader's ConstantBlocks array to look up.
+:param int arrayIdx: For APIs that support arrays of constant buffers in a single binding, the index
+  in that array to look up.
+:return: The constant buffer at the specified binding.
+:rtype: UsedDescriptor
+)");
+  UsedDescriptor GetConstantBlockDescriptor(ShaderStage stage, uint32_t index,
+                                            uint32_t arrayIdx) const;
+
+  DOCUMENT(R"(Retrieves the constant blocks used by a particular shader stage.
+
+:param ShaderStage stage: The shader stage to fetch from.
+:param bool onlyUsed: Omit descriptors bound or declared but not accessed.
+:return: The currently bound constant blocks.
+:rtype: List[UsedDescriptor]
+)");
+  rdcarray<UsedDescriptor> GetConstantBlockDescriptors(ShaderStage stage, bool onlyUsed = false) const;
+
+  DOCUMENT(R"(Retrieves the read-only resources used by a particular shader stage.
+
+:param ShaderStage stage: The shader stage to fetch from.
+:param bool onlyUsed: Omit descriptors bound or declared but not accessed.
+:return: The currently bound read-only resources.
+:rtype: List[UsedDescriptor]
+)");
+  rdcarray<UsedDescriptor> GetReadOnlyDescriptors(ShaderStage stage, bool onlyUsed = false) const;
+
+  DOCUMENT(R"(Retrieves the samplers bound to a particular shader stage.
+
+:param ShaderStage stage: The shader stage to fetch from.
+:param bool onlyUsed: Omit descriptors bound or declared but not accessed.
+:return: The currently bound sampler resources.
+:rtype: List[UsedDescriptor]
+)");
+  rdcarray<UsedDescriptor> GetSamplerDescriptors(ShaderStage stage, bool onlyUsed = false) const;
+
+  DOCUMENT(R"(Retrieves the read/write resources used by a particular shader stage.
+
+:param ShaderStage stage: The shader stage to fetch from.
+:param bool onlyUsed: Omit descriptors bound or declared but not accessed.
+:return: The currently bound read/write resources.
+:rtype: List[UsedDescriptor]
+)");
+  rdcarray<UsedDescriptor> GetReadWriteDescriptors(ShaderStage stage, bool onlyUsed = false) const;
+
   DOCUMENT(R"(Retrieves the read/write resources bound to the depth-stencil output.
 
 :return: The currently bound depth-stencil resource.
@@ -401,6 +474,27 @@ For some APIs that don't distinguish by entry point, this may be empty.
 :rtype: List[BoundResource]
 )");
   rdcarray<BoundResource> GetOutputTargets() const;
+
+  DOCUMENT(R"(Retrieves the read/write resources bound to the depth-stencil output.
+
+:return: The currently bound depth-stencil resource.
+:rtype: Descriptor
+)");
+  Descriptor GetDepthTargetDescriptor() const;
+
+  DOCUMENT(R"(Retrieves the read/write resources bound to the depth-stencil resolve output.
+
+:return: The currently bound depth-stencil resolve resource.
+:rtype: Descriptor
+)");
+  Descriptor GetDepthResolveTargetDescriptor() const;
+
+  DOCUMENT(R"(Retrieves the resources bound to the color outputs.
+
+:return: The currently bound output targets.
+:rtype: List[Descriptor]
+)");
+  rdcarray<Descriptor> GetOutputTargetDescriptors() const;
 
   DOCUMENT(R"(Retrieves the current color blending states, per target.
 
@@ -446,4 +540,10 @@ private:
   bool IsD3D12Stage(ShaderStage stage) const;
   bool IsGLStage(ShaderStage stage) const;
   bool IsVulkanStage(ShaderStage stage) const;
+
+  rdcarray<DescriptorAccess> m_Access;
+  rdcarray<Descriptor> m_Descriptors;
+  rdcarray<SamplerDescriptor> m_SamplerDescriptors;
+
+  void ApplyVulkanDynamicOffsets(UsedDescriptor &used) const;
 };

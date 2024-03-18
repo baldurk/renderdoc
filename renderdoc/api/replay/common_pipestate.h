@@ -954,6 +954,59 @@ first, and fall back to this name if no reflection information is available in t
 
 DECLARE_REFLECTION_STRUCT(DescriptorLogicalLocation);
 
+DOCUMENT(R"(Combined information about a single descriptor that has been used, both the information
+about its access and its contents.
+
+This is a helper struct for the common pipeline state abstraction to trade off simplicity of access
+against optimal access.
+)");
+struct UsedDescriptor
+{
+  DOCUMENT("");
+  UsedDescriptor() = default;
+  UsedDescriptor(const UsedDescriptor &) = default;
+  UsedDescriptor &operator=(const UsedDescriptor &) = default;
+
+  bool operator==(const UsedDescriptor &o) const
+  {
+    return access == o.access && descriptor == o.descriptor && sampler == o.sampler;
+  }
+  bool operator<(const UsedDescriptor &o) const
+  {
+    if(!(access == o.access))
+      return access < o.access;
+    if(!(descriptor == o.descriptor))
+      return descriptor < o.descriptor;
+    if(!(sampler == o.sampler))
+      return sampler < o.sampler;
+    return false;
+  }
+
+  DOCUMENT(R"(The access information of which shader reflection object accessed which descriptor.
+
+:type: DescriptorAccess
+)");
+  DescriptorAccess access;
+
+  DOCUMENT(R"(The contents of the accessed descriptor, if it is a normal non-sampler descriptor.
+
+For sampler descriptors this is empty.
+
+:type: Descriptor
+)");
+  Descriptor descriptor;
+
+  DOCUMENT(R"(The contents of the accessed descriptor, if it is a sampler descriptor.
+
+For normal descriptors this is empty.
+
+:type: SamplerDescriptor
+)");
+  SamplerDescriptor sampler;
+};
+
+DECLARE_REFLECTION_STRUCT(UsedDescriptor);
+
 DOCUMENT("Information about a single constant buffer binding.");
 struct BoundCBuffer
 {

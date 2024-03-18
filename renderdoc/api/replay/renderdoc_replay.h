@@ -593,7 +593,7 @@ Multiple ranges within the store can be queried at once, and are returned in a c
 :return: The descriptor accesses.
 :rtype: List[DescriptorAccess]
 )");
-  virtual rdcarray<DescriptorAccess> GetDescriptorAccess() = 0;
+  virtual const rdcarray<DescriptorAccess> &GetDescriptorAccess() = 0;
 
   DOCUMENT(R"(Retrieve the logical locations for descriptors in a given descriptor store.
 
