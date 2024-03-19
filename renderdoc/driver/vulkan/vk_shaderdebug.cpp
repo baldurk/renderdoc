@@ -42,37 +42,6 @@ RDOC_CONFIG(bool, Vulkan_Debug_DisableBufferDeviceAddress, false,
 RDOC_CONFIG(bool, Vulkan_Debug_ShaderDebugLogging, false,
             "Output verbose debug logging messages when debugging shaders.");
 
-struct DescSetBindingSnapshot
-{
-  rdcarray<VkDescriptorImageInfo> imageInfos;
-  rdcarray<VkDescriptorBufferInfo> buffers;
-  rdcarray<VkBufferView> texelBuffers;
-
-  template <typename T>
-  const rdcarray<T> &get() const;
-};
-
-template <>
-const rdcarray<VkDescriptorImageInfo> &DescSetBindingSnapshot::get() const
-{
-  return imageInfos;
-}
-template <>
-const rdcarray<VkDescriptorBufferInfo> &DescSetBindingSnapshot::get() const
-{
-  return buffers;
-}
-template <>
-const rdcarray<VkBufferView> &DescSetBindingSnapshot::get() const
-{
-  return texelBuffers;
-}
-
-struct DescSetSnapshot
-{
-  rdcarray<DescSetBindingSnapshot> bindings;
-};
-
 // should match the descriptor set layout created in ShaderDebugData::Init()
 enum class ShaderDebugBind
 {
@@ -147,8 +116,6 @@ struct ShaderUniformParameters
 
 class VulkanAPIWrapper : public rdcspv::DebugAPIWrapper
 {
-  rdcarray<DescSetSnapshot> m_DescSets;
-
 public:
   VulkanAPIWrapper(WrappedVulkan *vk, VulkanCreationInfo &creation, VkShaderStageFlagBits stage,
                    uint32_t eid, ResourceId shadId)
@@ -162,167 +129,112 @@ public:
     // when we're first setting up, the state is pristine and no replay is needed
     m_ResourcesDirty = false;
 
-    const VulkanRenderState &state = m_pDriver->GetRenderState();
+    VulkanReplay *replay = m_pDriver->GetReplay();
 
-    const bool compute = (stage == VK_SHADER_STAGE_COMPUTE_BIT);
+    // cache the descriptor access. This should be a superset of all descriptors we need to read from
+    m_Access = replay->GetDescriptorAccess(eid);
 
-    // snapshot descriptor set contents
-    const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descSets =
-        compute ? state.compute.descSets : state.graphics.descSets;
+    // fetch all descriptor contents now too
+    m_Descriptors.reserve(m_Access.size());
+    m_SamplerDescriptors.reserve(m_Access.size());
 
-    const VulkanCreationInfo::Pipeline &pipe =
-        m_Creation.m_Pipeline[compute ? state.compute.pipeline : state.graphics.pipeline];
+    // we could collate ranges by descriptor store, but in practice we don't expect descriptors to
+    // be scattered across multiple stores. So to keep the code simple for now we do a linear sweep
+    ResourceId store;
+    rdcarray<DescriptorRange> ranges;
 
+    for(const DescriptorAccess &acc : m_Access)
     {
-      // don't have to handle separate vert/frag layouts as push constant ranges must be identical
-      const VulkanCreationInfo::PipelineLayout &pipeLayout =
-          m_Creation.m_PipelineLayout[compute ? pipe.compLayout : pipe.vertLayout];
-
-      for(const VkPushConstantRange &range : pipeLayout.pushRanges)
+      if(acc.descriptorStore != store)
       {
-        if(range.stageFlags & stage)
+        if(store != ResourceId())
         {
-          pushData.resize(RDCMAX((uint32_t)pushData.size(), range.offset + range.size));
-
-          RDCASSERT(range.offset + range.size < sizeof(state.pushconsts));
-
-          memcpy(pushData.data() + range.offset, state.pushconsts + range.offset, range.size);
+          m_Descriptors.append(replay->GetDescriptors(store, ranges));
+          m_SamplerDescriptors.append(replay->GetSamplerDescriptors(store, ranges));
         }
+
+        store = replay->GetLiveID(acc.descriptorStore);
+        ranges.clear();
       }
+
+      // if the last range is contiguous with this access, append this access as a new range to query
+      if(!ranges.empty() && ranges.back().descriptorSize == acc.byteSize &&
+         ranges.back().offset + ranges.back().descriptorSize == acc.byteOffset)
+      {
+        ranges.back().count++;
+        continue;
+      }
+
+      DescriptorRange range;
+      range.offset = acc.byteOffset;
+      range.descriptorSize = acc.byteSize;
+      ranges.push_back(range);
     }
 
-    m_DescSets.resize(RDCMIN(descSets.size(), pipe.descSetLayouts.size()));
-    for(size_t set = 0; set < m_DescSets.size(); set++)
+    if(store != ResourceId())
     {
-      uint32_t dynamicOffset = 0;
+      m_Descriptors.append(replay->GetDescriptors(store, ranges));
+      m_SamplerDescriptors.append(replay->GetSamplerDescriptors(store, ranges));
+    }
 
-      // skip invalid descriptor set binds, we assume these aren't present because they will not be
-      // accessed statically
-      if(descSets[set].descSet == ResourceId() || descSets[set].pipeLayout == ResourceId())
-        continue;
+    // apply dynamic offsets to our cached descriptors
+    // we iterate over descriptors first to find dynamic ones, then iterate over our cached set to
+    // apply. Neither array should be large but there should be fewer dynamic descriptors in total
+    {
+      const VulkanRenderState &state = m_pDriver->GetRenderState();
 
-      const VulkanCreationInfo::PipelineLayout &pipeLayoutInfo =
-          m_Creation.m_PipelineLayout[descSets[set].pipeLayout];
+      const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> *srcs[] = {
+          &state.graphics.descSets,
+          &state.compute.descSets,
+      };
 
-      if(pipeLayoutInfo.descSetLayouts[set] == ResourceId())
-        continue;
-
-      DescSetSnapshot &dstSet = m_DescSets[set];
-
-      const BindingStorage &bindStorage =
-          m_pDriver->GetCurrentDescSetBindingStorage(descSets[set].descSet);
-      const rdcarray<DescriptorSetSlot *> &curBinds = bindStorage.binds;
-      const bytebuf &curInline = bindStorage.inlineBytes;
-
-      // use the descriptor set layout from when it was bound. If the pipeline layout declared a
-      // descriptor set layout for this set, but it's statically unused, it may be complete
-      // garbage and doesn't match what the shader uses. However the pipeline layout at descriptor
-      // set bind time must have been compatible and valid so we can use it. If this set *is* used
-      // then the pipeline layout at bind time must be compatible with the pipeline's pipeline
-      // layout, so we're fine too.
-      const DescSetLayout &setLayout = m_Creation.m_DescSetLayout[pipeLayoutInfo.descSetLayouts[set]];
-
-      for(size_t bind = 0; bind < setLayout.bindings.size(); bind++)
+      for(size_t p = 0; p < ARRAY_COUNT(srcs); p++)
       {
-        const DescSetLayout::Binding &bindLayout = setLayout.bindings[bind];
-
-        uint32_t descriptorCount = bindLayout.descriptorCount;
-
-        if(bindLayout.variableSize)
-          descriptorCount = bindStorage.variableDescriptorCount;
-
-        if(descriptorCount == 0)
-          continue;
-
-        if(bindLayout.stageFlags & stage)
+        for(size_t i = 0; i < srcs[p]->size(); i++)
         {
-          DescriptorSetSlot *curSlots = curBinds[bind];
+          const VulkanStatePipeline::DescriptorAndOffsets &srcData = srcs[p]->at(i);
+          ResourceId sourceSet = srcData.descSet;
+          const uint32_t *srcOffset = srcData.offsets.begin();
 
-          dstSet.bindings.resize_for_index(bind);
+          if(sourceSet == ResourceId())
+            continue;
 
-          DescSetBindingSnapshot &dstBind = dstSet.bindings[bind];
+          const VulkanCreationInfo::PipelineLayout &pipeLayoutInfo =
+              m_Creation.m_PipelineLayout[srcData.pipeLayout];
 
-          if(bindLayout.layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+          ResourceId setOrig = m_pDriver->GetResourceManager()->GetOriginalID(sourceSet);
+
+          const BindingStorage &bindStorage =
+              m_pDriver->GetCurrentDescSetBindingStorage(srcData.descSet);
+          const DescriptorSetSlot *first = bindStorage.binds[0];
+          for(size_t b = 0; b < bindStorage.binds.size(); b++)
           {
-            // push directly into the buffer cache from the inline data
-            BindpointIndex idx;
-            idx.bindset = (int32_t)set;
-            idx.bind = (int32_t)bind;
-            idx.arrayIndex = 0;
-            bufferCache[idx].assign(curInline.data() + curSlots->offset, descriptorCount);
-          }
-          else
-          {
-            for(uint32_t i = 0; i < descriptorCount; i++)
+            const DescSetLayout::Binding &layoutBind =
+                m_Creation.m_DescSetLayout[pipeLayoutInfo.descSetLayouts[i]].bindings[b];
+
+            if(layoutBind.layoutDescType != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC &&
+               layoutBind.layoutDescType != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+              continue;
+
+            uint64_t descriptorByteOffset = bindStorage.binds[b] - first;
+
+            // inline UBOs aren't dynamic and variable size can't be used with dynamic buffers, so
+            // the count is what it is at definition time
+            for(uint32_t a = 0; a < layoutBind.descriptorCount; a++)
             {
-              const DescriptorSetSlot &slot = curSlots[i];
+              uint32_t dynamicBufferByteOffset = *srcOffset;
+              srcOffset++;
 
-              // When bind layout contains immutable samplers, sampler-only slots always have type
-              // DescriptorSlotType::Unwritten. Treat them as sampler slots in that case.
-              DescriptorSlotType slotType = slot.type;
-              if(bindLayout.immutableSampler &&
-                 bindLayout.layoutDescType == VK_DESCRIPTOR_TYPE_SAMPLER)
-                slotType = DescriptorSlotType::Sampler;
-
-              switch(slotType)
+              for(size_t accIdx = 0; accIdx < m_Access.size(); accIdx++)
               {
-                case DescriptorSlotType::Sampler:
-                case DescriptorSlotType::CombinedImageSampler:
-                case DescriptorSlotType::SampledImage:
-                case DescriptorSlotType::StorageImage:
-                case DescriptorSlotType::InputAttachment:
+                if(m_Access[accIdx].descriptorStore == setOrig &&
+                   m_Access[accIdx].byteOffset == descriptorByteOffset + a)
                 {
-                  dstBind.imageInfos.resize(descriptorCount);
-                  dstBind.imageInfos[i].imageLayout = convert(slot.imageLayout);
-                  dstBind.imageInfos[i].imageView =
-                      m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(slot.resource);
-                  dstBind.imageInfos[i].sampler =
-                      m_pDriver->GetResourceManager()->GetCurrentHandle<VkSampler>(
-                          bindLayout.immutableSampler ? bindLayout.immutableSampler[i]
-                                                      : slot.sampler);
+                  m_Descriptors[accIdx].byteOffset += dynamicBufferByteOffset;
                   break;
                 }
-                case DescriptorSlotType::UniformTexelBuffer:
-                case DescriptorSlotType::StorageTexelBuffer:
-                {
-                  dstBind.texelBuffers.resize(descriptorCount);
-                  dstBind.texelBuffers[i] =
-                      m_pDriver->GetResourceManager()->GetCurrentHandle<VkBufferView>(slot.resource);
-                  break;
-                }
-                case DescriptorSlotType::UniformBuffer:
-                case DescriptorSlotType::StorageBuffer:
-                case DescriptorSlotType::UniformBufferDynamic:
-                case DescriptorSlotType::StorageBufferDynamic:
-                {
-                  dstBind.buffers.resize(descriptorCount);
-                  dstBind.buffers[i].offset = slot.offset;
-                  dstBind.buffers[i].range = slot.GetRange();
-                  dstBind.buffers[i].buffer =
-                      m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(slot.resource);
-
-                  if(slot.type == DescriptorSlotType::UniformBufferDynamic ||
-                     slot.type == DescriptorSlotType::StorageBufferDynamic)
-                    dstBind.buffers[i].offset += descSets[set].offsets[dynamicOffset++];
-                  break;
-                }
-                case DescriptorSlotType::Unwritten: break;
-                default: RDCERR("Unexpected descriptor type");
               }
             }
-          }
-        }
-        else
-        {
-          // still need to skip past dynamic offsets for stages that aren't of interest
-          // we can use the layout descriptor type here because mutable descriptors aren't allowed
-          // to be dynamic
-
-          switch(bindLayout.layoutDescType)
-          {
-            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: dynamicOffset += descriptorCount; break;
-            default: break;
           }
         }
       }
@@ -360,12 +272,12 @@ public:
 
   virtual ResourceId GetShaderID() override { return m_ShaderID; }
 
-  virtual uint64_t GetBufferLength(BindpointIndex bind) override
+  virtual uint64_t GetBufferLength(ShaderBindIndex bind) override
   {
     return PopulateBuffer(bind).size();
   }
 
-  virtual void ReadBufferValue(BindpointIndex bind, uint64_t offset, uint64_t byteSize,
+  virtual void ReadBufferValue(ShaderBindIndex bind, uint64_t offset, uint64_t byteSize,
                                void *dst) override
   {
     const bytebuf &data = PopulateBuffer(bind);
@@ -374,7 +286,7 @@ public:
       memcpy(dst, data.data() + (size_t)offset, (size_t)byteSize);
   }
 
-  virtual void WriteBufferValue(BindpointIndex bind, uint64_t offset, uint64_t byteSize,
+  virtual void WriteBufferValue(ShaderBindIndex bind, uint64_t offset, uint64_t byteSize,
                                 const void *src) override
   {
     bytebuf &data = PopulateBuffer(bind);
@@ -399,7 +311,7 @@ public:
       memcpy(data.data() + offset, src, (size_t)byteSize);
   }
 
-  virtual bool ReadTexel(BindpointIndex imageBind, const ShaderVariable &coord, uint32_t sample,
+  virtual bool ReadTexel(ShaderBindIndex imageBind, const ShaderVariable &coord, uint32_t sample,
                          ShaderVariable &output) override
   {
     ImageData &data = PopulateImage(imageBind);
@@ -489,7 +401,7 @@ public:
     return true;
   }
 
-  virtual bool WriteTexel(BindpointIndex imageBind, const ShaderVariable &coord, uint32_t sample,
+  virtual bool WriteTexel(ShaderBindIndex imageBind, const ShaderVariable &coord, uint32_t sample,
                           const ShaderVariable &input) override
   {
     ImageData &data = PopulateImage(imageBind);
@@ -662,8 +574,8 @@ public:
   }
 
   bool CalculateSampleGather(rdcspv::ThreadState &lane, rdcspv::Op opcode,
-                             DebugAPIWrapper::TextureType texType, BindpointIndex imageBind,
-                             BindpointIndex samplerBind, const ShaderVariable &uv,
+                             DebugAPIWrapper::TextureType texType, ShaderBindIndex imageBind,
+                             ShaderBindIndex samplerBind, const ShaderVariable &uv,
                              const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
                              const ShaderVariable &compare, rdcspv::GatherChannel gatherChannel,
                              const rdcspv::ImageOperandsAndParamDatas &operands,
@@ -679,17 +591,15 @@ public:
     // fetch the right type of descriptor depending on if we're buffer or not
     bool valid = true;
     rdcstr access = StringFormat::Fmt("performing %s operation", ToStr(opcode).c_str());
-    const VkDescriptorImageInfo &imageInfo =
-        buffer ? GetDescriptor<VkDescriptorImageInfo>(access, invalidBind, valid)
-               : GetDescriptor<VkDescriptorImageInfo>(access, imageBind, valid);
-    const VkBufferView &bufferView = buffer
-                                         ? GetDescriptor<VkBufferView>(access, imageBind, valid)
-                                         : GetDescriptor<VkBufferView>(access, invalidBind, valid);
+    const Descriptor &imageDescriptor = buffer ? GetDescriptor(access, ShaderBindIndex(), valid)
+                                               : GetDescriptor(access, imageBind, valid);
+    const Descriptor &bufferViewDescriptor = buffer
+                                                 ? GetDescriptor(access, imageBind, valid)
+                                                 : GetDescriptor(access, ShaderBindIndex(), valid);
 
     // fetch the sampler (if there's no sampler, this will silently return dummy data without
     // marking invalid
-    const VkDescriptorImageInfo &samplerInfo =
-        GetDescriptor<VkDescriptorImageInfo>(access, samplerBind, valid);
+    const SamplerDescriptor &samplerDescriptor = GetSamplerDescriptor(access, samplerBind, valid);
 
     // if any descriptor lookup failed, return now
     if(!valid)
@@ -697,9 +607,14 @@ public:
 
     VkMarkerRegion markerRegion("CalculateSampleGather");
 
-    VkSampler sampler = samplerInfo.sampler;
-    VkImageView view = imageInfo.imageView;
-    VkImageLayout layout = imageInfo.imageLayout;
+    VkBufferView bufferView =
+        m_pDriver->GetResourceManager()->GetLiveHandle<VkBufferView>(bufferViewDescriptor.view);
+
+    VkSampler sampler =
+        m_pDriver->GetResourceManager()->GetLiveHandle<VkSampler>(samplerDescriptor.object);
+    VkImageView view =
+        m_pDriver->GetResourceManager()->GetLiveHandle<VkImageView>(imageDescriptor.view);
+    VkImageLayout layout = convert((DescriptorSlotImageLayout)imageDescriptor.byteOffset);
 
     // promote view to Array view
 
@@ -1576,14 +1491,16 @@ private:
   uint32_t m_EventID;
   ResourceId m_ShaderID;
 
+  rdcarray<DescriptorAccess> m_Access;
+  rdcarray<Descriptor> m_Descriptors;
+  rdcarray<SamplerDescriptor> m_SamplerDescriptors;
+
   std::map<ResourceId, VkImageView> m_SampleViews;
 
   typedef rdcpair<ResourceId, float> SamplerBiasKey;
   std::map<SamplerBiasKey, VkSampler> m_BiasSamplers;
 
-  bytebuf pushData;
-
-  std::map<BindpointIndex, bytebuf> bufferCache;
+  std::map<ShaderBindIndex, bytebuf> bufferCache;
 
   struct ImageData
   {
@@ -1605,83 +1522,80 @@ private:
     }
   };
 
-  std::map<BindpointIndex, ImageData> imageCache;
+  std::map<ShaderBindIndex, ImageData> imageCache;
 
-  template <typename T>
-  const T &GetDescriptor(const rdcstr &access, BindpointIndex index, bool &valid)
+  const Descriptor &GetDescriptor(const rdcstr &access, ShaderBindIndex index, bool &valid)
   {
-    static T dummy = {};
+    static Descriptor dummy;
 
-    if(index == invalidBind)
+    if(index.category == DescriptorCategory::Unknown)
     {
       // invalid index, return a dummy data but don't mark as invalid
       return dummy;
     }
 
-    if(index.bindset < 0 || index.bindset >= m_DescSets.count())
-    {
-      m_pDriver->AddDebugMessage(
-          MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
-          StringFormat::Fmt(
-              "Out of bounds access to unbound descriptor set %u (binding %u) when %s",
-              index.bindset, index.bind, access.c_str()));
-      valid = false;
-      return dummy;
-    }
+    int32_t a = m_Access.indexOf(index);
 
-    const DescSetSnapshot &setData = m_DescSets[index.bindset];
-
-    if(index.bind < 0 || index.bind >= setData.bindings.count())
-    {
-      m_pDriver->AddDebugMessage(
-          MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
-          StringFormat::Fmt(
-              "Out of bounds access to non-existant descriptor set %u binding %u when %s",
-              index.bindset, index.bind, access.c_str()));
-      valid = false;
-      return dummy;
-    }
-
-    const DescSetBindingSnapshot &bindData = setData.bindings[index.bind];
-
-    const rdcarray<T> &elemData = bindData.get<T>();
-
-    if(elemData.empty())
-    {
-      m_pDriver->AddDebugMessage(
-          MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
-          StringFormat::Fmt("descriptor set %u binding %u is not bound, when %s", index.bindset,
-                            index.bind, access.c_str()));
-      valid = false;
-      return dummy;
-    }
-
-    if(index.arrayIndex >= elemData.size())
+    // this should not happen unless the debugging references an array element that we didn't
+    // detect dynamically. We could improve this by retrieving a more conservative access set
+    // internally so that all descriptors are 'accessed'
+    if(a < 0)
     {
       m_pDriver->AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
                                  MessageSource::RuntimeWarning,
-                                 StringFormat::Fmt("descriptor set %u binding %u has %zu "
-                                                   "descriptors, index %u is out of bounds when %s",
-                                                   index.bindset, index.bind, elemData.size(),
-                                                   index.arrayIndex, access.c_str()));
+                                 StringFormat::Fmt("Internal error: Binding %s %u[%u] did not "
+                                                   "exist in calculated descriptor access when %s.",
+                                                   ToStr(index.category).c_str(), index.index,
+                                                   index.arrayElement, access.c_str()));
       valid = false;
       return dummy;
     }
 
-    return elemData[index.arrayIndex];
+    return m_Descriptors[a];
+  }
+
+  const SamplerDescriptor &GetSamplerDescriptor(const rdcstr &access, ShaderBindIndex index,
+                                                bool &valid)
+  {
+    static SamplerDescriptor dummy;
+
+    if(index.category == DescriptorCategory::Unknown)
+    {
+      // invalid index, return a dummy data but don't mark as invalid
+      return dummy;
+    }
+
+    int32_t a = m_Access.indexOf(index);
+
+    // this should not happen unless the debugging references an array element that we didn't
+    // detect dynamically. We could improve this by retrieving a more conservative access set
+    // internally so that all descriptors are 'accessed'
+    if(a < 0)
+    {
+      m_pDriver->AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
+                                 MessageSource::RuntimeWarning,
+                                 StringFormat::Fmt("Internal error: Binding %s %u[%u] did not "
+                                                   "exist in calculated descriptor access when %s.",
+                                                   ToStr(index.category).c_str(), index.index,
+                                                   index.arrayElement, access.c_str()));
+      valid = false;
+      return dummy;
+    }
+
+    return m_SamplerDescriptors[a];
   }
 
   bytebuf &PopulateBuffer(uint64_t address, size_t &offs)
   {
     // pick a non-overlapping bind namespace for direct pointer access
-    BindpointIndex bind = pointerBind;
+    ShaderBindIndex bind;
     uint64_t base;
     uint64_t end;
     ResourceId id;
     bool valid = false;
     if(m_Creation.m_BufferAddresses.empty())
     {
-      bind.arrayIndex = 0;
+      bind.arrayElement = 0;
       auto insertIt = bufferCache.insert(std::make_pair(bind, bytebuf()));
       m_pDriver->AddDebugMessage(
           MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
@@ -1697,7 +1611,7 @@ private:
       if(address != it->first && it != m_Creation.m_BufferAddresses.begin())
         it--;
       // use the index in the map as a unique buffer identifier that's not 64-bit
-      bind.arrayIndex = uint32_t(it - m_Creation.m_BufferAddresses.begin());
+      bind.arrayElement = uint32_t(it - m_Creation.m_BufferAddresses.begin());
       {
         base = it->first;
         id = it->second;
@@ -1734,53 +1648,14 @@ private:
     return data;
   }
 
-  bytebuf &PopulateBuffer(BindpointIndex bind)
+  bytebuf &PopulateBuffer(ShaderBindIndex bind)
   {
     auto insertIt = bufferCache.insert(std::make_pair(bind, bytebuf()));
     bytebuf &data = insertIt.first->second;
     if(insertIt.second)
     {
-      if(bind.bindset == PushConstantBindSet)
-      {
-        data = pushData;
-      }
-      else
-      {
-        bool valid = true;
-        const VkDescriptorBufferInfo &bufData =
-            GetDescriptor<VkDescriptorBufferInfo>("accessing buffer value", bind, valid);
-        if(valid)
-        {
-          // if the resources might be dirty from side-effects from the action, replay back to right
-          // before it.
-          if(m_ResourcesDirty)
-          {
-            VkMarkerRegion region("un-dirtying resources");
-            m_pDriver->ReplayLog(0, m_EventID, eReplay_WithoutDraw);
-            m_ResourcesDirty = false;
-          }
-
-          if(bufData.buffer != VK_NULL_HANDLE)
-          {
-            m_pDriver->GetDebugManager()->GetBufferData(GetResID(bufData.buffer), bufData.offset,
-                                                        bufData.range, data);
-          }
-        }
-      }
-    }
-
-    return data;
-  }
-
-  ImageData &PopulateImage(BindpointIndex bind)
-  {
-    auto insertIt = imageCache.insert(std::make_pair(bind, ImageData()));
-    ImageData &data = insertIt.first->second;
-    if(insertIt.second)
-    {
       bool valid = true;
-      const VkDescriptorImageInfo &imgData =
-          GetDescriptor<VkDescriptorImageInfo>("performing image load/store", bind, valid);
+      const Descriptor &bufData = GetDescriptor("accessing buffer value", bind, valid);
       if(valid)
       {
         // if the resources might be dirty from side-effects from the action, replay back to right
@@ -1792,10 +1667,41 @@ private:
           m_ResourcesDirty = false;
         }
 
-        if(imgData.imageView != VK_NULL_HANDLE)
+        if(bufData.resource != ResourceId())
+        {
+          m_pDriver->GetReplay()->GetBufferData(
+              m_pDriver->GetResourceManager()->GetLiveID(bufData.resource), bufData.byteOffset,
+              bufData.byteSize, data);
+        }
+      }
+    }
+
+    return data;
+  }
+
+  ImageData &PopulateImage(ShaderBindIndex bind)
+  {
+    auto insertIt = imageCache.insert(std::make_pair(bind, ImageData()));
+    ImageData &data = insertIt.first->second;
+    if(insertIt.second)
+    {
+      bool valid = true;
+      const Descriptor &imgData = GetDescriptor("performing image load/store", bind, valid);
+      if(valid)
+      {
+        // if the resources might be dirty from side-effects from the action, replay back to right
+        // before it.
+        if(m_ResourcesDirty)
+        {
+          VkMarkerRegion region("un-dirtying resources");
+          m_pDriver->ReplayLog(0, m_EventID, eReplay_WithoutDraw);
+          m_ResourcesDirty = false;
+        }
+
+        if(imgData.view != ResourceId())
         {
           const VulkanCreationInfo::ImageView &viewProps =
-              m_Creation.m_ImageView[GetResID(imgData.imageView)];
+              m_Creation.m_ImageView[m_pDriver->GetResourceManager()->GetLiveID(imgData.view)];
           const VulkanCreationInfo::Image &imageProps = m_Creation.m_Image[viewProps.image];
 
           uint32_t mip = viewProps.range.baseMipLevel;

@@ -4130,12 +4130,10 @@ void TextureViewer::on_debugPixelContext_clicked()
 
   const ShaderReflection *shaderDetails =
       m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
-  const ShaderBindpointMapping &bindMapping =
-      m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Pixel);
   ResourceId pipeline = m_Ctx.CurPipelineState().GetGraphicsPipelineObject();
 
   // viewer takes ownership of the trace
-  IShaderViewer *s = m_Ctx.DebugShader(&bindMapping, shaderDetails, pipeline, trace, debugContext);
+  IShaderViewer *s = m_Ctx.DebugShader(shaderDetails, pipeline, trace, debugContext);
 
   m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
 }

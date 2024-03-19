@@ -54,18 +54,19 @@ public:
 
   virtual ResourceId GetShaderID() = 0;
 
-  virtual uint64_t GetBufferLength(BindpointIndex bind) = 0;
+  virtual uint64_t GetBufferLength(ShaderBindIndex bind) = 0;
 
-  virtual void ReadBufferValue(BindpointIndex bind, uint64_t offset, uint64_t byteSize, void *dst) = 0;
-  virtual void WriteBufferValue(BindpointIndex bind, uint64_t offset, uint64_t byteSize,
+  virtual void ReadBufferValue(ShaderBindIndex bind, uint64_t offset, uint64_t byteSize,
+                               void *dst) = 0;
+  virtual void WriteBufferValue(ShaderBindIndex bind, uint64_t offset, uint64_t byteSize,
                                 const void *src) = 0;
 
   virtual void ReadAddress(uint64_t address, uint64_t byteSize, void *dst) = 0;
   virtual void WriteAddress(uint64_t address, uint64_t byteSize, const void *src) = 0;
 
-  virtual bool ReadTexel(BindpointIndex imageBind, const ShaderVariable &coord, uint32_t sample,
+  virtual bool ReadTexel(ShaderBindIndex imageBind, const ShaderVariable &coord, uint32_t sample,
                          ShaderVariable &output) = 0;
-  virtual bool WriteTexel(BindpointIndex imageBind, const ShaderVariable &coord, uint32_t sample,
+  virtual bool WriteTexel(ShaderBindIndex imageBind, const ShaderVariable &coord, uint32_t sample,
                           const ShaderVariable &value) = 0;
 
   virtual void FillInputValue(ShaderVariable &var, ShaderBuiltin builtin, uint32_t location,
@@ -82,11 +83,8 @@ public:
     Subpass_Texture = 0x20,
   };
 
-  static const BindpointIndex invalidBind;
-  static const BindpointIndex pointerBind;
-
   virtual bool CalculateSampleGather(ThreadState &lane, Op opcode, TextureType texType,
-                                     BindpointIndex imageBind, BindpointIndex samplerBind,
+                                     ShaderBindIndex imageBind, ShaderBindIndex samplerBind,
                                      const ShaderVariable &uv, const ShaderVariable &ddxCalc,
                                      const ShaderVariable &ddyCalc, const ShaderVariable &compare,
                                      GatherChannel gatherChannel,

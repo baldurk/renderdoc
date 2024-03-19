@@ -2550,7 +2550,6 @@ place if needed.
   DOCUMENT(R"(Show a new :class:`ShaderViewer` window, showing a read-only view of a debug trace
 through the execution of a given shader.
 
-:param renderdoc.ShaderBindpointMapping bind: The bindpoint mapping for the shader to view.
 :param renderdoc.ShaderReflection shader: The reflection data for the shader to view.
 :param renderdoc.ResourceId pipeline: The pipeline state object, if applicable, that this shader is
   bound to.
@@ -2560,8 +2559,7 @@ through the execution of a given shader.
 :return: The new :class:`ShaderViewer` window opened, but not shown.
 :rtype: ShaderViewer
 )");
-  virtual IShaderViewer *DebugShader(const ShaderBindpointMapping *bind,
-                                     const ShaderReflection *shader, ResourceId pipeline,
+  virtual IShaderViewer *DebugShader(const ShaderReflection *shader, ResourceId pipeline,
                                      ShaderDebugTrace *trace, const rdcstr &debugContext) = 0;
 
   DOCUMENT(R"(Show a new :class:`ShaderViewer` window, showing a read-only view of a given shader.

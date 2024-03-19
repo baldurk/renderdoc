@@ -2420,7 +2420,7 @@ void VulkanReplay::FillBindingElement(VKPipe::BindingElement &dstel, const Descr
       if(c.m_ImageView[viewid].viewType == VK_IMAGE_VIEW_TYPE_3D)
         dstel.firstSlice = dstel.numSlices = 0;
 
-      // temporary hack, store image layout enum in byteOffset as it's not used for images
+      // cheeky hack, store image layout enum in byteOffset as it's not used for images
       dstel.byteOffset = convert(srcel.imageLayout);
 
       dstel.minLOD = c.m_ImageView[viewid].minLOD;
@@ -2615,7 +2615,7 @@ void VulkanReplay::FillDescriptor(Descriptor &dstel, const DescriptorSetSlot &sr
       if(c.m_ImageView[viewid].viewType == VK_IMAGE_VIEW_TYPE_3D)
         dstel.firstSlice = dstel.numSlices = 0;
 
-      // temporary hack, store image layout enum in byteOffset as it's not used for images
+      // cheeky hack, store image layout enum in byteOffset as it's not used for images
       dstel.byteOffset = convert(srcel.imageLayout);
 
       dstel.minLODClamp = c.m_ImageView[viewid].minLOD;

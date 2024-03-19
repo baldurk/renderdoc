@@ -814,11 +814,10 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
                                               revertCallback);
   }
 
-  virtual IShaderViewer *DebugShader(const ShaderBindpointMapping *bind,
-                                     const ShaderReflection *shader, ResourceId pipeline,
+  virtual IShaderViewer *DebugShader(const ShaderReflection *shader, ResourceId pipeline,
                                      ShaderDebugTrace *trace, const rdcstr &debugContext) override
   {
-    return InvokeRetFunction<IShaderViewer *>(&ICaptureContext::DebugShader, bind, shader, pipeline,
+    return InvokeRetFunction<IShaderViewer *>(&ICaptureContext::DebugShader, shader, pipeline,
                                               trace, debugContext);
   }
 

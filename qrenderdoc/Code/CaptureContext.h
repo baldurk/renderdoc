@@ -255,9 +255,8 @@ public:
                        const rdcstr &entryFunc, const bytebuf &shaderBytes);
   void RevertShaderEdit(IShaderViewer *viewer, ResourceId id);
 
-  IShaderViewer *DebugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
-                             ResourceId pipeline, ShaderDebugTrace *trace,
-                             const rdcstr &debugContext) override;
+  IShaderViewer *DebugShader(const ShaderReflection *shader, ResourceId pipeline,
+                             ShaderDebugTrace *trace, const rdcstr &debugContext) override;
 
   IShaderViewer *ViewShader(const ShaderReflection *shader, ResourceId pipeline) override;
 

@@ -1892,7 +1892,7 @@ void ThreadState::MarkResourceAccess(ShaderDebugState *state, DXBCBytecode::Oper
 
   const rdcarray<DXBC::ShaderInputBind> &shaderBinds =
       (type == DXBCBytecode::TYPE_RESOURCE) ? reflection->SRVs : reflection->UAVs;
-  for(size_t i = 0; i < shaderBinds.size(); ++i)
+  for(uint32_t i = 0; i < shaderBinds.size(); ++i)
   {
     const DXBC::ShaderInputBind &bind = shaderBinds[i];
     if(bind.space == slot.registerSpace && bind.reg <= slot.shaderRegister &&
@@ -1912,15 +1912,19 @@ void ThreadState::MarkResourceAccess(ShaderDebugState *state, DXBCBytecode::Oper
       else
         change.after.name = StringFormat::Fmt("%c%u[%u]", prefix, resIdx, arrIdx);
 
+      change.after.SetBindIndex(ShaderBindIndex((type == DXBCBytecode::TYPE_RESOURCE)
+                                                    ? DescriptorCategory::ReadOnlyResource
+                                                    : DescriptorCategory::ReadWriteResource,
+                                                i, arrIdx));
+
       break;
     }
   }
-  change.after.SetBinding(slot.registerSpace, reg, arrIdx);
 
   // Check whether this resource was visited before
   bool found = false;
-  BindpointIndex bp = change.after.GetBinding();
-  rdcarray<BindpointIndex> &accessed =
+  ShaderBindIndex bp = change.after.GetBindIndex();
+  rdcarray<ShaderBindIndex> &accessed =
       (type == DXBCBytecode::TYPE_RESOURCE) ? m_accessedSRVs : m_accessedUAVs;
   for(size_t i = 0; i < accessed.size(); ++i)
   {
@@ -4603,22 +4607,22 @@ uint32_t GetLogicalIdentifierForBindingSlot(const DXBCBytecode::Program &program
 
 void AddCBufferToGlobalState(const DXBCBytecode::Program &program, GlobalState &global,
                              rdcarray<SourceVariableMapping> &sourceVars,
-                             const ShaderReflection &refl, const ShaderBindpointMapping &mapping,
-                             const BindingSlot &slot, bytebuf &cbufData)
+                             const ShaderReflection &refl, const BindingSlot &slot, bytebuf &cbufData)
 {
   // Find the identifier
-  size_t numCBs = mapping.constantBlocks.size();
+  size_t numCBs = refl.constantBlocks.size();
   for(size_t i = 0; i < numCBs; ++i)
   {
-    const Bindpoint &bp = mapping.constantBlocks[i];
-    if(slot.registerSpace == (uint32_t)bp.bindset && slot.shaderRegister >= (uint32_t)bp.bind &&
-       slot.shaderRegister < (uint32_t)(bp.bind + bp.arraySize))
+    const ConstantBlock &cb = refl.constantBlocks[i];
+    if(slot.registerSpace == (uint32_t)cb.fixedBindSetOrSpace &&
+       slot.shaderRegister >= (uint32_t)cb.fixedBindNumber &&
+       slot.shaderRegister < (uint32_t)(cb.fixedBindNumber + cb.bindArraySize))
     {
-      uint32_t arrayIndex = slot.shaderRegister - bp.bind;
+      uint32_t arrayIndex = slot.shaderRegister - cb.fixedBindNumber;
 
       rdcarray<ShaderVariable> &targetVars =
-          bp.arraySize > 1 ? global.constantBlocks[i].members[arrayIndex].members
-                           : global.constantBlocks[i].members;
+          cb.bindArraySize > 1 ? global.constantBlocks[i].members[arrayIndex].members
+                               : global.constantBlocks[i].members;
       RDCASSERTMSG("Reassigning previously filled cbuffer", targetVars.empty());
 
       uint32_t cbufferIndex =
@@ -4635,7 +4639,7 @@ void AddCBufferToGlobalState(const DXBCBytecode::Program &program, GlobalState &
 
       rdcstr identifierPrefix = global.constantBlocks[i].name;
       rdcstr variablePrefix = refl.constantBlocks[i].name;
-      if(bp.arraySize > 1)
+      if(cb.bindArraySize > 1)
       {
         identifierPrefix =
             StringFormat::Fmt("%s[%u]", global.constantBlocks[i].name.c_str(), arrayIndex);
@@ -4652,8 +4656,8 @@ void AddCBufferToGlobalState(const DXBCBytecode::Program &program, GlobalState &
         sourceVars.push_back(cbArrayMapping);
       }
       const rdcarray<ShaderConstant> &constants =
-          (bp.arraySize > 1) ? refl.constantBlocks[i].variables[0].type.members
-                             : refl.constantBlocks[i].variables;
+          (cb.bindArraySize > 1) ? refl.constantBlocks[i].variables[0].type.members
+                                 : refl.constantBlocks[i].variables;
 
       rdcarray<ShaderVariable> vars;
       StandardFillCBufferVariables(refl.resourceId, constants, vars, cbufData);
@@ -5230,9 +5234,7 @@ void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
 }
 
 ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcContainer,
-                                                const ShaderReflection &refl,
-                                                const ShaderBindpointMapping &mapping,
-                                                int activeIndex)
+                                                const ShaderReflection &refl, int activeIndex)
 {
   ShaderDebugTrace *ret = new ShaderDebugTrace;
   ret->debugger = this;
@@ -5479,7 +5481,7 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
   {
     VarType varType;
     DebugVariableType debugVarType;
-    const rdcarray<Bindpoint> &binds;
+    DescriptorCategory category;
     const rdcarray<ShaderResource> &resources;
     const char *regChars;
     rdcarray<ShaderVariable> &dst;
@@ -5489,7 +5491,7 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
       {
           VarType::ReadOnlyResource,
           DebugVariableType::ReadOnlyResource,
-          mapping.readOnlyResources,
+          DescriptorCategory::ReadOnlyResource,
           refl.readOnlyResources,
           "tT",
           ret->readOnlyResources,
@@ -5497,7 +5499,7 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
       {
           VarType::ReadWriteResource,
           DebugVariableType::ReadWriteResource,
-          mapping.readWriteResources,
+          DescriptorCategory::ReadWriteResource,
           refl.readWriteResources,
           "uU",
           ret->readWriteResources,
@@ -5507,27 +5509,23 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
   for(ResList &list : lists)
   {
     // add the registers for the resources that are used
-    list.dst.reserve(list.binds.size());
-    for(size_t i = 0; i < list.binds.size(); i++)
+    list.dst.reserve(list.resources.size());
+    for(uint32_t i = 0; i < list.resources.size(); i++)
     {
-      const Bindpoint &b = list.binds[i];
       const ShaderResource &r = list.resources[i];
-
-      if(!b.used)
-        continue;
 
       rdcstr identifier;
 
       if(dxbc->GetDXBCByteCode()->IsShaderModel51())
         identifier = StringFormat::Fmt("%c%zu", list.regChars[1], i);
       else
-        identifier = StringFormat::Fmt("%c%u", list.regChars[0], b.bind);
+        identifier = StringFormat::Fmt("%c%u", list.regChars[0], r.fixedBindNumber);
 
       ShaderVariable reg(identifier, 0U, 0U, 0U, 0U);
       reg.rows = 1;
       reg.columns = 1;
 
-      reg.SetBinding(b.bindset, b.bind, 0U);
+      reg.SetBindIndex(ShaderBindIndex(list.category, i, 0));
 
       SourceVariableMapping sourcemap;
       sourcemap.name = r.name;
@@ -5545,27 +5543,23 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
     }
   }
 
-  ret->samplers.reserve(mapping.samplers.size());
-  for(size_t i = 0; i < mapping.samplers.size(); i++)
+  ret->samplers.reserve(refl.samplers.size());
+  for(uint32_t i = 0; i < refl.samplers.size(); i++)
   {
-    const Bindpoint &b = mapping.samplers[i];
     const ShaderSampler &s = refl.samplers[i];
-
-    if(!b.used)
-      continue;
 
     rdcstr identifier;
 
     if(dxbc->GetDXBCByteCode()->IsShaderModel51())
       identifier = StringFormat::Fmt("S%zu", i);
     else
-      identifier = StringFormat::Fmt("s%u", b.bind);
+      identifier = StringFormat::Fmt("s%u", s.fixedBindNumber);
 
     ShaderVariable reg(identifier, 0U, 0U, 0U, 0U);
     reg.rows = 1;
     reg.columns = 1;
 
-    reg.SetBinding(b.bindset, b.bind, 0U);
+    reg.SetBindIndex(ShaderBindIndex(DescriptorCategory::Sampler, i, 0));
 
     SourceVariableMapping sourcemap;
     sourcemap.name = s.name;

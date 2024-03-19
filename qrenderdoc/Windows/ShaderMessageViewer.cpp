@@ -439,14 +439,12 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
         return;
       }
 
-      const ShaderBindpointMapping &bindMapping =
-          m_Ctx.CurPipelineState().GetBindpointMapping(msg.stage);
       ResourceId pipeline = msg.stage == ShaderStage::Compute
                                 ? m_Ctx.CurPipelineState().GetComputePipelineObject()
                                 : m_Ctx.CurPipelineState().GetGraphicsPipelineObject();
 
       // viewer takes ownership of the trace
-      IShaderViewer *s = m_Ctx.DebugShader(&bindMapping, refl, pipeline, trace, debugContext);
+      IShaderViewer *s = m_Ctx.DebugShader(refl, pipeline, trace, debugContext);
 
       if(msg.disassemblyLine >= 0)
       {

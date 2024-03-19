@@ -63,6 +63,12 @@ struct SPIRVPatchData
   rdcarray<SPIRVInterfaceAccess> inputs;
   rdcarray<SPIRVInterfaceAccess> outputs;
 
+  // store the interface in reflection for lookup when generating binding indices
+  rdcarray<rdcspv::Id> cblockInterface;
+  rdcarray<rdcspv::Id> roInterface;
+  rdcarray<rdcspv::Id> rwInterface;
+  rdcarray<rdcspv::Id> samplerInterface;
+
   // the spec IDs in order - these are the order of constants encountered while parsing, and are
   // used for byte offsets into the resulting data blob (each constant takes 64-bits).
   // The shader constants reported already have the write offset, but this allows looking up the

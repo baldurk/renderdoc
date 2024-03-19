@@ -2568,11 +2568,10 @@ void CaptureContext::RevertShaderEdit(IShaderViewer *viewer, ResourceId id)
   });
 }
 
-IShaderViewer *CaptureContext::DebugShader(const ShaderBindpointMapping *bind,
-                                           const ShaderReflection *shader, ResourceId pipeline,
+IShaderViewer *CaptureContext::DebugShader(const ShaderReflection *shader, ResourceId pipeline,
                                            ShaderDebugTrace *trace, const rdcstr &debugContext)
 {
-  return ShaderViewer::DebugShader(*this, bind, shader, pipeline, trace, debugContext,
+  return ShaderViewer::DebugShader(*this, shader, pipeline, trace, debugContext,
                                    m_MainWindow->Widget());
 }
 

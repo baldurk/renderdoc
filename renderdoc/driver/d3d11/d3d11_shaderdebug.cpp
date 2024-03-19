@@ -1420,8 +1420,7 @@ bool D3D11DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
 void AddCBuffersToGlobalState(const DXBCBytecode::Program &program, D3D11DebugManager &debugManager,
                               DXBCDebug::GlobalState &global,
                               rdcarray<SourceVariableMapping> &sourceVars,
-                              const D3D11RenderState::Shader &shader, const ShaderReflection &refl,
-                              const ShaderBindpointMapping &mapping)
+                              const D3D11RenderState::Shader &shader, const ShaderReflection &refl)
 {
   bytebuf cbufData;
   for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
@@ -1433,7 +1432,7 @@ void AddCBuffersToGlobalState(const DXBCBytecode::Program &program, D3D11DebugMa
       debugManager.GetBufferData(shader.ConstantBuffers[i], shader.CBOffsets[i] * sizeof(Vec4f),
                                  shader.CBCounts[i] * sizeof(Vec4f), cbufData);
 
-      AddCBufferToGlobalState(program, global, sourceVars, refl, mapping, slot, cbufData);
+      AddCBufferToGlobalState(program, global, sourceVars, refl, slot, cbufData);
     }
   }
 }
@@ -1533,12 +1532,12 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
 
   InterpretDebugger *interpreter = new InterpretDebugger;
   interpreter->eventId = eventId;
-  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, vs->GetMapping(), 0);
+  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, 0);
   GlobalState &global = interpreter->global;
   ThreadState &state = interpreter->activeLane();
 
   AddCBuffersToGlobalState(*dxbc->GetDXBCByteCode(), *GetDebugManager(), global, ret->sourceVars,
-                           rs->VS, refl, vs->GetMapping());
+                           rs->VS, refl);
 
   for(size_t i = 0; i < state.inputs.size(); i++)
   {
@@ -2451,12 +2450,12 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
 
   InterpretDebugger *interpreter = new InterpretDebugger;
   interpreter->eventId = eventId;
-  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, ps->GetMapping(), destIdx);
+  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, destIdx);
   GlobalState &global = interpreter->global;
   ThreadState &state = interpreter->activeLane();
 
   AddCBuffersToGlobalState(*dxbc->GetDXBCByteCode(), *GetDebugManager(), global, ret->sourceVars,
-                           rs->PS, refl, ps->GetMapping());
+                           rs->PS, refl);
 
   global.sampleEvalRegisterMask = sampleEvalRegisterMask;
 
@@ -2606,12 +2605,12 @@ ShaderDebugTrace *D3D11Replay::DebugThread(uint32_t eventId,
 
   InterpretDebugger *interpreter = new InterpretDebugger;
   interpreter->eventId = eventId;
-  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, cs->GetMapping(), 0);
+  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, 0);
   GlobalState &global = interpreter->global;
   ThreadState &state = interpreter->activeLane();
 
   AddCBuffersToGlobalState(*dxbc->GetDXBCByteCode(), *GetDebugManager(), global, ret->sourceVars,
-                           rs->CS, refl, cs->GetMapping());
+                           rs->CS, refl);
 
   for(int i = 0; i < 3; i++)
   {

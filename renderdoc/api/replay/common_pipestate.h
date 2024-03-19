@@ -765,6 +765,11 @@ struct DescriptorAccess
   DescriptorAccess(const DescriptorAccess &) = default;
   DescriptorAccess &operator=(const DescriptorAccess &) = default;
 
+  bool operator==(const ShaderBindIndex &o) const
+  {
+    return CategoryForDescriptorType(type) == o.category && index == o.index &&
+           arrayElement == o.arrayElement;
+  }
   bool operator==(const DescriptorAccess &o) const
   {
     return stage == o.stage && type == o.type && index == o.index &&
@@ -848,6 +853,11 @@ does not necessarily guarantee that the descriptor was accessed on the GPU durin
 };
 
 DECLARE_REFLECTION_STRUCT(DescriptorAccess);
+
+inline ShaderBindIndex::ShaderBindIndex(const DescriptorAccess &access)
+    : ShaderBindIndex(CategoryForDescriptorType(access.type), access.index, access.arrayElement)
+{
+}
 
 DOCUMENT(R"(In many cases there may be a logical location or fixed binding point for a particular
 descriptor which is not conveyed with a simple byte offset into a descriptor store.
@@ -967,6 +977,8 @@ struct UsedDescriptor
   UsedDescriptor(const UsedDescriptor &) = default;
   UsedDescriptor &operator=(const UsedDescriptor &) = default;
 
+  bool operator==(const DescriptorAccess &o) const { return access == o; }
+  bool operator==(const ShaderBindIndex &o) const { return access == o; }
   bool operator==(const UsedDescriptor &o) const
   {
     return access == o.access && descriptor == o.descriptor && sampler == o.sampler;

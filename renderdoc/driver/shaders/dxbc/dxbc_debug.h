@@ -326,14 +326,14 @@ private:
   const DXBCBytecode::Program *program;
   const DXBC::IDebugInfo *debug;
 
-  rdcarray<BindpointIndex> m_accessedSRVs;
-  rdcarray<BindpointIndex> m_accessedUAVs;
+  rdcarray<ShaderBindIndex> m_accessedSRVs;
+  rdcarray<ShaderBindIndex> m_accessedUAVs;
 };
 
 struct InterpretDebugger : public ShaderDebugger
 {
-  ShaderDebugTrace *BeginDebug(const DXBC::DXBCContainer *dxbcContainer, const ShaderReflection &refl,
-                               const ShaderBindpointMapping &mapping, int activeIndex);
+  ShaderDebugTrace *BeginDebug(const DXBC::DXBCContainer *dxbcContainer,
+                               const ShaderReflection &refl, int activeIndex);
 
   GlobalState global;
   uint32_t eventId;
@@ -361,7 +361,7 @@ void ApplyAllDerivatives(GlobalState &global, rdcarray<ThreadState> &quad, int d
 
 void AddCBufferToGlobalState(const DXBCBytecode::Program &program, GlobalState &global,
                              rdcarray<SourceVariableMapping> &sourceVars,
-                             const ShaderReflection &refl, const ShaderBindpointMapping &mapping,
-                             const BindingSlot &slot, bytebuf &cbufData);
+                             const ShaderReflection &refl, const BindingSlot &slot,
+                             bytebuf &cbufData);
 
 };    // namespace ShaderDebug

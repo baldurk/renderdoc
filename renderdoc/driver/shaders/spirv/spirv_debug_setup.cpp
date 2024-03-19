@@ -1106,7 +1106,9 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
           var.columns = 1;
           var.type = VarType::ReadWriteResource;
 
-          var.SetBinding((int32_t)bindset, (int32_t)bind, 0U);
+          int32_t idx = patchData.rwInterface.indexOf(v.id);
+          RDCASSERT(idx >= 0);
+          var.SetBindIndex(ShaderBindIndex(DescriptorCategory::ReadWriteResource, idx, 0U));
 
           enablePointerFlags(var, PointerFlags::SSBO);
 
@@ -1124,12 +1126,13 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
         }
         else
         {
-          BindpointIndex bindpoint;
+          ShaderBindIndex binding;
 
-          bindpoint.bindset = (int32_t)bindset;
-          bindpoint.bind = (int32_t)bind;
+          binding.category = DescriptorCategory::ConstantBlock;
+          binding.index = patchData.cblockInterface.indexOf(v.id);
+          RDCASSERT(binding.index != ~0U);
 
-          auto cbufferCallback = [this, &bindpoint](
+          auto cbufferCallback = [this, &binding](
                                      ShaderVariable &var, const Decorations &curDecorations,
                                      const DataType &type, uint64_t offset, const rdcstr &) {
             if(!var.members.empty())
@@ -1138,7 +1141,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
             // non-matrix case is simple, just read the size of the variable
             if(var.rows == 1)
             {
-              this->apiWrapper->ReadBufferValue(bindpoint, offset, VarByteSize(var),
+              this->apiWrapper->ReadBufferValue(binding, offset, VarByteSize(var),
                                                 var.value.u8v.data());
 
               if(type.type == DataType::PointerType)
@@ -1166,7 +1169,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
                 for(uint32_t c = 0; c < var.columns; c++)
                 {
                   // read the column
-                  this->apiWrapper->ReadBufferValue(bindpoint, offset + c * matrixStride, colSize,
+                  this->apiWrapper->ReadBufferValue(binding, offset + c * matrixStride, colSize,
                                                     VarElemPointer(tmp, 0));
 
                   // now write it into the appropiate elements in the destination ShaderValue
@@ -1182,7 +1185,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
                 {
                   // read the column into the destination ShaderValue, which is tightly packed with
                   // rows
-                  this->apiWrapper->ReadBufferValue(bindpoint, offset + r * matrixStride, rowSize,
+                  this->apiWrapper->ReadBufferValue(binding, offset + r * matrixStride, rowSize,
                                                     VarElemPointer(var, r * var.columns));
                 }
               }
@@ -1201,7 +1204,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
 
             for(uint32_t a = 0; a < arraySize; a++)
             {
-              bindpoint.arrayIndex = a;
+              binding.arrayElement = a;
               var.members.push_back(ShaderVariable());
               var.members.back().name = StringFormat::Fmt("[%u]", a);
               WalkVariable<ShaderVariable, true>(decorations[v.id], *innertype, 0U,
@@ -1270,8 +1273,6 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
       if(decorations[v.id].flags & Decorations::HasBinding)
         bind = decorations[v.id].binding;
 
-      var.SetBinding((int32_t)set, (int32_t)bind, 0U);
-
       if(innertype->type == DataType::ArrayType)
       {
         enablePointerFlags(var, PointerFlags::GlobalArrayBinding);
@@ -1282,6 +1283,10 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
       {
         var.type = VarType::Sampler;
         debugType = DebugVariableType::Sampler;
+
+        int32_t idx = patchData.samplerInterface.indexOf(v.id);
+        RDCASSERT(idx >= 0);
+        var.SetBindIndex(ShaderBindIndex(DescriptorCategory::Sampler, idx, 0U));
 
         global.samplers.push_back(var);
         pointerIDs.push_back(GLOBAL_POINTER(v.id, samplers));
@@ -1323,11 +1328,19 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
           var.type = VarType::ReadWriteResource;
           debugType = DebugVariableType::ReadWriteResource;
 
+          int32_t idx = patchData.rwInterface.indexOf(v.id);
+          RDCASSERT(idx >= 0);
+          var.SetBindIndex(ShaderBindIndex(DescriptorCategory::ReadWriteResource, idx, 0U));
+
           global.readWriteResources.push_back(var);
           pointerIDs.push_back(GLOBAL_POINTER(v.id, readWriteResources));
         }
         else
         {
+          int32_t idx = patchData.roInterface.indexOf(v.id);
+          RDCASSERT(idx >= 0);
+          var.SetBindIndex(ShaderBindIndex(DescriptorCategory::ReadOnlyResource, idx, 0U));
+
           global.readOnlyResources.push_back(var);
           pointerIDs.push_back(GLOBAL_POINTER(v.id, readOnlyResources));
         }
@@ -2368,8 +2381,9 @@ ShaderVariable Debugger::GetPointerValue(const ShaderVariable &ptr) const
     ShaderVariable ret = *inner;
     ret.name = ptr.name;
     // inherit any array index from the pointer
-    BindpointIndex bind = ret.GetBinding();
-    ret.SetBinding(bind.bindset, bind.bind, getBindArrayIndex(ptr));
+    ShaderBindIndex bind = ret.GetBindIndex();
+    bind.arrayElement = getBindArrayIndex(ptr);
+    ret.SetBindIndex(bind);
     return ret;
   }
   // physical pointers which haven't been dereferenced are returned as-is, they're ready for display
@@ -2392,7 +2406,7 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
   rdcspv::Id typeId;
   Decorations parentDecorations;
   uint64_t baseAddress;
-  BindpointIndex bind;
+  ShaderBindIndex bind;
   uint64_t byteOffset = 0;
   std::function<void(uint64_t offset, uint64_t size, void *dst)> pointerReadCallback;
   if(IsPhysicalPointer(ptr))
@@ -2429,8 +2443,8 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
     {
       typeId = getBufferTypeId(ptr);
       byteOffset = getByteOffset(ptr);
-      bind = inner->GetBinding();
-      bind.arrayIndex = getBindArrayIndex(ptr);
+      bind = inner->GetBindIndex();
+      bind.arrayElement = getBindArrayIndex(ptr);
       uint32_t varMatrixStride = getMatrixStride(ptr);
       if(varMatrixStride != 0)
       {
@@ -2547,9 +2561,9 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
   if(inner->type == VarType::ReadOnlyResource || inner->type == VarType::ReadWriteResource ||
      inner->type == VarType::Sampler)
   {
-    bind = ret.GetBinding();
-
-    ret.SetBinding(bind.bindset, bind.bind, getBindArrayIndex(ptr));
+    bind = ret.GetBindIndex();
+    bind.arrayElement = getBindArrayIndex(ptr);
+    ret.SetBindIndex(bind);
   }
 
   // we don't support pointers to scalars since our 'unit' of pointer is a ShaderVariable, so check
@@ -2657,7 +2671,7 @@ void Debugger::WriteThroughPointer(ShaderVariable &ptr, const ShaderVariable &va
   rdcspv::Id typeId;
   Decorations parentDecorations;
   uint64_t baseAddress;
-  BindpointIndex bind;
+  ShaderBindIndex bind;
   uint64_t byteOffset = 0;
   std::function<void(uint64_t offset, uint64_t size, const void *src)> pointerWriteCallback;
 
@@ -2693,8 +2707,8 @@ void Debugger::WriteThroughPointer(ShaderVariable &ptr, const ShaderVariable &va
     {
       typeId = getBufferTypeId(ptr);
       byteOffset = getByteOffset(ptr);
-      bind = inner->GetBinding();
-      bind.arrayIndex = getBindArrayIndex(ptr);
+      bind = inner->GetBindIndex();
+      bind.arrayElement = getBindArrayIndex(ptr);
       uint32_t varMatrixStride = getMatrixStride(ptr);
       if(varMatrixStride != 0)
       {

@@ -129,20 +129,19 @@ public:
     return ret;
   }
 
-  static IShaderViewer *DebugShader(ICaptureContext &ctx, const ShaderBindpointMapping *bind,
-                                    const ShaderReflection *shader, ResourceId pipeline,
-                                    ShaderDebugTrace *trace, const QString &debugContext,
-                                    QWidget *parent)
+  static IShaderViewer *DebugShader(ICaptureContext &ctx, const ShaderReflection *shader,
+                                    ResourceId pipeline, ShaderDebugTrace *trace,
+                                    const QString &debugContext, QWidget *parent)
   {
     ShaderViewer *ret = new ShaderViewer(ctx, parent);
-    ret->debugShader(bind, shader, pipeline, trace, debugContext);
+    ret->debugShader(shader, pipeline, trace, debugContext);
     return ret;
   }
 
   static IShaderViewer *ViewShader(ICaptureContext &ctx, const ShaderReflection *shader,
                                    ResourceId pipeline, QWidget *parent)
   {
-    return DebugShader(ctx, NULL, shader, pipeline, NULL, QString(), parent);
+    return DebugShader(ctx, shader, pipeline, NULL, QString(), parent);
   }
 
   ~ShaderViewer();
@@ -210,8 +209,8 @@ private:
   void editShader(ResourceId id, ShaderStage stage, const QString &entryPoint,
                   const rdcstrpairs &files, KnownShaderTool knownTool,
                   ShaderEncoding shaderEncoding, ShaderCompileFlags flags);
-  void debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
-                   ResourceId pipeline, ShaderDebugTrace *trace, const QString &debugContext);
+  void debugShader(const ShaderReflection *shader, ResourceId pipeline, ShaderDebugTrace *trace,
+                   const QString &debugContext);
 
   bool eventFilter(QObject *watched, QEvent *event) override;
 
@@ -246,7 +245,6 @@ private:
 
   Ui::ShaderViewer *ui;
   ICaptureContext &m_Ctx;
-  ShaderBindpointMapping m_Mapping;
   const ShaderReflection *m_ShaderDetails = NULL;
   bool m_CustomShader = false;
   ResourceId m_EditingShader;
@@ -321,8 +319,8 @@ private:
   rdcarray<AccessedResourceData> m_AccessedResources;
   AccessedResourceView m_AccessedResourceView = AccessedResourceView::SortByResource;
 
-  rdcarray<BoundResourceArray> m_ReadOnlyResources;
-  rdcarray<BoundResourceArray> m_ReadWriteResources;
+  rdcarray<UsedDescriptor> m_ReadOnlyResources;
+  rdcarray<UsedDescriptor> m_ReadWriteResources;
   QSet<QPair<int, uint32_t>> m_Breakpoints;
   bool m_TempBreakpoint = false;
 
@@ -408,13 +406,13 @@ private:
   void runTo(const rdcarray<uint32_t> &runToInstructions, bool forward, ShaderEvents condition);
   void runTo(uint32_t runToInstruction, bool forward, ShaderEvents condition = ShaderEvents::NoEvent);
 
-  void runToResourceAccess(bool forward, VarType type, const BindpointIndex &resource);
+  void runToResourceAccess(bool forward, VarType type, const ShaderBindIndex &resource);
 
   void applyBackwardsChange();
   void applyForwardsChange();
 
   QString stringRep(const ShaderVariable &var, uint32_t row = 0);
-  QString samplerRep(Bindpoint bind, uint32_t arrayIndex, ResourceId id);
+  QString samplerRep(const ShaderSampler &samp, uint32_t arrayElement, ResourceId id);
   void combineStructures(RDTreeWidgetItem *root, int skipPrefixLength = 0);
   void highlightMatchingVars(RDTreeWidgetItem *root, const QString varName,
                              const QColor highlightColor);

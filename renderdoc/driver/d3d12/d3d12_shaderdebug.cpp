@@ -1402,7 +1402,7 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
         UINT sizeBytes = sizeof(uint32_t) * RDCMIN(rootSigParam.Constants.Num32BitValues,
                                                    (UINT)element.constants.size());
         bytebuf cbufData((const byte *)element.constants.data(), sizeBytes);
-        AddCBufferToGlobalState(program, global, sourceVars, refl, mapping, slot, cbufData);
+        AddCBufferToGlobalState(program, global, sourceVars, refl, slot, cbufData);
       }
       else if(rootSigParam.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV && element.type == eRootCBV)
       {
@@ -1411,7 +1411,7 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
         ID3D12Resource *cbv = pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(element.id);
         bytebuf cbufData;
         pDevice->GetDebugManager()->GetBufferData(cbv, element.offset, 0, cbufData);
-        AddCBufferToGlobalState(program, global, sourceVars, refl, mapping, slot, cbufData);
+        AddCBufferToGlobalState(program, global, sourceVars, refl, slot, cbufData);
       }
       else if(rootSigParam.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE &&
               element.type == eRootTable)
@@ -1467,7 +1467,7 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
             if(cbv.SizeInBytes > 0)
               pDevice->GetDebugManager()->GetBufferData(pCbvResource, byteOffset, cbv.SizeInBytes,
                                                         cbufData);
-            AddCBufferToGlobalState(program, global, sourceVars, refl, mapping, slot, cbufData);
+            AddCBufferToGlobalState(program, global, sourceVars, refl, slot, cbufData);
 
             desc++;
           }
@@ -1593,7 +1593,7 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
 
   InterpretDebugger *interpreter = new InterpretDebugger;
   interpreter->eventId = eventId;
-  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, vs->GetMapping(), 0);
+  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, 0);
   GlobalState &global = interpreter->global;
   ThreadState &state = interpreter->activeLane();
 
@@ -2570,7 +2570,7 @@ void ExtractInputsPS(PSInput IN,
 
   InterpretDebugger *interpreter = new InterpretDebugger;
   interpreter->eventId = eventId;
-  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, origPSO->PS()->GetMapping(), destIdx);
+  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, destIdx);
   GlobalState &global = interpreter->global;
   ThreadState &state = interpreter->activeLane();
 
@@ -2730,7 +2730,7 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId,
 
   InterpretDebugger *interpreter = new InterpretDebugger;
   interpreter->eventId = eventId;
-  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, pso->CS()->GetMapping(), 0);
+  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, 0);
   GlobalState &global = interpreter->global;
   ThreadState &state = interpreter->activeLane();
 

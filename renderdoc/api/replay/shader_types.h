@@ -109,6 +109,81 @@ struct BindpointIndex
 
 DECLARE_REFLECTION_STRUCT(BindpointIndex);
 
+struct DescriptorAccess;
+
+DOCUMENT(R"(References a particular individual binding element in a shader interface.
+
+This is the shader interface side of a :class:`DescriptorAccess` and so can be compared to one to
+check if an access refers to a given index or not.
+
+The context of which shader reflection this index refers to must be provided to properly interpret
+this information, as it is relative to a particular :class:`ShaderReflection`.
+)");
+struct ShaderBindIndex
+{
+  DOCUMENT("");
+  ShaderBindIndex()
+  {
+    category = DescriptorCategory::Unknown;
+    index = 0;
+    arrayElement = 0;
+  }
+  ShaderBindIndex(const ShaderBindIndex &) = default;
+  ShaderBindIndex &operator=(const ShaderBindIndex &) = default;
+
+  ShaderBindIndex(DescriptorCategory category, uint32_t index, uint32_t arrayElement)
+      : category(category), index(index), arrayElement(arrayElement)
+  {
+  }
+  ShaderBindIndex(DescriptorCategory category, uint32_t index) : ShaderBindIndex(category, index, 0)
+  {
+  }
+  ShaderBindIndex(const DescriptorAccess &access);
+
+  bool operator<(const ShaderBindIndex &o) const
+  {
+    if(!(category == o.category))
+      return category < o.category;
+    if(!(index == o.index))
+      return index < o.index;
+    return arrayElement < o.arrayElement;
+  }
+  bool operator>(const ShaderBindIndex &o) const
+  {
+    if(!(category == o.category))
+      return category > o.category;
+    if(!(index == o.index))
+      return index > o.index;
+    return arrayElement > o.arrayElement;
+  }
+  bool operator==(const ShaderBindIndex &o) const
+  {
+    return category == o.category && index == o.index && arrayElement == o.arrayElement;
+  }
+
+  DOCUMENT(R"(The type of binding this refers to, with each category referring to a different
+shader interface in the :data:`ShaderReflection`.
+
+:type: DescriptorCategory
+)");
+  DescriptorCategory category;
+
+  DOCUMENT(R"(The index within the given :data:`category` for the binding.
+
+:type: int
+)");
+  uint32_t index;
+
+  DOCUMENT(R"(If the binding identified by :data:`category` and :data:`index` is arrayed, this
+identifies the particular array index being referred to.
+
+:type: int
+)");
+  uint32_t arrayElement;
+};
+
+DECLARE_REFLECTION_STRUCT(ShaderBindIndex);
+
 #if !defined(SWIG)
 // similarly these need to be pre-declared for use in rdhalf
 extern "C" RENDERDOC_API float RENDERDOC_CC RENDERDOC_HalfToFloat(uint16_t half);
@@ -414,6 +489,35 @@ binding is given by the :data:`type` member.
   inline BindpointIndex GetBinding() const
   {
     return BindpointIndex(value.s32v[0], value.s32v[1], value.u32v[2]);
+  }
+
+  DOCUMENT(R"(Utility function for setting a reference to a shader binding.
+
+The :class:`ShaderBindIndex` uniquely refers to a given shader binding in one of the shader interfaces
+(constant blocks, samplers, read-only and read-write resources) and if necessary the element within
+an arrayed binding.
+
+:param ShaderBindIndex idx: The index of the bind being referred to.
+)");
+  inline void SetBindIndex(const ShaderBindIndex &idx)
+  {
+    value.u32v[0] = (uint32_t)idx.category;
+    value.u32v[1] = idx.index;
+    value.u32v[2] = idx.arrayElement;
+  }
+
+  DOCUMENT(R"(Utility function for getting a shader binding referenced by this variable.
+
+.. note::
+
+  The return value is undefined if this variable is not a binding reference.
+
+:return: A :class:`ShaderBindIndex` with the binding referenced.
+:rtype: ShaderBindIndex
+)");
+  inline ShaderBindIndex GetBindIndex() const
+  {
+    return ShaderBindIndex((DescriptorCategory)value.u32v[0], value.u32v[1], value.u32v[2]);
   }
 };
 

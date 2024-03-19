@@ -263,9 +263,10 @@ struct bindpair
 {
   Bindpoint map;
   T bindres;
+  rdcspv::Id id;
 
   bindpair() = default;
-  bindpair(const Bindpoint &m, const T &res) : map(m), bindres(res) {}
+  bindpair(const Bindpoint &m, rdcspv::Id id, const T &res) : map(m), bindres(res) {}
   bool operator<(const bindpair &o) const
   {
     if(map.bindset != o.map.bindset)
@@ -1411,7 +1412,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         res.fixedBindNumber = GetBinding(decorations[global.id].binding);
         res.bindArraySize = isArray ? arraySize : 1;
 
-        rwresources.push_back(shaderrespair(bindmap, res));
+        rwresources.push_back(shaderrespair(bindmap, global.id, res));
       }
       else if(varType->IsOpaqueType())
       {
@@ -1438,7 +1439,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
           res.isTexture = false;
           res.isReadOnly = true;
 
-          samplers.push_back(shaderrespair(bindmap, res));
+          samplers.push_back(shaderrespair(bindmap, global.id, res));
         }
         else
         {
@@ -1478,9 +1479,9 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
           res.variableType.baseType = imageType.retType.Type();
 
           if(res.isReadOnly)
-            roresources.push_back(shaderrespair(bindmap, res));
+            roresources.push_back(shaderrespair(bindmap, global.id, res));
           else
-            rwresources.push_back(shaderrespair(bindmap, res));
+            rwresources.push_back(shaderrespair(bindmap, global.id, res));
         }
       }
       else
@@ -1564,7 +1565,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
             MakeConstantBlockVariables(effectiveStorage, *varType, 0, 0, res.variableType.members,
                                        pointerTypes, specInfo);
 
-            rwresources.push_back(shaderrespair(bindmap, res));
+            rwresources.push_back(shaderrespair(bindmap, global.id, res));
           }
           else
           {
@@ -1588,7 +1589,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
             else
               cblock.byteSize = 0;
 
-            cblocks.push_back(cblockpair(bindmap, cblock));
+            cblocks.push_back(cblockpair(bindmap, global.id, cblock));
           }
         }
       }
@@ -1644,7 +1645,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     bindmap.arraySize = 1;
     bindmap.used = true;
 
-    cblocks.push_back(cblockpair(bindmap, specblock));
+    cblocks.push_back(cblockpair(bindmap, Id(), specblock));
   }
 
   if(!globalsblock.variables.empty())
@@ -1663,7 +1664,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     bindmap.arraySize = 1;
     bindmap.used = true;
 
-    cblocks.push_back(cblockpair(bindmap, globalsblock));
+    cblocks.push_back(cblockpair(bindmap, Id(), globalsblock));
   }
 
   reflection.taskPayload = taskPayloadBlock;
@@ -1807,6 +1808,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   for(size_t i = 0; i < cblocks.size(); i++)
   {
     mapping.constantBlocks[i] = cblocks[i].map;
+    patchData.cblockInterface.push_back(cblocks[i].id);
     // fix up any bind points marked with INVALID_BIND. They were sorted to the end
     // but from here on we want to just be able to index with the bind point
     // without any special casing.
@@ -1819,6 +1821,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   for(size_t i = 0; i < samplers.size(); i++)
   {
     mapping.samplers[i] = samplers[i].map;
+    patchData.samplerInterface.push_back(samplers[i].id);
     // fix up any bind points marked with INVALID_BIND. They were sorted to the end
     // but from here on we want to just be able to index with the bind point
     // without any special casing.
@@ -1831,6 +1834,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   for(size_t i = 0; i < roresources.size(); i++)
   {
     mapping.readOnlyResources[i] = roresources[i].map;
+    patchData.roInterface.push_back(roresources[i].id);
     // fix up any bind points marked with INVALID_BIND. They were sorted to the end
     // but from here on we want to just be able to index with the bind point
     // without any special casing.
@@ -1843,6 +1847,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   for(size_t i = 0; i < rwresources.size(); i++)
   {
     mapping.readWriteResources[i] = rwresources[i].map;
+    patchData.rwInterface.push_back(rwresources[i].id);
     // fix up any bind points marked with INVALID_BIND. They were sorted to the end
     // but from here on we want to just be able to index with the bind point
     // without any special casing.

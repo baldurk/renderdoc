@@ -3825,8 +3825,6 @@ void D3D12PipelineStateViewer::computeDebugSelector_beginDebug(
 
   const ShaderReflection *shaderDetails =
       m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);
-  const ShaderBindpointMapping &bindMapping =
-      m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Compute);
 
   if(!shaderDetails)
     return;
@@ -3881,9 +3879,8 @@ void D3D12PipelineStateViewer::computeDebugSelector_beginDebug(
   }
 
   // viewer takes ownership of the trace
-  IShaderViewer *s =
-      m_Ctx.DebugShader(&bindMapping, shaderDetails,
-                        m_Ctx.CurPipelineState().GetComputePipelineObject(), trace, debugContext);
+  IShaderViewer *s = m_Ctx.DebugShader(
+      shaderDetails, m_Ctx.CurPipelineState().GetComputePipelineObject(), trace, debugContext);
 
   m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
 }
