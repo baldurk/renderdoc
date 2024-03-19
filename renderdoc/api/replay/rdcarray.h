@@ -638,8 +638,25 @@ public:
     return -1;
   }
 
+  template <class U>
+  int32_t indexOf(const U &el, size_t first = 0, size_t last = ~0U) const
+  {
+    for(size_t i = first; i < usedCount && i < last; i++)
+    {
+      if(elems[i] == el)
+        return (int32_t)i;
+    }
+
+    return -1;
+  }
+
   // return true if an element is found
   bool contains(const T &el) const { return indexOf(el) != -1; }
+  template <class U>
+  bool contains(const U &el) const
+  {
+    return indexOf(el) != -1;
+  }
   // remove the first occurrence of an element
   void removeOne(const T &el)
   {

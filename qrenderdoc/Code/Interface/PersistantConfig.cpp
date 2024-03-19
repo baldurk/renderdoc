@@ -655,7 +655,7 @@ void AddRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file)
     return;
   }
 
-  if(recentList.contains(path))
+  if(recentList.contains(rdcstr(path)))
     recentList.removeOne(path);
 
   recentList.push_back(path);
