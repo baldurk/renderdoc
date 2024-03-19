@@ -187,15 +187,15 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
 
   // only display sample information if one of the targets is multisampled
   m_Multisampled = false;
-  rdcarray<BoundResource> outs = pipe.GetOutputTargets();
-  outs.push_back(pipe.GetDepthTarget());
-  outs.push_back(pipe.GetDepthResolveTarget());
-  for(const BoundResource &o : outs)
+  rdcarray<Descriptor> outs = pipe.GetOutputTargetDescriptors();
+  outs.push_back(pipe.GetDepthTargetDescriptor());
+  outs.push_back(pipe.GetDepthResolveTargetDescriptor());
+  for(const Descriptor &o : outs)
   {
-    if(o.resourceId == ResourceId())
+    if(o.resource == ResourceId())
       continue;
 
-    const TextureDescription *tex = m_Ctx.GetTexture(o.resourceId);
+    const TextureDescription *tex = m_Ctx.GetTexture(o.resource);
 
     if(tex->msSamp > 1)
     {
@@ -500,10 +500,10 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
 
         // select an actual output. Prefer the first colour output, but if there's no colour output
         // pick depth.
-        rdcarray<BoundResource> cols = m_Ctx.CurPipelineState().GetOutputTargets();
+        rdcarray<Descriptor> cols = m_Ctx.CurPipelineState().GetOutputTargetDescriptors();
         bool hascol = false;
         for(size_t i = 0; i < cols.size(); i++)
-          hascol |= cols[i].resourceId != ResourceId();
+          hascol |= cols[i].resource != ResourceId();
 
         if(hascol)
           m_Ctx.GetTextureViewer()->ViewFollowedResource(FollowType::OutputColor,
