@@ -87,6 +87,26 @@ static inline uint32_t BaseCoordFromMip(uint32_t coord, const uint32_t mip, cons
   return uint32_t(dim * (coordf + 1e-6f));
 }
 
+static Descriptor MakeDescriptor(ResourceId res, Subresource sub = Subresource())
+{
+  Descriptor ret;
+  ret.type = DescriptorType::ReadWriteImage;
+  ret.resource = res;
+  ret.firstMip = sub.mip;
+  ret.firstSlice = sub.slice;
+  return ret;
+}
+
+static UsedDescriptor MakeUsedDescriptor(ResourceId res, Subresource sub = Subresource())
+{
+  UsedDescriptor ret;
+  ret.descriptor = MakeDescriptor(res, sub);
+  ret.access.type = ret.descriptor.type;
+  ret.access.index = DescriptorAccess::NoShaderBinding;
+  ret.access.byteSize = 1;
+  return ret;
+}
+
 static QMap<QString, ShaderEncoding> encodingExtensions = {
     {lit("hlsl"), ShaderEncoding::HLSL},
     {lit("glsl"), ShaderEncoding::GLSL},
@@ -98,12 +118,10 @@ static QMap<QString, ShaderEncoding> encodingExtensions = {
 
 Q_DECLARE_METATYPE(Following);
 
-Following::Following(const TextureViewer &tex, FollowType t, ShaderStage s, int i, int a) : tex(tex)
+Following::Following(const TextureViewer &tex, FollowType type, ShaderStage stage, uint32_t index,
+                     uint32_t arrayElement)
+    : tex(tex), Type(type), Stage(stage), index(index), arrayEl(arrayElement)
 {
-  Type = t;
-  Stage = s;
-  index = i;
-  arrayEl = a;
 }
 
 Following::Following(const Following &other) : tex(other.tex)
@@ -160,31 +178,31 @@ void Following::GetActionContext(ICaptureContext &ctx, bool &copy, bool &clear, 
 
 int Following::GetHighestMip(ICaptureContext &ctx)
 {
-  return GetBoundResource(ctx, arrayEl).firstMip;
+  return GetDescriptor(ctx, arrayEl).firstMip;
 }
 
 int Following::GetFirstArraySlice(ICaptureContext &ctx)
 {
-  return GetBoundResource(ctx, arrayEl).firstSlice;
+  return GetDescriptor(ctx, arrayEl).firstSlice;
 }
 
 CompType Following::GetTypeHint(ICaptureContext &ctx)
 {
-  return GetBoundResource(ctx, arrayEl).typeCast;
+  return GetDescriptor(ctx, arrayEl).format.compType;
 }
 
 ResourceId Following::GetResourceId(ICaptureContext &ctx)
 {
-  return GetBoundResource(ctx, arrayEl).resourceId;
+  return GetDescriptor(ctx, arrayEl).resource;
 }
 
-BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
+Descriptor Following::GetDescriptor(ICaptureContext &ctx, uint32_t arrayIdx)
 {
-  BoundResource ret;
+  Descriptor ret;
 
   if(Type == FollowType::OutputColor)
   {
-    rdcarray<BoundResource> outputs = GetOutputTargets(ctx);
+    rdcarray<Descriptor> outputs = GetOutputTargets(ctx);
 
     if(index < outputs.count())
       ret = outputs[index];
@@ -199,41 +217,25 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
   }
   else if(Type == FollowType::ReadWrite)
   {
-    const rdcarray<BoundResourceArray> &rw = tex.m_ReadWriteResources[(int)Stage];
+    const rdcarray<UsedDescriptor> &rw = tex.m_ReadWriteResources[(int)Stage];
 
-    ShaderBindpointMapping mapping = GetMapping(ctx);
-
-    if(index < mapping.readWriteResources.count())
+    for(const UsedDescriptor &d : rw)
     {
-      Bindpoint &key = mapping.readWriteResources[index];
-
-      int residx = rw.indexOf(key);
-      if(residx >= 0)
+      if(d.access.index == index && d.access.arrayElement == arrayIdx)
       {
-        const BoundResourceArray &resArray = rw[residx];
-        if(arrayIdx >= resArray.firstIndex &&
-           arrayIdx - resArray.firstIndex < resArray.resources.count())
-          ret = resArray.resources[arrayIdx - resArray.firstIndex];
+        return d.descriptor;
       }
     }
   }
   else if(Type == FollowType::ReadOnly)
   {
-    const rdcarray<BoundResourceArray> &ro = tex.m_ReadOnlyResources[(int)Stage];
+    const rdcarray<UsedDescriptor> &ro = tex.m_ReadOnlyResources[(int)Stage];
 
-    ShaderBindpointMapping mapping = GetMapping(ctx);
-
-    if(index < mapping.readOnlyResources.count())
+    for(const UsedDescriptor &d : ro)
     {
-      Bindpoint &key = mapping.readOnlyResources[index];
-
-      int residx = ro.indexOf(key);
-      if(residx >= 0)
+      if(d.access.index == index && d.access.arrayElement == arrayIdx)
       {
-        const BoundResourceArray &resArray = ro[residx];
-        if(arrayIdx >= resArray.firstIndex &&
-           arrayIdx - resArray.firstIndex < resArray.resources.count())
-          ret = resArray.resources[arrayIdx - resArray.firstIndex];
+        return d.descriptor;
       }
     }
   }
@@ -241,7 +243,7 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
   return ret;
 }
 
-rdcarray<BoundResource> Following::GetOutputTargets(ICaptureContext &ctx)
+rdcarray<Descriptor> Following::GetOutputTargets(ICaptureContext &ctx)
 {
   const ActionDescription *curAction = ctx.CurAction();
   bool copy = false, clear = false, compute = false;
@@ -249,7 +251,7 @@ rdcarray<BoundResource> Following::GetOutputTargets(ICaptureContext &ctx)
 
   if(copy || clear)
   {
-    return {BoundResource(curAction->copyDestination, curAction->copyDestinationSubresource)};
+    return {MakeDescriptor(curAction->copyDestination, curAction->copyDestinationSubresource)};
   }
   else if(compute)
   {
@@ -257,17 +259,17 @@ rdcarray<BoundResource> Following::GetOutputTargets(ICaptureContext &ctx)
   }
   else
   {
-    rdcarray<BoundResource> ret = ctx.CurPipelineState().GetOutputTargets();
+    rdcarray<Descriptor> ret = ctx.CurPipelineState().GetOutputTargetDescriptors();
 
     if(ret.isEmpty() && curAction != NULL && (curAction->flags & ActionFlags::Present))
     {
       if(curAction->copyDestination != ResourceId())
-        return {BoundResource(curAction->copyDestination, curAction->copyDestinationSubresource)};
+        return {MakeDescriptor(curAction->copyDestination, curAction->copyDestinationSubresource)};
 
       for(const TextureDescription &tex : ctx.GetTextures())
       {
         if(tex.creationFlags & TextureCategory::SwapBuffer)
-          return {BoundResource(tex.resourceId)};
+          return {MakeDescriptor(tex.resourceId)};
       }
     }
 
@@ -275,54 +277,54 @@ rdcarray<BoundResource> Following::GetOutputTargets(ICaptureContext &ctx)
   }
 }
 
-BoundResource Following::GetDepthTarget(ICaptureContext &ctx)
+Descriptor Following::GetDepthTarget(ICaptureContext &ctx)
 {
   bool copy = false, clear = false, compute = false;
   GetActionContext(ctx, copy, clear, compute);
 
   if(copy || clear || compute)
-    return BoundResource(ResourceId());
+    return Descriptor();
   else
-    return ctx.CurPipelineState().GetDepthTarget();
+    return ctx.CurPipelineState().GetDepthTargetDescriptor();
 }
 
-BoundResource Following::GetDepthResolveTarget(ICaptureContext &ctx)
+Descriptor Following::GetDepthResolveTarget(ICaptureContext &ctx)
 {
   bool copy = false, clear = false, compute = false;
   GetActionContext(ctx, copy, clear, compute);
 
   if(copy || clear || compute)
-    return BoundResource(ResourceId());
+    return Descriptor();
   else
-    return ctx.CurPipelineState().GetDepthResolveTarget();
+    return ctx.CurPipelineState().GetDepthResolveTargetDescriptor();
 }
 
-rdcarray<BoundResourceArray> Following::GetReadWriteResources(ICaptureContext &ctx,
-                                                              ShaderStage stage, bool onlyUsed)
+rdcarray<UsedDescriptor> Following::GetReadWriteResources(ICaptureContext &ctx, ShaderStage stage,
+                                                          bool onlyUsed)
 {
   bool copy = false, clear = false, compute = false;
   GetActionContext(ctx, copy, clear, compute);
 
   if(copy || clear)
   {
-    return rdcarray<BoundResourceArray>();
+    return rdcarray<UsedDescriptor>();
   }
   else if(compute)
   {
     // only return compute resources for one stage
-    if(stage == ShaderStage::Pixel || stage == ShaderStage::Compute)
-      return ctx.CurPipelineState().GetReadWriteResources(ShaderStage::Compute, onlyUsed);
-    else
-      return rdcarray<BoundResourceArray>();
+    if(stage != ShaderStage::Pixel && stage != ShaderStage::Compute)
+      return rdcarray<UsedDescriptor>();
+
+    return ctx.CurPipelineState().GetReadWriteDescriptors(ShaderStage::Compute, onlyUsed);
   }
   else
   {
-    return ctx.CurPipelineState().GetReadWriteResources(stage, onlyUsed);
+    return ctx.CurPipelineState().GetReadWriteDescriptors(stage, onlyUsed);
   }
 }
 
-rdcarray<BoundResourceArray> Following::GetReadOnlyResources(ICaptureContext &ctx,
-                                                             ShaderStage stage, bool onlyUsed)
+rdcarray<UsedDescriptor> Following::GetReadOnlyResources(ICaptureContext &ctx, ShaderStage stage,
+                                                         bool onlyUsed)
 {
   const ActionDescription *curAction = ctx.CurAction();
   bool copy = false, clear = false, compute = false;
@@ -330,26 +332,25 @@ rdcarray<BoundResourceArray> Following::GetReadOnlyResources(ICaptureContext &ct
 
   if(copy || clear)
   {
-    rdcarray<BoundResourceArray> ret;
+    rdcarray<UsedDescriptor> ret;
 
     // only return copy source for one stage
     if(copy && stage == ShaderStage::Pixel)
-      ret.push_back(BoundResourceArray(
-          Bindpoint(0, 0), {BoundResource(curAction->copySource, curAction->copySourceSubresource)}));
+      ret.push_back(MakeUsedDescriptor(curAction->copySource, curAction->copySourceSubresource));
 
     return ret;
   }
   else if(compute)
   {
     // only return compute resources for one stage
-    if(stage == ShaderStage::Pixel || stage == ShaderStage::Compute)
-      return ctx.CurPipelineState().GetReadOnlyResources(ShaderStage::Compute, onlyUsed);
-    else
-      return rdcarray<BoundResourceArray>();
+    if(stage != ShaderStage::Pixel && stage != ShaderStage::Compute)
+      return rdcarray<UsedDescriptor>();
+
+    return ctx.CurPipelineState().GetReadOnlyDescriptors(ShaderStage::Compute, onlyUsed);
   }
   else
   {
-    return ctx.CurPipelineState().GetReadOnlyResources(stage, onlyUsed);
+    return ctx.CurPipelineState().GetReadOnlyDescriptors(stage, onlyUsed);
   }
 }
 
@@ -369,38 +370,6 @@ const ShaderReflection *Following::GetReflection(ICaptureContext &ctx, ShaderSta
 const ShaderReflection *Following::GetReflection(ICaptureContext &ctx)
 {
   return GetReflection(ctx, Stage);
-}
-
-const ShaderBindpointMapping &Following::GetMapping(ICaptureContext &ctx, ShaderStage stage)
-{
-  bool copy = false, clear = false, compute = false;
-  GetActionContext(ctx, copy, clear, compute);
-
-  if(copy || clear)
-  {
-    static ShaderBindpointMapping mapping;
-
-    // for PS only add a single mapping to get the copy source
-    if(copy && stage == ShaderStage::Pixel)
-      mapping.readOnlyResources = {Bindpoint(0, 0)};
-    else
-      mapping.readOnlyResources.clear();
-
-    return mapping;
-  }
-  else if(compute)
-  {
-    return ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Compute);
-  }
-  else
-  {
-    return ctx.CurPipelineState().GetBindpointMapping(stage);
-  }
-}
-
-const ShaderBindpointMapping &Following::GetMapping(ICaptureContext &ctx)
-{
-  return GetMapping(ctx, Stage);
 }
 
 namespace TextureListFilter
@@ -2437,22 +2406,22 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, bool input,
   }
 }
 
-void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res, bool force,
+void TextureViewer::InitResourcePreview(ResourcePreview *prev, Descriptor res, bool force,
                                         Following &follow, const QString &bindName,
                                         const QString &slotName)
 {
   Subresource sub = {0, 0, ~0U};
-  if(res.resourceId != ResourceId() || force)
+  if(res.resource != ResourceId() || force)
   {
     QString fullname = bindName;
-    if(!m_Ctx.IsAutogeneratedName(res.resourceId))
+    if(!m_Ctx.IsAutogeneratedName(res.resource))
     {
       if(!fullname.isEmpty())
         fullname += lit(" = ");
-      fullname += m_Ctx.GetResourceName(res.resourceId);
+      fullname += m_Ctx.GetResourceName(res.resource);
     }
     if(fullname.isEmpty())
-      fullname = m_Ctx.GetResourceName(res.resourceId);
+      fullname = m_Ctx.GetResourceName(res.resource);
 
     prev->setResourceName(fullname);
 
@@ -2461,7 +2430,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
     prev->setActive(true);
     prev->setSelected(m_Following == follow);
 
-    if(m_Ctx.GetTexture(res.resourceId))
+    if(m_Ctx.GetTexture(res.resource))
     {
       if(res.firstMip >= 0)
         sub.mip = res.firstMip;
@@ -2470,8 +2439,8 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
     }
     else
     {
-      res.resourceId = ResourceId();
-      res.typeCast = CompType::Typeless;
+      res.resource = ResourceId();
+      res.format = ResourceFormat();
     }
   }
   else if(m_Following == follow)
@@ -2480,8 +2449,8 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
     prev->setActive(true);
     prev->setSelected(true);
 
-    res.resourceId = ResourceId();
-    res.typeCast = CompType::Typeless;
+    res.resource = ResourceId();
+    res.format = ResourceFormat();
   }
   else
   {
@@ -2492,10 +2461,10 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
     return;
   }
 
-  prev->setProperty("id", QVariant::fromValue(res.resourceId));
+  prev->setProperty("id", QVariant::fromValue(res.resource));
   prev->setProperty("mip", sub.mip);
   prev->setProperty("slice", sub.slice);
-  prev->setProperty("cast", uint32_t(res.typeCast));
+  prev->setProperty("cast", uint32_t(res.format.compType));
 
   GUIInvoke::call(prev, [this, prev] { UI_PreviewResized(prev); });
 }
@@ -2525,102 +2494,85 @@ void TextureViewer::UI_PreviewResized(ResourcePreview *prev)
 }
 
 void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
-                                              const rdcarray<ShaderResource> &resourceDetails,
-                                              const rdcarray<Bindpoint> &mapping,
-                                              rdcarray<BoundResourceArray> &ResList,
+                                              const rdcarray<ShaderResource> &shaderInterface,
+                                              const rdcarray<UsedDescriptor> &descriptors,
                                               ThumbnailStrip *prevs, int &prevIndex, bool copy,
                                               bool rw)
 {
-  for(int residx = 0; residx < ResList.count(); residx++)
+  for(const UsedDescriptor &desc : descriptors)
   {
-    const rdcarray<BoundResource> &resArray = ResList[residx].resources;
-    uint32_t dynamicallyUsedResCount = ResList[residx].dynamicallyUsedCount;
-    int32_t firstIndex = ResList[residx].firstIndex;
-    int arrayLen = resArray.count();
+    Following follow(*this, rw ? FollowType::ReadWrite : FollowType::ReadOnly, desc.access.stage,
+                     desc.access.index, desc.access.arrayElement);
 
-    int idx = mapping.indexOf(ResList[residx].bindPoint);
+    // show if it's referenced by the shader - regardless of empty or not
+    bool show = !desc.access.staticallyUnused || copy;
 
-    // don't display thumbnails for resources that are not bound
-    if(idx < 0)
-      continue;
+    // omit buffers even if the shader uses them, unless this is a copy
+    if(desc.descriptor.resource != ResourceId() && m_Ctx.GetTexture(desc.descriptor.resource) == NULL)
+      show = copy;
 
-    const bool collapseArray = arrayLen > 8 && dynamicallyUsedResCount > 20;
+    // it's the one we're following
+    show = show || (follow == m_Following);
 
-    for(int i = 0; i < arrayLen; i++)
+    ResourcePreview *prev = NULL;
+
+    if(prevIndex < prevs->thumbs().size())
     {
-      int arrayIdx = firstIndex + i;
+      prev = prevs->thumbs()[prevIndex];
 
-      if(!resArray[i].dynamicallyUsed)
+      // don't use it if we're not actually going to show it
+      if(!show && !prev->isActive())
+        continue;
+    }
+    else
+    {
+      // don't create it if we're not actually going to show it
+      if(!show)
         continue;
 
-      const BoundResource &res = resArray[i];
+      prev = UI_CreateThumbnail(prevs);
+    }
 
-      Following follow(*this, rw ? FollowType::ReadWrite : FollowType::ReadOnly, stage, idx,
-                       arrayIdx);
+    prevIndex++;
 
-      // show if it's referenced by the shader - regardless of empty or not
-      bool show = mapping[idx].used || copy;
+    QString slotName;
+    QString bindName;
 
-      // omit buffers even if the shader uses them.
-      if(res.resourceId != ResourceId() && m_Ctx.GetTexture(res.resourceId) == NULL)
-        show = copy;
+    if(copy)
+    {
+      slotName = tr("SRC");
+      bindName = tr("Source");
+    }
+    else if(desc.access.index == DescriptorAccess::NoShaderBinding)
+    {
+      // this is a sensible name but we should query the API for name it prefers
+      slotName = QFormatStr("Descriptor[%1]").arg(desc.access.arrayElement);
 
-      // it's the one we're following
-      show = show || (follow == m_Following);
-
-      ResourcePreview *prev = NULL;
-
-      if(prevIndex < prevs->thumbs().size())
+      // batch up these updates for now and send them off after previews are done
+      if(show)
+        m_DescriptorThumbUpdates.push_back({desc.access, prev});
+    }
+    else
+    {
+      slotName = QFormatStr("%1 %2%3")
+                     .arg(m_Ctx.CurPipelineState().Abbrev(stage))
+                     .arg(rw ? lit("RW ") : lit(""))
+                     .arg(desc.access.index);
+      if(desc.access.index < shaderInterface.size())
       {
-        prev = prevs->thumbs()[prevIndex];
+        const ShaderResource &bind = shaderInterface[desc.access.index];
+        bindName = bind.name;
 
-        // don't use it if we're not actually going to show it
-        if(!show && !prev->isActive())
-          continue;
-      }
-      else
-      {
-        // don't create it if we're not actually going to show it
-        if(!show)
-          continue;
-
-        prev = UI_CreateThumbnail(prevs);
-      }
-
-      prevIndex++;
-
-      QString slotName = QFormatStr("%1 %2%3")
-                             .arg(m_Ctx.CurPipelineState().Abbrev(stage))
-                             .arg(rw ? lit("RW ") : lit(""))
-                             .arg(idx);
-
-      if(collapseArray)
-        slotName += QFormatStr(" Arr[%1]").arg(arrayLen);
-      else
-        slotName += QFormatStr("[%1]").arg(arrayIdx);
-
-      if(copy)
-        slotName = tr("SRC");
-
-      QString bindName;
-
-      for(const ShaderResource &bind : resourceDetails)
-      {
-        if(bind.bindPoint == idx)
+        if(bind.bindArraySize > 1)
         {
-          bindName = bind.name;
-          break;
+          slotName += QFormatStr("[%1]").arg(desc.access.arrayElement);
+          bindName += QFormatStr("[%1]").arg(desc.access.arrayElement);
         }
       }
-
-      if(copy)
-        bindName = tr("Source");
-
-      InitResourcePreview(prev, show ? res : BoundResource(), show, follow, bindName, slotName);
-
-      if(collapseArray)
-        break;
     }
+
+    InitResourcePreview(prev, show ? desc.descriptor : Descriptor(), show, follow, bindName,
+                        slotName);
   }
 }
 
@@ -3186,17 +3138,8 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
   {
     ShaderStage stage = stages[i];
 
-    const ShaderBindpointMapping &mapping = Following::GetMapping(m_Ctx, stage);
-
-    if(!mapping.readOnlyResources.empty())
-      m_ReadOnlyResources[(uint32_t)stage] = Following::GetReadOnlyResources(m_Ctx, stage, true);
-    else
-      m_ReadOnlyResources[(uint32_t)stage].clear();
-
-    if(!mapping.readWriteResources.empty())
-      m_ReadWriteResources[(uint32_t)stage] = Following::GetReadWriteResources(m_Ctx, stage, true);
-    else
-      m_ReadWriteResources[(uint32_t)stage].clear();
+    m_ReadOnlyResources[(uint32_t)stage] = Following::GetReadOnlyResources(m_Ctx, stage, true);
+    m_ReadWriteResources[(uint32_t)stage] = Following::GetReadWriteResources(m_Ctx, stage, true);
   }
 
   UI_UpdateCachedTexture();
@@ -3227,9 +3170,9 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
     w->setWindowTitle(m_Ctx.GetResourceName(id));
   }
 
-  rdcarray<BoundResource> RTs = Following::GetOutputTargets(m_Ctx);
-  BoundResource Depth = Following::GetDepthTarget(m_Ctx);
-  BoundResource DepthResolve = Following::GetDepthResolveTarget(m_Ctx);
+  rdcarray<Descriptor> RTs = Following::GetOutputTargets(m_Ctx);
+  Descriptor Depth = Following::GetDepthTarget(m_Ctx);
+  Descriptor DepthResolve = Following::GetDepthResolveTarget(m_Ctx);
 
   int outIndex = 0;
   int inIndex = 0;
@@ -3237,7 +3180,7 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
   ui->outputThumbs->setUpdatesEnabled(false);
   ui->inputThumbs->setUpdatesEnabled(false);
 
-  for(int rt = 0; rt < RTs.count(); rt++)
+  for(uint32_t rt = 0; rt < RTs.size(); rt++)
   {
     ResourcePreview *prev;
 
@@ -3290,21 +3233,73 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
 
   const rdcarray<ShaderResource> empty;
 
+  m_DescriptorThumbUpdates.clear();
+
   // display resources used for all stages
   for(int i = 0; i < count; i++)
   {
     ShaderStage stage = stages[i];
 
     const ShaderReflection *details = Following::GetReflection(m_Ctx, stage);
-    const ShaderBindpointMapping &mapping = Following::GetMapping(m_Ctx, stage);
 
     InitStageResourcePreviews(stage, details != NULL ? details->readWriteResources : empty,
-                              mapping.readWriteResources, m_ReadWriteResources[(uint32_t)stage],
-                              ui->outputThumbs, outIndex, copy, true);
+                              m_ReadWriteResources[(uint32_t)stage], ui->outputThumbs, outIndex,
+                              copy, true);
 
     InitStageResourcePreviews(stage, details != NULL ? details->readOnlyResources : empty,
-                              mapping.readOnlyResources, m_ReadOnlyResources[(uint32_t)stage],
-                              ui->inputThumbs, inIndex, copy, false);
+                              m_ReadOnlyResources[(uint32_t)stage], ui->inputThumbs, inIndex, copy,
+                              false);
+  }
+
+  if(!m_DescriptorThumbUpdates.empty())
+  {
+    m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
+      // we could collate ranges by descriptor store, but in practice we don't expect descriptors to be
+      // scattered across multiple stores. So to keep the code simple for now we do a linear sweep
+      ResourceId store;
+      rdcarray<DescriptorRange> ranges;
+      rdcarray<DescriptorLogicalLocation> locations;
+
+      for(const DescriptorThumbUpdate &update : m_DescriptorThumbUpdates)
+      {
+        if(update.access.descriptorStore != store)
+        {
+          if(store != ResourceId())
+            locations.append(r->GetDescriptorLocations(store, ranges));
+
+          store = update.access.descriptorStore;
+          ranges.clear();
+        }
+
+        // if the last range is contiguous with this access, append this access as a new range to query
+        if(!ranges.empty() && ranges.back().descriptorSize == update.access.byteSize &&
+           ranges.back().offset + ranges.back().descriptorSize == update.access.byteOffset)
+        {
+          ranges.back().count++;
+          continue;
+        }
+
+        DescriptorRange range;
+        range.offset = update.access.byteOffset;
+        range.descriptorSize = update.access.byteSize;
+        ranges.push_back(range);
+      }
+
+      if(store != ResourceId())
+        locations.append(r->GetDescriptorLocations(store, ranges));
+
+      for(size_t i = 0; i < m_DescriptorThumbUpdates.size(); i++)
+      {
+        if(i < locations.size())
+          m_DescriptorThumbUpdates[i].slotName = locations[i].logicalBindName;
+      }
+
+      GUIInvoke::call(this, [this]() {
+        for(DescriptorThumbUpdate &update : m_DescriptorThumbUpdates)
+          if(!update.slotName.isEmpty())
+            update.preview->setSlotName(update.slotName);
+      });
+    });
   }
 
   // hide others

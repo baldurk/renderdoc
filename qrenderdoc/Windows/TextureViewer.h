@@ -48,13 +48,14 @@ struct Following
   FollowType Type;
   ShaderStage Stage;
   int index;
-  int arrayEl;
+  uint32_t arrayEl;
 
   // this is only for QVariant compatibility and will generate an invalid Following instance! do not
   // use!
   Following();
 
-  Following(const TextureViewer &tex, FollowType t, ShaderStage s, int i, int a);
+  Following(const TextureViewer &tex, FollowType type, ShaderStage stage, uint32_t index,
+            uint32_t arrayElement);
   Following(const Following &other);
   Following &operator=(const Following &other);
 
@@ -67,22 +68,19 @@ struct Following
   CompType GetTypeHint(ICaptureContext &ctx);
 
   ResourceId GetResourceId(ICaptureContext &ctx);
-  BoundResource GetBoundResource(ICaptureContext &ctx, int arrayIdx);
+  Descriptor GetDescriptor(ICaptureContext &ctx, uint32_t arrayIdx);
 
-  static rdcarray<BoundResource> GetOutputTargets(ICaptureContext &ctx);
+  static rdcarray<Descriptor> GetOutputTargets(ICaptureContext &ctx);
 
-  static BoundResource GetDepthTarget(ICaptureContext &ctx);
-  static BoundResource GetDepthResolveTarget(ICaptureContext &ctx);
-  static rdcarray<BoundResourceArray> GetReadWriteResources(ICaptureContext &ctx, ShaderStage stage,
-                                                            bool onlyUsed);
-  static rdcarray<BoundResourceArray> GetReadOnlyResources(ICaptureContext &ctx, ShaderStage stage,
-                                                           bool onlyUsed);
+  static Descriptor GetDepthTarget(ICaptureContext &ctx);
+  static Descriptor GetDepthResolveTarget(ICaptureContext &ctx);
+  static rdcarray<UsedDescriptor> GetReadWriteResources(ICaptureContext &ctx, ShaderStage stage,
+                                                        bool onlyUsed);
+  static rdcarray<UsedDescriptor> GetReadOnlyResources(ICaptureContext &ctx, ShaderStage stage,
+                                                       bool onlyUsed);
 
   const ShaderReflection *GetReflection(ICaptureContext &ctx);
   static const ShaderReflection *GetReflection(ICaptureContext &ctx, ShaderStage stage);
-
-  const ShaderBindpointMapping &GetMapping(ICaptureContext &ctx);
-  static const ShaderBindpointMapping &GetMapping(ICaptureContext &ctx, ShaderStage stage);
 
 private:
   const TextureViewer &tex;
@@ -268,12 +266,11 @@ private:
 
   ResourcePreview *UI_CreateThumbnail(ThumbnailStrip *strip);
   void UI_CreateThumbnails();
-  void InitResourcePreview(ResourcePreview *prev, BoundResource res, bool force, Following &follow,
+  void InitResourcePreview(ResourcePreview *prev, Descriptor res, bool force, Following &follow,
                            const QString &bindName, const QString &slotName);
 
-  void InitStageResourcePreviews(ShaderStage stage, const rdcarray<ShaderResource> &resourceDetails,
-                                 const rdcarray<Bindpoint> &mapping,
-                                 rdcarray<BoundResourceArray> &ResList, ThumbnailStrip *prevs,
+  void InitStageResourcePreviews(ShaderStage stage, const rdcarray<ShaderResource> &shaderInterface,
+                                 const rdcarray<UsedDescriptor> &descriptors, ThumbnailStrip *prevs,
                                  int &prevIndex, bool copy, bool rw);
 
   void UI_PreviewResized(ResourcePreview *prev);
@@ -360,8 +357,17 @@ private:
 
   friend struct Following;
 
-  rdcarray<BoundResourceArray> m_ReadOnlyResources[NumShaderStages];
-  rdcarray<BoundResourceArray> m_ReadWriteResources[NumShaderStages];
+  rdcarray<UsedDescriptor> m_ReadOnlyResources[NumShaderStages];
+  rdcarray<UsedDescriptor> m_ReadWriteResources[NumShaderStages];
+
+  struct DescriptorThumbUpdate
+  {
+    DescriptorAccess access;
+    ResourcePreview *preview;
+    QString slotName;
+  };
+
+  rdcarray<DescriptorThumbUpdate> m_DescriptorThumbUpdates;
 
   QTime m_CustomShaderTimer;
   int m_CustomShaderWriteTime = 0;
