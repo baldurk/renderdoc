@@ -80,7 +80,6 @@ struct CBufferData
   ResourceId pipe;
   ResourceId shader;
   rdcstr entryPoint;
-  bytebuf inlinedata;
 };
 
 class BufferViewer : public QFrame, public IBufferViewer, public ICaptureViewer

@@ -3315,11 +3315,11 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
     // update with the current cbuffer for the current slot
     if(IsCBufferView())
     {
-      BoundCBuffer cb = m_Ctx.CurPipelineState().GetConstantBuffer(
+      UsedDescriptor cb = m_Ctx.CurPipelineState().GetConstantBlockDescriptor(
           m_CBufferSlot.stage, m_CBufferSlot.slot, m_CBufferSlot.arrayIdx);
-      m_BufferID = cb.resourceId;
-      m_ByteOffset = cb.byteOffset;
-      m_ByteSize = cb.byteSize;
+      m_BufferID = cb.descriptor.resource;
+      m_ByteOffset = cb.descriptor.byteOffset;
+      m_ByteSize = cb.descriptor.byteSize;
 
       const ShaderReflection *reflection =
           m_Ctx.CurPipelineState().GetShaderReflection(m_CBufferSlot.stage);
@@ -3342,7 +3342,6 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
                              : m_Ctx.CurPipelineState().GetGraphicsPipelineObject();
       bufdata->cb.shader = m_Ctx.CurPipelineState().GetShader(m_CBufferSlot.stage);
       bufdata->cb.entryPoint = m_Ctx.CurPipelineState().GetShaderEntryPoint(m_CBufferSlot.stage);
-      bufdata->cb.inlinedata = cb.inlineData;
 
       if(m_Format.isEmpty())
       {
@@ -3589,7 +3588,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       {
         if(m_BufferID == ResourceId())
         {
-          buf->storage = bufdata->cb.inlinedata;
+          buf->storage.clear();
         }
         else if(repeatedRangeStart > fixedLength)
         {
@@ -3826,7 +3825,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
         {
           rdcarray<ShaderVariable> vars;
 
-          if((m_BufferID == ResourceId() && m_CurCBuffer.inlinedata.empty()) || m_Format.isEmpty())
+          if(m_BufferID == ResourceId() || m_Format.isEmpty())
           {
             vars = bufdata->inConfig.evalVars;
           }
@@ -5384,14 +5383,14 @@ void BufferViewer::updateLabelsAndLayout()
       const ShaderReflection *reflection =
           m_Ctx.CurPipelineState().GetShaderReflection(m_CBufferSlot.stage);
 
-      int32_t bindPoint = -1;
+      uint32_t arraySize = ~0U;
       if(reflection != NULL)
       {
         if(m_CBufferSlot.slot < reflection->constantBlocks.size() &&
            !reflection->constantBlocks[m_CBufferSlot.slot].name.isEmpty())
         {
           bufName = QFormatStr("<%1>").arg(reflection->constantBlocks[m_CBufferSlot.slot].name);
-          bindPoint = reflection->constantBlocks[m_CBufferSlot.slot].bindPoint;
+          arraySize = reflection->constantBlocks[m_CBufferSlot.slot].bindArraySize;
         }
       }
 
@@ -5402,13 +5401,6 @@ void BufferViewer::updateLabelsAndLayout()
         else
           bufName = tr("Unbound");
       }
-
-      const ShaderBindpointMapping &mapping =
-          m_Ctx.CurPipelineState().GetBindpointMapping(m_CBufferSlot.stage);
-
-      uint32_t arraySize = ~0U;
-      if(bindPoint >= 0 && bindPoint < mapping.constantBlocks.count())
-        arraySize = mapping.constantBlocks[bindPoint].arraySize;
 
       GraphicsAPI pipeType = m_Ctx.APIProps().pipelineType;
 
