@@ -43,7 +43,8 @@ struct VertexAttribute
 
   bool operator==(const VertexAttribute &o) const
   {
-    return enabled == o.enabled && floatCast == o.floatCast && format == o.format &&
+    return enabled == o.enabled && floatCast == o.floatCast &&
+           boundShaderInput == o.boundShaderInput && format == o.format &&
            !memcmp(&genericValue, &o.genericValue, sizeof(genericValue)) &&
            vertexBufferSlot == o.vertexBufferSlot && byteOffset == o.byteOffset;
   }
@@ -53,6 +54,8 @@ struct VertexAttribute
       return enabled < o.enabled;
     if(!(floatCast == o.floatCast))
       return floatCast < o.floatCast;
+    if(!(boundShaderInput == o.boundShaderInput))
+      return boundShaderInput < o.boundShaderInput;
     if(!(format == o.format))
       return format < o.format;
     if(memcmp(&genericValue, &o.genericValue, sizeof(genericValue)) < 0)
@@ -72,6 +75,15 @@ This is because they were specified with an integer format but glVertexAttribFor
 glVertexAttribIFormat) so they will be cast.
 )");
   bool floatCast = false;
+
+  DOCUMENT(R"(This lists which shader input is bound to this attribute, as an index in the
+:data:`ShaderReflection.inputSignature` list.
+
+If any value is set to ``-1`` then the attribute is unbound.
+
+:type: int
+)");
+  int32_t boundShaderInput = -1;
 
   DOCUMENT(R"(The format describing how the vertex attribute is interpreted.
 

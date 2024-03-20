@@ -2394,6 +2394,59 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
   // TODO: fill in Interfaces with shader subroutines?
 }
 
+void EvaluateVertexAttributeBinds(GLuint curProg, const ShaderReflection *refl, bool spirv,
+                                  rdcarray<int32_t> &vertexAttrBindings)
+{
+  GLint numVAttribBindings = 16;
+  GL.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, &numVAttribBindings);
+
+  vertexAttrBindings.resize(numVAttribBindings);
+  for(int32_t i = 0; i < numVAttribBindings; i++)
+    vertexAttrBindings[i] = -1;
+
+  if(!refl)
+    return;
+
+  if(spirv)
+  {
+    for(size_t i = 0; i < refl->inputSignature.size(); i++)
+      if(refl->inputSignature[i].systemValue == ShaderBuiltin::Undefined)
+
+        return;
+  }
+
+  for(int32_t i = 0; i < refl->inputSignature.count(); i++)
+  {
+    // skip system inputs, as some drivers will return a location for them
+    if(refl->inputSignature[i].systemValue != ShaderBuiltin::Undefined)
+      continue;
+
+    // SPIR-V has fixed bindings
+    if(spirv)
+    {
+      vertexAttrBindings[refl->inputSignature[i].regIndex] = (int32_t)i;
+      continue;
+    }
+
+    int32_t matrixRow = 0;
+    rdcstr varName = refl->inputSignature[i].varName;
+
+    int32_t offs = varName.find(":col");
+    if(offs >= 0)
+    {
+      matrixRow = varName[offs + 4] - '0';
+      varName.resize(offs);
+    }
+
+    GLint loc = GL.glGetAttribLocation(curProg, varName.c_str());
+
+    if(loc >= 0 && loc < numVAttribBindings)
+    {
+      vertexAttrBindings[loc + matrixRow] = i;
+    }
+  }
+}
+
 void GetBindpointMapping(GLuint curProg, int shadIdx, const ShaderReflection *refl,
                          ShaderBindpointMapping &mapping)
 {

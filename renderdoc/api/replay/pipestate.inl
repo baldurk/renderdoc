@@ -858,13 +858,7 @@ rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
       int num = 0;
       for(int i = 0; i < attrs.count(); i++)
       {
-        int attrib = -1;
-        if(m_GL->vertexShader.reflection != NULL)
-          attrib = m_GL->vertexShader.bindpointMapping.inputAttributes[i];
-        else
-          attrib = i;
-
-        if(attrib >= 0)
+        if(attrs[i].boundShaderInput >= 0)
           num++;
       }
 
@@ -887,15 +881,14 @@ rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
 
         if(m_GL->vertexShader.reflection != NULL)
         {
-          int attrib = m_GL->vertexShader.bindpointMapping.inputAttributes[i];
+          int attrib = attrs[i].boundShaderInput;
+
+          if(attrib == -1 || attrib >= m_GL->vertexShader.reflection->inputSignature.count())
+            continue;
 
           const SigParameter &sigParam = m_GL->vertexShader.reflection->inputSignature[attrib];
 
-          if(attrib >= 0 && attrib < m_GL->vertexShader.reflection->inputSignature.count())
-            ret[a].name = sigParam.varName;
-
-          if(attrib == -1)
-            continue;
+          ret[a].name = sigParam.varName;
 
           VarType varType = sigParam.varType;
 
@@ -937,59 +930,37 @@ rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
     {
       const rdcarray<VKPipe::VertexAttribute> &attrs = m_Vulkan->vertexInput.attributes;
 
-      int num = 0;
-      for(int i = 0; i < attrs.count(); i++)
-      {
-        int attrib = -1;
-        if(m_Vulkan->vertexShader.reflection != NULL)
-        {
-          if(attrs[i].location <
-             (uint32_t)m_Vulkan->vertexShader.bindpointMapping.inputAttributes.count())
-            attrib = m_Vulkan->vertexShader.bindpointMapping.inputAttributes[attrs[i].location];
-        }
-        else
-          attrib = i;
-
-        if(attrib >= 0)
-          num++;
-      }
-
-      int a = 0;
       rdcarray<VertexInputAttribute> ret;
-      ret.resize(num);
-      for(int i = 0; i < attrs.count() && a < num; i++)
+      ret.resize(attrs.size());
+      for(size_t i = 0; i < attrs.size(); i++)
       {
-        ret[a].name = "attr" + ToStr((uint32_t)i);
-        memset(&ret[a].genericValue, 0, sizeof(PixelValue));
-        ret[a].vertexBuffer = (int)attrs[i].binding;
-        ret[a].byteOffset = attrs[i].byteOffset;
-        ret[a].perInstance = false;
-        ret[a].instanceRate = 1;
-        if(attrs[i].binding < (uint32_t)m_Vulkan->vertexInput.bindings.count())
+        ret[i].name = "attr" + ToStr((uint32_t)i);
+        memset(&ret[i].genericValue, 0, sizeof(PixelValue));
+        ret[i].vertexBuffer = (int)attrs[i].binding;
+        ret[i].byteOffset = attrs[i].byteOffset;
+        ret[i].perInstance = false;
+        ret[i].instanceRate = 1;
+        if(attrs[i].binding < m_Vulkan->vertexInput.bindings.size())
         {
-          ret[a].perInstance = m_Vulkan->vertexInput.bindings[attrs[i].binding].perInstance;
-          ret[a].instanceRate = m_Vulkan->vertexInput.bindings[attrs[i].binding].instanceDivisor;
+          ret[i].perInstance = m_Vulkan->vertexInput.bindings[attrs[i].binding].perInstance;
+          ret[i].instanceRate = m_Vulkan->vertexInput.bindings[attrs[i].binding].instanceDivisor;
         }
-        ret[a].format = attrs[i].format;
-        ret[a].used = true;
-        ret[a].genericEnabled = false;
+        ret[i].format = attrs[i].format;
+        ret[i].used = true;
+        ret[i].genericEnabled = false;
 
         if(m_Vulkan->vertexShader.reflection != NULL)
         {
-          int attrib = -1;
-
-          if(attrs[i].location <
-             (uint32_t)m_Vulkan->vertexShader.bindpointMapping.inputAttributes.count())
-            attrib = m_Vulkan->vertexShader.bindpointMapping.inputAttributes[attrs[i].location];
-
-          if(attrib >= 0 && attrib < m_Vulkan->vertexShader.reflection->inputSignature.count())
-            ret[a].name = m_Vulkan->vertexShader.reflection->inputSignature[attrib].varName;
-
-          if(attrib == -1)
-            continue;
+          const rdcarray<SigParameter> &sig = m_Vulkan->vertexShader.reflection->inputSignature;
+          for(const SigParameter &attr : sig)
+          {
+            if(attr.regIndex == attrs[i].location && attr.systemValue == ShaderBuiltin::Undefined)
+            {
+              ret[i].name = attr.varName;
+              break;
+            }
+          }
         }
-
-        a++;
       }
 
       return ret;

@@ -2342,11 +2342,9 @@ void VulkanPipelineStateViewer::setState()
 
         if(state.vertexShader.resourceId != ResourceId())
         {
-          int attrib = -1;
-          if((int32_t)a.location < state.vertexShader.bindpointMapping.inputAttributes.count())
-            attrib = state.vertexShader.bindpointMapping.inputAttributes[a.location];
+          uint32_t attrib = a.location;
 
-          if(attrib >= 0 && attrib < state.vertexShader.reflection->inputSignature.count())
+          if(attrib < state.vertexShader.reflection->inputSignature.size())
           {
             name = state.vertexShader.reflection->inputSignature[attrib].varName;
             usedSlot = true;

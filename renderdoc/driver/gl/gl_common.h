@@ -618,6 +618,9 @@ GLint GetNumVertexBuffers();
 struct ShaderReflection;
 struct ShaderBindpointMapping;
 
+void EvaluateVertexAttributeBinds(GLuint curProg, const ShaderReflection *refl, bool spirv,
+                                  rdcarray<int32_t> &vertexAttrBindings);
+
 void EvaluateSPIRVBindpointMapping(GLuint curProg, int shadIdx, const ShaderReflection *refl,
                                    ShaderBindpointMapping &mapping);
 

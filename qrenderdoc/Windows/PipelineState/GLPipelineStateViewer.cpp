@@ -1394,9 +1394,7 @@ void GLPipelineStateViewer::setState()
 
       if(state.vertexShader.shaderResourceId != ResourceId())
       {
-        int attrib = -1;
-        if(i < state.vertexShader.bindpointMapping.inputAttributes.count())
-          attrib = state.vertexShader.bindpointMapping.inputAttributes[i];
+        int attrib = a.boundShaderInput;
 
         if(attrib >= 0 && attrib < state.vertexShader.reflection->inputSignature.count())
         {

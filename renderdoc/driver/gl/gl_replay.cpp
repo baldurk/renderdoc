@@ -1078,6 +1078,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
     stages[i]->bindpointMapping = ShaderBindpointMapping();
   }
 
+  rdcarray<int32_t> vertexAttrBindings;
   if(curProg == 0)
   {
     drv.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&curProg);
@@ -1119,10 +1120,16 @@ void GLReplay::SavePipelineState(uint32_t eventId)
             spirv[i] = true;
 
             EvaluateSPIRVBindpointMapping(curProg, (int)i, refls[i], stages[i]->bindpointMapping);
+
+            if(i == 0)
+              EvaluateVertexAttributeBinds(curProg, refls[i], true, vertexAttrBindings);
           }
           else
           {
             GetBindpointMapping(curProg, (int)i, refls[i], stages[i]->bindpointMapping);
+
+            if(i == 0)
+              EvaluateVertexAttributeBinds(curProg, refls[i], false, vertexAttrBindings);
           }
 
           mappings[i] = &stages[i]->bindpointMapping;
@@ -1164,10 +1171,16 @@ void GLReplay::SavePipelineState(uint32_t eventId)
           spirv[i] = true;
 
           EvaluateSPIRVBindpointMapping(curProg, (int)i, refls[i], stages[i]->bindpointMapping);
+
+          if(i == 0)
+            EvaluateVertexAttributeBinds(curProg, refls[i], true, vertexAttrBindings);
         }
         else
         {
           GetBindpointMapping(curProg, (int)i, refls[i], stages[i]->bindpointMapping);
+
+          if(i == 0)
+            EvaluateVertexAttributeBinds(curProg, refls[i], false, vertexAttrBindings);
         }
 
         mappings[i] = &stages[i]->bindpointMapping;
@@ -1180,6 +1193,14 @@ void GLReplay::SavePipelineState(uint32_t eventId)
         stages[i]->programResourceId = stages[i]->shaderResourceId = ResourceId();
       }
     }
+  }
+
+  for(size_t i = 0; i < pipe.vertexInput.attributes.size(); i++)
+  {
+    if(i < vertexAttrBindings.size())
+      pipe.vertexInput.attributes[i].boundShaderInput = vertexAttrBindings[i];
+    else
+      pipe.vertexInput.attributes[i].boundShaderInput = -1;
   }
 
   // !!!NOTE!!! This function will MODIFY the refls[] binding arrays.

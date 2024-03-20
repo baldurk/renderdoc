@@ -220,23 +220,14 @@ bool WrappedOpenGL::Check_SafeDraw(bool indexed)
   {
     const ShaderData &shaderDetails = m_Shaders[vs];
 
-    ShaderBindpointMapping mapping;
+    rdcarray<int32_t> vertexAttrBindings;
+    EvaluateVertexAttributeBinds(prog, shaderDetails.reflection, !shaderDetails.spirvWords.empty(),
+                                 vertexAttrBindings);
 
-    // get bindpoint mapping
-    if(!shaderDetails.spirvWords.empty())
-    {
-      mapping = shaderDetails.mapping;
-      EvaluateSPIRVBindpointMapping(prog, 0, shaderDetails.reflection, mapping);
-    }
-    else
-    {
-      GetBindpointMapping(prog, 0, shaderDetails.reflection, mapping);
-    }
-
-    for(int attrib = 0; attrib < mapping.inputAttributes.count(); attrib++)
+    for(int attrib = 0; attrib < vertexAttrBindings.count(); attrib++)
     {
       // skip attributes that don't map to the shader, they're unused
-      int reflIndex = mapping.inputAttributes[attrib];
+      int reflIndex = vertexAttrBindings[attrib];
       if(reflIndex >= 0 && reflIndex < shaderDetails.reflection->inputSignature.count())
       {
         // check that this attribute is in-bounds, and enabled. If so then the driver will read from
