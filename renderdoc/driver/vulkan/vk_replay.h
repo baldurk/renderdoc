@@ -256,6 +256,7 @@ struct VKDynamicShaderFeedback
 {
   bool compute = false, valid = false;
   rdcarray<BindpointIndex> used;
+  rdcarray<DescriptorAccess> access;
   rdcarray<ShaderMessage> messages;
 };
 

@@ -45,10 +45,37 @@ RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_DisableBufferDeviceAddress);
 
 static const uint32_t ShaderStageHeaderBitShift = 28U;
 
-struct feedbackData
+struct BindKey
+{
+  bool operator<(const BindKey &o) const
+  {
+    if(stage != o.stage)
+      return stage < o.stage;
+    return index < o.index;
+  }
+
+  bool operator!=(const BindKey &o) const { return !operator==(o); }
+  bool operator==(const BindKey &o) const { return stage == o.stage && index == o.index; }
+
+  ShaderStage stage;
+  ShaderBindIndex index;
+
+  // unused as key, here for convenience when looking up bindings
+  uint32_t arraySize;
+};
+
+struct BindData
 {
   uint64_t offset;
   uint32_t numEntries;
+
+  DescriptorAccess access;
+};
+
+struct BindlessFeedbackData
+{
+  std::map<BindKey, BindData> offsetMap;
+  uint32_t feedbackStorageSize = 0;
 };
 
 struct PrintfData
@@ -348,7 +375,7 @@ void OffsetBindingsToMatch(rdcarray<uint32_t> &modSpirv)
 
 template <typename uintvulkanmax_t>
 void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchData, ShaderStage stage,
-                    const char *entryName, const std::map<rdcspv::Binding, feedbackData> &offsetMap,
+                    const char *entryName, const std::map<BindKey, BindData> &offsetMap,
                     uint32_t maxSlot, bool usePrimitiveID, VkDeviceAddress addr,
                     bool bufferAddressKHR, bool usesMultiview, rdcarray<uint32_t> &modSpirv,
                     std::map<uint32_t, PrintfData> &printfData)
@@ -435,11 +462,34 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
        var.storage != rdcspv::StorageClass::StorageBuffer)
       continue;
 
-    // get this variable's binding info
-    rdcspv::Binding bind = editor.GetBinding(var.id);
+    // figure out which interface this variable is in to make our key
+    BindKey key = {};
+    key.stage = refl.stage;
+
+    int32_t idx = -1;
+    if((idx = patchData.cblockInterface.indexOf(var.id)) >= 0)
+    {
+      key.index.category = DescriptorCategory::ConstantBlock;
+      key.index.index = (uint32_t)idx;
+    }
+    else if((idx = patchData.samplerInterface.indexOf(var.id)) >= 0)
+    {
+      key.index.category = DescriptorCategory::Sampler;
+      key.index.index = (uint32_t)idx;
+    }
+    else if((idx = patchData.roInterface.indexOf(var.id)) >= 0)
+    {
+      key.index.category = DescriptorCategory::ReadOnlyResource;
+      key.index.index = (uint32_t)idx;
+    }
+    else if((idx = patchData.rwInterface.indexOf(var.id)) >= 0)
+    {
+      key.index.category = DescriptorCategory::ReadWriteResource;
+      key.index.index = (uint32_t)idx;
+    }
 
     // if this is one of the bindings we care about
-    auto it = offsetMap.find(bind);
+    auto it = offsetMap.find(key);
     if(it != offsetMap.end())
     {
       // store the offset for this variable so we watch for access chains and know where to store to
@@ -448,18 +498,21 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
         rdcspv::Id id = varLookup[var.id] =
             editor.AddConstantImmediate<uintvulkanmax_t>(uintvulkanmax_t(it->second.offset));
 
-        editor.SetName(id, StringFormat::Fmt("__feedbackOffset_set%u_bind%u", it->first.set,
-                                             it->first.binding));
+        editor.SetName(
+            id, StringFormat::Fmt("__feedbackOffset_%s_%u", ToStr(it->first.index.category).c_str(),
+                                  it->first.index.index));
       }
       else
       {
         // check that the offset fits in 32-bit word, convert byte offset to uint32 index
         uint64_t index = it->second.offset / 4;
-        RDCASSERT(index < 0xFFFFFFFFULL, bind.set, bind.binding, it->second.offset);
+        RDCASSERT(index < 0xFFFFFFFFULL, it->first.index.category, it->first.index.index,
+                  it->second.offset);
         rdcspv::Id id = varLookup[var.id] = editor.AddConstantImmediate<uint32_t>(uint32_t(index));
 
         editor.SetName(
-            id, StringFormat::Fmt("__feedbackIndex_set%u_bind%u", it->first.set, it->first.binding));
+            id, StringFormat::Fmt("__feedbackOffset_%s_%u", ToStr(it->first.index.category).c_str(),
+                                  it->first.index.index));
       }
     }
   }
@@ -1578,10 +1631,6 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[pipe.pipeline];
 
-  VkDeviceSize feedbackStorageSize = 0;
-
-  std::map<rdcspv::Binding, feedbackData> offsetMap;
-
   bool usesPrintf = false;
 
   VkGraphicsPipelineCreateInfo graphicsInfo = {};
@@ -1619,88 +1668,126 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     }
   }
 
+  BindlessFeedbackData feedbackData;
+
   if(usesPrintf)
   {
     // reserve some space at the start for an atomic offset counter then the buffer size, and an
     // overflow section for any clamped messages
-    feedbackStorageSize += 16 + Vulkan_Debug_PrintfBufferSize() + 1024;
+    feedbackData.feedbackStorageSize += 16 + Vulkan_Debug_PrintfBufferSize() + 1024;
   }
 
-  ResourceId pipeLayouts[] = {pipeInfo.vertLayout, pipeInfo.fragLayout};
-  if(result.compute)
+  ShaderReflection *stageRefls[NumShaderStages] = {};
+
   {
-    pipeLayouts[0] = pipeInfo.compLayout;
-    pipeLayouts[1] = ResourceId();
-  }
-
-  if(pipeInfo.vertLayout == pipeInfo.fragLayout)
-    pipeLayouts[1] = ResourceId();
-
-  for(size_t i = 0; i < ARRAY_COUNT(pipeLayouts); i++)
-  {
-    if(pipeLayouts[i] == ResourceId())
-      continue;
-
     const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descSets =
         (result.compute ? state.compute.descSets : state.graphics.descSets);
 
-    rdcspv::Binding key;
-
+    rdcarray<const DescSetLayout *> descLayouts;
     for(size_t set = 0; set < pipeInfo.descSetLayouts.size(); set++)
-    {
-      key.set = (uint32_t)set;
+      descLayouts.push_back(&creationInfo.m_DescSetLayout[pipeInfo.descSetLayouts[set]]);
 
-      const DescSetLayout &layout = creationInfo.m_DescSetLayout[pipeInfo.descSetLayouts[set]];
+    auto processBinding = [this, &descLayouts, &descSets, &feedbackData](
+                              ShaderStage stage, DescriptorType type, uint16_t index,
+                              uint32_t bindset, uint32_t bind, uint32_t arraySize) {
+      // only process array bindings
+      if(arraySize <= 1)
+        return;
 
-      for(size_t binding = 0; binding < layout.bindings.size(); binding++)
+      BindKey key;
+      key.stage = stage;
+      key.arraySize = arraySize;
+      key.index.category = CategoryForDescriptorType(type);
+      key.index.index = index;
+      key.index.arrayElement = 0;
+
+      if(bindset >= descLayouts.size() || !descLayouts[bindset] || bindset > descSets.size() ||
+         descSets[bindset].descSet == ResourceId())
       {
-        const DescSetLayout::Binding &bindData = layout.bindings[binding];
-
-        // skip empty bindings
-        if(bindData.layoutDescType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
-          continue;
-
-        // only process array bindings
-        if(bindData.descriptorCount > 1 &&
-           bindData.layoutDescType != VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
-        {
-          uint32_t descriptorCount = bindData.descriptorCount;
-          if(bindData.variableSize)
-          {
-            if(set < descSets.size())
-            {
-              ResourceId descSet = descSets[set].descSet;
-              if(descSet != ResourceId())
-              {
-                auto it = m_pDriver->m_DescriptorSetState.find(descSet);
-                if(it != m_pDriver->m_DescriptorSetState.end())
-                  descriptorCount = it->second.data.variableDescriptorCount;
-              }
-            }
-          }
-
-          key.binding = (uint32_t)binding;
-
-          offsetMap[key] = {feedbackStorageSize, descriptorCount};
-
-          feedbackStorageSize += descriptorCount * sizeof(uint32_t);
-        }
+        RDCERR("Invalid set %u referenced by %s shader", bindset, ToStr(key.stage).c_str());
+        return;
       }
+
+      ResourceId descSet = descSets[bindset].descSet;
+
+      if(bind >= descLayouts[bindset]->bindings.size())
+      {
+        RDCERR("Invalid binding %u in set %u referenced by %s shader", bind, bindset,
+               ToStr(key.stage).c_str());
+        return;
+      }
+
+      if(descLayouts[bindset]->bindings[bind].variableSize)
+      {
+        auto it = m_pDriver->m_DescriptorSetState.find(descSet);
+        if(it != m_pDriver->m_DescriptorSetState.end())
+          arraySize = it->second.data.variableDescriptorCount;
+      }
+      else if(arraySize == ~0U)
+      {
+        // if the array was unbounded, clamp it to the size of the descriptor set
+        arraySize = descLayouts[bindset]->bindings[bind].descriptorCount;
+      }
+
+      DescriptorAccess access;
+      access.stage = key.stage;
+      access.type = type;
+      access.index = index;
+      access.descriptorStore = m_pDriver->GetResourceManager()->GetOriginalID(descSet);
+      access.byteOffset =
+          descLayouts[bindset]->bindings[bind].elemOffset + descLayouts[bindset]->inlineByteSize;
+      access.byteSize = 1;
+
+      feedbackData.offsetMap[key] = {feedbackData.feedbackStorageSize, arraySize, access};
+
+      feedbackData.feedbackStorageSize += arraySize * sizeof(uint32_t);
+    };
+
+    for(const VulkanCreationInfo::Pipeline::Shader &sh : pipeInfo.shaders)
+    {
+      if(!sh.refl)
+        continue;
+
+      stageRefls[(uint32_t)sh.refl->stage] = sh.refl;
+
+      for(uint32_t i = 0; i < sh.refl->constantBlocks.size(); i++)
+        processBinding(sh.refl->stage, DescriptorType::ConstantBuffer, i & 0xffff,
+                       sh.refl->constantBlocks[i].fixedBindSetOrSpace,
+                       sh.refl->constantBlocks[i].fixedBindNumber,
+                       sh.refl->constantBlocks[i].bindArraySize);
+
+      for(uint32_t i = 0; i < sh.refl->samplers.size(); i++)
+        processBinding(sh.refl->stage, DescriptorType::Sampler, i & 0xffff,
+                       sh.refl->samplers[i].fixedBindSetOrSpace,
+                       sh.refl->samplers[i].fixedBindNumber, sh.refl->samplers[i].bindArraySize);
+
+      for(uint32_t i = 0; i < sh.refl->readOnlyResources.size(); i++)
+        processBinding(sh.refl->stage, sh.refl->readOnlyResources[i].descriptorType, i & 0xffff,
+                       sh.refl->readOnlyResources[i].fixedBindSetOrSpace,
+                       sh.refl->readOnlyResources[i].fixedBindNumber,
+                       sh.refl->readOnlyResources[i].bindArraySize);
+
+      for(uint32_t i = 0; i < sh.refl->readWriteResources.size(); i++)
+        processBinding(sh.refl->stage, sh.refl->readWriteResources[i].descriptorType, i & 0xffff,
+                       sh.refl->readWriteResources[i].fixedBindSetOrSpace,
+                       sh.refl->readWriteResources[i].fixedBindNumber,
+                       sh.refl->readWriteResources[i].bindArraySize);
     }
   }
 
-  uint32_t maxSlot = uint32_t(feedbackStorageSize / sizeof(uint32_t));
+  uint32_t maxSlot = uint32_t(feedbackData.feedbackStorageSize / sizeof(uint32_t));
 
   // add some extra padding just in case of out-of-bounds writes
-  feedbackStorageSize += 128;
+  feedbackData.feedbackStorageSize += 128;
 
   // if we don't have any array descriptors or printf's to feedback then just return now
-  if(offsetMap.empty() && !usesPrintf)
+  if(feedbackData.offsetMap.empty() && !usesPrintf)
   {
     return false;
   }
 
-  if(!m_pDriver->GetDeviceEnabledFeatures().shaderInt64 && feedbackStorageSize > 0xffff0000U)
+  if(!m_pDriver->GetDeviceEnabledFeatures().shaderInt64 &&
+     feedbackData.feedbackStorageSize > 0xffff0000U)
   {
     RDCLOG(
         "Feedback buffer is too large for 32-bit addressed maths, and device doesn't support "
@@ -1724,7 +1811,7 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   VkResult vkr = VK_SUCCESS;
   VkDevice dev = m_Device;
 
-  if(feedbackStorageSize > m_BindlessFeedback.FeedbackBuffer.sz)
+  if(feedbackData.feedbackStorageSize > m_BindlessFeedback.FeedbackBuffer.sz)
   {
     uint32_t flags = GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO;
 
@@ -1732,7 +1819,8 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       flags |= GPUBuffer::eGPUBufferAddressable;
 
     m_BindlessFeedback.FeedbackBuffer.Destroy();
-    m_BindlessFeedback.FeedbackBuffer.Create(m_pDriver, dev, feedbackStorageSize, 1, flags);
+    m_BindlessFeedback.FeedbackBuffer.Create(m_pDriver, dev, feedbackData.feedbackStorageSize, 1,
+                                             flags);
   }
 
   VkDeviceAddress bufferAddress = 0;
@@ -1853,16 +1941,16 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     if(m_pDriver->GetDeviceEnabledFeatures().shaderInt64)
     {
       AnnotateShader<uint64_t>(*pipeInfo.shaders[5].refl, *pipeInfo.shaders[5].patchData,
-                               ShaderStage(StageIndex(stage.stage)), stage.pName, offsetMap,
-                               maxSlot, false, bufferAddress, useBufferAddressKHR, false, modSpirv,
-                               printfData[5]);
+                               ShaderStage(StageIndex(stage.stage)), stage.pName,
+                               feedbackData.offsetMap, maxSlot, false, bufferAddress,
+                               useBufferAddressKHR, false, modSpirv, printfData[5]);
     }
     else
     {
       AnnotateShader<uint32_t>(*pipeInfo.shaders[5].refl, *pipeInfo.shaders[5].patchData,
-                               ShaderStage(StageIndex(stage.stage)), stage.pName, offsetMap,
-                               maxSlot, false, bufferAddress, useBufferAddressKHR, false, modSpirv,
-                               printfData[5]);
+                               ShaderStage(StageIndex(stage.stage)), stage.pName,
+                               feedbackData.offsetMap, maxSlot, false, bufferAddress,
+                               useBufferAddressKHR, false, modSpirv, printfData[5]);
     }
 
     if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
@@ -1946,16 +2034,16 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       else if(m_pDriver->GetDeviceEnabledFeatures().shaderInt64)
       {
         AnnotateShader<uint64_t>(*pipeInfo.shaders[idx].refl, *pipeInfo.shaders[idx].patchData,
-                                 ShaderStage(StageIndex(stage.stage)), stage.pName, offsetMap,
-                                 maxSlot, usePrimitiveID, bufferAddress, useBufferAddressKHR,
-                                 usesMultiview, modSpirv, printfData[idx]);
+                                 ShaderStage(StageIndex(stage.stage)), stage.pName,
+                                 feedbackData.offsetMap, maxSlot, usePrimitiveID, bufferAddress,
+                                 useBufferAddressKHR, usesMultiview, modSpirv, printfData[idx]);
       }
       else
       {
         AnnotateShader<uint32_t>(*pipeInfo.shaders[idx].refl, *pipeInfo.shaders[idx].patchData,
-                                 ShaderStage(StageIndex(stage.stage)), stage.pName, offsetMap,
-                                 maxSlot, usePrimitiveID, bufferAddress, useBufferAddressKHR,
-                                 usesMultiview, modSpirv, printfData[idx]);
+                                 ShaderStage(StageIndex(stage.stage)), stage.pName,
+                                 feedbackData.offsetMap, maxSlot, usePrimitiveID, bufferAddress,
+                                 useBufferAddressKHR, usesMultiview, modSpirv, printfData[idx]);
       }
 
       if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
@@ -2025,7 +2113,7 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
     // fill destination buffer with 0s to ensure a baseline to then feedback against
     ObjDisp(dev)->CmdFillBuffer(Unwrap(cmd), Unwrap(m_BindlessFeedback.FeedbackBuffer.buf), 0,
-                                feedbackStorageSize, 0);
+                                feedbackData.feedbackStorageSize, 0);
 
     VkBufferMemoryBarrier feedbackbufBarrier = {
         VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
@@ -2036,7 +2124,7 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
         VK_QUEUE_FAMILY_IGNORED,
         Unwrap(m_BindlessFeedback.FeedbackBuffer.buf),
         0,
-        feedbackStorageSize,
+        feedbackData.feedbackStorageSize,
     };
 
     // wait for the above fill to finish.
@@ -2069,22 +2157,51 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   bytebuf data;
   GetBufferData(GetResID(m_BindlessFeedback.FeedbackBuffer.buf), 0, 0, data);
 
-  for(auto it = offsetMap.begin(); it != offsetMap.end(); ++it)
+  for(auto it = feedbackData.offsetMap.begin(); it != feedbackData.offsetMap.end(); ++it)
   {
-    uint32_t *feedbackData = (uint32_t *)(data.data() + it->second.offset);
+    uint32_t *readbackData = (uint32_t *)(data.data() + it->second.offset);
 
     BindpointIndex used;
-    used.bindset = it->first.set;
-    used.bind = it->first.binding;
+
+    ShaderReflection *refl = stageRefls[(uint32_t)it->first.stage];
+    if(refl)
+    {
+      if(it->first.index.category == DescriptorCategory::ConstantBlock)
+      {
+        used.bindset = refl->constantBlocks[it->first.index.index].fixedBindSetOrSpace;
+        used.bind = refl->constantBlocks[it->first.index.index].fixedBindNumber;
+      }
+      else if(it->first.index.category == DescriptorCategory::Sampler)
+      {
+        used.bindset = refl->samplers[it->first.index.index].fixedBindSetOrSpace;
+        used.bind = refl->samplers[it->first.index.index].fixedBindNumber;
+      }
+      else if(it->first.index.category == DescriptorCategory::ReadOnlyResource)
+      {
+        used.bindset = refl->readOnlyResources[it->first.index.index].fixedBindSetOrSpace;
+        used.bind = refl->readOnlyResources[it->first.index.index].fixedBindNumber;
+      }
+      else if(it->first.index.category == DescriptorCategory::ReadWriteResource)
+      {
+        used.bindset = refl->readWriteResources[it->first.index.index].fixedBindSetOrSpace;
+        used.bind = refl->readWriteResources[it->first.index.index].fixedBindNumber;
+      }
+    }
+
+    DescriptorAccess access = it->second.access;
 
     for(uint32_t i = 0; i < it->second.numEntries; i++)
     {
-      if(feedbackData[i])
+      if(readbackData[i])
       {
         used.arrayIndex = i;
+        access.arrayElement = i;
 
         result.used.push_back(used);
+        result.access.push_back(access);
       }
+
+      access.byteOffset++;
     }
   }
 
