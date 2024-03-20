@@ -301,6 +301,7 @@ private:
   {
     bool compute = false, valid = false;
     rdcarray<D3D12FeedbackBindIdentifier> used;
+    rdcarray<DescriptorAccess> access;
   };
 
   struct Feedback

@@ -29,6 +29,10 @@
 #include "d3d12_device.h"
 #include "d3d12_manager.h"
 
+rdcpair<uint32_t, uint32_t> FindMatchingRootParameter(const D3D12RootSignature *sig,
+                                                      D3D12_SHADER_VISIBILITY visibility,
+                                                      D3D12_DESCRIPTOR_RANGE_TYPE rangeType,
+                                                      uint32_t space, uint32_t bind);
 UINT GetPlaneForSubresource(ID3D12Resource *res, int Subresource);
 UINT GetMipForSubresource(ID3D12Resource *res, int Subresource);
 UINT GetSliceForSubresource(ID3D12Resource *res, int Subresource);

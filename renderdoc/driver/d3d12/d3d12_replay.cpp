@@ -2594,6 +2594,11 @@ rdcarray<DescriptorAccess> D3D12Replay::GetDescriptorAccess(uint32_t eventId)
 
     ret = pipe->staticDescriptorAccess;
 
+    const D3D12DynamicShaderFeedback &usage = m_BindlessFeedback.Usage[eventId];
+
+    if(usage.valid)
+      ret.append(usage.access);
+
     WrappedID3D12DescriptorHeap *resourceHeap = NULL;
     WrappedID3D12DescriptorHeap *samplerHeap = NULL;
     for(ResourceId id : rs.heaps)
@@ -2609,6 +2614,17 @@ rdcarray<DescriptorAccess> D3D12Replay::GetDescriptorAccess(uint32_t eventId)
 
     for(DescriptorAccess &access : ret)
     {
+      if(access.type == DescriptorType::Sampler)
+        access.descriptorStore =
+            samplerHeap ? rm->GetOriginalID(samplerHeap->GetResourceID()) : ResourceId();
+      else
+        access.descriptorStore =
+            resourceHeap ? rm->GetOriginalID(resourceHeap->GetResourceID()) : ResourceId();
+
+      // for direct heap access, don't do anything more
+      if(access.index == DescriptorAccess::NoShaderBinding)
+        continue;
+
       const D3D12RenderState::RootSignature &rootSig = pipe->IsGraphics() ? rs.graphics : rs.compute;
 
       uint32_t rootIndex = (uint32_t)access.byteSize;
@@ -2622,13 +2638,6 @@ rdcarray<DescriptorAccess> D3D12Replay::GetDescriptorAccess(uint32_t eventId)
         // the access byteOffset is the index of the static sampler
         continue;
       }
-
-      if(access.type == DescriptorType::Sampler)
-        access.descriptorStore =
-            samplerHeap ? rm->GetOriginalID(samplerHeap->GetResourceID()) : ResourceId();
-      else
-        access.descriptorStore =
-            resourceHeap ? rm->GetOriginalID(resourceHeap->GetResourceID()) : ResourceId();
 
       const D3D12RenderState::SignatureElement &rootEl = rootSig.sigelems[rootIndex];
 
@@ -2646,163 +2655,6 @@ rdcarray<DescriptorAccess> D3D12Replay::GetDescriptorAccess(uint32_t eventId)
       {
         // apply the per-parameter offset into the heap here
         access.byteOffset += (uint32_t)rootEl.offset;
-      }
-    }
-
-    const D3D12DynamicShaderFeedback &usage = m_BindlessFeedback.Usage[eventId];
-
-    // decode dynamic usage by reverse looking up shader bindpoint mappings. This is a temporary
-    // measure, once the old style bindings reporting are removed we can refactor the shader
-    // feedback to provide our data more directly in the format we want
-    if(usage.valid)
-    {
-      const D3D12RenderState::RootSignature &rootSigBind =
-          pipe->IsGraphics() ? rs.graphics : rs.compute;
-      WrappedID3D12RootSignature *rootSig =
-          rm->GetCurrentAs<WrappedID3D12RootSignature>(rootSigBind.rootsig);
-
-      for(const D3D12FeedbackBindIdentifier &bind : usage.used)
-      {
-        DescriptorAccess access;
-
-        if(bind.directAccess)
-        {
-          access.index = DescriptorAccess::NoShaderBinding;
-          access.arrayElement = bind.descIndex;
-
-          switch(bind.bindType)
-          {
-            case BindType::Unknown:
-            case BindType::ImageSampler:
-            case BindType::InputAttachment:
-            default:
-              RDCERR("Unexpected current descriptor type referenced");
-              access.type = DescriptorType::Unknown;
-              break;
-            case BindType::ConstantBuffer: access.type = DescriptorType::ConstantBuffer; break;
-            case BindType::Sampler: access.type = DescriptorType::Sampler; break;
-            case BindType::ReadOnlyImage: access.type = DescriptorType::Image; break;
-            case BindType::ReadWriteImage: access.type = DescriptorType::ReadWriteImage; break;
-            case BindType::ReadOnlyTBuffer: access.type = DescriptorType::TypedBuffer; break;
-            case BindType::ReadWriteTBuffer:
-              access.type = DescriptorType::ReadWriteTypedBuffer;
-              break;
-            case BindType::ReadOnlyBuffer: access.type = DescriptorType::Buffer;
-            case BindType::ReadWriteBuffer: access.type = DescriptorType::ReadWriteBuffer; break;
-            case BindType::ReadOnlyResource: access.type = DescriptorType::Image; break;
-            case BindType::ReadWriteResource: access.type = DescriptorType::ReadWriteImage; break;
-          }
-
-          // don't have stage-access information here yet
-          access.stage = pipe->IsGraphics() ? ShaderStage::Pixel : ShaderStage::Compute;
-
-          access.byteOffset = bind.descIndex;
-        }
-        else
-        {
-          if(bind.rootEl >= rootSig->sig.Parameters.size() ||
-             bind.rangeIndex >= rootSig->sig.Parameters[bind.rootEl].ranges.size())
-          {
-            RDCERR("Out-of-bounds root element referenced in dynamic usage");
-            continue;
-          }
-
-          const D3D12_DESCRIPTOR_RANGE1 &range =
-              rootSig->sig.Parameters[bind.rootEl].ranges[bind.rangeIndex];
-          UINT space = range.RegisterSpace;
-          UINT reg = range.BaseShaderRegister + bind.descIndex;
-
-          uint32_t prevRangeOffset = 0;
-          for(uint32_t prevRange = 0; prevRange < bind.rangeIndex; prevRange)
-          {
-            uint32_t rangeOffset =
-                rootSig->sig.Parameters[bind.rootEl].ranges[prevRange].OffsetInDescriptorsFromTableStart;
-            if(rangeOffset == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
-              rangeOffset = prevRangeOffset;
-            prevRangeOffset += rootSig->sig.Parameters[bind.rootEl].ranges[prevRange].NumDescriptors;
-          }
-
-          bool found = false;
-          // this could have come from any stage, so we just find the first match
-          for(WrappedID3D12PipelineState::ShaderEntry *stage :
-              {pipe->VS(), pipe->HS(), pipe->DS(), pipe->GS(), pipe->PS(), pipe->CS(), pipe->AS(),
-               pipe->MS()})
-          {
-            if(!stage)
-              continue;
-
-            const rdcarray<Bindpoint> *iface = NULL;
-            switch(range.RangeType)
-            {
-              default:
-              case D3D12_DESCRIPTOR_RANGE_TYPE_SRV:
-                iface = &stage->GetMapping().readOnlyResources;
-                access.type = DescriptorType::Image;    // hack
-                break;
-              case D3D12_DESCRIPTOR_RANGE_TYPE_UAV:
-                iface = &stage->GetMapping().readWriteResources;
-                access.type = DescriptorType::ReadWriteBuffer;    // hack
-                break;
-              case D3D12_DESCRIPTOR_RANGE_TYPE_CBV:
-                iface = &stage->GetMapping().constantBlocks;
-                access.type = DescriptorType::ConstantBuffer;
-                break;
-              case D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER:
-                iface = &stage->GetMapping().samplers;
-                access.type = DescriptorType::Sampler;
-                break;
-            }
-
-            if(iface)
-            {
-              access.index = 0;
-              for(const Bindpoint &searchBind : (*iface))
-              {
-                if((uint32_t)searchBind.bindset == space && (uint32_t)searchBind.bind <= reg &&
-                   reg < uint32_t(searchBind.bind + searchBind.arraySize))
-                {
-                  access.stage = stage->GetDetails().stage;
-                  access.arrayElement = reg - searchBind.bind;
-                  access.byteOffset = range.OffsetInDescriptorsFromTableStart;
-                  if(range.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
-                    access.byteOffset = prevRangeOffset;
-                  access.byteOffset += searchBind.bind - range.BaseShaderRegister;
-                  access.byteOffset += access.arrayElement;
-                  found = true;
-                  break;
-                }
-                access.index++;
-              }
-
-              if(found)
-                break;
-            }
-          }
-        }
-
-        if(access.type == DescriptorType::Sampler)
-          access.descriptorStore =
-              samplerHeap ? rm->GetOriginalID(samplerHeap->GetResourceID()) : ResourceId();
-        else
-          access.descriptorStore =
-              resourceHeap ? rm->GetOriginalID(resourceHeap->GetResourceID()) : ResourceId();
-        access.byteSize = 1;
-
-        // don't add any duplicates if there's already static descriptor access listed for this
-        // register - currently we report duplicates of static accesses in the dynamic feedback
-        bool found = false;
-        for(const DescriptorAccess &a : ret)
-        {
-          if(access.stage == a.stage &&
-             CategoryForDescriptorType(access.type) == CategoryForDescriptorType(a.type) &&
-             access.index == a.index && access.arrayElement == a.arrayElement)
-          {
-            found = true;
-            break;
-          }
-        }
-        if(!found)
-          ret.push_back(access);
       }
     }
   }

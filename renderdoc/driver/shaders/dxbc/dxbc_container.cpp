@@ -290,6 +290,22 @@ ShaderBuiltin GetSystemValue(SVSemantic systemValue)
   return ShaderBuiltin::Undefined;
 }
 
+ShaderStage GetShaderStage(ShaderType type)
+{
+  switch(type)
+  {
+    case DXBC::ShaderType::Pixel: return ShaderStage::Pixel;
+    case DXBC::ShaderType::Vertex: return ShaderStage::Vertex;
+    case DXBC::ShaderType::Geometry: return ShaderStage::Geometry;
+    case DXBC::ShaderType::Hull: return ShaderStage::Hull;
+    case DXBC::ShaderType::Domain: return ShaderStage::Domain;
+    case DXBC::ShaderType::Compute: return ShaderStage::Compute;
+    case DXBC::ShaderType::Amplification: return ShaderStage::Amplification;
+    case DXBC::ShaderType::Mesh: return ShaderStage::Mesh;
+    default: RDCERR("Unexpected DXBC shader type %u", type); return ShaderStage::Vertex;
+  }
+}
+
 rdcstr TypeName(CBufferVariableType desc)
 {
   rdcstr ret;

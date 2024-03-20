@@ -76,6 +76,8 @@ enum class ShaderType
   Max,
 };
 
+ShaderStage GetShaderStage(ShaderType type);
+
 /////////////////////////////////////////////////////////////////////////
 // the below classes basically mimics the existing reflection interface.
 //
