@@ -386,8 +386,16 @@ if(STRIP_ANDROID_LIBRARY AND BUILD_ANDROID AND RELEASE_MODE)
     message(STATUS "libraries will be stripped with ${ANDROID_STRIP_TOOL}")
 endif()
 
+# Build as C++14
+if (CMAKE_VERSION VERSION_LESS "3.1")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+else ()
+    set (CMAKE_CXX_STANDARD 14)
+    set (CMAKE_CXX_STANDARD_REQUIRED ON)
+endif ()
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-strict-aliasing")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
     if(ENABLE_GGP)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gline-tables-only -fno-omit-frame-pointer")

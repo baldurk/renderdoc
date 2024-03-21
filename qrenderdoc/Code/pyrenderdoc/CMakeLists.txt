@@ -1,11 +1,3 @@
-# Build as C++14 for the python bindings template-fu
-if (CMAKE_VERSION VERSION_LESS "3.1")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-else ()
-    set (CMAKE_CXX_STANDARD 14)
-    set (CMAKE_CXX_STANDARD_REQUIRED ON)
-endif ()
-
 # include paths for qrenderdoc, the internal renderdoc API, and Python
 set(MODULE_INCLUDES
     PRIVATE ${CMAKE_SOURCE_DIR}/qrenderdoc
