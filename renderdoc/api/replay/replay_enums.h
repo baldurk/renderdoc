@@ -4803,6 +4803,29 @@ constexpr inline ShaderStageMask MaskForStage(ShaderStage stage)
   return ShaderStageMask(1 << uint32_t(stage));
 }
 
+DOCUMENT(R"(For a shader stage mask that only covers one shader stage, return the shader stage.
+
+.. note::
+  If the shader stage mask covers multiple stages, only the first matching stage will be returned.
+  If the mask is empty, :data:`ShaderStage.Count` will be returned.
+
+:param ShaderStageMask stageMask: The shader stage mask.
+:return: The first shader stage covered by the mask.
+:rtype: ShaderStage
+)");
+constexpr inline ShaderStage FirstStageForMask(ShaderStageMask stageMask)
+{
+  return (stageMask & ShaderStageMask::Vertex)     ? ShaderStage::Vertex
+         : (stageMask & ShaderStageMask::Hull)     ? ShaderStage::Hull
+         : (stageMask & ShaderStageMask::Domain)   ? ShaderStage::Domain
+         : (stageMask & ShaderStageMask::Geometry) ? ShaderStage::Geometry
+         : (stageMask & ShaderStageMask::Pixel)    ? ShaderStage::Pixel
+         : (stageMask & ShaderStageMask::Compute)  ? ShaderStage::Compute
+         : (stageMask & ShaderStageMask::Task)     ? ShaderStage::Task
+         : (stageMask & ShaderStageMask::Mesh)     ? ShaderStage::Mesh
+                                                   : ShaderStage::Count;
+}
+
 DOCUMENT(R"(A set of flags for events that may occur while debugging a shader
 
 .. data:: NoEvent
