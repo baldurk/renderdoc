@@ -73,11 +73,13 @@ public:
     m_bold = bold;
     dataChanged(0, Qt::FontRole);
   }
+  inline bool bold() const { return m_bold; }
   inline void setItalic(bool italic)
   {
     m_italic = italic;
     dataChanged(0, Qt::FontRole);
   }
+  inline bool italic() const { return m_italic; }
   inline void setTreeColor(QColor col) { m_treeCol = col; }
   inline void setBackgroundColor(QColor background) { setBackground(QBrush(background)); }
   inline void setForegroundColor(QColor foreground) { setForeground(QBrush(foreground)); }

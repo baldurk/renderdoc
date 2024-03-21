@@ -26,6 +26,7 @@
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QScrollBar>
 #include <QStylePainter>
 #include <QSvgRenderer>
 #include <QToolButton>
@@ -1545,4 +1546,18 @@ void PipelineStateViewer::SelectPipelineStage(PipelineStage stage)
     m_GL->SelectPipelineStage(stage);
   else if(m_Vulkan)
     m_Vulkan->SelectPipelineStage(stage);
+}
+
+ScopedTreeUpdater::ScopedTreeUpdater(RDTreeWidget *widget) : m_Widget(widget)
+{
+  vs = m_Widget->verticalScrollBar()->value();
+  m_Widget->beginUpdate();
+  m_Widget->clear();
+}
+
+ScopedTreeUpdater::~ScopedTreeUpdater()
+{
+  m_Widget->clearSelection();
+  m_Widget->endUpdate();
+  m_Widget->verticalScrollBar()->setValue(vs);
 }

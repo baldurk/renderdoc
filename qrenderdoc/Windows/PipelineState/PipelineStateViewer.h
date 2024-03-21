@@ -50,6 +50,15 @@ class VulkanPipelineStateViewer;
 
 class PipelineStateViewer;
 
+struct ScopedTreeUpdater
+{
+  ScopedTreeUpdater(RDTreeWidget *widget);
+  ~ScopedTreeUpdater();
+
+  RDTreeWidget *m_Widget;
+  int vs;
+};
+
 class RDPreviewTooltip : public QFrame, public ITreeViewTipDisplay
 {
 private:

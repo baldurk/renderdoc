@@ -72,26 +72,6 @@ struct D3D11ViewTag
 
 Q_DECLARE_METATYPE(D3D11ViewTag);
 
-struct ScopedTreeUpdater
-{
-  ScopedTreeUpdater(RDTreeWidget *widget) : m_Widget(widget)
-  {
-    vs = m_Widget->verticalScrollBar()->value();
-    m_Widget->beginUpdate();
-    m_Widget->clear();
-  }
-
-  ~ScopedTreeUpdater()
-  {
-    m_Widget->clearSelection();
-    m_Widget->endUpdate();
-    m_Widget->verticalScrollBar()->setValue(vs);
-  }
-
-  RDTreeWidget *m_Widget;
-  int vs;
-};
-
 D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
                                                    PipelineStateViewer &common, QWidget *parent)
     : QFrame(parent), ui(new Ui::D3D11PipelineStateViewer), m_Ctx(ctx), m_Common(common)
