@@ -3272,6 +3272,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           RDCWARN("meshShaderQueries = false, mesh shader performance counters unavailable");
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceNestedCommandBufferFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_NESTED_COMMAND_BUFFER_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(nestedCommandBuffer);
+        CHECK_PHYS_EXT_FEATURE(nestedCommandBufferRendering);
+        CHECK_PHYS_EXT_FEATURE(nestedCommandBufferSimultaneousUse);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

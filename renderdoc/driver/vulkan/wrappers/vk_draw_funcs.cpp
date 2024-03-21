@@ -401,10 +401,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
           {
             curEID = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID;
 
-            if(m_Partial[Primary].partialParent == m_LastCmdBufferID)
-              curEID += m_Partial[Primary].baseEvent;
-            else if(m_Partial[Secondary].partialParent == m_LastCmdBufferID)
-              curEID += m_Partial[Secondary].baseEvent;
+            if(IsCommandBufferPartial(m_LastCmdBufferID))
+              curEID += GetCommandBufferPartialSubmission(m_LastCmdBufferID)->beginEvent;
           }
 
           ActionUse use(m_CurChunkOffset, 0);
@@ -811,10 +809,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
           {
             curEID = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID;
 
-            if(m_Partial[Primary].partialParent == m_LastCmdBufferID)
-              curEID += m_Partial[Primary].baseEvent;
-            else if(m_Partial[Secondary].partialParent == m_LastCmdBufferID)
-              curEID += m_Partial[Secondary].baseEvent;
+            if(IsCommandBufferPartial(m_LastCmdBufferID))
+              curEID += GetCommandBufferPartialSubmission(m_LastCmdBufferID)->beginEvent;
           }
 
           ActionUse use(m_CurChunkOffset, 0);
@@ -2778,10 +2774,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
         {
           curEID = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID;
 
-          if(m_Partial[Primary].partialParent == m_LastCmdBufferID)
-            curEID += m_Partial[Primary].baseEvent;
-          else if(m_Partial[Secondary].partialParent == m_LastCmdBufferID)
-            curEID += m_Partial[Secondary].baseEvent;
+          if(IsCommandBufferPartial(m_LastCmdBufferID))
+            curEID += GetCommandBufferPartialSubmission(m_LastCmdBufferID)->beginEvent;
         }
 
         ActionUse use(m_CurChunkOffset, 0);
@@ -3125,10 +3119,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
         {
           curEID = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID;
 
-          if(m_Partial[Primary].partialParent == m_LastCmdBufferID)
-            curEID += m_Partial[Primary].baseEvent;
-          else if(m_Partial[Secondary].partialParent == m_LastCmdBufferID)
-            curEID += m_Partial[Secondary].baseEvent;
+          if(IsCommandBufferPartial(m_LastCmdBufferID))
+            curEID += GetCommandBufferPartialSubmission(m_LastCmdBufferID)->beginEvent;
         }
 
         ActionUse use(m_CurChunkOffset, 0);
@@ -4488,10 +4480,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawMeshTasksIndirectEXT(SerialiserType &ser,
           {
             curEID = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID;
 
-            if(m_Partial[Primary].partialParent == m_LastCmdBufferID)
-              curEID += m_Partial[Primary].baseEvent;
-            else if(m_Partial[Secondary].partialParent == m_LastCmdBufferID)
-              curEID += m_Partial[Secondary].baseEvent;
+            if(IsCommandBufferPartial(m_LastCmdBufferID))
+              curEID += GetCommandBufferPartialSubmission(m_LastCmdBufferID)->beginEvent;
           }
 
           ActionUse use(m_CurChunkOffset, 0);
@@ -4889,10 +4879,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawMeshTasksIndirectCountEXT(
         {
           curEID = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID;
 
-          if(m_Partial[Primary].partialParent == m_LastCmdBufferID)
-            curEID += m_Partial[Primary].baseEvent;
-          else if(m_Partial[Secondary].partialParent == m_LastCmdBufferID)
-            curEID += m_Partial[Secondary].baseEvent;
+          if(IsCommandBufferPartial(m_LastCmdBufferID))
+            curEID += GetCommandBufferPartialSubmission(m_LastCmdBufferID)->beginEvent;
         }
 
         ActionUse use(m_CurChunkOffset, 0);

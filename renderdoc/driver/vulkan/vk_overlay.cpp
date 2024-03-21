@@ -731,9 +731,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
   const VulkanCreationInfo::Pipeline &pipeInfo =
       m_pDriver->m_CreationInfo.m_Pipeline[state.graphics.pipeline];
 
+  bool rpActive = m_pDriver->IsPartialRenderPassActive();
+
   if((mainDraw && !(mainDraw->flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall))) ||
-     (!m_pDriver->m_Partial[WrappedVulkan::Primary].renderPassActive &&
-      !m_pDriver->m_Partial[WrappedVulkan::Secondary].renderPassActive))
+     !rpActive)
   {
     // don't do anything, no action capable of making overlays selected
     float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
