@@ -557,7 +557,8 @@
   DeclExt(KHR_calibrated_timestamps);                  \
   DeclExt(KHR_deferred_host_operations);               \
   DeclExt(KHR_acceleration_structure);                 \
-  DeclExt(KHR_ray_query);
+  DeclExt(KHR_ray_query);                              \
+  DeclExt(EXT_nested_command_buffer);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -676,6 +677,7 @@
   CheckExt(EXT_pageable_device_local_memory, VKXX);           \
   CheckExt(EXT_swapchain_maintenance1, VKXX);                 \
   CheckExt(EXT_provoking_vertex, VKXX);                       \
+  CheckExt(EXT_nested_command_buffer, VKXX);                  \
   CheckExt(EXT_attachment_feedback_loop_dynamic_state, VKXX); \
   CheckExt(EXT_extended_dynamic_state3, VKXX);                \
   CheckExt(EXT_mesh_shader, VKXX);                            \

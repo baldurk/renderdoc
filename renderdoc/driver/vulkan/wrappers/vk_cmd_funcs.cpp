@@ -1169,50 +1169,33 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
 
     if(IsActiveReplaying(m_State))
     {
-      const uint32_t length = m_BakedCmdBufferInfo[BakedCommandBuffer].eventCount;
+      const rdcarray<CommandBufferNode *> &submits = m_Partial.submitLookup[BakedCommandBuffer];
 
       bool rerecord = false;
-      bool partial = false;
-      int partialType = ePartialNum;
 
       // check for partial execution of this command buffer
-      for(int p = 0; p < ePartialNum; p++)
+      for(const CommandBufferNode *submit : submits)
       {
-        const rdcarray<Submission> &submissions = m_Partial[p].cmdBufferSubmits[BakedCommandBuffer];
-
-        for(auto it = submissions.begin(); it != submissions.end(); ++it)
+        if(IsEventInCommandBuffer(submit, m_LastEventID,
+                                  m_BakedCmdBufferInfo[BakedCommandBuffer].eventCount))
         {
-          if(RDCMAX(1U, it->baseEvent) - 1 <= m_LastEventID &&
-             m_LastEventID < (it->baseEvent + length))
-          {
+          SetPartialStack(submit, m_LastEventID);
+
+          GetCmdRenderState().xfbcounters.clear();
+          GetCmdRenderState().conditionalRendering.buffer = ResourceId();
+
+          rerecord = true;
+        }
+        else if(submit->beginEvent <= m_LastEventID)
+        {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-            RDCDEBUG("vkBegin - partial detected %u < %u < %u, %s -> %s", it->baseEvent,
-                     m_LastEventID, it->baseEvent + length, ToStr(CommandBuffer).c_str(),
-                     ToStr(BakedCommandBuffer).c_str());
+          RDCDEBUG("vkBegin - full re-record detected %u < %u <= %u, %s -> %s", it->baseEvent,
+                   it->baseEvent + length, m_LastEventID, ToStr(CommandBuffer).c_str(),
+                   ToStr(BakedCommandBuffer).c_str());
 #endif
 
-            m_Partial[p].partialParent = BakedCommandBuffer;
-            m_Partial[p].baseEvent = it->baseEvent;
-            m_Partial[p].renderPassActive = false;
-
-            GetCmdRenderState().xfbcounters.clear();
-            GetCmdRenderState().conditionalRendering.buffer = ResourceId();
-
-            rerecord = true;
-            partial = true;
-            partialType = p;
-          }
-          else if(it->baseEvent <= m_LastEventID)
-          {
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-            RDCDEBUG("vkBegin - full re-record detected %u < %u <= %u, %s -> %s", it->baseEvent,
-                     it->baseEvent + length, m_LastEventID, ToStr(CommandBuffer).c_str(),
-                     ToStr(BakedCommandBuffer).c_str());
-#endif
-
-            // this submission is completely within the range, so it should still be re-recorded
-            rerecord = true;
-          }
+          // this submission is completely within the range, so it should still be re-recorded
+          rerecord = true;
         }
       }
 
@@ -1472,22 +1455,19 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
 #endif
 
         VulkanRenderState &renderstate = GetCmdRenderState();
-        if(m_Partial[Primary].partialParent == BakedCommandBuffer && !renderstate.xfbcounters.empty())
-        {
-          renderstate.EndTransformFeedback(this, commandBuffer);
-        }
 
-        if(m_Partial[Primary].partialParent == BakedCommandBuffer &&
-           renderstate.IsConditionalRenderingEnabled())
+        if(IsCommandBufferPartialPrimary(BakedCommandBuffer))
         {
-          renderstate.EndConditionalRendering(commandBuffer);
+          if(!renderstate.xfbcounters.empty())
+            renderstate.EndTransformFeedback(this, commandBuffer);
+
+          if(renderstate.IsConditionalRenderingEnabled())
+            renderstate.EndConditionalRendering(commandBuffer);
         }
 
         // finish any render pass that was still active in the primary partial parent
-        if((m_Partial[Primary].partialParent == BakedCommandBuffer &&
-            m_Partial[Primary].renderPassActive) ||
-           (m_Partial[Secondary].partialParent == BakedCommandBuffer &&
-            m_Partial[Secondary].renderPassActive))
+        if(IsCommandBufferPartial(m_LastCmdBufferID) &&
+           GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive)
         {
           if(m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen)
           {
@@ -1780,10 +1760,10 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
         // only if we're partially recording do we update this state
-        if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
+        if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, false))
         {
-          m_Partial[Primary].renderPassActive = true;
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = true;
+          GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive =
+              m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = true;
         }
 
         m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass = 0;
@@ -2236,9 +2216,10 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
+        // only if we're partially recording do we update this state
+        if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, false))
         {
-          m_Partial[Primary].renderPassActive =
+          GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive =
               m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
         }
 
@@ -2441,9 +2422,9 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
         // only if we're partially recording do we update this state
-        if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
+        if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, false))
         {
-          m_Partial[Primary].renderPassActive =
+          GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive =
               m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = true;
         }
 
@@ -2930,9 +2911,10 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
+        // only if we're partially recording do we update this state
+        if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, false))
         {
-          m_Partial[Primary].renderPassActive =
+          GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive =
               m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
         }
 
@@ -4704,6 +4686,24 @@ void WrappedVulkan::vkCmdResetQueryPool(VkCommandBuffer commandBuffer, VkQueryPo
   }
 }
 
+void WrappedVulkan::UpdateRenderStateForSecondaries(BakedCmdBufferInfo &ancestorCB,
+                                                    BakedCmdBufferInfo &currentCB)
+{
+  currentCB.state.SetRenderPass(ancestorCB.state.GetRenderPass());
+  currentCB.state.subpass = ancestorCB.state.subpass;
+  currentCB.state.dynamicRendering = ancestorCB.state.dynamicRendering;
+  currentCB.state.SetFramebuffer(ancestorCB.state.GetFramebuffer(),
+                                 ancestorCB.state.GetFramebufferAttachments());
+  currentCB.state.renderArea = ancestorCB.state.renderArea;
+  currentCB.state.subpassContents = ancestorCB.state.subpassContents;
+
+  if(currentCB.action)
+  {
+    for(const ResourceId &childCB : currentCB.action->executedCmds)
+      UpdateRenderStateForSecondaries(ancestorCB, m_BakedCmdBufferInfo[childCB]);
+  }
+}
+
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkCommandBuffer commandBuffer,
                                                    uint32_t commandBufferCount,
@@ -4814,8 +4814,13 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
           parentCmdBufInfo.debugMessages.back().eventId += parentCmdBufInfo.curEventID;
         }
 
-        // only primary command buffers can be submitted
-        m_Partial[Secondary].cmdBufferSubmits[cmd].push_back(parentCmdBufInfo.curEventID);
+        // Record execution of the secondary command buffer in the parent's CommandBufferNode
+        // Only primary command buffers can be submitted
+        CommandBufferExecuteInfo execInfo;
+        execInfo.cmdId = cmd;
+        execInfo.relPos = parentCmdBufInfo.curEventID;
+
+        m_CommandBufferExecutes[m_LastCmdBufferID].push_back(execInfo);
 
         parentCmdBufInfo.action->executedCmds.push_back(cmd);
 
@@ -4875,12 +4880,14 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         parentCmdBufInfo.curEventID++;
 
         bool fullRecord = false;
-        uint32_t startEID = parentCmdBufInfo.curEventID + m_Partial[Primary].baseEvent;
+        uint32_t startEID = parentCmdBufInfo.curEventID;
+        if(IsCommandBufferPartial(m_LastCmdBufferID))
+          startEID += GetCommandBufferPartialSubmission(m_LastCmdBufferID)->beginEvent;
 
         // if we're in the re-record range and this command buffer isn't partial, we execute all
         // command buffers because m_Partial[Primary].baseEvent above is only valid for the partial
         // command buffer
-        if(m_Partial[Primary].partialParent != m_LastCmdBufferID)
+        if(!IsCommandBufferPartial(m_LastCmdBufferID))
         {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
           RDCDEBUG("Fully re-recording non-partial execute in command buffer %s for %s",
@@ -4898,15 +4905,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
           // activated inside the secondary which we should not overwrite.
           if(parentCmdBufInfo.state.ActiveRenderPass())
           {
-            m_BakedCmdBufferInfo[cmd].state.SetRenderPass(parentCmdBufInfo.state.GetRenderPass());
-            m_BakedCmdBufferInfo[cmd].state.subpass = parentCmdBufInfo.state.subpass;
-            m_BakedCmdBufferInfo[cmd].state.dynamicRendering =
-                parentCmdBufInfo.state.dynamicRendering;
-            m_BakedCmdBufferInfo[cmd].state.SetFramebuffer(
-                parentCmdBufInfo.state.GetFramebuffer(),
-                parentCmdBufInfo.state.GetFramebufferAttachments());
-            m_BakedCmdBufferInfo[cmd].state.renderArea = parentCmdBufInfo.state.renderArea;
-            m_BakedCmdBufferInfo[cmd].state.subpassContents = parentCmdBufInfo.state.subpassContents;
+            UpdateRenderStateForSecondaries(parentCmdBufInfo, m_BakedCmdBufferInfo[cmd]);
           }
 
           // 2 extra for the virtual labels around the command buffer
@@ -6988,14 +6987,10 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
         // only if we're partially recording do we update this state
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
+        if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, true))
         {
-          if(m_Partial[Primary].partialParent == m_LastCmdBufferID)
-            m_Partial[Primary].renderPassActive = true;
-          else if(m_Partial[Secondary].partialParent == m_LastCmdBufferID)
-            m_Partial[Secondary].renderPassActive = true;
-
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = true;
+          GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive =
+              m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = true;
         }
         m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass = 0;
 
@@ -7392,17 +7387,14 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering(SerialiserType &ser, VkCommandBu
 
         bool suspending = (renderstate.dynamicRendering.flags & VK_RENDERING_SUSPENDING_BIT) != 0;
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
+        if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, true))
         {
           m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
 
           // if this rendering is just being suspended, the pass is still active
-          if(!suspending)
+          if(!suspending && IsCommandBufferPartial(m_LastCmdBufferID))
           {
-            if(m_Partial[Primary].partialParent == m_LastCmdBufferID)
-              m_Partial[Primary].renderPassActive = false;
-            else if(m_Partial[Secondary].partialParent == m_LastCmdBufferID)
-              m_Partial[Secondary].renderPassActive = false;
+            GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive = false;
           }
         }
 
