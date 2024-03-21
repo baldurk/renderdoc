@@ -1004,7 +1004,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
         }
         else
         {
-          view.resourceResourceId = ResourceId();
+          view = D3D11Pipe::View();
         }
       }
 
@@ -1103,7 +1103,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
         }
         else
         {
-          view.resourceResourceId = ResourceId();
+          view = D3D11Pipe::View();
         }
       }
 
@@ -1328,7 +1328,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
       }
       else
       {
-        view.resourceResourceId = ResourceId();
+        view = D3D11Pipe::View();
       }
     }
 
@@ -1421,7 +1421,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
       }
       else
       {
-        view.resourceResourceId = ResourceId();
+        view = D3D11Pipe::View();
       }
 
       ret.outputMerger.uavs[s] = view;
@@ -1505,7 +1505,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
       }
       else
       {
-        view.resourceResourceId = ResourceId();
+        view = D3D11Pipe::View();
       }
     }
 
