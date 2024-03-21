@@ -818,8 +818,7 @@ void PipelineStateViewer::SetStencilTreeItemValue(RDTreeWidgetItem *item, int co
                                .arg(value, 8, 2, QLatin1Char('0')));
 }
 
-QString PipelineStateViewer::GenerateHLSLStub(const ShaderBindpointMapping &bindpointMapping,
-                                              const ShaderReflection *shaderDetails,
+QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDetails,
                                               const QString &entryFunc)
 {
   QString hlsl = lit("// HLSL function stub generated\n\n");
@@ -830,39 +829,21 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderBindpointMapping &bind
       lit("Texture2DMSArray"), lit("Texture3D"),   lit("TextureCube"),    lit("TextureCubeArray"),
   };
 
-  // use bindpoint mapping
-
   for(const ShaderSampler &samp : shaderDetails->samplers)
   {
-    uint32_t reg = ~0U;
-
-    if(samp.bindPoint < bindpointMapping.samplers.count())
-      reg = bindpointMapping.samplers[samp.bindPoint].bind;
-    else
-      hlsl += lit("//");
-
     hlsl += lit("SamplerState %1 : register(s%2); // can't disambiguate\n"
                 "//SamplerComparisonState %1 : register(s%2); // can't disambiguate\n")
                 .arg(samp.name)
-                .arg(reg);
+                .arg(samp.fixedBindNumber);
   }
 
   for(int i = 0; i < 2; i++)
   {
-    const rdcarray<Bindpoint> &binds =
-        (i == 0 ? bindpointMapping.readOnlyResources : bindpointMapping.readWriteResources);
     const rdcarray<ShaderResource> &resources =
         (i == 0 ? shaderDetails->readOnlyResources : shaderDetails->readWriteResources);
     for(const ShaderResource &res : resources)
     {
       char regChar = 't';
-
-      uint32_t reg = ~0U;
-
-      if(res.bindPoint < binds.count())
-        reg = binds[res.bindPoint].bind;
-      else
-        hlsl += lit("//");
 
       if(i == 1)
       {
@@ -877,7 +858,7 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderBindpointMapping &bind
                     .arg(res.variableType.name)
                     .arg(res.name)
                     .arg(QLatin1Char(regChar))
-                    .arg(reg);
+                    .arg(res.fixedBindNumber);
       }
       else
       {
@@ -888,7 +869,7 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderBindpointMapping &bind
                     .arg(res.variableType.name)
                     .arg(res.name)
                     .arg(QLatin1Char(regChar))
-                    .arg(reg);
+                    .arg(res.fixedBindNumber);
       }
     }
   }
@@ -902,22 +883,12 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderBindpointMapping &bind
   {
     if(!cbuf.name.isEmpty() && !cbuf.variables.isEmpty())
     {
-      uint32_t reg = ~0U;
-
-      if(cbuf.bindPoint < bindpointMapping.constantBlocks.count())
-        reg = bindpointMapping.constantBlocks[cbuf.bindPoint].bind;
-      else
-        hlsl += lit("/*\n");
-
       QString cbufName = cbuf.name;
       if(cbufName == lit("$Globals"))
         cbufName = lit("_Globals");
-      cbuffers += lit("cbuffer %1 : register(b%2) {\n").arg(cbufName).arg(reg);
+      cbuffers += lit("cbuffer %1 : register(b%2) {\n").arg(cbufName).arg(cbuf.fixedBindNumber);
       MakeShaderVariablesHLSL(true, cbuf.variables, cbuffers, hlsl);
       cbuffers += lit("};\n\n");
-
-      if(reg == ~0U)
-        hlsl += lit("*/\n");
     }
     cbufIdx++;
   }
@@ -1059,7 +1030,6 @@ IShaderViewer *PipelineStateViewer::EditDecompiledSource(const ShaderProcessingT
 
 void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId pipelineId,
                                                 ResourceId shaderId,
-                                                const ShaderBindpointMapping &bindpointMapping,
                                                 const ShaderReflection *shaderDetails)
 {
   if(!shaderDetails || !button->isEnabled() || button->popupMode() != QToolButton::MenuButtonPopup)
@@ -1122,47 +1092,45 @@ void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId 
     QAction *action = new QAction(label, menu);
     action->setIcon(Icons::page_white_edit());
 
-    QObject::connect(
-        action, &QAction::triggered, [this, pipelineId, shaderId, bindpointMapping, shaderDetails]() {
-          QString entry;
-          QString src;
+    QObject::connect(action, &QAction::triggered, [this, pipelineId, shaderId, shaderDetails]() {
+      QString entry;
+      QString src;
 
-          if(shaderDetails->encoding == ShaderEncoding::SPIRV ||
-             shaderDetails->encoding == ShaderEncoding::OpenGLSPIRV)
-          {
-            m_Ctx.Replay().AsyncInvoke(
-                [this, pipelineId, shaderId, shaderDetails](IReplayController *r) {
-                  rdcstr disasm = r->DisassembleShader(pipelineId, shaderDetails, "");
+      if(shaderDetails->encoding == ShaderEncoding::SPIRV ||
+         shaderDetails->encoding == ShaderEncoding::OpenGLSPIRV)
+      {
+        m_Ctx.Replay().AsyncInvoke([this, pipelineId, shaderId, shaderDetails](IReplayController *r) {
+          rdcstr disasm = r->DisassembleShader(pipelineId, shaderDetails, "");
 
-                  QString editeddisasm =
-                      tr("####          PSEUDOCODE SPIR-V DISASSEMBLY            ###\n") +
-                      tr("#### Use a SPIR-V decompiler to get compileable source ###\n\n");
+          QString editeddisasm =
+              tr("####          PSEUDOCODE SPIR-V DISASSEMBLY            ###\n") +
+              tr("#### Use a SPIR-V decompiler to get compileable source ###\n\n");
 
-                  editeddisasm += disasm;
+          editeddisasm += disasm;
 
-                  GUIInvoke::call(this, [this, shaderId, shaderDetails, editeddisasm]() {
-                    rdcstrpairs files;
-                    files.push_back(rdcpair<rdcstr, rdcstr>("pseudocode", editeddisasm));
-
-                    EditShader(shaderId, shaderDetails->stage, shaderDetails->entryPoint,
-                               shaderDetails->debugInfo.compileFlags, KnownShaderTool::Unknown,
-                               ShaderEncoding::Unknown, files);
-                  });
-                });
-          }
-          else if(shaderDetails->encoding == ShaderEncoding::DXBC ||
-                  shaderDetails->encoding == ShaderEncoding::DXIL)
-          {
-            entry = lit("EditedShader%1S").arg(ToQStr(shaderDetails->stage, GraphicsAPI::D3D11)[0]);
-
+          GUIInvoke::call(this, [this, shaderId, shaderDetails, editeddisasm]() {
             rdcstrpairs files;
-            files.push_back(rdcpair<rdcstr, rdcstr>(
-                "decompiled_stub.hlsl", GenerateHLSLStub(bindpointMapping, shaderDetails, entry)));
+            files.push_back(rdcpair<rdcstr, rdcstr>("pseudocode", editeddisasm));
 
-            EditShader(shaderId, shaderDetails->stage, entry, shaderDetails->debugInfo.compileFlags,
-                       KnownShaderTool::Unknown, ShaderEncoding::HLSL, files);
-          }
+            EditShader(shaderId, shaderDetails->stage, shaderDetails->entryPoint,
+                       shaderDetails->debugInfo.compileFlags, KnownShaderTool::Unknown,
+                       ShaderEncoding::Unknown, files);
+          });
         });
+      }
+      else if(shaderDetails->encoding == ShaderEncoding::DXBC ||
+              shaderDetails->encoding == ShaderEncoding::DXIL)
+      {
+        entry = lit("EditedShader%1S").arg(ToQStr(shaderDetails->stage, GraphicsAPI::D3D11)[0]);
+
+        rdcstrpairs files;
+        files.push_back(rdcpair<rdcstr, rdcstr>("decompiled_stub.hlsl",
+                                                GenerateHLSLStub(shaderDetails, entry)));
+
+        EditShader(shaderId, shaderDetails->stage, entry, shaderDetails->debugInfo.compileFlags,
+                   KnownShaderTool::Unknown, ShaderEncoding::HLSL, files);
+      }
+    });
 
     menu->addAction(action);
   }

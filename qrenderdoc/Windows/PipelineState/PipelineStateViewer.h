@@ -102,7 +102,6 @@ public:
   void SetStencilTreeItemValue(RDTreeWidgetItem *item, int column, uint8_t value);
 
   void SetupShaderEditButton(QToolButton *button, ResourceId pipelineId, ResourceId shaderId,
-                             const ShaderBindpointMapping &bindpointMapping,
                              const ShaderReflection *shaderDetails);
 
   void SetupResourceView(RDTreeWidget *view);
@@ -145,8 +144,7 @@ private:
   void ShowResourceContextMenu(RDTreeWidget *widget, const QPoint &pos, ResourceId id,
                                const rdcarray<EventUsage> &usage);
 
-  QString GenerateHLSLStub(const ShaderBindpointMapping &bindpointMapping,
-                           const ShaderReflection *shaderDetails, const QString &entryFunc);
+  QString GenerateHLSLStub(const ShaderReflection *shaderDetails, const QString &entryFunc);
   IShaderViewer *EditShader(ResourceId id, ShaderStage shaderType, const rdcstr &entry,
                             ShaderCompileFlags compileFlags, KnownShaderTool knownTool,
                             ShaderEncoding shaderEncoding, const rdcstrpairs &files);

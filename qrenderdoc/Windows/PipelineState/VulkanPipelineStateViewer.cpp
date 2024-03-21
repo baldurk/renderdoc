@@ -2643,8 +2643,7 @@ void VulkanPipelineStateViewer::setState()
 
     b->setEnabled(stage->reflection && pipe != ResourceId());
 
-    m_Common.SetupShaderEditButton(b, pipe, stage->resourceId, stage->bindpointMapping,
-                                   stage->reflection);
+    m_Common.SetupShaderEditButton(b, pipe, stage->resourceId, stage->reflection);
   }
 
   QToolButton *messageButtons[] = {
