@@ -653,6 +653,16 @@ private:
 
   const VkFormatProperties &GetFormatProperties(VkFormat f);
 
+  struct CommandBufferNode
+  {
+    ResourceId cmdId = ResourceId();
+    uint32_t beginEvent = 0;
+    rdcarray<CommandBufferNode> executedCommands;
+    VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_MAX_ENUM;
+    CommandBufferNode *rootNode = nullptr;
+    bool renderPassActive = false;
+  };
+
   struct BakedCmdBufferInfo
   {
     BakedCmdBufferInfo()
@@ -735,59 +745,121 @@ private:
   };
   rdcarray<ActionUse> m_ActionUses;
 
-  enum PartialReplayIndex
-  {
-    Primary,
-    Secondary,
-    ePartialNum
-  };
-
-  struct Submission
-  {
-    Submission(uint32_t eid) : baseEvent(eid), rebased(false) {}
-    uint32_t baseEvent = 0;
-    bool rebased = false;
-  };
-
-  // by definition, when replaying we must have N completely submitted command buffers, and at most
-  // two partially-submitted command buffers. One primary, that we're part-way through, and then
-  // if we're part-way through a vkCmdExecuteCommandBuffers inside that primary then there's one
-  // secondary.
+  // during active replay, command buffers may be partially-submitted if the selected event occurs
+  // within the range of the command buffer. If secondary command buffers are used and the selected
+  // event occurs within the range of a secondary, both the secondary and the command buffer that
+  // executed it are considered partially-submitted. If VK_EXT_nested_command_buffer is enabled,
+  // there may be up to N partially-submitted command buffers, where N is the maximum command
+  // nesting depth used in the capture.
   struct PartialReplayData
   {
     PartialReplayData() { Reset(); }
-    void Reset()
+    void Reset() { partialStack.clear(); }
+
+    rdcarray<CommandBufferNode> partialStack;
+    rdcarray<CommandBufferNode> commandTree;
+    rdcflatmap<ResourceId, rdcarray<CommandBufferNode>> submitLookup;
+  } m_Partial;
+
+  rdcflatmap<ResourceId, CommandBufferNode> m_CommandNodes;
+
+  bool IsCommandBufferPartial(ResourceId cmdId)
+  {
+    for(const CommandBufferNode &cmdNode : m_Partial.partialStack)
     {
-      partialParent = ResourceId();
-      baseEvent = 0;
-      renderPassActive = false;
+      if(cmdNode.cmdId == cmdId)
+        return true;
     }
 
-    // this records where in the frame a command buffer was submitted, so that we know if our replay
-    // range ends in one of these ranges we need to construct a partial command buffer for future
-    // replaying. Note that we always have the complete command buffer around - it's the bakeID
-    // itself.
-    // Since we only ever record a bakeID once the key is unique - note that the same command buffer
-    // could be recorded multiple times a frame, so the parent command buffer ID (the one recorded
-    // in vkCmd chunks) is NOT unique.
-    // However, a single baked command list can be submitted multiple times - so we have to have a
-    // list of base events
-    // Note in the case of secondary command buffers we mark when these are rebased to 'absolute'
-    // event IDs, since they could be submitted multiple times in the frame and we don't want to
-    // rebase all of them each time.
-    // Map from bakeID -> vector<Submission>
-    std::map<ResourceId, rdcarray<Submission>> cmdBufferSubmits;
+    return false;
+  }
 
-    // identifies the baked ID of the command buffer that's actually partial at each level.
-    ResourceId partialParent;
+  bool IsCommandBufferPartialPrimary(ResourceId cmdId)
+  {
+    if(m_Partial.partialStack.empty())
+      return false;
 
-    // the base even of the submission that's partial, as defined above in partialParent
-    uint32_t baseEvent;
+    return (m_Partial.partialStack.front().cmdId == cmdId) &&
+           (m_BakedCmdBufferInfo[cmdId].level == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+  }
 
-    // whether a renderpass is currently active in the partial recording - as with baseEvent, only
-    // valid for the command buffer referred to by partialParent.
-    bool renderPassActive;
-  } m_Partial[ePartialNum];
+  void SetPartialStack(const CommandBufferNode &targetNode, uint32_t curEvent)
+  {
+    // If a command buffer is in the partial stack, it is either a parent of the deepest command buffer
+    // we have seen in this active replay, or it is the deepest.  Either way, don't change the stack.
+    if(IsCommandBufferPartial(targetNode.cmdId))
+      return;
+
+    BuildPartialStackUpToTarget(*targetNode.rootNode, targetNode, curEvent);
+  }
+
+  void BuildPartialStackUpToTarget(const CommandBufferNode &curNode,
+                                   const CommandBufferNode &targetNode, uint32_t curEvent)
+  {
+    // If the command node is not already in the list, add it
+    if(!IsCommandBufferPartial(curNode.cmdId))
+      m_Partial.partialStack.push_back(curNode);
+
+    if(curNode.cmdId == targetNode.cmdId)
+      return;
+
+    // We need to recurse the chain of command submits that are currently partial until we hit the target
+    for(const CommandBufferNode &cmdNode : curNode.executedCommands)
+    {
+      if(IsEventInCommandBuffer(cmdNode, curEvent, m_BakedCmdBufferInfo[cmdNode.cmdId].eventCount))
+      {
+        BuildPartialStackUpToTarget(cmdNode, targetNode, curEvent);
+      }
+    }
+  }
+
+  void BuildPartialStack(const CommandBufferNode &parentNode, uint32_t ev)
+  {
+    if(!IsEventInCommandBuffer(parentNode, ev, m_BakedCmdBufferInfo[parentNode.cmdId].eventCount))
+      return;
+
+    m_Partial.partialStack.push_back(parentNode);
+
+    for(const CommandBufferNode &cmdNode : parentNode.executedCommands)
+    {
+      BuildPartialStack(cmdNode, ev);
+    }
+  }
+
+  bool IsEventInCommandBuffer(const CommandBufferNode &cmdNode, uint32_t ev, uint32_t eventCount)
+  {
+    return RDCMAX(1U, cmdNode.beginEvent) - 1 <= ev && ev < (cmdNode.beginEvent + eventCount);
+  }
+
+  bool IsCommandBufferDeepestPartial(ResourceId cmdId)
+  {
+    if(m_Partial.partialStack.empty())
+      return false;
+
+    return m_Partial.partialStack.back().cmdId == cmdId;
+  }
+
+  CommandBufferNode *GetCommandBufferPartialSubmission(ResourceId cmdId)
+  {
+    for(CommandBufferNode &cmdNode : m_Partial.partialStack)
+    {
+      if(cmdNode.cmdId == cmdId)
+        return &cmdNode;
+    }
+
+    return nullptr;
+  }
+
+  bool IsPartialRenderPassActive()
+  {
+    for(const CommandBufferNode &cmdNode : m_Partial.partialStack)
+    {
+      if(cmdNode.renderPassActive)
+        return true;
+    }
+
+    return false;
+  }
 
   // if we're replaying just a single action or a particular command
   // buffer subsection of command events, we don't go through the
@@ -812,11 +884,12 @@ private:
 
   bool InRerecordRange(ResourceId cmdid);
   bool HasRerecordCmdBuf(ResourceId cmdid);
-  bool ShouldUpdateRenderState(ResourceId cmdid, bool forcePrimary = false);
   bool IsRenderpassOpen(ResourceId cmdid);
-  VkCommandBuffer RerecordCmdBuf(ResourceId cmdid, PartialReplayIndex partialType = ePartialNum);
+  VkCommandBuffer RerecordCmdBuf(ResourceId cmdid);
 
   ResourceId GetPartialCommandBuffer();
+
+  void UpdateRenderStateForSecondaries(BakedCmdBufferInfo &ancestorCB, BakedCmdBufferInfo &currentCB);
 
   // this info is stored in the record on capture, but we
   // need it on replay too
@@ -1031,8 +1104,15 @@ private:
   bool PatchIndirectDraw(size_t drawIndex, uint32_t paramStride, VkIndirectPatchType type,
                          ActionDescription &action, byte *&argptr, byte *argend);
   void InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo);
+  void AddReferencesForSecondaries(VkResourceRecord *record,
+                                   rdcarray<VkResourceRecord *> &cmdsWithReferences,
+                                   std::unordered_set<ResourceId> &refdIDs);
+  void AddRecordsForSecondaries(VkResourceRecord *record);
+  void UpdateImageStatesForSecondaries(VkResourceRecord *record);
   void CaptureQueueSubmit(VkQueue queue, const rdcarray<VkCommandBuffer> &commandBuffers,
                           VkFence fence);
+  void RebaseSubmitsForSecondaries(CommandBufferNode &parentNode, CommandBufferNode &rootNode,
+                                   uint32_t curBaseEvent);
   void ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, rdcstr basename);
   void InternalFlushMemoryRange(VkDevice device, const VkMappedMemoryRange &memRange,
                                 bool internalFlush, bool capframe);

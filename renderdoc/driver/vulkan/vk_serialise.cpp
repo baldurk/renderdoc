@@ -786,6 +786,12 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT,                              \
                VkMutableDescriptorTypeCreateInfoEXT)                                                   \
                                                                                                        \
+  /* VK_EXT_nested_command_buffer */                                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_NESTED_COMMAND_BUFFER_FEATURES_EXT,                   \
+               VkPhysicalDeviceNestedCommandBufferFeaturesEXT)                                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_NESTED_COMMAND_BUFFER_PROPERTIES_EXT,                 \
+               VkPhysicalDeviceNestedCommandBufferPropertiesEXT)                                       \
+                                                                                                       \
   /* VK_EXT_non_seamless_cube_map */                                                                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_NON_SEAMLESS_CUBE_MAP_FEATURES_EXT,                   \
                VkPhysicalDeviceNonSeamlessCubeMapFeaturesEXT)                                          \
@@ -1616,10 +1622,6 @@ SERIALISE_VK_HANDLES();
   /* VK_EXT_multi_draw */                                                                              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTI_DRAW_FEATURES_EXT)                         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTI_DRAW_PROPERTIES_EXT)                       \
-                                                                                                       \
-  /* VK_EXT_nested_command_buffer */                                                                   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_NESTED_COMMAND_BUFFER_FEATURES_EXT)              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_NESTED_COMMAND_BUFFER_PROPERTIES_EXT)            \
                                                                                                        \
   /* VK_EXT_opacity_micromap */                                                                        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MICROMAP_BUILD_INFO_EXT)                                         \
@@ -6798,6 +6800,40 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceMultiviewProperties &el)
 
 template <>
 void Deserialise(const VkPhysicalDeviceMultiviewProperties &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceNestedCommandBufferFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_NESTED_COMMAND_BUFFER_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(nestedCommandBuffer);
+  SERIALISE_MEMBER(nestedCommandBufferRendering);
+  SERIALISE_MEMBER(nestedCommandBufferSimultaneousUse);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceNestedCommandBufferFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceNestedCommandBufferPropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_NESTED_COMMAND_BUFFER_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(maxCommandBufferNestingLevel);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceNestedCommandBufferPropertiesEXT &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -12346,6 +12382,8 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultisampledRenderToSingleSampledFeat
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultiviewFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultiviewProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceNestedCommandBufferFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceNestedCommandBufferPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceNonSeamlessCubeMapFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePCIBusInfoPropertiesEXT);
